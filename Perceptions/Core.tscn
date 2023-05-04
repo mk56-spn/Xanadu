@@ -1,9 +1,12 @@
-[gd_scene load_steps=2 format=3 uid="uid://dfvncwmweby48"]
+[gd_scene load_steps=3 format=3 uid="uid://dfvncwmweby48"]
+
+[ext_resource type="Script" path="res://Perceptions/Core.gd" id="1_opurh"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_rd2ky"]
 size = Vector2(128, 128)
 
 [node name="Core" type="CharacterBody2D"]
+script = ExtResource("1_opurh")
 
 [node name="ColorRect" type="ColorRect" parent="."]
 offset_left = -64.0
