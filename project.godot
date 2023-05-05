@@ -29,4 +29,5 @@ main={
 
 [physics]
 
+common/physics_ticks_per_second=240
 2d/default_gravity=5000.0
