@@ -1,4 +1,6 @@
-[gd_scene format=3 uid="uid://dbtf7bfi5wdg7"]
+[gd_scene load_steps=2 format=3 uid="uid://dbtf7bfi5wdg7"]
+
+[ext_resource type="PackedScene" uid="uid://dfvncwmweby48" path="res://Perceptions/Core.tscn" id="1_mui20"]
 
 [node name="TestStage" type="Node2D"]
 
@@ -11,3 +13,6 @@ polygon = PackedVector2Array(64, 24, 64, -40, 128, -40, 128, 56, 192, 56, 192, 8
 
 [node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="Camera2D/Polygon2D/StaticBody2D"]
 polygon = PackedVector2Array(-488, 24, -488, 248, 480, 248, 480, -8, 464, -8, 464, 216, 320, 216, 320, 8, 192, 8, 192, 56, 128, 56, 128, -40, 64, -40, 64, 24)
+
+[node name="Core" parent="." instance=ExtResource("1_mui20")]
+position = Vector2(456, -176)
