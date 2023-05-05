@@ -5,7 +5,7 @@
 [node name="TestStage" type="CanvasLayer"]
 
 [node name="Camera" type="Camera2D" parent="."]
-zoom = Vector2(0.6, 0.6)
+position = Vector2(968, 592)
 
 [node name="Polygon2D" type="Polygon2D" parent="Camera"]
 polygon = PackedVector2Array(64, 0, 64, -256, 128, -256, 128, 56, 192, 56, 192, 8, 256, 8, 320, 8, 320, 216, 464, 216, 464, -8, 480, -8, 480, 248, -488, 248, -488, 24, -64, 24, -64, 0)
@@ -16,4 +16,4 @@ polygon = PackedVector2Array(64, 0, 64, -256, 128, -256, 128, 56, 192, 56, 192, 
 polygon = PackedVector2Array(-488, 24, -488, 248, 480, 248, 480, -8, 464, -8, 464, 216, 320, 216, 320, 8, 192, 8, 192, 56, 128, 56, 128, -256, 64, -256, 64, 0, -8, 0, -64, 0, -64, 24)
 
 [node name="Core" parent="." instance=ExtResource("1_mui20")]
-position = Vector2(-168, -304)
+position = Vector2(416, 480)
