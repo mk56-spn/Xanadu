@@ -15,6 +15,8 @@ func _ready() -> void:
 
 func _physics_process(delta: float) -> void:
 	
+	_nucleus_collision()
+	
 	if self.is_on_floor(): 
 		_ground_movement();
 	else: 
@@ -29,3 +31,6 @@ func _air_movement(d : float) -> void:
 func _ground_movement() -> void:
 	if Input.is_action_pressed("main"):
 		velocity.y = JUMP_VELOCITY;
+		
+func _nucleus_collision() -> void:
+	$Nucleus.modulate = Color.RED if $Nucleus.has_overlapping_bodies() else Color.GREEN_YELLOW;
