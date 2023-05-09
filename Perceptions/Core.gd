@@ -25,6 +25,7 @@ func _physics_process(delta: float) -> void:
 	move_and_slide()
 	
 func _air_movement(d : float) -> void:
+	$Body.rotate(deg_to_rad(360 * d))
 	velocity.y = minf(1500, velocity.y + gravity * d)
 
 func _ground_movement() -> void:
