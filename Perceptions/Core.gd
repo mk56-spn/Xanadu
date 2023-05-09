@@ -1,19 +1,9 @@
-extends CharacterBody2D
+extends Perception;
 
-const SPEED = 300.0
 const JUMP_VELOCITY = -1900.0
 
 #Air movement does not require a tween for now
 var rotation_tween : Tween;
-
-# This should not be altered to obtain different directions or speeds, instead a multiplier should be applied to it
-const BASE_VELOCITY : int = 700;
-
-# Get the gravity from the project settings to be synced with RigidBody nodes.
-var gravity: int = ProjectSettings.get_setting("physics/2d/default_gravity")
-
-func _ready() -> void:
-	velocity.x = BASE_VELOCITY;
 
 func _physics_process(delta: float) -> void:
 	
