@@ -38,3 +38,7 @@ main={
 
 common/physics_ticks_per_second=240
 2d/default_gravity=7000.0
+
+[rendering]
+
+anti_aliasing/quality/msaa_2d=2
