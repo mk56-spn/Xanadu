@@ -1,7 +1,9 @@
-[gd_scene load_steps=3 format=3 uid="uid://dbtf7bfi5wdg7"]
+[gd_scene load_steps=5 format=3 uid="uid://dbtf7bfi5wdg7"]
 
 [ext_resource type="Script" path="res://Stages/TestStage.gd" id="1_lvl61"]
 [ext_resource type="PackedScene" uid="uid://dfvncwmweby48" path="res://Perceptions/Core.tscn" id="1_mui20"]
+[ext_resource type="Script" path="res://Composer/ThreatPolygon.gd" id="3_vbmun"]
+[ext_resource type="Script" path="res://Composer/EnvironmentPolygon.gd" id="4_fte6a"]
 
 [node name="TestStage" type="Node2D"]
 script = ExtResource("1_lvl61")
@@ -12,3 +14,12 @@ position = Vector2(416, 480)
 [node name="Camera" type="Camera2D" parent="."]
 position = Vector2(968, 592)
 zoom = Vector2(0.7, 0.7)
+
+[node name="ThreatPolygon" type="Polygon2D" parent="."]
+position = Vector2(264, -184)
+polygon = PackedVector2Array(344, 704, 592, 648, 616, 816, 456, 776)
+script = ExtResource("3_vbmun")
+
+[node name="EnvironmentPolygon" type="Polygon2D" parent="."]
+polygon = PackedVector2Array(384, 704, 384, 896, 1344, 896, 1344, 576, 1216, 576, 1216, 832, 512, 832, 512, 704)
+script = ExtResource("4_fte6a")
