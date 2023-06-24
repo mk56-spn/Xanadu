@@ -2,8 +2,8 @@
 
 [ext_resource type="Script" path="res://Stages/TestStage.gd" id="1_lvl61"]
 [ext_resource type="PackedScene" uid="uid://dfvncwmweby48" path="res://Perceptions/Core.tscn" id="1_mui20"]
-[ext_resource type="Script" path="res://Composer/ThreatPolygon.gd" id="3_vbmun"]
-[ext_resource type="Script" path="res://Composer/EnvironmentPolygon.gd" id="4_fte6a"]
+[ext_resource type="Script" path="res://Composer/ThreatPolygon.cs" id="3_vbmun"]
+[ext_resource type="Script" path="res://Composer/EnvironmentPolygon.cs" id="4_fte6a"]
 
 [node name="TestStage" type="Node2D"]
 script = ExtResource("1_lvl61")
