@@ -20,6 +20,7 @@ public partial class Core : Perception
         _nucleus = GetNode<Area2D>("Nucleus");
 
         GetNode<Area2D>("Shell").AreaShapeEntered += (_, _, _, _) => SetPhysicsProcess(false);
+        _nucleus.BodyEntered += body => SetPhysicsProcess(false);
     }
 
     public override void _PhysicsProcess(double delta)

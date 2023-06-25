@@ -37,5 +37,3 @@ collision_mask = 4
 [node name="Collision" type="CollisionShape2D" parent="Nucleus"]
 shape = SubResource("RectangleShape2D_hdcld")
 debug_color = Color(1, 1, 1, 0.698039)
-
-[connection signal="area_shape_entered" from="Shell" to="." method="_on_shell_area_shape_entered" unbinds=4]
