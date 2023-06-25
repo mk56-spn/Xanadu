@@ -1,0 +1,42 @@
+[gd_scene load_steps=4 format=3 uid="uid://byaqdc28kqx51"]
+
+[ext_resource type="Script" path="res://Composer/Stage.cs" id="1_j6tr4"]
+[ext_resource type="Script" path="res://Composer/EnvironmentPolygon.cs" id="2_spqlq"]
+[ext_resource type="Script" path="res://Composer/ThreatPolygon.cs" id="3_c2vkm"]
+
+[node name="TestStage2" type="WorldEnvironment"]
+script = ExtResource("1_j6tr4")
+
+[node name="EnvironmentPolygon" type="Polygon2D" parent="."]
+position = Vector2(0, 64)
+polygon = PackedVector2Array(0, 0, 0, 128, 448, 128, 448, 0, 296, 0, 296, 40, 192, 40, 64, 40, 64, 0)
+script = ExtResource("2_spqlq")
+
+[node name="ThreatPolygon" type="Polygon2D" parent="."]
+position = Vector2(56, 64)
+polygon = PackedVector2Array(80, 40, 128, 48, 176, 40, 160, 8, 144, 40, 128, 8, 112, 40, 96, 8)
+script = ExtResource("3_c2vkm")
+
+[node name="ThreatPolygon" type="Polygon2D" parent="ThreatPolygon"]
+position = Vector2(584, -184)
+rotation = -3.14159
+polygon = PackedVector2Array(80, 40, 128, 48, 176, 40, 160, 8, 144, 40, 128, 8, 112, 40, 96, 8)
+script = ExtResource("3_c2vkm")
+
+[node name="EnvironmentPolygon2" type="Polygon2D" parent="."]
+position = Vector2(0, 88)
+polygon = PackedVector2Array(456, -248, 776, -192, 640, -320, 448, -320, 448, -248)
+script = ExtResource("2_spqlq")
+
+[node name="EnvironmentPolygon3" type="Polygon2D" parent="."]
+polygon = PackedVector2Array(832, 192, 1792, 192, 1792, -48, 1728, -48, 1728, 16, 1568, 16, 1568, 96, 1000, 96, 1000, 152, 832, 152)
+script = ExtResource("2_spqlq")
+
+[node name="ThreatPolygon2" type="Polygon2D" parent="."]
+polygon = PackedVector2Array(1288, 88, 1328, 88, 1328, 96, 1288, 96)
+script = ExtResource("3_c2vkm")
+
+[node name="EnvironmentPolygon4" type="Polygon2D" parent="."]
+position = Vector2(32, 0)
+polygon = PackedVector2Array(512, 256, 512, 384, 640, 384, 640, 256)
+script = ExtResource("2_spqlq")
