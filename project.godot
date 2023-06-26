@@ -15,6 +15,10 @@ config/tags=PackedStringArray("serious")
 config/features=PackedStringArray("4.1", "C#", "Forward Plus")
 config/icon="res://icon.svg"
 
+[audio]
+
+driver/output_latency=1
+
 [display]
 
 window/size/viewport_width=1920
