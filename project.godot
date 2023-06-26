@@ -15,6 +15,10 @@ config/tags=PackedStringArray("serious")
 config/features=PackedStringArray("4.1", "C#", "Forward Plus")
 config/icon="res://icon.svg"
 
+[audio]
+
+driver/output_latency=1
+
 [display]
 
 window/size/viewport_width=1920
@@ -41,6 +45,7 @@ main={
 
 [physics]
 
+2d/run_on_separate_thread=true
 common/physics_ticks_per_second=240
 2d/default_gravity=7000.0
 
