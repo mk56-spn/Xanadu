@@ -46,8 +46,20 @@ public partial class InputTest : CenterContainer
         public string Key { get; set; }
 
         public InputRect() =>
-           CustomMinimumSize = new Vector2(100, 100);
-        
+            CustomMinimumSize = new Vector2(100, 100);
+
+        public override void _Ready()
+        {
+            base._Ready();
+
+            AddChild(new Label
+            {
+                Text = Key,
+                LayoutMode = 1, 
+                AnchorsPreset = 8,
+            });
+        }
+
         public override void _Process(double delta)
         {
             base._Process(delta);
