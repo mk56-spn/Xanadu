@@ -1,5 +1,4 @@
 using Godot;
-using XanaduProject.Perceptions;
 
 namespace XanaduProject.Composer;
 
@@ -7,7 +6,6 @@ namespace XanaduProject.Composer;
 public partial class Stage : WorldEnvironment
 {
     private Camera2D _camera = new();
-
     private Node2D _core;
 
 
