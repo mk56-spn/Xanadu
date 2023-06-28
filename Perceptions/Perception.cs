@@ -10,7 +10,7 @@ public abstract partial class Perception : CharacterBody2D
 
     protected Perception()
     {
-        var fetchGravity = ProjectSettings.GetSetting("physics/2d/default_gravity");
+        Variant fetchGravity = ProjectSettings.GetSetting("physics/2d/default_gravity");
         Gravity = fetchGravity.AsInt32();
         
         Velocity = new Vector2(BaseVelocity, 0);
