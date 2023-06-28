@@ -5,8 +5,8 @@ namespace XanaduProject.Composer;
 [GlobalClass]
 public partial class ThreatPolygon : Polygon2D
 {
-    private Area2D _body = new();
-    private CollisionPolygon2D _hitBox = new();
+    private Area2D _body = new Area2D();
+    private CollisionPolygon2D _hitBox = new CollisionPolygon2D();
 
     public ThreatPolygon()
     {
