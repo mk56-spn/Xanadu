@@ -15,7 +15,7 @@ public partial class InputTest : CenterContainer
             container.AddChild(child);
     }
 
-    private readonly List<InputRect> _addKeys = new()
+    private readonly List<InputRect> _addKeys = new List<InputRect>
     {
         new InputRect
         {
@@ -37,13 +37,12 @@ public partial class InputTest : CenterContainer
         }
     };
 
-    private ColorRect InputBox() =>
-        new() { Size = new Vector2(100, 100) };
+    private ColorRect InputBox() => new ColorRect { Size = new Vector2(100, 100) };
 
     private partial class InputRect : ColorRect
     {
         public Color ColourOn { get; set; }
-        public string Key { get; set; }
+        public string? Key { get; set; }
 
         public InputRect() =>
             CustomMinimumSize = new Vector2(100, 100);
