@@ -5,7 +5,7 @@ namespace XanaduProject.Composer;
 [GlobalClass]
 public partial class Stage : WorldEnvironment
 {
-    private Camera2D _camera = new();
+    private Camera2D _camera = new Camera2D();
     private Node2D _core;
 
 

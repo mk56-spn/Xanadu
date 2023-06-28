@@ -7,10 +7,9 @@ public partial class Core : Perception
 {
     private const int JumpVelocity = -1900;
 
-    private Tween _rotationTween;
-
-    private Area2D _nucleus;
-    private Polygon2D _body;
+    private Tween? _rotationTween;
+    private Area2D _nucleus = null!;
+    private Polygon2D _body = null!;
 
     public override void _Ready()
     {
@@ -20,7 +19,7 @@ public partial class Core : Perception
         _nucleus = GetNode<Area2D>("Nucleus");
 
         GetNode<Area2D>("Shell").AreaShapeEntered += (_, _, _, _) => SetPhysicsProcess(false);
-        _nucleus.BodyEntered += body => SetPhysicsProcess(false);
+        _nucleus.BodyEntered += _ => SetPhysicsProcess(false);
     }
 
     public override void _PhysicsProcess(double delta)
