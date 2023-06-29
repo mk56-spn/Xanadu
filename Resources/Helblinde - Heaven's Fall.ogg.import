@@ -1,0 +1,19 @@
+[remap]
+
+importer="oggvorbisstr"
+type="AudioStreamOggVorbis"
+uid="uid://dliva2opxnaxr"
+path="res://.godot/imported/Helblinde - Heaven's Fall.ogg-e7d8dc3b539dc9d1ffc8c4549fbb9bd3.oggvorbisstr"
+
+[deps]
+
+source_file="res://Resources/Helblinde - Heaven's Fall.ogg"
+dest_files=["res://.godot/imported/Helblinde - Heaven's Fall.ogg-e7d8dc3b539dc9d1ffc8c4549fbb9bd3.oggvorbisstr"]
+
+[params]
+
+loop=false
+loop_offset=0
+bpm=0
+beat_count=0
+bar_beats=4
