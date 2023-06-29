@@ -19,6 +19,10 @@ config/icon="res://icon.svg"
 
 driver/output_latency=1
 
+[autoload]
+
+GlobalAudio="*res://Singletons/AudioSource.tscn"
+
 [display]
 
 window/size/viewport_width=1920
@@ -27,6 +31,10 @@ window/size/viewport_height=1080
 [dotnet]
 
 project/assembly_name="XanaduProject"
+
+[editor_plugins]
+
+enabled=PackedStringArray()
 
 [input]
 
