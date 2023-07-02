@@ -5,17 +5,17 @@ namespace XanaduProject.Composer;
 [GlobalClass]
 public partial class ThreatPolygon : Polygon2D
 {
-    private Area2D _body = new Area2D();
-    private CollisionPolygon2D _hitBox = new CollisionPolygon2D();
+    private Area2D body = new Area2D();
+    private CollisionPolygon2D hitBox = new CollisionPolygon2D();
 
     public ThreatPolygon()
     {
-        AddChild(_body);
-        _body.AddChild(_hitBox);
+        AddChild(body);
+        body.AddChild(hitBox);
         
-        _body.CollisionLayer = 8;
+        body.CollisionLayer = 8;
         Modulate = Colors.Red;
 
-        _hitBox.Polygon = Polygon;
+        hitBox.Polygon = Polygon;
     }
 }
