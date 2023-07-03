@@ -7,19 +7,19 @@ public partial class Core : Perception
 {
     private const int JumpVelocity = -1900;
 
-    private Tween? _rotationTween;
-    private Area2D _nucleus = null!;
-    private Polygon2D _body = null!;
+    private Tween? rotationTween;
+    private Area2D nucleus = null!;
+    private Polygon2D body = null!;
 
     public override void _Ready()
     {
         base._Ready();
         
-        _body = GetNode<Polygon2D>("Body");
-        _nucleus = GetNode<Area2D>("Nucleus");
+        body = GetNode<Polygon2D>("Body");
+        nucleus = GetNode<Area2D>("Nucleus");
 
         GetNode<Area2D>("Shell").AreaShapeEntered += (_, _, _, _) => SetPhysicsProcess(false);
-        _nucleus.BodyEntered += _ => SetPhysicsProcess(false);
+        nucleus.BodyEntered += _ => SetPhysicsProcess(false);
     }
 
     public override void _PhysicsProcess(double delta)
@@ -46,25 +46,25 @@ public partial class Core : Perception
 
     private void grounded_rotation()
     {
-        float targetRotation = Mathf.Snapped(_body.RotationDegrees, 90);
+        float targetRotation = Mathf.Snapped(body.RotationDegrees, 90);
 
-        if (_rotationTween != null || !(Math.Abs(_body.RotationDegrees - targetRotation) > 0.01)) return;
+        if (rotationTween != null || !(Math.Abs(body.RotationDegrees - targetRotation) > 0.01)) return;
         
-        _rotationTween = CreateTween();
-        _rotationTween.TweenProperty(_body, "rotation_degrees", targetRotation, 0.1);
+        rotationTween = CreateTween();
+        rotationTween.TweenProperty(body, "rotation_degrees", targetRotation, 0.1);
     }
 
     private void air_movement(double delta)
     {
 
-        _rotationTween?.Kill();
-        _rotationTween = null;
+        rotationTween?.Kill();
+        rotationTween = null;
         
-        _body.Rotate(Mathf.DegToRad(360 * (float)delta));
+        body.Rotate(Mathf.DegToRad(360 * (float)delta));
 
         Velocity = new Vector2(Velocity.X, Mathf.Min(1500, Velocity.Y + Gravity * (float)delta));
     }
     private void nucleus_collision() =>
-        _nucleus.Modulate = _nucleus.HasOverlappingBodies() ? Colors.Red : Colors.Green;
+        nucleus.Modulate = nucleus.HasOverlappingBodies() ? Colors.Red : Colors.Green;
     
 }

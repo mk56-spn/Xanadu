@@ -5,17 +5,17 @@ namespace XanaduProject.Composer;
 [GlobalClass]
 public partial class Stage : WorldEnvironment
 {
-    private Camera2D _camera = new Camera2D();
-    private Node2D _core;
+    private Camera2D camera = new Camera2D();
+    private Node2D core;
 
 
     public Stage()
     {
         PackedScene coreScene = (PackedScene)ResourceLoader.Load("res://Perceptions/Core.tscn");
-        _core =(Node2D)coreScene.Instantiate();
+        core =(Node2D)coreScene.Instantiate();
 
-        AddChild(_core);
-        AddChild(_camera);
+        AddChild(core);
+        AddChild(camera);
     }
 
 
@@ -23,6 +23,6 @@ public partial class Stage : WorldEnvironment
     {
         base._PhysicsProcess(delta);
         
-        _camera.Position = _core.Position;
+        camera.Position = core.Position;
     }
 }

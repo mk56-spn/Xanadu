@@ -11,11 +11,11 @@ public partial class InputTest : CenterContainer
         var container = new HBoxContainer();
         AddChild(container);
 
-        foreach (var child in _addKeys)
+        foreach (var child in addKeys)
             container.AddChild(child);
     }
 
-    private readonly List<InputRect> _addKeys = new List<InputRect>
+    private readonly List<InputRect> addKeys = new List<InputRect>
     {
         new InputRect
         {
