@@ -1,27 +1,63 @@
 using System;
 using Godot;
+using XanaduProject.Data;
 
 namespace XanaduProject.Singletons;
 
-public sealed partial class AudioSource : Node2D
+public sealed partial class AudioSource : AudioStreamPlayer
 {
-	private AudioStreamPlayer player = new AudioStreamPlayer();
-	/// <summary>
-	/// The current globally active track.
-	/// </summary>
-	public AudioStreamPlayer Player
+	public double Bpm { get; private set; } = 120;
+	public int Measures { get; private set; } = 4;
+
+	// For some reason Godot uses time in seconds. So this conversion is necessary.
+	private double secondsPerBeat;
+	private int positionInBeats;
+	private int lastPlayedBeat;
+
+	public double TrackPosition { private set; get; }
+	public int Measure = 1;
+
+	public event EventHandler<int>? OnNewBeat;
+
+	public double SongProgressPercentage() => 
+		Math.Round(GetPlaybackPosition() / Stream.GetLength(), 2) * 100;
+
+
+	public override void _PhysicsProcess(double delta)
 	{
-		get => player;
-		set => player = value;
+		base._PhysicsProcess(delta);
+		if (!Playing) return;
+
+		TrackPosition = GetPlaybackPosition() + AudioServer.GetTimeSinceLastMix();
+		TrackPosition -= AudioServer.GetOutputLatency();
+		positionInBeats = (int)Math.Floor(TrackPosition / secondsPerBeat);
+
+		ReportBeat();
 	}
 
-	public AudioSource()
+	private void ReportBeat()
 	{
-		AddChild(player);
+		if (lastPlayedBeat < positionInBeats is false)
+			return;
+
+		if (Measure > Measures)
+			Measure = 1;
+
+		OnNewBeat?.Invoke(this, positionInBeats);
+
+		lastPlayedBeat = positionInBeats;
+		Measure++;
+
 	}
-	
-	public bool TrackIsNull() => 
-		player.Stream == null;
-	public double SongProgressPercentage() => 
-		Math.Round(player.GetPlaybackPosition() / player.Stream.GetLength(), 2) * 100;
+
+	public void SetTrack(TrackInfo trackInfo)
+	{
+		Bpm = trackInfo.Bpm;
+		Stream = trackInfo.Track;
+		Measures = trackInfo.Measures;
+
+		Measure = 1;
+
+		secondsPerBeat = 60 / Bpm;
+	}
 }
