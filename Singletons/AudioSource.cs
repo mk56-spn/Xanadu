@@ -19,7 +19,7 @@ public sealed partial class AudioSource : AudioStreamPlayer
 
 	public event EventHandler<int>? OnNewBeat;
 
-	public double SongProgressPercentage() => 
+	public double SongProgressPercentage() =>
 		Math.Round(GetPlaybackPosition() / Stream.GetLength(), 2) * 100;
 
 

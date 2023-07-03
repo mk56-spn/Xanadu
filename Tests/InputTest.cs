@@ -11,7 +11,7 @@ public partial class InputTest : CenterContainer
         var container = new HBoxContainer();
         AddChild(container);
 
-        foreach (var child in addKeys)
+        foreach (InputRect child in addKeys)
             container.AddChild(child);
     }
 
@@ -19,19 +19,19 @@ public partial class InputTest : CenterContainer
     {
         new InputRect
         {
-            Position = new Vector2(400,400),
+            Position = new Vector2(400, 400),
             Key = "main",
             ColourOn = Colors.Yellow
         },
         new InputRect
         {
-            Position = new Vector2(400,400),
+            Position = new Vector2(400, 400),
             Key = "R1",
             ColourOn = Colors.Green
         },
         new InputRect
         {
-            Position = new Vector2(400,400),
+            Position = new Vector2(400, 400),
             Key = "R2",
             ColourOn = Colors.Orange
         }
@@ -54,7 +54,7 @@ public partial class InputTest : CenterContainer
             AddChild(new Label
             {
                 Text = Key,
-                LayoutMode = 1, 
+                LayoutMode = 1,
                 AnchorsPreset = 8,
             });
         }
