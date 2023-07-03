@@ -8,7 +8,7 @@ public sealed partial class AudioSource : AudioStreamPlayer
 {
 	public double Bpm { get; private set; } = 120;
 	public int Measures { get; private set; } = 4;
-		
+
 	// For some reason Godot uses time in seconds. So this conversion is necessary.
 	private double secondsPerBeat;
 	private int positionInBeats;
@@ -16,12 +16,12 @@ public sealed partial class AudioSource : AudioStreamPlayer
 
 	public double TrackPosition { private set; get; }
 	public int Measure = 1;
-	
+
 	public event EventHandler<int>? OnNewBeat;
-	
+
 	public double SongProgressPercentage() => 
 		Math.Round(GetPlaybackPosition() / Stream.GetLength(), 2) * 100;
-	
+
 
 	public override void _PhysicsProcess(double delta)
 	{
@@ -31,15 +31,15 @@ public sealed partial class AudioSource : AudioStreamPlayer
 		TrackPosition = GetPlaybackPosition() + AudioServer.GetTimeSinceLastMix();
 		TrackPosition -= AudioServer.GetOutputLatency();
 		positionInBeats = (int)Math.Floor(TrackPosition / secondsPerBeat);
-			
+
 		ReportBeat();
 	}
 
 	private void ReportBeat()
 	{
-		if (lastPlayedBeat < positionInBeats is false) 
+		if (lastPlayedBeat < positionInBeats is false)
 			return;
-			
+
 		if (Measure > Measures)
 			Measure = 1;
 
@@ -47,6 +47,7 @@ public sealed partial class AudioSource : AudioStreamPlayer
 
 		lastPlayedBeat = positionInBeats;
 		Measure++;
+
 	}
 
 	public void SetTrack(TrackInfo trackInfo)
