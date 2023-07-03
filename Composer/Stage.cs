@@ -12,7 +12,7 @@ public partial class Stage : WorldEnvironment
     public Stage()
     {
         PackedScene coreScene = (PackedScene)ResourceLoader.Load("res://Perceptions/Core.tscn");
-        core =(Node2D)coreScene.Instantiate();
+        core = (Node2D)coreScene.Instantiate();
 
         AddChild(core);
         AddChild(camera);
@@ -22,7 +22,7 @@ public partial class Stage : WorldEnvironment
     public override void _PhysicsProcess(double delta)
     {
         base._PhysicsProcess(delta);
-        
+
         camera.Position = core.Position;
     }
 }

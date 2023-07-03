@@ -12,7 +12,7 @@ public partial class ThreatPolygon : Polygon2D
     {
         AddChild(body);
         body.AddChild(hitBox);
-        
+
         body.CollisionLayer = 8;
         Modulate = Colors.Red;
 

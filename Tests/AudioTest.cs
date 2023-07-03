@@ -6,7 +6,7 @@ namespace XanaduProject.Tests;
 [GlobalClass]
 public partial class AudioTest : CenterContainer
 {
-	private ProgressBar progressBar = new ProgressBar{ CustomMinimumSize = new Vector2(200, 0) };
+	private ProgressBar progressBar = new ProgressBar { CustomMinimumSize = new Vector2(200, 0) };
 	private AudioSource audioSource = null!;
 	private ColorRect beatRect = new ColorRect { CustomMinimumSize = new Vector2(200, 200) };
 
@@ -18,7 +18,7 @@ public partial class AudioTest : CenterContainer
 		AddChild(beatRect);
 		AddChild(progressBar);
 
-		audioSource.OnNewBeat += (_,_) =>
+		audioSource.OnNewBeat += (_, _) =>
 		{
 			if (audioSource.Measure != 1) return;
 
@@ -28,6 +28,7 @@ public partial class AudioTest : CenterContainer
 		};
 
 		GD.Print($"{audioSource.Stream == null}");
+
 		audioSource.Play();
 	}
 
@@ -35,7 +36,7 @@ public partial class AudioTest : CenterContainer
 	{
 		base._Process(delta);
 
-		if ( audioSource.Stream == null )return;
+		if (audioSource.Stream == null) return;
 
 		progressBar.Value = audioSource.SongProgressPercentage();
 	}
