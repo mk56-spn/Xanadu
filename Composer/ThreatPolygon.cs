@@ -2,6 +2,7 @@ using Godot;
 
 namespace XanaduProject.Composer;
 
+[Tool]
 [GlobalClass]
 public partial class ThreatPolygon : Polygon2D
 {
@@ -14,8 +15,7 @@ public partial class ThreatPolygon : Polygon2D
         body.AddChild(hitBox);
 
         body.CollisionLayer = 8;
-        Modulate = Colors.Red;
 
-        hitBox.Polygon = Polygon;
+        Draw += () => hitBox.Polygon = Polygon;
     }
 }

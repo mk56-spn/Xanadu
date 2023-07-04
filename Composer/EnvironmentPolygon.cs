@@ -2,6 +2,7 @@ using Godot;
 
 namespace XanaduProject.Composer;
 
+[Tool]
 [GlobalClass]
 public partial class EnvironmentPolygon : Polygon2D
 {
@@ -13,6 +14,6 @@ public partial class EnvironmentPolygon : Polygon2D
 		AddChild(body);
 		body.AddChild(hitBox);
 
-		hitBox.Polygon = Polygon;
+		Draw += () => hitBox.Polygon = Polygon;
 	}
 }
