@@ -2,6 +2,7 @@ using Godot;
 
 namespace XanaduProject.Composer;
 
+[Tool]
 [GlobalClass]
 public partial class Stage : WorldEnvironment
 {
