@@ -8,6 +8,8 @@ public partial class StageInfo : Resource
     [Export]
     public int Difficulty { get; set; }
     [Export]
+    public string Title { get; set; } = null!;
+    [Export]
     public TrackInfo TrackInfo { get; set; } = null!;
     [Export]
     public string[] Designers { get; set; } = null!;
