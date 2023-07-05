@@ -11,4 +11,4 @@ Title = "Spikey"
 TrackInfo = ExtResource("1_4nwf2")
 Designers = PackedStringArray("Sa", "Saye", "Sayere")
 Description = "A level"
-Scene = ExtResource("1_sexxk")
+Stage = ExtResource("1_sexxk")

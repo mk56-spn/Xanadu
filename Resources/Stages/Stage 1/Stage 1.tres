@@ -17,4 +17,4 @@ Title = "A thing"
 TrackInfo = SubResource("Resource_f5tms")
 Designers = PackedStringArray("Hsam", "Splash")
 Description = "A very long description"
-Scene = ExtResource("1_3s2uh")
+Stage = ExtResource("1_3s2uh")
