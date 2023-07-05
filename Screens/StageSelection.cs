@@ -8,7 +8,7 @@ public partial class StageSelection : Control
     {
         base._Ready();
 
-        GetNode<Button>("HBoxContainer/Button").ButtonDown += () => GetTree().ChangeSceneToFile("res://Stages/TestStage.tscn");
-        GetNode<Button>("HBoxContainer/Button2").ButtonDown += () => GetTree().ChangeSceneToFile("res://Stages/TestStage2.tscn");
+        GetNode<Button>("HBoxContainer/Button").ButtonDown += () => GetTree().ChangeSceneToFile("res://Resources/Stages/TestStage.tscn");
+        GetNode<Button>("HBoxContainer/Button2").ButtonDown += () => GetTree().ChangeSceneToFile("res://Resources/Stages/TestStage2.tscn");
     }
 }
