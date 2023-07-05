@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="StageInfo" load_steps=4 format=3 uid="uid://bdm0n8yewstdx"]
+
+[ext_resource type="Resource" uid="uid://b2iqrh5aeh4hm" path="res://Resources/TestTrack.tres" id="1_4nwf2"]
+[ext_resource type="Script" path="res://DataStructure/StageInfo.cs" id="1_qykx4"]
+[ext_resource type="PackedScene" uid="uid://2wi71gsmah47" path="res://Resources/Stages/Stage 2/Stage 2.tscn" id="1_sexxk"]
+
+[resource]
+script = ExtResource("1_qykx4")
+Difficulty = 0
+Title = "Spikey"
+TrackInfo = ExtResource("1_4nwf2")
+Designers = PackedStringArray("Sa", "Saye", "Sayere")
+Description = "A level"
+Stage = ExtResource("1_sexxk")
