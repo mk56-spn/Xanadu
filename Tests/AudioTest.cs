@@ -1,4 +1,5 @@
 using Godot;
+using XanaduProject.DataStructure;
 using XanaduProject.Singletons;
 
 namespace XanaduProject.Tests;
@@ -13,7 +14,7 @@ public partial class AudioTest : CenterContainer
 	public override void _Ready()
 	{
 		audioSource = GetNode<AudioSource>("/root/GlobalAudio");
-		audioSource.SetTrack(new TestTrackInfo());
+		audioSource.SetTrack(ResourceLoader.Load<TrackInfo>("res://Resources/TestTrack.tres"));
 
 		AddChild(beatRect);
 		AddChild(progressBar);

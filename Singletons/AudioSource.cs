@@ -1,6 +1,6 @@
 using System;
 using Godot;
-using XanaduProject.Data;
+using XanaduProject.DataStructure;
 
 namespace XanaduProject.Singletons;
 

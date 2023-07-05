@@ -1,6 +1,6 @@
 using Godot;
 
-namespace XanaduProject.Composer;
+namespace XanaduProject.DataStructure;
 
 [Tool]
 [GlobalClass]
