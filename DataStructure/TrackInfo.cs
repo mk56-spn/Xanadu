@@ -1,6 +1,6 @@
 using Godot;
 
-namespace XanaduProject.Data;
+namespace XanaduProject.DataStructure;
 
 public partial class TrackInfo : Resource
 {
