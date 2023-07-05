@@ -1,6 +1,6 @@
 [gd_scene load_steps=4 format=3 uid="uid://dbtf7bfi5wdg7"]
 
-[ext_resource type="Script" path="res://Composer/Stage.cs" id="1_bsqms"]
+[ext_resource type="Script" path="res://DataStructure/Stage.cs" id="1_bsqms"]
 [ext_resource type="Script" path="res://Composer/ThreatPolygon.cs" id="3_vbmun"]
 [ext_resource type="Script" path="res://Composer/EnvironmentPolygon.cs" id="4_fte6a"]
 
