@@ -5,6 +5,7 @@
 
 [resource]
 script = ExtResource("1_si41i")
+Offset = 0.0
 Bpm = 200.0
 Measures = 4
 Track = ExtResource("1_8pya3")
