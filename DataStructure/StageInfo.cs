@@ -15,4 +15,6 @@ public partial class StageInfo : Resource
     public string[] Designers { get; set; } = null!;
     [Export]
     public string Description { get; set; } = null!;
+    [Export]
+    public PackedScene Stage { get; set; } = null!;
 }

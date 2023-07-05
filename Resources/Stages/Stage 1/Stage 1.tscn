@@ -1,17 +1,17 @@
 [gd_scene load_steps=4 format=3 uid="uid://dbtf7bfi5wdg7"]
 
-[ext_resource type="Script" path="res://DataStructure/Stage.cs" id="1_bsqms"]
-[ext_resource type="Script" path="res://Composer/ThreatPolygon.cs" id="3_vbmun"]
-[ext_resource type="Script" path="res://Composer/EnvironmentPolygon.cs" id="4_fte6a"]
+[ext_resource type="Script" path="res://DataStructure/Stage.cs" id="1_0481t"]
+[ext_resource type="Script" path="res://Composer/ThreatPolygon.cs" id="2_wd85u"]
+[ext_resource type="Script" path="res://Composer/EnvironmentPolygon.cs" id="3_f0xjh"]
 
 [node name="TestStage" type="WorldEnvironment"]
-script = ExtResource("1_bsqms")
+script = ExtResource("1_0481t")
 
 [node name="ThreatPolygon" type="Polygon2D" parent="."]
 position = Vector2(264, -184)
 polygon = PackedVector2Array(344, 704, 592, 648, 616, 816, 456, 776)
-script = ExtResource("3_vbmun")
+script = ExtResource("2_wd85u")
 
 [node name="EnvironmentPolygon" type="Polygon2D" parent="."]
 polygon = PackedVector2Array(384, 704, 384, 896, 1344, 896, 1344, 576, 1216, 576, 1216, 832, 512, 832, 512, 704)
-script = ExtResource("4_fte6a")
+script = ExtResource("3_f0xjh")
