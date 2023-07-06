@@ -1,7 +1,7 @@
 using Godot;
 using XanaduProject.DataStructure;
 
-namespace XanaduProject.Screens;
+namespace XanaduProject.Screens.StageSelection;
 
 public partial class StageSelection : Control
 {
