@@ -9,10 +9,9 @@ public partial class StageSelection : Control
     {
         base._Ready();
 
-        StageInfo stageInfo1 = ResourceLoader.Load<StageInfo>("res://Resources/Stages/Stage 1/Stage 1.tres");
-        StageInfo stageInfo2 = ResourceLoader.Load<StageInfo>("res://Resources/Stages/Stage 2/Stage 2.tres");
+        VBoxContainer trackList = GetNode<VBoxContainer>("TrackList");
 
-        GetNode<Button>("HBoxContainer/Button").ButtonDown += () => GetTree().ChangeSceneToPacked(stageInfo1.Stage);
-        GetNode<Button>("HBoxContainer/Button2").ButtonDown += () => GetTree().ChangeSceneToPacked(stageInfo2.Stage);
+        trackList.AddChild(new StageSelectionPanel(ResourceLoader.Load<StageInfo>("res://Resources/Stages/Stage 1/Stage 1.tres")));
+        trackList.AddChild(new StageSelectionPanel(ResourceLoader.Load<StageInfo>("res://Resources/Stages/Stage 2/Stage 2.tres")));
     }
 }
