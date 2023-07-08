@@ -1,4 +1,6 @@
 using Godot;
+using XanaduProject.Perceptions;
+using XanaduProject.Screens.StageUI;
 
 namespace XanaduProject.DataStructure;
 
@@ -7,16 +9,20 @@ namespace XanaduProject.DataStructure;
 public partial class Stage : WorldEnvironment
 {
     private Camera2D camera = new Camera2D();
-    private Node2D core;
-
+    private Core core;
+    private StagePause pauseMenu;
 
     public Stage()
     {
-        PackedScene coreScene = (PackedScene)ResourceLoader.Load("res://Perceptions/Core.tscn");
-        core = (Node2D)coreScene.Instantiate();
+        PackedScene coreScene = ResourceLoader.Load<PackedScene>("res://Perceptions/Core.tscn");
+        PackedScene pauseMenuScene = ResourceLoader.Load<PackedScene>("res://Screens/StageUI/StagePause.tscn");
+        CanvasLayer canvasLayer = new CanvasLayer();
 
-        AddChild(core);
+        AddChild(core = (Core)coreScene.Instantiate());
         AddChild(camera);
+
+        camera.AddChild(canvasLayer);
+        canvasLayer.AddChild(pauseMenu = (StagePause)pauseMenuScene.Instantiate());
     }
 
 
@@ -25,5 +31,21 @@ public partial class Stage : WorldEnvironment
         base._PhysicsProcess(delta);
 
         camera.Position = core.Position;
+    }
+
+    public override void _Process(double delta)
+    {
+        base._Process(delta);
+
+        if (!core.IsAlive && !pauseMenu.Visible)
+        {
+            pauseMenu.Show();
+            return;
+        }
+
+        if (!Input.IsActionJustPressed("escape")) return;
+
+        GetTree().Paused = true;
+        pauseMenu.Show();
     }
 }
