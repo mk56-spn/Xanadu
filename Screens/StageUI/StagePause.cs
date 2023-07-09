@@ -27,20 +27,23 @@ public partial class StagePause : Control
     {
         GetNode<Button>("ButtonContainer/Play").ButtonUp += () =>
         {
-            GetTree().Paused = false;
+            Unpause();
             Hide();
         };
 
         GetNode<Button>("ButtonContainer/Restart").ButtonUp += () =>
         {
-            Hide();
+            Unpause();
             GetTree().ReloadCurrentScene();
         };
 
         GetNode<Button>("ButtonContainer/Quit").ButtonUp += () =>
         {
-            Hide();
+            Unpause();
             GetTree().ChangeSceneToFile("res://Screens/StageSelection/StageSelection.tscn");
         };
     }
+
+    private void Unpause() =>
+        GetTree().Paused = false;
 }
