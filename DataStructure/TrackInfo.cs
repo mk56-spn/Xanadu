@@ -6,8 +6,7 @@ namespace XanaduProject.DataStructure;
 public partial class TrackInfo : Resource
 {
     [Export]
-    public double Offset { get; set; }
-    // Currently bpm changes are not supported.
+    public double[] TimingPoints { get; set; } = null!;
     [Export]
     public double Bpm { get; set; }
     [Export]
