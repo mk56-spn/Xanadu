@@ -14,8 +14,8 @@ public sealed partial class AudioSource : AudioStreamPlayer
 	private int positionInBeats;
 	private int lastPlayedBeat;
 
-	public double TrackPosition { private set; get; }
-	public int Measure = 1;
+	public double TrackPosition { get; private set; }
+	public int Measure { get; private set; }
 
 	public event EventHandler<int>? OnNewBeat;
 
@@ -47,7 +47,6 @@ public sealed partial class AudioSource : AudioStreamPlayer
 
 		lastPlayedBeat = positionInBeats;
 		Measure++;
-
 	}
 
 	public void SetTrack(TrackInfo trackInfo)
