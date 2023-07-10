@@ -40,8 +40,8 @@ public sealed partial class AudioSource : AudioStreamPlayer
 		if (lastPlayedBeat < positionInBeats is false)
 			return;
 
-		if (Measure > Measures)
-			Measure = 1;
+		if (Measure >= Measures)
+			Measure = 0;
 
 		OnNewBeat?.Invoke(this, positionInBeats);
 
