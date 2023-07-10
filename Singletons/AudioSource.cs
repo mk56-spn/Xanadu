@@ -30,7 +30,7 @@ public sealed partial class AudioSource : AudioStreamPlayer
 
 		TrackPosition = GetPlaybackPosition() + AudioServer.GetTimeSinceLastMix();
 		TrackPosition -= AudioServer.GetOutputLatency();
-		positionInBeats = (int)Math.Floor(TrackPosition / secondsPerBeat);
+		positionInBeats = (int)Math.Floor(TrackPosition / secondsPerBeat) + 1;
 
 		ReportBeat();
 	}
@@ -40,8 +40,10 @@ public sealed partial class AudioSource : AudioStreamPlayer
 		if (lastPlayedBeat < positionInBeats is false)
 			return;
 
-		if (Measure >= Measures)
-			Measure = 0;
+		/*GD.Print(lastPlayedBeat, " / ", positionInBeats, $" / {TrackPosition}");*/
+
+		if (Measure > Measures)
+			Measure = 1;
 
 		OnNewBeat?.Invoke(this, positionInBeats);
 
