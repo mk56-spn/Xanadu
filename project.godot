@@ -22,7 +22,7 @@ driver/output_latency=1
 
 [autoload]
 
-GlobalAudio="*res://Singletons/AudioSource.tscn"
+GlobalAudio="*res://Singletons/AudioSource.cs"
 
 [display]
 

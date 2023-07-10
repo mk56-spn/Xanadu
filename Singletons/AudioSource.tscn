@@ -1,6 +1,0 @@
-[gd_scene load_steps=2 format=3 uid="uid://c73od64f6fh3"]
-
-[ext_resource type="Script" path="res://Singletons/AudioSource.cs" id="1_bhgas"]
-
-[node name="AudioSource" type="AudioStreamPlayer"]
-script = ExtResource("1_bhgas")
