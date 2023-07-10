@@ -14,6 +14,11 @@ public sealed partial class AudioSource : AudioStreamPlayer
 	private int positionInBeats;
 	private int lastPlayedBeat;
 
+	/// <summary>
+	/// If set to true starts the audio stream on the next physics process tic to ensure the beat actions are synced;
+	/// </summary>
+	public bool RequestPlay;
+
 	public double TrackPosition { get; private set; }
 	public int Measure { get; private set; }
 
@@ -26,6 +31,12 @@ public sealed partial class AudioSource : AudioStreamPlayer
 	public override void _PhysicsProcess(double delta)
 	{
 		base._PhysicsProcess(delta);
+
+		if (RequestPlay)
+		{
+			RequestPlay = false;
+			Play();
+		}
 		if (!Playing) return;
 
 		TrackPosition = GetPlaybackPosition() + AudioServer.GetTimeSinceLastMix();

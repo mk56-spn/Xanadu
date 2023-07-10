@@ -26,9 +26,7 @@ public partial class AudioTest : CenterContainer
 			t.TweenProperty(beatRect, "modulate", Colors.Black, 0.3);
 		};
 
-		GD.Print($"{audioSource.Stream == null}");
-
-		audioSource.Play();
+		audioSource.RequestPlay = true;
 	}
 
 	public override void _Process(double delta)
