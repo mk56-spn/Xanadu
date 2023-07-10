@@ -6,13 +6,13 @@ namespace XanaduProject.Singletons;
 
 public sealed partial class AudioSource : AudioStreamPlayer
 {
-	public double Bpm { get; private set; } = 120;
-	public int Measures { get; private set; } = 4;
-
 	// For some reason Godot uses time in seconds. So this conversion is necessary.
 	private double secondsPerBeat;
 	private int positionInBeats;
-	private int lastPlayedBeat;
+
+	public int LastPlayedBeat { get; private set; }
+	public double Bpm { get; private set; } = 120;
+	public int Measures { get; private set; } = 4;
 
 	/// <summary>
 	/// If set to true starts the audio stream on the next physics process tic to ensure the beat actions are synced;
@@ -48,7 +48,7 @@ public sealed partial class AudioSource : AudioStreamPlayer
 
 	private void ReportBeat()
 	{
-		if (lastPlayedBeat < positionInBeats is false)
+		if (LastPlayedBeat < positionInBeats is false)
 			return;
 
 		/*GD.Print(lastPlayedBeat, " / ", positionInBeats, $" / {TrackPosition}");*/
@@ -58,7 +58,7 @@ public sealed partial class AudioSource : AudioStreamPlayer
 
 		OnNewBeat?.Invoke(this, positionInBeats);
 
-		lastPlayedBeat = positionInBeats;
+		LastPlayedBeat = positionInBeats;
 		Measure++;
 	}
 
