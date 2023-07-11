@@ -1,5 +1,6 @@
 using System;
 using Godot;
+using XanaduProject.Singletons;
 
 namespace XanaduProject.Perceptions;
 
@@ -12,6 +13,8 @@ public partial class Core : Perception
     private Tween? rotationTween;
     private Area2D nucleus = null!;
     private Polygon2D body = null!;
+
+    private AudioSource audioSource = null!;
 
     public override void _Ready()
     {
@@ -26,6 +29,10 @@ public partial class Core : Perception
             IsAlive = false;
             SetPhysicsProcess(false);
         };
+
+        audioSource = GetNode<AudioSource>("/root/GlobalAudio");
+
+        audioSource.RequestPlay = true;
     }
 
     public override void _PhysicsProcess(double delta)
@@ -40,6 +47,14 @@ public partial class Core : Perception
             air_movement(delta);
 
         MoveAndSlide();
+
+        if (!(Math.Abs(Position.X - audioSource.TrackPosition * 700) > 25) || !audioSource.Playing) return;
+
+        GD.Print($"A de-sync of {Math.Abs(TimeSpan.FromSeconds(Position.X / 700 - audioSource.TrackPosition).TotalMilliseconds)} milliseconds has occured");
+
+        //Forces the player into position if it de-syncs more than the acceptable amount from the song,
+        //rather brutish but functional.
+        Position = new Vector2((float)audioSource.TrackPosition * 700, Position.Y);
     }
 
     private void ground_movement()
