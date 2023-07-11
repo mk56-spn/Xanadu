@@ -1,3 +1,7 @@
+#Xanadu
+
+[![CodeFactor](https://www.codefactor.io/repository/github/mk56-spn/xanadu/badge/master)](https://www.codefactor.io/repository/github/mk56-spn/xanadu/overview/master)
+
 Xanadu is an open source rythm platformer!
 
 ...
