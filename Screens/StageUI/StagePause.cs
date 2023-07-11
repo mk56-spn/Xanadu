@@ -1,49 +1,57 @@
+// Copyright (c) mk56_spn <dhsjplt@gmail.com>. Licensed under the GNU General Public Licence (2.0).
+// See the LICENCE file in the repository root for full licence text.
+
 using Godot;
 
-namespace XanaduProject.Screens.StageUI;
-
-[GlobalClass]
-public partial class StagePause : Control
+namespace XanaduProject.Screens.StageUI
 {
-    public StagePause() =>
-        Visible = false;
-
-    public override void _Ready()
+    [GlobalClass]
+    public partial class StagePause : Control
     {
-        base._Ready();
-
-        ButtonActions();
-    }
-
-    public override void _Process(double delta)
-    {
-        base._Process(delta);
-
-        if (Input.IsActionJustPressed("escape"))
-            Show();
-    }
-
-    private void ButtonActions()
-    {
-        GetNode<Button>("ButtonContainer/Play").ButtonUp += () =>
+        public StagePause()
         {
-            Unpause();
-            Hide();
-        };
+            Visible = false;
+        }
 
-        GetNode<Button>("ButtonContainer/Restart").ButtonUp += () =>
+        public override void _Ready()
         {
-            Unpause();
-            GetTree().ReloadCurrentScene();
-        };
+            base._Ready();
 
-        GetNode<Button>("ButtonContainer/Quit").ButtonUp += () =>
+            buttonActions();
+        }
+
+        public override void _Process(double delta)
         {
-            Unpause();
-            GetTree().ChangeSceneToFile("res://Screens/StageSelection/StageSelection.tscn");
-        };
+            base._Process(delta);
+
+            if (Input.IsActionJustPressed("escape"))
+                Show();
+        }
+
+        private void buttonActions()
+        {
+            GetNode<Button>("ButtonContainer/Play").ButtonUp += () =>
+            {
+                unpause();
+                Hide();
+            };
+
+            GetNode<Button>("ButtonContainer/Restart").ButtonUp += () =>
+            {
+                unpause();
+                GetTree().ReloadCurrentScene();
+            };
+
+            GetNode<Button>("ButtonContainer/Quit").ButtonUp += () =>
+            {
+                unpause();
+                GetTree().ChangeSceneToFile("res://Screens/StageSelection/StageSelection.tscn");
+            };
+        }
+
+        private void unpause()
+        {
+            GetTree().Paused = false;
+        }
     }
-
-    private void Unpause() =>
-        GetTree().Paused = false;
 }

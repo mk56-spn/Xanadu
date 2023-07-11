@@ -1,21 +1,25 @@
+// Copyright (c) mk56_spn <dhsjplt@gmail.com>. Licensed under the GNU General Public Licence (2.0).
+// See the LICENCE file in the repository root for full licence text.
+
 using Godot;
 
-namespace XanaduProject.Composer;
-
-[Tool]
-[GlobalClass]
-public partial class ThreatPolygon : Polygon2D
+namespace XanaduProject.Composer
 {
-    private Area2D body = new Area2D();
-    private CollisionPolygon2D hitBox = new CollisionPolygon2D();
-
-    public ThreatPolygon()
+    [Tool]
+    [GlobalClass]
+    public partial class ThreatPolygon : Polygon2D
     {
-        AddChild(body);
-        body.AddChild(hitBox);
+        private Area2D body = new Area2D();
+        private CollisionPolygon2D hitBox = new CollisionPolygon2D();
 
-        body.CollisionLayer = 8;
+        public ThreatPolygon()
+        {
+            AddChild(body);
+            body.AddChild(hitBox);
 
-        Draw += () => hitBox.Polygon = Polygon;
+            body.CollisionLayer = 8;
+
+            Draw += () => hitBox.Polygon = Polygon;
+        }
     }
 }

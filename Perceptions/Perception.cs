@@ -1,18 +1,21 @@
+// Copyright (c) mk56_spn <dhsjplt@gmail.com>. Licensed under the GNU General Public Licence (2.0).
+// See the LICENCE file in the repository root for full licence text.
+
 using Godot;
 
-namespace XanaduProject.Perceptions;
-
-public abstract partial class Perception : CharacterBody2D
+namespace XanaduProject.Perceptions
 {
-    protected int Gravity;
-
-    private const int BaseVelocity = 700;
-
-    protected Perception()
+    public abstract partial class Perception : CharacterBody2D
     {
-        Variant fetchGravity = ProjectSettings.GetSetting("physics/2d/default_gravity");
-        Gravity = fetchGravity.AsInt32();
+        private const int base_velocity = 700;
+        protected int Gravity;
 
-        Velocity = new Vector2(BaseVelocity, 0);
+        protected Perception()
+        {
+            var fetchGravity = ProjectSettings.GetSetting("physics/2d/default_gravity");
+            Gravity = fetchGravity.AsInt32();
+
+            Velocity = new Vector2(base_velocity, 0);
+        }
     }
 }
