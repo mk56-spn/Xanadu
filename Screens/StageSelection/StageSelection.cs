@@ -9,13 +9,13 @@ namespace XanaduProject.Screens.StageSelection
 {
     public partial class StageSelection : Control
     {
-        private VBoxContainer trackList = null!;
+        private HBoxContainer trackList = null!;
 
         public override void _Ready()
         {
             base._Ready();
 
-            trackList = GetNode<VBoxContainer>("TrackList");
+            trackList = GetNode<HBoxContainer>("TrackList");
 
             // Code block filters through the files present in the "Stages" folder and retrieves the stage information for instantiation.
             var dir = DirAccess.Open("res://Resources/Stages/");
