@@ -14,7 +14,7 @@ fill_from = Vector2(0.5, 1)
 fill_to = Vector2(0.5, 0)
 metadata/_snap_enabled = true
 
-[node name="StageSelection" type="Control"]
+[node name="StageSelection" type="Control" node_paths=PackedStringArray("trackList")]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -22,6 +22,7 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_wapex")
+trackList = NodePath("TrackList")
 
 [node name="TextureRect" type="TextureRect" parent="."]
 layout_mode = 1
