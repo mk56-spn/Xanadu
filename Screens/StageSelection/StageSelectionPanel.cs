@@ -3,36 +3,45 @@
 
 using Godot;
 using XanaduProject.DataStructure;
-using XanaduProject.Singletons;
 
 namespace XanaduProject.Screens.StageSelection
 {
     public partial class StageSelectionPanel : PanelContainer
     {
-        private readonly StageInfo stageInfo;
+        public readonly StageInfo StageInfo;
+        private Tween? focusTween;
+
+        private ColorRect focusRect = new ColorRect
+        {
+            Color = Colors.Transparent,
+            SizeFlagsVertical = SizeFlags.ShrinkEnd,
+            CustomMinimumSize = new Vector2(0, 10)
+        };
 
         public StageSelectionPanel(StageInfo stageInfo)
         {
-            this.stageInfo = stageInfo;
-        }
+            StageInfo = stageInfo;
+            FocusMode = FocusModeEnum.All;
+            CustomMinimumSize = new Vector2( 200, 200);
 
-        public override void _Ready()
-        {
-            base._Ready();
-
-            var label = new Label { Text = stageInfo.Title };
-            var selectButton = new Button { Text = "PLAY" };
-            var container = new VBoxContainer { CustomMinimumSize = new Vector2(150, 0) };
-
-            AddChild(container);
-            container.AddChild(label);
-            container.AddChild(selectButton);
-
-            selectButton.Pressed += () =>
+            AddChild(focusRect);
+            AddChild(new Label
             {
-                GetNode<AudioSource>("/root/GlobalAudio").SetTrack(stageInfo.TrackInfo);
-                GetTree().ChangeSceneToPacked(stageInfo.Stage);
-            };
+                Text = stageInfo.Title, HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center
+            });
+
+            FocusEntered += () => focusVisibility(true);
+            FocusExited += () => focusVisibility(false);
+
+            void focusVisibility(bool focused)
+            {
+                // Invalidate any running tween to avoid problems with final color state.
+                focusTween?.Kill();
+                focusTween = CreateTween();
+                focusTween.TweenProperty(focusRect, "color", focused ? Colors.White : Colors.Transparent,
+                    focused ? 0 : 0.3);
+            }
         }
     }
 }

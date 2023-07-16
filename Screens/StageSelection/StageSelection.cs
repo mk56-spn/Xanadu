@@ -4,18 +4,22 @@
 using System.Linq;
 using Godot;
 using XanaduProject.DataStructure;
+using XanaduProject.Singletons;
 
 namespace XanaduProject.Screens.StageSelection
 {
     public partial class StageSelection : Control
     {
-        private VBoxContainer trackList = null!;
+        [Export]
+        private HBoxContainer trackList = null!;
+
+        [Export] private Button startButton = null!;
+
+        private StageInfo activeInfo = null!;
 
         public override void _Ready()
         {
             base._Ready();
-
-            trackList = GetNode<VBoxContainer>("TrackList");
 
             // Code block filters through the files present in the "Stages" folder and retrieves the stage information for instantiation.
             var dir = DirAccess.Open("res://Resources/Stages/");
@@ -27,6 +31,17 @@ namespace XanaduProject.Screens.StageSelection
 
                 trackList.AddChild(new StageSelectionPanel(resource));
             }
+
+            foreach (var panel in trackList.GetChildren().OfType<StageSelectionPanel>())
+                panel.FocusEntered += () => activeInfo = panel.StageInfo;
+
+            trackList.GetChild<StageSelectionPanel>(0).GrabFocus();
+
+            startButton.Pressed += () =>
+            {
+                GetNode<AudioSource>("/root/GlobalAudio").SetTrack(activeInfo.TrackInfo);
+                GetTree().ChangeSceneToPacked(activeInfo.Stage);
+            };
         }
     }
 }

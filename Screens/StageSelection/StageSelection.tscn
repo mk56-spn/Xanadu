@@ -14,7 +14,7 @@ fill_from = Vector2(0.5, 1)
 fill_to = Vector2(0.5, 0)
 metadata/_snap_enabled = true
 
-[node name="StageSelection" type="Control"]
+[node name="StageSelection" type="Control" node_paths=PackedStringArray("trackList", "startButton")]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -22,6 +22,8 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_wapex")
+trackList = NodePath("TrackList")
+startButton = NodePath("StartButton")
 
 [node name="TextureRect" type="TextureRect" parent="."]
 layout_mode = 1
@@ -33,7 +35,7 @@ grow_vertical = 2
 texture = SubResource("GradientTexture2D_byiok")
 metadata/_edit_lock_ = true
 
-[node name="TrackList" type="VBoxContainer" parent="."]
+[node name="TrackList" type="HBoxContainer" parent="."]
 layout_mode = 1
 anchors_preset = 8
 anchor_left = 0.5
@@ -46,3 +48,17 @@ offset_right = 60.0
 offset_bottom = 15.5
 grow_horizontal = 2
 grow_vertical = 2
+
+[node name="StartButton" type="Button" parent="."]
+custom_minimum_size = Vector2(200, 60)
+layout_mode = 1
+anchors_preset = -1
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_bottom = -20.0
+grow_horizontal = 2
+grow_vertical = 0
+focus_mode = 0
+text = "Start"
