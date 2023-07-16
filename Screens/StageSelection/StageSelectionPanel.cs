@@ -3,36 +3,40 @@
 
 using Godot;
 using XanaduProject.DataStructure;
-using XanaduProject.Singletons;
 
 namespace XanaduProject.Screens.StageSelection
 {
+    [GlobalClass]
     public partial class StageSelectionPanel : PanelContainer
     {
-        private readonly StageInfo stageInfo;
+        public StageInfo StageInfo { get; private set; }
+
+        private ColorRect focusRect = new ColorRect
+        {
+            SizeFlagsVertical = SizeFlags.ShrinkEnd,
+            Color = Colors.Transparent, CustomMinimumSize = new Vector2(0,10)
+        };
 
         public StageSelectionPanel(StageInfo stageInfo)
         {
-            this.stageInfo = stageInfo;
-        }
+            FocusMode = FocusModeEnum.All;
+            StageInfo = stageInfo;
+            CustomMinimumSize = new Vector2(200, 200);
 
-        public override void _Ready()
-        {
-            base._Ready();
-
-            var label = new Label { Text = stageInfo.Title };
-            var selectButton = new Button { Text = "PLAY" };
-            var container = new VBoxContainer { CustomMinimumSize = new Vector2(150, 0) };
-
-            AddChild(container);
-            container.AddChild(label);
-            container.AddChild(selectButton);
-
-            selectButton.Pressed += () =>
+            var label = new Label
             {
-                GetNode<AudioSource>("/root/GlobalAudio").SetTrack(stageInfo.TrackInfo);
-                GetTree().ChangeSceneToPacked(stageInfo.Stage);
+                CustomMinimumSize = CustomMinimumSize,
+                VerticalAlignment = VerticalAlignment.Center,
+                HorizontalAlignment = HorizontalAlignment.Center,
+
+                Text = StageInfo.Title.ToUpper()
             };
+
+            AddChild(focusRect);
+            AddChild(label);
+
+            FocusEntered += () => CreateTween().TweenProperty(focusRect, "color", Colors.White, 0.3);
+            FocusExited += () => CreateTween().TweenProperty(focusRect, "color", Colors.Transparent, 0.3);
         }
     }
 }
