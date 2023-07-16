@@ -16,6 +16,9 @@ namespace XanaduProject.Screens.StageSelection
         {
             base._Ready();
 
+            loadStages();
+        private void loadStages()
+        {
             // Code block filters through the files present in the "Stages" folder and retrieves the stage information for instantiation.
             var dir = DirAccess.Open("res://Resources/Stages/");
 
@@ -26,6 +29,8 @@ namespace XanaduProject.Screens.StageSelection
 
                 trackList.AddChild(new StageSelectionPanel(resource));
             }
+
+            GD.Print($"{trackList.GetChildCount()} stages were loaded");
         }
     }
 }
