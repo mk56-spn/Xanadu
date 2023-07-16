@@ -11,12 +11,30 @@ namespace XanaduProject.Screens.StageSelection
     {
         [Export]
         private HBoxContainer trackList = null!;
+        [Export]
+        private Button startButton = null!;
+        [Export]
+        private Button backButton = null!;
+        [Export]
+        private Button nextButton = null!;
+
+        private StageInfo activeStage = null!;
 
         public override void _Ready()
         {
             base._Ready();
 
             loadStages();
+
+            foreach (var stagePanel in trackList.GetChildren().OfType<StageSelectionPanel>())
+                stagePanel.FocusEntered += () => activeStage = stagePanel.StageInfo;
+
+            // Sets the initial focused stage.
+            trackList.GetChildren().OfType<StageSelectionPanel>().FirstOrDefault()?.GrabFocus();
+
+            startButton.Pressed += () => GetTree().ChangeSceneToPacked(activeStage.Stage);
+        }
+
         private void loadStages()
         {
             // Code block filters through the files present in the "Stages" folder and retrieves the stage information for instantiation.
