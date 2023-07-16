@@ -4,6 +4,7 @@
 using System.Linq;
 using Godot;
 using XanaduProject.DataStructure;
+using XanaduProject.Singletons;
 
 namespace XanaduProject.Screens.StageSelection
 {
@@ -11,6 +12,10 @@ namespace XanaduProject.Screens.StageSelection
     {
         [Export]
         private HBoxContainer trackList = null!;
+
+        [Export] private Button startButton = null!;
+
+        private StageInfo activeInfo = null!;
 
         public override void _Ready()
         {
@@ -26,6 +31,17 @@ namespace XanaduProject.Screens.StageSelection
 
                 trackList.AddChild(new StageSelectionPanel(resource));
             }
+
+            foreach (var panel in trackList.GetChildren().OfType<StageSelectionPanel>())
+                panel.FocusEntered += () => activeInfo = panel.StageInfo;
+
+            trackList.GetChild<StageSelectionPanel>(0).GrabFocus();
+
+            startButton.Pressed += () =>
+            {
+                GetNode<AudioSource>("/root/GlobalAudio").SetTrack(activeInfo.TrackInfo);
+                GetTree().ChangeSceneToPacked(activeInfo.Stage);
+            };
         }
     }
 }
