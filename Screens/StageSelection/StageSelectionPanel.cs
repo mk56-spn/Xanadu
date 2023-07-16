@@ -8,6 +8,7 @@ namespace XanaduProject.Screens.StageSelection
 {
     public partial class StageSelectionPanel : PanelContainer
     {
+        public readonly StageInfo StageInfo;
         private Tween? focusTween;
 
         private ColorRect focusRect = new ColorRect
@@ -19,6 +20,7 @@ namespace XanaduProject.Screens.StageSelection
 
         public StageSelectionPanel(StageInfo stageInfo)
         {
+            StageInfo = stageInfo;
             FocusMode = FocusModeEnum.All;
             CustomMinimumSize = new Vector2( 200, 200);
 
