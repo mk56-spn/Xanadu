@@ -4,6 +4,7 @@
 using System.Linq;
 using Godot;
 using XanaduProject.DataStructure;
+using XanaduProject.Singletons;
 
 namespace XanaduProject.Screens.StageSelection
 {
@@ -32,8 +33,27 @@ namespace XanaduProject.Screens.StageSelection
             // Sets the initial focused stage.
             trackList.GetChildren().OfType<StageSelectionPanel>().FirstOrDefault()?.GrabFocus();
 
-            startButton.Pressed += () => GetTree().ChangeSceneToPacked(activeStage.Stage);
+            startButton.Pressed += () =>
+            {
+                GetNode<AudioSource>("/root/GlobalAudio").SetTrack(activeStage.TrackInfo);
+                GetTree().ChangeSceneToPacked(activeStage.Stage);
+            };
+
+            backButton.ButtonUp += () => focus(getFocusedStageIndex() -1);
+            nextButton.ButtonUp += () => focus(getFocusedStageIndex() +1);
+
+            void focus(int index)
+            {
+                if (index < trackList.GetChildCount() || index < 0)
+                    trackList.GetChild<StageSelectionPanel>(index).GrabFocus();
+            }
         }
+
+        private int getFocusedStageIndex() =>
+            trackList.GetChildren()
+                .OfType<StageSelectionPanel>()
+                .First(c => c.HasFocus()).GetIndex();
+
 
         private void loadStages()
         {
