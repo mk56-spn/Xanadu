@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="StageInfo" load_steps=5 format=3 uid="uid://cka6dt1j3idnm"]
+
+[ext_resource type="PackedScene" uid="uid://dbtf7bfi5wdg7" path="res://Resources/Stages/Stage 1/Stage 1.tscn" id="1_e25yy"]
+[ext_resource type="Script" path="res://DataStructure/TrackInfo.cs" id="2_wrdv8"]
+[ext_resource type="Script" path="res://DataStructure/StageInfo.cs" id="3_474jn"]
+
+[sub_resource type="Resource" id="Resource_f5tms"]
+script = ExtResource("2_wrdv8")
+TimingPoints = PackedFloat64Array()
+Bpm = 0.0
+Measures = 0
+
+[resource]
+script = ExtResource("3_474jn")
+Difficulty = 23
+Title = "A thing"
+TrackInfo = SubResource("Resource_f5tms")
+Designers = PackedStringArray("Hsam", "Splash")
+Description = "A very long description"
+Stage = ExtResource("1_e25yy")
