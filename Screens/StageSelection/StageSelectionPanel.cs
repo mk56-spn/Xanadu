@@ -20,9 +20,11 @@ namespace XanaduProject.Screens.StageSelection
 
         public StageSelectionPanel(StageInfo stageInfo)
         {
+            SizeFlagsVertical = SizeFlags.ShrinkCenter;
+
             StageInfo = stageInfo;
             FocusMode = FocusModeEnum.All;
-            CustomMinimumSize = new Vector2( 200, 200);
+            CustomMinimumSize = new Vector2( 300, 300);
 
             AddChild(focusRect);
             AddChild(new Label
@@ -31,16 +33,16 @@ namespace XanaduProject.Screens.StageSelection
                 VerticalAlignment = VerticalAlignment.Center
             });
 
-            FocusEntered += () => focusVisibility(true);
-            FocusExited += () => focusVisibility(false);
+            FocusEntered += focusVisibility;
+            FocusExited += focusVisibility;
 
-            void focusVisibility(bool focused)
+            void focusVisibility()
             {
                 // Invalidate any running tween to avoid problems with final color state.
                 focusTween?.Kill();
                 focusTween = CreateTween();
-                focusTween.TweenProperty(focusRect, "color", focused ? Colors.White : Colors.Transparent,
-                    focused ? 0 : 0.3);
+                focusTween.TweenProperty(focusRect, "color", HasFocus() ? Colors.White : Colors.Transparent,
+                    HasFocus() ? 0 : 0.3);
             }
         }
     }
