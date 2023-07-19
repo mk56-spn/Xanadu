@@ -29,15 +29,14 @@ namespace XanaduProject.Screens.StageSelection
 
             trackList.AddThemeConstantOverride("separation", 100);
 
-            // Code block filters through the files present in the "Stages" folder and retrieves the stage information for instantiation.
             var dir = DirAccess.Open("res://Resources/Stages/");
 
             foreach (string? folder in dir.GetDirectories())
             {
-                string? file = DirAccess.Open($"{dir.GetCurrentDir()}{folder}").GetFiles().First(f => f.Contains(".tres"));
-                var resource = ResourceLoader.Load<StageInfo>($"{dir.GetCurrentDir()}{folder}/{file}");
-
-                trackList.AddChild(new StageSelectionPanel(resource));
+                // Retrieves information for the subsequent loading of it's stage.
+                StageInfo stageInfo = ResourceLoader.Load<StageInfo>($"res://Resources/Stages/{folder}/information.tres");
+                
+                trackList.AddChild(new StageSelectionPanel(stageInfo));
             }
 
             Tween? scrollTween = null;

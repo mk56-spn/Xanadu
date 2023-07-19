@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="StageInfo" load_steps=4 format=3 uid="uid://dsygr1x6gp83v"]
+
+[ext_resource type="PackedScene" uid="uid://dlvxat6riub4b" path="res://Resources/Stages/Stage 1/stage.tscn" id="1_d0imq"]
+[ext_resource type="Script" path="res://DataStructure/StageInfo.cs" id="1_ul52h"]
+[ext_resource type="Resource" uid="uid://b2iqrh5aeh4hm" path="res://Resources/TestTrack.tres" id="2_1a3bt"]
+
+[resource]
+script = ExtResource("1_ul52h")
+Difficulty = 10
+Title = "Amarin"
+TrackInfo = ExtResource("2_1a3bt")
+Designers = PackedStringArray()
+Description = "Viina"
+Stage = ExtResource("1_d0imq")

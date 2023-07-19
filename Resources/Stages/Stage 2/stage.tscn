@@ -1,0 +1,18 @@
+[gd_scene load_steps=4 format=3 uid="uid://2u020j2ukdqa"]
+
+[ext_resource type="Script" path="res://Screens/Stage.cs" id="1_s787h"]
+[ext_resource type="Script" path="res://Composer/EnvironmentPolygon.cs" id="2_nugyv"]
+[ext_resource type="Script" path="res://Composer/ThreatPolygon.cs" id="3_owqgg"]
+
+[node name="stage2" type="WorldEnvironment"]
+script = ExtResource("1_s787h")
+
+[node name="EnvironmentPolygon" type="Polygon2D" parent="."]
+position = Vector2(0, 192)
+polygon = PackedVector2Array(0, 0, 0, 64, 448, 64, 448, 0)
+script = ExtResource("2_nugyv")
+
+[node name="ThreatPolygon" type="Polygon2D" parent="."]
+position = Vector2(112, 208)
+polygon = PackedVector2Array(152, -16, 200, -16, 176, -48)
+script = ExtResource("3_owqgg")

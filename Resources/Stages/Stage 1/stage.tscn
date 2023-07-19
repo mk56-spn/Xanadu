@@ -1,0 +1,43 @@
+[gd_scene load_steps=4 format=3 uid="uid://dlvxat6riub4b"]
+
+[ext_resource type="Script" path="res://Screens/Stage.cs" id="1_ft5rf"]
+[ext_resource type="Script" path="res://Composer/EnvironmentPolygon.cs" id="2_8ddxt"]
+[ext_resource type="Script" path="res://Composer/ThreatPolygon.cs" id="3_cc1fn"]
+
+[node name="stage" type="WorldEnvironment"]
+script = ExtResource("1_ft5rf")
+
+[node name="EnvironmentPolygon5" type="Polygon2D" parent="."]
+position = Vector2(768, 384)
+scale = Vector2(2, 1)
+polygon = PackedVector2Array(0, 128, 0, 194, 0, 256, 128, 256, 128, 221, 128, 128)
+script = ExtResource("2_8ddxt")
+
+[node name="EnvironmentPolygon4" type="Polygon2D" parent="."]
+position = Vector2(1024, 128)
+polygon = PackedVector2Array(0, 128, 0, 256, 128, 256, 128, 128)
+script = ExtResource("2_8ddxt")
+
+[node name="ThreatPolygon2" type="Polygon2D" parent="."]
+position = Vector2(-120, 80)
+polygon = PackedVector2Array(1048, 192, 1080, 160, 1112, 192, 1080, 224)
+script = ExtResource("3_cc1fn")
+
+[node name="EnvironmentPolygon3" type="Polygon2D" parent="."]
+position = Vector2(512, 128)
+polygon = PackedVector2Array(0, 128, 0, 256, 128, 256, 128, 128)
+script = ExtResource("2_8ddxt")
+
+[node name="EnvironmentPolygon2" type="Polygon2D" parent="."]
+polygon = PackedVector2Array(0, 128, 0, 256, 128, 256, 128, 128)
+script = ExtResource("2_8ddxt")
+
+[node name="EnvironmentPolygon" type="Polygon2D" parent="."]
+position = Vector2(256, 64)
+polygon = PackedVector2Array(0, 128, 0, 256, 128, 256, 128, 128)
+script = ExtResource("2_8ddxt")
+
+[node name="ThreatPolygon" type="Polygon2D" parent="."]
+position = Vector2(8, -120)
+polygon = PackedVector2Array(1048, 192, 1080, 160, 1112, 192, 1080, 224)
+script = ExtResource("3_cc1fn")
