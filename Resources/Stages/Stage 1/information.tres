@@ -1,20 +1,14 @@
-[gd_resource type="Resource" script_class="StageInfo" load_steps=5 format=3 uid="uid://cka6dt1j3idnm"]
+[gd_resource type="Resource" script_class="StageInfo" load_steps=4 format=3 uid="uid://dsygr1x6gp83v"]
 
-[ext_resource type="PackedScene" uid="uid://dbtf7bfi5wdg7" path="res://Resources/Stages/Stage 1/Stage 1.tscn" id="1_e25yy"]
-[ext_resource type="Script" path="res://DataStructure/TrackInfo.cs" id="2_wrdv8"]
-[ext_resource type="Script" path="res://DataStructure/StageInfo.cs" id="3_474jn"]
-
-[sub_resource type="Resource" id="Resource_f5tms"]
-script = ExtResource("2_wrdv8")
-TimingPoints = PackedFloat64Array()
-Bpm = 0.0
-Measures = 0
+[ext_resource type="PackedScene" uid="uid://dlvxat6riub4b" path="res://Resources/Stages/Stage 1/stage.tscn" id="1_d0imq"]
+[ext_resource type="Script" path="res://DataStructure/StageInfo.cs" id="1_ul52h"]
+[ext_resource type="Resource" uid="uid://b2iqrh5aeh4hm" path="res://Resources/TestTrack.tres" id="2_1a3bt"]
 
 [resource]
-script = ExtResource("3_474jn")
-Difficulty = 23
-Title = "A thing"
-TrackInfo = SubResource("Resource_f5tms")
-Designers = PackedStringArray("Hsam", "Splash")
-Description = "A very long description"
-Stage = ExtResource("1_e25yy")
+script = ExtResource("1_ul52h")
+Difficulty = 10
+Title = "Amarin"
+TrackInfo = ExtResource("2_1a3bt")
+Designers = PackedStringArray()
+Description = "Viina"
+Stage = ExtResource("1_d0imq")
