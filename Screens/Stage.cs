@@ -5,7 +5,7 @@ using Godot;
 using XanaduProject.Perceptions;
 using XanaduProject.Screens.StageUI;
 
-namespace XanaduProject.DataStructure
+namespace XanaduProject.Screens
 {
     [Tool]
     [GlobalClass]
