@@ -7,7 +7,6 @@ using XanaduProject.Screens.StageUI;
 
 namespace XanaduProject.Screens
 {
-    [Tool]
     [GlobalClass]
     public partial class Stage : WorldEnvironment
     {
@@ -21,11 +20,11 @@ namespace XanaduProject.Screens
             var pauseMenuScene = ResourceLoader.Load<PackedScene>("res://Screens/StageUI/StagePause.tscn");
             var canvasLayer = new CanvasLayer();
 
-            AddChild(core = (Core)coreScene.Instantiate());
+            AddChild(core = coreScene.Instantiate<Core>());
             AddChild(camera);
 
             camera.AddChild(canvasLayer);
-            canvasLayer.AddChild(pauseMenu = (StagePause)pauseMenuScene.Instantiate());
+            canvasLayer.AddChild(pauseMenu = pauseMenuScene.Instantiate<StagePause>());
         }
 
 
