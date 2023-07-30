@@ -10,7 +10,6 @@ namespace XanaduProject.Perceptions
     {
         private const int jump_velocity = -1900;
 
-
         private Tween? rotationTween;
 
         public override void _PhysicsProcess(double delta)
@@ -56,6 +55,7 @@ namespace XanaduProject.Perceptions
 
         private void air_movement(double delta)
         {
+            // Ensure animation towards any floor alignment is ended immediately to avoid it continuing whilst in the air
             rotationTween?.Kill();
             rotationTween = null;
 
