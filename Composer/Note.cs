@@ -14,14 +14,13 @@ namespace XanaduProject.Composer
         [Export]
         private Area2D hitBox { get; set; } = null!;
 
-        public bool IsHit { private set; get; }
-
         public void Activate()
         {
-            IsHit = true;
             hitBox.Monitorable = false;
 
-            body.Color = Colors.Orange;
+            CreateTween().TweenProperty(this, "scale", Vector2.Zero, 0.1f)
+                .SetEase(Tween.EaseType.Out)
+                .SetTrans(Tween.TransitionType.Sine);
         }
     }
 }
