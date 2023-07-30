@@ -66,6 +66,7 @@ R2={
 2d_physics/layer_2="Nucleus"
 2d_physics/layer_3="Environment"
 2d_physics/layer_4="Threats"
+2d_physics/layer_5="Rhythm"
 
 [physics]
 
