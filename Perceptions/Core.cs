@@ -3,8 +3,6 @@
 
 using System;
 using Godot;
-using XanaduProject.Composer;
-using XanaduProject.Singletons;
 
 namespace XanaduProject.Perceptions
 {
@@ -12,37 +10,7 @@ namespace XanaduProject.Perceptions
     {
         private const int jump_velocity = -1900;
 
-        private AudioSource audioSource = null!;
-        private Polygon2D body = null!;
-        private Area2D nucleus = null!;
-
         private Tween? rotationTween;
-
-        [Export]
-        private Area2D noteReceptor { get; set; } = null!;
-
-        public bool IsAlive { get; private set; } = true;
-
-        public override void _Ready()
-        {
-
-            AddChild(new NoteProcessor(noteReceptor));
-            base._Ready();
-
-            body = GetNode<Polygon2D>("Body");
-            nucleus = GetNode<Area2D>("Nucleus");
-
-            GetNode<Area2D>("Shell").AreaShapeEntered += (_, _, _, _) => SetPhysicsProcess(false);
-            nucleus.BodyEntered += _ =>
-            {
-                IsAlive = false;
-                SetPhysicsProcess(false);
-            };
-
-            audioSource = GetNode<AudioSource>("/root/GlobalAudio");
-
-            audioSource.RequestPlay = true;
-        }
 
         public override void _PhysicsProcess(double delta)
         {
@@ -57,14 +25,14 @@ namespace XanaduProject.Perceptions
 
             MoveAndSlide();
 
-            if (!(Math.Abs(Position.X - audioSource.TrackPosition * 700) > 25) || !audioSource.Playing) return;
+            if (!(Math.Abs(Position.X - AudioSource.TrackPosition * 700) > 25) || !AudioSource.Playing) return;
 
             GD.Print(
-                $"A de-sync of {Math.Abs(TimeSpan.FromSeconds(Position.X / 700 - audioSource.TrackPosition).TotalMilliseconds)} milliseconds has occured");
+                $"A de-sync of {Math.Abs(TimeSpan.FromSeconds(Position.X / 700 - AudioSource.TrackPosition).TotalMilliseconds)} milliseconds has occured");
 
             //Forces the player into position if it de-syncs more than the acceptable amount from the song,
             //rather brutish but functional.
-            Position = new Vector2((float)audioSource.TrackPosition * 700, Position.Y);
+            Position = new Vector2((float)AudioSource.TrackPosition * 700, Position.Y);
         }
 
         private void ground_movement()
@@ -77,27 +45,28 @@ namespace XanaduProject.Perceptions
 
         private void grounded_rotation()
         {
-            float targetRotation = Mathf.Snapped(body.RotationDegrees, 90);
+            float targetRotation = Mathf.Snapped(Body.RotationDegrees, 90);
 
-            if (rotationTween != null || !(Math.Abs(body.RotationDegrees - targetRotation) > 0.01)) return;
+            if (rotationTween != null || !(Math.Abs(Body.RotationDegrees - targetRotation) > 0.01)) return;
 
             rotationTween = CreateTween();
-            rotationTween.TweenProperty(body, "rotation_degrees", targetRotation, 0.1);
+            rotationTween.TweenProperty(Body, "rotation_degrees", targetRotation, 0.1);
         }
 
         private void air_movement(double delta)
         {
+            // Ensure animation towards any floor alignment is ended immediately to avoid it continuing whilst in the air
             rotationTween?.Kill();
             rotationTween = null;
 
-            body.Rotate(Mathf.DegToRad(360 * (float)delta));
+            Body.Rotate(Mathf.DegToRad(360 * (float)delta));
 
             Velocity = new Vector2(Velocity.X, Mathf.Min(1500, Velocity.Y + Gravity * (float)delta));
         }
 
         private void nucleus_collision()
         {
-            nucleus.Modulate = nucleus.HasOverlappingBodies() ? Colors.Red : Colors.Green;
+            Nucleus.Modulate = Nucleus.HasOverlappingBodies() ? Colors.Red : Colors.Green;
         }
     }
 }
