@@ -1,8 +1,9 @@
-[gd_scene load_steps=4 format=3 uid="uid://dlvxat6riub4b"]
+[gd_scene load_steps=5 format=3 uid="uid://dlvxat6riub4b"]
 
 [ext_resource type="Script" path="res://Screens/Stage.cs" id="1_ft5rf"]
 [ext_resource type="Script" path="res://Composer/EnvironmentPolygon.cs" id="2_8ddxt"]
 [ext_resource type="Script" path="res://Composer/ThreatPolygon.cs" id="3_cc1fn"]
+[ext_resource type="PackedScene" uid="uid://b8f178tstjnjt" path="res://Composer/Note.tscn" id="4_7f3x2"]
 
 [node name="stage" type="WorldEnvironment"]
 script = ExtResource("1_ft5rf")
@@ -41,3 +42,6 @@ script = ExtResource("2_8ddxt")
 position = Vector2(8, -120)
 polygon = PackedVector2Array(1048, 192, 1080, 160, 1112, 192, 1080, 224)
 script = ExtResource("3_cc1fn")
+
+[node name="Note" parent="." instance=ExtResource("4_7f3x2")]
+position = Vector2(320, 128)
