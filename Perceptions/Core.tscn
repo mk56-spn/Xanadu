@@ -14,10 +14,12 @@ size = Vector2(96, 96)
 [sub_resource type="CircleShape2D" id="CircleShape2D_fi356"]
 radius = 64.0
 
-[node name="Core" type="CharacterBody2D" node_paths=PackedStringArray("noteReceptor")]
+[node name="Core" type="CharacterBody2D" node_paths=PackedStringArray("NoteReceptor", "Body", "Nucleus")]
 collision_mask = 4
 script = ExtResource("1_opurh")
-noteReceptor = NodePath("Receptor")
+NoteReceptor = NodePath("Receptor")
+Body = NodePath("Body")
+Nucleus = NodePath("Nucleus")
 
 [node name="Body" type="Polygon2D" parent="."]
 polygon = PackedVector2Array(-64, -64, -64, 64, 64, 64, 64, -64)

@@ -12,6 +12,10 @@ namespace XanaduProject.Perceptions
 
         [Export]
         protected Area2D NoteReceptor { get; set; } = null!;
+        [Export]
+        protected Polygon2D Body = null!;
+        [Export]
+        protected Area2D Nucleus = null!;
 
         protected Perception()
         {
