@@ -18,15 +18,12 @@ namespace XanaduProject.Perceptions
 
         private Tween? rotationTween;
 
-        [Export]
-        private Area2D noteReceptor { get; set; } = null!;
-
         public bool IsAlive { get; private set; } = true;
 
         public override void _Ready()
         {
 
-            AddChild(new NoteProcessor(noteReceptor));
+            AddChild(new NoteProcessor(NoteReceptor));
             base._Ready();
 
             body = GetNode<Polygon2D>("Body");

@@ -10,6 +10,9 @@ namespace XanaduProject.Perceptions
         private const int base_velocity = 700;
         protected int Gravity;
 
+        [Export]
+        protected Area2D NoteReceptor { get; set; } = null!;
+
         protected Perception()
         {
             var fetchGravity = ProjectSettings.GetSetting("physics/2d/default_gravity");
