@@ -3,8 +3,6 @@
 
 using System;
 using Godot;
-using XanaduProject.Composer;
-using XanaduProject.Singletons;
 
 namespace XanaduProject.Perceptions
 {
@@ -12,30 +10,8 @@ namespace XanaduProject.Perceptions
     {
         private const int jump_velocity = -1900;
 
-        private AudioSource audioSource = null!;
-
 
         private Tween? rotationTween;
-
-        public bool IsAlive { get; private set; } = true;
-
-        public override void _Ready()
-        {
-
-            AddChild(new NoteProcessor(NoteReceptor));
-            base._Ready();
-
-            GetNode<Area2D>("Shell").AreaShapeEntered += (_, _, _, _) => SetPhysicsProcess(false);
-            Nucleus.BodyEntered += _ =>
-            {
-                IsAlive = false;
-                SetPhysicsProcess(false);
-            };
-
-            audioSource = GetNode<AudioSource>("/root/GlobalAudio");
-
-            audioSource.RequestPlay = true;
-        }
 
         public override void _PhysicsProcess(double delta)
         {
@@ -50,14 +26,14 @@ namespace XanaduProject.Perceptions
 
             MoveAndSlide();
 
-            if (!(Math.Abs(Position.X - audioSource.TrackPosition * 700) > 25) || !audioSource.Playing) return;
+            if (!(Math.Abs(Position.X - AudioSource.TrackPosition * 700) > 25) || !AudioSource.Playing) return;
 
             GD.Print(
-                $"A de-sync of {Math.Abs(TimeSpan.FromSeconds(Position.X / 700 - audioSource.TrackPosition).TotalMilliseconds)} milliseconds has occured");
+                $"A de-sync of {Math.Abs(TimeSpan.FromSeconds(Position.X / 700 - AudioSource.TrackPosition).TotalMilliseconds)} milliseconds has occured");
 
             //Forces the player into position if it de-syncs more than the acceptable amount from the song,
             //rather brutish but functional.
-            Position = new Vector2((float)audioSource.TrackPosition * 700, Position.Y);
+            Position = new Vector2((float)AudioSource.TrackPosition * 700, Position.Y);
         }
 
         private void ground_movement()
