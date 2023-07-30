@@ -1,4 +1,4 @@
-[gd_scene load_steps=5 format=3 uid="uid://dfvncwmweby48"]
+[gd_scene load_steps=6 format=3 uid="uid://dfvncwmweby48"]
 
 [ext_resource type="Script" path="res://Perceptions/Core.cs" id="1_opurh"]
 
@@ -11,9 +11,13 @@ size = Vector2(128, 128)
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_hdcld"]
 size = Vector2(96, 96)
 
-[node name="Core" type="CharacterBody2D"]
+[sub_resource type="CircleShape2D" id="CircleShape2D_fi356"]
+radius = 64.0
+
+[node name="Core" type="CharacterBody2D" node_paths=PackedStringArray("noteReceptor")]
 collision_mask = 4
 script = ExtResource("1_opurh")
+noteReceptor = NodePath("Receptor")
 
 [node name="Body" type="Polygon2D" parent="."]
 polygon = PackedVector2Array(-64, -64, -64, 64, 64, 64, 64, -64)
@@ -37,3 +41,9 @@ collision_mask = 4
 [node name="Collision" type="CollisionShape2D" parent="Nucleus"]
 shape = SubResource("RectangleShape2D_hdcld")
 debug_color = Color(1, 1, 1, 0.698039)
+
+[node name="Receptor" type="Area2D" parent="."]
+collision_layer = 16
+
+[node name="Collision" type="CollisionShape2D" parent="Receptor"]
+shape = SubResource("CircleShape2D_fi356")
