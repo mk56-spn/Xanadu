@@ -21,8 +21,9 @@ namespace XanaduProject.Composer
 
             foreach (var area in  receptor.GetOverlappingAreas())
             {
-                if (Input.IsActionJustPressed("R1"))
-                    area.GetParent<Note>().Activate();
+                if (!Input.IsActionJustPressed("main")) continue;
+
+                area.GetParent<Note>().Activate();
             }
         }
     }
