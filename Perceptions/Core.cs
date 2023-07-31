@@ -28,11 +28,11 @@ namespace XanaduProject.Perceptions
             if (!(Math.Abs(Position.X - AudioSource.TrackPosition * 700) > 25) || !AudioSource.Playing) return;
 
             GD.Print(
-                $"A de-sync of {Math.Abs(TimeSpan.FromSeconds(Position.X / 700 - AudioSource.TrackPosition).TotalMilliseconds)} milliseconds has occured");
+                $"A de-sync of {Math.Abs(TimeSpan.FromSeconds(Position.X / BASE_VELOCITY - AudioSource.TrackPosition).TotalMilliseconds)} milliseconds has occured");
 
             //Forces the player into position if it de-syncs more than the acceptable amount from the song,
             //rather brutish but functional.
-            Position = new Vector2((float)AudioSource.TrackPosition * 700, Position.Y);
+            Position = new Vector2((float)AudioSource.TrackPosition * BASE_VELOCITY, Position.Y);
         }
 
         private void ground_movement()
