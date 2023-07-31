@@ -9,7 +9,7 @@ namespace XanaduProject.Perceptions
 {
     public abstract partial class Perception : CharacterBody2D
     {
-        protected const int BASE_VELOCITY = 700;
+        public const int BASE_VELOCITY = 700;
         protected int Gravity;
 
         /// <summary>
