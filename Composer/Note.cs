@@ -18,7 +18,7 @@ namespace XanaduProject.Composer
         {
             hitBox.Monitorable = false;
 
-            CreateTween().TweenProperty(this, "scale", Vector2.Zero, 0.1f)
+            CreateTween().TweenProperty(body, "scale", Vector2.Zero, 0.1f)
                 .SetEase(Tween.EaseType.Out)
                 .SetTrans(Tween.TransitionType.Sine);
         }
