@@ -9,7 +9,7 @@ namespace XanaduProject.Perceptions
 {
     public abstract partial class Perception : CharacterBody2D
     {
-        private const int base_velocity = 700;
+        public const int BASE_VELOCITY = 700;
         protected int Gravity;
 
         /// <summary>
@@ -31,7 +31,7 @@ namespace XanaduProject.Perceptions
             var fetchGravity = ProjectSettings.GetSetting("physics/2d/default_gravity");
             Gravity = fetchGravity.AsInt32();
 
-            Velocity = new Vector2(base_velocity, 0);
+            Velocity = new Vector2(BASE_VELOCITY, 0);
         }
 
         public override void _Ready()

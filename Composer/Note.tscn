@@ -1,19 +1,92 @@
-[gd_scene load_steps=3 format=3 uid="uid://b8f178tstjnjt"]
+[gd_scene load_steps=6 format=3 uid="uid://b8f178tstjnjt"]
 
 [ext_resource type="Script" path="res://Composer/Note.cs" id="1_6nwfo"]
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_itdv8"]
 radius = 32.0
 
-[node name="Note" type="Node2D" node_paths=PackedStringArray("body", "hitBox")]
-script = ExtResource("1_6nwfo")
-body = NodePath("Body")
-hitBox = NodePath("Hitbox")
+[sub_resource type="Animation" id="Animation_xvdrc"]
+resource_name = "Animate"
+length = 0.7
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Judgement:theme_override_colors/font_color")
+tracks/0/interp = 2
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.3, 0.7),
+"transitions": PackedFloat32Array(1, 1, 1),
+"update": 0,
+"values": [Color(0, 0, 0, 0), Color(1, 1, 1, 1), Color(0.435294, 0.952941, 0.760784, 0)]
+}
+tracks/1/type = "value"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath("Judgement:scale")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/keys = {
+"times": PackedFloat32Array(0, 0.7),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [Vector2(1, 1), Vector2(2, 2)]
+}
 
-[node name="Body" type="Polygon2D" parent="."]
-polygon = PackedVector2Array(0, 32, 8, 8, 32, 0, 8, -8, 0, -32, -8, -8, -32, 0, -8, 8)
+[sub_resource type="Animation" id="Animation_7gaem"]
+length = 0.001
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Judgement:theme_override_colors/font_color")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 0,
+"values": [null]
+}
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_3a6w5"]
+_data = {
+"Animate": SubResource("Animation_xvdrc"),
+"RESET": SubResource("Animation_7gaem")
+}
+
+[node name="Note" type="Node2D" node_paths=PackedStringArray("hitBox", "animation", "judgementText")]
+script = ExtResource("1_6nwfo")
+hitBox = NodePath("Hitbox")
+animation = NodePath("Animation")
+judgementText = NodePath("Judgement")
 
 [node name="Hitbox" type="Area2D" parent="."]
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Hitbox"]
 shape = SubResource("CircleShape2D_itdv8")
+
+[node name="Body" type="Polygon2D" parent="."]
+polygon = PackedVector2Array(0, 32, 8, 8, 32, 0, 8, -8, 0, -32, -8, -8, -32, 0, -8, 8)
+
+[node name="Judgement" type="Label" parent="."]
+custom_minimum_size = Vector2(250, 50)
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -128.0
+offset_top = -24.0
+offset_right = 128.0
+offset_bottom = 31.0
+grow_horizontal = 2
+grow_vertical = 2
+pivot_offset = Vector2(128, 24)
+theme_override_colors/font_color = Color(0.435294, 0.952941, 0.760784, 0)
+theme_override_font_sizes/font_size = 40
+horizontal_alignment = 1
+
+[node name="Animation" type="AnimationPlayer" parent="."]
+libraries = {
+"": SubResource("AnimationLibrary_3a6w5")
+}

@@ -1,26 +1,38 @@
 // Copyright (c) mk56_spn <dhsjplt@gmail.com>. Licensed under the GNU General Public Licence (2.0).
 // See the LICENCE file in the repository root for full licence text.
 
+using System;
 using Godot;
+using XanaduProject.DataStructure;
+using XanaduProject.Perceptions;
+using XanaduProject.Singletons;
 
 namespace XanaduProject.Composer
 {
-    [GlobalClass]
     public partial class Note : Node2D
     {
         [Export]
-        private Polygon2D body { get; set; } = null!;
+        private Area2D hitBox { get; set; } = null!;
 
         [Export]
-        private Area2D hitBox { get; set; } = null!;
+        private AnimationPlayer animation { get; set; } = null!;
+
+        [Export]
+        private Label judgementText { get; set; } = null!;
 
         public void Activate()
         {
             hitBox.Monitorable = false;
 
-            CreateTween().TweenProperty(this, "scale", Vector2.Zero, 0.1f)
-                .SetEase(Tween.EaseType.Out)
-                .SetTrans(Tween.TransitionType.Sine);
+            AudioSource audioSource = GetNode<AudioSource>("/root/GlobalAudio");
+
+            double deviation = Math.Abs(TimeSpan.FromSeconds(Position.X / Perception.BASE_VELOCITY - audioSource.TrackPosition).TotalMilliseconds);
+            var judgement = JudgementInfo.GetJudgement(deviation);
+
+            judgementText.Text = JudgementInfo.GetJudgmentText(judgement).ToUpper();
+
+            animation.AssignedAnimation = "Animate";
+            animation.Play();
         }
     }
 }
