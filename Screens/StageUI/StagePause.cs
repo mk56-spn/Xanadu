@@ -1,6 +1,7 @@
 // Copyright (c) mk56_spn <dhsjplt@gmail.com>. Licensed under the GNU General Public Licence (2.0).
 // See the LICENCE file in the repository root for full licence text.
 
+using System;
 using Godot;
 
 namespace XanaduProject.Screens.StageUI
@@ -8,6 +9,8 @@ namespace XanaduProject.Screens.StageUI
     [GlobalClass]
     public partial class StagePause : Control
     {
+        public event EventHandler? RestartRequest;
+
         public StagePause()
         {
             Visible = false;
@@ -39,7 +42,7 @@ namespace XanaduProject.Screens.StageUI
             GetNode<Button>("ButtonContainer/Restart").ButtonUp += () =>
             {
                 unpause();
-                GetTree().ReloadCurrentScene();
+                RestartRequest?.Invoke(this, EventArgs.Empty);
             };
 
             GetNode<Button>("ButtonContainer/Quit").ButtonUp += () =>

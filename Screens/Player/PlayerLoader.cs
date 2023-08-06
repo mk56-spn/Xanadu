@@ -19,7 +19,20 @@ namespace XanaduProject.Screens.Player
         {
             base._Ready();
 
-            AddChild(new Player(stageInfo));
+            createPlayer();
+        }
+
+        private void createPlayer()
+        {
+            Player player = new Player(stageInfo);
+            AddChild(player);
+
+            player.PauseMenu.RestartRequest += (_, _) =>
+            {
+                RemoveChild(player);
+                player.QueueFree();
+                createPlayer();
+            };
         }
     }
 }
