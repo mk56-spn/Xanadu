@@ -5,6 +5,7 @@ using System;
 using System.Linq;
 using Godot;
 using XanaduProject.DataStructure;
+using XanaduProject.Screens.Player;
 using XanaduProject.Singletons;
 
 namespace XanaduProject.Screens.StageSelection
@@ -35,7 +36,7 @@ namespace XanaduProject.Screens.StageSelection
             {
                 // Retrieves information for the subsequent loading of it's stage.
                 StageInfo stageInfo = ResourceLoader.Load<StageInfo>($"res://Resources/Stages/{folder}/information.tres");
-                
+
                 trackList.AddChild(new StageSelectionPanel(stageInfo));
             }
 
@@ -61,7 +62,7 @@ namespace XanaduProject.Screens.StageSelection
             startButton.Pressed += () =>
             {
                 GetNode<AudioSource>("/root/GlobalAudio").SetTrack(activeInfo.TrackInfo);
-                GetTree().ChangeSceneToPacked(activeInfo.Stage);
+                loadStage();
             };
         }
 
@@ -78,6 +79,15 @@ namespace XanaduProject.Screens.StageSelection
                     .SetTrans(Tween.TransitionType.Sine)
                     .SetEase(Tween.EaseType.Out);
             }
+        }
+
+        private void loadStage()
+        {
+            PlayerLoader player = new PlayerLoader(activeInfo);
+
+            GetTree().Root.AddChild(player);
+            GetTree().CurrentScene = player;
+            GetTree().Root.RemoveChild(this);
         }
     }
 }
