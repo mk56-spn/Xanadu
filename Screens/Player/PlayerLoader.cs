@@ -3,6 +3,7 @@
 
 using Godot;
 using XanaduProject.DataStructure;
+using XanaduProject.Singletons;
 
 namespace XanaduProject.Screens.Player
 {
@@ -19,11 +20,19 @@ namespace XanaduProject.Screens.Player
         {
             base._Ready();
 
-            createPlayer();
+            AudioSource audioSource = GetNode<AudioSource>("/root/GlobalAudio");
+
+            audioSource.SetTrack(stageInfo.TrackInfo);
+
+            createPlayer(audioSource);
+
+            TreeExited += () => audioSource.Stream = null;
         }
 
-        private void createPlayer()
+        private void createPlayer(AudioSource audioSource)
         {
+            audioSource.Stop();
+
             Player player = new Player(stageInfo);
             AddChild(player);
 
@@ -31,7 +40,7 @@ namespace XanaduProject.Screens.Player
             {
                 RemoveChild(player);
                 player.QueueFree();
-                createPlayer();
+                createPlayer(audioSource);
             };
         }
     }

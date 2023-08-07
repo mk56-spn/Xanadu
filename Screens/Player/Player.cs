@@ -26,12 +26,11 @@ namespace XanaduProject.Screens.Player
 
             stage = stageInfo.Stage.Instantiate<Stage>();
 
+            CanvasLayer canvasLayer = new CanvasLayer();
+
             AddChild(camera);
             AddChild(stage);
-
-            CanvasLayer canvasLayer = new CanvasLayer();
             camera.AddChild(canvasLayer);
-
             canvasLayer.AddChild(PauseMenu);
         }
 
@@ -44,16 +43,16 @@ namespace XanaduProject.Screens.Player
             // Pause menu handling
             base._Process(delta);
 
-             if (!stage.Core.IsAlive && !PauseMenu.Visible)
-             {
-                 PauseMenu.Show();
-                 return;
-             }
+            if (!stage.Core.IsAlive && !PauseMenu.Visible)
+            {
+                PauseMenu.Show();
+                return;
+            }
 
-             if (!Input.IsActionJustPressed("escape")) return;
+            if (!Input.IsActionJustPressed("escape")) return;
 
-             GetTree().Paused = true;
-             PauseMenu.Show();
+            GetTree().Paused = true;
+            PauseMenu.Show();
         }
     }
 }

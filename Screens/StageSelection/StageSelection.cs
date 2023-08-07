@@ -4,7 +4,6 @@
 using Godot;
 using XanaduProject.DataStructure;
 using XanaduProject.Screens.Player;
-using XanaduProject.Singletons;
 
 namespace XanaduProject.Screens.StageSelection
 {
@@ -20,11 +19,7 @@ namespace XanaduProject.Screens.StageSelection
 
             AddChild(new StageSelectionCarousel(this));
 
-            startButton.Pressed += () =>
-            {
-                GetNode<AudioSource>("/root/GlobalAudio").SetTrack(ActiveInfo.TrackInfo);
-                loadStage();
-            };
+            startButton.Pressed += loadStage;
         }
 
         private void loadStage()
