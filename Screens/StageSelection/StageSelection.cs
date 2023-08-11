@@ -10,6 +10,7 @@ namespace XanaduProject.Screens.StageSelection
     public partial class StageSelection : Control
     {
         [Export] private Button startButton = null!;
+        [Export] private Button editButton = null!;
 
         public StageInfo ActiveInfo = null!;
 
@@ -19,15 +20,20 @@ namespace XanaduProject.Screens.StageSelection
 
             AddChild(new StageSelectionCarousel(this));
 
-            startButton.Pressed += loadStage;
+            startButton.Pressed += () => loadScene(new PlayerLoader(ActiveInfo));
+            editButton.Pressed += () =>
+            {
+                Composer.Composer scene = ResourceLoader.Load<PackedScene>("res://Composer/Composer.tscn")
+                    .Instantiate<Composer.Composer>();
+                scene.StageInfo = ActiveInfo;
+                loadScene(scene);
+            };
         }
 
-        private void loadStage()
+        private void loadScene(Node scene)
         {
-            PlayerLoader player = new PlayerLoader(ActiveInfo);
-
-            GetTree().Root.AddChild(player);
-            GetTree().CurrentScene = player;
+            GetTree().Root.AddChild(scene);
+            GetTree().CurrentScene = scene;
             GetTree().Root.RemoveChild(this);
         }
     }
