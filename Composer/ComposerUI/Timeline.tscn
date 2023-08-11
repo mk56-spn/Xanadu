@@ -1,0 +1,43 @@
+[gd_scene load_steps=3 format=3 uid="uid://rh71ii34dp0c"]
+
+[ext_resource type="Script" path="res://Composer/ComposerUI/Timeline.cs" id="1_im628"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_fokra"]
+bg_color = Color(0.14902, 0.14902, 0.14902, 0.439216)
+border_width_top = 5
+
+[node name="Background" type="Panel"]
+clip_contents = true
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -450.0
+offset_top = -150.0
+offset_right = 450.0
+grow_horizontal = 2
+grow_vertical = 0
+pivot_offset = Vector2(-675, -401)
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_fokra")
+
+[node name="Timeline" type="ScrollContainer" parent="."]
+z_index = 1
+z_as_relative = false
+clip_contents = false
+custom_minimum_size = Vector2(900, 150)
+layout_mode = 1
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 0
+pivot_offset = Vector2(352, 556)
+size_flags_horizontal = 4
+size_flags_vertical = 4
+vertical_scroll_mode = 3
+script = ExtResource("1_im628")

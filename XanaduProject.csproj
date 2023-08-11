@@ -4,4 +4,9 @@
     <EnableDynamicLoading>true</EnableDynamicLoading>
     <Nullable>enable</Nullable>
   </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Chickensoft.AutoInject" Version="1.3.0" />
+    <PackageReference Include="Chickensoft.SuperNodes" Version="1.3.0" />
+    <PackageReference Include="Chickensoft.SuperNodes.Types" Version="1.3.0" />
+  </ItemGroup>
 </Project>

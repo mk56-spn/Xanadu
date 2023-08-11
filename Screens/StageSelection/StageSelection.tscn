@@ -14,7 +14,7 @@ fill_from = Vector2(0.5, 1)
 fill_to = Vector2(0.5, 0)
 metadata/_snap_enabled = true
 
-[node name="StageSelection" type="Control" node_paths=PackedStringArray("startButton")]
+[node name="StageSelection" type="Control" node_paths=PackedStringArray("startButton", "editButton")]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -23,6 +23,7 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_wapex")
 startButton = NodePath("StartButton")
+editButton = NodePath("EditButton")
 
 [node name="TextureRect" type="TextureRect" parent="."]
 layout_mode = 1
@@ -47,3 +48,19 @@ grow_horizontal = 2
 grow_vertical = 0
 focus_mode = 0
 text = "Start"
+
+[node name="EditButton" type="Button" parent="."]
+custom_minimum_size = Vector2(100, 0)
+layout_mode = 1
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = 128.0
+offset_top = -56.0
+offset_right = 228.0
+offset_bottom = -25.0
+grow_horizontal = 2
+grow_vertical = 0
+text = "Edit"

@@ -1,0 +1,18 @@
+[gd_scene load_steps=3 format=3 uid="uid://dk1bdchlc0cyf"]
+
+[ext_resource type="Script" path="res://Composer/Composer.cs" id="1_bt7va"]
+[ext_resource type="PackedScene" uid="uid://rh71ii34dp0c" path="res://Composer/ComposerUI/Timeline.tscn" id="2_qyv2p"]
+
+[node name="Composer" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_bt7va")
+
+[node name="CanvasLayer" type="CanvasLayer" parent="."]
+
+[node name="Timeline" parent="CanvasLayer" instance=ExtResource("2_qyv2p")]
+pivot_offset = Vector2(450, 75)
