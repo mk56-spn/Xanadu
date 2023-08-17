@@ -13,7 +13,7 @@ config_version=5
 config/name="XanaduProject"
 config/tags=PackedStringArray("serious")
 run/main_scene="res://Screens/StageSelection/StageSelection.tscn"
-config/features=PackedStringArray("4.1", "C#", "Forward Plus")
+config/features=PackedStringArray("4.2", "C#", "Forward Plus")
 config/icon="res://icon.svg"
 
 [audio]
@@ -28,6 +28,7 @@ GlobalAudio="*res://Singletons/AudioSource.cs"
 
 window/size/viewport_width=1920
 window/size/viewport_height=1080
+window/size/mode=3
 
 [dotnet]
 
@@ -36,6 +37,10 @@ project/assembly_name="XanaduProject"
 [editor_plugins]
 
 enabled=PackedStringArray()
+
+[gui]
+
+theme/custom_font="res://Resources/Fonts/Orbitron.ttf"
 
 [input]
 
@@ -78,3 +83,7 @@ common/physics_ticks_per_second=240
 
 environment/defaults/default_clear_color=Color(0, 0, 0, 1)
 anti_aliasing/quality/msaa_2d=2
+
+[svgsprite]
+
+compress=false
