@@ -1,16 +1,23 @@
 // Copyright (c) mk56_spn <dhsjplt@gmail.com>. Licensed under the GNU General Public Licence (2.0).
 // See the LICENCE file in the repository root for full licence text.
 
+using Chickensoft.AutoInject;
 using Godot;
+using SuperNodes.Types;
 using XanaduProject.DataStructure;
 using XanaduProject.Screens.Player;
 
 namespace XanaduProject.Screens.StageSelection
 {
-    public partial class StageSelection : Control
+    [SuperNode(typeof(Provider))]
+    public partial class StageSelection : Control, IProvide<StageSelection>
     {
+        public override partial void _Notification(int what);
+
         [Export] private Button startButton = null!;
         [Export] private Button editButton = null!;
+
+        StageSelection IProvide<StageSelection>.Value() => this;
 
         public StageInfo ActiveInfo = null!;
 
@@ -18,7 +25,7 @@ namespace XanaduProject.Screens.StageSelection
         {
             base._Ready();
 
-            AddChild(new StageSelectionCarousel(this));
+            AddChild(new StageSelectionCarousel());
 
             startButton.Pressed += () => loadScene(new PlayerLoader(ActiveInfo));
             editButton.Pressed += () =>
@@ -28,6 +35,8 @@ namespace XanaduProject.Screens.StageSelection
                 scene.StageInfo = ActiveInfo;
                 loadScene(scene);
             };
+
+            Provide();
         }
 
         private void loadScene(Node scene)

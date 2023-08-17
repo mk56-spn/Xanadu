@@ -3,22 +3,26 @@
 
 using System;
 using System.Linq;
+using Chickensoft.AutoInject;
 using Godot;
+using SuperNodes.Types;
 using XanaduProject.DataStructure;
 
 namespace XanaduProject.Screens.StageSelection
 {
+    [SuperNode(typeof(Dependent))]
     public partial class StageSelectionCarousel : ScrollContainer
     {
-        private readonly StageSelection stageSelection;
+        public override partial void _Notification(int what);
+
+        [Dependency]
+        private StageSelection stageSelection => DependOn<StageSelection>();
         private const double transition = 0.5;
 
         private Tween? opacityTween;
 
-        public StageSelectionCarousel (StageSelection stageSelection)
+        public StageSelectionCarousel ()
         {
-            this.stageSelection = stageSelection;
-
             CustomMinimumSize = new Vector2(0, 300);
             ClipContents = false;
             LayoutMode = 1;
@@ -30,7 +34,8 @@ namespace XanaduProject.Screens.StageSelection
         }
 
         private HBoxContainer trackList = new HBoxContainer();
-        public override void _Ready()
+
+        public void OnResolved()
         {
             trackList.AddThemeConstantOverride("separation", 100);
 
