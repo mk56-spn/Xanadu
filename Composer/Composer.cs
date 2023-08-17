@@ -24,7 +24,7 @@ namespace XanaduProject.Composer
         {
             base._Ready();
 
-            audioSource = GetNode<AudioSource>("/root/GlobalAudio");
+            audioSource = SingletonSource.GetAudioSource();
             audioSource.SetTrack(StageInfo.TrackInfo);
 
             // Makes sure that the Composer's ready function is called after the core has loaded, avoiding the physics process being turned on automatically from there

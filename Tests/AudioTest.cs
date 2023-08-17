@@ -43,7 +43,7 @@ namespace XanaduProject.Tests
 
         private void setup()
         {
-            audioSource = GetNode<AudioSource>("/root/GlobalAudio");
+            audioSource = SingletonSource.GetAudioSource();
             audioSource.SetTrack(ResourceLoader.Load<TrackInfo>("res://Resources/TestTrack.tres"));
 
             AddChild(container);

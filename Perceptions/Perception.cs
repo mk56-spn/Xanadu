@@ -22,7 +22,7 @@ namespace XanaduProject.Perceptions
         [Export]
         protected Area2D NoteReceptor { get; set; } = null!;
         [Export]
-        protected Polygon2D Body { get; private set; }= null!;
+        protected Polygon2D Body { get; private set; } = null!;
         [Export]
         protected Area2D Nucleus { get; private set; } = null!;
 
@@ -40,7 +40,7 @@ namespace XanaduProject.Perceptions
 
             AddChild(new NoteProcessor(NoteReceptor));
 
-            AudioSource = GetNode<AudioSource>("/root/GlobalAudio");
+            AudioSource = SingletonSource.GetAudioSource();
             AudioSource.RequestPlay = true;
 
             GetNode<Area2D>("Shell").AreaEntered += _ =>

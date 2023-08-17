@@ -24,9 +24,7 @@ namespace XanaduProject.Composer
         {
             hitBox.Monitorable = false;
 
-            AudioSource audioSource = GetNode<AudioSource>("/root/GlobalAudio");
-
-            double deviation = Math.Abs(TimeSpan.FromSeconds(Position.X / Perception.BASE_VELOCITY - audioSource.TrackPosition).TotalMilliseconds);
+            double deviation = Math.Abs(TimeSpan.FromSeconds(Position.X / Perception.BASE_VELOCITY - SingletonSource.GetAudioSource().TrackPosition).TotalMilliseconds);
             var judgement = JudgementInfo.GetJudgement(deviation);
 
             judgementText.Text = JudgementInfo.GetJudgmentText(judgement).ToUpper();
