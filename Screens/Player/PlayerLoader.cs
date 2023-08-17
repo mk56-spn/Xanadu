@@ -30,7 +30,7 @@ namespace XanaduProject.Screens.Player
         {
             base._Ready();
 
-            AudioSource audioSource = GetNode<AudioSource>("/root/GlobalAudio");
+            AudioSource audioSource = SingletonSource.GetAudioSource();
 
             audioSource.SetTrack(stageInfo.TrackInfo);
 
