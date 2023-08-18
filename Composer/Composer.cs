@@ -11,10 +11,11 @@ using XanaduProject.Singletons;
 namespace XanaduProject.Composer
 {
     [SuperNode(typeof(Provider))]
-    public partial class Composer : Control, IProvide<AudioSource>
+    public partial class Composer : Control, IProvide<Stage>
     {
         public override partial void _Notification(int what);
-        AudioSource IProvide<AudioSource>.Value() => audioSource;
+
+        public Stage Value() => stage;
 
         private AudioSource audioSource = null!;
         private Stage stage = null!;
