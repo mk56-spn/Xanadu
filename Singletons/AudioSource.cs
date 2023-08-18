@@ -9,30 +9,36 @@ namespace XanaduProject.Singletons
 {
     public sealed partial class AudioSource : AudioStreamPlayer
     {
-        private int positionInBeats;
-
         /// <summary>
-        ///     If set to true starts the audio stream on the next physics process tic to ensure the beat actions are synced;
+        /// If set to true starts the audio stream on the next physics process tic to ensure the beat actions are synced;
         /// </summary>
         public bool RequestPlay;
 
-        // For some reason Godot uses time in seconds. So this conversion is necessary.
-        private double secondsPerBeat;
+        /// <summary>
+        /// The time in seconds between every 1/1 beat;
+        /// </summary>
+        public double SecondsPerBeat { get; private set; }
 
+        /// <summary>
+        /// The furthest beat measure that has been passed so far in the playback of the track.
+        /// </summary>
         public int LastPlayedBeat { get; private set; }
+
+        /// <summary>
+        /// The BPM of the track.
+        /// </summary>
         public double Bpm { get; private set; } = 120;
         public int Measures { get; private set; } = 4;
 
         public double TrackPosition { get; private set; }
         public int Measure { get; private set; }
 
+        private int positionInBeats;
         public event EventHandler<int>? OnNewBeat;
 
-        public double SongProgressPercentage()
-        {
-            return Math.Round(GetPlaybackPosition() / Stream.GetLength(), 2) * 100;
-        }
 
+        public double SongProgressPercentage() =>
+            Math.Round(GetPlaybackPosition() / Stream.GetLength(), 2) * 100;
 
         public override void _PhysicsProcess(double delta)
         {
@@ -47,7 +53,7 @@ namespace XanaduProject.Singletons
 
             TrackPosition = GetPlaybackPosition() + AudioServer.GetTimeSinceLastMix();
             TrackPosition -= AudioServer.GetOutputLatency();
-            positionInBeats = (int)Math.Floor(TrackPosition / secondsPerBeat) + 1;
+            positionInBeats = (int)Math.Floor(TrackPosition / SecondsPerBeat) + 1;
 
             reportBeat();
         }
@@ -76,7 +82,7 @@ namespace XanaduProject.Singletons
 
             Measure = 1;
 
-            secondsPerBeat = 60 / Bpm;
+            SecondsPerBeat = 60 / Bpm;
         }
     }
 }
