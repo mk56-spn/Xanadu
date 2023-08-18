@@ -20,15 +20,15 @@ namespace XanaduProject.Composer
         private Label judgementText { get; set; } = null!;
 
         [Export]
-        private float positionInTrack { get; set; }
+        public float PositionInTrack { get; private set; }
 
         public void Activate()
         {
             hitBox.Monitorable = false;
 
-            double millisecondDeviation = TimeSpan.FromSeconds(positionInTrack - SingletonSource.GetAudioSource().TrackPosition).TotalMilliseconds;
+            double millisecondDeviation = TimeSpan.FromSeconds(PositionInTrack - SingletonSource.GetAudioSource().TrackPosition).TotalMilliseconds;
 
-            GD.Print($"Note hit with position {positionInTrack} seconds");
+            GD.Print($"Note hit with position {PositionInTrack} seconds");
             GD.Print($"Deviation of {millisecondDeviation} milliseconds");
 
             var judgement = JudgementInfo.GetJudgement(Math.Abs(millisecondDeviation));
