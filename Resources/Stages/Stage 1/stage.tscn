@@ -45,7 +45,6 @@ script = ExtResource("3_cc1fn")
 
 [node name="Note" parent="." instance=ExtResource("4_7f3x2")]
 position = Vector2(320, 128)
-positionInTrack = 0.12
 
 [node name="EnvironmentPolygon6" type="Polygon2D" parent="."]
 position = Vector2(-7040, 0)
@@ -55,10 +54,12 @@ script = ExtResource("2_8ddxt")
 
 [node name="Note2" parent="." instance=ExtResource("4_7f3x2")]
 position = Vector2(1408, 448)
-positionInTrack = 1.4
+PositionInTrack = 0.3
 
 [node name="Note3" parent="." instance=ExtResource("4_7f3x2")]
 position = Vector2(1728, 448)
+PositionInTrack = 0.6
 
 [node name="Note4" parent="." instance=ExtResource("4_7f3x2")]
 position = Vector2(2048, 448)
+PositionInTrack = 0.9
