@@ -28,7 +28,7 @@ namespace XanaduProject.Composer.ComposerUI
         {
             AddChild(container);
             container.AddChild(markerContainer);
-            markerContainer.AddChild(closestBar);
+            container.AddChild(closestBar);
 
             container.CustomMinimumSize = new Vector2((float)audioSource.Stream.GetLength() * separation_ratio, 150);
 
@@ -60,10 +60,38 @@ namespace XanaduProject.Composer.ComposerUI
             updateLines();
         }
 
+        private float lastClosestPosition;
+
         private void updateLines()
         {
             float snappedPosition = (float)Mathf.Snapped(ScrollHorizontal, audioSource.SecondsPerBeat * separation_ratio);
+            if (snappedPosition.Equals(lastClosestPosition)) return;
+
             closestBar.Position = new Vector2(snappedPosition, closestBar.Position.Y);
+            lastClosestPosition = snappedPosition;
+
+            foreach (var child in markerContainer.GetChildren())
+            {
+                child.Free();
+            }
+
+
+            int i = -4;
+            while (i <= 4)
+            {
+                markerContainer.AddChild(new Line2D
+                {
+                    DefaultColor = Colors.DarkGray,
+                    Width = 2,
+                    Points = new []
+                    {
+                        new Vector2(0, 0),
+                        new Vector2(0, 100)
+                    },
+                    Position = new Vector2((float)(snappedPosition + i * separation_ratio * audioSource.SecondsPerBeat), 0)
+                });
+                i++;
+            }
         }
 
         private Line2D closestBar = new Line2D
