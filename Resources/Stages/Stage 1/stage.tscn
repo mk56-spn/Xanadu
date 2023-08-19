@@ -54,9 +54,12 @@ script = ExtResource("2_8ddxt")
 
 [node name="Note2" parent="." instance=ExtResource("4_7f3x2")]
 position = Vector2(1408, 448)
+PositionInTrack = 0.3
 
 [node name="Note3" parent="." instance=ExtResource("4_7f3x2")]
 position = Vector2(1728, 448)
+PositionInTrack = 0.6
 
 [node name="Note4" parent="." instance=ExtResource("4_7f3x2")]
 position = Vector2(2048, 448)
+PositionInTrack = 0.9

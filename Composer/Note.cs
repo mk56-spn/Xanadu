@@ -4,7 +4,6 @@
 using System;
 using Godot;
 using XanaduProject.DataStructure;
-using XanaduProject.Perceptions;
 using XanaduProject.Singletons;
 
 namespace XanaduProject.Composer
@@ -20,14 +19,21 @@ namespace XanaduProject.Composer
         [Export]
         private Label judgementText { get; set; } = null!;
 
+        [Export]
+        public float PositionInTrack { get; private set; }
+
         public void Activate()
         {
             hitBox.Monitorable = false;
 
-            double deviation = Math.Abs(TimeSpan.FromSeconds(Position.X / Perception.BASE_VELOCITY - SingletonSource.GetAudioSource().TrackPosition).TotalMilliseconds);
-            var judgement = JudgementInfo.GetJudgement(deviation);
+            double millisecondDeviation = TimeSpan.FromSeconds(PositionInTrack - SingletonSource.GetAudioSource().TrackPosition).TotalMilliseconds;
 
-            judgementText.Text = JudgementInfo.GetJudgmentText(judgement).ToUpper();
+            GD.Print($"Note hit with position {PositionInTrack} seconds");
+            GD.Print($"Deviation of {millisecondDeviation} milliseconds");
+
+            var judgement = JudgementInfo.GetJudgement(Math.Abs(millisecondDeviation));
+
+            judgementText.Text = $"{JudgementInfo.GetJudgmentText(judgement).ToUpper()} \n {(millisecondDeviation < 0 ? "late" : "early" )}";
 
             animation.AssignedAnimation = "Animate";
             animation.Play();
