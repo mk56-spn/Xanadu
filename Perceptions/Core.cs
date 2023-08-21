@@ -2,15 +2,23 @@
 // See the LICENCE file in the repository root for full licence text.
 
 using System;
+using Chickensoft.AutoInject;
 using Godot;
+using SuperNodes.Types;
+using XanaduProject.Audio;
 
 namespace XanaduProject.Perceptions
 {
+    [SuperNode(typeof(Dependent))]
     public partial class Core : Perception
     {
+        public override partial void _Notification(int what);
+
         private const int jump_velocity = -1900;
 
         private Tween? rotationTween;
+
+        [Dependency] private TrackHandler trackHandler => DependOn<TrackHandler>();
 
         public override void _PhysicsProcess(double delta)
         {
@@ -25,7 +33,7 @@ namespace XanaduProject.Perceptions
 
             MoveAndSlide();
 
-            if (!(Math.Abs(Position.X - AudioSource.TrackPosition * 700) > 25) || !AudioSource.Playing) return;
+            if (!(Math.Abs(Position.X - trackHandler.TrackPosition * 700) > 25) || !trackHandler.IsPlaying()) return;
 
             GD.Print(
                 $"A de-sync of {Math.Abs(TimeSpan.FromSeconds(Position.X / BASE_VELOCITY - AudioSource.TrackPosition).TotalMilliseconds)} milliseconds has occured");

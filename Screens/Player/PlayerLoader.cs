@@ -4,22 +4,23 @@
 using Chickensoft.AutoInject;
 using Godot;
 using SuperNodes.Types;
+using XanaduProject.Audio;
 using XanaduProject.DataStructure;
 using XanaduProject.Screens.StageUI;
-using XanaduProject.Singletons;
 
 namespace XanaduProject.Screens.Player
 {
     [SuperNode(typeof(Provider))]
-    public partial class PlayerLoader : Node, IProvide<StageInfo>
+    public partial class PlayerLoader : Node, IProvide<StageInfo>, IProvide<TrackHandler>
     {
         public override partial void _Notification(int what);
 
-
         private readonly StageInfo stageInfo;
+        private readonly TrackHandler trackHandler = new TrackHandler();
 
         // Cache StageInfo at a loader level for downstream consumption
         StageInfo IProvide<StageInfo>.Value() => stageInfo;
+        TrackHandler IProvide<TrackHandler>.Value() => trackHandler;
 
         public PlayerLoader (StageInfo stageInfo)
         {
@@ -30,9 +31,7 @@ namespace XanaduProject.Screens.Player
         {
             base._Ready();
 
-            AudioSource audioSource = SingletonSource.GetAudioSource();
-
-            audioSource.SetTrack(stageInfo.TrackInfo);
+            trackHandler.SetTrack(stageInfo.TrackInfo);
 
             PackedScene transitionScene = ResourceLoader.Load<PackedScene>("res://Screens/StageUI/Transition.tscn");
             CanvasLayer layer = new CanvasLayer();
@@ -42,17 +41,15 @@ namespace XanaduProject.Screens.Player
             AddChild(layer);
             layer.AddChild(transition);
 
-            TreeExited += () => audioSource.Stream = null;
-
             // Delay player creation until transition is over.
-            transition.TransitionFinished += (_, _) => createPlayer(audioSource);
+            transition.TransitionFinished += (_, _) => createPlayer();
 
             Provide();
         }
 
-        private void createPlayer(AudioSource audioSource)
+        private void createPlayer()
         {
-            audioSource.Stop();
+            trackHandler.StopTrack();
 
             Player player = new Player(stageInfo);
             AddChild(player);
@@ -61,7 +58,7 @@ namespace XanaduProject.Screens.Player
             {
                 RemoveChild(player);
                 player.QueueFree();
-                createPlayer(audioSource);
+                createPlayer();
             };
         }
     }

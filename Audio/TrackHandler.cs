@@ -48,6 +48,17 @@ namespace XanaduProject.Audio
         public double TrackLength => audio.Stream.GetLength();
 
         /// <summary>
+        /// Stops playback of the loaded track.
+        /// </summary>
+        public void StopTrack() => audio.Stop();
+
+        /// <summary>
+        /// Returns true if a track is being played.
+        /// </summary>
+        /// <returns></returns>
+        public bool IsPlaying() => audio.Playing;
+
+        /// <summary>
         /// Called on every 1/1 beat
         /// </summary>
         public event EventHandler<int>? OnBeat;
