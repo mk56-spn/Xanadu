@@ -5,24 +5,25 @@ using System.Linq;
 using Chickensoft.AutoInject;
 using Godot;
 using SuperNodes.Types;
+using XanaduProject.Audio;
 using XanaduProject.Screens;
-using XanaduProject.Singletons;
 
 namespace XanaduProject.Composer.ComposerUI
 {
     [SuperNode(typeof(Dependent))]
     public partial class Timeline : ScrollContainer
     {
+
         public override partial void _Notification(int what);
 
         private const float height = 150;
         private const float separation_ratio = 500;
 
         private Container container = new Container();
-        private AudioSource audioSource = SingletonSource.GetAudioSource();
         private Container markerContainer = new Container();
 
         [Dependency] private Stage stage => DependOn<Stage>();
+        [Dependency] private TrackHandler trackHandler => DependOn<TrackHandler>();
 
         public void OnResolved()
         {
@@ -30,7 +31,7 @@ namespace XanaduProject.Composer.ComposerUI
             container.AddChild(markerContainer);
             container.AddChild(closestBar);
 
-            container.CustomMinimumSize = new Vector2((float)audioSource.Stream.GetLength() * separation_ratio, 150);
+            container.CustomMinimumSize = new Vector2((float)trackHandler.TrackLength * separation_ratio, 150);
 
             GD.Print($"Stage has {stage.Notes.Count()} notes");
 
@@ -55,7 +56,7 @@ namespace XanaduProject.Composer.ComposerUI
         public override void _Process(double delta)
         {
             base._Process(delta);
-            ScrollHorizontal = (int)(container.CustomMinimumSize.X * (audioSource.TrackPosition / audioSource.Stream.GetLength()));
+            ScrollHorizontal = (int)(container.CustomMinimumSize.X * (trackHandler.TrackPosition / trackHandler.TrackLength));
 
             updateLines();
         }
@@ -64,7 +65,7 @@ namespace XanaduProject.Composer.ComposerUI
 
         private void updateLines()
         {
-            float snappedPosition = (float)Mathf.Snapped(ScrollHorizontal, audioSource.SecondsPerBeat * separation_ratio);
+            float snappedPosition = (float)Mathf.Snapped(ScrollHorizontal, trackHandler.SecondsPerBeat * separation_ratio);
             if (snappedPosition.Equals(lastClosestPosition)) return;
 
             closestBar.Position = new Vector2(snappedPosition, closestBar.Position.Y);
@@ -88,7 +89,7 @@ namespace XanaduProject.Composer.ComposerUI
                         new Vector2(0, 0),
                         new Vector2(0, 100)
                     },
-                    Position = new Vector2((float)(snappedPosition + i * separation_ratio * audioSource.SecondsPerBeat), 0)
+                    Position = new Vector2((float)(snappedPosition + i * separation_ratio * trackHandler.TrackLength), 0)
                 });
                 i++;
             }
