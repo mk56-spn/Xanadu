@@ -33,9 +33,9 @@ namespace XanaduProject.Audio
         public double TrackPosition { get; private set; }
 
         /// <summary>
-        ///
+        /// The current 4/4 measure.
         /// </summary>
-        public int Measure { get; private set; }
+        public int Measure { get; private set; } = 1;
 
         /// <summary>
         /// How many measures there are per every major measure.
@@ -52,6 +52,11 @@ namespace XanaduProject.Audio
         /// </summary>
         public event EventHandler<int>? OnBeat;
 
+
+        private double lastNoteTime;
+        public double SongProgressPercentage =>
+            Math.Round(TrackPosition / TrackLength, 2) * 100;
+
         private int positionInBeats;
 
         private double offset => SecondsPerBeat * 4;
@@ -60,6 +65,7 @@ namespace XanaduProject.Audio
 
         public TrackHandler ()
         {
+            ProcessPriority = -1;
             AddChild(audio);
         }
 
@@ -67,17 +73,18 @@ namespace XanaduProject.Audio
         {
             base._PhysicsProcess(delta);
 
+            if (!audio.Playing) return;
+
             TrackPosition = audio.GetPlaybackPosition() + AudioServer.GetTimeSinceLastMix();
             TrackPosition -= AudioServer.GetOutputLatency();
-            positionInBeats = (int)Math.Floor(TrackPosition / SecondsPerBeat) + 1;
+            positionInBeats = (int)Math.Floor(TrackPosition / SecondsPerBeat);
 
             reportBeat();
         }
 
         private void reportBeat()
         {
-            if (LastPlayedBeat < positionInBeats is false)
-                return;
+            if (lastNoteTime > TrackPosition) return;
 
             if (Measure > Measures)
                 Measure = 1;
@@ -85,6 +92,8 @@ namespace XanaduProject.Audio
             OnBeat?.Invoke(this, positionInBeats);
 
             LastPlayedBeat = positionInBeats;
+            lastNoteTime = (LastPlayedBeat + 1) * SecondsPerBeat;
+
             Measure++;
         }
 
