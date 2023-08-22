@@ -56,13 +56,19 @@ namespace XanaduProject.Audio
         /// Returns true if a track is being played.
         /// </summary>
         /// <returns></returns>
-        public bool IsPlaying() => audio.Playing;
+        public bool Playing
+        {
+            set => audio.Playing = value;
+            get => audio.Playing;
+        }
 
         /// <summary>
         /// Called on every 1/1 beat
         /// </summary>
         public event EventHandler<int>? OnBeat;
 
+        // A signal
+        public event EventHandler OnPreemptComplete = null!;
 
         private double lastNoteTime;
         public double SongProgressPercentage =>
@@ -118,6 +124,7 @@ namespace XanaduProject.Audio
 
         public void StartTrack()
         {
+            audio.Stop();
             Timer timer = new Timer();
 
             AddChild(timer);
@@ -125,7 +132,11 @@ namespace XanaduProject.Audio
             timer.WaitTime = offset;
             timer.Start();
 
-            timer.Timeout += () => audio.Play();
+            timer.Timeout += () =>
+            {
+                OnPreemptComplete.Invoke(this, EventArgs.Empty);
+                audio.Play();
+            };
         }
     }
 }
