@@ -4,23 +4,20 @@
 using Chickensoft.AutoInject;
 using Godot;
 using SuperNodes.Types;
-using XanaduProject.Audio;
 using XanaduProject.DataStructure;
 using XanaduProject.Screens.StageUI;
 
 namespace XanaduProject.Screens.Player
 {
     [SuperNode(typeof(Provider))]
-    public partial class PlayerLoader : Node, IProvide<StageInfo>, IProvide<TrackHandler>
+    public partial class PlayerLoader : Node, IProvide<StageInfo>
     {
         public override partial void _Notification(int what);
 
         private readonly StageInfo stageInfo;
-        private readonly TrackHandler trackHandler = new TrackHandler();
 
         // Cache StageInfo at a loader level for downstream consumption
         StageInfo IProvide<StageInfo>.Value() => stageInfo;
-        TrackHandler IProvide<TrackHandler>.Value() => trackHandler;
 
         public PlayerLoader (StageInfo stageInfo)
         {
@@ -30,8 +27,6 @@ namespace XanaduProject.Screens.Player
         public override void _Ready()
         {
             base._Ready();
-
-            trackHandler.SetTrack(stageInfo.TrackInfo);
 
             PackedScene transitionScene = ResourceLoader.Load<PackedScene>("res://Screens/StageUI/Transition.tscn");
             CanvasLayer layer = new CanvasLayer();
@@ -49,8 +44,6 @@ namespace XanaduProject.Screens.Player
 
         private void createPlayer()
         {
-            trackHandler.StopTrack();
-
             Player player = new Player(stageInfo);
             AddChild(player);
 
