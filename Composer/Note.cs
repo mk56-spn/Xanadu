@@ -2,14 +2,19 @@
 // See the LICENCE file in the repository root for full licence text.
 
 using System;
+using Chickensoft.AutoInject;
 using Godot;
+using SuperNodes.Types;
+using XanaduProject.Audio;
 using XanaduProject.DataStructure;
-using XanaduProject.Singletons;
 
 namespace XanaduProject.Composer
 {
+    [SuperNode(typeof(Dependent))]
     public partial class Note : Node2D
     {
+        public override partial void _Notification(int what);
+
         [Export]
         private Area2D hitBox { get; set; } = null!;
 
@@ -22,11 +27,13 @@ namespace XanaduProject.Composer
         [Export]
         public float PositionInTrack { get; private set; }
 
+        [Dependency] private TrackHandler trackHandler => DependOn<TrackHandler>();
+
         public void Activate()
         {
             hitBox.Monitorable = false;
 
-            double millisecondDeviation = TimeSpan.FromSeconds(PositionInTrack - SingletonSource.GetAudioSource().TrackPosition).TotalMilliseconds;
+            double millisecondDeviation = TimeSpan.FromSeconds(PositionInTrack - trackHandler.TrackPosition).TotalMilliseconds;
 
             GD.Print($"Note hit with position {PositionInTrack} seconds");
             GD.Print($"Deviation of {millisecondDeviation} milliseconds");
