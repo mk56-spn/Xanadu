@@ -4,29 +4,30 @@
 using Chickensoft.AutoInject;
 using Godot;
 using SuperNodes.Types;
+using XanaduProject.Audio;
 using XanaduProject.DataStructure;
 using XanaduProject.Screens;
-using XanaduProject.Singletons;
 
 namespace XanaduProject.Composer
 {
     [SuperNode(typeof(Provider))]
-    public partial class Composer : Control, IProvide<Stage>
+    public partial class Composer : Control, IProvide<Stage>, IProvide<TrackHandler>
     {
         public override partial void _Notification(int what);
 
         public Stage Value() => stage;
+        TrackHandler IProvide<TrackHandler>.Value() => trackHandler;
 
-        private AudioSource audioSource = null!;
         private Stage stage = null!;
         public StageInfo StageInfo = null!;
+
+        private TrackHandler trackHandler = new TrackHandler();
 
         public override void _Ready()
         {
             base._Ready();
 
-            audioSource = SingletonSource.GetAudioSource();
-            audioSource.SetTrack(StageInfo.TrackInfo);
+            trackHandler.SetTrack(StageInfo.TrackInfo);
 
             // Makes sure that the Composer's ready function is called after the core has loaded, avoiding the physics process being turned on automatically from there
             LayoutMode = 1;
@@ -39,6 +40,10 @@ namespace XanaduProject.Composer
         private void setUpChildren()
         {
             stage = StageInfo.Stage.Instantiate<Stage>();
+
+            AddChild(trackHandler);
+            trackHandler.StartTrack();
+
             AddChild(stage);
             stage.Core.SetPhysicsProcess(false);
 

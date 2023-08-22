@@ -20,10 +20,6 @@ config/icon="res://icon.svg"
 
 driver/output_latency=1
 
-[autoload]
-
-GlobalAudio="*res://Singletons/AudioSource.cs"
-
 [display]
 
 window/size/viewport_width=1920

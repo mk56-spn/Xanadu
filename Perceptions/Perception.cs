@@ -1,14 +1,20 @@
 // Copyright (c) mk56_spn <dhsjplt@gmail.com>. Licensed under the GNU General Public Licence (2.0).
 // See the LICENCE file in the repository root for full licence text.
 
+using System;
+using Chickensoft.AutoInject;
 using Godot;
+using SuperNodes.Types;
+using XanaduProject.Audio;
 using XanaduProject.Composer;
-using XanaduProject.Singletons;
 
 namespace XanaduProject.Perceptions
 {
+    [SuperNode(typeof(Dependent))]
     public abstract partial class Perception : CharacterBody2D
     {
+        public override partial void _Notification(int what);
+
         public const int BASE_VELOCITY = 700;
         protected int Gravity;
 
@@ -17,14 +23,14 @@ namespace XanaduProject.Perceptions
         /// </summary>
         public bool IsAlive { get; private set; } = true;
 
-        protected AudioSource AudioSource = null!;
-
         [Export]
         protected Area2D NoteReceptor { get; set; } = null!;
         [Export]
         protected Polygon2D Body { get; private set; } = null!;
         [Export]
         protected Area2D Nucleus { get; private set; } = null!;
+
+        [Dependency] private TrackHandler trackHandler => DependOn<TrackHandler>();
 
         protected Perception()
         {
@@ -34,14 +40,17 @@ namespace XanaduProject.Perceptions
             Velocity = new Vector2(BASE_VELOCITY, 0);
         }
 
+        public void OnResolved()
+        {
+            SetPhysicsProcess(false);
+            trackHandler.OnPreemptComplete += (sender, args) => SetPhysicsProcess(true);
+        }
+
         public override void _Ready()
         {
             base._Ready();
 
             AddChild(new NoteProcessor(NoteReceptor));
-
-            AudioSource = SingletonSource.GetAudioSource();
-            AudioSource.RequestPlay = true;
 
             GetNode<Area2D>("Shell").AreaEntered += _ =>
                 SetPhysicsProcess(false);
@@ -51,6 +60,19 @@ namespace XanaduProject.Perceptions
                 IsAlive = false;
                 SetPhysicsProcess(false);
             };
+        }
+
+        public override void _PhysicsProcess(double delta)
+        {
+            base._PhysicsProcess(delta);
+            if (!(Math.Abs(Position.X - trackHandler.TrackPosition * 700) > 25) || !trackHandler.Playing) return;
+
+            GD.Print(
+                $"A de-sync of {Math.Abs(TimeSpan.FromSeconds(Position.X / BASE_VELOCITY - trackHandler.TrackPosition).TotalMilliseconds)} milliseconds has occured");
+
+            //Forces the player into position if it de-syncs more than the acceptable amount from the song,
+            //rather brutish but functional.
+            Position = new Vector2((float)trackHandler.TrackPosition * BASE_VELOCITY, Position.Y);
         }
     }
 }

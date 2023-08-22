@@ -6,7 +6,6 @@ using Godot;
 using SuperNodes.Types;
 using XanaduProject.DataStructure;
 using XanaduProject.Screens.StageUI;
-using XanaduProject.Singletons;
 
 namespace XanaduProject.Screens.Player
 {
@@ -14,7 +13,6 @@ namespace XanaduProject.Screens.Player
     public partial class PlayerLoader : Node, IProvide<StageInfo>
     {
         public override partial void _Notification(int what);
-
 
         private readonly StageInfo stageInfo;
 
@@ -30,10 +28,6 @@ namespace XanaduProject.Screens.Player
         {
             base._Ready();
 
-            AudioSource audioSource = SingletonSource.GetAudioSource();
-
-            audioSource.SetTrack(stageInfo.TrackInfo);
-
             PackedScene transitionScene = ResourceLoader.Load<PackedScene>("res://Screens/StageUI/Transition.tscn");
             CanvasLayer layer = new CanvasLayer();
 
@@ -42,18 +36,14 @@ namespace XanaduProject.Screens.Player
             AddChild(layer);
             layer.AddChild(transition);
 
-            TreeExited += () => audioSource.Stream = null;
-
             // Delay player creation until transition is over.
-            transition.TransitionFinished += (_, _) => createPlayer(audioSource);
+            transition.TransitionFinished += (_, _) => createPlayer();
 
             Provide();
         }
 
-        private void createPlayer(AudioSource audioSource)
+        private void createPlayer()
         {
-            audioSource.Stop();
-
             Player player = new Player(stageInfo);
             AddChild(player);
 
@@ -61,7 +51,7 @@ namespace XanaduProject.Screens.Player
             {
                 RemoveChild(player);
                 player.QueueFree();
-                createPlayer(audioSource);
+                createPlayer();
             };
         }
     }

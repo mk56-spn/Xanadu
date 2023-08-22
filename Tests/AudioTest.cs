@@ -2,15 +2,15 @@
 // See the LICENCE file in the repository root for full licence text.
 
 using Godot;
+using XanaduProject.Audio;
 using XanaduProject.DataStructure;
-using XanaduProject.Singletons;
 
 namespace XanaduProject.Tests
 {
     [GlobalClass]
     public partial class AudioTest : CenterContainer
     {
-        private AudioSource audioSource = null!;
+        private TrackHandler trackHandler = new TrackHandler();
         private ColorRect beatRect = new ColorRect { CustomMinimumSize = new Vector2(200, 200) };
         private VBoxContainer container = new VBoxContainer { CustomMinimumSize = new Vector2(100, 0) };
         private Label measureText = new Label();
@@ -20,33 +20,32 @@ namespace XanaduProject.Tests
         {
             setup();
 
-            audioSource.OnNewBeat += (_, _) =>
+            trackHandler.OnBeat += (_, _) =>
             {
-
-                measureText.Text = $"{audioSource.Measure}";
+                GD.Print(trackHandler.TrackPosition);
+                measureText.Text = $"{trackHandler.Measure}";
                 var t = CreateTween();
-                t.TweenProperty(beatRect, "modulate", audioSource.Measure == 1 ? Colors.LightGreen : Colors.MediumPurple, 0);
+                t.TweenProperty(beatRect, "modulate", trackHandler.Measure == 1 ? Colors.LightGreen : Colors.MediumPurple, 0);
                 t.TweenProperty(beatRect, "modulate", Colors.Black, 0.3);
             };
-
-            audioSource.RequestPlay = true;
         }
 
         public override void _Process(double delta)
         {
             base._Process(delta);
 
-            if (audioSource.Stream == null) return;
-
-            progressBar.Value = audioSource.SongProgressPercentage();
+            progressBar.Value = trackHandler.SongProgressPercentage;
         }
 
         private void setup()
         {
-            audioSource = SingletonSource.GetAudioSource();
-            audioSource.SetTrack(ResourceLoader.Load<TrackInfo>("res://Resources/TestTrack.tres"));
 
             AddChild(container);
+
+
+            AddChild(trackHandler);
+            trackHandler.SetTrack(ResourceLoader.Load<TrackInfo>("res://Resources/TestTrack.tres"));
+            trackHandler.StartTrack();
 
             container.AddChild(beatRect);
             container.AddChild(progressBar);
