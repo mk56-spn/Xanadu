@@ -43,6 +43,14 @@ position = Vector2(8, -120)
 polygon = PackedVector2Array(1048, 192, 1080, 160, 1112, 192, 1080, 224)
 script = ExtResource("3_cc1fn")
 
+[node name="Note6" parent="." instance=ExtResource("4_7f3x2")]
+position = Vector2(448, 32)
+PositionInTrack = 0.6
+
+[node name="Note5" parent="." instance=ExtResource("4_7f3x2")]
+position = Vector2(384, 64)
+PositionInTrack = 0.5
+
 [node name="Note" parent="." instance=ExtResource("4_7f3x2")]
 position = Vector2(320, 128)
 PositionInTrack = 0.4
