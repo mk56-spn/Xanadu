@@ -1,6 +1,8 @@
 // Copyright (c) mk56_spn <dhsjplt@gmail.com>. Licensed under the GNU General Public Licence (2.0).
 // See the LICENCE file in the repository root for full licence text.
 
+using System.Collections.Generic;
+using System.Linq;
 using Godot;
 
 namespace XanaduProject.Composer
@@ -18,12 +20,17 @@ namespace XanaduProject.Composer
         {
             base._PhysicsProcess(delta);
 
-            foreach (var area in  receptor.GetOverlappingAreas())
-            {
-                if (!Input.IsActionJustPressed("main")) continue;
+            if (!Input.IsActionJustPressed("main")) return;
 
-                area.GetParent<Note>().Activate();
-            }
+            List<Note> overlappingNotes = receptor.GetOverlappingAreas().Select(area => area.GetParent<Note>()).ToList();
+
+            // We want to avoid throwing errors if there is no overlapping areas.
+            if (!overlappingNotes.Any()) return;
+
+            // Returns the note with the lowest track position value.
+            Note minNote = overlappingNotes.Aggregate((i, j) => i.PositionInTrack < j.PositionInTrack ? i : j);
+
+            minNote.Activate();
         }
     }
 }

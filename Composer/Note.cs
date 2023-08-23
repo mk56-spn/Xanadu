@@ -29,6 +29,20 @@ namespace XanaduProject.Composer
 
         [Dependency] private TrackHandler trackHandler => DependOn<TrackHandler>();
 
+
+        public Note ()
+        {
+            AddToGroup("Notes");
+        }
+
+        public override void _Process(double delta)
+        {
+            base._Process(delta);
+
+            // Keeps label scaling from center regardless of the size of the judgement text;
+            judgementText.PivotOffset = judgementText.Size / 2;
+        }
+
         public void Activate()
         {
             hitBox.Monitorable = false;
@@ -40,7 +54,7 @@ namespace XanaduProject.Composer
 
             var judgement = JudgementInfo.GetJudgement(Math.Abs(millisecondDeviation));
 
-            judgementText.Text = $"{JudgementInfo.GetJudgmentText(judgement).ToUpper()} \n {(millisecondDeviation < 0 ? "late" : "early" )}";
+            judgementText.Text = $"{JudgementInfo.GetJudgmentText(judgement).ToUpper()}\n{(millisecondDeviation < 0 ? "late" : "early" )}";
 
             animation.AssignedAnimation = "Animate";
             animation.Play();
