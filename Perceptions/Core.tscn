@@ -2,10 +2,10 @@
 
 [ext_resource type="Script" path="res://Perceptions/Core.cs" id="1_opurh"]
 
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_rd2ky"]
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_x42nl"]
 size = Vector2(128, 128)
 
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_x42nl"]
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_rd2ky"]
 size = Vector2(128, 128)
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_hdcld"]
@@ -24,17 +24,18 @@ Nucleus = NodePath("Nucleus")
 [node name="Body" type="Polygon2D" parent="."]
 polygon = PackedVector2Array(-64, -64, -64, 64, 64, 64, 64, -64)
 
-[node name="Collision" type="CollisionShape2D" parent="."]
-shape = SubResource("RectangleShape2D_rd2ky")
-debug_color = Color(0, 0.6, 0.701961, 0.419608)
-
-[node name="Shell" type="Area2D" parent="."]
+[node name="Shell" type="Area2D" parent="Body"]
+unique_name_in_owner = true
 collision_layer = 0
 collision_mask = 8
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="Shell"]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Body/Shell"]
 shape = SubResource("RectangleShape2D_x42nl")
 debug_color = Color(0.343922, 0.616255, 0.215892, 0.42)
+
+[node name="Collision" type="CollisionShape2D" parent="."]
+shape = SubResource("RectangleShape2D_rd2ky")
+debug_color = Color(0, 0.6, 0.701961, 0.419608)
 
 [node name="Nucleus" type="Area2D" parent="."]
 collision_layer = 2
