@@ -3,7 +3,7 @@
 [ext_resource type="Script" path="res://Screens/Stage.cs" id="1_ft5rf"]
 [ext_resource type="Script" path="res://Composer/EnvironmentPolygon.cs" id="2_8ddxt"]
 [ext_resource type="Script" path="res://Composer/ThreatPolygon.cs" id="3_cc1fn"]
-[ext_resource type="PackedScene" uid="uid://b8f178tstjnjt" path="res://Composer/Note.tscn" id="4_7f3x2"]
+[ext_resource type="PackedScene" uid="uid://c0mhcntr24im4" path="res://Composer/Notes/HitNote.tscn" id="4_jp8pi"]
 
 [node name="stage" type="WorldEnvironment"]
 script = ExtResource("1_ft5rf")
@@ -43,32 +43,20 @@ position = Vector2(8, -120)
 polygon = PackedVector2Array(1048, 192, 1080, 160, 1112, 192, 1080, 224)
 script = ExtResource("3_cc1fn")
 
-[node name="Note6" parent="." instance=ExtResource("4_7f3x2")]
-position = Vector2(448, 32)
-PositionInTrack = 0.6
-
-[node name="Note5" parent="." instance=ExtResource("4_7f3x2")]
-position = Vector2(384, 64)
-PositionInTrack = 0.5
-
-[node name="Note" parent="." instance=ExtResource("4_7f3x2")]
-position = Vector2(320, 128)
-PositionInTrack = 0.4
-
 [node name="EnvironmentPolygon6" type="Polygon2D" parent="."]
 position = Vector2(-7040, 256)
 scale = Vector2(6.5, 1)
 polygon = PackedVector2Array(1280, 640, 1280, 512, 1408, 512, 1408, 640)
 script = ExtResource("2_8ddxt")
 
-[node name="Note2" parent="." instance=ExtResource("4_7f3x2")]
-position = Vector2(1408, 678)
-PositionInTrack = 0.3
+[node name="HitNote" parent="." instance=ExtResource("4_jp8pi")]
+position = Vector2(64, 64)
 
-[node name="Note3" parent="." instance=ExtResource("4_7f3x2")]
-position = Vector2(1728, 678)
-PositionInTrack = 0.6
+[node name="HitNote2" parent="." instance=ExtResource("4_jp8pi")]
+position = Vector2(1408, 704)
 
-[node name="Note4" parent="." instance=ExtResource("4_7f3x2")]
-position = Vector2(2048, 678)
-PositionInTrack = 0.9
+[node name="HitNote2" parent="HitNote2" node_paths=PackedStringArray("hitBox", "animation", "judgementText") instance=ExtResource("4_jp8pi")]
+position = Vector2(1408, 704)
+hitBox = NodePath("../Hitbox")
+animation = NodePath("../AnimationPlayer")
+judgementText = NodePath("../Label")
