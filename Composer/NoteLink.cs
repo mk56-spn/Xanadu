@@ -32,7 +32,7 @@ namespace XanaduProject.Composer
 
             foreach (var note in notes)
             {
-                note.OnActivated += (_, _) =>
+                note.OnActivated += () =>
                 {
                     if (!notes.Any(n => n.IsValid))
                         OnFinished?.Invoke(this, true);
