@@ -1,9 +1,6 @@
-[gd_scene load_steps=6 format=3 uid="uid://b8f178tstjnjt"]
+[gd_scene load_steps=5 format=3 uid="uid://b8f178tstjnjt"]
 
 [ext_resource type="Script" path="res://Composer/Note.cs" id="1_6nwfo"]
-
-[sub_resource type="CircleShape2D" id="CircleShape2D_itdv8"]
-radius = 32.0
 
 [sub_resource type="Animation" id="Animation_xvdrc"]
 resource_name = "Animate"
@@ -54,16 +51,10 @@ _data = {
 "RESET": SubResource("Animation_7gaem")
 }
 
-[node name="Note" type="Node2D" node_paths=PackedStringArray("hitBox", "animation", "judgementText")]
+[node name="Note" type="Node2D" node_paths=PackedStringArray("animation", "judgementText")]
 script = ExtResource("1_6nwfo")
-hitBox = NodePath("Hitbox")
 animation = NodePath("Animation")
 judgementText = NodePath("Judgement")
-
-[node name="Hitbox" type="Area2D" parent="."]
-
-[node name="CollisionShape2D" type="CollisionShape2D" parent="Hitbox"]
-shape = SubResource("CircleShape2D_itdv8")
 
 [node name="Body" type="Polygon2D" parent="."]
 polygon = PackedVector2Array(0, 32, 8, 8, 32, 0, 8, -8, 0, -32, -8, -8, -32, 0, -8, 8)
@@ -76,7 +67,7 @@ anchor_right = 0.5
 anchor_bottom = 0.5
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_colors/font_color = Color(0.435294, 0.952941, 0.760784, 0)
+theme_override_colors/font_color = Color(0, 0, 0, 0)
 theme_override_font_sizes/font_size = 40
 horizontal_alignment = 1
 
