@@ -25,7 +25,7 @@ namespace XanaduProject.Composer
         private Label judgementText { get; set; } = null!;
 
         [Export]
-        public float PositionInTrack { get; private set; }
+        public float PositionInTrack { get; set; }
 
         [Dependency] private TrackHandler trackHandler => DependOn<TrackHandler>();
 
