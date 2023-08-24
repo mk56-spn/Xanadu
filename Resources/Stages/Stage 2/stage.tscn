@@ -1,8 +1,10 @@
-[gd_scene load_steps=4 format=3 uid="uid://2u020j2ukdqa"]
+[gd_scene load_steps=6 format=3 uid="uid://2u020j2ukdqa"]
 
 [ext_resource type="Script" path="res://Screens/Stage.cs" id="1_s787h"]
 [ext_resource type="Script" path="res://Composer/EnvironmentPolygon.cs" id="2_nugyv"]
 [ext_resource type="Script" path="res://Composer/ThreatPolygon.cs" id="3_owqgg"]
+[ext_resource type="Script" path="res://Composer/NoteLink.cs" id="4_r0sdw"]
+[ext_resource type="PackedScene" uid="uid://b8f178tstjnjt" path="res://Composer/Note.tscn" id="5_hk6w8"]
 
 [node name="stage2" type="WorldEnvironment"]
 script = ExtResource("1_s787h")
@@ -16,3 +18,18 @@ script = ExtResource("2_nugyv")
 position = Vector2(112, 208)
 polygon = PackedVector2Array(152, -16, 200, -16, 176, -48)
 script = ExtResource("3_owqgg")
+
+[node name="Node2D" type="Node2D" parent="."]
+script = ExtResource("4_r0sdw")
+connectorColour = Color(0.976471, 0.333333, 0.556863, 1)
+
+[node name="Note" parent="Node2D" instance=ExtResource("5_hk6w8")]
+position = Vector2(48, 56)
+
+[node name="Note2" parent="Node2D" instance=ExtResource("5_hk6w8")]
+position = Vector2(152, 88)
+PositionInTrack = 0.4
+
+[node name="Note3" parent="Node2D" instance=ExtResource("5_hk6w8")]
+position = Vector2(216, 32)
+PositionInTrack = 0.2
