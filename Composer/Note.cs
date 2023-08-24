@@ -15,6 +15,26 @@ namespace XanaduProject.Composer
     {
         public override partial void _Notification(int what);
 
+        private bool isValid = true;
+
+        /// <summary>
+        /// Tells us if the note is active.
+        /// </summary>
+        public bool IsValid
+        {
+            get => isValid;
+            private set
+            {
+                isValid = value;
+                hitBox.Monitorable = isValid;
+            }
+        }
+
+        /// <summary>
+        /// Triggered when the note is activated
+        /// </summary>
+        public event EventHandler? OnActivated;
+
         [Export]
         private Area2D hitBox { get; set; } = null!;
 
@@ -28,7 +48,6 @@ namespace XanaduProject.Composer
         public float PositionInTrack { get; set; }
 
         [Dependency] private TrackHandler trackHandler => DependOn<TrackHandler>();
-
 
         public Note ()
         {
@@ -45,8 +64,6 @@ namespace XanaduProject.Composer
 
         public void Activate()
         {
-            hitBox.Monitorable = false;
-
             double millisecondDeviation = TimeSpan.FromSeconds(PositionInTrack - trackHandler.TrackPosition).TotalMilliseconds;
 
             GD.Print($"Note hit with position {PositionInTrack} seconds");
@@ -58,6 +75,9 @@ namespace XanaduProject.Composer
 
             animation.AssignedAnimation = "Animate";
             animation.Play();
+
+            IsValid = false;
+            OnActivated?.Invoke(this, EventArgs.Empty);
         }
     }
 }
