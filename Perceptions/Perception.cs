@@ -7,6 +7,7 @@ using Godot;
 using SuperNodes.Types;
 using XanaduProject.Audio;
 using XanaduProject.Composer;
+using XanaduProject.Perceptions.Components;
 
 namespace XanaduProject.Perceptions
 {
@@ -38,12 +39,14 @@ namespace XanaduProject.Perceptions
             Gravity = fetchGravity.AsInt32();
 
             Velocity = new Vector2(BASE_VELOCITY, 0);
+
+            AddChild(createHandle(Colors.Aqua, "R1"));
         }
 
         public void OnResolved()
         {
             SetPhysicsProcess(false);
-            trackHandler.OnPreemptComplete += (sender, args) => SetPhysicsProcess(true);
+            trackHandler.OnPreemptComplete += (_, _) => SetPhysicsProcess(true);
         }
 
         public override void _Ready()
@@ -73,6 +76,17 @@ namespace XanaduProject.Perceptions
             //Forces the player into position if it de-syncs more than the acceptable amount from the song,
             //rather brutish but functional.
             Position = new Vector2((float)trackHandler.TrackPosition * BASE_VELOCITY, Position.Y);
+        }
+
+        private RhythmHandle createHandle(Color colour, string key)
+        {
+            RhythmHandle handle = ResourceLoader.Load<PackedScene>("res://Perceptions/Components/RhythmHandle.tscn")
+                .Instantiate<RhythmHandle>();
+
+            handle.Colour = colour;
+            handle.Key = key;
+
+            return handle;
         }
     }
 }

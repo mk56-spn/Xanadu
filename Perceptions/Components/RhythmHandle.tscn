@@ -1,0 +1,10 @@
+[gd_scene load_steps=2 format=3 uid="uid://b2o5bislveylc"]
+
+[ext_resource type="Script" path="res://Perceptions/Components/RhythmHandle.cs" id="1_vxm35"]
+
+[node name="RhythmHandle" type="Node2D"]
+script = ExtResource("1_vxm35")
+
+[node name="Polygon" type="Polygon2D" parent="."]
+unique_name_in_owner = true
+polygon = PackedVector2Array(5, 30, 20, 0, 5, -30, -5, -30, -20, 0, -5, 30)
