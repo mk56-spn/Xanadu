@@ -19,17 +19,21 @@ position = Vector2(112, 208)
 polygon = PackedVector2Array(152, -16, 200, -16, 176, -48)
 script = ExtResource("3_owqgg")
 
-[node name="Node2D" type="Node2D" parent="."]
+[node name="NoteLink" type="Node2D" parent="."]
 script = ExtResource("4_r0sdw")
 connectorColour = Color(0.976471, 0.333333, 0.556863, 1)
 
-[node name="Note" parent="Node2D" instance=ExtResource("5_hk6w8")]
-position = Vector2(48, 56)
+[node name="Note" parent="NoteLink" instance=ExtResource("5_hk6w8")]
+position = Vector2(128, 128)
 
-[node name="Note2" parent="Node2D" instance=ExtResource("5_hk6w8")]
-position = Vector2(152, 88)
+[node name="Note2" parent="NoteLink" instance=ExtResource("5_hk6w8")]
+position = Vector2(1024, 128)
 PositionInTrack = 0.4
 
-[node name="Note3" parent="Node2D" instance=ExtResource("5_hk6w8")]
-position = Vector2(216, 32)
+[node name="Note3" parent="NoteLink" instance=ExtResource("5_hk6w8")]
+position = Vector2(512, -128)
 PositionInTrack = 0.2
+
+[node name="EnvironmentPolygon2" type="Polygon2D" parent="."]
+polygon = PackedVector2Array(640, 256, 640, 384, 1152, 384, 1152, 256)
+script = ExtResource("2_nugyv")
