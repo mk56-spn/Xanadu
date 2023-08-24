@@ -49,6 +49,14 @@ namespace XanaduProject.Composer
             OnActivated += () => isValid = false;
         }
 
+        public override void _Ready()
+        {
+            base._Ready();
+
+            // Hacky way of ensuring text is always centered during animation;
+            judgementText.CustomMinimumSize = new Vector2(300, 0);
+        }
+
         public override void _Process(double delta)
         {
             base._Process(delta);
