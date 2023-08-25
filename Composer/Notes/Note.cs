@@ -8,7 +8,7 @@ using SuperNodes.Types;
 using XanaduProject.Audio;
 using XanaduProject.DataStructure;
 
-namespace XanaduProject.Composer
+namespace XanaduProject.Composer.Notes
 {
     [SuperNode(typeof(Dependent))]
     public partial class Note : Node2D
