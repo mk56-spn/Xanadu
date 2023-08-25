@@ -15,21 +15,15 @@ namespace XanaduProject.Composer.Notes
     {
         public override partial void _Notification(int what);
 
-        private bool isValid = true;
-
         /// <summary>
-        /// Tells us if the note is active.
+        /// The current state this node is in;
         /// </summary>
-        public bool IsValid
-        {
-            get => isValid;
-            private set => isValid = value;
-        }
+        public NoteState State { private set; get; } = NoteState.Inactive;
 
         /// <summary>
         /// Triggered when the note is activated
         /// </summary>
-        public event Action? OnActivated;
+        public event Action? OnHit;
 
         [Export]
         private AnimationPlayer animation { get; set; } = null!;
@@ -46,7 +40,7 @@ namespace XanaduProject.Composer.Notes
         {
             AddToGroup("Notes");
 
-            OnActivated += () => isValid = false;
+            OnHit += () => State = NoteState.Hit;
         }
 
         public override void _Ready()
@@ -79,7 +73,14 @@ namespace XanaduProject.Composer.Notes
             animation.AssignedAnimation = "Animate";
             animation.Play();
 
-            OnActivated?.Invoke();
+            OnHit?.Invoke();
+        }
+
+        public enum NoteState
+        {
+            Inactive,
+            Active,
+            Hit,
         }
     }
 }
