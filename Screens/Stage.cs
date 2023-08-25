@@ -4,8 +4,8 @@
 using System.Collections.Generic;
 using System.Linq;
 using Godot;
-using XanaduProject.Composer;
 using XanaduProject.Perceptions;
+using XanaduProject.Composer.Notes;
 
 namespace XanaduProject.Screens
 {
