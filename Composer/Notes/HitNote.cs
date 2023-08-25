@@ -17,7 +17,7 @@ namespace XanaduProject.Composer.Notes
         {
             base._Ready();
 
-            OnActivated += () => hitBox.Monitorable = false;
+            OnHit += () => hitBox.Monitorable = false;
         }
     }
 }
