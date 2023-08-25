@@ -11,8 +11,10 @@ namespace XanaduProject.Composer
     [Tool]
     public partial class NoteLink : Node2D
     {
-        private Line2D connector = new Line2D { ZIndex = -1 };
-        private Note[] notes => GetChildren().OfType<Note>().ToArray();
+
+        // Make sure notes are ordered w.r.t music
+        private Note[] notes => GetChildren().OfType<Note>().OrderBy(n => n.PositionInTrack).ToArray();
+
 
         [Export]
         private Color connectorColour
@@ -21,6 +23,8 @@ namespace XanaduProject.Composer
             set => connector.Modulate = value;
         }
 
+        private Line2D connector = new Line2D { ZIndex = -1 };
+
         public event EventHandler<bool>? OnFinished;
         public override void _Ready()
         {
@@ -28,8 +32,7 @@ namespace XanaduProject.Composer
 
             AddChild(connector);
 
-            // Makes sure the note list is ordered by song position before extracting positions to ensure connector goes through nodes in order;
-            connector.Points  = notes.OrderBy(n => n.PositionInTrack).Select(n => n.Position).ToArray();
+            connector.Points  = notes.Select(n => n.Position).ToArray();
 
             foreach (var note in notes)
             {
@@ -43,6 +46,20 @@ namespace XanaduProject.Composer
             OnFinished += (_, _) =>
                 CreateTween()
                     .TweenProperty(this, "modulate", new Color(Modulate, 0), 0.3f );
+        }
+
+        private int noteIndex;
+
+        public override void _PhysicsProcess(double delta)
+        {
+            base._PhysicsProcess(delta);
+
+            Note? note = notes.GetValue(noteIndex) as Note;
+
+            if (!Input.IsActionJustPressed("R1")) return;
+
+            note?.Activate();
+            noteIndex++;
         }
     }
 }
