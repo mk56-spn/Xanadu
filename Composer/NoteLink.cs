@@ -59,7 +59,9 @@ namespace XanaduProject.Composer
             if (!Input.IsActionJustPressed("R1")) return;
 
             note?.Activate();
-            noteIndex++;
+
+            if (notes.GetUpperBound(0) > noteIndex)
+                noteIndex++;
         }
     }
 }
