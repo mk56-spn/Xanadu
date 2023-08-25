@@ -1,0 +1,110 @@
+[gd_scene load_steps=6 format=3 uid="uid://c0mhcntr24im4"]
+
+[ext_resource type="Script" path="res://Composer/Notes/HitNote.cs" id="1_5fl4t"]
+
+[sub_resource type="Animation" id="Animation_s6bbp"]
+resource_name = "Animate"
+length = 0.3
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath(".:position")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.3),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [Vector2(-150, -60.5), Vector2(-150, 39.5)]
+}
+tracks/1/type = "value"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath(".:modulate")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/keys = {
+"times": PackedFloat32Array(0, 0.3),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [Color(0, 1, 1, 1), Color(0, 1, 1, 0)]
+}
+
+[sub_resource type="Animation" id="Animation_b6g0l"]
+length = 0.001
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath(".:position")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 0,
+"values": [Vector2(-25, -10.5)]
+}
+tracks/1/type = "value"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath(".:modulate")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 0,
+"values": [Color(1, 1, 1, 0)]
+}
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_eaxdn"]
+_data = {
+"Animate": SubResource("Animation_s6bbp"),
+"RESET": SubResource("Animation_b6g0l")
+}
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_wmrmv"]
+radius = 32.0
+
+[node name="HitNote" type="Node2D" node_paths=PackedStringArray("hitBox", "animation", "judgementText")]
+script = ExtResource("1_5fl4t")
+hitBox = NodePath("Hitbox")
+animation = NodePath("AnimationPlayer")
+judgementText = NodePath("Label")
+
+[node name="AnimationPlayer" type="AnimationPlayer" parent="."]
+root_node = NodePath("../Label")
+libraries = {
+"": SubResource("AnimationLibrary_eaxdn")
+}
+
+[node name="Polygon2D" type="Polygon2D" parent="."]
+position = Vector2(32, 0)
+scale = Vector2(0.5, 1)
+polygon = PackedVector2Array(-64, 32, -64, 32, 0, 0, 0, -32, -64, 0, -128, -32, -128, 0)
+
+[node name="Label" type="Label" parent="."]
+modulate = Color(1, 1, 1, 0)
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -25.0
+offset_top = -10.5
+offset_right = 98.0
+offset_bottom = 40.5
+grow_horizontal = 2
+grow_vertical = 2
+scale = Vector2(1.00667, 0.988636)
+theme_override_font_sizes/font_size = 40
+text = "TEXT"
+horizontal_alignment = 1
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+scale = Vector2(1.0037, 1.00747)
+
+[node name="Hitbox" type="Area2D" parent="."]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Hitbox"]
+shape = SubResource("CircleShape2D_wmrmv")

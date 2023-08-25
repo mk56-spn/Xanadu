@@ -8,7 +8,7 @@ using SuperNodes.Types;
 using XanaduProject.Audio;
 using XanaduProject.DataStructure;
 
-namespace XanaduProject.Composer
+namespace XanaduProject.Composer.Notes
 {
     [SuperNode(typeof(Dependent))]
     public partial class Note : Node2D
@@ -23,20 +23,13 @@ namespace XanaduProject.Composer
         public bool IsValid
         {
             get => isValid;
-            private set
-            {
-                isValid = value;
-                hitBox.Monitorable = isValid;
-            }
+            private set => isValid = value;
         }
 
         /// <summary>
         /// Triggered when the note is activated
         /// </summary>
-        public event EventHandler? OnActivated;
-
-        [Export]
-        private Area2D hitBox { get; set; } = null!;
+        public event Action? OnActivated;
 
         [Export]
         private AnimationPlayer animation { get; set; } = null!;
@@ -52,6 +45,16 @@ namespace XanaduProject.Composer
         public Note ()
         {
             AddToGroup("Notes");
+
+            OnActivated += () => isValid = false;
+        }
+
+        public override void _Ready()
+        {
+            base._Ready();
+
+            // Hacky way of ensuring text is always centered during animation;
+            judgementText.CustomMinimumSize = new Vector2(300, 0);
         }
 
         public override void _Process(double delta)
@@ -76,8 +79,7 @@ namespace XanaduProject.Composer
             animation.AssignedAnimation = "Animate";
             animation.Play();
 
-            IsValid = false;
-            OnActivated?.Invoke(this, EventArgs.Empty);
+            OnActivated?.Invoke();
         }
     }
 }

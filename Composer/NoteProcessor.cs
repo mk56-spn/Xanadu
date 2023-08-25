@@ -4,6 +4,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using Godot;
+using XanaduProject.Composer.Notes;
 
 namespace XanaduProject.Composer
 {
@@ -22,13 +23,13 @@ namespace XanaduProject.Composer
 
             if (!Input.IsActionJustPressed("main")) return;
 
-            List<Note> overlappingNotes = receptor.GetOverlappingAreas().Select(area => area.GetParent<Note>()).ToList();
+            List<HitNote> overlappingNotes = receptor.GetOverlappingAreas().Select(area => area.GetParent<HitNote>()).ToList();
 
             // We want to avoid throwing errors if there is no overlapping areas.
             if (!overlappingNotes.Any()) return;
 
             // Returns the note with the lowest track position value.
-            Note minNote = overlappingNotes.Aggregate((i, j) => i.PositionInTrack < j.PositionInTrack ? i : j);
+            Notes.Note minNote = overlappingNotes.Aggregate((i, j) => i.PositionInTrack < j.PositionInTrack ? i : j);
 
             minNote.Activate();
         }

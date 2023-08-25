@@ -4,7 +4,7 @@
 [ext_resource type="Script" path="res://Composer/EnvironmentPolygon.cs" id="2_nugyv"]
 [ext_resource type="Script" path="res://Composer/ThreatPolygon.cs" id="3_owqgg"]
 [ext_resource type="Script" path="res://Composer/NoteLink.cs" id="4_r0sdw"]
-[ext_resource type="PackedScene" uid="uid://b8f178tstjnjt" path="res://Composer/Note.tscn" id="5_hk6w8"]
+[ext_resource type="PackedScene" uid="uid://b8f178tstjnjt" path="res://Composer/Notes/Note.tscn" id="5_hk6w8"]
 
 [node name="stage2" type="WorldEnvironment"]
 script = ExtResource("1_s787h")
