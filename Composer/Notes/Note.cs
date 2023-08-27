@@ -15,21 +15,16 @@ namespace XanaduProject.Composer.Notes
     {
         public override partial void _Notification(int what);
 
-        private bool isValid = true;
+        private const double note_activation_preempt = 0.4;
+        /// <summary>
+        /// The current state this node is in;
+        /// </summary>
+        public NoteState State { private set; get; } = NoteState.Inactive;
 
         /// <summary>
-        /// Tells us if the note is active.
+        /// Called when the state is update
         /// </summary>
-        public bool IsValid
-        {
-            get => isValid;
-            private set => isValid = value;
-        }
-
-        /// <summary>
-        /// Triggered when the note is activated
-        /// </summary>
-        public event Action? OnActivated;
+        public event EventHandler<NoteState>? OnStateChanged;
 
         [Export]
         private AnimationPlayer animation { get; set; } = null!;
@@ -45,16 +40,27 @@ namespace XanaduProject.Composer.Notes
         public Note ()
         {
             AddToGroup("Notes");
-
-            OnActivated += () => isValid = false;
         }
 
-        public override void _Ready()
+        public void OnResolved()
         {
-            base._Ready();
-
             // Hacky way of ensuring text is always centered during animation;
             judgementText.CustomMinimumSize = new Vector2(300, 0);
+
+            trackHandler.OnPreemptComplete += (_, _) =>
+                GetTree().CreateTimer(PositionInTrack - note_activation_preempt, false, true).Timeout += () =>
+                {
+                    RequestState(NoteState.Active);
+                    GetTree().CreateTimer(note_activation_preempt * 2, false, true).Timeout +=
+                        () => RequestState(NoteState.Judged);
+                };
+
+
+            OnStateChanged += (_, state) =>
+            {
+                if (state == NoteState.Judged)
+                    noteJudged();
+            };
         }
 
         public override void _Process(double delta)
@@ -65,21 +71,56 @@ namespace XanaduProject.Composer.Notes
             judgementText.PivotOffset = judgementText.Size / 2;
         }
 
-        public void Activate()
+        private void noteJudged()
         {
-            double millisecondDeviation = TimeSpan.FromSeconds(PositionInTrack - trackHandler.TrackPosition).TotalMilliseconds;
-
-            GD.Print($"Note hit with position {PositionInTrack} seconds");
-            GD.Print($"Deviation of {millisecondDeviation} milliseconds");
-
-            var judgement = JudgementInfo.GetJudgement(Math.Abs(millisecondDeviation));
-
-            judgementText.Text = $"{JudgementInfo.GetJudgmentText(judgement).ToUpper()}\n{(millisecondDeviation < 0 ? "late" : "early" )}";
-
             animation.AssignedAnimation = "Animate";
             animation.Play();
 
-            OnActivated?.Invoke();
+            judgeNote();
+        }
+
+        private void judgeNote()
+        {
+            double millisecondDeviation = TimeSpan.FromSeconds(PositionInTrack - trackHandler.TrackPosition).TotalMilliseconds;
+            var judgement = JudgementInfo.GetJudgement(Math.Abs(millisecondDeviation));
+
+            judgementText.Text = $"{JudgementInfo.GetJudgmentText(judgement).ToUpper()}\n{(millisecondDeviation < 0 ? "late" : "early" )}";
+        }
+
+        /// <summary>
+        /// Attempts to set a state on the note. Triggers an action if successful
+        /// </summary>
+        /// <param name="newState"></param>
+        public void RequestState(NoteState newState)
+        {
+            switch (State)
+            {
+                case NoteState.Inactive:
+                    if (newState == NoteState.Active )
+                        updateState();
+                    return;
+
+                case NoteState.Active:
+                    if (newState == NoteState.Judged)
+                        updateState();
+                    return;
+
+                default:
+                    return;
+            }
+
+            void updateState()
+            {
+                State = newState;
+                OnStateChanged?.Invoke(this, newState);
+            }
+        }
+
+        public enum NoteState
+        {
+            Inactive,
+            Active,
+            Judged
         }
     }
 }
