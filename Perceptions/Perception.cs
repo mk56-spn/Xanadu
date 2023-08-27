@@ -53,7 +53,7 @@ namespace XanaduProject.Perceptions
         {
             base._Ready();
 
-            AddChild(new NoteProcessor(NoteReceptor));
+            AddChild(new HitNoteProcessor(NoteReceptor));
 
             GetNode<Area2D>("%Shell").AreaEntered += _ =>
                 SetPhysicsProcess(false);
