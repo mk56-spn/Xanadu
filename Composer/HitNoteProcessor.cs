@@ -9,7 +9,7 @@ using XanaduProject.Composer.Notes;
 namespace XanaduProject.Composer
 {
     /// <summary>
-    /// Handles notes with hitboxes
+    /// Handles the input processing for <see cref="HitNote"/>'s
     /// </summary>
     public partial class HitNoteProcessor : Node
     {
@@ -27,10 +27,7 @@ namespace XanaduProject.Composer
 
             if (!Input.IsActionJustPressed("main")) return;
 
-            GD.Print("lol");
-
             var overlappingNotes = getActiveNotes();
-
             overlappingNotes.FirstOrDefault()?.RequestState(Note.NoteState.Judged);
         }
 
