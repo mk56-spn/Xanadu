@@ -17,16 +17,10 @@ namespace XanaduProject.Composer.Notes
         {
             base._Ready();
 
-            // We don't want the hitbox to be monitorable when we aren't an active note.
-            OnStateChanged += (_, state) =>
-            {
-                hitBox.Monitorable = state switch
-                {
-                    NoteState.Active => true,
-                    NoteState.Judged => false,
-                    _ => hitBox.Monitorable
-                };
-            };
+            hitBox.Monitorable = false;
+
+            // We dont want the hitbox to be monitorable if we aren't an active note.
+            OnStateChanged += (_, state) => hitBox.Monitorable = state == NoteState.Active;
         }
     }
 }
