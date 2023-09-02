@@ -21,7 +21,7 @@ namespace XanaduProject.Composer
         public event Action? OnFinished;
 
         // Make sure notes are ordered w.r.t music
-        private Note[] notes => GetChildren().OfType<Note>().OrderBy(n => n.PositionInTrack).ToArray();
+        public Note[] Notes => GetChildren().OfType<Note>().OrderBy(n => n.PositionInTrack).ToArray();
         private Line2D connector = new Line2D { ZIndex = -1 };
 
         public override void _Ready()
@@ -35,13 +35,13 @@ namespace XanaduProject.Composer
 
             AddChild(connector);
 
-            connector.Points  = notes.Select(n => n.Position).ToArray();
+            connector.Points  = Notes.Select(n => n.Position).ToArray();
 
-            foreach (var note in notes)
+            foreach (var note in Notes)
             {
                 note.OnStateChanged += (_, _) =>
                 {
-                    if (notes.Any(n => n.State != Note.NoteState.Judged) == false)
+                    if (Notes.Any(n => n.State != Note.NoteState.Judged) == false)
                         OnFinished?.Invoke();
                 };
             }
@@ -53,7 +53,7 @@ namespace XanaduProject.Composer
 
             if (!Input.IsActionJustPressed("R1")) return;
 
-            Note? currentNote = notes.FirstOrDefault(n => n.State == Note.NoteState.Active);
+            Note? currentNote = Notes.FirstOrDefault(n => n.State == Note.NoteState.Active);
             currentNote?.RequestState(Note.NoteState.Judged);
         }
     }
