@@ -17,22 +17,27 @@ namespace XanaduProject.Composer.Selectables
 
         private bool isHovered;
 
+        /// <summary>
+        /// Whether the object is currently being held and as such valid for dragging actions
+        /// </summary>
+        protected bool IsHeld;
+
         protected CollisionShape2D CollisionShape = new CollisionShape2D();
 
-        public Selection ()
+        protected Selection ()
         {
             AddChild(CollisionShape);
 
-            Modulate = Modulate with { A = opacity };
+            SelfModulate = SelfModulate with { A = opacity };
 
             MouseEntered += () =>
             {
-                Modulate = Modulate with { A = hovered_opacity };
+                SelfModulate = SelfModulate with { A = hovered_opacity };
                 isHovered = true;
             };
             MouseExited += () =>
             {
-                Modulate = Modulate with { A = opacity };
+                SelfModulate = SelfModulate with { A = opacity };
                 isHovered = false;
             };
         }
@@ -46,11 +51,13 @@ namespace XanaduProject.Composer.Selectables
             switch (@event)
             {
                 case InputEventMouseButton { ButtonIndex: MouseButton.Left, Pressed: true }:
-                    Modulate = HighlightColor with { A = Modulate.A };
+                    SelfModulate = HighlightColor with { A = SelfModulate.A };
+                    IsHeld = true;
                     break;
 
                 case InputEventMouseButton { ButtonIndex: MouseButton.Left, Pressed: false }:
-                    Modulate = Colors.White with { A = Modulate.A };
+                    SelfModulate = Colors.White with { A = SelfModulate.A };
+                    IsHeld = false;
                     break;
             }
         }
