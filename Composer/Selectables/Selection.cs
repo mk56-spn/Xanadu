@@ -60,6 +60,7 @@ namespace XanaduProject.Composer.Selectables
                     IsHeld = false;
                     break;
             }
+            GetViewport().SetInputAsHandled();
         }
     }
 }
