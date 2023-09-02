@@ -64,7 +64,6 @@ namespace XanaduProject.Composer.Selectables
 
                 if (@event is not InputEventMouseMotion { ButtonMask: MouseButtonMask.Left } || !IsHeld) return;
 
-                // TODO: make this account for the distance of the mouse selection location to the note center.
                 GlobalPosition = GetGlobalMousePosition();
                 GetViewport().SetInputAsHandled();
 
