@@ -20,12 +20,58 @@ namespace XanaduProject.Composer.Selectables
                 hitboxPolygon.Points = mainPolygon.Polygon;
                 QueueRedraw();
             };
+
+            int i = 0;
+            foreach (var _ in mainPolygon.Polygon)
+            {
+                AddChild(new PolygonHandle(mainPolygon, i));
+                i++;
+            }
         }
 
         public override void _Draw()
         {
             base._Draw();
             DrawColoredPolygon(hitboxPolygon.Points, Colors.White);
+        }
+
+        private partial class PolygonHandle : Selection
+        {
+            private Polygon2D polygon;
+            private readonly int index;
+
+            protected override Color HighlightColor { get; } = Colors.Red;
+
+            public PolygonHandle (Polygon2D polygon, int index)
+            {
+                this.polygon = polygon;
+                this.index = index;
+
+                Position = polygon.Polygon[this.index];
+
+                CollisionShape.Shape = new CircleShape2D { Radius = 10 };
+            }
+
+            public override void _Draw()
+            {
+                base._Draw();
+                DrawCircle(Vector2.Zero, 10, Colors.Snow);
+            }
+
+            public override void _Input(InputEvent @event)
+            {
+                base._Input(@event);
+
+                if (@event is not InputEventMouseMotion { ButtonMask: MouseButtonMask.Left } || !IsHeld) return;
+
+                // TODO: make this account for the distance of the mouse selection location to the note center.
+                GlobalPosition = GetGlobalMousePosition();
+                GetViewport().SetInputAsHandled();
+
+                var a = polygon.Polygon;
+                a.SetValue((GlobalPosition - polygon.Position) / polygon.Scale, index);
+                polygon.Polygon = a;
+            }
         }
     }
 }
