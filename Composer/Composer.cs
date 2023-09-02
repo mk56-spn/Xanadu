@@ -1,12 +1,15 @@
 // Copyright (c) mk56_spn <dhsjplt@gmail.com>. Licensed under the GNU General Public Licence (2.0).
 // See the LICENCE file in the repository root for full licence text.
 
+using System.Linq;
 using Chickensoft.AutoInject;
 using Godot;
 using SuperNodes.Types;
 using XanaduProject.Audio;
+using XanaduProject.Composer.Notes;
 using XanaduProject.DataStructure;
 using XanaduProject.Screens;
+using XanaduProject.Composer.Selectables;
 
 namespace XanaduProject.Composer
 {
@@ -35,6 +38,9 @@ namespace XanaduProject.Composer
             setUpChildren();
 
             Provide();
+
+            // Embeds a selectable shape into the node for use in composer editing.
+            stage.GetChildren().OfType<Node2D>().ToList().ForEach(addSelectionBody);
         }
 
         private void setUpChildren()
@@ -45,9 +51,24 @@ namespace XanaduProject.Composer
             trackHandler.StartTrack();
 
             AddChild(stage);
-            stage.Core.SetPhysicsProcess(false);
 
             AddChild(new PanningCamera());
+        }
+
+        private static void addSelectionBody(Node2D node)
+        {
+            switch (node)
+            {
+                case Note:
+                    node.AddChild(new SelectionNote());
+                    return;
+                case Polygon2D polygon:
+                    node.AddChild(new SelectionPolygon(polygon));
+                    return;
+                case NoteLink noteLink:
+                    noteLink.Notes.ToList().ForEach(n => n.AddChild(new SelectionNote()));
+                    return;
+            }
         }
 
         private partial class PanningCamera : Camera2D
@@ -56,6 +77,7 @@ namespace XanaduProject.Composer
             {
                 base._UnhandledInput(@event);
 
+                if (!Input.IsKeyPressed(Key.Space)) return;
                 if (@event is InputEventMouseMotion { ButtonMask: MouseButtonMask.Left } mouse)
                     Position -= mouse.Relative;
             }
