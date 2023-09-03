@@ -52,6 +52,7 @@ namespace XanaduProject.Composer
 
             AddChild(stage);
 
+            AddChild(new SelectionArea());
             AddChild(new PanningCamera());
         }
 
