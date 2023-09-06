@@ -7,6 +7,10 @@ namespace XanaduProject.Composer
 {
     public partial class PanningCamera : Camera2D
     {
+        public PanningCamera ()
+        {
+            AnchorMode = AnchorModeEnum.FixedTopLeft;
+        }
         public override void _UnhandledInput(InputEvent @event)
         {
             base._UnhandledInput(@event);
