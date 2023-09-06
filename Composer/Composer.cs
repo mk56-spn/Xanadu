@@ -14,7 +14,7 @@ using XanaduProject.Composer.Selectables;
 namespace XanaduProject.Composer
 {
     [SuperNode(typeof(Provider))]
-    public partial class Composer : Control, IProvide<Stage>, IProvide<TrackHandler>
+    public partial class Composer : CanvasLayer, IProvide<Stage>, IProvide<TrackHandler>
     {
         public override partial void _Notification(int what);
 
@@ -33,8 +33,6 @@ namespace XanaduProject.Composer
             trackHandler.SetTrack(StageInfo.TrackInfo);
 
             // Makes sure that the Composer's ready function is called after the core has loaded, avoiding the physics process being turned on automatically from there
-            LayoutMode = 1;
-            AnchorsPreset = 8;
             setUpChildren();
 
             Provide();
@@ -51,9 +49,6 @@ namespace XanaduProject.Composer
             trackHandler.StartTrack();
 
             AddChild(stage);
-
-            AddChild(new SelectionArea());
-            AddChild(new PanningCamera());
         }
 
         private static void addSelectionBody(Node2D node)
@@ -69,18 +64,6 @@ namespace XanaduProject.Composer
                 case NoteLink noteLink:
                     noteLink.Notes.ToList().ForEach(n => n.AddChild(new SelectionNote()));
                     return;
-            }
-        }
-
-        private partial class PanningCamera : Camera2D
-        {
-            public override void _UnhandledInput(InputEvent @event)
-            {
-                base._UnhandledInput(@event);
-
-                if (!Input.IsKeyPressed(Key.Space)) return;
-                if (@event is InputEventMouseMotion { ButtonMask: MouseButtonMask.Left } mouse)
-                    Position -= mouse.Relative;
             }
         }
     }
