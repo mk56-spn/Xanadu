@@ -1,56 +1,121 @@
 // Copyright (c) mk56_spn <dhsjplt@gmail.com>. Licensed under the GNU General Public Licence (2.0).
 // See the LICENCE file in the repository root for full licence text.
 
+using System.Collections.Generic;
+using System.Linq;
+using Chickensoft.AutoInject;
 using Godot;
+using SuperNodes.Types;
 
 namespace XanaduProject.Composer
 {
     [GlobalClass]
-    public partial class SelectionArea : Node2D
+    [SuperNode(typeof(Dependent))]
+    public partial class SelectionArea : Control
     {
-        private (Vector2 position, Vector2 size) region;
+        public override partial void _Notification(int what);
+
+        private bool updateSelected;
+
+        private Vector2 dragStart;
+        private Vector2 dragEnd;
+        private RectangleShape2D selectionRect = new RectangleShape2D();
+        private bool dragging;
+
+        [Dependency]
+        private PanningCamera camera => DependOn<PanningCamera>();
 
         public SelectionArea ()
         {
-            GD.Print("ctor");
+            ZIndex = 2;
         }
 
         public override void _Draw()
         {
             base._Draw();
 
-            DrawRect(new Rect2(region.position, region.size), Colors.IndianRed, false, 2);
-            DrawRect(new Rect2(region.position, region.size), Colors.IndianRed with { A = 0.3f });
+            if (!dragging) return;
 
-            ZIndex = 2;
+            Vector2 size = dragEnd - dragStart;
+            DrawRect(new Rect2(dragStart, size), Colors.IndianRed, false, 2);
+            DrawRect(new Rect2(dragStart, size), Colors.IndianRed with { A = 0.3f });
+
+            DrawString(new FontFile(), new Vector2(10, 20), dragging.ToString().ToUpper(), modulate: Colors.GreenYellow);
         }
 
-        public override void _UnhandledInput(InputEvent @event)
+        public override void _Input(InputEvent @event)
         {
-            base._UnhandledInput(@event);
+            base._Input(@event);
+
+            if (Input.IsKeyPressed(Key.Space)) return;
 
             switch (@event)
             {
-                case InputEventMouseButton { ButtonIndex: MouseButton.Left, Pressed: true }:
-                    GD.Print("pressed");
-                    Visible = true;
-                    region.position = GetGlobalMousePosition() - GlobalPosition;
-                    region.size = Vector2.Zero;
-                    QueueRedraw();
+                case InputEventMouseButton { ButtonIndex: MouseButton.Left, Pressed: true } mouse:
+
+                    dragging = true;
+                    dragStart =  mouse.Position;
+                    dragEnd = dragStart;
                     break;
 
                 case InputEventMouseButton { ButtonIndex: MouseButton.Left, Pressed: false }:
-                    GD.Print("released");
-                    Visible = false;
-                    QueueRedraw();
+                    dragging = false;
+                    updateSelected = !updateSelected;
                     break;
 
-                case InputEventMouseMotion { ButtonMask: MouseButtonMask.Left }:
-                    region.size = GetGlobalMousePosition() - GlobalPosition - region.position;
-                    QueueRedraw();
+                case InputEventMouseMotion { ButtonMask: MouseButtonMask.Left } mouse:
+                    dragEnd = mouse.GlobalPosition;
+
                     break;
+
+                default:
+                    return;
             }
+            QueueRedraw();
+        }
 
+        public override void _PhysicsProcess(double delta)
+        {
+            base._PhysicsProcess(delta);
+
+            if (!updateSelected) return;
+
+            updateSelected = !updateSelected;
+            selectItems();
+        }
+
+        private void selectItems()
+        {
+            var space = GetWorld2D().DirectSpaceState;
+            var query = new PhysicsShapeQueryParameters2D();
+
+            if (dragEnd.X < dragStart.X)
+                (dragEnd.X, dragStart.X) = (dragStart.X, dragEnd.X);
+
+            if (dragEnd.Y < dragStart.Y)
+                (dragEnd.Y, dragStart.Y) = (dragStart.Y, dragEnd.Y);
+
+            selectionRect.Size = dragEnd - dragStart;
+
+            Vector2 areaPosition = camera.Offset + dragStart + (dragEnd - dragStart) / 2;
+
+            query.Transform = new Transform2D(0, areaPosition);
+            query.Shape = selectionRect;
+
+            query.CollideWithAreas = true;
+            query.CollideWithBodies = false;
+
+            IEnumerable<Node> selected = space.IntersectShape(query)
+                .SelectMany(v => v.Values)
+                .Select(v => v.Obj)
+                .OfType<Node>();
+
+            foreach (var node in selected)
+            {
+                Tween t = CreateTween();
+                t.TweenProperty(node, "modulate", Colors.Green, 0.3f);
+                t.TweenProperty(node, "modulate", Colors.White, 0.3f);
+            }
         }
     }
 }
