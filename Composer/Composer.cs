@@ -14,17 +14,19 @@ using XanaduProject.Composer.Selectables;
 namespace XanaduProject.Composer
 {
     [SuperNode(typeof(Provider))]
-    public partial class Composer : CanvasLayer, IProvide<Stage>, IProvide<TrackHandler>
+    public partial class Composer : CanvasLayer, IProvide<Stage>, IProvide<TrackHandler>, IProvide<PanningCamera>
     {
         public override partial void _Notification(int what);
 
         public Stage Value() => stage;
         TrackHandler IProvide<TrackHandler>.Value() => trackHandler;
+        PanningCamera IProvide<PanningCamera>.Value() => camera;
 
         private Stage stage = null!;
         public StageInfo StageInfo = null!;
 
         private TrackHandler trackHandler = new TrackHandler();
+        private PanningCamera camera = new PanningCamera();
 
         public override void _Ready()
         {
@@ -34,7 +36,6 @@ namespace XanaduProject.Composer
 
             // Makes sure that the Composer's ready function is called after the core has loaded, avoiding the physics process being turned on automatically from there
             setUpChildren();
-
             Provide();
 
             // Embeds a selectable shape into the node for use in composer editing.
@@ -49,6 +50,7 @@ namespace XanaduProject.Composer
             trackHandler.StartTrack();
 
             AddChild(stage);
+            AddChild(camera);
         }
 
         private static void addSelectionBody(Node2D node)
