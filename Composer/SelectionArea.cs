@@ -6,6 +6,7 @@ using System.Linq;
 using Chickensoft.AutoInject;
 using Godot;
 using SuperNodes.Types;
+using XanaduProject.Composer.Selectables;
 
 namespace XanaduProject.Composer
 {
@@ -105,17 +106,13 @@ namespace XanaduProject.Composer
             query.CollideWithAreas = true;
             query.CollideWithBodies = false;
 
-            IEnumerable<Node> selected = space.IntersectShape(query)
+            IEnumerable<Selectable> selected = space.IntersectShape(query)
                 .SelectMany(v => v.Values)
                 .Select(v => v.Obj)
-                .OfType<Node>();
+                .OfType<Selectable>();
 
-            foreach (var node in selected)
-            {
-                Tween t = CreateTween();
-                t.TweenProperty(node, "modulate", Colors.Green, 0.3f);
-                t.TweenProperty(node, "modulate", Colors.White, 0.3f);
-            }
+            foreach (var selectable in selected)
+                selectable.Selected(true);
         }
     }
 }
