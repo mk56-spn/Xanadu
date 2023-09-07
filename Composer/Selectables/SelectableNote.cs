@@ -5,13 +5,13 @@ using Godot;
 
 namespace XanaduProject.Composer.Selectables
 {
-    public partial class SelectionNote : Selection
+    public partial class SelectableNote : Selection
     {
         protected override Color HighlightColor => Colors.Blue;
 
         private CircleShape2D hitboxCircle = new CircleShape2D { Radius = 31 };
 
-        public SelectionNote()
+        public SelectableNote()
         {
             CollisionShape.Shape = hitboxCircle;
         }

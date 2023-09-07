@@ -58,13 +58,13 @@ namespace XanaduProject.Composer
             switch (node)
             {
                 case Note:
-                    node.AddChild(new SelectionNote());
+                    node.AddChild(new SelectableNote());
                     return;
                 case Polygon2D polygon:
                     node.AddChild(new SelectionPolygon(polygon));
                     return;
                 case NoteLink noteLink:
-                    noteLink.Notes.ToList().ForEach(n => n.AddChild(new SelectionNote()));
+                    noteLink.Notes.ToList().ForEach(n => n.AddChild(new SelectableNote()));
                     return;
             }
         }
