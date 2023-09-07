@@ -5,7 +5,7 @@ using Godot;
 
 namespace XanaduProject.Composer.Selectables
 {
-    public partial class SelectableNote : Selection
+    public partial class SelectableNote : Selectable
     {
         protected override Color HighlightColor => Colors.Blue;
 

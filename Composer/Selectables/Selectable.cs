@@ -5,7 +5,7 @@ using Godot;
 
 namespace XanaduProject.Composer.Selectables
 {
-    public abstract partial class Selection : Area2D
+    public abstract partial class Selectable : Area2D
     {
         /// <summary>
         /// The colours the object will take on when it is selected
@@ -24,7 +24,7 @@ namespace XanaduProject.Composer.Selectables
 
         protected CollisionShape2D CollisionShape = new CollisionShape2D();
 
-        protected Selection ()
+        protected Selectable ()
         {
             AddChild(CollisionShape);
 

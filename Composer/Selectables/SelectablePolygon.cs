@@ -5,7 +5,7 @@ using Godot;
 
 namespace XanaduProject.Composer.Selectables
 {
-    public partial class SelectablePolygon : Selection
+    public partial class SelectablePolygon : Selectable
     {
         protected override Color HighlightColor => Colors.Blue;
 
@@ -35,7 +35,7 @@ namespace XanaduProject.Composer.Selectables
             DrawColoredPolygon(hitboxPolygon.Points, Colors.White);
         }
 
-        private partial class PolygonHandle : Selection
+        private partial class PolygonHandle : Selectable
         {
             private Polygon2D polygon;
             private readonly int index;
