@@ -5,13 +5,13 @@ using Godot;
 
 namespace XanaduProject.Composer.Selectables
 {
-    public partial class SelectionPolygon : Selection
+    public partial class SelectablePolygon : Selection
     {
         protected override Color HighlightColor => Colors.Blue;
 
         private ConvexPolygonShape2D hitboxPolygon = new ConvexPolygonShape2D();
 
-        public SelectionPolygon (Polygon2D mainPolygon)
+        public SelectablePolygon (Polygon2D mainPolygon)
         {
             CollisionShape.Shape = hitboxPolygon;
 

@@ -61,7 +61,7 @@ namespace XanaduProject.Composer
                     node.AddChild(new SelectableNote());
                     return;
                 case Polygon2D polygon:
-                    node.AddChild(new SelectionPolygon(polygon));
+                    node.AddChild(new SelectablePolygon(polygon));
                     return;
                 case NoteLink noteLink:
                     noteLink.Notes.ToList().ForEach(n => n.AddChild(new SelectableNote()));
