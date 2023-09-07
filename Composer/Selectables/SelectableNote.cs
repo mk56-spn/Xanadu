@@ -2,45 +2,34 @@
 // See the LICENCE file in the repository root for full licence text.
 
 using Godot;
+using XanaduProject.Composer.Notes;
 
 namespace XanaduProject.Composer.Selectables
 {
-    public partial class SelectableNote : Selectable
+    public partial class SelectableNote : SelectableHandle
     {
         protected override Color HighlightColor => Colors.Blue;
 
-        private CircleShape2D hitboxCircle = new CircleShape2D { Radius = 31 };
-
-        public SelectableNote()
+        public SelectableNote ()
         {
-            CollisionShape.Shape = hitboxCircle;
+            Radius = 31;
+            OnPositionChanged += () => GetParent<Note>().GlobalPosition = GlobalPosition;
         }
 
         public override void _Draw()
         {
             base._Draw();
-            DrawCircle(Position, 32, Colors.White);
+            DrawCircle(Position, Radius + 1, Colors.White);
             DrawArc
             (
                 Position,
-                31,
+                Radius,
                 Mathf.DegToRad(0),
                 Mathf.DegToRad(360),
-                30,
+                (int)(Radius * 0.5 + 5),
                 Colors.White,
                 2
             );
-        }
-
-        public override void _Input(InputEvent @event)
-        {
-            base._Input(@event);
-
-            if (@event is not InputEventMouseMotion { ButtonMask: MouseButtonMask.Left } || !IsHeld) return;
-
-            // TODO: make this account for the distance of the mouse selection location to the note center.
-            GetParent<Node2D>().GlobalPosition = GetGlobalMousePosition();
-            GetViewport().SetInputAsHandled();
         }
     }
 }
