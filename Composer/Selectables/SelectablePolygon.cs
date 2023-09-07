@@ -1,6 +1,7 @@
 // Copyright (c) mk56_spn <dhsjplt@gmail.com>. Licensed under the GNU General Public Licence (2.0).
 // See the LICENCE file in the repository root for full licence text.
 
+using System.Linq;
 using Godot;
 
 namespace XanaduProject.Composer.Selectables
@@ -27,6 +28,14 @@ namespace XanaduProject.Composer.Selectables
                 AddChild(new PolygonHandle(mainPolygon, i));
                 i++;
             }
+
+            SelectionStateChanged += state =>
+            {
+                GetChildren()
+                    .OfType<SelectableHandle>()
+                    .ToList()
+                    .ForEach(h => h.Visible = state);
+            };
         }
 
         public override void _Draw()
@@ -43,6 +52,7 @@ namespace XanaduProject.Composer.Selectables
             {
                 Position = polygon.Polygon[index];
                 Radius = 10;
+                Visible = false;
 
                 OnPositionChanged += () =>
                 {
