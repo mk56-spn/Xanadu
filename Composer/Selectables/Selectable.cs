@@ -1,12 +1,18 @@
 // Copyright (c) mk56_spn <dhsjplt@gmail.com>. Licensed under the GNU General Public Licence (2.0).
 // See the LICENCE file in the repository root for full licence text.
 
+using System;
+using Chickensoft.AutoInject;
 using Godot;
+using SuperNodes.Types;
 
 namespace XanaduProject.Composer.Selectables
 {
+    [SuperNode(typeof(Dependent))]
     public abstract partial class Selectable : Area2D
     {
+        public override partial void _Notification(int what);
+
         /// <summary>
         /// The colours the object will take on when it is selected
         /// </summary>
@@ -16,6 +22,9 @@ namespace XanaduProject.Composer.Selectables
         private const float opacity = 0.2f;
 
         private bool isHovered;
+        private bool isSelected;
+
+        public event Action<bool>? SelectionStateChanged;
 
         /// <summary>
         /// Whether the object is currently being held and as such valid for dragging actions
@@ -46,13 +55,19 @@ namespace XanaduProject.Composer.Selectables
         {
             base._UnhandledInput(@event);
 
-            if (!isHovered) return;
+            if (!isHovered)
+            {
+                if (@event is InputEventMouseButton { ButtonIndex: MouseButton.Left, Pressed: true })
+                    Selected(false);
+                return;
+            }
 
             switch (@event)
             {
                 case InputEventMouseButton { ButtonIndex: MouseButton.Left, Pressed: true }:
                     SelfModulate = HighlightColor with { A = SelfModulate.A };
                     IsHeld = true;
+                    Selected(true);
                     break;
 
                 case InputEventMouseButton { ButtonIndex: MouseButton.Left, Pressed: false }:
@@ -61,6 +76,16 @@ namespace XanaduProject.Composer.Selectables
                     break;
             }
             GetViewport().SetInputAsHandled();
+        }
+
+        public void Selected(bool select)
+        {
+            if (select.Equals(isSelected)) return;
+
+            isSelected = select;
+
+            GD.Print(GetInstanceId());
+            SelectionStateChanged?.Invoke(isSelected);
         }
     }
 }
