@@ -23,10 +23,10 @@ namespace XanaduProject.Composer
         PanningCamera IProvide<PanningCamera>.Value() => camera;
 
         private Stage stage = null!;
-        public StageInfo StageInfo = null!;
-
         private TrackHandler trackHandler = new TrackHandler();
         private PanningCamera camera = new PanningCamera();
+
+        public StageInfo StageInfo = null!;
 
         public override void _Ready()
         {
@@ -39,7 +39,7 @@ namespace XanaduProject.Composer
             Provide();
 
             // Embeds a selectable shape into the node for use in composer editing.
-            stage.GetChildren().OfType<Node2D>().ToList().ForEach(addSelectionBody);
+            stage.GetChildren().OfType<Node2D>().ToList().ForEach(AddSelectionBody);
         }
 
         private void setUpChildren()
@@ -53,7 +53,7 @@ namespace XanaduProject.Composer
             AddChild(camera);
         }
 
-        private static void addSelectionBody(Node2D node)
+        public static void AddSelectionBody(Node2D node)
         {
             switch (node)
             {
