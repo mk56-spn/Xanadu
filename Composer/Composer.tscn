@@ -1,8 +1,9 @@
-[gd_scene load_steps=4 format=3 uid="uid://dk1bdchlc0cyf"]
+[gd_scene load_steps=5 format=3 uid="uid://dk1bdchlc0cyf"]
 
 [ext_resource type="Script" path="res://Composer/Composer.cs" id="1_bt7va"]
 [ext_resource type="PackedScene" uid="uid://rh71ii34dp0c" path="res://Composer/ComposerUI/Timeline.tscn" id="2_qyv2p"]
 [ext_resource type="Script" path="res://Composer/SelectionArea.cs" id="3_bxxg3"]
+[ext_resource type="Script" path="res://Composer/ComposerUI/ItemBar.cs" id="4_pl8ww"]
 
 [node name="Composer" type="CanvasLayer"]
 follow_viewport_enabled = true
@@ -17,3 +18,13 @@ pivot_offset = Vector2(450, 75)
 layout_mode = 3
 anchors_preset = 0
 script = ExtResource("3_bxxg3")
+
+[node name="ItemSidebar" type="VBoxContainer" parent="CanvasLayer"]
+anchors_preset = 6
+anchor_left = 1.0
+anchor_top = 0.5
+anchor_right = 1.0
+anchor_bottom = 0.5
+grow_horizontal = 0
+grow_vertical = 2
+script = ExtResource("4_pl8ww")
