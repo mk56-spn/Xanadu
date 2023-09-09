@@ -39,7 +39,7 @@ namespace XanaduProject.Composer.ComposerUI
         {
             base._UnhandledInput(@event);
 
-            if (@event is not InputEventMouseButton { ButtonIndex: MouseButton.Left, Pressed: true }) return;
+            if (@event is not InputEventMouseButton { ButtonIndex: MouseButton.Left, Pressed: true } || !Input.IsKeyPressed(Key.Shift)) return;
             addStageItem();
         }
 

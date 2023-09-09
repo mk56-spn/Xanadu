@@ -48,7 +48,7 @@ namespace XanaduProject.Composer
         {
             base._Input(@event);
 
-            if (Input.IsKeyPressed(Key.Space)) return;
+            if (Input.IsKeyPressed(Key.Space) || Input.IsKeyPressed(Key.Shift)) return;
 
             switch (@event)
             {
