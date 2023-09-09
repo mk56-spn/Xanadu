@@ -1,4 +1,5 @@
-# Xanadu
+
+![Splash](https://github.com/mk56-spn/Xanadu/assets/74463310/491eb90d-b106-4278-9d7c-cf58da0d4250)
 
 [![CodeFactor](https://www.codefactor.io/repository/github/mk56-spn/xanadu/badge/master)](https://www.codefactor.io/repository/github/mk56-spn/xanadu/overview/master)
 
