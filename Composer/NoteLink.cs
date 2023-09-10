@@ -18,6 +18,9 @@ namespace XanaduProject.Composer
             set => connector.Modulate = value;
         }
 
+        [Export]
+        private string rhythmKey { get; set; } = null!;
+
         public event Action? OnFinished;
 
         // Make sure notes are ordered w.r.t music
@@ -51,7 +54,7 @@ namespace XanaduProject.Composer
         {
             base._PhysicsProcess(delta);
 
-            if (!Input.IsActionJustPressed("R1")) return;
+            if (!Input.IsActionJustPressed(rhythmKey)) return;
 
             Note? currentNote = Notes.FirstOrDefault(n => n.State == Note.NoteState.Active);
             currentNote?.RequestState(Note.NoteState.Judged);
