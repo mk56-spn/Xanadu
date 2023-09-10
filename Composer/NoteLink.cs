@@ -12,10 +12,10 @@ namespace XanaduProject.Composer
     public partial class NoteLink : Node2D
     {
         [Export]
-        private Color connectorColour
+        private Gradient connectorColour
         {
-            get => connector.Modulate;
-            set => connector.Modulate = value;
+            get => connector.Gradient;
+            set => connector.Gradient = value;
         }
 
         [Export]
