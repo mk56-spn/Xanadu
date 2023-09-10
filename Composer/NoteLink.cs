@@ -32,9 +32,15 @@ namespace XanaduProject.Composer
             base._Ready();
 
             // Fades out and then disposes of the object.
-            OnFinished += () => CreateTween()
-                .TweenProperty(this, "modulate", new Color(Modulate, 0), 0.3f )
-                .Finished += QueueFree;
+            OnFinished += () =>
+            {
+                var label = ResourceLoader.Load<PackedScene>("res://Composer/Notes/NoteLinkResult.tscn")
+                    .Instantiate<Label>();
+                Notes.Last().AddChild(label);
+                CreateTween()
+                    .TweenProperty(connector, "modulate", new Color(Modulate, 0), 0.3f )
+                    .Finished += QueueFree;
+            };
 
             AddChild(connector);
 
