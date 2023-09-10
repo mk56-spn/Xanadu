@@ -84,7 +84,6 @@ namespace XanaduProject.Composer.Selectables
 
             isSelected = select;
 
-            GD.Print(GetInstanceId());
             SelectionStateChanged?.Invoke(isSelected);
         }
     }
