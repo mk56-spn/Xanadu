@@ -40,7 +40,7 @@ namespace XanaduProject.Perceptions
 
             Velocity = new Vector2(BASE_VELOCITY, 0);
 
-            AddChild(createHandle(Colors.Aqua, "R1"));
+            AddChild(createHandle(RhythmInstance.BLine));
         }
 
         public void OnResolved()
@@ -78,14 +78,12 @@ namespace XanaduProject.Perceptions
             Position = new Vector2((float)trackHandler.TrackPosition * BASE_VELOCITY, Position.Y);
         }
 
-        private RhythmHandle createHandle(Color colour, string key)
+        private RhythmHandle createHandle(RhythmInstance instance)
         {
             RhythmHandle handle = ResourceLoader.Load<PackedScene>("res://Perceptions/Components/RhythmHandle.tscn")
                 .Instantiate<RhythmHandle>();
 
-            handle.Colour = colour;
-            handle.Key = key;
-
+            handle.Instance = instance;
             return handle;
         }
     }

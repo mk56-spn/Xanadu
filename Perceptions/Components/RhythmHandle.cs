@@ -11,24 +11,15 @@ namespace XanaduProject.Perceptions.Components
     public partial class RhythmHandle : Node2D
     {
         /// <summary>
-        /// The key this handle represents
+        /// The rhythm channel this handle represents.
         /// </summary>
-        public string Key = string.Empty;
+        public readonly RhythmChannel Channel = new RhythmChannel();
 
-        /// <summary>
-        /// Main colour for this handle.
-        /// </summary>
-        public Color Colour
+        public RhythmInstance Instance
         {
-            get => colour;
-            set
-            {
-                colour = value;
-                colourDark = value.Darkened(0.3f);
-            }
+            get => Channel.Instance;
+            set => Channel.Instance = value;
         }
-        private Color colour;
-        private Color colourDark;
 
         public RhythmHandle ()
         {
@@ -38,7 +29,10 @@ namespace XanaduProject.Perceptions.Components
         public override void _Process(double delta)
         {
             base._PhysicsProcess(delta);
-            Modulate = Modulate.Lerp(Input.IsActionPressed(Key) ? colour : colourDark, (float)(15 * delta));
+            Modulate = Modulate.Lerp(
+                Input.IsActionPressed(Channel.GetRhythmInput())
+                    ? Channel.GetRhythmColour()
+                    : Channel.GetRhythmColour().Darkened(0.2f), (float)(15 * delta));
         }
     }
 }
