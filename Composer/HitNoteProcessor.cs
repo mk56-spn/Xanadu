@@ -33,7 +33,7 @@ namespace XanaduProject.Composer
 
         private List<HitNote> getActiveNotes()
         {
-            return receptor.GetOverlappingAreas()
+            return receptor.GetOverlappingAreas().Where(c => c.GetParent() is HitNote)
                 .Select(area => area.GetParent<HitNote>())
                 .ToList();
         }

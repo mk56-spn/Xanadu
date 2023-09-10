@@ -12,11 +12,14 @@ namespace XanaduProject.Composer
     public partial class NoteLink : Node2D
     {
         [Export]
-        private Color connectorColour
+        private Gradient connectorColour
         {
-            get => connector.Modulate;
-            set => connector.Modulate = value;
+            get => connector.Gradient;
+            set => connector.Gradient = value;
         }
+
+        [Export]
+        private string rhythmKey { get; set; } = null!;
 
         public event Action? OnFinished;
 
@@ -29,9 +32,15 @@ namespace XanaduProject.Composer
             base._Ready();
 
             // Fades out and then disposes of the object.
-            OnFinished += () => CreateTween()
-                .TweenProperty(this, "modulate", new Color(Modulate, 0), 0.3f )
-                .Finished += QueueFree;
+            OnFinished += () =>
+            {
+                var label = ResourceLoader.Load<PackedScene>("res://Composer/Notes/NoteLinkResult.tscn")
+                    .Instantiate<Label>();
+                Notes.Last().AddChild(label);
+                CreateTween()
+                    .TweenProperty(connector, "modulate", new Color(Modulate, 0), 0.3f )
+                    .Finished += QueueFree;
+            };
 
             AddChild(connector);
 
@@ -51,7 +60,7 @@ namespace XanaduProject.Composer
         {
             base._PhysicsProcess(delta);
 
-            if (!Input.IsActionJustPressed("R1")) return;
+            if (!Input.IsActionJustPressed(rhythmKey)) return;
 
             Note? currentNote = Notes.FirstOrDefault(n => n.State == Note.NoteState.Active);
             currentNote?.RequestState(Note.NoteState.Judged);

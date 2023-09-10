@@ -10,8 +10,9 @@ namespace XanaduProject.Composer
     {
         protected XanaduPolygon ()
         {
-            // We want to assign a default shape to polygons to
-            // make sure they are instantiated in an invisible shape.
+            if (Polygon.Length != 0) return;
+                // We want to assign a default shape to polygons to
+                // make sure they are instantiated in an invisible shape.
             Polygon = new []
             {
                 new Vector2(-30, -30),
