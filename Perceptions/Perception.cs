@@ -8,6 +8,7 @@ using SuperNodes.Types;
 using XanaduProject.Audio;
 using XanaduProject.Composer;
 using XanaduProject.Perceptions.Components;
+using XanaduProject.Screens;
 
 namespace XanaduProject.Perceptions
 {
@@ -33,20 +34,31 @@ namespace XanaduProject.Perceptions
 
         [Dependency] private TrackHandler trackHandler => DependOn<TrackHandler>();
 
+        private HBoxContainer handleContainer = new HBoxContainer();
+
         protected Perception()
         {
             var fetchGravity = ProjectSettings.GetSetting("physics/2d/default_gravity");
             Gravity = fetchGravity.AsInt32();
 
             Velocity = new Vector2(BASE_VELOCITY, 0);
-
-            AddChild(createHandle(RhythmInstance.BLine));
         }
 
         public void OnResolved()
         {
+            handleContainer.GrowHorizontal = Control.GrowDirection.Both;
+            AddChild(handleContainer);
+
             SetPhysicsProcess(false);
             trackHandler.OnPreemptComplete += (_, _) => SetPhysicsProcess(true);
+
+            foreach (var line in GetParent<Stage>().Info.GetLines())
+            {
+                if (!line.active) continue;
+                handleContainer.AddChild(createHandle(line.instance));
+            }
+
+            handleContainer.Position = Position with { Y = -15 };
         }
 
         public override void _Ready()
