@@ -1,7 +1,6 @@
 // Copyright (c) mk56_spn <dhsjplt@gmail.com>. Licensed under the GNU General Public Licence (2.0).
 // See the LICENCE file in the repository root for full licence text.
 
-using System.Linq;
 using Chickensoft.AutoInject;
 using Godot;
 using SuperNodes.Types;
@@ -33,10 +32,10 @@ namespace XanaduProject.Composer.ComposerUI
 
             container.CustomMinimumSize = new Vector2((float)trackHandler.TrackLength * separation_ratio, 150);
 
-            GD.Print($"Stage has {stage.Notes.Count()} notes");
+            GD.Print($"Stage has {stage.GetNotes().Count} notes");
 
             // Load in markers for the notes in the stage
-            foreach (var note in stage.Notes)
+            foreach (var note in stage.GetNotes(false))
             {
                 container.AddChild(new Line2D
                 {

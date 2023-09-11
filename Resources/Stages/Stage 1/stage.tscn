@@ -40,7 +40,7 @@ script = ExtResource("2_8ddxt")
 
 [node name="ThreatPolygon" type="Polygon2D" parent="."]
 position = Vector2(8, -120)
-polygon = PackedVector2Array(1048, 192, 1080, 160, 1112, 192, 1080, 224)
+polygon = PackedVector2Array(1048, 216, 1080, 160, 1464, 184, 1080, 224)
 script = ExtResource("3_cc1fn")
 
 [node name="EnvironmentPolygon6" type="Polygon2D" parent="."]
@@ -50,13 +50,18 @@ polygon = PackedVector2Array(1280, 640, 1280, 512, 1408, 512, 1408, 640)
 script = ExtResource("2_8ddxt")
 
 [node name="HitNote" parent="." instance=ExtResource("4_jp8pi")]
-position = Vector2(64, 64)
+position = Vector2(64, 40)
+PositionInTrack = 0.1
+
+[node name="HitNote3" parent="." instance=ExtResource("4_jp8pi")]
+position = Vector2(192, -64)
+PositionInTrack = 0.3
 
 [node name="HitNote2" parent="." instance=ExtResource("4_jp8pi")]
-position = Vector2(1408, 704)
+position = Vector2(327, -160)
+PositionInTrack = 0.5
 
-[node name="HitNote2" parent="HitNote2" node_paths=PackedStringArray("hitBox", "animation", "judgementText") instance=ExtResource("4_jp8pi")]
-position = Vector2(1408, 704)
-hitBox = NodePath("../Hitbox")
-animation = NodePath("../AnimationPlayer")
-judgementText = NodePath("../Label")
+[node name="EnvironmentPolygon7" type="Polygon2D" parent="."]
+position = Vector2(544, 40)
+polygon = PackedVector2Array(-160, -32, 1184, -32, 896, -8, 480, -8, 288, 32, 30, 30, -160, 64)
+script = ExtResource("2_8ddxt")

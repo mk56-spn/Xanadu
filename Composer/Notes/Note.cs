@@ -22,9 +22,14 @@ namespace XanaduProject.Composer.Notes
         public NoteState State { private set; get; } = NoteState.Inactive;
 
         /// <summary>
-        /// Called when the state is update
+        /// Called when the state is changed
         /// </summary>
         public event EventHandler<NoteState>? OnStateChanged;
+
+        /// <summary>
+        /// Called when the note's judgement has been processed
+        /// </summary>
+        public event Action<Judgement>? OnNoteJudged;
 
         [Export]
         private AnimationPlayer animation { get; set; } = null!;
@@ -82,9 +87,11 @@ namespace XanaduProject.Composer.Notes
         private void judgeNote()
         {
             double millisecondDeviation = TimeSpan.FromSeconds(PositionInTrack - trackHandler.TrackPosition).TotalMilliseconds;
-            var judgement = JudgementInfo.GetJudgement(Math.Abs(millisecondDeviation));
+            Judgement judgement = JudgementInfo.GetJudgement(Math.Abs(millisecondDeviation));
 
             judgementText.Text = $"{JudgementInfo.GetJudgmentText(judgement).ToUpper()}\n{(millisecondDeviation < 0 ? "late" : "early" )}";
+
+            OnNoteJudged?.Invoke(judgement);
         }
 
         /// <summary>
