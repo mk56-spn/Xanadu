@@ -29,7 +29,7 @@ namespace XanaduProject.Perceptions.Components
             return Instance switch
             {
                 RhythmInstance.RLine => "R1",
-                RhythmInstance.BLine => "R1",
+                RhythmInstance.BLine => "R2",
                 RhythmInstance.YLine => "R3",
                 _ => throw new ArgumentOutOfRangeException(nameof(Instance), Instance, null)
             };
