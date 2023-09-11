@@ -1,6 +1,9 @@
 // Copyright (c) mk56_spn <dhsjplt@gmail.com>. Licensed under the GNU General Public Licence (2.0).
 // See the LICENCE file in the repository root for full licence text.
 
+
+using XanaduProject.Perceptions.Components;
+using XanaduProject.Screens;
 using Godot;
 
 namespace XanaduProject.DataStructure
@@ -19,6 +22,29 @@ namespace XanaduProject.DataStructure
         [Export]
         public string Description { get; set; } = null!;
         [Export]
-        public PackedScene Stage { get; set; } = null!;
+        private PackedScene stage { get; set; } = null!;
+
+        public Stage GetStage()
+        {
+            Stage instance = stage.Instantiate<Stage>();
+            GD.Print(stage);
+            instance.Info = this;
+            return instance;
+        }
+
+        [Export]
+        private bool rLine { get; set; }
+        [Export]
+        private bool bLine { get; set; }
+        [Export]
+        private bool yLine { get; set; }
+
+        // TODO: This is sketch af but it works for now i guess
+        public (bool active, RhythmInstance instance)[] GetLines() => new []
+        {
+            (rLine, RhythmInstance.RLine),
+            (bLine, RhythmInstance.BLine),
+            (yLine, RhythmInstance.YLine),
+        };
     }
 }

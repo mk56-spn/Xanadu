@@ -21,7 +21,7 @@ namespace XanaduProject.Screens.Player
         private ScoreProcessor scoreProcessor = null!;
         private TrackHandler trackHandler = new TrackHandler();
         private readonly StageInfo stageInfo;
-        private Stage stage = null!;
+        private Stage stage;
 
         private Camera2D camera = new Camera2D();
         public readonly StagePause PauseMenu = ResourceLoader
@@ -32,11 +32,13 @@ namespace XanaduProject.Screens.Player
         public Player (StageInfo stageInfo)
         {
             this.stageInfo = stageInfo;
+            stage = stageInfo.GetStage();
+            AddChild(stage);
         }
 
         public override void _Ready()
         {
-            stage = stageInfo.Stage.Instantiate<Stage>();
+            base._Ready();
             trackHandler.SetTrack(stageInfo.TrackInfo);
 
             AddChild(scoreProcessor = new ScoreProcessor(stage));
@@ -44,18 +46,18 @@ namespace XanaduProject.Screens.Player
 
             Provide();
 
-            base._Ready();
-
-            CanvasLayer canvasLayer = new CanvasLayer();
-
             AddChild(camera);
-            AddChild(stage);
+            loadUi();
+            trackHandler.StartTrack();
+        }
+
+        private void loadUi()
+        {
+            CanvasLayer canvasLayer = new CanvasLayer();
 
             camera.AddChild(canvasLayer);
             canvasLayer.AddChild(PauseMenu);
             canvasLayer.AddChild(ComboCounter);
-
-            trackHandler.StartTrack();
         }
 
         public override void _PhysicsProcess(double delta)
