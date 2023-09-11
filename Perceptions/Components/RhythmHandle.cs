@@ -8,7 +8,7 @@ namespace XanaduProject.Perceptions.Components
     /// <summary>
     /// Rhythm handles orbit the player node, and can be attached to a note chain to set off a "Line".
     /// </summary>
-    public partial class RhythmHandle : Node2D
+    public partial class RhythmHandle : Control
     {
         /// <summary>
         /// The rhythm channel this handle represents.
