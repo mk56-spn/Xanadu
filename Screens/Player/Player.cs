@@ -11,18 +11,23 @@ using XanaduProject.Screens.StageUI;
 namespace XanaduProject.Screens.Player
 {
     [SuperNode(typeof(Provider))]
-    public partial class Player : Control, IProvide<TrackHandler>
+    public partial class Player : Control, IProvide<TrackHandler>, IProvide<ScoreProcessor>
     {
         public override partial void _Notification(int what);
 
         public TrackHandler Value() => trackHandler;
+        ScoreProcessor IProvide<ScoreProcessor>.Value() => scoreProcessor;
 
+        private ScoreProcessor scoreProcessor = null!;
         private TrackHandler trackHandler = new TrackHandler();
         private readonly StageInfo stageInfo;
         private Stage stage = null!;
 
         private Camera2D camera = new Camera2D();
-        public readonly StagePause PauseMenu = ResourceLoader.Load<PackedScene>("res://Screens/StageUI/StagePause.tscn").Instantiate<StagePause>();
+        public readonly StagePause PauseMenu = ResourceLoader
+            .Load<PackedScene>("res://Screens/StageUI/StagePause.tscn").Instantiate<StagePause>();
+        public readonly ComboCounter ComboCounter  = ResourceLoader
+            .Load<PackedScene>("res://Screens/StageUI/ComboCounter.tscn").Instantiate<ComboCounter>();
 
         public Player (StageInfo stageInfo)
         {
@@ -31,21 +36,24 @@ namespace XanaduProject.Screens.Player
 
         public override void _Ready()
         {
+            stage = stageInfo.Stage.Instantiate<Stage>();
             trackHandler.SetTrack(stageInfo.TrackInfo);
+
+            AddChild(scoreProcessor = new ScoreProcessor(stage));
             AddChild(trackHandler);
 
             Provide();
 
             base._Ready();
 
-            stage = stageInfo.Stage.Instantiate<Stage>();
-
             CanvasLayer canvasLayer = new CanvasLayer();
 
             AddChild(camera);
             AddChild(stage);
+
             camera.AddChild(canvasLayer);
             canvasLayer.AddChild(PauseMenu);
+            canvasLayer.AddChild(ComboCounter);
 
             trackHandler.StartTrack();
         }
