@@ -7,6 +7,7 @@ using Godot;
 using XanaduProject.Composer;
 using XanaduProject.Perceptions;
 using XanaduProject.Composer.Notes;
+using XanaduProject.DataStructure;
 
 namespace XanaduProject.Screens
 {
@@ -15,6 +16,8 @@ namespace XanaduProject.Screens
     {
         public readonly Core Core;
 
+        // General information about this stage.
+        public StageInfo Info { get; set; } = null!;
         /// <summary>
         /// Returns the all the notes in the scene;
         /// </summary>

@@ -36,7 +36,7 @@ namespace XanaduProject.Screens.Player
 
         public override void _Ready()
         {
-            stage = stageInfo.Stage.Instantiate<Stage>();
+            stage = stageInfo.GetStage();
             trackHandler.SetTrack(stageInfo.TrackInfo);
 
             AddChild(scoreProcessor = new ScoreProcessor(stage));

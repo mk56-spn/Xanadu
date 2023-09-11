@@ -2,6 +2,7 @@
 // See the LICENCE file in the repository root for full licence text.
 
 using Godot;
+using XanaduProject.Screens;
 
 namespace XanaduProject.DataStructure
 {
@@ -19,6 +20,13 @@ namespace XanaduProject.DataStructure
         [Export]
         public string Description { get; set; } = null!;
         [Export]
-        public PackedScene Stage { get; set; } = null!;
+        private PackedScene stage { get; set; } = null!;
+
+        public Stage GetStage()
+        {
+            Stage instance = stage.Instantiate<Stage>();
+            instance.Info = this;
+            return instance;
+        }
     }
 }

@@ -44,7 +44,7 @@ namespace XanaduProject.Composer
 
         private void setUpChildren()
         {
-            stage = StageInfo.Stage.Instantiate<Stage>();
+            stage = StageInfo.GetStage();
 
             AddChild(trackHandler);
             trackHandler.StartTrack();
