@@ -4,6 +4,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using Godot;
+using XanaduProject.Composer;
 using XanaduProject.Perceptions;
 using XanaduProject.Composer.Notes;
 
@@ -13,18 +14,26 @@ namespace XanaduProject.Screens
     public partial class Stage : WorldEnvironment
     {
         public readonly Core Core;
-        public IEnumerable<Note> Notes { get; private set; } = null!;
+
+        /// <summary>
+        /// Returns the all the notes in the scene;
+        /// </summary>
+        public List<Note> GetNotes(bool getNestedNotes = true)
+        {
+            var notes = GetChildren().OfType<Note>().ToList();
+
+            if (!getNestedNotes) return notes;
+
+            foreach (var noteLink in GetChildren().OfType<NoteLink>())
+                notes.AddRange(noteLink.GetChildren().OfType<Note>());
+
+            return notes;
+        }
 
         public Stage()
         {
             var coreScene = ResourceLoader.Load<PackedScene>("res://Perceptions/Core.tscn");
             AddChild(Core = coreScene.Instantiate<Core>());
-        }
-
-        public override void _Ready()
-        {
-            base._Ready();
-            Notes = GetChildren().OfType<Note>();
         }
     }
 }
