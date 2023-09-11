@@ -3,7 +3,6 @@
 
 
 using XanaduProject.Perceptions.Components;
-using System.Collections.Generic;
 using XanaduProject.Screens;
 using Godot;
 
@@ -41,7 +40,7 @@ namespace XanaduProject.DataStructure
         private bool yLine { get; set; }
 
         // TODO: This is sketch af but it works for now i guess
-        public List<(bool active, RhythmInstance instance)> GetLines() => new List<(bool, RhythmInstance)>
+        public (bool active, RhythmInstance instance)[] GetLines() => new []
         {
             (rLine, RhythmInstance.RLine),
             (bLine, RhythmInstance.BLine),
