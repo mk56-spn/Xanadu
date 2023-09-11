@@ -13,5 +13,5 @@ Designers = PackedStringArray()
 Description = "Viina"
 stage = ExtResource("1_d0imq")
 rLine = false
-bLine = false
+bLine = true
 yLine = false
