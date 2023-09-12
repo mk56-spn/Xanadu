@@ -19,6 +19,9 @@ namespace XanaduProject.Composer.ComposerUI
     {
         public override partial void _Notification(int what);
 
+        [Export]
+        private VBoxContainer logContainer = null!;
+
         [Dependency]
         private Stage stage => DependOn<Stage>();
         [Dependency]
@@ -51,6 +54,8 @@ namespace XanaduProject.Composer.ComposerUI
             // TODO: move method out of composer
             Composer.AddSelectionBody(newItem);
             stage.AddChild(newItem);
+
+            logItem(newItem);
         }
 
         private static Node2D getItemInstance(ItemType type)
@@ -65,6 +70,22 @@ namespace XanaduProject.Composer.ComposerUI
                 ItemType.ThreatPolygon => new ThreatPolygon(),
                 _ => throw new ArgumentOutOfRangeException(nameof(type), type, null)
             };
+        }
+
+        private void logItem(Node2D newItem)
+        {
+            Label label = new Label();
+            label.TreeEntered += () =>
+            {
+                CreateTween().TweenProperty(label, "modulate", label.Modulate with { A = 0 }, 1.5);
+                GetTree().CreateTimer(1.5).Timeout += () =>
+                    label.QueueFree();
+            };
+
+            label.Text = $"{newItem.GetType().Name} added.";
+
+            logContainer.AddChild(label);
+            logContainer.MoveChild(label, 0);
         }
     }
 
