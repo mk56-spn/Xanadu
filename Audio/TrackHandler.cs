@@ -13,6 +13,10 @@ namespace XanaduProject.Audio
     public partial class TrackHandler : Node
     {
         /// <summary>
+        /// Resumes playback from the last known track position.
+        /// </summary>
+        public void Resume() => audio.Play((float)TrackPosition);
+        /// <summary>
         /// The time in seconds between every 1/1 beat;
         /// </summary>
         public double SecondsPerBeat { get; private set; }
@@ -134,6 +138,7 @@ namespace XanaduProject.Audio
 
             timer.Timeout += () =>
             {
+                GetTree().Paused = false;
                 OnPreemptComplete.Invoke(this, EventArgs.Empty);
                 audio.Play();
             };

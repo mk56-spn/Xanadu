@@ -31,6 +31,8 @@ namespace XanaduProject.Composer
         public override void _Ready()
         {
             base._Ready();
+            GetTree().Paused = true;
+            ProcessMode = ProcessModeEnum.Always;
 
             trackHandler.SetTrack(StageInfo.TrackInfo);
 
