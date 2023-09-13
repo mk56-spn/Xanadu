@@ -14,6 +14,7 @@ namespace XanaduProject.Screens.Player
     {
         public override partial void _Notification(int what);
 
+        private Player? player;
         private readonly StageInfo stageInfo;
 
         // Cache StageInfo at a loader level for downstream consumption
@@ -37,22 +38,19 @@ namespace XanaduProject.Screens.Player
             layer.AddChild(transition);
 
             // Delay player creation until transition is over.
-            transition.TransitionFinished += (_, _) => createPlayer();
+            transition.TransitionFinished += (_, _) => LoadPlayer();
 
             Provide();
         }
 
-        private void createPlayer()
+        /// <summary>
+        /// Resets the player to it's initial state
+        /// </summary>
+        public void LoadPlayer()
         {
-            Player player = new Player(stageInfo);
+            player?.QueueFree();
+            player = new Player(stageInfo);
             AddChild(player);
-
-            player.PauseMenu.RestartRequest += (_, _) =>
-            {
-                RemoveChild(player);
-                player.QueueFree();
-                createPlayer();
-            };
         }
     }
 }
