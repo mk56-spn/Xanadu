@@ -41,6 +41,8 @@ namespace XanaduProject.Screens.Player
             transition.TransitionFinished += (_, _) => LoadPlayer();
 
             Provide();
+
+            TreeExiting += () => GetTree().Paused = false;
         }
 
         /// <summary>
