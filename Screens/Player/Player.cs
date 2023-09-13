@@ -32,6 +32,8 @@ namespace XanaduProject.Screens.Player
         public Player (StageInfo stageInfo)
         {
             this.stageInfo = stageInfo;
+            ProcessMode = ProcessModeEnum.Always;
+
             stage = stageInfo.GetStage();
             AddChild(stage);
         }
@@ -39,6 +41,8 @@ namespace XanaduProject.Screens.Player
         public override void _Ready()
         {
             base._Ready();
+
+            GetTree().Paused = true;
             trackHandler.SetTrack(stageInfo.TrackInfo);
 
             AddChild(scoreProcessor = new ScoreProcessor(stage));
@@ -49,6 +53,9 @@ namespace XanaduProject.Screens.Player
             AddChild(camera);
             loadUi();
             trackHandler.StartTrack();
+
+            // We do not want the stage to process whilst the preempt is still underway.
+            trackHandler.OnPreemptComplete += (_, _) => GetTree().Paused = false;
         }
 
         private void loadUi()
@@ -65,20 +72,6 @@ namespace XanaduProject.Screens.Player
             base._PhysicsProcess(delta);
 
             camera.Position = stage.Core.Position;
-
-            // Pause menu handling
-            base._Process(delta);
-
-            if (!stage.Core.IsAlive && !PauseMenu.Visible)
-            {
-                PauseMenu.Show();
-                return;
-            }
-
-            if (!Input.IsActionJustPressed("escape")) return;
-
-            GetTree().Paused = true;
-            PauseMenu.Show();
         }
     }
 }

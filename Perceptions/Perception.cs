@@ -49,9 +49,6 @@ namespace XanaduProject.Perceptions
             handleContainer.GrowHorizontal = Control.GrowDirection.Both;
             AddChild(handleContainer);
 
-            SetPhysicsProcess(false);
-            trackHandler.OnPreemptComplete += (_, _) => SetPhysicsProcess(true);
-
             foreach (var line in GetParent<Stage>().Info.GetLines())
             {
                 if (!line.active) continue;
@@ -68,12 +65,12 @@ namespace XanaduProject.Perceptions
             AddChild(new HitNoteProcessor(NoteReceptor));
 
             GetNode<Area2D>("%Shell").AreaEntered += _ =>
-                SetPhysicsProcess(false);
+                GetTree().Paused = true;
 
             Nucleus.BodyEntered += _ =>
             {
                 IsAlive = false;
-                SetPhysicsProcess(false);
+                GetTree().Paused = true;
             };
         }
 

@@ -11,50 +11,33 @@ namespace XanaduProject.Screens.StageUI
     {
         public event EventHandler? RestartRequest;
 
-        public StagePause()
-        {
-            Visible = false;
-        }
-
         public override void _Ready()
         {
             base._Ready();
 
+            Visible = false;
+            VisibilityChanged += () => GetTree().Paused = Visible;
             buttonActions();
         }
 
-        public override void _Process(double delta)
+        public override void _UnhandledInput(InputEvent @event)
         {
-            base._Process(delta);
+            base._UnhandledInput(@event);
 
-            if (Input.IsActionJustPressed("escape"))
-                Show();
+            if (@event is not InputEventKey { KeyLabel: Key.Escape }) return;
+            Show();
         }
 
         private void buttonActions()
         {
-            GetNode<Button>("ButtonContainer/Play").ButtonUp += () =>
-            {
-                unpause();
-                Hide();
-            };
-
+            GetNode<Button>("ButtonContainer/Play").ButtonUp += Hide;
+            GetNode<Button>("ButtonContainer/Quit").ButtonUp += () =>
+                GetTree().ChangeSceneToFile("res://Screens/StageSelection/StageSelection.tscn");
             GetNode<Button>("ButtonContainer/Restart").ButtonUp += () =>
             {
-                unpause();
+                Hide();
                 RestartRequest?.Invoke(this, EventArgs.Empty);
             };
-
-            GetNode<Button>("ButtonContainer/Quit").ButtonUp += () =>
-            {
-                unpause();
-                GetTree().ChangeSceneToFile("res://Screens/StageSelection/StageSelection.tscn");
-            };
-        }
-
-        private void unpause()
-        {
-            GetTree().Paused = false;
         }
     }
 }
