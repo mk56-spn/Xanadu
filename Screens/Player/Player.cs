@@ -21,12 +21,14 @@ namespace XanaduProject.Screens.Player
         private ScoreProcessor scoreProcessor = null!;
         private TrackHandler trackHandler = new TrackHandler();
         private readonly StageInfo stageInfo;
-        private Stage stage;
+        private readonly Stage stage;
 
         private Camera2D camera = new Camera2D();
-        public readonly StagePause PauseMenu = ResourceLoader
+
+        private readonly StagePause pauseMenu = ResourceLoader
             .Load<PackedScene>("res://Screens/StageUI/StagePause.tscn").Instantiate<StagePause>();
-        public readonly ComboCounter ComboCounter  = ResourceLoader
+
+        private readonly ComboCounter comboCounter  = ResourceLoader
             .Load<PackedScene>("res://Screens/StageUI/ComboCounter.tscn").Instantiate<ComboCounter>();
 
         public Player (StageInfo stageInfo)
@@ -41,9 +43,8 @@ namespace XanaduProject.Screens.Player
         public override void _Ready()
         {
             base._Ready();
-
-            GetTree().Paused = true;
             trackHandler.SetTrack(stageInfo.TrackInfo);
+            GetTree().Paused = true;
 
             AddChild(scoreProcessor = new ScoreProcessor(stage));
             AddChild(trackHandler);
@@ -56,6 +57,8 @@ namespace XanaduProject.Screens.Player
 
             // We do not want the stage to process whilst the preempt is still underway.
             trackHandler.OnPreemptComplete += (_, _) => GetTree().Paused = false;
+            stage.Core.OnDeath += () => pauseMenu.Show();
+            pauseMenu.RestartRequest += () => GetParent<PlayerLoader>().LoadPlayer();
         }
 
         private void loadUi()
@@ -63,14 +66,13 @@ namespace XanaduProject.Screens.Player
             CanvasLayer canvasLayer = new CanvasLayer();
 
             camera.AddChild(canvasLayer);
-            canvasLayer.AddChild(PauseMenu);
-            canvasLayer.AddChild(ComboCounter);
+            canvasLayer.AddChild(pauseMenu);
+            canvasLayer.AddChild(comboCounter);
         }
 
         public override void _PhysicsProcess(double delta)
         {
             base._PhysicsProcess(delta);
-
             camera.Position = stage.Core.Position;
         }
     }

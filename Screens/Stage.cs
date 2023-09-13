@@ -35,7 +35,7 @@ namespace XanaduProject.Screens
 
         public Stage()
         {
-            ProcessMode = ProcessModeEnum.Pausable;
+            ProcessMode = ProcessModeEnum.Always;
 
             var coreScene = ResourceLoader.Load<PackedScene>("res://Perceptions/Core.tscn");
             AddChild(Core = coreScene.Instantiate<Core>());
