@@ -5,8 +5,9 @@
 [ext_resource type="Script" path="res://Composer/SelectionArea.cs" id="3_bxxg3"]
 [ext_resource type="Script" path="res://Composer/ComposerUI/ItemBar.cs" id="4_pl8ww"]
 
-[node name="Composer" type="CanvasLayer"]
-follow_viewport_enabled = true
+[node name="Composer" type="Control"]
+layout_mode = 3
+anchors_preset = 0
 script = ExtResource("1_bt7va")
 
 [node name="CanvasLayer" type="CanvasLayer" parent="."]

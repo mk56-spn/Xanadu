@@ -24,7 +24,7 @@ namespace XanaduProject.Composer
         private bool dragging;
 
         [Dependency]
-        private PanningCamera camera => DependOn<PanningCamera>();
+        private Camera2D camera => DependOn<Camera2D>();
 
         public SelectionArea ()
         {

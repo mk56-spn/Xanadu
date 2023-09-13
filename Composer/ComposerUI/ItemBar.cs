@@ -25,7 +25,7 @@ namespace XanaduProject.Composer.ComposerUI
         [Dependency]
         private Stage stage => DependOn<Stage>();
         [Dependency]
-        private PanningCamera camera => DependOn<PanningCamera>();
+        private Camera2D camera => DependOn<Camera2D>();
 
         /// <summary>
         /// The currently selected ItemType

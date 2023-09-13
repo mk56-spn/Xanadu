@@ -5,57 +5,26 @@ using System.Linq;
 using Chickensoft.AutoInject;
 using Godot;
 using SuperNodes.Types;
-using XanaduProject.Audio;
 using XanaduProject.Composer.Notes;
-using XanaduProject.DataStructure;
 using XanaduProject.Screens;
 using XanaduProject.Composer.Selectables;
 
 namespace XanaduProject.Composer
 {
     [SuperNode(typeof(Provider))]
-    public partial class Composer : CanvasLayer, IProvide<Stage>, IProvide<TrackHandler>, IProvide<PanningCamera>
+    public partial class Composer : StageHandler, IProvide<Camera2D>
     {
         public override partial void _Notification(int what);
 
-        public Stage Value() => stage;
-        TrackHandler IProvide<TrackHandler>.Value() => trackHandler;
-        PanningCamera IProvide<PanningCamera>.Value() => camera;
+        Camera2D IProvide<Camera2D>.Value() => Camera;
 
-        private Stage stage = null!;
-        private TrackHandler trackHandler = new TrackHandler();
-        private PanningCamera camera = new PanningCamera();
-
-        public StageInfo StageInfo = null!;
-
-        public override void _Ready()
+        public Composer() : base(new PanningCamera())
         {
-            base._Ready();
-            GetTree().Paused = true;
-            ProcessMode = ProcessModeEnum.Always;
-
-            trackHandler.SetTrack(StageInfo.TrackInfo);
-
-            // Makes sure that the Composer's ready function is called after the core has loaded, avoiding the physics process being turned on automatically from there
-            setUpChildren();
             Provide();
-
-            // Embeds a selectable shape into the node for use in composer editing.
-            stage.GetChildren().OfType<Node2D>().ToList().ForEach(AddSelectionBody);
+            ChildEnteredTree += AddSelectionBody;
         }
 
-        private void setUpChildren()
-        {
-            stage = StageInfo.GetStage();
-
-            AddChild(trackHandler);
-            trackHandler.StartTrack();
-
-            AddChild(stage);
-            AddChild(camera);
-        }
-
-        public static void AddSelectionBody(Node2D node)
+        public static void AddSelectionBody(Node node)
         {
             switch (node)
             {
