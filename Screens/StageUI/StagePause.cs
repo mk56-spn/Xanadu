@@ -9,7 +9,7 @@ namespace XanaduProject.Screens.StageUI
     [GlobalClass]
     public partial class StagePause : Control
     {
-        public event EventHandler? RestartRequest;
+        public event Action? RestartRequest;
 
         public override void _Ready()
         {
@@ -36,7 +36,7 @@ namespace XanaduProject.Screens.StageUI
             GetNode<Button>("ButtonContainer/Restart").ButtonUp += () =>
             {
                 Hide();
-                RestartRequest?.Invoke(this, EventArgs.Empty);
+                RestartRequest?.Invoke();
             };
         }
     }
