@@ -12,25 +12,19 @@ using XanaduProject.Composer.Selectables;
 namespace XanaduProject.Composer
 {
     [SuperNode(typeof(Provider))]
-    public partial class Composer : StageHandler, IProvide<PanningCamera>
+    public partial class Composer : StageHandler, IProvide<Camera2D>
     {
         public override partial void _Notification(int what);
 
-        PanningCamera IProvide<PanningCamera>.Value() => camera;
-        private PanningCamera camera = new PanningCamera();
+        Camera2D IProvide<Camera2D>.Value() => Camera;
 
-        public override void _Ready()
+        public Composer() : base(new PanningCamera())
         {
-            base._Ready();
-
-            AddChild(camera);
             Provide();
-
-            // Embeds a selectable shape into the node for use in composer editing.
-            Stage.GetChildren().OfType<Node2D>().ToList().ForEach(AddSelectionBody);
+            ChildEnteredTree += AddSelectionBody;
         }
 
-        public static void AddSelectionBody(Node2D node)
+        public static void AddSelectionBody(Node node)
         {
             switch (node)
             {
