@@ -2,21 +2,43 @@
 // See the LICENCE file in the repository root for full licence text.
 
 using System;
+using Chickensoft.AutoInject;
 using Godot;
+using SuperNodes.Types;
+using XanaduProject.Audio;
 
 namespace XanaduProject.Screens.StageUI
 {
     [GlobalClass]
+    [SuperNode(typeof(Dependent))]
     public partial class StagePause : Control
     {
+        public override partial void _Notification(int what);
+
         public event Action? RestartRequest;
+
+        [Dependency]
+        private TrackHandler trackHandler => DependOn<TrackHandler>();
 
         public override void _Ready()
         {
             base._Ready();
 
             Visible = false;
-            VisibilityChanged += () => GetTree().Paused = Visible;
+            VisibilityChanged += () =>
+            {
+                GetTree().Paused = Visible;
+
+                switch (Visible)
+                {
+                    case true:
+                        trackHandler.Playing = false;
+                        break;
+                    case false:
+                        trackHandler.Resume();
+                        break;
+                }
+            };
             buttonActions();
         }
 
@@ -33,11 +55,7 @@ namespace XanaduProject.Screens.StageUI
             GetNode<Button>("ButtonContainer/Play").ButtonUp += Hide;
             GetNode<Button>("ButtonContainer/Quit").ButtonUp += () =>
                 GetTree().ChangeSceneToFile("res://Screens/StageSelection/StageSelection.tscn");
-            GetNode<Button>("ButtonContainer/Restart").ButtonUp += () =>
-            {
-                Hide();
-                RestartRequest?.Invoke();
-            };
+            GetNode<Button>("ButtonContainer/Restart").ButtonUp += () => RestartRequest?.Invoke();
         }
     }
 }
