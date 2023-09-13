@@ -51,7 +51,7 @@ namespace XanaduProject.Screens.Player
         public void LoadPlayer()
         {
             player?.QueueFree();
-            player = new Player(stageInfo);
+            player = new Player { StageInfo = stageInfo };
             AddChild(player);
         }
     }
