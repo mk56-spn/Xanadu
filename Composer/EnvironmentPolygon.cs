@@ -2,13 +2,16 @@
 // See the LICENCE file in the repository root for full licence text.
 
 using Godot;
+using XanaduProject.Composer.Selectables;
 
 namespace XanaduProject.Composer
 {
     [Tool]
     [GlobalClass]
-    public partial class EnvironmentPolygon : XanaduPolygon
+    public partial class EnvironmentPolygon : XanaduPolygon, IComposable
     {
+        public Selectable Selectable => new SelectablePolygon(this);
+
         private StaticBody2D body = new StaticBody2D { CollisionLayer = 4 };
         private CollisionPolygon2D hitBox = new CollisionPolygon2D { OneWayCollision = true };
 

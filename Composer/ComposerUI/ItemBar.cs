@@ -50,17 +50,13 @@ namespace XanaduProject.Composer.ComposerUI
         {
             Node2D newItem = getItemInstance(Selected);
             newItem.GlobalPosition = camera.Offset + GetGlobalMousePosition();
-
-            // TODO: move method out of composer
-            Composer.AddSelectionBody(newItem);
             stage.AddChild(newItem);
 
             logItem(newItem);
         }
 
-        private static Node2D getItemInstance(ItemType type)
-        {
-            return type switch
+        private static Node2D getItemInstance(ItemType type) =>
+            type switch
             {
                 // Im gonna regret this at some point...
                 ItemType.NoteLink => new NoteLink(),
@@ -70,7 +66,6 @@ namespace XanaduProject.Composer.ComposerUI
                 ItemType.ThreatPolygon => new ThreatPolygon(),
                 _ => throw new ArgumentOutOfRangeException(nameof(type), type, null)
             };
-        }
 
         private void logItem(Node2D newItem)
         {

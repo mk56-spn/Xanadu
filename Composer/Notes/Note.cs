@@ -6,13 +6,16 @@ using Chickensoft.AutoInject;
 using Godot;
 using SuperNodes.Types;
 using XanaduProject.Audio;
+using XanaduProject.Composer.Selectables;
 using XanaduProject.DataStructure;
 
 namespace XanaduProject.Composer.Notes
 {
     [SuperNode(typeof(Dependent))]
-    public partial class Note : Node2D
+    public partial class Note : Node2D, IComposable
     {
+        public Selectable Selectable => new SelectableNote();
+
         public override partial void _Notification(int what);
 
         private const double note_activation_preempt = 0.4;
