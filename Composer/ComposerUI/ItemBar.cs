@@ -48,8 +48,8 @@ namespace XanaduProject.Composer.ComposerUI
 
         private void addStageItem()
         {
-            Node2D newItem = getItemInstance(Selected);
-            newItem.GlobalPosition = camera.Offset + GetGlobalMousePosition();
+            Node2D newItem = (Node2D)selected.Duplicate();
+            newItem.GlobalPosition = GetViewport().GetCamera2D().Offset + GetGlobalMousePosition();
             stage.AddChild(newItem);
 
             logItem(newItem);

@@ -23,9 +23,6 @@ namespace XanaduProject.Composer
         private RectangleShape2D selectionRect = new RectangleShape2D();
         private bool dragging;
 
-        [Dependency]
-        private Camera2D camera => DependOn<Camera2D>();
-
         public SelectionArea ()
         {
             ZIndex = 2;
@@ -98,7 +95,7 @@ namespace XanaduProject.Composer
 
             selectionRect.Size = dragEnd - dragStart;
 
-            Vector2 areaPosition = camera.Offset + dragStart + (dragEnd - dragStart) / 2;
+            Vector2 areaPosition = GetViewport().GetCamera2D().Offset + dragStart + (dragEnd - dragStart) / 2;
 
             query.Transform = new Transform2D(0, areaPosition);
             query.Shape = selectionRect;
