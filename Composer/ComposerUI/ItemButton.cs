@@ -10,12 +10,12 @@ namespace XanaduProject.Composer.ComposerUI
     /// </summary>
     public partial class ItemButton : Button
     {
-        public ItemButton (ItemType itemType)
+        public ItemButton (Node node)
         {
             CustomMinimumSize = CustomMinimumSize with { Y = 30 };
-            Text = itemType.ToString();
+            Text = node.GetType().Name;
 
-            ButtonUp += () => GetParent<ItemBar>().Selected = itemType;
+            ButtonUp += () => GetParent<ItemBar>().Selected = (Node2D)node.Duplicate();
         }
     }
 }

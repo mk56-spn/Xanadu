@@ -1,8 +1,6 @@
 // Copyright (c) mk56_spn <dhsjplt@gmail.com>. Licensed under the GNU General Public Licence (2.0).
 // See the LICENCE file in the repository root for full licence text.
 
-using System;
-using System.Linq;
 using Chickensoft.AutoInject;
 using Godot;
 using SuperNodes.Types;
@@ -24,17 +22,20 @@ namespace XanaduProject.Composer.ComposerUI
 
         [Dependency]
         private Stage stage => DependOn<Stage>();
-        [Dependency]
-        private Camera2D camera => DependOn<Camera2D>();
 
+        private Node2D selected = new EnvironmentPolygon();
         /// <summary>
         /// The currently selected ItemType
         /// </summary>
-        public ItemType Selected { get; set; }
+        public Node2D Selected
+        {
+            get => selected;
+            set => selected = value;
+        }
 
         public ItemBar ()
         {
-            foreach (var itemType in Enum.GetValues(typeof(ItemType)).OfType<ItemType>())
+            foreach (var itemType in composerItems())
                 AddChild(new ItemButton(itemType));
         }
 
@@ -48,24 +49,14 @@ namespace XanaduProject.Composer.ComposerUI
 
         private void addStageItem()
         {
-            Node2D newItem = getItemInstance(Selected);
-            newItem.GlobalPosition = camera.Offset + GetGlobalMousePosition();
+            Node2D newItem = (Node2D)selected.Duplicate();
+            newItem.GlobalPosition = GetViewport().GetCamera2D().Offset + GetGlobalMousePosition();
             stage.AddChild(newItem);
 
             logItem(newItem);
         }
 
-        private static Node2D getItemInstance(ItemType type) =>
-            type switch
-            {
-                // Im gonna regret this at some point...
-                ItemType.NoteLink => new NoteLink(),
-                ItemType.HitNote => ResourceLoader.Load<PackedScene>("res://Composer/Notes/HitNote.tscn")
-                    .Instantiate<HitNote>(),
-                ItemType.EnvironmentPolygon => new EnvironmentPolygon(),
-                ItemType.ThreatPolygon => new ThreatPolygon(),
-                _ => throw new ArgumentOutOfRangeException(nameof(type), type, null)
-            };
+        #region Logging
 
         private void logItem(Node2D newItem)
         {
@@ -82,15 +73,20 @@ namespace XanaduProject.Composer.ComposerUI
             logContainer.AddChild(label);
             logContainer.MoveChild(label, 0);
         }
-    }
 
-    // An enum used to fetch the corresponding class for instantiation.
-    public enum ItemType
-    {
-        NoteLink,
-        HitNote,
-        EnvironmentPolygon,
-        ThreatPolygon
+        #endregion
+
+        /// <summary>
+        /// A list of all types that are to be put in the item bar.
+        /// </summary>
+        /// <returns></returns>
+        private static Node2D[] composerItems() => new Node2D[]
+        {
+            new EnvironmentPolygon(),
+            new ThreatPolygon(),
+            ResourceLoader.Load<PackedScene>("res://Composer/Notes/HitNote.tscn").Instantiate<HitNote>(),
+            new NoteLink()
+        };
     }
 }
 
