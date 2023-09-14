@@ -2,11 +2,9 @@
 // See the LICENCE file in the repository root for full licence text.
 
 using System.Collections.Generic;
-using System.Linq;
 using Godot;
-using XanaduProject.Composer;
-using XanaduProject.Perceptions;
 using XanaduProject.Composer.Notes;
+using XanaduProject.Perceptions;
 using XanaduProject.DataStructure;
 
 namespace XanaduProject.Screens
@@ -18,20 +16,8 @@ namespace XanaduProject.Screens
 
         // General information about this stage.
         public StageInfo Info { get; set; } = null!;
-        /// <summary>
-        /// Returns the all the notes in the scene;
-        /// </summary>
-        public List<Note> GetNotes(bool getNestedNotes = true)
-        {
-            var notes = GetChildren().OfType<Note>().ToList();
 
-            if (!getNestedNotes) return notes;
-
-            foreach (var noteLink in GetChildren().OfType<NoteLink>())
-                notes.AddRange(noteLink.GetChildren().OfType<Note>());
-
-            return notes;
-        }
+        public List<Note> Notes { get; } = new List<Note>();
 
         public Stage()
         {
@@ -39,6 +25,17 @@ namespace XanaduProject.Screens
 
             var coreScene = ResourceLoader.Load<PackedScene>("res://Perceptions/Core.tscn");
             AddChild(Core = coreScene.Instantiate<Core>());
+        }
+
+        public override void _EnterTree()
+        {
+            base._EnterTree();
+
+            GetTree().NodeAdded += node =>
+            {
+                if (node is Note note)
+                    Notes.Add(note);
+            };
         }
     }
 }
