@@ -138,7 +138,6 @@ namespace XanaduProject.Audio
 
             timer.Timeout += () =>
             {
-                GetTree().Paused = false;
                 OnPreemptComplete.Invoke(this, EventArgs.Empty);
                 audio.Play();
             };
