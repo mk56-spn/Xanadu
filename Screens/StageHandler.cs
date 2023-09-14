@@ -25,8 +25,8 @@ namespace XanaduProject.Screens
         protected Camera2D Camera;
         protected Stage Stage = null!;
 
-        private readonly TrackHandler trackHandler = new TrackHandler();
-        TrackHandler IProvide<TrackHandler>.Value() => trackHandler;
+        protected readonly TrackHandler TrackHandler = new TrackHandler();
+        TrackHandler IProvide<TrackHandler>.Value() => TrackHandler;
         public Stage Value() => Stage;
 
         protected StageHandler (Camera2D camera)
@@ -40,10 +40,11 @@ namespace XanaduProject.Screens
         {
             base._EnterTree();
 
+            TrackHandler.OnPreemptComplete += (_, _) => GetTree().Paused = false;
             Stage = StageInfo.GetStage();
             AddChild(Stage);
-            trackHandler.SetTrack(StageInfo.TrackInfo);
-            AddChild(trackHandler);
+            TrackHandler.SetTrack(StageInfo.TrackInfo);
+            AddChild(TrackHandler);
 
             Provide();
         }
@@ -53,7 +54,6 @@ namespace XanaduProject.Screens
             base._Ready();
 
             GetTree().Paused = true;
-            trackHandler.StartTrack();
         }
     }
 }

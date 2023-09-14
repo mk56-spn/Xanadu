@@ -38,6 +38,8 @@ namespace XanaduProject.Screens.Player
 
             Stage.Core.OnDeath += () => pauseMenu.Show();
             pauseMenu.RestartRequest += () => GetParent<PlayerLoader>().LoadPlayer();
+
+            TrackHandler.StartTrack();
         }
 
         private void loadUi()
