@@ -69,29 +69,6 @@ namespace XanaduProject.Composer.ComposerUI
 
             closestBar.Position = new Vector2(snappedPosition, closestBar.Position.Y);
             lastClosestPosition = snappedPosition;
-
-            foreach (var child in markerContainer.GetChildren())
-            {
-                child.Free();
-            }
-
-
-            int i = -4;
-            while (i <= 4)
-            {
-                markerContainer.AddChild(new Line2D
-                {
-                    DefaultColor = Colors.DarkGray,
-                    Width = 2,
-                    Points = new []
-                    {
-                        new Vector2(0, 0),
-                        new Vector2(0, 100)
-                    },
-                    Position = new Vector2((float)(snappedPosition + i * separation_ratio * trackHandler.TrackLength), 0)
-                });
-                i++;
-            }
         }
 
         private Line2D closestBar = new Line2D
@@ -105,5 +82,35 @@ namespace XanaduProject.Composer.ComposerUI
                 new Vector2(0, 30)
             }
         };
+
+        private partial class TimelineNote : SelectableHandle
+        {
+            protected override Color HighlightColor => Colors.Red;
+
+            private Note note;
+
+            public TimelineNote (TrackHandler handler, Note note)
+            {
+                this.note = note;
+                OnDragged += () =>
+                {
+                    double snappedPosition = Mathf.Snapped(GetParent<Control>().GetLocalMousePosition().X, handler.SecondsPerBeat * separation_ratio);
+                    Position = Position with { X = (float)snappedPosition };
+                    note.PositionInTrack = Position.X / separation_ratio;
+                    QueueRedraw();
+                };
+            }
+
+            public override void _Draw()
+            {
+                base._Draw();
+
+                DrawString(
+                    ThemeDB.FallbackFont,
+                    new Vector2(0, 30), note.PositionInTrack.ToString(CultureInfo.InvariantCulture),
+                    HorizontalAlignment.Right
+                );
+            }
+        }
     }
 }
