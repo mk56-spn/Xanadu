@@ -36,5 +36,21 @@ namespace XanaduProject.Composer.Selectables
             OnPositionChanged?.Invoke();
             GetViewport().SetInputAsHandled();
         }
+
+        public override void _Draw()
+        {
+            base._Draw();
+            DrawCircle(Vector2.Zero, Radius + 1, Colors.White);
+            DrawArc
+            (
+                Vector2.Zero,
+                Radius,
+                0,
+                Mathf.Pi * 2,
+                (int)(Radius * 0.5 + 5),
+                Colors.White,
+                2
+            );
+        }
     }
 }
