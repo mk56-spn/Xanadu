@@ -1,10 +1,13 @@
 // Copyright (c) mk56_spn <dhsjplt@gmail.com>. Licensed under the GNU General Public Licence (2.0).
 // See the LICENCE file in the repository root for full licence text.
 
+using System.Globalization;
 using Chickensoft.AutoInject;
 using Godot;
 using SuperNodes.Types;
 using XanaduProject.Audio;
+using XanaduProject.Composer.Notes;
+using XanaduProject.Composer.Selectables;
 using XanaduProject.Screens;
 
 namespace XanaduProject.Composer.ComposerUI
@@ -12,7 +15,6 @@ namespace XanaduProject.Composer.ComposerUI
     [SuperNode(typeof(Dependent))]
     public partial class Timeline : ScrollContainer
     {
-
         public override partial void _Notification(int what);
 
         private const float height = 150;
@@ -24,6 +26,12 @@ namespace XanaduProject.Composer.ComposerUI
         [Dependency] private Stage stage => DependOn<Stage>();
         [Dependency] private TrackHandler trackHandler => DependOn<TrackHandler>();
 
+        public Timeline ()
+        {
+            ProcessMode = ProcessModeEnum.Always;
+            MouseFilter = MouseFilterEnum.Pass;
+        }
+
         public void OnResolved()
         {
             AddChild(container);
@@ -32,31 +40,29 @@ namespace XanaduProject.Composer.ComposerUI
 
             container.CustomMinimumSize = new Vector2((float)trackHandler.TrackLength * separation_ratio, 150);
 
-            GD.Print($"Stage has {stage.GetNotes().Count} notes");
-
             // Load in markers for the notes in the stage
-            foreach (var note in stage.GetNotes(false))
+            foreach (var note in stage.Notes)
+                addTimelineNote(note);
+
+            GetTree().NodeAdded += node =>
             {
-                container.AddChild(new Line2D
+                if (node is Note note)
+                    addTimelineNote(note);
+            };
+
+            void addTimelineNote(Note note) =>
+                container.AddChild(new TimelineNote(trackHandler, note)
                 {
-                    Position = new Vector2(note.PositionInTrack * separation_ratio, 0),
-                    Points = new []
-                    {
-                        new Vector2(0, 30),
-                        new Vector2(0, height - 30),
-                    },
-                    DefaultColor = Colors.Cyan,
-                    Width = 2,
-                    ZIndex = 1
+                    Position = new Vector2(note.PositionInTrack * separation_ratio, height / 2)
                 });
-            }
         }
 
         public override void _Process(double delta)
         {
             base._Process(delta);
-            ScrollHorizontal = (int)(container.CustomMinimumSize.X * (trackHandler.TrackPosition / trackHandler.TrackLength));
 
+            if (!trackHandler.Playing) return;
+            ScrollHorizontal = (int)(container.CustomMinimumSize.X * (trackHandler.TrackPosition / trackHandler.TrackLength));
             updateLines();
         }
 
