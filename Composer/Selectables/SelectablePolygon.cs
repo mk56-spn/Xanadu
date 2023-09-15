@@ -50,22 +50,17 @@ namespace XanaduProject.Composer.Selectables
 
             public PolygonHandle (Polygon2D polygon, int index)
             {
+                MoveOnDrag = true;
                 Position = polygon.Polygon[index];
                 Radius = 10;
                 Visible = false;
 
-                OnPositionChanged += () =>
+                OnDragged += () =>
                 {
                     var a = polygon.Polygon;
-                    a.SetValue((GlobalPosition - polygon.Position) / polygon.Scale, index);
+                    a.SetValue(polygon.ToLocal(GetGlobalMousePosition()), index);
                     polygon.Polygon = a;
                 };
-            }
-
-            public override void _Draw()
-            {
-                base._Draw();
-                DrawCircle(Vector2.Zero, 10, Colors.Snow);
             }
         }
     }

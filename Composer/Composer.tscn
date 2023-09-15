@@ -11,14 +11,16 @@ anchors_preset = 0
 script = ExtResource("1_bt7va")
 
 [node name="CanvasLayer" type="CanvasLayer" parent="."]
-
-[node name="Timeline" parent="CanvasLayer" instance=ExtResource("2_qyv2p")]
-pivot_offset = Vector2(450, 75)
+layer = 2
 
 [node name="SelectionArea" type="Control" parent="CanvasLayer"]
 layout_mode = 3
 anchors_preset = 0
 script = ExtResource("3_bxxg3")
+
+[node name="Timeline" parent="CanvasLayer" instance=ExtResource("2_qyv2p")]
+pivot_offset = Vector2(450, 75)
+mouse_filter = 1
 
 [node name="ItemLog" type="VBoxContainer" parent="CanvasLayer"]
 modulate = Color(0, 1, 1, 1)

@@ -23,11 +23,6 @@ namespace XanaduProject.Composer
         private RectangleShape2D selectionRect = new RectangleShape2D();
         private bool dragging;
 
-        public SelectionArea ()
-        {
-            ZIndex = 2;
-        }
-
         public override void _Draw()
         {
             base._Draw();
@@ -41,9 +36,9 @@ namespace XanaduProject.Composer
             DrawString(new FontFile(), new Vector2(10, 20), dragging.ToString().ToUpper(), modulate: Colors.GreenYellow);
         }
 
-        public override void _Input(InputEvent @event)
+        public override void _UnhandledInput(InputEvent @event)
         {
-            base._Input(@event);
+            base._UnhandledInput(@event);
 
             if (Input.IsKeyPressed(Key.Space) || Input.IsKeyPressed(Key.Shift)) return;
 

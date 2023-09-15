@@ -30,7 +30,7 @@ namespace XanaduProject.Screens.Player
 
         public ScoreProcessor (Stage stage)
         {
-            foreach (var note in stage.GetNotes())
+            foreach (var note in stage.Notes)
             {
                 note.OnNoteJudged += judgement =>
                 {
