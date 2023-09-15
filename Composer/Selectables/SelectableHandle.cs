@@ -13,7 +13,7 @@ namespace XanaduProject.Composer.Selectables
     {
         private readonly CircleShape2D hitboxCircle = new CircleShape2D { Radius = 10 };
 
-        protected event Action? OnPositionChanged;
+        protected event Action? OnDragged;
 
         protected float Radius
         {
@@ -21,19 +21,26 @@ namespace XanaduProject.Composer.Selectables
             set => hitboxCircle.Radius = value;
         }
 
+        /// <summary>
+        /// Whether this selectable should have its position changed when dragged.
+        /// </summary>
+        protected bool MoveOnDrag { get; set; }
+
         protected SelectableHandle()
         {
             CollisionShape.Shape = hitboxCircle;
         }
 
-        public override void _Input(InputEvent @event)
+        public override void _UnhandledInput(InputEvent @event)
         {
-            base._Input(@event);
+            base._UnhandledInput(@event);
 
             if (@event is not InputEventMouseMotion { ButtonMask: MouseButtonMask.Left } || !IsHeld) return;
 
-            GlobalPosition = GetGlobalMousePosition();
-            OnPositionChanged?.Invoke();
+            if (MoveOnDrag)
+                GlobalPosition = GetGlobalMousePosition();
+
+            OnDragged?.Invoke();
             GetViewport().SetInputAsHandled();
         }
 
