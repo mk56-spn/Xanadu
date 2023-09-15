@@ -16,12 +16,11 @@ namespace XanaduProject.Composer.Selectables
         /// <summary>
         /// The colours the object will take on when it is selected
         /// </summary>
-        protected abstract Color HighlightColor { get; }
+        protected virtual Color HighlightColor => Colors.White;
 
         private const float hovered_opacity = 0.5f;
         private const float opacity = 0.2f;
 
-        private bool isHovered;
         private bool isSelected;
 
         public event Action<bool>? SelectionStateChanged;
@@ -29,7 +28,8 @@ namespace XanaduProject.Composer.Selectables
         /// <summary>
         /// Whether the object is currently being held and as such valid for dragging actions
         /// </summary>
-        protected bool IsHeld;
+        protected bool IsHeld { get; private set; }
+        protected bool IsHovered { get; private set; }
 
         protected CollisionShape2D CollisionShape = new CollisionShape2D();
 
@@ -39,43 +39,29 @@ namespace XanaduProject.Composer.Selectables
 
             SelfModulate = SelfModulate with { A = opacity };
 
-            MouseEntered += () =>
-            {
-                SelfModulate = SelfModulate with { A = hovered_opacity };
-                isHovered = true;
-            };
-            MouseExited += () =>
-            {
-                SelfModulate = SelfModulate with { A = opacity };
-                isHovered = false;
-            };
+            MouseEntered += () => IsHovered = true;
+            MouseExited += () => IsHovered = false;
         }
 
         public override void _UnhandledInput(InputEvent @event)
         {
             base._UnhandledInput(@event);
+            updateVisuals();
 
-            if (!isHovered)
-            {
-                if (@event is InputEventMouseButton { ButtonIndex: MouseButton.Left, Pressed: true })
-                    Selected(false);
-                return;
-            }
+            if (@event is not InputEventMouseButton { ButtonIndex: MouseButton.Left } mouseButton) return;
 
-            switch (@event)
-            {
-                case InputEventMouseButton { ButtonIndex: MouseButton.Left, Pressed: true }:
-                    SelfModulate = HighlightColor with { A = SelfModulate.A };
-                    IsHeld = true;
-                    Selected(true);
-                    break;
+            if (mouseButton.Pressed)
+                Selected(IsHovered);
 
-                case InputEventMouseButton { ButtonIndex: MouseButton.Left, Pressed: false }:
-                    SelfModulate = Colors.White with { A = SelfModulate.A };
-                    IsHeld = false;
-                    break;
-            }
-            GetViewport().SetInputAsHandled();
+            IsHeld = mouseButton.Pressed && IsHovered;
+        }
+
+        private void updateVisuals()
+        {
+            float alpha = IsHovered ? opacity : hovered_opacity;
+            Color color = IsHeld ? Colors.White : HighlightColor;
+
+            SelfModulate = color with { A = alpha };
         }
 
         public void Selected(bool select)
@@ -83,7 +69,6 @@ namespace XanaduProject.Composer.Selectables
             if (select.Equals(isSelected)) return;
 
             isSelected = select;
-
             SelectionStateChanged?.Invoke(isSelected);
         }
     }
