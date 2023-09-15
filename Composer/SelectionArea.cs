@@ -18,10 +18,10 @@ namespace XanaduProject.Composer
 
         private bool updateSelected;
 
-        private Vector2 dragStart;
-        private Vector2 dragEnd;
-        private RectangleShape2D selectionRect = new RectangleShape2D();
         private bool dragging;
+        private Vector2 dragStart;
+
+        private RectangleShape2D selectionRect = new RectangleShape2D();
 
         public override void _Draw()
         {
@@ -29,9 +29,9 @@ namespace XanaduProject.Composer
 
             if (!dragging) return;
 
-            Vector2 size = dragEnd - dragStart;
-            DrawRect(new Rect2(dragStart, size), Colors.IndianRed, false, 2);
-            DrawRect(new Rect2(dragStart, size), Colors.IndianRed with { A = 0.3f });
+            Vector2 size = GetLocalMousePosition() - dragStart;
+            DrawRect(new Rect2(dragStart, size), Colors.Aqua, false, 2);
+            DrawRect(new Rect2(dragStart, size), Colors.Aqua with { A = 0.3f });
 
             DrawString(new FontFile(), new Vector2(10, 20), dragging.ToString().ToUpper(), modulate: Colors.GreenYellow);
         }
@@ -42,29 +42,19 @@ namespace XanaduProject.Composer
 
             if (Input.IsKeyPressed(Key.Space) || Input.IsKeyPressed(Key.Shift)) return;
 
-            switch (@event)
-            {
-                case InputEventMouseButton { ButtonIndex: MouseButton.Left, Pressed: true } mouse:
-
-                    dragging = true;
-                    dragStart =  mouse.Position;
-                    dragEnd = dragStart;
-                    break;
-
-                case InputEventMouseButton { ButtonIndex: MouseButton.Left, Pressed: false }:
-                    dragging = false;
-                    updateSelected = !updateSelected;
-                    break;
-
-                case InputEventMouseMotion { ButtonMask: MouseButtonMask.Left } mouse:
-                    dragEnd = mouse.GlobalPosition;
-
-                    break;
-
-                default:
-                    return;
-            }
             QueueRedraw();
+
+            if (@event is not InputEventMouseButton { ButtonIndex: MouseButton.Left } mouse) return;
+
+            dragging = mouse.Pressed;
+
+            if (mouse.Pressed)
+            {
+                dragStart =  GetLocalMousePosition();
+                return;
+            }
+
+            updateSelected = true;
         }
 
         public override void _PhysicsProcess(double delta)
@@ -73,7 +63,7 @@ namespace XanaduProject.Composer
 
             if (!updateSelected) return;
 
-            updateSelected = !updateSelected;
+            updateSelected = false;
             selectItems();
         }
 
@@ -81,6 +71,8 @@ namespace XanaduProject.Composer
         {
             var space = GetWorld2D().DirectSpaceState;
             var query = new PhysicsShapeQueryParameters2D();
+
+            var dragEnd = GetLocalMousePosition();
 
             if (dragEnd.X < dragStart.X)
                 (dragEnd.X, dragStart.X) = (dragStart.X, dragEnd.X);
