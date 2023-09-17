@@ -7,7 +7,10 @@ namespace XanaduProject.Composer
 {
     public partial class Composer : StageHandler
     {
-        public Composer() : base(new PanningCamera()) { }
+        public Composer() : base(new PanningCamera())
+        {
+            AddChild(new SelectionArea());
+        }
 
         public override void _EnterTree()
         {
