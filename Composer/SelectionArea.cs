@@ -15,6 +15,11 @@ namespace XanaduProject.Composer
         private bool dragging;
         private Vector2 dragStart;
 
+        public SelectionArea ()
+        {
+            ZIndex = 2;
+        }
+
         public override void _Draw()
         {
             base._Draw();
@@ -35,6 +40,7 @@ namespace XanaduProject.Composer
 
             if (@event is not InputEventMouseButton { ButtonIndex: MouseButton.Left } mouse) return;
 
+            bool wasHolding  = dragging;
             dragging = mouse.Pressed;
 
             if (mouse.Pressed)
@@ -43,8 +49,8 @@ namespace XanaduProject.Composer
                 return;
             }
 
-            updateSelected = true;
-            GetViewport().SetInputAsHandled();
+            if (wasHolding)
+                updateSelected = true;
         }
 
         public override void _PhysicsProcess(double delta)
