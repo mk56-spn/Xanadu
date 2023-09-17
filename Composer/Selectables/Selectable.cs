@@ -53,7 +53,10 @@ namespace XanaduProject.Composer.Selectables
             if (mouseButton.Pressed)
                 Selected(IsHovered);
 
-            IsHeld = mouseButton.Pressed && IsHovered;
+            IsHeld = IsHovered && mouseButton.Pressed;
+
+            if (IsHovered && mouseButton.Pressed)
+                GetViewport().SetInputAsHandled();
         }
 
         private void updateVisuals()
