@@ -57,6 +57,18 @@ namespace XanaduProject.Composer.ComposerUI
                 });
         }
 
+        public override void _UnhandledInput(InputEvent @event)
+        {
+            base._Input(@event);
+
+            if (@event is not InputEventMouseButton mouseButton) return;
+
+            Control parent = GetParent<Control>();
+
+            if (new Rect2(Vector2.Zero, parent.Size).HasPoint(parent.GetLocalMousePosition()) && mouseButton.Pressed)
+                GetViewport().SetInputAsHandled();
+        }
+
         public override void _Process(double delta)
         {
             base._Process(delta);

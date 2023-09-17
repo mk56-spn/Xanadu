@@ -10,8 +10,7 @@ script = ExtResource("1_ft5rf")
 
 [node name="EnvironmentPolygon5" type="Polygon2D" parent="."]
 position = Vector2(768, 384)
-scale = Vector2(2, 1)
-polygon = PackedVector2Array(0, 128, 0, 194, 0, 256, 128, 256, 128, 221, 128, 128)
+polygon = PackedVector2Array(0, 128, 0, 256, 128, 256, 128, 128)
 script = ExtResource("2_8ddxt")
 
 [node name="EnvironmentPolygon4" type="Polygon2D" parent="."]
@@ -44,9 +43,8 @@ polygon = PackedVector2Array(1048, 216, 1080, 160, 1464, 184, 1080, 224)
 script = ExtResource("3_cc1fn")
 
 [node name="EnvironmentPolygon6" type="Polygon2D" parent="."]
-position = Vector2(-7040, 256)
-scale = Vector2(6.5, 1)
-polygon = PackedVector2Array(1280, 640, 1280, 512, 1408, 512, 1408, 640)
+position = Vector2(128, 0)
+polygon = PackedVector2Array(1280, 640, 1280, 512, 1888, 512, 1888, 640)
 script = ExtResource("2_8ddxt")
 
 [node name="HitNote" parent="." instance=ExtResource("4_jp8pi")]

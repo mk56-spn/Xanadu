@@ -1,8 +1,7 @@
-[gd_scene load_steps=5 format=3 uid="uid://dk1bdchlc0cyf"]
+[gd_scene load_steps=4 format=3 uid="uid://dk1bdchlc0cyf"]
 
 [ext_resource type="Script" path="res://Composer/Composer.cs" id="1_bt7va"]
 [ext_resource type="PackedScene" uid="uid://rh71ii34dp0c" path="res://Composer/ComposerUI/Timeline.tscn" id="2_qyv2p"]
-[ext_resource type="Script" path="res://Composer/SelectionArea.cs" id="3_bxxg3"]
 [ext_resource type="Script" path="res://Composer/ComposerUI/ItemBar.cs" id="4_pl8ww"]
 
 [node name="Composer" type="Control"]
@@ -12,11 +11,6 @@ script = ExtResource("1_bt7va")
 
 [node name="CanvasLayer" type="CanvasLayer" parent="."]
 layer = 2
-
-[node name="SelectionArea" type="Control" parent="CanvasLayer"]
-layout_mode = 3
-anchors_preset = 0
-script = ExtResource("3_bxxg3")
 
 [node name="Timeline" parent="CanvasLayer" instance=ExtResource("2_qyv2p")]
 pivot_offset = Vector2(450, 75)

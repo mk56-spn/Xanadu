@@ -47,7 +47,6 @@ namespace XanaduProject.Screens
             AddChild(TrackHandler);
 
             Provide();
-            MoveChild(Stage, 0);
         }
 
         public override void _Ready()
