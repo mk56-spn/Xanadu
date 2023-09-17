@@ -39,11 +39,15 @@ namespace XanaduProject.Composer.ComposerUI
                 AddChild(new ItemButton(itemType));
         }
 
-        public override void _UnhandledInput(InputEvent @event)
+        public override void _Input(InputEvent @event)
         {
-            base._UnhandledInput(@event);
+            base._Input(@event);
 
-            if (@event is not InputEventMouseButton { ButtonIndex: MouseButton.Left, Pressed: true } || !Input.IsKeyPressed(Key.Shift)) return;
+            if (!Input.IsKeyPressed(Key.Shift)) return;
+
+            GetViewport().SetInputAsHandled();
+
+            if (@event is not InputEventMouseButton { ButtonIndex: MouseButton.Left, Pressed: true }) return;
             addStageItem();
         }
 

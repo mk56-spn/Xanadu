@@ -11,13 +11,15 @@ namespace XanaduProject.Composer
         {
             AnchorMode = AnchorModeEnum.FixedTopLeft;
         }
-        public override void _UnhandledInput(InputEvent @event)
+        public override void _Input(InputEvent @event)
         {
-            base._UnhandledInput(@event);
+            base._Input(@event);
 
             if (!Input.IsKeyPressed(Key.Space)) return;
-            if (@event is InputEventMouseMotion { ButtonMask: MouseButtonMask.Left } mouse)
-                Offset -= mouse.Relative;
+            GetViewport().SetInputAsHandled();
+
+            if (@event is not InputEventMouseMotion { ButtonMask: MouseButtonMask.Left } mouse) return;
+            Offset -= mouse.Relative;
         }
     }
 }
