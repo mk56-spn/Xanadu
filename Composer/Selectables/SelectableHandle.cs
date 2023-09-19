@@ -38,7 +38,7 @@ namespace XanaduProject.Composer.Selectables
             if (@event is not InputEventMouseMotion { ButtonMask: MouseButtonMask.Left } || !IsHeld) return;
 
             if (MoveOnDrag)
-                GlobalPosition = GetGlobalMousePosition();
+                GlobalPosition = GetTruePosition();
 
             OnDragged?.Invoke();
             GetViewport().SetInputAsHandled();

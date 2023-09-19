@@ -13,6 +13,8 @@ namespace XanaduProject.Composer.Selectables
     {
         public override partial void _Notification(int what);
 
+        [Dependency] private bool snapped => DependOn<bool>();
+
         /// <summary>
         /// The colours the object will take on when it is selected
         /// </summary>
@@ -73,6 +75,16 @@ namespace XanaduProject.Composer.Selectables
 
             isSelected = select;
             SelectionStateChanged?.Invoke(isSelected);
+        }
+
+        /// <summary>
+        /// Returns position accounting for whether snap is enabled;
+        /// </summary>
+        /// <returns></returns>
+        protected Vector2 GetTruePosition()
+        {
+            Vector2 pos = GetGlobalMousePosition();
+            return !snapped ? pos : pos.Snapped(new Vector2(Composer.GRID_SIZE, Composer.GRID_SIZE));
         }
     }
 }

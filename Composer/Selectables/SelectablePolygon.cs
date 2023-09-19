@@ -58,7 +58,7 @@ namespace XanaduProject.Composer.Selectables
                 OnDragged += () =>
                 {
                     var a = polygon.Polygon;
-                    a.SetValue(polygon.ToLocal(GetGlobalMousePosition()), index);
+                    a.SetValue(polygon.ToLocal(GetTruePosition()), index);
                     polygon.Polygon = a;
                 };
             }
