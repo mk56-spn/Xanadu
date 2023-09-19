@@ -13,7 +13,7 @@ namespace XanaduProject.Composer.Selectables
         public SelectableNote ()
         {
             Radius = 31;
-            OnDragged += () => GetParent<Note>().GlobalPosition = GetGlobalMousePosition();
+            OnDragged += () => GetParent<Note>().GlobalPosition = GetTruePosition();
         }
     }
 }

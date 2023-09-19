@@ -1,12 +1,23 @@
 // Copyright (c) mk56_spn <dhsjplt@gmail.com>. Licensed under the GNU General Public Licence (2.0).
 // See the LICENCE file in the repository root for full licence text.
 
+using Chickensoft.AutoInject;
+using Godot;
+using SuperNodes.Types;
 using XanaduProject.Screens;
 
 namespace XanaduProject.Composer
 {
-    public partial class Composer : StageHandler
+    [SuperNode(typeof(Provider))]
+    public partial class Composer : StageHandler, IProvide<bool>
     {
+        public override partial void _Notification(int what);
+
+        public const int GRID_SIZE = 32;
+
+        private bool snapped;
+        bool IProvide<bool>.Value() => snapped;
+
         public Composer() : base(new PanningCamera())
         {
             AddChild(new SelectionArea());
@@ -14,6 +25,8 @@ namespace XanaduProject.Composer
 
         public override void _EnterTree()
         {
+            AddChild(new MouseGrid());
+            GetNode<CheckButton>("%SnapButton").Toggled += on => snapped = on;
             GetTree().NodeAdded += node =>
             {
                 if (node is not IComposable composable) return;
