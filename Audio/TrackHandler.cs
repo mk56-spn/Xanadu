@@ -13,6 +13,10 @@ namespace XanaduProject.Audio
     public partial class TrackHandler : Node
     {
         /// <summary>
+        /// Called when the songs position changes, checked during physics processing.
+        /// </summary>
+        public event Action<double>? SongPositionChanged;
+        /// <summary>
         /// Resumes playback from the last known track position.
         /// </summary>
         public void Resume() => audio.Play((float)TrackPosition);
@@ -95,12 +99,16 @@ namespace XanaduProject.Audio
             base._PhysicsProcess(delta);
 
             if (!audio.Playing) return;
+            double oldTrackPosition = TrackPosition;
 
             TrackPosition = audio.GetPlaybackPosition() + AudioServer.GetTimeSinceLastMix();
             TrackPosition -= AudioServer.GetOutputLatency();
             positionInBeats = (int)Math.Floor(TrackPosition / SecondsPerBeat);
 
             reportBeat();
+
+            if (TrackPosition.Equals(oldTrackPosition)) return;
+            SongPositionChanged?.Invoke(TrackPosition);
         }
 
         private void reportBeat()

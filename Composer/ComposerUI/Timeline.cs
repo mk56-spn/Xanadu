@@ -50,6 +50,13 @@ namespace XanaduProject.Composer.ComposerUI
                     addTimelineNote(note);
             };
 
+            trackHandler.SongPositionChanged += position =>
+            {
+                ScrollHorizontal = (int)(container.CustomMinimumSize.X * (position / trackHandler.TrackLength));
+                updateLines();
+            };
+            return;
+
             void addTimelineNote(Note note) =>
                 container.AddChild(new TimelineNote(trackHandler, note)
                 {
@@ -67,15 +74,6 @@ namespace XanaduProject.Composer.ComposerUI
 
             if (new Rect2(Vector2.Zero, parent.Size).HasPoint(parent.GetLocalMousePosition()) && mouseButton.Pressed)
                 GetViewport().SetInputAsHandled();
-        }
-
-        public override void _Process(double delta)
-        {
-            base._Process(delta);
-
-            if (!trackHandler.Playing) return;
-            ScrollHorizontal = (int)(container.CustomMinimumSize.X * (trackHandler.TrackPosition / trackHandler.TrackLength));
-            updateLines();
         }
 
         private float lastClosestPosition;
