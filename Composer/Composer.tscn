@@ -1,9 +1,10 @@
-[gd_scene load_steps=11 format=3 uid="uid://dk1bdchlc0cyf"]
+[gd_scene load_steps=12 format=3 uid="uid://dk1bdchlc0cyf"]
 
 [ext_resource type="Script" path="res://Composer/Composer.cs" id="1_bt7va"]
 [ext_resource type="PackedScene" uid="uid://rh71ii34dp0c" path="res://Composer/ComposerUI/Timeline.tscn" id="2_qyv2p"]
 [ext_resource type="Script" path="res://Composer/ComposerUI/TimeCounter.cs" id="3_5oxby"]
 [ext_resource type="Script" path="res://Composer/ComposerUI/ItemBar.cs" id="4_pl8ww"]
+[ext_resource type="Script" path="res://Composer/PlaybackCounter.cs" id="5_kk741"]
 
 [sub_resource type="Theme" id="Theme_nsutl"]
 default_font_size = 50
@@ -97,6 +98,7 @@ custom_minimum_size = Vector2(500, 0)
 layout_mode = 2
 mouse_filter = 1
 
-[node name="Panel" type="Container" parent="CanvasLayer/Container"]
+[node name="Panel" type="HBoxContainer" parent="CanvasLayer/Container"]
 custom_minimum_size = Vector2(500, 0)
 layout_mode = 2
+script = ExtResource("5_kk741")

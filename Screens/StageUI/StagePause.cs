@@ -28,16 +28,7 @@ namespace XanaduProject.Screens.StageUI
             VisibilityChanged += () =>
             {
                 GetTree().Paused = Visible;
-
-                switch (Visible)
-                {
-                    case true:
-                        trackHandler.Playing = false;
-                        break;
-                    case false:
-                        trackHandler.Resume();
-                        break;
-                }
+                trackHandler.TogglePlayback();
             };
             buttonActions();
         }
