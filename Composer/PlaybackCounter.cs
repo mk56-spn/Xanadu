@@ -31,6 +31,7 @@ namespace XanaduProject.Composer
                     return;
                 }
                 trackHandler.TogglePlayback();
+                GetTree().Paused = !trackHandler.Playing;
             };
 
             stopButton.Pressed += () => trackHandler.StopTrack();

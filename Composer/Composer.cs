@@ -36,6 +36,15 @@ namespace XanaduProject.Composer
             Provide();
 
             base._EnterTree();
+
+            TrackHandler.SongPositionChanged += position =>
+            {
+                if (position != 0) return;
+
+                GetTree().Paused = true;
+                Stage.Core.Rotation = 0;
+                Stage.Core.Position = Vector2.Zero;
+            };
         }
     }
 }
