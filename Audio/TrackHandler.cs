@@ -16,10 +16,7 @@ namespace XanaduProject.Audio
         /// Called when the songs position changes, checked during physics processing.
         /// </summary>
         public event Action<double>? SongPositionChanged;
-        /// <summary>
-        /// Resumes playback from the last known track position.
-        /// </summary>
-        public void Resume() => audio.Play((float)TrackPosition);
+
         /// <summary>
         /// The time in seconds between every 1/1 beat;
         /// </summary>
@@ -56,18 +53,47 @@ namespace XanaduProject.Audio
         public double TrackLength => audio.Stream.GetLength();
 
         /// <summary>
-        /// Stops playback of the loaded track.
+        /// Whether the audio is currently playing.
         /// </summary>
-        public void StopTrack() => audio.Stop();
+        public bool Playing => audio.Playing;
 
         /// <summary>
         /// Returns true if a track is being played.
         /// </summary>
         /// <returns></returns>
-        public bool Playing
+        public void TogglePlayback()
         {
-            set => audio.Playing = value;
-            get => audio.Playing;
+            if (audio.Playing)
+                audio.Stop();
+            else audio.Play((float)TrackPosition);
+        }
+
+        public void StartTrack()
+        {
+            audio.Stop();
+            Timer timer = new Timer();
+
+            AddChild(timer);
+            timer.OneShot = true;
+            timer.WaitTime = offset;
+            timer.Start();
+
+            timer.Timeout += () =>
+            {
+                OnPreemptComplete.Invoke(this, EventArgs.Empty);
+                audio.Play();
+            };
+        }
+
+        /// <summary>
+        /// Stops playback of the loaded track.
+        /// </summary>
+        public void StopTrack()
+        {
+            TrackPosition = 0;
+            audio.Stop();
+
+            SongPositionChanged?.Invoke(TrackPosition);
         }
 
         /// <summary>
@@ -132,23 +158,6 @@ namespace XanaduProject.Audio
 
             Bpm = info.Bpm;
             SecondsPerBeat = 60f / info.Bpm;
-        }
-
-        public void StartTrack()
-        {
-            audio.Stop();
-            Timer timer = new Timer();
-
-            AddChild(timer);
-            timer.OneShot = true;
-            timer.WaitTime = offset;
-            timer.Start();
-
-            timer.Timeout += () =>
-            {
-                OnPreemptComplete.Invoke(this, EventArgs.Empty);
-                audio.Play();
-            };
         }
     }
 }
