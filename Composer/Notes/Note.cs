@@ -18,7 +18,7 @@ namespace XanaduProject.Composer.Notes
 
         public override partial void _Notification(int what);
 
-        private const double note_activation_preempt = 0.4;
+        private const double note_activation_preempt = 1;
         /// <summary>
         /// The current state this node is in;
         /// </summary>
@@ -45,19 +45,18 @@ namespace XanaduProject.Composer.Notes
 
         [Dependency] private TrackHandler trackHandler => DependOn<TrackHandler>();
 
-        public Note ()
-        {
-            AddToGroup("Notes");
-        }
+        private Arc arc = new Arc();
 
         public void OnResolved()
         {
+            AddChild(arc);
             // Hacky way of ensuring text is always centered during animation;
             judgementText.CustomMinimumSize = new Vector2(300, 0);
 
             trackHandler.OnPreemptComplete += (_, _) =>
                 GetTree().CreateTimer(PositionInTrack - note_activation_preempt, false, true).Timeout += () =>
                 {
+                    arc.Activate(PositionInTrack);
                     RequestState(NoteState.Active);
                     GetTree().CreateTimer(note_activation_preempt * 2, false, true).Timeout +=
                         () => RequestState(NoteState.Judged);
@@ -131,6 +130,50 @@ namespace XanaduProject.Composer.Notes
             Inactive,
             Active,
             Judged
+        }
+
+        private partial class Arc : Node2D
+        {
+            private SceneTreeTimer? progressTween;
+
+            public override void _Ready()
+            {
+                base._Ready();
+                SetProcess(false);
+            }
+
+            public override void _Process(double delta)
+            {
+                base._Process(delta);
+
+                if (progressTween == null) return;
+                QueueRedraw();
+            }
+
+            public override void _Draw()
+            {
+                base._Draw();
+
+                if (progressTween == null) return;
+
+                double arcMultiplier = progressTween.TimeLeft / note_activation_preempt;
+                DrawArc(Vector2.Zero,
+                    70,
+                    0,
+                    (float)(2 * MathF.PI * (1 - arcMultiplier)),
+                    60,
+                    Colors.Orange,
+                    4,
+                    true);
+            }
+
+            public void Activate(float positionInTrack)
+            {
+                SetProcess(true);
+                progressTween = GetTree().CreateTimer(Mathf.Min(note_activation_preempt, positionInTrack), false, true);
+                progressTween.Timeout += () =>
+                    CreateTween().TweenProperty(this, "modulate", Modulate with { A = 0 }, note_activation_preempt / 2 );
+            }
         }
     }
 }
