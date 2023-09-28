@@ -19,6 +19,7 @@ namespace XanaduProject.Composer.Notes
         public override partial void _Notification(int what);
 
         private const double note_activation_preempt = 1;
+        private const double note_length = 0.2;
         /// <summary>
         /// The current state this node is in;
         /// </summary>
@@ -58,7 +59,7 @@ namespace XanaduProject.Composer.Notes
                 {
                     arc.Activate();
                     RequestState(NoteState.Active);
-                    GetTree().CreateTimer(note_activation_preempt * 2, false, true).Timeout +=
+                    GetTree().CreateTimer(note_activation_preempt + note_length, false, true).Timeout +=
                         () => RequestState(NoteState.Judged);
                 };
 
@@ -84,6 +85,8 @@ namespace XanaduProject.Composer.Notes
             animation.Play();
 
             judgeNote();
+
+            CreateTween().TweenProperty(this, "modulate", Colors.Transparent, note_length);
         }
 
         private void judgeNote()
@@ -171,8 +174,6 @@ namespace XanaduProject.Composer.Notes
             {
                 SetProcess(true);
                 progressTween = GetTree().CreateTimer(note_activation_preempt, false, true);
-                progressTween.Timeout += () =>
-                    CreateTween().TweenProperty(this, "modulate", Modulate with { A = 0 }, note_activation_preempt / 2 );
             }
         }
     }
