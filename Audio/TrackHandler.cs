@@ -18,6 +18,20 @@ namespace XanaduProject.Audio
         public event Action<double>? SongPositionChanged;
 
         /// <summary>
+        /// Called on every 1/1 beat
+        /// </summary>
+        public event EventHandler<int>? OnBeat;
+
+        /// <summary>
+        /// Called after the beats preempting the actual song start have all been played
+        /// </summary>
+        public event EventHandler OnPreemptComplete = null!;
+
+        /// <summary>
+        /// Called before preempt beats, when the call to start the song is made
+        /// </summary>
+        public event Action OnSongCommence = null!;
+        /// <summary>
         /// The time in seconds between every 1/1 beat;
         /// </summary>
         public double SecondsPerBeat { get; private set; }
@@ -74,14 +88,21 @@ namespace XanaduProject.Audio
             Timer timer = new Timer();
 
             AddChild(timer);
-            timer.OneShot = true;
-            timer.WaitTime = offset;
+            timer.WaitTime = offset / 4;
             timer.Start();
 
+            OnSongCommence.Invoke();
+
+            int i = 0;
             timer.Timeout += () =>
             {
+                i++;
+
+                OnBeat?.Invoke(null, 0);
+                if (i < 4 ) return;
                 OnPreemptComplete.Invoke(this, EventArgs.Empty);
                 audio.Play();
+                timer.Paused = true;
             };
         }
 
@@ -95,14 +116,6 @@ namespace XanaduProject.Audio
 
             SongPositionChanged?.Invoke(TrackPosition);
         }
-
-        /// <summary>
-        /// Called on every 1/1 beat
-        /// </summary>
-        public event EventHandler<int>? OnBeat;
-
-        // A signal
-        public event EventHandler OnPreemptComplete = null!;
 
         private double lastNoteTime;
         public double SongProgressPercentage =>
