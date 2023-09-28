@@ -41,7 +41,6 @@ namespace XanaduProject.Composer
             {
                 if (position != 0) return;
 
-                GetTree().Paused = true;
                 Stage.Core.Rotation = 0;
                 Stage.Core.Position = Vector2.Zero;
             };

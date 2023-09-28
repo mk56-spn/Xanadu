@@ -46,7 +46,11 @@ namespace XanaduProject.Screens.StageUI
             GetNode<Button>("ButtonContainer/Play").ButtonUp += Hide;
             GetNode<Button>("ButtonContainer/Quit").ButtonUp += () =>
                 GetTree().ChangeSceneToFile("res://Screens/StageSelection/StageSelection.tscn");
-            GetNode<Button>("ButtonContainer/Restart").ButtonUp += () => RestartRequest?.Invoke();
+            GetNode<Button>("ButtonContainer/Restart").ButtonUp += () =>
+            {
+                GetTree().Paused = false;
+                RestartRequest?.Invoke();
+            };
         }
     }
 }
