@@ -40,20 +40,14 @@ namespace XanaduProject.Screens
         {
             base._EnterTree();
 
-            TrackHandler.OnPreemptComplete += (_, _) => GetTree().Paused = false;
+            TrackHandler.OnPreemptComplete += (_, _) => Stage.Core.Movable = true;
+
             Stage = StageInfo.GetStage();
             AddChild(Stage);
             TrackHandler.SetTrack(StageInfo.TrackInfo);
             AddChild(TrackHandler);
 
             Provide();
-        }
-
-        public override void _Ready()
-        {
-            base._Ready();
-
-            GetTree().Paused = true;
         }
     }
 }

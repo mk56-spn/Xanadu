@@ -17,6 +17,8 @@ namespace XanaduProject.Perceptions
     {
         public override partial void _Notification(int what);
 
+        public bool Movable;
+
         public const int BASE_VELOCITY = 700;
         protected int Gravity;
 
@@ -71,6 +73,8 @@ namespace XanaduProject.Perceptions
         public override void _PhysicsProcess(double delta)
         {
             base._PhysicsProcess(delta);
+
+            if (!Movable) return;
             if (!(Math.Abs(Position.X - trackHandler.TrackPosition * BASE_VELOCITY) > 25) || !trackHandler.Playing) return;
 
             GD.Print(

@@ -11,6 +11,8 @@ namespace XanaduProject.Perceptions
 
         public override void _PhysicsProcess(double delta)
         {
+            if (!Movable) return;
+
             base._PhysicsProcess(delta);
 
             nucleus_collision();
