@@ -63,7 +63,7 @@ namespace XanaduProject.Composer.Selectables
 
         private void updateVisuals()
         {
-            float alpha = IsHovered ? opacity : hovered_opacity;
+            float alpha = HighlightColor.A * (IsHovered ? opacity  : hovered_opacity);
             Color color = IsHeld ? Colors.White : HighlightColor;
 
             SelfModulate = color with { A = alpha };
