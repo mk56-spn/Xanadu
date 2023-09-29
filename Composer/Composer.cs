@@ -1,15 +1,17 @@
 // Copyright (c) mk56_spn <dhsjplt@gmail.com>. Licensed under the GNU General Public Licence (2.0).
 // See the LICENCE file in the repository root for full licence text.
 
+using System.Collections.Generic;
 using Chickensoft.AutoInject;
 using Godot;
 using SuperNodes.Types;
+using XanaduProject.Composer.Selectables;
 using XanaduProject.Screens;
 
 namespace XanaduProject.Composer
 {
     [SuperNode(typeof(Provider))]
-    public partial class Composer : StageHandler, IProvide<bool>
+    public partial class Composer : StageHandler, IProvide<bool>, IProvide<List<Node>>
     {
         public override partial void _Notification(int what);
 
@@ -17,6 +19,9 @@ namespace XanaduProject.Composer
 
         private bool snapped;
         bool IProvide<bool>.Value() => snapped;
+
+        private List<Node> selectedNodes = new List<Node>();
+        List<Node> IProvide<List<Node>>.Value() => selectedNodes;
 
         public Composer() : base(new PanningCamera())
         {
@@ -30,7 +35,17 @@ namespace XanaduProject.Composer
             GetTree().NodeAdded += node =>
             {
                 if (node is not IComposable composable) return;
-                node.AddChild(composable.Selectable);
+
+                Selectable selectable = composable.Selectable;
+
+                node.AddChild(selectable);
+                selectable.SelectionStateChanged += selected =>
+                {
+                    if (selected)
+                        selectedNodes.Add(node);
+                    else
+                        selectedNodes.Remove(node);
+                };
             };
 
             Provide();

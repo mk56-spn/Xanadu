@@ -8,7 +8,7 @@ namespace XanaduProject.Composer.Selectables
 {
     public partial class SelectablePolygon : Selectable
     {
-        protected override Color HighlightColor => Colors.Blue;
+        protected override Color HighlightColor => Colors.Transparent;
 
         private ConvexPolygonShape2D hitboxPolygon = new ConvexPolygonShape2D();
 
