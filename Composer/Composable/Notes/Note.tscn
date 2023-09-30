@@ -1,6 +1,6 @@
 [gd_scene load_steps=5 format=3 uid="uid://b8f178tstjnjt"]
 
-[ext_resource type="Script" path="res://Composer/Notes/Note.cs" id="1_n6jqy"]
+[ext_resource type="Script" path="res://Composer/Composable/Notes/Note.cs" id="1_n6jqy"]
 
 [sub_resource type="Animation" id="Animation_xvdrc"]
 resource_name = "Animate"

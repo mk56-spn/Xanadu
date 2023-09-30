@@ -1,6 +1,6 @@
 [gd_scene load_steps=6 format=3 uid="uid://c0mhcntr24im4"]
 
-[ext_resource type="Script" path="res://Composer/Notes/HitNote.cs" id="1_5fl4t"]
+[ext_resource type="Script" path="res://Composer/Composable/Notes/HitNote.cs" id="1_5fl4t"]
 
 [sub_resource type="Animation" id="Animation_s6bbp"]
 resource_name = "Animate"
