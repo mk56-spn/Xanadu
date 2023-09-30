@@ -3,12 +3,12 @@
 
 using Godot;
 
-namespace XanaduProject.Composer.Notes
+namespace XanaduProject.Composer.Composable.Notes
 {
     /// <summary>
     /// A note with a HitBox.
     /// </summary>
-    public partial class HitNote : Note
+    public partial class HitNote : Composable.Notes.Note
     {
         [Export]
         private Area2D hitBox { get; set; } = null!;

@@ -2,7 +2,7 @@
 // See the LICENCE file in the repository root for full licence text.
 
 using Godot;
-using XanaduProject.Composer.Notes;
+using XanaduProject.Composer.Composable.Notes;
 
 namespace XanaduProject.Composer.Selectables
 {

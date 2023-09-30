@@ -1,9 +1,9 @@
 [gd_scene load_steps=5 format=3 uid="uid://dlvxat6riub4b"]
 
 [ext_resource type="Script" path="res://Screens/Stage.cs" id="1_ft5rf"]
-[ext_resource type="Script" path="res://Composer/EnvironmentPolygon.cs" id="2_8ddxt"]
-[ext_resource type="Script" path="res://Composer/ThreatPolygon.cs" id="3_cc1fn"]
-[ext_resource type="PackedScene" uid="uid://c0mhcntr24im4" path="res://Composer/Notes/HitNote.tscn" id="4_jp8pi"]
+[ext_resource type="Script" path="res://Composer/Composable/Environment/EnvironmentPolygon.cs" id="2_8ddxt"]
+[ext_resource type="Script" path="res://Composer/Composable/Threats/ThreatPolygon.cs" id="3_cc1fn"]
+[ext_resource type="PackedScene" uid="uid://c0mhcntr24im4" path="res://Composer/Composable/Notes/HitNote.tscn" id="4_jp8pi"]
 
 [node name="stage" type="WorldEnvironment"]
 script = ExtResource("1_ft5rf")

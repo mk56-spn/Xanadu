@@ -9,7 +9,7 @@ using XanaduProject.Audio;
 using XanaduProject.Composer.Selectables;
 using XanaduProject.DataStructure;
 
-namespace XanaduProject.Composer.Notes
+namespace XanaduProject.Composer.Composable.Notes
 {
     [SuperNode(typeof(Dependent))]
     public partial class Note : Node2D, IComposable

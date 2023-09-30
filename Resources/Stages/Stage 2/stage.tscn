@@ -1,10 +1,10 @@
 [gd_scene load_steps=8 format=3 uid="uid://2u020j2ukdqa"]
 
 [ext_resource type="Script" path="res://Screens/Stage.cs" id="1_s787h"]
-[ext_resource type="Script" path="res://Composer/EnvironmentPolygon.cs" id="2_nugyv"]
-[ext_resource type="Script" path="res://Composer/ThreatPolygon.cs" id="3_owqgg"]
+[ext_resource type="Script" path="res://Composer/Composable/Environment/EnvironmentPolygon.cs" id="2_nugyv"]
+[ext_resource type="Script" path="res://Composer/Composable/Threats/ThreatPolygon.cs" id="3_owqgg"]
 [ext_resource type="Script" path="res://Composer/NoteLink.cs" id="4_r0sdw"]
-[ext_resource type="PackedScene" uid="uid://b8f178tstjnjt" path="res://Composer/Notes/Note.tscn" id="5_hk6w8"]
+[ext_resource type="PackedScene" uid="uid://b8f178tstjnjt" path="res://Composer/Composable/Notes/Note.tscn" id="5_hk6w8"]
 
 [sub_resource type="Gradient" id="Gradient_ugne8"]
 colors = PackedColorArray(0, 1, 0, 1, 1, 1, 1, 1)

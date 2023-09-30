@@ -4,8 +4,10 @@
 using Chickensoft.AutoInject;
 using Godot;
 using SuperNodes.Types;
-using XanaduProject.Composer.Notes;
+using XanaduProject.Composer.Composable.Environment;
 using XanaduProject.Screens;
+using XanaduProject.Composer.Composable.Notes;
+using XanaduProject.Composer.Composable.Threats;
 
 namespace XanaduProject.Composer.ComposerUI
 {

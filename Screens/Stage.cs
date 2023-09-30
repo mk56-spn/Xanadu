@@ -3,9 +3,9 @@
 
 using System.Collections.Generic;
 using Godot;
-using XanaduProject.Composer.Notes;
 using XanaduProject.Perceptions;
 using XanaduProject.DataStructure;
+using XanaduProject.Composer.Composable.Notes;
 
 namespace XanaduProject.Screens
 {
