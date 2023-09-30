@@ -6,9 +6,9 @@ using Chickensoft.AutoInject;
 using Godot;
 using SuperNodes.Types;
 using XanaduProject.Audio;
-using XanaduProject.Composer.Notes;
 using XanaduProject.Composer.Selectables;
 using XanaduProject.Screens;
+using XanaduProject.Composer.Composable.Notes;
 
 namespace XanaduProject.Composer.ComposerUI
 {

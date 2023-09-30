@@ -4,7 +4,7 @@
 using System;
 using System.Linq;
 using Godot;
-using XanaduProject.Composer.Notes;
+using XanaduProject.Composer.Composable.Notes;
 
 namespace XanaduProject.Composer
 {
