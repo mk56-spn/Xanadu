@@ -4,11 +4,11 @@
 using Godot;
 using XanaduProject.Composer.Selectables;
 
-namespace XanaduProject.Composer
+namespace XanaduProject.Composer.Composable.Environment
 {
     [Tool]
     [GlobalClass]
-    public partial class EnvironmentPolygon : XanaduPolygon, IComposable
+    public partial class EnvironmentPolygon : Composable.XanaduPolygon, IComposable
     {
         public Selectable Selectable => new SelectablePolygon(this);
 

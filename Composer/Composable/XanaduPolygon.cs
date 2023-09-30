@@ -3,7 +3,7 @@
 
 using Godot;
 
-namespace XanaduProject.Composer
+namespace XanaduProject.Composer.Composable
 {
     // Base type for all polygons used in the project.
     public partial class XanaduPolygon : Polygon2D
