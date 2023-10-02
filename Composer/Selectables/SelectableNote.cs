@@ -12,8 +12,10 @@ namespace XanaduProject.Composer.Selectables
 
         public SelectableNote ()
         {
+            Visible = false;
             Radius = 31;
             OnDragged += () => GetParent<Note>().GlobalPosition = GetTruePosition();
+            SelectionStateChanged += b => Visible = b;
         }
     }
 }
