@@ -2,6 +2,7 @@
 // See the LICENCE file in the repository root for full licence text.
 
 using System.Globalization;
+using System.Linq;
 using Chickensoft.AutoInject;
 using Godot;
 using SuperNodes.Types;
@@ -101,9 +102,11 @@ namespace XanaduProject.Composer.ComposerUI
 
         private partial class TimelineNote : SelectableHandle
         {
-            protected override Color HighlightColor => Colors.Red;
+            protected override Color HighlightColor => Colors.White;
 
             private Note note;
+
+            private bool noteSelected;
 
             public TimelineNote (TrackHandler handler, Note note)
             {
@@ -113,6 +116,12 @@ namespace XanaduProject.Composer.ComposerUI
                     double snappedPosition = Mathf.Snapped(GetParent<Control>().GetLocalMousePosition().X, handler.SecondsPerBeat * separation_ratio);
                     Position = Position with { X = (float)snappedPosition };
                     note.PositionInTrack = Position.X / separation_ratio;
+                    QueueRedraw();
+                };
+
+                note.GetChildren().OfType<Selectable>().First().SelectionStateChanged += state =>
+                {
+                    noteSelected = state;
                     QueueRedraw();
                 };
             }
@@ -126,6 +135,9 @@ namespace XanaduProject.Composer.ComposerUI
                     new Vector2(0, 30), note.PositionInTrack.ToString(CultureInfo.InvariantCulture),
                     HorizontalAlignment.Right
                 );
+
+                if (!noteSelected) return;
+                DrawArc(Vector2.Zero, 20, 0, 2 * Mathf.Pi, 20, Colors.Purple, width: 4);
             }
         }
     }
