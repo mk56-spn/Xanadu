@@ -23,7 +23,7 @@ namespace XanaduProject.Composer.Selectables
         private const float hovered_opacity = 0.5f;
         private const float opacity = 0.2f;
 
-        private bool isSelected;
+        protected bool IsSelected { get; private set; }
 
         public event Action<bool>? SelectionStateChanged;
 
@@ -37,6 +37,8 @@ namespace XanaduProject.Composer.Selectables
 
         protected Selectable ()
         {
+            ZIndex = 4;
+
             AddChild(CollisionShape);
 
             SelfModulate = SelfModulate with { A = opacity };
@@ -48,6 +50,9 @@ namespace XanaduProject.Composer.Selectables
         public override void _UnhandledInput(InputEvent @event)
         {
             base._UnhandledInput(@event);
+
+            if (CollisionShape.Shape == null) return;
+
             updateVisuals();
 
             if (@event is not InputEventMouseButton { ButtonIndex: MouseButton.Left } mouseButton) return;
@@ -71,10 +76,10 @@ namespace XanaduProject.Composer.Selectables
 
         public void Selected(bool select)
         {
-            if (select.Equals(isSelected)) return;
+            if (select.Equals(IsSelected)) return;
 
-            isSelected = select;
-            SelectionStateChanged?.Invoke(isSelected);
+            IsSelected = select;
+            SelectionStateChanged?.Invoke(IsSelected);
         }
 
         /// <summary>

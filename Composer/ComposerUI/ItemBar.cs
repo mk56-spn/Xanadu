@@ -4,9 +4,10 @@
 using Chickensoft.AutoInject;
 using Godot;
 using SuperNodes.Types;
+using XanaduProject.Composer.Composable.Decorations;
 using XanaduProject.Composer.Composable.Environment;
-using XanaduProject.Screens;
 using XanaduProject.Composer.Composable.Notes;
+using XanaduProject.Screens;
 using XanaduProject.Composer.Composable.Threats;
 
 namespace XanaduProject.Composer.ComposerUI
@@ -88,9 +89,10 @@ namespace XanaduProject.Composer.ComposerUI
         /// <returns></returns>
         private static Node2D[] composerItems() => new Node2D[]
         {
+            new XanaduLine(),
             new EnvironmentPolygon(),
             new ThreatPolygon(),
-            ResourceLoader.Load<PackedScene>("res://Composer/Notes/HitNote.tscn").Instantiate<HitNote>(),
+            ResourceLoader.Load<PackedScene>("res://Composer/Composable/Notes/HitNote.tscn").Instantiate<HitNote>(),
             new NoteLink()
         };
     }
