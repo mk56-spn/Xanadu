@@ -5,7 +5,7 @@
 [ext_resource type="Script" path="res://Composer/ComposerUI/TimeCounter.cs" id="3_5oxby"]
 [ext_resource type="Script" path="res://Composer/ComposerUI/ItemBar.cs" id="4_pl8ww"]
 [ext_resource type="Script" path="res://Composer/PlaybackCounter.cs" id="5_kk741"]
-[ext_resource type="Script" path="res://Composer/XanaduColorPicker.cs" id="6_a8538"]
+[ext_resource type="Script" path="res://Composer/ComposerUI/PropertyContainer.cs" id="6_vqu2t"]
 
 [sub_resource type="Theme" id="Theme_nsutl"]
 default_font_size = 50
@@ -104,9 +104,19 @@ custom_minimum_size = Vector2(500, 0)
 layout_mode = 2
 script = ExtResource("5_kk741")
 
-[node name="ColorPicker" type="ColorPickerButton" parent="CanvasLayer"]
-custom_minimum_size = Vector2(150, 60)
-offset_right = 150.0
-offset_bottom = 60.0
-color = Color(1, 1, 1, 1)
-script = ExtResource("6_a8538")
+[node name="PanelContainer" type="PanelContainer" parent="CanvasLayer"]
+anchors_preset = 4
+anchor_top = 0.5
+anchor_bottom = 0.5
+offset_top = -20.0
+offset_right = 40.0
+offset_bottom = 20.0
+grow_vertical = 2
+
+[node name="MarginContainer" type="MarginContainer" parent="CanvasLayer/PanelContainer"]
+layout_mode = 2
+theme_override_constants/margin_left = 10
+
+[node name="VBoxContainer" type="VBoxContainer" parent="CanvasLayer/PanelContainer/MarginContainer"]
+layout_mode = 2
+script = ExtResource("6_vqu2t")
