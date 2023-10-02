@@ -44,7 +44,11 @@ namespace XanaduProject.Composer.Selectables
                 selectionPath.Curve.AddPoint(point);
 
             if (!(selectionPath.Curve.GetClosestPoint(GetLocalMousePosition())
-                    .DistanceTo(GetLocalMousePosition()) < line.Width / 2)) return;
+                    .DistanceTo(GetLocalMousePosition()) < line.Width / 2))
+            {
+                Selected(false);
+                return;
+            }
 
             if (IsSelected)
             {
