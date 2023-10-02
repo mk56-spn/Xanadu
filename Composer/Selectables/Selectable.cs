@@ -37,6 +37,8 @@ namespace XanaduProject.Composer.Selectables
 
         protected Selectable ()
         {
+            ZIndex = 4;
+
             AddChild(CollisionShape);
 
             SelfModulate = SelfModulate with { A = opacity };
