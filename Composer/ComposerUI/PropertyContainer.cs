@@ -22,8 +22,6 @@ namespace XanaduProject.Composer.ComposerUI
 
         public PropertyContainer ()
         {
-            setupProperties();
-
             layerBox = new SpinBox { Step = 1, MinValue = -100 };
             colourPicker = new ColorPicker
             {
@@ -35,6 +33,8 @@ namespace XanaduProject.Composer.ComposerUI
                 // TODO : Broken rn. needs fix
                 SamplerVisible = false,
             };
+
+            setupProperties();
         }
 
         private void setupProperties()
