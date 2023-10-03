@@ -11,6 +11,8 @@ namespace XanaduProject.Composer.Selectables
     /// </summary>
     public abstract partial class SelectableHandle : Selectable
     {
+        protected override Color HighlightColor  => Colors.Gold;
+
         private readonly CircleShape2D hitboxCircle = new CircleShape2D { Radius = 10 };
 
         protected event Action? OnDragged;
