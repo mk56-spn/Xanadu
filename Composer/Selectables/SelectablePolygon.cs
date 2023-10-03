@@ -16,7 +16,6 @@ namespace XanaduProject.Composer.Selectables
         {
             AddChild(outline);
 
-            Visible = false;
             CollisionShape.Shape = hitboxPolygon;
 
             mainPolygon.Draw += () =>
@@ -32,7 +31,13 @@ namespace XanaduProject.Composer.Selectables
                 i++;
             }
 
-            SelectionStateChanged += state => Visible = state;
+            ChildEnteredTree += node =>
+            {
+                if (node is not Node2D node2D) return;
+
+                node2D.Visible = false;
+                SelectionStateChanged += b => node2D.Visible = b;
+            };
         }
 
         public override void _Process(double delta)
