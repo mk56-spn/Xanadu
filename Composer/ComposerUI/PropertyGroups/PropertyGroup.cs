@@ -19,6 +19,7 @@ namespace XanaduProject.Composer.ComposerUI.PropertyGroups
         private Label headerLabel { get; set; } = new Label();
 
         protected abstract string GroupName { get; }
+        protected abstract Color GroupColour { get; }
 
         protected PropertyGroup ()
         {
@@ -29,6 +30,7 @@ namespace XanaduProject.Composer.ComposerUI.PropertyGroups
         {
             base._Ready();
 
+            headerLabel.Modulate = GroupColour;
             headerLabel.Text = GroupName;
         }
     }

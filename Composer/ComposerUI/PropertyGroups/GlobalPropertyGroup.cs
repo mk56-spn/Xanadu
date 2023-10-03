@@ -12,6 +12,7 @@ namespace XanaduProject.Composer.ComposerUI.PropertyGroups
     public partial class GlobalPropertyGroup : PropertyGroup
     {
         protected override string GroupName => "Global";
+        protected override Color GroupColour => Colors.Gray;
 
         private SpinBox layerBox;
         private ColorPicker colourPicker;

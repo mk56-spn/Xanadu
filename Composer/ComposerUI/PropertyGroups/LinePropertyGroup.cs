@@ -10,6 +10,8 @@ namespace XanaduProject.Composer.ComposerUI.PropertyGroups
     {
         protected override string GroupName  => "Line";
 
+        protected override Color GroupColour => Colors.Yellow;
+
         private Slider width = new HSlider { MinValue = 0, MaxValue = 20 };
 
         public LinePropertyGroup ()
