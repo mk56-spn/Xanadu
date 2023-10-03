@@ -1,10 +1,7 @@
 [gd_scene load_steps=3 format=3 uid="uid://rh71ii34dp0c"]
 
+[ext_resource type="StyleBox" uid="uid://lyic21xjdycs" path="res://Resources/Theming/ComposerStyleBox.tres" id="1_44316"]
 [ext_resource type="Script" path="res://Composer/ComposerUI/Timeline.cs" id="1_im628"]
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_fokra"]
-bg_color = Color(0.14902, 0.14902, 0.14902, 0.439216)
-border_width_top = 5
 
 [node name="Background" type="Panel"]
 clip_contents = true
@@ -21,7 +18,7 @@ grow_vertical = 0
 pivot_offset = Vector2(-675, -401)
 size_flags_horizontal = 3
 size_flags_vertical = 3
-theme_override_styles/panel = SubResource("StyleBoxFlat_fokra")
+theme_override_styles/panel = ExtResource("1_44316")
 
 [node name="Timeline" type="ScrollContainer" parent="."]
 z_index = 1

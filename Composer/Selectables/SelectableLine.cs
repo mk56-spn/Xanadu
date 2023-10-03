@@ -9,12 +9,15 @@ namespace XanaduProject.Composer.Selectables
     public partial class SelectableLine : Selectable
     {
         private readonly Line2D line;
-        private Path2D selectionPath = new Path2D { Curve = new Curve2D() };
+
+        private readonly Line2D selectionLine = new Line2D { DefaultColor = Colors.Gold, Width = 2 } ;
 
         public SelectableLine (Line2D line)
         {
             this.line = line;
-            AddChild(selectionPath);
+
+            Visible = false;
+            SelectionStateChanged += b => Visible = b;
 
             int i = 0;
             foreach (var _ in line.Points)
@@ -23,47 +26,49 @@ namespace XanaduProject.Composer.Selectables
                 i++;
             }
 
-            SelectionStateChanged += state =>
-            {
-                GetChildren()
-                    .OfType<SelectableHandle>()
-                    .ToList()
-                    .ForEach(h => h.Visible = state);
-            };
+            AddChild(selectionLine);
+        }
+
+        public override void _Process(double delta)
+        {
+            base._Process(delta);
+
+            if (selectionLine.Points.Equals(line.Points)) return;
+
+            selectionLine.Points = line.Points;
         }
 
         public override void _UnhandledInput(InputEvent @event)
         {
             base._UnhandledInput(@event);
 
-            if (@event is not InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Left }) return;
+            if (@event is not InputEventMouseButton { Pressed: true } mouse) return;
 
-            selectionPath.Curve.ClearPoints();
-
-            foreach (var point in line.Points)
-                selectionPath.Curve.AddPoint(point);
-
-            if (!(selectionPath.Curve.GetClosestPoint(GetLocalMousePosition())
-                    .DistanceTo(GetLocalMousePosition()) < line.Width / 2))
+            switch (mouse)
             {
-                Selected(false);
-                return;
-            }
+                case { ButtonIndex: MouseButton.Left } :
+                    Curve2D curve = new Curve2D();
 
-            if (IsSelected)
-            {
-                line.AddPoint(new Vector2(50, 50));
-                AddChild(new LineHandle(line, line.Points.Length - 1));
-                return;
-            }
+                    foreach (var point in line.Points)
+                        curve.AddPoint(point);
 
-            Selected(true);
+                    var mouseLocal = GetLocalMousePosition();
+
+                    bool selected = curve.GetClosestPoint(mouseLocal).DistanceTo(mouseLocal) < line.Width / 2f;
+                    Selected(selected);
+
+                    curve.Dispose();
+                    break;
+
+                case { ButtonIndex: MouseButton.Right }:
+                    line.AddPoint(ToLocal(GetTruePosition()));
+                    AddChild(new LineHandle(line, line.Points.Length - 1) { Position = line.Points.Last() });
+                    break;
+            }
         }
 
         private partial class LineHandle : SelectableHandle
         {
-            protected override Color HighlightColor { get; } = Colors.Red;
-
             public LineHandle(Line2D line2D, int index)
             {
                 MoveOnDrag = true;

@@ -59,7 +59,7 @@ namespace XanaduProject.Composer.ComposerUI
         {
             base._Process(delta);
 
-            Visible = selected.Count != 0;
+            Visible = selected.Any();
         }
     }
 }

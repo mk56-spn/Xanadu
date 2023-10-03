@@ -17,6 +17,7 @@ namespace XanaduProject.Composer
 
         public MouseGrid ()
         {
+            ZIndex = 2000;
             Texture = new GradientTexture2D
             {
                 Height = Composer.GRID_SIZE * 4,

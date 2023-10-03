@@ -31,7 +31,7 @@ namespace XanaduProject.Composer
         public override void _EnterTree()
         {
             AddChild(new MouseGrid());
-            GetNode<CheckButton>("%SnapButton").Toggled += on => snapped = on;
+            GetNode<Button>("%SnapButton").Toggled += on => snapped = on;
             GetTree().NodeAdded += node =>
             {
                 if (node is not IComposable composable) return;
