@@ -61,6 +61,7 @@ namespace XanaduProject.Composer.Selectables
                     break;
 
                 case { ButtonIndex: MouseButton.Right }:
+                    if (!IsSelected) return;
                     line.AddPoint(ToLocal(GetTruePosition()));
                     AddChild(new LineHandle(line, line.Points.Length - 1) { Position = line.Points.Last() });
                     break;
