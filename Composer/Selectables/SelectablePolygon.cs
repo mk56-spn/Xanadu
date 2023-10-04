@@ -7,6 +7,7 @@ namespace XanaduProject.Composer.Selectables
 {
     public partial class SelectablePolygon : Selectable
     {
+        private readonly Polygon2D mainPolygon;
         protected override Color HighlightColor => Colors.Gold;
 
         private ConvexPolygonShape2D hitboxPolygon = new ConvexPolygonShape2D();
@@ -14,6 +15,7 @@ namespace XanaduProject.Composer.Selectables
 
         public SelectablePolygon (Polygon2D mainPolygon)
         {
+            this.mainPolygon = mainPolygon;
             AddChild(outline);
 
             CollisionShape.Shape = hitboxPolygon;
@@ -36,17 +38,40 @@ namespace XanaduProject.Composer.Selectables
                 if (node is not Node2D node2D) return;
 
                 node2D.Visible = false;
-                SelectionStateChanged += b => node2D.Visible = b;
+                SelectionStateChanged += b =>
+                {
+                    QueueRedraw();
+                    node2D.Visible = b;
+                };
             };
         }
 
         public override void _Process(double delta)
         {
-            if (!Visible) return;
-
             base._Process(delta);
 
             outline.DefaultColor = HighlightColor with { A = 0.5f + Mathf.Sin(Time.GetTicksMsec() / 300f) / 2f };
+
+            if (!IsHeld) return;
+
+            mainPolygon.GlobalPosition = GetTruePosition(true);
+        }
+
+        public override void _Draw()
+        {
+            base._Draw();
+
+            if (!IsSelected) return;
+
+            const int size = 10;
+
+            DrawMultiline(new []
+            {
+                new Vector2(-size, 0),
+                new Vector2(size, 0),
+                new Vector2(0, -size),
+                new Vector2(0, size)
+            }, Colors.OrangeRed, 4);
         }
 
         private partial class PolygonHandle : SelectableHandle
