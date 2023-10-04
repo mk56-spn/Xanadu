@@ -16,9 +16,11 @@ namespace XanaduProject.Composer.ComposerUI.PropertyGroups
 
         private SpinBox layerBox;
         private ColorPicker colourPicker;
+        private HSlider rotation;
 
         public GlobalPropertyGroup ()
         {
+            rotation = new HSlider { MinValue = 0, MaxValue = 359 };
             layerBox = new SpinBox { Step = 1, MinValue = -100 };
             colourPicker = new ColorPicker
             {
@@ -30,6 +32,7 @@ namespace XanaduProject.Composer.ComposerUI.PropertyGroups
                 SamplerVisible = false,
             };
 
+            AddChild(rotation);
             AddChild(layerBox);
             AddChild(colourPicker);
 
@@ -43,6 +46,12 @@ namespace XanaduProject.Composer.ComposerUI.PropertyGroups
             {
                 foreach (var selectableNode in Selected.OfType<Node2D>())
                     selectableNode.SelfModulate = val;
+            };
+
+            rotation.ValueChanged += value =>
+            {
+                foreach (var selectable in Selected.OfType<Node2D>())
+                    selectable.RotationDegrees = (float)value;
             };
         }
 

@@ -49,16 +49,17 @@ namespace XanaduProject.Composer.Selectables
         public override void _Draw()
         {
             base._Draw();
-            DrawCircle(Vector2.Zero, Radius + 1, Colors.White);
+            DrawCircle(Vector2.Zero, Radius + 1, Colors.White with { A = 0.5f });
             DrawArc
             (
                 Vector2.Zero,
                 Radius,
                 0,
                 Mathf.Pi * 2,
-                (int)(Radius * 0.5 + 5),
+                20,
                 Colors.White,
-                2
+                2,
+                antialiased: true
             );
         }
     }

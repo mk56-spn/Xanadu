@@ -20,18 +20,24 @@ namespace XanaduProject.Composer.Selectables
         /// </summary>
         protected virtual Color HighlightColor => Colors.White;
 
-        private const float hovered_opacity = 0.5f;
-        private const float opacity = 0.2f;
-
         protected bool IsSelected { get; private set; }
 
+        /// <summary>
+        /// The distance from the center of the selectable to the location at which you held it from.
+        /// </summary>
+        private Vector2 holdOffset;
+
+        /// <summary>
+        /// Update when the <see cref="Selectable"/> is (de)selected;
+        /// </summary>
         public event Action<bool>? SelectionStateChanged;
 
         /// <summary>
         /// Whether the object is currently being held and as such valid for dragging actions
         /// </summary>
         protected bool IsHeld { get; private set; }
-        protected bool IsHovered { get; private set; }
+
+        private bool isHovered;
 
         protected CollisionShape2D CollisionShape = new CollisionShape2D();
 
@@ -41,10 +47,8 @@ namespace XanaduProject.Composer.Selectables
 
             AddChild(CollisionShape);
 
-            SelfModulate = SelfModulate with { A = opacity };
-
-            MouseEntered += () => IsHovered = true;
-            MouseExited += () => IsHovered = false;
+            MouseEntered += () => isHovered = true;
+            MouseExited += () => isHovered = false;
         }
 
         public override void _UnhandledInput(InputEvent @event)
@@ -58,21 +62,22 @@ namespace XanaduProject.Composer.Selectables
             if (@event is not InputEventMouseButton { ButtonIndex: MouseButton.Left } mouseButton) return;
 
             if (mouseButton.Pressed)
-                Selected(IsHovered);
+                Selected(isHovered);
 
-            IsHeld = IsHovered && mouseButton.Pressed;
+            bool newHeldValue = isHovered && mouseButton.Pressed;
 
-            if (IsHovered && mouseButton.Pressed)
-                GetViewport().SetInputAsHandled();
+            if (!IsHeld.Equals(newHeldValue))
+                holdOffset = GetGlobalMousePosition() - GlobalPosition;
+
+            IsHeld = newHeldValue;
+
+            if (!IsHeld) return;
+
+            GetViewport().SetInputAsHandled();
         }
 
-        private void updateVisuals()
-        {
-            float alpha = HighlightColor.A * (IsHovered ? opacity  : hovered_opacity);
-            Color color = IsHeld ? Colors.White : HighlightColor;
-
-            SelfModulate = color with { A = alpha };
-        }
+        private void updateVisuals() =>
+            SelfModulate = IsHeld ? Colors.White : HighlightColor;
 
         public void Selected(bool select)
         {
@@ -86,9 +91,12 @@ namespace XanaduProject.Composer.Selectables
         /// Returns position accounting for whether snap is enabled;
         /// </summary>
         /// <returns></returns>
-        protected Vector2 GetTruePosition()
+        protected Vector2 GetTruePosition(bool withOffset = false)
         {
             Vector2 pos = GetGlobalMousePosition();
+
+            pos = withOffset ? pos : pos - holdOffset;
+
             return !snapped ? pos : pos.Snapped(new Vector2(Composer.GRID_SIZE, Composer.GRID_SIZE));
         }
     }
