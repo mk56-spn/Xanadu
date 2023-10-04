@@ -5,6 +5,7 @@
 
 [resource]
 script = ExtResource("1_si41i")
+SongTitle = "Heaven's fall"
 TimingPoints = PackedFloat64Array()
 Bpm = 200.0
 Measures = 4
