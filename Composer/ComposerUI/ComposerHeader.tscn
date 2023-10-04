@@ -1,0 +1,42 @@
+[gd_scene load_steps=4 format=3 uid="uid://vd37p065ib2w"]
+
+[ext_resource type="Script" path="res://Composer/ComposerUI/ComposerHeader.cs" id="1_ta40u"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_y3kj6"]
+bg_color = Color(0, 0, 0, 0.494118)
+border_width_bottom = 4
+border_color = Color(1, 1, 1, 1)
+
+[sub_resource type="FontVariation" id="FontVariation_lw02j"]
+variation_opentype = {
+2003265652: 800
+}
+variation_transform = Transform2D(1, 0.255, 0, 1, 0, 0)
+
+[node name="ComposerHeader" type="PanelContainer" node_paths=PackedStringArray("titleText", "songText")]
+custom_minimum_size = Vector2(0, 70)
+anchors_preset = 10
+anchor_right = 1.0
+offset_bottom = 25.0
+grow_horizontal = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_y3kj6")
+script = ExtResource("1_ta40u")
+titleText = NodePath("MarginContainer/Title")
+songText = NodePath("MarginContainer/Song")
+
+[node name="MarginContainer" type="MarginContainer" parent="."]
+layout_mode = 2
+theme_override_constants/margin_left = 20
+theme_override_constants/margin_right = 20
+
+[node name="Title" type="Label" parent="MarginContainer"]
+layout_mode = 2
+size_flags_horizontal = 0
+theme_override_constants/outline_size = 0
+theme_override_fonts/font = SubResource("FontVariation_lw02j")
+theme_override_font_sizes/font_size = 20
+text = "Title"
+
+[node name="Song" type="Label" parent="MarginContainer"]
+layout_mode = 2
+size_flags_horizontal = 8

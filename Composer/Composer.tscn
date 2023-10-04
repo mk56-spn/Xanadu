@@ -1,4 +1,4 @@
-[gd_scene load_steps=12 format=3 uid="uid://dk1bdchlc0cyf"]
+[gd_scene load_steps=13 format=3 uid="uid://dk1bdchlc0cyf"]
 
 [ext_resource type="Script" path="res://Composer/Composer.cs" id="1_bt7va"]
 [ext_resource type="PackedScene" uid="uid://rh71ii34dp0c" path="res://Composer/ComposerUI/Timeline.tscn" id="2_qyv2p"]
@@ -7,6 +7,7 @@
 [ext_resource type="Script" path="res://Composer/ComposerUI/ItemBar.cs" id="4_pl8ww"]
 [ext_resource type="Script" path="res://Composer/PlaybackCounter.cs" id="5_kk741"]
 [ext_resource type="Script" path="res://Composer/ComposerUI/PropertyContainer.cs" id="6_vqu2t"]
+[ext_resource type="PackedScene" uid="uid://vd37p065ib2w" path="res://Composer/ComposerUI/ComposerHeader.tscn" id="8_mwvp2"]
 
 [sub_resource type="Theme" id="Theme_f4bp4"]
 default_font_size = 20
@@ -37,6 +38,9 @@ script = ExtResource("1_bt7va")
 
 [node name="CanvasLayer" type="CanvasLayer" parent="."]
 layer = 2
+
+[node name="ComposerHeader" parent="CanvasLayer" instance=ExtResource("8_mwvp2")]
+offset_bottom = 70.0
 
 [node name="RightPanel" type="PanelContainer" parent="CanvasLayer"]
 custom_minimum_size = Vector2(300, 0)
@@ -111,23 +115,23 @@ custom_minimum_size = Vector2(500, 0)
 layout_mode = 2
 mouse_filter = 1
 
-[node name="PanelContainer" type="PanelContainer" parent="CanvasLayer/Footer"]
+[node name="PlaybackPanel" type="PanelContainer" parent="CanvasLayer/Footer"]
 layout_mode = 2
 theme_override_styles/panel = ExtResource("3_161n1")
 
-[node name="MarginContainer" type="MarginContainer" parent="CanvasLayer/Footer/PanelContainer"]
+[node name="MarginContainer" type="MarginContainer" parent="CanvasLayer/Footer/PlaybackPanel"]
 layout_mode = 2
 theme_override_constants/margin_left = 20
 theme_override_constants/margin_right = 20
 
-[node name="Panel" type="HBoxContainer" parent="CanvasLayer/Footer/PanelContainer/MarginContainer"]
+[node name="Panel" type="HBoxContainer" parent="CanvasLayer/Footer/PlaybackPanel/MarginContainer"]
 custom_minimum_size = Vector2(500, 60)
 layout_mode = 2
 size_flags_horizontal = 0
 size_flags_vertical = 4
 script = ExtResource("5_kk741")
 
-[node name="Label" type="Label" parent="CanvasLayer/Footer/PanelContainer/MarginContainer/Panel"]
+[node name="Label" type="Label" parent="CanvasLayer/Footer/PlaybackPanel/MarginContainer/Panel"]
 custom_minimum_size = Vector2(200, 0)
 layout_mode = 2
 size_flags_vertical = 1
