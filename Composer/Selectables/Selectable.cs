@@ -95,7 +95,7 @@ namespace XanaduProject.Composer.Selectables
         {
             Vector2 pos = GetGlobalMousePosition();
 
-            pos = withOffset ? pos : pos - holdOffset;
+            pos = withOffset ? pos - holdOffset : pos;
 
             return !snapped ? pos : pos.Snapped(new Vector2(Composer.GRID_SIZE, Composer.GRID_SIZE));
         }
