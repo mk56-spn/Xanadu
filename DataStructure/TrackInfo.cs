@@ -9,6 +9,8 @@ namespace XanaduProject.DataStructure
     public partial class TrackInfo : Resource
     {
         [Export]
+        public string SongTitle = null!;
+        [Export]
         public double[] TimingPoints { get; set; } = null!;
         [Export]
         public double Bpm { get; set; }
