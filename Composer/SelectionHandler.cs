@@ -12,7 +12,7 @@ namespace XanaduProject.Composer
 {
     [GlobalClass]
     [SuperNode(typeof(Dependent))]
-    public partial class SelectionHandler : Control
+    public partial class SelectionHandler : Node2D
     {
         public override partial void _Notification(int what);
 
