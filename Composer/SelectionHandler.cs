@@ -26,11 +26,21 @@ namespace XanaduProject.Composer
             ZIndex = 2;
         }
 
+        public override void _Process(double delta)
+        {
+            base._Process(delta);
+
+            QueueRedraw();
+        }
+
         public override void _Draw()
         {
             base._Draw();
 
             Vector2 size = GetLocalMousePosition() - dragStart;
+
+            if (!dragging) return;
+
             DrawRect(new Rect2(dragStart, size), Colors.Aqua, false, 2);
             DrawRect(new Rect2(dragStart, size), Colors.Aqua with { A = 0.3f });
         }
@@ -42,8 +52,6 @@ namespace XanaduProject.Composer
             if (@event is not InputEventMouseButton { ButtonIndex: MouseButton.Left } mouse) return;
 
             bool isOverlapping = getOverlappedItems().Any();
-
-            List<Node> selectables = new List<Node>();
 
             switch (mouse.Pressed)
             {
@@ -59,10 +67,10 @@ namespace XanaduProject.Composer
                     break;
 
                 case true when !isOverlapping:
-                    foreach (var node in selected)
-                    {
-                        selectables.Add(node);
-                    }
+
+                    // TODO : expose node in a better fashion from a selectable to avoid this list to list cast.
+                    foreach (var node in selected.ToList())
+                        node.GetChildren().OfType<Selectable>().First().Selected(false);
 
                     dragging = true;
                     dragStart = GetLocalMousePosition();
@@ -73,13 +81,6 @@ namespace XanaduProject.Composer
                     selectItems();
                     break;
             }
-
-            foreach (var node in selectables)
-            {
-                selected.Remove(node);
-                node.GetChildren().OfType<Selectable>().Single().Selected(false);
-            }
-
         }
 
         private List<Selectable> getOverlappedItems()
