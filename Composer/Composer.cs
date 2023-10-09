@@ -25,7 +25,7 @@ namespace XanaduProject.Composer
 
         public Composer() : base(new PanningCamera())
         {
-            AddChild(new SelectionArea());
+            AddChild(new SelectionHandler());
         }
 
         public override void _EnterTree()

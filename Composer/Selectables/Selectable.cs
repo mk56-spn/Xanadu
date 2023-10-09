@@ -61,9 +61,6 @@ namespace XanaduProject.Composer.Selectables
 
             if (@event is not InputEventMouseButton { ButtonIndex: MouseButton.Left } mouseButton) return;
 
-            if (mouseButton.Pressed)
-                Selected(isHovered);
-
             bool newHeldValue = isHovered && mouseButton.Pressed;
 
             if (!IsHeld.Equals(newHeldValue))
@@ -71,9 +68,6 @@ namespace XanaduProject.Composer.Selectables
 
             IsHeld = newHeldValue;
 
-            if (!IsHeld) return;
-
-            GetViewport().SetInputAsHandled();
         }
 
         private void updateVisuals() =>
