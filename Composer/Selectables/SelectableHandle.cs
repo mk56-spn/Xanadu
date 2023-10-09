@@ -33,9 +33,10 @@ namespace XanaduProject.Composer.Selectables
             CollisionShape.Shape = hitboxCircle;
         }
 
-        public override void _UnhandledInput(InputEvent @event)
+
+        public override void _Input(InputEvent @event)
         {
-            base._UnhandledInput(@event);
+            base._Input(@event);
 
             if (@event is not InputEventMouseMotion { ButtonMask: MouseButtonMask.Left } || !IsHeld) return;
 

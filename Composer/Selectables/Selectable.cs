@@ -68,9 +68,6 @@ namespace XanaduProject.Composer.Selectables
 
             IsHeld = newHeldValue;
 
-            if (!IsHeld) return;
-
-            GetViewport().SetInputAsHandled();
         }
 
         private void updateVisuals() =>
