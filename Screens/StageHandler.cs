@@ -20,7 +20,7 @@ namespace XanaduProject.Screens
         /// <summary>
         /// A resource containing information about a stage that may be useful outside of gameplay.
         /// </summary>
-        public StageInfo StageInfo { get; set; } = null!;
+        private StageInfo stageInfo;
 
         protected Camera2D Camera;
         protected Stage Stage = null!;
@@ -29,9 +29,10 @@ namespace XanaduProject.Screens
         TrackHandler IProvide<TrackHandler>.Value() => TrackHandler;
         public Stage Value() => Stage;
 
-        protected StageHandler (Camera2D camera)
+        protected StageHandler (Camera2D camera, StageInfo stageInfo)
         {
             Camera = camera;
+            this.stageInfo = stageInfo;
             AddChild(camera);
             ProcessMode = ProcessModeEnum.Always;
         }
@@ -42,9 +43,9 @@ namespace XanaduProject.Screens
 
             TrackHandler.OnPreemptComplete += (_, _) => Stage.Core.Movable = true;
 
-            Stage = StageInfo.GetStage();
+            Stage = stageInfo.GetStage();
             AddChild(Stage);
-            TrackHandler.SetTrack(StageInfo.TrackInfo);
+            TrackHandler.SetTrack(stageInfo.TrackInfo);
             AddChild(TrackHandler);
 
             Provide();
