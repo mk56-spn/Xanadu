@@ -1,47 +1,16 @@
-[gd_scene load_steps=19 format=3 uid="uid://dk1bdchlc0cyf"]
+[gd_scene load_steps=13 format=3 uid="uid://dk1bdchlc0cyf"]
 
 [ext_resource type="Script" path="res://Composer/Composer.cs" id="1_bt7va"]
 [ext_resource type="PackedScene" uid="uid://rh71ii34dp0c" path="res://Composer/ComposerUI/Timeline.tscn" id="2_qyv2p"]
 [ext_resource type="Script" path="res://Composer/ComposerUI/TimeCounter.cs" id="3_5oxby"]
 [ext_resource type="StyleBox" uid="uid://lyic21xjdycs" path="res://Resources/Theming/ComposerStyleBox.tres" id="3_161n1"]
-[ext_resource type="Script" path="res://Composer/ComposerUI/ItemBar.cs" id="4_pl8ww"]
+[ext_resource type="PackedScene" uid="uid://dh8yuucp5e0bb" path="res://Composer/ComposerUI/ComposerSubHeader.tscn" id="3_qt1yt"]
 [ext_resource type="Script" path="res://Composer/PlaybackCounter.cs" id="5_kk741"]
 [ext_resource type="Script" path="res://Composer/ComposerUI/PropertyContainer.cs" id="6_vqu2t"]
 [ext_resource type="PackedScene" uid="uid://vd37p065ib2w" path="res://Composer/ComposerUI/ComposerHeader.tscn" id="8_mwvp2"]
 
 [sub_resource type="Theme" id="Theme_f4bp4"]
 default_font_size = 20
-
-[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_cfjgt"]
-
-[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_etsl4"]
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_22fuj"]
-content_margin_left = 10.0
-content_margin_right = 10.0
-bg_color = Color(0, 0.411765, 0.423529, 0.392157)
-skew = Vector2(0.315, 0)
-border_width_left = 2
-border_width_top = 2
-border_width_right = 2
-border_width_bottom = 2
-border_color = Color(0.301961, 1, 0.976471, 1)
-corner_radius_top_left = 5
-corner_radius_top_right = 5
-corner_radius_bottom_right = 5
-corner_radius_bottom_left = 5
-
-[sub_resource type="Theme" id="Theme_co6x0"]
-Button/styles/focus = SubResource("StyleBoxEmpty_cfjgt")
-Button/styles/hover = SubResource("StyleBoxEmpty_etsl4")
-Button/styles/normal = SubResource("StyleBoxFlat_22fuj")
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_7vbiu"]
-draw_center = false
-border_width_bottom = 4
-corner_radius_bottom_right = 4
-corner_radius_bottom_left = 4
-corner_detail = 1
 
 [sub_resource type="Theme" id="Theme_nsutl"]
 
@@ -61,12 +30,6 @@ corner_radius_top_right = 4
 corner_radius_bottom_right = 4
 corner_radius_bottom_left = 4
 
-[sub_resource type="Environment" id="Environment_kywfd"]
-background_mode = 3
-glow_enabled = true
-glow_blend_mode = 0
-glow_hdr_scale = 1.51
-
 [node name="Composer" type="Control"]
 layout_mode = 3
 anchors_preset = 0
@@ -84,7 +47,7 @@ grow_horizontal = 2
 grow_vertical = 2
 size_flags_horizontal = 8
 size_flags_vertical = 6
-theme_override_constants/separation = 10
+theme_override_constants/separation = 0
 
 [node name="ComposerHeader" parent="CanvasLayer/VBoxContainer" instance=ExtResource("8_mwvp2")]
 layout_mode = 2
@@ -93,6 +56,14 @@ layout_mode = 2
 layout_mode = 2
 size_flags_vertical = 3
 mouse_filter = 2
+
+[node name="SubHeader" parent="CanvasLayer/VBoxContainer/ComposerCenter" instance=ExtResource("3_qt1yt")]
+layout_mode = 1
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.0
+grow_vertical = 1
 
 [node name="PropertyPanel" type="PanelContainer" parent="CanvasLayer/VBoxContainer/ComposerCenter"]
 custom_minimum_size = Vector2(300, 0)
@@ -119,38 +90,6 @@ theme_override_constants/margin_bottom = 10
 [node name="VBoxContainer" type="VBoxContainer" parent="CanvasLayer/VBoxContainer/ComposerCenter/PropertyPanel/MarginContainer"]
 layout_mode = 2
 script = ExtResource("6_vqu2t")
-
-[node name="ItemPanel" type="PanelContainer" parent="CanvasLayer/VBoxContainer/ComposerCenter"]
-custom_minimum_size = Vector2(300, 0)
-layout_mode = 1
-anchors_preset = 5
-anchor_left = 0.5
-anchor_right = 0.5
-offset_left = -150.0
-offset_right = 150.0
-offset_bottom = 28.0
-grow_horizontal = 2
-theme = SubResource("Theme_co6x0")
-theme_override_styles/panel = SubResource("StyleBoxFlat_7vbiu")
-
-[node name="MarginContainer" type="MarginContainer" parent="CanvasLayer/VBoxContainer/ComposerCenter/ItemPanel"]
-layout_mode = 2
-theme_override_constants/margin_left = 10
-theme_override_constants/margin_top = 10
-theme_override_constants/margin_right = 10
-theme_override_constants/margin_bottom = 10
-
-[node name="VBoxContainer" type="VBoxContainer" parent="CanvasLayer/VBoxContainer/ComposerCenter/ItemPanel/MarginContainer"]
-layout_mode = 2
-
-[node name="ItemSidebar" type="HBoxContainer" parent="CanvasLayer/VBoxContainer/ComposerCenter/ItemPanel/MarginContainer/VBoxContainer" node_paths=PackedStringArray("logContainer")]
-layout_mode = 2
-script = ExtResource("4_pl8ww")
-logContainer = NodePath("../ItemLog")
-
-[node name="ItemLog" type="VBoxContainer" parent="CanvasLayer/VBoxContainer/ComposerCenter/ItemPanel/MarginContainer/VBoxContainer"]
-layout_mode = 2
-size_flags_vertical = 10
 
 [node name="Footer" type="HBoxContainer" parent="CanvasLayer/VBoxContainer"]
 custom_minimum_size = Vector2(0, 100)
@@ -213,6 +152,3 @@ size_flags_vertical = 1
 theme_override_styles/normal = SubResource("StyleBoxFlat_gcq2b")
 vertical_alignment = 1
 script = ExtResource("3_5oxby")
-
-[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
-environment = SubResource("Environment_kywfd")

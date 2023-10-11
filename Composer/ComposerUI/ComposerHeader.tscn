@@ -1,11 +1,46 @@
-[gd_scene load_steps=5 format=3 uid="uid://vd37p065ib2w"]
+[gd_scene load_steps=12 format=3 uid="uid://vd37p065ib2w"]
 
 [ext_resource type="Script" path="res://Composer/ComposerUI/ComposerHeader.cs" id="1_ta40u"]
+[ext_resource type="Shader" path="res://Shaders/Blur.gdshader" id="2_5xa4c"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_y3kj6"]
-bg_color = Color(0, 0, 0, 0.494118)
+bg_color = Color(0, 0, 0, 0.901961)
 border_width_bottom = 4
 border_color = Color(1, 1, 1, 1)
+
+[sub_resource type="Gradient" id="Gradient_7korn"]
+offsets = PackedFloat32Array(0, 0.483333, 0.955556, 1)
+colors = PackedColorArray(0, 0, 0, 1, 0.0824612, 0.0824612, 0.0824612, 1, 0.127778, 0.127778, 0.127778, 1, 1, 1, 1, 1)
+
+[sub_resource type="GradientTexture1D" id="GradientTexture1D_s02ey"]
+gradient = SubResource("Gradient_7korn")
+
+[sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_ni7b7"]
+emission_shape = 3
+emission_box_extents = Vector3(5, 50, 1)
+particle_flag_disable_z = true
+spread = 0.0
+gravity = Vector3(0, 0, 0)
+initial_velocity_min = 66.0
+initial_velocity_max = 200.0
+angular_velocity_max = 100.0
+orbit_velocity_min = 0.0
+orbit_velocity_max = 0.0
+scale_min = 0.3
+color_initial_ramp = SubResource("GradientTexture1D_s02ey")
+
+[sub_resource type="Gradient" id="Gradient_6w6yj"]
+offsets = PackedFloat32Array(1)
+colors = PackedColorArray(1, 1, 1, 1)
+
+[sub_resource type="GradientTexture2D" id="GradientTexture2D_vrhdk"]
+gradient = SubResource("Gradient_6w6yj")
+width = 20
+height = 20
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_2scfs"]
+shader = ExtResource("2_5xa4c")
+shader_parameter/lod = 2.412
 
 [sub_resource type="FontVariation" id="FontVariation_lw02j"]
 variation_opentype = {
@@ -14,11 +49,13 @@ variation_opentype = {
 variation_transform = Transform2D(1, 0.255, 0, 1, 0, 0)
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_br8pc"]
+bg_color = Color(1, 1, 1, 1)
 border_width_left = 100
-border_color = Color(0, 0, 0, 1)
+border_color = Color(1, 1, 1, 0)
 border_blend = true
 
 [node name="ComposerHeader" type="PanelContainer" node_paths=PackedStringArray("titleText", "songText")]
+clip_contents = true
 custom_minimum_size = Vector2(0, 70)
 anchors_preset = 10
 anchor_right = 1.0
@@ -29,11 +66,32 @@ script = ExtResource("1_ta40u")
 titleText = NodePath("MarginContainer/HBoxContainer/Title")
 songText = NodePath("MarginContainer/HBoxContainer/Song")
 
+[node name="Control" type="Control" parent="."]
+clip_contents = true
+layout_mode = 2
+
+[node name="GPUParticles2D" type="GPUParticles2D" parent="Control"]
+position = Vector2(-18, 8)
+amount = 1000
+process_material = SubResource("ParticleProcessMaterial_ni7b7")
+texture = SubResource("GradientTexture2D_vrhdk")
+lifetime = 30.0
+preprocess = 30.0
+visibility_rect = Rect2(-63, -63, 2000, 200)
+
+[node name="ColorRect" type="ColorRect" parent="Control"]
+modulate = Color(0, 0, 0, 1)
+material = SubResource("ShaderMaterial_2scfs")
+layout_mode = 2
+offset_right = 1920.0
+offset_bottom = 66.0
+color = Color(1, 1, 1, 0.333333)
+
 [node name="MarginContainer" type="MarginContainer" parent="."]
+clip_contents = true
 layout_mode = 2
 theme_override_constants/margin_left = 20
 theme_override_constants/margin_right = 20
-theme_override_constants/margin_bottom = 1
 
 [node name="HBoxContainer" type="HBoxContainer" parent="MarginContainer"]
 layout_mode = 2
@@ -54,6 +112,16 @@ size_flags_horizontal = 3
 size_flags_vertical = 4
 theme_override_styles/panel = SubResource("StyleBoxFlat_br8pc")
 
+[node name="Label" type="RichTextLabel" parent="MarginContainer/HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 0
+size_flags_vertical = 4
+text = "Artist"
+fit_content = true
+scroll_active = false
+autowrap_mode = 0
+
 [node name="Song" type="Label" parent="MarginContainer/HBoxContainer"]
 layout_mode = 2
 size_flags_horizontal = 8
+text = "Song"

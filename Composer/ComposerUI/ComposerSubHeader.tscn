@@ -1,0 +1,196 @@
+[gd_scene load_steps=16 format=3 uid="uid://dh8yuucp5e0bb"]
+
+[ext_resource type="Script" path="res://Composer/ComposerUI/ItemBar.cs" id="1_ou385"]
+
+[sub_resource type="FontVariation" id="FontVariation_suc0s"]
+variation_opentype = {
+2003265652: 700
+}
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_cfjgt"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_diit1"]
+content_margin_left = 10.0
+content_margin_right = 10.0
+bg_color = Color(1, 1, 1, 0.74902)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(1, 1, 1, 1)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_22fuj"]
+content_margin_left = 10.0
+content_margin_right = 10.0
+bg_color = Color(0.301961, 0.301961, 0.301961, 0.74902)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.301961, 0.301961, 0.301961, 1)
+
+[sub_resource type="Theme" id="Theme_w322s"]
+Button/fonts/font = SubResource("FontVariation_suc0s")
+Button/styles/focus = SubResource("StyleBoxEmpty_cfjgt")
+Button/styles/hover = SubResource("StyleBoxFlat_diit1")
+Button/styles/normal = SubResource("StyleBoxFlat_22fuj")
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_ceut8"]
+draw_center = false
+corner_detail = 1
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_eiipk"]
+bg_color = Color(1, 1, 1, 1)
+corner_radius_bottom_left = 30
+corner_detail = 1
+
+[sub_resource type="Gradient" id="Gradient_uedwc"]
+offsets = PackedFloat32Array(0.5)
+colors = PackedColorArray(0, 0, 0, 1)
+metadata/_snap_enabled = true
+
+[sub_resource type="GradientTexture2D" id="GradientTexture2D_bn175"]
+gradient = SubResource("Gradient_uedwc")
+width = 1
+fill_from = Vector2(0.5, 0)
+fill_to = Vector2(0, 1)
+metadata/_snap_enabled = true
+
+[sub_resource type="Gradient" id="Gradient_obybu"]
+offsets = PackedFloat32Array(0, 0.44898, 1)
+colors = PackedColorArray(0.5, 0.5, 0.5, 1, 1, 1, 1, 1, 0.5, 0.5, 0.5, 1)
+
+[sub_resource type="Gradient" id="Gradient_smfjb"]
+offsets = PackedFloat32Array(0, 0.139423, 1)
+colors = PackedColorArray(0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_se4dp"]
+bg_color = Color(1, 1, 1, 1)
+corner_radius_bottom_right = 30
+corner_detail = 1
+
+[sub_resource type="Gradient" id="Gradient_bo0sr"]
+offsets = PackedFloat32Array(0, 0.44898, 1)
+colors = PackedColorArray(0.5, 0.5, 0.5, 1, 1, 1, 1, 1, 0.5, 0.5, 0.5, 1)
+
+[sub_resource type="Gradient" id="Gradient_nd8bd"]
+offsets = PackedFloat32Array(0, 0.928571, 1)
+colors = PackedColorArray(1, 1, 1, 0, 1, 1, 1, 1, 0, 0, 0, 1)
+
+[node name="SubHeader" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="ItemPanel" type="PanelContainer" parent="."]
+layout_mode = 1
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -54.0
+offset_right = 54.0
+offset_bottom = 94.0
+grow_horizontal = 2
+theme = SubResource("Theme_w322s")
+theme_override_styles/panel = SubResource("StyleBoxFlat_ceut8")
+
+[node name="MarginContainer" type="MarginContainer" parent="ItemPanel"]
+layout_mode = 2
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_bottom = 10
+
+[node name="VBoxContainer" type="VBoxContainer" parent="ItemPanel/MarginContainer"]
+layout_mode = 2
+
+[node name="HBoxContainer" type="HBoxContainer" parent="ItemPanel/MarginContainer/VBoxContainer"]
+custom_minimum_size = Vector2(0, 50)
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="Panel" type="Panel" parent="ItemPanel/MarginContainer/VBoxContainer/HBoxContainer"]
+clip_children = 1
+custom_minimum_size = Vector2(50, 0)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_eiipk")
+
+[node name="TextureRect" type="TextureRect" parent="ItemPanel/MarginContainer/VBoxContainer/HBoxContainer/Panel"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = -1.0
+offset_bottom = -1.0
+grow_horizontal = 2
+grow_vertical = 2
+texture = SubResource("GradientTexture2D_bn175")
+expand_mode = 1
+
+[node name="Line2D" type="Line2D" parent="ItemPanel/MarginContainer/VBoxContainer/HBoxContainer/Panel"]
+position = Vector2(56, 1)
+points = PackedVector2Array(-6, 49, -6, -1, -56, -1, -56, 19, -26, 49)
+closed = true
+width = 4.0
+gradient = SubResource("Gradient_obybu")
+texture_mode = 2
+joint_mode = 2
+begin_cap_mode = 2
+
+[node name="ItemSidebar" type="HBoxContainer" parent="ItemPanel/MarginContainer/VBoxContainer/HBoxContainer" node_paths=PackedStringArray("logContainer")]
+layout_mode = 2
+script = ExtResource("1_ou385")
+logContainer = NodePath("../../ItemLog")
+
+[node name="Control" type="Control" parent="ItemPanel/MarginContainer/VBoxContainer/HBoxContainer"]
+custom_minimum_size = Vector2(50, 0)
+layout_mode = 2
+
+[node name="Line2D2" type="Line2D" parent="ItemPanel/MarginContainer/VBoxContainer/HBoxContainer/Control"]
+points = PackedVector2Array(44, 24, 53, 24, 67, 10, 207, 10)
+width = 2.0
+gradient = SubResource("Gradient_smfjb")
+
+[node name="Panel2" type="Panel" parent="ItemPanel/MarginContainer/VBoxContainer/HBoxContainer/Control"]
+clip_children = 1
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_se4dp")
+
+[node name="TextureRect" type="TextureRect" parent="ItemPanel/MarginContainer/VBoxContainer/HBoxContainer/Control/Panel2"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+texture = SubResource("GradientTexture2D_bn175")
+expand_mode = 1
+
+[node name="Line2D" type="Line2D" parent="ItemPanel/MarginContainer/VBoxContainer/HBoxContainer/Control/Panel2"]
+position = Vector2(-6, 1)
+rotation = 3.14159
+scale = Vector2(1, -1)
+points = PackedVector2Array(-6, -1, -56, -1, -56, 19, -26, 49, -6, 49)
+closed = true
+width = 4.0
+gradient = SubResource("Gradient_bo0sr")
+
+[node name="ItemLog" type="VBoxContainer" parent="ItemPanel/MarginContainer/VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 10
+
+[node name="Line2D" type="Line2D" parent="ItemPanel"]
+z_index = -1
+points = PackedVector2Array(-200, 20, -20, 20, -6, 34, 3, 34)
+width = 2.0
+gradient = SubResource("Gradient_nd8bd")
+
+[node name="Polygon2D" type="Polygon2D" parent="ItemPanel/Line2D"]
+position = Vector2(-810, 0)
+polygon = PackedVector2Array(788, 25, 791, 28, 761, 28, 758, 25)
