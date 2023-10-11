@@ -34,6 +34,16 @@ project/assembly_name="XanaduProject"
 
 enabled=PackedStringArray()
 
+[file_customization]
+
+folder_colors={
+"res://Audio/": "purple",
+"res://Composer/": "green",
+"res://Perceptions/": "blue",
+"res://Resources/": "red",
+"res://Screens/": "yellow"
+}
+
 [gui]
 
 theme/custom_font="res://Resources/Fonts/Orbitron.ttf"
