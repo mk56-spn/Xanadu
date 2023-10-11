@@ -28,13 +28,7 @@ namespace XanaduProject.Screens.StageSelection
             AddChild(new StageSelectionCarousel());
 
             startButton.Pressed += () => loadScene(new PlayerLoader(ActiveInfo));
-            editButton.Pressed += () =>
-            {
-                Composer.Composer scene = ResourceLoader.Load<PackedScene>("res://Composer/Composer.tscn")
-                    .Instantiate<Composer.Composer>();
-                scene.StageInfo = ActiveInfo;
-                loadScene(scene);
-            };
+            editButton.Pressed += () => loadScene(new Composer.Composer(ActiveInfo));
 
             Provide();
         }

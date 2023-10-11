@@ -16,7 +16,7 @@ namespace XanaduProject.Composer.ComposerUI
     /// An attachment for the composer that handles placing objects in the <see cref="Stage"/>
     /// </summary>
     [SuperNode(typeof(Dependent))]
-    public partial class ItemBar : VBoxContainer
+    public partial class ItemBar : HBoxContainer
     {
         public override partial void _Notification(int what);
 
@@ -79,6 +79,8 @@ namespace XanaduProject.Composer.ComposerUI
 
             logContainer.AddChild(label);
             logContainer.MoveChild(label, 0);
+
+            logContainer.Modulate = Colors.OrangeRed;
         }
 
         #endregion

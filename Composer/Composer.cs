@@ -6,6 +6,7 @@ using Chickensoft.AutoInject;
 using Godot;
 using SuperNodes.Types;
 using XanaduProject.Composer.Selectables;
+using XanaduProject.DataStructure;
 using XanaduProject.Screens;
 
 namespace XanaduProject.Composer
@@ -23,7 +24,7 @@ namespace XanaduProject.Composer
         private List<Node> selectedNodes = new List<Node>();
         List<Node> IProvide<List<Node>>.Value() => selectedNodes;
 
-        public Composer() : base(new PanningCamera())
+        public Composer(StageInfo stageInfo) : base(new PanningCamera(), stageInfo)
         {
             AddChild(new SelectionHandler());
         }
@@ -31,7 +32,6 @@ namespace XanaduProject.Composer
         public override void _EnterTree()
         {
             AddChild(new MouseGrid());
-            GetNode<Button>("%SnapButton").Toggled += on => snapped = on;
             GetTree().NodeAdded += node =>
             {
                 if (node is not IComposable composable) return;
@@ -49,6 +49,11 @@ namespace XanaduProject.Composer
             };
 
             Provide();
+
+            CanvasLayer composerUi = GD.Load<PackedScene>("res://Composer/ComposerUI.tscn").Instantiate<CanvasLayer>();
+            composerUi.GetNode<Button>("%SnapButton").Toggled += on => snapped = on;
+
+            AddChild(composerUi);
 
             base._EnterTree();
 

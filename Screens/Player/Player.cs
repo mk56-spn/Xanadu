@@ -4,6 +4,7 @@
 using Chickensoft.AutoInject;
 using Godot;
 using SuperNodes.Types;
+using XanaduProject.DataStructure;
 using XanaduProject.Screens.StageUI;
 
 namespace XanaduProject.Screens.Player
@@ -22,7 +23,7 @@ namespace XanaduProject.Screens.Player
         private readonly ComboCounter comboCounter  = ResourceLoader
             .Load<PackedScene>("res://Screens/StageUI/ComboCounter.tscn").Instantiate<ComboCounter>();
 
-        public Player() : base(new Camera2D())
+        public Player(StageInfo stageInfo) : base(new Camera2D(), stageInfo)
         {
         }
 

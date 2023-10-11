@@ -1,0 +1,144 @@
+[gd_scene load_steps=11 format=3 uid="uid://dk1bdchlc0cyf"]
+
+[ext_resource type="PackedScene" uid="uid://rh71ii34dp0c" path="res://Composer/ComposerUI/Timeline.tscn" id="2_qyv2p"]
+[ext_resource type="Script" path="res://Composer/ComposerUI/TimeCounter.cs" id="3_5oxby"]
+[ext_resource type="StyleBox" uid="uid://lyic21xjdycs" path="res://Resources/Theming/ComposerStyleBox.tres" id="3_161n1"]
+[ext_resource type="PackedScene" uid="uid://dh8yuucp5e0bb" path="res://Composer/ComposerUI/ComposerSubHeader.tscn" id="3_qt1yt"]
+[ext_resource type="Script" path="res://Composer/PlaybackCounter.cs" id="5_kk741"]
+[ext_resource type="Script" path="res://Composer/ComposerUI/PropertyContainer.cs" id="6_vqu2t"]
+[ext_resource type="PackedScene" uid="uid://vd37p065ib2w" path="res://Composer/ComposerUI/ComposerHeader.tscn" id="8_mwvp2"]
+
+[sub_resource type="Theme" id="Theme_nsutl"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_gcq2b"]
+content_margin_left = 20.0
+content_margin_right = 20.0
+bg_color = Color(0.239216, 0.239216, 0.239216, 0.392157)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_1s5o2"]
+bg_color = Color(0.937255, 0.937255, 0.937255, 0.392157)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+
+[node name="CanvasLayer" type="CanvasLayer"]
+layer = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="."]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+size_flags_horizontal = 8
+size_flags_vertical = 6
+theme_override_constants/separation = 0
+
+[node name="ComposerHeader" parent="VBoxContainer" instance=ExtResource("8_mwvp2")]
+layout_mode = 2
+
+[node name="ComposerCenter" type="Control" parent="VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+mouse_filter = 2
+
+[node name="SubHeader" parent="VBoxContainer/ComposerCenter" instance=ExtResource("3_qt1yt")]
+layout_mode = 1
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.0
+grow_vertical = 1
+
+[node name="PropertyPanel" type="PanelContainer" parent="VBoxContainer/ComposerCenter"]
+custom_minimum_size = Vector2(300, 0)
+layout_mode = 1
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -300.0
+offset_top = -24.0
+grow_horizontal = 0
+grow_vertical = 0
+size_flags_horizontal = 0
+theme_override_styles/panel = ExtResource("3_161n1")
+
+[node name="MarginContainer" type="MarginContainer" parent="VBoxContainer/ComposerCenter/PropertyPanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 10
+
+[node name="VBoxContainer" type="VBoxContainer" parent="VBoxContainer/ComposerCenter/PropertyPanel/MarginContainer"]
+layout_mode = 2
+script = ExtResource("6_vqu2t")
+
+[node name="Footer" type="HBoxContainer" parent="VBoxContainer"]
+custom_minimum_size = Vector2(0, 100)
+layout_mode = 2
+size_flags_vertical = 0
+theme_override_constants/separation = 40
+
+[node name="Panel" type="PanelContainer" parent="VBoxContainer/Footer"]
+custom_minimum_size = Vector2(500, 0)
+layout_mode = 2
+theme_override_styles/panel = ExtResource("3_161n1")
+
+[node name="MarginContainer" type="MarginContainer" parent="VBoxContainer/Footer/Panel"]
+layout_mode = 2
+theme_override_constants/margin_left = 20
+theme_override_constants/margin_right = 20
+
+[node name="VBoxContainer" type="HBoxContainer" parent="VBoxContainer/Footer/Panel/MarginContainer"]
+custom_minimum_size = Vector2(60, 0)
+layout_mode = 2
+size_flags_vertical = 4
+theme = SubResource("Theme_nsutl")
+
+[node name="SnapButton" type="Button" parent="VBoxContainer/Footer/Panel/MarginContainer/VBoxContainer"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(60, 60)
+layout_mode = 2
+size_flags_vertical = 4
+theme_override_styles/normal = SubResource("StyleBoxFlat_gcq2b")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_1s5o2")
+toggle_mode = true
+text = "Snap"
+
+[node name="Timeline" parent="VBoxContainer/Footer" instance=ExtResource("2_qyv2p")]
+custom_minimum_size = Vector2(500, 0)
+layout_mode = 2
+mouse_filter = 1
+
+[node name="PlaybackPanel" type="PanelContainer" parent="VBoxContainer/Footer"]
+custom_minimum_size = Vector2(500, 0)
+layout_mode = 2
+theme_override_styles/panel = ExtResource("3_161n1")
+
+[node name="MarginContainer" type="MarginContainer" parent="VBoxContainer/Footer/PlaybackPanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 20
+theme_override_constants/margin_top = 20
+theme_override_constants/margin_right = 20
+theme_override_constants/margin_bottom = 20
+
+[node name="Panel" type="HBoxContainer" parent="VBoxContainer/Footer/PlaybackPanel/MarginContainer"]
+layout_mode = 2
+size_flags_horizontal = 0
+script = ExtResource("5_kk741")
+
+[node name="Label" type="Label" parent="VBoxContainer/Footer/PlaybackPanel/MarginContainer/Panel"]
+custom_minimum_size = Vector2(200, 0)
+layout_mode = 2
+size_flags_vertical = 1
+theme_override_styles/normal = SubResource("StyleBoxFlat_gcq2b")
+vertical_alignment = 1
+script = ExtResource("3_5oxby")
