@@ -1,17 +1,10 @@
-[gd_scene load_steps=8 format=3 uid="uid://2u020j2ukdqa"]
+[gd_scene load_steps=6 format=3 uid="uid://2u020j2ukdqa"]
 
 [ext_resource type="Script" path="res://Screens/Stage.cs" id="1_s787h"]
 [ext_resource type="Script" path="res://Composer/Composable/Environment/EnvironmentPolygon.cs" id="2_nugyv"]
 [ext_resource type="Script" path="res://Composer/Composable/Threats/ThreatPolygon.cs" id="3_owqgg"]
 [ext_resource type="Script" path="res://Composer/NoteLink.cs" id="4_r0sdw"]
 [ext_resource type="PackedScene" uid="uid://b8f178tstjnjt" path="res://Composer/Composable/Notes/Note.tscn" id="5_hk6w8"]
-
-[sub_resource type="Gradient" id="Gradient_ugne8"]
-colors = PackedColorArray(0, 1, 0, 1, 1, 1, 1, 1)
-
-[sub_resource type="Gradient" id="Gradient_wqqwf"]
-offsets = PackedFloat32Array(0, 0.480874, 1)
-colors = PackedColorArray(1, 0.566667, 0, 1, 1, 0.750446, 0.547988, 1, 0.97385, 0.547792, 1.15514e-06, 1)
 
 [node name="stage2" type="WorldEnvironment"]
 script = ExtResource("1_s787h")
@@ -22,25 +15,23 @@ polygon = PackedVector2Array(0, 0, 0, 64, 448, 64, 448, 0)
 script = ExtResource("2_nugyv")
 
 [node name="ThreatPolygon" type="Polygon2D" parent="."]
-position = Vector2(112, 208)
+position = Vector2(960, 275)
 polygon = PackedVector2Array(152, -16, 200, -16, 176, -48)
 script = ExtResource("3_owqgg")
 
 [node name="NoteLink" type="Node2D" parent="."]
 script = ExtResource("4_r0sdw")
-connectorColour = SubResource("Gradient_ugne8")
-rhythmKey = "R1"
 
 [node name="Note" parent="NoteLink" instance=ExtResource("5_hk6w8")]
 position = Vector2(128, 128)
 
-[node name="Note2" parent="NoteLink" instance=ExtResource("5_hk6w8")]
-position = Vector2(1024, 128)
-PositionInTrack = 0.4
-
 [node name="Note3" parent="NoteLink" instance=ExtResource("5_hk6w8")]
-position = Vector2(512, -128)
+position = Vector2(192, 39)
 PositionInTrack = 0.2
+
+[node name="Note2" parent="NoteLink" instance=ExtResource("5_hk6w8")]
+position = Vector2(288, 96)
+PositionInTrack = 0.4
 
 [node name="EnvironmentPolygon2" type="Polygon2D" parent="."]
 polygon = PackedVector2Array(640, 256, 640, 384, 1152, 384, 1152, 256)
@@ -48,17 +39,15 @@ script = ExtResource("2_nugyv")
 
 [node name="Node2D" type="Node2D" parent="."]
 script = ExtResource("4_r0sdw")
-connectorColour = SubResource("Gradient_wqqwf")
-rhythmKey = "R1"
+
+[node name="Note2" parent="Node2D" instance=ExtResource("5_hk6w8")]
+position = Vector2(445, 10)
+PositionInTrack = 0.6
 
 [node name="Note" parent="Node2D" instance=ExtResource("5_hk6w8")]
-position = Vector2(1568, 64)
+position = Vector2(512, -22)
 PositionInTrack = 0.8
 
 [node name="Note3" parent="Node2D" instance=ExtResource("5_hk6w8")]
-position = Vector2(1824, 237)
+position = Vector2(582, 42)
 PositionInTrack = 1.0
-
-[node name="Note2" parent="Node2D" instance=ExtResource("5_hk6w8")]
-position = Vector2(1184, 202)
-PositionInTrack = 0.6
