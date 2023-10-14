@@ -2,6 +2,8 @@
 // See the LICENCE file in the repository root for full licence text.
 
 using Godot;
+using XanaduProject.Composer;
+using static XanaduProject.Tools.XanaduUtils;
 
 namespace XanaduProject.Perceptions.Components
 {
@@ -11,17 +13,13 @@ namespace XanaduProject.Perceptions.Components
     public partial class RhythmHandle : Control
     {
         /// <summary>
-        /// The rhythm channel this handle represents.
+        /// Which of the three possible lines this corresponds to.
         /// </summary>
-        public readonly RhythmChannel Channel = new RhythmChannel();
+        public RhythmLine Line { get; private set; }
 
-        public RhythmInstance Instance
-        {
-            get => Channel.Instance;
-            set => Channel.Instance = value;
-        }
+        private NoteLink? owner;
 
-        public RhythmHandle ()
+        private RhythmHandle ()
         {
             ZIndex = 1;
         }
@@ -30,9 +28,18 @@ namespace XanaduProject.Perceptions.Components
         {
             base._PhysicsProcess(delta);
             Modulate = Modulate.Lerp(
-                Input.IsActionPressed(Channel.GetRhythmInput())
-                    ? Channel.GetRhythmColour()
-                    : Channel.GetRhythmColour().Darkened(0.2f), (float)(15 * delta));
+                Input.IsActionPressed(GetLineInput(Line))
+                    ? GetLineColour(Line)
+                    : GetLineColour(Line).Darkened(0.2f), (float)(15 * delta));
+        }
+
+        public static RhythmHandle CreateHandle(RhythmLine line)
+        {
+            RhythmHandle handle = GD.Load<PackedScene>("res://Perceptions/Components/RhythmHandle.tscn")
+                .Instantiate<RhythmHandle>();
+
+            handle.Line = line;
+            return handle;
         }
     }
 }
