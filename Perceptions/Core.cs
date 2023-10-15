@@ -52,5 +52,11 @@ namespace XanaduProject.Perceptions
         {
             Nucleus.Modulate = Nucleus.HasOverlappingBodies() ? Colors.Red : Colors.Green;
         }
+
+        public static Core CreateCore()
+        {
+            var coreScene = ResourceLoader.Load<PackedScene>("res://Perceptions/Core.tscn");
+            return coreScene.Instantiate<Core>();
+        }
     }
 }
