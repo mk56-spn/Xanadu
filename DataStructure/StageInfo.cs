@@ -40,11 +40,11 @@ namespace XanaduProject.DataStructure
         private bool yLine { get; set; }
 
         // TODO: This is sketch af but it works for now i guess
-        public (bool active, RhythmInstance instance)[] GetLines() => new []
+        public (bool active, RhythmLine instance)[] GetLines() => new []
         {
-            (rLine, RhythmInstance.RLine),
-            (bLine, RhythmInstance.BLine),
-            (yLine, RhythmInstance.YLine),
+            (rLine, RhythmLine.RLine),
+            (bLine, RhythmLine.BLine),
+            (yLine, RhythmLine.YLine)
         };
     }
 }
