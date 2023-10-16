@@ -3,6 +3,7 @@
 
 using System.Collections.Generic;
 using Godot;
+using XanaduProject.Composer;
 using XanaduProject.Perceptions;
 using XanaduProject.DataStructure;
 using XanaduProject.Composer.Composable.Notes;
@@ -18,13 +19,12 @@ namespace XanaduProject.Screens
         public StageInfo Info { get; set; } = null!;
 
         public List<Note> Notes { get; } = new List<Note>();
+        public List<NoteLink> NoteLinks { get; } = new List<NoteLink>();
 
         public Stage()
         {
             ProcessMode = ProcessModeEnum.Always;
-
-            var coreScene = ResourceLoader.Load<PackedScene>("res://Perceptions/Core.tscn");
-            AddChild(Core = coreScene.Instantiate<Core>());
+            AddChild(Core = Core.CreateCore());
         }
 
         public override void _EnterTree()
@@ -33,8 +33,15 @@ namespace XanaduProject.Screens
 
             GetTree().NodeAdded += node =>
             {
-                if (node is Note note)
-                    Notes.Add(note);
+                switch (node)
+                {
+                    case Note note:
+                        Notes.Add(note);
+                        break;
+                    case NoteLink noteLink:
+                        NoteLinks.Add(noteLink);
+                        break;
+                }
             };
         }
     }
