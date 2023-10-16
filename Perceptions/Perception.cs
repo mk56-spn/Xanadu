@@ -2,11 +2,11 @@
 // See the LICENCE file in the repository root for full licence text.
 
 using System;
+using System.Linq;
 using Chickensoft.AutoInject;
 using Godot;
 using SuperNodes.Types;
 using XanaduProject.Audio;
-using XanaduProject.Composer;
 using XanaduProject.Perceptions.Components;
 using XanaduProject.Screens;
 
@@ -19,14 +19,14 @@ namespace XanaduProject.Perceptions
 
         public bool Movable;
 
-        public const int BASE_VELOCITY = 700;
+        private const int base_velocity = 700;
         protected int Gravity;
 
         // Emits an event when this perception is rendered dead.
         public event Action? OnDeath;
 
-        [Export]
-        protected Area2D NoteReceptor { get; set; } = null!;
+        private RhythmHandle[] handles { get;  set; } = Array.Empty<RhythmHandle>();
+
         [Export]
         protected Polygon2D Body { get; private set; } = null!;
         [Export]
@@ -41,7 +41,7 @@ namespace XanaduProject.Perceptions
             var fetchGravity = ProjectSettings.GetSetting("physics/2d/default_gravity");
             Gravity = fetchGravity.AsInt32();
 
-            Velocity = new Vector2(BASE_VELOCITY, 0);
+            Velocity = new Vector2(base_velocity, 0);
 
             ProcessMode = ProcessModeEnum.Pausable;
         }
@@ -51,20 +51,21 @@ namespace XanaduProject.Perceptions
             handleContainer.GrowHorizontal = Control.GrowDirection.Both;
             AddChild(handleContainer);
 
-            foreach (var line in GetParent<Stage>().Info.GetLines())
+            Stage stage = GetParent<Stage>();
+
+            foreach (var line in stage.Info.GetLines())
             {
-                if (!line.active) continue;
-                handleContainer.AddChild(createHandle(line.instance));
+                if (line.active) continue;
+                handleContainer.AddChild(RhythmHandle.CreateHandle(line.instance, stage.NoteLinks));
             }
 
+            handles = handleContainer.GetChildren().OfType<RhythmHandle>().ToArray();
             handleContainer.Position = Position with { Y = -15 };
         }
 
         public override void _Ready()
         {
             base._Ready();
-
-            AddChild(new HitNoteProcessor(NoteReceptor));
 
             GetNode<Area2D>("%Shell").AreaEntered += _ => OnDeath?.Invoke();
             Nucleus.BodyEntered += _ => { OnDeath?.Invoke(); };
@@ -75,23 +76,14 @@ namespace XanaduProject.Perceptions
             base._PhysicsProcess(delta);
 
             if (!Movable) return;
-            if (!(Math.Abs(Position.X - trackHandler.TrackPosition * BASE_VELOCITY) > 25) || !trackHandler.Playing) return;
+            if (!(Math.Abs(Position.X - trackHandler.TrackPosition * base_velocity) > 25) || !trackHandler.Playing) return;
 
             GD.Print(
-                $"A de-sync of {Math.Abs(TimeSpan.FromSeconds(Position.X / BASE_VELOCITY - trackHandler.TrackPosition).TotalMilliseconds)} milliseconds has occured");
+                $"A de-sync of {Math.Abs(TimeSpan.FromSeconds(Position.X / base_velocity - trackHandler.TrackPosition).TotalMilliseconds)} milliseconds has occured");
 
             //Forces the player into position if it de-syncs more than the acceptable amount from the song,
             //rather brutish but functional.
-            Position = new Vector2((float)trackHandler.TrackPosition * BASE_VELOCITY, Position.Y);
-        }
-
-        private RhythmHandle createHandle(RhythmInstance instance)
-        {
-            RhythmHandle handle = ResourceLoader.Load<PackedScene>("res://Perceptions/Components/RhythmHandle.tscn")
-                .Instantiate<RhythmHandle>();
-
-            handle.Instance = instance;
-            return handle;
+            Position = new Vector2((float)trackHandler.TrackPosition * base_velocity, Position.Y);
         }
     }
 }

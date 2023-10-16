@@ -5,65 +5,71 @@ using System;
 using System.Linq;
 using Godot;
 using XanaduProject.Composer.Composable.Notes;
+using XanaduProject.Perceptions.Components;
+using XanaduProject.Tools;
 
 namespace XanaduProject.Composer
 {
-    [Tool]
     public partial class NoteLink : Node2D
     {
-        [Export]
-        private Gradient connectorColour
-        {
-            get => connector.Gradient;
-            set => connector.Gradient = value;
-        }
-
-        [Export]
-        private string rhythmKey { get; set; } = null!;
+        private int noteIndex;
 
         public event Action? OnFinished;
 
         // Make sure notes are ordered w.r.t music
-        public Note[] Notes => GetChildren().OfType<Note>().OrderBy(n => n.PositionInTrack).ToArray();
-        private Line2D connector = new Line2D { ZIndex = -1 };
+        public Note[] OrderedNotes { get; private set; } = null!;
+        private Line2D connector = null!;
+        private RhythmHandle handle = null!;
+
+        public RhythmLine Line { get; private set; } = RhythmLine.BLine;
 
         public override void _Ready()
         {
-            base._Ready();
+            AddChild(new CollisionShape2D { Shape = new CircleShape2D { Radius = 32 } });
+
+            OrderedNotes = GetChildren().OfType<Note>().OrderBy(n => n.PositionInTrack).ToArray();
+            AddChild(connector = new Line2D { Modulate = XanaduUtils.GetLineColour(Line), ShowBehindParent = true });
+
+            SetProcessUnhandledInput(false);
 
             // Fades out and then disposes of the object.
             OnFinished += () =>
             {
-                var label = ResourceLoader.Load<PackedScene>("res://Composer/Notes/NoteLinkResult.tscn")
-                    .Instantiate<Label>();
-                Notes.Last().AddChild(label);
                 CreateTween()
                     .TweenProperty(connector, "modulate", new Color(Modulate, 0), 0.3f )
                     .Finished += QueueFree;
             };
-
-            AddChild(connector);
-
-            connector.Points  = Notes.Select(n => n.Position).ToArray();
-
-            foreach (var note in Notes)
-            {
-                note.OnStateChanged += (_, _) =>
-                {
-                    if (Notes.Any(n => n.State != Note.NoteState.Judged) == false)
-                        OnFinished?.Invoke();
-                };
-            }
         }
 
-        public override void _PhysicsProcess(double delta)
+        public override void _Process(double delta)
         {
-            base._PhysicsProcess(delta);
+            base._Process(delta);
 
-            if (!Input.IsActionJustPressed(rhythmKey)) return;
+            QueueRedraw();
 
-            Note? currentNote = Notes.FirstOrDefault(n => n.State == Note.NoteState.Active);
-            currentNote?.RequestState(Note.NoteState.Judged);
+            var points = OrderedNotes.Select(n => n.Position).ToArray();
+
+            if (connector.Points != points)
+                connector.Points = points;
+        }
+
+        public override void _UnhandledInput(InputEvent @event)
+        {
+            base._UnhandledInput(@event);
+
+            if (!@event.IsActionPressed(XanaduUtils.GetLineInput(Line))) return;
+
+            if (noteIndex == OrderedNotes.Length - 1)
+            {
+                OnFinished?.Invoke();
+                SetProcessUnhandledInput(false);
+            }
+
+
+            OrderedNotes[noteIndex].RequestState(Note.NoteState.Judged);
+            noteIndex++;
+
+            QueueRedraw();
         }
     }
 }
