@@ -2,6 +2,7 @@
 // See the LICENCE file in the repository root for full licence text.
 
 using System.Collections.Generic;
+using System.Linq;
 using Godot;
 using XanaduProject.Composer;
 using XanaduProject.Perceptions;
@@ -15,11 +16,13 @@ namespace XanaduProject.Screens
     {
         public readonly Core Core;
 
-        // General information about this stage.
+        /// <summary>
+        /// General information about this stage.
+        /// </summary>
         public StageInfo Info { get; set; } = null!;
 
         public List<Note> Notes { get; } = new List<Note>();
-        public List<NoteLink> NoteLinks { get; } = new List<NoteLink>();
+        public List<NoteLink> NoteLinks { get; private set; } = new List<NoteLink>();
 
         public Stage()
         {
@@ -43,6 +46,14 @@ namespace XanaduProject.Screens
                         break;
                 }
             };
+        }
+
+        public override void _Ready()
+        {
+            base._Ready();
+
+            // Ensure notelinks are sorted sequentially
+            NoteLinks = NoteLinks.OrderBy(c => c.OrderedNotes.First()).ToList();
         }
     }
 }
