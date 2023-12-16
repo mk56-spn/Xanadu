@@ -1,0 +1,710 @@
+[gd_scene load_steps=39 format=3 uid="uid://cuwvv2ul7bp8b"]
+
+[ext_resource type="Script" path="res://Screens/Title/Title.cs" id="1_opudi"]
+[ext_resource type="Shader" path="res://Shaders/Blur.gdshader" id="2_wq6e5"]
+
+[sub_resource type="Gradient" id="Gradient_g4chg"]
+offsets = PackedFloat32Array(0.890909, 0.9, 0.987879, 1)
+colors = PackedColorArray(1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0)
+
+[sub_resource type="GradientTexture2D" id="GradientTexture2D_bjr5v"]
+gradient = SubResource("Gradient_g4chg")
+width = 750
+height = 750
+fill = 1
+fill_from = Vector2(0.5, 0.5)
+fill_to = Vector2(1, 0.5)
+metadata/_snap_enabled = true
+
+[sub_resource type="Gradient" id="Gradient_q3ugd"]
+
+[sub_resource type="GradientTexture2D" id="GradientTexture2D_8l0jd"]
+gradient = SubResource("Gradient_q3ugd")
+fill_from = Vector2(0.5, 1)
+fill_to = Vector2(0.5, 0)
+metadata/_snap_enabled = true
+
+[sub_resource type="Gradient" id="Gradient_meukj"]
+offsets = PackedFloat32Array(0.993939, 1)
+colors = PackedColorArray(1, 1, 1, 0, 1, 1, 1, 1)
+
+[sub_resource type="GradientTexture2D" id="GradientTexture2D_6rwnl"]
+gradient = SubResource("Gradient_meukj")
+width = 192
+height = 192
+fill = 2
+fill_from = Vector2(0.5, 0.5)
+fill_to = Vector2(0, 1)
+metadata/_snap_enabled = true
+
+[sub_resource type="Gradient" id="Gradient_i2r56"]
+offsets = PackedFloat32Array(0, 0.139394, 0.157576)
+colors = PackedColorArray(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0)
+
+[sub_resource type="GradientTexture2D" id="GradientTexture2D_6ss8i"]
+gradient = SubResource("Gradient_i2r56")
+width = 192
+height = 192
+fill = 2
+fill_from = Vector2(0.5, 0.5)
+fill_to = Vector2(0.6, 0.5)
+metadata/_snap_enabled = true
+
+[sub_resource type="Gradient" id="Gradient_r17cw"]
+offsets = PackedFloat32Array(1)
+colors = PackedColorArray(1, 1, 1, 1)
+
+[sub_resource type="GradientTexture2D" id="GradientTexture2D_x53tr"]
+gradient = SubResource("Gradient_r17cw")
+width = 192
+height = 192
+
+[sub_resource type="Gradient" id="Gradient_y736k"]
+colors = PackedColorArray(1, 1, 1, 1, 1, 1, 1, 0)
+
+[sub_resource type="FontVariation" id="FontVariation_bwf70"]
+variation_opentype = {
+2003265652: 700
+}
+
+[sub_resource type="Gradient" id="Gradient_45fj7"]
+
+[sub_resource type="GradientTexture2D" id="GradientTexture2D_hptmk"]
+gradient = SubResource("Gradient_45fj7")
+
+[sub_resource type="Gradient" id="Gradient_pb4nn"]
+offsets = PackedFloat32Array(0, 0.981818)
+colors = PackedColorArray(1, 1, 1, 0, 1, 1, 1, 0.0745098)
+
+[sub_resource type="GradientTexture2D" id="GradientTexture2D_lx5rr"]
+gradient = SubResource("Gradient_pb4nn")
+fill_from = Vector2(0.5, 0)
+fill_to = Vector2(0.5, 1)
+metadata/_snap_enabled = true
+
+[sub_resource type="FontVariation" id="FontVariation_2p2wh"]
+variation_opentype = {
+2003265652: 700
+}
+
+[sub_resource type="FontVariation" id="FontVariation_ocq1q"]
+variation_opentype = {
+2003265652: 900
+}
+
+[sub_resource type="Gradient" id="Gradient_5gcbu"]
+colors = PackedColorArray(1, 1, 1, 1, 1, 1, 1, 0)
+
+[sub_resource type="GradientTexture2D" id="GradientTexture2D_lek62"]
+gradient = SubResource("Gradient_5gcbu")
+fill_from = Vector2(0.5, 0)
+repeat = 2
+metadata/_snap_enabled = true
+
+[sub_resource type="Gradient" id="Gradient_mhxbr"]
+
+[sub_resource type="GradientTexture2D" id="GradientTexture2D_15lvd"]
+gradient = SubResource("Gradient_mhxbr")
+
+[sub_resource type="Gradient" id="Gradient_t3vhh"]
+colors = PackedColorArray(1, 1, 1, 0, 1, 1, 1, 1)
+
+[sub_resource type="Gradient" id="Gradient_285v1"]
+offsets = PackedFloat32Array(0, 0.959538)
+colors = PackedColorArray(1, 1, 1, 1, 1, 1, 1, 0)
+
+[sub_resource type="Gradient" id="Gradient_7ngbs"]
+offsets = PackedFloat32Array(0, 0.364162, 1)
+colors = PackedColorArray(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0)
+
+[sub_resource type="Gradient" id="Gradient_tfg1h"]
+offsets = PackedFloat32Array(0, 0.465839, 1)
+colors = PackedColorArray(1, 1, 1, 1, 1, 1, 1, 0.534161, 1, 1, 1, 0)
+
+[sub_resource type="FontVariation" id="FontVariation_8mtf7"]
+variation_opentype = {
+2003265652: 600
+}
+spacing_glyph = 2
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_y3v8s"]
+bg_color = Color(1, 1, 1, 0.137255)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+expand_margin_left = 5.0
+expand_margin_top = 2.0
+expand_margin_right = 5.0
+expand_margin_bottom = 2.0
+
+[sub_resource type="Gradient" id="Gradient_d3a1l"]
+colors = PackedColorArray(1, 1, 1, 1, 0.88275, 0.88275, 0.88275, 1)
+
+[sub_resource type="Gradient" id="Gradient_ad20f"]
+colors = PackedColorArray(1, 1, 1, 0, 1, 1, 1, 1)
+
+[sub_resource type="GradientTexture2D" id="GradientTexture2D_o03qg"]
+gradient = SubResource("Gradient_ad20f")
+fill_to = Vector2(0.5, 0)
+repeat = 2
+metadata/_snap_enabled = true
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_cwht3"]
+shader = ExtResource("2_wq6e5")
+shader_parameter/lod = 2.294
+
+[sub_resource type="FontVariation" id="FontVariation_bveuo"]
+variation_transform = Transform2D(1, 0.23, 0, 1, 0, 0)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_qoclk"]
+bg_color = Color(1, 1, 1, 0.0784314)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.270588, 0.270588, 0.270588, 1)
+expand_margin_left = 15.0
+expand_margin_right = 15.0
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_vcsh0"]
+
+[sub_resource type="Gradient" id="Gradient_ehivv"]
+colors = PackedColorArray(1, 1, 1, 0, 1, 1, 1, 1)
+
+[node name="Title" type="CanvasLayer" node_paths=PackedStringArray("button")]
+script = ExtResource("1_opudi")
+button = NodePath("StartButton")
+
+[node name="Sprite2D5" type="Sprite2D" parent="."]
+modulate = Color(1, 1, 1, 0.0196078)
+position = Vector2(3232, 642)
+texture = SubResource("GradientTexture2D_bjr5v")
+
+[node name="Polygon2D" type="Polygon2D" parent="Sprite2D5"]
+position = Vector2(24, -34)
+polygon = PackedVector2Array(0, -2, 320, -2, 256, 62, -64, 62)
+
+[node name="CanvasLayer" type="CanvasLayer" parent="."]
+layer = -1
+
+[node name="ColorRect" type="TextureRect" parent="CanvasLayer"]
+modulate = Color(0.14902, 0.14902, 0.14902, 1)
+z_index = -1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+texture = SubResource("GradientTexture2D_8l0jd")
+metadata/_edit_lock_ = true
+
+[node name="CanvasGroup" type="CanvasGroup" parent="CanvasLayer"]
+self_modulate = Color(1, 1, 1, 0.0196078)
+
+[node name="Line2D2" type="Line2D" parent="CanvasLayer/CanvasGroup"]
+position = Vector2(-8, 64)
+points = PackedVector2Array(1344, 64, 1936, 64)
+end_cap_mode = 2
+
+[node name="Sprite2D" type="Sprite2D" parent="CanvasLayer/CanvasGroup/Line2D2"]
+
+[node name="Line2D" type="Line2D" parent="CanvasLayer/CanvasGroup"]
+points = PackedVector2Array(256, 0, 384, 128, 1344, 128, 1536, 320, 1728, 512, 1984, 512)
+begin_cap_mode = 1
+
+[node name="Polygon2D" type="Polygon2D" parent="CanvasLayer/CanvasGroup/Line2D"]
+polygon = PackedVector2Array(1344, 144, 1360, 128, 1344, 112, 1328, 128, 1344, 144)
+
+[node name="Line2D2" type="Line2D" parent="CanvasLayer/CanvasGroup/Line2D"]
+points = PackedVector2Array(1408, 192, 1488, 192)
+
+[node name="Polygon2D" type="Polygon2D" parent="CanvasLayer/CanvasGroup/Line2D/Line2D2"]
+polygon = PackedVector2Array(1496, 216, 1664, 216, 1616, 168, 1448, 168)
+
+[node name="Line2D" type="Line2D" parent="CanvasLayer/CanvasGroup/Line2D"]
+position = Vector2(112, 112)
+points = PackedVector2Array(1408, 192, 1488, 192)
+
+[node name="Polygon2D" type="Polygon2D" parent="CanvasLayer/CanvasGroup/Line2D/Line2D"]
+polygon = PackedVector2Array(1496, 216, 1664, 216, 1616, 168, 1448, 168)
+
+[node name="Line2D3" type="Line2D" parent="CanvasLayer/CanvasGroup"]
+points = PackedVector2Array(0, 1024, 384, 1024, 576, 896, 1344, 896, 1536, 1088)
+
+[node name="W" type="TextureRect" parent="CanvasLayer/CanvasGroup"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = -62.7365
+offset_right = 2172.0
+offset_bottom = 1081.26
+grow_horizontal = 2
+grow_vertical = 2
+texture = SubResource("GradientTexture2D_6rwnl")
+stretch_mode = 1
+metadata/_edit_lock_ = true
+
+[node name="TextureRect2" type="TextureRect" parent="CanvasLayer/CanvasGroup/W"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 95.6931
+offset_top = 95.3605
+offset_right = -113.307
+offset_bottom = 131.36
+grow_horizontal = 2
+grow_vertical = 2
+texture = SubResource("GradientTexture2D_6ss8i")
+stretch_mode = 1
+metadata/_edit_lock_ = true
+
+[node name="Sprite2D" type="Sprite2D" parent="CanvasLayer/CanvasGroup/W/TextureRect2"]
+position = Vector2(0.306885, 384.64)
+texture = SubResource("GradientTexture2D_x53tr")
+
+[node name="Sprite2D2" type="Sprite2D" parent="CanvasLayer/CanvasGroup/W/TextureRect2"]
+position = Vector2(1728.31, 0)
+texture = SubResource("GradientTexture2D_x53tr")
+
+[node name="Sprite2D2" type="Sprite2D" parent="CanvasLayer/CanvasGroup/W/TextureRect2/Sprite2D2"]
+position = Vector2(-1152, 0.639542)
+texture = SubResource("GradientTexture2D_x53tr")
+
+[node name="Sprite2D3" type="Sprite2D" parent="CanvasLayer/CanvasGroup/W/TextureRect2"]
+position = Vector2(1728.31, 768.64)
+texture = SubResource("GradientTexture2D_x53tr")
+
+[node name="PointLight2D" type="PointLight2D" parent="CanvasLayer/CanvasGroup"]
+
+[node name="CanvasGroup2" type="CanvasGroup" parent="CanvasLayer"]
+self_modulate = Color(1, 1, 1, 0.0117647)
+
+[node name="CanvasModulate" type="CanvasModulate" parent="CanvasLayer"]
+
+[node name="Sprite2D4" type="Sprite2D" parent="."]
+modulate = Color(1, 1, 1, 0.0196078)
+position = Vector2(959, 548.329)
+texture = SubResource("GradientTexture2D_bjr5v")
+
+[node name="Line2D2" type="Line2D" parent="."]
+position = Vector2(960, 666)
+points = PackedVector2Array(768, -218, 512, 38)
+width = 1.0
+
+[node name="Line2D3" type="Line2D" parent="Line2D2"]
+position = Vector2(-960, -666)
+points = PackedVector2Array(1342, 802, 1408, 736, 1504, 736)
+width = 1.0
+gradient = SubResource("Gradient_y736k")
+
+[node name="Polygon2D" type="Polygon2D" parent="Line2D2/Line2D3"]
+polygon = PackedVector2Array(1313.41, 800.078, 1376, 800, 1368, 808, 1256, 808, 1264, 800)
+
+[node name="Polygon2D" type="Polygon2D" parent="Line2D2"]
+
+[node name="Polygon2D2" type="Polygon2D" parent="Line2D2"]
+position = Vector2(15.6344, 5.64764)
+polygon = PackedVector2Array(736, -208, 784, -208, 800, -224, 752, -224)
+
+[node name="Polygon2D3" type="Polygon2D" parent="Line2D2"]
+position = Vector2(-0.0196533, -0.691589)
+polygon = PackedVector2Array(576, 38, 560, 54, 496, 54, 512, 38, 512, 38)
+
+[node name="Polygon2D4" type="Polygon2D" parent="Line2D2"]
+polygon = PackedVector2Array(760, -82, 784, -82, 792, -90, 784, -90, 792, -98, 776, -98)
+
+[node name="CanvasGroup" type="CanvasGroup" parent="Line2D2/Polygon2D4"]
+self_modulate = Color(1, 1, 1, 0.129412)
+
+[node name="Polygon2D" type="Polygon2D" parent="Line2D2/Polygon2D4/CanvasGroup"]
+position = Vector2(8, 0)
+polygon = PackedVector2Array(792, -82, 800, -90, 792, -90, 800, -98, 816, -98, 824, -98, 808, -82)
+
+[node name="Line2D" type="Line2D" parent="Line2D2/Polygon2D4/CanvasGroup/Polygon2D"]
+points = PackedVector2Array(808, -90, 952, -90)
+width = 1.0
+
+[node name="Label" type="Label" parent="Line2D2/Polygon2D4/CanvasGroup/Polygon2D/Line2D"]
+offset_left = 848.0
+offset_top = -114.0
+offset_right = 905.0
+offset_bottom = -93.0
+theme_override_fonts/font = SubResource("FontVariation_bwf70")
+text = "OFFLINE"
+
+[node name="Line2D" type="Line2D" parent="Line2D2/Polygon2D4/CanvasGroup/Polygon2D/Line2D"]
+points = PackedVector2Array(836, -90, 808, -62, 952, -62)
+width = 1.0
+
+[node name="Label" type="Label" parent="Line2D2/Polygon2D4/CanvasGroup/Polygon2D/Line2D/Line2D"]
+offset_left = 836.0
+offset_top = -86.0
+offset_right = 947.0
+offset_bottom = -65.0
+text = "NO SERVER"
+
+[node name="Line2D" type="Line2D" parent="Line2D2"]
+points = PackedVector2Array(640, -90, 784, -90)
+width = 1.0
+
+[node name="Polygon2D5" type="Polygon2D" parent="Line2D2"]
+
+[node name="Polygon2D6" type="Polygon2D" parent="Line2D2"]
+color = Color(1, 1, 1, 0.196078)
+texture = SubResource("GradientTexture2D_hptmk")
+polygon = PackedVector2Array(528, 30, 560, 30, 568, 22, 576, 14, 584, 6, 592, -2, 624, -10, 632, -18, 608, -26, 616, -34, 640, -42, 648, -50, 656, -58, 664, -66, 648, -74, 656, -82, 640, -82, 632, -74, 624, -66, 616, -58, 608, -50, 600, -42, 592, -34, 584, -26, 576, -18, 568, -10, 560, -2, 552, 6, 544, 14, 536, 22)
+uv = PackedVector2Array(528, 30, 568, 30, 568, 22, 576, 14, 592, 6, 600, -2, 608, -10, 600, -18, 608, -26, 632, -34, 640, -42, 648, -50, 656, -58, 664, -66, 648, -74, 656, -82, 640, -82, 632, -74, 624, -66, 616, -58, 608, -50, 600, -42, 592, -34, 584, -26, 576, -18, 568, -10, 560, -2, 552, 6, 544, 14, 536, 22)
+polygons = [PackedInt32Array(2, 29, 28, 3), PackedInt32Array(27, 26, 5, 4), PackedInt32Array(10, 21, 20, 11), PackedInt32Array(12, 19, 18, 13), PackedInt32Array(14, 15, 16, 17), PackedInt32Array(23, 8, 9, 22), PackedInt32Array(25, 6, 7, 24)]
+
+[node name="Line2D2" type="Line2D" parent="Line2D2"]
+position = Vector2(158.872, -162)
+points = PackedVector2Array(504, 16, 519.624, 0.375809, 792, -272)
+width = 1.0
+default_color = Color(1, 1, 1, 0.196078)
+
+[node name="Polygon2D" type="Polygon2D" parent="Line2D2/Line2D2"]
+position = Vector2(9.12842, -3.8147e-06)
+polygon = PackedVector2Array(504, 16, 464, 56, 448, 56, 488, 16)
+
+[node name="Line2D" type="Line2D" parent="Line2D2/Line2D2"]
+position = Vector2(-1.27039, 0.145264)
+points = PackedVector2Array(609.128, -88, 673.128, -152)
+width = 1.0
+
+[node name="TextureRect" type="TextureRect" parent="."]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+texture = SubResource("GradientTexture2D_lx5rr")
+metadata/_edit_lock_ = true
+
+[node name="q" type="Line2D" parent="."]
+position = Vector2(960, 666)
+scale = Vector2(-1, 1)
+points = PackedVector2Array(768, -218, 512, 38)
+width = 1.0
+
+[node name="Line2D3" type="Line2D" parent="q"]
+position = Vector2(-960, -666)
+points = PackedVector2Array(1342, 802, 1408, 736, 1504, 736)
+width = 1.0
+gradient = SubResource("Gradient_y736k")
+
+[node name="Polygon2D" type="Polygon2D" parent="q/Line2D3"]
+polygon = PackedVector2Array(1313.41, 800.078, 1392, 800, 1384, 808, 1256, 808, 1264, 800)
+
+[node name="Polygon2D" type="Polygon2D" parent="q"]
+
+[node name="Polygon2D2" type="Polygon2D" parent="q"]
+position = Vector2(15.6344, 5.64764)
+polygon = PackedVector2Array(736, -208, 784, -208, 800, -224, 752, -224)
+
+[node name="Polygon2D3" type="Polygon2D" parent="q"]
+position = Vector2(-0.0196533, -0.691589)
+polygon = PackedVector2Array(576, 38, 560, 54, 496, 54, 512, 38, 512, 38)
+
+[node name="Polygon2D4" type="Polygon2D" parent="q"]
+polygon = PackedVector2Array(760, -82, 784, -82, 792, -90, 784, -90, 792, -98, 776, -98)
+
+[node name="Polygon2D" type="Polygon2D" parent="q/Polygon2D4"]
+modulate = Color(0.788235, 1, 0.529412, 1)
+position = Vector2(8, 0)
+polygon = PackedVector2Array(792, -82, 800, -90, 792, -90, 800, -98, 816, -98, 824, -98, 808, -82)
+
+[node name="Label" type="Label" parent="q/Polygon2D4/Polygon2D"]
+offset_left = 922.985
+offset_top = -117.671
+offset_right = 1007.99
+offset_bottom = -96.6708
+scale = Vector2(-1, 1)
+theme_override_fonts/font = SubResource("FontVariation_2p2wh")
+text = "VOL  100"
+metadata/_edit_use_anchors_ = true
+
+[node name="Line2D" type="Line2D" parent="q/Polygon2D4/Polygon2D"]
+points = PackedVector2Array(808, -90, 952, -90)
+width = 1.0
+
+[node name="CanvasGroup" type="CanvasGroup" parent="q/Polygon2D4"]
+self_modulate = Color(1, 1, 1, 0.129412)
+
+[node name="Line2D" type="Line2D" parent="q"]
+points = PackedVector2Array(640, -90, 784, -90)
+width = 1.0
+
+[node name="Polygon2D5" type="Polygon2D" parent="q"]
+
+[node name="Polygon2D6" type="Polygon2D" parent="q"]
+color = Color(1, 1, 1, 0.196078)
+texture = SubResource("GradientTexture2D_hptmk")
+polygon = PackedVector2Array(528, 30, 560, 30, 568, 22, 576, 14, 584, 6, 592, -2, 624, -10, 632, -18, 608, -26, 616, -34, 640, -42, 648, -50, 656, -58, 664, -66, 648, -74, 656, -82, 640, -82, 632, -74, 624, -66, 616, -58, 608, -50, 600, -42, 592, -34, 584, -26, 576, -18, 568, -10, 560, -2, 552, 6, 544, 14, 536, 22)
+uv = PackedVector2Array(528, 30, 568, 30, 568, 22, 576, 14, 592, 6, 600, -2, 608, -10, 600, -18, 608, -26, 632, -34, 640, -42, 648, -50, 656, -58, 664, -66, 648, -74, 656, -82, 640, -82, 632, -74, 624, -66, 616, -58, 608, -50, 600, -42, 592, -34, 584, -26, 576, -18, 568, -10, 560, -2, 552, 6, 544, 14, 536, 22)
+polygons = [PackedInt32Array(2, 29, 28, 3), PackedInt32Array(27, 26, 5, 4), PackedInt32Array(10, 21, 20, 11), PackedInt32Array(12, 19, 18, 13), PackedInt32Array(14, 15, 16, 17), PackedInt32Array(23, 8, 9, 22), PackedInt32Array(25, 6, 7, 24)]
+
+[node name="Line2D2" type="Line2D" parent="q"]
+position = Vector2(200, -202)
+points = PackedVector2Array(504, 16, 792, -272)
+width = 1.0
+default_color = Color(1, 1, 1, 0.196078)
+
+[node name="Polygon2D" type="Polygon2D" parent="q/Line2D2"]
+position = Vector2(2.55884, -1.86179)
+polygon = PackedVector2Array(504, 16, 464, 56, 448, 56, 488, 16)
+
+[node name="Label3" type="Label" parent="."]
+z_index = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -497.5
+offset_top = -126.0
+offset_right = 497.5
+offset_bottom = 126.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_fonts/font = SubResource("FontVariation_ocq1q")
+theme_override_font_sizes/font_size = 200
+text = "XANADU"
+metadata/_edit_lock_ = true
+
+[node name="Control" type="Control" parent="Label3"]
+layout_mode = 1
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 0
+
+[node name="Line2D" type="Line2D" parent="Label3"]
+points = PackedVector2Array(1025.5, 226, -30.5, 226)
+width = 2.0
+texture = SubResource("GradientTexture2D_lek62")
+texture_mode = 2
+
+[node name="Line2D3" type="Line2D" parent="."]
+points = PackedVector2Array(768, 768, 848, 768, 864, 784, 1056, 784, 1072, 768, 1160, 768)
+width = 1.0
+
+[node name="Polygon2D3" type="Polygon2D" parent="Line2D3"]
+polygon = PackedVector2Array(1144, 776, 1160, 760, 1216, 760, 1208, 768, 1168, 768, 1160, 776)
+
+[node name="Polygon2D" type="Polygon2D" parent="Line2D3/Polygon2D3"]
+color = Color(1, 1, 1, 0.196078)
+texture = SubResource("GradientTexture2D_15lvd")
+polygon = PackedVector2Array(1216, 768, 1224, 760, 1271.73, 760, 1288, 760, 1296, 760, 1304, 760, 1312, 760, 1304, 768, 1296, 768, 1288, 768, 1280, 768, 1264, 768)
+uv = PackedVector2Array(1216, 768, 1224, 760, 1271.73, 760, 1288, 760, 1296, 760, 1304, 760, 1312, 760, 1304, 768, 1296, 768, 1288, 768, 1280, 768, 1264, 768)
+polygons = [PackedInt32Array(0, 11, 2, 1), PackedInt32Array(8, 5, 6, 7), PackedInt32Array(10, 3, 4, 9)]
+
+[node name="CanvasGroup" type="CanvasGroup" parent="Line2D3/Polygon2D3"]
+self_modulate = Color(1, 1, 1, 0.392157)
+
+[node name="CanvasGroup2" type="CanvasGroup" parent="Line2D3/Polygon2D3"]
+self_modulate = Color(1, 1, 1, 0.392157)
+
+[node name="Polygon2D" type="Polygon2D" parent="Line2D3"]
+polygon = PackedVector2Array(944, 792, 960.678, 792, 976, 792, 992, 776, 928, 776)
+
+[node name="Polygon2D2" type="Polygon2D" parent="Line2D3"]
+position = Vector2(1924, 0)
+scale = Vector2(-1, 1)
+polygon = PackedVector2Array(1144, 776, 1160, 760, 1216, 760, 1208, 768, 1168, 768, 1160, 776)
+
+[node name="Polygon2D" type="Polygon2D" parent="Line2D3/Polygon2D2"]
+color = Color(1, 1, 1, 0.196078)
+texture = SubResource("GradientTexture2D_15lvd")
+polygon = PackedVector2Array(1216, 768, 1224, 760, 1271.73, 760, 1288, 760, 1296, 760, 1304, 760, 1312, 760, 1304, 768, 1296, 768, 1288, 768, 1280, 768, 1264, 768)
+uv = PackedVector2Array(1216, 768, 1224, 760, 1271.73, 760, 1288, 760, 1296, 760, 1304, 760, 1312, 760, 1304, 768, 1296, 768, 1288, 768, 1280, 768, 1264, 768)
+polygons = [PackedInt32Array(0, 11, 2, 1), PackedInt32Array(8, 5, 6, 7), PackedInt32Array(10, 3, 4, 9)]
+
+[node name="Line2D" type="Line2D" parent="."]
+points = PackedVector2Array(960, 448, 1456, 448, 1600, 304)
+width = 1.0
+gradient = SubResource("Gradient_t3vhh")
+
+[node name="Polygon2D" type="Polygon2D" parent="Line2D"]
+position = Vector2(-4, 0)
+polygon = PackedVector2Array(1596, 308, 1596, 308, 1592, 312, 1612, 312, 1616, 308, 1636, 308, 1640, 304, 1616, 304, 1620, 300, 1624, 300, 1628, 296, 1636, 296, 1640, 292, 1628, 292, 1632, 288, 1616, 288)
+
+[node name="CanvasGroup" type="CanvasGroup" parent="Line2D"]
+self_modulate = Color(1, 1, 1, 0.176471)
+
+[node name="Polygon2D" type="Polygon2D" parent="Line2D/CanvasGroup"]
+position = Vector2(8, 0)
+polygon = PackedVector2Array(1616, 312, 1620, 308, 1640, 308, 1644, 304, 1620, 304, 1624, 300, 1628, 300, 1632, 296, 1640, 296, 1644, 292, 1632, 292, 1636, 288, 1664, 288, 1640, 312)
+
+[node name="Line2D" type="Line2D" parent="Line2D/CanvasGroup/Polygon2D"]
+points = PackedVector2Array(1648, 300, 1912, 300)
+width = 1.0
+gradient = SubResource("Gradient_285v1")
+
+[node name="Line2D4" type="Line2D" parent="."]
+position = Vector2(-716, -104)
+scale = Vector2(1.30342, 1.30342)
+points = PackedVector2Array(889.967, 374.4, 868.485, 374.4, 843.935, 349.849, 567.738, 73.6525)
+width = 1.0
+gradient = SubResource("Gradient_7ngbs")
+metadata/_edit_lock_ = true
+
+[node name="Line2D2" type="Line2D" parent="Line2D4"]
+position = Vector2(88.9967, 42.9639)
+points = PackedVector2Array(874.623, 331.436, 779.489, 331.436)
+width = 1.0
+
+[node name="Polygon2D3" type="Polygon2D" parent="Line2D4/Line2D2"]
+modulate = Color(0.4, 1, 0.94902, 1)
+position = Vector2(1.73969, -1.57077)
+polygon = PackedVector2Array(880.761, 322.23, 899.174, 340.643, 917.587, 340.643, 899.174, 322.23)
+
+[node name="Line2D" type="Line2D" parent="Line2D4/Line2D2/Polygon2D3"]
+points = PackedVector2Array(905.312, 331.436, 936, 331.436, 958.811, 320.731, 1170.56, 320.731)
+width = 4.0
+gradient = SubResource("Gradient_tfg1h")
+
+[node name="Label" type="Label" parent="Line2D4/Line2D2/Polygon2D3/Line2D"]
+offset_left = 1198.0
+offset_top = 310.0
+offset_right = 1317.0
+offset_bottom = 333.0
+theme_override_fonts/font = SubResource("FontVariation_8mtf7")
+theme_override_styles/normal = SubResource("StyleBoxFlat_y3v8s")
+text = "L3 ACTIVE"
+
+[node name="Polygon2D2" type="Polygon2D" parent="Line2D4/Line2D2"]
+position = Vector2(-0.645182, -0.564499)
+polygon = PackedVector2Array(865.416, 325.298, 877.692, 337.574, 893.036, 337.574, 880.761, 325.298)
+
+[node name="Line2D3" type="Line2D" parent="Line2D4"]
+position = Vector2(27.6197, -18.4131)
+points = PackedVector2Array(874.623, 331.436, 779.489, 331.436)
+width = 1.0
+gradient = SubResource("Gradient_d3a1l")
+
+[node name="Polygon2D3" type="Polygon2D" parent="Line2D4/Line2D3"]
+modulate = Color(1, 0.4, 0.721569, 1)
+position = Vector2(1.73969, -1.57077)
+polygon = PackedVector2Array(880.761, 322.23, 899.174, 340.643, 917.587, 340.643, 899.174, 322.23)
+
+[node name="Label2" type="Label" parent="Line2D4/Line2D3/Polygon2D3"]
+offset_left = 1189.0
+offset_top = 308.0
+offset_right = 1299.0
+offset_bottom = 329.0
+theme_override_fonts/font = SubResource("FontVariation_8mtf7")
+theme_override_styles/normal = SubResource("StyleBoxFlat_y3v8s")
+text = "L1 ACTIVE"
+
+[node name="Line2D" type="Line2D" parent="Line2D4/Line2D3/Polygon2D3"]
+points = PackedVector2Array(905.312, 331.436, 936, 331.436, 958.811, 320.731, 1170.56, 320.731)
+width = 4.0
+gradient = SubResource("Gradient_tfg1h")
+
+[node name="Polygon2D2" type="Polygon2D" parent="Line2D4/Line2D3"]
+position = Vector2(-0.645182, -0.564499)
+polygon = PackedVector2Array(865.416, 325.298, 877.692, 337.574, 893.036, 337.574, 880.761, 325.298)
+
+[node name="Line2D4" type="Line2D" parent="Line2D4"]
+position = Vector2(58.3082, 12.2754)
+points = PackedVector2Array(874.623, 331.436, 779.489, 331.436)
+width = 1.0
+
+[node name="Polygon2D3" type="Polygon2D" parent="Line2D4/Line2D4"]
+modulate = Color(0.388235, 0.4, 0.160784, 1)
+position = Vector2(1.73969, -1.57077)
+polygon = PackedVector2Array(880.761, 322.23, 899.174, 340.643, 917.587, 340.643, 899.174, 322.23)
+
+[node name="Line2D" type="Line2D" parent="Line2D4/Line2D4/Polygon2D3"]
+points = PackedVector2Array(905.312, 331.436, 936, 331.436, 958.811, 320.731, 1170.56, 320.731)
+width = 4.0
+gradient = SubResource("Gradient_tfg1h")
+
+[node name="Label" type="Label" parent="Line2D4/Line2D4/Polygon2D3/Line2D"]
+offset_left = 1192.04
+offset_top = 309.954
+offset_right = 1333.04
+offset_bottom = 330.954
+theme_override_fonts/font = SubResource("FontVariation_8mtf7")
+text = "L2 UNRESPONSIVE"
+
+[node name="Polygon2D2" type="Polygon2D" parent="Line2D4/Line2D4"]
+position = Vector2(-0.645182, -0.564499)
+polygon = PackedVector2Array(865.416, 325.298, 877.692, 337.574, 893.036, 337.574, 880.761, 325.298)
+
+[node name="BackBufferCopy" type="BackBufferCopy" parent="."]
+position = Vector2(308.437, 962.908)
+copy_mode = 2
+
+[node name="Sprite2D" type="Sprite2D" parent="BackBufferCopy"]
+
+[node name="Line2D5" type="Line2D" parent="."]
+position = Vector2(1052.14, 145.564)
+points = PackedVector2Array(-1052.14, 750.436, -860.14, 750.436, -796.14, 814.436, 202.86, 814.436, 547.86, 814.436, 611.86, 750.436, 867.86, 750.436)
+width = 2.0
+texture = SubResource("GradientTexture2D_o03qg")
+texture_mode = 2
+
+[node name="Line2D" type="Line2D" parent="Line2D5"]
+position = Vector2(-92.1397, 842.436)
+scale = Vector2(0.865255, 0.769875)
+points = PackedVector2Array(434.554, -77.9347, 605.602, -77.9347, 665.699, -140.282, 1077.14, -140.282)
+width = 1.0
+
+[node name="Polygon2D" type="Polygon2D" parent="Line2D5/Line2D"]
+position = Vector2(0.171201, 0.495971)
+polygon = PackedVector2Array(1049.4, -140.282, 1091.01, -140.282, 1109.5, -161.065, 1067.89, -161.065)
+
+[node name="Polygon2D2" type="Polygon2D" parent="Line2D5/Line2D"]
+position = Vector2(-635.314, 82.6132)
+polygon = PackedVector2Array(1049.4, -140.282, 1091.01, -140.282, 1109.5, -161.065, 1067.89, -161.065)
+
+[node name="Polygon2D" type="Polygon2D" parent="Line2D5"]
+material = SubResource("ShaderMaterial_cwht3")
+polygon = PackedVector2Array(-1052.14, 750.436, -860.14, 750.436, -796.14, 814.436, 547.86, 814.436, 611.86, 750.436, 867.86, 750.436, 867.86, 934.436, -1052.14, 934.436)
+
+[node name="StartButton" type="Button" parent="."]
+modulate = Color(1, 0.901961, 0, 1)
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -4.0
+offset_top = -211.0
+offset_right = 4.0
+offset_bottom = -203.0
+grow_horizontal = 2
+grow_vertical = 0
+theme_override_fonts/font = SubResource("FontVariation_bveuo")
+theme_override_font_sizes/font_size = 40
+theme_override_styles/normal = SubResource("StyleBoxFlat_qoclk")
+theme_override_styles/hover = SubResource("StyleBoxFlat_qoclk")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_qoclk")
+theme_override_styles/disabled = SubResource("StyleBoxFlat_qoclk")
+theme_override_styles/focus = SubResource("StyleBoxEmpty_vcsh0")
+text = "PRESS TO START"
+
+[node name="Line2D" type="Line2D" parent="StartButton"]
+points = PackedVector2Array(425, 26, 477, 26, 509, -6, 588.539, -6.03906)
+width = 1.0
+end_cap_mode = 2
+round_precision = 2
+
+[node name="Polygon2D" type="Polygon2D" parent="StartButton/Line2D"]
+polygon = PackedVector2Array(549, -6, 541, 2, 557, 2, 565, -6, 573, -6, 565, 2, 581, 2, 589, -6)
+
+[node name="Line2D6" type="Line2D" parent="."]
+position = Vector2(8, -8)
+points = PackedVector2Array(1344, 656, 1424, 656, 1456, 688, 1584, 560)
+width = 1.0
+gradient = SubResource("Gradient_ehivv")
