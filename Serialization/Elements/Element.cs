@@ -12,5 +12,11 @@ namespace XanaduProject.Serialization.Elements
         public Vector2 Scale;
         public float Skew;
         public int Group;
+
+        public Transform2D GetElementTransform() =>
+            new Transform2D(Mathf.DegToRad(Rotation), Scale, Skew, Position);
+
+        public virtual Vector2 GetSize() =>
+            new Vector2(100, 100);
     }
 }
