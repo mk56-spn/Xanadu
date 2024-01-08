@@ -1,4 +1,4 @@
-[gd_scene load_steps=4 format=3 uid="uid://dfy4y23ujnsal"]
+[gd_scene load_steps=5 format=3 uid="uid://dfy4y23ujnsal"]
 
 [ext_resource type="Script" path="res://Tests/RenderTest.cs" id="1_wh0s5"]
 [ext_resource type="FontFile" uid="uid://dghg2sit48qtn" path="res://Resources/Fonts/LineThin.otf" id="2_yljsj"]
@@ -8,24 +8,22 @@ base_font = ExtResource("2_yljsj")
 variation_embolden = 2.0
 spacing_glyph = 15
 
-[node name="RenderMaster" type="Control" node_paths=PackedStringArray("button", "fps", "rotationSlider", "rotationLocalSlider")]
-modulate = Color(0.752941, 0.752941, 0.752941, 1)
-layout_mode = 3
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-script = ExtResource("1_wh0s5")
-button = NodePath("Button")
-fps = NodePath("Fps")
-rotationSlider = NodePath("")
-rotationLocalSlider = NodePath("")
-metadata/_edit_lock_ = true
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_klrcy"]
+bg_color = Color(1, 1, 1, 1)
+corner_radius_top_left = 5
+corner_radius_top_right = 5
+corner_radius_bottom_right = 5
+corner_radius_bottom_left = 5
 
-[node name="Fps" type="Label" parent="."]
+[node name="CanvasLayer2" type="CanvasLayer"]
+
+[node name="CanvasLayer" type="CanvasLayer" parent="."]
+layer = 2
+offset = Vector2(-0.46, 0)
+transform = Transform2D(1, 0, 0, 1, -0.46, 0)
+
+[node name="Fps" type="Label" parent="CanvasLayer"]
 z_index = 5
-layout_mode = 1
 anchors_preset = 5
 anchor_left = 0.5
 anchor_right = 0.5
@@ -42,21 +40,65 @@ theme_override_font_sizes/font_size = 40
 text = "FPS"
 justification_flags = 161
 
-[node name="Button" type="Button" parent="."]
-layout_mode = 1
-anchors_preset = -1
-anchor_left = 0.5
-anchor_top = 1.0
-anchor_right = 0.5
-anchor_bottom = 1.0
-offset_bottom = -70.0
-grow_horizontal = 2
-grow_vertical = 0
-text = "Serialise new random stage"
+[node name="PanelContainer" type="PanelContainer" parent="CanvasLayer"]
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -313.54
+offset_top = 81.0
+offset_right = -80.54
+offset_bottom = 275.0
+grow_horizontal = 0
+theme_override_styles/panel = SubResource("StyleBoxFlat_klrcy")
 
-[node name="PanelContainer" type="PanelContainer" parent="."]
+[node name="MarginContainer" type="MarginContainer" parent="CanvasLayer/PanelContainer"]
 layout_mode = 2
-offset_left = 1262.0
-offset_top = 232.0
-offset_right = 1807.0
-offset_bottom = 783.0
+mouse_filter = 0
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 10
+
+[node name="VBoxContainer" type="VBoxContainer" parent="CanvasLayer/PanelContainer/MarginContainer"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="HBoxContainer" type="HBoxContainer" parent="CanvasLayer/PanelContainer/MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="CanvasLayer/PanelContainer/MarginContainer/VBoxContainer/HBoxContainer"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="CanvasLayer/PanelContainer/MarginContainer/VBoxContainer/HBoxContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0, 0, 0, 1)
+text = "Count"
+justification_flags = 162
+
+[node name="SpinBox" type="SpinBox" parent="CanvasLayer/PanelContainer/MarginContainer/VBoxContainer/HBoxContainer/VBoxContainer"]
+layout_mode = 2
+max_value = 10000.0
+
+[node name="Serialize" type="Button" parent="CanvasLayer/PanelContainer/MarginContainer/VBoxContainer"]
+custom_minimum_size = Vector2(0, 50)
+layout_mode = 2
+text = "Serialise current stage"
+
+[node name="Button" type="Button" parent="CanvasLayer/PanelContainer/MarginContainer/VBoxContainer"]
+custom_minimum_size = Vector2(0, 50)
+layout_mode = 2
+text = "Serialise random Stage"
+
+[node name="RenderMaster" type="Control" parent="." node_paths=PackedStringArray("serializeButton", "randomButton", "fps", "spinBox")]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_wh0s5")
+serializeButton = NodePath("../CanvasLayer/PanelContainer/MarginContainer/VBoxContainer/Serialize")
+randomButton = NodePath("../CanvasLayer/PanelContainer/MarginContainer/VBoxContainer/Button")
+fps = NodePath("../CanvasLayer/Fps")
+spinBox = NodePath("../CanvasLayer/PanelContainer/MarginContainer/VBoxContainer/HBoxContainer/VBoxContainer/SpinBox")
+metadata/_edit_lock_ = true

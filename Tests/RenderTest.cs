@@ -2,6 +2,7 @@
 // See the LICENCE file in the repository root for full licence text.
 
 using System.Globalization;
+using System.Linq;
 using Godot;
 using XanaduProject.Rendering;
 using XanaduProject.Serialization;
@@ -11,35 +12,49 @@ namespace XanaduProject.Tests
 {
     public partial class RenderTest : Control
     {
-        [Export]
-        private Button button = null!;
-
+        [Export] private Button serializeButton = null!;
+        [Export] private Button randomButton = null!;
         [Export] private Label fps = null!;
-        [Export] private Slider rotationSlider = null!;
-        [Export] private Slider rotationLocalSlider = null!;
+        [Export] private SpinBox spinBox = null!;
 
-        private RenderMaster? renderMaster;
+        private ComposerRenderMaster renderMaster = null!;
+
+        public override void _GuiInput(InputEvent @event)
+        {
+            base._GuiInput(@event);
+
+            if (@event is InputEventMouseButton)
+                GD.Print(System.DateTime.Now.ToString(CultureInfo.InvariantCulture));
+        }
 
         public override void _Ready()
         {
             base._Ready();
 
-            renderMaster = new RenderMaster(new TestSerializableStage());
+            renderMaster = new ComposerRenderMaster(StageDeserializer.Deserialize());
             AddChild(renderMaster);
 
-            button.Pressed += () =>
+            serializeButton.Pressed += () => { StageSerializer.Serialize(new SerializableStage
             {
-                SerializableStage stage  =  new TestSerializableStage();
-                StageSerializer.Serialize(stage);
-                AddChild(new RenderMaster(stage));
-            };
+                Elements = renderMaster.Dictionary.Values.Select(c => c.Element).ToArray(),
+                DynamicTextures = [ new GradientTexture1D { Gradient = new Gradient() } ]
+            }); };
 
+            spinBox.ValueChanged += _ =>
+            {
+                StageSerializer.Serialize(new TestSerializableStage ());
+                GetTree().ReloadCurrentScene();
+            };
+            randomButton.Pressed += () =>
+            {
+                StageSerializer.Serialize(new TestSerializableStage ());
+                GetTree().ReloadCurrentScene();
+            };
         }
 
         public override void _Process(double delta)
         {
             base._Process(delta);
-
             fps.Text = Engine.GetFramesPerSecond().ToString(CultureInfo.InvariantCulture);
         }
     }
