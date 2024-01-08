@@ -15,7 +15,7 @@ namespace XanaduProject.Tests
     {
         public TestSerializableStage ()
         {
-            Elements = new Element[100];
+            Elements = new Element[RandRange(0, 100)];
             DynamicTextures = new Texture[10];
 
             for (int i = 0; i < Elements.Length; i++)
@@ -23,19 +23,23 @@ namespace XanaduProject.Tests
                 if (i % 2 == 0)
                     Elements[i] = new Element
                     {
+                        Scale = new Vector2((float)RandRange(0.1, 3), (float)RandRange(0.1, 3)),
                         Skew = RandRange(0, 1),
                         Position = new Vector2(Randf(), Randf()) * 1000,
                         Group = RandRange(0, 900),
-                        Rotation = 400,
+                        Rotation = RandRange(0, 1080),
                     };
                 else
                 {
                     Elements[i] = new TextElement
                     {
                         Text = "Testing",
+                        TextSize = RandRange(5, 300),
+                        Scale = new Vector2((float)RandRange(0.1, 3), (float)RandRange(0.1, 3)),
+                        Skew = RandRange(0, 1),
                         Position = new Vector2(Randf(), Randf()) * 1000,
                         Group = RandRange(0, 900),
-                        Rotation = 0,
+                        Rotation = RandRange(0, 1080),
                     };
                 }
             }
@@ -47,7 +51,7 @@ namespace XanaduProject.Tests
                     FillFrom = new Vector2(Randf(), Randf()),
                     Fill = (GradientTexture2D.FillEnum)RandRange(0, 2),
                     FillTo = new Vector2(Randf(), Randf()),
-                    Gradient = new Gradient { Colors = [Colors.Azure, Colors.Bisque ] , Offsets = [ 0, 0.6f, 0.9f ] }
+                    Gradient = new Gradient { Colors = [Colors.Azure, Colors.Bisque, Colors.White with { A = 0.4f } ] , Offsets = [ 0, 0.6f, 0.9f ] }
                 };
             }
         }

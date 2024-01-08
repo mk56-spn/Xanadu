@@ -1,24 +1,25 @@
 // Copyright (c) mk56_spn <dhsjplt@gmail.com>. Licensed under the GNU General Public Licence (2.0).
 // See the LICENCE file in the repository root for full licence text.
 
-using System;
 using Godot;
 using XanaduProject.Serialization.Elements;
 using XanaduProject.Serialization.SerialisedObjects;
-using static Godot.GD;
 using static Godot.RenderingServer;
 
 namespace XanaduProject.Rendering
 {
     [Tool]
-    public partial class RenderMaster (SerializableStage serializableStage) : Node2D
+    public partial class RenderMaster : Control
     {
         private readonly RenderGroup[] groups = new RenderGroup[1000];
-        private (Rid, Element)[] rids = Array.Empty<(Rid, Element)>();
+        protected readonly RenderInfo[] RenderElements;
 
-        public override void _Ready()
+        private readonly SerializableStage serializableStage;
+
+        public RenderMaster(SerializableStage serializableStage)
         {
-            base._Ready();
+            this.serializableStage = serializableStage;
+            RenderElements = new RenderInfo[this.serializableStage.Elements.Length];
 
             Rid baseCanvas = CanvasItemCreate();
             CanvasItemSetParent(baseCanvas, GetCanvasItem());
@@ -28,32 +29,35 @@ namespace XanaduProject.Rendering
                 groups[i] = new RenderGroup();
                 CanvasItemSetParent(groups[i].Rid, baseCanvas);
             }
-
-            createElements();
-        }
-
-        private void createElements()
-        {
-
-            rids = new (Rid, Element)[serializableStage.Elements.Length];
-            // ReSharper disable once ForCanBeConvertedToForeach
             for (int i = 0; i < serializableStage.Elements.Length; i++)
             {
-                var element = serializableStage.Elements[i];
-                Rid canvas;
-                CanvasItemSetParent(canvas = CanvasItemCreate(), groups[element.Group].Rid);
-                CanvasItemSetTransform(canvas, new Transform2D(Mathf.DegToRad(element.Rotation), Vector2.One * Randf(), element.Skew, element.Position));
-                rids[i] = (canvas, element);
-
-                switch (serializableStage.Elements[i])
-                {
-                    case TextElement textElement:
-                        break;
-                    default:
-                        CanvasItemAddTextureRect(canvas, new Rect2(serializableStage.Elements[i].Position, new Vector2(100, 50)), serializableStage.DynamicTextures[0].GetRid());
-                        break;
-                }
+                Element element = serializableStage.Elements[i];
+                RenderElements[i] = new RenderInfo(CreateItem(element), element);
             }
+        }
+
+        protected Rid CreateItem(Element element)
+        {
+            Rid canvas;
+            CanvasItemSetParent(canvas = CanvasItemCreate(), groups[element.Group].Rid);
+            CanvasItemSetTransform(canvas, element.GetElementTransform());
+            CanvasItemSetModulate(canvas, Colors.White with { A = 0.4f });
+            Texture texture = serializableStage.DynamicTextures[0];
+
+            Rect2 rect = new Rect2(-element.GetSize() / 2, element.GetSize());
+
+            switch (element)
+            {
+                case TextElement textElement:
+                    var size = ThemeDB.FallbackFont.GetStringSize(textElement.Text, fontSize: textElement.TextSize);
+                    ThemeDB.FallbackFont.DrawString(canvas, new Vector2(-size.X, size.Y / 2) / 2, textElement.Text, fontSize: textElement.TextSize);
+                    break;
+                default:
+                    CanvasItemAddTextureRect(canvas, rect, texture.GetRid());
+                    break;
+            }
+
+            return canvas;
         }
     }
 }
