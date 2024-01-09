@@ -16,11 +16,10 @@ corner_radius_bottom_right = 5
 corner_radius_bottom_left = 5
 
 [node name="CanvasLayer2" type="CanvasLayer"]
+follow_viewport_enabled = true
 
 [node name="CanvasLayer" type="CanvasLayer" parent="."]
 layer = 2
-offset = Vector2(-0.46, 0)
-transform = Transform2D(1, 0, 0, 1, -0.46, 0)
 
 [node name="Fps" type="Label" parent="CanvasLayer"]
 z_index = 5
@@ -96,6 +95,7 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+mouse_filter = 1
 script = ExtResource("1_wh0s5")
 serializeButton = NodePath("../CanvasLayer/PanelContainer/MarginContainer/VBoxContainer/Serialize")
 randomButton = NodePath("../CanvasLayer/PanelContainer/MarginContainer/VBoxContainer/Button")

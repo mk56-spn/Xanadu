@@ -36,30 +36,28 @@ namespace XanaduProject.Composer
 
             foreach (var renderInfo in RenderElements)
                 Dictionary.Add(createArea(renderInfo.Element), renderInfo);
+
+            MouseFilter = MouseFilterEnum.Pass;
         }
 
         #region Input handling
 
-        public override void _Input(InputEvent @event)
+        public override void _UnhandledInput(InputEvent @event)
         {
-            base._Input(@event);
+            base._UnhandledInput(@event);
 
-            if (@event is not InputEventMouseButton { ButtonIndex: MouseButton.Right, Pressed: true }) return;
-
-            if (SelectedAreas.Count == 0) return;
-
-            foreach (var selectedArea in SelectedAreas)
-                removeElement(selectedArea.Item1);
-
-            SelectedAreas = [];
-        }
-
-        public override void _GuiInput(InputEvent @event)
-        {
-
-            base._GuiInput(@event);
-
+            GD.Print(@event);
             QueueRedraw();
+
+            if (@event is InputEventMouseButton { ButtonIndex: MouseButton.Right, Pressed: true })
+            {
+                if (SelectedAreas.Count == 0) return;
+
+                foreach (var selectedArea in SelectedAreas)
+                    removeElement(selectedArea.Item1);
+
+                SelectedAreas = [];
+            }
 
             if (@event is not InputEventMouse) return;
 
