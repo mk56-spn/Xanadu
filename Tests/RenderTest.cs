@@ -1,12 +1,13 @@
 // Copyright (c) mk56_spn <dhsjplt@gmail.com>. Licensed under the GNU General Public Licence (2.0).
 // See the LICENCE file in the repository root for full licence text.
 
+using System;
 using System.Globalization;
 using System.Linq;
 using Godot;
-using XanaduProject.Rendering;
 using XanaduProject.Serialization;
 using XanaduProject.Serialization.SerialisedObjects;
+using ComposerRenderMaster = XanaduProject.Composer.ComposerRenderMaster;
 
 namespace XanaduProject.Tests
 {
@@ -24,7 +25,7 @@ namespace XanaduProject.Tests
             base._GuiInput(@event);
 
             if (@event is InputEventMouseButton)
-                GD.Print(System.DateTime.Now.ToString(CultureInfo.InvariantCulture));
+                GD.Print(DateTime.Now.ToString(CultureInfo.InvariantCulture));
         }
 
         public override void _Ready()
@@ -37,7 +38,7 @@ namespace XanaduProject.Tests
             serializeButton.Pressed += () => { StageSerializer.Serialize(new SerializableStage
             {
                 Elements = renderMaster.Dictionary.Values.Select(c => c.Element).ToArray(),
-                DynamicTextures = [ new GradientTexture1D { Gradient = new Gradient() } ]
+                DynamicTextures = renderMaster.GetTextures()
             }); };
 
             spinBox.ValueChanged += _ =>
