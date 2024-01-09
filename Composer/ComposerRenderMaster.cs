@@ -14,6 +14,8 @@ namespace XanaduProject.Composer
 {
     public partial class ComposerRenderMaster  : RenderMaster
     {
+        public static readonly Color COMPOSER_ACCENT = Colors.DeepPink;
+
         public readonly Dictionary<Rid, RenderInfo> Dictionary = new Dictionary<Rid, RenderInfo>();
 
         public List<(Rid, Vector2)> SelectedAreas = [];
@@ -50,7 +52,6 @@ namespace XanaduProject.Composer
         {
             base._UnhandledInput(@event);
 
-            GD.Print(@event);
             QueueRedraw();
 
             if (@event is InputEventMouseButton { ButtonIndex: MouseButton.Right, Pressed: true })
@@ -87,7 +88,6 @@ namespace XanaduProject.Composer
 
         public void ScaleElement(Rid area, Vector2 scale)
         {
-            GD.Print("Called");
             Element element = Dictionary[area].Element;
             element.Scale = scale;
             setTransforms(area, element);
@@ -225,5 +225,15 @@ namespace XanaduProject.Composer
 
         public Element GetElementForArea(Rid area) {
             return Dictionary[area].Element; }
+
+        public Vector2[] GetSelectedAreasPositions()
+        {
+            Vector2[] positions = new Vector2[SelectedAreas.Count];
+
+            for (int i = 0; i < SelectedAreas.Count; i++)
+                positions[i] = Dictionary[SelectedAreas[i].Item1].Element.Position;
+
+            return positions;
+        }
     }
 }
