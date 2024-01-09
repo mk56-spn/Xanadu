@@ -5,12 +5,10 @@ using Godot;
 
 namespace XanaduProject.Serialization.Elements
 {
-    public record TextElement : Element
+    public record TextureElement : Element
     {
-        public required string Text;
-        public int TextSize = 30;
+        public Vector2 Extents { get; } = new Vector2(64, 64);
 
-        public override Vector2 Size() =>
-            ThemeDB.FallbackFont.GetStringSize(Text, fontSize: TextSize);
+        public override Vector2 Size() => Extents;
     }
 }

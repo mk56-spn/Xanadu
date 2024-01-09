@@ -21,18 +21,21 @@ namespace XanaduProject.Tests
             for (int i = 0; i < Elements.Length; i++)
             {
                 if (i % 2 == 0)
-                    Elements[i] = new Element
+                    Elements[i] = new TextureElement
                     {
+                        Colour = new Color(Randf(), Randf(), Randf()),
                         Scale = new Vector2((float)RandRange(0.1, 3), (float)RandRange(0.1, 3)),
                         Skew = RandRange(0, 1),
                         Position = new Vector2(Randf(), Randf()) * 1000,
                         Group = RandRange(0, 900),
                         Rotation = RandRange(0, 1080),
+                        Zindex = RandRange(1, 1000)
                     };
                 else
                 {
                     Elements[i] = new TextElement
                     {
+                        Colour = new Color(Randf(), Randf(), Randf()),
                         Text = "Testing",
                         TextSize = RandRange(5, 300),
                         Scale = new Vector2((float)RandRange(0.1, 3), (float)RandRange(0.1, 3)),
@@ -40,6 +43,7 @@ namespace XanaduProject.Tests
                         Position = new Vector2(Randf(), Randf()) * 1000,
                         Group = RandRange(0, 900),
                         Rotation = RandRange(0, 1080),
+                        Zindex = RandRange(1, 1000)
                     };
                 }
             }
