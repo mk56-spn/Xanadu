@@ -4,12 +4,13 @@
 using System.Collections.Generic;
 using System.Linq;
 using Godot;
+using XanaduProject.Rendering;
 using XanaduProject.Serialization.Elements;
 using XanaduProject.Serialization.SerialisedObjects;
 using static Godot.PhysicsServer2D;
 using static Godot.RenderingServer;
 
-namespace XanaduProject.Rendering
+namespace XanaduProject.Composer
 {
     public partial class ComposerRenderMaster  : RenderMaster
     {
@@ -20,8 +21,13 @@ namespace XanaduProject.Rendering
         private bool held;
         private Vector2 heldMousePosition;
 
+        private ComposerEditWidget composerScaleWidget;
+
         public ComposerRenderMaster(SerializableStage serializableStage) : base(serializableStage)
         {
+            composerScaleWidget = ComposerEditWidget.Create(this);
+            AddChild(composerScaleWidget);
+
             SetAnchorsPreset(LayoutPreset.FullRect);
         }
         public override void _EnterTree()
@@ -32,6 +38,7 @@ namespace XanaduProject.Rendering
                 Dictionary.Add(createArea(renderInfo.Element), renderInfo);
         }
 
+        #region Input handling
 
         public override void _Input(InputEvent @event)
         {
@@ -72,12 +79,105 @@ namespace XanaduProject.Rendering
             selectPoint();
         }
 
+        #endregion
+
+        #region ElementModification
+
+        public void ScaleElement(Rid area, Vector2 scale)
+        {
+            GD.Print("Called");
+            Element element = Dictionary[area].Element;
+            element.Scale = scale;
+            setTransforms(area, element);
+        }
+
+        private void moveElement(Rid area, Vector2 position)
+        {
+            Element element = Dictionary[area].Element;
+            element.Position = position + (GetLocalMousePosition() - heldMousePosition);
+            setTransforms(area, element);
+        }
+
+        public void RotateElement(Rid area, float rotation)
+        {
+            Element element = Dictionary[area].Element;
+            element.Rotation = rotation;
+            setTransforms(area, element);
+        }
+
+        public void TintElement(Rid area, Color colour)
+        {
+            Element element = Dictionary[area].Element;
+            element.Colour = colour;
+            CanvasItemSetModulate(Dictionary[area].Canvas, colour);
+        }
+
+        private void setTransforms(Rid area, Element element)
+        {
+            CanvasItemSetTransform( Dictionary[area].Canvas,  element.Transform());
+            AreaSetTransform(area, element.Transform());
+        }
+
+        #endregion
+
+        #region ElementCreation
+
+        private void addElement()
+        {
+            GD.Print("Item added");
+            Element element = new TextureElement
+            {
+                Group = 1,
+                Position = GetLocalMousePosition(),
+                Rotation = 70,
+                Scale = new Vector2(1, 1)
+            };
+
+            Rid canvas = CreateItem(element);
+            Rid area = createArea(element);
+            Dictionary.Add(area, new RenderInfo(canvas, element));
+
+            QueueRedraw();
+        }
+
+        private Rid createArea(Element element)
+        {
+            Rid area = AreaCreate();
+            Rid shape = RectangleShapeCreate();
+
+            Transform2D transform = element.Transform();
+
+            AreaSetSpace(area, GetWorld2D().Space);
+            AreaAddShape(area, shape);
+            ShapeSetData(shape, element.Size() / 2);
+
+            AreaSetCollisionLayer(area, 1);
+
+            AreaSetTransform(area, transform);
+            AreaSetMonitorable(area, true);
+
+            return area;
+        }
+
+        private void removeElement(Rid area)
+        {
+            PhysicsServer2D.FreeRid(area);
+            RenderingServer.FreeRid(Dictionary[area].Canvas);
+
+            Dictionary.Remove(area);
+            QueueRedraw();
+        }
+
+        #endregion
+
         private void selectPoint()
         {
             selectedAreas = [];
 
             foreach (var rid in queryPoint())
                 selectedAreas.Add((rid, Dictionary[rid].Element.Position));
+
+            composerScaleWidget.Target = selectedAreas.Count == 1 ? selectedAreas.First().Item1 : null;
 
             if (selectedAreas.Count == 0)
                 addElement();
@@ -99,82 +199,29 @@ namespace XanaduProject.Rendering
                 .OfType<Rid>().ToArray();
         }
 
-        private void moveElement(Rid area, Vector2 position)
-        {
-            Rid canvas = Dictionary[area].Canvas;
-            Element element = Dictionary[area].Element;
-            element.Position = position + (GetLocalMousePosition() - heldMousePosition);
-            CanvasItemSetTransform(canvas,  element.GetElementTransform());
-            AreaSetTransform(area, element.GetElementTransform());
-        }
-
-        #region ElementCreation
-
-        private void addElement()
-        {
-            GD.Print("Item added");
-            Element element = new Element
-            {
-                Group = 1,
-                Position = GetLocalMousePosition(),
-                Rotation = 70,
-                Scale = new Vector2(1, 1)
-            };
-
-            Rid canvas = CreateItem(element);
-            Rid area = createArea(element);
-            Dictionary.Add(area, new RenderInfo(canvas, element));
-
-            QueueRedraw();
-        }
-
-        private Rid createArea(Element element)
-        {
-            Rid area = AreaCreate();
-            Rid shape = RectangleShapeCreate();
-
-            Transform2D transform = element.GetElementTransform();
-
-            AreaSetSpace(area, GetWorld2D().Space);
-            AreaAddShape(area, shape);
-            ShapeSetData(shape, element.GetSize() / 2);
-
-            AreaSetCollisionLayer(area, 1);
-
-            AreaSetTransform(area, transform);
-            AreaSetMonitorable(area, true);
-
-            return area;
-        }
-
-        private void removeElement(Rid area)
-        {
-            PhysicsServer2D.FreeRid(area);
-            RenderingServer.FreeRid(Dictionary[area].Canvas);
-
-            Dictionary.Remove(area);
-            QueueRedraw();
-        }
-
-        #endregion
+        #region Drawing
 
         public override void _Draw()
         {
             Vector2 center = Vector2.Zero;
 
-            foreach (var element in Dictionary)
-                DrawCircle(element.Value.Element.Position, 20, Colors.Red);
-
             foreach (var rid in selectedAreas)
             {
                 Element element = Dictionary[rid.Item1].Element;
                 center += element.Position;
-                DrawSetTransformMatrix(element.GetElementTransform());
-                DrawRect(new Rect2(-element.GetSize() / 2, element.GetSize()), Colors.Green with { A = 0.5f });
+
+                DrawSetTransformMatrix(element.Transform());
+
+                DrawRect(new Rect2(-element.Size() / 2, element.Size()), Colors.DeepPink with { A = 0.3f });
+                DrawRect(new Rect2(-element.Size() / 2, element.Size()), Colors.DeepPink, false, -0.1f);
             }
 
             DrawSetTransformMatrix(Transform2D.Identity);
-            DrawCircle(center / selectedAreas.Count, 10, Colors.Olive);
         }
+
+        #endregion
+
+        public Element GetElementForArea(Rid area) {
+            return Dictionary[area].Element; }
     }
 }
