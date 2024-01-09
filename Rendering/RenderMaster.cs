@@ -61,5 +61,7 @@ namespace XanaduProject.Rendering
 
             return canvas;
         }
+
+        public Texture[] GetTextures() => serializableStage.DynamicTextures;
     }
 }

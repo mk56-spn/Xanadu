@@ -16,7 +16,7 @@ namespace XanaduProject.Composer
     {
         public readonly Dictionary<Rid, RenderInfo> Dictionary = new Dictionary<Rid, RenderInfo>();
 
-        private List<(Rid, Vector2)> selectedAreas = [];
+        public List<(Rid, Vector2)> SelectedAreas = [];
 
         private bool held;
         private Vector2 heldMousePosition;
@@ -46,12 +46,12 @@ namespace XanaduProject.Composer
 
             if (@event is not InputEventMouseButton { ButtonIndex: MouseButton.Right, Pressed: true }) return;
 
-            if (selectedAreas.Count == 0) return;
+            if (SelectedAreas.Count == 0) return;
 
-            foreach (var selectedArea in selectedAreas)
+            foreach (var selectedArea in SelectedAreas)
                 removeElement(selectedArea.Item1);
 
-            selectedAreas = [];
+            SelectedAreas = [];
         }
 
         public override void _GuiInput(InputEvent @event)
@@ -64,7 +64,7 @@ namespace XanaduProject.Composer
             if (@event is not InputEventMouse) return;
 
             if (held)
-                foreach (var area in selectedAreas)
+                foreach (var area in SelectedAreas)
                     moveElement(area.Item1, area.Item2);
 
             if (@event is not InputEventMouseButton { ButtonIndex: MouseButton.Left }) return;
@@ -172,14 +172,14 @@ namespace XanaduProject.Composer
 
         private void selectPoint()
         {
-            selectedAreas = [];
+            SelectedAreas = [];
 
             foreach (var rid in queryPoint())
-                selectedAreas.Add((rid, Dictionary[rid].Element.Position));
+                SelectedAreas.Add((rid, Dictionary[rid].Element.Position));
 
-            composerScaleWidget.Target = selectedAreas.Count == 1 ? selectedAreas.First().Item1 : null;
+            composerScaleWidget.Target = SelectedAreas.Count == 1 ? SelectedAreas.First().Item1 : null;
 
-            if (selectedAreas.Count == 0)
+            if (SelectedAreas.Count == 0)
                 addElement();
         }
 
@@ -205,7 +205,7 @@ namespace XanaduProject.Composer
         {
             Vector2 center = Vector2.Zero;
 
-            foreach (var rid in selectedAreas)
+            foreach (var rid in SelectedAreas)
             {
                 Element element = Dictionary[rid.Item1].Element;
                 center += element.Position;
