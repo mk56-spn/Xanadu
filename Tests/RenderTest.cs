@@ -1,7 +1,6 @@
 // Copyright (c) mk56_spn <dhsjplt@gmail.com>. Licensed under the GNU General Public Licence (2.0).
 // See the LICENCE file in the repository root for full licence text.
 
-using System;
 using System.Globalization;
 using System.Linq;
 using Godot;
@@ -19,14 +18,6 @@ namespace XanaduProject.Tests
         [Export] private SpinBox spinBox = null!;
 
         private ComposerRenderMaster renderMaster = null!;
-
-        public override void _GuiInput(InputEvent @event)
-        {
-            base._GuiInput(@event);
-
-            if (@event is InputEventMouseButton)
-                GD.Print(DateTime.Now.ToString(CultureInfo.InvariantCulture));
-        }
 
         public override void _Ready()
         {
