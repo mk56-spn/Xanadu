@@ -15,11 +15,10 @@ namespace XanaduProject.Composer
         {
             base._Input(@event);
 
-            if (!Input.IsKeyPressed(Key.Space)) return;
-            GetViewport().SetInputAsHandled();
-
-            if (@event is not InputEventMouseMotion { ButtonMask: MouseButtonMask.Left } mouse) return;
+            if (@event is not InputEventMouseMotion { ButtonMask: MouseButtonMask.Middle } mouse) return;
             Offset -= mouse.Relative;
+
+            GetViewport().SetInputAsHandled();
         }
     }
 }

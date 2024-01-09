@@ -27,6 +27,7 @@ namespace XanaduProject.Composer
         {
             composerScaleWidget = ComposerEditWidget.Create(this);
             AddChild(composerScaleWidget);
+            AddChild(new PanningCamera());
 
             SetAnchorsPreset(LayoutPreset.FullRect);
         }
