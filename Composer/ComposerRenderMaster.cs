@@ -26,8 +26,11 @@ namespace XanaduProject.Composer
         public ComposerRenderMaster(SerializableStage serializableStage) : base(serializableStage)
         {
             composerScaleWidget = ComposerEditWidget.Create(this);
-            AddChild(composerScaleWidget);
-            AddChild(new PanningCamera());
+
+            CanvasLayer canvasLayer;
+            AddChild(canvasLayer = new CanvasLayer());
+            canvasLayer.AddChild(composerScaleWidget);
+            canvasLayer.AddChild(new PanningCamera());
 
             SetAnchorsPreset(LayoutPreset.FullRect);
         }
