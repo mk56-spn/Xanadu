@@ -6,7 +6,7 @@ using XanaduProject.Serialization.Elements;
 
 namespace XanaduProject.Composer
 {
-    public partial class ComposerVisuals(ComposerRenderMaster composer) : Control
+    public partial class ComposerVisuals(ComposerRenderMaster composer) : Node2D
     {
         private Label infoLabel = new Label();
 

@@ -33,6 +33,7 @@ namespace XanaduProject.Composer
             AddChild(canvasLayer = new CanvasLayer());
             canvasLayer.AddChild(composerScaleWidget);
             canvasLayer.AddChild(new PanningCamera());
+            canvasLayer.AddChild(new ComposerVisuals(this));
 
             SetAnchorsPreset(LayoutPreset.FullRect);
         }
@@ -207,28 +208,6 @@ namespace XanaduProject.Composer
                 .Select(c => c.Obj)
                 .OfType<Rid>().ToArray();
         }
-
-        #region Drawing
-
-        public override void _Draw()
-        {
-            Vector2 center = Vector2.Zero;
-
-            foreach (var rid in SelectedAreas)
-            {
-                Element element = Dictionary[rid.Item1].Element;
-                center += element.Position;
-
-                DrawSetTransformMatrix(element.Transform);
-
-                DrawRect(new Rect2(-element.Size() / 2, element.Size()), Colors.DeepPink with { A = 0.3f });
-                DrawRect(new Rect2(-element.Size() / 2, element.Size()), Colors.DeepPink, false, -0.1f);
-            }
-
-            DrawSetTransformMatrix(Transform2D.Identity);
-        }
-
-        #endregion
 
         public Element GetElementForArea(Rid area) {
             return Dictionary[area].Element; }
