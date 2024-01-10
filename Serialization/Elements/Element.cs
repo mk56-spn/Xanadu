@@ -5,18 +5,19 @@ using Godot;
 
 namespace XanaduProject.Serialization.Elements
 {
-    public record Element
+    public abstract record Element
     {
-        public Vector2 Position;
-        public float Rotation;
+        public int Zindex { get; set; } = 1;
+        public Color Colour { get; set; } = Colors.White;
+        public Vector2 Position { get; set; }
+        public float Rotation { get; set; }
+        public int Group = 1;
         public Vector2 Scale;
         public float Skew;
-        public int Group;
 
-        public Transform2D GetElementTransform() =>
-            new Transform2D(Mathf.DegToRad(Rotation), Scale, Skew, Position);
+        public Transform2D Transform => new Transform2D(Mathf.DegToRad(Rotation), Scale, Skew, Position);
 
-        public virtual Vector2 GetSize() =>
+        public virtual Vector2 Size() =>
             new Vector2(100, 100);
     }
 }

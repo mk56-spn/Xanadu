@@ -19,7 +19,7 @@ namespace XanaduProject.Rendering
         public RenderMaster(SerializableStage serializableStage)
         {
             this.serializableStage = serializableStage;
-            RenderElements = new RenderInfo[this.serializableStage.Elements.Length];
+            RenderElements = new RenderInfo[serializableStage.Elements.Length];
 
             Rid baseCanvas = CanvasItemCreate();
             CanvasItemSetParent(baseCanvas, GetCanvasItem());
@@ -38,13 +38,15 @@ namespace XanaduProject.Rendering
 
         protected Rid CreateItem(Element element)
         {
+            Texture texture = serializableStage.DynamicTextures[GD.RandRange(0, serializableStage.DynamicTextures.Length - 1)];
+
             Rid canvas;
             CanvasItemSetParent(canvas = CanvasItemCreate(), groups[element.Group].Rid);
-            CanvasItemSetTransform(canvas, element.GetElementTransform());
-            CanvasItemSetModulate(canvas, Colors.White with { A = 0.4f });
-            Texture texture = serializableStage.DynamicTextures[0];
+            CanvasItemSetTransform(canvas, element.Transform);
+            CanvasItemSetModulate(canvas, element.Colour);
+            CanvasItemSetZIndex(canvas, element.Zindex);
 
-            Rect2 rect = new Rect2(-element.GetSize() / 2, element.GetSize());
+            Rect2 rect = new Rect2(-element.Size() / 2, element.Size());
 
             switch (element)
             {
@@ -52,12 +54,16 @@ namespace XanaduProject.Rendering
                     var size = ThemeDB.FallbackFont.GetStringSize(textElement.Text, fontSize: textElement.TextSize);
                     ThemeDB.FallbackFont.DrawString(canvas, new Vector2(-size.X, size.Y / 2) / 2, textElement.Text, fontSize: textElement.TextSize);
                     break;
-                default:
+                case TextureElement:
                     CanvasItemAddTextureRect(canvas, rect, texture.GetRid());
                     break;
             }
 
             return canvas;
         }
+
+        public Texture[] GetTextures() => serializableStage.DynamicTextures;
+
+        public int ChildCount() => RenderElements.Length;
     }
 }

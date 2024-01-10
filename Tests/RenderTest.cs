@@ -4,7 +4,7 @@
 using System.Globalization;
 using System.Linq;
 using Godot;
-using XanaduProject.Rendering;
+using XanaduProject.Composer;
 using XanaduProject.Serialization;
 using XanaduProject.Serialization.SerialisedObjects;
 
@@ -15,17 +15,10 @@ namespace XanaduProject.Tests
         [Export] private Button serializeButton = null!;
         [Export] private Button randomButton = null!;
         [Export] private Label fps = null!;
+        [Export] private Label stageInfo = null!;
         [Export] private SpinBox spinBox = null!;
 
         private ComposerRenderMaster renderMaster = null!;
-
-        public override void _GuiInput(InputEvent @event)
-        {
-            base._GuiInput(@event);
-
-            if (@event is InputEventMouseButton)
-                GD.Print(System.DateTime.Now.ToString(CultureInfo.InvariantCulture));
-        }
 
         public override void _Ready()
         {
@@ -37,7 +30,7 @@ namespace XanaduProject.Tests
             serializeButton.Pressed += () => { StageSerializer.Serialize(new SerializableStage
             {
                 Elements = renderMaster.Dictionary.Values.Select(c => c.Element).ToArray(),
-                DynamicTextures = [ new GradientTexture1D { Gradient = new Gradient() } ]
+                DynamicTextures = renderMaster.GetTextures()
             }); };
 
             spinBox.ValueChanged += _ =>
@@ -55,6 +48,7 @@ namespace XanaduProject.Tests
         public override void _Process(double delta)
         {
             base._Process(delta);
+            stageInfo.Text = renderMaster.ChildCount().ToString();
             fps.Text = Engine.GetFramesPerSecond().ToString(CultureInfo.InvariantCulture);
         }
     }
