@@ -86,6 +86,13 @@ namespace XanaduProject.Composer
 
         #region ElementModification
 
+        public void SkewElement(Rid area, float skew)
+        {
+            Element element = Dictionary[area].Element;
+            element.Skew = skew;
+            setTransforms(area, element);
+        }
+
         public void ScaleElement(Rid area, Vector2 scale)
         {
             Element element = Dictionary[area].Element;
