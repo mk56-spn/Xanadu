@@ -1,19 +1,6 @@
-[gd_scene load_steps=5 format=3 uid="uid://dfy4y23ujnsal"]
+[gd_scene load_steps=2 format=3 uid="uid://dfy4y23ujnsal"]
 
 [ext_resource type="Script" path="res://Tests/RenderTest.cs" id="1_wh0s5"]
-[ext_resource type="FontFile" uid="uid://dghg2sit48qtn" path="res://Resources/Fonts/LineThin.otf" id="2_yljsj"]
-
-[sub_resource type="FontVariation" id="FontVariation_1dvf2"]
-base_font = ExtResource("2_yljsj")
-variation_embolden = 2.0
-spacing_glyph = 15
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_klrcy"]
-bg_color = Color(1, 1, 1, 1)
-corner_radius_top_left = 5
-corner_radius_top_right = 5
-corner_radius_bottom_right = 5
-corner_radius_bottom_left = 5
 
 [node name="CanvasLayer2" type="CanvasLayer"]
 follow_viewport_enabled = true
@@ -21,34 +8,27 @@ follow_viewport_enabled = true
 [node name="CanvasLayer" type="CanvasLayer" parent="."]
 layer = 2
 
-[node name="Fps" type="Label" parent="CanvasLayer"]
-z_index = 5
-anchors_preset = 5
-anchor_left = 0.5
-anchor_right = 0.5
-offset_left = -53.0
-offset_top = 47.0
-offset_right = 51.0
-offset_bottom = 87.0
-grow_horizontal = 2
-theme_override_colors/font_color = Color(0, 0, 0, 1)
-theme_override_colors/font_outline_color = Color(1, 1, 1, 1)
-theme_override_constants/outline_size = 11
-theme_override_fonts/font = SubResource("FontVariation_1dvf2")
+[node name="VBoxContainer" type="VBoxContainer" parent="CanvasLayer"]
+offset_right = 40.0
+offset_bottom = 40.0
+
+[node name="Fps" type="Label" parent="CanvasLayer/VBoxContainer"]
+layout_mode = 2
 theme_override_font_sizes/font_size = 40
 text = "FPS"
 justification_flags = 161
 
+[node name="Count" type="Label" parent="CanvasLayer/VBoxContainer"]
+layout_mode = 2
+
 [node name="PanelContainer" type="PanelContainer" parent="CanvasLayer"]
-anchors_preset = 1
-anchor_left = 1.0
-anchor_right = 1.0
-offset_left = -313.54
-offset_top = 81.0
-offset_right = -80.54
-offset_bottom = 275.0
-grow_horizontal = 0
-theme_override_styles/panel = SubResource("StyleBoxFlat_klrcy")
+anchors_preset = 4
+anchor_top = 0.5
+anchor_bottom = 0.5
+offset_top = -97.0
+offset_right = 233.0
+offset_bottom = 97.0
+grow_vertical = 2
 
 [node name="MarginContainer" type="MarginContainer" parent="CanvasLayer/PanelContainer"]
 layout_mode = 2
@@ -70,7 +50,6 @@ layout_mode = 2
 
 [node name="Label" type="Label" parent="CanvasLayer/PanelContainer/MarginContainer/VBoxContainer/HBoxContainer/VBoxContainer"]
 layout_mode = 2
-theme_override_colors/font_color = Color(0, 0, 0, 1)
 text = "Count"
 justification_flags = 162
 
@@ -88,7 +67,7 @@ custom_minimum_size = Vector2(0, 50)
 layout_mode = 2
 text = "Serialise random Stage"
 
-[node name="RenderMaster" type="Control" parent="." node_paths=PackedStringArray("serializeButton", "randomButton", "fps", "spinBox")]
+[node name="RenderMaster" type="Control" parent="." node_paths=PackedStringArray("serializeButton", "randomButton", "fps", "stageInfo", "spinBox")]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -99,6 +78,7 @@ mouse_filter = 1
 script = ExtResource("1_wh0s5")
 serializeButton = NodePath("../CanvasLayer/PanelContainer/MarginContainer/VBoxContainer/Serialize")
 randomButton = NodePath("../CanvasLayer/PanelContainer/MarginContainer/VBoxContainer/Button")
-fps = NodePath("../CanvasLayer/Fps")
+fps = NodePath("../CanvasLayer/VBoxContainer/Fps")
+stageInfo = NodePath("../CanvasLayer/VBoxContainer/Count")
 spinBox = NodePath("../CanvasLayer/PanelContainer/MarginContainer/VBoxContainer/HBoxContainer/VBoxContainer/SpinBox")
 metadata/_edit_lock_ = true

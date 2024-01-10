@@ -4,9 +4,9 @@
 using System.Globalization;
 using System.Linq;
 using Godot;
+using XanaduProject.Composer;
 using XanaduProject.Serialization;
 using XanaduProject.Serialization.SerialisedObjects;
-using ComposerRenderMaster = XanaduProject.Composer.ComposerRenderMaster;
 
 namespace XanaduProject.Tests
 {
@@ -15,6 +15,7 @@ namespace XanaduProject.Tests
         [Export] private Button serializeButton = null!;
         [Export] private Button randomButton = null!;
         [Export] private Label fps = null!;
+        [Export] private Label stageInfo = null!;
         [Export] private SpinBox spinBox = null!;
 
         private ComposerRenderMaster renderMaster = null!;
@@ -47,6 +48,7 @@ namespace XanaduProject.Tests
         public override void _Process(double delta)
         {
             base._Process(delta);
+            stageInfo.Text = renderMaster.ChildCount().ToString();
             fps.Text = Engine.GetFramesPerSecond().ToString(CultureInfo.InvariantCulture);
         }
     }
