@@ -26,7 +26,7 @@ namespace XanaduProject.Composer
                 Element element = composer.Dictionary[rid.Item1].Element;
                 center += element.Position;
 
-                DrawSetTransformMatrix(element.Transform().Translated(GetViewport().CanvasTransform.Origin));
+                DrawSetTransformMatrix(element.Transform.Translated(GetViewport().CanvasTransform.Origin));
 
                 DrawRect(new Rect2(-element.Size() / 2, element.Size()), Colors.DeepPink with { A = 0.3f });
                 DrawRect(new Rect2(-element.Size() / 2, element.Size()), Colors.DeepPink, false, -0.1f);
