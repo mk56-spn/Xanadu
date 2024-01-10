@@ -12,6 +12,7 @@ namespace XanaduProject.Composer
         [Export] private Slider scaleX = null!;
         [Export] private Slider skew  = null!;
         [Export] private ColorPicker picker = null!;
+        [Export] private SpinBox depth = null!;
 
         private ComposerRenderMaster composer = null!;
 
@@ -28,6 +29,8 @@ namespace XanaduProject.Composer
 
                 Element element = composer.GetElementForArea(target.Value);
 
+                GD.Print(element.Zindex);
+                depth.SetValueNoSignal(element.Zindex);
                 scaleX.SetValueNoSignal(element.Scale.X);
                 scaleY.SetValueNoSignal(element.Scale.Y);
                 skew.SetValueNoSignal(element.Skew);
@@ -49,6 +52,7 @@ namespace XanaduProject.Composer
         public override void _EnterTree()
         {
             AddChild(new RotationWidget(composer, this));
+
             scaleX.ValueChanged += _ => setScale();
             scaleY.ValueChanged += _ => setScale();
             skew.ValueChanged += value =>
@@ -57,6 +61,7 @@ namespace XanaduProject.Composer
                 composer.QueueRedraw();
             };
             picker.ColorChanged += color => composer.TintElement(target!.Value, color);
+            depth.ValueChanged += value => composer.SetElementDepth(target.Value, (int)value);
         }
 
         private void setScale()

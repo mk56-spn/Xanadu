@@ -12,7 +12,7 @@ gradient = SubResource("Gradient_2n6ct")
 texture = SubResource("GradientTexture2D_cglto")
 expand_margin_left = 200.0
 
-[node name="ComposerScaleWidget" type="Control" node_paths=PackedStringArray("scaleY", "scaleX", "skew", "picker")]
+[node name="ComposerScaleWidget" type="Control" node_paths=PackedStringArray("scaleY", "scaleX", "skew", "picker", "depth")]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -25,6 +25,7 @@ scaleY = NodePath("PanelContainer/MarginContainer/VBoxContainer/ScaleY")
 scaleX = NodePath("PanelContainer/MarginContainer/VBoxContainer/ScaleX")
 skew = NodePath("PanelContainer/MarginContainer/VBoxContainer/Skew")
 picker = NodePath("PanelContainer/MarginContainer/VBoxContainer/ColorPicker")
+depth = NodePath("PanelContainer/MarginContainer/VBoxContainer/Depth")
 
 [node name="PanelContainer" type="PanelContainer" parent="."]
 layout_mode = 1
@@ -80,6 +81,15 @@ min_value = 0.1
 max_value = 5.0
 step = 0.1
 value = 0.1
+
+[node name="Label4" type="Label" parent="PanelContainer/MarginContainer/VBoxContainer"]
+layout_mode = 2
+text = "Depth
+"
+
+[node name="Depth" type="SpinBox" parent="PanelContainer/MarginContainer/VBoxContainer"]
+layout_mode = 2
+max_value = 1000.0
 
 [node name="ColorPicker" type="ColorPicker" parent="PanelContainer/MarginContainer/VBoxContainer"]
 z_index = 3

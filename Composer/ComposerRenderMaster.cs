@@ -87,6 +87,13 @@ namespace XanaduProject.Composer
 
         #region ElementModification
 
+        public void SetElementDepth(Rid area, int depth)
+        {
+            Element element = Dictionary[area].Element;
+            element.Zindex = depth;
+            CanvasItemSetZIndex(Dictionary[area].Canvas, depth);
+        }
+
         public void SkewElement(Rid area, float skew)
         {
             Element element = Dictionary[area].Element;
