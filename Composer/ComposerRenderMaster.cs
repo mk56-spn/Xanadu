@@ -116,8 +116,8 @@ namespace XanaduProject.Composer
 
         private void setTransforms(Rid area, Element element)
         {
-            CanvasItemSetTransform( Dictionary[area].Canvas,  element.Transform());
-            AreaSetTransform(area, element.Transform());
+            CanvasItemSetTransform( Dictionary[area].Canvas,  element.Transform);
+            AreaSetTransform(area, element.Transform);
         }
 
         #endregion
@@ -147,7 +147,7 @@ namespace XanaduProject.Composer
             Rid area = AreaCreate();
             Rid shape = RectangleShapeCreate();
 
-            Transform2D transform = element.Transform();
+            Transform2D transform = element.Transform;
 
             AreaSetSpace(area, GetWorld2D().Space);
             AreaAddShape(area, shape);
@@ -212,7 +212,7 @@ namespace XanaduProject.Composer
                 Element element = Dictionary[rid.Item1].Element;
                 center += element.Position;
 
-                DrawSetTransformMatrix(element.Transform());
+                DrawSetTransformMatrix(element.Transform);
 
                 DrawRect(new Rect2(-element.Size() / 2, element.Size()), Colors.DeepPink with { A = 0.3f });
                 DrawRect(new Rect2(-element.Size() / 2, element.Size()), Colors.DeepPink, false, -0.1f);

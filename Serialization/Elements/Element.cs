@@ -15,8 +15,7 @@ namespace XanaduProject.Serialization.Elements
         public Vector2 Scale;
         public float Skew;
 
-        public Transform2D Transform() =>
-            new Transform2D(Mathf.DegToRad(Rotation), Scale, Skew, Position);
+        public Transform2D Transform => new Transform2D(Mathf.DegToRad(Rotation), Scale, Skew, Position);
 
         public virtual Vector2 Size() =>
             new Vector2(100, 100);
