@@ -6,15 +6,26 @@ using XanaduProject.Serialization.Elements;
 
 namespace XanaduProject.Composer
 {
-    public partial class ComposerVisuals(ComposerRenderMaster composer) : Node2D
+    public partial class ComposerVisuals(ComposerRenderMaster composer) : Control
     {
-        private Label infoLabel = new Label();
+        private Label infoLabel = new Label { Visible = false, Modulate = Colors.GreenYellow };
 
-        public override void _Ready() =>  AddChild(infoLabel);
-        public override void _PhysicsProcess(double delta)
+        public override void _Ready()
         {
-            infoLabel.Text = "Canvas transform: " +  GetViewport().CanvasTransform.Origin;
+            AddChild(infoLabel);
+            infoLabel.Position = new Vector2(30, 100);
+        }
+
+        public override void _Process(double delta)
+        {
+            infoLabel.Text = $"Canvas transform: {GetViewport().CanvasTransform.Origin} \nSelected count: {composer.SelectedAreas.Count} ";
             QueueRedraw();
+        }
+
+        public override void _Input(InputEvent @event)
+        {
+            if (@event is InputEventKey { KeyLabel: Key.F10 , Pressed: true })
+                infoLabel.Visible = !infoLabel.Visible;
         }
 
         public override void _Draw()
