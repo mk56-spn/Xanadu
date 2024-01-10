@@ -38,11 +38,11 @@ namespace XanaduProject.Rendering
 
         protected Rid CreateItem(Element element)
         {
-            Texture texture = serializableStage.DynamicTextures[0];
+            Texture texture = serializableStage.DynamicTextures[GD.RandRange(0, serializableStage.DynamicTextures.Length - 1)];
 
             Rid canvas;
             CanvasItemSetParent(canvas = CanvasItemCreate(), groups[element.Group].Rid);
-            CanvasItemSetTransform(canvas, element.Transform());
+            CanvasItemSetTransform(canvas, element.Transform);
             CanvasItemSetModulate(canvas, element.Colour);
             CanvasItemSetZIndex(canvas, element.Zindex);
 
