@@ -43,10 +43,11 @@ namespace XanaduProject.Composer
         public override void _Draw() {
             DrawSetTransform(aggregatePosition(), Mathf.DegToRad(composerRenderMaster.Dictionary[composerEditWidget.Target!.Value].Element.Rotation));
 
-            DrawCircle(new Vector2(200, 0), 15, ComposerRenderMaster.COMPOSER_ACCENT);
-
             DrawArc(Vector2.Zero, radius, 0, Mathf.Tau, 60, ComposerRenderMaster.COMPOSER_ACCENT with { A = 0.25f }, 10);
             DrawArc(Vector2.Zero, radius, 0, Mathf.Tau, 60, ComposerRenderMaster.COMPOSER_ACCENT, 3);
+
+            DrawCircle(new Vector2(200, 0), 15, ComposerRenderMaster.COMPOSER_ACCENT);
+            DrawCircle(new Vector2(200, 0), 10, Colors.White with { A = 0.3f * (float)Mathf.Abs(Mathf.Sin(4 * Time.GetUnixTimeFromSystem())) });
         }
 
 
