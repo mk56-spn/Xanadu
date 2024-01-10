@@ -63,5 +63,7 @@ namespace XanaduProject.Rendering
         }
 
         public Texture[] GetTextures() => serializableStage.DynamicTextures;
+
+        public int ChildCount() => RenderElements.Length;
     }
 }
