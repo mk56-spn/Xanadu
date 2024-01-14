@@ -1,15 +1,19 @@
 // Copyright (c) mk56_spn <dhsjplt@gmail.com>. Licensed under the GNU General Public Licence (2.0).
 // See the LICENCE file in the repository root for full licence text.
 
+using System.Linq;
 using Godot;
 
 namespace XanaduProject.Composer
 {
-    public partial class RotationWidget (ComposerRenderMaster composerRenderMaster, ComposerEditWidget composerEditWidget) : Node2D
+    public partial class RotationWidget (ComposerRenderMaster composer, ComposerEditWidget composerEditWidget) : Node2D
     {
         private const float  radius = 200;
 
         private bool pressed;
+
+
+        private Vector2 truePosition =>  aggregatePosition() * GetViewport().CanvasTransform.Scale + GetViewport().CanvasTransform.Origin;
 
         public override void _Process(double delta) => QueueRedraw();
         public override void _Input(InputEvent @event)
@@ -19,7 +23,7 @@ namespace XanaduProject.Composer
             if (pressed)
                 updateRotation();
 
-            float distance = aggregatePosition().DistanceTo(GetLocalMousePosition());
+            float distance = truePosition.DistanceTo(GetLocalMousePosition());
 
             if (GetParent<Control>().Visible == false) return;
 
@@ -35,13 +39,17 @@ namespace XanaduProject.Composer
 
         private void updateRotation()
         {
-            float angle = aggregatePosition().AngleToPoint(GetLocalMousePosition());
+            float angle = truePosition.AngleToPoint(GetLocalMousePosition());
 
             if (composerEditWidget.Target != null)
-                composerRenderMaster.RotateElement(composerEditWidget.Target.Value, Mathf.RadToDeg(angle));
+                composer.RotateElement(composerEditWidget.Target.Value, Mathf.RadToDeg(angle));
         }
-        public override void _Draw() {
-            DrawSetTransform(aggregatePosition(), Mathf.DegToRad(composerRenderMaster.Dictionary[composerEditWidget.Target!.Value].Element.Rotation));
+        public override void _Draw()
+        {
+            if (composer.SelectedAreas.Count == 0) return;
+
+
+            DrawSetTransform(truePosition, Mathf.DegToRad(composer.Dictionary[composer.SelectedAreas.First().Item1].Element.Rotation));
 
             DrawArc(Vector2.Zero, radius, 0, Mathf.Tau, 60, ComposerRenderMaster.COMPOSER_ACCENT with { A = 0.25f }, 10);
             DrawArc(Vector2.Zero, radius, 0, Mathf.Tau, 60, ComposerRenderMaster.COMPOSER_ACCENT, 3);
@@ -56,12 +64,12 @@ namespace XanaduProject.Composer
         {
             Vector2 positionAggregate = new Vector2();
 
-            foreach (var position in composerRenderMaster.GetSelectedAreasPositions())
+            foreach (var position in composer.GetSelectedAreasPositions())
                 positionAggregate += position;
 
-            positionAggregate /= composerRenderMaster.GetSelectedAreasPositions().Length;
+            positionAggregate /= composer.GetSelectedAreasPositions().Length;
 
-            return positionAggregate + GetViewport().CanvasTransform.Origin;
+            return positionAggregate;
         }
     }
 }
