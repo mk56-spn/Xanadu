@@ -141,7 +141,7 @@ namespace XanaduProject.Composer
 
         private void addElement()
         {
-            GD.Print("Item added");
+            GD.PrintRich("[code][color=green]Item added");
             Element element = new TextureElement
             {
                 Group = 1,
@@ -178,6 +178,7 @@ namespace XanaduProject.Composer
 
         private void removeElement(Rid area)
         {
+            GD.PrintRich("[code][color=red]Item removed");
             PhysicsServer2D.FreeRid(area);
             RenderingServer.FreeRid(Dictionary[area].Canvas);
 
