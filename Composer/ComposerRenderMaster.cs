@@ -4,6 +4,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using Godot;
+using XanaduProject.DataStructure;
 using XanaduProject.Rendering;
 using XanaduProject.Serialization.Elements;
 using XanaduProject.Serialization.SerialisedObjects;
@@ -25,7 +26,7 @@ namespace XanaduProject.Composer
 
         private ComposerEditWidget composerScaleWidget;
 
-        public ComposerRenderMaster(SerializableStage serializableStage) : base(serializableStage)
+        public ComposerRenderMaster(SerializableStage serializableStage, TrackInfo trackInfo) : base(serializableStage, trackInfo)
         {
             composerScaleWidget = ComposerEditWidget.Create(this);
 
@@ -141,7 +142,7 @@ namespace XanaduProject.Composer
 
         private void addElement()
         {
-            GD.Print("Item added");
+            GD.PrintRich("[code][color=green]Item added");
             Element element = new TextureElement
             {
                 Group = 1,
@@ -171,13 +172,13 @@ namespace XanaduProject.Composer
             AreaSetCollisionLayer(area, 1);
 
             AreaSetTransform(area, transform);
-            AreaSetMonitorable(area, true);
 
             return area;
         }
 
         private void removeElement(Rid area)
         {
+            GD.PrintRich("[code][color=red]Item removed");
             PhysicsServer2D.FreeRid(area);
             RenderingServer.FreeRid(Dictionary[area].Canvas);
 

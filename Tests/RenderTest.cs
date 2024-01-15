@@ -5,6 +5,7 @@ using System.Globalization;
 using System.Linq;
 using Godot;
 using XanaduProject.Composer;
+using XanaduProject.DataStructure;
 using XanaduProject.Serialization;
 using XanaduProject.Serialization.SerialisedObjects;
 
@@ -24,7 +25,7 @@ namespace XanaduProject.Tests
         {
             base._Ready();
 
-            renderMaster = new ComposerRenderMaster(StageDeserializer.Deserialize());
+            renderMaster = new ComposerRenderMaster(StageDeserializer.Deserialize(), GD.Load<TrackInfo>("res://Resources/TestTrack.tres"));
             AddChild(renderMaster);
 
             serializeButton.Pressed += () => { StageSerializer.Serialize(new SerializableStage
@@ -35,7 +36,7 @@ namespace XanaduProject.Tests
 
             spinBox.ValueChanged += _ =>
             {
-                StageSerializer.Serialize(new TestSerializableStage ());
+                StageSerializer.Serialize(new TestSerializableStage((int)spinBox.Value, 1000, 10000));
                 GetTree().ReloadCurrentScene();
             };
             randomButton.Pressed += () =>

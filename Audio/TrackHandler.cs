@@ -25,12 +25,12 @@ namespace XanaduProject.Audio
         /// <summary>
         /// Called after the beats preempting the actual song start have all been played
         /// </summary>
-        public event EventHandler OnPreemptComplete = null!;
+        public event EventHandler? OnPreemptComplete;
 
         /// <summary>
         /// Called before preempt beats, when the call to start the song is made
         /// </summary>
-        public event Action OnSongCommence = null!;
+        public event Action? OnSongCommence;
         /// <summary>
         /// The time in seconds between every 1/1 beat;
         /// </summary>
@@ -91,7 +91,7 @@ namespace XanaduProject.Audio
             timer.WaitTime = offset / 4;
             timer.Start();
 
-            OnSongCommence.Invoke();
+            OnSongCommence?.Invoke();
 
             int i = 0;
             timer.Timeout += () =>
@@ -100,7 +100,7 @@ namespace XanaduProject.Audio
 
                 OnBeat?.Invoke(null, 0);
                 if (i < 4 ) return;
-                OnPreemptComplete.Invoke(this, EventArgs.Empty);
+                OnPreemptComplete?.Invoke(this, EventArgs.Empty);
                 audio.Play();
                 timer.Paused = true;
             };
