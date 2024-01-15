@@ -2,6 +2,8 @@
 // See the LICENCE file in the repository root for full licence text.
 
 using Godot;
+using XanaduProject.Audio;
+using XanaduProject.DataStructure;
 using XanaduProject.Serialization.Elements;
 using XanaduProject.Serialization.SerialisedObjects;
 using static Godot.RenderingServer;
@@ -14,10 +16,18 @@ namespace XanaduProject.Rendering
         private readonly RenderGroup[] groups = new RenderGroup[1000];
         protected readonly RenderInfo[] RenderElements;
 
+        private readonly NoteProcessor noteProcessor;
         private readonly SerializableStage serializableStage;
+        private readonly TrackHandler trackHandler = new TrackHandler();
 
-        public RenderMaster(SerializableStage serializableStage)
+        public RenderMaster(SerializableStage serializableStage, TrackInfo trackInfo)
         {
+            noteProcessor = new NoteProcessor(trackHandler);
+
+            AddChild(trackHandler);
+            AddChild(noteProcessor);
+            trackHandler.SetTrack(trackInfo);
+
             this.serializableStage = serializableStage;
             RenderElements = new RenderInfo[serializableStage.Elements.Length];
 
@@ -32,8 +42,19 @@ namespace XanaduProject.Rendering
             for (int i = 0; i < serializableStage.Elements.Length; i++)
             {
                 Element element = serializableStage.Elements[i];
-                RenderElements[i] = new RenderInfo(CreateItem(element), element);
+
+                Rid canvas;
+                RenderElements[i] = new RenderInfo(canvas = CreateItem(element), element);
+
+                if (element is NoteElement noteElement)
+                    noteProcessor.Notes.Add(new Note(noteElement, canvas));
             }
+        }
+
+        public override void _Ready()
+        {
+            base._Ready();
+            trackHandler.StartTrack();
         }
 
         protected Rid CreateItem(Element element)
@@ -50,6 +71,9 @@ namespace XanaduProject.Rendering
 
             switch (element)
             {
+                case NoteElement:
+                    CanvasItemAddCircle(canvas, Vector2.Zero, NoteElement.RADIUS, Colors.White);
+                    break;
                 case TextElement textElement:
                     var size = ThemeDB.FallbackFont.GetStringSize(textElement.Text, fontSize: textElement.TextSize);
                     ThemeDB.FallbackFont.DrawString(canvas, new Vector2(-size.X, size.Y / 2) / 2, textElement.Text, fontSize: textElement.TextSize);

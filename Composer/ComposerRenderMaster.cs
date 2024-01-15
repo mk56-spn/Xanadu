@@ -4,6 +4,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using Godot;
+using XanaduProject.DataStructure;
 using XanaduProject.Rendering;
 using XanaduProject.Serialization.Elements;
 using XanaduProject.Serialization.SerialisedObjects;
@@ -25,7 +26,7 @@ namespace XanaduProject.Composer
 
         private ComposerEditWidget composerScaleWidget;
 
-        public ComposerRenderMaster(SerializableStage serializableStage) : base(serializableStage)
+        public ComposerRenderMaster(SerializableStage serializableStage, TrackInfo trackInfo) : base(serializableStage, trackInfo)
         {
             composerScaleWidget = ComposerEditWidget.Create(this);
 
@@ -171,7 +172,6 @@ namespace XanaduProject.Composer
             AreaSetCollisionLayer(area, 1);
 
             AreaSetTransform(area, transform);
-            AreaSetMonitorable(area, true);
 
             return area;
         }
