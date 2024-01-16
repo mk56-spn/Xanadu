@@ -17,7 +17,6 @@ namespace XanaduProject.Rendering
         public Rid Canvas = Canvas;
         public Rid Area = Area;
 
-
         public void Remove()
         {
             RenderingServer.FreeRid(Canvas);
@@ -25,7 +24,6 @@ namespace XanaduProject.Rendering
             if (Area != default)
                 PhysicsServer2D.FreeRid(Area);
         }
-
 
         public void SetDepth(int value)
         {
@@ -36,13 +34,25 @@ namespace XanaduProject.Rendering
         public void SetSkew(float value)
         {
             Element.Skew = value;
-            setTransforms();
+            SetTransforms();
         }
 
         public void SetScale(Vector2 value)
         {
             Element.Scale = value;
-            setTransforms();
+            SetTransforms();
+        }
+
+        public void SetPosition(Vector2 value)
+        {
+            Element.Position = value;
+            SetTransforms();
+        }
+
+        public void SetRotation(float rotation)
+        {
+            Element.Rotation = rotation;
+            SetTransforms();
         }
 
         public void SetTint(Color colour)
@@ -51,11 +61,11 @@ namespace XanaduProject.Rendering
             RenderingServer.CanvasItemSetModulate(Canvas, colour);
         }
 
-        private void setTransforms()
+        protected virtual void SetTransforms()
         {
-
+            GD.Print("called");
             RenderingServer.CanvasItemSetTransform(Canvas, Element.Transform);
-            PhysicsServer2D.AreaSetTransform(Area, Element.Transform);
+            PhysicsServer2D.AreaSetTransform(Area,  Element.Transform);
         }
     }
 }
