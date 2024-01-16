@@ -9,11 +9,9 @@ namespace XanaduProject.Rendering
     public record PhysicsRenderElement (Element Element, Rid Canvas, Rid Area = new Rid()) : RenderElement(Element, Canvas, Area)
     {
         public Rid PhysicsArea;
-
-        public override void SetTransforms()
+        protected override void SetTransforms()
         {
             base.SetTransforms();
-            GD.PrintRich("[code][color=orange] Updated");
             PhysicsServer2D.BodySetShapeTransform(PhysicsArea, 0, Element.Transform);
         }
     }
