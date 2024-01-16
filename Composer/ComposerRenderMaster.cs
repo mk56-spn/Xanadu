@@ -192,8 +192,12 @@ namespace XanaduProject.Composer
         {
             SelectedAreas = [];
 
+
             foreach (var rid in queryPoint())
-                SelectedAreas.Add((rid, Dictionary[rid].Element.Position));
+            {
+                if (!Dictionary.TryGetValue(rid, out var value)) return;
+                SelectedAreas.Add((rid, value.Element.Position));
+            }
 
             composerScaleWidget.Target = SelectedAreas.Count == 1 ? SelectedAreas.First().Item1 : null;
 
@@ -228,6 +232,15 @@ namespace XanaduProject.Composer
                 positions[i] = Dictionary[SelectedAreas[i].Item1].Element.Position;
 
             return positions;
+        }
+
+        protected override void FreeRids()
+        {
+            foreach (var pair in Dictionary)
+            {
+                PhysicsServer2D.FreeRid(pair.Key);
+                RenderingServer.FreeRid(pair.Value.Canvas);
+            }
         }
     }
 }

@@ -57,6 +57,8 @@ namespace XanaduProject.Rendering
             trackHandler.StartTrack();
         }
 
+        public override void _ExitTree() => FreeRids();
+
         protected Rid CreateItem(Element element)
         {
             Texture texture = serializableStage.DynamicTextures[GD.RandRange(0, serializableStage.DynamicTextures.Length - 1)];
@@ -89,5 +91,11 @@ namespace XanaduProject.Rendering
         public Texture[] GetTextures() => serializableStage.DynamicTextures;
 
         public int ChildCount() => RenderElements.Length;
+
+        protected virtual void FreeRids()
+        {
+            foreach (var s in RenderElements)
+                RenderingServer.FreeRid(s.Canvas);
+        }
     }
 }
