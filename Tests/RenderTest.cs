@@ -30,7 +30,7 @@ namespace XanaduProject.Tests
 
             serializeButton.Pressed += () => { StageSerializer.Serialize(new SerializableStage
             {
-                Elements = renderMaster.Dictionary.Values.Select(c => c.Element).ToArray(),
+                Elements = renderMaster.RenderElements.Select(c => c.Element).ToArray(),
                 DynamicTextures = renderMaster.GetTextures()
             }); };
 
