@@ -5,7 +5,6 @@ using Chickensoft.AutoInject;
 using Godot;
 using SuperNodes.Types;
 using XanaduProject.DataStructure;
-using XanaduProject.Screens.Player;
 
 namespace XanaduProject.Screens.StageSelection
 {
@@ -26,10 +25,6 @@ namespace XanaduProject.Screens.StageSelection
             base._Ready();
 
             AddChild(new StageSelectionCarousel());
-
-            startButton.Pressed += () => loadScene(new PlayerLoader(ActiveInfo));
-            editButton.Pressed += () => loadScene(new Composer.Composer(ActiveInfo));
-
             Provide();
         }
 
