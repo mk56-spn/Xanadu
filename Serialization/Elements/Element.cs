@@ -19,5 +19,7 @@ namespace XanaduProject.Serialization.Elements
 
         public virtual Vector2 Size() =>
             new Vector2(100, 100);
+
+        public virtual Color ComposerColour => Colors.White;
     }
 }
