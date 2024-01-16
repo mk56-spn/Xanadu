@@ -1,12 +1,14 @@
 // Copyright (c) mk56_spn <dhsjplt@gmail.com>. Licensed under the GNU General Public Licence (2.0).
 // See the LICENCE file in the repository root for full licence text.
 
+using System.Collections.Generic;
 using Godot;
 using XanaduProject.Audio;
 using XanaduProject.DataStructure;
 using XanaduProject.Serialization.Elements;
 using XanaduProject.Serialization.SerialisedObjects;
 using static Godot.RenderingServer;
+using static Godot.PhysicsServer2D;
 
 namespace XanaduProject.Rendering
 {
@@ -14,11 +16,12 @@ namespace XanaduProject.Rendering
     public partial class RenderMaster : Control
     {
         private readonly RenderGroup[] groups = new RenderGroup[1000];
-        protected readonly RenderInfo[] RenderElements;
 
         private readonly NoteProcessor noteProcessor;
         private readonly SerializableStage serializableStage;
         private readonly TrackHandler trackHandler = new TrackHandler();
+
+        public readonly List<RenderElement> RenderElements = new List<RenderElement>();
 
         public RenderMaster(SerializableStage serializableStage, TrackInfo trackInfo)
         {
@@ -29,7 +32,6 @@ namespace XanaduProject.Rendering
             trackHandler.SetTrack(trackInfo);
 
             this.serializableStage = serializableStage;
-            RenderElements = new RenderInfo[serializableStage.Elements.Length];
 
             Rid baseCanvas = CanvasItemCreate();
             CanvasItemSetParent(baseCanvas, GetCanvasItem());
@@ -42,12 +44,27 @@ namespace XanaduProject.Rendering
             for (int i = 0; i < serializableStage.Elements.Length; i++)
             {
                 Element element = serializableStage.Elements[i];
+                RenderElement renderElement;
 
-                Rid canvas;
-                RenderElements[i] = new RenderInfo(canvas = CreateItem(element), element);
+                switch (element)
+                {
+                    case PhysicsElement physicsElement:
+                        renderElement = new PhysicsRenderElement(element, CreateItem(element));
+                        TreeEntered += () =>
+                        {
+                            (renderElement as PhysicsRenderElement)!.PhysicsArea = createArea(physicsElement);
+                        };
+                        break;
+                    case NoteElement noteElement:
+                        renderElement = new RenderElement(element, CreateItem(element));
+                        noteProcessor.Notes.Add(new Note(noteElement, renderElement.Canvas));
+                        break;
+                    default:
+                        renderElement = new RenderElement(element, CreateItem(element));
+                        break;
+                }
 
-                if (element is NoteElement noteElement)
-                    noteProcessor.Notes.Add(new Note(noteElement, canvas));
+                RenderElements.Add(renderElement);
             }
         }
 
@@ -57,7 +74,10 @@ namespace XanaduProject.Rendering
             trackHandler.StartTrack();
         }
 
-        public override void _ExitTree() => FreeRids();
+        public override void _ExitTree() {
+            foreach (var element in RenderElements)
+                element.Remove();
+        }
 
         protected Rid CreateItem(Element element)
         {
@@ -73,6 +93,10 @@ namespace XanaduProject.Rendering
 
             switch (element)
             {
+                case PhysicsElement:
+                    CanvasItemAddPolygon(canvas, [-Vector2.One * 25, new Vector2(1, -1) * 25, Vector2.One * 25, new Vector2(-1, 1) * 25],
+                        [Colors.Red, Colors.Black, Colors.Red, Colors.Black]);
+                    break;
                 case NoteElement:
                     CanvasItemAddCircle(canvas, Vector2.Zero, NoteElement.RADIUS, Colors.White);
                     break;
@@ -88,14 +112,27 @@ namespace XanaduProject.Rendering
             return canvas;
         }
 
+        private Rid createArea(Element element)
+        {
+            Rid area = BodyCreate();
+            Rid shape = RectangleShapeCreate();
+
+            Transform2D transform = element.Transform;
+
+            BodySetSpace(area, GetWorld2D().Space);
+            BodyAddShape(area, shape);
+            ShapeSetData(shape, element.Size() / 2);
+
+            BodySetCollisionLayer(area, 0b00000000_00000000_00000000_00001101);
+            BodySetCollisionMask(area, 0b00000000_00000000_00000000_00001101);
+            BodySetShapeTransform(area, 0, transform);
+            BodySetMode(area, BodyMode.Static);
+
+            return area;
+        }
+
         public Texture[] GetTextures() => serializableStage.DynamicTextures;
 
-        public int ChildCount() => RenderElements.Length;
-
-        protected virtual void FreeRids()
-        {
-            foreach (var s in RenderElements)
-                RenderingServer.FreeRid(s.Canvas);
-        }
+        public int ChildCount() => RenderElements.Count;
     }
 }
