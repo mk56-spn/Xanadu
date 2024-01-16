@@ -38,22 +38,22 @@ namespace XanaduProject.Composer
         {
             Vector2 center = Vector2.Zero;
 
-            foreach (var rid in composer.SelectedAreas)
+            foreach (var pair in composer.SelectedAreas)
             {
 
-                DrawSetTransformMatrix(composer.Dictionary[rid.Item1].Element.Transform.Scaled(viewport.CanvasTransform.Scale).Translated(viewport.CanvasTransform.Origin));
+                DrawSetTransformMatrix(pair.renderElement.Element.Transform.Scaled(viewport.CanvasTransform.Scale).Translated(viewport.CanvasTransform.Origin));
 
-                Element element = composer.Dictionary[rid.Item1].Element;
+                Element element = pair.Item1.Element;
                 center += element.Position;
                 switch (element)
                 {
                     case NoteElement:
-                        DrawCircle(Vector2.Zero, NoteElement.RADIUS, ComposerRenderMaster.COMPOSER_ACCENT with { A = 0.3f });
-                        DrawArc(Vector2.Zero, NoteElement.RADIUS, 0, Mathf.Tau, 50, ComposerRenderMaster.COMPOSER_ACCENT);
+                        DrawCircle(Vector2.Zero, NoteElement.RADIUS, element.ComposerColour with { A = 0.3f });
+                        DrawArc(Vector2.Zero, NoteElement.RADIUS, 0, Mathf.Tau, 50, element.ComposerColour);
                         break;
                     default:
-                        DrawRect(new Rect2(-element.Size() / 2, element.Size()), ComposerRenderMaster.COMPOSER_ACCENT with { A = 0.3f });
-                        DrawRect(new Rect2(-element.Size() / 2, element.Size()),  ComposerRenderMaster.COMPOSER_ACCENT, false);
+                        DrawRect(new Rect2(-element.Size() / 2, element.Size()), element.ComposerColour with { A = 0.3f });
+                        DrawRect(new Rect2(-element.Size() / 2, element.Size()),  element.ComposerColour, false);
                         break;
                 }
             }
