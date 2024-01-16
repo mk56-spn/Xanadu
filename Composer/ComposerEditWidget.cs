@@ -2,7 +2,7 @@
 // See the LICENCE file in the repository root for full licence text.
 
 using Godot;
-using XanaduProject.Serialization.Elements;
+using XanaduProject.Rendering;
 
 namespace XanaduProject.Composer
 {
@@ -16,8 +16,8 @@ namespace XanaduProject.Composer
 
         private ComposerRenderMaster composer = null!;
 
-        private Rid? target;
-        public Rid? Target
+        private RenderElement? target;
+        public RenderElement? Target
         {
             get => target;
             set
@@ -25,9 +25,9 @@ namespace XanaduProject.Composer
                 Visible = value != null;
                 target = value;
 
-                if (target == null) return;
+                if (Target == null) return;
 
-                Element element = composer.GetElementForArea(target.Value);
+                var element = Target.Element;
 
                 GD.Print(element.Zindex);
                 depth.SetValueNoSignal(element.Zindex);
@@ -35,7 +35,7 @@ namespace XanaduProject.Composer
                 scaleY.SetValueNoSignal(element.Scale.Y);
                 skew.SetValueNoSignal(element.Skew);
 
-                picker.Color = composer.GetElementForArea(target.Value).Colour;
+                picker.Color = element.Colour;
             }
         }
 
@@ -43,7 +43,8 @@ namespace XanaduProject.Composer
 
         public static ComposerEditWidget Create(ComposerRenderMaster composer)
         {
-            var widget = GD.Load<PackedScene>("res://Composer/ComposerEditWidget.tscn").Instantiate<ComposerEditWidget>();
+            var widget = GD.Load<PackedScene>("res://Composer/ComposerEditWidget.tscn")
+                .Instantiate<ComposerEditWidget>();
             widget.composer = composer;
             widget.Visible = false;
             return widget;
@@ -51,23 +52,17 @@ namespace XanaduProject.Composer
 
         public override void _EnterTree()
         {
-            AddChild(new RotationWidget(composer, this));
+            AddChild(new RotationWidget(this));
 
-            scaleX.ValueChanged += _ => setScale();
-            scaleY.ValueChanged += _ => setScale();
+            scaleX.ValueChanged += value => target?.SetScale(target.Element.Scale with { X = (float)value });
+            scaleY.ValueChanged += value => target?.SetScale(target.Element.Scale with { Y = (float)value });
             skew.ValueChanged += value =>
             {
-                composer.SkewElement(target!.Value, (float)value);
+                target?.SetSkew((float)value);
                 composer.QueueRedraw();
             };
-            picker.ColorChanged += color => composer.TintElement(target!.Value, color);
-            depth.ValueChanged += value => composer.SetElementDepth(target.Value, (int)value);
-        }
-
-        private void setScale()
-        {
-            composer.QueueRedraw();
-            composer.ScaleElement(target!.Value, scale);
+            picker.ColorChanged += value => target?.SetTint(value);
+            depth.ValueChanged += value => target?.SetDepth((int)value);
         }
     }
 }

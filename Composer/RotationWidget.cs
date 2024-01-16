@@ -1,12 +1,11 @@
 // Copyright (c) mk56_spn <dhsjplt@gmail.com>. Licensed under the GNU General Public Licence (2.0).
 // See the LICENCE file in the repository root for full licence text.
 
-using System.Linq;
 using Godot;
 
 namespace XanaduProject.Composer
 {
-    public partial class RotationWidget (ComposerRenderMaster composer, ComposerEditWidget composerEditWidget) : Node2D
+    public partial class RotationWidget (ComposerEditWidget composerEditWidget) : Node2D
     {
         private const float  radius = 200;
 
@@ -41,15 +40,14 @@ namespace XanaduProject.Composer
         {
             float angle = truePosition.AngleToPoint(GetLocalMousePosition());
 
-            if (composerEditWidget.Target != null)
-                composer.RotateElement(composerEditWidget.Target.Value, Mathf.RadToDeg(angle));
+            if (composerEditWidget.Target == null) return;
+
+            composerEditWidget.Target.SetRotation(Mathf.RadToDeg(angle));
         }
         public override void _Draw()
         {
-            if (composer.SelectedAreas.Count == 0) return;
 
-
-            DrawSetTransform(truePosition, Mathf.DegToRad(composer.Dictionary[composer.SelectedAreas.First().Item1].Element.Rotation));
+            DrawSetTransform(truePosition, Mathf.DegToRad(composerEditWidget.Target!.Element.Rotation));
 
             DrawArc(Vector2.Zero, radius, 0, Mathf.Tau, 60, ComposerRenderMaster.COMPOSER_ACCENT with { A = 0.25f }, 10);
             DrawArc(Vector2.Zero, radius, 0, Mathf.Tau, 60, ComposerRenderMaster.COMPOSER_ACCENT, 3);
@@ -58,18 +56,9 @@ namespace XanaduProject.Composer
             DrawCircle(new Vector2(200, 0), 10, Colors.White with { A = 0.3f * (float)Mathf.Abs(Mathf.Sin(4 * Time.GetUnixTimeFromSystem())) });
         }
 
-
-
         private Vector2 aggregatePosition()
         {
-            Vector2 positionAggregate = new Vector2();
-
-            foreach (var position in composer.GetSelectedAreasPositions())
-                positionAggregate += position;
-
-            positionAggregate /= composer.GetSelectedAreasPositions().Length;
-
-            return positionAggregate;
+            return composerEditWidget.Target != null ? composerEditWidget.Target.Element.Position : Vector2.Zero;
         }
     }
 }

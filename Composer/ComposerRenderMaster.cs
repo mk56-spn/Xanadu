@@ -9,7 +9,6 @@ using XanaduProject.Rendering;
 using XanaduProject.Serialization.Elements;
 using XanaduProject.Serialization.SerialisedObjects;
 using static Godot.PhysicsServer2D;
-using static Godot.RenderingServer;
 
 namespace XanaduProject.Composer
 {
@@ -17,16 +16,17 @@ namespace XanaduProject.Composer
     {
         public static readonly Color COMPOSER_ACCENT = Colors.DeepPink;
 
-        public readonly Dictionary<Rid, RenderInfo> Dictionary = new Dictionary<Rid, RenderInfo>();
+        public List<(RenderElement renderElement, Vector2 position)> SelectedAreas = [];
 
-        public List<(Rid, Vector2)> SelectedAreas = [];
+        private readonly Dictionary<Rid, RenderElement> areaHash = new Dictionary<Rid, RenderElement>();
 
         private bool held;
         private Vector2 heldMousePosition;
 
         private ComposerEditWidget composerScaleWidget;
 
-        public ComposerRenderMaster(SerializableStage serializableStage, TrackInfo trackInfo) : base(serializableStage, trackInfo)
+        public ComposerRenderMaster(SerializableStage serializableStage, TrackInfo trackInfo) : base(serializableStage,
+            trackInfo)
         {
             composerScaleWidget = ComposerEditWidget.Create(this);
 
@@ -38,14 +38,18 @@ namespace XanaduProject.Composer
 
             SetAnchorsPreset(LayoutPreset.FullRect);
         }
+
         public override void _EnterTree()
         {
             base._EnterTree();
 
-            foreach (var renderInfo in RenderElements)
-                Dictionary.Add(createArea(renderInfo.Element), renderInfo);
-
             MouseFilter = MouseFilterEnum.Pass;
+
+            foreach (var renderElement in RenderElements)
+                renderElement.Area = createArea(renderElement.Element);
+
+            foreach (var renderElement in RenderElements)
+                areaHash.Add(renderElement.Area, renderElement);
         }
 
         #region Input handling
@@ -60,8 +64,8 @@ namespace XanaduProject.Composer
             {
                 if (SelectedAreas.Count == 0) return;
 
-                foreach (var selectedArea in SelectedAreas)
-                    removeElement(selectedArea.Item1);
+                foreach (var renderElement in SelectedAreas)
+                    removeElement(renderElement.Item1);
 
                 SelectedAreas = [];
             }
@@ -70,7 +74,7 @@ namespace XanaduProject.Composer
 
             if (held)
                 foreach (var area in SelectedAreas)
-                    moveElement(area.Item1, area.Item2);
+                    area.renderElement.SetPosition(area.Item2 + (GetLocalMousePosition() - heldMousePosition));
 
             if (@event is not InputEventMouseButton { ButtonIndex: MouseButton.Left }) return;
 
@@ -82,58 +86,6 @@ namespace XanaduProject.Composer
             if (!@event.IsPressed()) return;
 
             selectPoint();
-        }
-
-        #endregion
-
-        #region ElementModification
-
-        public void SetElementDepth(Rid area, int depth)
-        {
-            Element element = Dictionary[area].Element;
-            element.Zindex = depth;
-            CanvasItemSetZIndex(Dictionary[area].Canvas, depth);
-        }
-
-        public void SkewElement(Rid area, float skew)
-        {
-            Element element = Dictionary[area].Element;
-            element.Skew = skew;
-            setTransforms(area, element);
-        }
-
-        public void ScaleElement(Rid area, Vector2 scale)
-        {
-            Element element = Dictionary[area].Element;
-            element.Scale = scale;
-            setTransforms(area, element);
-        }
-
-        private void moveElement(Rid area, Vector2 position)
-        {
-            Element element = Dictionary[area].Element;
-            element.Position = position + (GetLocalMousePosition() - heldMousePosition);
-            setTransforms(area, element);
-        }
-
-        public void RotateElement(Rid area, float rotation)
-        {
-            Element element = Dictionary[area].Element;
-            element.Rotation = rotation;
-            setTransforms(area, element);
-        }
-
-        public void TintElement(Rid area, Color colour)
-        {
-            Element element = Dictionary[area].Element;
-            element.Colour = colour;
-            CanvasItemSetModulate(Dictionary[area].Canvas, colour);
-        }
-
-        private void setTransforms(Rid area, Element element)
-        {
-            CanvasItemSetTransform( Dictionary[area].Canvas,  element.Transform);
-            AreaSetTransform(area, element.Transform);
         }
 
         #endregion
@@ -151,19 +103,24 @@ namespace XanaduProject.Composer
                 Scale = new Vector2(1, 1)
             };
 
-            Rid canvas = CreateItem(element);
-            Rid area = createArea(element);
-            Dictionary.Add(area, new RenderInfo(canvas, element));
+            var canvas = CreateItem(element);
+            var area = createArea(element);
+
+            GD.Print(area);
+            var renderElement = new RenderElement(element, canvas, area);
+
+            RenderElements.Add(renderElement);
+            areaHash.Add(area, renderElement);
 
             QueueRedraw();
         }
 
         private Rid createArea(Element element)
         {
-            Rid area = AreaCreate();
-            Rid shape = RectangleShapeCreate();
+            var area = AreaCreate();
+            var shape = RectangleShapeCreate();
 
-            Transform2D transform = element.Transform;
+            var transform = element.Transform;
 
             AreaSetSpace(area, GetWorld2D().Space);
             AreaAddShape(area, shape);
@@ -172,17 +129,16 @@ namespace XanaduProject.Composer
             AreaSetCollisionLayer(area, 1);
 
             AreaSetTransform(area, transform);
+            AreaSetCollisionLayer(area, 0b001);
 
             return area;
         }
 
-        private void removeElement(Rid area)
+        private void removeElement(RenderElement renderElement)
         {
             GD.PrintRich("[code][color=red]Item removed");
-            PhysicsServer2D.FreeRid(area);
-            RenderingServer.FreeRid(Dictionary[area].Canvas);
-
-            Dictionary.Remove(area);
+            renderElement.Remove();
+            RenderElements.Remove(renderElement);
             QueueRedraw();
         }
 
@@ -193,9 +149,12 @@ namespace XanaduProject.Composer
             SelectedAreas = [];
 
             foreach (var rid in queryPoint())
-                SelectedAreas.Add((rid, Dictionary[rid].Element.Position));
+            {
+                RenderElement renderElement = areaHash[rid];
+                SelectedAreas.Add((renderElement, renderElement.Element.Position));
+            }
 
-            composerScaleWidget.Target = SelectedAreas.Count == 1 ? SelectedAreas.First().Item1 : null;
+            composerScaleWidget.Target = SelectedAreas.Count == 1 ? SelectedAreas.First().renderElement : null;
 
             if (SelectedAreas.Count == 0)
                 addElement();
@@ -215,19 +174,6 @@ namespace XanaduProject.Composer
                 .SelectMany(v => v.Values)
                 .Select(c => c.Obj)
                 .OfType<Rid>().ToArray();
-        }
-
-        public Element GetElementForArea(Rid area) {
-            return Dictionary[area].Element; }
-
-        public Vector2[] GetSelectedAreasPositions()
-        {
-            Vector2[] positions = new Vector2[SelectedAreas.Count];
-
-            for (int i = 0; i < SelectedAreas.Count; i++)
-                positions[i] = Dictionary[SelectedAreas[i].Item1].Element.Position;
-
-            return positions;
         }
     }
 }
