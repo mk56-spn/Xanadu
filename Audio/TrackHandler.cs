@@ -99,11 +99,16 @@ namespace XanaduProject.Audio
 		public void TogglePlayback()
 		{
 			if (audio.Playing)
-				audio.Stop();
-			else audio.Play((float)TrackPosition);
+				audio.SetStreamPaused(true);
+			else
+			{
+				audio.Play((float)TrackPosition);
+			}
 		}
 
 		public Vector2[] Buffer = [];
+
+		private double timeDelay;
 
 		/// <summary>
 		/// Starts track, should not be called outside node tree.
@@ -139,13 +144,15 @@ namespace XanaduProject.Audio
 				OnBeat?.Invoke(null, 0);
 				if (i < 4) return;
 				OnPreemptComplete?.Invoke(this, EventArgs.Empty);
+
+				timeDelay = AudioServer.GetTimeToNextMix() + AudioServer.GetOutputLatency();
 				audio.Play();
-				timer.Paused = true;
+				timer.Stop();
 			};
 		}
 
 		/// <summary>
-		///     Stops playback of the loaded track.
+		/// Stops playback of the loaded track.
 		/// </summary>
 		public void StopTrack()
 		{
@@ -162,18 +169,11 @@ namespace XanaduProject.Audio
 
 		public override void _PhysicsProcess(double delta)
 		{
-			base._PhysicsProcess(delta);
-
 			if (!audio.Playing) return;
-			double oldTrackPosition = TrackPosition;
 
-			TrackPosition = audio.GetPlaybackPosition() + AudioServer.GetTimeSinceLastMix();
-			positionInBeats = (int)Math.Floor(TrackPosition / SecondsPerBeat);
-
-			reportBeat();
-
-			if (TrackPosition.Equals(oldTrackPosition)) return;
-			SongPositionChanged?.Invoke(TrackPosition);
+			double time = audio.GetPlaybackPosition() + AudioServer.GetTimeSinceLastMix();
+			// Compensate for output latency.
+			TrackPosition = time;
 		}
 
 		private void reportBeat()
