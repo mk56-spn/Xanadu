@@ -18,5 +18,7 @@ namespace XanaduProject.DataStructure
         public int Measures { get; set; }
         [Export(PropertyHint.ResourceType)]
         public AudioStream Track { get; set; } = null!;
+        [Export]
+        public float Offset { get; set; }
     }
 }

@@ -1,7 +1,7 @@
 [gd_resource type="Resource" script_class="TrackInfo" load_steps=3 format=3 uid="uid://b2iqrh5aeh4hm"]
 
-[ext_resource type="AudioStream" uid="uid://dliva2opxnaxr" path="res://Resources/Helblinde - Heaven's Fall.ogg" id="1_8pya3"]
 [ext_resource type="Script" path="res://DataStructure/TrackInfo.cs" id="1_si41i"]
+[ext_resource type="AudioStream" uid="uid://dliva2opxnaxr" path="res://Resources/Helblinde - Heaven's Fall.ogg" id="1_vcbkd"]
 
 [resource]
 script = ExtResource("1_si41i")
@@ -9,4 +9,5 @@ SongTitle = "Heaven's fall"
 TimingPoints = PackedFloat64Array()
 Bpm = 200.0
 Measures = 4
-Track = ExtResource("1_8pya3")
+Track = ExtResource("1_vcbkd")
+Offset = 0.0
