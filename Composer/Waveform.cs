@@ -5,16 +5,17 @@ using System.Linq;
 using Godot;
 using XanaduProject.Audio;
 using XanaduProject.Serialization.Elements;
+using XanaduProject.Tools;
 using static Godot.Mathf;
 
 namespace XanaduProject.Composer
 {
-		public partial class Waveform(ComposerRenderMaster composer) : Control
+		public partial class Waveform(ComposerRenderMaster composer) : Panel
 		{
 			private const int rate = 44;
 			private const float audio_rate = 44100 / 44f;
-			private float spacing = 0.5f;
-			private const int height = 100;
+			private float spacing = 1f;
+			private const int height = 50;
 			private float offset;
 			private int size = 1500;
 			private Vector2[] points = null!;
@@ -25,14 +26,14 @@ namespace XanaduProject.Composer
 
 			public override void _EnterTree()
 			{
-				CustomMinimumSize = new Vector2(100, 100);
 				trackHandler.OnSongCommence += () =>
 				{
 					computeWaveform();
 					QueueRedraw();
 				};
 
-				SetAnchorsAndOffsetsPreset(LayoutPreset.Center);
+				SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
+
 			}
 
 			public override void _Process(double delta) =>
@@ -40,8 +41,6 @@ namespace XanaduProject.Composer
 
 			public override void _Draw()
 			{
-				DrawLine(new Vector2(0, -40), new Vector2(0, 40), Colors.Red);
-
 				DrawSetTransform(new Vector2(-(float)(trackHandler.TrackPosition * spacing * (44100f / rate)), 0), 0, Vector2.One);
 
 				int getIntPosition = (int)Max(0, 2 * (44100 / 44f) * trackHandler.TrackPosition -size);
@@ -52,7 +51,7 @@ namespace XanaduProject.Composer
 				for (int i = 0; i < colors.Length; i++)
 				{
 					float fadeFactor = 1 - Abs(i - colors.Length / 2) / (float)colors.Length * 2;
-					colors[i] = Colors.Purple with { A = fadeFactor };
+					colors[i] =  XanaduColors.XanaduGreen with {A = fadeFactor };
 				}
 
 				// Draws the currently on screen segment of the waveform;
@@ -60,7 +59,6 @@ namespace XanaduProject.Composer
 
 				double bpm = 60 / trackHandler.Bpm;
 				float temp = (float)(audio_rate * bpm);
-				float trueOffset = offset * audio_rate;
 
 				double nearestMeasurePosition = Snapped(audio_rate * trackHandler.TrackPosition * spacing, temp);
 
@@ -69,7 +67,7 @@ namespace XanaduProject.Composer
 				{
 					DrawLine(new Vector2((float)nearestMeasurePosition + i * spacing * temp, -30),
 						new Vector2((float)nearestMeasurePosition + i * spacing * temp, 30),
-						Colors.Green with { A = 0.5f});
+						Colors.White, 2);
 				}
 
 				// Draws the timeline representation of the notes
@@ -77,14 +75,12 @@ namespace XanaduProject.Composer
 					DrawCircle(new Vector2(variable.TimingPoint * audio_rate * spacing, 0), 10,
 						new Color("66fff2"));
 
-
-				foreach (var note in composer.SelectedAreas.Select(c => c.renderElement.Element)
-							 .OfType<NoteElement>())
-				{
+				foreach (var note in composer.SelectedAreas.Select(c => c.renderElement.Element).OfType<NoteElement>())
 					DrawArc(new Vector2(note.TimingPoint * audio_rate * spacing, 0), 15, 0, 360, 30,
 						new Color("ff66b8"));
-				}
 
+				DrawSetTransform(Vector2.Zero, 0, Vector2.One);
+				DrawLine(new Vector2(0, -40), new Vector2(0, 40), XanaduColors.XanaduPink, 4);
 			}
 
 
