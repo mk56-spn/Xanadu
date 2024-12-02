@@ -72,6 +72,8 @@ namespace XanaduProject.Audio
 
 		private double offset => SecondsPerBeat * 4;
 
+		public event Action Stopped;
+
 		/// <summary>
 		///     Called when the songs position changes, checked during physics processing.
 		/// </summary>
@@ -160,6 +162,8 @@ namespace XanaduProject.Audio
 			audio.Stop();
 
 			SongPositionChanged?.Invoke(TrackPosition);
+			Stopped.Invoke();
+
 		}
 
 		public AudioStreamPlayback? GetPlayback()
