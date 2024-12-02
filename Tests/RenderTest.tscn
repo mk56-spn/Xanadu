@@ -1,9 +1,23 @@
-[gd_scene load_steps=2 format=3 uid="uid://dfy4y23ujnsal"]
+[gd_scene load_steps=4 format=3 uid="uid://dfy4y23ujnsal"]
 
-[ext_resource type="Script" path="res://Tests/RenderTest.cs" id="1_wh0s5"]
+[ext_resource type="Material" uid="uid://0rxcpnpa1ed7" path="res://Resources/Materials/ComposerVisuals.tres" id="1_fqhfq"]
+[ext_resource type="Script" uid="uid://dxlih6uawbxtw" path="res://Tests/RenderTest.cs" id="1_wh0s5"]
+
+[sub_resource type="LabelSettings" id="LabelSettings_xb6l4"]
 
 [node name="CanvasLayer2" type="CanvasLayer"]
 follow_viewport_enabled = true
+
+[node name="CanvasLayer2" type="CanvasLayer" parent="."]
+layer = -1
+
+[node name="ColorRect" type="ColorRect" parent="CanvasLayer2"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.1, 0.1, 0.1, 1)
 
 [node name="CanvasLayer" type="CanvasLayer" parent="."]
 layer = 2
@@ -16,18 +30,21 @@ offset_bottom = 40.0
 layout_mode = 2
 theme_override_font_sizes/font_size = 40
 text = "FPS"
+label_settings = SubResource("LabelSettings_xb6l4")
 justification_flags = 161
 
 [node name="Count" type="Label" parent="CanvasLayer/VBoxContainer"]
 layout_mode = 2
 
 [node name="PanelContainer" type="PanelContainer" parent="CanvasLayer"]
+material = ExtResource("1_fqhfq")
 anchors_preset = 4
 anchor_top = 0.5
 anchor_bottom = 0.5
-offset_top = -97.0
-offset_right = 233.0
-offset_bottom = 97.0
+offset_left = 266.0
+offset_top = 137.0
+offset_right = 499.0
+offset_bottom = 331.0
 grow_vertical = 2
 
 [node name="MarginContainer" type="MarginContainer" parent="CanvasLayer/PanelContainer"]

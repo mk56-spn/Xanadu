@@ -1,7 +1,7 @@
 [gd_scene load_steps=3 format=3 uid="uid://do27umaklt2jb"]
 
-[ext_resource type="Script" path="res://Tests/InputTest.cs" id="1_7hp44"]
-[ext_resource type="Script" path="res://Tests/AudioTest.cs" id="2_iqlc3"]
+[ext_resource type="Script" uid="uid://cxjlqgpymo5k3" path="res://Tests/InputTest.cs" id="1_7hp44"]
+[ext_resource type="Script" uid="uid://b8frgb5ntbql5" path="res://Tests/AudioTest.cs" id="2_iqlc3"]
 
 [node name="TestScene" type="Control"]
 layout_mode = 3
