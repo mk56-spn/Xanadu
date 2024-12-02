@@ -63,7 +63,7 @@ namespace XanaduProject.Rendering
 
         protected virtual void SetTransforms()
         {
-            GD.Print("called");
+
             RenderingServer.CanvasItemSetTransform(Canvas, Element.Transform);
             PhysicsServer2D.AreaSetTransform(Area,  Element.Transform);
         }

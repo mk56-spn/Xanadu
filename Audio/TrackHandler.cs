@@ -7,170 +7,192 @@ using XanaduProject.DataStructure;
 
 namespace XanaduProject.Audio
 {
-    /// <summary>
-    /// The track manager is a source of truth for audio timing across a gameplay instance.
-    /// </summary>
-    public partial class TrackHandler : Node
-    {
-        /// <summary>
-        /// Called when the songs position changes, checked during physics processing.
-        /// </summary>
-        public event Action<double>? SongPositionChanged;
+	/// <summary>
+	///     The track manager is a source of truth for audio timing across a gameplay instance.
+	/// </summary>
+	public partial class TrackHandler : Node
+	{
+		private readonly AudioStreamPlayer audio = new();
 
-        /// <summary>
-        /// Called on every 1/1 beat
-        /// </summary>
-        public event EventHandler<int>? OnBeat;
+		private double lastNoteTime;
 
-        /// <summary>
-        /// Called after the beats preempting the actual song start have all been played
-        /// </summary>
-        public event EventHandler? OnPreemptComplete;
+		private int positionInBeats;
 
-        /// <summary>
-        /// Called before preempt beats, when the call to start the song is made
-        /// </summary>
-        public event Action? OnSongCommence;
-        /// <summary>
-        /// The time in seconds between every 1/1 beat;
-        /// </summary>
-        public double SecondsPerBeat { get; private set; }
+		public TrackHandler(TrackInfo info)
+		{
+			audio.Stream = info.Track;
+			Bpm = info.Bpm;
+			SecondsPerBeat = 60f / info.Bpm;
+			ProcessPriority = -1;
+			AddChild(audio);
+		}
 
-        /// <summary>
-        /// The furthest beat measure that has been passed so far in the playback of the track.
-        /// </summary>
-        public int LastPlayedBeat { get; private set; }
+		/// <summary>
+		///     The time in seconds between every 1/1 beat;
+		/// </summary>
+		public double SecondsPerBeat { get; private set; }
 
-        /// <summary>
-        /// The BPM of the track.
-        /// </summary>
-        public double Bpm { get; private set; } = 120;
+		/// <summary>
+		///     The furthest beat measure that has been passed so far in the playback of the track.
+		/// </summary>
+		public int LastPlayedBeat { get; private set; }
 
-        /// <summary>
-        /// The current position in the song.
-        /// </summary>
-        public double TrackPosition { get; private set; }
+		/// <summary>
+		///     The BPM of the track.
+		/// </summary>
+		public double Bpm { get; private set; }
 
-        /// <summary>
-        /// The current 4/4 measure.
-        /// </summary>
-        public int Measure { get; private set; } = 1;
+		/// <summary>
+		///     The current position in the song.
+		/// </summary>
+		public double TrackPosition { get; private set; }
 
-        /// <summary>
-        /// How many measures there are per every major measure.
-        /// </summary>
-        public int Measures { get; private set; } = 4;
+		/// <summary>
+		///     The current 4/4 measure.
+		/// </summary>
+		public int Measure { get; private set; } = 1;
 
-        /// <summary>
-        /// The length of this track in seconds
-        /// </summary>
-        public double TrackLength => audio.Stream.GetLength();
+		/// <summary>
+		///     How many measures there are per every major measure.
+		/// </summary>
+		public int Measures { get; private set; } = 4;
 
-        /// <summary>
-        /// Whether the audio is currently playing.
-        /// </summary>
-        public bool Playing => audio.Playing;
+		/// <summary>
+		///     The length of this track in seconds
+		/// </summary>
+		public double TrackLength => audio.Stream.GetLength();
 
-        /// <summary>
-        /// Returns true if a track is being played.
-        /// </summary>
-        /// <returns></returns>
-        public void TogglePlayback()
-        {
-            if (audio.Playing)
-                audio.Stop();
-            else audio.Play((float)TrackPosition);
-        }
+		/// <summary>
+		///     Whether the audio is currently playing.
+		/// </summary>
+		public bool Playing => audio.Playing;
 
-        public void StartTrack()
-        {
-            audio.Stop();
-            Timer timer = new Timer();
+		public double SongProgressPercentage =>
+			Math.Round(TrackPosition / TrackLength, 2) * 100;
 
-            AddChild(timer);
-            timer.WaitTime = offset / 4;
-            timer.Start();
+		private double offset => SecondsPerBeat * 4;
 
-            OnSongCommence?.Invoke();
+		public event Action Stopped;
 
-            int i = 0;
-            timer.Timeout += () =>
-            {
-                i++;
+		/// <summary>
+		///     Called when the songs position changes, checked during physics processing.
+		/// </summary>
+		public event Action<double>? SongPositionChanged;
 
-                OnBeat?.Invoke(null, 0);
-                if (i < 4 ) return;
-                OnPreemptComplete?.Invoke(this, EventArgs.Empty);
-                audio.Play();
-                timer.Paused = true;
-            };
-        }
+		/// <summary>
+		///     Called on every 1/1 beat
+		/// </summary>
+		public event EventHandler<int>? OnBeat;
 
-        /// <summary>
-        /// Stops playback of the loaded track.
-        /// </summary>
-        public void StopTrack()
-        {
-            TrackPosition = 0;
-            audio.Stop();
+		/// <summary>
+		///     Called after the beats preempting the actual song start have all been played
+		/// </summary>
+		public event EventHandler? OnPreemptComplete;
 
-            SongPositionChanged?.Invoke(TrackPosition);
-        }
+		/// <summary>
+		///     Called before preempt beats, when the call to start the song is made
+		/// </summary>
+		public event Action? OnSongCommence;
 
-        private double lastNoteTime;
-        public double SongProgressPercentage =>
-            Math.Round(TrackPosition / TrackLength, 2) * 100;
+		/// <summary>
+		///     Returns true if a track is being played.
+		/// </summary>
+		/// <returns></returns>
+		public void TogglePlayback()
+		{
+			if (audio.Playing)
+				audio.SetStreamPaused(true);
+			else
+			{
+				audio.Play((float)TrackPosition);
+			}
+		}
 
-        private int positionInBeats;
+		public Vector2[] Buffer = [];
 
-        private double offset => SecondsPerBeat * 4;
+		private double timeDelay;
 
-        private readonly AudioStreamPlayer audio = new AudioStreamPlayer();
+		/// <summary>
+		/// Starts track, should not be called outside node tree.
+		/// </summary>
+		public void StartTrack()
+		{
+			audio.Stop();
 
-        public TrackHandler ()
-        {
-            ProcessPriority = -1;
-            AddChild(audio);
-        }
+			if (Buffer.Length == 0)
+			{
+				AudioServer.Lock();
 
-        public override void _PhysicsProcess(double delta)
-        {
-            base._PhysicsProcess(delta);
+				audio.Play();
+				Buffer = audio.GetStreamPlayback().MixAudio(44, 1000000) ?? [];
+				audio.Stop();
 
-            if (!audio.Playing) return;
-            double oldTrackPosition = TrackPosition;
+				AudioServer.Unlock();
+			}
 
-            TrackPosition = audio.GetPlaybackPosition() + AudioServer.GetTimeSinceLastMix();
-            TrackPosition -= AudioServer.GetOutputLatency();
-            positionInBeats = (int)Math.Floor(TrackPosition / SecondsPerBeat);
+			var timer = new Timer();
 
-            reportBeat();
+			AddChild(timer);
+			timer.WaitTime = offset / 4;
+			timer.Start();
 
-            if (TrackPosition.Equals(oldTrackPosition)) return;
-            SongPositionChanged?.Invoke(TrackPosition);
-        }
+			OnSongCommence?.Invoke();
 
-        private void reportBeat()
-        {
-            if (lastNoteTime > TrackPosition) return;
+			int i = 0;
+			timer.Timeout += () =>
+			{
+				i++;
 
-            if (Measure > Measures)
-                Measure = 1;
+				OnBeat?.Invoke(null, 0);
+				if (i < 4) return;
+				OnPreemptComplete?.Invoke(this, EventArgs.Empty);
 
-            OnBeat?.Invoke(this, positionInBeats);
+				timeDelay = AudioServer.GetTimeToNextMix() + AudioServer.GetOutputLatency();
+				audio.Play();
+				timer.Stop();
+			};
+		}
 
-            LastPlayedBeat = positionInBeats;
-            lastNoteTime = (LastPlayedBeat + 1) * SecondsPerBeat;
+		/// <summary>
+		/// Stops playback of the loaded track.
+		/// </summary>
+		public void StopTrack()
+		{
+			TrackPosition = 0;
+			audio.Stop();
 
-            Measure++;
-        }
+			SongPositionChanged?.Invoke(TrackPosition);
+			Stopped.Invoke();
 
-        public void SetTrack(TrackInfo info)
-        {
-            audio.Stream = info.Track;
+		}
 
-            Bpm = info.Bpm;
-            SecondsPerBeat = 60f / info.Bpm;
-        }
-    }
+		public AudioStreamPlayback? GetPlayback()
+		{
+			return audio.Playing ? audio.GetStreamPlayback() : null;
+		}
+
+		public override void _PhysicsProcess(double delta)
+		{
+			if (!audio.Playing) return;
+
+			double time = audio.GetPlaybackPosition() + AudioServer.GetTimeSinceLastMix();
+			// Compensate for output latency.
+			TrackPosition = time;
+		}
+
+		private void reportBeat()
+		{
+			if (lastNoteTime > TrackPosition) return;
+
+			if (Measure > Measures)
+				Measure = 1;
+
+			OnBeat?.Invoke(this, positionInBeats);
+
+			LastPlayedBeat = positionInBeats;
+			lastNoteTime = (LastPlayedBeat + 1) * SecondsPerBeat;
+
+			Measure++;
+		}
+	}
 }

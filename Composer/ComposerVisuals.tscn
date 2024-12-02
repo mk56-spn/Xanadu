@@ -1,0 +1,148 @@
+[gd_scene load_steps=4 format=3 uid="uid://b25lubmu1nyok"]
+
+[ext_resource type="Script" uid="uid://5a7h4ptknxj" path="res://Composer/ComposerVisuals.cs" id="1_56ckp"]
+[ext_resource type="Material" uid="uid://0rxcpnpa1ed7" path="res://Resources/Materials/ComposerVisuals.tres" id="2_4bxf6"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_4bxf6"]
+bg_color = Color(0, 0, 0, 0.294118)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.788235, 1, 0.529412, 1)
+corner_radius_top_left = 5
+corner_radius_top_right = 5
+corner_radius_bottom_right = 5
+corner_radius_bottom_left = 5
+
+[node name="ComposerVisuals" type="Control" node_paths=PackedStringArray("gridContainer", "editWidget", "waveformContainer")]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("1_56ckp")
+gridContainer = NodePath("VBoxContainer/HBoxContainer/Panel/Texture select")
+editWidget = NodePath("VBoxContainer/HBoxContainer/EditWidget")
+waveformContainer = NodePath("VBoxContainer/BottomBar/MarginContainer/GridContainer/Panel2/CenterContainer")
+
+[node name="VBoxContainer" type="VBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="HBoxContainer" type="HBoxContainer" parent="VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="Panel" type="Panel" parent="VBoxContainer/HBoxContainer"]
+material = ExtResource("2_4bxf6")
+custom_minimum_size = Vector2(200, 0)
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="Texture select" type="GridContainer" parent="VBoxContainer/HBoxContainer/Panel"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+size_flags_vertical = 3
+columns = 3
+
+[node name="Control" type="Control" parent="VBoxContainer/HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+
+[node name="HBoxContainer" type="HBoxContainer" parent="VBoxContainer/HBoxContainer/Control"]
+layout_mode = 0
+offset_left = 11.0
+offset_top = 11.0
+offset_right = 51.0
+offset_bottom = 51.0
+
+[node name="Snap" type="Button" parent="VBoxContainer/HBoxContainer/Control/HBoxContainer"]
+custom_minimum_size = Vector2(50, 50)
+layout_mode = 2
+theme_override_font_sizes/font_size = 30
+text = "S"
+
+[node name="Place" type="Button" parent="VBoxContainer/HBoxContainer/Control/HBoxContainer"]
+custom_minimum_size = Vector2(50, 50)
+layout_mode = 2
+theme_override_font_sizes/font_size = 30
+text = "P"
+
+[node name="EditWidget" type="PanelContainer" parent="VBoxContainer/HBoxContainer"]
+custom_minimum_size = Vector2(200, 0)
+layout_mode = 2
+size_flags_horizontal = 8
+
+[node name="BottomBar" type="PanelContainer" parent="VBoxContainer"]
+custom_minimum_size = Vector2(150, 100)
+layout_mode = 2
+
+[node name="Panel" type="Panel" parent="VBoxContainer/BottomBar"]
+layout_mode = 2
+
+[node name="MarginContainer" type="MarginContainer" parent="VBoxContainer/BottomBar"]
+layout_mode = 2
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 5
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 5
+
+[node name="GridContainer" type="HBoxContainer" parent="VBoxContainer/BottomBar/MarginContainer"]
+custom_minimum_size = Vector2(100, 50)
+layout_mode = 2
+
+[node name="MarginContainer" type="MarginContainer" parent="VBoxContainer/BottomBar/MarginContainer/GridContainer"]
+custom_minimum_size = Vector2(200, 0)
+layout_mode = 2
+theme_override_constants/margin_top = 20
+theme_override_constants/margin_bottom = 20
+
+[node name="Panel3" type="HBoxContainer" parent="VBoxContainer/BottomBar/MarginContainer/GridContainer/MarginContainer"]
+layout_mode = 2
+
+[node name="Stop" type="Button" parent="VBoxContainer/BottomBar/MarginContainer/GridContainer/MarginContainer/Panel3"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(80, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+focus_mode = 0
+text = "⏹"
+
+[node name="Toggle" type="Button" parent="VBoxContainer/BottomBar/MarginContainer/GridContainer/MarginContainer/Panel3"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(80, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+focus_mode = 0
+text = "⏵ / ⏸"
+
+[node name="Panel2" type="Panel" parent="VBoxContainer/BottomBar/MarginContainer/GridContainer"]
+clip_contents = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_4bxf6")
+
+[node name="CenterContainer" type="CenterContainer" parent="VBoxContainer/BottomBar/MarginContainer/GridContainer/Panel2"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Panel" type="Panel" parent="VBoxContainer/BottomBar/MarginContainer/GridContainer"]
+custom_minimum_size = Vector2(200, 0)
+layout_mode = 2
