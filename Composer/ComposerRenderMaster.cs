@@ -4,6 +4,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using Godot;
+using XanaduProject.Audio;
 using XanaduProject.DataStructure;
 using XanaduProject.Rendering;
 using XanaduProject.Serialization.Elements;
@@ -25,16 +26,11 @@ namespace XanaduProject.Composer
 		private bool held;
 		private Vector2 heldMousePosition;
 
-		private ComposerEditWidget composerScaleWidget;
-
 		public ComposerRenderMaster(SerializableStage serializableStage, TrackInfo trackInfo) : base(serializableStage,
 			trackInfo)
 		{
-			composerScaleWidget = ComposerEditWidget.Create(this);
-
 			CanvasLayer canvasLayer;
 			AddChild(canvasLayer = new CanvasLayer());
-			canvasLayer.AddChild(composerScaleWidget);
 			canvasLayer.AddChild(new PanningCamera());
 			canvasLayer.AddChild(ComposerVisuals.Create(this));
 
@@ -57,6 +53,11 @@ namespace XanaduProject.Composer
 		public override void _UnhandledInput(InputEvent @event)
 		{
 			QueueRedraw();
+
+			if (@event is InputEventKey { CtrlPressed: true, KeyLabel: Key.V, Pressed: true})
+			{
+				addElement();
+			}
 
 			if (@event is InputEventMouseButton { ButtonIndex: MouseButton.Right, Pressed: true })
 			{
@@ -93,19 +94,21 @@ namespace XanaduProject.Composer
 		private void addElement()
 		{
 			GD.PrintRich("[code][color=green]Item added");
-			Element element = new TextureElement
+
+			Element element = new NoteElement
 			{
 				Group = 1,
-				Position = GetLocalMousePosition(),
-				Rotation = 70,
-				Scale = new Vector2(1, 1),
-				Texture = SelectedTexture
+				Position = GetLocalMousePosition().Snapped(new Vector2(32, 32)),
+				Rotation = 0,
+				Scale = Vector2.One,
+				TimingPoint = 0.3f
 			};
 
 			var canvas = CreateItem(element);
 			var area = createArea(element);
 
-			GD.Print(area);
+			NoteProcessor.Notes.Add(new Note((element as NoteElement)!, canvas));
+
 			var renderElement = new RenderElement(element, canvas, area);
 
 			RenderElements.Add(renderElement);
@@ -148,7 +151,12 @@ namespace XanaduProject.Composer
 		private void selectPoint()
 		{
 			Rid[] query = queryPoint();
-			if (query.Length == 0) { return; }
+
+			if (query.Length == 0 && SelectedAreas.Count == 0)
+			{
+				addElement();
+				return;
+			}
 
 			SelectedAreas = [];
 
@@ -174,10 +182,6 @@ namespace XanaduProject.Composer
 				SelectedAreas.Add((renderElement, renderElement.Element.Position));
 				lastSelected = query.First();
 			}
-			composerScaleWidget.Target = SelectedAreas.Count == 1 ? SelectedAreas.First().renderElement : null;
-
-			if (SelectedAreas.Count == 0)
-				addElement();
 		}
 
 		private Rid[] queryPoint()
