@@ -8,9 +8,6 @@ namespace XanaduProject.Serialization.Elements
 {
     public record PhysicsElement : Element
     {
-        public Vector2 Extents = Vector2.One;
-
-        public override Vector2 Size() => Extents;
         public override Color ComposerColour => Colors.Green;
     }
 }

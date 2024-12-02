@@ -7,8 +7,9 @@ namespace XanaduProject.Serialization.Elements
 {
     public record TextureElement : Element
     {
-        public Vector2 Extents { get; } = new Vector2(64, 64);
+        private Vector2 extents { get; } = new(64, 64);
+        public int Texture;
 
-        public override Vector2 Size() => Extents;
+        public override Vector2 Size() => extents;
     }
 }
