@@ -11,13 +11,20 @@ namespace XanaduProject.Audio
     {
         public Rid Canvas = Canvas;
         public readonly NoteElement Element = Element;
-        public bool IsHit;
+
+        private bool isHit;
+        public bool IsHit
+        {
+            get => isHit;
+            set
+            {
+                isHit = value;
+                RenderingServer.CanvasItemSetModulate(Canvas, value ? Colors.Red : Colors.White );
+            }
+        }
+
         public float HitTime = 0;
 
-        public Color GetColour(float time)
-        {
-            return IsHit == false ? Element.Colour : Element.Colour.Darkened(1 - (time - HitTime));
-        }
 
         public int CompareTo(Note? other)
         {

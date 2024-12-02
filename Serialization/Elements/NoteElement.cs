@@ -7,7 +7,7 @@ namespace XanaduProject.Serialization.Elements
 {
     public record NoteElement : Element
     {
-        public const float RADIUS = 30;
+        public const float RADIUS = 32;
         public float TimingPoint;
 
         public override Color ComposerColour => Colors.Magenta;
