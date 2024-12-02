@@ -5,60 +5,62 @@ using Godot;
 
 namespace XanaduProject.Composer
 {
-    public partial class RotationWidget (ComposerEditWidget composerEditWidget) : Node2D
-    {
-        private const float  radius = 200;
+	public partial class RotationWidget (ComposerEditWidget composerEditWidget) : Node2D
+	{
+		private const float  radius = 200;
 
-        private bool pressed;
+		private bool pressed;
 
+		public override void _Process(double delta) => QueueRedraw();
+		public override void _Input(InputEvent @event)
+		{
+			base._Input(@event);
 
-        private Vector2 truePosition =>  aggregatePosition() * GetViewport().CanvasTransform.Scale + GetViewport().CanvasTransform.Origin;
+			if (pressed)
+				updateRotation();
 
-        public override void _Process(double delta) => QueueRedraw();
-        public override void _Input(InputEvent @event)
-        {
-            base._Input(@event);
+			float distance =  aggregatePosition().DistanceTo(GetLocalMousePosition());
 
-            if (pressed)
-                updateRotation();
+			if (composerEditWidget.Visible == false) return;
 
-            float distance = truePosition.DistanceTo(GetLocalMousePosition());
+			if (@event is InputEventMouseButton { ButtonIndex: MouseButton.Left, Pressed: false })
+				pressed = false;
 
-            if (GetParent<Control>().Visible == false) return;
+			if (@event is not InputEventMouseButton { ButtonIndex: MouseButton.Left, Pressed: true } ) return;
 
-            if (@event is InputEventMouseButton { ButtonIndex: MouseButton.Left, Pressed: false })
-                pressed = false;
+			float scaleFactor = (1F / GetViewport().GetCamera2D().Zoom.X);
+			float scaledRadius = scaleFactor * radius;
+			float width = scaleFactor * 10;
+			GD.Print(distance);
+			if (!(distance >  scaledRadius - width  && distance < scaledRadius + width)) return;
 
-            if (@event is not InputEventMouseButton { ButtonIndex: MouseButton.Left, Pressed: true } ) return;
-            if (distance is <= radius - 10 or >= radius + 10) return;
+			pressed = true;
+			GetViewport().SetInputAsHandled();
+		}
 
-            pressed = true;
-            GetViewport().SetInputAsHandled();
-        }
+		private void updateRotation()
+		{
+			float angle = aggregatePosition().AngleToPoint(GetGlobalMousePosition());
 
-        private void updateRotation()
-        {
-            float angle = truePosition.AngleToPoint(GetLocalMousePosition());
+			if (composerEditWidget.Target == null) return;
 
-            if (composerEditWidget.Target == null) return;
+			composerEditWidget.Target.SetRotation(Mathf.RadToDeg(angle));
+		}
+		public override void _Draw()
+		{
+			if (composerEditWidget.Target == null) return;
+			DrawSetTransform(aggregatePosition(), Mathf.DegToRad(composerEditWidget.Target!.Element.Rotation), Vector2.One / GetViewport().GetCamera2D().Zoom);
 
-            composerEditWidget.Target.SetRotation(Mathf.RadToDeg(angle));
-        }
-        public override void _Draw()
-        {
+			DrawArc(Vector2.Zero, radius, 0, Mathf.Tau, 60, ComposerRenderMaster.COMPOSER_ACCENT with { A = 0.25f }, 10);
+			DrawArc(Vector2.Zero, radius, 0, Mathf.Tau, 60, ComposerRenderMaster.COMPOSER_ACCENT, 3);
 
-            DrawSetTransform(truePosition, Mathf.DegToRad(composerEditWidget.Target!.Element.Rotation));
+			DrawCircle(new Vector2(200, 0), 15, ComposerRenderMaster.COMPOSER_ACCENT);
+			DrawCircle(new Vector2(200, 0), 10, Colors.White with { A = 0.3f * (float)Mathf.Abs(Mathf.Sin(4 * Time.GetUnixTimeFromSystem())) });
+		}
 
-            DrawArc(Vector2.Zero, radius, 0, Mathf.Tau, 60, ComposerRenderMaster.COMPOSER_ACCENT with { A = 0.25f }, 10);
-            DrawArc(Vector2.Zero, radius, 0, Mathf.Tau, 60, ComposerRenderMaster.COMPOSER_ACCENT, 3);
-
-            DrawCircle(new Vector2(200, 0), 15, ComposerRenderMaster.COMPOSER_ACCENT);
-            DrawCircle(new Vector2(200, 0), 10, Colors.White with { A = 0.3f * (float)Mathf.Abs(Mathf.Sin(4 * Time.GetUnixTimeFromSystem())) });
-        }
-
-        private Vector2 aggregatePosition()
-        {
-            return composerEditWidget.Target != null ? composerEditWidget.Target.Element.Position : Vector2.Zero;
-        }
-    }
+		private Vector2 aggregatePosition()
+		{
+			return composerEditWidget.Target != null ? composerEditWidget.Target.Element.Position : Vector2.Zero;
+		}
+	}
 }

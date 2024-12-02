@@ -19,6 +19,8 @@ namespace XanaduProject.Composer
 
 		public List<(RenderElement renderElement, Vector2 position)> SelectedAreas = [];
 
+
+
 		private readonly Dictionary<Rid, RenderElement> areaHash = new();
 
 		public int SelectedTexture;

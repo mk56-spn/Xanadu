@@ -10,19 +10,23 @@ namespace XanaduProject.Composer
 {
 	public partial class ComposerEditWidget : Control
 	{
-		[Export] private Slider scaleY = null!;
-		[Export] private Slider scaleX = null!;
-		[Export] private Slider skew  = null!;
-		[Export] private ColorPicker picker = null!;
-		[Export] private SpinBox depth = null!;
-
 		private ComposerRenderMaster composer = null!;
+		[Export] private SpinBox depth = null!;
+		[Export] private CanvasLayer fixedElements = null!;
+		[Export] private ColorPicker picker = null!;
+		[Export] private Slider scaleX = null!;
+		[Export] private Slider scaleY = null!;
+		[Export] private Slider skew = null!;
 
 		private RenderElement? target;
+
+
+		private ComposerEditWidget() { }
+
 		public RenderElement? Target
 		{
 			get => target;
-			set
+			private set
 			{
 				Visible = value != null;
 				target = value;
@@ -31,7 +35,6 @@ namespace XanaduProject.Composer
 
 				var element = Target.Element;
 
-				GD.Print(element.Zindex);
 				depth.SetValueNoSignal(element.Zindex);
 				scaleX.SetValueNoSignal(element.Scale.X);
 				scaleY.SetValueNoSignal(element.Scale.Y);
@@ -41,7 +44,7 @@ namespace XanaduProject.Composer
 			}
 		}
 
-		private Vector2 scale => new Vector2((float)scaleX.Value, (float)scaleY.Value);
+		private Vector2 scale => new((float)scaleX.Value, (float)scaleY.Value);
 
 		public static ComposerEditWidget Create(ComposerRenderMaster composer)
 		{
@@ -52,9 +55,34 @@ namespace XanaduProject.Composer
 			return widget;
 		}
 
+		public override void _PhysicsProcess(double delta)
+		{
+			base._PhysicsProcess(delta);
+
+			Target = composer.SelectedAreas.Select(c => c.renderElement).FirstOrDefault();
+		}
+
+		public override void _UnhandledInput(InputEvent @event)
+		{
+			if (@event is not InputEventKey { Pressed: true } key) return;
+
+			int spacing = 32;
+
+			var direction = key.KeyLabel switch
+			{
+				Key.Up => Vector2.Up,
+				Key.Down => Vector2.Down,
+				Key.Left => Vector2.Left,
+				Key.Right => Vector2.Right,
+				_ => Vector2.Zero
+			};
+
+			if (direction != Vector2.Zero) target?.SetPosition(target.Element.Position + direction * spacing);
+		}
+
 		public override void _EnterTree()
 		{
-			AddChild(new RotationWidget(this));
+			fixedElements.AddChild(new RotationWidget(this));
 
 			scaleX.ValueChanged += value => target?.SetScale(target.Element.Scale with { X = (float)value });
 			scaleY.ValueChanged += value => target?.SetScale(target.Element.Scale with { Y = (float)value });
@@ -84,13 +112,13 @@ namespace XanaduProject.Composer
 			];
 
 			foreach (var noteButton in container.GetChildren().OfType<Button>())
-			{
 				noteButton.Pressed += () =>
 				{
 					if (target?.Element is NoteElement note)
-						note.TimingPoint = (float)(Mathf.Snapped(note.TimingPoint, 60 / composer.TrackHandler.Bpm * 0.25) + (60 / composer.TrackHandler.Bpm) * values[noteButton.GetIndex()]);
+						note.TimingPoint =
+							(float)(Mathf.Snapped(note.TimingPoint, 60 / composer.TrackHandler.Bpm * 0.25) +
+									60 / composer.TrackHandler.Bpm * values[noteButton.GetIndex()]);
 				};
-			}
 		}
 	}
 }
