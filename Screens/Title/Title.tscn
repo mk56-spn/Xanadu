@@ -1,7 +1,7 @@
 [gd_scene load_steps=39 format=3 uid="uid://cuwvv2ul7bp8b"]
 
-[ext_resource type="Script" path="res://Screens/Title/Title.cs" id="1_opudi"]
-[ext_resource type="Shader" path="res://Shaders/Blur.gdshader" id="2_wq6e5"]
+[ext_resource type="Script" uid="uid://drj1f1sbtd25x" path="res://Screens/Title/Title.cs" id="1_opudi"]
+[ext_resource type="Shader" uid="uid://cgg43a171p8ig" path="res://Shaders/Blur.gdshader" id="2_wq6e5"]
 
 [sub_resource type="Gradient" id="Gradient_g4chg"]
 offsets = PackedFloat32Array(0.890909, 0.9, 0.987879, 1)
@@ -161,6 +161,8 @@ shader_parameter/lod = 2.294
 [sub_resource type="FontVariation" id="FontVariation_bveuo"]
 variation_transform = Transform2D(1, 0.23, 0, 1, 0, 0)
 
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_vcsh0"]
+
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_qoclk"]
 bg_color = Color(1, 1, 1, 0.0784314)
 border_width_left = 2
@@ -170,8 +172,6 @@ border_width_bottom = 2
 border_color = Color(0.270588, 0.270588, 0.270588, 1)
 expand_margin_left = 15.0
 expand_margin_right = 15.0
-
-[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_vcsh0"]
 
 [sub_resource type="Gradient" id="Gradient_ehivv"]
 colors = PackedColorArray(1, 1, 1, 0, 1, 1, 1, 1)
@@ -687,11 +687,11 @@ grow_horizontal = 2
 grow_vertical = 0
 theme_override_fonts/font = SubResource("FontVariation_bveuo")
 theme_override_font_sizes/font_size = 40
-theme_override_styles/normal = SubResource("StyleBoxFlat_qoclk")
+theme_override_styles/focus = SubResource("StyleBoxEmpty_vcsh0")
+theme_override_styles/disabled = SubResource("StyleBoxFlat_qoclk")
 theme_override_styles/hover = SubResource("StyleBoxFlat_qoclk")
 theme_override_styles/pressed = SubResource("StyleBoxFlat_qoclk")
-theme_override_styles/disabled = SubResource("StyleBoxFlat_qoclk")
-theme_override_styles/focus = SubResource("StyleBoxEmpty_vcsh0")
+theme_override_styles/normal = SubResource("StyleBoxFlat_qoclk")
 text = "PRESS TO START"
 
 [node name="Line2D" type="Line2D" parent="StartButton"]

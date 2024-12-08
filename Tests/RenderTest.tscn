@@ -1,6 +1,5 @@
-[gd_scene load_steps=4 format=3 uid="uid://dfy4y23ujnsal"]
+[gd_scene load_steps=3 format=3 uid="uid://dfy4y23ujnsal"]
 
-[ext_resource type="Material" uid="uid://0rxcpnpa1ed7" path="res://Resources/Materials/ComposerVisuals.tres" id="1_fqhfq"]
 [ext_resource type="Script" uid="uid://dxlih6uawbxtw" path="res://Tests/RenderTest.cs" id="1_wh0s5"]
 
 [sub_resource type="LabelSettings" id="LabelSettings_xb6l4"]
@@ -37,7 +36,6 @@ justification_flags = 161
 layout_mode = 2
 
 [node name="PanelContainer" type="PanelContainer" parent="CanvasLayer"]
-material = ExtResource("1_fqhfq")
 anchors_preset = 4
 anchor_top = 0.5
 anchor_bottom = 0.5

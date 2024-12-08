@@ -1,7 +1,6 @@
-[gd_scene load_steps=4 format=3 uid="uid://b25lubmu1nyok"]
+[gd_scene load_steps=3 format=3 uid="uid://b25lubmu1nyok"]
 
 [ext_resource type="Script" uid="uid://5a7h4ptknxj" path="res://Composer/ComposerVisuals.cs" id="1_56ckp"]
-[ext_resource type="Material" uid="uid://0rxcpnpa1ed7" path="res://Resources/Materials/ComposerVisuals.tres" id="2_4bxf6"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_4bxf6"]
 bg_color = Color(0, 0, 0, 0.294118)
@@ -42,7 +41,6 @@ layout_mode = 2
 size_flags_vertical = 3
 
 [node name="Panel" type="Panel" parent="VBoxContainer/HBoxContainer"]
-material = ExtResource("2_4bxf6")
 custom_minimum_size = Vector2(200, 0)
 layout_mode = 2
 size_flags_vertical = 3
