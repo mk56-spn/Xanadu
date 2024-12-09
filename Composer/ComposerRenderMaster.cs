@@ -1,11 +1,12 @@
 // Copyright (c) mk56_spn <dhsjplt@gmail.com>. Licensed under the GNU General Public Licence (2.0).
 // See the LICENCE file in the repository root for full licence text.
 
-using System.Collections.Generic;
 using System.Linq;
+using Friflo.Engine.ECS;
+using Friflo.Json.Fliox.Transform.Query.Ops;
 using Godot;
-using XanaduProject.Audio;
 using XanaduProject.DataStructure;
+using XanaduProject.ECSComponents;
 using XanaduProject.Rendering;
 using XanaduProject.Serialization.Elements;
 using XanaduProject.Serialization.SerialisedObjects;
@@ -17,16 +18,13 @@ namespace XanaduProject.Composer
 	{
 		public static readonly Color COMPOSER_ACCENT = Colors.DeepPink;
 
-		public List<(RenderElement renderElement, Vector2 position)> SelectedAreas = [];
-
-
-
-		private readonly Dictionary<Rid, RenderElement> areaHash = new();
-
 		public int SelectedTexture;
 
 		private bool held;
 		private Vector2 heldMousePosition;
+
+		public readonly ArchetypeQuery<ElementEcs, SelectionEcs> Selected;
+		public ComponentIndex<SelectionEcs, Rid> Index;
 
 		public ComposerRenderMaster(SerializableStage serializableStage, TrackInfo trackInfo) : base(serializableStage,
 			trackInfo)
@@ -36,18 +34,24 @@ namespace XanaduProject.Composer
 			canvasLayer.AddChild(new PanningCamera());
 			canvasLayer.AddChild(ComposerVisuals.Create(this));
 
+			Selected = EntityStore.Query<ElementEcs,SelectionEcs>().AllTags(Tags.Get<SelectionFlag>());
+
 			SetAnchorsPreset(LayoutPreset.FullRect);
 		}
+
 
 		public override void _EnterTree()
 		{
 			MouseFilter = MouseFilterEnum.Pass;
 
-			foreach (var renderElement in RenderElements)
-				renderElement.Area = createArea(renderElement.Element);
+			Index = EntityStore.ComponentIndex<SelectionEcs, Rid>();
 
-			foreach (var renderElement in RenderElements)
-				areaHash.Add(renderElement.Area, renderElement);
+			EntityStore.Query<ElementEcs>()
+				.ForEachEntity((ref ElementEcs element, Entity entity ) =>
+				{
+					Rid area = createSelectionArea(element.Transform);
+					entity.AddComponent(new SelectionEcs(area));
+				});
 		}
 
 		#region Input handling
@@ -56,26 +60,27 @@ namespace XanaduProject.Composer
 		{
 			QueueRedraw();
 
-			if (@event is InputEventKey { CtrlPressed: true, KeyLabel: Key.V, Pressed: true})
+			switch (@event)
 			{
-				addElement();
-			}
-
-			if (@event is InputEventMouseButton { ButtonIndex: MouseButton.Right, Pressed: true })
-			{
-				if (SelectedAreas.Count == 0) return;
-
-				foreach (var renderElement in SelectedAreas)
-					removeElement(renderElement.Item1);
-
-				SelectedAreas = [];
+				case InputEventKey { CtrlPressed: true, KeyLabel: Key.V, Pressed: true}:
+					addElement();
+					break;
+				case InputEventMouseButton { ButtonIndex: MouseButton.Right, Pressed: true } when Selected.Count == 0:
+					return;
+				case InputEventMouseButton { ButtonIndex: MouseButton.Right, Pressed: true }:
+					Selected.ForEachEntity((ref ElementEcs _, ref SelectionEcs _, Entity entity) => entity.RemoveTag<SelectionFlag>());
+					break;
 			}
 
 			if (@event is not InputEventMouse) return;
 
 			if (held)
-				foreach (var area in SelectedAreas)
-					area.renderElement.SetPosition(area.Item2 + (GetLocalMousePosition() - heldMousePosition));
+				Selected.ForEachEntity((ref ElementEcs element, ref SelectionEcs component2, Entity _) =>
+				{
+					var newPos = element.Transform with { Origin = GetGlobalMousePosition()};
+					element.SetTransform(newPos);
+					component2.SetTransform(newPos);
+				} );
 
 			if (@event is not InputEventMouseButton { ButtonIndex: MouseButton.Left }) return;
 
@@ -90,6 +95,7 @@ namespace XanaduProject.Composer
 		}
 
 		#endregion
+
 
 		#region ElementCreation
 
@@ -106,43 +112,34 @@ namespace XanaduProject.Composer
 				TimingPoint = 0.3f
 			};
 
-			var canvas = CreateItem(element);
-			var area = createArea(element);
 
-			NoteProcessor.Notes.Add(new Note((element as NoteElement)!, canvas));
+			var entity = CreateItem2(element);
+			var area = createSelectionArea(element.Transform);
 
-			var renderElement = new RenderElement(element, canvas, area);
-
-			RenderElements.Add(renderElement);
-			areaHash.Add(area, renderElement);
 
 			QueueRedraw();
 		}
 
-		private Rid createArea(Element element)
+		private Rid createSelectionArea(Transform2D transform2D)
 		{
 			var area = AreaCreate();
 			var shape = RectangleShapeCreate();
 
-			var transform = element.Transform;
-
 			AreaSetSpace(area, GetWorld2D().Space);
 			AreaAddShape(area, shape);
-			ShapeSetData(shape, element.Size() / 2);
+			ShapeSetData(shape, new Vector2(64,64) / 2);
 
 			AreaSetCollisionLayer(area, 1);
 
-			AreaSetTransform(area, transform);
+			AreaSetTransform(area, transform2D);
 			AreaSetCollisionLayer(area, 0b001);
 
 			return area;
 		}
 
-		private void removeElement(RenderElement renderElement)
+		private void removeElement(ElementEcs elementEcs)
 		{
 			GD.PrintRich("[code][color=red]Item removed");
-			renderElement.Remove();
-			RenderElements.Remove(renderElement);
 			QueueRedraw();
 		}
 
@@ -154,34 +151,34 @@ namespace XanaduProject.Composer
 		{
 			Rid[] query = queryPoint();
 
-			if (query.Length == 0 && SelectedAreas.Count == 0)
+			if (query.Length == 0 && Selected.Count == 0)
 			{
 				addElement();
 				return;
 			}
 
-			SelectedAreas = [];
+			Selected.ForEachEntity((ref ElementEcs _, ref SelectionEcs _,Entity entity) => entity.RemoveTag<SelectionFlag>());
 
 			GD.Print("Query length " + query.Length);
 
 			if (query.Contains(lastSelected))
 			{
-				int i = query.ToList().IndexOf(lastSelected);
+				int indexOf = query.ToList().IndexOf(lastSelected);
 
-				Rid selected = query.ElementAtOrDefault(i + 1) == default ? query.First() : query.ElementAt(i + 1);
-				RenderElement renderElement = areaHash[selected];
+				Rid first = query.ElementAtOrDefault(indexOf + 1) == default ? query.First() : query.ElementAt(indexOf + 1);
+				Entity entity = Index[first][0];
 
-				GD.Print(query.ElementAtOrDefault(i + 1));
+				GD.Print(query.ElementAtOrDefault(indexOf + 1));
 
-				SelectedAreas.Add((renderElement, renderElement.Element.Position));
-				lastSelected = selected;
+				entity.AddTag<SelectionFlag>();
+				lastSelected = first;
 			}
 
 			else
 			{
-				RenderElement renderElement = areaHash[query.First()];
+				Entity e  = Index[query[0]][0];
 
-				SelectedAreas.Add((renderElement, renderElement.Element.Position));
+				e.AddTag<SelectionFlag>();
 				lastSelected = query.First();
 			}
 		}
