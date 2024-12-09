@@ -1,10 +1,12 @@
 // Copyright (c) mk56_spn <dhsjplt@gmail.com>. Licensed under the GNU General Public Licence (2.0).
 // See the LICENCE file in the repository root for full licence text.
 
+using System.ComponentModel;
 using System.Linq;
+using Friflo.Engine.ECS;
 using Godot;
 using XanaduProject.Audio;
-using XanaduProject.Serialization.Elements;
+using XanaduProject.ECSComponents;
 using XanaduProject.Tools;
 using static Godot.Mathf;
 
@@ -41,10 +43,12 @@ namespace XanaduProject.Composer
 
 			public override void _Draw()
 			{
+
+				if (!trackHandler.Playing) return;
 				DrawSetTransform(new Vector2(-(float)(trackHandler.TrackPosition * spacing * (44100f / rate)), 0), 0, Vector2.One);
 
 				int getIntPosition = (int)Max(0, 2 * (44100 / 44f) * trackHandler.TrackPosition -size);
-				var getCurrentSegment = points[getIntPosition..(getIntPosition + 2 * size)];
+				var getCurrentSegment = points[getIntPosition.. Mathf.Min(getIntPosition + 2 * size, points.Length)];
 
 				Color[] colors = new Color[getCurrentSegment.Length / 2];
 
@@ -70,14 +74,16 @@ namespace XanaduProject.Composer
 						Colors.White, 2);
 				}
 
-				// Draws the timeline representation of the notes
-				foreach (var variable in composer.NoteProcessor.Notes.Select(c => c.Element))
-					DrawCircle(new Vector2(variable.TimingPoint * audio_rate * spacing, 0), 10,
+				composer.EntityStore.Query<NoteEcs>().ForEachEntity((ref NoteEcs note, Entity entity) =>
+				{
+					DrawCircle(new Vector2(note.TimingPoint * audio_rate * spacing, 0), 10,
 						new Color("66fff2"));
 
-				foreach (var note in composer.SelectedAreas.Select(c => c.renderElement.Element).OfType<NoteElement>())
-					DrawArc(new Vector2(note.TimingPoint * audio_rate * spacing, 0), 15, 0, 360, 30,
-						new Color("ff66b8"));
+					if (entity.Tags.Has<SelectionFlag>())
+						DrawArc(new Vector2(note.TimingPoint * audio_rate * spacing, 0), 15, 0, 360, 30,
+							XanaduColors.XanaduPink);
+				} );
+
 
 				DrawSetTransform(Vector2.Zero, 0, Vector2.One);
 				DrawLine(new Vector2(0, -40), new Vector2(0, 40), XanaduColors.XanaduPink, 4);
