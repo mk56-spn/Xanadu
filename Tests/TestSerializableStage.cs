@@ -71,7 +71,7 @@ namespace XanaduProject.Tests
                 });
             }
 
-            for (int i = 0; i < 100; i++)
+            for (int i = -300; i < 100; i++)
             {
                 tempElements.Add(new PhysicsElement
                 {
