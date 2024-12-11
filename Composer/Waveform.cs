@@ -1,8 +1,6 @@
 // Copyright (c) mk56_spn <dhsjplt@gmail.com>. Licensed under the GNU General Public Licence (2.0).
 // See the LICENCE file in the repository root for full licence text.
 
-using System.ComponentModel;
-using System.Linq;
 using Friflo.Engine.ECS;
 using Godot;
 using XanaduProject.Audio;
@@ -43,8 +41,6 @@ namespace XanaduProject.Composer
 
 			public override void _Draw()
 			{
-
-				if (!trackHandler.Playing) return;
 				DrawSetTransform(new Vector2(-(float)(trackHandler.TrackPosition * spacing * (44100f / rate)), 0), 0, Vector2.One);
 
 				int getIntPosition = (int)Max(0, 2 * (44100 / 44f) * trackHandler.TrackPosition -size);

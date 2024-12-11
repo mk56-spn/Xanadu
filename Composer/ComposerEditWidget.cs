@@ -1,65 +1,75 @@
 // Copyright (c) mk56_spn <dhsjplt@gmail.com>. Licensed under the GNU General Public Licence (2.0).
 // See the LICENCE file in the repository root for full licence text.
 
+using System;
 using System.Linq;
+using System.Reflection;
+using Friflo.Engine.ECS;
+using Friflo.Json.Fliox.Schema.JSON;
 using Godot;
-using XanaduProject.Rendering;
-using XanaduProject.Serialization.Elements;
+using XanaduProject.ECSComponents;
 
 namespace XanaduProject.Composer
 {
 	public partial class ComposerEditWidget : Control
 	{
 		private ComposerRenderMaster composer = null!;
-		[Export] private SpinBox depth = null!;
-		[Export] private CanvasLayer fixedElements = null!;
-		[Export] private ColorPicker picker = null!;
-		[Export] private Slider scaleX = null!;
-		[Export] private Slider scaleY = null!;
-		[Export] private Slider skew = null!;
 
-		private RenderElement? target;
-
-
+		[Export]
+		private HBoxContainer container = null!;
+		[Export]
+		private VBoxContainer settersContainer = null!;
 		private ComposerEditWidget() { }
 
-		public RenderElement? Target
+		private Entity target;
+
+		private Entity targetExposed
 		{
-			get => target;
-			private set
+			set
 			{
-				Visible = value != null;
+				foreach (var child in settersContainer.GetChildren())
+					child.QueueFree();
+
 				target = value;
 
-				if (Target == null) return;
-
-				var element = Target.Element;
-
-				depth.SetValueNoSignal(element.Zindex);
-				scaleX.SetValueNoSignal(element.Scale.X);
-				scaleY.SetValueNoSignal(element.Scale.Y);
-				skew.SetValueNoSignal(element.Skew);
-
-				picker.Color = element.Colour;
+				foreach (var info in typeof(ElementEcs).GetFields()
+							 .Where(m => m.GetCustomAttributes(typeof(ComposerAttribute), false).Length > 0))
+					uiControlSetup(info);
 			}
 		}
 
-		private Vector2 scale => new((float)scaleX.Value, (float)scaleY.Value);
+		private void uiControlSetup(FieldInfo info)
+		{
+			if (info.FieldType == typeof(int))
+			{
+				SpinBox s = new SpinBox();
+				s.SetValueNoSignal((double)info.GetValue(target.GetComponent<ElementEcs>())!);
+				settersContainer.AddChild(s);
+				s.ValueChanged += d => {
+					ref ElementEcs elementEcs = ref target.GetComponent<ElementEcs>();
+					info.SetValueDirect(__makeref(elementEcs), (int)d);
+				};
+			}
 
+			if (info.FieldType == typeof(Color))
+			{
+				ColorPickerButton colorPicker = new ColorPickerButton() { CustomMinimumSize = new Vector2(40, 100) };
+
+				colorPicker.Color = (Color)info.GetValue(target.GetComponent<ElementEcs>())!;
+				settersContainer.AddChild(colorPicker);
+				colorPicker.ColorChanged += c => {
+					ref ElementEcs elementEcs = ref target.GetComponent<ElementEcs>();
+					info.SetValueDirect(__makeref(elementEcs), c);
+					target.GetComponent<ElementEcs>().UpdateCanvas();
+				};
+			}
+		}
 		public static ComposerEditWidget Create(ComposerRenderMaster composer)
 		{
 			var widget = GD.Load<PackedScene>("res://Composer/ComposerEditWidget.tscn")
 				.Instantiate<ComposerEditWidget>();
 			widget.composer = composer;
-			widget.Visible = false;
 			return widget;
-		}
-
-		public override void _PhysicsProcess(double delta)
-		{
-			base._PhysicsProcess(delta);
-
-			Target = composer.SelectedAreas.Select(c => c.renderElement).FirstOrDefault();
 		}
 
 		public override void _UnhandledInput(InputEvent @event)
@@ -77,30 +87,24 @@ namespace XanaduProject.Composer
 				_ => Vector2.Zero
 			};
 
-			if (direction != Vector2.Zero) target?.SetPosition(target.Element.Position + direction * spacing);
+
+			if (direction != Vector2.Zero){}
+
 		}
 
-		public override void _EnterTree()
+		public override void _Process(double delta)
 		{
-			fixedElements.AddChild(new RotationWidget(this));
 
-			scaleX.ValueChanged += value => target?.SetScale(target.Element.Scale with { X = (float)value });
-			scaleY.ValueChanged += value => target?.SetScale(target.Element.Scale with { Y = (float)value });
-			skew.ValueChanged += value =>
-			{
-				target?.SetSkew((float)value);
-				composer.QueueRedraw();
-			};
-			picker.ColorChanged += value => target?.SetTint(value);
-			depth.ValueChanged += value => target?.SetDepth((int)value);
-
-			linkNoteButtons();
+			if (target != composer.Selected.Entities.FirstOrDefault())
+				targetExposed = composer.Selected.Entities.FirstOrDefault();
+			Visible = composer.Selected.Count != 0;
 		}
+
+		public override void _EnterTree() =>
+			linkNoteButtons();
 
 		private void linkNoteButtons()
 		{
-			var container = GetNode<HBoxContainer>("%Notemover");
-
 			float[] values =
 			[
 				-1,
@@ -114,10 +118,12 @@ namespace XanaduProject.Composer
 			foreach (var noteButton in container.GetChildren().OfType<Button>())
 				noteButton.Pressed += () =>
 				{
-					if (target?.Element is NoteElement note)
-						note.TimingPoint =
-							(float)(Mathf.Snapped(note.TimingPoint, 60 / composer.TrackHandler.Bpm * 0.25) +
-									60 / composer.TrackHandler.Bpm * values[noteButton.GetIndex()]);
+					if (!target.HasComponent<NoteEcs>()) return;
+
+					ref var note = ref target.GetComponent<NoteEcs>();
+					note.TimingPoint = (float)(Mathf.Snapped(note.TimingPoint, 60 / composer.TrackHandler.Bpm * 0.25) +
+											   60 / composer.TrackHandler.Bpm * values[noteButton.GetIndex()]);
+
 				};
 		}
 	}
