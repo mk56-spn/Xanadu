@@ -28,20 +28,16 @@ namespace XanaduProject.Tests
 			renderMaster = new ComposerRenderMaster(StageDeserializer.Deserialize(), GD.Load<TrackInfo>("res://Resources/TestTrack.tres"));
 			AddChild(renderMaster);
 
-			serializeButton.Pressed += () => { StageSerializer.Serialize(new SerializableStage
-			{
-				Elements = renderMaster.RenderElements.Select(c => c.Element).ToArray(),
-				DynamicTextures = renderMaster.GetTextures()
-			}); };
+			serializeButton.Pressed += () => { StageSerializer.Serialize(renderMaster.EntityStore); };
 
 			spinBox.ValueChanged += _ =>
 			{
-				StageSerializer.Serialize(new TestSerializableStage((int)spinBox.Value, 1000, 10000));
+				StageSerializer.Serialize(new TestSerializableStage((int)spinBox.Value, 1000, 10000).EntityStore);
 				GetTree().ReloadCurrentScene();
 			};
 			randomButton.Pressed += () =>
 			{
-				StageSerializer.Serialize(new TestSerializableStage ());
+				StageSerializer.Serialize(new TestSerializableStage().EntityStore);
 				GetTree().ReloadCurrentScene();
 			};
 		}
@@ -49,7 +45,7 @@ namespace XanaduProject.Tests
 		public override void _Process(double delta)
 		{
 			base._Process(delta);
-			stageInfo.Text = renderMaster.ChildCount().ToString();
+			/*stageInfo.Text = renderMaster.EntityStore.Count.ToString();*/
 			fps.Text = Engine.GetFramesPerSecond().ToString(CultureInfo.InvariantCulture);
 		}
 	}
