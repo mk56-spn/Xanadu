@@ -3,7 +3,8 @@
 
 using System;
 using System.IO;
-using Ceras;
+using Friflo.Engine.ECS;
+using Friflo.Engine.ECS.Serialize;
 using Godot;
 using XanaduProject.Serialization.SerialisedObjects;
 using XanaduProject.Tests;
@@ -14,15 +15,24 @@ namespace XanaduProject.Serialization
     {
         public static SerializableStage Deserialize()
         {
-            string dir = $"{OS.GetUserDataDir()}/TestFile.txt";
+
+            EntitySerializer s = new EntitySerializer();
+            string dir = $"{OS.GetUserDataDir()}/TestFile.json";
 
             SerializableStage serializableStage;
             if (File.Exists(dir))
             {
                 try
                 {
-                    byte[] readBytes = File.ReadAllBytes(dir);
-                    serializableStage = new CerasSerializer().Deserialize<SerializableStage>(readBytes);
+                    var serializer = new EntitySerializer();
+                    var targetStore = new EntityStore();
+                    serializer.ReadIntoStore(targetStore, new FileStream($"{OS.GetUserDataDir()}/TestFile.json", FileMode.Open));
+
+                    Console.WriteLine($"entities: {targetStore.Count}"); // > entities: 2
+
+                    serializableStage = new SerializableStage { EntityStore = targetStore };
+
+                    GD.Print("successfully loaded file");
                 }
                 catch (Exception e)
                 {
