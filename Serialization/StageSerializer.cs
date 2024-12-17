@@ -19,7 +19,6 @@ namespace XanaduProject.Serialization
             // --- Write store entities as JSON array
             var serializer = new EntitySerializer();
             var writeStream = new FileStream($"{OS.GetUserDataDir()}/TestFile.json", FileMode.Create);
-
             serializer.WriteStore(store, writeStream);
             writeStream.Close();
         }

@@ -17,6 +17,7 @@ namespace XanaduProject.Tests
 	/// </summary>
 	public class TestSerializableStage : SerializableStage
 	{
+		private int area = 10000;
 		public TestSerializableStage (int noteCount, int textureElementCount, int textElementCount)
 		{
 			addTextures(textElementCount, textureElementCount);
@@ -30,43 +31,60 @@ namespace XanaduProject.Tests
 		{
 			EntityStore = new EntityStore();
 
-			for (int i = 0; i < 100; i++)
+			for (int i = 0; i < 40; i++)
 			{
+				if (i % 5 == 0)
+				{
+					NoteType[] values =
+					[
+						NoteType.Up,
+						NoteType.Left,
+						NoteType.Right
+					];
+
+					 NoteType n = values[RandRange(0,2)];
+					EntityStore.CreateEntity(new ElementEcs
+						{
+							Colour = Colors.White,
+							Transform = Transform2D.Identity with
+							{
+								Origin = new Vector2(RandRange(0, area / 1000), RandRange(0, 1))
+							},
+						},
+						new NoteEcs(0.3F * RandRange(0, 500), n));
+				}
+
 				EntityStore.CreateEntity(new ElementEcs {
-					Colour = Colors.White,
-					Transform =  Transform2D.Identity with {Origin = new Vector2(RandRange(0,1000),RandRange(0,1000))},
-				},
-					new NoteEcs { TimingPoint = 0.3F * RandRange(0, 500) },
-					new AreaEcs());
-				EntityStore.CreateEntity(new ElementEcs {
-					Transform = Transform2D.Identity with {Origin = new Vector2(RandRange(0,1000),RandRange(0,1000))},
-					Colour = Colors.White,
-				},
+						Transform = Transform2D.Identity with {Origin = new Vector2(RandRange(0,area),RandRange(0,area))},
+						Colour = Colors.White,
+					},
 					new RectEcs { Extents = new Vector2(GD.RandRange(0,99), GD.RandRange(0,99))});
 
+				EntityStore.CreateEntity(new ElementEcs {
+						Transform = Transform2D.Identity with {Origin = new Vector2(RandRange(0,area /10),RandRange(0,area / 10))},
+						Colour = Colors.White,
+					},
+					new BlockEcs(),
+					new RectEcs
+					{
+						Filled = RandRange(0,1) == 0,
+						Extents = new Vector2(GD.RandRange(0,99), GD.RandRange(0,99))
+					});
 
-				Vector2[] points = new Vector2[GD.RandRange(3,3)];
-				Color[] colors = new Color[points.Length];
+				Vector2[] points = new Vector2[RandRange(4,4)];
 
 				for (int j = 0; j < points.Length; j++)
 				{
-					colors[j] = new Color(GD.Randf(),GD.Randf(),GD.Randf());
-					points[j] = new Vector2(GD.RandRange(0,1000),GD.RandRange(0,1000));
+					points[j] = new Vector2(GD.RandRange(-4,4),GD.RandRange(-4,4)) * 64;
 				}
 
-				colors[^1] = colors[0];
 				points[^1] = points[0];
 
 				EntityStore.CreateEntity(new ElementEcs {
-						Transform = Transform2D.Identity with {Origin = new Vector2(RandRange(0,1000),RandRange(0,1000))},
+						Transform = Transform2D.Identity with {Origin = new Vector2(RandRange(0,area),RandRange(0,area))},
 						Colour = Colors.White,
 					},
-				   new PolygonEcs()
-					{
-						Points = points,
-						Colors = colors
-					}
-					);
+				   new PolygonEcs { Points = points, });
 			}
 		}
 

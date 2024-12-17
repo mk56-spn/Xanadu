@@ -2,53 +2,72 @@
 // See the LICENCE file in the repository root for full licence text.
 
 using System;
-using System.Collections.Generic;
 using System.Linq;
+using Friflo.Engine.ECS;
 using Godot;
+using XanaduProject.ECSComponents;
 using XanaduProject.Rendering;
 
 namespace XanaduProject.Audio
 {
-	public partial class NoteProcessor(TrackHandler trackHandler, RenderCharacter renderCharacter) : Node
+	public partial class NoteProcessor(TrackHandler trackHandler, RenderCharacter renderCharacter, EntityStore entityStore) : Node
 	{
-		public readonly List<Note> Notes = [];
+		private ComponentIndex<HitZoneEcs, Rid> index;
 
-		public override void _Ready()
+		public override void _EnterTree()
 		{
-			Notes.Sort();
 			trackHandler.Stopped += () =>
-			{
-				foreach (var note in Notes)
-					note.IsHit = false;
-			};
-		}
+				entityStore.Query<NoteEcs>().ForEachEntity((ref NoteEcs component1, Entity entity) =>
+				{
+					component1.IsHit = false;
+					RenderingServer.CanvasItemSetModulate(entity.GetComponent<ElementEcs>().Canvas , Colors.Red);
+				});
 
-		public override void _Process(double delta)
-		{
-		}
-
-		public void AddImpulse()
-		{
-
+			index = entityStore.ComponentIndex<HitZoneEcs, Rid>();
 		}
 
 		public override void _Input(InputEvent @event)
 		{
 			if (!@event.IsActionPressed("main")) return;
 
-			Note? nextNote = Notes.FirstOrDefault(n => !n.IsHit && n.Element.TimingPoint > trackHandler.TrackPosition - 0.3);
-			if (nextNote == null || Math.Abs(nextNote.Element.TimingPoint - trackHandler.TrackPosition) > 0.5) return;
+			var query = renderCharacter.QueryShape();
 
-			GD.Print(nextNote.Element.Position.DistanceTo(renderCharacter.Position));
-			/*`if ( nextNote.Element.Position.DistanceTo(renderCharacter.Position) > 100)return;*/
+			GD.PrintRich(["[code][color=orange]Returned note count is[color=green] " + query.Length]);
+			Rid minBy;
 
-			renderCharacter.Velocity = new Vector2(renderCharacter.Velocity.X, -5000);
-			nextNote.IsHit = true;
-			nextNote.HitTime = (float)trackHandler.TrackPosition;
+			try {
+				minBy = query.Where(c=>  !index[c][0].GetComponent<NoteEcs>().IsHit).MinBy(c => index[c][0].GetComponent<NoteEcs>().TimingPoint);
+			}
 
-			GD.Print("note is hit");
+			catch (Exception) {
+				return;
+			}
+
+
+			Entity noteEntity = index[minBy][0];
+
+			ref NoteEcs  note = ref noteEntity.GetComponent<NoteEcs>();
+			ref ElementEcs element = ref noteEntity.GetComponent<ElementEcs>();
+
+			note.IsHit = true;
+
+			RenderingServer.CanvasItemSetModulate(element.Canvas, Colors.Blue);
+
+
+			switch (note.Note)
+			{
+				case NoteType.Left:
+					renderCharacter.SetVelocity(renderCharacter.Velocity with{ X = -750});
+					break;
+				case NoteType.Up:
+					renderCharacter.SetVelocity(renderCharacter.Velocity with{ Y = -750});
+					break;
+				case NoteType.Right:
+					renderCharacter.SetVelocity(renderCharacter.Velocity with{ X = 750});
+					break;
+				default:
+					throw new ArgumentOutOfRangeException();
+			}
 		}
-
-
 	}
 }

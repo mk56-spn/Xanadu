@@ -8,7 +8,6 @@ using Godot;
 using XanaduProject.DataStructure;
 using XanaduProject.ECSComponents;
 using XanaduProject.Rendering;
-using XanaduProject.Serialization.Elements;
 using XanaduProject.Serialization.SerialisedObjects;
 using static Godot.PhysicsServer2D;
 
@@ -16,15 +15,11 @@ namespace XanaduProject.Composer
 {
 	public partial class ComposerRenderMaster  : RenderMaster
 	{
-		public static readonly Color COMPOSER_ACCENT = Colors.DeepPink;
-
-		public int SelectedTexture;
-
 		private bool held;
 		private Vector2 heldMousePosition;
 
 		public readonly ArchetypeQuery<ElementEcs, SelectionEcs> Selected;
-		public ComponentIndex<SelectionEcs, Rid> Index;
+		private ComponentIndex<SelectionEcs, Rid> index;
 
 		public ComposerRenderMaster(SerializableStage serializableStage, TrackInfo trackInfo) : base(serializableStage,
 			trackInfo)
@@ -39,25 +34,33 @@ namespace XanaduProject.Composer
 			SetAnchorsPreset(LayoutPreset.FullRect);
 		}
 
-
 		public override void _EnterTree()
 		{
+			base._EnterTree();
 			MouseFilter = MouseFilterEnum.Pass;
 
-			Index = EntityStore.ComponentIndex<SelectionEcs, Rid>();
+			index = EntityStore.ComponentIndex<SelectionEcs, Rid>();
 
 			EntityStore.Query<ElementEcs>()
 				.ForEachEntity((ref ElementEcs element, Entity entity ) =>
 				{
-					Rid area = createSelectionArea(element.Transform);
-					entity.AddComponent(new SelectionEcs(area));
+					Rid area = createSelectionArea(entity, element);
+					entity.AddComponent(new SelectionEcs(area) { LastPosition = element.Transform.Origin });
 				});
+		}
+
+		public override void _Ready()
+		{
+			base._Ready();
+			GD.PrintRich("[code][color=pink] " + index[EntityStore.Query<SelectionEcs>().Entities.ToArray()[4].GetComponent<SelectionEcs>().Area]);
+
 		}
 
 		#region Input handling
 
 		public override void _UnhandledInput(InputEvent @event)
 		{
+
 			QueueRedraw();
 
 			switch (@event)
@@ -66,26 +69,46 @@ namespace XanaduProject.Composer
 					addElement();
 					break;
 				case InputEventMouseButton { ButtonIndex: MouseButton.Right, Pressed: true } when Selected.Count == 0:
+
 					return;
 				case InputEventMouseButton { ButtonIndex: MouseButton.Right, Pressed: true }:
-					Selected.ForEachEntity((ref ElementEcs _, ref SelectionEcs _, Entity entity) => entity.RemoveTag<SelectionFlag>());
+					Selected.ForEachEntity((ref ElementEcs element, ref SelectionEcs selection, Entity entity) =>
+					{
+						GD.PrintRich($"[code][color=red]Item {element.Canvas} removed");
+						entity.RemoveTag<SelectionFlag>();
+						removeEntity(entity, selection);
+					});
 					break;
 			}
 
 			if (@event is not InputEventMouse) return;
 
 			if (held)
-				Selected.ForEachEntity((ref ElementEcs element, ref SelectionEcs component2, Entity _) =>
+				Selected.ForEachEntity((ref ElementEcs element, ref SelectionEcs component2, Entity entity) =>
 				{
-					var newPos = element.Transform with { Origin = GetGlobalMousePosition()};
+					var newPos = element.Transform with { Origin = component2.LastPosition + GetGlobalMousePosition() - heldMousePosition};
 					element.SetTransform(newPos);
 					component2.SetTransform(newPos);
+
+					if (entity.HasComponent<HitZoneEcs>())
+						entity.GetComponent<HitZoneEcs>().SetTransform(newPos);
+
+					if (entity.HasComponent<BlockEcs>())
+						entity.GetComponent<BlockEcs>().SetTransform(newPos);
+
 				} );
 
 			if (@event is not InputEventMouseButton { ButtonIndex: MouseButton.Left }) return;
 
 			if (!held & @event.IsPressed())
-				heldMousePosition = GetLocalMousePosition();
+			{
+				Selected.ForEachEntity((ref ElementEcs component1, ref SelectionEcs component2, Entity entity) =>
+				{
+					component2.LastPosition = component1.Transform.Origin;
+				});
+				heldMousePosition = GetGlobalMousePosition();
+			}
+
 
 			held = @event.IsPressed();
 
@@ -102,37 +125,39 @@ namespace XanaduProject.Composer
 		private void addElement()
 		{
 			GD.PrintRich("[code][color=green]Item added");
-
-			Element element = new NoteElement
-			{
-				Group = 1,
-				Position = GetLocalMousePosition().Snapped(new Vector2(32, 32)),
-				Rotation = 0,
-				Scale = Vector2.One,
-				TimingPoint = 0.3f
-			};
-
-
-			var entity = CreateItem2(element);
-			var area = createSelectionArea(element.Transform);
-
-
 			QueueRedraw();
 		}
 
-		private Rid createSelectionArea(Transform2D transform2D)
+		private Rid createSelectionArea(Entity entity, ElementEcs element)
 		{
 			var area = AreaCreate();
-			var shape = RectangleShapeCreate();
 
+			Rid shape = default;
+
+			if (entity.HasComponent<NoteEcs>())
+			{
+				GD.PrintRich("[code][color=orange]Circle");
+				shape = CircleShapeCreate();
+				ShapeSetData(shape, NoteEcs.RADIUS);
+			}
+
+			if (entity.HasComponent<RectEcs>())
+			{
+				GD.PrintRich("[code][color=yellow]Rectangle");
+				shape = RectangleShapeCreate();
+				ShapeSetData(shape, entity.GetComponent<RectEcs>().Extents / 2);
+			}
+
+			if (entity.HasComponent<PolygonEcs>())
+			{
+				shape = RectangleShapeCreate();
+				ShapeSetData(shape, new Vector2(100,100));
+			}
+
+			AreaAddShape(area, shape );
 			AreaSetSpace(area, GetWorld2D().Space);
-			AreaAddShape(area, shape);
-			ShapeSetData(shape, new Vector2(64,64) / 2);
-
-			AreaSetCollisionLayer(area, 1);
-
-			AreaSetTransform(area, transform2D);
-			AreaSetCollisionLayer(area, 0b001);
+			AreaSetTransform(area, element.Transform);
+			AreaSetCollisionLayer(area, 0b00000000_00000000_00000000_01000000);
 
 			return area;
 		}
@@ -166,7 +191,7 @@ namespace XanaduProject.Composer
 				int indexOf = query.ToList().IndexOf(lastSelected);
 
 				Rid first = query.ElementAtOrDefault(indexOf + 1) == default ? query.First() : query.ElementAt(indexOf + 1);
-				Entity entity = Index[first][0];
+				Entity entity = index[first][0];
 
 				GD.Print(query.ElementAtOrDefault(indexOf + 1));
 
@@ -176,8 +201,8 @@ namespace XanaduProject.Composer
 
 			else
 			{
-				Entity e  = Index[query[0]][0];
-
+				if (query.Length == 0) return;
+				Entity e  = index[query[0]][0];
 				e.AddTag<SelectionFlag>();
 				lastSelected = query.First();
 			}
@@ -190,6 +215,7 @@ namespace XanaduProject.Composer
 				Position = GetLocalMousePosition(),
 				CollideWithAreas = true,
 				CollideWithBodies = false,
+				CollisionMask =	0b00000000_00000000_00000000_01000000
 			};
 
 			return GetWorld2D().DirectSpaceState
@@ -197,6 +223,24 @@ namespace XanaduProject.Composer
 				.SelectMany(v => v.Values)
 				.Select(c => c.Obj)
 				.OfType<Rid>().ToArray();
+		}
+
+
+		private void removeEntity(Entity entity, SelectionEcs selection)
+		{
+			FreeRid(selection.Area);
+
+			if (entity.HasComponent<HitZoneEcs>())
+			/*	FreeRid(entity.GetComponent<AreaEcs>().Area);*/
+
+
+			if (entity.HasComponent<ElementEcs>())
+				RenderingServer.FreeRid(entity.GetComponent<ElementEcs>().Canvas);
+
+			if (entity.HasComponent<BlockEcs>())
+				entity.GetComponent<BlockEcs>().Remove();
+
+			entity.DeleteEntity();
 		}
 	}
 }

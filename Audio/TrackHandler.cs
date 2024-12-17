@@ -164,6 +164,7 @@ namespace XanaduProject.Audio
 			SongPositionChanged?.Invoke(TrackPosition);
 			Stopped.Invoke();
 
+			GD.PrintRich("[code][color=red] Stopped");
 		}
 
 		public AudioStreamPlayback? GetPlayback()
