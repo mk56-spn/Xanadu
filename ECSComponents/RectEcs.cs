@@ -8,8 +8,7 @@ namespace XanaduProject.ECSComponents
 {
     public struct RectEcs() : IComponent
     {
-        public bool Filled = true;
-        public bool Outline = false;
+        public bool Filled = false;
         public required Vector2 Extents;
 
         public readonly struct Create : IEach<RectEcs, ElementEcs>
@@ -21,11 +20,13 @@ namespace XanaduProject.ECSComponents
                 if (rectEcs.Filled)
                     RenderingServer.CanvasItemAddRect(element.Canvas, new Rect2(-rectEcs.Extents / 2, rectEcs.Extents), Colors.White);
 
-                /*   Rid r = RenderingServer.ShaderCreate();
-                   Rid m = RenderingServer.MaterialCreate();
-                   RenderingServer.ShaderSetCode(r, GD.Load<Shader>("res://Shaders/oattern.gdshader").GetCode());
-                   RenderingServer.MaterialSetShader(m,r);
-                   RenderingServer.CanvasItemSetMaterial(element.Canvas, m);*/
+                Vector2 topLeft = - rectEcs.Extents / 2;
+                Vector2 topRight = rectEcs.Extents / 2 * new Vector2(1,-1);
+                Vector2 bottomRight = rectEcs.Extents / 2;
+                Vector2 bottomLeft = rectEcs.Extents / 2 * new Vector2(-1,1);
+                RenderingServer.CanvasItemAddPolyline(element.Canvas,
+                    [topLeft,topRight,bottomRight,bottomLeft, topLeft],
+                    [], 3);
             }
         }
     }
