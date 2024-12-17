@@ -12,7 +12,7 @@
     <PackageReference Include="Chickensoft.SuperNodes.Types" Version="1.5.0" />
     <PackageReference Update="GodotSharp" Version="4.4.0-dev.4" />
     <PackageReference Update="Godot.SourceGenerators" Version="4.4.0-dev.4" />
-    <PackageReference Include="Friflo.Engine.ECS" Version="3.0.0-preview.18" />
+    <PackageReference Include="Friflo.Engine.ECS" Version="3.0.0" />
     <PackageReference Include="Friflo.Engine.ECS.Boost" Version="3.0.0-preview.18" />
   </ItemGroup>
 </Project>
