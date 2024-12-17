@@ -1,13 +1,11 @@
 // Copyright (c) mk56_spn <dhsjplt@gmail.com>. Licensed under the GNU General Public Licence (2.0).
 // See the LICENCE file in the repository root for full licence text.
 
-using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using Godot;
 using XanaduProject.Audio;
 using XanaduProject.DataStructure;
 using XanaduProject.ECSComponents;
-using XanaduProject.Serialization.Elements;
 using XanaduProject.Serialization.SerialisedObjects;
 using XanaduProject.Tools;
 using static Godot.RenderingServer;
@@ -20,33 +18,48 @@ namespace XanaduProject.Rendering
 	{
 		private readonly RenderGroup[] groups = new RenderGroup[1000];
 
-		public readonly NoteProcessor NoteProcessor;
-		public readonly SerializableStage SerializableStage;
+		private NoteProcessor noteProcessor;
 		public readonly TrackHandler TrackHandler;
 
-		public readonly List<RenderElement> RenderElements = [];
-		public readonly EntityStore EntityStore = new();
+		public readonly EntityStore  EntityStore;
 
-		public readonly RenderCharacter RenderCharacter;
+		private readonly RenderCharacter renderCharacter;
 
 
 		public RenderMaster(SerializableStage serializableStage, TrackInfo trackInfo)
 		{
-			NoteProcessor = new NoteProcessor(TrackHandler = new TrackHandler(trackInfo), RenderCharacter = new RenderCharacter(TrackHandler));
+			EntityStore = serializableStage.EntityStore;
+			TrackHandler = new TrackHandler(trackInfo);
+			renderCharacter = new RenderCharacter(TrackHandler);
+			noteProcessor = new NoteProcessor(TrackHandler,renderCharacter, EntityStore);
 
 			AddChild(TrackHandler);
-			AddChild(NoteProcessor);
+			AddChild(noteProcessor);
 
-			StaticBody2D staticBody2D = new StaticBody2D{ Position = new Vector2(0, 16)};
-			staticBody2D.AddChild(new CollisionShape2D { Shape = new WorldBoundaryShape2D()});
+			StaticBody2D staticBody2D = new StaticBody2D{ Position = new Vector2(0, 300)};
+			/*staticBody2D.AddChild(new CollisionShape2D { Shape = new WorldBoundaryShape2D() });
+			staticBody2D.AddChild(new CollisionShape2D { Shape = new RectangleShape2D(){ Size = new Vector2(2000,10)} });*/
+
+			TreeEntered += () =>
+			{
+				var body = BodyCreate();
+				BodySetMode(body,BodyMode.Static );
+				var shape = RectangleShapeCreate();
+				ShapeSetData(shape, new Vector2(1000, 10));
+				BodyAddShape(body, shape);
+
+				BodySetSpace(BodyCreate(), GetWorld2D().GetSpace());
+
+				BodySetState(body, BodyState.Transform, Transform2D.Identity);
+			};
+
+
 			AddChild(staticBody2D);
-
-			SerializableStage = serializableStage;
 
 			Rid baseCanvas = CanvasItemCreate();
 			CanvasItemSetParent(baseCanvas, GetCanvasItem());
 
-			AddChild(RenderCharacter);
+			AddChild(renderCharacter);
 
 			for (int i = 0; i < groups.Length; i++)
 			{
@@ -54,74 +67,38 @@ namespace XanaduProject.Rendering
 				CanvasItemSetParent(groups[i].Rid, baseCanvas);
 			}
 
-			foreach (var t in serializableStage.Elements)
-				CreateItem2(t);
+			EntityStore.Query<NoteEcs>().ForEachEntity(((ref NoteEcs component1, Entity entity) =>
+					entity.AddComponent<AreaEcs>()));
+
+			EntityStore.Query<ElementEcs>().Each(new ElementEcs.CreateEach(baseCanvas));
+			EntityStore.Query<RectEcs, ElementEcs>().Each(new RectEcs.Create());
+
+			EntityStore.Query<PolygonEcs, ElementEcs>().Each(new PolygonEcs.Create());
 		}
 
-		public override void _Ready()=>
+
+		public override void _EnterTree()
+		{
+			base._EnterTree();
+            EntityStore.Query<NoteEcs, ElementEcs, AreaEcs>().Each(new NoteEcs.CreateNote(GetWorld2D()));
+            EntityStore.Query<RectEcs, ElementEcs, BlockEcs>().Each(new BlockEcs.Create(this));
+		}
+
+		public override void _Ready()
+		{
 			TrackHandler.StartTrack();
-
-		public override void _Draw()
-		{
-			DrawLine(new Vector2(-10000, 16), new Vector2(10000, 16), XanaduColors.XanaduPink, 3);
 		}
 
-		public Entity CreateItem2(Element element)
-		{
-			Rid canvas;
-			CanvasItemSetParent(canvas = CanvasItemCreate(), groups[element.Group].Rid);
-			CanvasItemSetTransform(canvas, element.Transform);
-			CanvasItemSetModulate(canvas, element.Colour);
-			CanvasItemSetZIndex(canvas, element.Zindex);
-
-
-			Entity e = EntityStore.CreateEntity();
-			e.AddComponent(new ElementEcs
-			{
-				Transform = element .Transform,
-				Colour = element.Colour,
-				Index = element.Zindex,
-				Canvas = canvas
-			});
-
-
-			switch (element)
-			{
-				case NoteElement noteElement:
-					e.AddComponent(new NoteEcs(noteElement.TimingPoint));
-					CanvasItemAddCircle(canvas, Vector2.Zero, NoteElement.RADIUS, Colors.White);
-					CanvasItemAddLine(canvas, new Vector2(-10,0), new Vector2(10,0), Colors.Red);
-					break;
-				case PhysicsElement physicsElement:
-					CanvasItemAddRect(canvas, new Rect2(-physicsElement.Size() / 2 ,physicsElement.Size()), Colors.MediumVioletRed);
-					TreeEntered += () => e.AddComponent(new PhysicsEcs(createArea(physicsElement)));
-					break;
-				case TextElement textElement:
-					e.AddComponent(new TextEcs(textElement.Text));
-					var size = ThemeDB.FallbackFont.GetStringSize(textElement.Text, fontSize: textElement.TextSize);
-					ThemeDB.FallbackFont.DrawString(canvas, new Vector2(-size.X, size.Y / 2) / 2, textElement.Text, fontSize: textElement.TextSize);
-					ThemeDB.FallbackFont.DrawStringOutline(canvas, new Vector2(-size.X, size.Y / 2) / 2, textElement.Text, fontSize: textElement.TextSize + 5);
-					break;
-				case TextureElement textureElement:
-					Rect2 rect = new Rect2(-element.Size() / 2, element.Size());
-					CanvasItemAddTextureRect(canvas, rect, SerializableStage.DynamicTextures[textureElement.Texture].GetRid());
-					e.AddComponent(new TextureEcs(SerializableStage.DynamicTextures[textureElement.Texture].GetRid()));
-					break;
-			}
-
-			return e;
-		}
-
-		private Rid createArea(Element element)
+		private static Rid createArea(Entity element, ElementEcs elementEcs, World2D world2D)
 		{
 			Rid area = BodyCreate();
 			Rid shape = RectangleShapeCreate();
 
-			Transform2D transform = element.Transform;
+			Transform2D transform = elementEcs.Transform;
 
-			BodySetSpace(area, GetWorld2D().Space);
+			BodySetSpace(area, world2D.Space);
 			BodyAddShape(area, shape);
-			ShapeSetData(shape, element.Size() / 2);
+			ShapeSetData(shape, elementEcs.Size / 2);
 
 			BodySetCollisionLayer(area, 0b00000000_00000000_00000000_00001101);
 			BodySetCollisionMask(area, 0b00000000_00000000_00000000_00001101);
@@ -131,7 +108,7 @@ namespace XanaduProject.Rendering
 			return area;
 		}
 
-		public Texture[] GetTextures() => SerializableStage.DynamicTextures;
+		public Texture[] GetTextures() => [];
 
 		public int ChildCount() => EntityStore.Count;
 	}
