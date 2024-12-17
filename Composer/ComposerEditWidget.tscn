@@ -2,13 +2,11 @@
 
 [ext_resource type="Script" uid="uid://dyocmkm5y00l7" path="res://Composer/ComposerEditWidget.cs" id="1_h388k"]
 
-[node name="ComposerScaleWidget" type="PanelContainer" node_paths=PackedStringArray("container", "settersContainer")]
+[node name="ComposerScaleWidget" type="PanelContainer"]
 offset_right = 318.0
 offset_bottom = 679.0
 size_flags_vertical = 3
 script = ExtResource("1_h388k")
-container = NodePath("MarginContainer/VBoxContainer/HBoxContainer")
-settersContainer = NodePath("MarginContainer/VBoxContainer/VBoxContainer")
 
 [node name="MarginContainer" type="MarginContainer" parent="."]
 layout_mode = 2

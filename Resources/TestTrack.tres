@@ -1,7 +1,7 @@
 [gd_resource type="Resource" script_class="TrackInfo" load_steps=3 format=3 uid="uid://b2iqrh5aeh4hm"]
 
-[ext_resource type="Script" path="res://DataStructure/TrackInfo.cs" id="1_si41i"]
-[ext_resource type="AudioStream" uid="uid://dliva2opxnaxr" path="res://Resources/Helblinde - Heaven's Fall.ogg" id="1_vcbkd"]
+[ext_resource type="Script" uid="uid://b1yl34lxhlrvk" path="res://DataStructure/TrackInfo.cs" id="1_si41i"]
+[ext_resource type="AudioStream" uid="uid://dliva2opxnaxr" path="res://Resources/Helblinde - Heaven_s Fall.ogg" id="1_vcbkd"]
 
 [resource]
 script = ExtResource("1_si41i")
