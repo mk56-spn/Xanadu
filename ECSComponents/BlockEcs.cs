@@ -30,7 +30,7 @@ namespace XanaduProject.ECSComponents
 		{
 			public void Execute(ref RectEcs rectEcs, ref ElementEcs element, ref BlockEcs body)
 			{
-				GD.PrintRich("[code][color=Brown]Block canvas called");
+				GD.PrintRich("[code][color=red]Block canvas called");
 				body.Body = createBodyRectangle(element, rectEcs, world2D);
 				element.Colour = Colors.Green;
 				element.UpdateCanvas();

@@ -7,9 +7,12 @@ using Godot;
 
 namespace XanaduProject.ECSComponents
 {
+    [ComponentKey(null)]
     public struct SelectionEcs(Rid area) : IIndexedComponent<Rid>
     {
         [Ignore] public Rid Area = area;
+
+        public Vector2 LastPosition;
 
         public Rid GetIndexedValue() => Area;
 

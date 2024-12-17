@@ -16,6 +16,8 @@ namespace XanaduProject.ECSComponents
         [Composer]
         public Color Colour = Colors.Olive;
 
+        [Composer]
+        // ReSharper disable once MemberCanBePrivate.Global
         public int Index = 0;
 
         [Ignore] public Rid Canvas;
@@ -27,6 +29,7 @@ namespace XanaduProject.ECSComponents
         {
             CanvasItemSetTransform(Canvas, Transform);
             CanvasItemSetModulate(Canvas, Colour);
+            CanvasItemSetZIndex(Canvas, Index);
         }
 
         public void SetTransform(Transform2D transform2D)
