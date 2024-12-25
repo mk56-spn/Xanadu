@@ -16,14 +16,15 @@ namespace XanaduProject.Rendering
 		private NoteProcessor noteProcessor;
 		public readonly TrackHandler TrackHandler;
 		public readonly EntityStore EntityStore;
-		private readonly RenderCharacter renderCharacter;
+		public readonly RenderCharacter RenderCharacter;
+		public Rid BaseCanvas;
 
 		public RenderMaster(SerializableStage serializableStage, TrackInfo trackInfo)
 		{
 			EntityStore = serializableStage.EntityStore;
 			TrackHandler = new TrackHandler(trackInfo);
-			renderCharacter = new RenderCharacter(TrackHandler);
-			noteProcessor = new NoteProcessor(TrackHandler, renderCharacter, EntityStore);
+			RenderCharacter = new RenderCharacter(TrackHandler);
+			noteProcessor = new NoteProcessor(TrackHandler, RenderCharacter, EntityStore);
 
 			AddChild(TrackHandler);
 			AddChild(noteProcessor);
@@ -32,29 +33,30 @@ namespace XanaduProject.Rendering
 			staticBody2D.AddChild(new CollisionShape2D { Shape = new WorldBoundaryShape2D()});
 
 			AddChild(staticBody2D);
-			AddChild(renderCharacter);
-
-			Rid baseCanvas = CanvasItemCreate();
-			CanvasItemSetParent(baseCanvas, GetCanvasItem());
-
-			EntityStore.Query<ElementEcs>().Each(new ElementEcs.CreateEach(baseCanvas));
+			AddChild(RenderCharacter);
+			BaseCanvas = CanvasItemCreate();
+			CanvasItemSetParent(BaseCanvas, GetCanvasItem());
+			AddChild(GD.Load<PackedScene>("uid://cx1jpfb2mwknx").Instantiate());
 		}
 
 		public override void _EnterTree()
 		{
-			EntityStore.Query<RectEcs, ElementEcs>().Each(new RectEcs.Create());
-			EntityStore.Query<PolygonEcs, ElementEcs>().Each(new PolygonEcs.Create());
-			EntityStore.Query<RectEcs, ElementEcs, BlockEcs>().Each(new BlockEcs.Create(this));
-			EntityStore.Query<NoteEcs, ElementEcs>().ForEachEntity(
-				(ref NoteEcs _, ref ElementEcs elementEcs, Entity entity) =>
+
+			EntityStore.Query<BlockEcs, ElementEcs,RectEcs >().ForEachEntity((ref BlockEcs blockEcs, ref ElementEcs elementEcs, ref RectEcs rectEcs, Entity _) =>
+			{
+				blockEcs.Create(elementEcs, rectEcs, GetWorld2D());
+			});
+
+
+			EntityStore.Query<ElementEcs>()
+				.ForEachEntity((ref ElementEcs elementEcs, Entity entity) =>
 				{
-					entity.AddComponent(new HitZoneEcs
-					{
-						Area = HitZoneEcs.CreateAreaRound(elementEcs, GetWorld2D())
-					});
+					elementEcs.CanvasCreate(BaseCanvas);
+					elementEcs.Draw(entity);
 				});
 
-			EntityStore.Query<NoteEcs,ElementEcs>().Each(new NoteEcs.CreateNote());
+			EntityStore.Query<NoteEcs, ElementEcs>().ForEachEntity((ref NoteEcs _, ref ElementEcs elementEcs, Entity entity) =>
+					entity.AddComponent(HitZoneEcs.Create(elementEcs, GetWorld2D())));
 		}
 
 		public override void _Ready()

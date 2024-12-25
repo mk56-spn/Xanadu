@@ -3,31 +3,49 @@
 
 using Friflo.Engine.ECS;
 using Godot;
+using XanaduProject.Composer;
+using XanaduProject.ECSComponents.Interfaces;
 
 namespace XanaduProject.ECSComponents
 {
-    public struct RectEcs() : IComponent
+    public struct RectEcs() : IComponent, IUpdatable
     {
-        public bool Filled = false;
+        [Composer("Filled")]
+        public bool Filled = true;
+
         public required Vector2 Extents;
 
-        public readonly struct Create : IEach<RectEcs, ElementEcs>
+        [Composer("Line width")]
+        // ReSharper disable once MemberCanBePrivate.Global
+        public int LineWidth = 1;
+
+
+        public static readonly Vector2[] PRESETS =
+        [
+            new(32, 32),
+            new(64, 64),
+            new(128, 128),
+            new(128, 32),
+            new(256, 256),
+
+        ];
+        public static readonly Vector2 SMALL = new(16, 16);
+        public static readonly Vector2 MEDIUM = new(32, 32);
+        public static readonly Vector2 LARGE = new(64, 64);
+
+        public void Update( ElementEcs element)
         {
-            public void Execute(ref RectEcs rectEcs, ref ElementEcs element)
-            {
-                GD.PrintRich("[code][color=pink]Rect canvas called");
+            if (Filled)
+                RenderingServer.CanvasItemAddRect(element.Canvas, new Rect2(-Extents / 2, Extents), Colors.White);
 
-                if (rectEcs.Filled)
-                    RenderingServer.CanvasItemAddRect(element.Canvas, new Rect2(-rectEcs.Extents / 2, rectEcs.Extents), Colors.White);
-
-                Vector2 topLeft = - rectEcs.Extents / 2;
-                Vector2 topRight = rectEcs.Extents / 2 * new Vector2(1,-1);
-                Vector2 bottomRight = rectEcs.Extents / 2;
-                Vector2 bottomLeft = rectEcs.Extents / 2 * new Vector2(-1,1);
-                RenderingServer.CanvasItemAddPolyline(element.Canvas,
-                    [topLeft,topRight,bottomRight,bottomLeft, topLeft],
-                    [], 3);
-            }
+            Vector2 adjustedExtents = Extents - new Vector2(LineWidth, LineWidth);
+            Vector2 topLeft = - adjustedExtents / 2;
+            Vector2 topRight = adjustedExtents / 2 * new Vector2(1,-1);
+            Vector2 bottomRight = adjustedExtents / 2;
+            Vector2 bottomLeft = adjustedExtents / 2 * new Vector2(-1,1);
+            RenderingServer.CanvasItemAddPolyline(element.Canvas,
+                [topLeft,topRight,bottomRight,bottomLeft, topLeft],
+                [], LineWidth);
         }
     }
 }
