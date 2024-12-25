@@ -4,5 +4,8 @@
 namespace XanaduProject.Composer
 {
     [System.AttributeUsage(System.AttributeTargets.Method | System.AttributeTargets.Field)]
-    public class ComposerAttribute : System.Attribute;
+        public class ComposerAttribute(string name) : System.Attribute
+    {
+        public string Name = name;
+    }
 }
