@@ -4,18 +4,19 @@
 using Friflo.Engine.ECS;
 using Friflo.Json.Fliox;
 using Godot;
+using XanaduProject.ECSComponents.Interfaces;
 using XanaduProject.Rendering;
+using XanaduProject.Tools;
 using static Godot.PhysicsServer2D;
 
 namespace XanaduProject.ECSComponents
 {
-	public struct BlockEcs : IComponent
+	public struct BlockEcs : IComponent, IUpdatable
 	{
         [Ignore]
 		public const int COLLISION_FLAG  = 0b00000000_00000000_10000000_00001101;
 
-        [Ignore]
-        public Rid Body;
+        [Ignore] public Rid Body { get; private set; }
         public void Remove()
         {
             FreeRid(Body);
@@ -26,26 +27,20 @@ namespace XanaduProject.ECSComponents
 			BodySetShapeTransform(Body, 0, transform);
 		}
 
-		public readonly struct Create(RenderMaster world2D) : IEach<RectEcs, ElementEcs, BlockEcs>
-		{
-			public void Execute(ref RectEcs rectEcs, ref ElementEcs element, ref BlockEcs body)
-			{
-				GD.PrintRich("[code][color=red]Block canvas called");
-				body.Body = createBodyRectangle(element, rectEcs, world2D);
-				element.Colour = Colors.Green;
-				element.UpdateCanvas();
+        public void Create(ElementEcs element, RectEcs rectEcs, World2D world2D)
+        {
+            GD.PrintRich("[code][color=red]Block canvas called");
+            Body = createBodyRectangle(element, rectEcs, world2D);
+            element.Colour = XanaduColors.XanaduYellow;
+        }
 
-			}
-		}
-		private static Rid createBodyRectangle(ElementEcs element, RectEcs rectEcs,RenderMaster world)
+		private static Rid createBodyRectangle(ElementEcs element, RectEcs rectEcs,World2D world)
 		{
 
             Rid area = BodyCreate();
             Rid shape = RectangleShapeCreate();
 
-            Transform2D transform = Transform2D.Identity;
-
-            BodySetSpace(area, world.GetWorld2D().Space);
+            BodySetSpace(area, world.Space);
             BodyAddShape(area, shape);
             ShapeSetData(shape, rectEcs.Extents / 2);
 
@@ -56,5 +51,10 @@ namespace XanaduProject.ECSComponents
 
 			return area;
 		}
-	}
+
+        public void Update(ElementEcs elementEcs)
+        {
+            BodySetShapeTransform(Body, 0, elementEcs.Transform);
+        }
+    }
 }
