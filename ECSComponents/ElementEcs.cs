@@ -1,11 +1,15 @@
 // Copyright (c) mk56_spn <dhsjplt@gmail.com>. Licensed under the GNU General Public Licence (2.0).
 // See the LICENCE file in the repository root for full licence text.
 
+using System.Collections.Generic;
+using System.ComponentModel;
 using Friflo.Engine.ECS;
 using Friflo.Json.Fliox;
 using Godot;
 using XanaduProject.Composer;
+using XanaduProject.ECSComponents.Interfaces;
 using static Godot.RenderingServer;
+using IComponent = Friflo.Engine.ECS.IComponent;
 
 namespace XanaduProject.ECSComponents
 {
@@ -13,10 +17,10 @@ namespace XanaduProject.ECSComponents
     {
         public Transform2D Transform = Transform2D.Identity;
 
-        [Composer]
+        [Composer ("Colour")]
         public Color Colour = Colors.Olive;
 
-        [Composer]
+        [Composer("Index")]
         // ReSharper disable once MemberCanBePrivate.Global
         public int Index = 0;
 
@@ -24,14 +28,10 @@ namespace XanaduProject.ECSComponents
 
         [Ignore] public Vector2 Size = new(32, 32);
 
-
-        public void UpdateCanvas()
+        public void  UpdateCanvas(Color colour)
         {
-            CanvasItemSetTransform(Canvas, Transform);
-            CanvasItemSetModulate(Canvas, Colour);
-            CanvasItemSetZIndex(Canvas, Index);
+            CanvasItemSetModulate(Canvas, colour);
         }
-
         public void SetTransform(Transform2D transform2D)
         {
             Transform = transform2D;
@@ -59,16 +59,35 @@ namespace XanaduProject.ECSComponents
             Transform = Transform.ScaledLocal(value - Transform.Scale);
         }
 
-        public readonly struct CreateEach(Rid baseCanvas) : IEach<ElementEcs>
+        public void CanvasCreate(Rid baseCanvas)
         {
-            public void Execute(ref ElementEcs element) {
+            Canvas = CanvasItemCreate();
+            CanvasItemSetParent(Canvas, baseCanvas);
+        }
 
-                CanvasItemSetParent(element.Canvas = CanvasItemCreate(), baseCanvas);
-                element.Canvas = element.Canvas;
+        /// <summary>
+        /// Refreshes the entire entity, should not be used outside of composer as its full of if checks
+        /// </summary>
+        /// <param name="entity"></param>
+        public void Draw(Entity entity)
+        {
+            CanvasItemSetModulate(Canvas,Colour);
+            CanvasItemSetZIndex(Canvas, Index);
+            CanvasItemSetTransform(Canvas, Transform);
 
-                CanvasItemSetTransform(element.Canvas, element.Transform);
-                CanvasItemSetZIndex(element.Canvas, element.Index);
-            }
+            @try<RectEcs>(ref entity);
+            @try<PolygonEcs>(ref entity);
+            @try<SelectionEcs>(ref entity);
+            @try<BlockEcs>(ref entity);
+            @try<HitZoneEcs>(ref entity);
+            @try<NoteEcs>(ref entity);
+        }
+
+        private void @try<T>(ref Entity entity)
+        where T : struct, IComponent, IUpdatable
+        {
+            if (entity.TryGetComponent<T>(out var t))
+                t.Update(this);
         }
     }
 }

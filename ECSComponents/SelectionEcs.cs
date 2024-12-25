@@ -4,11 +4,12 @@
 using Friflo.Engine.ECS;
 using Friflo.Json.Fliox;
 using Godot;
+using XanaduProject.ECSComponents.Interfaces;
 
 namespace XanaduProject.ECSComponents
 {
     [ComponentKey(null)]
-    public struct SelectionEcs(Rid area) : IIndexedComponent<Rid>
+    public struct SelectionEcs(Rid area) : IIndexedComponent<Rid>, IUpdatable
     {
         [Ignore]
         public Rid Area = area;
@@ -17,9 +18,10 @@ namespace XanaduProject.ECSComponents
 
         public Rid GetIndexedValue() => Area;
 
-        public void SetTransform(Transform2D transform)
+
+        public void Update(ElementEcs elementEcs)
         {
-            PhysicsServer2D.AreaSetTransform(Area, transform);
+            PhysicsServer2D.AreaSetTransform(area, elementEcs.Transform);
         }
     }
 }

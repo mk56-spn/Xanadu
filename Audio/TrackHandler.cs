@@ -153,6 +153,12 @@ namespace XanaduProject.Audio
 			};
 		}
 
+		public void SetPos(float pos)
+		{
+			audio.Play(pos);
+			TrackPosition = pos;
+		}
+
 		/// <summary>
 		/// Stops playback of the loaded track.
 		/// </summary>
@@ -165,12 +171,17 @@ namespace XanaduProject.Audio
 			Stopped.Invoke();
 
 			GD.PrintRich("[code][color=red] Stopped");
+
+			lastBeatTime = 0;
 		}
 
 		public AudioStreamPlayback? GetPlayback()
 		{
 			return audio.Playing ? audio.GetStreamPlayback() : null;
 		}
+		public event Action? OnEveryBeat;
+
+		private double lastBeatTime;
 
 		public override void _PhysicsProcess(double delta)
 		{
@@ -179,21 +190,19 @@ namespace XanaduProject.Audio
 			double time = audio.GetPlaybackPosition() + AudioServer.GetTimeSinceLastMix();
 			// Compensate for output latency.
 			TrackPosition = time;
+
+			// Check if a beat has occurred
+			if (!(TrackPosition >= lastBeatTime + SecondsPerBeat)) return;
+
+			lastBeatTime += SecondsPerBeat;
+			OnEveryBeat?.Invoke();
 		}
 
-		private void reportBeat()
+		public override void _EnterTree()
 		{
-			if (lastNoteTime > TrackPosition) return;
+			base._EnterTree();
 
-			if (Measure > Measures)
-				Measure = 1;
-
-			OnBeat?.Invoke(this, positionInBeats);
-
-			LastPlayedBeat = positionInBeats;
-			lastNoteTime = (LastPlayedBeat + 1) * SecondsPerBeat;
-
-			Measure++;
+			OnEveryBeat += () => GD.PrintRich("[code][color=green] Beat " + TrackPosition);
 		}
 	}
 }

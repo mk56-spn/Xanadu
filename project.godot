@@ -12,9 +12,9 @@ config_version=5
 
 config/name="XanaduProject"
 config/tags=PackedStringArray("serious")
-run/main_scene="uid://dfy4y23ujnsal"
+run/main_scene="uid://biel0jq32rdnw"
 config/features=PackedStringArray("4.4", "C#", "Forward Plus")
-config/icon="res://icon.svg"
+config/icon="res://Tools/icon.svg"
 
 [audio]
 
@@ -29,7 +29,7 @@ GlobalPerformance="*res://Tests/Performance.cs"
 window/size/viewport_width=1920
 window/size/viewport_height=1080
 window/size/mode=3
-window/vsync/vsync_mode=0
+window/vsync/vsync_mode=2
 
 [dotnet]
 
@@ -93,6 +93,7 @@ R3={
 
 common/physics_ticks_per_second=240
 2d/default_gravity=7000.0
+common/physics_interpolation=true
 
 [rendering]
 

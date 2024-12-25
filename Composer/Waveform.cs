@@ -1,10 +1,12 @@
 // Copyright (c) mk56_spn <dhsjplt@gmail.com>. Licensed under the GNU General Public Licence (2.0).
 // See the LICENCE file in the repository root for full licence text.
 
+using System;
 using Friflo.Engine.ECS;
 using Godot;
 using XanaduProject.Audio;
 using XanaduProject.ECSComponents;
+using XanaduProject.ECSComponents.Tag;
 using XanaduProject.Tools;
 using static Godot.Mathf;
 
@@ -41,48 +43,51 @@ namespace XanaduProject.Composer
 
 			public override void _Draw()
 			{
-				DrawSetTransform(new Vector2(-(float)(trackHandler.TrackPosition * spacing * (44100f / rate)), 0), 0, Vector2.One);
 
-				int getIntPosition = (int)Max(0, 2 * (44100 / 44f) * trackHandler.TrackPosition -size);
-				var getCurrentSegment = points[getIntPosition.. Mathf.Min(getIntPosition + 2 * size, points.Length)];
+					DrawSetTransform(new Vector2(-(float)(trackHandler.TrackPosition * spacing * (44100f / rate)), 0), 0, Vector2.One);
+					int getIntPosition = (int)Max(0, 2 * (44100 / 44f) * trackHandler.TrackPosition -size);
+					var getCurrentSegment = points[getIntPosition.. Mathf.Min(getIntPosition + 2 * size, points.Length)];
 
-				Color[] colors = new Color[getCurrentSegment.Length / 2];
+					Color[] colors = new Color[getCurrentSegment.Length / 2];
 
-				for (int i = 0; i < colors.Length; i++)
-				{
-					float fadeFactor = 1 - Abs(i - colors.Length / 2) / (float)colors.Length * 2;
-					colors[i] =  XanaduColors.XanaduGreen with {A = fadeFactor };
-				}
+					for (int i = 0; i < colors.Length; i++)
+					{
+						float fadeFactor = 1 - Abs(i - colors.Length / 2) / (float)colors.Length * 2;
+						colors[i] =  XanaduColors.XanaduGreen with {A = fadeFactor };
+					}
 
-				// Draws the currently on screen segment of the waveform;
-				DrawMultilineColors(getCurrentSegment,colors);
+					// Draws the currently on screen segment of the waveform;
+					DrawMultilineColors(getCurrentSegment,colors);
 
-				double bpm = 60 / trackHandler.Bpm;
-				float temp = (float)(audio_rate * bpm);
+					double bpm = 60 / trackHandler.Bpm;
+					float temp = (float)(audio_rate * bpm);
 
-				double nearestMeasurePosition = Snapped(audio_rate * trackHandler.TrackPosition * spacing, temp);
+					double nearestMeasurePosition = Snapped(audio_rate * trackHandler.TrackPosition * spacing, temp);
 
-				// Draws the beat measures
-				for (int i = -10; i < 10; i++)
-				{
-					DrawLine(new Vector2((float)nearestMeasurePosition + i * spacing * temp, -30),
-						new Vector2((float)nearestMeasurePosition + i * spacing * temp, 30),
-						Colors.White, 2);
-				}
+					// Draws the beat measures
+					for (int i = -10; i < 10; i++)
+					{
+						DrawLine(new Vector2((float)nearestMeasurePosition + i * spacing * temp, -30),
+							new Vector2((float)nearestMeasurePosition + i * spacing * temp, 30),
+							Colors.White, 2);
+					}
 
-				composer.EntityStore.Query<NoteEcs>().ForEachEntity((ref NoteEcs note, Entity entity) =>
-				{
-					DrawCircle(new Vector2(note.TimingPoint * audio_rate * spacing, 0), 10,
-						new Color("66fff2"));
+					composer.EntityStore.Query<NoteEcs>().ForEachEntity((ref NoteEcs note, Entity entity) =>
+					{
+						if (Abs(note.TimingPoint - trackHandler.TrackPosition) > 3) return;
 
-					if (entity.Tags.Has<SelectionFlag>())
-						DrawArc(new Vector2(note.TimingPoint * audio_rate * spacing, 0), 15, 0, 360, 30,
-							XanaduColors.XanaduPink);
-				} );
+						DrawCircle(new Vector2(note.TimingPoint * audio_rate * spacing, 0), 10,
+							new Color("66fff2"));
+
+						if (entity.Tags.Has<SelectionFlag>())
+							DrawArc(new Vector2(note.TimingPoint * audio_rate * spacing, 0), 15, 0, 360, 30,
+								XanaduColors.XanaduPink);
+					} );
 
 
-				DrawSetTransform(Vector2.Zero, 0, Vector2.One);
-				DrawLine(new Vector2(0, -40), new Vector2(0, 40), XanaduColors.XanaduPink, 4);
+					DrawSetTransform(Vector2.Zero, 0, Vector2.One);
+					DrawLine(new Vector2(0, -40), new Vector2(0, 40), XanaduColors.XanaduPink, 4);
+
 			}
 
 

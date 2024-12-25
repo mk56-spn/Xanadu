@@ -1,12 +1,12 @@
 // Copyright (c) mk56_spn <dhsjplt@gmail.com>. Licensed under the GNU General Public Licence (2.0).
 // See the LICENCE file in the repository root for full licence text.
 
-using System;
+using System.Globalization;
 using System.Linq;
 using System.Reflection;
 using Friflo.Engine.ECS;
-using Friflo.Json.Fliox.Schema.JSON;
 using Godot;
+using XanaduProject.Audio;
 using XanaduProject.ECSComponents;
 
 namespace XanaduProject.Composer
@@ -15,55 +15,120 @@ namespace XanaduProject.Composer
 	{
 		private ComposerRenderMaster composer = null!;
 
-		[Export]
-		private HBoxContainer container = null!;
-		[Export]
-		private VBoxContainer settersContainer = null!;
+		[Export] private HBoxContainer container = null!;
+		[Export] private VBoxContainer settersContainer = null!;
+
+		private float time; // Keep track of time
 		private ComposerEditWidget() { }
 
-		private Entity target;
-
-		private Entity targetExposed
+		public override void _Ready()
 		{
-			set
+			composer.SelectionChanged += () =>
 			{
+				GD.Print("SelectionChanged" + composer.Selected.Count);
 				foreach (var child in settersContainer.GetChildren())
 					child.QueueFree();
 
-				target = value;
+				foreach (var child in container.GetChildren())
+					child.QueueFree();
 
-				foreach (var info in typeof(ElementEcs).GetFields()
-							 .Where(m => m.GetCustomAttributes(typeof(ComposerAttribute), false).Length > 0))
-					uiControlSetup(info);
-			}
+				if (composer.Selected.Count != 1) return;
+
+
+				foreach (var child in container.GetChildren().OfType<Notes>())
+				{
+					child.QueueFree();
+				}
+
+				if (composer.Selected.Entities.First().HasComponent<NoteEcs>())
+				{
+					container.AddChild(new Notes(composer.TrackHandler, composer.Selected.Entities.First()));
+				}
+
+				foreach (var component in composer.Selected.Entities.First().Components)
+				{
+					foreach (var field in component.Type.Type.GetFields()
+								 .Where(m => m.GetCustomAttributes(typeof(ComposerAttribute), false).Length > 0))
+					{
+						switch (component.Type.Type)
+						{
+							case { } t when t == typeof(ElementEcs):
+								uiControlSetup<ElementEcs>(field, composer.Selected.Entities.First());
+								break;
+
+							case { } t when t == typeof(RectEcs):
+								if (composer.Selected.Count != 1) return;
+								uiControlSetup<RectEcs>(field, composer.Selected.Entities.First());
+								break;
+							case { } t when t == typeof(NoteEcs):
+								if (composer.Selected.Count != 1) return;
+
+								composer.TrackHandler.SetPos(composer.Selected.Entities.First().GetComponent<NoteEcs>().TimingPoint);
+								composer.TrackHandler.TogglePlayback();
+								uiControlSetup<NoteEcs>(field, composer.Selected.Entities.First());
+								break;
+						}
+					}
+				}
+			};
 		}
 
-		private void uiControlSetup(FieldInfo info)
+		private void uiControlSetup<T>(FieldInfo info, Entity target) where T : struct, IComponent
 		{
-			if (info.FieldType == typeof(int))
+			Node? control = info.FieldType switch
 			{
-				SpinBox s = new SpinBox();
-				s.SetValueNoSignal((double)info.GetValue(target.GetComponent<ElementEcs>())!);
-				settersContainer.AddChild(s);
-				s.ValueChanged += d => {
-					ref ElementEcs elementEcs = ref target.GetComponent<ElementEcs>();
-					info.SetValueDirect(__makeref(elementEcs), (int)d);
-				};
+				{ } t when t == typeof(bool) => new CheckButton(),
+				{ } t when t == typeof(int) => new SpinBox(){ MinValue = -50, MaxValue = 50},
+				{ } t when t == typeof(NoteType) => new OptionButton(),
+				{ } t when t == typeof(Color) => new ColorPickerButton { CustomMinimumSize = new Vector2(40, 100) },
+				_ => null
+			};
+
+			if (control == null) return;
+
+			ComposerAttribute v = (info.GetCustomAttributes(typeof(ComposerAttribute), false).First() as ComposerAttribute)!;
+
+			settersContainer.AddChild(new Label { Text = v.Name });
+			GD.PrintRich(v.Name);
+			settersContainer.AddChild(control);
+			settersContainer.AddChild(new ColorRect{Color = Colors.White, CustomMinimumSize = new Vector2(0, 1)});
+
+			switch (control)
+			{
+				case CheckButton checkBox:
+					checkBox.SetPressed((bool)info.GetValue(target.GetComponent<T>())!);
+					checkBox.Toggled += on => setValue(on);
+					break;
+				case SpinBox spinBox:
+					spinBox.SetValueNoSignal((int)info.GetValue(target.GetComponent<T>())!);
+					spinBox.ValueChanged += d => setValue((int)d);
+					break;
+				case ColorPickerButton colorPicker:
+					colorPicker.Color = (Color)info.GetValue(target.GetComponent<T>())!;
+					colorPicker.ColorChanged += c => setValue(c);
+					break;
+				case OptionButton optionButton:
+					GD.PrintRich("[code][color=orange]Option button");
+					optionButton.AddItem(NoteType.Left.ToString(), (int)NoteType.Left);
+					optionButton.AddItem(NoteType.Right.ToString(), (int)NoteType.Right);
+					optionButton.AddItem(NoteType.Up.ToString(), (int)NoteType.Up);
+					optionButton.AddItem(NoteType.Down.ToString(), (int)NoteType.Down);
+					optionButton.Selected = (int)info.GetValue(target.GetComponent<T>())!;
+					optionButton.ItemSelected += i => setValue((NoteType)i);
+					break;
 			}
 
-			if (info.FieldType == typeof(Color))
-			{
-				ColorPickerButton colorPicker = new ColorPickerButton() { CustomMinimumSize = new Vector2(40, 100) };
+			return;
 
-				colorPicker.Color = (Color)info.GetValue(target.GetComponent<ElementEcs>())!;
-				settersContainer.AddChild(colorPicker);
-				colorPicker.ColorChanged += c => {
-					ref ElementEcs elementEcs = ref target.GetComponent<ElementEcs>();
-					info.SetValueDirect(__makeref(elementEcs), c);
-					target.GetComponent<ElementEcs>().UpdateCanvas();
-				};
+			void setValue(object on)
+			{
+				ref var elementEcs = ref target.GetComponent<T>();
+				info.SetValueDirect(__makeref(elementEcs), on);
+				target.GetComponent<ElementEcs>().Draw(composer.Selected.Entities.First());
 			}
 		}
+
+
 		public static ComposerEditWidget Create(ComposerRenderMaster composer)
 		{
 			var widget = GD.Load<PackedScene>("res://Composer/ComposerEditWidget.tscn")
@@ -76,36 +141,27 @@ namespace XanaduProject.Composer
 		{
 			if (@event is not InputEventKey { Pressed: true } key) return;
 
-			int spacing = 32;
-
 			var direction = key.KeyLabel switch
 			{
-				Key.Up => Vector2.Up,
-				Key.Down => Vector2.Down,
-				Key.Left => Vector2.Left,
-				Key.Right => Vector2.Right,
+				Key.I => Vector2.Up,
+				Key.K => Vector2.Down,
+				Key.J => Vector2.Left,
+				Key.L => Vector2.Right,
 				_ => Vector2.Zero
 			};
-
-
-			if (direction != Vector2.Zero){}
-
+			if (direction != Vector2.Zero)
+				composer.Selected.ForEachEntity(
+					(ref ElementEcs element, ref SelectionEcs component2, Entity entity) =>
+					{
+						var newPos = element.Transform with { Origin = element.Transform.Origin + direction * 64 };
+						element.Transform = newPos;
+						element.Draw(entity);
+					});
 		}
 
-		public override void _Process(double delta)
+		private partial class Notes(TrackHandler trackHandler, Entity entity) : HBoxContainer
 		{
-
-			if (target != composer.Selected.Entities.FirstOrDefault())
-				targetExposed = composer.Selected.Entities.FirstOrDefault();
-			Visible = composer.Selected.Count != 0;
-		}
-
-		public override void _EnterTree() =>
-			linkNoteButtons();
-
-		private void linkNoteButtons()
-		{
-			float[] values =
+			private float[] values =
 			[
 				-1,
 				-0.5f,
@@ -115,16 +171,28 @@ namespace XanaduProject.Composer
 				1
 			];
 
-			foreach (var noteButton in container.GetChildren().OfType<Button>())
-				noteButton.Pressed += () =>
+			public override void _EnterTree()
+			{
+				base._EnterTree();
+
+				foreach (float value in values)
 				{
-					if (!target.HasComponent<NoteEcs>()) return;
+					var s = new Button
+					{
+						Text = value.ToString(CultureInfo.InvariantCulture)
+					};
 
-					ref var note = ref target.GetComponent<NoteEcs>();
-					note.TimingPoint = (float)(Mathf.Snapped(note.TimingPoint, 60 / composer.TrackHandler.Bpm * 0.25) +
-											   60 / composer.TrackHandler.Bpm * values[noteButton.GetIndex()]);
+					s.Pressed += () =>
+					{
+						if (!entity.HasComponent<NoteEcs>()) return;
 
+						ref var note = ref entity.GetComponent<NoteEcs>();
+						note.TimingPoint = (float)(Mathf.Snapped(note.TimingPoint, 60 / trackHandler.Bpm * 0.25) +
+												   60 / trackHandler.Bpm * value);
+					};
+					AddChild(s);
 				};
+			}
 		}
 	}
 }

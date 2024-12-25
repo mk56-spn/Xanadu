@@ -2,11 +2,13 @@
 
 [ext_resource type="Script" uid="uid://dyocmkm5y00l7" path="res://Composer/ComposerEditWidget.cs" id="1_h388k"]
 
-[node name="ComposerScaleWidget" type="PanelContainer"]
+[node name="ComposerScaleWidget" type="PanelContainer" node_paths=PackedStringArray("container", "settersContainer")]
 offset_right = 318.0
 offset_bottom = 679.0
 size_flags_vertical = 3
 script = ExtResource("1_h388k")
+container = NodePath("MarginContainer/VBoxContainer/HBoxContainer")
+settersContainer = NodePath("MarginContainer/VBoxContainer/VBoxContainer")
 
 [node name="MarginContainer" type="MarginContainer" parent="."]
 layout_mode = 2
@@ -24,39 +26,3 @@ size_flags_vertical = 3
 
 [node name="HBoxContainer" type="HBoxContainer" parent="MarginContainer/VBoxContainer"]
 layout_mode = 2
-
-[node name="Button" type="Button" parent="MarginContainer/VBoxContainer/HBoxContainer"]
-custom_minimum_size = Vector2(30, 30)
-layout_mode = 2
-text = "B
-"
-
-[node name="Button2" type="Button" parent="MarginContainer/VBoxContainer/HBoxContainer"]
-custom_minimum_size = Vector2(30, 30)
-layout_mode = 2
-text = "B
-"
-
-[node name="Button3" type="Button" parent="MarginContainer/VBoxContainer/HBoxContainer"]
-custom_minimum_size = Vector2(30, 30)
-layout_mode = 2
-text = "B
-"
-
-[node name="Button4" type="Button" parent="MarginContainer/VBoxContainer/HBoxContainer"]
-custom_minimum_size = Vector2(30, 30)
-layout_mode = 2
-text = "B
-"
-
-[node name="Button5" type="Button" parent="MarginContainer/VBoxContainer/HBoxContainer"]
-custom_minimum_size = Vector2(30, 30)
-layout_mode = 2
-text = "B
-"
-
-[node name="Button6" type="Button" parent="MarginContainer/VBoxContainer/HBoxContainer"]
-custom_minimum_size = Vector2(30, 30)
-layout_mode = 2
-text = "B
-"

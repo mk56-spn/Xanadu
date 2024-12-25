@@ -1,0 +1,353 @@
+[gd_scene load_steps=33 format=3 uid="uid://c0artk3e0k6yt"]
+
+[sub_resource type="Gradient" id="Gradient_tpija"]
+offsets = PackedFloat32Array(0, 0.0791139, 0.781646, 1)
+colors = PackedColorArray(0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0)
+
+[sub_resource type="GradientTexture1D" id="GradientTexture1D_akc8a"]
+gradient = SubResource("Gradient_tpija")
+
+[sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_e3jxl"]
+particle_flag_disable_z = true
+emission_shape_scale = Vector3(0.1, 1, 1)
+emission_shape = 1
+emission_sphere_radius = 48.86
+gravity = Vector3(0, 0, 0)
+scale_min = 3.0
+scale_max = 3.0
+color = Color(1, 0, 0.583333, 1)
+color_ramp = SubResource("GradientTexture1D_akc8a")
+
+[sub_resource type="Gradient" id="Gradient_akc8a"]
+offsets = PackedFloat32Array(1)
+colors = PackedColorArray(1, 1, 1, 1)
+
+[sub_resource type="GradientTexture2D" id="GradientTexture2D_da6a4"]
+gradient = SubResource("Gradient_akc8a")
+width = 4
+height = 4
+
+[sub_resource type="Curve" id="Curve_e3jxl"]
+_data = [Vector2(0, 0.0079726), 0.0, 0.0, 0, 0, Vector2(0.39999, 1), -3.10033, -3.10033, 0, 0, Vector2(0.5, 0.7), 0.0, 0.0, 0, 0, Vector2(1, 0), 0.0, 0.0, 0, 0]
+point_count = 4
+metadata/_snap_enabled = true
+
+[sub_resource type="CurveTexture" id="CurveTexture_tpija"]
+curve = SubResource("Curve_e3jxl")
+
+[sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_fw2nc"]
+particle_flag_align_y = true
+particle_flag_disable_z = true
+emission_shape = 3
+emission_box_extents = Vector3(1000, 600, 1)
+gravity = Vector3(0, 0, 0)
+alpha_curve = SubResource("CurveTexture_tpija")
+
+[sub_resource type="CanvasItemMaterial" id="CanvasItemMaterial_6h2tp"]
+
+[sub_resource type="Gradient" id="Gradient_fw2nc"]
+offsets = PackedFloat32Array(0, 0.9, 1)
+colors = PackedColorArray(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0)
+metadata/_snap_enabled = true
+
+[sub_resource type="GradientTexture2D" id="GradientTexture2D_6h2tp"]
+gradient = SubResource("Gradient_fw2nc")
+fill = 1
+fill_from = Vector2(0.5, 0.5)
+fill_to = Vector2(0.9, 0)
+metadata/_snap_enabled = true
+
+[sub_resource type="Curve" id="Curve_tpija"]
+_data = [Vector2(0, 0), 0.0, 0.0, 0, 0, Vector2(0.180233, 1), 0.0, 0.0, 0, 0, Vector2(0.790698, 1), 0.0, 0.0, 0, 0, Vector2(1, 0), 0.0, 0.0, 0, 0]
+point_count = 4
+
+[sub_resource type="CurveTexture" id="CurveTexture_akc8a"]
+curve = SubResource("Curve_tpija")
+
+[sub_resource type="Gradient" id="Gradient_e3jxl"]
+colors = PackedColorArray(1, 1, 1, 1, 0.996625, 0, 0.153305, 1)
+
+[sub_resource type="GradientTexture1D" id="GradientTexture1D_tpija"]
+gradient = SubResource("Gradient_e3jxl")
+
+[sub_resource type="Curve" id="Curve_iktoo"]
+_data = [Vector2(0, 0.459567), 0.0, 0.0, 0, 0, Vector2(0.296512, 1), 0.0, 0.0, 0, 0, Vector2(0.389535, 0.644647), 0.0, 0.0, 0, 0, Vector2(0.619186, 0.296697), 0.0, 0.0, 0, 0, Vector2(1, 1), 0.0, 0.0, 0, 0]
+point_count = 5
+
+[sub_resource type="CurveTexture" id="CurveTexture_0wng5"]
+curve = SubResource("Curve_iktoo")
+
+[sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_wmnl4"]
+particle_flag_rotate_y = true
+particle_flag_disable_z = true
+direction = Vector3(0, 1, 0)
+spread = 0.0
+initial_velocity_min = 100.0
+initial_velocity_max = 100.0
+gravity = Vector3(0, 0, 0)
+scale_curve = SubResource("CurveTexture_0wng5")
+color_ramp = SubResource("GradientTexture1D_tpija")
+alpha_curve = SubResource("CurveTexture_akc8a")
+
+[sub_resource type="Gradient" id="Gradient_0wng5"]
+offsets = PackedFloat32Array(0.2, 0.3, 0.7, 0.8, 0.938889, 1)
+colors = PackedColorArray(1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0)
+metadata/_snap_enabled = true
+
+[sub_resource type="GradientTexture2D" id="GradientTexture2D_wmnl4"]
+gradient = SubResource("Gradient_0wng5")
+width = 30
+height = 30
+fill = 1
+fill_from = Vector2(0.5, 0.5)
+fill_to = Vector2(0, 0.5)
+metadata/_snap_enabled = true
+
+[sub_resource type="Gradient" id="Gradient_da6a4"]
+colors = PackedColorArray(1, 1, 1, 1, 1, 1, 1, 0)
+
+[sub_resource type="GradientTexture2D" id="GradientTexture2D_fw2nc"]
+gradient = SubResource("Gradient_da6a4")
+width = 200
+height = 200
+fill = 1
+fill_from = Vector2(0.5, 0.5)
+fill_to = Vector2(1, 0.5)
+metadata/_snap_enabled = true
+
+[sub_resource type="Gradient" id="Gradient_6h2tp"]
+offsets = PackedFloat32Array(0.137931)
+colors = PackedColorArray(0.94, 0, 0.360333, 1)
+
+[sub_resource type="GradientTexture2D" id="GradientTexture2D_iktoo"]
+gradient = SubResource("Gradient_6h2tp")
+width = 10
+height = 10
+
+[sub_resource type="Curve" id="Curve_0wng5"]
+_data = [Vector2(0, 0), 0.0, 0.0, 0, 0, Vector2(0.520468, 1), 0.0, 0.0, 0, 0, Vector2(1, 0), 0.0, 0.0, 0, 0]
+point_count = 3
+
+[sub_resource type="CurveTexture" id="CurveTexture_wmnl4"]
+curve = SubResource("Curve_0wng5")
+
+[sub_resource type="Curve" id="Curve_jakqi"]
+_data = [Vector2(0, 0.256069), 0.0, 0.0, 0, 0, Vector2(1, 1), 0.0, 0.0, 0, 0]
+point_count = 2
+
+[sub_resource type="CurveTexture" id="CurveTexture_ov4gj"]
+curve = SubResource("Curve_jakqi")
+
+[sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_y7kq4"]
+particle_flag_disable_z = true
+emission_shape_scale = Vector3(1000, 600, 1)
+emission_shape = 3
+emission_box_extents = Vector3(1, 1, 1)
+direction = Vector3(1, 100, 0)
+spread = 0.0
+initial_velocity_max = 100.0
+gravity = Vector3(0, 0, 0)
+scale_over_velocity_min = 20.0
+scale_over_velocity_max = 50.0
+scale_over_velocity_curve = SubResource("CurveTexture_ov4gj")
+alpha_curve = SubResource("CurveTexture_wmnl4")
+
+[sub_resource type="Animation" id="Animation_tpija"]
+loop_mode = 2
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Node2D/Polygon2D3:rotation")
+tracks/0/interp = 2
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 1),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [-0.0523599, 0.0872665]
+}
+tracks/1/type = "value"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath("Node2D/Polygon2D4:rotation")
+tracks/1/interp = 2
+tracks/1/loop_wrap = true
+tracks/1/keys = {
+"times": PackedFloat32Array(0, 1),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [0.0523599, 0.122173]
+}
+
+[sub_resource type="Animation" id="Animation_e3jxl"]
+resource_name = "Wings"
+loop_mode = 2
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Node2D/Polygon2D3:rotation")
+tracks/0/interp = 2
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 1),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [0.0, -0.0872665]
+}
+tracks/1/type = "value"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath("Node2D/Polygon2D4:rotation")
+tracks/1/interp = 2
+tracks/1/loop_wrap = true
+tracks/1/keys = {
+"times": PackedFloat32Array(0, 1),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [0.210224, 0.0872665]
+}
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_akc8a"]
+_data = {
+&"RESET": SubResource("Animation_tpija"),
+&"Wings": SubResource("Animation_e3jxl")
+}
+
+[node name="CharVisuals" type="Node2D"]
+physics_interpolation_mode = 1
+
+[node name="GroundPart" type="GPUParticles2D" parent="."]
+position = Vector2(-11, 17)
+rotation = 0.431673
+amount = 1000
+lifetime = 10.0
+preprocess = 3.0
+fixed_fps = 360
+interpolate = false
+visibility_rect = Rect2(-2500, -2500, 5000, 5000)
+process_material = SubResource("ParticleProcessMaterial_e3jxl")
+
+[node name="GPUParticles2D" type="GPUParticles2D" parent="."]
+amount = 100
+fixed_fps = 100
+interpolate = false
+texture = SubResource("GradientTexture2D_da6a4")
+process_material = SubResource("ParticleProcessMaterial_fw2nc")
+
+[node name="GPUParticles2D2" type="GPUParticles2D" parent="."]
+visible = false
+material = SubResource("CanvasItemMaterial_6h2tp")
+position = Vector2(-1, -48)
+scale = Vector2(1, 0.33)
+amount = 10
+lifetime = 3.0
+preprocess = 3.0
+fixed_fps = 120
+visibility_rect = Rect2(-64, -63.1667, 128, 427.167)
+local_coords = true
+texture = SubResource("GradientTexture2D_6h2tp")
+process_material = SubResource("ParticleProcessMaterial_wmnl4")
+
+[node name="Node2D" type="Node2D" parent="."]
+
+[node name="Polygon2D4" type="Polygon2D" parent="Node2D"]
+modulate = Color(0.39, 0.39, 0.39, 1)
+self_modulate = Color(0.996078, 0.207614, 0.329259, 1)
+position = Vector2(22.3878, -25.6761)
+rotation = 0.0523599
+scale = Vector2(0.715, 0.715)
+polygon = PackedVector2Array(-63.63, -26.215, -76.7808, -32.1359, -160, -32, -181.371, -19.6054, -166.958, -16.9557, -140, -12, -128, -16, -104, -12, -100, -4, -80, 0, -64, -16)
+
+[node name="Sprite2D" type="Sprite2D" parent="Node2D/Polygon2D4"]
+modulate = Color(0.996078, 0.207843, 0.329412, 1)
+position = Vector2(-121.183, 4.10195)
+texture = SubResource("GradientTexture2D_wmnl4")
+
+[node name="Line2D" type="Line2D" parent="Node2D/Polygon2D4"]
+points = PackedVector2Array(-80.3715, -0.2768, -100.371, -4.2768, -103.371, -11.2768, -128.372, -16.2768, -140.372, -12.2768, -181.372, -19.2768)
+width = 2.0
+begin_cap_mode = 2
+end_cap_mode = 2
+
+[node name="Polygon2D3" type="Polygon2D" parent="Node2D"]
+self_modulate = Color(0.996078, 0.207614, 0.329259, 1)
+light_mask = 5
+position = Vector2(16.3878, -24.6761)
+rotation = -0.0523599
+scale = Vector2(0.715, 0.715)
+polygon = PackedVector2Array(-63.63, -26.215, -76.7808, -32.1359, -160, -32, -181.371, -19.6054, -140, -12, -128, -16, -104, -12, -100, -4, -80, 0, -64, -16)
+
+[node name="Sprite2D" type="Sprite2D" parent="Node2D/Polygon2D3"]
+modulate = Color(0.996078, 0.207843, 0.329412, 1)
+position = Vector2(-121.371, 5.7232)
+texture = SubResource("GradientTexture2D_wmnl4")
+
+[node name="Line2D" type="Line2D" parent="Node2D/Polygon2D3"]
+points = PackedVector2Array(-80.3715, -0.2768, -100.371, -4.2768, -103.371, -11.2768, -128.372, -16.2768, -140.372, -12.2768, -181.372, -19.2768)
+width = 2.0
+begin_cap_mode = 2
+end_cap_mode = 2
+
+[node name="Polygon2D2" type="Polygon2D" parent="Node2D"]
+self_modulate = Color(0.996078, 0.207843, 0.329412, 1)
+position = Vector2(-8, 0)
+polygon = PackedVector2Array(-4, 12, 9, 12, 11, 2, 15, -7, 20, -20, 12, -32, -4, -36, -8, -28, -10.7223, -8.94361)
+
+[node name="Polygon2D" type="Polygon2D" parent="Node2D/Polygon2D2"]
+position = Vector2(-41, -44)
+scale = Vector2(0.64, 1)
+color = Color(0.8, 0.168, 0.2628, 1)
+polygon = PackedVector2Array(68, 20, 60, 16, 52, 16, 44, 20, 43.75, 51, 78.125, 71, 56.25, 45)
+
+[node name="Polygon2D2" type="Polygon2D" parent="Node2D/Polygon2D2"]
+modulate = Color(0.8, 0.168627, 0.262745, 1)
+z_index = -1
+polygon = PackedVector2Array(-8, 12, -16, 20, -16, 28, -4, 44, -40, 64, -32, 64, -24, 64, 12, 44, 4, 24, 8, 12)
+
+[node name="Polygon2D5" type="Polygon2D" parent="Node2D/Polygon2D2/Polygon2D2"]
+position = Vector2(20, 0)
+color = Color(0.8, 0.8, 0.8, 1)
+polygon = PackedVector2Array(16, 56, 12, 40, 8, 40, 4, 56)
+
+[node name="Polygon2D4" type="Polygon2D" parent="Node2D/Polygon2D2/Polygon2D2"]
+color = Color(0.8, 0.8, 0.8, 1)
+polygon = PackedVector2Array(16, 56, 12, 40, 8, 40, 4, 56)
+
+[node name="Polygon2D3" type="Polygon2D" parent="Node2D/Polygon2D2/Polygon2D2"]
+position = Vector2(-32, -2.38419e-07)
+rotation = 0.0992758
+scale = Vector2(0.805, 1)
+color = Color(0.8, 0.8, 0.8, 1)
+polygon = PackedVector2Array(17.2762, 58.9117, 12, 40, 8, 40, 4, 56)
+
+[node name="Polygon2D" type="Polygon2D" parent="Node2D/Polygon2D2/Polygon2D2"]
+color = Color(0.49, 0.49, 0.49, 1)
+polygon = PackedVector2Array(-8, 12, -28, 28, -40, 60, -24.8332, 64, 0, 60, 8, 64, 20, 48, 20, 28, 8, 12)
+
+[node name="CanvasModulate" type="CanvasModulate" parent="."]
+position = Vector2(7, 16)
+metadata/_edit_lock_ = true
+
+[node name="GPUParticles2D6" type="GPUParticles2D" parent="."]
+amount = 100
+fixed_fps = 100
+interpolate = false
+texture = SubResource("GradientTexture2D_da6a4")
+process_material = SubResource("ParticleProcessMaterial_fw2nc")
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+modulate = Color(1, 0, 0, 0.25098)
+texture = SubResource("GradientTexture2D_fw2nc")
+metadata/_edit_lock_ = true
+
+[node name="GPUParticles2D7" type="GPUParticles2D" parent="."]
+z_index = -4
+amount = 200
+texture = SubResource("GradientTexture2D_iktoo")
+process_material = SubResource("ParticleProcessMaterial_y7kq4")
+
+[node name="AnimationPlayer" type="AnimationPlayer" parent="."]
+libraries = {
+&"": SubResource("AnimationLibrary_akc8a")
+}
+autoplay = "RESET"

@@ -3,22 +3,21 @@
 
 using Friflo.Engine.ECS;
 using Godot;
+using XanaduProject.ECSComponents.Interfaces;
 using static Godot.PhysicsServer2D;
 
 namespace XanaduProject.ECSComponents
 {
 	[ComponentKey(null)]
-	public struct HitZoneEcs : IIndexedComponent<Rid>
+	public struct HitZoneEcs : IIndexedComponent<Rid>, IUpdatable
 	{
 		public required Rid Area;
 		public Rid GetIndexedValue() => Area;
 
-		public void SetTransform(Transform2D transform)
-		{
-			AreaSetShapeTransform(Area, 0, transform);
-		}
+        public static HitZoneEcs Create(ElementEcs element, World2D world2D) =>
+            new() { Area = createAreaRound(element, world2D) };
 
-        public static Rid CreateAreaRound(ElementEcs element, World2D world)
+        private static Rid createAreaRound(ElementEcs element, World2D world)
         {
             var area = AreaCreate();
             var shape = CircleShapeCreate();
@@ -33,5 +32,10 @@ namespace XanaduProject.ECSComponents
 
             return area;
         }
-	}
+
+        public void Update(ElementEcs elementEcs)
+        {
+            AreaSetTransform(Area, elementEcs.Transform);
+        }
+    }
 }
