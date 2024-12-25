@@ -7,6 +7,7 @@ using System.Linq;
 using Friflo.Engine.ECS;
 using Godot;
 using XanaduProject.ECSComponents;
+using XanaduProject.ECSComponents.Presets;
 using XanaduProject.Serialization.SerialisedObjects;
 using static Godot.GD;
 
@@ -31,7 +32,7 @@ namespace XanaduProject.Tests
 		{
 			EntityStore = new EntityStore();
 
-			for (int i = 0; i < 40; i++)
+			for (int i = 0; i < 400; i++)
 			{
 				if (i % 5 == 0)
 				{
@@ -43,25 +44,25 @@ namespace XanaduProject.Tests
 					];
 
 					 NoteType n = values[RandRange(0,2)];
+
+					 PrefabEntity.Note(EntityStore.CreateEntity(),
+						 new Vector2(RandRange(0, area), RandRange(0, area)),
+						 0.3F * RandRange(0, 500), n, null! );
+
 					EntityStore.CreateEntity(new ElementEcs
 						{
 							Colour = Colors.White,
 							Transform = Transform2D.Identity with
 							{
-								Origin = new Vector2(RandRange(0, area / 1000), RandRange(0, 1))
+								Origin = new Vector2(RandRange(0, area / 10), RandRange(0, area / 10))
 							},
 						},
 						new NoteEcs(0.3F * RandRange(0, 500), n));
 				}
 
-				EntityStore.CreateEntity(new ElementEcs {
-						Transform = Transform2D.Identity with {Origin = new Vector2(RandRange(0,area),RandRange(0,area))},
-						Colour = Colors.White,
-					},
-					new RectEcs { Extents = new Vector2(GD.RandRange(0,99), GD.RandRange(0,99))});
 
 				EntityStore.CreateEntity(new ElementEcs {
-						Transform = Transform2D.Identity with {Origin = new Vector2(RandRange(0,area /10),RandRange(0,area / 10))},
+						Transform = Transform2D.Identity with {Origin = new Vector2(RandRange(0,area / 3),RandRange(0,area / 3))},
 						Colour = Colors.White,
 					},
 					new BlockEcs(),
