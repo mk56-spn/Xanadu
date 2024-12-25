@@ -14,11 +14,12 @@ namespace XanaduProject.Serialization
 {
     public static class StageSerializer
     {
-        public static void Serialize(EntityStore store)
+        public static void Serialize(EntityStore store, string filename)
         {
             // --- Write store entities as JSON array
             var serializer = new EntitySerializer();
-            var writeStream = new FileStream($"{OS.GetUserDataDir()}/TestFile.json", FileMode.Create);
+            string path = ProjectSettings.GlobalizePath("res://Stages");
+            var writeStream = new FileStream($"{path}/{filename}.json", FileMode.Create);
             serializer.WriteStore(store, writeStream);
             writeStream.Close();
         }
