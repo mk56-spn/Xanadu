@@ -4,20 +4,25 @@
 using System.Linq;
 using Friflo.Engine.ECS;
 using Godot;
+using XanaduProject.ECSComponents.Interfaces;
 
 namespace XanaduProject.ECSComponents
 {
-    public struct PolygonEcs : IComponent
+    public struct PolygonEcs : IComponent, IUpdatable
     {
         public required Vector2[] Points;
 
-        public readonly struct Create : IEach<PolygonEcs, ElementEcs>
+        public static readonly Vector2[] DEFAULT_POINTS =
+        [
+            new(-50, -50),
+            new(50, -50),
+            new(50, 50),
+            new(-50, 50)
+        ];
+
+        public void Update(ElementEcs elementEcs)
         {
-            public void Execute(ref PolygonEcs polygonEcs, ref ElementEcs element)
-            {
-                GD.PrintRich("[code][color=purple]Line canvas called");
-                RenderingServer.CanvasItemAddPolygon(element.Canvas, polygonEcs.Points,[]);
-            }
+            RenderingServer.CanvasItemAddPolygon(elementEcs.Canvas, Points, []);
         }
     }
 }
