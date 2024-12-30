@@ -14,7 +14,7 @@ namespace XanaduProject.ECSComponents.Presets
 		public static void Note(Entity entity, Vector2 pos, float timing, NoteType t, World2D world)
 		{
 			ElementEcs e;
-			entity.Add(e = createElement(pos), createNote(timing,t), HitZoneEcs.Create(e, world));
+			entity.Add(e = createElement(pos), createNote(timing,t), HitZoneEcs.Create(e, world), new ParticlesEcs());
 		}
 
 	   /* public static void HoldNote(Entity entity, Vector2 pos, float timing, NoteType t, float duration, Vector2 endPosition) =>
@@ -23,10 +23,15 @@ dn			entity.Add(createElement(pos), createNote(timing,t), new HoldEcs { Duration
 		public static void Rect(Entity entity, Vector2 pos, Vector2 extents) =>
 			entity.Add(createElement(pos), createRect(extents));
 
-
-
 		public static void Block(Entity entity, Vector2 pos, Vector2 extents) =>
 			entity.Add(createElement(pos), new BlockEcs(), createRect(extents));
+
+        public static void Hurt(Entity entity, Vector2 pos, Vector2 extents, World2D world)
+        {
+            ElementEcs e;
+            entity.Add(e = createElement(pos), HurtZoneEcs.Create(e,world));
+        }
+
 
 		private static RectEcs createRect(Vector2 extents) => new() { Extents = extents, LineWidth = 6};
 		private static NoteEcs createNote(float timing, NoteType type) => new(timing,type);
