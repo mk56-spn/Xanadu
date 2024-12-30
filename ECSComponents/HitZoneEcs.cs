@@ -28,7 +28,6 @@ namespace XanaduProject.ECSComponents
 
             AreaSetTransform(area, element.Transform);
             AreaSetCollisionLayer(area, 0b00000000_00000000_10000000_00000000);
-            AreaSetCollisionLayer(area, 0b00000000_00000000_10000000_00000000);
 
             return area;
         }
