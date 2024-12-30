@@ -35,10 +35,10 @@ namespace XanaduProject.DataStructure
                 Judgement.FlawlessP =>  8.3,
                 Judgement.Flawless => 16,
                 Judgement.Clean => 27,
-                Judgement.Fair => 35,
-                Judgement.Deficient => 70,
-                Judgement.Terrible => 120,
-                Judgement.Miss => 200,
+                Judgement.Fair => 40,
+                Judgement.Deficient => 55,
+                Judgement.Terrible => 80,
+                Judgement.Miss => 150,
                 _ => throw new ArgumentOutOfRangeException(nameof(judgement), judgement, null)
             };
         /// <summary>
@@ -56,12 +56,12 @@ namespace XanaduProject.DataStructure
         public static Color GetJudgmentColor(Judgement judgement) =>
             judgement switch
             {
-                Judgement.FlawlessP => Colors.MediumPurple.Lightened(0.1f),
+                Judgement.FlawlessP => Colors.MediumPurple.Lightened(0.3f),
                 Judgement.Flawless => Colors.MediumPurple,
                 Judgement.Clean => Colors.Blue,
                 Judgement.Fair => Colors.GreenYellow,
                 Judgement.Deficient => Colors.Orange,
-                Judgement.Terrible => Colors.DarkOrange,
+                Judgement.Terrible => Colors.DarkOrange.Darkened(0.3F),
                 Judgement.Miss => Colors.DarkRed,
                 _ => throw new ArgumentOutOfRangeException(nameof(judgement), judgement, null)
             };
