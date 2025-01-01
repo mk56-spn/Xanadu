@@ -42,21 +42,28 @@ namespace XanaduProject.Rendering
 		public override void _EnterTree()
 		{
 
-			EntityStore.Query<BlockEcs, ElementEcs,RectEcs >().ForEachEntity((ref BlockEcs blockEcs, ref ElementEcs elementEcs, ref RectEcs rectEcs, Entity _) =>
-			{
-				blockEcs.Create(elementEcs, rectEcs, GetWorld2D());
-			});
-
+			EntityStore.Query<BlockEcs, ElementEcs, RectEcs>().ForEachEntity(
+				(ref BlockEcs blockEcs, ref ElementEcs elementEcs, ref RectEcs rectEcs, Entity _) =>
+					blockEcs.Create(elementEcs, rectEcs, GetWorld2D()));
 
 			EntityStore.Query<ElementEcs>()
-				.ForEachEntity((ref ElementEcs elementEcs, Entity entity) =>
-				{
-					elementEcs.CanvasCreate(BaseCanvas);
-					elementEcs.Draw(entity);
-				});
+				.ForEachEntity((ref ElementEcs elementEcs, Entity _) =>
+					elementEcs.CanvasCreate(BaseCanvas));
 
-			EntityStore.Query<NoteEcs, ElementEcs>().ForEachEntity((ref NoteEcs _, ref ElementEcs elementEcs, Entity entity) =>
-					entity.AddComponent(HitZoneEcs.Create(elementEcs, GetWorld2D())));
+			EntityStore.Query<NoteEcs, ElementEcs>().ForEachEntity(
+				(ref NoteEcs _, ref ElementEcs elementEcs, Entity entity) =>
+					entity.Add(HitZoneEcs.Create(elementEcs, GetWorld2D()), new ParticlesEcs()));
+
+			EntityStore.Query<HurtZoneEcs, ElementEcs>().ForEachEntity((ref HurtZoneEcs hurtZoneEcs, ref ElementEcs elementEcs,  Entity entity) =>
+			{
+				hurtZoneEcs.Area = HurtZoneEcs.CreateAreaRound(elementEcs, GetWorld2D());
+			} );
+
+			int i = 0;
+			EntityStore.Query<ElementEcs>().ForEachEntity((ref ElementEcs elementEcs, Entity entity) =>
+				elementEcs.Draw(entity));
+
+			GD.Print(i);
 		}
 
 		public override void _Ready()
