@@ -2,11 +2,9 @@
 // See the LICENCE file in the repository root for full licence text.
 
 using System.Linq;
-using Friflo.Json.Fliox.Transform.Query.Ops;
 using Godot;
 using XanaduProject.Audio;
 using XanaduProject.ECSComponents;
-using static Godot.PhysicsServer2D;
 
 namespace XanaduProject.Rendering
 {
@@ -41,7 +39,6 @@ namespace XanaduProject.Rendering
 			collisionShape2D = new CollisionShape2D();
 
 			AddChild(collisionShape2D);
-			collisionShape2D.DebugColor = Colors.Yellow with { A = 0.5f };
 			collisionShape2D.Shape = new CapsuleShape2D { Radius = 31, Height = 128f};
 		}
 
@@ -70,6 +67,13 @@ namespace XanaduProject.Rendering
 		private bool last;
 		public override void _PhysicsProcess(double delta)
 		{
+
+			if (queryDamage())
+			{
+				trackHandler.StopTrack();
+				trackHandler.StartTrack();
+			}
+
 			if (trackHandler.Playing == false) { return; }
 
 			Velocity = Velocity with
@@ -82,9 +86,18 @@ namespace XanaduProject.Rendering
 			MoveAndSlide();
 		}
 
-		public override void _Draw()
+		private bool queryDamage()
 		{
-			DrawCircle(Vector2.Zero, 10, Colors.Purple );
+			var query = new PhysicsShapeQueryParameters2D
+			{
+				Transform = GlobalTransform,
+				Shape = new CircleShape2D { Radius = 32 },
+				CollideWithAreas = true,
+				CollisionMask =	0b_00000000_10000000_00000000_00000000
+			};
+
+			return GetWorld2D().DirectSpaceState
+				.IntersectShape(query).Count != 0;
 		}
 	}
 }
