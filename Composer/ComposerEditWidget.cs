@@ -141,6 +141,17 @@ namespace XanaduProject.Composer
 		{
 			if (@event is not InputEventKey { Pressed: true } key) return;
 
+
+			if (key is { KeyLabel: Key.R })
+			{
+				GD.Print("LMAO");
+				composer.Selected.ForEachEntity(
+					(ref ElementEcs element, ref SelectionEcs _, Entity entity) =>
+					{
+						element.Transform = element.Transform.RotatedLocal(Mathf.Pi / 2);
+						element.Draw(entity);
+					});
+			}
 			var direction = key.KeyLabel switch
 			{
 				Key.I => Vector2.Up,
@@ -151,9 +162,11 @@ namespace XanaduProject.Composer
 			};
 			if (direction != Vector2.Zero)
 				composer.Selected.ForEachEntity(
-					(ref ElementEcs element, ref SelectionEcs component2, Entity entity) =>
+					(ref ElementEcs element, ref SelectionEcs _, Entity entity) =>
 					{
-						var newPos = element.Transform with { Origin = element.Transform.Origin + direction * 64 };
+						int i = key.IsShiftPressed() ? 32 : 64;
+
+						var newPos = element.Transform with { Origin = element.Transform.Origin + direction * i };
 						element.Transform = newPos;
 						element.Draw(entity);
 					});

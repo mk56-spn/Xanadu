@@ -17,17 +17,19 @@ namespace XanaduProject.Composer
 {
 	public partial class ComposerRenderMaster : RenderMaster
 	{
-
-		private Color lastColour = Colors.White;
-		public readonly ArchetypeQuery<ElementEcs, SelectionEcs> Selected;
-		private bool held;
 		private Vector2 heldMousePosition;
-		private ComponentIndex<SelectionEcs, Rid> index;
-		private Rid lastSelected;
-		private  Camera2D camera2D = new PanningCamera();
-
 		public bool Snapped = false;
+
 		public Action<Entity> Action = null!;
+		private Color lastColour = Colors.White;
+
+		private Rid lastSelected;
+		public readonly ArchetypeQuery<ElementEcs, SelectionEcs> Selected;
+
+		private ComponentIndex<SelectionEcs, Rid> index;
+
+
+		private  Camera2D camera2D = new PanningCamera();
 
 		public ComposerRenderMaster(SerializableStage serializableStage, TrackInfo trackInfo) : base(serializableStage,
 			trackInfo)
@@ -57,7 +59,7 @@ namespace XanaduProject.Composer
 				.ForEachEntity((ref ElementEcs element, Entity entity) =>
 				{
 					var area = createSelectionArea(entity, element);
-					entity.AddComponent(new SelectionEcs(area) { LastPosition = element.Transform.Origin });
+					entity.AddComponent(new SelectionEcs(area));
 				});
 		}
 
@@ -85,43 +87,25 @@ namespace XanaduProject.Composer
 					break;
 				case InputEventMouseButton { ButtonIndex: MouseButton.Left }:
 					SelectionChanged?.Invoke();
-					if (@event.IsPressed())
-					{
-						if (!held)
-						{
-							Selected.ForEachEntity((ref ElementEcs component1, ref SelectionEcs component2, Entity entity) =>
-							{
-								component2.LastPosition = component1.Transform.Origin;
-							});
-							heldMousePosition = GetGlobalMousePosition();
-						}
-						held = true;
-						selectPoint();
 
-						return;
-					}
-					held = false;
+					selectPoint();
 					break;
 			}
 
-			if (@event is not InputEventMouse) return;
+			if (@event is not InputEventMouseMotion motion) return;
 
-			if (held)
-				Selected.ForEachEntity((ref ElementEcs element, ref SelectionEcs component2, Entity entity) =>
+			if (Input.IsMouseButtonPressed(MouseButton.Left))
+
+				Selected.ForEachEntity((ref ElementEcs element, ref SelectionEcs _, Entity entity) =>
 				{
 					var newPos = element.Transform with
 					{
-						Origin = component2.LastPosition + GetGlobalMousePosition() - heldMousePosition
+						Origin = element.Transform.Origin + motion.Relative / camera2D.Zoom,
 					};
-
-
-					if (Snapped)
-						newPos = newPos with { Origin = newPos.Origin.Snapped(new Vector2(64, 64)) };
-
-					if (component2.LastPosition.DistanceTo(newPos.Origin) < 5) return;
 					element.Transform = newPos;
 					element.Draw(entity);
 				});
+
 		}
 
 		#endregion
@@ -139,7 +123,7 @@ namespace XanaduProject.Composer
 			{
 				lastColour = Selected.Entities.FirstOrDefault().GetComponent<ElementEcs>().Colour;
 			}
-			catch (Exception e)
+			catch (Exception)
 			{
 				// ignored
 			}
@@ -175,12 +159,8 @@ namespace XanaduProject.Composer
 							: query.ElementAt(indexOf + 1);
 
 						entity = index[first][0];
-
 						Print(query.ElementAtOrDefault(indexOf + 1));
-
-
 						lastSelected = first;
-
 					}
 					else
 					{
@@ -212,23 +192,20 @@ namespace XanaduProject.Composer
 				.OfType<Rid>().ToArray();
 		}
 
-		private void SelectEntity()
-		{
-
-		}
 
 		private void removeEntity(Entity entity, SelectionEcs selection)
 		{
 			RenderingServer.FreeRid(entity.GetComponent<ElementEcs>().Canvas);
 			FreeRid(selection.Area);
 
-			if (entity.HasComponent<HitZoneEcs>())
-				FreeRid(entity.GetComponent<HitZoneEcs>().Area);
+			if (entity.TryGetComponent(out HitZoneEcs hitZone))
+				FreeRid(hitZone.Area);
 
+			if (entity.TryGetComponent(out BlockEcs blockEcs))
+				blockEcs.Remove();
 
-			if (entity.HasComponent<BlockEcs>())
-				entity.GetComponent<BlockEcs>().Remove();
-
+			if (entity.TryGetComponent(out HurtZoneEcs hurtZone))
+				FreeRid(hurtZone.Area);
 
 			entity.DeleteEntity();
 		}
@@ -262,14 +239,14 @@ namespace XanaduProject.Composer
 
 			// Create area
 			var area = createSelectionArea(entity,  entity.GetComponent<ElementEcs>());
-			entity.AddComponent(new SelectionEcs(area) { LastPosition = entity.GetComponent<ElementEcs>().Transform.Origin});
+			entity.AddComponent(new SelectionEcs(area));
 		}
 
 		private Rid createSelectionArea(Entity entity, ElementEcs element)
 		{
 			var area = AreaCreate();
 
-			Rid shape = default;
+			Rid shape;
 
 			switch (entity)
 			{
@@ -288,6 +265,16 @@ namespace XanaduProject.Composer
 				case var _ when entity.HasComponent<PolygonEcs>():
 					shape = RectangleShapeCreate();
 					ShapeSetData(shape, new Vector2(54, 50));
+					break;
+
+				case var _ when entity.HasComponent<HurtZoneEcs>():
+					shape = ConvexPolygonShapeCreate();
+					ShapeSetData(shape, HurtZoneEcs.TRIANGLE);
+					break;
+
+				default:
+					shape = CircleShapeCreate();
+					ShapeSetData(shape, NoteEcs.RADIUS);
 					break;
 			}
 

@@ -44,13 +44,14 @@ namespace XanaduProject.Composer
 
 		public override void _Ready()
 		{
+			snap.Pressed += () => composer.Snapped = !composer.Snapped;
 			viewport = GetViewport();
 			AddChild(infoLabel);
 			infoLabel.Position = new Vector2(30, 100);
 			SetAnchorsPreset(LayoutPreset.FullRect);
 			composer.Ready += () => composer.AddChild(new Grid { ShowBehindParent = true });
 
-			Vector2 mouse = composer.GetLocalMousePosition();
+
 
 			trackPos.MaxValue = composer.TrackHandler.TrackLength;
 			trackPos.Step = 0.01f;
@@ -62,28 +63,21 @@ namespace XanaduProject.Composer
 			};
 
 
+			Vector2 mouse = composer.GetGlobalMousePosition();
 
-			composer.Action = c => createBlock(c, LARGE);
+			composer.Action = c =>
+				Block(c, position(PRESETS[0]), PRESETS[0]);
 
-			createButton("Notw", c => createNote(c, LARGE));
+			createButton("Hurt", c => Hurt(c, position(PRESETS[0]),PRESETS[0], composer.GetWorld2D()));
+			createButton("Note", c => createNote(c, LARGE));
 			createButton("Polygon", c => Polygon(c, position(new Vector2(32,32)), PolygonEcs.DEFAULT_POINTS));
 
-			foreach (var extent in RectEcs.PRESETS)
-			{
-					createButton(extent.ToString(), c => createBlock(c, extent));
-			}
+			foreach (var extent in PRESETS)
+					createButton(extent.ToString(), c => Block(c, position(extent), extent));
 			return;
 
-			Vector2 position(Vector2 size)
-			{
-				return (mouse + size / 2).Snapped(size) - size / 2;
-			}
-		}
+			Vector2 position(Vector2 size) { return (composer.GetGlobalMousePosition() + size / 2).Snapped(size) - size / 2; }
 
-		private void createBlock(Entity c, Vector2 size)
-		{
-			Vector2 mouse = composer.GetLocalMousePosition();
-			Block(c, (mouse + size / 2).Snapped(size) - size / 2, size);
 		}
 
 		private void createNote(Entity c, Vector2 size)
@@ -174,7 +168,7 @@ namespace XanaduProject.Composer
 				var lineY = new Vector2[lineCount * 2];
 				var lineX = new Vector2[lineCount * 2];
 
-				DrawSetTransform(-new Vector2(16, 16));
+
 				for (int i = 0; i < lineCount; i++)
 				{
 					lineY[i * 2] = new Vector2(i * spacing, 0);
@@ -183,8 +177,8 @@ namespace XanaduProject.Composer
 					lineX[i * 2 + 1] = new Vector2(5000, i * spacing);
 				}
 
-				DrawMultiline(lineX, Colors.White with { A = 0.02f }, -1);
-				DrawMultiline(lineY, Colors.White with { A = 0.02f }, -1);
+				DrawMultiline(lineX, Colors.White with { A = 0.1f }, -1);
+				DrawMultiline(lineY, Colors.White with { A = 0.1f }, -1);
 			}
 		}
 	}
