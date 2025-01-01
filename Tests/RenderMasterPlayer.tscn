@@ -5,13 +5,14 @@
 [node name="RenderMasterPlayer" type="Node2D" node_paths=PackedStringArray("Restart")]
 script = ExtResource("1_8i2e6")
 Restart = NodePath("CanvasLayer/Button")
+metadata/_edit_horizontal_guides_ = [248.0]
 
 [node name="CanvasLayer" type="CanvasLayer" parent="."]
 
 [node name="Button" type="Button" parent="CanvasLayer"]
-custom_minimum_size = Vector2(100, 100)
-offset_left = 43.0
-offset_top = 61.0
-offset_right = 143.0
-offset_bottom = 161.0
+custom_minimum_size = Vector2(100, 60)
+offset_left = 17.0
+offset_top = 16.0
+offset_right = 433.0
+offset_bottom = 78.0
 text = "RESTART"
