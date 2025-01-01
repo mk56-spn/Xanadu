@@ -1,6 +1,7 @@
 // Copyright (c) mk56_spn <dhsjplt@gmail.com>. Licensed under the GNU General Public Licence (2.0).
 // See the LICENCE file in the repository root for full licence text.
 
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using Friflo.Engine.ECS;
@@ -71,23 +72,27 @@ namespace XanaduProject.ECSComponents
         /// <param name="entity"></param>
         public void Draw(Entity entity)
         {
+            CanvasItemClear(Canvas);
             CanvasItemSetModulate(Canvas,Colour);
             CanvasItemSetZIndex(Canvas, Index);
             CanvasItemSetTransform(Canvas, Transform);
+
 
             @try<RectEcs>(ref entity);
             @try<PolygonEcs>(ref entity);
             @try<SelectionEcs>(ref entity);
             @try<BlockEcs>(ref entity);
-            @try<HitZoneEcs>(ref entity);
             @try<NoteEcs>(ref entity);
+            @try<HitZoneEcs>(ref entity);
+            @try<ParticlesEcs>(ref entity);
+            @try<HurtZoneEcs>(ref entity);
         }
 
         private void @try<T>(ref Entity entity)
         where T : struct, IComponent, IUpdatable
         {
             if (entity.TryGetComponent<T>(out var t))
-                t.Update(this);
+                t.Update( this);
         }
     }
 }
