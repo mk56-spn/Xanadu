@@ -14,8 +14,6 @@ namespace XanaduProject.Audio
 	{
 		private readonly AudioStreamPlayer audio = new();
 
-		private double lastNoteTime;
-
 		private int positionInBeats;
 
 		public TrackHandler(TrackInfo info)
@@ -172,7 +170,8 @@ namespace XanaduProject.Audio
 
 			GD.PrintRich("[code][color=red] Stopped");
 
-			lastBeatTime = 0;
+			LastBeatTime = 0;
+
 		}
 
 		public AudioStreamPlayback? GetPlayback()
@@ -181,7 +180,7 @@ namespace XanaduProject.Audio
 		}
 		public event Action? OnEveryBeat;
 
-		private double lastBeatTime;
+		public double LastBeatTime;
 
 		public override void _PhysicsProcess(double delta)
 		{
@@ -192,9 +191,9 @@ namespace XanaduProject.Audio
 			TrackPosition = time;
 
 			// Check if a beat has occurred
-			if (!(TrackPosition >= lastBeatTime + SecondsPerBeat)) return;
+			if (!(TrackPosition >= LastBeatTime + SecondsPerBeat)) return;
 
-			lastBeatTime += SecondsPerBeat;
+			LastBeatTime += SecondsPerBeat;
 			OnEveryBeat?.Invoke();
 		}
 
