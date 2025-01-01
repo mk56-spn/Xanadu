@@ -1,7 +1,7 @@
 [gd_scene load_steps=12 format=3 uid="uid://vd37p065ib2w"]
 
-[ext_resource type="Script" path="res://Composer/ComposerUI/ComposerHeader.cs" id="1_ta40u"]
-[ext_resource type="Shader" path="res://Shaders/Blur.gdshader" id="2_5xa4c"]
+[ext_resource type="Script" uid="uid://l57dy2rkgloq" path="res://Composer/ComposerUI/ComposerHeader.cs" id="1_ta40u"]
+[ext_resource type="Shader" uid="uid://cgg43a171p8ig" path="res://Shaders/oattern.gdshader" id="2_5xa4c"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_y3kj6"]
 bg_color = Color(0, 0, 0, 0.901961)

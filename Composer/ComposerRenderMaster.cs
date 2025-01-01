@@ -1,53 +1,66 @@
 // Copyright (c) mk56_spn <dhsjplt@gmail.com>. Licensed under the GNU General Public Licence (2.0).
 // See the LICENCE file in the repository root for full licence text.
 
-using System.Collections.Generic;
+using System;
 using System.Linq;
+using Friflo.Engine.ECS;
 using Godot;
-using XanaduProject.Audio;
 using XanaduProject.DataStructure;
+using XanaduProject.ECSComponents;
+using XanaduProject.ECSComponents.Tag;
 using XanaduProject.Rendering;
-using XanaduProject.Serialization.Elements;
 using XanaduProject.Serialization.SerialisedObjects;
+using static Godot.GD;
 using static Godot.PhysicsServer2D;
 
 namespace XanaduProject.Composer
 {
-	public partial class ComposerRenderMaster  : RenderMaster
+	public partial class ComposerRenderMaster : RenderMaster
 	{
-		public static readonly Color COMPOSER_ACCENT = Colors.DeepPink;
-
-		public List<(RenderElement renderElement, Vector2 position)> SelectedAreas = [];
-
-
-
-		private readonly Dictionary<Rid, RenderElement> areaHash = new();
-
-		public int SelectedTexture;
-
-		private bool held;
 		private Vector2 heldMousePosition;
+		public bool Snapped = false;
+
+		public Action<Entity> Action = null!;
+		private Color lastColour = Colors.White;
+
+		private Rid lastSelected;
+		public readonly ArchetypeQuery<ElementEcs, SelectionEcs> Selected;
+
+		private ComponentIndex<SelectionEcs, Rid> index;
+
+
+		private  Camera2D camera2D = new PanningCamera();
 
 		public ComposerRenderMaster(SerializableStage serializableStage, TrackInfo trackInfo) : base(serializableStage,
 			trackInfo)
 		{
 			CanvasLayer canvasLayer;
 			AddChild(canvasLayer = new CanvasLayer());
-			canvasLayer.AddChild(new PanningCamera());
+
+
+			canvasLayer.AddChild(camera2D);
 			canvasLayer.AddChild(ComposerVisuals.Create(this));
+
+			Selected = EntityStore.Query<ElementEcs, SelectionEcs>().AllTags(Tags.Get<SelectionFlag>());
 
 			SetAnchorsPreset(LayoutPreset.FullRect);
 		}
 
+		public event Action? SelectionChanged;
+
 		public override void _EnterTree()
 		{
+			base._EnterTree();
 			MouseFilter = MouseFilterEnum.Pass;
 
-			foreach (var renderElement in RenderElements)
-				renderElement.Area = createArea(renderElement.Element);
+			index = EntityStore.ComponentIndex<SelectionEcs, Rid>();
 
-			foreach (var renderElement in RenderElements)
-				areaHash.Add(renderElement.Area, renderElement);
+			EntityStore.Query<ElementEcs>()
+				.ForEachEntity((ref ElementEcs element, Entity entity) =>
+				{
+					var area = createSelectionArea(entity, element);
+					entity.AddComponent(new SelectionEcs(area));
+				});
 		}
 
 		#region Input handling
@@ -56,134 +69,110 @@ namespace XanaduProject.Composer
 		{
 			QueueRedraw();
 
-			if (@event is InputEventKey { CtrlPressed: true, KeyLabel: Key.V, Pressed: true})
+			switch (@event)
 			{
-				addElement();
+				case InputEventKey { CtrlPressed: true, KeyLabel: Key.V, Pressed: true }:
+					addElement(Action);
+					break;
+				case InputEventMouseButton { ButtonIndex: MouseButton.Right, Pressed: true } when Selected.Count == 0:
+					return;
+				case InputEventMouseButton { ButtonIndex: MouseButton.Right, Pressed: true }:
+					Selected.ForEachEntity((ref ElementEcs element, ref SelectionEcs selection, Entity entity) =>
+					{
+						PrintRich($"[code][color=red]Item {element.Canvas} removed");
+						entity.RemoveTag<SelectionFlag>();
+						SelectionChanged?.Invoke();
+						removeEntity(entity, selection);
+					});
+					break;
+				case InputEventMouseButton { ButtonIndex: MouseButton.Left }:
+					SelectionChanged?.Invoke();
+
+					selectPoint();
+					break;
 			}
 
-			if (@event is InputEventMouseButton { ButtonIndex: MouseButton.Right, Pressed: true })
-			{
-				if (SelectedAreas.Count == 0) return;
+			if (@event is not InputEventMouseMotion motion) return;
 
-				foreach (var renderElement in SelectedAreas)
-					removeElement(renderElement.Item1);
+			if (Input.IsMouseButtonPressed(MouseButton.Left))
 
-				SelectedAreas = [];
-			}
+				Selected.ForEachEntity((ref ElementEcs element, ref SelectionEcs _, Entity entity) =>
+				{
+					var newPos = element.Transform with
+					{
+						Origin = element.Transform.Origin + motion.Relative / camera2D.Zoom,
+					};
+					element.Transform = newPos;
+					element.Draw(entity);
+				});
 
-			if (@event is not InputEventMouse) return;
-
-			if (held)
-				foreach (var area in SelectedAreas)
-					area.renderElement.SetPosition(area.Item2 + (GetLocalMousePosition() - heldMousePosition));
-
-			if (@event is not InputEventMouseButton { ButtonIndex: MouseButton.Left }) return;
-
-			if (!held & @event.IsPressed())
-				heldMousePosition = GetLocalMousePosition();
-
-			held = @event.IsPressed();
-
-			if (!@event.IsPressed()) return;
-
-			selectPoint();
 		}
 
 		#endregion
 
-		#region ElementCreation
-
-		private void addElement()
+		public override void _Process(double delta)
 		{
-			GD.PrintRich("[code][color=green]Item added");
+			base._Process(delta);
 
-			Element element = new NoteElement
+			if (TrackHandler.Playing)
 			{
-				Group = 1,
-				Position = GetLocalMousePosition().Snapped(new Vector2(32, 32)),
-				Rotation = 0,
-				Scale = Vector2.One,
-				TimingPoint = 0.3f
-			};
-
-			var canvas = CreateItem(element);
-			var area = createArea(element);
-
-			NoteProcessor.Notes.Add(new Note((element as NoteElement)!, canvas));
-
-			var renderElement = new RenderElement(element, canvas, area);
-
-			RenderElements.Add(renderElement);
-			areaHash.Add(area, renderElement);
-
-			QueueRedraw();
+				camera2D.Offset = Vector2.Zero;
+				camera2D.Position = camera2D.Position.Lerp(RenderCharacter.Position, (float)(2f * delta));
+			}
+			try
+			{
+				lastColour = Selected.Entities.FirstOrDefault().GetComponent<ElementEcs>().Colour;
+			}
+			catch (Exception)
+			{
+				// ignored
+			}
 		}
 
-		private Rid createArea(Element element)
+		private bool  selectPoint()
 		{
-			var area = AreaCreate();
-			var shape = RectangleShapeCreate();
+			var query = queryPoint();
 
-			var transform = element.Transform;
+			SelectionChanged?.Invoke();
 
-			AreaSetSpace(area, GetWorld2D().Space);
-			AreaAddShape(area, shape);
-			ShapeSetData(shape, element.Size() / 2);
 
-			AreaSetCollisionLayer(area, 1);
-
-			AreaSetTransform(area, transform);
-			AreaSetCollisionLayer(area, 0b001);
-
-			return area;
-		}
-
-		private void removeElement(RenderElement renderElement)
-		{
-			GD.PrintRich("[code][color=red]Item removed");
-			renderElement.Remove();
-			RenderElements.Remove(renderElement);
-			QueueRedraw();
-		}
-
-		#endregion
-
-		private Rid lastSelected;
-
-		private void selectPoint()
-		{
-			Rid[] query = queryPoint();
-
-			if (query.Length == 0 && SelectedAreas.Count == 0)
+			switch (query.Length)
 			{
-				addElement();
-				return;
+				case 0:
+					Selected.ForEachEntity((ref ElementEcs _, ref SelectionEcs _, Entity entity) =>
+						entity.RemoveTag<SelectionFlag>());
+					addElement(Action);
+					return false;
+				default:
+					Selected.ForEachEntity((ref ElementEcs _, ref SelectionEcs _, Entity entity) =>
+						entity.RemoveTag<SelectionFlag>());
+					Print("Query length " + query.Length);
+
+					Entity entity;
+
+					if (query.Contains(lastSelected))
+					{
+						int indexOf = query.ToList().IndexOf(lastSelected);
+
+						var first = query.ElementAtOrDefault(indexOf + 1) == default
+							? query.First()
+							: query.ElementAt(indexOf + 1);
+
+						entity = index[first][0];
+						Print(query.ElementAtOrDefault(indexOf + 1));
+						lastSelected = first;
+					}
+					else
+					{
+						entity = index[query[0]][0];
+						lastSelected = query.First();
+					}
+
+					entity.AddTag<SelectionFlag>();
+					break;
 			}
 
-			SelectedAreas = [];
-
-			GD.Print("Query length " + query.Length);
-
-			if (query.Contains(lastSelected))
-			{
-				int i = query.ToList().IndexOf(lastSelected);
-
-				Rid selected = query.ElementAtOrDefault(i + 1) == default ? query.First() : query.ElementAt(i + 1);
-				RenderElement renderElement = areaHash[selected];
-
-				GD.Print(query.ElementAtOrDefault(i + 1));
-
-				SelectedAreas.Add((renderElement, renderElement.Element.Position));
-				lastSelected = selected;
-			}
-
-			else
-			{
-				RenderElement renderElement = areaHash[query.First()];
-
-				SelectedAreas.Add((renderElement, renderElement.Element.Position));
-				lastSelected = query.First();
-			}
+			return true;
 		}
 
 		private Rid[] queryPoint()
@@ -193,6 +182,7 @@ namespace XanaduProject.Composer
 				Position = GetLocalMousePosition(),
 				CollideWithAreas = true,
 				CollideWithBodies = false,
+				CollisionMask = 0b00000000_00000000_00000000_01000000
 			};
 
 			return GetWorld2D().DirectSpaceState
@@ -201,5 +191,100 @@ namespace XanaduProject.Composer
 				.Select(c => c.Obj)
 				.OfType<Rid>().ToArray();
 		}
+
+
+		private void removeEntity(Entity entity, SelectionEcs selection)
+		{
+			RenderingServer.FreeRid(entity.GetComponent<ElementEcs>().Canvas);
+			FreeRid(selection.Area);
+
+			if (entity.TryGetComponent(out HitZoneEcs hitZone))
+				FreeRid(hitZone.Area);
+
+			if (entity.TryGetComponent(out BlockEcs blockEcs))
+				blockEcs.Remove();
+
+			if (entity.TryGetComponent(out HurtZoneEcs hurtZone))
+				FreeRid(hurtZone.Area);
+
+			entity.DeleteEntity();
+		}
+
+
+		#region ElementCreation
+
+		private void addElement(Action<Entity> action)
+		{
+			PrintRich("[code][color=green]Item added");
+
+			Entity entity = EntityStore.CreateEntity();
+
+			action.Invoke(entity);
+
+			ref ElementEcs elementEcs = ref entity.GetComponent<ElementEcs>();
+
+			elementEcs.CanvasCreate(BaseCanvas);
+
+			elementEcs.Colour = lastColour;
+			elementEcs.Draw(entity);
+
+			PrintRich("[code][color=green]Element created " + elementEcs.Canvas);
+
+			EntityStore.Query<BlockEcs, ElementEcs,RectEcs >().ForEachEntity((ref BlockEcs blockEcs, ref ElementEcs elementEcs, ref RectEcs rectEcs, Entity _) =>
+			{
+				if (blockEcs.Body.IsValid) return;
+				blockEcs.Create(elementEcs, rectEcs, GetWorld2D());
+			});
+
+
+			// Create area
+			var area = createSelectionArea(entity,  entity.GetComponent<ElementEcs>());
+			entity.AddComponent(new SelectionEcs(area));
+		}
+
+		private Rid createSelectionArea(Entity entity, ElementEcs element)
+		{
+			var area = AreaCreate();
+
+			Rid shape;
+
+			switch (entity)
+			{
+				case var _ when entity.HasComponent<NoteEcs>():
+					PrintRich("[code][color=orange]Circle");
+					shape = CircleShapeCreate();
+					ShapeSetData(shape, NoteEcs.RADIUS);
+					break;
+
+				case var _ when entity.HasComponent<RectEcs>():
+					PrintRich("[code][color=yellow]Rectangle");
+					shape = RectangleShapeCreate();
+					ShapeSetData(shape, entity.GetComponent<RectEcs>().Extents / 2);
+					break;
+
+				case var _ when entity.HasComponent<PolygonEcs>():
+					shape = RectangleShapeCreate();
+					ShapeSetData(shape, new Vector2(54, 50));
+					break;
+
+				case var _ when entity.HasComponent<HurtZoneEcs>():
+					shape = ConvexPolygonShapeCreate();
+					ShapeSetData(shape, HurtZoneEcs.TRIANGLE);
+					break;
+
+				default:
+					shape = CircleShapeCreate();
+					ShapeSetData(shape, NoteEcs.RADIUS);
+					break;
+			}
+
+			AreaAddShape(area, shape);
+			AreaSetSpace(area, GetWorld2D().Space);
+			AreaSetTransform(area, element.Transform);
+			AreaSetCollisionLayer(area, 0b00000000_00000000_00000000_01000000);
+
+			return area;
+		}
+		#endregion
 	}
 }

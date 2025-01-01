@@ -3,17 +3,25 @@
 
 using System.IO;
 using Ceras;
+using Friflo.Engine.ECS;
+using Friflo.Engine.ECS.Serialize;
+using Friflo.Json.Fliox;
 using Godot;
+using XanaduProject.ECSComponents;
 using XanaduProject.Serialization.SerialisedObjects;
 
 namespace XanaduProject.Serialization
 {
     public static class StageSerializer
     {
-        public static void Serialize(SerializableStage serializableStage)
+        public static void Serialize(EntityStore store, string filename)
         {
-            byte[] bytes = new CerasSerializer().Serialize(serializableStage);
-            File.WriteAllBytes($"{OS.GetUserDataDir()}/TestFile.txt", bytes);
+            // --- Write store entities as JSON array
+            var serializer = new EntitySerializer();
+            string path = ProjectSettings.GlobalizePath("res://Stages");
+            var writeStream = new FileStream($"{path}/{filename}.json", FileMode.Create);
+            serializer.WriteStore(store, writeStream);
+            writeStream.Close();
         }
     }
 }

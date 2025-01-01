@@ -1,52 +1,17 @@
-[gd_scene load_steps=6 format=3 uid="uid://cwvbay6iwo7h3"]
+[gd_scene load_steps=2 format=3 uid="uid://cwvbay6iwo7h3"]
 
-[ext_resource type="Script" path="res://Composer/ComposerEditWidget.cs" id="1_h388k"]
+[ext_resource type="Script" uid="uid://dyocmkm5y00l7" path="res://Composer/ComposerEditWidget.cs" id="1_h388k"]
 
-[sub_resource type="Gradient" id="Gradient_qksh3"]
-offsets = PackedFloat32Array(0.849515)
-colors = PackedColorArray(0.788235, 1, 0.529412, 1)
-
-[sub_resource type="GradientTexture2D" id="GradientTexture2D_ekd1c"]
-gradient = SubResource("Gradient_qksh3")
-width = 20
-height = 12
-fill = 2
-fill_from = Vector2(0.5, 0.5)
-metadata/_snap_enabled = true
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_mphaa"]
-bg_color = Color(0.24, 0.24, 0.24, 1)
-border_width_left = 2
-border_width_right = 2
-border_color = Color(0.788235, 1, 0.529412, 1)
-expand_margin_top = 5.0
-expand_margin_bottom = 5.0
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_qksh3"]
-bg_color = Color(0.788235, 1, 0.529412, 1)
-border_width_left = 2
-border_width_top = 2
-border_width_right = 2
-border_width_bottom = 2
-border_color = Color(0.591375, 0.75, 0.3975, 1)
-expand_margin_top = 5.0
-expand_margin_bottom = 5.0
-
-[node name="ComposerScaleWidget" type="PanelContainer" node_paths=PackedStringArray("scaleY", "scaleX", "skew", "picker", "depth", "fixedElements")]
+[node name="ComposerScaleWidget" type="PanelContainer" node_paths=PackedStringArray("container", "settersContainer")]
 offset_right = 318.0
 offset_bottom = 679.0
 size_flags_vertical = 3
 script = ExtResource("1_h388k")
-scaleY = NodePath("MarginContainer/VBoxContainer/Y")
-scaleX = NodePath("MarginContainer/VBoxContainer/X")
-skew = NodePath("MarginContainer/VBoxContainer/Skew")
-picker = NodePath("MarginContainer/VBoxContainer/ColorPicker")
-depth = NodePath("MarginContainer/VBoxContainer/Depth")
-fixedElements = NodePath("CanvasLayer")
+container = NodePath("MarginContainer/VBoxContainer/HBoxContainer")
+settersContainer = NodePath("MarginContainer/VBoxContainer/VBoxContainer")
 
 [node name="MarginContainer" type="MarginContainer" parent="."]
 layout_mode = 2
-size_flags_vertical = 4
 theme_override_constants/margin_left = 10
 theme_override_constants/margin_top = 10
 theme_override_constants/margin_right = 10
@@ -54,99 +19,10 @@ theme_override_constants/margin_bottom = 10
 
 [node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer"]
 layout_mode = 2
-theme_override_constants/separation = 10
 
-[node name="Label3" type="Label" parent="MarginContainer/VBoxContainer"]
+[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer/VBoxContainer"]
 layout_mode = 2
-text = "Skew"
-horizontal_alignment = 1
+size_flags_vertical = 3
 
-[node name="Skew" type="HSlider" parent="MarginContainer/VBoxContainer"]
+[node name="HBoxContainer" type="HBoxContainer" parent="MarginContainer/VBoxContainer"]
 layout_mode = 2
-theme_override_icons/grabber = SubResource("GradientTexture2D_ekd1c")
-theme_override_icons/grabber_highlight = SubResource("GradientTexture2D_ekd1c")
-theme_override_icons/grabber_disabled = SubResource("GradientTexture2D_ekd1c")
-theme_override_styles/slider = SubResource("StyleBoxFlat_mphaa")
-theme_override_styles/grabber_area = SubResource("StyleBoxFlat_qksh3")
-min_value = -1.0
-max_value = 1.0
-step = 0.01
-
-[node name="Label" type="Label" parent="MarginContainer/VBoxContainer"]
-layout_mode = 2
-text = "Scale y"
-horizontal_alignment = 1
-
-[node name="Y" type="HSlider" parent="MarginContainer/VBoxContainer"]
-layout_mode = 2
-theme_override_icons/grabber = SubResource("GradientTexture2D_ekd1c")
-theme_override_icons/grabber_highlight = SubResource("GradientTexture2D_ekd1c")
-theme_override_icons/grabber_disabled = SubResource("GradientTexture2D_ekd1c")
-theme_override_styles/slider = SubResource("StyleBoxFlat_mphaa")
-theme_override_styles/grabber_area = SubResource("StyleBoxFlat_qksh3")
-min_value = 0.1
-max_value = 10.0
-step = 0.1
-value = 1.0
-
-[node name="Label2" type="Label" parent="MarginContainer/VBoxContainer"]
-layout_mode = 2
-text = "Scale x"
-horizontal_alignment = 1
-
-[node name="X" type="HSlider" parent="MarginContainer/VBoxContainer"]
-layout_mode = 2
-theme_override_icons/grabber = SubResource("GradientTexture2D_ekd1c")
-theme_override_icons/grabber_highlight = SubResource("GradientTexture2D_ekd1c")
-theme_override_icons/grabber_disabled = SubResource("GradientTexture2D_ekd1c")
-theme_override_styles/slider = SubResource("StyleBoxFlat_mphaa")
-theme_override_styles/grabber_area = SubResource("StyleBoxFlat_qksh3")
-min_value = 0.1
-max_value = 10.0
-step = 0.1
-value = 1.0
-
-[node name="Label4" type="Label" parent="MarginContainer/VBoxContainer"]
-layout_mode = 2
-text = "Depth
-"
-horizontal_alignment = 1
-
-[node name="Depth" type="SpinBox" parent="MarginContainer/VBoxContainer"]
-layout_mode = 2
-max_value = 1000.0
-
-[node name="ColorPicker" type="ColorPicker" parent="MarginContainer/VBoxContainer"]
-z_index = 3
-layout_mode = 2
-color_mode = 1
-picker_shape = 3
-sampler_visible = false
-color_modes_visible = false
-hex_visible = false
-presets_visible = false
-
-[node name="Notemover" type="HBoxContainer" parent="MarginContainer/VBoxContainer"]
-unique_name_in_owner = true
-layout_mode = 2
-
-[node name="Button" type="Button" parent="MarginContainer/VBoxContainer/Notemover"]
-layout_mode = 2
-
-[node name="Button2" type="Button" parent="MarginContainer/VBoxContainer/Notemover"]
-layout_mode = 2
-
-[node name="Button3" type="Button" parent="MarginContainer/VBoxContainer/Notemover"]
-layout_mode = 2
-
-[node name="Button4" type="Button" parent="MarginContainer/VBoxContainer/Notemover"]
-layout_mode = 2
-
-[node name="Button5" type="Button" parent="MarginContainer/VBoxContainer/Notemover"]
-layout_mode = 2
-
-[node name="Button6" type="Button" parent="MarginContainer/VBoxContainer/Notemover"]
-layout_mode = 2
-
-[node name="CanvasLayer" type="CanvasLayer" parent="."]
-follow_viewport_enabled = true

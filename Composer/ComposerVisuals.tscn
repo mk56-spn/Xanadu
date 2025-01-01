@@ -1,7 +1,9 @@
 [gd_scene load_steps=4 format=3 uid="uid://b25lubmu1nyok"]
 
 [ext_resource type="Script" uid="uid://5a7h4ptknxj" path="res://Composer/ComposerVisuals.cs" id="1_56ckp"]
-[ext_resource type="Material" uid="uid://0rxcpnpa1ed7" path="res://Resources/Materials/ComposerVisuals.tres" id="2_4bxf6"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_56ckp"]
+bg_color = Color(0.2, 0.2, 0.2, 0.0784314)
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_4bxf6"]
 bg_color = Color(0, 0, 0, 0.294118)
@@ -15,7 +17,7 @@ corner_radius_top_right = 5
 corner_radius_bottom_right = 5
 corner_radius_bottom_left = 5
 
-[node name="ComposerVisuals" type="Control" node_paths=PackedStringArray("gridContainer", "editWidget", "waveformContainer")]
+[node name="ComposerVisuals" type="Control" node_paths=PackedStringArray("editWidget", "container", "snap", "trackPos", "waveformContainer")]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -24,8 +26,10 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 script = ExtResource("1_56ckp")
-gridContainer = NodePath("VBoxContainer/HBoxContainer/Panel/Texture select")
 editWidget = NodePath("VBoxContainer/HBoxContainer/EditWidget")
+container = NodePath("VBoxContainer/HBoxContainer/Control/Panel/VBoxContainer")
+snap = NodePath("VBoxContainer/HBoxContainer/Control/HBoxContainer/Snap")
+trackPos = NodePath("HSlider")
 waveformContainer = NodePath("VBoxContainer/BottomBar/MarginContainer/GridContainer/Panel2/CenterContainer")
 
 [node name="VBoxContainer" type="VBoxContainer" parent="."]
@@ -41,26 +45,24 @@ mouse_filter = 2
 layout_mode = 2
 size_flags_vertical = 3
 
-[node name="Panel" type="Panel" parent="VBoxContainer/HBoxContainer"]
-material = ExtResource("2_4bxf6")
-custom_minimum_size = Vector2(200, 0)
-layout_mode = 2
-size_flags_vertical = 3
-
-[node name="Texture select" type="GridContainer" parent="VBoxContainer/HBoxContainer/Panel"]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-size_flags_vertical = 3
-columns = 3
-
 [node name="Control" type="Control" parent="VBoxContainer/HBoxContainer"]
 layout_mode = 2
 size_flags_horizontal = 3
 mouse_filter = 2
+
+[node name="Panel" type="PanelContainer" parent="VBoxContainer/HBoxContainer/Control"]
+layout_mode = 1
+anchors_preset = 4
+anchor_top = 0.5
+anchor_bottom = 0.5
+offset_right = 8.0
+offset_bottom = 260.0
+grow_vertical = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_56ckp")
+
+[node name="VBoxContainer" type="VBoxContainer" parent="VBoxContainer/HBoxContainer/Control/Panel"]
+custom_minimum_size = Vector2(40, 0)
+layout_mode = 2
 
 [node name="HBoxContainer" type="HBoxContainer" parent="VBoxContainer/HBoxContainer/Control"]
 layout_mode = 0
@@ -68,18 +70,45 @@ offset_left = 11.0
 offset_top = 11.0
 offset_right = 51.0
 offset_bottom = 51.0
+theme_override_constants/separation = 10
 
 [node name="Snap" type="Button" parent="VBoxContainer/HBoxContainer/Control/HBoxContainer"]
 custom_minimum_size = Vector2(50, 50)
 layout_mode = 2
+focus_mode = 0
 theme_override_font_sizes/font_size = 30
+toggle_mode = true
 text = "S"
 
+[node name="Control2" type="ColorRect" parent="VBoxContainer/HBoxContainer/Control/HBoxContainer"]
+custom_minimum_size = Vector2(2, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+
 [node name="Place" type="Button" parent="VBoxContainer/HBoxContainer/Control/HBoxContainer"]
+self_modulate = Color(1, 0, 0, 1)
 custom_minimum_size = Vector2(50, 50)
 layout_mode = 2
+focus_mode = 0
 theme_override_font_sizes/font_size = 30
 text = "P"
+
+[node name="Place2" type="Button" parent="VBoxContainer/HBoxContainer/Control/HBoxContainer"]
+self_modulate = Color(1, 0, 0, 1)
+custom_minimum_size = Vector2(50, 50)
+layout_mode = 2
+focus_mode = 0
+theme_override_font_sizes/font_size = 30
+text = "R"
+
+[node name="Control3" type="ColorRect" parent="VBoxContainer/HBoxContainer/Control/HBoxContainer"]
+custom_minimum_size = Vector2(2, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Control" type="Control" parent="VBoxContainer/HBoxContainer/Control/HBoxContainer"]
+custom_minimum_size = Vector2(100, 0)
+layout_mode = 2
 
 [node name="EditWidget" type="PanelContainer" parent="VBoxContainer/HBoxContainer"]
 custom_minimum_size = Vector2(200, 0)
@@ -146,3 +175,19 @@ grow_vertical = 2
 [node name="Panel" type="Panel" parent="VBoxContainer/BottomBar/MarginContainer/GridContainer"]
 custom_minimum_size = Vector2(200, 0)
 layout_mode = 2
+
+[node name="HSlider" type="HSlider" parent="."]
+clip_contents = true
+custom_minimum_size = Vector2(1500, 0)
+layout_mode = 1
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -404.0
+offset_top = -126.0
+offset_right = 396.0
+offset_bottom = -110.0
+grow_horizontal = 2
+grow_vertical = 0

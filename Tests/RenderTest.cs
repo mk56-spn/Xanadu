@@ -25,31 +25,23 @@ namespace XanaduProject.Tests
 		{
 			base._Ready();
 
-			renderMaster = new ComposerRenderMaster(StageDeserializer.Deserialize(), GD.Load<TrackInfo>("res://Resources/TestTrack.tres"));
+			renderMaster = new ComposerRenderMaster(StageDeserializer.Deserialize("level1"), GD.Load<TrackInfo>("res://Resources/TestTrack.tres"));
 			AddChild(renderMaster);
 
-			serializeButton.Pressed += () => { StageSerializer.Serialize(new SerializableStage
-			{
-				Elements = renderMaster.RenderElements.Select(c => c.Element).ToArray(),
-				DynamicTextures = renderMaster.GetTextures()
-			}); };
+			serializeButton.Pressed += () => { StageSerializer.Serialize(renderMaster.EntityStore, "level1"); };
 
-			spinBox.ValueChanged += _ =>
-			{
-				StageSerializer.Serialize(new TestSerializableStage((int)spinBox.Value, 1000, 10000));
-				GetTree().ReloadCurrentScene();
-			};
 			randomButton.Pressed += () =>
 			{
-				StageSerializer.Serialize(new TestSerializableStage ());
-				GetTree().ReloadCurrentScene();
+			/*	StageSerializer.Serialize(new TestSerializableStage().EntityStore);
+				GetTree().ReloadCurrentScene();*/
 			};
 		}
 
 		public override void _Process(double delta)
 		{
 			base._Process(delta);
-			stageInfo.Text = renderMaster.ChildCount().ToString();
+			stageInfo.Text = "Entity count: " + renderMaster.EntityStore.Count;
+			stageInfo.Modulate = Colors.Yellow;
 			fps.Text = Engine.GetFramesPerSecond().ToString(CultureInfo.InvariantCulture);
 		}
 	}
