@@ -1,22 +1,35 @@
-[gd_scene load_steps=3 format=3 uid="uid://dfy4y23ujnsal"]
+[gd_scene load_steps=6 format=3 uid="uid://dfy4y23ujnsal"]
 
 [ext_resource type="Script" uid="uid://dxlih6uawbxtw" path="res://Tests/RenderTest.cs" id="1_wh0s5"]
+[ext_resource type="Shader" uid="uid://cgg43a171p8ig" path="res://Shaders/Blur.gdshader" id="3_fqhfq"]
+
+[sub_resource type="CanvasItemMaterial" id="CanvasItemMaterial_xb6l4"]
 
 [sub_resource type="LabelSettings" id="LabelSettings_xb6l4"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_s5lla"]
+shader = ExtResource("3_fqhfq")
+shader_parameter/lod = 0.869
 
 [node name="CanvasLayer2" type="CanvasLayer"]
 follow_viewport_enabled = true
 
 [node name="CanvasLayer2" type="CanvasLayer" parent="."]
-layer = -1
+layer = -3
 
 [node name="ColorRect" type="ColorRect" parent="CanvasLayer2"]
+material = SubResource("CanvasItemMaterial_xb6l4")
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
+offset_left = 4284.0
+offset_top = 2624.0
+offset_right = 4284.0
+offset_bottom = 2624.0
 grow_horizontal = 2
 grow_vertical = 2
 color = Color(0.1, 0.1, 0.1, 1)
+metadata/_edit_use_anchors_ = true
 
 [node name="CanvasLayer" type="CanvasLayer" parent="."]
 layer = 2
@@ -97,3 +110,21 @@ fps = NodePath("../CanvasLayer/VBoxContainer/Fps")
 stageInfo = NodePath("../CanvasLayer/VBoxContainer/Count")
 spinBox = NodePath("../CanvasLayer/PanelContainer/MarginContainer/VBoxContainer/HBoxContainer/VBoxContainer/SpinBox")
 metadata/_edit_lock_ = true
+
+[node name="CanvasLayer3" type="CanvasLayer" parent="."]
+layer = -1
+
+[node name="CanvasLayer" type="CanvasLayer" parent="CanvasLayer3"]
+layer = 0
+
+[node name="ColorRect" type="ColorRect" parent="CanvasLayer3/CanvasLayer"]
+visible = false
+material = SubResource("ShaderMaterial_s5lla")
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+metadata/_edit_lock_ = true
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
