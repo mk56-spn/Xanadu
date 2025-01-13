@@ -1,5 +1,9 @@
-[gd_scene format=3 uid="uid://buw0v3517b55p"]
+[gd_scene load_steps=2 format=3 uid="uid://buw0v3517b55p"]
+
+[ext_resource type="Material" uid="uid://b2k2vileav4cl" path="res://Resources/Particles/NormalNote.tres" id="1_ywn75"]
 
 [node name="HitPartices" type="Node2D"]
 
 [node name="GPUParticles2D" type="GPUParticles2D" parent="."]
+amount = 100
+process_material = ExtResource("1_ywn75")
