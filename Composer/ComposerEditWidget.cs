@@ -124,7 +124,6 @@ namespace XanaduProject.Composer
 			{
 				ref var elementEcs = ref target.GetComponent<T>();
 				info.SetValueDirect(__makeref(elementEcs), on);
-				target.GetComponent<ElementEcs>().Draw(composer.Selected.Entities.First());
 			}
 		}
 
@@ -149,7 +148,6 @@ namespace XanaduProject.Composer
 					(ref ElementEcs element, ref SelectionEcs _, Entity entity) =>
 					{
 						element.Transform = element.Transform.RotatedLocal(Mathf.Pi / 2);
-						element.Draw(entity);
 					});
 			}
 			var direction = key.KeyLabel switch
@@ -162,13 +160,12 @@ namespace XanaduProject.Composer
 			};
 			if (direction != Vector2.Zero)
 				composer.Selected.ForEachEntity(
-					(ref ElementEcs element, ref SelectionEcs _, Entity entity) =>
+					(ref ElementEcs element, ref SelectionEcs _, Entity _) =>
 					{
 						int i = key.IsShiftPressed() ? 32 : 64;
 
 						var newPos = element.Transform with { Origin = element.Transform.Origin + direction * i };
 						element.Transform = newPos;
-						element.Draw(entity);
 					});
 		}
 

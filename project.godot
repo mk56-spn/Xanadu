@@ -14,7 +14,7 @@ config/name="XanaduProject"
 config/tags=PackedStringArray("serious")
 run/main_scene="uid://biel0jq32rdnw"
 config/features=PackedStringArray("4.4", "C#", "Forward Plus")
-config/icon="res://Tools/icon.svg"
+config/icon="uid://c0o4xv1qbn2di"
 
 [audio]
 
@@ -29,7 +29,7 @@ GlobalPerformance="*res://Tests/Performance.cs"
 window/size/viewport_width=1920
 window/size/viewport_height=1080
 window/size/mode=3
-window/vsync/vsync_mode=2
+window/vsync/vsync_mode=0
 
 [dotnet]
 

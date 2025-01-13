@@ -1,0 +1,25 @@
+[gd_scene format=3 uid="uid://djfddsrai8sq4"]
+
+[node name="TabContainer" type="TabContainer"]
+offset_right = 954.0
+offset_bottom = 252.0
+current_tab = 0
+
+[node name="Control" type="Control" parent="."]
+layout_mode = 2
+metadata/_tab_index = 0
+
+[node name="Control2" type="Control" parent="."]
+visible = false
+layout_mode = 2
+metadata/_tab_index = 1
+
+[node name="Control3" type="Control" parent="."]
+visible = false
+layout_mode = 2
+metadata/_tab_index = 2
+
+[node name="Control4" type="Control" parent="."]
+visible = false
+layout_mode = 2
+metadata/_tab_index = 3

@@ -1,9 +1,6 @@
 // Copyright (c) mk56_spn <dhsjplt@gmail.com>. Licensed under the GNU General Public Licence (2.0).
 // See the LICENCE file in the repository root for full licence text.
 
-using System;
-using System.Collections.Generic;
-using System.ComponentModel;
 using Friflo.Engine.ECS;
 using Friflo.Json.Fliox;
 using Godot;
@@ -18,8 +15,7 @@ namespace XanaduProject.ECSComponents
     {
         public Transform2D Transform = Transform2D.Identity;
 
-        [Composer ("Colour")]
-        public Color Colour = Colors.Olive;
+        [Composer("Colour")] public Color Colour = Colors.Olive;
 
         [Composer("Index")]
         // ReSharper disable once MemberCanBePrivate.Global
@@ -29,10 +25,11 @@ namespace XanaduProject.ECSComponents
 
         [Ignore] public Vector2 Size = new(32, 32);
 
-        public void  UpdateCanvas(Color colour)
+        public void UpdateCanvas(Color colour)
         {
             CanvasItemSetModulate(Canvas, colour);
         }
+
         public void SetTransform(Transform2D transform2D)
         {
             Transform = transform2D;
@@ -66,14 +63,15 @@ namespace XanaduProject.ECSComponents
             CanvasItemSetParent(Canvas, baseCanvas);
         }
 
+
         /// <summary>
-        /// Refreshes the entire entity, should not be used outside of composer as its full of if checks
+        ///     Refreshes the entire entity, should not be used outside of composer as its full of if checks
         /// </summary>
         /// <param name="entity"></param>
         public void Draw(Entity entity)
         {
             CanvasItemClear(Canvas);
-            CanvasItemSetModulate(Canvas,Colour);
+            CanvasItemSetModulate(Canvas, Colour);
             CanvasItemSetZIndex(Canvas, Index);
             CanvasItemSetTransform(Canvas, Transform);
 
@@ -89,10 +87,10 @@ namespace XanaduProject.ECSComponents
         }
 
         private void @try<T>(ref Entity entity)
-        where T : struct, IComponent, IUpdatable
+            where T : struct, IComponent, IUpdatable
         {
             if (entity.TryGetComponent<T>(out var t))
-                t.Update( this);
+                t.Update(this);
         }
     }
 }
