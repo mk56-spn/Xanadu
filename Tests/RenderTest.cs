@@ -2,12 +2,10 @@
 // See the LICENCE file in the repository root for full licence text.
 
 using System.Globalization;
-using System.Linq;
 using Godot;
 using XanaduProject.Composer;
 using XanaduProject.DataStructure;
 using XanaduProject.Serialization;
-using XanaduProject.Serialization.SerialisedObjects;
 
 namespace XanaduProject.Tests
 {
@@ -29,12 +27,6 @@ namespace XanaduProject.Tests
 			AddChild(renderMaster);
 
 			serializeButton.Pressed += () => { StageSerializer.Serialize(renderMaster.EntityStore, "level1"); };
-
-			randomButton.Pressed += () =>
-			{
-			/*	StageSerializer.Serialize(new TestSerializableStage().EntityStore);
-				GetTree().ReloadCurrentScene();*/
-			};
 		}
 
 		public override void _Process(double delta)
