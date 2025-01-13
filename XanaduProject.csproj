@@ -14,5 +14,6 @@
     <PackageReference Update="Godot.SourceGenerators" Version="4.4.0-dev.4" />
     <PackageReference Include="Friflo.Engine.ECS" Version="3.0.0" />
     <PackageReference Include="Friflo.Engine.ECS.Boost" Version="3.0.0-preview.18" />
+    <PackageReference Include="JetBrains.Annotations" Version="2024.3.0" />
   </ItemGroup>
 </Project>
