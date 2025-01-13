@@ -9,6 +9,6 @@ void fragment() {
 	float main_opacity = step(0.1 , sharpened.x + sharpened.y);
 	float main_opacity_stepped = step(0.9,main_opacity);
 	float radial_opacity = 1. - distance(UV, vec2(0.5)) * 2. ;
-	
+
 	COLOR = vec4(vec3(1.0),radial_opacity * main_opacity_stepped);
 }
