@@ -5,9 +5,6 @@ namespace XanaduProject.ECSComponents.Interfaces
 {
     internal interface IUpdatable
     {
-        internal void Update(ElementEcs elementEcs)
-        {
-
-        }
+        void Update(ElementEcs elementEcs);
     }
 }
