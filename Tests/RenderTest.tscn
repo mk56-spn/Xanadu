@@ -49,14 +49,14 @@ justification_flags = 161
 layout_mode = 2
 
 [node name="PanelContainer" type="PanelContainer" parent="CanvasLayer"]
-anchors_preset = 4
-anchor_top = 0.5
-anchor_bottom = 0.5
-offset_left = 266.0
-offset_top = 137.0
-offset_right = 499.0
-offset_bottom = 331.0
-grow_vertical = 2
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -941.0
+offset_top = 117.0
+offset_right = -708.0
+offset_bottom = 187.0
+grow_horizontal = 2
 
 [node name="MarginContainer" type="MarginContainer" parent="CanvasLayer/PanelContainer"]
 layout_mode = 2
@@ -68,34 +68,15 @@ theme_override_constants/margin_bottom = 10
 
 [node name="VBoxContainer" type="VBoxContainer" parent="CanvasLayer/PanelContainer/MarginContainer"]
 layout_mode = 2
+size_flags_horizontal = 0
 theme_override_constants/separation = 10
-
-[node name="HBoxContainer" type="HBoxContainer" parent="CanvasLayer/PanelContainer/MarginContainer/VBoxContainer"]
-layout_mode = 2
-
-[node name="VBoxContainer" type="VBoxContainer" parent="CanvasLayer/PanelContainer/MarginContainer/VBoxContainer/HBoxContainer"]
-layout_mode = 2
-
-[node name="Label" type="Label" parent="CanvasLayer/PanelContainer/MarginContainer/VBoxContainer/HBoxContainer/VBoxContainer"]
-layout_mode = 2
-text = "Count"
-justification_flags = 162
-
-[node name="SpinBox" type="SpinBox" parent="CanvasLayer/PanelContainer/MarginContainer/VBoxContainer/HBoxContainer/VBoxContainer"]
-layout_mode = 2
-max_value = 10000.0
 
 [node name="Serialize" type="Button" parent="CanvasLayer/PanelContainer/MarginContainer/VBoxContainer"]
 custom_minimum_size = Vector2(0, 50)
 layout_mode = 2
 text = "Serialise current stage"
 
-[node name="Button" type="Button" parent="CanvasLayer/PanelContainer/MarginContainer/VBoxContainer"]
-custom_minimum_size = Vector2(0, 50)
-layout_mode = 2
-text = "Serialise random Stage"
-
-[node name="RenderMaster" type="Control" parent="." node_paths=PackedStringArray("serializeButton", "randomButton", "fps", "stageInfo", "spinBox")]
+[node name="RenderMaster" type="Control" parent="." node_paths=PackedStringArray("serializeButton", "fps", "stageInfo")]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -105,10 +86,8 @@ grow_vertical = 2
 mouse_filter = 1
 script = ExtResource("1_wh0s5")
 serializeButton = NodePath("../CanvasLayer/PanelContainer/MarginContainer/VBoxContainer/Serialize")
-randomButton = NodePath("../CanvasLayer/PanelContainer/MarginContainer/VBoxContainer/Button")
 fps = NodePath("../CanvasLayer/VBoxContainer/Fps")
 stageInfo = NodePath("../CanvasLayer/VBoxContainer/Count")
-spinBox = NodePath("../CanvasLayer/PanelContainer/MarginContainer/VBoxContainer/HBoxContainer/VBoxContainer/SpinBox")
 metadata/_edit_lock_ = true
 
 [node name="CanvasLayer3" type="CanvasLayer" parent="."]
@@ -118,7 +97,6 @@ layer = -1
 layer = 0
 
 [node name="ColorRect" type="ColorRect" parent="CanvasLayer3/CanvasLayer"]
-visible = false
 material = SubResource("ShaderMaterial_s5lla")
 anchors_preset = 15
 anchor_right = 1.0

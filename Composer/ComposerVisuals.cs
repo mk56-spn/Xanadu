@@ -14,18 +14,16 @@ namespace XanaduProject.Composer
 	public partial class ComposerVisuals : Control
 	{
 		private ComposerRenderMaster composer = null!;
+		private Label infoLabel = new() { Visible = false, Modulate = Colors.GreenYellow };
+		private Viewport viewport = null!;
 
 		[Export] private Control editWidget = null!;
-		[Export] private GridContainer gridContainer = null!;
 		[Export] private VBoxContainer container = null!;
 		[Export] private Button snap = null!;
 		[Export] private Slider trackPos = null!;
-
-		private Label infoLabel = new() { Visible = false, Modulate = Colors.GreenYellow };
-
-		private Viewport viewport = null!;
-
+		[Export] private Container keyframeTrackContainer = null!;
 		[Export] private Control waveformContainer = null!;
+
 		public override void _EnterTree()
 		{
 			editWidget.AddChild(ComposerEditWidget.Create(composer));
@@ -44,14 +42,14 @@ namespace XanaduProject.Composer
 
 		public override void _Ready()
 		{
+			keyframeTrackContainer.AddChild(new AnimationTracksManager(composer.EntityStore, composer.TrackHandler));
+
 			snap.Pressed += () => composer.Snapped = !composer.Snapped;
 			viewport = GetViewport();
 			AddChild(infoLabel);
 			infoLabel.Position = new Vector2(30, 100);
 			SetAnchorsPreset(LayoutPreset.FullRect);
 			composer.Ready += () => composer.AddChild(new Grid { ShowBehindParent = true });
-
-
 
 			trackPos.MaxValue = composer.TrackHandler.TrackLength;
 			trackPos.Step = 0.01f;
@@ -61,7 +59,6 @@ namespace XanaduProject.Composer
 				composer.TrackHandler.SetPos((float)value);
 				if (toggled == false) composer.TrackHandler.TogglePlayback();
 			};
-
 
 			Vector2 mouse = composer.GetGlobalMousePosition();
 
@@ -77,7 +74,6 @@ namespace XanaduProject.Composer
 			return;
 
 			Vector2 position(Vector2 size) { return (composer.GetGlobalMousePosition() + size / 2).Snapped(size) - size / 2; }
-
 		}
 
 		private void createNote(Entity c, Vector2 size)
