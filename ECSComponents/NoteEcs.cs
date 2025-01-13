@@ -12,11 +12,9 @@ using static Godot.RenderingServer;
 
 namespace XanaduProject.ECSComponents
 {
-	public struct NoteEcs(float timingPoint, NoteType note) : IComponent, IComparable<float>, IUpdatable
+	public struct NoteEcs(float timingPoint) : IComponent, IComparable<float>, IUpdatable
 	{
 		public static readonly int RADIUS = 32;
-
-		[Composer("Note")] public readonly NoteType Note = note;
 
 		[Composer("position")]
 		public bool CenterPlayer;
@@ -26,43 +24,9 @@ namespace XanaduProject.ECSComponents
 		public int CompareTo(float other) =>
 			TimingPoint.CompareTo(other);
 
-		public void UpdateCharacter(RenderCharacter renderCharacter, ElementEcs elementEcs)
-		{
-			if (CenterPlayer)
-				renderCharacter.Position = elementEcs.Transform.Origin;
-
-			switch (Note)
-			{
-				case NoteType.Left:
-					renderCharacter.SetVelocity(renderCharacter.Velocity with{ X = -750});
-					break;
-				case NoteType.Up:
-					renderCharacter.SetVelocity(renderCharacter.Velocity with{ Y = -1200});
-					break;
-				case NoteType.Right:
-					renderCharacter.SetVelocity(renderCharacter.Velocity with{ X = 750});
-					break;
-				case NoteType.Down:
-					renderCharacter.SetVelocity(renderCharacter.Velocity with{ Y = 1500});
-					break;
-				default:
-					throw new ArgumentOutOfRangeException();
-			}
-		}
-
 
 		public void Update(ElementEcs element)
 		{
-			float angle = Note switch
-			{
-				NoteType.Left => -Mathf.Pi,
-				NoteType.Right => 0,
-				NoteType.Up => -Mathf.Pi / 2,
-				NoteType.Down => Mathf.Pi / 2,
-				_ => throw new ArgumentOutOfRangeException()
-			};
-
-			CanvasItemSetTransform(element.Canvas, element.Transform.RotatedLocal(angle));
 			CanvasItemSetSelfModulate(element.Canvas, Colors.Violet);
 		}
 	}
