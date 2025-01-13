@@ -18,6 +18,7 @@ namespace XanaduProject.Screens
 
 		public static double StandardDeviation(double[] values)
 		{
+			if (values.Length == 0) return 0;
 			double avg = values.Average();
 			return 10 * Math.Sqrt(values.Average(v=>Math.Pow(v-avg,2)));
 		}

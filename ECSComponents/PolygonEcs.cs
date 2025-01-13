@@ -22,6 +22,7 @@ namespace XanaduProject.ECSComponents
 
         public void Update(ElementEcs elementEcs)
         {
+
             RenderingServer.CanvasItemAddPolygon(elementEcs.Canvas, Points, []);
         }
     }
