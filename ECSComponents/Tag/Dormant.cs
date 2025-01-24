@@ -1,0 +1,12 @@
+// Copyright (c) mk56_spn <dhsjplt@gmail.com>. Licensed under the GNU General Public Licence (2.0).
+// See the LICENCE file in the repository root for full licence text.
+
+using Friflo.Engine.ECS;
+
+namespace XanaduProject.ECSComponents.Tag
+{
+    /// <summary>
+    /// Tag for elements loaded from script that have yet to be initialised in the renderingServer
+    /// </summary>
+    public struct Dormant : ITag;
+}
