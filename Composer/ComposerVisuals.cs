@@ -1,13 +1,10 @@
 // Copyright (c) mk56_spn <dhsjplt@gmail.com>. Licensed under the GNU General Public Licence (2.0).
 // See the LICENCE file in the repository root for full licence text.
 
-using System;
 using System.Linq;
 using Friflo.Engine.ECS;
 using Godot;
 using XanaduProject.ECSComponents;
-using static XanaduProject.ECSComponents.Presets.PrefabEntity;
-using static XanaduProject.ECSComponents.RectEcs;
 
 namespace XanaduProject.Composer
 {
@@ -18,7 +15,7 @@ namespace XanaduProject.Composer
 		private Viewport viewport = null!;
 
 		[Export] private Control editWidget = null!;
-		[Export] private VBoxContainer container = null!;
+		[Export] private ButtonContainer buttonContainer = null!;
 		[Export] private Button snap = null!;
 		[Export] private Slider trackPos = null!;
 		[Export] private Container keyframeTrackContainer = null!;
@@ -30,6 +27,8 @@ namespace XanaduProject.Composer
 			waveformContainer.AddChild(new Waveform(composer));
 			GetNode<Button>("%Toggle").Pressed += () => composer.TrackHandler.TogglePlayback();
 			GetNode<Button>("%Stop").Pressed += () => composer.TrackHandler.StopTrack();
+
+			buttonContainer.Composer = composer;
 		}
 
 		public static ComposerVisuals Create(ComposerRenderMaster composer)
@@ -59,42 +58,6 @@ namespace XanaduProject.Composer
 				composer.TrackHandler.SetPos((float)value);
 				if (toggled == false) composer.TrackHandler.TogglePlayback();
 			};
-
-			Vector2 mouse = composer.GetGlobalMousePosition();
-
-			composer.Action = c =>
-				Block(c, position(PRESETS[0]), PRESETS[0]);
-
-			createButton("Hurt", c => Hurt(c, position(PRESETS[0]),PRESETS[0], composer.GetWorld2D()));
-			createButton("Note", c => createNote(c, LARGE));
-			createButton("Polygon", c => Polygon(c, position(new Vector2(32,32)), PolygonEcs.DEFAULT_POINTS));
-
-			foreach (var extent in PRESETS)
-					createButton(extent.ToString(), c => Block(c, position(extent), extent));
-			return;
-
-			Vector2 position(Vector2 size) { return (composer.GetGlobalMousePosition() + size / 2).Snapped(size) - size / 2; }
-		}
-
-		private void createNote(Entity c, Vector2 size)
-		{
-			Vector2 mouse = composer.GetLocalMousePosition();
-			Note(c, (mouse + size / 2).Snapped(size) - size / 2, (float)Mathf.Snapped(composer.TrackHandler.TrackPosition, 60 / 200f), NoteType.Up, composer.GetWorld2D());
-		}
-
-
-		private void createRect(Entity c, Vector2 size)
-		{
-			Vector2 mouse = composer.GetLocalMousePosition();
-			Rect(c, (mouse + size / 2).Snapped(size) - size / 2, size);
-		}
-
-		private void createButton(string name, Action<Entity> action)
-		{
-
-			var button = new Button { Text = name };
-			button.Pressed += () => composer.Action = action;
-			container.AddChild(button);
 		}
 
 		public override void _Process(double delta)
@@ -102,10 +65,6 @@ namespace XanaduProject.Composer
 			infoLabel.Text = $"Canvas transform: {viewport.CanvasTransform.Origin} " +
 							 $"\nSelected count: {composer.Selected.Count} " +
 							 $"\nZoom: {viewport.CanvasTransform.Scale}";
-		}
-
-		public override void _PhysicsProcess(double delta)
-		{
 			QueueRedraw();
 		}
 
@@ -121,10 +80,10 @@ namespace XanaduProject.Composer
 		public override void _Draw()
 		{
 			composer.EntityStore.Query<NoteEcs, ElementEcs>().ForEachEntity(
-				(ref NoteEcs component1, ref ElementEcs element, Entity entity) =>
+				(ref NoteEcs _, ref ElementEcs element, Entity _) =>
 				{
 					DrawSetTransformMatrix(element.Transform.Scaled(viewport.CanvasTransform.Scale).Translated(viewport.CanvasTransform.Origin));
-					DrawArc(Vector2.Zero, NoteEcs.RADIUS, 0,Mathf.Pi * 2, 10, Colors.White);
+					DrawArc(Vector2.Zero, NoteEcs.RADIUS, 0,Mathf.Pi * 2, 30, Colors.White);
 				});
 			composer.Selected.ForEachEntity((ref ElementEcs element, ref SelectionEcs _, Entity entity) =>
 			{
@@ -147,6 +106,14 @@ namespace XanaduProject.Composer
 
 				DrawString(ThemeDB.FallbackFont, Vector2.Zero, element.Transform.Origin.ToString());
 			});
+
+			int i = 0;
+			foreach (var en in composer.Selected.Entities)
+			{
+
+				DrawString(ThemeDB.FallbackFont, Vector2.Zero with{ Y = 30 + i * 20 }, en.Id.ToString());
+				i++;
+			}
 		}
 
 		private partial class Grid : Node2D
