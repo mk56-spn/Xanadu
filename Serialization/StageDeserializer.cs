@@ -6,28 +6,43 @@ using System.IO;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Serialize;
 using Godot;
+using XanaduProject.ECSComponents.Animation2;
 using XanaduProject.Serialization.SerialisedObjects;
-using XanaduProject.Tests;
 
 namespace XanaduProject.Serialization
 {
-    public abstract class StageDeserializer
+    public static class StageDeserializer
     {
+        private static void shimConverter(EntityStore store)
+        {
+            var buffer = store.GetCommandBuffer();
+            store.Query<ColorArrayThin>().ForEachEntity((ref ColorArrayThin component1, Entity entity) =>
+            {
+                buffer.AddComponent(entity.Id, new ColorArrayEcs(component1));
+                buffer.RemoveComponent<ColorArrayThin>(entity.Id);
+            });
+
+            buffer.Playback();
+        }
         public static SerializableStage Deserialize(string filename)
         {
-
             string path = ProjectSettings.GlobalizePath("res://Stages");
 
             string dir = $"{path}/{filename}.json";
 
             SerializableStage serializableStage;
             if (File.Exists(dir))
-            {
                 try
                 {
                     var serializer = new EntitySerializer();
-                    var targetStore = new EntityStore();
-                    serializer.ReadIntoStore(targetStore, new FileStream(dir, FileMode.Open));
+                    var targetStore = new EntityStore
+                    {
+                        JobRunner = new ParallelJobRunner(16)
+                    };
+                    serializer.ReadIntoStoreAsync(targetStore, new FileStream(dir, FileMode.Open));
+
+                    shimConverter(targetStore);
+
 
                     serializableStage = new SerializableStage { EntityStore = targetStore };
 
@@ -35,19 +50,25 @@ namespace XanaduProject.Serialization
                 }
                 catch (Exception e)
                 {
-                    serializableStage = new SerializableStage()
+                    GD.PrintErr("FAILURE");
+
+                    serializableStage = new SerializableStage
                     {
-                        EntityStore = new EntityStore(),
+                        EntityStore = new EntityStore()
                     };
                     Console.WriteLine(e);
                 }
-            }
 
             else
-                serializableStage = new SerializableStage()
+            {
+                GD.PrintErr("FAILURE, FILE NOT FOUND");
+
+                serializableStage = new SerializableStage
                 {
-                    EntityStore = new EntityStore(),
+                    EntityStore = new EntityStore()
                 };
+            }
+
 
             return serializableStage;
         }

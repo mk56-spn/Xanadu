@@ -2,13 +2,10 @@
 // See the LICENCE file in the repository root for full licence text.
 
 using System.IO;
-using Ceras;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Serialize;
-using Friflo.Json.Fliox;
 using Godot;
-using XanaduProject.ECSComponents;
-using XanaduProject.Serialization.SerialisedObjects;
+using XanaduProject.ECSComponents.Animation2;
 
 namespace XanaduProject.Serialization
 {
@@ -16,12 +13,24 @@ namespace XanaduProject.Serialization
     {
         public static void Serialize(EntityStore store, string filename)
         {
+            shimCreation(store);
             // --- Write store entities as JSON array
             var serializer = new EntitySerializer();
+
+
             string path = ProjectSettings.GlobalizePath("res://Stages");
-            var writeStream = new FileStream($"{path}/{filename}.json", FileMode.Create);
+
+            using var writeStream = new FileStream($"{path}/{filename}.json", FileMode.Create);
             serializer.WriteStore(store, writeStream);
-            writeStream.Close();
+        }
+
+        private static void shimCreation(EntityStore store)
+        {
+            var buffer = store.GetCommandBuffer();
+            store.Query<ColorArrayEcs>().ForEachEntity((ref ColorArrayEcs component1, Entity entity) =>
+                buffer.AddComponent(entity.Id, new ColorArrayThin(component1)));
+
+            buffer.Playback();
         }
     }
 }
