@@ -5,5 +5,12 @@ using Friflo.Engine.ECS;
 
 namespace XanaduProject.ECSComponents.Tag
 {
-    public struct Hit : ITag;
+    [ComponentKey(null)]
+    public struct Hit(double time, NoteType key) : IComponent
+    {
+        public double Time = time;
+        public NoteType Key = key;
+
+
+    }
 }

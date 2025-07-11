@@ -4,62 +4,39 @@
 using System;
 using Friflo.Engine.ECS;
 using Godot;
+using JetBrains.Annotations;
 using XanaduProject.Composer;
 using XanaduProject.ECSComponents.Interfaces;
 using XanaduProject.Rendering;
 
 namespace XanaduProject.ECSComponents
 {
-    public readonly struct DirectionEcs(Direction direction) : IComponent, IUpdatable
-    {
-        [Composer("Note")] public readonly Direction Direction = direction;
+	public readonly struct DirectionEcs() : IComponent, IUpdatable
+	{
+		[Composer("Direction")] public readonly Direction Direction = Direction.Up;
+		[Composer("Strength")] public readonly Strength Strength = Strength.Medium;
 
-        public void Update(ElementEcs element)
-        {
-            float angle = Direction switch
-            {
-                Direction.Left => -Mathf.Pi,
-                Direction.Right => 0,
-                Direction.Up => -Mathf.Pi / 2,
-                Direction.Down => Mathf.Pi / 2,
-                _ => throw new ArgumentOutOfRangeException()
-            };
+		public static readonly int BASE_STRENGTH = 750;
 
-            RenderingServer.CanvasItemSetTransform(element.Canvas, element.Transform.RotatedLocal(angle));
-        }
+		public void Update(ElementEcs element)
+		{
+		}
+	}
 
+	public enum Strength
+	{
+		Weak,
+		Medium,
+		Strong
+	}
 
-        public void UpdateCharacter(RenderCharacter renderCharacter, ElementEcs elementEcs, NoteEcs noteEcs)
-        {
-
-            if (noteEcs.CenterPlayer)
-                renderCharacter.Position = elementEcs.Transform.Origin;
-
-            switch (Direction)
-            {
-                case Direction.Left:
-                    renderCharacter.SetVelocity(renderCharacter.Velocity with{ X = -750});
-                    break;
-                case Direction.Up:
-                    renderCharacter.SetVelocity(renderCharacter.Velocity with{ Y = -1200});
-                    break;
-                case Direction.Right:
-                    renderCharacter.SetVelocity(renderCharacter.Velocity with{ X = 750});
-                    break;
-                case Direction.Down:
-                    renderCharacter.SetVelocity(renderCharacter.Velocity with{ Y = 1500});
-                    break;
-                default:
-                    throw new ArgumentOutOfRangeException();
-            }
-        }
-    }
-
-    public enum Direction
-    {
-        Left,
-        Right,
-        Up,
-        Down
-    }
+	public enum Direction
+	{
+		UpLeft,
+		Left,
+		UpRight,
+		Right,
+		Up,
+		Down
+	}
 }

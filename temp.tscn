@@ -1,0 +1,372 @@
+[gd_scene load_steps=17 format=3 uid="uid://rm0dl563dp7e"]
+
+[ext_resource type="Shader" uid="uid://b08picb1q7kn" path="res://Shaders/HitRing.gdshader" id="2_ufh25"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_pippe"]
+shader = ExtResource("2_ufh25")
+
+[sub_resource type="Gradient" id="Gradient_pippe"]
+offsets = PackedFloat32Array(0.601134)
+colors = PackedColorArray(1, 1, 1, 1)
+
+[sub_resource type="GradientTexture2D" id="GradientTexture2D_ufh25"]
+gradient = SubResource("Gradient_pippe")
+width = 400
+height = 400
+fill_to = Vector2(1, 1)
+
+[sub_resource type="Gradient" id="Gradient_iyses"]
+offsets = PackedFloat32Array(0.0567108)
+colors = PackedColorArray(1, 1, 1, 1)
+metadata/_snap_count = 50
+
+[sub_resource type="GradientTexture2D" id="GradientTexture2D_1nlwk"]
+gradient = SubResource("Gradient_iyses")
+width = 10
+height = 10
+fill = 1
+fill_to = Vector2(0, 0)
+
+[sub_resource type="Curve" id="Curve_ufh25"]
+_data = [Vector2(0, 1), 0.0, -2.78406, 0, 1, Vector2(0.234834, 0.34621), 0.0, 0.0, 0, 0, Vector2(1, 0), -0.452464, 0.0, 1, 0]
+point_count = 3
+
+[sub_resource type="CurveTexture" id="CurveTexture_ufh25"]
+curve = SubResource("Curve_ufh25")
+
+[sub_resource type="Curve" id="Curve_pippe"]
+_data = [Vector2(0, 1), 0.0, 0.0, 0, 0, Vector2(0.307241, 0.308309), 0.0, -0.445045, 0, 1, Vector2(1, 0), -0.445045, 0.0, 1, 0]
+point_count = 3
+
+[sub_resource type="CurveTexture" id="CurveTexture_k81e3"]
+curve = SubResource("Curve_pippe")
+
+[sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_b6ebu"]
+particle_flag_disable_z = true
+emission_shape_scale = Vector3(0.2, 1, 1)
+emission_shape = 6
+emission_ring_axis = Vector3(0, 0, 1)
+emission_ring_height = 1.0
+emission_ring_radius = 170.0
+emission_ring_inner_radius = 50.0
+emission_ring_cone_angle = 90.0
+direction = Vector3(0, -1, 0)
+spread = 0.0
+initial_velocity_min = 300.0
+initial_velocity_max = 300.0
+orbit_velocity_min = 0.0100001
+orbit_velocity_max = 0.0100001
+gravity = Vector3(0, 0, 0)
+scale_curve = SubResource("CurveTexture_k81e3")
+scale_over_velocity_min = 1.0
+scale_over_velocity_max = 3.0
+alpha_curve = SubResource("CurveTexture_ufh25")
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_q51th"]
+shader = ExtResource("2_ufh25")
+
+[sub_resource type="Shader" id="Shader_k81e3"]
+code = "// godot shader
+
+// 伪3d效果, 而且在启用region的节点下也能正常工作
+
+shader_type canvas_item;
+
+
+
+// Camera FOV
+
+uniform float fov : hint_range(1, 179) = 90;
+
+uniform bool cull_back = true;
+
+uniform float y_rot : hint_range(-180, 180) = 0.0;
+
+uniform float x_rot : hint_range(-180, 180) = 0.0;
+
+
+
+uniform float inset : hint_range(0, 1) = 0.0;
+
+// Consider changing this to a uniform and changing it from code
+
+uniform float hovering;
+
+uniform float rand_trans_power = 1.0;
+
+uniform float rand_seed;
+
+uniform float vortex_amt:hint_range(-10.0, 10.0, 0.1);
+
+uniform float rotation:hint_range(-10.0, 10.0, 0.1) = 0.0;
+
+// 全局着色器变量 在脚本中设置鼠标位置
+
+uniform vec2 mouse_screen_pos = vec2(0.0, 0.0);
+
+uniform vec2 mouse_screen_pos_test = vec2(0.0, 0.0);
+
+
+
+
+
+varying flat vec2 o;
+
+varying vec3 p;
+
+
+
+varying vec2 transformed_world_to_canvas_coordinates;
+
+varying flat vec2 pivot;
+
+varying flat vec2 region_rate;
+
+varying flat mat3 inv_rot_mat;
+
+
+
+
+
+vec2 rotate(vec2 uv, vec2 pivot_r, float angle)
+
+{
+
+
+
+	mat2 rotation_mat = mat2(vec2(cos(angle), -sin(angle)),
+
+						vec2(sin(angle), cos(angle)));
+
+	uv -= pivot_r;
+
+	uv = uv * rotation_mat;
+
+	uv += pivot_r;
+
+	return uv;
+
+}
+
+// Creates rotation matrix
+
+void vertex(){
+
+	vec2 my_region_rate = abs(VERTEX) *2.0;
+
+	region_rate = TEXTURE_PIXEL_SIZE * my_region_rate;
+
+	if(VERTEX_ID == 0 ){
+
+		pivot = UV ;
+
+		}
+
+	if(VERTEX_ID == 1){
+
+
+
+		pivot = UV - vec2(0.0, region_rate.y);
+
+
+
+	}
+
+	if(VERTEX_ID == 2){
+
+		pivot = UV - vec2(region_rate.x, region_rate.y);
+
+	}
+
+	if(VERTEX_ID == 3){
+
+		pivot = UV - vec2(region_rate.x, 0.0);
+
+	}
+
+	float rand_angel = rand_trans_power * mod(TIME * (0.9 + mod(rand_seed, 0.5)), 2.0 * PI);
+
+	vec2 rand_vec = vec2(cos(rand_angel), sin(rand_angel));
+
+	transformed_world_to_canvas_coordinates = (inverse(MODEL_MATRIX) * vec4(mouse_screen_pos, 0.0, 1.0) ).xy;
+
+	vec2 mouse_force = hovering * 0.5* (transformed_world_to_canvas_coordinates )/ length(region_rate/TEXTURE_PIXEL_SIZE) + rand_vec*0.05 *rand_trans_power;
+
+
+
+	float sin_b = sin(y_rot / 180.0 * PI + mouse_force.x);
+
+	float cos_b = cos(y_rot / 180.0 * PI + mouse_force.x);
+
+	float sin_c = sin(x_rot / 180.0 * PI + -mouse_force.y);
+
+	float cos_c = cos(x_rot / 180.0 * PI + -mouse_force.y);
+
+
+
+	inv_rot_mat;
+
+	inv_rot_mat[0][0] = cos_b;
+
+	inv_rot_mat[0][1] = 0.0;
+
+	inv_rot_mat[0][2] = -sin_b;
+
+
+
+	inv_rot_mat[1][0] = sin_b * sin_c;
+
+	inv_rot_mat[1][1] = cos_c;
+
+	inv_rot_mat[1][2] = cos_b * sin_c;
+
+
+
+	inv_rot_mat[2][0] = sin_b * cos_c;
+
+	inv_rot_mat[2][1] = -sin_c;
+
+	inv_rot_mat[2][2] = cos_b * cos_c;
+
+
+
+
+
+	vec2 uv = (UV - pivot ) / region_rate;
+
+
+
+
+
+	float t = tan(fov / 360.0 * PI);
+
+
+
+	VERTEX += (uv - 0.5) * 1.0*my_region_rate * t * (1.0 - inset);
+
+
+
+}
+
+
+
+void fragment(){
+
+	vec2 uv = (UV - pivot ) / region_rate;
+
+
+
+	float t = tan(fov / 360.0 * PI);
+
+	p = inv_rot_mat * vec3((uv - 0.5), 0.5 / t);
+
+	float v = (0.5 / t) + 0.5;
+
+	p.xy *= v * inv_rot_mat[2].z;
+
+	o = v * inv_rot_mat[2].xy;
+
+
+
+	if (cull_back && p.z <= 0.0) discard;
+
+	uv = (p.xy / p.z).xy - o;
+
+	uv += 0.5;
+
+	float asp = (region_rate/TEXTURE_PIXEL_SIZE).y/ (region_rate/TEXTURE_PIXEL_SIZE).x;
+
+	uv.y *= asp;
+
+	uv = rotate(uv, vec2(0.5, 0.5), rotation + rand_trans_power*0.05*sin(TIME * (0.9 + mod(rand_seed, 0.5)) + rand_seed * 123.8985));
+
+	uv.y /= asp;
+
+
+
+	if(uv.x >1.0 || uv.x < 0.0){
+
+		discard;
+
+	}
+
+	if(uv.y >1.0 || uv.y < 0.0){
+
+		discard;
+
+	}
+
+	uv = pivot + uv * region_rate;
+
+  COLOR = texture(TEXTURE, uv);
+
+}"
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_k81e3"]
+shader = SubResource("Shader_k81e3")
+shader_parameter/fov = 90.0
+shader_parameter/cull_back = true
+shader_parameter/y_rot = 8.55e-06
+shader_parameter/x_rot = -29.834
+shader_parameter/inset = 0.0
+shader_parameter/hovering = 0.0
+shader_parameter/rand_trans_power = 1.0
+shader_parameter/rand_seed = 0.0
+shader_parameter/vortex_amt = 0.0
+shader_parameter/rotation = 0.0
+shader_parameter/mouse_screen_pos = Vector2(0, 0)
+shader_parameter/mouse_screen_pos_test = Vector2(0, 0)
+
+[sub_resource type="Gradient" id="Gradient_f68d1"]
+colors = PackedColorArray(1, 1, 1, 1, 1, 1, 1, 0)
+
+[sub_resource type="GradientTexture2D" id="GradientTexture2D_h2clf"]
+gradient = SubResource("Gradient_f68d1")
+height = 44
+fill = 1
+fill_from = Vector2(0.5, 0.5)
+fill_to = Vector2(1, 0.5)
+metadata/_snap_enabled = true
+
+[node name="Node2D" type="Node2D"]
+position = Vector2(328, -52)
+metadata/_edit_horizontal_guides_ = [-6237.0, -15197.0, 40.0]
+
+[node name="Sprite2D4" type="Sprite2D" parent="."]
+material = SubResource("ShaderMaterial_pippe")
+position = Vector2(565, 359)
+texture = SubResource("GradientTexture2D_ufh25")
+
+[node name="GPUParticles2D" type="GPUParticles2D" parent="Sprite2D4"]
+position = Vector2(25, 18)
+rotation = 3.66519
+amount = 50
+texture = SubResource("GradientTexture2D_1nlwk")
+explosiveness = 1.0
+fixed_fps = 120
+visibility_rect = Rect2(-100030, -100030, 200060, 200060)
+process_material = SubResource("ParticleProcessMaterial_b6ebu")
+
+[node name="GPUParticles2D" type="GPUParticles2D" parent="Sprite2D4/GPUParticles2D"]
+material = SubResource("ShaderMaterial_q51th")
+position = Vector2(5560, 903)
+amount = 5
+texture = SubResource("GradientTexture2D_1nlwk")
+lifetime = 3.0
+fixed_fps = 120
+visibility_rect = Rect2(-100030, -100030, 200060, 200060)
+process_material = SubResource("ParticleProcessMaterial_b6ebu")
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+material = SubResource("ShaderMaterial_q51th")
+position = Vector2(724, -154)
+texture = SubResource("GradientTexture2D_ufh25")
+
+[node name="Sprite2D2" type="Sprite2D" parent="."]
+
+[node name="Sprite2D3" type="Sprite2D" parent="."]
+material = SubResource("ShaderMaterial_k81e3")
+position = Vector2(80, 96)
+texture = SubResource("GradientTexture2D_h2clf")
+
+[node name="AnimationPlayer" type="AnimationPlayer" parent="."]

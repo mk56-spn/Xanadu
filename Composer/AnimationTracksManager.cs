@@ -3,65 +3,49 @@
 
 using Friflo.Engine.ECS;
 using Godot;
-using XanaduProject.Audio;
 using XanaduProject.Composer.TrackVisualiser;
-using XanaduProject.ECSComponents;
-using XanaduProject.ECSComponents.Animation;
-using XanaduProject.Tools;
+using XanaduProject.ECSComponents.Animation2;
+using static XanaduProject.Audio.GlobalClock;
 
 namespace XanaduProject.Composer
 {
     public partial class AnimationTracksManager : VBoxContainer
     {
-        private readonly EntityStore entityStore;
-        private Button button = new(){ CustomMinimumSize = new Vector2(40,40)};
+        public const int SPACING = 200;
+        private ScrollContainer scrollContainer = new() { CustomMinimumSize = new Vector2(0, 150) };
+        private VBoxContainer trackContainer;
 
-        private ScrollContainer scrollContainer = new(){ CustomMinimumSize = new Vector2(0, 300)};
-        private TrackContainer trackContainer;
-
-        public AnimationTracksManager(EntityStore entityStore, TrackHandler trackHandler)
+        public AnimationTracksManager(EntityStore entityStore, Container editContainer)
         {
-            trackContainer = new TrackContainer(trackHandler);
-            this.entityStore = entityStore;
-
-            CustomMinimumSize = new Vector2(0, 400);
-            AddChild(button);
+            AddChild(new TopBarInfo( scrollContainer));
+            SizeFlagsHorizontal = SizeFlags.ExpandFill;
+            ClipContents = true;
+            trackContainer = new VBoxContainer();
+            AddChild(new TrackOverlay(scrollContainer){ ZIndex = 2});
             AddChild(scrollContainer);
             scrollContainer.AddChild(trackContainer);
 
-            entityStore.Query<ColorTrack>().ForEachEntity((ref ColorTrack _, Entity e) =>
-                trackContainer.AddChild(new ColorTrackVisualizer { Entity = e }));
+            var v = entityStore.Query<FloatArrayEcs, ColorArrayEcs>().ToEntityList();
+            v.SortByEntityId(SortOrder.Descending);
 
-            trackContainer.CustomMinimumSize = new Vector2((float)trackHandler.TrackLength * 200, 0);
+            int i = 0;
+            entityStore.Query<FloatArrayEcs, ColorArrayEcs>().ForEachEntity(((ref FloatArrayEcs component1,
+                ref ColorArrayEcs component2, Entity entity) =>
+            {
+                i++;
+                trackContainer.AddChild(new ColorTrackVisualizer(editContainer)
+                    {
+                        Entity = entity,
+                        Index = i
+                    }
+                );
+            } ));
+
+            trackContainer.CustomMinimumSize = new Vector2((float)Instance.TrackLength * 200, 0);
 
             MouseFilter = MouseFilterEnum.Stop;
         }
-
-      public override void _EnterTree()
-        {
-            base._EnterTree();
-
-            button.Pressed += () =>
-            {
-                Entity entity = entityStore.CreateEntity(new ColorTrack
-                {
-                    KeyFrames = [
-                        new ColorKeyFrame(0, Colors.White),
-                        new ColorKeyFrame(2, new Color(GD.Randf(), GD.Randf(), GD.Randf())),
-                        new ColorKeyFrame(4,  new Color(GD.Randf(), GD.Randf(), GD.Randf()))
-                    ]});
-
-                entityStore.Query<ElementEcs>().ForEachEntity((ref ElementEcs _, Entity entity1) =>
-                    entity1.AddComponent(new ColorRelation { Target = entity }));
-
-                trackContainer.AddChild(new ColorTrackVisualizer
-                {
-                    Entity = entity
-                });
-            };
-        }
-
-        private partial class TrackContainer(TrackHandler trackHandler) : VBoxContainer
+        private partial class TrackOverlay( ScrollContainer container) : Control
         {
             public override void _Process(double delta)
             {
@@ -71,8 +55,45 @@ namespace XanaduProject.Composer
 
             public override void _Draw()
             {
-                DrawSetTransform(new Vector2((float)(20 + trackHandler.TrackPosition * 200),0));
-                DrawLine(Vector2.Zero, Vector2.Down * 200, XanaduColors.XanaduYellow);
+
+                DrawSetTransform(new Vector2((float)( Instance.PlaybackTimeSec*  SPACING) - container.ScrollHorizontal + TrackVisualiser<Control>.OFFSET, -10));
+
+                DrawRect(new Rect2(new Vector2(-10, -8), new Vector2(20,8)), Colors.Orange);
+                DrawColoredPolygon([new (-10,0),new (0, 14),new (10, 0),], Colors.Orange);
+                DrawLine(Vector2.Zero, Vector2.Down * SPACING, Colors.Orange);
+            }
+        }
+
+        private partial class TopBarInfo : Control
+        {
+            private readonly ScrollContainer container;
+
+            public TopBarInfo( ScrollContainer container)
+            {
+                this.container = container;
+                SizeFlagsHorizontal = SizeFlags.ExpandFill;
+                CustomMinimumSize = new Vector2(0, 30);
+            }
+
+            private Font font = ThemeDB.FallbackFont;
+
+            public override void _Process(double delta)
+            {
+                base._Process(delta);
+
+                Position = Vector2.Zero with { X = -container.ScrollHorizontal};
+            }
+
+            public override void _Draw()
+            {
+                DrawSetTransform(new Vector2(20, 20));
+
+                for (int i = 0; i < 300; i++)
+                {
+                    DrawLine(new Vector2(i * SPACING, 10), new Vector2(i * SPACING, 150), Colors.DarkGray with { A = 0.3F});
+                    var v = font.GetStringSize(i.ToString());
+                    DrawString(font, new Vector2(i * SPACING - v.X / 2, 0), i.ToString());
+                }
             }
         }
     }

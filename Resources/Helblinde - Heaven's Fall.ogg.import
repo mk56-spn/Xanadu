@@ -13,7 +13,7 @@ dest_files=["res://.godot/imported/Helblinde - Heaven's Fall.ogg-e7d8dc3b539dc9d
 [params]
 
 loop=false
-loop_offset=0
-bpm=0
+loop_offset=0.0
+bpm=0.0
 beat_count=0
 bar_beats=4

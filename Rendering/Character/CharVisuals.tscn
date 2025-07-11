@@ -1,6 +1,4 @@
-[gd_scene load_steps=21 format=3 uid="uid://c0artk3e0k6yt"]
-
-[ext_resource type="PackedScene" uid="uid://bs4b6210ur0n0" path="res://Rendering/Character/NoteCrown.tscn" id="1_x7tit"]
+[gd_scene load_steps=20 format=3 uid="uid://c0artk3e0k6yt"]
 
 [sub_resource type="Gradient" id="Gradient_akc8a"]
 offsets = PackedFloat32Array(1)
@@ -137,7 +135,7 @@ autoplay = "RESET"
 [node name="Polygon2D3" type="Polygon2D" parent="."]
 position = Vector2(10, 0)
 color = Color(0.84, 0.1764, 0.27594, 1)
-polygon = PackedVector2Array(-15, -6, -4, -4, 4, -24, -4, -41, -9, -43, -17, -18)
+polygon = PackedVector2Array(-15, -6, -4, -4, -1, -22, 2, -27, 2, -30, -3, -37, -5, -40, -4, -41, -9, -43, -17, -18)
 
 [node name="Polygon2D5" type="Polygon2D" parent="Polygon2D3"]
 position = Vector2(-6, -11)
@@ -180,11 +178,6 @@ color = Color(0.839277, 0.172442, 0.27454, 1)
 texture = SubResource("GradientTexture2D_3r6qn")
 polygon = PackedVector2Array(52, 26, 59, 23, 56, 14, 45, 10, 46, 0, 43, 11, 51, 16)
 uv = PackedVector2Array(9.50089, 29.8403, 9.43465, 46.212, 29.7513, 47.9879, 47.0441, 29.7099, 65.914, 40.2305, 46.7812, 24.9102, 30.0804, 36.4159)
-
-[node name="NoteCrown" parent="Polygon2D" instance=ExtResource("1_x7tit")]
-z_index = -1
-position = Vector2(17, -18)
-rotation = 3.63958
 
 [node name="Polygon2D" type="Polygon2D" parent="Polygon2D"]
 show_behind_parent = true

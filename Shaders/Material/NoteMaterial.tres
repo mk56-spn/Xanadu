@@ -1,0 +1,14 @@
+[gd_resource type="ShaderMaterial" load_steps=2 format=3 uid="uid://0lcyhcwr4alc"]
+
+[ext_resource type="Shader" uid="uid://bvhqkn6lx2xh2" path="res://Shaders/Note.gdshader" id="1_fhk5i"]
+
+[resource]
+shader = ExtResource("1_fhk5i")
+shader_parameter/outline_width = 2.0
+shader_parameter/transition_smoothness = 0.5
+shader_parameter/glow_width = 0.0
+shader_parameter/glow_intensity = 0.5
+shader_parameter/color1 = Color(1, 0.823529, 0, 1)
+shader_parameter/radius = 0.0
+shader_parameter/color2 = Color(0.3547, 0.933739, 0.869414, 1)
+shader_parameter/size2 = Vector2(20, 20)

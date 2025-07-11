@@ -24,9 +24,9 @@ namespace XanaduProject.Composer
 		public override void _EnterTree()
 		{
 			editWidget.AddChild(ComposerEditWidget.Create(composer));
-			waveformContainer.AddChild(new Waveform(composer));
-			GetNode<Button>("%Toggle").Pressed += () => composer.TrackHandler.TogglePlayback();
-			GetNode<Button>("%Stop").Pressed += () => composer.TrackHandler.StopTrack();
+			waveformContainer.AddChild(new Waveform());
+			GetNode<Button>("%Toggle").Pressed += () => composer.Clock.TogglePause();
+			GetNode<Button>("%Stop").Pressed += () => composer.Clock.Reset();
 
 			buttonContainer.Composer = composer;
 		}
@@ -41,7 +41,9 @@ namespace XanaduProject.Composer
 
 		public override void _Ready()
 		{
-			keyframeTrackContainer.AddChild(new AnimationTracksManager(composer.EntityStore, composer.TrackHandler));
+			Container container = new Container{ CustomMinimumSize = new Vector2(300, 150)};
+			keyframeTrackContainer.AddChild(new AnimationTracksManager(composer.EntityStore, container));
+			keyframeTrackContainer.AddChild(container);
 
 			snap.Pressed += () => composer.Snapped = !composer.Snapped;
 			viewport = GetViewport();
@@ -50,13 +52,13 @@ namespace XanaduProject.Composer
 			SetAnchorsPreset(LayoutPreset.FullRect);
 			composer.Ready += () => composer.AddChild(new Grid { ShowBehindParent = true });
 
-			trackPos.MaxValue = composer.TrackHandler.TrackLength;
+			trackPos.MaxValue = composer.Clock.TrackLength;
 			trackPos.Step = 0.01f;
 			trackPos.ValueChanged += value =>
 			{
-				bool toggled = composer.TrackHandler.Playing;
+				/*bool toggled = composer.TrackHandler.Playing;
 				composer.TrackHandler.SetPos((float)value);
-				if (toggled == false) composer.TrackHandler.TogglePlayback();
+				if (toggled == false) composer.TrackHandler.TogglePlayback();*/
 			};
 		}
 
@@ -74,7 +76,7 @@ namespace XanaduProject.Composer
 				infoLabel.Visible = !infoLabel.Visible;
 
 			if (@event is InputEventKey { KeyLabel: Key.Space, Pressed: true })
-				composer.TrackHandler.TogglePlayback();
+				composer.Clock.TogglePause();
 		}
 
 		public override void _Draw()
@@ -102,6 +104,12 @@ namespace XanaduProject.Composer
 					var e = entity.GetComponent<RectEcs>().Extents;
 					DrawRect(new Rect2(-e / 2, e), ElementEcs.ComposerColour with { A = 0.3f });
 					DrawRect(new Rect2(-e / 2, e), ElementEcs.ComposerColour, false);
+				}
+
+				if (entity.TryGetComponent(out PolygonEcs poly))
+				{
+					DrawPolyline(poly.Points.Append(poly.Points[0]).ToArray(), ElementEcs.ComposerColour);
+					DrawColoredPolygon(poly.Points, ElementEcs.ComposerColour with { A = 0.3f });
 				}
 
 				DrawString(ThemeDB.FallbackFont, Vector2.Zero, element.Transform.Origin.ToString());

@@ -3,38 +3,57 @@
 
 using System;
 using Friflo.Engine.ECS;
-using Friflo.Json.Fliox;
 using Godot;
 using XanaduProject.Composer;
 using XanaduProject.ECSComponents.Interfaces;
-using XanaduProject.Rendering;
-using static Godot.RenderingServer;
+using XanaduProject.Tools;
 
 namespace XanaduProject.ECSComponents
 {
-	public struct NoteEcs(float timingPoint) : IComponent, IComparable<float>, IUpdatable
+	public struct NoteEcs(NoteType type) : IComponent, IComparable<float>
 	{
 		public static readonly int RADIUS = 32;
 
-		[Composer("position")]
-		public bool CenterPlayer;
+		[Composer("position")] public bool CenterPlayer;
 
-		public float TimingPoint = timingPoint;
+		public NoteType NoteType = type;
 
-		public int CompareTo(float other) =>
-			TimingPoint.CompareTo(other);
+		public float TimingPoint;
 
-
-		public void Update(ElementEcs element)
+		public int CompareTo(float other)
 		{
-			CanvasItemSetSelfModulate(element.Canvas, Colors.Violet);
+			return TimingPoint.CompareTo(other);
+		}
+
+		public Rid NoteCanvas;
+
+		public Color NoteColor()
+		{
+			return NoteType switch
+			{
+				NoteType.Main => XanaduColors.XanaduOrange,
+				NoteType.R1 => Colors.Yellow,
+				NoteType.R2 => Colors.Green,
+				_ => throw new ArgumentOutOfRangeException()
+			};
+		}
+
+		public string NoteEvent()
+		{
+			return NoteType switch
+			{
+				NoteType.Main => "main",
+				NoteType.R1 => "R1",
+				NoteType.R2 => "R2",
+				_ => throw new ArgumentOutOfRangeException()
+			};
 		}
 	}
-	public enum NoteType
+
+	public enum NoteType : byte
 	{
-		Left,
-		Right,
-		Up,
-		Down
+		Main,
+		R1,
+		R2
 	}
 }

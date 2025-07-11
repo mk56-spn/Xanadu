@@ -32,7 +32,6 @@ namespace XanaduProject.Tests
 		public override void _Process(double delta)
 		{
 			base._Process(delta);
-			stageInfo.Text = "Entity count: " + renderMaster.EntityStore.Count;
 			stageInfo.Modulate = Colors.Yellow;
 			fps.Text = Engine.GetFramesPerSecond().ToString(CultureInfo.InvariantCulture);
 		}

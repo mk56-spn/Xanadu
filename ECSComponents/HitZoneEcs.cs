@@ -8,33 +8,20 @@ using static Godot.PhysicsServer2D;
 
 namespace XanaduProject.ECSComponents
 {
-	[ComponentKey(null)]
-	public struct HitZoneEcs : IIndexedComponent<Rid>, IUpdatable
-	{
-		public required Rid Area;
-		public Rid GetIndexedValue() => Area;
+    [ComponentKey(null)]
+    public readonly struct
+        HitZoneEcs(Rid area) : IIndexedComponent<Rid>, IUpdatable
+    {
+        public static readonly uint NOTE_AREA_FLAG = 0b00000000_00000000_10000000_00000000;
 
-        public static HitZoneEcs Create(ElementEcs element, World2D world2D) =>
-            new() { Area = createAreaRound(element, world2D) };
-
-        private static Rid createAreaRound(ElementEcs element, World2D world)
+        public Rid GetIndexedValue()
         {
-            var area = AreaCreate();
-            var shape = CircleShapeCreate();
-
-            AreaSetSpace(area, world.Space);
-            AreaAddShape(area, shape);
-            ShapeSetData(shape, 32);
-
-            AreaSetTransform(area, element.Transform);
-            AreaSetCollisionLayer(area, 0b00000000_00000000_10000000_00000000);
-
             return area;
         }
 
         public void Update(ElementEcs elementEcs)
         {
-            AreaSetTransform(Area, elementEcs.Transform);
+            AreaSetTransform(area, elementEcs.Transform);
         }
     }
 }

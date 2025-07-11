@@ -5,7 +5,7 @@ using System;
 using Chickensoft.AutoInject;
 using Godot;
 using SuperNodes.Types;
-using XanaduProject.DataStructure;
+
 
 namespace XanaduProject.Screens.StageUI
 {
@@ -23,7 +23,6 @@ namespace XanaduProject.Screens.StageUI
         [Export]
         private AnimationPlayer animation { get; set; } = null!;
 
-        [Dependency] private StageInfo stageInfo  => DependOn<StageInfo>();
 
         /// <summary>
         /// Emitted after the transition animation is finished
@@ -32,7 +31,6 @@ namespace XanaduProject.Screens.StageUI
 
         public void OnResolved()
         {
-            stageText.Text = stageInfo.Title;
             animation.AnimationFinished += _ =>
             {
                 Hide();

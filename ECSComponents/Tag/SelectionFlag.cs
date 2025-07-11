@@ -6,5 +6,5 @@ using Friflo.Engine.ECS;
 namespace XanaduProject.ECSComponents.Tag
 {
     [ComponentKey(null)]
-    public struct SelectionFlag : ITag;
+    public struct SelectionFlag : ITag{};
 }

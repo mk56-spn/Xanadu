@@ -1,4 +1,4 @@
-[gd_scene load_steps=11 format=3 uid="uid://b25lubmu1nyok"]
+[gd_scene load_steps=7 format=3 uid="uid://b25lubmu1nyok"]
 
 [ext_resource type="Script" uid="uid://5a7h4ptknxj" path="res://Composer/ComposerVisuals.cs" id="1_56ckp"]
 [ext_resource type="Theme" uid="uid://dfwsjupen1snu" path="res://Composer/ComposerTheme.tres" id="1_731ei"]
@@ -9,48 +9,13 @@
 base_font = ExtResource("3_5u0bl")
 spacing_bottom = -5
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_731ei"]
-content_margin_left = 10.0
-content_margin_top = 10.0
-content_margin_right = 10.0
-content_margin_bottom = 10.0
-bg_color = Color(0.0742504, 0.109422, 0.0742504, 1)
-corner_radius_top_left = 5
-corner_radius_top_right = 5
-corner_radius_bottom_right = 5
-corner_radius_bottom_left = 5
-
-[sub_resource type="Gradient" id="Gradient_56ckp"]
-colors = PackedColorArray(0.4731, 0.6, 0.318, 1, 0.788235, 1, 0.529412, 1)
-
-[sub_resource type="GradientTexture2D" id="GradientTexture2D_4bxf6"]
-gradient = SubResource("Gradient_56ckp")
-width = 15
-height = 15
-fill_from = Vector2(0.5, 1)
-fill_to = Vector2(0.5, 0)
-metadata/_snap_enabled = true
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_5u0bl"]
-bg_color = Color(0.4731, 0.6, 0.318, 1)
-border_width_left = 100
-border_width_right = 100
-border_color = Color(0.8, 0.8, 0.8, 0)
-border_blend = true
-expand_margin_top = 1.0
-expand_margin_bottom = 1.0
-
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_4bxf6"]
 bg_color = Color(0, 0, 0, 0.294118)
 border_width_left = 2
 border_width_top = 2
 border_width_right = 2
 border_width_bottom = 2
-border_color = Color(0.788235, 1, 0.529412, 1)
-corner_radius_top_left = 5
-corner_radius_top_right = 5
-corner_radius_bottom_right = 5
-corner_radius_bottom_left = 5
+border_color = Color(1, 1, 1, 1)
 
 [node name="ComposerVisuals" type="Control" node_paths=PackedStringArray("editWidget", "buttonContainer", "snap", "trackPos", "keyframeTrackContainer", "waveformContainer")]
 layout_mode = 3
@@ -66,7 +31,7 @@ editWidget = NodePath("VBoxContainer/HBoxContainer/EditWidget")
 buttonContainer = NodePath("VBoxContainer/HBoxContainer/Control/MarginContainer/VBoxContainer/Panel/VBoxContainer")
 snap = NodePath("VBoxContainer/HBoxContainer/Control/MarginContainer/VBoxContainer/HBoxContainer/Snap")
 trackPos = NodePath("VBoxContainer/BottomBar/MarginContainer/GridContainer/TabContainer/Track/MarginContainer/HSlider")
-keyframeTrackContainer = NodePath("VBoxContainer/BottomBar/MarginContainer/GridContainer/TabContainer/MarginContainer/Keyframes")
+keyframeTrackContainer = NodePath("VBoxContainer/BottomBar/MarginContainer/GridContainer/TabContainer/Keyframes")
 waveformContainer = NodePath("VBoxContainer/BottomBar/MarginContainer/GridContainer/TabContainer/Track/Panel2/CenterContainer")
 
 [node name="VBoxContainer" type="VBoxContainer" parent="."]
@@ -147,7 +112,6 @@ layout_mode = 2
 layout_mode = 2
 size_flags_horizontal = 0
 size_flags_vertical = 3
-theme_override_styles/panel = SubResource("StyleBoxFlat_731ei")
 
 [node name="VBoxContainer" type="VBoxContainer" parent="VBoxContainer/HBoxContainer/Control/MarginContainer/VBoxContainer/Panel"]
 custom_minimum_size = Vector2(40, 0)
@@ -166,10 +130,6 @@ layout_mode = 2
 [node name="MarginContainer" type="MarginContainer" parent="VBoxContainer/BottomBar"]
 layout_mode = 2
 size_flags_vertical = 4
-theme_override_constants/margin_left = 10
-theme_override_constants/margin_top = 5
-theme_override_constants/margin_right = 10
-theme_override_constants/margin_bottom = 5
 
 [node name="GridContainer" type="HBoxContainer" parent="VBoxContainer/BottomBar/MarginContainer"]
 custom_minimum_size = Vector2(100, 50)
@@ -178,9 +138,6 @@ layout_mode = 2
 [node name="MarginContainer" type="MarginContainer" parent="VBoxContainer/BottomBar/MarginContainer/GridContainer"]
 custom_minimum_size = Vector2(200, 0)
 layout_mode = 2
-theme_override_constants/margin_top = 20
-theme_override_constants/margin_right = 10
-theme_override_constants/margin_bottom = 20
 
 [node name="Panel3" type="HBoxContainer" parent="VBoxContainer/BottomBar/MarginContainer/GridContainer/MarginContainer"]
 layout_mode = 2
@@ -203,35 +160,32 @@ focus_mode = 0
 text = "⏵ / ⏸"
 
 [node name="TabContainer" type="TabContainer" parent="VBoxContainer/BottomBar/MarginContainer/GridContainer"]
+custom_minimum_size = Vector2(0, 200)
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_constants/side_margin = 100
-tab_alignment = 1
 current_tab = 0
-tabs_position = 1
+clip_tabs = false
+tab_focus_mode = 0
 
 [node name="Track" type="VBoxContainer" parent="VBoxContainer/BottomBar/MarginContainer/GridContainer/TabContainer"]
+custom_minimum_size = Vector2(0, 164)
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_constants/separation = 5
+theme_override_constants/separation = 1
 metadata/_tab_index = 0
 
 [node name="MarginContainer" type="MarginContainer" parent="VBoxContainer/BottomBar/MarginContainer/GridContainer/TabContainer/Track"]
 layout_mode = 2
-theme_override_constants/margin_left = 10
-theme_override_constants/margin_top = 10
-theme_override_constants/margin_right = 10
-theme_override_constants/margin_bottom = 10
+theme_override_constants/margin_left = 4
+theme_override_constants/margin_top = 4
+theme_override_constants/margin_right = 4
+theme_override_constants/margin_bottom = 4
 
 [node name="HSlider" type="HSlider" parent="VBoxContainer/BottomBar/MarginContainer/GridContainer/TabContainer/Track/MarginContainer"]
 clip_contents = true
 custom_minimum_size = Vector2(1400, 0)
 layout_mode = 2
-theme_override_icons/grabber = SubResource("GradientTexture2D_4bxf6")
-theme_override_icons/grabber_highlight = SubResource("GradientTexture2D_4bxf6")
-theme_override_icons/grabber_disabled = SubResource("GradientTexture2D_4bxf6")
-theme_override_styles/grabber_area = SubResource("StyleBoxFlat_5u0bl")
-theme_override_styles/grabber_area_highlight = SubResource("StyleBoxFlat_5u0bl")
+focus_mode = 0
 
 [node name="Panel2" type="Panel" parent="VBoxContainer/BottomBar/MarginContainer/GridContainer/TabContainer/Track"]
 clip_contents = true
@@ -251,18 +205,12 @@ anchor_bottom = 0.5
 grow_horizontal = 2
 grow_vertical = 2
 
-[node name="MarginContainer" type="MarginContainer" parent="VBoxContainer/BottomBar/MarginContainer/GridContainer/TabContainer"]
+[node name="Keyframes" type="HBoxContainer" parent="VBoxContainer/BottomBar/MarginContainer/GridContainer/TabContainer"]
 visible = false
 layout_mode = 2
-theme_override_constants/margin_left = 20
-theme_override_constants/margin_top = 20
-theme_override_constants/margin_right = 20
-theme_override_constants/margin_bottom = 20
+size_flags_horizontal = 3
 metadata/_tab_index = 1
 
-[node name="Keyframes" type="PanelContainer" parent="VBoxContainer/BottomBar/MarginContainer/GridContainer/TabContainer/MarginContainer"]
-layout_mode = 2
-
-[node name="Panel" type="Panel" parent="VBoxContainer/BottomBar/MarginContainer/GridContainer"]
-custom_minimum_size = Vector2(200, 0)
+[node name="Control" type="Control" parent="VBoxContainer/BottomBar/MarginContainer/GridContainer/TabContainer/Keyframes"]
+custom_minimum_size = Vector2(20, 30)
 layout_mode = 2

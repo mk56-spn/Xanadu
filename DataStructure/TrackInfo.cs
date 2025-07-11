@@ -8,17 +8,9 @@ namespace XanaduProject.DataStructure
     [GlobalClass]
     public partial class TrackInfo : Resource
     {
-        [Export]
-        public string SongTitle = null!;
-        [Export]
-        public double[] TimingPoints { get; set; } = null!;
-        [Export]
-        public double Bpm { get; set; }
-        [Export]
+        public required string SongTitle;
+        public required (double timingPoint, double bpm)[] TimingPoints { get; init; }
         public int Measures { get; set; }
-        [Export(PropertyHint.ResourceType)]
-        public AudioStream Track { get; set; } = null!;
-        [Export]
-        public float Offset { get; set; }
+        public required string Track { get; set; }
     }
 }

@@ -1,19 +1,16 @@
 // Copyright (c) mk56_spn <dhsjplt@gmail.com>. Licensed under the GNU General Public Licence (2.0).
 // See the LICENCE file in the repository root for full licence text.
 
-using System;
 using Friflo.Engine.ECS;
 using Godot;
 using XanaduProject.Audio;
-using XanaduProject.ECSComponents;
-using XanaduProject.ECSComponents.Tag;
-using XanaduProject.Tools;
-using static Godot.Mathf;
+using XanaduProject.ECSComponents.Animation2;
 
 namespace XanaduProject.Composer
 {
-		public partial class Waveform(ComposerRenderMaster composer) : Panel
+		public partial class Waveform : Panel
 		{
+			private IComponent component = new ActiveColourEcs();
 			private const int rate = 44;
 			private const float audio_rate = 44100 / 44f;
 			private float spacing = 1f;
@@ -21,16 +18,14 @@ namespace XanaduProject.Composer
 			private float offset;
 			private int size = 1500;
 			private Vector2[] points = null!;
-			private TrackHandler trackHandler = composer.TrackHandler;
 
 			private Font defaultFont = ThemeDB. FallbackFont;
 			private int defaultFontSize = ThemeDB. FallbackFontSize;
 
 			public override void _EnterTree()
 			{
-				trackHandler.OnSongCommence += () =>
+				GlobalClock.Instance.Started+= () =>
 				{
-					computeWaveform();
 					QueueRedraw();
 				};
 
@@ -38,17 +33,37 @@ namespace XanaduProject.Composer
 
 			}
 
-			public override void _Process(double delta) =>
+			public override void _Ready()
+			{
+				base._Ready();
 				QueueRedraw();
+
+
+			}
+
+			public override void _Process(double delta)
+			{
+
+				base._Process(delta);
+				Position = new Vector2((float)-GlobalClock.Instance.PlaybackTimeSec * 1000, 0);
+
+			}
 
 			public override void _Draw()
 			{
 
-					DrawSetTransform(new Vector2(-(float)(trackHandler.TrackPosition * spacing * (44100f / rate)), 0), 0, Vector2.One);
-					int getIntPosition = (int)Max(0, 2 * (44100 / 44f) * trackHandler.TrackPosition -size);
-					var getCurrentSegment = points[getIntPosition.. Mathf.Min(getIntPosition + 2 * size, points.Length)];
+				RenderingServer.CanvasItemSetCustomRect(GetCanvasItem(), true, new Rect2(Vector2.Zero, new Vector2(100000,1000000)));
 
-					Color[] colors = new Color[getCurrentSegment.Length / 2];
+				for (int i = 0; i < 400; i++)
+				{
+					DrawRect(new Rect2(new Vector2(i * 100, 10), new Vector2(20,40)),Colors.Red);
+				}
+
+					/*DrawSetTransform(new Vector2(-(float)(trackHandler.TrackPosition * spacing * (44100f / rate)), 0), 0, Vector2.One);
+					int getIntPosition = (int)Max(0, 2 * audio_rate * trackHandler.TrackPosition -size);
+					/*var getCurrentSegment = points[getIntPosition.. Min(getIntPosition + 2 * size, points.Length)];
+
+				Color[] colors = new Color[getCurrentSegment.Length / 2];
 
 					for (int i = 0; i < colors.Length; i++)
 					{
@@ -58,8 +73,8 @@ namespace XanaduProject.Composer
 
 					// Draws the currently on screen segment of the waveform;
 					DrawMultilineColors(getCurrentSegment,colors);
-
-					double bpm = 60 / trackHandler.Bpm;
+*/
+				/*	double bpm = 60 / trackHandler.Bpm;
 					float temp = (float)(audio_rate * bpm);
 
 					double nearestMeasurePosition = Snapped(audio_rate * trackHandler.TrackPosition * spacing, temp);
@@ -86,24 +101,8 @@ namespace XanaduProject.Composer
 
 
 					DrawSetTransform(Vector2.Zero, 0, Vector2.One);
-					DrawLine(new Vector2(0, -40), new Vector2(0, 40), XanaduColors.XanaduPink, 4);
+					DrawLine(new Vector2(0, -40), new Vector2(0, 40), XanaduColors.XanaduPink, 4);*/
 
-			}
-
-
-			private void computeWaveform()
-			{
-
-				if (trackHandler.Buffer.Length == 0) return;
-
-				Vector2[] buffer = trackHandler.Buffer;
-				points = new Vector2[buffer.Length * 2];
-
-				for (int i = 0; i < buffer.Length;  i ++)
-				{
-					points[i * 2] = new Vector2(i * spacing , Abs(buffer[i].X  * height));
-					points[i * 2 + 1] =  new Vector2(i * spacing, -Abs(buffer[i].Y) * height);
-				}
 			}
 		}
 }

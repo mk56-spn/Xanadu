@@ -6,8 +6,13 @@ using System.IO;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Serialize;
 using Godot;
+using XanaduProject.ECSComponents;
 using XanaduProject.ECSComponents.Animation2;
+using XanaduProject.ECSComponents.Tag;
 using XanaduProject.Serialization.SerialisedObjects;
+using XanaduProject.Tools;
+using static Godot.Colors;
+using static XanaduProject.Tools.EasingType;
 
 namespace XanaduProject.Serialization
 {
@@ -39,14 +44,18 @@ namespace XanaduProject.Serialization
                     {
                         JobRunner = new ParallelJobRunner(16)
                     };
-                    serializer.ReadIntoStoreAsync(targetStore, new FileStream(dir, FileMode.Open));
+                    serializer.ReadIntoStore(targetStore, new FileStream(dir, FileMode.Open));
 
                     shimConverter(targetStore);
 
 
                     serializableStage = new SerializableStage { EntityStore = targetStore };
 
-                    GD.PrintRich("[code][color=green] Successfully loaded file");
+                    GD.PrintRich("[code][color=green] Successfully loaded file" + targetStore.Count);
+
+                    var v = targetStore.GetCommandBuffer();
+
+
                 }
                 catch (Exception e)
                 {
@@ -67,6 +76,22 @@ namespace XanaduProject.Serialization
                 {
                     EntityStore = new EntityStore()
                 };
+
+
+                for (int i = 0; i < 100; i++)
+                {
+                    serializableStage.EntityStore.CreateEntity(
+                        new FloatArrayEcs
+                        {
+                            Points = [],
+                            Easing = [],
+                        },
+                        new ColorArrayEcs
+                        {
+                            Colors = []
+                        }
+                    );
+                }
             }
 
 

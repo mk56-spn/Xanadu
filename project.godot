@@ -12,32 +12,34 @@ config_version=5
 
 config/name="XanaduProject"
 config/tags=PackedStringArray("serious")
-run/main_scene="uid://biel0jq32rdnw"
+run/main_scene="uid://8gwk7xatva6v"
 config/features=PackedStringArray("4.4", "C#", "Forward Plus")
 config/icon="uid://c0o4xv1qbn2di"
 
 [audio]
 
 driver/output_latency=1
+driver/mix_rate=48000
 
 [autoload]
 
 GlobalPerformance="*res://Tests/Performance.cs"
+ImGuiRoot="*res://addons/imgui-godot/data/ImGuiRoot.tscn"
 
 [display]
 
 window/size/viewport_width=1920
 window/size/viewport_height=1080
-window/size/mode=3
 window/vsync/vsync_mode=0
 
 [dotnet]
 
 project/assembly_name="XanaduProject"
+project/subwindows/embed_subwindows=true
 
 [editor_plugins]
 
-enabled=PackedStringArray()
+enabled=PackedStringArray("res://addons/imgui-godot/plugin.cfg")
 
 [file_customization]
 
@@ -51,10 +53,21 @@ folder_colors={
 
 [gui]
 
-theme/custom_font="res://Resources/Fonts/Orbitron.ttf"
+theme/custom="uid://dfwsjupen1snu"
+theme/custom_font="uid://dghg2sit48qtn"
 
 [input]
 
+ui_accept={
+"deadzone": 0.2,
+"events": [Object(InputEventKey,"resource_local_to_scene":false,"resource_name":"","device":0,"window_id":0,"alt_pressed":false,"shift_pressed":false,"ctrl_pressed":false,"meta_pressed":false,"pressed":false,"keycode":4194309,"physical_keycode":0,"key_label":0,"unicode":0,"location":0,"echo":false,"script":null)
+]
+}
+ui_select={
+"deadzone": 0.2,
+"events": [Object(InputEventJoypadButton,"resource_local_to_scene":false,"resource_name":"","device":0,"button_index":3,"pressure":0.0,"pressed":false,"script":null)
+]
+}
 main={
 "deadzone": 0.5,
 "events": [Object(InputEventKey,"resource_local_to_scene":false,"resource_name":"","device":0,"window_id":0,"alt_pressed":false,"shift_pressed":false,"ctrl_pressed":false,"meta_pressed":false,"pressed":false,"keycode":68,"physical_keycode":0,"key_label":0,"unicode":0,"location":0,"echo":false,"script":null)
@@ -91,14 +104,28 @@ R3={
 
 [physics]
 
-common/physics_ticks_per_second=240
+common/physics_ticks_per_second=1000
 2d/default_gravity=7000.0
-common/physics_interpolation=true
 
 [rendering]
 
-environment/defaults/default_clear_color=Color(0, 0, 0, 1)
 anti_aliasing/quality/msaa_2d=2
+environment/defaults/default_clear_color=Color(0, 0, 0, 1)
+
+[shader_globals]
+
+song_pos={
+"type": "float",
+"value": 0.0
+}
+colours_texture={
+"type": "sampler2D",
+"value": ""
+}
+perlin={
+"type": "sampler2D",
+"value": "res://Shaders/Textures/NoisePerlin.tres"
+}
 
 [svgsprite]
 

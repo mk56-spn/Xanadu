@@ -1,0 +1,14 @@
+[gd_scene load_steps=3 format=3 uid="uid://bs4b6210ur0n0"]
+
+[ext_resource type="Shader" uid="uid://lv8l0lfr3s4i" path="res://Shaders/MotionBlur.gdshader" id="1_h0git"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_yw4j3"]
+shader = ExtResource("1_h0git")
+shader_parameter/dir = Vector2(0, 0)
+shader_parameter/quality = 4
+
+[node name="NoteCrown" type="Sprite2D"]
+material = SubResource("ShaderMaterial_yw4j3")
+
+[node name="Polygon2D" type="Polygon2D" parent="."]
+polygon = PackedVector2Array(0, 96, -48, 48, -16, 32, 0, 48, 16, 32, 48, 48)

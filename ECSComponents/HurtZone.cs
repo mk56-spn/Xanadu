@@ -10,23 +10,19 @@ using static Godot.PhysicsServer2D;
 
 namespace XanaduProject.ECSComponents
 {
-	public struct HurtZoneEcs : IIndexedComponent<Rid>, IUpdatable
+    public struct HurtZoneEcs : IComponent, IUpdatable
     {
         public static readonly Vector2[] TRIANGLE =
         [
             new(-16, 16),
             new(0, -16),
-            new(16, 16),
+            new(16, 16)
         ];
 
-        [Ignore]
-		public required Rid Area;
-		public Rid GetIndexedValue() => Area;
+        [Ignore] public Rid Area;
 
-        public static HurtZoneEcs Create(ElementEcs element, World2D world2D) =>
-            new() { Area = CreateAreaRound(element, world2D) };
 
-        public static Rid CreateAreaRound(ElementEcs element, World2D world)
+        public static Rid CreateAreaRound( World2D world)
         {
             var area = AreaCreate();
             var shape = CircleShapeCreate();
@@ -34,8 +30,6 @@ namespace XanaduProject.ECSComponents
             AreaSetSpace(area, world.Space);
             AreaAddShape(area, shape);
             ShapeSetData(shape, 32);
-
-            AreaSetTransform(area, element.Transform);
 
             AreaSetMonitorable(area, true);
             AreaSetCollisionLayer(area, 0b00000000_10000000_00000000_00000000);
@@ -46,10 +40,12 @@ namespace XanaduProject.ECSComponents
         public void Update(ElementEcs elementEcs)
         {
             AreaSetTransform(Area, elementEcs.Transform);
-            RenderingServer.CanvasItemAddPolygon(elementEcs.Canvas,TRIANGLE,
-                [White.Darkened(0.5f),
+            RenderingServer.CanvasItemAddPolygon(elementEcs.Canvas, TRIANGLE,
+                [
+                    White.Darkened(0.5f),
                     White,
-                    White.Darkened(0.5f)]
+                    White.Darkened(0.5f)
+                ]
             );
         }
     }

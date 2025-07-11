@@ -2,6 +2,8 @@
 // See the LICENCE file in the repository root for full licence text.
 
 
+using System;
+using System.Collections;
 using Friflo.Engine.ECS;
 using Godot;
 using XanaduProject.Serialization;

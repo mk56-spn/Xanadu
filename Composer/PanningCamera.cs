@@ -7,7 +7,7 @@ namespace XanaduProject.Composer
 {
 	public partial class PanningCamera : Camera2D
 	{
-		// Currently we zoom towards the screen center which is not ideal.
+		// Currently, we zoom towards the screen centre, which is not ideal.
 		private static readonly Vector2 min_zoom = new(0.5f, 0.5f);
 		private static readonly Vector2 max_zoom = new(4f, 4f);
 
