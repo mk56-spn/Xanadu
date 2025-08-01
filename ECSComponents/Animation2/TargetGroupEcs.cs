@@ -3,13 +3,11 @@
 
 using Friflo.Engine.ECS;
 using Godot;
-using XanaduProject.Composer;
-using XanaduProject.ECSComponents.Interfaces;
 
-namespace XanaduProject.ECSComponents
+namespace XanaduProject.ECSComponents.Animation2
 {
-	public struct RectEcs(Vector2 extents) : IComponent
-	{
-		public Vector2 Extents = extents;
-	}
+    public struct TargetGroupEcs : IComponent
+    {
+        public int Value;
+    }
 }

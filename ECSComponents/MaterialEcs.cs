@@ -2,15 +2,12 @@
 // See the LICENCE file in the repository root for full licence text.
 
 using Friflo.Engine.ECS;
-using Godot;
+using XanaduProject.Rendering;
 
 namespace XanaduProject.ECSComponents
 {
-    [ComponentKey(null)]
-    public struct TempValuesEcs : IComponent
+    public struct MaterialEcs : IComponent
     {
-        public Transform2D Transform2D = Transform2D.Identity;
-
-        public TempValuesEcs() { }
+        public BlockShaderId Shader;
     }
 }

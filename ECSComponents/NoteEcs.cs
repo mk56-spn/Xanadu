@@ -3,38 +3,28 @@
 
 using System;
 using Friflo.Engine.ECS;
-using Friflo.Json.Fliox;
 using Godot;
 using XanaduProject.Composer;
-using XanaduProject.ECSComponents.Interfaces;
-using XanaduProject.Rendering;
-using static Godot.RenderingServer;
+using XanaduProject.DataStructure;
+using XanaduProject.Tools;
 
 namespace XanaduProject.ECSComponents
 {
-	public struct NoteEcs(float timingPoint) : IComponent, IComparable<float>, IUpdatable
+	public struct NoteEcs(NoteType type) : IComponent, IComparable<float>
 	{
 		public static readonly int RADIUS = 32;
 
-		[Composer("position")]
-		public bool CenterPlayer;
+		[Composer("position")] public bool CenterPlayer;
 
-		public float TimingPoint = timingPoint;
+		public NoteType NoteType = type;
 
-		public int CompareTo(float other) =>
-			TimingPoint.CompareTo(other);
+		public float TimingPoint;
 
-
-		public void Update(ElementEcs element)
+		public int CompareTo(float other)
 		{
-			CanvasItemSetSelfModulate(element.Canvas, Colors.Violet);
+			return TimingPoint.CompareTo(other);
 		}
-	}
-	public enum NoteType
-	{
-		Left,
-		Right,
-		Up,
-		Down
+
+		public Rid NoteCanvas;
 	}
 }
