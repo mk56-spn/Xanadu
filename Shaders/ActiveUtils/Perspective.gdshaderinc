@@ -1,13 +1,12 @@
 uniform float fov : hint_range(1, 179) = 90;
 uniform bool cull_back = true;
-uniform float y_rot : hint_range(-60, 60) = -35.0; // Limitado a ±30 grados
-uniform float x_rot : hint_range(-60, 60) = 60.0; // Limitado a ±30 grados
+instance uniform float y_rot : hint_range(-60, 60) = -35.0; // Limitado a ±30 grados
+instance uniform float x_rot : hint_range(-60, 60) = 60.0; // Limitado a ±30 grados
 uniform float inset : hint_range(0, 1) = 0.0;
-
-#include "uid://bgl3lmmn0vrsq" // Base
 
 varying flat vec2 o;
 varying vec3 perspective_matrix;
+varying vec2 PERSPECTIVE_VERTEX;
 
 #define PERSPECTIVE \
     float limited_y_rot = clamp(y_rot, -60.0, 60.0);\

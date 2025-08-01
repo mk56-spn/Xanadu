@@ -1,8 +1,8 @@
+#include "Base.gdshaderinc"
+
 global uniform float song_pos;
 instance uniform float note_pos;
 instance uniform float hit_pos;
-
-#include "Base.gdshaderinc"
 
 const float preempt =0.4;
 const float hit_duration = 0.5;

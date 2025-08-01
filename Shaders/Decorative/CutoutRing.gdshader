@@ -2,7 +2,6 @@ shader_type canvas_item;
 
 #include "uid://u421l6gqbhvy"
 
-
 float hash(float n) { return fract(sin(n * 12.9898) * 43758.5453); }
 
 void vertex() {
