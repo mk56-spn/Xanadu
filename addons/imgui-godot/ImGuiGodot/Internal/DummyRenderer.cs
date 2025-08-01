@@ -1,30 +1,31 @@
 #if GODOT_PC
 using Godot;
 
-namespace ImGuiGodot.Internal;
-
-internal sealed class DummyRenderer : IRenderer
+namespace ImGuiGodot.Internal
 {
-    public string Name => "godot4_net_dummy";
-
-    public void InitViewport(Rid vprid)
+    internal sealed class DummyRenderer : IRenderer
     {
-    }
+        public string Name => "godot4_net_dummy";
 
-    public void CloseViewport(Rid vprid)
-    {
-    }
+        public void InitViewport(Rid vprid)
+        {
+        }
 
-    public void OnHide()
-    {
-    }
+        public void CloseViewport(Rid vprid)
+        {
+        }
 
-    public void Render()
-    {
-    }
+        public void OnHide()
+        {
+        }
 
-    public void Dispose()
-    {
+        public void Render()
+        {
+        }
+
+        public void Dispose()
+        {
+        }
     }
-}
 #endif
+}

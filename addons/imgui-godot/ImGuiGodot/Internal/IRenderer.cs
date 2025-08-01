@@ -2,14 +2,15 @@
 using Godot;
 using System;
 
-namespace ImGuiGodot.Internal;
-
-internal interface IRenderer : IDisposable
+namespace ImGuiGodot.Internal
 {
-    string Name { get; }
-    void InitViewport(Rid vprid);
-    void CloseViewport(Rid vprid);
-    void Render();
-    void OnHide();
-}
+    internal interface IRenderer : IDisposable
+    {
+        string Name { get; }
+        void InitViewport(Rid vprid);
+        void CloseViewport(Rid vprid);
+        void Render();
+        void OnHide();
+    }
 #endif
+}

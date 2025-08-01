@@ -4,33 +4,31 @@ using ImGuiNET;
 using System.Runtime.InteropServices;
 using System;
 
-namespace ImGuiGodot;
-
-public partial class ImGuiSync : GodotObject
+namespace ImGuiGodot
 {
-    public static readonly StringName GetImGuiPtrs = "GetImGuiPtrs";
-
-    public static void SyncPtrs()
+    public partial class ImGuiSync : GodotObject
     {
-        GodotObject gd = Engine.GetSingleton("ImGuiGD");
-        long[] ptrs = (long[])gd.Call(GetImGuiPtrs,
-            ImGui.GetVersion(),
-            Marshal.SizeOf<ImGuiIO>(),
-            Marshal.SizeOf<ImDrawVert>(),
-            sizeof(ushort),
-            sizeof(ushort)
+        public static readonly StringName GetImGuiPtrs = "GetImGuiPtrs";
+
+        public static void SyncPtrs()
+        {
+            var gd = Engine.GetSingleton("ImGuiGD");
+            long[] ptrs = (long[])gd.Call(GetImGuiPtrs,
+                ImGui.GetVersion(),
+                Marshal.SizeOf<ImGuiIO>(),
+                Marshal.SizeOf<ImDrawVert>(),
+                sizeof(ushort),
+                sizeof(ushort)
             );
 
-        if (ptrs.Length != 3)
-        {
-            throw new NotSupportedException("ImGui version mismatch");
-        }
+            if (ptrs.Length != 3) throw new NotSupportedException("ImGui version mismatch");
 
-        checked
-        {
-            ImGui.SetCurrentContext((IntPtr)ptrs[0]);
-            ImGui.SetAllocatorFunctions((IntPtr)ptrs[1], (IntPtr)ptrs[2]);
+            checked
+            {
+                ImGui.SetCurrentContext((IntPtr)ptrs[0]);
+                ImGui.SetAllocatorFunctions((IntPtr)ptrs[1], (IntPtr)ptrs[2]);
+            }
         }
     }
-}
 #endif
+}

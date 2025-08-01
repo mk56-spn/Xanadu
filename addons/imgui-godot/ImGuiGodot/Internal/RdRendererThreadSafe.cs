@@ -5,104 +5,95 @@ using ImGuiNET;
 using System;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
-
 using SharedList = ImGuiGodot.Internal.DisposableList<Godot.Rid,
     ImGuiGodot.Internal.ClonedDrawData>;
 
-namespace ImGuiGodot.Internal;
-
-internal sealed class ClonedDrawData : IDisposable
+namespace ImGuiGodot.Internal
 {
-    public ImDrawDataPtr Data { get; private set; }
-
-    public unsafe ClonedDrawData(ImDrawDataPtr inp)
+    internal sealed class ClonedDrawData : IDisposable
     {
-        // deep swap is difficult because ImGui still owns the draw lists
-        // TODO: revisit when Godot's threaded renderer is stable
+        public ImDrawDataPtr Data { get; private set; }
 
-        long ddsize = Marshal.SizeOf<ImDrawData>();
-
-        // start with a shallow copy
-        Data = new(ImGui.MemAlloc((uint)ddsize));
-        Buffer.MemoryCopy(inp.NativePtr, Data.NativePtr, ddsize, ddsize);
-
-        // clone the draw data
-        int numLists = inp.CmdLists.Size;
-        IntPtr cmdListPtrs = ImGui.MemAlloc((uint)(Marshal.SizeOf<IntPtr>() * numLists));
-        Data.NativePtr->CmdLists = new ImVector(numLists, numLists, cmdListPtrs);
-        for (int i = 0; i < inp.CmdLists.Size; ++i)
+        public unsafe ClonedDrawData(ImDrawDataPtr inp)
         {
-            Data.CmdLists[i] = (IntPtr)inp.CmdLists[i].CloneOutput().NativePtr;
+            // deep swap is difficult because ImGui still owns the draw lists
+            // TODO: revisit when Godot's threaded renderer is stable
+
+            long ddsize = Marshal.SizeOf<ImDrawData>();
+
+            // start with a shallow copy
+            Data = new ImDrawDataPtr(ImGui.MemAlloc((uint)ddsize));
+            Buffer.MemoryCopy(inp.NativePtr, Data.NativePtr, ddsize, ddsize);
+
+            // clone the draw data
+            int numLists = inp.CmdLists.Size;
+            IntPtr cmdListPtrs = ImGui.MemAlloc((uint)(Marshal.SizeOf<IntPtr>() * numLists));
+            Data.NativePtr->CmdLists = new ImVector(numLists, numLists, cmdListPtrs);
+            for (int i = 0; i < inp.CmdLists.Size; ++i)
+                Data.CmdLists[i] = (IntPtr)inp.CmdLists[i].CloneOutput().NativePtr;
+        }
+
+        public unsafe void Dispose()
+        {
+            if (Data.NativePtr == null)
+                return;
+
+            for (int i = 0; i < Data.CmdListsCount; ++i) Data.CmdLists[i].Destroy();
+            Data.Destroy();
+            Data = new ImDrawDataPtr(null);
         }
     }
 
-    public unsafe void Dispose()
+    internal sealed class DisposableList<T, U> : List<Tuple<T, U>>, IDisposable where U : IDisposable
     {
-        if (Data.NativePtr == null)
-            return;
+        public DisposableList() { }
+        public DisposableList(int capacity) : base(capacity) { }
 
-        for (int i = 0; i < Data.CmdListsCount; ++i)
+        public void Dispose()
         {
-            Data.CmdLists[i].Destroy();
+            foreach (var (_, u) in this) u.Dispose();
+            Clear();
         }
-        Data.Destroy();
-        Data = new(null);
     }
-}
 
-internal sealed class DisposableList<T, U> : List<Tuple<T, U>>, IDisposable where U : IDisposable
-{
-    public DisposableList() { }
-    public DisposableList(int capacity) : base(capacity) { }
-
-    public void Dispose()
+    internal sealed class RdRendererThreadSafe : RdRenderer, IRenderer
     {
-        foreach (var (_, u) in this)
-        {
-            u.Dispose();
-        }
-        Clear();
-    }
-}
-
-internal sealed class RdRendererThreadSafe : RdRenderer, IRenderer
-{
-    public new string Name => "godot4_net_rd_mt";
+        public new string Name => "godot4_net_rd_mt";
 
 #if GODOT4_3_OR_GREATER
-    public new void Render()
-    {
-        var pio = ImGui.GetPlatformIO();
-        var newData = new SharedList(pio.Viewports.Size);
-
-        for (int i = 0; i < pio.Viewports.Size; ++i)
+        public new void Render()
         {
-            var vp = pio.Viewports[i];
-            if (vp.Flags.HasFlag(ImGuiViewportFlags.IsMinimized))
-                continue;
+            var pio = ImGui.GetPlatformIO();
+            var newData = new SharedList(pio.Viewports.Size);
 
-            Rid vprid = Util.ConstructRid((ulong)vp.RendererUserData);
-            newData.Add(new(vprid, new(vp.DrawData)));
-        }
-
-        RenderingServer.CallOnRenderThread(Callable.From(() => DrawOnRenderThread(newData)));
-    }
-
-    private void DrawOnRenderThread(SharedList dataArray)
-    {
-        foreach (var (vprid, clone) in dataArray)
-        {
-            Rid fb = GetFramebuffer(vprid);
-            if (RD.FramebufferIsValid(fb))
+            for (int i = 0; i < pio.Viewports.Size; ++i)
             {
-                ReplaceTextureRids(clone.Data);
-                RenderOne(fb, clone.Data);
+                var vp = pio.Viewports[i];
+                if (vp.Flags.HasFlag(ImGuiViewportFlags.IsMinimized))
+                    continue;
+
+                var vprid = Util.ConstructRid((ulong)vp.RendererUserData);
+                newData.Add(new Tuple<Rid, ClonedDrawData>(vprid, new ClonedDrawData(vp.DrawData)));
             }
+
+            RenderingServer.CallOnRenderThread(Callable.From(() => DrawOnRenderThread(newData)));
         }
 
-        FreeUnusedTextures();
-        dataArray.Dispose();
-    }
+        private void DrawOnRenderThread(SharedList dataArray)
+        {
+            foreach (var (vprid, clone) in dataArray)
+            {
+                var fb = GetFramebuffer(vprid);
+                if (RD.FramebufferIsValid(fb))
+                {
+                    ReplaceTextureRids(clone.Data);
+                    RenderOne(fb, clone.Data);
+                }
+            }
+
+            FreeUnusedTextures();
+            dataArray.Dispose();
+        }
 #else
     private SharedList? _dataToDraw;
 
@@ -158,5 +149,6 @@ internal sealed class RdRendererThreadSafe : RdRenderer, IRenderer
         FreeUnusedTextures();
     }
 #endif
-}
+    }
 #endif
+}
