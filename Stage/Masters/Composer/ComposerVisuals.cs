@@ -4,13 +4,19 @@
 using System.Linq;
 using Friflo.Engine.ECS;
 using Godot;
+using XanaduProject.Audio;
+using XanaduProject.Composer;
+using XanaduProject.Composer.Timelines;
 using XanaduProject.ECSComponents;
+using XanaduProject.GameDependencies;
 
-namespace XanaduProject.Composer
+namespace XanaduProject.Stage.Masters.Composer
 {
 	public partial class ComposerVisuals : Control
 	{
-		private ComposerRenderMaster composer = null!;
+
+		private readonly IComposer composer = DiProvider.Get<IComposer>();
+		private readonly IEditorClock clock = DiProvider.Get<IEditorClock>();
 		private Label infoLabel = new() { Visible = false, Modulate = Colors.GreenYellow };
 		private Viewport viewport = null!;
 
@@ -23,40 +29,40 @@ namespace XanaduProject.Composer
 
 		public override void _EnterTree()
 		{
-			editWidget.AddChild(ComposerEditWidget.Create(composer));
-			waveformContainer.AddChild(new Waveform(composer));
-			GetNode<Button>("%Toggle").Pressed += () => composer.TrackHandler.TogglePlayback();
-			GetNode<Button>("%Stop").Pressed += () => composer.TrackHandler.StopTrack();
-
-			buttonContainer.Composer = composer;
+			editWidget.AddChild(ComposerEditWidget.Load);
+			waveformContainer.AddChild(new NoteTimeline(composer.EntityStore));
+			GetNode<Button>("%Toggle").Pressed += () => clock.TogglePause();
+			GetNode<Button>("%Stop").Pressed += () => clock.Restart();
 		}
 
-		public static ComposerVisuals Create(ComposerRenderMaster composer)
+		public static ComposerVisuals Create()
 		{
-			var visuals = GD.Load<PackedScene>("res://Composer/ComposerVisuals.tscn")
+			var visuals = GD.Load<PackedScene>("uid://b25lubmu1nyok")
 				.Instantiate<ComposerVisuals>();
-			visuals.composer = composer;
+
 			return visuals;
 		}
 
 		public override void _Ready()
 		{
-			keyframeTrackContainer.AddChild(new AnimationTracksManager(composer.EntityStore, composer.TrackHandler));
+			GD.Print("composer visuals booted up");
+			var container = new Container { CustomMinimumSize = new Vector2(300, 150) };
+			keyframeTrackContainer.AddChild(new AnimationTracksManager(composer.EntityStore, container));
+			keyframeTrackContainer.AddChild(container);
 
 			snap.Pressed += () => composer.Snapped = !composer.Snapped;
 			viewport = GetViewport();
 			AddChild(infoLabel);
 			infoLabel.Position = new Vector2(30, 100);
 			SetAnchorsPreset(LayoutPreset.FullRect);
-			composer.Ready += () => composer.AddChild(new Grid { ShowBehindParent = true });
 
-			trackPos.MaxValue = composer.TrackHandler.TrackLength;
+			trackPos.MaxValue = clock.TrackLength;
 			trackPos.Step = 0.01f;
 			trackPos.ValueChanged += value =>
 			{
-				bool toggled = composer.TrackHandler.Playing;
+				/*bool toggled = composer.TrackHandler.Playing;
 				composer.TrackHandler.SetPos((float)value);
-				if (toggled == false) composer.TrackHandler.TogglePlayback();
+				if (toggled == false) composer.TrackHandler.TogglePlayback();*/
 			};
 		}
 
@@ -74,16 +80,17 @@ namespace XanaduProject.Composer
 				infoLabel.Visible = !infoLabel.Visible;
 
 			if (@event is InputEventKey { KeyLabel: Key.Space, Pressed: true })
-				composer.TrackHandler.TogglePlayback();
+				clock.TogglePause();
 		}
 
 		public override void _Draw()
 		{
-			composer.EntityStore.Query<NoteEcs, ElementEcs>().ForEachEntity(
-				(ref NoteEcs _, ref ElementEcs element, Entity _) =>
+			composer.EntityStore.Query<NoteEcs, ElementEcs>()
+				.ForEachEntity((ref NoteEcs _, ref ElementEcs element, Entity _) =>
 				{
-					DrawSetTransformMatrix(element.Transform.Scaled(viewport.CanvasTransform.Scale).Translated(viewport.CanvasTransform.Origin));
-					DrawArc(Vector2.Zero, NoteEcs.RADIUS, 0,Mathf.Pi * 2, 30, Colors.White);
+					DrawSetTransformMatrix(element.Transform.Scaled(viewport.CanvasTransform.Scale)
+						.Translated(viewport.CanvasTransform.Origin));
+					DrawArc(Vector2.Zero, NoteEcs.RADIUS, 0, Mathf.Pi * 2, 30, Colors.White);
 				});
 			composer.Selected.ForEachEntity((ref ElementEcs element, ref SelectionEcs _, Entity entity) =>
 			{
@@ -104,14 +111,19 @@ namespace XanaduProject.Composer
 					DrawRect(new Rect2(-e / 2, e), ElementEcs.ComposerColour, false);
 				}
 
+				if (entity.TryGetComponent(out PolygonEcs poly))
+				{
+					DrawPolyline(poly.Points.Append(poly.Points[0]).ToArray(), ElementEcs.ComposerColour);
+					DrawColoredPolygon(poly.Points, ElementEcs.ComposerColour with { A = 0.3f });
+				}
+
 				DrawString(ThemeDB.FallbackFont, Vector2.Zero, element.Transform.Origin.ToString());
 			});
 
 			int i = 0;
 			foreach (var en in composer.Selected.Entities)
 			{
-
-				DrawString(ThemeDB.FallbackFont, Vector2.Zero with{ Y = 30 + i * 20 }, en.Id.ToString());
+				DrawString(ThemeDB.FallbackFont, Vector2.Zero with { Y = 30 + i * 20 }, en.Id.ToString());
 				i++;
 			}
 		}
