@@ -13,7 +13,7 @@ namespace XanaduProject.Serialization
 
         public ColorArrayThin(ColorArrayEcs color)
         {
-            Colors = color.Colors.AsValueEnumerable().Select(c=> (ColorThin)c).ToArray();
+            Colors = color.Colors.AsValueEnumerable().Select(c => (ColorThin)c).ToArray();
         }
     }
 }

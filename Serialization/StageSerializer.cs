@@ -17,11 +17,15 @@ namespace XanaduProject.Serialization
             // --- Write store entities as JSON array
             var serializer = new EntitySerializer();
 
-
             string path = ProjectSettings.GlobalizePath("res://Stages");
 
             using var writeStream = new FileStream($"{path}/{filename}.json", FileMode.Create);
             serializer.WriteStore(store, writeStream);
+
+            var buffer = store.GetCommandBuffer();
+            store.Query<ColorArrayEcs>().ForEachEntity((ref ColorArrayEcs component1, Entity entity) =>
+                buffer.RemoveComponent<ColorArrayThin>(entity.Id));
+            buffer.Playback();
         }
 
         private static void shimCreation(EntityStore store)
