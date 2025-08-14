@@ -7,7 +7,7 @@ using Godot;
 using XanaduProject.ECSComponents.Interfaces;
 using static Godot.PhysicsServer2D;
 
-namespace XanaduProject.ECSComponents
+namespace XanaduProject.ECSComponents.EntitySystem.Components.Physics
 {
     [ComponentKey(null)]
     public struct SelectionEcs(Rid area) : IIndexedComponent<Rid>, IUpdatable

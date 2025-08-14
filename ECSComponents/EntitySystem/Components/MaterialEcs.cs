@@ -2,14 +2,12 @@
 // See the LICENCE file in the repository root for full licence text.
 
 using Friflo.Engine.ECS;
-using Godot;
-using XanaduProject.Composer;
-using XanaduProject.ECSComponents.Interfaces;
+using XanaduProject.Stage.Masters.Rendering;
 
 namespace XanaduProject.ECSComponents
 {
-	public struct RectEcs(Vector2 extents) : IComponent
-	{
-		public Vector2 Extents = extents;
-	}
+    public struct MaterialEcs : IComponent
+    {
+        public BlockShaderId Shader;
+    }
 }

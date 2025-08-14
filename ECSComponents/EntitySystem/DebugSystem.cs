@@ -6,6 +6,7 @@ using Friflo.EcGui;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Godot;
+using XanaduProject.Character;
 using XanaduProject.ECSComponents.Animation2;
 using XanaduProject.ECSComponents.EcGuiSetup;
 using XanaduProject.ECSComponents.Tag;
@@ -15,12 +16,58 @@ namespace XanaduProject.ECSComponents.EntitySystem
 {
     public partial class DebugSystem : QuerySystem
     {
+        private readonly EntityStore store;
+        private readonly Root root;
         private readonly PanelContainer panelContainer;
 
         private readonly EntityStore entityStore = DiProvider.Get<EntityStore>();
 
-
         public DebugSystem(EntityStore store, Root root)
+        {
+            this.store = store;
+            this.root = root;
+
+            panelContainer = new PanelContainer
+            {
+                OffsetLeft = 20,
+                OffsetTop = 20,
+                CustomMinimumSize = new Vector2(200, 500),
+                ZIndex = 10,
+            };
+
+            panelContainer.AddThemeStyleboxOverride("panel", new StyleBoxFlat
+            {
+                BgColor = Colors.Black with { A = 0.5f },
+                ContentMarginLeft = 10,
+                ContentMarginBottom = 10,
+                ContentMarginTop = 10,
+                ContentMarginRight = 10,
+
+                CornerRadiusBottomLeft = 2,
+                CornerRadiusBottomRight = 2,
+                CornerRadiusTopLeft = 2,
+                CornerRadiusTopRight = 2,
+
+                BorderColor = Colors.White,
+                BorderWidthTop = 2,
+                BorderWidthBottom = 2,
+                BorderWidthLeft = 2,
+                BorderWidthRight = 2,
+                BorderBlend = true
+            });
+
+
+            ecsViewer();
+            setupContainer();
+
+
+            DiProvider.Get<IUiMaster>().ScoreLayer.AddChild(panelContainer);
+
+        }
+
+        #region EcGui
+
+        private void ecsViewer()
         {
             EcGui.AddExplorerStore("Store", entityStore);
             TypeDrawers.Register();
@@ -32,50 +79,31 @@ namespace XanaduProject.ECSComponents.EntitySystem
 
             var elements = entityStore.Query<ElementEcs>();
             EcGui.AddExplorerQuery("elements", elements);
+            var dormant = entityStore.Query<ElementEcs>().AllTags(Tags.Get<Dormant>());
+            EcGui.AddExplorerQuery("dormant", dormant);
             var array = entityStore.Query<FloatArrayEcs>();
             EcGui.AddExplorerQuery("arrays", array);
 
-            panelContainer = new PanelContainer
-            {
-                OffsetLeft = 20,
-                OffsetTop = 20,
-                CustomMinimumSize = new Vector2(200, 500)
-            };
+        }
 
-            panelContainer.AddThemeStyleboxOverride("panel", new StyleBoxFlat
-            {
-                BgColor = Colors.Black with { A = 0.5f },
-                ContentMarginLeft = 10,
-                ContentMarginBottom = 10,
-                ContentMarginTop = 10,
-                ContentMarginRight = 10,
+        #endregion
 
-                CornerRadiusBottomLeft = 10,
-                CornerRadiusBottomRight = 10,
-                CornerRadiusTopLeft = 10,
-                CornerRadiusTopRight = 10,
+        #region Performance
 
-                BorderColor = Colors.White,
-                BorderWidthTop = 2,
-                BorderWidthBottom = 2,
-                BorderWidthLeft = 2,
-                BorderWidthRight = 2,
-                BorderBlend = true
-            });
-
-
+        private void setupContainer()
+        {
             var container = new VBoxContainer { CustomMinimumSize = new Vector2(200, 0) };
             panelContainer.AddChild(container);
 
-            DiProvider.Get<IUiMaster>().ScoreLayer.AddChild(panelContainer);
-
-            container.AddChild(new QueryLabel(store.Query<ElementEcs>(), "ELEMENTS :"));
+             container.AddChild(new QueryLabel(store.Query<ElementEcs>(), "ELEMENTS :"));
             container.AddChild(new QueryLabel(store.Query().AllTags(Tags.Get<SelectionFlag>()), "SELECTED :"));
             container.AddChild(new QueryLabel(store.Query<NoteEcs>(), "Notes :"));
             container.AddChild(new QueryLabel(store.Query().AllComponents(ComponentTypes.Get<NoteEcs, Hit>()),
                 "HIT NOTES :"));
             container.AddChild(new QueryLabel(store.Query().AllComponents(ComponentTypes.Get<FloatArrayEcs>()),
                 "TRACKS :"));
+            container.AddChild(new QueryLabel(store.Query().AllComponents(ComponentTypes.Get<CharacterEcs>()),
+                "Characters :"));
 
 
             container.AddChild(new MethodLabel(() => Engine.GetFramesPerSecond(), "FPS :"));
@@ -84,16 +112,20 @@ namespace XanaduProject.ECSComponents.EntitySystem
                 () => Performance.GetMonitor(Performance.Monitor.RenderTotalDrawCallsInFrame), "DRAW CALLS :"));
             container.AddChild(new MethodLabel(
                 () => Performance.GetMonitor(Performance.Monitor.RenderTotalPrimitivesInFrame), "PRIMITIVES :"));
+            container.AddChild(new MethodLabel(
+                () => Performance.GetMonitor(Performance.Monitor.RenderTotalPrimitivesInFrame), "PRIMITIVES :"));
+
             container.AddChild(new MethodLabel(() => Performance.GetMonitor(Performance.Monitor.ObjectResourceCount),
                 "RESOURCES :"));
-            container.AddChild(new MethodLabel(() => Performance.GetMonitor(Performance.Monitor.ObjectResourceCount),
-                "RESOURCES :"));
-            container.AddChild(new MethodLabel(() => Performance.GetMonitor(Performance.Monitor.ObjectResourceCount),
-                "RESOURCES :"));
-            container.AddChild(new MethodLabel(() => root.MonitorPerf, "SYSTEMS :"));
+
+            container.AddChild(new MethodLabel(()=> DiProvider.Get<IPlayerCharacter>().StateMachine.State, "STATE :"));
+            root.SetMonitorPerf(true);
+            container.AddChild(new MethodLabel(() => root.Perf, "SYSTEMS :"));
 
             container.AddChild(new InputHandler(this));
         }
+
+        #endregion
 
         private partial class DebugLabel : Label
         {

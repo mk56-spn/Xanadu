@@ -1,159 +1,137 @@
 // Copyright (c) mk56_spn <dhsjplt@gmail.com>. Licensed under the GNU General Public Licence (2.0).
 // See the LICENCE file in the repository root for full licence text.
 
-using System.Linq;
 using Friflo.Engine.ECS;
 using Godot;
-using XanaduProject.Audio;
-using XanaduProject.Composer;
-using XanaduProject.Composer.Timelines;
-using XanaduProject.ECSComponents;
+using XanaduProject.ECSComponents.EntitySystem;
 using XanaduProject.GameDependencies;
+using XanaduProject.Serialization;
 
 namespace XanaduProject.Stage.Masters.Composer
 {
-	public partial class ComposerVisuals : Control
+	public partial class ComposerVisuals : CanvasLayer, IComposerVisuals
 	{
+		private Slider trackPos = new HSlider();
+		private VisualsLayout layout = new();
 
-		private readonly IComposer composer = DiProvider.Get<IComposer>();
-		private readonly IEditorClock clock = DiProvider.Get<IEditorClock>();
-		private Label infoLabel = new() { Visible = false, Modulate = Colors.GreenYellow };
-		private Viewport viewport = null!;
-
-		[Export] private Control editWidget = null!;
-		[Export] private ButtonContainer buttonContainer = null!;
-		[Export] private Button snap = null!;
-		[Export] private Slider trackPos = null!;
-		[Export] private Container keyframeTrackContainer = null!;
-		[Export] private Control waveformContainer = null!;
-
-		public override void _EnterTree()
+		public ComposerVisuals()
 		{
-			editWidget.AddChild(ComposerEditWidget.Load);
-			waveformContainer.AddChild(new NoteTimeline(composer.EntityStore));
-			GetNode<Button>("%Toggle").Pressed += () => clock.TogglePause();
-			GetNode<Button>("%Stop").Pressed += () => clock.Restart();
+			UiLayer = this;
+			AddChild(new PanningCamera());
+			AddChild(layout);
 		}
 
-		public static ComposerVisuals Create()
+		public void TopBarAddWidget(Control control) => layout.TopBar.AddChild(control);
+		public void EntityEditTabAdd(Control control, string header)
 		{
-			var visuals = GD.Load<PackedScene>("uid://b25lubmu1nyok")
-				.Instantiate<ComposerVisuals>();
-
-			return visuals;
+			layout.EntityEdit.AddChild(new VisibilityLabel(control) { Text = header });
+			layout.EntityEdit.AddChild(control);
 		}
 
-		public override void _Ready()
+		public void LeftBarAddWidget(Control control)
 		{
-			GD.Print("composer visuals booted up");
-			var container = new Container { CustomMinimumSize = new Vector2(300, 150) };
-			keyframeTrackContainer.AddChild(new AnimationTracksManager(composer.EntityStore, container));
-			keyframeTrackContainer.AddChild(container);
+			layout.LeftBar.AddChild(control);
+		}
 
-			snap.Pressed += () => composer.Snapped = !composer.Snapped;
-			viewport = GetViewport();
-			AddChild(infoLabel);
-			infoLabel.Position = new Vector2(30, 100);
-			SetAnchorsPreset(LayoutPreset.FullRect);
+		public void AddTabToMain(Container container)
+		{
+			layout.MainTabs.AddChild(container);
+		}
 
-			trackPos.MaxValue = clock.TrackLength;
-			trackPos.Step = 0.01f;
-			trackPos.ValueChanged += value =>
+		public void AddTabToLeft(Control container)
+		{
+			layout.LeftBottomContainer.AddChild(container);
+		}
+
+		public void AddToFloatingBar(Control control)
+		{
+			layout.FloatingBar.AddChild(control);
+		}
+
+		public CanvasLayer UiLayer { get; }
+
+		private partial class VisualsLayout : VBoxContainer
+		{
+			public HBoxContainer TopBar = new() { CustomMinimumSize = new Vector2(0,50) };
+			public readonly TabContainer MainTabs = new() { SizeFlagsHorizontal = SizeFlags.ExpandFill};
+			public readonly HBoxContainer LeftBottomContainer = new() ;
+			public readonly VBoxContainer FloatingBar = new()
 			{
-				/*bool toggled = composer.TrackHandler.Playing;
-				composer.TrackHandler.SetPos((float)value);
-				if (toggled == false) composer.TrackHandler.TogglePlayback();*/
+				SizeFlagsHorizontal = SizeFlags.ShrinkCenter,
+				SizeFlagsVertical = SizeFlags.ShrinkBegin
 			};
-		}
 
-		public override void _Process(double delta)
-		{
-			infoLabel.Text = $"Canvas transform: {viewport.CanvasTransform.Origin} " +
-							 $"\nSelected count: {composer.Selected.Count} " +
-							 $"\nZoom: {viewport.CanvasTransform.Scale}";
-			QueueRedraw();
-		}
+			public VBoxContainer LeftBar = new();
+			public VBoxContainer EntityEdit = new();
 
-		public override void _Input(InputEvent @event)
-		{
-			if (@event is InputEventKey { KeyLabel: Key.F10, Pressed: true })
-				infoLabel.Visible = !infoLabel.Visible;
-
-			if (@event is InputEventKey { KeyLabel: Key.Space, Pressed: true })
-				clock.TogglePause();
-		}
-
-		public override void _Draw()
-		{
-			composer.EntityStore.Query<NoteEcs, ElementEcs>()
-				.ForEachEntity((ref NoteEcs _, ref ElementEcs element, Entity _) =>
-				{
-					DrawSetTransformMatrix(element.Transform.Scaled(viewport.CanvasTransform.Scale)
-						.Translated(viewport.CanvasTransform.Origin));
-					DrawArc(Vector2.Zero, NoteEcs.RADIUS, 0, Mathf.Pi * 2, 30, Colors.White);
-				});
-			composer.Selected.ForEachEntity((ref ElementEcs element, ref SelectionEcs _, Entity entity) =>
+			public VisualsLayout()
 			{
-				DrawSetTransformMatrix(element.Transform.Scaled(viewport.CanvasTransform.Scale)
-					.Translated(viewport.CanvasTransform.Origin));
+				SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
+				CustomMinimumSize = new Vector2(1000, 1000);
+				topBarCreate();
 
-				if (entity.HasComponent<NoteEcs>())
-				{
-					DrawCircle(Vector2.Zero, NoteEcs.RADIUS, ElementEcs.ComposerColour with { A = 0.3f });
-					DrawArc(Vector2.Zero, NoteEcs.RADIUS, 0, Mathf.Tau, 50, ElementEcs.ComposerColour);
-					return;
-				}
-
-				if (entity.HasComponent<RectEcs>())
-				{
-					var e = entity.GetComponent<RectEcs>().Extents;
-					DrawRect(new Rect2(-e / 2, e), ElementEcs.ComposerColour with { A = 0.3f });
-					DrawRect(new Rect2(-e / 2, e), ElementEcs.ComposerColour, false);
-				}
-
-				if (entity.TryGetComponent(out PolygonEcs poly))
-				{
-					DrawPolyline(poly.Points.Append(poly.Points[0]).ToArray(), ElementEcs.ComposerColour);
-					DrawColoredPolygon(poly.Points, ElementEcs.ComposerColour with { A = 0.3f });
-				}
-
-				DrawString(ThemeDB.FallbackFont, Vector2.Zero, element.Transform.Origin.ToString());
-			});
-
-			int i = 0;
-			foreach (var en in composer.Selected.Entities)
-			{
-				DrawString(ThemeDB.FallbackFont, Vector2.Zero with { Y = 30 + i * 20 }, en.Id.ToString());
-				i++;
+				center();
+				bottomBar();
 			}
-		}
-
-		private partial class Grid : Node2D
-		{
-			private int lineCount = 100;
-			private int spacing = 32;
-
-			public override void _Process(double delta)
+			private void topBarCreate()
 			{
-				Position = GetViewport().GetCamera2D().Offset.Snapped(new Vector2(32, 32)) - new Vector2(1600, 1600);
+				AddChild(panelWrapper(TopBar));
+				Button b = new Button {CustomMinimumSize = new Vector2(30,30)};
+				TopBar.AddChild(b);
+
+				b.Pressed += () =>
+				{
+					StageSerializer.Serialize(DiProvider.Get<EntityStore>(), "level1");
+				};
 			}
 
-			public override void _Draw()
+
+			private void center()
 			{
-				var lineY = new Vector2[lineCount * 2];
-				var lineX = new Vector2[lineCount * 2];
-
-
-				for (int i = 0; i < lineCount; i++)
+				PanelContainer container = new PanelContainer
 				{
-					lineY[i * 2] = new Vector2(i * spacing, 0);
-					lineY[i * 2 + 1] = new Vector2(i * spacing, 3000);
-					lineX[i * 2] = new Vector2(0, i * spacing);
-					lineX[i * 2 + 1] = new Vector2(5000, i * spacing);
-				}
+					SelfModulate = Colors.Transparent,
+					MouseFilter = MouseFilterEnum.Pass,
+					SizeFlagsVertical = SizeFlags.ExpandFill
+				};
 
-				DrawMultiline(lineX, Colors.White with { A = 0.1f }, -1);
-				DrawMultiline(lineY, Colors.White with { A = 0.1f }, -1);
+				AddChild(container);
+				var leftPanel = panelWrapper(LeftBar);
+				leftPanel.SizeFlagsHorizontal = SizeFlags.ShrinkBegin;
+				leftPanel.SizeFlagsVertical = SizeFlags.ShrinkCenter;
+
+				container.AddChild(leftPanel);
+				AddChild(FloatingBar);
+
+				var entityPanel = panelWrapper(EntityEdit);
+				container.AddChild(entityPanel);
+				entityPanel.SizeFlagsHorizontal = SizeFlags.ShrinkEnd;
+				entityPanel.Position -= new Vector2(30, 50);
+			}
+			private void bottomBar()
+			{
+				HBoxContainer container = new HBoxContainer
+				{
+					CustomMinimumSize = new Vector2(0,100)
+				};
+				AddChild(container);
+				container.AddChild(LeftBottomContainer);
+				container.AddChild(MainTabs);
+
+				Button b = new Button { Text = "PLAY", CustomMinimumSize = new Vector2(200,0)};
+				b.Pressed += () =>
+				{
+					var composer = DiProvider.Get<IComposer>();
+					composer.ScreenManager.RequestChangeScreen(new Player(composer.EntityStore, composer.TrackInfo));
+				};
+				container.AddChild(b);
+			}
+
+			private static Control panelWrapper(Control control)
+			{
+				PanelContainer panel = new PanelContainer();
+				panel.AddChild(control);
+				return panel;
 			}
 		}
 	}
