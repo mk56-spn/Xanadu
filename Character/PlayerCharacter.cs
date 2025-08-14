@@ -289,7 +289,7 @@ namespace XanaduProject.Character
         {
             float verticalVelocity = Velocity.Y;
 
-            if (freezeTimeLeft < 0)
+            if (freezeTimeLeft > 0)
                 return 0;
 
             if (phaseMachine.State == Phase.Airborne || StateMachine.State is MovementState.Idle or MovementState.Moving)
