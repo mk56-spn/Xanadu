@@ -7,16 +7,11 @@ using Godot;
 
 namespace XanaduProject.ECSComponents.EntitySystem
 {
-    public class TempValueApplySystem : QuerySystem<TempValuesEcs, ElementEcs>
+    public class SelectionSystem(EntityStore store) : QuerySystem<ElementEcs>
     {
         protected override void OnUpdate()
         {
-            Query.ForEachEntity((ref TempValuesEcs component1, ref ElementEcs elementEcs, Entity entity) =>
-            {
-                elementEcs.UpdateScale(component1.Transform2D.Scale);
-
-                component1.Transform2D = Transform2D.Identity;
-            });
+            throw new System.NotImplementedException();
         }
     }
 }
