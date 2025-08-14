@@ -76,6 +76,7 @@ namespace XanaduProject.ECSComponents.EntitySystem
         {
             Add(new GroundEffectsSystems());
             Add(new HitEffectSystem());
+            Add(new HoldEffectSystem());
         }
 
         private void creationSystems()
