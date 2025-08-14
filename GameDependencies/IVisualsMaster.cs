@@ -9,5 +9,6 @@ namespace XanaduProject.GameDependencies
     {
         CanvasLayer GameplayerLayer { get; }
         Rid GameplayerLayerRid { get; }
+        Vector2 CameraPosition { get; set; }
     }
 }

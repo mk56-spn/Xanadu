@@ -1,0 +1,14 @@
+[gd_scene format=3 uid="uid://cx1jpfb2mwknx"]
+
+[node name="Node2D" type="Control"]
+modulate = Color(0.19, 0.19, 0.19, 1)
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -21.0
+offset_top = -11.0
+offset_right = -21.0
+offset_bottom = -11.0
+grow_horizontal = 2
+grow_vertical = 2

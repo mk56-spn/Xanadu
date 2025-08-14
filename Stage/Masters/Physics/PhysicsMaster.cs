@@ -4,10 +4,11 @@
 using Godot;
 using XanaduProject.GameDependencies;
 
-namespace XanaduProject.Physics
+namespace XanaduProject.Stage.Masters.Physics
 {
     public partial class PhysicsMaster : Node2D, IPhysicsMaster
     {
-        public World2D World2D => GetWorld2D();
+        public override void _EnterTree()=> World2D = GetWorld2D();
+        public World2D World2D { get; private set; } = null!;
     }
 }

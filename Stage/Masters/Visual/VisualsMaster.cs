@@ -8,8 +8,10 @@ namespace XanaduProject.Stage.Masters.Visual
 {
     public partial class VisualsMaster : Node2D, IVisualsMaster
     {
-        public CanvasLayer GameplayerLayer { get; } = new() { Layer = 0, FollowViewportEnabled = true };
+        public CanvasLayer GameplayerLayer { get; } = new() { Layer = -1, FollowViewportEnabled = true };
         public Rid GameplayerLayerRid { get; }
+
+        public Vector2 CameraPosition { get; set; }
 
         public VisualsMaster()
         {

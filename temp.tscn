@@ -1,0 +1,99 @@
+[gd_scene load_steps=17 format=3 uid="uid://rm0dl563dp7e"]
+
+[ext_resource type="Material" uid="uid://conti7lmmubr2" path="res://Shaders/LineArray.tres" id="3_f68d1"]
+[ext_resource type="Material" uid="uid://c1muvg3gygr2o" path="res://Resources/Particles/GroundHit.res" id="4_f68d1"]
+[ext_resource type="Script" uid="uid://den7gevtn5dcp" path="res://Tests/TriangleArrayTest.cs" id="4_h2clf"]
+[ext_resource type="Shader" uid="uid://b08picb1q7kn" path="res://Shaders/HitRing.gdshader" id="5_h2clf"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_ufh25"]
+
+[sub_resource type="Gradient" id="Gradient_5dawj"]
+offsets = PackedFloat32Array(1)
+colors = PackedColorArray(1, 1, 1, 1)
+
+[sub_resource type="GradientTexture2D" id="GradientTexture2D_k81e3"]
+gradient = SubResource("Gradient_5dawj")
+width = 1000
+height = 1000
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_h2clf"]
+
+[sub_resource type="Gradient" id="Gradient_q51th"]
+
+[sub_resource type="GradientTexture2D" id="GradientTexture2D_iyses"]
+gradient = SubResource("Gradient_q51th")
+
+[sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_1nlwk"]
+particle_flag_disable_z = true
+gravity = Vector3(0, 98, 0)
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_q51th"]
+shader = ExtResource("5_h2clf")
+shader_parameter/fov = 90.0
+shader_parameter/cull_back = true
+shader_parameter/inset = 0.0
+
+[sub_resource type="Gradient" id="Gradient_iyses"]
+
+[sub_resource type="GradientTexture2D" id="GradientTexture2D_1nlwk"]
+gradient = SubResource("Gradient_iyses")
+
+[sub_resource type="Gradient" id="Gradient_h2clf"]
+offsets = PackedFloat32Array(1)
+colors = PackedColorArray(1, 1, 1, 1)
+
+[sub_resource type="GradientTexture2D" id="GradientTexture2D_q51th"]
+gradient = SubResource("Gradient_h2clf")
+width = 20
+height = 20
+
+[node name="Node2D" type="Control"]
+layout_mode = 3
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+grow_horizontal = 2
+grow_vertical = 2
+metadata/_edit_horizontal_guides_ = [373.0, 656.0]
+
+[node name="TextureRect" type="Sprite2D" parent="."]
+material = SubResource("ShaderMaterial_ufh25")
+position = Vector2(-49, 220)
+scale = Vector2(1.80037, 0.158)
+texture = SubResource("GradientTexture2D_k81e3")
+
+[node name="Node2D" type="Node2D" parent="."]
+material = ExtResource("3_f68d1")
+position = Vector2(-99, 199)
+script = ExtResource("4_h2clf")
+
+[node name="GPUParticles2D" type="GPUParticles2D" parent="."]
+material = SubResource("ShaderMaterial_h2clf")
+position = Vector2(1449, 116)
+texture = SubResource("GradientTexture2D_iyses")
+process_material = SubResource("ParticleProcessMaterial_1nlwk")
+
+[node name="GPUParticles2D2" type="GPUParticles2D" parent="."]
+material = SubResource("ShaderMaterial_h2clf")
+position = Vector2(1449, 116)
+texture = SubResource("GradientTexture2D_iyses")
+process_material = SubResource("ParticleProcessMaterial_1nlwk")
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+material = SubResource("ShaderMaterial_q51th")
+instance_shader_parameters/x_rot = 60.0
+instance_shader_parameters/y_rot = -35.0
+position = Vector2(-153, 0)
+scale = Vector2(27.0391, 36.8906)
+texture = SubResource("GradientTexture2D_1nlwk")
+
+[node name="GPUParticles2D3" type="GPUParticles2D" parent="."]
+position = Vector2(-86, 177)
+amount = 30
+texture = SubResource("GradientTexture2D_q51th")
+lifetime = 2.0
+explosiveness = 0.9
+fixed_fps = 120
+process_material = ExtResource("4_f68d1")

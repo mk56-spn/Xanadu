@@ -2,8 +2,14 @@
 // See the LICENCE file in the repository root for full licence text.
 
 using Friflo.Engine.ECS;
+using XanaduProject.DataStructure;
 
 namespace XanaduProject.ECSComponents.Tag
 {
-    public struct Hit : ITag;
+	[ComponentKey(null)]
+	public struct Hit(double time, NoteType key) : IComponent
+	{
+		public double Time = time;
+		public NoteType Key = key;
+	}
 }

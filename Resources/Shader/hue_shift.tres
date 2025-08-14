@@ -1,0 +1,6 @@
+[gd_resource type="ShaderMaterial" load_steps=2 format=3 uid="uid://c5ntgs2hnalwb"]
+
+[ext_resource type="Shader" uid="uid://ppei85fouk45" path="res://Resources/Shader/HueShift.gdshader" id="1_nn2n2"]
+
+[resource]
+shader = ExtResource("1_nn2n2")

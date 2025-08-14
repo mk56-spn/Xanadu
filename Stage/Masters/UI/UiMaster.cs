@@ -4,7 +4,7 @@
 using Godot;
 using XanaduProject.GameDependencies;
 
-namespace XanaduProject.UI
+namespace XanaduProject.Stage.Masters.UI
 {
     public partial class UiMaster : Node, IUiMaster
     {
@@ -13,7 +13,6 @@ namespace XanaduProject.UI
         public override void _Ready()
         {
             AddChild(ScoreLayer);
-
         }
     }
 }

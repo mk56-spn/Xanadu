@@ -5,7 +5,8 @@ namespace XanaduProject.Tests
 {
     public partial class Performance : CanvasLayer
     {
-        private Label label = new Label();
+        private Label label = new();
+
         public override void _Ready()
         {
             base._Ready();
@@ -13,21 +14,21 @@ namespace XanaduProject.Tests
             Layer = 10;
             AddChild(label);
 
-            label.CustomMinimumSize = GetViewport().GetVisibleRect().Size + new Vector2( -200, 200);
+            label.CustomMinimumSize = GetViewport().GetVisibleRect().Size + new Vector2(-200, 200);
             label.HorizontalAlignment = HorizontalAlignment.Right;
             label.Modulate = Colors.DeepSkyBlue;
 
-            Timer t = new Timer();
+            var t = new Timer();
             AddChild(t);
 
-            Gradient gradient = new Gradient { Colors = [Colors.Red, Colors.Green ], Offsets = [0, 1] };
+            var gradient = new Gradient { Colors = [Colors.Red, Colors.Green], Offsets = [0, 1] };
             t.OneShot = false;
             t.WaitTime = 0.3f;
             t.Start();
             t.Timeout += () =>
             {
                 double calls = Godot.Performance.GetMonitor(Godot.Performance.Monitor.RenderTotalDrawCallsInFrame);
-                label.Modulate = gradient.Sample( (float)((20000 - calls) / 20000));
+                label.Modulate = gradient.Sample((float)((20000 - calls) / 20000));
                 label.Text = calls.ToString(CultureInfo.InvariantCulture);
             };
         }

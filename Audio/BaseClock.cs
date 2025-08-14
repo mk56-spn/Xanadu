@@ -1,3 +1,4 @@
+
 // Copyright (c) mk56_spn.
 // Licensed under the GNU General Public Licence v2.0.
 //
@@ -22,12 +23,24 @@ namespace XanaduProject.Audio
 	/// the accuracy of the audio system with the smoothness of a monotonic clock.
 	/// A background thread pre-feeds the audio buffer to ensure uninterrupted playback.
 	/// </summary>
-	public abstract partial class BaseClock(TrackInfo track) : Node
+	public abstract partial class BaseClock : Node
 	{
 		public double TrackLength { get; private set; }
 		public double PlaybackTime { get; private set; }
 		public double CurrentBeat { get; protected set; }
 		public bool Paused { get; private set; } = true;
+
+		/// <summary>
+		/// The lead-in time in seconds before the actual track starts.
+		/// This time can be used for countdowns or preparatory elements.
+		/// </summary>
+		public double LeadInTime { get; set; } = 0.0;
+
+		/// <summary>
+		/// Gets the actual playback position including the lead-in time.
+		/// Negative values indicate we're in the lead-in period.
+		/// </summary>
+		public double AdjustedPlaybackTime => PlaybackTime - LeadInTime;
 
 		public void SetPaused(bool shouldPause)
 		{
@@ -53,7 +66,7 @@ namespace XanaduProject.Audio
 
 		private readonly AudioStreamPlayer player = new();
 		private int sampleRate;
-		private Vector2[] songData = null!;
+		private Vector2[] songData;
 		private AudioStreamGeneratorPlayback playback = null!;
 
 		// ─────────────────────────── Hybrid Clock state ─────────────────────────
@@ -65,12 +78,27 @@ namespace XanaduProject.Audio
 		private volatile bool stopThread;
 		private int cursor;
 		private readonly Lock audioLock = new();
+		private readonly TrackInfo track;
+
+		/// <summary>
+		/// A hybrid master clock that provides smooth, jitter-free timekeeping.
+		/// It uses the audio stream as the "source of truth" for state changes like
+		/// starting, pausing, and seeking, but employs a high-resolution Stopwatch
+		/// for calculating the playback time frame-to-frame. This combination offers
+		/// the accuracy of the audio system with the smoothness of a monotonic clock.
+		/// A background thread pre-feeds the audio buffer to ensure uninterrupted playback.
+		/// </summary>
+		protected BaseClock(TrackInfo track)
+		{
+			this.track = track;
+			VorbisLoader.DecodeEntireFileIntoMemory(track.Track, out float[] pcm, out sampleRate);
+			songData = toVector2Array(pcm);
+		}
 
 		// ─────────────────────────── Godot lifecycle ────────────────────────────
 		public override void _EnterTree()
 		{
-			VorbisLoader.DecodeEntireFileIntoMemory(track.Track, out float[] pcm, out sampleRate);
-			songData = toVector2Array(pcm);
+
 			TrackLength = songData.Length / (double)sampleRate;
 
 			var generator = new AudioStreamGenerator
@@ -112,23 +140,38 @@ namespace XanaduProject.Audio
 			if (!Paused) PlaybackTime = timeBase + stopwatch.Elapsed.TotalSeconds;
 
 			// If the track has finished, ensure time is capped and pause playback.
-			if (PlaybackTime >= TrackLength)
+			if (PlaybackTime >= TrackLength + LeadInTime)
 			{
-				PlaybackTime = TrackLength;
+				PlaybackTime = TrackLength + LeadInTime;
 				SetPaused(true);
 			}
 
-			RenderingServer.GlobalShaderParameterSet("song_pos", PlaybackTime);
+			// Send adjusted playback time to shaders
+			RenderingServer.GlobalShaderParameterSet("song_pos", AdjustedPlaybackTime);
 		}
 
+		/// <summary>
+		/// Seeks to a specific time in the track, accounting for lead-in time.
+		/// </summary>
+		/// <param name="time">The time to seek to, where 0.0 is the start of the actual track (after lead-in)</param>
 		public void Seek(double time)
+		{
+			// Adjust the seek time to account for lead-in
+			SeekAbsolute(time + LeadInTime);
+		}
+
+		/// <summary>
+		/// Seeks to an absolute time position including the lead-in period.
+		/// </summary>
+		/// <param name="absoluteTime">The absolute time to seek to, where 0.0 is the start of lead-in</param>
+		public void SeekAbsolute(double absoluteTime)
 		{
 			bool wasPlaying = !Paused;
 			SetPaused(true); // Pause and stop the stopwatch
 
 			lock (audioLock)
 			{
-				time = Math.Clamp(time, 0.0, TrackLength);
+				absoluteTime = Math.Clamp(absoluteTime, 0.0, TrackLength + LeadInTime);
 
 				// Stop/Play is the most reliable way to clear the audio buffer
 				// and restart playback from a new position.
@@ -136,12 +179,22 @@ namespace XanaduProject.Audio
 				player.Play();
 				playback = (AudioStreamGeneratorPlayback)player.GetStreamPlayback();
 
-				// Set the new cursor position for the audio feeder thread.
-				cursor = (int)(time * sampleRate);
+				// Calculate cursor position based on whether we're in lead-in or actual track
+				if (absoluteTime < LeadInTime)
+				{
+					// In lead-in phase, don't play audio yet
+					cursor = 0;
+				}
+				else
+				{
+					// Set the cursor position for the actual track audio
+					double trackTime = absoluteTime - LeadInTime;
+					cursor = (int)(trackTime * sampleRate);
+				}
 
 				// Update timekeeping to the new source-of-truth time.
-				timeBase = time;
-				PlaybackTime = time;
+				timeBase = absoluteTime;
+				PlaybackTime = absoluteTime;
 				stopwatch.Reset();
 			}
 
@@ -174,11 +227,13 @@ namespace XanaduProject.Audio
 		{
 			while (!stopThread)
 			{
-				// Only feed buffer if playing and not at the end of the song.
+				// Only feed buffer if playing and not at the end of the song,
+				// and we're past the lead-in time
 				if (!Paused)
 					lock (audioLock)
 					{
-						if (cursor < songData.Length)
+						// Only play audio if we're past the lead-in period
+						if (PlaybackTime >= LeadInTime && cursor < songData.Length)
 						{
 							int framesAvailable = playback.GetFramesAvailable();
 							if (framesAvailable > 0)

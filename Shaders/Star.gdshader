@@ -1,34 +1,31 @@
 shader_type canvas_item;
-render_mode blend_add;
 
-#include "Base.gdshaderinc"
 
-const float eps = 0.04;
+#include "ActiveUtils/CanvasSizing.gdshaderinc"
 
-float flare(float uv_axis,){
-	  return 0.02 / (abs(uv_axis) +eps);
-}
+uniform float grid_sizeV : hint_range(10., 500.0, 5.) = 100.0;
 
-SIZE_VERTEX_EXCLUSIVE
-vec4 calculateLensFlare(vec2 uv) {
-    float flareIntensity;
-   	float horizontalFlare = flare(uv.x) * smoothstep(1.0, 0.0, abs(uv.y));
-    float verticalFlare = flare(uv.y)  * smoothstep(1.0, 0.0, abs(uv.x));
+uniform vec2 grid_size = vec2(100.,100.);
+uniform float column : hint_range(20., 50.0, 1.);
 
-    // Diagonal flares
-    float diagonalFlare1 = 0.04 / (abs(uv.x + uv.y) + eps);
-    float diagonalFlare2 = 0.04 / (abs(uv.x - uv.y) + eps);
+uniform sampler2D tex;
 
-    // Combine flares
-    flareIntensity = horizontalFlare + verticalFlare + diagonalFlare1 + diagonalFlare2;
-    flareIntensity *= exp(-length(uv) * 2.0); // Fade with distance
+void vertex(){
 
-    // Add color variation to the flare
-    vec4 flareColor = getColour(); // Slightly warm tint
-    return flareColor * flareIntensity * 0.3; // Adjust intensity here
+	COLOR.a = INSTANCE_CUSTOM.r * 0.20;
+	SIZE
+	/*COLOR.r = (sin(float(INSTANCE_ID) + TIME + 1.));
+	COLOR.b = (sin(float(INSTANCE_ID) + TIME + 3.));
+	COLOR.g = (sin(float(INSTANCE_ID) + TIME + 5.));
+
+	vec2 tex_point = vec2(float(INSTANCE_ID) * 0.01,1.);
+	VERTEX.x += texture(tex, tex_point ).r *200.;
+
+	VERTEX.x += float(INSTANCE_ID / int(column)) * grid_size.x + sin(TIME+ float(INSTANCE_ID )) * 30.;
+	VERTEX.y += mod(float(INSTANCE_ID), column) * grid_size.y;*/
+
 }
 
 void fragment() {
-    vec2 uv = pixel_uv  / canvas_half_size * 0.35;
-     COLOR *= calculateLensFlare(uv);
+
 }
