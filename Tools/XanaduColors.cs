@@ -11,5 +11,7 @@ namespace XanaduProject.Tools
         public static Color XanaduBlue = new("66fff2");
         public static Color XanaduGreen = new("c9ff87");
         public static Color XanaduYellow = new("ffe600");
+        public static Color XanaduOrange = new("ffa500");
+        public static Color XanaduRed = new("ff0000");
     }
 }

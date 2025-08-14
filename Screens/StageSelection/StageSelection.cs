@@ -1,38 +1,49 @@
 // Copyright (c) mk56_spn <dhsjplt@gmail.com>. Licensed under the GNU General Public Licence (2.0).
 // See the LICENCE file in the repository root for full licence text.
 
-using Chickensoft.AutoInject;
+using System.Threading.Tasks;
 using Godot;
-using SuperNodes.Types;
+using XanaduProject.Character;
 using XanaduProject.DataStructure;
+using XanaduProject.Serialization;
+using XanaduProject.Stage;
 
 namespace XanaduProject.Screens.StageSelection
 {
-    [SuperNode(typeof(Provider))]
-    public partial class StageSelection : Control, IProvide<StageSelection>
-    {
-        public override partial void _Notification(int what);
+	public partial class StageSelection : Screen
+	{
+		[Export] private Button startButton = null!;
+		[Export] private Button editButton = null!;
 
-        [Export] private Button startButton = null!;
-        [Export] private Button editButton = null!;
 
-        StageSelection IProvide<StageSelection>.Value() => this;
+		public string Level = null!;
 
-        public StageInfo ActiveInfo = null!;
+		public override void _Ready()
+		{
+			AddChild(new StageSelectionCarousel(this));
 
-        public override void _Ready()
-        {
-            base._Ready();
+			startButton.Pressed += ()=>
+				ScreenManager.RequestChangeScreen(() => new Player(StageDeserializer
+					.Deserialize("level1"), GD.Load<TrackInfo>("res://Resources/TestTrack.tres")), TransitionType.Fade);
 
-            AddChild(new StageSelectionCarousel());
-            Provide();
-        }
+			editButton.Pressed += () =>
+				ScreenManager.RequestChangeScreen(()=> new Stage.Masters.Composer.Composer(StageDeserializer
+					.Deserialize("level1"),GD.Load<TrackInfo>("res://Resources/TestTrack.tres")));
+		}
 
-        private void loadScene(Node scene)
-        {
-            GetTree().Root.AddChild(scene);
-            GetTree().CurrentScene = scene;
-            GetTree().Root.RemoveChild(this);
-        }
-    }
+		private void something(out Vector2 vec2, out Vector3 vec3)
+		{
+			vec2 = new Vector2(1, 2);
+			vec3 = new Vector3(1, 2, 3);
+		}
+
+		private void loadScene(Node scene)
+		{
+			something(out var vec2, out var vec3);
+
+			GetTree().Root.AddChild(scene);
+			GetTree().CurrentScene = scene;
+			GetTree().Root.RemoveChild(this);
+		}
+	}
 }

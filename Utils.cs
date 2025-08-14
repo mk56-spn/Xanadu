@@ -10,20 +10,21 @@ namespace XanaduProject
     {
         public static Rect2 GetNonNegativeRect(Vector2 start, Vector2 end, bool centered = false)
         {
-            Vector2 rectSize = new Vector2(Mathf.Abs(end.X - start.X), Mathf.Abs(end.Y - start.Y));
+            var rectSize = new Vector2(Mathf.Abs(end.X - start.X), Mathf.Abs(end.Y - start.Y));
 
             // After the transform we check to see if the position of the rectangle needs changing.
-            Vector2 rectanglePosition = new Vector2(Mathf.Min(start.X, end.X), Mathf.Min(start.Y, end.Y));
+            var rectanglePosition = new Vector2(Mathf.Min(start.X, end.X), Mathf.Min(start.Y, end.Y));
 
-            return new Rect2 { Size = rectSize, Position = centered ? rectanglePosition + rectSize / 2 : rectanglePosition };
+            return new Rect2
+                { Size = rectSize, Position = centered ? rectanglePosition + rectSize / 2 : rectanglePosition };
         }
 
         public static Rect2 PointBoundingBox(Vector2[] points)
         {
-            Vector2 rectStart = Vector2.Inf;
-            Vector2 rectEnd = -Vector2.Inf;
+            var rectStart = Vector2.Inf;
+            var rectEnd = -Vector2.Inf;
 
-            foreach (Vector2 point in points)
+            foreach (var point in points)
             {
                 rectStart.X = Mathf.Min(rectStart.X, point.X);
                 rectStart.Y = Mathf.Min(rectStart.Y, point.Y);

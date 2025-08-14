@@ -7,7 +7,10 @@ namespace XanaduProject.Screens.Title
         [Export] private Button button = null!;
 
         // Called when the node enters the scene tree for the first time.
-        public override void _Ready() => button.Pressed += () =>
-            GetTree().ChangeSceneToFile("res://Screens/StageSelection/StageSelection.tscn");
+        public override void _Ready()
+        {
+            button.Pressed += () =>
+                GetTree().ChangeSceneToFile("res://Screens/StageSelection/StageSelection.tscn");
+        }
     }
 }

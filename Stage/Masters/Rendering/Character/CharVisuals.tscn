@@ -1,0 +1,124 @@
+[gd_scene load_steps=12 format=3 uid="uid://c0artk3e0k6yt"]
+
+[ext_resource type="Shader" uid="uid://6ek1r3nyde7v" path="res://Shaders/Blocks/Sharp.gdshader" id="1_x7tit"]
+
+[sub_resource type="Animation" id="Animation_tpija"]
+length = 2.0
+loop_mode = 2
+tracks/0/type = "bezier"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Polygon2D3/Polygon2D2:rotation")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"handle_modes": PackedInt32Array(0, 0),
+"points": PackedFloat32Array(0.143117, -0.25, 0, 0.25, 0, 0, -0.25, 0, 0.25, 0),
+"times": PackedFloat32Array(0, 1.96667)
+}
+tracks/1/type = "value"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath("Polygon2D3/Polygon2D3:skew")
+tracks/1/interp = 2
+tracks/1/loop_wrap = true
+tracks/1/keys = {
+"times": PackedFloat32Array(0, 1.96667),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [0.0, -0.0872665]
+}
+
+[sub_resource type="Animation" id="Animation_e3jxl"]
+resource_name = "Wings"
+loop_mode = 2
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_akc8a"]
+_data = {
+&"RESET": SubResource("Animation_tpija"),
+&"Wings": SubResource("Animation_e3jxl")
+}
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_3o73n"]
+
+[sub_resource type="Gradient" id="Gradient_3o73n"]
+
+[sub_resource type="GradientTexture2D" id="GradientTexture2D_8i4hb"]
+gradient = SubResource("Gradient_3o73n")
+
+[sub_resource type="Gradient" id="Gradient_q5d6d"]
+
+[sub_resource type="GradientTexture2D" id="GradientTexture2D_3r6qn"]
+gradient = SubResource("Gradient_q5d6d")
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_q5d6d"]
+shader = ExtResource("1_x7tit")
+shader_parameter/outline = 2.0
+
+[sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_3r6qn"]
+particle_flag_disable_z = true
+emission_shape_scale = Vector3(1, 600, 1)
+emission_shape = 3
+emission_box_extents = Vector3(1, 1, 1)
+spread = 0.0
+initial_velocity_min = 150.0
+initial_velocity_max = 1000.0
+gravity = Vector3(0, 98, 0)
+
+[node name="CharVisuals" type="Node2D"]
+physics_interpolation_mode = 1
+
+[node name="AnimationPlayer" type="AnimationPlayer" parent="."]
+libraries = {
+&"": SubResource("AnimationLibrary_akc8a")
+}
+autoplay = "RESET"
+
+[node name="Polygon2D3" type="Polygon2D" parent="."]
+position = Vector2(10, 0)
+color = Color(0.84, 0.1764, 0.27594, 1)
+polygon = PackedVector2Array(-15, -6, -4, -4, -1, -22, 2, -27, 2, -30, -3, -37, -5, -40, -4, -41, -9, -43, -17, -18)
+
+[node name="Polygon2D" type="Polygon2D" parent="Polygon2D3"]
+polygon = PackedVector2Array(-3.85797, -3.30748, -19, 0, -13, -7, -4, -4)
+
+[node name="Polygon2D2" type="Polygon2D" parent="Polygon2D3"]
+rotation = 0.143117
+color = Color(0.05, 0.05, 0.05, 1)
+polygon = PackedVector2Array(-4, -3, 8, 64, -40, 64, -24, 52, -13.295, -1.11515)
+
+[node name="Polygon2D6" type="Polygon2D" parent="Polygon2D3"]
+position = Vector2(-53, -2)
+color = Color(0.227161, 0.046891, 0.0742504, 1)
+polygon = PackedVector2Array(34, -9, 45, 7, 52, 11, 36, -19)
+
+[node name="Polygon2D3" type="Polygon2D" parent="Polygon2D3"]
+clip_children = 2
+material = SubResource("ShaderMaterial_3o73n")
+position = Vector2(-1, -58)
+offset = Vector2(-8.81095, 58.1219)
+texture = SubResource("GradientTexture2D_8i4hb")
+polygon = PackedVector2Array(-3, -58, -9, -47, -16, -40, -24, -12, -24, 20, -32, 32, -20, 36, -12, 32, 0, 20, -4, -12, 4, -24, 5.24326, -40.0538, 8.59611, -49.1193, 14, -56, 10, -60, 2, -60)
+uv = PackedVector2Array(66.4439, 12.6218, 58.0575, 11.6533, 51.9169, 9.04961, 32.4071, 11.1268, 12.4201, 19.2112, 2.90385, 17.2462, 3.43715, 25.7519, 7.95664, 29.738, 18.4834, 34.2015, 37.4599, 23.6187, 46.9761, 25.5837, 56.9697, 21.5415, 62.8622, 23.3134, 69.4896, 23.7452, 70.9774, 20.2363, 68.9563, 15.2395)
+
+[node name="Polygon2D" type="Polygon2D" parent="."]
+z_index = 12
+position = Vector2(-50, -11)
+color = Color(0.839277, 0.172442, 0.27454, 1)
+texture = SubResource("GradientTexture2D_3r6qn")
+polygon = PackedVector2Array(52, 26, 59, 23, 56, 14, 45, 10, 46, 0, 43, 11, 51, 16)
+uv = PackedVector2Array(9.50089, 29.8403, 9.43465, 46.212, 29.7513, 47.9879, 47.0441, 29.7099, 65.914, 40.2305, 46.7812, 24.9102, 30.0804, 36.4159)
+
+[node name="Polygon2D" type="Polygon2D" parent="Polygon2D"]
+show_behind_parent = true
+color = Color(0.517184, 0.517184, 0.517184, 1)
+polygon = PackedVector2Array(59, 16, 61, 21, 61, 24, 57, 26, 54, 25, 54, 15, 51, 13, 55, 14)
+
+[node name="GPUParticles2D" type="GPUParticles2D" parent="."]
+visible = false
+material = SubResource("ShaderMaterial_q5d6d")
+position = Vector2(-832, 0)
+amount = 10000
+lifetime = 10.0
+visibility_rect = Rect2(-1.96129, -500.983, 1000.41, 1052.2)
+process_material = SubResource("ParticleProcessMaterial_3r6qn")

@@ -5,7 +5,7 @@ using Godot;
 
 namespace XanaduProject.ECSComponents.Animation
 {
-    public record struct ColorKeyFrame( float Time, Color Color)
+    public record struct ColorKeyFrame(float Time, Color Color)
     {
         public readonly Color Color = Color;
         public readonly float Time = Time;

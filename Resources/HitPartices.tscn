@@ -1,5 +1,40 @@
-[gd_scene format=3 uid="uid://buw0v3517b55p"]
+[gd_scene load_steps=7 format=3 uid="uid://buw0v3517b55p"]
+
+[ext_resource type="Material" uid="uid://b2k2vileav4cl" path="res://Resources/Particles/NormalNote.tres" id="1_ywn75"]
+
+[sub_resource type="Gradient" id="Gradient_fy83v"]
+
+[sub_resource type="GradientTexture2D" id="GradientTexture2D_ywn75"]
+gradient = SubResource("Gradient_fy83v")
+width = 1
+height = 100
+fill_to = Vector2(0, 1)
+
+[sub_resource type="Animation" id="Animation_p6ekh"]
+length = 0.001
+
+[sub_resource type="Animation" id="Animation_ywn75"]
+resource_name = "new_animation"
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_7v4jh"]
+_data = {
+&"RESET": SubResource("Animation_p6ekh"),
+&"new_animation": SubResource("Animation_ywn75")
+}
 
 [node name="HitPartices" type="Node2D"]
+scale = Vector2(3, 3)
 
 [node name="GPUParticles2D" type="GPUParticles2D" parent="."]
+position = Vector2(191.667, 241.333)
+amount = 100
+texture = SubResource("GradientTexture2D_ywn75")
+process_material = ExtResource("1_ywn75")
+
+[node name="AnimationPlayer" type="AnimationPlayer" parent="."]
+libraries = {
+&"": SubResource("AnimationLibrary_7v4jh")
+}
+autoplay = "new_animation"
+
+[node name="SubViewport" type="SubViewport" parent="."]

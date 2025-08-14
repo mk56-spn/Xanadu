@@ -20,7 +20,7 @@ namespace XanaduProject.Screens
 		{
 			if (values.Length == 0) return 0;
 			double avg = values.Average();
-			return 10 * Math.Sqrt(values.Average(v=>Math.Pow(v-avg,2)));
+			return 10 * Math.Sqrt(values.Average(v => Math.Pow(v - avg, 2)));
 		}
 
 		private static double computeAccuracy(Judgement[] values)
@@ -38,7 +38,7 @@ namespace XanaduProject.Screens
 
 		public static Results Create(double[] ur, Judgement[] judgements)
 		{
-			var v =  GD.Load<PackedScene>("uid://wmofwc71b5x1").Instantiate<Results>();
+			var v = GD.Load<PackedScene>("uid://wmofwc71b5x1").Instantiate<Results>();
 			v.accuracy.Text = computeAccuracy(judgements).ToString("0.00") + "%";
 			v.UR.Text = StandardDeviation(ur).ToString("0.00") + "UR";
 

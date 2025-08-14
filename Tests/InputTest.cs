@@ -9,7 +9,7 @@ namespace XanaduProject.Tests
 	[GlobalClass]
 	public partial class InputTest : CenterContainer
 	{
-		private readonly List<InputRect> addKeys = new List<InputRect>
+		private readonly List<InputRect> addKeys = new()
 		{
 			new InputRect
 			{

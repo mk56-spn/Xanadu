@@ -7,6 +7,6 @@ namespace XanaduProject.Serialization.SerialisedObjects
 {
     public class SerializableStage
     {
-        public  EntityStore EntityStore = null!;
+        public EntityStore EntityStore = null!;
     }
 }
