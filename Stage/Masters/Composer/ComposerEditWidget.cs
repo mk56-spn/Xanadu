@@ -9,9 +9,11 @@ using Godot;
 using XanaduProject.Audio;
 using XanaduProject.ECSComponents;
 using XanaduProject.ECSComponents.Animation2;
+using XanaduProject.ECSComponents.EntitySystem;
 using XanaduProject.ECSComponents.Tag;
+using XanaduProject.Factories;
 using XanaduProject.GameDependencies;
-using XanaduProject.Rendering;
+using XanaduProject.Stage.Masters.Rendering;
 
 namespace XanaduProject.Stage.Masters.Composer
 {
@@ -26,14 +28,12 @@ namespace XanaduProject.Stage.Masters.Composer
 		private GridContainer blocks = new();
 
 		private readonly IComposer iComposer = DiProvider.Get<IComposer>();
-		private readonly IClock clock = DiProvider.Get<IClock>();
 
-		public override void _Ready()
+        public override void _Ready()
 		{
 			materials.AddChild(blocks);
 
 			updateMaterials();
-			note.AddChild(new Notes());
 			groups.AddChild(new GroupContainer());
 		}
 
@@ -47,12 +47,11 @@ namespace XanaduProject.Stage.Masters.Composer
 			{
 				Button b;
 				blocks.AddChild(b = new Button { CustomMinimumSize = new Vector2(50, 50) });
-				var r = RenderingServer.CanvasItemCreate();
-				RenderingServer.CanvasItemSetTransform(r, new Transform2D(0, new Vector2(25, 25)));
-				RenderingServer.CanvasItemSetParent(r, b.GetCanvasItem());
-				RenderingServer.CanvasItemAddRect(r, new Rect2(new Vector2(-25, -25), new Vector2(50, 50)),
-					Colors.White);
-				RenderingServer.CanvasItemSetMaterial(r, Materials.Blocks.Get(shader));
+                RenderingServer.CanvasItemCreate().AsRenderRid()
+                    .SetTransform(new Transform2D(0, new Vector2(25, 25)))
+                    .SetParent(b.GetCanvasItem())
+                    .AddRect(new Rect2(new Vector2(-25, -25), new Vector2(50, 50)), Colors.White)
+                    .SetMaterial(Materials.BLOCKS.Get(shader));
 				b.FocusMode = FocusModeEnum.None;
 				b.Pressed += () => updateBlockId(shader);
 			}
@@ -77,58 +76,6 @@ namespace XanaduProject.Stage.Masters.Composer
 		}
 
 		#endregion
-
-		#region Notes
-
-		private partial class Notes: HBoxContainer
-		{
-			private readonly IComposer iComposer = DiProvider.Get<IComposer>();
-
-			private float[] values =
-			[
-				-1,
-				-0.5f,
-				-0.25f,
-				0.25f,
-				0.5f,
-				1
-			];
-
-			public override void _Process(double delta)
-			{
-				Visible = iComposer.EntityStore.Query<NoteEcs>().AllTags(Tags.Get<SelectionFlag>()).Count != 0;
-			}
-
-			public override void _EnterTree()
-			{
-				foreach (float value in values)
-				{
-					var s = new Button
-					{
-						Text = value.ToString(CultureInfo.InvariantCulture)
-					};
-
-					s.Pressed += () =>
-						iComposer.EntityStore.Query<NoteEcs>().AllTags(Tags.Get<SelectionFlag>()).Each(new EachNote(value));
-					AddChild(s);
-				}
-			}
-
-			private readonly struct EachNote(float value) : IEach<NoteEcs>
-			{
-				private readonly IClock clock = DiProvider.Get<IClock>();
-
-				public void Execute(ref NoteEcs note)
-				{
-					note.TimingPoint =
-						(float)(Mathf.Snapped(note.TimingPoint, 60 / clock.CurrentBpm * 0.25) +
-								60 / clock.CurrentBpm * value);
-				}
-			}
-		}
-
-		#endregion
-
 		public static ComposerEditWidget Load = GD.Load<PackedScene>("uid://cwvbay6iwo7h3").Instantiate<ComposerEditWidget>();
 		public static ComposerEditWidget Create()
 		{

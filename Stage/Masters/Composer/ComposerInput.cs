@@ -7,33 +7,37 @@ using Godot;
 using Stateless;
 using XanaduProject.ECSComponents;
 using XanaduProject.ECSComponents.EntitySystem;
+using XanaduProject.ECSComponents.EntitySystem.Components.Physics;
 using XanaduProject.ECSComponents.Tag;
+using XanaduProject.Factories;
 using XanaduProject.GameDependencies;
 
 namespace XanaduProject.Stage.Masters.Composer
 {
     public partial class ComposerInput : Control
     {
-        internal enum InputState { Idle, Pressed, Dragging }
-
-        internal enum Trigger { LeftDown, LeftUp, RightDown, MoveTreshHolded }
-
-        private readonly StateMachine<InputState, Trigger> state;
-        private readonly IComposer composer = DiProvider.Get<IComposer>();
         private const float threshold = 10f;
+
+        private readonly IComposer composer = DiProvider.Get<IComposer>();
+
+        public enum InputState { Idle, Pressed, Dragging }
+        internal enum Trigger { LeftDown, LeftUp, RightDown, MoveTreshHolded }
 
         private Vector2 startDragPos;
 
+        private readonly StateMachine<InputState, Trigger> state;
         private readonly StateMachine<InputState, Trigger>.TriggerWithParameters<Vector2> m1;
 
         public ComposerInput()
         {
+
             state = new StateMachine<InputState, Trigger>(InputState.Idle);
             m1 = state.SetTriggerParameters<Vector2>(Trigger.MoveTreshHolded);
 
             state.Configure(InputState.Idle)
                 .Permit(Trigger.LeftDown, InputState.Pressed)
-                .PermitReentry(Trigger.RightDown);
+                .PermitReentry(Trigger.RightDown)
+                .Ignore(Trigger.LeftUp);
 
             state.Configure(InputState.Pressed)
                 .OnEntryFrom(Trigger.LeftDown, handleLeftPress)
@@ -48,16 +52,28 @@ namespace XanaduProject.Stage.Masters.Composer
 
             state.OnTransitioned(t =>
             {
-                GD.Print($"Transitioned from {t.Source} to {t.Destination} via {t.Trigger}");
+                log($"Transitioned from {t.Source} to {t.Destination} via {t.Trigger}");
                 if (t.Trigger == Trigger.RightDown)
                 {
-                    RightClickAction();
+                    rightClickAction();
                 }
+
+                composer.State = state.State;
             });
         }
 
         public override void _UnhandledInput(InputEvent @event)
         {
+            if (@event is InputEventKey { Keycode: Key.Q, Pressed: true , Echo: false})
+            {
+                composer.Rotating = !composer.Rotating;
+            }
+
+            if (@event is InputEventKey { Keycode: Key.S, Pressed: true , Echo: false})
+            {
+                composer.Snapped = !composer.Snapped;
+            }
+
             if (@event is InputEventMouseButton button)
             {
                 if (button.ButtonIndex == MouseButton.Left)
@@ -125,7 +141,7 @@ namespace XanaduProject.Stage.Masters.Composer
             }
         }
 
-        public void RightClickAction()
+        private void rightClickAction()
         {
             log("Right-click → removing current selection", "orange");
             composer.EntityStore.Query<ElementEcs>().AllTags(Tags.Get<SelectionFlag>())
