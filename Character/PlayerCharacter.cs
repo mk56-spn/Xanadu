@@ -1,11 +1,13 @@
 // Copyright (c) mk56_spn <dhsjplt@gmail.com>. Licensed under the GNU General Public Licence (2.0).
 // See the LICENCE file in the repository root for full licence text.
 
+using System;
+using Friflo.Engine.ECS;
 using Godot;
 using Stateless;
 using XanaduProject.Audio;
 using XanaduProject.ECSComponents;
-using XanaduProject.ECSComponents.EntitySystem;
+using XanaduProject.Factories;
 using XanaduProject.GameDependencies;
 
 namespace XanaduProject.Character
@@ -14,15 +16,18 @@ namespace XanaduProject.Character
     {
         private readonly IClock clock = DiProvider.Get<IClock>();
 
-        //------------------------------------------------------------------
-        // State Machine
-        //------------------------------------------------------------------
-        private enum State { Idle, Moving, Holding, MovingAndHolding }
-        private enum Trigger { Accelerate, StartHold, InertiaTimeout, HoldTimeout }
+        private Entity entity;
+        private enum Phase { Grounded, Airborne }
+        private enum PhaseTrigger { LeaveGround, Land }
 
-        private readonly StateMachine<State, Trigger> stateMachine;
-        private readonly StateMachine<State, Trigger>.TriggerWithParameters<Direction> accelerateTrigger;
-        private readonly StateMachine<State, Trigger>.TriggerWithParameters<float> startHoldTrigger;
+        private readonly StateMachine<Phase, PhaseTrigger> phaseMachine;
+
+        //------------------------------------------------------------------
+        // MovementState Machine
+        //------------------------------------------------------------------
+
+        private readonly StateMachine<MovementState, Trigger>.TriggerWithParameters<Direction> accelerateTrigger;
+        private readonly StateMachine<MovementState, Trigger>.TriggerWithParameters<float> startHoldTrigger;
 
 
         public PlayerCharacter()
@@ -35,47 +40,86 @@ namespace XanaduProject.Character
             MotionMode = MotionModeEnum.Grounded;
 
             //------------------------------------------------------------------
-            // State Machine Configuration
+            // MovementState Machine Configuration
             //------------------------------------------------------------------
-            stateMachine = new StateMachine<State, Trigger>(State.Idle);
-            accelerateTrigger = stateMachine.SetTriggerParameters<Direction>(Trigger.Accelerate);
-            startHoldTrigger = stateMachine.SetTriggerParameters<float>(Trigger.StartHold);
+            StateMachine = new StateMachine<MovementState, Trigger>(MovementState.Idle);
+            accelerateTrigger = StateMachine.SetTriggerParameters<Direction>(Trigger.Accelerate);
+            startHoldTrigger = StateMachine.SetTriggerParameters<float>(Trigger.StartHold);
 
-            stateMachine.Configure(State.Idle)
-                .Permit(Trigger.Accelerate, State.Moving)
-                .Permit(Trigger.StartHold, State.Holding);
+            StateMachine.Configure(MovementState.Idle)
+                .Permit(Trigger.Accelerate, MovementState.Moving)
+                .Permit(Trigger.StartHold, MovementState.Holding);
 
-            stateMachine.Configure(State.Moving)
+            StateMachine.Configure(MovementState.Moving)
                 .OnEntryFrom(accelerateTrigger, OnAccelerate)
                 .PermitReentry(Trigger.Accelerate)
-                .Permit(Trigger.InertiaTimeout, State.Idle)
-                .Permit(Trigger.StartHold, State.MovingAndHolding);
+                .Permit(Trigger.InertiaTimeout, MovementState.Idle)
+                .Permit(Trigger.StartHold, MovementState.MovingAndHolding);
 
-            stateMachine.Configure(State.Holding)
+            StateMachine.Configure(MovementState.Holding)
                 .OnEntryFrom(startHoldTrigger, OnStartHold)
-                .OnExit(EndHold)
-                .Permit(Trigger.HoldTimeout, State.Idle)
-                .Permit(Trigger.Accelerate, State.MovingAndHolding);
+                .Permit(Trigger.HoldTimeout, MovementState.Idle)
+                .Permit(Trigger.Accelerate, MovementState.MovingAndHolding);
 
-            stateMachine.Configure(State.MovingAndHolding)
+            StateMachine.Configure(MovementState.MovingAndHolding)
                 .OnEntryFrom(startHoldTrigger, OnStartHold)
                 .OnEntryFrom(accelerateTrigger, OnAccelerate)
-                .OnExit(EndHold)
-                .Permit(Trigger.InertiaTimeout, State.Holding)
-                .Permit(Trigger.HoldTimeout, State.Moving)
+                .Permit(Trigger.InertiaTimeout, MovementState.Holding)
+                .Permit(Trigger.HoldTimeout, MovementState.Moving)
                 .PermitReentry(Trigger.Accelerate);
+
+            StateMachine.OnTransitioned(transition =>
+            {
+                if (transition.Trigger == Trigger.HoldTimeout)
+                {
+                    endHold();
+                }
+            });
+
+            phaseMachine = new StateMachine<Phase, PhaseTrigger>(Phase.Grounded);
+
+            Grounded g = new Grounded();
+
+            phaseMachine.Configure(Phase.Grounded)
+                .OnEntry(()=>
+                {
+                    GD.Print("ground");
+                    entity.EmitSignal(g);
+                })
+                .Permit(PhaseTrigger.LeaveGround, Phase.Airborne);
+
+            phaseMachine.Configure(Phase.Airborne)
+                .OnEntry(()=>
+                {
+                    GD.Print("ground");
+                    entity.EmitSignal(new Airborne());
+                })
+                .Permit(PhaseTrigger.Land, Phase.Grounded);
 
 
             clock.Stopped += () =>
             {
-                Position = Velocity = new Vector2(1000, 0);
+                Position = Velocity = new Vector2(0, 0);
                 Position = new Vector2(0, 0);
+
+                if (StateMachine.State == MovementState.Holding)
+                {
+                    StateMachine.Fire(Trigger.HoldTimeout);
+                    inertiaTimeLeft = freezeTimeLeft = 0;
+
+                }
             };
             Position = new Vector2(0, 0);
         }
 
+        public override void _EnterTree()
+        {
+            base._EnterTree();
+            entity =  DiProvider.Get<EntityStore>().CreateEntity();
+            entity.AddComponent<CharacterEcs>();
+        }
 
-        private CollisionShape2D collisionShape2D;
+        private CollisionShape2D collisionShape2D = null!;
         private void createShape()
         {
             SetCollisionLayer(PhysicsFactory.PLAYER_AREA_FLAG);
@@ -106,46 +150,76 @@ namespace XanaduProject.Character
         //------------------------------------------------------------------
         //  PUBLIC  API  ----------------------------------------------------
         //------------------------------------------------------------------
-        public void TriggerDirectedAcceleration(Direction direction)
+
+        public StateMachine<MovementState, Trigger> StateMachine { get; private set; }
+
+        public void TriggerHold(float seconds)
         {
-            stateMachine.Fire(accelerateTrigger, direction);
+            StateMachine.Fire(startHoldTrigger, seconds);
         }
 
-        public void StartHold(float seconds)
+        public void TriggerDirectedAcceleration(Direction direction)
         {
-            stateMachine.Fire(startHoldTrigger, seconds);
+            StateMachine.Fire(accelerateTrigger, direction);
         }
 
         //------------------------------------------------------------------
-        //  State Machine Actions -------------------------------------------
+        //  MovementState Machine Actions -------------------------------------------
         //------------------------------------------------------------------
 
         private void OnAccelerate(Direction direction)
         {
-            float targetSpeed = 0;
+            // Preserve the components that are not explicitly affected
+            // by the chosen direction.
+            float targetX = Velocity.X;
+            float targetY = Velocity.Y;
+
             switch (direction)
             {
                 case Direction.Left:
-                    targetSpeed = -max_run_speed;
+                    targetX = -max_run_speed;
                     break;
+
                 case Direction.Right:
-                    targetSpeed = max_run_speed;
+                    targetX =  max_run_speed;
                     break;
+
                 case Direction.Up:
-                    return;
+                    targetY = -max_run_speed;          // Negative Y = up in Godot
+                    break;
+
+                case Direction.Down:
+                    targetY =  max_run_speed;          // Positive Y = down
+                    break;
+
+                case Direction.UpLeft:
+                    targetX = -max_run_speed;
+                    targetY = -max_run_speed;
+                    break;
+
+                case Direction.UpRight:
+                    targetX =  max_run_speed;
+                    targetY = -max_run_speed;
+                    break;
+
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(direction), direction, null);
             }
 
-            Velocity = Velocity with { X = targetSpeed };
+            // Apply the new velocity vector.
+            Velocity = new Vector2(targetX, targetY);
+
+            // Restart inertia so both components can naturally decay
+            // through the logic in _PhysicsProcess.
             inertiaTimeLeft = inertia_duration;
         }
 
         private void OnStartHold(float seconds)
         {
             freezeTimeLeft = Mathf.Max(freezeTimeLeft, seconds);
-            Velocity = Velocity with { Y = 0 };
         }
 
-        private void EndHold()
+        private void endHold()
         {
             freezeTimeLeft = 0;
         }
@@ -155,43 +229,93 @@ namespace XanaduProject.Character
             GlobalPosition = worldPosition;
         }
 
-
         public override void _PhysicsProcess(double delta)
         {
             if (clock.IsPaused) return;
 
             float dt = (float)delta;
 
+            updateCharacterContactPhase();
+
             // 1. Update timers and fire timeout triggers
             if (inertiaTimeLeft > 0)
             {
                 inertiaTimeLeft -= dt;
-                if (inertiaTimeLeft <= 0) stateMachine.Fire(Trigger.InertiaTimeout);
+                if (inertiaTimeLeft <= 0) StateMachine.Fire(Trigger.InertiaTimeout);
             }
 
             if (freezeTimeLeft > 0)
             {
                 freezeTimeLeft -= dt;
-                if (freezeTimeLeft <= 0) stateMachine.Fire(Trigger.HoldTimeout);
+
+                if (freezeTimeLeft <= 0) StateMachine.Fire(Trigger.HoldTimeout);
             }
 
             // 2. Apply physics based on state
-            float horizontalVelocity = Velocity.X;
-            if (stateMachine.State == State.Idle || stateMachine.State == State.Holding)
-            {
-                horizontalVelocity = Mathf.MoveToward(Velocity.X, 0, stopping_friction * dt);
-            }
+            float horizontalVelocity = calculateHorizontalVelocity(dt);
+            float verticalVelocity = calculateVerticalVelocity(dt);
 
-            float verticalVelocity = Velocity.Y;
-            if (stateMachine.State == State.Idle || stateMachine.State == State.Moving)
-            {
-                verticalVelocity = Velocity.Y + gravity * dt;
-            }
 
             Velocity = new Vector2(horizontalVelocity, verticalVelocity);
 
-            // 3. Move
             MoveAndSlide();
+            updateEntityCharacter();
+        }
+
+        private void updateCharacterContactPhase()
+        {
+            bool onFloorNow = IsOnFloor();
+
+            switch (phaseMachine.State)
+            {
+                case Phase.Grounded when !onFloorNow:
+                    phaseMachine.Fire(PhaseTrigger.LeaveGround);
+                    break;
+                case Phase.Airborne when onFloorNow:
+                    phaseMachine.Fire(PhaseTrigger.Land);
+                    break;
+
+            }
+        }
+
+        private void updateEntityCharacter()
+        {
+            ref var v = ref entity.GetComponent<CharacterEcs>();
+            v.Position = Position;
+            v.Velocity = Velocity;
+        }
+
+        private float calculateVerticalVelocity(float dt)
+        {
+            float verticalVelocity = Velocity.Y;
+
+            if (freezeTimeLeft < 0)
+                return 0;
+
+            if (phaseMachine.State == Phase.Airborne || StateMachine.State is MovementState.Idle or MovementState.Moving)
+            {
+                // Standard gravity while airborne or in normal motion
+                verticalVelocity = Velocity.Y + gravity * dt;
+            }
+
+
+            return verticalVelocity;
+        }
+
+        private float calculateHorizontalVelocity(float dt)
+        {
+            float horizontalVelocity = Velocity.X;
+            if (StateMachine.State is MovementState.Idle or MovementState.Holding
+                && phaseMachine.State == Phase.Grounded)
+            {
+                // Apply stopping friction only when grounded
+                horizontalVelocity = Mathf.MoveToward(Velocity.X, 0, stopping_friction * dt);
+            }
+
+            return horizontalVelocity;
         }
     }
+    public enum MovementState { Idle, Moving, Holding, MovingAndHolding }
+
+    public enum Trigger { Accelerate, StartHold, InertiaTimeout, HoldTimeout }
 }
