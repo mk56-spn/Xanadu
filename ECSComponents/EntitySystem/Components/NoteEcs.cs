@@ -12,7 +12,6 @@ namespace XanaduProject.ECSComponents
 	{
 		public static readonly int RADIUS = 32;
 
-		[Composer("position")] public bool CenterPlayer;
 		public NoteType NoteType = type;
 
 		public float TimingPoint;

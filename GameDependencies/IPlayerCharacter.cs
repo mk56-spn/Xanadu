@@ -6,6 +6,7 @@ using Godot;
 using Stateless;
 using XanaduProject.Character;
 using XanaduProject.ECSComponents;
+using XanaduProject.ECSComponents.EntitySystem.Components;
 using XanaduProject.Factories;
 
 namespace XanaduProject.GameDependencies

@@ -2,6 +2,7 @@
 // See the LICENCE file in the repository root for full licence text.
 
 using Godot;
+using XanaduProject.ECSComponents.EntitySystem.Components;
 
 namespace XanaduProject.ECSComponents.EntitySystem.ComposerSystems.Widgets
 {

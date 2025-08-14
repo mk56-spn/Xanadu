@@ -5,6 +5,7 @@ using Friflo.Engine.ECS;
 using Godot;
 using XanaduProject.DataStructure;
 using XanaduProject.ECSComponents;
+using XanaduProject.ECSComponents.EntitySystem.Components;
 using XanaduProject.ECSComponents.EntitySystem.Components.Physics;
 using XanaduProject.Screens;
 using XanaduProject.Stage.Masters.Rendering;
