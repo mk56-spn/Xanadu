@@ -3,6 +3,7 @@
 
 using Friflo.Engine.ECS;
 using Godot;
+using XanaduProject.DataStructure;
 using XanaduProject.ECSComponents;
 using XanaduProject.ECSComponents.EntitySystem.Components;
 using XanaduProject.ECSComponents.Tag;
@@ -19,12 +20,17 @@ namespace XanaduProject.Stage.Masters.Composer
             composer.SelectedTemplateEntity.CopyEntity(ent);
 
             // 2. If it's a note and a direction is selected, add the direction component.
-            if (ent.TryGetComponent(out NoteEcs _))
+            if (ent.TryGetComponent(out NoteEcs note))
             {
                 if (!ent.HasComponent<HoldEcs>())
                 {
                     if ( composer.SelectedDirection.HasValue)
                         ent.AddComponent(new DirectionEcs(composer.SelectedDirection.Value));
+                }
+
+                if (ent.HasComponent<HoldEcs>())
+                {
+                    note.NoteType = NoteType.Main;
                 }
 
                 ent.AddComponent(new NoteEcs(composer.SelectedNoteType));
