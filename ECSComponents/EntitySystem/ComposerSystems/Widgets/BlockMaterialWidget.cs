@@ -3,6 +3,7 @@
 
 using System;
 using Godot;
+using XanaduProject.Factories;
 using XanaduProject.Stage.Masters.Rendering;
 
 namespace XanaduProject.ECSComponents.EntitySystem.ComposerSystems.Widgets
@@ -16,12 +17,15 @@ namespace XanaduProject.ECSComponents.EntitySystem.ComposerSystems.Widgets
 
             foreach (var v in Enum.GetValues<BlockShaderId>())
             {
+                var size = new Vector2(50, 50);
                 Button b;
-                container.AddChild(b = new Button
-                {
-                    Text = v.ToString(),
+                container.AddChild(b = new Button { CustomMinimumSize = size });
 
-                });
+                RenderRid.Create(b.GetCanvasItem())
+                    .SetTransform(new Transform2D(0, b.CustomMinimumSize / 2))
+                    .SetMaterial(Materials.BLOCKS.Get(v))
+                    .AddRect(new Vector2(40, 40));
+
                 b.Pressed += () => Composer.SelectedBlockShaderId = v;
             }
         }
