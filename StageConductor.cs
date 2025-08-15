@@ -24,6 +24,7 @@ namespace XanaduProject
 		public StageConductor(TrackInfo trackInfo, EntityStore entityStore)
 		{
 			this.entityStore = entityStore;
+			entityStore.EventRecorder.Enabled = true;
 			Clock = new Clock(trackInfo);
 
 			DiProvider.Register(collection => collection.AddSingleton<IClock>(Clock));
@@ -73,6 +74,7 @@ namespace XanaduProject
 		public override void _Process(double delta)
 		{
 			Root.Update(new UpdateTick());
+            entityStore.EventRecorder.ClearEvents();
 		}
 
 		public void DamageTaken()
