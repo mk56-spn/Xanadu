@@ -33,7 +33,7 @@ namespace XanaduProject.ECSComponents.EntitySystem.NoteSystems
 				GD.Print("stopped");
 				store.Query<NoteEcs, ElementEcs>().ForEachEntity((ref NoteEcs _, ref ElementEcs _, Entity entity) =>
 				{
-					buffer.RemoveTag<Judged>(entity.Id);
+					buffer.RemoveComponent<Judged>(entity.Id);
 					buffer.RemoveComponent<Hit>(entity.Id);
 				});
 				buffer.Playback();

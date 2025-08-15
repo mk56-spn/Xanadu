@@ -1,8 +1,6 @@
 // Copyright (c) mk56_spn <dhsjplt@gmail.com>. Licensed under the GNU General Public Licence (2.0).
 // See the LICENCE file in the repository root for full licence text.
 
-using System;
-using System.Collections.Generic;
 using System.Linq;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
@@ -19,34 +17,30 @@ namespace XanaduProject.ECSComponents.EntitySystem.NoteSystems
 {
 	public class NoteResultSystem : QuerySystem<NoteEcs, Hit, ElementEcs>
 	{
-		private List<(Judgement, double)> judgements = new();
 		private IClock clock = DiProvider.Get<IClock>();
 
 		public NoteResultSystem()
 		{
 			clock.Started += () =>
 			{
-				judgements = [];
 				foreach (var variable in DiProvider.Get<IUiMaster>().ScoreLayer.GetChildren().OfType<Results>())
 					variable.QueueFree();
 
 			};
-
-			Filter.WithoutAllTags(Tags.Get<Judged>());
-		}
+        }
 
 		protected override void OnUpdate()
 		{
-			Query.ForEachEntity((ref NoteEcs note, ref Hit _, ref ElementEcs element, Entity entity) =>
+			Query.WithoutAllComponents(ComponentTypes.Get<Judged>()).ForEachEntity((ref NoteEcs note, ref Hit _, ref ElementEcs element, Entity _) =>
 				setupNoteVisuals(note, element));
 
-			Query.ForEachEntity((ref NoteEcs note, ref Hit _, ref ElementEcs element, Entity entity) =>
-					noteCharacterUpdate(note, element, entity));
+			Query.WithoutAllComponents(ComponentTypes.Get<Judged>()).ForEachEntity((ref NoteEcs _, ref Hit _, ref ElementEcs _, Entity entity) =>
+					noteCharacterUpdate(entity));
 
-			setupResultText();
+			setupJudgedComponent();
 		}
 
-		private void noteCharacterUpdate(NoteEcs note, ElementEcs element, Entity entity)
+		private void noteCharacterUpdate(Entity entity)
 		{
 			GD.Print("noteCharacterUpdate");
 			if (entity.TryGetComponent(out DirectionEcs direction))
@@ -57,7 +51,6 @@ namespace XanaduProject.ECSComponents.EntitySystem.NoteSystems
 				DiProvider.Get<IPlayerCharacter>().TriggerHold(hold.Duration);
 			}
 		}
-
 
 		private readonly ShaderMaterial material = new() { Shader = GD.Load<Shader>("uid://cyrqfv0y5md53") };
 
@@ -78,24 +71,13 @@ namespace XanaduProject.ECSComponents.EntitySystem.NoteSystems
 			clock.Stopped += () => RenderingServer.FreeRid(rid);
 		}
 
-		private void setupResultText()
+		private void setupJudgedComponent()
 		{
 			var command = CommandBuffer;
 			Filter.AllComponents(default);
 			Query.ForEachEntity((ref NoteEcs note, ref Hit hit,
-				ref ElementEcs component3, Entity entity) =>
-			{
-				Label result;
-				DiProvider.Get<IUiMaster>().ScoreLayer.AddChild(result = new Label
-				{
-					Position = component3.Transform.Origin,
-					Text = JudgementInfo.GetJudgmentText(
-						JudgementInfo.GetJudgement(Math.Abs(hit.Time - note.TimingPoint) * 1000))
-				});
-
-				DiProvider.Get<IUiMaster>().ScoreLayer.GetTree().CreateTimer(0.4f).Timeout += () => result.QueueFree();
-				command.AddTag<Judged>(entity.Id);
-			});
+				ref ElementEcs _, Entity entity) =>
+				command.AddComponent(entity.Id, new Judged{ Judgement = JudgementInfo.GetJudgement((hit.Time - note.TimingPoint )* 1000)}));
 
 			command.Playback();
 		}

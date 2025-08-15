@@ -13,7 +13,7 @@ namespace XanaduProject.Factories
 {
 	public static class RenderingFactory
 	{
-		private static readonly IClock clock = DiProvider.Get<IClock>();
+		private static IClock clock => DiProvider.Get<IClock>();
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static RenderRid AsRenderRid(this in Rid rid) => new(rid);
@@ -59,7 +59,7 @@ namespace XanaduProject.Factories
 			double timeAtHit = clock.PlaybackTimeSec;
 
 			while (clock.PlaybackTimeSec <= timeAtHit + time)
-				await Task.Delay((int)(time * 100f));
+				await Task.Delay(100);
 
 			FreeRid(rid.Rid);
 		}
