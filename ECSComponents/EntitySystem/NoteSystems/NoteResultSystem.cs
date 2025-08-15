@@ -9,6 +9,7 @@ using Friflo.Engine.ECS.Systems;
 using Godot;
 using XanaduProject.Audio;
 using XanaduProject.DataStructure;
+using XanaduProject.ECSComponents.EntitySystem.Components;
 using XanaduProject.ECSComponents.Tag;
 using XanaduProject.Factories;
 using XanaduProject.GameDependencies;
@@ -53,7 +54,7 @@ namespace XanaduProject.ECSComponents.EntitySystem.NoteSystems
 			if (entity.TryGetComponent(out HoldEcs hold))
 			{
 				GD.Print("entity hold");
-				DiProvider.Get<IPlayerCharacter>().TriggerHold(3);
+				DiProvider.Get<IPlayerCharacter>().TriggerHold(hold.Duration);
 			}
 		}
 

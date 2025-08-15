@@ -6,12 +6,14 @@ using Godot;
 using Stateless;
 using XanaduProject.Character;
 using XanaduProject.ECSComponents;
+using XanaduProject.ECSComponents.EntitySystem.Components;
 using XanaduProject.Factories;
 
 namespace XanaduProject.GameDependencies
 {
     public interface IPlayerCharacter
     {
+        public RenderRid PlayerCanvasRid{ get; }
         public Vector2 Position { get; }
         public StateMachine<MovementState, Trigger> StateMachine { get; }
 

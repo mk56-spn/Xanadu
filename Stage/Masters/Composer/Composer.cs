@@ -7,6 +7,7 @@ using Microsoft.Extensions.DependencyInjection;
 using XanaduProject.Audio;
 using XanaduProject.DataStructure;
 using XanaduProject.ECSComponents;
+using XanaduProject.ECSComponents.EntitySystem.Components;
 using XanaduProject.ECSComponents.EntitySystem.Components.Physics;
 using XanaduProject.ECSComponents.EntitySystem.ComposerSystems;
 using XanaduProject.ECSComponents.EntitySystem.ComposerSystems.Widgets;

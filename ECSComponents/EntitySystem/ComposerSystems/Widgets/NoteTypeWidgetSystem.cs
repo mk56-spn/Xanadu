@@ -4,6 +4,7 @@
 using System;
 using Godot;
 using XanaduProject.DataStructure;
+using XanaduProject.ECSComponents.Tag;
 
 namespace XanaduProject.ECSComponents.EntitySystem.ComposerSystems.Widgets
 {
@@ -34,7 +35,8 @@ namespace XanaduProject.ECSComponents.EntitySystem.ComposerSystems.Widgets
 
         protected override void OnUpdate()
         {
-            container.Visible = Composer.SelectedTemplateEntity.HasComponent<NoteEcs>();
+            var sel = Composer.SelectedTemplateEntity;
+            container.Visible = sel.HasComponent<NoteEcs>() && !sel.HasComponent<HoldEcs>();
         }
     }
 }

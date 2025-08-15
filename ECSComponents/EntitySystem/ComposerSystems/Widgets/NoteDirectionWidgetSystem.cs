@@ -2,6 +2,8 @@
 // See the LICENCE file in the repository root for full licence text.
 
 using Godot;
+using XanaduProject.ECSComponents.EntitySystem.Components;
+using XanaduProject.ECSComponents.Tag;
 
 namespace XanaduProject.ECSComponents.EntitySystem.ComposerSystems.Widgets
 {
@@ -16,7 +18,9 @@ namespace XanaduProject.ECSComponents.EntitySystem.ComposerSystems.Widgets
         }
         protected override void OnUpdate()
         {
-            container.Visible = Composer.SelectedTemplateEntity.HasComponent<NoteEcs>();
+            var sel = Composer.SelectedTemplateEntity;
+
+            container.Visible = sel.HasComponent<NoteEcs>() && !sel.HasComponent<HoldEcs>();
         }
 
         private readonly ButtonGroup group = new();

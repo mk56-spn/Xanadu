@@ -2,11 +2,13 @@
 // See the LICENCE file in the repository root for full licence text.
 
 using System;
+using System.Linq;
 using Friflo.Engine.ECS;
 using Godot;
 using Stateless;
 using XanaduProject.Audio;
-using XanaduProject.ECSComponents;
+using XanaduProject.DataStructure;
+using XanaduProject.ECSComponents.EntitySystem.Components;
 using XanaduProject.Factories;
 using XanaduProject.GameDependencies;
 
@@ -15,6 +17,7 @@ namespace XanaduProject.Character
     public partial class PlayerCharacter : CharacterBody2D, IPlayerCharacter
     {
         private readonly IClock clock = DiProvider.Get<IClock>();
+        public RenderRid PlayerCanvasRid { get; }
 
         private Entity entity;
         private enum Phase { Grounded, Airborne }
@@ -32,6 +35,7 @@ namespace XanaduProject.Character
 
         public PlayerCharacter()
         {
+            PlayerCanvasRid = GetCanvasItem().AsRenderRid();
             AddChild(new CharacterDamage());
             AddChild(new CharacterVisuals(this));
 
@@ -112,6 +116,15 @@ namespace XanaduProject.Character
             Position = new Vector2(0, 0);
         }
 
+
+        public override void _Process(double delta)
+        {
+            base._Process(delta);
+
+            if (Input.IsActionJustReleased(new StringName("main")))
+                ReleaseHold();
+        }
+
         public override void _EnterTree()
         {
             base._EnterTree();
@@ -147,15 +160,17 @@ namespace XanaduProject.Character
         private float inertiaTimeLeft; //
         private float freezeTimeLeft; //
 
-        //------------------------------------------------------------------
-        //  PUBLIC  API  ----------------------------------------------------
-        //------------------------------------------------------------------
-
         public StateMachine<MovementState, Trigger> StateMachine { get; private set; }
 
         public void TriggerHold(float seconds)
         {
             StateMachine.Fire(startHoldTrigger, seconds);
+        }
+
+        public void ReleaseHold()
+        {
+            if (StateMachine.State is MovementState.Holding or MovementState.MovingAndHolding)
+                StateMachine.Fire(Trigger.HoldTimeout);
         }
 
         public void TriggerDirectedAcceleration(Direction direction)
@@ -229,6 +244,7 @@ namespace XanaduProject.Character
             GlobalPosition = worldPosition;
         }
 
+
         public override void _PhysicsProcess(double delta)
         {
             if (clock.IsPaused) return;
@@ -289,7 +305,7 @@ namespace XanaduProject.Character
         {
             float verticalVelocity = Velocity.Y;
 
-            if (freezeTimeLeft < 0)
+            if (freezeTimeLeft > 0)
                 return 0;
 
             if (phaseMachine.State == Phase.Airborne || StateMachine.State is MovementState.Idle or MovementState.Moving)
