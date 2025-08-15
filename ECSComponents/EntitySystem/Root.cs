@@ -106,6 +106,7 @@ namespace XanaduProject.ECSComponents.EntitySystem
             Add(new NotelineSystem());
             Add(new NoteInputSystem());
             Add(new NoteResultSystem());
+            Add(new NoteJudgementTextSystem());
             Add(new BarSystem());
         }
 
@@ -119,7 +120,7 @@ namespace XanaduProject.ECSComponents.EntitySystem
                 .ForEachEntity((ref NoteEcs _, ref Hit _, ref ElementEcs _, Entity entity) =>
                 {
                     commandBuffer.RemoveComponent<Hit>(entity.Id);
-                    commandBuffer.RemoveTag<Judged>(entity.Id);
+                    commandBuffer.RemoveComponent<Judged>(entity.Id);
                 });
 
             commandBuffer.Playback();
