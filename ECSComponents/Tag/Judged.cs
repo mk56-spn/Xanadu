@@ -2,8 +2,12 @@
 // See the LICENCE file in the repository root for full licence text.
 
 using Friflo.Engine.ECS;
+using XanaduProject.DataStructure;
 
 namespace XanaduProject.ECSComponents.Tag
 {
-    public struct Judged : ITag;
+    public struct Judged : IComponent
+    {
+        public Judgement Judgement;
+    };
 }
