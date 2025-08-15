@@ -13,6 +13,7 @@ namespace XanaduProject.GameDependencies
 {
     public interface IPlayerCharacter
     {
+        public RenderRid PlayerCanvasRid{ get; }
         public Vector2 Position { get; }
         public StateMachine<MovementState, Trigger> StateMachine { get; }
 

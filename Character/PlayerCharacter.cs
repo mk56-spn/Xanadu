@@ -17,6 +17,7 @@ namespace XanaduProject.Character
     public partial class PlayerCharacter : CharacterBody2D, IPlayerCharacter
     {
         private readonly IClock clock = DiProvider.Get<IClock>();
+        public RenderRid PlayerCanvasRid { get; }
 
         private Entity entity;
         private enum Phase { Grounded, Airborne }
@@ -34,6 +35,7 @@ namespace XanaduProject.Character
 
         public PlayerCharacter()
         {
+            PlayerCanvasRid = GetCanvasItem().AsRenderRid();
             AddChild(new CharacterDamage());
             AddChild(new CharacterVisuals(this));
 
@@ -157,10 +159,6 @@ namespace XanaduProject.Character
         //------------------------------------------------------------------
         private float inertiaTimeLeft; //
         private float freezeTimeLeft; //
-
-        //------------------------------------------------------------------
-        //  PUBLIC  API  ----------------------------------------------------
-        //------------------------------------------------------------------
 
         public StateMachine<MovementState, Trigger> StateMachine { get; private set; }
 
