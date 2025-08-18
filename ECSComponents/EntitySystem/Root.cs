@@ -107,7 +107,7 @@ namespace XanaduProject.ECSComponents.EntitySystem
             Add(new NoteInputSystem());
             Add(new NoteResultSystem());
             Add(new NoteJudgementTextSystem());
-            Add(new BarSystem());
+            Add(new NoteBarSystem());
         }
 
         #endregion
