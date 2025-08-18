@@ -142,7 +142,7 @@ namespace XanaduProject.Audio
 			// If the track has finished, ensure time is capped and pause playback.
 			if (PlaybackTime >= TrackLength + LeadInTime)
 			{
-				PlaybackTime = TrackLength + LeadInTime;
+				PlaybackTime = TrackLength + LeadInTime + GameSettings.CurrentSettings.OffSetMs / 1000.0;
 				SetPaused(true);
 			}
 
