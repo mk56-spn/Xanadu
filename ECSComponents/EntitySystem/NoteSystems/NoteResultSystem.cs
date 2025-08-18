@@ -17,17 +17,7 @@ namespace XanaduProject.ECSComponents.EntitySystem.NoteSystems
 {
 	public class NoteResultSystem : QuerySystem<NoteEcs, Hit, ElementEcs>
 	{
-		private IClock clock = DiProvider.Get<IClock>();
-
-		public NoteResultSystem()
-		{
-			clock.Started += () =>
-			{
-				foreach (var variable in DiProvider.Get<IUiMaster>().ScoreLayer.GetChildren().OfType<Results>())
-					variable.QueueFree();
-
-			};
-        }
+		private readonly IClock clock = DiProvider.Get<IClock>();
 
 		protected override void OnUpdate()
 		{
@@ -74,11 +64,16 @@ namespace XanaduProject.ECSComponents.EntitySystem.NoteSystems
 		private void setupJudgedComponent()
 		{
 			var command = CommandBuffer;
-			Filter.AllComponents(default);
 			Query.ForEachEntity((ref NoteEcs note, ref Hit hit,
 				ref ElementEcs _, Entity entity) =>
-				command.AddComponent(entity.Id, new Judged{ Judgement = JudgementInfo.GetJudgement((hit.Time - note.TimingPoint )* 1000)}));
-
+			{
+				float f = (float)(hit.Time - note.TimingPoint) * 1000;
+				command.AddComponent(entity.Id, new Judged
+				{
+					Judgement = JudgementInfo.GetJudgement(Mathf.Abs(f)),
+					Deviation = f
+				});
+			});
 			command.Playback();
 		}
 	}

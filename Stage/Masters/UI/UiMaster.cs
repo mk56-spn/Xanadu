@@ -9,10 +9,16 @@ namespace XanaduProject.Stage.Masters.UI
     public partial class UiMaster : Node, IUiMaster
     {
         public CanvasLayer ScoreLayer { get; private set; } = new();
+        public Control TopCenterUi { get; private set; } = new();
+        public Control BottomCenterUi { get; private set; } = new();
 
-        public override void _Ready()
+        public UiMaster()
         {
             AddChild(ScoreLayer);
+            ScoreLayer.AddChild(TopCenterUi);
+            ScoreLayer.AddChild(BottomCenterUi);
+            BottomCenterUi.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.CenterBottom);
+            TopCenterUi.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.CenterTop);
         }
     }
 }

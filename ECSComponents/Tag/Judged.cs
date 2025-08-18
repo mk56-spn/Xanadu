@@ -8,6 +8,7 @@ namespace XanaduProject.ECSComponents.Tag
 {
     public struct Judged : IComponent
     {
+        public float Deviation;
         public Judgement Judgement;
     };
 }

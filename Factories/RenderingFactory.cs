@@ -158,6 +158,12 @@ namespace XanaduProject.Factories
 			return r;
 		}
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static RenderRid AddLine(this in RenderRid r, Vector2 from, Vector2 to, Color? color = null)
+        {
+            CanvasItemAddLine(r.Rid, from, to,color ?? Colors.White);
+            return r;
+        }
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static RenderRid AddMultiline(this in RenderRid r, Vector2[] points, Color[]? color = null)

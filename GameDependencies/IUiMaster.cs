@@ -8,5 +8,7 @@ namespace XanaduProject.GameDependencies
     public interface IUiMaster
     {
         public CanvasLayer ScoreLayer { get; }
+        public Control TopCenterUi { get; }
+        public Control BottomCenterUi { get; }
     }
 }
