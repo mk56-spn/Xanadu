@@ -8,6 +8,7 @@ using Godot;
 using Microsoft.Extensions.DependencyInjection;
 using XanaduProject.Character;
 using XanaduProject.GameDependencies;
+using XanaduProject.Screens.Settings;
 
 namespace XanaduProject.Screens
 {
@@ -17,15 +18,32 @@ namespace XanaduProject.Screens
         private Screen nextScreen = null!;
         private bool isTransitioning;
         private readonly ScreenTransitionManager transitionManager;
+        private readonly SubScreenManager subScreenManager;
 
-        private float transitionDuration = 0.5f;
-        private TransitionType defaultTransition = TransitionType.Slide;
+        private const float transition_duration = 0.5f;
 
         public ScreenManager()
         {
-            transitionManager = new ScreenTransitionManager(this, transitionDuration);
+            transitionManager = new ScreenTransitionManager(this, transition_duration);
+            subScreenManager = new SubScreenManager(this, transitionManager);
             DiProvider.Register(c => { c.AddSingleton(this); });
             RequestChangeScreen(new MainMenu(), TransitionType.Fade);
+        }
+
+        public void InvokeSetting()
+        {
+            var settingsScreen = new SettingsSubScreen();
+            subScreenManager.ChangeSubScreen(settingsScreen);
+        }
+
+        public void RemoveSubscreen() {
+            subScreenManager.RemoveSubScreen();
+        }
+
+        public override void _Ready()
+        {
+            //Apply saved resolution
+            GameSettings.ApplyResolution();
         }
 
         public void RequestChangeScreen(Screen screen, TransitionType transitionType = TransitionType.Slide)
@@ -72,8 +90,11 @@ namespace XanaduProject.Screens
 
         private void OnTransitionCompleted()
         {
-            // Remove old screen
-            RemoveChild(currentScreen);
+            if (IsInstanceValid(currentScreen))
+            {
+                RemoveChild(currentScreen);
+                currentScreen.QueueFree();
+            }
 
             // Update current screen reference
             currentScreen = nextScreen;

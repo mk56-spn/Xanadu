@@ -15,7 +15,7 @@ namespace XanaduProject.Screens
         /// <summary>
         /// Starts the transition to hide the current screen.
         /// </summary>
-        public void StartTransitionOut(Screen currentScreen, TransitionType transitionType)
+        public void StartTransitionOut(Screen currentScreen, TransitionType transitionType, Action? onCompleted = null)
         {
             var tween = parent.CreateTween();
 
@@ -34,6 +34,11 @@ namespace XanaduProject.Screens
                     tween.TweenProperty(currentScreen, "scale", new Vector2(2.0f, 2.0f), transitionDuration);
                     tween.TweenProperty(currentScreen, "modulate:a", 0.0f, transitionDuration);
                     break;
+            }
+
+            if (onCompleted != null)
+            {
+                tween.Finished += onCompleted;
             }
         }
 
