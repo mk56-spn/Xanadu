@@ -60,8 +60,9 @@ namespace XanaduProject.Screens.Settings
             categoriesContainer.AddChild(audioCategory);
 
             // Add window settings to displays category
-            var windowSettings = new WindowSettingsControl();
+            var windowSettings = new WindowSettingsControl("💻", "Window Settings");
             displaysCategory.AddSettingsControl(windowSettings);
+            audioCategory.AddSettingsControl(new OffsetControl("<< ⏳ >>", "Offset"));
         }
     }
 

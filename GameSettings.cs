@@ -9,9 +9,11 @@ namespace XanaduProject
         {
             public int ResolutionWidth { get; set; } = 1920;
             public int ResolutionHeight { get; set; } = 1080;
+
+            public int OffSetMs { get; set; }
         }
 
-        public static SettingsData CurrentSettings { get; private set; } = new SettingsData();
+        public static SettingsData CurrentSettings { get; private set; } = new();
 
         private static readonly string settings_file_path = "user://settings.json";
 

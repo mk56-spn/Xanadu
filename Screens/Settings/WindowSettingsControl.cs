@@ -5,15 +5,12 @@ using Godot;
 
 namespace XanaduProject.Screens.Settings
 {
-    public partial class WindowSettingsControl : HBoxContainer
+    public partial class WindowSettingsControl : SettingsControl
     {
         private OptionButton resolutionDropdown;
 
-        public WindowSettingsControl()
+        public WindowSettingsControl(string icon, string settingName) : base(icon, settingName)
         {
-            // Add label
-            AddChild(new Label { Text = "Resolution" });
-
             // Add dropdown
             resolutionDropdown = new OptionButton();
             AddChild(resolutionDropdown);
