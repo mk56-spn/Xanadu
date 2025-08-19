@@ -2,12 +2,9 @@
 // See the LICENCE file in the repository root for full licence text.
 
 using System;
-using System.Linq;
 using Friflo.Engine.ECS;
 using Godot;
-using Stateless;
 using XanaduProject.Audio;
-using XanaduProject.DataStructure;
 using XanaduProject.ECSComponents.EntitySystem.Components;
 using XanaduProject.Factories;
 using XanaduProject.GameDependencies;
@@ -82,7 +79,7 @@ namespace XanaduProject.Character
             collisionShape2D.Shape = new CapsuleShape2D { Radius = 31, Height = 128f };
         }
 
-        private const float max_run_speed = 600f;
+        public const float MAX_RUN_SPEED = 600f;
         private const float gravity = 2500f;
         private const float inertia_duration = 0.4f;
         private const float stopping_friction = 5000f;
@@ -117,29 +114,29 @@ namespace XanaduProject.Character
             switch (direction)
             {
                 case Direction.Left:
-                    targetX = -max_run_speed;
+                    targetX = -MAX_RUN_SPEED;
                     break;
 
                 case Direction.Right:
-                    targetX =  max_run_speed;
+                    targetX =  MAX_RUN_SPEED;
                     break;
 
                 case Direction.Up:
-                    targetY = -max_run_speed;
+                    targetY = -MAX_RUN_SPEED;
                     break;
 
                 case Direction.Down:
-                    targetY =  max_run_speed;
+                    targetY =  MAX_RUN_SPEED;
                     break;
 
                 case Direction.UpLeft:
-                    targetX = -max_run_speed;
-                    targetY = -max_run_speed;
+                    targetX = -MAX_RUN_SPEED;
+                    targetY = -MAX_RUN_SPEED;
                     break;
 
                 case Direction.UpRight:
-                    targetX =  max_run_speed;
-                    targetY = -max_run_speed;
+                    targetX =  MAX_RUN_SPEED;
+                    targetY = -MAX_RUN_SPEED;
                     break;
 
                 default:
@@ -224,6 +221,7 @@ namespace XanaduProject.Character
             ref var v = ref Entity.GetComponent<CharacterEcs>();
             v.Position = Position;
             v.Velocity = Velocity;
+            GD.Print(Velocity);
         }
 
         private float calculateVerticalVelocity(float dt)
