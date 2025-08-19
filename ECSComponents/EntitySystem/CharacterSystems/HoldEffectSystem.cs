@@ -37,7 +37,7 @@ namespace XanaduProject.ECSComponents.EntitySystem.CharacterSystems
         }
         protected override void OnUpdate()
         {
-            bool emit = player.StateMachine.State is MovementState.Holding or MovementState.MovingAndHolding;
+            bool emit = player.MotionMachine.State is MovementState.Holding or MovementState.MovingAndHolding;
             particles.SetEmitting(emit);
         }
     }
