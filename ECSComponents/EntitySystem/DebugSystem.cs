@@ -118,10 +118,9 @@ namespace XanaduProject.ECSComponents.EntitySystem
             container.AddChild(new MethodLabel(() => Performance.GetMonitor(Performance.Monitor.ObjectResourceCount),
                 "RESOURCES :"));
 
-            container.AddChild(new MethodLabel(()=> DiProvider.Get<IPlayerCharacter>().StateMachine.State, "STATE :"));
-            root.SetMonitorPerf(true);
-            container.AddChild(new MethodLabel(() => root.Perf, "SYSTEMS :"));
+            container.AddChild(new MethodLabel(()=> DiProvider.Get<IPlayerCharacter>().MotionMachine.State, "STATE :"));
 
+            root.SetMonitorPerf(true);
             container.AddChild(new InputHandler(this));
         }
 
@@ -144,16 +143,33 @@ namespace XanaduProject.ECSComponents.EntitySystem
 
         private partial class QueryLabel(ArchetypeQuery query, string staticText) : DebugLabel
         {
-            public override void _Process(double delta)
-            {
+            private int lastCount = -1;
+
+            public override void _Process(double delta){
+                if (query.Count == lastCount) return;
                 Text = staticText + query.Count;
+                lastCount = query.Count;
             }
         }
 
         private partial class MethodLabel(Func<object> method, string staticText) : DebugLabel
         {
+            private object  lastValue = null!;
+
+            public override void _Ready()
+            {
+                updateText();
+            }
+
             public override void _Process(double delta)
             {
+                if (lastValue == method.Invoke()) return;
+                updateText();
+            }
+
+            private void updateText()
+            {
+                lastValue = method.Invoke();
                 Text = staticText + method.Invoke();
             }
         }
