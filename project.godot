@@ -18,6 +18,7 @@ config/name="XanaduProject"
 config/tags=PackedStringArray("serious")
 run/main_scene="uid://dieq5td30c3h4"
 config/features=PackedStringArray("4.4", "C#", "Forward Plus")
+run/max_fps=360
 config/icon="uid://c0o4xv1qbn2di"
 
 [audio]
