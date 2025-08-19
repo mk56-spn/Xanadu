@@ -221,8 +221,7 @@ namespace XanaduProject.Character
             ref var v = ref Entity.GetComponent<CharacterEcs>();
             v.Position = Position;
             v.Velocity = Velocity;
-            GD.Print(Velocity);
-        }
+                }
 
         private float calculateVerticalVelocity(float dt)
         {
