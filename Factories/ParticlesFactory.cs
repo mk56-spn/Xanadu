@@ -152,5 +152,13 @@ namespace XanaduProject.Factories
             ParticlesSetDrawPassMesh(p,0, mesh);
             return p;
         }
+
+        public static ParticlesRid SetEmissionTransform(this in ParticlesRid p, Transform2D xf2d)
+        {
+            // This has to be the most retarded design ever...
+            Transform3D  xf3d = Transform3D.Identity with { Origin = new Vector3(xf2d.Origin.X, xf2d.Origin.Y, 0) };
+            ParticlesSetEmissionTransform(p,xf3d);
+            return p;
+        }
     }
 }

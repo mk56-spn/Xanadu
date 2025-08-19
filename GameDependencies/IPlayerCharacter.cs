@@ -15,7 +15,7 @@ namespace XanaduProject.GameDependencies
     {
         public RenderRid PlayerCanvasRid{ get; }
         public Vector2 Position { get; }
-        public StateMachine<MovementState, Trigger> StateMachine { get; }
+        public MotionMachine MotionMachine { get; }
 
         public void TriggerHold(float seconds);
         public void TriggerDirectedAcceleration(Direction direction);
