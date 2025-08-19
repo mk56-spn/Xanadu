@@ -173,10 +173,10 @@ namespace XanaduProject.Factories
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static RenderRid AddMesh(this in RenderRid r, Rid mesh, Transform2D transform = default,
-			Color? modulate = null, Rid texture = default, Rid normalMap = default)
+		public static RenderRid AddMesh(this in RenderRid r, Rid mesh, Transform2D? transform = null,
+			Color? modulate = null, Rid? texture = null)
 		{
-			CanvasItemAddMesh(r, mesh, transform, modulate ?? Colors.White, texture);
+			CanvasItemAddMesh(r, mesh, transform ?? Transform2D.Identity, modulate ?? Colors.White, texture ?? GetWhiteTexture());
 			return r;
 		}
 
