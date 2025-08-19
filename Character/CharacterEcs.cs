@@ -10,6 +10,8 @@ namespace XanaduProject.Character
     public struct CharacterEcs() : IComponent {
         public Vector2 Position = new();
         public Vector2 Velocity;
+        public MovementState Movement;
+        public Phase Phase;
     };
 
     public struct Grounded;
