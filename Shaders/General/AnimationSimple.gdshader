@@ -5,13 +5,13 @@ shader_type canvas_item;
 #include "res://Shaders/Base.gdshaderinc"
 #include "res://Shaders/NoteBase.gdshaderinc"
 
-instance uniform float animation_start_time = 3.;
-instance uniform float animation_duration = 10.;
+instance uniform float animation_start_time = 1.;
+instance uniform float animation_duration = 2.;
 instance uniform int easing_index = 27; // Default to easeInOutBack
-instance uniform vec2 translation = vec2(0.0, -150.0); // Animate 150px upwards
+instance uniform vec2 translation;
 instance uniform float rotation_degrees = 0.0;
-instance uniform vec2 scaled = vec2(1.5, 1.5); // End at 150% size
-instance uniform vec2 center = vec2(0.0, 0.0); // Pivot point for scale/rotation
+instance uniform vec2 scaled = vec2(1.5, 1.5);
+instance uniform vec2 center = vec2(0.0, 0.0);
 
 
 void vertex() {
@@ -41,4 +41,5 @@ void vertex() {
 	transformed_vertex += translation * eased_progress;
 
 	VERTEX = transformed_vertex;
+	COLOR.a *= 1. - progress;
 }
