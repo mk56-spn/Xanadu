@@ -74,7 +74,7 @@ namespace XanaduProject
 		public override void _Process(double delta)
 		{
 			Root.Update(new UpdateTick());
-            entityStore.EventRecorder.ClearEvents();
+			entityStore.EventRecorder.ClearEvents();
 		}
 
 		public void DamageTaken()

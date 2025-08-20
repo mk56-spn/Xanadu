@@ -5,8 +5,8 @@ using Friflo.Engine.ECS;
 
 namespace XanaduProject.Serialization.SerialisedObjects
 {
-    public class SerializableStage
-    {
-        public EntityStore EntityStore = null!;
-    }
+	public class SerializableStage
+	{
+		public EntityStore EntityStore = null!;
+	}
 }
