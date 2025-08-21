@@ -5,6 +5,7 @@ using System;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Godot;
+using XanaduProject.Factories;
 using XanaduProject.GameDependencies;
 using ZLinq;
 
@@ -20,7 +21,6 @@ namespace XanaduProject.ECSComponents.EntitySystem.NoteSystems
 
         protected override void OnAddStore(EntityStore store)
         {
-            base.OnAddStore(store);
             drawLine();
         }
 
@@ -46,8 +46,9 @@ namespace XanaduProject.ECSComponents.EntitySystem.NoteSystems
 
         private void drawLine()
         {
-            if (points.Length <2 ) return;
             RenderingServer.CanvasItemClear(canvas);
+            if (points.Length <2 ) return;
+            canvas.AsRenderRid().SetZIndex(-10);
             RenderingServer.CanvasItemAddPolyline(canvas,points,[]);
         }
 
