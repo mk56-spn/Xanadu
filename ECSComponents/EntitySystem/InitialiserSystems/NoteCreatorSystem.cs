@@ -20,7 +20,7 @@ namespace XanaduProject.ECSComponents.EntitySystem.InitialiserSystems
         protected override void OnUpdate()
         {
             note.C = CommandBuffer;
-            Query.EachEntity(note);
+            Query.WithoutAnyComponents(default).EachEntity(note);
             Query.WithoutAnyComponents(ComponentTypes.Get<HoldEcs, DirectionEcs>())
                 .ForEachEntity((ref ElementEcs element, ref NoteEcs note, Entity entity) =>
                 {
