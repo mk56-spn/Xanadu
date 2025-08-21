@@ -99,6 +99,14 @@ namespace XanaduProject.Factories
     /// </summary>
     public static class ParticlesRidExtensions
     {
+        public static GradientTexture1D FadeGradient = new()
+        {
+            Gradient = new Gradient
+            {
+                Offsets = [0, 0.5f, 1],
+                Colors = [Colors.White, Colors.Transparent]
+            }
+        };
         public static ParticlesRid SetEmitting(this in ParticlesRid p, bool emitting = true)
         {
             ParticlesSetEmitting(p, emitting);
