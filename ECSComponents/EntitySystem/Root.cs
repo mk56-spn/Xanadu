@@ -85,6 +85,7 @@ namespace XanaduProject.ECSComponents.EntitySystem
             Add(new NoteCreatorSystem());
             Add(new HurtZoneCreator());
             Add(new DirectionNoteCreator());
+            Add(new HoldNoteCreator());
             Add(new BlockBodySystem());
             Add(new InitializerSystem());
             Add(new CreatorFinalizer());
