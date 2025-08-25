@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using Godot;
 using Microsoft.Extensions.DependencyInjection;
 using XanaduProject.Character;
+using XanaduProject.Factories;
 using XanaduProject.GameDependencies;
 using XanaduProject.Screens.Settings;
 
@@ -28,6 +29,38 @@ namespace XanaduProject.Screens
             subScreenManager = new SubScreenManager(this, transitionManager);
             DiProvider.Register(c => { c.AddSingleton(this); });
             RequestChangeScreen(new MainMenu(), TransitionType.Fade);
+            setupParticles();
+        }
+
+        private ParticleProcessMaterial particleProcessMaterial = new()
+        {
+            TurbulenceEnabled = true,
+            EmissionShape = ParticleProcessMaterial.EmissionShapeEnum.Box,
+            EmissionBoxExtents = new Vector3(1000,1000,0),
+            ScaleMax = 1.5f,
+            ScaleMin = 0.3f,
+            ColorRamp = new GradientTexture1D {
+                Gradient = new Gradient {
+                    Offsets = [0,0.5f,1],
+                    Colors = [Colors.Transparent, Colors.White, Colors.Transparent]
+                }
+            },
+            ColorInitialRamp = new GradientTexture1D {
+                Gradient = new Gradient {
+                    Offsets = [0,1],
+                    Colors = [Colors.Transparent, Colors.White]
+                }
+            }
+        };
+        private void setupParticles()
+        {
+            RenderRid canvas = RenderRid.Create(GetCanvasItem())
+                .SetTransform(new Transform2D(0, new Vector2(1000, 1000)));
+            canvas.AddParticles(ParticlesRid.Create()
+                .SetAmount(100)
+                .SetLifetime(10)
+                .SetMesh(MeshFactory.CreateStar(4, 20, 0.5f).GetRid())
+                .SetProcessMaterial(particleProcessMaterial.GetRid()));
         }
 
         public void InvokeSetting()
@@ -63,6 +96,8 @@ namespace XanaduProject.Screens
 
             // Complete the transition with the fade in
             transitionManager.CompleteTransition(nextScreen, transitionType, OnTransitionCompleted);
+
+            particleProcessMaterial.Color = nextScreen.Color;
         }
 
         public async void RequestChangeScreen<T>(Func<T> screenFactory, TransitionType transitionType = TransitionType.Slide) where T : Screen
