@@ -8,6 +8,7 @@ using Godot;
 using XanaduProject.Character;
 using XanaduProject.Factories;
 using XanaduProject.GameDependencies;
+using XanaduProject.Shaders;
 using static Godot.RenderingServer;
 
 namespace XanaduProject.ECSComponents.EntitySystem.CharacterSystems
@@ -22,21 +23,13 @@ namespace XanaduProject.ECSComponents.EntitySystem.CharacterSystems
 			Spread = 180,
 			Gravity = Vector3.Up * 1000,
 			EmissionShape = ParticleProcessMaterial.EmissionShapeEnum.Box,
-			ColorRamp = new GradientTexture1D { Gradient = new Gradient()
-			{
-				Offsets = [0,0.5f,1],
-				Colors = [
-					Colors.Red,
-					new Color(0.5f,0.5f,0.5f),
-					Colors.Transparent
-				]
-			}},
+			ColorRamp = ParticlesRidExtensions.FadeGradient,
 		};
 
 		private readonly ParticlesRid groundParticles = ParticlesRid.Create()
 			.SetAmount(100)
-            .SetAmountRatio(0)
-            .SetLifetime(1)
+			.SetAmountRatio(0)
+			.SetLifetime(1)
 			.SetProcessMaterial(material.GetRid())
 			.SetMesh(MeshFactory.CreateStar(10, 10, 0.5f).GetRid());
 
@@ -61,8 +54,9 @@ namespace XanaduProject.ECSComponents.EntitySystem.CharacterSystems
 
 
 			store.Query<CharacterEcs>().Entities.First().AddSignalHandler<Airborne>(_ =>
-			{
-			});
+            {
+                groundParticles.SetAmountRatio(0);
+            });
 		}
 
 		protected override void OnUpdate()
