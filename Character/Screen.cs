@@ -8,11 +8,13 @@ using XanaduProject.Screens;
 namespace XanaduProject.Character
 {
 	public partial class Screen : Control
-	{
+    {
+        public Color Color { get; protected set; } = Colors.Blue;
+
 		public Screen()
 		{
 			SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
 		}
-		public ScreenManager ScreenManager { get; } = DiProvider.Get<Screens.ScreenManager>();
+		public ScreenManager ScreenManager { get; } = DiProvider.Get<ScreenManager>();
 	}
 }
