@@ -3,6 +3,7 @@
 
 using Friflo.Engine.ECS;
 using Godot;
+using XanaduProject.DataStructure;
 using XanaduProject.ECSComponents.EntitySystem.Components;
 using XanaduProject.Factories;
 
@@ -11,30 +12,35 @@ namespace XanaduProject.ECSComponents.EntitySystem.InitialiserSystems
     public class DirectionNoteCreator : BaseCreatorSystem<NoteEcs, DirectionEcs>
     {
         private readonly DirectionNotes n = new();
-        protected override void OnUpdate()
-        {
-            Query.Each(n);
-        }
-        private static string directionToArrow(Direction dir) => dir switch
-        {
-            Direction.Up        => "↑",
-            Direction.Down      => "↓",
-            Direction.Left      => "←",
-            Direction.Right     => "→",
-            Direction.UpLeft    => "↖",
-            Direction.UpRight   => "↗",
-            _                   => dir.ToString().Substring(0, 1) // Fallback
-        };
+        protected override void OnUpdate() => Query.Each(n);
 
+        private static float directionToRotation(Direction dir) => dir switch
+        {
+            Direction.Up        => -Mathf.Pi / 2,
+            Direction.Down      => Mathf.Pi / 2,
+            Direction.Left      => Mathf.Pi,
+            Direction.Right     => 0,
+            Direction.UpLeft    => -3 * Mathf.Pi / 4,
+            Direction.UpRight   => -Mathf.Pi / 4,
+            _                   => 0
+        };
         private struct DirectionNotes : IEach<ElementEcs, NoteEcs, DirectionEcs>
         {
-            private static readonly Vector2 note_size = new(70, 25);
-
             public void Execute(ref ElementEcs element, ref NoteEcs note, ref DirectionEcs direction)
             {
                 RenderRid.Create()
-                    .AddString(Vector2.Zero, directionToArrow(direction.Direction), 50)
+                    .SetModulate(note.NoteType.NoteColor())
+                    .AddSetTransform(new Transform2D(directionToRotation(direction.Direction),Vector2.Zero))
+                    .AddMesh(MeshFactory.CreateStar(6,30,0.2f).GetRid(), modulate: Colors.White.Darkened(0.5f))
+                    .AddMesh(MeshFactory.CreateStar(3,50,0.2f).GetRid())
+                    .AddMesh(MeshFactory.CreateStar(3,40,0.2f).GetRid(), modulate: Colors.White.Darkened(0.8f))
                     .SetParent(note.NoteCanvas);
+
+                note.NoteCanvas.AsRenderRid()
+                    .AddSetTransform(new Transform2D(directionToRotation(direction.Direction),Vector2.Zero))
+                    .AddMesh(MeshFactory.CreateStar(3, 50, 0.2f).GetRid())
+                    .AddSetTransform(new Transform2D(directionToRotation(direction.Direction)+float.Pi,Vector2.Zero))
+                    .AddMesh(MeshFactory.CreateStar(3, 50, 0.2f).GetRid());
             }
         }
     }
