@@ -17,7 +17,7 @@ namespace XanaduProject.Factories
         Heart,
         Crescent,
         Star,
-        CreateStarGlow
+        Circle,
     }
 
     public static class MeshFactory
@@ -27,106 +27,6 @@ namespace XanaduProject.Factories
         private static readonly System.Collections.Generic.Dictionary<object, ArrayMesh> s_mesh_cache = new();
 
         #region Public Mesh Creation Methods
-
-         public static ArrayMesh CreateStarGlow(int numPoints, float size, float insetRatio, float glowSize, Color mainColor, Color glowColor)
-    {
-        if (numPoints < 2) numPoints = 2; // Ensure at least 2 points
-
-        // Update the cache key to include new visual parameters
-        var cacheKey = (MeshType.CreateStarGlow, numPoints, size, insetRatio, glowSize, mainColor, glowColor);
-        if (s_mesh_cache.TryGetValue(cacheKey, out var cachedMesh))
-        {
-            return cachedMesh;
-        }
-
-        var vertices = new Array<Vector3>();
-        var colors = new Array<Color>();
-        var indices = new Array<int>();
-
-        int totalPoints = numPoints * 2;
-        float innerRadius = size * Mathf.Clamp(insetRatio, 0.1f, 1.0f);
-
-        // --- 1. Build the Glow Mesh (if glowSize > 0) ---
-        // We build this first so it renders behind the main shape.
-        if (glowSize > 0)
-        {
-            Color transparentGlow = new Color(glowColor.R, glowColor.G, glowColor.B, 0);
-            float glowOuterRadius = size + glowSize;
-            float glowInnerRadius = innerRadius + glowSize;
-
-            // Add the center vertex for the glow fan
-            vertices.Add(Vector3.Zero);
-            colors.Add(glowColor); // Center is fully colored
-            int glowCenterIndex = 0;
-
-            // Add all the outer vertices for the glow
-            for (int i = 0; i < totalPoints; i++)
-            {
-                float radius = (i % 2 == 0) ? glowOuterRadius : glowInnerRadius;
-                float angle = i * Mathf.Pi / numPoints;
-                vertices.Add(new Vector3(Mathf.Cos(angle) * radius, Mathf.Sin(angle) * radius, 0));
-                colors.Add(transparentGlow); // Outer vertices are transparent
-            }
-
-            // Create the triangles for the glow
-            for (int i = 0; i < totalPoints; i++)
-            {
-                int p1 = glowCenterIndex;
-                int p2 = i + 1;
-                // Wrap around for the last triangle
-                int p3 = (i == totalPoints - 1) ? 1 : i + 2;
-
-                indices.Add(p1);
-                indices.Add(p2);
-                indices.Add(p3);
-            }
-        }
-
-        // --- 2. Build the Main Star Mesh ---
-        int mainMeshStartIndex = vertices.Count;
-
-        // Add the center vertex for the main star's triangle fan
-        vertices.Add(Vector3.Zero);
-        colors.Add(mainColor);
-        int mainCenterIndex = mainMeshStartIndex;
-
-        // Add all the outer vertices for the main star
-        for (int i = 0; i < totalPoints; i++)
-        {
-            float radius = (i % 2 == 0) ? size : innerRadius;
-            float angle = i * Mathf.Pi / numPoints;
-            vertices.Add(new Vector3(Mathf.Cos(angle) * radius, Mathf.Sin(angle) * radius, 0));
-            colors.Add(mainColor);
-        }
-
-        // Create the triangles for the main star
-        for (int i = 0; i < totalPoints; i++)
-        {
-            int p1 = mainCenterIndex;
-            // Offset indices by the starting index of this mesh's vertices
-            int p2 = mainMeshStartIndex + 1 + i;
-             // Wrap around for the last triangle
-            int p3 = (i == totalPoints - 1) ? mainMeshStartIndex + 1 : mainMeshStartIndex + 2 + i;
-
-            indices.Add(p1);
-            indices.Add(p2);
-            indices.Add(p3);
-        }
-
-        // --- 3. Create the final ArrayMesh ---
-        var arrays = new Array();
-        arrays.Resize((int)Mesh.ArrayType.Max);
-        arrays[(int)Mesh.ArrayType.Vertex] = vertices;
-        arrays[(int)Mesh.ArrayType.Color] = colors;
-        arrays[(int)Mesh.ArrayType.Index] = indices;
-
-        var arrayMesh = new ArrayMesh();
-        arrayMesh.AddSurfaceFromArrays(Mesh.PrimitiveType.Triangles, arrays);
-
-        // Cache and return the result
-        s_mesh_cache[cacheKey] = arrayMesh;
-        return arrayMesh;
-    }
 
         public static ArrayMesh CreateTriangle(float size)
         {
@@ -241,6 +141,28 @@ namespace XanaduProject.Factories
             return arrayMesh;
         }
 
+        public static ArrayMesh CreateCircle(float size, int numSegments = 32)
+        {
+            if (numSegments < 3) numSegments = 3; // A circle needs at least 3 segments.
+
+            var cacheKey = (MeshType.Circle, size, numSegments);
+            if (s_mesh_cache.TryGetValue(cacheKey, out var cachedMesh))
+            {
+                return cachedMesh;
+            }
+
+            var outlineVertices = new Vector3[numSegments];
+            for (int i = 0; i < numSegments; i++)
+            {
+                float angle = i * 2.0f * Mathf.Pi / numSegments;
+                outlineVertices[i] = new Vector3(Mathf.Cos(angle), Mathf.Sin(angle), 0) * size;
+            }
+
+            var meshVertices = triangulateFromCenter(outlineVertices);
+            var arrayMesh = createMeshFromVertices(meshVertices);
+            s_mesh_cache[cacheKey] = arrayMesh;
+            return arrayMesh;
+        }
         #endregion
 
         #region Private Helper Methods
@@ -275,7 +197,7 @@ namespace XanaduProject.Factories
         private static ArrayMesh createMeshFromVertices(Vector3[] vertices, int[]? indices = null)
         {
             var arrayMesh = new ArrayMesh();
-            var arrays = new Godot.Collections.Array();
+            var arrays = new Array();
             arrays.Resize((int)Mesh.ArrayType.Max);
             arrays[(int)Mesh.ArrayType.Vertex] = vertices;
 
