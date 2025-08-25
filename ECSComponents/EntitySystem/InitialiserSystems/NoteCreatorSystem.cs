@@ -2,14 +2,12 @@
 // See the LICENCE file in the repository root for full licence text.
 
 using Friflo.Engine.ECS;
-using Friflo.Engine.ECS.Systems;
 using Godot;
 using XanaduProject.DataStructure;
 using XanaduProject.ECSComponents.EntitySystem.Components;
 using XanaduProject.ECSComponents.Tag;
 using XanaduProject.Factories;
 using XanaduProject.Stage.Masters.Rendering;
-using static Godot.RenderingServer;
 
 namespace XanaduProject.ECSComponents.EntitySystem.InitialiserSystems
 {
@@ -30,7 +28,7 @@ namespace XanaduProject.ECSComponents.EntitySystem.InitialiserSystems
                 });
         }
 
-        private static ParticleProcessMaterial particlesMaterial = new()
+        private static readonly ParticleProcessMaterial particles_material = new()
         {
             Spread = 180,
             EmissionShape = ParticleProcessMaterial.EmissionShapeEnum.Ring,
@@ -58,13 +56,12 @@ namespace XanaduProject.ECSComponents.EntitySystem.InitialiserSystems
         private static readonly ParticlesRid particles = ParticlesRid.Create()
             .SetAmount(5)
             .SetMesh(MeshFactory.CreateHeart(10f).GetRid())
-            .SetProcessMaterial(particlesMaterial.GetRid());
+            .SetProcessMaterial(particles_material.GetRid());
 
         private struct Notes : IEachEntity<ElementEcs, NoteEcs>
 		{
 
             public CommandBuffer C;
-            private static readonly Vector2 note_size = new(70, 25);
 
 			public void Execute(ref ElementEcs element, ref NoteEcs note, int id)
             {
