@@ -9,5 +9,9 @@ namespace XanaduProject
     {
         public static readonly Font LINE_THIN = GD.Load<Font>("uid://dghg2sit48qtn");
         public static readonly Font PLASTIC = GD.Load<Font>("uid://ehrnfq107vtu");
+
+        public static readonly ShaderMaterial GRADIENT_MATERIAL = new() {
+            Shader = GD.Load<Shader>("uid://b4d6duhq4a303")
+        };
     }
 }
