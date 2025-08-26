@@ -2,8 +2,9 @@
 // See the LICENCE file in the repository root for full licence text.
 
 using Godot;
+using System;
 using System.Collections.Generic;
-using Godot.Collections;
+using Array = Godot.Collections.Array;
 
 namespace XanaduProject.Factories
 {
@@ -18,6 +19,7 @@ namespace XanaduProject.Factories
         Crescent,
         Star,
         Circle,
+        CutoutRing,
     }
 
     public static class MeshFactory
@@ -43,7 +45,7 @@ namespace XanaduProject.Factories
                 new Vector3(size, -size, 0)   // Bottom right vertex
             };
 
-            var arrayMesh = createMeshFromVertices(vertices);
+            var arrayMesh = CreateMeshFromVertices(vertices);
             s_mesh_cache[cacheKey] = arrayMesh;
             return arrayMesh;
         }
@@ -69,7 +71,7 @@ namespace XanaduProject.Factories
             }
 
             var meshVertices = triangulateFromCenter(outlineVertices);
-            var arrayMesh = createMeshFromVertices(meshVertices);
+            var arrayMesh = CreateMeshFromVertices(meshVertices);
             s_mesh_cache[cacheKey] = arrayMesh;
             return arrayMesh;
         }
@@ -110,7 +112,7 @@ namespace XanaduProject.Factories
                     vertices[i] = new Vector3(outlinePoints[i].X, outlinePoints[i].Y, 0);
                 }
 
-                var arrayMesh = createMeshFromVertices(vertices, indices);
+                var arrayMesh = CreateMeshFromVertices(vertices, indices);
                 s_mesh_cache[cacheKey] = arrayMesh;
                 return arrayMesh;
             }
@@ -136,7 +138,7 @@ namespace XanaduProject.Factories
             }
 
             var meshVertices = triangulateFromCenter(outlineVertices);
-            var arrayMesh = createMeshFromVertices(meshVertices);
+            var arrayMesh = CreateMeshFromVertices(meshVertices);
             s_mesh_cache[cacheKey] = arrayMesh;
             return arrayMesh;
         }
@@ -159,7 +161,22 @@ namespace XanaduProject.Factories
             }
 
             var meshVertices = triangulateFromCenter(outlineVertices);
-            var arrayMesh = createMeshFromVertices(meshVertices);
+            var arrayMesh = CreateMeshFromVertices(meshVertices);
+            s_mesh_cache[cacheKey] = arrayMesh;
+            return arrayMesh;
+        }
+
+        public static ArrayMesh CreateCutoutRing(float outerRadius = 100, float innerRadius = 90, int numSegments = 64, int numCutouts = 3, float minCutoutDepth = 5, float maxCutoutDepth = 10, int minCutoutWidth = 10, int maxCutoutWidth = 15)
+        {
+            var cacheKey = (MeshType.CutoutRing, outerRadius, innerRadius, numSegments, numCutouts, minCutoutDepth, maxCutoutDepth, minCutoutWidth, maxCutoutWidth);
+            if (s_mesh_cache.TryGetValue(cacheKey, out var cachedMesh))
+            {
+                return cachedMesh;
+            }
+
+            var ringGenerator = new CutoutRingGenerator(outerRadius, innerRadius, numSegments, numCutouts, minCutoutDepth, maxCutoutDepth, minCutoutWidth, maxCutoutWidth);
+            var arrayMesh = ringGenerator.CreateMesh();
+
             s_mesh_cache[cacheKey] = arrayMesh;
             return arrayMesh;
         }
@@ -194,7 +211,7 @@ namespace XanaduProject.Factories
         /// <param name="vertices">The vertex data for the mesh.</param>
         /// <param name="indices">Optional index data for indexed drawing.</param>
         /// <returns>A new ArrayMesh with one surface.</returns>
-        private static ArrayMesh createMeshFromVertices(Vector3[] vertices, int[]? indices = null)
+        internal static ArrayMesh CreateMeshFromVertices(Vector3[] vertices, int[]? indices = null)
         {
             var arrayMesh = new ArrayMesh();
             var arrays = new Array();
@@ -218,6 +235,123 @@ namespace XanaduProject.Factories
         public static void ClearCache()
         {
             s_mesh_cache.Clear();
+        }
+    }
+
+    public class CutoutRingGenerator(
+        float outerRadius,
+        float innerRadius,
+        int numSegments,
+        int numCutouts,
+        float minCutoutDepth,
+        float maxCutoutDepth,
+        int minCutoutWidth,
+        int maxCutoutWidth)
+    {
+        public ArrayMesh CreateMesh()
+        {
+            var outerCutouts = generateCutouts(true);
+            var innerCutouts = generateCutouts(false);
+
+            var outlinePoints = generateRingContour(outerRadius, outerCutouts);
+            var innerPoints = generateRingContour(innerRadius, innerCutouts);
+            innerPoints.Reverse();
+
+            var polygonPoints = new List<Vector2>(outlinePoints);
+            polygonPoints.AddRange(innerPoints);
+
+            int[]? indices = Geometry2D.TriangulatePolygon(polygonPoints.ToArray());
+            var vertices = new Vector3[polygonPoints.Count];
+            for (int i = 0; i < polygonPoints.Count; i++)
+            {
+                vertices[i] = new Vector3(polygonPoints[i].X, polygonPoints[i].Y, 0);
+            }
+
+            return MeshFactory.CreateMeshFromVertices(vertices, indices);
+        }
+
+        private List<Tuple<int, int, float>> generateCutouts(bool isOuterRing)
+        {
+            var cutouts = new List<Tuple<int, int, float>>();
+            bool[] usedSegments = new bool[numSegments];
+            var rand = new Random();
+            int attempts = 0;
+            while (cutouts.Count < numCutouts && attempts < numCutouts * 5)
+            {
+                attempts++;
+                int width = rand.Next(minCutoutWidth, maxCutoutWidth + 1);
+                if (numSegments - width <= 0) continue;
+                int startSegment = rand.Next(0, numSegments - width);
+
+                bool overlap = false;
+                for (int i = 0; i < width; i++)
+                {
+                    if (usedSegments[startSegment + i])
+                    {
+                        overlap = true;
+                        break;
+                    }
+                }
+
+                if (overlap) continue;
+                {
+                    float cutoutDepth = (float)(rand.NextDouble() * (maxCutoutDepth - minCutoutDepth) + minCutoutDepth);
+                    float mainRadius = isOuterRing ? outerRadius : innerRadius;
+                    float cutoutRadius = isOuterRing ? mainRadius - cutoutDepth : mainRadius + cutoutDepth;
+
+                    cutouts.Add(new Tuple<int, int, float>(startSegment, width, cutoutRadius));
+                    for (int i = 0; i < width; i++)
+                    {
+                        usedSegments[startSegment + i] = true;
+                    }
+                }
+            }
+            cutouts.Sort((a, b) => a.Item1.CompareTo(b.Item1));
+            return cutouts;
+        }
+
+        private List<Vector2> generateRingContour(float radius, List<Tuple<int, int, float>> cutouts)
+        {
+            var points = new List<Vector2>();
+            int lastSegmentProcessed = 0;
+
+            foreach (var cutout in cutouts)
+            {
+                int startSegment = cutout.Item1;
+                int width = cutout.Item2;
+                float cutoutRadius = cutout.Item3;
+                int endSegment = startSegment + width;
+
+                for (int i = lastSegmentProcessed; i < startSegment; i++)
+                {
+                    float angle = i * 2.0f * Mathf.Pi / numSegments;
+                    points.Add(new Vector2(Mathf.Cos(angle) * radius, Mathf.Sin(angle) * radius));
+                }
+
+                float startAngle = startSegment * 2.0f * Mathf.Pi / numSegments;
+                points.Add(new Vector2(Mathf.Cos(startAngle) * radius, Mathf.Sin(startAngle) * radius));
+                points.Add(new Vector2(Mathf.Cos(startAngle) * cutoutRadius, Mathf.Sin(startAngle) * cutoutRadius));
+
+                for (int i = startSegment + 1; i < endSegment; i++)
+                {
+                    float angle = i * 2.0f * Mathf.Pi / numSegments;
+                    points.Add(new Vector2(Mathf.Cos(angle) * cutoutRadius, Mathf.Sin(angle) * cutoutRadius));
+                }
+
+                float endAngle = endSegment * 2.0f * Mathf.Pi / numSegments;
+                points.Add(new Vector2(Mathf.Cos(endAngle) * cutoutRadius, Mathf.Sin(endAngle) * cutoutRadius));
+                points.Add(new Vector2(Mathf.Cos(endAngle) * radius, Mathf.Sin(endAngle) * radius));
+
+                lastSegmentProcessed = endSegment;
+            }
+
+            for (int i = lastSegmentProcessed; i < numSegments; i++)
+            {
+                float angle = i * 2.0f * Mathf.Pi / numSegments;
+                points.Add(new Vector2(Mathf.Cos(angle) * radius, Mathf.Sin(angle) * radius));
+            }
+
+            return points;
         }
     }
 }
