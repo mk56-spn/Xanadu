@@ -2,6 +2,7 @@
 // See the LICENCE file in the repository root for full licence text.
 
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using Friflo.Engine.ECS;
 using Godot;
@@ -10,6 +11,7 @@ using XanaduProject.Character;
 using XanaduProject.DataStructure;
 using XanaduProject.ECSComponents;
 using XanaduProject.ECSComponents.Tag;
+using XanaduProject.Factories;
 using XanaduProject.Stage;
 
 namespace XanaduProject.Screens.Result
@@ -20,8 +22,28 @@ namespace XanaduProject.Screens.Result
         private readonly HBoxContainer buttons = new();
         private readonly AnimatedHoverButton restart = new("Restart");
         private readonly AnimatedHoverButton menu = new("Go to menu");
+        private readonly ResultText urText = new();
+
         public ResultScreen(EntityStore store)
         {
+            RenderRid.Create(GetCanvasItem())
+                .SetTransform(new Transform2D(0, new Vector2(1000, 500)))
+                .AddMesh(
+                    MeshFactory.CreateCutoutRing(
+                        150,
+                        100,
+                        50,
+                        3, 13,
+                        30,
+                        10,
+                        15,
+                        5f).GetRid());
+            Panel background = new Panel {
+                Modulate = new Color(1,1,1,0.3f)
+            };
+            background.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
+            AddChild(background);
+            SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect, margin: 40);
             info.AddChild(new ResultGraph(store));
             Color = Colors.Red;
             restart.Pressed += () =>
@@ -51,8 +73,44 @@ namespace XanaduProject.Screens.Result
             info.AddThemeConstantOverride("separation", 20);
             buttons.AddThemeConstantOverride("separation", 30);
 
-            info.AddChild(new ResultTally(store));
-            AddChild(new ResultAccuracy(store));
+                    info.AddChild(new ResultTally(store));
+                    AddChild(new ResultAccuracy(store));
+
+            info.AddChild(new ResultText {
+                Text = "Notes: " + store.Query<NoteEcs>().Count,
+                Modulate = Colors.Gold
+            });
+            info.AddChild(new ResultText {
+                Text = "Combo: " + store.Query<NoteEcs>().Count,
+                Modulate = Colors.Gold
+
+            });
+
+            info.AddChild(urText);
+            urCounter(store);
+        }
+
+        private void urCounter(EntityStore store)
+        {
+            var deviations = new List<float>();
+            store.Query<Judged>().ForEachEntity((ref Judged judged, Entity entity) =>
+            {
+                deviations.Add(judged.Deviation);
+            });
+
+            if (deviations.Count == 0)
+            {
+                urText.Text = "UR: N/A";
+                return;
+            }
+
+            float mean = deviations.Average();
+            float variance = deviations.Sum(d => (d - mean) * (d - mean)) / deviations.Count;
+            float stdDev = (float)Math.Sqrt(variance);
+            float ur = stdDev * 10;
+
+            urText.Text = $"UR: {ur:F2}";
+            urText.Modulate = Colors.Gold;
         }
     }
 }

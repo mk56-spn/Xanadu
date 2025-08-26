@@ -30,15 +30,16 @@ namespace XanaduProject.Screens.Result
 
                 LabelSettings = new LabelSettings
                 {
-                    ShadowColor = Colors.Black,
-                    ShadowOffset = new Vector2(5,5),
+                    OutlineSize = 10,
+                    OutlineColor = Colors.White.Darkened(0.6F),
                     Font = new FontVariation
                     {
                         SpacingTop = 5,
                         BaseFont = FontSource.PLASTIC
                     },
-                    FontSize = 50,
+                    FontSize = 35,
                 };
+                Material = FontSource.GRADIENT_MATERIAL;
             }
         }
     }

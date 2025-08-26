@@ -15,16 +15,31 @@ namespace XanaduProject.Screens.Result
     {
         public ResultTally(EntityStore store)
         {
+            CustomMinimumSize = new Vector2(500, 0);
+            SizeFlagsHorizontal = SizeFlags.ShrinkBegin;
             foreach (var j in Enum.GetValues<Judgement>())
             {
-                ResultText result = new ResultText();
-                PanelContainer panel = new PanelContainer();
-                panel.AddChild(result);
+                var panel = new PanelContainer();
                 AddChild(panel);
-                int v = store.Query<NoteEcs>().Entities.Count(c => c.GetComponent<Judged>().Judgement == j);
-                result.Text = JudgementInfo.GetJudgmentText(j).Capitalize() + " : " + v;
 
-                result.LabelSettings.FontColor = JudgementInfo.GetJudgmentColor(j);
+                var hbox = new HBoxContainer();
+                panel.AddChild(hbox);
+
+                var judgementLabel = new ResultText {
+                    Text = JudgementInfo.GetJudgmentText(j).Capitalize() + " :",
+                };
+
+                hbox.AddChild(judgementLabel);
+
+                var countLabel = new ResultText
+                {
+                    Text = store.Query<NoteEcs>().Entities.Count(c => c.GetComponent<Judged>().Judgement == j).ToString("D3"),
+                    HorizontalAlignment = HorizontalAlignment.Right,
+                    SizeFlagsHorizontal = SizeFlags.ExpandFill,
+                };
+                countLabel.Modulate = JudgementInfo.GetJudgmentColor(j);
+
+                hbox.AddChild(countLabel);
             }
         }
     }

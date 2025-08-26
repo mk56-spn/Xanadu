@@ -38,26 +38,77 @@ namespace XanaduProject.Screens.Result
             }
             Text = acc.ToString("0.00") + "%";
 
-            var color= acc switch
-            {
-                > 98 => new Color(1, 1, 0),
-                > 95 => new Color(0, 1, 0),
-                > 90 => new Color(1, 1, 0),
-                > 80 => new Color(1, 0.5f, 0),
-                _ => new Color(1, 0, 0)
-            };
-
             LabelSettings = new LabelSettings
             {
-                FontColor = color,
                 FontSize = 150,
-                OutlineColor = Colors.White,
-                OutlineSize = 5,
+                OutlineColor = Colors.White.Darkened(0.7F),
+                OutlineSize = 20,
                 Font = FontSource.PLASTIC
             };
 
             SetAnchorsAndOffsetsPreset(LayoutPreset.CenterRight, margin: 40);
+
+            var separator = new ColorRect
+            {
+                Position = new Vector2(0, 160),
+                Size = new Vector2(300, 5),
+                Color = Colors.White.Darkened(0.5f)
+            };
+            AddChild(separator);
+
+            var rankLabel = new Label
+            {
+                Text = acc switch
+                {
+                    >= 99.9f => "SSS",
+                    >= 99f => "SS",
+                    >= 98f => "S",
+                    >= 95f => "A",
+                    >= 93f => "B",
+                    >= 90f => "C",
+                    _ => "FAIL"
+                },
+                LabelSettings = new LabelSettings
+                {
+                    FontSize = 75,
+                    OutlineColor = Colors.White.Darkened(0.7F),
+                    OutlineSize = 15,
+                    Font = FontSource.PLASTIC
+                },
+                Position = new Vector2(0, 180),
+                HorizontalAlignment = HorizontalAlignment.Right
+            };
+
+            rankLabel.Modulate = acc switch
+            {
+                >= 99.9f => new Color(0.9f, 0.9f, 1.0f), // Platinum
+                >= 99f => Colors.Gold,
+                >= 98f => Colors.Silver,
+                >= 95f => new Color(0.8f, 0.5f, 0.2f), // Bronze
+                _ => Colors.White
+            };
+
+            AddChild(rankLabel);
+
+            AddChild(new Background());
         }
+
+        private partial class Background : Control
+        {
+            public Background()
+            {
+                SetDrawBehindParent(true);
+            }
+            public override void _Draw()
+            {
+                DrawStyleBox(new StyleBoxFlat
+                {
+                    BgColor = Colors.White.Darkened(0.8f) with { A = 0.3f},
+                    Skew = new Vector2(0.3f,0)
+                }, new Rect2(new Vector2(-100,0), new Vector2(1200,150)));
+            }
+        }
+
     }
 
 }
