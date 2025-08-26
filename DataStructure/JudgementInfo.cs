@@ -66,7 +66,7 @@ namespace XanaduProject.DataStructure
             {
                 Judgement.FlawlessP => Colors.MediumPurple.Lightened(0.3f),
                 Judgement.Flawless => Colors.MediumPurple,
-                Judgement.Clean => Colors.Blue,
+                Judgement.Clean => Colors.Cyan,
                 Judgement.Fair => Colors.GreenYellow,
                 Judgement.Deficient => Colors.Orange,
                 Judgement.Terrible => Colors.DarkOrange.Darkened(0.3F),
