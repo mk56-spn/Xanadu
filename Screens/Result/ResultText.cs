@@ -11,22 +11,16 @@ namespace XanaduProject.Screens.Result
             private static readonly ParticleProcessMaterial part = new()
             {
                 Gravity = new Vector3(100,0,0),
+                EmissionShapeOffset = new Vector3(-100,0,0),
                 EmissionShape = ParticleProcessMaterial.EmissionShapeEnum.Box,
-                EmissionBoxExtents = new Vector3(15,70,0),
+                EmissionBoxExtents = new Vector3(15,30,0),
                 ColorRamp = ParticlesRidExtensions.FadeGradient,
                 Color = new Color(1,1,1,0.5f),
             };
 
+            private QuadMesh mesh = new(){Size = new Vector2(50,3)};
             public ResultText()
             {
-
-                RenderRid.Create(GetCanvasItem())
-                    .SetZIndex(-10)
-                    .AddParticles(ParticlesRid.Create()
-                        .SetAmount(10)
-                        .SetLifetime(5)
-                        .SetMesh(MeshFactory.CreateCircle(10).GetRid())
-                        .SetProcessMaterial(part.GetRid()));
 
                 LabelSettings = new LabelSettings
                 {

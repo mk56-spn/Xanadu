@@ -11,7 +11,6 @@ using XanaduProject.Character;
 using XanaduProject.DataStructure;
 using XanaduProject.ECSComponents;
 using XanaduProject.ECSComponents.Tag;
-using XanaduProject.Factories;
 using XanaduProject.Stage;
 
 namespace XanaduProject.Screens.Result
@@ -26,26 +25,10 @@ namespace XanaduProject.Screens.Result
 
         public ResultScreen(EntityStore store)
         {
-            RenderRid.Create(GetCanvasItem())
-                .SetTransform(new Transform2D(0, new Vector2(1000, 500)))
-                .AddMesh(
-                    MeshFactory.CreateCutoutRing(
-                        150,
-                        100,
-                        50,
-                        3, 13,
-                        30,
-                        10,
-                        15,
-                        5f).GetRid());
-            Panel background = new Panel {
-                Modulate = new Color(1,1,1,0.3f)
-            };
-            background.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
-            AddChild(background);
+            AddChild(new ResultBackGround());
             SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect, margin: 40);
             info.AddChild(new ResultGraph(store));
-            Color = Colors.Red;
+            Color = Colors.Gold.Darkened(0.3f);
             restart.Pressed += () =>
             {
                 var v = store.GetCommandBuffer();
@@ -70,7 +53,7 @@ namespace XanaduProject.Screens.Result
 
             buttons.SetAnchorsAndOffsetsPreset(LayoutPreset.BottomWide);
             AddChild(info);
-            info.AddThemeConstantOverride("separation", 20);
+            info.AddThemeConstantOverride("separation", 10);
             buttons.AddThemeConstantOverride("separation", 30);
 
                     info.AddChild(new ResultTally(store));
@@ -78,11 +61,9 @@ namespace XanaduProject.Screens.Result
 
             info.AddChild(new ResultText {
                 Text = "Notes: " + store.Query<NoteEcs>().Count,
-                Modulate = Colors.Gold
             });
             info.AddChild(new ResultText {
                 Text = "Combo: " + store.Query<NoteEcs>().Count,
-                Modulate = Colors.Gold
 
             });
 
@@ -110,7 +91,6 @@ namespace XanaduProject.Screens.Result
             float ur = stdDev * 10;
 
             urText.Text = $"UR: {ur:F2}";
-            urText.Modulate = Colors.Gold;
         }
     }
 }

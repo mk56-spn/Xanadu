@@ -14,10 +14,33 @@ namespace XanaduProject.Screens.Result
 {
     public partial class ResultGraph(EntityStore store) : PanelContainer
     {
+        public override void _Ready()
+        {
+            Control c = new Control();
+            AddChild(c);
+            Label label;
+            c.AddChild(label = new Label
+            {
+                Text = "HITS",
+                LabelSettings = new LabelSettings
+                {
+                    Font = FontSource.PLASTIC,
+                    FontColor = Colors.Black
+                }
+            });
+            label.AddThemeStyleboxOverride("normal", new StyleBoxFlat
+            {
+                ContentMarginTop = 5,
+                ContentMarginBottom = 5,
+                ContentMarginLeft = 10,
+                ContentMarginRight = 10,
+                BgColor = Colors.Gold
+            });
+        }
 
         public override void _Draw()
         {
-            CustomMinimumSize = new Vector2(900, 300);
+            CustomMinimumSize = new Vector2(500, 300);
 
             DrawSetTransform(new Vector2(0,CustomMinimumSize.Y / 2));
 
@@ -25,7 +48,7 @@ namespace XanaduProject.Screens.Result
             {
                 var color = JudgementInfo.GetJudgmentColor(judgement).Darkened(0.3f);
                 float offset = (float)JudgementInfo.JudgementDeviation(judgement);
-                DrawRect(new Rect2(new Vector2(0, -offset), new Vector2(CustomMinimumSize.X - 30, offset * 2)), color.Darkened(0.8f));
+                DrawRect(new Rect2(new Vector2(0, -offset), new Vector2(CustomMinimumSize.X, offset * 2)), color.Darkened(0.8f));
                 DrawLine(new Vector2(0, offset), new Vector2(CustomMinimumSize.X,offset), color);
                 DrawLine(new Vector2(0, -offset), new Vector2(CustomMinimumSize.X,-offset), color);
             }
@@ -38,7 +61,7 @@ namespace XanaduProject.Screens.Result
 
             DrawSetTransform(default);
             DrawRect(new Rect2(Vector2.Zero, CustomMinimumSize), XanaduColors.XanaduYellow, false, 3);
-
+            ;
         }
     }
 }

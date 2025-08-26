@@ -7,6 +7,7 @@ using Godot;
 using XanaduProject.DataStructure;
 using XanaduProject.ECSComponents;
 using XanaduProject.ECSComponents.Tag;
+using XanaduProject.Factories;
 
 namespace XanaduProject.Screens.Result
 {
@@ -89,26 +90,16 @@ namespace XanaduProject.Screens.Result
             };
 
             AddChild(rankLabel);
-
-            AddChild(new Background());
         }
 
-        private partial class Background : Control
+        public override void _Ready()
         {
-            public Background()
-            {
-                SetDrawBehindParent(true);
-            }
-            public override void _Draw()
-            {
-                DrawStyleBox(new StyleBoxFlat
-                {
-                    BgColor = Colors.White.Darkened(0.8f) with { A = 0.3f},
-                    Skew = new Vector2(0.3f,0)
-                }, new Rect2(new Vector2(-100,0), new Vector2(1200,150)));
-            }
+            RenderRid.Create(GetCanvasItem())
+                .SetTransform(new Transform2D(0,Size / 2))
+                .AddRect(new Vector2(1000, 200011111))
+                .SetModulate(Colors.White with { A = 0.3f})
+                .SetMaterial(UiMaterials.FLARE.GetRid());
         }
-
     }
 
 }
