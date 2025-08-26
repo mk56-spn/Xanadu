@@ -42,8 +42,6 @@ namespace XanaduProject.ECSComponents.EntitySystem.CharacterSystems
             }));
         }
 
-        private readonly AnimationMaterial animationMaterial = new();
-
 
         private readonly List<RenderRid> effectsRef = new(300);
         private void setupHitVisuals(NoteType type, Vector2 pos)
@@ -56,11 +54,11 @@ namespace XanaduProject.ECSComponents.EntitySystem.CharacterSystems
 
             RenderRid line = setupRid()
                 .AddRect(new Vector2(10, 3000))
-                .SetMaterial(animationMaterial.GetRid());
+                .SetMaterial(AnimationMaterial.MATERIAL.GetRid());
 
-           animationMaterial.SetAnimationDuration(line,duration);
-           animationMaterial.SetAnimationStartCurrent(line);
-           animationMaterial.SetScaled(line,Vector2.Down);
+           AnimationMaterial.SetAnimationDuration(line,duration);
+           AnimationMaterial.SetAnimationStartCurrent(line);
+           AnimationMaterial.SetScaled(line,Vector2.Down);
 
            effectsRef.Add(rid);
            effectsRef.Add(line);
