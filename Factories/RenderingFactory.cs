@@ -159,16 +159,16 @@ namespace XanaduProject.Factories
 		}
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static RenderRid AddLine(this in RenderRid r, Vector2 from, Vector2 to, Color? color = null)
+        public static RenderRid AddLine(this in RenderRid r, Vector2 from, Vector2 to, Color? color = null, float width = 1.0f)
         {
-            CanvasItemAddLine(r.Rid, from, to,color ?? Colors.White);
+            CanvasItemAddLine(r.Rid, from, to,color ?? Colors.White, width);
             return r;
         }
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static RenderRid AddMultiline(this in RenderRid r, Vector2[] points, Color[]? color = null)
+		public static RenderRid AddMultiline(this in RenderRid r, Vector2[] points, Color[]? color = null, float width = 1.0f)
 		{
-			CanvasItemAddMultiline(r.Rid, points, color ?? [Colors.White]);
+			CanvasItemAddMultiline(r.Rid, points, color ?? [Colors.White], width);
 			return r;
 		}
 
@@ -188,14 +188,14 @@ namespace XanaduProject.Factories
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static RenderRid AddPolyline(this in RenderRid r, Vector2[] points, Color[]? color = null)
+		public static RenderRid AddPolyline(this in RenderRid r, Vector2[] points, Color[]? color = null, float width = 1.0f)
 		{
-			CanvasItemAddPolyline(r.Rid, points, color ?? [Colors.White]);
+			CanvasItemAddPolyline(r.Rid, points, color ?? [Colors.White], width);
 			return r;
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static RenderRid AddCircleOutline(this in RenderRid r, float radius, Vector2? position = null, Color? color = null, int segments = 32)
+		public static RenderRid AddCircleOutline(this in RenderRid r, float radius, Vector2? position = null, Color? color = null, int segments = 32, float width = 1.0f)
 		{
 			var points = new Vector2[segments + 1];
 			var center = position ?? Vector2.Zero;
@@ -206,11 +206,11 @@ namespace XanaduProject.Factories
 				points[i] = center + new Vector2(Mathf.Cos(angle), Mathf.Sin(angle)) * radius;
 			}
 
-			return AddPolyline(r, points, [color?? Colors.White]);
+			return AddPolyline(r, points, [color?? Colors.White], width);
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static RenderRid AddRectOutline(this in RenderRid r, in Vector2 vec2, Color? color = null)
+		public static RenderRid AddRectOutline(this in RenderRid r, in Vector2 vec2, Color? color = null, float width = 1.0f)
 		{
 			var rect = new Rect2(-vec2 / 2, vec2);
 			var points = new[]
@@ -222,8 +222,24 @@ namespace XanaduProject.Factories
 				rect.Position
 			};
 
-			return AddPolyline(r, points, [color?? Colors.White]);
+			return AddPolyline(r, points, [color?? Colors.White], width);
 		}
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static RenderRid AddRectOutline(this in RenderRid r, in Rect2 rect, Color? color = null, float width = 1.0f)
+		{
+			var points = new[]
+			{
+				rect.Position,
+				new Vector2(rect.Position.X + rect.Size.X, rect.Position.Y),
+				rect.Position + rect.Size,
+				new Vector2(rect.Position.X, rect.Position.Y + rect.Size.Y),
+				rect.Position
+			};
+
+			return AddPolyline(r, points, [color?? Colors.White], width);
+		}
+
 
 		#endregion
 
