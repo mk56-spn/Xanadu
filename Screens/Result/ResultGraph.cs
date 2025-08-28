@@ -60,7 +60,7 @@ namespace XanaduProject.Screens.Result
                 });
 
             DrawSetTransform(default);
-            DrawRect(new Rect2(Vector2.Zero, CustomMinimumSize), XanaduColors.XanaduYellow, false, 3);
+            DrawRect(new Rect2(Vector2.Zero, CustomMinimumSize), XanaduColors.XanaduYellow, false,2,antialiased: false);
             ;
         }
     }

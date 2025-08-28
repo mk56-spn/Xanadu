@@ -26,8 +26,11 @@ namespace XanaduProject.Screens.Result
         public ResultScreen(EntityStore store)
         {
             AddChild(new ResultBackGround());
-            SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect, margin: 40);
+
+            AddChild(new ResultRightBar(store));
+            SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
             info.AddChild(new ResultGraph(store));
+            info.SetAnchorsAndOffsetsPreset(LayoutPreset.LeftWide, margin: 40);
             Color = Colors.Gold.Darkened(0.3f);
             restart.Pressed += () =>
             {
@@ -56,8 +59,8 @@ namespace XanaduProject.Screens.Result
             info.AddThemeConstantOverride("separation", 10);
             buttons.AddThemeConstantOverride("separation", 30);
 
-                    info.AddChild(new ResultTally(store));
-                    AddChild(new ResultAccuracy(store));
+            info.AddChild(new ResultTally(store));
+
 
             info.AddChild(new ResultText {
                 Text = "Notes: " + store.Query<NoteEcs>().Count,

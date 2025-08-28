@@ -31,9 +31,8 @@ namespace XanaduProject.Screens.Result
                         SpacingTop = 5,
                         BaseFont = FontSource.PLASTIC
                     },
-                    FontSize = 35,
+                    FontSize = 25,
                 };
-                Material = FontSource.GRADIENT_MATERIAL;
             }
         }
     }

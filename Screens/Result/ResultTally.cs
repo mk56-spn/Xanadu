@@ -8,79 +8,75 @@ using Godot;
 using XanaduProject.DataStructure;
 using XanaduProject.ECSComponents;
 using XanaduProject.ECSComponents.Tag;
-using XanaduProject.Factories;
 
 namespace XanaduProject.Screens.Result
 {
-    public partial class ResultTally : VBoxContainer
+    public partial class ResultTally : PanelContainer
     {
+        private StyleBox style = new StyleBoxFlat()
+        {
+            BgColor = Colors.Black with { A = 0.2f },
+            BorderColor = Colors.Gold,
+            BorderWidthBottom = 2,
+            BorderWidthLeft = 2,
+            BorderWidthRight = 2,
+            BorderWidthTop = 2,
+            ContentMarginBottom = 20,
+            ContentMarginLeft = 20,
+            ContentMarginRight = 20,
+            ContentMarginTop = 20,
+            AntiAliasingSize = 30,
+            AntiAliasing = true,
+        };
         public ResultTally(EntityStore store)
         {
+            AddThemeStyleboxOverride("panel", style);
             CustomMinimumSize = new Vector2(500, 0);
-            SizeFlagsHorizontal = SizeFlags.ShrinkBegin;
+
+            var mainHBox = new HBoxContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill };
+            AddChild(mainHBox);
+
+            var namesVBox = new VBoxContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill };
+            mainHBox.AddChild(namesVBox);
+            mainHBox.AddChild(new ColorRect
+            {
+                GrowHorizontal = GrowDirection.Both,
+                CustomMinimumSize = new Vector2(4,0),
+                Modulate = Colors.Gold,
+            });
+            var countsVBox = new VBoxContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill };
+            mainHBox.AddChild(countsVBox);
+
             foreach (var j in Enum.GetValues<Judgement>())
             {
-                if (GetChildCount() != 0)
-                {
-                    AddChild(new ColorRect
-                    {
-                        CustomMinimumSize = new Vector2(0,2),
-                        Modulate = Colors.White.Darkened(0.9f),
-                        SizeFlagsHorizontal = SizeFlags.ExpandFill
-                    });
-                }
-                var hbox = new HBoxContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill };
-                AddChild(hbox);
-
-
                 var judgementLabel = new ResultText {
                     Text = JudgementInfo.GetJudgmentText(j).Capitalize(),
                 };
+                namesVBox.AddChild(judgementLabel);
 
-                hbox.AddChild(judgementLabel);
-                hbox.AddChild(new Control()
-                {
-                    SizeFlagsHorizontal = SizeFlags.ExpandFill
-                });
-
-                var countLabel = new TallyResultText
+                var countLabel = new ResultTallyText()
                 {
                     Text = store.Query<NoteEcs>().Entities.Count(c => c.GetComponent<Judged>().Judgement == j).ToString("D3"),
+                    HorizontalAlignment = HorizontalAlignment.Right
                 };
-                countLabel.Modulate = JudgementInfo.GetJudgmentColor(j);
-
-                hbox.AddChild(countLabel);
+                countsVBox.AddChild(countLabel);
             }
+
         }
 
-        private partial class TallyResultText : ResultText
+        private partial class ResultTallyText : ResultText
         {
-            private static ArrayMesh mesh = MeshFactory.CreateCutoutRing();
-            public TallyResultText()
+            public ResultTallyText()
             {
-                AddThemeStyleboxOverride("normal",new StyleBoxFlat
-                {
-                    Skew = new Vector2(0.25f,0),
-                    ContentMarginLeft = 15,
-                    ContentMarginRight = 20,
-                    BorderWidthBottom = 2,
-                    BorderWidthLeft = 3,
-                    BorderWidthRight = 3,
-                    BorderWidthTop = 2,
-                    BgColor= Colors.White.Darkened(0.9f),
-                    BorderColor = Colors.White.Darkened(0.5f)
-                } );
+            }
+
+            public override void _Process(double delta)
+            {
+                base._Process(delta);
+                HorizontalAlignment = HorizontalAlignment.Center;
 
             }
 
-            public override void _Ready()
-            {
-                RenderRid.Create(GetCanvasItem())
-                    .SetTransform(new Transform2D(0,Size / 2))
-                    .AddRect(new Vector2(300, 500))
-                    .SetModulate(Colors.White with { A = 0.3f})
-                    .SetMaterial(UiMaterials.FLARE.GetRid());
-            }
         }
     }
 }
