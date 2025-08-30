@@ -32,7 +32,6 @@ namespace XanaduProject.ECSComponents.EntitySystem.NoteSystems
         private readonly Font font = ThemeDB.FallbackFont;
 
         private readonly List<RenderRid> renderRids = new(300);
-        private readonly AnimationMaterial material = new();
         protected override void OnUpdate()
         {
             query.ForEachEntity((ref ElementEcs component1, ref Hit component2,ref Judged component3, Entity entity) =>
@@ -40,10 +39,10 @@ namespace XanaduProject.ECSComponents.EntitySystem.NoteSystems
                 if (!query.HasEvent(entity.Id)) return;
                 var v = RenderRid.Create(component1.Canvas, 5f);
 
-                v.SetMaterial(material.GetRid());
-                material.SetAnimationStartCurrent(v);
-                material.SetAnimationDuration(v,0.5f);
-                material.SetEasingIndex(v,EasingType.OutExpo);
+                v.SetMaterial(AnimationMaterial.MATERIAL.GetRid());
+                AnimationMaterial.SetAnimationStartCurrent(v);
+                AnimationMaterial.SetAnimationDuration(v,0.5f);
+                AnimationMaterial.SetEasingIndex(v,EasingType.OutExpo);
 
                 string text = component3.Judgement.ToString();
 

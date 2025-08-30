@@ -12,13 +12,18 @@ using XanaduProject.ECSComponents.Tag;
 using XanaduProject.Factories;
 using XanaduProject.GameDependencies;
 using XanaduProject.Screens;
+using ResultScreen = XanaduProject.Screens.Result.ResultScreen;
 
 namespace XanaduProject.ECSComponents.EntitySystem.NoteSystems
 {
 	public class NoteResultSystem : QuerySystem<NoteEcs, Hit, ElementEcs>
 	{
 		private readonly IClock clock = DiProvider.Get<IClock>();
+		private ScreenManager screenManager { get; } = DiProvider.Get<ScreenManager>();
 
+		protected override void OnAddStore(EntityStore incomingStore)=> store = incomingStore;
+
+		private EntityStore store = null!;
 		protected override void OnUpdate()
 		{
 			Query.WithoutAllComponents(ComponentTypes.Get<Judged>()).ForEachEntity((ref NoteEcs note, ref Hit _, ref ElementEcs element, Entity _) =>
@@ -28,6 +33,8 @@ namespace XanaduProject.ECSComponents.EntitySystem.NoteSystems
 					noteCharacterUpdate(entity));
 
 			setupJudgedComponent();
+
+			finishLevelCheck();
 		}
 
 		private void noteCharacterUpdate(Entity entity)
@@ -75,6 +82,16 @@ namespace XanaduProject.ECSComponents.EntitySystem.NoteSystems
 				});
 			});
 			command.Playback();
+		}
+
+		private void finishLevelCheck()
+		{
+			int count = store.Query<NoteEcs>().Count;
+			if (count == store.Query<NoteEcs>().AllComponents(ComponentTypes.Get<Judged>()).Count )
+			{
+				if (count == 0 ) return;
+				screenManager.RequestChangeScreen(new ResultScreen(store), TransitionType.Fade);
+			}
 		}
 	}
 }

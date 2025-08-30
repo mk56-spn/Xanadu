@@ -9,8 +9,9 @@ using XanaduProject.Tools;
 
 namespace XanaduProject.Animation
 {
-    public partial class AnimationMaterial : ShaderMaterial
+    public static partial class AnimationMaterial
     {
+        public static readonly ShaderMaterial MATERIAL = new();
         private static readonly StringName animation_start_time = "animation_start_time";
         private static readonly StringName animation_duration = "animation_duration";
         private static readonly StringName easing_index = "easing_index";
@@ -19,49 +20,49 @@ namespace XanaduProject.Animation
         private static readonly StringName scaled = "scaled";
         private static readonly StringName center = "center";
 
-        public AnimationMaterial()
+        static AnimationMaterial()
         {
-            Shader = GD.Load<Shader>("uid://2qotdbl8i5q2");
+            MATERIAL.Shader = GD.Load<Shader>("uid://2qotdbl8i5q2");
         }
 
-        private IClock clock => DiProvider.Get<IClock>();
+        private static IClock clock => DiProvider.Get<IClock>();
 
-        public void SetAnimationStartCurrent(RenderRid rid)
+        public static void SetAnimationStartCurrent(RenderRid rid)
         {
             RenderingServer.CanvasItemSetInstanceShaderParameter(rid, animation_start_time, clock.PlaybackTimeSec);
         }
 
-        public void SetAnimationStartTime(RenderRid rid, float startTime)
+        public static void SetAnimationStartTime(RenderRid rid, float startTime)
         {
             RenderingServer.CanvasItemSetInstanceShaderParameter(rid, animation_start_time, startTime);
         }
 
-        public void SetAnimationDuration(RenderRid rid, float duration)
+        public static void SetAnimationDuration(RenderRid rid, float duration)
         {
             RenderingServer.CanvasItemSetInstanceShaderParameter(rid, animation_duration, duration);
         }
 
-        public void SetEasingIndex(RenderRid rid, EasingType easing)
+        public static void SetEasingIndex(RenderRid rid, EasingType easing)
         {
             RenderingServer.CanvasItemSetInstanceShaderParameter(rid, easing_index, (int)easing);
         }
 
-        public void SetTranslation(RenderRid rid, Vector2 translation)
+        public static void SetTranslation(RenderRid rid, Vector2 translation)
         {
             RenderingServer.CanvasItemSetInstanceShaderParameter(rid, AnimationMaterial.translation, translation);
         }
 
-        public void SetRotationDegrees(RenderRid rid, float rotationDegrees)
+        public static void SetRotationDegrees(RenderRid rid, float rotationDegrees)
         {
             RenderingServer.CanvasItemSetInstanceShaderParameter(rid, rotation_degrees, rotationDegrees);
         }
 
-        public void SetScaled(RenderRid rid, Vector2 scaled)
+        public static void SetScaled(RenderRid rid, Vector2 scaled)
         {
             RenderingServer.CanvasItemSetInstanceShaderParameter(rid, AnimationMaterial.scaled, scaled);
         }
 
-        public void SetCenter(RenderRid rid, Vector2 center)
+        public static void SetCenter(RenderRid rid, Vector2 center)
         {
             RenderingServer.CanvasItemSetInstanceShaderParameter(rid, AnimationMaterial.center, center);
         }

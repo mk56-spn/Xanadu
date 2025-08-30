@@ -2,12 +2,12 @@
 // See the LICENCE file in the repository root for full licence text.
 
 using Godot;
-using XanaduProject.Character;
 
 namespace XanaduProject.Screens
 {
-    public partial class ResultScreen : Screen
+    public static class UiMaterials
     {
-
+        public static readonly ShaderMaterial FLARE = new() {
+            Shader = GD.Load<Shader>("uid://rdmyubghet5p") };
     }
 }
