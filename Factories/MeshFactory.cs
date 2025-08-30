@@ -20,6 +20,7 @@ namespace XanaduProject.Factories
         Star,
         Circle,
         CutoutRing,
+        Arrow,
     }
 
     public static class MeshFactory
@@ -177,6 +178,39 @@ namespace XanaduProject.Factories
             var ringGenerator = new CutoutRingGenerator(outerRadius, innerRadius, numSegments, numCutouts, minCutoutDepth, maxCutoutDepth, minCutoutWidth, maxCutoutWidth);
             var arrayMesh = ringGenerator.CreateMesh();
 
+            s_mesh_cache[cacheKey] = arrayMesh;
+            return arrayMesh;
+        }
+
+        public static ArrayMesh CreateArrow(float size)
+        {
+            var cacheKey = (MeshType.Arrow, size);
+            if (s_mesh_cache.TryGetValue(cacheKey, out var cachedMesh))
+            {
+                return cachedMesh;
+            }
+
+            // A chevron shape is a right-angled wedge with parallel sides.
+            float thickness = size / 4f;
+
+            var outlinePoints = new[]
+            {
+                new Vector2(0, size / 2f),          // Tip
+                new Vector2(size / 2f, 0),          // Outer right
+                new Vector2(size / 2f - thickness, 0), // Inner right
+                new Vector2(0, size / 2f - thickness), // Inner corner
+                new Vector2(-size / 2f + thickness, 0),// Inner left
+                new Vector2(-size / 2f, 0)          // Outer left
+            };
+
+            int[]? indices = Geometry2D.TriangulatePolygon(outlinePoints);
+            var vertices = new Vector3[outlinePoints.Length];
+            for(int i = 0; i < outlinePoints.Length; i++)
+            {
+                vertices[i] = new Vector3(outlinePoints[i].X, outlinePoints[i].Y, 0);
+            }
+
+            var arrayMesh = CreateMeshFromVertices(vertices, indices);
             s_mesh_cache[cacheKey] = arrayMesh;
             return arrayMesh;
         }
