@@ -7,10 +7,10 @@ namespace XanaduProject.Buttons
 {
     public partial class AnimatedHoverButton : TextButton
     {
-        private Color currentColour = Colors.White;
+        private Color currentColour = Colors.Gold;
         private Color targetColour = Colors.White;
-        private Color hoverColor = Colors.Red;
-        private Color normalColor = Colors.White;
+        private Color hoverColor = Colors.Gold;
+        private Color normalColor = Colors.Gold.Darkened(0.5f);
         private float transitionSpeed = 5.0f; // Adjust this value to control transition speed
 
         public AnimatedHoverButton(string text) : base(text)
@@ -29,7 +29,8 @@ namespace XanaduProject.Buttons
         public override void _Draw()
         {
             // Draw border with animated color
-            DrawRect(new Rect2(Vector2.Zero, Size), currentColour, false, 3);
+            DrawRect(new Rect2(Vector2.Zero, Size), Colors.Black);
+            DrawRect(new Rect2(Vector2.Zero, Size), currentColour, false, 2);
             // Call base to draw the text
             base._Draw();
         }
