@@ -37,8 +37,8 @@ namespace XanaduProject.Screens
             TurbulenceEnabled = true,
             EmissionShape = ParticleProcessMaterial.EmissionShapeEnum.Box,
             EmissionBoxExtents = new Vector3(1000,1000,0),
-            ScaleMax = 1.5f,
-            ScaleMin = 0.3f,
+            ScaleMax = 1f,
+            ScaleMin = 0.4f,
             ColorRamp = new GradientTexture1D {
                 Gradient = new Gradient {
                     Offsets = [0,0.5f,1],
@@ -57,9 +57,9 @@ namespace XanaduProject.Screens
             RenderRid canvas = RenderRid.Create(GetCanvasItem())
                 .SetTransform(new Transform2D(0, new Vector2(1000, 1000)));
             canvas.AddParticles(ParticlesRid.Create()
-                .SetAmount(100)
-                .SetLifetime(10)
-                .SetMesh(MeshFactory.CreateStar(4, 20, 0.5f).GetRid())
+                .SetAmount(1000)
+                .SetLifetime(100)
+                .SetMesh(MeshFactory.CreateStar(4, 10, 0.5f).GetRid())
                 .SetProcessMaterial(particleProcessMaterial.GetRid()));
         }
 

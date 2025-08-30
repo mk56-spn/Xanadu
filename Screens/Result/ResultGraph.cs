@@ -24,7 +24,7 @@ namespace XanaduProject.Screens.Result
                 Text = "HITS",
                 LabelSettings = new LabelSettings
                 {
-                    Font = FontSource.PLASTIC,
+                    Font = FontSource.PLASTIC_SLANTED,
                     FontColor = Colors.Black
                 }
             });

@@ -1,6 +1,7 @@
 // Copyright (c) mk56_spn <dhsjplt@gmail.com>.Licensed under the GNU General Public Licence (2.0).
 // See the LICENCE file in the repository root for full licence text.
 
+using System;
 using System.Linq;
 using Friflo.Engine.ECS;
 using Godot;
@@ -11,55 +12,60 @@ using XanaduProject.Factories;
 
 namespace XanaduProject.Screens.Result
 {
-    public partial class ResultAccuracy : Label
+    public partial class ResultAccuracy : VBoxContainer
     {
+        private readonly EntityStore store;
+
+        private float accuracy;
+
+        private Label accuracyLabel = new()
+        {
+            LabelSettings = new LabelSettings
+            {
+                FontSize = 100,
+                Font = FontSource.PLASTIC
+            }
+        };
         public ResultAccuracy(EntityStore store)
+        {
+            this.store = store;
+
+            calculateAccuracy();
+            calculateRank();
+            AddChild(accuracyLabel);
+        }
+
+        private void calculateAccuracy()
         {
             int totalNotes = store.Query<NoteEcs>().Entities.Count();
 
-            float acc = 0;
-            foreach (var v in store.Query<NoteEcs>().Entities)
+            foreach (var judgement in store.Query<NoteEcs>().Entities.Select(v => v.GetComponent<Judged>().Judgement))
             {
-                var judgement = v.GetComponent<Judged>().Judgement;
                 switch (judgement)
                 {
                     case Judgement.FlawlessP or Judgement.Flawless:
-                        acc += 100f / totalNotes;
+                        accuracy += 100f / totalNotes;
                         break;
                     case Judgement.Clean:
-                        acc += 80f / totalNotes;
+                        accuracy += 80f / totalNotes;
                         break;
                     case Judgement.Fair:
-                        acc += 70f / totalNotes;
+                        accuracy += 70f / totalNotes;
                         break;
                     case Judgement.Deficient:
-                        acc += 50f / totalNotes;
+                        accuracy += 50f / totalNotes;
                         break;
                 }
             }
-            Text = acc.ToString("0.00") + "%";
+            accuracyLabel.Text = accuracy.ToString("0.00") + "%";
 
-            LabelSettings = new LabelSettings
-            {
-                FontSize = 150,
-                OutlineColor = Colors.White.Darkened(0.7F),
-                OutlineSize = 20,
-                Font = FontSource.PLASTIC
-            };
+        }
 
-            SetAnchorsAndOffsetsPreset(LayoutPreset.CenterRight, margin: 40);
-
-            var separator = new ColorRect
-            {
-                Position = new Vector2(0, 160),
-                Size = new Vector2(300, 5),
-                Color = Colors.White.Darkened(0.5f)
-            };
-            AddChild(separator);
-
+        private void calculateRank()
+        {
             var rankLabel = new Label
             {
-                Text = acc switch
+                Text = accuracy switch
                 {
                     >= 99.9f => "SSS",
                     >= 99f => "SS",
@@ -71,16 +77,19 @@ namespace XanaduProject.Screens.Result
                 },
                 LabelSettings = new LabelSettings
                 {
-                    FontSize = 75,
-                    OutlineColor = Colors.White.Darkened(0.7F),
+                    FontSize = 150,
+                    OutlineColor = Colors.Gold,
                     OutlineSize = 15,
-                    Font = FontSource.PLASTIC
+                    Font = new FontVariation
+                    {
+                        BaseFont = FontSource.PLASTIC
+                    }
                 },
                 Position = new Vector2(0, 180),
-                HorizontalAlignment = HorizontalAlignment.Right
+                HorizontalAlignment = HorizontalAlignment.Left
             };
 
-            rankLabel.Modulate = acc switch
+            rankLabel.Modulate = accuracy switch
             {
                 >= 99.9f => new Color(0.9f, 0.9f, 1.0f), // Platinum
                 >= 99f => Colors.Gold,
@@ -90,16 +99,30 @@ namespace XanaduProject.Screens.Result
             };
 
             AddChild(rankLabel);
+
         }
 
+        private static readonly GradientTexture1D gradient = new()
+        {
+            Gradient = new Gradient {
+                Colors = [Colors.Gold.Darkened(0.1f), Colors.Black],
+            }
+        };
+        public override void _Draw()
+        {
+            Vector2 v = Size + new Vector2(400, 0);
+            DrawRect( new Rect2(new Vector2(-50,0),v), Colors.Black with { A = 0.3f});
+
+            for (int i = 0; i < 5; i++)
+            {
+                DrawMesh(MeshFactory.CreateArrow(200),null, new Transform2D(float.Pi / 2 , new Vector2(i * 150 + 100, v.Y / 2))
+                    .ScaledLocal(new Vector2(1 - i * 0.05f, 1 - i * 0.05f)),Colors.Gold with { A = 0.3f});
+            }
+            DrawRect( new Rect2(new Vector2(-50,0),v),Colors.Gold, false, 4, antialiased: false);
+        }
         public override void _Ready()
         {
-            RenderRid.Create(GetCanvasItem())
-                .SetTransform(new Transform2D(0,Size / 2))
-                .AddRect(new Vector2(1000, 200011111))
-                .SetModulate(Colors.White with { A = 0.3f})
-                .SetMaterial(UiMaterials.FLARE.GetRid());
+            SetAnchorsAndOffsetsPreset(LayoutPreset.CenterLeft);
         }
     }
-
 }

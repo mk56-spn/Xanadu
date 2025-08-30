@@ -29,10 +29,12 @@ namespace XanaduProject.Screens.Result
                     Font = new FontVariation
                     {
                         SpacingTop = 5,
-                        BaseFont = FontSource.PLASTIC
+                        BaseFont = FontSource.PLASTIC_SLANTED
                     },
                     FontSize = 25,
                 };
+
+                Modulate = Colors.White;
             }
         }
     }

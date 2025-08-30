@@ -4,6 +4,7 @@
 using Godot;
 using XanaduProject.Animation;
 using XanaduProject.Factories;
+using XanaduProject.Tools;
 
 namespace XanaduProject.Screens.Result
 {
@@ -11,10 +12,11 @@ namespace XanaduProject.Screens.Result
     {
         public ResultBackGround()
         {
-            Modulate = Colors.Gold.Darkened(0.4f);
+            Modulate = Colors.White.Darkened(0.4f);
 
             AddChild(new TextureRect()
             {
+                ShowBehindParent = true,
                 Texture = new GradientTexture1D()
                 {
                     Gradient = new Gradient()
@@ -28,22 +30,13 @@ namespace XanaduProject.Screens.Result
 
             setupRings();
             SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
+
+
         }
 
         private RenderRid canvas;
         private void setupRings()
         {
-            ColorRect rect = new ColorRect
-            {
-                SizeFlagsHorizontal = SizeFlags.ShrinkEnd,
-                SizeFlagsVertical = SizeFlags.ExpandFill,
-                ZIndex = -4,
-                Color = Colors.White.Darkened(0.8f)
-            };
-
-
-
-            AddChild(rect);
             int scale = 100;
             int ringWidth = 30;
             canvas = RenderRid.Create(GetCanvasItem())
@@ -66,33 +59,12 @@ namespace XanaduProject.Screens.Result
 
         public override void _Draw()
         {
-            base._Draw();
+            this.DrawTransitionLine(Size.X, Size.Y - 100, Size.Y - 300, 250, Colors.White,  0.7f,  fill: true, fillColor: Colors.White.Darkened(0.8f));
+
+            this.DrawTransitionLine(Size.X, 50,100, 150, Colors.Gold, 0.6f, fill: true, fillColor: Colors.Gold.Darkened(0.7f) , fillAbove: true);
+            this.DrawTransitionLine(Size.X, Size.Y - 150, Size.Y - 100, 150, Colors.Gold,  0.4f,  fill: true, fillColor: Colors.Gold.Darkened(0.7f));
+
             canvas.SetTransform(new Transform2D(0, Size / 2));
-
-            int lineCount = 4;
-            float lineLength = 60f;
-            float spacing = 12f;
-            float lineWidth = 2f;
-
-            // Draw lines in the top-left corner
-            for (int i = 0; i < lineCount; i++)
-            {
-                var color = i % 2 == 0 ? Colors.White : Colors.Black;
-                // Horizontal lines
-                DrawLine(new Vector2(0, i * spacing), new Vector2(lineLength, i * spacing), color, lineWidth);
-                // Vertical lines
-                DrawLine(new Vector2(i * spacing, 0), new Vector2(i * spacing, lineLength), color, lineWidth);
-            }
-
-            // Draw lines in the bottom-right corner
-            for (int i = 0; i < lineCount; i++)
-            {
-                var color = i % 2 == 0 ? Colors.White : Colors.Black;
-                // Horizontal lines
-                DrawLine(new Vector2(Size.X, Size.Y - (i * spacing)), new Vector2(Size.X - lineLength, Size.Y - (i * spacing)), color, lineWidth);
-                // Vertical lines
-                DrawLine(new Vector2(Size.X - (i * spacing), Size.Y), new Vector2(Size.X - (i * spacing), Size.Y - lineLength), color, lineWidth);
-            }
         }
     }
 }
