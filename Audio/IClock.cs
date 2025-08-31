@@ -46,10 +46,10 @@ namespace XanaduProject.Audio
         /// </remarks>
         public event Action? Stopped;
 
-        public float SnappedTime(int snapsPerBeat = 48)
+        public float SnappedTime(int snapsPerBeat = 4)
         {
             // Guard clauses ────────────────────────────────────────────────────
-            if (TimingPoints is null || TimingPoints.Length == 0 || snapsPerBeat <= 0)
+            if (TimingPoints.Length == 0 || snapsPerBeat <= 0)
                 return (float)PlaybackTimeSec;
 
             // 1. Find the most recent timing point whose offset ≤ current time.
