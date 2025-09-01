@@ -4,16 +4,20 @@
 using Friflo.Engine.ECS;
 using Godot;
 using XanaduProject.Buttons;
-using XanaduProject.DataStructure;
 using XanaduProject.ECSComponents;
 using XanaduProject.ECSComponents.Tag;
+using XanaduProject.GameDependencies;
+using XanaduProject.IO.Indexes;
 using XanaduProject.Stage;
+using XanaduProject.Stage.Masters.Composer;
 using XanaduProject.Tools;
 
 namespace XanaduProject.Screens.Result
 {
     public partial class ResultFooter : HBoxContainer
     {
+        private IComposer composer = DiProvider.Get<IComposer>();
+
         private readonly AnimatedHoverButton restart = new("Restart");
         private readonly AnimatedHoverButton menu = new("Go to menu");
 
@@ -37,8 +41,7 @@ namespace XanaduProject.Screens.Result
                     v.RemoveComponent<Hit>(entity.Id);
                 });
                 manager.RequestChangeScreen(new Player(store,
-                        GD.Load<TrackInfo>("res://Resources/TestTrack.tres"))
-                    , TransitionType.Fade);
+                    TrackIndex.GetTrackInfo(composer.Data.StageInfo.StageData.SongIndex)), TransitionType.Fade);
 
                 v.Playback();
             };
