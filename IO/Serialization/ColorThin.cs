@@ -4,7 +4,7 @@
 using System.Runtime.InteropServices;
 using Godot;
 
-namespace XanaduProject.Serialization
+namespace XanaduProject.IO.Serialization
 {
     [StructLayout(LayoutKind.Explicit)]
     public struct ColorThin(float r, float g, float b, float a)

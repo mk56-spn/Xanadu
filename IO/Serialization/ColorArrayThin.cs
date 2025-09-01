@@ -5,7 +5,7 @@ using Friflo.Engine.ECS;
 using XanaduProject.ECSComponents.Animation2;
 using ZLinq;
 
-namespace XanaduProject.Serialization
+namespace XanaduProject.IO.Serialization
 {
     public struct ColorArrayThin : IComponent
     {
