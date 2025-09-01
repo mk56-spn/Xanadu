@@ -1,9 +1,10 @@
 // Copyright (c) mk56_spn <dhsjplt@gmail.com>. Licensed under the GNU General Public Licence (2.0).
 // See the LICENCE file in the repository root for full licence text.
 
+using System.Linq;
 using Godot;
-using XanaduProject.DataStructure;
-using XanaduProject.Serialization;
+using XanaduProject.IO;
+using XanaduProject.IO.Indexes;
 using XanaduProject.Stage;
 
 namespace XanaduProject.Tests
@@ -19,18 +20,11 @@ namespace XanaduProject.Tests
 			Player
 		}
 		public override void _Ready()
-		{
-			Player player;
-			if (type == Type.Player) {
-				player = new Player(StageDeserializer.Deserialize("level1"),
-					GD.Load<TrackInfo>("res://Resources/TestTrack.tres"));
-			}
-			else {
-				player = new Stage.Masters.Composer.Composer(StageDeserializer.Deserialize("level1"),
-					GD.Load<TrackInfo>("res://Resources/TestTrack.tres"));
-			}
+        {
+            var v = StagePersistence.GetStage(StageIndex.Stages.First().Value);
+            var player = type == Type.Player ? new Player(v) : new Stage.Masters.Composer.Composer(v);
 
-			AddChild(player);
+            AddChild(player);
 		}
 	}
 }
