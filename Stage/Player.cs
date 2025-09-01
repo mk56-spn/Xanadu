@@ -4,7 +4,8 @@
 using Friflo.Engine.ECS;
 using XanaduProject.Character;
 using XanaduProject.DataStructure;
-using XanaduProject.Serialization.SerialisedObjects;
+using XanaduProject.IO;
+using XanaduProject.IO.Indexes;
 using XanaduProject.Stage.Masters.Rendering;
 
 namespace XanaduProject.Stage
@@ -16,37 +17,32 @@ namespace XanaduProject.Stage
         public TrackInfo TrackInfo { get; }
         public StageConductor StageConductor;
 
-        public Player(SerializableStage serializableStage, TrackInfo trackInfo)
+        public Player(StageData stage)
         {
-            TrackInfo = trackInfo;
-            AddChild(StageConductor = new StageConductor(new TrackInfo
-            {
-                SongTitle = "Heavens's Fall",
-                Track = "res://Resources/Helblinde - Heaven_s Fall.ogg",
-                TimingPoints = [(0, 200)]
-            },EntityStore = serializableStage.EntityStore));
+            TrackInfo = TrackIndex.GetTrackInfo(stage.StageInfo.SongIndex);
 
-            if (this is not Masters.Composer.Composer)
-            {
-                StageConductor.AddChild(new PlayerCamera());
-
-                AddChild(new Pause(this));
-                Ready += () =>
-                {
-                    StageConductor.Clock.Restart();
-                    StageConductor.Clock.Resume();
-                };
-            }
+            AddChild(StageConductor = new StageConductor(TrackInfo,EntityStore = stage.Store));
+            setup();
         }
         public Player(EntityStore entityStore, TrackInfo trackInfo)
         {
             TrackInfo = trackInfo;
-            AddChild(StageConductor = new StageConductor(new TrackInfo
+
+            AddChild(StageConductor = new StageConductor(trackInfo, EntityStore = entityStore));
+            setup();
+        }
+
+        private void setup()
+        {
+            if (this is Masters.Composer.Composer) return;
+            StageConductor.AddChild(new PlayerCamera());
+
+            AddChild(new Pause(this));
+            Ready += () =>
             {
-                SongTitle = "Heavens's Fall",
-                Track = "res://Resources/Helblinde - Heaven_s Fall.ogg",
-                TimingPoints = [(0, 200)]
-            },EntityStore = entityStore));
+                StageConductor.Clock.Restart();
+                StageConductor.Clock.Resume();
+            };
         }
     }
 }
