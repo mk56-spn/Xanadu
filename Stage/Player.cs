@@ -2,39 +2,41 @@
 // See the LICENCE file in the repository root for full licence text.
 
 using Friflo.Engine.ECS;
+using Microsoft.Extensions.DependencyInjection;
 using XanaduProject.Character;
 using XanaduProject.DataStructure;
+using XanaduProject.GameDependencies;
 using XanaduProject.IO;
 using XanaduProject.IO.Indexes;
+using XanaduProject.Screens;
+using XanaduProject.Screens.Result;
 using XanaduProject.Stage.Masters.Rendering;
 
 namespace XanaduProject.Stage
 {
-    public partial class Player : Screen
+    public partial class Player : Screen, IPlayer
     {
         public EntityStore EntityStore { get; }
 
         public TrackInfo TrackInfo { get; }
         public StageConductor StageConductor;
 
-        public Player(StageData stage)
+        public Player(StageData data)
         {
-            TrackInfo = TrackIndex.GetTrackInfo(stage.StageInfo.SongIndex);
-
-            AddChild(StageConductor = new StageConductor(TrackInfo,EntityStore = stage.Store));
-            setup();
-        }
-        public Player(EntityStore entityStore, TrackInfo trackInfo)
-        {
-            TrackInfo = trackInfo;
-
-            AddChild(StageConductor = new StageConductor(trackInfo, EntityStore = entityStore));
+            TrackInfo = TrackIndex.GetTrackInfo(data.StageInfo.SongIndex);
+            DiProvider.Configure(c=>c.AddSingleton<IPlayer>(this));
+            AddChild(StageConductor = new StageConductor(TrackInfo,EntityStore = data.Store));
             setup();
         }
 
         private void setup()
         {
-            if (this is Masters.Composer.Composer) return;
+            if (this is Masters.Composer.Composer)
+            {
+                IsComposer = true;
+                return;
+            }
+
             StageConductor.AddChild(new PlayerCamera());
 
             AddChild(new Pause(this));
@@ -44,5 +46,15 @@ namespace XanaduProject.Stage
                 StageConductor.Clock.Resume();
             };
         }
+
+        public override void _EnterTree()
+        {
+            base._EnterTree();
+            Manager = DiProvider.Get<ScreenManager>();
+        }
+
+        public ScreenManager Manager { get; set; } = null!;
+        public bool IsComposer { get; private set; }
+        public void RequestResults() => Manager.RequestChangeScreen(new ResultScreen(this));
     }
 }

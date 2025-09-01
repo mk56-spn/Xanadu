@@ -6,23 +6,19 @@ using Godot;
 using XanaduProject.Buttons;
 using XanaduProject.ECSComponents;
 using XanaduProject.ECSComponents.Tag;
-using XanaduProject.GameDependencies;
-using XanaduProject.IO.Indexes;
 using XanaduProject.Stage;
-using XanaduProject.Stage.Masters.Composer;
 using XanaduProject.Tools;
 
 namespace XanaduProject.Screens.Result
 {
     public partial class ResultFooter : HBoxContainer
     {
-        private IComposer composer = DiProvider.Get<IComposer>();
 
         private readonly AnimatedHoverButton restart = new("Restart");
         private readonly AnimatedHoverButton menu = new("Go to menu");
 
         private readonly HBoxContainer buttons = new();
-        public ResultFooter(ScreenManager manager, EntityStore store)
+        public ResultFooter(ScreenManager manager, Player oldPlayer)
         {
             menu.Pressed += () =>manager.RequestChangeScreen(new MainMenu(), TransitionType.Fade);
 
@@ -33,6 +29,7 @@ namespace XanaduProject.Screens.Result
 
             restart.Pressed += () =>
             {
+                var store = oldPlayer.EntityStore;
                 var v = store.GetCommandBuffer();
 
                 store.Query<NoteEcs>().ForEachEntity((ref NoteEcs _, Entity entity) =>
@@ -40,8 +37,7 @@ namespace XanaduProject.Screens.Result
                     v.RemoveComponent<Judged>(entity.Id);
                     v.RemoveComponent<Hit>(entity.Id);
                 });
-                manager.RequestChangeScreen(new Player(store,
-                    TrackIndex.GetTrackInfo(composer.Data.StageInfo.StageData.SongIndex)), TransitionType.Fade);
+                manager.RequestChangeScreen(oldPlayer, TransitionType.Fade);
 
                 v.Playback();
             };
