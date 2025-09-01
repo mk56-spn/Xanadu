@@ -8,7 +8,6 @@ using Godot;
 using XanaduProject.Character;
 using XanaduProject.Factories;
 using XanaduProject.GameDependencies;
-using XanaduProject.Shaders;
 using static Godot.RenderingServer;
 
 namespace XanaduProject.ECSComponents.EntitySystem.CharacterSystems
