@@ -52,7 +52,7 @@ namespace XanaduProject.Screens.StageSelection
 
                 // Switch to the composer
                 screen.RequestChangeScreen(() =>
-                    new Stage.Masters.Composer.Composer(stageData, TrackIndex.GetTrackInfo(stageData.StageInfo.SongIndex)));
+                    new Stage.Masters.Composer.Composer(stageData));
             };
         }
     }
