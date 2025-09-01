@@ -53,7 +53,7 @@ namespace XanaduProject.Stage.Masters.Composer
         public Vector2 RelativeMouseMotion { get; private set; } = Vector2.Zero;
         public CanvasLayer ComposerUiCanvas { get; } = new();
 
-        public Composer(StageData stageData, TrackInfo trackInfo) : base(stageData.Store, trackInfo)
+        public Composer(StageData stageData) : base(stageData)
         {
             ComposerVisuals visuals = new ComposerVisuals();
             DiProvider.Register(collection =>

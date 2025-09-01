@@ -1,11 +1,10 @@
 // Copyright (c) mk56_spn <dhsjplt@gmail.com>. Licensed under the GNU General Public Licence (2.0).
 // See the LICENCE file in the repository root for full licence text.
 
-using Friflo.Engine.ECS;
 using Godot;
 using XanaduProject.ECSComponents.EntitySystem;
 using XanaduProject.GameDependencies;
-using XanaduProject.Serialization;
+using XanaduProject.IO;
 
 namespace XanaduProject.Stage.Masters.Composer
 {
@@ -52,9 +51,9 @@ namespace XanaduProject.Stage.Masters.Composer
 
 		private partial class VisualsLayout : VBoxContainer
 		{
-			public HBoxContainer TopBar = new() { CustomMinimumSize = new Vector2(0,50) };
-			public readonly TabContainer MainTabs = new() { SizeFlagsHorizontal = SizeFlags.ExpandFill};
-			public readonly HBoxContainer LeftBottomContainer = new() ;
+			public HBoxContainer TopBar = new() { CustomMinimumSize = new Vector2(0, 50) };
+			public readonly TabContainer MainTabs = new() { SizeFlagsHorizontal = SizeFlags.ExpandFill };
+			public readonly HBoxContainer LeftBottomContainer = new();
 			public readonly VBoxContainer FloatingBar = new()
 			{
 				SizeFlagsHorizontal = SizeFlags.ShrinkCenter,
@@ -73,15 +72,29 @@ namespace XanaduProject.Stage.Masters.Composer
 				center();
 				bottomBar();
 			}
+
 			private void topBarCreate()
 			{
 				AddChild(panelWrapper(TopBar));
-				Button b = new Button {CustomMinimumSize = new Vector2(30,30)};
-				TopBar.AddChild(b);
+				var menuButton = new MenuButton { Text = "File" };
+				TopBar.AddChild(menuButton);
 
-				b.Pressed += () =>
+				var popup = menuButton.GetPopup();
+				popup.AddItem("Save");
+				popup.AddItem("Edit StagePath Data");
+
+				popup.IdPressed += id =>
 				{
-					StageSerializer.Serialize(DiProvider.Get<EntityStore>(), "level1");
+					var composer = DiProvider.Get<IComposer>();
+					switch (id)
+					{
+						case 0: // Save
+							StagePersistence.SaveStage(composer.Data);
+							break;
+						case 1: // Edit StagePath Data
+							composer.ScreenManager.ChangeSubScreen(new ComposerStageDataEdit(composer.Data));
+							break;
+					}
 				};
 			}
 
@@ -108,17 +121,18 @@ namespace XanaduProject.Stage.Masters.Composer
 				entityPanel.SizeFlagsHorizontal = SizeFlags.ShrinkEnd;
 				entityPanel.Position -= new Vector2(30, 50);
 			}
+
 			private void bottomBar()
 			{
 				HBoxContainer container = new HBoxContainer
 				{
-					CustomMinimumSize = new Vector2(0,100)
+					CustomMinimumSize = new Vector2(0, 100)
 				};
 				AddChild(container);
 				container.AddChild(LeftBottomContainer);
 				container.AddChild(MainTabs);
 
-				Button b = new Button { Text = "PLAY", CustomMinimumSize = new Vector2(200,0)};
+				Button b = new Button { Text = "PLAY", CustomMinimumSize = new Vector2(200, 0) };
 				b.Pressed += () =>
 				{
 					var composer = DiProvider.Get<IComposer>();
