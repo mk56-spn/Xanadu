@@ -4,13 +4,13 @@
 using System;
 using System.Linq;
 using Godot;
+using XanaduProject.IO.Indexes;
 
 namespace XanaduProject.Screens.StageSelection
 {
 	public partial class StageSelectionCarousel : ScrollContainer
 	{
 		private readonly StageSelection stageSelection;
-
 
 		private const double transition = 0.5;
 
@@ -37,15 +37,28 @@ namespace XanaduProject.Screens.StageSelection
 
 			trackList.AddThemeConstantOverride("separation", 100);
 
-			var dir = DirAccess.Open("res://Stages/");
-
-			foreach (string? level in dir.GetFiles())
+			if (StageIndex.Stages.Count == 0)
 			{
-				GD.Print("something");
-				trackList.AddChild(new StageSelectionPanel(level));
+				AddChild(new FallbackPanel());
+				return;
 			}
 
-			base._Ready();
+			foreach (var var in StageIndex.Stages)
+			{
+				trackList.AddChild(new StageSelectionPanel(var.Value));
+			}
+
+			AddChild(trackList);
+
+			if (trackList.GetChildCount() > 0)
+			{
+				setupTweening();
+				trackList.GetChild<StageSelectionPanel>(0).GrabFocus();
+			}
+		}
+
+		private void setupTweening()
+		{
 			Tween? scrollTween = null;
 
 			foreach (var panel in trackList.GetChildren().OfType<StageSelectionPanel>())
@@ -57,13 +70,11 @@ namespace XanaduProject.Screens.StageSelection
 						.SetTrans(Tween.TransitionType.Sine)
 						.SetEase(Tween.EaseType.Out);
 
-					stageSelection.Level = panel.Level;
+					stageSelection.Data = panel.Info;
+
 
 					updateOpacity(panel.GetIndex());
 				};
-
-			AddChild(trackList);
-			trackList.GetChild<StageSelectionPanel>(0).GrabFocus();
 		}
 
 		private void updateOpacity(int focusedIndex)
