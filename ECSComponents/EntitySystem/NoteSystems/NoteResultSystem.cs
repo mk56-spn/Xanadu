@@ -1,7 +1,6 @@
 // Copyright (c) mk56_spn <dhsjplt@gmail.com>. Licensed under the GNU General Public Licence (2.0).
 // See the LICENCE file in the repository root for full licence text.
 
-using System.Linq;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Godot;
@@ -11,15 +10,13 @@ using XanaduProject.ECSComponents.EntitySystem.Components;
 using XanaduProject.ECSComponents.Tag;
 using XanaduProject.Factories;
 using XanaduProject.GameDependencies;
-using XanaduProject.Screens;
-using ResultScreen = XanaduProject.Screens.Result.ResultScreen;
 
 namespace XanaduProject.ECSComponents.EntitySystem.NoteSystems
 {
 	public class NoteResultSystem : QuerySystem<NoteEcs, Hit, ElementEcs>
 	{
 		private readonly IClock clock = DiProvider.Get<IClock>();
-		private ScreenManager screenManager { get; } = DiProvider.Get<ScreenManager>();
+        private readonly IPlayer player = DiProvider.Get<IPlayer>();
 
 		protected override void OnAddStore(EntityStore incomingStore)=> store = incomingStore;
 
@@ -86,12 +83,14 @@ namespace XanaduProject.ECSComponents.EntitySystem.NoteSystems
 
 		private void finishLevelCheck()
 		{
+            if (player.IsComposer) return;
+
 			int count = store.Query<NoteEcs>().Count;
 			if (count == store.Query<NoteEcs>().AllComponents(ComponentTypes.Get<Judged>()).Count )
 			{
-				if (count == 0 ) return;
-				screenManager.RequestChangeScreen(new ResultScreen(store), TransitionType.Fade);
-			}
+				if (count == 0  ) return;
+                player.RequestResults();
+            }
 		}
 	}
 }
