@@ -8,6 +8,8 @@ namespace XanaduProject.Screens
 {
     public partial class SubScreenManager : Node
     {
+        private CanvasLayer screenTarget = new() { Layer = 5, };
+
         private Screen? currentSubScreen;
         private bool isTransitioning;
         private readonly ScreenManager screenManager;
@@ -17,6 +19,8 @@ namespace XanaduProject.Screens
         {
             this.screenManager = screenManager;
             this.transitionManager = transitionManager;
+
+            screenManager.AddChild(screenTarget);
         }
 
         /// <summary>
@@ -46,7 +50,7 @@ namespace XanaduProject.Screens
                 {
                     // Prepare and add the new screen to the scene tree.
                     currentSubScreen.Visible = false;
-                    screenManager.AddChild(currentSubScreen);
+                    screenTarget.AddChild(currentSubScreen);
 
                     // Transition it into view.
                     transitionManager.CompleteTransition(currentSubScreen, transitionType, () => { isTransitioning = false; });
