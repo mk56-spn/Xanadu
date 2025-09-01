@@ -136,7 +136,7 @@ namespace XanaduProject.Stage.Masters.Composer
 				b.Pressed += () =>
 				{
 					var composer = DiProvider.Get<IComposer>();
-					composer.ScreenManager.RequestChangeScreen(new Player(composer.EntityStore, composer.TrackInfo));
+					composer.ScreenManager.RequestChangeScreen(new Player(composer.Data));
 				};
 				container.AddChild(b);
 			}
