@@ -2,6 +2,7 @@
 // See the LICENCE file in the repository root for full licence text.
 
 using Godot;
+using XanaduProject.Screens;
 using XanaduProject.Screens.StageSelection;
 
 namespace XanaduProject.Stage
@@ -19,7 +20,7 @@ namespace XanaduProject.Stage
             SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
             AddChild(new ColorRect { Modulate = Colors.Black});
             this.player = player;
-            quit.Pressed += () => player.ScreenManager.RequestChangeScreen(GD.Load<PackedScene>("uid://c7dnjjmgr5dhc").Instantiate<StageSelection>());
+            quit.Pressed += () => player.ScreenManager.RequestChangeScreen(new StageSelection());
             resume.Pressed += () =>
             {
                 Visible = false;
