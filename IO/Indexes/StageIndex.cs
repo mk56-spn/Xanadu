@@ -18,7 +18,7 @@ namespace XanaduProject.IO.Indexes
         static StageIndex()
         {
             buildIndex();
-            GD.Print(string.Join(Environment.NewLine, Stages) + "Stage list");
+            GD.Print(string.Join(Environment.NewLine, Stages) + "StagePath list");
         }
 
         private static void buildIndex()
@@ -49,11 +49,12 @@ namespace XanaduProject.IO.Indexes
                 try
                 {
                     string json = File.ReadAllText(metadataPath);
-                    var stageData = JsonSerializer.Deserialize<StageDataEcs>(json);
+                    var stageData = JsonSerializer.Deserialize<StageInfo>(json);
 
-                    GD.PrintRich(stageData.StageName + "INFO");
+                    GD.PrintRich(stageData!.StageName + "INFO");
                     string stageResPath = SerializationUtils.STAGES_DIR.PathJoin(dirName);
-                    var newStageInfo = new StageInfo(){ Stage = stageResPath, StageData = stageData };
+                    var newStageInfo = new StageInfo(stageResPath, json, stageData.StageName, stageData.CreatorList);
+
                     Stages.Add(stageIndex, newStageInfo);
                     stageIndex++;
                 }
