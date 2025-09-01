@@ -10,6 +10,7 @@ namespace XanaduProject.Stage.Masters.Composer
 {
     public partial class ComposerStageDataEdit : Screen
     {
+        private VBoxContainer vbox;
         public ComposerStageDataEdit(StageData stageData)
         {
             SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
@@ -17,9 +18,8 @@ namespace XanaduProject.Stage.Masters.Composer
             StageInfo data = stageData.StageInfo;
             string oldStageName = data.StageName;
 
-            var vbox = new VBoxContainer();
-            AddChild(vbox);
 
+            vbox = new VBoxContainer();
 
             var songIndexLabel = new Label { Text = "Song Index" };
             var songIndexSpinBox = new SpinBox
@@ -78,5 +78,15 @@ namespace XanaduProject.Stage.Masters.Composer
             vbox.AddChild(creatorListLabel);
             vbox.AddChild(creatorListLineEdit);
         }
+        public override void _Ready()
+        {
+            var color = new ColorRect{ Color = Colors.Black with { A = 0.5f } };
+            color.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
+            AddChild(color);
+            AddChild(vbox);
+
+            vbox.SetAnchorsAndOffsetsPreset(LayoutPreset.Center);
+        }
     }
+
 }
