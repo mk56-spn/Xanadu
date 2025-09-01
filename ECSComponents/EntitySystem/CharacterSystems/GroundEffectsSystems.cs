@@ -54,15 +54,15 @@ namespace XanaduProject.ECSComponents.EntitySystem.CharacterSystems
 
 
 			store.Query<CharacterEcs>().Entities.First().AddSignalHandler<Airborne>(_ =>
-            {
-                groundParticles.SetAmountRatio(0);
-            });
+			{
+				groundParticles.SetAmountRatio(0);
+			});
 		}
 
 		protected override void OnUpdate()
 		{
 			Transform2D xf2d = Transform2D.Identity;
-			Query.ForEachEntity((ref CharacterEcs characterEcs, Entity entity) =>
+			Query.ForEachEntity((ref CharacterEcs characterEcs, Entity _) =>
 			{
 				if (characterEcs.Phase == Phase.Airborne) return;
 				groundParticles.SetAmountRatio(Mathf.Abs(characterEcs.Velocity.X / PlayerCharacter.MAX_RUN_SPEED));
