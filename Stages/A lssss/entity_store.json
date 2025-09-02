@@ -1,0 +1,42 @@
+[{
+    "id": 1
+},{
+    "id": 2,
+    "components": {
+        "BlockEcs": {},
+        "ElementEcs": {"Index":0,"Transform":{"X":{"X":1,"Y":0},"Y":{"X":0,"Y":1},"Origin":{"X":-109,"Y":240}}},
+        "RectEcs": {"Extents":{"X":32,"Y":32}}
+    }
+},{
+    "id": 3,
+    "components": {
+        "BlockEcs": {},
+        "ElementEcs": {"Index":0,"Transform":{"X":{"X":1,"Y":0},"Y":{"X":0,"Y":1},"Origin":{"X":-48,"Y":240}}},
+        "RectEcs": {"Extents":{"X":32,"Y":32}}
+    }
+},{
+    "id": 4,
+    "components": {
+        "BlockEcs": {},
+        "ElementEcs": {"Index":0,"Transform":{"X":{"X":1,"Y":0},"Y":{"X":0,"Y":1},"Origin":{"X":-16,"Y":240}}},
+        "RectEcs": {"Extents":{"X":32,"Y":32}}
+    }
+},{
+    "id": 5,
+    "components": {
+        "BlockEcs": {},
+        "ElementEcs": {"Index":0,"Transform":{"X":{"X":1,"Y":0},"Y":{"X":0,"Y":1},"Origin":{"X":-80,"Y":240}}},
+        "RectEcs": {"Extents":{"X":32,"Y":32}}
+    }
+},{
+    "id": 6,
+    "components": {
+        "BlockEcs": {},
+        "ElementEcs": {"Index":0,"Transform":{"X":{"X":1,"Y":0},"Y":{"X":0,"Y":1},"Origin":{"X":16,"Y":240}}},
+        "RectEcs": {"Extents":{"X":32,"Y":32}}
+    }
+},{
+    "id": 7
+},{
+    "id": 8
+}]
