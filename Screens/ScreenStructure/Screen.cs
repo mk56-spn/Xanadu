@@ -3,9 +3,8 @@
 
 using Godot;
 using XanaduProject.GameDependencies;
-using XanaduProject.Screens;
 
-namespace XanaduProject.Character
+namespace XanaduProject.Screens.ScreenStructure
 {
 	public partial class Screen : Control
 	{
