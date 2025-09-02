@@ -9,6 +9,7 @@ namespace XanaduProject.Screens.ScreenStructure
 	public partial class Screen : Control
 	{
 		public Color Color { get; protected set; } = Colors.Blue;
+		public Control? BackgroundOverride { get; protected set; }
 
 		public Screen()
 		{
