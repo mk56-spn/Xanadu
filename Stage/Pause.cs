@@ -2,14 +2,15 @@
 // See the LICENCE file in the repository root for full licence text.
 
 using Godot;
-using XanaduProject.Screens;
+using XanaduProject.Character;
 using XanaduProject.Screens.StageSelection;
 
 namespace XanaduProject.Stage
 {
-    public partial class Pause : VBoxContainer
+    public partial class Pause : Screen
     {
         private readonly Player player;
+        private VBoxContainer buttonContainer = new();
         private Button quit = new() { Text = "Quit", CustomMinimumSize = new Vector2( 200,200 )};
         private Button resume = new() { Text = "Resume",  CustomMinimumSize = new Vector2( 200,200 )};
         private Button restart = new() { Text = "Restart", CustomMinimumSize = new Vector2(200, 200) };
@@ -33,11 +34,11 @@ namespace XanaduProject.Stage
                 Visible = false;
             };
 
-            AddChild(quit);
-            AddChild(resume);
-            AddChild(restart);
+            AddChild(buttonContainer);
+            buttonContainer.AddChild(quit);
+            buttonContainer.AddChild(resume);
+            buttonContainer.AddChild(restart);
 
-            Visible = false;
         }
 
         public override void _Input(InputEvent @event)
@@ -48,6 +49,11 @@ namespace XanaduProject.Stage
                 player.StageConductor.Clock.Pause();
             }
 
+        }
+
+        public override void _Ready()
+        {
+            base._Ready();
         }
     }
 }
