@@ -36,7 +36,27 @@ namespace XanaduProject.IO.Indexes
                 if (!int.TryParse(dirName, out int trackIndex)) continue;
 
                 string metadataPath = Path.Combine(dirPath, "metadata.json");
-                if (!File.Exists(metadataPath)) continue;
+                if (!File.Exists(metadataPath))
+                {
+                    GD.Print($"TrackIndex: No metadata.json found in '{dirPath}'. Creating a default one.");
+                    try
+                    {
+                        var defaultTrackInfo = new TrackInfo
+                        {
+                            SongTitle = "Untitled",
+                            TimingPoints = new[] { new TimingPoint { Value = 0.0, Bpm = 200.0 } },
+                            Measures = 128
+                        };
+                        var options = new JsonSerializerOptions { WriteIndented = true };
+                        string json = JsonSerializer.Serialize(defaultTrackInfo, options);
+                        File.WriteAllText(metadataPath, json);
+                    }
+                    catch (Exception e)
+                    {
+                        GD.PrintErr($"TrackIndex: Failed to create default metadata for '{dirPath}': {e.Message}");
+                        continue;
+                    }
+                }
 
                 string? songPath = Directory.EnumerateFiles(dirPath)
                     .FirstOrDefault(f => f.EndsWith(".ogg", StringComparison.OrdinalIgnoreCase));

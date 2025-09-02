@@ -1,5 +1,6 @@
 using Godot;
 using XanaduProject.Audio;
+using XanaduProject.DataStructure;
 using XanaduProject.GameDependencies;
 
 namespace XanaduProject.Stage.Masters.Composer.Timelines
@@ -19,7 +20,7 @@ namespace XanaduProject.Stage.Masters.Composer.Timelines
 
         // ---- state ----------------------------------------------------------
         protected float HorizontalScale { get; set; } = default_scale;
-        protected (double timingPoint, double bpm)[] Timing => clock.TimingPoints;
+        protected TimingPoint[] Timing => clock.TimingPoints;
 
         //---------------------------------------------------------------------
         public Timeline()
@@ -57,11 +58,11 @@ namespace XanaduProject.Stage.Masters.Composer.Timelines
             for (int i = 0; i < Timing.Length; i++)
             {
                 var tp = Timing[i];
-                if (tp.bpm <= 0) continue;
+                if (tp.Bpm <= 0) continue;
 
-                double start = tp.timingPoint;
-                double end = i + 1 < Timing.Length ? Timing[i + 1].timingPoint : double.MaxValue;
-                double beat = 60.0 / tp.bpm;
+                double start = tp.Value;
+                double end = i + 1 < Timing.Length ? Timing[i + 1].Value : double.MaxValue;
+                double beat = 60.0 / tp.Bpm;
 
                 for (double t = start; t < end; t += beat)
                 {

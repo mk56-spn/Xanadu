@@ -2,6 +2,7 @@
 // See the LICENCE file in the repository root for full licence text.
 
 using System;
+using XanaduProject.DataStructure;
 
 namespace XanaduProject.Audio
 {
@@ -12,7 +13,7 @@ namespace XanaduProject.Audio
         /// </summary>
         double CurrentBpm { get; }
 
-        public (double timingPoint, double bpm)[] TimingPoints { get; init; }
+        public TimingPoint[] TimingPoints { get; init; }
 
         /// <summary>
         /// The current position in the song, measured in beats.
@@ -53,24 +54,24 @@ namespace XanaduProject.Audio
                 return (float)PlaybackTimeSec;
 
             // 1. Find the most recent timing point whose offset ≤ current time.
-            (double offsetSec, double bpm) active = TimingPoints[0];
+            TimingPoint active = TimingPoints[0];
             for (int i = 1; i < TimingPoints.Length; ++i)
-                if (PlaybackTimeSec >= TimingPoints[i].timingPoint)
+                if (PlaybackTimeSec >= TimingPoints[i].Value)
                     active = TimingPoints[i];
                 else
                     break;
 
-            double secondsPerBeat = 60.0 / active.bpm;
+            double secondsPerBeat = 60.0 / active.Bpm;
 
             // 2. Time elapsed since that timing point.
-            double deltaSec = PlaybackTimeSec - active.offsetSec;
+            double deltaSec = PlaybackTimeSec - active.Value;
 
             // 3. Snap Δt to the nearest beat subdivision.
             double subdivision = secondsPerBeat / snapsPerBeat;
             double snappedDeltaSec = Math.Round(deltaSec / subdivision) * subdivision;
 
             // 4. Combine back with timing-point offset.
-            double snappedTimeSec = active.offsetSec + snappedDeltaSec;
+            double snappedTimeSec = active.Value + snappedDeltaSec;
 
             return (float)snappedTimeSec;
         }

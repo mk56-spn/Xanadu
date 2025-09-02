@@ -25,9 +25,9 @@ namespace XanaduProject.Audio
         /// as defined by the track's timing points. It updates dynamically when the timing point changes
         /// during playback.
         /// </remarks>
-        public double CurrentBpm { get; private set; } = track.TimingPoints[0].bpm;
+        public double CurrentBpm { get; private set; } = track.TimingPoints[0].Bpm;
 
-        public (double timingPoint, double bpm)[] TimingPoints { get; init; } = track.TimingPoints;
+        public TimingPoint[] TimingPoints { get; init; } = track.TimingPoints;
 
 
         public double PlaybackTimeSec => PlaybackTime;
@@ -140,9 +140,9 @@ namespace XanaduProject.Audio
 
                 var nextTimingPoint = track.TimingPoints[bpmIndex + 1];
 
-                if (PlaybackTimeSec >= nextTimingPoint.timingPoint)
+                if (PlaybackTimeSec >= nextTimingPoint.Value)
                 {
-                    CurrentBpm = nextTimingPoint.bpm;
+                    CurrentBpm = nextTimingPoint.Bpm;
                     bpmIndex++;
                 }
                 else
