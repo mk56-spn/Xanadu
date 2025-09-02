@@ -1,4 +1,3 @@
-
 // Copyright (c) mk56_spn <dhsjplt@gmail.com>.Licensed under the GNU General Public Licence (2.0).
 // See the LICENCE file in the repository root for full licence text.
 
@@ -63,6 +62,10 @@ namespace XanaduProject.Screens
                 .SetProcessMaterial(particleProcessMaterial.GetRid()));
         }
 
+        public void ChangeSubScreen(Screen screen)
+        {
+            subScreenManager.ChangeSubScreen(screen);
+        }
         public void InvokeSetting()
         {
             var settingsScreen = new SettingsSubScreen();
@@ -98,6 +101,8 @@ namespace XanaduProject.Screens
             transitionManager.CompleteTransition(nextScreen, transitionType, OnTransitionCompleted);
 
             particleProcessMaterial.Color = nextScreen.Color;
+
+            RemoveSubscreen();
         }
 
         public async void RequestChangeScreen<T>(Func<T> screenFactory, TransitionType transitionType = TransitionType.Slide) where T : Screen

@@ -11,9 +11,9 @@ namespace XanaduProject.Stage
     {
         private readonly Player player;
         private VBoxContainer buttonContainer = new();
-        private Button quit = new() { Text = "Quit", CustomMinimumSize = new Vector2( 200,200 )};
-        private Button resume = new() { Text = "Resume",  CustomMinimumSize = new Vector2( 200,200 )};
-        private Button restart = new() { Text = "Restart", CustomMinimumSize = new Vector2(200, 200) };
+        private Button quit = new() { Text = "Quit", CustomMinimumSize = new Vector2(300, 100)};
+        private Button resume = new() { Text = "Resume",  CustomMinimumSize = new Vector2(300, 100)};
+        private Button restart = new() { Text = "Restart", CustomMinimumSize = new Vector2(300, 100) };
 
         public Pause(Player player)
         {
@@ -39,6 +39,7 @@ namespace XanaduProject.Stage
             buttonContainer.AddChild(resume);
             buttonContainer.AddChild(restart);
 
+            Visible = false;
         }
 
         public override void _Input(InputEvent @event)
@@ -48,12 +49,12 @@ namespace XanaduProject.Stage
                 Visible = true;
                 player.StageConductor.Clock.Pause();
             }
-
         }
 
         public override void _Ready()
         {
             base._Ready();
+            buttonContainer.SetAnchorsAndOffsetsPreset(LayoutPreset.Center);
         }
     }
 }

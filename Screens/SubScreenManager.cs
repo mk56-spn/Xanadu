@@ -48,12 +48,21 @@ namespace XanaduProject.Screens
 
                 if (currentSubScreen != null)
                 {
+                    var visibility = currentSubScreen.Visible;
                     // Prepare and add the new screen to the scene tree.
                     currentSubScreen.Visible = false;
                     screenTarget.AddChild(currentSubScreen);
 
-                    // Transition it into view.
-                    transitionManager.CompleteTransition(currentSubScreen, transitionType, () => { isTransitioning = false; });
+                    if (visibility)
+                    {
+                        // Transition it into view.
+                        transitionManager.CompleteTransition(currentSubScreen, transitionType,
+                            () => { isTransitioning = false; });
+                    }
+                    else
+                    {
+                        isTransitioning = false;
+                    }
                 }
                 else
                 {

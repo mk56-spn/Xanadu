@@ -39,7 +39,6 @@ namespace XanaduProject.Stage
 
             StageConductor.AddChild(new PlayerCamera());
 
-            AddChild(new Pause(this));
             Ready += () =>
             {
                 StageConductor.Clock.Restart();
@@ -51,6 +50,9 @@ namespace XanaduProject.Stage
         {
             base._EnterTree();
             Manager = DiProvider.Get<ScreenManager>();
+
+            if (this is Masters.Composer.Composer) return;
+            Manager.ChangeSubScreen(new Pause(this));
         }
 
         public ScreenManager Manager { get; set; } = null!;
