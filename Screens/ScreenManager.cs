@@ -8,7 +8,8 @@ using Microsoft.Extensions.DependencyInjection;
 using XanaduProject.Character;
 using XanaduProject.Factories;
 using XanaduProject.GameDependencies;
-using XanaduProject.Screens.Settings;
+using XanaduProject.Screens.ScreenStructure;
+using Screen = XanaduProject.Screens.ScreenStructure.Screen;
 
 namespace XanaduProject.Screens
 {
@@ -62,14 +63,9 @@ namespace XanaduProject.Screens
                 .SetProcessMaterial(particleProcessMaterial.GetRid()));
         }
 
-        public void ChangeSubScreen(Screen screen)
+        public void ChangeSubScreen(SubScreen screen)
         {
             subScreenManager.ChangeSubScreen(screen);
-        }
-        public void InvokeSetting()
-        {
-            var settingsScreen = new SettingsSubScreen();
-            subScreenManager.ChangeSubScreen(settingsScreen);
         }
 
         public void RemoveSubscreen() {
