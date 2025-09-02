@@ -3,7 +3,6 @@
 
 using Friflo.Engine.ECS;
 using Godot;
-using XanaduProject.Character;
 using XanaduProject.Stage;
 using MainScreen = XanaduProject.Screens.ScreenStructure.MainScreen;
 
@@ -17,6 +16,7 @@ namespace XanaduProject.Screens.Result
         {
             EntityStore store = player.EntityStore;
 
+            BackgroundOverride = new ResultBackGround();
             AddChild(new ResultRightBar(store));
             info.AddChild(new ResultGraph(store));
             info.SetAnchorsAndOffsetsPreset(LayoutPreset.LeftWide, margin: 90);

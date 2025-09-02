@@ -1,9 +1,10 @@
 // Copyright (c) mk56_spn <dhsjplt@gmail.com>.Licensed under the GNU General Public Licence (2.0).
 // See the LICENCE file in the repository root for full licence text.
 
+using System;
 using Godot;
-using XanaduProject.Animation;
 using XanaduProject.Factories;
+using XanaduProject.Factories.ShaderFactoryHelpers;
 using XanaduProject.Tools;
 
 namespace XanaduProject.Screens.Result
@@ -14,12 +15,12 @@ namespace XanaduProject.Screens.Result
         {
             Modulate = Colors.White.Darkened(0.4f);
 
-            AddChild(new TextureRect()
+            AddChild(new TextureRect
             {
                 ShowBehindParent = true,
-                Texture = new GradientTexture1D()
+                Texture = new GradientTexture1D
                 {
-                    Gradient = new Gradient()
+                    Gradient = new Gradient
                     {
                         Offsets = [0, 1],
                         Colors = [Colors.White with { A = 0.5f }, Colors.Transparent]
@@ -27,14 +28,12 @@ namespace XanaduProject.Screens.Result
                 }
             });
 
-
             setupRings();
             SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
-
-
         }
 
         private RenderRid canvas;
+
         private void setupRings()
         {
             int scale = 100;
@@ -42,7 +41,13 @@ namespace XanaduProject.Screens.Result
             canvas = RenderRid.Create(GetCanvasItem())
                 .AddCircle(20);
 
-            canvas.SetMaterial(RotationAnimator.MATERIAL.GetRid());
+            ShaderFactory s = new ShaderFactory();
+            s.Add(RenderMode.BlendAdd);
+            s.Add(VertexShaders.ROTATION_VERTEX);
+
+            var v =s.Build();
+
+            canvas.SetMaterial(v.GetRid());
 
             for (int i = 1; i < 4; i++)
             {

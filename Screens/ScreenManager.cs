@@ -20,6 +20,8 @@ namespace XanaduProject.Screens
         private Control? background;
         private const float transition_duration = 0.5f;
 
+        private static readonly DefaultBackground default_background = new();
+
         public ScreenManager()
         {
             var transitionManager1 = new ScreenTransitionManager(this, transition_duration);
@@ -28,11 +30,7 @@ namespace XanaduProject.Screens
 
             screenFader = new ScreenFader(this, transitionManager1, OnScreenChanged, OnScreenCleanup);
 
-            background = new ColorRect
-            {
-                Color = new Color(0.2f, 0.0f, 0.0f, 1.0f),
-            };
-            AddChild(background);
+            updateBackground(null);
 
             RequestChangeScreen(new MainMenu(), TransitionType.Fade);
             setupParticles();
@@ -51,58 +49,51 @@ namespace XanaduProject.Screens
         public override void _Ready()
         {
             GameSettings.ApplyResolution();
-            background?.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
         }
 
         public void RequestChangeScreen(Screen screen, TransitionType transitionType = TransitionType.Slide)
         {
+            RemoveSubscreen();
             screenFader.ChangeScreen(screen, transitionType);
         }
 
         public async void RequestChangeScreen<T>(Func<T> screenFactory, TransitionType transitionType = TransitionType.Slide) where T : Screen
         {
+            RemoveSubscreen();
             Screen screen = await Task.Run(screenFactory);
             screenFader.ChangeScreen(screen, transitionType);
         }
 
         private void OnScreenChanged(Screen newScreen)
         {
-
-            if (newScreen.BackgroundOverride != null)
-            {
-                if (background != null)
-                {
-                    RemoveChild(background);
-                    background.QueueFree();
-                }
-                background = newScreen.BackgroundOverride;
-                AddChild(background);
-                MoveChild(background, 0);
-            }
-
+            updateBackground(newScreen.BackgroundOverride);
             particleProcessMaterial.Color = newScreen.Color;
-            RemoveSubscreen();
         }
 
         private void OnScreenCleanup(Screen oldScreen)
         {
             if (!IsInstanceValid(oldScreen)) return;
 
-            if (oldScreen.BackgroundOverride != null)
-            {
-                RemoveChild(oldScreen.BackgroundOverride);
-                oldScreen.BackgroundOverride.QueueFree();
-
-                // Restore default background
-                background = new ColorRect
-                {
-                    Color = new Color(0.2f, 0.0f, 0.0f, 1.0f),
-                    Size = GetViewportRect().Size
-                };
-                AddChild(background);
-                MoveChild(background, 0);
-            }
             oldScreen.QueueFree();
+        }
+
+        private void updateBackground(Control? newBackground)
+        {
+            var targetBackground = newBackground ?? default_background;
+            if (targetBackground == background)
+                return;
+
+            if (background != null)
+            {
+                RemoveChild(background);
+                if (background != default_background)
+                    background.QueueFree();
+            }
+
+            background = targetBackground;
+            AddChild(background);
+            background.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
+            MoveChild(background, 0);
         }
 
         #region Particles
@@ -117,8 +108,8 @@ namespace XanaduProject.Screens
             {
                 Gradient = new Gradient
                 {
-                    Offsets = new[] { 0, 0.5f, 1 },
-                    Colors = new[] { Colors.Transparent, Colors.White, Colors.Transparent }
+                    Offsets = [0, 0.5f, 1],
+                    Colors = [Colors.Transparent, Colors.White, Colors.Transparent]
                 }
             },
             ColorInitialRamp = new GradientTexture1D

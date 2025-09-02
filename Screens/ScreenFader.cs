@@ -49,6 +49,8 @@ namespace XanaduProject.Screens
 
         public void ChangeScreen(Screen? newScreen, TransitionType transitionType)
         {
+            if (fsm.State == State.Transitioning) return;
+
             if (newScreen == currentScreen)
             {
                 return;
