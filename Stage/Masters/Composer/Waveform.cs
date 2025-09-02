@@ -1,7 +1,6 @@
 // Copyright (c) mk56_spn <dhsjplt@gmail.com>. Licensed under the GNU General Public Licence (2.0).
 // See the LICENCE file in the repository root for full licence text.
 
-using System;
 using System.Globalization;
 using System.Linq;
 using Friflo.Engine.ECS;
@@ -10,7 +9,7 @@ using XanaduProject.Audio;
 using XanaduProject.ECSComponents.Animation2;
 using XanaduProject.GameDependencies;
 
-namespace XanaduProject.Composer
+namespace XanaduProject.Stage.Masters.Composer
 {
     public partial class Waveform : VBoxContainer
     {
@@ -65,22 +64,22 @@ namespace XanaduProject.Composer
 
             // Draw BPM text labels
             foreach (var timing in timingPoints)
-                DrawString(font, new Vector2((float)timing.timingPoint * horizontal_scale, 0),
-                    timing.bpm.ToString(CultureInfo.CurrentCulture), modulate: Colors.Green);
+                DrawString(font, new Vector2((float)timing.Value * horizontal_scale, 0),
+                    timing.Bpm.ToString(CultureInfo.CurrentCulture), modulate: Colors.Green);
 
             // Draw measure lines
             for (int i = 0; i < timingPoints.Count; i++)
             {
                 var currentTiming = timingPoints[i];
-                double bpm = currentTiming.bpm;
+                double bpm = currentTiming.Bpm;
 
                 if (bpm <= 0)
                     continue;
 
                 // Determine the time range for the current BPM
-                double startTime = currentTiming.timingPoint;
+                double startTime = currentTiming.Value;
                 double endTime = i + 1 < timingPoints.Count
-                    ? timingPoints[i + 1].timingPoint
+                    ? timingPoints[i + 1].Value
                     : double.MaxValue; // Or song duration if available
 
                 // Calculate duration of one measure (assuming 4 beats per measure)

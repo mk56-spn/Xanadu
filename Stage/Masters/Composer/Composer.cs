@@ -13,13 +13,14 @@ using XanaduProject.ECSComponents.EntitySystem.ComposerSystems;
 using XanaduProject.ECSComponents.EntitySystem.ComposerSystems.Widgets;
 using XanaduProject.ECSComponents.Tag;
 using XanaduProject.GameDependencies;
-using XanaduProject.Serialization.SerialisedObjects;
+using XanaduProject.IO;
 using XanaduProject.Stage.Masters.Rendering;
 
 namespace XanaduProject.Stage.Masters.Composer
 {
     public partial class Composer : Player, IComposer
     {
+        public StageData Data { get; set; }
         /// <summary>
         /// Tells notes that we place what direction component they will have. If any.
         /// </summary>
@@ -52,7 +53,7 @@ namespace XanaduProject.Stage.Masters.Composer
         public Vector2 RelativeMouseMotion { get; private set; } = Vector2.Zero;
         public CanvasLayer ComposerUiCanvas { get; } = new();
 
-        public Composer(SerializableStage serializableStage, TrackInfo trackInfo) : base(serializableStage, trackInfo)
+        public Composer(StageData stageData) : base(stageData)
         {
             ComposerVisuals visuals = new ComposerVisuals();
             DiProvider.Register(collection =>
@@ -62,6 +63,7 @@ namespace XanaduProject.Stage.Masters.Composer
                 collection.AddSingleton<IComposerVisuals>(visuals);
             });
 
+            Data = stageData;
             AddChild(new ComposerInput());
             AddChild(new ComposerMacros(this));
 

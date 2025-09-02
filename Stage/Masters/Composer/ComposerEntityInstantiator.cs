@@ -3,23 +3,24 @@
 
 using Friflo.Engine.ECS;
 using Godot;
+using XanaduProject.Audio;
 using XanaduProject.DataStructure;
 using XanaduProject.ECSComponents;
 using XanaduProject.ECSComponents.EntitySystem.Components;
 using XanaduProject.ECSComponents.Tag;
+using XanaduProject.GameDependencies;
 
 namespace XanaduProject.Stage.Masters.Composer
 {
     public static class ComposerEntityInstantiator
     {
+        private static IClock iClock => DiProvider.Get<IClock>();
         public static void RequestAddElement(IComposer composer)
         {
             Entity ent = composer.EntityStore.CreateEntity();
 
-            // 1. Copy the base properties from the selected template (note or block).
             composer.SelectedTemplateEntity.CopyEntity(ent);
 
-            // 2. If it's a note and a direction is selected, add the direction component.
             if (ent.TryGetComponent(out NoteEcs note))
             {
                 if (!ent.HasComponent<HoldEcs>())
@@ -33,11 +34,12 @@ namespace XanaduProject.Stage.Masters.Composer
                     note.NoteType = NoteType.Main;
                 }
 
-                ent.AddComponent(new NoteEcs(composer.SelectedNoteType));
-
+                ent.AddComponent(new NoteEcs(composer.SelectedNoteType)
+                {
+                    TimingPoint = iClock.SnappedTime()
+                });
             }
 
-            // 3. If it's a block and a shader is selected, add the shader component.
             if (ent.TryGetComponent(out BlockEcs _) && composer.SelectedBlockShaderId.HasValue)
             {
                 ent.AddComponent(new MaterialEcs{ Shader =  composer.SelectedBlockShaderId.Value});

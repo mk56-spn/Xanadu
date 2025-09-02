@@ -7,6 +7,7 @@ using XanaduProject.DataStructure;
 using XanaduProject.ECSComponents;
 using XanaduProject.ECSComponents.EntitySystem.Components;
 using XanaduProject.ECSComponents.EntitySystem.Components.Physics;
+using XanaduProject.IO;
 using XanaduProject.Screens;
 using XanaduProject.Stage.Masters.Rendering;
 
@@ -14,6 +15,7 @@ namespace XanaduProject.Stage.Masters.Composer
 {
     public interface IComposer
     {
+        public StageData Data { get; set; }
         public Direction? SelectedDirection { get; set; }
         public NoteType SelectedNoteType { get; set; }
 

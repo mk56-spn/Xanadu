@@ -2,51 +2,61 @@
 // See the LICENCE file in the repository root for full licence text.
 
 using Friflo.Engine.ECS;
+using Microsoft.Extensions.DependencyInjection;
 using XanaduProject.Character;
 using XanaduProject.DataStructure;
-using XanaduProject.Serialization.SerialisedObjects;
+using XanaduProject.GameDependencies;
+using XanaduProject.IO;
+using XanaduProject.IO.Indexes;
+using XanaduProject.Screens;
+using XanaduProject.Screens.Result;
 using XanaduProject.Stage.Masters.Rendering;
 
 namespace XanaduProject.Stage
 {
-    public partial class Player : Screen
+    public partial class Player : Screen, IPlayer
     {
         public EntityStore EntityStore { get; }
 
         public TrackInfo TrackInfo { get; }
         public StageConductor StageConductor;
 
-        public Player(SerializableStage serializableStage, TrackInfo trackInfo)
+        public Player(StageData data)
         {
-            TrackInfo = trackInfo;
-            AddChild(StageConductor = new StageConductor(new TrackInfo
-            {
-                SongTitle = "Heavens's Fall",
-                Track = "res://Resources/Helblinde - Heaven_s Fall.ogg",
-                TimingPoints = [(0, 200)]
-            },EntityStore = serializableStage.EntityStore));
+            TrackInfo = TrackIndex.GetTrackInfo(data.StageInfo.SongIndex);
+            DiProvider.Configure(c=>c.AddSingleton<IPlayer>(this));
+            AddChild(StageConductor = new StageConductor(TrackInfo,EntityStore = data.Store));
+            setup();
+        }
 
-            if (this is not Masters.Composer.Composer)
+        private void setup()
+        {
+            if (this is Masters.Composer.Composer)
             {
-                StageConductor.AddChild(new PlayerCamera());
-
-                AddChild(new Pause(this));
-                Ready += () =>
-                {
-                    StageConductor.Clock.Restart();
-                    StageConductor.Clock.Resume();
-                };
+                IsComposer = true;
+                return;
             }
-        }
-        public Player(EntityStore entityStore, TrackInfo trackInfo)
-        {
-            TrackInfo = trackInfo;
-            AddChild(StageConductor = new StageConductor(new TrackInfo
+
+            StageConductor.AddChild(new PlayerCamera());
+
+            Ready += () =>
             {
-                SongTitle = "Heavens's Fall",
-                Track = "res://Resources/Helblinde - Heaven_s Fall.ogg",
-                TimingPoints = [(0, 200)]
-            },EntityStore = entityStore));
+                StageConductor.Clock.Restart();
+                StageConductor.Clock.Resume();
+            };
         }
+
+        public override void _EnterTree()
+        {
+            base._EnterTree();
+            Manager = DiProvider.Get<ScreenManager>();
+
+            if (this is Masters.Composer.Composer) return;
+            Manager.ChangeSubScreen(new Pause(this));
+        }
+
+        public ScreenManager Manager { get; set; } = null!;
+        public bool IsComposer { get; private set; }
+        public void RequestResults() => Manager.RequestChangeScreen(new ResultScreen(this));
     }
 }

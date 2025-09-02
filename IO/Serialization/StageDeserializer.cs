@@ -6,15 +6,9 @@ using System.IO;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Serialize;
 using Godot;
-using XanaduProject.ECSComponents;
 using XanaduProject.ECSComponents.Animation2;
-using XanaduProject.ECSComponents.Tag;
-using XanaduProject.Serialization.SerialisedObjects;
-using XanaduProject.Tools;
-using static Godot.Colors;
-using static XanaduProject.Tools.EasingType;
 
-namespace XanaduProject.Serialization
+namespace XanaduProject.IO.Serialization
 {
     public static class StageDeserializer
     {
@@ -30,14 +24,14 @@ namespace XanaduProject.Serialization
             buffer.Playback();
         }
 
-        public static SerializableStage Deserialize(string filename)
+        public static EntityStore Deserialize(string stageName)
         {
-            string path = ProjectSettings.GlobalizePath("res://Stages");
 
-            string dir = $"{path}/{filename}.json";
+            string entityStorePath = Path.Combine(ProjectSettings.GlobalizePath(stageName), SerializationUtils.ENTITY_STORE_FILENAME);
 
-            SerializableStage serializableStage;
-            if (File.Exists(dir))
+            EntityStore serializableStage;
+
+            if (File.Exists(entityStorePath))
             {
                 try
                 {
@@ -46,55 +40,33 @@ namespace XanaduProject.Serialization
                     {
                         JobRunner = new ParallelJobRunner(16)
                     };
-                    serializer.ReadIntoStore(targetStore, new FileStream(dir, FileMode.Open));
+                    serializer.ReadIntoStore(targetStore, new FileStream(entityStorePath, FileMode.Open));
 
                     shimConverter(targetStore);
 
-
-                    serializableStage = new SerializableStage { EntityStore = targetStore };
+                    serializableStage = targetStore;
 
                     GD.PrintRich("[code][color=green] Successfully loaded file" + targetStore.Count);
-
-                    var v = targetStore.GetCommandBuffer();
                 }
                 catch (Exception e)
                 {
                     GD.PrintErr("FAILURE");
 
-                    serializableStage = new SerializableStage
-                    {
-                        EntityStore = new EntityStore()
-                    };
+                    serializableStage = CleanStage();
                     Console.WriteLine(e);
                 }
             }
-
             else
             {
                 GD.PrintErr("FAILURE, FILE NOT FOUND");
-
-                serializableStage = new SerializableStage
-                {
-                    EntityStore = new EntityStore()
-                };
-
-
-                for (int i = 0; i < 100; i++)
-                    serializableStage.EntityStore.CreateEntity(
-                        new FloatArrayEcs
-                        {
-                            Points = [],
-                            Easing = []
-                        },
-                        new ColorArrayEcs
-                        {
-                            Colors = []
-                        }
-                    );
+                serializableStage = CleanStage();
             }
-
-
             return serializableStage;
+        }
+
+        public static EntityStore CleanStage()
+        {
+            return new EntityStore();
         }
     }
 }

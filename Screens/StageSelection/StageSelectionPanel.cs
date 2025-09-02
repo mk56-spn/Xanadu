@@ -8,7 +8,7 @@ namespace XanaduProject.Screens.StageSelection
 {
     public partial class StageSelectionPanel : PanelContainer
     {
-        public readonly string Level;
+        public StageInfo Info { get; }
         private Tween? focusTween;
 
         private ColorRect focusRect = new()
@@ -18,18 +18,20 @@ namespace XanaduProject.Screens.StageSelection
             CustomMinimumSize = new Vector2(0, 10)
         };
 
-        public StageSelectionPanel(string level)
+        public StageSelectionPanel(StageInfo info)
         {
+            GD.Print(info.StageName);
             SizeFlagsVertical = SizeFlags.ShrinkCenter;
 
-            Level = level;
+            Info = info;
             FocusMode = FocusModeEnum.All;
             CustomMinimumSize = new Vector2(300, 300);
 
             AddChild(focusRect);
             AddChild(new Label
             {
-                Text = level, HorizontalAlignment = HorizontalAlignment.Center,
+                Text = Info.StageName,
+                HorizontalAlignment = HorizontalAlignment.Center,
                 VerticalAlignment = VerticalAlignment.Center
             });
 

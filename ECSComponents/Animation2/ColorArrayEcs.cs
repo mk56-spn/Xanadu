@@ -6,7 +6,7 @@ using System;
 using System.Collections;
 using Friflo.Engine.ECS;
 using Godot;
-using XanaduProject.Serialization;
+using XanaduProject.IO.Serialization;
 using ZLinq;
 
 namespace XanaduProject.ECSComponents.Animation2

@@ -7,7 +7,7 @@ using Godot;
 using NVorbis;
 using FileAccess = Godot.FileAccess;
 
-namespace XanaduProject.Audio
+namespace XanaduProject.IO
 {
     public static class VorbisLoader
     {

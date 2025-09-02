@@ -23,8 +23,7 @@ namespace XanaduProject.Screens
             buttons.AddChild(quit);
 
             start.Pressed += () =>
-                ScreenManager.RequestChangeScreen(GD.Load<PackedScene>("uid://c7dnjjmgr5dhc")
-                    .Instantiate<StageSelection.StageSelection>());
+                ScreenManager.RequestChangeScreen(new StageSelection.StageSelection());
             quit.Pressed += () => GetTree().Quit();
             settings.Pressed += () => ScreenManager.InvokeSetting();
         }

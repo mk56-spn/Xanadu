@@ -1,24 +1,25 @@
-// Copyright (c) mk56_spn <dhsjplt@gmail.com>. Licensed under the GNU General Public Licence (2.0).
+// Copyright (c) mk56_spn <dhsjplt@gmail.com>.Licensed under the GNU General Public Licence (2.0).
 // See the LICENCE file in the repository root for full licence text.
 
-using Godot;
+using System.Text.Json.Serialization;
 
 namespace XanaduProject.DataStructure
 {
-    [GlobalClass]
-    public partial class StageInfo : Resource
+    public class StageInfo(string stagePath, string metadata, string stageName, string[] creatorList)
     {
-        [Export] public int Difficulty { get; set; }
-        [Export] public string Title { get; set; } = null!;
-        [Export] public TrackInfo TrackInfo { get; set; } = null!;
-        [Export] public string[] Designers { get; set; } = null!;
-        [Export] public string Description { get; set; } = null!;
-        [Export] private PackedScene stage { get; set; } = null!;
+        [JsonIgnore]
+        public string StagePath { get; set; } = stagePath;
 
-        [Export] private bool rLine { get; set; }
-        [Export] private bool bLine { get; set; }
-        [Export] private bool yLine { get; set; }
+        [JsonIgnore]
+        public string Metadata { get; set; } = metadata;
 
-        // TODO: This is sketch af but it works for now i guess
+        [JsonInclude]
+        public int SongIndex = 1;
+        [JsonInclude]
+        public string StageName = stageName;
+        [JsonInclude]
+        public int Difficulty;
+        [JsonInclude]
+        public string[] CreatorList = creatorList;
     }
 }

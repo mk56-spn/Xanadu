@@ -4,6 +4,7 @@
 using Friflo.Engine.ECS;
 using Godot;
 using XanaduProject.Character;
+using XanaduProject.Stage;
 
 namespace XanaduProject.Screens.Result
 {
@@ -11,8 +12,9 @@ namespace XanaduProject.Screens.Result
     {
         private readonly VBoxContainer info = new();
 
-        public ResultScreen(EntityStore store)
+        public ResultScreen(Player player)
         {
+            EntityStore store = player.EntityStore;
             AddChild(new ResultBackGround());
 
             AddChild(new ResultRightBar(store));
@@ -29,7 +31,7 @@ namespace XanaduProject.Screens.Result
 
             info.AddChild(new ResultMisc(store));
 
-            AddChild(new ResultFooter(ScreenManager, store));
+            AddChild(new ResultFooter(ScreenManager, player));
         }
     }
 }
