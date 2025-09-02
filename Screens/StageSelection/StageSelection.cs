@@ -6,6 +6,7 @@ using XanaduProject.Character;
 using XanaduProject.DataStructure;
 using XanaduProject.IO;
 using XanaduProject.Stage;
+using Screen = XanaduProject.Screens.ScreenStructure.Screen;
 
 namespace XanaduProject.Screens.StageSelection
 {

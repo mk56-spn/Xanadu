@@ -11,6 +11,7 @@ using XanaduProject.IO.Indexes;
 using XanaduProject.Screens;
 using XanaduProject.Screens.Result;
 using XanaduProject.Stage.Masters.Rendering;
+using Screen = XanaduProject.Screens.ScreenStructure.Screen;
 
 namespace XanaduProject.Stage
 {

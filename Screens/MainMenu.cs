@@ -4,6 +4,8 @@
 using Godot;
 using XanaduProject.Buttons;
 using XanaduProject.Character;
+using XanaduProject.Screens.Settings;
+using Screen = XanaduProject.Screens.ScreenStructure.Screen;
 
 namespace XanaduProject.Screens
 {
@@ -14,6 +16,7 @@ namespace XanaduProject.Screens
         private readonly AnimatedHoverButton settings = new("Settings");
         private readonly AnimatedHoverButton quit = new("Quit");
 
+        private  SettingsSubScreen settingsScreen = new();
         public MainMenu()
         {
             buttons.SetAnchorsAndOffsetsPreset(LayoutPreset.Center);
@@ -25,7 +28,17 @@ namespace XanaduProject.Screens
             start.Pressed += () =>
                 ScreenManager.RequestChangeScreen(new StageSelection.StageSelection());
             quit.Pressed += () => GetTree().Quit();
-            settings.Pressed += () => ScreenManager.InvokeSetting();
+            settings.Pressed += () =>
+            {
+                settingsScreen.Visible = true;
+            };
+        }
+
+        public override void _Ready()
+        {
+            base._Ready();
+            ScreenManager.ChangeSubScreen(settingsScreen);
+
         }
     }
 }
