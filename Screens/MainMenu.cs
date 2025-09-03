@@ -3,24 +3,37 @@
 
 using Godot;
 using XanaduProject.Buttons;
-using XanaduProject.Character;
+using XanaduProject.Screens.ScreenStructure;
 using XanaduProject.Screens.Settings;
-using Screen = XanaduProject.Screens.ScreenStructure.Screen;
 
 namespace XanaduProject.Screens
 {
-    public partial class MainMenu : Screen
+    public partial class MainMenu : MainScreen
     {
-        private VBoxContainer buttons = new() ;
-        private readonly AnimatedHoverButton start = new("start");
-        private readonly AnimatedHoverButton settings = new("Settings");
-        private readonly AnimatedHoverButton quit = new("Quit");
+        private HBoxContainer buttons = new() ;
+        private readonly AnimatedHoverButton start = new("start")
+        {
+            CustomMinimumSize = new Vector2(150, 150)
+        };
+        private readonly AnimatedHoverButton settings = new("Settings")
+        {
+            CustomMinimumSize = new Vector2(150, 150)
+
+        };
+        private readonly AnimatedHoverButton quit = new("Quit")
+        {
+            CustomMinimumSize = new Vector2(150, 150)
+
+        };
+
 
         private  SettingsSubScreen settingsScreen = new();
         public MainMenu()
         {
-            buttons.SetAnchorsAndOffsetsPreset(LayoutPreset.Center);
-            AddChild(buttons);
+            Control p = new Control();
+            p.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
+            AddChild(p);
+            p.AddChild(buttons);
             buttons.AddChild(start);
             buttons.AddChild(settings);
             buttons.AddChild(quit);
@@ -32,12 +45,23 @@ namespace XanaduProject.Screens
             {
                 settingsScreen.Visible = true;
             };
+
+            var gradient = new GradientTexture2D
+            {
+                Gradient = new Gradient
+                {
+                    Colors = [new Color(0.1f, 0.0f, 0.0f, 1.0f), new Color(0.0f, 0.0f, 0.0f, 1.0f)],
+                    Offsets = [0.0f, 1.0f]
+                },
+                Fill = GradientTexture2D.FillEnum.Linear,
+                FillFrom = new Vector2(0.5f, 0.5f)
+            };
         }
 
         public override void _Ready()
         {
-            base._Ready();
             ScreenManager.ChangeSubScreen(settingsScreen);
+            buttons.SetAnchorsAndOffsetsPreset(LayoutPreset.Center);
 
         }
     }
