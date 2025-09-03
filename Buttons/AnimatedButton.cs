@@ -8,7 +8,7 @@ namespace XanaduProject.Buttons
     public partial class AnimatedHoverButton : Button
     {
         private Color currentColour = Colors.Gold;
-        private Color targetColour = Colors.White;
+        private Color targetColour = Colors.Gold.Darkened(0.5f);
         private Color hoverColor = Colors.Gold;
         private Color normalColor = Colors.Gold.Darkened(0.5f);
         private float transitionSpeed = 3.0f; // Adjust this value to control transition speed
@@ -46,7 +46,7 @@ namespace XanaduProject.Buttons
         public override void _Draw()
         {
             // Draw border with animated color
-            DrawRect(new Rect2(Vector2.Zero, Size), Colors.Black);
+            DrawRect(new Rect2(Vector2.Zero, Size), Colors.Black with{ A = 0.5f});
             DrawRect(new Rect2(Vector2.Zero, Size), currentColour, false, 2);
         }
     }
