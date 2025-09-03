@@ -100,5 +100,111 @@ namespace XanaduProject.Tools
 
             node.DrawPolyline(allPoints.ToArray(), color, width, antialiased);
         }
+
+        /// <summary>
+        /// [Extension Method] Draws a square with a curved inset on each side.
+        /// </summary>
+        /// <param name="node">The CanvasItem node to draw on.</param>
+        /// <param name="rect">The rectangle defining the square's bounds.</param>
+        /// <param name="insetDepth">The depth of the curve on each side.</param>
+        /// <param name="insetLength">The length of the inset on each side.</param>
+        /// <param name="color">The color of the square.</param>
+        /// <param name="width">The thickness of the line.</param>
+        /// <param name="antialiased">If true, the line will be drawn with anti-aliasing.</param>
+        /// <param name="fill">If true, the shape will be filled.</param>
+        /// <param name="fillColor">The color of the fill.</param>
+        /// <param name="insetCurveTension">Controls the roundness of the inset curve.</param>
+        public static void DrawSquareWithInsets(
+            this CanvasItem node,
+            Rect2 rect,
+            float insetDepth,
+            float insetLength,
+            Color color,
+            float width = 1.0f,
+            bool antialiased = true,
+            bool fill = false,
+            Color? fillColor = null,
+            float insetCurveTension = 0.5f)
+        {
+            if (insetLength <= 0 || insetDepth <= 0) return;
+            if (rect.Size.X < insetLength || rect.Size.Y < insetLength) return;
+
+            var size = rect.Size;
+            var pos = rect.Position;
+            var allPoints = new List<Vector2>();
+
+            // Corner points
+            var topLeft = pos;
+            var topRight = new Vector2(pos.X + size.X, pos.Y);
+            var bottomLeft = new Vector2(pos.X, pos.Y + size.Y);
+            var bottomRight = new Vector2(pos.X + size.X, pos.Y + size.Y);
+
+            // Precompute straight segment lengths and control offsets
+            float straightHLength = (size.X - insetLength) / 2f;
+            float straightVLength = (size.Y - insetLength) / 2f;
+
+            var controlH = new Vector2(insetLength * 0.5f * insetCurveTension, 0f);
+            var controlV = new Vector2(0f, insetLength * 0.5f * insetCurveTension);
+
+            // Reusable curve
+            var curve = new Curve2D();
+
+            // Local helper to append an inset curve (start -> mid -> end) with given control vector.
+            void addInsetCurve(Vector2 start, Vector2 mid, Vector2 end, Vector2 control)
+            {
+                allPoints.Add(start); // add start as a seam point
+
+                curve.ClearPoints();
+                curve.AddPoint(start, Vector2.Zero, control);
+                curve.AddPoint(mid, -control, control);
+                curve.AddPoint(end, -control, Vector2.Zero);
+
+                allPoints.AddRange(curve.Tessellate());
+                allPoints.Add(end); // ensure end is present to connect to the next straight/corner
+            }
+
+            // Top side (inset toward +Y)
+            var topInsetStart = new Vector2(pos.X + straightHLength, pos.Y);
+            var topInsetMid   = new Vector2(pos.X + size.X * 0.5f, pos.Y + insetDepth);
+            var topInsetEnd   = new Vector2(pos.X + size.X - straightHLength, pos.Y);
+
+            allPoints.Add(topLeft);
+            addInsetCurve(topInsetStart, topInsetMid, topInsetEnd, controlH);
+
+            // Right side (inset toward -X)
+            var rightInsetStart = new Vector2(pos.X + size.X, pos.Y + straightVLength);
+            var rightInsetMid   = new Vector2(pos.X + size.X - insetDepth, pos.Y + size.Y * 0.5f);
+            var rightInsetEnd   = new Vector2(pos.X + size.X, pos.Y + size.Y - straightVLength);
+
+            allPoints.Add(topRight);
+            addInsetCurve(rightInsetStart, rightInsetMid, rightInsetEnd, controlV);
+
+            // Bottom side (inset toward -Y) => invert horizontal control
+            var bottomInsetStart = new Vector2(pos.X + size.X - straightHLength, pos.Y + size.Y);
+            var bottomInsetMid   = new Vector2(pos.X + size.X * 0.5f, pos.Y + size.Y - insetDepth);
+            var bottomInsetEnd   = new Vector2(pos.X + straightHLength, pos.Y + size.Y);
+
+            allPoints.Add(bottomRight);
+            addInsetCurve(bottomInsetStart, bottomInsetMid, bottomInsetEnd, -controlH);
+
+            // Left side (inset toward +X) => invert vertical control
+            var leftInsetStart = new Vector2(pos.X, pos.Y + size.Y - straightVLength);
+            var leftInsetMid   = new Vector2(pos.X + insetDepth, pos.Y + size.Y * 0.5f);
+            var leftInsetEnd   = new Vector2(pos.X, pos.Y + straightVLength);
+
+            allPoints.Add(bottomLeft);
+            addInsetCurve(leftInsetStart, leftInsetMid, leftInsetEnd, -controlV);
+
+            allPoints.Add(topLeft); // Close the loop
+
+            if (fill)
+            {
+                Color finalFillColor = fillColor ?? new Color(color.R, color.G, color.B, 0.25f);
+                var fillColors = Enumerable.Repeat(finalFillColor, allPoints.Count).ToArray();
+                node.DrawPolygon(allPoints.ToArray(), fillColors);
+            }
+
+            node.DrawPolyline(allPoints.ToArray(), color, width, antialiased);
+        }
     }
 }
