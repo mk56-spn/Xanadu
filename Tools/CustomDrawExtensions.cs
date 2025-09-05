@@ -1,9 +1,21 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Godot;
 
 namespace XanaduProject.Tools
 {
+    [Flags]
+    public enum InsetSides
+    {
+        None = 0,
+        Top = 1,
+        Right = 2,
+        Bottom = 4,
+        Left = 8,
+        All = Top | Right | Bottom | Left
+    }
+
     public static class CustomDrawExtensions
     {
         /// <summary>
@@ -109,6 +121,7 @@ namespace XanaduProject.Tools
         /// <param name="insetDepth">The depth of the curve on each side.</param>
         /// <param name="insetLength">The length of the inset on each side.</param>
         /// <param name="color">The color of the square.</param>
+        /// <param name="sides">The sides on which to draw the insets.</param>
         /// <param name="width">The thickness of the line.</param>
         /// <param name="antialiased">If true, the line will be drawn with anti-aliasing.</param>
         /// <param name="fill">If true, the shape will be filled.</param>
@@ -120,15 +133,13 @@ namespace XanaduProject.Tools
             float insetDepth,
             float insetLength,
             Color color,
+            InsetSides sides = InsetSides.All,
             float width = 1.0f,
             bool antialiased = true,
             bool fill = false,
             Color? fillColor = null,
             float insetCurveTension = 0.5f)
         {
-            if (insetLength <= 0 || insetDepth <= 0) return;
-            if (rect.Size.X < insetLength || rect.Size.Y < insetLength) return;
-
             var size = rect.Size;
             var pos = rect.Position;
             var allPoints = new List<Vector2>();
@@ -163,37 +174,49 @@ namespace XanaduProject.Tools
                 allPoints.Add(end); // ensure end is present to connect to the next straight/corner
             }
 
-            // Top side (inset toward +Y)
-            var topInsetStart = new Vector2(pos.X + straightHLength, pos.Y);
-            var topInsetMid   = new Vector2(pos.X + size.X * 0.5f, pos.Y + insetDepth);
-            var topInsetEnd   = new Vector2(pos.X + size.X - straightHLength, pos.Y);
-
             allPoints.Add(topLeft);
-            addInsetCurve(topInsetStart, topInsetMid, topInsetEnd, controlH);
 
-            // Right side (inset toward -X)
-            var rightInsetStart = new Vector2(pos.X + size.X, pos.Y + straightVLength);
-            var rightInsetMid   = new Vector2(pos.X + size.X - insetDepth, pos.Y + size.Y * 0.5f);
-            var rightInsetEnd   = new Vector2(pos.X + size.X, pos.Y + size.Y - straightVLength);
+            // Top side
+            if (sides.HasFlag(InsetSides.Top) && insetLength > 0 && rect.Size.X >= insetLength)
+            {
+                var topInsetStart = new Vector2(pos.X + straightHLength, pos.Y);
+                var topInsetMid   = new Vector2(pos.X + size.X * 0.5f, pos.Y + insetDepth);
+                var topInsetEnd   = new Vector2(pos.X + size.X - straightHLength, pos.Y);
+                addInsetCurve(topInsetStart, topInsetMid, topInsetEnd, controlH);
+            }
 
             allPoints.Add(topRight);
-            addInsetCurve(rightInsetStart, rightInsetMid, rightInsetEnd, controlV);
 
-            // Bottom side (inset toward -Y) => invert horizontal control
-            var bottomInsetStart = new Vector2(pos.X + size.X - straightHLength, pos.Y + size.Y);
-            var bottomInsetMid   = new Vector2(pos.X + size.X * 0.5f, pos.Y + size.Y - insetDepth);
-            var bottomInsetEnd   = new Vector2(pos.X + straightHLength, pos.Y + size.Y);
+            // Right side
+            if (sides.HasFlag(InsetSides.Right) && insetLength > 0 && rect.Size.Y >= insetLength)
+            {
+                var rightInsetStart = new Vector2(pos.X + size.X, pos.Y + straightVLength);
+                var rightInsetMid   = new Vector2(pos.X + size.X - insetDepth, pos.Y + size.Y * 0.5f);
+                var rightInsetEnd   = new Vector2(pos.X + size.X, pos.Y + size.Y - straightVLength);
+                addInsetCurve(rightInsetStart, rightInsetMid, rightInsetEnd, controlV);
+            }
 
             allPoints.Add(bottomRight);
-            addInsetCurve(bottomInsetStart, bottomInsetMid, bottomInsetEnd, -controlH);
 
-            // Left side (inset toward +X) => invert vertical control
-            var leftInsetStart = new Vector2(pos.X, pos.Y + size.Y - straightVLength);
-            var leftInsetMid   = new Vector2(pos.X + insetDepth, pos.Y + size.Y * 0.5f);
-            var leftInsetEnd   = new Vector2(pos.X, pos.Y + straightVLength);
+            // Bottom side
+            if (sides.HasFlag(InsetSides.Bottom) && insetLength > 0 && rect.Size.X >= insetLength)
+            {
+                var bottomInsetStart = new Vector2(pos.X + size.X - straightHLength, pos.Y + size.Y);
+                var bottomInsetMid   = new Vector2(pos.X + size.X * 0.5f, pos.Y + size.Y - insetDepth);
+                var bottomInsetEnd   = new Vector2(pos.X + straightHLength, pos.Y + size.Y);
+                addInsetCurve(bottomInsetStart, bottomInsetMid, bottomInsetEnd, -controlH);
+            }
 
             allPoints.Add(bottomLeft);
-            addInsetCurve(leftInsetStart, leftInsetMid, leftInsetEnd, -controlV);
+
+            // Left side
+            if (sides.HasFlag(InsetSides.Left) && insetLength > 0 && rect.Size.Y >= insetLength)
+            {
+                var leftInsetStart = new Vector2(pos.X, pos.Y + size.Y - straightVLength);
+                var leftInsetMid   = new Vector2(pos.X + insetDepth, pos.Y + size.Y * 0.5f);
+                var leftInsetEnd   = new Vector2(pos.X, pos.Y + straightVLength);
+                addInsetCurve(leftInsetStart, leftInsetMid, leftInsetEnd, -controlV);
+            }
 
             allPoints.Add(topLeft); // Close the loop
 
