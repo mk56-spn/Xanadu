@@ -1,6 +1,6 @@
 [gd_resource type="Theme" load_steps=17 format=3 uid="uid://dfwsjupen1snu"]
 
-[ext_resource type="FontFile" uid="uid://dghg2sit48qtn" path="res://Resources/Fonts/LineThin.otf" id="1_7xc6o"]
+[ext_resource type="FontFile" uid="uid://dghg2sit48qtn" path="res://Resources/Fonts/Line/LineThin.otf" id="1_jnsc3"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_fdutu"]
 bg_color = Color(0.152895, 0.152895, 0.152895, 1)
@@ -126,7 +126,7 @@ expand_margin_left = 2.0
 expand_margin_right = 2.0
 
 [sub_resource type="FontVariation" id="FontVariation_5u0bl"]
-base_font = ExtResource("1_7xc6o")
+base_font = ExtResource("1_jnsc3")
 spacing_bottom = -3
 
 [resource]
