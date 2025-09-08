@@ -51,7 +51,7 @@ namespace XanaduProject.Screens
             GameSettings.ApplyResolution();
         }
 
-        public void RequestChangeScreen(Screen screen, TransitionType transitionType = TransitionType.Slide)
+        public void RequestChangeScreen(MainScreen screen, TransitionType transitionType = TransitionType.Fade)
         {
             RemoveSubscreen();
             screenFader.ChangeScreen(screen, transitionType);

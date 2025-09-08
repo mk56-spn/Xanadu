@@ -14,8 +14,6 @@ namespace XanaduProject.Screens.StageSelection
 
 		private const double transition = 0.5;
 
-		private Tween? opacityTween;
-
 		public StageSelectionCarousel(StageSelection stageSelection)
 		{
 			this.stageSelection = stageSelection;
@@ -35,7 +33,7 @@ namespace XanaduProject.Screens.StageSelection
 		{
 			base._Ready();
 
-			trackList.AddThemeConstantOverride("separation", 100);
+			trackList.AddThemeConstantOverride("separation", 30);
 
 			if (StageIndex.Stages.Count == 0)
 			{
@@ -43,10 +41,12 @@ namespace XanaduProject.Screens.StageSelection
 				return;
 			}
 
-			foreach (var var in StageIndex.Stages)
-			{
-				trackList.AddChild(new StageSelectionPanel(var.Value));
-			}
+            foreach (var var in StageIndex.Stages)
+            {
+                trackList.AddChild(new StageSelectionPanel(var.Value));
+            }
+
+
 
 			AddChild(trackList);
 
@@ -73,19 +73,40 @@ namespace XanaduProject.Screens.StageSelection
 					stageSelection.Data = panel.Info;
 
 
-					updateOpacity(panel.GetIndex());
+					updatePanelProperties(panel.GetIndex());
 				};
 		}
 
-		private void updateOpacity(int focusedIndex)
+        public override void _Draw()
+        {
+            DrawRect(new Rect2(new Vector2(-GetViewportRect().Size.X / 2,-20), new Vector2(GetViewportRect().Size.X,10)), Colors.Gold with { A = 0.1f});
+            DrawRect(new Rect2(new Vector2(-GetViewportRect().Size.X / 2,0), new Vector2(GetViewportRect().Size.X,100)), Colors.Gold with { A = 0.1f});
+
+            DrawRect(new Rect2(new Vector2(-GetViewportRect().Size.X / 2,200), new Vector2(GetViewportRect().Size.X,100)), Colors.Gold with { A = 0.1f});
+            DrawRect(new Rect2(new Vector2(-GetViewportRect().Size.X / 2,310), new Vector2(GetViewportRect().Size.X,10)), Colors.Gold with { A = 0.1f});
+        }
+
+        private void updatePanelProperties(int focusedIndex)
 		{
 			foreach (var panel in trackList.GetChildren().OfType<StageSelectionPanel>())
 			{
-				var alpha = panel.Modulate;
-				alpha.A = 1f / (1 + Math.Abs(panel.GetIndex() - focusedIndex));
+				panel.PivotOffset = panel.Size / 2;
 
-				opacityTween = CreateTween();
-				opacityTween.TweenProperty(panel, "modulate", alpha, transition)
+				var alpha = panel.Modulate;
+				alpha.R = 1f / (1 + Math.Abs(panel.GetIndex() - focusedIndex));
+                alpha.G = 1f / (1 + Math.Abs(panel.GetIndex() - focusedIndex));
+                alpha.B = 1f / (1 + Math.Abs(panel.GetIndex() - focusedIndex));
+                alpha.A = 1f;
+
+				var scaleValue = 1f / (1 + Math.Abs(panel.GetIndex() - focusedIndex) * 0.2f);
+				var scale = new Vector2(scaleValue, scaleValue);
+
+				var tween = CreateTween();
+                tween.SetParallel();
+				tween.TweenProperty(panel, "modulate", new Color(alpha.R, alpha.G, alpha.B, alpha.A), transition)
+					.SetTrans(Tween.TransitionType.Sine)
+					.SetEase(Tween.EaseType.Out);
+				tween.TweenProperty(panel, "scale", scale, transition)
 					.SetTrans(Tween.TransitionType.Sine)
 					.SetEase(Tween.EaseType.Out);
 			}
