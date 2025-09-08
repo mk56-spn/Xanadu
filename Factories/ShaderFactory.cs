@@ -15,6 +15,10 @@ namespace XanaduProject.Factories
         private readonly List<CodeSegment> segments = new();
         private readonly List<RenderMode> renderModes = new();
 
+        private static readonly List<string> includes =
+            ["uid://uygvdhbdu7fw", // Colours
+                "uid://dltmpq4oj3l2c", // Sizing
+        ];
         public ShaderFactory Add(CodeSegment segment)
         {
             segments.Add(segment);
@@ -27,7 +31,7 @@ namespace XanaduProject.Factories
             return this;
         }
 
-        private string GenerateCacheKey()
+        private string generateCacheKey()
         {
             var keyBuilder = new StringBuilder();
 
@@ -61,11 +65,11 @@ namespace XanaduProject.Factories
 
         public ShaderMaterial Build()
         {
-            var key = GenerateCacheKey();
-            return ShaderCache.Instance.GetOrCreate(key, BuildInternal);
+            string key = generateCacheKey();
+            return ShaderCache.Instance.GetOrCreate(key, buildInternal);
         }
 
-        private ShaderMaterial BuildInternal()
+        private ShaderMaterial buildInternal()
         {
             var uniforms = segments.SelectMany(s => s.Uniforms).Distinct().ToList();
 
@@ -83,6 +87,50 @@ namespace XanaduProject.Factories
 
             var codeBuilder = new StringBuilder();
             codeBuilder.AppendLine("shader_type canvas_item;");
+
+            AppendIncludesAndUniforms(codeBuilder, uniforms);
+
+            if (allVaryings.Any())
+            {
+                codeBuilder.AppendLine();
+                foreach (var varying in allVaryings)
+                {
+                    codeBuilder.AppendLine($"varying {toShaderString(varying.Type)} {varying.Name};");
+                }
+            }
+
+            var globalCodePartials = segments.OfType<GlobalCode>().ToList();
+            if (globalCodePartials.Any())
+            {
+                codeBuilder.AppendLine();
+                foreach (var partial in globalCodePartials)
+                {
+                    codeBuilder.AppendLine(partial.Code);
+                }
+            }
+
+            appendVertexShader(codeBuilder);
+            appendFragmentShader(codeBuilder);
+
+#if DEBUG
+            GD.Print(codeBuilder.ToString());
+#endif
+
+            return new ShaderMaterial
+            {
+                Shader = new Shader
+                {
+                    Code = codeBuilder.ToString()
+                }
+            };
+        }
+
+        private void AppendIncludesAndUniforms(StringBuilder codeBuilder, List<IUniform> uniforms)
+        {
+            foreach (string include in includes)
+            {
+                codeBuilder.AppendLine($"#include \"{include}\"");
+            }
 
             foreach (var renderMode in renderModes.Distinct())
             {
@@ -110,39 +158,25 @@ namespace XanaduProject.Factories
                     codeBuilder.AppendLine(uniformBuilder.ToString());
                 }
             }
+        }
 
-            if (allVaryings.Any())
-            {
-                codeBuilder.AppendLine();
-                foreach (var varying in allVaryings)
-                {
-                    codeBuilder.AppendLine($"varying {toShaderString(varying.Type)} {varying.Name};");
-                }
-            }
-
-            var globalCodePartials = segments.OfType<GlobalCode>().ToList();
-            if (globalCodePartials.Any())
-            {
-                codeBuilder.AppendLine();
-                foreach (var partial in globalCodePartials)
-                {
-                    codeBuilder.AppendLine(partial.Code);
-                }
-            }
-
+        private void appendVertexShader(StringBuilder codeBuilder)
+        {
             var vertexPartials = segments.OfType<VertexPartial>().ToList();
-            if (vertexPartials.Any())
-            {
-                codeBuilder.AppendLine();
-                codeBuilder.AppendLine("void vertex() {");
-                foreach (var partial in vertexPartials)
-                {
-                    codeBuilder.AppendLine(partial.Code);
-                }
 
-                codeBuilder.AppendLine("}");
+            codeBuilder.AppendLine("void vertex() {");
+
+            codeBuilder.AppendLine("SIZE"); //boots up CANVAS SIZE and PIXEL SIZE
+            foreach (var partial in vertexPartials)
+            {
+                codeBuilder.AppendLine(partial.Code);
             }
 
+            codeBuilder.AppendLine("}");
+        }
+
+        private void appendFragmentShader(StringBuilder codeBuilder)
+        {
             var fragmentPartials = segments.OfType<FragmentPartial>().ToList();
             if (fragmentPartials.Any())
             {
@@ -155,15 +189,8 @@ namespace XanaduProject.Factories
 
                 codeBuilder.AppendLine("}");
             }
-
-            return new ShaderMaterial
-            {
-                Shader = new Shader
-                {
-                    Code = codeBuilder.ToString()
-                }
-            };
         }
+
 
         private static string ToShaderString(RenderMode mode)
         {
@@ -179,7 +206,7 @@ namespace XanaduProject.Factories
                 RenderMode.BlendMul => "blend_mul",
                 RenderMode.BlendPremulAlpha => "blend_premul_alpha",
                 RenderMode.BlendDisabled => "blend_disabled",
-                _ => throw new System.ArgumentOutOfRangeException(nameof(mode), mode, null)
+                _ => throw new ArgumentOutOfRangeException(nameof(mode), mode, null)
             };
         }
 

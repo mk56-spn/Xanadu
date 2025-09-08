@@ -16,14 +16,6 @@ namespace XanaduProject.Factories.ShaderFactoryHelpers
         UniformHint? Hint { get; }
     }
 
-    public readonly struct Uniform(ShaderValueType type, string name, string? defaultValue = null, UniformHint? hint = null) : IUniform
-    {
-        public ShaderValueType Type { get; } = type;
-        public string Name { get; } = name;
-        public string? DefaultValue { get; } = defaultValue;
-        public UniformHint? Hint { get; } = hint;
-    }
-
     public readonly struct Uniform<T>(string name, T? defaultValue = default, UniformHint? hint = null)
         : IUniform
     {
