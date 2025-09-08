@@ -2,28 +2,30 @@
 // See the LICENCE file in the repository root for full licence text.
 
 using Friflo.Engine.ECS;
+using Godot;
 using Microsoft.Extensions.DependencyInjection;
-using XanaduProject.Character;
 using XanaduProject.DataStructure;
 using XanaduProject.GameDependencies;
 using XanaduProject.IO;
 using XanaduProject.IO.Indexes;
 using XanaduProject.Screens;
 using XanaduProject.Screens.Result;
+using XanaduProject.Screens.ScreenStructure;
 using XanaduProject.Stage.Masters.Rendering;
-using Screen = XanaduProject.Screens.ScreenStructure.Screen;
 
 namespace XanaduProject.Stage
 {
-    public partial class Player : Screen, IPlayer
-    {
-        public EntityStore EntityStore { get; }
+    public partial class Player : MainScreen, IPlayer
+    {        public EntityStore EntityStore { get; }
+        public StageData StageData { get; }
 
         public TrackInfo TrackInfo { get; }
         public StageConductor StageConductor;
 
         public Player(StageData data)
         {
+            BackgroundOverride = new Control();
+            StageData = data;
             TrackInfo = TrackIndex.GetTrackInfo(data.StageInfo.SongIndex);
             DiProvider.Configure(c=>c.AddSingleton<IPlayer>(this));
             AddChild(StageConductor = new StageConductor(TrackInfo,EntityStore = data.Store));
@@ -58,6 +60,13 @@ namespace XanaduProject.Stage
 
         public ScreenManager Manager { get; set; } = null!;
         public bool IsComposer { get; private set; }
-        public void RequestResults() => Manager.RequestChangeScreen(new ResultScreen(this));
+        private bool resultsRequested;
+
+        public void RequestResults()
+        {
+            if (resultsRequested) return;
+            resultsRequested = true;
+            Manager.RequestChangeScreen(new ResultScreen(this));
+        }
     }
 }
