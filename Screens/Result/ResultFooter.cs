@@ -7,24 +7,19 @@ using XanaduProject.Buttons;
 using XanaduProject.ECSComponents;
 using XanaduProject.ECSComponents.Tag;
 using XanaduProject.Stage;
-using XanaduProject.Tools;
 
 namespace XanaduProject.Screens.Result
 {
-    public partial class ResultFooter : HBoxContainer
+    public partial class ResultFooter : Footer
     {
-
         private readonly AnimatedHoverButton restart = new("Restart");
         private readonly AnimatedHoverButton menu = new("Go to menu");
 
-        private readonly HBoxContainer buttons = new();
         public ResultFooter(ScreenManager manager, Player oldPlayer)
         {
             menu.Pressed += () =>manager.RequestChangeScreen(new MainMenu(), TransitionType.Fade);
-
-            AddChild(buttons);
-            buttons.AddChild(menu);
-            buttons.AddChild(restart);
+            AddButton(restart);
+            AddButton(menu);
 
 
             restart.Pressed += () =>
@@ -41,21 +36,12 @@ namespace XanaduProject.Screens.Result
 
                 v.Playback();
             };
-
-            buttons.AddThemeConstantOverride("separation", 30);
-        }
-
-        public override void _Draw()
-        {
-            this.DrawTransitionLine(Size.X, 0, Size.Y -20, 120 ,Colors.Gold, 0.60f);
-
-            this.DrawTransitionLine(Size.X, + 20, Size.Y + 3, 120 ,Colors.Gold, 0.6f, fill: true, fillColor:Colors.Gold);
         }
 
         public override void _Ready()
         {
-            buttons.SetAnchorsAndOffsetsPreset(LayoutPreset.BottomWide);
-            SetAnchorsAndOffsetsPreset(LayoutPreset.BottomWide, LayoutPresetMode.KeepSize);
+            base._Ready();
+            SetAnchorsAndOffsetsPreset(LayoutPreset.BottomWide);
         }
     }
 }

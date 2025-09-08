@@ -41,11 +41,12 @@ namespace XanaduProject.Screens.Result
             canvas = RenderRid.Create(GetCanvasItem())
                 .AddCircle(20);
 
-            ShaderFactory s = new ShaderFactory();
-            s.Add(RenderMode.BlendAdd);
-            s.Add(VertexShaders.ROTATION_VERTEX);
+            var s = new ShaderFactory();
+            var v = s
+                .Add(RenderMode.BlendAdd)
+                .Add(VertexShaders.ROTATION_VERTEX)
+                .Build();
 
-            var v =s.Build();
 
             canvas.SetMaterial(v.GetRid());
 
