@@ -113,6 +113,13 @@ namespace XanaduProject.Factories
 			return r;
 		}
 
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static RenderRid SetDrawBehindParent(this in RenderRid r, bool enabled = true)
+		{
+			CanvasItemSetDrawBehindParent(r.Rid, enabled);
+			return r;
+		}
+
 		#endregion
 
 		#region ShapeAdders
@@ -180,10 +187,38 @@ namespace XanaduProject.Factories
 			return r;
 		}
 
+
+
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static RenderRid AddCircle(this in RenderRid r,float radius, Vector2? position = null, Color? color = null)
 		{
 			CanvasItemAddCircle(r.Rid, position?? Vector2.Zero, radius, color ?? Colors.White);
+			return r;
+		}
+
+		/// <summary>
+		/// Adds a regular n-sided polygon shape to the render item.
+		/// </summary>
+		/// <param name="r">The <see cref="RenderRid"/> instance to which the polygon will be added.</param>
+		/// <param name="sides">The number of sides of the polygon.</param>
+		/// <param name="radius">The radius of the polygon (distance from center to vertices).</param>
+		/// <param name="position">The center position of the polygon.</param>
+		/// <param name="color">An optional <see cref="Color"/> to apply to the polygon. Defaults to white if not specified.</param>
+		/// <param name="rotation">The rotation of the polygon in radians.</param>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static RenderRid AddNgon(this in RenderRid r, int sides, float radius, Vector2? position = null, Color? color = null, float rotation = 0f)
+		{
+			var points = new Vector2[sides];
+			var center = position ?? Vector2.Zero;
+			var rot = rotation - Mathf.Pi / 2;
+
+			for (int i = 0; i < sides; i++)
+			{
+				float angle = i * Mathf.Tau / sides + rot;
+				points[i] = center + new Vector2(Mathf.Cos(angle), Mathf.Sin(angle)) * radius;
+			}
+
+			CanvasItemAddPolygon(r.Rid, points, [color ?? Colors.White]);
 			return r;
 		}
 
@@ -192,6 +227,32 @@ namespace XanaduProject.Factories
 		{
 			CanvasItemAddPolyline(r.Rid, points, color ?? [Colors.White], width);
 			return r;
+		}
+
+		/// <summary>
+		/// Adds the outline of a regular n-sided polygon to the render item.
+		/// </summary>
+		/// <param name="r">The <see cref="RenderRid"/> instance to which the polygon outline will be added.</param>
+		/// <param name="sides">The number of sides of the polygon.</param>
+		/// <param name="radius">The radius of the polygon (distance from center to vertices).</param>
+		/// <param name="position">The center position of the polygon.</param>
+		/// <param name="color">An optional <see cref="Color"/> to apply to the polygon outline. Defaults to white if not specified.</param>
+		/// <param name="width">The width of the outline.</param>
+		/// <param name="rotation">The rotation of the polygon in radians.</param>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static RenderRid AddNgonOutline(this in RenderRid r, int sides, float radius, Vector2? position = null, Color? color = null, float width = 1.0f, float rotation = 0f)
+		{
+			var points = new Vector2[sides + 1];
+			var center = position ?? Vector2.Zero;
+			float rot = rotation - Mathf.Pi / 2;
+
+			for (int i = 0; i <= sides; i++)
+			{
+				float angle = i * Mathf.Tau / sides + rot;
+				points[i] = center + new Vector2(Mathf.Cos(angle), Mathf.Sin(angle)) * radius;
+			}
+
+			return AddPolyline(r, points, [color ?? Colors.White], width);
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
