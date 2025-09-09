@@ -3,20 +3,15 @@
 
 using Godot;
 using XanaduProject.DataStructure;
+using XanaduProject.Tools;
+using ZLinq.Linq;
 
 namespace XanaduProject.Screens.StageSelection
 {
-    public partial class StageSelectionPanel : PanelContainer
+    public partial class StageSelectionPanel : MarginContainer
     {
         public StageInfo Info { get; }
-        private Tween? focusTween;
-
-        private ColorRect focusRect = new()
-        {
-            Color = Colors.Transparent,
-            SizeFlagsVertical = SizeFlags.ShrinkEnd,
-            CustomMinimumSize = new Vector2(0, 10)
-        };
+        private GradientTexture2D placeholderTexture;
 
         public StageSelectionPanel(StageInfo info)
         {
@@ -27,26 +22,52 @@ namespace XanaduProject.Screens.StageSelection
             FocusMode = FocusModeEnum.All;
             CustomMinimumSize = new Vector2(300, 300);
 
-            AddChild(focusRect);
+            var gradient = new Gradient();
+            gradient.Colors = [Colors.Black, new Color(0.1f,0.1f,0.1f)];
+            gradient.Offsets = [0.0f, 1.0f];
+
+            placeholderTexture = new GradientTexture2D
+            {
+                Gradient = gradient,
+                Fill = GradientTexture2D.FillEnum.Linear,
+                FillFrom = Vector2.Zero,
+                FillTo = Vector2.One / 2f
+            };
+
             AddChild(new Label
             {
                 Text = Info.StageName,
                 HorizontalAlignment = HorizontalAlignment.Center,
                 VerticalAlignment = VerticalAlignment.Center
             });
+        }
+        public override void _Draw()
+        {
+            this.DrawSquareWithInsets(new Rect2(Vector2.Zero, Size),
+                new Inset
+                {
+                    InnerLength = 50,
+                    OuterLength = 60,
+                    InsetDepth = 10,
+                    InsetCurveTension = 0,
+                },
+                new Bevel
+                {
+                    BevelRadius = 40,
+                    BevelSides = Sides.All
+                },
+                new ShapeStyle
+                {
+                    Fill = true,
+                    FillColor = UiColours.HIGHLIGHT_ONE,
+                    Outline = true,
+                    OutlineColor = UiColours.MAIN_COLOUR,
+                    OutlineWidth = 1
+                }, texture: UiColours.GRADIENT);
+            var placeholderRect = new Rect2(new Vector2(40, 40), Size - new Vector2(80, 80));
 
-
-            FocusEntered += focusVisibility;
-            FocusExited += focusVisibility;
-
-            void focusVisibility()
-            {
-                // Invalidate any running tween to avoid problems with final color state.
-                focusTween?.Kill();
-                focusTween = CreateTween();
-                focusTween.TweenProperty(focusRect, "color", HasFocus() ? Colors.White : Colors.Transparent,
-                    HasFocus() ? 0 : 0.3);
-            }
+            DrawTextureRect(placeholderTexture, placeholderRect, false);
+            DrawRect(new Rect2(new Vector2(40, 40), Size - new Vector2(80, 80)), Colors.White.Darkened(0.8f), false,10);
         }
     }
 }

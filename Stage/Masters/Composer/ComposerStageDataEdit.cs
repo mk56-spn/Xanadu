@@ -5,14 +5,17 @@ using Godot;
 using XanaduProject.Character;
 using XanaduProject.DataStructure;
 using XanaduProject.IO;
+using XanaduProject.Screens.ScreenStructure;
 
 namespace XanaduProject.Stage.Masters.Composer
 {
-    public partial class ComposerStageDataEdit : Screen
+    public partial class ComposerStageDataEdit : SubScreen
     {
         private VBoxContainer vbox;
         public ComposerStageDataEdit(StageData stageData)
         {
+            Visible = true;
+
             SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
 
             StageInfo data = stageData.StageInfo;

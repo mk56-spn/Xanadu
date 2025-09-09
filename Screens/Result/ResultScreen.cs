@@ -3,22 +3,21 @@
 
 using Friflo.Engine.ECS;
 using Godot;
-using XanaduProject.Character;
 using XanaduProject.Stage;
+using MainScreen = XanaduProject.Screens.ScreenStructure.MainScreen;
 
 namespace XanaduProject.Screens.Result
 {
-    public partial class ResultScreen : Screen
+    public partial class ResultScreen : MainScreen
     {
         private readonly VBoxContainer info = new();
 
         public ResultScreen(Player player)
         {
             EntityStore store = player.EntityStore;
-            AddChild(new ResultBackGround());
 
+            BackgroundOverride = new ResultBackGround();
             AddChild(new ResultRightBar(store));
-            SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
             info.AddChild(new ResultGraph(store));
             info.SetAnchorsAndOffsetsPreset(LayoutPreset.LeftWide, margin: 90);
             Color = Colors.Gold.Darkened(0.3f);

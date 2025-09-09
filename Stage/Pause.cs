@@ -2,12 +2,12 @@
 // See the LICENCE file in the repository root for full licence text.
 
 using Godot;
-using XanaduProject.Character;
+using XanaduProject.Screens.ScreenStructure;
 using XanaduProject.Screens.StageSelection;
 
 namespace XanaduProject.Stage
 {
-    public partial class Pause : Screen
+    public partial class Pause : SubScreen
     {
         private readonly Player player;
         private VBoxContainer buttonContainer = new();
@@ -42,14 +42,9 @@ namespace XanaduProject.Stage
             Visible = false;
         }
 
-        public override void _Input(InputEvent @event)
-        {
-            if (@event is InputEventKey { Keycode: Key.Escape, Pressed: true })
-            {
-                Visible = true;
-                player.StageConductor.Clock.Pause();
-            }
-        }
+        protected override void OnShow() => player.StageConductor.Clock.Pause();
+        protected override void OnHide() => player.StageConductor.Clock.Resume();
+
 
         public override void _Ready()
         {

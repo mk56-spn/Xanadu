@@ -1,0 +1,108 @@
+[{
+    "id": 1
+},{
+    "id": 2
+},{
+    "id": 3,
+    "components": {
+        "BlockEcs": {},
+        "ElementEcs": {"Index":0,"Transform":{"X":{"X":1,"Y":0},"Y":{"X":0,"Y":1},"Origin":{"X":-112,"Y":112}}},
+        "RectEcs": {"Extents":{"X":32,"Y":32}}
+    }
+},{
+    "id": 4,
+    "components": {
+        "BlockEcs": {},
+        "ElementEcs": {"Index":0,"Transform":{"X":{"X":1,"Y":0},"Y":{"X":0,"Y":1},"Origin":{"X":-80,"Y":112}}},
+        "RectEcs": {"Extents":{"X":32,"Y":32}}
+    }
+},{
+    "id": 5,
+    "components": {
+        "BlockEcs": {},
+        "ElementEcs": {"Index":0,"Transform":{"X":{"X":1,"Y":0},"Y":{"X":0,"Y":1},"Origin":{"X":48,"Y":112}}},
+        "RectEcs": {"Extents":{"X":32,"Y":32}}
+    }
+},{
+    "id": 6,
+    "components": {
+        "BlockEcs": {},
+        "ElementEcs": {"Index":0,"Transform":{"X":{"X":1,"Y":0},"Y":{"X":0,"Y":1},"Origin":{"X":80,"Y":112}}},
+        "RectEcs": {"Extents":{"X":32,"Y":32}}
+    }
+},{
+    "id": 7,
+    "components": {
+        "BlockEcs": {},
+        "ElementEcs": {"Index":0,"Transform":{"X":{"X":1,"Y":0},"Y":{"X":0,"Y":1},"Origin":{"X":-48,"Y":112}}},
+        "RectEcs": {"Extents":{"X":32,"Y":32}}
+    }
+},{
+    "id": 8,
+    "components": {
+        "BlockEcs": {},
+        "ElementEcs": {"Index":0,"Transform":{"X":{"X":1,"Y":0},"Y":{"X":0,"Y":1},"Origin":{"X":-16,"Y":112}}},
+        "RectEcs": {"Extents":{"X":32,"Y":32}}
+    }
+},{
+    "id": 9,
+    "components": {
+        "BlockEcs": {},
+        "ElementEcs": {"Index":0,"Transform":{"X":{"X":1,"Y":0},"Y":{"X":0,"Y":1},"Origin":{"X":16,"Y":112}}},
+        "RectEcs": {"Extents":{"X":32,"Y":32}}
+    }
+},{
+    "id": 10,
+    "components": {
+        "ElementEcs": {"Index":0,"Transform":{"X":{"X":1,"Y":0},"Y":{"X":0,"Y":1},"Origin":{"X":-3.461852,"Y":71.04418}}},
+        "NoteEcs": {"NoteType":"Main","TimingPoint":0.6,"NoteCanvas":{}},
+        "DirectionEcs": {"Direction":"Left"}
+    }
+},{
+    "id": 11,
+    "components": {
+        "ElementEcs": {"Index":0,"Transform":{"X":{"X":1,"Y":0},"Y":{"X":0,"Y":1},"Origin":{"X":-17.550095,"Y":77.8528}}},
+        "NoteEcs": {"NoteType":"Main","TimingPoint":0.3,"NoteCanvas":{}}
+    }
+},{
+    "id": 12,
+    "components": {
+        "ElementEcs": {"Index":0,"Transform":{"X":{"X":1,"Y":0},"Y":{"X":0,"Y":1},"Origin":{"X":-366.42395,"Y":-16.906748}}},
+        "NoteEcs": {"NoteType":"R","TimingPoint":1.2,"NoteCanvas":{}}
+    }
+},{
+    "id": 13,
+    "components": {
+        "ElementEcs": {"Index":0,"Transform":{"X":{"X":1,"Y":0},"Y":{"X":0,"Y":1},"Origin":{"X":-205.85275,"Y":47.999996}}},
+        "NoteEcs": {"NoteType":"Main","TimingPoint":0.9,"NoteCanvas":{}},
+        "DirectionEcs": {"Direction":"UpLeft"}
+    }
+},{
+    "id": 14,
+    "components": {
+        "BlockEcs": {},
+        "ElementEcs": {"Index":0,"Transform":{"X":{"X":1,"Y":0},"Y":{"X":0,"Y":1},"Origin":{"X":-368,"Y":80}}},
+        "RectEcs": {"Extents":{"X":32,"Y":32}}
+    }
+},{
+    "id": 15,
+    "components": {
+        "BlockEcs": {},
+        "ElementEcs": {"Index":0,"Transform":{"X":{"X":1,"Y":0},"Y":{"X":0,"Y":1},"Origin":{"X":-400,"Y":80}}},
+        "RectEcs": {"Extents":{"X":32,"Y":32}}
+    }
+},{
+    "id": 16,
+    "components": {
+        "ElementEcs": {"Index":0,"Transform":{"X":{"X":1,"Y":0},"Y":{"X":0,"Y":1},"Origin":{"X":-562.99036,"Y":96.340225}}},
+        "NoteEcs": {"NoteType":"R","TimingPoint":1.5,"NoteCanvas":{}},
+        "DirectionEcs": {"Direction":"Down"}
+    }
+},{
+    "id": 17,
+    "components": {
+        "ElementEcs": {"Index":0,"Transform":{"X":{"X":1,"Y":0},"Y":{"X":0,"Y":1},"Origin":{"X":-733.7629,"Y":294.84036}}},
+        "NoteEcs": {"NoteType":"R","TimingPoint":1.8,"NoteCanvas":{}},
+        "DirectionEcs": {"Direction":"Right"}
+    }
+}]

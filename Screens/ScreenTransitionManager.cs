@@ -3,7 +3,7 @@
 
 using System;
 using Godot;
-using XanaduProject.Character;
+using XanaduProject.Screens.ScreenStructure;
 
 namespace XanaduProject.Screens
 {

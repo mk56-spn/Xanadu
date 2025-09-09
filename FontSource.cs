@@ -7,12 +7,11 @@ namespace XanaduProject
 {
     public static class FontSource
     {
+        public static readonly Font LINE_BOLD = GD.Load<Font>("uid://dx51auut7kkim");
         public static readonly Font LINE_THIN = GD.Load<Font>("uid://dghg2sit48qtn");
         public static readonly Font PLASTIC_SLANTED = GD.Load<Font>("uid://ehrnfq107vtu");
         public static readonly Font PLASTIC = GD.Load<Font>("uid://bm2dohn5m6803");
-
-        public static readonly ShaderMaterial GRADIENT_MATERIAL = new() {
-            Shader = GD.Load<Shader>("uid://b4d6duhq4a303")
-        };
+        public static readonly Font GOTHIC = GD.Load<Font>("uid://0q6kd4xtiqlv");
+        public static readonly Font SURF = GD.Load<Font>("uid://b5fse78dyll8p");
     }
 }

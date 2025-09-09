@@ -4,36 +4,23 @@
 using Godot;
 using XanaduProject.Buttons;
 using XanaduProject.Character;
+using XanaduProject.Screens.ScreenStructure;
 
 namespace XanaduProject.Screens.Settings
 {
-    public partial class SettingsSubScreen : Screen
+    public partial class SettingsSubScreen : SubScreen
     {
         // Shell categories to be implemented later
         private CategoryControl displaysCategory;
         private CategoryControl keybindingsCategory;
         private CategoryControl audioCategory;
 
-        public override void _Input(InputEvent @event)
-        {
-            if (@event is InputEventKey { Keycode: Key.F11, Pressed: true })
-            {
-
-                ScreenManager.RemoveSubscreen();
-            }
-        }
 
         public SettingsSubScreen()
         {
-            SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
             // It's better to load settings once at game startup,
             // but for this screen, we'll load them here to ensure they are up to date.
             GameSettings.LoadSettings();
-
-            // Background with transparency
-            ColorRect rect;
-            AddChild(rect = new ColorRect{ Color = Colors.Black with { A = 0.2f }});
-            rect.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
 
             // Main container with margin
             var mainContainer = new MarginContainer();

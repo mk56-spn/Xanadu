@@ -2,27 +2,44 @@
 // See the LICENCE file in the repository root for full licence text.
 
 using Godot;
-using XanaduProject.Character;
+using XanaduProject.Buttons;
 using XanaduProject.DataStructure;
 using XanaduProject.IO;
+using XanaduProject.Screens.ScreenStructure;
 using XanaduProject.Stage;
 
 namespace XanaduProject.Screens.StageSelection
 {
-	public partial class StageSelection : Screen
+	public partial class StageSelection : ScreenWithFooter
 	{
-		private Button startButton = new() { Text = "Start" };
-		private Button editButton = new() { Text = "Edit" };
+		private AnimatedHoverButton startButton = new("Start");
+		private AnimatedHoverButton editButton = new("Edit");
+        private StageInfo data = null!;
 
-		private HBoxContainer buttons = new();
+        public StageInfo Data
+        {
+            get => data;
+            set
+            {
+                data = value;
+                dataDisplay.Update(value);
+            }
+        }
 
-		public StageInfo Data;
 
-		public override void _Ready()
+        private readonly InfoDisplayContainer dataDisplay = new();
+        private readonly VBoxContainer header = new();
+
+        public override void _Ready()
 		{
-			AddChild(buttons);
-			buttons.AddChild(startButton);
-			buttons.AddChild(editButton);
+            AddChild(header);
+
+            header.SetAnchorsAndOffsetsPreset(LayoutPreset.TopWide,LayoutPresetMode.KeepSize, margin: 5);
+            header.AddChild(new Container() { CustomMinimumSize = new Vector2(40,40)});
+            header.AddChild(dataDisplay);
+
+            AddButtonToFooter(startButton);
+            AddButtonToFooter(editButton);
 
 			AddChild(new StageSelectionCarousel(this));
 
@@ -39,5 +56,13 @@ namespace XanaduProject.Screens.StageSelection
 					new Stage.Masters.Composer.Composer(StagePersistence.GetStage(Data)));
 			};
 		}
+
+        private partial class HeaderButtons : HBoxContainer
+        {
+            public HeaderButtons()
+            {
+                AddChild(new Button());
+            }
+        }
 	}
 }
