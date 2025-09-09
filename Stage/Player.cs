@@ -1,6 +1,7 @@
 // Copyright (c) mk56_spn <dhsjplt@gmail.com>.Licensed under the GNU General Public Licence (2.0).
 // See the LICENCE file in the repository root for full licence text.
 
+using System;
 using Friflo.Engine.ECS;
 using Godot;
 using Microsoft.Extensions.DependencyInjection;
@@ -16,7 +17,8 @@ using XanaduProject.Stage.Masters.Rendering;
 namespace XanaduProject.Stage
 {
     public partial class Player : MainScreen, IPlayer
-    {        public EntityStore EntityStore { get; }
+    {
+        public EntityStore EntityStore { get; }
         public StageData StageData { get; }
 
         public TrackInfo TrackInfo { get; }
@@ -27,8 +29,8 @@ namespace XanaduProject.Stage
             BackgroundOverride = new Control();
             StageData = data;
             TrackInfo = TrackIndex.GetTrackInfo(data.StageInfo.SongIndex);
-            DiProvider.Configure(c=>c.AddSingleton<IPlayer>(this));
-            AddChild(StageConductor = new StageConductor(TrackInfo,EntityStore = data.Store));
+            DiProvider.Configure(c => c.AddSingleton<IPlayer>(this));
+            AddChild(StageConductor = new StageConductor(TrackInfo, EntityStore = data.Store));
             setup();
         }
 
@@ -65,8 +67,29 @@ namespace XanaduProject.Stage
         public void RequestResults()
         {
             if (resultsRequested) return;
+
             resultsRequested = true;
-            Manager.RequestChangeScreen(new ResultScreen(this));
+
+            var scoreCalculator = new ScoreCalculator(EntityStore);
+
+            if (!IsComposer && GameSettings.CurrentProfile != null)
+            {
+                var score = new Score
+                {
+                    SongIndex = StageData.StageInfo.SongIndex,
+                    StagePath = StageData.StageInfo.StagePath,
+                    Timestamp = DateTime.UtcNow,
+                    Judgements = scoreCalculator.Judgements,
+                    MaxCombo = scoreCalculator.MaxCombo,
+                    Accuracy = scoreCalculator.Accuracy,
+                    UnstableRate = scoreCalculator.UnstableRate
+                };
+
+                ScoreService.SaveScore(score);
+                GameSettings.CurrentProfile.Scores.Add(score);
+            }
+
+            Manager.RequestChangeScreen(new ResultScreen(this, scoreCalculator));
         }
     }
 }

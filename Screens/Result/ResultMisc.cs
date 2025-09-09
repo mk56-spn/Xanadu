@@ -1,57 +1,30 @@
 // Copyright (c) mk56_spn <dhsjplt@gmail.com>.Licensed under the GNU General Public Licence (2.0).
 // See the LICENCE file in the repository root for full licence text.
 
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using Friflo.Engine.ECS;
 using Godot;
-using XanaduProject.ECSComponents;
-using XanaduProject.ECSComponents.Tag;
+using XanaduProject.DataStructure;
 
 namespace XanaduProject.Screens.Result
 {
     public partial class ResultMisc : VBoxContainer
     {
-        private readonly InvertResultText urText = new();
-
-        public ResultMisc(EntityStore store)
+        public ResultMisc(ScoreCalculator scoreCalculator)
         {
-
-            AddChild(new InvertResultText {
-                Text = "NOTES: " + store.Query<NoteEcs>().Count,
+            AddChild(new InvertResultText
+            {
+                Text = "NOTES: " + scoreCalculator.TotalNotes,
             });
-            AddChild(new InvertResultText {
-                Text = "COMBO: " + store.Query<NoteEcs>().Count,
-
+            AddChild(new InvertResultText
+            {
+                Text = "COMBO: " + scoreCalculator.MaxCombo,
             });
 
             AddThemeConstantOverride("separation", 0);
 
-            AddChild(urText);
-            urCounter(store);
-        }
-
-        private void urCounter(EntityStore store)
-        {
-            var deviations = new List<float>();
-            store.Query<Judged>().ForEachEntity((ref Judged judged, Entity entity) =>
+            AddChild(new InvertResultText
             {
-                deviations.Add(judged.Deviation);
+                Text = $"UR: {scoreCalculator.UnstableRate:F2}"
             });
-
-            if (deviations.Count == 0)
-            {
-                urText.Text = "UR: N/A";
-                return;
-            }
-
-            float mean = deviations.Average();
-            float variance = deviations.Sum(d => (d - mean) * (d - mean)) / deviations.Count;
-            float stdDev = (float)Math.Sqrt(variance);
-            float ur = stdDev * 10;
-
-            urText.Text = $"UR: {ur:F2}";
         }
 
         private partial class InvertResultText : ResultText
