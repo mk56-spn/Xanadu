@@ -3,11 +3,7 @@
 
 namespace XanaduProject.Screens.ScreenStructure
 {
-    public partial class MainScreen : Screens.ScreenStructure.Screen
+    public partial class MainScreen : Screen
     {
-        public MainScreen()
-        {
-
-        }
     }
 }

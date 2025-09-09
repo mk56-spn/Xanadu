@@ -32,7 +32,7 @@ namespace XanaduProject.Screens
 
             updateBackground(null);
 
-            RequestChangeScreen(new MainMenu(), TransitionType.Fade);
+            RequestChangeScreen(new OpeningScreen());
             setupParticles();
         }
 
