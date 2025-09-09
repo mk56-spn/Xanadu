@@ -14,7 +14,7 @@ namespace XanaduProject.Stage
                 < 15 => Colors.Yellow,
                 < 25 => Colors.Orange,
                 < 35 => Colors.Red,
-                _ => Colors.RebeccaPurple
+                _ => Colors.Red
             };
 
         public static string GetStageDifficultName(int difficulty)

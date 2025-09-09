@@ -3,6 +3,7 @@
 
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text.Json;
 using Godot;
 using XanaduProject.DataStructure;
@@ -51,9 +52,11 @@ namespace XanaduProject.IO.Indexes
                     string json = File.ReadAllText(metadataPath);
                     var stageData = JsonSerializer.Deserialize<StageInfo>(json);
 
+                    GD.Print(stageData!.CreatorList.First());
                     GD.PrintRich(stageData!.StageName + "INFO");
                     string stageResPath = SerializationUtils.STAGES_DIR.PathJoin(dirName);
-                    var newStageInfo = new StageInfo(stageResPath, json, stageData.StageName, stageData.CreatorList);
+                    stageData.StagePath = stageResPath;
+                    var newStageInfo = stageData;
 
                     Stages.Add(stageIndex, newStageInfo);
                     stageIndex++;

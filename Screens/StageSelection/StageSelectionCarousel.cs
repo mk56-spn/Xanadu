@@ -12,7 +12,7 @@ namespace XanaduProject.Screens.StageSelection
 	{
 		private readonly StageSelection stageSelection;
 
-		private const double transition = 0.5;
+		private const double transition = 0.3;
 
 		public StageSelectionCarousel(StageSelection stageSelection)
 		{
