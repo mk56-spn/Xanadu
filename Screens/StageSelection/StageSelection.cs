@@ -15,6 +15,7 @@ namespace XanaduProject.Screens.StageSelection
 		private AnimatedHoverButton startButton = new("Start");
 		private AnimatedHoverButton editButton = new("Edit");
         private StageInfo data = null!;
+        private readonly ScoreDisplay scoreDisplay = new();
 
         public StageInfo Data
         {
@@ -23,6 +24,7 @@ namespace XanaduProject.Screens.StageSelection
             {
                 data = value;
                 dataDisplay.Update(value);
+                scoreDisplay.Update(value);
             }
         }
 
@@ -32,11 +34,20 @@ namespace XanaduProject.Screens.StageSelection
 
         public override void _Ready()
 		{
+            var profileContainer = new VBoxContainer();
+            AddChild(profileContainer);
+            profileContainer.SetAnchorsAndOffsetsPreset(LayoutPreset.TopLeft, margin: 10);
+
+            var profileLabel = new Label();
+            profileLabel.Text = GameSettings.CurrentProfile != null ? $"Current Profile: {GameSettings.CurrentProfile.ProfileName}" : "No profile selected.";
+            profileContainer.AddChild(profileLabel);
+
             AddChild(header);
 
             header.SetAnchorsAndOffsetsPreset(LayoutPreset.TopWide,LayoutPresetMode.KeepSize, margin: 5);
             header.AddChild(new Container() { CustomMinimumSize = new Vector2(40,40)});
             header.AddChild(dataDisplay);
+            header.AddChild(scoreDisplay);
 
             AddButtonToFooter(startButton);
             AddButtonToFooter(editButton);

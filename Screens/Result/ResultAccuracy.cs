@@ -14,10 +14,8 @@ namespace XanaduProject.Screens.Result
 {
     public partial class ResultAccuracy : VBoxContainer
     {
-        private readonly EntityStore store;
 
-        private float accuracy;
-
+        private ScoreCalculator score;
         private Label accuracyLabel = new()
         {
             LabelSettings = new LabelSettings
@@ -26,9 +24,9 @@ namespace XanaduProject.Screens.Result
                 Font = FontSource.PLASTIC
             }
         };
-        public ResultAccuracy(EntityStore store)
+        public ResultAccuracy(ScoreCalculator score)
         {
-            this.store = store;
+            this.score = score;
 
             calculateAccuracy();
             calculateRank();
@@ -37,27 +35,8 @@ namespace XanaduProject.Screens.Result
 
         private void calculateAccuracy()
         {
-            int totalNotes = store.Query<NoteEcs>().Entities.Count();
 
-            foreach (var judgement in store.Query<NoteEcs>().Entities.Select(v => v.GetComponent<Judged>().Judgement))
-            {
-                switch (judgement)
-                {
-                    case Judgement.FlawlessP or Judgement.Flawless:
-                        accuracy += 100f / totalNotes;
-                        break;
-                    case Judgement.Clean:
-                        accuracy += 80f / totalNotes;
-                        break;
-                    case Judgement.Fair:
-                        accuracy += 70f / totalNotes;
-                        break;
-                    case Judgement.Deficient:
-                        accuracy += 50f / totalNotes;
-                        break;
-                }
-            }
-            accuracyLabel.Text = accuracy.ToString("0.00") + "%";
+            accuracyLabel.Text = score.Accuracy.ToString("0.00") + "%";
 
         }
 
@@ -65,7 +44,7 @@ namespace XanaduProject.Screens.Result
         {
             var rankLabel = new Label
             {
-                Text = accuracy switch
+                Text = score.Accuracy switch
                 {
                     >= 99.9f => "SSS",
                     >= 99f => "SS",
@@ -89,7 +68,7 @@ namespace XanaduProject.Screens.Result
                 HorizontalAlignment = HorizontalAlignment.Left
             };
 
-            rankLabel.Modulate = accuracy switch
+            rankLabel.Modulate = score.Accuracy switch
             {
                 >= 99.9f => new Color(0.9f, 0.9f, 1.0f), // Platinum
                 >= 99f => Colors.Gold,

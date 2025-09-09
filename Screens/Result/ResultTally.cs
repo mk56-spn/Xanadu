@@ -2,12 +2,9 @@
 // See the LICENCE file in the repository root for full licence text.
 
 using System;
-using System.Linq;
 using Friflo.Engine.ECS;
 using Godot;
 using XanaduProject.DataStructure;
-using XanaduProject.ECSComponents;
-using XanaduProject.ECSComponents.Tag;
 
 namespace XanaduProject.Screens.Result
 {
@@ -28,7 +25,7 @@ namespace XanaduProject.Screens.Result
             AntiAliasingSize = 30,
             AntiAliasing = true,
         };
-        public ResultTally(EntityStore store)
+        public ResultTally(ScoreCalculator scoreCalculator)
         {
             AddThemeStyleboxOverride("panel", style);
             CustomMinimumSize = new Vector2(500, 0);
@@ -56,7 +53,7 @@ namespace XanaduProject.Screens.Result
 
                 var countLabel = new ResultTallyText()
                 {
-                    Text = store.Query<NoteEcs>().Entities.Count(c => c.GetComponent<Judged>().Judgement == j).ToString("D3"),
+                    Text = scoreCalculator.Judgements[j].ToString("D3"),
                     HorizontalAlignment = HorizontalAlignment.Right
                 };
                 countsVBox.AddChild(countLabel);

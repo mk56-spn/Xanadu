@@ -3,6 +3,7 @@
 
 using Friflo.Engine.ECS;
 using Godot;
+using XanaduProject.DataStructure;
 using XanaduProject.Stage;
 using MainScreen = XanaduProject.Screens.ScreenStructure.MainScreen;
 
@@ -12,23 +13,23 @@ namespace XanaduProject.Screens.Result
     {
         private readonly VBoxContainer info = new();
 
-        public ResultScreen(Player player)
+        public ResultScreen(Player player, ScoreCalculator scoreCalculator)
         {
             EntityStore store = player.EntityStore;
 
             BackgroundOverride = new ResultBackGround();
-            AddChild(new ResultRightBar(store));
+            AddChild(new ResultRightBar(scoreCalculator));
             info.AddChild(new ResultGraph(store));
             info.SetAnchorsAndOffsetsPreset(LayoutPreset.LeftWide, margin: 90);
-            Color = Colors.Gold.Darkened(0.3f);
+            Color = UiColours.MAIN_COLOUR_DARK;
 
 
             AddChild(info);
             info.AddThemeConstantOverride("separation", 10);
 
-            info.AddChild(new ResultTally(store));
+            info.AddChild(new ResultTally(scoreCalculator));
 
-            info.AddChild(new ResultMisc(store));
+            info.AddChild(new ResultMisc(scoreCalculator));
 
             AddChild(new ResultFooter(ScreenManager, player));
         }

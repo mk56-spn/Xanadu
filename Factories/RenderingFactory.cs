@@ -1,12 +1,15 @@
 // Copyright (c) mk56_spn <dhsjplt@gmail.com>.Licensed under the GNU General Public Licence (2.0).
 // See the LICENCE file in the repository root for full licence text.
 
+using System;
+using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using Godot;
 using JetBrains.Annotations;
 using XanaduProject.Audio;
 using XanaduProject.GameDependencies;
+using XanaduProject.Tools;
 using static Godot.RenderingServer;
 
 namespace XanaduProject.Factories
@@ -300,6 +303,37 @@ namespace XanaduProject.Factories
 
 			return AddPolyline(r, points, [color?? Colors.White], width);
 		}
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static RenderRid AddSquareWithInsets(
+            this in RenderRid r,
+            Rect2 rect,
+            Inset inset,
+            Bevel bevel,
+            ShapeStyle style,
+            bool antialiased = true,
+            Rid? texture = null)
+        {
+            var finalPolygons = DrawingHelpers.GenerateInsetBeveledSquare(rect, inset, bevel);
+
+            foreach (var points in finalPolygons)
+            {
+                if (points.Length < 3) continue;
+
+                if (style.Fill)
+                {
+                    var uvs = points.Select(p => (p - rect.Position) / rect.Size).ToArray();
+                    var fillColors = Enumerable.Repeat(style.FillColor, points.Length).ToArray();
+                    CanvasItemAddPolygon(r.Rid, points, fillColors, uvs, texture ?? new Rid());
+                }
+
+                if (style.Outline)
+                {
+                    var outlinePoints = points.Append(points[0]).ToArray();
+                    CanvasItemAddPolyline(r.Rid, (ReadOnlySpan<Vector2>)outlinePoints, [style.OutlineColor], style.OutlineWidth, antialiased);
+                }
+            }
+            return r;
+        }
 
 
 		#endregion
@@ -359,6 +393,24 @@ namespace XanaduProject.Factories
 
 			return v;
 		}
+
+        /// <summary>
+        /// Creates a new canvas item using the RenderingServer and returns it as a RenderRid.
+        /// </summary>
+        /// <param name="parent">The parent canvas item under which this item will be created.</param>
+        /// <param name="lifetime"></param>
+        /// <returns>A new <see cref="RenderRid"/> instance wrapping the created canvas item.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static RenderRid Create(CanvasItem parent, float? lifetime = null)
+        {
+            var v = new RenderRid(CanvasItemCreate());
+            v.SetParent(parent.GetCanvasItem());
+
+            if (lifetime.HasValue)
+                v.SetLifetime(lifetime.Value);
+
+            return v;
+        }
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static implicit operator Rid(RenderRid r) => r.Rid;

@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Godot;
+using XanaduProject.DataStructure;
 
 namespace XanaduProject
 {
@@ -14,6 +15,8 @@ namespace XanaduProject
         }
 
         public static SettingsData CurrentSettings { get; private set; } = new();
+
+        public static ProfileInfo? CurrentProfile { get; set; }
 
         private static readonly string settings_file_path = "user://settings.json";
 

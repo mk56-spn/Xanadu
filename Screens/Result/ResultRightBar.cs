@@ -3,14 +3,15 @@
 
 using Friflo.Engine.ECS;
 using Godot;
+using XanaduProject.DataStructure;
 
 namespace XanaduProject.Screens.Result
 {
     public partial class ResultRightBar : Control
     {
-        public ResultRightBar(EntityStore store)
+        public ResultRightBar(ScoreCalculator score)
         {
-            AddChild(new ResultAccuracy(store));
+            AddChild(new ResultAccuracy(score));
             Size = new Vector2(1000,0);
             AddThemeStyleboxOverride("panel", new StyleBoxFlat
             {

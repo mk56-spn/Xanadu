@@ -40,7 +40,7 @@ namespace XanaduProject.Screens
         {
             if (@event is InputEventKey { KeyLabel: Key.Enter })
             {
-                ScreenManager.RequestChangeScreen(screen: new MainMenu(), transitionType: TransitionType.Fade);
+                ScreenManager.RequestChangeScreen(screen: new ProfileSelectionScreen(), transitionType: TransitionType.Fade);
             }
         }
     }

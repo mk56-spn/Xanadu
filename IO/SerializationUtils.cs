@@ -7,6 +7,8 @@ namespace XanaduProject.IO
     {
         // Loose strings are the enemy!
         internal const string STAGES_DIR = "res://Stages";
+        internal const string PROFILES_DIR = "user://Profiles";
+        internal const string PROFILE_FILENAME = "profile.json";
         internal const string METADATA_FILENAME = "metadata.json";
         internal const string ENTITY_STORE_FILENAME = "entity_store.json";
     }
