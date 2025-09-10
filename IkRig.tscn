@@ -1,0 +1,14 @@
+[gd_scene load_steps=2 format=3 uid="uid://cdovm4kijrl8a"]
+
+[ext_resource type="Script" uid="uid://dwbq8ytwtbukm" path="res://Scenes/IkRiggingScene.cs" id="1_sfkdu"]
+
+[node name="Control" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_right = -1691.0
+offset_bottom = -708.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_sfkdu")

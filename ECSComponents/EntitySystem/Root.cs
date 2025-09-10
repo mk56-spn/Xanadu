@@ -69,6 +69,8 @@ namespace XanaduProject.ECSComponents.EntitySystem
 
             Add(new ColourInterpolatorSystem(entityStore));
             Add(new DebugSystem(entityStore, this));
+            Add(new BoneTransformSystem(entityStore)); // BoneTransformSystem must run before IkSolverSystem
+            Add(new IkSolverSystem(entityStore)); // Added IkSolverSystem
 
         }
 
