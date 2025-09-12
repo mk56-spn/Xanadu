@@ -2,6 +2,7 @@
 // See the LICENCE file in the repository root for full licence text.
 
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
@@ -213,7 +214,7 @@ namespace XanaduProject.Factories
 		{
 			var points = new Vector2[sides];
 			var center = position ?? Vector2.Zero;
-			var rot = rotation - Mathf.Pi / 2;
+			float rot = rotation - Mathf.Pi / 2;
 
 			for (int i = 0; i < sides; i++)
 			{
@@ -224,6 +225,17 @@ namespace XanaduProject.Factories
 			CanvasItemAddPolygon(r.Rid, points, [color ?? Colors.White]);
 			return r;
 		}
+
+        public static void AddPrimitive(this RenderRid rid,
+            Vector2[] points,
+            Color[] colors,
+            Vector2[]? uvs = null,
+            Texture2D? texture = null)
+        {
+            var texRid = texture?.GetRid() ?? new Rid();
+            CanvasItemAddPrimitive(rid.Rid, points, colors, uvs, texRid);
+        }
+
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static RenderRid AddPolyline(this in RenderRid r, Vector2[] points, Color[]? color = null, float width = 1.0f)
