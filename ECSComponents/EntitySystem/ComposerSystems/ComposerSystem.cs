@@ -3,6 +3,7 @@
 
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
+using XanaduProject.ECSComponents.EntitySystem.Components;
 using XanaduProject.ECSComponents.Tag;
 using XanaduProject.GameDependencies;
 using XanaduProject.Stage.Masters.Composer;

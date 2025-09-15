@@ -10,6 +10,7 @@ using XanaduProject.Audio;
 using XanaduProject.ECSComponents;
 using XanaduProject.ECSComponents.Animation2;
 using XanaduProject.ECSComponents.EntitySystem;
+using XanaduProject.ECSComponents.EntitySystem.Components;
 using XanaduProject.ECSComponents.Tag;
 using XanaduProject.Factories;
 using XanaduProject.GameDependencies;

@@ -7,6 +7,7 @@ using Godot;
 using Stateless;
 using XanaduProject.ECSComponents;
 using XanaduProject.ECSComponents.EntitySystem;
+using XanaduProject.ECSComponents.EntitySystem.Components;
 using XanaduProject.ECSComponents.EntitySystem.Components.Physics;
 using XanaduProject.ECSComponents.Tag;
 using XanaduProject.Factories;
