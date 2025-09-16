@@ -8,6 +8,8 @@ using Microsoft.Extensions.DependencyInjection;
 using XanaduProject.Factories;
 using XanaduProject.GameDependencies;
 using XanaduProject.Screens.ScreenStructure;
+using XanaduProject.Singleton;
+using XanaduProject.Tools;
 using Screen = XanaduProject.Screens.ScreenStructure.Screen;
 
 namespace XanaduProject.Screens
@@ -50,6 +52,13 @@ namespace XanaduProject.Screens
         {
             GameSettings.ApplyResolution();
         }
+
+        public override void _EnterTree()
+        {
+            GodotTree.Setup(this);
+            Ready += Logger.Boot;
+        }
+
 
         public void RequestChangeScreen(MainScreen screen, TransitionType transitionType = TransitionType.Fade)
         {
