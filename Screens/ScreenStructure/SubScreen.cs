@@ -15,6 +15,16 @@ namespace XanaduProject.Screens.ScreenStructure
             colorRect.Color = Colors.Black.Darkened(0.5f);
             AddChild(colorRect);
 
+            var quitButton = new Button { Text = "X" };
+            AddChild(quitButton);
+            quitButton.SetAnchorsAndOffsetsPreset(LayoutPreset.TopRight, LayoutPresetMode.Minsize, 10);
+
+            quitButton.Pressed += () =>
+            {
+                OnHide();
+                Visible = false;
+            };
+
             Visible = false;
         }
 
