@@ -2,7 +2,6 @@
 // See the LICENCE file in the repository root for full licence text.
 
 using Godot;
-using XanaduProject.ECSComponents.EntitySystem;
 using XanaduProject.Factories;
 using XanaduProject.GameDependencies;
 
@@ -31,8 +30,7 @@ namespace XanaduProject.Character
         private bool queryDamage()
         {
             query.Transform = GlobalTransform;
-            return world.DirectSpaceState
-                .IntersectShape(query).Count != 0;
+            return false;
         }
     }
 }
