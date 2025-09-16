@@ -14,9 +14,7 @@ namespace XanaduProject.Scenes
 
         public static void BuildPose()
         {
-
-            var rootEntity = entityStore.CreateEntity(new RootEcs(), Tags.Get<Head>());
-
+            var rootEntity = entityStore.CreateEntity(new RootEcs());
             var shoulderEntity = entityStore.CreateEntity(new BoneEcs
             {
                 Length = 20,

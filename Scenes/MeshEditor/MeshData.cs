@@ -3,18 +3,14 @@ using Godot;
 
 namespace XanaduProject.Scenes.MeshEditor
 {
-    public struct BezierPoint
+    public struct BezierPoint(Vector2 position)
     {
-        public Vector2 Position { get; set; }
-        public Vector2 InHandle { get; set; } // Offset from Position
-        public Vector2 OutHandle { get; set; } // Offset from Position
-
-        public BezierPoint(Vector2 position)
-        {
-            Position = position;
-            InHandle = new Vector2(-20, 0); // Default handle offset
-            OutHandle = new Vector2(20, 0); // Default handle offset
-        }
+        public bool HandlesLocked;
+        public Vector2 Position { get; set; } = position;
+        public Vector2 InHandle { get; set; } = new(-20, 0); // Default handle offset
+        // Offset from Position
+        public Vector2 OutHandle { get; set; } = new(20, 0); // Default handle offset
+        // Offset from Position
     }
 
     public enum HandleType
