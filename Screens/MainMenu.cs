@@ -3,6 +3,7 @@
 
 using Godot;
 using XanaduProject.Buttons;
+using XanaduProject.Scenes;
 using XanaduProject.Screens.ScreenStructure;
 using XanaduProject.Screens.Settings;
 
@@ -23,7 +24,11 @@ namespace XanaduProject.Screens
         private readonly AnimatedHoverButton quit = new("Quit")
         {
             CustomMinimumSize = new Vector2(150, 150)
+        };
 
+        private readonly AnimatedHoverButton Rigging = new("Rigging")
+        {
+            CustomMinimumSize = new Vector2(150, 150)
         };
 
 
@@ -36,11 +41,14 @@ namespace XanaduProject.Screens
             p.AddChild(buttons);
             buttons.AddChild(start);
             buttons.AddChild(settings);
+            buttons.AddChild(Rigging
+            );
             buttons.AddChild(quit);
 
             start.Pressed += () =>
                 ScreenManager.RequestChangeScreen(new StageSelection.StageSelection());
             quit.Pressed += () => GetTree().Quit();
+            Rigging.Pressed += () => ScreenManager.RequestChangeScreen(new IkRiggingScreen());
             settings.Pressed += () =>
             {
                 settingsScreen.Visible = true;
@@ -62,7 +70,6 @@ namespace XanaduProject.Screens
         {
             ScreenManager.ChangeSubScreen(settingsScreen);
             buttons.SetAnchorsAndOffsetsPreset(LayoutPreset.Center);
-
         }
     }
 }

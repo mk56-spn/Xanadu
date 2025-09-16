@@ -6,10 +6,10 @@ using Friflo.Engine.ECS.Systems;
 using Godot;
 using XanaduProject.Audio;
 using XanaduProject.ECSComponents.Animation2;
+using XanaduProject.ECSComponents.EntitySystem.BoneSystems;
 using XanaduProject.ECSComponents.EntitySystem.CharacterSystems;
 using XanaduProject.ECSComponents.EntitySystem.Components;
 using XanaduProject.ECSComponents.EntitySystem.Components.Physics;
-using XanaduProject.ECSComponents.EntitySystem.ComposerSystems;
 using XanaduProject.ECSComponents.EntitySystem.InitialiserSystems;
 using XanaduProject.ECSComponents.EntitySystem.NoteSystems;
 using XanaduProject.ECSComponents.EntitySystem.Refresh_systems;
@@ -69,9 +69,9 @@ namespace XanaduProject.ECSComponents.EntitySystem
 
             Add(new ColourInterpolatorSystem(entityStore));
             Add(new DebugSystem(entityStore, this));
-            Add(new BoneTransformSystem(entityStore)); // BoneTransformSystem must run before IkSolverSystem
-            Add(new IkSolverSystem(entityStore)); // Added IkSolverSystem
-
+            Add(new BoneTransformSystem()); // BoneTransformSystem must run before IkSolverSystem
+            Add(new IkSolverSystem()); // Added IkSolverSystem
+            Add(new BoneRenderingSystem());
         }
 
         private void characterSystems()
