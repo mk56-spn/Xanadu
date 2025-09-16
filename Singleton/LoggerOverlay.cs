@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using Godot;
 using Xanadu.Singletons;
 using XanaduProject.Buttons;
+using XanaduProject.Tools;
 
 namespace XanaduProject.Singleton
 {
@@ -30,7 +31,6 @@ namespace XanaduProject.Singleton
 
             logLabel = new RichTextLabel
             {
-                Name = "LogLabel",
                 CustomMinimumSize = new Vector2(0, 400),
                 SizeFlagsVertical = SizeFlags.ShrinkEnd,
                 ScrollFollowing = true,
@@ -44,7 +44,6 @@ namespace XanaduProject.Singleton
 
             categoryContainer = new HBoxContainer
             {
-                Name = "CategoryContainer",
                 AnchorTop = 1,
                 AnchorBottom = 1,
                 AnchorRight = 1,
@@ -55,7 +54,8 @@ namespace XanaduProject.Singleton
             setupCategoryButtons();
             isLogDirty = true;
 
-            logLabel.AddThemeFontOverride("normal_font",FontSource.GOTHIC);
+            logLabel.AddThemeFontOverride("normal_font",FontSource.LINE_THICK);
+            logLabel.AddThemeFontOverride("bold_font",FontSource.LINE_BOLD);
         }
 
         public override void _Ready()
@@ -72,6 +72,8 @@ namespace XanaduProject.Singleton
                 updateLog();
                 isLogDirty = false;
             }
+            ClipContents = false;
+
         }
 
         public override void _Input(InputEvent @event)
@@ -87,7 +89,8 @@ namespace XanaduProject.Singleton
         {
             foreach (var category in Enum.GetValues<LogCategory>())
             {
-                var button = new Button { Text = category.ToString() };
+                AnimatedHoverButton button = new AnimatedHoverButton(category.ToString());
+                button.LabelSettings.FontSize = 10;
                 button.Pressed += () => OnCategoryButtonPressed(category);
                 categoryContainer.AddChild(button);
             }
@@ -104,10 +107,26 @@ namespace XanaduProject.Singleton
                 foreach (string message in messages)
                 {
                     logLabel.PushColor(color);
-                    logLabel.AppendText($"{category.ToString().ToUpper()} {message}\n");
+                    logLabel.PushBold();
+
+                    logLabel.AppendText($"{DateTime.Now} {category.ToString().ToUpper()}");
                     logLabel.Pop();
+                    logLabel.AppendText($" {message}\n");
                 }
             }
+        }
+
+        public override void _Draw()
+        {
+            base._Draw();
+            this.DrawSquareWithInsets(new Rect2(Vector2.Zero, Size), new Inset(), new Bevel(),
+                new ShapeStyle
+                {
+                    Outline =  true,
+                    OutlineWidth = 2,
+                    OutlineColor = Colors.Red,
+                    FillColor = Colors.Black with { A = 0.5f }
+                });
         }
 
         public void SetCategoryVisible(LogCategory category, bool visible)
