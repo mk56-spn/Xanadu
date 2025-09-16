@@ -9,12 +9,12 @@ namespace XanaduProject.Scenes
 
         static PoseIndex()
         {
-            POSES = PoseIO.LoadPoses();
+            POSES = PoseIo.LoadPoses();
         }
 
         public static void Save()
         {
-            PoseIO.SavePoses(POSES);
+            PoseIo.SavePoses(POSES);
         }
     }
 }
