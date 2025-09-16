@@ -5,7 +5,7 @@ using Friflo.Engine.ECS;
 using Friflo.Json.Fliox;
 using Godot;
 
-namespace XanaduProject.ECSComponents
+namespace XanaduProject.ECSComponents.EntitySystem.Components
 {
 	public struct ElementEcs() : IComponent
 	{

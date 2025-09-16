@@ -1,11 +1,9 @@
 // Copyright (c) mk56_spn <dhsjplt@gmail.com>.Licensed under the GNU General Public Licence (2.0).
 // See the LICENCE file in the repository root for full licence text.
 
-using System;
-using System.Linq;
 using Friflo.Engine.ECS;
 using Godot;
-using Godot.Collections;
+using XanaduProject.ECSComponents.EntitySystem.Components;
 using XanaduProject.ECSComponents.Tag;
 using XanaduProject.Factories;
 
@@ -46,7 +44,6 @@ namespace XanaduProject.ECSComponents.EntitySystem.InitialiserSystems
                             .SetAmount(5)
                             .SetMesh(MeshFactory.CreateCircle(100).GetRid())
                             .SetProcessMaterial(material.GetRid()));
-
 
                 c2.NoteCanvas.AsRenderRid();
             }
