@@ -30,7 +30,7 @@ namespace XanaduProject.Character
 
             PlayerCanvasRid = GetCanvasItem().AsRenderRid();
             AddChild(new CharacterDamage());
-            AddChild(new CharacterVisuals(this));
+            AddChild(new CharacterVisuals());
 
             createShape();
 

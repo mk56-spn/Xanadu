@@ -4,6 +4,7 @@
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Godot;
+using XanaduProject.ECSComponents.EntitySystem.Components;
 using XanaduProject.ECSComponents.EntitySystem.Components.Physics;
 using XanaduProject.ECSComponents.Tag;
 using XanaduProject.Factories;

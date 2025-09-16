@@ -6,6 +6,7 @@ using Godot;
 using JetBrains.Annotations;
 using XanaduProject.Audio;
 using XanaduProject.DataStructure;
+using XanaduProject.ECSComponents.EntitySystem.Components;
 using XanaduProject.ECSComponents.EntitySystem.Refresh_systems;
 using XanaduProject.ECSComponents.Tag;
 using XanaduProject.GameDependencies;
