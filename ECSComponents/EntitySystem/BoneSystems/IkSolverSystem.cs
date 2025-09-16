@@ -1,107 +1,61 @@
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Godot;
+using System;
 using XanaduProject.ECSComponents.EntitySystem.Components;
-using XanaduProject.GameDependencies;
+using XanaduProject.ECSComponents.EntitySystem.Components.Bones;
 
 namespace XanaduProject.ECSComponents.EntitySystem.BoneSystems
 {
-    public class IkSolverSystem(EntityStore entityStore) : QuerySystem<IkTargetComponent>
+    public class IkSolverSystem : QuerySystem<IkTargetComponent>
     {
         protected override void OnUpdate()
         {
-            Query.ForEachEntity((ref IkTargetComponent ikTarget, Entity _) =>
+            Query.ForEachEntity((ref IkTargetComponent ik, Entity entity) =>
             {
-                Entity upperBoneEntity = ikTarget.UpperBoneEntity;
-                Entity lowerBoneEntity = ikTarget.LowerBoneEntity;
+                var upperBoneEntity = ik.UpperBoneEntity;
+                var lowerBoneEntity = ik.LowerBoneEntity;
 
-                if (!upperBoneEntity.TryGetComponent(out BoneEcs upperBone) ||
-                    !lowerBoneEntity.TryGetComponent(out BoneEcs lowerBone) ||
-                    !upperBoneEntity.TryGetComponent(out BoneGlobalTransform upperBoneGlobalTransform)) return;
 
-                // Get the start position of the upper bone (which is its global position)
-                Vector2 p1 = upperBoneGlobalTransform.GlobalPosition;
+                ref var upperBone = ref upperBoneEntity.GetComponent<BoneEcs>();
+                ref var lowerBone = ref lowerBoneEntity.GetComponent<BoneEcs>();
                 float l1 = upperBone.Length;
                 float l2 = lowerBone.Length;
-                Vector2 targetPosition = ikTarget.TargetPosition;
 
-                // Distance from p1 to target
-                float d = p1.DistanceTo(targetPosition);
+                var parentEntity = upperBoneEntity.Parent;
 
-                // Declare targetAngleFromP1 once
-                float targetAngleFromP1;
 
-                // Check reachability
-                if (d > l1 + l2)
+                ref var parentTransform = ref parentEntity.GetComponent<BoneGlobalTransform>();
+                var startPosition = parentTransform.GlobalPosition;
+                float parentAngle = parentTransform.GlobalAngle;
+
+                var targetPosition = ik.TargetPosition;
+                var direction = targetPosition - startPosition;
+                float dist = direction.Length();
+
+                if (dist > l1 + l2)
                 {
-                    // Target is out of reach, extend fully towards target
-                    targetAngleFromP1 = p1.AngleToPoint(targetPosition);
-                    upperBone.Angle = targetAngleFromP1 - upperBoneGlobalTransform.GlobalAngle; // Convert to relative
-                    lowerBone.Angle = 0; // Straighten out
-                }
-                else if (d < Mathf.Abs(l1 - l2))
-                {
-                    // Target is too close, collapse fully towards target
-                    targetAngleFromP1 = p1.AngleToPoint(targetPosition);
-                    upperBone.Angle = targetAngleFromP1 - upperBoneGlobalTransform.GlobalAngle; // Convert to relative
-                    lowerBone.Angle = Mathf.Pi; // Bend back on itself
+                    // Target is out of reach
+                    float angle = direction.Angle();
+                    upperBone.Angle = angle - parentAngle;
+                    lowerBone.Angle = 0;
                 }
                 else
                 {
-                    // Law of Cosines to find angles
-                    float cosAlpha = (l1 * l1 + d * d - l2 * l2) / (2 * l1 * d);
-                    float cosBeta = (l1 * l1 + l2 * l2 - d * d) / (2 * l1 * l2);
+                    // Target is in reach
+                    float angleBase = direction.Angle();
 
-                    // Clamp values to avoid NaN from Acos due to floating point inaccuracies
-                    float alpha = Mathf.Acos(Mathf.Clamp(cosAlpha, -1.0f, 1.0f));
-                    float beta = Mathf.Acos(Mathf.Clamp(cosBeta, -1.0f, 1.0f));
+                    // Using Law of Cosines to find the angles of the triangle
+                    // Clamp dist to avoid NaN from Acos due to floating point inaccuracies
+                    float distClamped = Math.Max(0, Math.Min(l1 + l2, dist));
 
-                    // Angle from p1 to target
-                    targetAngleFromP1 = p1.AngleToPoint(targetPosition);
+                    float angle1 = (float)Math.Acos((l1 * l1 + distClamped * distClamped - l2 * l2) / (2 * l1 * distClamped));
+                    float angle2 = (float)Math.Acos((l1 * l1 + l2 * l2 - distClamped * distClamped) / (2 * l1 * l2));
 
-                    // Calculate the global angle for bone1
-                    float globalAngleUpperBone;
-                    if (ikTarget.ElbowUp)
-                    {
-                        globalAngleUpperBone = targetAngleFromP1 + alpha;
-                    }
-                    else
-                    {
-                        globalAngleUpperBone = targetAngleFromP1 - alpha;
-                    }
-
-                    // Convert globalAngleUpperBone to upperBone.Angle (relative to parent)
-                    // We need the parent's global angle. This implies the BoneTransformSystem must run BEFORE IkSolverSystem.
-                    // For now, let's assume upperBoneGlobalTransform.GlobalAngle is the parent's global angle if upperBone has a parent.
-                    // If upperBone is a root bone, its parent's global angle is 0.
-                    float parentGlobalAngle = 0f;
-                    if (!upperBone.ParentEntity.IsNull && entityStore.TryGetEntityById(upperBone.ParentEntity.Id, out var parentEnt) && parentEnt.TryGetComponent(out BoneGlobalTransform parentGlobalTrans))
-                    {
-                        parentGlobalAngle = parentGlobalTrans.GlobalAngle;
-                    }
-                    upperBone.Angle = globalAngleUpperBone - parentGlobalAngle;
-
-                    // Calculate the relative angle for lowerBone
-                    // The calculation for globalAngleLowerBone needs to be relative to upperBone's *new* global angle
-                    // after upperBone.Angle has been set. So we re-calculate upperBone's global angle here.
-                    // This is a bit tricky because BoneTransformSystem runs once per frame.
-                    // For now, we'll use the newly calculated globalAngleUpperBone.
-                    float upperBoneNewGlobalAngle = globalAngleUpperBone; // This is the global angle we just calculated for the upper bone
-
-                    float globalAngleLowerBone;
-                    if (ikTarget.ElbowUp)
-                    {
-                        globalAngleLowerBone = upperBoneNewGlobalAngle - (Mathf.Pi - beta);
-                    }
-                    else
-                    {
-                        globalAngleLowerBone = upperBoneNewGlobalAngle + (Mathf.Pi - beta);
-                    }
-
-                    lowerBone.Angle = globalAngleLowerBone - upperBoneNewGlobalAngle;
+                    float upperBoneGlobalAngle = angleBase + (ik.ElbowUp ? -angle1 : angle1);
+                    upperBone.Angle = upperBoneGlobalAngle - parentAngle;
+                    lowerBone.Angle = (ik.ElbowUp ? 1 : -1) * ((float)Math.PI - angle2);
                 }
-                CommandBuffer.AddComponent(upperBoneEntity.Id, upperBone);
-                CommandBuffer.AddComponent(lowerBoneEntity.Id, lowerBone);;
             });
         }
     }
