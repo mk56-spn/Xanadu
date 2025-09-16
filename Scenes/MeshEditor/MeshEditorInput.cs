@@ -2,12 +2,15 @@ using Friflo.Engine.ECS;
 using Godot;
 using Stateless;
 using XanaduProject.GameDependencies;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace XanaduProject.Scenes.MeshEditor
 {
     public partial class MeshEditorInput : Control
     {
-        private const float vertex_selection_radius = 10f;
+        private const float point_selection_radius = 10f;
+        private const float handle_selection_radius = 8f;
         private const float drag_threshold = 5f;
 
         private readonly IMeshEditor editor;
@@ -24,9 +27,8 @@ namespace XanaduProject.Scenes.MeshEditor
             stateMachine = new StateMachine<State, Trigger>(State.Idle);
 
             stateMachine.Configure(State.Idle)
-                .Permit(Trigger.LeftDown, State.Pressed);
-
-
+                .Permit(Trigger.LeftDown, State.Pressed)
+                .Ignore(Trigger.RightDown);
 
             stateMachine.Configure(State.Pressed)
                 .OnEntry(HandlePress)
@@ -73,36 +75,70 @@ namespace XanaduProject.Scenes.MeshEditor
             pressPosition = GetGlobalMousePosition();
             var meshData = editor.MeshEntity.GetComponent<MeshComponent>().MeshData;
 
-            int clickedVertex = -1;
-            for (int i = 0; i < meshData.Vertices.Count; i++)
-            {
-                if (meshData.Vertices[i].DistanceTo(pressPosition) < vertex_selection_radius)
-                {
-                    clickedVertex = i;
-                    break;
-                }
-            }
+            (int clickedPointIndex, HandleType clickedHandleType) = FindClickedBezierElement(pressPosition);
 
-            if (clickedVertex != -1)
+            if (clickedPointIndex != -1)
             {
-                meshData.SelectedVertexIndex = clickedVertex;
+                meshData.SelectedBezierPointIndex = clickedPointIndex;
+                meshData.SelectedHandleType = clickedHandleType;
             }
             else
             {
-                // Add new vertex
-                meshData.Vertices.Add(pressPosition);
-                meshData.SelectedVertexIndex = meshData.Vertices.Count - 1;
+                // Add new Bezier point
+                meshData.BezierPoints.Add(new BezierPoint(pressPosition));
+                meshData.SelectedBezierPointIndex = meshData.BezierPoints.Count - 1;
+                meshData.SelectedHandleType = HandleType.Point;
+                UpdateTriangulation();
             }
+        }
+
+        private (int, HandleType) FindClickedBezierElement(Vector2 position)
+        {
+            var meshData = editor.MeshEntity.GetComponent<MeshComponent>().MeshData;
+
+            for (int i = 0; i < meshData.BezierPoints.Count; i++)
+            {
+                BezierPoint bp = meshData.BezierPoints[i];
+
+                // Check main point
+                if (bp.Position.DistanceTo(position) < point_selection_radius)
+                {
+                    return (i, HandleType.Point);
+                }
+
+                // Check in-handle
+                if ((bp.Position + bp.InHandle).DistanceTo(position) < handle_selection_radius)
+                {
+                    return (i, HandleType.InHandle);
+                }
+
+                // Check out-handle
+                if ((bp.Position + bp.OutHandle).DistanceTo(position) < handle_selection_radius)
+                {
+                    return (i, HandleType.OutHandle);
+                }
+            }
+            return (-1, HandleType.None);
         }
 
         private void HandleRightClick()
         {
             var meshData = editor.MeshEntity.GetComponent<MeshComponent>().MeshData;
-            if (meshData.SelectedVertexIndex != -1)
+            if (meshData.SelectedBezierPointIndex != -1)
             {
-                meshData.Vertices.RemoveAt(meshData.SelectedVertexIndex);
-                meshData.SelectedVertexIndex = -1;
+                RemoveBezierPointAndTriangles(meshData, meshData.SelectedBezierPointIndex);
+                meshData.SelectedBezierPointIndex = -1;
+                meshData.SelectedHandleType = HandleType.None;
+                UpdateTriangulation(); // Re-triangulate after removal
             }
+        }
+
+        private void RemoveBezierPointAndTriangles(MeshData meshData, int pointIndex)
+        {
+            meshData.BezierPoints.RemoveAt(pointIndex);
+
+            // Always clear and re-triangulate, so no need to adjust individual triangle indices.
+            meshData.Triangles.Clear();
         }
 
         private void HandleDragStart()
@@ -114,9 +150,30 @@ namespace XanaduProject.Scenes.MeshEditor
         {
             if (stateMachine.State == State.Dragging)
             {
-                var meshData = editor.MeshEntity.GetComponent<MeshComponent>().MeshData;                if (meshData.SelectedVertexIndex != -1)
+                var meshData = editor.MeshEntity.GetComponent<MeshComponent>().MeshData;
+                if (meshData.SelectedBezierPointIndex != -1)
                 {
-                    meshData.Vertices[meshData.SelectedVertexIndex] = GetGlobalMousePosition();
+                    BezierPoint currentPoint = meshData.BezierPoints[meshData.SelectedBezierPointIndex];
+                    Vector2 mousePosition = GetGlobalMousePosition();
+
+                    switch (meshData.SelectedHandleType)
+                    {
+                        case HandleType.Point:
+                            Vector2 deltaMove = mousePosition - currentPoint.Position;
+                            currentPoint.Position = mousePosition;
+                            // Move handles with the point
+                            currentPoint.InHandle += deltaMove;
+                            currentPoint.OutHandle += deltaMove;
+                            break;
+                        case HandleType.InHandle:
+                            currentPoint.InHandle = mousePosition - currentPoint.Position;
+                            break;
+                        case HandleType.OutHandle:
+                            currentPoint.OutHandle = mousePosition - currentPoint.Position;
+                            break;
+                    }
+                    meshData.BezierPoints[meshData.SelectedBezierPointIndex] = currentPoint;
+                    UpdateTriangulation(); // Re-triangulate when dragging to update mesh shape
                 }
             }
         }
@@ -124,6 +181,39 @@ namespace XanaduProject.Scenes.MeshEditor
         private void HandleDragEnd()
         {
             // Logic to execute when dragging ends, if any.
+        }
+
+        private void UpdateTriangulation()
+        {
+            var meshData = editor.MeshEntity.GetComponent<MeshComponent>().MeshData;
+            meshData.Triangles.Clear();
+
+            if (meshData.BezierPoints.Count >= 3)
+            {
+                // Generate sampled points from the Bezier curve for triangulation
+                List<Vector2> sampledPoints = new List<Vector2>();
+                int segmentsPerCurve = 10; // Number of linear segments to approximate each Bezier curve
+
+                for (int i = 0; i < meshData.BezierPoints.Count; i++)
+                {
+                    BezierPoint p1 = meshData.BezierPoints[i];
+                    BezierPoint p2 = meshData.BezierPoints[(i + 1) % meshData.BezierPoints.Count]; // Wrap around for closed curve
+
+                    for (int j = 0; j < segmentsPerCurve; j++)
+                    {
+                        float t = (float)j / segmentsPerCurve;
+                        Vector2 point = p1.Position.BezierInterpolate(p1.Position + p1.OutHandle, p2.Position + p2.InHandle, p2.Position, t);
+                        sampledPoints.Add(point);
+                    }
+                }
+
+                if (sampledPoints.Count >= 3)
+                {
+                    // Use TriangulatePolygon for correct polygon triangulation
+                    var indices = Geometry2D.TriangulatePolygon(sampledPoints.ToArray());
+                    meshData.Triangles.AddRange(indices);
+                }
+            }
         }
     }
 }
