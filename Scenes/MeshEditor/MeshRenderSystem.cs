@@ -10,7 +10,7 @@ namespace XanaduProject.Scenes.MeshEditor
     public partial class MeshRenderSystem(IMeshEditor editor) : Node2D
     {
         private readonly EntityStore entityStore = DiProvider.Get<EntityStore>();
-        private readonly ArrayMesh _arrayMesh = new();
+        private readonly ArrayMesh arrayMesh = new();
 
         public override void _Process(double delta)
         {
@@ -52,11 +52,11 @@ namespace XanaduProject.Scenes.MeshEditor
                     arrays[(int)Mesh.ArrayType.Vertex] = sampledPoints.ToArray();
                     arrays[(int)Mesh.ArrayType.Index] = meshData.Triangles.ToArray();
 
-                    _arrayMesh.ClearSurfaces();
-                    _arrayMesh.AddSurfaceFromArrays(Mesh.PrimitiveType.Triangles, arrays);
+                    arrayMesh.ClearSurfaces();
+                    arrayMesh.AddSurfaceFromArrays(Mesh.PrimitiveType.Triangles, arrays);
 
                     // Draw the filled mesh with a solid color
-                    DrawMesh(_arrayMesh, null, null);
+                    DrawMesh(arrayMesh, null, null);
                 }
             }
 

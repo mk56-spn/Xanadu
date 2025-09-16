@@ -6,6 +6,7 @@ using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Godot;
 using XanaduProject.DataStructure;
+using XanaduProject.ECSComponents.EntitySystem.Components;
 using XanaduProject.Factories;
 using XanaduProject.GameDependencies;
 using ZLinq;

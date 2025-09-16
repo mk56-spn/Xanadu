@@ -4,6 +4,7 @@
 using System.Linq;
 using Friflo.Engine.ECS;
 using Godot;
+using XanaduProject.ECSComponents.EntitySystem.Components;
 using XanaduProject.ECSComponents.EntitySystem.Components.Physics;
 using XanaduProject.Factories;
 using XanaduProject.GameDependencies;

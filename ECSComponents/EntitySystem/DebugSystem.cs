@@ -9,6 +9,8 @@ using Godot;
 using XanaduProject.Character;
 using XanaduProject.ECSComponents.Animation2;
 using XanaduProject.ECSComponents.EcGuiSetup;
+using XanaduProject.ECSComponents.EntitySystem.Components;
+using XanaduProject.ECSComponents.EntitySystem.Components.Bones;
 using XanaduProject.ECSComponents.Tag;
 using XanaduProject.GameDependencies;
 
@@ -62,7 +64,6 @@ namespace XanaduProject.ECSComponents.EntitySystem
 
 
             DiProvider.Get<IUiMaster>().ScoreLayer.AddChild(panelContainer);
-
         }
 
         #region EcGui

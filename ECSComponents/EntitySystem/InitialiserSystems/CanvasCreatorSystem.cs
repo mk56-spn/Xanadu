@@ -1,5 +1,6 @@
 using Friflo.Engine.ECS;
 using Godot;
+using XanaduProject.ECSComponents.EntitySystem.Components;
 using XanaduProject.GameDependencies;
 using static Godot.RenderingServer;
 

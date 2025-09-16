@@ -10,13 +10,14 @@ namespace XanaduProject.ECSComponents.EntitySystem.BoneSystems
         protected override void OnUpdate()
         {
             // Parallelised query on 10 cores
-            Query.ForEach((components, entities) =>
+            var v = Query.ForEach((components, entities) =>
             {
                 for (int n = 0; n < entities.Length; n++)
                 {
                     updateBoneTransformsRecursive(components[n].MainBone, Vector2.Zero, 0f);
                 }
             });
+            v.RunParallel();
         }
 
         private void updateBoneTransformsRecursive(Entity boneEntity, Vector2 parentEndPosition,
