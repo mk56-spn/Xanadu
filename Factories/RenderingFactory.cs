@@ -124,6 +124,13 @@ namespace XanaduProject.Factories
 			return r;
 		}
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static RenderRid SetVisible(this in RenderRid r, bool visible)
+        {
+            CanvasItemSetVisible(r.Rid, visible);
+            return r;
+        }
+
 		#endregion
 
 		#region ShapeAdders
@@ -236,6 +243,43 @@ namespace XanaduProject.Factories
             CanvasItemAddPrimitive(rid.Rid, points, colors, uvs, texRid);
         }
 
+
+
+        /// <summary>
+        /// Adds an indexed triangle array (vertices + indices) to the canvas item.
+        /// Much faster than converting to multiple polygons manually.
+        /// </summary>
+        public static RenderRid AddTriangleArray(this in RenderRid r,
+            IReadOnlyList<Vector2> vertices,
+            IReadOnlyList<int>    indices,
+            Color?                color = null)
+        {
+            if (indices.Count == 0 || vertices.Count == 0) return r;
+
+            var vertArr  = new Vector2[vertices.Count];
+            var indexArr = new int[indices.Count];
+            var colArr   = new Color[vertices.Count];
+
+            for (int i = 0; i < vertices.Count; i++)
+            {
+                vertArr[i] = vertices[i];
+                colArr[i]  = color ?? Colors.White;
+            }
+            for (int i = 0; i < indices.Count; i++)
+                indexArr[i] = indices[i];
+
+            RenderingServer.CanvasItemAddTriangleArray(r.Rid, indexArr, vertArr, colArr);
+            return r;
+        }
+
+
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static RenderRid AddPolygon(this in RenderRid r, Vector2[] points, Color[]? color = null, float width = 1.0f)
+        {
+            CanvasItemAddPolygon(r.Rid, points, color ?? [Colors.White]);
+            return r;
+        }
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static RenderRid AddPolyline(this in RenderRid r, Vector2[] points, Color[]? color = null, float width = 1.0f)
