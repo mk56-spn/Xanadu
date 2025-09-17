@@ -13,17 +13,14 @@ namespace XanaduProject.Buttons
         private Color normalColor = Colors.Gold.Darkened(0.5f);
         private float transitionSpeed = 3.0f; // Adjust this value to control transition speed
 
-        private Label textLabel = new()
-        {
+        public readonly LabelSettings LabelSettings;
+        private Label textLabel = new() { LabelSettings = new LabelSettings() };
 
-            LabelSettings = new LabelSettings()
-            {
-                Font = FontSource.PLASTIC_SLANTED,
-                FontSize = 50,
-            }
-        };
-        public AnimatedHoverButton(string text)
+        public AnimatedHoverButton(string text, int fontSize = 50, Font? font = null)
         {
+            LabelSettings = textLabel.LabelSettings;
+            LabelSettings.FontSize = fontSize;
+            LabelSettings.Font = font?? FontSource.PLASTIC_SLANTED;
             textLabel.Text = text;
             MouseEntered += () => targetColour = hoverColor;
             MouseExited += () => targetColour = normalColor;
