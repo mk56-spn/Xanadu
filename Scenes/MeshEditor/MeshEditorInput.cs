@@ -37,8 +37,7 @@ namespace XanaduProject.Scenes.MeshEditor
             stateMachine.Configure(State.Dragging)
                 .OnEntry(handleDragStart)
                 .Permit(Trigger.LeftUp, State.Idle)
-                .Permit(Trigger.RightDown, State.Idle)
-                .OnExit(handleDragEnd);
+                .Permit(Trigger.RightDown, State.Idle);
 
             stateMachine.OnTransitioned(transition =>
             {
@@ -74,7 +73,8 @@ namespace XanaduProject.Scenes.MeshEditor
         private void handlePress()
         {
             pressPosition = GetGlobalMousePosition();
-            var meshData = editor.LayerManager.ActiveMesh.GetComponent<MeshComponent>().MeshData;
+            var activeMeshComponent = editor.LayerManager.ActiveMesh.GetComponent<MeshComponent>();
+            var meshData = activeMeshComponent.MeshData;
 
             (int clickedPointIndex, HandleType clickedHandleType) = findClickedBezierElement(pressPosition);
 
@@ -91,7 +91,7 @@ namespace XanaduProject.Scenes.MeshEditor
                 meshData.BezierPoints.Add(newPoint);
                 meshData.SelectedBezierPointIndex = meshData.BezierPoints.Count - 1;
                 meshData.SelectedHandleType = HandleType.Point;
-                updateTriangulation();
+                editor.LayerManager.UpdateTriangulationForMesh(activeMeshComponent); // Use LayerManager's triangulation with MeshComponent
             }
             editor.LayerManager.NotifyMeshSelectionChanged(); // Notify UI about selection change
         }
@@ -128,14 +128,15 @@ namespace XanaduProject.Scenes.MeshEditor
         private void handleRightClick()
         {
             GD.Print("handleRightClick called.");
-            var meshData = editor.LayerManager.ActiveMesh.GetComponent<MeshComponent>().MeshData;
+            var activeMeshComponent = editor.LayerManager.ActiveMesh.GetComponent<MeshComponent>();
+            var meshData = activeMeshComponent.MeshData;
             GD.Print($"SelectedBezierPointIndex: {meshData.SelectedBezierPointIndex}");
             if (meshData.SelectedBezierPointIndex != -1)
             {
                 removeBezierPointAndTriangles(meshData, meshData.SelectedBezierPointIndex);
                 meshData.SelectedBezierPointIndex = -1;
                 meshData.SelectedHandleType = HandleType.None;
-                updateTriangulation(); // Re-triangulate after removal
+                editor.LayerManager.UpdateTriangulationForMesh(activeMeshComponent); // Use LayerManager's triangulation with MeshComponent
             }
             editor.LayerManager.NotifyMeshSelectionChanged(); // Notify UI about selection change
         }
@@ -157,7 +158,8 @@ namespace XanaduProject.Scenes.MeshEditor
         {
             if (stateMachine.State == State.Dragging)
             {
-                var meshData = editor.LayerManager.ActiveMesh.GetComponent<MeshComponent>().MeshData;
+                var activeMeshComponent = editor.LayerManager.ActiveMesh.GetComponent<MeshComponent>();
+                var meshData = activeMeshComponent.MeshData;
                 if (meshData.SelectedBezierPointIndex != -1)
                 {
                     BezierPoint currentPoint = meshData.BezierPoints[meshData.SelectedBezierPointIndex];
@@ -186,48 +188,12 @@ namespace XanaduProject.Scenes.MeshEditor
                             break;
                     }
                     meshData.BezierPoints[meshData.SelectedBezierPointIndex] = currentPoint;
-                    updateTriangulation(); // Re-triangulate when dragging to update mesh shape
+                    editor.LayerManager.UpdateTriangulationForMesh(activeMeshComponent); // Use LayerManager's triangulation with MeshComponent
                     editor.LayerManager.NotifyMeshSelectionChanged(); // Notify UI about selection change during drag
                 }
             }
         }
 
-        private void handleDragEnd()
-        {
-            // Logic to execute when dragging ends, if any.
-        }
-
-        private void updateTriangulation()
-        {
-            var meshData = editor.LayerManager.ActiveMesh.GetComponent<MeshComponent>().MeshData;
-            meshData.Triangles.Clear();
-
-            if (meshData.BezierPoints.Count >= 3)
-            {
-                // Generate sampled points from the Bezier curve for triangulation
-                List<Vector2> sampledPoints = new List<Vector2>();
-                int segmentsPerCurve = 10; // Number of linear segments to approximate each Bezier curve
-
-                for (int i = 0; i < meshData.BezierPoints.Count; i++)
-                {
-                    BezierPoint p1 = meshData.BezierPoints[i];
-                    BezierPoint p2 = meshData.BezierPoints[(i + 1) % meshData.BezierPoints.Count]; // Wrap around for closed curve
-
-                    for (int j = 0; j < segmentsPerCurve; j++)
-                    {
-                        float t = (float)j / segmentsPerCurve;
-                        Vector2 point = p1.Position.BezierInterpolate(p1.Position + p1.OutHandle, p2.Position + p2.InHandle, p2.Position, t);
-                        sampledPoints.Add(point);
-                    }
-                }
-
-                if (sampledPoints.Count >= 3)
-                {
-                    // Use TriangulatePolygon for correct polygon triangulation
-                    int[]? indices = Geometry2D.TriangulatePolygon(sampledPoints.ToArray());
-                    meshData.Triangles.AddRange(indices);
-                }
-            }
-        }
+        // Removed the local updateTriangulation() method as it's now in MeshLayerManager
     }
 }

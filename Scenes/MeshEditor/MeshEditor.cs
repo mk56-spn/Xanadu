@@ -14,10 +14,13 @@ namespace XanaduProject.Scenes.MeshEditor
         public event Action? MeshLayersChanged;
         public event Action? ActiveMeshSelectionChanged;
 
+        public Rid CanvasRid => GetCanvasItem(); // NEW: Implementation of CanvasRid
+
         public MeshEditor()
         {
             // Get the MeshLayerManager from the DiProvider
-            LayerManager = DiProvider.Get<IMeshLayerManager>();
+            // Pass the CanvasRid to the MeshLayerManager constructor
+            LayerManager = new MeshLayerManager(DiProvider.Get<EntityStore>(), CanvasRid);
 
             // Proxy events from LayerManager
             LayerManager.MeshLayersChanged += () => MeshLayersChanged?.Invoke();

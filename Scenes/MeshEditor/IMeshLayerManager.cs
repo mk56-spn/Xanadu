@@ -26,5 +26,9 @@ namespace XanaduProject.Scenes.MeshEditor
         void MoveLayerUp(int index);
         void MoveLayerDown(int index);
         IReadOnlyList<Entity> GetAllMeshEntities();
+
+        // CORRECTED: Triangulation methods now accept MeshComponent
+        void UpdateTriangulationForMesh(MeshComponent meshComponent);
+        void UpdateAllMeshTriangulations();
     }
 }
