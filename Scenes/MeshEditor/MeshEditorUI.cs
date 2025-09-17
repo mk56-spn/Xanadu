@@ -11,6 +11,8 @@ namespace XanaduProject.Scenes.MeshEditor
         private CheckBox lockHandlesCheckBox;
         private CheckBox showAllLayersCheckBox;
 
+        private VBoxContainer miscContainer = new();
+
         private const string layer_panel_name = "LayerPanel";
         private const string layer_buttons_container_name = "LayerButtonsContainer";
 
@@ -40,14 +42,13 @@ namespace XanaduProject.Scenes.MeshEditor
             addLayerButton.Pressed += OnAddLayerButtonPressed;
 
             // VBoxContainer for handle locking checkbox
-            VBoxContainer handleLockContainer = new VBoxContainer();
-            AddChild(handleLockContainer);
+            AddChild(miscContainer);
 
             // Handle locking CheckBox
             lockHandlesCheckBox = new CheckBox();
             lockHandlesCheckBox.Text = "Lock Handles";
             lockHandlesCheckBox.Toggled += OnHandlesLockedToggled;
-            handleLockContainer.AddChild(lockHandlesCheckBox);
+            miscContainer.AddChild(lockHandlesCheckBox);
 
             // NEW: CheckBox for showing all layers
             showAllLayersCheckBox = new CheckBox();
@@ -103,6 +104,15 @@ namespace XanaduProject.Scenes.MeshEditor
                 moveDownButton.Text = "▼";
                 moveDownButton.Pressed += () => OnMoveLayerDownPressed(layerIndex);
                 layerControlContainer.AddChild(moveDownButton);
+
+                // Add ColorPickerButton
+                ColorPickerButton colorPicker = new ColorPickerButton()
+                {
+                    CustomMinimumSize = new Vector2(100,100)
+                };
+                colorPicker.Color = editor.LayerManager.GetLayerColor(layerIndex);
+                colorPicker.ColorChanged += (newColor) => OnLayerColorChanged(layerIndex, newColor);
+                miscContainer.AddChild(colorPicker);
             }
 
             // Add the "Add New Mesh Layer" button back at the end
@@ -161,6 +171,11 @@ namespace XanaduProject.Scenes.MeshEditor
         {
             editor.LayerManager.MoveLayerDown(index);
             refreshLayerButtons(); // Refresh UI after reordering
+        }
+
+        private void OnLayerColorChanged(int layerIndex, Color newColor)
+        {
+            editor.LayerManager.SetLayerColor(layerIndex, newColor);
         }
 
         public override void _Draw()

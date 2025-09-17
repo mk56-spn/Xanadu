@@ -231,7 +231,7 @@ namespace XanaduProject.Scenes.MeshEditor
                 {
                     meshComponent.MeshData.Triangles.AddRange(indices);
                     // NEW: Draw the polygon using the RenderRid
-                    meshComponent.RenderRid.AddTriangleArray(vertices, meshComponent.MeshData.Triangles, Colors.White);
+                    meshComponent.RenderRid.AddTriangleArray(vertices, meshComponent.MeshData.Triangles, meshComponent.Color);
                 }
             }
         }
@@ -245,6 +245,24 @@ namespace XanaduProject.Scenes.MeshEditor
                     UpdateTriangulationForMesh(entity.GetComponent<MeshComponent>()); // Pass MeshComponent
                 }
             }
+        }
+
+        public void SetLayerColor(int layerIndex, Color color)
+        {
+            if (layerIndex < 0 || layerIndex >= meshEntities.Count) return;
+
+            ref var meshComponent = ref meshEntities[layerIndex].GetComponent<MeshComponent>();
+            meshComponent.Color = color;
+            UpdateTriangulationForMesh(meshComponent);
+        }
+
+        public Color GetLayerColor(int layerIndex)
+        {
+            if (layerIndex >= 0 && layerIndex < meshEntities.Count)
+            {
+                return meshEntities[layerIndex].GetComponent<MeshComponent>().Color;
+            }
+            return Colors.White;
         }
     }
 }
