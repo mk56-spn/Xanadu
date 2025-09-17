@@ -10,7 +10,9 @@ namespace XanaduProject.Singleton
 
         static Logger()
         {
-            GodotTree.Tree.Root.CallDeferred(Node.MethodName.AddChild, logger_overlay);
+            CanvasLayer layer = new(){ Layer = 100};
+            layer.AddChild(logger_overlay);
+            GodotTree.Tree.Root.CallDeferred(Node.MethodName.AddChild, layer);
         }
 
         public static void Boot(){}

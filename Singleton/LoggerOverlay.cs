@@ -20,6 +20,7 @@ namespace XanaduProject.Singleton
 
         public LoggerOverlay()
         {
+            ZIndex = 100;
             MouseFilter = MouseFilterEnum.Ignore;
 
             foreach (LogCategory category in Enum.GetValues<LogCategory>())
