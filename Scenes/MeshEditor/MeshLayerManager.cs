@@ -26,9 +26,12 @@ namespace XanaduProject.Scenes.MeshEditor
         {
             this.entityStore = entityStore;
             this.parentCanvasRid = parentCanvasRid; // NEW: Assign parentCanvasRid
-            // Initialize with one default mesh layer
-            AddNewMeshLayer();
-            SetActiveMeshLayer(0);
+            // Initialize with one default mesh layer if no item is loaded, or if the item has no layers
+            // This logic will be handled by MeshEditor, which calls AddMeshLayer for each layer in an item
+            // or AddNewMeshLayer if no item is provided.
+            // Remove default layer creation here, as MeshEditor will manage it.
+            // AddNewMeshLayer(); // Removed
+            // SetActiveMeshLayer(0); // Removed
         }
 
         public IReadOnlyList<string> GetMeshLayerNames()
@@ -39,23 +42,31 @@ namespace XanaduProject.Scenes.MeshEditor
         public void AddNewMeshLayer()
         {
             MeshData newMeshData = new MeshData { Name = $"Mesh Layer {meshEntities.Count}" };
-            // NEW: Create RenderRid and assign it to MeshComponent
-            Entity newMeshEntity = entityStore.CreateEntity(new MeshComponent { MeshData = newMeshData, RenderRid = RenderRid.Create(parentCanvasRid) });
+            AddMeshLayer(newMeshData, Colors.White); // Default color for new layers
+        }
+
+        public void AddMeshLayer(MeshData meshData, Color color)
+        {
+            Entity newMeshEntity = entityStore.CreateEntity(new MeshComponent { MeshData = meshData, RenderRid = RenderRid.Create(parentCanvasRid), Color = color });
 
             meshEntities.Add(newMeshEntity);
 
-            UpdateTriangulationForMesh(newMeshEntity.GetComponent<MeshComponent>()); // Pass MeshComponent
+            UpdateTriangulationForMesh(newMeshEntity.GetComponent<MeshComponent>());
 
             // Set visibility for the new mesh using VisibleTag
-            // By default, new layers are visible. If "show all layers" is off,
-            // only the active layer should have the VisibleTag.
-            // This logic will be handled by SetShowAllLayers and SetActiveMeshLayer.
-            // For now, new layers are added with VisibleTag, and then adjusted by SetActiveMeshLayer.
             newMeshEntity.AddComponent(new VisibleTag());
 
-
             MeshLayersChanged?.Invoke();
-            SetActiveMeshLayer(meshEntities.Count - 1);
+
+            // If this is the first layer added, make it active
+            if (meshEntities.Count == 1)
+            {
+                SetActiveMeshLayer(0);
+            }
+            else if (activeMeshIndex == -1) // If no active layer is set yet, set the last added as active
+            {
+                SetActiveMeshLayer(meshEntities.Count - 1);
+            }
         }
 
         public void SetActiveMeshLayer(int index)

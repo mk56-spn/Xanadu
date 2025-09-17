@@ -1,5 +1,6 @@
 using Godot;
 using System.Collections.Generic;
+using XanaduProject.IO;
 
 namespace XanaduProject.Scenes.MeshEditor
 {
@@ -10,8 +11,7 @@ namespace XanaduProject.Scenes.MeshEditor
         private Button addLayerButton;
         private CheckBox lockHandlesCheckBox;
         private CheckBox showAllLayersCheckBox;
-
-        private VBoxContainer miscContainer = new();
+        private Button saveItemButton;
 
         private const string layer_panel_name = "LayerPanel";
         private const string layer_buttons_container_name = "LayerButtonsContainer";
@@ -41,7 +41,8 @@ namespace XanaduProject.Scenes.MeshEditor
             addLayerButton.Text = "Add New Mesh Layer";
             addLayerButton.Pressed += OnAddLayerButtonPressed;
 
-            // VBoxContainer for handle locking checkbox
+            // VBoxContainer for handle locking checkbox and save button
+            VBoxContainer miscContainer = new VBoxContainer();
             AddChild(miscContainer);
 
             // Handle locking CheckBox
@@ -54,7 +55,13 @@ namespace XanaduProject.Scenes.MeshEditor
             showAllLayersCheckBox = new CheckBox();
             showAllLayersCheckBox.Text = "Show All Layers";
             showAllLayersCheckBox.Toggled += OnShowAllLayersToggled;
-            AddChild(showAllLayersCheckBox); // Add it to the main VBoxContainer
+            miscContainer.AddChild(showAllLayersCheckBox);
+
+            // NEW: Save Item Button
+            saveItemButton = new Button();
+            saveItemButton.Text = "Save Item";
+            saveItemButton.Pressed += OnSaveItemButtonPressed;
+            miscContainer.AddChild(saveItemButton);
 
             // Initial refresh
             refreshLayerButtons();
@@ -84,7 +91,7 @@ namespace XanaduProject.Scenes.MeshEditor
                 HBoxContainer layerControlContainer = new HBoxContainer();
                 layerButtonsContainer.AddChild(layerControlContainer);
 
-                int layerIndex = i; // Capture the current value of i
+                int layerIndex = i;
 
                 Button layerButton = new Button();
                 layerButton.Text = layerNames[i];
@@ -112,7 +119,7 @@ namespace XanaduProject.Scenes.MeshEditor
                 };
                 colorPicker.Color = editor.LayerManager.GetLayerColor(layerIndex);
                 colorPicker.ColorChanged += (newColor) => OnLayerColorChanged(layerIndex, newColor);
-                miscContainer.AddChild(colorPicker);
+                layerControlContainer.AddChild(colorPicker);
             }
 
             // Add the "Add New Mesh Layer" button back at the end
@@ -176,6 +183,20 @@ namespace XanaduProject.Scenes.MeshEditor
         private void OnLayerColorChanged(int layerIndex, Color newColor)
         {
             editor.LayerManager.SetLayerColor(layerIndex, newColor);
+        }
+
+        // NEW: Handler for "Save Item" button
+        private void OnSaveItemButtonPressed()
+        {
+            Item itemToSave = ItemSerializer.CreateItemFromMeshLayerManager(
+                editor.LayerManager,
+                "Default Author", // Placeholder
+                "Default Description", // Placeholder
+                "New Item" // Placeholder
+            );
+
+            ItemSerializer.SerializeItem(itemToSave);
+            GD.Print($"Item saved to: res://items/{itemToSave.Name}.json");
         }
 
         public override void _Draw()

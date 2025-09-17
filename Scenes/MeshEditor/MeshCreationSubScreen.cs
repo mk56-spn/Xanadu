@@ -1,13 +1,14 @@
 using XanaduProject.Scenes.MeshEditor;
 using XanaduProject.Screens.ScreenStructure;
+using XanaduProject.IO; // Added for Item
 
 namespace XanaduProject.Scenes.MeshEditor
 {
     public partial class MeshCreationSubScreen : SubScreen
     {
-        public MeshCreationSubScreen()
+        public MeshCreationSubScreen(Item? item = null)
         {
-            AddChild(new MeshEditor());
+            AddChild(new MeshEditor(item));
             Visible = true;
         }
     }
