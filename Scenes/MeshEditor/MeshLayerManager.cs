@@ -3,29 +3,29 @@ using Godot;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using XanaduProject.GameDependencies;
 using XanaduProject.Factories;
+using XanaduProject.ECSComponents.EntitySystem.Components; // Import VisibleTag
 
 namespace XanaduProject.Scenes.MeshEditor
 {
     public partial class MeshLayerManager : IMeshLayerManager
     {
-        private readonly EntityStore _entityStore;
-        private readonly Rid _parentCanvasRid; // NEW: Store the parent CanvasRid
-        private readonly List<Entity> _meshEntities = new();
-        private int _activeMeshIndex = -1;
-        private bool _showAllLayers = false;
+        private readonly EntityStore entityStore;
+        private readonly Rid parentCanvasRid; // NEW: Store the parent CanvasRid
+        private readonly List<Entity> meshEntities = new();
+        private int activeMeshIndex = -1;
+        // private bool _showAllLayers = false; // REMOVED: Replaced by VisibleTag
 
-        public Entity ActiveMesh => _activeMeshIndex >= 0 && _activeMeshIndex < _meshEntities.Count ? _meshEntities[_activeMeshIndex] : default;
-        public int ActiveMeshIndex => _activeMeshIndex;
+        public Entity ActiveMesh => activeMeshIndex >= 0 && activeMeshIndex < meshEntities.Count ? meshEntities[activeMeshIndex] : default;
+        public int ActiveMeshIndex => activeMeshIndex;
 
         public event Action? MeshLayersChanged;
         public event Action? ActiveMeshSelectionChanged;
 
         public MeshLayerManager(EntityStore entityStore, Rid parentCanvasRid) // NEW: Accept parentCanvasRid
         {
-            _entityStore = entityStore;
-            _parentCanvasRid = parentCanvasRid; // NEW: Assign parentCanvasRid
+            this.entityStore = entityStore;
+            this.parentCanvasRid = parentCanvasRid; // NEW: Assign parentCanvasRid
             // Initialize with one default mesh layer
             AddNewMeshLayer();
             SetActiveMeshLayer(0);
@@ -33,49 +33,46 @@ namespace XanaduProject.Scenes.MeshEditor
 
         public IReadOnlyList<string> GetMeshLayerNames()
         {
-            return _meshEntities.Select(e => e.GetComponent<MeshComponent>().MeshData.Name).ToList();
+            return meshEntities.Select(e => e.GetComponent<MeshComponent>().MeshData.Name).ToList();
         }
 
         public void AddNewMeshLayer()
         {
-            MeshData newMeshData = new MeshData { Name = $"Mesh Layer {_meshEntities.Count}" };
+            MeshData newMeshData = new MeshData { Name = $"Mesh Layer {meshEntities.Count}" };
             // NEW: Create RenderRid and assign it to MeshComponent
-            Entity newMeshEntity = _entityStore.CreateEntity(new MeshComponent { MeshData = newMeshData, RenderRid = RenderRid.Create(_parentCanvasRid) });
-            _meshEntities.Add(newMeshEntity);
+            Entity newMeshEntity = entityStore.CreateEntity(new MeshComponent { MeshData = newMeshData, RenderRid = RenderRid.Create(parentCanvasRid) });
+
+            meshEntities.Add(newMeshEntity);
 
             UpdateTriangulationForMesh(newMeshEntity.GetComponent<MeshComponent>()); // Pass MeshComponent
 
-            // Set visibility for the new mesh's RenderRid
-            if (!_showAllLayers && _meshEntities.Count > 1 && _activeMeshIndex != -1)
-            {
-                // If not showing all layers, and there's already an active mesh, hide the new one initially
-                newMeshEntity.GetComponent<MeshComponent>().RenderRid.SetVisible(false);
-            }
-            else
-            {
-                // Otherwise, make it visible (either showing all, or it's the first/active mesh)
-                newMeshEntity.GetComponent<MeshComponent>().RenderRid.SetVisible(true);
-            }
+            // Set visibility for the new mesh using VisibleTag
+            // By default, new layers are visible. If "show all layers" is off,
+            // only the active layer should have the VisibleTag.
+            // This logic will be handled by SetShowAllLayers and SetActiveMeshLayer.
+            // For now, new layers are added with VisibleTag, and then adjusted by SetActiveMeshLayer.
+            newMeshEntity.AddComponent(new VisibleTag());
+
 
             MeshLayersChanged?.Invoke();
-            SetActiveMeshLayer(_meshEntities.Count - 1);
+            SetActiveMeshLayer(meshEntities.Count - 1);
         }
 
         public void SetActiveMeshLayer(int index)
         {
-            if (index >= 0 && index < _meshEntities.Count)
+            if (index >= 0 && index < meshEntities.Count)
             {
-                // Hide previously active mesh's RenderRid if not showing all layers
-                if (!_showAllLayers && _activeMeshIndex != -1 && _activeMeshIndex < _meshEntities.Count)
+                // Remove VisibleTag from previously active mesh
+                if (activeMeshIndex != -1 && activeMeshIndex < meshEntities.Count)
                 {
-                    _meshEntities[_activeMeshIndex].GetComponent<MeshComponent>().RenderRid.SetVisible(false);
+                    meshEntities[activeMeshIndex].RemoveComponent<VisibleTag>();
                 }
 
-                _activeMeshIndex = index;
+                activeMeshIndex = index;
                 GD.Print($"Active Mesh Layer set to: {index}");
 
-                // Show newly active mesh's RenderRid
-                _meshEntities[_activeMeshIndex].GetComponent<MeshComponent>().RenderRid.SetVisible(true);
+                // Add VisibleTag to newly active mesh
+                meshEntities[activeMeshIndex].AddComponent(new VisibleTag());
 
                 MeshLayersChanged?.Invoke();
                 ActiveMeshSelectionChanged?.Invoke();
@@ -122,46 +119,63 @@ namespace XanaduProject.Scenes.MeshEditor
 
         public void SetShowAllLayers(bool showAll)
         {
-            if (_showAllLayers != showAll)
-            {
-                _showAllLayers = showAll;
-                GD.Print($"Show All Layers set to: {showAll}");
-                UpdateAllMeshTriangulations(); // Update all triangulations when show all layers changes
+            // The _showAllLayers field is removed, so we directly apply the visibility logic
+            GD.Print($"Show All Layers set to: {showAll}");
+            UpdateAllMeshTriangulations(); // Update all triangulations when show all layers changes
 
-                // Update visibility of all RenderRids
-                for (int i = 0; i < _meshEntities.Count; i++)
+            for (int i = 0; i < meshEntities.Count; i++)
+            {
+                Entity meshEntity = meshEntities[i];
+                if (showAll)
                 {
-                    var meshComponent = _meshEntities[i].GetComponent<MeshComponent>();
-                    if (showAll)
+                    meshEntity.AddComponent(new VisibleTag());
+                }
+                else
+                {
+                    // If not showing all, only the active mesh should have the VisibleTag
+                    if (i == activeMeshIndex)
                     {
-                        meshComponent.RenderRid.SetVisible(true);
+                        meshEntity.AddComponent(new VisibleTag());
                     }
                     else
                     {
-                        // If not showing all, only the active mesh should be visible
-                        meshComponent.RenderRid.SetVisible(i == _activeMeshIndex);
+                        meshEntity.RemoveComponent<VisibleTag>();
                     }
                 }
-
-                MeshLayersChanged?.Invoke();
             }
+
+            MeshLayersChanged?.Invoke();
         }
 
         public bool GetShowAllLayers()
         {
-            return _showAllLayers;
+            // This method now reflects if all layers currently have the VisibleTag
+            // or if only the active layer has it.
+            if (meshEntities.Count == 0) return false; // No layers, so not showing all
+
+            bool allVisible = true;
+            foreach (var entity in meshEntities)
+            {
+                if (!entity.HasComponent<VisibleTag>())
+                {
+                    allVisible = false;
+                    break;
+                }
+            }
+            return allVisible;
         }
 
         public void MoveLayerUp(int index)
         {
-            if (index > 0 && index < _meshEntities.Count)
+            if (index > 0 && index < meshEntities.Count)
             {
-                Entity entityToMove = _meshEntities[index];
-                _meshEntities.RemoveAt(index);
-                _meshEntities.Insert(index - 1, entityToMove);
+                Entity entityToMove = meshEntities[index];
+                meshEntities.RemoveAt(index);
+                meshEntities.Insert(index - 1, entityToMove);
 
-                if (_activeMeshIndex == index) _activeMeshIndex = index - 1;
-                else if (_activeMeshIndex == index - 1) _activeMeshIndex = index;
+                // Adjust active mesh index if the moved layer or the layer it swapped with was active
+                if (activeMeshIndex == index) activeMeshIndex = index - 1;
+                else if (activeMeshIndex == index - 1) activeMeshIndex = index;
 
                 GD.Print($"Moved layer {index} up to {index - 1}");
                 UpdateAllMeshTriangulations(); // Update all triangulations after reordering
@@ -176,14 +190,15 @@ namespace XanaduProject.Scenes.MeshEditor
 
         public void MoveLayerDown(int index)
         {
-            if (index >= 0 && index < _meshEntities.Count - 1)
+            if (index >= 0 && index < meshEntities.Count - 1)
             {
-                Entity entityToMove = _meshEntities[index];
-                _meshEntities.RemoveAt(index);
-                _meshEntities.Insert(index + 1, entityToMove);
+                Entity entityToMove = meshEntities[index];
+                meshEntities.RemoveAt(index);
+                meshEntities.Insert(index + 1, entityToMove);
 
-                if (_activeMeshIndex == index) _activeMeshIndex = index + 1;
-                else if (_activeMeshIndex == index + 1) _activeMeshIndex = index;
+                // Adjust active mesh index if the moved layer or the layer it swapped with was active
+                if (activeMeshIndex == index) activeMeshIndex = index + 1;
+                else if (activeMeshIndex == index + 1) activeMeshIndex = index;
 
                 GD.Print($"Moved layer {index} down to {index + 1}");
                 UpdateAllMeshTriangulations(); // Update all triangulations after reordering
@@ -198,7 +213,7 @@ namespace XanaduProject.Scenes.MeshEditor
 
         public IReadOnlyList<Entity> GetAllMeshEntities()
         {
-            return _meshEntities;
+            return meshEntities;
         }
 
 
@@ -241,7 +256,7 @@ namespace XanaduProject.Scenes.MeshEditor
 
         public void UpdateAllMeshTriangulations()
         {
-            foreach (var entity in _meshEntities)
+            foreach (var entity in meshEntities)
             {
                 if (entity != default)
                 {

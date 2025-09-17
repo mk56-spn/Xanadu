@@ -23,59 +23,20 @@ namespace XanaduProject.Scenes.MeshEditor
                     if (entity == default) continue;
                     var meshData = entity.GetComponent<MeshComponent>().MeshData;
                     // Pass whether this specific entity is the active one
-                    DrawMeshLayer(meshData, entity == editor.LayerManager.ActiveMesh);
+                    drawMeshLayer(meshData, entity == editor.LayerManager.ActiveMesh);
                 }
             }
             else
             {
-#pragma warning disable CS8073 // The result of the expression is always the same since a value of this type is never equal to 'null'
-                if (editor.LayerManager.ActiveMesh == null)
-#pragma warning restore CS8073 // The result of the expression is always the same since a value of this type is never equal to 'null'
-                {
-                    return; // Nothing to draw if no active mesh
-                }
+                if (editor.LayerManager.ActiveMesh == default) return;
+
                 var meshData = editor.LayerManager.ActiveMesh.GetComponent<MeshComponent>().MeshData;
-                DrawMeshLayer(meshData, true); // Always true for the single active mesh
+                drawMeshLayer(meshData, true); // Always true for the single active mesh
             }
         }
 
-        private void DrawMeshLayer(MeshData meshData, bool isActiveMesh)
+        private void drawMeshLayer(MeshData meshData, bool isActiveMesh)
         {
-            // Polygon drawing is now handled by the RenderRid in MeshLayerManager, so remove this section.
-            // if (meshData.Triangles.Count > 0)
-            // {
-            //     List<Vector2> sampledPoints = new List<Vector2>();
-            //     int segmentsPerCurve = 10;
-            //
-            //     if (meshData.BezierPoints.Count >= 1)
-            //     {
-            //         for (int i = 0; i < meshData.BezierPoints.Count; i++)
-            //         {
-            //             BezierPoint p1 = meshData.BezierPoints[i];
-            //             BezierPoint p2 = meshData.BezierPoints[(i + 1) % meshData.BezierPoints.Count];
-            //
-            //             for (int j = 0; j < segmentsPerCurve; j++)
-            //             {
-            //                 float t = (float)j / segmentsPerCurve;
-            //                 Vector2 point = p1.Position.BezierInterpolate(p1.Position + p1.OutHandle, p2.Position + p2.InHandle, p2.Position, t);
-            //                 sampledPoints.Add(point);
-            //             }
-            //         }
-            //     }
-            //
-            //     if (sampledPoints.Count >= 3)
-            //     {
-            //         var arrays = new Array();
-            //         arrays.Resize((int)Mesh.ArrayType.Max);
-            //         arrays[(int)Mesh.ArrayType.Vertex] = sampledPoints.ToArray();
-            //         arrays[(int)Mesh.ArrayType.Index] = meshData.Triangles.ToArray();
-            //
-            //         ArrayMesh currentLayerArrayMesh = new ArrayMesh();
-            //         currentLayerArrayMesh.AddSurfaceFromArrays(Mesh.PrimitiveType.Triangles, arrays);
-            //
-            //         DrawMesh(currentLayerArrayMesh, null, null);
-            //     }
-            // }
 
             // Draw Bezier curve segments (lines)
             if (meshData.BezierPoints.Count >= 1)

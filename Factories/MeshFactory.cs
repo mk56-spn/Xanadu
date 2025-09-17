@@ -4,6 +4,7 @@
 using Godot;
 using System;
 using System.Collections.Generic;
+using XanaduProject.Scenes.MeshEditor;
 using Array = Godot.Collections.Array;
 
 namespace XanaduProject.Factories
@@ -214,6 +215,46 @@ namespace XanaduProject.Factories
             s_mesh_cache[cacheKey] = arrayMesh;
             return arrayMesh;
         }
+
+        // NEW: Method to create an ArrayMesh from Bezier points
+        public static ArrayMesh CreateBezierArrayMesh(IReadOnlyList<BezierPoint> bezierPoints)
+        {
+            List<Vector2> sampledPoints = new List<Vector2>();
+            int segmentsPerCurve = 10; // Number of linear segments to approximate each Bezier curve
+
+            if (bezierPoints.Count >= 1)
+            {
+                for (int i = 0; i < bezierPoints.Count; i++)
+                {
+                    BezierPoint p1 = bezierPoints[i];
+                    BezierPoint p2 = bezierPoints[(i + 1) % bezierPoints.Count]; // Wrap around for closed curve
+
+                    for (int j = 0; j < segmentsPerCurve; j++)
+                    {
+                        float t = (float)j / segmentsPerCurve;
+                        Vector2 point = p1.Position.BezierInterpolate(p1.Position + p1.OutHandle, p2.Position + p2.InHandle, p2.Position, t);
+                        sampledPoints.Add(point);
+                    }
+                }
+            }
+
+            if (sampledPoints.Count >= 3)
+            {
+                // Use TriangulatePolygon for correct polygon triangulation
+                int[]? indices = Geometry2D.TriangulatePolygon(sampledPoints.ToArray());
+
+                // Convert Vector2 to Vector3 for CreateMeshFromVertices
+                Vector3[] vertices3D = new Vector3[sampledPoints.Count];
+                for (int i = 0; i < sampledPoints.Count; i++)
+                {
+                    vertices3D[i] = new Vector3(sampledPoints[i].X, sampledPoints[i].Y, 0);
+                }
+
+                return CreateMeshFromVertices(vertices3D, indices);
+            }
+            return new ArrayMesh(); // Return an empty ArrayMesh if not enough points
+        }
+
         #endregion
 
         #region Private Helper Methods

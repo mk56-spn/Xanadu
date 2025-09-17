@@ -21,7 +21,7 @@ namespace XanaduProject.Scenes.MeshEditor
         OutHandle
     }
 
-    public class MeshData
+    public record MeshData
     {
         public string Name { get; set; } = "New Mesh"; // Added Name property
         public List<BezierPoint> BezierPoints { get; } = new();
@@ -29,8 +29,5 @@ namespace XanaduProject.Scenes.MeshEditor
         public int SelectedBezierPointIndex { get; set; } = -1;
         public HandleType SelectedHandleType { get; set; } = HandleType.None;
 
-        public MeshData()
-        {
-        }
     }
 }
