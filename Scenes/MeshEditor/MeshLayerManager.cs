@@ -225,31 +225,13 @@ namespace XanaduProject.Scenes.MeshEditor
 
             if (meshComponent.MeshData.BezierPoints.Count >= 3)
             {
-                // Generate sampled points from the Bezier curve for triangulation
-                List<Vector2> sampledPoints = new List<Vector2>();
-                int segmentsPerCurve = 10; // Number of linear segments to approximate each Bezier curve
+                var (vertices, indices) = BezierTriangulator.Triangulate(meshComponent.MeshData.BezierPoints);
 
-                for (int i = 0; i < meshComponent.MeshData.BezierPoints.Count; i++)
+                if (vertices.Count >= 3 && indices.Count > 0)
                 {
-                    BezierPoint p1 = meshComponent.MeshData.BezierPoints[i];
-                    BezierPoint p2 = meshComponent.MeshData.BezierPoints[(i + 1) % meshComponent.MeshData.BezierPoints.Count]; // Wrap around for closed curve
-
-                    for (int j = 0; j < segmentsPerCurve; j++)
-                    {
-                        float t = (float)j / segmentsPerCurve;
-                        Vector2 point = p1.Position.BezierInterpolate(p1.Position + p1.OutHandle, p2.Position + p2.InHandle, p2.Position, t);
-                        sampledPoints.Add(point);
-                    }
-                }
-
-                if (sampledPoints.Count >= 3)
-                {
-                    // Use TriangulatePolygon for correct polygon triangulation
-                    int[]? indices = Geometry2D.TriangulatePolygon(sampledPoints.ToArray());
                     meshComponent.MeshData.Triangles.AddRange(indices);
-
                     // NEW: Draw the polygon using the RenderRid
-                    meshComponent.RenderRid.AddTriangleArray(sampledPoints, meshComponent.MeshData.Triangles, Colors.White);
+                    meshComponent.RenderRid.AddTriangleArray(vertices, meshComponent.MeshData.Triangles, Colors.White);
                 }
             }
         }

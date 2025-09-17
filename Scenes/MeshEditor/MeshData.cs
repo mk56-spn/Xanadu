@@ -28,6 +28,5 @@ namespace XanaduProject.Scenes.MeshEditor
         public List<int> Triangles { get; } = new();
         public int SelectedBezierPointIndex { get; set; } = -1;
         public HandleType SelectedHandleType { get; set; } = HandleType.None;
-
     }
 }
