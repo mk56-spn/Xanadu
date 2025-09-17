@@ -19,11 +19,11 @@ namespace XanaduProject.Scenes
             {
                 Length = 20,
                 // Place upright
-                Angle = float.Pi / 4  * 2.5f,
+                Angle = float.Pi / 2f,
             }, new BoneGlobalTransform { Target = rootEntity });
 
-            var leftShoulder = entityStore.CreateEntity(new BoneEcs { Length = 15, Angle = float.Pi / 2}, new BoneGlobalTransform { Target = rootEntity });
-            var rightShoulder = entityStore.CreateEntity(new BoneEcs { Length = 15, Angle = -float.Pi / 2}, new BoneGlobalTransform { Target = rootEntity });
+            var leftShoulder = entityStore.CreateEntity(new BoneEcs { Length = 15, Angle = 0}, new BoneGlobalTransform { Target = rootEntity }, Tags.Get<RotationLocked>());
+            var rightShoulder = entityStore.CreateEntity(new BoneEcs { Length = 15, Angle = -float.Pi }, new BoneGlobalTransform { Target = rootEntity }, Tags.Get<RotationLocked>() );
             shoulderEntity.AddChild(leftShoulder);
             shoulderEntity.AddChild(rightShoulder);
 
@@ -31,8 +31,8 @@ namespace XanaduProject.Scenes
 
             var hipEntity = entityStore.CreateEntity(new BoneEcs { Length  = 50, }, new BoneGlobalTransform { Target = rootEntity });
 
-            var leftHip = entityStore.CreateEntity(new BoneEcs { Length = 12 , Angle = float.Pi / 2}, new BoneGlobalTransform { Target = rootEntity });
-            var rightHip = entityStore.CreateEntity(new BoneEcs { Length = 12, Angle = -float.Pi / 2}, new BoneGlobalTransform { Target = rootEntity });
+            var leftHip = entityStore.CreateEntity(new BoneEcs { Length = 6, Angle = 0}, new BoneGlobalTransform { Target = rootEntity }, Tags.Get<RotationLocked>());
+            var rightHip = entityStore.CreateEntity(new BoneEcs { Length = 6, Angle = -float.Pi }, new BoneGlobalTransform { Target = rootEntity }, Tags.Get<RotationLocked>());
             hipEntity.AddChild(leftHip);
             hipEntity.AddChild(rightHip);
 

@@ -25,7 +25,15 @@ namespace XanaduProject.ECSComponents.EntitySystem.BoneSystems
         {
             ref var boneEcs = ref boneEntity.GetComponent<BoneEcs>();
             // Calculate the bone's global angle.
-            float currentGlobalAngle = parentGlobalAngle + boneEcs.Angle;
+            float currentGlobalAngle;
+            if (boneEntity.Tags.Has<RotationLocked>())
+            {
+                currentGlobalAngle = boneEcs.Angle;
+            }
+            else
+            {
+                currentGlobalAngle = parentGlobalAngle + boneEcs.Angle;
+            }
 
             ref var v = ref boneEntity.GetComponent<BoneGlobalTransform>();
             v.GlobalPosition = parentEndPosition;
