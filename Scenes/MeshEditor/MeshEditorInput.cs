@@ -44,9 +44,12 @@ namespace XanaduProject.Scenes.MeshEditor
             {
                 if (transition.Trigger == Trigger.RightDown) handleRightClick();
             });
+
+            Ready += () => SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
         }
 
-        public override void _Input(InputEvent @event)
+
+        public override void _GuiInput(InputEvent @event)
         {
             if (@event is InputEventMouseButton mouseButton)
             {
@@ -71,7 +74,7 @@ namespace XanaduProject.Scenes.MeshEditor
         private void handlePress()
         {
             pressPosition = GetGlobalMousePosition();
-            var meshData = editor.ActiveMesh.GetComponent<MeshComponent>().MeshData;
+            var meshData = editor.LayerManager.ActiveMesh.GetComponent<MeshComponent>().MeshData;
 
             (int clickedPointIndex, HandleType clickedHandleType) = findClickedBezierElement(pressPosition);
 
@@ -90,12 +93,12 @@ namespace XanaduProject.Scenes.MeshEditor
                 meshData.SelectedHandleType = HandleType.Point;
                 updateTriangulation();
             }
-            editor.NotifyMeshSelectionChanged(); // Notify UI about selection change
+            editor.LayerManager.NotifyMeshSelectionChanged(); // Notify UI about selection change
         }
 
         private (int, HandleType) findClickedBezierElement(Vector2 position)
         {
-            var meshData = editor.ActiveMesh.GetComponent<MeshComponent>().MeshData;
+            var meshData = editor.LayerManager.ActiveMesh.GetComponent<MeshComponent>().MeshData;
 
             for (int i = 0; i < meshData.BezierPoints.Count; i++)
             {
@@ -125,7 +128,7 @@ namespace XanaduProject.Scenes.MeshEditor
         private void handleRightClick()
         {
             GD.Print("handleRightClick called.");
-            var meshData = editor.ActiveMesh.GetComponent<MeshComponent>().MeshData;
+            var meshData = editor.LayerManager.ActiveMesh.GetComponent<MeshComponent>().MeshData;
             GD.Print($"SelectedBezierPointIndex: {meshData.SelectedBezierPointIndex}");
             if (meshData.SelectedBezierPointIndex != -1)
             {
@@ -134,7 +137,7 @@ namespace XanaduProject.Scenes.MeshEditor
                 meshData.SelectedHandleType = HandleType.None;
                 updateTriangulation(); // Re-triangulate after removal
             }
-            editor.NotifyMeshSelectionChanged(); // Notify UI about selection change
+            editor.LayerManager.NotifyMeshSelectionChanged(); // Notify UI about selection change
         }
 
         private void removeBezierPointAndTriangles(MeshData meshData, int pointIndex)
@@ -154,7 +157,7 @@ namespace XanaduProject.Scenes.MeshEditor
         {
             if (stateMachine.State == State.Dragging)
             {
-                var meshData = editor.ActiveMesh.GetComponent<MeshComponent>().MeshData;
+                var meshData = editor.LayerManager.ActiveMesh.GetComponent<MeshComponent>().MeshData;
                 if (meshData.SelectedBezierPointIndex != -1)
                 {
                     BezierPoint currentPoint = meshData.BezierPoints[meshData.SelectedBezierPointIndex];
@@ -184,7 +187,7 @@ namespace XanaduProject.Scenes.MeshEditor
                     }
                     meshData.BezierPoints[meshData.SelectedBezierPointIndex] = currentPoint;
                     updateTriangulation(); // Re-triangulate when dragging to update mesh shape
-                    editor.NotifyMeshSelectionChanged(); // Notify UI about selection change during drag
+                    editor.LayerManager.NotifyMeshSelectionChanged(); // Notify UI about selection change during drag
                 }
             }
         }
@@ -196,7 +199,7 @@ namespace XanaduProject.Scenes.MeshEditor
 
         private void updateTriangulation()
         {
-            var meshData = editor.ActiveMesh.GetComponent<MeshComponent>().MeshData;
+            var meshData = editor.LayerManager.ActiveMesh.GetComponent<MeshComponent>().MeshData;
             meshData.Triangles.Clear();
 
             if (meshData.BezierPoints.Count >= 3)
