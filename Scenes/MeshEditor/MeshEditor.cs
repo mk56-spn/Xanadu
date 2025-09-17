@@ -1,8 +1,6 @@
 using Friflo.Engine.ECS;
 using Godot;
 using System;
-using System.Collections.Generic;
-using System.Linq;
 using Friflo.Engine.ECS.Systems;
 using XanaduProject.ECSComponents.EntitySystem;
 using XanaduProject.GameDependencies;

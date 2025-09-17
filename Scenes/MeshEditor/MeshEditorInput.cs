@@ -86,8 +86,25 @@ namespace XanaduProject.Scenes.MeshEditor
             else
             {
                 // Add new Bezier point
+                var points = meshData.BezierPoints;
                 BezierPoint newPoint = new BezierPoint(pressPosition);
                 newPoint.HandlesLocked = false; // Default to unlocked
+
+                if (points.Count > 0)
+                {
+                    // Previous point is the last one in the list
+                    var prevPoint = points[points.Count - 1];
+                    var inHandleDir = (prevPoint.Position - newPoint.Position).Normalized();
+                    var inHandleLength = (prevPoint.Position - newPoint.Position).Length() / 3f;
+                    newPoint.InHandle = inHandleDir * inHandleLength;
+
+                    // Next point is the first one in the list (closed loop)
+                    var nextPoint = points[0];
+                    var outHandleDir = (nextPoint.Position - newPoint.Position).Normalized();
+                    var outHandleLength = (nextPoint.Position - newPoint.Position).Length() / 3f;
+                    newPoint.OutHandle = outHandleDir * outHandleLength;
+                }
+
                 meshData.BezierPoints.Add(newPoint);
                 meshData.SelectedBezierPointIndex = meshData.BezierPoints.Count - 1;
                 meshData.SelectedHandleType = HandleType.Point;
@@ -169,7 +186,7 @@ namespace XanaduProject.Scenes.MeshEditor
                     {
                         case HandleType.Point:
                             // FIX: Removed lines that incorrectly moved handles relative to the point.
-                            // Handles are offsets, so their absolute position changes automatically with the point\'s position.
+                            // Handles are offsets, so their absolute position changes automatically with the point's position.
                             currentPoint.Position = mousePosition;
                             break;
                         case HandleType.InHandle:
