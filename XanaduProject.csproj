@@ -10,6 +10,7 @@
     <PackageReference Include="Ceras" Version="4.1.7" />
     <PackageReference Update="GodotSharp" Version="4.4.0-dev.4" />
     <PackageReference Update="Godot.SourceGenerators" Version="4.4.0-dev.4" />
+    <PackageReference Include="Clipper2" Version="1.5.4" />
     <PackageReference Include="Friflo.EcGui" Version="0.9.2" />
     <PackageReference Include="Friflo.Engine.ECS" Version="3.4.2" />
     <PackageReference Include="Friflo.Engine.ECS.Boost" Version="3.4.2" />
