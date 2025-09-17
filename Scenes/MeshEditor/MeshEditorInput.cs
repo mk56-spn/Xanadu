@@ -13,7 +13,6 @@ namespace XanaduProject.Scenes.MeshEditor
         private readonly IMeshEditor editor;
         private readonly StateMachine<State, Trigger> stateMachine;
         private Vector2 pressPosition;
-        private CheckBox lockHandlesCheckBox; // Declare as member variable
 
         private enum State { Idle, Pressed, Dragging }
         private enum Trigger { LeftDown, LeftUp, RightDown, MouseMoved }
@@ -27,7 +26,7 @@ namespace XanaduProject.Scenes.MeshEditor
             stateMachine.Configure(State.Idle)
                 .Ignore(Trigger.LeftUp)
                 .Permit(Trigger.LeftDown, State.Pressed)
-                .PermitReentry(Trigger.RightDown); // Changed from Ignore to Permit
+                .PermitReentry(Trigger.RightDown);
 
             stateMachine.Configure(State.Pressed)
                 .OnEntry(handlePress)
@@ -45,14 +44,6 @@ namespace XanaduProject.Scenes.MeshEditor
             {
                 if (transition.Trigger == Trigger.RightDown) handleRightClick();
             });
-
-            // Add a CheckBox for handle locking
-            lockHandlesCheckBox = new CheckBox();
-            lockHandlesCheckBox.Text = "Lock Handles";
-            lockHandlesCheckBox.Position = new Vector2(10, 10); // Example position
-            AddChild(lockHandlesCheckBox);
-            lockHandlesCheckBox.Toggled += onHandlesLockedToggled;
-            updateLockHandlesCheckBox(false); // Initialize checkbox state
         }
 
         public override void _Input(InputEvent @event)
@@ -80,7 +71,7 @@ namespace XanaduProject.Scenes.MeshEditor
         private void handlePress()
         {
             pressPosition = GetGlobalMousePosition();
-            var meshData = editor.MeshEntity.GetComponent<MeshComponent>().MeshData;
+            var meshData = editor.ActiveMesh.GetComponent<MeshComponent>().MeshData;
 
             (int clickedPointIndex, HandleType clickedHandleType) = findClickedBezierElement(pressPosition);
 
@@ -88,8 +79,6 @@ namespace XanaduProject.Scenes.MeshEditor
             {
                 meshData.SelectedBezierPointIndex = clickedPointIndex;
                 meshData.SelectedHandleType = clickedHandleType;
-                // Update the checkbox state for the selected point
-                updateLockHandlesCheckBox(meshData.BezierPoints[clickedPointIndex].HandlesLocked);
             }
             else
             {
@@ -100,14 +89,13 @@ namespace XanaduProject.Scenes.MeshEditor
                 meshData.SelectedBezierPointIndex = meshData.BezierPoints.Count - 1;
                 meshData.SelectedHandleType = HandleType.Point;
                 updateTriangulation();
-                // Update the checkbox state for the new point
-                updateLockHandlesCheckBox(newPoint.HandlesLocked);
             }
+            editor.NotifyMeshSelectionChanged(); // Notify UI about selection change
         }
 
         private (int, HandleType) findClickedBezierElement(Vector2 position)
         {
-            var meshData = editor.MeshEntity.GetComponent<MeshComponent>().MeshData;
+            var meshData = editor.ActiveMesh.GetComponent<MeshComponent>().MeshData;
 
             for (int i = 0; i < meshData.BezierPoints.Count; i++)
             {
@@ -137,7 +125,7 @@ namespace XanaduProject.Scenes.MeshEditor
         private void handleRightClick()
         {
             GD.Print("handleRightClick called.");
-            var meshData = editor.MeshEntity.GetComponent<MeshComponent>().MeshData;
+            var meshData = editor.ActiveMesh.GetComponent<MeshComponent>().MeshData;
             GD.Print($"SelectedBezierPointIndex: {meshData.SelectedBezierPointIndex}");
             if (meshData.SelectedBezierPointIndex != -1)
             {
@@ -145,8 +133,8 @@ namespace XanaduProject.Scenes.MeshEditor
                 meshData.SelectedBezierPointIndex = -1;
                 meshData.SelectedHandleType = HandleType.None;
                 updateTriangulation(); // Re-triangulate after removal
-                updateLockHandlesCheckBox(false); // No point selected, so uncheck
             }
+            editor.NotifyMeshSelectionChanged(); // Notify UI about selection change
         }
 
         private void removeBezierPointAndTriangles(MeshData meshData, int pointIndex)
@@ -166,7 +154,7 @@ namespace XanaduProject.Scenes.MeshEditor
         {
             if (stateMachine.State == State.Dragging)
             {
-                var meshData = editor.MeshEntity.GetComponent<MeshComponent>().MeshData;
+                var meshData = editor.ActiveMesh.GetComponent<MeshComponent>().MeshData;
                 if (meshData.SelectedBezierPointIndex != -1)
                 {
                     BezierPoint currentPoint = meshData.BezierPoints[meshData.SelectedBezierPointIndex];
@@ -196,6 +184,7 @@ namespace XanaduProject.Scenes.MeshEditor
                     }
                     meshData.BezierPoints[meshData.SelectedBezierPointIndex] = currentPoint;
                     updateTriangulation(); // Re-triangulate when dragging to update mesh shape
+                    editor.NotifyMeshSelectionChanged(); // Notify UI about selection change during drag
                 }
             }
         }
@@ -205,32 +194,9 @@ namespace XanaduProject.Scenes.MeshEditor
             // Logic to execute when dragging ends, if any.
         }
 
-        private void onHandlesLockedToggled(bool toggled)
-        {
-            var meshData = editor.MeshEntity.GetComponent<MeshComponent>().MeshData;
-            if (meshData.SelectedBezierPointIndex != -1)
-            {
-                BezierPoint currentPoint = meshData.BezierPoints[meshData.SelectedBezierPointIndex];
-                currentPoint.HandlesLocked = toggled;
-                // If locking, ensure handles are mirrored immediately
-                if (toggled)
-                {
-                    currentPoint.OutHandle = -currentPoint.InHandle;
-                }
-                meshData.BezierPoints[meshData.SelectedBezierPointIndex] = currentPoint;
-                updateTriangulation(); // Update triangulation if handles were mirrored
-            }
-        }
-
-        private void updateLockHandlesCheckBox(bool isLocked)
-        {
-            // Use SetDeferred for UI updates to avoid issues with signal processing order
-            lockHandlesCheckBox.SetDeferred("button_pressed", isLocked);
-        }
-
         private void updateTriangulation()
         {
-            var meshData = editor.MeshEntity.GetComponent<MeshComponent>().MeshData;
+            var meshData = editor.ActiveMesh.GetComponent<MeshComponent>().MeshData;
             meshData.Triangles.Clear();
 
             if (meshData.BezierPoints.Count >= 3)

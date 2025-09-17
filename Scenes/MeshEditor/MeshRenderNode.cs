@@ -7,7 +7,7 @@ using XanaduProject.GameDependencies;
 
 namespace XanaduProject.Scenes.MeshEditor
 {
-    public partial class MeshRenderSystem(IMeshEditor editor) : Node2D
+    public partial class MeshRenderNode(IMeshEditor editor) : Node2D
     {
         private readonly EntityStore entityStore = DiProvider.Get<EntityStore>();
         private readonly ArrayMesh arrayMesh = new();
@@ -19,7 +19,14 @@ namespace XanaduProject.Scenes.MeshEditor
 
         public override void _Draw()
         {
-            var meshData = editor.MeshEntity.GetComponent<MeshComponent>().MeshData;
+#pragma warning disable CS8073 // The result of the expression is always the same since a value of this type is never equal to 'null'
+            if (editor.ActiveMesh == null)
+#pragma warning restore CS8073 // The result of the expression is always the same since a value of this type is never equal to 'null'
+            {
+                return; // Nothing to draw if no active mesh
+            }
+
+            var meshData = editor.ActiveMesh.GetComponent<MeshComponent>().MeshData;
 
             // Draw the filled mesh (triangulation from sampled Bezier points)
             if (meshData.Triangles.Count > 0)
@@ -47,7 +54,7 @@ namespace XanaduProject.Scenes.MeshEditor
 
                 if (sampledPoints.Count >= 3)
                 {
-                    var arrays = new Godot.Collections.Array();
+                    var arrays = new Array();
                     arrays.Resize((int)Mesh.ArrayType.Max);
                     arrays[(int)Mesh.ArrayType.Vertex] = sampledPoints.ToArray();
                     arrays[(int)Mesh.ArrayType.Index] = meshData.Triangles.ToArray();

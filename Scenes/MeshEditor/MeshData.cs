@@ -23,6 +23,7 @@ namespace XanaduProject.Scenes.MeshEditor
 
     public class MeshData
     {
+        public string Name { get; set; } = "New Mesh"; // Added Name property
         public List<BezierPoint> BezierPoints { get; } = new();
         public List<int> Triangles { get; } = new();
         public int SelectedBezierPointIndex { get; set; } = -1;
