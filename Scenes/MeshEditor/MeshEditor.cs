@@ -3,11 +3,12 @@ using Godot;
 using System;
 using System.Linq;
 using Friflo.Engine.ECS.Systems;
-using Xanadu.Singletons;
 using XanaduProject.ECSComponents.EntitySystem;
 using XanaduProject.GameDependencies;
 using XanaduProject.IO;
-using XanaduProject.Singleton; // Added for Item
+// Added for Item
+using XanaduProject.ECSComponents.EntitySystem.Components;
+using XanaduProject.Factories; // Added for RenderRidComponent
 
 namespace XanaduProject.Scenes.MeshEditor
 {
@@ -27,12 +28,15 @@ namespace XanaduProject.Scenes.MeshEditor
             // Pass the CanvasRid to the MeshLayerManager constructor
             LayerManager = new MeshLayerManager(DiProvider.Get<EntityStore>(), CanvasRid);
 
+            // Create an entity for the MeshEditor's canvas and add the RenderRidComponent
+            var canvasEntity = DiProvider.Get<EntityStore>().CreateEntity();
+            canvasEntity.Add(new RenderRidComponent(CanvasRid.AsRenderRid()));
+
             // If an item is provided, load its mesh layers
             if (item != null && item.MeshLayers.Any())
             {
                 foreach (var serializableMeshLayer in item.MeshLayers)
                 {
-                    Logger.AddLog(LogCategory.General, item.MeshLayers.First().Color.ToString());
 
                     LayerManager.AddMeshLayer(serializableMeshLayer.MeshData, serializableMeshLayer.Color);
                 }

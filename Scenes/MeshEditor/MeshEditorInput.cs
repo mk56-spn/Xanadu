@@ -161,9 +161,6 @@ namespace XanaduProject.Scenes.MeshEditor
         private void removeBezierPointAndTriangles(MeshData meshData, int pointIndex)
         {
             meshData.BezierPoints.RemoveAt(pointIndex);
-
-            // Always clear and re-triangulate, so no need to adjust individual triangle indices.
-            meshData.Triangles.Clear();
         }
 
         private void handleDragStart()

@@ -232,29 +232,22 @@ namespace XanaduProject.Scenes.MeshEditor
         public void UpdateTriangulationForMesh(MeshComponent meshComponent) // Accept MeshComponent
         {
             meshComponent.RenderRid.Clear(); // Clear the RenderRid before drawing
-            meshComponent.MeshData.Triangles.Clear();
 
-            if (meshComponent.MeshData.BezierPoints.Count >= 3)
-            {
-                var (vertices, indices) = BezierTriangulator.Triangulate(meshComponent.MeshData.BezierPoints);
+            if (meshComponent.MeshData.BezierPoints.Count < 3) return;
 
-                if (vertices.Count >= 3 && indices.Count > 0)
-                {
-                    meshComponent.MeshData.Triangles.AddRange(indices);
-                    // NEW: Draw the polygon using the RenderRid
-                    meshComponent.RenderRid.AddTriangleArray(vertices, meshComponent.MeshData.Triangles, meshComponent.Color);
-                }
-            }
+            var (vertices, indices) = BezierTriangulator.Triangulate(meshComponent.MeshData.BezierPoints);
+
+            if (vertices.Count < 3 || indices.Count <= 0) return;
+
+            // NEW: Draw the polygon using the RenderRid
+            meshComponent.RenderRid.AddTriangleArray(vertices, indices, meshComponent.Color);
         }
 
         public void UpdateAllMeshTriangulations()
         {
-            foreach (var entity in meshEntities)
+            foreach (var entity in meshEntities.Where(entity => entity != default))
             {
-                if (entity != default)
-                {
-                    UpdateTriangulationForMesh(entity.GetComponent<MeshComponent>()); // Pass MeshComponent
-                }
+                UpdateTriangulationForMesh(entity.GetComponent<MeshComponent>()); // Pass MeshComponent
             }
         }
 
