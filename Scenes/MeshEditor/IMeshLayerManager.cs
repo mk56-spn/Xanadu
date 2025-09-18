@@ -1,4 +1,5 @@
 using Friflo.Engine.ECS;
+using Godot;
 using System;
 using System.Collections.Generic;
 
@@ -14,6 +15,7 @@ namespace XanaduProject.Scenes.MeshEditor
         IReadOnlyList<string> GetMeshLayerNames();
         void SetActiveMeshLayer(int index);
         void AddNewMeshLayer();
+        void AddMeshLayer(MeshData meshData, Color color);
 
         bool HasActiveMeshSelectedBezierPoint();
         bool GetActiveMeshHandlesLockedState();
@@ -30,5 +32,8 @@ namespace XanaduProject.Scenes.MeshEditor
         // CORRECTED: Triangulation methods now accept MeshComponent
         void UpdateTriangulationForMesh(MeshComponent meshComponent);
         void UpdateAllMeshTriangulations();
+
+        void SetLayerColor(int layerIndex, Color color);
+        Color GetLayerColor(int layerIndex);
     }
 }

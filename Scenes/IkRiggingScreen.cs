@@ -17,6 +17,7 @@ using XanaduProject.Screens.ScreenStructure;
 using XanaduProject.IO.Indexes; // Added for ItemIndex
 using XanaduProject.IO; // Added for Item
 using Logger = XanaduProject.Singleton.Logger;
+using XanaduProject.Screens; // Added for ItemBoneMappingSubScreen
 
 namespace XanaduProject.Scenes
 {
@@ -30,11 +31,6 @@ namespace XanaduProject.Scenes
 
         public IkRiggingScreen()
         {
-            DiProvider.Register(c =>
-            {
-                c.AddSingleton(entityStore);
-            });
-            PoseBuilder.BuildPose();
 
 
             simulationRoot = new SystemRoot(entityStore)
@@ -65,6 +61,10 @@ namespace XanaduProject.Scenes
             var poseButton = new AnimatedHoverButton("Pose Animating", 15);
             menuContainer.AddChild(poseButton);
             poseButton.Pressed += () => ScreenManager.ChangeSubScreen(new PoseAnimatingSubScreen());
+
+            var itemBoneMappingButton = new AnimatedHoverButton("Item Bone Mapping", 15);
+            menuContainer.AddChild(itemBoneMappingButton);
+            itemBoneMappingButton.Pressed += () => ScreenManager.ChangeSubScreen(new ItemBoneMappingSubScreen());
 
             // --- Item Selection UI ---
             var itemSelectionContainer = new VBoxContainer();
