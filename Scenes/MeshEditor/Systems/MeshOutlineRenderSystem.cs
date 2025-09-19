@@ -1,47 +1,29 @@
 using System.Collections.Generic;
+using Friflo.Engine.ECS;
+using Friflo.Engine.ECS.Systems;
 using Godot;
-using Godot.Collections;
+using XanaduProject.Factories;
 
-namespace XanaduProject.Scenes.MeshEditor
+namespace XanaduProject.Scenes.MeshEditor.Systems
 {
-    public partial class MeshRenderNode(IMeshEditor editor) : Node2D
+    public class MeshOutlineRenderSystem(IItemEditor editor) : QuerySystem<MeshComponent>
     {
-        public override void _Process(double delta)
+        private readonly RenderRid canvas = RenderRid.Create();
+        private readonly List<Vector2> curvePoints = [];
+        private static readonly Color[] line_color = [Colors.Red];
+
+        protected override void OnAddStore(EntityStore store)
         {
-            QueueRedraw();
-        }
-
-        public override void _Draw()
-        {
-            bool showAllLayers = editor.LayerManager.GetShowAllLayers();
-
-            if (showAllLayers)
-            {
-                var allMeshEntities = editor.LayerManager.GetAllMeshEntities();
-                foreach (var entity in allMeshEntities)
-                {
-                    if (entity == default) continue;
-                    ref var meshData = ref entity.GetComponent<MeshComponent>();
-                    // Pass whether this specific entity is the active one
-                    drawMeshLayer(meshData, entity == editor.LayerManager.ActiveMesh);
-                }
-            }
-            else
-            {
-                if (editor.LayerManager.ActiveMesh == default) return;
-
-                ref var meshData = ref  editor.LayerManager.ActiveMesh.GetComponent<MeshComponent>();
-                drawMeshLayer(meshData, true); // Always true for the single active mesh
-            }
+            canvas.SetParent(editor.CanvasRid);
         }
 
         private void drawMeshLayer(MeshComponent meshComponent, bool isActiveMesh)
         {
-
+            // Clear the RenderRid before drawing
             // Draw Bezier curve segments (lines)
             if (meshComponent.BezierPoints.Count >= 1)
             {
-                List<Vector2> curvePoints = new List<Vector2>();
+                curvePoints.Clear();
                 int segmentsPerCurve = 20;
 
                 for (int i = 0; i < meshComponent.BezierPoints.Count; i++)
@@ -58,16 +40,11 @@ namespace XanaduProject.Scenes.MeshEditor
                 }
 
                 if (curvePoints.Count > 1)
-                {
-                    for (int i = 0; i < curvePoints.Count - 1; i++)
-                    {
-                        DrawLine(curvePoints[i], curvePoints[i + 1], Colors.Red, 2);
-                    }
-                }
+                    canvas.AddPolyline(curvePoints.ToArray(), line_color, 2);
             }
 
             // Draw Bezier points and handles only for the active mesh - This is correct
-            if (isActiveMesh)
+            if (!isActiveMesh) return;
             {
                 for (int i = 0; i < meshComponent.BezierPoints.Count; i++)
                 {
@@ -79,7 +56,7 @@ namespace XanaduProject.Scenes.MeshEditor
                     {
                         pointColor = Colors.Red;
                     }
-                    DrawCircle(bp.Position, 5, pointColor);
+                    canvas.AddCircle( 5,bp.Position, pointColor);
 
                     // In-handle
                     Vector2 inHandlePos = bp.Position + bp.InHandle;
@@ -88,8 +65,8 @@ namespace XanaduProject.Scenes.MeshEditor
                     {
                         inHandleColor = Colors.Red;
                     }
-                    DrawLine(bp.Position, inHandlePos, Colors.Gray, 1);
-                    DrawRect(new Rect2(inHandlePos - new Vector2(3, 3), new Vector2(6, 6)), inHandleColor);
+                    canvas.AddLine(bp.Position, inHandlePos, Colors.Gray);
+                    canvas.AddRect(new Rect2(inHandlePos - new Vector2(3, 3), new Vector2(6, 6)), inHandleColor);
 
                     // Out-handle
                     Vector2 outHandlePos = bp.Position + bp.OutHandle;
@@ -98,9 +75,33 @@ namespace XanaduProject.Scenes.MeshEditor
                     {
                         outHandleColor = Colors.Red;
                     }
-                    DrawLine(bp.Position, outHandlePos, Colors.Gray, 1);
-                    DrawRect(new Rect2(outHandlePos - new Vector2(3, 3), new Vector2(6, 6)), outHandleColor);
+                    canvas.AddLine(bp.Position, outHandlePos, Colors.Gray);
+                    canvas.AddRect(new Rect2(outHandlePos - new Vector2(3, 3), new Vector2(6, 6)), outHandleColor);
                 }
+            }
+        }
+
+        protected override void OnUpdate()
+        {
+            canvas.Clear();
+            bool showAllLayers = editor.LayerManager.GetShowAllLayers();
+
+            if (showAllLayers)
+            {
+                var allMeshEntities = editor.LayerManager.GetAllMeshEntities();
+                foreach (var entity in allMeshEntities)
+                {
+                    ref var meshData = ref entity.GetComponent<MeshComponent>();
+                    // Pass whether this specific entity is the active one
+                    drawMeshLayer(meshData, entity == editor.LayerManager.ActiveEntity);
+                }
+            }
+            else
+            {
+                if (editor.LayerManager.ActiveEntity == default) return;
+
+                ref var meshData = ref  editor.LayerManager.ActiveEntity.GetComponent<MeshComponent>();
+                drawMeshLayer(meshData, true); // Always true for the single active mesh
             }
         }
     }

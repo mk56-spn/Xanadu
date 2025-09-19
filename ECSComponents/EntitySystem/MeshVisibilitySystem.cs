@@ -13,10 +13,9 @@ namespace XanaduProject.ECSComponents.EntitySystem
         {
             Query.ForEachEntity((ref MeshComponent component2, Entity entity) =>
             {
-                // Check if the entity has the VisibleTag
-                // If it has the VisibleTag, ensure the RenderRid is visible
-                component2.RenderRid.SetVisible(entity.HasComponent<VisibleTag>());
-                // If it does not have the VisibleTag, ensure the RenderRid is hidden
+
+                component2.RenderRid.SetVisible(entity.Tags.Has<Visible>());
+                // If it does not have the Visible, ensure the RenderRid is hidden
             });
         }
     }
