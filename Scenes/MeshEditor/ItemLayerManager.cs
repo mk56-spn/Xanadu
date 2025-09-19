@@ -4,19 +4,16 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using XanaduProject.Factories;
-using XanaduProject.ECSComponents.EntitySystem.Components; // Import VisibleTag
+using XanaduProject.ECSComponents.EntitySystem.Components;
 
 namespace XanaduProject.Scenes.MeshEditor
 {
-    public partial class MeshLayerManager(EntityStore entityStore, Rid parentCanvasRid) : IMeshLayerManager
+    public class ItemLayerManager(EntityStore entityStore, Rid parentCanvasRid) : IMeshLayerManager
     {
-        // NEW: Store the parent CanvasRid
-        // NEW: Assign parentCanvasRid
-        private readonly List<Entity> meshEntities = new();
+        private readonly List<Entity> meshEntities = [];
         private int activeMeshIndex = -1;
-        // private bool _showAllLayers = false; // REMOVED: Replaced by VisibleTag
 
-        public Entity ActiveMesh => activeMeshIndex >= 0 && activeMeshIndex < meshEntities.Count ? meshEntities[activeMeshIndex] : default;
+        public Entity ActiveEntity => activeMeshIndex >= 0 && activeMeshIndex < meshEntities.Count ? meshEntities[activeMeshIndex] : default;
         public int ActiveMeshIndex => activeMeshIndex;
 
         public event Action? MeshLayersChanged;
@@ -43,8 +40,8 @@ namespace XanaduProject.Scenes.MeshEditor
 
             UpdateTriangulationForMesh(newMeshEntity.GetComponent<MeshComponent>());
 
-            // Set visibility for the new mesh using VisibleTag
-            newMeshEntity.AddComponent(new VisibleTag());
+            // Set visibility for the new mesh using Visible
+            newMeshEntity.AddTag<Visible>();
 
             MeshLayersChanged?.Invoke();
 
@@ -63,17 +60,17 @@ namespace XanaduProject.Scenes.MeshEditor
         {
             if (index >= 0 && index < meshEntities.Count)
             {
-                // Remove VisibleTag from previously active mesh
+                // Remove Visible from previously active mesh
                 if (activeMeshIndex != -1 && activeMeshIndex < meshEntities.Count)
                 {
-                    meshEntities[activeMeshIndex].RemoveComponent<VisibleTag>();
+                    meshEntities[activeMeshIndex].RemoveTag<Visible>();
                 }
 
                 activeMeshIndex = index;
                 GD.Print($"Active Mesh Layer set to: {index}");
 
-                // Add VisibleTag to newly active mesh
-                meshEntities[activeMeshIndex].AddComponent(new VisibleTag());
+                // Add Visible to newly active mesh
+                meshEntities[activeMeshIndex].AddTag<Visible>();
 
                 MeshLayersChanged?.Invoke();
                 ActiveMeshSelectionChanged?.Invoke();
@@ -86,22 +83,22 @@ namespace XanaduProject.Scenes.MeshEditor
 
         public bool HasActiveMeshSelectedBezierPoint()
         {
-            if (ActiveMesh == default) return false;
-            ref var meshData = ref ActiveMesh.GetComponent<MeshComponent>();
+            if (ActiveEntity == default) return false;
+            ref var meshData = ref ActiveEntity.GetComponent<MeshComponent>();
             return meshData.SelectedBezierPointIndex != -1;
         }
 
         public bool GetActiveMeshHandlesLockedState()
         {
-            if (ActiveMesh == default || !HasActiveMeshSelectedBezierPoint()) return false;
-            var meshData = ActiveMesh.GetComponent<MeshComponent>();
+            if (ActiveEntity == default || !HasActiveMeshSelectedBezierPoint()) return false;
+            var meshData = ActiveEntity.GetComponent<MeshComponent>();
             return meshData.BezierPoints[meshData.SelectedBezierPointIndex].HandlesLocked;
         }
 
         public void SetActiveMeshHandlesLockedState(bool locked)
         {
-            if (ActiveMesh == default || !HasActiveMeshSelectedBezierPoint()) return;
-            var meshComponent = ActiveMesh.GetComponent<MeshComponent>(); // Get MeshComponent
+            if (ActiveEntity == default || !HasActiveMeshSelectedBezierPoint()) return;
+            var meshComponent = ActiveEntity.GetComponent<MeshComponent>(); // Get MeshComponent
             BezierPoint currentPoint = meshComponent.BezierPoints[meshComponent.SelectedBezierPointIndex];
             currentPoint.HandlesLocked = locked;
             if (locked)
@@ -129,18 +126,18 @@ namespace XanaduProject.Scenes.MeshEditor
                 Entity meshEntity = meshEntities[i];
                 if (showAll)
                 {
-                    meshEntity.AddComponent(new VisibleTag());
+                    meshEntity.AddTag<Visible>();
                 }
                 else
                 {
-                    // If not showing all, only the active mesh should have the VisibleTag
+                    // If not showing all, only the active mesh should have the Visible
                     if (i == activeMeshIndex)
                     {
-                        meshEntity.AddComponent(new VisibleTag());
+                        meshEntity.AddTag<Visible>();
                     }
                     else
                     {
-                        meshEntity.RemoveComponent<VisibleTag>();
+                        meshEntity.RemoveTag<Visible>();
                     }
                 }
             }
@@ -150,14 +147,14 @@ namespace XanaduProject.Scenes.MeshEditor
 
         public bool GetShowAllLayers()
         {
-            // This method now reflects if all layers currently have the VisibleTag
+            // This method now reflects if all layers currently have the Visible
             // or if only the active layer has it.
             if (meshEntities.Count == 0) return false; // No layers, so not showing all
 
             bool allVisible = true;
             foreach (var entity in meshEntities)
             {
-                if (!entity.HasComponent<VisibleTag>())
+                if (!entity.Tags.Has<Visible>())
                 {
                     allVisible = false;
                     break;

@@ -4,11 +4,11 @@ using XanaduProject.IO; // Added for Item
 
 namespace XanaduProject.Scenes.MeshEditor
 {
-    public partial class MeshCreationSubScreen : SubScreen
+    public partial class ItemCreationSubScreen : SubScreen
     {
-        public MeshCreationSubScreen(Item? item = null)
+        public ItemCreationSubScreen(Item? item = null)
         {
-            AddChild(new MeshEditor(item));
+            AddChild(new ItemEditor(item));
             Visible = true;
         }
     }

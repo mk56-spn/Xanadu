@@ -11,12 +11,12 @@ namespace XanaduProject.Scenes.MeshEditor
     {
 
         /// <summary>
-        /// A mesh builder that takes an item and creates a mesh from it.
+        /// A mesh builder that takes an item and creates a rid array from it.
         /// </summary>
         /// <param name="item"></param>
         /// <param name="store"></param>
         /// <returns></returns>
-        public static  RenderRid[] BuildItem(Item item, EntityStore store)
+        public static RenderRid[] BuildItem(Item item, EntityStore store)
         {
             RenderRid[] rids = new RenderRid[item.MeshLayers.Count];
             int i = 0;

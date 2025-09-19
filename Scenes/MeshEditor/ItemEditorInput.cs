@@ -4,20 +4,20 @@ using Stateless;
 
 namespace XanaduProject.Scenes.MeshEditor
 {
-    public partial class MeshEditorInput : Control
+    public partial class ItemEditorInput : Control
     {
         private const float point_selection_radius = 10f;
         private const float handle_selection_radius = 8f;
         private const float drag_threshold = 5f;
 
-        private readonly IMeshEditor editor;
+        private readonly IItemEditor editor;
         private readonly StateMachine<State, Trigger> stateMachine;
         private Vector2 pressPosition;
 
         private enum State { Idle, Pressed, Dragging }
         private enum Trigger { LeftDown, LeftUp, RightDown, MouseMoved }
 
-        public MeshEditorInput(IMeshEditor editor)
+        public ItemEditorInput(IItemEditor editor)
         {
             this.editor = editor;
 
@@ -73,7 +73,7 @@ namespace XanaduProject.Scenes.MeshEditor
         private void handlePress()
         {
             pressPosition = GetGlobalMousePosition();
-            ref var activeMeshComponent = ref editor.LayerManager.ActiveMesh.GetComponent<MeshComponent>();
+            ref var activeMeshComponent = ref editor.LayerManager.ActiveEntity.GetComponent<MeshComponent>();
 
             (int clickedPointIndex, HandleType clickedHandleType) = findClickedBezierElement(pressPosition);
 
@@ -114,7 +114,7 @@ namespace XanaduProject.Scenes.MeshEditor
 
         private (int, HandleType) findClickedBezierElement(Vector2 position)
         {
-            ref var meshData = ref editor.LayerManager.ActiveMesh.GetComponent<MeshComponent>();
+            ref var meshData = ref editor.LayerManager.ActiveEntity.GetComponent<MeshComponent>();
 
             for (int i = 0; i < meshData.BezierPoints.Count; i++)
             {
@@ -143,7 +143,7 @@ namespace XanaduProject.Scenes.MeshEditor
 
         private void handleRightClick()
         {
-            ref var activeMeshComponent = ref editor.LayerManager.ActiveMesh.GetComponent<MeshComponent>();
+            ref var activeMeshComponent = ref editor.LayerManager.ActiveEntity.GetComponent<MeshComponent>();
             if (activeMeshComponent.SelectedBezierPointIndex != -1)
             {
                 removeBezierPointAndTriangles(ref activeMeshComponent, activeMeshComponent.SelectedBezierPointIndex);
@@ -167,7 +167,7 @@ namespace XanaduProject.Scenes.MeshEditor
         public override void _Process(double delta)
         {
             if (stateMachine.State != State.Dragging) return;
-            ref var activeMeshComponent = ref editor.LayerManager.ActiveMesh.GetComponent<MeshComponent>();
+            ref var activeMeshComponent = ref editor.LayerManager.ActiveEntity.GetComponent<MeshComponent>();
 
             if (activeMeshComponent.SelectedBezierPointIndex == -1) return;
 

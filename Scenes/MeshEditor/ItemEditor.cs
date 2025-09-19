@@ -1,18 +1,17 @@
 using Friflo.Engine.ECS;
 using Godot;
 using System;
-using System.Linq;
 using Friflo.Engine.ECS.Systems;
 using XanaduProject.ECSComponents.EntitySystem;
 using XanaduProject.GameDependencies;
 using XanaduProject.IO;
-// Added for Item
 using XanaduProject.ECSComponents.EntitySystem.Components;
-using XanaduProject.Factories; // Added for RenderRidComponent
+using XanaduProject.Factories;
+using XanaduProject.Scenes.MeshEditor.Systems;
 
 namespace XanaduProject.Scenes.MeshEditor
 {
-    public partial class MeshEditor : Control, IMeshEditor
+    public partial class ItemEditor : Control, IItemEditor
     {
         public IMeshLayerManager LayerManager { get; private set; }
         private readonly SystemRoot root = new();
@@ -22,13 +21,13 @@ namespace XanaduProject.Scenes.MeshEditor
 
         public Rid CanvasRid => GetCanvasItem();
 
-        public MeshEditor(Item? item = null)
+        public ItemEditor(Item? item = null)
         {
-            // Get the MeshLayerManager from the DiProvider
-            // Pass the CanvasRid to the MeshLayerManager constructor
-            LayerManager = new MeshLayerManager(DiProvider.Get<EntityStore>(), CanvasRid);
+            // Get the ItemLayerManager from the DiProvider
+            // Pass the CanvasRid to the ItemLayerManager constructor
+            LayerManager = new ItemLayerManager(DiProvider.Get<EntityStore>(), CanvasRid);
 
-            // Create an entity for the MeshEditor's canvas and add the RenderRidComponent
+            // Create an entity for the ItemEditor's canvas and add the RenderRidComponent
             var canvasEntity = DiProvider.Get<EntityStore>().CreateEntity();
             canvasEntity.Add(new RenderRidComponent(CanvasRid.AsRenderRid()));
 
@@ -50,16 +49,18 @@ namespace XanaduProject.Scenes.MeshEditor
 
             SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
             // Add other systems
-            AddChild(new MeshEditorInput(this));
-            AddChild(new MeshRenderNode(this));
+            AddChild(new ItemEditorInput(this));
+
+
 
             // Add the MeshLayerUI
-            MeshEditorUi meshEditorUi = new MeshEditorUi(this);
-            meshEditorUi.Position = new Vector2(10, 10); // Example position
-            AddChild(meshEditorUi);
+            ItemEditorUi itemEditorUi = new ItemEditorUi(this);
+            itemEditorUi.Position = new Vector2(10, 10); // Example position
+            AddChild(itemEditorUi);
 
             root.AddStore(DiProvider.Get<EntityStore>());
             root.Add(new MeshVisibilitySystem()); // Add the new MeshVisibilitySyste);
+            root.Add(new MeshOutlineRenderSystem(this));
         }
 
         public override void _Process(double delta)

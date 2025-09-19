@@ -5,9 +5,9 @@ using System.Collections.Generic;
 
 namespace XanaduProject.Scenes.MeshEditor
 {
-    public interface IMeshEditor
+    public interface IItemEditor
     {
-        // The IMeshEditor now primarily exposes the IMeshLayerManager
+        // The IItemEditor now primarily exposes the IMeshLayerManager
         IMeshLayerManager LayerManager { get; }
 
         // Events are proxied from the LayerManager for convenience

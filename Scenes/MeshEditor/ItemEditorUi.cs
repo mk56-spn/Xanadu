@@ -5,9 +5,9 @@ using XanaduProject.IO.Indexes;
 
 namespace XanaduProject.Scenes.MeshEditor
 {
-    public partial class MeshEditorUi : VBoxContainer
+    public partial class ItemEditorUi : VBoxContainer
     {
-        private readonly IMeshEditor editor;
+        private readonly IItemEditor editor;
         private readonly ButtonGroup layerButtonGroup;
         private Button addLayerButton;
         private CheckBox lockHandlesCheckBox;
@@ -17,7 +17,7 @@ namespace XanaduProject.Scenes.MeshEditor
         private const string layer_panel_name = "LayerPanel";
         private const string layer_buttons_container_name = "LayerButtonsContainer";
 
-        public MeshEditorUi(IMeshEditor editor)
+        public ItemEditorUi(IItemEditor editor)
         {
             this.editor = editor;
             this.editor.MeshLayersChanged += refreshLayerButtons;
