@@ -14,8 +14,8 @@ namespace XanaduProject.Scenes.MeshEditor
 
         IReadOnlyList<string> GetMeshLayerNames();
         void SetActiveMeshLayer(int index);
-        void AddNewMeshLayer();
-        void AddMeshLayer(MeshData meshData, Color color);
+        void AddNewMeshEntity();
+        void AddMeshEntity(MeshComponent meshComponent);
 
         bool HasActiveMeshSelectedBezierPoint();
         bool GetActiveMeshHandlesLockedState();

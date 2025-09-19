@@ -9,8 +9,6 @@ using System.Text.Json;
 using System.IO;
 using static XanaduProject.IO.SerializationUtils;
 using System.Text.Json.Serialization;
-using System;
-using XanaduProject.IO; // Added to import ColorConverter
 
 namespace XanaduProject.IO
 {
@@ -62,7 +60,7 @@ namespace XanaduProject.IO
                 {
                     serializedLayers.Add(new SerializableMeshLayer
                     {
-                        MeshData = meshComponent.MeshData,
+                        MeshComponent = meshComponent,
                         Color = meshComponent.Color
                     });
                 }
@@ -76,6 +74,15 @@ namespace XanaduProject.IO
                 Name = name
             };
         }
+
+        public static void AddItemToStore(EntityStore store, Item item)
+        {
+            foreach (var VARIABLE in item.MeshLayers)
+            {
+
+            }
+
+        }
     }
 
     public record Item()
@@ -87,7 +94,7 @@ namespace XanaduProject.IO
     }
     public record SerializableMeshLayer
     {
-        public required MeshData MeshData { get; set; }
+        public required MeshComponent MeshComponent { get; set; }
         [JsonConverter(typeof(ColorConverter))] // Apply the custom converter directly to the property
         public Color Color { get; set; }
     }
