@@ -16,6 +16,9 @@ namespace XanaduProject.Scenes.MeshEditor
         public IMeshLayerManager LayerManager { get; private set; }
         private readonly SystemRoot root = new();
 
+        public Item CurrentItem { get; private set; }
+        public event Action<Item> ItemSaved;
+
         public event Action? MeshLayersChanged;
         public event Action? ActiveMeshSelectionChanged;
 
@@ -23,44 +26,53 @@ namespace XanaduProject.Scenes.MeshEditor
 
         public ItemEditor(Item? item = null)
         {
-            // Get the ItemLayerManager from the DiProvider
-            // Pass the CanvasRid to the ItemLayerManager constructor
+            CurrentItem = item ?? new Item
+            {
+                Name = "New Item",
+                Author = "Anonymous",
+                Description = "A new item."
+            };
+
             LayerManager = new ItemLayerManager(DiProvider.Get<EntityStore>(), CanvasRid);
 
-            // Create an entity for the ItemEditor's canvas and add the RenderRidComponent
             var canvasEntity = DiProvider.Get<EntityStore>().CreateEntity();
             canvasEntity.Add(new RenderRidComponent(CanvasRid.AsRenderRid()));
 
-            // If an item is provided, load its mesh layers
-            if (item != null && item.MeshLayers.Count != 0)
+            if (CurrentItem.MeshLayers.Count != 0)
             {
-                foreach (var serializableMeshLayer in item.MeshLayers)
+                foreach (var serializableMeshLayer in CurrentItem.MeshLayers)
                     LayerManager.AddMeshEntity(serializableMeshLayer.MeshComponent);
             }
             else
             {
-                // If no item is provided or the item has no layers, add a default empty mesh layer
                 LayerManager.AddNewMeshEntity();
             }
 
-            // Proxy events from LayerManager
             LayerManager.MeshLayersChanged += () => MeshLayersChanged?.Invoke();
             LayerManager.ActiveMeshSelectionChanged += () => ActiveMeshSelectionChanged?.Invoke();
 
             SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
-            // Add other systems
             AddChild(new ItemEditorInput(this));
 
-
-
-            // Add the MeshLayerUI
-            ItemEditorUi itemEditorUi = new ItemEditorUi(this);
-            itemEditorUi.Position = new Vector2(10, 10); // Example position
+            var itemEditorUi = new ItemEditorUi(this);
+            itemEditorUi.Position = new Vector2(10, 10);
             AddChild(itemEditorUi);
 
             root.AddStore(DiProvider.Get<EntityStore>());
-            root.Add(new MeshVisibilitySystem()); // Add the new MeshVisibilitySyste);
+            root.Add(new MeshVisibilitySystem());
             root.Add(new MeshOutlineRenderSystem(this));
+        }
+
+        public void TriggerSave()
+        {
+            var updatedItem = ItemSerializer.CreateItemFromMeshLayerManager(
+                LayerManager,
+                CurrentItem.Author,
+                CurrentItem.Description,
+                CurrentItem.Name
+            );
+
+            ItemSaved?.Invoke(updatedItem);
         }
 
         public override void _Process(double delta)

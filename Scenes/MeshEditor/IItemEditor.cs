@@ -2,19 +2,24 @@ using Friflo.Engine.ECS;
 using Godot;
 using System;
 using System.Collections.Generic;
+using XanaduProject.IO; // Added for Item
 
 namespace XanaduProject.Scenes.MeshEditor
 {
     public interface IItemEditor
     {
-        // The IItemEditor now primarily exposes the IMeshLayerManager
         IMeshLayerManager LayerManager { get; }
 
-        // Events are proxied from the LayerManager for convenience
+        Item CurrentItem { get; }
+
+        event Action<Item> ItemSaved;
+
         event Action? MeshLayersChanged;
         event Action? ActiveMeshSelectionChanged;
 
-        // NEW: Expose the CanvasItem's Rid for RenderRid parenting
         Rid CanvasRid { get; }
+
+        // Triggers the save process.
+        void TriggerSave();
     }
 }
