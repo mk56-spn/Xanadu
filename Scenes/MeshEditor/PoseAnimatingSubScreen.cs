@@ -1,6 +1,6 @@
 using XanaduProject.Screens.ScreenStructure;
 
-namespace XanaduProject.Scenes
+namespace XanaduProject.Scenes.MeshEditor
 {
     public partial class PoseAnimatingSubScreen : SubScreen
     {
@@ -10,7 +10,6 @@ namespace XanaduProject.Scenes
         }
         public override void _Draw()
         {
-
             base._Draw();
         }
     }

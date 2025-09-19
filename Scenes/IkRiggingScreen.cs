@@ -17,7 +17,7 @@ using XanaduProject.Screens.ScreenStructure;
 using XanaduProject.IO.Indexes; // Added for ItemIndex
 using XanaduProject.IO; // Added for Item
 using Logger = XanaduProject.Singleton.Logger;
-using XanaduProject.Screens; // Added for ItemBoneMappingSubScreen
+using ItemBoneMappingSubScreen = XanaduProject.Scenes.MeshEditor.ItemBoneMappingSubScreen; // Added for ItemBoneMappingSubScreen
 
 namespace XanaduProject.Scenes
 {
@@ -32,7 +32,10 @@ namespace XanaduProject.Scenes
         public IkRiggingScreen()
         {
 
-
+            DiProvider.Register(c =>
+            {
+                c.AddSingleton(entityStore);
+            });
             simulationRoot = new SystemRoot(entityStore)
             {
                 new BoneTransformSystem(),
@@ -40,6 +43,8 @@ namespace XanaduProject.Scenes
                 new BoneRenderingSystem(),
                 new EcsDebugSystem(),
             };
+
+            SkeletonBuilder.BuildPose();
 
             entityStore.Query<RootEcs>().ForEachEntity((ref RootEcs rootEcs, Entity entity) =>
             {
@@ -60,11 +65,11 @@ namespace XanaduProject.Scenes
 
             var poseButton = new AnimatedHoverButton("Pose Animating", 15);
             menuContainer.AddChild(poseButton);
-            poseButton.Pressed += () => ScreenManager.ChangeSubScreen(new PoseAnimatingSubScreen());
+            poseButton.Pressed += () => ScreenManager.ChangeSubScreen(new MeshEditor.PoseAnimatingSubScreen());
 
             var itemBoneMappingButton = new AnimatedHoverButton("Item Bone Mapping", 15);
             menuContainer.AddChild(itemBoneMappingButton);
-            itemBoneMappingButton.Pressed += () => ScreenManager.ChangeSubScreen(new ItemBoneMappingSubScreen());
+            itemBoneMappingButton.Pressed += () => ScreenManager.ChangeSubScreen(new ItemBoneMappingSubScreen(entityStore));
 
             // --- Item Selection UI ---
             var itemSelectionContainer = new VBoxContainer();
@@ -73,7 +78,7 @@ namespace XanaduProject.Scenes
 
             var createNewMeshButton = new Button { Text = "Create New Mesh" };
             itemSelectionContainer.AddChild(createNewMeshButton);
-            createNewMeshButton.Pressed += () => ScreenManager.ChangeSubScreen(new MeshCreationSubScreen(null)); // Pass null for new item
+            createNewMeshButton.Pressed += () => ScreenManager.ChangeSubScreen(new ItemCreationSubScreen(null)); // Pass null for new item
 
             var scrollContainer = new ScrollContainer() { CustomMinimumSize = new Vector2(500, 100)};
             scrollContainer.SizeFlagsHorizontal = SizeFlags.ExpandFill;
@@ -101,7 +106,7 @@ namespace XanaduProject.Scenes
                     Item? selectedItem = ItemIndex.GetItem(itemInfo.Name);
                     if (selectedItem != null)
                     {
-                        ScreenManager.ChangeSubScreen(new MeshCreationSubScreen(selectedItem));
+                        ScreenManager.ChangeSubScreen(new ItemCreationSubScreen(selectedItem));
                     }
                     else
                     {

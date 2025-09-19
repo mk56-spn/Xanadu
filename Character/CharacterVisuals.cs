@@ -15,7 +15,7 @@ namespace XanaduProject.Character
 	{
 		public override void _EnterTree()
 		{
-            PoseBuilder.BuildPose();
+            SkeletonBuilder.BuildPose();
 		}
     }
 }

@@ -74,24 +74,16 @@ namespace XanaduProject.IO
                 Name = name
             };
         }
-
-        public static void AddItemToStore(EntityStore store, Item item)
-        {
-            foreach (var VARIABLE in item.MeshLayers)
-            {
-
-            }
-
-        }
     }
 
     public record Item()
     {
-        public required List<SerializableMeshLayer> MeshLayers { get; set; }
-        public required string Author { get; set; }
-        public required string Description { get; set; }
+        public List<SerializableMeshLayer> MeshLayers { get; set; } = new();
+        public string Author { get; set; } = "Anonymous";
+        public string Description { get; set; }
         public string Name { get; set; }
     }
+
     public record SerializableMeshLayer
     {
         public required MeshComponent MeshComponent { get; set; }

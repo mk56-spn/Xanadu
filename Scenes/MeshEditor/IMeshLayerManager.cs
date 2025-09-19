@@ -7,7 +7,7 @@ namespace XanaduProject.Scenes.MeshEditor
 {
     public interface IMeshLayerManager
     {
-        Entity ActiveMesh { get; }
+        Entity ActiveEntity { get; }
         int ActiveMeshIndex { get; }
         event Action? MeshLayersChanged;
         event Action? ActiveMeshSelectionChanged;

@@ -11,7 +11,7 @@ namespace XanaduProject.ECSComponents.EntitySystem.BoneSystems
     {
         protected override void OnUpdate()
         {
-            Query.ForEachEntity((ref IkTargetComponent ik, Entity entity) =>
+            Query.ForEachEntity((ref IkTargetComponent ik, Entity _) =>
             {
                 var upperBoneEntity = ik.UpperBoneEntity;
                 var lowerBoneEntity = ik.LowerBoneEntity;
