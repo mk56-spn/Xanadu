@@ -1,6 +1,7 @@
 using Godot;
 using System.Collections.Generic;
 using XanaduProject.IO;
+using XanaduProject.IO.Indexes;
 
 namespace XanaduProject.Scenes.MeshEditor
 {
@@ -60,6 +61,7 @@ namespace XanaduProject.Scenes.MeshEditor
             // NEW: Save Item Button
             saveItemButton = new Button();
             saveItemButton.Text = "Save Item";
+            ItemIndex.BuildIndex();
             saveItemButton.Pressed += OnSaveItemButtonPressed;
             miscContainer.AddChild(saveItemButton);
 
@@ -153,7 +155,7 @@ namespace XanaduProject.Scenes.MeshEditor
 
         private void OnAddLayerButtonPressed()
         {
-            editor.LayerManager.AddNewMeshLayer();
+            editor.LayerManager.AddNewMeshEntity();
         }
 
         private void OnHandlesLockedToggled(bool toggled)

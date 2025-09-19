@@ -74,7 +74,7 @@ namespace XanaduProject.Scenes.MeshEditor
         {
             pressPosition = GetGlobalMousePosition();
             var activeMeshComponent = editor.LayerManager.ActiveMesh.GetComponent<MeshComponent>();
-            var meshData = activeMeshComponent.MeshData;
+            ref var meshData = ref activeMeshComponent;
 
             (int clickedPointIndex, HandleType clickedHandleType) = findClickedBezierElement(pressPosition);
 
@@ -115,7 +115,7 @@ namespace XanaduProject.Scenes.MeshEditor
 
         private (int, HandleType) findClickedBezierElement(Vector2 position)
         {
-            var meshData = editor.LayerManager.ActiveMesh.GetComponent<MeshComponent>().MeshData;
+            ref var meshData = ref editor.LayerManager.ActiveMesh.GetComponent<MeshComponent>();
 
             for (int i = 0; i < meshData.BezierPoints.Count; i++)
             {
@@ -145,12 +145,12 @@ namespace XanaduProject.Scenes.MeshEditor
         private void handleRightClick()
         {
             GD.Print("handleRightClick called.");
-            var activeMeshComponent = editor.LayerManager.ActiveMesh.GetComponent<MeshComponent>();
-            var meshData = activeMeshComponent.MeshData;
+            ref var activeMeshComponent = ref editor.LayerManager.ActiveMesh.GetComponent<MeshComponent>();
+            var meshData = activeMeshComponent;
             GD.Print($"SelectedBezierPointIndex: {meshData.SelectedBezierPointIndex}");
             if (meshData.SelectedBezierPointIndex != -1)
             {
-                removeBezierPointAndTriangles(meshData, meshData.SelectedBezierPointIndex);
+                removeBezierPointAndTriangles(ref activeMeshComponent, meshData.SelectedBezierPointIndex);
                 meshData.SelectedBezierPointIndex = -1;
                 meshData.SelectedHandleType = HandleType.None;
                 editor.LayerManager.UpdateTriangulationForMesh(activeMeshComponent); // Use LayerManager's triangulation with MeshComponent
@@ -158,9 +158,9 @@ namespace XanaduProject.Scenes.MeshEditor
             editor.LayerManager.NotifyMeshSelectionChanged(); // Notify UI about selection change
         }
 
-        private void removeBezierPointAndTriangles(MeshData meshData, int pointIndex)
+        private void removeBezierPointAndTriangles(ref MeshComponent component, int pointIndex)
         {
-            meshData.BezierPoints.RemoveAt(pointIndex);
+            component.BezierPoints.RemoveAt(pointIndex);
         }
 
         private void handleDragStart()
@@ -172,39 +172,38 @@ namespace XanaduProject.Scenes.MeshEditor
         {
             if (stateMachine.State == State.Dragging)
             {
-                var activeMeshComponent = editor.LayerManager.ActiveMesh.GetComponent<MeshComponent>();
-                var meshData = activeMeshComponent.MeshData;
-                if (meshData.SelectedBezierPointIndex != -1)
-                {
-                    BezierPoint currentPoint = meshData.BezierPoints[meshData.SelectedBezierPointIndex];
-                    Vector2 mousePosition = GetGlobalMousePosition();
+                ref var activeMeshComponent = ref editor.LayerManager.ActiveMesh.GetComponent<MeshComponent>();
+                var meshData = activeMeshComponent;
+                if (meshData.SelectedBezierPointIndex == -1) return;
 
-                    switch (meshData.SelectedHandleType)
-                    {
-                        case HandleType.Point:
-                            // FIX: Removed lines that incorrectly moved handles relative to the point.
-                            // Handles are offsets, so their absolute position changes automatically with the point's position.
-                            currentPoint.Position = mousePosition;
-                            break;
-                        case HandleType.InHandle:
-                            currentPoint.InHandle = mousePosition - currentPoint.Position;
-                            if (currentPoint.HandlesLocked) // Locking logic
-                            {
-                                currentPoint.OutHandle = -currentPoint.InHandle;
-                            }
-                            break;
-                        case HandleType.OutHandle:
-                            currentPoint.OutHandle = mousePosition - currentPoint.Position;
-                            if (currentPoint.HandlesLocked) // Locking logic
-                            {
-                                currentPoint.InHandle = -currentPoint.OutHandle;
-                            }
-                            break;
-                    }
-                    meshData.BezierPoints[meshData.SelectedBezierPointIndex] = currentPoint;
-                    editor.LayerManager.UpdateTriangulationForMesh(activeMeshComponent); // Use LayerManager's triangulation with MeshComponent
-                    editor.LayerManager.NotifyMeshSelectionChanged(); // Notify UI about selection change during drag
+                BezierPoint currentPoint = meshData.BezierPoints[meshData.SelectedBezierPointIndex];
+                Vector2 mousePosition = GetGlobalMousePosition();
+
+                switch (meshData.SelectedHandleType)
+                {
+                    case HandleType.Point:
+                        // FIX: Removed lines that incorrectly moved handles relative to the point.
+                        // Handles are offsets, so their absolute position changes automatically with the point's position.
+                        currentPoint.Position = mousePosition;
+                        break;
+                    case HandleType.InHandle:
+                        currentPoint.InHandle = mousePosition - currentPoint.Position;
+                        if (currentPoint.HandlesLocked) // Locking logic
+                        {
+                            currentPoint.OutHandle = -currentPoint.InHandle;
+                        }
+                        break;
+                    case HandleType.OutHandle:
+                        currentPoint.OutHandle = mousePosition - currentPoint.Position;
+                        if (currentPoint.HandlesLocked) // Locking logic
+                        {
+                            currentPoint.InHandle = -currentPoint.OutHandle;
+                        }
+                        break;
                 }
+                meshData.BezierPoints[meshData.SelectedBezierPointIndex] = currentPoint;
+                editor.LayerManager.UpdateTriangulationForMesh(activeMeshComponent); // Use LayerManager's triangulation with MeshComponent
+                editor.LayerManager.NotifyMeshSelectionChanged(); // Notify UI about selection change during drag
             }
         }
 

@@ -21,7 +21,7 @@ namespace XanaduProject.Scenes.MeshEditor
                 foreach (var entity in allMeshEntities)
                 {
                     if (entity == default) continue;
-                    var meshData = entity.GetComponent<MeshComponent>().MeshData;
+                    ref var meshData = ref entity.GetComponent<MeshComponent>();
                     // Pass whether this specific entity is the active one
                     drawMeshLayer(meshData, entity == editor.LayerManager.ActiveMesh);
                 }
@@ -30,24 +30,24 @@ namespace XanaduProject.Scenes.MeshEditor
             {
                 if (editor.LayerManager.ActiveMesh == default) return;
 
-                var meshData = editor.LayerManager.ActiveMesh.GetComponent<MeshComponent>().MeshData;
+                ref var meshData = ref  editor.LayerManager.ActiveMesh.GetComponent<MeshComponent>();
                 drawMeshLayer(meshData, true); // Always true for the single active mesh
             }
         }
 
-        private void drawMeshLayer(MeshData meshData, bool isActiveMesh)
+        private void drawMeshLayer(MeshComponent meshComponent, bool isActiveMesh)
         {
 
             // Draw Bezier curve segments (lines)
-            if (meshData.BezierPoints.Count >= 1)
+            if (meshComponent.BezierPoints.Count >= 1)
             {
                 List<Vector2> curvePoints = new List<Vector2>();
                 int segmentsPerCurve = 20;
 
-                for (int i = 0; i < meshData.BezierPoints.Count; i++)
+                for (int i = 0; i < meshComponent.BezierPoints.Count; i++)
                 {
-                    BezierPoint p1 = meshData.BezierPoints[i];
-                    BezierPoint p2 = meshData.BezierPoints[(i + 1) % meshData.BezierPoints.Count];
+                    BezierPoint p1 = meshComponent.BezierPoints[i];
+                    BezierPoint p2 = meshComponent.BezierPoints[(i + 1) % meshComponent.BezierPoints.Count];
 
                     for (int j = 0; j <= segmentsPerCurve; j++)
                     {
@@ -69,13 +69,13 @@ namespace XanaduProject.Scenes.MeshEditor
             // Draw Bezier points and handles only for the active mesh - This is correct
             if (isActiveMesh)
             {
-                for (int i = 0; i < meshData.BezierPoints.Count; i++)
+                for (int i = 0; i < meshComponent.BezierPoints.Count; i++)
                 {
-                    BezierPoint bp = meshData.BezierPoints[i];
+                    BezierPoint bp = meshComponent.BezierPoints[i];
 
                     // Main point
                     Color pointColor = Colors.White;
-                    if (i == meshData.SelectedBezierPointIndex && meshData.SelectedHandleType == HandleType.Point)
+                    if (i == meshComponent.SelectedBezierPointIndex && meshComponent.SelectedHandleType == HandleType.Point)
                     {
                         pointColor = Colors.Red;
                     }
@@ -84,7 +84,7 @@ namespace XanaduProject.Scenes.MeshEditor
                     // In-handle
                     Vector2 inHandlePos = bp.Position + bp.InHandle;
                     Color inHandleColor = Colors.Yellow;
-                    if (i == meshData.SelectedBezierPointIndex && meshData.SelectedHandleType == HandleType.InHandle)
+                    if (i == meshComponent.SelectedBezierPointIndex && meshComponent.SelectedHandleType == HandleType.InHandle)
                     {
                         inHandleColor = Colors.Red;
                     }
@@ -94,7 +94,7 @@ namespace XanaduProject.Scenes.MeshEditor
                     // Out-handle
                     Vector2 outHandlePos = bp.Position + bp.OutHandle;
                     Color outHandleColor = Colors.Yellow;
-                    if (i == meshData.SelectedBezierPointIndex && meshData.SelectedHandleType == HandleType.OutHandle)
+                    if (i == meshComponent.SelectedBezierPointIndex && meshComponent.SelectedHandleType == HandleType.OutHandle)
                     {
                         outHandleColor = Colors.Red;
                     }

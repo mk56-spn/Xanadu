@@ -33,18 +33,15 @@ namespace XanaduProject.Scenes.MeshEditor
             canvasEntity.Add(new RenderRidComponent(CanvasRid.AsRenderRid()));
 
             // If an item is provided, load its mesh layers
-            if (item != null && item.MeshLayers.Any())
+            if (item != null && item.MeshLayers.Count != 0)
             {
                 foreach (var serializableMeshLayer in item.MeshLayers)
-                {
-
-                    LayerManager.AddMeshLayer(serializableMeshLayer.MeshData, serializableMeshLayer.Color);
-                }
+                    LayerManager.AddMeshEntity(serializableMeshLayer.MeshComponent);
             }
             else
             {
                 // If no item is provided or the item has no layers, add a default empty mesh layer
-                LayerManager.AddNewMeshLayer();
+                LayerManager.AddNewMeshEntity();
             }
 
             // Proxy events from LayerManager

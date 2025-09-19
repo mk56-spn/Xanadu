@@ -8,10 +8,10 @@ using XanaduProject.ECSComponents.EntitySystem.Components; // Import VisibleTag
 
 namespace XanaduProject.Scenes.MeshEditor
 {
-    public partial class MeshLayerManager : IMeshLayerManager
+    public partial class MeshLayerManager(EntityStore entityStore, Rid parentCanvasRid) : IMeshLayerManager
     {
-        private readonly EntityStore entityStore;
-        private readonly Rid parentCanvasRid; // NEW: Store the parent CanvasRid
+        // NEW: Store the parent CanvasRid
+        // NEW: Assign parentCanvasRid
         private readonly List<Entity> meshEntities = new();
         private int activeMeshIndex = -1;
         // private bool _showAllLayers = false; // REMOVED: Replaced by VisibleTag
@@ -22,32 +22,22 @@ namespace XanaduProject.Scenes.MeshEditor
         public event Action? MeshLayersChanged;
         public event Action? ActiveMeshSelectionChanged;
 
-        public MeshLayerManager(EntityStore entityStore, Rid parentCanvasRid) // NEW: Accept parentCanvasRid
-        {
-            this.entityStore = entityStore;
-            this.parentCanvasRid = parentCanvasRid; // NEW: Assign parentCanvasRid
-            // Initialize with one default mesh layer if no item is loaded, or if the item has no layers
-            // This logic will be handled by MeshEditor, which calls AddMeshLayer for each layer in an item
-            // or AddNewMeshLayer if no item is provided.
-            // Remove default layer creation here, as MeshEditor will manage it.
-            // AddNewMeshLayer(); // Removed
-            // SetActiveMeshLayer(0); // Removed
-        }
+        // NEW: Accept parentCanvasRid
 
         public IReadOnlyList<string> GetMeshLayerNames()
         {
-            return meshEntities.Select(e => e.GetComponent<MeshComponent>().MeshData.Name).ToList();
+            return meshEntities.Select(e => e.GetComponent<MeshComponent>().Name).ToList();
         }
 
-        public void AddNewMeshLayer()
+        public void AddNewMeshEntity()
         {
-            MeshData newMeshData = new MeshData { Name = $"Mesh Layer {meshEntities.Count}" };
-            AddMeshLayer(newMeshData, Colors.White); // Default color for new layers
+            AddMeshEntity(new MeshComponent()); // Default color for new layers
         }
 
-        public void AddMeshLayer(MeshData meshData, Color color)
+
+        public void AddMeshEntity(MeshComponent meshComponent)
         {
-            Entity newMeshEntity = entityStore.CreateEntity(new MeshComponent { MeshData = meshData, RenderRid = RenderRid.Create(parentCanvasRid), Color = color });
+            Entity newMeshEntity = entityStore.CreateEntity(new MeshComponent {  RenderRid = RenderRid.Create(parentCanvasRid)});
 
             meshEntities.Add(newMeshEntity);
 
@@ -97,14 +87,14 @@ namespace XanaduProject.Scenes.MeshEditor
         public bool HasActiveMeshSelectedBezierPoint()
         {
             if (ActiveMesh == default) return false;
-            var meshData = ActiveMesh.GetComponent<MeshComponent>().MeshData;
+            ref var meshData = ref ActiveMesh.GetComponent<MeshComponent>();
             return meshData.SelectedBezierPointIndex != -1;
         }
 
         public bool GetActiveMeshHandlesLockedState()
         {
             if (ActiveMesh == default || !HasActiveMeshSelectedBezierPoint()) return false;
-            var meshData = ActiveMesh.GetComponent<MeshComponent>().MeshData;
+            var meshData = ActiveMesh.GetComponent<MeshComponent>();
             return meshData.BezierPoints[meshData.SelectedBezierPointIndex].HandlesLocked;
         }
 
@@ -112,13 +102,13 @@ namespace XanaduProject.Scenes.MeshEditor
         {
             if (ActiveMesh == default || !HasActiveMeshSelectedBezierPoint()) return;
             var meshComponent = ActiveMesh.GetComponent<MeshComponent>(); // Get MeshComponent
-            BezierPoint currentPoint = meshComponent.MeshData.BezierPoints[meshComponent.MeshData.SelectedBezierPointIndex];
+            BezierPoint currentPoint = meshComponent.BezierPoints[meshComponent.SelectedBezierPointIndex];
             currentPoint.HandlesLocked = locked;
             if (locked)
             {
                 currentPoint.OutHandle = -currentPoint.InHandle;
             }
-            meshComponent.MeshData.BezierPoints[meshComponent.MeshData.SelectedBezierPointIndex] = currentPoint;
+            meshComponent.BezierPoints[meshComponent.SelectedBezierPointIndex] = currentPoint;
             UpdateTriangulationForMesh(meshComponent); // Pass MeshComponent
             ActiveMeshSelectionChanged?.Invoke();
         }
@@ -201,25 +191,20 @@ namespace XanaduProject.Scenes.MeshEditor
 
         public void MoveLayerDown(int index)
         {
-            if (index >= 0 && index < meshEntities.Count - 1)
-            {
-                Entity entityToMove = meshEntities[index];
-                meshEntities.RemoveAt(index);
-                meshEntities.Insert(index + 1, entityToMove);
+            if (index < 0 || index >= meshEntities.Count - 1) return;
 
-                // Adjust active mesh index if the moved layer or the layer it swapped with was active
-                if (activeMeshIndex == index) activeMeshIndex = index + 1;
-                else if (activeMeshIndex == index + 1) activeMeshIndex = index;
+            Entity entityToMove = meshEntities[index];
+            meshEntities.RemoveAt(index);
+            meshEntities.Insert(index + 1, entityToMove);
 
-                GD.Print($"Moved layer {index} down to {index + 1}");
-                UpdateAllMeshTriangulations(); // Update all triangulations after reordering
-                MeshLayersChanged?.Invoke();
-                ActiveMeshSelectionChanged?.Invoke();
-            }
-            else
-            {
-                GD.PrintErr($"Attempted to move layer down from invalid index: {index}");
-            }
+            // Adjust active mesh index if the moved layer or the layer it swapped with was active
+            if (activeMeshIndex == index) activeMeshIndex = index + 1;
+            else if (activeMeshIndex == index + 1) activeMeshIndex = index;
+
+            GD.Print($"Moved layer {index} down to {index + 1}");
+            UpdateAllMeshTriangulations(); // Update all triangulations after reordering
+            MeshLayersChanged?.Invoke();
+            ActiveMeshSelectionChanged?.Invoke();
         }
 
         public IReadOnlyList<Entity> GetAllMeshEntities()
@@ -233,9 +218,9 @@ namespace XanaduProject.Scenes.MeshEditor
         {
             meshComponent.RenderRid.Clear(); // Clear the RenderRid before drawing
 
-            if (meshComponent.MeshData.BezierPoints.Count < 3) return;
+            if (meshComponent.BezierPoints.Count < 3) return;
 
-            var (vertices, indices) = BezierTriangulator.Triangulate(meshComponent.MeshData.BezierPoints);
+            var (vertices, indices) = BezierTriangulator.Triangulate(meshComponent.BezierPoints);
 
             if (vertices.Count < 3 || indices.Count <= 0) return;
 
