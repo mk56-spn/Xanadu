@@ -56,8 +56,8 @@ namespace XanaduProject.Scenes
             createLimb(rightShoulder, rootEntity,  new Vector2(-40, 70), true, "RightArm", boneNames, 35, 30);
 
             // Legs
-            createLimb(leftHip, rootEntity,new Vector2(0, 120), false, "LeftLeg", boneNames);
-            createLimb( rightHip, rootEntity, new Vector2(10, 130), false, "RightLeg", boneNames);
+            createLimb(leftHip, rootEntity,new Vector2(0, 140), false, "LeftLeg", boneNames);
+            createLimb( rightHip, rootEntity, new Vector2(10, 140), false, "RightLeg", boneNames);
             return boneNames;
         }
 
