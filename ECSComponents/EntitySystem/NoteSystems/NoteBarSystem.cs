@@ -16,7 +16,7 @@ namespace XanaduProject.ECSComponents.EntitySystem.NoteSystems
 {
     public class NoteBarSystem : QuerySystem
     {
-        private readonly IUiMaster visualsMaster = DiProvider.Get<IUiMaster>();
+        private readonly IGameplayUiMaster visualsMaster = DiProvider.Get<IGameplayUiMaster>();
         private readonly RenderRid bar;
 
         private const float bar_scale = 3;
