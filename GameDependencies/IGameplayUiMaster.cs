@@ -5,7 +5,7 @@ using Godot;
 
 namespace XanaduProject.GameDependencies
 {
-    public interface IUiMaster
+    public interface IGameplayUiMaster
     {
         public CanvasLayer ScoreLayer { get; }
         public Control TopCenterUi { get; }
