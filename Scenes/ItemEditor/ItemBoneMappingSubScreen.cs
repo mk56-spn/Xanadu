@@ -1,16 +1,16 @@
-using Godot;
-using System.Linq;
-using XanaduProject.IO;
-using XanaduProject.IO.Indexes;
-using XanaduProject.Screens.ScreenStructure;
 using System.Collections.Generic;
+using System.Linq;
 using Friflo.Engine.ECS;
+using Godot;
 using XanaduProject.ECSComponents;
 using XanaduProject.ECSComponents.EntitySystem.Components.Bones;
 using XanaduProject.Factories;
 using XanaduProject.GameDependencies;
+using XanaduProject.IO;
+using XanaduProject.IO.Indexes;
+using XanaduProject.Screens.ScreenStructure;
 
-namespace XanaduProject.Scenes.MeshEditor
+namespace XanaduProject.Scenes.ItemEditor
 {
     public partial class ItemBoneMappingSubScreen : SubScreen
     {
@@ -158,7 +158,7 @@ namespace XanaduProject.Scenes.MeshEditor
                     Name = $"{skinName}_{selectedBone}_Item",
                     Author = skin.Author,
                     Description = $"Item for bone {selectedBone} on skin {skinName}",
-                    MeshLayers = new List<SerializableMeshLayer>()
+                    Components = new List<SerializableComponent>() // Changed from MeshLayers
                 };
             }
 
@@ -183,7 +183,7 @@ namespace XanaduProject.Scenes.MeshEditor
         private void OnSaveSkinPressed()
         {
             StandardPoseSkinIo.Save(skin, skinName);
-            GD.Print($"Skin '{skinName}' saved successfully.");
+            GD.Print($"Skin \'{skinName}\' saved successfully.");
         }
     }
 }

@@ -1,8 +1,9 @@
-using XanaduProject.Scenes.MeshEditor;
+using XanaduProject.IO;
 using XanaduProject.Screens.ScreenStructure;
-using XanaduProject.IO; // Added for Item
 
-namespace XanaduProject.Scenes.MeshEditor
+// Added for Item
+
+namespace XanaduProject.Scenes.ItemEditor
 {
     public partial class ItemCreationSubScreen : SubScreen
     {

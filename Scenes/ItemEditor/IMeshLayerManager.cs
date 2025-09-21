@@ -1,33 +1,33 @@
-using Friflo.Engine.ECS;
-using Godot;
 using System;
 using System.Collections.Generic;
+using Friflo.Engine.ECS;
+using Godot;
 
-namespace XanaduProject.Scenes.MeshEditor
+namespace XanaduProject.Scenes.ItemEditor
 {
-    public interface IMeshLayerManager
+    public interface ILayerManager
     {
         Entity ActiveEntity { get; }
-        int ActiveMeshIndex { get; }
-        event Action? MeshLayersChanged;
-        event Action? ActiveMeshSelectionChanged;
+        int ActiveLayerIndex { get; }
+        event Action? LayersChanged;
+        event Action? ActiveLayerSelectionChanged;
 
-        IReadOnlyList<string> GetMeshLayerNames();
-        void SetActiveMeshLayer(int index);
-        void AddNewMeshEntity();
-        void AddMeshEntity(MeshComponent meshComponent);
+        IReadOnlyList<string> GetLayerNames();
+        void SetActiveLayer(int index);
+        void AddNewMeshEntity(); // Will change later
+        void AddMeshEntity(MeshComponent meshComponent); // Will change later
 
         bool HasActiveMeshSelectedBezierPoint();
         bool GetActiveMeshHandlesLockedState();
         void SetActiveMeshHandlesLockedState(bool locked);
-        void NotifyMeshSelectionChanged();
+        void NotifyMeshSelectionChanged(); // This seems generic enough.
 
         void SetShowAllLayers(bool showAll);
         bool GetShowAllLayers();
 
         void MoveLayerUp(int index);
         void MoveLayerDown(int index);
-        IReadOnlyList<Entity> GetAllMeshEntities();
+        IReadOnlyList<Entity> GetAllLayerEntities();
 
         // CORRECTED: Triangulation methods now accept MeshComponent
         void UpdateTriangulationForMesh(MeshComponent meshComponent);

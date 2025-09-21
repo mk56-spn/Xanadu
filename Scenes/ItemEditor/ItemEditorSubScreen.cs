@@ -2,7 +2,7 @@ using System;
 using XanaduProject.IO;
 using XanaduProject.Screens.ScreenStructure;
 
-namespace XanaduProject.Scenes.MeshEditor
+namespace XanaduProject.Scenes.ItemEditor
 {
     public partial class ItemEditorSubScreen : SubScreen
     {

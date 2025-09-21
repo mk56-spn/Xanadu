@@ -4,7 +4,7 @@ using Friflo.Engine.ECS;
 using Godot;
 using XanaduProject.Factories;
 
-namespace XanaduProject.Scenes.MeshEditor
+namespace XanaduProject.Scenes.ItemEditor
 {
     public struct MeshComponent() : IComponent
     {

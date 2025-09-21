@@ -5,7 +5,7 @@ using System.Text.Json.Serialization;
 using Godot;
 using XanaduProject.Serialization;
 
-namespace XanaduProject.Scenes.MeshEditor
+namespace XanaduProject.Scenes.ItemEditor
 {
     public struct BezierPoint(Vector2 position)
     {

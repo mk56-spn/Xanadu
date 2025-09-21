@@ -4,7 +4,7 @@ using Friflo.Engine.ECS.Systems;
 using Godot;
 using XanaduProject.Factories;
 
-namespace XanaduProject.Scenes.MeshEditor.Systems
+namespace XanaduProject.Scenes.ItemEditor.Systems
 {
     public class MeshOutlineRenderSystem(IItemEditor editor) : QuerySystem<MeshComponent>
     {
@@ -88,20 +88,24 @@ namespace XanaduProject.Scenes.MeshEditor.Systems
 
             if (showAllLayers)
             {
-                var allMeshEntities = editor.LayerManager.GetAllMeshEntities();
-                foreach (var entity in allMeshEntities)
+                var allLayerEntities = editor.LayerManager.GetAllLayerEntities();
+                foreach (var entity in allLayerEntities)
                 {
-                    ref var meshData = ref entity.GetComponent<MeshComponent>();
-                    // Pass whether this specific entity is the active one
-                    drawMeshLayer(meshData, entity == editor.LayerManager.ActiveEntity);
+                    if (entity.TryGetComponent(out MeshComponent meshData))
+                    {
+                        // Pass whether this specific entity is the active one
+                        drawMeshLayer(meshData, entity == editor.LayerManager.ActiveEntity);
+                    }
                 }
             }
             else
             {
                 if (editor.LayerManager.ActiveEntity == default) return;
 
-                ref var meshData = ref  editor.LayerManager.ActiveEntity.GetComponent<MeshComponent>();
-                drawMeshLayer(meshData, true); // Always true for the single active mesh
+                if (editor.LayerManager.ActiveEntity.TryGetComponent(out MeshComponent meshData))
+                {
+                    drawMeshLayer(meshData, true); // Always true for the single active mesh
+                }
             }
         }
     }

@@ -1,6 +1,6 @@
 using XanaduProject.Screens.ScreenStructure;
 
-namespace XanaduProject.Scenes.MeshEditor
+namespace XanaduProject.Scenes.ItemEditor
 {
     public partial class PoseAnimatingSubScreen : SubScreen
     {

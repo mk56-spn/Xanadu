@@ -1,10 +1,10 @@
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using Godot;
 using XanaduProject.Scenes.Editor.Input;
+using XanaduProject.Utils;
 
-namespace XanaduProject.Scenes.MeshEditor
+namespace XanaduProject.Scenes.ItemEditor
 {
     public partial class ItemEditorInput : BaseInputHandler
     {
@@ -38,7 +38,16 @@ namespace XanaduProject.Scenes.MeshEditor
         protected override void HandleLeftPress(bool multiSelect)
         {
             pressPosition = getWorldMousePosition();
-            ref var activeMeshComponent = ref editor.LayerManager.ActiveEntity.GetComponent<MeshComponent>();
+            var activeEntity = editor.LayerManager.ActiveEntity;
+
+            if (activeEntity == default || !activeEntity.HasComponent<MeshComponent>())
+            {
+                // No active mesh or active entity doesn't have a MeshComponent, so nothing to do.
+                return;
+            }
+
+            // Get a reference to the MeshComponent to ensure modifications are applied to the original
+            ref MeshComponent activeMeshComponent = ref activeEntity.GetComponent<MeshComponent>();
 
             var clickedElements = findClickedBezierElements(pressPosition);
 
@@ -108,7 +117,7 @@ namespace XanaduProject.Scenes.MeshEditor
 
                         var newElement = (insertionIndex, HandleType.Point);
                         selectedElements.Add(newElement);
-                        editor.LayerManager.UpdateTriangulationForMesh(activeMeshComponent);
+                        MeshUtils.UpdateTriangulation(activeMeshComponent);
                     }
                 }
                 else // something clicked
@@ -148,12 +157,19 @@ namespace XanaduProject.Scenes.MeshEditor
                 activeMeshComponent.SelectedHandleType = HandleType.None;
             }
 
-            editor.LayerManager.NotifyMeshSelectionChanged();
+            editor.LayerManager.NotifySelectionChanged();
         }
 
         protected override void OnRightClick()
         {
-            ref var activeMeshComponent = ref editor.LayerManager.ActiveEntity.GetComponent<MeshComponent>();
+            var activeEntity = editor.LayerManager.ActiveEntity;
+            if (activeEntity == default || !activeEntity.HasComponent<MeshComponent>())
+            {
+                return;
+            }
+
+            ref MeshComponent activeMeshComponent = ref activeEntity.GetComponent<MeshComponent>();
+
             if (selectedElements.Count == 0) return;
 
             // We can only delete points, not handles.
@@ -167,18 +183,25 @@ namespace XanaduProject.Scenes.MeshEditor
                     activeMeshComponent.BezierPoints.RemoveAt(index);
                 }
 
-                editor.LayerManager.UpdateTriangulationForMesh(activeMeshComponent);
+                MeshUtils.UpdateTriangulation(activeMeshComponent);
             }
 
             selectedElements.Clear();
             activeMeshComponent.SelectedBezierPointIndex = -1;
             activeMeshComponent.SelectedHandleType = HandleType.None;
-            editor.LayerManager.NotifyMeshSelectionChanged();
+            editor.LayerManager.NotifySelectionChanged();
         }
 
         protected override void OnDrag(Vector2 delta)
         {
-            ref var activeMeshComponent = ref editor.LayerManager.ActiveEntity.GetComponent<MeshComponent>();
+            var activeEntity = editor.LayerManager.ActiveEntity;
+            if (activeEntity == default || !activeEntity.HasComponent<MeshComponent>())
+            {
+                return;
+            }
+
+            ref MeshComponent activeMeshComponent = ref activeEntity.GetComponent<MeshComponent>();
+
             if (selectedElements.Count == 0) return;
 
             var activeHandleType = activeMeshComponent.SelectedHandleType;
@@ -220,8 +243,8 @@ namespace XanaduProject.Scenes.MeshEditor
                 }
             }
 
-            editor.LayerManager.UpdateTriangulationForMesh(activeMeshComponent);
-            editor.LayerManager.NotifyMeshSelectionChanged();
+            MeshUtils.UpdateTriangulation(activeMeshComponent);
+            editor.LayerManager.NotifySelectionChanged();
         }
 
         private int FindClosestSegmentIndex(Vector2 position, IReadOnlyList<BezierPoint> points)
@@ -271,22 +294,27 @@ namespace XanaduProject.Scenes.MeshEditor
         private List<(int, HandleType)> findClickedBezierElements(Vector2 position)
         {
             var foundElements = new List<(int, HandleType)>();
-            ref var meshData = ref editor.LayerManager.ActiveEntity.GetComponent<MeshComponent>();
+            var activeEntity = editor.LayerManager.ActiveEntity;
 
-            float zoom = GetViewport().GetCanvasTransform().Scale.X;
-            float scaledPointRadius = point_selection_radius / zoom;
-            float scaledHandleRadius = handle_selection_radius / zoom;
+            if (activeEntity == default || !activeEntity.TryGetComponent(out MeshComponent meshData))
+            {
+                return foundElements; // Return empty list if no active mesh component
+            }
+
+            // Temporarily use fixed radii for debugging selection
+            float fixedPointRadius = point_selection_radius;
+            float fixedHandleRadius = handle_selection_radius;
 
             // Prioritize handles to solve the user's problem
             for (int i = 0; i < meshData.BezierPoints.Count; i++)
             {
                 BezierPoint bp = meshData.BezierPoints[i];
-                if ((bp.Position + bp.InHandle).DistanceTo(position) < scaledHandleRadius)
+                if ((bp.Position + bp.InHandle).DistanceTo(position) < fixedHandleRadius)
                 {
                     foundElements.Add((i, HandleType.InHandle));
                 }
 
-                if ((bp.Position + bp.OutHandle).DistanceTo(position) < scaledHandleRadius)
+                if ((bp.Position + bp.OutHandle).DistanceTo(position) < fixedHandleRadius)
                 {
                     foundElements.Add((i, HandleType.OutHandle));
                 }
@@ -295,7 +323,7 @@ namespace XanaduProject.Scenes.MeshEditor
             for (int i = 0; i < meshData.BezierPoints.Count; i++)
             {
                 BezierPoint bp = meshData.BezierPoints[i];
-                if (bp.Position.DistanceTo(position) < scaledPointRadius)
+                if (bp.Position.DistanceTo(position) < fixedPointRadius)
                 {
                     foundElements.Add((i, HandleType.Point));
                 }

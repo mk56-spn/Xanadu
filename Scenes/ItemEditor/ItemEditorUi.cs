@@ -1,7 +1,8 @@
-using Godot;
 using System.Collections.Generic;
+using Godot;
+using XanaduProject.Utils;
 
-namespace XanaduProject.Scenes.MeshEditor
+namespace XanaduProject.Scenes.ItemEditor
 {
     public partial class ItemEditorUi : VBoxContainer
     {
@@ -18,8 +19,8 @@ namespace XanaduProject.Scenes.MeshEditor
         public ItemEditorUi(IItemEditor editor)
         {
             this.editor = editor;
-            this.editor.MeshLayersChanged += refreshLayerButtons;
-            this.editor.ActiveMeshSelectionChanged += refreshHandleLockCheckbox;
+            this.editor.LayersChanged += refreshLayerButtons;
+            this.editor.ActiveLayerSelectionChanged += refreshHandleLockCheckbox;
 
             PanelContainer layerPanel = new PanelContainer { Name = layer_panel_name, MouseFilter = MouseFilterEnum.Stop };
             AddChild(layerPanel);
@@ -29,7 +30,7 @@ namespace XanaduProject.Scenes.MeshEditor
 
             layerButtonGroup = new ButtonGroup();
 
-            addLayerButton = new Button { Text = "Add New Mesh Layer" };
+            addLayerButton = new Button { Text = "Add New Layer" };
             addLayerButton.Pressed += OnAddLayerButtonPressed;
 
             VBoxContainer miscContainer = new VBoxContainer();
@@ -66,7 +67,7 @@ namespace XanaduProject.Scenes.MeshEditor
                 child.QueueFree();
             }
 
-            IReadOnlyList<string> layerNames = editor.LayerManager.GetMeshLayerNames();
+            IReadOnlyList<string> layerNames = editor.LayerManager.GetLayerNames();
             for (int i = 0; i < layerNames.Count; i++)
             {
                 var layerControlContainer = new HBoxContainer();
@@ -93,39 +94,62 @@ namespace XanaduProject.Scenes.MeshEditor
 
             layerButtonsContainer.AddChild(addLayerButton);
 
-            if (editor.LayerManager.ActiveMeshIndex != -1 && editor.LayerManager.ActiveMeshIndex < layerNames.Count)
+            if (editor.LayerManager.ActiveLayerIndex != -1 && editor.LayerManager.ActiveLayerIndex < layerNames.Count)
             {
                 var buttons = layerButtonGroup.GetButtons();
-                if (editor.LayerManager.ActiveMeshIndex < buttons.Count)
+                if (editor.LayerManager.ActiveLayerIndex < buttons.Count)
                 {
-                    buttons[editor.LayerManager.ActiveMeshIndex].ButtonPressed = true;
+                    buttons[editor.LayerManager.ActiveLayerIndex].ButtonPressed = true;
                 }
             }
         }
 
         private void refreshHandleLockCheckbox()
         {
-            bool hasSelectedPoint = editor.LayerManager.HasActiveMeshSelectedBezierPoint();
-            lockHandlesCheckBox.Visible = hasSelectedPoint;
-            if (hasSelectedPoint)
+            var activeEntity = editor.LayerManager.ActiveEntity;
+            if (activeEntity != default && activeEntity.TryGetComponent(out MeshComponent meshComponent))
             {
-                lockHandlesCheckBox.SetDeferred("button_pressed", editor.LayerManager.GetActiveMeshHandlesLockedState());
+                bool hasSelectedPoint = meshComponent.SelectedBezierPointIndex != -1;
+                lockHandlesCheckBox.Visible = hasSelectedPoint;
+                if (hasSelectedPoint)
+                {
+                    lockHandlesCheckBox.SetDeferred("button_pressed", meshComponent.BezierPoints[meshComponent.SelectedBezierPointIndex].HandlesLocked);
+                }
+            }
+            else
+            {
+                lockHandlesCheckBox.Visible = false;
             }
         }
 
         private void OnLayerButtonPressed(int index)
         {
-            editor.LayerManager.SetActiveMeshLayer(index);
+            editor.LayerManager.SetActiveLayer(index);
         }
 
         private void OnAddLayerButtonPressed()
         {
-            editor.LayerManager.AddNewMeshEntity();
+            editor.LayerManager.AddNewLayerEntity();
         }
 
         private void OnHandlesLockedToggled(bool toggled)
         {
-            editor.LayerManager.SetActiveMeshHandlesLockedState(toggled);
+            var activeEntity = editor.LayerManager.ActiveEntity;
+            if (activeEntity != default && activeEntity.TryGetComponent(out MeshComponent meshComponent))
+            {
+                if (meshComponent.SelectedBezierPointIndex != -1)
+                {
+                    var currentPoint = meshComponent.BezierPoints[meshComponent.SelectedBezierPointIndex];
+                    currentPoint.HandlesLocked = toggled;
+                    if (toggled)
+                    {
+                        currentPoint.OutHandle = -currentPoint.InHandle;
+                    }
+                    meshComponent.BezierPoints[meshComponent.SelectedBezierPointIndex] = currentPoint;
+                    MeshUtils.UpdateTriangulation(meshComponent);
+                    editor.LayerManager.NotifySelectionChanged();
+                }
+            }
         }
 
         private void OnShowAllLayersToggled(bool toggled)

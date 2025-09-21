@@ -1,9 +1,9 @@
-using Godot;
 using System.Collections.Generic;
 using System.Linq;
 using Clipper2Lib;
+using Godot;
 
-namespace XanaduProject.Scenes.MeshEditor
+namespace XanaduProject.Scenes.ItemEditor
 {
     public static class BezierTriangulator
     {
