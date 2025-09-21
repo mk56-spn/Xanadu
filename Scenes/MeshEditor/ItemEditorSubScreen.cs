@@ -12,6 +12,7 @@ namespace XanaduProject.Scenes.MeshEditor
 
         public ItemEditorSubScreen(Item item)
         {
+
             // Make the subscreen visible and fill the entire parent.
             Visible = true;
             SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);

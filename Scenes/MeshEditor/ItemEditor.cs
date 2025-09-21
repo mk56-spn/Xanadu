@@ -8,6 +8,7 @@ using XanaduProject.IO;
 using XanaduProject.ECSComponents.EntitySystem.Components;
 using XanaduProject.Factories;
 using XanaduProject.Scenes.MeshEditor.Systems;
+using XanaduProject.Stage.Masters.Composer;
 
 namespace XanaduProject.Scenes.MeshEditor
 {
@@ -22,10 +23,23 @@ namespace XanaduProject.Scenes.MeshEditor
         public event Action? MeshLayersChanged;
         public event Action? ActiveMeshSelectionChanged;
 
-        public Rid CanvasRid => GetCanvasItem();
+        public Rid CanvasRid => canvasRid;
+
+        private readonly RenderRid canvasRid = RenderRid.Create();
+
+        private PanningCamera camera = new(); // Declare a field for the camera
 
         public ItemEditor(Item? item = null)
         {
+            CanvasLayer canvasLayer;
+            AddChild( canvasLayer = new CanvasLayer()
+            {
+                FollowViewportEnabled = true,
+                Layer = 10
+            });
+            canvasRid.SetParent(canvasLayer.GetCanvas());
+
+            AddChild(camera); // Add it as a child
             CurrentItem = item ?? new Item
             {
                 Name = "New Item",
@@ -61,6 +75,15 @@ namespace XanaduProject.Scenes.MeshEditor
             root.AddStore(DiProvider.Get<EntityStore>());
             root.Add(new MeshVisibilitySystem());
             root.Add(new MeshOutlineRenderSystem(this));
+
+
+        }
+
+        public override void _Ready()
+        {
+            camera.MakeCurrent();
+            // Center the camera on the world origin (0,0)
+            camera.Position = Vector2.Zero;
         }
 
         public void TriggerSave()

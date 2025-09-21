@@ -6,13 +6,13 @@ using XanaduProject.GameDependencies;
 
 namespace XanaduProject.Stage.Masters.UI
 {
-    public partial class GameplayUiMaster : Node, IGameplayUiMaster
+    public partial class UiMaster : Node, IUiMaster
     {
         public CanvasLayer ScoreLayer { get; private set; } = new();
         public Control TopCenterUi { get; private set; } = new();
         public Control BottomCenterUi { get; private set; } = new();
 
-        public GameplayUiMaster()
+        public UiMaster()
         {
             AddChild(ScoreLayer);
             ScoreLayer.AddChild(TopCenterUi);
