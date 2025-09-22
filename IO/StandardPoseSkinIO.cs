@@ -5,7 +5,8 @@ using System.IO;
 using System.Text.Json;
 using Godot;
 using XanaduProject.IO.Indexes;
-using XanaduProject.Scenes.MeshEditor;
+using XanaduProject.Scenes.ItemEditor;
+using XanaduProject.Screens.AssetCreation.Skeleton;
 using static XanaduProject.IO.SerializationUtils;
 
 namespace XanaduProject.IO

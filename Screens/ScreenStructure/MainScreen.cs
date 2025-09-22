@@ -5,5 +5,6 @@ namespace XanaduProject.Screens.ScreenStructure
 {
     public partial class MainScreen : Screen
     {
+
     }
 }

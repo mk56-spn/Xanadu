@@ -18,12 +18,12 @@ namespace XanaduProject.Screens
         private readonly StateMachine<State, Trigger>.TriggerWithParameters<ChangeRequest> changeTrigger;
 
         private Screen? currentScreen;
-        private readonly Node screenParent;
+        private readonly CanvasLayer screenParent;
         private readonly ScreenTransitionManager transitionManager;
         private readonly Action<Screen?>? onScreenChanged;
         private readonly Action<Screen>? onScreenCleanup;
 
-        public ScreenFader(Node screenParent, ScreenTransitionManager transitionManager, Action<Screen?>? onScreenChanged = null, Action<Screen>? onScreenCleanup = null)
+        public ScreenFader(CanvasLayer screenParent, ScreenTransitionManager transitionManager, Action<Screen> onScreenChanged = null, Action<Screen>? onScreenCleanup = null)
         {
             this.screenParent = screenParent;
             this.transitionManager = transitionManager;

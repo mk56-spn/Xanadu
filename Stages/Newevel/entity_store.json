@@ -54,16 +54,13 @@
 },{
     "id": 10,
     "components": {
-        "ElementEcs": {"Index":0,"Transform":{"X":{"X":1,"Y":0},"Y":{"X":0,"Y":1},"Origin":{"X":-3.461852,"Y":71.04418}}},
-        "NoteEcs": {"NoteType":"Main","TimingPoint":0.6,"NoteCanvas":{}},
-        "DirectionEcs": {"Direction":"Left"}
-    }
-},{
-    "id": 11,
-    "components": {
-        "ElementEcs": {"Index":0,"Transform":{"X":{"X":1,"Y":0},"Y":{"X":0,"Y":1},"Origin":{"X":-17.550095,"Y":77.8528}}},
-        "NoteEcs": {"NoteType":"Main","TimingPoint":0.3,"NoteCanvas":{}}
-    }
+        "ElementEcs": {"Index":0,"Transform":{"X":{"X":1,"Y":0},"Y":{"X":0,"Y":1},"Origin":{"X":33.626274,"Y":47.65906}}},
+        "NoteEcs": {"NoteType":"Main","TimingPoint":0.3,"NoteCanvas":{}},
+        "DirectionEcs": {"Direction":"Right"}
+    },
+    "tags": [
+        "SelectionFlag"
+    ]
 },{
     "id": 12,
     "components": {
@@ -105,4 +102,6 @@
         "NoteEcs": {"NoteType":"R","TimingPoint":1.8,"NoteCanvas":{}},
         "DirectionEcs": {"Direction":"Right"}
     }
+},{
+    "id": 18
 }]

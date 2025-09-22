@@ -48,7 +48,7 @@ namespace XanaduProject.Screens
             start.Pressed += () =>
                 ScreenManager.RequestChangeScreen(new StageSelection.StageSelection());
             quit.Pressed += () => GetTree().Quit();
-            Rigging.Pressed += () => ScreenManager.RequestChangeScreen(new IkRiggingScreen());
+            Rigging.Pressed += () => ScreenManager.RequestChangeScreen(new AssetCreationScreen());
             settings.Pressed += () =>
             {
                 settingsScreen.Visible = true;

@@ -8,6 +8,7 @@ using XanaduProject.ECSComponents.EntitySystem.Components;
 using XanaduProject.ECSComponents.EntitySystem.Components.Bones;
 using XanaduProject.GameDependencies;
 using XanaduProject.Scenes;
+using XanaduProject.Screens.AssetCreation.Skeleton;
 
 namespace XanaduProject.Character
 {

@@ -1,6 +1,7 @@
 using Friflo.Engine.ECS;
 using Godot;
 using XanaduProject.ECSComponents.EntitySystem.Components;
+using XanaduProject.Factories;
 using XanaduProject.GameDependencies;
 using static Godot.RenderingServer;
 
@@ -13,7 +14,7 @@ namespace XanaduProject.ECSComponents.EntitySystem.InitialiserSystems
         {
             Query.ForEachEntity((ref ElementEcs element, Entity _) =>
             {
-                element.Canvas = CanvasItemCreate();
+                element.Canvas = RenderRid.Create();
                 CanvasItemSetParent(element.Canvas,
                     master);
             });

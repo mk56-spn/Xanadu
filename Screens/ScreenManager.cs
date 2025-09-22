@@ -19,18 +19,21 @@ namespace XanaduProject.Screens
         private readonly ScreenFader screenFader;
         private readonly SubScreenManager subScreenManager;
 
+        private CanvasLayer layer = new();
+
         private Control? background;
         private const float transition_duration = 0.5f;
 
         private static readonly DefaultBackground default_background = new();
 
-        public ScreenManager()
+        protected ScreenManager()
         {
+            AddChild(layer);
             var transitionManager1 = new ScreenTransitionManager(this, transition_duration);
             subScreenManager = new SubScreenManager(this, transitionManager1);
             DiProvider.Register(c => { c.AddSingleton(this); });
 
-            screenFader = new ScreenFader(this, transitionManager1, OnScreenChanged, OnScreenCleanup);
+            screenFader = new ScreenFader(layer, transitionManager1, OnScreenChanged, OnScreenCleanup);
 
             updateBackground(null);
 

@@ -1,0 +1,137 @@
+{
+  "Name": "Standard Pose",
+  "Description": "A standard pose for a mesh.",
+  "Author": "mk56_spn",
+  "BoneNames": [
+    "Shoulder",
+    "Hip",
+    "LeftHip",
+    "RightHip",
+    "LeftArmUpper",
+    "LeftArmLower",
+    "RightArmUpper",
+    "RightArmLower",
+    "LeftLegUpper",
+    "LeftLegLower",
+    "RightLegUpper",
+    "RightLegLower"
+  ],
+  "ItemAssignments": {
+    "RightArmLower": {
+      "Components": [
+        {
+          "componentType": "mesh",
+          "MeshComponent": {
+            "Name": "New Mesh",
+            "BezierPoints": [
+              {
+                "Position": {
+                  "x": -653,
+                  "y": -304.5
+                },
+                "InHandle": {
+                  "x": -20,
+                  "y": 0
+                },
+                "OutHandle": {
+                  "x": 20,
+                  "y": 0
+                }
+              },
+              {
+                "Position": {
+                  "x": -288,
+                  "y": -280.5
+                },
+                "InHandle": {
+                  "x": -121.666664,
+                  "y": -7.9999995
+                },
+                "OutHandle": {
+                  "x": -21.333334,
+                  "y": 39.333336
+                }
+              },
+              {
+                "Position": {
+                  "x": -352,
+                  "y": -162.5
+                },
+                "InHandle": {
+                  "x": -100.333336,
+                  "y": -47.333336
+                },
+                "OutHandle": {
+                  "x": -100.333336,
+                  "y": -47.333336
+                }
+              }
+            ]
+          },
+          "Color": "255,255,255,255"
+        }
+      ],
+      "Author": "mk56_spn",
+      "Description": "Item for bone RightArmLower on skin default",
+      "Name": "default_RightArmLower_Item"
+    },
+    "LeftLegLower": {
+      "Components": [
+        {
+          "componentType": "mesh",
+          "MeshComponent": {
+            "Name": "New Mesh",
+            "BezierPoints": [
+              {
+                "Position": {
+                  "x": 156.51881,
+                  "y": -63.676838
+                },
+                "InHandle": {
+                  "x": -20,
+                  "y": 0
+                },
+                "OutHandle": {
+                  "x": 20,
+                  "y": 0
+                }
+              },
+              {
+                "Position": {
+                  "x": -936.19543,
+                  "y": -560.45355
+                },
+                "InHandle": {
+                  "x": 83.60626,
+                  "y": 110.50284
+                },
+                "OutHandle": {
+                  "x": -3.8886516,
+                  "y": 35.970135
+                }
+              },
+              {
+                "Position": {
+                  "x": -531.77454,
+                  "y": -286.3028
+                },
+                "InHandle": {
+                  "x": -232.3477,
+                  "y": 151.33382
+                },
+                "OutHandle": {
+                  "x": 87.49491,
+                  "y": 74.53271
+                }
+              }
+            ]
+          },
+          "Color": "255,255,255,255"
+        }
+      ],
+      "Author": "mk56_spn",
+      "Description": "Item for bone LeftLegLower on skin default",
+      "Name": "default_LeftLegLower_Item"
+    }
+  }
+}

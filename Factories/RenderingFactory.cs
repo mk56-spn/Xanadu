@@ -37,9 +37,9 @@ namespace XanaduProject.Factories
         public static RenderRid AddString(this in RenderRid r, Vector2 position, string text, int fontSize, Color? color = null, Font? font = null)
         {
             var actualFont = font ?? fallback_font;
-            // Calculate string size to center it properly
+            // Calculate string size to centre it properly
             Vector2 stringSize = actualFont.GetStringSize(text, fontSize: fontSize);
-            // Adjust position to center the text (offset by half the width)
+            // Adjust position to cent  re the text (offset by half the width)
             Vector2 centeredPosition = new Vector2(position.X - stringSize.X / 2, position.Y);
 
             actualFont.DrawString(r.Rid, centeredPosition, text, HorizontalAlignment.Left, -1, fontSize, color ?? Colors.White);

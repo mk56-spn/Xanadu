@@ -1,0 +1,85 @@
+{
+  "MeshLayers": [
+    {
+      "MeshComponent": {
+        "Name": "New Mesh",
+        "BezierPoints": [
+          {
+            "Position": {
+              "x": 688,
+              "y": 494
+            },
+            "InHandle": {
+              "x": -81,
+              "y": 257
+            },
+            "OutHandle": {
+              "x": 30,
+              "y": 102
+            }
+          },
+          {
+            "Position": {
+              "x": 773,
+              "y": 419
+            },
+            "InHandle": {
+              "x": -45.666668,
+              "y": 8.666667
+            },
+            "OutHandle": {
+              "x": -45.666668,
+              "y": 8.666667
+            }
+          },
+          {
+            "Position": {
+              "x": 574,
+              "y": 298
+            },
+            "InHandle": {
+              "x": 18.333332,
+              "y": 32
+            },
+            "OutHandle": {
+              "x": -29.999998,
+              "y": 45
+            }
+          },
+          {
+            "Position": {
+              "x": 465,
+              "y": 308
+            },
+            "InHandle": {
+              "x": 13.999999,
+              "y": 0.99999994
+            },
+            "OutHandle": {
+              "x": 32,
+              "y": 54.333336
+            }
+          },
+          {
+            "Position": {
+              "x": 488,
+              "y": 441
+            },
+            "InHandle": {
+              "x": 7,
+              "y": -10.666666
+            },
+            "OutHandle": {
+              "x": 61.333336,
+              "y": 39.333336
+            }
+          }
+        ]
+      },
+      "Color": "255,255,255,255"
+    }
+  ],
+  "Author": "Default Author",
+  "Description": "Default Description",
+  "Name": "New Item"
+}

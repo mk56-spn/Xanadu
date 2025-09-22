@@ -3,12 +3,12 @@
 
 using System.Collections.Generic;
 using Godot;
-using XanaduProject.Scenes.MeshEditor;
 using Friflo.Engine.ECS;
 using System.Text.Json;
 using System.IO;
 using static XanaduProject.IO.SerializationUtils;
 using System.Text.Json.Serialization;
+using XanaduProject.Scenes.ItemEditor;
 
 namespace XanaduProject.IO
 {
@@ -17,11 +17,8 @@ namespace XanaduProject.IO
         public static void SerializeItem(Item item)
         {
             var options = new JsonSerializerOptions { WriteIndented = true };
-            // The converter is now applied via attribute on SerializableMeshLayer.Color
-            // options.Converters.Add(new ColorConverter());
             string json = JsonSerializer.Serialize(item, options);
 
-            // Ensure the directory exists
             DirAccess.MakeDirRecursiveAbsolute(ITEMS_DIR);
             string filePath = Path.Combine(ITEMS_DIR, $"{item.Name}.json");
             File.WriteAllText(ProjectSettings.GlobalizePath(filePath), json);
@@ -30,8 +27,6 @@ namespace XanaduProject.IO
         public static Item? DeserializeItem(string json)
         {
             var options = new JsonSerializerOptions();
-            // The converter is now applied via attribute on SerializableMeshLayer.Color
-            // options.Converters.Add(new ColorConverter());
             return JsonSerializer.Deserialize<Item>(json, options);
         }
 
@@ -50,25 +45,26 @@ namespace XanaduProject.IO
             return DeserializeItem(json);
         }
 
-        public static Item CreateItemFromMeshLayerManager(IMeshLayerManager meshLayerManager, string author, string description, string name)
+        public static Item CreateItemFromComponentLayerManager(IComponentLayerManager componentLayerManager, string author, string description, string name)
         {
-            List<SerializableMeshLayer> serializedLayers = new List<SerializableMeshLayer>();
+            var serializedComponents = new List<SerializableComponent>();
 
-            foreach (Entity entity in meshLayerManager.GetAllMeshEntities())
+            foreach (Entity entity in componentLayerManager.GetAllLayerEntities())
             {
                 if (entity.TryGetComponent(out MeshComponent meshComponent))
                 {
-                    serializedLayers.Add(new SerializableMeshLayer
+                    serializedComponents.Add(new SerializableMeshComponent
                     {
                         MeshComponent = meshComponent,
                         Color = meshComponent.Color
                     });
                 }
+                // In the future, we can check for other component types here.
             }
 
             return new Item
             {
-                MeshLayers = serializedLayers,
+                Components = serializedComponents,
                 Author = author,
                 Description = description,
                 Name = name
@@ -78,13 +74,17 @@ namespace XanaduProject.IO
 
     public record Item()
     {
-        public List<SerializableMeshLayer> MeshLayers { get; set; } = new();
+        public List<SerializableComponent> Components { get; set; } = new();
         public string Author { get; set; } = "Anonymous";
         public string Description { get; set; }
         public string Name { get; set; }
     }
 
-    public record SerializableMeshLayer
+    [JsonPolymorphic(TypeDiscriminatorPropertyName = "componentType")]
+    [JsonDerivedType(typeof(SerializableMeshComponent), typeDiscriminator: "mesh")]
+    public abstract record SerializableComponent;
+
+    public record SerializableMeshComponent : SerializableComponent
     {
         public required MeshComponent MeshComponent { get; set; }
         [JsonConverter(typeof(ColorConverter))] // Apply the custom converter directly to the property

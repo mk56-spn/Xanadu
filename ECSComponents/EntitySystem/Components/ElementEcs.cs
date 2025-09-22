@@ -4,6 +4,7 @@
 using Friflo.Engine.ECS;
 using Friflo.Json.Fliox;
 using Godot;
+using XanaduProject.Factories;
 
 namespace XanaduProject.ECSComponents.EntitySystem.Components
 {
@@ -12,9 +13,9 @@ namespace XanaduProject.ECSComponents.EntitySystem.Components
 		public int Index = 0;
 		public Transform2D Transform = Transform2D.Identity;
 
-		[Ignore] public ulong Id => Canvas.Id;
+		[Ignore] public ulong Id => Canvas.Rid.Id;
 		[Ignore] public Vector2 Vector2 => Transform.Origin;
 
-		[Ignore] public Rid Canvas;
+		[Ignore] public RenderRid Canvas;
 	}
 }

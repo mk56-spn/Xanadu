@@ -22,7 +22,7 @@ namespace XanaduProject.ECSComponents.EntitySystem.BoneSystems
                     ref BoneGlobalTransform boneGlobalTransform = ref v.Component;
                     component1.Canvas.AddCircle(2, position:boneGlobalTransform.GlobalPosition, color: new Color(1, 0, 0));
                     component1.Canvas.AddLine(boneGlobalTransform.GlobalPosition,
-                        boneGlobalTransform.GlobalPosition + new Vector2(bone.Length, 0).Rotated(boneGlobalTransform.GlobalAngle), Colors.Red);
+                        boneGlobalTransform.GlobalPosition + new Vector2(bone.Length, 0).Rotated(boneGlobalTransform.GlobalAngle), entity.HasComponent<SelectedBoneMarker>()? Colors.Blue : Colors.Red);
                 }
             });
         }

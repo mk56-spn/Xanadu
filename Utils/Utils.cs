@@ -3,11 +3,37 @@
 
 
 using Godot;
+using XanaduProject.Factories;
 
-namespace XanaduProject
+namespace XanaduProject.Utils
 {
-    public static class Utils
+    public static class UtilsGeneral
     {
+
+        public static RenderRid GridCanvas(int spacing, Rid parent)
+        {
+            int lineCount = 32;
+            var lineY = new Vector2[lineCount * 2];
+            var lineX = new Vector2[lineCount * 2];
+
+
+            for (int i = 0; i < lineCount; i++)
+            {
+                lineY[i * 2] = new Vector2(i * spacing, 0);
+                lineY[i * 2 + 1] = new Vector2(i * spacing, 3000);
+                lineX[i * 2] = new Vector2(0, i * spacing);
+                lineX[i * 2 + 1] = new Vector2(5000, i * spacing);
+            }
+
+            return RenderRid.Create()
+                .SetParent(parent)
+                .SetModulate(Colors.Blue with { A = 0.2F })
+                .SetZIndex(-10)
+                .AddMultiline(lineX)
+                .AddMultiline(lineY);
+        }
+
+
         public static Rect2 GetNonNegativeRect(Vector2 start, Vector2 end, bool centered = false)
         {
             var rectSize = new Vector2(Mathf.Abs(end.X - start.X), Mathf.Abs(end.Y - start.Y));

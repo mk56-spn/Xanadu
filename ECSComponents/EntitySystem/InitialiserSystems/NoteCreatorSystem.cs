@@ -75,7 +75,7 @@ namespace XanaduProject.ECSComponents.EntitySystem.InitialiserSystems
                     .SetMaterial(Materials.Notes.Get().Falling)
                     .SetParent(element.Canvas);
 
-                element.Canvas.AsRenderRid().SetMaterial(Materials.Notes.Get().Receiver);
+                element.Canvas.SetMaterial(Materials.Notes.Get().Receiver);
 				    C.AddComponent(id, new HitZoneEcs(PhysicsFactory.CreateNoteArea(element.Transform)));
             }
 		}
