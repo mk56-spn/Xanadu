@@ -1,8 +1,8 @@
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
-using XanaduProject.Scenes.MeshEditor;
 using XanaduProject.ECSComponents.EntitySystem.Components;
 using XanaduProject.Factories;
+using XanaduProject.Scenes.ItemEditor;
 
 namespace XanaduProject.ECSComponents.EntitySystem
 {

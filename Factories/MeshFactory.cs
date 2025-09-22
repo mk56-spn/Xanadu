@@ -4,7 +4,7 @@
 using Godot;
 using System;
 using System.Collections.Generic;
-using XanaduProject.Scenes.MeshEditor;
+using XanaduProject.Scenes.ItemEditor;
 using Array = Godot.Collections.Array;
 
 namespace XanaduProject.Factories
