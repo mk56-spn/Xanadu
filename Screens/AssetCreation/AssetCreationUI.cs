@@ -1,9 +1,10 @@
-using Godot;
 using System;
+using Godot;
+using XanaduProject.Scenes;
 
-namespace XanaduProject.Scenes
+namespace XanaduProject.Screens.AssetCreation
 {
-    public partial class IkRiggingUi : Control
+    public partial class AssetCreationUi : Control
     {
         public event Action<double>? SliderValueChanged;
         public event Action<long>? StartPoseSelected;
@@ -16,7 +17,7 @@ namespace XanaduProject.Scenes
         private LineEdit newPoseNameEdit;
         private Button savePoseButton;
 
-        public IkRiggingUi()
+        public AssetCreationUi()
         {
             setupUi();
         }
@@ -37,10 +38,10 @@ namespace XanaduProject.Scenes
             AddChild(endPoseDropdown);
 
             newPoseNameEdit = new LineEdit
-                { Position = new Vector2(100, 70), Size = new Vector2(150, 20), PlaceholderText = "New Pose Name" };
+                { Position = new Vector2(100, 70), Size = new Vector2(150, 20), PlaceholderText = "New Skeleton Name" };
             AddChild(newPoseNameEdit);
 
-            savePoseButton = new Button { Text = "Save Current Pose", Position = new Vector2(260, 70) };
+            savePoseButton = new Button { Text = "Save Current Skeleton", Position = new Vector2(260, 70) };
             savePoseButton.Pressed += OnSavePosePressed;
             AddChild(savePoseButton);
         }

@@ -1,9 +1,9 @@
 using System.Collections.Generic;
 using Godot;
 
-namespace XanaduProject.Scenes
+namespace XanaduProject.Screens.AssetCreation.Skeleton
 {
-    public record Pose
+    public record Skeleton
     {
         public string Name { get; set; }
         public List<Vector2> IkTargetPositions { get; set; } = [];

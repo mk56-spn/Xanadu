@@ -8,7 +8,7 @@ using XanaduProject.ECSComponents;
 using XanaduProject.ECSComponents.EntitySystem.Components.Bones;
 using XanaduProject.GameDependencies;
 
-namespace XanaduProject.Scenes
+namespace XanaduProject.Screens.AssetCreation.Skeleton
 {
     public static class SkeletonBuilder
     {
