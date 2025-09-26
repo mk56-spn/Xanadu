@@ -6,7 +6,7 @@ namespace XanaduProject.Scenes.ItemEditor
 {
     public partial class ItemEditorSubScreen : SubScreen
     {
-        private readonly ItemEditor itemEditor;
+        private readonly Screens.AssetCreation.ItemEditor.ItemEditor itemEditor;
 
         public event Action<Item>? ItemSaved;
 
@@ -17,7 +17,7 @@ namespace XanaduProject.Scenes.ItemEditor
             Visible = true;
             SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
 
-            itemEditor = new ItemEditor(item);
+            itemEditor = new Screens.AssetCreation.ItemEditor.ItemEditor(item);
             AddChild(itemEditor);
 
             itemEditor.ItemSaved += OnItemSaved;

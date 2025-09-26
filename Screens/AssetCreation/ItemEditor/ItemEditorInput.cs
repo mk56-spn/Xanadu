@@ -1,10 +1,11 @@
 using System.Collections.Generic;
 using System.Linq;
 using Godot;
-using XanaduProject.Scenes.Editor.Input;
+using XanaduProject.Scenes.ItemEditor;
 using XanaduProject.Utils;
+using BaseInputHandler = XanaduProject.Screens.AssetCreation.Editor.Input.BaseInputHandler;
 
-namespace XanaduProject.Scenes.ItemEditor
+namespace XanaduProject.Screens.AssetCreation.ItemEditor
 {
     public partial class ItemEditorInput : BaseInputHandler
     {

@@ -3,11 +3,13 @@
 
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
+using Godot;
 using XanaduProject.Factories;
 using XanaduProject.IO;
+using XanaduProject.Scenes.ItemEditor;
 using XanaduProject.Utils;
 
-namespace XanaduProject.Scenes.ItemEditor
+namespace XanaduProject.Screens.AssetCreation.ItemEditor
 {
     public static class ItemBuilder
     {
@@ -19,21 +21,17 @@ namespace XanaduProject.Scenes.ItemEditor
         /// <returns></returns>
         public static RenderRid[] BuildItem(Item item, EntityStore store)
         {
-            List<RenderRid> rids = new List<RenderRid>();
+            List<RenderRid> rids = [];
 
             foreach (var component in item.Components)
             {
-                if (component is SerializableMeshComponent serializableMesh)
-                {
-                    MeshComponent meshComponent = serializableMesh.MeshComponent;
-                    // Ensure RenderRid is initialized, potentially with a new parent if needed
-                    meshComponent.RenderRid = RenderRid.Create(); // Or pass a parent RID if available
-                    store.CreateEntity(meshComponent);
+                if (component is not SerializableMeshComponent serializableMesh) continue;
 
-                    MeshUtils.UpdateTriangulation(meshComponent);
-                    rids.Add(meshComponent.RenderRid);
-                }
-                // Add handling for other SerializableComponent types here in the future
+                MeshComponent meshComponent = serializableMesh.MeshComponent;
+                meshComponent.RenderRid = RenderRid.Create();
+                MeshUtils.UpdateTriangulation(meshComponent);
+                meshComponent.RenderRid.SetModulate(Colors.Red);
+                rids.Add(meshComponent.RenderRid);
             }
 
             return rids.ToArray();

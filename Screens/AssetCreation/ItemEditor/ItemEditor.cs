@@ -7,11 +7,12 @@ using XanaduProject.ECSComponents.EntitySystem.Components;
 using XanaduProject.Factories;
 using XanaduProject.GameDependencies;
 using XanaduProject.IO;
+using XanaduProject.Scenes.ItemEditor;
 using XanaduProject.Scenes.ItemEditor.Systems;
 using XanaduProject.Stage.Masters.Composer;
 using XanaduProject.Utils;
 
-namespace XanaduProject.Scenes.ItemEditor
+namespace XanaduProject.Screens.AssetCreation.ItemEditor
 {
     public partial class ItemEditor : Control, IItemEditor
     {
@@ -37,6 +38,7 @@ namespace XanaduProject.Scenes.ItemEditor
                 FollowViewportEnabled = true,
                 Layer = 10
             };
+            RenderRid.Create(canvasLayer.GetCanvas()).AddCircle(10, color: Colors.Orange);
             AddChild(canvasLayer);
             canvasRid.SetParent(canvasLayer.GetCanvas());
 
@@ -108,6 +110,7 @@ namespace XanaduProject.Scenes.ItemEditor
 
         public override void _Process(double delta)
         {
+
             base._Process(delta);
             root.Update(default);
         }

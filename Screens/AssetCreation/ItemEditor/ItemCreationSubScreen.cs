@@ -9,7 +9,7 @@ namespace XanaduProject.Scenes.ItemEditor
     {
         public ItemCreationSubScreen(Item? item = null)
         {
-            AddChild(new ItemEditor(item));
+            AddChild(new Screens.AssetCreation.ItemEditor.ItemEditor(item));
             Visible = true;
         }
     }
