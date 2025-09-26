@@ -14,8 +14,8 @@ namespace XanaduProject.ECSComponents.EntitySystem.ComposerSystems
         private readonly IComposerVisuals visuals = DiProvider.Get<IComposerVisuals>();
         protected override void OnAddStore(EntityStore store)
         {
-            Timeline timeline = new NoteTimeline(store);
-            visuals.AddTabToMain(timeline);
+            AudioTimeline audioTimeline = new NoteTimeline(store);
+            visuals.AddTabToMain(audioTimeline);
         }
     }
 }

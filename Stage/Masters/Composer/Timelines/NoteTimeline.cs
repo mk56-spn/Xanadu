@@ -12,7 +12,7 @@ using XanaduProject.Tools;
 
 namespace XanaduProject.Stage.Masters.Composer.Timelines
 {
-    public partial class NoteTimeline(EntityStore entityStore) : Timeline
+    public partial class NoteTimeline(EntityStore entityStore) : AudioTimeline
     {
         private const float radius = 10f;
         private const float stack_spacing = radius; // vertical distance between stacked notes

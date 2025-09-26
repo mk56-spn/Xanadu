@@ -9,30 +9,14 @@ namespace XanaduProject.Stage.Masters.Composer.Timelines
     /// Draws the BPM-based grid and a dedicated top-bar panel showing the current beat.
     /// Derivations add their own visual content by overriding DrawBody().
     /// </summary>
-    public abstract partial class Timeline : VBoxContainer
+    public abstract partial class AudioTimeline : TimelineBase
     {
         private readonly IClock clock = DiProvider.Get<IClock>();
 
-        // ---- layout / style -------------------------------------------------
-        public const int TOP_BAR_HEIGHT = 30; // Height of the panel
-        private const float default_scale = 400f; // Pixels per second
-        protected readonly Color MeasureLineColor = new(0.6f, 0.6f, 0.6f);
 
-        // ---- state ----------------------------------------------------------
-        protected float HorizontalScale { get; set; } = default_scale;
         protected TimingPoint[] Timing => clock.TimingPoints;
 
         //---------------------------------------------------------------------
-        public Timeline()
-        {
-            SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
-        }
-
-        //---------------------------------------------------------------------
-        public override void _Process(double delta)
-        {
-            QueueRedraw();
-        }
 
         //---------------------------------------------------------------------
         public sealed override void _Draw()
