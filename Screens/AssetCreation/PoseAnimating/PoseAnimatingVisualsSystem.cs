@@ -33,6 +33,7 @@ namespace XanaduProject.Screens.AssetCreation.PoseAnimating
                 component1.TargetPosition = new Vector2(Mathf.Sin(DateTime.Now.Second + entity.Id) * 100, 0);
                 canvas.AddCircle(10, component1.TargetPosition, Colors.White.Darkened(0.3f));
                 canvas.AddCircle(5, component1.TargetPosition, Colors.White);
+
             }));
         }
     }
