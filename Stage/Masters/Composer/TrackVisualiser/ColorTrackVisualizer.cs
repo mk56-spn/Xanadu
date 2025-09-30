@@ -10,7 +10,7 @@ using static XanaduProject.Composer.AnimationTracksManager;
 
 namespace XanaduProject.Composer.TrackVisualiser
 {
-    public partial class ColorTrackVisualizer(Container editContainer) : TrackVisualiser<Color>
+    public partial class ColorTrackVisualizer(Container editContainer) : Stage.Masters.Composer.TrackVisualiser.TrackVisualiser<Color>
     {
         protected override ref Color[] Values()
         {
