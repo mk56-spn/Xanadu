@@ -9,32 +9,58 @@ namespace XanaduProject.Buttons
     {
         private Color currentColour = Colors.Gold;
         private Color targetColour = Colors.Gold.Darkened(0.5f);
-        private Color hoverColor = Colors.Gold;
-        private Color normalColor = Colors.Gold.Darkened(0.5f);
-        private float transitionSpeed = 3.0f; // Adjust this value to control transition speed
+        public readonly Color MainColour = Colors.Gold;
+        private readonly Color disabledColor = Colors.Gray;
+        private readonly float transitionSpeed = 3.0f; // Adjust this value to control transition speed
 
         public readonly LabelSettings LabelSettings;
-        private Label textLabel = new() { LabelSettings = new LabelSettings() };
+        private readonly Label textLabel = new() { LabelSettings = new LabelSettings() };
+
+        public new string Text
+        {
+            get => textLabel.Text;
+            set
+            {
+                textLabel.Text = value;
+                if (!IsInsideTree())
+                {
+                    return;
+                }
+                recalculateSize();
+            }
+        }
 
         public AnimatedHoverButton(string text, int fontSize = 50, Font? font = null)
         {
             LabelSettings = textLabel.LabelSettings;
             LabelSettings.FontSize = fontSize;
-            LabelSettings.Font = font?? FontSource.PLASTIC_SLANTED;
+            LabelSettings.Font = font ?? FontSource.PLASTIC_SLANTED;
             textLabel.Text = text;
-            MouseEntered += () => targetColour = hoverColor;
-            MouseExited += () => targetColour = normalColor;
         }
 
         public override void _Ready()
         {
             AddChild(textLabel);
             textLabel.SetAnchorsAndOffsetsPreset(LayoutPreset.Center);
-            CustomMinimumSize = textLabel.Size + new Vector2(20, 20);
+            recalculateSize();
+        }
+
+        private void recalculateSize()
+        {
+            CustomMinimumSize = textLabel.GetMinimumSize() + new Vector2(20, 20);
         }
 
         public override void _Process(double delta)
         {
+            if (Disabled)
+            {
+                targetColour = disabledColor;
+            }
+            else
+            {
+                targetColour = IsHovered() ? MainColour : MainColour.Darkened(0.5f);
+            }
+
             QueueRedraw();
             // Smoothly interpolate between current color and target color
             currentColour = currentColour.Lerp(targetColour, (float)delta * transitionSpeed);
@@ -43,7 +69,7 @@ namespace XanaduProject.Buttons
         public override void _Draw()
         {
             // Draw border with animated color
-            DrawRect(new Rect2(Vector2.Zero, Size), Colors.Black with{ A = 0.5f});
+            DrawRect(new Rect2(Vector2.Zero, Size), Colors.Black with { A = 0.5f });
             DrawRect(new Rect2(Vector2.Zero, Size), currentColour, false, 2);
         }
     }
