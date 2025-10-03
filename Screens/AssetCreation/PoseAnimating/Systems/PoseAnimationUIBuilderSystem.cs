@@ -1,7 +1,6 @@
 // Copyright (c) mk56_spn <dhsjplt@gmail.com>.Licensed under the GNU General Public Licence (2.0).
 // See the LICENCE file in the repository root for full licence text.
 
-using System.Linq;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Godot;
@@ -9,27 +8,22 @@ using Xanadu.Singletons;
 using XanaduProject.ECSComponents;
 using XanaduProject.ECSComponents.Animation2;
 using XanaduProject.GameDependencies;
-using XanaduProject.Screens.AssetCreation.PoseAnimating.Components;
 using XanaduProject.Singleton;
 using XanaduProject.Stage.Masters.Composer.TrackVisualiser;
 
-namespace XanaduProject.Screens.AssetCreation.PoseAnimating
+namespace XanaduProject.Screens.AssetCreation.PoseAnimating.Systems
 {
     public class PoseAnimationUiBuilderSystem : QuerySystem
     {
         private readonly EntityStore store = DiProvider.Get<EntityStore>();
 
-        public PoseAnimationUiBuilderSystem(Container target)
+        public PoseAnimationUiBuilderSystem(PoseAnimatingLayout target)
         {
-
-            var v = store.GetUniqueEntity(PoseAnimatingScreen.ANIMATION).GetComponent<AnimationInfo>();
+            var v = PoseAnimatingScreen.Info;
             float spacing = 1500 / v.Duration;
             Logger.AddLog(LogCategory.General, "PoseAnimationUiBuilderSystem");
 
-            Container c = new Container()
-            {
-                CustomMinimumSize = new Vector2(200,200)
-            };
+            VBoxContainer c = new VBoxContainer(){ SizeFlagsHorizontal = Control.SizeFlags.ShrinkBegin };
             target.AddChild(c);
 
             store.Query<AngleArrayEcs,FloatArrayEcs, NameEcs>().ForEachEntity(((ref AngleArrayEcs component1, ref FloatArrayEcs component2, ref NameEcs component3, Entity entity) =>
@@ -59,6 +53,9 @@ namespace XanaduProject.Screens.AssetCreation.PoseAnimating
                 });
 
             }));
+
+
+
         }
 
         protected override void OnUpdate(){}

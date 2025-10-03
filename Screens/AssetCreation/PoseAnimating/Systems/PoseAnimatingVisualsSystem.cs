@@ -9,7 +9,7 @@ using XanaduProject.ECSComponents.EntitySystem.Components.Bones;
 using XanaduProject.Factories;
 using XanaduProject.GameDependencies;
 
-namespace XanaduProject.Screens.AssetCreation.PoseAnimating
+namespace XanaduProject.Screens.AssetCreation.PoseAnimating.Systems
 {
     public class PoseAnimatingVisualsSystem : QuerySystem
     {

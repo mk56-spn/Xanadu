@@ -5,9 +5,11 @@ using System.Linq;
 using Friflo.Engine.ECS;
 using Godot;
 using Xanadu.Singletons;
+using XanaduProject.Buttons;
 using XanaduProject.ECSComponents.Animation2;
 using XanaduProject.ECSComponents.EntitySystem.Components.Bones;
 using XanaduProject.Factories;
+using XanaduProject.GameDependencies;
 using XanaduProject.Screens.AssetCreation.Editor.Input;
 using XanaduProject.Screens.AssetCreation.PoseAnimating.Components;
 using XanaduProject.Singleton;
@@ -17,18 +19,44 @@ namespace XanaduProject.Screens.AssetCreation.PoseAnimating
 {
     public partial class BoneInputHandler : BaseInputHandler
     {
-        private readonly EntityStore store;
+        private readonly EntityStore store = GameServices.Store;
+        private readonly Control parent;
         private readonly RenderRid canvas;
 
         private Entity? target;
         private Vector2 getOffset() => Size / 2;
 
-        public BoneInputHandler(EntityStore store)
+        private HBoxContainer container = new();
+
+        private AnimatedHoverButton addKeyButton = new("+", 25);
+
+        public BoneInputHandler(Control parent, Container buttons)
         {
             CustomMinimumSize = new Vector2(500, 500);
             Position = -CustomMinimumSize / 2;
-            this.store = store;
+            this.parent = parent;
             canvas = RenderRid.Create(this).SetTransform(new Transform2D(0, CustomMinimumSize / 2));
+
+
+            buttons.AddChild(addKeyButton);
+
+
+            addKeyButton.Pressed += () =>
+            {
+                Logger.AddLog(LogCategory.General, "Add keyfrsssame");
+
+                ref AnimationInfo time = ref PoseAnimatingScreen.Info;
+
+                if (target == null) return;
+
+                Logger.AddLog(LogCategory.General, "Add keyframe");
+
+                var v =  target.Value.GetIncomingLinks<AnimationTarget>().Single();
+
+                var value = target.Value.TryGetComponent(out IkTargetComponent ikTargetComponent) ?
+                    ikTargetComponent.TargetPosition : target.Value.GetComponent<RootEcs>().Position;
+                KeyframeManager<Vector2>.AddFrame(ref v.Entity.GetComponent<VectorArrayEcs>().Points, ref v.Entity.GetComponent<FloatArrayEcs>().Points, time.AnimationPos , value);
+            };
         }
         protected override void HandleLeftPress(bool multiSelect)
         {
@@ -54,27 +82,13 @@ namespace XanaduProject.Screens.AssetCreation.PoseAnimating
                 target = entity;
                 canvas.AddCircle(10, component.Position, Colors.White.Darkened(0.3f));
             }));
+
+            PoseAnimatingScreen.Info.AnimationActive = AnimationState.Disabled;
+
         }
 
         protected override void OnRightClick()
         {
-            if (target == null) return;
-
-            Button b;
-            AddChild( b = new Button() { });
-            b.Text = "addKeyFrame";
-
-
-            b.Pressed += () =>
-            {
-                ref var time = ref store.Query<AnimationInfo>().Entities.Single().GetComponent<AnimationInfo>();
-
-               var v =  target.Value.GetIncomingLinks<AnimationTarget>().Single();
-
-               var value = target.Value.TryGetComponent(out IkTargetComponent ikTargetComponent) ?
-                   ikTargetComponent.TargetPosition : target.Value.GetComponent<RootEcs>().Position;
-               KeyframeManager<Vector2>.AddFrame(ref v.Entity.GetComponent<VectorArrayEcs>().Points, ref v.Entity.GetComponent<FloatArrayEcs>().Points, time.AnimationPos , value);
-            };
         }
 
         protected override void OnDrag(Vector2 delta)
@@ -115,7 +129,7 @@ namespace XanaduProject.Screens.AssetCreation.PoseAnimating
 
         public override void _Draw()
         {
-            DrawRect(new Rect2(Vector2.Zero, Size), Colors.Red with { A = 0.5f });
+            DrawRect(new Rect2(Vector2.Zero, Size), Colors.Green with { A = 0.1f }, filled: false);
 
             // Draw all handles
             store.Query<IkTargetComponent>().ForEachEntity(((ref IkTargetComponent component, Entity _) =>
@@ -127,6 +141,14 @@ namespace XanaduProject.Screens.AssetCreation.PoseAnimating
             {
                 canvas.AddCircle(10, component.Position, Colors.Blue);
             }));
+        }
+
+        public override void _Process(double delta)
+        {
+            base._Process(delta);
+
+            addKeyButton.Disabled = target == null;
+
         }
     }
 }

@@ -4,6 +4,7 @@
 using System;
 using System.Numerics;
 using Friflo.Engine.ECS;
+using Friflo.Json.Fliox;
 using XanaduProject.Factories;
 
 namespace XanaduProject.Screens.AssetCreation.PoseAnimating.Components
@@ -20,15 +21,53 @@ namespace XanaduProject.Screens.AssetCreation.PoseAnimating.Components
 
     public readonly struct IkControlled : ITag;
 
-    public struct AnimationInfo(bool looping = false) : IComponent
+    public struct AnimationInfo() : IComponent
     {
-        public bool Looping = looping;
         public float Duration = 1;
         public float AnimationPos = 0;
+
+        public AnimationMode Mode = AnimationMode.Loop;
+
+        public bool LerpEndToBeginning;
+        public bool LerpBeginningFromPose;
+        public bool DefaultToPose;
+
+        [Ignore]
+        public AnimationState AnimationActive = AnimationState.Disabled;
+
+        [Ignore] public bool Playing = false;
+
+    }
+
+    public enum AnimationMode
+    {
+        Loop,
+        Once,
+        PingPong
+    }
+
+    public enum AnimationState
+    {
+        Playing,
+        Active,
+        Disabled
+    }
+
+    public static class AnimationModeHelpers
+    {
+        public static string ToDisplayString(this AnimationMode mode) => mode switch
+        {
+            AnimationMode.Loop => "↻",
+            AnimationMode.Once => "→",
+            AnimationMode.PingPong => "⇄",
+            _ => throw new ArgumentOutOfRangeException(nameof(mode), mode, null)
+        };
     }
 
     public struct CanvasEcs() : IComponent
     {
         public RenderRid Canvas = RenderRid.Create();
+
+        public Entity? Target;
     }
 }

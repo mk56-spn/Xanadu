@@ -3,9 +3,9 @@
 
 using System.Linq;
 using Godot;
-using XanaduProject.Composer;
 using XanaduProject.ECSComponents.Animation2;
 using XanaduProject.Stage.Masters.Composer.TrackVisualiser;
+using AnimationTracksManager = XanaduProject.Stage.Masters.Composer.AnimationTracksManager;
 
 namespace XanaduProject.Screens.AssetCreation.PoseAnimating.TrackVisualizer
 {
