@@ -1,6 +1,7 @@
 // Copyright (c) mk56_spn <dhsjplt@gmail.com>.Licensed under the GNU General Public Licence (2.0).
 // See the LICENCE file in the repository root for full licence text.
 
+using System.Collections.Generic;
 using System.Linq;
 using Friflo.Engine.ECS;
 using Godot;
@@ -14,6 +15,7 @@ using XanaduProject.Screens.AssetCreation.Editor.Input;
 using XanaduProject.Screens.AssetCreation.PoseAnimating.Components;
 using XanaduProject.Singleton;
 using XanaduProject.Stage.Masters.Composer.TrackVisualiser;
+using AnimatedHoverButton = XanaduProject.UiElements.AnimatedHoverButton;
 
 namespace XanaduProject.Screens.AssetCreation.PoseAnimating
 {
@@ -23,7 +25,7 @@ namespace XanaduProject.Screens.AssetCreation.PoseAnimating
         private readonly Control parent;
         private readonly RenderRid canvas;
 
-        private Entity? target;
+        private readonly List<Entity> targets = new();
         private Vector2 getOffset() => Size / 2;
 
         private HBoxContainer container = new();
@@ -47,45 +49,77 @@ namespace XanaduProject.Screens.AssetCreation.PoseAnimating
 
                 ref AnimationInfo time = ref PoseAnimatingScreen.Info;
 
-                if (target == null) return;
+                if (targets.Count == 0) return;
 
                 Logger.AddLog(LogCategory.General, "Add keyframe");
 
-                var v =  target.Value.GetIncomingLinks<AnimationTarget>().Single();
+                foreach (var target in targets)
+                {
+                    var v =  target.GetIncomingLinks<AnimationTarget>().Single();
 
-                var value = target.Value.TryGetComponent(out IkTargetComponent ikTargetComponent) ?
-                    ikTargetComponent.TargetPosition : target.Value.GetComponent<RootEcs>().Position;
-                KeyframeManager<Vector2>.AddFrame(ref v.Entity.GetComponent<VectorArrayEcs>().Points, ref v.Entity.GetComponent<FloatArrayEcs>().Points, time.AnimationPos , value);
+                    var value = target.TryGetComponent(out IkTargetComponent ikTargetComponent) ?
+                        ikTargetComponent.TargetPosition : target.GetComponent<RootEcs>().Position;
+                    KeyframeManager<Vector2>.AddFrame(ref v.Entity.GetComponent<VectorArrayEcs>().Points, ref v.Entity.GetComponent<FloatArrayEcs>().Points, time.AnimationPos , value);
+                }
             };
         }
         protected override void HandleLeftPress(bool multiSelect)
         {
-            canvas.Clear();
-            target = null;
+            var mousePosition = GetLocalMousePosition() - getOffset();
+            Entity? clickedEntity = FindClickedEntity(mousePosition);
 
-            // Check IK targets
+            if (!multiSelect)
+            {
+                targets.Clear();
+                if (clickedEntity != null)
+                {
+                    targets.Add(clickedEntity.Value);
+                }
+            }
+            else
+            {
+                if (clickedEntity != null)
+                {
+                    if (targets.Contains(clickedEntity.Value))
+                    {
+                        targets.Remove(clickedEntity.Value);
+                    }
+                    else
+                    {
+                        targets.Add(clickedEntity.Value);
+                    }
+                }
+            }
+
+            QueueRedraw();
+            PoseAnimatingScreen.Info.AnimationActive = AnimationState.Disabled;
+        }
+
+        private Entity? FindClickedEntity(Vector2 mousePosition)
+        {
+            Entity? clickedEntity = null;
+
+            // Check IK targets first
             store.Query<IkTargetComponent>().ForEachEntity(((ref IkTargetComponent component1, Entity entity) =>
             {
-                canvas.AddCircle(10, component1.TargetPosition, Colors.DarkGreen);
-                if ((component1.TargetPosition - GetLocalMousePosition() + getOffset()).Length() < 10)
+                if ((component1.TargetPosition - mousePosition).Length() < 10)
                 {
-                    target = entity;
-                    canvas.AddCircle(10, component1.TargetPosition, Colors.White.Darkened(0.3f));
+                    clickedEntity = entity;
                 }
             }));
 
-            // Check Root entities
+            // Then check Root entities
             store.Query<RootEcs>().ForEachEntity(((ref RootEcs component, Entity entity) =>
             {
-                canvas.AddCircle(10, component.Position, Colors.Blue);
-                if (!((component.Position - GetLocalMousePosition() + getOffset()).Length() < 10)) return;
-                target = entity;
-                canvas.AddCircle(10, component.Position, Colors.White.Darkened(0.3f));
+                if ((component.Position - mousePosition).Length() < 10)
+                {
+                    clickedEntity = entity;
+                }
             }));
 
-            PoseAnimatingScreen.Info.AnimationActive = AnimationState.Disabled;
-
+            return clickedEntity;
         }
+
 
         protected override void OnRightClick()
         {
@@ -93,53 +127,40 @@ namespace XanaduProject.Screens.AssetCreation.PoseAnimating
 
         protected override void OnDrag(Vector2 delta)
         {
-            if (target == null) return;
+            if (targets.Count == 0) return;
 
-            if (target.Value.TryGetComponent(out RootEcs _))
+            foreach (var target in targets)
             {
-                target.Value.GetComponent<RootEcs>().Position += delta;
-            }
-            else
-            {
-                target.Value.GetComponent<IkTargetComponent>().TargetPosition += delta;
-            }
-
-            canvas.Clear();
-
-            // Redraw IK targets
-            store.Query<IkTargetComponent>().ForEachEntity(((ref IkTargetComponent component1, Entity entity) =>
-            {
-                canvas.AddCircle(10, component1.TargetPosition, Colors.DarkGreen);
-                if (target == entity)
+                if (target.TryGetComponent(out RootEcs _))
                 {
-                    canvas.AddCircle(10, component1.TargetPosition, Colors.White.Darkened(0.3f));
+                    target.GetComponent<RootEcs>().Position += delta;
                 }
-            }));
-
-            // Redraw Root handles
-            store.Query<RootEcs>().ForEachEntity(((ref RootEcs component, Entity entity) =>
-            {
-                canvas.AddCircle(10, component.Position, Colors.Blue);
-                if (target == entity)
+                else if (target.TryGetComponent(out IkTargetComponent _))
                 {
-                    canvas.AddCircle(10, component.Position, Colors.White.Darkened(0.3f));
+                    target.GetComponent<IkTargetComponent>().TargetPosition += delta;
                 }
-            }));
+            }
+
+            QueueRedraw();
         }
 
         public override void _Draw()
         {
             DrawRect(new Rect2(Vector2.Zero, Size), Colors.Green with { A = 0.1f }, filled: false);
 
+            canvas.Clear();
+
             // Draw all handles
-            store.Query<IkTargetComponent>().ForEachEntity(((ref IkTargetComponent component, Entity _) =>
+            store.Query<IkTargetComponent>().ForEachEntity(((ref IkTargetComponent component, Entity entity) =>
             {
-                canvas.AddCircle(10, component.TargetPosition, Colors.DarkGreen);
+                var color = targets.Contains(entity) ? Colors.White.Darkened(0.3f) : Colors.DarkGreen;
+                canvas.AddCircle(10, component.TargetPosition, color);
             }));
 
-            store.Query<RootEcs>().ForEachEntity(((ref RootEcs component, Entity _) =>
+            store.Query<RootEcs>().ForEachEntity(((ref RootEcs component, Entity entity) =>
             {
-                canvas.AddCircle(10, component.Position, Colors.Blue);
+                var color = targets.Contains(entity) ? Colors.White.Darkened(0.3f) : Colors.Blue;
+                canvas.AddCircle(10, component.Position, color);
             }));
         }
 
@@ -147,7 +168,7 @@ namespace XanaduProject.Screens.AssetCreation.PoseAnimating
         {
             base._Process(delta);
 
-            addKeyButton.Disabled = target == null;
+            addKeyButton.Disabled = targets.Count == 0;
 
         }
     }
