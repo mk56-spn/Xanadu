@@ -1,17 +1,18 @@
 // Copyright (c) mk56_spn <dhsjplt@gmail.com>.Licensed under the GNU General Public Licence (2.0).
 // See the LICENCE file in the repository root for full licence text.
 
+using System;
 using Godot;
 
-namespace XanaduProject.Buttons
+namespace XanaduProject.UiElements
 {
     public partial class AnimatedHoverButton : Button
     {
-        private Color currentColour = Colors.Gold;
-        private Color targetColour = Colors.Gold.Darkened(0.5f);
-        public readonly Color MainColour = Colors.Gold;
-        private readonly Color disabledColor = Colors.Gray;
-        private readonly float transitionSpeed = 3.0f; // Adjust this value to control transition speed
+        protected Color CurrentColour = Colors.Gold;
+        protected Color TargetColour = Colors.Gold.Darkened(0.5f);
+        public Color MainColour = Colors.Gold;
+        protected readonly Color DisabledColor = Colors.Gray;
+        protected float TransitionSpeed = 3.0f; // Adjust this value to control transition speed
 
         public readonly LabelSettings LabelSettings;
         private readonly Label textLabel = new() { LabelSettings = new LabelSettings() };
@@ -30,12 +31,20 @@ namespace XanaduProject.Buttons
             }
         }
 
-        public AnimatedHoverButton(string text, int fontSize = 50, Font? font = null)
+        public AnimatedHoverButton(string text, int fontSize = 50, Font? font = null,Action? pressed = null)
         {
+            Pressed += () => pressed?.Invoke();
             LabelSettings = textLabel.LabelSettings;
             LabelSettings.FontSize = fontSize;
             LabelSettings.Font = font ?? FontSource.PLASTIC_SLANTED;
             textLabel.Text = text;
+
+            // Disable default theming
+            AddThemeStyleboxOverride("normal", new StyleBoxEmpty());
+            AddThemeStyleboxOverride("hover", new StyleBoxEmpty());
+            AddThemeStyleboxOverride("pressed", new StyleBoxEmpty());
+            AddThemeStyleboxOverride("disabled", new StyleBoxEmpty());
+            AddThemeStyleboxOverride("focus", new StyleBoxEmpty());
         }
 
         public override void _Ready()
@@ -54,23 +63,23 @@ namespace XanaduProject.Buttons
         {
             if (Disabled)
             {
-                targetColour = disabledColor;
+                TargetColour = DisabledColor;
             }
             else
             {
-                targetColour = IsHovered() ? MainColour : MainColour.Darkened(0.5f);
+                TargetColour = IsHovered() ? MainColour : MainColour.Darkened(0.5f);
             }
 
             QueueRedraw();
             // Smoothly interpolate between current color and target color
-            currentColour = currentColour.Lerp(targetColour, (float)delta * transitionSpeed);
+            CurrentColour = CurrentColour.Lerp(TargetColour, (float)delta * TransitionSpeed);
         }
 
         public override void _Draw()
         {
             // Draw border with animated color
             DrawRect(new Rect2(Vector2.Zero, Size), Colors.Black with { A = 0.5f });
-            DrawRect(new Rect2(Vector2.Zero, Size), currentColour, false, 2);
+            DrawRect(new Rect2(Vector2.Zero, Size), CurrentColour, false, 2);
         }
     }
 }

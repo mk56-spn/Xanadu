@@ -11,7 +11,7 @@ namespace XanaduProject.Buttons
         [Signal]
         public delegate void ItemSelectedEventHandler(int index);
 
-        private readonly AnimatedHoverButton mainButton;
+        private readonly UiElements.AnimatedHoverButton mainButton;
         private readonly PopupPanel popup;
         private readonly VBoxContainer itemContainer;
         private readonly List<string> items = new();
@@ -25,7 +25,7 @@ namespace XanaduProject.Buttons
             this.fontSize = fontSize;
             this.font = font ?? FontSource.PLASTIC_SLANTED;
 
-            mainButton = new AnimatedHoverButton(placeholder, fontSize, this.font);
+            mainButton = new UiElements.AnimatedHoverButton(placeholder, fontSize, this.font);
             mainButton.Pressed += OnMainButtonPressed;
             AddChild(mainButton);
 
@@ -46,7 +46,7 @@ namespace XanaduProject.Buttons
         {
             for (int i = 0; i < items.Count; i++)
             {
-                var itemButton = new AnimatedHoverButton(items[i], fontSize, font);
+                var itemButton = new UiElements.AnimatedHoverButton(items[i], fontSize, font);
                 int index = i; // Capture index for the lambda
                 itemButton.Pressed += () => OnItemSelected(index);
                 itemContainer.AddChild(itemButton);
