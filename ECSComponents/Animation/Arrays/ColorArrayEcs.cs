@@ -2,23 +2,21 @@
 // See the LICENCE file in the repository root for full licence text.
 
 
-using System;
-using System.Collections;
 using Friflo.Engine.ECS;
 using Godot;
 using XanaduProject.IO.Serialization;
 using ZLinq;
 
-namespace XanaduProject.ECSComponents.Animation2
+namespace XanaduProject.ECSComponents.Animation.Arrays
 {
     [ComponentKey(null)]
-    public struct ColorArrayEcs : IComponent
+    public struct ColorArrayEcs : IComponent, IEcsArray<Color>
     {
-        public Color[] Colors = [];
-
         public ColorArrayEcs(ColorArrayThin arrayThin)
         {
-            Colors = arrayThin.Colors.AsValueEnumerable().Select(c => (Color)c).ToArray();
+            Points = arrayThin.Colors.AsValueEnumerable().Select(c => (Color)c).ToArray();
         }
+
+        public Color[] Points { get; set; }
     }
 }

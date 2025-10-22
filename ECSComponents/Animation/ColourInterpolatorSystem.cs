@@ -6,21 +6,19 @@ using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Godot;
 using XanaduProject.Audio;
+using XanaduProject.ECSComponents.Animation.Arrays;
+using XanaduProject.ECSComponents.Animation2;
 using XanaduProject.GameDependencies;
 using XanaduProject.Tools;
 
-namespace XanaduProject.ECSComponents.Animation2
+namespace XanaduProject.ECSComponents.Animation
 {
 	public class ColourInterpolatorSystem(EntityStore entityStore) : QuerySystem
 	{
 		private ArchetypeQuery<FloatArrayEcs, ColorArrayEcs, ActiveColourEcs> colorTrackQuery = null!;
-
-
 		protected override void OnAddStore(EntityStore store)
 		{
 			base.OnAddStore(store);
-
-
 			colorTrackQuery = store.Query<FloatArrayEcs, ColorArrayEcs, ActiveColourEcs>();
 			imageTexture = ImageTexture.CreateFromImage(image);
 		}
@@ -35,7 +33,7 @@ namespace XanaduProject.ECSComponents.Animation2
 				});
 
 			CommandBuffer.Playback();
-			colorTrackQuery.Each(new TrackColorLerp());
+			colorTrackQuery.EachEntity(new TrackColorLerp());
 
 			updateGpuTexture();
 		}
@@ -53,7 +51,7 @@ namespace XanaduProject.ECSComponents.Animation2
 
 			int c = 0;
 			colorTrackQuery.ForEachEntity((ref FloatArrayEcs _, ref ColorArrayEcs _,
-				ref ActiveColourEcs active, Entity entity) =>
+				ref ActiveColourEcs active, Entity _) =>
 			{
 				colors[c] = active.Color;
 				c++;
@@ -72,18 +70,18 @@ namespace XanaduProject.ECSComponents.Animation2
 			RenderingServer.GlobalShaderParameterSet("colours_texture", imageTexture);
 		}
 
-		private readonly struct TrackColorLerp() : IEach<FloatArrayEcs, ColorArrayEcs, ActiveColourEcs>
+		private readonly struct TrackColorLerp() : IEachEntity<FloatArrayEcs, ColorArrayEcs, ActiveColourEcs>
 		{
 			private readonly IClock clock = DiProvider.Get<IClock>();
 
-			public void Execute(ref FloatArrayEcs floats, ref ColorArrayEcs colors, ref ActiveColourEcs active)
+			public void Execute(ref FloatArrayEcs floats, ref ColorArrayEcs colors, ref ActiveColourEcs active, int id)
 			{
-				active.Color = lerpedFrameValue<Color>((float)clock.PlaybackTimeSec,
-					floats.Points.AsSpan(), colors.Colors.AsSpan(), floats.Easing.AsSpan());
+				active.Color = LerpedFrameValue<Color>((float)clock.PlaybackTimeSec,
+					floats.Points, colors.Points, GameServices.Store.GetEntityById(id).GetComponent<EasingArrayEcs>().Points);
 			}
 		}
 
-		private static T lerpedFrameValue<T>(float currentTime, ReadOnlySpan<float> timingPoints,
+        public static T LerpedFrameValue<T>(float currentTime, ReadOnlySpan<float> timingPoints,
 			ReadOnlySpan<T> values, ReadOnlySpan<EasingType> easingTypes)
 		{
 			if (timingPoints.Length == 0)
@@ -102,6 +100,10 @@ namespace XanaduProject.ECSComponents.Animation2
 
 			float t = (currentTime - timingPoints[prevIndex]) / (timingPoints[nextIndex] - timingPoints[prevIndex]);
 
+            if (easingTypes.Length > 0 && easingTypes[prevIndex] != EasingType.Linear)
+            {
+                t = EasingFunctions.GetEasing(easingTypes[prevIndex], t);
+            }
 			t = EasingFunctions.GetEasing(EasingType.Linear, t);
 
 			var interpolate = InterpolatorCache<T>.LERP;

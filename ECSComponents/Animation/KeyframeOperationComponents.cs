@@ -3,12 +3,11 @@
 
 using Friflo.Engine.ECS;
 
-namespace XanaduProject.ECSComponents.Animation2
+namespace XanaduProject.ECSComponents.Animation
 {
-    public struct AngleArrayEcs(int value) : IComponent
-    {
-        public float[] Points = [];
 
-        public int Value = value;
-    }
+
+
+
+
 }

@@ -14,6 +14,7 @@ namespace XanaduProject.ECSComponents.Animation2
         static InterpolationRegistry()
         {
             // Just a quick example for Vector2
+            register<float>((from, to, factor) => from + (to - from) * factor);
             register<Vector2>((from, to, factor) => from.Lerp(to, factor));
             register<Color>((from, to, factor) => from.Lerp(to, factor));
         }
@@ -29,7 +30,7 @@ namespace XanaduProject.ECSComponents.Animation2
         /// <summary>
         /// Retrieves the interpolator for the given type.
         /// </summary>
-        public static Func<T, T, float, T> Get<T>()
+        internal static Func<T, T, float, T> Get<T>()
         {
             return (Func<T, T, float, T>)interpolators[typeof(T)];
         }

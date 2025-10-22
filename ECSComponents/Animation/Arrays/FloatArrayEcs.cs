@@ -4,13 +4,9 @@
 using Friflo.Engine.ECS;
 using XanaduProject.Tools;
 
-namespace XanaduProject.ECSComponents.Animation2
+namespace XanaduProject.ECSComponents.Animation.Arrays
 {
-    public struct FloatArrayEcs(int value) : IComponent
-    {
-        public float[] Points = [];
-        public EasingType[] Easing = [];
-
-        public int Value = value;
+    public struct FloatArrayEcs() : IComponent, IEcsArray<float>
+    { public float[] Points { get; set; }
     }
 }
