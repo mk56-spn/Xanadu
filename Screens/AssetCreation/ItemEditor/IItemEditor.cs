@@ -1,8 +1,9 @@
 using System;
 using Godot;
 using XanaduProject.IO;
+using XanaduProject.Scenes.ItemEditor;
 
-namespace XanaduProject.Scenes.ItemEditor
+namespace XanaduProject.Screens.AssetCreation.ItemEditor
 {
     public interface IItemEditor
     {
@@ -16,6 +17,8 @@ namespace XanaduProject.Scenes.ItemEditor
         event Action? ActiveLayerSelectionChanged;
 
         Rid CanvasRid { get; }
+
+        Vector2 CanvasTransform { get; }
 
         void TriggerSave();
     }

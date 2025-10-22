@@ -5,32 +5,62 @@ using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using Godot;
 using XanaduProject.ECSComponents;
+using XanaduProject.ECSComponents.EntitySystem.Components;
 using XanaduProject.ECSComponents.EntitySystem.Components.Bones;
 using XanaduProject.GameDependencies;
+using XanaduProject.Screens.AssetCreation.PoseAnimating.Components;
 
 namespace XanaduProject.Screens.AssetCreation.Skeleton
 {
     public static class SkeletonBuilder
     {
-        private static EntityStore entityStore => DiProvider.Get<EntityStore>();
+        private static EntityStore entityStore => GameServices.Store;
 
         public static void BuildPose()
         {
             BuildPoseAndGetBoneNames();
         }
 
-        public static List<string> BuildPoseAndGetBoneNames()
+        public static List<string> GetBoneNames()
+        {
+            var boneNames = new List<string>
+            {
+                "Head",
+                "Hip",
+                "LeftHip",
+                "RightHip"
+            };
+
+            // Arms
+            addLimbNames("LeftArm", boneNames);
+            addLimbNames("RightArm", boneNames);
+
+            // Legs
+            addLimbNames("LeftLeg", boneNames);
+            addLimbNames("RightLeg", boneNames);
+            return boneNames;
+        }
+
+        private static void addLimbNames(string namePrefix, List<string> boneNames)
+        {
+            boneNames.Add($"{namePrefix}Upper");
+            boneNames.Add($"{namePrefix}Lower");
+        }
+
+        public static void BuildPoseAndGetBoneNames()
         {
             var boneNames = new List<string>();
             var rootEntity = entityStore.CreateEntity(new RootEcs(), new NameEcs("Root"));
 
-            var shoulderEntity = createBoneEntity(entityStore, 20, float.Pi / 2f, rootEntity, "Shoulder");
-            boneNames.Add("Shoulder");
+            var shoulderEntity = createBoneEntity(entityStore, 20, float.Pi / 2f, rootEntity, "Head");
+            boneNames.Add("Head");
 
             var leftShoulder = createBoneEntity(entityStore, 15, 0, rootEntity);
             leftShoulder.AddTag<RotationLocked>();
+            leftShoulder.AddComponent(new DepthEcs(1));
             var rightShoulder = createBoneEntity(entityStore, 15, -float.Pi, rootEntity);
             rightShoulder.AddTag<RotationLocked>();;
+            rightShoulder.AddComponent(new DepthEcs(-1));
             shoulderEntity.AddChild(leftShoulder);
             shoulderEntity.AddChild(rightShoulder);
 
@@ -58,31 +88,36 @@ namespace XanaduProject.Screens.AssetCreation.Skeleton
             // Legs
             createLimb(leftHip, rootEntity,new Vector2(0, 140), false, "LeftLeg", boneNames);
             createLimb( rightHip, rootEntity, new Vector2(10, 140), false, "RightLeg", boneNames);
-            return boneNames;
         }
 
 
         private static void createLimb(Entity parent,Entity root, Vector2 targetPosition, bool bendUpwards, string namePrefix, List<string> boneNames, float lengthTop = 40, float lengthBottom = 35)
         {
+
             string upperLimbName = $"{namePrefix}Upper";
             var upperLimb = createBoneEntity(entityStore, lengthTop, 0, root, upperLimbName);
             boneNames.Add(upperLimbName);
+            upperLimb.AddTag<IkControlled>();
 
             string lowerLimbName = $"{namePrefix}Lower";
             var lowerLimb = createBoneEntity(entityStore, lengthBottom, 0, root, lowerLimbName);
             boneNames.Add(lowerLimbName);
+            lowerLimb.AddTag<IkControlled>();
 
             parent.AddChild(upperLimb);
             upperLimb.AddChild(lowerLimb);
-            entityStore.CreateEntity(new IkTargetComponent
-            {
-                UpperBoneEntity = upperLimb,
-                LowerBoneEntity = lowerLimb,
-                ElbowUp = bendUpwards,
-                TargetPosition = targetPosition,
-            });
+            entityStore.CreateEntity(
+                new IkTargetComponent
+                {
+                    UpperBoneEntity = upperLimb,
+                    LowerBoneEntity = lowerLimb,
+                    ElbowUp = bendUpwards,
+                    TargetPosition = targetPosition,
+                },
+                new NameEcs($"{namePrefix}Target")
+            );
         }
-        private static Entity createBoneEntity(in EntityStore store, float length, float angle = 0, Entity? target = null, string? name = null)
+        private static Entity createBoneEntity(in EntityStore store, float length, float angle = 0, Entity? target = null, string? name = null, int depth = 0)
         {
             var boneEntity = store.CreateEntity(new BoneEcs { Length = length, Angle = angle }, new BoneGlobalTransform { Target = target ?? default });
 

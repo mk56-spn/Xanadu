@@ -16,33 +16,43 @@ namespace XanaduProject.Screens.AssetCreation.ItemEditor
 {
     public partial class ItemEditor : Control, IItemEditor
     {
-        public IComponentLayerManager LayerManager { get; private set; }
+        public IComponentLayerManager LayerManager { get; }
         private readonly SystemRoot root = new();
 
-        public Item CurrentItem { get; private set; }
-        public event Action<Item> ItemSaved;
+        public Item CurrentItem { get; set; }
+        public event Action<Item>? ItemSaved;
 
         public event Action? LayersChanged;
         public event Action? ActiveLayerSelectionChanged;
 
         public Rid CanvasRid => canvasRid;
 
-        private readonly RenderRid canvasRid = RenderRid.Create();
+            private readonly RenderRid canvasRid = RenderRid.Create();
 
-        private PanningCamera camera = new();
+       private PanningCamera camera = new();
+
+       public void SetCanvasTransform(Transform2D transform2D)=>
+           canvasLayer.SetTransform(transform2D);
+
+       public Vector2 CanvasTransform => canvasLayerContainer.GetGlobalMousePosition();
+
+       private CanvasLayer canvasLayer;
+       private Control canvasLayerContainer;
 
         public ItemEditor(Item? item = null)
         {
-            var canvasLayer = new CanvasLayer
+            canvasLayer = new CanvasLayer
             {
                 FollowViewportEnabled = true,
                 Layer = 10
             };
-            RenderRid.Create(canvasLayer.GetCanvas()).AddCircle(10, color: Colors.Orange);
-            AddChild(canvasLayer);
             canvasRid.SetParent(canvasLayer.GetCanvas());
 
-            AddChild(camera);
+            canvasLayerContainer = new Control(){ MouseFilter = MouseFilterEnum.Ignore};
+            canvasLayerContainer.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
+            canvasLayer.AddChild(canvasLayerContainer);
+
+
             CurrentItem = item ?? new Item
             {
                 Name = "New Item",
@@ -52,22 +62,21 @@ namespace XanaduProject.Screens.AssetCreation.ItemEditor
 
             LayerManager = new ComponentLayerManager(DiProvider.Get<EntityStore>(), CanvasRid);
 
-            var canvasEntity = DiProvider.Get<EntityStore>().CreateEntity();
+            var canvasEntity = GameServices.Store.CreateEntity();
             canvasEntity.Add(new RenderRidComponent(CanvasRid.AsRenderRid()));
 
             if (CurrentItem.Components.Count != 0)
             {
                 foreach (var component in CurrentItem.Components)
                 {
-                    if (component is SerializableMeshComponent serializableMesh)
-                    {
-                        var entity = DiProvider.Get<EntityStore>().CreateEntity();
-                        var meshComponent = serializableMesh.MeshComponent;
-                        meshComponent.RenderRid = RenderRid.Create(CanvasRid);
-                        entity.Add(meshComponent);
-                        LayerManager.AddLayerEntity(entity);
-                        MeshUtils.UpdateTriangulation(meshComponent);
-                    }
+                    if (component is not SerializableMeshComponent serializableMesh) continue;
+
+                    var entity = DiProvider.Get<EntityStore>().CreateEntity();
+                    var meshComponent = serializableMesh.MeshComponent;
+                    meshComponent.RenderRid = RenderRid.Create(CanvasRid);
+                    entity.Add(meshComponent);
+                    LayerManager.AddLayerEntity(entity);
+                    MeshUtils.UpdateTriangulation(meshComponent);
                 }
             }
             else
@@ -79,21 +88,22 @@ namespace XanaduProject.Screens.AssetCreation.ItemEditor
             LayerManager.ActiveLayerSelectionChanged += () => ActiveLayerSelectionChanged?.Invoke();
 
             SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
-            AddChild(new ItemEditorInput(this));
-
-            var itemEditorUi = new ItemEditorUi(this);
-            itemEditorUi.Position = new Vector2(10, 10);
-            AddChild(itemEditorUi);
 
             root.AddStore(DiProvider.Get<EntityStore>());
             root.Add(new MeshVisibilitySystem());
             root.Add(new MeshOutlineRenderSystem(this));
+
+            this.AddChildren([
+                canvasLayer,
+                new ItemEditorInput(this),
+                new ItemEditorUi(this) { Position = new Vector2(0,10) },
+            ]);
         }
 
         public override void _Ready()
         {
-            camera.MakeCurrent();
-            camera.Position = Vector2.Zero;
+           /* camera.MakeCurrent();
+            camera.Position = Vector2.Zero;*/
         }
 
         public void TriggerSave()
@@ -110,8 +120,9 @@ namespace XanaduProject.Screens.AssetCreation.ItemEditor
 
         public override void _Process(double delta)
         {
-
             base._Process(delta);
+            canvasLayerContainer.Size = Size;
+
             root.Update(default);
         }
     }

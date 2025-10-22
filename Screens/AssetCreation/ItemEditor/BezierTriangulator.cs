@@ -11,14 +11,14 @@ namespace XanaduProject.Scenes.ItemEditor
 
         public static (List<Vector2> vertices, List<int> indices) Triangulate(IReadOnlyList<BezierPoint> bezierPoints, int segmentsPerCurve = 20)
         {
-            if (bezierPoints.Count < 3)
+            if (bezierPoints.Count < 2)
             {
                 return ([], []);
             }
 
             List<Vector2> sampledPoints = sampleBezierCurve(bezierPoints, segmentsPerCurve);
 
-            if (sampledPoints.Count < 3)
+            if (sampledPoints.Count < 2)
             {
                 return ([], []);
             }

@@ -9,7 +9,7 @@ using XanaduProject.Factories;
 
 namespace XanaduProject.Screens.AssetCreation.PoseAnimating.Components
 {
-    public readonly struct DepthEcs(int depth)
+    public readonly struct DepthEcs(int depth) : IComponent
     {
         public readonly int Depth = depth;
     }
@@ -36,7 +36,6 @@ namespace XanaduProject.Screens.AssetCreation.PoseAnimating.Components
         public AnimationState AnimationActive = AnimationState.Disabled;
 
         [Ignore] public bool Playing = false;
-
     }
 
     public enum AnimationMode

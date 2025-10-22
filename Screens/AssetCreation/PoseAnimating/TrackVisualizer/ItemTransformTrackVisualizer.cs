@@ -39,9 +39,9 @@ namespace XanaduProject.Screens.AssetCreation.PoseAnimating.TrackVisualizer
             }
         }
 
-        protected override ref Transform2D[] Values()
+        protected virtual Transform2D[] Values()
         {
-            throw new System.NotImplementedException();
+            return null;
         }
 
         protected override void KeyFramePopup()

@@ -5,9 +5,13 @@ using System;
 using Godot;
 using XanaduProject.Buttons;
 using XanaduProject.GameDependencies;
+using XanaduProject.IO;
 using XanaduProject.Screens.AssetCreation.PoseAnimating.Components;
 using XanaduProject.Utils;
 using static Godot.Control.SizeFlags;
+using AnimatedHoverButton = XanaduProject.UiElements.AnimatedHoverButton;
+using System.IO;
+using XanaduProject.UiElements;
 
 namespace XanaduProject.Screens.AssetCreation.PoseAnimating
 {
@@ -18,6 +22,8 @@ namespace XanaduProject.Screens.AssetCreation.PoseAnimating
         private readonly HBoxContainer keyFrameButtons = new(){ SizeFlagsHorizontal = ShrinkCenter};
 
         private readonly AnimatedSlider timePositionSlider;
+        private PanelContainer? renamePopup;
+        private LineEdit? renameLineEdit;
         public PoseAnimatingLayout()
         {
             timePositionSlider = new AnimatedSlider()
@@ -48,6 +54,15 @@ namespace XanaduProject.Screens.AssetCreation.PoseAnimating
                 PoseAnimatingScreen.Info.AnimationPos = 0;
             };
 
+            var saveButton = new AnimatedHoverButton("Save", 25);
+            saveButton.Pressed += OnSavePressed;
+
+            var renameButton = new AnimatedHoverButton("Rename", 25);
+            renameButton.Pressed += OnRenamePressed;
+
+            var duration = new AnimatedSlider() { Step = 0.01f , CustomMinimumSize = new Vector2( 100, 20), ConsiderNubWidthForPlacement = true };
+            duration.ValueChanged += value => PoseAnimatingScreen.Info.Duration = (float)value;
+
             VBoxContainer animationModes = new();
             foreach (var mode in Enum.GetValues<AnimationMode>())
             {
@@ -61,8 +76,7 @@ namespace XanaduProject.Screens.AssetCreation.PoseAnimating
                 new PanelContainer(){ CustomMinimumSize = new Vector2(0,50)},
                 new PanelContainer(){ CustomMinimumSize = new Vector2(0,50)}
                     .Child(new HBoxContainer()
-                        .AddChildren(keyFrameButtons,snapButton )
-                    ),
+                        .AddChildren(keyFrameButtons,snapButton, new AnimatedExpandableDropdown("IO", (Container)new HBoxContainer().AddChildren( saveButton, renameButton, duration)))),
 
                 new PanelContainer(){ SizeFlagsVertical = ExpandFill }
                     .AddChildren(
@@ -72,6 +86,117 @@ namespace XanaduProject.Screens.AssetCreation.PoseAnimating
                     ),
                 new HBoxContainer().AddChildren(new HBoxContainer().AddChildren(playBackButton, pauseButton, stopButton),timePositionSlider)
             ]);
+        }
+
+        private void OnSavePressed()
+        {
+            var screen = GetParent<PoseAnimatingScreen>();
+
+            if (screen.AnimationPath != null)
+            {
+
+                AnimationIo.SaveAnimation(GameServices.Store, screen.AnimationPath);
+                return;
+            };
+
+            string animationPath =  "NewAnimation.json";
+            string animationName = Path.GetFileNameWithoutExtension(animationPath);
+            string extension = Path.GetExtension(animationPath);
+            string? directory = Path.GetDirectoryName(animationPath);
+
+            screen.AnimationPath = animationPath;
+
+            int i = 1;
+            while (File.Exists(Path.Combine(ProjectSettings.GlobalizePath(SerializationUtils.ANIMATIONS_DIR), animationPath)))
+            {
+                if (directory != null) animationPath = Path.Combine(directory, $"{animationName}{i}{extension}");
+                i++;
+            }
+
+            AnimationIo.SaveAnimation(GameServices.Store, animationPath);
+        }
+
+        private void OnRenamePressed()
+        {
+            var screen = GetParent<PoseAnimatingScreen>();
+
+            if (screen.AnimationPath == null)
+            {
+                return;
+            }
+
+            if (renamePopup == null)
+            {
+                createRenamePopup();
+            }
+
+            if (renamePopup == null || renameLineEdit == null) return;
+            renameLineEdit.Text = Path.GetFileNameWithoutExtension(screen.AnimationPath);
+            renamePopup.Visible = true;
+            renameLineEdit.GrabFocus();
+        }
+
+        private void createRenamePopup()
+        {
+            renamePopup = new PanelContainer
+            {
+                Position = new Vector2(-300, 100),
+                CustomMinimumSize = new Vector2(300, 150)
+            };
+
+            var vbox = new VBoxContainer();
+            renamePopup.AddChild(vbox);
+
+            var title = new Label { Text = "Rename Animation" };
+            vbox.AddChild(title);
+
+            renameLineEdit = new LineEdit { PlaceholderText = "Enter new name" };
+            vbox.AddChild(renameLineEdit);
+
+            var hbox = new HBoxContainer();
+            vbox.AddChild(hbox);
+
+            var confirmButton = new AnimatedHoverButton("Confirm", 20);
+            confirmButton.Pressed += OnRenameConfirmed;
+            hbox.AddChild(confirmButton);
+
+            var cancelButton = new AnimatedHoverButton("Cancel", 20);
+            cancelButton.Pressed += OnRenameCancelled;
+            hbox.AddChild(cancelButton);
+
+            AddChild(renamePopup);
+            renamePopup.Visible = false;
+        }
+
+        private void OnRenameConfirmed()
+        {
+            if (renameLineEdit == null || renamePopup == null)
+                return;
+
+            string newName = renameLineEdit.Text.Trim();
+            if (string.IsNullOrEmpty(newName))
+                return;
+
+            var screen = GetParent<PoseAnimatingScreen>();
+            if (screen.AnimationPath == null)
+                return;
+
+            string? newPath = AnimationIo.RenameAnimation(screen.AnimationPath, newName);
+
+            if (newPath != null)
+            {
+                screen.AnimationPath = newPath;
+            }
+
+            renamePopup.Visible = false;
+        }
+
+        private void OnRenameCancelled()
+        {
+            if (renamePopup != null)
+            {
+                renamePopup.Visible = false;
+            }
         }
 
         private Node createPoseBehaviourButton()

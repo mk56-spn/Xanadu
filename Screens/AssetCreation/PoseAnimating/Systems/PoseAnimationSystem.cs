@@ -7,10 +7,14 @@ using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Godot;
 using XanaduProject.ECSComponents;
+using XanaduProject.ECSComponents.Animation;
+using XanaduProject.ECSComponents.Animation.Arrays;
 using XanaduProject.ECSComponents.Animation2;
+using XanaduProject.ECSComponents.EntitySystem.Components;
 using XanaduProject.ECSComponents.EntitySystem.Components.Bones;
 using XanaduProject.GameDependencies;
 using XanaduProject.Screens.AssetCreation.PoseAnimating.Components;
+using XanaduProject.Tools;
 
 namespace XanaduProject.Screens.AssetCreation.PoseAnimating.Systems
 {
@@ -27,32 +31,16 @@ namespace XanaduProject.Screens.AssetCreation.PoseAnimating.Systems
                 Entity entity) =>
             {
                 defaultAngles[entity] = component1.Angle;
-                int i = buffer.CreateEntity();
-                buffer.AddComponent(i, new FloatArrayEcs(){ Points = []});
-                buffer.AddComponent(i, new AngleArrayEcs(){ Points = []});
-                buffer.AddComponent(i, component2);
-                buffer.AddComponent(i, new AnimationTarget(entity));
             } ));
 
             store.Query<IkTargetComponent>().WithoutAllTags(Tags.Get<IkControlled>()).ForEachEntity(((ref IkTargetComponent component1,
                 Entity entity) =>
             {
                 defaultVectors[entity] = component1.TargetPosition;
-                int i = buffer.CreateEntity();
-                buffer.AddComponent(i, new FloatArrayEcs(){ Points = []});
-                buffer.AddComponent(i, new VectorArrayEcs(){ Points = []});
-                buffer.AddChild(entity.Id, i);
-                buffer.AddComponent(i, new AnimationTarget(entity));
-                buffer.AddComponent(i, entity.GetComponent<NameEcs>());
             } ));
 
             store.Query<RootEcs>().ForEachEntity((ref RootEcs root, Entity entity) => {
                 defaultVectors[entity] = root.Position;
-                int i = buffer.CreateEntity();
-                buffer.AddComponent(i, new FloatArrayEcs(){ Points = []});
-                buffer.AddComponent(i, new VectorArrayEcs(){ Points = []});
-                buffer.AddComponent(i, new NameEcs("Root Position"));
-                buffer.AddComponent(i, new AnimationTarget(entity));
             });
 
 
@@ -88,7 +76,7 @@ namespace XanaduProject.Screens.AssetCreation.PoseAnimating.Systems
             } ));
         }
 
-        private T interpolateValue<T>(T[] values, float[] timePoints, T defaultValue, ref AnimationInfo info) where T : struct
+        private T interpolateValue<T>(T[] values, float[] timePoints, T defaultValue, ref AnimationInfo info, EasingType[]? easingTypes = null) where T : struct
         {
             if (timePoints.Length == 0)
             {
@@ -107,7 +95,7 @@ namespace XanaduProject.Screens.AssetCreation.PoseAnimating.Systems
                 return InterpolatorCache<T>.LERP(values[^1], values[0], t);
             }
 
-            return ColourInterpolatorSystem.LerpedFrameValue<T>(info.AnimationPos, timePoints, values, []);
+            return ColourInterpolatorSystem.LerpedFrameValue<T>(info.AnimationPos, timePoints, values, easingTypes);
         }
 
     }

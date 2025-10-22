@@ -10,44 +10,27 @@ using XanaduProject.Buttons;
 using XanaduProject.ECSComponents.EntitySystem;
 using XanaduProject.ECSComponents.EntitySystem.BoneSystems;
 using XanaduProject.GameDependencies;
-using XanaduProject.Screens.ScreenStructure;
-using XanaduProject.IO.Indexes;
 using XanaduProject.IO;
+using XanaduProject.IO.Indexes;
 using XanaduProject.Scenes.ItemEditor;
-using XanaduProject.Scenes.ItemEditor.BoneMapping;
-using Logger = XanaduProject.Singleton.Logger;
+using XanaduProject.Screens.AssetCreation.BoneMapping;
+using XanaduProject.Screens.AssetCreation.ItemEditor;
+using XanaduProject.Screens.AssetCreation.PoseAnimating;
+using XanaduProject.Screens.ScreenStructure;
+using XanaduProject.Singleton;
+using XanaduProject.Utils;
+using AnimatedHoverButton = XanaduProject.UiElements.AnimatedHoverButton;
 
-namespace XanaduProject.Scenes
+namespace XanaduProject.Screens.AssetCreation
 {
     public partial class AssetCreationScreen : MainScreen
     {
-        private readonly EntityStore entityStore = new()
-        {
-            JobRunner = new ParallelJobRunner(10, "n")
-        };
-        private readonly SystemRoot simulationRoot;
-
         public AssetCreationScreen()
         {
-
-            DiProvider.Register(c =>
-            {
-                c.AddSingleton(entityStore);
-            });
-            simulationRoot = new SystemRoot(entityStore)
-            {
-                new BoneTransformSystem(),
-                new IkSolverSystem(),
-                new BoneRenderingSystem(),
-                new EcsDebugSystem(),
-            };
-
-
+            DisplayName = "Asset Creation";
             setupUiLayout();
-
-            Logger.AddLog(LogCategory.Animation, "Ik rigging screen with mesh editor initialized");
+            CloseTargetScreen = new MainMenu();
         }
-
 
         private void setupUiLayout()
         {
@@ -55,7 +38,7 @@ namespace XanaduProject.Scenes
             var mainLayoutContainer = new VBoxContainer();
             AddChild(mainLayoutContainer);
             // Make the main container fill the entire screen
-            mainLayoutContainer.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.FullRect);
+            mainLayoutContainer.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
 
             // Top Bar
             var topBarContainer = new HBoxContainer();
@@ -83,23 +66,36 @@ namespace XanaduProject.Scenes
 
             // Tab Container
             var tabContainer = new TabContainer();
+
             tabContainer.SizeFlagsHorizontal = SizeFlags.ExpandFill;
             tabContainer.SizeFlagsVertical = SizeFlags.ExpandFill;
             marginContainer.AddChild(tabContainer);
 
-            // --- Item Creator Tab ---
-            var itemCreatorTab = new VBoxContainer();
-            itemCreatorTab.Name = "Item Creator"; // This sets the tab title
-            tabContainer.AddChild(itemCreatorTab);
+
+            VBoxContainer itemCreatorTab;
+
+            tabContainer.AddChildren(
+                itemCreatorTab = new VBoxContainer()
+                {
+                    Name = "Item Creator"
+                }
+                ,
+                setupBoneMappingTab(),
+                setupAnimationTab()
+                 );
+
+
 
             // Existing Item Selection UI elements moved into this tab
-            var itemSelectionContainer = new VBoxContainer();
-            itemSelectionContainer.Name = "ItemSelectionContainer";
+            var itemSelectionContainer = new VBoxContainer()
+            {
+                Name = "ItemSelectionContainer"
+            };
             itemCreatorTab.AddChild(itemSelectionContainer);
 
             var createNewMeshButton = new AnimatedHoverButton("Create new item");
             itemSelectionContainer.AddChild(createNewMeshButton);
-            createNewMeshButton.Pressed += () => ScreenManager.ChangeSubScreen(new ItemCreationSubScreen());
+            createNewMeshButton.Pressed += () => ScreenManager.RequestChangeScreen(new ItemCreationScreen());
 
             var scrollContainer = new ScrollContainer() { CustomMinimumSize = new Vector2(500, 100)};
             scrollContainer.SizeFlagsHorizontal = SizeFlags.ExpandFill;
@@ -124,39 +120,48 @@ namespace XanaduProject.Scenes
                 {
                     Item? selectedItem = ItemIndex.GetItem(itemInfo.Name);
                     if (selectedItem != null)
-                        ScreenManager.ChangeSubScreen(new ItemCreationSubScreen(selectedItem));
+                        ScreenManager.RequestChangeScreen((new ItemCreationScreen(selectedItem)));
                 };
                 itemListContainer.AddChild(itemButton);
             }
             // --- End Item Creator Tab ---
 
 
+
+        }
+
+        private VBoxContainer setupBoneMappingTab()
+        {
+
             // --- Bone Mapper Tab ---
             var boneMapperTab = new VBoxContainer();
             boneMapperTab.Name = "Bone Mapper"; // This sets the tab title
-            tabContainer.AddChild(boneMapperTab);
 
-            // Existing Item Bone Mapping button moved into this tab
-            var itemBoneMappingButton = new AnimatedHoverButton("Item Bone Mapping", 15);
-            boneMapperTab.AddChild(itemBoneMappingButton);
-            itemBoneMappingButton.Pressed += () => ScreenManager.RequestChangeScreen(new ItemBoneMappingScreen(simulationRoot));
-            // Additional UI for bone mapping can be added here later
-
-            // --- Skeleton Animator Tab ---
-            var poseAnimatorTab = new VBoxContainer();
-            poseAnimatorTab.Name = "Skeleton Animator"; // This sets the tab title
-            tabContainer.AddChild(poseAnimatorTab);
-
-            // Existing Skeleton Animating button moved into this tab
-            var poseButton = new AnimatedHoverButton("Skeleton Animating", 15);
-            poseAnimatorTab.AddChild(poseButton);
-            poseButton.Pressed += () => ScreenManager.ChangeSubScreen(new PoseAnimatingSubScreen());
-            // Additional UI for pose animating can be added here later
+            foreach (var skinInfo in SkinIndex.GetAllSkins())
+            {
+                boneMapperTab.AddChild(new AnimatedHoverButton(skinInfo.Value.Name, pressed: ( )=> ScreenManager.RequestChangeScreen(new ItemBoneMappingScreen(skinInfo))));
+            }
+            return boneMapperTab;
         }
 
-        public override void _Process(double delta)
+        private VBoxContainer setupAnimationTab()
         {
-            simulationRoot.Update(default);
+            var poseAnimatorTab = new VBoxContainer();
+            poseAnimatorTab.Name = "Pose Animator"; // This sets the tab title
+
+
+            Button button;
+            poseAnimatorTab.AddChild( button = new AnimatedHoverButton("+"){ MainColour = Colors.Salmon });
+
+            button.Pressed += () => ScreenManager.RequestChangeScreen(new PoseAnimatingScreen());
+            foreach (string animations in AnimationIndex.GetAllAnimationNames())
+            {
+                var animationButton = new AnimatedHoverButton(animations);
+                poseAnimatorTab.AddChild(animationButton);
+                animationButton.Pressed += () => ScreenManager.RequestChangeScreen(new PoseAnimatingScreen(animations));
+            }
+
+            return poseAnimatorTab;
         }
     }
 }

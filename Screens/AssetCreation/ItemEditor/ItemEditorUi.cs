@@ -1,8 +1,9 @@
 using System.Collections.Generic;
 using Godot;
+using XanaduProject.Scenes.ItemEditor;
 using XanaduProject.Utils;
 
-namespace XanaduProject.Scenes.ItemEditor
+namespace XanaduProject.Screens.AssetCreation.ItemEditor
 {
     public partial class ItemEditorUi : VBoxContainer
     {

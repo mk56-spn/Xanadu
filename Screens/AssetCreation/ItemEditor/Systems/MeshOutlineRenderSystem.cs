@@ -3,6 +3,7 @@ using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Godot;
 using XanaduProject.Factories;
+using XanaduProject.Screens.AssetCreation.ItemEditor;
 
 namespace XanaduProject.Scenes.ItemEditor.Systems
 {

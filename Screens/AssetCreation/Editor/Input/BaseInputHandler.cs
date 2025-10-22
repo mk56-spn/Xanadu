@@ -1,7 +1,7 @@
 using Godot;
 using Stateless;
 
-namespace XanaduProject.Scenes.Editor.Input
+namespace XanaduProject.Screens.AssetCreation.Editor.Input
 {
     public abstract partial class BaseInputHandler : Control
     {
@@ -36,6 +36,7 @@ namespace XanaduProject.Scenes.Editor.Input
             stateMachine.Configure(InputState.Dragging)
                 .Permit(Trigger.LeftUp, InputState.Idle)
                 .Permit(Trigger.RightDown, InputState.Idle)
+                .OnExit(() => OnDragEnd())
                 .InternalTransition(dragTrigger, (d, _) => OnDrag(d));
 
             stateMachine.OnTransitioned(t =>
@@ -44,8 +45,17 @@ namespace XanaduProject.Scenes.Editor.Input
                 {
                     OnRightClick();
                 }
+
+                if (t.Trigger == Trigger.LeftUp)
+                {
+                    HandleLeftRelease();
+                }
                 OnStateChanged(stateMachine.State);
             });
+        }
+        public override void _GuiInput(InputEvent @event)
+        {
+            ProcessInput(@event);
         }
 
         protected void ProcessInput(InputEvent @event)
@@ -79,6 +89,8 @@ namespace XanaduProject.Scenes.Editor.Input
                         stateMachine.Fire(Trigger.MoveThreshold);
                     }
 
+
+
                     if (stateMachine.State == InputState.Dragging)
                     {
                         var delta = motion.Relative / getCameraZoom();
@@ -104,8 +116,10 @@ namespace XanaduProject.Scenes.Editor.Input
 
         // To be implemented by subclasses
         protected abstract void HandleLeftPress(bool multiSelect);
+        protected virtual void HandleLeftRelease(){}
         protected abstract void OnRightClick();
         protected abstract void OnDrag(Vector2 delta);
         protected virtual void OnStateChanged(InputState state) { }
+        protected virtual void OnDragEnd() { }
     }
 }

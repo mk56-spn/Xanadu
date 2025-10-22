@@ -13,28 +13,18 @@ namespace XanaduProject.Screens.AssetCreation.ItemEditor
 {
     public static class ItemBuilder
     {
-        /// <summary>
-        /// A component builder that takes an item and creates a rid array from its components.
-        /// </summary>
-        /// <param name="item"></param>
-        /// <param name="store"></param>
-        /// <returns></returns>
-        public static RenderRid[] BuildItem(Item item, EntityStore store)
+        public static void BuildItemOnCanvas(this Item item, RenderRid canvas, Color color)
         {
-            List<RenderRid> rids = [];
-
             foreach (var component in item.Components)
             {
                 if (component is not SerializableMeshComponent serializableMesh) continue;
 
-                MeshComponent meshComponent = serializableMesh.MeshComponent;
-                meshComponent.RenderRid = RenderRid.Create();
-                MeshUtils.UpdateTriangulation(meshComponent);
-                meshComponent.RenderRid.SetModulate(Colors.Red);
-                rids.Add(meshComponent.RenderRid);
-            }
+                var (vertices, indices) = BezierTriangulator.Triangulate(serializableMesh.MeshComponent.BezierPoints);
 
-            return rids.ToArray();
+                if (vertices.Count < 3 || indices.Count <= 0) return;
+
+                canvas.AddTriangleArray(vertices, indices, color);
+            }
         }
     }
 }
