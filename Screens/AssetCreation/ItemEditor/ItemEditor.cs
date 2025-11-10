@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Godot;
@@ -8,9 +9,10 @@ using XanaduProject.Factories;
 using XanaduProject.GameDependencies;
 using XanaduProject.IO;
 using XanaduProject.Scenes.ItemEditor;
-using XanaduProject.Scenes.ItemEditor.Systems;
+using XanaduProject.Screens.AssetCreation.ItemEditor.Systems;
 using XanaduProject.Stage.Masters.Composer;
 using XanaduProject.Utils;
+using Mesh = XanaduProject.IO.Mesh;
 
 namespace XanaduProject.Screens.AssetCreation.ItemEditor
 {
@@ -19,11 +21,12 @@ namespace XanaduProject.Screens.AssetCreation.ItemEditor
         public IComponentLayerManager LayerManager { get; }
         private readonly SystemRoot root = new();
 
-        public Item CurrentItem { get; set; }
-        public event Action<Item>? ItemSaved;
+        private Item currentItem { get; set; }
+        public event Action<Item>? EditorSaveRequested;
 
         public event Action? LayersChanged;
         public event Action? ActiveLayerSelectionChanged;
+
 
         public Rid CanvasRid => canvasRid;
 
@@ -34,7 +37,8 @@ namespace XanaduProject.Screens.AssetCreation.ItemEditor
        public void SetCanvasTransform(Transform2D transform2D)=>
            canvasLayer.SetTransform(transform2D);
 
-       public Vector2 CanvasTransform => canvasLayerContainer.GetGlobalMousePosition();
+       public Vector2 CanvasMousePosition => canvasLayerContainer.GetGlobalMousePosition();
+       public float CanvasAngle => canvasLayer.Rotation;
 
        private CanvasLayer canvasLayer;
        private Control canvasLayerContainer;
@@ -53,7 +57,7 @@ namespace XanaduProject.Screens.AssetCreation.ItemEditor
             canvasLayer.AddChild(canvasLayerContainer);
 
 
-            CurrentItem = item ?? new Item
+            currentItem = item ?? new Item
             {
                 Name = "New Item",
                 Author = "Anonymous",
@@ -65,18 +69,22 @@ namespace XanaduProject.Screens.AssetCreation.ItemEditor
             var canvasEntity = GameServices.Store.CreateEntity();
             canvasEntity.Add(new RenderRidComponent(CanvasRid.AsRenderRid()));
 
-            if (CurrentItem.Components.Count != 0)
+            if (currentItem.Components.Count != 0)
             {
-                foreach (var component in CurrentItem.Components)
+                foreach (var component in currentItem.Components)
                 {
-                    if (component is not SerializableMeshComponent serializableMesh) continue;
+                    if (component is not Mesh serializableMesh) continue;
 
                     var entity = DiProvider.Get<EntityStore>().CreateEntity();
-                    var meshComponent = serializableMesh.MeshComponent;
-                    meshComponent.RenderRid = RenderRid.Create(CanvasRid);
-                    entity.Add(meshComponent);
+                    var oldMeshComponent = serializableMesh.MeshComponent;
+                    var newMeshComponent = new MeshComponent
+                    {
+                        BezierPoints = oldMeshComponent.BezierPoints.ToList(),
+                        RenderRid = RenderRid.Create(CanvasRid)
+                    };
+                    entity.Add(newMeshComponent);
                     LayerManager.AddLayerEntity(entity);
-                    MeshUtils.UpdateTriangulation(meshComponent);
+                    MeshUtils.UpdateTriangulation(newMeshComponent);
                 }
             }
             else
@@ -98,24 +106,22 @@ namespace XanaduProject.Screens.AssetCreation.ItemEditor
                 new ItemEditorInput(this),
                 new ItemEditorUi(this) { Position = new Vector2(0,10) },
             ]);
-        }
 
-        public override void _Ready()
-        {
-           /* camera.MakeCurrent();
-            camera.Position = Vector2.Zero;*/
+            RenderRid.Create(canvasLayer.GetCanvas())
+                .AddLine(new Vector2(0,-100), new Vector2(0,100), Colors.Red);
+            RenderRid.Create(canvasLayer.GetCanvas())
+                .AddLine(new Vector2(-100,0), new Vector2(100,0), Colors.Red);
         }
-
         public void TriggerSave()
         {
             var updatedItem = ItemSerializer.CreateItemFromComponentLayerManager(
                 LayerManager,
-                CurrentItem.Author,
-                CurrentItem.Description,
-                CurrentItem.Name
+                currentItem.Author,
+                currentItem.Description,
+                currentItem.Name
             );
 
-            ItemSaved?.Invoke(updatedItem);
+            EditorSaveRequested?.Invoke(updatedItem);
         }
 
         public override void _Process(double delta)

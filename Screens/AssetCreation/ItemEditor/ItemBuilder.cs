@@ -8,23 +8,12 @@ using XanaduProject.Factories;
 using XanaduProject.IO;
 using XanaduProject.Scenes.ItemEditor;
 using XanaduProject.Utils;
+using Mesh = XanaduProject.IO.Mesh;
 
 namespace XanaduProject.Screens.AssetCreation.ItemEditor
 {
     public static class ItemBuilder
     {
-        public static void BuildItemOnCanvas(this Item item, RenderRid canvas, Color color)
-        {
-            foreach (var component in item.Components)
-            {
-                if (component is not SerializableMeshComponent serializableMesh) continue;
 
-                var (vertices, indices) = BezierTriangulator.Triangulate(serializableMesh.MeshComponent.BezierPoints);
-
-                if (vertices.Count < 3 || indices.Count <= 0) return;
-
-                canvas.AddTriangleArray(vertices, indices, color);
-            }
-        }
     }
 }

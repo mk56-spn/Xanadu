@@ -1,12 +1,8 @@
 using System.Collections.Generic;
-using System.Linq;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
-using XanaduProject.ECSComponents;
 using XanaduProject.ECSComponents.EntitySystem;
-using XanaduProject.ECSComponents.Tag;
 using XanaduProject.GameDependencies;
-using XanaduProject.IO.Indexes;
 using XanaduProject.Screens.AssetCreation.BoneMapping.Systems;
 using XanaduProject.Screens.AssetCreation.Skeleton;
 
@@ -21,18 +17,18 @@ namespace XanaduProject.Screens.AssetCreation.BoneMapping
 
         public ItemBoneMappingScreen(KeyValuePair<string, StandardPoseSkin> skinInfo)
         {
-            Store.CreateEntity(new BoneMappingInfo { Skin = skinInfo.Value, SkinName = skinInfo.Value.Name }, new UniqueEntity(bone_mapping));
+            CloseTargetScreen = new AssetCreationScreen();
+            Store.CreateEntity(new BoneMappingInfo { Skin = skinInfo.Value }, new UniqueEntity(bone_mapping));
 
             boneMappingLayout = new BoneMappingLayout(this);
             AddChild(boneMappingLayout);
-
         }
 
         protected override void PostBaseSystems(SystemRoot root)
         {
             root.Add(new EcsDebugSystem());
-            root.Add(new ItemDisplaySystem(true));
-            root.Add(new InitializeVisuals(boneMappingLayout.ViewerPanel.ViewerCentre));
+            root.Add(new InitializeVisuals(boneMappingLayout.ViewerPanel.ViewerCentre, Info.Skin));
+            root.Add(new SelectedBoneSystem());
         }
     }
 }

@@ -6,7 +6,7 @@ using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using XanaduProject.Screens.AssetCreation.PoseAnimating.Components;
 
-namespace XanaduProject.Screens.AssetCreation.PoseAnimating
+namespace XanaduProject.Screens.AssetCreation.PoseAnimating.Systems
 {
     public class LoopingSystem : QuerySystem<AnimationInfo>
     {

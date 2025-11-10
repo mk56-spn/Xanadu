@@ -20,10 +20,10 @@ namespace XanaduProject.Screens.AssetCreation.ItemEditor
             itemEditor = new ItemEditor(item);
             AddChild(itemEditor);
 
-            itemEditor.ItemSaved += OnItemSaved;
+            itemEditor.EditorSaveRequested += onEditorSaveRequested;
         }
 
-        private void OnItemSaved(Item savedItem)
+        private void onEditorSaveRequested(Item savedItem)
         {
             ItemSaved?.Invoke(savedItem);
             // After saving, we can close this subscreen.

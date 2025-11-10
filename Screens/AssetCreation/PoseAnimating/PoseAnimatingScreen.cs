@@ -1,11 +1,11 @@
+using System.Linq;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Godot;
-using System;
-using XanaduProject.ECSComponents.Animation;
 using XanaduProject.ECSComponents.Animation.Arrays;
 using XanaduProject.GameDependencies;
 using XanaduProject.IO;
+using XanaduProject.IO.Indexes;
 using XanaduProject.Screens.AssetCreation.BoneMapping;
 using XanaduProject.Screens.AssetCreation.PoseAnimating.Components;
 using XanaduProject.Screens.AssetCreation.PoseAnimating.Systems;
@@ -21,31 +21,34 @@ namespace XanaduProject.Screens.AssetCreation.PoseAnimating
         private PoseAnimatingLayout poseAnimatingLayout;
         public string? AnimationPath { get; set; }
 
-        public PoseAnimatingScreen(string path)
+        public PoseAnimatingScreen(string? path = null)
         {
-            AnimationPath = path;
-            var v = AnimationIo.LoadAnimation(GameServices.Store, path);
-            Store.CreateEntity(v, new UniqueEntity(animation));
+            CloseTargetScreen = new AssetCreationScreen();
+            AnimationInfo animationInfo;
 
-            Store.CreateEntity();
+            if (path != null)
+            {
+                AnimationPath = path;
+                var loadAnimation = AnimationIo.LoadAnimation(path);
+                animationInfo = new AnimationInfo { Duration = loadAnimation.Duration };
+                PoseUtils.CreateTracksForPose(loadAnimation);
+            }
+            else
+            {
+                animationInfo = new AnimationInfo { Duration = 1};
+                PoseUtils.CreateTracksForPose();
+            }
+            Store.CreateEntity(animationInfo, new UniqueEntity(animation));
             poseAnimatingLayout = new PoseAnimatingLayout();
             AddChild(poseAnimatingLayout);
-        }
-
-        public PoseAnimatingScreen()
-        {
-            AnimationPath = null;
-            Store.CreateEntity(new AnimationInfo { Duration = 1, AnimationPos = 0 }, new UniqueEntity(animation));
-            poseAnimatingLayout = new PoseAnimatingLayout();
-            AddChild(poseAnimatingLayout);
-            PoseUtils.CreateTracksForPose();
         }
 
         protected override void PostBaseSystems(SystemRoot root)
         {
             root.Add(new PoseAnimationSystem());
-            root.Add(new ItemDisplaySystem());
             root.Add(new LoopingSystem());
+            root.Add(new InitializeVisuals(PoseServices.GetViewer(), SkinIndex.GetAllSkins().First().Value));
+
             root.Add(new PoseAnimationUiBuilderSystem(poseAnimatingLayout));
             root.Add(new KeyFrameEditSystem<Vector2,VectorArrayEcs>());
             root.Add(new KeyFrameEditSystem<float,AngleArrayEcs>());

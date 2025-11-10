@@ -5,8 +5,9 @@ using Friflo.Engine.ECS;
 using Godot;
 using XanaduProject.ECSComponents.EntitySystem.Components;
 using XanaduProject.Factories;
+using XanaduProject.Scenes.ItemEditor;
 
-namespace XanaduProject.Scenes.ItemEditor
+namespace XanaduProject.Screens.AssetCreation.ItemEditor
 {
     // This file should be renamed to ComponentLayerManager.cs
     public class ComponentLayerManager(EntityStore entityStore, Rid parentCanvasRid) : IComponentLayerManager
@@ -23,14 +24,14 @@ namespace XanaduProject.Scenes.ItemEditor
         public IReadOnlyList<string> GetLayerNames()
         {
             // TODO: This should come from a generic NameComponent, not MeshComponent.
-            return layerEntities.Select(e => e.TryGetComponent(out MeshComponent mesh) ? mesh.Name : "Layer").ToList();
+            return layerEntities.Select(e => e.TryGetComponent(out Screens.AssetCreation.ItemEditor.MeshComponent mesh) ? mesh.Name : "Layer").ToList();
         }
 
         public Entity AddNewLayerEntity()
         {
             // For now, to maintain compatibility, we'll add a MeshComponent.
             // This should be refactored into a more generic system.
-            var meshComponent = new MeshComponent { RenderRid = RenderRid.Create(parentCanvasRid) };
+            var meshComponent = new Screens.AssetCreation.ItemEditor.MeshComponent { RenderRid = RenderRid.Create(parentCanvasRid) };
             Entity newEntity = entityStore.CreateEntity(meshComponent);
             AddLayerEntity(newEntity);
             return newEntity;
@@ -145,7 +146,7 @@ namespace XanaduProject.Scenes.ItemEditor
         {
             if (layerIndex < 0 || layerIndex >= layerEntities.Count) return;
 
-            if (layerEntities[layerIndex].TryGetComponent(out MeshComponent meshComponent))
+            if (layerEntities[layerIndex].TryGetComponent(out Screens.AssetCreation.ItemEditor.MeshComponent meshComponent))
             {
                 meshComponent.Color = color;
             }
@@ -155,7 +156,7 @@ namespace XanaduProject.Scenes.ItemEditor
         {
             if (layerIndex >= 0 && layerIndex < layerEntities.Count)
             {
-                if (layerEntities[layerIndex].TryGetComponent(out MeshComponent meshComponent))
+                if (layerEntities[layerIndex].TryGetComponent(out Screens.AssetCreation.ItemEditor.MeshComponent meshComponent))
                 {
                     return meshComponent.Color;
                 }

@@ -11,6 +11,13 @@ using XanaduProject.Utils;
 using static Godot.Control.SizeFlags;
 using AnimatedHoverButton = XanaduProject.UiElements.AnimatedHoverButton;
 using System.IO;
+using Friflo.Engine.ECS;
+using Xanadu.Singletons;
+using XanaduProject.ECSComponents.EntitySystem.Components.Bones;
+using XanaduProject.Factories;
+using XanaduProject.IO.Indexes;
+using XanaduProject.IO.Indexes.XanaduProject.IO;
+using XanaduProject.Singleton;
 using XanaduProject.UiElements;
 
 namespace XanaduProject.Screens.AssetCreation.PoseAnimating
@@ -44,7 +51,7 @@ namespace XanaduProject.Screens.AssetCreation.PoseAnimating
             var playBackButton = new AnimatedHoverButton("▶", 15);
             playBackButton.Pressed += () => PoseAnimatingScreen.Info.AnimationActive = AnimationState.Playing;
 
-            var pauseButton = new AnimatedHoverButton("||", 15);
+            var pauseButton = new AnimatedHoverButton("| |", 15);
             pauseButton.Pressed += () => PoseAnimatingScreen.Info.AnimationActive = AnimationState.Active;
 
             var stopButton = new AnimatedHoverButton("■", 15);
@@ -61,7 +68,11 @@ namespace XanaduProject.Screens.AssetCreation.PoseAnimating
             renameButton.Pressed += OnRenamePressed;
 
             var duration = new AnimatedSlider() { Step = 0.01f , CustomMinimumSize = new Vector2( 100, 20), ConsiderNubWidthForPlacement = true };
-            duration.ValueChanged += value => PoseAnimatingScreen.Info.Duration = (float)value;
+            duration.ValueChanged += value =>
+            {
+                PoseAnimatingScreen.Info.Duration = (float)value;
+                timePositionSlider.MaxValue = (float)value;
+            };
 
             VBoxContainer animationModes = new();
             foreach (var mode in Enum.GetValues<AnimationMode>())
@@ -78,7 +89,7 @@ namespace XanaduProject.Screens.AssetCreation.PoseAnimating
                     .Child(new HBoxContainer()
                         .AddChildren(keyFrameButtons,snapButton, new AnimatedExpandableDropdown("IO", (Container)new HBoxContainer().AddChildren( saveButton, renameButton, duration)))),
 
-                new PanelContainer(){ SizeFlagsVertical = ExpandFill }
+                new PanelContainer(){ SizeFlagsVertical = ExpandFill, ZIndex = -100 }
                     .AddChildren(
                         new CenterContainer() { SizeFlagsVertical = ExpandFill }
                         .Child(poseViewer.Child(new BoneInputHandler(poseViewer, keyFrameButtons))),
@@ -86,34 +97,34 @@ namespace XanaduProject.Screens.AssetCreation.PoseAnimating
                     ),
                 new HBoxContainer().AddChildren(new HBoxContainer().AddChildren(playBackButton, pauseButton, stopButton),timePositionSlider)
             ]);
+            RenderRid.Create(poseViewer)
+                .AddLine(new Vector2(-100, 140), new Vector2(100, 140), Colors.Red);
         }
 
         private void OnSavePressed()
         {
+            Logger.AddLog(LogCategory.General,"Saving animation...");
             var screen = GetParent<PoseAnimatingScreen>();
 
             if (screen.AnimationPath != null)
             {
-
                 AnimationIo.SaveAnimation(GameServices.Store, screen.AnimationPath);
+                AnimationIndex.BuildIndex();
                 return;
-            };
-
-            string animationPath =  "NewAnimation.json";
-            string animationName = Path.GetFileNameWithoutExtension(animationPath);
-            string extension = Path.GetExtension(animationPath);
-            string? directory = Path.GetDirectoryName(animationPath);
-
-            screen.AnimationPath = animationPath;
-
-            int i = 1;
-            while (File.Exists(Path.Combine(ProjectSettings.GlobalizePath(SerializationUtils.ANIMATIONS_DIR), animationPath)))
-            {
-                if (directory != null) animationPath = Path.Combine(directory, $"{animationName}{i}{extension}");
-                i++;
             }
 
-            AnimationIo.SaveAnimation(GameServices.Store, animationPath);
+            const string animation_name = "NewAnimation";
+
+            int i = 1;
+            string finalPath = animation_name + SerializationUtils.ANIMATIONS_EXT;
+            while (File.Exists(Path.Combine(ProjectSettings.GlobalizePath(SerializationUtils.ANIMATIONS_DIR), finalPath)))
+            {
+                finalPath = $"{animation_name}{i++}{SerializationUtils.ANIMATIONS_EXT}";
+            }
+
+            screen.AnimationPath = finalPath;
+            AnimationIo.SaveAnimation(GameServices.Store, finalPath);
+            AnimationIndex.BuildIndex();
         }
 
         private void OnRenamePressed()
@@ -181,7 +192,7 @@ namespace XanaduProject.Screens.AssetCreation.PoseAnimating
             if (screen.AnimationPath == null)
                 return;
 
-            string? newPath = AnimationIo.RenameAnimation(screen.AnimationPath, newName);
+            string? newPath = AnimationIndex.RenameAnimation(screen.AnimationPath, newName);
 
             if (newPath != null)
             {

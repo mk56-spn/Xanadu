@@ -3,111 +3,161 @@ using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Godot;
 using XanaduProject.Factories;
-using XanaduProject.Screens.AssetCreation.ItemEditor;
+using XanaduProject.Scenes.ItemEditor;
+using static Godot.Colors;
 
-namespace XanaduProject.Scenes.ItemEditor.Systems
+namespace XanaduProject.Screens.AssetCreation.ItemEditor.Systems
 {
     public class MeshOutlineRenderSystem(IItemEditor editor) : QuerySystem<MeshComponent>
     {
+        private const int segments_per_curve = 20;
+        private const int handle_size = 6;
+        private const int line_width = 2;
+        private const int handle_offset = 3;
+
+        private static readonly Color[] line_colors = [Red];
+        private static readonly Color default_point_color = White;
+        private static readonly Color selected_point_color = Red;
+        private static readonly Color default_handle_color = Yellow;
+        private static readonly Color handle_line_color = Gray;
+
         private readonly RenderRid canvas = RenderRid.Create();
         private readonly List<Vector2> curvePoints = [];
-        private static readonly Color[] line_color = [Colors.Red];
 
         protected override void OnAddStore(EntityStore store)
         {
             canvas.SetParent(editor.CanvasRid);
         }
 
-        private void drawMeshLayer(MeshComponent meshComponent, bool isActiveMesh)
+        protected override void OnUpdate()
         {
-            // Clear the RenderRid before drawing
-            // Draw Bezier curve segments (lines)
-            if (meshComponent.BezierPoints.Count >= 1)
+            canvas.Clear();
+
+            if (editor.LayerManager.GetShowAllLayers())
             {
-                curvePoints.Clear();
-                int segmentsPerCurve = 20;
-
-                for (int i = 0; i < meshComponent.BezierPoints.Count; i++)
-                {
-                    BezierPoint p1 = meshComponent.BezierPoints[i];
-                    BezierPoint p2 = meshComponent.BezierPoints[(i + 1) % meshComponent.BezierPoints.Count];
-
-                    for (int j = 0; j <= segmentsPerCurve; j++)
-                    {
-                        float t = (float)j / segmentsPerCurve;
-                        Vector2 point = p1.Position.BezierInterpolate(p1.Position + p1.OutHandle, p2.Position + p2.InHandle, p2.Position, t);
-                        curvePoints.Add(point);
-                    }
-                }
-
-                if (curvePoints.Count > 1)
-                    canvas.AddPolyline(curvePoints.ToArray(), line_color, 2);
+                drawAllLayers();
             }
-
-            // Draw Bezier points and handles only for the active mesh - This is correct
-            if (!isActiveMesh) return;
+            else
             {
-                for (int i = 0; i < meshComponent.BezierPoints.Count; i++)
+                DrawActiveLayer();
+            }
+        }
+
+        private void drawAllLayers()
+        {
+            var allLayerEntities = editor.LayerManager.GetAllLayerEntities();
+
+            foreach (var entity in allLayerEntities)
+            {
+                if (entity.TryGetComponent(out MeshComponent meshData))
                 {
-                    BezierPoint bp = meshComponent.BezierPoints[i];
-
-                    // Main point
-                    Color pointColor = Colors.White;
-                    if (i == meshComponent.SelectedBezierPointIndex && meshComponent.SelectedHandleType == HandleType.Point)
-                    {
-                        pointColor = Colors.Red;
-                    }
-                    canvas.AddCircle( 5,bp.Position, pointColor);
-
-                    // In-handle
-                    Vector2 inHandlePos = bp.Position + bp.InHandle;
-                    Color inHandleColor = Colors.Yellow;
-                    if (i == meshComponent.SelectedBezierPointIndex && meshComponent.SelectedHandleType == HandleType.InHandle)
-                    {
-                        inHandleColor = Colors.Red;
-                    }
-                    canvas.AddLine(bp.Position, inHandlePos, Colors.Gray);
-                    canvas.AddRect(new Rect2(inHandlePos - new Vector2(3, 3), new Vector2(6, 6)), inHandleColor);
-
-                    // Out-handle
-                    Vector2 outHandlePos = bp.Position + bp.OutHandle;
-                    Color outHandleColor = Colors.Yellow;
-                    if (i == meshComponent.SelectedBezierPointIndex && meshComponent.SelectedHandleType == HandleType.OutHandle)
-                    {
-                        outHandleColor = Colors.Red;
-                    }
-                    canvas.AddLine(bp.Position, outHandlePos, Colors.Gray);
-                    canvas.AddRect(new Rect2(outHandlePos - new Vector2(3, 3), new Vector2(6, 6)), outHandleColor);
+                    drawMeshLayer(meshData, entity == editor.LayerManager.ActiveEntity);
                 }
             }
         }
 
-        protected override void OnUpdate()
+        private void DrawActiveLayer()
         {
-            canvas.Clear();
-            bool showAllLayers = editor.LayerManager.GetShowAllLayers();
+            var activeEntity = editor.LayerManager.ActiveEntity;
+            if (activeEntity == default)
+                return;
 
-            if (showAllLayers)
+            if (activeEntity.TryGetComponent(out MeshComponent meshData))
             {
-                var allLayerEntities = editor.LayerManager.GetAllLayerEntities();
-                foreach (var entity in allLayerEntities)
+                drawMeshLayer(meshData, true);
+            }
+        }
+
+        private void drawMeshLayer(MeshComponent meshComponent, bool isActiveMesh)
+        {
+            drawBezierCurve(meshComponent);
+
+            if (isActiveMesh)
+            {
+                drawBezierHandles(meshComponent);
+            }
+        }
+
+        private void drawBezierCurve(MeshComponent meshComponent)
+        {
+            if (meshComponent.BezierPoints.Count < 2)
+                return;
+
+            curvePoints.Clear();
+
+            for (int i = 0; i < meshComponent.BezierPoints.Count; i++)
+            {
+                var currentPoint = meshComponent.BezierPoints[i];
+                var nextPoint = meshComponent.BezierPoints[(i + 1) % meshComponent.BezierPoints.Count];
+
+                for (int j = 0; j <= segments_per_curve; j++)
                 {
-                    if (entity.TryGetComponent(out MeshComponent meshData))
-                    {
-                        // Pass whether this specific entity is the active one
-                        drawMeshLayer(meshData, entity == editor.LayerManager.ActiveEntity);
-                    }
+                    float t = (float)j / segments_per_curve;
+                    Vector2 point = currentPoint.Position.BezierInterpolate(
+                        currentPoint.Position + currentPoint.OutHandle,
+                        nextPoint.Position + nextPoint.InHandle,
+                        nextPoint.Position,
+                        t
+                    );
+                    curvePoints.Add(point);
                 }
             }
-            else
-            {
-                if (editor.LayerManager.ActiveEntity == default) return;
 
-                if (editor.LayerManager.ActiveEntity.TryGetComponent(out MeshComponent meshData))
-                {
-                    drawMeshLayer(meshData, true); // Always true for the single active mesh
-                }
+            if (curvePoints.Count > 1)
+            {
+                canvas.AddPolyline(curvePoints.ToArray(), line_colors, line_width);
             }
+        }
+
+        private void drawBezierHandles(MeshComponent meshComponent)
+        {
+            for (int i = 0; i < meshComponent.BezierPoints.Count; i++)
+            {
+                var bezierPoint = meshComponent.BezierPoints[i];
+                bool isSelectedPoint = i == meshComponent.SelectedBezierPointIndex;
+
+                drawMainPoint(bezierPoint, isSelectedPoint, meshComponent.SelectedHandleType);
+                drawInHandle(bezierPoint, isSelectedPoint, meshComponent.SelectedHandleType);
+                drawOutHandle(bezierPoint, isSelectedPoint, meshComponent.SelectedHandleType);
+            }
+        }
+
+        private void drawMainPoint(BezierPoint point, bool isSelectedPoint, HandleType selectedHandleType)
+        {
+            var pointColor = isSelectedPoint && selectedHandleType == HandleType.Point
+                ? selected_point_color
+                : default_point_color;
+
+            canvas.AddHandle(pointColor, Beige, point.Position);
+        }
+
+        private void drawInHandle(BezierPoint point, bool isSelectedPoint, HandleType selectedHandleType)
+        {
+            var inHandlePosition = point.Position + point.InHandle;
+            var handleColor = isSelectedPoint && selectedHandleType == HandleType.InHandle
+                ? selected_point_color
+                : default_handle_color;
+
+            canvas.AddLine(point.Position, inHandlePosition, handle_line_color);
+            canvas.AddHandle(handleColor, Beige, inHandlePosition);
+        }
+
+        private void drawOutHandle(BezierPoint point, bool isSelectedPoint, HandleType selectedHandleType)
+        {
+            var outHandlePosition = point.Position + point.OutHandle;
+            var handleColor = isSelectedPoint && selectedHandleType == HandleType.OutHandle
+                ? selected_point_color
+                : default_handle_color;
+
+            canvas.AddLine(point.Position, outHandlePosition, handle_line_color);
+            canvas.AddHandle(handleColor, Beige, outHandlePosition);
+        }
+
+        private static Rect2 createHandleRect(Vector2 position)
+        {
+            var offset = new Vector2(handle_offset, handle_offset);
+            var size = new Vector2(handle_size, handle_size);
+            return new Rect2(position - offset, size);
         }
     }
 }

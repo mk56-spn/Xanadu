@@ -1,10 +1,12 @@
 
 using System.Collections.Generic;
 using System.Linq;
+using Friflo.Engine.ECS;
 using Godot;
 using Xanadu.Singletons;
 using XanaduProject.ECSComponents.EntitySystem.Components;
 using XanaduProject.ECSComponents.EntitySystem.Components.Bones;
+using XanaduProject.ECSComponents.Tag;
 using XanaduProject.Factories;
 using XanaduProject.GameDependencies;
 using XanaduProject.IO;
@@ -23,12 +25,10 @@ namespace XanaduProject.Screens.AssetCreation.BoneMapping
         private AnimatedHoverButton addItemButton { get; } = new("Add/Edit Item", fontSize: 20);
         private AnimatedHoverButton removeItemButton { get; } = new("Remove Item", fontSize: 20);
         private AnimatedHoverButton saveSkinButton { get; } = new("Save Skin", fontSize: 20);
-        private AnimatedHoverButton closeEditorButton { get; } = new("Close Editor") { Visible = false };
         private HBoxContainer mainHBox { get; } = new();
         private VBoxContainer boneListVBox { get; } = new();
-        private readonly ItemEditor.ItemEditor activeItemEditor = new()
-        {
-        };
+        private readonly AnimatedListControl animatedListControl = new() { ZIndex = 3, SizeFlagsHorizontal = SizeFlags.ShrinkBegin };
+        private readonly Dictionary<string, SelectableButton> boneButtons = new();
 
         public ViewerPanelContainer ViewerPanel { get; } = new();
         public BoneMappingLayout(MainScreen mainScreen)
@@ -45,15 +45,6 @@ namespace XanaduProject.Screens.AssetCreation.BoneMapping
             setupBoneList();
             setupButtons();
             setupViewer();
-
-
-            AnimatedListControl animatedListControl = new AnimatedListControl() { ZIndex = 3, SizeFlagsHorizontal = SizeFlags.ShrinkBegin};
-            foreach (string boneName in ItemBoneMappingScreen.Info.Skin.BoneNames)
-            {
-                animatedListControl.AddItem(boneName, () => ItemBoneMappingScreen.Info.SelectedBone = boneName, 13);
-            }
-            boneListVBox.AddChild(animatedListControl);
-            ViewerPanel.AddOverlay(activeItemEditor);
         }
 
         private void setupBoneList()
@@ -62,21 +53,46 @@ namespace XanaduProject.Screens.AssetCreation.BoneMapping
             mainHBox.AddChild(boneListVBox);
 
             var title = new Label { Text = "Bone -> Item Mapping" };
-
-
             boneListVBox.AddChild(title);
 
+            refreshBoneList();
+            boneListVBox.AddChild(animatedListControl);
+        }
+
+        private void refreshBoneList()
+        {
+            animatedListControl.ClearItems();
+            boneButtons.Clear();
+
+            GameServices.Store.Query<NameEcs,BoneGlobalTransform>()
+                .ForEachEntity(((ref NameEcs nameEcs,
+                ref BoneGlobalTransform _, Entity entity) =>
+            {
+                bool hasItem = ItemBoneMappingScreen.Info.Skin.ItemAssignments.ContainsKey(nameEcs.Name);
+                var color = hasItem ? (Color?)Colors.Green : null;
+                var button = animatedListControl.AddItem(nameEcs.Name, () => ItemBoneMappingScreen.Info.SelectedBone = entity, 13, unselectedColor: color);
+                boneButtons[nameEcs.Name] = button;
+            } ));
         }
 
         private void setupButtons()
         {
+            removeItemButton.Pressed += () =>
+            {
+                ItemBoneMappingScreen.Info.Skin.ItemAssignments.Remove(ItemBoneMappingScreen.Info.SelectedItemName);
+                var v = GameServices.Store.Query<NameEcs>().HasValue<NameEcs, string>(ItemBoneMappingScreen.Info.SelectedItemName).Entities.Single();
+                v.GetComponent<CanvasEcs>().Canvas.Free();
+                v.RemoveComponent<CanvasEcs>();
+                v.RemoveComponent<ItemEcs>();
+
+                refreshBoneList();
+            };
             var hBoxButtons = new VBoxContainer();
-            hBoxButtons.AddChildren([ addItemButton, removeItemButton, saveSkinButton, closeEditorButton]);
+            hBoxButtons.AddChildren([ addItemButton, removeItemButton]);
             boneListVBox.AddChild(hBoxButtons);
 
             addItemButton.Pressed += OnAddItemPressed;
-            closeEditorButton.Pressed += OnCloseEditorPressed;
-            saveSkinButton.Pressed += () => StandardPoseSkinIo.Save(ItemBoneMappingScreen.Info.Skin);
+
         }
 
         private void setupViewer()
@@ -123,61 +139,74 @@ namespace XanaduProject.Screens.AssetCreation.BoneMapping
 
         private void OnAddItemPressed()
         {
-            activeItemEditor.Visible = true;
-            var skin = ItemBoneMappingScreen.Info.Skin;
+            var item = ItemBoneMappingScreen.Info.SelectedBone.TryGetComponent(out ItemEcs itemEcs) ? itemEcs.Item : new Item();
+            ItemEditor.ItemEditor editor = new ItemEditor.ItemEditor(item);
+            ViewerPanel.AddOverlay(editor);
 
-            var item = ItemBoneMappingScreen.Info.Skin.ItemAssignments
-                           .GetValueOrDefault(ItemBoneMappingScreen.Info.SelectedBone) ??
-                       new Item
-                       {
-                           Name = $"{skin.Name}_{ItemBoneMappingScreen.Info.SelectedBone}_Item",
-                           Author = skin.Author,
-                           Description = $"Item for bone {ItemBoneMappingScreen.Info.SelectedBone} on skin {skin.Name}",
-                           Components = []
-                       };
+            editor.EditorSaveRequested += i =>
+            {
+
+                onEditorSaveRequested(i);
+                OnCloseEditorPressed();
+                StandardPoseSkinIo.Save(ItemBoneMappingScreen.Info.Skin);
+
+                var buffer = GameServices.Store.GetCommandBuffer();
+                GameServices.Store.Query<ItemEcs>().ForEachEntity(((ref ItemEcs _, Entity entity) => buffer.AddTag<Dormant>(entity.Id)));
+                buffer.Playback();
+                editor.QueueFree();
+            };
+
+
+            boneListVBox.Visible = false;
 
             // Create and setup the item editor overlay
-            activeItemEditor.CurrentItem = item;
-            activeItemEditor.ItemSaved += OnItemSaved;
 
-            // Fetch the bone transform of the selected bone
-            string selectedBoneName = ItemBoneMappingScreen.Info.SelectedBone;
-            var boneEntity = GameServices.Store
-                .Query<NameEcs, BoneGlobalTransform>()
-                .Entities
-                .FirstOrDefault(e => e.GetComponent<NameEcs>().Name == selectedBoneName);
+            var v = ItemBoneMappingScreen.Info.SelectedBone;
+            Logger.AddLog(LogCategory.General, ItemBoneMappingScreen.Info.SelectedBone.GetComponent<BoneGlobalTransform>().GlobalPosition.ToString());
 
-            Logger.AddLog(LogCategory.General, boneEntity.GetComponent<BoneGlobalTransform>().GlobalPosition.ToString());
-
-                var boneTransform = boneEntity.GetComponent<BoneGlobalTransform>();
+                var boneTransform = v.GetComponent<BoneGlobalTransform>();
                 var transform = new Transform2D(boneTransform.GlobalAngle - Mathf.Pi / 2,boneTransform.GlobalPosition);
 
 
-                activeItemEditor.Draw += () =>
+                editor.Draw += () =>
                 {
-                    activeItemEditor.SetCanvasTransform(
+                    editor.SetCanvasTransform(
                         ViewerPanel.ViewerCentre.GetGlobalTransformWithCanvas().TranslatedLocal(ViewerPanel.Size / 2).ScaledLocal(new Vector2(3,3)) * transform
                     );
                 };
-                activeItemEditor.QueueRedraw();
+                editor.QueueRedraw();
             // Show/hide buttons
             addItemButton.Visible = false;
-            closeEditorButton.Visible = true;
+
+
         }
 
         private void OnCloseEditorPressed()
         {
-            activeItemEditor.Visible = false;
+            Logger.AddLog(LogCategory.General,"Closing editor");
+            boneListVBox.Visible = true;
             addItemButton.Visible = true;
-            closeEditorButton.Visible = false;
         }
 
-        private void OnItemSaved(Item savedItem)
+        private void onEditorSaveRequested(Item savedItem)
         {
-            // Save the item to the skin's bone assignments
-            ItemBoneMappingScreen.Info.Skin.ItemAssignments[ItemBoneMappingScreen.Info.SelectedBone] = savedItem;
+            var buffer = GameServices.Store.GetCommandBuffer();
+            if (!ItemBoneMappingScreen.Info.Skin.ItemAssignments.ContainsKey(ItemBoneMappingScreen.Info.SelectedItemName))
+            {
+                var canvasEcs = new CanvasEcs();
+                canvasEcs.Canvas.SetParent(GameServices.Store.Query<RootEcs>().Entities.Single().GetComponent<RootEcs>().Canvas);
+                var entity = ItemBoneMappingScreen.Info.SelectedBone;
+                        buffer.AddComponent(entity.Id, new ItemEcs(){ Item = savedItem});
+                        buffer.AddComponent(entity.Id, canvasEcs);
+                        buffer.AddTag<Dormant>(entity.Id);
+                ItemBoneMappingScreen.Info.Skin.ItemAssignments[ItemBoneMappingScreen.Info.SelectedItemName] = savedItem;
+            }
+            else
+            {
+                ItemBoneMappingScreen.Info.Skin.ItemAssignments[ItemBoneMappingScreen.Info.SelectedItemName].Components = savedItem.Components;
+            }
 
-
+            refreshBoneList();
         }
     }
 }

@@ -2,8 +2,9 @@ using System.Collections.Generic;
 using System.Linq;
 using Clipper2Lib;
 using Godot;
+using XanaduProject.Scenes.ItemEditor;
 
-namespace XanaduProject.Scenes.ItemEditor
+namespace XanaduProject.Screens.AssetCreation.ItemEditor
 {
     public static class BezierTriangulator
     {
@@ -48,10 +49,7 @@ namespace XanaduProject.Scenes.ItemEditor
 
                 int[] newIndices = Geometry2D.TriangulatePolygon(polygon.ToArray());
 
-                foreach (int index in newIndices)
-                {
-                    allIndices.Add(vertexOffset + index);
-                }
+                allIndices.AddRange(newIndices.Select(index => vertexOffset + index));
             }
 
             return (allVertices, allIndices);

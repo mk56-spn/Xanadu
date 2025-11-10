@@ -9,16 +9,14 @@ namespace XanaduProject.Screens.AssetCreation.ItemEditor
     {
         IComponentLayerManager LayerManager { get; }
 
-        Item CurrentItem { get; }
-
-        event Action<Item> ItemSaved;
-
         event Action? LayersChanged;
         event Action? ActiveLayerSelectionChanged;
 
         Rid CanvasRid { get; }
 
-        Vector2 CanvasTransform { get; }
+        Vector2 CanvasMousePosition { get; }
+
+        float CanvasAngle { get; }
 
         void TriggerSave();
     }

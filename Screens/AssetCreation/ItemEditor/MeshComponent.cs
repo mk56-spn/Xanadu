@@ -1,23 +1,25 @@
 using System.Collections.Generic;
-using System.Text.Json.Serialization;
 using Friflo.Engine.ECS;
 using Godot;
+using MemoryPack;
 using XanaduProject.Factories;
+using XanaduProject.Scenes.ItemEditor;
 
-namespace XanaduProject.Scenes.ItemEditor
+namespace XanaduProject.Screens.AssetCreation.ItemEditor
 {
-    public struct MeshComponent() : IComponent
+    [MemoryPackable]
+    public partial struct MeshComponent() : IComponent
     {
         public string Name { get; set; } = "New Mesh"; // Added Name property
         public List<BezierPoint> BezierPoints { get; set; } = new(); // Added public setter
+       [MemoryPackIgnore]
         public RenderRid RenderRid = RenderRid.Create();
-
         public Color Color = Colors.White;
+        [MemoryPackIgnore]
 
-        [JsonIgnore]
         public int SelectedBezierPointIndex { get; set; } = -1;
+        [MemoryPackIgnore]
 
-        [JsonIgnore]
         public HandleType SelectedHandleType { get; set; } = HandleType.None;
     }
 }

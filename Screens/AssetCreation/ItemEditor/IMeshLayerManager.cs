@@ -15,7 +15,7 @@ namespace XanaduProject.Scenes.ItemEditor
         IReadOnlyList<string> GetLayerNames();
         void SetActiveLayer(int index);
         void AddNewMeshEntity(); // Will change later
-        void AddMeshEntity(MeshComponent meshComponent); // Will change later
+        void AddMeshEntity(Screens.AssetCreation.ItemEditor.MeshComponent meshComponent); // Will change later
 
         bool HasActiveMeshSelectedBezierPoint();
         bool GetActiveMeshHandlesLockedState();
@@ -30,7 +30,7 @@ namespace XanaduProject.Scenes.ItemEditor
         IReadOnlyList<Entity> GetAllLayerEntities();
 
         // CORRECTED: Triangulation methods now accept MeshComponent
-        void UpdateTriangulationForMesh(MeshComponent meshComponent);
+        void UpdateTriangulationForMesh(Screens.AssetCreation.ItemEditor.MeshComponent meshComponent);
         void UpdateAllMeshTriangulations();
 
         void SetLayerColor(int layerIndex, Color color);

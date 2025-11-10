@@ -62,11 +62,4 @@ namespace XanaduProject.Screens.AssetCreation.PoseAnimating.Components
             _ => throw new ArgumentOutOfRangeException(nameof(mode), mode, null)
         };
     }
-
-    public struct CanvasEcs() : IComponent
-    {
-        public RenderRid Canvas = RenderRid.Create();
-
-        public Entity? Target;
-    }
 }

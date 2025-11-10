@@ -18,7 +18,7 @@ namespace XanaduProject.Screens.AssetCreation.Skeleton
 
         public static void BuildPose()
         {
-            BuildPoseAndGetBoneNames();
+            buildPoseAndGetBoneNames();
         }
 
         public static List<string> GetBoneNames()
@@ -47,7 +47,7 @@ namespace XanaduProject.Screens.AssetCreation.Skeleton
             boneNames.Add($"{namePrefix}Lower");
         }
 
-        public static void BuildPoseAndGetBoneNames()
+        private static void buildPoseAndGetBoneNames()
         {
             var boneNames = new List<string>();
             var rootEntity = entityStore.CreateEntity(new RootEcs(), new NameEcs("Root"));

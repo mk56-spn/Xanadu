@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 using Godot;
-using XanaduProject.Scenes.ItemEditor;
+using XanaduProject.UiElements;
 using XanaduProject.Utils;
 
 namespace XanaduProject.Screens.AssetCreation.ItemEditor
@@ -9,10 +9,10 @@ namespace XanaduProject.Screens.AssetCreation.ItemEditor
     {
         private readonly IItemEditor editor;
         private readonly ButtonGroup layerButtonGroup;
-        private Button addLayerButton;
+        private AnimatedHoverButton addLayerButton;
         private CheckBox lockHandlesCheckBox;
         private CheckBox showAllLayersCheckBox;
-        private Button doneButton;
+        private AnimatedHoverButton doneButton;
 
         private const string layer_panel_name = "LayerPanel";
         private const string layer_buttons_container_name = "LayerButtonsContainer";
@@ -31,7 +31,7 @@ namespace XanaduProject.Screens.AssetCreation.ItemEditor
 
             layerButtonGroup = new ButtonGroup();
 
-            addLayerButton = new Button { Text = "Add New Layer" };
+            addLayerButton = new AnimatedHoverButton("Add Layer", fontSize: 20);
             addLayerButton.Pressed += OnAddLayerButtonPressed;
 
             VBoxContainer miscContainer = new VBoxContainer();
@@ -45,7 +45,7 @@ namespace XanaduProject.Screens.AssetCreation.ItemEditor
             showAllLayersCheckBox.Toggled += OnShowAllLayersToggled;
             miscContainer.AddChild(showAllLayersCheckBox);
 
-            doneButton = new Button { Text = "Done" };
+            doneButton = new AnimatedHoverButton("Done", fontSize: 20);
             doneButton.Pressed += OnDoneButtonPressed;
             miscContainer.AddChild(doneButton);
 
@@ -76,15 +76,15 @@ namespace XanaduProject.Screens.AssetCreation.ItemEditor
 
                 int layerIndex = i;
 
-                var layerButton = new Button { Text = layerNames[i], ToggleMode = true, ButtonGroup = layerButtonGroup };
+                var layerButton = new AnimatedHoverButton(layerNames[i], fontSize: 20){ ToggleMode = true, ButtonGroup = layerButtonGroup };
                 layerButton.Pressed += () => OnLayerButtonPressed(layerIndex);
                 layerControlContainer.AddChild(layerButton);
 
-                var moveUpButton = new Button { Text = "▲" };
+                var moveUpButton = new AnimatedHoverButton("▲", fontSize: 20);
                 moveUpButton.Pressed += () => OnMoveLayerUpPressed(layerIndex);
                 layerControlContainer.AddChild(moveUpButton);
 
-                var moveDownButton = new Button { Text = "▼" };
+                var moveDownButton = new AnimatedHoverButton("▼", fontSize: 20);
                 moveDownButton.Pressed += () => OnMoveLayerDownPressed(layerIndex);
                 layerControlContainer.AddChild(moveDownButton);
 

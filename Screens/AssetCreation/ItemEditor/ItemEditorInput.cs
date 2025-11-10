@@ -1,7 +1,9 @@
 using System.Collections.Generic;
 using System.Linq;
 using Godot;
+using Xanadu.Singletons;
 using XanaduProject.Scenes.ItemEditor;
+using XanaduProject.Singleton;
 using XanaduProject.Utils;
 using BaseInputHandler = XanaduProject.Screens.AssetCreation.Editor.Input.BaseInputHandler;
 
@@ -35,7 +37,7 @@ namespace XanaduProject.Screens.AssetCreation.ItemEditor
 
         protected override void HandleLeftPress(bool multiSelect)
         {
-            pressPosition = editor.CanvasTransform;
+            pressPosition = editor.CanvasMousePosition;
             var activeEntity = editor.LayerManager.ActiveEntity;
 
             if (activeEntity == default || !activeEntity.HasComponent<MeshComponent>())
@@ -78,6 +80,9 @@ namespace XanaduProject.Screens.AssetCreation.ItemEditor
 
         protected override void OnDrag(Vector2 delta)
         {
+            Logger.AddLog(LogCategory.General, "Dragging" + editor.CanvasAngle);
+            var rotatedAngle = delta.Rotated(-editor.CanvasAngle);
+
             var activeEntity = editor.LayerManager.ActiveEntity;
             if (activeEntity == default || !activeEntity.HasComponent<MeshComponent>())
             {
@@ -93,11 +98,11 @@ namespace XanaduProject.Screens.AssetCreation.ItemEditor
             switch (activeHandleType)
             {
                 case HandleType.Point:
-                    dragSelectedPoints(delta / 3, ref activeMeshComponent);
+                    dragSelectedPoints(rotatedAngle / 3, ref activeMeshComponent);
                     break;
                 case HandleType.InHandle:
                 case HandleType.OutHandle:
-                    dragSelectedHandles(delta / 3, ref activeMeshComponent, activeHandleType);
+                    dragSelectedHandles(rotatedAngle / 3, ref activeMeshComponent, activeHandleType);
                     break;
             }
 
@@ -138,7 +143,7 @@ namespace XanaduProject.Screens.AssetCreation.ItemEditor
 
         private void cycleAndSelectElement(List<(int, HandleType)> clickedElements)
         {
-            var transformedMousePos = editor.CanvasTransform;
+            var transformedMousePos = editor.CanvasMousePosition;
             if (LastFoundElements.Count > 1 &&
                 transformedMousePos.DistanceTo(lastCyclePosition) < same_spot_threshold)
             {
@@ -327,19 +332,16 @@ namespace XanaduProject.Screens.AssetCreation.ItemEditor
                 return foundElements; // Return empty list if no active mesh component
             }
 
-            float fixedPointRadius = point_selection_radius;
-            float fixedHandleRadius = handle_selection_radius;
-
             // Prioritize handles
             for (int i = 0; i < meshData.BezierPoints.Count; i++)
             {
                 BezierPoint bp = meshData.BezierPoints[i];
-                if ((bp.Position + bp.InHandle).DistanceTo(position) < fixedHandleRadius)
+                if ((bp.Position + bp.InHandle).DistanceTo(position) < handle_selection_radius)
                 {
                     foundElements.Add((i, HandleType.InHandle));
                 }
 
-                if ((bp.Position + bp.OutHandle).DistanceTo(position) < fixedHandleRadius)
+                if ((bp.Position + bp.OutHandle).DistanceTo(position) < handle_selection_radius)
                 {
                     foundElements.Add((i, HandleType.OutHandle));
                 }
@@ -348,7 +350,7 @@ namespace XanaduProject.Screens.AssetCreation.ItemEditor
             for (int i = 0; i < meshData.BezierPoints.Count; i++)
             {
                 BezierPoint bp = meshData.BezierPoints[i];
-                if (bp.Position.DistanceTo(position) < fixedPointRadius)
+                if (bp.Position.DistanceTo(position) < point_selection_radius)
                 {
                     foundElements.Add((i, HandleType.Point));
                 }

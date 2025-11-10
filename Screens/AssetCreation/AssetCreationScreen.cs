@@ -1,18 +1,11 @@
 // Copyright (c) mk56_spn <dhsjplt@gmail.com>. Licensed under the GNU General Public Licence (2.0).
 // See the LICENCE file in the repository root for full licence text.
 
-using Friflo.Engine.ECS;
-using Friflo.Engine.ECS.Systems;
 using Godot;
-using Microsoft.Extensions.DependencyInjection;
 using Xanadu.Singletons;
-using XanaduProject.Buttons;
-using XanaduProject.ECSComponents.EntitySystem;
-using XanaduProject.ECSComponents.EntitySystem.BoneSystems;
-using XanaduProject.GameDependencies;
 using XanaduProject.IO;
 using XanaduProject.IO.Indexes;
-using XanaduProject.Scenes.ItemEditor;
+using XanaduProject.IO.Indexes.XanaduProject.IO;
 using XanaduProject.Screens.AssetCreation.BoneMapping;
 using XanaduProject.Screens.AssetCreation.ItemEditor;
 using XanaduProject.Screens.AssetCreation.PoseAnimating;
