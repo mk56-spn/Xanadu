@@ -4,6 +4,7 @@
 
 using Friflo.Engine.ECS;
 using Godot;
+using JetBrains.Annotations;
 using XanaduProject.IO.Serialization;
 using ZLinq;
 
@@ -18,5 +19,12 @@ namespace XanaduProject.ECSComponents.Animation.Arrays
         }
 
         public Color[] Points { get; set; }
+
+        [UsedImplicitly]
+        static void CopyValue(in ColorArrayEcs source, ref ColorArrayEcs target, in CopyContext context)
+        {
+            target.Points = source.Points;
+        }
+
     }
 }

@@ -1,23 +1,22 @@
 // Copyright (c) mk56_spn <dhsjplt@gmail.com>. Licensed under the GNU General Public Licence (2.0).
 // See the LICENCE file in the repository root for full licence text.
 
-using System.Linq;
 using Godot;
-using XanaduProject.ECSComponents.Animation2;
+using XanaduProject.ECSComponents.Animation.Arrays;
 using ZLinq;
-using static XanaduProject.Composer.AnimationTracksManager;
+using static XanaduProject.Stage.Masters.Composer.AnimationTracksManager;
 
 
-namespace XanaduProject.Composer.TrackVisualiser
+namespace XanaduProject.Stage.Masters.Composer.TrackVisualiser
 {
-    public partial class ColorTrackVisualizer(Container editContainer) : Stage.Masters.Composer.TrackVisualiser.TrackVisualiser<Color>
+    public sealed partial class ColorTrackVisualizer(Container editContainer) : TrackVisualiser<Color>
     {
-        protected override ref Color[] Values()
+        private Color[] values()
         {
-            return ref Entity.GetComponent<ColorArrayEcs>().Colors;
+            return Entity.GetComponent<ColorArrayEcs>().Points;
         }
 
-        protected override Color DefaultValue()
+        private Color defaultValue()
         {
             return Colors.White;
         }
@@ -26,10 +25,10 @@ namespace XanaduProject.Composer.TrackVisualiser
         {
             if (SelectedIndex == -1) return;
             var colorPicker = new ColorPickerButton { CustomMinimumSize = new Vector2(50, 50) };
-            colorPicker.Color = Values()[SelectedIndex];
+            colorPicker.Color = values()[SelectedIndex];
             colorPicker.ColorChanged += c =>
             {
-                Values()[SelectedIndex] = c;
+                values()[SelectedIndex] = c;
                 QueueRedraw();
             };
 
@@ -41,7 +40,7 @@ namespace XanaduProject.Composer.TrackVisualiser
         {
             base._Draw();
 
-            var colours = Entity.GetComponent<ColorArrayEcs>().Colors;
+            var colours = Entity.GetComponent<ColorArrayEcs>().Points;
             float[] points = Entity.GetComponent<FloatArrayEcs>().Points;
 
             if (points.Length == 0) return;
