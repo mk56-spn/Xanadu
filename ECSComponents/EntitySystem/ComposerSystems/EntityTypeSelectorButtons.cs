@@ -4,6 +4,7 @@
 using System.ComponentModel;
 using Friflo.Engine.ECS;
 using Godot;
+using XanaduProject.ECSComponents.EntitySystem.Components;
 using XanaduProject.Stage.Masters.Composer;
 
 namespace XanaduProject.ECSComponents.EntitySystem.ComposerSystems

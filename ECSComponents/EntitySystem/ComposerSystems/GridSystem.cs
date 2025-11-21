@@ -13,10 +13,11 @@ namespace XanaduProject.ECSComponents.EntitySystem.ComposerSystems
         private readonly int spacing = 32;
 
         private readonly IVisualsMaster master = DiProvider.Get<IVisualsMaster>();
-        private readonly Rid canvasItem = RenderingServer.CanvasItemCreate();
+        private readonly RenderRid canvasItem = RenderRid.Create();
 
         public GridSystem()
         {
+
             var lineY = new Vector2[lineCount * 2];
             var lineX = new Vector2[lineCount * 2];
 
@@ -29,7 +30,7 @@ namespace XanaduProject.ECSComponents.EntitySystem.ComposerSystems
                 lineX[i * 2 + 1] = new Vector2(5000, i * spacing);
             }
 
-            canvasItem.AsRenderRid()
+            canvasItem
                 .SetParent(master.GameplayerLayerRid)
                 .SetModulate(Colors.Blue with { A = 0.2F })
                 .SetZIndex(-10)
@@ -39,8 +40,14 @@ namespace XanaduProject.ECSComponents.EntitySystem.ComposerSystems
 
         private static readonly Vector2 offset = new(1000, 1000);
 
-        protected override void OnUpdate()=>
-            canvasItem.AsRenderRid()
-                .SetTransform(new Transform2D(0,(master.CameraPosition - offset).Snapped(spacing)));
+        protected override void OnUpdate()
+        {
+            if (Input.IsKeyPressed(Key.G))
+            {
+                canvasItem.SetVisible(false);
+            }
+            canvasItem
+                .SetTransform(new Transform2D(0, (master.CameraPosition - offset).Snapped(spacing)));
+        }
     }
 }

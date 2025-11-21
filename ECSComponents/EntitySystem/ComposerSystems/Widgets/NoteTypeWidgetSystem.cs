@@ -4,6 +4,7 @@
 using System;
 using Godot;
 using XanaduProject.DataStructure;
+using XanaduProject.ECSComponents.EntitySystem.Components;
 using XanaduProject.ECSComponents.Tag;
 
 namespace XanaduProject.ECSComponents.EntitySystem.ComposerSystems.Widgets

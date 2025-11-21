@@ -5,6 +5,7 @@ using Friflo.Engine.ECS.Systems;
 using Godot;
 using XanaduProject.GameDependencies;
 using XanaduProject.Stage.Masters.Composer;
+using XanaduProject.UiElements;
 
 namespace XanaduProject.ECSComponents.EntitySystem.ComposerSystems
 {
@@ -13,10 +14,12 @@ namespace XanaduProject.ECSComponents.EntitySystem.ComposerSystems
         private static readonly IComposer composer = DiProvider.Get<IComposer>();
         private static readonly IComposerVisuals visuals = DiProvider.Get<IComposerVisuals>();
 
-        private readonly Button snapped = new() { ToggleMode = true, Text = "Snapped" };
-        private readonly Button rotating = new() { ToggleMode = true, Text = "Rotating" };
-
+        private readonly AnimatedHoverButton snapped = new("snapped", 15) { ToggleMode = true };
+        private readonly AnimatedHoverButton rotating = new("Rotating", 15) { ToggleMode = true };
+    
         public ToggleButtonsSystem()
+
+
         {
             snapped.Toggled += on => composer.Snapped = on;
             rotating.Toggled += on => composer.Rotating = on;

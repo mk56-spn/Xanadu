@@ -28,6 +28,8 @@ namespace XanaduProject.ECSComponents.EntitySystem.ComposerSystems
         {
             canvasItem.Clear();
 
+
+
             Composer.Selected.ForEachEntity((ref ElementEcs element, ref SelectionEcs _, Entity entity) =>
             {
                 canvasItem.AddSetTransform(element.Transform);
@@ -42,7 +44,7 @@ namespace XanaduProject.ECSComponents.EntitySystem.ComposerSystems
                 if (entity.TryGetComponent(out RectEcs rect))
                 {
                     canvasItem
-                        .AddRect(rect.Extents, composer_colour_dim)
+
                         .AddRectOutline(rect.Extents, composer_colour);
                 }
             });

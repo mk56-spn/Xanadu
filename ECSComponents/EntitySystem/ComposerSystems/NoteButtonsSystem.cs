@@ -6,26 +6,24 @@ using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Godot;
 using XanaduProject.Audio;
+using XanaduProject.ECSComponents.EntitySystem.Components;
 using XanaduProject.ECSComponents.Tag;
 using XanaduProject.GameDependencies;
 using XanaduProject.Stage.Masters.Composer;
+using XanaduProject.UiElements;
 
 namespace XanaduProject.ECSComponents.EntitySystem.ComposerSystems
 {
 	public class NoteButtonsSystem : QuerySystem
 	{
 		private static readonly IComposerVisuals visuals = DiProvider.Get<IComposerVisuals>();
-		private static readonly GridContainer container = new() { Columns = 3 };
+		private static readonly GridContainer container = new() { Columns = 5 };
 
-		private readonly float[] values =
-		[
-			-1,
-			-1 / 2f,
-			-1 / 4f,
-			1 / 4f,
-			1 / 2f,
-			1
-		];
+		private readonly int[] values =
+        [
+            1,2,4,8,16,
+            -1,-2,-4,-8,-16
+        ];
 
 		private ArchetypeQuery<NoteEcs> query = null!;
 
@@ -34,15 +32,13 @@ namespace XanaduProject.ECSComponents.EntitySystem.ComposerSystems
 			container.Visible = (query.Count != 0);
 		}
 
-		private readonly struct EachNote(float value) : IEach<NoteEcs>
+		private readonly struct EachNote(int value) : IEach<NoteEcs>
 		{
 			private readonly IClock clock = DiProvider.Get<IClock>();
 
 			public void Execute(ref NoteEcs note)
 			{
-				note.TimingPoint =
-					(float)(Mathf.Snapped(note.TimingPoint, 60 / clock.CurrentBpm * 0.25) +
-							60 / clock.CurrentBpm * value);
+				note.TimingPoint = clock.OffsetBeat(value,note.TimingPoint);
 			}
 		}
 
@@ -52,13 +48,12 @@ namespace XanaduProject.ECSComponents.EntitySystem.ComposerSystems
 			query.Filter.AnyTags(Tags.Get<SelectionFlag>());
 
 			visuals.EntityEditTabAdd(container, "Note timing");
-			foreach (float value in values)
-			{
-				var s = new Button
-				{
-					Text = value.ToString(CultureInfo.InvariantCulture)
-				};
-
+			foreach (int value in values)
+            {
+                var s = new AnimatedHoverButton("1 /" + value.ToString(CultureInfo.InvariantCulture), 10)
+                {
+                    MainColour = Colors.White.Darkened(0.5f / value)
+                };
 				s.Pressed += () =>
 				{
 					query.Each(new EachNote(value));

@@ -23,7 +23,7 @@ namespace XanaduProject.ECSComponents.EntitySystem.ComposerSystems.Widgets
 
                 RenderRid.Create(b.GetCanvasItem())
                     .SetTransform(new Transform2D(0, b.CustomMinimumSize / 2))
-                    .SetMaterial(Materials.BLOCKS.Get(v))
+                    .SetMaterial(BlockMaterials.Get(v))
                     .AddRect(new Vector2(40, 40));
 
                 b.Pressed += () => Composer.SelectedBlockShaderId = v;
