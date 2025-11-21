@@ -1,31 +1,31 @@
 // Copyright (c) mk56_spn <dhsjplt@gmail.com>.Licensed under the GNU General Public Licence (2.0).
 // See the LICENCE file in the repository root for full licence text.
 
-using Godot;
 using System.Collections.Generic;
+using Godot;
 
-namespace XanaduProject.Buttons
+namespace XanaduProject.UiElements
 {
     public partial class CustomAnimatedDropdown : Control
     {
         [Signal]
         public delegate void ItemSelectedEventHandler(int index);
 
-        private readonly UiElements.AnimatedHoverButton mainButton;
+        private readonly AnimatedHoverButton mainButton;
         private readonly PopupPanel popup;
         private readonly VBoxContainer itemContainer;
-        private readonly List<string> items = new();
+        private readonly List<string> items;
         private int selectedIndex = -1;
         private readonly int fontSize;
         private readonly Font font;
 
-        public CustomAnimatedDropdown(string placeholder, List<string> items, int fontSize = 50, Font font = null)
+        public CustomAnimatedDropdown(string placeholder, List<string> items, int fontSize = 50, Font? font = null)
         {
             this.items = items;
             this.fontSize = fontSize;
             this.font = font ?? FontSource.PLASTIC_SLANTED;
 
-            mainButton = new UiElements.AnimatedHoverButton(placeholder, fontSize, this.font);
+            mainButton = new AnimatedHoverButton(placeholder, fontSize, this.font);
             mainButton.Pressed += OnMainButtonPressed;
             AddChild(mainButton);
 
@@ -39,10 +39,10 @@ namespace XanaduProject.Buttons
             popup.AddChild(itemContainer);
             AddChild(popup);
 
-            PopulateItems();
+            populateItems();
         }
 
-        private void PopulateItems()
+        private void populateItems()
         {
             for (int i = 0; i < items.Count; i++)
             {
@@ -63,7 +63,6 @@ namespace XanaduProject.Buttons
             {
                 // Set the width of the container to match the button, the height will be automatic
                 itemContainer.CustomMinimumSize = new Vector2(mainButton.Size.X, 0);
-                var mainButtonRect = mainButton.GetGlobalRect();
                 popup.Position = new Vector2I(0, (int)mainButton.Size.Y);
                 popup.Popup();
             }

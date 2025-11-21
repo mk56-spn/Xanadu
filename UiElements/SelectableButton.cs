@@ -14,6 +14,8 @@ namespace XanaduProject.UiElements
         private readonly float selectedOffset = 10f;
         private float currentOffset = 0f;
 
+        public Color? UnselectedColor { get; set; }
+
 
         public override void _Ready()
         {
@@ -38,7 +40,12 @@ namespace XanaduProject.UiElements
             }
             else
             {
-                TargetColour = IsHovered() ? MainColour : MainColour.Darkened(0.5f);
+                if (UnselectedColor.HasValue) {
+                    TargetColour = IsHovered() ? UnselectedColor.Value.Lightened(0.2f) : UnselectedColor.Value;
+                }
+                else {
+                    TargetColour = IsHovered() ? MainColour : MainColour.Darkened(0.5f);
+                }
             }
 
             // Lerp offset

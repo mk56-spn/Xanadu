@@ -19,9 +19,10 @@ namespace XanaduProject.UiElements
             AddThemeConstantOverride("separation", 5);
         }
 
-        public void AddItem(string text, Action onPressed, int fontSize = 40, Font? font = null)
+        public SelectableButton AddItem(string text, Action onPressed, int fontSize = 40, Font? font = null, Color? unselectedColor = null)
         {
             var item = new SelectableButton(text, fontSize, font ?? FontSource.PLASTIC_SLANTED);
+            item.UnselectedColor = unselectedColor;
             int index = items.Count;
 
             item.Pressed += () =>
@@ -32,6 +33,7 @@ namespace XanaduProject.UiElements
 
             items.Add(item);
             AddChild(item);
+            return item;
         }
 
         public void SetSelected(int index)
