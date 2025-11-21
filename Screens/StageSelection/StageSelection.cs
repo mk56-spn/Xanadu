@@ -2,11 +2,11 @@
 // See the LICENCE file in the repository root for full licence text.
 
 using Godot;
-using XanaduProject.Buttons;
 using XanaduProject.DataStructure;
 using XanaduProject.IO;
 using XanaduProject.Screens.ScreenStructure;
 using XanaduProject.Stage;
+using AnimatedHoverButton = XanaduProject.UiElements.AnimatedHoverButton;
 
 namespace XanaduProject.Screens.StageSelection
 {
@@ -17,6 +17,10 @@ namespace XanaduProject.Screens.StageSelection
         private StageInfo data = null!;
         private readonly ScoreDisplay scoreDisplay = new();
 
+        public StageSelection()
+        {
+            CloseTargetScreen = new MainMenu();
+        }
         public StageInfo Data
         {
             get => data;
@@ -67,13 +71,5 @@ namespace XanaduProject.Screens.StageSelection
 					new Stage.Masters.Composer.Composer(StagePersistence.GetStage(Data)));
 			};
 		}
-
-        private partial class HeaderButtons : HBoxContainer
-        {
-            public HeaderButtons()
-            {
-                AddChild(new Button());
-            }
-        }
 	}
 }

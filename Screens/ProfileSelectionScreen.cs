@@ -7,6 +7,7 @@ using XanaduProject.DataStructure;
 using XanaduProject.GameDependencies;
 using XanaduProject.IO.Indexes;
 using XanaduProject.Screens.ScreenStructure;
+using AnimatedHoverButton = XanaduProject.UiElements.AnimatedHoverButton;
 
 namespace XanaduProject.Screens
 {

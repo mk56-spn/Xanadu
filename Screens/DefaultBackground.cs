@@ -4,6 +4,7 @@
 using Godot;
 using XanaduProject.Factories;
 using XanaduProject.Factories.ShaderFactoryHelpers;
+using XanaduProject.Stage.Masters.Rendering;
 using XanaduProject.Tools;
 
 namespace XanaduProject.Screens
@@ -16,18 +17,13 @@ namespace XanaduProject.Screens
         public override void _Ready(){
             SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
 
-            ColorRect c;
+            var can = RenderRid.Create(this)
+                .SetTransform(new Vector2(200, 200))
+                .AddRect(new Vector2(100, 100));
 
-            Modulate = Colors.White.Darkened(0.4f);
+            Modulate = Colors.Red;
 
-            ShaderFactory f = new ShaderFactory();
-            f.Add(FragmentShaders.TILES);
-
-            AddChild(c = new ColorRect());
-            c.SetMaterial(f.Build());
-            c.Modulate = terciary_colour;
-            c.ShowBehindParent = true;
-            c.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
+            can.SetMaterial(BlockMaterials.GetMaterial(BlockShaderId.SquareInSquare).GetRid());
         }
 
         private const float curve_width = 0.2f;

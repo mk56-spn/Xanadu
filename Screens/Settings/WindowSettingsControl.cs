@@ -2,47 +2,37 @@
 // See the LICENCE file in the repository root for full licence text.
 
 using Godot;
+using System.Collections.Generic;
+using System.Linq;
+using XanaduProject.Buttons;
+using XanaduProject.UiElements;
 
 namespace XanaduProject.Screens.Settings
 {
     public partial class WindowSettingsControl : SettingsControl
     {
-        private OptionButton resolutionDropdown;
+        private readonly CustomAnimatedDropdown resolutionDropdown;
+        private readonly List<string> resolutions = ["1920x1080", "1280x720", "800x600"];
 
         public WindowSettingsControl(string icon, string settingName) : base(icon, settingName)
         {
-            // Add dropdown
-            resolutionDropdown = new OptionButton();
-            AddChild(resolutionDropdown);
+            string currentResolution = $"{GameSettings.CurrentSettings.ResolutionWidth}x{GameSettings.CurrentSettings.ResolutionHeight}";
 
-            populateResolutions();
-            selectCurrentResolution();
+            string placeholder = "Select Resolution";
+            if (resolutions.Contains(currentResolution))
+            {
+                placeholder = currentResolution;
+            }
+
+            resolutionDropdown = new CustomAnimatedDropdown(placeholder, resolutions, 30);
+            AddChild(resolutionDropdown);
 
             resolutionDropdown.ItemSelected += OnResolutionSelected;
         }
 
-        private void populateResolutions()
+        private void OnResolutionSelected(int index)
         {
-            resolutionDropdown.AddItem("1920x1080");
-            resolutionDropdown.AddItem("1280x720");
-            resolutionDropdown.AddItem("800x600");
-        }
-
-        private void selectCurrentResolution()
-        {
-            string currentResolution = $"{GameSettings.CurrentSettings.ResolutionWidth}x{GameSettings.CurrentSettings.ResolutionHeight}";
-            for (int i = 0; i < resolutionDropdown.ItemCount; i++)
-            {
-                if (resolutionDropdown.GetItemText(i) != currentResolution) continue;
-
-                resolutionDropdown.Select(i);
-                break;
-            }
-        }
-
-        private void OnResolutionSelected(long index)
-        {
-            string selectedResolution = resolutionDropdown.GetItemText((int)index);
+            string selectedResolution = resolutions[index];
             string[] parts = selectedResolution.Split('x');
             if (parts.Length != 2 || !int.TryParse(parts[0], out int width) ||
                 !int.TryParse(parts[1], out int height)) return;

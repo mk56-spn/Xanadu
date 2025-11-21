@@ -6,6 +6,8 @@ using XanaduProject.Buttons;
 using XanaduProject.Scenes;
 using XanaduProject.Screens.ScreenStructure;
 using XanaduProject.Screens.Settings;
+using AnimatedHoverButton = XanaduProject.UiElements.AnimatedHoverButton;
+using AssetCreationScreen = XanaduProject.Screens.AssetCreation.AssetCreationScreen;
 
 namespace XanaduProject.Screens
 {

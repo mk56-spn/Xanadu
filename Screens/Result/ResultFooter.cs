@@ -5,8 +5,10 @@ using Friflo.Engine.ECS;
 using Godot;
 using XanaduProject.Buttons;
 using XanaduProject.ECSComponents;
+using XanaduProject.ECSComponents.EntitySystem.Components;
 using XanaduProject.ECSComponents.Tag;
 using XanaduProject.Stage;
+using AnimatedHoverButton = XanaduProject.UiElements.AnimatedHoverButton;
 
 namespace XanaduProject.Screens.Result
 {

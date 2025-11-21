@@ -7,6 +7,7 @@ using Friflo.Engine.ECS;
 using Godot;
 using XanaduProject.DataStructure;
 using XanaduProject.ECSComponents;
+using XanaduProject.ECSComponents.EntitySystem.Components;
 using XanaduProject.ECSComponents.Tag;
 using XanaduProject.Tools;
 

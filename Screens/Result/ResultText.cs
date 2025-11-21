@@ -14,7 +14,7 @@ namespace XanaduProject.Screens.Result
                 EmissionShapeOffset = new Vector3(-100,0,0),
                 EmissionShape = ParticleProcessMaterial.EmissionShapeEnum.Box,
                 EmissionBoxExtents = new Vector3(15,30,0),
-                ColorRamp = ParticlesRidExtensions.FadeGradient,
+                ColorRamp = ParticlesRidExtensions.FADE_GRADIENT,
                 Color = new Color(1,1,1,0.5f),
             };
 

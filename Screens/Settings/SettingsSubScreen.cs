@@ -5,6 +5,7 @@ using Godot;
 using XanaduProject.Buttons;
 using XanaduProject.Character;
 using XanaduProject.Screens.ScreenStructure;
+using AnimatedHoverButton = XanaduProject.UiElements.AnimatedHoverButton;
 
 namespace XanaduProject.Screens.Settings
 {

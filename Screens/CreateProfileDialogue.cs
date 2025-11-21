@@ -4,6 +4,7 @@ using XanaduProject.Buttons;
 using XanaduProject.DataStructure;
 using XanaduProject.IO;
 using XanaduProject.Screens.ScreenStructure;
+using AnimatedHoverButton = XanaduProject.UiElements.AnimatedHoverButton;
 
 namespace XanaduProject.Screens
 {
