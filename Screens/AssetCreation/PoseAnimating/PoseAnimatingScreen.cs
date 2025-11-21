@@ -47,7 +47,7 @@ namespace XanaduProject.Screens.AssetCreation.PoseAnimating
         {
             root.Add(new PoseAnimationSystem());
             root.Add(new LoopingSystem());
-            root.Add(new InitializeVisuals(PoseServices.GetViewer(), SkinIndex.GetAllSkins().First().Value));
+            root.Add(new InitializeVisuals(PoseServices.GetViewer().GetCanvasItem() , SkinIndex.GetAllSkins().First().Value));
 
             root.Add(new PoseAnimationUiBuilderSystem(poseAnimatingLayout));
             root.Add(new KeyFrameEditSystem<Vector2,VectorArrayEcs>());

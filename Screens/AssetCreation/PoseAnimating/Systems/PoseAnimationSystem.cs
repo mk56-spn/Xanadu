@@ -6,8 +6,6 @@ using System.Linq;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Godot;
-using XanaduProject.ECSComponents;
-using XanaduProject.ECSComponents.Animation;
 using XanaduProject.ECSComponents.Animation.Arrays;
 using XanaduProject.ECSComponents.Animation2;
 using XanaduProject.ECSComponents.EntitySystem.Components;
@@ -15,6 +13,7 @@ using XanaduProject.ECSComponents.EntitySystem.Components.Bones;
 using XanaduProject.GameDependencies;
 using XanaduProject.Screens.AssetCreation.PoseAnimating.Components;
 using XanaduProject.Tools;
+using XanaduProject.Utils;
 
 namespace XanaduProject.Screens.AssetCreation.PoseAnimating.Systems
 {
@@ -76,7 +75,7 @@ namespace XanaduProject.Screens.AssetCreation.PoseAnimating.Systems
             } ));
         }
 
-        private T interpolateValue<T>(T[] values, float[] timePoints, T defaultValue, ref AnimationInfo info, EasingType[]? easingTypes = null) where T : struct
+        private static T interpolateValue<T>(T[] values, float[] timePoints, T defaultValue, ref AnimationInfo info, EasingType[]? easingTypes = null) where T : struct
         {
             if (timePoints.Length == 0)
             {
@@ -95,7 +94,7 @@ namespace XanaduProject.Screens.AssetCreation.PoseAnimating.Systems
                 return InterpolatorCache<T>.LERP(values[^1], values[0], t);
             }
 
-            return ColourInterpolatorSystem.LerpedFrameValue<T>(info.AnimationPos, timePoints, values, easingTypes);
+            return UtilsGeneral.LerpedFrameValue<T>(info.AnimationPos, timePoints, values, easingTypes);
         }
 
     }
