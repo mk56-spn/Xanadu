@@ -21,7 +21,7 @@ namespace XanaduProject.Screens.AssetCreation.BoneMapping
         {
             Query.ForEachEntity(((ref ItemEcs itemEcs, ref CanvasEcs canvasEcs, Entity e) =>
             {
-                Logger.AddLog(LogCategory.General,"hello");
+                Logger.AddLog(LogCategory.General, $"Drawing {itemEcs.Item.Name} on canvas");
                 canvasEcs.Canvas.Clear();
                 var ecs = canvasEcs;
                 itemEcs.Item.Components.ForEach(c =>

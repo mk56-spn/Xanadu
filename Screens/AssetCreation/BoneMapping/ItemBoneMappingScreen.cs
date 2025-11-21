@@ -27,7 +27,7 @@ namespace XanaduProject.Screens.AssetCreation.BoneMapping
         protected override void PostBaseSystems(SystemRoot root)
         {
             root.Add(new EcsDebugSystem());
-            root.Add(new InitializeVisuals(boneMappingLayout.ViewerPanel.ViewerCentre, Info.Skin));
+            root.Add(new InitializeVisuals(boneMappingLayout.ViewerPanel.ViewerCentre.GetCanvasItem(), Info.Skin));
             root.Add(new SelectedBoneSystem());
         }
     }
