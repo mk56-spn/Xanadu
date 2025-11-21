@@ -1,8 +1,7 @@
 using System.Collections.Generic;
-using XanaduProject.IO;
 using XanaduProject.Screens.AssetCreation.Skeleton;
 
-namespace XanaduProject.Scenes
+namespace XanaduProject.IO.Indexes
 {
     public static class PoseIndex
     {

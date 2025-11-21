@@ -19,7 +19,7 @@ namespace XanaduProject.IO
         public static List<Skeleton> LoadPoses()
         {
             string jsonString = File.ReadAllText(poses_file_path);
-            return JsonSerializer.Deserialize<List<Skeleton>>(jsonString) ?? new List<Skeleton>();
+            return JsonSerializer.Deserialize<List<Skeleton>>(jsonString) ?? [];
         }
     }
 }

@@ -10,6 +10,9 @@ namespace XanaduProject.IO
         internal const string PROFILES_DIR = "user://Profiles";
         internal const string ITEMS_DIR = "res://items/";
         internal const string SKINS_DIR = "res://Skins/";
+        internal const string SKIN_EXT = ".xsf";
+        internal const string ANIMATIONS_DIR = "res://Animations/";
+        internal const string ANIMATIONS_EXT = ".xaf";
 
         internal const string PROFILE_FILENAME = "profile.json";
         internal const string METADATA_FILENAME = "metadata.json";

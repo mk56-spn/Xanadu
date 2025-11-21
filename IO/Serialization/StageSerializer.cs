@@ -6,7 +6,11 @@ using System.Text.Json;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Serialize;
 using Godot;
-using XanaduProject.ECSComponents.Animation2;
+using XanaduProject.ECSComponents.Animation.Arrays;
+using XanaduProject.ECSComponents.EntitySystem.Components.Bones;
+using XanaduProject.ECSComponents.Tag;
+using XanaduProject.Screens;
+using XanaduProject.Screens.AssetCreation.PoseAnimating.Components;
 
 namespace XanaduProject.IO.Serialization
 {
@@ -16,8 +20,33 @@ namespace XanaduProject.IO.Serialization
         {
             // 1. Extract StageData
 
+            EntityStore serialisingStore = new EntityStore();
+
+           var buffer =  serialisingStore.GetCommandBuffer();
+
+
+            foreach (var oldEntity in data.Store.Query().WithoutAnyComponents(ComponentTypes.Get<
+                         BoneEcs,
+                         BoneGlobalTransform,
+                         RootEcs,
+                         ItemEcs,
+                         AnimationInfo,
+                         IkTargetComponent>()).Entities)
+            {
+
+
+                var newEntity = serialisingStore.CreateEntity(id: oldEntity.Id);
+                oldEntity.CopyEntity(newEntity);
+
+                if (newEntity.Tags.Has<SelectionFlag>())
+                    buffer.RemoveTag<SelectionFlag>(newEntity.Id);
+
+
+            }
+
+            buffer.Playback();
+
             string filename = data.StageInfo.StageName;
-            EntityStore store = data.Store;
 
             // 2. Create directory
             string stageDir = Path.Combine(ProjectSettings.GlobalizePath(SerializationUtils.STAGES_DIR), filename);
@@ -27,19 +56,11 @@ namespace XanaduProject.IO.Serialization
             }
 
             // 4. Serialize EntityStore
-            shimCreation(store);
+            shimCreation(serialisingStore);
             var serializer = new EntitySerializer();
             string entityStorePath = Path.Combine(stageDir, SerializationUtils.ENTITY_STORE_FILENAME);
-            using (var writeStream = new FileStream(entityStorePath, FileMode.Create))
-            {
-                serializer.WriteStore(store, writeStream);
-            }
-
-            // 5. Cleanup shims
-            var buffer = store.GetCommandBuffer();
-            store.Query<ColorArrayEcs>().ForEachEntity((ref ColorArrayEcs _, Entity entity) =>
-                buffer.RemoveComponent<ColorArrayThin>(entity.Id));
-            buffer.Playback();
+            using var writeStream = new FileStream(entityStorePath, FileMode.Create);
+            serializer.WriteStore(serialisingStore, writeStream);
         }
 
         public static void SerializeMetadata(StageData data)

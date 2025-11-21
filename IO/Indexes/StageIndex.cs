@@ -52,10 +52,8 @@ namespace XanaduProject.IO.Indexes
                     string json = File.ReadAllText(metadataPath);
                     var stageData = JsonSerializer.Deserialize<StageInfo>(json);
 
-                    GD.Print(stageData!.CreatorList.First());
-                    GD.PrintRich(stageData!.StageName + "INFO");
                     string stageResPath = SerializationUtils.STAGES_DIR.PathJoin(dirName);
-                    stageData.StagePath = stageResPath;
+                    stageData!.StagePath = stageResPath;
                     var newStageInfo = stageData;
 
                     Stages.Add(stageIndex, newStageInfo);

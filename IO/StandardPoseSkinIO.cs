@@ -2,10 +2,9 @@
 // See the LICENCE file in the repository root for full licence text.
 
 using System.IO;
-using System.Text.Json;
 using Godot;
+using MemoryPack;
 using XanaduProject.IO.Indexes;
-using XanaduProject.Scenes.ItemEditor;
 using XanaduProject.Screens.AssetCreation.Skeleton;
 using static XanaduProject.IO.SerializationUtils;
 
@@ -13,15 +12,14 @@ namespace XanaduProject.IO
 {
     public static class StandardPoseSkinIo
     {
-        public static void Save(StandardPoseSkin skin, string fileName, bool rebuildIndex = true)
+        public static void Save(StandardPoseSkin skin, bool rebuildIndex = true)
         {
-            var options = new JsonSerializerOptions { WriteIndented = true };
-            string json = JsonSerializer.Serialize(skin, options);
+            byte[] v = MemoryPackSerializer.Serialize(skin);
 
             // Ensure the directory exists
             DirAccess.MakeDirRecursiveAbsolute(SKINS_DIR);
-            string filePath = Path.Combine(SKINS_DIR, $"{fileName}.json");
-            File.WriteAllText(ProjectSettings.GlobalizePath(filePath), json);
+            string filePath = Path.Combine(SKINS_DIR, $"{skin.Name}{SKIN_EXT}");
+            File.WriteAllBytes(ProjectSettings.GlobalizePath(filePath), v);
 
             if(rebuildIndex)
                 // Rebuild the index to include the new skin

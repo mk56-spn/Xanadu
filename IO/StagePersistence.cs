@@ -45,7 +45,10 @@ namespace XanaduProject.IO
             string metaData = Path.Combine(dirPath, SerializationUtils.METADATA_FILENAME);
             string stagePath = Path.Combine(dirPath, SerializationUtils.ENTITY_STORE_FILENAME);
 
-            var stage = new EntityStore();
+            var stage = new EntityStore()
+            {
+                JobRunner = new ParallelJobRunner(10)
+            };
             return new StageData(new StageInfo(stagePath, metaData, levelName, [])
             {
                 StagePath = levelName,

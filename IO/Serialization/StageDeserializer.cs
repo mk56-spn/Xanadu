@@ -6,7 +6,13 @@ using System.IO;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Serialize;
 using Godot;
+using XanaduProject.ECSComponents.Animation;
+using XanaduProject.ECSComponents.Animation.Arrays;
 using XanaduProject.ECSComponents.Animation2;
+using XanaduProject.ECSComponents.EntitySystem.ColourChannels;
+using XanaduProject.ECSComponents.EntitySystem.Components;
+using XanaduProject.ECSComponents.Tag;
+using XanaduProject.Factories;
 
 namespace XanaduProject.IO.Serialization
 {
@@ -18,10 +24,17 @@ namespace XanaduProject.IO.Serialization
             store.Query<ColorArrayThin>().ForEachEntity((ref ColorArrayThin component1, Entity entity) =>
             {
                 buffer.AddComponent(entity.Id, new ColorArrayEcs(component1));
+                buffer.AddTag<Dormant>(entity.Id);
+                buffer.AddComponent<ActiveColourEcs>(entity.Id);
                 buffer.RemoveComponent<ColorArrayThin>(entity.Id);
             });
 
             buffer.Playback();
+
+            store.Query<ElementEcs>().ForEachEntity((ref ElementEcs component1, Entity entity) =>
+            {
+                component1.Canvas = RenderRid.Create();
+            });
         }
 
         public static EntityStore Deserialize(string stageName)

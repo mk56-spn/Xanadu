@@ -7,8 +7,10 @@ using Friflo.Engine.ECS;
 using System.Text.Json;
 using System.IO;
 using static XanaduProject.IO.SerializationUtils;
-using System.Text.Json.Serialization;
+using MemoryPack;
 using XanaduProject.Scenes.ItemEditor;
+using XanaduProject.Screens.AssetCreation.ItemEditor;
+
 
 namespace XanaduProject.IO
 {
@@ -30,7 +32,7 @@ namespace XanaduProject.IO
             return JsonSerializer.Deserialize<Item>(json, options);
         }
 
-        public static Item DeserializeItemFromFile(string itemName)
+        public static Item? DeserializeItemFromFile(string itemName)
         {
             string filePath = Path.Combine(ITEMS_DIR, $"{itemName}.json");
             string absolutePath = ProjectSettings.GlobalizePath(filePath);
@@ -53,7 +55,7 @@ namespace XanaduProject.IO
             {
                 if (entity.TryGetComponent(out MeshComponent meshComponent))
                 {
-                    serializedComponents.Add(new SerializableMeshComponent
+                    serializedComponents.Add(new Mesh
                     {
                         MeshComponent = meshComponent,
                         Color = meshComponent.Color
@@ -72,22 +74,24 @@ namespace XanaduProject.IO
         }
     }
 
-    public record Item()
+    [MemoryPackable]
+    public partial record Item(string Name = "New Item", string Description = "")
     {
-        public List<SerializableComponent> Components { get; set; } = new();
+        public List<SerializableComponent> Components { get; set; } = [];
         public string Author { get; set; } = "Anonymous";
-        public string Description { get; set; }
-        public string Name { get; set; }
+        public string Description { get; set; } = Description;
+        public string Name { get; set; } = Name;
     }
 
-    [JsonPolymorphic(TypeDiscriminatorPropertyName = "componentType")]
-    [JsonDerivedType(typeof(SerializableMeshComponent), typeDiscriminator: "mesh")]
-    public abstract record SerializableComponent;
 
-    public record SerializableMeshComponent : SerializableComponent
+    [MemoryPackable]
+    [MemoryPackUnion(0, typeof(Mesh))]
+    public abstract partial record SerializableComponent;
+
+    [MemoryPackable]
+    public partial record Mesh : SerializableComponent
     {
         public required MeshComponent MeshComponent { get; set; }
-        [JsonConverter(typeof(ColorConverter))] // Apply the custom converter directly to the property
         public Color Color { get; set; }
     }
 }
