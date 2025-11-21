@@ -19,6 +19,7 @@ namespace XanaduProject.Screens.AssetCreation.PoseAnimating.Components
         public Entity GetIndexedValue() => Entity;
     }
 
+    [ComponentKey(null)]
     public readonly struct IkControlled : ITag;
 
     public struct AnimationInfo() : IComponent

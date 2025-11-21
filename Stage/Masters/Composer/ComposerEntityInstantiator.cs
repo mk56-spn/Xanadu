@@ -36,13 +36,13 @@ namespace XanaduProject.Stage.Masters.Composer
 
                 ent.AddComponent(new NoteEcs(composer.SelectedNoteType)
                 {
-                    TimingPoint = iClock.SnappedTime()
+                    TimingPoint =iClock.SnappedPlayBackTime()
                 });
             }
 
             if (ent.TryGetComponent(out BlockEcs _) && composer.SelectedBlockShaderId.HasValue)
             {
-                ent.AddComponent(new MaterialEcs{ Shader =  composer.SelectedBlockShaderId.Value});
+                ent.AddComponent(new BlockMaterialEcs{ Shader =  composer.SelectedBlockShaderId.Value});
             }
 
 

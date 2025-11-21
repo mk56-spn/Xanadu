@@ -8,6 +8,8 @@ using Friflo.Engine.ECS;
 using Godot;
 using XanaduProject.Audio;
 using XanaduProject.ECSComponents;
+using XanaduProject.ECSComponents.Animation;
+using XanaduProject.ECSComponents.Animation.Arrays;
 using XanaduProject.ECSComponents.Animation2;
 using XanaduProject.ECSComponents.EntitySystem;
 using XanaduProject.ECSComponents.EntitySystem.Components;
@@ -52,7 +54,7 @@ namespace XanaduProject.Stage.Masters.Composer
                     .SetTransform(new Transform2D(0, new Vector2(25, 25)))
                     .SetParent(b.GetCanvasItem())
                     .AddRect(new Rect2(new Vector2(-25, -25), new Vector2(50, 50)), Colors.White)
-                    .SetMaterial(Materials.BLOCKS.Get(shader));
+                    .SetMaterial(BlockMaterials.Get(shader));
 				b.FocusMode = FocusModeEnum.None;
 				b.Pressed += () => updateBlockId(shader);
 			}
@@ -71,7 +73,7 @@ namespace XanaduProject.Stage.Masters.Composer
 			iComposer.EntityStore.Query<ElementEcs, RectEcs>().AllTags(Tags.Get<SelectionFlag>())
 				.ForEachEntity((ref ElementEcs _, ref RectEcs rect, Entity entity) =>
 				{
-					buffer.AddComponent(entity.Id, new MaterialEcs { Shader = id });
+					buffer.AddComponent(entity.Id, new BlockMaterialEcs { Shader = id });
 				});
 			buffer.Playback();
 		}
@@ -114,7 +116,6 @@ namespace XanaduProject.Stage.Masters.Composer
 				iComposer.EntityStore.Query<ElementEcs>().AllTags(Tags.Get<SelectionFlag>())
 					.ForEachEntity((ref ElementEcs _, Entity entity) =>
 					{
-						buffer.AddComponent(entity.Id, new TargetGroupEcs { Value = i });
 					});
 
 				buffer.Playback();
