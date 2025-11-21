@@ -4,8 +4,9 @@
 using Friflo.EcGui;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
-using XanaduProject.ECSComponents.Animation2;
+using XanaduProject.ECSComponents.Animation.Arrays;
 using XanaduProject.ECSComponents.EcGuiSetup;
+using XanaduProject.ECSComponents.EntitySystem.ColourChannels;
 using XanaduProject.ECSComponents.EntitySystem.Components;
 using XanaduProject.ECSComponents.Tag;
 
@@ -19,7 +20,7 @@ namespace XanaduProject.ECSComponents.EntitySystem
             TypeDrawers.Register();
 
             EcGui.Explorer.AddComponentMemberColumn<ElementEcs>(nameof(ElementEcs.Id));
-            EcGui.Explorer.AddComponentMemberColumn<ElementEcs>(nameof(ElementEcs.Vector2));
+            EcGui.Explorer.AddComponentMemberColumn<ElementEcs>(nameof(ElementEcs.Origin));
             EcGui.Explorer.AddComponentMemberColumn<ActiveColourEcs>(nameof(ActiveColourEcs.Color));
 
             var elements = entityStore.Query<ElementEcs>();
@@ -28,6 +29,7 @@ namespace XanaduProject.ECSComponents.EntitySystem
             EcGui.AddExplorerQuery("dormant", dormant);
             var array = entityStore.Query<FloatArrayEcs>();
             EcGui.AddExplorerQuery("arrays", array);
+
         }
 
         protected override void OnUpdate()

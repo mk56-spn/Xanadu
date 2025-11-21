@@ -1,7 +1,5 @@
-// Copyright (c) mk56_spn <dhsjplt@gmail.com>.Licensed under the GNU General Public Licence (2.0).
-// See the LICENCE file in the repository root for full licence text.
-
 using Friflo.Engine.ECS;
+using Godot;
 using XanaduProject.Factories;
 
 namespace XanaduProject.ECSComponents.EntitySystem.Components.Bones
@@ -9,7 +7,8 @@ namespace XanaduProject.ECSComponents.EntitySystem.Components.Bones
     [ComponentKey(null)]
     public struct RootEcs() : IComponent
     {
-        public RenderRid Canvas = RenderRid.Create();
+        public RenderRid Canvas = RenderRid.Create().SetZIndex(10);
         public Entity MainBone;
+        public Vector2 Position;
     }
 }

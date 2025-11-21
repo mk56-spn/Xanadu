@@ -7,10 +7,11 @@ using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Godot;
 using XanaduProject.Character;
-using XanaduProject.ECSComponents.Animation2;
+using XanaduProject.ECSComponents.Animation;
+using XanaduProject.ECSComponents.Animation.Arrays;
 using XanaduProject.ECSComponents.EcGuiSetup;
+using XanaduProject.ECSComponents.EntitySystem.ColourChannels;
 using XanaduProject.ECSComponents.EntitySystem.Components;
-using XanaduProject.ECSComponents.EntitySystem.Components.Bones;
 using XanaduProject.ECSComponents.Tag;
 using XanaduProject.GameDependencies;
 
@@ -18,16 +19,16 @@ namespace XanaduProject.ECSComponents.EntitySystem
 {
     public partial class DebugSystem : QuerySystem
     {
-        private readonly EntityStore store;
+        private readonly EntityStore store = GameServices.Store;
         private readonly Root root;
         private readonly PanelContainer panelContainer;
 
         private readonly EntityStore entityStore = DiProvider.Get<EntityStore>();
 
-        public DebugSystem(EntityStore store, Root root)
+        public DebugSystem( Root root)
         {
-            this.store = store;
             this.root = root;
+
 
             panelContainer = new PanelContainer
             {
@@ -60,7 +61,8 @@ namespace XanaduProject.ECSComponents.EntitySystem
 
 
             ecsViewer();
-            setupContainer();
+           /* setupContainer();*/
+
 
 
             DiProvider.Get<IUiMaster>().ScoreLayer.AddChild(panelContainer);
@@ -75,7 +77,7 @@ namespace XanaduProject.ECSComponents.EntitySystem
             EcGui.AddExplorerSystems(root);
 
             EcGui.Explorer.AddComponentMemberColumn<ElementEcs>(nameof(ElementEcs.Id));
-            EcGui.Explorer.AddComponentMemberColumn<ElementEcs>(nameof(ElementEcs.Vector2));
+            EcGui.Explorer.AddComponentMemberColumn<ElementEcs>(nameof(ElementEcs.Origin));
             EcGui.Explorer.AddComponentMemberColumn<ActiveColourEcs>(nameof(ActiveColourEcs.Color));
 
             var elements = entityStore.Query<ElementEcs>();
@@ -91,10 +93,18 @@ namespace XanaduProject.ECSComponents.EntitySystem
 
         #region Performance
 
-        private void setupContainer()
+       /* private void setupContainer()
         {
-            var container = new VBoxContainer { CustomMinimumSize = new Vector2(200, 0) };
-            panelContainer.AddChild(container);
+            var scrollContainer = new ScrollContainer
+            {
+                CustomMinimumSize = new Vector2(0, 500),
+                SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+                HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled
+            };
+            panelContainer.AddChild(scrollContainer);
+
+            var container = new VBoxContainer { CustomMinimumSize = new Vector2(0, 0) };
+            scrollContainer.AddChild(container);
 
              container.AddChild(new QueryLabel(store.Query<ElementEcs>(), "ELEMENTS :"));
             container.AddChild(new QueryLabel(store.Query().AllTags(Tags.Get<SelectionFlag>()), "SELECTED :"));
@@ -122,8 +132,12 @@ namespace XanaduProject.ECSComponents.EntitySystem
             container.AddChild(new MethodLabel(()=> DiProvider.Get<IPlayerCharacter>().MotionMachine.State, "STATE :"));
 
             root.SetMonitorPerf(true);
+
+            container.AddChild(new MethodLabel(()=> root.GetPerfLog(),""));
+
+
             container.AddChild(new InputHandler(this));
-        }
+        }*/
 
         #endregion
 

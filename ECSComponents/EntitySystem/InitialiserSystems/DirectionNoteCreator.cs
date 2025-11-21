@@ -36,7 +36,7 @@ namespace XanaduProject.ECSComponents.EntitySystem.InitialiserSystems
                     .AddMesh(MeshFactory.CreateStar(3,40,0.2f).GetRid(), modulate: Colors.White.Darkened(0.8f))
                     .SetParent(note.NoteCanvas);
 
-                note.NoteCanvas.AsRenderRid()
+                note.NoteCanvas
                     .AddSetTransform(new Transform2D(directionToRotation(direction.Direction),Vector2.Zero))
                     .AddMesh(MeshFactory.CreateStar(3, 50, 0.2f).GetRid())
                     .AddSetTransform(new Transform2D(directionToRotation(direction.Direction)+float.Pi,Vector2.Zero))

@@ -3,11 +3,11 @@
 
 using Friflo.Engine.ECS;
 using Godot;
-using XanaduProject.ECSComponents.Animation2;
 using XanaduProject.ECSComponents.EntitySystem.Components;
 using XanaduProject.ECSComponents.EntitySystem.Components.Physics;
 using XanaduProject.ECSComponents.Interfaces;
 using XanaduProject.ECSComponents.Tag;
+using XanaduProject.GameDependencies;
 using XanaduProject.Stage.Masters.Rendering;
 using static Godot.RenderingServer;
 
@@ -19,9 +19,8 @@ namespace XanaduProject.ECSComponents.EntitySystem.Refresh_systems
 
         #region Queries
 
-        private ArchetypeQuery<ElementEcs, MaterialEcs> queryMaterials = null!;
+        private ArchetypeQuery<ElementEcs, BlockMaterialEcs> queryMaterials = null!;
         private ArchetypeQuery<ElementEcs, RectEcs> queryRect = null!;
-        private ArchetypeQuery<ElementEcs, TargetGroupEcs> queryTarget = null!;
 
         #endregion
 
@@ -30,29 +29,28 @@ namespace XanaduProject.ECSComponents.EntitySystem.Refresh_systems
             entityStore = store;
 
 
-            queryMaterials = store.Query<ElementEcs, MaterialEcs>();
+            queryMaterials = store.Query<ElementEcs, BlockMaterialEcs>();
             queryMaterials.Filter.AnyTags(Tags.Get<Dormant, SelectionFlag>());
 
             queryRect = store.Query<ElementEcs, RectEcs>();
             queryRect.Filter.AnyTags(Tags.Get<Dormant, SelectionFlag>());
 
-            queryTarget = store.Query<ElementEcs, TargetGroupEcs>();
-            queryTarget.Filter.AnyTags(Tags.Get<Dormant, SelectionFlag>());
         }
 
         protected override void OnUpdate()
         {
+            Filter.AnyTags(Tags.Get<SelectionFlag, Dormant, UnInitialized>());
+
 
             //Order is important as refreshElement purges the canvas
 
             Query.EachEntity(new RefreshElement());
             queryRect.EachEntity(new RefreshRect());
+
             Query.EachEntity(new Refresh(entityStore));
 
-            queryMaterials.ForEachEntity((ref ElementEcs elementEcs, ref MaterialEcs material, Entity _) =>
-                CanvasItemSetMaterial(elementEcs.Canvas, Materials.BLOCKS.Get(material.Shader)));
-            queryTarget.ForEachEntity((ref ElementEcs elementEcs, ref TargetGroupEcs component2, Entity _) =>
-                CanvasItemSetInstanceShaderParameter(elementEcs.Canvas, "index", component2.Value));
+            queryMaterials.ForEachEntity((ref ElementEcs elementEcs, ref BlockMaterialEcs blockMaterial, Entity _) =>
+                CanvasItemSetMaterial(elementEcs.Canvas, BlockMaterials.Get(blockMaterial.Shader)));
         }
     }
 

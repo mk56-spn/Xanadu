@@ -33,7 +33,7 @@ namespace XanaduProject.ECSComponents.EntitySystem.NoteSystems
                 int i = 0;
                 Query.ForEachEntity((ref NoteEcs component1, ref ElementEcs component2, Entity _) =>
                 {
-                    time[i] = (component2.Vector2, component1.TimingPoint, component1.NoteType.NoteColor());
+                    time[i] = (component2.Origin, component1.TimingPoint, component1.NoteType.NoteColor());
                     i++;
                 });
 

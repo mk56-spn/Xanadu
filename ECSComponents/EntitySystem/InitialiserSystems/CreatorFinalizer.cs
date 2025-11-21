@@ -1,6 +1,7 @@
 // Copyright (c) mk56_spn <dhsjplt@gmail.com>.Licensed under the GNU General Public Licence (2.0).
 // See the LICENCE file in the repository root for full licence text.
 
+using System.Linq;
 using Friflo.Engine.ECS;
 using Godot;
 using XanaduProject.ECSComponents.Tag;
@@ -21,7 +22,8 @@ namespace XanaduProject.ECSComponents.EntitySystem.InitialiserSystems
 
             }
             EntityBatch batch = new EntityBatch().AddTag<Dormant>().RemoveTag<UnInitialized>();
-            mainStore.Entities.ApplyBatch(batch);
+            mainStore.Query().AllTags(Tags.Get<UnInitialized>())
+                .Entities.ApplyBatch(batch);
         }
     }
 }

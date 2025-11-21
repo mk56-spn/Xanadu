@@ -23,7 +23,7 @@ namespace XanaduProject.ECSComponents.EntitySystem.InitialiserSystems
             Query.WithoutAnyComponents(ComponentTypes.Get<HoldEcs, DirectionEcs>())
                 .ForEachEntity((ref ElementEcs element, ref NoteEcs note, Entity entity) =>
                 {
-                    note.NoteCanvas.AsRenderRid()
+                    note.NoteCanvas
                         .AddCircle(20, color: Colors.Transparent)
                         .AddCircleOutline(30);
                 });

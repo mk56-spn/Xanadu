@@ -1,13 +1,15 @@
 // Copyright (c) mk56_spn <dhsjplt@gmail.com>. Licensed under the GNU General Public Licence (2.0).
 // See the LICENCE file in the repository root for full licence text.
 
+using System;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Godot;
 using XanaduProject.Audio;
-using XanaduProject.ECSComponents.Animation2;
+using XanaduProject.ECSComponents.Animation;
 using XanaduProject.ECSComponents.EntitySystem.BoneSystems;
 using XanaduProject.ECSComponents.EntitySystem.CharacterSystems;
+using XanaduProject.ECSComponents.EntitySystem.ColourChannels;
 using XanaduProject.ECSComponents.EntitySystem.Components;
 using XanaduProject.ECSComponents.EntitySystem.Components.Physics;
 using XanaduProject.ECSComponents.EntitySystem.InitialiserSystems;
@@ -15,6 +17,7 @@ using XanaduProject.ECSComponents.EntitySystem.NoteSystems;
 using XanaduProject.ECSComponents.EntitySystem.Refresh_systems;
 using XanaduProject.ECSComponents.Tag;
 using XanaduProject.GameDependencies;
+using XanaduProject.Stage.Masters.Rendering;
 
 namespace XanaduProject.ECSComponents.EntitySystem
 {
@@ -58,20 +61,25 @@ namespace XanaduProject.ECSComponents.EntitySystem
         #endregion
 
 
+
+
         #region System setup
 
         private void setupSystems()
         {
             creationSystems();
-            refreshSystems();
+            Add(new RefreshGroup("Refresh"));
             noteSystems();
             characterSystems();
 
-            Add(new ColourInterpolatorSystem(entityStore));
-            Add(new DebugSystem(entityStore, this));
+            BlockShaderId d = BlockShaderId.Circle;
+
+            Add(new DebugSystem(this));
+
+
             Add(new BoneTransformSystem()); // BoneTransformSystem must run before IkSolverSystem
             Add(new IkSolverSystem()); // Added IkSolverSystem
-            Add(new BoneRenderingSystem());
+            Add(new BoneDebugRenderingSystem());
         }
 
         private void characterSystems()
@@ -93,16 +101,6 @@ namespace XanaduProject.ECSComponents.EntitySystem
             Add(new CreatorFinalizer());
         }
 
-        private void refreshSystems()
-        {
-            Add(new MainRefreshSystem());
-            Add(new PolygonRefresh());
-            Add(new ParticlesRefresh());
-            Add(new BlockRefresh());
-            Add(new NoteRefresh());
-            Add(new TriangleArrayRefresh());
-            Add(new RefreshFinalizer());
-        }
 
         private void noteSystems()
         {
@@ -112,6 +110,8 @@ namespace XanaduProject.ECSComponents.EntitySystem
             Add(new NoteJudgementTextSystem());
             Add(new NoteBarSystem());
         }
+
+
 
         #endregion
 

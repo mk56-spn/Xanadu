@@ -3,6 +3,7 @@ using Friflo.Engine.ECS.Systems;
 using XanaduProject.ECSComponents.EntitySystem.Components;
 using XanaduProject.Factories;
 using XanaduProject.Scenes.ItemEditor;
+using MeshComponent = XanaduProject.Screens.AssetCreation.ItemEditor.MeshComponent;
 
 namespace XanaduProject.ECSComponents.EntitySystem
 {
@@ -15,7 +16,6 @@ namespace XanaduProject.ECSComponents.EntitySystem
             {
 
                 component2.RenderRid.SetVisible(entity.Tags.Has<Visible>());
-                // If it does not have the Visible, ensure the RenderRid is hidden
             });
         }
     }

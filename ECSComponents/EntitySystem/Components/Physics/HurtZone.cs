@@ -8,7 +8,7 @@ using XanaduProject.ECSComponents.Interfaces;
 using static Godot.Colors;
 using static Godot.PhysicsServer2D;
 
-namespace XanaduProject.ECSComponents.EntitySystem.Components
+namespace XanaduProject.ECSComponents.EntitySystem.Components.Physics
 {
     public struct HurtZoneEcs : IComponent, IUpdatable
     {

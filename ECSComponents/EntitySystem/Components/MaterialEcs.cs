@@ -4,10 +4,13 @@
 using Friflo.Engine.ECS;
 using XanaduProject.Stage.Masters.Rendering;
 
-namespace XanaduProject.ECSComponents
+namespace XanaduProject.ECSComponents.EntitySystem.Components
 {
-    public struct MaterialEcs : IComponent
+    public struct BlockMaterialEcs : IComponent
     {
         public BlockShaderId Shader;
+
+        public int OutlineThickness;
+
     }
 }

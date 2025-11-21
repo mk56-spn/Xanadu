@@ -22,7 +22,7 @@ namespace XanaduProject.ECSComponents.EntitySystem.CharacterSystems
 			Spread = 180,
 			Gravity = Vector3.Up * 1000,
 			EmissionShape = ParticleProcessMaterial.EmissionShapeEnum.Box,
-			ColorRamp = ParticlesRidExtensions.FadeGradient,
+			ColorRamp = ParticlesRidExtensions.FADE_GRADIENT,
 		};
 
 		private readonly ParticlesRid groundParticles = ParticlesRid.Create()
@@ -36,7 +36,7 @@ namespace XanaduProject.ECSComponents.EntitySystem.CharacterSystems
 
 		protected override void OnAddStore(EntityStore store)
 		{
-				canvas = RenderRid.Create(master.GameplayerLayerRid, 1000)
+            canvas = RenderRid.Create(master.GameplayerLayerRid, 1000)
 				.AddParticles(groundParticles);
 
 			store.Query<CharacterEcs>().Entities.First().AddSignalHandler<Grounded>(s =>

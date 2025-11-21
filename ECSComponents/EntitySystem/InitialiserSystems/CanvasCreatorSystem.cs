@@ -14,7 +14,6 @@ namespace XanaduProject.ECSComponents.EntitySystem.InitialiserSystems
         {
             Query.ForEachEntity((ref ElementEcs element, Entity _) =>
             {
-                element.Canvas = RenderRid.Create();
                 CanvasItemSetParent(element.Canvas,
                     master);
             });

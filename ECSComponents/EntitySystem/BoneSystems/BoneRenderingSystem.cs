@@ -9,20 +9,32 @@ using XanaduProject.Factories;
 
 namespace XanaduProject.ECSComponents.EntitySystem.BoneSystems
 {
-    public class BoneRenderingSystem :QuerySystem<RootEcs>
+    public class BoneDebugRenderingSystem :QuerySystem<RootEcs>
     {
         protected override void OnUpdate()
         {
-            Query.ForEachEntity((ref RootEcs component1, Entity entity)  =>
+            Query.ForEachEntity((ref RootEcs rootEcs, Entity entity)  =>
             {
-                component1.Canvas.Clear();
+                rootEcs.Canvas.Clear();
                 foreach (var v in entity.GetIncomingLinks<BoneGlobalTransform>())
                 {
                     var bone = v.Entity.GetComponent<BoneEcs>();
                     ref BoneGlobalTransform boneGlobalTransform = ref v.Component;
-                    component1.Canvas.AddCircle(2, position:boneGlobalTransform.GlobalPosition, color: new Color(1, 0, 0));
-                    component1.Canvas.AddLine(boneGlobalTransform.GlobalPosition,
-                        boneGlobalTransform.GlobalPosition + new Vector2(bone.Length, 0).Rotated(boneGlobalTransform.GlobalAngle), entity.HasComponent<SelectedBoneMarker>()? Colors.Blue : Colors.Red);
+
+                    var jointPos = boneGlobalTransform.GlobalPosition;
+                    var boneVec = new Vector2(bone.Length, 0).Rotated(boneGlobalTransform.GlobalAngle);
+                    var boneEndPos = jointPos + boneVec;
+
+                    var boneNormal = boneVec.Normalized().Rotated(Mathf.Pi / 2.0f);
+                    float baseWidth = 8.0f;
+
+                    var p1 = jointPos + boneNormal * baseWidth / 2.0f;
+                    var p2 = jointPos - boneNormal * baseWidth / 2.0f;
+
+                    var points = new[] { p1, boneEndPos, p2 };
+                    var color = new Color(0, 0, 1, 0.5f);
+
+                    rootEcs.Canvas.AddPolygon(points, [color, color, color]);
                 }
             });
         }

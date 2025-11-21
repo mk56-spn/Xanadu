@@ -6,6 +6,7 @@ using Friflo.Engine.ECS.Systems;
 using Godot;
 using XanaduProject.Audio;
 using XanaduProject.DataStructure;
+using XanaduProject.ECSComponents.EntitySystem.Components;
 using XanaduProject.ECSComponents.EntitySystem.Components.Physics;
 using XanaduProject.ECSComponents.Tag;
 using XanaduProject.Factories;

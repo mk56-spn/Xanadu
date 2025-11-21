@@ -4,14 +4,13 @@
 
 using Friflo.Engine.ECS;
 
-namespace XanaduProject.ECSComponents
+namespace XanaduProject.ECSComponents.EntitySystem.Components
 {
     [ComponentKey(null)]
-    public struct NameEcs : IComponent
+    public readonly struct NameEcs : IIndexedComponent<string>
     {
         public readonly string Name = "Default";
-
-        public NameEcs() { }
+        public string GetIndexedValue() => Name;
 
         public NameEcs(string name)
         {

@@ -27,15 +27,14 @@ namespace XanaduProject.ECSComponents.EntitySystem.InitialiserSystems
 		{
 			Query.ForEachEntity((ref ElementEcs elementEcs, Entity entity) =>
 			{
-				GD.Print("called");
 
 				CanvasItemSetParent(elementEcs.Canvas, DiProvider.Get<IVisualsMaster>().GameplayerLayerRid);
 
 				if (!entity.HasComponent<RectEcs>()) return;
-				CanvasItemSetMaterial(elementEcs.Canvas, Materials.BLOCKS.Get(BlockShaderId.Chamfer));
+				CanvasItemSetMaterial(elementEcs.Canvas, BlockMaterials.Get(BlockShaderId.SquareInSquare));
 
 				if (!entity.HasComponent<TriangleArrayEcs>()) return;
-				CanvasItemSetMaterial(elementEcs.Canvas, Materials.BLOCKS.Get(BlockShaderId.Chamfer));
+				CanvasItemSetMaterial(elementEcs.Canvas, BlockMaterials.Get(BlockShaderId.SquareInSquare));
 			});
 
 			Filter.AnyComponents(ComponentTypes.Get<ElementEcs>());

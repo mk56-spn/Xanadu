@@ -3,6 +3,7 @@
 
 using Friflo.Engine.ECS;
 using XanaduProject.ECSComponents.EntitySystem.Components;
+using XanaduProject.ECSComponents.EntitySystem.Components.Physics;
 using XanaduProject.Factories;
 
 namespace XanaduProject.ECSComponents.EntitySystem.InitialiserSystems

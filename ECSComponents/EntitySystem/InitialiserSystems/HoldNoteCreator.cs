@@ -24,7 +24,7 @@ namespace XanaduProject.ECSComponents.EntitySystem.InitialiserSystems
             Spread = 0,
             Gravity = Vector3.Zero,
             Angle = new Vector2(-130, 20),
-            ColorRamp = ParticlesRidExtensions.FadeGradient,
+            ColorRamp = ParticlesRidExtensions.FADE_GRADIENT,
             ScaleCurve = new CurveTexture() { Curve = curve }
         };
 
@@ -44,8 +44,6 @@ namespace XanaduProject.ECSComponents.EntitySystem.InitialiserSystems
                             .SetAmount(5)
                             .SetMesh(MeshFactory.CreateCircle(100).GetRid())
                             .SetProcessMaterial(material.GetRid()));
-
-                c2.NoteCanvas.AsRenderRid();
             }
         }
     }

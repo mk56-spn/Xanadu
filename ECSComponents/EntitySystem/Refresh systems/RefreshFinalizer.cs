@@ -2,6 +2,7 @@
 // See the LICENCE file in the repository root for full licence text.
 
 using Friflo.Engine.ECS;
+using XanaduProject.ECSComponents.EntitySystem.Components;
 using XanaduProject.ECSComponents.Tag;
 using XanaduProject.GameDependencies;
 
@@ -14,7 +15,7 @@ namespace XanaduProject.ECSComponents.EntitySystem.Refresh_systems
         public RefreshFinalizer()
         {
             batch.RemoveTag<Dormant>();
-            mainStore.Entities.ApplyBatch(batch);
+            mainStore.Query<ElementEcs>().Entities.ApplyBatch(batch);
         }
 
         protected override void OnUpdate()

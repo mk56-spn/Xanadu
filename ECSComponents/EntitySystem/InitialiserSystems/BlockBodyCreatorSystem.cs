@@ -21,7 +21,16 @@ namespace XanaduProject.ECSComponents.EntitySystem.InitialiserSystems
 
         protected override void OnUpdate()
         {
+            if (withRectQuery.Count != 0)
+            {
+                GD.Print("Creating bodies");
+            }
             withRectQuery.Each(new BlockBodyRectCreator());
+
+            if (withRectQuery.Count != 0)
+            {
+                GD.Print("Creation complete");
+            }
         }
     }
 
@@ -29,7 +38,6 @@ namespace XanaduProject.ECSComponents.EntitySystem.InitialiserSystems
     {
         public void Execute(ref ElementEcs element, ref BlockEcs block, ref RectEcs rect)
         {
-            GD.Print("BLOCK CREATED");
             block.Body = PhysicsFactory.CreateBodyRectangle(
                 element.Transform, rect.Extents);
         }

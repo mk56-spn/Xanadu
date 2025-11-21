@@ -14,8 +14,8 @@ namespace XanaduProject.ECSComponents.EntitySystem.Components
 		public Transform2D Transform = Transform2D.Identity;
 
 		[Ignore] public ulong Id => Canvas.Rid.Id;
-		[Ignore] public Vector2 Vector2 => Transform.Origin;
+		[Ignore] public Vector2 Origin => Transform.Origin;
 
-		[Ignore] public RenderRid Canvas;
+		[Ignore] public RenderRid Canvas = RenderRid.Create();
 	}
 }

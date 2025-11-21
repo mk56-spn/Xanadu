@@ -14,7 +14,7 @@ namespace XanaduProject.ECSComponents.EntitySystem.BoneSystems
             {
                 for (int n = 0; n < entities.Length; n++)
                 {
-                    updateBoneTransformsRecursive(components[n].MainBone, Vector2.Zero, 0f);
+                    updateBoneTransformsRecursive(components[n].MainBone, components[n].Position, 0f);
                 }
             });
             v.RunParallel();
