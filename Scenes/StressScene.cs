@@ -29,13 +29,17 @@ public static class StressScene
             float x = random.RandfRange(width / 2, Mathf.Max(width / 2, viewportSize.X - width / 2));
             float y = random.RandfRange(height / 2, Mathf.Max(height / 2, viewportSize.Y - height / 2));
 
+            Tags tags = i % 100 == 0
+                ? Tags.Get<Uninitialised, Dirty, TakesInput>()
+                : Tags.Get<Uninitialised, Dirty>();
+
             entities.CreateEntity(
                 new VisualRid(),
                 new Rectangle(new Rect2(-width / 2, -height / 2, width, height)),
                 new Drawable(layer),
                 new Position(new Vector2(x, y)),
                 new FillColor(Color.FromHsv(random.Randf(), 0.55f, 0.95f)),
-                Tags.Get<Uninitialised, Dirty>());
+                tags);
         }
     }
 }

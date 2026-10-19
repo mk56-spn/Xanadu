@@ -8,6 +8,9 @@ public sealed class GodotRectCanvas : IRectCanvas
     private const int FontSize = 16;
     private const float TextPadding = 4;
 
+    public void SetVisible(Rid canvas, bool visible) =>
+        RenderingServer.CanvasItemSetVisible(canvas, visible);
+
     public void Clear(Rid canvas) => RenderingServer.CanvasItemClear(canvas);
 
     public void DrawRect(Rid canvas, Rect2 bounds, Color color) =>

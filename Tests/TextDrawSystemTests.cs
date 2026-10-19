@@ -73,6 +73,8 @@ public sealed class TextDrawSystemTests
     {
         public List<DrawCall> Draws { get; } = new();
 
+        public void SetVisible(Rid canvas, bool visible) { }
+
         public void Clear(Rid canvas) { }
 
         public void DrawRect(Rid canvas, Rect2 bounds, Color color) { }

@@ -2,6 +2,7 @@ using Friflo.Engine.ECS;
 using Godot;
 using Writer.Ecs;
 using Writer.Scenes;
+using Writer.Systems;
 
 namespace Writer;
 
@@ -17,7 +18,7 @@ public partial class Main : Control
     public override void _Ready()
     {
         SetProcess(true);
-        _systems = new WriterSystemRoot(Entities, GetCanvasItem());
+        _systems = new WriterSystemRoot(Entities, GetCanvasItem(), new GodotPointerInputSource(this));
 
         if (StressTest)
             StressScene.Build(Entities, GetViewportRect().Size);
@@ -32,5 +33,10 @@ public partial class Main : Control
     }
 
     public override void _Draw() => DrawCircle(Vector2.Zero, 100, Colors.Red);
-    public override void _ExitTree() => _systems = null;
+
+    public override void _ExitTree()
+    {
+        _systems?.Dispose();
+        _systems = null;
+    }
 }

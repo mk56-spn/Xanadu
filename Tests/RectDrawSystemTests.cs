@@ -114,6 +114,8 @@ public sealed class RectDrawSystemTests
 
         public List<TextCall> TextDraws { get; } = new();
 
+        public void SetVisible(Rid canvas, bool visible) { }
+
         public void Clear(Rid canvas) => Clears.Add(canvas);
 
         public void DrawRect(Rid canvas, Rect2 bounds, Color color) =>
