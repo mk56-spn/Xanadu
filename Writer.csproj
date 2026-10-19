@@ -1,6 +1,7 @@
 <Project Sdk="Godot.NET.Sdk/4.8.0-dev.7">
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
+    <Nullable>disable</Nullable>
     <EnableDynamicLoading>true</EnableDynamicLoading>
     <!--
       Keep the generated ScriptPathAttribute in sync with the project directory.

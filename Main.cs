@@ -1,4 +1,3 @@
-#nullable enable
 using Friflo.Engine.ECS;
 using Godot;
 
@@ -9,7 +8,7 @@ public partial class Main : Control
 {
     public EntityStore Entities { get; } = new();
 
-    private WriterSystemRoot? _systems;
+    private WriterSystemRoot _systems;
 
     public override void _Ready()
     {

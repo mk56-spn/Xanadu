@@ -1,4 +1,3 @@
-#nullable enable
 using Friflo.Engine.ECS;
 using Godot;
 
