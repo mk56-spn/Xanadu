@@ -13,7 +13,7 @@ public partial class Main : Control
     public override void _Ready()
     {
         SetProcess(true);
-        _systems = new WriterSystemRoot(Entities);
+        _systems = new WriterSystemRoot(Entities, GetCanvasItem());
     }
 
     public override void _Process(double delta)
