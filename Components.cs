@@ -22,7 +22,7 @@ public struct Layer(int zIndex) : IComponent
 }
 
 /// <summary>RenderingServer canvas item owned by an entity.</summary>
-public struct VisualRid(Rid value) : IComponent
+public struct VisualRid() : IComponent
 {
-    public Rid Value = value;
+    public Rid Value = RenderingServer.CanvasItemCreate();
 }
