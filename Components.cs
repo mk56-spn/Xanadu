@@ -14,3 +14,15 @@ public struct Drawable(int zIndex) : IComponent
 {
     public int ZIndex = zIndex;
 }
+
+/// <summary>Layer entity component. ZIndex determines draw order between layers.</summary>
+public struct Layer(int zIndex) : IComponent
+{
+    public int ZIndex = zIndex;
+}
+
+/// <summary>RenderingServer canvas item owned by an entity.</summary>
+public struct VisualRid(Rid value) : IComponent
+{
+    public Rid Value = value;
+}
