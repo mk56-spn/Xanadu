@@ -1,6 +1,6 @@
 using Friflo.Engine.ECS;
 
-namespace Writer;
+namespace Writer.Ecs;
 
 /// <summary>Marks an entity whose visual state changed and needs a redraw.</summary>
 public struct Dirty : ITag { }

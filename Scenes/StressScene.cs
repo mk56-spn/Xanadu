@@ -1,7 +1,9 @@
 using Friflo.Engine.ECS;
 using Godot;
+using Writer.Ecs;
+using Position = Writer.Ecs.Position;
 
-namespace Writer;
+namespace Writer.Scenes;
 
 /// <summary>Builds a dense visual stress scene with 1000 drawable rectangles.</summary>
 public static class StressScene

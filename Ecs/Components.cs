@@ -1,7 +1,7 @@
 using Friflo.Engine.ECS;
 using Godot;
 
-namespace Writer;
+namespace Writer.Ecs;
 
 /// <summary>Local rectangle centered on the entity canvas item origin.</summary>
 public struct Rectangle(Rect2 bounds) : IComponent
@@ -25,6 +25,12 @@ public struct FillColor(Color value) : IComponent
 public struct Position(Vector2 value) : IComponent
 {
     public Vector2 Value = value;
+}
+
+/// <summary>Text content for a drawable entity.</summary>
+public struct Text(string value) : IComponent
+{
+    public string Value = value;
 }
 
 /// <summary>Layer entity component. ZIndex determines draw order between layers.</summary>

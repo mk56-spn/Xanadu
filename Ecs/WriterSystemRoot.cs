@@ -3,7 +3,7 @@ using Friflo.Engine.ECS.Systems;
 using Godot;
 using Writer.Systems;
 
-namespace Writer;
+namespace Writer.Ecs;
 
 /// <summary>
 /// Central system registration point. Main owns only Godot lifecycle;
@@ -13,8 +13,10 @@ public sealed class WriterSystemRoot : SystemRoot
 {
     public WriterSystemRoot(EntityStore entities, Rid parentCanvas) : base(entities, "Writer")
     {
+        var canvas = new GodotRectCanvas();
         Add(new LayerParentSystem(parentCanvas));
         Add(new DrawableInitialiseSystem());
-        Add(new RectDrawSystem(new GodotRectCanvas()));
+        Add(new RectDrawSystem(canvas));
+        Add(new TextDrawSystem(canvas));
     }
 }

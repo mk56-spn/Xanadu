@@ -8,4 +8,6 @@ public interface IRectCanvas
     void Clear(Rid canvas);
 
     void DrawRect(Rid canvas, Rect2 bounds, Color color);
+
+    void DrawText(Rid canvas, Rect2 bounds, string text, Color color);
 }

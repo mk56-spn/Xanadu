@@ -1,5 +1,6 @@
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
+using Writer.Ecs;
 
 namespace Writer.Systems;
 

@@ -2,6 +2,8 @@ using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Godot;
+using Writer.Ecs;
+using Position = Writer.Ecs.Position;
 
 namespace Writer.Systems;
 

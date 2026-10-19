@@ -3,6 +3,7 @@ using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Godot;
 using NUnit.Framework;
+using Writer.Ecs;
 using Writer.Systems;
 
 namespace Writer.Tests;
@@ -111,11 +112,18 @@ public sealed class RectDrawSystemTests
 
         public List<DrawCall> Draws { get; } = new();
 
+        public List<TextCall> TextDraws { get; } = new();
+
         public void Clear(Rid canvas) => Clears.Add(canvas);
 
         public void DrawRect(Rid canvas, Rect2 bounds, Color color) =>
             Draws.Add(new DrawCall(canvas, bounds, color));
 
+        public void DrawText(Rid canvas, Rect2 bounds, string text, Color color) =>
+            TextDraws.Add(new TextCall(canvas, bounds, text, color));
+
         public readonly record struct DrawCall(Rid Canvas, Rect2 Bounds, Color Color);
+
+        public readonly record struct TextCall(Rid Canvas, Rect2 Bounds, string Text, Color Color);
     }
 }
