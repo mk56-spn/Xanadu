@@ -8,9 +8,15 @@ namespace Writer.Systems;
 /// Parents uninitialised layer canvas items to the main control and clears
 /// the <see cref="Uninitialised"/> tag.
 /// </summary>
-public sealed class LayerParentSystem(Rid parentCanvas) : QuerySystem<VisualRid, Layer>
+public sealed class LayerParentSystem : QuerySystem<VisualRid, Layer>
 {
-    private readonly Rid _parentCanvas = parentCanvas;
+    private readonly Rid _parentCanvas;
+
+    public LayerParentSystem(Rid parentCanvas)
+    {
+        _parentCanvas = parentCanvas;
+        Filter.AllTags(Tags.Get<Uninitialised>());
+    }
 
     protected override void OnUpdate()
     {
