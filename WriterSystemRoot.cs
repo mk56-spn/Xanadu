@@ -8,10 +8,7 @@ namespace Writer;
 /// Central system registration point. Main owns only Godot lifecycle;
 /// systems are added here instead of polluting Main.
 /// </summary>
-public sealed class WriterSystemRoot : SystemRoot
+public sealed class WriterSystemRoot(EntityStore entities) : SystemRoot(entities, "Writer")
 {
-    public WriterSystemRoot(EntityStore entities) : base(entities, "Writer")
-    {
-        // Add systems here.
-    }
+    // Add systems here.
 }
