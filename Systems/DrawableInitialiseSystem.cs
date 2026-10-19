@@ -7,10 +7,10 @@ namespace Writer.Systems;
 
 /// <summary>
 /// Initialises uninitialised drawables by parenting their canvas item to the
-/// layer matching <see cref="Drawable.ZIndex"/>. Missing layers fall back to
-/// layer 0 and log a console error.
+/// layer matching <see cref="Drawable.ZIndex"/> and applying <see cref="Position"/>.
+/// Missing layers fall back to layer 0 and log a console error.
 /// </summary>
-public sealed class DrawableInitialiseSystem : QuerySystem<Rectangle, Drawable, VisualRid>
+public sealed class DrawableInitialiseSystem : QuerySystem<Rectangle, Drawable, VisualRid, Position>
 {
     private const int DefaultLayer = 0;
 
@@ -25,7 +25,7 @@ public sealed class DrawableInitialiseSystem : QuerySystem<Rectangle, Drawable, 
     {
         CommandBuffer buffer = CommandBuffer;
 
-        Query.ForEachEntity((ref _, ref drawable, ref visual, entity) =>
+        Query.ForEachEntity((ref _, ref drawable, ref visual, ref position, entity) =>
         {
             int requested = drawable.ZIndex;
             if (!TryGetLayerCanvas(entity.Store, requested, out Rid layerCanvas))
@@ -44,6 +44,7 @@ public sealed class DrawableInitialiseSystem : QuerySystem<Rectangle, Drawable, 
             }
 
             RenderingServer.CanvasItemSetParent(visual.Value, layerCanvas);
+            RenderingServer.CanvasItemSetTransform(visual.Value, new Transform2D(0, position.Value));
             buffer.RemoveTag<Uninitialised>(entity.Id);
         });
     }

@@ -3,7 +3,7 @@ using Godot;
 
 namespace Writer;
 
-/// <summary>Screen-space rectangle for an entity.</summary>
+/// <summary>Local rectangle centered on the entity canvas item origin.</summary>
 public struct Rectangle(Rect2 bounds) : IComponent
 {
     public Rect2 Bounds = bounds;
@@ -13,6 +13,18 @@ public struct Rectangle(Rect2 bounds) : IComponent
 public struct Drawable(int zIndex) : IComponent
 {
     public int ZIndex = zIndex;
+}
+
+/// <summary>Fill color for a drawable rectangle.</summary>
+public struct FillColor(Color value) : IComponent
+{
+    public Color Value = value;
+}
+
+/// <summary>Canvas item position in screen space.</summary>
+public struct Position(Vector2 value) : IComponent
+{
+    public Vector2 Value = value;
 }
 
 /// <summary>Layer entity component. ZIndex determines draw order between layers.</summary>

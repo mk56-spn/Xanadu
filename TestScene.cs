@@ -12,23 +12,30 @@ public static class TestScene
         CreateLayer(entities, 5);
         CreateLayer(entities, 10);
 
-        AddRect(entities, 0, new Rect2(40, 40, 200, 80));
-        AddRect(entities, 0, new Rect2(280, 40, 120, 80));
+        AddRect(entities, 0, new Vector2(140, 80), new Vector2(200, 80), Colors.CornflowerBlue);
+        AddRect(entities, 0, new Vector2(340, 80), new Vector2(120, 80), Colors.CornflowerBlue);
 
-        AddRect(entities, 5, new Rect2(40, 160, 160, 60));
-        AddRect(entities, 5, new Rect2(240, 160, 200, 100));
+        AddRect(entities, 5, new Vector2(120, 190), new Vector2(160, 60), Colors.Orange);
+        AddRect(entities, 5, new Vector2(340, 210), new Vector2(200, 100), Colors.Orange);
 
-        AddRect(entities, 10, new Rect2(80, 300, 320, 120));
-        AddRect(entities, 10, new Rect2(440, 300, 100, 100));
+        AddRect(entities, 10, new Vector2(240, 360), new Vector2(320, 120), Colors.MediumSeaGreen);
+        AddRect(entities, 10, new Vector2(490, 350), new Vector2(100, 100), Colors.MediumSeaGreen);
     }
 
     private static void CreateLayer(EntityStore entities, int zIndex) =>
         entities.CreateEntity(new VisualRid(), new Layer(zIndex), Tags.Get<Uninitialised>());
 
-    private static void AddRect(EntityStore entities, int layerZIndex, Rect2 bounds) =>
+    private static void AddRect(
+        EntityStore entities,
+        int layerZIndex,
+        Vector2 center,
+        Vector2 size,
+        Color color) =>
         entities.CreateEntity(
             new VisualRid(),
-            new Rectangle(bounds),
+            new Rectangle(new Rect2(-size / 2, size)),
             new Drawable(layerZIndex),
-            Tags.Get<Uninitialised>());
+            new Position(center),
+            new FillColor(color),
+            Tags.Get<Uninitialised, Dirty>());
 }

@@ -8,13 +8,19 @@ public partial class Main : Control
 {
     public EntityStore Entities { get; } = new();
 
+    [Export] public bool StressTest { get; set; }
+
     private WriterSystemRoot? _systems;
 
     public override void _Ready()
     {
         SetProcess(true);
         _systems = new WriterSystemRoot(Entities, GetCanvasItem());
-        TestScene.Build(Entities);
+
+        if (StressTest)
+            StressScene.Build(Entities, GetViewportRect().Size);
+        else
+            TestScene.Build(Entities);
     }
 
     public override void _Process(double delta)

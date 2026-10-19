@@ -15,6 +15,6 @@ public sealed class WriterSystemRoot : SystemRoot
     {
         Add(new LayerParentSystem(parentCanvas));
         Add(new DrawableInitialiseSystem());
-        Add(new RectDrawSystem());
+        Add(new RectDrawSystem(new GodotRectCanvas()));
     }
 }

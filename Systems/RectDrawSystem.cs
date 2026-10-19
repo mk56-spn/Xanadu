@@ -1,27 +1,34 @@
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
-using Godot;
 
 namespace Writer.Systems;
 
 /// <summary>
-/// Clears and redraws every rectangle into its entity's canvas item.
-/// Full redraw every frame is intentional for now.
+/// Clears and redraws dirty rectangles into their entity canvas items.
+/// Clean rectangles keep their existing canvas commands.
 /// </summary>
-public sealed class RectDrawSystem : QuerySystem<Rectangle, Drawable, VisualRid>
+public sealed class RectDrawSystem : QuerySystem<Rectangle, Drawable, VisualRid, FillColor>
 {
-    private static readonly Color RectColor = Colors.White;
+    private readonly IRectCanvas _canvas;
+
+    public RectDrawSystem(IRectCanvas canvas)
+    {
+        _canvas = canvas;
+        Filter.AllTags(Tags.Get<Dirty>());
+    }
 
     protected override void OnUpdate()
     {
-        Query.ForEachEntity((ref rect, ref _, ref visual, _) =>
+        CommandBuffer buffer = CommandBuffer;
+
+        Query.ForEachEntity((ref rect, ref _, ref visual, ref fillColor, entity) =>
         {
-            Rect2 bounds = rect.Bounds;
-            if (bounds.Size.X <= 0 || bounds.Size.Y <= 0)
+            if (rect.Bounds.Size.X <= 0 || rect.Bounds.Size.Y <= 0)
                 return;
 
-            RenderingServer.CanvasItemClear(visual.Value);
-            RenderingServer.CanvasItemAddRect(visual.Value, bounds, RectColor);
+            _canvas.Clear(visual.Value);
+            _canvas.DrawRect(visual.Value, rect.Bounds, fillColor.Value);
+            buffer.RemoveTag<Dirty>(entity.Id);
         });
     }
 }

@@ -13,6 +13,7 @@
     <GodotProjectDirBase64></GodotProjectDirBase64>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Remove="Tests/**/*.cs" />
     <PackageReference Include="Friflo.Engine.ECS" Version="4.0.0-preview.2" />
     <PackageReference Include="Friflo.Engine.ECS.Boost" Version="4.0.0-preview.2" />
   </ItemGroup>
