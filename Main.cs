@@ -14,6 +14,7 @@ public partial class Main : Control
     {
         SetProcess(true);
         _systems = new WriterSystemRoot(Entities, GetCanvasItem());
+        TestScene.Build(Entities);
     }
 
     public override void _Process(double delta)
@@ -22,5 +23,6 @@ public partial class Main : Control
         _systems?.Update(new UpdateTick((float)delta, time));
     }
 
+    public override void _Draw() => DrawCircle(Vector2.Zero, 100, Colors.Red);
     public override void _ExitTree() => _systems = null;
 }

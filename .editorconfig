@@ -33,6 +33,10 @@ csharp_style_expression_bodied_accessors = true:suggestion
 csharp_style_expression_bodied_lambdas = true:suggestion
 csharp_style_expression_bodied_local_functions = when_on_single_line:suggestion
 
+# Lambdas
+# Prefer implicit parameter types when the delegate type makes them inferable.
+csharp_style_prefer_implicitly_typed_lambda_expression = true:warning
+
 # Braces and new lines
 csharp_prefer_braces = when_multiline:suggestion
 csharp_new_line_before_open_brace = all

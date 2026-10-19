@@ -14,5 +14,7 @@ public sealed class WriterSystemRoot : SystemRoot
     public WriterSystemRoot(EntityStore entities, Rid parentCanvas) : base(entities, "Writer")
     {
         Add(new LayerParentSystem(parentCanvas));
+        Add(new DrawableInitialiseSystem());
+        Add(new RectDrawSystem());
     }
 }
