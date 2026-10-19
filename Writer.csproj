@@ -1,0 +1,39 @@
+<Project Sdk="Godot.NET.Sdk/4.8.0-dev.7">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <EnableDynamicLoading>true</EnableDynamicLoading>
+    <!--
+      Keep the generated ScriptPathAttribute in sync with the project directory.
+      Building through a symlinked path (for example /home/user vs /var/home/user)
+      can otherwise emit paths like res://../../../var/home/... and Godot cannot
+      associate the script with its class at runtime.
+    -->
+    <GodotProjectDir>$([MSBuild]::EnsureTrailingSlash('$(MSBuildProjectDirectory)'))</GodotProjectDir>
+    <GodotProjectDirBase64></GodotProjectDirBase64>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Friflo.Engine.ECS" Version="4.0.0-preview.2" />
+    <PackageReference Include="Friflo.Engine.ECS.Boost" Version="4.0.0-preview.2" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="agents.md" />
+  </ItemGroup>
+  <!--
+    Rider can build this project through /home/... while the compiler sees source files
+    through the real /var/home/... path. In that case the Godot source generator emits
+    ScriptPathAttribute("res://../../../var/home/...") and Godot cannot find Main.
+    Resolve the real project path before the generated analyzer config is written.
+  -->
+  <Target Name="CanonicalizeGodotProjectDir" BeforeTargets="GenerateMSBuildEditorConfigFileCore"
+          Condition="$([MSBuild]::IsOSPlatform('Linux'))">
+    <Exec Command="realpath &quot;$(MSBuildProjectDirectory)&quot;"
+          ConsoleToMSBuild="true" StandardOutputImportance="low">
+      <Output TaskParameter="ConsoleOutput" ItemName="_CanonicalGodotProjectDir" />
+    </Exec>
+    <PropertyGroup>
+      <_CanonicalGodotProjectDir>@(_CanonicalGodotProjectDir)</_CanonicalGodotProjectDir>
+      <GodotProjectDir Condition=" '$(_CanonicalGodotProjectDir)' != '' ">$(_CanonicalGodotProjectDir)/</GodotProjectDir>
+      <GodotProjectDirBase64></GodotProjectDirBase64>
+    </PropertyGroup>
+  </Target>
+</Project>

@@ -1,0 +1,19 @@
+# Godot 4+ specific ignores
+.godot/
+/android/
+
+# C# / .NET build output
+bin/
+obj/
+
+# IDE / user-specific files
+.idea/
+.vs/
+.vscode/
+*.user
+*.suo
+*.userprefs
+
+# OS files
+.DS_Store
+Thumbs.db
