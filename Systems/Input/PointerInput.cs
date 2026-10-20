@@ -1,6 +1,6 @@
 using Godot;
 
-namespace Writer.Systems;
+namespace Writer.Systems.Input;
 
 /// <summary>One pointer sample for an input system update.</summary>
 public readonly record struct PointerInput(Vector2 Position, bool Pressed);

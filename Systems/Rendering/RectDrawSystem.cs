@@ -1,8 +1,9 @@
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Writer.Ecs;
+using Writer.Systems.Canvas;
 
-namespace Writer.Systems;
+namespace Writer.Systems.Rendering;
 
 /// <summary>
 /// Clears and redraws dirty rectangles into their entity canvas items.

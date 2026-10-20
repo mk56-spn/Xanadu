@@ -3,7 +3,7 @@ using Friflo.Engine.ECS.Systems;
 using Godot;
 using Writer.Ecs;
 
-namespace Writer.Systems;
+namespace Writer.Systems.Rendering;
 
 /// <summary>
 /// Parents uninitialised layer canvas items to the main control and clears

@@ -3,7 +3,7 @@ using Friflo.Engine.ECS.Systems;
 using Godot;
 using NUnit.Framework;
 using Writer.Ecs;
-using Writer.Systems;
+using Writer.Systems.Input;
 using Position = Writer.Ecs.Position;
 
 namespace Writer.Tests;
@@ -94,6 +94,18 @@ public sealed class InputSystemTests
 
         Assert.That(first.Tags.Has<Pressed>(), Is.False);
         Assert.That(second.Tags.Has<Pressed>(), Is.True);
+    }
+
+    [Test]
+    public void ChildInputUsesContainerWorldPosition()
+    {
+        var container = _store.CreateEntity(new Position(new Vector2(200, 200)));
+        var child = AddInputRect(new Vector2(50, 0), new Vector2(40, 40), 0);
+        container.AddChild(child);
+
+        Press(new Vector2(250, 200));
+
+        Assert.That(child.Tags.Has<Pressed>(), Is.True);
     }
 
     private Entity AddInputRect(Vector2 center, Vector2 size, int layer, bool takesInput = true)

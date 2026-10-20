@@ -2,8 +2,9 @@ using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Godot;
 using Writer.Ecs;
+using Writer.Systems.Canvas;
 
-namespace Writer.Systems;
+namespace Writer.Systems.Rendering;
 
 /// <summary>Draws dirty entity text into the entity canvas item.</summary>
 public sealed class TextDrawSystem : QuerySystem<Text, Rectangle, Drawable, VisualRid>

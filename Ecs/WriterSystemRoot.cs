@@ -2,7 +2,11 @@ using System;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Godot;
-using Writer.Systems;
+using Writer.Systems.Canvas;
+using Writer.Systems.Debug;
+using Writer.Systems.Input;
+using Writer.Systems.Layout;
+using Writer.Systems.Rendering;
 
 namespace Writer.Ecs;
 
@@ -27,7 +31,9 @@ public sealed class WriterSystemRoot : SystemRoot, IDisposable
         RenderingServer.CanvasItemSetVisible(_debugOverlay, false);
 
         Add(new LayerParentSystem(parentCanvas));
+        Add(new ContainerLayoutSystem());
         Add(new DrawableInitialiseSystem());
+        Add(new TransformSystem(canvas));
         Add(new RectDrawSystem(canvas));
         Add(new TextDrawSystem(canvas));
         Add(new InputSystem(pointerInput));

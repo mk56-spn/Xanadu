@@ -2,9 +2,11 @@ using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Godot;
 using Writer.Ecs;
+using Writer.Systems.Canvas;
+using Writer.Systems.Input;
 using Position = Writer.Ecs.Position;
 
-namespace Writer.Systems;
+namespace Writer.Systems.Debug;
 
 /// <summary>F3 debug overlay that outlines the currently pressed input entity.</summary>
 public sealed class DebugPressedOverlaySystem : QuerySystem<Rectangle, Position>
@@ -47,13 +49,14 @@ public sealed class DebugPressedOverlaySystem : QuerySystem<Rectangle, Position>
         if (!_visible)
             return;
 
-        Query.ForEachEntity((ref rect, ref position, _) =>
+        Query.ForEachEntity((ref rect, ref position, entity) =>
         {
             Rect2 local = rect.Bounds;
             if (local.Size.X <= 0 || local.Size.Y <= 0)
                 return;
 
-            Rect2 bounds = new(position.Value + local.Position, local.Size);
+            Vector2 world = UiTransform.WorldPosition(entity, position.Value);
+            Rect2 bounds = new(world + local.Position, local.Size);
             DrawHighlight(bounds);
         });
     }

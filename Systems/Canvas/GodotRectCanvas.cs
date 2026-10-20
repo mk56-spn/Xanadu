@@ -1,6 +1,6 @@
 using Godot;
 
-namespace Writer.Systems;
+namespace Writer.Systems.Canvas;
 
 /// <summary>Production canvas operations backed by Godot's RenderingServer.</summary>
 public sealed class GodotRectCanvas : IRectCanvas
@@ -10,6 +10,9 @@ public sealed class GodotRectCanvas : IRectCanvas
 
     public void SetVisible(Rid canvas, bool visible) =>
         RenderingServer.CanvasItemSetVisible(canvas, visible);
+
+    public void SetTransform(Rid canvas, Transform2D transform) =>
+        RenderingServer.CanvasItemSetTransform(canvas, transform);
 
     public void Clear(Rid canvas) => RenderingServer.CanvasItemClear(canvas);
 

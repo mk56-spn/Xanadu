@@ -2,7 +2,7 @@ using Friflo.Engine.ECS;
 using Godot;
 using Writer.Ecs;
 using Writer.Scenes;
-using Writer.Systems;
+using Writer.Systems.Input;
 
 namespace Writer;
 
@@ -13,6 +13,8 @@ public partial class Main : Control
 
     [Export] public bool StressTest { get; set; }
 
+    [Export] public bool ContainerTest { get; set; }
+
     private WriterSystemRoot? _systems;
 
     public override void _Ready()
@@ -22,8 +24,11 @@ public partial class Main : Control
 
         if (StressTest)
             StressScene.Build(Entities, GetViewportRect().Size);
+        else if (ContainerTest)
+            ContainerScene.Build(Entities, GetViewportRect().Size);
         else
             TestScene.Build(Entities);
+
     }
 
     public override void _Process(double delta)

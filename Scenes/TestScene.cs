@@ -22,10 +22,62 @@ public static class TestScene
 
         AddRect(entities, 10, new Vector2(240, 360), new Vector2(320, 120), Colors.MediumSeaGreen, "Layer 10", true);
         AddRect(entities, 10, new Vector2(490, 350), new Vector2(100, 100), Colors.MediumSeaGreen, "Layer 10", false);
+
+        var container = AddContainer(
+            entities,
+            layerZIndex: 10,
+            center: new Vector2(850, 200),
+            size: new Vector2(360, 180),
+            StackDirection.Horizontal,
+            spacing: 12);
+
+        AddChildRect(entities, container, new Vector2(90, 70), Colors.SkyBlue, "A", false);
+        AddChildRect(entities, container, new Vector2(90, 70), Colors.Gold, "B", true);
+        AddChildRect(entities, container, new Vector2(90, 70), Colors.LightGreen, "C", false);
     }
 
     private static void CreateLayer(EntityStore entities, int zIndex) =>
         entities.CreateEntity(new VisualRid(), new Layer(zIndex), Tags.Get<Uninitialised>());
+
+    private static Entity AddContainer(
+        EntityStore entities,
+        int layerZIndex,
+        Vector2 center,
+        Vector2 size,
+        StackDirection direction,
+        float spacing) =>
+        entities.CreateEntity(
+            new VisualRid(),
+            new Rectangle(new Rect2(-size / 2, size)),
+            new Drawable(layerZIndex),
+            new Position(center),
+            new FillColor(new Color("#1e293b")),
+            new UiContainer(direction, spacing, clip: true),
+            Tags.Get<Uninitialised, Dirty, LayoutDirty>());
+
+    private static void AddChildRect(
+        EntityStore entities,
+        Entity container,
+        Vector2 size,
+        Color color,
+        string text,
+        bool takesInput)
+    {
+        Tags tags = takesInput
+            ? Tags.Get<Uninitialised, Dirty, TakesInput>()
+            : Tags.Get<Uninitialised, Dirty>();
+
+        var child = entities.CreateEntity(
+            new VisualRid(),
+            new Rectangle(new Rect2(-size / 2, size)),
+            new Drawable(10),
+            new Position(Vector2.Zero),
+            new FillColor(color),
+            new Text(text),
+            tags);
+
+        container.AddChild(child);
+    }
 
     private static void AddRect(
         EntityStore entities,

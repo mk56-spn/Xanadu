@@ -13,3 +13,9 @@ public struct TakesInput : ITag { }
 
 /// <summary>Marks the drawable currently holding the pointer button.</summary>
 public struct Pressed : ITag { }
+
+/// <summary>Marks a container whose child layout needs recomputing.</summary>
+public struct LayoutDirty : ITag { }
+
+/// <summary>Marks a drawable whose canvas transform needs updating.</summary>
+public struct Moved : ITag { }

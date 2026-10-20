@@ -4,7 +4,9 @@ using Friflo.Engine.ECS.Systems;
 using Godot;
 using NUnit.Framework;
 using Writer.Ecs;
-using Writer.Systems;
+using Writer.Systems.Canvas;
+using Writer.Systems.Debug;
+using Writer.Systems.Input;
 using Position = Writer.Ecs.Position;
 
 namespace Writer.Tests;
@@ -99,6 +101,8 @@ public sealed class DebugPressedOverlaySystemTests
         public List<Rect2> Rects { get; } = new();
 
         public void SetVisible(Rid canvas, bool visible) => Visible = visible;
+
+        public void SetTransform(Rid canvas, Transform2D transform) { }
 
         public void Clear(Rid canvas) { }
 

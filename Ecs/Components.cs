@@ -33,6 +33,23 @@ public struct Text(string value) : IComponent
     public string Value = value;
 }
 
+public enum StackDirection
+{
+    Horizontal,
+    Vertical,
+}
+
+/// <summary>Container entity that stacks its child entities.</summary>
+public struct UiContainer(
+    StackDirection direction,
+    float spacing = 0,
+    bool clip = false) : IComponent
+{
+    public StackDirection Direction = direction;
+    public float Spacing = spacing;
+    public bool Clip = clip;
+}
+
 /// <summary>Layer entity component. ZIndex determines draw order between layers.</summary>
 public struct Layer(int zIndex) : IIndexedComponent<int>
 {

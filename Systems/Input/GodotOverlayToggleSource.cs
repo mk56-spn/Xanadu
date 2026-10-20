@@ -1,6 +1,6 @@
 using Godot;
 
-namespace Writer.Systems;
+namespace Writer.Systems.Input;
 
 /// <summary>Toggles the debug overlay with F3.</summary>
 public sealed class GodotOverlayToggleSource : IOverlayToggleSource

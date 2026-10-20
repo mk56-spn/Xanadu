@@ -4,7 +4,8 @@ using Friflo.Engine.ECS.Systems;
 using Godot;
 using NUnit.Framework;
 using Writer.Ecs;
-using Writer.Systems;
+using Writer.Systems.Canvas;
+using Writer.Systems.Rendering;
 
 namespace Writer.Tests;
 
@@ -115,6 +116,8 @@ public sealed class RectDrawSystemTests
         public List<TextCall> TextDraws { get; } = new();
 
         public void SetVisible(Rid canvas, bool visible) { }
+
+        public void SetTransform(Rid canvas, Transform2D transform) { }
 
         public void Clear(Rid canvas) => Clears.Add(canvas);
 

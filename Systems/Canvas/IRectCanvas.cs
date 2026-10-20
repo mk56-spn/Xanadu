@@ -1,11 +1,13 @@
 using Godot;
 
-namespace Writer.Systems;
+namespace Writer.Systems.Canvas;
 
 /// <summary>Canvas operations used by draw systems.</summary>
 public interface IRectCanvas
 {
     void SetVisible(Rid canvas, bool visible);
+
+    void SetTransform(Rid canvas, Transform2D transform);
 
     void Clear(Rid canvas);
 

@@ -5,12 +5,12 @@ using Godot;
 using Writer.Ecs;
 using Position = Writer.Ecs.Position;
 
-namespace Writer.Systems;
+namespace Writer.Systems.Rendering;
 
 /// <summary>
-/// Initialises uninitialised drawables by parenting their canvas item to the
-/// layer matching <see cref="Drawable.ZIndex"/> and applying <see cref="Position"/>.
-/// Missing layers fall back to layer 0 and log a console error.
+/// Initialises uninitialised drawables by parenting their canvas item under a
+/// container parent or the layer matching <see cref="Drawable.ZIndex"/>, then
+/// applying <see cref="Position"/>. Missing layers fall back to layer 0.
 /// </summary>
 public sealed class DrawableInitialiseSystem : QuerySystem<Rectangle, Drawable, VisualRid, Position>
 {
@@ -45,7 +45,21 @@ public sealed class DrawableInitialiseSystem : QuerySystem<Rectangle, Drawable, 
                 drawable.ZIndex = DefaultLayer;
             }
 
-            RenderingServer.CanvasItemSetParent(visual.Value, layerCanvas);
+            Entity parent = entity.Parent;
+            Rid parentCanvas = layerCanvas;
+
+            if (!parent.IsNull &&
+                parent.HasComponent<UiContainer>() &&
+                parent.TryGetComponent<VisualRid>(out var parentVisual))
+            {
+                parentCanvas = parentVisual.Value;
+            }
+
+            RenderingServer.CanvasItemSetParent(visual.Value, parentCanvas);
+
+            if (entity.TryGetComponent<UiContainer>(out var container) && container.Clip)
+                RenderingServer.CanvasItemSetClip(visual.Value, true);
+
             RenderingServer.CanvasItemSetTransform(visual.Value, new Transform2D(0, position.Value));
             buffer.RemoveTag<Uninitialised>(entity.Id);
         });

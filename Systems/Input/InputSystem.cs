@@ -5,7 +5,7 @@ using Godot;
 using Writer.Ecs;
 using Position = Writer.Ecs.Position;
 
-namespace Writer.Systems;
+namespace Writer.Systems.Input;
 
 /// <summary>
 /// Hit-tests <see cref="TakesInput"/> drawables in descending layer order and
@@ -33,7 +33,8 @@ public sealed class InputSystem : QuerySystem<Rectangle, Drawable, Position>
         Query.ForEachEntity((ref rect, ref drawable, ref position, entity) =>
         {
             Rect2 local = rect.Bounds;
-            Rect2 screen = new(position.Value + local.Position, local.Size);
+            Vector2 world = UiTransform.WorldPosition(entity, position.Value);
+            Rect2 screen = new(world + local.Position, local.Size);
             _candidates.Add(new Candidate(entity, screen, drawable.ZIndex));
         });
 
