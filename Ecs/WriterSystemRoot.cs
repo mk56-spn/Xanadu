@@ -37,7 +37,15 @@ public sealed class WriterSystemRoot : SystemRoot, IDisposable
         Add(new RectDrawSystem(canvas));
         Add(new TextDrawSystem(canvas));
         Add(new InputSystem(pointerInput));
-        Add(new DebugPressedOverlaySystem(canvas, _debugOverlay, new GodotOverlayToggleSource()));
+        Add(new DebugPressedOverlaySystem(
+            canvas,
+            _debugOverlay,
+            new GodotOverlayToggleSource(),
+            entities,
+            this,
+            new GodotFpsSource()));
+
+        SetMonitorPerf(true);
     }
 
     public void Dispose() => RenderingServer.FreeRid(_debugOverlay);

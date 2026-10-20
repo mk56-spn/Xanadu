@@ -59,7 +59,11 @@ public struct Layer(int zIndex) : IIndexedComponent<int>
 }
 
 /// <summary>RenderingServer canvas item owned by an entity.</summary>
-public struct VisualRid() : IComponent
+public struct VisualRid : IComponent
 {
-    public Rid Value = RenderingServer.CanvasItemCreate();
+    public Rid Value;
+
+    public VisualRid() => Value = RenderingServer.CanvasItemCreate();
+
+    public VisualRid(Rid value) => Value = value;
 }

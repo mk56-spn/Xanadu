@@ -7,7 +7,7 @@ using Writer.Ecs;
 using Writer.Systems.Canvas;
 using Writer.Systems.Rendering;
 
-namespace Writer.Tests;
+namespace Writer.Tests.Rendering;
 
 [TestFixture]
 public sealed class TextDrawSystemTests
@@ -21,14 +21,13 @@ public sealed class TextDrawSystemTests
     {
         _store = new EntityStore();
         _canvas = new RecordingCanvas();
-        _root = new SystemRoot(_store);
-        _root.Add(new TextDrawSystem(_canvas));
+        _root = new SystemRoot(_store) { new TextDrawSystem(_canvas) };
     }
 
     [Test]
     public void DirtyTextDrawsAndClearsDirtyTag()
     {
-        var entity = AddText("Hello");
+        Entity entity = AddText("Hello");
 
         Frame();
 
@@ -52,7 +51,7 @@ public sealed class TextDrawSystemTests
     [Test]
     public void EmptyTextIsSkipped()
     {
-        var entity = AddText("");
+        Entity entity = AddText("");
 
         Frame();
 
@@ -84,6 +83,10 @@ public sealed class TextDrawSystemTests
 
         public void DrawText(Rid canvas, Rect2 bounds, string text, Color color) =>
             Draws.Add(new DrawCall(canvas, bounds, text, color));
+
+        public void DrawTextLeft(Rid canvas, Rect2 bounds, string text, Color color) { }
+
+        public void DrawTextRight(Rid canvas, Rect2 bounds, string text, Color color) { }
 
         public readonly record struct DrawCall(Rid Canvas, Rect2 Bounds, string Text, Color Color);
     }

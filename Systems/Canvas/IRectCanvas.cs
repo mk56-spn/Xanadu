@@ -14,4 +14,8 @@ public interface IRectCanvas
     void DrawRect(Rid canvas, Rect2 bounds, Color color);
 
     void DrawText(Rid canvas, Rect2 bounds, string text, Color color);
+
+    void DrawTextLeft(Rid canvas, Rect2 bounds, string text, Color color);
+
+    void DrawTextRight(Rid canvas, Rect2 bounds, string text, Color color);
 }

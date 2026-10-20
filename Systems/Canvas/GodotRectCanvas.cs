@@ -19,7 +19,21 @@ public sealed class GodotRectCanvas : IRectCanvas
     public void DrawRect(Rid canvas, Rect2 bounds, Color color) =>
         RenderingServer.CanvasItemAddRect(canvas, bounds, color);
 
-    public void DrawText(Rid canvas, Rect2 bounds, string text, Color color)
+    public void DrawText(Rid canvas, Rect2 bounds, string text, Color color) =>
+        DrawTextAligned(canvas, bounds, text, color, HorizontalAlignment.Center);
+
+    public void DrawTextLeft(Rid canvas, Rect2 bounds, string text, Color color) =>
+        DrawTextAligned(canvas, bounds, text, color, HorizontalAlignment.Left);
+
+    public void DrawTextRight(Rid canvas, Rect2 bounds, string text, Color color) =>
+        DrawTextAligned(canvas, bounds, text, color, HorizontalAlignment.Right);
+
+    private static void DrawTextAligned(
+        Rid canvas,
+        Rect2 bounds,
+        string text,
+        Color color,
+        HorizontalAlignment alignment)
     {
         if (string.IsNullOrEmpty(text))
             return;
@@ -33,7 +47,7 @@ public sealed class GodotRectCanvas : IRectCanvas
             canvas,
             new Vector2(bounds.Position.X + TextPadding, baseline),
             text,
-            HorizontalAlignment.Center,
+            alignment,
             Mathf.Max(0, bounds.Size.X - TextPadding * 2),
             FontSize,
             color);

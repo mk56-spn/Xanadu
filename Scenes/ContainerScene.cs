@@ -5,7 +5,7 @@ using Position = Writer.Ecs.Position;
 
 namespace Writer.Scenes;
 
-/// <summary>Builds 30 nested container trees for visual hierarchy testing.</summary>
+/// <summary>Builds 30 nested container trees with varying child counts.</summary>
 public static class ContainerScene
 {
     private const int TopLevelCount = 30;
@@ -13,6 +13,8 @@ public static class ContainerScene
     private const float ContainerWidth = 170;
     private const float ContainerHeight = 120;
     private const float Gap = 12;
+    private const float Spacing = 4;
+    private const float ChildInset = 0.8f;
 
     public static void Build(EntityStore entities, Vector2 viewportSize)
     {
@@ -40,7 +42,7 @@ public static class ContainerScene
                 parent: null,
                 center,
                 new Vector2(ContainerWidth, ContainerHeight),
-                depth: 1 + i % 4,
+                depth: 1 + i % 3,
                 seed: i);
         }
     }
@@ -53,32 +55,85 @@ public static class ContainerScene
         int depth,
         int seed)
     {
-        var direction = (seed + depth) % 2 == 0
+        int childCount = 1 + (seed + depth) % 3;
+        StackDirection direction = (seed + depth) % 2 == 0
             ? StackDirection.Horizontal
             : StackDirection.Vertical;
 
-        var container = entities.CreateEntity(
+        Entity container = entities.CreateEntity(
             new VisualRid(),
             new Rectangle(new Rect2(-size / 2, size)),
             new Drawable(0),
             new Position(parent is null ? center : Vector2.Zero),
             new FillColor(Color.FromHsv((seed * 0.07f) % 1f, 0.45f, 0.25f + depth * 0.08f)),
-            new Text(depth.ToString()),
-            new UiContainer(direction, spacing: 4, clip: true),
+            new UiContainer(direction, Spacing, clip: true),
             Tags.Get<Uninitialised, Dirty, LayoutDirty>());
 
         if (parent is { } parentEntity)
             parentEntity.AddChild(container);
 
-        if (depth <= 1)
-            return;
+        Vector2 childSize = GetChildSize(size, direction, childCount);
+        bool canNest = depth > 1 && size.X >= 60 && size.Y >= 44;
 
-        BuildTree(
-            entities,
-            container,
-            Vector2.Zero,
-            size * 0.72f,
-            depth - 1,
-            seed + 1);
+        for (int childIndex = 0; childIndex < childCount; childIndex++)
+        {
+            if (canNest && childIndex == 0)
+            {
+                BuildTree(
+                    entities,
+                    container,
+                    Vector2.Zero,
+                    childSize,
+                    depth - 1,
+                    seed + childIndex + 1);
+            }
+            else
+            {
+                AddLeaf(
+                    entities,
+                    container,
+                    childSize,
+                    Color.FromHsv(((seed + childIndex) * 0.13f) % 1f, 0.5f, 0.75f),
+                    childIndex + 1);
+            }
+        }
+    }
+
+    private static void AddLeaf(
+        EntityStore entities,
+        Entity parent,
+        Vector2 size,
+        Color color,
+        int index)
+    {
+        Tags tags = Tags.Get<Uninitialised, Dirty, TakesInput>();
+        Entity leaf = size.X >= 24 && size.Y >= 18
+            ? entities.CreateEntity(
+                new VisualRid(),
+                new Rectangle(new Rect2(-size / 2, size)),
+                new Drawable(0),
+                new Position(Vector2.Zero),
+                new FillColor(color),
+                new Text(index.ToString()),
+                tags)
+            : entities.CreateEntity(
+                new VisualRid(),
+                new Rectangle(new Rect2(-size / 2, size)),
+                new Drawable(0),
+                new Position(Vector2.Zero),
+                new FillColor(color),
+                tags);
+
+        parent.AddChild(leaf);
+    }
+
+    private static Vector2 GetChildSize(Vector2 parentSize, StackDirection direction, int childCount)
+    {
+        Vector2 inner = parentSize * ChildInset;
+        float spacing = Spacing * (childCount - 1);
+
+        return direction == StackDirection.Horizontal
+            ? new Vector2(Mathf.Max(1, (inner.X - spacing) / childCount), inner.Y)
+            : new Vector2(inner.X, Mathf.Max(1, (inner.Y - spacing) / childCount));
     }
 }

@@ -6,7 +6,7 @@ using Writer.Ecs;
 using Writer.Systems.Layout;
 using Position = Writer.Ecs.Position;
 
-namespace Writer.Tests;
+namespace Writer.Tests.Layout;
 
 [TestFixture]
 public sealed class ContainerLayoutSystemTests

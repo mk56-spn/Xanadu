@@ -7,7 +7,7 @@ using Writer.Ecs;
 using Writer.Systems.Canvas;
 using Writer.Systems.Rendering;
 
-namespace Writer.Tests;
+namespace Writer.Tests.Rendering;
 
 [TestFixture]
 public sealed class RectDrawSystemTests
@@ -21,15 +21,14 @@ public sealed class RectDrawSystemTests
     {
         _store = new EntityStore();
         _canvas = new RecordingRectCanvas();
-        _root = new SystemRoot(_store);
-        _root.Add(new RectDrawSystem(_canvas));
+        _root = new SystemRoot(_store) { new RectDrawSystem(_canvas) };
     }
 
     [Test]
     public void DirtyRectDrawsAndClearsDirtyTag()
     {
         var bounds = new Rect2(10, 20, 30, 40);
-        var entity = AddRect(bounds);
+        Entity entity = AddRect(bounds);
 
         Frame();
 
@@ -54,7 +53,7 @@ public sealed class RectDrawSystemTests
     [Test]
     public void RedirtyingRectDrawsAgain()
     {
-        var entity = AddRect(new Rect2(10, 20, 30, 40));
+        Entity entity = AddRect(new Rect2(10, 20, 30, 40));
 
         Frame();
         entity.AddTag<Dirty>();
@@ -87,7 +86,7 @@ public sealed class RectDrawSystemTests
     [Test]
     public void ZeroSizedRectIsNotDrawn()
     {
-        var entity = AddRect(new Rect2(0, 0, 0, 10));
+        Entity entity = AddRect(new Rect2(0, 0, 0, 10));
 
         Frame();
 
@@ -126,6 +125,10 @@ public sealed class RectDrawSystemTests
 
         public void DrawText(Rid canvas, Rect2 bounds, string text, Color color) =>
             TextDraws.Add(new TextCall(canvas, bounds, text, color));
+
+        public void DrawTextLeft(Rid canvas, Rect2 bounds, string text, Color color) { }
+
+        public void DrawTextRight(Rid canvas, Rect2 bounds, string text, Color color) { }
 
         public readonly record struct DrawCall(Rid Canvas, Rect2 Bounds, Color Color);
 

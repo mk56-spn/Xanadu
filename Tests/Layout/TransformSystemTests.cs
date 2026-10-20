@@ -8,7 +8,7 @@ using Writer.Systems.Canvas;
 using Writer.Systems.Layout;
 using Position = Writer.Ecs.Position;
 
-namespace Writer.Tests;
+namespace Writer.Tests.Layout;
 
 [TestFixture]
 public sealed class TransformSystemTests
@@ -22,14 +22,13 @@ public sealed class TransformSystemTests
     {
         _store = new EntityStore();
         _canvas = new RecordingCanvas();
-        _root = new SystemRoot(_store);
-        _root.Add(new TransformSystem(_canvas));
+        _root = new SystemRoot(_store) { new TransformSystem(_canvas) };
     }
 
     [Test]
     public void MovedEntityUpdatesTransformAndClearsTag()
     {
-        var entity = _store.CreateEntity(
+        Entity entity = _store.CreateEntity(
             default(VisualRid),
             new Position(new Vector2(10, 20)),
             Tags.Get<Moved>());
@@ -66,5 +65,9 @@ public sealed class TransformSystemTests
         public void DrawRect(Rid canvas, Rect2 bounds, Color color) { }
 
         public void DrawText(Rid canvas, Rect2 bounds, string text, Color color) { }
+
+        public void DrawTextLeft(Rid canvas, Rect2 bounds, string text, Color color) { }
+
+        public void DrawTextRight(Rid canvas, Rect2 bounds, string text, Color color) { }
     }
 }
