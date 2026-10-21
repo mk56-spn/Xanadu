@@ -7,36 +7,33 @@ using Writer.Ecs;
 using Writer.Settings;
 using Writer.Systems.Input;
 
-namespace Writer.VisualTests;
+namespace Writer.Testing;
 
 /// <summary>
-/// Boots ECS scenes without navigating menus, waits for their layer
-/// initialization to settle, and runs structural assertions. Supports
-/// interactive switching and CLI runs through
+/// Boots ECS scenes without navigating menus and runs osu-style test scenes:
+/// each test is a sequence of steps and assertions executed against the live
+/// entity store. Supports interactive switching and CLI runs through
 /// `--visual-test=&lt;slug&gt; [--visual-test-exit]`.
 /// </summary>
 public partial class VisualTestMain : Control
 {
-    private const int MaxWaitFrames = 120;
-
-    private readonly List<IVisualTest> _tests = new(VisualTestCatalog.All);
+    private readonly List<SceneTest> _tests = new(SceneTestCatalog.All);
     private readonly List<VisualTestRun> _runs = new();
+    private readonly SceneTestRunner _runner = new();
 
     private EntityStore? _entities;
     private WriterSystemRoot? _systems;
     private SceneDirector? _director;
-    private GodotPointerInputSource? _pointer;
+    private ScriptedPointerInputSource? _pointer;
     private VisualTestContext? _context;
-    private IVisualTest? _test;
+    private CanvasLayer? _hudLayer;
     private Label? _hud;
 
     private int _index;
-    private int _frame;
-    private bool _waiting;
     private bool _auto;
     private bool _runAll;
+    private bool _resultHandled;
     private string? _invalidRequest;
-    private VisualTestResult _result;
 
     public override void _Ready()
     {
@@ -57,30 +54,25 @@ public partial class VisualTestMain : Control
 
     public override void _Process(double delta)
     {
-        if (_systems is null || _context is null || _test is null)
+        if (_systems is null || _context is null || _runner.Test is null)
             return;
 
         float time = (float)Time.GetTicksMsec() / 1000f;
         _systems.Update(new UpdateTick((float)delta, time));
 
-        if (!_waiting)
+        if (_resultHandled)
             return;
 
-        _frame++;
+        VisualTestResult? result = _runner.Update(delta);
 
-        if (_test.IsReady(_context))
+        if (result is { } completed)
         {
-            _waiting = false;
-            CompleteTest(_test.Verify(_context));
+            _resultHandled = true;
+            CompleteTest(completed);
             return;
         }
 
-        if (_frame >= MaxWaitFrames)
-        {
-            _waiting = false;
-            CompleteTest(VisualTestResult.Fail(
-                $"timed out waiting for {_test.Name} ECS initialization"));
-        }
+        UpdateHud();
     }
 
     public override void _UnhandledInput(InputEvent @event)
@@ -121,13 +113,10 @@ public partial class VisualTestMain : Control
         Cleanup();
 
         _index = Mathf.Clamp(index, 0, _tests.Count - 1);
-        _test = _tests[_index];
-        _frame = 0;
-        _waiting = true;
-        _result = default;
+        _resultHandled = false;
 
         _entities = new EntityStore();
-        _pointer = new GodotPointerInputSource(this);
+        _pointer = new ScriptedPointerInputSource();
         _director = new SceneDirector();
         Vector2 screen = GetViewportRect().Size;
         if (screen.X <= 0 || screen.Y <= 0)
@@ -141,36 +130,44 @@ public partial class VisualTestMain : Control
             screen,
             new KeybindSettings(persist: false));
 
-        _context = new VisualTestContext(_entities, _systems, screen);
+        _context = new VisualTestContext(
+            _entities,
+            _systems,
+            screen,
+            this,
+            _pointer);
+
+        SceneTest test = _tests[_index];
 
         try
         {
-            _test.Begin(_context);
+            test.Attach(_context);
+            _runner.Start(test);
         }
         catch (Exception exception)
         {
-            _waiting = false;
+            _resultHandled = true;
             CompleteTest(VisualTestResult.Fail(exception.Message));
-            GD.PrintErr($"[visual:{_test.Slug}] start failed: {exception}");
+            GD.PrintErr($"[scene-test:{test.Slug}] start failed: {exception}");
             return;
         }
 
-        if (_hud is not null)
-            _hud.Visible = !_auto;
+        if (_hudLayer is not null)
+            _hudLayer.Visible = !_auto;
 
         UpdateHud();
     }
 
     private void CompleteTest(VisualTestResult result)
     {
-        if (_test is null)
+        SceneTest? test = _runner.Test;
+        if (test is null)
             return;
 
-        _result = result;
-        _runs.Add(new VisualTestRun(_test.Name, result.Passed, result.Message));
+        _runs.Add(new VisualTestRun(test.Name, result.Passed, result.Message));
 
         GD.Print(
-            $"[visual:{_test.Slug}] " +
+            $"[scene-test:{test.Slug}] " +
             $"{(result.Passed ? "PASS" : "FAIL")}: {result.Message}");
 
         UpdateHud();
@@ -190,7 +187,7 @@ public partial class VisualTestMain : Control
     private void Finish()
     {
         bool failed = _runs.Exists(static run => !run.Passed);
-        GD.Print(failed ? "Visual tests failed." : "Visual tests passed.");
+        GD.Print(failed ? "Scene tests failed." : "Scene tests passed.");
         GetTree().Quit(failed ? 1 : 0);
     }
 
@@ -202,6 +199,12 @@ public partial class VisualTestMain : Control
 
     private void Cleanup()
     {
+        foreach (Node child in GetChildren())
+        {
+            if (child is Writer.Editor.EditorOverlay overlay)
+                overlay.Close();
+        }
+
         if (_entities is not null)
         {
             foreach (Entity entity in _entities.Query<VisualRid>().ToEntityList())
@@ -215,38 +218,49 @@ public partial class VisualTestMain : Control
         _systems = null;
         _entities = null;
         _context = null;
-        _test = null;
         _pointer = null;
         _director = null;
     }
 
     private void BuildHud()
     {
-        var layer = new CanvasLayer { Layer = 2000 };
-        AddChild(layer);
+        _hudLayer = new CanvasLayer { Layer = 2000 };
+        AddChild(_hudLayer);
 
-        var backdrop = new ColorRect
+        float height = GetViewportRect().Size.Y;
+        const float sidebarWidth = 320;
+
+        var sidebar = new ColorRect
         {
             Position = Vector2.Zero,
-            Size = new Vector2(780, 240),
-            Color = new Color(0.02f, 0.03f, 0.06f, 0.82f),
+            Size = new Vector2(sidebarWidth, height),
+            Color = new Color(0.02f, 0.03f, 0.06f, 0.9f),
             MouseFilter = MouseFilterEnum.Ignore,
         };
-        layer.AddChild(backdrop);
+        _hudLayer.AddChild(sidebar);
+
+        var separator = new ColorRect
+        {
+            Position = new Vector2(sidebarWidth, 0),
+            Size = new Vector2(1, height),
+            Color = new Color(0.25f, 0.33f, 0.45f, 0.9f),
+            MouseFilter = MouseFilterEnum.Ignore,
+        };
+        _hudLayer.AddChild(separator);
 
         _hud = new Label
         {
             Position = new Vector2(16, 16),
-            Size = new Vector2(760, 240),
+            Size = new Vector2(sidebarWidth - 32, height - 32),
             MouseFilter = MouseFilterEnum.Ignore,
-            Visible = !_auto,
+            AutowrapMode = TextServer.AutowrapMode.WordSmart,
         };
 
-        _hud.AddThemeFontSizeOverride("font_size", 14);
+        _hud.AddThemeFontSizeOverride("font_size", 13);
         _hud.AddThemeColorOverride("font_color", new Color("#e2e8f0"));
         _hud.AddThemeColorOverride("font_outline_color", new Color("#020617"));
-        _hud.AddThemeConstantOverride("outline_size", 4);
-        layer.AddChild(_hud);
+        _hud.AddThemeConstantOverride("outline_size", 3);
+        _hudLayer.AddChild(_hud);
     }
 
     private void ParseArguments()
@@ -290,22 +304,17 @@ public partial class VisualTestMain : Control
         if (_hud is null)
             return;
 
-        if (_test is null)
+        SceneTest? test = _runner.Test;
+
+        if (test is null)
         {
-            _hud.Text = "VISUAL TESTS\nNo test loaded";
+            _hud.Text = "SCENE TESTS\nNo test loaded";
             return;
         }
 
-        string status = _waiting
-            ? "WAITING FOR ECS..."
-            : _result.Passed
-                ? "PASS"
-                : "FAIL";
-
-        string message = _waiting ? "" : _result.Message;
         var lines = new List<string>
         {
-            $"VISUAL TESTS  {_index + 1}/{_tests.Count}",
+            $"SCENE TESTS  {_index + 1}/{_tests.Count}",
             "",
         };
 
@@ -313,17 +322,48 @@ public partial class VisualTestMain : Control
             lines.Add($"{(i == _index ? ">" : " ")} {_tests[i].Name}");
 
         lines.Add("");
-        lines.Add($"{status}  {message}");
+        lines.Add("STEPS");
+
+        foreach (SceneTestStep step in test.Steps)
+        {
+            string marker = step.State switch
+            {
+                SceneTestStepState.Running => "[>]",
+                SceneTestStepState.Passed => "[x]",
+                SceneTestStepState.Failed => "[!]",
+                _ => "[ ]",
+            };
+
+            lines.Add($"{marker} {step.Description}");
+        }
+
         lines.Add("");
-        lines.Add("LEFT/RIGHT switch   R rerun   Esc quit");
-        _hud.Text = string.Join("\n", lines);
+
+        if (_runner.Result is { } result)
+        {
+            lines.Add(
+                $"{(result.Passed ? "PASS" : "FAIL")}  {result.Message}");
+        }
+        else
+        {
+            lines.Add("RUNNING...");
+        }
+
+        lines.Add("");
+        lines.Add("LEFT/RIGHT  switch");
+        lines.Add("R           rerun");
+        lines.Add("Esc         quit");
+
+        string text = string.Join("\n", lines);
+        if (_hud.Text != text)
+            _hud.Text = text;
     }
 
     private void PrintTestList()
     {
-        GD.Print("Available visual tests:");
+        GD.Print("Available scene tests:");
 
-        foreach (IVisualTest test in _tests)
+        foreach (SceneTest test in _tests)
             GD.Print($"  {test.Slug}  {test.Name}");
     }
 

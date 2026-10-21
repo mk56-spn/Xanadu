@@ -1,7 +1,7 @@
 using Friflo.Engine.ECS;
 using Writer.Ecs;
 
-namespace Writer.VisualTests;
+namespace Writer.Testing;
 
 /// <summary>Small ECS assertions shared by visual tests.</summary>
 public static class VisualAssert
@@ -9,6 +9,17 @@ public static class VisualAssert
     public static bool HasText(EntityStore store, string value)
     {
         foreach (Entity entity in store.Query<Text>().ToEntityList())
+        {
+            if (entity.GetComponent<Text>().Value == value)
+                return true;
+        }
+
+        return false;
+    }
+
+    public static bool HasAnimatedText(EntityStore store, string value)
+    {
+        foreach (Entity entity in store.Query<ButtonVisual, Text>().ToEntityList())
         {
             if (entity.GetComponent<Text>().Value == value)
                 return true;

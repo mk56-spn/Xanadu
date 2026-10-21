@@ -15,6 +15,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Remove="Tests/**/*.cs" />
+    <Compile Include="Tests/VisualTests/Harness/**/*.cs" />
     <PackageReference Include="Friflo.Engine.ECS" Version="4.0.0-preview.2" />
     <PackageReference Include="Friflo.Engine.ECS.Boost" Version="4.0.0-preview.2" />
     <PackageReference Include="Miniaudio-CS" Version="1.0.4" />

@@ -1,6 +1,6 @@
 [gd_scene format=3]
 
-[ext_resource type="Script" path="res://VisualTests/VisualTestMain.cs" id="1_main"]
+[ext_resource type="Script" path="res://Tests/VisualTests/Harness/VisualTestMain.cs" id="1_main"]
 
 [node name="VisualTests" type="Control"]
 layout_mode = 3
