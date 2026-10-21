@@ -98,6 +98,24 @@ public static class PlayScene
             16,
             SceneUi.DimTextColor);
 
+        Entity scoreText = SceneUi.Text(
+            ui,
+            new Vector2(160, screen.Y - 24),
+            new Vector2(280, 24),
+            "SCORE 0000000",
+            18,
+            SceneUi.TextColor);
+
+        Entity comboText = SceneUi.Text(
+            ui,
+            new Vector2(screen.X - 150, screen.Y - 24),
+            new Vector2(220, 24),
+            "COMBO 0",
+            16,
+            SceneUi.DimTextColor);
+
+        playfieldEntity.AddComponent(
+            new ScoreState(scoreText, comboText, document.Notes.Count));
         playfieldEntity.AddComponent(new PlaySession(status));
     }
 }

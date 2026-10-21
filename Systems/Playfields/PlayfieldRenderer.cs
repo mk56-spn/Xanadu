@@ -129,10 +129,11 @@ public static class PlayfieldRenderer
                 center - new Vector2(size / 2, size / 2),
                 new Vector2(size, size));
 
-            canvas.DrawRect(
-                rid,
-                bounds,
-                new Color(NoteColor.R, NoteColor.G, NoteColor.B, alpha));
+            Color color = entity.Tags.Has<NoteMissed>()
+                ? new Color(0.4f, 0.4f, 0.5f, alpha * 0.45f)
+                : new Color(NoteColor.R, NoteColor.G, NoteColor.B, alpha);
+
+            canvas.DrawRect(rid, bounds, color);
 
             if (!selectedNote.IsNull && selectedNote.Id == entity.Id)
             {

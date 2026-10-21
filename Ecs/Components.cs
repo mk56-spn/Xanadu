@@ -1,3 +1,4 @@
+using System;
 using Friflo.Engine.ECS;
 using Godot;
 
@@ -272,6 +273,25 @@ public struct SceneConfirmation(Entity title, Entity message, Entity yes, Entity
 public struct PauseAction : IComponent
 {
     public int Value;
+}
+
+/// <summary>Play-mode score, combo, and display entities.</summary>
+public struct ScoreState(Entity scoreText, Entity comboText, int totalNotes) : IComponent
+{
+    public const int MaxScore = 1_000_000;
+    public const long TimingWindowMs = 8;
+
+    public Entity ScoreText = scoreText;
+    public Entity ComboText = comboText;
+    public int TotalNotes = totalNotes;
+    public int NotesHit;
+    public int Combo;
+    public int MaxCombo;
+    public double ScoreValue;
+    public long LastOffsetMs;
+
+    public readonly long Score =>
+        Math.Clamp((long)Math.Round(ScoreValue), 0, MaxScore);
 }
 
 /// <summary>Gameplay pause overlay state.</summary>

@@ -70,7 +70,12 @@ public sealed class WriterSystemRoot : SystemRoot, IDisposable
         Add(new PhysicsSystemGroup(Physics));
         Add(new PresentationSystemGroup(canvas));
         Add(new AudioSystemGroup(_trackAudio, new GodotTrackClock(), canvas, _timeline));
-        Add(new PlayfieldSystemGroup(entities, canvas, _playfield, _playfieldAudio));
+        Add(new PlayfieldSystemGroup(
+            entities,
+            canvas,
+            _playfield,
+            _playfieldAudio,
+            pointerInput));
         _editorSystems = new EditorSystemGroup(
             entities,
             Commands,

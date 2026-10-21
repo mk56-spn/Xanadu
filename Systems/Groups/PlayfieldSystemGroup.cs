@@ -3,6 +3,7 @@ using Friflo.Engine.ECS.Systems;
 using Godot;
 using Writer.Systems.Audio;
 using Writer.Systems.Canvas;
+using Writer.Systems.Input;
 using Writer.Systems.Playfields;
 
 namespace Writer.Systems.Groups;
@@ -14,10 +15,13 @@ public sealed class PlayfieldSystemGroup : SystemGroup
         EntityStore entities,
         IRectCanvas canvas,
         Rid playfieldCanvas,
-        ITrackAudio audio) : base("Playfield")
+        ITrackAudio audio,
+        IPointerInputSource pointer) : base("Playfield")
     {
         Add(new PlayfieldPlaybackSystem(audio));
         Add(new PlaySessionSystem());
+        Add(new PlayNoteInputSystem(entities, pointer));
+        Add(new PlayScoreSystem());
         Add(new PlayfieldDrawSystem(entities, canvas, playfieldCanvas));
     }
 }
