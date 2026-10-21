@@ -3,6 +3,7 @@ using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Godot;
 using Writer.Ecs;
+using Writer.Scoring;
 using Writer.Systems.Input;
 
 namespace Writer.Systems.Playfields;
@@ -49,6 +50,7 @@ public sealed class PlayNoteInputSystem : QuerySystem<Note>
             return;
 
         Vector2 position = view.ScreenToPlayfield(screenPosition);
+        long missWindow = (long)ScoreRules.JudgementDeviation(Judgement.Miss);
         Entity hit = default;
         long bestError = long.MaxValue;
         long bestOffset = 0;
@@ -61,7 +63,7 @@ public sealed class PlayNoteInputSystem : QuerySystem<Note>
             Note note = entity.GetComponent<Note>();
             long offset = note.TimeMs - playhead.TimeMs;
             long error = Math.Abs(offset);
-            if (error > ScoreState.TimingWindowMs)
+            if (error > missWindow)
                 continue;
 
             if (MathF.Abs(note.Position.X - position.X) > HitRadius ||
@@ -77,30 +79,31 @@ public sealed class PlayNoteInputSystem : QuerySystem<Note>
         }
 
         if (!hit.IsNull)
-            Hit(ref score, hit, bestError, bestOffset);
+            Hit(ref score, hit, bestOffset);
     }
 
     private static void Hit(
         ref ScoreState score,
         Entity noteEntity,
-        long errorMs,
         long offsetMs)
     {
-        double perNote = score.TotalNotes > 0
-            ? ScoreState.MaxScore / (double)score.TotalNotes
-            : 0;
-        double factor = Math.Clamp(
-            1.0 - errorMs / (double)ScoreState.TimingWindowMs,
-            0,
-            1);
+        Judgement judgement = ScoreRules.Judge(offsetMs);
 
         score.NotesHit++;
-        score.Combo++;
-        score.MaxCombo = Math.Max(score.MaxCombo, score.Combo);
+        score.HasJudgement = true;
+        score.LastJudgement = judgement;
         score.LastOffsetMs = offsetMs;
-        score.ScoreValue = Math.Min(
-            ScoreState.MaxScore,
-            score.ScoreValue + perNote * factor);
+        score.AccuracyPoints += ScoreRules.AccuracyFor(judgement);
+
+        if (judgement == Judgement.Miss)
+        {
+            score.Combo = 0;
+        }
+        else
+        {
+            score.Combo++;
+            score.MaxCombo = Math.Max(score.MaxCombo, score.Combo);
+        }
 
         noteEntity.DeleteEntity();
     }
@@ -123,11 +126,15 @@ public sealed class PlayNoteInputSystem : QuerySystem<Note>
                 continue;
 
             Note note = entity.GetComponent<Note>();
-            if (note.TimeMs + ScoreState.TimingWindowMs >= playhead.TimeMs)
+            long missWindow =
+                (long)ScoreRules.JudgementDeviation(Judgement.Miss);
+            if (note.TimeMs + missWindow >= playhead.TimeMs)
                 continue;
 
             entity.AddTag<NoteMissed>();
             score.Combo = 0;
+            score.HasJudgement = true;
+            score.LastJudgement = Judgement.Miss;
         }
     }
 

@@ -1,6 +1,7 @@
 using System;
 using Friflo.Engine.ECS;
 using Godot;
+using Writer.Scoring;
 
 namespace Writer.Ecs;
 
@@ -275,23 +276,34 @@ public struct PauseAction : IComponent
     public int Value;
 }
 
-/// <summary>Play-mode score, combo, and display entities.</summary>
-public struct ScoreState(Entity scoreText, Entity comboText, int totalNotes) : IComponent
+/// <summary>Play-mode score, accuracy, combo, and display entities.</summary>
+public struct ScoreState(
+    Entity scoreText,
+    Entity comboText,
+    Entity accuracyText,
+    Entity judgementText,
+    int totalNotes) : IComponent
 {
-    public const int MaxScore = 1_000_000;
-    public const long TimingWindowMs = 8;
-
     public Entity ScoreText = scoreText;
     public Entity ComboText = comboText;
+    public Entity AccuracyText = accuracyText;
+    public Entity JudgementText = judgementText;
     public int TotalNotes = totalNotes;
     public int NotesHit;
     public int Combo;
     public int MaxCombo;
-    public double ScoreValue;
+    public double AccuracyPoints;
+    public Judgement LastJudgement;
+    public bool HasJudgement;
     public long LastOffsetMs;
 
-    public readonly long Score =>
-        Math.Clamp((long)Math.Round(ScoreValue), 0, MaxScore);
+    public readonly double Accuracy =>
+        TotalNotes > 0 ? AccuracyPoints / TotalNotes : 0;
+
+    public readonly long Score => Math.Clamp(
+        (long)Math.Round(Accuracy * ScoreRules.MaxScore),
+        0,
+        ScoreRules.MaxScore);
 }
 
 /// <summary>Gameplay pause overlay state.</summary>

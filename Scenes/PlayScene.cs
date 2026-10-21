@@ -114,8 +114,30 @@ public static class PlayScene
             16,
             SceneUi.DimTextColor);
 
+        Entity accuracyText = SceneUi.Text(
+            ui,
+            new Vector2(screen.X - 150, 68),
+            new Vector2(220, 24),
+            "ACC 0.00%  FAIL",
+            14,
+            SceneUi.DimTextColor);
+
+        Entity judgementText = SceneUi.Text(
+            ui,
+            new Vector2(150, 68),
+            new Vector2(220, 24),
+            "",
+            14,
+            SceneUi.AccentColor,
+            new Color(0, 0, 0, 0));
+
         playfieldEntity.AddComponent(
-            new ScoreState(scoreText, comboText, document.Notes.Count));
+            new ScoreState(
+                scoreText,
+                comboText,
+                accuracyText,
+                judgementText,
+                document.Notes.Count));
         playfieldEntity.AddComponent(new PlaySession(status));
     }
 }
