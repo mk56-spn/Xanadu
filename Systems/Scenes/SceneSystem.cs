@@ -29,6 +29,7 @@ public sealed class SceneSystem : QuerySystem<SceneState>
     private Entity _pausePanel;
     private Entity _sceneRoot;
     private List<LevelEntry> _catalog = new();
+    private LevelEntry? _pendingPlayEntry;
 
     private static readonly Vector2 HiddenConfirmation = new(-10_000, -10_000);
     private static readonly Vector2 HiddenPause = new(-10_000, -10_000);
@@ -60,6 +61,15 @@ public sealed class SceneSystem : QuerySystem<SceneState>
         EnsureState();
         ref SceneState state = ref _stateEntity.GetComponent<SceneState>();
         state.Pending = scene;
+    }
+
+    /// <summary>Starts play with an already-loaded level entry.</summary>
+    public void StartPlay(LevelEntry entry)
+    {
+        EnsureState();
+        _pendingPlayEntry = entry;
+        ref SceneState state = ref _stateEntity.GetComponent<SceneState>();
+        state.Pending = SceneKind.Play;
     }
 
     /// <summary>Moves one scene back, pausing in play and confirming when leaving the editor.</summary>
@@ -588,9 +598,15 @@ public sealed class SceneSystem : QuerySystem<SceneState>
 
         if (next == SceneKind.Play)
         {
-            playEntry = LoadEntry(state.SelectedLevelPath);
+            playEntry = _pendingPlayEntry ?? LoadEntry(state.SelectedLevelPath);
+            _pendingPlayEntry = null;
+
             if (playEntry is null)
                 next = SceneKind.SongSelect;
+        }
+        else
+        {
+            _pendingPlayEntry = null;
         }
 
         DestroyScene();

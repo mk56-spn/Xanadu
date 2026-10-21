@@ -7,6 +7,7 @@ using Godot;
 using NUnit.Framework;
 using Writer.Ecs;
 using Writer.Levels;
+using Writer.Scenes;
 using Writer.Settings;
 using Writer.Systems.Scenes;
 using Writer.Ui;
@@ -115,6 +116,25 @@ public sealed class SceneSystemTests
         Entity playfield = _store.Query<PlayfieldMode>().ToEntityList()[0];
         Assert.That(playfield.GetComponent<PlayfieldMode>().Kind, Is.EqualTo(PlayfieldKind.Play));
         Assert.That(_store.Query<Note>().Count, Is.EqualTo(1));
+    }
+
+    [Test]
+    public void StartPlayUsesTheProvidedEntry()
+    {
+        var document = new LevelDocument
+        {
+            Name = "Provided Entry",
+            PlayfieldWidth = 800,
+            PlayfieldHeight = 600,
+        };
+        document.Notes.Add(new NoteDocument { TimeMs = 0, X = 200, Y = 300 });
+
+        _scenes.StartPlay(new LevelEntry("memory://provided", document));
+        Frame();
+
+        Assert.That(_director.Current, Is.EqualTo(SceneKind.Play));
+        Assert.That(HasText("Provided Entry"), Is.True);
+        Assert.That(HasText("SCORE 0000000"), Is.True);
     }
 
     [Test]
@@ -285,6 +305,50 @@ public sealed class SceneSystemTests
                 KeybindSettings.DefaultFor(action));
             Assert.That(row.GetComponent<Text>().Value, Is.EqualTo(expected));
         }
+    }
+
+    [Test]
+    public void SettingsKeepsBackgroundBelowContent()
+    {
+        _scenes.Start(SceneKind.Settings);
+        Frame();
+
+        int backgroundLayers = 0;
+        int contentLayers = 0;
+        foreach (Entity layer in _store.Query<Layer>().ToEntityList())
+        {
+            int z = layer.GetComponent<Layer>().ZIndex;
+            if (z == SceneUi.MenuLayer - 1)
+                backgroundLayers++;
+            else if (z == SceneUi.MenuLayer)
+                contentLayers++;
+        }
+
+        Assert.That(backgroundLayers, Is.EqualTo(1));
+        Assert.That(contentLayers, Is.EqualTo(1));
+
+        bool hasFullScreenBackground = false;
+        bool hasContentTitle = false;
+
+        foreach (Entity rect in _store.Query<Rectangle>().ToEntityList())
+        {
+            int z = rect.GetComponent<Drawable>().ZIndex;
+            if (z == SceneUi.MenuLayer - 1 &&
+                rect.GetComponent<Rectangle>().Bounds.Size == new Vector2(1280, 720))
+            {
+                hasFullScreenBackground = true;
+            }
+
+            if (z == SceneUi.MenuLayer &&
+                rect.HasComponent<Text>() &&
+                rect.GetComponent<Text>().Value == "SETTINGS")
+            {
+                hasContentTitle = true;
+            }
+        }
+
+        Assert.That(hasFullScreenBackground, Is.True);
+        Assert.That(hasContentTitle, Is.True);
     }
 
     [Test]

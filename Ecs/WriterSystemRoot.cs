@@ -45,14 +45,15 @@ public sealed class WriterSystemRoot : SystemRoot, IDisposable
         Rid parentCanvas,
         IPointerInputSource pointerInput,
         SceneDirector sceneDirector,
-        Vector2 viewportSize) : base(entities, "Writer")
+        Vector2 viewportSize,
+        KeybindSettings? keybinds = null) : base(entities, "Writer")
     {
         var canvas = new GodotRectCanvas();
         _entities = entities;
         entities.OnEntityDelete += OnEntityDelete;
         EditorHistory = new EditorHistory(entities);
         Commands = new EditorCommandBus();
-        Keybinds = new KeybindSettings();
+        Keybinds = keybinds ?? new KeybindSettings();
 
         // Register the keybind component archetype before the first runtime
         // Settings build; first-time component registration during scene
