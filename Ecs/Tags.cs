@@ -20,5 +20,8 @@ public struct LayoutDirty : ITag { }
 /// <summary>Marks a drawable whose canvas transform needs updating.</summary>
 public struct Moved : ITag { }
 
+/// <summary>Marks a playfield entity whose audio is paused by the pause screen.</summary>
+public struct PlayPaused : ITag { }
+
 /// <summary>Marks an entity whose momentum should be applied to its physics body.</summary>
 public struct ApplyMomentum : ITag { }

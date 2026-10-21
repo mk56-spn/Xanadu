@@ -24,10 +24,12 @@ public sealed class SceneSystem : QuerySystem<SceneState>
     private Entity _stateEntity;
     private Entity _labelEntity;
     private Entity _confirmationPanel;
+    private Entity _pausePanel;
     private Entity _sceneRoot;
     private List<LevelEntry> _catalog = new();
 
     private static readonly Vector2 HiddenConfirmation = new(-10_000, -10_000);
+    private static readonly Vector2 HiddenPause = new(-10_000, -10_000);
 
     public SceneSystem(
         EntityStore entities,
@@ -56,13 +58,19 @@ public sealed class SceneSystem : QuerySystem<SceneState>
         state.Pending = scene;
     }
 
-    /// <summary>Moves one scene back, confirming when leaving play or the editor.</summary>
+    /// <summary>Moves one scene back, pausing in play and confirming when leaving the editor.</summary>
     public void TryBack()
     {
         if (_stateEntity.IsNull)
             return;
 
         ref SceneState state = ref _stateEntity.GetComponent<SceneState>();
+
+        if (IsPauseVisible())
+        {
+            ResumeFromPause();
+            return;
+        }
 
         if (IsConfirmationVisible())
         {
@@ -82,7 +90,13 @@ public sealed class SceneSystem : QuerySystem<SceneState>
         if (target == SceneKind.None)
             return;
 
-        if (state.Current is SceneKind.Play or SceneKind.Editor)
+        if (state.Current == SceneKind.Play)
+        {
+            ShowPause();
+            return;
+        }
+
+        if (state.Current == SceneKind.Editor)
         {
             ShowConfirmation(state.Current, target);
             return;
@@ -98,6 +112,12 @@ public sealed class SceneSystem : QuerySystem<SceneState>
             return;
 
         ref SceneState state = ref _stateEntity.GetComponent<SceneState>();
+
+        if (IsPauseVisible())
+        {
+            ResumeFromPause();
+            return;
+        }
 
         if (IsConfirmationVisible())
         {
@@ -125,6 +145,14 @@ public sealed class SceneSystem : QuerySystem<SceneState>
 
         ref SceneState state = ref _stateEntity.GetComponent<SceneState>();
 
+        if (HandlePause(ref state))
+        {
+            if (state.Pending != state.Current)
+                Switch(ref state);
+
+            return;
+        }
+
         if (HandleConfirmation(ref state))
         {
             if (state.Pending != state.Current)
@@ -149,6 +177,9 @@ public sealed class SceneSystem : QuerySystem<SceneState>
 
         if (_confirmationPanel.IsNull)
             BuildConfirmation();
+
+        if (_pausePanel.IsNull)
+            BuildPause();
     }
 
     private void BuildLabel()
@@ -224,6 +255,173 @@ public sealed class SceneSystem : QuerySystem<SceneState>
 
         panel.AddComponent(new SceneConfirmation(title, message, yes, no));
         _confirmationPanel = panel;
+    }
+
+    private void BuildPause()
+    {
+        UiBuilder builder = UiBuilder.Begin(_entities, _visuals)
+            .Layer(SceneUi.PauseLayer);
+
+        builder.Container(
+            HiddenPause,
+            _screen,
+            StackDirection.Vertical,
+            color: new Color(0.02f, 0.03f, 0.06f, 0.82f),
+            takesInput: true);
+
+        Entity root = builder.Current;
+
+        builder.Container(
+            Vector2.Zero,
+            new Vector2(460, 240),
+            StackDirection.Vertical,
+            spacing: 12,
+            color: SceneUi.PanelColor);
+
+        Entity panel = builder.Current;
+
+        Entity title = SceneUi.Text(
+            builder,
+            Vector2.Zero,
+            new Vector2(420, 44),
+            "PAUSED",
+            36,
+            SceneUi.AccentColor,
+            SceneUi.PanelColor);
+
+        Entity message = SceneUi.Text(
+            builder,
+            Vector2.Zero,
+            new Vector2(420, 36),
+            "",
+            16,
+            SceneUi.TextColor,
+            SceneUi.PanelColor);
+
+        builder.Container(
+            Vector2.Zero,
+            new Vector2(340, 44),
+            StackDirection.Horizontal,
+            spacing: 12);
+
+        Entity resume = builder.RectEntity(
+            Vector2.Zero,
+            new Vector2(150, 42),
+            SceneUi.ButtonColor,
+            "RESUME",
+            takesInput: true);
+        resume.AddComponent(new TextStyle(18, SceneUi.TextColor));
+
+        Entity leave = builder.RectEntity(
+            Vector2.Zero,
+            new Vector2(150, 42),
+            SceneUi.MutedButtonColor,
+            "LEAVE LEVEL",
+            takesInput: true);
+        leave.AddComponent(new TextStyle(18, SceneUi.TextColor));
+
+        builder.End();
+        builder.End();
+        builder.End();
+
+        root.AddComponent(new ScenePause(title, message, resume, leave));
+        _pausePanel = root;
+    }
+
+    private bool HandlePause(ref SceneState state)
+    {
+        if (_pausePanel.IsNull)
+            return false;
+
+        ref ScenePause pause = ref _pausePanel.GetComponent<ScenePause>();
+
+        if (!pause.Visible)
+            return false;
+
+        if (!pause.Resume.IsNull && pause.Resume.Tags.Has<Pressed>())
+        {
+            ResumeFromPause();
+            return true;
+        }
+
+        if (!pause.Leave.IsNull && pause.Leave.Tags.Has<Pressed>())
+        {
+            LeavePlay(ref state);
+            return true;
+        }
+
+        return true;
+    }
+
+    private bool IsPauseVisible() =>
+        !_pausePanel.IsNull &&
+        _pausePanel.GetComponent<ScenePause>().Visible;
+
+    private void ShowPause()
+    {
+        if (_pausePanel.IsNull)
+            return;
+
+        ref ScenePause pause = ref _pausePanel.GetComponent<ScenePause>();
+
+        if (pause.Visible)
+            return;
+
+        SceneUi.SetText(pause.Message, "Resume or leave the level.");
+        ref Position position = ref _pausePanel.GetComponent<Position>();
+        position.Value = _screen / 2;
+        pause.Visible = true;
+        _pausePanel.AddTag<Moved>();
+        SetPlayback(false);
+    }
+
+    private void ResumeFromPause()
+    {
+        HidePauseVisual();
+        SetPlayback(true);
+    }
+
+    private void LeavePlay(ref SceneState state)
+    {
+        HidePauseVisual();
+        SetPlayback(false);
+        state.Pending = SceneKind.SongSelect;
+    }
+
+    private void HidePauseVisual()
+    {
+        if (_pausePanel.IsNull)
+            return;
+
+        ref ScenePause pause = ref _pausePanel.GetComponent<ScenePause>();
+
+        if (!pause.Visible)
+            return;
+
+        pause.Visible = false;
+        ref Position position = ref _pausePanel.GetComponent<Position>();
+        position.Value = HiddenPause;
+        _pausePanel.AddTag<Moved>();
+    }
+
+    private void SetPlayback(bool playing)
+    {
+        foreach (Entity entity in _entities
+                     .Query<Playhead, PlayfieldMode>()
+                     .ToEntityList())
+        {
+            if (entity.GetComponent<PlayfieldMode>().Kind != PlayfieldKind.Play)
+                continue;
+
+            entity.GetComponent<Playhead>().Playing = playing;
+
+            if (playing)
+                entity.RemoveTag<PlayPaused>();
+            else
+                entity.AddTag<PlayPaused>();
+
+            return;
+        }
     }
 
     private bool HandleConfirmation(ref SceneState state)
@@ -314,6 +512,18 @@ public sealed class SceneSystem : QuerySystem<SceneState>
 
     private void HandleActions(ref SceneState state)
     {
+        if (state.Current == SceneKind.Play)
+        {
+            foreach (Entity entity in _entities
+                         .Query<PauseAction>()
+                         .AllTags(Tags.Get<Pressed>())
+                         .ToEntityList())
+            {
+                ShowPause();
+                return;
+            }
+        }
+
         foreach (Entity entity in _entities
                      .Query<SceneAction>()
                      .AllTags(Tags.Get<Pressed>())
@@ -345,6 +555,7 @@ public sealed class SceneSystem : QuerySystem<SceneState>
 
     private void Switch(ref SceneState state)
     {
+        HidePauseVisual();
         HideConfirmation();
 
         SceneKind next = state.Pending;

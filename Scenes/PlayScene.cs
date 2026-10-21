@@ -55,14 +55,15 @@ public static class PlayScene
 
         UiBuilder ui = SceneUi.Layer(entities, root, SceneUi.PlayHudLayer, visuals);
 
-        SceneUi.Button(
-            ui,
+        Entity pause = ui.RectEntity(
             new Vector2(95, 44),
             new Vector2(150, 44),
-            "BACK",
-            SceneKind.SongSelect,
-            18,
-            SceneUi.MutedButtonColor);
+            SceneUi.MutedButtonColor,
+            "PAUSE",
+            takesInput: true);
+
+        pause.AddComponent(new TextStyle(18, SceneUi.TextColor));
+        pause.AddComponent(new PauseAction());
 
         SceneUi.Text(
             ui,

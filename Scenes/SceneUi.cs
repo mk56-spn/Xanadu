@@ -12,6 +12,7 @@ public static class SceneUi
     public const int PlayHudLayer = 900;
     public const int SceneLabelLayer = 950;
     public const int ConfirmationLayer = 970;
+    public const int PauseLayer = 980;
 
     public static readonly Color BackgroundColor = new("#0b1020");
     public static readonly Color PanelColor = new("#111827");

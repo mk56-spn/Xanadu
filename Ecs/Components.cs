@@ -268,6 +268,22 @@ public struct SceneConfirmation(Entity title, Entity message, Entity yes, Entity
     public bool Visible;
 }
 
+/// <summary>Play HUD button that opens the pause screen.</summary>
+public struct PauseAction : IComponent
+{
+    public int Value;
+}
+
+/// <summary>Gameplay pause overlay state.</summary>
+public struct ScenePause(Entity title, Entity message, Entity resume, Entity leave) : IComponent
+{
+    public Entity Title = title;
+    public Entity Message = message;
+    public Entity Resume = resume;
+    public Entity Leave = leave;
+    public bool Visible;
+}
+
 /// <summary>Whether a shared playfield is drawn for editing or playing.</summary>
 public enum PlayfieldKind
 {

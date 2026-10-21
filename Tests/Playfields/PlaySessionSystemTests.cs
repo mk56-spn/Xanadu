@@ -41,4 +41,25 @@ public sealed class PlaySessionSystemTests
             status.GetComponent<Text>().Value,
             Is.EqualTo("FINISHED - BACK TO SONG SELECT"));
     }
+
+    [Test]
+    public void PausedPlayfieldDoesNotAutoStart()
+    {
+        var store = new EntityStore();
+        var root = new SystemRoot(store);
+        root.Add(new PlaySessionSystem());
+
+        Entity status = store.CreateEntity(new Text("LOADING..."));
+        Entity play = store.CreateEntity(
+            new Playhead(0, 120, 0, false),
+            new PlaySession(status),
+            Tags.Get<PlayPaused>());
+
+        ref Playhead playhead = ref play.GetComponent<Playhead>();
+        playhead.DurationMs = 5_000;
+        root.Update(new UpdateTick(1f / 60f, 0));
+
+        Assert.That(playhead.Playing, Is.False);
+        Assert.That(play.GetComponent<PlaySession>().Started, Is.False);
+    }
 }

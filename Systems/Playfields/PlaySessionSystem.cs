@@ -11,8 +11,11 @@ public sealed class PlaySessionSystem : QuerySystem<PlaySession, Playhead>
     {
         CommandBuffer buffer = CommandBuffer;
 
-        Query.ForEachEntity((ref session, ref playhead, _) =>
+        Query.ForEachEntity((ref session, ref playhead, entity) =>
         {
+            if (entity.Tags.Has<PlayPaused>())
+                return;
+
             if (!session.Started)
             {
                 session.Elapsed += Tick.deltaTime;

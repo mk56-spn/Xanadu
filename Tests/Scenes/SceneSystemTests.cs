@@ -142,65 +142,102 @@ public sealed class SceneSystemTests
     }
 
     [Test]
-    public void BackFromPlayRequiresConfirmationAndForwardConfirms()
-    {
-        _scenes.Start(SceneKind.SongSelect);
-        Frame();
-        _scenes.TryForward();
-        Frame();
-        Assert.That(_director.Current, Is.EqualTo(SceneKind.Play));
-
-        _scenes.TryBack();
-
-        SceneConfirmation confirmation = Confirmation();
-        Assert.That(confirmation.Visible, Is.True);
-        Assert.That(confirmation.Target, Is.EqualTo(SceneKind.SongSelect));
-        Assert.That(_director.Current, Is.EqualTo(SceneKind.Play));
-
-        _scenes.TryForward();
-        Frame();
-
-        Assert.That(_director.Current, Is.EqualTo(SceneKind.SongSelect));
-        Assert.That(Confirmation().Visible, Is.False);
-    }
-
-    [Test]
-    public void ConfirmationYesButtonSwitchesToTargetScene()
+    public void BackFromPlayOpensPauseAndStopsSong()
     {
         _scenes.Start(SceneKind.SongSelect);
         Frame();
         _scenes.TryForward();
         Frame();
 
+        Entity playfield = Playfield();
+        ref Playhead playhead = ref playfield.GetComponent<Playhead>();
+        playhead.Playing = true;
+
         _scenes.TryBack();
-        SceneConfirmation confirmation = Confirmation();
+
+        Assert.That(Pause().Visible, Is.True);
         Assert.That(
-            confirmation.Title.GetComponent<Text>().Value,
-            Is.EqualTo("LEAVE PLAY?"));
+            Pause().Title.GetComponent<Text>().Value,
+            Is.EqualTo("PAUSED"));
+        Assert.That(playhead.Playing, Is.False);
+        Assert.That(playfield.Tags.Has<PlayPaused>(), Is.True);
+        Assert.That(_director.Current, Is.EqualTo(SceneKind.Play));
 
-        confirmation.Yes.AddTag<Pressed>();
+        _scenes.TryForward();
         Frame();
 
-        Assert.That(_director.Current, Is.EqualTo(SceneKind.SongSelect));
-        Assert.That(Confirmation().Visible, Is.False);
+        Assert.That(Pause().Visible, Is.False);
+        Assert.That(playhead.Playing, Is.True);
+        Assert.That(playfield.Tags.Has<PlayPaused>(), Is.False);
+        Assert.That(_director.Current, Is.EqualTo(SceneKind.Play));
     }
 
     [Test]
-    public void BackAgainCancelsConfirmation()
+    public void PauseResumeButtonResumesSong()
     {
         _scenes.Start(SceneKind.SongSelect);
         Frame();
         _scenes.TryForward();
         Frame();
-        Assert.That(_director.Current, Is.EqualTo(SceneKind.Play));
+
+        Entity playfield = Playfield();
+        ref Playhead playhead = ref playfield.GetComponent<Playhead>();
+        _scenes.TryBack();
+
+        Pause().Resume.AddTag<Pressed>();
+        Frame();
+
+        Assert.That(Pause().Visible, Is.False);
+        Assert.That(playhead.Playing, Is.True);
+        Assert.That(playfield.Tags.Has<PlayPaused>(), Is.False);
+    }
+
+    [Test]
+    public void PauseLeaveButtonReturnsToSongSelect()
+    {
+        _scenes.Start(SceneKind.SongSelect);
+        Frame();
+        _scenes.TryForward();
+        Frame();
 
         _scenes.TryBack();
-        Assert.That(Confirmation().Visible, Is.True);
+        Pause().Leave.AddTag<Pressed>();
+        Frame();
+
+        Assert.That(_director.Current, Is.EqualTo(SceneKind.SongSelect));
+        Assert.That(_store.Query<PlayfieldMode>().Count, Is.EqualTo(0));
+    }
+
+    [Test]
+    public void PauseHudButtonOpensPause()
+    {
+        _scenes.Start(SceneKind.SongSelect);
+        Frame();
+        _scenes.TryForward();
+        Frame();
+
+        _store.Query<PauseAction>().ToEntityList()[0].AddTag<Pressed>();
+        Frame();
+
+        Assert.That(Pause().Visible, Is.True);
+        Assert.That(_director.Current, Is.EqualTo(SceneKind.Play));
+    }
+
+    [Test]
+    public void BackAgainResumesPause()
+    {
+        _scenes.Start(SceneKind.SongSelect);
+        Frame();
+        _scenes.TryForward();
+        Frame();
+
+        _scenes.TryBack();
+        Assert.That(Pause().Visible, Is.True);
 
         _scenes.TryBack();
         Frame();
 
-        Assert.That(Confirmation().Visible, Is.False);
+        Assert.That(Pause().Visible, Is.False);
         Assert.That(_director.Current, Is.EqualTo(SceneKind.Play));
     }
 
@@ -258,9 +295,12 @@ public sealed class SceneSystemTests
         return new LevelEntry(path, LevelStore.Load(path));
     }
 
-    private SceneConfirmation Confirmation() =>
-        _store.Query<SceneConfirmation>().ToEntityList()[0]
-            .GetComponent<SceneConfirmation>();
+    private ScenePause Pause() =>
+        _store.Query<ScenePause>().ToEntityList()[0]
+            .GetComponent<ScenePause>();
+
+    private Entity Playfield() =>
+        _store.Query<PlayfieldMode>().ToEntityList()[0];
 
     private bool HasText(string value)
     {
