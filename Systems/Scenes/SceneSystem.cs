@@ -27,12 +27,26 @@ public sealed class SceneSystem : QuerySystem<SceneState>
     private Entity _labelEntity;
     private Entity _confirmationPanel;
     private Entity _pausePanel;
+    private Entity _transitionPanel;
     private Entity _sceneRoot;
     private List<LevelEntry> _catalog = new();
     private LevelEntry? _pendingPlayEntry;
+    private PlayResults? _pendingResults;
+    private TransitionPhase _transitionPhase;
+    private float _transitionAlpha;
+    private readonly bool _transitionsEnabled;
 
+    private const float TransitionSeconds = 0.22f;
     private static readonly Vector2 HiddenConfirmation = new(-10_000, -10_000);
     private static readonly Vector2 HiddenPause = new(-10_000, -10_000);
+    private static readonly Vector2 HiddenTransition = new(-10_000, -10_000);
+
+    private enum TransitionPhase
+    {
+        None,
+        FadeOut,
+        FadeIn,
+    }
 
     public SceneSystem(
         EntityStore entities,
@@ -40,7 +54,8 @@ public sealed class SceneSystem : QuerySystem<SceneState>
         Vector2 screen,
         IVisualRidFactory? visuals = null,
         Func<List<LevelEntry>>? loadLevels = null,
-        KeybindSettings? keybinds = null)
+        KeybindSettings? keybinds = null,
+        bool transitions = true)
     {
         _entities = entities;
         _director = director;
@@ -48,6 +63,7 @@ public sealed class SceneSystem : QuerySystem<SceneState>
         _visuals = visuals ?? new GodotVisualRidFactory();
         _loadLevels = loadLevels ?? LevelStore.List;
         _keybinds = keybinds ?? new KeybindSettings(persist: false);
+        _transitionsEnabled = transitions;
     }
 
     public SceneKind Current =>
@@ -72,6 +88,15 @@ public sealed class SceneSystem : QuerySystem<SceneState>
         state.Pending = SceneKind.Play;
     }
 
+    /// <summary>Starts the results screen with an explicit result snapshot.</summary>
+    public void StartResults(PlayResults results)
+    {
+        EnsureState();
+        _pendingResults = results;
+        ref SceneState state = ref _stateEntity.GetComponent<SceneState>();
+        state.Pending = SceneKind.Results;
+    }
+
     /// <summary>Moves one scene back, pausing in play and confirming when leaving the editor.</summary>
     public void TryBack()
     {
@@ -79,6 +104,9 @@ public sealed class SceneSystem : QuerySystem<SceneState>
             return;
 
         ref SceneState state = ref _stateEntity.GetComponent<SceneState>();
+
+        if (IsTransitioning())
+            return;
 
         if (state.Current == SceneKind.Settings &&
             _keybinds.Capturing is not null)
@@ -103,6 +131,7 @@ public sealed class SceneSystem : QuerySystem<SceneState>
         {
             SceneKind.SongSelect => SceneKind.Main,
             SceneKind.Play => SceneKind.SongSelect,
+            SceneKind.Results => SceneKind.SongSelect,
             SceneKind.Editor => SceneKind.Main,
             SceneKind.Settings => SceneKind.Main,
             _ => SceneKind.None,
@@ -126,6 +155,28 @@ public sealed class SceneSystem : QuerySystem<SceneState>
         state.Pending = target;
     }
 
+    /// <summary>Steps the song-select carousel; returns false if it cannot move.</summary>
+    public bool TryStepCarousel(int direction)
+    {
+        if (_stateEntity.IsNull || IsTransitioning())
+            return false;
+
+        ref SceneState state = ref _stateEntity.GetComponent<SceneState>();
+
+        if (state.Current != SceneKind.SongSelect ||
+            state.Pending != state.Current ||
+            _catalog.Count == 0 ||
+            _sceneRoot.IsNull ||
+            !_sceneRoot.HasComponent<SongSelectState>())
+        {
+            return false;
+        }
+
+        int before = _sceneRoot.GetComponent<SongSelectState>().Selected;
+        StepCarousel(ref state, direction);
+        return _sceneRoot.GetComponent<SongSelectState>().Selected != before;
+    }
+
     /// <summary>Moves one scene forward when the current scene has a forward action.</summary>
     public void TryForward()
     {
@@ -133,6 +184,9 @@ public sealed class SceneSystem : QuerySystem<SceneState>
             return;
 
         ref SceneState state = ref _stateEntity.GetComponent<SceneState>();
+
+        if (IsTransitioning())
+            return;
 
         if (IsPauseVisible())
         {
@@ -156,6 +210,10 @@ public sealed class SceneSystem : QuerySystem<SceneState>
                 if (!string.IsNullOrEmpty(state.SelectedLevelPath))
                     state.Pending = SceneKind.Play;
                 break;
+
+            case SceneKind.Results:
+                state.Pending = SceneKind.SongSelect;
+                break;
         }
     }
 
@@ -166,6 +224,63 @@ public sealed class SceneSystem : QuerySystem<SceneState>
 
         ref SceneState state = ref _stateEntity.GetComponent<SceneState>();
 
+        if (!_transitionsEnabled)
+        {
+            UpdateImmediate(ref state);
+            return;
+        }
+
+        if (_transitionPhase != TransitionPhase.None)
+        {
+            UpdateTransition(ref state);
+            return;
+        }
+
+        if (state.Current == SceneKind.None &&
+            state.Pending != SceneKind.None)
+        {
+            Switch(ref state);
+            BeginFadeIn();
+            return;
+        }
+
+        if (state.Pending != state.Current)
+        {
+            BeginFadeOut();
+            return;
+        }
+
+        if (HandlePause(ref state))
+        {
+            if (state.Pending != state.Current)
+                BeginFadeOut();
+
+            return;
+        }
+
+        if (HandleConfirmation(ref state))
+        {
+            if (state.Pending != state.Current)
+                BeginFadeOut();
+
+            return;
+        }
+
+        if (state.Current == SceneKind.Play &&
+            state.Pending == SceneKind.Play &&
+            IsPlayFinished())
+        {
+            state.Pending = SceneKind.Results;
+        }
+
+        HandleActions(ref state);
+
+        if (state.Pending != state.Current)
+            BeginFadeOut();
+    }
+
+    private void UpdateImmediate(ref SceneState state)
+    {
         if (HandlePause(ref state))
         {
             if (state.Pending != state.Current)
@@ -182,10 +297,78 @@ public sealed class SceneSystem : QuerySystem<SceneState>
             return;
         }
 
+        if (state.Current == SceneKind.Play &&
+            state.Pending == SceneKind.Play &&
+            IsPlayFinished())
+        {
+            state.Pending = SceneKind.Results;
+        }
+
         HandleActions(ref state);
 
         if (state.Pending != state.Current)
             Switch(ref state);
+    }
+
+    private void BeginFadeOut()
+    {
+        _transitionPhase = TransitionPhase.FadeOut;
+        _transitionAlpha = 0f;
+        SetTransitionVisual(0f, visible: true);
+    }
+
+    private void BeginFadeIn()
+    {
+        _transitionPhase = TransitionPhase.FadeIn;
+        _transitionAlpha = 1f;
+        SetTransitionVisual(1f, visible: true);
+    }
+
+    private void UpdateTransition(ref SceneState state)
+    {
+        float step = Tick.deltaTime / TransitionSeconds;
+
+        if (_transitionPhase == TransitionPhase.FadeOut)
+        {
+            _transitionAlpha = Math.Min(1f, _transitionAlpha + step);
+            SetTransitionVisual(_transitionAlpha, visible: true);
+
+            if (_transitionAlpha < 1f)
+                return;
+
+            Switch(ref state);
+            _transitionPhase = TransitionPhase.FadeIn;
+            _transitionAlpha = 1f;
+            SetTransitionVisual(1f, visible: true);
+            return;
+        }
+
+        _transitionAlpha = Math.Max(0f, _transitionAlpha - step);
+        SetTransitionVisual(_transitionAlpha, visible: true);
+
+        if (_transitionAlpha > 0f)
+            return;
+
+        _transitionPhase = TransitionPhase.None;
+        SetTransitionVisual(0f, visible: false);
+    }
+
+    private bool IsTransitioning() =>
+        _transitionsEnabled && _transitionPhase != TransitionPhase.None;
+
+    private void SetTransitionVisual(float alpha, bool visible)
+    {
+        if (_transitionPanel.IsNull)
+            return;
+
+        ref FillColor fill = ref _transitionPanel.GetComponent<FillColor>();
+        fill.Value = new Color(0f, 0f, 0f, alpha);
+
+        ref Position position = ref _transitionPanel.GetComponent<Position>();
+        position.Value = visible ? _screen / 2 : HiddenTransition;
+
+        _transitionPanel.AddTag<Moved>();
+        _transitionPanel.AddTag<Dirty>();
     }
 
     private void EnsureState()
@@ -201,6 +384,21 @@ public sealed class SceneSystem : QuerySystem<SceneState>
 
         if (_pausePanel.IsNull)
             BuildPause();
+
+        if (_transitionPanel.IsNull)
+            BuildTransition();
+    }
+
+    private void BuildTransition()
+    {
+        UiBuilder builder = UiBuilder.Begin(_entities, _visuals)
+            .Layer(1000);
+
+        _transitionPanel = builder.RectEntity(
+            HiddenTransition,
+            _screen,
+            new Color(0f, 0f, 0f, 0f),
+            takesInput: true);
     }
 
     private void BuildLabel()
@@ -208,13 +406,36 @@ public sealed class SceneSystem : QuerySystem<SceneState>
         UiBuilder label = UiBuilder.Begin(_entities, _visuals)
             .Layer(SceneUi.SceneLabelLayer);
 
+        var position = new Vector2(_screen.X - 210, 52);
+        var size = new Vector2(380, 100);
+
+        (Vector2 Size, float Alpha)[] backdrops =
+        {
+            (new Vector2(500, 160), 0.025f),
+            (new Vector2(460, 140), 0.030f),
+            (new Vector2(410, 115), 0.035f),
+            (size, 0.040f),
+        };
+
+        foreach ((Vector2 backdropSize, float alpha) in backdrops)
+        {
+            label.LinearGradientEntity(
+                position,
+                backdropSize,
+                new LinearGradient(
+                    new Color(0f, 0f, 0f, 0f),
+                    new Color(0f, 0f, 0f, alpha)));
+        }
+
         _labelEntity = label.RectEntity(
-            new Vector2(_screen.X - 89, 32),
-            new Vector2(130, 28),
-            new Color("#1e293b"),
+            position,
+            size,
+            new Color(0f, 0f, 0f, 0f),
             "");
 
-        _labelEntity.AddComponent(new TextStyle(14, SceneUi.DimTextColor));
+        _labelEntity.AddComponent(new TextStyle(
+            56,
+            new Color(0f, 0f, 0f, 0.45f)));
     }
 
     private void BuildConfirmation()
@@ -599,6 +820,7 @@ public sealed class SceneSystem : QuerySystem<SceneState>
 
         SceneKind next = state.Pending;
         LevelEntry? playEntry = null;
+        PlayResults results = default;
 
         if (next == SceneKind.Play)
         {
@@ -611,6 +833,16 @@ public sealed class SceneSystem : QuerySystem<SceneState>
         else
         {
             _pendingPlayEntry = null;
+        }
+
+        if (next == SceneKind.Results)
+        {
+            results = _pendingResults ?? CapturePlayResults();
+            _pendingResults = null;
+        }
+        else
+        {
+            _pendingResults = null;
         }
 
         DestroyScene();
@@ -629,6 +861,15 @@ public sealed class SceneSystem : QuerySystem<SceneState>
 
             case SceneKind.Play:
                 PlayScene.Build(_entities, _sceneRoot, _screen, playEntry!, _visuals);
+                break;
+
+            case SceneKind.Results:
+                ResultsScene.Build(
+                    _entities,
+                    _sceneRoot,
+                    _screen,
+                    results,
+                    _visuals);
                 break;
 
             case SceneKind.Editor:
@@ -722,6 +963,37 @@ public sealed class SceneSystem : QuerySystem<SceneState>
         }
     }
 
+    private bool IsPlayFinished()
+    {
+        foreach (Entity entity in _entities.Query<PlaySession>().ToEntityList())
+        {
+            if (entity.GetComponent<PlaySession>().Finished)
+                return true;
+        }
+
+        return false;
+    }
+
+    private PlayResults CapturePlayResults()
+    {
+        foreach (Entity entity in _entities
+                     .Query<ScoreState, PlaySession, LevelInfo>()
+                     .ToEntityList())
+        {
+            LevelInfo level = entity.GetComponent<LevelInfo>();
+            ScoreState score = entity.GetComponent<ScoreState>();
+            return new PlayResults(
+                level.Name,
+                score.Score,
+                score.Accuracy,
+                score.MaxCombo,
+                score.NotesHit,
+                score.TotalNotes);
+        }
+
+        return new PlayResults("", 0, 0, 0, 0, 0);
+    }
+
     private void DestroyScene()
     {
         if (!_sceneRoot.IsNull)
@@ -751,6 +1023,7 @@ public sealed class SceneSystem : QuerySystem<SceneState>
         SceneKind.Main => "MAIN",
         SceneKind.SongSelect => "SONG SELECT",
         SceneKind.Play => "PLAY",
+        SceneKind.Results => "RESULTS",
         SceneKind.Editor => "EDITOR",
         SceneKind.Settings => "SETTINGS",
         _ => "",

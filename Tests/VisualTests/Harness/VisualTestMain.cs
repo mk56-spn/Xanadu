@@ -128,7 +128,8 @@ public partial class VisualTestMain : Control
             _pointer,
             _director,
             screen,
-            new KeybindSettings(persist: false));
+            new KeybindSettings(persist: false),
+            transitions: false);
 
         _context = new VisualTestContext(
             _entities,

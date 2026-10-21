@@ -49,7 +49,8 @@ public sealed class SceneSystemTests
             new Vector2(1280, 720),
             new FakeVisualRidFactory(),
             () => _catalog,
-            _keybinds);
+            _keybinds,
+            transitions: false);
 
         _root.Add(_scenes);
     }
@@ -138,6 +139,81 @@ public sealed class SceneSystemTests
     }
 
     [Test]
+    public void FinishedPlayMovesToResultsWithFinalValues()
+    {
+        var document = new LevelDocument
+        {
+            Name = "Results Level",
+            PlayfieldWidth = 800,
+            PlayfieldHeight = 600,
+        };
+        document.Notes.Add(new NoteDocument { TimeMs = 0, X = 200, Y = 300 });
+
+        _scenes.StartPlay(new LevelEntry("memory://results", document));
+        Frame();
+
+        Entity playfield = _store.Query<ScoreState>().ToEntityList()[0];
+        ref ScoreState score = ref playfield.GetComponent<ScoreState>();
+        score.ScorePoints = 0.75;
+        score.AccuracyPoints = 0.9876;
+        score.MaxCombo = 42;
+        score.NotesHit = 1;
+        playfield.GetComponent<PlaySession>().Finished = true;
+
+        Frame();
+
+        Assert.That(_director.Current, Is.EqualTo(SceneKind.Results));
+        Assert.That(HasText("RESULTS"), Is.True);
+        Assert.That(HasText("Results Level"), Is.True);
+        Assert.That(HasText("98.76%"), Is.True);
+        Assert.That(HasText("42"), Is.True);
+        Assert.That(HasText("1 / 1"), Is.True);
+        Assert.That(HasText("0750000"), Is.True);
+    }
+
+    [Test]
+    public void StartResultsUsesTheProvidedSnapshot()
+    {
+        _scenes.StartResults(new PlayResults("Snapshot", 123_456, 0.95, 12, 12, 14));
+        Frame();
+
+        Assert.That(_director.Current, Is.EqualTo(SceneKind.Results));
+        Assert.That(HasText("Snapshot"), Is.True);
+        Assert.That(HasText("95.00%"), Is.True);
+        Assert.That(HasText("12"), Is.True);
+        Assert.That(HasText("12 / 14"), Is.True);
+        Assert.That(HasText("0123456"), Is.True);
+    }
+
+    [Test]
+    public void SceneTagUsesLargeLowOpacityBlackText()
+    {
+        _scenes.Start(SceneKind.Main);
+        Frame();
+
+        Entity tag = default;
+        foreach (Entity entity in _store.Query<Text>().ToEntityList())
+        {
+            if (entity.GetComponent<Text>().Value == "MAIN")
+            {
+                tag = entity;
+                break;
+            }
+        }
+
+        Assert.That(tag.IsNull, Is.False);
+        TextStyle style = tag.GetComponent<TextStyle>();
+        Assert.That(style.FontSize, Is.EqualTo(56));
+        Assert.That(style.Color.R, Is.Zero);
+        Assert.That(style.Color.G, Is.Zero);
+        Assert.That(style.Color.B, Is.Zero);
+        Assert.That(style.Color.A, Is.LessThan(0.6f));
+        Assert.That(
+            tag.GetComponent<Rectangle>().Bounds.Size,
+            Is.EqualTo(new Vector2(380, 100)));
+    }
+
+    [Test]
     public void BackFromSongSelectGoesToMain()
     {
         _scenes.Start(SceneKind.SongSelect);
@@ -148,6 +224,26 @@ public sealed class SceneSystemTests
 
         Assert.That(_director.Current, Is.EqualTo(SceneKind.Main));
         Assert.That(HasText("MAIN"), Is.True);
+    }
+
+    [Test]
+    public void ArrowCarouselStepsAndClamps()
+    {
+        _scenes.Start(SceneKind.SongSelect);
+        Frame();
+
+        Assert.That(_scenes.TryStepCarousel(1), Is.True);
+        Assert.That(
+            _store.Query<SongSelectState>().ToEntityList()[0]
+                .GetComponent<SongSelectState>().Selected,
+            Is.EqualTo(1));
+
+        Assert.That(_scenes.TryStepCarousel(1), Is.False);
+        Assert.That(_scenes.TryStepCarousel(-1), Is.True);
+        Assert.That(
+            _store.Query<SongSelectState>().ToEntityList()[0]
+                .GetComponent<SongSelectState>().Selected,
+            Is.EqualTo(0));
     }
 
     [Test]

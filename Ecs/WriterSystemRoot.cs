@@ -46,7 +46,8 @@ public sealed class WriterSystemRoot : SystemRoot, IDisposable
         IPointerInputSource pointerInput,
         SceneDirector sceneDirector,
         Vector2 viewportSize,
-        KeybindSettings? keybinds = null) : base(entities, "Writer")
+        KeybindSettings? keybinds = null,
+        bool transitions = true) : base(entities, "Writer")
     {
         var canvas = new GodotRectCanvas();
         _entities = entities;
@@ -66,7 +67,8 @@ public sealed class WriterSystemRoot : SystemRoot, IDisposable
             entities,
             sceneDirector,
             viewportSize,
-            keybinds: Keybinds);
+            keybinds: Keybinds,
+            transitions: transitions);
         _sceneDirector = sceneDirector;
         sceneDirector.Changed += OnSceneChanged;
 

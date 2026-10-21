@@ -119,6 +119,31 @@ public sealed class UiBuilder
         return rect;
     }
 
+    /// <summary>Creates a gradient-filled rectangle with no solid FillColor.</summary>
+    public Entity LinearGradientEntity(
+        Vector2 position,
+        Vector2 size,
+        LinearGradient gradient,
+        bool takesInput = false)
+    {
+        RequireLayer();
+
+        Tags tags = takesInput
+            ? Tags.Get<Uninitialised, Dirty, TakesInput>()
+            : Tags.Get<Uninitialised, Dirty>();
+
+        Entity entity = _entities.CreateEntity(
+            new VisualRid(_visuals.CreateCanvasItem()),
+            new Rectangle(new Rect2(-size / 2, size)),
+            new Drawable(_layerZIndex),
+            new Position(position),
+            gradient,
+            tags);
+
+        Attach(entity);
+        return entity;
+    }
+
     public UiBuilder End()
     {
         if (_parents.Count > 0)
