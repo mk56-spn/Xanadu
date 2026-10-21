@@ -19,9 +19,11 @@ public sealed class EditorSystemGroup : SystemGroup
         IRectCanvas canvas,
         Rid editorCanvas,
         ITrackAudio audio,
+        ITrackAudio metronomeAudio,
         EditorHistory history) : base("Editor")
     {
         Add(new EditorPlaybackSystem(audio));
+        Add(new EditorMetronomeSystem(metronomeAudio));
         Add(new EditorNoteInputSystem(entities, pointerInput, history));
         Add(new EditorPlayfieldDrawSystem(entities, canvas, editorCanvas));
     }

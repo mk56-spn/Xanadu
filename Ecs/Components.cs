@@ -153,6 +153,12 @@ public struct NoteSelection(Entity note) : IComponent
     public Entity Note = note;
 }
 
+/// <summary>Metronome toggle for the editor.</summary>
+public struct EditorMetronome(bool enabled) : IComponent
+{
+    public bool Enabled = enabled;
+}
+
 /// <summary>Editor preview state and the state to restore on exit.</summary>
 public struct EditorPreview(bool active, long savedTimeMs, bool savedPlaying) : IComponent
 {

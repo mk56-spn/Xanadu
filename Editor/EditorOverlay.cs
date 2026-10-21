@@ -11,6 +11,7 @@ public partial class EditorOverlay : CanvasLayer
 {
     private readonly EntityStore _entities;
     private readonly EditorHistory _history;
+    private readonly TapTempo _tapTempo = new();
 
     private Control _root = null!;
     private FileDialog _songDialog = null!;
@@ -22,6 +23,7 @@ public partial class EditorOverlay : CanvasLayer
     private OptionButton _snapOption = null!;
     private Button _playButton = null!;
     private Button _previewButton = null!;
+    private Button _metronomeButton = null!;
     private Label _previewLabel = null!;
     private Label _statusLabel = null!;
     private Entity _editor;
@@ -62,6 +64,13 @@ public partial class EditorOverlay : CanvasLayer
         ref LevelInfo level = ref _editor.GetComponent<LevelInfo>();
 
         _playButton.Text = playhead.Playing ? "Pause" : "Play";
+
+        if (_editor.HasComponent<EditorMetronome>())
+        {
+            _metronomeButton.Text = _editor.GetComponent<EditorMetronome>().Enabled
+                ? "Click On"
+                : "Click Off";
+        }
 
         if (_previewLabel.Visible)
         {
@@ -146,6 +155,10 @@ public partial class EditorOverlay : CanvasLayer
 
         switch (key.Keycode)
         {
+            case Key.T:
+                TapTempo();
+                GetViewport().SetInputAsHandled();
+                break;
             case Key.Space:
                 TogglePlayback();
                 GetViewport().SetInputAsHandled();
@@ -195,20 +208,28 @@ public partial class EditorOverlay : CanvasLayer
         var loadLevel = AddButton("Load", x + (third + 8) * 2, y + 42, third, 32);
         loadLevel.Pressed += OpenLoadDialog;
 
-        float controlThird = (width - 16) / 3;
-        _playButton = AddButton("Play", x, y + 82, controlThird, 34);
+        float controlQuarter = (width - 24) / 4;
+        _playButton = AddButton("Play", x, y + 82, controlQuarter, 34);
         _playButton.Pressed += TogglePlayback;
 
-        var stop = AddButton("Stop", x + controlThird + 8, y + 82, controlThird, 34);
+        var stop = AddButton("Stop", x + controlQuarter + 8, y + 82, controlQuarter, 34);
         stop.Pressed += StopPlayback;
 
         _previewButton = AddButton(
             "Preview",
-            x + (controlThird + 8) * 2,
+            x + (controlQuarter + 8) * 2,
             y + 82,
-            controlThird,
+            controlQuarter,
             34);
         _previewButton.Pressed += TogglePreview;
+
+        _metronomeButton = AddButton(
+            "Click Off",
+            x + (controlQuarter + 8) * 3,
+            y + 82,
+            controlQuarter,
+            34);
+        _metronomeButton.Pressed += ToggleMetronome;
 
         _previewLabel = new Label
         {
@@ -254,7 +275,7 @@ public partial class EditorOverlay : CanvasLayer
         _root.AddChild(_snapOption);
 
         AddLabel(
-            "Space play/pause   Home stop   Delete note   Ctrl+Z/Y undo/redo",
+            "Space play   Home stop   Delete note   Ctrl+Z/Y undo   T tap tempo",
             x,
             y + 310,
             width);
@@ -426,6 +447,34 @@ public partial class EditorOverlay : CanvasLayer
         playhead.DurationMs = 0;
         playhead.Playing = false;
         playhead.SeekRequestMs = -1;
+    }
+
+    private void ToggleMetronome()
+    {
+        if (_editor.IsNull || !_editor.HasComponent<EditorMetronome>())
+            return;
+
+        ref EditorMetronome metronome = ref _editor.GetComponent<EditorMetronome>();
+        metronome.Enabled = !metronome.Enabled;
+        _metronomeButton.Text = metronome.Enabled ? "Click On" : "Click Off";
+    }
+
+    private void TapTempo()
+    {
+        if (_editor.IsNull)
+            return;
+
+        int? bpm = _tapTempo.Tap((long)Time.GetTicksMsec());
+        if (bpm is not int value)
+        {
+            _statusLabel.Text = "Tap again for BPM";
+            return;
+        }
+
+        ref EditorPlayhead playhead = ref _editor.GetComponent<EditorPlayhead>();
+        playhead.Bpm = value;
+        _bpmEdit.Text = value.ToString();
+        _statusLabel.Text = $"Tap BPM {value}";
     }
 
     private void TogglePreview()

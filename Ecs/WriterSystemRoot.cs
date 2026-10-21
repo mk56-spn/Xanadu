@@ -22,6 +22,7 @@ public sealed class WriterSystemRoot : SystemRoot, IDisposable
     private readonly Rid _editor;
     private readonly MiniaudioTrackAudio _trackAudio = new();
     private readonly MiniaudioTrackAudio _editorAudio = new();
+    private readonly MiniaudioTrackAudio _metronomeAudio = new();
 
     public Box2DPhysicsWorld Physics { get; } = new();
 
@@ -58,6 +59,7 @@ public sealed class WriterSystemRoot : SystemRoot, IDisposable
             canvas,
             _editor,
             _editorAudio,
+            _metronomeAudio,
             EditorHistory));
         Add(new InputSystemGroup(pointerInput));
         Add(new DebugSystemGroup(
@@ -75,6 +77,7 @@ public sealed class WriterSystemRoot : SystemRoot, IDisposable
     {
         _trackAudio.Dispose();
         _editorAudio.Dispose();
+        _metronomeAudio.Dispose();
         Physics.Dispose();
         RenderingServer.FreeRid(_editor);
         RenderingServer.FreeRid(_timeline);
