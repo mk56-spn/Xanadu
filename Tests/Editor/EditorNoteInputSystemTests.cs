@@ -3,6 +3,7 @@ using Friflo.Engine.ECS.Systems;
 using Godot;
 using NUnit.Framework;
 using Writer.Ecs;
+using Writer.Editor;
 using Writer.Systems.Editor;
 using Writer.Systems.Input;
 
@@ -13,6 +14,7 @@ public sealed class EditorNoteInputSystemTests
 {
     private EntityStore _store = null!;
     private ScriptedPointer _pointer = null!;
+    private EditorHistory _history = null!;
     private SystemRoot _root = null!;
 
     [SetUp]
@@ -20,8 +22,9 @@ public sealed class EditorNoteInputSystemTests
     {
         _store = new EntityStore();
         _pointer = new ScriptedPointer();
+        _history = new EditorHistory(_store);
         _root = new SystemRoot(_store);
-        _root.Add(new EditorNoteInputSystem(_store, _pointer));
+        _root.Add(new EditorNoteInputSystem(_store, _pointer, _history));
 
         _store.CreateEntity(
             new LevelInfo("Test", ""),

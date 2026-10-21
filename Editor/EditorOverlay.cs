@@ -10,6 +10,7 @@ namespace Writer.Editor;
 public partial class EditorOverlay : CanvasLayer
 {
     private readonly EntityStore _entities;
+    private readonly EditorHistory _history;
 
     private Control _root = null!;
     private FileDialog _songDialog = null!;
@@ -25,9 +26,10 @@ public partial class EditorOverlay : CanvasLayer
 
     private bool _syncing;
 
-    public EditorOverlay(EntityStore entities)
+    public EditorOverlay(EntityStore entities, EditorHistory history)
     {
         _entities = entities;
+        _history = history;
         Layer = 100;
     }
 
@@ -105,6 +107,20 @@ public partial class EditorOverlay : CanvasLayer
         if (key.CtrlPressed && key.Keycode == Key.S)
         {
             SaveCurrent();
+            GetViewport().SetInputAsHandled();
+            return;
+        }
+
+        if (key.CtrlPressed && key.Keycode == Key.Z)
+        {
+            Undo();
+            GetViewport().SetInputAsHandled();
+            return;
+        }
+
+        if (key.CtrlPressed && key.Keycode == Key.Y)
+        {
+            Redo();
             GetViewport().SetInputAsHandled();
             return;
         }
@@ -203,11 +219,12 @@ public partial class EditorOverlay : CanvasLayer
         _root.AddChild(_snapOption);
 
         AddLabel("Space play/pause    Home stop    Delete note", x, y + 310, width);
+        AddLabel("Ctrl+Z undo    Ctrl+Y redo", x, y + 332, width);
 
         _statusLabel = new Label
         {
             Text = "",
-            Position = new Vector2(x, y + 336),
+            Position = new Vector2(x, y + 358),
             Size = new Vector2(width, 20),
         };
         _statusLabel.AddThemeFontSizeOverride("font_size", 14);
@@ -330,6 +347,7 @@ public partial class EditorOverlay : CanvasLayer
         {
             LevelDocument document = LevelStore.Load(path);
             LevelDocumentMapper.Apply(_entities, _editor, document);
+            _history.Clear();
 
             _syncing = true;
             _nameEdit.Text = document.Name;
@@ -449,7 +467,34 @@ public partial class EditorOverlay : CanvasLayer
         if (selection.Note.IsNull)
             return;
 
+        var before = _history.Capture();
         selection.Note.DeleteEntity();
+        var after = _history.Capture();
+        _history.Record(before, after);
+        selection.Note = default;
+    }
+
+    private void Undo()
+    {
+        if (_editor.IsNull || !_history.Undo())
+            return;
+
+        ClearSelection();
+        _statusLabel.Text = "Undo";
+    }
+
+    private void Redo()
+    {
+        if (_editor.IsNull || !_history.Redo())
+            return;
+
+        ClearSelection();
+        _statusLabel.Text = "Redo";
+    }
+
+    private void ClearSelection()
+    {
+        ref NoteSelection selection = ref _editor.GetComponent<NoteSelection>();
         selection.Note = default;
     }
 

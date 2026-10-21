@@ -2,6 +2,7 @@ using System;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Godot;
+using Writer.Editor;
 using Writer.Systems.Audio;
 using Writer.Systems.Canvas;
 using Writer.Systems.Debug;
@@ -24,12 +25,15 @@ public sealed class WriterSystemRoot : SystemRoot, IDisposable
 
     public Box2DPhysicsWorld Physics { get; } = new();
 
+    public EditorHistory EditorHistory { get; }
+
     public WriterSystemRoot(
         EntityStore entities,
         Rid parentCanvas,
         IPointerInputSource pointerInput) : base(entities, "Writer")
     {
         var canvas = new GodotRectCanvas();
+        EditorHistory = new EditorHistory(entities);
 
         _debugOverlay = RenderingServer.CanvasItemCreate();
         RenderingServer.CanvasItemSetParent(_debugOverlay, parentCanvas);
@@ -48,7 +52,13 @@ public sealed class WriterSystemRoot : SystemRoot, IDisposable
         Add(new PhysicsSystemGroup(Physics));
         Add(new PresentationSystemGroup(canvas));
         Add(new AudioSystemGroup(_trackAudio, new GodotTrackClock(), canvas, _timeline));
-        Add(new EditorSystemGroup(entities, pointerInput, canvas, _editor, _editorAudio));
+        Add(new EditorSystemGroup(
+            entities,
+            pointerInput,
+            canvas,
+            _editor,
+            _editorAudio,
+            EditorHistory));
         Add(new InputSystemGroup(pointerInput));
         Add(new DebugSystemGroup(
             canvas,

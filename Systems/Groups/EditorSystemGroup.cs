@@ -2,6 +2,7 @@ using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Godot;
 using Writer.Ecs;
+using Writer.Editor;
 using Writer.Systems.Audio;
 using Writer.Systems.Canvas;
 using Writer.Systems.Editor;
@@ -17,10 +18,11 @@ public sealed class EditorSystemGroup : SystemGroup
         IPointerInputSource pointerInput,
         IRectCanvas canvas,
         Rid editorCanvas,
-        ITrackAudio audio) : base("Editor")
+        ITrackAudio audio,
+        EditorHistory history) : base("Editor")
     {
         Add(new EditorPlaybackSystem(audio));
-        Add(new EditorNoteInputSystem(entities, pointerInput));
+        Add(new EditorNoteInputSystem(entities, pointerInput, history));
         Add(new EditorPlayfieldDrawSystem(entities, canvas, editorCanvas));
     }
 }

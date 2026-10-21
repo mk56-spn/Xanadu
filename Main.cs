@@ -42,7 +42,7 @@ public partial class Main : Control
         else if (EditorTest)
         {
             EditorScene.Build(Entities, GetViewportRect().Size);
-            AddChild(new EditorOverlay(Entities));
+            AddChild(new EditorOverlay(Entities, _systems.EditorHistory));
         }
         else
             TestScene.Build(Entities);
