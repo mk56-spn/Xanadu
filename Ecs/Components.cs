@@ -257,6 +257,17 @@ public struct SongSelectState(
     public Entity Index = index;
 }
 
+/// <summary>Scene leave confirmation popup state.</summary>
+public struct SceneConfirmation(Entity title, Entity message, Entity yes, Entity no) : IComponent
+{
+    public Entity Title = title;
+    public Entity Message = message;
+    public Entity Yes = yes;
+    public Entity No = no;
+    public SceneKind Target;
+    public bool Visible;
+}
+
 /// <summary>Whether a shared playfield is drawn for editing or playing.</summary>
 public enum PlayfieldKind
 {

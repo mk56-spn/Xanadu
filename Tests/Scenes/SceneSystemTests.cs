@@ -114,6 +114,121 @@ public sealed class SceneSystemTests
     }
 
     [Test]
+    public void BackFromSongSelectGoesToMain()
+    {
+        _scenes.Start(SceneKind.SongSelect);
+        Frame();
+
+        _scenes.TryBack();
+        Frame();
+
+        Assert.That(_director.Current, Is.EqualTo(SceneKind.Main));
+        Assert.That(HasText("MAIN"), Is.True);
+    }
+
+    [Test]
+    public void ForwardWalksMainToSongSelectToPlay()
+    {
+        _scenes.Start(SceneKind.Main);
+        Frame();
+
+        _scenes.TryForward();
+        Frame();
+        Assert.That(_director.Current, Is.EqualTo(SceneKind.SongSelect));
+
+        _scenes.TryForward();
+        Frame();
+        Assert.That(_director.Current, Is.EqualTo(SceneKind.Play));
+    }
+
+    [Test]
+    public void BackFromPlayRequiresConfirmationAndForwardConfirms()
+    {
+        _scenes.Start(SceneKind.SongSelect);
+        Frame();
+        _scenes.TryForward();
+        Frame();
+        Assert.That(_director.Current, Is.EqualTo(SceneKind.Play));
+
+        _scenes.TryBack();
+
+        SceneConfirmation confirmation = Confirmation();
+        Assert.That(confirmation.Visible, Is.True);
+        Assert.That(confirmation.Target, Is.EqualTo(SceneKind.SongSelect));
+        Assert.That(_director.Current, Is.EqualTo(SceneKind.Play));
+
+        _scenes.TryForward();
+        Frame();
+
+        Assert.That(_director.Current, Is.EqualTo(SceneKind.SongSelect));
+        Assert.That(Confirmation().Visible, Is.False);
+    }
+
+    [Test]
+    public void ConfirmationYesButtonSwitchesToTargetScene()
+    {
+        _scenes.Start(SceneKind.SongSelect);
+        Frame();
+        _scenes.TryForward();
+        Frame();
+
+        _scenes.TryBack();
+        SceneConfirmation confirmation = Confirmation();
+        Assert.That(
+            confirmation.Title.GetComponent<Text>().Value,
+            Is.EqualTo("LEAVE PLAY?"));
+
+        confirmation.Yes.AddTag<Pressed>();
+        Frame();
+
+        Assert.That(_director.Current, Is.EqualTo(SceneKind.SongSelect));
+        Assert.That(Confirmation().Visible, Is.False);
+    }
+
+    [Test]
+    public void BackAgainCancelsConfirmation()
+    {
+        _scenes.Start(SceneKind.SongSelect);
+        Frame();
+        _scenes.TryForward();
+        Frame();
+        Assert.That(_director.Current, Is.EqualTo(SceneKind.Play));
+
+        _scenes.TryBack();
+        Assert.That(Confirmation().Visible, Is.True);
+
+        _scenes.TryBack();
+        Frame();
+
+        Assert.That(Confirmation().Visible, Is.False);
+        Assert.That(_director.Current, Is.EqualTo(SceneKind.Play));
+    }
+
+    [Test]
+    public void BackFromSettingsGoesToMain()
+    {
+        _scenes.Start(SceneKind.Settings);
+        Frame();
+
+        _scenes.TryBack();
+        Frame();
+
+        Assert.That(_director.Current, Is.EqualTo(SceneKind.Main));
+    }
+
+    [Test]
+    public void BackFromMainDoesNothing()
+    {
+        _scenes.Start(SceneKind.Main);
+        Frame();
+
+        _scenes.TryBack();
+        Frame();
+
+        Assert.That(_director.Current, Is.EqualTo(SceneKind.Main));
+    }
+
+    [Test]
     public void SettingsIsASceneWithItsOwnLabel()
     {
         _scenes.Start(SceneKind.Settings);
@@ -142,6 +257,10 @@ public sealed class SceneSystemTests
         LevelStore.Save(document, path);
         return new LevelEntry(path, LevelStore.Load(path));
     }
+
+    private SceneConfirmation Confirmation() =>
+        _store.Query<SceneConfirmation>().ToEntityList()[0]
+            .GetComponent<SceneConfirmation>();
 
     private bool HasText(string value)
     {

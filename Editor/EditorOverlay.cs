@@ -17,6 +17,8 @@ public partial class EditorOverlay : CanvasLayer
     private readonly EntityStore _entities;
     private readonly EditorCommandBus _commands;
     private readonly GodotPointerInputSource? _pointer;
+    private readonly Action? _onBack;
+    private readonly Action? _onForward;
     private readonly TapTempo _tapTempo = new();
 
     private Control _root = null!;
@@ -48,17 +50,22 @@ public partial class EditorOverlay : CanvasLayer
 
     private bool _syncing;
     private bool _previewActive;
+    private bool _confirmationActive;
     private bool _suppressPointerUntilRelease;
     private bool _closed;
 
     public EditorOverlay(
         EntityStore entities,
         EditorCommandBus commands,
-        GodotPointerInputSource? pointer)
+        GodotPointerInputSource? pointer,
+        Action? onBack = null,
+        Action? onForward = null)
     {
         _entities = entities;
         _commands = commands;
         _pointer = pointer;
+        _onBack = onBack;
+        _onForward = onForward;
         Layer = 100;
     }
 
@@ -105,6 +112,7 @@ public partial class EditorOverlay : CanvasLayer
         _pointer?.SetBlocked(
             AnyDialogVisible() ||
             _metadataPanel.Visible ||
+            _confirmationActive ||
             _suppressPointerUntilRelease);
 
         ref Playhead playhead = ref _editor.GetComponent<Playhead>();
@@ -146,7 +154,14 @@ public partial class EditorOverlay : CanvasLayer
         {
             _previewActive = previewActive;
             _previewLabel.Visible = previewActive;
-            SetEditControlsVisible(!previewActive);
+            UpdateEditControlsVisibility();
+        }
+
+        bool confirmationActive = IsSceneConfirmationOpen();
+        if (confirmationActive != _confirmationActive)
+        {
+            _confirmationActive = confirmationActive;
+            UpdateEditControlsVisibility();
         }
 
         if (previewActive &&
@@ -265,6 +280,23 @@ public partial class EditorOverlay : CanvasLayer
 
         if (GetViewport().GuiGetFocusOwner() is LineEdit)
             return;
+
+        if (IsWarningOpen())
+            return;
+
+        if (key.Keycode == Key.Escape)
+        {
+            _onBack?.Invoke();
+            GetViewport().SetInputAsHandled();
+            return;
+        }
+
+        if (key.Keycode is Key.Enter or Key.KpEnter)
+        {
+            _onForward?.Invoke();
+            GetViewport().SetInputAsHandled();
+            return;
+        }
 
         switch (key.Keycode)
         {
@@ -798,6 +830,31 @@ public partial class EditorOverlay : CanvasLayer
 
         if (!visible)
             HideMetadata();
+    }
+
+    private void UpdateEditControlsVisibility() =>
+        SetEditControlsVisible(!_previewActive && !_confirmationActive);
+
+    private bool IsSceneConfirmationOpen()
+    {
+        foreach (Entity entity in _entities.Query<SceneConfirmation>().ToEntityList())
+        {
+            if (entity.GetComponent<SceneConfirmation>().Visible)
+                return true;
+        }
+
+        return false;
+    }
+
+    private bool IsWarningOpen()
+    {
+        foreach (Entity entity in _entities.Query<WarningPopup>().ToEntityList())
+        {
+            if (entity.GetComponent<WarningPopup>().Visible)
+                return true;
+        }
+
+        return false;
     }
 
     private void ToggleMetadata()

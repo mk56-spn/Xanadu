@@ -42,6 +42,26 @@ public partial class Main : Control
 		{
 			_pointer?.LatchPress();
 		}
+
+		if (_editorOverlay is not null ||
+			@event is not InputEventKey { Pressed: true, Echo: false } key)
+		{
+			return;
+		}
+
+		switch (key.Keycode)
+		{
+			case Key.Escape:
+				_systems?.Scenes.TryBack();
+				GetViewport().SetInputAsHandled();
+				break;
+
+			case Key.Enter:
+			case Key.KpEnter:
+				_systems?.Scenes.TryForward();
+				GetViewport().SetInputAsHandled();
+				break;
+		}
 	}
 
 	private void OnSceneChanged(SceneKind scene)
@@ -53,7 +73,12 @@ public partial class Main : Control
 			if (_editorOverlay is not null)
 				return;
 
-			_editorOverlay = new EditorOverlay(Entities, _systems!.Commands, _pointer!);
+			_editorOverlay = new EditorOverlay(
+				Entities,
+				_systems!.Commands,
+				_pointer!,
+				() => _systems?.Scenes.TryBack(),
+				() => _systems?.Scenes.TryForward());
 			AddChild(_editorOverlay);
 			return;
 		}
