@@ -70,23 +70,10 @@ public struct EditorUiRequest(EditorButtonKind kind = EditorButtonKind.None) : I
     public EditorButtonKind Kind = kind;
 }
 
-/// <summary>An ECS dropdown button and its option list.</summary>
-public struct EditorDropdown(
-    Entity list,
-    EditorDropdownKind kind,
-    int selected) : IComponent
+/// <summary>Editor-specific binding for a generic dropdown.</summary>
+public struct EditorDropdownControl(EditorDropdownKind kind) : IComponent
 {
-    public Entity List = list;
     public EditorDropdownKind Kind = kind;
-    public int Selected = selected;
-    public bool Open;
-}
-
-/// <summary>One selectable option inside an editor dropdown.</summary>
-public struct EditorDropdownOption(Entity owner, int value) : IComponent
-{
-    public Entity Owner = owner;
-    public int Value = value;
 }
 
 /// <summary>Metronome toggle for the editor.</summary>

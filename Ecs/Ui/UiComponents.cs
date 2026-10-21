@@ -57,30 +57,6 @@ public struct UiContainer(
     public bool Clip = clip;
 }
 
-/// <summary>A rectangle filled with a linear colour gradient.</summary>
-public struct LinearGradient(Color start, Color end, bool horizontal = true) : IComponent
-{
-    public Color Start = start;
-    public Color End = end;
-    public bool Horizontal = horizontal;
-}
-
-/// <summary>Base colours and animated state for a hoverable/clickable button.</summary>
-public struct ButtonVisual(Color normal, Color hover, Color flash) : IComponent
-{
-    public Color Normal = normal;
-    public Color Hover = hover;
-    public Color Flash = flash;
-    public float HoverAmount;
-    public float FlashAmount;
-    public bool WasPressed;
-
-    public static ButtonVisual Create(Color normal) => new(
-        normal,
-        normal.Lerp(Colors.White, 0.16f),
-        Colors.White);
-}
-
 /// <summary>Layer entity component. ZIndex determines draw order between layers.</summary>
 public struct Layer(int zIndex) : IIndexedComponent<int>
 {

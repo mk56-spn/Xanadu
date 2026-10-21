@@ -292,19 +292,20 @@ public static class EditorScene
                 takesInput: true);
             option.AddComponent(new TextStyle(13, SceneUi.TextColor));
             option.AddComponent(ButtonVisual.Create(SceneUi.MutedButtonColor));
-            option.AddComponent(new EditorDropdownOption(button, i));
+            option.AddComponent(new DropdownOption(button, i));
         }
 
-        button.AddComponent(new EditorDropdown(list, kind, selected));
+        button.AddComponent(new Dropdown(list, selected));
+        button.AddComponent(new EditorDropdownControl(kind));
         return button;
     }
 
     private static void SetDropdownSelected(Entity button, int selected)
     {
-        if (button.IsNull || !button.HasComponent<EditorDropdown>())
+        if (button.IsNull || !button.HasComponent<Dropdown>())
             return;
 
-        ref EditorDropdown dropdown = ref button.GetComponent<EditorDropdown>();
+        ref Dropdown dropdown = ref button.GetComponent<Dropdown>();
         dropdown.Selected = selected;
         dropdown.Open = false;
     }

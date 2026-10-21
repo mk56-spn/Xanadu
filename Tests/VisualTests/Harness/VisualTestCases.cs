@@ -275,14 +275,14 @@ public sealed class EditorDropdownSceneTest : SceneTest
             () => Context.Scenes.Current == SceneKind.Editor &&
                   VisualAssert.HasText(Context.Entities, "SNAP") &&
                   VisualAssert.HasText(Context.Entities, "NOTE TYPE") &&
-                  Context.Entities.Query<EditorDropdown>().Count == 2);
+                  Context.Entities.Query<Dropdown>().Count == 2);
 
         AddStep("click snap dropdown", () => ClickDropdown(EditorDropdownKind.Snap));
         AddWaitStep("hold snap dropdown", 2);
         AddStep("release snap dropdown", () => Context.Pointer.Release());
         AddAssert(
             "snap dropdown opened",
-            () => FindDropdown(EditorDropdownKind.Snap).GetComponent<EditorDropdown>().Open);
+            () => FindDropdown(EditorDropdownKind.Snap).GetComponent<Dropdown>().Open);
 
 
         AddStep("choose 1/16 snap", () => ClickDropdownOption(EditorDropdownKind.Snap, 2));
@@ -298,7 +298,7 @@ public sealed class EditorDropdownSceneTest : SceneTest
         AddStep("release note type dropdown", () => Context.Pointer.Release());
         AddAssert(
             "note type dropdown opened",
-            () => FindDropdown(EditorDropdownKind.NoteType).GetComponent<EditorDropdown>().Open);
+            () => FindDropdown(EditorDropdownKind.NoteType).GetComponent<Dropdown>().Open);
 
         AddStep(
             "choose R3 note type",
@@ -349,10 +349,10 @@ public sealed class EditorDropdownSceneTest : SceneTest
     {
         Entity button = FindDropdown(kind);
         foreach (Entity option in Context.Entities
-                     .Query<EditorDropdownOption>()
+                     .Query<DropdownOption>()
                      .ToEntityList())
         {
-            EditorDropdownOption data = option.GetComponent<EditorDropdownOption>();
+            DropdownOption data = option.GetComponent<DropdownOption>();
             if (data.Owner.Id != button.Id || data.Value != value)
                 continue;
 
@@ -365,10 +365,14 @@ public sealed class EditorDropdownSceneTest : SceneTest
 
     private Entity FindDropdown(EditorDropdownKind kind)
     {
-        foreach (Entity entity in Context.Entities.Query<EditorDropdown>().ToEntityList())
+        foreach (Entity entity in Context.Entities
+                     .Query<EditorDropdownControl>()
+                     .ToEntityList())
         {
-            if (entity.GetComponent<EditorDropdown>().Kind == kind)
-                return entity;
+            if (entity.GetComponent<EditorDropdownControl>().Kind != kind)
+                continue;
+
+            return entity;
         }
 
         return default;

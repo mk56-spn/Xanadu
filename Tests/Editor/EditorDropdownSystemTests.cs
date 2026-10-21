@@ -30,12 +30,13 @@ public sealed class EditorDropdownSystemTests
             new Position(new Vector2(800, 200)),
             new Rectangle(new Rect2(-95, -17, 190, 34)),
             new Text(""),
-            new EditorDropdown(list, EditorDropdownKind.Snap, 0));
+            new Dropdown(list, 0),
+            new EditorDropdownControl(EditorDropdownKind.Snap));
 
         Entity option = store.CreateEntity(
             new Position(new Vector2(0, 0)),
             new Rectangle(new Rect2(-92, -14, 184, 28)),
-            new EditorDropdownOption(button, 2));
+            new DropdownOption(button, 2));
 
         var root = new SystemRoot(store);
         root.Add(new EditorDropdownSystem(store, commands));
@@ -43,7 +44,7 @@ public sealed class EditorDropdownSystemTests
         button.AddTag<Pressed>();
         root.Update(new UpdateTick(1f / 60f, 0));
 
-        Assert.That(button.GetComponent<EditorDropdown>().Open, Is.True);
+        Assert.That(button.GetComponent<Dropdown>().Open, Is.True);
         Assert.That(
             list.GetComponent<Position>().Value,
             Is.Not.EqualTo(new Vector2(-10_000, -10_000)));
@@ -57,8 +58,8 @@ public sealed class EditorDropdownSystemTests
         option.AddTag<Pressed>();
         root.Update(new UpdateTick(1f / 60f, 0));
 
-        Assert.That(button.GetComponent<EditorDropdown>().Selected, Is.EqualTo(2));
-        Assert.That(button.GetComponent<EditorDropdown>().Open, Is.False);
+        Assert.That(button.GetComponent<Dropdown>().Selected, Is.EqualTo(2));
+        Assert.That(button.GetComponent<Dropdown>().Open, Is.False);
         Assert.That(commands.TryDequeue(out EditorCommand command), Is.True);
         Assert.That(command.Type, Is.EqualTo(EditorCommandType.SetSnap));
         Assert.That(command.IntValue, Is.EqualTo(16));
@@ -78,9 +79,10 @@ public sealed class EditorDropdownSystemTests
             new Position(new Vector2(800, 200)),
             new Rectangle(new Rect2(-95, -17, 190, 34)),
             new Text(""),
-            new EditorDropdown(list, EditorDropdownKind.NoteType, 3));
+            new Dropdown(list, 3),
+            new EditorDropdownControl(EditorDropdownKind.NoteType));
         Entity option = store.CreateEntity(
-            new EditorDropdownOption(button, (int)KeybindAction.R3));
+            new DropdownOption(button, (int)KeybindAction.R3));
 
         var root = new SystemRoot(store);
         root.Add(new EditorDropdownSystem(store, commands));

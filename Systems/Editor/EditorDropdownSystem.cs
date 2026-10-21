@@ -11,7 +11,7 @@ using Position = Writer.Ecs.Position;
 namespace Writer.Systems.Editor;
 
 /// <summary>Opens and selects values from the ECS editor dropdowns.</summary>
-public sealed class EditorDropdownSystem : QuerySystem<EditorDropdown>
+public sealed class EditorDropdownSystem : QuerySystem<Dropdown>
 {
     private static readonly Vector2 HiddenList = new(-10_000, -10_000);
 
@@ -46,12 +46,18 @@ public sealed class EditorDropdownSystem : QuerySystem<EditorDropdown>
 
         Query.ForEachEntity((ref dropdown, entity) =>
         {
-            int expected = dropdown.Kind == EditorDropdownKind.Snap
+            if (!entity.HasComponent<EditorDropdownControl>())
+                return;
+
+            EditorDropdownKind kind =
+                entity.GetComponent<EditorDropdownControl>().Kind;
+
+            int expected = kind == EditorDropdownKind.Snap
                 ? SnapIndex(playhead.SnapDivision)
                 : (int)noteTarget.Target;
 
             dropdown.Selected = expected;
-            SetDisplay(entity, ref dropdown, buffer);
+            SetDisplay(entity, ref dropdown, kind, buffer);
 
             bool pressed = entity.Tags.Has<Pressed>();
             bool wasPressed = _heldButtons.Contains(entity.Id);
@@ -66,13 +72,13 @@ public sealed class EditorDropdownSystem : QuerySystem<EditorDropdown>
 
             bool open = !dropdown.Open;
 
-            foreach (Entity other in _entities.Query<EditorDropdown>().ToEntityList())
+            foreach (Entity other in _entities.Query<Dropdown>().ToEntityList())
             {
                 if (other.Id == entity.Id)
                     continue;
 
-                ref EditorDropdown otherDropdown =
-                    ref other.GetComponent<EditorDropdown>();
+                ref Dropdown otherDropdown =
+                    ref other.GetComponent<Dropdown>();
                 otherDropdown.Open = false;
                 Hide(otherDropdown.List, buffer);
             }
@@ -82,7 +88,7 @@ public sealed class EditorDropdownSystem : QuerySystem<EditorDropdown>
         });
 
         foreach (Entity entity in _entities
-                     .Query<EditorDropdownOption>()
+                     .Query<DropdownOption>()
                      .ToEntityList())
         {
             bool pressed = entity.Tags.Has<Pressed>();
@@ -96,21 +102,24 @@ public sealed class EditorDropdownSystem : QuerySystem<EditorDropdown>
             if (!pressed || wasPressed)
                 continue;
 
-            EditorDropdownOption option = entity.GetComponent<EditorDropdownOption>();
+            DropdownOption option = entity.GetComponent<DropdownOption>();
             if (option.Owner.IsNull ||
-                !option.Owner.HasComponent<EditorDropdown>())
+                !option.Owner.HasComponent<Dropdown>() ||
+                !option.Owner.HasComponent<EditorDropdownControl>())
             {
                 continue;
             }
 
-            ref EditorDropdown dropdown =
-                ref option.Owner.GetComponent<EditorDropdown>();
+            ref Dropdown dropdown =
+                ref option.Owner.GetComponent<Dropdown>();
+            EditorDropdownKind kind =
+                option.Owner.GetComponent<EditorDropdownControl>().Kind;
 
             dropdown.Selected = option.Value;
             dropdown.Open = false;
             Hide(dropdown.List, buffer);
 
-            if (dropdown.Kind == EditorDropdownKind.Snap)
+            if (kind == EditorDropdownKind.Snap)
                 _commands.Enqueue(EditorCommand.SetSnap(SnapValue(option.Value)));
             else
                 _commands.Enqueue(EditorCommand.SetTarget(
@@ -119,21 +128,21 @@ public sealed class EditorDropdownSystem : QuerySystem<EditorDropdown>
                         0,
                         KeybindSettings.Actions.Length - 1)]));
 
-            SetDisplay(option.Owner, ref dropdown, buffer);
+            SetDisplay(option.Owner, ref dropdown, kind, buffer);
         }
 
         foreach (Entity entity in _entities
-                     .Query<EditorDropdownOption>()
+                     .Query<DropdownOption>()
                      .ToEntityList())
         {
-            EditorDropdownOption option = entity.GetComponent<EditorDropdownOption>();
+            DropdownOption option = entity.GetComponent<DropdownOption>();
             if (option.Owner.IsNull ||
-                !option.Owner.HasComponent<EditorDropdown>())
+                !option.Owner.HasComponent<Dropdown>())
             {
                 continue;
             }
 
-            EditorDropdown dropdown = option.Owner.GetComponent<EditorDropdown>();
+            Dropdown dropdown = option.Owner.GetComponent<Dropdown>();
 
             if (!entity.HasComponent<Position>())
                 continue;
@@ -165,7 +174,7 @@ public sealed class EditorDropdownSystem : QuerySystem<EditorDropdown>
 
     private void SetListPosition(
         Entity button,
-        ref EditorDropdown dropdown,
+        ref Dropdown dropdown,
         CommandBuffer buffer)
     {
         if (dropdown.List.IsNull)
@@ -202,13 +211,14 @@ public sealed class EditorDropdownSystem : QuerySystem<EditorDropdown>
 
     private static void SetDisplay(
         Entity button,
-        ref EditorDropdown dropdown,
+        ref Dropdown dropdown,
+        EditorDropdownKind kind,
         CommandBuffer buffer)
     {
         if (button.IsNull || !button.HasComponent<Text>())
             return;
 
-        string label = dropdown.Kind switch
+        string label = kind switch
         {
             EditorDropdownKind.Snap => $"SNAP  {SnapLabel(dropdown.Selected)}",
             _ => $"TYPE  {KeybindSettings.LabelFor(
