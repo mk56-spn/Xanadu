@@ -13,6 +13,8 @@ public sealed class LevelSerializerTests
         {
             Name = "Test Level",
             AudioPath = "res://Audio/test-track.wav",
+            Artist = "Test Artist",
+            Difficulty = "Hard",
             Bpm = 174,
             OffsetMs = -35,
             SnapDivision = 8,
@@ -33,6 +35,8 @@ public sealed class LevelSerializerTests
 
         Assert.That(result.Name, Is.EqualTo("Test Level"));
         Assert.That(result.AudioPath, Is.EqualTo("res://Audio/test-track.wav"));
+        Assert.That(result.Artist, Is.EqualTo("Test Artist"));
+        Assert.That(result.Difficulty, Is.EqualTo("Hard"));
         Assert.That(result.Bpm, Is.EqualTo(174));
         Assert.That(result.OffsetMs, Is.EqualTo(-35));
         Assert.That(result.SnapDivision, Is.EqualTo(8));

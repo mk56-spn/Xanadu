@@ -9,6 +9,10 @@ public sealed class LevelDocument
 
     public string AudioPath { get; set; } = "";
 
+    public string Artist { get; set; } = "";
+
+    public string Difficulty { get; set; } = "";
+
     public int Bpm { get; set; } = 120;
 
     public long OffsetMs { get; set; }

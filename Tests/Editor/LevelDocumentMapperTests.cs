@@ -14,7 +14,7 @@ public sealed class LevelDocumentMapperTests
     {
         var sourceStore = new EntityStore();
         Entity source = sourceStore.CreateEntity(
-            new LevelInfo("Mapped", "res://song.mp3"),
+            new LevelInfo("Mapped", "res://song.mp3", "Artist", "Insane"),
             new Playfield(1000, 1000),
             new EditorPlayhead(0, 150, 25, false, snapDivision: 16),
             new NoteSelection(default));
@@ -24,6 +24,8 @@ public sealed class LevelDocumentMapperTests
         LevelDocument document = LevelDocumentMapper.Capture(sourceStore, source);
 
         Assert.That(document.Name, Is.EqualTo("Mapped"));
+        Assert.That(document.Artist, Is.EqualTo("Artist"));
+        Assert.That(document.Difficulty, Is.EqualTo("Insane"));
         Assert.That(document.Bpm, Is.EqualTo(150));
         Assert.That(document.OffsetMs, Is.EqualTo(25));
         Assert.That(document.SnapDivision, Is.EqualTo(16));
@@ -40,6 +42,8 @@ public sealed class LevelDocumentMapperTests
         LevelDocumentMapper.Apply(targetStore, target, document);
 
         Assert.That(target.GetComponent<LevelInfo>().Name, Is.EqualTo("Mapped"));
+        Assert.That(target.GetComponent<LevelInfo>().Artist, Is.EqualTo("Artist"));
+        Assert.That(target.GetComponent<LevelInfo>().Difficulty, Is.EqualTo("Insane"));
         Assert.That(target.GetComponent<Playfield>().Width, Is.EqualTo(1000));
         Assert.That(target.GetComponent<EditorPlayhead>().Bpm, Is.EqualTo(150));
         Assert.That(target.GetComponent<EditorPlayhead>().SnapDivision, Is.EqualTo(16));

@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using Friflo.Engine.ECS;
 using Godot;
@@ -18,6 +19,8 @@ public partial class EditorOverlay : CanvasLayer
     private FileDialog _saveAsDialog = null!;
     private FileDialog _loadDialog = null!;
     private LineEdit _nameEdit = null!;
+    private LineEdit _artistEdit = null!;
+    private LineEdit _difficultyEdit = null!;
     private LineEdit _bpmEdit = null!;
     private LineEdit _offsetEdit = null!;
     private OptionButton _snapOption = null!;
@@ -83,6 +86,20 @@ public partial class EditorOverlay : CanvasLayer
         {
             _syncing = true;
             _nameEdit.Text = level.Name;
+            _syncing = false;
+        }
+
+        if (!_artistEdit.HasFocus() && _artistEdit.Text != level.Artist)
+        {
+            _syncing = true;
+            _artistEdit.Text = level.Artist;
+            _syncing = false;
+        }
+
+        if (!_difficultyEdit.HasFocus() && _difficultyEdit.Text != level.Difficulty)
+        {
+            _syncing = true;
+            _difficultyEdit.Text = level.Difficulty;
             _syncing = false;
         }
 
@@ -194,7 +211,7 @@ public partial class EditorOverlay : CanvasLayer
         float panelWidth = view.ScreenSize.X - panelX - 30;
         float x = panelX + 16;
         float width = panelWidth - 32;
-        float y = panelY + 220;
+        float y = panelY + 200;
 
         var load = AddButton("Load Song (L)", x, y, width, 34);
         load.Pressed += OpenSongDialog;
@@ -241,25 +258,33 @@ public partial class EditorOverlay : CanvasLayer
         _previewLabel.AddThemeFontSizeOverride("font_size", 22);
         _root.AddChild(_previewLabel);
 
-        AddLabel("Level name", x, y + 128, width);
-        _nameEdit = AddLineEdit(level.Name, x, y + 148, width);
+        AddLabel("Artist", x, y + 116, half);
+        _artistEdit = AddLineEdit(level.Artist, x, y + 134, half);
+        _artistEdit.TextChanged += OnArtistChanged;
+
+        AddLabel("Difficulty", x + half + 8, y + 116, half);
+        _difficultyEdit = AddLineEdit(level.Difficulty, x + half + 8, y + 134, half);
+        _difficultyEdit.TextChanged += OnDifficultyChanged;
+
+        AddLabel("Level name", x, y + 170, width);
+        _nameEdit = AddLineEdit(level.Name, x, y + 188, width);
         _nameEdit.TextChanged += OnNameChanged;
 
-        AddLabel("BPM / offset (ms)", x, y + 188, width);
-        _bpmEdit = AddLineEdit(playhead.Bpm.ToString(), x, y + 208, half);
+        AddLabel("BPM / offset (ms)", x, y + 224, width);
+        _bpmEdit = AddLineEdit(playhead.Bpm.ToString(), x, y + 242, half);
         _bpmEdit.TextChanged += OnBpmChanged;
 
         _offsetEdit = AddLineEdit(
             playhead.OffsetMs.ToString(),
             x + half + 8,
-            y + 208,
+            y + 242,
             half);
         _offsetEdit.TextChanged += OnOffsetChanged;
 
-        AddLabel("Snap", x, y + 248, width);
+        AddLabel("Snap", x, y + 278, width);
         _snapOption = new OptionButton
         {
-            Position = new Vector2(x, y + 268),
+            Position = new Vector2(x, y + 296),
             Size = new Vector2(width, 30),
         };
         _snapOption.AddItem("1/4 beat");
@@ -277,14 +302,14 @@ public partial class EditorOverlay : CanvasLayer
         AddLabel(
             "Space play   Home stop   Delete note   Ctrl+Z/Y undo   T tap tempo",
             x,
-            y + 310,
+            y + 336,
             width);
 
         _statusLabel = new Label
         {
             Text = "",
-            Position = new Vector2(x, y + 332),
-            Size = new Vector2(width, 20),
+            Position = new Vector2(40, 4),
+            Size = new Vector2(view.ScreenSize.X - 80, 20),
         };
         _statusLabel.AddThemeFontSizeOverride("font_size", 14);
         _root.AddChild(_statusLabel);
@@ -345,7 +370,7 @@ public partial class EditorOverlay : CanvasLayer
 
     private void SaveCurrent()
     {
-        if (_editor.IsNull)
+        if (_editor.IsNull || !ValidateCurrent())
             return;
 
         try
@@ -363,7 +388,7 @@ public partial class EditorOverlay : CanvasLayer
 
     private void OpenSaveAsDialog()
     {
-        if (_editor.IsNull)
+        if (_editor.IsNull || !ValidateCurrent())
             return;
 
         LevelDocument document = LevelDocumentMapper.Capture(_entities, _editor);
@@ -375,7 +400,7 @@ public partial class EditorOverlay : CanvasLayer
 
     private void OnSaveAsSelected(string path)
     {
-        if (_editor.IsNull)
+        if (_editor.IsNull || !ValidateCurrent())
             return;
 
         try
@@ -410,6 +435,8 @@ public partial class EditorOverlay : CanvasLayer
 
             _syncing = true;
             _nameEdit.Text = document.Name;
+            _artistEdit.Text = document.Artist;
+            _difficultyEdit.Text = document.Difficulty;
             _bpmEdit.Text = document.Bpm.ToString();
             _offsetEdit.Text = document.OffsetMs.ToString();
             _snapOption.Selected = document.SnapDivision switch
@@ -488,6 +515,9 @@ public partial class EditorOverlay : CanvasLayer
             return;
         }
 
+        if (!ValidateCurrent())
+            return;
+
         ref EditorPlayhead playhead = ref _editor.GetComponent<EditorPlayhead>();
         ref EditorPreview preview = ref _editor.GetComponent<EditorPreview>();
 
@@ -540,6 +570,24 @@ public partial class EditorOverlay : CanvasLayer
         }
     }
 
+    private bool ValidateCurrent()
+    {
+        if (_editor.IsNull)
+            return false;
+
+        LevelDocument document = LevelDocumentMapper.Capture(_entities, _editor);
+        List<string> issues = LevelValidator.Validate(document);
+
+        if (issues.Count == 0)
+            return true;
+
+        _statusLabel.Text = issues.Count == 1
+            ? issues[0]
+            : $"{issues[0]} (+{issues.Count - 1} more)";
+
+        return false;
+    }
+
     private void TogglePlayback()
     {
         if (_editor.IsNull)
@@ -574,6 +622,24 @@ public partial class EditorOverlay : CanvasLayer
 
         ref LevelInfo level = ref _editor.GetComponent<LevelInfo>();
         level.Name = value;
+    }
+
+    private void OnArtistChanged(string value)
+    {
+        if (_syncing || _editor.IsNull)
+            return;
+
+        ref LevelInfo level = ref _editor.GetComponent<LevelInfo>();
+        level.Artist = value;
+    }
+
+    private void OnDifficultyChanged(string value)
+    {
+        if (_syncing || _editor.IsNull)
+            return;
+
+        ref LevelInfo level = ref _editor.GetComponent<LevelInfo>();
+        level.Difficulty = value;
     }
 
     private void OnBpmChanged(string value)

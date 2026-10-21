@@ -88,10 +88,16 @@ public struct Momentum(System.Numerics.Vector2 value) : IComponent
 }
 
 /// <summary>Level metadata for the editor.</summary>
-public struct LevelInfo(string name, string audioPath) : IComponent
+public struct LevelInfo(
+    string name,
+    string audioPath,
+    string artist = "",
+    string difficulty = "") : IComponent
 {
     public string Name = name;
     public string AudioPath = audioPath;
+    public string Artist = artist;
+    public string Difficulty = difficulty;
 }
 
 /// <summary>Logical editor playfield dimensions.</summary>

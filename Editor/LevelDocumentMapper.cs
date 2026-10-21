@@ -18,6 +18,8 @@ public static class LevelDocumentMapper
         {
             Name = level.Name,
             AudioPath = level.AudioPath,
+            Artist = level.Artist,
+            Difficulty = level.Difficulty,
             Bpm = playhead.Bpm,
             OffsetMs = playhead.OffsetMs,
             SnapDivision = playhead.SnapDivision,
@@ -60,6 +62,8 @@ public static class LevelDocumentMapper
         ref LevelInfo level = ref editor.GetComponent<LevelInfo>();
         level.Name = document.Name;
         level.AudioPath = document.AudioPath;
+        level.Artist = document.Artist;
+        level.Difficulty = document.Difficulty;
 
         ref Playfield playfield = ref editor.GetComponent<Playfield>();
         playfield.Width = document.PlayfieldWidth;
