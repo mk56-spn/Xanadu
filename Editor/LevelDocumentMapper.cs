@@ -77,6 +77,7 @@ public static class LevelDocumentMapper
         playhead.DurationMs = 0;
         playhead.Playing = false;
         playhead.SeekRequestMs = 0;
+        playhead.AudioRevision++;
 
         ref NoteSelection selection = ref editor.GetComponent<NoteSelection>();
         selection.Note = default;

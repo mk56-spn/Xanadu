@@ -182,6 +182,7 @@ public sealed class EditorCommandSystem :
         playhead.DurationMs = 0;
         playhead.Playing = false;
         playhead.SeekRequestMs = -1;
+        playhead.AudioRevision++;
 
         if (string.IsNullOrWhiteSpace(level.Name) || level.Name == "Untitled")
         {

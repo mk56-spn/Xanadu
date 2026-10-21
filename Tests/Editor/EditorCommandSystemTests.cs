@@ -114,6 +114,19 @@ public sealed class EditorCommandSystemTests
     }
 
     [Test]
+    public void LoadSongAdoptsFilenameAndBumpsRevision()
+    {
+        _commands.Enqueue(EditorCommand.LoadSong("/tmp/Test Song.mp3"));
+        _root.Update(new UpdateTick(1f / 60f, 0));
+
+        LevelInfo level = _editor.GetComponent<LevelInfo>();
+        EditorPlayhead playhead = _editor.GetComponent<EditorPlayhead>();
+        Assert.That(level.AudioPath, Is.EqualTo("/tmp/Test Song.mp3"));
+        Assert.That(level.Name, Is.EqualTo("Test Song"));
+        Assert.That(playhead.AudioRevision, Is.EqualTo(1));
+    }
+
+    [Test]
     public void ApplyLevelReplacesChartAndResetsPreview()
     {
         ref EditorPreview preview = ref _editor.GetComponent<EditorPreview>();

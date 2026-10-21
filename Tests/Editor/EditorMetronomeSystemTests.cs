@@ -33,6 +33,7 @@ public sealed class EditorMetronomeSystemTests
         playhead.TimeMs = 500;
         root.Update(new UpdateTick(1f / 60f, 0));
         Assert.That(audio.ResumeCount, Is.EqualTo(2));
+        Assert.That(audio.LoadCount, Is.EqualTo(1));
     }
 
     [Test]
@@ -56,6 +57,8 @@ public sealed class EditorMetronomeSystemTests
     {
         public int ResumeCount { get; private set; }
 
+        public int LoadCount { get; private set; }
+
         public bool IsPlaying { get; private set; }
 
         public float PositionSeconds => 0;
@@ -64,7 +67,11 @@ public sealed class EditorMetronomeSystemTests
 
         public bool Play(string audioPath, float volume) => Load(audioPath, volume);
 
-        public bool Load(string audioPath, float volume) => true;
+        public bool Load(string audioPath, float volume)
+        {
+            LoadCount++;
+            return true;
+        }
 
         public bool Resume()
         {

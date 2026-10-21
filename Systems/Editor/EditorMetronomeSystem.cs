@@ -13,6 +13,7 @@ public sealed class EditorMetronomeSystem : QuerySystem<EditorPlayhead, EditorMe
 
     private readonly ITrackAudio _audio;
     private long _lastBeat = long.MinValue;
+    private bool _loaded;
 
     public EditorMetronomeSystem(ITrackAudio audio)
     {
@@ -39,7 +40,15 @@ public sealed class EditorMetronomeSystem : QuerySystem<EditorPlayhead, EditorMe
                 return;
 
             _lastBeat = beat;
-            _audio.Load(ClickPath, 0.45f);
+
+            if (!_loaded)
+            {
+                if (!_audio.Load(ClickPath, 0.45f))
+                    return;
+
+                _loaded = true;
+            }
+
             _audio.Seek(0);
             _audio.Resume();
         });

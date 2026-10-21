@@ -115,7 +115,8 @@ public struct EditorPlayhead(
     bool playing,
     long durationMs = 0,
     long seekRequestMs = -1,
-    int snapDivision = 4) : IComponent
+    int snapDivision = 4,
+    int audioRevision = 0) : IComponent
 {
     public long TimeMs = timeMs;
     public int Bpm = bpm;
@@ -124,6 +125,7 @@ public struct EditorPlayhead(
     public long DurationMs = durationMs;
     public long SeekRequestMs = seekRequestMs;
     public int SnapDivision = snapDivision;
+    public int AudioRevision = audioRevision;
 }
 
 /// <summary>Screen-space layout of the logical playfield.</summary>

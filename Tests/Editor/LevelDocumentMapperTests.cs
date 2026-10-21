@@ -47,6 +47,7 @@ public sealed class LevelDocumentMapperTests
         Assert.That(target.GetComponent<Playfield>().Width, Is.EqualTo(1000));
         Assert.That(target.GetComponent<EditorPlayhead>().Bpm, Is.EqualTo(150));
         Assert.That(target.GetComponent<EditorPlayhead>().SnapDivision, Is.EqualTo(16));
+        Assert.That(target.GetComponent<EditorPlayhead>().AudioRevision, Is.EqualTo(1));
         Assert.That(targetStore.Query<Note>().Count, Is.EqualTo(2));
     }
 }
