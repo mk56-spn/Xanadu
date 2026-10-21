@@ -16,7 +16,7 @@ public partial class EditorOverlay : CanvasLayer
 {
     private readonly EntityStore _entities;
     private readonly EditorCommandBus _commands;
-    private readonly GodotPointerInputSource? _pointer;
+    private readonly IBlockingPointerInputSource? _pointer;
     private readonly Action? _onBack;
     private readonly Action? _onForward;
     private readonly TapTempo _tapTempo = new();
@@ -53,19 +53,22 @@ public partial class EditorOverlay : CanvasLayer
     private bool _confirmationActive;
     private bool _suppressPointerUntilRelease;
     private bool _closed;
+    private readonly bool _openSongDialog;
 
     public EditorOverlay(
         EntityStore entities,
         EditorCommandBus commands,
-        GodotPointerInputSource? pointer,
+        IBlockingPointerInputSource? pointer,
         Action? onBack = null,
-        Action? onForward = null)
+        Action? onForward = null,
+        bool openSongDialog = true)
     {
         _entities = entities;
         _commands = commands;
         _pointer = pointer;
         _onBack = onBack;
         _onForward = onForward;
+        _openSongDialog = openSongDialog;
         Layer = 100;
     }
 
@@ -84,7 +87,8 @@ public partial class EditorOverlay : CanvasLayer
         BuildSongDialog();
         BuildSaveDialogs();
 
-        CallDeferred(nameof(OpenSongDialog));
+        if (_openSongDialog)
+            CallDeferred(nameof(OpenSongDialog));
     }
 
     /// <summary>Detaches the overlay before the ECS editor scene is destroyed.</summary>
@@ -112,7 +116,6 @@ public partial class EditorOverlay : CanvasLayer
         _pointer?.SetBlocked(
             AnyDialogVisible() ||
             _metadataPanel.Visible ||
-            _confirmationActive ||
             _suppressPointerUntilRelease);
 
         ref Playhead playhead = ref _editor.GetComponent<Playhead>();

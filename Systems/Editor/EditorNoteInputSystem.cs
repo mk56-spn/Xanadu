@@ -53,8 +53,13 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
     private void OnPress(Vector2 screenPosition)
     {
         Entity editor = FindEditor();
-        if (editor.IsNull || IsPreviewing(editor) || IsWarningOpen())
+        if (editor.IsNull ||
+            IsPreviewing(editor) ||
+            IsWarningOpen() ||
+            IsSceneConfirmationOpen())
+        {
             return;
+        }
 
         PlayfieldView view = editor.GetComponent<PlayfieldView>();
         Playfield playfield = editor.GetComponent<Playfield>();
@@ -102,8 +107,13 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
     private void OnHold(Vector2 screenPosition)
     {
         Entity editor = FindEditor();
-        if (editor.IsNull || IsPreviewing(editor) || IsWarningOpen())
+        if (editor.IsNull ||
+            IsPreviewing(editor) ||
+            IsWarningOpen() ||
+            IsSceneConfirmationOpen())
+        {
             return;
+        }
 
         PlayfieldView view = editor.GetComponent<PlayfieldView>();
         Playfield playfield = editor.GetComponent<Playfield>();
@@ -190,6 +200,17 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
         foreach (Entity entity in _entities.Query<WarningPopup>().ToEntityList())
         {
             if (entity.GetComponent<WarningPopup>().Visible)
+                return true;
+        }
+
+        return false;
+    }
+
+    private bool IsSceneConfirmationOpen()
+    {
+        foreach (Entity entity in _entities.Query<SceneConfirmation>().ToEntityList())
+        {
+            if (entity.GetComponent<SceneConfirmation>().Visible)
                 return true;
         }
 
