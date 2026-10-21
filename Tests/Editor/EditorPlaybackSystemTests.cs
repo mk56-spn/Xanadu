@@ -123,6 +123,32 @@ public sealed class EditorPlaybackSystemTests
     }
 
     [Test]
+    public void RemovingPlayheadStopsAudio()
+    {
+        var store = new EntityStore();
+        var audio = new FakeAudio { LengthSeconds = 5f };
+        var root = new SystemRoot(store);
+        root.Add(new EditorPlaybackSystem(audio));
+
+        Entity editor = store.CreateEntity(
+            new LevelInfo("Test", "res://song.mp3"),
+            new EditorPlayhead(0, 120, 0, false));
+
+        root.Update(new UpdateTick(1f / 60f, 0));
+
+        ref EditorPlayhead playhead = ref editor.GetComponent<EditorPlayhead>();
+        playhead.Playing = true;
+        root.Update(new UpdateTick(1f / 60f, 0));
+        Assert.That(audio.IsPlaying, Is.True);
+
+        editor.DeleteEntity();
+        root.Update(new UpdateTick(1f / 60f, 0));
+
+        Assert.That(audio.StopCount, Is.EqualTo(1));
+        Assert.That(audio.IsPlaying, Is.False);
+    }
+
+    [Test]
     public void PausingStopsAudio()
     {
         var store = new EntityStore();
@@ -153,6 +179,8 @@ public sealed class EditorPlaybackSystemTests
         public int ResumeCount { get; private set; }
 
         public int PauseCount { get; private set; }
+
+        public int StopCount { get; private set; }
 
         public int LoadCount { get; private set; }
 
@@ -190,7 +218,11 @@ public sealed class EditorPlaybackSystemTests
 
         public void Seek(float seconds) => SeekSeconds = seconds;
 
-        public void Stop() => IsPlaying = false;
+        public void Stop()
+        {
+            StopCount++;
+            IsPlaying = false;
+        }
 
         public void Dispose() { }
     }

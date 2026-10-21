@@ -1,9 +1,13 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using Godot;
 
 namespace Writer.Editor;
+
+/// <summary>A loaded level file and its document.</summary>
+public sealed record LevelEntry(string Path, LevelDocument Document);
 
 /// <summary>Reads and writes levels below user://levels.</summary>
 public static class LevelStore
@@ -82,4 +86,54 @@ public static class LevelStore
 
     public static LevelDocument Load(string path) =>
         LevelSerializer.Deserialize(File.ReadAllText(path));
+
+    /// <summary>Loads every valid level from user data and the bundled Levels folder.</summary>
+    public static List<LevelEntry> List()
+    {
+        var entries = new List<LevelEntry>();
+        var seen = new HashSet<string>(StringComparer.Ordinal);
+
+        AddFrom(ProjectSettings.GlobalizePath(LevelsFolder));
+        AddFrom(ProjectSettings.GlobalizePath(FallbackFolder));
+
+        entries.Sort(static (left, right) =>
+        {
+            int byName = string.Compare(
+                left.Document.Name,
+                right.Document.Name,
+                StringComparison.OrdinalIgnoreCase);
+
+            return byName != 0
+                ? byName
+                : string.Compare(left.Path, right.Path, StringComparison.Ordinal);
+        });
+
+        return entries;
+
+        void AddFrom(string directory)
+        {
+            if (!System.IO.Directory.Exists(directory))
+                return;
+
+            foreach (string path in System.IO.Directory.EnumerateFiles(
+                         directory,
+                         "*.json").OrderBy(
+                         static file => file,
+                         StringComparer.Ordinal))
+            {
+                string fullPath = Path.GetFullPath(path);
+                if (!seen.Add(fullPath))
+                    continue;
+
+                try
+                {
+                    entries.Add(new LevelEntry(fullPath, Load(fullPath)));
+                }
+                catch (Exception)
+                {
+                    // Ignore malformed level files and keep the rest of the carousel usable.
+                }
+            }
+        }
+    }
 }

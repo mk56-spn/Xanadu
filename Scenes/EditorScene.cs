@@ -11,7 +11,10 @@ public static class EditorScene
 {
     private const int FieldSize = 1000;
 
-    public static void Build(EntityStore entities, Vector2 viewportSize)
+    public static void Build(
+        EntityStore entities,
+        Vector2 viewportSize,
+        Entity? parent = null)
     {
         float top = EditorLayout.HeaderHeight + EditorLayout.Margin;
         float bottom = viewportSize.Y -
@@ -26,7 +29,7 @@ public static class EditorScene
         float originX = (viewportSize.X - renderedSize) / 2;
         float originY = top + (availableHeight - renderedSize) / 2;
 
-        entities.CreateEntity(
+        Entity editor = entities.CreateEntity(
             new LevelInfo("Untitled", ""),
             new LevelFile(""),
             new Playfield(FieldSize, FieldSize),
@@ -40,6 +43,26 @@ public static class EditorScene
             new EditorMetronome(false),
             new EditorView(new Vector2(originX, originY), scale, viewportSize));
 
-        EditorWarningPopup.Build(entities);
+        if (parent is { } root)
+            root.AddChild(editor);
+
+        Entity popup = EditorWarningPopup.Build(entities);
+        Entity popupLayer = popup.Parent;
+
+        if (parent is { } sceneRoot && !popupLayer.IsNull)
+            sceneRoot.AddChild(popupLayer);
+
+        if (parent is { } menuRoot)
+        {
+            var menu = SceneUi.Layer(entities, menuRoot, 960);
+            SceneUi.Button(
+                menu,
+                new Vector2(74, 32),
+                new Vector2(100, 28),
+                "MENU",
+                SceneKind.Main,
+                12,
+                SceneUi.MutedButtonColor);
+        }
     }
 }

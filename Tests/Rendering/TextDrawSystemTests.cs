@@ -49,6 +49,19 @@ public sealed class TextDrawSystemTests
     }
 
     [Test]
+    public void TextStyleOverridesFontSizeAndColor()
+    {
+        Entity entity = AddText("Title");
+        entity.AddComponent(new TextStyle(32, Colors.Gold));
+
+        Frame();
+
+        Assert.That(_canvas.Draws, Has.Count.EqualTo(1));
+        Assert.That(_canvas.Draws[0].FontSize, Is.EqualTo(32));
+        Assert.That(_canvas.Draws[0].Color, Is.EqualTo(Colors.Gold));
+    }
+
+    [Test]
     public void EmptyTextIsSkipped()
     {
         Entity entity = AddText("");
@@ -86,10 +99,23 @@ public sealed class TextDrawSystemTests
         public void DrawText(Rid canvas, Rect2 bounds, string text, Color color) =>
             Draws.Add(new DrawCall(canvas, bounds, text, color));
 
+        public void DrawTextStyled(
+            Rid canvas,
+            Rect2 bounds,
+            string text,
+            Color color,
+            int fontSize) =>
+            Draws.Add(new DrawCall(canvas, bounds, text, color, fontSize));
+
         public void DrawTextLeft(Rid canvas, Rect2 bounds, string text, Color color) { }
 
         public void DrawTextRight(Rid canvas, Rect2 bounds, string text, Color color) { }
 
-        public readonly record struct DrawCall(Rid Canvas, Rect2 Bounds, string Text, Color Color);
+        public readonly record struct DrawCall(
+            Rid Canvas,
+            Rect2 Bounds,
+            string Text,
+            Color Color,
+            int FontSize = 0);
     }
 }

@@ -26,6 +26,7 @@ public sealed class EditorSystemGroup : SystemGroup
     {
         Add(new EditorCommandSystem(entities, commands, history));
         Add(new EditorPlaybackSystem(audio));
+        Add(new PlaySessionSystem());
         Add(new EditorMetronomeSystem(metronomeAudio));
         Add(new EditorNoteInputSystem(entities, pointerInput, history));
         Add(new EditorPlayfieldDrawSystem(entities, canvas, editorCanvas));

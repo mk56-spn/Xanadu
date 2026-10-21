@@ -11,6 +11,7 @@ public sealed class EditorPlaybackSystem : QuerySystem<LevelInfo, EditorPlayhead
 {
     private readonly ITrackAudio _audio;
     private int _loadedRevision = -1;
+    private int _loadedEntityId = -1;
 
     public EditorPlaybackSystem(ITrackAudio audio)
     {
@@ -19,10 +20,25 @@ public sealed class EditorPlaybackSystem : QuerySystem<LevelInfo, EditorPlayhead
 
     protected override void OnUpdate()
     {
-        Query.ForEachEntity((ref level, ref playhead, _) =>
+        if (Query.Count == 0)
         {
-            if (playhead.AudioRevision != _loadedRevision)
+            if (_audio.IsPlaying)
+                _audio.Stop();
+
+            _loadedRevision = -1;
+            _loadedEntityId = -1;
+            return;
+        }
+
+        Query.ForEachEntity((ref level, ref playhead, entity) =>
+        {
+            if (playhead.AudioRevision != _loadedRevision ||
+                entity.Id != _loadedEntityId)
+            {
                 Load(level, ref playhead);
+            }
+
+            _loadedEntityId = entity.Id;
 
             if (playhead.SeekRequestMs >= 0)
                 ApplySeek(ref playhead);

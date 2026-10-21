@@ -10,6 +10,7 @@ using Writer.Systems.Debug;
 using Writer.Systems.Groups;
 using Writer.Systems.Input;
 using Writer.Systems.Physics;
+using Writer.Systems.Scenes;
 
 namespace Writer.Ecs;
 
@@ -21,6 +22,7 @@ public sealed class WriterSystemRoot : SystemRoot, IDisposable
     private readonly Rid _debugOverlay;
     private readonly Rid _timeline;
     private readonly Rid _editor;
+    private readonly EntityStore _entities;
     private readonly MiniaudioTrackAudio _trackAudio = new();
     private readonly MiniaudioTrackAudio _editorAudio = new();
     private readonly MiniaudioTrackAudio _metronomeAudio = new();
@@ -31,14 +33,21 @@ public sealed class WriterSystemRoot : SystemRoot, IDisposable
 
     public EditorCommandBus Commands { get; }
 
+    public SceneSystem Scenes { get; }
+
     public WriterSystemRoot(
         EntityStore entities,
         Rid parentCanvas,
-        IPointerInputSource pointerInput) : base(entities, "Writer")
+        IPointerInputSource pointerInput,
+        SceneDirector sceneDirector,
+        Vector2 viewportSize) : base(entities, "Writer")
     {
         var canvas = new GodotRectCanvas();
+        _entities = entities;
+        entities.OnEntityDelete += OnEntityDelete;
         EditorHistory = new EditorHistory(entities);
         Commands = new EditorCommandBus();
+        Scenes = new SceneSystem(entities, sceneDirector, viewportSize);
 
         _debugOverlay = RenderingServer.CanvasItemCreate();
         RenderingServer.CanvasItemSetParent(_debugOverlay, parentCanvas);
@@ -66,7 +75,7 @@ public sealed class WriterSystemRoot : SystemRoot, IDisposable
             _editorAudio,
             _metronomeAudio,
             EditorHistory));
-        Add(new InputSystemGroup(entities, pointerInput));
+        Add(new InputSystemGroup(entities, pointerInput, Scenes));
         Add(new DebugSystemGroup(
             canvas,
             _debugOverlay,
@@ -78,8 +87,15 @@ public sealed class WriterSystemRoot : SystemRoot, IDisposable
         SetMonitorPerf(true);
     }
 
+    private static void OnEntityDelete(EntityDelete entityDelete)
+    {
+        if (entityDelete.Entity.TryGetComponent<VisualRid>(out var visual))
+            RenderingServer.FreeRid(visual.Value);
+    }
+
     public void Dispose()
     {
+        _entities.OnEntityDelete -= OnEntityDelete;
         _trackAudio.Dispose();
         _editorAudio.Dispose();
         _metronomeAudio.Dispose();

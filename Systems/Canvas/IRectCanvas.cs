@@ -17,6 +17,15 @@ public interface IRectCanvas
 
     void DrawText(Rid canvas, Rect2 bounds, string text, Color color);
 
+    /// <summary>Draws centered text with an explicit font size.</summary>
+    void DrawTextStyled(
+        Rid canvas,
+        Rect2 bounds,
+        string text,
+        Color color,
+        int fontSize) =>
+        DrawText(canvas, bounds, text, color);
+
     void DrawTextLeft(Rid canvas, Rect2 bounds, string text, Color color);
 
     void DrawTextRight(Rid canvas, Rect2 bounds, string text, Color color);

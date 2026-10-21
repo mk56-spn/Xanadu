@@ -25,13 +25,22 @@ public partial class Main : Control
 
 	private WriterSystemRoot? _systems;
 	private GodotPointerInputSource? _pointer;
+	private SceneDirector? _sceneDirector;
+	private EditorOverlay? _editorOverlay;
 	private FileDialog? _trackDialog;
 
 	public override void _Ready()
 	{
 		SetProcess(true);
 		_pointer = new GodotPointerInputSource(this);
-		_systems = new WriterSystemRoot(Entities, GetCanvasItem(), _pointer);
+		_sceneDirector = new SceneDirector();
+		_sceneDirector.Changed += OnSceneChanged;
+		_systems = new WriterSystemRoot(
+			Entities,
+			GetCanvasItem(),
+			_pointer,
+			_sceneDirector,
+			GetViewportRect().Size);
 
 		if (StressTest)
 			StressScene.Build(Entities, GetViewportRect().Size);
@@ -42,15 +51,9 @@ public partial class Main : Control
 		else if (PhysicsTest)
 			PhysicsScene.Build(Entities, _systems.Physics, GetViewportRect().Size);
 		else if (EditorTest)
-		{
-			EditorScene.Build(Entities, GetViewportRect().Size);
-			AddChild(new EditorOverlay(
-				Entities,
-				_systems.Commands,
-				_pointer));
-		}
+			_systems.Scenes.Start(SceneKind.Editor);
 		else
-			TestScene.Build(Entities);
+			_systems.Scenes.Start(SceneKind.Main);
 
 		if (!TrackTest)
 			return;
@@ -109,6 +112,27 @@ public partial class Main : Control
 	private void OnTrackFileSelected(string path) =>
 		TrackScene.Load(Entities, path);
 
+	private void OnSceneChanged(SceneKind scene)
+	{
+		_systems?.Commands.Clear();
+
+		if (scene == SceneKind.Editor)
+		{
+			if (_editorOverlay is not null)
+				return;
+
+			_editorOverlay = new EditorOverlay(Entities, _systems!.Commands, _pointer!);
+			AddChild(_editorOverlay);
+			return;
+		}
+
+		if (_editorOverlay is null)
+			return;
+
+		_editorOverlay.Close();
+		_editorOverlay = null;
+	}
+
 	public override void _Process(double delta)
 	{
 		float time = (float)Time.GetTicksMsec() / 1000f;
@@ -119,6 +143,11 @@ public partial class Main : Control
 
 	public override void _ExitTree()
 	{
+		if (_sceneDirector is not null)
+			_sceneDirector.Changed -= OnSceneChanged;
+
+		_editorOverlay?.Close();
+		_editorOverlay = null;
 		_systems?.Dispose();
 		_systems = null;
 	}

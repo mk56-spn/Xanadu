@@ -47,8 +47,11 @@ public sealed class EditorPlayfieldDrawSystem :
             EditorPreview preview = entity.HasComponent<EditorPreview>()
                 ? entity.GetComponent<EditorPreview>()
                 : default;
+            PlayfieldKind kind = entity.HasComponent<PlayfieldMode>()
+                ? entity.GetComponent<PlayfieldMode>().Kind
+                : PlayfieldKind.Editor;
 
-            DrawEditor(view, playfield, playhead, selection, preview);
+            DrawEditor(view, playfield, playhead, selection, preview, kind);
         });
     }
 
@@ -57,8 +60,15 @@ public sealed class EditorPlayfieldDrawSystem :
         Playfield playfield,
         EditorPlayhead playhead,
         NoteSelection selection,
-        EditorPreview preview)
+        EditorPreview preview,
+        PlayfieldKind kind)
     {
+        if (kind == PlayfieldKind.Play)
+        {
+            DrawPlay(view, playfield, playhead, selection);
+            return;
+        }
+
         if (preview.Active)
         {
             DrawPreview(view, playfield, playhead, selection);
@@ -82,6 +92,29 @@ public sealed class EditorPlayfieldDrawSystem :
         DrawGrid(view, playfield, field);
         DrawNotes(view, playhead, selection);
         DrawRuler(view, playhead, selection);
+    }
+
+    private void DrawPlay(
+        EditorView view,
+        Playfield playfield,
+        EditorPlayhead playhead,
+        NoteSelection selection)
+    {
+        _canvas.DrawRect(
+            _editor,
+            new Rect2(Vector2.Zero, view.ScreenSize),
+            new Color("#090d16"));
+
+        var field = new Rect2(
+            view.ScreenOrigin,
+            new Vector2(playfield.Width * view.Scale, playfield.Height * view.Scale));
+
+        _canvas.DrawRect(_editor, field, PlayfieldBackground);
+        DrawBorder(field, BorderColor, 2);
+
+        DrawGrid(view, playfield, field);
+        DrawNotes(view, playhead, selection);
+        DrawTransport(field, playhead);
     }
 
     private void DrawChrome(EditorView view)

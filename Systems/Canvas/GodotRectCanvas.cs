@@ -23,19 +23,28 @@ public sealed class GodotRectCanvas : IRectCanvas
         RenderingServer.CanvasItemAddLine(canvas, from, to, color, width, true);
 
     public void DrawText(Rid canvas, Rect2 bounds, string text, Color color) =>
-        DrawTextAligned(canvas, bounds, text, color, HorizontalAlignment.Center);
+        DrawTextAligned(canvas, bounds, text, color, FontSize, HorizontalAlignment.Center);
+
+    public void DrawTextStyled(
+        Rid canvas,
+        Rect2 bounds,
+        string text,
+        Color color,
+        int fontSize) =>
+        DrawTextAligned(canvas, bounds, text, color, fontSize, HorizontalAlignment.Center);
 
     public void DrawTextLeft(Rid canvas, Rect2 bounds, string text, Color color) =>
-        DrawTextAligned(canvas, bounds, text, color, HorizontalAlignment.Left);
+        DrawTextAligned(canvas, bounds, text, color, FontSize, HorizontalAlignment.Left);
 
     public void DrawTextRight(Rid canvas, Rect2 bounds, string text, Color color) =>
-        DrawTextAligned(canvas, bounds, text, color, HorizontalAlignment.Right);
+        DrawTextAligned(canvas, bounds, text, color, FontSize, HorizontalAlignment.Right);
 
     private static void DrawTextAligned(
         Rid canvas,
         Rect2 bounds,
         string text,
         Color color,
+        int fontSize,
         HorizontalAlignment alignment)
     {
         if (string.IsNullOrEmpty(text))
@@ -43,8 +52,8 @@ public sealed class GodotRectCanvas : IRectCanvas
 
         Font font = ThemeDB.FallbackFont;
         float baseline = bounds.Position.Y +
-                         (bounds.Size.Y - font.GetHeight(FontSize)) / 2 +
-                         font.GetAscent(FontSize);
+                         (bounds.Size.Y - font.GetHeight(fontSize)) / 2 +
+                         font.GetAscent(fontSize);
 
         font.DrawString(
             canvas,
@@ -52,7 +61,7 @@ public sealed class GodotRectCanvas : IRectCanvas
             text,
             alignment,
             Mathf.Max(0, bounds.Size.X - TextPadding * 2),
-            FontSize,
+            fontSize,
             color);
     }
 }

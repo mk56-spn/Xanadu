@@ -52,7 +52,7 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
     private void OnPress(Vector2 screenPosition)
     {
         Entity editor = FindEditor();
-        if (editor.IsNull || IsPreviewing(editor) || IsWarningOpen())
+        if (editor.IsNull || IsPreviewing(editor) || IsPlaying(editor) || IsWarningOpen())
             return;
 
         EditorView view = editor.GetComponent<EditorView>();
@@ -101,7 +101,7 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
     private void OnHold(Vector2 screenPosition)
     {
         Entity editor = FindEditor();
-        if (editor.IsNull || IsPreviewing(editor) || IsWarningOpen())
+        if (editor.IsNull || IsPreviewing(editor) || IsPlaying(editor) || IsWarningOpen())
             return;
 
         EditorView view = editor.GetComponent<EditorView>();
@@ -183,6 +183,10 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
     private static bool IsPreviewing(Entity editor) =>
         editor.HasComponent<EditorPreview>() &&
         editor.GetComponent<EditorPreview>().Active;
+
+    private static bool IsPlaying(Entity editor) =>
+        editor.HasComponent<PlayfieldMode>() &&
+        editor.GetComponent<PlayfieldMode>().Kind == PlayfieldKind.Play;
 
     private bool IsWarningOpen()
     {

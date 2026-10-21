@@ -11,6 +11,8 @@ public sealed class EditorCommandBus
 
     public void Enqueue(EditorCommand command) => _queue.Enqueue(command);
 
+    public void Clear() => _queue.Clear();
+
     public bool TryDequeue(out EditorCommand command) =>
         _queue.TryDequeue(out command);
 }

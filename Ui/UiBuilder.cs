@@ -86,6 +86,18 @@ public sealed class UiBuilder
         string? text = null,
         bool takesInput = false)
     {
+        RectEntity(position, size, color, text, takesInput);
+        return this;
+    }
+
+    /// <summary>Creates a rectangle and returns its entity for further setup.</summary>
+    public Entity RectEntity(
+        Vector2 position,
+        Vector2 size,
+        Color color,
+        string? text = null,
+        bool takesInput = false)
+    {
         RequireLayer();
 
         Tags tags = takesInput
@@ -104,7 +116,7 @@ public sealed class UiBuilder
             rect.AddComponent(new Text(text));
 
         Attach(rect);
-        return this;
+        return rect;
     }
 
     public UiBuilder End()

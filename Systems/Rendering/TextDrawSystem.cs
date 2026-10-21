@@ -32,7 +32,21 @@ public sealed class TextDrawSystem : QuerySystem<Text, Rectangle, Drawable, Visu
                 return;
             }
 
-            _canvas.DrawText(visual.Value, rect.Bounds, text.Value, TextColor);
+            if (entity.HasComponent<TextStyle>())
+            {
+                TextStyle style = entity.GetComponent<TextStyle>();
+                _canvas.DrawTextStyled(
+                    visual.Value,
+                    rect.Bounds,
+                    text.Value,
+                    style.Color,
+                    style.FontSize);
+            }
+            else
+            {
+                _canvas.DrawText(visual.Value, rect.Bounds, text.Value, TextColor);
+            }
+
             buffer.RemoveTag<Dirty>(entity.Id);
         });
     }

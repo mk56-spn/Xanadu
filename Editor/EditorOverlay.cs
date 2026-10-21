@@ -48,6 +48,7 @@ public partial class EditorOverlay : CanvasLayer
     private bool _syncing;
     private bool _previewActive;
     private bool _suppressPointerUntilRelease;
+    private bool _closed;
 
     public EditorOverlay(
         EntityStore entities,
@@ -78,9 +79,20 @@ public partial class EditorOverlay : CanvasLayer
         CallDeferred(nameof(OpenSongDialog));
     }
 
+    /// <summary>Detaches the overlay before the ECS editor scene is destroyed.</summary>
+    public void Close()
+    {
+        if (_closed)
+            return;
+
+        _closed = true;
+        _editor = default;
+        QueueFree();
+    }
+
     public override void _Process(double delta)
     {
-        if (_editor.IsNull)
+        if (_closed || _editor.IsNull)
             return;
 
         if (_suppressPointerUntilRelease &&
@@ -206,6 +218,9 @@ public partial class EditorOverlay : CanvasLayer
 
     public override void _UnhandledInput(InputEvent @event)
     {
+        if (_closed)
+            return;
+
         if (@event is not InputEventKey { Pressed: true, Echo: false } key)
             return;
 
@@ -320,12 +335,12 @@ public partial class EditorOverlay : CanvasLayer
         };
         _root.AddChild(_header);
 
-        float infoWidth = Mathf.Max(160, view.ScreenSize.X - 420);
+        float infoWidth = Mathf.Max(160, view.ScreenSize.X - 670);
 
         _levelLabel = new Label
         {
             Text = string.IsNullOrWhiteSpace(level.Name) ? "Untitled" : level.Name,
-            Position = new Vector2(24, 4),
+            Position = new Vector2(144, 4),
             Size = new Vector2(infoWidth, 28),
             VerticalAlignment = VerticalAlignment.Center,
         };
@@ -336,7 +351,7 @@ public partial class EditorOverlay : CanvasLayer
         _songLabel = new Label
         {
             Text = "Song: No song loaded",
-            Position = new Vector2(24, 32),
+            Position = new Vector2(144, 32),
             Size = new Vector2(infoWidth, 18),
             VerticalAlignment = VerticalAlignment.Center,
         };
@@ -347,7 +362,7 @@ public partial class EditorOverlay : CanvasLayer
         _statusLabel = new Label
         {
             Text = "Space play   Home stop   Delete note   Ctrl+Z/Y undo   T tap tempo",
-            Position = new Vector2(24, 50),
+            Position = new Vector2(144, 50),
             Size = new Vector2(infoWidth, 18),
             VerticalAlignment = VerticalAlignment.Center,
         };
@@ -355,7 +370,7 @@ public partial class EditorOverlay : CanvasLayer
         _statusLabel.AddThemeColorOverride("font_color", new Color("#94a3b8"));
         _header.AddChild(_statusLabel);
 
-        float right = view.ScreenSize.X - 24;
+        float right = view.ScreenSize.X - 174;
         float y = (EditorLayout.HeaderHeight - 38) / 2;
         const float levelWidth = 104;
         const float saveWidth = 88;
