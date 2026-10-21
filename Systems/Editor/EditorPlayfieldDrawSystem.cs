@@ -69,6 +69,7 @@ public sealed class EditorPlayfieldDrawSystem :
             _editor,
             _entities,
             view,
+            playfield,
             playhead,
             selection.Note);
         DrawRuler(view, playhead, selection);
@@ -200,6 +201,7 @@ public sealed class EditorPlayfieldDrawSystem :
             _editor,
             _entities,
             previewView,
+            playfield,
             playhead,
             default);
         PlayfieldRenderer.DrawTransport(_canvas, _editor, field, playhead);

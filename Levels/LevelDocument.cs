@@ -1,3 +1,4 @@
+using Writer.Settings;
 using System.Collections.Generic;
 
 namespace Writer.Levels;
@@ -40,4 +41,6 @@ public sealed class NoteDocument
     public long FadeInMs { get; set; } = 600;
 
     public long FadeOutMs { get; set; } = 600;
+
+    public KeybindAction Target { get; set; } = KeybindAction.M;
 }

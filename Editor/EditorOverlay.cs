@@ -5,6 +5,7 @@ using Friflo.Engine.ECS;
 using Godot;
 using Writer.Ecs;
 using Writer.Levels;
+using Writer.Settings;
 using Writer.Editor.Commands;
 using Writer.Systems.Editor;
 using Writer.Systems.Input;
@@ -37,6 +38,7 @@ public partial class EditorOverlay : CanvasLayer
     private LineEdit _bpmEdit = null!;
     private LineEdit _offsetEdit = null!;
     private OptionButton _snapOption = null!;
+    private OptionButton _targetOption = null!;
     private Button _playButton = null!;
     private Button _previewButton = null!;
     private Button _metronomeButton = null!;
@@ -233,6 +235,22 @@ public partial class EditorOverlay : CanvasLayer
             _snapOption.Selected = snapIndex;
             _syncing = false;
         }
+
+        bool hasSelectedNote = _editor.HasComponent<NoteSelection>() &&
+                               !_editor.GetComponent<NoteSelection>().Note.IsNull &&
+                               _editor.GetComponent<NoteSelection>().Note.HasComponent<Note>();
+        KeybindAction target = hasSelectedNote
+            ? _editor.GetComponent<NoteSelection>().Note.GetComponent<Note>().Target
+            : KeybindAction.M;
+
+        if (_targetOption.Selected != (int)target)
+        {
+            _syncing = true;
+            _targetOption.Selected = (int)target;
+            _syncing = false;
+        }
+
+        _targetOption.Disabled = !hasSelectedNote;
     }
 
     public override void _UnhandledInput(InputEvent @event)
@@ -397,7 +415,7 @@ public partial class EditorOverlay : CanvasLayer
 
         _statusLabel = new Label
         {
-            Text = "Space play   Home stop   Delete note   Ctrl+Z/Y undo   T tap tempo",
+            Text = "Space play   Home stop   Delete note   Ctrl+Z/Y undo   T tap tempo   Target: select a note",
             Position = new Vector2(144, 50),
             Size = new Vector2(infoWidth, 18),
             VerticalAlignment = VerticalAlignment.Center,
@@ -605,6 +623,32 @@ public partial class EditorOverlay : CanvasLayer
         };
         _snapOption.ItemSelected += OnSnapSelected;
         _transport.AddChild(_snapOption);
+
+        _transport.AddChild(new Control
+        {
+            CustomMinimumSize = new Vector2(12, 0),
+        });
+
+        var targetLabel = new Label
+        {
+            Text = "Target",
+            VerticalAlignment = VerticalAlignment.Center,
+        };
+        targetLabel.AddThemeFontSizeOverride("font_size", 14);
+        _transport.AddChild(targetLabel);
+
+        _targetOption = new OptionButton
+        {
+            CustomMinimumSize = new Vector2(110, 36),
+            SizeFlagsVertical = Control.SizeFlags.ShrinkCenter,
+            Disabled = true,
+        };
+
+        foreach (KeybindAction action in KeybindSettings.Actions)
+            _targetOption.AddItem(KeybindSettings.LabelFor(action));
+
+        _targetOption.ItemSelected += OnTargetSelected;
+        _transport.AddChild(_targetOption);
     }
 
     private void BuildSaveDialogs()
@@ -978,6 +1022,19 @@ public partial class EditorOverlay : CanvasLayer
             return;
 
         _commands.Enqueue(EditorCommand.SetOffset(offset));
+    }
+
+    private void OnTargetSelected(long index)
+    {
+        if (_syncing || _editor.IsNull)
+            return;
+
+        int clamped = Math.Clamp(
+            (int)index,
+            0,
+            KeybindSettings.Actions.Length - 1);
+        _commands.Enqueue(
+            EditorCommand.SetTarget(KeybindSettings.Actions[clamped]));
     }
 
     private void OnSnapSelected(long index)

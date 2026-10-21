@@ -1,3 +1,4 @@
+using Writer.Settings;
 using Writer.Levels;
 
 namespace Writer.Editor.Commands;
@@ -19,6 +20,7 @@ public enum EditorCommandType
     EndPreview,
     LoadSong,
     DeleteSelection,
+    SetTarget,
     Undo,
     Redo,
     ApplyLevel,
@@ -74,6 +76,9 @@ public readonly record struct EditorCommand(
 
     public static EditorCommand DeleteSelection() =>
         new(EditorCommandType.DeleteSelection);
+
+    public static EditorCommand SetTarget(KeybindAction action) =>
+        new(EditorCommandType.SetTarget, IntValue: (int)action);
 
     public static EditorCommand Undo() =>
         new(EditorCommandType.Undo);

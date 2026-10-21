@@ -3,6 +3,7 @@ using Godot;
 using NUnit.Framework;
 using Writer.Ecs;
 using Writer.Levels;
+using Writer.Settings;
 
 namespace Writer.Tests.Editor;
 
@@ -18,8 +19,14 @@ public sealed class LevelDocumentMapperTests
             new Playfield(1000, 1000),
             new Playhead(0, 150, 25, false, snapDivision: 16),
             new NoteSelection(default));
-        sourceStore.CreateEntity(new Note(500, new Vector2(100, 200)));
-        sourceStore.CreateEntity(new Note(1_000, new Vector2(300, 400)));
+        sourceStore.CreateEntity(new Note(
+            500,
+            new Vector2(100, 200),
+            target: KeybindAction.L1));
+        sourceStore.CreateEntity(new Note(
+            1_000,
+            new Vector2(300, 400),
+            target: KeybindAction.R3));
 
         LevelDocument document = LevelDocumentMapper.Capture(sourceStore, source);
 
@@ -30,6 +37,8 @@ public sealed class LevelDocumentMapperTests
         Assert.That(document.OffsetMs, Is.EqualTo(25));
         Assert.That(document.SnapDivision, Is.EqualTo(16));
         Assert.That(document.Notes, Has.Count.EqualTo(2));
+        Assert.That(document.Notes[0].Target, Is.EqualTo(KeybindAction.L1));
+        Assert.That(document.Notes[1].Target, Is.EqualTo(KeybindAction.R3));
 
         var targetStore = new EntityStore();
         Entity target = targetStore.CreateEntity(
@@ -49,5 +58,11 @@ public sealed class LevelDocumentMapperTests
         Assert.That(target.GetComponent<Playhead>().SnapDivision, Is.EqualTo(16));
         Assert.That(target.GetComponent<Playhead>().AudioRevision, Is.EqualTo(1));
         Assert.That(targetStore.Query<Note>().Count, Is.EqualTo(2));
+        Assert.That(
+            targetStore.Query<Note>().ToEntityList()[0].GetComponent<Note>().Target,
+            Is.EqualTo(KeybindAction.L1));
+        Assert.That(
+            targetStore.Query<Note>().ToEntityList()[1].GetComponent<Note>().Target,
+            Is.EqualTo(KeybindAction.R3));
     }
 }

@@ -4,6 +4,7 @@ using System.Linq;
 using Friflo.Engine.ECS;
 using Godot;
 using Writer.Ecs;
+using Writer.Settings;
 
 namespace Writer.Editor;
 
@@ -36,7 +37,8 @@ public sealed class EditorHistory
                 note.TimeMs,
                 note.Position,
                 note.FadeInMs,
-                note.FadeOutMs));
+                note.FadeOutMs,
+                note.Target));
         }
 
         notes.Sort(static (a, b) =>
@@ -108,7 +110,8 @@ public sealed class EditorHistory
                 note.TimeMs,
                 note.Position,
                 note.FadeInMs,
-                note.FadeOutMs));
+                note.FadeOutMs,
+                note.Target));
         }
     }
 
@@ -122,4 +125,5 @@ public readonly record struct NoteSnapshot(
     long TimeMs,
     Vector2 Position,
     long FadeInMs,
-    long FadeOutMs);
+    long FadeOutMs,
+    KeybindAction Target);

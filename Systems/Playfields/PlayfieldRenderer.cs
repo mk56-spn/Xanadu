@@ -2,6 +2,7 @@ using System;
 using Friflo.Engine.ECS;
 using Godot;
 using Writer.Ecs;
+using Writer.Settings;
 using Writer.Systems.Canvas;
 
 namespace Writer.Systems.Playfields;
@@ -18,6 +19,17 @@ public static class PlayfieldRenderer
     public static readonly Color DimTextColor = new("#94a3b8");
     public static readonly Color NoteColor = new(1f, 0.55f, 0.15f);
     public static readonly Color SelectedNoteColor = new(1f, 0.9f, 0.3f);
+
+    private static readonly Color[] LaneColors =
+    {
+        new("#22d3ee"),
+        new("#3b82f6"),
+        new("#8b5cf6"),
+        new("#facc15"),
+        new("#fb923c"),
+        new("#ef4444"),
+        new("#ec4899"),
+    };
 
     public const float NoteSize = 24;
 
@@ -40,8 +52,7 @@ public static class PlayfieldRenderer
         canvas.DrawRect(rid, field, PlayfieldBackground);
         DrawBorder(canvas, rid, field, BorderColor, 2);
 
-        DrawGrid(canvas, rid, playfield, field);
-        DrawNotes(canvas, rid, entities, view, playhead, default);
+        DrawNotes(canvas, rid, entities, view, playfield, playhead, default);
         DrawTransport(canvas, rid, field, playhead);
     }
 
@@ -112,6 +123,7 @@ public static class PlayfieldRenderer
         Rid rid,
         EntityStore entities,
         PlayfieldView view,
+        Playfield playfield,
         Playhead playhead,
         Entity selectedNote)
     {
@@ -129,9 +141,10 @@ public static class PlayfieldRenderer
                 center - new Vector2(size / 2, size / 2),
                 new Vector2(size, size));
 
+            Color laneColor = ColorFor(note.Target);
             Color color = entity.Tags.Has<NoteMissed>()
                 ? new Color(0.4f, 0.4f, 0.5f, alpha * 0.45f)
-                : new Color(NoteColor.R, NoteColor.G, NoteColor.B, alpha);
+                : new Color(laneColor.R, laneColor.G, laneColor.B, alpha);
 
             canvas.DrawRect(rid, bounds, color);
 
@@ -146,6 +159,9 @@ public static class PlayfieldRenderer
             }
         }
     }
+
+    public static Color ColorFor(KeybindAction action) =>
+        LaneColors[(int)action % LaneColors.Length];
 
     public static void DrawTransport(IRectCanvas canvas, Rid rid, Rect2 field, Playhead playhead)
     {

@@ -6,6 +6,7 @@ using Writer.Ecs;
 using Writer.Levels;
 using Writer.Editor;
 using Writer.Editor.Commands;
+using Writer.Settings;
 using Writer.Systems.Editor;
 
 namespace Writer.Tests.Editor;
@@ -113,6 +114,28 @@ public sealed class EditorCommandSystemTests
         _root.Update(new UpdateTick(1f / 60f, 0));
 
         Assert.That(_store.Query<Note>().Count, Is.EqualTo(1));
+    }
+
+    [Test]
+    public void SetTargetIsUndoable()
+    {
+        Entity note = _store.CreateEntity(
+            new Note(500, new Vector2(10, 20), target: KeybindAction.M));
+        _editor.GetComponent<NoteSelection>().Note = note;
+
+        _commands.Enqueue(EditorCommand.SetTarget(KeybindAction.R3));
+        _root.Update(new UpdateTick(1f / 60f, 0));
+
+        Assert.That(
+            _store.Query<Note>().ToEntityList()[0].GetComponent<Note>().Target,
+            Is.EqualTo(KeybindAction.R3));
+
+        _commands.Enqueue(EditorCommand.Undo());
+        _root.Update(new UpdateTick(1f / 60f, 0));
+
+        Assert.That(
+            _store.Query<Note>().ToEntityList()[0].GetComponent<Note>().Target,
+            Is.EqualTo(KeybindAction.M));
     }
 
     [Test]

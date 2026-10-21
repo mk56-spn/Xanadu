@@ -1,6 +1,7 @@
 using NUnit.Framework;
 using Writer.Levels;
 using Writer.Editor;
+using Writer.Settings;
 
 namespace Writer.Tests.Editor;
 
@@ -41,6 +42,7 @@ public sealed class LevelSerializerTests
             Y = 400,
             FadeInMs = 600,
             FadeOutMs = 600,
+            Target = KeybindAction.R2,
         });
 
         string json = LevelSerializer.Serialize(source);
@@ -60,5 +62,6 @@ public sealed class LevelSerializerTests
         Assert.That(result.Notes[0].TimeMs, Is.EqualTo(1_250));
         Assert.That(result.Notes[0].X, Is.EqualTo(250));
         Assert.That(result.Notes[0].Y, Is.EqualTo(400));
+        Assert.That(result.Notes[0].Target, Is.EqualTo(KeybindAction.R2));
     }
 }

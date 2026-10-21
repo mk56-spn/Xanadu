@@ -4,6 +4,7 @@ using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Writer.Ecs;
 using Writer.Levels;
+using Writer.Settings;
 using Writer.Editor;
 using Writer.Editor.Commands;
 
@@ -126,6 +127,10 @@ public sealed class EditorCommandSystem :
                 DeleteSelection(editor);
                 break;
 
+            case EditorCommandType.SetTarget:
+                SetTarget(command.IntValue, editor);
+                break;
+
             case EditorCommandType.Undo:
                 if (_history.Undo())
                     ClearSelection(editor);
@@ -200,6 +205,27 @@ public sealed class EditorCommandSystem :
             if (!string.IsNullOrEmpty(name))
                 level.Name = name;
         }
+    }
+
+    private void SetTarget(int value, Entity editor)
+    {
+        if (!editor.HasComponent<NoteSelection>())
+            return;
+
+        ref NoteSelection selection = ref editor.GetComponent<NoteSelection>();
+        if (selection.Note.IsNull || !selection.Note.HasComponent<Note>())
+            return;
+
+        int index = Math.Clamp(value, 0, KeybindSettings.Actions.Length - 1);
+        KeybindAction target = KeybindSettings.Actions[index];
+        ref Note note = ref selection.Note.GetComponent<Note>();
+        if (note.Target == target)
+            return;
+
+        var before = _history.Capture();
+        note.Target = target;
+        var after = _history.Capture();
+        _history.Record(before, after);
     }
 
     private void DeleteSelection(Entity editor)

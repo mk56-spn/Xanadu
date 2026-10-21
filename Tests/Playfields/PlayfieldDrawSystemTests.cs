@@ -30,7 +30,29 @@ public sealed class PlayfieldDrawSystemTests
         root.Update(new UpdateTick(1f / 60f, 0));
 
         Assert.That(canvas.Rects, Is.Not.Empty);
-        Assert.That(canvas.Lines, Is.Not.Empty);
+    }
+
+    [Test]
+    public void PlayModeDoesNotDrawTheEditorGrid()
+    {
+        var store = new EntityStore();
+        store.CreateEntity(
+            new PlayfieldView(new Vector2(100, 100), 0.5f, new Vector2(1000, 1000)),
+            new Playfield(1000, 1000),
+            new Playhead(1_000, 120, 0, true, durationMs: 5_000),
+            new PlayfieldMode(PlayfieldKind.Play));
+
+        var canvas = new RecordingCanvas();
+        var root = new SystemRoot(store);
+        root.Add(new PlayfieldDrawSystem(store, canvas, default));
+
+        root.Update(new UpdateTick(1f / 60f, 0));
+
+        foreach (RecordingCanvas.LineCall line in canvas.Lines)
+        {
+            Assert.That(line.Color, Is.Not.EqualTo(PlayfieldRenderer.GridColor));
+            Assert.That(line.Color, Is.Not.EqualTo(PlayfieldRenderer.AxisColor));
+        }
     }
 
     [Test]
@@ -73,7 +95,7 @@ public sealed class PlayfieldDrawSystemTests
             Vector2 to,
             Color color,
             float width) =>
-            Lines.Add(new LineCall(from, to));
+            Lines.Add(new LineCall(from, to, color));
 
         public void DrawText(Rid canvas, Rect2 bounds, string text, Color color) { }
 
@@ -81,6 +103,6 @@ public sealed class PlayfieldDrawSystemTests
 
         public void DrawTextRight(Rid canvas, Rect2 bounds, string text, Color color) { }
 
-        public readonly record struct LineCall(Vector2 From, Vector2 To);
+        public readonly record struct LineCall(Vector2 From, Vector2 To, Color Color);
     }
 }

@@ -38,6 +38,7 @@ public static class LevelDocumentMapper
                 Y = note.Position.Y,
                 FadeInMs = note.FadeInMs,
                 FadeOutMs = note.FadeOutMs,
+                Target = note.Target,
             });
         }
 
@@ -56,7 +57,8 @@ public static class LevelDocumentMapper
                 note.TimeMs,
                 new Vector2(note.X, note.Y),
                 note.FadeInMs,
-                note.FadeOutMs));
+                note.FadeOutMs,
+                note.Target));
         }
 
         ref LevelInfo level = ref editor.GetComponent<LevelInfo>();
