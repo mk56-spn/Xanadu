@@ -57,6 +57,7 @@ public sealed class PlayNoteInputSystemTests
         Assert.That(score.Accuracy, Is.EqualTo(1.0).Within(0.0001));
         Assert.That(score.Combo, Is.EqualTo(1));
         Assert.That(score.LastJudgement, Is.EqualTo(Judgement.FlawlessP));
+        Assert.That(score.FlawlessPCount, Is.EqualTo(1));
         Assert.That(_judgementText.GetComponent<Text>().Value, Is.EqualTo("FLAWLESS+"));
         Assert.That(
             _judgementText.GetComponent<TextStyle>().Color,
@@ -226,6 +227,7 @@ public sealed class PlayNoteInputSystemTests
         Assert.That(score.NotesHit, Is.EqualTo(1));
         Assert.That(score.Combo, Is.Zero);
         Assert.That(score.Score, Is.EqualTo(500_000));
+        Assert.That(score.MissCount, Is.EqualTo(1));
         Assert.That(_judgementText.GetComponent<Text>().Value, Is.EqualTo("MISS"));
         Assert.That(
             _judgementText.GetComponent<TextStyle>().Color,

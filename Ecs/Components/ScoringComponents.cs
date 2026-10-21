@@ -28,6 +28,13 @@ public struct ScoreState(
     public long LastOffsetMs;
     public Vector2 JudgementPosition;
     public long JudgementTimeMs;
+    public int FlawlessPCount;
+    public int FlawlessCount;
+    public int CleanCount;
+    public int FairCount;
+    public int DeficientCount;
+    public int TerribleCount;
+    public int MissCount;
 
     public readonly double Accuracy =>
         TotalNotes > 0 ? AccuracyPoints / TotalNotes : 0;

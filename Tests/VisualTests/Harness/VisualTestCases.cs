@@ -239,6 +239,10 @@ public sealed class PlaySceneTest : SceneTest
         AddAssert(
             "movement queue exists",
             () => Context.Entities.Query<MovementEvent>().Count == 1);
+        AddAssert(
+            "judgement counter exists",
+            () => VisualAssert.HasText(Context.Entities, "JUDGEMENTS") &&
+                  VisualAssert.HasText(Context.Entities, "FLAWLESS+ 0"));
     }
 
     private void OpenPlay()

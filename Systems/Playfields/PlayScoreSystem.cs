@@ -26,7 +26,7 @@ public sealed class PlayScoreSystem : QuerySystem<ScoreState, Playhead>
     {
         CommandBuffer buffer = CommandBuffer;
 
-        Query.ForEachEntity((ref score, ref playhead, _) =>
+        Query.ForEachEntity((ref score, ref playhead, entity) =>
         {
             SetText(score.ScoreText, $"SCORE {score.Score:0000000}", buffer);
             SetText(score.ComboText, $"COMBO {score.Combo}", buffer);
@@ -57,6 +57,26 @@ public sealed class PlayScoreSystem : QuerySystem<ScoreState, Playhead>
                     style.Color = color;
                     buffer.AddTag<Dirty>(score.JudgementText.Id);
                 }
+            }
+
+            if (entity.HasComponent<JudgementCounter>())
+            {
+                JudgementCounter counter =
+                    entity.GetComponent<JudgementCounter>();
+                SetText(counter.FlawlessPlus,
+                    $"FLAWLESS+ {score.FlawlessPCount}", buffer);
+                SetText(counter.Flawless,
+                    $"FLAWLESS {score.FlawlessCount}", buffer);
+                SetText(counter.Clean,
+                    $"CLEAN {score.CleanCount}", buffer);
+                SetText(counter.Fair,
+                    $"FAIR {score.FairCount}", buffer);
+                SetText(counter.Deficient,
+                    $"DEFICIENT {score.DeficientCount}", buffer);
+                SetText(counter.Terrible,
+                    $"TERRIBLE {score.TerribleCount}", buffer);
+                SetText(counter.Miss,
+                    $"MISS {score.MissCount}", buffer);
             }
 
             if (showJudgement &&

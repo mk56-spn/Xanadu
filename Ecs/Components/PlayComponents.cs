@@ -29,6 +29,25 @@ public struct Player(Vector2 size) : IComponent
     public static readonly Vector2 DefaultSize = new(30, 100);
 }
 
+/// <summary>HUD rows for per-judgement counters.</summary>
+public struct JudgementCounter(
+    Entity flawlessPlus,
+    Entity flawless,
+    Entity clean,
+    Entity fair,
+    Entity deficient,
+    Entity terrible,
+    Entity miss) : IComponent
+{
+    public Entity FlawlessPlus = flawlessPlus;
+    public Entity Flawless = flawless;
+    public Entity Clean = clean;
+    public Entity Fair = fair;
+    public Entity Deficient = deficient;
+    public Entity Terrible = terrible;
+    public Entity Miss = miss;
+}
+
 /// <summary>A non-field movement prompt that falls onto the player.</summary>
 public struct MovementEvent(long timeMs) : IComponent
 {

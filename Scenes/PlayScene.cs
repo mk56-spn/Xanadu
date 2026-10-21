@@ -4,6 +4,7 @@ using Godot;
 using Writer.Ecs;
 using Position = Writer.Ecs.Position;
 using Writer.Levels;
+using Writer.Systems.Playfields;
 using Writer.Ui;
 
 namespace Writer.Scenes;
@@ -140,6 +141,38 @@ public static class PlayScene
             SceneUi.AccentColor,
             new Color(0, 0, 0, 0));
 
+        float counterX = screen.X - 150;
+        SceneUi.Text(
+            ui,
+            new Vector2(counterX, 190),
+            new Vector2(260, 22),
+            "JUDGEMENTS",
+            14,
+            SceneUi.DimTextColor,
+            new Color(0, 0, 0, 0));
+
+        Entity flawlessPlus = CounterRow(
+            ui, counterX, 220, "FLAWLESS+ 0",
+            PlayScoreSystem.ColorFor(Writer.Scoring.Judgement.FlawlessP));
+        Entity flawless = CounterRow(
+            ui, counterX, 246, "FLAWLESS 0",
+            PlayScoreSystem.ColorFor(Writer.Scoring.Judgement.Flawless));
+        Entity clean = CounterRow(
+            ui, counterX, 272, "CLEAN 0",
+            PlayScoreSystem.ColorFor(Writer.Scoring.Judgement.Clean));
+        Entity fair = CounterRow(
+            ui, counterX, 298, "FAIR 0",
+            PlayScoreSystem.ColorFor(Writer.Scoring.Judgement.Fair));
+        Entity deficient = CounterRow(
+            ui, counterX, 324, "DEFICIENT 0",
+            PlayScoreSystem.ColorFor(Writer.Scoring.Judgement.Deficient));
+        Entity terrible = CounterRow(
+            ui, counterX, 350, "TERRIBLE 0",
+            PlayScoreSystem.ColorFor(Writer.Scoring.Judgement.Terrible));
+        Entity miss = CounterRow(
+            ui, counterX, 376, "MISS 0",
+            PlayScoreSystem.ColorFor(Writer.Scoring.Judgement.Miss));
+
         Entity countdown = SceneUi.Text(
             ui,
             new Vector2(screen.X / 2, screen.Y / 2),
@@ -148,6 +181,15 @@ public static class PlayScene
             120,
             SceneUi.AccentColor,
             new Color(0, 0, 0, 0));
+
+        playfieldEntity.AddComponent(new JudgementCounter(
+            flawlessPlus,
+            flawless,
+            clean,
+            fair,
+            deficient,
+            terrible,
+            miss));
 
         playfieldEntity.AddComponent(
             new ScoreState(
@@ -163,4 +205,19 @@ public static class PlayScene
                 ? document.Notes.Max(note => note.TimeMs)
                 : -1));
     }
+
+    private static Entity CounterRow(
+        UiBuilder ui,
+        float x,
+        float y,
+        string text,
+        Color color) =>
+        SceneUi.Text(
+            ui,
+            new Vector2(x, y),
+            new Vector2(260, 22),
+            text,
+            13,
+            color,
+            new Color(0, 0, 0, 0));
 }

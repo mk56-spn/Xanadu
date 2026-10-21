@@ -135,6 +135,8 @@ public sealed class PlayNoteInputSystem : QuerySystem<Note>
         if (judgement != Judgement.Miss)
             score.NotesHit++;
 
+        Count(ref score, judgement);
+
         score.HasJudgement = true;
         score.LastJudgement = judgement;
         score.LastOffsetMs = offsetMs;
@@ -187,6 +189,35 @@ public sealed class PlayNoteInputSystem : QuerySystem<Note>
                 .GetComponent<PlayfieldView>()
                 .PlayfieldToScreen(note.Position);
             score.JudgementTimeMs = playhead.TimeMs;
+            Count(ref score, Judgement.Miss);
+        }
+    }
+
+    private static void Count(ref ScoreState score, Judgement judgement)
+    {
+        switch (judgement)
+        {
+            case Judgement.FlawlessP:
+                score.FlawlessPCount++;
+                break;
+            case Judgement.Flawless:
+                score.FlawlessCount++;
+                break;
+            case Judgement.Clean:
+                score.CleanCount++;
+                break;
+            case Judgement.Fair:
+                score.FairCount++;
+                break;
+            case Judgement.Deficient:
+                score.DeficientCount++;
+                break;
+            case Judgement.Terrible:
+                score.TerribleCount++;
+                break;
+            case Judgement.Miss:
+                score.MissCount++;
+                break;
         }
     }
 
