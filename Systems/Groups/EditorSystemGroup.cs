@@ -1,8 +1,11 @@
+using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Godot;
+using Writer.Ecs;
 using Writer.Systems.Audio;
 using Writer.Systems.Canvas;
 using Writer.Systems.Editor;
+using Writer.Systems.Input;
 
 namespace Writer.Systems.Groups;
 
@@ -10,11 +13,14 @@ namespace Writer.Systems.Groups;
 public sealed class EditorSystemGroup : SystemGroup
 {
     public EditorSystemGroup(
+        EntityStore entities,
+        IPointerInputSource pointerInput,
         IRectCanvas canvas,
         Rid editorCanvas,
         ITrackAudio audio) : base("Editor")
     {
         Add(new EditorPlaybackSystem(audio));
-        Add(new EditorPlayfieldDrawSystem(canvas, editorCanvas));
+        Add(new EditorNoteInputSystem(entities, pointerInput));
+        Add(new EditorPlayfieldDrawSystem(entities, canvas, editorCanvas));
     }
 }

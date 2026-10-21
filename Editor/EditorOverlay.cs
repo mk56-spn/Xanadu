@@ -16,6 +16,7 @@ public partial class EditorOverlay : CanvasLayer
     private LineEdit _nameEdit = null!;
     private LineEdit _bpmEdit = null!;
     private LineEdit _offsetEdit = null!;
+    private OptionButton _snapOption = null!;
     private Button _playButton = null!;
     private Entity _editor;
 
@@ -76,6 +77,20 @@ public partial class EditorOverlay : CanvasLayer
             _offsetEdit.Text = offset;
             _syncing = false;
         }
+
+        int snapIndex = playhead.SnapDivision switch
+        {
+            8 => 1,
+            16 => 2,
+            _ => 0,
+        };
+
+        if (_snapOption.Selected != snapIndex)
+        {
+            _syncing = true;
+            _snapOption.Selected = snapIndex;
+            _syncing = false;
+        }
     }
 
     public override void _UnhandledInput(InputEvent @event)
@@ -98,6 +113,10 @@ public partial class EditorOverlay : CanvasLayer
                 break;
             case Key.L:
                 OpenSongDialog();
+                GetViewport().SetInputAsHandled();
+                break;
+            case Key.Delete:
+                DeleteSelectedNote();
                 GetViewport().SetInputAsHandled();
                 break;
         }
@@ -146,7 +165,25 @@ public partial class EditorOverlay : CanvasLayer
             half);
         _offsetEdit.TextChanged += OnOffsetChanged;
 
-        AddLabel("Space play/pause    Home stop", x, y + 214, width);
+        AddLabel("Snap", x, y + 208, width);
+        _snapOption = new OptionButton
+        {
+            Position = new Vector2(x, y + 228),
+            Size = new Vector2(width, 30),
+        };
+        _snapOption.AddItem("1/4 beat");
+        _snapOption.AddItem("1/8 beat");
+        _snapOption.AddItem("1/16 beat");
+        _snapOption.Selected = playhead.SnapDivision switch
+        {
+            8 => 1,
+            16 => 2,
+            _ => 0,
+        };
+        _snapOption.ItemSelected += OnSnapSelected;
+        _root.AddChild(_snapOption);
+
+        AddLabel("Space play/pause    Home stop    Delete note", x, y + 270, width);
     }
 
     private void BuildSongDialog()
@@ -245,6 +282,33 @@ public partial class EditorOverlay : CanvasLayer
 
         ref EditorPlayhead playhead = ref _editor.GetComponent<EditorPlayhead>();
         playhead.OffsetMs = Math.Clamp(offset, -600_000, 600_000);
+    }
+
+    private void OnSnapSelected(long index)
+    {
+        if (_syncing || _editor.IsNull)
+            return;
+
+        ref EditorPlayhead playhead = ref _editor.GetComponent<EditorPlayhead>();
+        playhead.SnapDivision = index switch
+        {
+            1 => 8,
+            2 => 16,
+            _ => 4,
+        };
+    }
+
+    private void DeleteSelectedNote()
+    {
+        if (_editor.IsNull)
+            return;
+
+        ref NoteSelection selection = ref _editor.GetComponent<NoteSelection>();
+        if (selection.Note.IsNull)
+            return;
+
+        selection.Note.DeleteEntity();
+        selection.Note = default;
     }
 
     private Button AddButton(string text, float x, float y, float width, float height)

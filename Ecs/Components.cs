@@ -108,7 +108,8 @@ public struct EditorPlayhead(
     long offsetMs,
     bool playing,
     long durationMs = 0,
-    long seekRequestMs = -1) : IComponent
+    long seekRequestMs = -1,
+    int snapDivision = 4) : IComponent
 {
     public long TimeMs = timeMs;
     public int Bpm = bpm;
@@ -116,6 +117,7 @@ public struct EditorPlayhead(
     public bool Playing = playing;
     public long DurationMs = durationMs;
     public long SeekRequestMs = seekRequestMs;
+    public int SnapDivision = snapDivision;
 }
 
 /// <summary>Screen-space layout of the logical playfield.</summary>
@@ -136,13 +138,19 @@ public struct EditorView(Vector2 screenOrigin, float scale, Vector2 screenSize) 
 public struct Note(
     long timeMs,
     Vector2 position,
-    long fadeInMs = 300,
-    long fadeOutMs = 200) : IComponent
+    long fadeInMs = 600,
+    long fadeOutMs = 600) : IComponent
 {
     public long TimeMs = timeMs;
     public Vector2 Position = position;
     public long FadeInMs = fadeInMs;
     public long FadeOutMs = fadeOutMs;
+}
+
+/// <summary>Currently selected editor note.</summary>
+public struct NoteSelection(Entity note) : IComponent
+{
+    public Entity Note = note;
 }
 
 /// <summary>Layer entity component. ZIndex determines draw order between layers.</summary>

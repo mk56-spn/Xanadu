@@ -9,7 +9,8 @@ using Writer.Systems.Canvas;
 namespace Writer.Systems.Editor;
 
 /// <summary>Draws the scaled 1000x1000 editor playfield and inspector panel.</summary>
-public sealed class EditorPlayfieldDrawSystem : QuerySystem<EditorView, LevelInfo, Playfield, EditorPlayhead>
+public sealed class EditorPlayfieldDrawSystem :
+    QuerySystem<EditorView, LevelInfo, Playfield, EditorPlayhead, NoteSelection>
 {
     private const float Margin = 30;
     private const float PanelGap = 30;
@@ -24,11 +25,15 @@ public sealed class EditorPlayfieldDrawSystem : QuerySystem<EditorView, LevelInf
     private static readonly Color TextColor = new("#cbd5e1");
     private static readonly Color DimTextColor = new("#94a3b8");
 
+    private const float NoteSize = 24;
+
     private readonly IRectCanvas _canvas;
+    private readonly EntityStore _entities;
     private readonly Rid _editor;
 
-    public EditorPlayfieldDrawSystem(IRectCanvas canvas, Rid editor)
+    public EditorPlayfieldDrawSystem(EntityStore entities, IRectCanvas canvas, Rid editor)
     {
+        _entities = entities;
         _canvas = canvas;
         _editor = editor;
     }
@@ -37,9 +42,9 @@ public sealed class EditorPlayfieldDrawSystem : QuerySystem<EditorView, LevelInf
     {
         _canvas.Clear(_editor);
 
-        Query.ForEachEntity((ref view, ref level, ref playfield, ref playhead, _) =>
+        Query.ForEachEntity((ref view, ref level, ref playfield, ref playhead, ref selection, _) =>
         {
-            DrawEditor(view, level, playfield, playhead);
+            DrawEditor(view, level, playfield, playhead, selection);
         });
     }
 
@@ -47,7 +52,8 @@ public sealed class EditorPlayfieldDrawSystem : QuerySystem<EditorView, LevelInf
         EditorView view,
         LevelInfo level,
         Playfield playfield,
-        EditorPlayhead playhead)
+        EditorPlayhead playhead,
+        NoteSelection selection)
     {
         _canvas.DrawRect(
             _editor,
@@ -106,8 +112,41 @@ public sealed class EditorPlayfieldDrawSystem : QuerySystem<EditorView, LevelInf
             y,
             DimTextColor,
             panel.Size.X);
+        y += 24;
 
+        int noteCount = _entities.Query<Note>().Count;
+        DrawPanelText($"Notes: {noteCount}", x, y, TextColor, panel.Size.X);
+
+        DrawNotes(view, playhead, selection);
         DrawTransport(field, playhead);
+    }
+
+    private void DrawNotes(EditorView view, EditorPlayhead playhead, NoteSelection selection)
+    {
+        float size = NoteSize * view.Scale;
+
+        foreach (Entity entity in _entities.Query<Note>().ToEntityList())
+        {
+            Note note = entity.GetComponent<Note>();
+            float alpha = NoteFade.Alpha(note, playhead.TimeMs);
+            if (alpha <= 0)
+                continue;
+
+            Vector2 center = view.PlayfieldToScreen(note.Position);
+            var bounds = new Rect2(
+                center - new Vector2(size / 2, size / 2),
+                new Vector2(size, size));
+
+            _canvas.DrawRect(
+                _editor,
+                bounds,
+                new Color(1f, 0.55f, 0.15f, alpha));
+
+            if (!selection.Note.IsNull && selection.Note.Id == entity.Id)
+            {
+                DrawBorder(bounds, new Color(1f, 0.9f, 0.3f, alpha), 2);
+            }
+        }
     }
 
     private void DrawTransport(Rect2 field, EditorPlayhead playhead)

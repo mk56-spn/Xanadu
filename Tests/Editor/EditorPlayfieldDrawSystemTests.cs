@@ -20,11 +20,12 @@ public sealed class EditorPlayfieldDrawSystemTests
             new LevelInfo("Test Level", ""),
             new Playfield(1000, 1000),
             new EditorPlayhead(0, 120, 0, false),
-            new EditorView(new Vector2(30, 30), 0.6f, new Vector2(1152, 648)));
+            new EditorView(new Vector2(30, 30), 0.6f, new Vector2(1152, 648)),
+            new NoteSelection(default));
 
         var canvas = new RecordingCanvas();
         var root = new SystemRoot(store);
-        root.Add(new EditorPlayfieldDrawSystem(canvas, default));
+        root.Add(new EditorPlayfieldDrawSystem(store, canvas, default));
 
         root.Update(new UpdateTick(1f / 60f, 0));
 

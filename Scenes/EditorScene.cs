@@ -24,6 +24,7 @@ public static class EditorScene
                 bpm: 120,
                 offsetMs: 0,
                 playing: false),
+            new NoteSelection(default),
             new EditorView(new Vector2(30, originY), scale, viewportSize));
     }
 }
