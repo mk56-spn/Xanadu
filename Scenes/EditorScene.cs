@@ -1,20 +1,29 @@
 using Friflo.Engine.ECS;
 using Godot;
 using Writer.Ecs;
+using Writer.Systems.Editor;
 
 namespace Writer.Scenes;
 
-/// <summary>Creates the initial editor state and 1000x1000 playfield layout.</summary>
+/// <summary>Creates the initial editor state and a playfield centered between the header and footer.</summary>
 public static class EditorScene
 {
     private const int FieldSize = 1000;
 
     public static void Build(EntityStore entities, Vector2 viewportSize)
     {
-        float available = Mathf.Min(viewportSize.Y - 120, viewportSize.X * 0.55f);
-        float renderedSize = Mathf.Min(FieldSize, available);
+        float top = EditorLayout.HeaderHeight + EditorLayout.Margin;
+        float bottom = viewportSize.Y -
+                       EditorLayout.FooterHeight -
+                       EditorLayout.TransportHeight -
+                       EditorLayout.Gap -
+                       EditorLayout.Margin;
+        float availableHeight = Mathf.Max(1, bottom - top);
+        float availableWidth = Mathf.Max(1, viewportSize.X - EditorLayout.Margin * 2);
+        float renderedSize = Mathf.Min(FieldSize, Mathf.Min(availableHeight, availableWidth));
         float scale = renderedSize / FieldSize;
-        float originY = Mathf.Max(30, (viewportSize.Y - renderedSize) / 2);
+        float originX = (viewportSize.X - renderedSize) / 2;
+        float originY = top + (availableHeight - renderedSize) / 2;
 
         entities.CreateEntity(
             new LevelInfo("Untitled", ""),
@@ -28,6 +37,6 @@ public static class EditorScene
             new NoteSelection(default),
             new EditorPreview(false, 0, false),
             new EditorMetronome(false),
-            new EditorView(new Vector2(30, originY), scale, viewportSize));
+            new EditorView(new Vector2(originX, originY), scale, viewportSize));
     }
 }

@@ -59,7 +59,7 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
         Playfield playfield = editor.GetComponent<Playfield>();
         EditorPlayhead playhead = editor.GetComponent<EditorPlayhead>();
 
-        Rect2 bar = EditorLayout.RulerRect(view, playfield);
+        Rect2 bar = EditorLayout.RulerRect(view);
         if (bar.HasPoint(screenPosition))
         {
             _scrubbing = true;
@@ -104,7 +104,7 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
 
         if (_scrubbing)
         {
-            Scrub(screenPosition, EditorLayout.RulerRect(view, playfield), playhead);
+            Scrub(screenPosition, EditorLayout.RulerRect(view), playhead);
             return;
         }
 

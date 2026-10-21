@@ -1,5 +1,4 @@
 using System;
-using System.IO;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Godot;
@@ -8,13 +7,10 @@ using Writer.Systems.Canvas;
 
 namespace Writer.Systems.Editor;
 
-/// <summary>Draws the scaled 1000x1000 editor playfield and inspector panel.</summary>
+/// <summary>Draws the editor playfield, header/footer chrome, and centered timeline.</summary>
 public sealed class EditorPlayfieldDrawSystem :
-    QuerySystem<EditorView, LevelInfo, Playfield, EditorPlayhead, NoteSelection>
+    QuerySystem<EditorView, Playfield, EditorPlayhead, NoteSelection>
 {
-    private const float Margin = 30;
-    private const float PanelGap = 30;
-
     private static readonly Color EditorBackground = new("#1e1e1e");
     private static readonly Color PlayfieldBackground = new("#0f172a");
     private static readonly Color PanelBackground = new("#111827");
@@ -22,7 +18,6 @@ public sealed class EditorPlayfieldDrawSystem :
     private static readonly Color GridColor = new("#273449");
     private static readonly Color AxisColor = new("#64748b");
     private static readonly Color TitleColor = new("#facc15");
-    private static readonly Color TextColor = new("#cbd5e1");
     private static readonly Color DimTextColor = new("#94a3b8");
 
     private const float NoteSize = 24;
@@ -44,7 +39,6 @@ public sealed class EditorPlayfieldDrawSystem :
 
         Query.ForEachEntity((
             ref view,
-            ref level,
             ref playfield,
             ref playhead,
             ref selection,
@@ -54,13 +48,12 @@ public sealed class EditorPlayfieldDrawSystem :
                 ? entity.GetComponent<EditorPreview>()
                 : default;
 
-            DrawEditor(view, level, playfield, playhead, selection, preview);
+            DrawEditor(view, playfield, playhead, selection, preview);
         });
     }
 
     private void DrawEditor(
         EditorView view,
-        LevelInfo level,
         Playfield playfield,
         EditorPlayhead playhead,
         NoteSelection selection,
@@ -68,7 +61,7 @@ public sealed class EditorPlayfieldDrawSystem :
     {
         if (preview.Active)
         {
-            DrawPreview(view, level, playfield, playhead, selection);
+            DrawPreview(view, playfield, playhead, selection);
             return;
         }
 
@@ -77,80 +70,55 @@ public sealed class EditorPlayfieldDrawSystem :
             new Rect2(Vector2.Zero, view.ScreenSize),
             EditorBackground);
 
-        float fieldWidth = playfield.Width * view.Scale;
-        float fieldHeight = playfield.Height * view.Scale;
-        var field = new Rect2(view.ScreenOrigin, new Vector2(fieldWidth, fieldHeight));
+        DrawChrome(view);
+
+        var field = new Rect2(
+            view.ScreenOrigin,
+            new Vector2(playfield.Width * view.Scale, playfield.Height * view.Scale));
 
         _canvas.DrawRect(_editor, field, PlayfieldBackground);
         DrawBorder(field, BorderColor, 1);
 
         DrawGrid(view, playfield, field);
-
-        float panelX = field.End.X + PanelGap;
-        float panelWidth = view.ScreenSize.X - panelX - Margin;
-        float panelHeight = view.ScreenSize.Y - field.Position.Y - 30;
-        var panel = new Rect2(panelX, field.Position.Y, panelWidth, panelHeight);
-        _canvas.DrawRect(_editor, panel, PanelBackground);
-        DrawBorder(panel, BorderColor, 1);
-
-        float x = panel.Position.X + 16;
-        float y = panel.Position.Y + 18;
-
-        DrawPanelText("EDITOR", x, y, TitleColor, panel.Size.X);
-        y += 34;
-
-        DrawPanelText($"Level: {level.Name}", x, y, TextColor, panel.Size.X);
-        y += 24;
-
-        string song = string.IsNullOrEmpty(level.AudioPath)
-            ? "not selected"
-            : Path.GetFileName(level.AudioPath);
-        DrawPanelText($"Song: {song}", x, y, TextColor, panel.Size.X);
-        y += 24;
-
-        DrawPanelText(
-            $"Playfield {playfield.Width} x {playfield.Height}",
-            x,
-            y,
-            TextColor,
-            panel.Size.X);
-        y += 24;
-
-        DrawPanelText(
-            $"Time {FormatMs(playhead.TimeMs)} / {FormatMs(playhead.DurationMs)}",
-            x,
-            y,
-            TextColor,
-            panel.Size.X);
-        y += 24;
-
-        DrawPanelText(
-            playhead.Playing ? "playing" : "paused",
-            x,
-            y,
-            DimTextColor,
-            panel.Size.X);
-        y += 24;
-
-        int noteCount = _entities.Query<Note>().Count;
-        DrawPanelText($"Notes: {noteCount}", x, y, TextColor, panel.Size.X);
-
         DrawNotes(view, playhead, selection);
-        DrawRuler(view, playfield, playhead, selection);
+        DrawRuler(view, playhead, selection);
+    }
+
+    private void DrawChrome(EditorView view)
+    {
+        Rect2 header = EditorLayout.HeaderRect(view);
+        _canvas.DrawRect(_editor, header, PanelBackground);
+        _canvas.DrawRect(
+            _editor,
+            new Rect2(header.Position.X, header.End.Y - 1, header.Size.X, 1),
+            BorderColor);
+
+        Rect2 footer = EditorLayout.FooterRect(view);
+        _canvas.DrawRect(_editor, footer, PanelBackground);
+        _canvas.DrawRect(
+            _editor,
+            new Rect2(footer.Position.X, footer.Position.Y, footer.Size.X, 1),
+            BorderColor);
     }
 
     private void DrawRuler(
         EditorView view,
-        Playfield playfield,
         EditorPlayhead playhead,
         NoteSelection selection)
     {
-        Rect2 ruler = EditorLayout.RulerRect(view, playfield);
+        Rect2 ruler = EditorLayout.RulerRect(view);
         _canvas.DrawRect(_editor, ruler, PlayfieldBackground);
         DrawBorder(ruler, BorderColor, 1);
 
         if (playhead.DurationMs <= 0)
+        {
+            _canvas.DrawText(
+                _editor,
+                ruler,
+                "Load a song to enable the timeline",
+                DimTextColor);
             return;
+        }
 
         double beatMs = 60_000.0 / Math.Max(1, playhead.Bpm);
         int firstBeat = (int)Math.Ceiling(
@@ -212,7 +180,6 @@ public sealed class EditorPlayfieldDrawSystem :
 
     private void DrawPreview(
         EditorView view,
-        LevelInfo level,
         Playfield playfield,
         EditorPlayhead playhead,
         NoteSelection selection)
@@ -325,14 +292,14 @@ public sealed class EditorPlayfieldDrawSystem :
         }
 
         float labelY = field.End.Y - 20;
-        DrawPanelText("0", field.Position.X + 6, labelY, DimTextColor, field.Size.X);
-        DrawPanelText(
+        DrawLeftText("0", field.Position.X + 6, labelY, DimTextColor, field.Size.X);
+        DrawLeftText(
             (playfield.Width / 2).ToString(),
             field.Position.X + field.Size.X / 2 - 18,
             labelY,
             DimTextColor,
             field.Size.X);
-        DrawPanelText(
+        DrawLeftText(
             playfield.Width.ToString(),
             field.End.X - 46,
             labelY,
@@ -340,10 +307,10 @@ public sealed class EditorPlayfieldDrawSystem :
             field.Size.X);
     }
 
-    private void DrawPanelText(string text, float x, float y, Color color, float panelWidth) =>
+    private void DrawLeftText(string text, float x, float y, Color color, float width) =>
         _canvas.DrawTextLeft(
             _editor,
-            new Rect2(x, y, panelWidth - 32, 20),
+            new Rect2(x, y, width - 32, 20),
             text,
             color);
 
@@ -359,11 +326,5 @@ public sealed class EditorPlayfieldDrawSystem :
         _canvas.DrawRect(_editor,
             new Rect2(new Vector2(bounds.End.X - width, bounds.Position.Y),
                 new Vector2(width, bounds.Size.Y)), color);
-    }
-
-    private static string FormatMs(long milliseconds)
-    {
-        long value = Math.Max(0, milliseconds);
-        return $"{value / 60000:00}:{value / 1000 % 60:00}.{value % 1000:000}";
     }
 }

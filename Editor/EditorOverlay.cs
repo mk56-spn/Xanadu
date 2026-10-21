@@ -5,11 +5,12 @@ using Friflo.Engine.ECS;
 using Godot;
 using Writer.Ecs;
 using Writer.Editor.Commands;
+using Writer.Systems.Editor;
 using Writer.Systems.Input;
 
 namespace Writer.Editor;
 
-/// <summary>Native controls for song selection and editor metadata.</summary>
+/// <summary>Native editor header, transport, timeline footer, and level metadata controls.</summary>
 public partial class EditorOverlay : CanvasLayer
 {
     private readonly EntityStore _entities;
@@ -18,6 +19,12 @@ public partial class EditorOverlay : CanvasLayer
     private readonly TapTempo _tapTempo = new();
 
     private Control _root = null!;
+    private Control _header = null!;
+    private Control _footer = null!;
+    private HBoxContainer _transport = null!;
+    private Control _metadataCatcher = null!;
+    private Panel _metadataPanel = null!;
+    private Button _metadataButton = null!;
     private FileDialog _songDialog = null!;
     private FileDialog _saveAsDialog = null!;
     private FileDialog _loadDialog = null!;
@@ -30,12 +37,17 @@ public partial class EditorOverlay : CanvasLayer
     private Button _playButton = null!;
     private Button _previewButton = null!;
     private Button _metronomeButton = null!;
+    private Label _levelLabel = null!;
+    private Label _songLabel = null!;
+    private Label _timeLabel = null!;
+    private Label _notesLabel = null!;
     private Label _previewLabel = null!;
     private Label _statusLabel = null!;
     private Entity _editor;
 
     private bool _syncing;
     private bool _previewActive;
+    private bool _suppressPointerUntilRelease;
 
     public EditorOverlay(
         EntityStore entities,
@@ -71,10 +83,39 @@ public partial class EditorOverlay : CanvasLayer
         if (_editor.IsNull)
             return;
 
-        _pointer?.SetBlocked(AnyDialogVisible());
+        if (_suppressPointerUntilRelease &&
+            !Godot.Input.IsMouseButtonPressed(MouseButton.Left))
+        {
+            _suppressPointerUntilRelease = false;
+        }
+
+        _pointer?.SetBlocked(
+            AnyDialogVisible() ||
+            _metadataPanel.Visible ||
+            _suppressPointerUntilRelease);
 
         ref EditorPlayhead playhead = ref _editor.GetComponent<EditorPlayhead>();
         ref LevelInfo level = ref _editor.GetComponent<LevelInfo>();
+
+        string levelName = string.IsNullOrWhiteSpace(level.Name)
+            ? "Untitled"
+            : level.Name;
+        if (_levelLabel.Text != levelName)
+            _levelLabel.Text = levelName;
+
+        string song = string.IsNullOrEmpty(level.AudioPath)
+            ? "No song loaded"
+            : Path.GetFileName(level.AudioPath);
+        string songText = $"Song: {song}";
+        if (_songLabel.Text != songText)
+            _songLabel.Text = songText;
+
+        string timeText =
+            $"{FormatMs(playhead.TimeMs)} / {FormatMs(playhead.DurationMs)}";
+        if (_timeLabel.Text != timeText)
+            _timeLabel.Text = timeText;
+
+        _notesLabel.Text = $"{_entities.Query<Note>().Count} notes";
 
         _playButton.Text = playhead.Playing ? "Pause" : "Play";
 
@@ -171,6 +212,13 @@ public partial class EditorOverlay : CanvasLayer
         if (AnyDialogVisible())
             return;
 
+        if (key.Keycode == Key.Escape && _metadataPanel.Visible)
+        {
+            HideMetadata();
+            GetViewport().SetInputAsHandled();
+            return;
+        }
+
         if (key.Keycode == Key.Escape && IsPreviewing())
         {
             EndPreview();
@@ -233,91 +281,267 @@ public partial class EditorOverlay : CanvasLayer
             return;
 
         EditorView view = _editor.GetComponent<EditorView>();
-        Playfield playfield = _editor.GetComponent<Playfield>();
         LevelInfo level = _editor.GetComponent<LevelInfo>();
         EditorPlayhead playhead = _editor.GetComponent<EditorPlayhead>();
 
-        float fieldWidth = playfield.Width * view.Scale;
-        float panelX = view.ScreenOrigin.X + fieldWidth + 30;
-        float panelY = view.ScreenOrigin.Y;
-        float panelWidth = view.ScreenSize.X - panelX - 30;
-        float x = panelX + 16;
-        float width = panelWidth - 32;
-        float y = panelY + 200;
+        _metadataCatcher = new Control
+        {
+            Visible = false,
+            MouseFilter = Control.MouseFilterEnum.Stop,
+        };
+        _metadataCatcher.GuiInput += OnMetadataCatcherInput;
+        _root.AddChild(_metadataCatcher);
+        _metadataCatcher.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.FullRect);
 
-        var load = AddButton("Load Song (L)", x, y, width, 34);
-        load.Pressed += OpenSongDialog;
-
-        float half = (width - 8) / 2;
-        float third = (width - 16) / 3;
-        var save = AddButton("Save", x, y + 42, third, 32);
-        save.Pressed += SaveCurrent;
-        var saveAs = AddButton("Save As", x + third + 8, y + 42, third, 32);
-        saveAs.Pressed += OpenSaveAsDialog;
-        var loadLevel = AddButton("Load", x + (third + 8) * 2, y + 42, third, 32);
-        loadLevel.Pressed += OpenLoadDialog;
-
-        float controlQuarter = (width - 24) / 4;
-        _playButton = AddButton("Play", x, y + 82, controlQuarter, 34);
-        _playButton.Pressed += TogglePlayback;
-
-        var stop = AddButton("Stop", x + controlQuarter + 8, y + 82, controlQuarter, 34);
-        stop.Pressed += StopPlayback;
-
-        _previewButton = AddButton(
-            "Preview",
-            x + (controlQuarter + 8) * 2,
-            y + 82,
-            controlQuarter,
-            34);
-        _previewButton.Pressed += TogglePreview;
-
-        _metronomeButton = AddButton(
-            "Click Off",
-            x + (controlQuarter + 8) * 3,
-            y + 82,
-            controlQuarter,
-            34);
-        _metronomeButton.Pressed += ToggleMetronome;
+        BuildHeader(view, level);
+        BuildMetadataDropdown(view, level, playhead);
+        BuildFooter(view);
+        BuildTransport(view, playhead);
 
         _previewLabel = new Label
         {
             Text = "PREVIEW   Esc to return",
             Position = new Vector2(40, 8),
-            Size = new Vector2(700, 30),
+            Size = new Vector2(view.ScreenSize.X - 80, 30),
             Visible = false,
+            HorizontalAlignment = HorizontalAlignment.Center,
         };
         _previewLabel.AddThemeFontSizeOverride("font_size", 22);
         _root.AddChild(_previewLabel);
+    }
 
-        AddLabel("Artist", x, y + 116, half);
-        _artistEdit = AddLineEdit(level.Artist, x, y + 134, half);
-        _artistEdit.TextChanged += OnArtistChanged;
+    private void BuildHeader(EditorView view, LevelInfo level)
+    {
+        _header = new Control
+        {
+            MouseFilter = Control.MouseFilterEnum.Ignore,
+            Position = Vector2.Zero,
+            Size = new Vector2(view.ScreenSize.X, EditorLayout.HeaderHeight),
+        };
+        _root.AddChild(_header);
 
-        AddLabel("Difficulty", x + half + 8, y + 116, half);
-        _difficultyEdit = AddLineEdit(level.Difficulty, x + half + 8, y + 134, half);
-        _difficultyEdit.TextChanged += OnDifficultyChanged;
+        float infoWidth = Mathf.Max(160, view.ScreenSize.X - 420);
 
-        AddLabel("Level name", x, y + 170, width);
-        _nameEdit = AddLineEdit(level.Name, x, y + 188, width);
+        _levelLabel = new Label
+        {
+            Text = string.IsNullOrWhiteSpace(level.Name) ? "Untitled" : level.Name,
+            Position = new Vector2(24, 4),
+            Size = new Vector2(infoWidth, 28),
+            VerticalAlignment = VerticalAlignment.Center,
+        };
+        _levelLabel.AddThemeFontSizeOverride("font_size", 22);
+        _levelLabel.AddThemeColorOverride("font_color", new Color("#facc15"));
+        _header.AddChild(_levelLabel);
+
+        _songLabel = new Label
+        {
+            Text = "Song: No song loaded",
+            Position = new Vector2(24, 32),
+            Size = new Vector2(infoWidth, 18),
+            VerticalAlignment = VerticalAlignment.Center,
+        };
+        _songLabel.AddThemeFontSizeOverride("font_size", 14);
+        _songLabel.AddThemeColorOverride("font_color", new Color("#cbd5e1"));
+        _header.AddChild(_songLabel);
+
+        _statusLabel = new Label
+        {
+            Text = "Space play   Home stop   Delete note   Ctrl+Z/Y undo   T tap tempo",
+            Position = new Vector2(24, 50),
+            Size = new Vector2(infoWidth, 18),
+            VerticalAlignment = VerticalAlignment.Center,
+        };
+        _statusLabel.AddThemeFontSizeOverride("font_size", 12);
+        _statusLabel.AddThemeColorOverride("font_color", new Color("#94a3b8"));
+        _header.AddChild(_statusLabel);
+
+        float right = view.ScreenSize.X - 24;
+        float y = (EditorLayout.HeaderHeight - 38) / 2;
+        const float levelWidth = 104;
+        const float saveWidth = 88;
+        const float songWidth = 128;
+
+        _metadataButton = AddHeaderButton(
+            "Level ▾",
+            right - levelWidth,
+            y,
+            levelWidth);
+        _metadataButton.Pressed += ToggleMetadata;
+
+        var save = AddHeaderButton(
+            "Save",
+            right - levelWidth - 8 - saveWidth,
+            y,
+            saveWidth);
+        save.Pressed += SaveCurrent;
+
+        var loadSong = AddHeaderButton(
+            "Load Song (L)",
+            right - levelWidth - 8 - saveWidth - 8 - songWidth,
+            y,
+            songWidth);
+        loadSong.Pressed += OpenSongDialog;
+    }
+
+    private void BuildMetadataDropdown(
+        EditorView view,
+        LevelInfo level,
+        EditorPlayhead playhead)
+    {
+        const float width = 380;
+        const float height = 300;
+        float x = Mathf.Max(24, view.ScreenSize.X - 24 - width);
+
+        _metadataPanel = new Panel
+        {
+            Position = new Vector2(x, EditorLayout.HeaderHeight + 8),
+            Size = new Vector2(width, height),
+            Visible = false,
+            MouseFilter = Control.MouseFilterEnum.Stop,
+        };
+
+        var style = new StyleBoxFlat
+        {
+            BgColor = new Color("#111827"),
+            BorderColor = new Color("#475569"),
+            BorderWidthLeft = 1,
+            BorderWidthTop = 1,
+            BorderWidthRight = 1,
+            BorderWidthBottom = 1,
+            CornerRadiusTopLeft = 4,
+            CornerRadiusTopRight = 4,
+            CornerRadiusBottomLeft = 4,
+            CornerRadiusBottomRight = 4,
+            ShadowColor = new Color(0, 0, 0, 0.35f),
+            ShadowSize = 8,
+        };
+        _metadataPanel.AddThemeStyleboxOverride("panel", style);
+        _header.AddChild(_metadataPanel);
+
+        var margin = new MarginContainer();
+        margin.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.FullRect);
+        margin.AddThemeConstantOverride("margin_left", 12);
+        margin.AddThemeConstantOverride("margin_top", 12);
+        margin.AddThemeConstantOverride("margin_right", 12);
+        margin.AddThemeConstantOverride("margin_bottom", 12);
+        _metadataPanel.AddChild(margin);
+
+        var box = new VBoxContainer();
+        box.AddThemeConstantOverride("separation", 8);
+        margin.AddChild(box);
+
+        _nameEdit = AddDropdownField(box, "Level name", level.Name);
         _nameEdit.TextChanged += OnNameChanged;
 
-        AddLabel("BPM / offset (ms)", x, y + 224, width);
-        _bpmEdit = AddLineEdit(playhead.Bpm.ToString(), x, y + 242, half);
+        _artistEdit = AddDropdownField(box, "Artist", level.Artist);
+        _artistEdit.TextChanged += OnArtistChanged;
+
+        _difficultyEdit = AddDropdownField(box, "Difficulty", level.Difficulty);
+        _difficultyEdit.TextChanged += OnDifficultyChanged;
+
+        var timing = new HBoxContainer();
+        timing.AddThemeConstantOverride("separation", 8);
+        box.AddChild(timing);
+
+        _bpmEdit = AddDropdownField(timing, "BPM", playhead.Bpm.ToString());
         _bpmEdit.TextChanged += OnBpmChanged;
 
-        _offsetEdit = AddLineEdit(
-            playhead.OffsetMs.ToString(),
-            x + half + 8,
-            y + 242,
-            half);
+        _offsetEdit = AddDropdownField(
+            timing,
+            "Offset (ms)",
+            playhead.OffsetMs.ToString());
         _offsetEdit.TextChanged += OnOffsetChanged;
 
-        AddLabel("Snap", x, y + 278, width);
+        var fileRow = new HBoxContainer();
+        fileRow.AddThemeConstantOverride("separation", 8);
+        box.AddChild(fileRow);
+
+        var saveAs = AddFillButton("Save As");
+        saveAs.Pressed += OpenSaveAsDialog;
+        fileRow.AddChild(saveAs);
+
+        var loadLevel = AddFillButton("Load Level");
+        loadLevel.Pressed += OpenLoadDialog;
+        fileRow.AddChild(loadLevel);
+    }
+
+    private void BuildFooter(EditorView view)
+    {
+        Rect2 footer = EditorLayout.FooterRect(view);
+        _footer = new Control
+        {
+            MouseFilter = Control.MouseFilterEnum.Ignore,
+            Position = footer.Position,
+            Size = footer.Size,
+        };
+        _root.AddChild(_footer);
+
+        _timeLabel = new Label
+        {
+            Text = "00:00.000 / 00:00.000",
+            Position = new Vector2(24, 4),
+            Size = new Vector2(300, 16),
+            VerticalAlignment = VerticalAlignment.Center,
+        };
+        _timeLabel.AddThemeFontSizeOverride("font_size", 14);
+        _timeLabel.AddThemeColorOverride("font_color", new Color("#cbd5e1"));
+        _footer.AddChild(_timeLabel);
+
+        _notesLabel = new Label
+        {
+            Text = "0 notes",
+            Position = new Vector2(view.ScreenSize.X - 24 - 240, 4),
+            Size = new Vector2(240, 16),
+            HorizontalAlignment = HorizontalAlignment.Right,
+            VerticalAlignment = VerticalAlignment.Center,
+        };
+        _notesLabel.AddThemeFontSizeOverride("font_size", 13);
+        _notesLabel.AddThemeColorOverride("font_color", new Color("#94a3b8"));
+        _footer.AddChild(_notesLabel);
+    }
+
+    private void BuildTransport(EditorView view, EditorPlayhead playhead)
+    {
+        Rect2 transport = EditorLayout.TransportRect(view);
+        _transport = new HBoxContainer
+        {
+            Position = transport.Position,
+            Size = transport.Size,
+            Alignment = BoxContainer.AlignmentMode.Center,
+            MouseFilter = Control.MouseFilterEnum.Ignore,
+        };
+        _transport.AddThemeConstantOverride("separation", 8);
+        _root.AddChild(_transport);
+
+        _playButton = AddTransportButton("Play");
+        _playButton.Pressed += TogglePlayback;
+
+        var stop = AddTransportButton("Stop");
+        stop.Pressed += StopPlayback;
+
+        _previewButton = AddTransportButton("Preview");
+        _previewButton.Pressed += TogglePreview;
+
+        _metronomeButton = AddTransportButton("Click Off");
+        _metronomeButton.Pressed += ToggleMetronome;
+
+        _transport.AddChild(new Control
+        {
+            CustomMinimumSize = new Vector2(12, 0),
+        });
+
+        var snapLabel = new Label
+        {
+            Text = "Snap",
+            VerticalAlignment = VerticalAlignment.Center,
+        };
+        snapLabel.AddThemeFontSizeOverride("font_size", 14);
+        _transport.AddChild(snapLabel);
+
         _snapOption = new OptionButton
         {
-            Position = new Vector2(x, y + 296),
-            Size = new Vector2(width, 30),
+            CustomMinimumSize = new Vector2(132, 36),
+            SizeFlagsVertical = Control.SizeFlags.ShrinkCenter,
         };
         _snapOption.AddItem("1/4 beat");
         _snapOption.AddItem("1/8 beat");
@@ -329,22 +553,7 @@ public partial class EditorOverlay : CanvasLayer
             _ => 0,
         };
         _snapOption.ItemSelected += OnSnapSelected;
-        _root.AddChild(_snapOption);
-
-        AddLabel(
-            "Space play   Home stop   Delete note   Ctrl+Z/Y undo   T tap tempo",
-            x,
-            y + 336,
-            width);
-
-        _statusLabel = new Label
-        {
-            Text = "",
-            Position = new Vector2(40, 4),
-            Size = new Vector2(view.ScreenSize.X - 80, 20),
-        };
-        _statusLabel.AddThemeFontSizeOverride("font_size", 14);
-        _root.AddChild(_statusLabel);
+        _transport.AddChild(_snapOption);
     }
 
     private void BuildSaveDialogs()
@@ -567,11 +776,53 @@ public partial class EditorOverlay : CanvasLayer
 
     private void SetEditControlsVisible(bool visible)
     {
-        foreach (Node child in _root.GetChildren())
+        _header.Visible = visible;
+        _footer.Visible = visible;
+        _transport.Visible = visible;
+
+        if (!visible)
+            HideMetadata();
+    }
+
+    private void ToggleMetadata()
+    {
+        if (_metadataPanel.Visible)
+            HideMetadata();
+        else
+            ShowMetadata();
+    }
+
+    private void ShowMetadata()
+    {
+        _metadataPanel.Visible = true;
+        _metadataCatcher.Visible = true;
+        _metadataButton.Text = "Level ▴";
+    }
+
+    private void HideMetadata()
+    {
+        if (GetViewport().GuiGetFocusOwner() is LineEdit)
+            GetViewport().GuiReleaseFocus();
+
+        _metadataPanel.Visible = false;
+        _metadataCatcher.Visible = false;
+        _metadataButton.Text = "Level ▾";
+    }
+
+    private void OnMetadataCatcherInput(InputEvent @event)
+    {
+        if (@event is not InputEventMouseButton
+            {
+                Pressed: true,
+                ButtonIndex: MouseButton.Left,
+            })
         {
-            if (child is Control control && control != _previewLabel)
-                control.Visible = visible;
+            return;
         }
+
+        HideMetadata();
+        _suppressPointerUntilRelease = true;
+        _metadataCatcher.AcceptEvent();
     }
 
     private string CurrentLevelPath() =>
@@ -693,40 +944,70 @@ public partial class EditorOverlay : CanvasLayer
         _statusLabel.Text = "Redo";
     }
 
-    private Button AddButton(string text, float x, float y, float width, float height)
+    private Button AddHeaderButton(string text, float x, float y, float width)
     {
         var button = new Button
         {
             Text = text,
             Position = new Vector2(x, y),
-            Size = new Vector2(width, height),
+            Size = new Vector2(width, 38),
+            CustomMinimumSize = new Vector2(width, 38),
         };
-        _root.AddChild(button);
+        _header.AddChild(button);
         return button;
     }
 
-    private void AddLabel(string text, float x, float y, float width)
+    private Button AddTransportButton(string text)
     {
-        var label = new Label
+        var button = new Button
         {
             Text = text,
-            Position = new Vector2(x, y),
-            Size = new Vector2(width, 20),
+            CustomMinimumSize = new Vector2(108, 38),
+            SizeFlagsVertical = Control.SizeFlags.ShrinkCenter,
         };
-        label.AddThemeFontSizeOverride("font_size", 15);
-        _root.AddChild(label);
+        _transport.AddChild(button);
+        return button;
     }
 
-    private LineEdit AddLineEdit(string text, float x, float y, float width)
-    {
-        var edit = new LineEdit
+    private static Button AddFillButton(string text) =>
+        new()
         {
             Text = text,
-            Position = new Vector2(x, y),
-            Size = new Vector2(width, 30),
+            CustomMinimumSize = new Vector2(0, 32),
+            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
         };
-        _root.AddChild(edit);
+
+    private static LineEdit AddDropdownField(
+        Container parent,
+        string labelText,
+        string value)
+    {
+        var field = new VBoxContainer
+        {
+            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+        };
+        field.AddThemeConstantOverride("separation", 2);
+
+        var label = new Label { Text = labelText };
+        label.AddThemeFontSizeOverride("font_size", 12);
+        label.AddThemeColorOverride("font_color", new Color("#94a3b8"));
+        field.AddChild(label);
+
+        var edit = new LineEdit
+        {
+            Text = value,
+            CustomMinimumSize = new Vector2(0, 30),
+            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+        };
+        field.AddChild(edit);
+        parent.AddChild(field);
         return edit;
+    }
+
+    private static string FormatMs(long milliseconds)
+    {
+        long value = Math.Max(0, milliseconds);
+        return $"{value / 60000:00}:{value / 1000 % 60:00}.{value % 1000:000}";
     }
 
     private Entity FindEditor()

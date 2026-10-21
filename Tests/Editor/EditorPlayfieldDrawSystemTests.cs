@@ -14,14 +14,15 @@ namespace Writer.Tests.Editor;
 public sealed class EditorPlayfieldDrawSystemTests
 {
     [Test]
-    public void RulerDrawsBeatTicksAndNoteMarkers()
+    public void RulerDrawsBeatTicksAndNoteMarkersInFooter()
     {
+        var view = new EditorView(new Vector2(30, 30), 0.6f, new Vector2(1152, 648));
         var store = new EntityStore();
         store.CreateEntity(
             new LevelInfo("Ruler", ""),
             new Playfield(1000, 1000),
             new EditorPlayhead(1_000, 120, 0, true, durationMs: 5_000),
-            new EditorView(new Vector2(30, 30), 0.6f, new Vector2(1152, 648)),
+            view,
             new NoteSelection(default),
             new EditorPreview(false, 0, false));
         store.CreateEntity(new Note(1_000, new Vector2(100, 100)));
@@ -33,18 +34,19 @@ public sealed class EditorPlayfieldDrawSystemTests
         root.Update(new UpdateTick(1f / 60f, 0));
 
         Assert.That(canvas.Lines.Count, Is.GreaterThan(10));
-        Assert.That(canvas.Texts, Does.Contain("Notes: 1"));
+        Assert.That(canvas.Rects, Does.Contain(EditorLayout.RulerRect(view)));
     }
 
     [Test]
-    public void PreviewDrawsWithoutEditorInspector()
+    public void PreviewDrawsWithoutEditorChrome()
     {
+        var view = new EditorView(new Vector2(30, 30), 0.6f, new Vector2(1152, 648));
         var store = new EntityStore();
         store.CreateEntity(
             new LevelInfo("Preview Level", ""),
             new Playfield(1000, 1000),
             new EditorPlayhead(500, 120, 0, true),
-            new EditorView(new Vector2(30, 30), 0.6f, new Vector2(1152, 648)),
+            view,
             new NoteSelection(default),
             new EditorPreview(true, 500, true));
 
@@ -54,19 +56,22 @@ public sealed class EditorPlayfieldDrawSystemTests
 
         root.Update(new UpdateTick(1f / 60f, 0));
 
-        Assert.That(canvas.Texts, Does.Not.Contain("EDITOR"));
+        Assert.That(canvas.Rects, Does.Contain(new Rect2(Vector2.Zero, view.ScreenSize)));
+        Assert.That(canvas.Rects, Does.Not.Contain(EditorLayout.RulerRect(view)));
         Assert.That(canvas.Rects, Is.Not.Empty);
     }
 
     [Test]
-    public void DrawsPlayfieldAndInspector()
+    public void DrawsPlayfieldHeaderFooterAndTimeline()
     {
+        var view = new EditorView(new Vector2(276, 88), 0.404f, new Vector2(1152, 648));
+        var playfield = new Playfield(1000, 1000);
         var store = new EntityStore();
         store.CreateEntity(
             new LevelInfo("Test Level", ""),
-            new Playfield(1000, 1000),
+            playfield,
             new EditorPlayhead(0, 120, 0, false),
-            new EditorView(new Vector2(30, 30), 0.6f, new Vector2(1152, 648)),
+            view,
             new NoteSelection(default));
 
         var canvas = new RecordingCanvas();
@@ -75,11 +80,11 @@ public sealed class EditorPlayfieldDrawSystemTests
 
         root.Update(new UpdateTick(1f / 60f, 0));
 
-        Assert.That(canvas.Rects, Is.Not.Empty);
-        Assert.That(canvas.Lines, Is.Not.Empty);
-        Assert.That(canvas.Texts, Does.Contain("EDITOR"));
-        Assert.That(canvas.Texts, Does.Contain("Level: Test Level"));
-        Assert.That(canvas.Texts, Does.Contain("Playfield 1000 x 1000"));
+        Assert.That(canvas.Rects, Does.Contain(EditorLayout.PlayfieldRect(view, playfield)));
+        Assert.That(canvas.Rects, Does.Contain(EditorLayout.HeaderRect(view)));
+        Assert.That(canvas.Rects, Does.Contain(EditorLayout.FooterRect(view)));
+        Assert.That(canvas.Rects, Does.Contain(EditorLayout.RulerRect(view)));
+        Assert.That(canvas.Texts, Does.Contain("500"));
     }
 
     private sealed class RecordingCanvas : IRectCanvas
