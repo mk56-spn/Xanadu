@@ -6,3 +6,6 @@
 
 #Ecs documentation here:
 https://friflo.gitbook.io/friflo.engine.ecs/documentation
+
+#Try and keep files under 400 lines
+
