@@ -1,3 +1,4 @@
+using System.Linq;
 using Friflo.Engine.ECS;
 using Godot;
 using Writer.Ecs;
@@ -132,6 +133,15 @@ public static class PlayScene
             SceneUi.AccentColor,
             new Color(0, 0, 0, 0));
 
+        Entity countdown = SceneUi.Text(
+            ui,
+            new Vector2(screen.X / 2, screen.Y / 2),
+            new Vector2(700, 180),
+            "",
+            120,
+            SceneUi.AccentColor,
+            new Color(0, 0, 0, 0));
+
         playfieldEntity.AddComponent(
             new ScoreState(
                 scoreText,
@@ -139,6 +149,11 @@ public static class PlayScene
                 accuracyText,
                 judgementText,
                 document.Notes.Count));
-        playfieldEntity.AddComponent(new PlaySession(status));
+        playfieldEntity.AddComponent(new PlaySession(
+            status,
+            countdown,
+            document.Notes.Count > 0
+                ? document.Notes.Max(note => note.TimeMs)
+                : -1));
     }
 }

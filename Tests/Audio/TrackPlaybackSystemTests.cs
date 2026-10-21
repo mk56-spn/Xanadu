@@ -116,6 +116,8 @@ public sealed class TrackPlaybackSystemTests
 
         public void Pause() => IsPlaying = false;
 
+        public void SetVolume(float volume) { }
+
         public void Seek(float seconds) => PositionSeconds = seconds;
 
         public bool Play(string audioPath, float volume)

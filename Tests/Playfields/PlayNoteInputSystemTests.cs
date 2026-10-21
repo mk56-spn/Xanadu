@@ -101,6 +101,7 @@ public sealed class PlayNoteInputSystemTests
 
         ScoreState score = playfield.GetComponent<ScoreState>();
         Assert.That(score.LastJudgement, Is.EqualTo(Judgement.Miss));
+        Assert.That(score.NotesHit, Is.EqualTo(1));
         Assert.That(score.Combo, Is.Zero);
         Assert.That(score.Score, Is.EqualTo(500_000));
         Assert.That(_judgementText.GetComponent<Text>().Value, Is.EqualTo("MISS"));
@@ -123,6 +124,7 @@ public sealed class PlayNoteInputSystemTests
         ScoreState score = playfield.GetComponent<ScoreState>();
         Assert.That(missed.Tags.Has<NoteMissed>(), Is.True);
         Assert.That(score.LastJudgement, Is.EqualTo(Judgement.Miss));
+        Assert.That(score.NotesHit, Is.EqualTo(1));
         Assert.That(score.Combo, Is.Zero);
         Assert.That(score.Score, Is.EqualTo(500_000));
     }

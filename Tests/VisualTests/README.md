@@ -61,6 +61,10 @@ every step as `pending`, `running`, `passed`, or `failed`.
   - every keybind rectangle is non-empty
 - `play` — synthetic level, score/combo HUD, animated PAUSE button, initialized
   play HUD layer
+- `results` — accuracy, rank, notes hit ratio, max combo, score, level name,
+  and exit buttons
+- `leave-editor` — real editor overlay, leave confirmation, YES click, return to
+  main
 
 ## Adding a test
 

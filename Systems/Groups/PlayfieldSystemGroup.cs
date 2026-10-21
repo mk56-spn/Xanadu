@@ -19,7 +19,7 @@ public sealed class PlayfieldSystemGroup : SystemGroup
         IPointerInputSource pointer) : base("Playfield")
     {
         Add(new PlayfieldPlaybackSystem(audio));
-        Add(new PlaySessionSystem());
+        Add(new PlaySessionSystem(audio));
         Add(new PlayNoteInputSystem(entities, pointer));
         Add(new PlayScoreSystem());
         Add(new PlayfieldDrawSystem(entities, canvas, playfieldCanvas));

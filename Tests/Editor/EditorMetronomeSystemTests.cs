@@ -82,6 +82,8 @@ public sealed class EditorMetronomeSystemTests
 
         public void Pause() => IsPlaying = false;
 
+        public void SetVolume(float volume) { }
+
         public void Seek(float seconds) { }
 
         public void Stop() => IsPlaying = false;

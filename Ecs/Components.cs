@@ -157,12 +157,14 @@ public struct Note(
     long timeMs,
     Vector2 position,
     long fadeInMs = 600,
-    long fadeOutMs = 600) : IComponent
+    long fadeOutMs = 600,
+    KeybindAction target = KeybindAction.M) : IComponent
 {
     public long TimeMs = timeMs;
     public Vector2 Position = position;
     public long FadeInMs = fadeInMs;
     public long FadeOutMs = fadeOutMs;
+    public KeybindAction Target = target;
 }
 
 /// <summary>Currently selected editor note.</summary>
@@ -212,6 +214,7 @@ public enum SceneKind
     Main,
     SongSelect,
     Play,
+    Results,
     Editor,
     Settings,
 }
@@ -337,12 +340,30 @@ public struct PlayfieldMode(PlayfieldKind kind) : IComponent
 }
 
 /// <summary>Play-session progress and its status text entity.</summary>
-public struct PlaySession(Entity status) : IComponent
+public struct PlaySession(
+    Entity status,
+    Entity countdown = default,
+    long lastNoteMs = -1) : IComponent
 {
     public Entity Status = status;
+    public Entity Countdown = countdown;
+    public long LastNoteMs = lastNoteMs;
     public bool Started;
+    public bool CountdownDone;
+    public float CountdownElapsed;
+    public bool Ending;
     public bool Finished;
     public float Elapsed;
+    public float FadeElapsed;
+    public float FadeDuration = 1.5f;
+}
+
+/// <summary>A rectangle filled with a linear colour gradient.</summary>
+public struct LinearGradient(Color start, Color end, bool horizontal = true) : IComponent
+{
+    public Color Start = start;
+    public Color End = end;
+    public bool Horizontal = horizontal;
 }
 
 /// <summary>Base colours and animated state for a hoverable/clickable button.</summary>

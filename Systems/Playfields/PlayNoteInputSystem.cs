@@ -89,7 +89,9 @@ public sealed class PlayNoteInputSystem : QuerySystem<Note>
     {
         Judgement judgement = ScoreRules.Judge(offsetMs);
 
-        score.NotesHit++;
+        if (judgement != Judgement.Miss)
+            score.NotesHit++;
+
         score.HasJudgement = true;
         score.LastJudgement = judgement;
         score.LastOffsetMs = offsetMs;

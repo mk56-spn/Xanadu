@@ -79,6 +79,12 @@ public sealed unsafe class MiniaudioTrackAudio : ITrackAudio
             ma.sound_seek_to_second(_sound, MathF.Max(0, seconds));
     }
 
+    public void SetVolume(float volume)
+    {
+        if (_soundInitialized)
+            ma.sound_set_volume(_sound, Math.Clamp(volume, 0f, 1f));
+    }
+
     public void Stop()
     {
         if (!_soundInitialized)

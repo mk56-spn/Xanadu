@@ -216,6 +216,8 @@ public sealed class PlayfieldPlaybackSystemTests
             IsPlaying = false;
         }
 
+        public void SetVolume(float volume) { }
+
         public void Seek(float seconds) => SeekSeconds = seconds;
 
         public void Stop()

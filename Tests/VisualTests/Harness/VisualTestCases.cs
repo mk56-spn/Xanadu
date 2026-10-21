@@ -18,6 +18,7 @@ public static class SceneTestCatalog
         new SongSelectSceneTest(),
         new SettingsSceneTest(),
         new PlaySceneTest(),
+        new ResultsSceneTest(),
         new LeaveEditorSceneTest(),
     };
 }
@@ -328,5 +329,55 @@ public sealed class LeaveEditorSceneTest : SceneTest
     {
         _overlay?.Close();
         _overlay = null;
+    }
+}
+
+/// <summary>The results screen shows the three final values in one column.</summary>
+public sealed class ResultsSceneTest : SceneTest
+{
+    public override string Name => "Results";
+    public override string Slug => "results";
+
+    protected override void SetUpSteps()
+    {
+        AddStep(
+            "open results",
+            () => Context.Scenes.StartResults(
+                new PlayResults(
+                    "Results Test",
+                    987_654,
+                    0.9876,
+                    42,
+                    30,
+                    42)));
+
+        AddUntilStep(
+            "wait for results ECS",
+            () => Context.Scenes.Current == SceneKind.Results &&
+                  VisualAssert.HasText(Context.Entities, "RESULTS") &&
+                  VisualAssert.HasText(Context.Entities, "98.76%"));
+
+        AddAssert(
+            "accuracy is shown",
+            () => VisualAssert.HasText(Context.Entities, "98.76%"));
+        AddAssert(
+            "rank is shown",
+            () => VisualAssert.HasText(Context.Entities, "S"));
+        AddAssert(
+            "notes hit ratio is shown",
+            () => VisualAssert.HasText(Context.Entities, "30 / 42"));
+        AddAssert(
+            "max combo is shown",
+            () => VisualAssert.HasText(Context.Entities, "42"));
+        AddAssert(
+            "score is shown",
+            () => VisualAssert.HasText(Context.Entities, "0987654"));
+        AddAssert(
+            "level name is shown",
+            () => VisualAssert.HasText(Context.Entities, "Results Test"));
+        AddAssert(
+            "results has two exit buttons",
+            () => VisualAssert.HasText(Context.Entities, "SONG SELECT") &&
+                  VisualAssert.HasText(Context.Entities, "MAIN MENU"));
     }
 }

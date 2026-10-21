@@ -15,6 +15,8 @@ public interface ITrackAudio : IDisposable
 
     void Seek(float seconds);
 
+    void SetVolume(float volume);
+
     void Stop();
 
     bool IsPlaying { get; }
