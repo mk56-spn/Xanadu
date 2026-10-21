@@ -10,6 +10,7 @@ using Writer.Systems.Debug;
 using Writer.Systems.Groups;
 using Writer.Systems.Input;
 using Writer.Systems.Physics;
+using Writer.Settings;
 using Writer.Systems.Scenes;
 
 namespace Writer.Ecs;
@@ -37,6 +38,8 @@ public sealed class WriterSystemRoot : SystemRoot, IDisposable
 
     public SceneSystem Scenes { get; }
 
+    public KeybindSettings Keybinds { get; }
+
     public WriterSystemRoot(
         EntityStore entities,
         Rid parentCanvas,
@@ -49,7 +52,20 @@ public sealed class WriterSystemRoot : SystemRoot, IDisposable
         entities.OnEntityDelete += OnEntityDelete;
         EditorHistory = new EditorHistory(entities);
         Commands = new EditorCommandBus();
-        Scenes = new SceneSystem(entities, sceneDirector, viewportSize);
+        Keybinds = new KeybindSettings();
+
+        // Register the keybind component archetype before the first runtime
+        // Settings build; first-time component registration during scene
+        // construction leaves the new layer's structural tags stuck.
+        Entity keybindWarmup = entities.CreateEntity(
+            new KeybindButton(KeybindAction.L1));
+        keybindWarmup.DeleteEntity();
+
+        Scenes = new SceneSystem(
+            entities,
+            sceneDirector,
+            viewportSize,
+            keybinds: Keybinds);
         _sceneDirector = sceneDirector;
         sceneDirector.Changed += OnSceneChanged;
 
@@ -86,7 +102,7 @@ public sealed class WriterSystemRoot : SystemRoot, IDisposable
             EditorHistory);
         _editorSystems.Enabled = false;
         Add(_editorSystems);
-        Add(new InputSystemGroup(entities, pointerInput, Scenes));
+        Add(new InputSystemGroup(entities, pointerInput, Scenes, Keybinds));
         Add(new DebugSystemGroup(
             canvas,
             _debugOverlay,

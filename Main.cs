@@ -43,13 +43,23 @@ public partial class Main : Control
 			_pointer?.LatchPress();
 		}
 
-		if (_editorOverlay is not null ||
-			@event is not InputEventKey { Pressed: true, Echo: false } key)
+		if (@event is not InputEventKey { Pressed: true, Echo: false } key)
+			return;
+
+		Key keycode = key.Keycode != Key.None
+			? key.Keycode
+			: key.PhysicalKeycode;
+
+		if (_systems?.Keybinds.TryCapture(keycode) == true)
 		{
+			GetViewport().SetInputAsHandled();
 			return;
 		}
 
-		switch (key.Keycode)
+		if (_editorOverlay is not null)
+			return;
+
+		switch (keycode)
 		{
 			case Key.Escape:
 				_systems?.Scenes.TryBack();

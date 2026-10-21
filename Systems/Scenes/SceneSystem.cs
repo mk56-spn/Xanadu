@@ -6,6 +6,7 @@ using Godot;
 using Writer.Ecs;
 using Writer.Levels;
 using Writer.Scenes;
+using Writer.Settings;
 using Writer.Ui;
 using SceneState = Writer.Ecs.SceneState;
 using Position = Writer.Ecs.Position;
@@ -20,6 +21,7 @@ public sealed class SceneSystem : QuerySystem<SceneState>
     private readonly Vector2 _screen;
     private readonly IVisualRidFactory _visuals;
     private readonly Func<List<LevelEntry>> _loadLevels;
+    private readonly KeybindSettings _keybinds;
 
     private Entity _stateEntity;
     private Entity _labelEntity;
@@ -36,13 +38,15 @@ public sealed class SceneSystem : QuerySystem<SceneState>
         SceneDirector director,
         Vector2 screen,
         IVisualRidFactory? visuals = null,
-        Func<List<LevelEntry>>? loadLevels = null)
+        Func<List<LevelEntry>>? loadLevels = null,
+        KeybindSettings? keybinds = null)
     {
         _entities = entities;
         _director = director;
         _screen = screen;
         _visuals = visuals ?? new GodotVisualRidFactory();
         _loadLevels = loadLevels ?? LevelStore.List;
+        _keybinds = keybinds ?? new KeybindSettings(persist: false);
     }
 
     public SceneKind Current =>
@@ -65,6 +69,13 @@ public sealed class SceneSystem : QuerySystem<SceneState>
             return;
 
         ref SceneState state = ref _stateEntity.GetComponent<SceneState>();
+
+        if (state.Current == SceneKind.Settings &&
+            _keybinds.Capturing is not null)
+        {
+            _keybinds.CancelCapture();
+            return;
+        }
 
         if (IsPauseVisible())
         {
@@ -512,6 +523,19 @@ public sealed class SceneSystem : QuerySystem<SceneState>
 
     private void HandleActions(ref SceneState state)
     {
+        if (state.Current == SceneKind.Settings)
+        {
+            foreach (Entity entity in _entities
+                         .Query<KeybindButton>()
+                         .AllTags(Tags.Get<Pressed>())
+                         .ToEntityList())
+            {
+                _keybinds.BeginCapture(
+                    entity.GetComponent<KeybindButton>().Action);
+                return;
+            }
+        }
+
         if (state.Current == SceneKind.Play)
         {
             foreach (Entity entity in _entities
@@ -555,6 +579,7 @@ public sealed class SceneSystem : QuerySystem<SceneState>
 
     private void Switch(ref SceneState state)
     {
+        _keybinds.CancelCapture();
         HidePauseVisual();
         HideConfirmation();
 
@@ -591,7 +616,12 @@ public sealed class SceneSystem : QuerySystem<SceneState>
                 break;
 
             case SceneKind.Settings:
-                SettingsScene.Build(_entities, _sceneRoot, _screen, _visuals);
+                SettingsScene.Build(
+                    _entities,
+                    _sceneRoot,
+                    _screen,
+                    _keybinds,
+                    _visuals);
                 break;
         }
 

@@ -7,6 +7,7 @@ using Godot;
 using NUnit.Framework;
 using Writer.Ecs;
 using Writer.Levels;
+using Writer.Settings;
 using Writer.Systems.Scenes;
 using Writer.Ui;
 
@@ -19,6 +20,7 @@ public sealed class SceneSystemTests
     private SceneDirector _director = null!;
     private SystemRoot _root = null!;
     private SceneSystem _scenes = null!;
+    private KeybindSettings _keybinds = null!;
     private string _directory = null!;
     private List<LevelEntry> _catalog = null!;
 
@@ -39,12 +41,14 @@ public sealed class SceneSystemTests
             CreateLevel("Second Level", "res://song-b.mp3", 170),
         };
 
+        _keybinds = new KeybindSettings(persist: false);
         _scenes = new SceneSystem(
             _store,
             _director,
             new Vector2(1280, 720),
             new FakeVisualRidFactory(),
-            () => _catalog);
+            () => _catalog,
+            _keybinds);
 
         _root.Add(_scenes);
     }
@@ -263,6 +267,39 @@ public sealed class SceneSystemTests
         Frame();
 
         Assert.That(_director.Current, Is.EqualTo(SceneKind.Main));
+    }
+
+    [Test]
+    public void SettingsShowsAllDefaultKeybinds()
+    {
+        _scenes.Start(SceneKind.Settings);
+        Frame();
+
+        var rows = _store.Query<KeybindButton>().ToEntityList();
+        Assert.That(rows.Count, Is.EqualTo(KeybindSettings.Actions.Length));
+
+        foreach (Entity row in rows)
+        {
+            KeybindAction action = row.GetComponent<KeybindButton>().Action;
+            string expected = KeybindSettings.KeyLabel(
+                KeybindSettings.DefaultFor(action));
+            Assert.That(row.GetComponent<Text>().Value, Is.EqualTo(expected));
+        }
+    }
+
+    [Test]
+    public void ClickingAKeybindRowStartsCapture()
+    {
+        _scenes.Start(SceneKind.Settings);
+        Frame();
+
+        Entity row = _store.Query<KeybindButton>().ToEntityList()[0];
+        row.AddTag<Pressed>();
+        Frame();
+
+        Assert.That(_keybinds.Capturing, Is.EqualTo(KeybindAction.L1));
+        Assert.That(_keybinds.TryCapture(Key.A), Is.True);
+        Assert.That(_keybinds.Get(KeybindAction.L1), Is.EqualTo(Key.A));
     }
 
     [Test]

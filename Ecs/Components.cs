@@ -2,6 +2,7 @@ using System;
 using Friflo.Engine.ECS;
 using Godot;
 using Writer.Scoring;
+using Writer.Settings;
 
 namespace Writer.Ecs;
 
@@ -305,6 +306,12 @@ public struct ScoreState(
         (long)Math.Round(ScorePoints * ScoreRules.MaxScore),
         0,
         ScoreRules.MaxScore);
+}
+
+/// <summary>Settings button that captures a new key for an action.</summary>
+public struct KeybindButton(KeybindAction action) : IComponent
+{
+    public KeybindAction Action = action;
 }
 
 /// <summary>Gameplay pause overlay state.</summary>
