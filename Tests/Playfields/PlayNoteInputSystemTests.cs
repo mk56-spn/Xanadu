@@ -34,7 +34,9 @@ public sealed class PlayNoteInputSystemTests
         _scoreText = _store.CreateEntity(new Text(""));
         _comboText = _store.CreateEntity(new Text(""));
         _accuracyText = _store.CreateEntity(new Text(""));
-        _judgementText = _store.CreateEntity(new Text(""));
+        _judgementText = _store.CreateEntity(
+            new Text(""),
+            new Position(Vector2.Zero));
         _root.Add(new PlayNoteInputSystem(_store, _keybinds, _keyboard));
         _root.Add(new PlayScoreSystem());
     }
@@ -55,6 +57,9 @@ public sealed class PlayNoteInputSystemTests
         Assert.That(score.Combo, Is.EqualTo(1));
         Assert.That(score.LastJudgement, Is.EqualTo(Judgement.FlawlessP));
         Assert.That(_judgementText.GetComponent<Text>().Value, Is.EqualTo("FLAWLESS+"));
+        Assert.That(
+            _judgementText.GetComponent<Position>().Value,
+            Is.EqualTo(new Vector2(500, 500)));
     }
 
     [TestCase(KeybindAction.L1)]

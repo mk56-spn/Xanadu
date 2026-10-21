@@ -117,7 +117,12 @@ public sealed class PlayNoteInputSystem : QuerySystem<Note>
         }
 
         if (!hit.IsNull)
+        {
+            Note hitNote = hit.GetComponent<Note>();
+            score.JudgementPosition = view.PlayfieldToScreen(hitNote.Position);
+            score.JudgementTimeMs = playhead.TimeMs;
             Hit(ref score, hit, bestOffset);
+        }
     }
 
     private static void Hit(
@@ -178,6 +183,10 @@ public sealed class PlayNoteInputSystem : QuerySystem<Note>
             score.Combo = 0;
             score.HasJudgement = true;
             score.LastJudgement = Judgement.Miss;
+            score.JudgementPosition = playfield
+                .GetComponent<PlayfieldView>()
+                .PlayfieldToScreen(note.Position);
+            score.JudgementTimeMs = playhead.TimeMs;
         }
     }
 

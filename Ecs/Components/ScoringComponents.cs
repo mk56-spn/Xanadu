@@ -1,5 +1,6 @@
 using System;
 using Friflo.Engine.ECS;
+using Godot;
 using Writer.Scoring;
 
 namespace Writer.Ecs;
@@ -25,6 +26,8 @@ public struct ScoreState(
     public Judgement LastJudgement;
     public bool HasJudgement;
     public long LastOffsetMs;
+    public Vector2 JudgementPosition;
+    public long JudgementTimeMs;
 
     public readonly double Accuracy =>
         TotalNotes > 0 ? AccuracyPoints / TotalNotes : 0;
