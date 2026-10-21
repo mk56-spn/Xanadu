@@ -36,6 +36,7 @@ public sealed class PlayNoteInputSystemTests
         _accuracyText = _store.CreateEntity(new Text(""));
         _judgementText = _store.CreateEntity(
             new Text(""),
+            new TextStyle(28, Colors.White),
             new Position(Vector2.Zero));
         _root.Add(new PlayNoteInputSystem(_store, _keybinds, _keyboard));
         _root.Add(new PlayScoreSystem());
@@ -57,6 +58,9 @@ public sealed class PlayNoteInputSystemTests
         Assert.That(score.Combo, Is.EqualTo(1));
         Assert.That(score.LastJudgement, Is.EqualTo(Judgement.FlawlessP));
         Assert.That(_judgementText.GetComponent<Text>().Value, Is.EqualTo("FLAWLESS+"));
+        Assert.That(
+            _judgementText.GetComponent<TextStyle>().Color,
+            Is.EqualTo(PlayScoreSystem.ColorFor(Judgement.FlawlessP)));
         Assert.That(
             _judgementText.GetComponent<Position>().Value,
             Is.EqualTo(new Vector2(500, 500)));
@@ -223,6 +227,9 @@ public sealed class PlayNoteInputSystemTests
         Assert.That(score.Combo, Is.Zero);
         Assert.That(score.Score, Is.EqualTo(500_000));
         Assert.That(_judgementText.GetComponent<Text>().Value, Is.EqualTo("MISS"));
+        Assert.That(
+            _judgementText.GetComponent<TextStyle>().Color,
+            Is.EqualTo(PlayScoreSystem.ColorFor(Judgement.Miss)));
     }
 
     [Test]

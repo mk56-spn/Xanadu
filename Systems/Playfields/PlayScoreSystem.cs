@@ -1,4 +1,5 @@
 using Friflo.Engine.ECS;
+using Godot;
 using Friflo.Engine.ECS.Systems;
 using Writer.Ecs;
 using Writer.Scoring;
@@ -9,6 +10,18 @@ namespace Writer.Systems.Playfields;
 /// <summary>Projects score, accuracy, rank, judgement, and combo into the play HUD.</summary>
 public sealed class PlayScoreSystem : QuerySystem<ScoreState, Playhead>
 {
+    public static Color ColorFor(Judgement judgement) => judgement switch
+    {
+        Judgement.FlawlessP => new("#facc15"),
+        Judgement.Flawless => new("#22d3ee"),
+        Judgement.Clean => new("#4ade80"),
+        Judgement.Fair => new("#60a5fa"),
+        Judgement.Deficient => new("#fb923c"),
+        Judgement.Terrible => new("#ef4444"),
+        Judgement.Miss => new("#94a3b8"),
+        _ => Colors.White,
+    };
+
     protected override void OnUpdate()
     {
         CommandBuffer buffer = CommandBuffer;
@@ -32,6 +45,19 @@ public sealed class PlayScoreSystem : QuerySystem<ScoreState, Playhead>
                     ? ScoreRules.LabelFor(score.LastJudgement)
                     : "",
                 buffer);
+
+            if (showJudgement &&
+                score.JudgementText.HasComponent<TextStyle>())
+            {
+                ref TextStyle style =
+                    ref score.JudgementText.GetComponent<TextStyle>();
+                Color color = ColorFor(score.LastJudgement);
+                if (style.Color != color)
+                {
+                    style.Color = color;
+                    buffer.AddTag<Dirty>(score.JudgementText.Id);
+                }
+            }
 
             if (showJudgement &&
                 !score.JudgementText.IsNull &&
