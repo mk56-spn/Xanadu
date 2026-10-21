@@ -13,7 +13,6 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
 {
     private const float NoteSize = 24;
     private const float HitRadius = NoteSize / 2;
-    private const float TransportHeight = 8;
 
     private readonly EntityStore _entities;
     private readonly IPointerInputSource _pointer;
@@ -60,7 +59,8 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
         Playfield playfield = editor.GetComponent<Playfield>();
         EditorPlayhead playhead = editor.GetComponent<EditorPlayhead>();
 
-        if (TryGetTransportBar(view, playfield, out Rect2 bar) && bar.HasPoint(screenPosition))
+        Rect2 bar = EditorLayout.RulerRect(view, playfield);
+        if (bar.HasPoint(screenPosition))
         {
             _scrubbing = true;
             Scrub(screenPosition, bar, playhead);
@@ -104,9 +104,7 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
 
         if (_scrubbing)
         {
-            if (TryGetTransportBar(view, playfield, out Rect2 bar))
-                Scrub(screenPosition, bar, playhead);
-
+            Scrub(screenPosition, EditorLayout.RulerRect(view, playfield), playhead);
             return;
         }
 
@@ -174,22 +172,6 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
             return entity;
 
         return default;
-    }
-
-    private static bool TryGetTransportBar(
-        EditorView view,
-        Playfield playfield,
-        out Rect2 bar)
-    {
-        float width = playfield.Width * view.Scale;
-        float height = playfield.Height * view.Scale;
-        bar = new Rect2(
-            view.ScreenOrigin.X,
-            view.ScreenOrigin.Y + height + 10,
-            width,
-            TransportHeight);
-
-        return true;
     }
 
     private static bool IsInside(Vector2 position, Playfield playfield) =>

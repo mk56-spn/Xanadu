@@ -88,7 +88,8 @@ public sealed class EditorPlayfieldDrawSystem :
 
         float panelX = field.End.X + PanelGap;
         float panelWidth = view.ScreenSize.X - panelX - Margin;
-        var panel = new Rect2(panelX, field.Position.Y, panelWidth, field.Size.Y);
+        float panelHeight = view.ScreenSize.Y - field.Position.Y - 30;
+        var panel = new Rect2(panelX, field.Position.Y, panelWidth, panelHeight);
         _canvas.DrawRect(_editor, panel, PanelBackground);
         DrawBorder(panel, BorderColor, 1);
 
@@ -135,7 +136,70 @@ public sealed class EditorPlayfieldDrawSystem :
         DrawPanelText($"Notes: {noteCount}", x, y, TextColor, panel.Size.X);
 
         DrawNotes(view, playhead, selection);
-        DrawTransport(field, playhead);
+        DrawRuler(view, playfield, playhead, selection);
+    }
+
+    private void DrawRuler(
+        EditorView view,
+        Playfield playfield,
+        EditorPlayhead playhead,
+        NoteSelection selection)
+    {
+        Rect2 ruler = EditorLayout.RulerRect(view, playfield);
+        _canvas.DrawRect(_editor, ruler, PlayfieldBackground);
+        DrawBorder(ruler, BorderColor, 1);
+
+        if (playhead.DurationMs <= 0)
+            return;
+
+        double beatMs = 60_000.0 / Math.Max(1, playhead.Bpm);
+        double beatCount = playhead.DurationMs / beatMs;
+        int step = Math.Max(1, (int)Math.Ceiling(beatCount / 160.0));
+
+        for (int beat = 0; beat <= beatCount; beat += step)
+        {
+            float x = ruler.Position.X +
+                      (float)(beat * beatMs / playhead.DurationMs) * ruler.Size.X;
+            bool measure = beat % 4 == 0;
+            float height = measure ? 20 : 9;
+
+            _canvas.DrawLine(
+                _editor,
+                new Vector2(x, ruler.End.Y - height),
+                new Vector2(x, ruler.End.Y),
+                measure ? AxisColor : GridColor,
+                measure ? 2 : 1);
+        }
+
+        foreach (Entity entity in _entities.Query<Note>().ToEntityList())
+        {
+            Note note = entity.GetComponent<Note>();
+            float x = ruler.Position.X +
+                      Math.Clamp(note.TimeMs / (float)playhead.DurationMs, 0f, 1f) *
+                      ruler.Size.X;
+
+            Color color = !selection.Note.IsNull && selection.Note.Id == entity.Id
+                ? new Color(1f, 0.9f, 0.3f)
+                : new Color(1f, 0.55f, 0.15f);
+
+            _canvas.DrawRect(
+                _editor,
+                new Rect2(x - 1.5f, ruler.Position.Y + 8, 3, ruler.Size.Y - 10),
+                color);
+        }
+
+        float playheadX = ruler.Position.X +
+                          Math.Clamp(
+                              playhead.TimeMs / (float)playhead.DurationMs,
+                              0f,
+                              1f) * ruler.Size.X;
+
+        _canvas.DrawLine(
+            _editor,
+            new Vector2(playheadX, ruler.Position.Y),
+            new Vector2(playheadX, ruler.End.Y),
+            Colors.White,
+            2);
     }
 
     private void DrawPreview(

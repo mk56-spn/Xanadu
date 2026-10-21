@@ -253,13 +253,16 @@ public partial class EditorOverlay : CanvasLayer
         _snapOption.ItemSelected += OnSnapSelected;
         _root.AddChild(_snapOption);
 
-        AddLabel("Space play/pause    Home stop    Delete note", x, y + 310, width);
-        AddLabel("Ctrl+Z undo    Ctrl+Y redo", x, y + 332, width);
+        AddLabel(
+            "Space play/pause   Home stop   Delete note   Ctrl+Z/Y undo/redo",
+            x,
+            y + 310,
+            width);
 
         _statusLabel = new Label
         {
             Text = "",
-            Position = new Vector2(x, y + 358),
+            Position = new Vector2(x, y + 332),
             Size = new Vector2(width, 20),
         };
         _statusLabel.AddThemeFontSizeOverride("font_size", 14);

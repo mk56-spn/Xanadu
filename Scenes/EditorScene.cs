@@ -11,7 +11,7 @@ public static class EditorScene
 
     public static void Build(EntityStore entities, Vector2 viewportSize)
     {
-        float available = Mathf.Min(viewportSize.Y - 60, viewportSize.X * 0.6f);
+        float available = Mathf.Min(viewportSize.Y - 120, viewportSize.X * 0.55f);
         float renderedSize = Mathf.Min(FieldSize, available);
         float scale = renderedSize / FieldSize;
         float originY = Mathf.Max(30, (viewportSize.Y - renderedSize) / 2);

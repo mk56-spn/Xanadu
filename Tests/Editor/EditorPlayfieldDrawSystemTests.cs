@@ -14,6 +14,29 @@ namespace Writer.Tests.Editor;
 public sealed class EditorPlayfieldDrawSystemTests
 {
     [Test]
+    public void RulerDrawsBeatTicksAndNoteMarkers()
+    {
+        var store = new EntityStore();
+        store.CreateEntity(
+            new LevelInfo("Ruler", ""),
+            new Playfield(1000, 1000),
+            new EditorPlayhead(1_000, 120, 0, true, durationMs: 5_000),
+            new EditorView(new Vector2(30, 30), 0.6f, new Vector2(1152, 648)),
+            new NoteSelection(default),
+            new EditorPreview(false, 0, false));
+        store.CreateEntity(new Note(1_000, new Vector2(100, 100)));
+
+        var canvas = new RecordingCanvas();
+        var root = new SystemRoot(store);
+        root.Add(new EditorPlayfieldDrawSystem(store, canvas, default));
+
+        root.Update(new UpdateTick(1f / 60f, 0));
+
+        Assert.That(canvas.Lines.Count, Is.GreaterThan(10));
+        Assert.That(canvas.Texts, Does.Contain("Notes: 1"));
+    }
+
+    [Test]
     public void PreviewDrawsWithoutEditorInspector()
     {
         var store = new EntityStore();
