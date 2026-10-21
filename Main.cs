@@ -2,6 +2,7 @@ using System.IO;
 using Friflo.Engine.ECS;
 using Godot;
 using Writer.Ecs;
+using Writer.Editor;
 using Writer.Scenes;
 using Writer.Systems.Input;
 
@@ -39,7 +40,10 @@ public partial class Main : Control
         else if (PhysicsTest)
             PhysicsScene.Build(Entities, _systems.Physics, GetViewportRect().Size);
         else if (EditorTest)
+        {
             EditorScene.Build(Entities, GetViewportRect().Size);
+            AddChild(new EditorOverlay(Entities));
+        }
         else
             TestScene.Build(Entities);
 

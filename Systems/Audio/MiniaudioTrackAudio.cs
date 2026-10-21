@@ -14,7 +14,10 @@ public sealed unsafe class MiniaudioTrackAudio : ITrackAudio
     private bool _soundInitialized;
     private bool _disposed;
 
-    public bool Play(string audioPath, float volume)
+    public bool Play(string audioPath, float volume) =>
+        Load(audioPath, volume) && Resume();
+
+    public bool Load(string audioPath, float volume)
     {
         if (!EnsureEngine())
             return false;
@@ -48,17 +51,32 @@ public sealed unsafe class MiniaudioTrackAudio : ITrackAudio
 
         _soundInitialized = true;
         ma.sound_set_volume(_sound, volume);
-
-        ma_result startResult = ma.sound_start(_sound);
-        if (startResult != ma_result.MA_SUCCESS)
-        {
-            GD.PushError($"miniaudio failed to start '{path}': {startResult}");
-            ma.sound_uninit(_sound);
-            _soundInitialized = false;
-            return false;
-        }
-
         return true;
+    }
+
+    public bool Resume()
+    {
+        if (!_soundInitialized)
+            return false;
+
+        ma_result result = ma.sound_start(_sound);
+        if (result == ma_result.MA_SUCCESS)
+            return true;
+
+        GD.PushError($"miniaudio failed to resume: {result}");
+        return false;
+    }
+
+    public void Pause()
+    {
+        if (_soundInitialized)
+            ma.sound_stop(_sound);
+    }
+
+    public void Seek(float seconds)
+    {
+        if (_soundInitialized)
+            ma.sound_seek_to_second(_sound, MathF.Max(0, seconds));
     }
 
     public void Stop()

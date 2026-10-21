@@ -19,7 +19,11 @@ public static class EditorScene
         entities.CreateEntity(
             new LevelInfo("Untitled", ""),
             new Playfield(FieldSize, FieldSize),
-            new EditorPlayhead(timeMs: 0, bpm: 120, offsetMs: 0, playing: false),
+            new EditorPlayhead(
+                timeMs: 0,
+                bpm: 120,
+                offsetMs: 0,
+                playing: false),
             new EditorView(new Vector2(30, originY), scale, viewportSize));
     }
 }

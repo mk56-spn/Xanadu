@@ -106,12 +106,16 @@ public struct EditorPlayhead(
     long timeMs,
     int bpm,
     long offsetMs,
-    bool playing) : IComponent
+    bool playing,
+    long durationMs = 0,
+    long seekRequestMs = -1) : IComponent
 {
     public long TimeMs = timeMs;
     public int Bpm = bpm;
     public long OffsetMs = offsetMs;
     public bool Playing = playing;
+    public long DurationMs = durationMs;
+    public long SeekRequestMs = seekRequestMs;
 }
 
 /// <summary>Screen-space layout of the logical playfield.</summary>

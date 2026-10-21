@@ -85,22 +85,6 @@ public sealed class EditorPlayfieldDrawSystem : QuerySystem<EditorView, LevelInf
         y += 24;
 
         DrawPanelText(
-            $"BPM {playhead.Bpm}    Offset {playhead.OffsetMs} ms",
-            x,
-            y,
-            TextColor,
-            panel.Size.X);
-        y += 24;
-
-        DrawPanelText(
-            $"Time {FormatMs(playhead.TimeMs)}    {(playhead.Playing ? "playing" : "paused")}",
-            x,
-            y,
-            TextColor,
-            panel.Size.X);
-        y += 24;
-
-        DrawPanelText(
             $"Playfield {playfield.Width} x {playfield.Height}",
             x,
             y,
@@ -108,13 +92,51 @@ public sealed class EditorPlayfieldDrawSystem : QuerySystem<EditorView, LevelInf
             panel.Size.X);
         y += 24;
 
-        DrawPanelText("Notes: 0", x, y, DimTextColor, panel.Size.X);
-        y += 40;
-
-        DrawPanelText("Commit 1: playfield skeleton", x, y, TitleColor, panel.Size.X);
+        DrawPanelText(
+            $"Time {FormatMs(playhead.TimeMs)} / {FormatMs(playhead.DurationMs)}",
+            x,
+            y,
+            TextColor,
+            panel.Size.X);
         y += 24;
 
-        DrawPanelText("Transport and note editing arrive next.", x, y, DimTextColor, panel.Size.X);
+        DrawPanelText(
+            playhead.Playing ? "playing" : "paused",
+            x,
+            y,
+            DimTextColor,
+            panel.Size.X);
+
+        DrawTransport(field, playhead);
+    }
+
+    private void DrawTransport(Rect2 field, EditorPlayhead playhead)
+    {
+        float barY = field.End.Y + 10;
+        var bar = new Rect2(field.Position.X, barY, field.Size.X, 8);
+        _canvas.DrawRect(_editor, bar, PlayfieldBackground);
+        DrawBorder(bar, BorderColor, 1);
+
+        if (playhead.DurationMs <= 0)
+            return;
+
+        float progress = Math.Clamp(
+            playhead.TimeMs / (float)playhead.DurationMs,
+            0f,
+            1f);
+
+        _canvas.DrawRect(
+            _editor,
+            new Rect2(bar.Position, new Vector2(bar.Size.X * progress, bar.Size.Y)),
+            TitleColor);
+
+        float x = bar.Position.X + bar.Size.X * progress;
+        _canvas.DrawLine(
+            _editor,
+            new Vector2(x, bar.Position.Y - 2),
+            new Vector2(x, bar.End.Y + 2),
+            Colors.White,
+            2);
     }
 
     private void DrawGrid(EditorView view, Playfield playfield, Rect2 field)

@@ -20,6 +20,7 @@ public sealed class WriterSystemRoot : SystemRoot, IDisposable
     private readonly Rid _timeline;
     private readonly Rid _editor;
     private readonly MiniaudioTrackAudio _trackAudio = new();
+    private readonly MiniaudioTrackAudio _editorAudio = new();
 
     public Box2DPhysicsWorld Physics { get; } = new();
 
@@ -47,7 +48,7 @@ public sealed class WriterSystemRoot : SystemRoot, IDisposable
         Add(new PhysicsSystemGroup(Physics));
         Add(new PresentationSystemGroup(canvas));
         Add(new AudioSystemGroup(_trackAudio, new GodotTrackClock(), canvas, _timeline));
-        Add(new EditorSystemGroup(canvas, _editor));
+        Add(new EditorSystemGroup(canvas, _editor, _editorAudio));
         Add(new InputSystemGroup(pointerInput));
         Add(new DebugSystemGroup(
             canvas,
@@ -63,6 +64,7 @@ public sealed class WriterSystemRoot : SystemRoot, IDisposable
     public void Dispose()
     {
         _trackAudio.Dispose();
+        _editorAudio.Dispose();
         Physics.Dispose();
         RenderingServer.FreeRid(_editor);
         RenderingServer.FreeRid(_timeline);

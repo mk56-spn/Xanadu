@@ -102,9 +102,21 @@ public sealed class TrackPlaybackSystemTests
 
         public bool IsPlaying { get; private set; }
 
-        public float PositionSeconds => 0;
+        public float PositionSeconds { get; private set; }
 
         public float LengthSeconds { get; set; }
+
+        public bool Load(string audioPath, float volume) => true;
+
+        public bool Resume()
+        {
+            IsPlaying = true;
+            return true;
+        }
+
+        public void Pause() => IsPlaying = false;
+
+        public void Seek(float seconds) => PositionSeconds = seconds;
 
         public bool Play(string audioPath, float volume)
         {
