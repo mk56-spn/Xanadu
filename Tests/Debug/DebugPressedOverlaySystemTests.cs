@@ -143,6 +143,8 @@ public sealed class DebugPressedOverlaySystemTests
 
         public void DrawRect(Rid canvas, Rect2 bounds, Color color) => Rects.Add(bounds);
 
+        public void DrawLine(Rid canvas, Vector2 from, Vector2 to, Color color, float width) { }
+
         public void DrawText(Rid canvas, Rect2 bounds, string text, Color color) { }
 
         public void DrawTextLeft(Rid canvas, Rect2 bounds, string text, Color color) =>

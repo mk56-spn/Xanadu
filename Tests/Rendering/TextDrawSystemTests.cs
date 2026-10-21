@@ -81,6 +81,8 @@ public sealed class TextDrawSystemTests
 
         public void DrawRect(Rid canvas, Rect2 bounds, Color color) { }
 
+        public void DrawLine(Rid canvas, Vector2 from, Vector2 to, Color color, float width) { }
+
         public void DrawText(Rid canvas, Rect2 bounds, string text, Color color) =>
             Draws.Add(new DrawCall(canvas, bounds, text, color));
 

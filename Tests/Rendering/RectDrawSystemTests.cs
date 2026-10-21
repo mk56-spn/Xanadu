@@ -123,6 +123,8 @@ public sealed class RectDrawSystemTests
         public void DrawRect(Rid canvas, Rect2 bounds, Color color) =>
             Draws.Add(new DrawCall(canvas, bounds, color));
 
+        public void DrawLine(Rid canvas, Vector2 from, Vector2 to, Color color, float width) { }
+
         public void DrawText(Rid canvas, Rect2 bounds, string text, Color color) =>
             TextDraws.Add(new TextCall(canvas, bounds, text, color));
 

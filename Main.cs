@@ -1,3 +1,4 @@
+using System.IO;
 using Friflo.Engine.ECS;
 using Godot;
 using Writer.Ecs;
@@ -15,7 +16,10 @@ public partial class Main : Control
 
     [Export] public bool ContainerTest { get; set; }
 
+    [Export] public bool TrackTest { get; set; }
+
     private WriterSystemRoot? _systems;
+    private FileDialog? _trackDialog;
 
     public override void _Ready()
     {
@@ -26,10 +30,55 @@ public partial class Main : Control
             StressScene.Build(Entities, GetViewportRect().Size);
         else if (ContainerTest)
             ContainerScene.Build(Entities, GetViewportRect().Size);
+        else if (TrackTest)
+            TrackScene.Build(Entities, GetViewportRect().Size);
         else
             TestScene.Build(Entities);
 
+        if (!TrackTest)
+            return;
+
+        SetupTrackLoader();
+
+        string[] args = OS.GetCmdlineUserArgs();
+        if (args.Length > 0 && File.Exists(args[0]))
+            TrackScene.Load(Entities, Path.GetFullPath(args[0]));
     }
+
+    public override void _Input(InputEvent @event)
+    {
+        if (_trackDialog is null || _trackDialog.Visible)
+            return;
+
+        if (@event is InputEventKey { Pressed: true, Echo: false, Keycode: Key.L })
+            OpenTrackDialog();
+    }
+
+    private void SetupTrackLoader()
+    {
+        _trackDialog = new FileDialog
+        {
+            FileMode = FileDialog.FileModeEnum.OpenFile,
+            Access = FileDialog.AccessEnum.Filesystem,
+            UseNativeDialog = false,
+            Title = "Load a song",
+            Filters = ["*.mp3, *.wav, *.ogg, *.flac ; Audio Files"],
+        };
+
+        _trackDialog.FileSelected += OnTrackFileSelected;
+        AddChild(_trackDialog);
+    }
+
+    private void OpenTrackDialog()
+    {
+        if (_trackDialog is null || _trackDialog.Visible)
+            return;
+
+        _trackDialog.PopupCentered(new Vector2I(900, 600));
+    }
+
+    private void OnTrackFileSelected(string path) =>
+        TrackScene.Load(Entities, path);
 
     public override void _Process(double delta)
     {

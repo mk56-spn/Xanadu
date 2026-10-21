@@ -3,6 +3,7 @@
     <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
     <EnableDynamicLoading>true</EnableDynamicLoading>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <!--
       Keep the generated ScriptPathAttribute in sync with the project directory.
       Building through a symlinked path (for example /home/user vs /var/home/user)
@@ -16,6 +17,7 @@
     <Compile Remove="Tests/**/*.cs" />
     <PackageReference Include="Friflo.Engine.ECS" Version="4.0.0-preview.2" />
     <PackageReference Include="Friflo.Engine.ECS.Boost" Version="4.0.0-preview.2" />
+    <PackageReference Include="Miniaudio-CS" Version="1.0.4" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="agents.md" />

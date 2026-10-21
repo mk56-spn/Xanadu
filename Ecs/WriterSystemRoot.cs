@@ -2,6 +2,7 @@ using System;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Godot;
+using Writer.Systems.Audio;
 using Writer.Systems.Canvas;
 using Writer.Systems.Debug;
 using Writer.Systems.Input;
@@ -17,6 +18,8 @@ namespace Writer.Ecs;
 public sealed class WriterSystemRoot : SystemRoot, IDisposable
 {
     private readonly Rid _debugOverlay;
+    private readonly Rid _timeline;
+    private readonly MiniaudioTrackAudio _trackAudio = new();
 
     public WriterSystemRoot(
         EntityStore entities,
@@ -30,12 +33,18 @@ public sealed class WriterSystemRoot : SystemRoot, IDisposable
         RenderingServer.CanvasItemSetZIndex(_debugOverlay, 1000);
         RenderingServer.CanvasItemSetVisible(_debugOverlay, false);
 
+        _timeline = RenderingServer.CanvasItemCreate();
+        RenderingServer.CanvasItemSetParent(_timeline, parentCanvas);
+        RenderingServer.CanvasItemSetZIndex(_timeline, 900);
+
         Add(new LayerParentSystem(parentCanvas));
         Add(new ContainerLayoutSystem());
         Add(new DrawableInitialiseSystem());
         Add(new TransformSystem(canvas));
         Add(new RectDrawSystem(canvas));
         Add(new TextDrawSystem(canvas));
+        Add(new TrackPlaybackSystem(_trackAudio, new GodotTrackClock()));
+        Add(new TimelineDrawSystem(canvas, _timeline));
         Add(new InputSystem(pointerInput));
         Add(new DebugPressedOverlaySystem(
             canvas,
@@ -48,5 +57,10 @@ public sealed class WriterSystemRoot : SystemRoot, IDisposable
         SetMonitorPerf(true);
     }
 
-    public void Dispose() => RenderingServer.FreeRid(_debugOverlay);
+    public void Dispose()
+    {
+        _trackAudio.Dispose();
+        RenderingServer.FreeRid(_timeline);
+        RenderingServer.FreeRid(_debugOverlay);
+    }
 }

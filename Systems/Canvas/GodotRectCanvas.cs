@@ -19,6 +19,9 @@ public sealed class GodotRectCanvas : IRectCanvas
     public void DrawRect(Rid canvas, Rect2 bounds, Color color) =>
         RenderingServer.CanvasItemAddRect(canvas, bounds, color);
 
+    public void DrawLine(Rid canvas, Vector2 from, Vector2 to, Color color, float width) =>
+        RenderingServer.CanvasItemAddLine(canvas, from, to, color, width, true);
+
     public void DrawText(Rid canvas, Rect2 bounds, string text, Color color) =>
         DrawTextAligned(canvas, bounds, text, color, HorizontalAlignment.Center);
 
