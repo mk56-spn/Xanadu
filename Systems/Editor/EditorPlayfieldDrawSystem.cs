@@ -153,14 +153,22 @@ public sealed class EditorPlayfieldDrawSystem :
             return;
 
         double beatMs = 60_000.0 / Math.Max(1, playhead.Bpm);
-        double beatCount = playhead.DurationMs / beatMs;
-        int step = Math.Max(1, (int)Math.Ceiling(beatCount / 160.0));
+        int firstBeat = (int)Math.Ceiling(
+            (0 - playhead.OffsetMs) / beatMs);
+        int lastBeat = (int)Math.Floor(
+            (playhead.DurationMs - playhead.OffsetMs) / beatMs);
+        int beatTotal = Math.Max(1, lastBeat - firstBeat + 1);
+        int step = Math.Max(1, (int)Math.Ceiling(beatTotal / 160.0));
 
-        for (int beat = 0; beat <= beatCount; beat += step)
+        for (int beat = firstBeat; beat <= lastBeat; beat++)
         {
-            float x = ruler.Position.X +
-                      (float)(beat * beatMs / playhead.DurationMs) * ruler.Size.X;
             bool measure = beat % 4 == 0;
+            if (!measure && beat % step != 0)
+                continue;
+
+            double beatTime = playhead.OffsetMs + beat * beatMs;
+            float x = ruler.Position.X +
+                      (float)(beatTime / playhead.DurationMs) * ruler.Size.X;
             float height = measure ? 20 : 9;
 
             _canvas.DrawLine(

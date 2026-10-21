@@ -67,6 +67,33 @@ public sealed class EditorNoteInputSystemTests
         Assert.That(editor.GetComponent<NoteSelection>().Note.IsNull, Is.False);
     }
 
+    [Test]
+    public void InvisibleNoteDoesNotCaptureClick()
+    {
+        _store.CreateEntity(new Note(5_000, new Vector2(100, 200)));
+        _pointer.Current = new PointerInput(new Vector2(100, 200), true);
+        _root.Update(new UpdateTick(1f / 60f, 0));
+
+        var notes = _store.Query<Note>().ToEntityList();
+        Assert.That(notes.Count, Is.EqualTo(2));
+    }
+
+    [Test]
+    public void DeletedDraggedNoteDoesNotThrow()
+    {
+        _pointer.Current = new PointerInput(new Vector2(100, 200), true);
+        _root.Update(new UpdateTick(1f / 60f, 0));
+
+        var notes = _store.Query<Note>().ToEntityList();
+        notes[0].DeleteEntity();
+
+        Assert.DoesNotThrow(() =>
+            _root.Update(new UpdateTick(1f / 60f, 0)));
+        _pointer.Current = new PointerInput(new Vector2(100, 200), false);
+        Assert.DoesNotThrow(() =>
+            _root.Update(new UpdateTick(1f / 60f, 0)));
+    }
+
     private sealed class ScriptedPointer : IPointerInputSource
     {
         public PointerInput Current;

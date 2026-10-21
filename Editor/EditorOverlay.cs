@@ -5,6 +5,7 @@ using Friflo.Engine.ECS;
 using Godot;
 using Writer.Ecs;
 using Writer.Editor.Commands;
+using Writer.Systems.Input;
 
 namespace Writer.Editor;
 
@@ -13,6 +14,7 @@ public partial class EditorOverlay : CanvasLayer
 {
     private readonly EntityStore _entities;
     private readonly EditorCommandBus _commands;
+    private readonly GodotPointerInputSource? _pointer;
     private readonly TapTempo _tapTempo = new();
 
     private Control _root = null!;
@@ -35,10 +37,14 @@ public partial class EditorOverlay : CanvasLayer
     private bool _syncing;
     private bool _previewActive;
 
-    public EditorOverlay(EntityStore entities, EditorCommandBus commands)
+    public EditorOverlay(
+        EntityStore entities,
+        EditorCommandBus commands,
+        GodotPointerInputSource? pointer)
     {
         _entities = entities;
         _commands = commands;
+        _pointer = pointer;
         Layer = 100;
     }
 
@@ -65,6 +71,8 @@ public partial class EditorOverlay : CanvasLayer
         if (_editor.IsNull)
             return;
 
+        _pointer?.SetBlocked(AnyDialogVisible());
+
         ref EditorPlayhead playhead = ref _editor.GetComponent<EditorPlayhead>();
         ref LevelInfo level = ref _editor.GetComponent<LevelInfo>();
 
@@ -85,6 +93,15 @@ public partial class EditorOverlay : CanvasLayer
             _previewActive = previewActive;
             _previewLabel.Visible = previewActive;
             SetEditControlsVisible(!previewActive);
+        }
+
+        if (previewActive &&
+            !playhead.Playing &&
+            playhead.DurationMs > 0 &&
+            playhead.TimeMs >= playhead.DurationMs)
+        {
+            EndPreview();
+            _statusLabel.Text = "Preview ended";
         }
 
         if (_previewLabel.Visible)
@@ -149,6 +166,9 @@ public partial class EditorOverlay : CanvasLayer
     public override void _UnhandledInput(InputEvent @event)
     {
         if (@event is not InputEventKey { Pressed: true, Echo: false } key)
+            return;
+
+        if (AnyDialogVisible())
             return;
 
         if (key.Keycode == Key.Escape && IsPreviewing())
@@ -529,6 +549,11 @@ public partial class EditorOverlay : CanvasLayer
         !_editor.IsNull &&
         _editor.HasComponent<EditorPreview>() &&
         _editor.GetComponent<EditorPreview>().Active;
+
+    private bool AnyDialogVisible() =>
+        _songDialog.Visible ||
+        _saveAsDialog.Visible ||
+        _loadDialog.Visible;
 
     private void SetEditControlsVisible(bool visible)
     {

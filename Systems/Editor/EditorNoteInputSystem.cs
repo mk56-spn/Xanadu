@@ -71,7 +71,7 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
         if (!IsInside(playfieldPosition, playfield))
             return;
 
-        Entity hit = FindNoteAt(playfieldPosition);
+        Entity hit = FindNoteAt(playfieldPosition, playhead.TimeMs);
         ref NoteSelection selection = ref editor.GetComponent<NoteSelection>();
 
         if (!hit.IsNull)
@@ -108,8 +108,11 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
             return;
         }
 
-        if (_draggedNote.IsNull)
+        if (_draggedNote.IsNull || !_draggedNote.HasComponent<Note>())
+        {
+            CancelDrag();
             return;
+        }
 
         Note note = _draggedNote.GetComponent<Note>();
         Vector2 playfieldPosition = view.ScreenToPlayfield(screenPosition) + _dragOffset;
@@ -145,13 +148,16 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
         playhead.SeekRequestMs = EditorTiming.Snap(raw, playhead);
     }
 
-    private Entity FindNoteAt(Vector2 position)
+    private Entity FindNoteAt(Vector2 position, long playheadMs)
     {
         Entity result = default;
 
         foreach (Entity entity in _entities.Query<Note>().ToEntityList())
         {
             Note note = entity.GetComponent<Note>();
+            if (NoteFade.Alpha(note, playheadMs) <= 0)
+                continue;
+
             if (MathF.Abs(note.Position.X - position.X) <= HitRadius &&
                 MathF.Abs(note.Position.Y - position.Y) <= HitRadius)
             {
@@ -160,6 +166,12 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
         }
 
         return result;
+    }
+
+    private void CancelDrag()
+    {
+        _draggedNote = default;
+        _dragBefore = null!;
     }
 
     private static bool IsPreviewing(Entity editor) =>

@@ -24,12 +24,14 @@ public partial class Main : Control
     [Export] public bool EditorTest { get; set; }
 
     private WriterSystemRoot? _systems;
+    private GodotPointerInputSource? _pointer;
     private FileDialog? _trackDialog;
 
     public override void _Ready()
     {
         SetProcess(true);
-        _systems = new WriterSystemRoot(Entities, GetCanvasItem(), new GodotPointerInputSource(this));
+        _pointer = new GodotPointerInputSource(this);
+        _systems = new WriterSystemRoot(Entities, GetCanvasItem(), _pointer);
 
         if (StressTest)
             StressScene.Build(Entities, GetViewportRect().Size);
@@ -44,7 +46,8 @@ public partial class Main : Control
             EditorScene.Build(Entities, GetViewportRect().Size);
             AddChild(new EditorOverlay(
                 Entities,
-                _systems.Commands));
+                _systems.Commands,
+                _pointer));
         }
         else
             TestScene.Build(Entities);
@@ -57,6 +60,18 @@ public partial class Main : Control
         string[] args = OS.GetCmdlineUserArgs();
         if (args.Length > 0 && File.Exists(args[0]))
             TrackScene.Load(Entities, Path.GetFullPath(args[0]));
+    }
+
+    public override void _UnhandledInput(InputEvent @event)
+    {
+        if (@event is InputEventMouseButton
+            {
+                ButtonIndex: MouseButton.Left,
+                Pressed: true,
+            })
+        {
+            _pointer?.LatchPress();
+        }
     }
 
     public override void _Input(InputEvent @event)
