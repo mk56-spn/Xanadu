@@ -292,6 +292,7 @@ public struct ScoreState(
     public int NotesHit;
     public int Combo;
     public int MaxCombo;
+    public double ScorePoints;
     public double AccuracyPoints;
     public Judgement LastJudgement;
     public bool HasJudgement;
@@ -301,7 +302,7 @@ public struct ScoreState(
         TotalNotes > 0 ? AccuracyPoints / TotalNotes : 0;
 
     public readonly long Score => Math.Clamp(
-        (long)Math.Round(Accuracy * ScoreRules.MaxScore),
+        (long)Math.Round(ScorePoints * ScoreRules.MaxScore),
         0,
         ScoreRules.MaxScore);
 }

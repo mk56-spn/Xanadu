@@ -103,6 +103,13 @@ public sealed class PlayNoteInputSystem : QuerySystem<Note>
         {
             score.Combo++;
             score.MaxCombo = Math.Max(score.MaxCombo, score.Combo);
+
+            if (score.TotalNotes > 0)
+            {
+                score.ScorePoints = Math.Min(
+                    1.0,
+                    score.ScorePoints + 1.0 / score.TotalNotes);
+            }
         }
 
         noteEntity.DeleteEntity();

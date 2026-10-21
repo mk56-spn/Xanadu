@@ -61,7 +61,7 @@ public sealed class PlayNoteInputSystemTests
     }
 
     [Test]
-    public void JudgementWeightDeterminesScoreAndRank()
+    public void ScoreIsSeparateFromAccuracy()
     {
         Entity playfield = CreatePlayfield(totalNotes: 1);
         CreateNote(1_000, new Vector2(500, 500));
@@ -72,10 +72,13 @@ public sealed class PlayNoteInputSystemTests
 
         ScoreState score = playfield.GetComponent<ScoreState>();
         Assert.That(score.LastJudgement, Is.EqualTo(Judgement.Flawless));
-        Assert.That(score.Score, Is.EqualTo(990_000));
+        Assert.That(score.Score, Is.EqualTo(1_000_000));
         Assert.That(score.Accuracy, Is.EqualTo(0.99).Within(0.0001));
         Assert.That(ScoreRules.RankFor(score.Accuracy), Is.EqualTo("SS"));
-        Assert.That(_scoreText.GetComponent<Text>().Value, Is.EqualTo("SCORE 0990000"));
+        Assert.That(_scoreText.GetComponent<Text>().Value, Is.EqualTo("SCORE 1000000"));
+        Assert.That(
+            _accuracyText.GetComponent<Text>().Value,
+            Is.EqualTo("ACC 99.00%  SS"));
     }
 
     [Test]
