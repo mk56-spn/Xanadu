@@ -11,6 +11,9 @@ public struct Uninitialised : ITag { }
 /// <summary>Marks a drawable that participates in pointer hit testing.</summary>
 public struct TakesInput : ITag { }
 
+/// <summary>Marks a button currently under the pointer.</summary>
+public struct Hovered : ITag { }
+
 /// <summary>Marks the drawable currently holding the pointer button.</summary>
 public struct Pressed : ITag { }
 

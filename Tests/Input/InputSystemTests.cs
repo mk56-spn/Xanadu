@@ -25,6 +25,32 @@ public sealed class InputSystemTests
     }
 
     [Test]
+    public void HoverTagTracksButtonUnderPointer()
+    {
+        Entity button = AddInputRect(
+            new Vector2(100, 100),
+            new Vector2(100, 100),
+            0,
+            button: true);
+        Entity plain = AddInputRect(
+            new Vector2(300, 100),
+            new Vector2(100, 100),
+            0);
+
+        _input.Current = new PointerInput(new Vector2(100, 100), false);
+        Frame();
+
+        Assert.That(button.Tags.Has<Hovered>(), Is.True);
+        Assert.That(plain.Tags.Has<Hovered>(), Is.False);
+
+        _input.Current = new PointerInput(new Vector2(300, 100), false);
+        Frame();
+
+        Assert.That(button.Tags.Has<Hovered>(), Is.False);
+        Assert.That(plain.Tags.Has<Hovered>(), Is.False);
+    }
+
+    [Test]
     public void TopLayerGetsPressed()
     {
         Entity bottom = AddInputRect(new Vector2(100, 100), new Vector2(100, 100), 0);
@@ -145,15 +171,25 @@ public sealed class InputSystemTests
         Assert.That(second.Tags.Has<Pressed>(), Is.False);
     }
 
-    private Entity AddInputRect(Vector2 center, Vector2 size, int layer, bool takesInput = true)
+    private Entity AddInputRect(
+        Vector2 center,
+        Vector2 size,
+        int layer,
+        bool takesInput = true,
+        bool button = false)
     {
         Tags tags = takesInput ? Tags.Get<TakesInput>() : default;
 
-        return _store.CreateEntity(
+        Entity entity = _store.CreateEntity(
             new Rectangle(new Rect2(-size / 2, size)),
             new Drawable(layer),
             new Position(center),
             tags);
+
+        if (button)
+            entity.AddComponent(ButtonVisual.Create(Colors.Gray));
+
+        return entity;
     }
 
     private void Press(Vector2 position)

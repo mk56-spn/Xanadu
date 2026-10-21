@@ -99,6 +99,7 @@ public static class SettingsScene
                 takesInput: true);
 
             button.AddComponent(new TextStyle(16, SceneUi.TextColor));
+            button.AddComponent(ButtonVisual.Create(SceneUi.MutedButtonColor));
             button.AddComponent(new KeybindButton(action));
             index++;
         }

@@ -262,6 +262,7 @@ public sealed class SceneSystem : QuerySystem<SceneState>
             "YES",
             takesInput: true);
         yes.AddComponent(new TextStyle(18, SceneUi.TextColor));
+        yes.AddComponent(ButtonVisual.Create(SceneUi.ButtonColor));
 
         Entity no = builder.RectEntity(
             Vector2.Zero,
@@ -270,6 +271,7 @@ public sealed class SceneSystem : QuerySystem<SceneState>
             "CANCEL",
             takesInput: true);
         no.AddComponent(new TextStyle(18, SceneUi.TextColor));
+        no.AddComponent(ButtonVisual.Create(SceneUi.MutedButtonColor));
 
         builder.End();
         builder.End();
@@ -332,6 +334,7 @@ public sealed class SceneSystem : QuerySystem<SceneState>
             "RESUME",
             takesInput: true);
         resume.AddComponent(new TextStyle(18, SceneUi.TextColor));
+        resume.AddComponent(ButtonVisual.Create(SceneUi.ButtonColor));
 
         Entity leave = builder.RectEntity(
             Vector2.Zero,
@@ -340,6 +343,7 @@ public sealed class SceneSystem : QuerySystem<SceneState>
             "LEAVE LEVEL",
             takesInput: true);
         leave.AddComponent(new TextStyle(18, SceneUi.TextColor));
+        leave.AddComponent(ButtonVisual.Create(SceneUi.MutedButtonColor));
 
         builder.End();
         builder.End();

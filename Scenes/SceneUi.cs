@@ -64,14 +64,17 @@ public static class SceneUi
         int fontSize = 18,
         Color? color = null)
     {
+        Color normal = color ?? ButtonColor;
+
         Entity button = builder.RectEntity(
             center,
             size,
-            color ?? ButtonColor,
+            normal,
             label,
             takesInput: true);
 
         button.AddComponent(new TextStyle(fontSize, TextColor));
+        button.AddComponent(ButtonVisual.Create(normal));
         button.AddComponent(new SceneAction(target));
         return button;
     }
@@ -91,6 +94,7 @@ public static class SceneUi
             takesInput: true);
 
         button.AddComponent(new TextStyle(24, TextColor));
+        button.AddComponent(ButtonVisual.Create(MutedButtonColor));
         button.AddComponent(new CarouselStep(direction));
         return button;
     }

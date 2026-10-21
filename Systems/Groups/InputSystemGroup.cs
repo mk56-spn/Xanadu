@@ -17,6 +17,7 @@ public sealed class InputSystemGroup : SystemGroup
         : base("Input")
     {
         Add(new InputSystem(pointerInput));
+        Add(new ButtonVisualSystem());
         Add(scenes);
         Add(new KeybindUiSystem(keybinds));
     }

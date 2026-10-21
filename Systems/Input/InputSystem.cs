@@ -17,6 +17,7 @@ public sealed class InputSystem : QuerySystem<Rectangle, Drawable, Position>
     private readonly List<Candidate> _candidates = new();
 
     private Entity? _pressed;
+    private Entity? _hovered;
     private bool _wasPressed;
 
     public InputSystem(IPointerInputSource source)
@@ -55,6 +56,28 @@ public sealed class InputSystem : QuerySystem<Rectangle, Drawable, Position>
         }
 
         CommandBuffer buffer = CommandBuffer;
+
+        Entity? hoverTarget = target is { } hoverCandidate &&
+                              hoverCandidate.HasComponent<ButtonVisual>()
+            ? hoverCandidate
+            : null;
+
+        if (_hovered is { } previous &&
+            (!hoverTarget.HasValue ||
+             previous.Id != hoverTarget.Value.Id))
+        {
+            if (!previous.IsNull)
+                buffer.RemoveTag<Hovered>(previous.Id);
+
+            _hovered = null;
+        }
+
+        if (hoverTarget is { } hover &&
+            (!_hovered.HasValue || _hovered.Value.Id != hover.Id))
+        {
+            buffer.AddTag<Hovered>(hover.Id);
+            _hovered = hover;
+        }
 
         if (input.Pressed && !_wasPressed)
         {

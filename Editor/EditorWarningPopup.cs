@@ -48,6 +48,7 @@ public static class EditorWarningPopup
             "OK",
             takesInput: true);
         Entity button = LastChild(panel);
+        button.AddComponent(ButtonVisual.Create(new Color("#b45309")));
 
         builder.End();
 
