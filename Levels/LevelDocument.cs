@@ -27,6 +27,14 @@ public sealed class LevelDocument
     public int PlayfieldHeight { get; set; } = 1000;
 
     public List<NoteDocument> Notes { get; set; } = new();
+
+    public List<MovementEventDocument> MovementEvents { get; set; } = new();
+}
+
+/// <summary>Serializable movement-gate event.</summary>
+public sealed class MovementEventDocument
+{
+    public long TimeMs { get; set; }
 }
 
 /// <summary>Serializable note data.</summary>

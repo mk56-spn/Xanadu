@@ -29,5 +29,8 @@ public struct NoteMissed : ITag { }
 /// <summary>Marks a playfield entity whose audio is paused by the pause screen.</summary>
 public struct PlayPaused : ITag { }
 
+/// <summary>A movement-queue event that has already been used.</summary>
+public struct MovementEventUsed : ITag { }
+
 /// <summary>Marks an entity whose momentum should be applied to its physics body.</summary>
 public struct ApplyMomentum : ITag { }

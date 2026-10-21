@@ -172,6 +172,46 @@ public sealed class SceneSystemTests
     }
 
     [Test]
+    public void RetryFromResultsRestartsTheLevel()
+    {
+        var document = new LevelDocument { Name = "Retry Level" };
+        document.Notes.Add(new NoteDocument { TimeMs = 0, X = 200, Y = 300 });
+        _scenes.StartPlay(new LevelEntry("memory://retry", document));
+        Frame();
+
+        _store.Query<PlaySession>().ToEntityList()[0]
+            .GetComponent<PlaySession>().Finished = true;
+        Frame();
+        Assert.That(_director.Current, Is.EqualTo(SceneKind.Results));
+
+        _store.Query<RetryAction>().ToEntityList()[0].AddTag<Pressed>();
+        Frame();
+
+        Assert.That(_director.Current, Is.EqualTo(SceneKind.Play));
+        Assert.That(_store.Query<Note>().Count, Is.EqualTo(1));
+        Assert.That(HasText("Retry Level"), Is.True);
+    }
+
+    [Test]
+    public void PauseRetryRestartsTheLevel()
+    {
+        var document = new LevelDocument { Name = "Pause Retry" };
+        document.Notes.Add(new NoteDocument { TimeMs = 0, X = 200, Y = 300 });
+        _scenes.StartPlay(new LevelEntry("memory://pause-retry", document));
+        Frame();
+
+        _scenes.TryBack();
+        Assert.That(Pause().Visible, Is.True);
+
+        Pause().Retry.AddTag<Pressed>();
+        Frame();
+
+        Assert.That(_director.Current, Is.EqualTo(SceneKind.Play));
+        Assert.That(_store.Query<Note>().Count, Is.EqualTo(1));
+        Assert.That(Pause().Visible, Is.False);
+    }
+
+    [Test]
     public void StartResultsUsesTheProvidedSnapshot()
     {
         _scenes.StartResults(new PlayResults("Snapshot", 123_456, 0.95, 12, 12, 14));
@@ -362,6 +402,48 @@ public sealed class SceneSystemTests
     }
 
     [Test]
+    public void PauseRetryRestartsWithFadeTransitions()
+    {
+        _scenes.Enabled = false;
+
+        var transitional = new SceneSystem(
+            _store,
+            _director,
+            new Vector2(1280, 720),
+            new FakeVisualRidFactory(),
+            () => _catalog,
+            _keybinds,
+            transitions: true);
+        _root.Add(transitional);
+
+        var document = new LevelDocument { Name = "Fade Retry" };
+        document.Notes.Add(new NoteDocument { TimeMs = 0, X = 200, Y = 300 });
+        transitional.StartPlay(new LevelEntry("memory://fade-retry", document));
+        Advance(20);
+
+        Assert.That(_director.Current, Is.EqualTo(SceneKind.Play));
+
+        transitional.TryBack();
+        Advance(2);
+        Assert.That(
+            _store.Query<ScenePause>().ToEntityList()[0]
+                .GetComponent<ScenePause>().Visible,
+            Is.True);
+
+        _store.Query<ScenePause>().ToEntityList()[0]
+            .GetComponent<ScenePause>().Retry.AddTag<Pressed>();
+
+        Advance(40);
+
+        Assert.That(_director.Current, Is.EqualTo(SceneKind.Play));
+        Assert.That(
+            _store.Query<ScenePause>().ToEntityList()[0]
+                .GetComponent<ScenePause>().Visible,
+            Is.False);
+        Assert.That(_store.Query<Note>().Count, Is.EqualTo(1));
+    }
+
+    [Test]
     public void BackFromSettingsGoesToMain()
     {
         _scenes.Start(SceneKind.Settings);
@@ -511,6 +593,12 @@ public sealed class SceneSystemTests
     }
 
     private void Frame() => _root.Update(new UpdateTick(1f / 60f, 0));
+
+    private void Advance(int frames)
+    {
+        for (int i = 0; i < frames; i++)
+            Frame();
+    }
 
     private sealed class FakeVisualRidFactory : IVisualRidFactory
     {

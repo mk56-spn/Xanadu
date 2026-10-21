@@ -8,6 +8,7 @@ public sealed class PhysicsSystemGroup : SystemGroup
 {
     public PhysicsSystemGroup(Box2DPhysicsWorld physics) : base("Physics")
     {
+        Add(new PlayerBodySystem(physics));
         Add(new CharacterMomentumSystem());
         Add(new PhysicsStepSystem(physics));
     }

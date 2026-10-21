@@ -93,6 +93,12 @@ public sealed class Box2DPhysicsWorld : IDisposable
         return body;
     }
 
+    public void DestroyBody(Body body)
+    {
+        if (!_disposed && body is not null)
+            _world.DestroyBody(body);
+    }
+
     public void Step(float delta)
     {
         if (_disposed)

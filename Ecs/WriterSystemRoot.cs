@@ -94,7 +94,9 @@ public sealed class WriterSystemRoot : SystemRoot, IDisposable
             canvas,
             _playfield,
             _playfieldAudio,
-            pointerInput));
+            pointerInput,
+            Keybinds,
+            new GodotKeyboardState()));
         _editorSystems = new EditorSystemGroup(
             entities,
             Commands,
@@ -120,10 +122,13 @@ public sealed class WriterSystemRoot : SystemRoot, IDisposable
     private void OnSceneChanged(SceneKind scene) =>
         _editorSystems.Enabled = scene == SceneKind.Editor;
 
-    private static void OnEntityDelete(EntityDelete entityDelete)
+    private void OnEntityDelete(EntityDelete entityDelete)
     {
         if (entityDelete.Entity.TryGetComponent<VisualRid>(out var visual))
             RenderingServer.FreeRid(visual.Value);
+
+        if (entityDelete.Entity.TryGetComponent<PhysicsBody>(out var body))
+            Physics.DestroyBody(body.Body);
     }
 
     public void Dispose()

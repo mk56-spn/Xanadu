@@ -280,6 +280,9 @@ public struct PauseAction : IComponent
     public int Value;
 }
 
+/// <summary>Restarts the current level from the beginning.</summary>
+public struct RetryAction : IComponent;
+
 /// <summary>Play-mode score, accuracy, combo, and display entities.</summary>
 public struct ScoreState(
     Entity scoreText,
@@ -318,11 +321,17 @@ public struct KeybindButton(KeybindAction action) : IComponent
 }
 
 /// <summary>Gameplay pause overlay state.</summary>
-public struct ScenePause(Entity title, Entity message, Entity resume, Entity leave) : IComponent
+public struct ScenePause(
+    Entity title,
+    Entity message,
+    Entity resume,
+    Entity retry,
+    Entity leave) : IComponent
 {
     public Entity Title = title;
     public Entity Message = message;
     public Entity Resume = resume;
+    public Entity Retry = retry;
     public Entity Leave = leave;
     public bool Visible;
 }
@@ -356,6 +365,19 @@ public struct PlaySession(
     public float Elapsed;
     public float FadeElapsed;
     public float FadeDuration = 1.5f;
+}
+
+/// <summary>The player character's pixel dimensions in play mode.</summary>
+public struct Player(Vector2 size) : IComponent
+{
+    public Vector2 Size = size;
+    public static readonly Vector2 DefaultSize = new(30, 100);
+}
+
+/// <summary>A non-field movement prompt that falls onto the player.</summary>
+public struct MovementEvent(long timeMs) : IComponent
+{
+    public long TimeMs = timeMs;
 }
 
 /// <summary>A rectangle filled with a linear colour gradient.</summary>

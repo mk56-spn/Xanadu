@@ -131,6 +131,10 @@ public sealed class EditorCommandSystem :
                 SetTarget(command.IntValue, editor);
                 break;
 
+            case EditorCommandType.AddMovementEvent:
+                AddMovementEvent(editor);
+                break;
+
             case EditorCommandType.Undo:
                 if (_history.Undo())
                     ClearSelection(editor);
@@ -205,6 +209,18 @@ public sealed class EditorCommandSystem :
             if (!string.IsNullOrEmpty(name))
                 level.Name = name;
         }
+    }
+
+    private void AddMovementEvent(Entity editor)
+    {
+        if (!editor.HasComponent<Playhead>())
+            return;
+
+        var before = _history.Capture();
+        _entities.CreateEntity(new MovementEvent(
+            editor.GetComponent<Playhead>().TimeMs));
+        var after = _history.Capture();
+        _history.Record(before, after);
     }
 
     private void SetTarget(int value, Entity editor)

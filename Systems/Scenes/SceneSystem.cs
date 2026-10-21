@@ -31,8 +31,10 @@ public sealed class SceneSystem : QuerySystem<SceneState>
     private Entity _sceneRoot;
     private List<LevelEntry> _catalog = new();
     private LevelEntry? _pendingPlayEntry;
+    private LevelEntry? _lastPlayEntry;
     private PlayResults? _pendingResults;
     private TransitionPhase _transitionPhase;
+    private bool _restartRequested;
     private float _transitionAlpha;
     private readonly bool _transitionsEnabled;
 
@@ -244,7 +246,7 @@ public sealed class SceneSystem : QuerySystem<SceneState>
             return;
         }
 
-        if (state.Pending != state.Current)
+        if (state.Pending != state.Current || _restartRequested)
         {
             BeginFadeOut();
             return;
@@ -252,7 +254,7 @@ public sealed class SceneSystem : QuerySystem<SceneState>
 
         if (HandlePause(ref state))
         {
-            if (state.Pending != state.Current)
+            if (state.Pending != state.Current || _restartRequested)
                 BeginFadeOut();
 
             return;
@@ -260,7 +262,7 @@ public sealed class SceneSystem : QuerySystem<SceneState>
 
         if (HandleConfirmation(ref state))
         {
-            if (state.Pending != state.Current)
+            if (state.Pending != state.Current || _restartRequested)
                 BeginFadeOut();
 
             return;
@@ -275,15 +277,21 @@ public sealed class SceneSystem : QuerySystem<SceneState>
 
         HandleActions(ref state);
 
-        if (state.Pending != state.Current)
+        if (state.Pending != state.Current || _restartRequested)
             BeginFadeOut();
     }
 
     private void UpdateImmediate(ref SceneState state)
     {
+        if (_restartRequested)
+        {
+            Switch(ref state);
+            return;
+        }
+
         if (HandlePause(ref state))
         {
-            if (state.Pending != state.Current)
+            if (state.Pending != state.Current || _restartRequested)
                 Switch(ref state);
 
             return;
@@ -291,7 +299,7 @@ public sealed class SceneSystem : QuerySystem<SceneState>
 
         if (HandleConfirmation(ref state))
         {
-            if (state.Pending != state.Current)
+            if (state.Pending != state.Current || _restartRequested)
                 Switch(ref state);
 
             return;
@@ -306,7 +314,7 @@ public sealed class SceneSystem : QuerySystem<SceneState>
 
         HandleActions(ref state);
 
-        if (state.Pending != state.Current)
+        if (state.Pending != state.Current || _restartRequested)
             Switch(ref state);
     }
 
@@ -517,7 +525,7 @@ public sealed class SceneSystem : QuerySystem<SceneState>
 
         builder.Container(
             Vector2.Zero,
-            new Vector2(460, 240),
+            new Vector2(520, 300),
             StackDirection.Vertical,
             spacing: 12,
             color: SceneUi.PanelColor);
@@ -527,7 +535,7 @@ public sealed class SceneSystem : QuerySystem<SceneState>
         Entity title = SceneUi.Text(
             builder,
             Vector2.Zero,
-            new Vector2(420, 44),
+            new Vector2(480, 44),
             "PAUSED",
             36,
             SceneUi.AccentColor,
@@ -536,7 +544,7 @@ public sealed class SceneSystem : QuerySystem<SceneState>
         Entity message = SceneUi.Text(
             builder,
             Vector2.Zero,
-            new Vector2(420, 36),
+            new Vector2(480, 36),
             "",
             16,
             SceneUi.TextColor,
@@ -544,22 +552,32 @@ public sealed class SceneSystem : QuerySystem<SceneState>
 
         builder.Container(
             Vector2.Zero,
-            new Vector2(340, 44),
+            new Vector2(480, 44),
             StackDirection.Horizontal,
             spacing: 12);
 
         Entity resume = builder.RectEntity(
             Vector2.Zero,
-            new Vector2(150, 42),
+            new Vector2(140, 42),
             SceneUi.ButtonColor,
             "RESUME",
             takesInput: true);
         resume.AddComponent(new TextStyle(18, SceneUi.TextColor));
         resume.AddComponent(ButtonVisual.Create(SceneUi.ButtonColor));
 
+        Entity retry = builder.RectEntity(
+            Vector2.Zero,
+            new Vector2(140, 42),
+            SceneUi.ButtonColor,
+            "RETRY",
+            takesInput: true);
+        retry.AddComponent(new TextStyle(18, SceneUi.TextColor));
+        retry.AddComponent(ButtonVisual.Create(SceneUi.ButtonColor));
+        retry.AddComponent(new RetryAction());
+
         Entity leave = builder.RectEntity(
             Vector2.Zero,
-            new Vector2(150, 42),
+            new Vector2(160, 42),
             SceneUi.MutedButtonColor,
             "LEAVE LEVEL",
             takesInput: true);
@@ -570,7 +588,7 @@ public sealed class SceneSystem : QuerySystem<SceneState>
         builder.End();
         builder.End();
 
-        root.AddComponent(new ScenePause(title, message, resume, leave));
+        root.AddComponent(new ScenePause(title, message, resume, retry, leave));
         _pausePanel = root;
     }
 
@@ -587,6 +605,12 @@ public sealed class SceneSystem : QuerySystem<SceneState>
         if (!pause.Resume.IsNull && pause.Resume.Tags.Has<Pressed>())
         {
             ResumeFromPause();
+            return true;
+        }
+
+        if (!pause.Retry.IsNull && pause.Retry.Tags.Has<Pressed>())
+        {
+            RetryPlay(ref state);
             return true;
         }
 
@@ -613,7 +637,7 @@ public sealed class SceneSystem : QuerySystem<SceneState>
         if (pause.Visible)
             return;
 
-        SceneUi.SetText(pause.Message, "Resume or leave the level.");
+        SceneUi.SetText(pause.Message, "Resume, retry, or leave the level.");
         ref Position position = ref _pausePanel.GetComponent<Position>();
         position.Value = _screen / 2;
         pause.Visible = true;
@@ -632,6 +656,36 @@ public sealed class SceneSystem : QuerySystem<SceneState>
         HidePauseVisual();
         SetPlayback(false);
         state.Pending = SceneKind.SongSelect;
+    }
+
+    /// <summary>Restarts the most recent level from its beginning.</summary>
+    public bool RetryPlay()
+    {
+        if (_stateEntity.IsNull || IsTransitioning())
+            return false;
+
+        ref SceneState state = ref _stateEntity.GetComponent<SceneState>();
+        if (state.Current is not (SceneKind.Play or SceneKind.Results))
+            return false;
+
+        if (_lastPlayEntry is null)
+            return false;
+
+        RetryPlay(ref state);
+        return true;
+    }
+
+    private void RetryPlay(ref SceneState state)
+    {
+        if (_lastPlayEntry is null)
+            return;
+
+        HidePauseVisual();
+        SetPlayback(false);
+        _pendingPlayEntry = _lastPlayEntry;
+        _pendingResults = null;
+        _restartRequested = true;
+        state.Pending = SceneKind.Play;
     }
 
     private void HidePauseVisual()
@@ -784,6 +838,17 @@ public sealed class SceneSystem : QuerySystem<SceneState>
         }
 
         foreach (Entity entity in _entities
+                     .Query<RetryAction>()
+                     .AllTags(Tags.Get<Pressed>())
+                     .ToEntityList())
+        {
+            if (state.Current == SceneKind.Results)
+                RetryPlay(ref state);
+
+            return;
+        }
+
+        foreach (Entity entity in _entities
                      .Query<SceneAction>()
                      .AllTags(Tags.Get<Pressed>())
                      .ToEntityList())
@@ -814,6 +879,7 @@ public sealed class SceneSystem : QuerySystem<SceneState>
 
     private void Switch(ref SceneState state)
     {
+        _restartRequested = false;
         _keybinds.CancelCapture();
         HidePauseVisual();
         HideConfirmation();
@@ -828,7 +894,13 @@ public sealed class SceneSystem : QuerySystem<SceneState>
             _pendingPlayEntry = null;
 
             if (playEntry is null)
+            {
                 next = SceneKind.SongSelect;
+            }
+            else
+            {
+                _lastPlayEntry = playEntry;
+            }
         }
         else
         {
@@ -1004,6 +1076,9 @@ public sealed class SceneSystem : QuerySystem<SceneState>
 
         foreach (Entity note in _entities.Query<Note>().ToEntityList())
             note.DeleteEntity();
+
+        foreach (Entity movement in _entities.Query<MovementEvent>().ToEntityList())
+            movement.DeleteEntity();
     }
 
     private static void DeleteSubtree(Entity entity)

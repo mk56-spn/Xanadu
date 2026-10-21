@@ -16,6 +16,8 @@ public sealed class LevelSerializerTests
 
         Assert.That(document.Notes, Is.Not.Null);
         Assert.That(document.Notes, Is.Empty);
+        Assert.That(document.MovementEvents, Is.Not.Null);
+        Assert.That(document.MovementEvents, Is.Empty);
         Assert.That(document.Version, Is.EqualTo(1));
         Assert.DoesNotThrow(() => LevelValidator.Validate(document));
     }
@@ -44,6 +46,7 @@ public sealed class LevelSerializerTests
             FadeOutMs = 600,
             Target = KeybindAction.R2,
         });
+        source.MovementEvents.Add(new MovementEventDocument { TimeMs = 800 });
 
         string json = LevelSerializer.Serialize(source);
         LevelDocument result = LevelSerializer.Deserialize(json);
@@ -63,5 +66,7 @@ public sealed class LevelSerializerTests
         Assert.That(result.Notes[0].X, Is.EqualTo(250));
         Assert.That(result.Notes[0].Y, Is.EqualTo(400));
         Assert.That(result.Notes[0].Target, Is.EqualTo(KeybindAction.R2));
+        Assert.That(result.MovementEvents, Has.Count.EqualTo(1));
+        Assert.That(result.MovementEvents[0].TimeMs, Is.EqualTo(800));
     }
 }

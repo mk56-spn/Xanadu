@@ -1690,5 +1690,31 @@
       "FadeOutMs": 600,
       "Target": 6
     }
+  ],
+  "MovementEvents": [
+    {
+      "TimeMs": 0
+    },
+    {
+      "TimeMs": 1000
+    },
+    {
+      "TimeMs": 2000
+    },
+    {
+      "TimeMs": 3000
+    },
+    {
+      "TimeMs": 4000
+    },
+    {
+      "TimeMs": 5000
+    },
+    {
+      "TimeMs": 6000
+    },
+    {
+      "TimeMs": 7000
+    }
   ]
 }

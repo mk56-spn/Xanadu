@@ -649,6 +649,9 @@ public partial class EditorOverlay : CanvasLayer
 
         _targetOption.ItemSelected += OnTargetSelected;
         _transport.AddChild(_targetOption);
+
+        var addMovement = AddTransportButton("Add Move");
+        addMovement.Pressed += OnAddMovement;
     }
 
     private void BuildSaveDialogs()
@@ -1022,6 +1025,14 @@ public partial class EditorOverlay : CanvasLayer
             return;
 
         _commands.Enqueue(EditorCommand.SetOffset(offset));
+    }
+
+    private void OnAddMovement()
+    {
+        if (_editor.IsNull)
+            return;
+
+        _commands.Enqueue(EditorCommand.AddMovementEvent());
     }
 
     private void OnTargetSelected(long index)

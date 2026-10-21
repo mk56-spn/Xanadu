@@ -27,6 +27,8 @@ public sealed class LevelDocumentMapperTests
             1_000,
             new Vector2(300, 400),
             target: KeybindAction.R3));
+        sourceStore.CreateEntity(new MovementEvent(750));
+        sourceStore.CreateEntity(new MovementEvent(250));
 
         LevelDocument document = LevelDocumentMapper.Capture(sourceStore, source);
 
@@ -39,6 +41,9 @@ public sealed class LevelDocumentMapperTests
         Assert.That(document.Notes, Has.Count.EqualTo(2));
         Assert.That(document.Notes[0].Target, Is.EqualTo(KeybindAction.L1));
         Assert.That(document.Notes[1].Target, Is.EqualTo(KeybindAction.R3));
+        Assert.That(document.MovementEvents, Has.Count.EqualTo(2));
+        Assert.That(document.MovementEvents[0].TimeMs, Is.EqualTo(250));
+        Assert.That(document.MovementEvents[1].TimeMs, Is.EqualTo(750));
 
         var targetStore = new EntityStore();
         Entity target = targetStore.CreateEntity(
@@ -47,6 +52,7 @@ public sealed class LevelDocumentMapperTests
             new Playhead(0, 1, 0, false),
             new NoteSelection(default));
         targetStore.CreateEntity(new Note(9_999, Vector2.Zero));
+        targetStore.CreateEntity(new MovementEvent(9_999));
 
         LevelDocumentMapper.Apply(targetStore, target, document);
 
@@ -64,5 +70,10 @@ public sealed class LevelDocumentMapperTests
         Assert.That(
             targetStore.Query<Note>().ToEntityList()[1].GetComponent<Note>().Target,
             Is.EqualTo(KeybindAction.R3));
+        Assert.That(targetStore.Query<MovementEvent>().Count, Is.EqualTo(2));
+        Assert.That(
+            targetStore.Query<MovementEvent>().ToEntityList()[0]
+                .GetComponent<MovementEvent>().TimeMs,
+            Is.EqualTo(250));
     }
 }

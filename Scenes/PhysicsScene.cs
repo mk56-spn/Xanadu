@@ -10,7 +10,7 @@ namespace Writer.Scenes;
 /// <summary>Box2D-backed character test. Character size: 30 x 100 pixels.</summary>
 public static class PhysicsScene
 {
-    private static readonly Vector2 CharacterSize = new(30, 100);
+    private static readonly Vector2 CharacterSize = Player.DefaultSize;
 
     public static void Build(
         EntityStore entities,

@@ -8,7 +8,7 @@ using Writer.Settings;
 
 namespace Writer.Editor;
 
-/// <summary>Snapshot-based undo/redo for note edits only.</summary>
+/// <summary>Snapshot-based undo/redo for note and movement-queue edits.</summary>
 public sealed class EditorHistory
 {
     private const int MaxEntries = 200;
@@ -26,9 +26,10 @@ public sealed class EditorHistory
 
     public bool CanRedo => _redo.Count > 0;
 
-    public List<NoteSnapshot> Capture()
+    public EditorSnapshot Capture()
     {
         var notes = new List<NoteSnapshot>();
+        var movementTimes = new List<long>();
 
         foreach (Entity entity in _entities.Query<Note>().ToEntityList())
         {
@@ -51,13 +52,20 @@ public sealed class EditorHistory
             return x != 0 ? x : a.Position.Y.CompareTo(b.Position.Y);
         });
 
-        return notes;
+        foreach (Entity entity in _entities.Query<MovementEvent>().ToEntityList())
+            movementTimes.Add(entity.GetComponent<MovementEvent>().TimeMs);
+
+        movementTimes.Sort();
+        return new EditorSnapshot(notes, movementTimes);
     }
 
-    public void Record(List<NoteSnapshot> before, List<NoteSnapshot> after)
+    public void Record(EditorSnapshot before, EditorSnapshot after)
     {
-        if (before.SequenceEqual(after))
+        if (before.Notes.SequenceEqual(after.Notes) &&
+            before.MovementTimes.SequenceEqual(after.MovementTimes))
+        {
             return;
+        }
 
         _undo.Push(new SnapshotPair(before, after));
         _redo.Clear();
@@ -99,12 +107,15 @@ public sealed class EditorHistory
         _redo.Clear();
     }
 
-    private void Apply(List<NoteSnapshot> notes)
+    private void Apply(EditorSnapshot snapshot)
     {
         foreach (Entity entity in _entities.Query<Note>().ToEntityList())
             entity.DeleteEntity();
 
-        foreach (NoteSnapshot note in notes)
+        foreach (Entity entity in _entities.Query<MovementEvent>().ToEntityList())
+            entity.DeleteEntity();
+
+        foreach (NoteSnapshot note in snapshot.Notes)
         {
             _entities.CreateEntity(new Note(
                 note.TimeMs,
@@ -113,12 +124,20 @@ public sealed class EditorHistory
                 note.FadeOutMs,
                 note.Target));
         }
+
+        foreach (long timeMs in snapshot.MovementTimes)
+            _entities.CreateEntity(new MovementEvent(timeMs));
     }
 
     private readonly record struct SnapshotPair(
-        List<NoteSnapshot> Before,
-        List<NoteSnapshot> After);
+        EditorSnapshot Before,
+        EditorSnapshot After);
 }
+
+/// <summary>Stable editable-state snapshot used by undo/redo.</summary>
+public readonly record struct EditorSnapshot(
+    List<NoteSnapshot> Notes,
+    List<long> MovementTimes);
 
 /// <summary>Stable serializable note snapshot used by undo/redo.</summary>
 public readonly record struct NoteSnapshot(

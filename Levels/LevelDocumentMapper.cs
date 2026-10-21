@@ -26,6 +26,7 @@ public static class LevelDocumentMapper
             PlayfieldWidth = playfield.Width,
             PlayfieldHeight = playfield.Height,
             Notes = new List<NoteDocument>(),
+            MovementEvents = new List<MovementEventDocument>(),
         };
 
         foreach (Entity entity in entities.Query<Note>().ToEntityList())
@@ -43,12 +44,25 @@ public static class LevelDocumentMapper
         }
 
         document.Notes.Sort((a, b) => a.TimeMs.CompareTo(b.TimeMs));
+
+        foreach (Entity entity in entities.Query<MovementEvent>().ToEntityList())
+        {
+            document.MovementEvents.Add(new MovementEventDocument
+            {
+                TimeMs = entity.GetComponent<MovementEvent>().TimeMs,
+            });
+        }
+
+        document.MovementEvents.Sort((a, b) => a.TimeMs.CompareTo(b.TimeMs));
         return document;
     }
 
     public static void Apply(EntityStore entities, Entity editor, LevelDocument document)
     {
         foreach (Entity entity in entities.Query<Note>().ToEntityList())
+            entity.DeleteEntity();
+
+        foreach (Entity entity in entities.Query<MovementEvent>().ToEntityList())
             entity.DeleteEntity();
 
         foreach (NoteDocument note in document.Notes)
@@ -60,6 +74,9 @@ public static class LevelDocumentMapper
                 note.FadeOutMs,
                 note.Target));
         }
+
+        foreach (MovementEventDocument movement in document.MovementEvents)
+            entities.CreateEntity(new MovementEvent(movement.TimeMs));
 
         ref LevelInfo level = ref editor.GetComponent<LevelInfo>();
         level.Name = document.Name;

@@ -2,6 +2,7 @@ using System.Linq;
 using Friflo.Engine.ECS;
 using Godot;
 using Writer.Ecs;
+using Position = Writer.Ecs.Position;
 using Writer.Levels;
 using Writer.Ui;
 
@@ -48,7 +49,13 @@ public static class PlayScene
                 offsetMs: document.OffsetMs,
                 playing: false),
             new PlayfieldView(origin, scale, screen),
-            new PlayfieldMode(PlayfieldKind.Play));
+            new PlayfieldMode(PlayfieldKind.Play),
+            new Player(Player.DefaultSize),
+            new Position(new Vector2(
+                origin.X + fieldWidth / 2,
+                origin.Y + fieldHeight / 2)),
+            new Character(1f),
+            new Momentum(System.Numerics.Vector2.Zero));
 
         root.AddChild(playfieldEntity);
 

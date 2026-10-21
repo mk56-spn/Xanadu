@@ -24,6 +24,7 @@ public static class LevelSerializer
 
         document.Notes ??= new();
         document.Notes.RemoveAll(note => note is null);
+        document.MovementEvents ??= new();
         return document;
     }
 }

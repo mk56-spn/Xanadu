@@ -162,6 +162,21 @@ public sealed class EditorPlayfieldDrawSystem :
                 color);
         }
 
+        foreach (Entity entity in _entities.Query<MovementEvent>().ToEntityList())
+        {
+            MovementEvent movement = entity.GetComponent<MovementEvent>();
+            float x = ruler.Position.X +
+                      Math.Clamp(
+                          movement.TimeMs / (float)playhead.DurationMs,
+                          0f,
+                          1f) * ruler.Size.X;
+
+            _canvas.DrawRect(
+                _editor,
+                new Rect2(x - 3f, ruler.Position.Y + 2, 6, 6),
+                PlayfieldRenderer.QueueColor);
+        }
+
         float playheadX = ruler.Position.X +
                           Math.Clamp(
                               playhead.TimeMs / (float)playhead.DurationMs,

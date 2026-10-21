@@ -139,9 +139,19 @@ public static class ResultsScene
             SceneUi.TextColor,
             SceneUi.PanelColor);
 
+        Entity retry = ui.RectEntity(
+            new Vector2(centerX - 240, screen.Y - 70),
+            new Vector2(220, 52),
+            SceneUi.ButtonColor,
+            "RETRY",
+            takesInput: true);
+        retry.AddComponent(new TextStyle(18, SceneUi.TextColor));
+        retry.AddComponent(ButtonVisual.Create(SceneUi.ButtonColor));
+        retry.AddComponent(new RetryAction());
+
         SceneUi.Button(
             ui,
-            new Vector2(centerX - 120, screen.Y - 70),
+            new Vector2(centerX, screen.Y - 70),
             new Vector2(220, 52),
             "SONG SELECT",
             SceneKind.SongSelect,
@@ -150,7 +160,7 @@ public static class ResultsScene
 
         SceneUi.Button(
             ui,
-            new Vector2(centerX + 120, screen.Y - 70),
+            new Vector2(centerX + 240, screen.Y - 70),
             new Vector2(220, 52),
             "MAIN MENU",
             SceneKind.Main,

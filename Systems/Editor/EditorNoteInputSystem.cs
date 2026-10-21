@@ -23,7 +23,7 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
     private bool _scrubbing;
     private Entity _draggedNote;
     private Vector2 _dragOffset;
-    private System.Collections.Generic.List<NoteSnapshot> _dragBefore = null!;
+    private EditorSnapshot _dragBefore;
 
     public EditorNoteInputSystem(
         EntityStore entities,
@@ -188,7 +188,7 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
     private void CancelDrag()
     {
         _draggedNote = default;
-        _dragBefore = null!;
+        _dragBefore = default;
     }
 
     private static bool IsPreviewing(Entity editor) =>
