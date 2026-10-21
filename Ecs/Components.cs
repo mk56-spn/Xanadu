@@ -153,6 +153,14 @@ public struct NoteSelection(Entity note) : IComponent
     public Entity Note = note;
 }
 
+/// <summary>Editor preview state and the state to restore on exit.</summary>
+public struct EditorPreview(bool active, long savedTimeMs, bool savedPlaying) : IComponent
+{
+    public bool Active = active;
+    public long SavedTimeMs = savedTimeMs;
+    public bool SavedPlaying = savedPlaying;
+}
+
 /// <summary>Layer entity component. ZIndex determines draw order between layers.</summary>
 public struct Layer(int zIndex) : IIndexedComponent<int>
 {

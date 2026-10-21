@@ -53,7 +53,7 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
     private void OnPress(Vector2 screenPosition)
     {
         Entity editor = FindEditor();
-        if (editor.IsNull)
+        if (editor.IsNull || IsPreviewing(editor))
             return;
 
         EditorView view = editor.GetComponent<EditorView>();
@@ -95,7 +95,7 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
     private void OnHold(Vector2 screenPosition)
     {
         Entity editor = FindEditor();
-        if (editor.IsNull)
+        if (editor.IsNull || IsPreviewing(editor))
             return;
 
         EditorView view = editor.GetComponent<EditorView>();
@@ -163,6 +163,10 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
 
         return result;
     }
+
+    private static bool IsPreviewing(Entity editor) =>
+        editor.HasComponent<EditorPreview>() &&
+        editor.GetComponent<EditorPreview>().Active;
 
     private Entity FindEditor()
     {

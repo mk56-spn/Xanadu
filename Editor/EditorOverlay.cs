@@ -21,6 +21,8 @@ public partial class EditorOverlay : CanvasLayer
     private LineEdit _offsetEdit = null!;
     private OptionButton _snapOption = null!;
     private Button _playButton = null!;
+    private Button _previewButton = null!;
+    private Label _previewLabel = null!;
     private Label _statusLabel = null!;
     private Entity _editor;
 
@@ -60,6 +62,13 @@ public partial class EditorOverlay : CanvasLayer
         ref LevelInfo level = ref _editor.GetComponent<LevelInfo>();
 
         _playButton.Text = playhead.Playing ? "Pause" : "Play";
+
+        if (_previewLabel.Visible)
+        {
+            _previewLabel.Text =
+                $"PREVIEW - {level.Name}   " +
+                $"{playhead.TimeMs / 1000f:0.00}s / {playhead.DurationMs / 1000f:0.00}s   Esc to return";
+        }
 
         if (!_nameEdit.HasFocus() && _nameEdit.Text != level.Name)
         {
@@ -103,6 +112,13 @@ public partial class EditorOverlay : CanvasLayer
     {
         if (@event is not InputEventKey { Pressed: true, Echo: false } key)
             return;
+
+        if (key.Keycode == Key.Escape && IsPreviewing())
+        {
+            EndPreview();
+            GetViewport().SetInputAsHandled();
+            return;
+        }
 
         if (key.CtrlPressed && key.Keycode == Key.S)
         {
@@ -179,11 +195,30 @@ public partial class EditorOverlay : CanvasLayer
         var loadLevel = AddButton("Load", x + (third + 8) * 2, y + 42, third, 32);
         loadLevel.Pressed += OpenLoadDialog;
 
-        _playButton = AddButton("Play", x, y + 82, half, 34);
+        float controlThird = (width - 16) / 3;
+        _playButton = AddButton("Play", x, y + 82, controlThird, 34);
         _playButton.Pressed += TogglePlayback;
 
-        var stop = AddButton("Stop", x + half + 8, y + 82, half, 34);
+        var stop = AddButton("Stop", x + controlThird + 8, y + 82, controlThird, 34);
         stop.Pressed += StopPlayback;
+
+        _previewButton = AddButton(
+            "Preview",
+            x + (controlThird + 8) * 2,
+            y + 82,
+            controlThird,
+            34);
+        _previewButton.Pressed += TogglePreview;
+
+        _previewLabel = new Label
+        {
+            Text = "PREVIEW   Esc to return",
+            Position = new Vector2(40, 8),
+            Size = new Vector2(700, 30),
+            Visible = false,
+        };
+        _previewLabel.AddThemeFontSizeOverride("font_size", 22);
+        _root.AddChild(_previewLabel);
 
         AddLabel("Level name", x, y + 128, width);
         _nameEdit = AddLineEdit(level.Name, x, y + 148, width);
@@ -388,6 +423,69 @@ public partial class EditorOverlay : CanvasLayer
         playhead.DurationMs = 0;
         playhead.Playing = false;
         playhead.SeekRequestMs = -1;
+    }
+
+    private void TogglePreview()
+    {
+        if (_editor.IsNull)
+            return;
+
+        if (IsPreviewing())
+        {
+            EndPreview();
+            return;
+        }
+
+        ref EditorPlayhead playhead = ref _editor.GetComponent<EditorPlayhead>();
+        ref EditorPreview preview = ref _editor.GetComponent<EditorPreview>();
+
+        long start = playhead.TimeMs;
+        if (playhead.DurationMs > 0 && start >= playhead.DurationMs)
+            start = 0;
+
+        preview.Active = true;
+        preview.SavedTimeMs = playhead.TimeMs;
+        preview.SavedPlaying = playhead.Playing;
+
+        playhead.TimeMs = start;
+        playhead.SeekRequestMs = start;
+        playhead.Playing = true;
+
+        _previewLabel.Visible = true;
+        SetEditControlsVisible(false);
+    }
+
+    private void EndPreview()
+    {
+        if (_editor.IsNull)
+            return;
+
+        ref EditorPreview preview = ref _editor.GetComponent<EditorPreview>();
+        if (!preview.Active)
+            return;
+
+        ref EditorPlayhead playhead = ref _editor.GetComponent<EditorPlayhead>();
+        playhead.Playing = preview.SavedPlaying;
+        playhead.SeekRequestMs = preview.SavedTimeMs;
+
+        preview.Active = false;
+        _previewLabel.Visible = false;
+        SetEditControlsVisible(true);
+        _statusLabel.Text = "Preview ended";
+    }
+
+    private bool IsPreviewing() =>
+        !_editor.IsNull &&
+        _editor.HasComponent<EditorPreview>() &&
+        _editor.GetComponent<EditorPreview>().Active;
+
+    private void SetEditControlsVisible(bool visible)
+    {
+        foreach (Node child in _root.GetChildren())
+        {
+            if (child is Control control && control != _previewLabel)
+                control.Visible = visible;
+        }
     }
 
     private void TogglePlayback()

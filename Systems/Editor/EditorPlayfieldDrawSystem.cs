@@ -42,9 +42,19 @@ public sealed class EditorPlayfieldDrawSystem :
     {
         _canvas.Clear(_editor);
 
-        Query.ForEachEntity((ref view, ref level, ref playfield, ref playhead, ref selection, _) =>
+        Query.ForEachEntity((
+            ref view,
+            ref level,
+            ref playfield,
+            ref playhead,
+            ref selection,
+            entity) =>
         {
-            DrawEditor(view, level, playfield, playhead, selection);
+            EditorPreview preview = entity.HasComponent<EditorPreview>()
+                ? entity.GetComponent<EditorPreview>()
+                : default;
+
+            DrawEditor(view, level, playfield, playhead, selection, preview);
         });
     }
 
@@ -53,8 +63,15 @@ public sealed class EditorPlayfieldDrawSystem :
         LevelInfo level,
         Playfield playfield,
         EditorPlayhead playhead,
-        NoteSelection selection)
+        NoteSelection selection,
+        EditorPreview preview)
     {
+        if (preview.Active)
+        {
+            DrawPreview(view, level, playfield, playhead, selection);
+            return;
+        }
+
         _canvas.DrawRect(
             _editor,
             new Rect2(Vector2.Zero, view.ScreenSize),
@@ -118,6 +135,35 @@ public sealed class EditorPlayfieldDrawSystem :
         DrawPanelText($"Notes: {noteCount}", x, y, TextColor, panel.Size.X);
 
         DrawNotes(view, playhead, selection);
+        DrawTransport(field, playhead);
+    }
+
+    private void DrawPreview(
+        EditorView view,
+        LevelInfo level,
+        Playfield playfield,
+        EditorPlayhead playhead,
+        NoteSelection selection)
+    {
+        _canvas.DrawRect(
+            _editor,
+            new Rect2(Vector2.Zero, view.ScreenSize),
+            new Color("#090d16"));
+
+        float size = MathF.Min(view.ScreenSize.X - 120, view.ScreenSize.Y - 100);
+        float scale = size / playfield.Width;
+        var previewView = new EditorView(
+            new Vector2((view.ScreenSize.X - size) / 2, 50),
+            scale,
+            view.ScreenSize);
+        var field = new Rect2(
+            previewView.ScreenOrigin,
+            new Vector2(playfield.Width * scale, playfield.Height * scale));
+
+        _canvas.DrawRect(_editor, field, PlayfieldBackground);
+        DrawBorder(field, BorderColor, 1);
+        DrawGrid(previewView, playfield, field);
+        DrawNotes(previewView, playhead, default);
         DrawTransport(field, playhead);
     }
 

@@ -25,6 +25,7 @@ public static class EditorScene
                 offsetMs: 0,
                 playing: false),
             new NoteSelection(default),
+            new EditorPreview(false, 0, false),
             new EditorView(new Vector2(30, originY), scale, viewportSize));
     }
 }

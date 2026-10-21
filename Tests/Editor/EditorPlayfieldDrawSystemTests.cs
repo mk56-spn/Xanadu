@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Godot;
@@ -12,6 +13,28 @@ namespace Writer.Tests.Editor;
 [TestFixture]
 public sealed class EditorPlayfieldDrawSystemTests
 {
+    [Test]
+    public void PreviewDrawsWithoutEditorInspector()
+    {
+        var store = new EntityStore();
+        store.CreateEntity(
+            new LevelInfo("Preview Level", ""),
+            new Playfield(1000, 1000),
+            new EditorPlayhead(500, 120, 0, true),
+            new EditorView(new Vector2(30, 30), 0.6f, new Vector2(1152, 648)),
+            new NoteSelection(default),
+            new EditorPreview(true, 500, true));
+
+        var canvas = new RecordingCanvas();
+        var root = new SystemRoot(store);
+        root.Add(new EditorPlayfieldDrawSystem(store, canvas, default));
+
+        root.Update(new UpdateTick(1f / 60f, 0));
+
+        Assert.That(canvas.Texts, Does.Not.Contain("EDITOR"));
+        Assert.That(canvas.Rects, Is.Not.Empty);
+    }
+
     [Test]
     public void DrawsPlayfieldAndInspector()
     {
