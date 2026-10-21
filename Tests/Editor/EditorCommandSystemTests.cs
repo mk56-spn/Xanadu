@@ -30,6 +30,7 @@ public sealed class EditorCommandSystemTests
 
         _editor = _store.CreateEntity(
             new LevelInfo("Untitled", ""),
+            new LevelFile(""),
             new Playfield(1000, 1000),
             new EditorPlayhead(0, 120, 0, false),
             new EditorPreview(false, 0, false),
@@ -151,12 +152,13 @@ public sealed class EditorCommandSystemTests
             FadeOutMs = 600,
         });
 
-        _commands.Enqueue(EditorCommand.ApplyLevel(document));
+        _commands.Enqueue(EditorCommand.ApplyLevel(document, "/tmp/loaded.json"));
         _root.Update(new UpdateTick(1f / 60f, 0));
 
         Assert.That(_editor.GetComponent<LevelInfo>().Name, Is.EqualTo("Loaded"));
         Assert.That(_editor.GetComponent<EditorPlayhead>().Bpm, Is.EqualTo(150));
         Assert.That(_editor.GetComponent<EditorPreview>().Active, Is.False);
+        Assert.That(_editor.GetComponent<LevelFile>().Path, Is.EqualTo("/tmp/loaded.json"));
         Assert.That(_store.Query<Note>().Count, Is.EqualTo(1));
     }
 }

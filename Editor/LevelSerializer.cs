@@ -14,6 +14,16 @@ public static class LevelSerializer
     public static string Serialize(LevelDocument document) =>
         JsonSerializer.Serialize(document, Options);
 
-    public static LevelDocument Deserialize(string json) =>
-        JsonSerializer.Deserialize<LevelDocument>(json, Options) ?? new LevelDocument();
+    public static LevelDocument Deserialize(string json)
+    {
+        LevelDocument document =
+            JsonSerializer.Deserialize<LevelDocument>(json, Options) ?? new LevelDocument();
+
+        if (document.Version <= 0)
+            document.Version = 1;
+
+        document.Notes ??= new();
+        document.Notes.RemoveAll(note => note is null);
+        return document;
+    }
 }

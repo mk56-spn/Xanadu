@@ -7,6 +7,18 @@ namespace Writer.Tests.Editor;
 public sealed class LevelSerializerTests
 {
     [Test]
+    public void NullNotesDeserializeToEmptyList()
+    {
+        LevelDocument document = LevelSerializer.Deserialize(
+            """{"Name":"Null Notes","Notes":null}""");
+
+        Assert.That(document.Notes, Is.Not.Null);
+        Assert.That(document.Notes, Is.Empty);
+        Assert.That(document.Version, Is.EqualTo(1));
+        Assert.DoesNotThrow(() => LevelValidator.Validate(document));
+    }
+
+    [Test]
     public void RoundTripsLevelAndNotes()
     {
         var source = new LevelDocument
@@ -33,6 +45,7 @@ public sealed class LevelSerializerTests
         string json = LevelSerializer.Serialize(source);
         LevelDocument result = LevelSerializer.Deserialize(json);
 
+        Assert.That(result.Version, Is.EqualTo(1));
         Assert.That(result.Name, Is.EqualTo("Test Level"));
         Assert.That(result.AudioPath, Is.EqualTo("res://Audio/test-track.wav"));
         Assert.That(result.Artist, Is.EqualTo("Test Artist"));

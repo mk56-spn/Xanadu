@@ -18,6 +18,7 @@ public static class EditorScene
 
         entities.CreateEntity(
             new LevelInfo("Untitled", ""),
+            new LevelFile(""),
             new Playfield(FieldSize, FieldSize),
             new EditorPlayhead(
                 timeMs: 0,

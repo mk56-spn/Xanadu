@@ -60,8 +60,24 @@ public static class LevelStore
 
     public static void Save(LevelDocument document, string path)
     {
-        EnsureDirectory();
-        File.WriteAllText(path, LevelSerializer.Serialize(document));
+        string? directory = Path.GetDirectoryName(path);
+        if (!string.IsNullOrEmpty(directory))
+            System.IO.Directory.CreateDirectory(directory);
+
+        string temporaryPath = path + ".tmp";
+
+        try
+        {
+            File.WriteAllText(temporaryPath, LevelSerializer.Serialize(document));
+            File.Move(temporaryPath, path, overwrite: true);
+        }
+        catch
+        {
+            if (File.Exists(temporaryPath))
+                File.Delete(temporaryPath);
+
+            throw;
+        }
     }
 
     public static LevelDocument Load(string path) =>

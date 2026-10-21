@@ -139,7 +139,16 @@ public sealed class EditorCommandSystem :
                 if (command.Document is null)
                     break;
 
-                ApplyLevel(command.Document, editor, ref preview, ref metronome);
+                ApplyLevel(
+                    command.Document,
+                    command.Text ?? "",
+                    editor,
+                    ref preview,
+                    ref metronome);
+                break;
+
+            case EditorCommandType.SetLevelFile:
+                SetLevelFile(editor, command.Text ?? "");
                 break;
         }
     }
@@ -213,6 +222,7 @@ public sealed class EditorCommandSystem :
 
     private void ApplyLevel(
         LevelDocument document,
+        string path,
         Entity editor,
         ref EditorPreview preview,
         ref EditorMetronome metronome)
@@ -224,6 +234,13 @@ public sealed class EditorCommandSystem :
         metronome.Enabled = false;
         _history.Clear();
         LevelDocumentMapper.Apply(_entities, editor, document);
+        SetLevelFile(editor, path);
+    }
+
+    private static void SetLevelFile(Entity editor, string path)
+    {
+        if (editor.HasComponent<LevelFile>())
+            editor.GetComponent<LevelFile>().Path = path;
     }
 
     private static void ClearSelection(Entity editor)

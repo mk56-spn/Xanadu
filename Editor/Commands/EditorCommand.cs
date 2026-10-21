@@ -22,6 +22,7 @@ public enum EditorCommandType
     Undo,
     Redo,
     ApplyLevel,
+    SetLevelFile,
 }
 
 /// <summary>Data-only editor command.</summary>
@@ -80,6 +81,9 @@ public readonly record struct EditorCommand(
     public static EditorCommand Redo() =>
         new(EditorCommandType.Redo);
 
-    public static EditorCommand ApplyLevel(LevelDocument document) =>
-        new(EditorCommandType.ApplyLevel, Document: document);
+    public static EditorCommand ApplyLevel(LevelDocument document, string path) =>
+        new(EditorCommandType.ApplyLevel, Text: path, Document: document);
+
+    public static EditorCommand SetLevelFile(string path) =>
+        new(EditorCommandType.SetLevelFile, Text: path);
 }

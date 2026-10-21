@@ -161,6 +161,12 @@ public struct NoteSelection(Entity note) : IComponent
     public Entity Note = note;
 }
 
+/// <summary>Current level file path for Save (empty until saved).</summary>
+public struct LevelFile(string path) : IComponent
+{
+    public string Path = path;
+}
+
 /// <summary>Metronome toggle for the editor.</summary>
 public struct EditorMetronome(bool enabled) : IComponent
 {

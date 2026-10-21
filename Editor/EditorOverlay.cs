@@ -408,8 +408,12 @@ public partial class EditorOverlay : CanvasLayer
         try
         {
             LevelDocument document = LevelDocumentMapper.Capture(_entities, _editor);
-            string path = LevelStore.DefaultPath(document.Name);
+            string path = CurrentLevelPath();
+            if (string.IsNullOrEmpty(path))
+                path = LevelStore.DefaultPath(document.Name);
+
             LevelStore.Save(document, path);
+            _commands.Enqueue(EditorCommand.SetLevelFile(path));
             _statusLabel.Text = $"Saved {Path.GetFileName(path)}";
         }
         catch (Exception exception)
@@ -424,9 +428,11 @@ public partial class EditorOverlay : CanvasLayer
             return;
 
         LevelDocument document = LevelDocumentMapper.Capture(_entities, _editor);
+        string current = CurrentLevelPath();
         _saveAsDialog.CurrentDir = LevelStore.Directory;
-        _saveAsDialog.CurrentFile =
-            Path.GetFileName(LevelStore.DefaultPath(document.Name));
+        _saveAsDialog.CurrentFile = string.IsNullOrEmpty(current)
+            ? Path.GetFileName(LevelStore.DefaultPath(document.Name))
+            : Path.GetFileName(current);
         _saveAsDialog.PopupCentered(new Vector2I(900, 600));
     }
 
@@ -438,7 +444,11 @@ public partial class EditorOverlay : CanvasLayer
         try
         {
             LevelDocument document = LevelDocumentMapper.Capture(_entities, _editor);
+            if (!path.EndsWith(".json", StringComparison.OrdinalIgnoreCase))
+                path += ".json";
+
             LevelStore.Save(document, path);
+            _commands.Enqueue(EditorCommand.SetLevelFile(path));
             _statusLabel.Text = $"Saved {Path.GetFileName(path)}";
         }
         catch (Exception exception)
@@ -462,7 +472,7 @@ public partial class EditorOverlay : CanvasLayer
         try
         {
             LevelDocument document = LevelStore.Load(path);
-            _commands.Enqueue(EditorCommand.ApplyLevel(document));
+            _commands.Enqueue(EditorCommand.ApplyLevel(document, path));
 
             _syncing = true;
             _nameEdit.Text = document.Name;
@@ -563,6 +573,11 @@ public partial class EditorOverlay : CanvasLayer
                 control.Visible = visible;
         }
     }
+
+    private string CurrentLevelPath() =>
+        _editor.HasComponent<LevelFile>()
+            ? _editor.GetComponent<LevelFile>().Path
+            : "";
 
     private bool ValidateCurrent()
     {

@@ -5,6 +5,8 @@ namespace Writer.Editor;
 /// <summary>Serializable level document.</summary>
 public sealed class LevelDocument
 {
+    public int Version { get; set; } = 1;
+
     public string Name { get; set; } = "Untitled";
 
     public string AudioPath { get; set; } = "";
