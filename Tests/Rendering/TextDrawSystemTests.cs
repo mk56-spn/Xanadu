@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Godot;
@@ -62,6 +63,26 @@ public sealed class TextDrawSystemTests
     }
 
     [Test]
+    public void AlignmentIsPassedToTheCanvas()
+    {
+        Entity left = AddText("Left");
+        left.AddComponent(new TextStyle(13, Colors.White));
+        left.AddComponent(new TextAlignment(TextAlign.Left));
+        Entity right = AddText("Right");
+        right.AddComponent(new TextStyle(13, Colors.White));
+        right.AddComponent(new TextAlignment(TextAlign.Right));
+
+        Frame();
+
+        Assert.That(
+            _canvas.Draws.Any(draw => draw.Align == TextAlign.Left),
+            Is.True);
+        Assert.That(
+            _canvas.Draws.Any(draw => draw.Align == TextAlign.Right),
+            Is.True);
+    }
+
+    [Test]
     public void EmptyTextIsSkipped()
     {
         Entity entity = AddText("");
@@ -107,6 +128,34 @@ public sealed class TextDrawSystemTests
             int fontSize) =>
             Draws.Add(new DrawCall(canvas, bounds, text, color, fontSize));
 
+        public void DrawTextStyledLeft(
+            Rid canvas,
+            Rect2 bounds,
+            string text,
+            Color color,
+            int fontSize) =>
+            Draws.Add(new DrawCall(
+                canvas,
+                bounds,
+                text,
+                color,
+                fontSize,
+                TextAlign.Left));
+
+        public void DrawTextStyledRight(
+            Rid canvas,
+            Rect2 bounds,
+            string text,
+            Color color,
+            int fontSize) =>
+            Draws.Add(new DrawCall(
+                canvas,
+                bounds,
+                text,
+                color,
+                fontSize,
+                TextAlign.Right));
+
         public void DrawTextLeft(Rid canvas, Rect2 bounds, string text, Color color) { }
 
         public void DrawTextRight(Rid canvas, Rect2 bounds, string text, Color color) { }
@@ -116,6 +165,7 @@ public sealed class TextDrawSystemTests
             Rect2 Bounds,
             string Text,
             Color Color,
-            int FontSize = 0);
+            int FontSize = 0,
+            TextAlign? Align = null);
     }
 }

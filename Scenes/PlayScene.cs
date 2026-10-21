@@ -151,26 +151,41 @@ public static class PlayScene
             SceneUi.DimTextColor,
             new Color(0, 0, 0, 0));
 
-        Entity flawlessPlus = CounterRow(
-            ui, counterX, 220, "FLAWLESS+ 0",
+        CounterText(ui, screen.X - 200, 220, "FLAWLESS+",
+            PlayScoreSystem.ColorFor(Writer.Scoring.Judgement.FlawlessP),
+            TextAlign.Left);
+        CounterText(ui, screen.X - 200, 246, "FLAWLESS",
+            PlayScoreSystem.ColorFor(Writer.Scoring.Judgement.Flawless),
+            TextAlign.Left);
+        CounterText(ui, screen.X - 200, 272, "CLEAN",
+            PlayScoreSystem.ColorFor(Writer.Scoring.Judgement.Clean),
+            TextAlign.Left);
+        CounterText(ui, screen.X - 200, 298, "FAIR",
+            PlayScoreSystem.ColorFor(Writer.Scoring.Judgement.Fair),
+            TextAlign.Left);
+        CounterText(ui, screen.X - 200, 324, "DEFICIENT",
+            PlayScoreSystem.ColorFor(Writer.Scoring.Judgement.Deficient),
+            TextAlign.Left);
+        CounterText(ui, screen.X - 200, 350, "TERRIBLE",
+            PlayScoreSystem.ColorFor(Writer.Scoring.Judgement.Terrible),
+            TextAlign.Left);
+        CounterText(ui, screen.X - 200, 376, "MISS",
+            PlayScoreSystem.ColorFor(Writer.Scoring.Judgement.Miss),
+            TextAlign.Left);
+
+        Entity flawlessPlus = CounterNumber(ui, screen.X - 65, 220,
             PlayScoreSystem.ColorFor(Writer.Scoring.Judgement.FlawlessP));
-        Entity flawless = CounterRow(
-            ui, counterX, 246, "FLAWLESS 0",
+        Entity flawless = CounterNumber(ui, screen.X - 65, 246,
             PlayScoreSystem.ColorFor(Writer.Scoring.Judgement.Flawless));
-        Entity clean = CounterRow(
-            ui, counterX, 272, "CLEAN 0",
+        Entity clean = CounterNumber(ui, screen.X - 65, 272,
             PlayScoreSystem.ColorFor(Writer.Scoring.Judgement.Clean));
-        Entity fair = CounterRow(
-            ui, counterX, 298, "FAIR 0",
+        Entity fair = CounterNumber(ui, screen.X - 65, 298,
             PlayScoreSystem.ColorFor(Writer.Scoring.Judgement.Fair));
-        Entity deficient = CounterRow(
-            ui, counterX, 324, "DEFICIENT 0",
+        Entity deficient = CounterNumber(ui, screen.X - 65, 324,
             PlayScoreSystem.ColorFor(Writer.Scoring.Judgement.Deficient));
-        Entity terrible = CounterRow(
-            ui, counterX, 350, "TERRIBLE 0",
+        Entity terrible = CounterNumber(ui, screen.X - 65, 350,
             PlayScoreSystem.ColorFor(Writer.Scoring.Judgement.Terrible));
-        Entity miss = CounterRow(
-            ui, counterX, 376, "MISS 0",
+        Entity miss = CounterNumber(ui, screen.X - 65, 376,
             PlayScoreSystem.ColorFor(Writer.Scoring.Judgement.Miss));
 
         Entity countdown = SceneUi.Text(
@@ -206,18 +221,41 @@ public static class PlayScene
                 : -1));
     }
 
-    private static Entity CounterRow(
+    private static Entity CounterText(
         UiBuilder ui,
         float x,
         float y,
         string text,
-        Color color) =>
-        SceneUi.Text(
+        Color color,
+        TextAlign align)
+    {
+        Entity entity = SceneUi.Text(
             ui,
             new Vector2(x, y),
-            new Vector2(260, 22),
+            new Vector2(160, 22),
             text,
             13,
             color,
             new Color(0, 0, 0, 0));
+        entity.AddComponent(new TextAlignment(align));
+        return entity;
+    }
+
+    private static Entity CounterNumber(
+        UiBuilder ui,
+        float x,
+        float y,
+        Color color)
+    {
+        Entity entity = SceneUi.Text(
+            ui,
+            new Vector2(x, y),
+            new Vector2(90, 22),
+            "0",
+            13,
+            color,
+            new Color(0, 0, 0, 0));
+        entity.AddComponent(new TextAlignment(TextAlign.Right));
+        return entity;
+    }
 }

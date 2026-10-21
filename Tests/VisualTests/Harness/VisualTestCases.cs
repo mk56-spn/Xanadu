@@ -242,7 +242,7 @@ public sealed class PlaySceneTest : SceneTest
         AddAssert(
             "judgement counter exists",
             () => VisualAssert.HasText(Context.Entities, "JUDGEMENTS") &&
-                  VisualAssert.HasText(Context.Entities, "FLAWLESS+ 0"));
+                  VisualAssert.HasText(Context.Entities, "FLAWLESS+"));
     }
 
     private void OpenPlay()

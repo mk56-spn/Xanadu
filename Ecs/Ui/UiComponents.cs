@@ -40,6 +40,19 @@ public struct TextStyle(int fontSize, Color color) : IComponent
     public Color Color = color;
 }
 
+public enum TextAlign
+{
+    Center,
+    Left,
+    Right,
+}
+
+/// <summary>Horizontal alignment for an ECS text drawable.</summary>
+public struct TextAlignment(TextAlign align) : IComponent
+{
+    public TextAlign Align = align;
+}
+
 public enum StackDirection
 {
     Horizontal,

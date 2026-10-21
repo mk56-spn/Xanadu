@@ -33,6 +33,22 @@ public sealed class GodotRectCanvas : IRectCanvas
         int fontSize) =>
         DrawTextAligned(canvas, bounds, text, color, fontSize, HorizontalAlignment.Center);
 
+    public void DrawTextStyledLeft(
+        Rid canvas,
+        Rect2 bounds,
+        string text,
+        Color color,
+        int fontSize) =>
+        DrawTextAligned(canvas, bounds, text, color, fontSize, HorizontalAlignment.Left);
+
+    public void DrawTextStyledRight(
+        Rid canvas,
+        Rect2 bounds,
+        string text,
+        Color color,
+        int fontSize) =>
+        DrawTextAligned(canvas, bounds, text, color, fontSize, HorizontalAlignment.Right);
+
     public void DrawTextLeft(Rid canvas, Rect2 bounds, string text, Color color) =>
         DrawTextAligned(canvas, bounds, text, color, FontSize, HorizontalAlignment.Left);
 

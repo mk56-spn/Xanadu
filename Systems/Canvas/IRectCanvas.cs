@@ -29,4 +29,22 @@ public interface IRectCanvas
     void DrawTextLeft(Rid canvas, Rect2 bounds, string text, Color color);
 
     void DrawTextRight(Rid canvas, Rect2 bounds, string text, Color color);
+
+    /// <summary>Draws left-aligned text with an explicit font size.</summary>
+    void DrawTextStyledLeft(
+        Rid canvas,
+        Rect2 bounds,
+        string text,
+        Color color,
+        int fontSize) =>
+        DrawTextStyled(canvas, bounds, text, color, fontSize);
+
+    /// <summary>Draws right-aligned text with an explicit font size.</summary>
+    void DrawTextStyledRight(
+        Rid canvas,
+        Rect2 bounds,
+        string text,
+        Color color,
+        int fontSize) =>
+        DrawTextStyled(canvas, bounds, text, color, fontSize);
 }

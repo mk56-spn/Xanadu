@@ -64,19 +64,19 @@ public sealed class PlayScoreSystem : QuerySystem<ScoreState, Playhead>
                 JudgementCounter counter =
                     entity.GetComponent<JudgementCounter>();
                 SetText(counter.FlawlessPlus,
-                    $"FLAWLESS+ {score.FlawlessPCount}", buffer);
+                    score.FlawlessPCount.ToString(), buffer);
                 SetText(counter.Flawless,
-                    $"FLAWLESS {score.FlawlessCount}", buffer);
+                    score.FlawlessCount.ToString(), buffer);
                 SetText(counter.Clean,
-                    $"CLEAN {score.CleanCount}", buffer);
+                    score.CleanCount.ToString(), buffer);
                 SetText(counter.Fair,
-                    $"FAIR {score.FairCount}", buffer);
+                    score.FairCount.ToString(), buffer);
                 SetText(counter.Deficient,
-                    $"DEFICIENT {score.DeficientCount}", buffer);
+                    score.DeficientCount.ToString(), buffer);
                 SetText(counter.Terrible,
-                    $"TERRIBLE {score.TerribleCount}", buffer);
+                    score.TerribleCount.ToString(), buffer);
                 SetText(counter.Miss,
-                    $"MISS {score.MissCount}", buffer);
+                    score.MissCount.ToString(), buffer);
             }
 
             if (showJudgement &&
