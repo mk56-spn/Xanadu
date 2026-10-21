@@ -121,6 +121,8 @@ public sealed class EditorCommandSystem :
 
             case EditorCommandType.LoadSong:
                 LoadSong(command.Text ?? "", ref level, ref playhead);
+                if (editor.HasComponent<EditorTimeline>())
+                    editor.GetComponent<EditorTimeline>().AutoZoomed = false;
                 break;
 
             case EditorCommandType.DeleteSelection:
@@ -133,6 +135,10 @@ public sealed class EditorCommandSystem :
 
             case EditorCommandType.AddMovementEvent:
                 AddMovementEvent(editor);
+                break;
+
+            case EditorCommandType.ZoomTimeline:
+                ZoomTimeline(command.IntValue, editor);
                 break;
 
             case EditorCommandType.Undo:
@@ -211,6 +217,16 @@ public sealed class EditorCommandSystem :
         }
     }
 
+    private static void ZoomTimeline(int direction, Entity editor)
+    {
+        if (!editor.HasComponent<EditorTimeline>())
+            return;
+
+        ref EditorTimeline timeline = ref editor.GetComponent<EditorTimeline>();
+        timeline.Zoom = EditorTimelineZoom.Step(timeline.Zoom, direction);
+        timeline.AutoZoomed = true;
+    }
+
     private void AddMovementEvent(Entity editor)
     {
         if (!editor.HasComponent<Playhead>())
@@ -225,6 +241,12 @@ public sealed class EditorCommandSystem :
 
     private void SetTarget(int value, Entity editor)
     {
+        int index = Math.Clamp(value, 0, KeybindSettings.Actions.Length - 1);
+        KeybindAction target = KeybindSettings.Actions[index];
+
+        if (editor.HasComponent<EditorNoteTarget>())
+            editor.GetComponent<EditorNoteTarget>().Target = target;
+
         if (!editor.HasComponent<NoteSelection>())
             return;
 
@@ -232,8 +254,6 @@ public sealed class EditorCommandSystem :
         if (selection.Note.IsNull || !selection.Note.HasComponent<Note>())
             return;
 
-        int index = Math.Clamp(value, 0, KeybindSettings.Actions.Length - 1);
-        KeybindAction target = KeybindSettings.Actions[index];
         ref Note note = ref selection.Note.GetComponent<Note>();
         if (note.Target == target)
             return;
@@ -277,6 +297,9 @@ public sealed class EditorCommandSystem :
         metronome.Enabled = false;
         _history.Clear();
         LevelDocumentMapper.Apply(_entities, editor, document);
+
+        if (editor.HasComponent<EditorTimeline>())
+            editor.GetComponent<EditorTimeline>().AutoZoomed = false;
 
         if (editor.HasComponent<NoteSelection>())
             editor.GetComponent<NoteSelection>().Note = default;

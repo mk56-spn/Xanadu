@@ -5,6 +5,7 @@ using NUnit.Framework;
 using Writer.Ecs;
 using Writer.Editor;
 using Writer.Systems.Editor;
+using Writer.Settings;
 using Writer.Systems.Input;
 
 namespace Writer.Tests.Editor;
@@ -64,6 +65,44 @@ public sealed class EditorNoteInputSystemTests
 
         Entity editor = _store.Query<PlayfieldView>().ToEntityList()[0];
         Assert.That(editor.GetComponent<NoteSelection>().Note.Id, Is.EqualTo(notes[0].Id));
+    }
+
+    [Test]
+    public void NewNotesKeepTheSelectedTarget()
+    {
+        Entity editor = _store.Query<PlayfieldView>().ToEntityList()[0];
+        editor.AddComponent(new EditorNoteTarget(KeybindAction.R3));
+
+        _pointer.Current = new PointerInput(new Vector2(100, 200), true);
+        _root.Update(new UpdateTick(1f / 60f, 0));
+        _pointer.Current = new PointerInput(new Vector2(100, 200), false);
+        _root.Update(new UpdateTick(1f / 60f, 0));
+
+        editor.GetComponent<NoteSelection>().Note = default;
+
+        _pointer.Current = new PointerInput(new Vector2(700, 700), true);
+        _root.Update(new UpdateTick(1f / 60f, 0));
+
+        var notes = _store.Query<Note>().ToEntityList();
+        Assert.That(notes.Count, Is.EqualTo(2));
+        Assert.That(
+            notes[0].GetComponent<Note>().Target,
+            Is.EqualTo(KeybindAction.R3));
+        Assert.That(
+            notes[1].GetComponent<Note>().Target,
+            Is.EqualTo(KeybindAction.R3));
+    }
+
+    [Test]
+    public void SidebarClicksDoNotPlaceNotes()
+    {
+        Entity editor = _store.Query<PlayfieldView>().ToEntityList()[0];
+        editor.AddComponent(new EditorSidebar(new Rect2(800, 50, 200, 500)));
+
+        _pointer.Current = new PointerInput(new Vector2(900, 200), true);
+        _root.Update(new UpdateTick(1f / 60f, 0));
+
+        Assert.That(_store.Query<Note>().Count, Is.Zero);
     }
 
     [Test]

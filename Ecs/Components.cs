@@ -179,6 +179,79 @@ public struct LevelFile(string path) : IComponent
     public string Path = path;
 }
 
+/// <summary>Horizontal zoom for the editor timeline.</summary>
+public struct EditorTimeline(float zoom) : IComponent
+{
+    public float Zoom = zoom;
+    public bool AutoZoomed;
+}
+
+/// <summary>The editor's currently selected note type for new notes.</summary>
+public struct EditorNoteTarget(KeybindAction target) : IComponent
+{
+    public KeybindAction Target = target;
+}
+
+/// <summary>Screen-space region occupied by the editor's side controls.</summary>
+public struct EditorSidebar(Rect2 bounds) : IComponent
+{
+    public Rect2 Bounds = bounds;
+}
+
+public enum EditorDropdownKind
+{
+    Snap,
+    NoteType,
+}
+
+public enum EditorButtonKind
+{
+    None,
+    Play,
+    Stop,
+    Preview,
+    Metronome,
+    AddMove,
+    ZoomIn,
+    ZoomOut,
+    ToggleMetadata,
+    Save,
+    SaveAs,
+    LoadLevel,
+    LoadSong,
+}
+
+/// <summary>An ECS editor toolbar button.</summary>
+public struct EditorButton(EditorButtonKind kind) : IComponent
+{
+    public EditorButtonKind Kind = kind;
+}
+
+/// <summary>A native editor panel/dialog request raised by an ECS button.</summary>
+public struct EditorUiRequest(EditorButtonKind kind = EditorButtonKind.None) : IComponent
+{
+    public EditorButtonKind Kind = kind;
+}
+
+/// <summary>An ECS dropdown button and its option list.</summary>
+public struct EditorDropdown(
+    Entity list,
+    EditorDropdownKind kind,
+    int selected) : IComponent
+{
+    public Entity List = list;
+    public EditorDropdownKind Kind = kind;
+    public int Selected = selected;
+    public bool Open;
+}
+
+/// <summary>One selectable option inside an editor dropdown.</summary>
+public struct EditorDropdownOption(Entity owner, int value) : IComponent
+{
+    public Entity Owner = owner;
+    public int Value = value;
+}
+
 /// <summary>Metronome toggle for the editor.</summary>
 public struct EditorMetronome(bool enabled) : IComponent
 {

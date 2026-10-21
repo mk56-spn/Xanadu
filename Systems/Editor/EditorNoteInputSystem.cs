@@ -3,6 +3,7 @@ using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Godot;
 using Writer.Ecs;
+using Writer.Settings;
 using Writer.Editor;
 using Writer.Systems.Input;
 using Writer.Systems.Playfields;
@@ -69,7 +70,13 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
         if (bar.HasPoint(screenPosition))
         {
             _scrubbing = true;
-            Scrub(screenPosition, bar, playhead);
+            Scrub(screenPosition, bar, playhead, editor);
+            return;
+        }
+
+        if (editor.HasComponent<EditorSidebar>() &&
+            editor.GetComponent<EditorSidebar>().Bounds.HasPoint(screenPosition))
+        {
             return;
         }
 
@@ -87,6 +94,10 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
             _dragOffset = note.Position - playfieldPosition;
             _dragBefore = _history.Capture();
             selection.Note = hit;
+
+            if (editor.HasComponent<EditorNoteTarget>())
+                editor.GetComponent<EditorNoteTarget>().Target = note.Target;
+
             return;
         }
 
@@ -98,7 +109,13 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
 
         var before = _history.Capture();
         long time = EditorTiming.Snap(playhead.TimeMs, playhead);
-        Entity created = _entities.CreateEntity(new Note(time, playfieldPosition));
+        KeybindAction target = editor.HasComponent<EditorNoteTarget>()
+            ? editor.GetComponent<EditorNoteTarget>().Target
+            : KeybindAction.M;
+        Entity created = _entities.CreateEntity(new Note(
+            time,
+            playfieldPosition,
+            target: target));
         var after = _history.Capture();
         _history.Record(before, after);
         selection.Note = created;
@@ -121,7 +138,11 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
 
         if (_scrubbing)
         {
-            Scrub(screenPosition, EditorLayout.RulerRect(view), playhead);
+            Scrub(
+                screenPosition,
+                EditorLayout.RulerRect(view),
+                playhead,
+                editor);
             return;
         }
 
@@ -155,13 +176,21 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
         _draggedNote = default;
     }
 
-    private void Scrub(Vector2 screenPosition, Rect2 bar, Playhead playhead)
+    private void Scrub(
+        Vector2 screenPosition,
+        Rect2 bar,
+        Playhead playhead,
+        Entity editor)
     {
         if (playhead.DurationMs <= 0)
             return;
 
+        float zoom = editor.HasComponent<EditorTimeline>()
+            ? editor.GetComponent<EditorTimeline>().Zoom
+            : 1f;
+        (long start, long end) = EditorLayout.TimelineWindow(playhead, zoom);
         float t = Math.Clamp((screenPosition.X - bar.Position.X) / bar.Size.X, 0f, 1f);
-        long raw = (long)(playhead.DurationMs * t);
+        long raw = start + (long)((end - start) * t);
         playhead.SeekRequestMs = EditorTiming.Snap(raw, playhead);
     }
 

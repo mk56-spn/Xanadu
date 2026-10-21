@@ -38,6 +38,64 @@ public sealed class EditorPlayfieldDrawSystemTests
     }
 
     [Test]
+    public void ZoomedTimelineUsesANarrowerTimeWindow()
+    {
+        var view = new PlayfieldView(new Vector2(276, 88), 0.404f, new Vector2(1152, 648));
+        var store = new EntityStore();
+        store.CreateEntity(
+            new LevelInfo("Zoomed", ""),
+            new Playfield(1000, 1000),
+            new Playhead(0, 120, 0, false, durationMs: 5_000),
+            view,
+            new NoteSelection(default),
+            new EditorTimeline(4f));
+
+        var canvas = new RecordingCanvas();
+        var root = new SystemRoot(store);
+        root.Add(new EditorPlayfieldDrawSystem(store, canvas, default));
+
+        root.Update(new UpdateTick(1f / 60f, 0));
+
+        Assert.That(canvas.Rects, Does.Contain(EditorLayout.RulerRect(view)));
+        Assert.That(canvas.Lines, Is.Not.Empty);
+
+        (long start, long end) = EditorLayout.TimelineWindow(
+            new Playhead(0, 120, 0, false, durationMs: 5_000),
+            4f);
+        Assert.That(start, Is.EqualTo(0));
+        Assert.That(end, Is.EqualTo(1_250));
+    }
+
+    [Test]
+    public void TimelineSnapLinesUseWhiteRedAndBlue()
+    {
+        var view = new PlayfieldView(new Vector2(30, 30), 0.6f, new Vector2(1152, 648));
+        var store = new EntityStore();
+        store.CreateEntity(
+            new LevelInfo("Colors", ""),
+            new Playfield(1000, 1000),
+            new Playhead(0, 120, 0, false, durationMs: 5_000, snapDivision: 4),
+            view,
+            new NoteSelection(default));
+
+        var canvas = new RecordingCanvas();
+        var root = new SystemRoot(store);
+        root.Add(new EditorPlayfieldDrawSystem(store, canvas, default));
+
+        root.Update(new UpdateTick(1f / 60f, 0));
+
+        Assert.That(
+            canvas.Lines.Any(line => line.Color == EditorPlayfieldDrawSystem.MainSnapColor),
+            Is.True);
+        Assert.That(
+            canvas.Lines.Any(line => line.Color == EditorPlayfieldDrawSystem.HalfSnapColor),
+            Is.True);
+        Assert.That(
+            canvas.Lines.Any(line => line.Color == EditorPlayfieldDrawSystem.QuarterSnapColor),
+            Is.True);
+    }
+
+    [Test]
     public void PreviewDrawsWithoutEditorChrome()
     {
         var view = new PlayfieldView(new Vector2(30, 30), 0.6f, new Vector2(1152, 648));
@@ -109,7 +167,7 @@ public sealed class EditorPlayfieldDrawSystemTests
             Vector2 to,
             Color color,
             float width) =>
-            Lines.Add(new LineCall(from, to));
+            Lines.Add(new LineCall(from, to, color));
 
         public void DrawText(Rid canvas, Rect2 bounds, string text, Color color) { }
 
@@ -118,6 +176,9 @@ public sealed class EditorPlayfieldDrawSystemTests
 
         public void DrawTextRight(Rid canvas, Rect2 bounds, string text, Color color) { }
 
-        public readonly record struct LineCall(Vector2 From, Vector2 To);
+        public readonly record struct LineCall(
+            Vector2 From,
+            Vector2 To,
+            Color Color);
     }
 }

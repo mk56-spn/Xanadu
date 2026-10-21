@@ -159,6 +159,24 @@ public sealed class EditorCommandSystemTests
     }
 
     [Test]
+    public void ZoomsTheEditorTimeline()
+    {
+        _editor.AddComponent(new EditorTimeline(1f));
+
+        _commands.Enqueue(EditorCommand.ZoomTimeline(1));
+        _root.Update(new UpdateTick(1f / 60f, 0));
+        Assert.That(_editor.GetComponent<EditorTimeline>().Zoom, Is.EqualTo(2f));
+
+        _commands.Enqueue(EditorCommand.ZoomTimeline(1));
+        _root.Update(new UpdateTick(1f / 60f, 0));
+        Assert.That(_editor.GetComponent<EditorTimeline>().Zoom, Is.EqualTo(4f));
+
+        _commands.Enqueue(EditorCommand.ZoomTimeline(-1));
+        _root.Update(new UpdateTick(1f / 60f, 0));
+        Assert.That(_editor.GetComponent<EditorTimeline>().Zoom, Is.EqualTo(2f));
+    }
+
+    [Test]
     public void LoadSongAdoptsFilenameAndBumpsRevision()
     {
         _commands.Enqueue(EditorCommand.LoadSong("/tmp/Test Song.mp3"));

@@ -21,6 +21,7 @@ public static class SceneTestCatalog
         new PlaySceneTest(),
         new ResultsSceneTest(),
         new RestartSceneTest(),
+        new EditorDropdownSceneTest(),
         new LeaveEditorSceneTest(),
     };
 }
@@ -257,6 +258,136 @@ public sealed class PlaySceneTest : SceneTest
 
         Context.Scenes.StartPlay(
             new LevelEntry("visual://play", document));
+    }
+}
+
+/// <summary>Regression: the ECS snap and note-type dropdowns must be clickable.</summary>
+public sealed class EditorDropdownSceneTest : SceneTest
+{
+    public override string Name => "Editor dropdowns";
+    public override string Slug => "editor-dropdowns";
+
+    protected override void SetUpSteps()
+    {
+        AddStep("open editor dropdown scene", () => Context.Scenes.Start(SceneKind.Editor));
+        AddUntilStep(
+            "wait for editor sidebar",
+            () => Context.Scenes.Current == SceneKind.Editor &&
+                  VisualAssert.HasText(Context.Entities, "SNAP") &&
+                  VisualAssert.HasText(Context.Entities, "NOTE TYPE") &&
+                  Context.Entities.Query<EditorDropdown>().Count == 2);
+
+        AddStep("click snap dropdown", () => ClickDropdown(EditorDropdownKind.Snap));
+        AddWaitStep("hold snap dropdown", 2);
+        AddStep("release snap dropdown", () => Context.Pointer.Release());
+        AddAssert(
+            "snap dropdown opened",
+            () => FindDropdown(EditorDropdownKind.Snap).GetComponent<EditorDropdown>().Open);
+
+
+        AddStep("choose 1/16 snap", () => ClickDropdownOption(EditorDropdownKind.Snap, 2));
+        AddWaitStep("hold snap option", 2);
+        AddStep("release snap option", () => Context.Pointer.Release());
+        AddUntilStep(
+            "snap changed",
+            () => Context.Entities.Query<Playhead>().ToEntityList()[0]
+                .GetComponent<Playhead>().SnapDivision == 16);
+
+        AddStep("click note type dropdown", () => ClickDropdown(EditorDropdownKind.NoteType));
+        AddWaitStep("hold note type dropdown", 2);
+        AddStep("release note type dropdown", () => Context.Pointer.Release());
+        AddAssert(
+            "note type dropdown opened",
+            () => FindDropdown(EditorDropdownKind.NoteType).GetComponent<EditorDropdown>().Open);
+
+        AddStep(
+            "choose R3 note type",
+            () => ClickDropdownOption(EditorDropdownKind.NoteType, (int)KeybindAction.R3));
+        AddWaitStep("hold note type option", 2);
+        AddStep("release note type option", () => Context.Pointer.Release());
+        AddUntilStep(
+            "note type changed",
+            () => Context.Entities.Query<EditorNoteTarget>().ToEntityList()[0]
+                .GetComponent<EditorNoteTarget>().Target == KeybindAction.R3);
+
+        AddStep("click play toolbar", () => ClickEditorButton(EditorButtonKind.Play));
+        AddWaitStep("hold play toolbar", 2);
+        AddStep("release play toolbar", () => Context.Pointer.Release());
+        AddUntilStep(
+            "toolbar play started",
+            () => Context.Entities.Query<Playhead>().ToEntityList()[0]
+                .GetComponent<Playhead>().Playing);
+
+        AddStep("click zoom toolbar", () => ClickEditorButton(EditorButtonKind.ZoomIn));
+        AddWaitStep("hold zoom toolbar", 2);
+        AddStep("release zoom toolbar", () => Context.Pointer.Release());
+        AddUntilStep(
+            "toolbar zoom changed",
+            () => Context.Entities.Query<EditorTimeline>().ToEntityList()[0]
+                .GetComponent<EditorTimeline>().Zoom >= 32f);
+    }
+
+    private void ClickEditorButton(EditorButtonKind kind)
+    {
+        foreach (Entity entity in Context.Entities.Query<EditorButton>().ToEntityList())
+        {
+            if (entity.GetComponent<EditorButton>().Kind != kind)
+                continue;
+
+            Context.Pointer.Click(entity.GetComponent<Position>().Value);
+            return;
+        }
+    }
+
+    private void ClickDropdown(EditorDropdownKind kind)
+    {
+        Entity button = FindDropdown(kind);
+        Context.Pointer.Click(button.GetComponent<Position>().Value);
+    }
+
+    private void ClickDropdownOption(EditorDropdownKind kind, int value)
+    {
+        Entity button = FindDropdown(kind);
+        foreach (Entity option in Context.Entities
+                     .Query<EditorDropdownOption>()
+                     .ToEntityList())
+        {
+            EditorDropdownOption data = option.GetComponent<EditorDropdownOption>();
+            if (data.Owner.Id != button.Id || data.Value != value)
+                continue;
+
+            Context.Pointer.Click(WorldPosition(
+                option,
+                option.GetComponent<Position>().Value));
+            return;
+        }
+    }
+
+    private Entity FindDropdown(EditorDropdownKind kind)
+    {
+        foreach (Entity entity in Context.Entities.Query<EditorDropdown>().ToEntityList())
+        {
+            if (entity.GetComponent<EditorDropdown>().Kind == kind)
+                return entity;
+        }
+
+        return default;
+    }
+
+    private static Vector2 WorldPosition(Entity entity, Vector2 local)
+    {
+        Vector2 world = local;
+        Entity parent = entity.Parent;
+
+        while (!parent.IsNull)
+        {
+            if (parent.TryGetComponent<Position>(out var position))
+                world += position.Value;
+
+            parent = parent.Parent;
+        }
+
+        return world;
     }
 }
 

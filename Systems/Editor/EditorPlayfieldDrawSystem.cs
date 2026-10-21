@@ -12,6 +12,10 @@ namespace Writer.Systems.Editor;
 public sealed class EditorPlayfieldDrawSystem :
     QuerySystem<PlayfieldView, Playfield, Playhead, NoteSelection>
 {
+    public static readonly Color MainSnapColor = Colors.White;
+    public static readonly Color HalfSnapColor = new("#ef4444");
+    public static readonly Color QuarterSnapColor = new("#3b82f6");
+
     private static readonly Color EditorBackground = new("#1e1e1e");
     private static readonly Color PanelBackground = new("#111827");
 
@@ -44,7 +48,14 @@ public sealed class EditorPlayfieldDrawSystem :
             if (preview.Active)
                 DrawPreview(view, playfield, playhead);
             else
-                DrawEditor(view, playfield, playhead, selection);
+                DrawEditor(
+                    view,
+                    playfield,
+                    playhead,
+                    selection,
+                    entity.HasComponent<EditorTimeline>()
+                        ? entity.GetComponent<EditorTimeline>().Zoom
+                        : 1f);
         });
     }
 
@@ -52,7 +63,8 @@ public sealed class EditorPlayfieldDrawSystem :
         PlayfieldView view,
         Playfield playfield,
         Playhead playhead,
-        NoteSelection selection)
+        NoteSelection selection,
+        float timelineZoom)
     {
         _canvas.DrawRect(
             _editor,
@@ -72,7 +84,7 @@ public sealed class EditorPlayfieldDrawSystem :
             playfield,
             playhead,
             selection.Note);
-        DrawRuler(view, playhead, selection);
+        DrawRuler(view, playhead, selection, timelineZoom);
     }
 
     private void DrawChrome(PlayfieldView view)
@@ -95,7 +107,8 @@ public sealed class EditorPlayfieldDrawSystem :
     private void DrawRuler(
         PlayfieldView view,
         Playhead playhead,
-        NoteSelection selection)
+        NoteSelection selection,
+        float timelineZoom)
     {
         Rect2 ruler = EditorLayout.RulerRect(view);
         _canvas.DrawRect(_editor, ruler, PlayfieldRenderer.PlayfieldBackground);
@@ -116,42 +129,71 @@ public sealed class EditorPlayfieldDrawSystem :
             return;
         }
 
+        (long windowStart, long windowEnd) =
+            EditorLayout.TimelineWindow(playhead, timelineZoom);
         double beatMs = 60_000.0 / Math.Max(1, playhead.Bpm);
-        int firstBeat = (int)Math.Ceiling(
-            (0 - playhead.OffsetMs) / beatMs);
-        int lastBeat = (int)Math.Floor(
-            (playhead.DurationMs - playhead.OffsetMs) / beatMs);
-        int beatTotal = Math.Max(1, lastBeat - firstBeat + 1);
-        int step = Math.Max(1, (int)Math.Ceiling(beatTotal / 160.0));
+        int subdivisions = Math.Max(1, playhead.SnapDivision);
+        double tickMs = beatMs / subdivisions;
 
-        for (int beat = firstBeat; beat <= lastBeat; beat++)
+        float pixelsPerTick = ruler.Size.X *
+                              (float)tickMs /
+                              Math.Max(1f, windowEnd - windowStart);
+        int skip = 1;
+        while (pixelsPerTick / skip < 3f)
+            skip *= 2;
+
+        int firstTick = (int)Math.Floor(
+            (windowStart - playhead.OffsetMs) / tickMs);
+        int lastTick = (int)Math.Ceiling(
+            (windowEnd - playhead.OffsetMs) / tickMs);
+
+        for (int tick = firstTick; tick <= lastTick; tick++)
         {
-            bool measure = beat % 4 == 0;
-            if (!measure && beat % step != 0)
+            int sub = tick % subdivisions;
+            if (sub < 0)
+                sub += subdivisions;
+
+            bool main = sub == 0;
+            bool half = sub * 2 == subdivisions;
+            bool quarter = sub * 4 == subdivisions ||
+                           sub * 4 == subdivisions * 3;
+
+            if (!main && !half && !quarter && sub % skip != 0)
                 continue;
 
-            double beatTime = playhead.OffsetMs + beat * beatMs;
-            float x = ruler.Position.X +
-                      (float)(beatTime / playhead.DurationMs) * ruler.Size.X;
-            float height = measure ? 20 : 9;
+            double tickTime = playhead.OffsetMs + tick * tickMs;
+            if (tickTime < windowStart - 1 || tickTime > windowEnd + 1)
+                continue;
+
+            float x = XForTime(
+                ruler,
+                windowStart,
+                windowEnd,
+                (long)Math.Round(tickTime));
+            float height = main ? 22f : half ? 15f : quarter ? 10f : 5f;
+            Color color = main
+                ? MainSnapColor
+                : half
+                    ? HalfSnapColor
+                    : quarter
+                        ? QuarterSnapColor
+                        : PlayfieldRenderer.GridColor;
 
             _canvas.DrawLine(
                 _editor,
                 new Vector2(x, ruler.End.Y - height),
                 new Vector2(x, ruler.End.Y),
-                measure
-                    ? PlayfieldRenderer.AxisColor
-                    : PlayfieldRenderer.GridColor,
-                measure ? 2 : 1);
+                color,
+                main || half ? 2 : 1);
         }
 
         foreach (Entity entity in _entities.Query<Note>().ToEntityList())
         {
             Note note = entity.GetComponent<Note>();
-            float x = ruler.Position.X +
-                      Math.Clamp(note.TimeMs / (float)playhead.DurationMs, 0f, 1f) *
-                      ruler.Size.X;
+            if (note.TimeMs < windowStart || note.TimeMs > windowEnd)
+                continue;
 
+            float x = XForTime(ruler, windowStart, windowEnd, note.TimeMs);
             Color color = !selection.Note.IsNull && selection.Note.Id == entity.Id
                 ? PlayfieldRenderer.SelectedNoteColor
                 : PlayfieldRenderer.NoteColor;
@@ -165,11 +207,14 @@ public sealed class EditorPlayfieldDrawSystem :
         foreach (Entity entity in _entities.Query<MovementEvent>().ToEntityList())
         {
             MovementEvent movement = entity.GetComponent<MovementEvent>();
-            float x = ruler.Position.X +
-                      Math.Clamp(
-                          movement.TimeMs / (float)playhead.DurationMs,
-                          0f,
-                          1f) * ruler.Size.X;
+            if (movement.TimeMs < windowStart || movement.TimeMs > windowEnd)
+                continue;
+
+            float x = XForTime(
+                ruler,
+                windowStart,
+                windowEnd,
+                movement.TimeMs);
 
             _canvas.DrawRect(
                 _editor,
@@ -177,11 +222,11 @@ public sealed class EditorPlayfieldDrawSystem :
                 PlayfieldRenderer.QueueColor);
         }
 
-        float playheadX = ruler.Position.X +
-                          Math.Clamp(
-                              playhead.TimeMs / (float)playhead.DurationMs,
-                              0f,
-                              1f) * ruler.Size.X;
+        float playheadX = XForTime(
+            ruler,
+            windowStart,
+            windowEnd,
+            Math.Clamp(playhead.TimeMs, windowStart, windowEnd));
 
         _canvas.DrawLine(
             _editor,
@@ -189,6 +234,17 @@ public sealed class EditorPlayfieldDrawSystem :
             new Vector2(playheadX, ruler.End.Y),
             Colors.White,
             2);
+    }
+
+    private static float XForTime(
+        Rect2 ruler,
+        long windowStart,
+        long windowEnd,
+        long timeMs)
+    {
+        float span = Math.Max(1, windowEnd - windowStart);
+        float t = Math.Clamp((timeMs - windowStart) / span, 0f, 1f);
+        return ruler.Position.X + t * ruler.Size.X;
     }
 
     private void DrawPreview(

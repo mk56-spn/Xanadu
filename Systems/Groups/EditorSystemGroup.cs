@@ -23,8 +23,11 @@ public sealed class EditorSystemGroup : SystemGroup
         EditorHistory history) : base("Editor")
     {
         Add(new EditorCommandSystem(entities, commands, history));
+        Add(new EditorTimelineSystem());
         Add(new EditorMetronomeSystem(metronomeAudio));
         Add(new EditorNoteInputSystem(entities, pointerInput, history));
+        Add(new EditorDropdownSystem(entities, commands));
+        Add(new EditorButtonSystem(entities, commands));
         Add(new EditorPlayfieldDrawSystem(entities, canvas, playfieldCanvas));
         Add(new WarningPopupSystem(entities));
     }

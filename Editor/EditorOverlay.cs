@@ -5,7 +5,6 @@ using Friflo.Engine.ECS;
 using Godot;
 using Writer.Ecs;
 using Writer.Levels;
-using Writer.Settings;
 using Writer.Editor.Commands;
 using Writer.Systems.Editor;
 using Writer.Systems.Input;
@@ -25,10 +24,8 @@ public partial class EditorOverlay : CanvasLayer
     private Control _root = null!;
     private Control _header = null!;
     private Control _footer = null!;
-    private HBoxContainer _transport = null!;
     private Control _metadataCatcher = null!;
     private Panel _metadataPanel = null!;
-    private Button _metadataButton = null!;
     private FileDialog _songDialog = null!;
     private FileDialog _saveAsDialog = null!;
     private FileDialog _loadDialog = null!;
@@ -37,11 +34,6 @@ public partial class EditorOverlay : CanvasLayer
     private LineEdit _difficultyEdit = null!;
     private LineEdit _bpmEdit = null!;
     private LineEdit _offsetEdit = null!;
-    private OptionButton _snapOption = null!;
-    private OptionButton _targetOption = null!;
-    private Button _playButton = null!;
-    private Button _previewButton = null!;
-    private Button _metronomeButton = null!;
     private Label _levelLabel = null!;
     private Label _songLabel = null!;
     private Label _timeLabel = null!;
@@ -109,6 +101,8 @@ public partial class EditorOverlay : CanvasLayer
         if (_closed || _editor.IsNull)
             return;
 
+        ProcessUiRequest();
+
         if (_suppressPointerUntilRelease &&
             !Godot.Input.IsMouseButtonPressed(MouseButton.Left))
         {
@@ -142,15 +136,6 @@ public partial class EditorOverlay : CanvasLayer
             _timeLabel.Text = timeText;
 
         _notesLabel.Text = $"{_entities.Query<Note>().Count} notes";
-
-        _playButton.Text = playhead.Playing ? "Pause" : "Play";
-
-        if (_editor.HasComponent<EditorMetronome>())
-        {
-            _metronomeButton.Text = _editor.GetComponent<EditorMetronome>().Enabled
-                ? "Click On"
-                : "Click Off";
-        }
 
         bool previewActive = _editor.HasComponent<EditorPreview>() &&
                              _editor.GetComponent<EditorPreview>().Active;
@@ -222,35 +207,6 @@ public partial class EditorOverlay : CanvasLayer
             _syncing = false;
         }
 
-        int snapIndex = playhead.SnapDivision switch
-        {
-            8 => 1,
-            16 => 2,
-            _ => 0,
-        };
-
-        if (_snapOption.Selected != snapIndex)
-        {
-            _syncing = true;
-            _snapOption.Selected = snapIndex;
-            _syncing = false;
-        }
-
-        bool hasSelectedNote = _editor.HasComponent<NoteSelection>() &&
-                               !_editor.GetComponent<NoteSelection>().Note.IsNull &&
-                               _editor.GetComponent<NoteSelection>().Note.HasComponent<Note>();
-        KeybindAction target = hasSelectedNote
-            ? _editor.GetComponent<NoteSelection>().Note.GetComponent<Note>().Target
-            : KeybindAction.M;
-
-        if (_targetOption.Selected != (int)target)
-        {
-            _syncing = true;
-            _targetOption.Selected = (int)target;
-            _syncing = false;
-        }
-
-        _targetOption.Disabled = !hasSelectedNote;
     }
 
     public override void _UnhandledInput(InputEvent @event)
@@ -365,7 +321,6 @@ public partial class EditorOverlay : CanvasLayer
         BuildHeader(view, level);
         BuildMetadataDropdown(view, level, playhead);
         BuildFooter(view);
-        BuildTransport(view, playhead);
 
         _previewLabel = new Label
         {
@@ -424,32 +379,6 @@ public partial class EditorOverlay : CanvasLayer
         _statusLabel.AddThemeColorOverride("font_color", new Color("#94a3b8"));
         _header.AddChild(_statusLabel);
 
-        float right = view.ScreenSize.X - 174;
-        float y = (EditorLayout.HeaderHeight - 38) / 2;
-        const float levelWidth = 104;
-        const float saveWidth = 88;
-        const float songWidth = 128;
-
-        _metadataButton = AddHeaderButton(
-            "Level ▾",
-            right - levelWidth,
-            y,
-            levelWidth);
-        _metadataButton.Pressed += ToggleMetadata;
-
-        var save = AddHeaderButton(
-            "Save",
-            right - levelWidth - 8 - saveWidth,
-            y,
-            saveWidth);
-        save.Pressed += SaveCurrent;
-
-        var loadSong = AddHeaderButton(
-            "Load Song (L)",
-            right - levelWidth - 8 - saveWidth - 8 - songWidth,
-            y,
-            songWidth);
-        loadSong.Pressed += OpenSongDialog;
     }
 
     private void BuildMetadataDropdown(
@@ -521,17 +450,6 @@ public partial class EditorOverlay : CanvasLayer
             playhead.OffsetMs.ToString());
         _offsetEdit.TextChanged += OnOffsetChanged;
 
-        var fileRow = new HBoxContainer();
-        fileRow.AddThemeConstantOverride("separation", 8);
-        box.AddChild(fileRow);
-
-        var saveAs = AddFillButton("Save As");
-        saveAs.Pressed += OpenSaveAsDialog;
-        fileRow.AddChild(saveAs);
-
-        var loadLevel = AddFillButton("Load Level");
-        loadLevel.Pressed += OpenLoadDialog;
-        fileRow.AddChild(loadLevel);
     }
 
     private void BuildFooter(PlayfieldView view)
@@ -567,91 +485,6 @@ public partial class EditorOverlay : CanvasLayer
         _notesLabel.AddThemeFontSizeOverride("font_size", 13);
         _notesLabel.AddThemeColorOverride("font_color", new Color("#94a3b8"));
         _footer.AddChild(_notesLabel);
-    }
-
-    private void BuildTransport(PlayfieldView view, Playhead playhead)
-    {
-        Rect2 transport = EditorLayout.TransportRect(view);
-        _transport = new HBoxContainer
-        {
-            Position = transport.Position,
-            Size = transport.Size,
-            Alignment = BoxContainer.AlignmentMode.Center,
-            MouseFilter = Control.MouseFilterEnum.Ignore,
-        };
-        _transport.AddThemeConstantOverride("separation", 8);
-        _root.AddChild(_transport);
-
-        _playButton = AddTransportButton("Play");
-        _playButton.Pressed += TogglePlayback;
-
-        var stop = AddTransportButton("Stop");
-        stop.Pressed += StopPlayback;
-
-        _previewButton = AddTransportButton("Preview");
-        _previewButton.Pressed += TogglePreview;
-
-        _metronomeButton = AddTransportButton("Click Off");
-        _metronomeButton.Pressed += ToggleMetronome;
-
-        _transport.AddChild(new Control
-        {
-            CustomMinimumSize = new Vector2(12, 0),
-        });
-
-        var snapLabel = new Label
-        {
-            Text = "Snap",
-            VerticalAlignment = VerticalAlignment.Center,
-        };
-        snapLabel.AddThemeFontSizeOverride("font_size", 14);
-        _transport.AddChild(snapLabel);
-
-        _snapOption = new OptionButton
-        {
-            CustomMinimumSize = new Vector2(132, 36),
-            SizeFlagsVertical = Control.SizeFlags.ShrinkCenter,
-        };
-        _snapOption.AddItem("1/4 beat");
-        _snapOption.AddItem("1/8 beat");
-        _snapOption.AddItem("1/16 beat");
-        _snapOption.Selected = playhead.SnapDivision switch
-        {
-            8 => 1,
-            16 => 2,
-            _ => 0,
-        };
-        _snapOption.ItemSelected += OnSnapSelected;
-        _transport.AddChild(_snapOption);
-
-        _transport.AddChild(new Control
-        {
-            CustomMinimumSize = new Vector2(12, 0),
-        });
-
-        var targetLabel = new Label
-        {
-            Text = "Target",
-            VerticalAlignment = VerticalAlignment.Center,
-        };
-        targetLabel.AddThemeFontSizeOverride("font_size", 14);
-        _transport.AddChild(targetLabel);
-
-        _targetOption = new OptionButton
-        {
-            CustomMinimumSize = new Vector2(110, 36),
-            SizeFlagsVertical = Control.SizeFlags.ShrinkCenter,
-            Disabled = true,
-        };
-
-        foreach (KeybindAction action in KeybindSettings.Actions)
-            _targetOption.AddItem(KeybindSettings.LabelFor(action));
-
-        _targetOption.ItemSelected += OnTargetSelected;
-        _transport.AddChild(_targetOption);
-
-        var addMovement = AddTransportButton("Add Move");
-        addMovement.Pressed += OnAddMovement;
     }
 
     private void BuildSaveDialogs()
@@ -787,12 +620,6 @@ public partial class EditorOverlay : CanvasLayer
             _difficultyEdit.Text = document.Difficulty;
             _bpmEdit.Text = document.Bpm.ToString();
             _offsetEdit.Text = document.OffsetMs.ToString();
-            _snapOption.Selected = document.SnapDivision switch
-            {
-                8 => 1,
-                16 => 2,
-                _ => 0,
-            };
             _syncing = false;
 
             _statusLabel.Text = $"Loaded {Path.GetFileName(path)}";
@@ -867,6 +694,42 @@ public partial class EditorOverlay : CanvasLayer
         _editor.HasComponent<EditorPreview>() &&
         _editor.GetComponent<EditorPreview>().Active;
 
+    private void ProcessUiRequest()
+    {
+        if (!_editor.HasComponent<EditorUiRequest>())
+            return;
+
+        ref EditorUiRequest request = ref _editor.GetComponent<EditorUiRequest>();
+        EditorButtonKind kind = request.Kind;
+        if (kind == EditorButtonKind.None)
+            return;
+
+        request.Kind = EditorButtonKind.None;
+
+        switch (kind)
+        {
+            case EditorButtonKind.ToggleMetadata:
+                ToggleMetadata();
+                break;
+
+            case EditorButtonKind.Save:
+                SaveCurrent();
+                break;
+
+            case EditorButtonKind.SaveAs:
+                OpenSaveAsDialog();
+                break;
+
+            case EditorButtonKind.LoadLevel:
+                OpenLoadDialog();
+                break;
+
+            case EditorButtonKind.LoadSong:
+                OpenSongDialog();
+                break;
+        }
+    }
+
     private bool AnyDialogVisible() =>
         _songDialog.Visible ||
         _saveAsDialog.Visible ||
@@ -876,7 +739,6 @@ public partial class EditorOverlay : CanvasLayer
     {
         _header.Visible = visible;
         _footer.Visible = visible;
-        _transport.Visible = visible;
 
         if (!visible)
             HideMetadata();
@@ -919,7 +781,6 @@ public partial class EditorOverlay : CanvasLayer
     {
         _metadataPanel.Visible = true;
         _metadataCatcher.Visible = true;
-        _metadataButton.Text = "Level ▴";
     }
 
     private void HideMetadata()
@@ -929,7 +790,6 @@ public partial class EditorOverlay : CanvasLayer
 
         _metadataPanel.Visible = false;
         _metadataCatcher.Visible = false;
-        _metadataButton.Text = "Level ▾";
     }
 
     private void OnMetadataCatcherInput(InputEvent @event)
@@ -1027,39 +887,20 @@ public partial class EditorOverlay : CanvasLayer
         _commands.Enqueue(EditorCommand.SetOffset(offset));
     }
 
+    private void OnZoom(int direction)
+    {
+        if (_editor.IsNull)
+            return;
+
+        _commands.Enqueue(EditorCommand.ZoomTimeline(direction));
+    }
+
     private void OnAddMovement()
     {
         if (_editor.IsNull)
             return;
 
         _commands.Enqueue(EditorCommand.AddMovementEvent());
-    }
-
-    private void OnTargetSelected(long index)
-    {
-        if (_syncing || _editor.IsNull)
-            return;
-
-        int clamped = Math.Clamp(
-            (int)index,
-            0,
-            KeybindSettings.Actions.Length - 1);
-        _commands.Enqueue(
-            EditorCommand.SetTarget(KeybindSettings.Actions[clamped]));
-    }
-
-    private void OnSnapSelected(long index)
-    {
-        if (_syncing || _editor.IsNull)
-            return;
-
-        int snap = index switch
-        {
-            1 => 8,
-            2 => 16,
-            _ => 4,
-        };
-        _commands.Enqueue(EditorCommand.SetSnap(snap));
     }
 
     private void DeleteSelectedNote()
@@ -1087,39 +928,6 @@ public partial class EditorOverlay : CanvasLayer
         _commands.Enqueue(EditorCommand.Redo());
         _statusLabel.Text = "Redo";
     }
-
-    private Button AddHeaderButton(string text, float x, float y, float width)
-    {
-        var button = new Button
-        {
-            Text = text,
-            Position = new Vector2(x, y),
-            Size = new Vector2(width, 38),
-            CustomMinimumSize = new Vector2(width, 38),
-        };
-        _header.AddChild(button);
-        return button;
-    }
-
-    private Button AddTransportButton(string text)
-    {
-        var button = new Button
-        {
-            Text = text,
-            CustomMinimumSize = new Vector2(108, 38),
-            SizeFlagsVertical = Control.SizeFlags.ShrinkCenter,
-        };
-        _transport.AddChild(button);
-        return button;
-    }
-
-    private static Button AddFillButton(string text) =>
-        new()
-        {
-            Text = text,
-            CustomMinimumSize = new Vector2(0, 32),
-            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
-        };
 
     private static LineEdit AddDropdownField(
         Container parent,
