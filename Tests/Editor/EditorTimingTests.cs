@@ -17,6 +17,14 @@ public sealed class EditorTimingTests
     }
 
     [Test]
+    public void SnapStepTracksBpmAndDivision()
+    {
+        var playhead = new Playhead(0, 120, 0, false, snapDivision: 8);
+
+        Assert.That(EditorTiming.StepMs(playhead), Is.EqualTo(250));
+    }
+
+    [Test]
     public void OffsetIsAppliedBeforeSnapping()
     {
         var playhead = new Playhead(0, 120, 250, false, snapDivision: 8);

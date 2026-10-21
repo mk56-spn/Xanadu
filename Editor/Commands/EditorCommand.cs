@@ -22,6 +22,7 @@ public enum EditorCommandType
     DeleteSelection,
     SetTarget,
     AddMovementEvent,
+    MoveSelection,
     ZoomTimeline,
     Undo,
     Redo,
@@ -84,6 +85,9 @@ public readonly record struct EditorCommand(
 
     public static EditorCommand AddMovementEvent() =>
         new(EditorCommandType.AddMovementEvent);
+
+    public static EditorCommand MoveSelection(int direction) =>
+        new(EditorCommandType.MoveSelection, IntValue: direction);
 
     public static EditorCommand ZoomTimeline(int direction) =>
         new(EditorCommandType.ZoomTimeline, IntValue: direction);

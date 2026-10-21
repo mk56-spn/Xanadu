@@ -177,6 +177,31 @@ public sealed class EditorCommandSystemTests
     }
 
     [Test]
+    public void MovesSelectedNoteByOneSnapStepAndUndoes()
+    {
+        Entity note = _store.CreateEntity(new Note(1_000, new Vector2(10, 20)));
+        _editor.GetComponent<NoteSelection>().Note = note;
+
+        _commands.Enqueue(EditorCommand.MoveSelection(1));
+        _root.Update(new UpdateTick(1f / 60f, 0));
+
+        Assert.That(note.GetComponent<Note>().TimeMs, Is.EqualTo(1_500));
+
+        _commands.Enqueue(EditorCommand.MoveSelection(-1));
+        _root.Update(new UpdateTick(1f / 60f, 0));
+
+        Assert.That(note.GetComponent<Note>().TimeMs, Is.EqualTo(1_000));
+
+        _commands.Enqueue(EditorCommand.MoveSelection(1));
+        _root.Update(new UpdateTick(1f / 60f, 0));
+        _commands.Enqueue(EditorCommand.Undo());
+        _root.Update(new UpdateTick(1f / 60f, 0));
+
+        Assert.That(_store.Query<Note>().ToEntityList()[0].GetComponent<Note>().TimeMs,
+            Is.EqualTo(1_000));
+    }
+
+    [Test]
     public void LoadSongAdoptsFilenameAndBumpsRevision()
     {
         _commands.Enqueue(EditorCommand.LoadSong("/tmp/Test Song.mp3"));

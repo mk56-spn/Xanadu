@@ -1,55 +1,82 @@
 using System;
+using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Godot;
 using Writer.Ecs;
 using Writer.Scoring;
+using Writer.Settings;
 using Writer.Systems.Input;
+using Position = Writer.Ecs.Position;
 
 namespace Writer.Systems.Playfields;
 
-/// <summary>Hits play notes inside the 8 ms timing window and awards score.</summary>
+/// <summary>
+/// Hits notes when the player is over them and the note's target key is
+/// pressed inside the timing window.
+/// </summary>
 public sealed class PlayNoteInputSystem : QuerySystem<Note>
 {
-    private const float HitRadius = PlayfieldRenderer.NoteSize / 2;
-
     private readonly EntityStore _entities;
-    private readonly IPointerInputSource _pointer;
+    private readonly KeybindSettings _keybinds;
+    private readonly IKeyboardState _keyboard;
+    private readonly HashSet<Key> _held = new();
 
-    private bool _wasPressed;
-
-    public PlayNoteInputSystem(EntityStore entities, IPointerInputSource pointer)
+    public PlayNoteInputSystem(
+        EntityStore entities,
+        KeybindSettings keybinds,
+        IKeyboardState keyboard)
     {
         _entities = entities;
-        _pointer = pointer;
+        _keybinds = keybinds;
+        _keyboard = keyboard;
     }
 
     protected override void OnUpdate()
-    {
-        PointerInput input = _pointer.Read();
-        bool pressed = input.Pressed;
-
-        if (pressed && !_wasPressed)
-            TryHit(input.Position);
-
-        _wasPressed = pressed;
-        MarkMisses();
-    }
-
-    private void TryHit(Vector2 screenPosition)
     {
         Entity playfield = FindPlayfield();
         if (playfield.IsNull || playfield.Tags.Has<PlayPaused>())
             return;
 
+        if (playfield.HasComponent<PlaySession>())
+        {
+            PlaySession session = playfield.GetComponent<PlaySession>();
+            if (!session.Started || session.Finished)
+                return;
+        }
+
+        foreach (KeybindAction action in KeybindSettings.Actions)
+        {
+            Key key = _keybinds.Get(action);
+            bool pressed = _keyboard.IsPressed(key);
+            bool wasPressed = _held.Contains(key);
+
+            if (pressed)
+                _held.Add(key);
+            else
+                _held.Remove(key);
+
+            if (pressed && !wasPressed)
+                TryHit(action, playfield);
+        }
+
+        MarkMisses(playfield);
+    }
+
+    private void TryHit(KeybindAction action, Entity playfield)
+    {
         ref Playhead playhead = ref playfield.GetComponent<Playhead>();
         ref ScoreState score = ref playfield.GetComponent<ScoreState>();
         ref PlayfieldView view = ref playfield.GetComponent<PlayfieldView>();
+        Player player = playfield.GetComponent<Player>();
+        Vector2 playerScreen = playfield.GetComponent<Position>().Value;
 
         if (playhead.DurationMs > 0 && playhead.TimeMs >= playhead.DurationMs)
             return;
 
-        Vector2 position = view.ScreenToPlayfield(screenPosition);
+        var playerRect = new Rect2(
+            playerScreen - player.Size / 2,
+            player.Size);
         long missWindow = (long)ScoreRules.JudgementDeviation(Judgement.Miss);
         Entity hit = default;
         long bestError = long.MaxValue;
@@ -61,13 +88,24 @@ public sealed class PlayNoteInputSystem : QuerySystem<Note>
                 continue;
 
             Note note = entity.GetComponent<Note>();
+            if (note.Target != action)
+                continue;
+
             long offset = note.TimeMs - playhead.TimeMs;
             long error = Math.Abs(offset);
             if (error > missWindow)
                 continue;
 
-            if (MathF.Abs(note.Position.X - position.X) > HitRadius ||
-                MathF.Abs(note.Position.Y - position.Y) > HitRadius)
+            if (NoteFade.Alpha(note, playhead.TimeMs) <= 0)
+                continue;
+
+            float noteSize = PlayfieldRenderer.NoteSize * view.Scale;
+            Vector2 noteScreen = view.PlayfieldToScreen(note.Position);
+            var noteRect = new Rect2(
+                noteScreen - new Vector2(noteSize / 2, noteSize / 2),
+                new Vector2(noteSize, noteSize));
+
+            if (!playerRect.Intersects(noteRect))
                 continue;
 
             if (error < bestError)
@@ -117,12 +155,8 @@ public sealed class PlayNoteInputSystem : QuerySystem<Note>
         noteEntity.DeleteEntity();
     }
 
-    private void MarkMisses()
+    private void MarkMisses(Entity playfield)
     {
-        Entity playfield = FindPlayfield();
-        if (playfield.IsNull || playfield.Tags.Has<PlayPaused>())
-            return;
-
         ref Playhead playhead = ref playfield.GetComponent<Playhead>();
         ref ScoreState score = ref playfield.GetComponent<ScoreState>();
 
@@ -153,8 +187,12 @@ public sealed class PlayNoteInputSystem : QuerySystem<Note>
                      .Query<Playhead, PlayfieldView, PlayfieldMode, ScoreState>()
                      .ToEntityList())
         {
-            if (entity.GetComponent<PlayfieldMode>().Kind == PlayfieldKind.Play)
+            if (entity.GetComponent<PlayfieldMode>().Kind == PlayfieldKind.Play &&
+                entity.HasComponent<Player>() &&
+                entity.HasComponent<Position>())
+            {
                 return entity;
+            }
         }
 
         return default;

@@ -133,10 +133,10 @@ public static class PlayScene
 
         Entity judgementText = SceneUi.Text(
             ui,
-            new Vector2(150, 68),
-            new Vector2(220, 24),
+            new Vector2(screen.X / 2, screen.Y / 2 - 120),
+            new Vector2(520, 44),
             "",
-            14,
+            28,
             SceneUi.AccentColor,
             new Color(0, 0, 0, 0));
 

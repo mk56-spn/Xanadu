@@ -17,7 +17,6 @@ public sealed class PlayfieldSystemGroup : SystemGroup
         IRectCanvas canvas,
         Rid playfieldCanvas,
         ITrackAudio audio,
-        IPointerInputSource pointer,
         KeybindSettings keybinds,
         IKeyboardState keyboard) : base("Playfield")
     {
@@ -25,7 +24,7 @@ public sealed class PlayfieldSystemGroup : SystemGroup
         Add(new PlaySessionSystem(audio));
         Add(new PlayerMovementSystem(entities, keybinds, keyboard));
         Add(new PlayerArenaSystem());
-        Add(new PlayNoteInputSystem(entities, pointer));
+        Add(new PlayNoteInputSystem(entities, keybinds, keyboard));
         Add(new PlayScoreSystem());
         Add(new PlayfieldDrawSystem(entities, canvas, playfieldCanvas));
     }

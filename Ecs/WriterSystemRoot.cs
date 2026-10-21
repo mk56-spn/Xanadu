@@ -94,7 +94,6 @@ public sealed class WriterSystemRoot : SystemRoot, IDisposable
             canvas,
             _playfield,
             _playfieldAudio,
-            pointerInput,
             Keybinds,
             new GodotKeyboardState()));
         _editorSystems = new EditorSystemGroup(

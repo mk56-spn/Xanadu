@@ -297,6 +297,14 @@ public partial class EditorOverlay : CanvasLayer
                 DeleteSelectedNote();
                 GetViewport().SetInputAsHandled();
                 break;
+            case Key.Left:
+                _commands.Enqueue(EditorCommand.MoveSelection(-1));
+                GetViewport().SetInputAsHandled();
+                break;
+            case Key.Right:
+                _commands.Enqueue(EditorCommand.MoveSelection(1));
+                GetViewport().SetInputAsHandled();
+                break;
         }
     }
 
@@ -370,7 +378,7 @@ public partial class EditorOverlay : CanvasLayer
 
         _statusLabel = new Label
         {
-            Text = "Space play   Home stop   Delete note   Ctrl+Z/Y undo   T tap tempo   Target: select a note",
+            Text = "Space play   Home stop   Delete note   ←/→ nudge   Ctrl+Z/Y undo   T tap tempo   Target: select a note",
             Position = new Vector2(144, 50),
             Size = new Vector2(infoWidth, 18),
             VerticalAlignment = VerticalAlignment.Center,

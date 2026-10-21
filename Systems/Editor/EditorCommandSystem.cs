@@ -137,6 +137,10 @@ public sealed class EditorCommandSystem :
                 AddMovementEvent(editor);
                 break;
 
+            case EditorCommandType.MoveSelection:
+                MoveSelection(command.IntValue, editor);
+                break;
+
             case EditorCommandType.ZoomTimeline:
                 ZoomTimeline(command.IntValue, editor);
                 break;
@@ -215,6 +219,39 @@ public sealed class EditorCommandSystem :
             if (!string.IsNullOrEmpty(name))
                 level.Name = name;
         }
+    }
+
+    private void MoveSelection(int direction, Entity editor)
+    {
+        if (direction == 0 ||
+            !editor.HasComponent<NoteSelection>() ||
+            !editor.HasComponent<Playhead>())
+        {
+            return;
+        }
+
+        ref NoteSelection selection = ref editor.GetComponent<NoteSelection>();
+        if (selection.Note.IsNull || !selection.Note.HasComponent<Note>())
+            return;
+
+        var playhead = editor.GetComponent<Playhead>();
+        double step = EditorTiming.StepMs(playhead);
+        ref Note note = ref selection.Note.GetComponent<Note>();
+        long maxTime = playhead.DurationMs > 0
+            ? playhead.DurationMs
+            : long.MaxValue;
+        long moved = Math.Clamp(
+            note.TimeMs + (long)Math.Round(step) * Math.Sign(direction),
+            0,
+            maxTime);
+
+        if (moved == note.TimeMs)
+            return;
+
+        var before = _history.Capture();
+        note.TimeMs = moved;
+        var after = _history.Capture();
+        _history.Record(before, after);
     }
 
     private static void ZoomTimeline(int direction, Entity editor)
