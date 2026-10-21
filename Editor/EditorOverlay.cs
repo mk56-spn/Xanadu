@@ -13,11 +13,14 @@ public partial class EditorOverlay : CanvasLayer
 
     private Control _root = null!;
     private FileDialog _songDialog = null!;
+    private FileDialog _saveAsDialog = null!;
+    private FileDialog _loadDialog = null!;
     private LineEdit _nameEdit = null!;
     private LineEdit _bpmEdit = null!;
     private LineEdit _offsetEdit = null!;
     private OptionButton _snapOption = null!;
     private Button _playButton = null!;
+    private Label _statusLabel = null!;
     private Entity _editor;
 
     private bool _syncing;
@@ -41,6 +44,7 @@ public partial class EditorOverlay : CanvasLayer
 
         BuildUi();
         BuildSongDialog();
+        BuildSaveDialogs();
 
         CallDeferred(nameof(OpenSongDialog));
     }
@@ -98,6 +102,13 @@ public partial class EditorOverlay : CanvasLayer
         if (@event is not InputEventKey { Pressed: true, Echo: false } key)
             return;
 
+        if (key.CtrlPressed && key.Keycode == Key.S)
+        {
+            SaveCurrent();
+            GetViewport().SetInputAsHandled();
+            return;
+        }
+
         if (GetViewport().GuiGetFocusOwner() is LineEdit)
             return;
 
@@ -144,31 +155,39 @@ public partial class EditorOverlay : CanvasLayer
         load.Pressed += OpenSongDialog;
 
         float half = (width - 8) / 2;
-        _playButton = AddButton("Play", x, y + 42, half, 34);
+        float third = (width - 16) / 3;
+        var save = AddButton("Save", x, y + 42, third, 32);
+        save.Pressed += SaveCurrent;
+        var saveAs = AddButton("Save As", x + third + 8, y + 42, third, 32);
+        saveAs.Pressed += OpenSaveAsDialog;
+        var loadLevel = AddButton("Load", x + (third + 8) * 2, y + 42, third, 32);
+        loadLevel.Pressed += OpenLoadDialog;
+
+        _playButton = AddButton("Play", x, y + 82, half, 34);
         _playButton.Pressed += TogglePlayback;
 
-        var stop = AddButton("Stop", x + half + 8, y + 42, half, 34);
+        var stop = AddButton("Stop", x + half + 8, y + 82, half, 34);
         stop.Pressed += StopPlayback;
 
-        AddLabel("Level name", x, y + 88, width);
-        _nameEdit = AddLineEdit(level.Name, x, y + 108, width);
+        AddLabel("Level name", x, y + 128, width);
+        _nameEdit = AddLineEdit(level.Name, x, y + 148, width);
         _nameEdit.TextChanged += OnNameChanged;
 
-        AddLabel("BPM / offset (ms)", x, y + 148, width);
-        _bpmEdit = AddLineEdit(playhead.Bpm.ToString(), x, y + 168, half);
+        AddLabel("BPM / offset (ms)", x, y + 188, width);
+        _bpmEdit = AddLineEdit(playhead.Bpm.ToString(), x, y + 208, half);
         _bpmEdit.TextChanged += OnBpmChanged;
 
         _offsetEdit = AddLineEdit(
             playhead.OffsetMs.ToString(),
             x + half + 8,
-            y + 168,
+            y + 208,
             half);
         _offsetEdit.TextChanged += OnOffsetChanged;
 
-        AddLabel("Snap", x, y + 208, width);
+        AddLabel("Snap", x, y + 248, width);
         _snapOption = new OptionButton
         {
-            Position = new Vector2(x, y + 228),
+            Position = new Vector2(x, y + 268),
             Size = new Vector2(width, 30),
         };
         _snapOption.AddItem("1/4 beat");
@@ -183,7 +202,46 @@ public partial class EditorOverlay : CanvasLayer
         _snapOption.ItemSelected += OnSnapSelected;
         _root.AddChild(_snapOption);
 
-        AddLabel("Space play/pause    Home stop    Delete note", x, y + 270, width);
+        AddLabel("Space play/pause    Home stop    Delete note", x, y + 310, width);
+
+        _statusLabel = new Label
+        {
+            Text = "",
+            Position = new Vector2(x, y + 336),
+            Size = new Vector2(width, 20),
+        };
+        _statusLabel.AddThemeFontSizeOverride("font_size", 14);
+        _root.AddChild(_statusLabel);
+    }
+
+    private void BuildSaveDialogs()
+    {
+        LevelStore.EnsureDirectory();
+
+        _saveAsDialog = new FileDialog
+        {
+            FileMode = FileDialog.FileModeEnum.SaveFile,
+            Access = FileDialog.AccessEnum.Filesystem,
+            UseNativeDialog = false,
+            Title = "Save level",
+            Filters = ["*.json ; Level Files"],
+            CurrentDir = LevelStore.Directory,
+            CurrentFile = "untitled.json",
+        };
+        _saveAsDialog.FileSelected += OnSaveAsSelected;
+        AddChild(_saveAsDialog);
+
+        _loadDialog = new FileDialog
+        {
+            FileMode = FileDialog.FileModeEnum.OpenFile,
+            Access = FileDialog.AccessEnum.Filesystem,
+            UseNativeDialog = false,
+            Title = "Load level",
+            Filters = ["*.json ; Level Files"],
+            CurrentDir = LevelStore.Directory,
+        };
+        _loadDialog.FileSelected += OnLoadSelected;
+        AddChild(_loadDialog);
     }
 
     private void BuildSongDialog()
@@ -207,6 +265,90 @@ public partial class EditorOverlay : CanvasLayer
             return;
 
         _songDialog.PopupCentered(new Vector2I(900, 600));
+    }
+
+    private void SaveCurrent()
+    {
+        if (_editor.IsNull)
+            return;
+
+        try
+        {
+            LevelDocument document = LevelDocumentMapper.Capture(_entities, _editor);
+            string path = LevelStore.DefaultPath(document.Name);
+            LevelStore.Save(document, path);
+            _statusLabel.Text = $"Saved {Path.GetFileName(path)}";
+        }
+        catch (Exception exception)
+        {
+            _statusLabel.Text = $"Save failed: {exception.Message}";
+        }
+    }
+
+    private void OpenSaveAsDialog()
+    {
+        if (_editor.IsNull)
+            return;
+
+        LevelDocument document = LevelDocumentMapper.Capture(_entities, _editor);
+        _saveAsDialog.CurrentDir = LevelStore.Directory;
+        _saveAsDialog.CurrentFile =
+            Path.GetFileName(LevelStore.DefaultPath(document.Name));
+        _saveAsDialog.PopupCentered(new Vector2I(900, 600));
+    }
+
+    private void OnSaveAsSelected(string path)
+    {
+        if (_editor.IsNull)
+            return;
+
+        try
+        {
+            LevelDocument document = LevelDocumentMapper.Capture(_entities, _editor);
+            LevelStore.Save(document, path);
+            _statusLabel.Text = $"Saved {Path.GetFileName(path)}";
+        }
+        catch (Exception exception)
+        {
+            _statusLabel.Text = $"Save failed: {exception.Message}";
+        }
+    }
+
+    private void OpenLoadDialog()
+    {
+        LevelStore.EnsureDirectory();
+        _loadDialog.CurrentDir = LevelStore.Directory;
+        _loadDialog.PopupCentered(new Vector2I(900, 600));
+    }
+
+    private void OnLoadSelected(string path)
+    {
+        if (_editor.IsNull)
+            return;
+
+        try
+        {
+            LevelDocument document = LevelStore.Load(path);
+            LevelDocumentMapper.Apply(_entities, _editor, document);
+
+            _syncing = true;
+            _nameEdit.Text = document.Name;
+            _bpmEdit.Text = document.Bpm.ToString();
+            _offsetEdit.Text = document.OffsetMs.ToString();
+            _snapOption.Selected = document.SnapDivision switch
+            {
+                8 => 1,
+                16 => 2,
+                _ => 0,
+            };
+            _syncing = false;
+
+            _statusLabel.Text = $"Loaded {Path.GetFileName(path)}";
+        }
+        catch (Exception exception)
+        {
+            _statusLabel.Text = $"Load failed: {exception.Message}";
+        }
     }
 
     private void OnSongSelected(string path)
