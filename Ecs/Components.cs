@@ -69,6 +69,78 @@ public struct TrackProgress(
     public bool Finished;
 }
 
+/// <summary>Box2D body attached to an ECS entity.</summary>
+public struct PhysicsBody(Box2DSharp.Dynamics.Body body) : IComponent
+{
+    public Box2DSharp.Dynamics.Body Body = body;
+}
+
+/// <summary>Marks an entity as a character with a mass in kilograms.</summary>
+public struct Character(float mass) : IComponent
+{
+    public float Mass = mass;
+}
+
+/// <summary>Linear momentum in kg*m/s.</summary>
+public struct Momentum(System.Numerics.Vector2 value) : IComponent
+{
+    public System.Numerics.Vector2 Value = value;
+}
+
+/// <summary>Level metadata for the editor.</summary>
+public struct LevelInfo(string name, string audioPath) : IComponent
+{
+    public string Name = name;
+    public string AudioPath = audioPath;
+}
+
+/// <summary>Logical editor playfield dimensions.</summary>
+public struct Playfield(int width, int height) : IComponent
+{
+    public int Width = width;
+    public int Height = height;
+}
+
+/// <summary>Editor transport state.</summary>
+public struct EditorPlayhead(
+    long timeMs,
+    int bpm,
+    long offsetMs,
+    bool playing) : IComponent
+{
+    public long TimeMs = timeMs;
+    public int Bpm = bpm;
+    public long OffsetMs = offsetMs;
+    public bool Playing = playing;
+}
+
+/// <summary>Screen-space layout of the logical playfield.</summary>
+public struct EditorView(Vector2 screenOrigin, float scale, Vector2 screenSize) : IComponent
+{
+    public Vector2 ScreenOrigin = screenOrigin;
+    public float Scale = scale;
+    public Vector2 ScreenSize = screenSize;
+
+    public Vector2 PlayfieldToScreen(Vector2 playfieldPosition) =>
+        ScreenOrigin + playfieldPosition * Scale;
+
+    public Vector2 ScreenToPlayfield(Vector2 screenPosition) =>
+        (screenPosition - ScreenOrigin) / Scale;
+}
+
+/// <summary>An editor note placed in playfield coordinates.</summary>
+public struct Note(
+    long timeMs,
+    Vector2 position,
+    long fadeInMs = 300,
+    long fadeOutMs = 200) : IComponent
+{
+    public long TimeMs = timeMs;
+    public Vector2 Position = position;
+    public long FadeInMs = fadeInMs;
+    public long FadeOutMs = fadeOutMs;
+}
+
 /// <summary>Layer entity component. ZIndex determines draw order between layers.</summary>
 public struct Layer(int zIndex) : IIndexedComponent<int>
 {

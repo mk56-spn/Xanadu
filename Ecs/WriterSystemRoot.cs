@@ -5,21 +5,23 @@ using Godot;
 using Writer.Systems.Audio;
 using Writer.Systems.Canvas;
 using Writer.Systems.Debug;
+using Writer.Systems.Groups;
 using Writer.Systems.Input;
-using Writer.Systems.Layout;
-using Writer.Systems.Rendering;
+using Writer.Systems.Physics;
 
 namespace Writer.Ecs;
 
 /// <summary>
-/// Central system registration point. Main owns only Godot lifecycle;
-/// systems are added here instead of polluting Main.
+/// Owns Godot resources and composes the application's phase groups.
 /// </summary>
 public sealed class WriterSystemRoot : SystemRoot, IDisposable
 {
     private readonly Rid _debugOverlay;
     private readonly Rid _timeline;
+    private readonly Rid _editor;
     private readonly MiniaudioTrackAudio _trackAudio = new();
+
+    public Box2DPhysicsWorld Physics { get; } = new();
 
     public WriterSystemRoot(
         EntityStore entities,
@@ -37,16 +39,17 @@ public sealed class WriterSystemRoot : SystemRoot, IDisposable
         RenderingServer.CanvasItemSetParent(_timeline, parentCanvas);
         RenderingServer.CanvasItemSetZIndex(_timeline, 900);
 
-        Add(new LayerParentSystem(parentCanvas));
-        Add(new ContainerLayoutSystem());
-        Add(new DrawableInitialiseSystem());
-        Add(new TransformSystem(canvas));
-        Add(new RectDrawSystem(canvas));
-        Add(new TextDrawSystem(canvas));
-        Add(new TrackPlaybackSystem(_trackAudio, new GodotTrackClock()));
-        Add(new TimelineDrawSystem(canvas, _timeline));
-        Add(new InputSystem(pointerInput));
-        Add(new DebugPressedOverlaySystem(
+        _editor = RenderingServer.CanvasItemCreate();
+        RenderingServer.CanvasItemSetParent(_editor, parentCanvas);
+        RenderingServer.CanvasItemSetZIndex(_editor, 800);
+
+        Add(new InitializationSystemGroup(parentCanvas));
+        Add(new PhysicsSystemGroup(Physics));
+        Add(new PresentationSystemGroup(canvas));
+        Add(new AudioSystemGroup(_trackAudio, new GodotTrackClock(), canvas, _timeline));
+        Add(new EditorSystemGroup(canvas, _editor));
+        Add(new InputSystemGroup(pointerInput));
+        Add(new DebugSystemGroup(
             canvas,
             _debugOverlay,
             new GodotOverlayToggleSource(),
@@ -60,6 +63,8 @@ public sealed class WriterSystemRoot : SystemRoot, IDisposable
     public void Dispose()
     {
         _trackAudio.Dispose();
+        Physics.Dispose();
+        RenderingServer.FreeRid(_editor);
         RenderingServer.FreeRid(_timeline);
         RenderingServer.FreeRid(_debugOverlay);
     }

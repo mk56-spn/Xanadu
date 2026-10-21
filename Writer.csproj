@@ -18,6 +18,7 @@
     <PackageReference Include="Friflo.Engine.ECS" Version="4.0.0-preview.2" />
     <PackageReference Include="Friflo.Engine.ECS.Boost" Version="4.0.0-preview.2" />
     <PackageReference Include="Miniaudio-CS" Version="1.0.4" />
+    <PackageReference Include="Box2DSharp" Version="0.6.0" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="agents.md" />

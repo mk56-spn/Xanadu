@@ -19,3 +19,6 @@ public struct LayoutDirty : ITag { }
 
 /// <summary>Marks a drawable whose canvas transform needs updating.</summary>
 public struct Moved : ITag { }
+
+/// <summary>Marks an entity whose momentum should be applied to its physics body.</summary>
+public struct ApplyMomentum : ITag { }

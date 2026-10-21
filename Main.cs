@@ -18,6 +18,10 @@ public partial class Main : Control
 
     [Export] public bool TrackTest { get; set; }
 
+    [Export] public bool PhysicsTest { get; set; }
+
+    [Export] public bool EditorTest { get; set; }
+
     private WriterSystemRoot? _systems;
     private FileDialog? _trackDialog;
 
@@ -32,6 +36,10 @@ public partial class Main : Control
             ContainerScene.Build(Entities, GetViewportRect().Size);
         else if (TrackTest)
             TrackScene.Build(Entities, GetViewportRect().Size);
+        else if (PhysicsTest)
+            PhysicsScene.Build(Entities, _systems.Physics, GetViewportRect().Size);
+        else if (EditorTest)
+            EditorScene.Build(Entities, GetViewportRect().Size);
         else
             TestScene.Build(Entities);
 
