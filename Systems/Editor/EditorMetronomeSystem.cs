@@ -7,7 +7,7 @@ using Writer.Systems.Audio;
 namespace Writer.Systems.Editor;
 
 /// <summary>Plays a click on BPM/offset beat boundaries.</summary>
-public sealed class EditorMetronomeSystem : QuerySystem<EditorPlayhead, EditorMetronome>
+public sealed class EditorMetronomeSystem : QuerySystem<Playhead, EditorMetronome>
 {
     private const string ClickPath = "res://Audio/metronome.wav";
 

@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 
-namespace Writer.Editor;
+namespace Writer.Levels;
 
 /// <summary>Serializable level document.</summary>
 public sealed class LevelDocument

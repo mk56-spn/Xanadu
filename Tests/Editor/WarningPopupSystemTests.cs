@@ -25,7 +25,8 @@ public sealed class WarningPopupSystemTests
         _editor = _store.CreateEntity(
             new LevelInfo("Test", ""),
             new Playfield(1000, 1000),
-            new EditorView(Vector2.Zero, 1f, new Vector2(1000, 1000)));
+            new PlayfieldView(Vector2.Zero, 1f, new Vector2(1000, 1000)),
+            new NoteSelection(default));
         _popup = EditorWarningPopup.Build(_store, new FakeVisualRidFactory());
         _root = new SystemRoot(_store);
         _root.Add(new WarningPopupSystem(_store));

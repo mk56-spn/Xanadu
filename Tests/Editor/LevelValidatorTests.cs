@@ -1,4 +1,5 @@
 using NUnit.Framework;
+using Writer.Levels;
 using Writer.Editor;
 
 namespace Writer.Tests.Editor;

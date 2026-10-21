@@ -3,6 +3,7 @@ using Friflo.Engine.ECS.Systems;
 using Godot;
 using NUnit.Framework;
 using Writer.Ecs;
+using Writer.Levels;
 using Writer.Editor;
 using Writer.Editor.Commands;
 using Writer.Systems.Editor;
@@ -32,7 +33,7 @@ public sealed class EditorCommandSystemTests
             new LevelInfo("Untitled", ""),
             new LevelFile(""),
             new Playfield(1000, 1000),
-            new EditorPlayhead(0, 120, 0, false),
+            new Playhead(0, 120, 0, false),
             new EditorPreview(false, 0, false),
             new EditorMetronome(false),
             new NoteSelection(default));
@@ -51,7 +52,7 @@ public sealed class EditorCommandSystemTests
         _root.Update(new UpdateTick(1f / 60f, 0));
 
         LevelInfo level = _editor.GetComponent<LevelInfo>();
-        EditorPlayhead playhead = _editor.GetComponent<EditorPlayhead>();
+        Playhead playhead = _editor.GetComponent<Playhead>();
         Assert.That(level.Name, Is.EqualTo("Level"));
         Assert.That(level.Artist, Is.EqualTo("Artist"));
         Assert.That(level.Difficulty, Is.EqualTo("Hard"));
@@ -63,7 +64,7 @@ public sealed class EditorCommandSystemTests
     [Test]
     public void TogglePlaybackAtEndSeeksToStart()
     {
-        ref EditorPlayhead playhead = ref _editor.GetComponent<EditorPlayhead>();
+        ref Playhead playhead = ref _editor.GetComponent<Playhead>();
         playhead.TimeMs = 1_000;
         playhead.DurationMs = 1_000;
 
@@ -77,7 +78,7 @@ public sealed class EditorCommandSystemTests
     [Test]
     public void PreviewRoundTripRestoresSavedState()
     {
-        ref EditorPlayhead playhead = ref _editor.GetComponent<EditorPlayhead>();
+        ref Playhead playhead = ref _editor.GetComponent<Playhead>();
         playhead.TimeMs = 500;
 
         _commands.Enqueue(EditorCommand.BeginPreview());
@@ -121,7 +122,7 @@ public sealed class EditorCommandSystemTests
         _root.Update(new UpdateTick(1f / 60f, 0));
 
         LevelInfo level = _editor.GetComponent<LevelInfo>();
-        EditorPlayhead playhead = _editor.GetComponent<EditorPlayhead>();
+        Playhead playhead = _editor.GetComponent<Playhead>();
         Assert.That(level.AudioPath, Is.EqualTo("/tmp/Test Song.mp3"));
         Assert.That(level.Name, Is.EqualTo("Test Song"));
         Assert.That(playhead.AudioRevision, Is.EqualTo(1));
@@ -156,7 +157,7 @@ public sealed class EditorCommandSystemTests
         _root.Update(new UpdateTick(1f / 60f, 0));
 
         Assert.That(_editor.GetComponent<LevelInfo>().Name, Is.EqualTo("Loaded"));
-        Assert.That(_editor.GetComponent<EditorPlayhead>().Bpm, Is.EqualTo(150));
+        Assert.That(_editor.GetComponent<Playhead>().Bpm, Is.EqualTo(150));
         Assert.That(_editor.GetComponent<EditorPreview>().Active, Is.False);
         Assert.That(_editor.GetComponent<LevelFile>().Path, Is.EqualTo("/tmp/loaded.json"));
         Assert.That(_store.Query<Note>().Count, Is.EqualTo(1));

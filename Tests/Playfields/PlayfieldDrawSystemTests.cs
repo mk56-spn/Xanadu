@@ -1,0 +1,86 @@
+using System.Collections.Generic;
+using Friflo.Engine.ECS;
+using Friflo.Engine.ECS.Systems;
+using Godot;
+using NUnit.Framework;
+using Writer.Ecs;
+using Writer.Systems.Canvas;
+using Writer.Systems.Playfields;
+
+namespace Writer.Tests.Playfields;
+
+[TestFixture]
+public sealed class PlayfieldDrawSystemTests
+{
+    [Test]
+    public void PlayModeDrawsSharedPlayfield()
+    {
+        var store = new EntityStore();
+        store.CreateEntity(
+            new PlayfieldView(new Vector2(100, 100), 0.5f, new Vector2(1000, 1000)),
+            new Playfield(1000, 1000),
+            new Playhead(1_000, 120, 0, true, durationMs: 5_000),
+            new PlayfieldMode(PlayfieldKind.Play));
+        store.CreateEntity(new Note(1_000, new Vector2(100, 100)));
+
+        var canvas = new RecordingCanvas();
+        var root = new SystemRoot(store);
+        root.Add(new PlayfieldDrawSystem(store, canvas, default));
+
+        root.Update(new UpdateTick(1f / 60f, 0));
+
+        Assert.That(canvas.Rects, Is.Not.Empty);
+        Assert.That(canvas.Lines, Is.Not.Empty);
+    }
+
+    [Test]
+    public void EditorModeDoesNotDrawPlayMode()
+    {
+        var store = new EntityStore();
+        store.CreateEntity(
+            new PlayfieldView(new Vector2(100, 100), 0.5f, new Vector2(1000, 1000)),
+            new Playfield(1000, 1000),
+            new Playhead(1_000, 120, 0, true, durationMs: 5_000),
+            new PlayfieldMode(PlayfieldKind.Editor));
+
+        var canvas = new RecordingCanvas();
+        var root = new SystemRoot(store);
+        root.Add(new PlayfieldDrawSystem(store, canvas, default));
+
+        root.Update(new UpdateTick(1f / 60f, 0));
+
+        Assert.That(canvas.Rects, Is.Empty);
+        Assert.That(canvas.Lines, Is.Empty);
+    }
+
+    private sealed class RecordingCanvas : IRectCanvas
+    {
+        public List<Rect2> Rects { get; } = new();
+
+        public List<LineCall> Lines { get; } = new();
+
+        public void SetVisible(Rid canvas, bool visible) { }
+
+        public void SetTransform(Rid canvas, Transform2D transform) { }
+
+        public void Clear(Rid canvas) { }
+
+        public void DrawRect(Rid canvas, Rect2 bounds, Color color) => Rects.Add(bounds);
+
+        public void DrawLine(
+            Rid canvas,
+            Vector2 from,
+            Vector2 to,
+            Color color,
+            float width) =>
+            Lines.Add(new LineCall(from, to));
+
+        public void DrawText(Rid canvas, Rect2 bounds, string text, Color color) { }
+
+        public void DrawTextLeft(Rid canvas, Rect2 bounds, string text, Color color) { }
+
+        public void DrawTextRight(Rid canvas, Rect2 bounds, string text, Color color) { }
+
+        public readonly record struct LineCall(Vector2 From, Vector2 To);
+    }
+}

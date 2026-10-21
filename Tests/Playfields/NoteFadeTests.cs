@@ -1,9 +1,9 @@
 using Godot;
 using NUnit.Framework;
 using Writer.Ecs;
-using Writer.Systems.Editor;
+using Writer.Systems.Playfields;
 
-namespace Writer.Tests.Editor;
+namespace Writer.Tests.Playfields;
 
 [TestFixture]
 public sealed class NoteFadeTests

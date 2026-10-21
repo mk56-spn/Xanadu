@@ -1,7 +1,7 @@
 using System;
 using Writer.Ecs;
 
-namespace Writer.Systems.Editor;
+namespace Writer.Systems.Playfields;
 
 /// <summary>AR9-style note alpha: 600 ms in, 600 ms out by default.</summary>
 public static class NoteFade

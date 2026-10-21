@@ -33,7 +33,7 @@ public static class EditorScene
             new LevelInfo("Untitled", ""),
             new LevelFile(""),
             new Playfield(FieldSize, FieldSize),
-            new EditorPlayhead(
+            new Playhead(
                 timeMs: 0,
                 bpm: 120,
                 offsetMs: 0,
@@ -41,7 +41,8 @@ public static class EditorScene
             new NoteSelection(default),
             new EditorPreview(false, 0, false),
             new EditorMetronome(false),
-            new EditorView(new Vector2(originX, originY), scale, viewportSize));
+            new PlayfieldMode(PlayfieldKind.Editor),
+            new PlayfieldView(new Vector2(originX, originY), scale, viewportSize));
 
         if (parent is { } root)
             root.AddChild(editor);

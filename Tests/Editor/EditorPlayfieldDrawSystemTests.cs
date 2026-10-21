@@ -16,12 +16,12 @@ public sealed class EditorPlayfieldDrawSystemTests
     [Test]
     public void RulerDrawsBeatTicksAndNoteMarkersInFooter()
     {
-        var view = new EditorView(new Vector2(30, 30), 0.6f, new Vector2(1152, 648));
+        var view = new PlayfieldView(new Vector2(30, 30), 0.6f, new Vector2(1152, 648));
         var store = new EntityStore();
         store.CreateEntity(
             new LevelInfo("Ruler", ""),
             new Playfield(1000, 1000),
-            new EditorPlayhead(1_000, 120, 0, true, durationMs: 5_000),
+            new Playhead(1_000, 120, 0, true, durationMs: 5_000),
             view,
             new NoteSelection(default),
             new EditorPreview(false, 0, false));
@@ -40,12 +40,12 @@ public sealed class EditorPlayfieldDrawSystemTests
     [Test]
     public void PreviewDrawsWithoutEditorChrome()
     {
-        var view = new EditorView(new Vector2(30, 30), 0.6f, new Vector2(1152, 648));
+        var view = new PlayfieldView(new Vector2(30, 30), 0.6f, new Vector2(1152, 648));
         var store = new EntityStore();
         store.CreateEntity(
             new LevelInfo("Preview Level", ""),
             new Playfield(1000, 1000),
-            new EditorPlayhead(500, 120, 0, true),
+            new Playhead(500, 120, 0, true),
             view,
             new NoteSelection(default),
             new EditorPreview(true, 500, true));
@@ -64,13 +64,13 @@ public sealed class EditorPlayfieldDrawSystemTests
     [Test]
     public void DrawsPlayfieldHeaderFooterAndTimeline()
     {
-        var view = new EditorView(new Vector2(276, 88), 0.404f, new Vector2(1152, 648));
+        var view = new PlayfieldView(new Vector2(276, 88), 0.404f, new Vector2(1152, 648));
         var playfield = new Playfield(1000, 1000);
         var store = new EntityStore();
         store.CreateEntity(
             new LevelInfo("Test Level", ""),
             playfield,
-            new EditorPlayhead(0, 120, 0, false),
+            new Playhead(0, 120, 0, false),
             view,
             new NoteSelection(default));
 

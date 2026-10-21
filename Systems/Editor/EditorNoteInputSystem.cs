@@ -5,6 +5,7 @@ using Godot;
 using Writer.Ecs;
 using Writer.Editor;
 using Writer.Systems.Input;
+using Writer.Systems.Playfields;
 
 namespace Writer.Systems.Editor;
 
@@ -52,12 +53,12 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
     private void OnPress(Vector2 screenPosition)
     {
         Entity editor = FindEditor();
-        if (editor.IsNull || IsPreviewing(editor) || IsPlaying(editor) || IsWarningOpen())
+        if (editor.IsNull || IsPreviewing(editor) || IsWarningOpen())
             return;
 
-        EditorView view = editor.GetComponent<EditorView>();
+        PlayfieldView view = editor.GetComponent<PlayfieldView>();
         Playfield playfield = editor.GetComponent<Playfield>();
-        EditorPlayhead playhead = editor.GetComponent<EditorPlayhead>();
+        Playhead playhead = editor.GetComponent<Playhead>();
 
         Rect2 bar = EditorLayout.RulerRect(view);
         if (bar.HasPoint(screenPosition))
@@ -101,12 +102,12 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
     private void OnHold(Vector2 screenPosition)
     {
         Entity editor = FindEditor();
-        if (editor.IsNull || IsPreviewing(editor) || IsPlaying(editor) || IsWarningOpen())
+        if (editor.IsNull || IsPreviewing(editor) || IsWarningOpen())
             return;
 
-        EditorView view = editor.GetComponent<EditorView>();
+        PlayfieldView view = editor.GetComponent<PlayfieldView>();
         Playfield playfield = editor.GetComponent<Playfield>();
-        EditorPlayhead playhead = editor.GetComponent<EditorPlayhead>();
+        Playhead playhead = editor.GetComponent<Playhead>();
 
         if (_scrubbing)
         {
@@ -144,7 +145,7 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
         _draggedNote = default;
     }
 
-    private void Scrub(Vector2 screenPosition, Rect2 bar, EditorPlayhead playhead)
+    private void Scrub(Vector2 screenPosition, Rect2 bar, Playhead playhead)
     {
         if (playhead.DurationMs <= 0)
             return;
@@ -184,10 +185,6 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
         editor.HasComponent<EditorPreview>() &&
         editor.GetComponent<EditorPreview>().Active;
 
-    private static bool IsPlaying(Entity editor) =>
-        editor.HasComponent<PlayfieldMode>() &&
-        editor.GetComponent<PlayfieldMode>().Kind == PlayfieldKind.Play;
-
     private bool IsWarningOpen()
     {
         foreach (Entity entity in _entities.Query<WarningPopup>().ToEntityList())
@@ -201,7 +198,7 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
 
     private Entity FindEditor()
     {
-        foreach (Entity entity in _entities.Query<EditorView, Playfield, EditorPlayhead>().ToEntityList())
+        foreach (Entity entity in _entities.Query<PlayfieldView, Playfield, Playhead, NoteSelection>().ToEntityList())
             return entity;
 
         return default;

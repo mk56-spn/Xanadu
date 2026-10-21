@@ -19,13 +19,13 @@ public sealed class EditorMetronomeSystemTests
         root.Add(new EditorMetronomeSystem(audio));
 
         Entity editor = store.CreateEntity(
-            new EditorPlayhead(0, 120, 0, true, durationMs: 5_000),
+            new Playhead(0, 120, 0, true, durationMs: 5_000),
             new EditorMetronome(true));
 
         root.Update(new UpdateTick(1f / 60f, 0));
         Assert.That(audio.ResumeCount, Is.EqualTo(1));
 
-        ref EditorPlayhead playhead = ref editor.GetComponent<EditorPlayhead>();
+        ref Playhead playhead = ref editor.GetComponent<Playhead>();
         playhead.TimeMs = 100;
         root.Update(new UpdateTick(1f / 60f, 0));
         Assert.That(audio.ResumeCount, Is.EqualTo(1));
@@ -45,7 +45,7 @@ public sealed class EditorMetronomeSystemTests
         root.Add(new EditorMetronomeSystem(audio));
 
         store.CreateEntity(
-            new EditorPlayhead(0, 120, 0, true, durationMs: 5_000),
+            new Playhead(0, 120, 0, true, durationMs: 5_000),
             new EditorMetronome(false));
 
         root.Update(new UpdateTick(1f / 60f, 0));

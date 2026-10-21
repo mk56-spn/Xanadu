@@ -4,7 +4,7 @@ using System.IO;
 using System.Linq;
 using Godot;
 
-namespace Writer.Editor;
+namespace Writer.Levels;
 
 /// <summary>A loaded level file and its document.</summary>
 public sealed record LevelEntry(string Path, LevelDocument Document);

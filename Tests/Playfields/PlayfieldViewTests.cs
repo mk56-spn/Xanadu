@@ -2,15 +2,15 @@ using Godot;
 using NUnit.Framework;
 using Writer.Ecs;
 
-namespace Writer.Tests.Editor;
+namespace Writer.Tests.Playfields;
 
 [TestFixture]
-public sealed class EditorViewTests
+public sealed class PlayfieldViewTests
 {
     [Test]
     public void PlayfieldCoordinatesRoundTripThroughScreenSpace()
     {
-        var view = new EditorView(
+        var view = new PlayfieldView(
             new Vector2(30, 40),
             scale: 0.6f,
             new Vector2(1152, 648));
@@ -26,7 +26,7 @@ public sealed class EditorViewTests
     [Test]
     public void PlayfieldCornersMapToScreen()
     {
-        var view = new EditorView(
+        var view = new PlayfieldView(
             new Vector2(30, 30),
             scale: 0.5f,
             new Vector2(1152, 648));

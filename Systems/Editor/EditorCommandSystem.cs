@@ -3,6 +3,7 @@ using System.IO;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Writer.Ecs;
+using Writer.Levels;
 using Writer.Editor;
 using Writer.Editor.Commands;
 
@@ -10,7 +11,7 @@ namespace Writer.Systems.Editor;
 
 /// <summary>Single ECS writer for editor intents from the Godot UI.</summary>
 public sealed class EditorCommandSystem :
-    QuerySystem<LevelInfo, Playfield, EditorPlayhead, EditorPreview, EditorMetronome>
+    QuerySystem<LevelInfo, Playfield, Playhead, EditorPreview, EditorMetronome>
 {
     private readonly EntityStore _entities;
     private readonly EditorCommandBus _commands;
@@ -54,7 +55,7 @@ public sealed class EditorCommandSystem :
         EditorCommand command,
         ref LevelInfo level,
         ref Playfield playfield,
-        ref EditorPlayhead playhead,
+        ref Playhead playhead,
         ref EditorPreview preview,
         ref EditorMetronome metronome,
         Entity editor)
@@ -153,7 +154,7 @@ public sealed class EditorCommandSystem :
         }
     }
 
-    private static void BeginPreview(ref EditorPlayhead playhead, ref EditorPreview preview)
+    private static void BeginPreview(ref Playhead playhead, ref EditorPreview preview)
     {
         if (preview.Active)
             return;
@@ -171,7 +172,7 @@ public sealed class EditorCommandSystem :
         playhead.Playing = true;
     }
 
-    private static void EndPreview(ref EditorPlayhead playhead, ref EditorPreview preview)
+    private static void EndPreview(ref Playhead playhead, ref EditorPreview preview)
     {
         if (!preview.Active)
             return;
@@ -184,7 +185,7 @@ public sealed class EditorCommandSystem :
     private static void LoadSong(
         string path,
         ref LevelInfo level,
-        ref EditorPlayhead playhead)
+        ref Playhead playhead)
     {
         level.AudioPath = path;
         playhead.TimeMs = 0;
@@ -234,6 +235,10 @@ public sealed class EditorCommandSystem :
         metronome.Enabled = false;
         _history.Clear();
         LevelDocumentMapper.Apply(_entities, editor, document);
+
+        if (editor.HasComponent<NoteSelection>())
+            editor.GetComponent<NoteSelection>().Note = default;
+
         SetLevelFile(editor, path);
     }
 

@@ -2,9 +2,9 @@ using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using NUnit.Framework;
 using Writer.Ecs;
-using Writer.Systems.Editor;
+using Writer.Systems.Playfields;
 
-namespace Writer.Tests.Editor;
+namespace Writer.Tests.Playfields;
 
 [TestFixture]
 public sealed class PlaySessionSystemTests
@@ -18,12 +18,12 @@ public sealed class PlaySessionSystemTests
 
         Entity status = store.CreateEntity(new Text("LOADING..."));
         Entity play = store.CreateEntity(
-            new EditorPlayhead(0, 120, 0, false),
+            new Playhead(0, 120, 0, false),
             new PlaySession(status));
 
         root.Update(new UpdateTick(1f / 60f, 0));
 
-        ref EditorPlayhead playhead = ref play.GetComponent<EditorPlayhead>();
+        ref Playhead playhead = ref play.GetComponent<Playhead>();
         playhead.DurationMs = 5_000;
         root.Update(new UpdateTick(1f / 60f, 0));
 

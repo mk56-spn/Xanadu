@@ -1,8 +1,7 @@
 using Friflo.Engine.ECS;
 using Godot;
 using Writer.Ecs;
-using Writer.Editor;
-using Writer.Systems.Editor;
+using Writer.Levels;
 using Writer.Ui;
 
 namespace Writer.Scenes;
@@ -42,13 +41,12 @@ public static class PlayScene
             new LevelInfo(document.Name, document.AudioPath),
             new LevelFile(entry.Path),
             new Playfield(document.PlayfieldWidth, document.PlayfieldHeight),
-            new EditorPlayhead(
+            new Playhead(
                 timeMs: 0,
                 bpm: document.Bpm,
                 offsetMs: document.OffsetMs,
                 playing: false),
-            new NoteSelection(default),
-            new EditorView(origin, scale, screen),
+            new PlayfieldView(origin, scale, screen),
             new PlayfieldMode(PlayfieldKind.Play));
 
         root.AddChild(playfieldEntity);

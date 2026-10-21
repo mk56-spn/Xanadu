@@ -29,15 +29,15 @@ public sealed class EditorNoteInputSystemTests
         _store.CreateEntity(
             new LevelInfo("Test", "/tmp/test.wav"),
             new Playfield(1000, 1000),
-            new EditorPlayhead(1_000, 120, 0, false),
-            new EditorView(Vector2.Zero, 1f, new Vector2(1000, 1000)),
+            new Playhead(1_000, 120, 0, false),
+            new PlayfieldView(Vector2.Zero, 1f, new Vector2(1000, 1000)),
             new NoteSelection(default));
     }
 
     [Test]
     public void ClickWithoutSongRequestsWarningAndSkipsNote()
     {
-        Entity editor = _store.Query<EditorView>().ToEntityList()[0];
+        Entity editor = _store.Query<PlayfieldView>().ToEntityList()[0];
         ref LevelInfo level = ref editor.GetComponent<LevelInfo>();
         level.AudioPath = "";
 
@@ -62,7 +62,7 @@ public sealed class EditorNoteInputSystemTests
         Assert.That(notes[0].GetComponent<Note>().TimeMs, Is.EqualTo(1_000));
         Assert.That(notes[0].GetComponent<Note>().Position, Is.EqualTo(new Vector2(100, 200)));
 
-        Entity editor = _store.Query<EditorView>().ToEntityList()[0];
+        Entity editor = _store.Query<PlayfieldView>().ToEntityList()[0];
         Assert.That(editor.GetComponent<NoteSelection>().Note.Id, Is.EqualTo(notes[0].Id));
     }
 
@@ -74,7 +74,7 @@ public sealed class EditorNoteInputSystemTests
         _pointer.Current = new PointerInput(new Vector2(100, 200), false);
         _root.Update(new UpdateTick(1f / 60f, 0));
 
-        Entity editor = _store.Query<EditorView>().ToEntityList()[0];
+        Entity editor = _store.Query<PlayfieldView>().ToEntityList()[0];
         editor.GetComponent<NoteSelection>().Note = default;
 
         _pointer.Current = new PointerInput(new Vector2(100, 200), true);

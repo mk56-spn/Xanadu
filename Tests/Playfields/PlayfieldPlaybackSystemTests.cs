@@ -3,12 +3,12 @@ using Friflo.Engine.ECS.Systems;
 using NUnit.Framework;
 using Writer.Ecs;
 using Writer.Systems.Audio;
-using Writer.Systems.Editor;
+using Writer.Systems.Playfields;
 
-namespace Writer.Tests.Editor;
+namespace Writer.Tests.Playfields;
 
 [TestFixture]
-public sealed class EditorPlaybackSystemTests
+public sealed class PlayfieldPlaybackSystemTests
 {
     [Test]
     public void LoadsSongDurationAndTracksPlayhead()
@@ -16,23 +16,23 @@ public sealed class EditorPlaybackSystemTests
         var store = new EntityStore();
         var audio = new FakeAudio { LengthSeconds = 12f };
         var root = new SystemRoot(store);
-        root.Add(new EditorPlaybackSystem(audio));
+        root.Add(new PlayfieldPlaybackSystem(audio));
 
         Entity editor = store.CreateEntity(
             new LevelInfo("Test", "res://song.mp3"),
-            new EditorPlayhead(0, 120, 0, false));
+            new Playhead(0, 120, 0, false));
 
         root.Update(new UpdateTick(1f / 60f, 0));
 
         Assert.That(audio.LoadedPath, Is.EqualTo("res://song.mp3"));
-        Assert.That(editor.GetComponent<EditorPlayhead>().DurationMs, Is.EqualTo(12_000));
+        Assert.That(editor.GetComponent<Playhead>().DurationMs, Is.EqualTo(12_000));
 
-        ref EditorPlayhead playhead = ref editor.GetComponent<EditorPlayhead>();
+        ref Playhead playhead = ref editor.GetComponent<Playhead>();
         playhead.Playing = true;
         audio.PositionSeconds = 2.5f;
         root.Update(new UpdateTick(1f / 60f, 0));
 
-        Assert.That(editor.GetComponent<EditorPlayhead>().TimeMs, Is.EqualTo(2_500));
+        Assert.That(editor.GetComponent<Playhead>().TimeMs, Is.EqualTo(2_500));
         Assert.That(audio.ResumeCount, Is.EqualTo(1));
     }
 
@@ -42,20 +42,20 @@ public sealed class EditorPlaybackSystemTests
         var store = new EntityStore();
         var audio = new FakeAudio { LengthSeconds = 5f };
         var root = new SystemRoot(store);
-        root.Add(new EditorPlaybackSystem(audio));
+        root.Add(new PlayfieldPlaybackSystem(audio));
 
         Entity editor = store.CreateEntity(
             new LevelInfo("Test", "res://song.mp3"),
-            new EditorPlayhead(0, 120, 0, false));
+            new Playhead(0, 120, 0, false));
 
         root.Update(new UpdateTick(1f / 60f, 0));
 
-        ref EditorPlayhead playhead = ref editor.GetComponent<EditorPlayhead>();
+        ref Playhead playhead = ref editor.GetComponent<Playhead>();
         playhead.SeekRequestMs = 9_000;
         root.Update(new UpdateTick(1f / 60f, 0));
 
         Assert.That(audio.SeekSeconds, Is.EqualTo(5f));
-        Assert.That(editor.GetComponent<EditorPlayhead>().TimeMs, Is.EqualTo(5_000));
+        Assert.That(editor.GetComponent<Playhead>().TimeMs, Is.EqualTo(5_000));
     }
 
     [Test]
@@ -64,14 +64,14 @@ public sealed class EditorPlaybackSystemTests
         var store = new EntityStore();
         var audio = new FakeAudio { LengthSeconds = 5f };
         var root = new SystemRoot(store);
-        root.Add(new EditorPlaybackSystem(audio));
+        root.Add(new PlayfieldPlaybackSystem(audio));
 
         Entity editor = store.CreateEntity(
             new LevelInfo("Test", "res://song.mp3"),
-            new EditorPlayhead(0, 120, 0, false));
+            new Playhead(0, 120, 0, false));
 
         root.Update(new UpdateTick(1f / 60f, 0));
-        ref EditorPlayhead playhead = ref editor.GetComponent<EditorPlayhead>();
+        ref Playhead playhead = ref editor.GetComponent<Playhead>();
         playhead.AudioRevision++;
         root.Update(new UpdateTick(1f / 60f, 0));
 
@@ -85,14 +85,14 @@ public sealed class EditorPlaybackSystemTests
         var store = new EntityStore();
         var audio = new FakeAudio { LengthSeconds = 5f };
         var root = new SystemRoot(store);
-        root.Add(new EditorPlaybackSystem(audio));
+        root.Add(new PlayfieldPlaybackSystem(audio));
 
         Entity editor = store.CreateEntity(
             new LevelInfo("Test", "res://song.mp3"),
-            new EditorPlayhead(0, 120, 0, false));
+            new Playhead(0, 120, 0, false));
 
         root.Update(new UpdateTick(1f / 60f, 0));
-        ref EditorPlayhead playhead = ref editor.GetComponent<EditorPlayhead>();
+        ref Playhead playhead = ref editor.GetComponent<Playhead>();
         playhead.Playing = true;
         playhead.TimeMs = playhead.DurationMs;
 
@@ -110,16 +110,16 @@ public sealed class EditorPlaybackSystemTests
         var store = new EntityStore();
         var audio = new FakeAudio { LengthSeconds = 5f, LoadSucceeds = false };
         var root = new SystemRoot(store);
-        root.Add(new EditorPlaybackSystem(audio));
+        root.Add(new PlayfieldPlaybackSystem(audio));
 
         Entity editor = store.CreateEntity(
             new LevelInfo("Test", "res://missing.mp3"),
-            new EditorPlayhead(0, 120, 0, true));
+            new Playhead(0, 120, 0, true));
 
         root.Update(new UpdateTick(1f / 60f, 0));
 
-        Assert.That(editor.GetComponent<EditorPlayhead>().DurationMs, Is.EqualTo(0));
-        Assert.That(editor.GetComponent<EditorPlayhead>().Playing, Is.False);
+        Assert.That(editor.GetComponent<Playhead>().DurationMs, Is.EqualTo(0));
+        Assert.That(editor.GetComponent<Playhead>().Playing, Is.False);
     }
 
     [Test]
@@ -128,15 +128,15 @@ public sealed class EditorPlaybackSystemTests
         var store = new EntityStore();
         var audio = new FakeAudio { LengthSeconds = 5f };
         var root = new SystemRoot(store);
-        root.Add(new EditorPlaybackSystem(audio));
+        root.Add(new PlayfieldPlaybackSystem(audio));
 
         Entity editor = store.CreateEntity(
             new LevelInfo("Test", "res://song.mp3"),
-            new EditorPlayhead(0, 120, 0, false));
+            new Playhead(0, 120, 0, false));
 
         root.Update(new UpdateTick(1f / 60f, 0));
 
-        ref EditorPlayhead playhead = ref editor.GetComponent<EditorPlayhead>();
+        ref Playhead playhead = ref editor.GetComponent<Playhead>();
         playhead.Playing = true;
         root.Update(new UpdateTick(1f / 60f, 0));
         Assert.That(audio.IsPlaying, Is.True);
@@ -154,15 +154,15 @@ public sealed class EditorPlaybackSystemTests
         var store = new EntityStore();
         var audio = new FakeAudio { LengthSeconds = 5f };
         var root = new SystemRoot(store);
-        root.Add(new EditorPlaybackSystem(audio));
+        root.Add(new PlayfieldPlaybackSystem(audio));
 
         Entity editor = store.CreateEntity(
             new LevelInfo("Test", "res://song.mp3"),
-            new EditorPlayhead(0, 120, 0, false));
+            new Playhead(0, 120, 0, false));
 
         root.Update(new UpdateTick(1f / 60f, 0));
 
-        ref EditorPlayhead playhead = ref editor.GetComponent<EditorPlayhead>();
+        ref Playhead playhead = ref editor.GetComponent<Playhead>();
         playhead.Playing = true;
         root.Update(new UpdateTick(1f / 60f, 0));
         playhead.Playing = false;

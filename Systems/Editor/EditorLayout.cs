@@ -16,17 +16,17 @@ public static class EditorLayout
     public const float TimelineWidthRatio = 0.66f;
     public const float MaxTimelineWidth = 1200;
 
-    public static Rect2 HeaderRect(EditorView view) =>
+    public static Rect2 HeaderRect(PlayfieldView view) =>
         new(0, 0, view.ScreenSize.X, HeaderHeight);
 
-    public static Rect2 FooterRect(EditorView view) =>
+    public static Rect2 FooterRect(PlayfieldView view) =>
         new(
             0,
             view.ScreenSize.Y - FooterHeight,
             view.ScreenSize.X,
             FooterHeight);
 
-    public static Rect2 TransportRect(EditorView view) =>
+    public static Rect2 TransportRect(PlayfieldView view) =>
         new(
             0,
             view.ScreenSize.Y - FooterHeight - Gap - TransportHeight,
@@ -34,7 +34,7 @@ public static class EditorLayout
             TransportHeight);
 
     /// <summary>Timeline centered inside the footer.</summary>
-    public static Rect2 RulerRect(EditorView view)
+    public static Rect2 RulerRect(PlayfieldView view)
     {
         float width = Mathf.Min(
             view.ScreenSize.X * TimelineWidthRatio,
@@ -48,7 +48,7 @@ public static class EditorLayout
             TimelineHeight);
     }
 
-    public static Rect2 PlayfieldRect(EditorView view, Playfield playfield) =>
+    public static Rect2 PlayfieldRect(PlayfieldView view, Playfield playfield) =>
         new(
             view.ScreenOrigin,
             new Vector2(playfield.Width * view.Scale, playfield.Height * view.Scale));

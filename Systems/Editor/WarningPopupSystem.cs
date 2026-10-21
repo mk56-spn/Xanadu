@@ -55,7 +55,7 @@ public sealed class WarningPopupSystem : QuerySystem<WarningPopup>
 
     private static Vector2 Center(Entity editor)
     {
-        EditorView view = editor.GetComponent<EditorView>();
+        PlayfieldView view = editor.GetComponent<PlayfieldView>();
         Playfield playfield = editor.GetComponent<Playfield>();
 
         return view.PlayfieldToScreen(
@@ -96,7 +96,7 @@ public sealed class WarningPopupSystem : QuerySystem<WarningPopup>
     private Entity FindEditor()
     {
         foreach (Entity entity in _entities
-                     .Query<EditorView, LevelInfo, Playfield>()
+                     .Query<PlayfieldView, LevelInfo, Playfield, NoteSelection>()
                      .ToEntityList())
         {
             return entity;

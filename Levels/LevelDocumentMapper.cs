@@ -3,7 +3,7 @@ using Friflo.Engine.ECS;
 using Godot;
 using Writer.Ecs;
 
-namespace Writer.Editor;
+namespace Writer.Levels;
 
 /// <summary>Copies editor ECS state to and from the serializable document.</summary>
 public static class LevelDocumentMapper
@@ -12,7 +12,7 @@ public static class LevelDocumentMapper
     {
         LevelInfo level = editor.GetComponent<LevelInfo>();
         Playfield playfield = editor.GetComponent<Playfield>();
-        EditorPlayhead playhead = editor.GetComponent<EditorPlayhead>();
+        Playhead playhead = editor.GetComponent<Playhead>();
 
         var document = new LevelDocument
         {
@@ -69,7 +69,7 @@ public static class LevelDocumentMapper
         playfield.Width = document.PlayfieldWidth;
         playfield.Height = document.PlayfieldHeight;
 
-        ref EditorPlayhead playhead = ref editor.GetComponent<EditorPlayhead>();
+        ref Playhead playhead = ref editor.GetComponent<Playhead>();
         playhead.Bpm = document.Bpm;
         playhead.OffsetMs = document.OffsetMs;
         playhead.SnapDivision = document.SnapDivision;
@@ -78,8 +78,5 @@ public static class LevelDocumentMapper
         playhead.Playing = false;
         playhead.SeekRequestMs = 0;
         playhead.AudioRevision++;
-
-        ref NoteSelection selection = ref editor.GetComponent<NoteSelection>();
-        selection.Note = default;
     }
 }

@@ -115,7 +115,7 @@ public struct Playfield(int width, int height) : IComponent
 }
 
 /// <summary>Editor transport state.</summary>
-public struct EditorPlayhead(
+public struct Playhead(
     long timeMs,
     int bpm,
     long offsetMs,
@@ -136,7 +136,7 @@ public struct EditorPlayhead(
 }
 
 /// <summary>Screen-space layout of the logical playfield.</summary>
-public struct EditorView(Vector2 screenOrigin, float scale, Vector2 screenSize) : IComponent
+public struct PlayfieldView(Vector2 screenOrigin, float scale, Vector2 screenSize) : IComponent
 {
     public Vector2 ScreenOrigin = screenOrigin;
     public float Scale = scale;

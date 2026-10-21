@@ -20,11 +20,13 @@ namespace Writer.Ecs;
 public sealed class WriterSystemRoot : SystemRoot, IDisposable
 {
     private readonly Rid _debugOverlay;
+    private readonly SceneDirector _sceneDirector;
+    private EditorSystemGroup _editorSystems = null!;
     private readonly Rid _timeline;
-    private readonly Rid _editor;
+    private readonly Rid _playfield;
     private readonly EntityStore _entities;
     private readonly MiniaudioTrackAudio _trackAudio = new();
-    private readonly MiniaudioTrackAudio _editorAudio = new();
+    private readonly MiniaudioTrackAudio _playfieldAudio = new();
     private readonly MiniaudioTrackAudio _metronomeAudio = new();
 
     public Box2DPhysicsWorld Physics { get; } = new();
@@ -48,6 +50,8 @@ public sealed class WriterSystemRoot : SystemRoot, IDisposable
         EditorHistory = new EditorHistory(entities);
         Commands = new EditorCommandBus();
         Scenes = new SceneSystem(entities, sceneDirector, viewportSize);
+        _sceneDirector = sceneDirector;
+        sceneDirector.Changed += OnSceneChanged;
 
         _debugOverlay = RenderingServer.CanvasItemCreate();
         RenderingServer.CanvasItemSetParent(_debugOverlay, parentCanvas);
@@ -58,23 +62,25 @@ public sealed class WriterSystemRoot : SystemRoot, IDisposable
         RenderingServer.CanvasItemSetParent(_timeline, parentCanvas);
         RenderingServer.CanvasItemSetZIndex(_timeline, 900);
 
-        _editor = RenderingServer.CanvasItemCreate();
-        RenderingServer.CanvasItemSetParent(_editor, parentCanvas);
-        RenderingServer.CanvasItemSetZIndex(_editor, 800);
+        _playfield = RenderingServer.CanvasItemCreate();
+        RenderingServer.CanvasItemSetParent(_playfield, parentCanvas);
+        RenderingServer.CanvasItemSetZIndex(_playfield, 800);
 
         Add(new InitializationSystemGroup(parentCanvas));
         Add(new PhysicsSystemGroup(Physics));
         Add(new PresentationSystemGroup(canvas));
         Add(new AudioSystemGroup(_trackAudio, new GodotTrackClock(), canvas, _timeline));
-        Add(new EditorSystemGroup(
+        Add(new PlayfieldSystemGroup(entities, canvas, _playfield, _playfieldAudio));
+        _editorSystems = new EditorSystemGroup(
             entities,
             Commands,
             pointerInput,
             canvas,
-            _editor,
-            _editorAudio,
+            _playfield,
             _metronomeAudio,
-            EditorHistory));
+            EditorHistory);
+        _editorSystems.Enabled = false;
+        Add(_editorSystems);
         Add(new InputSystemGroup(entities, pointerInput, Scenes));
         Add(new DebugSystemGroup(
             canvas,
@@ -87,6 +93,9 @@ public sealed class WriterSystemRoot : SystemRoot, IDisposable
         SetMonitorPerf(true);
     }
 
+    private void OnSceneChanged(SceneKind scene) =>
+        _editorSystems.Enabled = scene == SceneKind.Editor;
+
     private static void OnEntityDelete(EntityDelete entityDelete)
     {
         if (entityDelete.Entity.TryGetComponent<VisualRid>(out var visual))
@@ -95,12 +104,13 @@ public sealed class WriterSystemRoot : SystemRoot, IDisposable
 
     public void Dispose()
     {
+        _sceneDirector.Changed -= OnSceneChanged;
         _entities.OnEntityDelete -= OnEntityDelete;
         _trackAudio.Dispose();
-        _editorAudio.Dispose();
+        _playfieldAudio.Dispose();
         _metronomeAudio.Dispose();
         Physics.Dispose();
-        RenderingServer.FreeRid(_editor);
+        RenderingServer.FreeRid(_playfield);
         RenderingServer.FreeRid(_timeline);
         RenderingServer.FreeRid(_debugOverlay);
     }

@@ -4,16 +4,16 @@ using Friflo.Engine.ECS.Systems;
 using Writer.Ecs;
 using Writer.Systems.Audio;
 
-namespace Writer.Systems.Editor;
+namespace Writer.Systems.Playfields;
 
-/// <summary>Loads the editor song and drives the playhead from miniaudio.</summary>
-public sealed class EditorPlaybackSystem : QuerySystem<LevelInfo, EditorPlayhead>
+/// <summary>Loads the active playfield song and drives its playhead from miniaudio.</summary>
+public sealed class PlayfieldPlaybackSystem : QuerySystem<LevelInfo, Playhead>
 {
     private readonly ITrackAudio _audio;
     private int _loadedRevision = -1;
     private int _loadedEntityId = -1;
 
-    public EditorPlaybackSystem(ITrackAudio audio)
+    public PlayfieldPlaybackSystem(ITrackAudio audio)
     {
         _audio = audio;
     }
@@ -50,7 +50,7 @@ public sealed class EditorPlaybackSystem : QuerySystem<LevelInfo, EditorPlayhead
         });
     }
 
-    private void UpdatePlaying(ref EditorPlayhead playhead)
+    private void UpdatePlaying(ref Playhead playhead)
     {
         if (playhead.DurationMs > 0 && playhead.TimeMs >= playhead.DurationMs)
         {
@@ -85,7 +85,7 @@ public sealed class EditorPlaybackSystem : QuerySystem<LevelInfo, EditorPlayhead
             End(ref playhead);
     }
 
-    private void End(ref EditorPlayhead playhead)
+    private void End(ref Playhead playhead)
     {
         if (playhead.DurationMs > 0)
             playhead.TimeMs = playhead.DurationMs;
@@ -94,7 +94,7 @@ public sealed class EditorPlaybackSystem : QuerySystem<LevelInfo, EditorPlayhead
         _audio.Pause();
     }
 
-    private void Load(LevelInfo level, ref EditorPlayhead playhead)
+    private void Load(LevelInfo level, ref Playhead playhead)
     {
         _loadedRevision = playhead.AudioRevision;
         playhead.Playing = false;
@@ -114,7 +114,7 @@ public sealed class EditorPlaybackSystem : QuerySystem<LevelInfo, EditorPlayhead
         }
     }
 
-    private void ApplySeek(ref EditorPlayhead playhead)
+    private void ApplySeek(ref Playhead playhead)
     {
         long seek = playhead.SeekRequestMs;
         if (playhead.DurationMs > 0)

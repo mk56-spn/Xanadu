@@ -2,10 +2,10 @@ using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Writer.Ecs;
 
-namespace Writer.Systems.Editor;
+namespace Writer.Systems.Playfields;
 
 /// <summary>Starts play-mode audio once loaded and reports play-session status.</summary>
-public sealed class PlaySessionSystem : QuerySystem<PlaySession, EditorPlayhead>
+public sealed class PlaySessionSystem : QuerySystem<PlaySession, Playhead>
 {
     protected override void OnUpdate()
     {

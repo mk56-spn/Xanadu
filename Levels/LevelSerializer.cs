@@ -1,6 +1,6 @@
 using System.Text.Json;
 
-namespace Writer.Editor;
+namespace Writer.Levels;
 
 /// <summary>JSON serialization for level documents.</summary>
 public static class LevelSerializer

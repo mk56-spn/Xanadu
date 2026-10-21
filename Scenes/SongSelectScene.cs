@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using Godot;
 using Writer.Ecs;
-using Writer.Editor;
+using Writer.Levels;
 using Writer.Ui;
 
 namespace Writer.Scenes;

@@ -4,6 +4,7 @@ using System.IO;
 using Friflo.Engine.ECS;
 using Godot;
 using Writer.Ecs;
+using Writer.Levels;
 using Writer.Editor.Commands;
 using Writer.Systems.Editor;
 using Writer.Systems.Input;
@@ -106,7 +107,7 @@ public partial class EditorOverlay : CanvasLayer
             _metadataPanel.Visible ||
             _suppressPointerUntilRelease);
 
-        ref EditorPlayhead playhead = ref _editor.GetComponent<EditorPlayhead>();
+        ref Playhead playhead = ref _editor.GetComponent<Playhead>();
         ref LevelInfo level = ref _editor.GetComponent<LevelInfo>();
 
         string levelName = string.IsNullOrWhiteSpace(level.Name)
@@ -295,9 +296,9 @@ public partial class EditorOverlay : CanvasLayer
         if (_editor.IsNull)
             return;
 
-        EditorView view = _editor.GetComponent<EditorView>();
+        PlayfieldView view = _editor.GetComponent<PlayfieldView>();
         LevelInfo level = _editor.GetComponent<LevelInfo>();
-        EditorPlayhead playhead = _editor.GetComponent<EditorPlayhead>();
+        Playhead playhead = _editor.GetComponent<Playhead>();
 
         _metadataCatcher = new Control
         {
@@ -325,7 +326,7 @@ public partial class EditorOverlay : CanvasLayer
         _root.AddChild(_previewLabel);
     }
 
-    private void BuildHeader(EditorView view, LevelInfo level)
+    private void BuildHeader(PlayfieldView view, LevelInfo level)
     {
         _header = new Control
         {
@@ -399,9 +400,9 @@ public partial class EditorOverlay : CanvasLayer
     }
 
     private void BuildMetadataDropdown(
-        EditorView view,
+        PlayfieldView view,
         LevelInfo level,
-        EditorPlayhead playhead)
+        Playhead playhead)
     {
         const float width = 380;
         const float height = 300;
@@ -480,7 +481,7 @@ public partial class EditorOverlay : CanvasLayer
         fileRow.AddChild(loadLevel);
     }
 
-    private void BuildFooter(EditorView view)
+    private void BuildFooter(PlayfieldView view)
     {
         Rect2 footer = EditorLayout.FooterRect(view);
         _footer = new Control
@@ -515,7 +516,7 @@ public partial class EditorOverlay : CanvasLayer
         _footer.AddChild(_notesLabel);
     }
 
-    private void BuildTransport(EditorView view, EditorPlayhead playhead)
+    private void BuildTransport(PlayfieldView view, Playhead playhead)
     {
         Rect2 transport = EditorLayout.TransportRect(view);
         _transport = new HBoxContainer
@@ -1027,7 +1028,7 @@ public partial class EditorOverlay : CanvasLayer
 
     private Entity FindEditor()
     {
-        foreach (Entity entity in _entities.Query<EditorView>().ToEntityList())
+        foreach (Entity entity in _entities.Query<PlayfieldView>().ToEntityList())
             return entity;
 
         return default;
