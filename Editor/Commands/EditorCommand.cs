@@ -1,0 +1,85 @@
+using Writer.Editor;
+
+namespace Writer.Editor.Commands;
+
+/// <summary>Editor intents emitted by UI controls and consumed by systems.</summary>
+public enum EditorCommandType
+{
+    SetName,
+    SetArtist,
+    SetDifficulty,
+    SetBpm,
+    SetOffset,
+    SetSnap,
+    TogglePlayback,
+    StopPlayback,
+    Seek,
+    SetMetronome,
+    BeginPreview,
+    EndPreview,
+    LoadSong,
+    DeleteSelection,
+    Undo,
+    Redo,
+    ApplyLevel,
+}
+
+/// <summary>Data-only editor command.</summary>
+public readonly record struct EditorCommand(
+    EditorCommandType Type,
+    string? Text = null,
+    int IntValue = 0,
+    long LongValue = 0,
+    LevelDocument? Document = null)
+{
+    public static EditorCommand SetName(string value) =>
+        new(EditorCommandType.SetName, Text: value);
+
+    public static EditorCommand SetArtist(string value) =>
+        new(EditorCommandType.SetArtist, Text: value);
+
+    public static EditorCommand SetDifficulty(string value) =>
+        new(EditorCommandType.SetDifficulty, Text: value);
+
+    public static EditorCommand SetBpm(int value) =>
+        new(EditorCommandType.SetBpm, IntValue: value);
+
+    public static EditorCommand SetOffset(long value) =>
+        new(EditorCommandType.SetOffset, LongValue: value);
+
+    public static EditorCommand SetSnap(int value) =>
+        new(EditorCommandType.SetSnap, IntValue: value);
+
+    public static EditorCommand TogglePlayback() =>
+        new(EditorCommandType.TogglePlayback);
+
+    public static EditorCommand StopPlayback() =>
+        new(EditorCommandType.StopPlayback);
+
+    public static EditorCommand Seek(long timeMs) =>
+        new(EditorCommandType.Seek, LongValue: timeMs);
+
+    public static EditorCommand SetMetronome(bool enabled) =>
+        new(EditorCommandType.SetMetronome, IntValue: enabled ? 1 : 0);
+
+    public static EditorCommand BeginPreview() =>
+        new(EditorCommandType.BeginPreview);
+
+    public static EditorCommand EndPreview() =>
+        new(EditorCommandType.EndPreview);
+
+    public static EditorCommand LoadSong(string path) =>
+        new(EditorCommandType.LoadSong, Text: path);
+
+    public static EditorCommand DeleteSelection() =>
+        new(EditorCommandType.DeleteSelection);
+
+    public static EditorCommand Undo() =>
+        new(EditorCommandType.Undo);
+
+    public static EditorCommand Redo() =>
+        new(EditorCommandType.Redo);
+
+    public static EditorCommand ApplyLevel(LevelDocument document) =>
+        new(EditorCommandType.ApplyLevel, Document: document);
+}

@@ -3,6 +3,7 @@ using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Godot;
 using Writer.Editor;
+using Writer.Editor.Commands;
 using Writer.Systems.Audio;
 using Writer.Systems.Canvas;
 using Writer.Systems.Debug;
@@ -28,6 +29,8 @@ public sealed class WriterSystemRoot : SystemRoot, IDisposable
 
     public EditorHistory EditorHistory { get; }
 
+    public EditorCommandBus Commands { get; }
+
     public WriterSystemRoot(
         EntityStore entities,
         Rid parentCanvas,
@@ -35,6 +38,7 @@ public sealed class WriterSystemRoot : SystemRoot, IDisposable
     {
         var canvas = new GodotRectCanvas();
         EditorHistory = new EditorHistory(entities);
+        Commands = new EditorCommandBus();
 
         _debugOverlay = RenderingServer.CanvasItemCreate();
         RenderingServer.CanvasItemSetParent(_debugOverlay, parentCanvas);
@@ -55,6 +59,7 @@ public sealed class WriterSystemRoot : SystemRoot, IDisposable
         Add(new AudioSystemGroup(_trackAudio, new GodotTrackClock(), canvas, _timeline));
         Add(new EditorSystemGroup(
             entities,
+            Commands,
             pointerInput,
             canvas,
             _editor,

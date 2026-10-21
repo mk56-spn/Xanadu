@@ -4,6 +4,7 @@ using System.IO;
 using Friflo.Engine.ECS;
 using Godot;
 using Writer.Ecs;
+using Writer.Editor.Commands;
 
 namespace Writer.Editor;
 
@@ -11,7 +12,7 @@ namespace Writer.Editor;
 public partial class EditorOverlay : CanvasLayer
 {
     private readonly EntityStore _entities;
-    private readonly EditorHistory _history;
+    private readonly EditorCommandBus _commands;
     private readonly TapTempo _tapTempo = new();
 
     private Control _root = null!;
@@ -32,11 +33,12 @@ public partial class EditorOverlay : CanvasLayer
     private Entity _editor;
 
     private bool _syncing;
+    private bool _previewActive;
 
-    public EditorOverlay(EntityStore entities, EditorHistory history)
+    public EditorOverlay(EntityStore entities, EditorCommandBus commands)
     {
         _entities = entities;
-        _history = history;
+        _commands = commands;
         Layer = 100;
     }
 
@@ -73,6 +75,16 @@ public partial class EditorOverlay : CanvasLayer
             _metronomeButton.Text = _editor.GetComponent<EditorMetronome>().Enabled
                 ? "Click On"
                 : "Click Off";
+        }
+
+        bool previewActive = _editor.HasComponent<EditorPreview>() &&
+                             _editor.GetComponent<EditorPreview>().Active;
+
+        if (previewActive != _previewActive)
+        {
+            _previewActive = previewActive;
+            _previewLabel.Visible = previewActive;
+            SetEditControlsVisible(!previewActive);
         }
 
         if (_previewLabel.Visible)
@@ -430,8 +442,7 @@ public partial class EditorOverlay : CanvasLayer
         try
         {
             LevelDocument document = LevelStore.Load(path);
-            LevelDocumentMapper.Apply(_entities, _editor, document);
-            _history.Clear();
+            _commands.Enqueue(EditorCommand.ApplyLevel(document));
 
             _syncing = true;
             _nameEdit.Text = document.Name;
@@ -460,20 +471,7 @@ public partial class EditorOverlay : CanvasLayer
         if (_editor.IsNull)
             return;
 
-        ref LevelInfo level = ref _editor.GetComponent<LevelInfo>();
-        ref EditorPlayhead playhead = ref _editor.GetComponent<EditorPlayhead>();
-
-        level.AudioPath = path;
-        if (string.IsNullOrWhiteSpace(level.Name) || level.Name == "Untitled")
-        {
-            level.Name = Path.GetFileNameWithoutExtension(path);
-            _nameEdit.Text = level.Name;
-        }
-
-        playhead.TimeMs = 0;
-        playhead.DurationMs = 0;
-        playhead.Playing = false;
-        playhead.SeekRequestMs = -1;
+        _commands.Enqueue(EditorCommand.LoadSong(path));
     }
 
     private void ToggleMetronome()
@@ -481,9 +479,8 @@ public partial class EditorOverlay : CanvasLayer
         if (_editor.IsNull || !_editor.HasComponent<EditorMetronome>())
             return;
 
-        ref EditorMetronome metronome = ref _editor.GetComponent<EditorMetronome>();
-        metronome.Enabled = !metronome.Enabled;
-        _metronomeButton.Text = metronome.Enabled ? "Click On" : "Click Off";
+        EditorMetronome metronome = _editor.GetComponent<EditorMetronome>();
+        _commands.Enqueue(EditorCommand.SetMetronome(!metronome.Enabled));
     }
 
     private void TapTempo()
@@ -498,8 +495,7 @@ public partial class EditorOverlay : CanvasLayer
             return;
         }
 
-        ref EditorPlayhead playhead = ref _editor.GetComponent<EditorPlayhead>();
-        playhead.Bpm = value;
+        _commands.Enqueue(EditorCommand.SetBpm(value));
         _bpmEdit.Text = value.ToString();
         _statusLabel.Text = $"Tap BPM {value}";
     }
@@ -518,23 +514,7 @@ public partial class EditorOverlay : CanvasLayer
         if (!ValidateCurrent())
             return;
 
-        ref EditorPlayhead playhead = ref _editor.GetComponent<EditorPlayhead>();
-        ref EditorPreview preview = ref _editor.GetComponent<EditorPreview>();
-
-        long start = playhead.TimeMs;
-        if (playhead.DurationMs > 0 && start >= playhead.DurationMs)
-            start = 0;
-
-        preview.Active = true;
-        preview.SavedTimeMs = playhead.TimeMs;
-        preview.SavedPlaying = playhead.Playing;
-
-        playhead.TimeMs = start;
-        playhead.SeekRequestMs = start;
-        playhead.Playing = true;
-
-        _previewLabel.Visible = true;
-        SetEditControlsVisible(false);
+        _commands.Enqueue(EditorCommand.BeginPreview());
     }
 
     private void EndPreview()
@@ -542,18 +522,7 @@ public partial class EditorOverlay : CanvasLayer
         if (_editor.IsNull)
             return;
 
-        ref EditorPreview preview = ref _editor.GetComponent<EditorPreview>();
-        if (!preview.Active)
-            return;
-
-        ref EditorPlayhead playhead = ref _editor.GetComponent<EditorPlayhead>();
-        playhead.Playing = preview.SavedPlaying;
-        playhead.SeekRequestMs = preview.SavedTimeMs;
-
-        preview.Active = false;
-        _previewLabel.Visible = false;
-        SetEditControlsVisible(true);
-        _statusLabel.Text = "Preview ended";
+        _commands.Enqueue(EditorCommand.EndPreview());
     }
 
     private bool IsPreviewing() =>
@@ -593,16 +562,7 @@ public partial class EditorOverlay : CanvasLayer
         if (_editor.IsNull)
             return;
 
-        ref EditorPlayhead playhead = ref _editor.GetComponent<EditorPlayhead>();
-
-        if (!playhead.Playing &&
-            playhead.DurationMs > 0 &&
-            playhead.TimeMs >= playhead.DurationMs)
-        {
-            playhead.SeekRequestMs = 0;
-        }
-
-        playhead.Playing = !playhead.Playing;
+        _commands.Enqueue(EditorCommand.TogglePlayback());
     }
 
     private void StopPlayback()
@@ -610,9 +570,7 @@ public partial class EditorOverlay : CanvasLayer
         if (_editor.IsNull)
             return;
 
-        ref EditorPlayhead playhead = ref _editor.GetComponent<EditorPlayhead>();
-        playhead.Playing = false;
-        playhead.SeekRequestMs = 0;
+        _commands.Enqueue(EditorCommand.StopPlayback());
     }
 
     private void OnNameChanged(string value)
@@ -620,8 +578,7 @@ public partial class EditorOverlay : CanvasLayer
         if (_syncing || _editor.IsNull)
             return;
 
-        ref LevelInfo level = ref _editor.GetComponent<LevelInfo>();
-        level.Name = value;
+        _commands.Enqueue(EditorCommand.SetName(value));
     }
 
     private void OnArtistChanged(string value)
@@ -629,8 +586,7 @@ public partial class EditorOverlay : CanvasLayer
         if (_syncing || _editor.IsNull)
             return;
 
-        ref LevelInfo level = ref _editor.GetComponent<LevelInfo>();
-        level.Artist = value;
+        _commands.Enqueue(EditorCommand.SetArtist(value));
     }
 
     private void OnDifficultyChanged(string value)
@@ -638,8 +594,7 @@ public partial class EditorOverlay : CanvasLayer
         if (_syncing || _editor.IsNull)
             return;
 
-        ref LevelInfo level = ref _editor.GetComponent<LevelInfo>();
-        level.Difficulty = value;
+        _commands.Enqueue(EditorCommand.SetDifficulty(value));
     }
 
     private void OnBpmChanged(string value)
@@ -647,8 +602,7 @@ public partial class EditorOverlay : CanvasLayer
         if (_syncing || _editor.IsNull || !int.TryParse(value, out int bpm))
             return;
 
-        ref EditorPlayhead playhead = ref _editor.GetComponent<EditorPlayhead>();
-        playhead.Bpm = Math.Clamp(bpm, 1, 1000);
+        _commands.Enqueue(EditorCommand.SetBpm(bpm));
     }
 
     private void OnOffsetChanged(string value)
@@ -656,8 +610,7 @@ public partial class EditorOverlay : CanvasLayer
         if (_syncing || _editor.IsNull || !long.TryParse(value, out long offset))
             return;
 
-        ref EditorPlayhead playhead = ref _editor.GetComponent<EditorPlayhead>();
-        playhead.OffsetMs = Math.Clamp(offset, -600_000, 600_000);
+        _commands.Enqueue(EditorCommand.SetOffset(offset));
     }
 
     private void OnSnapSelected(long index)
@@ -665,13 +618,13 @@ public partial class EditorOverlay : CanvasLayer
         if (_syncing || _editor.IsNull)
             return;
 
-        ref EditorPlayhead playhead = ref _editor.GetComponent<EditorPlayhead>();
-        playhead.SnapDivision = index switch
+        int snap = index switch
         {
             1 => 8,
             2 => 16,
             _ => 4,
         };
+        _commands.Enqueue(EditorCommand.SetSnap(snap));
     }
 
     private void DeleteSelectedNote()
@@ -679,39 +632,25 @@ public partial class EditorOverlay : CanvasLayer
         if (_editor.IsNull)
             return;
 
-        ref NoteSelection selection = ref _editor.GetComponent<NoteSelection>();
-        if (selection.Note.IsNull)
-            return;
-
-        var before = _history.Capture();
-        selection.Note.DeleteEntity();
-        var after = _history.Capture();
-        _history.Record(before, after);
-        selection.Note = default;
+        _commands.Enqueue(EditorCommand.DeleteSelection());
     }
 
     private void Undo()
     {
-        if (_editor.IsNull || !_history.Undo())
+        if (_editor.IsNull)
             return;
 
-        ClearSelection();
+        _commands.Enqueue(EditorCommand.Undo());
         _statusLabel.Text = "Undo";
     }
 
     private void Redo()
     {
-        if (_editor.IsNull || !_history.Redo())
+        if (_editor.IsNull)
             return;
 
-        ClearSelection();
+        _commands.Enqueue(EditorCommand.Redo());
         _statusLabel.Text = "Redo";
-    }
-
-    private void ClearSelection()
-    {
-        ref NoteSelection selection = ref _editor.GetComponent<NoteSelection>();
-        selection.Note = default;
     }
 
     private Button AddButton(string text, float x, float y, float width, float height)
