@@ -66,7 +66,7 @@ public sealed class WriterSystemRoot : SystemRoot, IDisposable
             _editorAudio,
             _metronomeAudio,
             EditorHistory));
-        Add(new InputSystemGroup(pointerInput));
+        Add(new InputSystemGroup(entities, pointerInput));
         Add(new DebugSystemGroup(
             canvas,
             _debugOverlay,

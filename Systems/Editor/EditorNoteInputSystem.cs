@@ -52,7 +52,7 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
     private void OnPress(Vector2 screenPosition)
     {
         Entity editor = FindEditor();
-        if (editor.IsNull || IsPreviewing(editor))
+        if (editor.IsNull || IsPreviewing(editor) || IsWarningOpen())
             return;
 
         EditorView view = editor.GetComponent<EditorView>();
@@ -84,6 +84,12 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
             return;
         }
 
+        if (string.IsNullOrEmpty(editor.GetComponent<LevelInfo>().AudioPath))
+        {
+            EditorWarningPopup.Request(editor, EditorWarningPopup.NoSongMessage);
+            return;
+        }
+
         var before = _history.Capture();
         long time = EditorTiming.Snap(playhead.TimeMs, playhead);
         Entity created = _entities.CreateEntity(new Note(time, playfieldPosition));
@@ -95,7 +101,7 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
     private void OnHold(Vector2 screenPosition)
     {
         Entity editor = FindEditor();
-        if (editor.IsNull || IsPreviewing(editor))
+        if (editor.IsNull || IsPreviewing(editor) || IsWarningOpen())
             return;
 
         EditorView view = editor.GetComponent<EditorView>();
@@ -177,6 +183,17 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
     private static bool IsPreviewing(Entity editor) =>
         editor.HasComponent<EditorPreview>() &&
         editor.GetComponent<EditorPreview>().Active;
+
+    private bool IsWarningOpen()
+    {
+        foreach (Entity entity in _entities.Query<WarningPopup>().ToEntityList())
+        {
+            if (entity.GetComponent<WarningPopup>().Visible)
+                return true;
+        }
+
+        return false;
+    }
 
     private Entity FindEditor()
     {

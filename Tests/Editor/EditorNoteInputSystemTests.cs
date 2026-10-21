@@ -27,11 +27,28 @@ public sealed class EditorNoteInputSystemTests
         _root.Add(new EditorNoteInputSystem(_store, _pointer, _history));
 
         _store.CreateEntity(
-            new LevelInfo("Test", ""),
+            new LevelInfo("Test", "/tmp/test.wav"),
             new Playfield(1000, 1000),
             new EditorPlayhead(1_000, 120, 0, false),
             new EditorView(Vector2.Zero, 1f, new Vector2(1000, 1000)),
             new NoteSelection(default));
+    }
+
+    [Test]
+    public void ClickWithoutSongRequestsWarningAndSkipsNote()
+    {
+        Entity editor = _store.Query<EditorView>().ToEntityList()[0];
+        ref LevelInfo level = ref editor.GetComponent<LevelInfo>();
+        level.AudioPath = "";
+
+        _pointer.Current = new PointerInput(new Vector2(100, 200), true);
+        _root.Update(new UpdateTick(1f / 60f, 0));
+
+        Assert.That(_store.Query<Note>().Count, Is.EqualTo(0));
+        Assert.That(editor.HasComponent<WarningRequest>(), Is.True);
+        Assert.That(
+            editor.GetComponent<WarningRequest>().Message,
+            Is.EqualTo(EditorWarningPopup.NoSongMessage));
     }
 
     [Test]

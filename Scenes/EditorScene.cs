@@ -1,6 +1,7 @@
 using Friflo.Engine.ECS;
 using Godot;
 using Writer.Ecs;
+using Writer.Editor;
 using Writer.Systems.Editor;
 
 namespace Writer.Scenes;
@@ -38,5 +39,7 @@ public static class EditorScene
             new EditorPreview(false, 0, false),
             new EditorMetronome(false),
             new EditorView(new Vector2(originX, originY), scale, viewportSize));
+
+        EditorWarningPopup.Build(entities);
     }
 }

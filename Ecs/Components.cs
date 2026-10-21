@@ -181,6 +181,20 @@ public struct EditorPreview(bool active, long savedTimeMs, bool savedPlaying) : 
     public bool SavedPlaying = savedPlaying;
 }
 
+/// <summary>Pending warning message to show in the editor warning popup.</summary>
+public struct WarningRequest(string message) : IComponent
+{
+    public string Message = message;
+}
+
+/// <summary>State and child entities of the ECS warning popup.</summary>
+public struct WarningPopup(Entity message, Entity button) : IComponent
+{
+    public Entity Message = message;
+    public Entity Button = button;
+    public bool Visible;
+}
+
 /// <summary>Layer entity component. ZIndex determines draw order between layers.</summary>
 public struct Layer(int zIndex) : IIndexedComponent<int>
 {
