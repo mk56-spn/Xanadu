@@ -161,7 +161,7 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
     {
         HidePauseVisual();
         SetPlayback(false);
-        state.Pending = SceneKind.SongSelect;
+        state.Pending = CurrentController?.BackTarget ?? SceneKind.SongSelect;
     }
 
     public bool RetryPlay()

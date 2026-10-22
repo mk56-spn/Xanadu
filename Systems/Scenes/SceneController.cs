@@ -6,6 +6,7 @@ using Writer.Ecs;
 using Writer.Levels;
 using Writer.Profiles;
 using Writer.Scenes;
+using SceneState = Writer.Ecs.SceneState;
 using Writer.Settings;
 
 namespace Writer.Systems.Scenes;
@@ -29,6 +30,11 @@ public interface ISceneController
     SceneKind Kind { get; }
     string Label { get; }
     void Build(SceneBuildContext context);
+    bool TryForward(SceneSystem system) => false;
+    SceneKind BackTarget => SceneKind.None;
+    bool PausesOnBack => false;
+    bool ConfirmsOnBack => false;
+    void HandleActions(SceneSystem system, ref SceneState state) { }
 }
 
 /// <summary>Scene builders keyed by scene kind.</summary>
@@ -77,6 +83,11 @@ public sealed class SceneControllerRegistry
         public SceneKind Kind => SceneKind.Main;
         public string Label => "MAIN";
         public void Build(SceneBuildContext c) => MainMenuScene.Build(c.Entities, c.Root, c.Screen, c.Visuals);
+        public bool TryForward(SceneSystem system)
+        {
+            system.Request(SceneKind.SongSelect);
+            return true;
+        }
     }
 
     private sealed class ProfilesController : ISceneController
@@ -84,6 +95,28 @@ public sealed class SceneControllerRegistry
         public SceneKind Kind => SceneKind.Profiles;
         public string Label => "PROFILES";
         public void Build(SceneBuildContext c) => ProfilesScene.Build(c.Entities, c.Root, c.Screen, c.Profiles, c.Visuals);
+        public void HandleActions(SceneSystem system, ref SceneState state)
+        {
+            foreach (Entity entity in system.Entities
+                         .Query<ProfileSelect>()
+                         .AllTags(Tags.Get<Pressed>())
+                         .ToEntityList())
+            {
+                if (system.Profiles.Select(entity.GetComponent<ProfileSelect>().ProfileId))
+                    state.Pending = SceneKind.Main;
+                return;
+            }
+
+            foreach (Entity entity in system.Entities
+                         .Query<ProfileCreate>()
+                         .AllTags(Tags.Get<Pressed>())
+                         .ToEntityList())
+            {
+                system.Profiles.Create();
+                state.Pending = SceneKind.Main;
+                return;
+            }
+        }
     }
 
     private sealed class EditorController : ISceneController
@@ -91,6 +124,8 @@ public sealed class SceneControllerRegistry
         public SceneKind Kind => SceneKind.Editor;
         public string Label => "EDITOR";
         public void Build(SceneBuildContext c) => EditorScene.Build(c.Entities, c.Screen, c.Root, c.Entry);
+        public SceneKind BackTarget => SceneKind.Main;
+        public bool ConfirmsOnBack => true;
     }
 
     private sealed class PlayController : ISceneController
@@ -98,6 +133,8 @@ public sealed class SceneControllerRegistry
         public SceneKind Kind => SceneKind.Play;
         public string Label => "PLAY";
         public void Build(SceneBuildContext c) => PlayScene.Build(c.Entities, c.Root, c.Screen, c.Entry!, c.Keybinds, c.Visuals);
+        public SceneKind BackTarget => SceneKind.SongSelect;
+        public bool PausesOnBack => true;
     }
 
     private sealed class ResultsController : ISceneController
@@ -105,6 +142,12 @@ public sealed class SceneControllerRegistry
         public SceneKind Kind => SceneKind.Results;
         public string Label => "RESULTS";
         public void Build(SceneBuildContext c) => ResultsScene.Build(c.Entities, c.Root, c.Screen, c.Results ?? default, c.Visuals);
+        public bool TryForward(SceneSystem system)
+        {
+            system.Request(SceneKind.SongSelect);
+            return true;
+        }
+        public SceneKind BackTarget => SceneKind.SongSelect;
     }
 
     private sealed class SettingsController : ISceneController
@@ -112,6 +155,18 @@ public sealed class SceneControllerRegistry
         public SceneKind Kind => SceneKind.Settings;
         public string Label => "SETTINGS";
         public void Build(SceneBuildContext c) => SettingsScene.Build(c.Entities, c.Root, c.Screen, c.Keybinds, c.Visuals);
+        public SceneKind BackTarget => SceneKind.Main;
+        public void HandleActions(SceneSystem system, ref SceneState state)
+        {
+            foreach (Entity entity in system.Entities
+                         .Query<KeybindButton>()
+                         .AllTags(Tags.Get<Pressed>())
+                         .ToEntityList())
+            {
+                system.Keybinds.BeginCapture(entity.GetComponent<KeybindButton>().Action);
+                return;
+            }
+        }
     }
 
     private sealed class OffsetWizardController : ISceneController
@@ -119,5 +174,6 @@ public sealed class SceneControllerRegistry
         public SceneKind Kind => SceneKind.OffsetWizard;
         public string Label => "OFFSET WIZARD";
         public void Build(SceneBuildContext c) => OffsetWizardScene.Build(c.Entities, c.Root, c.Screen, c.Visuals);
+        public SceneKind BackTarget => SceneKind.Main;
     }
 }

@@ -75,6 +75,18 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
     }
 
     public ProfileStore Profiles => _profiles;
+    public EntityStore Entities => _entities;
+    public KeybindSettings Keybinds => _keybinds;
+
+    /// <summary>Queues a scene transition.</summary>
+    public void Request(SceneKind scene)
+    {
+        EnsureState();
+        _stateEntity.GetComponent<SceneState>().Pending = scene;
+    }
+
+    private ISceneController? CurrentController =>
+        _stateEntity.IsNull ? null : _controllers.Get(Current);
 
     public SceneKind Current =>
         _stateEntity.IsNull
@@ -137,28 +149,18 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
             return;
         }
 
-        SceneKind target = state.Current switch
-        {
-            SceneKind.SongSelect => SceneKind.Main,
-            SceneKind.Play => SceneKind.SongSelect,
-            SceneKind.Results => SceneKind.SongSelect,
-            SceneKind.Profiles => SceneKind.None,
-            SceneKind.Editor => SceneKind.Main,
-            SceneKind.OffsetWizard => SceneKind.Main,
-            SceneKind.Settings => SceneKind.Main,
-            _ => SceneKind.None,
-        };
-
+        ISceneController? controller = CurrentController;
+        SceneKind target = controller?.BackTarget ?? SceneKind.None;
         if (target == SceneKind.None)
             return;
 
-        if (state.Current == SceneKind.Play)
+        if (controller?.PausesOnBack == true)
         {
             ShowPause();
             return;
         }
 
-        if (state.Current == SceneKind.Editor)
+        if (controller?.ConfirmsOnBack == true)
         {
             ShowConfirmation(state.Current, target);
             return;
@@ -192,21 +194,7 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
             return;
         }
 
-        switch (state.Current)
-        {
-            case SceneKind.Main:
-                state.Pending = SceneKind.SongSelect;
-                break;
-
-            case SceneKind.SongSelect:
-                if (!string.IsNullOrEmpty(state.SelectedLevelPath))
-                    state.Pending = SceneKind.Play;
-                break;
-
-            case SceneKind.Results:
-                state.Pending = SceneKind.SongSelect;
-                break;
-        }
+        CurrentController?.TryForward(this);
     }
 
     protected override void OnUpdate()

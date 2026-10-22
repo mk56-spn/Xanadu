@@ -17,42 +17,9 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
 {
     private void HandleActions(ref SceneState state)
     {
-        if (state.Current == SceneKind.Profiles)
-        {
-            foreach (Entity entity in _entities
-                         .Query<ProfileSelect>()
-                         .AllTags(Tags.Get<Pressed>())
-                         .ToEntityList())
-            {
-                if (_profiles.Select(entity.GetComponent<ProfileSelect>().ProfileId))
-                    state.Pending = SceneKind.Main;
-
-                return;
-            }
-
-            foreach (Entity entity in _entities
-                         .Query<ProfileCreate>()
-                         .AllTags(Tags.Get<Pressed>())
-                         .ToEntityList())
-            {
-                _profiles.Create();
-                state.Pending = SceneKind.Main;
-                return;
-            }
-        }
-
-        if (state.Current == SceneKind.Settings)
-        {
-            foreach (Entity entity in _entities
-                         .Query<KeybindButton>()
-                         .AllTags(Tags.Get<Pressed>())
-                         .ToEntityList())
-            {
-                _keybinds.BeginCapture(
-                    entity.GetComponent<KeybindButton>().Action);
-                return;
-            }
-        }
+        CurrentController?.HandleActions(this, ref state);
+        if (state.Pending != state.Current)
+            return;
 
         if (state.Current == SceneKind.Play)
         {
@@ -96,19 +63,5 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
             return;
         }
 
-        if (state.Current != SceneKind.SongSelect ||
-            state.Pending != state.Current)
-        {
-            return;
-        }
-
-        foreach (Entity entity in _entities
-                     .Query<CarouselStep>()
-                     .AllTags(Tags.Get<Pressed>())
-                     .ToEntityList())
-        {
-            TryStepCarousel(entity.GetComponent<CarouselStep>().Direction);
-            return;
-        }
     }
 }

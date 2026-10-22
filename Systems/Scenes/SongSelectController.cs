@@ -22,6 +22,32 @@ public sealed class SongSelectController : ISceneController
 
     public SceneKind Kind => SceneKind.SongSelect;
     public string Label => "SONG SELECT";
+    public SceneKind BackTarget => SceneKind.Main;
+
+    public bool TryForward(SceneSystem system)
+    {
+        if (_stateEntity.IsNull)
+            return false;
+
+        ref SceneState state = ref _stateEntity.GetComponent<SceneState>();
+        if (string.IsNullOrEmpty(state.SelectedLevelPath))
+            return false;
+
+        system.Request(SceneKind.Play);
+        return true;
+    }
+
+    public void HandleActions(SceneSystem system, ref SceneState state)
+    {
+        foreach (Entity entity in system.Entities
+                     .Query<CarouselStep>()
+                     .AllTags(Tags.Get<Pressed>())
+                     .ToEntityList())
+        {
+            TryStep(entity.GetComponent<CarouselStep>().Direction);
+            return;
+        }
+    }
 
     public void Build(SceneBuildContext context)
     {
