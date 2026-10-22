@@ -16,6 +16,7 @@ public sealed class DebugElementOverlaySystem : QuerySystem<Rectangle, Position>
     private static readonly Color ButtonBorder = new(1f, 0.3f, 0.3f, 0.8f);
     private static readonly Color ContainerFill = new(1f, 0.8f, 0.2f, 0.10f);
     private static readonly Color ContainerBorder = new(1f, 0.85f, 0.25f, 0.7f);
+    private static readonly Color PinColor = new(0.3f, 1f, 0.45f, 0.95f);
     private readonly IRectCanvas _canvas;
     private readonly Rid _overlay;
     private readonly IOverlayToggleSource _toggle;
@@ -64,11 +65,26 @@ public sealed class DebugElementOverlaySystem : QuerySystem<Rectangle, Position>
                 DrawBounds(bounds, ButtonFill, ButtonBorder);
             if (container)
                 DrawBounds(bounds, ContainerFill, ContainerBorder);
+
+            if (entity.HasComponent<UiAnchor>())
+            {
+                UiAnchor anchor = entity.GetComponent<UiAnchor>();
+                Vector2 pin = world +
+                              rect.Bounds.Position +
+                              rect.Bounds.Size * anchor.Anchor;
+                _canvas.DrawCircle(_overlay, pin, 6, PinColor);
+                _canvas.DrawCircleOutline(
+                    _overlay,
+                    pin,
+                    7,
+                    new Color(0.05f, 0.2f, 0.08f, 0.95f),
+                    1);
+            }
         });
 
         _canvas.DrawRect(
             _overlay,
-            new Rect2(16, 16, 310, 42),
+            new Rect2(16, 16, 310, 58),
             new Color(0.02f, 0.03f, 0.06f, 0.85f));
         _canvas.DrawTextLeft(
             _overlay,
@@ -80,6 +96,11 @@ public sealed class DebugElementOverlaySystem : QuerySystem<Rectangle, Position>
             new Rect2(24, 36, 294, 16),
             "RED BUTTONS   YELLOW CONTAINERS",
             new Color(0.85f, 0.9f, 1f));
+        _canvas.DrawTextLeft(
+            _overlay,
+            new Rect2(24, 52, 294, 16),
+            "GREEN PINS",
+            PinColor);
     }
 
     private void DrawBounds(Rect2 bounds, Color fill, Color border)
