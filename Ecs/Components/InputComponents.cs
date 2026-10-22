@@ -8,3 +8,6 @@ public struct KeybindButton(KeybindAction action) : IComponent
 {
     public KeybindAction Action = action;
 }
+
+/// <summary>Settings button that toggles vertical sync.</summary>
+public struct VSyncToggle : IComponent;

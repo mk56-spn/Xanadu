@@ -13,12 +13,13 @@ public static class SettingsScene
         Entity root,
         Vector2 screen,
         KeybindSettings keybinds,
+        DisplaySettings display,
         IVisualRidFactory? visuals = null)
     {
         float centerX = screen.X / 2;
         float centerY = screen.Y / 2 + 40;
         const float panelWidth = 760;
-        float panelHeight = Mathf.Min(560, Mathf.Max(440, screen.Y - 220));
+        float panelHeight = Mathf.Min(600, Mathf.Max(500, screen.Y - 120));
         float panelTop = centerY - panelHeight / 2;
         float panelLeft = centerX - panelWidth / 2;
 
@@ -51,7 +52,26 @@ public static class SettingsScene
 
         SceneUi.Text(
             ui,
-            new Vector2(centerX, panelTop + 38),
+            new Vector2(panelLeft + 190, panelTop + 42),
+            new Vector2(220, 34),
+            "VERTICAL SYNC",
+            18,
+            SceneUi.TextColor,
+            SceneUi.PanelColor);
+
+        Entity vsync = ui.RectEntity(
+            new Vector2(panelLeft + panelWidth - 170, panelTop + 42),
+            new Vector2(240, 38),
+            SceneUi.MutedButtonColor,
+            display.VSyncEnabled ? "V-SYNC: ON" : "V-SYNC: OFF",
+            takesInput: true);
+        vsync.AddComponent(new TextStyle(16, SceneUi.TextColor));
+        vsync.AddComponent(ButtonVisual.Create(SceneUi.MutedButtonColor));
+        vsync.AddComponent(new VSyncToggle());
+
+        SceneUi.Text(
+            ui,
+            new Vector2(centerX, panelTop + 88),
             new Vector2(panelWidth - 80, 30),
             "KEYBINDS",
             22,
@@ -60,7 +80,7 @@ public static class SettingsScene
 
         SceneUi.Text(
             ui,
-            new Vector2(panelLeft + 190, panelTop + 78),
+            new Vector2(panelLeft + 190, panelTop + 128),
             new Vector2(220, 24),
             "ACTION",
             14,
@@ -69,7 +89,7 @@ public static class SettingsScene
 
         SceneUi.Text(
             ui,
-            new Vector2(panelLeft + panelWidth - 170, panelTop + 78),
+            new Vector2(panelLeft + panelWidth - 170, panelTop + 128),
             new Vector2(220, 24),
             "KEY",
             14,
@@ -79,7 +99,7 @@ public static class SettingsScene
         int index = 0;
         foreach (KeybindAction action in KeybindSettings.Actions)
         {
-            float rowY = panelTop + 120 + index * 46;
+            float rowY = panelTop + 170 + index * 42;
 
             SceneUi.Text(
                 ui,
@@ -105,7 +125,7 @@ public static class SettingsScene
 
         SceneUi.Text(
             ui,
-            new Vector2(centerX, panelTop + panelHeight - 32),
+            new Vector2(centerX, panelTop + panelHeight - 28),
             new Vector2(panelWidth - 80, 24),
             "CLICK A KEY TO REBIND   ·   ESC CANCELS",
             14,

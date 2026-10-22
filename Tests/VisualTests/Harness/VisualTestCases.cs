@@ -277,6 +277,13 @@ public sealed class SettingsSceneTest : SceneTest
             "KEYBINDS heading exists",
             () => VisualAssert.HasText(Context.Entities, "KEYBINDS"));
         AddAssert(
+            "VSync toggle exists",
+            () => Context.Entities.Query<VSyncToggle>().Count == 1);
+        AddAssert(
+            "VSync state is shown",
+            () => VisualAssert.HasText(Context.Entities, "V-SYNC: ON") ||
+                  VisualAssert.HasText(Context.Entities, "V-SYNC: OFF"));
+        AddAssert(
             "seven keybind rows exist",
             () => Context.Entities.Query<KeybindButton>().Count ==
                   KeybindSettings.Actions.Length);

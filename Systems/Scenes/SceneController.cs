@@ -20,6 +20,7 @@ public sealed record SceneBuildContext(
     IVisualRidFactory Visuals,
     KeybindSettings Keybinds,
     ProfileStore Profiles,
+    DisplaySettings Display,
     Func<List<LevelEntry>> LoadLevels,
     LevelEntry? Entry = null,
     PlayResults? Results = null);
@@ -154,10 +155,30 @@ public sealed class SceneControllerRegistry
     {
         public SceneKind Kind => SceneKind.Settings;
         public string Label => "SETTINGS";
-        public void Build(SceneBuildContext c) => SettingsScene.Build(c.Entities, c.Root, c.Screen, c.Keybinds, c.Visuals);
+        public void Build(SceneBuildContext c) => SettingsScene.Build(
+            c.Entities,
+            c.Root,
+            c.Screen,
+            c.Keybinds,
+            c.Display,
+            c.Visuals);
+
         public SceneKind BackTarget => SceneKind.Main;
+
         public void HandleActions(SceneSystem system, ref SceneState state)
         {
+            foreach (Entity entity in system.Entities
+                         .Query<VSyncToggle>()
+                         .AllTags(Tags.Get<Pressed>())
+                         .ToEntityList())
+            {
+                system.Display.ToggleVSync();
+                SceneUi.SetText(
+                    entity,
+                    system.Display.VSyncEnabled ? "V-SYNC: ON" : "V-SYNC: OFF");
+                return;
+            }
+
             foreach (Entity entity in system.Entities
                          .Query<KeybindButton>()
                          .AllTags(Tags.Get<Pressed>())

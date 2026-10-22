@@ -47,6 +47,8 @@ public sealed class WriterSystemRoot : SystemRoot, IDisposable
 
     public OffsetSettings Offsets { get; }
 
+    public DisplaySettings Display { get; }
+
     public ProfileStore Profiles { get; }
 
     public WriterSystemRoot(
@@ -69,6 +71,7 @@ public sealed class WriterSystemRoot : SystemRoot, IDisposable
             viewportSize,
             new GodotVisualRidFactory());
         Offsets = new OffsetSettings();
+        Display = new DisplaySettings();
         Profiles = new ProfileStore();
 
         // Register the keybind component archetype before the first runtime
@@ -84,7 +87,8 @@ public sealed class WriterSystemRoot : SystemRoot, IDisposable
             viewportSize,
             keybinds: Keybinds,
             transitions: transitions,
-            profiles: Profiles);
+            profiles: Profiles,
+            display: Display);
         _sceneDirector = sceneDirector;
         sceneDirector.Changed += OnSceneChanged;
 

@@ -125,6 +125,7 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
             _visuals,
             _keybinds,
             _profiles,
+            _display,
             _loadLevels,
             next == SceneKind.Editor ? _pendingEditorEntry : playEntry,
             results);

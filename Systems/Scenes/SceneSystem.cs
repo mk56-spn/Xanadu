@@ -40,6 +40,7 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
     private float _transitionAlpha;
     private readonly bool _transitionsEnabled;
     private readonly SceneControllerRegistry _controllers;
+    private readonly DisplaySettings _display;
 
     private const float TransitionSeconds = 0.22f;
     private static readonly Vector2 HiddenConfirmation = new(-10_000, -10_000);
@@ -61,7 +62,8 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
         Func<List<LevelEntry>>? loadLevels = null,
         KeybindSettings? keybinds = null,
         bool transitions = true,
-        ProfileStore? profiles = null)
+        ProfileStore? profiles = null,
+        DisplaySettings? display = null)
     {
         _entities = entities;
         _director = director;
@@ -70,6 +72,7 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
         _loadLevels = loadLevels ?? LevelStore.List;
         _keybinds = keybinds ?? new KeybindSettings(persist: false);
         _profiles = profiles ?? new ProfileStore(persist: false);
+        _display = display ?? new DisplaySettings(persist: false, apply: false);
         _transitionsEnabled = transitions;
         _controllers = SceneControllerRegistry.CreateDefault(this);
     }
@@ -77,6 +80,7 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
     public ProfileStore Profiles => _profiles;
     public EntityStore Entities => _entities;
     public KeybindSettings Keybinds => _keybinds;
+    public DisplaySettings Display => _display;
 
     /// <summary>Queues a scene transition.</summary>
     public void Request(SceneKind scene)
