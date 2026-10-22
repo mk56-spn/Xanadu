@@ -13,7 +13,7 @@ public static class EditorLayout
     public const float TransportHeight = 42;
     public const float Gap = 10;
 
-    public const float TimelineHeight = 42;
+    public const float TimelineHeight = 64;
     public const float TimelineWidthRatio = 0.66f;
     public const float MaxTimelineWidth = 1200;
 
@@ -47,6 +47,16 @@ public static class EditorLayout
             footer.Position.Y + (FooterHeight - TimelineHeight) / 2,
             width,
             TimelineHeight);
+    }
+
+    /// <summary>Centre of the lens icon that labels the timeline zoom controls.</summary>
+    public static Vector2 ZoomLensCenter(PlayfieldView view)
+    {
+        Rect2 ruler = RulerRect(view);
+        Rect2 footer = FooterRect(view);
+        return new Vector2(
+            ruler.End.X + 24,
+            footer.Position.Y + FooterHeight / 2);
     }
 
     /// <summary>Visible time window for a timeline zoom level, following the playhead.</summary>

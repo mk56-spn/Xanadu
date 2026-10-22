@@ -81,8 +81,12 @@ public partial class EditorOverlay : CanvasLayer
         BuildSongDialog();
         BuildSaveDialogs();
 
-        if (_openSongDialog)
+        if (_openSongDialog &&
+            _editor.HasComponent<LevelInfo>() &&
+            string.IsNullOrWhiteSpace(_editor.GetComponent<LevelInfo>().AudioPath))
+        {
             CallDeferred(nameof(OpenSongDialog));
+        }
     }
 
     /// <summary>Detaches the overlay before the ECS editor scene is destroyed.</summary>

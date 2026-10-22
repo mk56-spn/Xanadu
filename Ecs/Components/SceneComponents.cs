@@ -11,6 +11,7 @@ public enum SceneKind
     Play,
     Results,
     Editor,
+    OffsetWizard,
     Settings,
 }
 
@@ -34,6 +35,9 @@ public struct SceneAction(SceneKind target) : IComponent
 {
     public SceneKind Target = target;
 }
+
+/// <summary>Opens the editor with the currently selected song-select level.</summary>
+public struct EditLevelAction : IComponent;
 
 /// <summary>Moves the song-select carousel by one entry.</summary>
 public struct CarouselStep(int direction) : IComponent

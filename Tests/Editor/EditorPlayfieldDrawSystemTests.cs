@@ -96,6 +96,66 @@ public sealed class EditorPlayfieldDrawSystemTests
     }
 
     [Test]
+    public void NotesAtTheSameTimeStackAsSquares()
+    {
+        var view = new PlayfieldView(new Vector2(30, 30), 0.6f, new Vector2(1152, 648));
+        var store = new EntityStore();
+        store.CreateEntity(
+            new LevelInfo("Stacked", ""),
+            new Playfield(1000, 1000),
+            new Playhead(1_000, 120, 0, false, durationMs: 5_000),
+            view,
+            new NoteSelection(default),
+            new EditorTimeline(32f));
+        store.CreateEntity(new Note(1_000, new Vector2(100, 100)));
+        store.CreateEntity(new Note(1_000, new Vector2(200, 200)));
+
+        var canvas = new RecordingCanvas();
+        var root = new SystemRoot(store);
+        root.Add(new EditorPlayfieldDrawSystem(store, canvas, default));
+
+        root.Update(new UpdateTick(1f / 60f, 0));
+
+        var squares = canvas.Rects
+            .Where(rect => rect.Size == new Vector2(8, 8))
+            .ToList();
+        Assert.That(squares, Has.Count.EqualTo(2));
+        Assert.That(squares[0].Position.X, Is.EqualTo(squares[1].Position.X));
+        Assert.That(squares[0].Position.Y, Is.Not.EqualTo(squares[1].Position.Y));
+    }
+
+    [Test]
+    public void SameTimeNotesCapAtSevenAndStayInOneColumn()
+    {
+        var view = new PlayfieldView(new Vector2(30, 30), 0.6f, new Vector2(1152, 648));
+        var store = new EntityStore();
+        store.CreateEntity(
+            new LevelInfo("Capped", ""),
+            new Playfield(1000, 1000),
+            new Playhead(1_000, 120, 0, false, durationMs: 5_000),
+            view,
+            new NoteSelection(default),
+            new EditorTimeline(32f));
+        for (int i = 0; i < 9; i++)
+            store.CreateEntity(new Note(1_000, new Vector2(100 + i, 100)));
+
+        var canvas = new RecordingCanvas();
+        var root = new SystemRoot(store);
+        root.Add(new EditorPlayfieldDrawSystem(store, canvas, default));
+
+        root.Update(new UpdateTick(1f / 60f, 0));
+
+        var squares = canvas.Rects
+            .Where(rect => rect.Size == new Vector2(8, 8))
+            .ToList();
+        Assert.That(squares, Has.Count.EqualTo(7));
+        Assert.That(squares.Select(rect => rect.Position.X).Distinct().Count(),
+            Is.EqualTo(1));
+        Assert.That(squares.Select(rect => rect.Position.Y).Distinct().Count(),
+            Is.EqualTo(7));
+    }
+
+    [Test]
     public void PreviewDrawsWithoutEditorChrome()
     {
         var view = new PlayfieldView(new Vector2(30, 30), 0.6f, new Vector2(1152, 648));

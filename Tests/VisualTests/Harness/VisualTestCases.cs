@@ -17,7 +17,10 @@ public static class SceneTestCatalog
     {
         new MainMenuSceneTest(),
         new SongSelectSceneTest(),
+        new EditLevelSceneTest(),
+        new EditorWaveformSceneTest(),
         new SettingsSceneTest(),
+        new OffsetWizardSceneTest(),
         new PlaySceneTest(),
         new ResultsSceneTest(),
         new RestartSceneTest(),
@@ -47,6 +50,9 @@ public sealed class MainMenuSceneTest : SceneTest
         AddAssert(
             "PLAY button is animated",
             () => VisualAssert.HasAnimatedText(Context.Entities, "PLAY"));
+        AddAssert(
+            "offset wizard button exists",
+            () => VisualAssert.HasText(Context.Entities, "OFFSET WIZARD"));
         AddAssert(
             "menu layer is initialized",
             () => VisualAssert.CountUninitialised(
@@ -78,6 +84,78 @@ public sealed class SongSelectSceneTest : SceneTest
             () => VisualAssert.CountUninitialised(
                 Context.Entities,
                 SceneUi.MenuLayer) == 0);
+    }
+}
+
+public sealed class EditLevelSceneTest : SceneTest
+{
+    public override string Name => "Edit level";
+    public override string Slug => "edit-level";
+
+    protected override void SetUpSteps()
+    {
+        AddStep("open song select", () => Context.Scenes.Start(SceneKind.SongSelect));
+        AddUntilStep(
+            "wait for edit button",
+            () => Context.Scenes.Current == SceneKind.SongSelect &&
+                  VisualAssert.HasText(Context.Entities, "EDIT LEVEL") &&
+                  Context.Entities.Query<EditLevelAction>().Count == 1);
+
+        AddStep("press edit", () =>
+        {
+            Context.Entities.Query<EditLevelAction>()
+                .ToEntityList()[0]
+                .AddTag<Pressed>();
+        });
+        AddUntilStep(
+            "wait for editor",
+            () => Context.Scenes.Current == SceneKind.Editor &&
+                  Context.Entities.Query<PlayfieldMode>().Count > 0 &&
+                  Context.Entities.Query<PlayfieldMode>().ToEntityList()[0]
+                      .GetComponent<PlayfieldMode>().Kind == PlayfieldKind.Editor);
+
+        AddAssert(
+            "selected level notes were loaded",
+            () => Context.Entities.Query<Note>().Count > 0);
+    }
+}
+
+public sealed class EditorWaveformSceneTest : SceneTest
+{
+    public override string Name => "Editor waveform";
+    public override string Slug => "editor-waveform";
+
+    protected override void SetUpSteps()
+    {
+        AddStep("open editor", () => Context.Scenes.Start(SceneKind.Editor));
+        AddUntilStep(
+            "wait for editor",
+            () => Context.Scenes.Current == SceneKind.Editor &&
+                  VisualAssert.HasText(Context.Entities, "MENU"));
+
+        AddStep("select the test track", () =>
+        {
+            ref LevelInfo level = ref Context.Entities
+                .Query<LevelInfo>()
+                .ToEntityList()[0]
+                .GetComponent<LevelInfo>();
+            level.AudioPath = "res://Audio/test-track.wav";
+        });
+        AddUntilStep(
+            "wait for waveform",
+            () =>
+            {
+                Entity editor = Context.Entities.Query<LevelInfo>().ToEntityList()[0];
+                WaveformPreview preview = editor.GetComponent<WaveformPreview>();
+                return preview.Peaks.Length > 0 &&
+                       preview.DurationMs > 0 &&
+                       editor.GetComponent<Playhead>().DurationMs > 0;
+            });
+
+        AddAssert(
+            "waveform has peaks",
+            () => Context.Entities.Query<WaveformPreview>().ToEntityList()[0]
+                .GetComponent<WaveformPreview>().Peaks.Length > 0);
     }
 }
 
@@ -197,6 +275,26 @@ public sealed class SettingsSceneTest : SceneTest
         }
 
         return true;
+    }
+}
+
+public sealed class OffsetWizardSceneTest : SceneTest
+{
+    public override string Name => "Offset wizard";
+    public override string Slug => "offset-wizard";
+
+    protected override void SetUpSteps()
+    {
+        AddStep("open offset wizard", () => Context.Scenes.Start(SceneKind.OffsetWizard));
+        AddUntilStep(
+            "wait for offset wizard",
+            () => Context.Scenes.Current == SceneKind.OffsetWizard &&
+                  VisualAssert.HasText(Context.Entities, "OFFSET WIZARD"));
+        AddAssert(
+            "offset instructions exist",
+            () => VisualAssert.HasText(
+                Context.Entities,
+                "Tap SPACE with every click."));
     }
 }
 

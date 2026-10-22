@@ -28,6 +28,7 @@ public sealed class EditorSystemGroup : SystemGroup
         Add(new EditorNoteInputSystem(entities, pointerInput, history));
         Add(new EditorDropdownSystem(entities, commands));
         Add(new EditorButtonSystem(entities, commands));
+        Add(new WaveformPreviewSystem());
         Add(new EditorPlayfieldDrawSystem(entities, canvas, playfieldCanvas));
         Add(new WarningPopupSystem(entities));
     }

@@ -1,6 +1,7 @@
 using Friflo.Engine.ECS;
 using Godot;
 using Writer.Ecs;
+using Writer.Levels;
 using Writer.Settings;
 using Writer.Editor;
 using Writer.Systems.Editor;
@@ -16,7 +17,8 @@ public static class EditorScene
     public static void Build(
         EntityStore entities,
         Vector2 viewportSize,
-        Entity? parent = null)
+        Entity? parent = null,
+        LevelEntry? entry = null)
     {
         float top = EditorLayout.HeaderHeight + EditorLayout.Margin;
         float bottom = viewportSize.Y -
@@ -47,7 +49,12 @@ public static class EditorScene
             new PlayfieldMode(PlayfieldKind.Editor),
             new PlayfieldView(new Vector2(originX, originY), scale, viewportSize));
 
+        editor.AddComponent(new WaveformPreview(
+            "",
+            System.Array.Empty<float>(),
+            0));
         editor.AddComponent(new EditorNoteTarget(KeybindAction.M));
+        editor.AddComponent(new EditorMineMode(false));
         editor.AddComponent(new EditorUiRequest());
 
         if (parent is { } root)
@@ -70,8 +77,15 @@ public static class EditorScene
                 SceneKind.Main,
                 12,
                 SceneUi.MutedButtonColor);
-            BuildSidebar(entities, menuRoot, editor, viewportSize);
-            BuildToolbar(entities, menuRoot, editor, viewportSize);
+                BuildSidebar(entities, menuRoot, editor, viewportSize);
+                BuildToolbar(entities, menuRoot, editor, viewportSize);
+            }
+
+        if (entry is not null)
+        {
+                LevelDocumentMapper.Apply(entities, editor, entry.Document);
+                if (editor.HasComponent<LevelFile>())
+                editor.GetComponent<LevelFile>().Path = entry.Path;
         }
     }
 
@@ -114,8 +128,8 @@ public static class EditorScene
 
         Rect2 transport = EditorLayout.TransportRect(
             editor.GetComponent<PlayfieldView>());
-        float[] widths = { 108, 108, 108, 108, 108, 108, 108 };
-        string[] labels = { "Play", "Stop", "Preview", "Click Off", "Add Move", "Zoom -", "Zoom +" };
+        float[] widths = { 64, 64, 108, 108, 108 };
+        string[] labels = { "▶", "■", "Preview", "Click Off", "Add Move" };
         EditorButtonKind[] kinds =
         {
             EditorButtonKind.Play,
@@ -123,8 +137,6 @@ public static class EditorScene
             EditorButtonKind.Preview,
             EditorButtonKind.Metronome,
             EditorButtonKind.AddMove,
-            EditorButtonKind.ZoomOut,
-            EditorButtonKind.ZoomIn,
         };
 
         float total = 0;
@@ -142,10 +154,32 @@ public static class EditorScene
                 new Vector2(centerX, y),
                 new Vector2(widths[i], 38),
                 labels[i],
-                kinds[i]);
+                kinds[i],
+                fontSize: i < 2 ? 18 : 14);
 
             x += widths[i] + 8;
         }
+
+        Vector2 lens = EditorLayout.ZoomLensCenter(
+            editor.GetComponent<PlayfieldView>());
+        const float zoomSize = 28;
+        float zoomY = lens.Y;
+        float zoomX = lens.X + 20 + zoomSize / 2;
+
+        AddEditorButton(
+            ui,
+            new Vector2(zoomX, zoomY),
+            new Vector2(zoomSize, zoomSize),
+            "-",
+            EditorButtonKind.ZoomOut,
+            fontSize: 18);
+        AddEditorButton(
+            ui,
+            new Vector2(zoomX + zoomSize + 6, zoomY),
+            new Vector2(zoomSize, zoomSize),
+            "+",
+            EditorButtonKind.ZoomIn,
+            fontSize: 18);
     }
 
     private static Entity AddEditorButton(
@@ -153,7 +187,8 @@ public static class EditorScene
         Vector2 center,
         Vector2 size,
         string label,
-        EditorButtonKind kind)
+        EditorButtonKind kind,
+        int fontSize = 14)
     {
         Entity button = ui.RectEntity(
             center,
@@ -161,7 +196,7 @@ public static class EditorScene
             SceneUi.ButtonColor,
             label,
             takesInput: true);
-        button.AddComponent(new TextStyle(14, SceneUi.TextColor));
+        button.AddComponent(new TextStyle(fontSize, SceneUi.TextColor));
         button.AddComponent(ButtonVisual.Create(SceneUi.ButtonColor));
         button.AddComponent(new EditorButton(kind));
         return button;
@@ -243,6 +278,12 @@ public static class EditorScene
         SetDropdownSelected(snap, snapIndex);
         SetDropdownSelected(noteType, (int)KeybindAction.M);
 
+        AddEditorButton(
+            ui,
+            new Vector2(centerX, top + 460),
+            new Vector2(width, 34),
+            "Mine: Off",
+            EditorButtonKind.AddMine);
         AddEditorButton(
             ui,
             new Vector2(centerX, top + 500),

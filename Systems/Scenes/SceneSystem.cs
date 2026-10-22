@@ -31,6 +31,7 @@ public sealed class SceneSystem : QuerySystem<SceneState>
     private Entity _sceneRoot;
     private List<LevelEntry> _catalog = new();
     private LevelEntry? _pendingPlayEntry;
+    private LevelEntry? _pendingEditorEntry;
     private LevelEntry? _lastPlayEntry;
     private PlayResults? _pendingResults;
     private TransitionPhase _transitionPhase;
@@ -135,6 +136,7 @@ public sealed class SceneSystem : QuerySystem<SceneState>
             SceneKind.Play => SceneKind.SongSelect,
             SceneKind.Results => SceneKind.SongSelect,
             SceneKind.Editor => SceneKind.Main,
+            SceneKind.OffsetWizard => SceneKind.Main,
             SceneKind.Settings => SceneKind.Main,
             _ => SceneKind.None,
         };
@@ -857,6 +859,12 @@ public sealed class SceneSystem : QuerySystem<SceneState>
             if (target == SceneKind.None)
                 continue;
 
+            if (target == SceneKind.Editor &&
+                entity.HasComponent<EditLevelAction>())
+            {
+                _pendingEditorEntry = LoadEntry(state.SelectedLevelPath);
+            }
+
             state.Pending = target;
             return;
         }
@@ -951,7 +959,20 @@ public sealed class SceneSystem : QuerySystem<SceneState>
                 break;
 
             case SceneKind.Editor:
-                EditorScene.Build(_entities, _screen, _sceneRoot);
+                EditorScene.Build(
+                    _entities,
+                    _screen,
+                    _sceneRoot,
+                    _pendingEditorEntry);
+                _pendingEditorEntry = null;
+                break;
+
+            case SceneKind.OffsetWizard:
+                OffsetWizardScene.Build(
+                    _entities,
+                    _sceneRoot,
+                    _screen,
+                    _visuals);
                 break;
 
             case SceneKind.Settings:
@@ -1086,6 +1107,9 @@ public sealed class SceneSystem : QuerySystem<SceneState>
         foreach (Entity movement in _entities.Query<MovementEvent>().ToEntityList())
             movement.DeleteEntity();
 
+        foreach (Entity mine in _entities.Query<Mine>().ToEntityList())
+            mine.DeleteEntity();
+
         foreach (Entity trail in _entities.Query<HitTrail>().ToEntityList())
             trail.DeleteEntity();
 
@@ -1112,6 +1136,7 @@ public sealed class SceneSystem : QuerySystem<SceneState>
         SceneKind.Play => "PLAY",
         SceneKind.Results => "RESULTS",
         SceneKind.Editor => "EDITOR",
+        SceneKind.OffsetWizard => "OFFSET WIZARD",
         SceneKind.Settings => "SETTINGS",
         _ => "",
     };

@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Godot;
@@ -55,7 +57,10 @@ public sealed class EditorPlayfieldDrawSystem :
                     selection,
                     entity.HasComponent<EditorTimeline>()
                         ? entity.GetComponent<EditorTimeline>().Zoom
-                        : 1f);
+                        : 1f,
+                    entity.HasComponent<WaveformPreview>()
+                        ? entity.GetComponent<WaveformPreview>()
+                        : default);
         });
     }
 
@@ -64,7 +69,8 @@ public sealed class EditorPlayfieldDrawSystem :
         Playfield playfield,
         Playhead playhead,
         NoteSelection selection,
-        float timelineZoom)
+        float timelineZoom,
+        WaveformPreview preview)
     {
         _canvas.DrawRect(
             _editor,
@@ -84,7 +90,13 @@ public sealed class EditorPlayfieldDrawSystem :
             playfield,
             playhead,
             selection.Note);
-        DrawRuler(view, playhead, selection, timelineZoom);
+        PlayfieldRenderer.DrawMines(
+            _canvas,
+            _editor,
+            _entities,
+            view,
+            playhead);
+        DrawRuler(view, playhead, selection, timelineZoom, preview);
     }
 
     private void DrawChrome(PlayfieldView view)
@@ -102,13 +114,104 @@ public sealed class EditorPlayfieldDrawSystem :
             _editor,
             new Rect2(footer.Position.X, footer.Position.Y, footer.Size.X, 1),
             PlayfieldRenderer.BorderColor);
+
+        DrawZoomLens(view);
+    }
+
+    private void DrawWaveform(
+        Rect2 ruler,
+        WaveformPreview preview,
+        long windowStart,
+        long windowEnd)
+    {
+        if (preview.Peaks is null ||
+            preview.Peaks.Length == 0 ||
+            preview.DurationMs <= 0)
+            return;
+
+        float centerY = ruler.Position.Y + ruler.Size.Y / 2;
+        float maxHeight = (ruler.Size.Y - 14f) * 0.5f;
+        int bars = Math.Min(256, Math.Max(32, (int)ruler.Size.X / 4));
+        float barWidth = ruler.Size.X / bars;
+        var color = new Color(0.35f, 0.68f, 0.98f, 0.14f);
+
+        for (int i = 0; i < bars; i++)
+        {
+            float t = (i + 0.5f) / bars;
+            long timeMs = windowStart +
+                          (long)((windowEnd - windowStart) * t);
+            int peakIndex = (int)Math.Clamp(
+                timeMs * (double)preview.Peaks.Length /
+                preview.DurationMs,
+                0,
+                preview.Peaks.Length - 1);
+            float amplitude = preview.Peaks[peakIndex];
+            if (amplitude <= 0.001f)
+                continue;
+
+            float height = Math.Max(1f, amplitude * maxHeight);
+            _canvas.DrawRect(
+                _editor,
+                new Rect2(
+                    ruler.Position.X + i * barWidth,
+                    centerY - height / 2,
+                    Math.Max(1f, barWidth - 1f),
+                    height),
+                color);
+        }
+
+        _canvas.DrawLine(
+            _editor,
+            new Vector2(ruler.Position.X, centerY),
+            new Vector2(ruler.End.X, centerY),
+            new Color(color.R, color.G, color.B, 0.2f),
+            1);
+    }
+
+    private void DrawZoomLens(PlayfieldView view)
+    {
+        Vector2 center = EditorLayout.ZoomLensCenter(view);
+        Color color = PlayfieldRenderer.DimTextColor;
+        const float radius = 5f;
+
+        _canvas.DrawLine(
+            _editor,
+            center + new Vector2(-radius, -radius),
+            center + new Vector2(radius, -radius),
+            color,
+            1);
+        _canvas.DrawLine(
+            _editor,
+            center + new Vector2(radius, -radius),
+            center + new Vector2(radius, radius),
+            color,
+            1);
+        _canvas.DrawLine(
+            _editor,
+            center + new Vector2(radius, radius),
+            center + new Vector2(-radius, radius),
+            color,
+            1);
+        _canvas.DrawLine(
+            _editor,
+            center + new Vector2(-radius, radius),
+            center + new Vector2(-radius, -radius),
+            color,
+            1);
+        _canvas.DrawLine(
+            _editor,
+            center + new Vector2(4, 4),
+            center + new Vector2(9, 9),
+            color,
+            2);
     }
 
     private void DrawRuler(
         PlayfieldView view,
         Playhead playhead,
         NoteSelection selection,
-        float timelineZoom)
+        float timelineZoom,
+        WaveformPreview preview)
     {
         Rect2 ruler = EditorLayout.RulerRect(view);
         _canvas.DrawRect(_editor, ruler, PlayfieldRenderer.PlayfieldBackground);
@@ -131,6 +234,8 @@ public sealed class EditorPlayfieldDrawSystem :
 
         (long windowStart, long windowEnd) =
             EditorLayout.TimelineWindow(playhead, timelineZoom);
+
+        DrawWaveform(ruler, preview, windowStart, windowEnd);
         double beatMs = 60_000.0 / Math.Max(1, playhead.Bpm);
         int subdivisions = Math.Max(1, playhead.SnapDivision);
         double tickMs = beatMs / subdivisions;
@@ -187,21 +292,56 @@ public sealed class EditorPlayfieldDrawSystem :
                 main || half ? 2 : 1);
         }
 
+        var notesByTime = new Dictionary<long, List<Entity>>();
         foreach (Entity entity in _entities.Query<Note>().ToEntityList())
         {
             Note note = entity.GetComponent<Note>();
             if (note.TimeMs < windowStart || note.TimeMs > windowEnd)
                 continue;
 
-            float x = XForTime(ruler, windowStart, windowEnd, note.TimeMs);
-            Color color = !selection.Note.IsNull && selection.Note.Id == entity.Id
-                ? PlayfieldRenderer.SelectedNoteColor
-                : PlayfieldRenderer.NoteColor;
+            long key = note.TimeMs;
+            if (!notesByTime.TryGetValue(key, out List<Entity>? notes))
+            {
+                notes = new List<Entity>();
+                notesByTime.Add(key, notes);
+            }
 
-            _canvas.DrawRect(
-                _editor,
-                new Rect2(x - 1.5f, ruler.Position.Y + 8, 3, ruler.Size.Y - 10),
-                color);
+            notes.Add(entity);
+        }
+
+        const int maxStack = 7;
+        const float noteGap = 1f;
+        float noteSquare = Math.Clamp(
+            6f + timelineZoom * 0.0625f,
+            6f,
+            8f);
+
+        foreach ((long timeMs, List<Entity> notes) in notesByTime)
+        {
+            float x = XForTime(ruler, windowStart, windowEnd, timeMs);
+            int visible = Math.Min(notes.Count, maxStack);
+            float totalHeight =
+                visible * noteSquare + Math.Max(0, visible - 1) * noteGap;
+            float startY = ruler.Position.Y +
+                           (ruler.Size.Y - totalHeight) / 2;
+
+            for (int i = 0; i < visible; i++)
+            {
+                Color color =
+                    !selection.Note.IsNull &&
+                    selection.Note.Id == notes[i].Id
+                        ? PlayfieldRenderer.SelectedNoteColor
+                        : PlayfieldRenderer.NoteColor;
+
+                _canvas.DrawRect(
+                    _editor,
+                    new Rect2(
+                        x - noteSquare / 2,
+                        startY + i * (noteSquare + noteGap),
+                        noteSquare,
+                        noteSquare),
+                    color);
+            }
         }
 
         foreach (Entity entity in _entities.Query<MovementEvent>().ToEntityList())

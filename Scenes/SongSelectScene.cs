@@ -96,6 +96,16 @@ public static class SongSelectScene
 
         if (catalog.Count > 0)
         {
+            Entity edit = SceneUi.Button(
+                ui,
+                cardCenter + new Vector2(0, 120),
+                new Vector2(220, 42),
+                "EDIT LEVEL",
+                SceneKind.Editor,
+                16,
+                SceneUi.MutedButtonColor);
+            edit.AddComponent(new EditLevelAction());
+
             SceneUi.Button(
                 ui,
                 new Vector2(screen.X / 2, screen.Y - 90),
