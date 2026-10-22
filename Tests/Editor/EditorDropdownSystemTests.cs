@@ -66,6 +66,25 @@ public sealed class EditorDropdownSystemTests
     }
 
     [Test]
+    public void LinkComponentsCleanUpWhenListsAndOwnersAreDeleted()
+    {
+        var store = new EntityStore();
+        Entity list = store.CreateEntity();
+        Entity button = store.CreateEntity(new Dropdown(list, 0));
+        Entity option = store.CreateEntity(
+            new Position(Vector2.Zero),
+            new DropdownOption(button, 1));
+
+        list.DeleteEntity();
+        button.DeleteEntity();
+
+        Assert.That(button.IsNull || !button.HasComponent<Dropdown>(), Is.True);
+        Assert.That(
+            option.IsNull || !option.HasComponent<DropdownOption>(),
+            Is.True);
+    }
+
+    [Test]
     public void SelectingANoteTypeKeepsItForNewNotes()
     {
         var store = new EntityStore();
