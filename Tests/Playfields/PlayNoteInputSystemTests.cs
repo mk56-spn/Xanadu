@@ -270,6 +270,79 @@ public sealed class PlayNoteInputSystemTests
     }
 
     [Test]
+    public void ThirtySecondBeatHitsAllSevenNoteTypesPerfectly()
+    {
+        const int noteCount = 30;
+        Entity playfield = CreatePlayfield(totalNotes: noteCount);
+        for (int i = 0; i < noteCount; i++)
+        {
+            CreateNote(
+                1_000 + i * 1_000,
+                new Vector2(500, 500),
+                KeybindSettings.Actions[i % KeybindSettings.Actions.Length]);
+        }
+
+        for (int i = 0; i < noteCount; i++)
+        {
+            SetPlayhead(playfield, 1_000 + i * 1_000);
+            KeybindAction action =
+                KeybindSettings.Actions[i % KeybindSettings.Actions.Length];
+            Press(action);
+            Frame();
+            Release(action);
+            Frame();
+        }
+
+        ScoreState score = playfield.GetComponent<ScoreState>();
+        Assert.That(_store.Query<Note>().Count, Is.Zero);
+        Assert.That(score.NotesHit, Is.EqualTo(noteCount));
+        Assert.That(score.Combo, Is.EqualTo(noteCount));
+        Assert.That(score.MaxCombo, Is.EqualTo(noteCount));
+        Assert.That(score.Accuracy, Is.EqualTo(1.0).Within(0.0001));
+        Assert.That(score.Score, Is.EqualTo(1_000_000));
+        Assert.That(score.LastJudgement, Is.EqualTo(Judgement.FlawlessP));
+    }
+
+    [Test]
+    public void ABeatWithAMineLosesAccuracy()
+    {
+        Entity playfield = CreatePlayfield(totalNotes: 4);
+        for (int i = 0; i < 2; i++)
+            CreateNote(1_000 + i * 1_000, new Vector2(500, 500));
+        _store.CreateEntity(new Mine(3_000, new Vector2(500, 500)));
+        for (int i = 0; i < 2; i++)
+            CreateNote(4_000 + i * 1_000, new Vector2(500, 500));
+
+        for (int time = 1_000; time <= 5_000; time += 1_000)
+        {
+            SetPlayhead(playfield, time);
+            Press(KeybindAction.M);
+            Frame();
+            Release(KeybindAction.M);
+            Frame();
+        }
+
+        ScoreState score = playfield.GetComponent<ScoreState>();
+        Assert.That(score.AccuracyPenalty, Is.EqualTo(0.04).Within(0.0001));
+        Assert.That(score.Accuracy, Is.EqualTo(0.99).Within(0.0001));
+        Assert.That(_store.Query<Mine>().Count, Is.Zero);
+    }
+
+    [Test]
+    public void LateBeatIsNotPerfect()
+    {
+        Entity playfield = CreatePlayfield(totalNotes: 1);
+        CreateNote(1_000, new Vector2(500, 500));
+        SetPlayhead(playfield, 1_035);
+        Press(KeybindAction.M);
+        Frame();
+
+        ScoreState score = playfield.GetComponent<ScoreState>();
+        Assert.That(score.LastJudgement, Is.EqualTo(Judgement.Fair));
+        Assert.That(score.Accuracy, Is.EqualTo(0.95).Within(0.0001));
+    }
+
+    [Test]
     public void ScoreIsSeparateFromAccuracy()
     {
         Entity playfield = CreatePlayfield(totalNotes: 1);
