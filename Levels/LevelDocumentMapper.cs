@@ -18,11 +18,6 @@ public static class LevelDocumentMapper
         {
             SongId = level.SongId,
             Name = level.Name,
-            AudioPath = level.AudioPath,
-            Artist = level.Artist,
-            Difficulty = level.Difficulty,
-            Bpm = playhead.Bpm,
-            OffsetMs = playhead.OffsetMs,
             SnapDivision = playhead.SnapDivision,
             PlayfieldWidth = playfield.Width,
             PlayfieldHeight = playfield.Height,
@@ -128,20 +123,24 @@ public static class LevelDocumentMapper
                 mine.FadeOutMs));
         }
 
+        SongDocument? song = string.IsNullOrWhiteSpace(document.SongId)
+            ? null
+            : new SongStore().Find(document.SongId);
+
         ref LevelInfo level = ref editor.GetComponent<LevelInfo>();
         level.SongId = document.SongId;
         level.Name = document.Name;
-        level.AudioPath = document.AudioPath;
-        level.Artist = document.Artist;
-        level.Difficulty = document.Difficulty;
+        level.AudioPath = song?.AudioPath ?? level.AudioPath;
+        level.Artist = song?.Artist ?? "";
+        level.Difficulty = document.Name;
 
         ref Playfield playfield = ref editor.GetComponent<Playfield>();
         playfield.Width = document.PlayfieldWidth;
         playfield.Height = document.PlayfieldHeight;
 
         ref Playhead playhead = ref editor.GetComponent<Playhead>();
-        playhead.Bpm = document.Bpm;
-        playhead.OffsetMs = document.OffsetMs;
+        playhead.Bpm = song?.Bpm ?? 120;
+        playhead.OffsetMs = song?.OffsetMs ?? 0;
         playhead.SnapDivision = document.SnapDivision;
         playhead.TimeMs = 0;
         playhead.DurationMs = 0;

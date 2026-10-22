@@ -13,11 +13,8 @@ public static class LevelValidator
         if (string.IsNullOrWhiteSpace(document.Name))
             issues.Add("Level name is required.");
 
-        if (string.IsNullOrWhiteSpace(document.AudioPath))
-            issues.Add("Select a song.");
-
-        if (document.Bpm is < 1 or > 1000)
-            issues.Add("BPM must be between 1 and 1000.");
+        if (string.IsNullOrWhiteSpace(document.SongId))
+            issues.Add("Assign a song.");
 
         if (document.PlayfieldWidth <= 0 || document.PlayfieldHeight <= 0)
             issues.Add("Playfield size must be positive.");

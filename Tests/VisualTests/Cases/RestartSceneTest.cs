@@ -68,15 +68,23 @@ public sealed class RestartSceneTest : SceneTest
         var document = new LevelDocument
         {
             Name = "Retry Test",
-            Bpm = 120,
             PlayfieldWidth = 1000,
             PlayfieldHeight = 1000,
         };
+        var song = new SongDocument
+        {
+            Id = "visual-retry",
+            Slug = "visual-retry",
+            Title = "Retry",
+            AudioPath = "res://Audio/test-track.wav",
+            Bpm = 120,
+        };
+        document.SongId = song.Id;
 
         document.Notes.Add(new NoteDocument { TimeMs = 0, X = 200, Y = 300 });
         document.Notes.Add(new NoteDocument { TimeMs = 1_000, X = 600, Y = 500 });
 
-        Context.Scenes.StartPlay(new LevelEntry("memory://retry", document));
+        Context.Scenes.StartPlay(new LevelEntry("memory://retry", document, song));
     }
 
     private void FinishPlay()

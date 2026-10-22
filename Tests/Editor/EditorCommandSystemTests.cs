@@ -217,10 +217,6 @@ public sealed class EditorCommandSystemTests
         var document = new LevelDocument
         {
             Name = "Loaded",
-            Artist = "Artist",
-            Difficulty = "Normal",
-            AudioPath = "res://song.mp3",
-            Bpm = 150,
             PlayfieldWidth = 1000,
             PlayfieldHeight = 1000,
         };
@@ -237,7 +233,7 @@ public sealed class EditorCommandSystemTests
         _root.Update(new UpdateTick(1f / 60f, 0));
 
         Assert.That(_editor.GetComponent<LevelInfo>().Name, Is.EqualTo("Loaded"));
-        Assert.That(_editor.GetComponent<Playhead>().Bpm, Is.EqualTo(150));
+        Assert.That(_editor.GetComponent<Playhead>().Bpm, Is.EqualTo(120));
         Assert.That(_editor.GetComponent<EditorPreview>().Active, Is.False);
         Assert.That(_editor.GetComponent<LevelFile>().Path, Is.EqualTo("/tmp/loaded.json"));
         Assert.That(_store.Query<Note>().Count, Is.EqualTo(1));

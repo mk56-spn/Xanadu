@@ -40,10 +40,6 @@ public sealed class LevelDocumentMapperTests
         LevelDocument document = LevelDocumentMapper.Capture(sourceStore, source);
 
         Assert.That(document.Name, Is.EqualTo("Mapped"));
-        Assert.That(document.Artist, Is.EqualTo("Artist"));
-        Assert.That(document.Difficulty, Is.EqualTo("Insane"));
-        Assert.That(document.Bpm, Is.EqualTo(150));
-        Assert.That(document.OffsetMs, Is.EqualTo(25));
         Assert.That(document.SnapDivision, Is.EqualTo(16));
         Assert.That(document.Notes, Has.Count.EqualTo(2));
         Assert.That(document.Notes[0].Target, Is.EqualTo(KeybindAction.L1));
@@ -71,10 +67,10 @@ public sealed class LevelDocumentMapperTests
         LevelDocumentMapper.Apply(targetStore, target, document);
 
         Assert.That(target.GetComponent<LevelInfo>().Name, Is.EqualTo("Mapped"));
-        Assert.That(target.GetComponent<LevelInfo>().Artist, Is.EqualTo("Artist"));
-        Assert.That(target.GetComponent<LevelInfo>().Difficulty, Is.EqualTo("Insane"));
+        Assert.That(target.GetComponent<LevelInfo>().Artist, Is.Empty);
+        Assert.That(target.GetComponent<LevelInfo>().Difficulty, Is.EqualTo("Mapped"));
         Assert.That(target.GetComponent<Playfield>().Width, Is.EqualTo(1000));
-        Assert.That(target.GetComponent<Playhead>().Bpm, Is.EqualTo(150));
+        Assert.That(target.GetComponent<Playhead>().Bpm, Is.EqualTo(120));
         Assert.That(target.GetComponent<Playhead>().SnapDivision, Is.EqualTo(16));
         Assert.That(target.GetComponent<Playhead>().AudioRevision, Is.EqualTo(1));
         Assert.That(targetStore.Query<Note>().Count, Is.EqualTo(2));

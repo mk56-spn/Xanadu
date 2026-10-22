@@ -230,8 +230,8 @@ public static class SongSelectScene
         LevelEntry entry = catalog[selected];
         LevelDocument document = entry.Document;
         SongDocument? song = entry.Song;
-        string artist = song?.Artist ?? document.Artist;
-        string difficulty = document.Difficulty;
+        string artist = song?.Artist ?? "";
+        string difficulty = document.Name;
         string title = song?.Title ?? document.Name;
 
         SceneUi.SetText(
@@ -248,7 +248,7 @@ public static class SongSelectScene
             state.Stats,
             entry.IsBlocked
                 ? "SONG MISSING — cannot play or edit"
-                : $"{song?.Bpm ?? document.Bpm} BPM   ·   {document.Notes.Count} notes");
+                : $"{song?.Bpm ?? 120} BPM   ·   {document.Notes.Count} notes");
         SceneUi.SetText(state.Index, $"{selected + 1} / {catalog.Count}");
 
         RefreshScores(state, profiles.AllScores(entry.Path));

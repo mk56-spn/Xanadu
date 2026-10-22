@@ -28,6 +28,7 @@ public static class PlayScene
         StartPoint? start = null)
     {
         LevelDocument document = entry.Document;
+        SongDocument? song = entry.Song;
 
         float logicalSize = Mathf.Max(1, Mathf.Max(
             document.PlayfieldWidth,
@@ -45,13 +46,13 @@ public static class PlayScene
             TopInset + (screen.Y - TopInset - BottomInset - fieldHeight) / 2);
 
         Entity playfieldEntity = entities.CreateEntity(
-            new LevelInfo(document.Name, document.AudioPath),
+            new LevelInfo(document.Name, song?.AudioPath ?? ""),
             new LevelFile(entry.Path),
             new Playfield(document.PlayfieldWidth, document.PlayfieldHeight),
             new Playhead(
                 timeMs: 0,
-                bpm: document.Bpm,
-                offsetMs: document.OffsetMs,
+                bpm: song?.Bpm ?? 120,
+                offsetMs: song?.OffsetMs ?? 0,
                 playing: false),
             new PlayfieldView(origin, scale, screen),
             new PlayfieldMode(PlayfieldKind.Play),
@@ -109,12 +110,12 @@ public static class PlayScene
             SceneUi.TextColor,
             SceneUi.PanelColor);
 
-        string artist = string.IsNullOrWhiteSpace(document.Artist)
+        string artist = string.IsNullOrWhiteSpace(song?.Artist)
             ? "Unknown artist"
-            : document.Artist;
-        string difficulty = string.IsNullOrWhiteSpace(document.Difficulty)
+            : song.Artist;
+        string difficulty = string.IsNullOrWhiteSpace(document.Name)
             ? "Unrated"
-            : document.Difficulty;
+            : document.Name;
 
         SceneUi.Text(
             ui,

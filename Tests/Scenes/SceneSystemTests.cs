@@ -669,8 +669,6 @@ public sealed class SceneSystemTests
         var document = new LevelDocument
         {
             Name = name,
-            AudioPath = audioPath,
-            Bpm = bpm,
         };
         document.Notes.Add(new NoteDocument
         {

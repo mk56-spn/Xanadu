@@ -20,7 +20,7 @@ public sealed class LevelValidatorTests
     {
         LevelDocument document = ValidDocument();
         document.Name = "";
-        document.AudioPath = "";
+        document.SongId = "";
 
         var issues = LevelValidator.Validate(document);
 
@@ -51,10 +51,7 @@ public sealed class LevelValidatorTests
         var document = new LevelDocument
         {
             Name = "Valid",
-            AudioPath = "res://song.mp3",
-            Artist = "Artist",
-            Difficulty = "Normal",
-            Bpm = 120,
+            SongId = "song",
             PlayfieldWidth = 1000,
             PlayfieldHeight = 1000,
         };

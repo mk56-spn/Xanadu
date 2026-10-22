@@ -21,8 +21,6 @@ public sealed class LevelStoreTests
             var document = new LevelDocument
             {
                 Name = "Store Test",
-                AudioPath = "res://song.mp3",
-                Bpm = 140,
             };
             document.Notes.Add(new NoteDocument
             {

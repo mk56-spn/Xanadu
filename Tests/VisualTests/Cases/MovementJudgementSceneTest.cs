@@ -27,11 +27,18 @@ public sealed class MovementJudgementSceneTest : SceneTest
             var document = new LevelDocument
             {
                 Name = "Movement Judgement Test",
-                Bpm = 120,
-                AudioPath = "res://Audio/test-track.wav",
                 PlayfieldWidth = 1000,
                 PlayfieldHeight = 1000,
             };
+            var song = new SongDocument
+            {
+                Id = "visual-movement",
+                Slug = "visual-movement",
+                Title = "Movement",
+                AudioPath = "res://Audio/test-track.wav",
+                Bpm = 120,
+            };
+            document.SongId = song.Id;
             document.Notes.Add(new NoteDocument
             {
                 TimeMs = 1_000,
@@ -42,7 +49,7 @@ public sealed class MovementJudgementSceneTest : SceneTest
                 DashDirection = DashDirection.Right,
             });
             Context.Scenes.StartPlay(
-                new LevelEntry("memory://movement-judgement", document));
+                new LevelEntry("memory://movement-judgement", document, song));
         });
         AddUntilStep(
             "wait for movement play",

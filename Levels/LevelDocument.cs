@@ -7,7 +7,7 @@ namespace Writer.Levels;
 /// <summary>Serializable level document.</summary>
 public sealed class LevelDocument
 {
-    public int Version { get; set; } = 1;
+    public int Version { get; set; } = 2;
 
     /// <summary>Stable level identity; unrelated to its file path.</summary>
     public string Id { get; set; } = System.Guid.NewGuid().ToString("N");
@@ -20,15 +20,6 @@ public sealed class LevelDocument
 
     public string Name { get; set; } = "Untitled";
 
-    public string AudioPath { get; set; } = "";
-
-    public string Artist { get; set; } = "";
-
-    public string Difficulty { get; set; } = "";
-
-    public int Bpm { get; set; } = 120;
-
-    public long OffsetMs { get; set; }
 
     public int SnapDivision { get; set; } = 4;
 

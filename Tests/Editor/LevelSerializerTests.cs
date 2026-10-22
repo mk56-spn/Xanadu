@@ -38,7 +38,7 @@ public sealed class LevelSerializerTests
         Assert.That(document.Notes, Is.Empty);
         Assert.That(document.Mines, Is.Not.Null);
         Assert.That(document.Mines, Is.Empty);
-        Assert.That(document.Version, Is.EqualTo(1));
+        Assert.That(document.Version, Is.EqualTo(2));
         Assert.DoesNotThrow(() => LevelValidator.Validate(document));
     }
 
@@ -48,11 +48,6 @@ public sealed class LevelSerializerTests
         var source = new LevelDocument
         {
             Name = "Test Level",
-            AudioPath = "res://Audio/test-track.wav",
-            Artist = "Test Artist",
-            Difficulty = "Hard",
-            Bpm = 174,
-            OffsetMs = -35,
             SnapDivision = 8,
             PlayfieldWidth = 1000,
             PlayfieldHeight = 1000,
@@ -78,13 +73,8 @@ public sealed class LevelSerializerTests
         string json = LevelSerializer.Serialize(source);
         LevelDocument result = LevelSerializer.Deserialize(json);
 
-        Assert.That(result.Version, Is.EqualTo(1));
+        Assert.That(result.Version, Is.EqualTo(2));
         Assert.That(result.Name, Is.EqualTo("Test Level"));
-        Assert.That(result.AudioPath, Is.EqualTo("res://Audio/test-track.wav"));
-        Assert.That(result.Artist, Is.EqualTo("Test Artist"));
-        Assert.That(result.Difficulty, Is.EqualTo("Hard"));
-        Assert.That(result.Bpm, Is.EqualTo(174));
-        Assert.That(result.OffsetMs, Is.EqualTo(-35));
         Assert.That(result.SnapDivision, Is.EqualTo(8));
         Assert.That(result.PlayfieldWidth, Is.EqualTo(1000));
         Assert.That(result.PlayfieldHeight, Is.EqualTo(1000));
