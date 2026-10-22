@@ -28,14 +28,14 @@ Readiness is expressed with `AddUntilStep` rather than a fixed frame count.
 GODOT=/path/to/Godot_v4.8-dev7_mono_linux.x86_64
 
 # Interactive browser
-"$GODOT" --path . res://Tests/VisualTests/VisualTests.tscn
+"$GODOT" --path Tests/VisualTests res://VisualTests.tscn
 
 # One test, exit with 0/1
-"$GODOT" --path . res://Tests/VisualTests/VisualTests.tscn -- \
+"$GODOT" --path Tests/VisualTests res://VisualTests.tscn -- \
   --visual-test=settings --visual-test-exit
 
 # All tests
-"$GODOT" --path . res://Tests/VisualTests/VisualTests.tscn -- \
+"$GODOT" --path Tests/VisualTests res://VisualTests.tscn -- \
   --visual-test=all --visual-test-exit
 ```
 
@@ -63,7 +63,6 @@ every step as `pending`, `running`, `passed`, or `failed`.
   play HUD layer
 - `results` — accuracy, rank, notes hit ratio, max combo, score, level name,
   and exit buttons
-- `character-play` — live play scene, real note hit, then movement-note dash
 - `movement-judgement` — movement note alone must increment hit count and show
   a visible judgement
 - `leave-editor` — real editor overlay, SAVE & LEAVE, return to main

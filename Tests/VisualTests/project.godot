@@ -1,0 +1,17 @@
+; Engine configuration file.
+; Generated for the isolated visual-test project.
+config_version=5
+
+[application]
+
+config/name="Writer Visual Tests"
+run/main_scene="res://VisualTests.tscn"
+config/features=PackedStringArray("4.8", "C#", "Forward Plus")
+
+[dotnet]
+
+project/assembly_name="Writer.VisualTests"
+
+[rendering]
+
+renderer/rendering_method="forward_plus"

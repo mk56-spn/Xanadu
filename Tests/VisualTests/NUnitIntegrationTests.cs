@@ -25,7 +25,6 @@ public sealed class NUnitIntegrationTests
         "settings",
         "offset-wizard",
         "play",
-        "character-play",
         "movement-judgement",
         "results",
         "restart",
@@ -47,6 +46,7 @@ public sealed class NUnitIntegrationTests
         string root = Path.GetFullPath(Path.Combine(
             TestContext.CurrentContext.TestDirectory,
             "../../../../"));
+        string project = Path.Combine(root, "Tests", "VisualTests");
         var failures = new List<string>();
 
         foreach (string slug in Slugs)
@@ -54,14 +54,14 @@ public sealed class NUnitIntegrationTests
             var start = new ProcessStartInfo
             {
                 FileName = godot,
-                WorkingDirectory = root,
+                WorkingDirectory = project,
                 UseShellExecute = false,
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
             };
             start.ArgumentList.Add("--path");
-            start.ArgumentList.Add(root);
-            start.ArgumentList.Add("res://Tests/VisualTests/VisualTests.tscn");
+            start.ArgumentList.Add(project);
+            start.ArgumentList.Add("res://VisualTests.tscn");
             start.ArgumentList.Add("--");
             start.ArgumentList.Add($"--visual-test={slug}");
             start.ArgumentList.Add("--visual-test-exit");

@@ -18,5 +18,6 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="../Writer.csproj" />
+    <ProjectReference Include="VisualTests/Writer.VisualTests.csproj" />
   </ItemGroup>
 </Project>

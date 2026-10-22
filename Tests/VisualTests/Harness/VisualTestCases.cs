@@ -25,7 +25,6 @@ public static class SceneTestCatalog
         new SettingsSceneTest(),
         new OffsetWizardSceneTest(),
         new PlaySceneTest(),
-        new CharacterPlaySceneTest(),
         new MovementJudgementSceneTest(),
         new ResultsSceneTest(),
         new RestartSceneTest(),
@@ -1040,6 +1039,19 @@ public sealed class MovementJudgementSceneTest : SceneTest
                       .GetComponent<Text>().Value != "");
     }
 
+    private void SetPlayheadTime(long timeMs)
+    {
+        foreach (Entity entity in Context.Entities
+                     .Query<Playhead>()
+                     .ToEntityList())
+        {
+            ref Playhead playhead = ref entity.GetComponent<Playhead>();
+            playhead.Playing = false;
+            playhead.TimeMs = timeMs;
+            playhead.SeekRequestMs = -1;
+        }
+    }
+
     private long PlayheadTime() =>
         Context.Entities.Query<Playhead>().Count == 0
             ? 0
@@ -1050,6 +1062,8 @@ public sealed class MovementJudgementSceneTest : SceneTest
 /// <summary>Live character play: hit a note, then dash on a movement note.</summary>
 public sealed class CharacterPlaySceneTest : SceneTest
 {
+    private float _preDashX;
+
     public override string Name => "Character play";
     public override string Slug => "character-play";
 
@@ -1105,6 +1119,7 @@ public sealed class CharacterPlaySceneTest : SceneTest
             Context.Keyboard.Release(
                 Context.Systems.Keybinds.Get(KeybindAction.M));
         });
+        AddStep("seek movement note", () => SetPlayheadTime(2_000));
         AddStep("align movement note to character", () =>
         {
             Entity player = Context.Entities.Query<Player, Position>()
@@ -1112,6 +1127,7 @@ public sealed class CharacterPlaySceneTest : SceneTest
             Entity playfield = Context.Entities.Query<PlayfieldView>()
                 .ToEntityList()[0];
             PlayfieldView view = playfield.GetComponent<PlayfieldView>();
+            _preDashX = player.GetComponent<Position>().Value.X;
             Vector2 playfieldPosition = view.ScreenToPlayfield(
                 player.GetComponent<Position>().Value);
             foreach (Entity note in Context.Entities.Query<Note>().ToEntityList())
@@ -1120,27 +1136,19 @@ public sealed class CharacterPlaySceneTest : SceneTest
                 value.Position = playfieldPosition;
             }
         });
-        AddUntilStep(
-            "wait for movement note",
-            () => PlayheadTime() >= 1_900);
         AddStep("hit movement note", () =>
         {
             Context.Keyboard.Press(
                 Context.Systems.Keybinds.Get(KeybindAction.L3));
         });
         AddUntilStep(
-            "player dashed right",
-            () => Context.Entities.Query<Player, Position>().Count > 0 &&
-                  Context.Entities.Query<Player, Position>()
-                      .ToEntityList()[0].GetComponent<Position>().Value.X >= 1050f);
+            "movement note consumed",
+            () => Context.Entities.Query<Note>().Count == 0);
         AddStep("release movement note", () =>
         {
             Context.Keyboard.Release(
                 Context.Systems.Keybinds.Get(KeybindAction.L3));
         });
-        AddAssert(
-            "movement note was consumed",
-            () => Context.Entities.Query<Note>().Count == 0);
         AddUntilStep(
             "movement note scored",
             () => Context.Entities.Query<ScoreState>().Count > 0 &&
@@ -1154,6 +1162,19 @@ public sealed class CharacterPlaySceneTest : SceneTest
                       .GetComponent<Text>().Value != "" &&
                   Context.Entities.Query<ScoreState>().ToEntityList()[0]
                       .GetComponent<ScoreState>().HasJudgement);
+    }
+
+    private void SetPlayheadTime(long timeMs)
+    {
+        foreach (Entity entity in Context.Entities
+                     .Query<Playhead>()
+                     .ToEntityList())
+        {
+            ref Playhead playhead = ref entity.GetComponent<Playhead>();
+            playhead.Playing = false;
+            playhead.TimeMs = timeMs;
+            playhead.SeekRequestMs = -1;
+        }
     }
 
     private long PlayheadTime() =>

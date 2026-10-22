@@ -1,0 +1,14 @@
+<Project Sdk="Godot.NET.Sdk/4.8.0-dev.7">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <EnableDynamicLoading>true</EnableDynamicLoading>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <GodotProjectDir>$(MSBuildProjectDirectory)/</GodotProjectDir>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Remove="NUnitIntegrationTests.cs" />
+    <Compile Remove="SceneTestRunnerTests.cs" />
+    <ProjectReference Include="../../Writer.csproj" />
+  </ItemGroup>
+</Project>
