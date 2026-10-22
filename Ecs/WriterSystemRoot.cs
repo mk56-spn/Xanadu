@@ -127,7 +127,12 @@ public sealed class WriterSystemRoot : SystemRoot, IDisposable
             EditorHistory);
         _editorSystems.Enabled = false;
         Add(_editorSystems);
-        Add(new InputSystemGroup(entities, pointerInput, Scenes, Keybinds));
+        Add(new InputSystemGroup(
+            entities,
+            pointerInput,
+            Scenes,
+            Keybinds,
+            Display));
         Add(new DebugSystemGroup(
             canvas,
             _debugOverlay,

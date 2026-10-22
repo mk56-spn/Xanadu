@@ -67,6 +67,10 @@ public static class SettingsScene
             takesInput: true);
         vsync.AddComponent(new TextStyle(16, SceneUi.TextColor));
         vsync.AddComponent(ButtonVisual.Create(SceneUi.MutedButtonColor));
+        vsync.AddComponent(new Toggle(
+            "V-SYNC: ON",
+            "V-SYNC: OFF",
+            display.VSyncEnabled));
         vsync.AddComponent(new VSyncToggle());
 
         SceneUi.Text(

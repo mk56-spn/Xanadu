@@ -2,6 +2,7 @@ using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Writer.Settings;
 using Writer.Systems.Input;
+using Writer.Systems.Ui;
 using Writer.Systems.Scenes;
 
 namespace Writer.Systems.Groups;
@@ -13,10 +14,13 @@ public sealed class InputSystemGroup : SystemGroup
         EntityStore entities,
         IPointerInputSource pointerInput,
         SceneSystem scenes,
-        KeybindSettings keybinds)
+        KeybindSettings keybinds,
+        DisplaySettings display)
         : base("Input")
     {
         Add(new InputSystem(pointerInput));
+        Add(new ToggleSystem());
+        Add(new VSyncToggleSystem(display));
         Add(new ButtonVisualSystem());
         Add(scenes);
         Add(new KeybindUiSystem(keybinds));

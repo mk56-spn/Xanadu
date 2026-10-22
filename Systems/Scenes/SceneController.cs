@@ -168,18 +168,6 @@ public sealed class SceneControllerRegistry
         public void HandleActions(SceneSystem system, ref SceneState state)
         {
             foreach (Entity entity in system.Entities
-                         .Query<VSyncToggle>()
-                         .AllTags(Tags.Get<Pressed>())
-                         .ToEntityList())
-            {
-                system.Display.ToggleVSync();
-                SceneUi.SetText(
-                    entity,
-                    system.Display.VSyncEnabled ? "V-SYNC: ON" : "V-SYNC: OFF");
-                return;
-            }
-
-            foreach (Entity entity in system.Entities
                          .Query<KeybindButton>()
                          .AllTags(Tags.Get<Pressed>())
                          .ToEntityList())
