@@ -26,23 +26,24 @@ public sealed class SongStore
         "[^a-z0-9]+",
         RegexOptions.Compiled);
 
-    private readonly string _root;
+    private string? _root;
 
     public SongStore(string? root = null)
     {
-        _root = root ?? ProjectSettings.GlobalizePath("user://songs");
+        _root = root;
     }
 
-    public string Root => _root;
+    public string Root => _root ??=
+        ProjectSettings.GlobalizePath("user://songs");
 
     public IReadOnlyList<SongDocument> LoadAll()
     {
-        if (!Directory.Exists(_root))
+        if (!Directory.Exists(Root))
             return Array.Empty<SongDocument>();
 
         var songs = new List<SongDocument>();
         foreach (string path in Directory.EnumerateFiles(
-                     _root, "song.json", SearchOption.AllDirectories))
+                     Root, "song.json", SearchOption.AllDirectories))
         {
             try
             {
@@ -100,7 +101,7 @@ public sealed class SongStore
             ? fallbackTitle
             : title.Trim();
         string slug = Slugify(resolvedTitle) + "-" + id[..8];
-        string directory = Path.Combine(_root, id);
+        string directory = Path.Combine(Root, id);
         Directory.CreateDirectory(directory);
 
         string extension = Path.GetExtension(sourcePath);
@@ -166,7 +167,7 @@ public sealed class SongStore
     }
 
     private string GetDirectory(SongDocument song) =>
-        Path.Combine(_root, song.Id);
+        Path.Combine(Root, song.Id);
 
     private static string HashFile(string path)
     {

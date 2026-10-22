@@ -16,6 +16,7 @@ public static class LevelDocumentMapper
 
         var document = new LevelDocument
         {
+            SongId = level.SongId,
             Name = level.Name,
             AudioPath = level.AudioPath,
             Artist = level.Artist,
@@ -128,6 +129,7 @@ public static class LevelDocumentMapper
         }
 
         ref LevelInfo level = ref editor.GetComponent<LevelInfo>();
+        level.SongId = document.SongId;
         level.Name = document.Name;
         level.AudioPath = document.AudioPath;
         level.Artist = document.Artist;

@@ -203,7 +203,20 @@ public sealed class EditorCommandSystem :
         ref LevelInfo level,
         ref Playhead playhead)
     {
-        level.AudioPath = path;
+        try
+        {
+            SongDocument song = new SongStore().Import(path);
+            level.SongId = song.Id;
+            level.AudioPath = song.AudioPath;
+            level.Artist = song.Artist;
+            playhead.Bpm = song.Bpm;
+            playhead.OffsetMs = song.OffsetMs;
+        }
+        catch (Exception)
+        {
+            level.AudioPath = path;
+        }
+
         playhead.TimeMs = 0;
         playhead.DurationMs = 0;
         playhead.Playing = false;

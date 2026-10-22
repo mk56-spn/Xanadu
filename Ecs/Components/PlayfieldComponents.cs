@@ -11,6 +11,7 @@ public struct LevelInfo(
     string artist = "",
     string difficulty = "") : IComponent
 {
+    public string SongId = "";
     public string Name = name;
     public string AudioPath = audioPath;
     public string Artist = artist;
