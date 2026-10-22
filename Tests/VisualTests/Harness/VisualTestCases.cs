@@ -7,6 +7,7 @@ using Writer.Editor;
 using Writer.Levels;
 using Writer.Scenes;
 using Writer.Settings;
+using Writer.Systems.Playfields;
 
 namespace Writer.Testing;
 
@@ -440,6 +441,9 @@ public sealed class EditorDropdownSceneTest : SceneTest
                   VisualAssert.HasText(Context.Entities, "SNAP") &&
                   VisualAssert.HasText(Context.Entities, "NOTE TYPE") &&
                   Context.Entities.Query<Dropdown>().Count == 2);
+        AddAssert(
+            "note type options use lane colours",
+            NoteTypeOptionsAreColoured);
         AddStep("record closed sidebar", () =>
         {
             _closedSidebarHeight = SidebarHeight();
@@ -529,6 +533,30 @@ public sealed class EditorDropdownSceneTest : SceneTest
             "toolbar zoom changed",
             () => Context.Entities.Query<EditorTimeline>().ToEntityList()[0]
                 .GetComponent<EditorTimeline>().Zoom >= 32f);
+    }
+
+    private bool NoteTypeOptionsAreColoured()
+    {
+        foreach (Entity entity in Context.Entities
+                     .Query<DropdownOption>()
+                     .ToEntityList())
+        {
+            DropdownOption option = entity.GetComponent<DropdownOption>();
+            if (option.Owner.IsNull ||
+                !option.Owner.HasComponent<EditorDropdownControl>() ||
+                option.Owner.GetComponent<EditorDropdownControl>().Kind !=
+                EditorDropdownKind.NoteType)
+            {
+                continue;
+            }
+
+            Color expected = PlayfieldRenderer.ColorFor(
+                KeybindSettings.Actions[option.Value]);
+            if (entity.GetComponent<FillColor>().Value != expected)
+                return false;
+        }
+
+        return true;
     }
 
     private bool DropdownListIsAligned(EditorDropdownKind kind)

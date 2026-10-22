@@ -6,6 +6,7 @@ using Godot;
 using Writer.Ecs;
 using Writer.Editor.Commands;
 using Writer.Settings;
+using Writer.Systems.Playfields;
 using Position = Writer.Ecs.Position;
 
 namespace Writer.Systems.Editor;
@@ -252,11 +253,33 @@ public sealed class EditorDropdownSystem : QuerySystem<Dropdown>
         };
 
         ref Text text = ref button.GetComponent<Text>();
-        if (text.Value == label)
-            return;
+        bool changed = false;
+        if (text.Value != label)
+        {
+            text.Value = label;
+            changed = true;
+        }
 
-        text.Value = label;
-        buffer.AddTag<Dirty>(button.Id);
+        if (kind == EditorDropdownKind.NoteType &&
+            button.HasComponent<ButtonVisual>())
+        {
+            Color color = PlayfieldRenderer.ColorFor(
+                KeybindSettings.Actions[Math.Clamp(
+                    dropdown.Selected,
+                    0,
+                    KeybindSettings.Actions.Length - 1)]);
+            ref ButtonVisual visual = ref button.GetComponent<ButtonVisual>();
+            if (visual.Normal != color)
+            {
+                visual.Normal = color;
+                visual.Hover = color.Lerp(Colors.White, 0.16f);
+                visual.Flash = Colors.White;
+                changed = true;
+            }
+        }
+
+        if (changed)
+            buffer.AddTag<Dirty>(button.Id);
     }
 
     private static int SnapIndex(int division) => division switch

@@ -6,6 +6,7 @@ using Writer.Levels;
 using Writer.Settings;
 using Writer.Editor;
 using Writer.Systems.Editor;
+using Writer.Systems.Playfields;
 
 namespace Writer.Scenes;
 
@@ -601,14 +602,17 @@ public static class EditorScene
 
         for (int i = 0; i < labels.Length; i++)
         {
+            Color optionColor = kind == EditorDropdownKind.NoteType
+                ? PlayfieldRenderer.ColorFor(KeybindSettings.Actions[i])
+                : SceneUi.MutedButtonColor;
             Entity option = ui.RectEntity(
                 new Vector2(-10_000, -10_000),
                 new Vector2(width - 6, 28),
-                SceneUi.MutedButtonColor,
+                optionColor,
                 labels[i],
                 takesInput: true);
             option.AddComponent(new TextStyle(13, SceneUi.TextColor));
-            option.AddComponent(ButtonVisual.Create(SceneUi.MutedButtonColor));
+            option.AddComponent(ButtonVisual.Create(optionColor));
             option.AddComponent(new DropdownOption(button, i));
         }
 
