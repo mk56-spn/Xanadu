@@ -357,6 +357,25 @@ public sealed class SceneSystemTests
     }
 
     [Test]
+    public void MissingSongBlocksPlayAndEdit()
+    {
+        _catalog.Clear();
+        var document = new LevelDocument
+        {
+            Name = "Broken",
+            SongId = "missing-song",
+        };
+        document.Notes.Add(new NoteDocument { TimeMs = 500, X = 100, Y = 200 });
+        _catalog.Add(new LevelEntry("memory://broken", document, null));
+
+        _scenes.Start(SceneKind.SongSelect);
+        Frame();
+
+        Assert.That(HasText("SONG MISSING — cannot play or edit"), Is.True);
+        Assert.That(HasText("PLAY"), Is.False);
+    }
+
+    [Test]
     public void ArrowCarouselStepsAndClamps()
     {
         _scenes.Start(SceneKind.SongSelect);
