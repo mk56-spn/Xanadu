@@ -10,6 +10,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Remove="VisualTests/Harness/**/*.cs" />
+    <Compile Remove="VisualTests/Cases/**/*.cs" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.11.0" />

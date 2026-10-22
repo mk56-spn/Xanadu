@@ -10,7 +10,7 @@ namespace Writer.Tests.VisualTests;
 /// visual test. Each test launches the isolated visual-test project.
 /// </summary>
 [TestFixture]
-[Explicit("Requires GODOT_BIN and a display-capable Godot build.")]
+[Category("Visual")]
 public sealed class VisualSceneTests
 {
     [Test]
