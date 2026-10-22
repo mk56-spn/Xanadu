@@ -80,11 +80,11 @@ public static class EditorScene
             var menu = SceneUi.Layer(entities, menuRoot, 960);
             SceneUi.Button(
                 menu,
-                new Vector2(74, 32),
-                new Vector2(100, 28),
+                new Vector2(68, 36),
+                new Vector2(104, 38),
                 "MENU",
                 SceneKind.Main,
-                12,
+                14,
                 SceneUi.MutedButtonColor);
                 BuildSidebar(entities, menuRoot, editor, viewportSize);
                 BuildToolbar(entities, menuRoot, editor, viewportSize);
@@ -133,12 +133,17 @@ public static class EditorScene
             "Space play   Home stop   Delete note   ←/→ nudge   Ctrl+Z/Y undo   T tap tempo   Target: select a note",
             12,
             SceneUi.DimTextColor);
+        hudUi.RectEntity(
+            new Vector2(170, 960),
+            new Vector2(300, 36),
+            new Color("#0b1220"));
+        AddHudFrame(hudUi, new Vector2(170, 960), new Vector2(300, 36));
         Entity timeText = HudText(
             hudUi,
             new Vector2(170, 960),
-            new Vector2(300, 16),
+            new Vector2(292, 30),
             "00:00.000 / 00:00.000",
-            14,
+            20,
             new Color("#cbd5e1"));
         Entity notesText = HudText(
             hudUi,
@@ -305,6 +310,31 @@ public static class EditorScene
         // Keep the fields alive through the editor component so systems can
         // discover them without relying on fragile child ordering.
         _ = (nameField, artistField, difficultyField, bpmField, offsetField);
+    }
+
+    private static void AddHudFrame(
+        UiBuilder ui,
+        Vector2 center,
+        Vector2 size)
+    {
+        Color color = new("#475569");
+        Vector2 topLeft = center - size / 2;
+        ui.RectEntity(
+            new Vector2(center.X, topLeft.Y),
+            new Vector2(size.X, 1),
+            color);
+        ui.RectEntity(
+            new Vector2(center.X, topLeft.Y + size.Y),
+            new Vector2(size.X, 1),
+            color);
+        ui.RectEntity(
+            new Vector2(topLeft.X, center.Y),
+            new Vector2(1, size.Y),
+            color);
+        ui.RectEntity(
+            new Vector2(topLeft.X + size.X, center.Y),
+            new Vector2(1, size.Y),
+            color);
     }
 
     private static Entity HudText(
