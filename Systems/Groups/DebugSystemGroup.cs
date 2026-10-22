@@ -13,11 +13,14 @@ public sealed class DebugSystemGroup : SystemGroup
     public DebugSystemGroup(
         IRectCanvas canvas,
         Rid overlay,
+        Rid elementsOverlay,
         IOverlayToggleSource toggle,
+        IOverlayToggleSource elementsToggle,
         EntityStore store,
         SystemRoot systems,
         IFpsSource fps) : base("Debug")
     {
         Add(new DebugPressedOverlaySystem(canvas, overlay, toggle, store, systems, fps));
+        Add(new DebugElementOverlaySystem(canvas, elementsOverlay, elementsToggle));
     }
 }

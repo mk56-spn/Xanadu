@@ -51,7 +51,6 @@ public sealed class DebugPressedOverlaySystem : QuerySystem<Rectangle, Position>
         _store = store;
         _systems = systems;
         _fpsSource = fpsSource;
-        Filter.AllTags(Tags.Get<Pressed>());
     }
 
     protected override void OnUpdate()
@@ -69,25 +68,8 @@ public sealed class DebugPressedOverlaySystem : QuerySystem<Rectangle, Position>
         if (!_visible)
             return;
 
-        Query.ForEachEntity((ref rect, ref position, entity) =>
-        {
-            Rect2 local = rect.Bounds;
-            if (local.Size.X <= 0 || local.Size.Y <= 0)
-                return;
-
-            Vector2 world = UiTransform.WorldPosition(entity, position.Value);
-            Rect2 bounds = new(world + local.Position, local.Size);
-            DrawHighlight(bounds);
-        });
-
         if (_store is not null)
             DrawMetricsPanel();
-    }
-
-    private void DrawHighlight(Rect2 bounds)
-    {
-        _canvas.DrawRect(_overlay, bounds, Fill);
-        DrawBorder(bounds, Border, BorderWidth);
     }
 
     private void DrawBorder(Rect2 bounds, Color color, float width)

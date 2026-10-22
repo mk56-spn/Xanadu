@@ -29,32 +29,12 @@ public sealed class DebugPressedOverlaySystemTests
     }
 
     [Test]
-    public void ToggleOnHighlightsPressedEntity()
+    public void ToggleOnlyControlsTheOverlay()
     {
-        AddPressedRect(new Vector2(100, 100), new Vector2(50, 40));
-
         _toggle.Pressed = true;
         Frame();
-
         Assert.That(_canvas.Visible, Is.True);
-        Assert.That(_canvas.Rects, Has.Count.EqualTo(5));
-        Assert.That(_canvas.Rects[0], Is.EqualTo(new Rect2(75, 80, 50, 40)));
-    }
-
-    [Test]
-    public void PressedChildHighlightUsesContainerWorldPosition()
-    {
-        Entity container = _store.CreateEntity(new Position(new Vector2(100, 100)));
-        Entity child = _store.CreateEntity(
-            new Rectangle(new Rect2(-20, -10, 40, 20)),
-            new Position(new Vector2(20, 10)),
-            Tags.Get<Pressed>());
-        container.AddChild(child);
-
-        _toggle.Pressed = true;
-        Frame();
-
-        Assert.That(_canvas.Rects[0], Is.EqualTo(new Rect2(100, 100, 40, 20)));
+        Assert.That(_canvas.Rects, Is.Empty);
     }
 
     [Test]
@@ -86,16 +66,6 @@ public sealed class DebugPressedOverlaySystemTests
         Assert.That(canvas.Rects, Is.Not.Empty);
         Assert.That(canvas.RightTexts, Does.Contain("last ms"));
         Assert.That(canvas.RightTexts, Does.Contain("avg ms"));
-    }
-
-    [Test]
-    public void NoPressedEntityDrawsNothing()
-    {
-        _toggle.Pressed = true;
-        Frame();
-
-        Assert.That(_canvas.Visible, Is.True);
-        Assert.That(_canvas.Rects, Is.Empty);
     }
 
     [Test]
