@@ -107,7 +107,9 @@ public partial class Main : Control
 				return;
 			}
 
-			string file = $"screenshot_{DateTime.Now:yyyyMMdd_HHmmss_fff}.png";
+			string gameName = ProjectSettings
+				.GetSetting("application/config/name")
+				.AsString();
 			string[] candidates =
 			{
 				ProjectSettings.GlobalizePath("user://screenshots"),
@@ -119,6 +121,10 @@ public partial class Main : Control
 				try
 				{
 					Directory.CreateDirectory(directory);
+					string file = ScreenshotNaming.Create(
+						gameName,
+						DateTime.Now,
+						candidate => File.Exists(Path.Combine(directory, candidate)));
 					string path = Path.Combine(directory, file);
 					if (image.SavePng(path) == Error.Ok)
 					{

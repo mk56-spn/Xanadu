@@ -331,6 +331,25 @@ public static class PlayfieldRenderer
         float startX = Math.Max(10, field.Position.X - total - 12);
         float centerY = field.End.Y - 28;
 
+        float keyBottom = centerY + keySize / 2;
+        float historyTop = centerY - keySize / 2 - 4 - historyHeight;
+        var trailBox = new Rect2(
+            startX - 10,
+            historyTop - 8,
+            total + 20,
+            keyBottom + 8 - (historyTop - 8));
+
+        canvas.DrawRect(
+            rid,
+            trailBox,
+            new Color(0.02f, 0.03f, 0.06f, 0.45f));
+        DrawBorder(
+            canvas,
+            rid,
+            trailBox,
+            new Color(0.35f, 0.45f, 0.58f, 0.8f),
+            1);
+
         // Released trails rise out of their keycaps as time advances.
         foreach (Entity entity in entities.Query<KeyPressTrail>().ToEntityList())
         {
@@ -370,16 +389,32 @@ public static class PlayfieldRenderer
             Color color = ColorFor(segment.Action);
             float alpha = 0.18f + (1f - age) * 0.62f;
 
+            var segmentBounds = new Rect2(
+                x - keySize * 0.28f,
+                top,
+                keySize * 0.56f,
+                height);
             canvas.DrawRect(
                 rid,
-                new Rect2(x - keySize * 0.28f, top, keySize * 0.56f, height),
+                segmentBounds,
                 new Color(color.R, color.G, color.B, alpha * 0.35f));
-            canvas.DrawLine(
+            DrawBorder(
+                canvas,
                 rid,
-                new Vector2(x, top),
-                new Vector2(x, top + height),
-                new Color(color.R, color.G, color.B, alpha),
-                2);
+                segmentBounds,
+                new Color(1f, 1f, 1f, alpha * 0.35f),
+                1);
+            if (height > 5f)
+            {
+                canvas.DrawRect(
+                    rid,
+                    new Rect2(
+                        x - 3f,
+                        top + 2f,
+                        6f,
+                        height - 4f),
+                    new Color(color.R, color.G, color.B, alpha));
+            }
         }
 
         for (int i = 0; i < KeybindSettings.Actions.Length; i++)
