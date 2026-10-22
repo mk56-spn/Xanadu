@@ -6,6 +6,7 @@ using Friflo.Engine.ECS.Systems;
 using Godot;
 using Writer.Ecs;
 using Writer.Systems.Canvas;
+using Writer.Levels;
 
 namespace Writer.Systems.Audio;
 
@@ -291,7 +292,7 @@ public sealed class TimelineDrawSystem : QuerySystem<TrackProgress>
         if (bpm <= 0 || durationMs <= 0)
             return;
 
-        double beatMs = 60_000.0 / bpm;
+        double beatMs = TimingGrid.BeatMs((int)bpm);
         double beatCount = durationMs / beatMs;
         int step = Math.Max(1, (int)Math.Ceiling(beatCount / 120.0));
         if (step > 1)

@@ -5,6 +5,7 @@ using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Godot;
 using Writer.Ecs;
+using Writer.Levels;
 using Writer.Systems.Canvas;
 using Writer.Systems.Playfields;
 
@@ -450,9 +451,8 @@ public sealed class EditorPlayfieldDrawSystem :
         DrawBeatBands(ruler, playhead, windowStart, windowEnd);
         DrawBpmMarker(ruler, playhead, windowStart, windowEnd);
         DrawWaveform(ruler, preview, windowStart, windowEnd);
-        double beatMs = 60_000.0 / Math.Max(1, playhead.Bpm);
         int subdivisions = Math.Max(1, playhead.SnapDivision);
-        double tickMs = beatMs / subdivisions;
+        double tickMs = TimingGrid.TickMs(playhead.Bpm, subdivisions);
 
         float pixelsPerTick = ruler.Size.X *
                               (float)tickMs /
@@ -461,10 +461,10 @@ public sealed class EditorPlayfieldDrawSystem :
         while (pixelsPerTick / skip < 3f)
             skip *= 2;
 
-        int firstTick = (int)Math.Floor(
-            (windowStart - playhead.OffsetMs) / tickMs);
-        int lastTick = (int)Math.Ceiling(
-            (windowEnd - playhead.OffsetMs) / tickMs);
+        int firstTick = TimingGrid.FirstTick(
+            windowStart, playhead.OffsetMs, tickMs);
+        int lastTick = TimingGrid.LastTick(
+            windowEnd, playhead.OffsetMs, tickMs);
 
         for (int tick = firstTick; tick <= lastTick; tick++)
         {
@@ -480,7 +480,8 @@ public sealed class EditorPlayfieldDrawSystem :
             if (!main && !half && !quarter && sub % skip != 0)
                 continue;
 
-            double tickTime = playhead.OffsetMs + tick * tickMs;
+            double tickTime = TimingGrid.TickTime(
+                tick, playhead.OffsetMs, tickMs);
             if (tickTime < windowStart - 1 || tickTime > windowEnd + 1)
                 continue;
 
