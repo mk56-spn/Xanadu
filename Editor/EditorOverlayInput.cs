@@ -45,6 +45,20 @@ public partial class EditorOverlay : CanvasLayer
         if (AnyDialogVisible())
             return;
 
+        if (key.Keycode == Key.F2)
+        {
+            ToggleBindingsHelp();
+            GetViewport().SetInputAsHandled();
+            return;
+        }
+
+        if (IsBindingsHelpVisible() && key.Keycode == Key.Escape)
+        {
+            ToggleBindingsHelp();
+            GetViewport().SetInputAsHandled();
+            return;
+        }
+
         if (key.Keycode == Key.Escape && IsPreviewing())
         {
             EndPreview();

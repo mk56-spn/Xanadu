@@ -129,6 +129,25 @@ public sealed class EditorPlayfieldDrawSystem :
                 PlayfieldRenderer.SelectedNoteColor,
                 2);
         }
+
+        float mineSize = PlayfieldRenderer.MineSize * view.Scale;
+        foreach (Entity entity in _entities.Query<Mine>().ToEntityList())
+        {
+            if (!selection.Contains(entity))
+                continue;
+
+            Mine mine = entity.GetComponent<Mine>();
+            if (MineFade.Alpha(mine, playhead.TimeMs) <= 0)
+                continue;
+
+            Vector2 center = view.PlayfieldToScreen(mine.Position);
+            _canvas.DrawCircleOutline(
+                _editor,
+                center,
+                mineSize / 2 + 1.5f,
+                PlayfieldRenderer.SelectedNoteColor,
+                2);
+        }
     }
 
     private void DrawSelectionBox(EditorSelectionBox box)

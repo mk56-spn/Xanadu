@@ -218,6 +218,50 @@ public static class EditorScene
 
         editor.AddComponent(new EditorMetadataPanel(panel, home));
 
+        UiBuilder helpUi = SceneUi.Layer(entities, root, 970);
+        helpUi.Container(
+            new Vector2(-10_000, -10_000),
+            new Vector2(560, 466),
+            StackDirection.Vertical,
+            spacing: 4,
+            color: new Color("#0b1220"),
+            takesInput: true);
+        Entity helpPanel = helpUi.Current;
+        string[] bindings =
+        {
+            "EDITOR BINDINGS   (F2)",
+            "SPACE                  Play / pause",
+            "HOME                   Stop",
+            "LEFT / RIGHT           Nudge selection",
+            "SHIFT + LEFT / RIGHT   Seek 1 second",
+            "MOUSE WHEEL            Seek 500 ms",
+            "SHIFT + WHEEL          Seek 2 seconds",
+            "T                      Tap tempo",
+            "DELETE / BACKSPACE     Delete selection",
+            "CTRL+Z / CTRL+Y        Undo / redo",
+            "L                      Load song",
+            "CTRL+S                 Save",
+            "ESC                    Back",
+            "ENTER                  Forward",
+            "F2                     Toggle this list",
+        };
+        foreach (string binding in bindings)
+        {
+            HudText(
+                helpUi,
+                Vector2.Zero,
+                new Vector2(520, 24),
+                binding,
+                14,
+                binding.StartsWith("EDITOR")
+                    ? SceneUi.AccentColor
+                    : SceneUi.TextColor);
+        }
+
+        editor.AddComponent(new EditorBindingsHelp(
+            helpPanel,
+            new Vector2(screen.X / 2, screen.Y / 2)));
+
         // Keep the fields alive through the editor component so systems can
         // discover them without relying on fragile child ordering.
         _ = (nameField, artistField, difficultyField, bpmField, offsetField);

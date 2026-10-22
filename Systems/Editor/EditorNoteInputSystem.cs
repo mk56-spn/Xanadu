@@ -23,7 +23,7 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
 
     private bool _wasPressed;
     private bool _scrubbing;
-    private Entity _draggedNote;
+    private Entity _draggedEntity;
     private Vector2 _dragStartPointer;
     private readonly Dictionary<int, Vector2> _dragStartPositions = new();
     private EditorSnapshot _dragBefore;
@@ -95,12 +95,14 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
             return;
 
         Entity hit = FindNoteAt(playfieldPosition, playhead.TimeMs);
+        if (hit.IsNull)
+            hit = FindMineAt(playfieldPosition, playhead.TimeMs);
+
         ref NoteSelection selection = ref editor.GetComponent<NoteSelection>();
 
         if (!hit.IsNull)
         {
-            Note note = hit.GetComponent<Note>();
-            _draggedNote = hit;
+            _draggedEntity = hit;
             _dragStartPointer = playfieldPosition;
             _dragStartPositions.Clear();
             _dragBefore = _history.Capture();
@@ -115,10 +117,19 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
                     _dragStartPositions[selected.Id] =
                         selected.GetComponent<Note>().Position;
                 }
+                else if (selected.HasComponent<Mine>())
+                {
+                    _dragStartPositions[selected.Id] =
+                        selected.GetComponent<Mine>().Position;
+                }
             }
 
-            if (editor.HasComponent<EditorNoteTarget>())
-                editor.GetComponent<EditorNoteTarget>().Target = note.Target;
+            if (hit.HasComponent<Note>() &&
+                editor.HasComponent<EditorNoteTarget>())
+            {
+                editor.GetComponent<EditorNoteTarget>().Target =
+                    hit.GetComponent<Note>().Target;
+            }
 
             return;
         }
@@ -177,7 +188,9 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
             return;
         }
 
-        if (_draggedNote.IsNull || !_draggedNote.HasComponent<Note>())
+        if (_draggedEntity.IsNull ||
+            (!_draggedEntity.HasComponent<Note>() &&
+             !_draggedEntity.HasComponent<Mine>()))
         {
             CancelDrag();
             return;
@@ -188,13 +201,26 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
         foreach ((int id, Vector2 start) in _dragStartPositions)
         {
             Entity entity = _entities.GetEntityById(id);
-            if (entity.IsNull || !entity.HasComponent<Note>())
+            if (entity.IsNull ||
+                (!entity.HasComponent<Note>() &&
+                 !entity.HasComponent<Mine>()))
+            {
                 continue;
+            }
 
-            ref Note note = ref entity.GetComponent<Note>();
-            note.Position = new Vector2(
+            Vector2 target = new(
                 Math.Clamp(start.X + delta.X, 0, playfield.Width),
                 Math.Clamp(start.Y + delta.Y, 0, playfield.Height));
+            if (entity.HasComponent<Note>())
+            {
+                ref Note note = ref entity.GetComponent<Note>();
+                note.Position = target;
+            }
+            else
+            {
+                ref Mine mine = ref entity.GetComponent<Mine>();
+                mine.Position = target;
+            }
         }
     }
 
@@ -225,7 +251,7 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
             return;
         }
 
-        if (_draggedNote.IsNull)
+        if (_draggedEntity.IsNull)
             return;
 
         var after = _history.Capture();
@@ -323,6 +349,24 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
                 selected.Add(entity);
         }
 
+        float mineSize = PlayfieldRenderer.MineSize * view.Scale;
+        foreach (Entity entity in _entities.Query<Mine>().ToEntityList())
+        {
+            Mine mine = entity.GetComponent<Mine>();
+            if (MineFade.Alpha(mine, playheadMs) <= 0.05f ||
+                !IsInside(mine.Position, playfield))
+            {
+                continue;
+            }
+
+            Vector2 center = view.PlayfieldToScreen(mine.Position);
+            var mineBounds = new Rect2(
+                center - new Vector2(mineSize / 2, mineSize / 2),
+                new Vector2(mineSize, mineSize));
+            if (screenBounds.Intersects(mineBounds))
+                selected.Add(entity);
+        }
+
         return selected;
     }
 
@@ -394,9 +438,29 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
         return result;
     }
 
+    private Entity FindMineAt(Vector2 position, long playheadMs)
+    {
+        Entity result = default;
+
+        foreach (Entity entity in _entities.Query<Mine>().ToEntityList())
+        {
+            Mine mine = entity.GetComponent<Mine>();
+            if (MineFade.Alpha(mine, playheadMs) <= 0)
+                continue;
+
+            if (MathF.Abs(mine.Position.X - position.X) <= HitRadius &&
+                MathF.Abs(mine.Position.Y - position.Y) <= HitRadius)
+            {
+                result = entity;
+            }
+        }
+
+        return result;
+    }
+
     private void CancelDrag()
     {
-        _draggedNote = default;
+        _draggedEntity = default;
         _dragBefore = default;
         _dragStartPositions.Clear();
     }

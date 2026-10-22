@@ -14,7 +14,7 @@ public partial class EditorOverlay : CanvasLayer
 
         ProcessUiRequest();
         SyncTextFieldBridge();
-        _pointer?.SetBlocked(AnyDialogVisible());
+        _pointer?.SetBlocked(AnyDialogVisible() || IsBindingsHelpVisible());
 
         if (!_editor.HasComponent<Playhead>() ||
             !_editor.HasComponent<EditorPreview>())

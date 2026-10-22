@@ -122,6 +122,12 @@ public sealed class EditorWaveformSceneTest : SceneTest
             "wait for editor",
             () => Context.Scenes.Current == SceneKind.Editor &&
                   VisualAssert.HasText(Context.Entities, "MENU"));
+        AddAssert(
+            "editor binding help exists",
+            () => Context.Entities.Query<EditorBindingsHelp>().Count == 1 &&
+                  !Context.Entities.Query<EditorBindingsHelp>()
+                      .ToEntityList()[0]
+                      .GetComponent<EditorBindingsHelp>().Visible);
 
         AddStep("select the test track", () =>
         {

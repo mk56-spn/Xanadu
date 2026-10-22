@@ -273,3 +273,11 @@ public struct EditorSidebarLayout(
     public Entity Load = load;
     public float Top = top;
 }
+
+/// <summary>F2 editor-binding reference overlay.</summary>
+public struct EditorBindingsHelp(Entity panel, Vector2 home) : IComponent
+{
+    public Entity Panel = panel;
+    public Vector2 Home = home;
+    public bool Visible;
+}

@@ -316,6 +316,23 @@ public sealed class EditorNoteInputSystemTests
     }
 
     [Test]
+    public void DraggingAMineMovesIt()
+    {
+        Entity mine = _store.CreateEntity(
+            new Mine(1_000, new Vector2(200, 200)));
+
+        _pointer.Current = new PointerInput(new Vector2(200, 200), true);
+        _root.Update(new UpdateTick(1f / 60f, 0));
+        _pointer.Current = new PointerInput(new Vector2(260, 270), true);
+        _root.Update(new UpdateTick(1f / 60f, 0));
+        _pointer.Current = new PointerInput(new Vector2(260, 270), false);
+        _root.Update(new UpdateTick(1f / 60f, 0));
+
+        Assert.That(mine.GetComponent<Mine>().Position,
+            Is.EqualTo(new Vector2(260, 270)));
+    }
+
+    [Test]
     public void DeletedDraggedNoteDoesNotThrow()
     {
         _pointer.Current = new PointerInput(new Vector2(100, 200), true);
