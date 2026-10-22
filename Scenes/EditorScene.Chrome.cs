@@ -63,14 +63,14 @@ public static partial class EditorScene
             StackDirection.Horizontal,
             spacing: 8,
             color: new Color(0, 0, 0, 0));
-        SceneUi.Button(
+        Entity timing = SceneUi.ButtonEntity(
             ui,
             Vector2.Zero,
             new Vector2(timingWidth, 38),
             "TIMING",
-            SceneKind.SongTiming,
             14,
             SceneUi.MutedButtonColor);
+        timing.AddComponent(new SceneCommand(SceneActionId.SongTiming));
         AddEditorButtonInContainer(
             ui,
             new Vector2(songWidth, 38),

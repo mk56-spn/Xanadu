@@ -41,6 +41,7 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
     private float _transitionAlpha;
     private readonly bool _transitionsEnabled;
     private readonly SceneControllerRegistry _controllers;
+    private readonly SceneActionRegistry _actionRegistry = new();
     private readonly DisplaySettings _display;
 
     private const float TransitionSeconds = 0.22f;
@@ -76,6 +77,7 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
         _display = display ?? new DisplaySettings(persist: false, apply: false);
         _transitionsEnabled = transitions;
         _controllers = SceneControllerRegistry.CreateDefault(this);
+        EditorSceneActions.Register(_actionRegistry);
     }
 
     public ProfileStore Profiles => _profiles;
@@ -107,6 +109,24 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
         EnsureState();
         ref SceneState state = ref _stateEntity.GetComponent<SceneState>();
         state.Pending = scene;
+    }
+
+    public void OpenSongTiming()
+    {
+        EnsureState();
+        string songId = "";
+        foreach (Entity editor in _entities.Query<LevelInfo>().ToEntityList())
+        {
+            songId = editor.GetComponent<LevelInfo>().SongId;
+            break;
+        }
+
+        if (string.IsNullOrWhiteSpace(songId))
+            return;
+
+        ref SceneState state = ref _stateEntity.GetComponent<SceneState>();
+        state.SelectedSongId = songId;
+        state.Pending = SceneKind.SongTiming;
     }
 
     /// <summary>Starts play with an already-loaded level entry.</summary>

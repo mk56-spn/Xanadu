@@ -21,6 +21,20 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
         if (state.Pending != state.Current)
             return;
 
+        foreach (Entity entity in _entities
+                     .Query<SceneCommand>()
+                     .AllTags(Tags.Get<Pressed>())
+                     .ToEntityList())
+        {
+            var context = new SceneActionContext(
+                this,
+                _entities,
+                entity,
+                entity.GetComponent<SceneCommand>());
+            if (_actionRegistry.TryInvoke(state.Current, context))
+                return;
+        }
+
         if (state.Current == SceneKind.Play)
         {
             foreach (Entity entity in _entities
