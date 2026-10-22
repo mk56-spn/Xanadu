@@ -56,6 +56,44 @@ public sealed class GodotRectCanvas : IRectCanvas
         int fontSize) =>
         DrawTextAligned(canvas, bounds, text, color, fontSize, HorizontalAlignment.Right);
 
+    private readonly System.Collections.Generic.Dictionary<Rid, Rid> _rotated = new();
+
+    public void DrawTextVertical(
+        Rid canvas,
+        Rect2 bounds,
+        string text,
+        Color color,
+        int fontSize)
+    {
+        if (string.IsNullOrEmpty(text))
+            return;
+
+        if (!_rotated.TryGetValue(canvas, out Rid item))
+        {
+            item = RenderingServer.CanvasItemCreate();
+            RenderingServer.CanvasItemSetParent(item, canvas);
+            RenderingServer.CanvasItemSetZIndex(item, 2);
+            _rotated.Add(canvas, item);
+        }
+
+        RenderingServer.CanvasItemClear(item);
+        RenderingServer.CanvasItemSetTransform(
+            item,
+            new Transform2D(-Mathf.Pi / 2, new Vector2(
+                bounds.Position.X + 2,
+                bounds.End.Y - 2)));
+
+        Font font = ThemeDB.FallbackFont;
+        font.DrawString(
+            item,
+            new Vector2(0, fontSize),
+            text,
+            HorizontalAlignment.Left,
+            Mathf.Max(0, bounds.Size.Y - 4),
+            fontSize,
+            color);
+    }
+
     public void DrawTextLeft(Rid canvas, Rect2 bounds, string text, Color color) =>
         DrawTextAligned(canvas, bounds, text, color, FontSize, HorizontalAlignment.Left);
 
