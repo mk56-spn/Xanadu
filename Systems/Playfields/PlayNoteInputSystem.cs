@@ -145,7 +145,7 @@ public sealed class PlayNoteInputSystem : QuerySystem<Note>
                 continue;
 
             Note note = entity.GetComponent<Note>();
-            if (note.Target != action)
+            if (note.Kind != NoteKind.Hit || note.Target != action)
                 continue;
 
             long offset = note.TimeMs - judgedTime;
@@ -241,6 +241,8 @@ public sealed class PlayNoteInputSystem : QuerySystem<Note>
                 continue;
 
             Note note = entity.GetComponent<Note>();
+            if (note.Kind != NoteKind.Hit)
+                continue;
             long missWindow =
                 (long)ScoreRules.JudgementDeviation(Judgement.Miss);
             if (note.TimeMs + missWindow >= judgedTime)

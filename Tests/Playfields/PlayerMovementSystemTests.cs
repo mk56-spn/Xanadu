@@ -51,33 +51,43 @@ public sealed class PlayerMovementSystemTests
     public void TearDown() => _physics.Dispose();
 
     [Test]
-    public void DashesLeftOnlyWhileAMovementQueueIsActive()
+    public void DashesLeftToTheMovementNoteAnchor()
     {
         _root.Update(new UpdateTick(1f / 60f, 0));
         Assert.That(_player.GetComponent<Position>().Value.X, Is.EqualTo(500));
 
-        Entity movement = _store.CreateEntity(new MovementEvent(0));
+        Entity movement = _store.CreateEntity(new Note(
+            0,
+            new Vector2(500, 500),
+            target: KeybindAction.L3,
+            kind: NoteKind.Movement,
+            dashDirection: DashDirection.Left));
         _keyboard.Press(Key.F);
         _root.Update(new UpdateTick(1f / 60f, 0));
 
         Assert.That(_player.GetComponent<Position>().Value.X, Is.EqualTo(350));
-        Assert.That(movement.Tags.Has<MovementEventUsed>(), Is.True);
+        Assert.That(movement.IsNull, Is.True);
     }
 
     [Test]
-    public void LateralBorderWraps()
+    public void DashesFromTheNoteCenterInsteadOfThePlayerPosition()
     {
         ref Position position = ref _player.GetComponent<Position>();
         position.Value = new Vector2(950, 500);
         _player.GetComponent<PhysicsBody>().Body.SetTransform(
             Box2DPhysicsWorld.ToPhysics(position.Value),
             0f);
-        _store.CreateEntity(new MovementEvent(0));
+        _store.CreateEntity(new Note(
+            0,
+            new Vector2(950, 500),
+            target: KeybindAction.L3,
+            kind: NoteKind.Movement,
+            dashDirection: DashDirection.Left));
 
-        _keyboard.Press(Key.L);
+        _keyboard.Press(Key.F);
         _root.Update(new UpdateTick(1f / 60f, 0));
 
-        Assert.That(position.Value.X, Is.EqualTo(100));
+        Assert.That(position.Value.X, Is.EqualTo(800));
     }
 
     [Test]
@@ -88,7 +98,12 @@ public sealed class PlayerMovementSystemTests
         _player.GetComponent<PhysicsBody>().Body.SetTransform(
             Box2DPhysicsWorld.ToPhysics(position.Value),
             0f);
-        _store.CreateEntity(new MovementEvent(0));
+        _store.CreateEntity(new Note(
+            0,
+            new Vector2(500, 50),
+            target: KeybindAction.M,
+            kind: NoteKind.Movement,
+            dashDirection: DashDirection.Up));
 
         _keyboard.Press(Key.Space);
         _root.Update(new UpdateTick(1f / 60f, 0));
@@ -100,7 +115,12 @@ public sealed class PlayerMovementSystemTests
     public void TrueNoteBlocksMovement()
     {
         _store.CreateEntity(new Note(0, new Vector2(500, 500)));
-        _store.CreateEntity(new MovementEvent(0));
+        _store.CreateEntity(new Note(
+            0,
+            new Vector2(500, 500),
+            target: KeybindAction.L3,
+            kind: NoteKind.Movement,
+            dashDirection: DashDirection.Left));
 
         _keyboard.Press(Key.F);
         _root.Update(new UpdateTick(1f / 60f, 0));

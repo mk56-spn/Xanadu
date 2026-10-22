@@ -60,18 +60,40 @@ public struct PlayfieldView(Vector2 screenOrigin, float scale, Vector2 screenSiz
 }
 
 /// <summary>A note placed in playfield coordinates.</summary>
+public enum NoteKind
+{
+    Hit,
+    Movement,
+}
+
+public enum DashDirection
+{
+    Up,
+    UpRight,
+    Right,
+    DownRight,
+    Down,
+    DownLeft,
+    Left,
+    UpLeft,
+}
+
 public struct Note(
     long timeMs,
     Vector2 position,
     long fadeInMs = 600,
     long fadeOutMs = 600,
-    KeybindAction target = KeybindAction.M) : IComponent
+    KeybindAction target = KeybindAction.M,
+    NoteKind kind = NoteKind.Hit,
+    DashDirection dashDirection = DashDirection.Up) : IComponent
 {
     public long TimeMs = timeMs;
     public Vector2 Position = position;
     public long FadeInMs = fadeInMs;
     public long FadeOutMs = fadeOutMs;
     public KeybindAction Target = target;
+    public NoteKind Kind = kind;
+    public DashDirection DashDirection = dashDirection;
 }
 
 /// <summary>A mine hazard placed in playfield coordinates.</summary>

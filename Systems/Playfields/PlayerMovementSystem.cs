@@ -39,10 +39,15 @@ public sealed class PlayerMovementSystem : QuerySystem<Player, Position, Playfie
 
     protected override void OnUpdate()
     {
-        bool left = JustPressed(_keybinds.Get(KeybindAction.L3));
-        bool right = JustPressed(_keybinds.Get(KeybindAction.R3));
-        bool up = JustPressed(_keybinds.Get(KeybindAction.M)) |
-                  JustPressed(Key.Space);
+        var pressed = new HashSet<KeybindAction>();
+        foreach (KeybindAction action in KeybindSettings.Actions)
+        {
+            if (JustPressed(_keybinds.Get(action)))
+                pressed.Add(action);
+        }
+
+        if (pressed.Count == 0)
+            return;
 
         CommandBuffer buffer = CommandBuffer;
 
@@ -51,33 +56,96 @@ public sealed class PlayerMovementSystem : QuerySystem<Player, Position, Playfie
             if (entity.Tags.Has<PlayPaused>() || IsWaiting(entity))
                 return;
 
-            if (!left && !right && !up)
-                return;
-
             Vector2 screen = Box2DPhysicsWorld.ToScreen(body.Body.GetPosition());
 
             if (PlayerTouchesTrueNote(screen, player, view, playhead.TimeMs))
                 return;
 
-            Entity? active = NextActiveEvent(playhead.TimeMs);
-            if (active is null)
+            if (!TryFindMovementNote(
+                    screen,
+                    player,
+                    view,
+                    playhead.TimeMs,
+                    pressed,
+                    out Note movement))
+            {
                 return;
+            }
 
-            Vector2 dash = left
-                ? new Vector2(-DashPixels, 0)
-                : right
-                    ? new Vector2(DashPixels, 0)
-                    : new Vector2(0, -DashPixels);
-
-            screen += dash;
+            Vector2 direction = DashDirectionVector(movement.DashDirection);
+            Vector2 target = movement.Position + direction * DashPixels;
+            Vector2 targetScreen = view.PlayfieldToScreen(target);
             body.Body.SetTransform(
-                Box2DPhysicsWorld.ToPhysics(screen),
+                Box2DPhysicsWorld.ToPhysics(targetScreen),
                 body.Body.GetAngle());
-            position.Value = screen;
+            position.Value = targetScreen;
 
-            buffer.AddTag<MovementEventUsed>(active.Value.Id);
+            foreach (Entity noteEntity in _entities
+                         .Query<Note>()
+                         .ToEntityList())
+            {
+                if (noteEntity.GetComponent<Note>().TimeMs == movement.TimeMs &&
+                    noteEntity.GetComponent<Note>().Position == movement.Position &&
+                    noteEntity.GetComponent<Note>().Kind == NoteKind.Movement)
+                {
+                    buffer.DeleteEntity(noteEntity.Id);
+                    break;
+                }
+            }
         });
     }
+
+    private bool TryFindMovementNote(
+        Vector2 playerScreen,
+        Player player,
+        PlayfieldView view,
+        long timeMs,
+        HashSet<KeybindAction> pressed,
+        out Note result)
+    {
+        result = default;
+        float noteSize = PlayfieldRenderer.NoteSize * view.Scale;
+        var playerRect = new Rect2(
+            playerScreen - player.Size / 2,
+            player.Size);
+
+        foreach (Entity entity in _entities.Query<Note>().ToEntityList())
+        {
+            Note note = entity.GetComponent<Note>();
+            if (note.Kind != NoteKind.Movement ||
+                !pressed.Contains(note.Target) ||
+                Math.Abs(note.TimeMs - timeMs) > ActiveWindowMs ||
+                NoteFade.Alpha(note, timeMs) <= 0)
+            {
+                continue;
+            }
+
+            Vector2 noteScreen = view.PlayfieldToScreen(note.Position);
+            var noteRect = new Rect2(
+                noteScreen - new Vector2(noteSize / 2, noteSize / 2),
+                new Vector2(noteSize, noteSize));
+            if (!playerRect.Intersects(noteRect))
+                continue;
+
+            result = note;
+            return true;
+        }
+
+        return false;
+    }
+
+    public static Vector2 DashDirectionVector(DashDirection direction) =>
+        direction switch
+        {
+            DashDirection.Up => new Vector2(0, -1),
+            DashDirection.UpRight => new Vector2(1, -1).Normalized(),
+            DashDirection.Right => new Vector2(1, 0),
+            DashDirection.DownRight => new Vector2(1, 1).Normalized(),
+            DashDirection.Down => new Vector2(0, 1),
+            DashDirection.DownLeft => new Vector2(-1, 1).Normalized(),
+            DashDirection.Left => new Vector2(-1, 0),
+            _ => new Vector2(-1, -1).Normalized(),
+        };
 
     private bool IsWaiting(Entity entity)
     {
@@ -104,7 +172,8 @@ public sealed class PlayerMovementSystem : QuerySystem<Player, Position, Playfie
                 continue;
 
             Note note = entity.GetComponent<Note>();
-            if (NoteFade.Alpha(note, timeMs) <= 0)
+            if (note.Kind != NoteKind.Hit ||
+                NoteFade.Alpha(note, timeMs) <= 0)
                 continue;
 
             float noteSize = NoteSize * view.Scale;
@@ -118,29 +187,6 @@ public sealed class PlayerMovementSystem : QuerySystem<Player, Position, Playfie
         }
 
         return false;
-    }
-
-    private Entity? NextActiveEvent(long timeMs)
-    {
-        Entity? active = null;
-        float closest = float.MaxValue;
-
-        foreach (Entity entity in _entities.Query<MovementEvent>().ToEntityList())
-        {
-            if (entity.Tags.Has<MovementEventUsed>())
-                continue;
-
-            float distance = Math.Abs(
-                entity.GetComponent<MovementEvent>().TimeMs - timeMs);
-
-            if (distance > ActiveWindowMs || distance >= closest)
-                continue;
-
-            active = entity;
-            closest = distance;
-        }
-
-        return active;
     }
 
     private bool JustPressed(Key key)

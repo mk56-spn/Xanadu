@@ -41,6 +41,8 @@ public static class LevelDocumentMapper
                 FadeInMs = note.FadeInMs,
                 FadeOutMs = note.FadeOutMs,
                 Target = note.Target,
+                Kind = note.Kind,
+                DashDirection = note.DashDirection,
             });
         }
 
@@ -91,7 +93,9 @@ public static class LevelDocumentMapper
                 new Vector2(note.X, note.Y),
                 note.FadeInMs,
                 note.FadeOutMs,
-                note.Target));
+                note.Target,
+                note.Kind,
+                note.DashDirection));
         }
 
         foreach (MovementEventDocument movement in document.MovementEvents)

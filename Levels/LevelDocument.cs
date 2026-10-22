@@ -1,3 +1,4 @@
+using Writer.Ecs;
 using Writer.Settings;
 using System.Collections.Generic;
 
@@ -67,4 +68,8 @@ public sealed class NoteDocument
     public long FadeOutMs { get; set; } = 600;
 
     public KeybindAction Target { get; set; } = KeybindAction.M;
+
+    public NoteKind Kind { get; set; } = NoteKind.Hit;
+
+    public DashDirection DashDirection { get; set; } = DashDirection.Up;
 }
