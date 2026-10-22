@@ -42,6 +42,26 @@ public sealed class ProfileStoreTests
         }
     }
 
+
+    [Test]
+    public void AllScoresHandlesOverflowSizedLists()
+    {
+        var store = new ProfileStore(persist: false);
+        string level = Path.Combine(Path.GetTempPath(), "level.json");
+        for (int i = 0; i < 30; i++)
+        {
+            store.Create($"Player {i}");
+            store.RecordScore(
+                level,
+                new PlayResults("Level", 100_000 + i, 0.5, i, 30, 30));
+        }
+
+        var scores = store.AllScores(level);
+        Assert.That(scores, Has.Count.EqualTo(30));
+        Assert.That(scores[0].Record.Score, Is.EqualTo(100_029));
+        Assert.That(scores[^1].Record.Score, Is.EqualTo(100_000));
+    }
+
     [Test]
     public void AllScoresAreSortedAcrossProfiles()
     {
