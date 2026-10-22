@@ -39,6 +39,7 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
     private bool _restartRequested;
     private float _transitionAlpha;
     private readonly bool _transitionsEnabled;
+    private readonly SceneControllerRegistry _controllers;
 
     private const float TransitionSeconds = 0.22f;
     private static readonly Vector2 HiddenConfirmation = new(-10_000, -10_000);
@@ -70,7 +71,10 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
         _keybinds = keybinds ?? new KeybindSettings(persist: false);
         _profiles = profiles ?? new ProfileStore(persist: false);
         _transitionsEnabled = transitions;
+        _controllers = SceneControllerRegistry.CreateDefault(this);
     }
+
+    public ProfileStore Profiles => _profiles;
 
     public SceneKind Current =>
         _stateEntity.IsNull
@@ -267,22 +271,6 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
             BeginFadeOut();
     }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
     /// <summary>Restarts the most recent level from its beginning.</summary>
 
     private void RetryPlay(ref SceneState state)
@@ -297,21 +285,4 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
         _restartRequested = true;
         state.Pending = SceneKind.Play;
     }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 }

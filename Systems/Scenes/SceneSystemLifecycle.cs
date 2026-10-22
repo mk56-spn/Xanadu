@@ -117,69 +117,25 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
 
         _sceneRoot = _entities.CreateEntity(new SceneRoot(next));
 
-        switch (next)
+        var context = new SceneBuildContext(
+            _entities,
+            _sceneRoot,
+            _stateEntity,
+            _screen,
+            _visuals,
+            _keybinds,
+            _profiles,
+            _loadLevels,
+            next == SceneKind.Editor ? _pendingEditorEntry : playEntry,
+            results);
+        _pendingEditorEntry = null;
+
+        if (!_controllers.Build(next, context))
         {
-            case SceneKind.Profiles:
-                ProfilesScene.Build(
-                    _entities,
-                    _sceneRoot,
-                    _screen,
-                    _profiles,
-                    _visuals);
-                break;
-
-            case SceneKind.Main:
-                MainMenuScene.Build(_entities, _sceneRoot, _screen, _visuals);
-                break;
-
-            case SceneKind.SongSelect:
-                BuildSongSelect(ref state);
-                break;
-
-            case SceneKind.Play:
-                PlayScene.Build(
-                    _entities,
-                    _sceneRoot,
-                    _screen,
-                    playEntry!,
-                    _keybinds,
-                    _visuals);
-                break;
-
-            case SceneKind.Results:
-                ResultsScene.Build(
-                    _entities,
-                    _sceneRoot,
-                    _screen,
-                    results,
-                    _visuals);
-                break;
-
-            case SceneKind.Editor:
-                EditorScene.Build(
-                    _entities,
-                    _screen,
-                    _sceneRoot,
-                    _pendingEditorEntry);
-                _pendingEditorEntry = null;
-                break;
-
-            case SceneKind.OffsetWizard:
-                OffsetWizardScene.Build(
-                    _entities,
-                    _sceneRoot,
-                    _screen,
-                    _visuals);
-                break;
-
-            case SceneKind.Settings:
-                SettingsScene.Build(
-                    _entities,
-                    _sceneRoot,
-                    _screen,
-                    _keybinds,
-                    _visuals);
-                break;
+            next = SceneKind.Main;
+            _controllers.Build(
+                next,
+                context with { Entry = null, Results = null });
         }
 
         state.Current = next;
@@ -255,16 +211,5 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
         entity.DeleteEntity();
     }
 
-    private static string LabelFor(SceneKind scene) => scene switch
-    {
-        SceneKind.Main => "MAIN",
-        SceneKind.SongSelect => "SONG SELECT",
-        SceneKind.Play => "PLAY",
-        SceneKind.Results => "RESULTS",
-        SceneKind.Profiles => "PROFILES",
-        SceneKind.Editor => "EDITOR",
-        SceneKind.OffsetWizard => "OFFSET WIZARD",
-        SceneKind.Settings => "SETTINGS",
-        _ => "",
-    };
+    private string LabelFor(SceneKind scene) => _controllers.LabelFor(scene);
 }

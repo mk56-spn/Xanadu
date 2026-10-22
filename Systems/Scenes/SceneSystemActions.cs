@@ -107,7 +107,7 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
                      .AllTags(Tags.Get<Pressed>())
                      .ToEntityList())
         {
-            StepCarousel(ref state, entity.GetComponent<CarouselStep>().Direction);
+            TryStepCarousel(entity.GetComponent<CarouselStep>().Direction);
             return;
         }
     }
