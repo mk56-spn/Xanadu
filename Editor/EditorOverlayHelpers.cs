@@ -28,44 +28,27 @@ public partial class EditorOverlay : CanvasLayer
         if (issues.Count == 0)
             return true;
 
-        _statusLabel.Text = issues.Count == 1
+        SetStatus(issues.Count == 1
             ? issues[0]
-            : $"{issues[0]} (+{issues.Count - 1} more)";
+            : $"{issues[0]} (+{issues.Count - 1} more)");
 
         return false;
     }
 
-    private static LineEdit AddDropdownField(
-        Container parent,
-        string labelText,
-        string value)
+    private bool AnyDialogVisible() =>
+        (_songDialog?.Visible ?? false) ||
+        (_saveAsDialog?.Visible ?? false) ||
+        (_loadDialog?.Visible ?? false);
+
+    private bool IsWarningOpen()
     {
-        var field = new VBoxContainer
+        foreach (Entity entity in _entities.Query<WarningPopup>().ToEntityList())
         {
-            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
-        };
-        field.AddThemeConstantOverride("separation", 2);
+            if (entity.GetComponent<WarningPopup>().Visible)
+                return true;
+        }
 
-        var label = new Label { Text = labelText };
-        label.AddThemeFontSizeOverride("font_size", 12);
-        label.AddThemeColorOverride("font_color", new Color("#94a3b8"));
-        field.AddChild(label);
-
-        var edit = new LineEdit
-        {
-            Text = value,
-            CustomMinimumSize = new Vector2(0, 30),
-            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
-        };
-        field.AddChild(edit);
-        parent.AddChild(field);
-        return edit;
-    }
-
-    private static string FormatMs(long milliseconds)
-    {
-        long value = Math.Max(0, milliseconds);
-        return $"{value / 60000:00}:{value / 1000 % 60:00}.{value % 1000:000}";
+        return false;
     }
 
     private Entity FindEditor()

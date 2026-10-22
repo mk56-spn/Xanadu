@@ -21,10 +21,6 @@ public partial class EditorOverlay : CanvasLayer
 
         switch (kind)
         {
-            case EditorButtonKind.ToggleMetadata:
-                ToggleMetadata();
-                break;
-
             case EditorButtonKind.Save:
                 SaveCurrent();
                 break;
@@ -60,13 +56,12 @@ public partial class EditorOverlay : CanvasLayer
         int? bpm = _tapTempo.Tap((long)Time.GetTicksMsec());
         if (bpm is not int value)
         {
-            _statusLabel.Text = "Tap again for BPM";
+            SetStatus("Tap again for BPM");
             return;
         }
 
         _commands.Enqueue(EditorCommand.SetBpm(value));
-        _bpmEdit.Text = value.ToString();
-        _statusLabel.Text = $"Tap BPM {value}";
+        SetStatus($"Tap BPM {value}");
     }
 
     private void TogglePreview()

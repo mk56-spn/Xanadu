@@ -20,6 +20,7 @@ public static class SceneTestCatalog
         new SongSelectSceneTest(),
         new EditLevelSceneTest(),
         new EditorWaveformSceneTest(),
+        new EditorMetadataSceneTest(),
         new SettingsSceneTest(),
         new OffsetWizardSceneTest(),
         new PlaySceneTest(),
@@ -178,6 +179,70 @@ public sealed class EditorWaveformSceneTest : SceneTest
             "waveform has peaks",
             () => Context.Entities.Query<WaveformPreview>().ToEntityList()[0]
                 .GetComponent<WaveformPreview>().Left.Length > 0);
+    }
+}
+
+public sealed class EditorMetadataSceneTest : SceneTest
+{
+    public override string Name => "Editor metadata";
+    public override string Slug => "editor-metadata";
+
+    protected override void SetUpSteps()
+    {
+        AddStep("open editor", () => Context.Scenes.Start(SceneKind.Editor));
+        AddUntilStep(
+            "wait for editor",
+            () => Context.Scenes.Current == SceneKind.Editor &&
+                  VisualAssert.HasText(Context.Entities, "SNAP"));
+
+        AddStep("open metadata panel", () =>
+        {
+            foreach (Entity button in Context.Entities
+                         .Query<EditorButton>()
+                         .ToEntityList())
+            {
+                if (button.GetComponent<EditorButton>().Kind ==
+                    EditorButtonKind.ToggleMetadata)
+                {
+                    button.AddTag<Pressed>();
+                    return;
+                }
+            }
+        });
+        AddUntilStep(
+            "wait for metadata panel",
+            () => Context.Entities.Query<EditorMetadataPanel>().ToEntityList()[0]
+                .GetComponent<EditorMetadataPanel>().Visible);
+        AddAssert(
+            "metadata fields exist",
+            () => Context.Entities.Query<EditorField>().Count == 5);
+
+        AddStep("click level name field", () =>
+        {
+            foreach (Entity entity in Context.Entities
+                         .Query<EditorField>()
+                         .ToEntityList())
+            {
+                if (entity.GetComponent<EditorField>().Kind !=
+                    EditorFieldKind.LevelName)
+                {
+                    continue;
+                }
+
+                Vector2 center = UiTransform.WorldPosition(
+                    entity,
+                    entity.GetComponent<Position>().Value);
+                Context.Pointer.Click(center);
+                return;
+            }
+        });
+        AddWaitStep("hold level name field", 2);
+        AddStep("release level name field", () => Context.Pointer.Release());
+        AddUntilStep(
+            "level name field focused",
+            () => Context.Entities.Query<TextField>()
+                .AllTags(Tags.Get<TextFieldFocused>())
+                .Count == 1);
     }
 }
 

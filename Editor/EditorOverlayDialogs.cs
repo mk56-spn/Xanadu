@@ -77,11 +77,11 @@ public partial class EditorOverlay : CanvasLayer
 
             LevelStore.Save(document, path);
             _commands.Enqueue(EditorCommand.SetLevelFile(path));
-            _statusLabel.Text = $"Saved {Path.GetFileName(path)}";
+            SetStatus($"Saved {Path.GetFileName(path)}");
         }
         catch (Exception exception)
         {
-            _statusLabel.Text = $"Save failed: {exception.Message}";
+            SetStatus($"Save failed: {exception.Message}");
         }
     }
 
@@ -112,11 +112,11 @@ public partial class EditorOverlay : CanvasLayer
 
             LevelStore.Save(document, path);
             _commands.Enqueue(EditorCommand.SetLevelFile(path));
-            _statusLabel.Text = $"Saved {Path.GetFileName(path)}";
+            SetStatus($"Saved {Path.GetFileName(path)}");
         }
         catch (Exception exception)
         {
-            _statusLabel.Text = $"Save failed: {exception.Message}";
+            SetStatus($"Save failed: {exception.Message}");
         }
     }
 
@@ -137,19 +137,11 @@ public partial class EditorOverlay : CanvasLayer
             LevelDocument document = LevelStore.Load(path);
             _commands.Enqueue(EditorCommand.ApplyLevel(document, path));
 
-            _syncing = true;
-            _nameEdit.Text = document.Name;
-            _artistEdit.Text = document.Artist;
-            _difficultyEdit.Text = document.Difficulty;
-            _bpmEdit.Text = document.Bpm.ToString();
-            _offsetEdit.Text = document.OffsetMs.ToString();
-            _syncing = false;
-
-            _statusLabel.Text = $"Loaded {Path.GetFileName(path)}";
+            SetStatus($"Loaded {Path.GetFileName(path)}");
         }
         catch (Exception exception)
         {
-            _statusLabel.Text = $"Load failed: {exception.Message}";
+            SetStatus($"Load failed: {exception.Message}");
         }
     }
 

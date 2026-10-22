@@ -19,13 +19,6 @@ public partial class EditorOverlay : CanvasLayer
         if (AnyDialogVisible())
             return;
 
-        if (key.Keycode == Key.Escape && _metadataPanel.Visible)
-        {
-            HideMetadata();
-            GetViewport().SetInputAsHandled();
-            return;
-        }
-
         if (key.Keycode == Key.Escape && IsPreviewing())
         {
             EndPreview();
@@ -152,7 +145,7 @@ public partial class EditorOverlay : CanvasLayer
             return;
 
         _commands.Enqueue(EditorCommand.Undo());
-        _statusLabel.Text = "Undo";
+        SetStatus("Undo");
     }
 
     private void Redo()
@@ -161,7 +154,7 @@ public partial class EditorOverlay : CanvasLayer
             return;
 
         _commands.Enqueue(EditorCommand.Redo());
-        _statusLabel.Text = "Redo";
+        SetStatus("Redo");
     }
 
     private void OnZoom(int direction)

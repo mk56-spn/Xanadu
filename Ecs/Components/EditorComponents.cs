@@ -178,3 +178,55 @@ public struct WarningPopup(Entity message, Entity button) : IComponent
     public Entity Button = button;
     public bool Visible;
 }
+
+/// <summary>General ECS text field backing a native text-input bridge.</summary>
+public struct TextField(string value, bool numeric = false) : IComponent
+{
+    public string Value = value;
+    public bool Numeric = numeric;
+}
+
+/// <summary>Tag for the text field currently receiving keyboard input.</summary>
+public struct TextFieldFocused : ITag;
+
+public enum EditorFieldKind
+{
+    LevelName,
+    Artist,
+    Difficulty,
+    Bpm,
+    Offset,
+}
+
+/// <summary>Binds an ECS text field to an editor metadata property.</summary>
+public struct EditorField(EditorFieldKind kind) : IComponent
+{
+    public EditorFieldKind Kind = kind;
+}
+
+/// <summary>Editor metadata panel visibility and home position.</summary>
+public struct EditorMetadataPanel(Entity panel, Vector2 home) : IComponent
+{
+    public Entity Panel = panel;
+    public Vector2 Home = home;
+    public bool Visible;
+}
+
+/// <summary>ECS editor HUD text entities updated from editor state.</summary>
+public struct EditorHud(
+    Entity level,
+    Entity song,
+    Entity status,
+    Entity time,
+    Entity notes,
+    Entity preview) : IComponent
+{
+    public Entity Level = level;
+    public Entity Song = song;
+    public Entity Status = status;
+    public Entity Time = time;
+    public Entity Notes = notes;
+    public Entity Preview = preview;
+    public Vector2 PreviewHome = new(0, 24);
+    public string StatusText = "";
+}
