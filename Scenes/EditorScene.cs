@@ -447,7 +447,7 @@ public static class EditorScene
         ui.End();
         ui.End();
 
-        float middleHeight = screen.Y - EditorLayout.HeaderHeight - 140;
+        float middleHeight = screen.Y - EditorLayout.HeaderHeight - 170;
         ui.Container(
             Vector2.Zero,
             new Vector2(screen.X, middleHeight),
@@ -469,7 +469,7 @@ public static class EditorScene
 
         ui.Container(
             Vector2.Zero,
-            new Vector2(screen.X, 140),
+            new Vector2(screen.X, 170),
             StackDirection.Vertical,
             spacing: 0,
             color: new Color(0, 0, 0, 0));
@@ -502,7 +502,7 @@ public static class EditorScene
         }
         ui.RectEntity(
             Vector2.Zero,
-            new Vector2(1, 98),
+            new Vector2(1, 128),
             new Color(0, 0, 0, 0));
         ui.End();
         ui.End();
