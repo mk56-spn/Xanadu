@@ -25,6 +25,7 @@ public static class SceneTestCatalog
         new SettingsSceneTest(),
         new OffsetWizardSceneTest(),
         new PlaySceneTest(),
+        new CharacterPlaySceneTest(),
         new ResultsSceneTest(),
         new RestartSceneTest(),
         new EditorDropdownSceneTest(),
@@ -963,6 +964,109 @@ public sealed class LeaveEditorSceneTest : SceneTest
 }
 
 /// <summary>The results screen shows the three final values in one column.</summary>
+/// <summary>Live character play: hit a note, then dash on a movement note.</summary>
+public sealed class CharacterPlaySceneTest : SceneTest
+{
+    public override string Name => "Character play";
+    public override string Slug => "character-play";
+
+    protected override void SetUpSteps()
+    {
+        AddStep("start character chart", () =>
+        {
+            var document = new LevelDocument
+            {
+                Name = "Character Play Test",
+                Bpm = 120,
+                AudioPath = "res://Audio/test-track.wav",
+                PlayfieldWidth = 1000,
+                PlayfieldHeight = 1000,
+            };
+            document.Notes.Add(new NoteDocument
+            {
+                TimeMs = 1_000,
+                X = 500,
+                Y = 1000,
+                Target = KeybindAction.M,
+            });
+            document.Notes.Add(new NoteDocument
+            {
+                TimeMs = 2_000,
+                X = 500,
+                Y = 1000,
+                Target = KeybindAction.L3,
+                Kind = NoteKind.Movement,
+                DashDirection = DashDirection.Right,
+            });
+            Context.Scenes.StartPlay(
+                new LevelEntry("memory://character-play", document));
+        });
+        AddUntilStep(
+            "wait for character play",
+            () => Context.Entities.Query<PlaySession>().Count == 1 &&
+                  Context.Entities.Query<PlaySession>().ToEntityList()[0]
+                      .GetComponent<PlaySession>().Started);
+        AddUntilStep(
+            "wait for first note",
+            () => PlayheadTime() >= 900);
+        AddStep("hit first note", () =>
+        {
+            Context.Keyboard.Press(
+                Context.Systems.Keybinds.Get(KeybindAction.M));
+        });
+        AddUntilStep(
+            "first note consumed",
+            () => Context.Entities.Query<Note>().Count == 1);
+        AddStep("release first note", () =>
+        {
+            Context.Keyboard.Release(
+                Context.Systems.Keybinds.Get(KeybindAction.M));
+        });
+        AddStep("align movement note to character", () =>
+        {
+            Entity player = Context.Entities.Query<Player, Position>()
+                .ToEntityList()[0];
+            Entity playfield = Context.Entities.Query<PlayfieldView>()
+                .ToEntityList()[0];
+            PlayfieldView view = playfield.GetComponent<PlayfieldView>();
+            Vector2 playfieldPosition = view.ScreenToPlayfield(
+                player.GetComponent<Position>().Value);
+            foreach (Entity note in Context.Entities.Query<Note>().ToEntityList())
+            {
+                ref Note value = ref note.GetComponent<Note>();
+                value.Position = playfieldPosition;
+            }
+        });
+        AddUntilStep(
+            "wait for movement note",
+            () => PlayheadTime() >= 1_900);
+        AddStep("hit movement note", () =>
+        {
+            Context.Keyboard.Press(
+                Context.Systems.Keybinds.Get(KeybindAction.L3));
+        });
+        AddUntilStep(
+            "player dashed right",
+            () => Context.Entities.Query<Player, Position>().Count > 0 &&
+                  Context.Entities.Query<Player, Position>()
+                      .ToEntityList()[0].GetComponent<Position>().Value.X >= 1050f);
+        AddStep("release movement note", () =>
+        {
+            Context.Keyboard.Release(
+                Context.Systems.Keybinds.Get(KeybindAction.L3));
+        });
+        AddAssert(
+            "movement note was consumed",
+            () => Context.Entities.Query<Note>().Count == 0);
+    }
+
+    private long PlayheadTime() =>
+        Context.Entities.Query<Playhead>().Count == 0
+            ? 0
+            : Context.Entities.Query<Playhead>().ToEntityList()[0]
+                .GetComponent<Playhead>().TimeMs;
+}
+
 public sealed class ResultsSceneTest : SceneTest
 {
     public override string Name => "Results";

@@ -45,6 +45,7 @@ public sealed class WriterSystemRoot : SystemRoot, IDisposable
     public SceneSystem Scenes { get; }
 
     public KeybindSettings Keybinds { get; }
+    public IKeyboardState Keyboard { get; }
 
     public ToastSystem Toasts { get; }
 
@@ -61,7 +62,8 @@ public sealed class WriterSystemRoot : SystemRoot, IDisposable
         SceneDirector sceneDirector,
         Vector2 viewportSize,
         KeybindSettings? keybinds = null,
-        bool transitions = true) : base(entities, "Writer")
+        bool transitions = true,
+        IKeyboardState? keyboard = null) : base(entities, "Writer")
     {
         var canvas = new GodotRectCanvas();
         _entities = entities;
@@ -69,6 +71,7 @@ public sealed class WriterSystemRoot : SystemRoot, IDisposable
         EditorHistory = new EditorHistory(entities);
         Commands = new EditorCommandBus();
         Keybinds = keybinds ?? new KeybindSettings();
+        Keyboard = keyboard ?? new GodotKeyboardState();
         Toasts = new ToastSystem(
             entities,
             viewportSize,
@@ -123,7 +126,7 @@ public sealed class WriterSystemRoot : SystemRoot, IDisposable
             _playfield,
             _playfieldAudio,
             Keybinds,
-            new GodotKeyboardState(),
+            Keyboard,
             Offsets));
         _editorSystems = new EditorSystemGroup(
             entities,

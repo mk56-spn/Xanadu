@@ -117,6 +117,7 @@ public partial class VisualTestMain : Control
 
         _entities = new EntityStore();
         _pointer = new ScriptedPointerInputSource();
+        var keyboard = new ScriptedKeyboardState();
         _director = new SceneDirector();
         Vector2 screen = GetViewportRect().Size;
         if (screen.X <= 0 || screen.Y <= 0)
@@ -129,14 +130,16 @@ public partial class VisualTestMain : Control
             _director,
             screen,
             new KeybindSettings(persist: false),
-            transitions: false);
+            transitions: false,
+            keyboard: keyboard);
 
         _context = new VisualTestContext(
             _entities,
             _systems,
             screen,
             this,
-            _pointer);
+            _pointer,
+            keyboard);
 
         SceneTest test = _tests[_index];
 

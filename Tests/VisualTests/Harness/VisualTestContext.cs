@@ -11,7 +11,8 @@ public sealed record VisualTestContext(
     WriterSystemRoot Systems,
     Vector2 Screen,
     Control Host,
-    ScriptedPointerInputSource Pointer)
+    ScriptedPointerInputSource Pointer,
+    ScriptedKeyboardState Keyboard)
 {
     public SceneSystem Scenes => Systems.Scenes;
 }
