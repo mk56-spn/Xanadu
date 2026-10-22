@@ -1,7 +1,7 @@
 using Friflo.Engine.ECS;
 using Writer.Ecs;
 
-namespace Writer.Testing;
+namespace Writer.Tests.VisualTests;
 
 /// <summary>Small ECS assertions shared by visual tests.</summary>
 public static class VisualAssert

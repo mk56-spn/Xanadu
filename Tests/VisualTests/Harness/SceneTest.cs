@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace Writer.Testing;
+namespace Writer.Tests.VisualTests;
 
 /// <summary>
 /// Small osu!framework-style test scene: build a sequence of steps, then let

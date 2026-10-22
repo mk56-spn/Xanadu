@@ -1,7 +1,7 @@
 using Godot;
 using Writer.Systems.Input;
 
-namespace Writer.Testing;
+namespace Writer.Tests.VisualTests;
 
 /// <summary>Deterministic pointer source used by scene tests.</summary>
 public sealed class ScriptedPointerInputSource : IBlockingPointerInputSource

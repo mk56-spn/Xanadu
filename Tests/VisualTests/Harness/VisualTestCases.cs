@@ -10,7 +10,7 @@ using Writer.Scenes;
 using Writer.Settings;
 using Writer.Systems.Playfields;
 
-namespace Writer.Testing;
+namespace Writer.Tests.VisualTests;
 
 /// <summary>Structural regression cases for the ECS screens.</summary>
 public static class SceneTestCatalog

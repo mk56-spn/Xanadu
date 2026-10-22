@@ -1,6 +1,6 @@
 using System;
 
-namespace Writer.Testing;
+namespace Writer.Tests.VisualTests;
 
 public enum SceneTestStepState
 {

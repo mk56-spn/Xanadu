@@ -1,5 +1,5 @@
 using NUnit.Framework;
-using Writer.Testing;
+using Writer.Tests.VisualTests;
 
 namespace Writer.Tests.VisualTests;
 

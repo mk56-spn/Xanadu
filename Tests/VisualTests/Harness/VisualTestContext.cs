@@ -3,7 +3,7 @@ using Godot;
 using Writer.Ecs;
 using Writer.Systems.Scenes;
 
-namespace Writer.Testing;
+namespace Writer.Tests.VisualTests;
 
 /// <summary>Everything a visual test needs to boot and inspect a scene.</summary>
 public sealed record VisualTestContext(

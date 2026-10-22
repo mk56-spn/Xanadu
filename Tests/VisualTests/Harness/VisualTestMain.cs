@@ -7,7 +7,7 @@ using Writer.Ecs;
 using Writer.Settings;
 using Writer.Systems.Input;
 
-namespace Writer.Testing;
+namespace Writer.Tests.VisualTests;
 
 /// <summary>
 /// Boots ECS scenes without navigating menus and runs osu-style test scenes:
