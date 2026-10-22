@@ -5,7 +5,6 @@ using NUnit.Framework;
 using Writer.Ecs;
 using Writer.Editor;
 using Writer.Systems.Editor;
-using Writer.Ui;
 using Position = Writer.Ecs.Position;
 
 namespace Writer.Tests.Editor;

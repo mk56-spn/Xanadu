@@ -2,7 +2,6 @@ using Friflo.Engine.ECS;
 using Godot;
 using Writer.Ecs;
 using Writer.Scoring;
-using Writer.Ui;
 
 namespace Writer.Scenes;
 

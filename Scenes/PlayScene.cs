@@ -7,7 +7,6 @@ using Position = Writer.Ecs.Position;
 using Writer.Levels;
 using Writer.Settings;
 using Writer.Systems.Playfields;
-using Writer.Ui;
 
 namespace Writer.Scenes;
 

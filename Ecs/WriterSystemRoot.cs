@@ -2,6 +2,7 @@ using System;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Godot;
+using Writer.Ecs;
 using Writer.Editor;
 using Writer.Editor.Commands;
 using Writer.Systems.Audio;
@@ -14,7 +15,6 @@ using Writer.Profiles;
 using Writer.Settings;
 using Writer.Systems.Scenes;
 using Writer.Systems.Ui;
-using Writer.Ui;
 
 namespace Writer.Ecs;
 

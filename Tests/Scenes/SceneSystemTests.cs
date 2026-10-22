@@ -11,7 +11,6 @@ using Writer.Scenes;
 using Writer.Profiles;
 using Writer.Settings;
 using Writer.Systems.Scenes;
-using Writer.Ui;
 
 namespace Writer.Tests.Scenes;
 

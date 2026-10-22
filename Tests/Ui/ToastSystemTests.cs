@@ -4,7 +4,6 @@ using Godot;
 using NUnit.Framework;
 using Writer.Ecs;
 using Writer.Systems.Ui;
-using Writer.Ui;
 using Position = Writer.Ecs.Position;
 
 namespace Writer.Tests.Ui;

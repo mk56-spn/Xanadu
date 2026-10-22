@@ -4,7 +4,6 @@ using Godot;
 using Writer.Ecs;
 using Writer.Levels;
 using Writer.Profiles;
-using Writer.Ui;
 
 namespace Writer.Scenes;
 

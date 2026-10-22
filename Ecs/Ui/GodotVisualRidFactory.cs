@@ -1,6 +1,6 @@
 using Godot;
 
-namespace Writer.Ui;
+namespace Writer.Ecs;
 
 /// <summary>Creates real RenderingServer canvas items.</summary>
 public sealed class GodotVisualRidFactory : IVisualRidFactory

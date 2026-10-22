@@ -2,7 +2,6 @@ using Friflo.Engine.ECS;
 using Godot;
 using NUnit.Framework;
 using Writer.Ecs;
-using Writer.Ui;
 using LayerComponent = Writer.Ecs.Layer;
 using Position = Writer.Ecs.Position;
 

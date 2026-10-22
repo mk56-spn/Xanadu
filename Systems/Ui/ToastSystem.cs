@@ -4,7 +4,6 @@ using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Godot;
 using Writer.Ecs;
-using Writer.Ui;
 using Position = Writer.Ecs.Position;
 
 namespace Writer.Systems.Ui;

@@ -5,7 +5,6 @@ using Writer.Levels;
 using Writer.Settings;
 using Writer.Editor;
 using Writer.Systems.Editor;
-using Writer.Ui;
 
 namespace Writer.Scenes;
 

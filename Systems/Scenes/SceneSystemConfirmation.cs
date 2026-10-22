@@ -8,7 +8,6 @@ using Writer.Levels;
 using Writer.Profiles;
 using Writer.Scenes;
 using Writer.Settings;
-using Writer.Ui;
 using SceneState = Writer.Ecs.SceneState;
 using Position = Writer.Ecs.Position;
 
