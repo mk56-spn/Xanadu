@@ -82,12 +82,14 @@ The scene tests cannot be hosted inside the NUnit process directly:
 - Calling Godot APIs from NUnit without an engine causes native failures.
 
 NUnit can act as an **orchestrator** by launching Godot as a child process and
-parsing the runner output. This is implemented as an explicit test in
-`NUnitIntegrationTests.cs`:
+parsing the runner output. This is implemented as one explicit NUnit test per scene in
+`NUnitIntegrationTests.cs`, so Rider shows a green run arrow beside each
+visual scene. It is also implemented as one explicit and executable test method
+per visual scene:
 
 ```bash
 GODOT_BIN=/path/to/Godot_v4.8-dev7_mono_linux.x86_64 \
-  dotnet test Writer.sln --filter NUnitIntegrationTests
+  dotnet test Writer.sln --filter VisualSceneTests
 ```
 
 The wrapper runs each scene in its own Godot process. The in-process
