@@ -84,6 +84,17 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
         if (!IsInside(playfieldPosition, playfield))
             return;
 
+        if (editor.HasComponent<EditorMineMode>() &&
+            editor.GetComponent<EditorMineMode>().Active)
+        {
+            var mineBefore = _history.Capture();
+            _entities.CreateEntity(new Mine(
+                EditorTiming.Snap(playhead.TimeMs, playhead),
+                playfieldPosition));
+            _history.Record(mineBefore, _history.Capture());
+            return;
+        }
+
         Entity hit = FindNoteAt(playfieldPosition, playhead.TimeMs);
         ref NoteSelection selection = ref editor.GetComponent<NoteSelection>();
 

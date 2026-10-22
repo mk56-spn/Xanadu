@@ -1,3 +1,4 @@
+using System;
 using System.Linq;
 using Friflo.Engine.ECS;
 using Godot;
@@ -223,12 +224,16 @@ public static class PlayScene
                 accuracyText,
                 judgementText,
                 document.Notes.Count));
+        long lastNote = document.Notes.Count > 0
+            ? document.Notes.Max(note => note.TimeMs)
+            : -1;
+        long lastMine = document.Mines.Count > 0
+            ? document.Mines.Max(mine => mine.TimeMs)
+            : -1;
         playfieldEntity.AddComponent(new PlaySession(
             status,
             countdown,
-            document.Notes.Count > 0
-                ? document.Notes.Max(note => note.TimeMs)
-                : -1));
+            Math.Max(lastNote, lastMine)));
     }
 
     private static Entity CounterText(

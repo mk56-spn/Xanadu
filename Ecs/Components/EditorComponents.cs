@@ -29,6 +29,20 @@ public struct EditorNoteTarget(KeybindAction target) : IComponent
     public KeybindAction Target = target;
 }
 
+/// <summary>Whether clicking the field places mines instead of notes.</summary>
+public struct EditorMineMode(bool active) : IComponent
+{
+    public bool Active = active;
+}
+
+/// <summary>Cached waveform peaks for the editor timeline preview.</summary>
+public struct WaveformPreview(string path, float[] peaks, long durationMs) : IComponent
+{
+    public string Path = path;
+    public float[] Peaks = peaks;
+    public long DurationMs = durationMs;
+}
+
 /// <summary>Screen-space region occupied by the editor's side controls.</summary>
 public struct EditorSidebar(Rect2 bounds) : IComponent
 {
@@ -49,6 +63,7 @@ public enum EditorButtonKind
     Preview,
     Metronome,
     AddMove,
+    AddMine,
     ZoomIn,
     ZoomOut,
     ToggleMetadata,

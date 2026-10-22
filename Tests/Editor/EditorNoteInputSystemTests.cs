@@ -94,6 +94,38 @@ public sealed class EditorNoteInputSystemTests
     }
 
     [Test]
+    public void MineModePlacesMinesInsteadOfNotes()
+    {
+        Entity editor = _store.Query<PlayfieldView>().ToEntityList()[0];
+        editor.AddComponent(new EditorMineMode(true));
+
+        _pointer.Current = new PointerInput(new Vector2(300, 400), true);
+        _root.Update(new UpdateTick(1f / 60f, 0));
+
+        Assert.That(_store.Query<Note>().Count, Is.Zero);
+        var mines = _store.Query<Mine>().ToEntityList();
+        Assert.That(mines, Has.Count.EqualTo(1));
+        Assert.That(mines[0].GetComponent<Mine>().TimeMs, Is.EqualTo(1_000));
+        Assert.That(
+            mines[0].GetComponent<Mine>().Position,
+            Is.EqualTo(new Vector2(300, 400)));
+        Assert.That(_history.CanUndo, Is.True);
+    }
+
+    [Test]
+    public void UndoRemovesAPlacedMine()
+    {
+        Entity editor = _store.Query<PlayfieldView>().ToEntityList()[0];
+        editor.AddComponent(new EditorMineMode(true));
+
+        _pointer.Current = new PointerInput(new Vector2(300, 400), true);
+        _root.Update(new UpdateTick(1f / 60f, 0));
+        Assert.That(_history.Undo(), Is.True);
+
+        Assert.That(_store.Query<Mine>().Count, Is.Zero);
+    }
+
+    [Test]
     public void SidebarClicksDoNotPlaceNotes()
     {
         Entity editor = _store.Query<PlayfieldView>().ToEntityList()[0];

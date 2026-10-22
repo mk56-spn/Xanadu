@@ -19,6 +19,7 @@ public sealed class PlayNoteInputSystemTests
     private SystemRoot _root = null!;
     private FakeKeyboard _keyboard = null!;
     private KeybindSettings _keybinds = null!;
+    private OffsetSettings _offsets = null!;
     private Entity _scoreText;
     private Entity _comboText;
     private Entity _accuracyText;
@@ -31,6 +32,7 @@ public sealed class PlayNoteInputSystemTests
         _root = new SystemRoot(_store);
         _keyboard = new FakeKeyboard();
         _keybinds = new KeybindSettings(persist: false);
+        _offsets = new OffsetSettings(persist: false);
         _scoreText = _store.CreateEntity(new Text(""));
         _comboText = _store.CreateEntity(new Text(""));
         _accuracyText = _store.CreateEntity(new Text(""));
@@ -38,7 +40,7 @@ public sealed class PlayNoteInputSystemTests
             new Text(""),
             new TextStyle(28, Colors.White),
             new Position(Vector2.Zero));
-        _root.Add(new PlayNoteInputSystem(_store, _keybinds, _keyboard));
+        _root.Add(new PlayNoteInputSystem(_store, _keybinds, _keyboard, _offsets));
         _root.Add(new PlayScoreSystem());
     }
 
@@ -178,6 +180,79 @@ public sealed class PlayNoteInputSystemTests
         Assert.That(left.IsNull || !left.HasComponent<Note>(), Is.True);
         Assert.That(right.HasComponent<Note>(), Is.True);
         Assert.That(playfield.GetComponent<ScoreState>().NotesHit, Is.EqualTo(1));
+    }
+
+    [Test]
+    public void TappingOverAMineCostsOnePercentAccuracy()
+    {
+        Entity playfield = CreatePlayfield(totalNotes: 10);
+        ref ScoreState scoreRef = ref playfield.GetComponent<ScoreState>();
+        scoreRef.AccuracyPoints = 10;
+        Entity mine = _store.CreateEntity(new Mine(1_000, new Vector2(500, 500)));
+        SetPlayhead(playfield, 1_000);
+        Press(KeybindAction.M);
+
+        Frame();
+
+        ScoreState score = playfield.GetComponent<ScoreState>();
+        Assert.That(mine.IsNull || !mine.HasComponent<Mine>(), Is.True);
+        Assert.That(score.LastJudgement, Is.EqualTo(Judgement.Mine));
+        Assert.That(score.Accuracy, Is.EqualTo(0.99).Within(0.0001));
+        Assert.That(score.AccuracyPenalty, Is.EqualTo(0.1).Within(0.0001));
+        Assert.That(score.Combo, Is.Zero);
+        Assert.That(score.Score, Is.Zero);
+        Assert.That(_judgementText.GetComponent<Text>().Value, Is.EqualTo("BOOM"));
+        Assert.That(
+            _judgementText.GetComponent<TextStyle>().Color,
+            Is.EqualTo(PlayScoreSystem.ColorFor(Judgement.Mine)));
+    }
+
+    [Test]
+    public void MineDoesNotTriggerWhenPlayerIsNotOverIt()
+    {
+        Entity playfield = CreatePlayfield(totalNotes: 10);
+        ref ScoreState scoreRef = ref playfield.GetComponent<ScoreState>();
+        scoreRef.AccuracyPoints = 10;
+        Entity mine = _store.CreateEntity(new Mine(1_000, new Vector2(100, 100)));
+        SetPlayhead(playfield, 1_000);
+        Press(KeybindAction.M);
+
+        Frame();
+
+        Assert.That(mine.HasComponent<Mine>(), Is.True);
+        Assert.That(playfield.GetComponent<ScoreState>().AccuracyPenalty, Is.Zero);
+    }
+
+    [Test]
+    public void MineDoesNotTriggerOutsideItsWindow()
+    {
+        Entity playfield = CreatePlayfield(totalNotes: 10);
+        ref ScoreState scoreRef = ref playfield.GetComponent<ScoreState>();
+        scoreRef.AccuracyPoints = 10;
+        Entity mine = _store.CreateEntity(new Mine(2_000, new Vector2(500, 500)));
+        SetPlayhead(playfield, 1_000);
+        Press(KeybindAction.M);
+
+        Frame();
+
+        Assert.That(mine.HasComponent<Mine>(), Is.True);
+        Assert.That(playfield.GetComponent<ScoreState>().AccuracyPenalty, Is.Zero);
+    }
+
+    [Test]
+    public void GlobalOffsetAdjustsLateInput()
+    {
+        _offsets.Set(40);
+        Entity playfield = CreatePlayfield(totalNotes: 1);
+        CreateNote(1_000, new Vector2(500, 500));
+        SetPlayhead(playfield, 1_040);
+        Press(KeybindAction.M);
+
+        Frame();
+
+        Assert.That(
+            playfield.GetComponent<ScoreState>().LastJudgement,
+            Is.EqualTo(Judgement.FlawlessP));
     }
 
     [Test]

@@ -27,6 +27,7 @@ public static class LevelDocumentMapper
             PlayfieldHeight = playfield.Height,
             Notes = new List<NoteDocument>(),
             MovementEvents = new List<MovementEventDocument>(),
+            Mines = new List<MineDocument>(),
         };
 
         foreach (Entity entity in entities.Query<Note>().ToEntityList())
@@ -54,6 +55,21 @@ public static class LevelDocumentMapper
         }
 
         document.MovementEvents.Sort((a, b) => a.TimeMs.CompareTo(b.TimeMs));
+
+        foreach (Entity entity in entities.Query<Mine>().ToEntityList())
+        {
+            Mine mine = entity.GetComponent<Mine>();
+            document.Mines.Add(new MineDocument
+            {
+                TimeMs = mine.TimeMs,
+                X = mine.Position.X,
+                Y = mine.Position.Y,
+                FadeInMs = mine.FadeInMs,
+                FadeOutMs = mine.FadeOutMs,
+            });
+        }
+
+        document.Mines.Sort((a, b) => a.TimeMs.CompareTo(b.TimeMs));
         return document;
     }
 
@@ -63,6 +79,9 @@ public static class LevelDocumentMapper
             entity.DeleteEntity();
 
         foreach (Entity entity in entities.Query<MovementEvent>().ToEntityList())
+            entity.DeleteEntity();
+
+        foreach (Entity entity in entities.Query<Mine>().ToEntityList())
             entity.DeleteEntity();
 
         foreach (NoteDocument note in document.Notes)
@@ -77,6 +96,15 @@ public static class LevelDocumentMapper
 
         foreach (MovementEventDocument movement in document.MovementEvents)
             entities.CreateEntity(new MovementEvent(movement.TimeMs));
+
+        foreach (MineDocument mine in document.Mines)
+        {
+            entities.CreateEntity(new Mine(
+                mine.TimeMs,
+                new Vector2(mine.X, mine.Y),
+                mine.FadeInMs,
+                mine.FadeOutMs));
+        }
 
         ref LevelInfo level = ref editor.GetComponent<LevelInfo>();
         level.Name = document.Name;

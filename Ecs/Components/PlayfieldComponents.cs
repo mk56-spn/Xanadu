@@ -74,6 +74,19 @@ public struct Note(
     public KeybindAction Target = target;
 }
 
+/// <summary>A mine hazard placed in playfield coordinates.</summary>
+public struct Mine(
+    long timeMs,
+    Vector2 position,
+    long fadeInMs = 600,
+    long fadeOutMs = 600) : IComponent
+{
+    public long TimeMs = timeMs;
+    public Vector2 Position = position;
+    public long FadeInMs = fadeInMs;
+    public long FadeOutMs = fadeOutMs;
+}
+
 /// <summary>Whether a shared playfield is drawn for editing or playing.</summary>
 public enum PlayfieldKind
 {

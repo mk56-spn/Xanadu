@@ -29,12 +29,28 @@ public sealed class LevelDocument
     public List<NoteDocument> Notes { get; set; } = new();
 
     public List<MovementEventDocument> MovementEvents { get; set; } = new();
+
+    public List<MineDocument> Mines { get; set; } = new();
 }
 
 /// <summary>Serializable movement-gate event.</summary>
 public sealed class MovementEventDocument
 {
     public long TimeMs { get; set; }
+}
+
+/// <summary>Serializable mine hazard data.</summary>
+public sealed class MineDocument
+{
+    public long TimeMs { get; set; }
+
+    public float X { get; set; }
+
+    public float Y { get; set; }
+
+    public long FadeInMs { get; set; } = 600;
+
+    public long FadeOutMs { get; set; } = 600;
 }
 
 /// <summary>Serializable note data.</summary>

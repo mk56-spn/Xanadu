@@ -20,16 +20,19 @@ public sealed class PlayNoteInputSystem : QuerySystem<Note>
     private readonly EntityStore _entities;
     private readonly KeybindSettings _keybinds;
     private readonly IKeyboardState _keyboard;
+    private readonly OffsetSettings _offsets;
     private readonly HashSet<Key> _held = new();
 
     public PlayNoteInputSystem(
         EntityStore entities,
         KeybindSettings keybinds,
-        IKeyboardState keyboard)
+        IKeyboardState keyboard,
+        OffsetSettings? offsets = null)
     {
         _entities = entities;
         _keybinds = keybinds;
         _keyboard = keyboard;
+        _offsets = offsets ?? new OffsetSettings(persist: false);
     }
 
     protected override void OnUpdate()
@@ -57,10 +60,63 @@ public sealed class PlayNoteInputSystem : QuerySystem<Note>
                 _held.Remove(key);
 
             if (pressed && !wasPressed)
-                TryHit(action, playfield);
+            {
+                if (!TryMine(action, playfield))
+                    TryHit(action, playfield);
+            }
         }
 
         MarkMisses(playfield);
+    }
+
+    private bool TryMine(KeybindAction action, Entity playfield)
+    {
+        ref Playhead playhead = ref playfield.GetComponent<Playhead>();
+        ref ScoreState score = ref playfield.GetComponent<ScoreState>();
+        ref PlayfieldView view = ref playfield.GetComponent<PlayfieldView>();
+        Player player = playfield.GetComponent<Player>();
+        Vector2 playerScreen = playfield.GetComponent<Position>().Value;
+        long judgedTime = playhead.TimeMs - _offsets.OffsetMs;
+
+        var playerRect = new Rect2(
+            playerScreen - player.Size / 2,
+            player.Size);
+        float mineSize = PlayfieldRenderer.MineSize * view.Scale;
+        long window = (long)ScoreRules.JudgementDeviation(Judgement.Miss);
+
+        foreach (Entity entity in _entities.Query<Mine>().ToEntityList())
+        {
+            Mine mine = entity.GetComponent<Mine>();
+            if (Math.Abs(mine.TimeMs - judgedTime) > window)
+                continue;
+
+            if (MineFade.Alpha(mine, playhead.TimeMs) <= 0)
+                continue;
+
+            Vector2 mineScreen = view.PlayfieldToScreen(mine.Position);
+            var mineRect = new Rect2(
+                mineScreen - new Vector2(mineSize / 2, mineSize / 2),
+                new Vector2(mineSize, mineSize));
+            if (!playerRect.Intersects(mineRect))
+                continue;
+
+            score.AccuracyPenalty +=
+                ScoreRules.MineAccuracyPenalty * score.TotalNotes;
+            score.Combo = 0;
+            score.HasJudgement = true;
+            score.LastJudgement = Judgement.Mine;
+            score.JudgementPosition = mineScreen;
+            score.JudgementTimeMs = playhead.TimeMs;
+
+            _entities.CreateEntity(new HitTrail(
+                mineScreen,
+                new Color("#ff3b30"),
+                KeybindSettings.KeyLabel(_keybinds.Get(action))));
+            entity.DeleteEntity();
+            return true;
+        }
+
+        return false;
     }
 
     private void TryHit(KeybindAction action, Entity playfield)
@@ -77,6 +133,7 @@ public sealed class PlayNoteInputSystem : QuerySystem<Note>
         var playerRect = new Rect2(
             playerScreen - player.Size / 2,
             player.Size);
+        long judgedTime = playhead.TimeMs - _offsets.OffsetMs;
         long missWindow = (long)ScoreRules.JudgementDeviation(Judgement.Miss);
         Entity hit = default;
         long bestError = long.MaxValue;
@@ -91,12 +148,12 @@ public sealed class PlayNoteInputSystem : QuerySystem<Note>
             if (note.Target != action)
                 continue;
 
-            long offset = note.TimeMs - playhead.TimeMs;
+            long offset = note.TimeMs - judgedTime;
             long error = Math.Abs(offset);
             if (error > missWindow)
                 continue;
 
-            if (NoteFade.Alpha(note, playhead.TimeMs) <= 0)
+            if (NoteFade.Alpha(note, judgedTime) <= 0)
                 continue;
 
             float noteSize = PlayfieldRenderer.NoteSize * view.Scale;
@@ -173,6 +230,7 @@ public sealed class PlayNoteInputSystem : QuerySystem<Note>
     {
         ref Playhead playhead = ref playfield.GetComponent<Playhead>();
         ref ScoreState score = ref playfield.GetComponent<ScoreState>();
+        long judgedTime = playhead.TimeMs - _offsets.OffsetMs;
 
         if (playhead.DurationMs > 0 && playhead.TimeMs >= playhead.DurationMs)
             return;
@@ -185,7 +243,7 @@ public sealed class PlayNoteInputSystem : QuerySystem<Note>
             Note note = entity.GetComponent<Note>();
             long missWindow =
                 (long)ScoreRules.JudgementDeviation(Judgement.Miss);
-            if (note.TimeMs + missWindow >= playhead.TimeMs)
+            if (note.TimeMs + missWindow >= judgedTime)
                 continue;
 
             entity.AddTag<NoteMissed>();

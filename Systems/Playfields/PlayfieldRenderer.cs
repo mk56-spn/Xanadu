@@ -23,6 +23,8 @@ public static class PlayfieldRenderer
     public static readonly Color PlayerColor = new("#e2e8f0");
     public static readonly Color QueueColor = new("#38bdf8");
 
+    public const float MineSize = 18;
+
     private static readonly Color[] LaneColors =
     {
         new("#22d3ee"),
@@ -56,6 +58,7 @@ public static class PlayfieldRenderer
         DrawBorder(canvas, rid, field, BorderColor, 2);
 
         DrawNotes(canvas, rid, entities, view, playfield, playhead, default);
+        DrawMines(canvas, rid, entities, view, playhead);
         DrawMovementQueue(canvas, rid, entities, view, playhead, field);
         DrawPlayer(canvas, rid, entities, view);
         DrawHitTrails(canvas, rid, entities);
@@ -164,6 +167,56 @@ public static class PlayfieldRenderer
                     new Color(SelectedNoteColor.R, SelectedNoteColor.G, SelectedNoteColor.B, alpha),
                     2);
             }
+        }
+    }
+
+    public static void DrawMines(
+        IRectCanvas canvas,
+        Rid rid,
+        EntityStore entities,
+        PlayfieldView view,
+        Playhead playhead)
+    {
+        float size = MineSize * view.Scale;
+
+        foreach (Entity entity in entities.Query<Mine>().ToEntityList())
+        {
+            Mine mine = entity.GetComponent<Mine>();
+            float alpha = MineFade.Alpha(mine, playhead.TimeMs);
+            if (alpha <= 0)
+                continue;
+
+            Vector2 center = view.PlayfieldToScreen(mine.Position);
+            var bounds = new Rect2(
+                center - new Vector2(size / 2, size / 2),
+                new Vector2(size, size));
+            Color color = new Color(1f, 0.22f, 0.16f, alpha);
+
+            canvas.DrawRect(
+                rid,
+                bounds,
+                new Color(0.08f, 0.02f, 0.02f, alpha * 0.9f));
+            DrawBorder(canvas, rid, bounds, color, 2);
+            DrawBorder(
+                canvas,
+                rid,
+                new Rect2(
+                    bounds.Position + new Vector2(3, 3),
+                    bounds.Size - new Vector2(6, 6)),
+                new Color(1f, 0.55f, 0.2f, alpha),
+                1);
+            canvas.DrawLine(
+                rid,
+                bounds.Position + new Vector2(5, 5),
+                bounds.End - new Vector2(5, 5),
+                color,
+                2);
+            canvas.DrawLine(
+                rid,
+                new Vector2(bounds.End.X - 5, bounds.Position.Y + 5),
+                new Vector2(bounds.Position.X + 5, bounds.End.Y - 5),
+                color,
+                2);
         }
     }
 

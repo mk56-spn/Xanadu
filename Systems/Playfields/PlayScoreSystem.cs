@@ -19,6 +19,7 @@ public sealed class PlayScoreSystem : QuerySystem<ScoreState, Playhead>
         Judgement.Deficient => new("#fb923c"),
         Judgement.Terrible => new("#ef4444"),
         Judgement.Miss => new("#94a3b8"),
+        Judgement.Mine => new("#ff3b30"),
         _ => Colors.White,
     };
 

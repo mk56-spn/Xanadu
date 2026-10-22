@@ -13,12 +13,15 @@ public enum Judgement
     Deficient,
     Terrible,
     Miss,
+    Mine,
 }
 
 /// <summary>Judgement windows, accuracy weights, and rank thresholds.</summary>
 public static class ScoreRules
 {
     public const int MaxScore = 1_000_000;
+
+    public const double MineAccuracyPenalty = 0.01;
 
     /// <summary>The max deviation a given judgement type can have.</summary>
     public static double JudgementDeviation(Judgement judgement)
@@ -51,6 +54,7 @@ public static class ScoreRules
             Judgement.Deficient => 0.93,
             Judgement.Terrible => 0.90,
             Judgement.Miss => 0.0,
+            Judgement.Mine => 0.0,
             _ => 0.0,
         };
     }
@@ -94,6 +98,7 @@ public static class ScoreRules
         Judgement.Deficient => "DEFICIENT",
         Judgement.Terrible => "TERRIBLE",
         Judgement.Miss => "MISS",
+        Judgement.Mine => "BOOM",
         _ => "",
     };
 }

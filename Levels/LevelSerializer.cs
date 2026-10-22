@@ -25,6 +25,8 @@ public static class LevelSerializer
         document.Notes ??= new();
         document.Notes.RemoveAll(note => note is null);
         document.MovementEvents ??= new();
+        document.Mines ??= new();
+        document.Mines.RemoveAll(mine => mine is null);
         return document;
     }
 }
