@@ -191,11 +191,5 @@ public partial class EditorOverlay : CanvasLayer
         _commands.Enqueue(EditorCommand.ZoomTimeline(direction));
     }
 
-    private void OnAddMovement()
-    {
-        if (_editor.IsNull)
-            return;
 
-        _commands.Enqueue(EditorCommand.AddMovementEvent());
-    }
 }

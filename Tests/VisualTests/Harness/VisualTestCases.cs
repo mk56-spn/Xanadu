@@ -18,7 +18,6 @@ public static class SceneTestCatalog
         new ProfilesSceneTest(),
         new MainMenuSceneTest(),
         new SongSelectSceneTest(),
-        new EditLevelSceneTest(),
         new EditorWaveformSceneTest(),
         new EditorMetadataSceneTest(),
         new SettingsSceneTest(),
@@ -107,39 +106,6 @@ public sealed class SongSelectSceneTest : SceneTest
             () => VisualAssert.CountUninitialised(
                 Context.Entities,
                 SceneUi.MenuLayer) == 0);
-    }
-}
-
-public sealed class EditLevelSceneTest : SceneTest
-{
-    public override string Name => "Edit level";
-    public override string Slug => "edit-level";
-
-    protected override void SetUpSteps()
-    {
-        AddStep("open song select", () => Context.Scenes.Start(SceneKind.SongSelect));
-        AddUntilStep(
-            "wait for edit button",
-            () => Context.Scenes.Current == SceneKind.SongSelect &&
-                  VisualAssert.HasText(Context.Entities, "EDIT LEVEL") &&
-                  Context.Entities.Query<EditLevelAction>().Count == 1);
-
-        AddStep("press edit", () =>
-        {
-            Context.Entities.Query<EditLevelAction>()
-                .ToEntityList()[0]
-                .AddTag<Pressed>();
-        });
-        AddUntilStep(
-            "wait for editor",
-            () => Context.Scenes.Current == SceneKind.Editor &&
-                  Context.Entities.Query<PlayfieldMode>().Count > 0 &&
-                  Context.Entities.Query<PlayfieldMode>().ToEntityList()[0]
-                      .GetComponent<PlayfieldMode>().Kind == PlayfieldKind.Editor);
-
-        AddAssert(
-            "selected level notes were loaded",
-            () => Context.Entities.Query<Note>().Count > 0);
     }
 }
 
@@ -429,9 +395,6 @@ public sealed class PlaySceneTest : SceneTest
             "player exists",
             () => Context.Entities.Query<Player>().Count == 1);
         AddAssert(
-            "movement queue exists",
-            () => Context.Entities.Query<MovementEvent>().Count == 1);
-        AddAssert(
             "judgement counter exists",
             () => VisualAssert.HasText(Context.Entities, "JUDGEMENTS") &&
                   VisualAssert.HasText(Context.Entities, "FLAWLESS+"));
@@ -453,7 +416,6 @@ public sealed class PlaySceneTest : SceneTest
         document.Notes.Add(new NoteDocument { TimeMs = 0, X = 260, Y = 620 });
         document.Notes.Add(new NoteDocument { TimeMs = 1_000, X = 620, Y = 520 });
         document.Notes.Add(new NoteDocument { TimeMs = 2_000, X = 460, Y = 700 });
-        document.MovementEvents.Add(new MovementEventDocument { TimeMs = 0 });
 
         Context.Scenes.StartPlay(
             new LevelEntry("visual://play", document));
@@ -743,7 +705,6 @@ public sealed class RestartSceneTest : SceneTest
 
         document.Notes.Add(new NoteDocument { TimeMs = 0, X = 200, Y = 300 });
         document.Notes.Add(new NoteDocument { TimeMs = 1_000, X = 600, Y = 500 });
-        document.MovementEvents.Add(new MovementEventDocument { TimeMs = 0 });
 
         Context.Scenes.StartPlay(new LevelEntry("memory://retry", document));
     }

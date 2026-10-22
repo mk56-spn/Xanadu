@@ -516,24 +516,6 @@ public sealed class EditorPlayfieldDrawSystem :
             }
         }
 
-        foreach (Entity entity in _entities.Query<MovementEvent>().ToEntityList())
-        {
-            MovementEvent movement = entity.GetComponent<MovementEvent>();
-            if (movement.TimeMs < windowStart || movement.TimeMs > windowEnd)
-                continue;
-
-            float x = XForTime(
-                ruler,
-                windowStart,
-                windowEnd,
-                movement.TimeMs);
-
-            _canvas.DrawRect(
-                _editor,
-                new Rect2(x - 3f, ruler.Position.Y + 2, 6, 6),
-                PlayfieldRenderer.QueueColor);
-        }
-
         float playheadX = XForTime(
             ruler,
             windowStart,

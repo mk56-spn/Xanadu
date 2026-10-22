@@ -109,10 +109,6 @@ public sealed class EditorButtonSystem : QuerySystem<EditorButton>
                     !editor.GetComponent<EditorMetronome>().Enabled));
                 break;
 
-            case EditorButtonKind.AddMove:
-                _commands.Enqueue(EditorCommand.AddMovementEvent());
-                break;
-
             case EditorButtonKind.AddMine:
                 if (editor.HasComponent<EditorMineMode>())
                 {

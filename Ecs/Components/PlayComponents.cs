@@ -116,9 +116,3 @@ public struct HitTrail(
     public float Age;
     public float Lifetime = lifetime;
 }
-
-/// <summary>A non-field movement prompt that falls onto the player.</summary>
-public struct MovementEvent(long timeMs) : IComponent
-{
-    public long TimeMs = timeMs;
-}

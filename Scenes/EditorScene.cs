@@ -312,15 +312,14 @@ public static class EditorScene
 
         Rect2 transport = EditorLayout.TransportRect(
             editor.GetComponent<PlayfieldView>());
-        float[] widths = { 64, 64, 108, 108, 108 };
-        string[] labels = { "▶", "■", "Preview", "Click Off", "Add Move" };
+        float[] widths = { 64, 64, 108, 108 };
+        string[] labels = { "▶", "■", "Preview", "Click Off" };
         EditorButtonKind[] kinds =
         {
             EditorButtonKind.Play,
             EditorButtonKind.Stop,
             EditorButtonKind.Preview,
             EditorButtonKind.Metronome,
-            EditorButtonKind.AddMove,
         };
 
         float total = 0;

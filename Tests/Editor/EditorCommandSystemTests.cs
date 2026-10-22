@@ -153,26 +153,6 @@ public sealed class EditorCommandSystemTests
     }
 
     [Test]
-    public void AddsMovementEventAtPlayhead()
-    {
-        ref Playhead playhead = ref _editor.GetComponent<Playhead>();
-        playhead.TimeMs = 2_500;
-
-        _commands.Enqueue(EditorCommand.AddMovementEvent());
-        _root.Update(new UpdateTick(1f / 60f, 0));
-
-        Assert.That(
-            _store.Query<MovementEvent>().ToEntityList()[0]
-                .GetComponent<MovementEvent>().TimeMs,
-            Is.EqualTo(2_500));
-
-        _commands.Enqueue(EditorCommand.Undo());
-        _root.Update(new UpdateTick(1f / 60f, 0));
-
-        Assert.That(_store.Query<MovementEvent>().Count, Is.Zero);
-    }
-
-    [Test]
     public void ZoomsTheEditorTimeline()
     {
         _editor.AddComponent(new EditorTimeline(1f));

@@ -1,6 +1,7 @@
 using NUnit.Framework;
 using Writer.Levels;
 using Writer.Editor;
+using Writer.Ecs;
 using Writer.Settings;
 
 namespace Writer.Tests.Editor;
@@ -16,8 +17,6 @@ public sealed class LevelSerializerTests
 
         Assert.That(document.Notes, Is.Not.Null);
         Assert.That(document.Notes, Is.Empty);
-        Assert.That(document.MovementEvents, Is.Not.Null);
-        Assert.That(document.MovementEvents, Is.Empty);
         Assert.That(document.Mines, Is.Not.Null);
         Assert.That(document.Mines, Is.Empty);
         Assert.That(document.Version, Is.EqualTo(1));
@@ -47,8 +46,9 @@ public sealed class LevelSerializerTests
             FadeInMs = 600,
             FadeOutMs = 600,
             Target = KeybindAction.R2,
+            Kind = NoteKind.Movement,
+            DashDirection = DashDirection.UpRight,
         });
-        source.MovementEvents.Add(new MovementEventDocument { TimeMs = 800 });
         source.Mines.Add(new MineDocument
         {
             TimeMs = 1_500,
@@ -74,8 +74,10 @@ public sealed class LevelSerializerTests
         Assert.That(result.Notes[0].X, Is.EqualTo(250));
         Assert.That(result.Notes[0].Y, Is.EqualTo(400));
         Assert.That(result.Notes[0].Target, Is.EqualTo(KeybindAction.R2));
-        Assert.That(result.MovementEvents, Has.Count.EqualTo(1));
-        Assert.That(result.MovementEvents[0].TimeMs, Is.EqualTo(800));
+        Assert.That(result.Notes[0].Kind, Is.EqualTo(NoteKind.Movement));
+        Assert.That(
+            result.Notes[0].DashDirection,
+            Is.EqualTo(DashDirection.UpRight));
         Assert.That(result.Mines, Has.Count.EqualTo(1));
         Assert.That(result.Mines[0].TimeMs, Is.EqualTo(1_500));
         Assert.That(result.Mines[0].X, Is.EqualTo(500));

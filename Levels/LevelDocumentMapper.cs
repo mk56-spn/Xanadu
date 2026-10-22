@@ -26,7 +26,6 @@ public static class LevelDocumentMapper
             PlayfieldWidth = playfield.Width,
             PlayfieldHeight = playfield.Height,
             Notes = new List<NoteDocument>(),
-            MovementEvents = new List<MovementEventDocument>(),
             Mines = new List<MineDocument>(),
         };
 
@@ -47,16 +46,6 @@ public static class LevelDocumentMapper
         }
 
         document.Notes.Sort((a, b) => a.TimeMs.CompareTo(b.TimeMs));
-
-        foreach (Entity entity in entities.Query<MovementEvent>().ToEntityList())
-        {
-            document.MovementEvents.Add(new MovementEventDocument
-            {
-                TimeMs = entity.GetComponent<MovementEvent>().TimeMs,
-            });
-        }
-
-        document.MovementEvents.Sort((a, b) => a.TimeMs.CompareTo(b.TimeMs));
 
         foreach (Entity entity in entities.Query<Mine>().ToEntityList())
         {
@@ -80,9 +69,6 @@ public static class LevelDocumentMapper
         foreach (Entity entity in entities.Query<Note>().ToEntityList())
             entity.DeleteEntity();
 
-        foreach (Entity entity in entities.Query<MovementEvent>().ToEntityList())
-            entity.DeleteEntity();
-
         foreach (Entity entity in entities.Query<Mine>().ToEntityList())
             entity.DeleteEntity();
 
@@ -97,9 +83,6 @@ public static class LevelDocumentMapper
                 note.Kind,
                 note.DashDirection));
         }
-
-        foreach (MovementEventDocument movement in document.MovementEvents)
-            entities.CreateEntity(new MovementEvent(movement.TimeMs));
 
         foreach (MineDocument mine in document.Mines)
         {

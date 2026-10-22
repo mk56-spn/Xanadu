@@ -122,7 +122,6 @@ public enum EditorButtonKind
     Stop,
     Preview,
     Metronome,
-    AddMove,
     AddMine,
     ZoomIn,
     ZoomOut,
