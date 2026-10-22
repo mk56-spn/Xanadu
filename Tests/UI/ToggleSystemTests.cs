@@ -1,8 +1,10 @@
+using Godot;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using NUnit.Framework;
 using Writer.Ecs;
 using Writer.Settings;
+using Writer.Systems.Input;
 using Writer.Systems.Ui;
 
 namespace Writer.Tests.UI;
@@ -18,11 +20,17 @@ public sealed class ToggleSystemTests
         Entity toggle = store.CreateEntity(
             new Toggle("V-SYNC: ON", "V-SYNC: OFF", false),
             new Text("V-SYNC: OFF"),
+            new ButtonVisual(
+                new Color("#334155"),
+                new Color("#334155"),
+                Colors.White),
+            new FillColor(new Color("#334155")),
             new VSyncToggle(),
             Tags.Get<Pressed>());
 
         var root = new SystemRoot(store);
         root.Add(new ToggleSystem());
+        root.Add(new ButtonVisualSystem());
         root.Add(new VSyncToggleSystem(display));
 
         root.Update(new UpdateTick(1f / 60f, 0));
@@ -31,6 +39,9 @@ public sealed class ToggleSystemTests
         Assert.That(toggle.GetComponent<Toggle>().Value, Is.True);
         Assert.That(toggle.GetComponent<Text>().Value, Is.EqualTo("V-SYNC: ON"));
         Assert.That(display.VSyncEnabled, Is.True);
+        Assert.That(
+            toggle.GetComponent<ButtonVisual>().Normal,
+            Is.EqualTo(new Color("#2563eb")));
     }
 
     [Test]

@@ -1,4 +1,5 @@
 using Friflo.Engine.ECS;
+using Godot;
 using Friflo.Engine.ECS.Systems;
 using Writer.Ecs;
 
@@ -27,6 +28,19 @@ public sealed class ToggleSystem : QuerySystem<Toggle, Text>
             {
                 text.Value = expected;
                 buffer.AddTag<Dirty>(entity.Id);
+            }
+
+            if (entity.HasComponent<ButtonVisual>())
+            {
+                ref ButtonVisual visual = ref entity.GetComponent<ButtonVisual>();
+                Color normal = toggle.Value ? toggle.OnColor : toggle.OffColor;
+                if (visual.Normal != normal)
+                {
+                    visual.Normal = normal;
+                    visual.Hover = normal.Lerp(Colors.White, 0.16f);
+                    visual.Flash = Colors.White;
+                    buffer.AddTag<Dirty>(entity.Id);
+                }
             }
         });
     }

@@ -70,7 +70,9 @@ public static class SettingsScene
         vsync.AddComponent(new Toggle(
             "V-SYNC: ON",
             "V-SYNC: OFF",
-            display.VSyncEnabled));
+            display.VSyncEnabled,
+            new Color("#2563eb"),
+            SceneUi.MutedButtonColor));
         vsync.AddComponent(new VSyncToggle());
 
         SceneUi.Text(
