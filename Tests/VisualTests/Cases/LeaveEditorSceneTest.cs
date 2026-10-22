@@ -1,0 +1,99 @@
+using System;
+using System.Linq;
+using System.Collections.Generic;
+using Friflo.Engine.ECS;
+using Godot;
+using Writer.Ecs;
+using Position = Writer.Ecs.Position;
+using Writer.Editor;
+using Writer.Levels;
+using Writer.Scenes;
+using Writer.Settings;
+using Writer.Systems.Playfields;
+
+namespace Writer.Tests.VisualTests;
+
+/// <summary>Regression: the leave-editor confirmation must accept a real click.</summary>
+public sealed class LeaveEditorSceneTest : SceneTest
+{
+    private EditorOverlay? _overlay;
+    private bool _saved;
+
+    public override string Name => "Leave editor";
+    public override string Slug => "leave-editor";
+
+    protected override void SetUpSteps()
+    {
+        AddStep("open editor", () => Context.Scenes.Start(SceneKind.Editor));
+        AddUntilStep(
+            "wait for editor",
+            () => Context.Scenes.Current == SceneKind.Editor &&
+                  VisualAssert.HasText(Context.Entities, "MENU"));
+        AddStep("create editor overlay", CreateOverlay);
+        AddStep("wire editor save", () =>
+            Context.Scenes.SaveEditor = () => _saved = true);
+        AddWaitStep("overlay settles", 2);
+        AddStep("request leave", () => Context.Scenes.TryBack());
+        AddUntilStep("leave confirmation is visible", ConfirmationIsVisible);
+        AddStep("click SAVE & LEAVE", ClickSave);
+        AddWaitStep("hold click", 2);
+        AddStep("release click", () => Context.Pointer.Release());
+        AddUntilStep(
+            "return to main",
+            () => Context.Scenes.Current == SceneKind.Main);
+        AddAssert(
+            "main menu is visible",
+            () => VisualAssert.HasText(Context.Entities, "WRITER"));
+        AddAssert("editor save was requested", () => _saved);
+        AddStep("close editor overlay", CloseOverlay);
+    }
+
+    private void CreateOverlay()
+    {
+        _overlay = new EditorOverlay(
+            Context.Entities,
+            Context.Systems.Commands,
+            Context.Pointer,
+            () => Context.Scenes.TryBack(),
+            () => Context.Scenes.TryForward(),
+            openSongDialog: false);
+
+        Context.Host.AddChild(_overlay);
+    }
+
+    private bool ConfirmationIsVisible()
+    {
+        foreach (Entity entity in Context.Entities.Query<SceneConfirmation>().ToEntityList())
+        {
+            if (entity.GetComponent<SceneConfirmation>().Visible)
+                return true;
+        }
+
+        return false;
+    }
+
+    private void ClickSave()
+    {
+        foreach (Entity entity in Context.Entities.Query<SceneConfirmation>().ToEntityList())
+        {
+            SceneConfirmation confirmation = entity.GetComponent<SceneConfirmation>();
+            if (!confirmation.Visible || confirmation.Save.IsNull)
+                continue;
+
+            Entity save = confirmation.Save;
+            Vector2 world = UiTransform.WorldPosition(
+                save,
+                save.GetComponent<Writer.Ecs.Position>().Value);
+            Context.Pointer.Click(world);
+            return;
+        }
+
+        throw new SceneTestAssertionException("leave confirmation SAVE button missing");
+    }
+
+    private void CloseOverlay()
+    {
+        _overlay?.Close();
+        _overlay = null;
+    }
+}
