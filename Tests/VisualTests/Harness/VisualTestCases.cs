@@ -189,6 +189,12 @@ public sealed class EditorMetadataSceneTest : SceneTest
         AddAssert(
             "metadata fields exist",
             () => Context.Entities.Query<EditorField>().Count == 8);
+        AddAssert(
+            "start property panel is separate",
+            () => Context.Entities.Query<EditorStartPanel>().Count == 1 &&
+                  !Context.Entities.Query<EditorStartPanel>()
+                      .ToEntityList()[0]
+                      .GetComponent<EditorStartPanel>().Visible);
 
         AddStep("click level name field", () =>
         {

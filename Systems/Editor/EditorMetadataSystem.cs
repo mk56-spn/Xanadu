@@ -60,6 +60,32 @@ public sealed class EditorMetadataSystem : QuerySystem<EditorMetadataPanel>
 
         LevelInfo level = editor.GetComponent<LevelInfo>();
         Playhead playhead = editor.GetComponent<Playhead>();
+        bool hasSelectedStart = TryGetSelectedStart(
+            editor,
+            out Entity selectedStartEntity,
+            out StartPoint selectedStart);
+
+        if (editor.HasComponent<EditorStartPanel>() &&
+            editor.GetComponent<EditorStartPanel>().Panel is { IsNull: false } startPanelEntity)
+        {
+            ref EditorStartPanel startPanel =
+                ref editor.GetComponent<EditorStartPanel>();
+            bool visible = hasSelectedStart;
+            if (startPanel.Visible != visible)
+            {
+                startPanel.Visible = visible;
+                if (startPanelEntity.HasComponent<Position>())
+                {
+                    ref Position position =
+                        ref startPanelEntity.GetComponent<Position>();
+                    position.Value = visible
+                        ? startPanel.Home
+                        : new Vector2(-10_000, -10_000);
+                    CommandBuffer startBuffer = CommandBuffer;
+                    startBuffer.AddTag<Moved>(startPanelEntity.Id);
+                }
+            }
+        }
 
         foreach (Entity entity in _entities
                      .Query<EditorField, TextField>()
@@ -69,10 +95,9 @@ public sealed class EditorMetadataSystem : QuerySystem<EditorMetadataPanel>
             ref TextField field = ref entity.GetComponent<TextField>();
             bool focused = entity.Tags.Has<TextFieldFocused>();
 
-            bool hasStart = TryGetSelectedStart(
-                editor,
-                out Entity startEntity,
-                out StartPoint start);
+            bool hasStart = hasSelectedStart;
+            Entity startEntity = selectedStartEntity;
+            StartPoint start = selectedStart;
             if (!focused)
             {
                 string expected = binding.Kind switch

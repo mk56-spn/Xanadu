@@ -300,3 +300,11 @@ public struct StartPoint(
     public System.Numerics.Vector2 Momentum = momentum;
     public Vector2 Direction = direction;
 }
+
+/// <summary>Separate start-point property panel shown below level metadata.</summary>
+public struct EditorStartPanel(Entity panel, Vector2 home) : IComponent
+{
+    public Entity Panel = panel;
+    public Vector2 Home = home;
+    public bool Visible;
+}
