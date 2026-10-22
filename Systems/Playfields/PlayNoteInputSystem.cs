@@ -194,35 +194,7 @@ public sealed class PlayNoteInputSystem : QuerySystem<Note>
         Entity noteEntity,
         long offsetMs)
     {
-        Judgement judgement = ScoreRules.Judge(offsetMs);
-
-        if (judgement != Judgement.Miss)
-            score.NotesHit++;
-
-        Count(ref score, judgement);
-
-        score.HasJudgement = true;
-        score.LastJudgement = judgement;
-        score.LastOffsetMs = offsetMs;
-        score.AccuracyPoints += ScoreRules.AccuracyFor(judgement);
-
-        if (judgement == Judgement.Miss)
-        {
-            score.Combo = 0;
-        }
-        else
-        {
-            score.Combo++;
-            score.MaxCombo = Math.Max(score.MaxCombo, score.Combo);
-
-            if (score.TotalNotes > 0)
-            {
-                score.ScorePoints = Math.Min(
-                    1.0,
-                    score.ScorePoints + 1.0 / score.TotalNotes);
-            }
-        }
-
+        PlayScoring.Apply(ref score, offsetMs);
         noteEntity.DeleteEntity();
     }
 
@@ -241,8 +213,6 @@ public sealed class PlayNoteInputSystem : QuerySystem<Note>
                 continue;
 
             Note note = entity.GetComponent<Note>();
-            if (note.Kind != NoteKind.Hit)
-                continue;
             long missWindow =
                 (long)ScoreRules.JudgementDeviation(Judgement.Miss);
             if (note.TimeMs + missWindow >= judgedTime)

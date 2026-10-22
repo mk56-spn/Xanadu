@@ -25,16 +25,19 @@ public sealed class PlayerMovementSystem : QuerySystem<Player, Position, Playfie
     private readonly EntityStore _entities;
     private readonly KeybindSettings _keybinds;
     private readonly IKeyboardState _keyboard;
+    private readonly OffsetSettings _offsets;
     private readonly HashSet<Key> _previous = new();
 
     public PlayerMovementSystem(
         EntityStore entities,
         KeybindSettings keybinds,
-        IKeyboardState keyboard)
+        IKeyboardState keyboard,
+        OffsetSettings? offsets = null)
     {
         _entities = entities;
         _keybinds = keybinds;
         _keyboard = keyboard;
+        _offsets = offsets ?? new OffsetSettings(persist: false);
     }
 
     protected override void OnUpdate()
@@ -80,6 +83,20 @@ public sealed class PlayerMovementSystem : QuerySystem<Player, Position, Playfie
                 body.Body.GetAngle());
             position.Value = targetScreen;
 
+            if (entity.HasComponent<ScoreState>())
+            {
+                ref ScoreState score = ref entity.GetComponent<ScoreState>();
+                long judgedTime = playhead.TimeMs - _offsets.OffsetMs;
+                PlayScoring.Apply(ref score, movement.TimeMs - judgedTime);
+                score.JudgementPosition = view.PlayfieldToScreen(
+                    movement.Position);
+                score.JudgementTimeMs = playhead.TimeMs;
+                _entities.CreateEntity(new HitTrail(
+                    score.JudgementPosition,
+                    PlayfieldRenderer.ColorFor(movement.Target),
+                    KeybindSettings.KeyLabel(_keybinds.Get(movement.Target))));
+            }
+
             foreach (Entity noteEntity in _entities
                          .Query<Note>()
                          .ToEntityList())
@@ -113,6 +130,7 @@ public sealed class PlayerMovementSystem : QuerySystem<Player, Position, Playfie
         {
             Note note = entity.GetComponent<Note>();
             if (note.Kind != NoteKind.Movement ||
+                entity.Tags.Has<NoteMissed>() ||
                 !pressed.Contains(note.Target) ||
                 Math.Abs(note.TimeMs - timeMs) > ActiveWindowMs ||
                 NoteFade.Alpha(note, timeMs) <= 0)

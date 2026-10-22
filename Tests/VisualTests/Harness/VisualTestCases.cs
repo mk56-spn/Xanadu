@@ -1058,6 +1058,19 @@ public sealed class CharacterPlaySceneTest : SceneTest
         AddAssert(
             "movement note was consumed",
             () => Context.Entities.Query<Note>().Count == 0);
+        AddUntilStep(
+            "movement note scored",
+            () => Context.Entities.Query<ScoreState>().Count > 0 &&
+                  Context.Entities.Query<ScoreState>().ToEntityList()[0]
+                      .GetComponent<ScoreState>().NotesHit == 2);
+        AddUntilStep(
+            "movement note showed a judgement",
+            () => Context.Entities.Query<ScoreState>().Count > 0 &&
+                  Context.Entities.Query<ScoreState>().ToEntityList()[0]
+                      .GetComponent<ScoreState>().JudgementText
+                      .GetComponent<Text>().Value != "" &&
+                  Context.Entities.Query<ScoreState>().ToEntityList()[0]
+                      .GetComponent<ScoreState>().HasJudgement);
     }
 
     private long PlayheadTime() =>

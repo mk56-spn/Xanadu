@@ -44,7 +44,8 @@ public sealed class CharacterPlaySpatialTests
             new PlayfieldView(Vector2.Zero, 1f, new Vector2(1_000, 1_000)),
             new Playhead(1_000, 120, 0, true),
             new PhysicsBody(body),
-            new Momentum(System.Numerics.Vector2.Zero));
+            new Momentum(System.Numerics.Vector2.Zero),
+            new ScoreState(default, default, default, default, 1));
 
         Entity note = store.CreateEntity(new Note(
             1_000,
@@ -63,6 +64,12 @@ public sealed class CharacterPlaySpatialTests
             player.GetComponent<Position>().Value.Y,
             Is.EqualTo(400 + expectedY).Within(0.01f));
         Assert.That(note.IsNull, Is.True);
+        ScoreState score = player.GetComponent<ScoreState>();
+        Assert.That(score.NotesHit, Is.EqualTo(1));
+        Assert.That(score.Combo, Is.EqualTo(1));
+        Assert.That(score.LastJudgement,
+            Is.EqualTo(Writer.Scoring.Judgement.FlawlessP));
+        Assert.That(score.Score, Is.EqualTo(1_000_000));
     }
 
     [Test]
@@ -84,7 +91,8 @@ public sealed class CharacterPlaySpatialTests
             new PlayfieldView(Vector2.Zero, 1f, new Vector2(1_000, 1_000)),
             new Playhead(1_000, 120, 0, true),
             new PhysicsBody(body),
-            new Momentum(System.Numerics.Vector2.Zero));
+            new Momentum(System.Numerics.Vector2.Zero),
+            new ScoreState(default, default, default, default, 2));
 
         store.CreateEntity(new Note(
             1_000,
@@ -110,6 +118,8 @@ public sealed class CharacterPlaySpatialTests
         Assert.That(
             player.GetComponent<Position>().Value,
             Is.EqualTo(new Vector2(550, 550)));
+        Assert.That(player.GetComponent<ScoreState>().NotesHit, Is.EqualTo(2));
+        Assert.That(player.GetComponent<ScoreState>().MaxCombo, Is.EqualTo(2));
     }
 
     private sealed class FakeKeyboard : IKeyboardState
