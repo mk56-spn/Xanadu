@@ -147,6 +147,41 @@ public sealed class EditorPlayfieldDrawSystemTests
     }
 
     [Test]
+    public void TimelineMarkersUseLaneColorWithASelectionOutline()
+    {
+        var view = new PlayfieldView(new Vector2(30, 30), 0.6f, new Vector2(1152, 648));
+        var store = new EntityStore();
+        Entity note = store.CreateEntity(
+            new Note(
+                1_000,
+                new Vector2(100, 100),
+                target: Writer.Settings.KeybindAction.R1));
+        store.CreateEntity(
+            new LevelInfo("Markers", ""),
+            new Playfield(1000, 1000),
+            new Playhead(1_000, 120, 0, false, durationMs: 5_000),
+            view,
+            new NoteSelection(note));
+
+        var canvas = new RecordingCanvas();
+        var root = new SystemRoot(store);
+        root.Add(new EditorPlayfieldDrawSystem(store, canvas, default));
+
+        root.Update(new UpdateTick(1f / 60f, 0));
+
+        Color lane = PlayfieldRenderer.ColorFor(
+            Writer.Settings.KeybindAction.R1);
+        Assert.That(
+            canvas.RectCalls.Any(call => call.Color == lane),
+            Is.True);
+        Assert.That(
+            canvas.RectCalls.Any(call =>
+                call.Color == PlayfieldRenderer.SelectedNoteColor &&
+                call.Bounds.Size.X > call.Bounds.Size.Y),
+            Is.True);
+    }
+
+    [Test]
     public void SameTimeNotesCapAtSevenAndStayInOneColumn()
     {
         var view = new PlayfieldView(new Vector2(30, 30), 0.6f, new Vector2(1152, 648));
@@ -200,12 +235,15 @@ public sealed class EditorPlayfieldDrawSystemTests
 
         root.Update(new UpdateTick(1f / 60f, 0));
 
-        var selectedSquares = canvas.RectCalls
+        var selectedOutlines = canvas.RectCalls
             .Where(call =>
-                call.Bounds.Size == new Vector2(8, 8) &&
-                call.Color == PlayfieldRenderer.SelectedNoteColor)
+                call.Color == PlayfieldRenderer.SelectedNoteColor &&
+                call.Bounds.Size.X > call.Bounds.Size.Y)
             .ToList();
-        Assert.That(selectedSquares, Has.Count.EqualTo(2));
+        Assert.That(
+            selectedOutlines.Select(call => call.Bounds.Position)
+                .Distinct().Count(),
+            Is.EqualTo(4));
     }
 
     [Test]

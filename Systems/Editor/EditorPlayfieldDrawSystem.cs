@@ -491,18 +491,28 @@ public sealed class EditorPlayfieldDrawSystem :
 
             for (int i = 0; i < visible; i++)
             {
-                Color color = selection.Contains(notes[i])
-                    ? PlayfieldRenderer.SelectedNoteColor
-                    : PlayfieldRenderer.NoteColor;
-
+                var bounds = new Rect2(
+                    x - noteSquare / 2,
+                    startY + i * (noteSquare + noteGap),
+                    noteSquare,
+                    noteSquare);
+                Note note = notes[i].GetComponent<Note>();
                 _canvas.DrawRect(
                     _editor,
-                    new Rect2(
-                        x - noteSquare / 2,
-                        startY + i * (noteSquare + noteGap),
-                        noteSquare,
-                        noteSquare),
-                    color);
+                    bounds,
+                    PlayfieldRenderer.ColorFor(note.Target));
+
+                if (selection.Contains(notes[i]))
+                {
+                    PlayfieldRenderer.DrawBorder(
+                        _canvas,
+                        _editor,
+                        new Rect2(
+                            bounds.Position - new Vector2(1.5f, 1.5f),
+                            bounds.Size + new Vector2(3, 3)),
+                        PlayfieldRenderer.SelectedNoteColor,
+                        1.5f);
+                }
             }
         }
 
