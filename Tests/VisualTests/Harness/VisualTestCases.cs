@@ -497,6 +497,33 @@ public sealed class EditorDropdownSceneTest : SceneTest
             "sidebar top stays fixed when open",
             () => SidebarTop() == _closedSidebarTop);
 
+        AddStep(
+            "click note type while snap is open",
+            () => ClickDropdown(EditorDropdownKind.NoteType));
+        AddWaitStep("hold type over snap", 2);
+        AddStep("release type over snap", () => Context.Pointer.Release());
+        AddUntilStep(
+            "type replaces snap",
+            () => FindDropdown(EditorDropdownKind.NoteType)
+                      .GetComponent<Dropdown>().Open &&
+                  !FindDropdown(EditorDropdownKind.Snap)
+                      .GetComponent<Dropdown>().Open);
+        AddAssert(
+            "type list is aligned after snap closes",
+            () => DropdownListIsAligned(EditorDropdownKind.NoteType));
+
+        AddStep(
+            "reopen snap over type",
+            () => ClickDropdown(EditorDropdownKind.Snap));
+        AddWaitStep("hold snap over type", 2);
+        AddStep("release snap over type", () => Context.Pointer.Release());
+        AddUntilStep(
+            "snap replaces type",
+            () => FindDropdown(EditorDropdownKind.Snap)
+                      .GetComponent<Dropdown>().Open &&
+                  !FindDropdown(EditorDropdownKind.NoteType)
+                      .GetComponent<Dropdown>().Open);
+
         AddStep("choose 1/16 snap", () => ClickDropdownOption(EditorDropdownKind.Snap, 2));
         AddWaitStep("hold snap option", 2);
         AddStep("release snap option", () => Context.Pointer.Release());
@@ -540,6 +567,21 @@ public sealed class EditorDropdownSceneTest : SceneTest
             "toolbar zoom changed",
             () => Context.Entities.Query<EditorTimeline>().ToEntityList()[0]
                 .GetComponent<EditorTimeline>().Zoom >= 32f);
+    }
+
+    private bool DropdownListIsAligned(EditorDropdownKind kind)
+    {
+        Entity button = FindDropdown(kind);
+        Dropdown dropdown = button.GetComponent<Dropdown>();
+        if (!dropdown.Open || dropdown.List.IsNull)
+            return false;
+
+        Vector2 buttonPosition = button.GetComponent<Position>().Value;
+        float buttonHeight = button.GetComponent<Rectangle>().Bounds.Size.Y;
+        Vector2 expected = buttonPosition + new Vector2(
+            0,
+            buttonHeight / 2 + dropdown.ListSize.Y / 2 + 4);
+        return dropdown.List.GetComponent<Position>().Value == expected;
     }
 
     private float SidebarHeight()

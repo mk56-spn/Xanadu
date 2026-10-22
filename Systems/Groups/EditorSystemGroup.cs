@@ -27,7 +27,7 @@ public sealed class EditorSystemGroup : SystemGroup
         Add(new EditorMetronomeSystem(metronomeAudio));
         Add(new EditorNoteInputSystem(entities, pointerInput, history));
         Add(new EditorDropdownSystem(entities, commands));
-        Add(new EditorSidebarLayoutSystem());
+        Add(new EditorSidebarLayoutSystem(entities));
         Add(new EditorButtonSystem(entities, commands));
         Add(new TextFieldSystem());
         Add(new EditorMetadataSystem(entities, commands));
