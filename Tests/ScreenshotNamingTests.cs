@@ -1,6 +1,6 @@
 using System;
 using NUnit.Framework;
-using Writer;
+using Writer.Misc;
 
 namespace Writer.Tests;
 

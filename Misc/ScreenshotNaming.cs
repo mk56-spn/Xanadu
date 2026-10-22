@@ -2,7 +2,7 @@ using System;
 using System.IO;
 using System.Linq;
 
-namespace Writer;
+namespace Writer.Misc;
 
 /// <summary>Builds readable, collision-free screenshot file names.</summary>
 public static class ScreenshotNaming
