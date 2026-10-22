@@ -117,6 +117,20 @@ public sealed class EditorCommandSystemTests
     }
 
     [Test]
+    public void DeleteSelectionRemovesEverySelectedNote()
+    {
+        Entity first = _store.CreateEntity(new Note(500, new Vector2(10, 20)));
+        Entity second = _store.CreateEntity(new Note(750, new Vector2(30, 40)));
+        _editor.GetComponent<NoteSelection>().SetMany(new[] { first, second });
+
+        _commands.Enqueue(EditorCommand.DeleteSelection());
+        _root.Update(new UpdateTick(1f / 60f, 0));
+
+        Assert.That(_store.Query<Note>().Count, Is.Zero);
+        Assert.That(_editor.GetComponent<NoteSelection>().Notes, Is.Empty);
+    }
+
+    [Test]
     public void SetTargetIsUndoable()
     {
         Entity note = _store.CreateEntity(

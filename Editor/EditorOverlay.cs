@@ -312,6 +312,7 @@ public partial class EditorOverlay : CanvasLayer
                 GetViewport().SetInputAsHandled();
                 break;
             case Key.Delete:
+            case Key.Backspace:
                 DeleteSelectedNote();
                 GetViewport().SetInputAsHandled();
                 break;

@@ -1,13 +1,68 @@
+using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using Godot;
 using Writer.Settings;
 
 namespace Writer.Ecs;
 
-/// <summary>Currently selected editor note.</summary>
+/// <summary>The editor's current note selection, including marquee selections.</summary>
 public struct NoteSelection(Entity note) : IComponent
 {
-    public Entity Note = note;
+    private Entity _note = note;
+    public readonly List<Entity> Notes = new();
+
+    public Entity Note
+    {
+        readonly get => _note;
+        set
+        {
+            _note = value;
+            Notes.Clear();
+            if (!_note.IsNull)
+                Notes.Add(_note);
+        }
+    }
+
+    public readonly bool Contains(Entity entity) =>
+        Notes.Count > 0
+            ? Notes.Contains(entity)
+            : !_note.IsNull && _note.Id == entity.Id;
+
+    public readonly IReadOnlyList<Entity> AllNotes =>
+        Notes.Count > 0
+            ? Notes
+            : !_note.IsNull
+                ? new[] { _note }
+                : System.Array.Empty<Entity>();
+
+    public void SetMany(IEnumerable<Entity> notes)
+    {
+        Notes.Clear();
+        foreach (Entity entity in notes)
+        {
+            if (!entity.IsNull && !Notes.Contains(entity))
+                Notes.Add(entity);
+        }
+
+        _note = Notes.Count > 0 ? Notes[0] : default;
+    }
+
+    public void Clear()
+    {
+        Notes.Clear();
+        _note = default;
+    }
+}
+
+/// <summary>Screen-space marquee currently being dragged in the editor.</summary>
+public struct EditorSelectionBox(
+    Vector2 start,
+    Vector2 current,
+    bool active) : IComponent
+{
+    public Vector2 Start = start;
+    public Vector2 Current = current;
+    public bool Active = active;
 }
 
 /// <summary>Current level file path for Save (empty until saved).</summary>

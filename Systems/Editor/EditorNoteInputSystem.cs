@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
@@ -25,6 +26,10 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
     private Entity _draggedNote;
     private Vector2 _dragOffset;
     private EditorSnapshot _dragBefore;
+    private bool _pendingCreate;
+    private bool _selecting;
+    private Vector2 _selectionStart;
+    private Vector2 _selectionCurrent;
 
     public EditorNoteInputSystem(
         EntityStore entities,
@@ -65,6 +70,10 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
         PlayfieldView view = editor.GetComponent<PlayfieldView>();
         Playfield playfield = editor.GetComponent<Playfield>();
         ref Playhead playhead = ref editor.GetComponent<Playhead>();
+
+        _pendingCreate = false;
+        _selecting = false;
+        SetSelectionBox(editor, Vector2.Zero, Vector2.Zero, false);
 
         Rect2 bar = EditorLayout.RulerRect(view);
         if (bar.HasPoint(screenPosition))
@@ -112,24 +121,9 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
             return;
         }
 
-        if (string.IsNullOrEmpty(editor.GetComponent<LevelInfo>().AudioPath))
-        {
-            EditorWarningPopup.Request(editor, EditorWarningPopup.NoSongMessage);
-            return;
-        }
-
-        var before = _history.Capture();
-        long time = EditorTiming.Snap(playhead.TimeMs, playhead);
-        KeybindAction target = editor.HasComponent<EditorNoteTarget>()
-            ? editor.GetComponent<EditorNoteTarget>().Target
-            : KeybindAction.M;
-        Entity created = _entities.CreateEntity(new Note(
-            time,
-            playfieldPosition,
-            target: target));
-        var after = _history.Capture();
-        _history.Record(before, after);
-        selection.Note = created;
+        _pendingCreate = true;
+        _selectionStart = screenPosition;
+        _selectionCurrent = screenPosition;
     }
 
     private void OnHold(Vector2 screenPosition)
@@ -157,6 +151,30 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
             return;
         }
 
+        if (_pendingCreate &&
+            screenPosition.DistanceTo(_selectionStart) > 4f)
+        {
+            _pendingCreate = false;
+            _selecting = true;
+            editor.GetComponent<NoteSelection>().SetMany(
+                System.Array.Empty<Entity>());
+        }
+
+        if (_selecting)
+        {
+            _selectionCurrent = screenPosition;
+            SetSelectionBox(
+                editor,
+                _selectionStart,
+                _selectionCurrent,
+                true);
+            editor.GetComponent<NoteSelection>().SetMany(
+                FindNotesIn(
+                    Rect2From(_selectionStart, _selectionCurrent),
+                    playhead.TimeMs));
+            return;
+        }
+
         if (_draggedNote.IsNull || !_draggedNote.HasComponent<Note>())
         {
             CancelDrag();
@@ -179,12 +197,109 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
             return;
         }
 
+        Entity editor = FindEditor();
+        if (!editor.IsNull)
+            SetSelectionBox(editor, Vector2.Zero, Vector2.Zero, false);
+
+        if (_selecting)
+        {
+            _selecting = false;
+            _pendingCreate = false;
+            return;
+        }
+
+        if (_pendingCreate)
+        {
+            _pendingCreate = false;
+            if (!editor.IsNull)
+                CreateNoteAt(editor, _selectionStart);
+            return;
+        }
+
         if (_draggedNote.IsNull)
             return;
 
         var after = _history.Capture();
         _history.Record(_dragBefore, after);
         _draggedNote = default;
+    }
+
+    private void CreateNoteAt(Entity editor, Vector2 screenPosition)
+    {
+        PlayfieldView view = editor.GetComponent<PlayfieldView>();
+        Playfield playfield = editor.GetComponent<Playfield>();
+        Playhead playhead = editor.GetComponent<Playhead>();
+        Vector2 playfieldPosition = view.ScreenToPlayfield(screenPosition);
+        if (!IsInside(playfieldPosition, playfield))
+            return;
+
+        if (string.IsNullOrEmpty(editor.GetComponent<LevelInfo>().AudioPath))
+        {
+            EditorWarningPopup.Request(editor, EditorWarningPopup.NoSongMessage);
+            return;
+        }
+
+        var before = _history.Capture();
+        long time = EditorTiming.Snap(playhead.TimeMs, playhead);
+        KeybindAction target = editor.HasComponent<EditorNoteTarget>()
+            ? editor.GetComponent<EditorNoteTarget>().Target
+            : KeybindAction.M;
+        Entity created = _entities.CreateEntity(new Note(
+            time,
+            playfieldPosition,
+            target: target));
+        _history.Record(before, _history.Capture());
+        editor.GetComponent<NoteSelection>().Note = created;
+    }
+
+    private List<Entity> FindNotesIn(Rect2 screenBounds, long playheadMs)
+    {
+        var selected = new List<Entity>();
+        PlayfieldView view = FindEditor().GetComponent<PlayfieldView>();
+        float noteSize = PlayfieldRenderer.NoteSize * view.Scale;
+
+        foreach (Entity entity in _entities.Query<Note>().ToEntityList())
+        {
+            Note note = entity.GetComponent<Note>();
+            if (NoteFade.Alpha(note, playheadMs) <= 0)
+                continue;
+
+            Vector2 center = view.PlayfieldToScreen(note.Position);
+            var noteBounds = new Rect2(
+                center - new Vector2(noteSize / 2, noteSize / 2),
+                new Vector2(noteSize, noteSize));
+            if (screenBounds.Intersects(noteBounds))
+                selected.Add(entity);
+        }
+
+        return selected;
+    }
+
+    private static Rect2 Rect2From(Vector2 start, Vector2 current)
+    {
+        Vector2 topLeft = new(
+            Math.Min(start.X, current.X),
+            Math.Min(start.Y, current.Y));
+        return new Rect2(
+            topLeft,
+            new Vector2(
+                Math.Abs(current.X - start.X),
+                Math.Abs(current.Y - start.Y)));
+    }
+
+    private static void SetSelectionBox(
+        Entity editor,
+        Vector2 start,
+        Vector2 current,
+        bool active)
+    {
+        if (!editor.HasComponent<EditorSelectionBox>())
+            return;
+
+        ref EditorSelectionBox box = ref editor.GetComponent<EditorSelectionBox>();
+        box.Start = start;
+        box.Current = current;
+        box.Active = active;
     }
 
     private void Scrub(

@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System;
 using System.IO;
 using Friflo.Engine.ECS;
@@ -231,27 +232,42 @@ public sealed class EditorCommandSystem :
         }
 
         ref NoteSelection selection = ref editor.GetComponent<NoteSelection>();
-        if (selection.Note.IsNull || !selection.Note.HasComponent<Note>())
+        var notes = new List<Entity>();
+        foreach (Entity entity in selection.AllNotes)
+        {
+            if (!entity.IsNull && entity.HasComponent<Note>())
+                notes.Add(entity);
+        }
+
+        if (notes.Count == 0)
             return;
 
         var playhead = editor.GetComponent<Playhead>();
         double step = EditorTiming.StepMs(playhead);
-        ref Note note = ref selection.Note.GetComponent<Note>();
         long maxTime = playhead.DurationMs > 0
             ? playhead.DurationMs
             : long.MaxValue;
-        long moved = Math.Clamp(
-            note.TimeMs + (long)Math.Round(step) * Math.Sign(direction),
-            0,
-            maxTime);
+        var before = _history.Capture();
+        bool changed = false;
 
-        if (moved == note.TimeMs)
+        foreach (Entity entity in notes)
+        {
+            ref Note note = ref entity.GetComponent<Note>();
+            long moved = Math.Clamp(
+                note.TimeMs + (long)Math.Round(step) * Math.Sign(direction),
+                0,
+                maxTime);
+            if (moved == note.TimeMs)
+                continue;
+
+            note.TimeMs = moved;
+            changed = true;
+        }
+
+        if (!changed)
             return;
 
-        var before = _history.Capture();
-        note.TimeMs = moved;
-        var after = _history.Capture();
-        _history.Record(before, after);
+        _history.Record(before, _history.Capture());
     }
 
     private static void ZoomTimeline(int direction, Entity editor)
@@ -288,17 +304,33 @@ public sealed class EditorCommandSystem :
             return;
 
         ref NoteSelection selection = ref editor.GetComponent<NoteSelection>();
-        if (selection.Note.IsNull || !selection.Note.HasComponent<Note>())
-            return;
+        var notes = new List<Entity>();
+        foreach (Entity entity in selection.AllNotes)
+        {
+            if (!entity.IsNull && entity.HasComponent<Note>())
+                notes.Add(entity);
+        }
 
-        ref Note note = ref selection.Note.GetComponent<Note>();
-        if (note.Target == target)
+        if (notes.Count == 0)
             return;
 
         var before = _history.Capture();
-        note.Target = target;
-        var after = _history.Capture();
-        _history.Record(before, after);
+        bool changed = false;
+
+        foreach (Entity entity in notes)
+        {
+            ref Note note = ref entity.GetComponent<Note>();
+            if (note.Target == target)
+                continue;
+
+            note.Target = target;
+            changed = true;
+        }
+
+        if (!changed)
+            return;
+
+        _history.Record(before, _history.Capture());
     }
 
     private void DeleteSelection(Entity editor)
@@ -307,17 +339,25 @@ public sealed class EditorCommandSystem :
             return;
 
         ref NoteSelection selection = ref editor.GetComponent<NoteSelection>();
-        if (selection.Note.IsNull || !selection.Note.HasComponent<Note>())
+        var notes = new List<Entity>();
+        foreach (Entity entity in selection.AllNotes)
         {
-            selection.Note = default;
+            if (!entity.IsNull && entity.HasComponent<Note>())
+                notes.Add(entity);
+        }
+
+        if (notes.Count == 0)
+        {
+            selection.Clear();
             return;
         }
 
         var before = _history.Capture();
-        selection.Note.DeleteEntity();
-        var after = _history.Capture();
-        _history.Record(before, after);
-        selection.Note = default;
+        foreach (Entity entity in notes)
+            entity.DeleteEntity();
+
+        _history.Record(before, _history.Capture());
+        selection.Clear();
     }
 
     private void ApplyLevel(
@@ -339,7 +379,7 @@ public sealed class EditorCommandSystem :
             editor.GetComponent<EditorTimeline>().AutoZoomed = false;
 
         if (editor.HasComponent<NoteSelection>())
-            editor.GetComponent<NoteSelection>().Note = default;
+            editor.GetComponent<NoteSelection>().Clear();
 
         SetLevelFile(editor, path);
     }
@@ -353,7 +393,7 @@ public sealed class EditorCommandSystem :
     private static void ClearSelection(Entity editor)
     {
         if (editor.HasComponent<NoteSelection>())
-            editor.GetComponent<NoteSelection>().Note = default;
+            editor.GetComponent<NoteSelection>().Clear();
     }
 
     private static int NormalizeSnap(int snap) => snap switch

@@ -60,6 +60,9 @@ public sealed class EditorPlayfieldDrawSystem :
                         : 1f,
                     entity.HasComponent<WaveformPreview>()
                         ? entity.GetComponent<WaveformPreview>()
+                        : default,
+                    entity.HasComponent<EditorSelectionBox>()
+                        ? entity.GetComponent<EditorSelectionBox>()
                         : default);
         });
     }
@@ -70,7 +73,8 @@ public sealed class EditorPlayfieldDrawSystem :
         Playhead playhead,
         NoteSelection selection,
         float timelineZoom,
-        WaveformPreview preview)
+        WaveformPreview preview,
+        EditorSelectionBox selectionBox)
     {
         _canvas.DrawRect(
             _editor,
@@ -96,7 +100,63 @@ public sealed class EditorPlayfieldDrawSystem :
             _entities,
             view,
             playhead);
+        DrawSelectionOutlines(view, playhead, selection);
         DrawRuler(view, playhead, selection, timelineZoom, preview);
+        DrawSelectionBox(selectionBox);
+    }
+
+    private void DrawSelectionOutlines(
+        PlayfieldView view,
+        Playhead playhead,
+        NoteSelection selection)
+    {
+        float size = PlayfieldRenderer.NoteSize * view.Scale;
+
+        foreach (Entity entity in _entities.Query<Note>().ToEntityList())
+        {
+            if (!selection.Contains(entity))
+                continue;
+
+            Note note = entity.GetComponent<Note>();
+            if (NoteFade.Alpha(note, playhead.TimeMs) <= 0)
+                continue;
+
+            Vector2 center = view.PlayfieldToScreen(note.Position);
+            PlayfieldRenderer.DrawBorder(
+                _canvas,
+                _editor,
+                new Rect2(
+                    center - new Vector2(size / 2, size / 2),
+                    new Vector2(size, size)),
+                PlayfieldRenderer.SelectedNoteColor,
+                2);
+        }
+    }
+
+    private void DrawSelectionBox(EditorSelectionBox box)
+    {
+        if (!box.Active)
+            return;
+
+        Vector2 topLeft = new(
+            Math.Min(box.Start.X, box.Current.X),
+            Math.Min(box.Start.Y, box.Current.Y));
+        var bounds = new Rect2(
+            topLeft,
+            new Vector2(
+                Math.Abs(box.Current.X - box.Start.X),
+                Math.Abs(box.Current.Y - box.Start.Y)));
+
+        _canvas.DrawRect(
+            _editor,
+            bounds,
+            new Color(0.25f, 0.55f, 1f, 0.12f));
+        PlayfieldRenderer.DrawBorder(
+            _canvas,
+            _editor,
+            bounds,
+            new Color(0.45f, 0.7f, 1f, 0.9f),
+            1);
     }
 
     private void DrawChrome(PlayfieldView view)

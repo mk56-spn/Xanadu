@@ -44,6 +44,8 @@ public sealed class EditorNoteInputSystemTests
 
         _pointer.Current = new PointerInput(new Vector2(100, 200), true);
         _root.Update(new UpdateTick(1f / 60f, 0));
+        _pointer.Current = new PointerInput(new Vector2(100, 200), false);
+        _root.Update(new UpdateTick(1f / 60f, 0));
 
         Assert.That(_store.Query<Note>().Count, Is.EqualTo(0));
         Assert.That(editor.HasComponent<WarningRequest>(), Is.True);
@@ -56,6 +58,8 @@ public sealed class EditorNoteInputSystemTests
     public void ClickAddsSnappedNoteAndSelectsIt()
     {
         _pointer.Current = new PointerInput(new Vector2(100, 200), true);
+        _root.Update(new UpdateTick(1f / 60f, 0));
+        _pointer.Current = new PointerInput(new Vector2(100, 200), false);
         _root.Update(new UpdateTick(1f / 60f, 0));
 
         var notes = _store.Query<Note>().ToEntityList();
@@ -81,6 +85,8 @@ public sealed class EditorNoteInputSystemTests
         editor.GetComponent<NoteSelection>().Note = default;
 
         _pointer.Current = new PointerInput(new Vector2(700, 700), true);
+        _root.Update(new UpdateTick(1f / 60f, 0));
+        _pointer.Current = new PointerInput(new Vector2(700, 700), false);
         _root.Update(new UpdateTick(1f / 60f, 0));
 
         var notes = _store.Query<Note>().ToEntityList();
@@ -177,9 +183,32 @@ public sealed class EditorNoteInputSystemTests
         _store.CreateEntity(new Note(5_000, new Vector2(100, 200)));
         _pointer.Current = new PointerInput(new Vector2(100, 200), true);
         _root.Update(new UpdateTick(1f / 60f, 0));
+        _pointer.Current = new PointerInput(new Vector2(100, 200), false);
+        _root.Update(new UpdateTick(1f / 60f, 0));
 
         var notes = _store.Query<Note>().ToEntityList();
         Assert.That(notes.Count, Is.EqualTo(2));
+    }
+
+    [Test]
+    public void DraggingEmptySpaceSelectsWithoutCreating()
+    {
+        Entity editor = _store.Query<PlayfieldView>().ToEntityList()[0];
+        _store.CreateEntity(new Note(1_000, new Vector2(200, 200)));
+        _store.CreateEntity(new Note(1_000, new Vector2(300, 300)));
+        _store.CreateEntity(new Note(1_000, new Vector2(700, 700)));
+
+        _pointer.Current = new PointerInput(new Vector2(50, 50), true);
+        _root.Update(new UpdateTick(1f / 60f, 0));
+        _pointer.Current = new PointerInput(new Vector2(400, 400), true);
+        _root.Update(new UpdateTick(1f / 60f, 0));
+
+        Assert.That(_store.Query<Note>().Count, Is.EqualTo(3));
+        Assert.That(editor.GetComponent<NoteSelection>().Notes, Has.Count.EqualTo(2));
+
+        _pointer.Current = new PointerInput(new Vector2(400, 400), false);
+        _root.Update(new UpdateTick(1f / 60f, 0));
+        Assert.That(_store.Query<Note>().Count, Is.EqualTo(3));
     }
 
     [Test]
@@ -187,10 +216,14 @@ public sealed class EditorNoteInputSystemTests
     {
         _pointer.Current = new PointerInput(new Vector2(100, 200), true);
         _root.Update(new UpdateTick(1f / 60f, 0));
+        _pointer.Current = new PointerInput(new Vector2(100, 200), false);
+        _root.Update(new UpdateTick(1f / 60f, 0));
 
         var notes = _store.Query<Note>().ToEntityList();
         notes[0].DeleteEntity();
 
+        _pointer.Current = new PointerInput(new Vector2(100, 200), true);
+        _root.Update(new UpdateTick(1f / 60f, 0));
         Assert.DoesNotThrow(() =>
             _root.Update(new UpdateTick(1f / 60f, 0)));
         _pointer.Current = new PointerInput(new Vector2(100, 200), false);
