@@ -1,6 +1,7 @@
 using System;
 using Godot;
 using Writer.Ecs;
+using Writer.Systems.Editor;
 using Writer.Editor.Commands;
 
 namespace Writer.Editor;
@@ -12,6 +13,31 @@ public partial class EditorOverlay : CanvasLayer
     {
         if (_closed)
             return;
+
+        if (@event is InputEventMouseButton
+            {
+                Pressed: true,
+                ButtonIndex: MouseButton.WheelUp or MouseButton.WheelDown,
+            } wheel)
+        {
+            if (_editor.IsNull ||
+                AnyDialogVisible() ||
+                IsWarningOpen() ||
+                GetViewport().GuiGetFocusOwner() is LineEdit)
+            {
+                return;
+            }
+
+            ref Playhead playhead = ref _editor.GetComponent<Playhead>();
+            int direction = wheel.ButtonIndex == MouseButton.WheelUp ? -1 : 1;
+            _commands.Enqueue(EditorCommand.Seek(
+                EditorScroll.Target(
+                    playhead,
+                    direction,
+                    wheel.ShiftPressed)));
+            GetViewport().SetInputAsHandled();
+            return;
+        }
 
         if (@event is not InputEventKey { Pressed: true, Echo: false } key)
             return;
