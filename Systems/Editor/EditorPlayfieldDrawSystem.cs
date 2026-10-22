@@ -118,6 +118,47 @@ public sealed class EditorPlayfieldDrawSystem :
         DrawZoomLens(view);
     }
 
+    private void DrawBeatBands(
+        Rect2 ruler,
+        Playhead playhead,
+        long windowStart,
+        long windowEnd)
+    {
+        double beatMs = 60_000.0 / Math.Max(1, playhead.Bpm);
+        double first = Math.Floor(
+            (windowStart - playhead.OffsetMs) / beatMs);
+        double last = Math.Ceiling(
+            (windowEnd - playhead.OffsetMs) / beatMs);
+
+        for (int beat = (int)first; beat < last; beat++)
+        {
+            double start = playhead.OffsetMs + beat * beatMs;
+            double end = start + beatMs;
+            if (end < windowStart || start > windowEnd)
+                continue;
+
+            float x0 = XForTime(
+                ruler,
+                windowStart,
+                windowEnd,
+                (long)Math.Max(start, windowStart));
+            float x1 = XForTime(
+                ruler,
+                windowStart,
+                windowEnd,
+                (long)Math.Min(end, windowEnd));
+            bool accent = beat % 4 == 0;
+            _canvas.DrawRect(
+                _editor,
+                new Rect2(
+                    x0,
+                    ruler.Position.Y + 1,
+                    Math.Max(1f, x1 - x0 - 1),
+                    ruler.Size.Y - 2),
+                new Color(1f, 1f, 1f, accent ? 0.028f : 0.012f));
+        }
+    }
+
     private void DrawWaveform(
         Rect2 ruler,
         WaveformPreview preview,
@@ -130,10 +171,10 @@ public sealed class EditorPlayfieldDrawSystem :
             return;
 
         float centerY = ruler.Position.Y + ruler.Size.Y / 2;
-        float maxHeight = (ruler.Size.Y - 14f) * 0.5f;
-        int bars = Math.Min(256, Math.Max(32, (int)ruler.Size.X / 4));
+        float maxHeight = (ruler.Size.Y - 14f) * 0.56f;
+        int bars = Math.Min(128, Math.Max(24, (int)ruler.Size.X / 9));
         float barWidth = ruler.Size.X / bars;
-        var color = new Color(0.35f, 0.68f, 0.98f, 0.14f);
+        var color = new Color(0.35f, 0.68f, 0.98f, 0.16f);
 
         for (int i = 0; i < bars; i++)
         {
@@ -155,7 +196,7 @@ public sealed class EditorPlayfieldDrawSystem :
                 new Rect2(
                     ruler.Position.X + i * barWidth,
                     centerY - height / 2,
-                    Math.Max(1f, barWidth - 1f),
+                    Math.Max(1f, barWidth * 0.36f),
                     height),
                 color);
         }
@@ -235,6 +276,7 @@ public sealed class EditorPlayfieldDrawSystem :
         (long windowStart, long windowEnd) =
             EditorLayout.TimelineWindow(playhead, timelineZoom);
 
+        DrawBeatBands(ruler, playhead, windowStart, windowEnd);
         DrawWaveform(ruler, preview, windowStart, windowEnd);
         double beatMs = 60_000.0 / Math.Max(1, playhead.Bpm);
         int subdivisions = Math.Max(1, playhead.SnapDivision);

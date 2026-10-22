@@ -144,7 +144,7 @@ public static class WaveformLoader
             }
 
             peaks[bin] = Math.Clamp(
-                (float)Math.Sqrt(sumSquares / Math.Max(1, sampleCount)) * 1.8f,
+                (float)Math.Sqrt(sumSquares / Math.Max(1, sampleCount)) * 2.4f,
                 0f,
                 1f);
         }
@@ -245,7 +245,7 @@ public static class WaveformLoader
                         }
 
                         peaks[bin] = Math.Clamp(
-                            (float)Math.Sqrt(sumSquares / channels) * 1.8f,
+                            (float)Math.Sqrt(sumSquares / channels) * 2.4f,
                             0f,
                             1f);
                     }
