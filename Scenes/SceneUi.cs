@@ -137,6 +137,7 @@ public static Entity ScrollView(
         spacing: 4,
         color: new Color(0, 0, 0, 0));
     content = ui.Current;
+    viewport.RemoveTag<LayoutDirty>();
     viewport.AddComponent(new ScrollView(
         content,
         contentHeight,

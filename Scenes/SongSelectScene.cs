@@ -140,7 +140,7 @@ public static class SongSelectScene
             scoreUi,
             new Vector2(scoreCenter.X, scoreCenter.Y + 10),
             new Vector2(scoreWidth - 24, scoreHeight - 70),
-            maxScoreRows * scoreRowHeight,
+            maxScoreRows * (scoreRowHeight + 2),
             out Entity scoreContent);
         var scoreRows = new List<Entity>();
         for (int i = 0; i < maxScoreRows; i++)
