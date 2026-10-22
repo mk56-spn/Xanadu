@@ -20,6 +20,9 @@ public struct Pressed : ITag { }
 /// <summary>Marks a container whose child layout needs recomputing.</summary>
 public struct LayoutDirty : ITag { }
 
+/// <summary>Excludes a child from its container's stack while keeping it alive.</summary>
+public struct LayoutIgnore : ITag { }
+
 /// <summary>Marks a drawable whose canvas transform needs updating.</summary>
 public struct Moved : ITag { }
 

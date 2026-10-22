@@ -52,7 +52,12 @@ public sealed class UiBuilder
         bool clip = false,
         Color? color = null,
         string? text = null,
-        bool takesInput = false)
+        bool takesInput = false,
+        float padding = 0,
+        StackCrossAlignment cross = StackCrossAlignment.Center,
+        bool autoWidth = false,
+        bool autoHeight = false,
+        bool anchorTop = false)
     {
         RequireLayer();
 
@@ -66,7 +71,15 @@ public sealed class UiBuilder
             new Drawable(_layerZIndex),
             new Position(position),
             new FillColor(color ?? DefaultContainerColor),
-            new UiContainer(direction, spacing, clip),
+            new UiContainer(
+                direction,
+                spacing,
+                clip,
+                padding,
+                cross,
+                autoWidth,
+                autoHeight,
+                anchorTop),
             tags);
 
         if (text is not null)
@@ -170,12 +183,18 @@ public sealed class UiBuilder
         return this;
     }
 
+    /// <summary>Adds an existing entity to a container and flags the container.</summary>
+    public void AddChild(Entity parent, Entity child)
+    {
+        parent.AddChild(child);
+
+        if (parent.HasComponent<UiContainer>())
+            parent.AddTag<LayoutDirty>();
+    }
+
     private void Attach(Entity child)
     {
-        _current.AddChild(child);
-
-        if (_current.HasComponent<UiContainer>())
-            _current.AddTag<LayoutDirty>();
+        AddChild(_current, child);
     }
 
     private void RequireLayer()

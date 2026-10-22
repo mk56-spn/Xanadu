@@ -59,15 +59,37 @@ public enum StackDirection
     Vertical,
 }
 
-/// <summary>Container entity that stacks its child entities.</summary>
+/// <summary>Cross-axis placement of children inside a container.</summary>
+public enum StackCrossAlignment
+{
+    Start,
+    Center,
+    End,
+}
+
+/// <summary>
+/// Container entity that stacks its child entities.  Auto-sized dimensions
+/// are derived from the children and <see cref="Padding"/>; <see cref="AnchorTop"/>
+/// keeps the current top edge fixed when an auto-height container resizes.
+/// </summary>
 public struct UiContainer(
     StackDirection direction,
     float spacing = 0,
-    bool clip = false) : IComponent
+    bool clip = false,
+    float padding = 0,
+    StackCrossAlignment cross = StackCrossAlignment.Center,
+    bool autoWidth = false,
+    bool autoHeight = false,
+    bool anchorTop = false) : IComponent
 {
     public StackDirection Direction = direction;
     public float Spacing = spacing;
     public bool Clip = clip;
+    public float Padding = padding;
+    public StackCrossAlignment Cross = cross;
+    public bool AutoWidth = autoWidth;
+    public bool AutoHeight = autoHeight;
+    public bool AnchorTop = anchorTop;
 }
 
 /// <summary>Layer entity component. ZIndex determines draw order between layers.</summary>
@@ -101,3 +123,4 @@ public struct ScrollView(
     public float BaseContentY = baseContentY;
     public float Offset;
 }
+
