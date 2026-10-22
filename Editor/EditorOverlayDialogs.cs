@@ -63,10 +63,10 @@ public partial class EditorOverlay : CanvasLayer
         _songDialog.PopupCentered(new Vector2I(900, 600));
     }
 
-    private void SaveCurrent()
+    public bool SaveCurrent()
     {
         if (_editor.IsNull || !ValidateCurrent())
-            return;
+            return false;
 
         try
         {
@@ -78,10 +78,12 @@ public partial class EditorOverlay : CanvasLayer
             LevelStore.Save(document, path);
             _commands.Enqueue(EditorCommand.SetLevelFile(path));
             SetStatus($"Saved {Path.GetFileName(path)}");
+            return true;
         }
         catch (Exception exception)
         {
             SetStatus($"Save failed: {exception.Message}");
+            return false;
         }
     }
 

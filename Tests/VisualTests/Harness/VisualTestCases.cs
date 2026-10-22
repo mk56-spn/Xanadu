@@ -887,6 +887,7 @@ public sealed class RestartSceneTest : SceneTest
 public sealed class LeaveEditorSceneTest : SceneTest
 {
     private EditorOverlay? _overlay;
+    private bool _saved;
 
     public override string Name => "Leave editor";
     public override string Slug => "leave-editor";
@@ -899,10 +900,12 @@ public sealed class LeaveEditorSceneTest : SceneTest
             () => Context.Scenes.Current == SceneKind.Editor &&
                   VisualAssert.HasText(Context.Entities, "MENU"));
         AddStep("create editor overlay", CreateOverlay);
+        AddStep("wire editor save", () =>
+            Context.Scenes.SaveEditor = () => _saved = true);
         AddWaitStep("overlay settles", 2);
         AddStep("request leave", () => Context.Scenes.TryBack());
         AddUntilStep("leave confirmation is visible", ConfirmationIsVisible);
-        AddStep("click YES", ClickYes);
+        AddStep("click SAVE & LEAVE", ClickSave);
         AddWaitStep("hold click", 2);
         AddStep("release click", () => Context.Pointer.Release());
         AddUntilStep(
@@ -911,6 +914,7 @@ public sealed class LeaveEditorSceneTest : SceneTest
         AddAssert(
             "main menu is visible",
             () => VisualAssert.HasText(Context.Entities, "WRITER"));
+        AddAssert("editor save was requested", () => _saved);
         AddStep("close editor overlay", CloseOverlay);
     }
 
@@ -938,23 +942,23 @@ public sealed class LeaveEditorSceneTest : SceneTest
         return false;
     }
 
-    private void ClickYes()
+    private void ClickSave()
     {
         foreach (Entity entity in Context.Entities.Query<SceneConfirmation>().ToEntityList())
         {
             SceneConfirmation confirmation = entity.GetComponent<SceneConfirmation>();
-            if (!confirmation.Visible || confirmation.Yes.IsNull)
+            if (!confirmation.Visible || confirmation.Save.IsNull)
                 continue;
 
-            Entity yes = confirmation.Yes;
+            Entity save = confirmation.Save;
             Vector2 world = UiTransform.WorldPosition(
-                yes,
-                yes.GetComponent<Writer.Ecs.Position>().Value);
+                save,
+                save.GetComponent<Writer.Ecs.Position>().Value);
             Context.Pointer.Click(world);
             return;
         }
 
-        throw new SceneTestAssertionException("leave confirmation YES button missing");
+        throw new SceneTestAssertionException("leave confirmation SAVE button missing");
     }
 
     private void CloseOverlay()

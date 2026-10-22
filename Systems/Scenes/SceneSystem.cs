@@ -83,6 +83,9 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
     public KeybindSettings Keybinds => _keybinds;
     public DisplaySettings Display => _display;
 
+    /// <summary>Saves the active editor before confirming a leave, when available.</summary>
+    public Func<bool>? SaveEditor { get; set; }
+
     /// <summary>Queues a scene transition.</summary>
     public void Request(SceneKind scene)
     {

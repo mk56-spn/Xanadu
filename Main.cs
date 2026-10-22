@@ -183,6 +183,7 @@ public partial class Main : Control
 				() => _systems?.Scenes.TryBack(),
 				() => _systems?.Scenes.TryForward());
 			AddChild(_editorOverlay);
+			_systems.Scenes.SaveEditor = () => _editorOverlay?.SaveCurrent() ?? false;
 			return;
 		}
 

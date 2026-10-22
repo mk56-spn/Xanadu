@@ -49,9 +49,18 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
 
         builder.Container(
             Vector2.Zero,
-            new Vector2(340, 44),
+            new Vector2(520, 44),
             StackDirection.Horizontal,
-            spacing: 12);
+            spacing: 10);
+
+        Entity save = builder.RectEntity(
+            Vector2.Zero,
+            new Vector2(190, 42),
+            SceneUi.ButtonColor,
+            "SAVE & LEAVE",
+            takesInput: true);
+        save.AddComponent(new TextStyle(15, SceneUi.TextColor));
+        save.AddComponent(ButtonVisual.Create(SceneUi.ButtonColor));
 
         Entity yes = builder.RectEntity(
             Vector2.Zero,
@@ -74,7 +83,7 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
         builder.End();
         builder.End();
 
-        panel.AddComponent(new SceneConfirmation(title, message, yes, no));
+        panel.AddComponent(new SceneConfirmation(title, message, yes, no, save));
         _confirmationPanel = panel;
     }
 
@@ -90,6 +99,14 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
             return false;
 
         if (!confirmation.Yes.IsNull && confirmation.Yes.Tags.Has<Pressed>())
+        {
+            Confirm(ref state);
+            return true;
+        }
+
+        if (!confirmation.Save.IsNull &&
+            confirmation.Save.Tags.Has<Pressed>() &&
+            SaveEditor?.Invoke() == true)
         {
             Confirm(ref state);
             return true;
@@ -118,6 +135,17 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
 
         bool play = current == SceneKind.Play;
         confirmation.Target = target;
+        if (!confirmation.Save.IsNull)
+        {
+            if (play)
+                confirmation.Save.AddTag<LayoutIgnore>();
+            else
+                confirmation.Save.RemoveTag<LayoutIgnore>();
+
+            Entity parent = confirmation.Save.Parent;
+            if (!parent.IsNull && parent.HasComponent<UiContainer>())
+                parent.AddTag<LayoutDirty>();
+        }
         SceneUi.SetText(
             confirmation.Title,
             play ? "LEAVE PLAY?" : "LEAVE EDITOR?");
@@ -125,7 +153,7 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
             confirmation.Message,
             play
                 ? "Return to song select?"
-                : "Return to the main menu? Save your level first if needed.");
+                : "Save this level before returning to the main menu?");
 
         ref Position position = ref _confirmationPanel.GetComponent<Position>();
         position.Value = _screen / 2;

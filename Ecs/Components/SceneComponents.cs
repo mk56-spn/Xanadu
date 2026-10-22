@@ -80,12 +80,18 @@ public struct SongSelectState(
 }
 
 /// <summary>Scene leave confirmation popup state.</summary>
-public struct SceneConfirmation(Entity title, Entity message, Entity yes, Entity no) : IComponent
+public struct SceneConfirmation(
+    Entity title,
+    Entity message,
+    Entity yes,
+    Entity no,
+    Entity save) : IComponent
 {
     public Entity Title = title;
     public Entity Message = message;
     public Entity Yes = yes;
     public Entity No = no;
+    public Entity Save = save;
     public SceneKind Target;
     public bool Visible;
 }
