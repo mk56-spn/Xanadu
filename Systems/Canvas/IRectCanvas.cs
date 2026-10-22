@@ -13,6 +13,30 @@ public interface IRectCanvas
 
     void DrawRect(Rid canvas, Rect2 bounds, Color color);
 
+    /// <summary>Draws a filled circle.</summary>
+    void DrawCircle(Rid canvas, Vector2 center, float radius, Color color) { }
+
+    /// <summary>Draws an outlined circle using short line segments.</summary>
+    void DrawCircleOutline(
+        Rid canvas,
+        Vector2 center,
+        float radius,
+        Color color,
+        float width,
+        int segments = 40)
+    {
+        Vector2 previous = center + new Vector2(radius, 0);
+        for (int i = 1; i <= segments; i++)
+        {
+            float angle = Mathf.Tau * i / segments;
+            Vector2 next = center + new Vector2(
+                Mathf.Cos(angle) * radius,
+                Mathf.Sin(angle) * radius);
+            DrawLine(canvas, previous, next, color, width);
+            previous = next;
+        }
+    }
+
     void DrawLine(Rid canvas, Vector2 from, Vector2 to, Color color, float width);
 
     void DrawText(Rid canvas, Rect2 bounds, string text, Color color);

@@ -29,24 +29,41 @@ public static partial class PlayfieldRenderer
                 continue;
 
             Vector2 center = view.PlayfieldToScreen(note.Position);
-            var bounds = new Rect2(
-                center - new Vector2(size / 2, size / 2),
-                new Vector2(size, size));
-
+            float radius = size / 2;
             Color laneColor = ColorFor(note.Target);
             Color color = entity.Tags.Has<NoteMissed>()
                 ? new Color(0.4f, 0.4f, 0.5f, alpha * 0.45f)
                 : new Color(laneColor.R, laneColor.G, laneColor.B, alpha);
 
-            canvas.DrawRect(rid, bounds, color);
+            long delta = note.TimeMs - playhead.TimeMs;
+            if (delta >= 0)
+            {
+                float approach = Math.Clamp(
+                    delta / (float)Math.Max(1, note.FadeInMs),
+                    0f,
+                    1f);
+                float approachRadius = radius * (1f + approach * 1.2f);
+                canvas.DrawCircleOutline(
+                    rid,
+                    center,
+                    approachRadius,
+                    new Color(laneColor.R, laneColor.G, laneColor.B, alpha * 0.75f),
+                    2);
+            }
+
+            canvas.DrawCircle(rid, center, radius, color);
 
             if (!selectedNote.IsNull && selectedNote.Id == entity.Id)
             {
-                DrawBorder(
-                    canvas,
+                canvas.DrawCircleOutline(
                     rid,
-                    bounds,
-                    new Color(SelectedNoteColor.R, SelectedNoteColor.G, SelectedNoteColor.B, alpha),
+                    center,
+                    radius + 1.5f,
+                    new Color(
+                        SelectedNoteColor.R,
+                        SelectedNoteColor.G,
+                        SelectedNoteColor.B,
+                        alpha),
                     2);
             }
         }

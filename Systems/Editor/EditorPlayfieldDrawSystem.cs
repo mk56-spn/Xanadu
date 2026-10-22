@@ -122,12 +122,10 @@ public sealed class EditorPlayfieldDrawSystem :
                 continue;
 
             Vector2 center = view.PlayfieldToScreen(note.Position);
-            PlayfieldRenderer.DrawBorder(
-                _canvas,
+            _canvas.DrawCircleOutline(
                 _editor,
-                new Rect2(
-                    center - new Vector2(size / 2, size / 2),
-                    new Vector2(size, size)),
+                center,
+                size / 2 + 1.5f,
                 PlayfieldRenderer.SelectedNoteColor,
                 2);
         }
