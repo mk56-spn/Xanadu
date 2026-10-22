@@ -39,6 +39,27 @@ public sealed class EditorPlayfieldDrawSystemTests
     }
 
     [Test]
+    public void TimelineLabelsTheBpmMarkerAtTheBeatOffset()
+    {
+        var view = new PlayfieldView(new Vector2(30, 30), 0.6f, new Vector2(1152, 648));
+        var store = new EntityStore();
+        store.CreateEntity(
+            new LevelInfo("Tempo", ""),
+            new Playfield(1000, 1000),
+            new Playhead(0, 140, 500, false, durationMs: 5_000),
+            view,
+            new NoteSelection(default));
+
+        var canvas = new RecordingCanvas();
+        var root = new SystemRoot(store);
+        root.Add(new EditorPlayfieldDrawSystem(store, canvas, default));
+
+        root.Update(new UpdateTick(1f / 60f, 0));
+
+        Assert.That(canvas.Texts, Does.Contain("140 BPM"));
+    }
+
+    [Test]
     public void ZoomedTimelineUsesANarrowerTimeWindow()
     {
         var view = new PlayfieldView(new Vector2(276, 88), 0.404f, new Vector2(1152, 648));

@@ -176,6 +176,49 @@ public sealed class EditorPlayfieldDrawSystem :
         DrawZoomLens(view);
     }
 
+    private void DrawBpmMarker(
+        Rect2 ruler,
+        Playhead playhead,
+        long windowStart,
+        long windowEnd)
+    {
+        if (playhead.OffsetMs < windowStart ||
+            playhead.OffsetMs > windowEnd)
+        {
+            return;
+        }
+
+        float x = XForTime(
+            ruler,
+            windowStart,
+            windowEnd,
+            playhead.OffsetMs);
+        _canvas.DrawRect(
+            _editor,
+            new Rect2(x, ruler.Position.Y, 2, ruler.Size.Y),
+            PlayfieldRenderer.SelectedNoteColor);
+
+        string label = $"{playhead.Bpm} BPM";
+        float labelX = Mathf.Clamp(
+            x + 4,
+            ruler.Position.X + 2,
+            ruler.End.X - 92);
+        var labelBounds = new Rect2(
+            labelX,
+            ruler.Position.Y + 2,
+            88,
+            18);
+        _canvas.DrawRect(
+            _editor,
+            labelBounds,
+            new Color(0.04f, 0.06f, 0.1f, 0.85f));
+        _canvas.DrawTextLeft(
+            _editor,
+            labelBounds,
+            label,
+            PlayfieldRenderer.SelectedNoteColor);
+    }
+
     private void DrawBeatBands(
         Rect2 ruler,
         Playhead playhead,
@@ -354,6 +397,7 @@ public sealed class EditorPlayfieldDrawSystem :
             EditorLayout.TimelineWindow(playhead, timelineZoom);
 
         DrawBeatBands(ruler, playhead, windowStart, windowEnd);
+        DrawBpmMarker(ruler, playhead, windowStart, windowEnd);
         DrawWaveform(ruler, preview, windowStart, windowEnd);
         double beatMs = 60_000.0 / Math.Max(1, playhead.Bpm);
         int subdivisions = Math.Max(1, playhead.SnapDivision);

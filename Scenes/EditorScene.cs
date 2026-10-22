@@ -207,7 +207,7 @@ public static class EditorScene
             EditorFieldKind.Bpm,
             true);
 
-        AddMetadataLabel(panelUi, "OFFSET (MS)");
+        AddMetadataLabel(panelUi, "BEAT OFFSET (MS)");
         Entity offsetField = AddMetadataField(
             panelUi,
             playhead.OffsetMs.ToString(),

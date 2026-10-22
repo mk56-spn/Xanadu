@@ -212,6 +212,23 @@ public sealed class EditorNoteInputSystemTests
     }
 
     [Test]
+    public void MarqueeSkipsInvisibleNotes()
+    {
+        Entity editor = _store.Query<PlayfieldView>().ToEntityList()[0];
+        _store.CreateEntity(new Note(1_000, new Vector2(200, 200)));
+        _store.CreateEntity(new Note(5_000, new Vector2(300, 300)));
+
+        _pointer.Current = new PointerInput(new Vector2(50, 50), true);
+        _root.Update(new UpdateTick(1f / 60f, 0));
+        _pointer.Current = new PointerInput(new Vector2(400, 400), true);
+        _root.Update(new UpdateTick(1f / 60f, 0));
+
+        Assert.That(
+            editor.GetComponent<NoteSelection>().Notes,
+            Has.Count.EqualTo(1));
+    }
+
+    [Test]
     public void DeletedDraggedNoteDoesNotThrow()
     {
         _pointer.Current = new PointerInput(new Vector2(100, 200), true);

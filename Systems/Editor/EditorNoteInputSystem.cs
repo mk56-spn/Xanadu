@@ -255,14 +255,22 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
     private List<Entity> FindNotesIn(Rect2 screenBounds, long playheadMs)
     {
         var selected = new List<Entity>();
-        PlayfieldView view = FindEditor().GetComponent<PlayfieldView>();
+        Entity editor = FindEditor();
+        if (editor.IsNull)
+            return selected;
+
+        PlayfieldView view = editor.GetComponent<PlayfieldView>();
+        Playfield playfield = editor.GetComponent<Playfield>();
         float noteSize = PlayfieldRenderer.NoteSize * view.Scale;
 
         foreach (Entity entity in _entities.Query<Note>().ToEntityList())
         {
             Note note = entity.GetComponent<Note>();
-            if (NoteFade.Alpha(note, playheadMs) <= 0)
+            if (NoteFade.Alpha(note, playheadMs) <= 0.05f ||
+                !IsInside(note.Position, playfield))
+            {
                 continue;
+            }
 
             Vector2 center = view.PlayfieldToScreen(note.Position);
             var noteBounds = new Rect2(
