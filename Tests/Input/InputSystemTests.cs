@@ -2,6 +2,7 @@ using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Godot;
 using NUnit.Framework;
+using Writer.Tests.Support;
 using Writer.Ecs;
 using Writer.Systems.Input;
 using Writer.Systems.Layout;
@@ -10,18 +11,15 @@ using Position = Writer.Ecs.Position;
 namespace Writer.Tests.Input;
 
 [TestFixture]
-public sealed class InputSystemTests
+public sealed class InputSystemTests : EcsSystemTest
 {
-    private EntityStore _store = null!;
     private ScriptedPointerInput _input = null!;
-    private SystemRoot _root = null!;
 
-    [SetUp]
-    public void SetUp()
+    protected override void OnEcsSetUp()
     {
-        _store = new EntityStore();
         _input = new ScriptedPointerInput();
-        _root = new SystemRoot(_store) { new ContainerLayoutSystem(), new InputSystem(_input) };
+        Root.Add(new ContainerLayoutSystem());
+        Root.Add(new InputSystem(_input));
     }
 
     [Test]
@@ -125,7 +123,7 @@ public sealed class InputSystemTests
     [Test]
     public void ChildInputUsesContainerWorldPosition()
     {
-        Entity container = _store.CreateEntity(new Position(new Vector2(200, 200)));
+        Entity container = Store.CreateEntity(new Position(new Vector2(200, 200)));
         Entity child = AddInputRect(new Vector2(50, 0), new Vector2(40, 40), 0);
         container.AddChild(child);
 
@@ -137,8 +135,8 @@ public sealed class InputSystemTests
     [Test]
     public void NestedContainerInputUsesAccumulatedWorldPosition()
     {
-        Entity outer = _store.CreateEntity(new Position(new Vector2(200, 100)));
-        Entity inner = _store.CreateEntity(new Position(new Vector2(50, 25)));
+        Entity outer = Store.CreateEntity(new Position(new Vector2(200, 100)));
+        Entity inner = Store.CreateEntity(new Position(new Vector2(50, 25)));
         outer.AddChild(inner);
 
         Entity child = AddInputRect(new Vector2(10, 5), new Vector2(20, 20), 0);
@@ -152,7 +150,7 @@ public sealed class InputSystemTests
     [Test]
     public void LayoutedChildInputUsesContainerWorldPosition()
     {
-        Entity container = _store.CreateEntity(
+        Entity container = Store.CreateEntity(
             new Rectangle(new Rect2(-100, -50, 200, 100)),
             new UiContainer(StackDirection.Horizontal, 10),
             new Position(new Vector2(300, 200)),
@@ -180,7 +178,7 @@ public sealed class InputSystemTests
     {
         Tags tags = takesInput ? Tags.Get<TakesInput>() : default;
 
-        Entity entity = _store.CreateEntity(
+        Entity entity = Store.CreateEntity(
             new Rectangle(new Rect2(-size / 2, size)),
             new Drawable(layer),
             new Position(center),
@@ -204,7 +202,6 @@ public sealed class InputSystemTests
         Frame();
     }
 
-    private void Frame() => _root.Update(new UpdateTick(1f / 60f, 0));
 
     private sealed class ScriptedPointerInput : IPointerInputSource
     {

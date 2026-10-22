@@ -12,32 +12,29 @@ using Writer.Tests.Support;
 namespace Writer.Tests.Playfields;
 
 [TestFixture]
-public sealed class PlayKeyTrailSystemTests
+public sealed class PlayKeyTrailSystemTests : EcsSystemTest
 {
     [Test]
     public void PressedKeyLightsAndReleasedKeyDecays()
     {
-        var store = new EntityStore();
-        Entity playfield = store.CreateEntity(
+        Entity playfield = Store.CreateEntity(
             new Playhead(0, 120, 0, false),
             new KeyTrail());
         var keyboard = new FakeKeyboard();
-        var root = new SystemRoot(store);
-        root.Add(new PlayKeyTrailSystem(
-            store,
+        Root.Add(new PlayKeyTrailSystem(
+            Store,
             new KeybindSettings(persist: false),
             keyboard));
 
         keyboard.Press(Key.F);
-        root.Update(new UpdateTick(1f / 60f, 0));
+        Frame();
 
         Assert.That(
             playfield.GetComponent<KeyTrail>().Get(KeybindAction.L3),
             Is.EqualTo(1f));
 
         keyboard.Release(Key.F);
-        for (int i = 0; i < 10; i++)
-            root.Update(new UpdateTick(1f / 60f, 0));
+        Frame(10);
 
         float value = playfield.GetComponent<KeyTrail>().Get(KeybindAction.L3);
         Assert.That(value, Is.GreaterThan(0f));
@@ -47,27 +44,25 @@ public sealed class PlayKeyTrailSystemTests
     [Test]
     public void RecordsPressAndReleaseTimes()
     {
-        var store = new EntityStore();
-        Entity playfield = store.CreateEntity(
+        Entity playfield = Store.CreateEntity(
             new Playhead(1_000, 120, 0, false),
             new KeyTrail());
         var keyboard = new FakeKeyboard();
-        var root = new SystemRoot(store);
-        root.Add(new PlayKeyTrailSystem(
-            store,
+        Root.Add(new PlayKeyTrailSystem(
+            Store,
             new KeybindSettings(persist: false),
             keyboard));
 
         keyboard.Press(Key.F);
-        root.Update(new UpdateTick(1f / 60f, 0));
+        Frame();
 
-        Entity segment = store.Query<KeyPressTrail>().ToEntityList()[0];
+        Entity segment = Store.Query<KeyPressTrail>().ToEntityList()[0];
         Assert.That(segment.GetComponent<KeyPressTrail>().StartMs, Is.EqualTo(1_000));
         Assert.That(segment.GetComponent<KeyPressTrail>().EndMs, Is.EqualTo(-1));
 
         playfield.GetComponent<Playhead>().TimeMs = 1_500;
         keyboard.Release(Key.F);
-        root.Update(new UpdateTick(1f / 60f, 0));
+        Frame();
 
         Assert.That(segment.GetComponent<KeyPressTrail>().EndMs, Is.EqualTo(1_500));
     }
@@ -75,20 +70,18 @@ public sealed class PlayKeyTrailSystemTests
     [Test]
     public void PausedPlayfieldDoesNotUpdateTheTrail()
     {
-        var store = new EntityStore();
-        Entity playfield = store.CreateEntity(
+        Entity playfield = Store.CreateEntity(
             new Playhead(0, 120, 0, false),
             new KeyTrail(),
             Tags.Get<PlayPaused>());
         var keyboard = new FakeKeyboard();
         keyboard.Press(Key.F);
 
-        var root = new SystemRoot(store);
-        root.Add(new PlayKeyTrailSystem(
-            store,
+        Root.Add(new PlayKeyTrailSystem(
+            Store,
             new KeybindSettings(persist: false),
             keyboard));
-        root.Update(new UpdateTick(1f / 60f, 0));
+        Frame();
 
         Assert.That(
             playfield.GetComponent<KeyTrail>().Get(KeybindAction.L3),
