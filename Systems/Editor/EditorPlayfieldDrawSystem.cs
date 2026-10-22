@@ -448,11 +448,9 @@ public sealed class EditorPlayfieldDrawSystem :
 
             for (int i = 0; i < visible; i++)
             {
-                Color color =
-                    !selection.Note.IsNull &&
-                    selection.Note.Id == notes[i].Id
-                        ? PlayfieldRenderer.SelectedNoteColor
-                        : PlayfieldRenderer.NoteColor;
+                Color color = selection.Contains(notes[i])
+                    ? PlayfieldRenderer.SelectedNoteColor
+                    : PlayfieldRenderer.NoteColor;
 
                 _canvas.DrawRect(
                     _editor,

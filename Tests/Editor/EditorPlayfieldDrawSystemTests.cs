@@ -7,6 +7,7 @@ using NUnit.Framework;
 using Writer.Ecs;
 using Writer.Systems.Canvas;
 using Writer.Systems.Editor;
+using Writer.Systems.Playfields;
 
 namespace Writer.Tests.Editor;
 
@@ -156,6 +157,37 @@ public sealed class EditorPlayfieldDrawSystemTests
     }
 
     [Test]
+    public void TimelineHighlightsEverySelectedNote()
+    {
+        var view = new PlayfieldView(new Vector2(30, 30), 0.6f, new Vector2(1152, 648));
+        var store = new EntityStore();
+        Entity editor = store.CreateEntity(
+            new LevelInfo("Selected", ""),
+            new Playfield(1000, 1000),
+            new Playhead(1_000, 120, 0, false, durationMs: 5_000),
+            view,
+            new NoteSelection(default),
+            new EditorTimeline(32f));
+        Entity first = store.CreateEntity(new Note(1_000, new Vector2(100, 100)));
+        Entity second = store.CreateEntity(new Note(1_000, new Vector2(200, 200)));
+        ref NoteSelection selection = ref editor.GetComponent<NoteSelection>();
+        selection.SetMany(new[] { first, second });
+
+        var canvas = new RecordingCanvas();
+        var root = new SystemRoot(store);
+        root.Add(new EditorPlayfieldDrawSystem(store, canvas, default));
+
+        root.Update(new UpdateTick(1f / 60f, 0));
+
+        var selectedSquares = canvas.RectCalls
+            .Where(call =>
+                call.Bounds.Size == new Vector2(8, 8) &&
+                call.Color == PlayfieldRenderer.SelectedNoteColor)
+            .ToList();
+        Assert.That(selectedSquares, Has.Count.EqualTo(2));
+    }
+
+    [Test]
     public void PreviewDrawsWithoutEditorChrome()
     {
         var view = new PlayfieldView(new Vector2(30, 30), 0.6f, new Vector2(1152, 648));
@@ -209,6 +241,8 @@ public sealed class EditorPlayfieldDrawSystemTests
     {
         public List<Rect2> Rects { get; } = new();
 
+        public List<RectCall> RectCalls { get; } = new();
+
         public List<string> Texts { get; } = new();
 
         public List<LineCall> Lines { get; } = new();
@@ -219,7 +253,11 @@ public sealed class EditorPlayfieldDrawSystemTests
 
         public void Clear(Rid canvas) { }
 
-        public void DrawRect(Rid canvas, Rect2 bounds, Color color) => Rects.Add(bounds);
+        public void DrawRect(Rid canvas, Rect2 bounds, Color color)
+        {
+            Rects.Add(bounds);
+            RectCalls.Add(new RectCall(bounds, color));
+        }
 
         public void DrawLine(
             Rid canvas,
@@ -235,6 +273,10 @@ public sealed class EditorPlayfieldDrawSystemTests
             Texts.Add(text);
 
         public void DrawTextRight(Rid canvas, Rect2 bounds, string text, Color color) { }
+
+        public readonly record struct RectCall(
+            Rect2 Bounds,
+            Color Color);
 
         public readonly record struct LineCall(
             Vector2 From,
