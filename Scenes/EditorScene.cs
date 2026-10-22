@@ -404,28 +404,28 @@ public static class EditorScene
         const float saveWidth = 88;
         const float songWidth = 128;
 
-        AddEditorButton(
+        float headerTotal = songWidth + saveWidth + levelWidth + 16;
+        ui.Container(
+            new Vector2(right - headerTotal / 2, headerY + 19),
+            new Vector2(headerTotal, 38),
+            StackDirection.Horizontal,
+            spacing: 8,
+            color: new Color(0, 0, 0, 0));
+        AddEditorButtonInContainer(
             ui,
-            new Vector2(right - levelWidth + levelWidth / 2, headerY + 19),
-            new Vector2(levelWidth, 38),
-            LocalizedText.Get(EditorStrings.Level),
-            EditorButtonKind.ToggleMetadata);
-        AddEditorButton(
-            ui,
-            new Vector2(
-                right - levelWidth - 8 - saveWidth + saveWidth / 2,
-                headerY + 19),
-            new Vector2(saveWidth, 38),
-            LocalizedText.Get(EditorStrings.Save),
-            EditorButtonKind.Save);
-        AddEditorButton(
-            ui,
-            new Vector2(
-                right - levelWidth - 8 - saveWidth - 8 - songWidth + songWidth / 2,
-                headerY + 19),
             new Vector2(songWidth, 38),
             LocalizedText.Get(EditorStrings.LoadSong),
             EditorButtonKind.LoadSong);
+        AddEditorButtonInContainer(
+            ui,
+            new Vector2(saveWidth, 38),
+            LocalizedText.Get(EditorStrings.Save),
+            EditorButtonKind.Save);
+        AddEditorButtonInContainer(
+            ui,
+            new Vector2(levelWidth, 38),
+            LocalizedText.Get(EditorStrings.Level),
+            EditorButtonKind.ToggleMetadata);
 
         Rect2 transport = EditorLayout.TransportRect(
             editor.GetComponent<PlayfieldView>());
@@ -443,21 +443,21 @@ public static class EditorScene
         for (int i = 0; i < widths.Length; i++)
             total += widths[i] + (i > 0 ? 8 : 0);
 
-        float x = screen.X / 2 - total / 2;
         float y = transport.Position.Y + transport.Size.Y / 2;
-
-        for (int i = 0; i < widths.Length; i++)
+        ui.Container(
+            new Vector2(screen.X / 2, y),
+            new Vector2(total, 38),
+            StackDirection.Horizontal,
+            spacing: 8,
+            color: new Color(0, 0, 0, 0));
+        for (int i = 0; i < labels.Length; i++)
         {
-            float centerX = x + widths[i] / 2;
-            AddEditorButton(
+            AddEditorButtonInContainer(
                 ui,
-                new Vector2(centerX, y),
                 new Vector2(widths[i], 38),
                 labels[i],
                 kinds[i],
                 fontSize: i < 2 ? 18 : 14);
-
-            x += widths[i] + 8;
         }
 
         Vector2 lens = EditorLayout.ZoomLensCenter(
@@ -480,6 +480,25 @@ public static class EditorScene
             "+",
             EditorButtonKind.ZoomIn,
             fontSize: 18);
+    }
+
+    private static Entity AddEditorButtonInContainer(
+        UiBuilder ui,
+        Vector2 size,
+        string label,
+        EditorButtonKind kind,
+        int fontSize = 14)
+    {
+        Entity button = ui.RectEntity(
+            Vector2.Zero,
+            size,
+            SceneUi.ButtonColor,
+            label,
+            takesInput: true);
+        button.AddComponent(new TextStyle(fontSize, SceneUi.TextColor));
+        button.AddComponent(ButtonVisual.Create(SceneUi.ButtonColor));
+        button.AddComponent(new EditorButton(kind));
+        return button;
     }
 
     private static Entity AddEditorButton(

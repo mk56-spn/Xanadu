@@ -672,7 +672,9 @@ public sealed class EditorDropdownSceneTest : SceneTest
             if (entity.GetComponent<EditorButton>().Kind != kind)
                 continue;
 
-            Context.Pointer.Click(entity.GetComponent<Position>().Value);
+            Context.Pointer.Click(UiTransform.WorldPosition(
+                entity,
+                entity.GetComponent<Position>().Value));
             return;
         }
     }
