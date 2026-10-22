@@ -3,6 +3,7 @@ using Friflo.Engine.ECS;
 using Godot;
 using Writer.Ecs;
 using Writer.Levels;
+using Writer.Profiles;
 using Writer.Ui;
 
 namespace Writer.Scenes;
@@ -16,6 +17,7 @@ public static class SongSelectScene
         Vector2 screen,
         IReadOnlyList<LevelEntry> catalog,
         int selected,
+        ProfileStore profiles,
         IVisualRidFactory? visuals = null)
     {
         UiBuilder ui = SceneUi.Layer(entities, root, SceneUi.MenuLayer, visuals);
@@ -77,6 +79,15 @@ public static class SongSelectScene
             SceneUi.DimTextColor,
             SceneUi.PanelColor);
 
+        Entity best = SceneUi.Text(
+            ui,
+            cardCenter + new Vector2(0, 78),
+            new Vector2(720, 24),
+            "",
+            15,
+            SceneUi.AccentColor,
+            SceneUi.PanelColor);
+
         if (catalog.Count > 1)
         {
             SceneUi.CarouselButton(
@@ -121,16 +132,18 @@ public static class SongSelectScene
             title,
             meta,
             stats,
-            index);
+            index,
+            best);
 
-        Refresh(state, catalog, selected);
+        Refresh(state, catalog, selected, profiles);
         return state;
     }
 
     public static void Refresh(
         SongSelectState state,
         IReadOnlyList<LevelEntry> catalog,
-        int selected)
+        int selected,
+        ProfileStore profiles)
     {
         if (catalog.Count == 0)
         {
@@ -138,6 +151,7 @@ public static class SongSelectScene
             SceneUi.SetText(state.Meta, "CREATE A LEVEL IN THE EDITOR");
             SceneUi.SetText(state.Stats, "");
             SceneUi.SetText(state.Index, "0 / 0");
+            SceneUi.SetText(state.Best, "");
             return;
         }
 
@@ -161,5 +175,13 @@ public static class SongSelectScene
             state.Stats,
             $"{document.Bpm} BPM   ·   {document.Notes.Count} notes");
         SceneUi.SetText(state.Index, $"{selected + 1} / {catalog.Count}");
+
+        ScoreRecord? best = profiles.Best(entry.Path);
+        SceneUi.SetText(
+            state.Best,
+            best is null
+                ? "NO SCORE FOR THIS PROFILE"
+                : $"BEST {best.Score:0000000}   ·   " +
+                  $"{best.Accuracy * 100:0.00}%   ·   {best.Rank}");
     }
 }

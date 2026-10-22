@@ -5,6 +5,7 @@ using Friflo.Engine.ECS.Systems;
 using Godot;
 using Writer.Ecs;
 using Writer.Levels;
+using Writer.Profiles;
 using Writer.Scenes;
 using Writer.Settings;
 using Writer.Ui;
@@ -22,6 +23,7 @@ public sealed class SceneSystem : QuerySystem<SceneState>
     private readonly IVisualRidFactory _visuals;
     private readonly Func<List<LevelEntry>> _loadLevels;
     private readonly KeybindSettings _keybinds;
+    private readonly ProfileStore _profiles;
 
     private Entity _stateEntity;
     private Entity _labelEntity;
@@ -58,7 +60,8 @@ public sealed class SceneSystem : QuerySystem<SceneState>
         IVisualRidFactory? visuals = null,
         Func<List<LevelEntry>>? loadLevels = null,
         KeybindSettings? keybinds = null,
-        bool transitions = true)
+        bool transitions = true,
+        ProfileStore? profiles = null)
     {
         _entities = entities;
         _director = director;
@@ -66,6 +69,7 @@ public sealed class SceneSystem : QuerySystem<SceneState>
         _visuals = visuals ?? new GodotVisualRidFactory();
         _loadLevels = loadLevels ?? LevelStore.List;
         _keybinds = keybinds ?? new KeybindSettings(persist: false);
+        _profiles = profiles ?? new ProfileStore(persist: false);
         _transitionsEnabled = transitions;
     }
 
@@ -135,6 +139,7 @@ public sealed class SceneSystem : QuerySystem<SceneState>
             SceneKind.SongSelect => SceneKind.Main,
             SceneKind.Play => SceneKind.SongSelect,
             SceneKind.Results => SceneKind.SongSelect,
+            SceneKind.Profiles => SceneKind.None,
             SceneKind.Editor => SceneKind.Main,
             SceneKind.OffsetWizard => SceneKind.Main,
             SceneKind.Settings => SceneKind.Main,
@@ -814,6 +819,30 @@ public sealed class SceneSystem : QuerySystem<SceneState>
 
     private void HandleActions(ref SceneState state)
     {
+        if (state.Current == SceneKind.Profiles)
+        {
+            foreach (Entity entity in _entities
+                         .Query<ProfileSelect>()
+                         .AllTags(Tags.Get<Pressed>())
+                         .ToEntityList())
+            {
+                if (_profiles.Select(entity.GetComponent<ProfileSelect>().ProfileId))
+                    state.Pending = SceneKind.Main;
+
+                return;
+            }
+
+            foreach (Entity entity in _entities
+                         .Query<ProfileCreate>()
+                         .AllTags(Tags.Get<Pressed>())
+                         .ToEntityList())
+            {
+                _profiles.Create();
+                state.Pending = SceneKind.Main;
+                return;
+            }
+        }
+
         if (state.Current == SceneKind.Settings)
         {
             foreach (Entity entity in _entities
@@ -918,6 +947,9 @@ public sealed class SceneSystem : QuerySystem<SceneState>
         if (next == SceneKind.Results)
         {
             results = _pendingResults ?? CapturePlayResults();
+            if (_pendingResults is null && _lastPlayEntry is not null)
+                _profiles.RecordScore(_lastPlayEntry.Path, results);
+
             _pendingResults = null;
         }
         else
@@ -931,6 +963,15 @@ public sealed class SceneSystem : QuerySystem<SceneState>
 
         switch (next)
         {
+            case SceneKind.Profiles:
+                ProfilesScene.Build(
+                    _entities,
+                    _sceneRoot,
+                    _screen,
+                    _profiles,
+                    _visuals);
+                break;
+
             case SceneKind.Main:
                 MainMenuScene.Build(_entities, _sceneRoot, _screen, _visuals);
                 break;
@@ -1017,6 +1058,7 @@ public sealed class SceneSystem : QuerySystem<SceneState>
             _screen,
             _catalog,
             state.SelectedIndex,
+            _profiles,
             _visuals);
 
         _sceneRoot.AddComponent(view);
@@ -1043,7 +1085,7 @@ public sealed class SceneSystem : QuerySystem<SceneState>
         view.Selected = selected;
         state.SelectedIndex = selected;
         state.SelectedLevelPath = _catalog[selected].Path;
-        SongSelectScene.Refresh(view, _catalog, selected);
+        SongSelectScene.Refresh(view, _catalog, selected, _profiles);
     }
 
     private LevelEntry? LoadEntry(string path)
@@ -1135,6 +1177,7 @@ public sealed class SceneSystem : QuerySystem<SceneState>
         SceneKind.SongSelect => "SONG SELECT",
         SceneKind.Play => "PLAY",
         SceneKind.Results => "RESULTS",
+        SceneKind.Profiles => "PROFILES",
         SceneKind.Editor => "EDITOR",
         SceneKind.OffsetWizard => "OFFSET WIZARD",
         SceneKind.Settings => "SETTINGS",

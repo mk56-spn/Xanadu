@@ -6,6 +6,7 @@ namespace Writer.Ecs;
 public enum SceneKind
 {
     None,
+    Profiles,
     Main,
     SongSelect,
     Play,
@@ -36,6 +37,15 @@ public struct SceneAction(SceneKind target) : IComponent
     public SceneKind Target = target;
 }
 
+/// <summary>Selects a local profile and continues to the main menu.</summary>
+public struct ProfileSelect(string profileId) : IComponent
+{
+    public string ProfileId = profileId;
+}
+
+/// <summary>Creates a new local profile and continues to the main menu.</summary>
+public struct ProfileCreate : IComponent;
+
 /// <summary>Opens the editor with the currently selected song-select level.</summary>
 public struct EditLevelAction : IComponent;
 
@@ -52,7 +62,8 @@ public struct SongSelectState(
     Entity title,
     Entity meta,
     Entity stats,
-    Entity index) : IComponent
+    Entity index,
+    Entity best) : IComponent
 {
     public int Selected = selected;
     public int Count = count;
@@ -60,6 +71,7 @@ public struct SongSelectState(
     public Entity Meta = meta;
     public Entity Stats = stats;
     public Entity Index = index;
+    public Entity Best = best;
 }
 
 /// <summary>Scene leave confirmation popup state.</summary>

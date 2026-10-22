@@ -32,7 +32,7 @@ public partial class Main : Control
 			_sceneDirector,
 			GetViewportRect().Size);
 
-		_systems.Scenes.Start(SceneKind.Main);
+		_systems.Scenes.Start(SceneKind.Profiles);
 	}
 
 	public override void _Input(InputEvent @event)

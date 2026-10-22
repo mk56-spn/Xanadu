@@ -68,6 +68,15 @@ public static class MainMenuScene
             17,
             SceneUi.MutedButtonColor);
 
+        SceneUi.Button(
+            ui,
+            new Vector2(screen.X / 2, 648),
+            new Vector2(360, 50),
+            "PROFILES",
+            SceneKind.Profiles,
+            17,
+            SceneUi.MutedButtonColor);
+
         SceneUi.Text(
             ui,
             new Vector2(screen.X / 2, screen.Y - 40),

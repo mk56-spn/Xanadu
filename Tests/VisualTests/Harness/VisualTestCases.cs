@@ -15,6 +15,7 @@ public static class SceneTestCatalog
 {
     public static IReadOnlyList<SceneTest> All { get; } = new SceneTest[]
     {
+        new ProfilesSceneTest(),
         new MainMenuSceneTest(),
         new SongSelectSceneTest(),
         new EditLevelSceneTest(),
@@ -27,6 +28,27 @@ public static class SceneTestCatalog
         new EditorDropdownSceneTest(),
         new LeaveEditorSceneTest(),
     };
+}
+
+public sealed class ProfilesSceneTest : SceneTest
+{
+    public override string Name => "Profiles";
+    public override string Slug => "profiles";
+
+    protected override void SetUpSteps()
+    {
+        AddStep("open profiles", () => Context.Scenes.Start(SceneKind.Profiles));
+        AddUntilStep(
+            "wait for profiles",
+            () => Context.Scenes.Current == SceneKind.Profiles &&
+                  VisualAssert.HasText(Context.Entities, "WHO'S PLAYING?"));
+        AddAssert(
+            "new profile button exists",
+            () => VisualAssert.HasText(Context.Entities, "NEW PROFILE"));
+        AddAssert(
+            "profile selector exists",
+            () => Context.Entities.Query<ProfileCreate>().Count == 1);
+    }
 }
 
 public sealed class MainMenuSceneTest : SceneTest

@@ -8,6 +8,7 @@ using NUnit.Framework;
 using Writer.Ecs;
 using Writer.Levels;
 using Writer.Scenes;
+using Writer.Profiles;
 using Writer.Settings;
 using Writer.Systems.Scenes;
 using Writer.Ui;
@@ -22,6 +23,7 @@ public sealed class SceneSystemTests
     private SystemRoot _root = null!;
     private SceneSystem _scenes = null!;
     private KeybindSettings _keybinds = null!;
+    private ProfileStore _profiles = null!;
     private string _directory = null!;
     private List<LevelEntry> _catalog = null!;
 
@@ -43,6 +45,7 @@ public sealed class SceneSystemTests
         };
 
         _keybinds = new KeybindSettings(persist: false);
+        _profiles = new ProfileStore(persist: false);
         _scenes = new SceneSystem(
             _store,
             _director,
@@ -50,7 +53,8 @@ public sealed class SceneSystemTests
             new FakeVisualRidFactory(),
             () => _catalog,
             _keybinds,
-            transitions: false);
+            transitions: false,
+            profiles: _profiles);
 
         _root.Add(_scenes);
     }
@@ -101,6 +105,63 @@ public sealed class SceneSystemTests
         Assert.That(view.Index.GetComponent<Text>().Value, Is.EqualTo("2 / 2"));
 
         step.DeleteEntity();
+    }
+
+    [Test]
+    public void ProfilesSceneCreatesAProfileAndContinues()
+    {
+        _scenes.Start(SceneKind.Profiles);
+        Frame();
+
+        Assert.That(_director.Current, Is.EqualTo(SceneKind.Profiles));
+        Assert.That(HasText("WHO'S PLAYING?"), Is.True);
+        Assert.That(HasText("NEW PROFILE"), Is.True);
+
+        _store.Query<ProfileCreate>().ToEntityList()[0].AddTag<Pressed>();
+        Frame();
+
+        Assert.That(_director.Current, Is.EqualTo(SceneKind.Main));
+        Assert.That(_profiles.ActiveProfile, Is.Not.Null);
+    }
+
+    [Test]
+    public void SongSelectShowsTheActiveProfilesBestScore()
+    {
+        UserProfile profile = _profiles.Create("Scored");
+        _profiles.RecordScore(
+            _catalog[0].Path,
+            new PlayResults("First Level", 900_000, 0.97, 42, 50, 55));
+
+        _scenes.Start(SceneKind.SongSelect);
+        Frame();
+
+        Entity root = _store.Query<SceneRoot>().ToEntityList()[0];
+        SongSelectState view = root.GetComponent<SongSelectState>();
+        Assert.That(
+            view.Best.GetComponent<Text>().Value,
+            Does.Contain("BEST"));
+        Assert.That(
+            view.Best.GetComponent<Text>().Value,
+            Does.Contain("900000"));
+    }
+
+    [Test]
+    public void FinishedPlayStoresTheScoreForTheActiveProfile()
+    {
+        _profiles.Create("Scored");
+        var document = new LevelDocument { Name = "Scored Level" };
+        document.Notes.Add(new NoteDocument { TimeMs = 0, X = 200, Y = 300 });
+        string path = Path.Combine(_directory, "scored-level.json");
+        LevelStore.Save(document, path);
+
+        _scenes.StartPlay(new LevelEntry(path, document));
+        Frame();
+        _store.Query<PlaySession>().ToEntityList()[0]
+            .GetComponent<PlaySession>().Finished = true;
+        Frame();
+
+        Assert.That(_director.Current, Is.EqualTo(SceneKind.Results));
+        Assert.That(_profiles.Best(path), Is.Not.Null);
     }
 
     [Test]

@@ -10,6 +10,7 @@ using Writer.Systems.Debug;
 using Writer.Systems.Groups;
 using Writer.Systems.Input;
 using Writer.Systems.Physics;
+using Writer.Profiles;
 using Writer.Settings;
 using Writer.Systems.Scenes;
 using Writer.Systems.Ui;
@@ -46,6 +47,8 @@ public sealed class WriterSystemRoot : SystemRoot, IDisposable
 
     public OffsetSettings Offsets { get; }
 
+    public ProfileStore Profiles { get; }
+
     public WriterSystemRoot(
         EntityStore entities,
         Rid parentCanvas,
@@ -66,6 +69,7 @@ public sealed class WriterSystemRoot : SystemRoot, IDisposable
             viewportSize,
             new GodotVisualRidFactory());
         Offsets = new OffsetSettings();
+        Profiles = new ProfileStore();
 
         // Register the keybind component archetype before the first runtime
         // Settings build; first-time component registration during scene
@@ -79,7 +83,8 @@ public sealed class WriterSystemRoot : SystemRoot, IDisposable
             sceneDirector,
             viewportSize,
             keybinds: Keybinds,
-            transitions: transitions);
+            transitions: transitions,
+            profiles: Profiles);
         _sceneDirector = sceneDirector;
         sceneDirector.Changed += OnSceneChanged;
 
