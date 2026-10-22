@@ -78,17 +78,9 @@ public static class EditorScene
         {
             BuildEditorUi(entities, editor, menuRoot, viewportSize);
 
-            var menu = SceneUi.Layer(entities, menuRoot, 960);
-            SceneUi.Button(
-                menu,
-                new Vector2(68, 36),
-                new Vector2(104, 38),
-                LocalizedText.Get(EditorStrings.Menu),
-                SceneKind.Main,
-                14,
-                SceneUi.MutedButtonColor);
-                BuildSidebar(entities, menuRoot, editor, viewportSize);
-                BuildToolbar(entities, menuRoot, editor, viewportSize);
+            BuildEditorChrome(entities, menuRoot, editor, viewportSize);
+            BuildSidebar(entities, menuRoot, editor, viewportSize);
+            BuildToolbar(entities, menuRoot, editor, viewportSize);
             }
 
         if (entry is not null)
@@ -390,24 +382,50 @@ public static class EditorScene
         return field;
     }
 
-    private static void BuildToolbar(
+    private static void BuildEditorChrome(
         EntityStore entities,
         Entity root,
         Entity editor,
         Vector2 screen)
     {
         UiBuilder ui = SceneUi.Layer(entities, root, 960);
+        ui.Container(
+            screen / 2,
+            screen,
+            StackDirection.Vertical,
+            spacing: 0,
+            color: new Color(0, 0, 0, 0));
+        Entity regionRoot = ui.Current;
 
-        float right = screen.X - 174;
-        float headerY = (EditorLayout.HeaderHeight - 38) / 2;
+        ui.Container(
+            Vector2.Zero,
+            new Vector2(screen.X, EditorLayout.HeaderHeight),
+            StackDirection.Horizontal,
+            spacing: 0,
+            padding: 16,
+            color: new Color(0, 0, 0, 0));
+        SceneUi.Button(
+            ui,
+            Vector2.Zero,
+            new Vector2(104, 38),
+            LocalizedText.Get(EditorStrings.Menu),
+            SceneKind.Main,
+            14,
+            SceneUi.MutedButtonColor);
+
         const float levelWidth = 104;
         const float saveWidth = 88;
         const float songWidth = 128;
-
-        float headerTotal = songWidth + saveWidth + levelWidth + 16;
+        const float actionsWidth = songWidth + saveWidth + levelWidth + 16;
+        ui.RectEntity(
+            Vector2.Zero,
+            new Vector2(
+                Mathf.Max(0, screen.X - 32 - 104 - actionsWidth),
+                1),
+            new Color(0, 0, 0, 0));
         ui.Container(
-            new Vector2(right - headerTotal / 2, headerY + 19),
-            new Vector2(headerTotal, 38),
+            Vector2.Zero,
+            new Vector2(actionsWidth, 38),
             StackDirection.Horizontal,
             spacing: 8,
             color: new Color(0, 0, 0, 0));
@@ -426,9 +444,35 @@ public static class EditorScene
             new Vector2(levelWidth, 38),
             LocalizedText.Get(EditorStrings.Level),
             EditorButtonKind.ToggleMetadata);
+        ui.End();
+        ui.End();
 
-        Rect2 transport = EditorLayout.TransportRect(
-            editor.GetComponent<PlayfieldView>());
+        float middleHeight = screen.Y - EditorLayout.HeaderHeight - 140;
+        ui.Container(
+            Vector2.Zero,
+            new Vector2(screen.X, middleHeight),
+            StackDirection.Horizontal,
+            spacing: 0,
+            color: new Color(0, 0, 0, 0));
+        ui.RectEntity(
+            Vector2.Zero,
+            new Vector2(Mathf.Max(0, screen.X - 210), middleHeight),
+            new Color(0, 0, 0, 0));
+        ui.Container(
+            Vector2.Zero,
+            new Vector2(210, middleHeight),
+            StackDirection.Vertical,
+            spacing: 0,
+            color: new Color(0, 0, 0, 0));
+        ui.End();
+        ui.End();
+
+        ui.Container(
+            Vector2.Zero,
+            new Vector2(screen.X, 140),
+            StackDirection.Vertical,
+            spacing: 0,
+            color: new Color(0, 0, 0, 0));
         float[] widths = { 64, 64, 108, 108 };
         string[] labels = { "▶", "■", "Preview", "Click Off" };
         EditorButtonKind[] kinds =
@@ -438,15 +482,12 @@ public static class EditorScene
             EditorButtonKind.Preview,
             EditorButtonKind.Metronome,
         };
-
-        float total = 0;
+        float transportWidth = 0;
         for (int i = 0; i < widths.Length; i++)
-            total += widths[i] + (i > 0 ? 8 : 0);
-
-        float y = transport.Position.Y + transport.Size.Y / 2;
+            transportWidth += widths[i] + (i > 0 ? 8 : 0);
         ui.Container(
-            new Vector2(screen.X / 2, y),
-            new Vector2(total, 38),
+            Vector2.Zero,
+            new Vector2(transportWidth, 42),
             StackDirection.Horizontal,
             spacing: 8,
             color: new Color(0, 0, 0, 0));
@@ -459,6 +500,19 @@ public static class EditorScene
                 kinds[i],
                 fontSize: i < 2 ? 18 : 14);
         }
+        ui.End();
+        ui.End();
+
+        _ = regionRoot;
+    }
+
+    private static void BuildToolbar(
+        EntityStore entities,
+        Entity root,
+        Entity editor,
+        Vector2 screen)
+    {
+        UiBuilder ui = SceneUi.Layer(entities, root, 960);
 
         Vector2 lens = EditorLayout.ZoomLensCenter(
             editor.GetComponent<PlayfieldView>());
