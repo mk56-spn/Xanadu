@@ -40,6 +40,40 @@ public static class SongSelectScene
             18,
             SceneUi.MutedButtonColor);
 
+        Vector2 profileBox = new(screen.X - 154, 44);
+        ui.RectEntity(profileBox, new Vector2(260, 64), SceneUi.PanelColor);
+        Texture2D? star = visuals is GodotVisualRidFactory
+            ? LoadStarTexture()
+            : null;
+        if (star is not null)
+        {
+            ui.ImageEntity(
+                profileBox + new Vector2(-92, 0),
+                new Vector2(36, 36),
+                star);
+        }
+        else
+        {
+            SceneUi.Text(
+                ui,
+                profileBox + new Vector2(-92, 0),
+                new Vector2(36, 36),
+                "★",
+                26,
+                SceneUi.AccentColor,
+                SceneUi.PanelColor);
+        }
+
+        SceneUi.Text(
+            ui,
+            profileBox + new Vector2(24, 0),
+            new Vector2(170, 24),
+            profiles.ActiveProfile?.Name ??
+                LocalizedText.Get(SongSelectStrings.NoProfile),
+            16,
+            SceneUi.TextColor,
+            SceneUi.PanelColor);
+
         var cardCenter = new Vector2(screen.X / 2, screen.Y / 2 - 10);
         ui.RectEntity(cardCenter, new Vector2(780, 330), SceneUi.PanelColor);
 
@@ -231,6 +265,24 @@ public static class SongSelectScene
                 i < scores.Count
                     ? $"{scores[i].ProfileName}   {scores[i].Record.Score:0000000}"
                     : "");
+        }
+    }
+
+    private static Texture2D? LoadStarTexture()
+    {
+        try
+        {
+            string svg = FileAccess.GetFileAsString("res://Assets/star.svg");
+            if (string.IsNullOrEmpty(svg))
+                return null;
+
+            var image = new Image();
+            image.LoadSvgFromString(svg, 2f);
+            return ImageTexture.CreateFromImage(image);
+        }
+        catch (System.Exception)
+        {
+            return null;
         }
     }
 }

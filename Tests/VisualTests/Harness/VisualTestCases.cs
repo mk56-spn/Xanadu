@@ -111,6 +111,9 @@ public sealed class SongSelectSceneTest : SceneTest
             "score box exists",
             () => VisualAssert.HasText(Context.Entities, "SCORES") &&
                   Context.Entities.Query<ScrollView>().Count == 1);
+        AddAssert(
+            "profile star frame exists",
+            () => Context.Entities.Query<UiImage>().Count == 1);
     }
 }
 

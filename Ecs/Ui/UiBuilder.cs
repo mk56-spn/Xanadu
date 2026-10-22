@@ -118,6 +118,25 @@ public sealed class UiBuilder
         return rect;
     }
 
+    /// <summary>Creates an image drawable backed by a texture.</summary>
+    public Entity ImageEntity(
+        Vector2 position,
+        Vector2 size,
+        Texture2D texture)
+    {
+        RequireLayer();
+
+        Entity image = _entities.CreateEntity(
+            new VisualRid(_visuals.CreateCanvasItem()),
+            new Rectangle(new Rect2(-size / 2, size)),
+            new Drawable(_layerZIndex),
+            new Position(position),
+            new UiImage(texture),
+            Tags.Get<Uninitialised, Dirty>());
+        Attach(image);
+        return image;
+    }
+
     /// <summary>Creates a gradient-filled rectangle with no solid FillColor.</summary>
     public Entity LinearGradientEntity(
         Vector2 position,

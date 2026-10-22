@@ -13,6 +13,9 @@ public interface IRectCanvas
 
     void DrawRect(Rid canvas, Rect2 bounds, Color color);
 
+    /// <summary>Draws a texture into a rectangle.</summary>
+    void DrawTexture(Rid canvas, Rect2 bounds, Texture2D texture) { }
+
     /// <summary>Draws a filled circle.</summary>
     void DrawCircle(Rid canvas, Vector2 center, float radius, Color color) { }
 

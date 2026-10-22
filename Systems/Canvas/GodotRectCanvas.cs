@@ -26,6 +26,12 @@ public sealed class GodotRectCanvas : IRectCanvas
         Color color) =>
         RenderingServer.CanvasItemAddCircle(canvas, center, radius, color, true);
 
+    public void DrawTexture(Rid canvas, Rect2 bounds, Texture2D texture) =>
+        RenderingServer.CanvasItemAddTextureRect(
+            canvas,
+            bounds,
+            texture.GetRid());
+
     public void DrawLine(Rid canvas, Vector2 from, Vector2 to, Color color, float width) =>
         RenderingServer.CanvasItemAddLine(canvas, from, to, color, width, true);
 
