@@ -41,4 +41,22 @@ public sealed class ProfileStoreTests
             File.Delete(path);
         }
     }
+
+    [Test]
+    public void AllScoresAreSortedAcrossProfiles()
+    {
+        var store = new ProfileStore(persist: false);
+        UserProfile alice = store.Create("Alice");
+        string level = Path.Combine(Path.GetTempPath(), "level.json");
+        store.RecordScore(level, new PlayResults("Level", 700_000, 0.7, 10, 20, 30));
+
+        UserProfile bob = store.Create("Bob");
+        store.RecordScore(level, new PlayResults("Level", 900_000, 0.9, 30, 30, 30));
+
+        var scores = store.AllScores(level);
+        Assert.That(scores, Has.Count.EqualTo(2));
+        Assert.That(scores[0].ProfileName, Is.EqualTo("Bob"));
+        Assert.That(scores[0].Record.Score, Is.EqualTo(900_000));
+        Assert.That(scores[1].ProfileName, Is.EqualTo("Alice"));
+    }
 }

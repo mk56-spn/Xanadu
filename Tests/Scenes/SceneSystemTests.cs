@@ -1,3 +1,4 @@
+using System.Linq;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -124,7 +125,7 @@ public sealed class SceneSystemTests
     }
 
     [Test]
-    public void SongSelectShowsTheActiveProfilesBestScore()
+    public void SongSelectListsAllProfileScores()
     {
         UserProfile profile = _profiles.Create("Scored");
         _profiles.RecordScore(
@@ -137,11 +138,8 @@ public sealed class SceneSystemTests
         Entity root = _store.Query<SceneRoot>().ToEntityList()[0];
         SongSelectState view = root.GetComponent<SongSelectState>();
         Assert.That(
-            view.Best.GetComponent<Text>().Value,
-            Does.Contain("BEST"));
-        Assert.That(
-            view.Best.GetComponent<Text>().Value,
-            Does.Contain("900000"));
+            view.ScoreRows.Select(row => row.GetComponent<Text>().Value),
+            Has.Some.Contains("900000"));
     }
 
     [Test]

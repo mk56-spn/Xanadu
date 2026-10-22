@@ -59,6 +59,19 @@ public partial class Main : Control
 			_pointer?.LatchPress();
 		}
 
+		if (@event is InputEventMouseButton
+			{
+				Pressed: true,
+				ButtonIndex: MouseButton.WheelUp or MouseButton.WheelDown,
+			} wheel && _editorOverlay is null)
+		{
+			_systems?.Scroll(
+				GetViewport().GetMousePosition(),
+				wheel.ButtonIndex == MouseButton.WheelUp ? -1 : 1);
+			GetViewport().SetInputAsHandled();
+			return;
+		}
+
 		if (@event is not InputEventKey { Pressed: true, Echo: false } key)
 			return;
 

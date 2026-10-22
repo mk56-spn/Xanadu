@@ -33,6 +33,7 @@ public sealed class WriterSystemRoot : SystemRoot, IDisposable
     private readonly MiniaudioTrackAudio _trackAudio = new();
     private readonly MiniaudioTrackAudio _playfieldAudio = new();
     private readonly MiniaudioTrackAudio _metronomeAudio = new();
+    private readonly ScrollSystem _scroll = new();
 
     public Box2DPhysicsWorld Physics { get; } = new();
 
@@ -133,7 +134,8 @@ public sealed class WriterSystemRoot : SystemRoot, IDisposable
             pointerInput,
             Scenes,
             Keybinds,
-            Display));
+            Display,
+            _scroll));
         Add(new DebugSystemGroup(
             canvas,
             _debugOverlay,
@@ -209,6 +211,10 @@ public sealed class WriterSystemRoot : SystemRoot, IDisposable
             : "";
         Scenes.StartPlay(new LevelEntry(path, document), start);
     }
+
+    /// <summary>Queues a wheel scroll at a viewport position.</summary>
+    public void Scroll(Vector2 position, int direction) =>
+        _scroll.Request(position, direction);
 
     public void Dispose()
     {

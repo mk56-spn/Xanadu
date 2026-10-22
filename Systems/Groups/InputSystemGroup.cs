@@ -15,10 +15,12 @@ public sealed class InputSystemGroup : SystemGroup
         IPointerInputSource pointerInput,
         SceneSystem scenes,
         KeybindSettings keybinds,
-        DisplaySettings display)
+        DisplaySettings display,
+        ScrollSystem scroll)
         : base("Input")
     {
         Add(new InputSystem(pointerInput));
+        Add(scroll);
         Add(new ToggleSystem());
         Add(new VSyncToggleSystem(display));
         Add(new ButtonVisualSystem());

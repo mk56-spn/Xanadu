@@ -102,6 +102,21 @@ public sealed class ProfileStore
             ? score
             : null;
 
+    /// <summary>All profile scores for a level, highest first.</summary>
+    public IReadOnlyList<ScoreEntry> AllScores(string levelPath)
+    {
+        string key = NormalizeKey(levelPath);
+        var entries = new List<ScoreEntry>();
+        foreach (UserProfile profile in Profiles)
+        {
+            if (profile.Scores.TryGetValue(key, out ScoreRecord? score))
+                entries.Add(new ScoreEntry(profile.Name, score));
+        }
+
+        entries.Sort(static (a, b) => b.Record.Score.CompareTo(a.Record.Score));
+        return entries;
+    }
+
     /// <summary>Stores a result if it beats the active profile's previous best.</summary>
     public ScoreRecord? RecordScore(string levelPath, PlayResults result)
     {
@@ -214,3 +229,6 @@ public sealed class ProfileStore
         public List<UserProfile> Profiles { get; set; } = new();
     }
 }
+
+/// <summary>A profile score on one level.</summary>
+public sealed record ScoreEntry(string ProfileName, ScoreRecord Record);

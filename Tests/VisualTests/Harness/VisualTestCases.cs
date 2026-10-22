@@ -107,6 +107,10 @@ public sealed class SongSelectSceneTest : SceneTest
             () => VisualAssert.CountUninitialised(
                 Context.Entities,
                 SceneUi.MenuLayer) == 0);
+        AddAssert(
+            "score box exists",
+            () => VisualAssert.HasText(Context.Entities, "SCORES") &&
+                  Context.Entities.Query<ScrollView>().Count == 1);
     }
 }
 

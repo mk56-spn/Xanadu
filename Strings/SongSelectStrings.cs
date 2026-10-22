@@ -9,5 +9,5 @@ public static class SongSelectStrings
     public static readonly LString NoLevels = new("song_select.no_levels", "NO LEVELS FOUND");
     public static readonly LString CreateLevel = new("song_select.create_level", "CREATE A LEVEL IN THE EDITOR");
     public static readonly LString Untitled = new("common.untitled", "UNTITLED");
-    public static readonly LString NoScore = new("song_select.no_score", "NO SCORE FOR THIS PROFILE");
+    public static readonly LString Scores = new("song_select.scores", "SCORES");
 }

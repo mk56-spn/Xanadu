@@ -87,3 +87,17 @@ public struct VisualRid : IComponent
 
     public VisualRid(Rid value) => Value = value;
 }
+
+/// <summary>Vertical ECS scroll viewport and its movable content.</summary>
+public struct ScrollView(
+    Entity content,
+    float contentHeight,
+    float viewportHeight,
+    float baseContentY) : IComponent
+{
+    public Entity Content = content;
+    public float ContentHeight = contentHeight;
+    public float ViewportHeight = viewportHeight;
+    public float BaseContentY = baseContentY;
+    public float Offset;
+}

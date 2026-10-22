@@ -79,14 +79,47 @@ public static class SongSelectScene
             SceneUi.DimTextColor,
             SceneUi.PanelColor);
 
-        Entity best = SceneUi.Text(
-            ui,
-            cardCenter + new Vector2(0, 78),
-            new Vector2(720, 24),
-            "",
-            15,
+
+        UiBuilder scoreUi = SceneUi.Layer(
+            entities,
+            root,
+            SceneUi.MenuLayer,
+            visuals);
+        float scoreWidth = 360;
+        float scoreHeight = 330;
+        Vector2 scoreCenter = new(
+            screen.X - scoreWidth / 2 - 28,
+            cardCenter.Y);
+        scoreUi.RectEntity(scoreCenter, new Vector2(scoreWidth, scoreHeight), SceneUi.PanelColor);
+        SceneUi.Text(
+            scoreUi,
+            new Vector2(scoreCenter.X, scoreCenter.Y - scoreHeight / 2 + 24),
+            new Vector2(scoreWidth - 30, 24),
+            LocalizedText.Get(SongSelectStrings.Scores),
+            18,
             SceneUi.AccentColor,
             SceneUi.PanelColor);
+
+        const int maxScoreRows = 24;
+        const float scoreRowHeight = 28;
+        Entity scoreViewport = SceneUi.ScrollView(
+            scoreUi,
+            new Vector2(scoreCenter.X, scoreCenter.Y + 10),
+            new Vector2(scoreWidth - 24, scoreHeight - 70),
+            maxScoreRows * scoreRowHeight,
+            out Entity scoreContent);
+        var scoreRows = new List<Entity>();
+        for (int i = 0; i < maxScoreRows; i++)
+        {
+            scoreRows.Add(SceneUi.Text(
+                scoreUi,
+                Vector2.Zero,
+                new Vector2(scoreWidth - 40, scoreRowHeight - 2),
+                "",
+                14,
+                SceneUi.TextColor,
+                new Color(0, 0, 0, 0)));
+        }
 
         if (catalog.Count > 1)
         {
@@ -133,7 +166,9 @@ public static class SongSelectScene
             meta,
             stats,
             index,
-            best);
+            scoreViewport,
+            scoreContent,
+            scoreRows);
 
         Refresh(state, catalog, selected, profiles);
         return state;
@@ -151,7 +186,7 @@ public static class SongSelectScene
             SceneUi.SetText(state.Meta, LocalizedText.Get(SongSelectStrings.CreateLevel));
             SceneUi.SetText(state.Stats, "");
             SceneUi.SetText(state.Index, "0 / 0");
-            SceneUi.SetText(state.Best, "");
+            ClearScores(state);
             return;
         }
 
@@ -176,12 +211,26 @@ public static class SongSelectScene
             $"{document.Bpm} BPM   ·   {document.Notes.Count} notes");
         SceneUi.SetText(state.Index, $"{selected + 1} / {catalog.Count}");
 
-        ScoreRecord? best = profiles.Best(entry.Path);
-        SceneUi.SetText(
-            state.Best,
-            best is null
-                ? LocalizedText.Get(SongSelectStrings.NoScore)
-                : $"BEST {best.Score:0000000}   ·   " +
-                  $"{best.Accuracy * 100:0.00}%   ·   {best.Rank}");
+        RefreshScores(state, profiles.AllScores(entry.Path));
+    }
+
+    private static void ClearScores(SongSelectState state)
+    {
+        foreach (Entity row in state.ScoreRows)
+            SceneUi.SetText(row, "");
+    }
+
+    private static void RefreshScores(
+        SongSelectState state,
+        IReadOnlyList<ScoreEntry> scores)
+    {
+        for (int i = 0; i < state.ScoreRows.Count; i++)
+        {
+            SceneUi.SetText(
+                state.ScoreRows[i],
+                i < scores.Count
+                    ? $"{scores[i].ProfileName}   {scores[i].Record.Score:0000000}"
+                    : "");
+        }
     }
 }

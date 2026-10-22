@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Friflo.Engine.ECS;
 
 namespace Writer.Ecs;
@@ -63,7 +64,9 @@ public struct SongSelectState(
     Entity meta,
     Entity stats,
     Entity index,
-    Entity best) : IComponent
+    Entity scoresViewport,
+    Entity scoresContent,
+    List<Entity> scoreRows) : IComponent
 {
     public int Selected = selected;
     public int Count = count;
@@ -71,7 +74,9 @@ public struct SongSelectState(
     public Entity Meta = meta;
     public Entity Stats = stats;
     public Entity Index = index;
-    public Entity Best = best;
+    public Entity ScoresViewport = scoresViewport;
+    public Entity ScoresContent = scoresContent;
+    public List<Entity> ScoreRows = scoreRows;
 }
 
 /// <summary>Scene leave confirmation popup state.</summary>

@@ -110,4 +110,39 @@ public static class SceneUi
         component.Value = text;
         entity.AddTag<Dirty>();
     }
+
+/// <summary>Creates a clipped vertical scrolling viewport and returns its content.</summary>
+public static Entity ScrollView(
+    UiBuilder ui,
+    Vector2 center,
+    Vector2 size,
+    float contentHeight,
+    out Entity content)
+{
+    ui.Container(
+        center,
+        size,
+        StackDirection.Vertical,
+        spacing: 0,
+        clip: true,
+        color: new Color(0, 0, 0, 0),
+        takesInput: true);
+    Entity viewport = ui.Current;
+
+    float baseContentY = -size.Y / 2 + contentHeight / 2;
+    ui.Container(
+        new Vector2(0, baseContentY),
+        new Vector2(size.X, contentHeight),
+        StackDirection.Vertical,
+        spacing: 4,
+        color: new Color(0, 0, 0, 0));
+    content = ui.Current;
+    viewport.AddComponent(new ScrollView(
+        content,
+        contentHeight,
+        size.Y,
+        baseContentY));
+    return viewport;
+}
+
 }
