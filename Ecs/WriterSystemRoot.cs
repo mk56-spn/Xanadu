@@ -12,6 +12,8 @@ using Writer.Systems.Input;
 using Writer.Systems.Physics;
 using Writer.Settings;
 using Writer.Systems.Scenes;
+using Writer.Systems.Ui;
+using Writer.Ui;
 
 namespace Writer.Ecs;
 
@@ -40,6 +42,8 @@ public sealed class WriterSystemRoot : SystemRoot, IDisposable
 
     public KeybindSettings Keybinds { get; }
 
+    public ToastSystem Toasts { get; }
+
     public WriterSystemRoot(
         EntityStore entities,
         Rid parentCanvas,
@@ -55,6 +59,10 @@ public sealed class WriterSystemRoot : SystemRoot, IDisposable
         EditorHistory = new EditorHistory(entities);
         Commands = new EditorCommandBus();
         Keybinds = keybinds ?? new KeybindSettings();
+        Toasts = new ToastSystem(
+            entities,
+            viewportSize,
+            new GodotVisualRidFactory());
 
         // Register the keybind component archetype before the first runtime
         // Settings build; first-time component registration during scene
@@ -114,6 +122,7 @@ public sealed class WriterSystemRoot : SystemRoot, IDisposable
             entities,
             this,
             new GodotFpsSource()));
+        Add(Toasts);
 
         SetMonitorPerf(true);
     }

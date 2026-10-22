@@ -1,3 +1,5 @@
+using System;
+using System.IO;
 using Friflo.Engine.ECS;
 using Godot;
 using Writer.Ecs;
@@ -30,6 +32,16 @@ public partial class Main : Control
 			GetViewportRect().Size);
 
 		_systems.Scenes.Start(SceneKind.Main);
+	}
+
+	public override void _Input(InputEvent @event)
+	{
+		if (@event is InputEventKey { Pressed: true, Echo: false } key &&
+			(key.Keycode == Key.F12 || key.PhysicalKeycode == Key.F12))
+		{
+			CaptureScreenshot();
+			GetViewport().SetInputAsHandled();
+		}
 	}
 
 	public override void _UnhandledInput(InputEvent @event)
@@ -81,6 +93,50 @@ public partial class Main : Control
 				_systems?.Scenes.TryForward();
 				GetViewport().SetInputAsHandled();
 				break;
+		}
+	}
+
+	private void CaptureScreenshot()
+	{
+		try
+		{
+			Image? image = GetViewport().GetTexture().GetImage();
+			if (image is null)
+			{
+				_systems?.Toasts.Show("Screenshot failed: no viewport image");
+				return;
+			}
+
+			string file = $"screenshot_{DateTime.Now:yyyyMMdd_HHmmss_fff}.png";
+			string[] candidates =
+			{
+				ProjectSettings.GlobalizePath("user://screenshots"),
+				ProjectSettings.GlobalizePath("res://screenshots"),
+			};
+
+			foreach (string directory in candidates)
+			{
+				try
+				{
+					Directory.CreateDirectory(directory);
+					string path = Path.Combine(directory, file);
+					if (image.SavePng(path) == Error.Ok)
+					{
+						_systems?.Toasts.Show($"Screenshot saved: {file}");
+						return;
+					}
+				}
+				catch (Exception)
+				{
+					// Try the next writable location.
+				}
+			}
+
+			_systems?.Toasts.Show("Screenshot failed: no writable directory");
+		}
+		catch (Exception exception)
+		{
+			_systems?.Toasts.Show($"Screenshot failed: {exception.Message}");
 		}
 	}
 
