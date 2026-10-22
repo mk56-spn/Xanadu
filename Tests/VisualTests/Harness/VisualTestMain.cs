@@ -21,6 +21,7 @@ public partial class VisualTestMain : Control
 
     private readonly List<SceneTest> _tests = new(SceneTestCatalog.All);
     private readonly List<Button> _testButtons = new();
+    private readonly List<Button> _runButtons = new();
     private readonly List<TestStatus> _statuses = new();
     private readonly SceneTestRunner _runner = new();
 
@@ -254,16 +255,41 @@ public partial class VisualTestMain : Control
         {
             int index = i;
             _statuses.Add(TestStatus.Pending);
+
+            var row = new HBoxContainer
+            {
+                CustomMinimumSize = new Vector2(0, 34),
+            };
+            _testList.AddChild(row);
+
+            var run = new Button
+            {
+                Text = "▶",
+                Flat = true,
+                TooltipText = $"Run {_tests[index].Name}",
+                CustomMinimumSize = new Vector2(28, 34),
+                FocusMode = FocusModeEnum.None,
+                MouseDefaultCursorShape = CursorShape.PointingHand,
+            };
+            run.AddThemeColorOverride("font_color", new Color("#4ade80"));
+            run.AddThemeColorOverride("font_hover_color", new Color("#86efac"));
+            run.AddThemeFontSizeOverride("font_size", 18);
+            run.Pressed += () => OnRunPressed(index);
+            _runButtons.Add(run);
+            row.AddChild(run);
+
             var button = new Button
             {
-                Text = $"{_tests[index].Name}",
+                Text = _tests[index].Name,
                 Alignment = HorizontalAlignment.Left,
+                SizeFlagsHorizontal = SizeFlags.ExpandFill,
                 CustomMinimumSize = new Vector2(0, 34),
                 FocusMode = FocusModeEnum.None,
+                MouseDefaultCursorShape = CursorShape.PointingHand,
             };
             button.Pressed += () => OnTestPressed(index);
             _testButtons.Add(button);
-            _testList.AddChild(button);
+            row.AddChild(button);
         }
 
         _detail = new Label
@@ -360,6 +386,14 @@ public partial class VisualTestMain : Control
             _testHost,
             _pointer,
             _keyboard);
+    }
+
+    private void OnRunPressed(int index)
+    {
+        if (_suiteRunning)
+            return;
+
+        RunTest(index);
     }
 
     private void OnTestPressed(int index)
@@ -522,6 +556,7 @@ public partial class VisualTestMain : Control
             Button button = _testButtons[i];
             button.Text = DisplayText(i);
             button.Disabled = _suiteRunning;
+            _runButtons[i].Disabled = _suiteRunning;
             button.AddThemeColorOverride(
                 "font_color",
                 _statuses[i] switch
