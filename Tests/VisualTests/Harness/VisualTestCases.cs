@@ -188,7 +188,7 @@ public sealed class EditorMetadataSceneTest : SceneTest
                 .GetComponent<EditorMetadataPanel>().Visible);
         AddAssert(
             "metadata fields exist",
-            () => Context.Entities.Query<EditorField>().Count == 5);
+            () => Context.Entities.Query<EditorField>().Count == 8);
 
         AddStep("click level name field", () =>
         {

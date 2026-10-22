@@ -211,7 +211,8 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
             Entity entity = _entities.GetEntityById(id);
             if (entity.IsNull ||
                 (!entity.HasComponent<Note>() &&
-                 !entity.HasComponent<Mine>()))
+                 !entity.HasComponent<Mine>() &&
+                 !entity.HasComponent<StartPoint>()))
             {
                 continue;
             }

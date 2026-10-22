@@ -171,10 +171,10 @@ public static class EditorScene
         UiBuilder panelUi = SceneUi.Layer(entities, root, 946);
         Vector2 home = new(
             screen.X - 24 - 190,
-            EditorLayout.HeaderHeight + 8 + 155);
+            EditorLayout.HeaderHeight + 8 + 250);
         panelUi.Container(
             new Vector2(-10_000, -10_000),
-            new Vector2(380, 310),
+            new Vector2(380, 500),
             StackDirection.Vertical,
             spacing: 5,
             color: SceneUi.PanelColor,
@@ -214,6 +214,25 @@ public static class EditorScene
             panelUi,
             playhead.OffsetMs.ToString(),
             EditorFieldKind.Offset,
+            true);
+
+        AddMetadataLabel(panelUi, "START TIME (MS)");
+        AddMetadataField(
+            panelUi,
+            "",
+            EditorFieldKind.StartTime,
+            true);
+        AddMetadataLabel(panelUi, "START MOMENTUM X");
+        AddMetadataField(
+            panelUi,
+            "",
+            EditorFieldKind.StartMomentumX,
+            true);
+        AddMetadataLabel(panelUi, "START MOMENTUM Y");
+        AddMetadataField(
+            panelUi,
+            "",
+            EditorFieldKind.StartMomentumY,
             true);
 
         editor.AddComponent(new EditorMetadataPanel(panel, home));

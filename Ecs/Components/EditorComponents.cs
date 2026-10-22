@@ -217,6 +217,9 @@ public enum EditorFieldKind
     Difficulty,
     Bpm,
     Offset,
+    StartTime,
+    StartMomentumX,
+    StartMomentumY,
 }
 
 /// <summary>Binds an ECS text field to an editor metadata property.</summary>

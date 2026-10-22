@@ -353,6 +353,27 @@ public sealed class EditorNoteInputSystemTests
     }
 
     [Test]
+    public void DraggingAStartPointMovesIt()
+    {
+        Entity start = _store.CreateEntity(new StartPoint(
+            "",
+            1_000,
+            new Vector2(200, 200),
+            System.Numerics.Vector2.Zero,
+            new Vector2(0, -1)));
+
+        _pointer.Current = new PointerInput(new Vector2(200, 200), true);
+        _root.Update(new UpdateTick(1f / 60f, 0));
+        _pointer.Current = new PointerInput(new Vector2(260, 270), true);
+        _root.Update(new UpdateTick(1f / 60f, 0));
+        _pointer.Current = new PointerInput(new Vector2(260, 270), false);
+        _root.Update(new UpdateTick(1f / 60f, 0));
+
+        Assert.That(start.GetComponent<StartPoint>().Position,
+            Is.EqualTo(new Vector2(260, 270)));
+    }
+
+    [Test]
     public void DeletedDraggedNoteDoesNotThrow()
     {
         _pointer.Current = new PointerInput(new Vector2(100, 200), true);

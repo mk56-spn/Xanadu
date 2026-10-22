@@ -1,4 +1,5 @@
 using System;
+using System.Globalization;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Godot;
@@ -68,6 +69,10 @@ public sealed class EditorMetadataSystem : QuerySystem<EditorMetadataPanel>
             ref TextField field = ref entity.GetComponent<TextField>();
             bool focused = entity.Tags.Has<TextFieldFocused>();
 
+            bool hasStart = TryGetSelectedStart(
+                editor,
+                out Entity startEntity,
+                out StartPoint start);
             if (!focused)
             {
                 string expected = binding.Kind switch
@@ -77,6 +82,15 @@ public sealed class EditorMetadataSystem : QuerySystem<EditorMetadataPanel>
                     EditorFieldKind.Difficulty => level.Difficulty,
                     EditorFieldKind.Bpm => playhead.Bpm.ToString(),
                     EditorFieldKind.Offset => playhead.OffsetMs.ToString(),
+                    EditorFieldKind.StartTime => hasStart
+                        ? start.TimeMs.ToString()
+                        : "—",
+                    EditorFieldKind.StartMomentumX => hasStart
+                        ? start.Momentum.X.ToString("0.###", CultureInfo.InvariantCulture)
+                        : "—",
+                    EditorFieldKind.StartMomentumY => hasStart
+                        ? start.Momentum.Y.ToString("0.###", CultureInfo.InvariantCulture)
+                        : "—",
                     _ => "",
                 };
                 if (field.Value != expected)
@@ -112,7 +126,59 @@ public sealed class EditorMetadataSystem : QuerySystem<EditorMetadataPanel>
                         _commands.Enqueue(EditorCommand.SetOffset(offset));
                     }
                     break;
+                case EditorFieldKind.StartTime when hasStart:
+                    if (long.TryParse(field.Value, out long startTime))
+                    {
+                        ref StartPoint point = ref startEntity.GetComponent<StartPoint>();
+                        point.TimeMs = Math.Max(0, startTime);
+                    }
+                    break;
+                case EditorFieldKind.StartMomentumX when hasStart:
+                    if (float.TryParse(
+                            field.Value,
+                            NumberStyles.Float,
+                            CultureInfo.InvariantCulture,
+                            out float momentumX))
+                    {
+                        ref StartPoint point = ref startEntity.GetComponent<StartPoint>();
+                        point.Momentum.X = momentumX;
+                    }
+                    break;
+                case EditorFieldKind.StartMomentumY when hasStart:
+                    if (float.TryParse(
+                            field.Value,
+                            NumberStyles.Float,
+                            CultureInfo.InvariantCulture,
+                            out float momentumY))
+                    {
+                        ref StartPoint point = ref startEntity.GetComponent<StartPoint>();
+                        point.Momentum.Y = momentumY;
+                    }
+                    break;
             }
         }
+    }
+
+    private static bool TryGetSelectedStart(
+        Entity editor,
+        out Entity startEntity,
+        out StartPoint start)
+    {
+        startEntity = default;
+        start = default;
+        if (!editor.HasComponent<NoteSelection>())
+            return false;
+
+        foreach (Entity entity in editor.GetComponent<NoteSelection>().AllNotes)
+        {
+            if (!entity.HasComponent<StartPoint>())
+                continue;
+
+            startEntity = entity;
+            start = entity.GetComponent<StartPoint>();
+            return true;
+        }
+
+        return false;
     }
 }
