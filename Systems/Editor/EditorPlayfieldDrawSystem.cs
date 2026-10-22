@@ -435,6 +435,14 @@ public sealed class EditorPlayfieldDrawSystem :
             new Vector2(playheadX, ruler.End.Y),
             Colors.White,
             2);
+        _canvas.DrawRect(
+            _editor,
+            new Rect2(
+                playheadX - 5f,
+                ruler.Position.Y - 4f,
+                10f,
+                10f),
+            Colors.White);
     }
 
     private static float XForTime(

@@ -94,6 +94,22 @@ public sealed class EditorNoteInputSystemTests
     }
 
     [Test]
+    public void DraggingTheTimelineSeeksContinuously()
+    {
+        Entity editor = _store.Query<PlayfieldView>().ToEntityList()[0];
+        ref Playhead playhead = ref editor.GetComponent<Playhead>();
+        playhead.DurationMs = 10_000;
+        playhead.TimeMs = 1_000;
+
+        var view = editor.GetComponent<PlayfieldView>();
+        Rect2 ruler = EditorLayout.RulerRect(view);
+        _pointer.Current = new PointerInput(ruler.GetCenter(), true);
+        _root.Update(new UpdateTick(1f / 60f, 0));
+
+        Assert.That(playhead.SeekRequestMs, Is.EqualTo(5_000));
+    }
+
+    [Test]
     public void MineModePlacesMinesInsteadOfNotes()
     {
         Entity editor = _store.Query<PlayfieldView>().ToEntityList()[0];

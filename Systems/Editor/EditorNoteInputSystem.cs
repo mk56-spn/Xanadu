@@ -64,13 +64,13 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
 
         PlayfieldView view = editor.GetComponent<PlayfieldView>();
         Playfield playfield = editor.GetComponent<Playfield>();
-        Playhead playhead = editor.GetComponent<Playhead>();
+        ref Playhead playhead = ref editor.GetComponent<Playhead>();
 
         Rect2 bar = EditorLayout.RulerRect(view);
         if (bar.HasPoint(screenPosition))
         {
             _scrubbing = true;
-            Scrub(screenPosition, bar, playhead, editor);
+            Scrub(screenPosition, bar, ref playhead, editor);
             return;
         }
 
@@ -145,14 +145,14 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
 
         PlayfieldView view = editor.GetComponent<PlayfieldView>();
         Playfield playfield = editor.GetComponent<Playfield>();
-        Playhead playhead = editor.GetComponent<Playhead>();
+        ref Playhead playhead = ref editor.GetComponent<Playhead>();
 
         if (_scrubbing)
         {
             Scrub(
                 screenPosition,
                 EditorLayout.RulerRect(view),
-                playhead,
+                ref playhead,
                 editor);
             return;
         }
@@ -190,7 +190,7 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
     private void Scrub(
         Vector2 screenPosition,
         Rect2 bar,
-        Playhead playhead,
+        ref Playhead playhead,
         Entity editor)
     {
         if (playhead.DurationMs <= 0)
@@ -202,7 +202,10 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
         (long start, long end) = EditorLayout.TimelineWindow(playhead, zoom);
         float t = Math.Clamp((screenPosition.X - bar.Position.X) / bar.Size.X, 0f, 1f);
         long raw = start + (long)((end - start) * t);
-        playhead.SeekRequestMs = EditorTiming.Snap(raw, playhead);
+        playhead.SeekRequestMs = Math.Clamp(
+            raw,
+            0,
+            Math.Max(0, playhead.DurationMs));
     }
 
     private Entity FindNoteAt(Vector2 position, long playheadMs)

@@ -279,6 +279,20 @@ public partial class EditorOverlay : CanvasLayer
             return;
         }
 
+        if (key.ShiftPressed &&
+            key.Keycode is Key.Left or Key.Right)
+        {
+            ref Playhead playhead = ref _editor.GetComponent<Playhead>();
+            long delta = key.Keycode == Key.Left ? -1_000 : 1_000;
+            _commands.Enqueue(EditorCommand.Seek(
+                Math.Clamp(
+                    playhead.TimeMs + delta,
+                    0,
+                    Math.Max(0, playhead.DurationMs))));
+            GetViewport().SetInputAsHandled();
+            return;
+        }
+
         switch (key.Keycode)
         {
             case Key.T:
