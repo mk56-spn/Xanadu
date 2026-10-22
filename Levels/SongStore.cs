@@ -7,6 +7,7 @@ using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using Godot;
+using Writer.Ecs.Storage;
 
 namespace Writer.Levels;
 
@@ -16,12 +17,6 @@ namespace Writer.Levels;
 /// </summary>
 public sealed class SongStore
 {
-    private static readonly JsonSerializerOptions JsonOptions = new()
-    {
-        WriteIndented = true,
-        PropertyNameCaseInsensitive = true,
-    };
-
     private static readonly Regex SlugPattern = new(
         "[^a-z0-9]+",
         RegexOptions.Compiled);
@@ -47,9 +42,7 @@ public sealed class SongStore
         {
             try
             {
-                SongDocument? song = JsonSerializer.Deserialize<SongDocument>(
-                    File.ReadAllText(path),
-                    JsonOptions);
+                SongDocument? song = JsonFileStore.Load<SongDocument>(path);
                 if (song is not null && !string.IsNullOrWhiteSpace(song.Id))
                     songs.Add(song);
             }
@@ -144,19 +137,7 @@ public sealed class SongStore
 
         string directory = GetDirectory(song);
         Directory.CreateDirectory(directory);
-        string path = Path.Combine(directory, "song.json");
-        string temporary = path + ".tmp";
-        try
-        {
-            File.WriteAllText(temporary, JsonSerializer.Serialize(song, JsonOptions));
-            File.Move(temporary, path, overwrite: true);
-        }
-        catch
-        {
-            if (File.Exists(temporary))
-                File.Delete(temporary);
-            throw;
-        }
+        JsonFileStore.Save(Path.Combine(directory, "song.json"), song);
     }
 
     public void Delete(SongDocument song)

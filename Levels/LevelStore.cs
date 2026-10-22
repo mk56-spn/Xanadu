@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using Godot;
+using Writer.Ecs.Storage;
 
 namespace Writer.Levels;
 
@@ -62,28 +63,15 @@ public static class LevelStore
 
     public static void Save(LevelDocument document, string path)
     {
-        string? directory = Path.GetDirectoryName(path);
-        if (!string.IsNullOrEmpty(directory))
-            System.IO.Directory.CreateDirectory(directory);
-
-        string temporaryPath = path + ".tmp";
-
-        try
-        {
-            File.WriteAllText(temporaryPath, LevelSerializer.Serialize(document));
-            File.Move(temporaryPath, path, overwrite: true);
-        }
-        catch
-        {
-            if (File.Exists(temporaryPath))
-                File.Delete(temporaryPath);
-
-            throw;
-        }
+        JsonFileStore.Save(path, document);
     }
 
-    public static LevelDocument Load(string path) =>
-        LevelSerializer.Deserialize(File.ReadAllText(path));
+    public static LevelDocument Load(string path)
+    {
+        LevelDocument document = JsonFileStore.Load<LevelDocument>(path)
+            ?? new LevelDocument();
+        return LevelSerializer.Normalize(document);
+    }
 
     /// <summary>Loads every valid level from user data and the bundled Levels folder.</summary>
     public static List<LevelEntry> List()

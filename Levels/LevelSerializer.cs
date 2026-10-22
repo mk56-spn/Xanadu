@@ -1,15 +1,12 @@
 using System.Text.Json;
+using Writer.Ecs.Storage;
 
 namespace Writer.Levels;
 
 /// <summary>JSON serialization for level documents.</summary>
 public static class LevelSerializer
 {
-    private static readonly JsonSerializerOptions Options = new()
-    {
-        WriteIndented = true,
-        PropertyNameCaseInsensitive = true,
-    };
+    private static JsonSerializerOptions Options => JsonFileStore.Options;
 
     public static string Serialize(LevelDocument document) =>
         JsonSerializer.Serialize(document, Options);
@@ -18,7 +15,11 @@ public static class LevelSerializer
     {
         LevelDocument document =
             JsonSerializer.Deserialize<LevelDocument>(json, Options) ?? new LevelDocument();
+        return Normalize(document);
+    }
 
+    public static LevelDocument Normalize(LevelDocument document)
+    {
         if (document.Version <= 0)
             document.Version = 1;
         if (string.IsNullOrWhiteSpace(document.Id))
