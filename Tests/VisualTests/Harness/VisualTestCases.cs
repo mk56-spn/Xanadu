@@ -463,6 +463,8 @@ public sealed class PlaySceneTest : SceneTest
 /// <summary>Regression: the ECS snap and note-type dropdowns must be clickable.</summary>
 public sealed class EditorDropdownSceneTest : SceneTest
 {
+    private float _closedSidebarHeight;
+
     public override string Name => "Editor dropdowns";
     public override string Slug => "editor-dropdowns";
 
@@ -475,6 +477,7 @@ public sealed class EditorDropdownSceneTest : SceneTest
                   VisualAssert.HasText(Context.Entities, "SNAP") &&
                   VisualAssert.HasText(Context.Entities, "NOTE TYPE") &&
                   Context.Entities.Query<Dropdown>().Count == 2);
+        AddStep("record closed sidebar", () => _closedSidebarHeight = SidebarHeight());
 
         AddStep("click snap dropdown", () => ClickDropdown(EditorDropdownKind.Snap));
         AddWaitStep("hold snap dropdown", 2);
@@ -482,7 +485,9 @@ public sealed class EditorDropdownSceneTest : SceneTest
         AddAssert(
             "snap dropdown opened",
             () => FindDropdown(EditorDropdownKind.Snap).GetComponent<Dropdown>().Open);
-
+        AddAssert(
+            "sidebar expands when open",
+            () => SidebarHeight() > _closedSidebarHeight + 50f);
 
         AddStep("choose 1/16 snap", () => ClickDropdownOption(EditorDropdownKind.Snap, 2));
         AddWaitStep("hold snap option", 2);
@@ -491,6 +496,9 @@ public sealed class EditorDropdownSceneTest : SceneTest
             "snap changed",
             () => Context.Entities.Query<Playhead>().ToEntityList()[0]
                 .GetComponent<Playhead>().SnapDivision == 16);
+        AddAssert(
+            "sidebar collapses when closed",
+            () => SidebarHeight() == _closedSidebarHeight);
 
         AddStep("click note type dropdown", () => ClickDropdown(EditorDropdownKind.NoteType));
         AddWaitStep("hold note type dropdown", 2);
@@ -524,6 +532,19 @@ public sealed class EditorDropdownSceneTest : SceneTest
             "toolbar zoom changed",
             () => Context.Entities.Query<EditorTimeline>().ToEntityList()[0]
                 .GetComponent<EditorTimeline>().Zoom >= 32f);
+    }
+
+    private float SidebarHeight()
+    {
+        foreach (Entity editor in Context.Entities
+                     .Query<EditorSidebarLayout>()
+                     .ToEntityList())
+        {
+            Entity panel = editor.GetComponent<EditorSidebarLayout>().Panel;
+            return panel.GetComponent<Rectangle>().Bounds.Size.Y;
+        }
+
+        return 0;
     }
 
     private void ClickEditorButton(EditorButtonKind kind)

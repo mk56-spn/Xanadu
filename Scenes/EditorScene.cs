@@ -397,9 +397,9 @@ public static class EditorScene
         float centerX = screen.X - 112;
 
         UiBuilder panelUi = SceneUi.Layer(entities, root, 939);
-        panelUi.RectEntity(
-            new Vector2(centerX, top + 300),
-            new Vector2(width + 20, 600),
+        Entity sidebarPanel = panelUi.RectEntity(
+            new Vector2(centerX, top + 141),
+            new Vector2(width + 20, 282),
             SceneUi.PanelColor,
             takesInput: true);
 
@@ -409,11 +409,11 @@ public static class EditorScene
             centerX - width / 2 - 10,
             top - 10,
             width + 20,
-            530)));
+            282)));
 
-        SceneUi.Text(
+        Entity snapLabel = SceneUi.Text(
             ui,
-            new Vector2(centerX, top + 20),
+            new Vector2(centerX, top + 12),
             new Vector2(width, 24),
             "SNAP",
             14,
@@ -423,15 +423,15 @@ public static class EditorScene
         Entity snap = BuildDropdown(
             ui,
             centerX,
-            top + 54,
+            top + 41,
             width,
             EditorDropdownKind.Snap,
             new[] { "1/4 beat", "1/8 beat", "1/16 beat" },
             selected: 0);
 
-        SceneUi.Text(
+        Entity typeLabel = SceneUi.Text(
             ui,
-            new Vector2(centerX, top + 178),
+            new Vector2(centerX, top + 86),
             new Vector2(width, 24),
             "NOTE TYPE",
             14,
@@ -445,13 +445,12 @@ public static class EditorScene
         Entity noteType = BuildDropdown(
             ui,
             centerX,
-            top + 212,
+            top + 115,
             width,
             EditorDropdownKind.NoteType,
             labels,
             selected: (int)KeybindAction.M);
 
-        // The dropdowns need to know their initial editor values.
         Playhead playhead = editor.GetComponent<Playhead>();
         int snapIndex = playhead.SnapDivision switch
         {
@@ -462,24 +461,35 @@ public static class EditorScene
         SetDropdownSelected(snap, snapIndex);
         SetDropdownSelected(noteType, (int)KeybindAction.M);
 
-        AddEditorButton(
+        Entity mine = AddEditorButton(
             ui,
-            new Vector2(centerX, top + 460),
+            new Vector2(centerX, top + 165),
             new Vector2(width, 34),
             "Mine: Off",
             EditorButtonKind.AddMine);
-        AddEditorButton(
+        Entity saveAs = AddEditorButton(
             ui,
-            new Vector2(centerX, top + 500),
+            new Vector2(centerX, top + 205),
             new Vector2(width, 34),
             "SAVE AS",
             EditorButtonKind.SaveAs);
-        AddEditorButton(
+        Entity load = AddEditorButton(
             ui,
-            new Vector2(centerX, top + 540),
+            new Vector2(centerX, top + 245),
             new Vector2(width, 34),
             "LOAD LEVEL",
             EditorButtonKind.LoadLevel);
+
+        editor.AddComponent(new EditorSidebarLayout(
+            sidebarPanel,
+            snapLabel,
+            snap,
+            typeLabel,
+            noteType,
+            mine,
+            saveAs,
+            load,
+            top));
     }
 
     private static Entity BuildDropdown(

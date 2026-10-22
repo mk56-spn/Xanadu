@@ -230,3 +230,26 @@ public struct EditorHud(
     public Vector2 PreviewHome = new(0, 24);
     public string StatusText = "";
 }
+
+/// <summary>Entities in the editor sidebar that flow around open dropdowns.</summary>
+public struct EditorSidebarLayout(
+    Entity panel,
+    Entity snapLabel,
+    Entity snapButton,
+    Entity typeLabel,
+    Entity typeButton,
+    Entity mine,
+    Entity saveAs,
+    Entity load,
+    float top) : IComponent
+{
+    public Entity Panel = panel;
+    public Entity SnapLabel = snapLabel;
+    public Entity SnapButton = snapButton;
+    public Entity TypeLabel = typeLabel;
+    public Entity TypeButton = typeButton;
+    public Entity Mine = mine;
+    public Entity SaveAs = saveAs;
+    public Entity Load = load;
+    public float Top = top;
+}
