@@ -3,6 +3,7 @@ using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Godot;
 using NUnit.Framework;
+using Writer.Tests.Support;
 using Writer.Ecs;
 using Writer.Systems.Canvas;
 using Writer.Systems.Rendering;
@@ -10,18 +11,14 @@ using Writer.Systems.Rendering;
 namespace Writer.Tests.Rendering;
 
 [TestFixture]
-public sealed class RectDrawSystemTests
+public sealed class RectDrawSystemTests : EcsSystemTest
 {
-    private EntityStore _store = null!;
     private RecordingRectCanvas _canvas = null!;
-    private SystemRoot _root = null!;
 
-    [SetUp]
-    public void SetUp()
+    protected override void OnEcsSetUp()
     {
-        _store = new EntityStore();
         _canvas = new RecordingRectCanvas();
-        _root = new SystemRoot(_store) { new RectDrawSystem(_canvas) };
+        Root.Add(new RectDrawSystem(_canvas));
     }
 
     [Test]
@@ -97,14 +94,12 @@ public sealed class RectDrawSystemTests
     private Entity AddRect(Rect2 bounds) => AddRect(bounds, Colors.White);
 
     private Entity AddRect(Rect2 bounds, Color color) =>
-        _store.CreateEntity(
+        Store.CreateEntity(
             new Rectangle(bounds),
             new Drawable(0),
             default(VisualRid),
             new FillColor(color),
             Tags.Get<Dirty>());
-
-    private void Frame() => _root.Update(new UpdateTick(1f / 60f, 0));
 
     private sealed class RecordingRectCanvas : IRectCanvas
     {

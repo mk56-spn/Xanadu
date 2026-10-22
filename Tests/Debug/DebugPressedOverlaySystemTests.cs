@@ -3,6 +3,7 @@ using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Godot;
 using NUnit.Framework;
+using Writer.Tests.Support;
 using Writer.Ecs;
 using Writer.Systems.Canvas;
 using Writer.Systems.Debug;
@@ -12,20 +13,16 @@ using Position = Writer.Ecs.Position;
 namespace Writer.Tests.Debug;
 
 [TestFixture]
-public sealed class DebugPressedOverlaySystemTests
+public sealed class DebugPressedOverlaySystemTests : EcsSystemTest
 {
-    private EntityStore _store = null!;
     private RecordingCanvas _canvas = null!;
     private ScriptedToggle _toggle = null!;
-    private SystemRoot _root = null!;
 
-    [SetUp]
-    public void SetUp()
+    protected override void OnEcsSetUp()
     {
-        _store = new EntityStore();
         _canvas = new RecordingCanvas();
         _toggle = new ScriptedToggle();
-        _root = new SystemRoot(_store) { new DebugPressedOverlaySystem(_canvas, default, _toggle) };
+        Root.Add(new DebugPressedOverlaySystem(_canvas, default, _toggle));
     }
 
     [Test]
@@ -81,12 +78,10 @@ public sealed class DebugPressedOverlaySystemTests
     }
 
     private void AddPressedRect(Vector2 center, Vector2 size) =>
-        _store.CreateEntity(
+        Store.CreateEntity(
             new Rectangle(new Rect2(-size / 2, size)),
             new Position(center),
             Tags.Get<Pressed>());
-
-    private void Frame() => _root.Update(new UpdateTick(1f / 60f, 0));
 
     private sealed class ScriptedToggle : IOverlayToggleSource
     {

@@ -9,21 +9,16 @@ using Writer.Tests.Support;
 namespace Writer.Tests.Audio;
 
 [TestFixture]
-public sealed class TrackPlaybackSystemTests
+public sealed class TrackPlaybackSystemTests : EcsSystemTest
 {
-    private EntityStore _store = null!;
     private FakeClock _clock = null!;
     private RecordingTrackAudio _audio = null!;
-    private SystemRoot _root = null!;
 
-    [SetUp]
-    public void SetUp()
+    protected override void OnEcsSetUp()
     {
-        _store = new EntityStore();
         _clock = new FakeClock();
         _audio = new RecordingTrackAudio();
-        _root = new SystemRoot(_store);
-        _root.Add(new TrackPlaybackSystem(_audio, _clock));
+        Root.Add(new TrackPlaybackSystem(_audio, _clock));
     }
 
     [Test]
@@ -81,14 +76,12 @@ public sealed class TrackPlaybackSystemTests
     }
 
     private Entity AddTrack(long durationMs, int speedPercent = 100) =>
-        _store.CreateEntity(
+        Store.CreateEntity(
             new TrackProgress(
                 "res://test-track.wav",
                 durationMs,
                 bpm: 128,
                 speedPercent: speedPercent));
-
-    private void Frame() => _root.Update(new UpdateTick(1f / 60f, 0));
 
     private sealed class FakeClock : ITrackClock
     {

@@ -2,6 +2,7 @@ using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Godot;
 using NUnit.Framework;
+using Writer.Tests.Support;
 using Writer.Ecs;
 using Writer.Levels;
 using Writer.Editor;
@@ -12,25 +13,20 @@ using Writer.Systems.Editor;
 namespace Writer.Tests.Editor;
 
 [TestFixture]
-public sealed class EditorCommandSystemTests
+public sealed class EditorCommandSystemTests : EcsSystemTest
 {
-    private EntityStore _store = null!;
     private EditorCommandBus _commands = null!;
     private Entity _editor;
-    private SystemRoot _root = null!;
 
-    [SetUp]
-    public void SetUp()
+    protected override void OnEcsSetUp()
     {
-        _store = new EntityStore();
         _commands = new EditorCommandBus();
-        _root = new SystemRoot(_store);
-        _root.Add(new EditorCommandSystem(
-            _store,
+        Root.Add(new EditorCommandSystem(
+            Store,
             _commands,
-            new EditorHistory(_store)));
+            new EditorHistory(Store)));
 
-        _editor = _store.CreateEntity(
+        _editor = Store.CreateEntity(
             new LevelInfo("Untitled", ""),
             new LevelFile(""),
             new Playfield(1000, 1000),
@@ -50,7 +46,7 @@ public sealed class EditorCommandSystemTests
         _commands.Enqueue(EditorCommand.SetOffset(900_000));
         _commands.Enqueue(EditorCommand.SetSnap(7));
 
-        _root.Update(new UpdateTick(1f / 60f, 0));
+        Frame();
 
         LevelInfo level = _editor.GetComponent<LevelInfo>();
         Playhead playhead = _editor.GetComponent<Playhead>();
@@ -70,7 +66,7 @@ public sealed class EditorCommandSystemTests
         playhead.DurationMs = 1_000;
 
         _commands.Enqueue(EditorCommand.TogglePlayback());
-        _root.Update(new UpdateTick(1f / 60f, 0));
+        Frame();
 
         Assert.That(playhead.Playing, Is.True);
         Assert.That(playhead.SeekRequestMs, Is.EqualTo(0));
@@ -83,7 +79,7 @@ public sealed class EditorCommandSystemTests
         playhead.TimeMs = 500;
 
         _commands.Enqueue(EditorCommand.BeginPreview());
-        _root.Update(new UpdateTick(1f / 60f, 0));
+        Frame();
 
         EditorPreview preview = _editor.GetComponent<EditorPreview>();
         Assert.That(preview.Active, Is.True);
@@ -91,7 +87,7 @@ public sealed class EditorCommandSystemTests
         Assert.That(playhead.Playing, Is.True);
 
         _commands.Enqueue(EditorCommand.EndPreview());
-        _root.Update(new UpdateTick(1f / 60f, 0));
+        Frame();
 
         preview = _editor.GetComponent<EditorPreview>();
         Assert.That(preview.Active, Is.False);
@@ -102,53 +98,53 @@ public sealed class EditorCommandSystemTests
     [Test]
     public void DeleteSelectionIsUndoable()
     {
-        Entity note = _store.CreateEntity(new Note(500, new Vector2(10, 20)));
+        Entity note = Store.CreateEntity(new Note(500, new Vector2(10, 20)));
         _editor.GetComponent<NoteSelection>().Note = note;
 
         _commands.Enqueue(EditorCommand.DeleteSelection());
-        _root.Update(new UpdateTick(1f / 60f, 0));
+        Frame();
 
-        Assert.That(_store.Query<Note>().Count, Is.EqualTo(0));
+        Assert.That(Store.Query<Note>().Count, Is.EqualTo(0));
 
         _commands.Enqueue(EditorCommand.Undo());
-        _root.Update(new UpdateTick(1f / 60f, 0));
+        Frame();
 
-        Assert.That(_store.Query<Note>().Count, Is.EqualTo(1));
+        Assert.That(Store.Query<Note>().Count, Is.EqualTo(1));
     }
 
     [Test]
     public void DeleteSelectionRemovesEverySelectedNote()
     {
-        Entity first = _store.CreateEntity(new Note(500, new Vector2(10, 20)));
-        Entity second = _store.CreateEntity(new Note(750, new Vector2(30, 40)));
+        Entity first = Store.CreateEntity(new Note(500, new Vector2(10, 20)));
+        Entity second = Store.CreateEntity(new Note(750, new Vector2(30, 40)));
         _editor.GetComponent<NoteSelection>().SetMany(new[] { first, second });
 
         _commands.Enqueue(EditorCommand.DeleteSelection());
-        _root.Update(new UpdateTick(1f / 60f, 0));
+        Frame();
 
-        Assert.That(_store.Query<Note>().Count, Is.Zero);
+        Assert.That(Store.Query<Note>().Count, Is.Zero);
         Assert.That(_editor.GetComponent<NoteSelection>().Notes, Is.Empty);
     }
 
     [Test]
     public void SetTargetIsUndoable()
     {
-        Entity note = _store.CreateEntity(
+        Entity note = Store.CreateEntity(
             new Note(500, new Vector2(10, 20), target: KeybindAction.M));
         _editor.GetComponent<NoteSelection>().Note = note;
 
         _commands.Enqueue(EditorCommand.SetTarget(KeybindAction.R3));
-        _root.Update(new UpdateTick(1f / 60f, 0));
+        Frame();
 
         Assert.That(
-            _store.Query<Note>().ToEntityList()[0].GetComponent<Note>().Target,
+            Store.Query<Note>().ToEntityList()[0].GetComponent<Note>().Target,
             Is.EqualTo(KeybindAction.R3));
 
         _commands.Enqueue(EditorCommand.Undo());
-        _root.Update(new UpdateTick(1f / 60f, 0));
+        Frame();
 
         Assert.That(
-            _store.Query<Note>().ToEntityList()[0].GetComponent<Note>().Target,
+            Store.Query<Note>().ToEntityList()[0].GetComponent<Note>().Target,
             Is.EqualTo(KeybindAction.M));
     }
 
@@ -158,40 +154,40 @@ public sealed class EditorCommandSystemTests
         _editor.AddComponent(new EditorTimeline(1f));
 
         _commands.Enqueue(EditorCommand.ZoomTimeline(1));
-        _root.Update(new UpdateTick(1f / 60f, 0));
+        Frame();
         Assert.That(_editor.GetComponent<EditorTimeline>().Zoom, Is.EqualTo(2f));
 
         _commands.Enqueue(EditorCommand.ZoomTimeline(1));
-        _root.Update(new UpdateTick(1f / 60f, 0));
+        Frame();
         Assert.That(_editor.GetComponent<EditorTimeline>().Zoom, Is.EqualTo(4f));
 
         _commands.Enqueue(EditorCommand.ZoomTimeline(-1));
-        _root.Update(new UpdateTick(1f / 60f, 0));
+        Frame();
         Assert.That(_editor.GetComponent<EditorTimeline>().Zoom, Is.EqualTo(2f));
     }
 
     [Test]
     public void MovesSelectedNoteByOneSnapStepAndUndoes()
     {
-        Entity note = _store.CreateEntity(new Note(1_000, new Vector2(10, 20)));
+        Entity note = Store.CreateEntity(new Note(1_000, new Vector2(10, 20)));
         _editor.GetComponent<NoteSelection>().Note = note;
 
         _commands.Enqueue(EditorCommand.MoveSelection(1));
-        _root.Update(new UpdateTick(1f / 60f, 0));
+        Frame();
 
         Assert.That(note.GetComponent<Note>().TimeMs, Is.EqualTo(1_500));
 
         _commands.Enqueue(EditorCommand.MoveSelection(-1));
-        _root.Update(new UpdateTick(1f / 60f, 0));
+        Frame();
 
         Assert.That(note.GetComponent<Note>().TimeMs, Is.EqualTo(1_000));
 
         _commands.Enqueue(EditorCommand.MoveSelection(1));
-        _root.Update(new UpdateTick(1f / 60f, 0));
+        Frame();
         _commands.Enqueue(EditorCommand.Undo());
-        _root.Update(new UpdateTick(1f / 60f, 0));
+        Frame();
 
-        Assert.That(_store.Query<Note>().ToEntityList()[0].GetComponent<Note>().TimeMs,
+        Assert.That(Store.Query<Note>().ToEntityList()[0].GetComponent<Note>().TimeMs,
             Is.EqualTo(1_000));
     }
 
@@ -199,7 +195,7 @@ public sealed class EditorCommandSystemTests
     public void LoadSongAdoptsFilenameAndBumpsRevision()
     {
         _commands.Enqueue(EditorCommand.LoadSong("/tmp/Test Song.mp3"));
-        _root.Update(new UpdateTick(1f / 60f, 0));
+        Frame();
 
         LevelInfo level = _editor.GetComponent<LevelInfo>();
         Playhead playhead = _editor.GetComponent<Playhead>();
@@ -230,12 +226,12 @@ public sealed class EditorCommandSystemTests
         });
 
         _commands.Enqueue(EditorCommand.ApplyLevel(document, "/tmp/loaded.json"));
-        _root.Update(new UpdateTick(1f / 60f, 0));
+        Frame();
 
         Assert.That(_editor.GetComponent<LevelInfo>().Name, Is.EqualTo("Loaded"));
         Assert.That(_editor.GetComponent<Playhead>().Bpm, Is.EqualTo(120));
         Assert.That(_editor.GetComponent<EditorPreview>().Active, Is.False);
         Assert.That(_editor.GetComponent<LevelFile>().Path, Is.EqualTo("/tmp/loaded.json"));
-        Assert.That(_store.Query<Note>().Count, Is.EqualTo(1));
+        Assert.That(Store.Query<Note>().Count, Is.EqualTo(1));
     }
 }

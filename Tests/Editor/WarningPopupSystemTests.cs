@@ -11,25 +11,20 @@ using Writer.Tests.Support;
 namespace Writer.Tests.Editor;
 
 [TestFixture]
-public sealed class WarningPopupSystemTests
+public sealed class WarningPopupSystemTests : EcsSystemTest
 {
-    private EntityStore _store = null!;
     private Entity _editor;
     private Entity _popup;
-    private SystemRoot _root = null!;
 
-    [SetUp]
-    public void SetUp()
+    protected override void OnEcsSetUp()
     {
-        _store = new EntityStore();
-        _editor = _store.CreateEntity(
+        _editor = Store.CreateEntity(
             new LevelInfo("Test", ""),
             new Playfield(1000, 1000),
             new PlayfieldView(Vector2.Zero, 1f, new Vector2(1000, 1000)),
             new NoteSelection(default));
-        _popup = EditorWarningPopup.Build(_store, new FakeVisualRidFactory());
-        _root = new SystemRoot(_store);
-        _root.Add(new WarningPopupSystem(_store));
+        _popup = EditorWarningPopup.Build(Store, new FakeVisualRidFactory());
+        Root.Add(new WarningPopupSystem(Store));
     }
 
     [Test]
@@ -37,7 +32,7 @@ public sealed class WarningPopupSystemTests
     {
         EditorWarningPopup.Request(_editor, "No song");
 
-        _root.Update(new UpdateTick(1f / 60f, 0));
+        Frame();
 
         WarningPopup popup = _popup.GetComponent<WarningPopup>();
         Assert.That(popup.Visible, Is.True);
@@ -52,11 +47,11 @@ public sealed class WarningPopupSystemTests
     public void PressingDismissButtonHidesPopup()
     {
         EditorWarningPopup.Request(_editor, "No song");
-        _root.Update(new UpdateTick(1f / 60f, 0));
+        Frame();
 
         _popup.GetComponent<WarningPopup>().Button.AddTag<Pressed>();
 
-        _root.Update(new UpdateTick(1f / 60f, 0));
+        Frame();
 
         Assert.That(_popup.GetComponent<WarningPopup>().Visible, Is.False);
         Assert.That(
@@ -68,12 +63,12 @@ public sealed class WarningPopupSystemTests
     public void LoadingSongHidesPopup()
     {
         EditorWarningPopup.Request(_editor, "No song");
-        _root.Update(new UpdateTick(1f / 60f, 0));
+        Frame();
 
         ref LevelInfo level = ref _editor.GetComponent<LevelInfo>();
         level.AudioPath = "/tmp/song.wav";
 
-        _root.Update(new UpdateTick(1f / 60f, 0));
+        Frame();
 
         Assert.That(_popup.GetComponent<WarningPopup>().Visible, Is.False);
     }

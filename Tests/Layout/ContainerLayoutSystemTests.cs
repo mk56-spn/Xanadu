@@ -2,6 +2,7 @@ using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Godot;
 using NUnit.Framework;
+using Writer.Tests.Support;
 using Writer.Ecs;
 using Writer.Systems.Layout;
 using Position = Writer.Ecs.Position;
@@ -9,17 +10,11 @@ using Position = Writer.Ecs.Position;
 namespace Writer.Tests.Layout;
 
 [TestFixture]
-public sealed class ContainerLayoutSystemTests
+public sealed class ContainerLayoutSystemTests : EcsSystemTest
 {
-    private EntityStore _store = null!;
-    private SystemRoot _root = null!;
-
-    [SetUp]
-    public void SetUp()
+    protected override void OnEcsSetUp()
     {
-        _store = new EntityStore();
-        _root = new SystemRoot(_store);
-        _root.Add(new ContainerLayoutSystem());
+        Root.Add(new ContainerLayoutSystem());
     }
 
     [Test]
@@ -52,7 +47,7 @@ public sealed class ContainerLayoutSystemTests
     [Test]
     public void CrossAlignmentMovesChildrenToContainerEdges()
     {
-        var container = _store.CreateEntity(
+        var container = Store.CreateEntity(
             new Rectangle(new Rect2(-100, -50, 200, 100)),
             new UiContainer(
                 StackDirection.Vertical,
@@ -72,7 +67,7 @@ public sealed class ContainerLayoutSystemTests
     [Test]
     public void AutoSizeMeasuresChildrenWithPadding()
     {
-        var container = _store.CreateEntity(
+        var container = Store.CreateEntity(
             new Rectangle(new Rect2(-10, -10, 20, 20)),
             new UiContainer(
                 StackDirection.Horizontal,
@@ -94,7 +89,7 @@ public sealed class ContainerLayoutSystemTests
     [Test]
     public void AnchorTopKeepsTheContainerTopFixedWhileItGrows()
     {
-        var container = _store.CreateEntity(
+        var container = Store.CreateEntity(
             new Rectangle(new Rect2(-50, -5, 100, 10)),
             new Position(new Vector2(0, 100)),
             new UiContainer(
@@ -138,7 +133,7 @@ public sealed class ContainerLayoutSystemTests
     [Test]
     public void NestedHeaderMiddleFooterRegionsLayoutInOrder()
     {
-        Entity root = _store.CreateEntity(
+        Entity root = Store.CreateEntity(
             new Rectangle(new Rect2(-200, -150, 400, 300)),
             new Position(new Vector2(200, 150)),
             new UiContainer(
@@ -189,7 +184,7 @@ public sealed class ContainerLayoutSystemTests
         Vector2 size,
         float spacing = 0)
     {
-        Entity container = _store.CreateEntity(
+        Entity container = Store.CreateEntity(
             new Rectangle(new Rect2(-size / 2, size)),
             new Position(Vector2.Zero),
             new UiContainer(direction, spacing),
@@ -199,20 +194,18 @@ public sealed class ContainerLayoutSystemTests
     }
 
     private Entity AddContainer(StackDirection direction, float spacing) =>
-        _store.CreateEntity(
+        Store.CreateEntity(
             new Rectangle(new Rect2(-100, -50, 200, 100)),
             new UiContainer(direction, spacing),
             Tags.Get<LayoutDirty>());
 
     private Entity AddChild(Entity container, Vector2 size)
     {
-        var child = _store.CreateEntity(
+        var child = Store.CreateEntity(
             new Rectangle(new Rect2(-size / 2, size)),
             new Position(Vector2.Zero));
 
         container.AddChild(child);
         return child;
     }
-
-    private void Frame() => _root.Update(new UpdateTick(1f / 60f, 0));
 }

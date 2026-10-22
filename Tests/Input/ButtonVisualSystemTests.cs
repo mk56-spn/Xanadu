@@ -2,22 +2,19 @@ using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Godot;
 using NUnit.Framework;
+using Writer.Tests.Support;
 using Writer.Ecs;
 using Writer.Systems.Input;
 
 namespace Writer.Tests.Input;
 
 [TestFixture]
-public sealed class ButtonVisualSystemTests
+public sealed class ButtonVisualSystemTests : EcsSystemTest
 {
-    private EntityStore _store = null!;
-    private SystemRoot _root = null!;
 
-    [SetUp]
-    public void SetUp()
+    protected override void OnEcsSetUp()
     {
-        _store = new EntityStore();
-        _root = new SystemRoot(_store) { new ButtonVisualSystem() };
+        Root.Add(new ButtonVisualSystem());
     }
 
     [Test]
@@ -54,7 +51,7 @@ public sealed class ButtonVisualSystemTests
 
     private Entity AddButton(Color color)
     {
-        return _store.CreateEntity(
+        return Store.CreateEntity(
             new FillColor(color),
             ButtonVisual.Create(color));
     }
@@ -64,8 +61,6 @@ public sealed class ButtonVisualSystemTests
         for (int i = 0; i < count; i++)
             Frame();
     }
-
-    private void Frame() => _root.Update(new UpdateTick(1f / 60f, 0));
 
     private static void AssertColor(Entity entity, Color expected)
     {

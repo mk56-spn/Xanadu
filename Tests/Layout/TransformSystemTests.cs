@@ -3,6 +3,7 @@ using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Godot;
 using NUnit.Framework;
+using Writer.Tests.Support;
 using Writer.Ecs;
 using Writer.Systems.Canvas;
 using Writer.Systems.Layout;
@@ -11,24 +12,20 @@ using Position = Writer.Ecs.Position;
 namespace Writer.Tests.Layout;
 
 [TestFixture]
-public sealed class TransformSystemTests
+public sealed class TransformSystemTests : EcsSystemTest
 {
-    private EntityStore _store = null!;
     private RecordingCanvas _canvas = null!;
-    private SystemRoot _root = null!;
 
-    [SetUp]
-    public void SetUp()
+    protected override void OnEcsSetUp()
     {
-        _store = new EntityStore();
         _canvas = new RecordingCanvas();
-        _root = new SystemRoot(_store) { new TransformSystem(_canvas) };
+        Root.Add(new TransformSystem(_canvas));
     }
 
     [Test]
     public void MovedEntityUpdatesTransformAndClearsTag()
     {
-        Entity entity = _store.CreateEntity(
+        Entity entity = Store.CreateEntity(
             default(VisualRid),
             new Position(new Vector2(10, 20)),
             Tags.Get<Moved>());
@@ -43,14 +40,12 @@ public sealed class TransformSystemTests
     [Test]
     public void CleanEntityDoesNotUpdateTransform()
     {
-        _store.CreateEntity(default(VisualRid), new Position(new Vector2(10, 20)));
+        Store.CreateEntity(default(VisualRid), new Position(new Vector2(10, 20)));
 
         Frame();
 
         Assert.That(_canvas.Transforms, Is.Empty);
     }
-
-    private void Frame() => _root.Update(new UpdateTick(1f / 60f, 0));
 
     private sealed class RecordingCanvas : IRectCanvas
     {
