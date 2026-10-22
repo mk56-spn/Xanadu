@@ -21,6 +21,10 @@ public static class LevelSerializer
 
         if (document.Version <= 0)
             document.Version = 1;
+        if (string.IsNullOrWhiteSpace(document.Id))
+            document.Id = System.Guid.NewGuid().ToString("N");
+        if (string.IsNullOrWhiteSpace(document.Slug))
+            document.Slug = "level-" + document.Id[..8];
 
         document.Notes ??= new();
         document.Notes.RemoveAll(note => note is null);

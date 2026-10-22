@@ -7,8 +7,6 @@ using Godot;
 namespace Writer.Levels;
 
 /// <summary>A loaded level file and its document.</summary>
-public sealed record LevelEntry(string Path, LevelDocument Document);
-
 /// <summary>Reads and writes levels below user://levels.</summary>
 public static class LevelStore
 {
@@ -90,6 +88,7 @@ public static class LevelStore
     /// <summary>Loads every valid level from user data and the bundled Levels folder.</summary>
     public static List<LevelEntry> List()
     {
+        var songs = new SongStore();
         var entries = new List<LevelEntry>();
         var seen = new HashSet<string>(StringComparer.Ordinal);
 
@@ -127,7 +126,11 @@ public static class LevelStore
 
                 try
                 {
-                    entries.Add(new LevelEntry(fullPath, Load(fullPath)));
+                    LevelDocument document = Load(fullPath);
+                    entries.Add(new LevelEntry(
+                        fullPath,
+                        document,
+                        songs.Find(document.SongId)));
                 }
                 catch (Exception)
                 {

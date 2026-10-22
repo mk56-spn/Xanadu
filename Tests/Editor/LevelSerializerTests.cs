@@ -10,6 +10,25 @@ namespace Writer.Tests.Editor;
 public sealed class LevelSerializerTests
 {
     [Test]
+    public void LevelIdentityAndSongReferenceRoundTrip()
+    {
+        var source = new LevelDocument
+        {
+            Id = "level-1",
+            Slug = "hard-level",
+            SongId = "song-1",
+            Name = "Hard",
+        };
+
+        LevelDocument result = LevelSerializer.Deserialize(
+            LevelSerializer.Serialize(source));
+
+        Assert.That(result.Id, Is.EqualTo("level-1"));
+        Assert.That(result.Slug, Is.EqualTo("hard-level"));
+        Assert.That(result.SongId, Is.EqualTo("song-1"));
+    }
+
+    [Test]
     public void NullNotesDeserializeToEmptyList()
     {
         LevelDocument document = LevelSerializer.Deserialize(

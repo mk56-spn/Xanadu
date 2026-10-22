@@ -9,6 +9,15 @@ public sealed class LevelDocument
 {
     public int Version { get; set; } = 1;
 
+    /// <summary>Stable level identity; unrelated to its file path.</summary>
+    public string Id { get; set; } = System.Guid.NewGuid().ToString("N");
+
+    /// <summary>Stable human-readable level slug.</summary>
+    public string Slug { get; set; } = "";
+
+    /// <summary>The program-owned song this chart references.</summary>
+    public string SongId { get; set; } = "";
+
     public string Name { get; set; } = "Untitled";
 
     public string AudioPath { get; set; } = "";

@@ -172,7 +172,9 @@ public static class SongSelectScene
                 1);
         }
 
-        if (catalog.Count > 0)
+        bool blocked = catalog.Count > 0 &&
+            catalog[Mathf.Clamp(selected, 0, catalog.Count - 1)].IsBlocked;
+        if (catalog.Count > 0 && !blocked)
         {
             Entity edit = SceneUi.Button(
                 ui,
@@ -227,22 +229,26 @@ public static class SongSelectScene
         selected = Mathf.Clamp(selected, 0, catalog.Count - 1);
         LevelEntry entry = catalog[selected];
         LevelDocument document = entry.Document;
-
-        string artist = string.IsNullOrWhiteSpace(document.Artist)
-            ? "Unknown artist"
-            : document.Artist;
-
-        string difficulty = string.IsNullOrWhiteSpace(document.Difficulty)
-            ? "Unrated"
-            : document.Difficulty;
+        SongDocument? song = entry.Song;
+        string artist = song?.Artist ?? document.Artist;
+        string difficulty = document.Difficulty;
+        string title = song?.Title ?? document.Name;
 
         SceneUi.SetText(
             state.Title,
-            string.IsNullOrWhiteSpace(document.Name) ? LocalizedText.Get(SongSelectStrings.Untitled) : document.Name);
-        SceneUi.SetText(state.Meta, $"{artist}   ·   {difficulty}");
+            string.IsNullOrWhiteSpace(document.Name)
+                ? LocalizedText.Get(SongSelectStrings.Untitled)
+                : document.Name);
+        SceneUi.SetText(
+            state.Meta,
+            string.IsNullOrWhiteSpace(title)
+                ? "Missing song"
+                : $"{title}   ·   {(string.IsNullOrWhiteSpace(artist) ? "Unknown artist" : artist)}");
         SceneUi.SetText(
             state.Stats,
-            $"{document.Bpm} BPM   ·   {document.Notes.Count} notes");
+            entry.IsBlocked
+                ? "SONG MISSING — cannot play or edit"
+                : $"{song?.Bpm ?? document.Bpm} BPM   ·   {document.Notes.Count} notes");
         SceneUi.SetText(state.Index, $"{selected + 1} / {catalog.Count}");
 
         RefreshScores(state, profiles.AllScores(entry.Path));
