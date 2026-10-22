@@ -100,9 +100,31 @@ public sealed class EditorPlayfieldDrawSystem :
             _entities,
             view,
             playhead);
+        DrawStartPoints(view);
         DrawSelectionOutlines(view, playhead, selection);
         DrawRuler(view, playhead, selection, timelineZoom, preview);
         DrawSelectionBox(selectionBox);
+    }
+
+    private void DrawStartPoints(PlayfieldView view)
+    {
+        foreach (Entity entity in _entities.Query<StartPoint>().ToEntityList())
+        {
+            StartPoint start = entity.GetComponent<StartPoint>();
+            Vector2 center = view.PlayfieldToScreen(start.Position);
+            _canvas.DrawCircleOutline(
+                _editor,
+                center,
+                13,
+                PlayfieldRenderer.SelectedNoteColor,
+                2);
+            _canvas.DrawTextStyled(
+                _editor,
+                new Rect2(center - new Vector2(10, 10), new Vector2(20, 20)),
+                "S",
+                PlayfieldRenderer.SelectedNoteColor,
+                12);
+        }
     }
 
     private void DrawSelectionOutlines(

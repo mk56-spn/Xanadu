@@ -30,6 +30,12 @@ public sealed class LevelDocumentMapperTests
             kind: NoteKind.Movement,
             dashDirection: DashDirection.DownLeft));
         sourceStore.CreateEntity(new Mine(900, new Vector2(450, 550)));
+        sourceStore.CreateEntity(new StartPoint(
+            "Chorus",
+            750,
+            new Vector2(300, 400),
+            new System.Numerics.Vector2(2, -3),
+            new Vector2(1, 0)));
 
         LevelDocument document = LevelDocumentMapper.Capture(sourceStore, source);
 
@@ -49,6 +55,9 @@ public sealed class LevelDocumentMapperTests
         Assert.That(document.Mines, Has.Count.EqualTo(1));
         Assert.That(document.Mines[0].TimeMs, Is.EqualTo(900));
         Assert.That(document.Mines[0].X, Is.EqualTo(450));
+        Assert.That(document.StartPoints, Has.Count.EqualTo(1));
+        Assert.That(document.StartPoints[0].Name, Is.EqualTo("Chorus"));
+        Assert.That(document.StartPoints[0].MomentumX, Is.EqualTo(2));
 
         var targetStore = new EntityStore();
         Entity target = targetStore.CreateEntity(
@@ -76,6 +85,11 @@ public sealed class LevelDocumentMapperTests
             targetStore.Query<Note>().ToEntityList()[1].GetComponent<Note>().Target,
             Is.EqualTo(KeybindAction.R3));
         Assert.That(targetStore.Query<Mine>().Count, Is.EqualTo(1));
+        Assert.That(targetStore.Query<StartPoint>().Count, Is.EqualTo(1));
+        Assert.That(
+            targetStore.Query<StartPoint>().ToEntityList()[0]
+                .GetComponent<StartPoint>().Momentum.Y,
+            Is.EqualTo(-3));
         Assert.That(
             targetStore.Query<Mine>().ToEntityList()[0].GetComponent<Mine>().TimeMs,
             Is.EqualTo(900));

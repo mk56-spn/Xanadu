@@ -27,6 +27,7 @@ public static class LevelDocumentMapper
             PlayfieldHeight = playfield.Height,
             Notes = new List<NoteDocument>(),
             Mines = new List<MineDocument>(),
+            StartPoints = new List<StartPointDocument>(),
         };
 
         foreach (Entity entity in entities.Query<Note>().ToEntityList())
@@ -61,6 +62,24 @@ public static class LevelDocumentMapper
         }
 
         document.Mines.Sort((a, b) => a.TimeMs.CompareTo(b.TimeMs));
+
+        foreach (Entity entity in entities.Query<StartPoint>().ToEntityList())
+        {
+            StartPoint start = entity.GetComponent<StartPoint>();
+            document.StartPoints.Add(new StartPointDocument
+            {
+                Name = start.Name,
+                TimeMs = start.TimeMs,
+                X = start.Position.X,
+                Y = start.Position.Y,
+                MomentumX = start.Momentum.X,
+                MomentumY = start.Momentum.Y,
+                DirectionX = start.Direction.X,
+                DirectionY = start.Direction.Y,
+            });
+        }
+
+        document.StartPoints.Sort((a, b) => a.TimeMs.CompareTo(b.TimeMs));
         return document;
     }
 
@@ -82,6 +101,21 @@ public static class LevelDocumentMapper
                 note.Target,
                 note.Kind,
                 note.DashDirection));
+        }
+
+        foreach (Entity entity in entities.Query<StartPoint>().ToEntityList())
+            entity.DeleteEntity();
+
+        foreach (StartPointDocument start in document.StartPoints)
+        {
+            entities.CreateEntity(new StartPoint(
+                start.Name,
+                start.TimeMs,
+                new Vector2(start.X, start.Y),
+                new System.Numerics.Vector2(
+                    start.MomentumX,
+                    start.MomentumY),
+                new Vector2(start.DirectionX, start.DirectionY)));
         }
 
         foreach (MineDocument mine in document.Mines)

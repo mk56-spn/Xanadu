@@ -30,6 +30,28 @@ public sealed class LevelDocument
     public List<NoteDocument> Notes { get; set; } = new();
 
     public List<MineDocument> Mines { get; set; } = new();
+
+    public List<StartPointDocument> StartPoints { get; set; } = new();
+}
+
+/// <summary>Serializable practice start state.</summary>
+public sealed class StartPointDocument
+{
+    public string Name { get; set; } = "";
+
+    public long TimeMs { get; set; }
+
+    public float X { get; set; }
+
+    public float Y { get; set; }
+
+    public float MomentumX { get; set; }
+
+    public float MomentumY { get; set; }
+
+    public float DirectionX { get; set; }
+
+    public float DirectionY { get; set; } = -1;
 }
 
 /// <summary>Serializable mine hazard data.</summary>

@@ -90,6 +90,7 @@ public enum EditorPlacementMode
     Notes,
     Mines,
     Movement,
+    Start,
 }
 
 public struct EditorPlacementModeState(EditorPlacementMode mode) : IComponent
@@ -280,4 +281,19 @@ public struct EditorBindingsHelp(Entity panel, Vector2 home) : IComponent
     public Entity Panel = panel;
     public Vector2 Home = home;
     public bool Visible;
+}
+
+/// <summary>Saved practice start state: time, position, momentum, and facing.</summary>
+public struct StartPoint(
+    string name,
+    long timeMs,
+    Vector2 position,
+    System.Numerics.Vector2 momentum,
+    Vector2 direction) : IComponent
+{
+    public string Name = name;
+    public long TimeMs = timeMs;
+    public Vector2 Position = position;
+    public System.Numerics.Vector2 Momentum = momentum;
+    public Vector2 Direction = direction;
 }

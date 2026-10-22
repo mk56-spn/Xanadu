@@ -333,6 +333,26 @@ public sealed class EditorNoteInputSystemTests
     }
 
     [Test]
+    public void StartModePlacesAPracticeStart()
+    {
+        Entity editor = _store.Query<PlayfieldView>().ToEntityList()[0];
+        editor.AddComponent(
+            new EditorPlacementModeState(EditorPlacementMode.Start));
+
+        _pointer.Current = new PointerInput(new Vector2(300, 400), true);
+        _root.Update(new UpdateTick(1f / 60f, 0));
+        _pointer.Current = new PointerInput(new Vector2(300, 400), false);
+        _root.Update(new UpdateTick(1f / 60f, 0));
+
+        var starts = _store.Query<StartPoint>().ToEntityList();
+        Assert.That(starts, Has.Count.EqualTo(1));
+        Assert.That(starts[0].GetComponent<StartPoint>().TimeMs,
+            Is.EqualTo(1_000));
+        Assert.That(starts[0].GetComponent<StartPoint>().Position,
+            Is.EqualTo(new Vector2(300, 400)));
+    }
+
+    [Test]
     public void DeletedDraggedNoteDoesNotThrow()
     {
         _pointer.Current = new PointerInput(new Vector2(100, 200), true);

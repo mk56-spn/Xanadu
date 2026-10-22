@@ -546,21 +546,31 @@ public static class EditorScene
         AddPlacementButton(
             ui,
             group,
-            new Vector2(-62, -70),
+            new Vector2(-69, -70),
             "NOTE",
-            new EditorPlacementButton(EditorPlacementMode.Notes));
+            new EditorPlacementButton(EditorPlacementMode.Notes),
+            44);
         AddPlacementButton(
             ui,
             group,
-            new Vector2(0, -70),
+            new Vector2(-23, -70),
             "MINE",
-            new EditorPlacementButton(EditorPlacementMode.Mines));
+            new EditorPlacementButton(EditorPlacementMode.Mines),
+            44);
         AddPlacementButton(
             ui,
             group,
-            new Vector2(62, -70),
+            new Vector2(23, -70),
             "MOVE",
-            new EditorPlacementButton(EditorPlacementMode.Movement));
+            new EditorPlacementButton(EditorPlacementMode.Movement),
+            44);
+        AddPlacementButton(
+            ui,
+            group,
+            new Vector2(69, -70),
+            "START",
+            new EditorPlacementButton(EditorPlacementMode.Start),
+            44);
 
         Entity label = HudText(
             ui,

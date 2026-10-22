@@ -263,6 +263,28 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
     {
         if (editor.HasComponent<EditorPlacementModeState>() &&
             editor.GetComponent<EditorPlacementModeState>().Mode ==
+            EditorPlacementMode.Start)
+        {
+            PlayfieldView startView = editor.GetComponent<PlayfieldView>();
+            Playfield startField = editor.GetComponent<Playfield>();
+            Vector2 startPosition = startView.ScreenToPlayfield(screenPosition);
+            if (!IsInside(startPosition, startField))
+                return;
+
+            Playhead startPlayhead = editor.GetComponent<Playhead>();
+            var startBefore = _history.Capture();
+            _entities.CreateEntity(new StartPoint(
+                "",
+                EditorTiming.Snap(startPlayhead.TimeMs, startPlayhead),
+                startPosition,
+                System.Numerics.Vector2.Zero,
+                new Vector2(0, -1)));
+            _history.Record(startBefore, _history.Capture());
+            return;
+        }
+
+        if (editor.HasComponent<EditorPlacementModeState>() &&
+            editor.GetComponent<EditorPlacementModeState>().Mode ==
             EditorPlacementMode.Mines)
         {
             PlayfieldView view = editor.GetComponent<PlayfieldView>();
