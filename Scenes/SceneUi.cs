@@ -35,6 +35,52 @@ public static class SceneUi
     public static Entity Background(UiBuilder builder, Vector2 screen) =>
         builder.RectEntity(screen / 2, screen, BackgroundColor);
 
+    public static Entity Panel(
+        UiBuilder builder,
+        Vector2 center,
+        Vector2 size,
+        Color? color = null) =>
+        builder.RectEntity(center, size, color ?? PanelColor);
+
+    /// <summary>A transparent text label drawn above its parent panel.</summary>
+    public static Entity Label(
+        UiBuilder builder,
+        Vector2 center,
+        Vector2 size,
+        string text,
+        int fontSize,
+        Color color,
+        Color? background = null) =>
+        Text(
+            builder,
+            center,
+            size,
+            text,
+            fontSize,
+            color,
+            background ?? new Color(0, 0, 0, 0));
+
+    /// <summary>A styled button entity without an attached action component.</summary>
+    public static Entity ButtonEntity(
+        UiBuilder builder,
+        Vector2 center,
+        Vector2 size,
+        string label,
+        int fontSize = 18,
+        Color? color = null)
+    {
+        Color normal = color ?? ButtonColor;
+        Entity button = builder.RectEntity(
+            center,
+            size,
+            normal,
+            label,
+            takesInput: true);
+        button.AddComponent(new TextStyle(fontSize, TextColor));
+        button.AddComponent(ButtonVisual.Create(normal));
+        return button;
+    }
+
     public static Entity Text(
         UiBuilder builder,
         Vector2 center,

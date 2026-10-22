@@ -75,7 +75,7 @@ public static class SongSelectScene
             SceneUi.PanelColor);
 
         var cardCenter = new Vector2(screen.X / 2, screen.Y / 2 - 10);
-        ui.RectEntity(cardCenter, new Vector2(780, 330), SceneUi.PanelColor);
+        SceneUi.Panel(ui, cardCenter, new Vector2(780, 330));
 
         Entity title = SceneUi.Text(
             ui,
@@ -124,7 +124,7 @@ public static class SongSelectScene
         Vector2 scoreCenter = new(
             screen.X - scoreWidth / 2 - 28,
             cardCenter.Y);
-        scoreUi.RectEntity(scoreCenter, new Vector2(scoreWidth, scoreHeight), SceneUi.PanelColor);
+        SceneUi.Panel(scoreUi, scoreCenter, new Vector2(scoreWidth, scoreHeight));
         SceneUi.Text(
             scoreUi,
             new Vector2(scoreCenter.X, scoreCenter.Y - scoreHeight / 2 + 24),

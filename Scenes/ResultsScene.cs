@@ -45,14 +45,14 @@ public static class ResultsScene
         const float panelHeight = 720;
         float panelTop = centerY - panelHeight / 2;
 
-        ui.RectEntity(
+        SceneUi.Panel(
+            ui,
             new Vector2(centerX, centerY),
-            new Vector2(panelWidth, panelHeight),
-            SceneUi.PanelColor);
+            new Vector2(panelWidth, panelHeight));
 
         float y = panelTop + 45;
 
-        SceneUi.Text(
+        SceneUi.Label(
             ui,
             new Vector2(centerX, y),
             new Vector2(panelWidth - 80, 28),
@@ -61,7 +61,7 @@ public static class ResultsScene
             SceneUi.DimTextColor,
             SceneUi.PanelColor);
 
-        SceneUi.Text(
+        SceneUi.Label(
             ui,
             new Vector2(centerX, y + 55),
             new Vector2(panelWidth - 80, 72),
@@ -70,7 +70,7 @@ public static class ResultsScene
             SceneUi.AccentColor,
             SceneUi.PanelColor);
 
-        SceneUi.Text(
+        SceneUi.Label(
             ui,
             new Vector2(centerX, y + 108),
             new Vector2(panelWidth - 80, 30),
@@ -81,7 +81,7 @@ public static class ResultsScene
 
         y += 165;
 
-        SceneUi.Text(
+        SceneUi.Label(
             ui,
             new Vector2(centerX, y),
             new Vector2(panelWidth - 80, 28),
@@ -90,7 +90,7 @@ public static class ResultsScene
             SceneUi.DimTextColor,
             SceneUi.PanelColor);
 
-        SceneUi.Text(
+        SceneUi.Label(
             ui,
             new Vector2(centerX, y + 48),
             new Vector2(panelWidth - 80, 56),
@@ -101,7 +101,7 @@ public static class ResultsScene
 
         y += 125;
 
-        SceneUi.Text(
+        SceneUi.Label(
             ui,
             new Vector2(centerX, y),
             new Vector2(panelWidth - 80, 28),
@@ -110,7 +110,7 @@ public static class ResultsScene
             SceneUi.DimTextColor,
             SceneUi.PanelColor);
 
-        SceneUi.Text(
+        SceneUi.Label(
             ui,
             new Vector2(centerX, y + 48),
             new Vector2(panelWidth - 80, 56),
@@ -121,7 +121,7 @@ public static class ResultsScene
 
         y += 125;
 
-        SceneUi.Text(
+        SceneUi.Label(
             ui,
             new Vector2(centerX, y),
             new Vector2(panelWidth - 80, 28),
@@ -130,7 +130,7 @@ public static class ResultsScene
             SceneUi.DimTextColor,
             SceneUi.PanelColor);
 
-        SceneUi.Text(
+        SceneUi.Label(
             ui,
             new Vector2(centerX, y + 48),
             new Vector2(panelWidth - 80, 56),
@@ -139,14 +139,11 @@ public static class ResultsScene
             SceneUi.TextColor,
             SceneUi.PanelColor);
 
-        Entity retry = ui.RectEntity(
+        Entity retry = SceneUi.ButtonEntity(
+            ui,
             new Vector2(centerX - 240, screen.Y - 70),
             new Vector2(220, 52),
-            SceneUi.ButtonColor,
-            LocalizedText.Get(ResultsStrings.Retry),
-            takesInput: true);
-        retry.AddComponent(new TextStyle(18, SceneUi.TextColor));
-        retry.AddComponent(ButtonVisual.Create(SceneUi.ButtonColor));
+            LocalizedText.Get(ResultsStrings.Retry));
         retry.AddComponent(new RetryAction());
 
         SceneUi.Button(
