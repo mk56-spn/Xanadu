@@ -123,6 +123,8 @@ public sealed class EditorNoteInputSystemTests
 
         _pointer.Current = new PointerInput(new Vector2(300, 400), true);
         _root.Update(new UpdateTick(1f / 60f, 0));
+        _pointer.Current = new PointerInput(new Vector2(300, 400), false);
+        _root.Update(new UpdateTick(1f / 60f, 0));
 
         Assert.That(_store.Query<Note>().Count, Is.Zero);
         var mines = _store.Query<Mine>().ToEntityList();
@@ -164,6 +166,8 @@ public sealed class EditorNoteInputSystemTests
         editor.AddComponent(new EditorPlacementModeState(EditorPlacementMode.Mines));
 
         _pointer.Current = new PointerInput(new Vector2(300, 400), true);
+        _root.Update(new UpdateTick(1f / 60f, 0));
+        _pointer.Current = new PointerInput(new Vector2(300, 400), false);
         _root.Update(new UpdateTick(1f / 60f, 0));
         Assert.That(_history.Undo(), Is.True);
 
@@ -249,6 +253,66 @@ public sealed class EditorNoteInputSystemTests
         Assert.That(
             editor.GetComponent<NoteSelection>().Notes,
             Has.Count.EqualTo(1));
+    }
+
+    [Test]
+    public void MineModeMarqueeSelectsWithoutPlacingAMine()
+    {
+        Entity editor = _store.Query<PlayfieldView>().ToEntityList()[0];
+        editor.AddComponent(
+            new EditorPlacementModeState(EditorPlacementMode.Mines));
+        _store.CreateEntity(new Note(1_000, new Vector2(200, 200)));
+        _store.CreateEntity(new Note(1_000, new Vector2(300, 300)));
+
+        _pointer.Current = new PointerInput(new Vector2(50, 50), true);
+        _root.Update(new UpdateTick(1f / 60f, 0));
+        _pointer.Current = new PointerInput(new Vector2(400, 400), true);
+        _root.Update(new UpdateTick(1f / 60f, 0));
+        _pointer.Current = new PointerInput(new Vector2(400, 400), false);
+        _root.Update(new UpdateTick(1f / 60f, 0));
+
+        Assert.That(editor.GetComponent<NoteSelection>().Notes, Has.Count.EqualTo(2));
+        Assert.That(_store.Query<Mine>().Count, Is.Zero);
+    }
+
+    [Test]
+    public void MovementModeMarqueeSelectsNotes()
+    {
+        Entity editor = _store.Query<PlayfieldView>().ToEntityList()[0];
+        editor.AddComponent(
+            new EditorPlacementModeState(EditorPlacementMode.Movement));
+        _store.CreateEntity(new Note(1_000, new Vector2(200, 200)));
+        _store.CreateEntity(new Note(1_000, new Vector2(300, 300)));
+
+        _pointer.Current = new PointerInput(new Vector2(50, 50), true);
+        _root.Update(new UpdateTick(1f / 60f, 0));
+        _pointer.Current = new PointerInput(new Vector2(400, 400), true);
+        _root.Update(new UpdateTick(1f / 60f, 0));
+        _pointer.Current = new PointerInput(new Vector2(400, 400), false);
+        _root.Update(new UpdateTick(1f / 60f, 0));
+
+        Assert.That(editor.GetComponent<NoteSelection>().Notes, Has.Count.EqualTo(2));
+        Assert.That(_store.Query<Note>().Count, Is.EqualTo(2));
+    }
+
+    [Test]
+    public void DraggingAMultiSelectionMovesAllSelectedNotes()
+    {
+        Entity editor = _store.Query<PlayfieldView>().ToEntityList()[0];
+        Entity first = _store.CreateEntity(new Note(1_000, new Vector2(200, 200)));
+        Entity second = _store.CreateEntity(new Note(1_000, new Vector2(300, 300)));
+        editor.GetComponent<NoteSelection>().SetMany(new[] { first, second });
+
+        _pointer.Current = new PointerInput(new Vector2(200, 200), true);
+        _root.Update(new UpdateTick(1f / 60f, 0));
+        _pointer.Current = new PointerInput(new Vector2(250, 250), true);
+        _root.Update(new UpdateTick(1f / 60f, 0));
+        _pointer.Current = new PointerInput(new Vector2(250, 250), false);
+        _root.Update(new UpdateTick(1f / 60f, 0));
+
+        Assert.That(editor.GetComponent<NoteSelection>().Notes, Has.Count.EqualTo(2));
+        Assert.That(first.GetComponent<Note>().Position, Is.EqualTo(new Vector2(250, 250)));
+        Assert.That(second.GetComponent<Note>().Position, Is.EqualTo(new Vector2(350, 350)));
     }
 
     [Test]

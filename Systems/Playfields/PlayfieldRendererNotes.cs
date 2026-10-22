@@ -52,7 +52,22 @@ public static partial class PlayfieldRenderer
                     2);
             }
 
-            canvas.DrawCircle(rid, center, radius, color);
+            if (note.Kind == NoteKind.Movement)
+            {
+                canvas.DrawCircleOutline(rid, center, radius, color, 2);
+                canvas.DrawTextStyled(
+                    rid,
+                    new Rect2(
+                        center - new Vector2(radius, radius),
+                        new Vector2(radius * 2, radius * 2)),
+                    DashArrow(note.DashDirection),
+                    color,
+                    Math.Max(10, (int)(radius * 1.1f)));
+            }
+            else
+            {
+                canvas.DrawCircle(rid, center, radius, color);
+            }
 
             if (!selectedNote.IsNull && selectedNote.Id == entity.Id)
             {
@@ -73,6 +88,19 @@ public static partial class PlayfieldRenderer
     /// <summary>Radius of the approach ring at a 0..1 approach amount.</summary>
     public static float ApproachRadius(float noteRadius, float approach) =>
         noteRadius * (1f + Math.Clamp(approach, 0f, 1f) * 2f);
+
+    public static string DashArrow(DashDirection direction) =>
+        direction switch
+        {
+            DashDirection.Up => "↑",
+            DashDirection.UpRight => "↗",
+            DashDirection.Right => "→",
+            DashDirection.DownRight => "↘",
+            DashDirection.Down => "↓",
+            DashDirection.DownLeft => "↙",
+            DashDirection.Left => "←",
+            _ => "↖",
+        };
 
     public static void DrawMines(
         IRectCanvas canvas,

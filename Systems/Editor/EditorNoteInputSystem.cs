@@ -24,7 +24,8 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
     private bool _wasPressed;
     private bool _scrubbing;
     private Entity _draggedNote;
-    private Vector2 _dragOffset;
+    private Vector2 _dragStartPointer;
+    private readonly Dictionary<int, Vector2> _dragStartPositions = new();
     private EditorSnapshot _dragBefore;
     private bool _pendingCreate;
     private bool _selecting;
@@ -93,18 +94,6 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
         if (!IsInside(playfieldPosition, playfield))
             return;
 
-        if (editor.HasComponent<EditorPlacementModeState>() &&
-            editor.GetComponent<EditorPlacementModeState>().Mode ==
-            EditorPlacementMode.Mines)
-        {
-            var mineBefore = _history.Capture();
-            _entities.CreateEntity(new Mine(
-                EditorTiming.Snap(playhead.TimeMs, playhead),
-                playfieldPosition));
-            _history.Record(mineBefore, _history.Capture());
-            return;
-        }
-
         Entity hit = FindNoteAt(playfieldPosition, playhead.TimeMs);
         ref NoteSelection selection = ref editor.GetComponent<NoteSelection>();
 
@@ -112,9 +101,21 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
         {
             Note note = hit.GetComponent<Note>();
             _draggedNote = hit;
-            _dragOffset = note.Position - playfieldPosition;
+            _dragStartPointer = playfieldPosition;
+            _dragStartPositions.Clear();
             _dragBefore = _history.Capture();
-            selection.Note = hit;
+
+            if (!selection.Contains(hit))
+                selection.Note = hit;
+
+            foreach (Entity selected in selection.AllNotes)
+            {
+                if (selected.HasComponent<Note>())
+                {
+                    _dragStartPositions[selected.Id] =
+                        selected.GetComponent<Note>().Position;
+                }
+            }
 
             if (editor.HasComponent<EditorNoteTarget>())
                 editor.GetComponent<EditorNoteTarget>().Target = note.Target;
@@ -182,12 +183,19 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
             return;
         }
 
-        Note note = _draggedNote.GetComponent<Note>();
-        Vector2 playfieldPosition = view.ScreenToPlayfield(screenPosition) + _dragOffset;
-        note.Position = new Vector2(
-            Math.Clamp(playfieldPosition.X, 0, playfield.Width),
-            Math.Clamp(playfieldPosition.Y, 0, playfield.Height));
-        _draggedNote.GetComponent<Note>() = note;
+        Vector2 pointer = view.ScreenToPlayfield(screenPosition);
+        Vector2 delta = pointer - _dragStartPointer;
+        foreach ((int id, Vector2 start) in _dragStartPositions)
+        {
+            Entity entity = _entities.GetEntityById(id);
+            if (entity.IsNull || !entity.HasComponent<Note>())
+                continue;
+
+            ref Note note = ref entity.GetComponent<Note>();
+            note.Position = new Vector2(
+                Math.Clamp(start.X + delta.X, 0, playfield.Width),
+                Math.Clamp(start.Y + delta.Y, 0, playfield.Height));
+        }
     }
 
     private void OnRelease()
@@ -213,7 +221,7 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
         {
             _pendingCreate = false;
             if (!editor.IsNull)
-                CreateNoteAt(editor, _selectionStart);
+                CreatePlacementAt(editor, _selectionStart);
             return;
         }
 
@@ -222,7 +230,31 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
 
         var after = _history.Capture();
         _history.Record(_dragBefore, after);
-        _draggedNote = default;
+        CancelDrag();
+    }
+
+    private void CreatePlacementAt(Entity editor, Vector2 screenPosition)
+    {
+        if (editor.HasComponent<EditorPlacementModeState>() &&
+            editor.GetComponent<EditorPlacementModeState>().Mode ==
+            EditorPlacementMode.Mines)
+        {
+            PlayfieldView view = editor.GetComponent<PlayfieldView>();
+            Playfield playfield = editor.GetComponent<Playfield>();
+            Vector2 position = view.ScreenToPlayfield(screenPosition);
+            if (!IsInside(position, playfield))
+                return;
+
+            Playhead playhead = editor.GetComponent<Playhead>();
+            var before = _history.Capture();
+            _entities.CreateEntity(new Mine(
+                EditorTiming.Snap(playhead.TimeMs, playhead),
+                position));
+            _history.Record(before, _history.Capture());
+            return;
+        }
+
+        CreateNoteAt(editor, screenPosition);
     }
 
     private void CreateNoteAt(Entity editor, Vector2 screenPosition)
@@ -366,6 +398,7 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
     {
         _draggedNote = default;
         _dragBefore = default;
+        _dragStartPositions.Clear();
     }
 
     private static bool IsPreviewing(Entity editor) =>
