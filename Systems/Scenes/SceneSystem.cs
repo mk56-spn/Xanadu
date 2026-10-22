@@ -932,7 +932,13 @@ public sealed class SceneSystem : QuerySystem<SceneState>
                 break;
 
             case SceneKind.Play:
-                PlayScene.Build(_entities, _sceneRoot, _screen, playEntry!, _visuals);
+                PlayScene.Build(
+                    _entities,
+                    _sceneRoot,
+                    _screen,
+                    playEntry!,
+                    _keybinds,
+                    _visuals);
                 break;
 
             case SceneKind.Results:
@@ -1079,6 +1085,12 @@ public sealed class SceneSystem : QuerySystem<SceneState>
 
         foreach (Entity movement in _entities.Query<MovementEvent>().ToEntityList())
             movement.DeleteEntity();
+
+        foreach (Entity trail in _entities.Query<HitTrail>().ToEntityList())
+            trail.DeleteEntity();
+
+        foreach (Entity trail in _entities.Query<KeyPressTrail>().ToEntityList())
+            trail.DeleteEntity();
     }
 
     private static void DeleteSubtree(Entity entity)

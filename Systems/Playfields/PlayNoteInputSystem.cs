@@ -119,8 +119,15 @@ public sealed class PlayNoteInputSystem : QuerySystem<Note>
         if (!hit.IsNull)
         {
             Note hitNote = hit.GetComponent<Note>();
-            score.JudgementPosition = view.PlayfieldToScreen(hitNote.Position);
+            Vector2 hitPosition = view.PlayfieldToScreen(hitNote.Position);
+            score.JudgementPosition = hitPosition;
             score.JudgementTimeMs = playhead.TimeMs;
+
+            _entities.CreateEntity(new HitTrail(
+                hitPosition,
+                PlayfieldRenderer.ColorFor(hitNote.Target),
+                KeybindSettings.KeyLabel(_keybinds.Get(hitNote.Target))));
+
             Hit(ref score, hit, bestOffset);
         }
     }

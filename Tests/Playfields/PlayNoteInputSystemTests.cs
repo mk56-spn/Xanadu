@@ -58,6 +58,12 @@ public sealed class PlayNoteInputSystemTests
         Assert.That(score.Combo, Is.EqualTo(1));
         Assert.That(score.LastJudgement, Is.EqualTo(Judgement.FlawlessP));
         Assert.That(score.FlawlessPCount, Is.EqualTo(1));
+        var trails = _store.Query<HitTrail>().ToEntityList();
+        Assert.That(trails, Has.Count.EqualTo(1));
+        Assert.That(trails[0].GetComponent<HitTrail>().Label, Is.EqualTo("SPACE"));
+        Assert.That(
+            trails[0].GetComponent<HitTrail>().Position,
+            Is.EqualTo(new Vector2(500, 500)));
         Assert.That(_judgementText.GetComponent<Text>().Value, Is.EqualTo("FLAWLESS+"));
         Assert.That(
             _judgementText.GetComponent<TextStyle>().Color,

@@ -4,6 +4,7 @@ using Godot;
 using Writer.Ecs;
 using Position = Writer.Ecs.Position;
 using Writer.Levels;
+using Writer.Settings;
 using Writer.Systems.Playfields;
 using Writer.Ui;
 
@@ -21,6 +22,7 @@ public static class PlayScene
         Entity root,
         Vector2 screen,
         LevelEntry entry,
+        KeybindSettings keybinds,
         IVisualRidFactory? visuals = null)
     {
         LevelDocument document = entry.Document;
@@ -59,6 +61,14 @@ public static class PlayScene
             new Momentum(System.Numerics.Vector2.Zero));
 
         root.AddChild(playfieldEntity);
+        playfieldEntity.AddComponent(new KeyTrail());
+        var keyLabels = new string[KeybindSettings.Actions.Length];
+        for (int i = 0; i < keyLabels.Length; i++)
+        {
+            keyLabels[i] = KeybindSettings.KeyLabel(
+                keybinds.Get(KeybindSettings.Actions[i]));
+        }
+        playfieldEntity.AddComponent(new KeyTrailLabels(keyLabels));
 
         LevelDocumentMapper.Apply(entities, playfieldEntity, document);
 

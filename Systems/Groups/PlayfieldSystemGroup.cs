@@ -24,7 +24,9 @@ public sealed class PlayfieldSystemGroup : SystemGroup
         Add(new PlaySessionSystem(audio));
         Add(new PlayerMovementSystem(entities, keybinds, keyboard));
         Add(new PlayerArenaSystem());
+        Add(new PlayKeyTrailSystem(entities, keybinds, keyboard));
         Add(new PlayNoteInputSystem(entities, keybinds, keyboard));
+        Add(new HitTrailSystem());
         Add(new PlayScoreSystem());
         Add(new PlayfieldDrawSystem(entities, canvas, playfieldCanvas));
     }

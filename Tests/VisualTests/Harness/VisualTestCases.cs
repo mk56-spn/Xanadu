@@ -243,6 +243,9 @@ public sealed class PlaySceneTest : SceneTest
             "judgement counter exists",
             () => VisualAssert.HasText(Context.Entities, "JUDGEMENTS") &&
                   VisualAssert.HasText(Context.Entities, "FLAWLESS+"));
+        AddAssert(
+            "key trail exists",
+            () => Context.Entities.Query<KeyTrail>().Count == 1);
     }
 
     private void OpenPlay()
