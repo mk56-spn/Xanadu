@@ -464,6 +464,7 @@ public sealed class PlaySceneTest : SceneTest
 public sealed class EditorDropdownSceneTest : SceneTest
 {
     private float _closedSidebarHeight;
+    private float _closedSidebarTop;
 
     public override string Name => "Editor dropdowns";
     public override string Slug => "editor-dropdowns";
@@ -477,7 +478,11 @@ public sealed class EditorDropdownSceneTest : SceneTest
                   VisualAssert.HasText(Context.Entities, "SNAP") &&
                   VisualAssert.HasText(Context.Entities, "NOTE TYPE") &&
                   Context.Entities.Query<Dropdown>().Count == 2);
-        AddStep("record closed sidebar", () => _closedSidebarHeight = SidebarHeight());
+        AddStep("record closed sidebar", () =>
+        {
+            _closedSidebarHeight = SidebarHeight();
+            _closedSidebarTop = SidebarTop();
+        });
 
         AddStep("click snap dropdown", () => ClickDropdown(EditorDropdownKind.Snap));
         AddWaitStep("hold snap dropdown", 2);
@@ -488,6 +493,9 @@ public sealed class EditorDropdownSceneTest : SceneTest
         AddAssert(
             "sidebar expands when open",
             () => SidebarHeight() > _closedSidebarHeight + 50f);
+        AddAssert(
+            "sidebar top stays fixed when open",
+            () => SidebarTop() == _closedSidebarTop);
 
         AddStep("choose 1/16 snap", () => ClickDropdownOption(EditorDropdownKind.Snap, 2));
         AddWaitStep("hold snap option", 2);
@@ -536,15 +544,31 @@ public sealed class EditorDropdownSceneTest : SceneTest
 
     private float SidebarHeight()
     {
+        Entity panel = SidebarPanel();
+        return panel.IsNull
+            ? 0
+            : panel.GetComponent<Rectangle>().Bounds.Size.Y;
+    }
+
+    private float SidebarTop()
+    {
+        Entity panel = SidebarPanel();
+        return panel.IsNull
+            ? 0
+            : panel.GetComponent<Position>().Value.Y +
+              panel.GetComponent<Rectangle>().Bounds.Position.Y;
+    }
+
+    private Entity SidebarPanel()
+    {
         foreach (Entity editor in Context.Entities
                      .Query<EditorSidebarLayout>()
                      .ToEntityList())
         {
-            Entity panel = editor.GetComponent<EditorSidebarLayout>().Panel;
-            return panel.GetComponent<Rectangle>().Bounds.Size.Y;
+            return editor.GetComponent<EditorSidebarLayout>().Panel;
         }
 
-        return 0;
+        return default;
     }
 
     private void ClickEditorButton(EditorButtonKind kind)

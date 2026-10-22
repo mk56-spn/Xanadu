@@ -62,7 +62,7 @@ public sealed class EditorSidebarLayoutSystem : QuerySystem<EditorSidebarLayout>
                     panelRect.Bounds.Size != size)
                 {
                     panelPosition.Value = position;
-                    panelRect.Bounds = new Rect2(panelRect.Bounds.Position, size);
+                    panelRect.Bounds = new Rect2(-size / 2, size);
                     buffer.AddTag<Moved>(layout.Panel.Id);
                     buffer.AddTag<Dirty>(layout.Panel.Id);
                 }
