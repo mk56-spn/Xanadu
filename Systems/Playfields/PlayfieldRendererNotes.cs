@@ -42,7 +42,8 @@ public static partial class PlayfieldRenderer
                     delta / (float)Math.Max(1, note.FadeInMs),
                     0f,
                     1f);
-                float approachRadius = radius * (1f + approach * 1.2f);
+                float approachRadius =
+                    ApproachRadius(radius, approach);
                 canvas.DrawCircleOutline(
                     rid,
                     center,
@@ -68,6 +69,10 @@ public static partial class PlayfieldRenderer
             }
         }
     }
+
+    /// <summary>Radius of the approach ring at a 0..1 approach amount.</summary>
+    public static float ApproachRadius(float noteRadius, float approach) =>
+        noteRadius * (1f + Math.Clamp(approach, 0f, 1f) * 1.2f) * 3f;
 
     public static void DrawMines(
         IRectCanvas canvas,
