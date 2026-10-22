@@ -15,6 +15,7 @@ public enum SceneKind
     Editor,
     OffsetWizard,
     Settings,
+    SongTiming,
 }
 
 /// <summary>Persistent game scene state and the next requested scene.</summary>
@@ -24,6 +25,7 @@ public struct SceneState(SceneKind scene) : IComponent
     public SceneKind Pending = scene;
     public int SelectedIndex;
     public string SelectedLevelPath = "";
+    public string SelectedSongId = "";
 }
 
 /// <summary>Marks the root entity that owns a scene's entity subtree.</summary>

@@ -69,6 +69,7 @@ public sealed class SceneControllerRegistry
     public static SceneControllerRegistry CreateDefault(SceneSystem system)
     {
         var registry = new SceneControllerRegistry();
+        registry.Register(new SongTimingController());
         registry.Register(new MainMenuController());
         registry.Register(new ProfilesController());
         registry.Register(new SongSelectController(system));
@@ -78,6 +79,64 @@ public sealed class SceneControllerRegistry
         registry.Register(new SettingsController());
         registry.Register(new OffsetWizardController());
         return registry;
+    }
+
+    private sealed class SongTimingController : ISceneController
+    {
+        public SceneKind Kind => SceneKind.SongTiming;
+        public string Label => "SONG TIMING";
+        public SceneKind BackTarget => SceneKind.Editor;
+
+        public void Build(SceneBuildContext c)
+        {
+            var songs = new SongStore();
+            SongDocument? song = songs.Find(
+                c.StateEntity.GetComponent<SceneState>().SelectedSongId);
+            if (song is null)
+            {
+                c.StateEntity.GetComponent<SceneState>().Pending = SceneKind.Editor;
+                return;
+            }
+
+            SongTimingScene.Build(c.Entities, c.Root, c.Screen, song, c.Visuals);
+        }
+
+        public void HandleActions(SceneSystem system, ref SceneState state)
+        {
+            var songs = new SongStore();
+            SongDocument? song = songs.Find(state.SelectedSongId);
+            if (song is null)
+                return;
+
+            bool changed = false;
+            foreach (Entity entity in system.Entities
+                         .Query<SongTimingAdjust>()
+                         .AllTags(Tags.Get<Pressed>())
+                         .ToEntityList())
+            {
+                SongTimingAdjust adjust = entity.GetComponent<SongTimingAdjust>();
+                if (adjust.Kind == SongTimingAdjustKind.Bpm)
+                    song.Bpm = Math.Clamp(song.Bpm + adjust.Delta, 1, 1000);
+                else
+                    song.OffsetMs = Math.Clamp(song.OffsetMs + adjust.Delta, -600_000, 600_000);
+                changed = true;
+                break;
+            }
+
+            if (changed)
+                songs.Save(song);
+
+            Entity view = system.Entities.Query<SongTimingView>()
+                .ToEntityList().Count > 0
+                ? system.Entities.Query<SongTimingView>().ToEntityList()[0]
+                : default;
+            if (!view.IsNull)
+            {
+                SongTimingView timing = view.GetComponent<SongTimingView>();
+                SceneUi.SetText(timing.Bpm, $"BPM {song.Bpm}");
+                SceneUi.SetText(timing.Offset, $"OFFSET {song.OffsetMs} MS");
+            }
+        }
     }
 
     private sealed class MainMenuController : ISceneController

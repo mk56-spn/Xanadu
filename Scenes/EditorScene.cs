@@ -416,7 +416,9 @@ public static class EditorScene
         const float levelWidth = 104;
         const float saveWidth = 88;
         const float songWidth = 128;
-        const float actionsWidth = songWidth + saveWidth + levelWidth + 16;
+        const float timingWidth = 96;
+        const float actionsWidth =
+            songWidth + saveWidth + levelWidth + timingWidth + 24;
         ui.RectEntity(
             Vector2.Zero,
             new Vector2(
@@ -429,6 +431,14 @@ public static class EditorScene
             StackDirection.Horizontal,
             spacing: 8,
             color: new Color(0, 0, 0, 0));
+        SceneUi.Button(
+            ui,
+            Vector2.Zero,
+            new Vector2(timingWidth, 38),
+            "TIMING",
+            SceneKind.SongTiming,
+            14,
+            SceneUi.MutedButtonColor);
         AddEditorButtonInContainer(
             ui,
             new Vector2(songWidth, 38),
