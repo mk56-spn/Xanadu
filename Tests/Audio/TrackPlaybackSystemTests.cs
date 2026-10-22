@@ -4,6 +4,7 @@ using Friflo.Engine.ECS.Systems;
 using NUnit.Framework;
 using Writer.Ecs;
 using Writer.Systems.Audio;
+using Writer.Tests.Support;
 
 namespace Writer.Tests.Audio;
 
@@ -12,7 +13,7 @@ public sealed class TrackPlaybackSystemTests
 {
     private EntityStore _store = null!;
     private FakeClock _clock = null!;
-    private FakeAudio _audio = null!;
+    private RecordingTrackAudio _audio = null!;
     private SystemRoot _root = null!;
 
     [SetUp]
@@ -20,7 +21,7 @@ public sealed class TrackPlaybackSystemTests
     {
         _store = new EntityStore();
         _clock = new FakeClock();
-        _audio = new FakeAudio();
+        _audio = new RecordingTrackAudio();
         _root = new SystemRoot(_store);
         _root.Add(new TrackPlaybackSystem(_audio, _clock));
     }
@@ -94,46 +95,5 @@ public sealed class TrackPlaybackSystemTests
         public long NowMicros { get; set; }
     }
 
-    private sealed class FakeAudio : ITrackAudio
-    {
-        public int PlayCount { get; private set; }
 
-        public bool Stopped { get; private set; }
-
-        public bool IsPlaying { get; private set; }
-
-        public float PositionSeconds { get; private set; }
-
-        public float LengthSeconds { get; set; }
-
-        public bool Load(string audioPath, float volume) => true;
-
-        public bool Resume()
-        {
-            IsPlaying = true;
-            return true;
-        }
-
-        public void Pause() => IsPlaying = false;
-
-        public void SetVolume(float volume) { }
-
-        public void Seek(float seconds) => PositionSeconds = seconds;
-
-        public bool Play(string audioPath, float volume)
-        {
-            PlayCount++;
-            Stopped = false;
-            IsPlaying = true;
-            return true;
-        }
-
-        public void Stop()
-        {
-            Stopped = true;
-            IsPlaying = false;
-        }
-
-        public void Dispose() { }
-    }
 }

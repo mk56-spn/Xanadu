@@ -12,6 +12,7 @@ using Writer.Scenes;
 using Writer.Profiles;
 using Writer.Settings;
 using Writer.Systems.Scenes;
+using Writer.Tests.Support;
 
 namespace Writer.Tests.Scenes;
 
@@ -707,8 +708,5 @@ public sealed class SceneSystemTests
             Frame();
     }
 
-    private sealed class FakeVisualRidFactory : IVisualRidFactory
-    {
-        public Rid CreateCanvasItem() => default;
-    }
+
 }

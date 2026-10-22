@@ -4,6 +4,7 @@ using NUnit.Framework;
 using Writer.Ecs;
 using LayerComponent = Writer.Ecs.Layer;
 using Position = Writer.Ecs.Position;
+using Writer.Tests.Support;
 
 namespace Writer.Tests.Ui;
 
@@ -115,8 +116,5 @@ public sealed class UiBuilderTests
         return default;
     }
 
-    private sealed class FakeVisualRidFactory : IVisualRidFactory
-    {
-        public Rid CreateCanvasItem() => default;
-    }
+
 }

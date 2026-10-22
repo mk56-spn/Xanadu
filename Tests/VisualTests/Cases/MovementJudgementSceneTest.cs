@@ -24,21 +24,9 @@ public sealed class MovementJudgementSceneTest : SceneTest
     {
         AddStep("start movement-only chart", () =>
         {
-            var document = new LevelDocument
-            {
-                Name = "Movement Judgement Test",
-                PlayfieldWidth = 1000,
-                PlayfieldHeight = 1000,
-            };
-            var song = new SongDocument
-            {
-                Id = "visual-movement",
-                Slug = "visual-movement",
-                Title = "Movement",
-                AudioPath = "res://Audio/test-track.wav",
-                Bpm = 120,
-            };
-            document.SongId = song.Id;
+            var song = TestContent.Song("visual-movement", "Movement");
+            LevelDocument document = TestContent.Level(
+                "Movement Judgement Test", song);
             document.Notes.Add(new NoteDocument
             {
                 TimeMs = 1_000,

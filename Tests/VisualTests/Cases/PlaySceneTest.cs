@@ -60,21 +60,8 @@ public sealed class PlaySceneTest : SceneTest
 
     private void OpenPlay()
     {
-        var document = new LevelDocument
-        {
-            Name = "Visual Play Test",
-            PlayfieldWidth = 1000,
-            PlayfieldHeight = 1000,
-        };
-        var song = new SongDocument
-        {
-            Id = "visual-play",
-            Slug = "visual-play",
-            Title = "Visual Play",
-            AudioPath = "res://Audio/test-track.wav",
-            Bpm = 120,
-        };
-        document.SongId = song.Id;
+        var song = TestContent.Song("visual-play", "Visual Play");
+        LevelDocument document = TestContent.Level("Visual Play Test", song);
 
         document.Notes.Add(new NoteDocument { TimeMs = 0, X = 260, Y = 620 });
         document.Notes.Add(new NoteDocument { TimeMs = 1_000, X = 620, Y = 520 });

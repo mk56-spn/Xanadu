@@ -7,6 +7,7 @@ using Writer.Ecs;
 using Writer.Settings;
 using Writer.Systems.Input;
 using Writer.Systems.Playfields;
+using Writer.Tests.Support;
 
 namespace Writer.Tests.Playfields;
 
@@ -94,14 +95,5 @@ public sealed class PlayKeyTrailSystemTests
             Is.Zero);
     }
 
-    private sealed class FakeKeyboard : IKeyboardState
-    {
-        private readonly HashSet<Key> _down = new();
 
-        public bool IsPressed(Key key) => _down.Contains(key);
-
-        public void Press(Key key) => _down.Add(key);
-
-        public void Release(Key key) => _down.Remove(key);
-    }
 }

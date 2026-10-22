@@ -4,6 +4,7 @@ using NUnit.Framework;
 using Writer.Ecs;
 using Writer.Systems.Audio;
 using Writer.Systems.Playfields;
+using Writer.Tests.Support;
 
 namespace Writer.Tests.Playfields;
 
@@ -14,7 +15,7 @@ public sealed class PlayfieldPlaybackSystemTests
     public void LoadsSongDurationAndTracksPlayhead()
     {
         var store = new EntityStore();
-        var audio = new FakeAudio { LengthSeconds = 12f };
+        var audio = new RecordingTrackAudio { LengthSeconds = 12f };
         var root = new SystemRoot(store);
         root.Add(new PlayfieldPlaybackSystem(audio));
 
@@ -40,7 +41,7 @@ public sealed class PlayfieldPlaybackSystemTests
     public void SeekIsClampedToDuration()
     {
         var store = new EntityStore();
-        var audio = new FakeAudio { LengthSeconds = 5f };
+        var audio = new RecordingTrackAudio { LengthSeconds = 5f };
         var root = new SystemRoot(store);
         root.Add(new PlayfieldPlaybackSystem(audio));
 
@@ -62,7 +63,7 @@ public sealed class PlayfieldPlaybackSystemTests
     public void AudioRevisionReloadsSamePath()
     {
         var store = new EntityStore();
-        var audio = new FakeAudio { LengthSeconds = 5f };
+        var audio = new RecordingTrackAudio { LengthSeconds = 5f };
         var root = new SystemRoot(store);
         root.Add(new PlayfieldPlaybackSystem(audio));
 
@@ -83,7 +84,7 @@ public sealed class PlayfieldPlaybackSystemTests
     public void PlaybackStopsAtEndWithoutRestarting()
     {
         var store = new EntityStore();
-        var audio = new FakeAudio { LengthSeconds = 5f };
+        var audio = new RecordingTrackAudio { LengthSeconds = 5f };
         var root = new SystemRoot(store);
         root.Add(new PlayfieldPlaybackSystem(audio));
 
@@ -108,7 +109,7 @@ public sealed class PlayfieldPlaybackSystemTests
     public void LoadFailureLeavesDurationZeroAndStopsPlayback()
     {
         var store = new EntityStore();
-        var audio = new FakeAudio { LengthSeconds = 5f, LoadSucceeds = false };
+        var audio = new RecordingTrackAudio { LengthSeconds = 5f, LoadSucceeds = false };
         var root = new SystemRoot(store);
         root.Add(new PlayfieldPlaybackSystem(audio));
 
@@ -126,7 +127,7 @@ public sealed class PlayfieldPlaybackSystemTests
     public void RemovingPlayheadStopsAudio()
     {
         var store = new EntityStore();
-        var audio = new FakeAudio { LengthSeconds = 5f };
+        var audio = new RecordingTrackAudio { LengthSeconds = 5f };
         var root = new SystemRoot(store);
         root.Add(new PlayfieldPlaybackSystem(audio));
 
@@ -152,7 +153,7 @@ public sealed class PlayfieldPlaybackSystemTests
     public void PausingStopsAudio()
     {
         var store = new EntityStore();
-        var audio = new FakeAudio { LengthSeconds = 5f };
+        var audio = new RecordingTrackAudio { LengthSeconds = 5f };
         var root = new SystemRoot(store);
         root.Add(new PlayfieldPlaybackSystem(audio));
 
@@ -172,60 +173,5 @@ public sealed class PlayfieldPlaybackSystemTests
         Assert.That(audio.IsPlaying, Is.False);
     }
 
-    private sealed class FakeAudio : ITrackAudio
-    {
-        public string? LoadedPath { get; private set; }
 
-        public int ResumeCount { get; private set; }
-
-        public int PauseCount { get; private set; }
-
-        public int StopCount { get; private set; }
-
-        public int LoadCount { get; private set; }
-
-        public bool LoadSucceeds { get; set; } = true;
-
-        public float SeekSeconds { get; private set; }
-
-        public float LengthSeconds { get; set; }
-
-        public float PositionSeconds { get; set; }
-
-        public bool IsPlaying { get; private set; }
-
-        public bool Play(string audioPath, float volume) => Load(audioPath, volume);
-
-        public bool Load(string audioPath, float volume)
-        {
-            LoadCount++;
-            LoadedPath = audioPath;
-            return LoadSucceeds;
-        }
-
-        public bool Resume()
-        {
-            ResumeCount++;
-            IsPlaying = true;
-            return true;
-        }
-
-        public void Pause()
-        {
-            PauseCount++;
-            IsPlaying = false;
-        }
-
-        public void SetVolume(float volume) { }
-
-        public void Seek(float seconds) => SeekSeconds = seconds;
-
-        public void Stop()
-        {
-            StopCount++;
-            IsPlaying = false;
-        }
-
-        public void Dispose() { }
-    }
 }

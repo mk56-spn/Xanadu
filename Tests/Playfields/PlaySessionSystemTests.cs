@@ -5,6 +5,7 @@ using NUnit.Framework;
 using Writer.Ecs;
 using Writer.Systems.Audio;
 using Writer.Systems.Playfields;
+using Writer.Tests.Support;
 
 namespace Writer.Tests.Playfields;
 
@@ -16,7 +17,7 @@ public sealed class PlaySessionSystemTests
     {
         var store = new EntityStore();
         var root = new SystemRoot(store);
-        var audio = new FakeAudio();
+        var audio = new RecordingTrackAudio();
         root.Add(new PlaySessionSystem(audio));
 
         Entity status = store.CreateEntity(new Text("LOADING..."));
@@ -54,7 +55,7 @@ public sealed class PlaySessionSystemTests
     {
         var store = new EntityStore();
         var root = new SystemRoot(store);
-        var audio = new FakeAudio();
+        var audio = new RecordingTrackAudio();
         root.Add(new PlaySessionSystem(audio));
 
         Entity status = store.CreateEntity(new Text("LOADING..."));
@@ -94,7 +95,7 @@ public sealed class PlaySessionSystemTests
     {
         var store = new EntityStore();
         var root = new SystemRoot(store);
-        var audio = new FakeAudio();
+        var audio = new RecordingTrackAudio();
         root.Add(new PlaySessionSystem(audio));
 
         Entity status = store.CreateEntity(new Text("LOADING..."));
@@ -122,7 +123,7 @@ public sealed class PlaySessionSystemTests
     {
         var store = new EntityStore();
         var root = new SystemRoot(store);
-        var audio = new FakeAudio();
+        var audio = new RecordingTrackAudio();
         root.Add(new PlaySessionSystem(audio));
 
         Entity status = store.CreateEntity(new Text("LOADING..."));
@@ -148,44 +149,5 @@ public sealed class PlaySessionSystemTests
             root.Update(new UpdateTick(1f / 60f, 0));
     }
 
-    private sealed class FakeAudio : ITrackAudio
-    {
-        public float Volume { get; private set; } = 0.8f;
 
-        public int PauseCount { get; private set; }
-
-        public bool IsPlaying { get; private set; }
-
-        public float PositionSeconds => 0;
-
-        public float LengthSeconds => 0;
-
-        public bool Play(string audioPath, float volume) => Load(audioPath, volume);
-
-        public bool Load(string audioPath, float volume)
-        {
-            Volume = volume;
-            return true;
-        }
-
-        public bool Resume()
-        {
-            IsPlaying = true;
-            return true;
-        }
-
-        public void Pause()
-        {
-            PauseCount++;
-            IsPlaying = false;
-        }
-
-        public void Seek(float seconds) { }
-
-        public void SetVolume(float volume) => Volume = volume;
-
-        public void Stop() => IsPlaying = false;
-
-        public void Dispose() { }
-    }
 }

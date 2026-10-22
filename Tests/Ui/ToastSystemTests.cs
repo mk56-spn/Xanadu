@@ -5,6 +5,7 @@ using NUnit.Framework;
 using Writer.Ecs;
 using Writer.Systems.Ui;
 using Position = Writer.Ecs.Position;
+using Writer.Tests.Support;
 
 namespace Writer.Tests.Ui;
 
@@ -19,7 +20,7 @@ public sealed class ToastSystemTests
         var toasts = new ToastSystem(
             store,
             new Vector2(1280, 720),
-            new FakeVisuals());
+            new FakeVisualRidFactory());
         root.Add(toasts);
 
         toasts.Show("Screenshot saved");
@@ -46,7 +47,7 @@ public sealed class ToastSystemTests
         var toasts = new ToastSystem(
             store,
             new Vector2(1280, 720),
-            new FakeVisuals());
+            new FakeVisualRidFactory());
         root.Add(toasts);
 
         toasts.Show("First", duration: 0.1f);
@@ -64,8 +65,5 @@ public sealed class ToastSystemTests
             Is.EqualTo("Second"));
     }
 
-    private sealed class FakeVisuals : IVisualRidFactory
-    {
-        public Rid CreateCanvasItem() => default;
-    }
+
 }

@@ -9,6 +9,7 @@ using Writer.Systems.Input;
 using Writer.Systems.Physics;
 using Writer.Systems.Playfields;
 using Position = Writer.Ecs.Position;
+using Writer.Tests.Support;
 
 namespace Writer.Tests.Playfields;
 
@@ -128,12 +129,5 @@ public sealed class PlayerMovementSystemTests
         Assert.That(_player.GetComponent<Position>().Value.X, Is.EqualTo(500));
     }
 
-    private sealed class FakeKeyboard : IKeyboardState
-    {
-        private readonly HashSet<Key> _down = new();
 
-        public bool IsPressed(Key key) => _down.Contains(key);
-
-        public void Press(Key key) => _down.Add(key);
-    }
 }

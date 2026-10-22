@@ -9,6 +9,7 @@ using Writer.Settings;
 using Writer.Systems.Input;
 using Writer.Systems.Playfields;
 using Position = Writer.Ecs.Position;
+using Writer.Tests.Support;
 
 namespace Writer.Tests.Playfields;
 
@@ -507,14 +508,5 @@ public sealed class PlayNoteInputSystemTests
 
     private void Frame() => _root.Update(new UpdateTick(1f / 60f, 0));
 
-    private sealed class FakeKeyboard : IKeyboardState
-    {
-        private readonly HashSet<Key> _down = new();
 
-        public bool IsPressed(Key key) => _down.Contains(key);
-
-        public void Press(Key key) => _down.Add(key);
-
-        public void Release(Key key) => _down.Remove(key);
-    }
 }

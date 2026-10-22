@@ -6,6 +6,7 @@ using Writer.Ecs;
 using Writer.Editor;
 using Writer.Systems.Editor;
 using Position = Writer.Ecs.Position;
+using Writer.Tests.Support;
 
 namespace Writer.Tests.Editor;
 
@@ -77,8 +78,5 @@ public sealed class WarningPopupSystemTests
         Assert.That(_popup.GetComponent<WarningPopup>().Visible, Is.False);
     }
 
-    private sealed class FakeVisualRidFactory : IVisualRidFactory
-    {
-        public Rid CreateCanvasItem() => default;
-    }
+
 }
