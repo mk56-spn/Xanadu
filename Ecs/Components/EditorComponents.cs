@@ -36,10 +36,15 @@ public struct EditorMineMode(bool active) : IComponent
 }
 
 /// <summary>Cached waveform peaks for the editor timeline preview.</summary>
-public struct WaveformPreview(string path, float[] peaks, long durationMs) : IComponent
+public struct WaveformPreview(
+    string path,
+    float[] left,
+    float[] right,
+    long durationMs) : IComponent
 {
     public string Path = path;
-    public float[] Peaks = peaks;
+    public float[] Left = left;
+    public float[] Right = right;
     public long DurationMs = durationMs;
 }
 

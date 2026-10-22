@@ -18,9 +18,9 @@ public sealed class WaveformLoaderTests
             WaveformData? data = WaveformLoader.Load(path, 4);
 
             Assert.That(data, Is.Not.Null);
-            Assert.That(data!.Peaks, Has.Length.EqualTo(2));
+            Assert.That(data!.Left, Has.Length.EqualTo(2));
             Assert.That(data.DurationMs, Is.EqualTo(2));
-            Assert.That(data.Peaks, Has.Some.GreaterThan(0.5f));
+            Assert.That(data.Left, Has.Some.GreaterThan(0.5f));
         }
         finally
         {

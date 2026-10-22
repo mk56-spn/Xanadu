@@ -8,13 +8,20 @@ using Miniaudio;
 
 namespace Writer.Systems.Audio;
 
-/// <summary>Peak data and duration decoded once per audio file.</summary>
-public sealed record WaveformData(float[] Peaks, long DurationMs);
+/// <summary>Stereo amplitude envelopes and duration decoded once per audio file.</summary>
+public sealed record WaveformData(
+    float[] Left,
+    float[] Right,
+    long DurationMs);
 
-/// <summary>Reads small downsampled peaks from PCM WAV files for the editor preview.</summary>
+/// <summary>
+/// Reads stereo amplitude envelopes for the editor preview. The envelope shape
+/// follows osu!framework's MIT-licensed Waveform/WaveformGraph approach:
+/// https://github.com/ppy/osu-framework/blob/master/osu.Framework/Audio/Track/Waveform.cs
+/// </summary>
 public static class WaveformLoader
 {
-    private const int Resolution = 512;
+    private const int Resolution = 4096;
     private static readonly Dictionary<string, WaveformData> Cache = new();
 
     public static WaveformData? Load(string path, int resolution = Resolution)
@@ -114,7 +121,8 @@ public static class WaveformLoader
             return null;
 
         int bins = Math.Clamp(resolution, 1, frames);
-        var peaks = new float[bins];
+        var left = new float[bins];
+        var right = new float[bins];
 
         for (int bin = 0; bin < bins; bin++)
         {
@@ -123,34 +131,41 @@ public static class WaveformLoader
             if (end <= start)
                 end = start + 1;
 
-            int step = Math.Max(1, (int)((end - start) / 64));
-            double sumSquares = 0;
-            int sampleCount = 0;
+            int step = Math.Max(1, (int)((end - start) / 128));
+            float peakLeft = 0f;
+            float peakRight = 0f;
 
             for (long frame = start; frame < end; frame += step)
             {
                 int offset = dataOffset + (int)frame * frameSize;
-                for (int channel = 0; channel < channels; channel++)
-                {
-                    int sampleOffset = offset + channel * bytesPerSample;
-                    float sample = ReadSample(
+                peakLeft = Math.Max(
+                    peakLeft,
+                    Math.Abs(ReadSample(
                         bytes,
-                        sampleOffset,
+                        offset,
                         format,
-                        bitsPerSample);
-                    sumSquares += sample * sample;
-                    sampleCount++;
+                        bitsPerSample)));
+                if (channels > 1)
+                {
+                    peakRight = Math.Max(
+                        peakRight,
+                        Math.Abs(ReadSample(
+                            bytes,
+                            offset + bytesPerSample,
+                            format,
+                            bitsPerSample)));
                 }
             }
 
-            peaks[bin] = Math.Clamp(
-                (float)Math.Sqrt(sumSquares / Math.Max(1, sampleCount)) * 2.4f,
-                0f,
-                1f);
+            if (channels == 1)
+                peakRight = peakLeft;
+
+            left[bin] = Math.Clamp(peakLeft, 0f, 1f);
+            right[bin] = Math.Clamp(peakRight, 0f, 1f);
         }
 
         long durationMs = frames * 1000L / sampleRate;
-        return new WaveformData(peaks, durationMs);
+        return new WaveformData(left, right, durationMs);
     }
 
     private static unsafe WaveformData? DecodeWithMiniaudio(
@@ -211,7 +226,8 @@ public static class WaveformLoader
                 return null;
 
             int bins = (int)Math.Min((ulong)resolution, frameCount);
-            var peaks = new float[bins];
+            var left = new float[bins];
+            var right = new float[bins];
             const int chunkFrames = 4096;
             var buffer = new float[chunkFrames * channels];
             ulong totalRead = 0;
@@ -236,18 +252,13 @@ public static class WaveformLoader
                         if (bin >= bins)
                             bin = bins - 1;
 
-                        double sumSquares = 0;
-                        for (uint channel = 0; channel < channels; channel++)
-                        {
-                            int index = (int)(frame * channels + channel);
-                            float sample = buffer[index];
-                            sumSquares += sample * sample;
-                        }
-
-                        peaks[bin] = Math.Clamp(
-                            (float)Math.Sqrt(sumSquares / channels) * 2.4f,
-                            0f,
-                            1f);
+                        float sampleLeft = Math.Abs(buffer[
+                            (int)(frame * channels)]);
+                        float sampleRight = channels > 1
+                            ? Math.Abs(buffer[(int)(frame * channels + 1)])
+                            : sampleLeft;
+                        left[bin] = Math.Max(left[bin], sampleLeft);
+                        right[bin] = Math.Max(right[bin], sampleRight);
                     }
 
                     totalRead += framesRead;
@@ -257,8 +268,14 @@ public static class WaveformLoader
             if (totalRead == 0)
                 return null;
 
+            for (int i = 0; i < bins; i++)
+            {
+                left[i] = Math.Clamp(left[i], 0f, 1f);
+                right[i] = Math.Clamp(right[i], 0f, 1f);
+            }
+
             long durationMs = (long)totalRead * 1000L / sampleRate;
-            return new WaveformData(peaks, durationMs);
+            return new WaveformData(left, right, durationMs);
         }
         catch (Exception)
         {

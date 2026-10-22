@@ -18,7 +18,8 @@ public sealed class WaveformPreviewSystem : QuerySystem<LevelInfo, Playhead, Wav
 
             preview.Path = level.AudioPath;
             WaveformData? data = WaveformLoader.Load(level.AudioPath);
-            preview.Peaks = data?.Peaks ?? Array.Empty<float>();
+            preview.Left = data?.Left ?? Array.Empty<float>();
+            preview.Right = data?.Right ?? Array.Empty<float>();
             preview.DurationMs = data?.DurationMs ?? 0;
 
             if (playhead.DurationMs <= 0 && preview.DurationMs > 0)

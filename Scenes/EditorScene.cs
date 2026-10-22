@@ -52,6 +52,7 @@ public static class EditorScene
         editor.AddComponent(new WaveformPreview(
             "",
             System.Array.Empty<float>(),
+            System.Array.Empty<float>(),
             0));
         editor.AddComponent(new EditorNoteTarget(KeybindAction.M));
         editor.AddComponent(new EditorMineMode(false));

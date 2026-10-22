@@ -147,7 +147,7 @@ public sealed class EditorWaveformSceneTest : SceneTest
             {
                 Entity editor = Context.Entities.Query<LevelInfo>().ToEntityList()[0];
                 WaveformPreview preview = editor.GetComponent<WaveformPreview>();
-                return preview.Peaks.Length > 0 &&
+                return preview.Left.Length > 0 &&
                        preview.DurationMs > 0 &&
                        editor.GetComponent<Playhead>().DurationMs > 0;
             });
@@ -155,7 +155,7 @@ public sealed class EditorWaveformSceneTest : SceneTest
         AddAssert(
             "waveform has peaks",
             () => Context.Entities.Query<WaveformPreview>().ToEntityList()[0]
-                .GetComponent<WaveformPreview>().Peaks.Length > 0);
+                .GetComponent<WaveformPreview>().Left.Length > 0);
     }
 }
 

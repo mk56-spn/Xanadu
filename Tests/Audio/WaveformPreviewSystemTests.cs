@@ -22,14 +22,14 @@ public sealed class WaveformPreviewSystemTests
             Entity editor = store.CreateEntity(
                 new LevelInfo("Wave", path),
                 new Playhead(0, 120, 0, false),
-                new WaveformPreview("", Array.Empty<float>(), 0));
+                new WaveformPreview("", Array.Empty<float>(), Array.Empty<float>(), 0));
             var root = new SystemRoot(store);
             root.Add(new WaveformPreviewSystem());
 
             root.Update(new UpdateTick(1f / 60f, 0));
 
             WaveformPreview preview = editor.GetComponent<WaveformPreview>();
-            Assert.That(preview.Peaks, Is.Not.Empty);
+            Assert.That(preview.Left, Is.Not.Empty);
             Assert.That(preview.DurationMs, Is.EqualTo(2));
             Assert.That(editor.GetComponent<Playhead>().DurationMs, Is.EqualTo(2));
         }

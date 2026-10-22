@@ -165,39 +165,58 @@ public sealed class EditorPlayfieldDrawSystem :
         long windowStart,
         long windowEnd)
     {
-        if (preview.Peaks is null ||
-            preview.Peaks.Length == 0 ||
+        if (preview.Left is null ||
+            preview.Right is null ||
+            preview.Left.Length == 0 ||
+            preview.Right.Length == 0 ||
             preview.DurationMs <= 0)
+        {
             return;
+        }
 
         float centerY = ruler.Position.Y + ruler.Size.Y / 2;
-        float maxHeight = (ruler.Size.Y - 14f) * 0.56f;
-        int bars = Math.Min(128, Math.Max(24, (int)ruler.Size.X / 9));
-        float barWidth = ruler.Size.X / bars;
+        float maxHeight = (ruler.Size.Y - 12f) / 2f;
+        int columns = Math.Min(480, Math.Max(32, (int)ruler.Size.X));
+        float columnWidth = ruler.Size.X / columns;
         var color = new Color(0.35f, 0.68f, 0.98f, 0.16f);
 
-        for (int i = 0; i < bars; i++)
+        for (int i = 0; i < columns; i++)
         {
-            float t = (i + 0.5f) / bars;
-            long timeMs = windowStart +
-                          (long)((windowEnd - windowStart) * t);
-            int peakIndex = (int)Math.Clamp(
-                timeMs * (double)preview.Peaks.Length /
-                preview.DurationMs,
+            long sampleStart = windowStart +
+                (long)((windowEnd - windowStart) * i / (double)columns);
+            long sampleEnd = windowStart +
+                (long)((windowEnd - windowStart) * (i + 1) / (double)columns);
+            int first = Math.Clamp(
+                (int)(sampleStart * preview.Left.Length / preview.DurationMs),
                 0,
-                preview.Peaks.Length - 1);
-            float amplitude = preview.Peaks[peakIndex];
-            if (amplitude <= 0.001f)
-                continue;
+                preview.Left.Length - 1);
+            int last = Math.Clamp(
+                (int)(sampleEnd * preview.Left.Length / preview.DurationMs),
+                0,
+                preview.Left.Length - 1);
+            if (last < first)
+                last = first;
 
-            float height = Math.Max(1f, amplitude * maxHeight);
+            float left = 0f;
+            float right = 0f;
+            int stride = Math.Max(1, (last - first + 1) / 16);
+            for (int sample = first; sample <= last; sample += stride)
+            {
+                left = Math.Max(left, preview.Left[sample]);
+                right = Math.Max(
+                    right,
+                    preview.Right[Math.Min(sample, preview.Right.Length - 1)]);
+            }
+
+            float top = centerY - left * maxHeight;
+            float bottom = centerY + right * maxHeight;
             _canvas.DrawRect(
                 _editor,
                 new Rect2(
-                    ruler.Position.X + i * barWidth,
-                    centerY - height / 2,
-                    Math.Max(1f, barWidth * 0.36f),
-                    height),
+                    ruler.Position.X + i * columnWidth,
+                    top,
+                    Math.Max(1f, columnWidth),
+                    Math.Max(1f, bottom - top)),
                 color);
         }
 
@@ -205,7 +224,7 @@ public sealed class EditorPlayfieldDrawSystem :
             _editor,
             new Vector2(ruler.Position.X, centerY),
             new Vector2(ruler.End.X, centerY),
-            new Color(color.R, color.G, color.B, 0.2f),
+            new Color(color.R, color.G, color.B, 0.22f),
             1);
     }
 
