@@ -16,6 +16,11 @@ namespace Writer.Systems.Layout;
 /// </summary>
 public sealed class ContainerLayoutSystem : QuerySystem<Rectangle, UiContainer>
 {
+    public ContainerLayoutSystem()
+    {
+        Filter.AllTags(Tags.Get<LayoutDirty>());
+    }
+
     protected override void OnUpdate()
     {
         List<Entity> containers = Query.ToEntityList().ToList();
