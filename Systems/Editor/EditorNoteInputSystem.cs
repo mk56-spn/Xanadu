@@ -93,8 +93,9 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
         if (!IsInside(playfieldPosition, playfield))
             return;
 
-        if (editor.HasComponent<EditorMineMode>() &&
-            editor.GetComponent<EditorMineMode>().Active)
+        if (editor.HasComponent<EditorPlacementModeState>() &&
+            editor.GetComponent<EditorPlacementModeState>().Mode ==
+            EditorPlacementMode.Mines)
         {
             var mineBefore = _history.Capture();
             _entities.CreateEntity(new Mine(
@@ -244,10 +245,20 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
         KeybindAction target = editor.HasComponent<EditorNoteTarget>()
             ? editor.GetComponent<EditorNoteTarget>().Target
             : KeybindAction.M;
+        EditorPlacementMode mode = editor.HasComponent<EditorPlacementModeState>()
+            ? editor.GetComponent<EditorPlacementModeState>().Mode
+            : EditorPlacementMode.Notes;
+        DashDirection direction = editor.HasComponent<EditorDashDirectionState>()
+            ? editor.GetComponent<EditorDashDirectionState>().Direction
+            : DashDirection.Up;
         Entity created = _entities.CreateEntity(new Note(
             time,
             playfieldPosition,
-            target: target));
+            target: target,
+            kind: mode == EditorPlacementMode.Movement
+                ? NoteKind.Movement
+                : NoteKind.Hit,
+            dashDirection: direction));
         _history.Record(before, _history.Capture());
         editor.GetComponent<NoteSelection>().Note = created;
     }

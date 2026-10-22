@@ -59,7 +59,8 @@ public static class EditorScene
             System.Array.Empty<float>(),
             0));
         editor.AddComponent(new EditorNoteTarget(KeybindAction.M));
-        editor.AddComponent(new EditorMineMode(false));
+        editor.AddComponent(new EditorPlacementModeState(EditorPlacementMode.Notes));
+        editor.AddComponent(new EditorDashDirectionState(DashDirection.UpRight));
         editor.AddComponent(new EditorUiRequest());
 
         if (parent is { } root)
@@ -460,21 +461,16 @@ public static class EditorScene
         SetDropdownSelected(snap, snapIndex);
         SetDropdownSelected(noteType, (int)KeybindAction.M);
 
-        Entity mine = AddEditorButton(
-            ui,
-            new Vector2(centerX, top + 165),
-            new Vector2(width, 34),
-            "Mine: Off",
-            EditorButtonKind.AddMine);
+        Entity tools = BuildPlacementTools(ui, centerX, top + 218);
         Entity saveAs = AddEditorButton(
             ui,
-            new Vector2(centerX, top + 205),
+            new Vector2(centerX, top + 311),
             new Vector2(width, 34),
             "SAVE AS",
             EditorButtonKind.SaveAs);
         Entity load = AddEditorButton(
             ui,
-            new Vector2(centerX, top + 245),
+            new Vector2(centerX, top + 351),
             new Vector2(width, 34),
             "LOAD LEVEL",
             EditorButtonKind.LoadLevel);
@@ -485,10 +481,97 @@ public static class EditorScene
             snap,
             typeLabel,
             noteType,
-            mine,
+            tools,
             saveAs,
             load,
             top));
+    }
+
+    private static Entity BuildPlacementTools(
+        UiBuilder ui,
+        float centerX,
+        float centerY)
+    {
+        Entity group = ui.RectEntity(
+            new Vector2(centerX, centerY),
+            new Vector2(190, 140),
+            new Color(0, 0, 0, 0));
+        group.AddComponent(new UiContainer(StackDirection.Vertical));
+
+        AddPlacementButton(
+            ui,
+            group,
+            new Vector2(-62, -70),
+            "NOTE",
+            new EditorPlacementButton(EditorPlacementMode.Notes));
+        AddPlacementButton(
+            ui,
+            group,
+            new Vector2(0, -70),
+            "MINE",
+            new EditorPlacementButton(EditorPlacementMode.Mines));
+        AddPlacementButton(
+            ui,
+            group,
+            new Vector2(62, -70),
+            "MOVE",
+            new EditorPlacementButton(EditorPlacementMode.Movement));
+
+        Entity label = HudText(
+            ui,
+            new Vector2(0, -35),
+            new Vector2(190, 18),
+            "DASH DIR",
+            12,
+            SceneUi.DimTextColor);
+        group.AddChild(label);
+
+        (DashDirection Direction, string Label, Vector2 Offset)[] wheel =
+        {
+            (DashDirection.Up, "↑", new Vector2(0, -45)),
+            (DashDirection.UpRight, "↗", new Vector2(32, -32)),
+            (DashDirection.Right, "→", new Vector2(45, 0)),
+            (DashDirection.DownRight, "↘", new Vector2(32, 32)),
+            (DashDirection.Down, "↓", new Vector2(0, 45)),
+            (DashDirection.DownLeft, "↙", new Vector2(-32, 32)),
+            (DashDirection.Left, "←", new Vector2(-45, 0)),
+            (DashDirection.UpLeft, "↖", new Vector2(-32, -32)),
+        };
+
+        foreach ((DashDirection direction, string text, Vector2 offset) in wheel)
+        {
+            AddPlacementButton(
+                ui,
+                group,
+                new Vector2(0, 20) + offset,
+                text,
+                new EditorDashDirectionButton(direction),
+                32,
+                24);
+        }
+
+        return group;
+    }
+
+    private static void AddPlacementButton<T>(
+        UiBuilder ui,
+        Entity group,
+        Vector2 position,
+        string label,
+        T component,
+        float width = 56,
+        float height = 28) where T : struct, IComponent
+    {
+        Entity button = ui.RectEntity(
+            position,
+            new Vector2(width, height),
+            SceneUi.MutedButtonColor,
+            label,
+            takesInput: true);
+        button.AddComponent(new TextStyle(13, SceneUi.TextColor));
+        button.AddComponent(ButtonVisual.Create(SceneUi.MutedButtonColor));
+        button.AddComponent(component);
+        group.AddChild(button);
     }
 
     private static Entity BuildDropdown(

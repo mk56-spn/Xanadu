@@ -119,7 +119,7 @@ public sealed class EditorNoteInputSystemTests
     public void MineModePlacesMinesInsteadOfNotes()
     {
         Entity editor = _store.Query<PlayfieldView>().ToEntityList()[0];
-        editor.AddComponent(new EditorMineMode(true));
+        editor.AddComponent(new EditorPlacementModeState(EditorPlacementMode.Mines));
 
         _pointer.Current = new PointerInput(new Vector2(300, 400), true);
         _root.Update(new UpdateTick(1f / 60f, 0));
@@ -135,10 +135,33 @@ public sealed class EditorNoteInputSystemTests
     }
 
     [Test]
+    public void MovementModePlacesADirectionalMovementNote()
+    {
+        Entity editor = _store.Query<PlayfieldView>().ToEntityList()[0];
+        editor.AddComponent(
+            new EditorPlacementModeState(EditorPlacementMode.Movement));
+        editor.AddComponent(
+            new EditorDashDirectionState(DashDirection.UpRight));
+
+        _pointer.Current = new PointerInput(new Vector2(300, 400), true);
+        _root.Update(new UpdateTick(1f / 60f, 0));
+        _pointer.Current = new PointerInput(new Vector2(300, 400), false);
+        _root.Update(new UpdateTick(1f / 60f, 0));
+
+        var notes = _store.Query<Note>().ToEntityList();
+        Assert.That(notes, Has.Count.EqualTo(1));
+        Assert.That(notes[0].GetComponent<Note>().Kind,
+            Is.EqualTo(NoteKind.Movement));
+        Assert.That(notes[0].GetComponent<Note>().DashDirection,
+            Is.EqualTo(DashDirection.UpRight));
+        Assert.That(_store.Query<Mine>().Count, Is.Zero);
+    }
+
+    [Test]
     public void UndoRemovesAPlacedMine()
     {
         Entity editor = _store.Query<PlayfieldView>().ToEntityList()[0];
-        editor.AddComponent(new EditorMineMode(true));
+        editor.AddComponent(new EditorPlacementModeState(EditorPlacementMode.Mines));
 
         _pointer.Current = new PointerInput(new Vector2(300, 400), true);
         _root.Update(new UpdateTick(1f / 60f, 0));

@@ -85,9 +85,31 @@ public struct EditorNoteTarget(KeybindAction target) : IComponent
 }
 
 /// <summary>Whether clicking the field places mines instead of notes.</summary>
-public struct EditorMineMode(bool active) : IComponent
+public enum EditorPlacementMode
 {
-    public bool Active = active;
+    Notes,
+    Mines,
+    Movement,
+}
+
+public struct EditorPlacementModeState(EditorPlacementMode mode) : IComponent
+{
+    public EditorPlacementMode Mode = mode;
+}
+
+public struct EditorDashDirectionState(DashDirection direction) : IComponent
+{
+    public DashDirection Direction = direction;
+}
+
+public struct EditorPlacementButton(EditorPlacementMode mode) : IComponent
+{
+    public EditorPlacementMode Mode = mode;
+}
+
+public struct EditorDashDirectionButton(DashDirection direction) : IComponent
+{
+    public DashDirection Direction = direction;
 }
 
 /// <summary>Cached waveform peaks for the editor timeline preview.</summary>
@@ -122,7 +144,6 @@ public enum EditorButtonKind
     Stop,
     Preview,
     Metronome,
-    AddMine,
     ZoomIn,
     ZoomOut,
     ToggleMetadata,
@@ -237,7 +258,7 @@ public struct EditorSidebarLayout(
     Entity snapButton,
     Entity typeLabel,
     Entity typeButton,
-    Entity mine,
+    Entity tools,
     Entity saveAs,
     Entity load,
     float top) : IComponent
@@ -247,7 +268,7 @@ public struct EditorSidebarLayout(
     public Entity SnapButton = snapButton;
     public Entity TypeLabel = typeLabel;
     public Entity TypeButton = typeButton;
-    public Entity Mine = mine;
+    public Entity Tools = tools;
     public Entity SaveAs = saveAs;
     public Entity Load = load;
     public float Top = top;

@@ -62,8 +62,6 @@ public sealed class EditorButtonSystem : QuerySystem<EditorButton>
         EditorPreview preview = editor.HasComponent<EditorPreview>()
             ? editor.GetComponent<EditorPreview>()
             : default;
-        bool mineMode = editor.HasComponent<EditorMineMode>() &&
-                        editor.GetComponent<EditorMineMode>().Active;
 
         foreach (Entity entity in _entities.Query<EditorButton, Text>().ToEntityList())
         {
@@ -73,7 +71,6 @@ public sealed class EditorButtonSystem : QuerySystem<EditorButton>
                 EditorButtonKind.Play => playhead.Playing ? "II" : "▶",
                 EditorButtonKind.Preview => preview.Active ? "Exit Preview" : "Preview",
                 EditorButtonKind.Metronome => metronome.Enabled ? "Click On" : "Click Off",
-                EditorButtonKind.AddMine => mineMode ? "Mine: On" : "Mine: Off",
                 _ => entity.GetComponent<Text>().Value,
             };
 
@@ -107,15 +104,6 @@ public sealed class EditorButtonSystem : QuerySystem<EditorButton>
             case EditorButtonKind.Metronome:
                 _commands.Enqueue(EditorCommand.SetMetronome(
                     !editor.GetComponent<EditorMetronome>().Enabled));
-                break;
-
-            case EditorButtonKind.AddMine:
-                if (editor.HasComponent<EditorMineMode>())
-                {
-                    ref EditorMineMode mode =
-                        ref editor.GetComponent<EditorMineMode>();
-                    mode.Active = !mode.Active;
-                }
                 break;
 
             case EditorButtonKind.ZoomIn:

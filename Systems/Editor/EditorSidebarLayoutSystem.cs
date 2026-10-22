@@ -35,16 +35,16 @@ public sealed class EditorSidebarLayoutSystem : QuerySystem<EditorSidebarLayout>
                                Gap + snapExtra + LabelHeight / 2;
             float typeButtonY = typeLabelY + LabelHeight / 2 +
                                 ButtonHeight / 2;
-            float mineY = typeButtonY + ButtonHeight / 2 +
-                          Gap + typeExtra + ButtonHeight / 2;
-            float saveY = mineY + ButtonHeight + 6;
+            float toolsY = typeButtonY + ButtonHeight / 2 +
+                           Gap + typeExtra + 70;
+            float saveY = toolsY + 93;
             float loadY = saveY + ButtonHeight + 6;
 
             Move(layout.SnapLabel, snapLabelY, buffer);
             Move(layout.SnapButton, snapButtonY, buffer);
             Move(layout.TypeLabel, typeLabelY, buffer);
             Move(layout.TypeButton, typeButtonY, buffer);
-            Move(layout.Mine, mineY, buffer);
+            Move(layout.Tools, toolsY, buffer);
             Move(layout.SaveAs, saveY, buffer);
             Move(layout.Load, loadY, buffer);
 
