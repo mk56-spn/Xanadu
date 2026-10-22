@@ -32,7 +32,10 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
                 entity,
                 entity.GetComponent<SceneCommand>());
             if (_actionRegistry.TryInvoke(state.Current, context))
+            {
+                entity.RemoveTag<Pressed>();
                 return;
+            }
         }
 
         if (state.Current == SceneKind.Play)

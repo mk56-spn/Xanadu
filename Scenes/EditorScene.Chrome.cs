@@ -36,14 +36,14 @@ public static partial class EditorScene
             spacing: 0,
             padding: 16,
             color: new Color(0, 0, 0, 0));
-        SceneUi.Button(
+        Entity menu = SceneUi.ButtonEntity(
             ui,
             Vector2.Zero,
             new Vector2(104, 38),
             LocalizedText.Get(EditorStrings.Menu),
-            SceneKind.Main,
             14,
             SceneUi.MutedButtonColor);
+        menu.AddComponent(new SceneCommand(SceneActionId.Exit));
 
         const float levelWidth = 104;
         const float saveWidth = 88;
@@ -202,7 +202,7 @@ public static partial class EditorScene
             takesInput: true);
         button.AddComponent(new TextStyle(fontSize, SceneUi.TextColor));
         button.AddComponent(ButtonVisual.Create(SceneUi.ButtonColor));
-        button.AddComponent(new EditorButton(kind));
+        AddEditorAction(button, kind);
         return button;
     }
 
@@ -222,7 +222,25 @@ public static partial class EditorScene
             takesInput: true);
         button.AddComponent(new TextStyle(fontSize, SceneUi.TextColor));
         button.AddComponent(ButtonVisual.Create(SceneUi.ButtonColor));
-        button.AddComponent(new EditorButton(kind));
+        AddEditorAction(button, kind);
         return button;
+    }
+
+    private static void AddEditorAction(Entity button, EditorButtonKind kind)
+    {
+        SceneActionId? action = kind switch
+        {
+            EditorButtonKind.LoadSong => SceneActionId.LoadSong,
+            EditorButtonKind.Save => SceneActionId.Save,
+            EditorButtonKind.SaveAs => SceneActionId.SaveAs,
+            EditorButtonKind.LoadLevel => SceneActionId.LoadLevel,
+            EditorButtonKind.ToggleMetadata => SceneActionId.ToggleMetadata,
+            _ => null,
+        };
+
+        if (action is { } value)
+            button.AddComponent(new SceneCommand(value));
+        else
+            button.AddComponent(new EditorButton(kind));
     }
 }

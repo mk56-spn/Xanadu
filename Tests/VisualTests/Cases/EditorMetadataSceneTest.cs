@@ -29,11 +29,11 @@ public sealed class EditorMetadataSceneTest : SceneTest
         AddStep("open metadata panel", () =>
         {
             foreach (Entity button in Context.Entities
-                         .Query<EditorButton>()
+                         .Query<SceneCommand>()
                          .ToEntityList())
             {
-                if (button.GetComponent<EditorButton>().Kind ==
-                    EditorButtonKind.ToggleMetadata)
+                if (button.GetComponent<SceneCommand>().Action ==
+                    SceneActionId.ToggleMetadata)
                 {
                     button.AddTag<Pressed>();
                     return;
