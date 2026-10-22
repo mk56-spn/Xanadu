@@ -1,6 +1,7 @@
 using Friflo.Engine.ECS;
 using Godot;
 using Writer.Ecs;
+using Writer.Strings;
 
 namespace Writer.Scenes;
 
@@ -20,7 +21,7 @@ public static class OffsetWizardScene
             ui,
             new Vector2(screen.X / 2, 90),
             new Vector2(900, 58),
-            "OFFSET WIZARD",
+            LocalizedText.Get(OffsetWizardStrings.Title),
             38,
             SceneUi.AccentColor);
 
@@ -36,7 +37,7 @@ public static class OffsetWizardScene
             ui,
             new Vector2(100, 44),
             new Vector2(150, 44),
-            "BACK",
+            LocalizedText.Get(OffsetWizardStrings.Back),
             SceneKind.Main,
             18,
             SceneUi.MutedButtonColor);

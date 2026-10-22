@@ -1,6 +1,7 @@
 using Friflo.Engine.ECS;
 using Godot;
 using Writer.Ecs;
+using Writer.Strings;
 
 namespace Writer.Scenes;
 
@@ -20,7 +21,7 @@ public static class MainMenuScene
             ui,
             new Vector2(screen.X / 2, 140),
             new Vector2(900, 84),
-            "WRITER",
+            LocalizedText.Get(MainMenuStrings.Title),
             52,
             SceneUi.AccentColor);
 
@@ -28,7 +29,7 @@ public static class MainMenuScene
             ui,
             new Vector2(screen.X / 2, 205),
             new Vector2(900, 30),
-            "RHYTHM GAME EDITOR",
+            LocalizedText.Get(MainMenuStrings.Subtitle),
             18,
             SceneUi.DimTextColor);
 
@@ -36,7 +37,7 @@ public static class MainMenuScene
             ui,
             new Vector2(screen.X / 2, 360),
             new Vector2(360, 66),
-            "PLAY",
+            LocalizedText.Get(MainMenuStrings.Play),
             SceneKind.SongSelect,
             26);
 
@@ -44,7 +45,7 @@ public static class MainMenuScene
             ui,
             new Vector2(screen.X / 2, 442),
             new Vector2(360, 56),
-            "EDITOR",
+            LocalizedText.Get(MainMenuStrings.Editor),
             SceneKind.Editor,
             20,
             SceneUi.MutedButtonColor);
@@ -53,7 +54,7 @@ public static class MainMenuScene
             ui,
             new Vector2(screen.X / 2, 512),
             new Vector2(360, 56),
-            "SETTINGS",
+            LocalizedText.Get(MainMenuStrings.Settings),
             SceneKind.Settings,
             20,
             SceneUi.MutedButtonColor);
@@ -62,7 +63,7 @@ public static class MainMenuScene
             ui,
             new Vector2(screen.X / 2, 580),
             new Vector2(360, 50),
-            "OFFSET WIZARD",
+            LocalizedText.Get(MainMenuStrings.OffsetWizard),
             SceneKind.OffsetWizard,
             17,
             SceneUi.MutedButtonColor);
@@ -71,7 +72,7 @@ public static class MainMenuScene
             ui,
             new Vector2(screen.X / 2, 648),
             new Vector2(360, 50),
-            "PROFILES",
+            LocalizedText.Get(MainMenuStrings.Profiles),
             SceneKind.Profiles,
             17,
             SceneUi.MutedButtonColor);
@@ -80,7 +81,7 @@ public static class MainMenuScene
             ui,
             new Vector2(screen.X / 2, screen.Y - 40),
             new Vector2(900, 24),
-            "PLAY  ·  EDIT  ·  CREATE",
+            LocalizedText.Get(MainMenuStrings.Footer),
             14,
             SceneUi.DimTextColor);
     }

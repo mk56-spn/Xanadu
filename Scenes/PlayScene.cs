@@ -3,6 +3,7 @@ using System.Linq;
 using Friflo.Engine.ECS;
 using Godot;
 using Writer.Ecs;
+using Writer.Strings;
 using Position = Writer.Ecs.Position;
 using Writer.Levels;
 using Writer.Settings;
@@ -92,7 +93,7 @@ public static class PlayScene
             new Vector2(95, 44),
             new Vector2(150, 44),
             SceneUi.MutedButtonColor,
-            "PAUSE",
+            LocalizedText.Get(PlayStrings.Pause),
             takesInput: true);
 
         pause.AddComponent(new TextStyle(18, SceneUi.TextColor));
@@ -170,7 +171,7 @@ public static class PlayScene
             ui,
             new Vector2(counterX, 190),
             new Vector2(260, 22),
-            "JUDGEMENTS",
+            LocalizedText.Get(PlayStrings.Judgements),
             14,
             SceneUi.DimTextColor,
             new Color(0, 0, 0, 0));
@@ -178,22 +179,22 @@ public static class PlayScene
         CounterText(ui, screen.X - 200, 220, "FLAWLESS+",
             PlayScoreSystem.ColorFor(Writer.Scoring.Judgement.FlawlessP),
             TextAlign.Left);
-        CounterText(ui, screen.X - 200, 246, "FLAWLESS",
+        CounterText(ui, screen.X - 200, 246, LocalizedText.Get(PlayStrings.Flawless),
             PlayScoreSystem.ColorFor(Writer.Scoring.Judgement.Flawless),
             TextAlign.Left);
-        CounterText(ui, screen.X - 200, 272, "CLEAN",
+        CounterText(ui, screen.X - 200, 272, LocalizedText.Get(PlayStrings.Clean),
             PlayScoreSystem.ColorFor(Writer.Scoring.Judgement.Clean),
             TextAlign.Left);
-        CounterText(ui, screen.X - 200, 298, "FAIR",
+        CounterText(ui, screen.X - 200, 298, LocalizedText.Get(PlayStrings.Fair),
             PlayScoreSystem.ColorFor(Writer.Scoring.Judgement.Fair),
             TextAlign.Left);
-        CounterText(ui, screen.X - 200, 324, "DEFICIENT",
+        CounterText(ui, screen.X - 200, 324, LocalizedText.Get(PlayStrings.Deficient),
             PlayScoreSystem.ColorFor(Writer.Scoring.Judgement.Deficient),
             TextAlign.Left);
-        CounterText(ui, screen.X - 200, 350, "TERRIBLE",
+        CounterText(ui, screen.X - 200, 350, LocalizedText.Get(PlayStrings.Terrible),
             PlayScoreSystem.ColorFor(Writer.Scoring.Judgement.Terrible),
             TextAlign.Left);
-        CounterText(ui, screen.X - 200, 376, "MISS",
+        CounterText(ui, screen.X - 200, 376, LocalizedText.Get(PlayStrings.Miss),
             PlayScoreSystem.ColorFor(Writer.Scoring.Judgement.Miss),
             TextAlign.Left);
 

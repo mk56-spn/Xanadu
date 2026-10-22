@@ -2,6 +2,7 @@ using System;
 using Friflo.Engine.ECS;
 using Godot;
 using Writer.Ecs;
+using Writer.Strings;
 using Writer.Profiles;
 
 namespace Writer.Scenes;
@@ -69,7 +70,7 @@ public static class ProfilesScene
             ui,
             new Vector2(screen.X / 2, createY),
             new Vector2(360, 54),
-            "NEW PROFILE",
+            LocalizedText.Get(ProfilesStrings.NewProfile),
             SceneKind.None,
             18,
             SceneUi.ButtonColor);

@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using Godot;
 using Writer.Ecs;
+using Writer.Strings;
 using Writer.Levels;
 using Writer.Profiles;
 
@@ -26,7 +27,7 @@ public static class SongSelectScene
             ui,
             new Vector2(screen.X / 2, 64),
             new Vector2(900, 58),
-            "SONG SELECT",
+            LocalizedText.Get(SongSelectStrings.Title),
             40,
             SceneUi.AccentColor);
 
@@ -34,7 +35,7 @@ public static class SongSelectScene
             ui,
             new Vector2(100, 44),
             new Vector2(150, 44),
-            "BACK",
+            LocalizedText.Get(SongSelectStrings.Back),
             SceneKind.Main,
             18,
             SceneUi.MutedButtonColor);
@@ -110,7 +111,7 @@ public static class SongSelectScene
                 ui,
                 cardCenter + new Vector2(0, 120),
                 new Vector2(220, 42),
-                "EDIT LEVEL",
+                LocalizedText.Get(SongSelectStrings.EditLevel),
                 SceneKind.Editor,
                 16,
                 SceneUi.MutedButtonColor);
@@ -120,7 +121,7 @@ public static class SongSelectScene
                 ui,
                 new Vector2(screen.X / 2, screen.Y - 90),
                 new Vector2(320, 64),
-                "PLAY",
+                LocalizedText.Get(SongSelectStrings.Play),
                 SceneKind.Play,
                 24);
         }
@@ -146,8 +147,8 @@ public static class SongSelectScene
     {
         if (catalog.Count == 0)
         {
-            SceneUi.SetText(state.Title, "NO LEVELS FOUND");
-            SceneUi.SetText(state.Meta, "CREATE A LEVEL IN THE EDITOR");
+            SceneUi.SetText(state.Title, LocalizedText.Get(SongSelectStrings.NoLevels));
+            SceneUi.SetText(state.Meta, LocalizedText.Get(SongSelectStrings.CreateLevel));
             SceneUi.SetText(state.Stats, "");
             SceneUi.SetText(state.Index, "0 / 0");
             SceneUi.SetText(state.Best, "");
@@ -168,7 +169,7 @@ public static class SongSelectScene
 
         SceneUi.SetText(
             state.Title,
-            string.IsNullOrWhiteSpace(document.Name) ? "UNTITLED" : document.Name);
+            string.IsNullOrWhiteSpace(document.Name) ? LocalizedText.Get(SongSelectStrings.Untitled) : document.Name);
         SceneUi.SetText(state.Meta, $"{artist}   ·   {difficulty}");
         SceneUi.SetText(
             state.Stats,
@@ -179,7 +180,7 @@ public static class SongSelectScene
         SceneUi.SetText(
             state.Best,
             best is null
-                ? "NO SCORE FOR THIS PROFILE"
+                ? LocalizedText.Get(SongSelectStrings.NoScore)
                 : $"BEST {best.Score:0000000}   ·   " +
                   $"{best.Accuracy * 100:0.00}%   ·   {best.Rank}");
     }

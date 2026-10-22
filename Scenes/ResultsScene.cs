@@ -1,6 +1,7 @@
 using Friflo.Engine.ECS;
 using Godot;
 using Writer.Ecs;
+using Writer.Strings;
 using Writer.Scoring;
 
 namespace Writer.Scenes;
@@ -22,7 +23,7 @@ public static class ResultsScene
             ui,
             new Vector2(screen.X / 2, 95),
             new Vector2(900, 64),
-            "RESULTS",
+            LocalizedText.Get(ResultsStrings.Title),
             48,
             SceneUi.AccentColor);
 
@@ -55,7 +56,7 @@ public static class ResultsScene
             ui,
             new Vector2(centerX, y),
             new Vector2(panelWidth - 80, 28),
-            "ACCURACY",
+            LocalizedText.Get(ResultsStrings.Accuracy),
             18,
             SceneUi.DimTextColor,
             SceneUi.PanelColor);
@@ -84,7 +85,7 @@ public static class ResultsScene
             ui,
             new Vector2(centerX, y),
             new Vector2(panelWidth - 80, 28),
-            "NOTES HIT",
+            LocalizedText.Get(ResultsStrings.NotesHit),
             18,
             SceneUi.DimTextColor,
             SceneUi.PanelColor);
@@ -104,7 +105,7 @@ public static class ResultsScene
             ui,
             new Vector2(centerX, y),
             new Vector2(panelWidth - 80, 28),
-            "MAX COMBO",
+            LocalizedText.Get(ResultsStrings.MaxCombo),
             18,
             SceneUi.DimTextColor,
             SceneUi.PanelColor);
@@ -124,7 +125,7 @@ public static class ResultsScene
             ui,
             new Vector2(centerX, y),
             new Vector2(panelWidth - 80, 28),
-            "SCORE",
+            LocalizedText.Get(ResultsStrings.Score),
             18,
             SceneUi.DimTextColor,
             SceneUi.PanelColor);
@@ -142,7 +143,7 @@ public static class ResultsScene
             new Vector2(centerX - 240, screen.Y - 70),
             new Vector2(220, 52),
             SceneUi.ButtonColor,
-            "RETRY",
+            LocalizedText.Get(ResultsStrings.Retry),
             takesInput: true);
         retry.AddComponent(new TextStyle(18, SceneUi.TextColor));
         retry.AddComponent(ButtonVisual.Create(SceneUi.ButtonColor));
@@ -152,7 +153,7 @@ public static class ResultsScene
             ui,
             new Vector2(centerX, screen.Y - 70),
             new Vector2(220, 52),
-            "SONG SELECT",
+            LocalizedText.Get(ResultsStrings.SongSelect),
             SceneKind.SongSelect,
             18,
             SceneUi.MutedButtonColor);
@@ -161,7 +162,7 @@ public static class ResultsScene
             ui,
             new Vector2(centerX + 240, screen.Y - 70),
             new Vector2(220, 52),
-            "MAIN MENU",
+            LocalizedText.Get(ResultsStrings.MainMenu),
             SceneKind.Main,
             18,
             SceneUi.MutedButtonColor);

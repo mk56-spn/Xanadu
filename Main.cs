@@ -5,6 +5,7 @@ using Godot;
 using Writer.Ecs;
 using Writer.Misc;
 using Writer.Editor;
+using Writer.Strings;
 using Writer.Systems.Input;
 
 namespace Writer;
@@ -22,6 +23,7 @@ public partial class Main : Control
 
 	public override void _Ready()
 	{
+		LocalizedText.EnableGodot();
 		SetProcess(true);
 		_pointer = new GodotPointerInputSource(this);
 		_sceneDirector = new SceneDirector();

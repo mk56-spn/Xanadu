@@ -1,6 +1,7 @@
 using Friflo.Engine.ECS;
 using Godot;
 using Writer.Ecs;
+using Writer.Strings;
 using Writer.Settings;
 
 namespace Writer.Scenes;
@@ -46,7 +47,7 @@ public static class SettingsScene
             ui,
             new Vector2(centerX, 90),
             new Vector2(900, 64),
-            "SETTINGS",
+            LocalizedText.Get(SettingsStrings.Title),
             40,
             SceneUi.AccentColor);
 
@@ -54,7 +55,7 @@ public static class SettingsScene
             ui,
             new Vector2(panelLeft + 190, panelTop + 42),
             new Vector2(220, 34),
-            "VERTICAL SYNC",
+            LocalizedText.Get(SettingsStrings.VSync),
             18,
             SceneUi.TextColor,
             SceneUi.PanelColor);
@@ -63,13 +64,13 @@ public static class SettingsScene
             new Vector2(panelLeft + panelWidth - 170, panelTop + 42),
             new Vector2(240, 38),
             SceneUi.MutedButtonColor,
-            display.VSyncEnabled ? "V-SYNC: ON" : "V-SYNC: OFF",
+            display.VSyncEnabled ? LocalizedText.Get(SettingsStrings.VSyncOn) : LocalizedText.Get(SettingsStrings.VSyncOff),
             takesInput: true);
         vsync.AddComponent(new TextStyle(16, SceneUi.TextColor));
         vsync.AddComponent(ButtonVisual.Create(SceneUi.MutedButtonColor));
         vsync.AddComponent(new Toggle(
-            "V-SYNC: ON",
-            "V-SYNC: OFF",
+            LocalizedText.Get(SettingsStrings.VSyncOn),
+            LocalizedText.Get(SettingsStrings.VSyncOff),
             display.VSyncEnabled,
             new Color("#2563eb"),
             SceneUi.MutedButtonColor));
@@ -79,7 +80,7 @@ public static class SettingsScene
             ui,
             new Vector2(centerX, panelTop + 88),
             new Vector2(panelWidth - 80, 30),
-            "KEYBINDS",
+            LocalizedText.Get(SettingsStrings.Keybinds),
             22,
             SceneUi.AccentColor,
             SceneUi.PanelColor);
@@ -88,7 +89,7 @@ public static class SettingsScene
             ui,
             new Vector2(panelLeft + 190, panelTop + 128),
             new Vector2(220, 24),
-            "ACTION",
+            LocalizedText.Get(SettingsStrings.Action),
             14,
             SceneUi.DimTextColor,
             SceneUi.PanelColor);
@@ -97,7 +98,7 @@ public static class SettingsScene
             ui,
             new Vector2(panelLeft + panelWidth - 170, panelTop + 128),
             new Vector2(220, 24),
-            "KEY",
+            LocalizedText.Get(SettingsStrings.Key),
             14,
             SceneUi.DimTextColor,
             SceneUi.PanelColor);
@@ -133,7 +134,7 @@ public static class SettingsScene
             ui,
             new Vector2(centerX, panelTop + panelHeight - 28),
             new Vector2(panelWidth - 80, 24),
-            "CLICK A KEY TO REBIND   ·   ESC CANCELS",
+            LocalizedText.Get(SettingsStrings.Footer),
             14,
             SceneUi.DimTextColor,
             SceneUi.PanelColor);
@@ -142,7 +143,7 @@ public static class SettingsScene
             ui,
             new Vector2(100, 44),
             new Vector2(150, 44),
-            "BACK",
+            LocalizedText.Get(SettingsStrings.Back),
             SceneKind.Main,
             18,
             SceneUi.MutedButtonColor);

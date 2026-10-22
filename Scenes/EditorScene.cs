@@ -6,6 +6,7 @@ using Writer.Levels;
 using Writer.Settings;
 using Writer.Editor;
 using Writer.Systems.Editor;
+using Writer.Strings;
 using Writer.Systems.Playfields;
 
 namespace Writer.Scenes;
@@ -82,7 +83,7 @@ public static class EditorScene
                 menu,
                 new Vector2(68, 36),
                 new Vector2(104, 38),
-                "MENU",
+                LocalizedText.Get(EditorStrings.Menu),
                 SceneKind.Main,
                 14,
                 SceneUi.MutedButtonColor);
@@ -186,35 +187,35 @@ public static class EditorScene
             takesInput: true);
         Entity panel = panelUi.Current;
 
-        AddMetadataLabel(panelUi, "LEVEL NAME");
+        AddMetadataLabel(panelUi, LocalizedText.Get(EditorStrings.LevelName));
         Entity nameField = AddMetadataField(
             panelUi,
             level.Name,
             EditorFieldKind.LevelName,
             false);
 
-        AddMetadataLabel(panelUi, "ARTIST");
+        AddMetadataLabel(panelUi, LocalizedText.Get(EditorStrings.Artist));
         Entity artistField = AddMetadataField(
             panelUi,
             level.Artist,
             EditorFieldKind.Artist,
             false);
 
-        AddMetadataLabel(panelUi, "DIFFICULTY");
+        AddMetadataLabel(panelUi, LocalizedText.Get(EditorStrings.Difficulty));
         Entity difficultyField = AddMetadataField(
             panelUi,
             level.Difficulty,
             EditorFieldKind.Difficulty,
             false);
 
-        AddMetadataLabel(panelUi, "BPM");
+        AddMetadataLabel(panelUi, LocalizedText.Get(EditorStrings.Bpm));
         Entity bpmField = AddMetadataField(
             panelUi,
             playhead.Bpm.ToString(),
             EditorFieldKind.Bpm,
             true);
 
-        AddMetadataLabel(panelUi, "BEAT OFFSET (MS)");
+        AddMetadataLabel(panelUi, LocalizedText.Get(EditorStrings.BeatOffset));
         Entity offsetField = AddMetadataField(
             panelUi,
             playhead.OffsetMs.ToString(),
@@ -239,22 +240,22 @@ public static class EditorScene
             startUi,
             Vector2.Zero,
             new Vector2(340, 20),
-            "START POINT",
+            LocalizedText.Get(EditorStrings.StartPoint),
             14,
             SceneUi.AccentColor);
-        AddMetadataLabel(startUi, "START TIME (MS)");
+        AddMetadataLabel(startUi, LocalizedText.Get(EditorStrings.StartTime));
         AddMetadataField(
             startUi,
             "",
             EditorFieldKind.StartTime,
             true);
-        AddMetadataLabel(startUi, "START MOMENTUM X");
+        AddMetadataLabel(startUi, LocalizedText.Get(EditorStrings.StartMomentumX));
         AddMetadataField(
             startUi,
             "",
             EditorFieldKind.StartMomentumX,
             true);
-        AddMetadataLabel(startUi, "START MOMENTUM Y");
+        AddMetadataLabel(startUi, LocalizedText.Get(EditorStrings.StartMomentumY));
         AddMetadataField(
             startUi,
             "",
@@ -407,7 +408,7 @@ public static class EditorScene
             ui,
             new Vector2(right - levelWidth + levelWidth / 2, headerY + 19),
             new Vector2(levelWidth, 38),
-            "Level ▾",
+            LocalizedText.Get(EditorStrings.Level),
             EditorButtonKind.ToggleMetadata);
         AddEditorButton(
             ui,
@@ -415,7 +416,7 @@ public static class EditorScene
                 right - levelWidth - 8 - saveWidth + saveWidth / 2,
                 headerY + 19),
             new Vector2(saveWidth, 38),
-            "Save",
+            LocalizedText.Get(EditorStrings.Save),
             EditorButtonKind.Save);
         AddEditorButton(
             ui,
@@ -423,7 +424,7 @@ public static class EditorScene
                 right - levelWidth - 8 - saveWidth - 8 - songWidth + songWidth / 2,
                 headerY + 19),
             new Vector2(songWidth, 38),
-            "Load Song (L)",
+            LocalizedText.Get(EditorStrings.LoadSong),
             EditorButtonKind.LoadSong);
 
         Rect2 transport = EditorLayout.TransportRect(
@@ -530,7 +531,7 @@ public static class EditorScene
             ui,
             new Vector2(centerX, top + 12),
             new Vector2(width, 24),
-            "SNAP",
+            LocalizedText.Get(EditorStrings.Snap),
             14,
             SceneUi.DimTextColor,
             new Color(0, 0, 0, 0));
@@ -548,7 +549,7 @@ public static class EditorScene
             ui,
             new Vector2(centerX, top + 86),
             new Vector2(width, 24),
-            "NOTE TYPE",
+            LocalizedText.Get(EditorStrings.NoteType),
             14,
             SceneUi.DimTextColor,
             new Color(0, 0, 0, 0));
@@ -581,13 +582,13 @@ public static class EditorScene
             ui,
             new Vector2(centerX, top + 311),
             new Vector2(width, 34),
-            "SAVE AS",
+            LocalizedText.Get(EditorStrings.SaveAs),
             EditorButtonKind.SaveAs);
         Entity load = AddEditorButton(
             ui,
             new Vector2(centerX, top + 351),
             new Vector2(width, 34),
-            "LOAD LEVEL",
+            LocalizedText.Get(EditorStrings.LoadLevel),
             EditorButtonKind.LoadLevel);
 
         editor.AddComponent(new EditorSidebarLayout(
@@ -617,28 +618,28 @@ public static class EditorScene
             ui,
             group,
             new Vector2(-69, -70),
-            "NOTE",
+            LocalizedText.Get(EditorStrings.Note),
             new EditorPlacementButton(EditorPlacementMode.Notes),
             44);
         AddPlacementButton(
             ui,
             group,
             new Vector2(-23, -70),
-            "MINE",
+            LocalizedText.Get(EditorStrings.Mine),
             new EditorPlacementButton(EditorPlacementMode.Mines),
             44);
         AddPlacementButton(
             ui,
             group,
             new Vector2(23, -70),
-            "MOVE",
+            LocalizedText.Get(EditorStrings.Move),
             new EditorPlacementButton(EditorPlacementMode.Movement),
             44);
         AddPlacementButton(
             ui,
             group,
             new Vector2(69, -70),
-            "START",
+            LocalizedText.Get(EditorStrings.Start),
             new EditorPlacementButton(EditorPlacementMode.Start),
             44);
 
@@ -646,7 +647,7 @@ public static class EditorScene
             ui,
             new Vector2(0, -35),
             new Vector2(190, 18),
-            "DASH DIR",
+            LocalizedText.Get(EditorStrings.DashDir),
             12,
             SceneUi.DimTextColor);
         group.AddChild(label);
