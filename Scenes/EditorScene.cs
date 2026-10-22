@@ -243,6 +243,7 @@ public static class EditorScene
             "CTRL+S                 Save",
             "ESC                    Back",
             "ENTER                  Forward",
+            "F5                     Play from selected start",
             "F2                     Toggle this list",
         };
         foreach (string binding in bindings)

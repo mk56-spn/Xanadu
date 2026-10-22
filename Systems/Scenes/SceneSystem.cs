@@ -32,6 +32,7 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
     private Entity _sceneRoot;
     private List<LevelEntry> _catalog = new();
     private LevelEntry? _pendingPlayEntry;
+    private StartPoint? _pendingStart;
     private LevelEntry? _pendingEditorEntry;
     private LevelEntry? _lastPlayEntry;
     private PlayResults? _pendingResults;
@@ -106,10 +107,11 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
     }
 
     /// <summary>Starts play with an already-loaded level entry.</summary>
-    public void StartPlay(LevelEntry entry)
+    public void StartPlay(LevelEntry entry, StartPoint? start = null)
     {
         EnsureState();
         _pendingPlayEntry = entry;
+        _pendingStart = start;
         ref SceneState state = ref _stateEntity.GetComponent<SceneState>();
         state.Pending = SceneKind.Play;
     }

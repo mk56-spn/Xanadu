@@ -132,7 +132,7 @@ public sealed class PlaySessionSystem : QuerySystem<PlaySession, Playhead>
         ref Playhead playhead,
         CommandBuffer buffer)
     {
-        playhead.SeekRequestMs = 0;
+        playhead.SeekRequestMs = session.StartTimeMs;
         playhead.Playing = true;
         session.Started = true;
         SetStatus(ref session, "PLAYING", buffer);

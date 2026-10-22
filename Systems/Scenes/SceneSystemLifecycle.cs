@@ -128,8 +128,10 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
             _display,
             _loadLevels,
             next == SceneKind.Editor ? _pendingEditorEntry : playEntry,
-            results);
+            results,
+            _pendingStart);
         _pendingEditorEntry = null;
+        _pendingStart = null;
 
         if (!_controllers.Build(next, context))
         {

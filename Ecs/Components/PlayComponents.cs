@@ -7,7 +7,8 @@ namespace Writer.Ecs;
 public struct PlaySession(
     Entity status,
     Entity countdown = default,
-    long lastNoteMs = -1) : IComponent
+    long lastNoteMs = -1,
+    long startTimeMs = 0) : IComponent
 {
     public Entity Status = status;
     public Entity Countdown = countdown;
@@ -20,6 +21,7 @@ public struct PlaySession(
     public float Elapsed;
     public float FadeElapsed;
     public float FadeDuration = 1.5f;
+    public long StartTimeMs = startTimeMs;
 }
 
 /// <summary>The player character's pixel dimensions in play mode.</summary>

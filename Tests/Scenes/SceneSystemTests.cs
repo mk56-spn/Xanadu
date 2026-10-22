@@ -199,6 +199,38 @@ public sealed class SceneSystemTests
     }
 
     [Test]
+    public void StartPlayUsesASavedStartPoint()
+    {
+        var document = new LevelDocument
+        {
+            Name = "Start Level",
+            PlayfieldWidth = 800,
+            PlayfieldHeight = 600,
+        };
+        var start = new StartPoint(
+            "Chorus",
+            5_000,
+            new Vector2(200, 300),
+            new System.Numerics.Vector2(4, -2),
+            new Vector2(1, 0));
+
+        _scenes.StartPlay(
+            new LevelEntry("memory://start", document),
+            start);
+        Frame();
+
+        Entity playfield = _store.Query<PlayfieldMode>().ToEntityList()[0];
+        Assert.That(playfield.GetComponent<PlaySession>().StartTimeMs,
+            Is.EqualTo(5_000));
+        Assert.That(playfield.GetComponent<Momentum>().Value,
+            Is.EqualTo(new System.Numerics.Vector2(4, -2)));
+        Vector2 expected = playfield.GetComponent<PlayfieldView>()
+            .PlayfieldToScreen(new Vector2(200, 300));
+        Assert.That(playfield.GetComponent<Writer.Ecs.Position>().Value,
+            Is.EqualTo(expected));
+    }
+
+    [Test]
     public void FinishedPlayMovesToResultsWithFinalValues()
     {
         var document = new LevelDocument

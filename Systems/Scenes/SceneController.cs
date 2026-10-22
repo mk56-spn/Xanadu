@@ -23,7 +23,8 @@ public sealed record SceneBuildContext(
     DisplaySettings Display,
     Func<List<LevelEntry>> LoadLevels,
     LevelEntry? Entry = null,
-    PlayResults? Results = null);
+    PlayResults? Results = null,
+    StartPoint? Start = null);
 
 /// <summary>A scene-specific builder registered with the scene manager.</summary>
 public interface ISceneController
@@ -133,7 +134,14 @@ public sealed class SceneControllerRegistry
     {
         public SceneKind Kind => SceneKind.Play;
         public string Label => "PLAY";
-        public void Build(SceneBuildContext c) => PlayScene.Build(c.Entities, c.Root, c.Screen, c.Entry!, c.Keybinds, c.Visuals);
+        public void Build(SceneBuildContext c) => PlayScene.Build(
+            c.Entities,
+            c.Root,
+            c.Screen,
+            c.Entry!,
+            c.Keybinds,
+            c.Visuals,
+            c.Start);
         public SceneKind BackTarget => SceneKind.SongSelect;
         public bool PausesOnBack => true;
     }

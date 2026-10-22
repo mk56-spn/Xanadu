@@ -97,6 +97,8 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
         Entity hit = FindNoteAt(playfieldPosition, playhead.TimeMs);
         if (hit.IsNull)
             hit = FindMineAt(playfieldPosition, playhead.TimeMs);
+        if (hit.IsNull)
+            hit = FindStartAt(playfieldPosition);
 
         ref NoteSelection selection = ref editor.GetComponent<NoteSelection>();
 
@@ -121,6 +123,11 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
                 {
                     _dragStartPositions[selected.Id] =
                         selected.GetComponent<Mine>().Position;
+                }
+                else if (selected.HasComponent<StartPoint>())
+                {
+                    _dragStartPositions[selected.Id] =
+                        selected.GetComponent<StartPoint>().Position;
                 }
             }
 
@@ -190,7 +197,8 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
 
         if (_draggedEntity.IsNull ||
             (!_draggedEntity.HasComponent<Note>() &&
-             !_draggedEntity.HasComponent<Mine>()))
+             !_draggedEntity.HasComponent<Mine>() &&
+             !_draggedEntity.HasComponent<StartPoint>()))
         {
             CancelDrag();
             return;
@@ -216,10 +224,15 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
                 ref Note note = ref entity.GetComponent<Note>();
                 note.Position = target;
             }
-            else
+            else if (entity.HasComponent<Mine>())
             {
                 ref Mine mine = ref entity.GetComponent<Mine>();
                 mine.Position = target;
+            }
+            else if (entity.HasComponent<StartPoint>())
+            {
+                ref StartPoint startPoint = ref entity.GetComponent<StartPoint>();
+                startPoint.Position = target;
             }
         }
     }
@@ -389,6 +402,14 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
                 selected.Add(entity);
         }
 
+        foreach (Entity entity in _entities.Query<StartPoint>().ToEntityList())
+        {
+            StartPoint start = entity.GetComponent<StartPoint>();
+            Vector2 center = view.PlayfieldToScreen(start.Position);
+            if (screenBounds.HasPoint(center))
+                selected.Add(entity);
+        }
+
         return selected;
     }
 
@@ -475,6 +496,19 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
             {
                 result = entity;
             }
+        }
+
+        return result;
+    }
+
+    private Entity FindStartAt(Vector2 position)
+    {
+        Entity result = default;
+        foreach (Entity entity in _entities.Query<StartPoint>().ToEntityList())
+        {
+            StartPoint startPoint = entity.GetComponent<StartPoint>();
+            if (startPoint.Position.DistanceTo(position) <= 14f)
+                result = entity;
         }
 
         return result;

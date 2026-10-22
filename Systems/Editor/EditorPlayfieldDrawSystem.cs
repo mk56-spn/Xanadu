@@ -100,13 +100,13 @@ public sealed class EditorPlayfieldDrawSystem :
             _entities,
             view,
             playhead);
-        DrawStartPoints(view);
+        DrawStartPoints(view, selection);
         DrawSelectionOutlines(view, playhead, selection);
         DrawRuler(view, playhead, selection, timelineZoom, preview);
         DrawSelectionBox(selectionBox);
     }
 
-    private void DrawStartPoints(PlayfieldView view)
+    private void DrawStartPoints(PlayfieldView view, NoteSelection selection)
     {
         foreach (Entity entity in _entities.Query<StartPoint>().ToEntityList())
         {
@@ -124,6 +124,15 @@ public sealed class EditorPlayfieldDrawSystem :
                 "S",
                 PlayfieldRenderer.SelectedNoteColor,
                 12);
+            if (selection.Contains(entity))
+            {
+                _canvas.DrawCircleOutline(
+                    _editor,
+                    center,
+                    17,
+                    Colors.White,
+                    2);
+            }
         }
     }
 

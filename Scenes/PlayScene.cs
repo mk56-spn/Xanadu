@@ -23,7 +23,8 @@ public static class PlayScene
         Vector2 screen,
         LevelEntry entry,
         KeybindSettings keybinds,
-        IVisualRidFactory? visuals = null)
+        IVisualRidFactory? visuals = null,
+        StartPoint? start = null)
     {
         LevelDocument document = entry.Document;
 
@@ -71,6 +72,19 @@ public static class PlayScene
         playfieldEntity.AddComponent(new KeyTrailLabels(keyLabels));
 
         LevelDocumentMapper.Apply(entities, playfieldEntity, document);
+
+        if (start is StartPoint point)
+        {
+            ref Playhead playhead = ref playfieldEntity.GetComponent<Playhead>();
+            playhead.TimeMs = point.TimeMs;
+            playhead.SeekRequestMs = point.TimeMs;
+            ref Position playerPosition = ref playfieldEntity.GetComponent<Position>();
+            playerPosition.Value = playfieldEntity
+                .GetComponent<PlayfieldView>()
+                .PlayfieldToScreen(point.Position);
+            ref Momentum momentum = ref playfieldEntity.GetComponent<Momentum>();
+            momentum.Value = point.Momentum;
+        }
 
         UiBuilder ui = SceneUi.Layer(entities, root, SceneUi.PlayHudLayer, visuals);
 
@@ -232,7 +246,8 @@ public static class PlayScene
         playfieldEntity.AddComponent(new PlaySession(
             status,
             countdown,
-            Math.Max(lastNote, lastMine)));
+            Math.Max(lastNote, lastMine),
+            start?.TimeMs ?? 0));
     }
 
     private static Entity CounterText(

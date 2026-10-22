@@ -13,6 +13,7 @@ using Writer.Systems.Input;
 using Writer.Systems.Physics;
 using Writer.Profiles;
 using Writer.Settings;
+using Writer.Levels;
 using Writer.Systems.Scenes;
 using Writer.Systems.Ui;
 
@@ -155,6 +156,58 @@ public sealed class WriterSystemRoot : SystemRoot, IDisposable
 
         if (entityDelete.Entity.TryGetComponent<PhysicsBody>(out var body))
             Physics.DestroyBody(body.Body);
+    }
+
+
+    /// <summary>Launches play from the selected or closest saved start point.</summary>
+    public void StartPlayFromEditor()
+    {
+        Entity editor = default;
+        foreach (Entity candidate in _entities
+                     .Query<LevelInfo, Playhead, NoteSelection>()
+                     .ToEntityList())
+        {
+            editor = candidate;
+            break;
+        }
+
+        if (editor.IsNull)
+            return;
+
+        StartPoint? start = null;
+        ref NoteSelection selection = ref editor.GetComponent<NoteSelection>();
+        foreach (Entity entity in selection.AllNotes)
+        {
+            if (entity.HasComponent<StartPoint>())
+            {
+                start = entity.GetComponent<StartPoint>();
+                break;
+            }
+        }
+
+        if (start is null)
+        {
+            long time = editor.GetComponent<Playhead>().TimeMs;
+            long best = long.MaxValue;
+            foreach (Entity entity in _entities.Query<StartPoint>().ToEntityList())
+            {
+                StartPoint candidate = entity.GetComponent<StartPoint>();
+                long distance = Math.Abs(candidate.TimeMs - time);
+                if (distance >= best)
+                    continue;
+                best = distance;
+                start = candidate;
+            }
+        }
+
+        if (start is null)
+            return;
+
+        LevelDocument document = LevelDocumentMapper.Capture(_entities, editor);
+        string path = editor.HasComponent<LevelFile>()
+            ? editor.GetComponent<LevelFile>().Path
+            : "";
+        Scenes.StartPlay(new LevelEntry(path, document), start);
     }
 
     public void Dispose()
