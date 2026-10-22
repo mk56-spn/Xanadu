@@ -12,6 +12,13 @@ public sealed class ScriptedPointerInputSource : IBlockingPointerInputSource
 
     public bool Blocked { get; private set; }
 
+    public void Reset()
+    {
+        Position = Vector2.Zero;
+        Pressed = false;
+        Blocked = false;
+    }
+
     public void SetBlocked(bool blocked) => Blocked = blocked;
 
     public void Click(Vector2 position)

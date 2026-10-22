@@ -238,5 +238,6 @@ public sealed class WriterSystemRoot : SystemRoot, IDisposable
         RenderingServer.FreeRid(_playfield);
         RenderingServer.FreeRid(_timeline);
         RenderingServer.FreeRid(_debugOverlay);
+        RenderingServer.FreeRid(_elementsOverlay);
     }
 }

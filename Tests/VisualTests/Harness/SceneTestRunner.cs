@@ -20,6 +20,14 @@ public sealed class SceneTestRunner
 
     public VisualTestResult? Result { get; private set; }
 
+    public void Clear()
+    {
+        _test = null;
+        _index = 0;
+        _delay = 0;
+        Result = null;
+    }
+
     public void Start(SceneTest test)
     {
         _test = test;

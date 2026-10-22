@@ -4,41 +4,61 @@ using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Godot;
 using Writer.Ecs;
+using Writer.Editor;
 using Writer.Settings;
 using Writer.Systems.Input;
 
 namespace Writer.Tests.VisualTests;
 
 /// <summary>
-/// Boots ECS scenes without navigating menus and runs osu-style test scenes:
-/// each test is a sequence of steps and assertions executed against the live
-/// entity store. Supports interactive switching and CLI runs through
-/// `--visual-test=&lt;slug&gt; [--visual-test-exit]`.
+/// Interactive visual test suite. The left sidebar lists every scene test;
+/// the right pane hosts the live ECS scene. Run All walks the suite, marking
+/// each test passed or failed without exiting unless --visual-test-exit is set.
 /// </summary>
 public partial class VisualTestMain : Control
 {
+    private const int SidebarWidth = 340;
+
     private readonly List<SceneTest> _tests = new(SceneTestCatalog.All);
-    private readonly List<VisualTestRun> _runs = new();
+    private readonly List<Button> _testButtons = new();
+    private readonly List<TestStatus> _statuses = new();
     private readonly SceneTestRunner _runner = new();
 
     private EntityStore? _entities;
     private WriterSystemRoot? _systems;
     private SceneDirector? _director;
     private ScriptedPointerInputSource? _pointer;
+    private ScriptedKeyboardState? _keyboard;
     private VisualTestContext? _context;
-    private CanvasLayer? _hudLayer;
-    private Label? _hud;
 
-    private int _index;
-    private bool _auto;
-    private bool _runAll;
+    private SubViewport? _viewport;
+    private Control? _testHost;
+    private VBoxContainer? _testList;
+    private Label? _summary;
+    private Label? _detail;
+    private Button? _runAll;
+    private Vector2 _paneSize;
+
+    private int _index = -1;
     private bool _resultHandled;
-    private string? _invalidRequest;
+    private bool _suiteRunning;
+    private bool _autoSingle;
+    private bool _exitWhenDone;
+    private int _pendingStartIndex = -1;
+    private ulong _pendingStartAtMs;
+
+    private enum TestStatus
+    {
+        Pending,
+        Running,
+        Passed,
+        Failed,
+    }
 
     public override void _Ready()
     {
         SetProcess(true);
-        BuildHud();
+        BuildUi();
         ParseArguments();
 
         if (_invalidRequest is not null)
@@ -49,11 +69,38 @@ public partial class VisualTestMain : Control
             return;
         }
 
-        StartTest(_index);
+        EnsureRoot();
+
+        if (_runAllRequested)
+        {
+            StartSuite();
+        }
+        else if (_requestedIndex >= 0)
+        {
+            _autoSingle = true;
+            StartTest(_requestedIndex, execute: true);
+        }
+        else
+        {
+            SelectTest(0);
+        }
     }
+
+    private string? _invalidRequest;
+    private int _requestedIndex = -1;
+    private bool _runAllRequested;
 
     public override void _Process(double delta)
     {
+        if (_pendingStartIndex >= 0 &&
+            Time.GetTicksMsec() >= _pendingStartAtMs)
+        {
+            int next = _pendingStartIndex;
+            _pendingStartIndex = -1;
+            StartTest(next, execute: true);
+            return;
+        }
+
         if (_systems is null || _context is null || _runner.Test is null)
             return;
 
@@ -64,7 +111,6 @@ public partial class VisualTestMain : Control
             return;
 
         VisualTestResult? result = _runner.Update(delta);
-
         if (result is { } completed)
         {
             _resultHandled = true;
@@ -72,146 +118,206 @@ public partial class VisualTestMain : Control
             return;
         }
 
-        UpdateHud();
+        UpdateDetail();
     }
 
     public override void _UnhandledInput(InputEvent @event)
     {
-        if (_auto ||
-            @event is not InputEventKey { Pressed: true, Echo: false } key)
-        {
+        if (@event is not InputEventKey { Pressed: true, Echo: false } key)
             return;
-        }
 
         switch (key.Keycode)
         {
-            case Key.Left:
-                SwitchTest(-1);
-                break;
-
-            case Key.Right:
-                SwitchTest(1);
-                break;
-
-            case Key.R:
-                StartTest(_index);
-                break;
-
             case Key.Escape:
                 GetTree().Quit();
+                break;
+            case Key.Left:
+                SelectTest(Mathf.Max(0, _index - 1));
+                break;
+            case Key.Right:
+                SelectTest(Mathf.Min(_tests.Count - 1, _index + 1));
+                break;
+            case Key.R:
+            case Key.Enter:
+                if (!_suiteRunning)
+                    RunTest(_index);
                 break;
         }
     }
 
     public override void _ExitTree()
     {
-        Cleanup();
+        CloseTestOverlays();
     }
 
-    private void StartTest(int index)
+    private void BuildUi()
     {
-        Cleanup();
+        Vector2 window = GetViewportRect().Size;
+        if (window.X <= 0 || window.Y <= 0)
+            window = new Vector2(1920, 1080);
 
-        _index = Mathf.Clamp(index, 0, _tests.Count - 1);
-        _resultHandled = false;
+        _paneSize = new Vector2(
+            Mathf.Max(640, window.X - SidebarWidth),
+            window.Y);
 
-        _entities = new EntityStore();
-        _pointer = new ScriptedPointerInputSource();
-        var keyboard = new ScriptedKeyboardState();
-        _director = new SceneDirector();
-        Vector2 screen = GetViewportRect().Size;
-        if (screen.X <= 0 || screen.Y <= 0)
-            screen = new Vector2(1920, 1080);
-
-        _systems = new WriterSystemRoot(
-            _entities,
-            GetCanvasItem(),
-            _pointer,
-            _director,
-            screen,
-            new KeybindSettings(persist: false),
-            transitions: false,
-            keyboard: keyboard);
-
-        _context = new VisualTestContext(
-            _entities,
-            _systems,
-            screen,
-            this,
-            _pointer,
-            keyboard);
-
-        SceneTest test = _tests[_index];
-
-        try
+        var background = new ColorRect
         {
-            test.Attach(_context);
-            _runner.Start(test);
+            Position = Vector2.Zero,
+            Size = window,
+            Color = new Color("#05070b"),
+            MouseFilter = MouseFilterEnum.Ignore,
+        };
+        AddChild(background);
+
+        var viewportContainer = new SubViewportContainer
+        {
+            Position = new Vector2(SidebarWidth, 0),
+            Size = _paneSize,
+            Stretch = true,
+            MouseFilter = MouseFilterEnum.Ignore,
+        };
+        AddChild(viewportContainer);
+
+        _viewport = new SubViewport
+        {
+            Size = (Vector2I)_paneSize,
+            TransparentBg = false,
+            RenderTargetUpdateMode = SubViewport.UpdateMode.Always,
+            HandleInputLocally = false,
+            GuiDisableInput = true,
+        };
+        viewportContainer.AddChild(_viewport);
+
+        _testHost = new Control
+        {
+            Position = Vector2.Zero,
+            Size = _paneSize,
+            MouseFilter = MouseFilterEnum.Ignore,
+        };
+        _viewport.AddChild(_testHost);
+
+        var sidebar = new ColorRect
+        {
+            Position = Vector2.Zero,
+            Size = new Vector2(SidebarWidth, window.Y),
+            Color = new Color("#0b111b"),
+            MouseFilter = MouseFilterEnum.Stop,
+        };
+        AddChild(sidebar);
+
+        var content = new VBoxContainer
+        {
+            Position = new Vector2(16, 16),
+            Size = new Vector2(SidebarWidth - 32, window.Y - 32),
+            CustomMinimumSize = new Vector2(SidebarWidth - 32, 0),
+        };
+        sidebar.AddChild(content);
+
+        var title = new Label
+        {
+            Text = "SCENE TESTS",
+            CustomMinimumSize = new Vector2(0, 34),
+        };
+        title.AddThemeFontSizeOverride("font_size", 22);
+        content.AddChild(title);
+
+        _runAll = new Button
+        {
+            Text = "RUN ALL",
+            CustomMinimumSize = new Vector2(0, 38),
+        };
+        _runAll.Pressed += StartSuite;
+        content.AddChild(_runAll);
+
+        _summary = new Label
+        {
+            Text = "Ready.",
+            AutowrapMode = TextServer.AutowrapMode.WordSmart,
+            CustomMinimumSize = new Vector2(0, 44),
+        };
+        content.AddChild(_summary);
+
+        var scroll = new ScrollContainer
+        {
+            SizeFlagsVertical = SizeFlags.ExpandFill,
+            HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled,
+        };
+        content.AddChild(scroll);
+
+        _testList = new VBoxContainer
+        {
+            SizeFlagsHorizontal = SizeFlags.ExpandFill,
+        };
+        scroll.AddChild(_testList);
+
+        for (int i = 0; i < _tests.Count; i++)
+        {
+            int index = i;
+            _statuses.Add(TestStatus.Pending);
+            var button = new Button
+            {
+                Text = $"{_tests[index].Name}",
+                Alignment = HorizontalAlignment.Left,
+                CustomMinimumSize = new Vector2(0, 34),
+                FocusMode = FocusModeEnum.None,
+            };
+            button.Pressed += () => OnTestPressed(index);
+            _testButtons.Add(button);
+            _testList.AddChild(button);
         }
-        catch (Exception exception)
+
+        _detail = new Label
         {
-            _resultHandled = true;
-            CompleteTest(VisualTestResult.Fail(exception.Message));
-            GD.PrintErr($"[scene-test:{test.Slug}] start failed: {exception}");
+            Text = "Select a test, then press it again or press Run All.",
+            AutowrapMode = TextServer.AutowrapMode.WordSmart,
+            CustomMinimumSize = new Vector2(0, 180),
+            VerticalAlignment = VerticalAlignment.Top,
+        };
+        content.AddChild(_detail);
+    }
+
+    private void ParseArguments()
+    {
+        string? requested = null;
+        bool exit = false;
+
+        foreach (string argument in OS.GetCmdlineUserArgs())
+        {
+            if (argument.StartsWith("--visual-test=", StringComparison.Ordinal))
+                requested = argument["--visual-test=".Length..];
+            else if (argument == "--visual-test-exit")
+                exit = true;
+        }
+
+        _exitWhenDone = exit;
+        if (requested is null)
+            return;
+
+        if (requested.Equals("all", StringComparison.OrdinalIgnoreCase))
+        {
+            _runAllRequested = true;
             return;
         }
 
-        if (_hudLayer is not null)
-            _hudLayer.Visible = !_auto;
-
-        UpdateHud();
-    }
-
-    private void CompleteTest(VisualTestResult result)
-    {
-        SceneTest? test = _runner.Test;
-        if (test is null)
-            return;
-
-        _runs.Add(new VisualTestRun(test.Name, result.Passed, result.Message));
-
-        GD.Print(
-            $"[scene-test:{test.Slug}] " +
-            $"{(result.Passed ? "PASS" : "FAIL")}: {result.Message}");
-
-        UpdateHud();
-
-        if (!_auto)
-            return;
-
-        if (_runAll && _index + 1 < _tests.Count)
+        for (int i = 0; i < _tests.Count; i++)
         {
-            StartTest(_index + 1);
-            return;
+            if (_tests[i].Slug.Equals(requested, StringComparison.OrdinalIgnoreCase) ||
+                _tests[i].Name.Equals(requested, StringComparison.OrdinalIgnoreCase))
+            {
+                _requestedIndex = i;
+                return;
+            }
         }
 
-        Finish();
+        _invalidRequest = requested;
     }
 
-    private void Finish()
+    private void DisposeCurrentRoot()
     {
-        bool failed = _runs.Exists(static run => !run.Passed);
-        GD.Print(failed ? "Scene tests failed." : "Scene tests passed.");
-        GetTree().Quit(failed ? 1 : 0);
-    }
-
-    private void SwitchTest(int direction)
-    {
-        int next = Mathf.Wrap(_index + direction, 0, _tests.Count);
-        StartTest(next);
-    }
-
-    private void Cleanup()
-    {
-        foreach (Node child in GetChildren())
-        {
-            if (child is Writer.Editor.EditorOverlay overlay)
-                overlay.Close();
-        }
-
+        CloseTestOverlays();
         if (_entities is not null)
         {
-            foreach (Entity entity in _entities.Query<VisualRid>().ToEntityList())
+            foreach (Entity entity in _entities.Entities.ToEntityList())
             {
                 if (!entity.IsNull)
                     entity.DeleteEntity();
@@ -223,144 +329,279 @@ public partial class VisualTestMain : Control
         _entities = null;
         _context = null;
         _pointer = null;
+        _keyboard = null;
         _director = null;
     }
 
-    private void BuildHud()
+    private void EnsureRoot()
     {
-        _hudLayer = new CanvasLayer { Layer = 2000 };
-        AddChild(_hudLayer);
+        if (_systems is not null || _testHost is null)
+            return;
 
-        float height = GetViewportRect().Size.Y;
-        const float sidebarWidth = 320;
+        _entities = new EntityStore();
+        _pointer = new ScriptedPointerInputSource();
+        _keyboard = new ScriptedKeyboardState();
+        _director = new SceneDirector();
 
-        var sidebar = new ColorRect
-        {
-            Position = Vector2.Zero,
-            Size = new Vector2(sidebarWidth, height),
-            Color = new Color(0.02f, 0.03f, 0.06f, 0.9f),
-            MouseFilter = MouseFilterEnum.Ignore,
-        };
-        _hudLayer.AddChild(sidebar);
+        _systems = new WriterSystemRoot(
+            _entities,
+            _testHost.GetCanvasItem(),
+            _pointer,
+            _director,
+            _paneSize,
+            new KeybindSettings(persist: false),
+            transitions: false,
+            keyboard: _keyboard);
 
-        var separator = new ColorRect
-        {
-            Position = new Vector2(sidebarWidth, 0),
-            Size = new Vector2(1, height),
-            Color = new Color(0.25f, 0.33f, 0.45f, 0.9f),
-            MouseFilter = MouseFilterEnum.Ignore,
-        };
-        _hudLayer.AddChild(separator);
-
-        _hud = new Label
-        {
-            Position = new Vector2(16, 16),
-            Size = new Vector2(sidebarWidth - 32, height - 32),
-            MouseFilter = MouseFilterEnum.Ignore,
-            AutowrapMode = TextServer.AutowrapMode.WordSmart,
-        };
-
-        _hud.AddThemeFontSizeOverride("font_size", 13);
-        _hud.AddThemeColorOverride("font_color", new Color("#e2e8f0"));
-        _hud.AddThemeColorOverride("font_outline_color", new Color("#020617"));
-        _hud.AddThemeConstantOverride("outline_size", 3);
-        _hudLayer.AddChild(_hud);
+        _context = new VisualTestContext(
+            _entities,
+            _systems,
+            _paneSize,
+            _testHost,
+            _pointer,
+            _keyboard);
     }
 
-    private void ParseArguments()
+    private void OnTestPressed(int index)
     {
-        string? requested = null;
-
-        foreach (string argument in OS.GetCmdlineUserArgs())
-        {
-            if (argument.StartsWith("--visual-test=", StringComparison.Ordinal))
-                requested = argument["--visual-test=".Length..];
-            else if (argument == "--visual-test-exit")
-                _auto = true;
-        }
-
-        if (requested is null)
+        if (_suiteRunning)
             return;
 
-        if (requested.Equals("all", StringComparison.OrdinalIgnoreCase))
+        if (index != _index)
         {
-            _runAll = true;
-            _auto = true;
-            _index = 0;
+            SelectTest(index);
             return;
         }
 
-        for (int i = 0; i < _tests.Count; i++)
+        RunTest(index);
+    }
+
+    private void SelectTest(int index)
+    {
+        if (index < 0 || index >= _tests.Count || _suiteRunning)
+            return;
+
+        _index = index;
+        _autoSingle = false;
+        _resultHandled = false;
+        _runner.Clear();
+        DisposeCurrentRoot();
+        EnsureRoot();
+
+        SceneTest test = _tests[_index];
+        test.Attach(_context!);
+        _statuses[_index] = TestStatus.Pending;
+        UpdateButtons();
+        _summary!.Text = $"{test.Name} selected. Press again to run.";
+        _detail!.Text = "Selected. Press the row again or press R to run it.";
+    }
+
+    private void RunTest(int index)
+    {
+        if (_suiteRunning || index < 0 || index >= _tests.Count)
+            return;
+
+        _autoSingle = true;
+        StartTest(index, execute: true);
+    }
+
+    private void StartSuite()
+    {
+        if (_suiteRunning || _testList is null)
+            return;
+
+        _suiteRunning = true;
+        _autoSingle = false;
+        _runAll!.Disabled = true;
+
+        for (int i = 0; i < _statuses.Count; i++)
+            _statuses[i] = TestStatus.Pending;
+
+        UpdateButtons();
+        _summary!.Text = $"Running all {_tests.Count} tests...";
+        StartTest(0, execute: true);
+    }
+
+    private void StartTest(int index, bool execute)
+    {
+        if (index < 0 || index >= _tests.Count)
+            return;
+
+        _index = index;
+        _resultHandled = false;
+        _pendingStartIndex = -1;
+        _runner.Clear();
+        DisposeCurrentRoot();
+        EnsureRoot();
+
+        SceneTest test = _tests[_index];
+        test.Attach(_context!);
+
+        if (execute)
         {
-            if (_tests[i].Slug.Equals(requested, StringComparison.OrdinalIgnoreCase) ||
-                _tests[i].Name.Equals(requested, StringComparison.OrdinalIgnoreCase))
+            _statuses[_index] = TestStatus.Running;
+            _runner.Start(test);
+            }
+        else
+        {
+            _statuses[_index] = TestStatus.Pending;
+        }
+
+        UpdateButtons();
+        UpdateDetail();
+    }
+
+    private void CompleteTest(VisualTestResult result)
+    {
+        SceneTest? test = _runner.Test;
+        if (test is null || _index < 0 || _index >= _tests.Count)
+            return;
+
+        _statuses[_index] = result.Passed ? TestStatus.Passed : TestStatus.Failed;
+        UpdateButtons();
+        UpdateDetail();
+
+        GD.Print(
+            $"[scene-test:{test.Slug}] " +
+            $"{(result.Passed ? "PASS" : "FAIL")}: {result.Message}");
+
+        if (_suiteRunning)
+        {
+            if (_index + 1 < _tests.Count)
             {
-                _index = i;
+                _pendingStartIndex = _index + 1;
+                _pendingStartAtMs = Time.GetTicksMsec() + 150;
                 return;
             }
+
+            FinishSuite();
+            return;
         }
 
-        _invalidRequest = requested;
+        if (_autoSingle)
+        {
+            _autoSingle = false;
+            _summary!.Text =
+                $"{(result.Passed ? "PASS" : "FAIL")}: {test.Name}";
+            if (_exitWhenDone)
+            {
+                PrintSummary();
+                GetTree().Quit(result.Passed ? 0 : 1);
+            }
+        }
     }
 
-    private void UpdateHud()
+    private void FinishSuite()
     {
-        if (_hud is null)
+        _suiteRunning = false;
+        _runAll!.Disabled = false;
+        int passed = 0;
+        foreach (TestStatus status in _statuses)
+        {
+            if (status == TestStatus.Passed)
+                passed++;
+        }
+
+        _summary!.Text = $"Stopped. {passed}/{_tests.Count} passed.";
+        PrintSummary();
+
+        if (_exitWhenDone)
+            GetTree().Quit(passed == _tests.Count ? 0 : 1);
+    }
+
+    private void PrintSummary()
+    {
+        bool failed = _statuses.Contains(TestStatus.Failed);
+        GD.Print(failed ? "Scene tests failed." : "Scene tests passed.");
+    }
+
+    private void UpdateButtons()
+    {
+        for (int i = 0; i < _testButtons.Count; i++)
+        {
+            Button button = _testButtons[i];
+            button.Text = DisplayText(i);
+            button.Disabled = _suiteRunning;
+            button.AddThemeColorOverride(
+                "font_color",
+                _statuses[i] switch
+                {
+                    TestStatus.Running => new Color("#facc15"),
+                    TestStatus.Passed => new Color("#4ade80"),
+                    TestStatus.Failed => new Color("#f87171"),
+                    _ => new Color("#cbd5e1"),
+                });
+        }
+    }
+
+    private string DisplayText(int index)
+    {
+        string marker = _statuses[index] switch
+        {
+            TestStatus.Running => ">",
+            TestStatus.Passed => "+",
+            TestStatus.Failed => "!",
+            _ => " ",
+        };
+
+        string selected = index == _index ? ">" : " ";
+        return $"{marker}{selected} {_tests[index].Name}";
+    }
+
+    private void UpdateDetail()
+    {
+        if (_detail is null)
             return;
 
         SceneTest? test = _runner.Test;
-
         if (test is null)
-        {
-            _hud.Text = "SCENE TESTS\nNo test loaded";
             return;
-        }
 
         var lines = new List<string>
         {
-            $"SCENE TESTS  {_index + 1}/{_tests.Count}",
+            test.Name,
             "",
         };
-
-        for (int i = 0; i < _tests.Count; i++)
-            lines.Add($"{(i == _index ? ">" : " ")} {_tests[i].Name}");
-
-        lines.Add("");
-        lines.Add("STEPS");
 
         foreach (SceneTestStep step in test.Steps)
         {
             string marker = step.State switch
             {
-                SceneTestStepState.Running => "[>]",
+                SceneTestStepState.Running => ">",
                 SceneTestStepState.Passed => "[x]",
                 SceneTestStepState.Failed => "[!]",
                 _ => "[ ]",
             };
-
             lines.Add($"{marker} {step.Description}");
         }
 
-        lines.Add("");
-
         if (_runner.Result is { } result)
         {
-            lines.Add(
-                $"{(result.Passed ? "PASS" : "FAIL")}  {result.Message}");
+            lines.Add("");
+            lines.Add($"{(result.Passed ? "PASS" : "FAIL")}  {result.Message}");
         }
         else
         {
+            lines.Add("");
             lines.Add("RUNNING...");
         }
 
-        lines.Add("");
-        lines.Add("LEFT/RIGHT  switch");
-        lines.Add("R           rerun");
-        lines.Add("Esc         quit");
+        _detail.Text = string.Join("\n", lines);
+    }
 
-        string text = string.Join("\n", lines);
-        if (_hud.Text != text)
-            _hud.Text = text;
+    private void CloseTestOverlays()
+    {
+        if (_testHost is null)
+            return;
+
+        foreach (Node child in _testHost.GetChildren())
+        {
+            if (child is EditorOverlay overlay)
+            {
+                overlay.Close();
+                overlay.QueueFree();
+            }
+        }
     }
 
     private void PrintTestList()
@@ -370,9 +611,4 @@ public partial class VisualTestMain : Control
         foreach (SceneTest test in _tests)
             GD.Print($"  {test.Slug}  {test.Name}");
     }
-
-    private readonly record struct VisualTestRun(
-        string Name,
-        bool Passed,
-        string Message);
 }

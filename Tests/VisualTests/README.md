@@ -39,14 +39,19 @@ GODOT=/path/to/Godot_v4.8-dev7_mono_linux.x86_64
   --visual-test=all --visual-test-exit
 ```
 
+The left sidebar is clickable and lists every test with its result. The right
+side is a real `SubViewport` test pane. `RUN ALL` walks the suite, continuing
+past failures. Finishing a suite stops the run but leaves the window open;
+`--visual-test-exit` is the CI-only exit switch.
+
 Interactive controls:
 
-- `Left` / `Right` — switch test
-- `R` — rerun current test
+- `RUN ALL` — run every test and mark each row
+- click a row once — select it
+- click the selected row again — run just that test
+- `Left` / `Right` — change selection
+- `R` / `Enter` — run the selected test
 - `Esc` — quit
-
-The left sidebar lists every test, marks the current one with `>`, and shows
-every step as `pending`, `running`, `passed`, or `failed`.
 
 ## Current tests
 
@@ -85,9 +90,8 @@ GODOT_BIN=/path/to/Godot_v4.8-dev7_mono_linux.x86_64 \
   dotnet test Writer.sln --filter NUnitIntegrationTests
 ```
 
-The wrapper runs each scene in its own Godot process. A single
-`--visual-test=all` process is not used yet because the in-process runner
-currently truncates after several sequential scene tests.
+The wrapper runs each scene in its own Godot process. The in-process
+`--visual-test=all` suite now runs all scenes reliably as well.
 
 Recommended split:
 
