@@ -222,6 +222,49 @@ public sealed class EditorMetadataSceneTest : SceneTest
             () => Context.Entities.Query<TextField>()
                 .AllTags(Tags.Get<TextFieldFocused>())
                 .Count == 1);
+
+        AddStep("create and select a start point", () =>
+        {
+            Entity editor = Context.Entities.Query<PlayfieldView>()
+                .ToEntityList()[0];
+            Entity start = Context.Entities.CreateEntity(new StartPoint(
+                "Test",
+                2_000,
+                new Vector2(500, 500),
+                System.Numerics.Vector2.Zero,
+                new Vector2(0, -1)));
+            editor.GetComponent<NoteSelection>().Note = start;
+        });
+        AddUntilStep(
+            "wait for start panel",
+            () => Context.Entities.Query<EditorStartPanel>().ToEntityList()[0]
+                .GetComponent<EditorStartPanel>().Visible);
+
+        AddStep("click start time field", () =>
+        {
+            foreach (Entity entity in Context.Entities
+                         .Query<EditorField>()
+                         .ToEntityList())
+            {
+                if (entity.GetComponent<EditorField>().Kind !=
+                    EditorFieldKind.StartTime)
+                {
+                    continue;
+                }
+
+                Context.Pointer.Click(UiTransform.WorldPosition(
+                    entity,
+                    entity.GetComponent<Position>().Value));
+                return;
+            }
+        });
+        AddWaitStep("hold start time field", 2);
+        AddStep("release start time field", () => Context.Pointer.Release());
+        AddUntilStep(
+            "start time field focused",
+            () => Context.Entities.Query<TextField>()
+                .AllTags(Tags.Get<TextFieldFocused>())
+                .Count == 1);
     }
 }
 

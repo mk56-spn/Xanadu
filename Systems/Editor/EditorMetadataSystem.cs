@@ -109,13 +109,13 @@ public sealed class EditorMetadataSystem : QuerySystem<EditorMetadataPanel>
                     EditorFieldKind.Offset => playhead.OffsetMs.ToString(),
                     EditorFieldKind.StartTime => hasStart
                         ? start.TimeMs.ToString()
-                        : "—",
+                        : "",
                     EditorFieldKind.StartMomentumX => hasStart
                         ? start.Momentum.X.ToString("0.###", CultureInfo.InvariantCulture)
-                        : "—",
+                        : "",
                     EditorFieldKind.StartMomentumY => hasStart
                         ? start.Momentum.Y.ToString("0.###", CultureInfo.InvariantCulture)
-                        : "—",
+                        : "",
                     _ => "",
                 };
                 if (field.Value != expected)
