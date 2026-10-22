@@ -17,6 +17,7 @@ public partial class Main : Control
 	private GodotPointerInputSource? _pointer;
 	private SceneDirector? _sceneDirector;
 	private EditorOverlay? _editorOverlay;
+	private OffsetWizardOverlay? _offsetWizard;
 
 	public override void _Ready()
 	{
@@ -152,6 +153,10 @@ public partial class Main : Control
 
 		if (scene == SceneKind.Editor)
 		{
+			_systems?.EditorHistory.Clear();
+			_offsetWizard?.Close();
+			_offsetWizard = null;
+
 			if (_editorOverlay is not null)
 				return;
 
@@ -165,11 +170,26 @@ public partial class Main : Control
 			return;
 		}
 
-		if (_editorOverlay is null)
-			return;
+		if (_editorOverlay is not null)
+		{
+			_editorOverlay.Close();
+			_editorOverlay = null;
+		}
 
-		_editorOverlay.Close();
-		_editorOverlay = null;
+		if (scene == SceneKind.OffsetWizard)
+		{
+			if (_offsetWizard is not null)
+				return;
+
+			_offsetWizard = new OffsetWizardOverlay(
+				_systems!.Offsets,
+				() => _systems?.Scenes.TryBack());
+			AddChild(_offsetWizard);
+			return;
+		}
+
+		_offsetWizard?.Close();
+		_offsetWizard = null;
 	}
 
 	public override void _Process(double delta)
@@ -185,6 +205,8 @@ public partial class Main : Control
 
 		_editorOverlay?.Close();
 		_editorOverlay = null;
+		_offsetWizard?.Close();
+		_offsetWizard = null;
 		_systems?.Dispose();
 		_systems = null;
 	}

@@ -18,14 +18,15 @@ public sealed class PlayfieldSystemGroup : SystemGroup
         Rid playfieldCanvas,
         ITrackAudio audio,
         KeybindSettings keybinds,
-        IKeyboardState keyboard) : base("Playfield")
+        IKeyboardState keyboard,
+        OffsetSettings offsets) : base("Playfield")
     {
         Add(new PlayfieldPlaybackSystem(audio));
         Add(new PlaySessionSystem(audio));
         Add(new PlayerMovementSystem(entities, keybinds, keyboard));
         Add(new PlayerArenaSystem());
         Add(new PlayKeyTrailSystem(entities, keybinds, keyboard));
-        Add(new PlayNoteInputSystem(entities, keybinds, keyboard));
+        Add(new PlayNoteInputSystem(entities, keybinds, keyboard, offsets));
         Add(new HitTrailSystem());
         Add(new PlayScoreSystem());
         Add(new PlayfieldDrawSystem(entities, canvas, playfieldCanvas));

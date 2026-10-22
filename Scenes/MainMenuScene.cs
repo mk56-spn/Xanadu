@@ -59,6 +59,15 @@ public static class MainMenuScene
             20,
             SceneUi.MutedButtonColor);
 
+        SceneUi.Button(
+            ui,
+            new Vector2(screen.X / 2, 580),
+            new Vector2(360, 50),
+            "OFFSET WIZARD",
+            SceneKind.OffsetWizard,
+            17,
+            SceneUi.MutedButtonColor);
+
         SceneUi.Text(
             ui,
             new Vector2(screen.X / 2, screen.Y - 40),

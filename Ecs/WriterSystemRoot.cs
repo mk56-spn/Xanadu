@@ -44,6 +44,8 @@ public sealed class WriterSystemRoot : SystemRoot, IDisposable
 
     public ToastSystem Toasts { get; }
 
+    public OffsetSettings Offsets { get; }
+
     public WriterSystemRoot(
         EntityStore entities,
         Rid parentCanvas,
@@ -63,6 +65,7 @@ public sealed class WriterSystemRoot : SystemRoot, IDisposable
             entities,
             viewportSize,
             new GodotVisualRidFactory());
+        Offsets = new OffsetSettings();
 
         // Register the keybind component archetype before the first runtime
         // Settings build; first-time component registration during scene
@@ -103,7 +106,8 @@ public sealed class WriterSystemRoot : SystemRoot, IDisposable
             _playfield,
             _playfieldAudio,
             Keybinds,
-            new GodotKeyboardState()));
+            new GodotKeyboardState(),
+            Offsets));
         _editorSystems = new EditorSystemGroup(
             entities,
             Commands,
