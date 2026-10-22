@@ -181,6 +181,18 @@ public sealed class EditorDropdownSystem : QuerySystem<Dropdown>
             return;
 
         ref Position position = ref dropdown.List.GetComponent<Position>();
+        ref Rectangle rectangle = ref dropdown.List.GetComponent<Rectangle>();
+        Vector2 targetSize = dropdown.Open
+            ? (dropdown.ListSize == Vector2.Zero
+                ? rectangle.Bounds.Size
+                : dropdown.ListSize)
+            : Vector2.Zero;
+        if (rectangle.Bounds.Size != targetSize)
+        {
+            rectangle.Bounds = new Rect2(rectangle.Bounds.Position, targetSize);
+            buffer.AddTag<Dirty>(dropdown.List.Id);
+        }
+
         if (!dropdown.Open)
         {
             position.Value = HiddenList;
@@ -189,7 +201,7 @@ public sealed class EditorDropdownSystem : QuerySystem<Dropdown>
         {
             ref Position buttonPosition = ref button.GetComponent<Position>();
             float buttonHeight = button.GetComponent<Rectangle>().Bounds.Size.Y;
-            float listHeight = dropdown.List.GetComponent<Rectangle>().Bounds.Size.Y;
+            float listHeight = targetSize.Y;
 
             position.Value = buttonPosition.Value + new Vector2(
                 0,
@@ -206,6 +218,17 @@ public sealed class EditorDropdownSystem : QuerySystem<Dropdown>
 
         ref Position position = ref list.GetComponent<Position>();
         position.Value = HiddenList;
+        if (list.HasComponent<Rectangle>())
+        {
+            ref Rectangle rectangle = ref list.GetComponent<Rectangle>();
+            if (rectangle.Bounds.Size != Vector2.Zero)
+            {
+                rectangle.Bounds = new Rect2(
+                    rectangle.Bounds.Position,
+                    Vector2.Zero);
+                buffer.AddTag<Dirty>(list.Id);
+            }
+        }
         buffer.AddTag<Moved>(list.Id);
     }
 

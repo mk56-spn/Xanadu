@@ -503,7 +503,7 @@ public static class EditorScene
         float listHeight = labels.Length * 30 + 6;
         Entity list = ui.RectEntity(
             new Vector2(-10_000, -10_000),
-            new Vector2(width, listHeight),
+            Vector2.Zero,
             new Color(0, 0, 0, 0),
             takesInput: true);
 
@@ -520,7 +520,10 @@ public static class EditorScene
             option.AddComponent(new DropdownOption(button, i));
         }
 
-        button.AddComponent(new Dropdown(list, selected));
+        button.AddComponent(new Dropdown(
+            list,
+            selected,
+            new Vector2(width, listHeight)));
         button.AddComponent(new EditorDropdownControl(kind));
         return button;
     }

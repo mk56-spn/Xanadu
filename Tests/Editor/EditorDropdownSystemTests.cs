@@ -51,6 +51,9 @@ public sealed class EditorDropdownSystemTests
         Assert.That(
             option.GetComponent<Position>().Value,
             Is.EqualTo(new Vector2(800, 299)));
+        Assert.That(
+            list.GetComponent<Rectangle>().Bounds.Size,
+            Is.EqualTo(new Vector2(190, 96)));
 
         button.RemoveTag<Pressed>();
         root.Update(new UpdateTick(1f / 60f, 0));
@@ -60,6 +63,9 @@ public sealed class EditorDropdownSystemTests
 
         Assert.That(button.GetComponent<Dropdown>().Selected, Is.EqualTo(2));
         Assert.That(button.GetComponent<Dropdown>().Open, Is.False);
+        Assert.That(
+            list.GetComponent<Rectangle>().Bounds.Size,
+            Is.EqualTo(Vector2.Zero));
         Assert.That(commands.TryDequeue(out EditorCommand command), Is.True);
         Assert.That(command.Type, Is.EqualTo(EditorCommandType.SetSnap));
         Assert.That(command.IntValue, Is.EqualTo(16));
