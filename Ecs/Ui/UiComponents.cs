@@ -124,3 +124,10 @@ public struct ScrollView(
     public float Offset;
 }
 
+
+/// <summary>Anchors a drawable to normalized points on its parent's bounds.</summary>
+public struct UiAnchor(Vector2 anchor, Vector2 pivot) : IComponent
+{
+    public Vector2 Anchor = anchor;
+    public Vector2 Pivot = pivot;
+}

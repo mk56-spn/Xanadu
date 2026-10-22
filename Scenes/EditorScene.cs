@@ -447,7 +447,7 @@ public static class EditorScene
         ui.End();
         ui.End();
 
-        float middleHeight = screen.Y - EditorLayout.HeaderHeight - 170;
+        float middleHeight = screen.Y - EditorLayout.HeaderHeight;
         ui.Container(
             Vector2.Zero,
             new Vector2(screen.X, middleHeight),
@@ -469,10 +469,15 @@ public static class EditorScene
 
         ui.Container(
             Vector2.Zero,
-            new Vector2(screen.X, 170),
+            new Vector2(screen.X, 200),
             StackDirection.Vertical,
             spacing: 0,
             color: new Color(0, 0, 0, 0));
+        Entity footer = ui.Current;
+        footer.AddTag<LayoutIgnore>();
+        footer.AddComponent(new UiAnchor(
+            new Vector2(0.5f, 1f),
+            new Vector2(0.5f, 1f)));
         float[] widths = { 64, 64, 108, 108 };
         string[] labels = { "▶", "■", "Preview", "Click Off" };
         EditorButtonKind[] kinds =
@@ -502,7 +507,7 @@ public static class EditorScene
         }
         ui.RectEntity(
             Vector2.Zero,
-            new Vector2(1, 128),
+            new Vector2(1, 158),
             new Color(0, 0, 0, 0));
         ui.End();
         ui.End();

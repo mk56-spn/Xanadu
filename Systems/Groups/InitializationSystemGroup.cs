@@ -12,6 +12,7 @@ public sealed class InitializationSystemGroup : SystemGroup
     {
         Add(new LayerParentSystem(parentCanvas));
         Add(new ContainerLayoutSystem());
+        Add(new UiAnchorSystem());
         Add(new DrawableInitialiseSystem());
     }
 }
