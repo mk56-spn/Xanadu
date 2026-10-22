@@ -1,3 +1,4 @@
+using System.Linq;
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using Godot;
@@ -229,6 +230,35 @@ public sealed class EditorMetadataSceneTest : SceneTest
             () => Context.Entities.Query<TextField>()
                 .AllTags(Tags.Get<TextFieldFocused>())
                 .Count == 1);
+
+        AddStep("click beat offset field", () =>
+        {
+            foreach (Entity entity in Context.Entities
+                         .Query<EditorField>()
+                         .ToEntityList())
+            {
+                if (entity.GetComponent<EditorField>().Kind !=
+                    EditorFieldKind.Offset)
+                {
+                    continue;
+                }
+
+                Context.Pointer.Click(UiTransform.WorldPosition(
+                    entity,
+                    entity.GetComponent<Position>().Value));
+                return;
+            }
+        });
+        AddWaitStep("hold beat offset field", 2);
+        AddStep("release beat offset field", () => Context.Pointer.Release());
+        AddUntilStep(
+            "beat offset field focused",
+            () => Context.Entities.Query<TextField>()
+                .AllTags(Tags.Get<TextFieldFocused>())
+                .ToEntityList()
+                .Any(field => field.HasComponent<EditorField>() &&
+                    field.GetComponent<EditorField>().Kind ==
+                    EditorFieldKind.Offset));
 
         AddStep("create and select a start point", () =>
         {

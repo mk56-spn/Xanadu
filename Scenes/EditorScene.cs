@@ -166,7 +166,7 @@ public static class EditorScene
             PreviewHome = new Vector2(screen.X / 2, 24),
         });
 
-        UiBuilder panelUi = SceneUi.Layer(entities, root, 946);
+        UiBuilder panelUi = SceneUi.Layer(entities, root, 947);
         Vector2 home = new(
             screen.X - 24 - 190,
             EditorLayout.HeaderHeight + 8 + 155);
