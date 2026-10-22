@@ -202,21 +202,22 @@ public sealed class EditorPlayfieldDrawSystem :
         float labelX = Mathf.Clamp(
             x + 4,
             ruler.Position.X + 2,
-            ruler.End.X - 92);
+            ruler.End.X - 20);
         var labelBounds = new Rect2(
             labelX,
             ruler.Position.Y + 2,
-            88,
-            18);
+            18,
+            Mathf.Max(ruler.Size.Y - 4, label.Length * 11));
         _canvas.DrawRect(
             _editor,
             labelBounds,
             new Color(0.04f, 0.06f, 0.1f, 0.85f));
-        _canvas.DrawTextLeft(
+        _canvas.DrawTextVertical(
             _editor,
             labelBounds,
             label,
-            PlayfieldRenderer.SelectedNoteColor);
+            PlayfieldRenderer.SelectedNoteColor,
+            11);
     }
 
     private void DrawBeatBands(

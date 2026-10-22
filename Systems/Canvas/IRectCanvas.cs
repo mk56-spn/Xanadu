@@ -54,6 +54,33 @@ public interface IRectCanvas
 
     void DrawTextRight(Rid canvas, Rect2 bounds, string text, Color color);
 
+    /// <summary>Draws vertically oriented text.</summary>
+    void DrawTextVertical(
+        Rid canvas,
+        Rect2 bounds,
+        string text,
+        Color color,
+        int fontSize)
+    {
+        if (string.IsNullOrEmpty(text))
+            return;
+
+        float cellHeight = bounds.Size.Y / text.Length;
+        for (int i = 0; i < text.Length; i++)
+        {
+            DrawTextStyledLeft(
+                canvas,
+                new Rect2(
+                    bounds.Position.X,
+                    bounds.Position.Y + cellHeight * i,
+                    bounds.Size.X,
+                    cellHeight),
+                text[i].ToString(),
+                color,
+                fontSize);
+        }
+    }
+
     /// <summary>Draws left-aligned text with an explicit font size.</summary>
     void DrawTextStyledLeft(
         Rid canvas,

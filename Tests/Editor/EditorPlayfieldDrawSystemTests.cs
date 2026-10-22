@@ -293,6 +293,14 @@ public sealed class EditorPlayfieldDrawSystemTests
         public void DrawTextLeft(Rid canvas, Rect2 bounds, string text, Color color) =>
             Texts.Add(text);
 
+        public void DrawTextVertical(
+            Rid canvas,
+            Rect2 bounds,
+            string text,
+            Color color,
+            int fontSize) =>
+            Texts.Add(text);
+
         public void DrawTextRight(Rid canvas, Rect2 bounds, string text, Color color) { }
 
         public readonly record struct RectCall(
