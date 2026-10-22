@@ -500,6 +500,10 @@ public static class EditorScene
                 kinds[i],
                 fontSize: i < 2 ? 18 : 14);
         }
+        ui.RectEntity(
+            Vector2.Zero,
+            new Vector2(1, 98),
+            new Color(0, 0, 0, 0));
         ui.End();
         ui.End();
 

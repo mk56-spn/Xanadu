@@ -135,6 +135,69 @@ public sealed class ContainerLayoutSystemTests
             Is.EqualTo(UiLayout.Hidden));
     }
 
+    [Test]
+    public void NestedHeaderMiddleFooterRegionsLayoutInOrder()
+    {
+        Entity root = _store.CreateEntity(
+            new Rectangle(new Rect2(-200, -150, 400, 300)),
+            new Position(new Vector2(200, 150)),
+            new UiContainer(
+                StackDirection.Vertical,
+                spacing: 10,
+                padding: 10,
+                cross: StackCrossAlignment.Start),
+            Tags.Get<LayoutDirty>());
+        Entity header = AddNestedContainer(
+            root, StackDirection.Horizontal, new Vector2(380, 60), spacing: 5);
+        Entity middle = AddNestedContainer(
+            root, StackDirection.Horizontal, new Vector2(380, 160));
+        Entity footer = AddNestedContainer(
+            root, StackDirection.Vertical, new Vector2(380, 40));
+
+        Entity title = AddChild(header, new Vector2(100, 20));
+        Entity menu = AddChild(header, new Vector2(100, 20));
+        Entity field = AddChild(middle, new Vector2(200, 120));
+        Entity sidebar = AddChild(middle, new Vector2(160, 120));
+        Entity transport = AddChild(footer, new Vector2(380, 30));
+
+        Frame();
+
+        Assert.That(header.GetComponent<Position>().Value,
+            Is.EqualTo(new Vector2(0, -110)));
+        Assert.That(middle.GetComponent<Position>().Value,
+            Is.EqualTo(new Vector2(0, 10)));
+        Assert.That(footer.GetComponent<Position>().Value,
+            Is.EqualTo(new Vector2(0, 120)));
+
+        Assert.That(title.GetComponent<Position>().Value.X,
+            Is.EqualTo(-52.5f));
+        Assert.That(menu.GetComponent<Position>().Value.X,
+            Is.EqualTo(52.5f));
+        Assert.That(field.GetComponent<Position>().Value.X,
+            Is.EqualTo(-80));
+        Assert.That(sidebar.GetComponent<Position>().Value.X,
+            Is.EqualTo(100));
+        Assert.That(transport.GetComponent<Position>().Value.Y,
+            Is.EqualTo(0));
+        Assert.That(root.GetComponent<Rectangle>().Bounds.Size,
+            Is.EqualTo(new Vector2(400, 300)));
+    }
+
+    private Entity AddNestedContainer(
+        Entity parent,
+        StackDirection direction,
+        Vector2 size,
+        float spacing = 0)
+    {
+        Entity container = _store.CreateEntity(
+            new Rectangle(new Rect2(-size / 2, size)),
+            new Position(Vector2.Zero),
+            new UiContainer(direction, spacing),
+            Tags.Get<LayoutDirty>());
+        parent.AddChild(container);
+        return container;
+    }
+
     private Entity AddContainer(StackDirection direction, float spacing) =>
         _store.CreateEntity(
             new Rectangle(new Rect2(-100, -50, 200, 100)),
