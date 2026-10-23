@@ -20,6 +20,7 @@ public sealed class InputSystemGroup : SystemGroup
         : base("Input")
     {
         Add(new InputSystem(pointerInput));
+        Add(new TextFieldFocusSystem());
         Add(scroll);
         Add(new ToggleSystem());
         Add(new VSyncToggleSystem(display));

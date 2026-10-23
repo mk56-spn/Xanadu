@@ -18,6 +18,7 @@ public partial class UiShowcase : Control
     private EntityStore _store = null!;
     private SystemRoot _root = null!;
     private ShowcasePointer _pointer = null!;
+    private ScrollSystem _scroll = null!;
     private Entity _sliderTrack;
     private Entity _sliderFill;
     private Entity _sliderLabel;
@@ -40,6 +41,10 @@ public partial class UiShowcase : Control
         _root.Add(new GradientDrawSystem(canvas));
         _root.Add(new TextDrawSystem(canvas));
         _root.Add(new ImageDrawSystem(canvas));
+        _root.Add(new InputSystem(_pointer));
+        _scroll = new ScrollSystem();
+        _root.Add(_scroll);
+        _root.Add(new ButtonVisualSystem());
         _root.Add(new ShowcaseSliderSystem(this));
 
         Build();
@@ -50,6 +55,20 @@ public partial class UiShowcase : Control
     {
         float time = (float)Time.GetTicksMsec() / 1000f;
         _root.Update(new UpdateTick((float)delta, time));
+    }
+
+    public override void _UnhandledInput(InputEvent @event)
+    {
+        if (@event is InputEventMouseButton
+            {
+                Pressed: true,
+                ButtonIndex: MouseButton.WheelUp or MouseButton.WheelDown,
+            } wheel)
+        {
+            _scroll.Request(
+                GetViewport().GetMousePosition(),
+                wheel.ButtonIndex == MouseButton.WheelUp ? -1 : 1);
+        }
     }
 
     private void Build()

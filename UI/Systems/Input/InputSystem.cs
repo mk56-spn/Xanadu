@@ -18,7 +18,6 @@ public sealed class InputSystem : QuerySystem<Rectangle, Drawable, Position>
 
     private Entity? _pressed;
     private Entity? _hovered;
-    private Entity? _focusedTextField;
     private bool _wasPressed;
 
     public InputSystem(IPointerInputSource source)
@@ -89,22 +88,6 @@ public sealed class InputSystem : QuerySystem<Rectangle, Drawable, Position>
                 buffer.AddTag<Pressed>(pressed.Id);
                 _pressed = pressed;
 
-                if (pressed.HasComponent<TextField>())
-                {
-                    if (_focusedTextField is { } previousField &&
-                        previousField.Id != pressed.Id)
-                    {
-                        buffer.RemoveTag<TextFieldFocused>(previousField.Id);
-                    }
-
-                    buffer.AddTag<TextFieldFocused>(pressed.Id);
-                    _focusedTextField = pressed;
-                }
-                else if (_focusedTextField is { } previousFieldTarget)
-                {
-                    buffer.RemoveTag<TextFieldFocused>(previousFieldTarget.Id);
-                    _focusedTextField = null;
-                }
             }
         }
         else if (!input.Pressed && _wasPressed)
