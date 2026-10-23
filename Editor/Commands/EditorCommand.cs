@@ -21,6 +21,8 @@ public enum EditorCommandType
     LoadSong,
     LoadSongById,
     DeleteSelection,
+    CopySelection,
+    PasteSelection,
     SetTarget,
     MoveSelection,
     ZoomTimeline,
@@ -82,6 +84,12 @@ public readonly record struct EditorCommand(
 
     public static EditorCommand DeleteSelection() =>
         new(EditorCommandType.DeleteSelection);
+
+    public static EditorCommand CopySelection() =>
+        new(EditorCommandType.CopySelection);
+
+    public static EditorCommand PasteSelection() =>
+        new(EditorCommandType.PasteSelection);
 
     public static EditorCommand SetTarget(KeybindAction action) =>
         new(EditorCommandType.SetTarget, IntValue: (int)action);

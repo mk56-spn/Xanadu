@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System;
+using System.Linq;
 using System.IO;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
@@ -18,6 +19,7 @@ public sealed class EditorCommandSystem :
     private readonly EntityStore _entities;
     private readonly EditorCommandBus _commands;
     private readonly EditorHistory _history;
+    private readonly List<ClipboardItem> _clipboard = new();
 
     public EditorCommandSystem(
         EntityStore entities,
@@ -134,6 +136,14 @@ public sealed class EditorCommandSystem :
 
             case EditorCommandType.DeleteSelection:
                 DeleteSelection(editor);
+                break;
+
+            case EditorCommandType.CopySelection:
+                CopySelection(editor);
+                break;
+
+            case EditorCommandType.PasteSelection:
+                PasteSelection(editor, ref playhead);
                 break;
 
             case EditorCommandType.SetTarget:
@@ -358,6 +368,78 @@ public sealed class EditorCommandSystem :
         _history.Record(before, _history.Capture());
     }
 
+    private void CopySelection(Entity editor)
+    {
+        if (!editor.HasComponent<NoteSelection>())
+            return;
+
+        _clipboard.Clear();
+        foreach (Entity entity in editor.GetComponent<NoteSelection>().AllNotes)
+        {
+            if (entity.IsNull || !entity.Tags.Has<EditorItem>())
+                continue;
+
+            if (entity.HasComponent<Note>())
+            {
+                Note note = entity.GetComponent<Note>();
+                _clipboard.Add(new ClipboardItem(note.TimeMs, note, null, null));
+            }
+            else if (entity.HasComponent<Mine>())
+            {
+                Mine mine = entity.GetComponent<Mine>();
+                _clipboard.Add(new ClipboardItem(mine.TimeMs, null, mine, null));
+            }
+            else if (entity.HasComponent<StartPoint>())
+            {
+                StartPoint start = entity.GetComponent<StartPoint>();
+                _clipboard.Add(new ClipboardItem(start.TimeMs, null, null, start));
+            }
+        }
+    }
+
+    private void PasteSelection(Entity editor, ref Playhead playhead)
+    {
+        if (_clipboard.Count == 0 || !editor.HasComponent<NoteSelection>())
+            return;
+
+        long anchor = _clipboard.Min(item => item.TimeMs);
+        long target = Math.Max(0, playhead.TimeMs);
+        long maxTime = playhead.DurationMs > 0
+            ? playhead.DurationMs
+            : long.MaxValue;
+        var before = _history.Capture();
+        var created = new List<Entity>();
+
+        foreach (ClipboardItem item in _clipboard)
+        {
+            long time = Math.Clamp(
+                target + (item.TimeMs - anchor),
+                0,
+                maxTime);
+            if (item.Note is { } note)
+            {
+                note.TimeMs = time;
+                created.Add(EditorItems.Create(_entities, note));
+            }
+            else if (item.Mine is { } mine)
+            {
+                mine.TimeMs = time;
+                created.Add(EditorItems.Create(_entities, mine));
+            }
+            else if (item.StartPoint is { } start)
+            {
+                start.TimeMs = time;
+                created.Add(EditorItems.Create(_entities, start));
+            }
+        }
+
+        if (created.Count == 0)
+            return;
+
+        editor.GetComponent<NoteSelection>().SetMany(created);
+        _history.Record(before, _history.Capture());
+    }
+
     private void DeleteSelection(Entity editor)
     {
         if (!editor.HasComponent<NoteSelection>())
@@ -420,6 +502,12 @@ public sealed class EditorCommandSystem :
         if (editor.HasComponent<NoteSelection>())
             editor.GetComponent<NoteSelection>().Clear();
     }
+
+    private readonly record struct ClipboardItem(
+        long TimeMs,
+        Note? Note,
+        Mine? Mine,
+        StartPoint? StartPoint);
 
     private static int NormalizeSnap(int snap) => snap switch
     {

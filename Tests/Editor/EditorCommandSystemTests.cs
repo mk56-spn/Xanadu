@@ -1,3 +1,4 @@
+using System.Linq;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Godot;
@@ -141,6 +142,59 @@ public sealed class EditorCommandSystemTests : EcsSystemTest
         Assert.That(Store.Query<Mine>().Count, Is.Zero);
         Assert.That(Store.Query<StartPoint>().Count, Is.Zero);
         Assert.That(_editor.GetComponent<NoteSelection>().Notes, Is.Empty);
+    }
+
+    [Test]
+    public void CopyPastePreservesRelativeTimingAndPosition()
+    {
+        ref Playhead playhead = ref _editor.GetComponent<Playhead>();
+        playhead.TimeMs = 1_000;
+        playhead.DurationMs = 10_000;
+
+        Entity first = Store.CreateEntity(
+            new Note(100, new Vector2(10, 20)));
+        Entity second = Store.CreateEntity(
+            new Note(300, new Vector2(30, 40)));
+        _editor.GetComponent<NoteSelection>().SetMany(new[] { first, second });
+
+        _commands.Enqueue(EditorCommand.CopySelection());
+        _commands.Enqueue(EditorCommand.PasteSelection());
+        Frame();
+
+        var notes = Store.Query<Note>().ToEntityList()
+            .Select(entity => entity.GetComponent<Note>())
+            .OrderBy(note => note.TimeMs)
+            .ToArray();
+        Assert.That(notes, Has.Length.EqualTo(4));
+        Assert.That(notes.Select(note => note.TimeMs),
+            Is.EqualTo(new long[] { 100, 300, 1_000, 1_200 }));
+        Assert.That(notes[2].Position, Is.EqualTo(new Vector2(10, 20)));
+        Assert.That(notes[3].Position, Is.EqualTo(new Vector2(30, 40)));
+        Assert.That(_editor.GetComponent<NoteSelection>().AllNotes.Count,
+            Is.EqualTo(2));
+    }
+
+    [Test]
+    public void CopyPasteHandlesMinesAndStartPoints()
+    {
+        ref Playhead playhead = ref _editor.GetComponent<Playhead>();
+        playhead.TimeMs = 2_000;
+        playhead.DurationMs = 10_000;
+        Entity mine = Store.CreateEntity(new Mine(100, new Vector2(10, 20)));
+        Entity start = Store.CreateEntity(new StartPoint(
+            "Start", 400, new Vector2(30, 40),
+            System.Numerics.Vector2.Zero, new Vector2(0, -1)));
+        _editor.GetComponent<NoteSelection>().SetMany(new[] { mine, start });
+
+        _commands.Enqueue(EditorCommand.CopySelection());
+        _commands.Enqueue(EditorCommand.PasteSelection());
+        Frame();
+
+        Assert.That(Store.Query<Mine>().Count, Is.EqualTo(2));
+        Assert.That(Store.Query<StartPoint>().Count, Is.EqualTo(2));
+        Assert.That(
+            _editor.GetComponent<NoteSelection>().AllNotes.Count,
+            Is.EqualTo(2));
     }
 
     [Test]

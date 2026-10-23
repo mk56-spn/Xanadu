@@ -94,6 +94,22 @@ public partial class EditorOverlay : CanvasLayer
             return;
         }
 
+        if (!(GetViewport().GuiGetFocusOwner() is LineEdit) &&
+            key.CtrlPressed && key.Keycode == Key.C)
+        {
+            _commands.Enqueue(EditorCommand.CopySelection());
+            GetViewport().SetInputAsHandled();
+            return;
+        }
+
+        if (!(GetViewport().GuiGetFocusOwner() is LineEdit) &&
+            key.CtrlPressed && key.Keycode == Key.V)
+        {
+            _commands.Enqueue(EditorCommand.PasteSelection());
+            GetViewport().SetInputAsHandled();
+            return;
+        }
+
         if (GetViewport().GuiGetFocusOwner() is LineEdit)
             return;
 

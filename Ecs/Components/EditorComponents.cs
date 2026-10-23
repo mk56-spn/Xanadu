@@ -30,7 +30,8 @@ public struct NoteSelection : IComponent
             Notes.Clear();
             if (!_note.IsNull)
             {
-                _note.AddTag<EditorItem>();
+                if (!_note.Tags.Has<EditorItem>())
+                    _note.AddTag<EditorItem>();
                 Notes.Add(_note);
             }
         }
@@ -55,7 +56,8 @@ public struct NoteSelection : IComponent
         {
             if (!entity.IsNull && !Notes.Contains(entity))
             {
-                entity.AddTag<EditorItem>();
+                if (!entity.Tags.Has<EditorItem>())
+                    entity.AddTag<EditorItem>();
                 Notes.Add(entity);
             }
         }
