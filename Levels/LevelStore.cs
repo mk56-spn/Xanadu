@@ -91,6 +91,10 @@ public static class LevelStore
 
         entries.Sort(static (left, right) =>
         {
+            int byAvailability = left.IsBlocked.CompareTo(right.IsBlocked);
+            if (byAvailability != 0)
+                return byAvailability;
+
             int byName = string.Compare(
                 left.Document.Name,
                 right.Document.Name,

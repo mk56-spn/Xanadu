@@ -1,35 +1,13 @@
 [
   {
     "Version": 1,
-    "Id": "3fb7a1c51d3c4b4eb848c3d62a6d1d73",
-    "Slug": "01-fo-u-r-ver-3fb7a1c5",
-    "Title": "01. FO(U)R (天海春香 Ver.)",
-    "Artist": "",
-    "AudioPath": "audio.mp3",
-    "Bpm": 120,
-    "OffsetMs": 0,
-    "ContentHash": "3f811f0bba8b2041c958aa40d1685d3747c9baccef247476f1e11391d0b94cff"
-  },
-  {
-    "Version": 1,
-    "Id": "86bf1dc1e4854adb90a4291d9f5d4d3c",
-    "Slug": "01-765pro-allstars-m-sterpiece-86bf1dc1",
-    "Title": "01. 765PRO ALLSTARS — M@STERPIECE",
-    "Artist": "",
-    "AudioPath": "audio.flac",
-    "Bpm": 120,
-    "OffsetMs": 0,
-    "ContentHash": "ab8ff44d51399212f95e4e4dbecd4d429875203389769719c8353dafad09852b"
-  },
-  {
-    "Version": 1,
-    "Id": "ae8d4da8fcd747789c3288d393b4bf56",
-    "Slug": "wow-war-tonight-eurobeat-remix-ae8d4da8",
-    "Title": "wow war tonight eurobeat remix",
-    "Artist": "",
-    "AudioPath": "audio.mp3",
-    "Bpm": 120,
-    "OffsetMs": 0,
-    "ContentHash": "389e092492bf040682a4b86008f813c2846d75d633527328f6317b4cf44fce63"
+    "Id": "cfd622f1f39b48cf8d13c84b10f44694",
+    "Slug": "mortal-coil-cfd622f1",
+    "Title": "Mortal Coil",
+    "Artist": "Helblinde",
+    "AudioPath": "res://Assets/Songs/Helblinde - 2021 Releases - 01 Mortal Coil.mp3",
+    "Bpm": 200,
+    "OffsetMs": 1211,
+    "ContentHash": "c5687b4250ff9dd25af82d3f87534d38b5d0e5db3a23553e0d43169691e75335"
   }
 ]

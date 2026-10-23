@@ -84,10 +84,15 @@ public sealed class SongStore
         return songs;
     }
 
-    public string ResolveAudioPath(SongDocument song) =>
-        Path.IsPathRooted(song.AudioPath)
+    public string ResolveAudioPath(SongDocument song)
+    {
+        if (song.AudioPath.StartsWith("res://", StringComparison.Ordinal))
+            return ProjectSettings.GlobalizePath(song.AudioPath);
+
+        return Path.IsPathRooted(song.AudioPath)
             ? song.AudioPath
             : Path.Combine(Root, song.Id, song.AudioPath);
+    }
 
     public bool AudioExists(SongDocument song) =>
         File.Exists(ResolveAudioPath(song));
