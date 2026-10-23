@@ -49,8 +49,11 @@ public static partial class EditorScene
         const float saveWidth = 88;
         const float songWidth = 128;
         const float timingWidth = 96;
+        const float undoWidth = 64;
+        const float redoWidth = 64;
         const float actionsWidth =
-            songWidth + saveWidth + levelWidth + timingWidth + 24;
+            songWidth + saveWidth + levelWidth + timingWidth +
+            undoWidth + redoWidth + 40;
         ui.RectEntity(
             Vector2.Zero,
             new Vector2(

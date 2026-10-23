@@ -152,6 +152,8 @@ public enum EditorButtonKind
     SaveAs,
     LoadLevel,
     LoadSong,
+    Undo,
+    Redo,
 }
 
 /// <summary>An ECS editor toolbar button.</summary>

@@ -114,6 +114,14 @@ public sealed class EditorButtonSystem : QuerySystem<EditorButton>
                 _commands.Enqueue(EditorCommand.ZoomTimeline(-1));
                 break;
 
+            case EditorButtonKind.Undo:
+                _commands.Enqueue(EditorCommand.Undo());
+                break;
+
+            case EditorButtonKind.Redo:
+                _commands.Enqueue(EditorCommand.Redo());
+                break;
+
             case EditorButtonKind.ToggleMetadata:
             case EditorButtonKind.Save:
             case EditorButtonKind.SaveAs:
