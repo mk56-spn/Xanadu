@@ -1,4 +1,5 @@
 using Friflo.Engine.ECS;
+using Godot;
 
 namespace Writer.Ecs;
 
@@ -8,6 +9,9 @@ public static class EditorItems
     public static Entity Create<T>(EntityStore entities, T component)
         where T : struct, IComponent =>
         entities.CreateEntity(component, Tags.Get<EditorItem>());
+
+    public static bool IsItem(Entity entity) =>
+        !entity.IsNull && entity.Tags.Has<EditorItem>();
 }
 
 /// <summary>Read/write timing for any editor playfield item.</summary>
@@ -54,6 +58,57 @@ public static class EditorItemTiming
         if (entity.HasComponent<StartPoint>())
         {
             entity.GetComponent<StartPoint>().TimeMs = timeMs;
+            return true;
+        }
+
+        return false;
+    }
+}
+
+/// <summary>Read/write playfield position for any editor item.</summary>
+public static class EditorItemPosition
+{
+    public static bool TryGet(Entity entity, out Vector2 position)
+    {
+        if (entity.HasComponent<Note>())
+        {
+            position = entity.GetComponent<Note>().Position;
+            return true;
+        }
+
+        if (entity.HasComponent<Mine>())
+        {
+            position = entity.GetComponent<Mine>().Position;
+            return true;
+        }
+
+        if (entity.HasComponent<StartPoint>())
+        {
+            position = entity.GetComponent<StartPoint>().Position;
+            return true;
+        }
+
+        position = default;
+        return false;
+    }
+
+    public static bool Set(Entity entity, Vector2 position)
+    {
+        if (entity.HasComponent<Note>())
+        {
+            entity.GetComponent<Note>().Position = position;
+            return true;
+        }
+
+        if (entity.HasComponent<Mine>())
+        {
+            entity.GetComponent<Mine>().Position = position;
+            return true;
+        }
+
+        if (entity.HasComponent<StartPoint>())
+        {
+            entity.GetComponent<StartPoint>().Position = position;
             return true;
         }
 

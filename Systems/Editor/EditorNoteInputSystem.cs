@@ -154,20 +154,10 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
 
             foreach (Entity selected in selection.AllNotes)
             {
-                if (selected.HasComponent<Note>())
+                if (EditorItems.IsItem(selected) &&
+                    EditorItemPosition.TryGet(selected, out Vector2 selectedPosition))
                 {
-                    _dragStartPositions[selected.Id] =
-                        selected.GetComponent<Note>().Position;
-                }
-                else if (selected.HasComponent<Mine>())
-                {
-                    _dragStartPositions[selected.Id] =
-                        selected.GetComponent<Mine>().Position;
-                }
-                else if (selected.HasComponent<StartPoint>())
-                {
-                    _dragStartPositions[selected.Id] =
-                        selected.GetComponent<StartPoint>().Position;
+                    _dragStartPositions[selected.Id] = selectedPosition;
                 }
             }
 
@@ -265,10 +255,8 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
             return;
         }
 
-        if (_draggedEntity.IsNull ||
-            (!_draggedEntity.HasComponent<Note>() &&
-             !_draggedEntity.HasComponent<Mine>() &&
-             !_draggedEntity.HasComponent<StartPoint>()))
+        if (!EditorItems.IsItem(_draggedEntity) ||
+            !EditorItemPosition.TryGet(_draggedEntity, out _))
         {
             CancelDrag();
             return;
@@ -279,32 +267,13 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
         foreach ((int id, Vector2 start) in _dragStartPositions)
         {
             Entity entity = _entities.GetEntityById(id);
-            if (entity.IsNull ||
-                (!entity.HasComponent<Note>() &&
-                 !entity.HasComponent<Mine>() &&
-                 !entity.HasComponent<StartPoint>()))
-            {
+            if (!EditorItems.IsItem(entity))
                 continue;
-            }
 
             Vector2 target = new(
                 Math.Clamp(start.X + delta.X, 0, playfield.Width),
                 Math.Clamp(start.Y + delta.Y, 0, playfield.Height));
-            if (entity.HasComponent<Note>())
-            {
-                ref Note note = ref entity.GetComponent<Note>();
-                note.Position = target;
-            }
-            else if (entity.HasComponent<Mine>())
-            {
-                ref Mine mine = ref entity.GetComponent<Mine>();
-                mine.Position = target;
-            }
-            else if (entity.HasComponent<StartPoint>())
-            {
-                ref StartPoint startPoint = ref entity.GetComponent<StartPoint>();
-                startPoint.Position = target;
-            }
+            EditorItemPosition.Set(entity, target);
         }
     }
 
