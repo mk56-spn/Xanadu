@@ -65,7 +65,7 @@ public static class PlayScene
 
         root.AddChild(playfieldEntity);
         playfieldEntity.AddComponent(new KeyTrail());
-        var keyLabels = new string[KeybindSettings.Actions.Length];
+        string[] keyLabels = new string[KeybindSettings.Actions.Length];
         for (int i = 0; i < keyLabels.Length; i++)
         {
             keyLabels[i] = KeybindSettings.KeyLabel(

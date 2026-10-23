@@ -34,7 +34,7 @@ public sealed class UiBuilder
 
     public UiBuilder Layer(int zIndex)
     {
-        var layer = _entities.CreateEntity(
+        Entity layer = _entities.CreateEntity(
             new VisualRid(_visuals.CreateCanvasItem()),
             new LayerComponent(zIndex),
             Tags.Get<Uninitialised>());
@@ -66,7 +66,7 @@ public sealed class UiBuilder
             ? Tags.Get<Uninitialised, Dirty, LayoutDirty, TakesInput>()
             : Tags.Get<Uninitialised, Dirty, LayoutDirty>();
 
-        var container = _entities.CreateEntity(
+        Entity container = _entities.CreateEntity(
             new VisualRid(_visuals.CreateCanvasItem()),
             new Rectangle(new Rect2(-size / 2, size)),
             new Drawable(_layerZIndex),
@@ -117,7 +117,7 @@ public sealed class UiBuilder
             ? Tags.Get<Uninitialised, Dirty, TakesInput>()
             : Tags.Get<Uninitialised, Dirty>();
 
-        var rect = _entities.CreateEntity(
+        Entity rect = _entities.CreateEntity(
             new VisualRid(_visuals.CreateCanvasItem()),
             new Rectangle(new Rect2(-size / 2, size)),
             new Drawable(_layerZIndex),

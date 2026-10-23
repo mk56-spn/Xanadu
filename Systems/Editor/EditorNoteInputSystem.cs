@@ -317,7 +317,7 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
         if (_draggedEntity.IsNull)
             return;
 
-        var after = _history.Capture();
+        EditorSnapshot after = _history.Capture();
         _history.Record(_dragBefore, after);
         CancelDrag();
     }
@@ -335,7 +335,7 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
                 return;
 
             Playhead startPlayhead = editor.GetComponent<Playhead>();
-            var startBefore = _history.Capture();
+            EditorSnapshot startBefore = _history.Capture();
             EditorItems.Create(_entities, new StartPoint(
                 "",
                 EditorTiming.Snap(startPlayhead.TimeMs, startPlayhead),
@@ -357,7 +357,7 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
                 return;
 
             Playhead playhead = editor.GetComponent<Playhead>();
-            var before = _history.Capture();
+            EditorSnapshot before = _history.Capture();
             EditorItems.Create(_entities, new Mine(
                 EditorTiming.Snap(playhead.TimeMs, playhead),
                 position));
@@ -383,7 +383,7 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
             return;
         }
 
-        var before = _history.Capture();
+        EditorSnapshot before = _history.Capture();
         long time = EditorTiming.Snap(playhead.TimeMs, playhead);
         KeybindAction target = editor.HasComponent<EditorNoteTarget>()
             ? editor.GetComponent<EditorNoteTarget>().Target

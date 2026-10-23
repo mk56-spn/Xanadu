@@ -168,10 +168,10 @@ public sealed class WriterSystemRoot : SystemRoot, IDisposable
 
     private void OnEntityDelete(EntityDelete entityDelete)
     {
-        if (entityDelete.Entity.TryGetComponent<VisualRid>(out var visual))
+        if (entityDelete.Entity.TryGetComponent<VisualRid>(out VisualRid visual))
             RenderingServer.FreeRid(visual.Value);
 
-        if (entityDelete.Entity.TryGetComponent<PhysicsBody>(out var body))
+        if (entityDelete.Entity.TryGetComponent<PhysicsBody>(out PhysicsBody body))
             Physics.DestroyBody(body.Body);
     }
 

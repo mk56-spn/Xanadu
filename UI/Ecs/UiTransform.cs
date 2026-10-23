@@ -14,7 +14,7 @@ public static class UiTransform
 
         while (!parent.IsNull)
         {
-            if (parent.TryGetComponent<Position>(out var position))
+            if (parent.TryGetComponent<Position>(out Position position))
                 world += position.Value;
 
             parent = parent.Parent;

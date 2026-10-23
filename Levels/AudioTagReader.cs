@@ -41,7 +41,7 @@ public static class AudioTagReader
         ref string title,
         ref string artist)
     {
-        var header = new byte[10];
+        byte[] header = new byte[10];
         if (stream.Read(header, 0, 10) != 10 ||
             header[0] != 'I' || header[1] != 'D' || header[2] != '3')
         {
@@ -55,7 +55,7 @@ public static class AudioTagReader
                    (header[8] & 0x7F) << 7 |
                    (header[9] & 0x7F);
         size = Math.Min(size, 16 * 1024 * 1024);
-        var data = new byte[size];
+        byte[] data = new byte[size];
         int read = stream.Read(data, 0, size);
         int position = 0;
 
@@ -141,7 +141,7 @@ public static class AudioTagReader
             return false;
 
         stream.Seek(-128, SeekOrigin.End);
-        var tag = new byte[128];
+        byte[] tag = new byte[128];
         if (stream.Read(tag, 0, 128) != 128 ||
             tag[0] != 'T' || tag[1] != 'A' || tag[2] != 'G')
         {

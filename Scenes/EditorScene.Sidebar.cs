@@ -66,7 +66,7 @@ public static partial class EditorScene
             SceneUi.DimTextColor,
             new Color(0, 0, 0, 0));
 
-        var labels = new string[KeybindSettings.Actions.Length];
+        string[] labels = new string[KeybindSettings.Actions.Length];
         for (int i = 0; i < labels.Length; i++)
             labels[i] = KeybindSettings.LabelFor(KeybindSettings.Actions[i]);
 

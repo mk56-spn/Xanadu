@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using NUnit.Framework;
 using Writer.Levels;
 using Writer.Editor;
@@ -22,7 +23,7 @@ public sealed class LevelValidatorTests
         document.Name = "";
         document.SongId = "";
 
-        var issues = LevelValidator.Validate(document);
+        List<string> issues = LevelValidator.Validate(document);
 
         Assert.That(issues, Has.Some.Contains("name"));
         Assert.That(issues, Has.Some.Contains("song"));

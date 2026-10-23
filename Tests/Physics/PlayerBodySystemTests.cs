@@ -1,5 +1,6 @@
 using System.Linq;
 using Box2DSharp.Collision.Shapes;
+using Box2DSharp.Dynamics;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Godot;
@@ -69,7 +70,7 @@ public sealed class PlayerBodySystemTests
         root.Update(new UpdateTick(Box2DPhysicsWorld.FixedTimeStep, 0));
         Assert.That(player.HasComponent<PhysicsBody>(), Is.True);
 
-        var body = player.GetComponent<PhysicsBody>().Body;
+        Body body = player.GetComponent<PhysicsBody>().Body;
         var shape = (PolygonShape)body.FixtureList[0].Shape;
         float width = (shape.Vertices.Max(v => v.X) - shape.Vertices.Min(v => v.X)) *
                       Box2DPhysicsWorld.PixelsPerMeter;

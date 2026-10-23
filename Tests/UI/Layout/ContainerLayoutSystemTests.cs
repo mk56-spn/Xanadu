@@ -20,9 +20,9 @@ public sealed class ContainerLayoutSystemTests : EcsSystemTest
     [Test]
     public void HorizontalContainerCentersChildren()
     {
-        var container = AddContainer(StackDirection.Horizontal, spacing: 10);
-        var first = AddChild(container, new Vector2(40, 20));
-        var second = AddChild(container, new Vector2(60, 20));
+        Entity container = AddContainer(StackDirection.Horizontal, spacing: 10);
+        Entity first = AddChild(container, new Vector2(40, 20));
+        Entity second = AddChild(container, new Vector2(60, 20));
 
         Frame();
 
@@ -34,9 +34,9 @@ public sealed class ContainerLayoutSystemTests : EcsSystemTest
     [Test]
     public void VerticalContainerCentersChildren()
     {
-        var container = AddContainer(StackDirection.Vertical, spacing: 4);
-        var first = AddChild(container, new Vector2(20, 20));
-        var second = AddChild(container, new Vector2(20, 30));
+        Entity container = AddContainer(StackDirection.Vertical, spacing: 4);
+        Entity first = AddChild(container, new Vector2(20, 20));
+        Entity second = AddChild(container, new Vector2(20, 30));
 
         Frame();
 
@@ -47,14 +47,14 @@ public sealed class ContainerLayoutSystemTests : EcsSystemTest
     [Test]
     public void CrossAlignmentMovesChildrenToContainerEdges()
     {
-        var container = Store.CreateEntity(
+        Entity container = Store.CreateEntity(
             new Rectangle(new Rect2(-100, -50, 200, 100)),
             new UiContainer(
                 StackDirection.Vertical,
                 cross: StackCrossAlignment.Start),
             Tags.Get<LayoutDirty>());
-        var narrow = AddChild(container, new Vector2(20, 20));
-        var wide = AddChild(container, new Vector2(80, 20));
+        Entity narrow = AddChild(container, new Vector2(20, 20));
+        Entity wide = AddChild(container, new Vector2(80, 20));
 
         Frame();
 
@@ -67,7 +67,7 @@ public sealed class ContainerLayoutSystemTests : EcsSystemTest
     [Test]
     public void AutoSizeMeasuresChildrenWithPadding()
     {
-        var container = Store.CreateEntity(
+        Entity container = Store.CreateEntity(
             new Rectangle(new Rect2(-10, -10, 20, 20)),
             new UiContainer(
                 StackDirection.Horizontal,
@@ -89,7 +89,7 @@ public sealed class ContainerLayoutSystemTests : EcsSystemTest
     [Test]
     public void AnchorTopKeepsTheContainerTopFixedWhileItGrows()
     {
-        var container = Store.CreateEntity(
+        Entity container = Store.CreateEntity(
             new Rectangle(new Rect2(-50, -5, 100, 10)),
             new Position(new Vector2(0, 100)),
             new UiContainer(
@@ -114,10 +114,10 @@ public sealed class ContainerLayoutSystemTests : EcsSystemTest
     [Test]
     public void LayoutIgnoreExcludesAChildFromTheStack()
     {
-        var container = AddContainer(StackDirection.Horizontal, spacing: 10);
-        var first = AddChild(container, new Vector2(40, 20));
-        var hidden = AddChild(container, new Vector2(100, 20));
-        var second = AddChild(container, new Vector2(60, 20));
+        Entity container = AddContainer(StackDirection.Horizontal, spacing: 10);
+        Entity first = AddChild(container, new Vector2(40, 20));
+        Entity hidden = AddChild(container, new Vector2(100, 20));
+        Entity second = AddChild(container, new Vector2(60, 20));
         hidden.AddTag<LayoutIgnore>();
         hidden.GetComponent<Position>().Value = UiLayout.Hidden;
 
@@ -201,7 +201,7 @@ public sealed class ContainerLayoutSystemTests : EcsSystemTest
 
     private Entity AddChild(Entity container, Vector2 size)
     {
-        var child = Store.CreateEntity(
+        Entity child = Store.CreateEntity(
             new Rectangle(new Rect2(-size / 2, size)),
             new Position(Vector2.Zero));
 

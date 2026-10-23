@@ -161,7 +161,7 @@ public sealed class EditorCommandSystemTests : EcsSystemTest
         _commands.Enqueue(EditorCommand.PasteSelection());
         Frame();
 
-        var notes = Store.Query<Note>().ToEntityList()
+        Note[] notes = Store.Query<Note>().ToEntityList()
             .Select(entity => entity.GetComponent<Note>())
             .OrderBy(note => note.TimeMs)
             .ToArray();

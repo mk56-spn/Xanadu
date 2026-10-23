@@ -1,5 +1,6 @@
 using System.Linq;
 using Box2DSharp.Collision.Shapes;
+using Box2DSharp.Dynamics;
 using Godot;
 using NUnit.Framework;
 using Writer.Systems.Physics;
@@ -16,7 +17,7 @@ public sealed class Box2DPhysicsWorldTests
         using var physics = new Box2DPhysicsWorld();
         physics.CreateStaticBox(new Vector2(640, 680), new Vector2(1200, 40));
 
-        var body = physics.CreateDynamicBox(
+        Body body = physics.CreateDynamicBox(
             new Vector2(200, 400),
             new Vector2(30, 100),
             mass: 1f,
@@ -49,7 +50,7 @@ public sealed class Box2DPhysicsWorldTests
     public void DynamicBoxHasCharacterMassAndDimensions()
     {
         using var physics = new Box2DPhysicsWorld();
-        var body = physics.CreateDynamicBox(
+        Body body = physics.CreateDynamicBox(
             new Vector2(200, 300),
             new Vector2(30, 100),
             mass: 1f);

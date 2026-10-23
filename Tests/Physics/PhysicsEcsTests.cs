@@ -1,3 +1,4 @@
+using Box2DSharp.Dynamics;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Godot;
@@ -21,7 +22,7 @@ public sealed class PhysicsEcsTests
         root.Add(new CharacterMomentumSystem());
         root.Add(new PhysicsStepSystem(physics));
 
-        var body = physics.CreateDynamicBox(new Vector2(200, 300), new Vector2(30, 100));
+        Body body = physics.CreateDynamicBox(new Vector2(200, 300), new Vector2(30, 100));
         Entity character = store.CreateEntity(
             new Position(new Vector2(200, 300)),
             new Character(1f),

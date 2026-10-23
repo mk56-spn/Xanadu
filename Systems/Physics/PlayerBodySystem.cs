@@ -1,3 +1,4 @@
+using Box2DSharp.Dynamics;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Writer.Ecs;
@@ -27,13 +28,13 @@ public sealed class PlayerBodySystem : QuerySystem<Player, Position>
             if (entity.HasComponent<PhysicsBody>())
                 return;
 
-            if (entity.TryGetComponent<PlaySession>(out var session) &&
+            if (entity.TryGetComponent<PlaySession>(out PlaySession session) &&
                 !session.Started)
             {
                 return;
             }
 
-            var body = _physics.CreateDynamicBox(
+            Body body = _physics.CreateDynamicBox(
                 position.Value,
                 player.Size,
                 CharacterMass,

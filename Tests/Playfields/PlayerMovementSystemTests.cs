@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Box2DSharp.Dynamics;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Godot;
@@ -34,7 +35,7 @@ public sealed class PlayerMovementSystemTests
         _root.Add(new PlayerMovementSystem(_store, keybinds, _keyboard));
         _root.Add(new PlayerArenaSystem());
 
-        var body = _physics.CreateDynamicBox(
+        Body body = _physics.CreateDynamicBox(
             new Vector2(500, 500),
             new Vector2(30, 100));
 

@@ -121,8 +121,8 @@ public static class WaveformLoader
             return null;
 
         int bins = Math.Clamp(resolution, 1, frames);
-        var left = new float[bins];
-        var right = new float[bins];
+        float[] left = new float[bins];
+        float[] right = new float[bins];
 
         for (int bin = 0; bin < bins; bin++)
         {
@@ -226,10 +226,10 @@ public static class WaveformLoader
                 return null;
 
             int bins = (int)Math.Min((ulong)resolution, frameCount);
-            var left = new float[bins];
-            var right = new float[bins];
+            float[] left = new float[bins];
+            float[] right = new float[bins];
             const int chunkFrames = 4096;
-            var buffer = new float[chunkFrames * channels];
+            float[] buffer = new float[chunkFrames * channels];
             ulong totalRead = 0;
 
             fixed (float* bufferPtr = buffer)

@@ -21,7 +21,7 @@ public sealed class LayerParentSystem : QuerySystem<VisualRid, Layer>
 
     protected override void OnUpdate()
     {
-        var buffer = CommandBuffer;
+        CommandBuffer buffer = CommandBuffer;
 
         Query.ForEachEntity((ref VisualRid visual, ref Layer layer, Entity entity) =>
         {

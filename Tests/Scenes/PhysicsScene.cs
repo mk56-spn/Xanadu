@@ -1,3 +1,4 @@
+using Box2DSharp.Dynamics;
 using Friflo.Engine.ECS;
 using Godot;
 using Writer.Ecs;
@@ -44,7 +45,7 @@ public static class PhysicsScene
             color: new Color("#546e7a"));
 
         var start = new Vector2(width * 0.2f, height * 0.45f);
-        var body = physics.CreateDynamicBox(
+        Body body = physics.CreateDynamicBox(
             start,
             CharacterSize,
             mass: 1f,

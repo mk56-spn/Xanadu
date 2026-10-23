@@ -84,7 +84,7 @@ public sealed class EditorNoteInputSystemTests
             new Vector2(ruler.Position.X + ruler.Size.X * 0.7f, y), true, true);
         _root.Update(new UpdateTick(1f / 60f, 0));
 
-        var selection = editor.GetComponent<NoteSelection>();
+        NoteSelection selection = editor.GetComponent<NoteSelection>();
         Assert.That(selection.AllNotes.Count, Is.EqualTo(2));
         Assert.That(selection.Contains(first), Is.True);
         Assert.That(selection.Contains(second), Is.True);
@@ -107,7 +107,7 @@ public sealed class EditorNoteInputSystemTests
         _pointer.Current = new PointerInput(new Vector2(400, 400), true, true);
         _root.Update(new UpdateTick(1f / 60f, 0));
 
-        var selection = editor.GetComponent<NoteSelection>();
+        NoteSelection selection = editor.GetComponent<NoteSelection>();
         Assert.That(selection.AllNotes.Count, Is.EqualTo(2));
         Assert.That(selection.Contains(first), Is.True);
         Assert.That(selection.Contains(second), Is.True);
@@ -223,7 +223,7 @@ public sealed class EditorNoteInputSystemTests
         playhead.DurationMs = 10_000;
         playhead.TimeMs = 1_000;
 
-        var view = editor.GetComponent<PlayfieldView>();
+        PlayfieldView view = editor.GetComponent<PlayfieldView>();
         Rect2 ruler = EditorLayout.RulerRect(view);
         _pointer.Current = new PointerInput(ruler.GetCenter(), true);
         _root.Update(new UpdateTick(1f / 60f, 0));

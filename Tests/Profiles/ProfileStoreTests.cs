@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using NUnit.Framework;
 using Writer.Profiles;
@@ -56,7 +57,7 @@ public sealed class ProfileStoreTests
                 new PlayResults("Level", 100_000 + i, 0.5, i, 30, 30));
         }
 
-        var scores = store.AllScores(level);
+        IReadOnlyList<ScoreEntry> scores = store.AllScores(level);
         Assert.That(scores, Has.Count.EqualTo(30));
         Assert.That(scores[0].Record.Score, Is.EqualTo(100_029));
         Assert.That(scores[^1].Record.Score, Is.EqualTo(100_000));
@@ -73,7 +74,7 @@ public sealed class ProfileStoreTests
         UserProfile bob = store.Create("Bob");
         store.RecordScore(level, new PlayResults("Level", 900_000, 0.9, 30, 30, 30));
 
-        var scores = store.AllScores(level);
+        IReadOnlyList<ScoreEntry> scores = store.AllScores(level);
         Assert.That(scores, Has.Count.EqualTo(2));
         Assert.That(scores[0].ProfileName, Is.EqualTo("Bob"));
         Assert.That(scores[0].Record.Score, Is.EqualTo(900_000));

@@ -15,9 +15,9 @@ public sealed class EditorHistoryTests
         var store = new EntityStore();
         var history = new EditorHistory(store);
 
-        var before = history.Capture();
+        EditorSnapshot before = history.Capture();
         store.CreateEntity(new Note(500, new Vector2(10, 20)));
-        var after = history.Capture();
+        EditorSnapshot after = history.Capture();
         history.Record(before, after);
 
         Assert.That(history.CanUndo, Is.True);
@@ -33,11 +33,11 @@ public sealed class EditorHistoryTests
         var store = new EntityStore();
         Entity note = store.CreateEntity(new Note(500, new Vector2(10, 20)));
         var history = new EditorHistory(store);
-        var before = history.Capture();
+        EditorSnapshot before = history.Capture();
 
         ref Note component = ref note.GetComponent<Note>();
         component.Position = new Vector2(200, 300);
-        var after = history.Capture();
+        EditorSnapshot after = history.Capture();
         history.Record(before, after);
 
         history.Undo();
@@ -55,10 +55,10 @@ public sealed class EditorHistoryTests
         var store = new EntityStore();
         Entity note = store.CreateEntity(new Note(500, new Vector2(10, 20)));
         var history = new EditorHistory(store);
-        var before = history.Capture();
+        EditorSnapshot before = history.Capture();
 
         note.DeleteEntity();
-        var after = history.Capture();
+        EditorSnapshot after = history.Capture();
         history.Record(before, after);
 
         history.Undo();
@@ -75,7 +75,7 @@ public sealed class EditorHistoryTests
             "Start", 500, new Vector2(10, 20),
             System.Numerics.Vector2.Zero, new Vector2(0, -1)));
         var history = new EditorHistory(store);
-        var before = history.Capture();
+        EditorSnapshot before = history.Capture();
 
         start.DeleteEntity();
         history.Record(before, history.Capture());

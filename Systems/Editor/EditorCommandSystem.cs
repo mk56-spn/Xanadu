@@ -289,12 +289,12 @@ public sealed class EditorCommandSystem :
         if (notes.Count == 0)
             return;
 
-        var playhead = editor.GetComponent<Playhead>();
+        Playhead playhead = editor.GetComponent<Playhead>();
         double step = EditorTiming.StepMs(playhead);
         long maxTime = playhead.DurationMs > 0
             ? playhead.DurationMs
             : long.MaxValue;
-        var before = _history.Capture();
+        EditorSnapshot before = _history.Capture();
         bool changed = false;
 
         foreach (Entity entity in notes)
@@ -349,7 +349,7 @@ public sealed class EditorCommandSystem :
         if (notes.Count == 0)
             return;
 
-        var before = _history.Capture();
+        EditorSnapshot before = _history.Capture();
         bool changed = false;
 
         foreach (Entity entity in notes)
@@ -407,7 +407,7 @@ public sealed class EditorCommandSystem :
         long maxTime = playhead.DurationMs > 0
             ? playhead.DurationMs
             : long.MaxValue;
-        var before = _history.Capture();
+        EditorSnapshot before = _history.Capture();
         var created = new List<Entity>();
 
         foreach (ClipboardItem item in _clipboard)
@@ -459,7 +459,7 @@ public sealed class EditorCommandSystem :
             return;
         }
 
-        var before = _history.Capture();
+        EditorSnapshot before = _history.Capture();
         foreach (Entity entity in items)
             entity.DeleteEntity();
 

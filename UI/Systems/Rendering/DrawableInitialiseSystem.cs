@@ -50,14 +50,14 @@ public sealed class DrawableInitialiseSystem : QuerySystem<Rectangle, Drawable, 
 
             if (!parent.IsNull &&
                 parent.HasComponent<UiContainer>() &&
-                parent.TryGetComponent<VisualRid>(out var parentVisual))
+                parent.TryGetComponent<VisualRid>(out VisualRid parentVisual))
             {
                 parentCanvas = parentVisual.Value;
             }
 
             RenderingServer.CanvasItemSetParent(visual.Value, parentCanvas);
 
-            if (entity.TryGetComponent<UiContainer>(out var container) && container.Clip)
+            if (entity.TryGetComponent<UiContainer>(out UiContainer container) && container.Clip)
                 RenderingServer.CanvasItemSetClip(visual.Value, true);
 
             RenderingServer.CanvasItemSetZIndex(
