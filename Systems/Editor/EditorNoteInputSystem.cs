@@ -110,7 +110,8 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
                         screenPosition, bar, ref playhead, editor, timelineHit);
                 }
 
-                playhead.SeekRequestMs = timelineHit.GetComponent<Note>().TimeMs;
+                if (EditorItemTiming.TryGet(timelineHit, out long timelineTime))
+                    playhead.SeekRequestMs = timelineTime;
                 return;
             }
 
@@ -534,7 +535,7 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
         {
             foreach (Entity selected in editor.GetComponent<NoteSelection>().AllNotes)
             {
-                if (!selected.IsNull && selected.Tags.Has<EditorItem>() &&
+                if (EditorItems.IsItem(selected) &&
                     EditorItemTiming.TryGet(selected, out long timeMs))
                 {
                     _timelineStartTimes[selected.Id] = timeMs;

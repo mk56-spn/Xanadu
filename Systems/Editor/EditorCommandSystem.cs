@@ -282,7 +282,7 @@ public sealed class EditorCommandSystem :
         var items = new List<Entity>();
         foreach (Entity entity in selection.AllNotes)
         {
-            if (!entity.IsNull && entity.Tags.Has<EditorItem>() &&
+            if (EditorItems.IsItem(entity) &&
                 EditorItemTiming.TryGet(entity, out _))
             {
                 items.Add(entity);
@@ -381,7 +381,7 @@ public sealed class EditorCommandSystem :
         _clipboard.Clear();
         foreach (Entity entity in editor.GetComponent<NoteSelection>().AllNotes)
         {
-            if (entity.IsNull || !entity.Tags.Has<EditorItem>())
+            if (!EditorItems.IsItem(entity))
                 continue;
 
             if (entity.HasComponent<Note>())
@@ -454,7 +454,7 @@ public sealed class EditorCommandSystem :
         var items = new List<Entity>();
         foreach (Entity entity in selection.AllNotes)
         {
-            if (!entity.IsNull && entity.Tags.Has<EditorItem>())
+            if (EditorItems.IsItem(entity))
                 items.Add(entity);
         }
 
