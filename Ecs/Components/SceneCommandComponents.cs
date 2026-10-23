@@ -18,6 +18,7 @@ public enum SceneActionId
     MainMenu,
     Resume,
     Leave,
+    Pause,
 }
 
 /// <summary>Data-only command attached to a button or action entity.</summary>

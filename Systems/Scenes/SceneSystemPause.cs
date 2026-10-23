@@ -70,6 +70,7 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
             takesInput: true);
         resume.AddComponent(new TextStyle(18, SceneUi.TextColor));
         resume.AddComponent(ButtonVisual.Create(SceneUi.ButtonColor));
+        resume.AddComponent(new SceneCommand(SceneActionId.Resume));
 
         Entity retry = builder.RectEntity(
             Vector2.Zero,
@@ -79,7 +80,7 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
             takesInput: true);
         retry.AddComponent(new TextStyle(18, SceneUi.TextColor));
         retry.AddComponent(ButtonVisual.Create(SceneUi.ButtonColor));
-        retry.AddComponent(new RetryAction());
+        retry.AddComponent(new SceneCommand(SceneActionId.Retry));
 
         Entity leave = builder.RectEntity(
             Vector2.Zero,
@@ -89,6 +90,7 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
             takesInput: true);
         leave.AddComponent(new TextStyle(18, SceneUi.TextColor));
         leave.AddComponent(ButtonVisual.Create(SceneUi.MutedButtonColor));
+        leave.AddComponent(new SceneCommand(SceneActionId.Leave));
 
         builder.End();
         builder.End();
@@ -162,6 +164,25 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
         HidePauseVisual();
         SetPlayback(false);
         state.Pending = CurrentController?.BackTarget ?? SceneKind.SongSelect;
+    }
+
+    public void ResumePause()
+    {
+        EnsureState();
+        ResumeFromPause();
+    }
+
+    public void LeavePause()
+    {
+        EnsureState();
+        ref SceneState state = ref _stateEntity.GetComponent<SceneState>();
+        LeavePlay(ref state);
+    }
+
+    public void PausePlay()
+    {
+        EnsureState();
+        ShowPause();
     }
 
     public bool RetryPlay()

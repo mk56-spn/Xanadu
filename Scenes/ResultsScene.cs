@@ -144,24 +144,24 @@ public static class ResultsScene
             new Vector2(centerX - 240, screen.Y - 70),
             new Vector2(220, 52),
             LocalizedText.Get(ResultsStrings.Retry));
-        retry.AddComponent(new RetryAction());
+        retry.AddComponent(new SceneCommand(SceneActionId.Retry));
 
-        SceneUi.Button(
+        Entity songs = SceneUi.ButtonEntity(
             ui,
             new Vector2(centerX, screen.Y - 70),
             new Vector2(220, 52),
             LocalizedText.Get(ResultsStrings.SongSelect),
-            SceneKind.SongSelect,
             18,
             SceneUi.MutedButtonColor);
+        songs.AddComponent(new SceneCommand(SceneActionId.SongSelect));
 
-        SceneUi.Button(
+        Entity main = SceneUi.ButtonEntity(
             ui,
             new Vector2(centerX + 240, screen.Y - 70),
             new Vector2(220, 52),
             LocalizedText.Get(ResultsStrings.MainMenu),
-            SceneKind.Main,
             18,
             SceneUi.MutedButtonColor);
+        main.AddComponent(new SceneCommand(SceneActionId.MainMenu));
     }
 }

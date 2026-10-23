@@ -98,15 +98,6 @@ public struct SceneConfirmation(
     public bool Visible;
 }
 
-/// <summary>Play HUD button that opens the pause screen.</summary>
-public struct PauseAction : IComponent
-{
-    public int Value;
-}
-
-/// <summary>Restarts the current level from the beginning.</summary>
-public struct RetryAction : IComponent;
-
 /// <summary>Gameplay pause overlay state.</summary>
 public struct ScenePause(
     Entity title,

@@ -99,7 +99,7 @@ public static class PlayScene
 
         pause.AddComponent(new TextStyle(18, SceneUi.TextColor));
         pause.AddComponent(ButtonVisual.Create(SceneUi.MutedButtonColor));
-        pause.AddComponent(new PauseAction());
+        pause.AddComponent(new SceneCommand(SceneActionId.Pause));
 
         SceneUi.Text(
             ui,

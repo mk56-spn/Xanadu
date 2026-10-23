@@ -78,6 +78,8 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
         _transitionsEnabled = transitions;
         _controllers = SceneControllerRegistry.CreateDefault(this);
         EditorSceneActions.Register(_actionRegistry);
+        ResultsSceneActions.Register(_actionRegistry);
+        PauseSceneActions.Register(_actionRegistry);
     }
 
     public ProfileStore Profiles => _profiles;

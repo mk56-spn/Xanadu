@@ -84,9 +84,15 @@ public sealed class RestartSceneTest : SceneTest
     private void ClickRetry()
     {
         foreach (Entity entity in Context.Entities
-                     .Query<RetryAction, Position>()
+                     .Query<SceneCommand, Position>()
                      .ToEntityList())
         {
+            if (entity.GetComponent<SceneCommand>().Action !=
+                SceneActionId.Retry)
+            {
+                continue;
+            }
+
             Vector2 world = WorldPosition(
                 entity,
                 entity.GetComponent<Position>().Value);

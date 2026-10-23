@@ -275,7 +275,7 @@ public sealed class SceneSystemTests
         Frame();
         Assert.That(_director.Current, Is.EqualTo(SceneKind.Results));
 
-        _store.Query<RetryAction>().ToEntityList()[0].AddTag<Pressed>();
+        _store.Query<SceneCommand>().ToEntityList().First(command => command.GetComponent<SceneCommand>().Action == SceneActionId.Retry).AddTag<Pressed>();
         Frame();
 
         Assert.That(_director.Current, Is.EqualTo(SceneKind.Play));
@@ -486,7 +486,10 @@ public sealed class SceneSystemTests
         _scenes.TryForward();
         Frame();
 
-        _store.Query<PauseAction>().ToEntityList()[0].AddTag<Pressed>();
+        _store.Query<SceneCommand>().ToEntityList()
+            .First(command => command.GetComponent<SceneCommand>().Action ==
+                SceneActionId.Pause)
+            .AddTag<Pressed>();
         Frame();
 
         Assert.That(Pause().Visible, Is.True);

@@ -38,29 +38,6 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
             }
         }
 
-        if (state.Current == SceneKind.Play)
-        {
-            foreach (Entity entity in _entities
-                         .Query<PauseAction>()
-                         .AllTags(Tags.Get<Pressed>())
-                         .ToEntityList())
-            {
-                ShowPause();
-                return;
-            }
-        }
-
-        foreach (Entity entity in _entities
-                     .Query<RetryAction>()
-                     .AllTags(Tags.Get<Pressed>())
-                     .ToEntityList())
-        {
-            if (state.Current == SceneKind.Results)
-                RetryPlay(ref state);
-
-            return;
-        }
-
         foreach (Entity entity in _entities
                      .Query<SceneAction>()
                      .AllTags(Tags.Get<Pressed>())
