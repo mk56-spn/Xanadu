@@ -178,6 +178,31 @@ public sealed class EditorNoteInputSystemTests
     }
 
     [Test]
+    public void DraggingTheTimelineDoesNotAccelerateAsThePlayheadMoves()
+    {
+        Entity editor = _store.Query<PlayfieldView>().ToEntityList()[0];
+        ref Playhead playhead = ref editor.GetComponent<Playhead>();
+        playhead.DurationMs = 10_000;
+        playhead.TimeMs = 1_000;
+        editor.AddComponent(new EditorTimeline(2f));
+
+        Rect2 ruler = EditorLayout.RulerRect(
+            editor.GetComponent<PlayfieldView>());
+        Vector2 point = new(
+            ruler.Position.X + ruler.Size.X * 0.75f,
+            ruler.Position.Y + ruler.Size.Y / 2);
+
+        _pointer.Current = new PointerInput(point, true);
+        _root.Update(new UpdateTick(1f / 60f, 0));
+        long first = playhead.SeekRequestMs;
+
+        playhead.TimeMs = first;
+        _root.Update(new UpdateTick(1f / 60f, 0));
+
+        Assert.That(playhead.SeekRequestMs, Is.EqualTo(first));
+    }
+
+    [Test]
     public void DraggingTheTimelineSeeksContinuously()
     {
         Entity editor = _store.Query<PlayfieldView>().ToEntityList()[0];
