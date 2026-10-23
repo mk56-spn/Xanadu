@@ -131,3 +131,6 @@ public struct UiAnchor(Vector2 anchor, Vector2 pivot) : IComponent
     public Vector2 Anchor = anchor;
     public Vector2 Pivot = pivot;
 }
+
+/// <summary>Marks a full-screen backdrop that must draw below sibling UI.</summary>
+public struct UiBackground : IComponent;

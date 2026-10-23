@@ -60,9 +60,24 @@ public sealed class DrawableInitialiseSystem : QuerySystem<Rectangle, Drawable, 
             if (entity.TryGetComponent<UiContainer>(out var container) && container.Clip)
                 RenderingServer.CanvasItemSetClip(visual.Value, true);
 
+            RenderingServer.CanvasItemSetZIndex(
+                visual.Value,
+                LocalZIndex(entity));
             RenderingServer.CanvasItemSetTransform(visual.Value, new Transform2D(0, position.Value));
             buffer.RemoveTag<Uninitialised>(entity.Id);
         });
+    }
+
+    public static int LocalZIndex(Entity entity)
+    {
+        if (entity.HasComponent<UiBackground>())
+            return -1;
+
+        return entity.HasComponent<Text>() ||
+               entity.HasComponent<ButtonVisual>() ||
+               entity.Tags.Has<TakesInput>()
+            ? 1
+            : 0;
     }
 
     private bool TryGetLayerCanvas(EntityStore store, int zIndex, out Rid canvas)

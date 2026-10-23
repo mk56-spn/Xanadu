@@ -32,8 +32,13 @@ public static class SceneUi
         return builder;
     }
 
-    public static Entity Background(UiBuilder builder, Vector2 screen) =>
-        builder.RectEntity(screen / 2, screen, BackgroundColor);
+    public static Entity Background(UiBuilder builder, Vector2 screen)
+    {
+        Entity background =
+            builder.RectEntity(screen / 2, screen, BackgroundColor);
+        background.AddComponent(new UiBackground());
+        return background;
+    }
 
     public static Entity Panel(
         UiBuilder builder,
