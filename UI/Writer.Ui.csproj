@@ -6,6 +6,7 @@
     <GodotProjectDir>$(MSBuildProjectDirectory)/</GodotProjectDir>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Remove="Showcase/**/*.cs" />
     <PackageReference Include="Friflo.Engine.ECS" Version="4.0.0-preview.2" />
     <ProjectReference Include="../Core/Writer.Core.csproj" />
   </ItemGroup>
