@@ -92,6 +92,11 @@ public struct EditorTimeline(float zoom) : IComponent
 {
     public float Zoom = zoom;
     public bool AutoZoomed;
+
+    /// <summary>Visible window captured while the playhead is being dragged.</summary>
+    public bool Scrubbing;
+    public long ScrubStartMs;
+    public long ScrubEndMs;
 }
 
 /// <summary>The editor's currently selected note type for new notes.</summary>

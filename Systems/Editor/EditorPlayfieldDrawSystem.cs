@@ -57,8 +57,8 @@ public sealed class EditorPlayfieldDrawSystem :
                     playhead,
                     selection,
                     entity.HasComponent<EditorTimeline>()
-                        ? entity.GetComponent<EditorTimeline>().Zoom
-                        : 1f,
+                        ? entity.GetComponent<EditorTimeline>()
+                        : new EditorTimeline(1f),
                     entity.HasComponent<WaveformPreview>()
                         ? entity.GetComponent<WaveformPreview>()
                         : default,
@@ -73,7 +73,7 @@ public sealed class EditorPlayfieldDrawSystem :
         Playfield playfield,
         Playhead playhead,
         NoteSelection selection,
-        float timelineZoom,
+        EditorTimeline timeline,
         WaveformPreview preview,
         EditorSelectionBox selectionBox)
     {
@@ -103,7 +103,7 @@ public sealed class EditorPlayfieldDrawSystem :
             playhead);
         DrawStartPoints(view, selection);
         DrawSelectionOutlines(view, playhead, selection);
-        DrawRuler(view, playhead, selection, timelineZoom, preview);
+        DrawRuler(view, playhead, selection, timeline, preview);
         DrawSelectionBox(selectionBox);
     }
 
@@ -423,7 +423,7 @@ public sealed class EditorPlayfieldDrawSystem :
         PlayfieldView view,
         Playhead playhead,
         NoteSelection selection,
-        float timelineZoom,
+        EditorTimeline timeline,
         WaveformPreview preview)
     {
         Rect2 ruler = EditorLayout.RulerRect(view);
@@ -445,8 +445,9 @@ public sealed class EditorPlayfieldDrawSystem :
             return;
         }
 
-        (long windowStart, long windowEnd) =
-            EditorLayout.TimelineWindow(playhead, timelineZoom);
+        (long windowStart, long windowEnd) = timeline.Scrubbing
+            ? (timeline.ScrubStartMs, timeline.ScrubEndMs)
+            : EditorLayout.TimelineWindow(playhead, timeline.Zoom);
 
         DrawBeatBands(ruler, playhead, windowStart, windowEnd);
         DrawBpmMarker(ruler, playhead, windowStart, windowEnd);
@@ -527,7 +528,7 @@ public sealed class EditorPlayfieldDrawSystem :
         const int maxStack = 7;
         const float noteGap = 1f;
         float noteSquare = Math.Clamp(
-            6f + timelineZoom * 0.0625f,
+            6f + timeline.Zoom * 0.0625f,
             6f,
             8f);
 

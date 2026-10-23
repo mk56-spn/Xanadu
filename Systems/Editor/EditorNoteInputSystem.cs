@@ -23,6 +23,8 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
 
     private bool _wasPressed;
     private bool _scrubbing;
+    private long _scrubWindowStart;
+    private long _scrubWindowEnd;
     private Entity _draggedEntity;
     private Vector2 _dragStartPointer;
     private readonly Dictionary<int, Vector2> _dragStartPositions = new();
@@ -97,8 +99,7 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
                 return;
             }
 
-            _scrubbing = true;
-            Scrub(screenPosition, bar, ref playhead, editor);
+            BeginScrub(screenPosition, bar, ref playhead, editor);
             return;
         }
 
@@ -284,13 +285,16 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
 
     private void OnRelease()
     {
+        Entity editor = FindEditor();
+
         if (_scrubbing)
         {
             _scrubbing = false;
+            if (!editor.IsNull)
+                SetScrubWindow(editor, false);
             return;
         }
 
-        Entity editor = FindEditor();
         if (!editor.IsNull)
             SetSelectionBox(editor, Vector2.Zero, Vector2.Zero, false);
 
@@ -498,7 +502,10 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
         selection.SetMany(notes);
     }
 
-    private void Scrub(
+    private const float ScrubDeadZone = 0.55f;
+    private const float ScrubPanRate = 0.45f;
+
+    private void BeginScrub(
         Vector2 screenPosition,
         Rect2 bar,
         ref Playhead playhead,
@@ -510,13 +517,62 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
         float zoom = editor.HasComponent<EditorTimeline>()
             ? editor.GetComponent<EditorTimeline>().Zoom
             : 1f;
-        (long start, long end) = EditorLayout.TimelineWindow(playhead, zoom);
-        float t = Math.Clamp((screenPosition.X - bar.Position.X) / bar.Size.X, 0f, 1f);
-        long raw = start + (long)((end - start) * t);
+        (_scrubWindowStart, _scrubWindowEnd) =
+            EditorLayout.TimelineWindow(playhead, zoom);
+        _scrubbing = true;
+        SetScrubWindow(editor, true);
+        Scrub(screenPosition, bar, ref playhead, editor);
+    }
+
+    private void Scrub(
+        Vector2 screenPosition,
+        Rect2 bar,
+        ref Playhead playhead,
+        Entity editor)
+    {
+        if (!_scrubbing || playhead.DurationMs <= 0)
+            return;
+
+        long span = Math.Max(1, _scrubWindowEnd - _scrubWindowStart);
+        float center = bar.Position.X + bar.Size.X / 2;
+        float normalized = (screenPosition.X - center) / (bar.Size.X / 2);
+        float overshoot = Math.Max(
+            0,
+            Math.Abs(normalized) - ScrubDeadZone) / (1 - ScrubDeadZone);
+
+        if (overshoot > 0)
+        {
+            float direction = Math.Sign(normalized);
+            long shift = (long)(span * ScrubPanRate * overshoot * overshoot *
+                                Tick.deltaTime * direction);
+            long maxStart = Math.Max(0, playhead.DurationMs - span);
+            _scrubWindowStart = Math.Clamp(
+                _scrubWindowStart + shift, 0, maxStart);
+            _scrubWindowEnd = _scrubWindowStart + span;
+            SetScrubWindow(editor, true);
+        }
+
+        float t = Math.Clamp(
+            (screenPosition.X - bar.Position.X) / bar.Size.X,
+            0f,
+            1f);
+        long raw = _scrubWindowStart +
+                   (long)((_scrubWindowEnd - _scrubWindowStart) * t);
         playhead.SeekRequestMs = Math.Clamp(
             raw,
             0,
             Math.Max(0, playhead.DurationMs));
+    }
+
+    private void SetScrubWindow(Entity editor, bool active)
+    {
+        if (!editor.HasComponent<EditorTimeline>())
+            return;
+
+        ref EditorTimeline timeline = ref editor.GetComponent<EditorTimeline>();
+        timeline.Scrubbing = active;
+        timeline.ScrubStartMs = _scrubWindowStart;
+        timeline.ScrubEndMs = _scrubWindowEnd;
     }
 
     private Entity FindTimelineNoteAt(

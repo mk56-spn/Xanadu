@@ -178,6 +178,44 @@ public sealed class EditorNoteInputSystemTests
     }
 
     [Test]
+    public void TimelineScrubOnlyPansOutsideTheCenterDeadZone()
+    {
+        Entity editor = _store.Query<PlayfieldView>().ToEntityList()[0];
+        ref Playhead playhead = ref editor.GetComponent<Playhead>();
+        playhead.DurationMs = 10_000;
+        playhead.TimeMs = 1_000;
+        editor.AddComponent(new EditorTimeline(2f));
+
+        Rect2 ruler = EditorLayout.RulerRect(
+            editor.GetComponent<PlayfieldView>());
+        float centerX = ruler.Position.X + ruler.Size.X / 2;
+        float y = ruler.Position.Y + ruler.Size.Y / 2;
+
+        _pointer.Current = new PointerInput(
+            new Vector2(centerX + ruler.Size.X * 0.2f, y), true);
+        _root.Update(new UpdateTick(1f / 60f, 0));
+        long before = editor.GetComponent<EditorTimeline>().ScrubStartMs;
+
+        _pointer.Current = new PointerInput(
+            new Vector2(centerX + ruler.Size.X * 0.25f, y), true);
+        for (int i = 0; i < 10; i++)
+            _root.Update(new UpdateTick(1f / 60f, 0));
+
+        Assert.That(
+            editor.GetComponent<EditorTimeline>().ScrubStartMs,
+            Is.EqualTo(before));
+
+        _pointer.Current = new PointerInput(
+            new Vector2(centerX + ruler.Size.X * 0.9f, y), true);
+        for (int i = 0; i < 10; i++)
+            _root.Update(new UpdateTick(1f / 60f, 0));
+
+        Assert.That(
+            editor.GetComponent<EditorTimeline>().ScrubStartMs,
+            Is.GreaterThan(before));
+    }
+
+    [Test]
     public void DraggingTheTimelineSeeksContinuously()
     {
         Entity editor = _store.Query<PlayfieldView>().ToEntityList()[0];
