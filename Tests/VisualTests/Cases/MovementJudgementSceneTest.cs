@@ -72,6 +72,9 @@ public sealed class MovementJudgementSceneTest : SceneTest
             "movement note consumed",
             () => Context.Entities.Query<Note>().Count == 0);
         AddUntilStep(
+            "dash trail exists",
+            () => Context.Entities.Query<DashTrail>().Count > 0);
+        AddUntilStep(
             "movement judgement shown",
             () => Context.Entities.Query<ScoreState>().Count > 0 &&
                   Context.Entities.Query<ScoreState>().ToEntityList()[0]

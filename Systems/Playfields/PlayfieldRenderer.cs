@@ -59,6 +59,7 @@ public static partial class PlayfieldRenderer
 
         DrawNotes(canvas, rid, entities, view, playfield, playhead, default);
         DrawMines(canvas, rid, entities, view, playhead);
+        DrawDashTrails(canvas, rid, entities);
         DrawPlayer(canvas, rid, entities, view);
         DrawHitTrails(canvas, rid, entities);
         DrawKeyTrail(canvas, rid, entities, field, playhead);

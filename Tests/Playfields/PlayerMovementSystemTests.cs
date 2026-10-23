@@ -68,6 +68,9 @@ public sealed class PlayerMovementSystemTests
 
         Assert.That(_player.GetComponent<Position>().Value.X, Is.EqualTo(350));
         Assert.That(movement.IsNull, Is.True);
+        Entity trail = _store.Query<DashTrail>().ToEntityList()[0];
+        Assert.That(trail.GetComponent<DashTrail>().From.X, Is.EqualTo(500));
+        Assert.That(trail.GetComponent<DashTrail>().To.X, Is.EqualTo(350));
     }
 
     [Test]

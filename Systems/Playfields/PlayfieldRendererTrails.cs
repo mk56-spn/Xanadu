@@ -10,6 +10,28 @@ namespace Writer.Systems.Playfields;
 
 public static partial class PlayfieldRenderer
 {
+    public static void DrawDashTrails(
+        IRectCanvas canvas,
+        Rid rid,
+        EntityStore entities)
+    {
+        foreach (Entity entity in entities.Query<DashTrail>().ToEntityList())
+        {
+            DashTrail trail = entity.GetComponent<DashTrail>();
+            float t = Math.Clamp(
+                trail.Age / Math.Max(0.01f, trail.Lifetime),
+                0f,
+                1f);
+            Color color = new(0.55f, 0.9f, 1f, (1f - t) * 0.8f);
+            canvas.DrawLine(
+                rid,
+                trail.From,
+                trail.To,
+                color,
+                Math.Max(1f, 6f * (1f - t)));
+        }
+    }
+
     public static void DrawHitTrails(
         IRectCanvas canvas,
         Rid rid,

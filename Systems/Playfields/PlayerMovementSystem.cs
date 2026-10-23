@@ -82,6 +82,7 @@ public sealed class PlayerMovementSystem : QuerySystem<Player, Position, Playfie
                 Box2DPhysicsWorld.ToPhysics(targetScreen),
                 body.Body.GetAngle());
             position.Value = targetScreen;
+            _entities.CreateEntity(new DashTrail(screen, targetScreen));
 
             if (entity.HasComponent<ScoreState>())
             {

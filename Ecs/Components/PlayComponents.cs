@@ -118,3 +118,15 @@ public struct HitTrail(
     public float Age;
     public float Lifetime = lifetime;
 }
+
+/// <summary>A short-lived line from a dash start to its landing point.</summary>
+public struct DashTrail(
+    Vector2 from,
+    Vector2 to,
+    float lifetime = 0.35f) : IComponent
+{
+    public Vector2 From = from;
+    public Vector2 To = to;
+    public float Age;
+    public float Lifetime = lifetime;
+}

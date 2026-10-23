@@ -28,6 +28,7 @@ public sealed class PlayfieldSystemGroup : SystemGroup
         Add(new PlayKeyTrailSystem(entities, keybinds, keyboard));
         Add(new PlayNoteInputSystem(entities, keybinds, keyboard, offsets));
         Add(new HitTrailSystem());
+        Add(new DashTrailSystem());
         Add(new PlayScoreSystem());
         Add(new PlayfieldDrawSystem(entities, canvas, playfieldCanvas));
     }
