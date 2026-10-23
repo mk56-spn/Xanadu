@@ -127,6 +127,23 @@ public sealed class EditorCommandSystemTests : EcsSystemTest
     }
 
     [Test]
+    public void DeleteSelectionRemovesMinesAndStartPoints()
+    {
+        Entity mine = Store.CreateEntity(new Mine(500, new Vector2(10, 20)));
+        Entity start = Store.CreateEntity(new StartPoint(
+            "Start", 500, new Vector2(30, 40),
+            System.Numerics.Vector2.Zero, new Vector2(0, -1)));
+        _editor.GetComponent<NoteSelection>().SetMany(new[] { mine, start });
+
+        _commands.Enqueue(EditorCommand.DeleteSelection());
+        Frame();
+
+        Assert.That(Store.Query<Mine>().Count, Is.Zero);
+        Assert.That(Store.Query<StartPoint>().Count, Is.Zero);
+        Assert.That(_editor.GetComponent<NoteSelection>().Notes, Is.Empty);
+    }
+
+    [Test]
     public void SetTargetIsUndoable()
     {
         Entity note = Store.CreateEntity(

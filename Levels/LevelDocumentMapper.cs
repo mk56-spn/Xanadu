@@ -89,7 +89,7 @@ public static class LevelDocumentMapper
 
         foreach (NoteDocument note in document.Notes)
         {
-            entities.CreateEntity(new Note(
+            EditorItems.Create(entities, new Note(
                 note.TimeMs,
                 new Vector2(note.X, note.Y),
                 note.FadeInMs,
@@ -104,7 +104,7 @@ public static class LevelDocumentMapper
 
         foreach (StartPointDocument start in document.StartPoints)
         {
-            entities.CreateEntity(new StartPoint(
+            EditorItems.Create(entities, new StartPoint(
                 start.Name,
                 start.TimeMs,
                 new Vector2(start.X, start.Y),
@@ -116,7 +116,7 @@ public static class LevelDocumentMapper
 
         foreach (MineDocument mine in document.Mines)
         {
-            entities.CreateEntity(new Mine(
+            EditorItems.Create(entities, new Mine(
                 mine.TimeMs,
                 new Vector2(mine.X, mine.Y),
                 mine.FadeInMs,

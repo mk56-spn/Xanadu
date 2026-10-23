@@ -332,7 +332,7 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
 
             Playhead startPlayhead = editor.GetComponent<Playhead>();
             var startBefore = _history.Capture();
-            _entities.CreateEntity(new StartPoint(
+            EditorItems.Create(_entities, new StartPoint(
                 "",
                 EditorTiming.Snap(startPlayhead.TimeMs, startPlayhead),
                 startPosition,
@@ -354,7 +354,7 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
 
             Playhead playhead = editor.GetComponent<Playhead>();
             var before = _history.Capture();
-            _entities.CreateEntity(new Mine(
+            EditorItems.Create(_entities, new Mine(
                 EditorTiming.Snap(playhead.TimeMs, playhead),
                 position));
             _history.Record(before, _history.Capture());
@@ -390,7 +390,7 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
         DashDirection direction = editor.HasComponent<EditorDashDirectionState>()
             ? editor.GetComponent<EditorDashDirectionState>().Direction
             : DashDirection.Up;
-        Entity created = _entities.CreateEntity(new Note(
+        Entity created = EditorItems.Create(_entities, new Note(
             time,
             playfieldPosition,
             target: target,

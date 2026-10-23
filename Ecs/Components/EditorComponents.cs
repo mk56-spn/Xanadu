@@ -5,11 +5,21 @@ using Writer.Settings;
 
 namespace Writer.Ecs;
 
+/// <summary>Marks an editable playfield entity. Editor-only; never serialized.</summary>
+public struct EditorItem : ITag;
+
 /// <summary>The editor's current note selection, including marquee selections.</summary>
-public struct NoteSelection(Entity note) : IComponent
+public struct NoteSelection : IComponent
 {
-    private Entity _note = note;
+    private Entity _note;
     public readonly List<Entity> Notes = new();
+
+    public NoteSelection(Entity note)
+    {
+        _note = default;
+        Notes = new List<Entity>();
+        Note = note;
+    }
 
     public Entity Note
     {
@@ -19,7 +29,10 @@ public struct NoteSelection(Entity note) : IComponent
             _note = value;
             Notes.Clear();
             if (!_note.IsNull)
+            {
+                _note.AddTag<EditorItem>();
                 Notes.Add(_note);
+            }
         }
     }
 
@@ -41,7 +54,10 @@ public struct NoteSelection(Entity note) : IComponent
         foreach (Entity entity in notes)
         {
             if (!entity.IsNull && !Notes.Contains(entity))
+            {
+                entity.AddTag<EditorItem>();
                 Notes.Add(entity);
+            }
         }
 
         _note = Notes.Count > 0 ? Notes[0] : default;

@@ -30,6 +30,7 @@ public sealed class EditorHistory
     {
         var notes = new List<NoteSnapshot>();
         var mines = new List<MineSnapshot>();
+        var starts = new List<StartPointSnapshot>();
 
         foreach (Entity entity in _entities.Query<Note>().ToEntityList())
         {
@@ -74,14 +75,34 @@ public sealed class EditorHistory
             return x != 0 ? x : a.Position.Y.CompareTo(b.Position.Y);
         });
 
-        return new EditorSnapshot(notes, mines);
+        foreach (Entity entity in _entities.Query<StartPoint>().ToEntityList())
+        {
+            StartPoint start = entity.GetComponent<StartPoint>();
+            starts.Add(new StartPointSnapshot(
+                start.Name,
+                start.TimeMs,
+                start.Position,
+                start.Momentum,
+                start.Direction));
+        }
+
+        starts.Sort(static (a, b) =>
+        {
+            int time = a.TimeMs.CompareTo(b.TimeMs);
+            if (time != 0)
+                return time;
+            int x = a.Position.X.CompareTo(b.Position.X);
+            return x != 0 ? x : a.Position.Y.CompareTo(b.Position.Y);
+        });
+
+        return new EditorSnapshot(notes, mines, starts);
     }
 
     public void Record(EditorSnapshot before, EditorSnapshot after)
     {
         if (before.Notes.SequenceEqual(after.Notes) &&
-
-            before.Mines.SequenceEqual(after.Mines))
+            before.Mines.SequenceEqual(after.Mines) &&
+            before.StartPoints.SequenceEqual(after.StartPoints))
         {
             return;
         }
@@ -134,9 +155,12 @@ public sealed class EditorHistory
         foreach (Entity entity in _entities.Query<Mine>().ToEntityList())
             entity.DeleteEntity();
 
+        foreach (Entity entity in _entities.Query<StartPoint>().ToEntityList())
+            entity.DeleteEntity();
+
         foreach (NoteSnapshot note in snapshot.Notes)
         {
-            _entities.CreateEntity(new Note(
+            EditorItems.Create(_entities, new Note(
                 note.TimeMs,
                 note.Position,
                 note.FadeInMs,
@@ -148,11 +172,21 @@ public sealed class EditorHistory
 
         foreach (MineSnapshot mine in snapshot.Mines)
         {
-            _entities.CreateEntity(new Mine(
+            EditorItems.Create(_entities, new Mine(
                 mine.TimeMs,
                 mine.Position,
                 mine.FadeInMs,
                 mine.FadeOutMs));
+        }
+
+        foreach (StartPointSnapshot start in snapshot.StartPoints)
+        {
+            EditorItems.Create(_entities, new StartPoint(
+                start.Name,
+                start.TimeMs,
+                start.Position,
+                start.Momentum,
+                start.Direction));
         }
     }
 
@@ -164,7 +198,16 @@ public sealed class EditorHistory
 /// <summary>Stable editable-state snapshot used by undo/redo.</summary>
 public readonly record struct EditorSnapshot(
     List<NoteSnapshot> Notes,
-    List<MineSnapshot> Mines);
+    List<MineSnapshot> Mines,
+    List<StartPointSnapshot> StartPoints);
+
+/// <summary>Stable serializable start-point snapshot used by undo/redo.</summary>
+public readonly record struct StartPointSnapshot(
+    string Name,
+    long TimeMs,
+    Vector2 Position,
+    System.Numerics.Vector2 Momentum,
+    Vector2 Direction);
 
 /// <summary>Stable serializable mine snapshot used by undo/redo.</summary>
 public readonly record struct MineSnapshot(

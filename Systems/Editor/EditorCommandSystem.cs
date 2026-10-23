@@ -364,21 +364,21 @@ public sealed class EditorCommandSystem :
             return;
 
         ref NoteSelection selection = ref editor.GetComponent<NoteSelection>();
-        var notes = new List<Entity>();
+        var items = new List<Entity>();
         foreach (Entity entity in selection.AllNotes)
         {
-            if (!entity.IsNull && entity.HasComponent<Note>())
-                notes.Add(entity);
+            if (!entity.IsNull && entity.Tags.Has<EditorItem>())
+                items.Add(entity);
         }
 
-        if (notes.Count == 0)
+        if (items.Count == 0)
         {
             selection.Clear();
             return;
         }
 
         var before = _history.Capture();
-        foreach (Entity entity in notes)
+        foreach (Entity entity in items)
             entity.DeleteEntity();
 
         _history.Record(before, _history.Capture());

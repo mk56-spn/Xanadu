@@ -66,4 +66,25 @@ public sealed class EditorHistoryTests
         Assert.That(store.Query<Note>().ToEntityList()[0].GetComponent<Note>().TimeMs,
             Is.EqualTo(500));
     }
+
+    [Test]
+    public void UndoRestoresDeletedStartPoint()
+    {
+        var store = new EntityStore();
+        Entity start = store.CreateEntity(new StartPoint(
+            "Start", 500, new Vector2(10, 20),
+            System.Numerics.Vector2.Zero, new Vector2(0, -1)));
+        var history = new EditorHistory(store);
+        var before = history.Capture();
+
+        start.DeleteEntity();
+        history.Record(before, history.Capture());
+
+        Assert.That(history.Undo(), Is.True);
+        Assert.That(store.Query<StartPoint>().Count, Is.EqualTo(1));
+        Assert.That(
+            store.Query<StartPoint>().ToEntityList()[0]
+                .GetComponent<StartPoint>().Name,
+            Is.EqualTo("Start"));
+    }
 }
