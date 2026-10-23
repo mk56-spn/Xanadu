@@ -48,4 +48,37 @@ public sealed class ProjectBoundaryTests
             Assert.That(source.Contains("using Writer.Scenes"), Is.False, file);
         }
     }
+
+    [Test]
+    public void EditorItemsAreCreatedThroughTheFactory()
+    {
+        string[] roots =
+        {
+            Path.Combine(Root, "Systems", "Editor"),
+            Path.Combine(Root, "Editor"),
+            Path.Combine(Root, "Levels"),
+        };
+        string[] direct =
+        {
+            "CreateEntity(new Note(",
+            "CreateEntity(new Mine(",
+            "CreateEntity(new StartPoint(",
+        };
+
+        foreach (string root in roots)
+        {
+            foreach (string file in Directory.GetFiles(
+                         root, "*.cs", SearchOption.AllDirectories))
+            {
+                string source = File.ReadAllText(file);
+                foreach (string call in direct)
+                {
+                    Assert.That(
+                        source.Contains(call),
+                        Is.False,
+                        $"{file} bypasses EditorItems.Create via {call}");
+                }
+            }
+        }
+    }
 }
