@@ -108,6 +108,7 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
             confirmation.Save.Tags.Has<Pressed>() &&
             SaveEditor?.Invoke() == true)
         {
+            confirmation.Target = SceneKind.SongSelect;
             Confirm(ref state);
             return true;
         }
@@ -134,6 +135,8 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
             ref _confirmationPanel.GetComponent<SceneConfirmation>();
 
         bool play = current == SceneKind.Play;
+        if (current == SceneKind.Editor && !EditorHasSavedLevel())
+            target = SceneKind.Main;
         confirmation.Target = target;
         if (!confirmation.Save.IsNull)
         {
@@ -153,12 +156,23 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
             confirmation.Message,
             play
                 ? "Return to song select?"
-                : "Save this level before returning to the main menu?");
+                : "Save this level before returning to song select?");
 
         ref Position position = ref _confirmationPanel.GetComponent<Position>();
         position.Value = _screen / 2;
         confirmation.Visible = true;
         _confirmationPanel.AddTag<Moved>();
+    }
+
+    private bool EditorHasSavedLevel()
+    {
+        foreach (Entity entity in _entities.Query<LevelFile>().ToEntityList())
+        {
+            if (!string.IsNullOrWhiteSpace(entity.GetComponent<LevelFile>().Path))
+                return true;
+        }
+
+        return false;
     }
 
     private void HideConfirmation()

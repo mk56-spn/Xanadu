@@ -39,11 +39,8 @@ public sealed class LeaveEditorSceneTest : SceneTest
         AddWaitStep("hold click", 2);
         AddStep("release click", () => Context.Pointer.Release());
         AddUntilStep(
-            "return to main",
-            () => Context.Scenes.Current == SceneKind.Main);
-        AddAssert(
-            "main menu is visible",
-            () => VisualAssert.HasText(Context.Entities, "WRITER"));
+            "return to song select",
+            () => Context.Scenes.Current == SceneKind.SongSelect);
         AddAssert("editor save was requested", () => _saved);
         AddStep("close editor overlay", CloseOverlay);
     }

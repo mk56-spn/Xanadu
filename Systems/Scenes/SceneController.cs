@@ -196,7 +196,7 @@ public sealed class SceneControllerRegistry
         public SceneKind Kind => SceneKind.Editor;
         public string Label => "EDITOR";
         public void Build(SceneBuildContext c) => EditorScene.Build(c.Entities, c.Screen, c.Root, c.Entry);
-        public SceneKind BackTarget => SceneKind.Main;
+        public SceneKind BackTarget => SceneKind.SongSelect;
         public bool ConfirmsOnBack => true;
     }
 

@@ -70,7 +70,7 @@ Interactive controls:
   and exit buttons
 - `movement-judgement` — movement note alone must increment hit count and show
   a visible judgement
-- `leave-editor` — real editor overlay, SAVE & LEAVE, return to main
+- `leave-editor` — real editor overlay, SAVE & LEAVE, return to song select
 
 ## NUnit integration feasibility
 
