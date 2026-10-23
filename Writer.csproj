@@ -23,8 +23,8 @@
     <PackageReference Include="Box2DSharp" Version="0.6.0" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="Core/Writer.Core.csproj" />
-    <ProjectReference Include="UI/Writer.Ui.csproj" />
+    <ProjectReference Include="Core/Writer.Core.csproj" PrivateAssets="all" />
+    <ProjectReference Include="UI/Writer.Ui.csproj" PrivateAssets="all" />
     <Content Include="agents.md" />
   </ItemGroup>
   <!--
