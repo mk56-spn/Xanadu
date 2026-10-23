@@ -23,8 +23,6 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
 
     private bool _wasPressed;
     private bool _scrubbing;
-    private long _scrubWindowStart;
-    private long _scrubWindowEnd;
     private Entity _draggedEntity;
     private Vector2 _dragStartPointer;
     private readonly Dictionary<int, Vector2> _dragStartPositions = new();
@@ -99,7 +97,8 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
                 return;
             }
 
-            BeginScrub(screenPosition, bar, ref playhead, editor);
+            _scrubbing = true;
+            Scrub(screenPosition, bar, ref playhead, editor);
             return;
         }
 
@@ -199,7 +198,11 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
 
         if (_scrubbing)
         {
-            Scrub(screenPosition, EditorLayout.RulerRect(view), ref playhead);
+            Scrub(
+                screenPosition,
+                EditorLayout.RulerRect(view),
+                ref playhead,
+                editor);
             return;
         }
 
@@ -495,7 +498,7 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
         selection.SetMany(notes);
     }
 
-    private void BeginScrub(
+    private void Scrub(
         Vector2 screenPosition,
         Rect2 bar,
         ref Playhead playhead,
@@ -507,26 +510,9 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
         float zoom = editor.HasComponent<EditorTimeline>()
             ? editor.GetComponent<EditorTimeline>().Zoom
             : 1f;
-        (_scrubWindowStart, _scrubWindowEnd) =
-            EditorLayout.TimelineWindow(playhead, zoom);
-        _scrubbing = true;
-        Scrub(screenPosition, bar, ref playhead);
-    }
-
-    private void Scrub(
-        Vector2 screenPosition,
-        Rect2 bar,
-        ref Playhead playhead)
-    {
-        if (!_scrubbing || playhead.DurationMs <= 0)
-            return;
-
-        float t = Math.Clamp(
-            (screenPosition.X - bar.Position.X) / bar.Size.X,
-            0f,
-            1f);
-        long raw = _scrubWindowStart +
-                   (long)((_scrubWindowEnd - _scrubWindowStart) * t);
+        (long start, long end) = EditorLayout.TimelineWindow(playhead, zoom);
+        float t = Math.Clamp((screenPosition.X - bar.Position.X) / bar.Size.X, 0f, 1f);
+        long raw = start + (long)((end - start) * t);
         playhead.SeekRequestMs = Math.Clamp(
             raw,
             0,
