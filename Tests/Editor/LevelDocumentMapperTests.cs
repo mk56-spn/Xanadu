@@ -92,5 +92,29 @@ public sealed class LevelDocumentMapperTests
         Assert.That(
             targetStore.Query<Note>().ToEntityList()[1].GetComponent<Note>().Kind,
             Is.EqualTo(NoteKind.Movement));
+
+        foreach (Entity entity in targetStore.Query<Note>().ToEntityList())
+            Assert.That(entity.Tags.Has<EditorItem>(), Is.True);
+        foreach (Entity entity in targetStore.Query<Mine>().ToEntityList())
+            Assert.That(entity.Tags.Has<EditorItem>(), Is.True);
+        foreach (Entity entity in targetStore.Query<StartPoint>().ToEntityList())
+            Assert.That(entity.Tags.Has<EditorItem>(), Is.True);
+    }
+
+    [Test]
+    public void EditorItemsFactoryTagsEveryItemType()
+    {
+        var store = new EntityStore();
+        Entity note = EditorItems.Create(store, new Note(
+            0, new Vector2(10, 20)));
+        Entity mine = EditorItems.Create(store, new Mine(
+            100, new Vector2(30, 40)));
+        Entity start = EditorItems.Create(store, new StartPoint(
+            "Start", 200, new Vector2(50, 60),
+            System.Numerics.Vector2.Zero, new Vector2(0, -1)));
+
+        Assert.That(note.Tags.Has<EditorItem>(), Is.True);
+        Assert.That(mine.Tags.Has<EditorItem>(), Is.True);
+        Assert.That(start.Tags.Has<EditorItem>(), Is.True);
     }
 }
