@@ -172,7 +172,14 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
                 score.Accuracy,
                 score.MaxCombo,
                 score.NotesHit,
-                score.TotalNotes);
+                score.TotalNotes,
+                score.FlawlessPCount,
+                score.FlawlessCount,
+                score.CleanCount,
+                score.FairCount,
+                score.DeficientCount,
+                score.TerribleCount,
+                score.MissCount);
         }
 
         return new PlayResults("", 0, 0, 0, 0, 0);

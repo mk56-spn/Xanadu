@@ -139,6 +139,35 @@ public static class ResultsScene
             SceneUi.TextColor,
             SceneUi.PanelColor);
 
+        SceneUi.Label(
+            ui,
+            new Vector2(centerX, y + 112),
+            new Vector2(panelWidth - 80, 24),
+            "JUDGEMENTS",
+            16,
+            SceneUi.DimTextColor,
+            SceneUi.PanelColor);
+
+        SceneUi.Label(
+            ui,
+            new Vector2(centerX, y + 140),
+            new Vector2(panelWidth - 40, 28),
+            $"FLAWLESS+ {results.FlawlessPCount}   FLAWLESS {results.FlawlessCount}   " +
+            $"CLEAN {results.CleanCount}   FAIR {results.FairCount}",
+            14,
+            SceneUi.TextColor,
+            SceneUi.PanelColor);
+
+        SceneUi.Label(
+            ui,
+            new Vector2(centerX, y + 166),
+            new Vector2(panelWidth - 40, 28),
+            $"DEFICIENT {results.DeficientCount}   TERRIBLE {results.TerribleCount}   " +
+            $"MISS {results.MissCount}",
+            14,
+            SceneUi.TextColor,
+            SceneUi.PanelColor);
+
         Entity retry = SceneUi.ButtonEntity(
             ui,
             new Vector2(centerX - 240, screen.Y - 70),

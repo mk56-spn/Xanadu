@@ -29,7 +29,14 @@ public sealed class ResultsSceneTest : SceneTest
                     0.9876,
                     42,
                     30,
-                    42)));
+                    42,
+                    5,
+                    4,
+                    3,
+                    2,
+                    1,
+                    0,
+                    1)));
 
         AddUntilStep(
             "wait for results ECS",
@@ -55,6 +62,14 @@ public sealed class ResultsSceneTest : SceneTest
         AddAssert(
             "level name is shown",
             () => VisualAssert.HasText(Context.Entities, "Results Test"));
+        AddAssert(
+            "judgement counts are shown",
+            () => VisualAssert.HasText(
+                Context.Entities,
+                "FLAWLESS+ 5   FLAWLESS 4   CLEAN 3   FAIR 2") &&
+                VisualAssert.HasText(
+                    Context.Entities,
+                    "DEFICIENT 1   TERRIBLE 0   MISS 1"));
         AddAssert(
             "results has retry and exit buttons",
             () => VisualAssert.HasText(Context.Entities, "RETRY") &&

@@ -7,4 +7,11 @@ public readonly record struct PlayResults(
     double Accuracy,
     int MaxCombo,
     int NotesHit,
-    int TotalNotes);
+    int TotalNotes,
+    int FlawlessPCount = 0,
+    int FlawlessCount = 0,
+    int CleanCount = 0,
+    int FairCount = 0,
+    int DeficientCount = 0,
+    int TerribleCount = 0,
+    int MissCount = 0);
