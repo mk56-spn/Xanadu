@@ -80,6 +80,7 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
         EditorSceneActions.Register(_actionRegistry);
         ResultsSceneActions.Register(_actionRegistry);
         PauseSceneActions.Register(_actionRegistry);
+        SongSelectSceneActions.Register(_actionRegistry);
     }
 
     public ProfileStore Profiles => _profiles;

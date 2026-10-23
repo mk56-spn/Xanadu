@@ -176,23 +176,22 @@ public static class SongSelectScene
             catalog[Mathf.Clamp(selected, 0, catalog.Count - 1)].IsBlocked;
         if (catalog.Count > 0 && !blocked)
         {
-            Entity edit = SceneUi.Button(
+            Entity edit = SceneUi.ButtonEntity(
                 ui,
                 cardCenter + new Vector2(0, 120),
                 new Vector2(220, 42),
                 LocalizedText.Get(SongSelectStrings.EditLevel),
-                SceneKind.Editor,
                 16,
                 SceneUi.MutedButtonColor);
-            edit.AddComponent(new EditLevelAction());
+            edit.AddComponent(new SceneCommand(SceneActionId.Edit));
 
-            SceneUi.Button(
+            Entity play = SceneUi.ButtonEntity(
                 ui,
                 new Vector2(screen.X / 2, screen.Y - 90),
                 new Vector2(320, 64),
                 LocalizedText.Get(SongSelectStrings.Play),
-                SceneKind.Play,
                 24);
+            play.AddComponent(new SceneCommand(SceneActionId.Play));
         }
 
         var state = new SongSelectState(

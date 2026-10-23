@@ -140,7 +140,8 @@ public static class SceneUi
 
         button.AddComponent(new TextStyle(24, TextColor));
         button.AddComponent(ButtonVisual.Create(MutedButtonColor));
-        button.AddComponent(new CarouselStep(direction));
+        button.AddComponent(new SceneCommand(
+            direction < 0 ? SceneActionId.Previous : SceneActionId.Next));
         return button;
     }
 

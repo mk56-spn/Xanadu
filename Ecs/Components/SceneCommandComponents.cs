@@ -19,6 +19,10 @@ public enum SceneActionId
     Resume,
     Leave,
     Pause,
+    Play,
+    Edit,
+    Previous,
+    Next,
 }
 
 /// <summary>Data-only command attached to a button or action entity.</summary>

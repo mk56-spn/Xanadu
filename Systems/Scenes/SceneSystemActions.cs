@@ -47,12 +47,6 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
             if (target == SceneKind.None)
                 continue;
 
-            if (target == SceneKind.Editor &&
-                entity.HasComponent<EditLevelAction>())
-            {
-                _pendingEditorEntry = LoadEntry(state.SelectedLevelPath);
-            }
-
             if (target == SceneKind.SongTiming)
             {
                 foreach (Entity editor in _entities.Query<LevelInfo>().ToEntityList())

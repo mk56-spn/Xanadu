@@ -28,4 +28,27 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
             return null;
         }
     }
+    public bool StepSongSelect(int direction) =>
+        CurrentController is SongSelectController controller
+            ? controller.TryStep(direction)
+            : false;
+
+    public bool PlaySelected() =>
+        CurrentController?.TryForward(this) ?? false;
+
+    public bool EditSelected()
+    {
+        if (_stateEntity.IsNull)
+            return false;
+
+        ref SceneState state = ref _stateEntity.GetComponent<SceneState>();
+        LevelEntry? entry = LoadEntry(state.SelectedLevelPath);
+        if (entry is null)
+            return false;
+
+        _pendingEditorEntry = entry;
+        state.Pending = SceneKind.Editor;
+        return true;
+    }
+
 }

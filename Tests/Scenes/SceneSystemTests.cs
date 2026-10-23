@@ -97,7 +97,7 @@ public sealed class SceneSystemTests
         Assert.That(view.Title.GetComponent<Text>().Value, Is.EqualTo("First Level"));
         Assert.That(view.Index.GetComponent<Text>().Value, Is.EqualTo("1 / 2"));
 
-        Entity step = _store.CreateEntity(new CarouselStep(1), Tags.Get<Pressed>());
+        Entity step = _store.CreateEntity(new SceneCommand(SceneActionId.Next), Tags.Get<Pressed>());
         Frame();
 
         view = root.GetComponent<SongSelectState>();

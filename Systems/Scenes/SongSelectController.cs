@@ -37,18 +37,6 @@ public sealed class SongSelectController : ISceneController
         return true;
     }
 
-    public void HandleActions(SceneSystem system, ref SceneState state)
-    {
-        foreach (Entity entity in system.Entities
-                     .Query<CarouselStep>()
-                     .AllTags(Tags.Get<Pressed>())
-                     .ToEntityList())
-        {
-            TryStep(entity.GetComponent<CarouselStep>().Direction);
-            return;
-        }
-    }
-
     public void Build(SceneBuildContext context)
     {
         _stateEntity = context.StateEntity;
