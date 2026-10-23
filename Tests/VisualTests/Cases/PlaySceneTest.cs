@@ -56,6 +56,9 @@ public sealed class PlaySceneTest : SceneTest
         AddAssert(
             "key trail exists",
             () => Context.Entities.Query<KeyTrail>().Count == 1);
+        AddAssert(
+            "timing error bar exists",
+            () => Context.Entities.Query<ErrorBar>().Count == 1);
     }
 
     private void OpenPlay()

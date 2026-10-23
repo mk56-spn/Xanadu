@@ -1,3 +1,4 @@
+using System;
 using Friflo.Engine.ECS;
 using Godot;
 using Friflo.Engine.ECS.Systems;
@@ -48,6 +49,7 @@ public sealed class PlayScoreSystem : QuerySystem<ScoreState, Playhead>
                 buffer);
 
             if (showJudgement &&
+                !score.JudgementText.IsNull &&
                 score.JudgementText.HasComponent<TextStyle>())
             {
                 ref TextStyle style =
@@ -59,6 +61,9 @@ public sealed class PlayScoreSystem : QuerySystem<ScoreState, Playhead>
                     buffer.AddTag<Dirty>(score.JudgementText.Id);
                 }
             }
+
+            if (entity.HasComponent<ErrorBar>())
+                UpdateErrorBar(entity, score, showJudgement, buffer);
 
             if (entity.HasComponent<JudgementCounter>())
             {
@@ -90,6 +95,50 @@ public sealed class PlayScoreSystem : QuerySystem<ScoreState, Playhead>
                 buffer.AddTag<Moved>(score.JudgementText.Id);
             }
         });
+    }
+
+    private static void UpdateErrorBar(
+        Entity entity,
+        ScoreState score,
+        bool visible,
+        CommandBuffer buffer)
+    {
+        ErrorBar bar = entity.GetComponent<ErrorBar>();
+        if (bar.Marker.IsNull ||
+            !bar.Marker.HasComponent<Position>() ||
+            !bar.Marker.HasComponent<FillColor>())
+        {
+            return;
+        }
+
+        bool show = visible &&
+                    score.LastJudgement != Judgement.Miss &&
+                    score.LastJudgement != Judgement.Mine &&
+                    score.LastJudgement != Judgement.None;
+        Color color = show
+            ? ColorFor(score.LastJudgement)
+            : new Color(1, 1, 1, 0);
+        color.A = show ? 1f : 0f;
+
+        if (show)
+        {
+            float offset = Math.Clamp(
+                score.LastOffsetMs,
+                -(long)bar.MaxOffsetMs,
+                (long)bar.MaxOffsetMs);
+            ref Position position = ref bar.Marker.GetComponent<Position>();
+            position.Value = new Vector2(
+                bar.CenterX - offset / bar.MaxOffsetMs * bar.HalfWidth,
+                bar.Y);
+            buffer.AddTag<Moved>(bar.Marker.Id);
+        }
+
+        ref FillColor fill = ref bar.Marker.GetComponent<FillColor>();
+        if (fill.Value != color)
+        {
+            fill.Value = color;
+            buffer.AddTag<Dirty>(bar.Marker.Id);
+        }
     }
 
     private static void SetText(Entity entity, string value, CommandBuffer buffer)

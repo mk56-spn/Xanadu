@@ -7,6 +7,7 @@ using Writer.Strings;
 using Position = Writer.Ecs.Position;
 using Writer.Levels;
 using Writer.Settings;
+using Writer.Scoring;
 using Writer.Systems.Playfields;
 
 namespace Writer.Scenes;
@@ -167,6 +168,8 @@ public static class PlayScene
             SceneUi.AccentColor,
             new Color(0, 0, 0, 0));
 
+        BuildErrorBar(ui, playfieldEntity, screen);
+
         float counterX = screen.X - 150;
         SceneUi.Text(
             ui,
@@ -250,6 +253,87 @@ public static class PlayScene
             countdown,
             Math.Max(lastNote, lastMine),
             start?.TimeMs ?? 0));
+    }
+
+    private static void BuildErrorBar(
+        UiBuilder ui,
+        Entity playfield,
+        Vector2 screen)
+    {
+        const float fullWidth = 420;
+        const float innerWidth = 360;
+        float centerX = screen.X / 2;
+        float y = screen.Y - 94;
+        float maxMs = (float)ScoreRules.JudgementDeviation(Judgement.Miss);
+        float pixelsPerMs = innerWidth / (maxMs * 2);
+
+        ui.RectEntity(
+            new Vector2(centerX, y),
+            new Vector2(fullWidth + 24, 38),
+            new Color("#0b111b"));
+
+        (Judgement Judgement, double Inner, double Outer)[] bands =
+        {
+            (Judgement.FlawlessP, 0, ScoreRules.JudgementDeviation(Judgement.FlawlessP)),
+            (Judgement.Flawless, ScoreRules.JudgementDeviation(Judgement.FlawlessP), ScoreRules.JudgementDeviation(Judgement.Flawless)),
+            (Judgement.Clean, ScoreRules.JudgementDeviation(Judgement.Flawless), ScoreRules.JudgementDeviation(Judgement.Clean)),
+            (Judgement.Fair, ScoreRules.JudgementDeviation(Judgement.Clean), ScoreRules.JudgementDeviation(Judgement.Fair)),
+            (Judgement.Deficient, ScoreRules.JudgementDeviation(Judgement.Fair), ScoreRules.JudgementDeviation(Judgement.Deficient)),
+            (Judgement.Terrible, ScoreRules.JudgementDeviation(Judgement.Deficient), ScoreRules.JudgementDeviation(Judgement.Terrible)),
+            (Judgement.Miss, ScoreRules.JudgementDeviation(Judgement.Terrible), maxMs),
+        };
+
+        foreach ((Judgement judgement, double inner, double outer) in bands)
+        {
+            Color color = PlayScoreSystem.ColorFor(judgement);
+            color.A = 0.82f;
+            float width = (float)(outer - inner) * pixelsPerMs;
+            float offset = (float)((inner + outer) / 2) * pixelsPerMs;
+            ui.RectEntity(
+                new Vector2(centerX - offset, y),
+                new Vector2(width, 14),
+                color);
+            ui.RectEntity(
+                new Vector2(centerX + offset, y),
+                new Vector2(width, 14),
+                color);
+        }
+
+        ui.RectEntity(
+            new Vector2(centerX, y),
+            new Vector2(2, 26),
+            Colors.White);
+
+        Entity marker = ui.RectEntity(
+            new Vector2(centerX, y),
+            new Vector2(4, 30),
+            new Color(1, 1, 1, 0),
+            "");
+
+        SceneUi.Text(
+            ui,
+            new Vector2(centerX - innerWidth / 2, y + 28),
+            new Vector2(100, 20),
+            "EARLY",
+            12,
+            SceneUi.DimTextColor,
+            new Color(0, 0, 0, 0));
+
+        SceneUi.Text(
+            ui,
+            new Vector2(centerX + innerWidth / 2, y + 28),
+            new Vector2(100, 20),
+            "LATE",
+            12,
+            SceneUi.DimTextColor,
+            new Color(0, 0, 0, 0));
+
+        playfield.AddComponent(new ErrorBar(
+            marker,
+            centerX,
+            y,
+            innerWidth / 2,
+            maxMs));
     }
 
     private static Entity CounterText(

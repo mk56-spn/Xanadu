@@ -50,3 +50,18 @@ public struct ScoreState(
         0,
         ScoreRules.MaxScore);
 }
+
+/// <summary>Geometry and marker for the play-mode timing error bar.</summary>
+public struct ErrorBar(
+    Entity marker,
+    float centerX,
+    float y,
+    float halfWidth,
+    float maxOffsetMs = 150f) : IComponent
+{
+    public Entity Marker = marker;
+    public float CenterX = centerX;
+    public float Y = y;
+    public float HalfWidth = halfWidth;
+    public float MaxOffsetMs = maxOffsetMs;
+}
