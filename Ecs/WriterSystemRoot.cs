@@ -157,7 +157,8 @@ public sealed class WriterSystemRoot : SystemRoot, IDisposable
             entities,
             pointerInput,
             Physics,
-            new GodotOverlayToggleSource(Key.F6)));
+            new GodotOverlayToggleSource(Key.F6),
+            new GodotOverlayPageSource()));
         Add(Toasts);
 
         SetMonitorPerf(true);

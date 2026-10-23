@@ -22,9 +22,17 @@ public sealed class DebugSystemGroup : SystemGroup
         EntityStore entitiesForSlider,
         IPointerInputSource pointer,
         Writer.Systems.Physics.Box2DPhysicsWorld physics,
-        IOverlayToggleSource gravityToggle) : base("Debug")
+        IOverlayToggleSource gravityToggle,
+        IOverlayPageSource? paging = null) : base("Debug")
     {
-        Add(new DebugPressedOverlaySystem(canvas, overlay, toggle, store, systems, fps));
+        Add(new DebugPressedOverlaySystem(
+            canvas,
+            overlay,
+            toggle,
+            store,
+            systems,
+            fps,
+            paging));
         Add(new DebugElementOverlaySystem(canvas, elementsOverlay, elementsToggle));
         Add(new GravityDebugSystem(
             entitiesForSlider,

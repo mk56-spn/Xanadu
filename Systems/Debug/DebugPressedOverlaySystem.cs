@@ -34,9 +34,16 @@ public sealed class DebugPressedOverlaySystem : QuerySystem<Rectangle, Position>
     private readonly EntityStore? _store;
     private readonly SystemRoot? _systems;
     private readonly IFpsSource? _fpsSource;
+    private readonly IOverlayPageSource? _paging;
 
     private bool _visible;
     private bool _wasTogglePressed;
+    private readonly List<ArchetypeRow> _archetypeRows = new();
+    private int _archetypeCacheCount = -1;
+    private long _archetypeRefreshAt;
+    private int _archetypePage;
+    private bool _pageUpHeld;
+    private bool _pageDownHeld;
 
     public DebugPressedOverlaySystem(
         IRectCanvas canvas,
@@ -44,7 +51,8 @@ public sealed class DebugPressedOverlaySystem : QuerySystem<Rectangle, Position>
         IOverlayToggleSource toggle,
         EntityStore? store = null,
         SystemRoot? systems = null,
-        IFpsSource? fpsSource = null)
+        IFpsSource? fpsSource = null,
+        IOverlayPageSource? paging = null)
     {
         _canvas = canvas;
         _overlay = overlay;
@@ -52,6 +60,7 @@ public sealed class DebugPressedOverlaySystem : QuerySystem<Rectangle, Position>
         _store = store;
         _systems = systems;
         _fpsSource = fpsSource;
+        _paging = paging;
     }
 
     protected override void OnUpdate()
@@ -181,6 +190,79 @@ public sealed class DebugPressedOverlaySystem : QuerySystem<Rectangle, Position>
 
     private void DrawArchetypePanel(EntityStore store)
     {
+        RefreshArchetypeCache(store);
+        HandleArchetypePaging();
+
+        const float width = 560;
+        const float colCount = 52;
+        const float colTags = 190;
+        const float maxSignature = 190;
+        const int pageSize = 20;
+        int pageCount = Math.Max(
+            1,
+            (_archetypeRows.Count + pageSize - 1) / pageSize);
+        _archetypePage = Math.Clamp(_archetypePage, 0, pageCount - 1);
+        int start = _archetypePage * pageSize;
+        int visible = Math.Min(pageSize, _archetypeRows.Count - start);
+
+        float height = 58 + visible * LineHeight;
+        if (pageCount > 1)
+            height += LineHeight;
+
+        var panel = new Rect2(16 + PanelWidth + 12, 16, width, height);
+        _canvas.DrawRect(_overlay, panel, PanelBackground);
+        DrawBorder(panel, PanelBorder, 1);
+
+        float x = panel.Position.X + 10;
+        float y = panel.Position.Y + 8;
+        DrawPanelLine($"ARCHETYPES {_archetypeRows.Count}", x, y, TitleColor);
+        y += LineHeight;
+
+        float signatureX = x + colCount;
+        float tagsX = signatureX + maxSignature;
+        DrawPanelLeft("n", x, y, colCount, HeaderColor);
+        DrawPanelLeft("components", signatureX, y, maxSignature, HeaderColor);
+        DrawPanelLeft("tags", tagsX, y, colTags, HeaderColor);
+        y += LineHeight;
+
+        for (int i = start; i < start + visible; i++)
+        {
+            ArchetypeRow row = _archetypeRows[i];
+            DrawPanelRight(row.Count, x, y, colCount, TextColor);
+            DrawPanelLeft(
+                Truncate(row.Components, 28),
+                signatureX,
+                y,
+                maxSignature,
+                TextColor);
+            DrawPanelLeft(
+                Truncate(row.Tags, 36),
+                tagsX,
+                y,
+                colTags,
+                TextColor);
+            y += LineHeight;
+        }
+
+        if (pageCount > 1)
+        {
+            DrawPanelLine(
+                $"PAGE {_archetypePage + 1}/{pageCount}   PGUP/PGDN",
+                x,
+                y,
+                HeaderColor);
+        }
+    }
+
+    private void RefreshArchetypeCache(EntityStore store)
+    {
+        long now = System.Environment.TickCount64;
+        if (_archetypeCacheCount == store.ArchetypeCount &&
+            now < _archetypeRefreshAt)
+        {
+            return;
+        }
+
         var sorted = new List<Archetype>();
         foreach (Archetype archetype in store.Archetypes)
             sorted.Add(archetype);
@@ -191,34 +273,9 @@ public sealed class DebugPressedOverlaySystem : QuerySystem<Rectangle, Position>
                 ? count
                 : right.ComponentTypes.Count.CompareTo(left.ComponentTypes.Count);
         });
-        Archetype[] archetypes = sorted.ToArray();
 
-        const float width = 560;
-        const float colCount = 52;
-        const float colTags = 190;
-        const float maxSignature = 190;
-        const int maxRows = 26;
-        float height = 58 + Math.Min(archetypes.Length, maxRows) * LineHeight;
-        if (archetypes.Length > maxRows)
-            height += LineHeight;
-
-        var panel = new Rect2(16 + PanelWidth + 12, 16, width, height);
-        _canvas.DrawRect(_overlay, panel, PanelBackground);
-        DrawBorder(panel, PanelBorder, 1);
-
-        float x = panel.Position.X + 10;
-        float y = panel.Position.Y + 8;
-        DrawPanelLine($"ARCHETYPES {archetypes.Length}", x, y, TitleColor);
-        y += LineHeight;
-
-        float signatureX = x + colCount;
-        float tagsX = signatureX + maxSignature;
-        DrawPanelLeft("n", x, y, colCount, HeaderColor);
-        DrawPanelLeft("components", signatureX, y, maxSignature, HeaderColor);
-        DrawPanelLeft("tags", tagsX, y, colTags, HeaderColor);
-        y += LineHeight;
-
-        foreach (Archetype archetype in archetypes.Take(maxRows))
+        _archetypeRows.Clear();
+        foreach (Archetype archetype in sorted)
         {
             string components = string.Join(
                 ", ",
@@ -227,36 +284,28 @@ public sealed class DebugPressedOverlaySystem : QuerySystem<Rectangle, Position>
             if (tags.StartsWith("Tags: ", StringComparison.Ordinal))
                 tags = tags["Tags: ".Length..];
 
-            DrawPanelRight(
+            _archetypeRows.Add(new ArchetypeRow(
                 archetype.Count.ToString(CultureInfo.InvariantCulture),
-                x,
-                y,
-                colCount,
-                TextColor);
-            DrawPanelLeft(
-                Truncate(components, 28),
-                signatureX,
-                y,
-                maxSignature,
-                TextColor);
-            DrawPanelLeft(
-                Truncate(tags, 36),
-                tagsX,
-                y,
-                colTags,
-                TextColor);
-            y += LineHeight;
+                components,
+                tags));
         }
 
-        if (archetypes.Length > maxRows)
-        {
-            DrawPanelLeft(
-                $"... {archetypes.Length - maxRows} more",
-                x,
-                y,
-                width - 20,
-                HeaderColor);
-        }
+        _archetypeCacheCount = store.ArchetypeCount;
+        _archetypeRefreshAt = now + 500;
+    }
+
+    private void HandleArchetypePaging()
+    {
+        bool up = _paging?.PreviousPressed() ?? false;
+        bool down = _paging?.NextPressed() ?? false;
+
+        if (up && !_pageUpHeld)
+            _archetypePage--;
+        if (down && !_pageDownHeld)
+            _archetypePage++;
+
+        _pageUpHeld = up;
+        _pageDownHeld = down;
     }
 
     private static string Truncate(string value, int max) =>
@@ -280,4 +329,8 @@ public sealed class DebugPressedOverlaySystem : QuerySystem<Rectangle, Position>
     }
 
     private readonly record struct SystemRow(string Name, string Last, string Avg, string Updates);
+    private readonly record struct ArchetypeRow(
+        string Count,
+        string Components,
+        string Tags);
 }
