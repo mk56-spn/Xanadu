@@ -15,16 +15,23 @@ public sealed class Box2DPhysicsWorld : IDisposable
     public const float PixelsPerMeter = 100f;
     public const float FixedTimeStep = 1f / 60f;
 
+    public const float DefaultGravity = 30f;
+
     private readonly World _world;
     private float _accumulator;
     private bool _disposed;
 
-    public Box2DPhysicsWorld()
+    public Box2DPhysicsWorld(float gravity = DefaultGravity)
     {
-        _world = new World(new NVector2(0f, 9.81f));
+        _world = new World(new NVector2(0f, gravity));
     }
 
+    public void SetGravity(float gravity) =>
+        _world.Gravity = new NVector2(0f, gravity);
+
     public World World => _world;
+
+    public float Gravity => _world.Gravity.Y;
 
     public Body CreateDynamicBox(
         Vector2 centerPixels,

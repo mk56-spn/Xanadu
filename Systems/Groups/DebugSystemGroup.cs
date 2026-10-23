@@ -18,9 +18,18 @@ public sealed class DebugSystemGroup : SystemGroup
         IOverlayToggleSource elementsToggle,
         EntityStore store,
         SystemRoot systems,
-        IFpsSource fps) : base("Debug")
+        IFpsSource fps,
+        EntityStore entitiesForSlider,
+        IPointerInputSource pointer,
+        Writer.Systems.Physics.Box2DPhysicsWorld physics,
+        IOverlayToggleSource gravityToggle) : base("Debug")
     {
         Add(new DebugPressedOverlaySystem(canvas, overlay, toggle, store, systems, fps));
         Add(new DebugElementOverlaySystem(canvas, elementsOverlay, elementsToggle));
+        Add(new GravityDebugSystem(
+            entitiesForSlider,
+            pointer,
+            physics,
+            gravityToggle));
     }
 }

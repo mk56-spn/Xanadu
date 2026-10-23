@@ -35,6 +35,17 @@ public sealed class Box2DPhysicsWorldTests
     }
 
     [Test]
+    public void GravityDefaultsHigherAndCanBeChanged()
+    {
+        using var physics = new Box2DPhysicsWorld();
+
+        Assert.That(physics.Gravity, Is.EqualTo(30f).Within(0.01f));
+
+        physics.SetGravity(55f);
+        Assert.That(physics.Gravity, Is.EqualTo(55f).Within(0.01f));
+    }
+
+    [Test]
     public void DynamicBoxHasCharacterMassAndDimensions()
     {
         using var physics = new Box2DPhysicsWorld();
