@@ -62,6 +62,7 @@ public sealed class MovementJudgementSceneTest : SceneTest
                 value.Position = position;
             }
         });
+        AddStep("freeze movement time", () => SetPlayheadTime(1_000));
         AddStep("hit movement note", () =>
         {
             Context.Keyboard.Press(

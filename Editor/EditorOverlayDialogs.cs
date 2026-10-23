@@ -42,25 +42,96 @@ public partial class EditorOverlay : CanvasLayer
 
     private void BuildSongDialog()
     {
+        _songPicker = new ConfirmationDialog
+        {
+            Title = "Choose a song",
+            OkButtonText = "SELECT",
+        };
+        var box = new VBoxContainer();
+        _songPicker.AddChild(box);
+        _songEmpty = new Label
+        {
+            Text = "NO SONGS",
+            HorizontalAlignment = HorizontalAlignment.Center,
+            Visible = false,
+        };
+        box.AddChild(_songEmpty);
+        _songList = new ItemList
+        {
+            CustomMinimumSize = new Vector2(620, 360),
+            SelectMode = ItemList.SelectModeEnum.Single,
+        };
+        _songList.ItemSelected += OnSongHighlighted;
+        box.AddChild(_songList);
+        _songInfo = new Label { Text = "" };
+        box.AddChild(_songInfo);
+        _songImport = new Button { Text = "IMPORT SONG..." };
+        _songImport.Pressed += OpenSongImportDialog;
+        box.AddChild(_songImport);
+        _songPicker.Confirmed += OnSongChoiceConfirmed;
+        AddChild(_songPicker);
+
         _songDialog = new FileDialog
         {
             FileMode = FileDialog.FileModeEnum.OpenFile,
             Access = FileDialog.AccessEnum.Filesystem,
             UseNativeDialog = false,
-            Title = "Load a song",
+            Title = "Import a song",
             Filters = ["*.mp3, *.wav, *.ogg, *.flac ; Audio Files"],
         };
-
         _songDialog.FileSelected += OnSongSelected;
         AddChild(_songDialog);
     }
 
     private void OpenSongDialog()
     {
-        if (_songDialog.Visible)
+        if (_songPicker.Visible)
             return;
 
-        _songDialog.PopupCentered(new Vector2I(900, 600));
+        RefreshSongList();
+        _songPicker.PopupCentered(new Vector2I(700, 540));
+    }
+
+    private void OpenSongImportDialog() => _songDialog.PopupCentered(new Vector2I(900, 600));
+
+    private void RefreshSongList()
+    {
+        _songs.Clear();
+        _songs.AddRange(new SongStore().LoadAll());
+        _songList.Clear();
+        foreach (SongDocument song in _songs)
+        {
+            string artist = string.IsNullOrWhiteSpace(song.Artist) ? "Unknown artist" : song.Artist;
+            _songList.AddItem($"{song.Title}   ·   {artist}");
+        }
+
+        bool empty = _songs.Count == 0;
+        _songEmpty.Visible = empty;
+        _songList.Visible = !empty;
+        _songInfo.Text = empty
+            ? "No songs in the library. Import one first."
+            : "Select a song, then choose SELECT.";
+        _songPicker.GetOkButton().Disabled = empty;
+        if (!empty)
+            _songList.Select(0);
+    }
+
+    private void OnSongHighlighted(long index)
+    {
+        if (index < 0 || index >= _songs.Count)
+            return;
+        SongDocument song = _songs[(int)index];
+        _songInfo.Text = $"{song.Bpm} BPM   ·   offset {song.OffsetMs} ms   ·   {song.Slug}";
+    }
+
+    private void OnSongChoiceConfirmed()
+    {
+        int index = _songList.GetSelectedItems().Length > 0
+            ? _songList.GetSelectedItems()[0]
+            : -1;
+        if (index < 0 || index >= _songs.Count || _editor.IsNull)
+            return;
+        _commands.Enqueue(EditorCommand.LoadSong(_songs[index].AudioPath));
     }
 
     public bool SaveCurrent()
@@ -149,9 +220,15 @@ public partial class EditorOverlay : CanvasLayer
 
     private void OnSongSelected(string path)
     {
-        if (_editor.IsNull)
-            return;
-
-        _commands.Enqueue(EditorCommand.LoadSong(path));
+        try
+        {
+            new SongStore().Import(path);
+            RefreshSongList();
+            _songPicker.PopupCentered(new Vector2I(700, 540));
+        }
+        catch (Exception exception)
+        {
+            SetStatus($"Song import failed: {exception.Message}");
+        }
     }
 }

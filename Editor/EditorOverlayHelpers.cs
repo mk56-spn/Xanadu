@@ -37,6 +37,7 @@ public partial class EditorOverlay : CanvasLayer
 
     private bool AnyDialogVisible() =>
         (_songDialog?.Visible ?? false) ||
+        (_songPicker?.Visible ?? false) ||
         (_saveAsDialog?.Visible ?? false) ||
         (_loadDialog?.Visible ?? false);
 

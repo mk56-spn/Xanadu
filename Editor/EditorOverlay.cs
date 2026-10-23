@@ -5,6 +5,7 @@ using Friflo.Engine.ECS;
 using Godot;
 using Writer.Ecs;
 using Writer.Levels;
+using Writer.Levels;
 using Writer.Editor.Commands;
 using Writer.Systems.Editor;
 using Writer.Systems.Input;
@@ -23,6 +24,12 @@ public partial class EditorOverlay : CanvasLayer
     private readonly TapTempo _tapTempo = new();
 
     private FileDialog _songDialog = null!;
+    private ConfirmationDialog _songPicker = null!;
+    private ItemList _songList = null!;
+    private Label _songInfo = null!;
+    private Label _songEmpty = null!;
+    private Button _songImport = null!;
+    private readonly System.Collections.Generic.List<SongDocument> _songs = new();
     private FileDialog _saveAsDialog = null!;
     private FileDialog _loadDialog = null!;
     private LineEdit _textInput = null!;
