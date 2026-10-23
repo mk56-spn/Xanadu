@@ -79,6 +79,17 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
         Rect2 bar = EditorLayout.RulerRect(view);
         if (bar.HasPoint(screenPosition))
         {
+            Entity timelineHit = FindTimelineNoteAt(
+                screenPosition, bar, playhead, editor);
+            if (!timelineHit.IsNull)
+            {
+                ref NoteSelection timelineSelection =
+                    ref editor.GetComponent<NoteSelection>();
+                timelineSelection.Note = timelineHit;
+                playhead.SeekRequestMs = timelineHit.GetComponent<Note>().TimeMs;
+                return;
+            }
+
             _scrubbing = true;
             Scrub(screenPosition, bar, ref playhead, editor);
             return;
@@ -460,6 +471,64 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
             raw,
             0,
             Math.Max(0, playhead.DurationMs));
+    }
+
+    private Entity FindTimelineNoteAt(
+        Vector2 screenPosition,
+        Rect2 ruler,
+        Playhead playhead,
+        Entity editor)
+    {
+        if (playhead.DurationMs <= 0)
+            return default;
+
+        float zoom = editor.HasComponent<EditorTimeline>()
+            ? editor.GetComponent<EditorTimeline>().Zoom
+            : 1f;
+        (long start, long end) = EditorLayout.TimelineWindow(playhead, zoom);
+        float span = Math.Max(1, end - start);
+        float noteSquare = Math.Clamp(6f + zoom * 0.0625f, 6f, 8f);
+        const float noteGap = 1f;
+
+        var notesByTime = new Dictionary<long, List<Entity>>();
+        foreach (Entity entity in _entities.Query<Note>().ToEntityList())
+        {
+            Note note = entity.GetComponent<Note>();
+            if (note.TimeMs < start || note.TimeMs > end)
+                continue;
+
+            if (!notesByTime.TryGetValue(note.TimeMs, out List<Entity>? notes))
+            {
+                notes = new List<Entity>();
+                notesByTime.Add(note.TimeMs, notes);
+            }
+
+            notes.Add(entity);
+        }
+
+        foreach ((long timeMs, List<Entity> notes) in notesByTime)
+        {
+            float x = ruler.Position.X +
+                      (timeMs - start) / span * ruler.Size.X;
+            int visible = Math.Min(notes.Count, 7);
+            float totalHeight = visible * noteSquare +
+                                Math.Max(0, visible - 1) * noteGap;
+            float top = ruler.Position.Y +
+                        (ruler.Size.Y - totalHeight) / 2;
+
+            for (int i = 0; i < visible; i++)
+            {
+                var bounds = new Rect2(
+                    x - noteSquare / 2,
+                    top + i * (noteSquare + noteGap),
+                    noteSquare,
+                    noteSquare);
+                if (bounds.HasPoint(screenPosition))
+                    return notes[i];
+            }
+        }
+
+        return default;
     }
 
     private Entity FindNoteAt(Vector2 position, long playheadMs)

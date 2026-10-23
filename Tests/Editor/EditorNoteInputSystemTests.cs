@@ -36,6 +36,27 @@ public sealed class EditorNoteInputSystemTests
     }
 
     [Test]
+    public void ClickingATimelineNoteSelectsIt()
+    {
+        Entity editor = _store.Query<PlayfieldView>().ToEntityList()[0];
+        ref Playhead playhead = ref editor.GetComponent<Playhead>();
+        playhead.DurationMs = 10_000;
+        playhead.TimeMs = 5_000;
+        editor.AddComponent(new EditorTimeline());
+
+        Entity note = _store.CreateEntity(new Note(5_000, new Vector2(500, 500)));
+        Rect2 ruler = EditorLayout.RulerRect(
+            editor.GetComponent<PlayfieldView>());
+        Vector2 point = ruler.Position + ruler.Size / 2;
+
+        _pointer.Current = new PointerInput(point, true);
+        _root.Update(new UpdateTick(1f / 60f, 0));
+
+        Assert.That(editor.GetComponent<NoteSelection>().Note.Id,
+            Is.EqualTo(note.Id));
+    }
+
+    [Test]
     public void ClickWithoutSongRequestsWarningAndSkipsNote()
     {
         Entity editor = _store.Query<PlayfieldView>().ToEntityList()[0];
