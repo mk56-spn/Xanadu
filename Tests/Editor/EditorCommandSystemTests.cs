@@ -145,6 +145,24 @@ public sealed class EditorCommandSystemTests : EcsSystemTest
     }
 
     [Test]
+    public void MoveSelectionNudgesEveryEditorItem()
+    {
+        ref Playhead playhead = ref _editor.GetComponent<Playhead>();
+        playhead.DurationMs = 10_000;
+        Entity mine = Store.CreateEntity(new Mine(1_000, new Vector2(10, 20)));
+        Entity start = Store.CreateEntity(new StartPoint(
+            "Start", 2_000, new Vector2(30, 40),
+            System.Numerics.Vector2.Zero, new Vector2(0, -1)));
+        _editor.GetComponent<NoteSelection>().SetMany(new[] { mine, start });
+
+        _commands.Enqueue(EditorCommand.MoveSelection(1));
+        Frame();
+
+        Assert.That(mine.GetComponent<Mine>().TimeMs, Is.EqualTo(1_500));
+        Assert.That(start.GetComponent<StartPoint>().TimeMs, Is.EqualTo(2_500));
+    }
+
+    [Test]
     public void CopyPastePreservesRelativeTimingAndPosition()
     {
         ref Playhead playhead = ref _editor.GetComponent<Playhead>();

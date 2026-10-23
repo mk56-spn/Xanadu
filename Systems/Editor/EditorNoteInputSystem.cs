@@ -25,6 +25,12 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
     private bool _scrubbing;
     private long _scrubWindowStart;
     private long _scrubWindowEnd;
+    private bool _timelineDragging;
+    private bool _timelineDragMoved;
+    private float _timelineDragStartX;
+    private Entity _timelinePrimary;
+    private EditorSnapshot _timelineBefore;
+    private readonly Dictionary<int, long> _timelineStartTimes = new();
     private Entity _draggedEntity;
     private Vector2 _dragStartPointer;
     private readonly Dictionary<int, Vector2> _dragStartPositions = new();
@@ -78,6 +84,7 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
 
         _pendingCreate = false;
         _selecting = false;
+        _timelineDragging = false;
         _additiveSelection = false;
         _selectionBase.Clear();
         SetSelectionBox(editor, Vector2.Zero, Vector2.Zero, false);
@@ -92,9 +99,17 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
                 ref NoteSelection timelineSelection =
                     ref editor.GetComponent<NoteSelection>();
                 if (shift)
+                {
                     ToggleSelection(ref timelineSelection, timelineHit);
+                }
                 else
-                    timelineSelection.Note = timelineHit;
+                {
+                    if (!timelineSelection.Contains(timelineHit))
+                        timelineSelection.Note = timelineHit;
+                    BeginTimelineDrag(
+                        screenPosition, bar, ref playhead, editor, timelineHit);
+                }
+
                 playhead.SeekRequestMs = timelineHit.GetComponent<Note>().TimeMs;
                 return;
             }
@@ -207,6 +222,16 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
             return;
         }
 
+        if (_timelineDragging)
+        {
+            DragTimeline(
+                screenPosition,
+                EditorLayout.RulerRect(view),
+                ref playhead,
+                editor);
+            return;
+        }
+
         if (_pendingCreate &&
             screenPosition.DistanceTo(_selectionStart) > 4f)
         {
@@ -286,6 +311,18 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
     private void OnRelease()
     {
         Entity editor = FindEditor();
+
+        if (_timelineDragging)
+        {
+            _timelineDragging = false;
+            if (!editor.IsNull)
+                SetScrubWindow(editor, false);
+            if (_timelineDragMoved && !editor.IsNull)
+                _history.Record(_timelineBefore, _history.Capture());
+            _timelineStartTimes.Clear();
+            _timelinePrimary = default;
+            return;
+        }
 
         if (_scrubbing)
         {
@@ -504,6 +541,84 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
 
     private const float ScrubDeadZone = 0.55f;
     private const float ScrubPanRate = 0.45f;
+
+    private void BeginTimelineDrag(
+        Vector2 screenPosition,
+        Rect2 bar,
+        ref Playhead playhead,
+        Entity editor,
+        Entity primary)
+    {
+        float zoom = editor.HasComponent<EditorTimeline>()
+            ? editor.GetComponent<EditorTimeline>().Zoom
+            : 1f;
+        (_scrubWindowStart, _scrubWindowEnd) =
+            EditorLayout.TimelineWindow(playhead, zoom);
+        _timelineDragging = true;
+        _timelineDragMoved = false;
+        _timelineDragStartX = screenPosition.X;
+        _timelinePrimary = primary;
+        _timelineBefore = _history.Capture();
+        _timelineStartTimes.Clear();
+
+        if (editor.HasComponent<NoteSelection>())
+        {
+            foreach (Entity selected in editor.GetComponent<NoteSelection>().AllNotes)
+            {
+                if (!selected.IsNull && selected.Tags.Has<EditorItem>() &&
+                    EditorItemTiming.TryGet(selected, out long timeMs))
+                {
+                    _timelineStartTimes[selected.Id] = timeMs;
+                }
+            }
+        }
+
+        SetScrubWindow(editor, true);
+    }
+
+    private void DragTimeline(
+        Vector2 screenPosition,
+        Rect2 bar,
+        ref Playhead playhead,
+        Entity editor)
+    {
+        long span = Math.Max(1, _scrubWindowEnd - _scrubWindowStart);
+        float delta = (screenPosition.X - _timelineDragStartX) /
+                      Math.Max(1f, bar.Size.X) * span;
+        long maxTime = playhead.DurationMs > 0
+            ? playhead.DurationMs
+            : long.MaxValue;
+        bool moved = false;
+
+        foreach ((int id, long startTime) in _timelineStartTimes)
+        {
+            Entity entity = _entities.GetEntityById(id);
+            if (entity.IsNull)
+                continue;
+
+            long target = EditorTiming.Snap(
+                startTime + (long)Math.Round(delta),
+                playhead);
+            target = Math.Clamp(target, 0, maxTime);
+            if (target == startTime)
+                continue;
+
+            EditorItemTiming.Set(entity, target);
+            moved = true;
+        }
+
+        if (moved)
+        {
+            _timelineDragMoved = true;
+            if (!_timelinePrimary.IsNull &&
+                EditorItemTiming.TryGet(_timelinePrimary, out long primaryTime))
+            {
+                playhead.SeekRequestMs = primaryTime;
+            }
+        }
+
+        SetScrubWindow(editor, true);
+    }
 
     private void BeginScrub(
         Vector2 screenPosition,

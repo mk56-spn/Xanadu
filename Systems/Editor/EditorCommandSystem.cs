@@ -279,14 +279,17 @@ public sealed class EditorCommandSystem :
         }
 
         ref NoteSelection selection = ref editor.GetComponent<NoteSelection>();
-        var notes = new List<Entity>();
+        var items = new List<Entity>();
         foreach (Entity entity in selection.AllNotes)
         {
-            if (!entity.IsNull && entity.HasComponent<Note>())
-                notes.Add(entity);
+            if (!entity.IsNull && entity.Tags.Has<EditorItem>() &&
+                EditorItemTiming.TryGet(entity, out _))
+            {
+                items.Add(entity);
+            }
         }
 
-        if (notes.Count == 0)
+        if (items.Count == 0)
             return;
 
         Playhead playhead = editor.GetComponent<Playhead>();
@@ -297,17 +300,19 @@ public sealed class EditorCommandSystem :
         EditorSnapshot before = _history.Capture();
         bool changed = false;
 
-        foreach (Entity entity in notes)
+        foreach (Entity entity in items)
         {
-            ref Note note = ref entity.GetComponent<Note>();
-            long moved = Math.Clamp(
-                note.TimeMs + (long)Math.Round(step) * Math.Sign(direction),
-                0,
-                maxTime);
-            if (moved == note.TimeMs)
+            if (!EditorItemTiming.TryGet(entity, out long timeMs))
                 continue;
 
-            note.TimeMs = moved;
+            long moved = Math.Clamp(
+                timeMs + (long)Math.Round(step) * Math.Sign(direction),
+                0,
+                maxTime);
+            if (moved == timeMs)
+                continue;
+
+            EditorItemTiming.Set(entity, moved);
             changed = true;
         }
 
