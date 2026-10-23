@@ -3,6 +3,7 @@ using System.IO;
 using Friflo.Engine.ECS;
 using Godot;
 using Writer.Ecs;
+using Writer.Levels;
 using Writer.Misc;
 using Writer.Editor;
 using Writer.Strings;
@@ -21,10 +22,13 @@ public partial class Main : Control
 	private EditorOverlay? _editorOverlay;
 	private OffsetWizardOverlay? _offsetWizard;
 	private SongSelectOverlay? _songSelectOverlay;
+	private SongTimingOverlay? _songTimingOverlay;
 
 	public override void _Ready()
 	{
 		LocalizedText.EnableGodot();
+		SongStore.CatalogFilePath =
+			ProjectSettings.GlobalizePath("res://Songs/catalog.json");
 		SetProcess(true);
 		_pointer = new GodotPointerInputSource(this);
 		_sceneDirector = new SceneDirector();
@@ -193,6 +197,21 @@ public partial class Main : Control
 			_editorOverlay.Close();
 			_editorOverlay = null;
 		}
+
+		if (scene == SceneKind.SongTiming)
+		{
+			_songSelectOverlay?.QueueFree();
+			_songSelectOverlay = null;
+			if (_songTimingOverlay is not null)
+				return;
+
+			_songTimingOverlay = new SongTimingOverlay(_systems!.Scenes);
+			AddChild(_songTimingOverlay);
+			return;
+		}
+
+		_songTimingOverlay?.QueueFree();
+		_songTimingOverlay = null;
 
 		if (scene == SceneKind.SongSelect)
 		{

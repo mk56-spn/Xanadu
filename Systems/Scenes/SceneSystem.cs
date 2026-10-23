@@ -149,6 +149,8 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
         state.SelectedSongId = songId;
         state.SongTimingBack = back;
         state.Pending = SceneKind.SongTiming;
+        if (state.Current == SceneKind.SongTiming)
+            _restartRequested = true;
     }
 
     public void CloseSongTiming()

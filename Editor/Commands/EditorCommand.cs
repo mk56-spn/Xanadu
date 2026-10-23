@@ -19,6 +19,7 @@ public enum EditorCommandType
     BeginPreview,
     EndPreview,
     LoadSong,
+    LoadSongById,
     DeleteSelection,
     SetTarget,
     MoveSelection,
@@ -75,6 +76,9 @@ public readonly record struct EditorCommand(
 
     public static EditorCommand LoadSong(string path) =>
         new(EditorCommandType.LoadSong, Text: path);
+
+    public static EditorCommand LoadSongById(string id) =>
+        new(EditorCommandType.LoadSongById, Text: id);
 
     public static EditorCommand DeleteSelection() =>
         new(EditorCommandType.DeleteSelection);

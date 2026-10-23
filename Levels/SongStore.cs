@@ -22,17 +22,44 @@ public sealed class SongStore
         RegexOptions.Compiled);
 
     private string? _root;
+    private readonly string? _catalogPath;
 
-    public SongStore(string? root = null)
+    /// <summary>Set by the game bootstrap once Godot paths are available.</summary>
+    public static string? CatalogFilePath { get; set; }
+
+    public SongStore(string? root = null, string? catalogPath = null)
     {
         _root = root;
+        _catalogPath = catalogPath;
     }
 
     public string Root => _root ??=
         ProjectSettings.GlobalizePath("user://songs");
 
+    public string CatalogPath => _catalogPath ?? CatalogFilePath ?? "";
+
     public IReadOnlyList<SongDocument> LoadAll()
     {
+        if (!string.IsNullOrEmpty(CatalogPath) && File.Exists(CatalogPath))
+        {
+            try
+            {
+                SongDocument[]? catalog =
+                    JsonFileStore.Load<SongDocument[]>(CatalogPath);
+                if (catalog is not null)
+                {
+                    return catalog
+                        .Where(song => !string.IsNullOrWhiteSpace(song.Id))
+                        .OrderBy(song => song.Title, StringComparer.OrdinalIgnoreCase)
+                        .ToArray();
+                }
+            }
+            catch (Exception)
+            {
+                // Fall back to the per-song store for compatibility.
+            }
+        }
+
         if (!Directory.Exists(Root))
             return Array.Empty<SongDocument>();
 
@@ -56,6 +83,14 @@ public sealed class SongStore
             string.Compare(a.Title, b.Title, StringComparison.OrdinalIgnoreCase));
         return songs;
     }
+
+    public string ResolveAudioPath(SongDocument song) =>
+        Path.IsPathRooted(song.AudioPath)
+            ? song.AudioPath
+            : Path.Combine(Root, song.Id, song.AudioPath);
+
+    public bool AudioExists(SongDocument song) =>
+        File.Exists(ResolveAudioPath(song));
 
     public SongDocument? Find(string id) =>
         string.IsNullOrWhiteSpace(id)
@@ -84,9 +119,6 @@ public sealed class SongStore
             throw new FileNotFoundException("Song audio was not found.", sourcePath);
 
         string hash = HashFile(sourcePath);
-        SongDocument? existing = FindByHash(hash);
-        if (existing is not null)
-            return existing;
 
         string id = Guid.NewGuid().ToString("N");
         AudioTagReader.TryRead(sourcePath, out string tagTitle, out string tagArtist);
@@ -138,6 +170,18 @@ public sealed class SongStore
     {
         if (string.IsNullOrWhiteSpace(song.Id))
             throw new InvalidOperationException("Song is missing its id.");
+
+        if (!string.IsNullOrEmpty(CatalogPath) && File.Exists(CatalogPath))
+        {
+            SongDocument[] songs = LoadAll().ToArray();
+            int index = Array.FindIndex(songs, item => item.Id == song.Id);
+            if (index >= 0)
+                songs[index] = song;
+            else
+                songs = songs.Append(song).ToArray();
+            JsonFileStore.Save(CatalogPath, songs);
+            return;
+        }
 
         string directory = GetDirectory(song);
         Directory.CreateDirectory(directory);

@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Linq;
 using Godot;
 using Writer.Ecs;
 using Writer.Levels;
@@ -65,22 +66,9 @@ public partial class EditorOverlay : CanvasLayer
         box.AddChild(_songList);
         _songInfo = new Label { Text = "" };
         box.AddChild(_songInfo);
-        _songImport = new Button { Text = "IMPORT SONG..." };
-        _songImport.Pressed += OpenSongImportDialog;
-        box.AddChild(_songImport);
         _songPicker.Confirmed += OnSongChoiceConfirmed;
         AddChild(_songPicker);
 
-        _songDialog = new FileDialog
-        {
-            FileMode = FileDialog.FileModeEnum.OpenFile,
-            Access = FileDialog.AccessEnum.Filesystem,
-            UseNativeDialog = false,
-            Title = "Import a song",
-            Filters = ["*.mp3, *.wav, *.ogg, *.flac ; Audio Files"],
-        };
-        _songDialog.FileSelected += OnSongSelected;
-        AddChild(_songDialog);
     }
 
     private void OpenSongDialog()
@@ -92,12 +80,11 @@ public partial class EditorOverlay : CanvasLayer
         _songPicker.PopupCentered(new Vector2I(700, 540));
     }
 
-    private void OpenSongImportDialog() => _songDialog.PopupCentered(new Vector2I(900, 600));
-
     private void RefreshSongList()
     {
         _songs.Clear();
-        _songs.AddRange(new SongStore().LoadAll());
+        var store = new SongStore();
+        _songs.AddRange(store.LoadAll().Where(song => store.AudioExists(song)));
         _songList.Clear();
         foreach (SongDocument song in _songs)
         {
@@ -131,7 +118,7 @@ public partial class EditorOverlay : CanvasLayer
             : -1;
         if (index < 0 || index >= _songs.Count || _editor.IsNull)
             return;
-        _commands.Enqueue(EditorCommand.LoadSong(_songs[index].AudioPath));
+        _commands.Enqueue(EditorCommand.LoadSongById(_songs[index].Id));
     }
 
     public bool SaveCurrent()
@@ -218,17 +205,4 @@ public partial class EditorOverlay : CanvasLayer
         }
     }
 
-    private void OnSongSelected(string path)
-    {
-        try
-        {
-            new SongStore().Import(path);
-            RefreshSongList();
-            _songPicker.PopupCentered(new Vector2I(700, 540));
-        }
-        catch (Exception exception)
-        {
-            SetStatus($"Song import failed: {exception.Message}");
-        }
-    }
 }

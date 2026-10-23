@@ -46,7 +46,47 @@ public sealed class SongStoreTests
     }
 
     [Test]
-    public void ImportRejectsDuplicateContentByHash()
+    public void CatalogResolvesExpectedAudioPresence()
+    {
+        string catalog = Path.Combine(_root, "catalog.json");
+        Directory.CreateDirectory(_root);
+        File.WriteAllText(catalog, """
+        [
+          { "Id": "present", "Slug": "present", "Title": "Present", "AudioPath": "audio.mp3" },
+          { "Id": "missing", "Slug": "missing", "Title": "Missing", "AudioPath": "audio.mp3" }
+        ]
+        """);
+        Directory.CreateDirectory(Path.Combine(_root, "present"));
+        File.WriteAllText(Path.Combine(_root, "present", "audio.mp3"), "audio");
+
+        var store = new SongStore(_root, catalog);
+        SongDocument present = store.Find("present")!;
+        SongDocument missing = store.Find("missing")!;
+
+        Assert.That(store.AudioExists(present), Is.True);
+        Assert.That(store.AudioExists(missing), Is.False);
+        Assert.That(store.LoadAll(), Has.Count.EqualTo(2));
+    }
+
+    [Test]
+    public void ImportAddsAPermanentCatalogEntry()
+    {
+        string catalog = Path.Combine(_root, "catalog.json");
+        Directory.CreateDirectory(_root);
+        File.WriteAllText(catalog, "[]");
+        var store = new SongStore(_root, catalog);
+
+        SongDocument song = store.Import(
+            CreateAudio("catalog-add.mp3", "catalog-audio"),
+            "Catalog Song");
+
+        Assert.That(File.Exists(Path.Combine(_root, "catalog.json")), Is.True);
+        Assert.That(store.Find(song.Id)?.Title, Is.EqualTo("Catalog Song"));
+        Assert.That(store.AudioExists(store.Find(song.Id)!), Is.True);
+    }
+
+    [Test]
+    public void ImportDoesNotHashMatchSongs()
     {
         string first = CreateAudio("first.wav", "same-audio");
         string second = CreateAudio("second.wav", "same-audio");
@@ -54,8 +94,7 @@ public sealed class SongStoreTests
         SongDocument a = _songs.Import(first, "First");
         SongDocument b = _songs.Import(second, "Second");
 
-        Assert.That(b.Id, Is.EqualTo(a.Id));
-        Assert.That(_songs.LoadAll(), Has.Count.EqualTo(1));
+        Assert.That(b.Id, Is.Not.EqualTo(a.Id));
     }
 
     [Test]

@@ -126,6 +126,12 @@ public sealed class EditorCommandSystem :
                     editor.GetComponent<EditorTimeline>().AutoZoomed = false;
                 break;
 
+            case EditorCommandType.LoadSongById:
+                LoadSongById(command.Text ?? "", ref level, ref playhead);
+                if (editor.HasComponent<EditorTimeline>())
+                    editor.GetComponent<EditorTimeline>().AutoZoomed = false;
+                break;
+
             case EditorCommandType.DeleteSelection:
                 DeleteSelection(editor);
                 break;
@@ -196,6 +202,28 @@ public sealed class EditorCommandSystem :
         playhead.Playing = preview.SavedPlaying;
         playhead.SeekRequestMs = preview.SavedTimeMs;
         preview.Active = false;
+    }
+
+    private static void LoadSongById(
+        string id,
+        ref LevelInfo level,
+        ref Playhead playhead)
+    {
+        var songs = new SongStore();
+        SongDocument? song = songs.Find(id);
+        if (song is null)
+            return;
+
+        level.SongId = song.Id;
+        level.AudioPath = songs.ResolveAudioPath(song);
+        level.Artist = song.Artist;
+        playhead.Bpm = song.Bpm;
+        playhead.OffsetMs = song.OffsetMs;
+        playhead.TimeMs = 0;
+        playhead.DurationMs = 0;
+        playhead.Playing = false;
+        playhead.SeekRequestMs = -1;
+        playhead.AudioRevision++;
     }
 
     private static void LoadSong(

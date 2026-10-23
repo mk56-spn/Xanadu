@@ -13,7 +13,7 @@ using Writer.Systems.Input;
 namespace Writer.Editor;
 
 /// <summary>Native file dialogs and text-input bridge for the ECS editor UI.</summary>
-public partial class EditorOverlay : CanvasLayer
+public partial class EditorOverlay
 {
     private readonly EntityStore _entities;
     private readonly EditorCommandBus _commands;
@@ -23,13 +23,11 @@ public partial class EditorOverlay : CanvasLayer
     private readonly Action? _onPlayFromStart;
     private readonly TapTempo _tapTempo = new();
 
-    private FileDialog _songDialog = null!;
     private ConfirmationDialog _songPicker = null!;
     private ItemList _songList = null!;
     private Label _songInfo = null!;
     private Label _songEmpty = null!;
-    private Button _songImport = null!;
-    private readonly System.Collections.Generic.List<SongDocument> _songs = new();
+    private readonly List<SongDocument> _songs = new();
     private FileDialog _saveAsDialog = null!;
     private FileDialog _loadDialog = null!;
     private LineEdit _textInput = null!;

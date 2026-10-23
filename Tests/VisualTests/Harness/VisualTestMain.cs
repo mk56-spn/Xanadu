@@ -4,6 +4,7 @@ using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Godot;
 using Writer.Ecs;
+using Writer.Levels;
 using Writer.Editor;
 using Writer.Settings;
 using Writer.Systems.Input;
@@ -361,6 +362,8 @@ public partial class VisualTestMain : Control
 
     private void EnsureRoot()
     {
+        SongStore.CatalogFilePath ??=
+            ProjectSettings.GlobalizePath("res://Songs/catalog.json");
         if (_systems is not null || _testHost is null)
             return;
 

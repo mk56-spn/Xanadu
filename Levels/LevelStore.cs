@@ -121,10 +121,12 @@ public static class LevelStore
                 try
                 {
                     LevelDocument document = Load(fullPath);
+                    SongDocument? song = songs.Find(document.SongId);
                     entries.Add(new LevelEntry(
                         fullPath,
                         document,
-                        songs.Find(document.SongId)));
+                        song,
+                        song is not null && songs.AudioExists(song)));
                 }
                 catch (Exception)
                 {
