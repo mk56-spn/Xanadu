@@ -73,6 +73,56 @@ public sealed class SongStoreTests
         Assert.That(loaded.ContentHash, Is.EqualTo(song.ContentHash));
     }
 
+    [Test]
+    public void ImportReadsId3TitleAndArtist()
+    {
+        string path = Path.Combine(_root, "tagged.mp3");
+        Directory.CreateDirectory(_root);
+        File.WriteAllBytes(path, BuildId3Mp3("Tagged Title", "Tagged Artist"));
+
+        SongDocument song = _songs.Import(path);
+
+        Assert.That(song.Title, Is.EqualTo("Tagged Title"));
+        Assert.That(song.Artist, Is.EqualTo("Tagged Artist"));
+    }
+
+    private static byte[] BuildId3Mp3(string title, string artist)
+    {
+        var frames = new System.Collections.Generic.List<byte>();
+        AddFrame(frames, "TIT2", title);
+        AddFrame(frames, "TPE1", artist);
+        byte[] body = frames.ToArray();
+        int size = body.Length;
+        var file = new System.Collections.Generic.List<byte>
+        {
+            (byte)'I', (byte)'D', (byte)'3', 3, 0, 0,
+            (byte)((size >> 21) & 0x7F),
+            (byte)((size >> 14) & 0x7F),
+            (byte)((size >> 7) & 0x7F),
+            (byte)(size & 0x7F),
+        };
+        file.AddRange(body);
+        return file.ToArray();
+    }
+
+    private static void AddFrame(
+        System.Collections.Generic.List<byte> frames,
+        string id,
+        string value)
+    {
+        byte[] text = System.Text.Encoding.Latin1.GetBytes(value);
+        int size = text.Length + 1;
+        frames.AddRange(System.Text.Encoding.ASCII.GetBytes(id));
+        frames.Add((byte)(size >> 24));
+        frames.Add((byte)(size >> 16));
+        frames.Add((byte)(size >> 8));
+        frames.Add((byte)size);
+        frames.Add(0);
+        frames.Add(0);
+        frames.Add(0);
+        frames.AddRange(text);
+    }
+
     private string CreateAudio(string name, string content)
     {
         Directory.CreateDirectory(_root);

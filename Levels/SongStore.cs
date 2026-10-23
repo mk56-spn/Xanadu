@@ -89,10 +89,14 @@ public sealed class SongStore
             return existing;
 
         string id = Guid.NewGuid().ToString("N");
+        AudioTagReader.TryRead(sourcePath, out string tagTitle, out string tagArtist);
         string fallbackTitle = Path.GetFileNameWithoutExtension(sourcePath);
         string resolvedTitle = string.IsNullOrWhiteSpace(title)
-            ? fallbackTitle
+            ? (string.IsNullOrWhiteSpace(tagTitle) ? fallbackTitle : tagTitle)
             : title.Trim();
+        string resolvedArtist = string.IsNullOrWhiteSpace(artist)
+            ? tagArtist
+            : artist.Trim();
         string slug = Slugify(resolvedTitle) + "-" + id[..8];
         string directory = Path.Combine(Root, id);
         Directory.CreateDirectory(directory);
@@ -120,7 +124,7 @@ public sealed class SongStore
             Id = id,
             Slug = slug,
             Title = resolvedTitle,
-            Artist = artist.Trim(),
+            Artist = resolvedArtist,
             AudioPath = audioPath,
             Bpm = Math.Clamp(bpm, 1, 1000),
             OffsetMs = offsetMs,
