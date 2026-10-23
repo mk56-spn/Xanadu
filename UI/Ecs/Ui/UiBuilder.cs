@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using Godot;
+using Writer.Ecs;
 using LayerComponent = Writer.Ecs.Layer;
 using Position = Writer.Ecs.Position;
 
