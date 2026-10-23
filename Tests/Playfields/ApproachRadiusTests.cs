@@ -19,4 +19,10 @@ public sealed class ApproachRadiusTests
             PlayfieldRenderer.ApproachRadius(10f, 0f),
             Is.EqualTo(10f).Within(0.001f));
     }
+
+    [Test]
+    public void ApproachWindowIsIndependentOfNoteFade()
+    {
+        Assert.That(PlayfieldRenderer.ApproachWindowMs, Is.EqualTo(300f));
+    }
 }

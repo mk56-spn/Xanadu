@@ -36,12 +36,9 @@ public static partial class PlayfieldRenderer
                 : new Color(laneColor.R, laneColor.G, laneColor.B, alpha);
 
             long delta = note.TimeMs - playhead.TimeMs;
-            if (delta >= 0)
+            if (delta >= 0 && delta <= ApproachWindowMs)
             {
-                float approach = Math.Clamp(
-                    delta / (float)Math.Max(1, note.FadeInMs),
-                    0f,
-                    1f);
+                float approach = delta / ApproachWindowMs;
                 float approachRadius =
                     ApproachRadius(radius, approach);
                 canvas.DrawCircleOutline(
@@ -84,6 +81,9 @@ public static partial class PlayfieldRenderer
             }
         }
     }
+
+    /// <summary>Common approach-ring duration for every note kind.</summary>
+    public const float ApproachWindowMs = 300f;
 
     /// <summary>Radius of the approach ring at a 0..1 approach amount.</summary>
     public static float ApproachRadius(float noteRadius, float approach) =>
