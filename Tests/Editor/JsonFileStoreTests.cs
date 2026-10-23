@@ -41,7 +41,7 @@ public sealed class JsonFileStoreTests
 
             Assert.That(
                 JsonFileStore.LoadAll<Payload>(directory),
-                Has.Exactly(1).Matches<Payload>(item => item.Value == "ok"));
+                Has.Exactly(1).Matches<Payload>(item => item is not null && item.Value == "ok"));
         }
         finally
         {

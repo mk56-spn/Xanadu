@@ -18,7 +18,6 @@ public sealed class GravityDebugSystem : QuerySystem<UiSlider, Rectangle, Positi
     private readonly IOverlayToggleSource _toggle;
     private bool _built;
     private bool _dragging;
-    private bool _wasPressed;
 
     public GravityDebugSystem(
         EntityStore entities,
