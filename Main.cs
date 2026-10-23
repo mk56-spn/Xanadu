@@ -20,6 +20,7 @@ public partial class Main : Control
 	private SceneDirector? _sceneDirector;
 	private EditorOverlay? _editorOverlay;
 	private OffsetWizardOverlay? _offsetWizard;
+	private SongSelectOverlay? _songSelectOverlay;
 
 	public override void _Ready()
 	{
@@ -192,6 +193,24 @@ public partial class Main : Control
 			_editorOverlay.Close();
 			_editorOverlay = null;
 		}
+
+		if (scene == SceneKind.SongSelect)
+		{
+			if (_songSelectOverlay is not null)
+				return;
+
+			_songSelectOverlay = new SongSelectOverlay(
+				() => _systems?.Scenes.SelectedLevel,
+				() => _systems?.Scenes.ReloadCurrent(),
+				entry => _systems?.Scenes.OpenSongTiming(
+					entry.Document.SongId,
+					SceneKind.SongSelect));
+			AddChild(_songSelectOverlay);
+			return;
+		}
+
+		_songSelectOverlay?.QueueFree();
+		_songSelectOverlay = null;
 
 		if (scene == SceneKind.OffsetWizard)
 		{

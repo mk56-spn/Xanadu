@@ -68,14 +68,14 @@ public static class SongTimingScene
         save.AddComponent(ButtonVisual.Create(SceneUi.ButtonColor));
         save.AddComponent(new SongTimingSave());
 
-        SceneUi.Button(
+        Entity back = SceneUi.ButtonEntity(
             ui,
             new Vector2(screen.X / 2 + 110, 450),
             new Vector2(200, 46),
             "BACK",
-            SceneKind.Editor,
             18,
             SceneUi.MutedButtonColor);
+        back.AddComponent(new SceneCommand(SceneActionId.Back));
 
         root.AddComponent(new SongTimingView(title, bpm, offset));
         return root;

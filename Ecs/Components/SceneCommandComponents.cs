@@ -23,6 +23,7 @@ public enum SceneActionId
     Edit,
     Previous,
     Next,
+    Back,
 }
 
 /// <summary>Data-only command attached to a button or action entity.</summary>

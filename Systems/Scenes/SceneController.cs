@@ -123,7 +123,18 @@ public sealed class SceneControllerRegistry
                 break;
             }
 
-            if (changed)
+            bool savePressed = false;
+            foreach (Entity entity in system.Entities
+                         .Query<SongTimingSave>()
+                         .AllTags(Tags.Get<Pressed>())
+                         .ToEntityList())
+            {
+                savePressed = true;
+                entity.RemoveTag<Pressed>();
+                break;
+            }
+
+            if (changed || savePressed)
                 songs.Save(song);
 
             Entity view = system.Entities.Query<SongTimingView>()

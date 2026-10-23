@@ -21,6 +21,14 @@ public sealed class SongSelectController : ISceneController
     }
 
     public SceneKind Kind => SceneKind.SongSelect;
+
+    public LevelEntry? SelectedEntry =>
+        _stateEntity.IsNull || _catalog.Count == 0
+            ? null
+            : _catalog[Math.Clamp(
+                _stateEntity.GetComponent<SceneState>().SelectedIndex,
+                0,
+                _catalog.Count - 1)];
     public string Label => "SONG SELECT";
     public SceneKind BackTarget => SceneKind.Main;
 

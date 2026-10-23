@@ -26,6 +26,7 @@ public struct SceneState(SceneKind scene) : IComponent
     public int SelectedIndex;
     public string SelectedLevelPath = "";
     public string SelectedSongId = "";
+    public SceneKind SongTimingBack = SceneKind.Editor;
 }
 
 /// <summary>Marks the root entity that owns a scene's entity subtree.</summary>

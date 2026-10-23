@@ -66,6 +66,12 @@ public static class LevelStore
         JsonFileStore.Save(path, document);
     }
 
+    public static void Delete(string path)
+    {
+        if (File.Exists(path))
+            File.Delete(path);
+    }
+
     public static LevelDocument Load(string path)
     {
         LevelDocument document = JsonFileStore.Load<LevelDocument>(path)

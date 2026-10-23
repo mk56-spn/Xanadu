@@ -9,6 +9,29 @@ namespace Writer.Tests.Editor;
 public sealed class LevelStoreTests
 {
     [Test]
+    public void DeleteRemovesTheLevelFile()
+    {
+        string directory = Path.Combine(
+            Path.GetTempPath(),
+            "writer-level-tests-" + Guid.NewGuid().ToString("N"));
+        string path = Path.Combine(directory, "delete.json");
+        try
+        {
+            LevelStore.Save(new LevelDocument { Name = "Delete" }, path);
+            Assert.That(File.Exists(path), Is.True);
+
+            LevelStore.Delete(path);
+
+            Assert.That(File.Exists(path), Is.False);
+        }
+        finally
+        {
+            if (Directory.Exists(directory))
+                Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    [Test]
     public void SaveThenLoadRoundTrips()
     {
         string directory = Path.Combine(

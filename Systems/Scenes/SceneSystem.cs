@@ -81,9 +81,23 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
         ResultsSceneActions.Register(_actionRegistry);
         PauseSceneActions.Register(_actionRegistry);
         SongSelectSceneActions.Register(_actionRegistry);
+        SongTimingSceneActions.Register(_actionRegistry);
     }
 
     public ProfileStore Profiles => _profiles;
+
+    public LevelEntry? SelectedLevel =>
+        CurrentController is SongSelectController controller
+            ? controller.SelectedEntry
+            : null;
+
+    public void ReloadCurrent()
+    {
+        EnsureState();
+        ref SceneState state = ref _stateEntity.GetComponent<SceneState>();
+        state.Pending = state.Current;
+        _restartRequested = true;
+    }
     public EntityStore Entities => _entities;
     public KeybindSettings Keybinds => _keybinds;
     public DisplaySettings Display => _display;
@@ -114,14 +128,18 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
         state.Pending = scene;
     }
 
-    public void OpenSongTiming()
+    public void OpenSongTiming() => OpenSongTiming("", SceneKind.Editor);
+
+    public void OpenSongTiming(string songId, SceneKind back)
     {
         EnsureState();
-        string songId = "";
-        foreach (Entity editor in _entities.Query<LevelInfo>().ToEntityList())
+        if (string.IsNullOrWhiteSpace(songId))
         {
-            songId = editor.GetComponent<LevelInfo>().SongId;
-            break;
+            foreach (Entity editor in _entities.Query<LevelInfo>().ToEntityList())
+            {
+                songId = editor.GetComponent<LevelInfo>().SongId;
+                break;
+            }
         }
 
         if (string.IsNullOrWhiteSpace(songId))
@@ -129,7 +147,15 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
 
         ref SceneState state = ref _stateEntity.GetComponent<SceneState>();
         state.SelectedSongId = songId;
+        state.SongTimingBack = back;
         state.Pending = SceneKind.SongTiming;
+    }
+
+    public void CloseSongTiming()
+    {
+        EnsureState();
+        ref SceneState state = ref _stateEntity.GetComponent<SceneState>();
+        state.Pending = state.SongTimingBack;
     }
 
     /// <summary>Starts play with an already-loaded level entry.</summary>
@@ -161,6 +187,12 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
 
         if (IsTransitioning())
             return;
+
+        if (state.Current == SceneKind.SongTiming)
+        {
+            state.Pending = state.SongTimingBack;
+            return;
+        }
 
         if (state.Current == SceneKind.Settings &&
             _keybinds.Capturing is not null)
