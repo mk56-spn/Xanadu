@@ -87,7 +87,7 @@ public static partial class PlayfieldRenderer
 
     /// <summary>Radius of the approach ring at a 0..1 approach amount.</summary>
     public static float ApproachRadius(float noteRadius, float approach) =>
-        noteRadius * (1f + Math.Clamp(approach, 0f, 1f) * 2f);
+        noteRadius * (1f + Math.Clamp(approach, 0f, 1f) * 8f);
 
     public static string DashArrow(DashDirection direction) =>
         direction switch
