@@ -238,6 +238,7 @@ public partial class UiShowcase : Control
     {
         public PointerInput Read() => new(
             owner.GetViewport().GetMousePosition(),
-            Input.IsMouseButtonPressed(MouseButton.Left));
+            Input.IsMouseButtonPressed(MouseButton.Left),
+            Input.IsKeyPressed(Key.Shift));
     }
 }

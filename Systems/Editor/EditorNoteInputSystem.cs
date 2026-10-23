@@ -29,6 +29,8 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
     private EditorSnapshot _dragBefore;
     private bool _pendingCreate;
     private bool _selecting;
+    private bool _additiveSelection;
+    private readonly List<Entity> _selectionBase = new();
     private Vector2 _selectionStart;
     private Vector2 _selectionCurrent;
 
@@ -48,7 +50,7 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
         bool pressed = input.Pressed;
 
         if (pressed && !_wasPressed)
-            OnPress(input.Position);
+            OnPress(input.Position, input.Shift);
         else if (pressed)
             OnHold(input.Position);
         else if (_wasPressed)
@@ -57,7 +59,7 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
         _wasPressed = pressed;
     }
 
-    private void OnPress(Vector2 screenPosition)
+    private void OnPress(Vector2 screenPosition, bool shift)
     {
         Entity editor = FindEditor();
         if (editor.IsNull ||
@@ -74,6 +76,8 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
 
         _pendingCreate = false;
         _selecting = false;
+        _additiveSelection = false;
+        _selectionBase.Clear();
         SetSelectionBox(editor, Vector2.Zero, Vector2.Zero, false);
 
         Rect2 bar = EditorLayout.RulerRect(view);
@@ -85,7 +89,10 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
             {
                 ref NoteSelection timelineSelection =
                     ref editor.GetComponent<NoteSelection>();
-                timelineSelection.Note = timelineHit;
+                if (shift)
+                    ToggleSelection(ref timelineSelection, timelineHit);
+                else
+                    timelineSelection.Note = timelineHit;
                 playhead.SeekRequestMs = timelineHit.GetComponent<Note>().TimeMs;
                 return;
             }
@@ -115,6 +122,12 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
 
         if (!hit.IsNull)
         {
+            if (shift)
+            {
+                ToggleSelection(ref selection, hit);
+                return;
+            }
+
             _draggedEntity = hit;
             _dragStartPointer = playfieldPosition;
             _dragStartPositions.Clear();
@@ -152,9 +165,20 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
             return;
         }
 
-        _pendingCreate = true;
         _selectionStart = screenPosition;
         _selectionCurrent = screenPosition;
+        if (shift)
+        {
+            _selectionBase.Clear();
+            foreach (Entity selected in selection.AllNotes)
+                _selectionBase.Add(selected);
+            _selecting = true;
+            _additiveSelection = true;
+        }
+        else
+        {
+            _pendingCreate = true;
+        }
     }
 
     private void OnHold(Vector2 screenPosition)
@@ -187,6 +211,7 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
         {
             _pendingCreate = false;
             _selecting = true;
+            _additiveSelection = false;
             editor.GetComponent<NoteSelection>().SetMany(
                 System.Array.Empty<Entity>());
         }
@@ -199,10 +224,18 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
                 _selectionStart,
                 _selectionCurrent,
                 true);
-            editor.GetComponent<NoteSelection>().SetMany(
-                FindNotesIn(
-                    Rect2From(_selectionStart, _selectionCurrent),
-                    playhead.TimeMs));
+            var selected = new List<Entity>();
+            if (_additiveSelection)
+                selected.AddRange(_selectionBase);
+            foreach (Entity entity in FindNotesIn(
+                         Rect2From(_selectionStart, _selectionCurrent),
+                         playhead.TimeMs))
+            {
+                if (!selected.Contains(entity))
+                    selected.Add(entity);
+            }
+
+            editor.GetComponent<NoteSelection>().SetMany(selected);
             return;
         }
 
@@ -264,6 +297,7 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
         if (_selecting)
         {
             _selecting = false;
+            _additiveSelection = false;
             _pendingCreate = false;
             return;
         }
@@ -450,6 +484,18 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
         box.Start = start;
         box.Current = current;
         box.Active = active;
+    }
+
+    private static void ToggleSelection(ref NoteSelection selection, Entity entity)
+    {
+        var notes = new List<Entity>(selection.AllNotes);
+        int index = notes.FindIndex(selected => selected.Id == entity.Id);
+        if (index >= 0)
+            notes.RemoveAt(index);
+        else
+            notes.Add(entity);
+
+        selection.SetMany(notes);
     }
 
     private void Scrub(

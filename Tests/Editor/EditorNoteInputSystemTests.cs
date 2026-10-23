@@ -57,6 +57,63 @@ public sealed class EditorNoteInputSystemTests
     }
 
     [Test]
+    public void ShiftClickOnTimelineAddsToTheCurrentSelection()
+    {
+        Entity editor = _store.Query<PlayfieldView>().ToEntityList()[0];
+        ref Playhead playhead = ref editor.GetComponent<Playhead>();
+        playhead.DurationMs = 10_000;
+        playhead.TimeMs = 5_000;
+        editor.AddComponent(new EditorTimeline());
+
+        Entity first = _store.CreateEntity(
+            new Note(3_000, new Vector2(500, 500)));
+        Entity second = _store.CreateEntity(
+            new Note(7_000, new Vector2(500, 500)));
+        Rect2 ruler = EditorLayout.RulerRect(
+            editor.GetComponent<PlayfieldView>());
+        float y = ruler.Position.Y + ruler.Size.Y / 2;
+
+        _pointer.Current = new PointerInput(
+            new Vector2(ruler.Position.X + ruler.Size.X * 0.3f, y), true);
+        _root.Update(new UpdateTick(1f / 60f, 0));
+        _pointer.Current = new PointerInput(
+            new Vector2(ruler.Position.X + ruler.Size.X * 0.3f, y), false);
+        _root.Update(new UpdateTick(1f / 60f, 0));
+
+        _pointer.Current = new PointerInput(
+            new Vector2(ruler.Position.X + ruler.Size.X * 0.7f, y), true, true);
+        _root.Update(new UpdateTick(1f / 60f, 0));
+
+        var selection = editor.GetComponent<NoteSelection>();
+        Assert.That(selection.AllNotes.Count, Is.EqualTo(2));
+        Assert.That(selection.Contains(first), Is.True);
+        Assert.That(selection.Contains(second), Is.True);
+    }
+
+    [Test]
+    public void ShiftClickOnPlayfieldKeepsExistingSelection()
+    {
+        Entity first = _store.CreateEntity(
+            new Note(1_000, new Vector2(100, 200)));
+        Entity second = _store.CreateEntity(
+            new Note(1_000, new Vector2(400, 400)));
+        Entity editor = _store.Query<PlayfieldView>().ToEntityList()[0];
+
+        _pointer.Current = new PointerInput(new Vector2(100, 200), true);
+        _root.Update(new UpdateTick(1f / 60f, 0));
+        _pointer.Current = new PointerInput(new Vector2(100, 200), false);
+        _root.Update(new UpdateTick(1f / 60f, 0));
+
+        _pointer.Current = new PointerInput(new Vector2(400, 400), true, true);
+        _root.Update(new UpdateTick(1f / 60f, 0));
+
+        var selection = editor.GetComponent<NoteSelection>();
+        Assert.That(selection.AllNotes.Count, Is.EqualTo(2));
+        Assert.That(selection.Contains(first), Is.True);
+        Assert.That(selection.Contains(second), Is.True);
+    }
+
+    [Test]
     public void ClickWithoutSongRequestsWarningAndSkipsNote()
     {
         Entity editor = _store.Query<PlayfieldView>().ToEntityList()[0];

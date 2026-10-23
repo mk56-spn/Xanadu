@@ -22,6 +22,9 @@ public sealed class GodotPointerInputSource(Control host) : IBlockingPointerInpu
         bool pressed = !Blocked && (physical || _latchedPress);
 
         _latchedPress = false;
-        return new PointerInput(position, pressed);
+        return new PointerInput(
+            position,
+            pressed,
+            Godot.Input.IsKeyPressed(Key.Shift));
     }
 }
