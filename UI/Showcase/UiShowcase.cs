@@ -186,9 +186,8 @@ public partial class UiShowcase : Control
 
         Rectangle track = _sliderTrack.GetComponent<Rectangle>();
         float t = Mathf.Clamp(value / 100f, 0f, 1f);
-        UiSlider slider = _sliderTrack.GetComponent<UiSlider>();
+        ref UiSlider slider = ref _sliderTrack.GetComponent<UiSlider>();
         slider.Value = value;
-        _sliderTrack.AddComponent(slider);
 
         float width = track.Bounds.Size.X * t;
         ref Rectangle fill = ref _sliderFill.GetComponent<Rectangle>();
@@ -214,6 +213,7 @@ public partial class UiShowcase : Control
                 return;
             }
 
+            float? next = null;
             Query.ForEachEntity((ref slider, ref rect, ref position, entity) =>
             {
                 Vector2 world = UiTransform.WorldPosition(entity, position.Value);
@@ -226,8 +226,11 @@ public partial class UiShowcase : Control
                 float t = Mathf.Clamp(
                     (input.Position.X - bounds.Position.X) /
                     Mathf.Max(1f, bounds.Size.X), 0f, 1f);
-                owner.SetSlider(Mathf.Lerp(slider.Min, slider.Max, t));
+                next = Mathf.Lerp(slider.Min, slider.Max, t);
             });
+
+            if (next is { } value)
+                owner.SetSlider(value);
         }
     }
 
