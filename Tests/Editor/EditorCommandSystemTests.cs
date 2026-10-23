@@ -145,6 +145,29 @@ public sealed class EditorCommandSystemTests : EcsSystemTest
     }
 
     [Test]
+    public void PasteIsOneUndoableStep()
+    {
+        ref Playhead playhead = ref _editor.GetComponent<Playhead>();
+        playhead.TimeMs = 1_000;
+        playhead.DurationMs = 10_000;
+        Entity note = Store.CreateEntity(new Note(100, new Vector2(10, 20)));
+        _editor.GetComponent<NoteSelection>().SetMany(new[] { note });
+
+        _commands.Enqueue(EditorCommand.CopySelection());
+        _commands.Enqueue(EditorCommand.PasteSelection());
+        Frame();
+        Assert.That(Store.Query<Note>().Count, Is.EqualTo(2));
+
+        _commands.Enqueue(EditorCommand.Undo());
+        Frame();
+
+        Assert.That(Store.Query<Note>().Count, Is.EqualTo(1));
+        Assert.That(
+            Store.Query<Note>().ToEntityList()[0].GetComponent<Note>().TimeMs,
+            Is.EqualTo(100));
+    }
+
+    [Test]
     public void MoveSelectionNudgesEveryEditorItem()
     {
         ref Playhead playhead = ref _editor.GetComponent<Playhead>();
