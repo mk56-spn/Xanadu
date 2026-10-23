@@ -21,12 +21,6 @@ public struct FillColor(Color value) : IComponent
     public Color Value = value;
 }
 
-/// <summary>Canvas item position in screen space.</summary>
-public struct Position(Vector2 value) : IComponent
-{
-    public Vector2 Value = value;
-}
-
 /// <summary>Text content for a drawable entity.</summary>
 public struct Text(string value) : IComponent
 {

@@ -15,12 +15,16 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Remove="Tests/**/*.cs" />
+    <Compile Remove="Core/**/*.cs" />
+    <Compile Remove="UI/**/*.cs" />
     <PackageReference Include="Friflo.Engine.ECS" Version="4.0.0-preview.2" />
     <PackageReference Include="Friflo.Engine.ECS.Boost" Version="4.0.0-preview.2" />
     <PackageReference Include="Miniaudio-CS" Version="1.0.4" />
     <PackageReference Include="Box2DSharp" Version="0.6.0" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="Core/Writer.Core.csproj" />
+    <ProjectReference Include="UI/Writer.Ui.csproj" />
     <Content Include="agents.md" />
   </ItemGroup>
   <!--

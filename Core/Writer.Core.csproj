@@ -1,0 +1,12 @@
+<Project Sdk="Godot.NET.Sdk/4.8.0-dev.7">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <EnableDynamicLoading>true</EnableDynamicLoading>
+    <GodotProjectDir>$(MSBuildProjectDirectory)/</GodotProjectDir>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Friflo.Engine.ECS" Version="4.0.0-preview.2" />
+    <PackageReference Include="Friflo.Engine.ECS.Boost" Version="4.0.0-preview.2" />
+  </ItemGroup>
+</Project>
