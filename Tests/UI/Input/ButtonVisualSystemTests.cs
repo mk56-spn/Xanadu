@@ -6,7 +6,7 @@ using Writer.Tests.Support;
 using Writer.Ecs;
 using Writer.Systems.Input;
 
-namespace Writer.Tests.Input;
+namespace Writer.Tests.UI.Input;
 
 [TestFixture]
 public sealed class ButtonVisualSystemTests : EcsSystemTest

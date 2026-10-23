@@ -8,7 +8,7 @@ using Writer.Systems.Input;
 using Writer.Systems.Layout;
 using Position = Writer.Ecs.Position;
 
-namespace Writer.Tests.Input;
+namespace Writer.Tests.UI.Input;
 
 [TestFixture]
 public sealed class InputSystemTests : EcsSystemTest

@@ -6,7 +6,7 @@ using Writer.Ecs;
 using Writer.Systems.Layout;
 using Position = Writer.Ecs.Position;
 
-namespace Writer.Tests.Layout;
+namespace Writer.Tests.UI.Layout;
 
 [TestFixture]
 public sealed class UiAnchorSystemTests

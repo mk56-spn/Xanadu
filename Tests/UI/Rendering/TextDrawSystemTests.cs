@@ -9,7 +9,7 @@ using Writer.Ecs;
 using Writer.Systems.Canvas;
 using Writer.Systems.Rendering;
 
-namespace Writer.Tests.Rendering;
+namespace Writer.Tests.UI.Rendering;
 
 [TestFixture]
 public sealed class TextDrawSystemTests : EcsSystemTest

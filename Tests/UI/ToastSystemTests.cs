@@ -7,7 +7,7 @@ using Writer.Systems.Ui;
 using Position = Writer.Ecs.Position;
 using Writer.Tests.Support;
 
-namespace Writer.Tests.Ui;
+namespace Writer.Tests.UI;
 
 [TestFixture]
 public sealed class ToastSystemTests

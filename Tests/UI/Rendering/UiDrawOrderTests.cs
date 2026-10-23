@@ -3,7 +3,7 @@ using NUnit.Framework;
 using Writer.Ecs;
 using Writer.Systems.Rendering;
 
-namespace Writer.Tests.Rendering;
+namespace Writer.Tests.UI.Rendering;
 
 [TestFixture]
 public sealed class UiDrawOrderTests
