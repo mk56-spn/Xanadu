@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Godot;
@@ -174,7 +175,92 @@ public sealed class DebugPressedOverlaySystem : QuerySystem<Rectangle, Position>
             DrawPanelRight(row.Updates, updX, y, numericWidth, TextColor);
             y += LineHeight;
         }
+
+        DrawArchetypePanel(store);
     }
+
+    private void DrawArchetypePanel(EntityStore store)
+    {
+        var sorted = new List<Archetype>();
+        foreach (Archetype archetype in store.Archetypes)
+            sorted.Add(archetype);
+        sorted.Sort(static (left, right) =>
+        {
+            int count = right.Count.CompareTo(left.Count);
+            return count != 0
+                ? count
+                : right.ComponentTypes.Count.CompareTo(left.ComponentTypes.Count);
+        });
+        Archetype[] archetypes = sorted.ToArray();
+
+        const float width = 560;
+        const float colCount = 52;
+        const float colTags = 190;
+        const float maxSignature = 190;
+        const int maxRows = 26;
+        float height = 58 + Math.Min(archetypes.Length, maxRows) * LineHeight;
+        if (archetypes.Length > maxRows)
+            height += LineHeight;
+
+        var panel = new Rect2(16 + PanelWidth + 12, 16, width, height);
+        _canvas.DrawRect(_overlay, panel, PanelBackground);
+        DrawBorder(panel, PanelBorder, 1);
+
+        float x = panel.Position.X + 10;
+        float y = panel.Position.Y + 8;
+        DrawPanelLine($"ARCHETYPES {archetypes.Length}", x, y, TitleColor);
+        y += LineHeight;
+
+        float signatureX = x + colCount;
+        float tagsX = signatureX + maxSignature;
+        DrawPanelLeft("n", x, y, colCount, HeaderColor);
+        DrawPanelLeft("components", signatureX, y, maxSignature, HeaderColor);
+        DrawPanelLeft("tags", tagsX, y, colTags, HeaderColor);
+        y += LineHeight;
+
+        foreach (Archetype archetype in archetypes.Take(maxRows))
+        {
+            string components = string.Join(
+                ", ",
+                archetype.ComponentTypes.Select(type => type.Name));
+            string tags = archetype.Tags.ToString();
+            if (tags.StartsWith("Tags: ", StringComparison.Ordinal))
+                tags = tags["Tags: ".Length..];
+
+            DrawPanelRight(
+                archetype.Count.ToString(CultureInfo.InvariantCulture),
+                x,
+                y,
+                colCount,
+                TextColor);
+            DrawPanelLeft(
+                Truncate(components, 28),
+                signatureX,
+                y,
+                maxSignature,
+                TextColor);
+            DrawPanelLeft(
+                Truncate(tags, 36),
+                tagsX,
+                y,
+                colTags,
+                TextColor);
+            y += LineHeight;
+        }
+
+        if (archetypes.Length > maxRows)
+        {
+            DrawPanelLeft(
+                $"... {archetypes.Length - maxRows} more",
+                x,
+                y,
+                width - 20,
+                HeaderColor);
+        }
+    }
+
+    private static string Truncate(string value, int max) =>
+        value.Length <= max ? value : value[..(max - 3)] + "...";
 
     private void DrawPanelLine(string text, float x, float y, Color color) =>
         DrawPanelLeft(text, x, y, PanelWidth - 20, color);

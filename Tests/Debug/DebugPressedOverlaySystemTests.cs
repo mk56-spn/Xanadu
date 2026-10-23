@@ -53,6 +53,8 @@ public sealed class DebugPressedOverlaySystemTests : EcsSystemTest
     public void MetricsPanelDrawsWhenStoreProvided()
     {
         var store = new EntityStore();
+        store.CreateEntity(new Rectangle(new Rect2(0, 0, 10, 10)));
+        store.CreateEntity(new Text("label"), new Position(Vector2.Zero));
         var canvas = new RecordingCanvas();
         var toggle = new ScriptedToggle { Pressed = true };
         var root = new SystemRoot(store) { new DebugPressedOverlaySystem(canvas, default, toggle, store) };
@@ -63,6 +65,11 @@ public sealed class DebugPressedOverlaySystemTests : EcsSystemTest
         Assert.That(canvas.Rects, Is.Not.Empty);
         Assert.That(canvas.RightTexts, Does.Contain("last ms"));
         Assert.That(canvas.RightTexts, Does.Contain("avg ms"));
+        Assert.That(
+            canvas.Texts,
+            Has.Some.StartsWith("ARCHETYPES "));
+        Assert.That(canvas.Texts, Does.Contain("components"));
+        Assert.That(canvas.Texts, Does.Contain("tags"));
     }
 
     [Test]
