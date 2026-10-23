@@ -81,6 +81,10 @@ public static class LevelDocumentMapper
 
     public static void Apply(EntityStore entities, Entity editor, LevelDocument document)
     {
+        document.Notes ??= new List<NoteDocument>();
+        document.Mines ??= new List<MineDocument>();
+        document.StartPoints ??= new List<StartPointDocument>();
+
         foreach (Entity entity in entities.Query<Note>().ToEntityList())
             entity.DeleteEntity();
 

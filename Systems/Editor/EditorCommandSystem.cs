@@ -480,6 +480,8 @@ public sealed class EditorCommandSystem :
         ref EditorMetronome metronome)
     {
         document.Notes ??= new();
+        document.Mines ??= new();
+        document.StartPoints ??= new();
         document.Notes.RemoveAll(note => note is null);
 
         preview.Active = false;
