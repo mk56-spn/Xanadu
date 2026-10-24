@@ -43,6 +43,22 @@ public sealed class LevelSerializerTests
     }
 
     [Test]
+    public void NotesDoNotSerializeFadeFields()
+    {
+        var source = new LevelDocument();
+        source.Notes.Add(new NoteDocument
+        {
+            TimeMs = 1_000,
+            X = 100,
+            Y = 200,
+        });
+
+        string json = LevelSerializer.Serialize(source);
+
+        Assert.That(json, Does.Not.Contain("Fade"));
+    }
+
+    [Test]
     public void RoundTripsLevelAndNotes()
     {
         var source = new LevelDocument
@@ -57,8 +73,6 @@ public sealed class LevelSerializerTests
             TimeMs = 1_250,
             X = 250,
             Y = 400,
-            FadeInMs = 600,
-            FadeOutMs = 600,
             Target = KeybindAction.R2,
             Kind = NoteKind.Movement,
             DashDirection = DashDirection.UpRight,

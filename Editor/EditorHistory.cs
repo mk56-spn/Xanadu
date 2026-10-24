@@ -38,8 +38,6 @@ public sealed class EditorHistory
             notes.Add(new NoteSnapshot(
                 note.TimeMs,
                 note.Position,
-                note.FadeInMs,
-                note.FadeOutMs,
                 note.Target,
                 note.Kind,
                 note.DashDirection));
@@ -163,8 +161,6 @@ public sealed class EditorHistory
             EditorItems.Create(_entities, new Note(
                 note.TimeMs,
                 note.Position,
-                note.FadeInMs,
-                note.FadeOutMs,
                 note.Target,
                 note.Kind,
                 note.DashDirection));
@@ -220,8 +216,6 @@ public readonly record struct MineSnapshot(
 public readonly record struct NoteSnapshot(
     long TimeMs,
     Vector2 Position,
-    long FadeInMs,
-    long FadeOutMs,
     KeybindAction Target,
     NoteKind Kind,
     DashDirection DashDirection);

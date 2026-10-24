@@ -34,8 +34,6 @@ public static class LevelDocumentMapper
                 TimeMs = note.TimeMs,
                 X = note.Position.X,
                 Y = note.Position.Y,
-                FadeInMs = note.FadeInMs,
-                FadeOutMs = note.FadeOutMs,
                 Target = note.Target,
                 Kind = note.Kind,
                 DashDirection = note.DashDirection,
@@ -96,8 +94,6 @@ public static class LevelDocumentMapper
             EditorItems.Create(entities, new Note(
                 note.TimeMs,
                 new Vector2(note.X, note.Y),
-                note.FadeInMs,
-                note.FadeOutMs,
                 note.Target,
                 note.Kind,
                 note.DashDirection));

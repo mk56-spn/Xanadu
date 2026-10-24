@@ -61,8 +61,6 @@ public sealed class LevelValidatorTests
             TimeMs = 500,
             X = 500,
             Y = 500,
-            FadeInMs = 600,
-            FadeOutMs = 600,
         });
         return document;
     }

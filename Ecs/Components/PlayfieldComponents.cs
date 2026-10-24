@@ -82,16 +82,12 @@ public enum DashDirection
 public struct Note(
     long timeMs,
     Vector2 position,
-    long fadeInMs = 600,
-    long fadeOutMs = 600,
     KeybindAction target = KeybindAction.M,
     NoteKind kind = NoteKind.Hit,
     DashDirection dashDirection = DashDirection.Up) : IComponent
 {
     public long TimeMs = timeMs;
     public Vector2 Position = position;
-    public long FadeInMs = fadeInMs;
-    public long FadeOutMs = fadeOutMs;
     public KeybindAction Target = target;
     public NoteKind Kind = kind;
     public DashDirection DashDirection = dashDirection;

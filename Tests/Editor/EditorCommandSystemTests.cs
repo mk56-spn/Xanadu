@@ -333,8 +333,6 @@ public sealed class EditorCommandSystemTests : EcsSystemTest
             TimeMs = 750,
             X = 100,
             Y = 200,
-            FadeInMs = 600,
-            FadeOutMs = 600,
         });
 
         _commands.Enqueue(EditorCommand.ApplyLevel(document, "/tmp/loaded.json"));

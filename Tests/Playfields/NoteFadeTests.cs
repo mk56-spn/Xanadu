@@ -11,7 +11,7 @@ public sealed class NoteFadeTests
     [Test]
     public void FadesInAndOutAroundNoteTime()
     {
-        var note = new Note(1_000, Vector2.Zero, fadeInMs: 900, fadeOutMs: 900);
+        var note = new Note(1_000, Vector2.Zero);
 
         Assert.That(NoteFade.Alpha(note, 700), Is.EqualTo(0f));
         Assert.That(NoteFade.Alpha(note, 850), Is.EqualTo(0.5f).Within(0.001f));
@@ -23,12 +23,10 @@ public sealed class NoteFadeTests
     [Test]
     public void HitAndMovementNotesShareFadeAndApproach()
     {
-        var hit = new Note(1_000, Vector2.Zero, fadeInMs: 300, fadeOutMs: 300);
+        var hit = new Note(1_000, Vector2.Zero);
         var movement = new Note(
             1_000,
             Vector2.Zero,
-            fadeInMs: 600,
-            fadeOutMs: 600,
             kind: NoteKind.Movement);
 
         foreach (long time in new long[] { 700, 850, 1_000, 1_150, 1_300 })

@@ -36,9 +36,6 @@ public static class LevelValidator
             {
                 issues.Add($"Note {i + 1} is outside the playfield.");
             }
-
-            if (note.FadeInMs < 0 || note.FadeOutMs < 0)
-                issues.Add($"Note {i + 1} has a negative fade time.");
         }
 
         return issues;

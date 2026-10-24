@@ -77,10 +77,6 @@ public sealed class NoteDocument
 
     public float Y { get; set; }
 
-    public long FadeInMs { get; set; } = 600;
-
-    public long FadeOutMs { get; set; } = 600;
-
     public KeybindAction Target { get; set; } = KeybindAction.M;
 
     public NoteKind Kind { get; set; } = NoteKind.Hit;
