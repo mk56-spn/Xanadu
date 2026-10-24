@@ -14,9 +14,8 @@ public sealed class DebugSystemGroup : SystemGroup
     public DebugSystemGroup(
         IRectCanvas canvas,
         Rid overlay,
-        Rid elementsOverlay,
+        Rid parentCanvas,
         IOverlayToggleSource toggle,
-        IOverlayToggleSource elementsToggle,
         EntityStore store,
         SystemRoot systems,
         IFpsSource fps,
@@ -34,7 +33,7 @@ public sealed class DebugSystemGroup : SystemGroup
             systems,
             fps,
             paging));
-        Add(new DebugElementOverlaySystem(canvas, elementsOverlay, elementsToggle));
+        Add(new Writer.Systems.Ui.UiDebugOverlayGroup(canvas, parentCanvas));
         Add(new Writer.Systems.Ui.UiSliderSystem(pointer));
         Add(new GravityDebugSystem(
             entitiesForSlider,

@@ -25,7 +25,6 @@ namespace Writer.Ecs;
 public sealed class WriterSystemRoot : SystemRoot, IDisposable
 {
     private readonly Rid _debugOverlay;
-    private readonly Rid _elementsOverlay;
     private readonly SceneDirector _sceneDirector;
     private EditorSystemGroup _editorSystems = null!;
     private readonly Rid _timeline;
@@ -108,10 +107,6 @@ public sealed class WriterSystemRoot : SystemRoot, IDisposable
         RenderingServer.CanvasItemSetZIndex(_debugOverlay, 1000);
         RenderingServer.CanvasItemSetVisible(_debugOverlay, false);
 
-        _elementsOverlay = RenderingServer.CanvasItemCreate();
-        RenderingServer.CanvasItemSetParent(_elementsOverlay, parentCanvas);
-        RenderingServer.CanvasItemSetZIndex(_elementsOverlay, 1001);
-        RenderingServer.CanvasItemSetVisible(_elementsOverlay, false);
 
         _timeline = RenderingServer.CanvasItemCreate();
         RenderingServer.CanvasItemSetParent(_timeline, parentCanvas);
@@ -160,9 +155,8 @@ public sealed class WriterSystemRoot : SystemRoot, IDisposable
         Add(new DebugSystemGroup(
             canvas,
             _debugOverlay,
-            _elementsOverlay,
+            parentCanvas,
             new GodotOverlayToggleSource(Key.F3),
-            new GodotOverlayToggleSource(Key.F4),
             entities,
             this,
             new GodotFpsSource(),
@@ -255,6 +249,5 @@ public sealed class WriterSystemRoot : SystemRoot, IDisposable
         RenderingServer.FreeRid(_playfield);
         RenderingServer.FreeRid(_timeline);
         RenderingServer.FreeRid(_debugOverlay);
-        RenderingServer.FreeRid(_elementsOverlay);
     }
 }
