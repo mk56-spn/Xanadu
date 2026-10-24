@@ -34,6 +34,9 @@ public sealed class AnimatorRuntime
     public bool IsCrossfading => _next is not null;
     public bool Paused { get; private set; }
 
+    public float CurrentTime => _currentTime;
+    public float CurrentDuration => _current?.Duration ?? 0f;
+
     public IReadOnlyList<AdditiveLayer> Additives => _additives;
 
     public bool Play(string clipId, float fadeSeconds = 0.15f)

@@ -1,0 +1,18 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="Animator (Tool)" type="RunExe" factoryName=".NET Executable">
+    <option name="EXE_PATH" value="/var/home/dhs/Downloads/Godot_v4.8-dev7_mono_linux_x86_64/Godot_v4.8-dev7_mono_linux.x86_64" />
+    <option name="PROGRAM_PARAMETERS" value="--path &quot;Tools/Animator&quot; &quot;res://Animator.tscn&quot;" />
+    <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
+    <option name="PASS_PARENT_ENVS" value="1" />
+    <option name="ENV_FILE_PATHS" value="" />
+    <option name="REDIRECT_INPUT_PATH" value="" />
+    <option name="MIXED_MODE_DEBUG" value="0" />
+    <option name="USE_MONO" value="0" />
+    <option name="RUNTIME_ARGUMENTS" value="" />
+    <option name="AUTO_ATTACH_CHILDREN" value="0" />
+    <option name="RUNTIME_TYPE" value="coreclr" />
+    <method v="2">
+      <option name="Build Solution" enabled="true" />
+    </method>
+  </configuration>
+</component>

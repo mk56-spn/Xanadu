@@ -1,0 +1,23 @@
+; Engine configuration file for the standalone XAF animator.
+config_version=5
+
+[application]
+
+config/name="Writer XAF Animator"
+run/main_scene="res://Animator.tscn"
+config/features=PackedStringArray("4.8", "C#", "Forward Plus")
+
+[dotnet]
+
+project/assembly_name="Writer.AnimatorTool"
+
+[display]
+
+window/size/viewport_width=1600
+window/size/viewport_height=900
+window/size/window_width_override=1600
+window/size/window_height_override=900
+
+[rendering]
+
+renderer/rendering_method="forward_plus"
