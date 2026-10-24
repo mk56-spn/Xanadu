@@ -20,7 +20,6 @@ public sealed class PlayerMovementSystem : QuerySystem<Player, Position, Playfie
 {
     public const float DashPixels = 150f;
     private const float ActiveWindowMs = 150f;
-    private const float NoteSize = 24f;
 
     private readonly EntityStore _entities;
     private readonly KeybindSettings _keybinds;
@@ -201,7 +200,7 @@ public sealed class PlayerMovementSystem : QuerySystem<Player, Position, Playfie
                 NoteFade.Alpha(note, timeMs) <= 0)
                 continue;
 
-            float noteSize = NoteSize * view.Scale;
+            float noteSize = PlayfieldRenderer.NoteSize * view.Scale;
             Vector2 noteScreen = view.PlayfieldToScreen(note.Position);
             var noteRect = new Rect2(
                 noteScreen - new Vector2(noteSize / 2, noteSize / 2),

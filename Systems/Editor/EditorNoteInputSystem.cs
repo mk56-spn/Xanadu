@@ -15,8 +15,8 @@ namespace Writer.Systems.Editor;
 /// <summary>Adds, selects, drags, and scrubs notes in playfield coordinates.</summary>
 public sealed class EditorNoteInputSystem : QuerySystem<Note>
 {
-    private const float NoteSize = 24;
-    private const float HitRadius = NoteSize / 2;
+    private const float NoteHitRadius = PlayfieldRenderer.NoteSize / 2;
+    private const float MineHitRadius = PlayfieldRenderer.MineSize / 2;
 
     private readonly EntityStore _entities;
     private readonly IPointerInputSource _pointer;
@@ -725,8 +725,8 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
             if (NoteFade.Alpha(note, playheadMs) <= 0)
                 continue;
 
-            if (MathF.Abs(note.Position.X - position.X) <= HitRadius &&
-                MathF.Abs(note.Position.Y - position.Y) <= HitRadius)
+            if (MathF.Abs(note.Position.X - position.X) <= NoteHitRadius &&
+                MathF.Abs(note.Position.Y - position.Y) <= NoteHitRadius)
             {
                 result = entity;
             }
@@ -745,8 +745,8 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
             if (MineFade.Alpha(mine, playheadMs) <= 0)
                 continue;
 
-            if (MathF.Abs(mine.Position.X - position.X) <= HitRadius &&
-                MathF.Abs(mine.Position.Y - position.Y) <= HitRadius)
+            if (MathF.Abs(mine.Position.X - position.X) <= MineHitRadius &&
+                MathF.Abs(mine.Position.Y - position.Y) <= MineHitRadius)
             {
                 result = entity;
             }

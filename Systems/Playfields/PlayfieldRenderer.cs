@@ -36,7 +36,7 @@ public static partial class PlayfieldRenderer
         new("#ec4899"),
     };
 
-    public const float NoteSize = 24;
+    public const float NoteSize = 72;
 
     public static Rect2 FieldRect(PlayfieldView view, Playfield playfield) =>
         new(
