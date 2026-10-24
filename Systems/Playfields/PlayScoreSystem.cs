@@ -91,7 +91,7 @@ public sealed class PlayScoreSystem : QuerySystem<ScoreState, Playhead>
             {
                 ref Position position =
                     ref score.JudgementText.GetComponent<Position>();
-                position.Value = score.JudgementPosition;
+                position.Value = score.JudgementPosition + score.HudOffset;
                 buffer.AddTag<Moved>(score.JudgementText.Id);
             }
         });

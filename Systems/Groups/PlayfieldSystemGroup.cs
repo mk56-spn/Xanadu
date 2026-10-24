@@ -5,6 +5,7 @@ using Writer.Systems.Audio;
 using Writer.Systems.Canvas;
 using Writer.Settings;
 using Writer.Systems.Input;
+using Writer.Settings;
 using Writer.Systems.Playfields;
 
 namespace Writer.Systems.Groups;
@@ -19,7 +20,9 @@ public sealed class PlayfieldSystemGroup : SystemGroup
         ITrackAudio audio,
         KeybindSettings keybinds,
         IKeyboardState keyboard,
-        OffsetSettings offsets) : base("Playfield")
+        OffsetSettings offsets,
+        IPointerInputSource? pointer = null,
+        HudLayoutSettings? hudLayout = null) : base("Playfield")
     {
         Add(new PlayfieldPlaybackSystem(audio));
         Add(new PlaySessionSystem(audio));
@@ -29,6 +32,11 @@ public sealed class PlayfieldSystemGroup : SystemGroup
         Add(new PlayNoteInputSystem(entities, keybinds, keyboard, offsets));
         Add(new HitTrailSystem());
         Add(new DashTrailSystem());
+        Add(new HudLayoutSystem(
+            canvas,
+            pointer ?? new NullPointerInputSource(),
+            keyboard,
+            hudLayout ?? new HudLayoutSettings(persist: false)));
         Add(new PlayScoreSystem());
         Add(new PlayfieldDrawSystem(entities, canvas, playfieldCanvas));
     }

@@ -108,7 +108,7 @@ public static partial class PlayfieldRenderer
             labels = entity.GetComponent<KeyTrailLabels>().Labels;
         }
 
-        if (state is null)
+        if (state is null || !state.Value.Visible)
             return;
 
         const float keySize = 48;
@@ -117,8 +117,9 @@ public static partial class PlayfieldRenderer
         const float historyWindowMs = 1_000f;
         float total = KeybindSettings.Actions.Length * keySize +
                       (KeybindSettings.Actions.Length - 1) * gap;
-        float startX = Math.Max(10, field.Position.X - total - 12);
-        float centerY = field.End.Y - 28;
+        Vector2 hudOffset = state.Value.Offset;
+        float startX = Math.Max(10, field.Position.X - total - 12) + hudOffset.X;
+        float centerY = field.End.Y - 28 + hudOffset.Y;
 
         float keyBottom = centerY + keySize / 2;
         float historyTop = centerY - keySize / 2 - 4 - historyHeight;

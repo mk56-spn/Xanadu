@@ -59,6 +59,11 @@ public struct KeyTrailLabels(string[] labels) : IComponent
 /// <summary>Transient key-press intensities for the play HUD key trail.</summary>
 public struct KeyTrail : IComponent
 {
+    public KeyTrail() { }
+
+    public Vector2 Offset;
+    public bool Visible = true;
+
     public float L1;
     public float L2;
     public float L3;

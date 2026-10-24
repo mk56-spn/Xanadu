@@ -53,6 +53,8 @@ public sealed class WriterSystemRoot : SystemRoot, IDisposable
 
     public DisplaySettings Display { get; }
 
+    public HudLayoutSettings Hud { get; }
+
     public ProfileStore Profiles { get; }
 
     public WriterSystemRoot(
@@ -63,7 +65,8 @@ public sealed class WriterSystemRoot : SystemRoot, IDisposable
         Vector2 viewportSize,
         KeybindSettings? keybinds = null,
         bool transitions = true,
-        IKeyboardState? keyboard = null) : base(entities, "Writer")
+        IKeyboardState? keyboard = null,
+        HudLayoutSettings? hudLayout = null) : base(entities, "Writer")
     {
         var canvas = new GodotRectCanvas();
         _entities = entities;
@@ -78,6 +81,7 @@ public sealed class WriterSystemRoot : SystemRoot, IDisposable
             new GodotVisualRidFactory());
         Offsets = new OffsetSettings();
         Display = new DisplaySettings();
+        Hud = hudLayout ?? new HudLayoutSettings();
         Profiles = new ProfileStore();
 
         // Register the keybind component archetype before the first runtime
@@ -127,7 +131,9 @@ public sealed class WriterSystemRoot : SystemRoot, IDisposable
             _playfieldAudio,
             Keybinds,
             Keyboard,
-            Offsets));
+            Offsets,
+            pointerInput,
+            Hud));
         _editorSystems = new EditorSystemGroup(
             entities,
             Commands,

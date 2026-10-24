@@ -6,4 +6,5 @@ namespace Writer.Systems.Input;
 public readonly record struct PointerInput(
     Vector2 Position,
     bool Pressed,
-    bool Shift = false);
+    bool Shift = false,
+    bool SecondaryPressed = false);

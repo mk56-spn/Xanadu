@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using Friflo.Engine.ECS;
 using Godot;
@@ -90,6 +91,7 @@ public static class PlayScene
         }
 
         UiBuilder ui = SceneUi.Layer(entities, root, SceneUi.PlayHudLayer, visuals);
+        HudLayout hud = new();
 
         Entity pause = ui.RectEntity(
             new Vector2(95, 44),
@@ -102,7 +104,7 @@ public static class PlayScene
         pause.AddComponent(ButtonVisual.Create(SceneUi.MutedButtonColor));
         pause.AddComponent(new SceneCommand(SceneActionId.Pause));
 
-        SceneUi.Text(
+        Entity titleText = SceneUi.Text(
             ui,
             new Vector2(screen.X / 2, 30),
             new Vector2(620, 30),
@@ -118,7 +120,7 @@ public static class PlayScene
             ? "Unrated"
             : document.Name;
 
-        SceneUi.Text(
+        Entity artistText = SceneUi.Text(
             ui,
             new Vector2(screen.X / 2, 58),
             new Vector2(620, 22),
@@ -126,6 +128,13 @@ public static class PlayScene
             14,
             SceneUi.DimTextColor,
             SceneUi.PanelColor);
+
+        hud.Add(
+            "song_info",
+            new Vector2(screen.X / 2, 44),
+            new Rect2(screen.X / 2 - 310, 14, 620, 58),
+            titleText,
+            artistText);
 
         Entity status = SceneUi.Text(
             ui,
@@ -168,39 +177,66 @@ public static class PlayScene
             SceneUi.AccentColor,
             new Color(0, 0, 0, 0));
 
-        BuildErrorBar(ui, playfieldEntity, screen);
+        BuildErrorBar(ui, playfieldEntity, screen, hud);
+
+        hud.Add(
+            "accuracy",
+            new Vector2(screen.X - 150, 68),
+            new Rect2(screen.X - 260, 56, 220, 24),
+            accuracyText);
+        hud.Add(
+            "judgement",
+            new Vector2(screen.X / 2, screen.Y / 2 - 120),
+            new Rect2(screen.X / 2 - 260, screen.Y / 2 - 142, 520, 44),
+            judgementText);
+        hud.Add(
+            "score",
+            new Vector2(160, screen.Y - 24),
+            new Rect2(20, screen.Y - 36, 280, 24),
+            scoreText);
+        hud.Add(
+            "combo",
+            new Vector2(screen.X - 150, screen.Y - 24),
+            new Rect2(screen.X - 260, screen.Y - 36, 220, 24),
+            comboText);
+        hud.Add(
+            "status",
+            new Vector2(screen.X / 2, screen.Y - 24),
+            new Rect2(screen.X / 2 - 380, screen.Y - 36, 760, 24),
+            status);
 
         float counterX = screen.X - 150;
-        SceneUi.Text(
+        var counterMembers = new List<Entity>();
+        counterMembers.Add(SceneUi.Text(
             ui,
             new Vector2(counterX, 190),
             new Vector2(260, 22),
             LocalizedText.Get(PlayStrings.Judgements),
             14,
             SceneUi.DimTextColor,
-            new Color(0, 0, 0, 0));
+            new Color(0, 0, 0, 0)));
 
-        CounterText(ui, screen.X - 200, 220, "FLAWLESS+",
+        counterMembers.Add(CounterText(ui, screen.X - 200, 220, "FLAWLESS+",
             PlayScoreSystem.ColorFor(Writer.Scoring.Judgement.FlawlessP),
-            TextAlign.Left);
-        CounterText(ui, screen.X - 200, 246, LocalizedText.Get(PlayStrings.Flawless),
+            TextAlign.Left));
+        counterMembers.Add(CounterText(ui, screen.X - 200, 246, LocalizedText.Get(PlayStrings.Flawless),
             PlayScoreSystem.ColorFor(Writer.Scoring.Judgement.Flawless),
-            TextAlign.Left);
-        CounterText(ui, screen.X - 200, 272, LocalizedText.Get(PlayStrings.Clean),
+            TextAlign.Left));
+        counterMembers.Add(CounterText(ui, screen.X - 200, 272, LocalizedText.Get(PlayStrings.Clean),
             PlayScoreSystem.ColorFor(Writer.Scoring.Judgement.Clean),
-            TextAlign.Left);
-        CounterText(ui, screen.X - 200, 298, LocalizedText.Get(PlayStrings.Fair),
+            TextAlign.Left));
+        counterMembers.Add(CounterText(ui, screen.X - 200, 298, LocalizedText.Get(PlayStrings.Fair),
             PlayScoreSystem.ColorFor(Writer.Scoring.Judgement.Fair),
-            TextAlign.Left);
-        CounterText(ui, screen.X - 200, 324, LocalizedText.Get(PlayStrings.Deficient),
+            TextAlign.Left));
+        counterMembers.Add(CounterText(ui, screen.X - 200, 324, LocalizedText.Get(PlayStrings.Deficient),
             PlayScoreSystem.ColorFor(Writer.Scoring.Judgement.Deficient),
-            TextAlign.Left);
-        CounterText(ui, screen.X - 200, 350, LocalizedText.Get(PlayStrings.Terrible),
+            TextAlign.Left));
+        counterMembers.Add(CounterText(ui, screen.X - 200, 350, LocalizedText.Get(PlayStrings.Terrible),
             PlayScoreSystem.ColorFor(Writer.Scoring.Judgement.Terrible),
-            TextAlign.Left);
-        CounterText(ui, screen.X - 200, 376, LocalizedText.Get(PlayStrings.Miss),
+            TextAlign.Left));
+        counterMembers.Add(CounterText(ui, screen.X - 200, 376, LocalizedText.Get(PlayStrings.Miss),
             PlayScoreSystem.ColorFor(Writer.Scoring.Judgement.Miss),
-            TextAlign.Left);
+            TextAlign.Left));
 
         Entity flawlessPlus = CounterNumber(ui, screen.X - 65, 220,
             PlayScoreSystem.ColorFor(Writer.Scoring.Judgement.FlawlessP));
@@ -216,6 +252,18 @@ public static class PlayScene
             PlayScoreSystem.ColorFor(Writer.Scoring.Judgement.Terrible));
         Entity miss = CounterNumber(ui, screen.X - 65, 376,
             PlayScoreSystem.ColorFor(Writer.Scoring.Judgement.Miss));
+        counterMembers.Add(flawlessPlus);
+        counterMembers.Add(flawless);
+        counterMembers.Add(clean);
+        counterMembers.Add(fair);
+        counterMembers.Add(deficient);
+        counterMembers.Add(terrible);
+        counterMembers.Add(miss);
+        hud.Add(
+            "judgement_counts",
+            new Vector2(screen.X - 130, 285),
+            new Rect2(screen.X - 280, 178, 280, 220),
+            counterMembers.ToArray());
 
         Entity countdown = SceneUi.Text(
             ui,
@@ -225,6 +273,19 @@ public static class PlayScene
             120,
             SceneUi.AccentColor,
             new Color(0, 0, 0, 0));
+
+        hud.Add(
+            "countdown",
+            new Vector2(screen.X / 2, screen.Y / 2),
+            new Rect2(screen.X / 2 - 350, screen.Y / 2 - 90, 700, 180),
+            countdown);
+
+        hud.Add(
+            "key_trail",
+            new Vector2(origin.X - 220, origin.Y + fieldHeight - 140),
+            new Rect2(origin.X - 440, origin.Y + fieldHeight - 280, 430, 280));
+
+        playfieldEntity.AddComponent(hud);
 
         playfieldEntity.AddComponent(new JudgementCounter(
             flawlessPlus,
@@ -258,7 +319,8 @@ public static class PlayScene
     private static void BuildErrorBar(
         UiBuilder ui,
         Entity playfield,
-        Vector2 screen)
+        Vector2 screen,
+        HudLayout hud)
     {
         const float fullWidth = 420;
         const float innerWidth = 360;
@@ -267,10 +329,11 @@ public static class PlayScene
         float maxMs = (float)ScoreRules.JudgementDeviation(Judgement.Miss);
         float pixelsPerMs = innerWidth / (maxMs * 2);
 
-        ui.RectEntity(
+        var members = new List<Entity>();
+        members.Add(ui.RectEntity(
             new Vector2(centerX, y),
             new Vector2(fullWidth + 24, 38),
-            new Color("#0b111b"));
+            new Color("#0b111b")));
 
         (Judgement Judgement, double Inner, double Outer)[] bands =
         {
@@ -289,44 +352,51 @@ public static class PlayScene
             color.A = 0.82f;
             float width = (float)(outer - inner) * pixelsPerMs;
             float offset = (float)((inner + outer) / 2) * pixelsPerMs;
-            ui.RectEntity(
+            members.Add(ui.RectEntity(
                 new Vector2(centerX - offset, y),
                 new Vector2(width, 14),
-                color);
-            ui.RectEntity(
+                color));
+            members.Add(ui.RectEntity(
                 new Vector2(centerX + offset, y),
                 new Vector2(width, 14),
-                color);
+                color));
         }
 
-        ui.RectEntity(
+        members.Add(ui.RectEntity(
             new Vector2(centerX, y),
             new Vector2(2, 26),
-            Colors.White);
+            Colors.White));
 
         Entity marker = ui.RectEntity(
             new Vector2(centerX, y),
             new Vector2(4, 30),
             new Color(1, 1, 1, 0),
             "");
+        members.Add(marker);
 
-        SceneUi.Text(
+        members.Add(SceneUi.Text(
             ui,
             new Vector2(centerX - innerWidth / 2, y + 28),
             new Vector2(100, 20),
             "EARLY",
             12,
             SceneUi.DimTextColor,
-            new Color(0, 0, 0, 0));
+            new Color(0, 0, 0, 0)));
 
-        SceneUi.Text(
+        members.Add(SceneUi.Text(
             ui,
             new Vector2(centerX + innerWidth / 2, y + 28),
             new Vector2(100, 20),
             "LATE",
             12,
             SceneUi.DimTextColor,
-            new Color(0, 0, 0, 0));
+            new Color(0, 0, 0, 0)));
+
+        hud.Add(
+            "error_bar",
+            new Vector2(centerX, y),
+            new Rect2(centerX - fullWidth / 2 - 12, y - 20, fullWidth + 24, 78),
+            members.ToArray());
 
         playfield.AddComponent(new ErrorBar(
             marker,

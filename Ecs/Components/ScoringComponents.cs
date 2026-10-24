@@ -27,6 +27,7 @@ public struct ScoreState(
     public Judgement LastJudgement;
     public bool HasJudgement;
     public long LastOffsetMs;
+    public Vector2 HudOffset;
     public Vector2 JudgementPosition;
     public long JudgementTimeMs;
     public int FlawlessPCount;
@@ -61,7 +62,9 @@ public struct ErrorBar(
 {
     public Entity Marker = marker;
     public float CenterX = centerX;
+    public float BaseCenterX = centerX;
     public float Y = y;
+    public float BaseY = y;
     public float HalfWidth = halfWidth;
     public float MaxOffsetMs = maxOffsetMs;
 }

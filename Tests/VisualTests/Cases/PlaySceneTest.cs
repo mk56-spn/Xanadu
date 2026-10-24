@@ -59,6 +59,9 @@ public sealed class PlaySceneTest : SceneTest
         AddAssert(
             "timing error bar exists",
             () => Context.Entities.Query<ErrorBar>().Count == 1);
+        AddAssert(
+            "HUD layout exists",
+            () => Context.Entities.Query<HudLayout>().Count == 1);
     }
 
     private void OpenPlay()
