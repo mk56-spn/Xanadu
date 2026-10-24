@@ -103,7 +103,7 @@ public static partial class EditorScene
             top + 175,
             width,
             EditorDropdownKind.Character,
-            new[] { "CONTACT", "ARMED", "SPLIT LINE", "MAGE" },
+            new[] { "CONTACT" },
             selected: 0);
 
         Entity tools = BuildPlacementTools(ui, centerX, top + 250);

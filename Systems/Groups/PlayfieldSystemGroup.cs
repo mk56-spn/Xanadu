@@ -5,7 +5,6 @@ using Writer.Systems.Audio;
 using Writer.Systems.Canvas;
 using Writer.Settings;
 using Writer.Systems.Input;
-using Writer.Settings;
 using Writer.Systems.Playfields;
 
 namespace Writer.Systems.Groups;

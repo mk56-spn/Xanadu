@@ -594,7 +594,7 @@ public sealed class EditorPlayfieldDrawSystem :
                 _canvas.DrawRect(
                     _editor,
                     bounds,
-                    PlayfieldRenderer.ColorFor(note.Target));
+                    PlayfieldRenderer.ColorFor(note));
 
                 if (selection.Contains(notes[i]))
                 {

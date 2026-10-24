@@ -142,7 +142,7 @@ public sealed class EditorDropdownSystem : QuerySystem<Dropdown>
                         (CharacterKind)Math.Clamp(
                             option.Value,
                             0,
-                            3);
+                            0);
                 }
             }
             else
@@ -308,13 +308,7 @@ public sealed class EditorDropdownSystem : QuerySystem<Dropdown>
             buffer.AddTag<Dirty>(button.Id);
     }
 
-    private static string CharacterLabel(int index) => index switch
-    {
-        1 => "ARMED",
-        2 => "SPLIT LINE",
-        3 => "MAGE",
-        _ => "CONTACT",
-    };
+    private static string CharacterLabel(int index) => "CONTACT";
 
     private static int SnapIndex(int division) => division switch
     {

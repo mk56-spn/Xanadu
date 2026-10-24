@@ -22,6 +22,7 @@ public static partial class PlayfieldRenderer
     public static readonly Color SelectedNoteColor = new(1f, 0.9f, 0.3f);
     public static readonly Color PlayerColor = new("#e2e8f0");
     public static readonly Color QueueColor = new("#38bdf8");
+    public static readonly Color CharacterSwitchColor = new("#a3e635");
 
     public const float MineSize = 18;
 

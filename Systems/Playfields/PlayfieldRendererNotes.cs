@@ -30,7 +30,7 @@ public static partial class PlayfieldRenderer
 
             Vector2 center = view.PlayfieldToScreen(note.Position);
             float radius = size / 2;
-            Color laneColor = ColorFor(note.Target);
+            Color laneColor = ColorFor(note);
             Color color = entity.Tags.Has<NoteMissed>()
                 ? new Color(0.4f, 0.4f, 0.5f, alpha * 0.45f)
                 : new Color(laneColor.R, laneColor.G, laneColor.B, alpha);
@@ -81,7 +81,7 @@ public static partial class PlayfieldRenderer
                         center - new Vector2(radius, radius),
                         new Vector2(radius * 2, radius * 2)),
                     note.Character.ToString()[..1],
-                    color,
+                    CharacterSwitchColor,
                     Math.Max(12, (int)(radius * 1.1f)));
             }
             else
@@ -171,6 +171,11 @@ public static partial class PlayfieldRenderer
                 2);
         }
     }
+
+    public static Color ColorFor(Note note) =>
+        note.Kind == NoteKind.CharacterSwitch
+            ? CharacterSwitchColor
+            : ColorFor(note.Target);
 
     public static Color ColorFor(KeybindAction action) =>
         LaneColors[(int)action % LaneColors.Length];
