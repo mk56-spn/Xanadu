@@ -22,7 +22,8 @@ public sealed class PlayfieldSystemGroup : SystemGroup
         IKeyboardState keyboard,
         OffsetSettings offsets,
         IPointerInputSource? pointer = null,
-        HudLayoutSettings? hudLayout = null) : base("Playfield")
+        HudLayoutSettings? hudLayout = null,
+        Rid hudOverlay = default) : base("Playfield")
     {
         Add(new PlayfieldPlaybackSystem(audio));
         Add(new PlaySessionSystem(audio));
@@ -36,7 +37,8 @@ public sealed class PlayfieldSystemGroup : SystemGroup
             canvas,
             pointer ?? new NullPointerInputSource(),
             keyboard,
-            hudLayout ?? new HudLayoutSettings(persist: false)));
+            hudLayout ?? new HudLayoutSettings(persist: false),
+            hudOverlay));
         Add(new PlayScoreSystem());
         Add(new PlayfieldDrawSystem(entities, canvas, playfieldCanvas));
     }

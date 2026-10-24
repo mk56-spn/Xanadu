@@ -29,6 +29,7 @@ public sealed class WriterSystemRoot : SystemRoot, IDisposable
     private readonly SceneDirector _sceneDirector;
     private EditorSystemGroup _editorSystems = null!;
     private readonly Rid _timeline;
+    private readonly Rid _hudEditOverlay;
     private readonly Rid _playfield;
     private readonly EntityStore _entities;
     private readonly MiniaudioTrackAudio _trackAudio = new();
@@ -120,6 +121,10 @@ public sealed class WriterSystemRoot : SystemRoot, IDisposable
         RenderingServer.CanvasItemSetParent(_playfield, parentCanvas);
         RenderingServer.CanvasItemSetZIndex(_playfield, 800);
 
+        _hudEditOverlay = RenderingServer.CanvasItemCreate();
+        RenderingServer.CanvasItemSetParent(_hudEditOverlay, parentCanvas);
+        RenderingServer.CanvasItemSetZIndex(_hudEditOverlay, 950);
+
         Add(new InitializationSystemGroup(parentCanvas));
         Add(new PhysicsSystemGroup(Physics));
         Add(new PresentationSystemGroup(canvas));
@@ -133,7 +138,8 @@ public sealed class WriterSystemRoot : SystemRoot, IDisposable
             Keyboard,
             Offsets,
             pointerInput,
-            Hud));
+            Hud,
+            _hudEditOverlay));
         _editorSystems = new EditorSystemGroup(
             entities,
             Commands,

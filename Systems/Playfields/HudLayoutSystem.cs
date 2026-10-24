@@ -15,7 +15,8 @@ public sealed class HudLayoutSystem(
     IRectCanvas canvas,
     IPointerInputSource pointer,
     IKeyboardState keyboard,
-    HudLayoutSettings settings) : QuerySystem<HudLayout, PlayfieldView>
+    HudLayoutSettings settings,
+    Rid overlay = default) : QuerySystem<HudLayout, PlayfieldView>
 {
     private bool _wasEditPressed;
     private bool _wasSecondaryPressed;
@@ -35,10 +36,58 @@ public sealed class HudLayoutSystem(
         _wasEditPressed = editPressed;
 
         CommandBuffer buffer = CommandBuffer;
+        canvas.Clear(overlay);
+
         Query.ForEachEntity((ref layout, ref view, entity) =>
         {
             ApplyLayout(ref layout, view, entity, buffer);
+            if (layout.Editing)
+                DrawEditOverlay(layout);
         });
+    }
+
+    private void DrawEditOverlay(HudLayout layout)
+    {
+        if (!overlay.IsValid)
+            return;
+
+        foreach (HudItemLayout item in layout.Items)
+        {
+            var bounds = new Rect2(
+                item.Bounds.Position + item.Offset,
+                item.Bounds.Size);
+            Color fill = new(0.15f, 0.85f, 1f, 0.08f);
+            Color border = new(0.35f, 0.95f, 1f, 0.9f);
+
+            canvas.DrawRect(overlay, bounds, fill);
+            canvas.DrawLine(overlay, bounds.Position,
+                new Vector2(bounds.End.X, bounds.Position.Y), border, 1);
+            canvas.DrawLine(overlay,
+                new Vector2(bounds.End.X, bounds.Position.Y),
+                bounds.End, border, 1);
+            canvas.DrawLine(overlay, bounds.End,
+                new Vector2(bounds.Position.X, bounds.End.Y), border, 1);
+            canvas.DrawLine(overlay,
+                new Vector2(bounds.Position.X, bounds.End.Y),
+                bounds.Position, border, 1);
+            canvas.DrawTextLeft(
+                overlay,
+                new Rect2(
+                    bounds.Position + new Vector2(4, -18),
+                    new Vector2(180, 18)),
+                item.Id,
+                border);
+        }
+
+        canvas.DrawRect(
+            overlay,
+            new Rect2(16, 16, 430, 28),
+            new Color(0.03f, 0.05f, 0.09f, 0.92f));
+        canvas.DrawTextLeft(
+            overlay,
+            new Rect2(24, 20, 414, 20),
+            "HUD EDIT - DRAG TO MOVE - RIGHT CLICK VISIBILITY - F7 DONE",
+            new Color(0.35f, 0.95f, 1f));
     }
 
     private void ApplyLayout(
