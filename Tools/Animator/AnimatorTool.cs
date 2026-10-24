@@ -39,7 +39,7 @@ public partial class AnimatorTool : Control
         _pointer = new ToolPointer(this);
         _preview = RenderingServer.CanvasItemCreate();
         RenderingServer.CanvasItemSetParent(_preview, GetCanvasItem());
-        RenderingServer.CanvasItemSetZIndex(_preview, 2);
+        RenderingServer.CanvasItemSetZIndex(_preview, -1);
 
         _root.Add(new LayerParentSystem(GetCanvasItem()));
         _root.Add(new ContainerLayoutSystem());
