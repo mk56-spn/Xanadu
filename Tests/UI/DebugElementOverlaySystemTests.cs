@@ -5,11 +5,11 @@ using Godot;
 using NUnit.Framework;
 using Writer.Ecs;
 using Writer.Systems.Canvas;
-using Writer.Systems.Debug;
+using Writer.Systems.Ui;
 using Writer.Systems.Input;
 using Position = Writer.Ecs.Position;
 
-namespace Writer.Tests.Debug;
+namespace Writer.Tests.UI;
 
 [TestFixture]
 public sealed class DebugElementOverlaySystemTests

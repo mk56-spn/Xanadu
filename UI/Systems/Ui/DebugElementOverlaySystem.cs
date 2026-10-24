@@ -7,7 +7,7 @@ using Writer.Systems.Canvas;
 using Writer.Systems.Input;
 using Position = Writer.Ecs.Position;
 
-namespace Writer.Systems.Debug;
+namespace Writer.Systems.Ui;
 
 /// <summary>F4 overlay showing button and container bounds.</summary>
 public sealed class DebugElementOverlaySystem : QuerySystem<Rectangle, Position>

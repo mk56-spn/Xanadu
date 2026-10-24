@@ -4,6 +4,7 @@ using Godot;
 using Writer.Systems.Canvas;
 using Writer.Systems.Debug;
 using Writer.Systems.Input;
+using Writer.Systems.Ui;
 
 namespace Writer.Systems.Groups;
 
