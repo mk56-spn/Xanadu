@@ -42,10 +42,10 @@ public sealed class HudLayoutSettings
 
     public void SetVisible(string id, bool visible)
     {
-        if (_items.TryGetValue(id, out HudLayoutEntry? entry))
-            entry.Visible = visible;
-        else
-            _items[id] = new HudLayoutEntry { Visible = visible };
+        if (!_items.TryGetValue(id, out HudLayoutEntry? entry))
+            return;
+
+        entry.Visible = visible;
         Save();
     }
 
