@@ -37,6 +37,7 @@ public static class LevelDocumentMapper
                 Target = note.Target,
                 Kind = note.Kind,
                 DashDirection = note.DashDirection,
+                ContactRequired = note.ContactRequired,
             });
         }
 
@@ -96,7 +97,8 @@ public static class LevelDocumentMapper
                 new Vector2(note.X, note.Y),
                 note.Target,
                 note.Kind,
-                note.DashDirection));
+                note.DashDirection,
+                note.ContactRequired));
         }
 
         foreach (Entity entity in entities.Query<StartPoint>().ToEntityList())

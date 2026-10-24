@@ -414,9 +414,12 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
             time,
             playfieldPosition,
             target: target,
-            kind: mode == EditorPlacementMode.Movement
-                ? NoteKind.Movement
-                : NoteKind.Hit,
+            kind: mode switch
+            {
+                EditorPlacementMode.Movement => NoteKind.Movement,
+                EditorPlacementMode.Contact => NoteKind.Contact,
+                _ => NoteKind.Hit,
+            },
             dashDirection: direction));
         _history.Record(before, _history.Capture());
         editor.GetComponent<NoteSelection>().Note = created;

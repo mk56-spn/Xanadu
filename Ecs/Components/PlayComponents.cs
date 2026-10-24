@@ -135,3 +135,64 @@ public struct DashTrail(
     public float Age;
     public float Lifetime = lifetime;
 }
+
+/// <summary>Playable character families. Modules add behavior to the player.</summary>
+public enum CharacterKind
+{
+    Contact,
+    Armed,
+    SplitLine,
+    Mage,
+}
+
+/// <summary>Identifies which character rules are active for the player.</summary>
+public struct PlayerCharacter(CharacterKind kind) : IComponent
+{
+    public CharacterKind Kind = kind;
+}
+
+/// <summary>Marks a character that performs a dash on movement notes.</summary>
+public struct DashMovement : ITag;
+
+/// <summary>Marks a character that owns contact counters.</summary>
+public struct ContactCharacter : ITag;
+
+/// <summary>Accumulated hits per input for the Contact character.</summary>
+public struct ContactCounters : IComponent
+{
+    public int[] Counts;
+
+    public ContactCounters()
+    {
+        Counts = new int[7];
+    }
+
+    public readonly int Get(Writer.Settings.KeybindAction action) =>
+        Counts.Length == 0 ? 0 : Counts[(int)action];
+
+    public void Add(Writer.Settings.KeybindAction action, int amount = 1)
+    {
+        int index = (int)action;
+        if ((uint)index < (uint)Counts.Length)
+            Counts[index] += amount;
+    }
+
+    public bool Consume(Writer.Settings.KeybindAction action, int amount)
+    {
+        int index = (int)action;
+        if ((uint)index >= (uint)Counts.Length ||
+            Counts[index] < amount)
+        {
+            return false;
+        }
+
+        Counts[index] -= amount;
+        return true;
+    }
+}
+
+/// <summary>HUD labels for the Contact counter row.</summary>
+public struct ContactCounterHud(Entity[] labels) : IComponent
+{
+    public Entity[] Labels = labels;
+}

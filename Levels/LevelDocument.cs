@@ -82,4 +82,6 @@ public sealed class NoteDocument
     public NoteKind Kind { get; set; } = NoteKind.Hit;
 
     public DashDirection DashDirection { get; set; } = DashDirection.Up;
+
+    public int ContactRequired { get; set; } = 1;
 }

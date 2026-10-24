@@ -62,6 +62,10 @@ public sealed class PlaySceneTest : SceneTest
         AddAssert(
             "HUD layout exists",
             () => Context.Entities.Query<HudLayout>().Count == 1);
+        AddAssert(
+            "contact counters exist",
+            () => Context.Entities.Query<ContactCounterHud>().Count == 1 &&
+                  VisualAssert.HasText(Context.Entities, "L1 0"));
     }
 
     private void OpenPlay()

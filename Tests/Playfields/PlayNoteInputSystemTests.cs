@@ -432,6 +432,72 @@ public sealed class PlayNoteInputSystemTests
     }
 
     [Test]
+    public void SuccessfulHitBuildsTheContactCounter()
+    {
+        Entity playfield = CreatePlayfield(totalNotes: 1);
+        playfield.AddComponent(new ContactCounters());
+        CreateNote(1_000, new Vector2(500, 500), KeybindAction.L1);
+        SetPlayhead(playfield, 1_000);
+        Press(KeybindAction.L1);
+
+        Frame();
+
+        Assert.That(
+            playfield.GetComponent<ContactCounters>().Get(KeybindAction.L1),
+            Is.EqualTo(1));
+    }
+
+    [Test]
+    public void ContactConsumesItsRequiredCounter()
+    {
+        Entity playfield = CreatePlayfield(totalNotes: 1);
+        playfield.AddComponent(new ContactCounters());
+        playfield.GetComponent<ContactCounters>().Add(KeybindAction.R2, 3);
+        CreateNote(
+            1_000,
+            new Vector2(500, 500),
+            KeybindAction.R2,
+            NoteKind.Contact,
+            contactRequired: 2);
+        SetPlayhead(playfield, 1_000);
+        Press(KeybindAction.R2);
+
+        Frame();
+
+        Assert.That(
+            playfield.GetComponent<ContactCounters>().Get(KeybindAction.R2),
+            Is.EqualTo(1));
+        Assert.That(
+            playfield.GetComponent<ScoreState>().LastJudgement,
+            Is.EqualTo(Judgement.FlawlessP));
+    }
+
+    [Test]
+    public void ContactFailsWhenItDoesNotHaveEnoughCounter()
+    {
+        Entity playfield = CreatePlayfield(totalNotes: 1);
+        playfield.AddComponent(new ContactCounters());
+        playfield.GetComponent<ContactCounters>().Add(KeybindAction.R2, 1);
+        CreateNote(
+            1_000,
+            new Vector2(500, 500),
+            KeybindAction.R2,
+            NoteKind.Contact,
+            contactRequired: 2);
+        SetPlayhead(playfield, 1_000);
+        Press(KeybindAction.R2);
+
+        Frame();
+
+        Assert.That(
+            playfield.GetComponent<ContactCounters>().Get(KeybindAction.R2),
+            Is.EqualTo(1));
+        Assert.That(
+            playfield.GetComponent<ScoreState>().LastJudgement,
+            Is.EqualTo(Judgement.Miss));
+    }
+
+    [Test]
     public void PausedPlayfieldIgnoresHits()
     {
         Entity playfield = CreatePlayfield(totalNotes: 1, paused: true);
@@ -487,8 +553,15 @@ public sealed class PlayNoteInputSystemTests
     private Entity CreateNote(
         long timeMs,
         Vector2 position,
-        KeybindAction target = KeybindAction.M) =>
-        _store.CreateEntity(new Note(timeMs, position, target: target));
+        KeybindAction target = KeybindAction.M,
+        NoteKind kind = NoteKind.Hit,
+        int contactRequired = 1) =>
+        _store.CreateEntity(new Note(
+            timeMs,
+            position,
+            target: target,
+            kind: kind,
+            contactRequired: contactRequired));
 
     private void SetPlayhead(Entity playfield, long timeMs) =>
         playfield.GetComponent<Playhead>().TimeMs = timeMs;

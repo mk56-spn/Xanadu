@@ -39,6 +39,7 @@ public sealed class PlayfieldSystemGroup : SystemGroup
             keyboard,
             hudLayout ?? new HudLayoutSettings(persist: false),
             hudOverlay));
+        Add(new ContactCounterSystem());
         Add(new PlayScoreSystem());
         Add(new PlayfieldDrawSystem(entities, canvas, playfieldCanvas));
     }

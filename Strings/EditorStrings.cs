@@ -24,4 +24,6 @@ public static class EditorStrings
     public static readonly LString Mine = new("editor.mode.mine", "MINE");
     public static readonly LString Move = new("editor.mode.move", "MOVE");
     public static readonly LString Start = new("editor.mode.start", "START");
+
+    public static readonly LString Contact = new("editor.mode.contact", "CONTACT");
 }

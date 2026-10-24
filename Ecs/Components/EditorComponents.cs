@@ -100,6 +100,7 @@ public enum EditorPlacementMode
     Mines,
     Movement,
     Start,
+    Contact,
 }
 
 public struct EditorPlacementModeState(EditorPlacementMode mode) : IComponent

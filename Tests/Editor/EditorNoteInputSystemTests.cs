@@ -152,6 +152,23 @@ public sealed class EditorNoteInputSystemTests
     }
 
     [Test]
+    public void ContactModePlacesContactNotes()
+    {
+        Entity editor = _store.Query<PlayfieldView>().ToEntityList()[0];
+        editor.AddComponent(new EditorPlacementModeState(
+            EditorPlacementMode.Contact));
+
+        _pointer.Current = new PointerInput(new Vector2(300, 400), true);
+        _root.Update(new UpdateTick(1f / 60f, 0));
+        _pointer.Current = new PointerInput(new Vector2(300, 400), false);
+        _root.Update(new UpdateTick(1f / 60f, 0));
+
+        Entity note = _store.Query<Note>().ToEntityList()[0];
+        Assert.That(note.GetComponent<Note>().Kind,
+            Is.EqualTo(NoteKind.Contact));
+    }
+
+    [Test]
     public void ShiftClickOnTimelineAddsToTheCurrentSelection()
     {
         Entity editor = _store.Query<PlayfieldView>().ToEntityList()[0];

@@ -66,6 +66,10 @@ public static class PlayScene
             new Momentum(System.Numerics.Vector2.Zero));
 
         root.AddChild(playfieldEntity);
+        playfieldEntity.AddComponent(new PlayerCharacter(CharacterKind.Contact));
+        playfieldEntity.AddComponent(new ContactCounters());
+        playfieldEntity.AddTag<DashMovement>();
+        playfieldEntity.AddTag<ContactCharacter>();
         playfieldEntity.AddComponent(new KeyTrail());
         string[] keyLabels = new string[KeybindSettings.Actions.Length];
         for (int i = 0; i < keyLabels.Length; i++)
@@ -178,6 +182,27 @@ public static class PlayScene
             new Color(0, 0, 0, 0));
 
         BuildErrorBar(ui, playfieldEntity, screen, hud);
+
+        var contactLabels = new Entity[KeybindSettings.Actions.Length];
+        for (int i = 0; i < contactLabels.Length; i++)
+        {
+            KeybindAction action = KeybindSettings.Actions[i];
+            contactLabels[i] = SceneUi.Text(
+                ui,
+                new Vector2(screen.X / 2 + (i - 3) * 74, 92),
+                new Vector2(70, 22),
+                $"{KeybindSettings.LabelFor(action)} 0",
+                13,
+                SceneUi.DimTextColor,
+                new Color(0, 0, 0, 0));
+        }
+
+        hud.Add(
+            "contact_counters",
+            new Vector2(screen.X / 2, 92),
+            new Rect2(screen.X / 2 - 260, 80, 520, 26),
+            contactLabels);
+        playfieldEntity.AddComponent(new ContactCounterHud(contactLabels));
 
         hud.Add(
             "accuracy",

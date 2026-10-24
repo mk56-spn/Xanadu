@@ -122,37 +122,45 @@ public static partial class EditorScene
     {
         Entity group = ui.RectEntity(
             new Vector2(centerX, centerY),
-            new Vector2(190, 140),
+            new Vector2(260, 140),
             new Color(0, 0, 0, 0));
         group.AddComponent(new UiContainer(StackDirection.Vertical));
 
         AddPlacementButton(
             ui,
             group,
-            new Vector2(-69, -70),
+            new Vector2(-92, -70),
             LocalizedText.Get(EditorStrings.Note),
             new EditorPlacementButton(EditorPlacementMode.Notes),
             44);
         AddPlacementButton(
             ui,
             group,
-            new Vector2(-23, -70),
+            new Vector2(-46, -70),
             LocalizedText.Get(EditorStrings.Mine),
             new EditorPlacementButton(EditorPlacementMode.Mines),
             44);
         AddPlacementButton(
             ui,
             group,
-            new Vector2(23, -70),
+            new Vector2(0, -70),
             LocalizedText.Get(EditorStrings.Move),
             new EditorPlacementButton(EditorPlacementMode.Movement),
             44);
         AddPlacementButton(
             ui,
             group,
-            new Vector2(69, -70),
+            new Vector2(46, -70),
             LocalizedText.Get(EditorStrings.Start),
             new EditorPlacementButton(EditorPlacementMode.Start),
+            44);
+
+        AddPlacementButton(
+            ui,
+            group,
+            new Vector2(92, -70),
+            LocalizedText.Get(EditorStrings.Contact),
+            new EditorPlacementButton(EditorPlacementMode.Contact),
             44);
 
         Entity label = HudText(

@@ -58,6 +58,12 @@ public sealed class PlayerMovementSystem : QuerySystem<Player, Position, Playfie
             if (entity.Tags.Has<PlayPaused>() || IsWaiting(entity))
                 return;
 
+            if (entity.HasComponent<PlayerCharacter>() &&
+                !entity.Tags.Has<DashMovement>())
+            {
+                return;
+            }
+
             Vector2 screen = Box2DPhysicsWorld.ToScreen(body.Body.GetPosition());
 
             if (PlayerTouchesTrueNote(screen, player, view, playhead.TimeMs))
@@ -196,7 +202,8 @@ public sealed class PlayerMovementSystem : QuerySystem<Player, Position, Playfie
                 continue;
 
             Note note = entity.GetComponent<Note>();
-            if (note.Kind != NoteKind.Hit ||
+            if ((note.Kind != NoteKind.Hit &&
+                 note.Kind != NoteKind.Contact) ||
                 NoteFade.Alpha(note, timeMs) <= 0)
                 continue;
 

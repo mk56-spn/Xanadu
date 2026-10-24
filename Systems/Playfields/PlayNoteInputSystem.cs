@@ -145,7 +145,8 @@ public sealed class PlayNoteInputSystem : QuerySystem<Note>
                 continue;
 
             Note note = entity.GetComponent<Note>();
-            if (note.Kind != NoteKind.Hit || note.Target != action)
+            if ((note.Kind != NoteKind.Hit && note.Kind != NoteKind.Contact) ||
+                note.Target != action)
                 continue;
 
             long offset = note.TimeMs - judgedTime;
@@ -185,16 +186,45 @@ public sealed class PlayNoteInputSystem : QuerySystem<Note>
                 PlayfieldRenderer.ColorFor(hitNote.Target),
                 KeybindSettings.KeyLabel(_keybinds.Get(hitNote.Target))));
 
-            Hit(ref score, hit, bestOffset);
+            Hit(ref score, hit, bestOffset, playfield);
         }
     }
 
     private static void Hit(
         ref ScoreState score,
         Entity noteEntity,
-        long offsetMs)
+        long offsetMs,
+        Entity playfield)
     {
+        Note note = noteEntity.GetComponent<Note>();
+        bool contactPass = true;
+
+        if (playfield.HasComponent<ContactCounters>() &&
+            note.Kind == NoteKind.Contact)
+        {
+            ref ContactCounters counters =
+                ref playfield.GetComponent<ContactCounters>();
+            contactPass = counters.Consume(
+                note.Target,
+                Math.Max(1, note.ContactRequired));
+        }
+
+        if (!contactPass)
+        {
+            PlayScoring.Apply(
+                ref score,
+                (long)ScoreRules.JudgementDeviation(Judgement.Miss) + 1);
+            noteEntity.DeleteEntity();
+            return;
+        }
+
         PlayScoring.Apply(ref score, offsetMs);
+        if (note.Kind == NoteKind.Hit &&
+            playfield.HasComponent<ContactCounters>())
+        {
+            playfield.GetComponent<ContactCounters>().Add(note.Target);
+        }
+
         noteEntity.DeleteEntity();
     }
 

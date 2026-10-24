@@ -40,7 +40,8 @@ public sealed class EditorHistory
                 note.Position,
                 note.Target,
                 note.Kind,
-                note.DashDirection));
+                note.DashDirection,
+                note.ContactRequired));
         }
 
         notes.Sort(static (a, b) =>
@@ -163,7 +164,8 @@ public sealed class EditorHistory
                 note.Position,
                 note.Target,
                 note.Kind,
-                note.DashDirection));
+                note.DashDirection,
+                note.ContactRequired));
         }
 
         foreach (MineSnapshot mine in snapshot.Mines)
@@ -218,4 +220,5 @@ public readonly record struct NoteSnapshot(
     Vector2 Position,
     KeybindAction Target,
     NoteKind Kind,
-    DashDirection DashDirection);
+    DashDirection DashDirection,
+    int ContactRequired);
