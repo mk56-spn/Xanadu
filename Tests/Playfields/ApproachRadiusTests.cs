@@ -23,6 +23,6 @@ public sealed class ApproachRadiusTests
     [Test]
     public void ApproachWindowIsIndependentOfNoteFade()
     {
-        Assert.That(PlayfieldRenderer.ApproachWindowMs, Is.EqualTo(300f));
+        Assert.That(NoteFade.ApproachWindowMs, Is.EqualTo(300f));
     }
 }
