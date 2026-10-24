@@ -19,11 +19,7 @@ public partial class UiShowcase : Control
     private SystemRoot _root = null!;
     private ShowcasePointer _pointer = null!;
     private ScrollSystem _scroll = null!;
-    private Entity _sliderTrack;
-    private Entity _sliderFill;
-    private Entity _sliderLabel;
     private Entity _dropdownList;
-    private bool _dragging;
 
     public override void _Ready()
     {
@@ -45,7 +41,7 @@ public partial class UiShowcase : Control
         _scroll = new ScrollSystem();
         _root.Add(_scroll);
         _root.Add(new ButtonVisualSystem());
-        _root.Add(new ShowcaseSliderSystem(this));
+        _root.Add(new UiSliderSystem(_pointer));
 
         Build();
         SetProcess(true);
@@ -139,15 +135,15 @@ public partial class UiShowcase : Control
         Entity track = ui.RectEntity(
             new Vector2(300, 570), new Vector2(380, 18),
             new Color("#334155"), null, takesInput: true);
-        _sliderTrack = track;
-        _sliderFill = ui.RectEntity(
+        Entity sliderFill = ui.RectEntity(
             new Vector2(205, 570), new Vector2(190, 18),
             new Color("#38bdf8"), "");
-        _sliderLabel = ui.RectEntity(
+        Entity sliderLabel = ui.RectEntity(
             new Vector2(300, 530), new Vector2(400, 24),
             new Color(0, 0, 0, 0), "SLIDER 50");
-        Style(_sliderLabel, 18, new Color("#e2e8f0"));
-        track.AddComponent(new UiSlider(_sliderFill, _sliderLabel, 0, 100, 50));
+        Style(sliderLabel, 18, new Color("#e2e8f0"));
+        track.AddComponent(new UiSlider(
+            sliderFill, sliderLabel, 0, 100, 50, "SLIDER "));
 
         Entity dropdown = ui.RectEntity(
             new Vector2(1030, 540), new Vector2(300, 44),
@@ -175,64 +171,6 @@ public partial class UiShowcase : Control
 
     private static void Style(Entity entity, int size, Color color) =>
         entity.AddComponent(new TextStyle(size, color));
-
-    private void SetSlider(float value)
-    {
-        if (!_sliderTrack.HasComponent<Rectangle>() ||
-            !_sliderTrack.HasComponent<UiSlider>())
-        {
-            return;
-        }
-
-        Rectangle track = _sliderTrack.GetComponent<Rectangle>();
-        float t = Mathf.Clamp(value / 100f, 0f, 1f);
-        ref UiSlider slider = ref _sliderTrack.GetComponent<UiSlider>();
-        slider.Value = value;
-
-        float width = track.Bounds.Size.X * t;
-        ref Rectangle fill = ref _sliderFill.GetComponent<Rectangle>();
-        fill.Bounds = new Rect2(-width / 2, -9, width, 18);
-        ref Position position = ref _sliderFill.GetComponent<Position>();
-        position.Value = _sliderTrack.GetComponent<Position>().Value +
-            new Vector2(-track.Bounds.Size.X / 2 + width / 2, 0);
-        _sliderFill.AddTag<Moved>();
-        _sliderFill.AddTag<Dirty>();
-        _sliderLabel.GetComponent<Text>().Value = $"SLIDER {value:0}";
-        _sliderLabel.AddTag<Dirty>();
-    }
-
-    private sealed class ShowcaseSliderSystem(UiShowcase owner)
-        : QuerySystem<UiSlider, Rectangle, Position>
-    {
-        protected override void OnUpdate()
-        {
-            PointerInput input = owner._pointer.Read();
-            if (!input.Pressed)
-            {
-                owner._dragging = false;
-                return;
-            }
-
-            float? next = null;
-            Query.ForEachEntity((ref slider, ref rect, ref position, entity) =>
-            {
-                Vector2 world = UiTransform.WorldPosition(entity, position.Value);
-                Rect2 bounds = new(world + rect.Bounds.Position, rect.Bounds.Size);
-                if (bounds.HasPoint(input.Position))
-                    owner._dragging = true;
-                if (!owner._dragging)
-                    return;
-
-                float t = Mathf.Clamp(
-                    (input.Position.X - bounds.Position.X) /
-                    Mathf.Max(1f, bounds.Size.X), 0f, 1f);
-                next = Mathf.Lerp(slider.Min, slider.Max, t);
-            });
-
-            if (next is { } value)
-                owner.SetSlider(value);
-        }
-    }
 
     private sealed class ShowcasePointer(UiShowcase owner) : IPointerInputSource
     {

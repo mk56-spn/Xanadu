@@ -34,9 +34,9 @@ public sealed class DebugSystemGroup : SystemGroup
             fps,
             paging));
         Add(new DebugElementOverlaySystem(canvas, elementsOverlay, elementsToggle));
+        Add(new Writer.Systems.Ui.UiSliderSystem(pointer));
         Add(new GravityDebugSystem(
             entitiesForSlider,
-            pointer,
             physics,
             gravityToggle));
     }

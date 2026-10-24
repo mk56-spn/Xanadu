@@ -73,6 +73,9 @@ public sealed class DrawableInitialiseSystem : QuerySystem<Rectangle, Drawable, 
         if (entity.HasComponent<UiBackground>())
             return -1;
 
+        if (entity.Tags.Has<UiSliderFill>())
+            return 2;
+
         return entity.HasComponent<Text>() ||
                entity.HasComponent<ButtonVisual>() ||
                entity.Tags.Has<TakesInput>()
