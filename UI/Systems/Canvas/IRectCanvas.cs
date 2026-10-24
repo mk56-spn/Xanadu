@@ -1,3 +1,4 @@
+using System;
 using Godot;
 
 namespace Writer.Systems.Canvas;
@@ -19,7 +20,19 @@ public interface IRectCanvas
     /// <summary>Draws a filled circle.</summary>
     void DrawCircle(Rid canvas, Vector2 center, float radius, Color color) { }
 
-    /// <summary>Draws an outlined circle using short line segments.</summary>
+    /// <summary>Draws a connected polyline.</summary>
+    void DrawPolyline(
+        Rid canvas,
+        ReadOnlySpan<Vector2> points,
+        Color color,
+        float width,
+        bool antialiased = true)
+    {
+        for (int i = 1; i < points.Length; i++)
+            DrawLine(canvas, points[i - 1], points[i], color, width);
+    }
+
+    /// <summary>Draws an outlined circle as one connected polyline.</summary>
     void DrawCircleOutline(
         Rid canvas,
         Vector2 center,
@@ -28,16 +41,19 @@ public interface IRectCanvas
         float width,
         int segments = 40)
     {
-        Vector2 previous = center + new Vector2(radius, 0);
-        for (int i = 1; i <= segments; i++)
+        if (segments < 3 || radius <= 0)
+            return;
+
+        var points = new Vector2[segments + 1];
+        for (int i = 0; i <= segments; i++)
         {
             float angle = Mathf.Tau * i / segments;
-            Vector2 next = center + new Vector2(
+            points[i] = center + new Vector2(
                 Mathf.Cos(angle) * radius,
                 Mathf.Sin(angle) * radius);
-            DrawLine(canvas, previous, next, color, width);
-            previous = next;
         }
+
+        DrawPolyline(canvas, points, color, width);
     }
 
     void DrawLine(Rid canvas, Vector2 from, Vector2 to, Color color, float width);

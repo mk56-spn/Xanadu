@@ -1,3 +1,4 @@
+using System;
 using Godot;
 
 namespace Writer.Systems.Canvas;
@@ -34,6 +35,27 @@ public sealed class GodotRectCanvas : IRectCanvas
 
     public void DrawLine(Rid canvas, Vector2 from, Vector2 to, Color color, float width) =>
         RenderingServer.CanvasItemAddLine(canvas, from, to, color, width, true);
+
+    public void DrawPolyline(
+        Rid canvas,
+        ReadOnlySpan<Vector2> points,
+        Color color,
+        float width,
+        bool antialiased = true)
+    {
+        if (points.Length < 2)
+            return;
+
+        Vector2[] vertices = points.ToArray();
+        var colors = new Color[vertices.Length];
+        Array.Fill(colors, color);
+        RenderingServer.CanvasItemAddPolyline(
+            canvas,
+            vertices,
+            colors,
+            width,
+            antialiased);
+    }
 
     public void DrawText(Rid canvas, Rect2 bounds, string text, Color color) =>
         DrawTextAligned(canvas, bounds, text, color, FontSize, HorizontalAlignment.Center);
