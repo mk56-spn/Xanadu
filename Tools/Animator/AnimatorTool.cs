@@ -23,6 +23,8 @@ public partial class AnimatorTool : Control
     private GodotRectCanvas _canvas = null!;
     private ToolPointer _pointer = null!;
     private Rid _preview;
+    private Rid _timelineCanvas;
+    private bool _wasTimelinePressed;
     private XafPackage _package = null!;
     private AnimatorRuntime _runtime = null!;
     private Entity _status;
@@ -40,6 +42,10 @@ public partial class AnimatorTool : Control
         _preview = RenderingServer.CanvasItemCreate();
         RenderingServer.CanvasItemSetParent(_preview, GetCanvasItem());
         RenderingServer.CanvasItemSetZIndex(_preview, -1);
+
+        _timelineCanvas = RenderingServer.CanvasItemCreate();
+        RenderingServer.CanvasItemSetParent(_timelineCanvas, GetCanvasItem());
+        RenderingServer.CanvasItemSetZIndex(_timelineCanvas, 4);
 
         _root.Add(new LayerParentSystem(GetCanvasItem()));
         _root.Add(new ContainerLayoutSystem());
@@ -64,6 +70,7 @@ public partial class AnimatorTool : Control
         float dt = (float)delta * _timeScale;
         _runtime.Update(dt);
         _root.Update(new UpdateTick((float)delta, (float)Time.GetTicksMsec() / 1000f));
+        HandleTimelineInput();
         DrawPreview();
         DrawTimeline();
     }
@@ -208,20 +215,47 @@ public partial class AnimatorTool : Control
             new Color("#e2e8f0"), 14);
     }
 
-    private void DrawTimeline()
+    private Rect2 TimelineRect()
     {
         Vector2 screen = GetViewportRect().Size;
-        var bar = new Rect2(40, screen.Y - 118, screen.X - 80, 1);
-        _canvas.DrawLine(_preview, bar.Position,
-            new Vector2(bar.End.X, bar.Position.Y), new Color("#475569"), 2);
+        return new Rect2(40, screen.Y - 118, screen.X - 80, 56);
+    }
+
+    private void HandleTimelineInput()
+    {
+        PointerInput input = _pointer.Read();
+        Rect2 bar = TimelineRect();
+        if (input.Pressed && !_wasTimelinePressed && bar.HasPoint(input.Position))
+        {
+            float t = Mathf.Clamp(
+                (input.Position.X - bar.Position.X) / Mathf.Max(1f, bar.Size.X),
+                0f,
+                1f);
+            _runtime.Seek(_runtime.CurrentDuration * t);
+            _runtime.SetPaused(true);
+        }
+        _wasTimelinePressed = input.Pressed;
+    }
+
+    private void DrawTimeline()
+    {
+        _canvas.Clear(_timelineCanvas);
+        Rect2 bar = TimelineRect();
+        _canvas.DrawRect(
+            _timelineCanvas,
+            new Rect2(bar.Position.X, bar.Position.Y + 18,
+                bar.Size.X, 2),
+            new Color("#475569"));
 
         float duration = Math.Max(0.1f, _runtime.CurrentDuration);
         float t = Mathf.Clamp(_runtime.CurrentTime / duration, 0f, 1f);
         float x = Mathf.Lerp(bar.Position.X, bar.End.X, t);
-        _canvas.DrawLine(_preview,
-            new Vector2(x, bar.Position.Y - 20),
-            new Vector2(x, bar.Position.Y + 20),
-            new Color("#facc15"), 2);
+        _canvas.DrawLine(
+            _timelineCanvas,
+            new Vector2(x, bar.Position.Y + 8),
+            new Vector2(x, bar.Position.Y + 30),
+            new Color("#facc15"),
+            2);
 
         XafClip? clip = null;
         foreach (XafClip candidate in _package.Clips)
@@ -238,8 +272,9 @@ public partial class AnimatorTool : Control
                     bar.Position.X,
                     bar.End.X,
                     Mathf.Clamp(key.Time / duration, 0f, 1f));
-                _canvas.DrawCircle(_preview,
-                    new Vector2(keyX, bar.Position.Y), 3,
+                _canvas.DrawCircle(
+                    _timelineCanvas,
+                    new Vector2(keyX, bar.Position.Y + 19), 4,
                     new Color("#38bdf8"));
             }
         }

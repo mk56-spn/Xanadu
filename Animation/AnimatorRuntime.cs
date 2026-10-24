@@ -70,6 +70,19 @@ public sealed class AnimatorRuntime
         Paused = paused;
     }
 
+    public void Seek(float time)
+    {
+        if (_current is null)
+            return;
+
+        _currentTime = Math.Clamp(time, 0f, _current.Duration);
+        _next = null;
+        _nextTime = 0f;
+        _fadeDuration = 0f;
+        _fadeElapsed = 0f;
+        Pose = XafSampler.Sample(Package, _current, _currentTime);
+    }
+
     public void AddLayer(string clipId, float weight)
     {
         if (!_clips.TryGetValue(clipId, out XafClip? clip))
