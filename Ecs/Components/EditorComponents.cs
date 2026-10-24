@@ -2,74 +2,60 @@ using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using Godot;
 using Writer.Settings;
+using Writer.Systems.Ui;
 
 namespace Writer.Ecs;
 
 /// <summary>Marks an editable playfield entity. Editor-only; never serialized.</summary>
 public struct EditorItem : ITag;
 
-/// <summary>The editor's current note selection, including marquee selections.</summary>
+/// <summary>Editor selection backed by the shared UI selection set.</summary>
 public struct NoteSelection : IComponent
 {
-    private Entity _note;
-    public readonly List<Entity> Notes = new();
+    private readonly UiSelectionSet _selection = new();
 
     public NoteSelection(Entity note)
     {
-        _note = default;
-        Notes = new List<Entity>();
+        _selection = new UiSelectionSet();
         Note = note;
     }
 
     public Entity Note
     {
-        readonly get => _note;
+        readonly get => _selection.Primary;
         set
         {
-            _note = value;
-            Notes.Clear();
-            if (!_note.IsNull)
-            {
-                if (!_note.Tags.Has<EditorItem>())
-                    _note.AddTag<EditorItem>();
-                Notes.Add(_note);
-            }
+            if (!value.IsNull && !value.Tags.Has<EditorItem>())
+                value.AddTag<EditorItem>();
+            _selection.Set(value);
         }
     }
 
-    public readonly bool Contains(Entity entity) =>
-        Notes.Count > 0
-            ? Notes.Contains(entity)
-            : !_note.IsNull && _note.Id == entity.Id;
+    public readonly IReadOnlyList<Entity> Notes => _selection.All;
 
-    public readonly IReadOnlyList<Entity> AllNotes =>
-        Notes.Count > 0
-            ? Notes
-            : !_note.IsNull
-                ? new[] { _note }
-                : System.Array.Empty<Entity>();
+    public readonly IReadOnlyList<Entity> AllNotes => _selection.All;
+
+    public readonly bool Contains(Entity entity) => _selection.Contains(entity);
 
     public void SetMany(IEnumerable<Entity> notes)
     {
-        Notes.Clear();
         foreach (Entity entity in notes)
         {
-            if (!entity.IsNull && !Notes.Contains(entity))
-            {
-                if (!entity.Tags.Has<EditorItem>())
-                    entity.AddTag<EditorItem>();
-                Notes.Add(entity);
-            }
+            if (!entity.IsNull && !entity.Tags.Has<EditorItem>())
+                entity.AddTag<EditorItem>();
         }
 
-        _note = Notes.Count > 0 ? Notes[0] : default;
+        _selection.SetMany(notes);
     }
 
-    public void Clear()
+    public void Toggle(Entity entity)
     {
-        Notes.Clear();
-        _note = default;
+        if (!entity.IsNull && !entity.Tags.Has<EditorItem>())
+            entity.AddTag<EditorItem>();
+        _selection.Toggle(entity);
     }
+
+    public void Clear() => _selection.Clear();
 }
 
 /// <summary>Screen-space marquee currently being dragged in the editor.</summary>
