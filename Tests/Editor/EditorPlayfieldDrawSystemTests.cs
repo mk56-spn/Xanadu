@@ -147,6 +147,39 @@ public sealed class EditorPlayfieldDrawSystemTests
     }
 
     [Test]
+    public void MovementNotesDrawTheirDashDestination()
+    {
+        var view = new PlayfieldView(
+            Vector2.Zero,
+            1f,
+            new Vector2(1000, 1000));
+        var store = new EntityStore();
+        store.CreateEntity(
+            new LevelInfo("Dash", ""),
+            new Playfield(1000, 1000),
+            new Playhead(1_000, 120, 0, false, durationMs: 5_000),
+            view,
+            new NoteSelection(default));
+        store.CreateEntity(new Note(
+            1_000,
+            new Vector2(100, 100),
+            kind: NoteKind.Movement,
+            dashDirection: DashDirection.Right));
+
+        var canvas = new RecordingCanvas();
+        var root = new SystemRoot(store);
+        root.Add(new EditorPlayfieldDrawSystem(store, canvas, default));
+
+        root.Update(new UpdateTick(1f / 60f, 0));
+
+        Assert.That(
+            canvas.Lines.Any(line =>
+                line.From == new Vector2(100, 100) &&
+                line.To == new Vector2(250, 100)),
+            Is.True);
+    }
+
+    [Test]
     public void TimelineMarkersUseLaneColorWithASelectionOutline()
     {
         var view = new PlayfieldView(new Vector2(30, 30), 0.6f, new Vector2(1152, 648));

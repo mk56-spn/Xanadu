@@ -102,9 +102,51 @@ public sealed class EditorPlayfieldDrawSystem :
             view,
             playhead);
         DrawStartPoints(view, selection);
+        DrawDashDestinations(view, playhead);
         DrawSelectionOutlines(view, playhead, selection);
         DrawRuler(view, playhead, selection, timeline, preview);
         DrawSelectionBox(selectionBox);
+    }
+
+    private void DrawDashDestinations(
+        PlayfieldView view,
+        Playhead playhead)
+    {
+        float size = PlayfieldRenderer.NoteSize * view.Scale;
+
+        foreach (Entity entity in _entities.Query<Note>().ToEntityList())
+        {
+            Note note = entity.GetComponent<Note>();
+            if (note.Kind != NoteKind.Movement ||
+                NoteFade.Alpha(note, playhead.TimeMs) <= 0)
+            {
+                continue;
+            }
+
+            Vector2 from = view.PlayfieldToScreen(note.Position);
+            Vector2 target = PlayerMovementSystem.DashTarget(
+                note.Position,
+                note.DashDirection);
+            Vector2 to = view.PlayfieldToScreen(target);
+            Color color = PlayfieldRenderer.ColorFor(note.Target);
+            color.A = 0.55f;
+
+            _canvas.DrawLine(_editor, from, to, color, 2);
+            _canvas.DrawCircleOutline(
+                _editor,
+                to,
+                size / 2,
+                color,
+                2);
+            _canvas.DrawTextStyled(
+                _editor,
+                new Rect2(
+                    to - new Vector2(size / 2, size / 2),
+                    new Vector2(size, size)),
+                PlayfieldRenderer.DashArrow(note.DashDirection),
+                color,
+                Mathf.Max(10, (int)(size * 0.7f)));
+        }
     }
 
     private void DrawStartPoints(PlayfieldView view, NoteSelection selection)

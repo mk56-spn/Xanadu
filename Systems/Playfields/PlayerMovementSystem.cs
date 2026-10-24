@@ -18,7 +18,7 @@ namespace Writer.Systems.Playfields;
 /// </summary>
 public sealed class PlayerMovementSystem : QuerySystem<Player, Position, PlayfieldView, PhysicsBody, Playhead>
 {
-    private const float DashPixels = 150f;
+    public const float DashPixels = 150f;
     private const float ActiveWindowMs = 150f;
     private const float NoteSize = 24f;
 
@@ -75,8 +75,9 @@ public sealed class PlayerMovementSystem : QuerySystem<Player, Position, Playfie
                 return;
             }
 
-            Vector2 direction = DashDirectionVector(movement.DashDirection);
-            Vector2 target = movement.Position + direction * DashPixels;
+            Vector2 target = DashTarget(
+                movement.Position,
+                movement.DashDirection);
             Vector2 targetScreen = view.PlayfieldToScreen(target);
             body.Body.SetTransform(
                 Box2DPhysicsWorld.ToPhysics(targetScreen),
@@ -152,6 +153,11 @@ public sealed class PlayerMovementSystem : QuerySystem<Player, Position, Playfie
 
         return false;
     }
+
+    public static Vector2 DashTarget(
+        Vector2 notePosition,
+        DashDirection direction) =>
+        notePosition + DashDirectionVector(direction) * DashPixels;
 
     public static Vector2 DashDirectionVector(DashDirection direction) =>
         direction switch
