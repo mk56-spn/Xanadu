@@ -299,15 +299,11 @@ public struct EditorLeftMenu(
     Entity panel,
     Entity snapLabel,
     Entity snapButton,
-    Entity saveAs,
-    Entity load,
     float top) : IComponent
 {
     public Entity Panel = panel;
     public Entity SnapLabel = snapLabel;
     public Entity SnapButton = snapButton;
-    public Entity SaveAs = saveAs;
-    public Entity Load = load;
     public float Top = top;
 }
 

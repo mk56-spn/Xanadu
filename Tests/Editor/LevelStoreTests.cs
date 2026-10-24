@@ -32,6 +32,30 @@ public sealed class LevelStoreTests
     }
 
     [Test]
+    public void NextUnnamedPathUsesTheFirstFreeNumber()
+    {
+        string directory = Path.Combine(
+            Path.GetTempPath(),
+            "writer-level-tests-" + Guid.NewGuid().ToString("N"));
+
+        try
+        {
+            Directory.CreateDirectory(directory);
+            File.WriteAllText(Path.Combine(directory, "unnamed-1.json"), "{}");
+            File.WriteAllText(Path.Combine(directory, "unnamed-2.json"), "{}");
+
+            Assert.That(
+                LevelStore.NextUnnamedPath(directory),
+                Is.EqualTo(Path.Combine(directory, "unnamed-3.json")));
+        }
+        finally
+        {
+            if (Directory.Exists(directory))
+                Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    [Test]
     public void SaveThenLoadRoundTrips()
     {
         string directory = Path.Combine(

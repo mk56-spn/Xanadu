@@ -109,8 +109,8 @@ public static partial class EditorScene
 
         UiBuilder panelUi = SceneUi.Layer(entities, root, 939);
         Entity panel = panelUi.RectEntity(
-            new Vector2(centerX, top + 200),
-            new Vector2(width + 20, 400),
+            new Vector2(centerX, top + 115),
+            new Vector2(width + 20, 230),
             SceneUi.PanelColor,
             takesInput: false);
 
@@ -139,25 +139,10 @@ public static partial class EditorScene
             _ => 0,
         });
 
-        Entity saveAs = AddEditorButton(
-            ui,
-            new Vector2(centerX, top + 310),
-            new Vector2(width, 34),
-            LocalizedText.Get(EditorStrings.SaveAs),
-            EditorButtonKind.SaveAs);
-        Entity load = AddEditorButton(
-            ui,
-            new Vector2(centerX, top + 350),
-            new Vector2(width, 34),
-            LocalizedText.Get(EditorStrings.LoadLevel),
-            EditorButtonKind.LoadLevel);
-
         editor.AddComponent(new EditorLeftMenu(
             panel,
             snapLabel,
             snap,
-            saveAs,
-            load,
             top));
     }
 

@@ -131,7 +131,7 @@ public partial class EditorOverlay : CanvasLayer
             LevelDocument document = LevelDocumentMapper.Capture(_entities, _editor);
             string path = CurrentLevelPath();
             if (string.IsNullOrEmpty(path))
-                path = LevelStore.DefaultPath(document.Name);
+                path = LevelStore.NextUnnamedPath();
 
             LevelStore.Save(document, path);
             _commands.Enqueue(EditorCommand.SetLevelFile(path));

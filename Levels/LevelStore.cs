@@ -58,6 +58,19 @@ public static class LevelStore
         return Path.Combine(Directory, safe + ".json");
     }
 
+    public static string NextUnnamedPath() => NextUnnamedPath(Directory);
+
+    public static string NextUnnamedPath(string directory)
+    {
+        System.IO.Directory.CreateDirectory(directory);
+        for (int index = 1; ; index++)
+        {
+            string path = Path.Combine(directory, $"unnamed-{index}.json");
+            if (!File.Exists(path))
+                return path;
+        }
+    }
+
     public static void EnsureDirectory() =>
         System.IO.Directory.CreateDirectory(Directory);
 
