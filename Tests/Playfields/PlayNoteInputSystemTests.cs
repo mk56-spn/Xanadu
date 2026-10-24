@@ -432,6 +432,32 @@ public sealed class PlayNoteInputSystemTests
     }
 
     [Test]
+    public void CharacterSwitchNoteChangesTheActiveModule()
+    {
+        Entity playfield = CreatePlayfield(totalNotes: 1);
+        playfield.AddComponent(new PlayerCharacter(CharacterKind.Contact));
+        playfield.AddTag<DashMovement>();
+        playfield.AddTag<ContactCharacter>();
+        playfield.AddComponent(new ContactCounters());
+        CreateNote(
+            1_000,
+            new Vector2(500, 500),
+            KeybindAction.M,
+            NoteKind.CharacterSwitch,
+            character: CharacterKind.Armed);
+        SetPlayhead(playfield, 1_000);
+        Press(KeybindAction.M);
+
+        Frame();
+
+        Assert.That(
+            playfield.GetComponent<PlayerCharacter>().Kind,
+            Is.EqualTo(CharacterKind.Armed));
+        Assert.That(playfield.Tags.Has<DashMovement>(), Is.False);
+        Assert.That(playfield.Tags.Has<ContactCharacter>(), Is.False);
+    }
+
+    [Test]
     public void SuccessfulHitBuildsTheContactCounter()
     {
         Entity playfield = CreatePlayfield(totalNotes: 1);
@@ -555,13 +581,15 @@ public sealed class PlayNoteInputSystemTests
         Vector2 position,
         KeybindAction target = KeybindAction.M,
         NoteKind kind = NoteKind.Hit,
-        int contactRequired = 1) =>
+        int contactRequired = 1,
+        CharacterKind character = CharacterKind.Contact) =>
         _store.CreateEntity(new Note(
             timeMs,
             position,
             target: target,
             kind: kind,
-            contactRequired: contactRequired));
+            contactRequired: contactRequired,
+            character: character));
 
     private void SetPlayhead(Entity playfield, long timeMs) =>
         playfield.GetComponent<Playhead>().TimeMs = timeMs;

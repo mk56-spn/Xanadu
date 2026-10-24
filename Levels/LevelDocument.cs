@@ -84,4 +84,6 @@ public sealed class NoteDocument
     public DashDirection DashDirection { get; set; } = DashDirection.Up;
 
     public int ContactRequired { get; set; } = 1;
+
+    public CharacterKind Character { get; set; } = CharacterKind.Contact;
 }

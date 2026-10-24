@@ -30,7 +30,7 @@ public sealed class EditorDropdownSceneTest : SceneTest
             () => Context.Scenes.Current == SceneKind.Editor &&
                   VisualAssert.HasText(Context.Entities, "SNAP") &&
                   VisualAssert.HasText(Context.Entities, "NOTE TYPE") &&
-                  Context.Entities.Query<Dropdown>().Count == 2);
+                  Context.Entities.Query<Dropdown>().Count == 3);
         AddAssert(
             "note type options use lane colours",
             NoteTypeOptionsAreColoured);

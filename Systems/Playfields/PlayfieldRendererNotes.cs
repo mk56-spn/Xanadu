@@ -60,6 +60,30 @@ public static partial class PlayfieldRenderer
                     color,
                     Math.Max(10, (int)(radius * 1.1f)));
             }
+            else if (note.Kind == NoteKind.Contact)
+            {
+                canvas.DrawCircleOutline(rid, center, radius, color, 3);
+                canvas.DrawTextStyled(
+                    rid,
+                    new Rect2(
+                        center - new Vector2(radius, radius),
+                        new Vector2(radius * 2, radius * 2)),
+                    "C",
+                    color,
+                    Math.Max(12, (int)(radius * 1.1f)));
+            }
+            else if (note.Kind == NoteKind.CharacterSwitch)
+            {
+                canvas.DrawCircleOutline(rid, center, radius, color, 3);
+                canvas.DrawTextStyled(
+                    rid,
+                    new Rect2(
+                        center - new Vector2(radius, radius),
+                        new Vector2(radius * 2, radius * 2)),
+                    note.Character.ToString()[..1],
+                    color,
+                    Math.Max(12, (int)(radius * 1.1f)));
+            }
             else
             {
                 canvas.DrawCircle(rid, center, radius, color);

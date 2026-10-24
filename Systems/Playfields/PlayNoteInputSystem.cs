@@ -145,8 +145,14 @@ public sealed class PlayNoteInputSystem : QuerySystem<Note>
                 continue;
 
             Note note = entity.GetComponent<Note>();
-            if ((note.Kind != NoteKind.Hit && note.Kind != NoteKind.Contact) ||
-                note.Target != action)
+            if (note.Kind != NoteKind.Hit &&
+                note.Kind != NoteKind.Contact &&
+                note.Kind != NoteKind.CharacterSwitch)
+            {
+                continue;
+            }
+
+            if (note.Target != action)
                 continue;
 
             long offset = note.TimeMs - judgedTime;
@@ -199,6 +205,9 @@ public sealed class PlayNoteInputSystem : QuerySystem<Note>
         Note note = noteEntity.GetComponent<Note>();
         bool contactPass = true;
 
+        if (note.Kind == NoteKind.CharacterSwitch)
+            ApplyCharacter(playfield, note.Character);
+
         if (playfield.HasComponent<ContactCounters>() &&
             note.Kind == NoteKind.Contact)
         {
@@ -226,6 +235,29 @@ public sealed class PlayNoteInputSystem : QuerySystem<Note>
         }
 
         noteEntity.DeleteEntity();
+    }
+
+    private static void ApplyCharacter(Entity playfield, CharacterKind kind)
+    {
+        if (!playfield.HasComponent<PlayerCharacter>())
+            return;
+
+        playfield.GetComponent<PlayerCharacter>().Kind = kind;
+        playfield.RemoveTag<DashMovement>();
+        playfield.RemoveTag<ContactCharacter>();
+
+        switch (kind)
+        {
+            case CharacterKind.Contact:
+                playfield.AddTag<DashMovement>();
+                playfield.AddTag<ContactCharacter>();
+                if (!playfield.HasComponent<ContactCounters>())
+                    playfield.AddComponent(new ContactCounters());
+                break;
+            case CharacterKind.SplitLine:
+                playfield.AddTag<DashMovement>();
+                break;
+        }
     }
 
     private void MarkMisses(Entity playfield)

@@ -26,4 +26,7 @@ public static class EditorStrings
     public static readonly LString Start = new("editor.mode.start", "START");
 
     public static readonly LString Contact = new("editor.mode.contact", "CONTACT");
+
+    public static readonly LString CharacterSwitch =
+        new("editor.mode.character_switch", "SWITCH");
 }

@@ -89,16 +89,33 @@ public static partial class EditorScene
         SetDropdownSelected(snap, snapIndex);
         SetDropdownSelected(noteType, (int)KeybindAction.M);
 
-        Entity tools = BuildPlacementTools(ui, centerX, top + 218);
+        Entity characterLabel = SceneUi.Text(
+            ui,
+            new Vector2(centerX, top + 146),
+            new Vector2(width, 24),
+            "CHARACTER",
+            14,
+            SceneUi.DimTextColor,
+            new Color(0, 0, 0, 0));
+        Entity character = BuildDropdown(
+            ui,
+            centerX,
+            top + 175,
+            width,
+            EditorDropdownKind.Character,
+            new[] { "CONTACT", "ARMED", "SPLIT LINE", "MAGE" },
+            selected: 0);
+
+        Entity tools = BuildPlacementTools(ui, centerX, top + 250);
         Entity saveAs = AddEditorButton(
             ui,
-            new Vector2(centerX, top + 311),
+            new Vector2(centerX, top + 343),
             new Vector2(width, 34),
             LocalizedText.Get(EditorStrings.SaveAs),
             EditorButtonKind.SaveAs);
         Entity load = AddEditorButton(
             ui,
-            new Vector2(centerX, top + 351),
+            new Vector2(centerX, top + 383),
             new Vector2(width, 34),
             LocalizedText.Get(EditorStrings.LoadLevel),
             EditorButtonKind.LoadLevel);
@@ -122,35 +139,35 @@ public static partial class EditorScene
     {
         Entity group = ui.RectEntity(
             new Vector2(centerX, centerY),
-            new Vector2(260, 140),
+            new Vector2(300, 140),
             new Color(0, 0, 0, 0));
         group.AddComponent(new UiContainer(StackDirection.Vertical));
 
         AddPlacementButton(
             ui,
             group,
-            new Vector2(-92, -70),
+            new Vector2(-105, -70),
             LocalizedText.Get(EditorStrings.Note),
             new EditorPlacementButton(EditorPlacementMode.Notes),
             44);
         AddPlacementButton(
             ui,
             group,
-            new Vector2(-46, -70),
+            new Vector2(-63, -70),
             LocalizedText.Get(EditorStrings.Mine),
             new EditorPlacementButton(EditorPlacementMode.Mines),
             44);
         AddPlacementButton(
             ui,
             group,
-            new Vector2(0, -70),
+            new Vector2(-21, -70),
             LocalizedText.Get(EditorStrings.Move),
             new EditorPlacementButton(EditorPlacementMode.Movement),
             44);
         AddPlacementButton(
             ui,
             group,
-            new Vector2(46, -70),
+            new Vector2(21, -70),
             LocalizedText.Get(EditorStrings.Start),
             new EditorPlacementButton(EditorPlacementMode.Start),
             44);
@@ -158,10 +175,17 @@ public static partial class EditorScene
         AddPlacementButton(
             ui,
             group,
-            new Vector2(92, -70),
+            new Vector2(63, -70),
             LocalizedText.Get(EditorStrings.Contact),
             new EditorPlacementButton(EditorPlacementMode.Contact),
             44);
+        AddPlacementButton(
+            ui,
+            group,
+            new Vector2(105, -70),
+            LocalizedText.Get(EditorStrings.CharacterSwitch),
+            new EditorPlacementButton(EditorPlacementMode.CharacterSwitch),
+            40);
 
         Entity label = HudText(
             ui,

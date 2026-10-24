@@ -61,6 +61,7 @@ public static partial class EditorScene
             System.Array.Empty<float>(),
             0));
         editor.AddComponent(new EditorNoteTarget(KeybindAction.M));
+        editor.AddComponent(new EditorCharacterTarget(CharacterKind.Contact));
         editor.AddComponent(new EditorPlacementModeState(EditorPlacementMode.Notes));
         editor.AddComponent(new EditorDashDirectionState(DashDirection.UpRight));
         editor.AddComponent(new EditorUiRequest());

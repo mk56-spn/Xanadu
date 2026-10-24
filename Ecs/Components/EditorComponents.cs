@@ -93,6 +93,12 @@ public struct EditorNoteTarget(KeybindAction target) : IComponent
     public KeybindAction Target = target;
 }
 
+/// <summary>Character selected for newly placed character-switch notes.</summary>
+public struct EditorCharacterTarget(CharacterKind target) : IComponent
+{
+    public CharacterKind Target = target;
+}
+
 /// <summary>Whether clicking the field places mines instead of notes.</summary>
 public enum EditorPlacementMode
 {
@@ -101,6 +107,7 @@ public enum EditorPlacementMode
     Movement,
     Start,
     Contact,
+    CharacterSwitch,
 }
 
 public struct EditorPlacementModeState(EditorPlacementMode mode) : IComponent
@@ -146,6 +153,7 @@ public enum EditorDropdownKind
 {
     Snap,
     NoteType,
+    Character,
 }
 
 public enum EditorButtonKind

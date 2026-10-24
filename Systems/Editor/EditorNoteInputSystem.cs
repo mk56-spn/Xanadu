@@ -404,6 +404,9 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
         KeybindAction target = editor.HasComponent<EditorNoteTarget>()
             ? editor.GetComponent<EditorNoteTarget>().Target
             : KeybindAction.M;
+        CharacterKind character = editor.HasComponent<EditorCharacterTarget>()
+            ? editor.GetComponent<EditorCharacterTarget>().Target
+            : CharacterKind.Contact;
         EditorPlacementMode mode = editor.HasComponent<EditorPlacementModeState>()
             ? editor.GetComponent<EditorPlacementModeState>().Mode
             : EditorPlacementMode.Notes;
@@ -413,14 +416,18 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
         Entity created = EditorItems.Create(_entities, new Note(
             time,
             playfieldPosition,
-            target: target,
+            target: mode == EditorPlacementMode.CharacterSwitch
+                ? KeybindAction.M
+                : target,
             kind: mode switch
             {
                 EditorPlacementMode.Movement => NoteKind.Movement,
                 EditorPlacementMode.Contact => NoteKind.Contact,
+                EditorPlacementMode.CharacterSwitch => NoteKind.CharacterSwitch,
                 _ => NoteKind.Hit,
             },
-            dashDirection: direction));
+            dashDirection: direction,
+            character: character));
         _history.Record(before, _history.Capture());
         editor.GetComponent<NoteSelection>().Note = created;
     }

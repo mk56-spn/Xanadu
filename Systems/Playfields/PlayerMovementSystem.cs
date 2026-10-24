@@ -202,9 +202,14 @@ public sealed class PlayerMovementSystem : QuerySystem<Player, Position, Playfie
                 continue;
 
             Note note = entity.GetComponent<Note>();
-            if ((note.Kind != NoteKind.Hit &&
-                 note.Kind != NoteKind.Contact) ||
-                NoteFade.Alpha(note, timeMs) <= 0)
+            if (note.Kind != NoteKind.Hit &&
+                note.Kind != NoteKind.Contact &&
+                note.Kind != NoteKind.CharacterSwitch)
+            {
+                continue;
+            }
+
+            if (NoteFade.Alpha(note, timeMs) <= 0)
                 continue;
 
             float noteSize = PlayfieldRenderer.NoteSize * view.Scale;

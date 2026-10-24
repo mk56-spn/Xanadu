@@ -33,6 +33,7 @@ public sealed class EditorDropdownSystem : QuerySystem<Dropdown>
     {
         Playhead playhead = default;
         EditorNoteTarget noteTarget = default;
+        EditorCharacterTarget characterTarget = default;
 
         foreach (Entity editor in _entities
                      .Query<Playhead, EditorNoteTarget>()
@@ -40,6 +41,9 @@ public sealed class EditorDropdownSystem : QuerySystem<Dropdown>
         {
             playhead = editor.GetComponent<Playhead>();
             noteTarget = editor.GetComponent<EditorNoteTarget>();
+            characterTarget = editor.HasComponent<EditorCharacterTarget>()
+                ? editor.GetComponent<EditorCharacterTarget>()
+                : new EditorCharacterTarget(CharacterKind.Contact);
             break;
         }
 
@@ -53,9 +57,12 @@ public sealed class EditorDropdownSystem : QuerySystem<Dropdown>
             EditorDropdownKind kind =
                 entity.GetComponent<EditorDropdownControl>().Kind;
 
-            int expected = kind == EditorDropdownKind.Snap
-                ? SnapIndex(playhead.SnapDivision)
-                : (int)noteTarget.Target;
+            int expected = kind switch
+            {
+                EditorDropdownKind.Snap => SnapIndex(playhead.SnapDivision),
+                EditorDropdownKind.Character => (int)characterTarget.Target,
+                _ => (int)noteTarget.Target,
+            };
 
             dropdown.Selected = expected;
             SetDisplay(entity, ref dropdown, kind, buffer);
@@ -121,13 +128,31 @@ public sealed class EditorDropdownSystem : QuerySystem<Dropdown>
             Hide(dropdown.List, buffer);
 
             if (kind == EditorDropdownKind.Snap)
+            {
                 _commands.Enqueue(EditorCommand.SetSnap(SnapValue(option.Value)));
+            }
+            else if (kind == EditorDropdownKind.Character)
+            {
+                Entity editor = option.Owner.Store
+                    .Query<EditorCharacterTarget>()
+                    .ToEntityList()[0];
+                if (!editor.IsNull)
+                {
+                    editor.GetComponent<EditorCharacterTarget>().Target =
+                        (CharacterKind)Math.Clamp(
+                            option.Value,
+                            0,
+                            3);
+                }
+            }
             else
+            {
                 _commands.Enqueue(EditorCommand.SetTarget(
                     KeybindSettings.Actions[Math.Clamp(
                         option.Value,
                         0,
                         KeybindSettings.Actions.Length - 1)]));
+            }
 
             SetDisplay(option.Owner, ref dropdown, kind, buffer);
         }
@@ -245,6 +270,7 @@ public sealed class EditorDropdownSystem : QuerySystem<Dropdown>
         string label = kind switch
         {
             EditorDropdownKind.Snap => $"SNAP  {SnapLabel(dropdown.Selected)}",
+            EditorDropdownKind.Character => $"CHAR  {CharacterLabel(dropdown.Selected)}",
             _ => $"TYPE  {KeybindSettings.LabelFor(
                 KeybindSettings.Actions[Math.Clamp(
                     dropdown.Selected,
@@ -281,6 +307,14 @@ public sealed class EditorDropdownSystem : QuerySystem<Dropdown>
         if (changed)
             buffer.AddTag<Dirty>(button.Id);
     }
+
+    private static string CharacterLabel(int index) => index switch
+    {
+        1 => "ARMED",
+        2 => "SPLIT LINE",
+        3 => "MAGE",
+        _ => "CONTACT",
+    };
 
     private static int SnapIndex(int division) => division switch
     {

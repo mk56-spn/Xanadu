@@ -169,6 +169,25 @@ public sealed class EditorNoteInputSystemTests
     }
 
     [Test]
+    public void CharacterSwitchModePlacesTheSelectedCharacter()
+    {
+        Entity editor = _store.Query<PlayfieldView>().ToEntityList()[0];
+        editor.AddComponent(new EditorPlacementModeState(
+            EditorPlacementMode.CharacterSwitch));
+        editor.AddComponent(new EditorCharacterTarget(CharacterKind.Armed));
+
+        _pointer.Current = new PointerInput(new Vector2(300, 400), true);
+        _root.Update(new UpdateTick(1f / 60f, 0));
+        _pointer.Current = new PointerInput(new Vector2(300, 400), false);
+        _root.Update(new UpdateTick(1f / 60f, 0));
+
+        Note note = _store.Query<Note>().ToEntityList()[0].GetComponent<Note>();
+        Assert.That(note.Kind, Is.EqualTo(NoteKind.CharacterSwitch));
+        Assert.That(note.Target, Is.EqualTo(KeybindAction.M));
+        Assert.That(note.Character, Is.EqualTo(CharacterKind.Armed));
+    }
+
+    [Test]
     public void ShiftClickOnTimelineAddsToTheCurrentSelection()
     {
         Entity editor = _store.Query<PlayfieldView>().ToEntityList()[0];

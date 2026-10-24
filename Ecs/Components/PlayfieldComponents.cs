@@ -66,6 +66,7 @@ public enum NoteKind
     Hit,
     Movement,
     Contact,
+    CharacterSwitch,
 }
 
 public enum DashDirection
@@ -86,7 +87,8 @@ public struct Note(
     KeybindAction target = KeybindAction.M,
     NoteKind kind = NoteKind.Hit,
     DashDirection dashDirection = DashDirection.Up,
-    int contactRequired = 1) : IComponent
+    int contactRequired = 1,
+    CharacterKind character = CharacterKind.Contact) : IComponent
 {
     public long TimeMs = timeMs;
     public Vector2 Position = position;
@@ -94,6 +96,7 @@ public struct Note(
     public NoteKind Kind = kind;
     public DashDirection DashDirection = dashDirection;
     public int ContactRequired = contactRequired;
+    public CharacterKind Character = character;
 }
 
 /// <summary>A mine hazard placed in playfield coordinates.</summary>
