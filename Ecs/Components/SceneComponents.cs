@@ -63,23 +63,30 @@ public struct CarouselStep(int direction) : IComponent
 public struct SongSelectState(
     int selected,
     int count,
-    Entity title,
-    Entity meta,
-    Entity stats,
-    Entity index,
-    Entity scoresViewport,
-    Entity scoresContent,
-    List<Entity> scoreRows) : IComponent
+    List<Entity> tiles,
+    List<Entity> names,
+    List<Entity> metas,
+    Entity play,
+    Entity edit,
+    string playLabel,
+    string editLabel) : IComponent
 {
     public int Selected = selected;
     public int Count = count;
-    public Entity Title = title;
-    public Entity Meta = meta;
-    public Entity Stats = stats;
-    public Entity Index = index;
-    public Entity ScoresViewport = scoresViewport;
-    public Entity ScoresContent = scoresContent;
-    public List<Entity> ScoreRows = scoreRows;
+    public List<Entity> Tiles = tiles;
+    public List<Entity> Names = names;
+    public List<Entity> Metas = metas;
+    public Entity Play = play;
+    public Entity Edit = edit;
+    public string PlayLabel = playLabel;
+    public string EditLabel = editLabel;
+    public int PageStart;
+}
+
+/// <summary>A clickable level slot in the song-select grid.</summary>
+public struct SongSelectTile(int index) : IComponent
+{
+    public int Index = index;
 }
 
 /// <summary>Scene leave confirmation popup state.</summary>

@@ -37,9 +37,8 @@ public sealed class SongSelectSceneTest : SceneTest
                 Context.Entities,
                 SceneUi.MenuLayer) == 0);
         AddAssert(
-            "score box exists",
-            () => VisualAssert.HasText(Context.Entities, "SCORES") &&
-                  Context.Entities.Query<ScrollView>().Count == 1);
+            "level grid has nine tiles",
+            () => Context.Entities.Query<SongSelectTile>().Count == 9);
         AddAssert(
             "profile star frame exists",
             () => Context.Entities.Query<UiImage>().Count == 1);

@@ -8,9 +8,13 @@ using Writer.Profiles;
 
 namespace Writer.Scenes;
 
-/// <summary>Carousel of saved levels with play and back actions.</summary>
+/// <summary>Three-by-three level grid with an empty details pane.</summary>
 public static class SongSelectScene
 {
+    private const int Columns = 3;
+    private const int Rows = 3;
+    private const int PageSize = Columns * Rows;
+
     public static SongSelectState Build(
         EntityStore entities,
         Entity root,
@@ -25,7 +29,7 @@ public static class SongSelectScene
 
         SceneUi.Text(
             ui,
-            new Vector2(screen.X / 2, 64),
+            new Vector2(screen.X / 2, 48),
             new Vector2(900, 58),
             LocalizedText.Get(SongSelectStrings.Title),
             40,
@@ -39,6 +43,12 @@ public static class SongSelectScene
             SceneKind.Main,
             18,
             SceneUi.MutedButtonColor);
+
+        float leftWidth = screen.X * 0.46f;
+        SceneUi.Panel(
+            ui,
+            new Vector2(leftWidth / 2 + 8, screen.Y / 2 + 20),
+            new Vector2(leftWidth - 32, screen.Y - 170));
 
         Vector2 profileBox = new(screen.X - 154, 44);
         ui.RectEntity(profileBox, new Vector2(260, 64), SceneUi.PanelColor);
@@ -74,203 +84,186 @@ public static class SongSelectScene
             SceneUi.TextColor,
             SceneUi.PanelColor);
 
-        var cardCenter = new Vector2(screen.X / 2, screen.Y / 2 - 10);
-        SceneUi.Panel(ui, cardCenter, new Vector2(780, 330));
+        float gridLeft = leftWidth + 24;
+        float gridRight = screen.X - 24;
+        float gridTop = 96;
+        float gridBottom = screen.Y - 132;
+        const float gap = 12;
+        float tileWidth = (gridRight - gridLeft - gap * (Columns - 1)) / Columns;
+        float tileHeight = (gridBottom - gridTop - gap * (Rows - 1)) / Rows;
+        var tiles = new List<Entity>();
+        var names = new List<Entity>();
+        var metas = new List<Entity>();
 
-        Entity title = SceneUi.Text(
-            ui,
-            cardCenter + new Vector2(0, -100),
-            new Vector2(720, 54),
-            "",
-            32,
-            SceneUi.AccentColor,
-            SceneUi.PanelColor);
-
-        Entity meta = SceneUi.Text(
-            ui,
-            cardCenter + new Vector2(0, -42),
-            new Vector2(720, 28),
-            "",
-            18,
-            SceneUi.TextColor,
-            SceneUi.PanelColor);
-
-        Entity stats = SceneUi.Text(
-            ui,
-            cardCenter + new Vector2(0, 2),
-            new Vector2(720, 26),
-            "",
-            16,
-            SceneUi.DimTextColor,
-            SceneUi.PanelColor);
-
-        Entity index = SceneUi.Text(
-            ui,
-            cardCenter + new Vector2(0, 48),
-            new Vector2(720, 24),
-            "",
-            14,
-            SceneUi.DimTextColor,
-            SceneUi.PanelColor);
-
-
-        UiBuilder scoreUi = SceneUi.Layer(
-            entities,
-            root,
-            SceneUi.MenuLayer,
-            visuals);
-        float scoreWidth = 360;
-        float scoreHeight = 330;
-        Vector2 scoreCenter = new(
-            screen.X - scoreWidth / 2 - 28,
-            cardCenter.Y);
-        SceneUi.Panel(scoreUi, scoreCenter, new Vector2(scoreWidth, scoreHeight));
-        SceneUi.Text(
-            scoreUi,
-            new Vector2(scoreCenter.X, scoreCenter.Y - scoreHeight / 2 + 24),
-            new Vector2(scoreWidth - 30, 24),
-            LocalizedText.Get(SongSelectStrings.Scores),
-            18,
-            SceneUi.AccentColor,
-            SceneUi.PanelColor);
-
-        const int maxScoreRows = 24;
-        const float scoreRowHeight = 28;
-        Entity scoreViewport = SceneUi.ScrollView(
-            scoreUi,
-            new Vector2(scoreCenter.X, scoreCenter.Y + 10),
-            new Vector2(scoreWidth - 24, scoreHeight - 70),
-            maxScoreRows * (scoreRowHeight + 2),
-            out Entity scoreContent);
-        var scoreRows = new List<Entity>();
-        for (int i = 0; i < maxScoreRows; i++)
+        for (int slot = 0; slot < PageSize; slot++)
         {
-            scoreRows.Add(SceneUi.Text(
-                scoreUi,
-                Vector2.Zero,
-                new Vector2(scoreWidth - 40, scoreRowHeight - 2),
+            int column = slot % Columns;
+            int row = slot / Columns;
+            Vector2 center = new(
+                gridLeft + column * (tileWidth + gap) + tileWidth / 2,
+                gridTop + row * (tileHeight + gap) + tileHeight / 2);
+
+            Entity tile = ui.RectEntity(
+                center,
+                new Vector2(tileWidth, tileHeight),
+                SceneUi.PanelColor,
                 "",
-                14,
-                SceneUi.TextColor,
-                new Color(0, 0, 0, 0)));
-        }
+                takesInput: true);
+            tile.AddComponent(ButtonVisual.Create(SceneUi.PanelColor));
+            tile.AddComponent(new SongSelectTile(slot));
 
-        if (catalog.Count > 1)
-        {
-            SceneUi.CarouselButton(
+            Entity name = SceneUi.Text(
                 ui,
-                cardCenter + new Vector2(-480, 0),
-                new Vector2(64, 64),
-                "<",
-                -1);
-
-            SceneUi.CarouselButton(
-                ui,
-                cardCenter + new Vector2(480, 0),
-                new Vector2(64, 64),
-                ">",
-                1);
-        }
-
-        bool blocked = catalog.Count > 0 &&
-            catalog[Mathf.Clamp(selected, 0, catalog.Count - 1)].IsBlocked;
-        if (catalog.Count > 0 && !blocked)
-        {
-            Entity edit = SceneUi.ButtonEntity(
-                ui,
-                cardCenter + new Vector2(0, 120),
-                new Vector2(220, 42),
-                LocalizedText.Get(SongSelectStrings.EditLevel),
+                center + new Vector2(0, -tileHeight * 0.18f),
+                new Vector2(tileWidth - 16, 24),
+                "",
                 16,
-                SceneUi.MutedButtonColor);
-            edit.AddComponent(new SceneCommand(SceneActionId.Edit));
-
-            Entity play = SceneUi.ButtonEntity(
+                SceneUi.TextColor,
+                new Color(0, 0, 0, 0));
+            Entity meta = SceneUi.Text(
                 ui,
-                new Vector2(screen.X / 2, screen.Y - 90),
-                new Vector2(320, 64),
-                LocalizedText.Get(SongSelectStrings.Play),
-                24);
-            play.AddComponent(new SceneCommand(SceneActionId.Play));
+                center + new Vector2(0, tileHeight * 0.16f),
+                new Vector2(tileWidth - 16, 20),
+                "",
+                12,
+                SceneUi.DimTextColor,
+                new Color(0, 0, 0, 0));
+
+            tiles.Add(tile);
+            names.Add(name);
+            metas.Add(meta);
         }
+
+        float actionY = screen.Y - 74;
+        Entity edit = SceneUi.ButtonEntity(
+            ui,
+            new Vector2((gridLeft + gridRight) / 2 - 100, actionY),
+            new Vector2(180, 48),
+            LocalizedText.Get(SongSelectStrings.EditLevel),
+            16,
+            SceneUi.MutedButtonColor);
+        edit.AddComponent(new SceneCommand(SceneActionId.Edit));
+
+        Entity play = SceneUi.ButtonEntity(
+            ui,
+            new Vector2((gridLeft + gridRight) / 2 + 100, actionY),
+            new Vector2(180, 48),
+            LocalizedText.Get(SongSelectStrings.Play),
+            20);
+        play.AddComponent(new SceneCommand(SceneActionId.Play));
 
         var state = new SongSelectState(
             selected,
             catalog.Count,
-            title,
-            meta,
-            stats,
-            index,
-            scoreViewport,
-            scoreContent,
-            scoreRows);
+            tiles,
+            names,
+            metas,
+            play,
+            edit,
+            LocalizedText.Get(SongSelectStrings.Play),
+            LocalizedText.Get(SongSelectStrings.EditLevel));
 
-        Refresh(state, catalog, selected, profiles);
+        Refresh(ref state, catalog, selected, profiles);
         return state;
     }
 
     public static void Refresh(
-        SongSelectState state,
+        ref SongSelectState state,
         IReadOnlyList<LevelEntry> catalog,
         int selected,
         ProfileStore profiles)
     {
-        if (catalog.Count == 0)
+        state.Count = catalog.Count;
+        state.Selected = catalog.Count == 0
+            ? 0
+            : Mathf.Clamp(selected, 0, catalog.Count - 1);
+        state.PageStart = state.Selected / PageSize * PageSize;
+
+        for (int slot = 0; slot < state.Tiles.Count; slot++)
         {
-            SceneUi.SetText(state.Title, LocalizedText.Get(SongSelectStrings.NoLevels));
-            SceneUi.SetText(state.Meta, LocalizedText.Get(SongSelectStrings.CreateLevel));
-            SceneUi.SetText(state.Stats, "");
-            SceneUi.SetText(state.Index, "0 / 0");
-            ClearScores(state);
-            return;
-        }
+            int index = state.PageStart + slot;
+            bool valid = index < catalog.Count;
+            Entity tile = state.Tiles[slot];
 
-        selected = Mathf.Clamp(selected, 0, catalog.Count - 1);
-        LevelEntry entry = catalog[selected];
-        LevelDocument document = entry.Document;
-        SongDocument? song = entry.Song;
-        string artist = song?.Artist ?? "";
-        string difficulty = document.Name;
-        string title = song?.Title ?? document.Name;
+            if (tile.HasComponent<SongSelectTile>())
+                tile.GetComponent<SongSelectTile>().Index = index;
 
-        SceneUi.SetText(
-            state.Title,
-            string.IsNullOrWhiteSpace(document.Name)
-                ? LocalizedText.Get(SongSelectStrings.Untitled)
-                : document.Name);
-        SceneUi.SetText(
-            state.Meta,
-            string.IsNullOrWhiteSpace(title)
-                ? "Missing song"
-                : $"{title}   ·   {(string.IsNullOrWhiteSpace(artist) ? "Unknown artist" : artist)}");
-        SceneUi.SetText(
-            state.Stats,
-            entry.IsBlocked
-                ? "SONG MISSING — cannot play or edit"
-                : $"{song?.Bpm ?? 120} BPM   ·   {document.Notes.Count} notes");
-        SceneUi.SetText(state.Index, $"{selected + 1} / {catalog.Count}");
+            if (!valid)
+            {
+                SceneUi.SetText(state.Names[slot], "");
+                SceneUi.SetText(state.Metas[slot], "");
+                SetTileColor(tile, new Color("#111827"));
+                continue;
+            }
 
-        RefreshScores(state, profiles.AllScores(entry.Path));
-    }
-
-    private static void ClearScores(SongSelectState state)
-    {
-        foreach (Entity row in state.ScoreRows)
-            SceneUi.SetText(row, "");
-    }
-
-    private static void RefreshScores(
-        SongSelectState state,
-        IReadOnlyList<ScoreEntry> scores)
-    {
-        for (int i = 0; i < state.ScoreRows.Count; i++)
-        {
+            LevelEntry entry = catalog[index];
             SceneUi.SetText(
-                state.ScoreRows[i],
-                i < scores.Count
-                    ? $"{scores[i].ProfileName}   {scores[i].Record.Score:0000000}"
-                    : "");
+                state.Names[slot],
+                string.IsNullOrWhiteSpace(entry.Document.Name)
+                    ? LocalizedText.Get(SongSelectStrings.Untitled)
+                    : entry.Document.Name);
+            SceneUi.SetText(
+                state.Metas[slot],
+                entry.Song is null
+                    ? "SONG MISSING"
+                    : $"{entry.Song.Title}   ·   {entry.Document.Notes.Count} notes");
+            SetTileColor(
+                tile,
+                index == state.Selected
+                    ? SceneUi.AccentColor
+                    : entry.IsBlocked
+                        ? new Color("#4a2222")
+                        : SceneUi.PanelColor);
         }
+
+        bool blocked = catalog.Count > 0 &&
+            catalog[state.Selected].IsBlocked;
+        SetActionVisible(state.Play, state.PlayLabel, !blocked);
+        SetActionVisible(state.Edit, state.EditLabel, !blocked);
+    }
+
+    private static void SetActionVisible(
+        Entity button,
+        string label,
+        bool visible)
+    {
+        if (button.IsNull || !button.HasComponent<Rectangle>())
+            return;
+
+        ref Rectangle rect = ref button.GetComponent<Rectangle>();
+        var size = visible ? new Vector2(180, 48) : Vector2.Zero;
+        if (rect.Bounds.Size == size)
+            return;
+
+        rect.Bounds = new Rect2(-size / 2, size);
+        if (button.HasComponent<Text>())
+            button.GetComponent<Text>().Value = visible ? label : "";
+        button.AddTag<Dirty>();
+        if (visible && button.HasComponent<ButtonVisual>())
+        {
+            ref ButtonVisual visual = ref button.GetComponent<ButtonVisual>();
+            visual.HoverAmount = 0f;
+            visual.FlashAmount = 0f;
+        }
+    }
+
+    private static void SetTileColor(Entity tile, Color color)
+    {
+        if (tile.IsNull || !tile.HasComponent<FillColor>())
+            return;
+
+        ref FillColor fill = ref tile.GetComponent<FillColor>();
+        if (fill.Value == color)
+            return;
+
+        fill.Value = color;
+        if (tile.HasComponent<ButtonVisual>())
+        {
+            ref ButtonVisual visual = ref tile.GetComponent<ButtonVisual>();
+            visual.Normal = color;
+            visual.Hover = color.Lerp(Colors.White, 0.16f);
+        }
+        tile.AddTag<Dirty>();
     }
 
     private static Texture2D? LoadStarTexture()

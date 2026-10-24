@@ -38,8 +38,11 @@ public sealed class SongSelectController : ISceneController
             return false;
 
         ref SceneState state = ref _stateEntity.GetComponent<SceneState>();
-        if (string.IsNullOrEmpty(state.SelectedLevelPath))
+        if (string.IsNullOrEmpty(state.SelectedLevelPath) ||
+            SelectedEntry?.IsBlocked == true)
+        {
             return false;
+        }
 
         system.Request(SceneKind.Play);
         return true;
@@ -76,6 +79,37 @@ public sealed class SongSelectController : ISceneController
         context.Root.AddComponent(view);
     }
 
+    public void HandleActions(SceneSystem system, ref SceneState state)
+    {
+        foreach (Entity entity in system.Entities
+                     .Query<SongSelectTile>()
+                     .AllTags(Tags.Get<Pressed>())
+                     .ToEntityList())
+        {
+            SongSelectTile tile = entity.GetComponent<SongSelectTile>();
+            if (tile.Index < 0 || tile.Index >= _catalog.Count)
+                continue;
+
+            state.SelectedIndex = tile.Index;
+            state.SelectedLevelPath = _catalog[tile.Index].Path;
+            foreach (Entity root in system.Entities
+                         .Query<SongSelectState>()
+                         .ToEntityList())
+            {
+                ref SongSelectState view = ref root.GetComponent<SongSelectState>();
+                SongSelectScene.Refresh(
+                    ref view,
+                    _catalog,
+                    tile.Index,
+                    _system.Profiles);
+                break;
+            }
+
+            entity.RemoveTag<Pressed>();
+            return;
+        }
+    }
+
     public bool TryStep(int direction)
     {
         if (_stateEntity.IsNull)
@@ -104,8 +138,7 @@ public sealed class SongSelectController : ISceneController
                 continue;
 
             ref SongSelectState view = ref root.GetComponent<SongSelectState>();
-            view.Selected = next;
-            SongSelectScene.Refresh(view, _catalog, next, _system.Profiles);
+            SongSelectScene.Refresh(ref view, _catalog, next, _system.Profiles);
             break;
         }
 

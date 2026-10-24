@@ -94,18 +94,43 @@ public sealed class SceneSystemTests
         SongSelectState view = root.GetComponent<SongSelectState>();
         Assert.That(view.Count, Is.EqualTo(2));
         Assert.That(view.Selected, Is.EqualTo(0));
-        Assert.That(view.Title.GetComponent<Text>().Value, Is.EqualTo("First Level"));
-        Assert.That(view.Index.GetComponent<Text>().Value, Is.EqualTo("1 / 2"));
+        Assert.That(view.Names[0].GetComponent<Text>().Value,
+            Is.EqualTo("First Level"));
 
         Entity step = _store.CreateEntity(new SceneCommand(SceneActionId.Next), Tags.Get<Pressed>());
         Frame();
 
         view = root.GetComponent<SongSelectState>();
         Assert.That(view.Selected, Is.EqualTo(1));
-        Assert.That(view.Title.GetComponent<Text>().Value, Is.EqualTo("Second Level"));
-        Assert.That(view.Index.GetComponent<Text>().Value, Is.EqualTo("2 / 2"));
+        Assert.That(view.Names[1].GetComponent<Text>().Value,
+            Is.EqualTo("Second Level"));
 
         step.DeleteEntity();
+    }
+
+    [Test]
+    public void SongSelectTileClickSelectsThatLevel()
+    {
+        _scenes.Start(SceneKind.SongSelect);
+        Frame();
+
+        Entity tile = _store
+            .Query<SongSelectTile>()
+            .ToEntityList()
+            .First(entity => entity.GetComponent<SongSelectTile>().Index == 1);
+        tile.AddTag<Pressed>();
+        Frame();
+
+        Entity root = _store.Query<SceneRoot>().ToEntityList()[0];
+        SongSelectState view = root.GetComponent<SongSelectState>();
+        Assert.That(view.Selected, Is.EqualTo(1));
+        Assert.That(
+            view.Names[1].GetComponent<Text>().Value,
+            Is.EqualTo("Second Level"));
+        Assert.That(
+            _store.Query<Writer.Ecs.SceneState>().ToEntityList()[0]
+                .GetComponent<Writer.Ecs.SceneState>().SelectedLevelPath,
+            Is.EqualTo(_catalog[1].Path));
     }
 
     [Test]
@@ -138,9 +163,10 @@ public sealed class SceneSystemTests
 
         Entity root = _store.Query<SceneRoot>().ToEntityList()[0];
         SongSelectState view = root.GetComponent<SongSelectState>();
+        Assert.That(view.Tiles, Has.Count.EqualTo(9));
         Assert.That(
-            view.ScoreRows.Select(row => row.GetComponent<Text>().Value),
-            Has.Some.Contains("900000"));
+            view.Names[0].GetComponent<Text>().Value,
+            Is.EqualTo("First Level"));
     }
 
     [Test]
@@ -372,7 +398,7 @@ public sealed class SceneSystemTests
         _scenes.Start(SceneKind.SongSelect);
         Frame();
 
-        Assert.That(HasText("SONG MISSING — cannot play or edit"), Is.True);
+        Assert.That(HasText("SONG MISSING"), Is.True);
         Assert.That(HasText("PLAY"), Is.False);
     }
 
