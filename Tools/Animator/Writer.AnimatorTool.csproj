@@ -10,4 +10,17 @@
     <ProjectReference Include="../../Core/Writer.Core.csproj" />
     <ProjectReference Include="../../UI/Writer.Ui.csproj" />
   </ItemGroup>
+
+  <Target Name="CanonicalizeGodotProjectDir" BeforeTargets="GenerateMSBuildEditorConfigFileCore"
+          Condition="$([MSBuild]::IsOSPlatform('Linux'))">
+    <Exec Command="realpath &quot;$(MSBuildProjectDirectory)&quot;"
+          ConsoleToMSBuild="true" StandardOutputImportance="low">
+      <Output TaskParameter="ConsoleOutput" ItemName="_CanonicalGodotProjectDir" />
+    </Exec>
+    <PropertyGroup>
+      <_CanonicalGodotProjectDir>@(_CanonicalGodotProjectDir)</_CanonicalGodotProjectDir>
+      <GodotProjectDir Condition=" '$(_CanonicalGodotProjectDir)' != '' ">$(_CanonicalGodotProjectDir)/</GodotProjectDir>
+      <GodotProjectDirBase64></GodotProjectDirBase64>
+    </PropertyGroup>
+  </Target>
 </Project>
