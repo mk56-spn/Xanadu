@@ -41,7 +41,7 @@ public partial class AnimatorTool : Control
         _pointer = new ToolPointer(this);
         _preview = RenderingServer.CanvasItemCreate();
         RenderingServer.CanvasItemSetParent(_preview, GetCanvasItem());
-        RenderingServer.CanvasItemSetZIndex(_preview, -1);
+        RenderingServer.CanvasItemSetZIndex(_preview, 1);
 
         _timelineCanvas = RenderingServer.CanvasItemCreate();
         RenderingServer.CanvasItemSetParent(_timelineCanvas, GetCanvasItem());
@@ -96,9 +96,9 @@ public partial class AnimatorTool : Control
         _autoKey = BuildButton(ui, "AUTO KEY OFF", ToolActionKind.AutoKey,
             new Vector2(980, 68), new Vector2(168, 30));
         BuildButton(ui, "SAVE XAF", ToolActionKind.Save,
-            new Vector2(980, 106), new Vector2(168, 30));
+            new Vector2(1200, 30), new Vector2(168, 30));
         BuildButton(ui, "LOAD XAF", ToolActionKind.Load,
-            new Vector2(980, 144), new Vector2(168, 30));
+            new Vector2(1200, 68), new Vector2(168, 30));
 
         float left = 20;
         float top = 100;
