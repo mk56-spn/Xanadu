@@ -27,7 +27,7 @@ public static partial class EditorScene
         UiBuilder panelUi = SceneUi.Layer(entities, root, 939);
         Entity sidebarPanel = panelUi.RectEntity(
             new Vector2(centerX, top + 141),
-            new Vector2(width + 20, 282),
+            new Vector2(width + 20, 300),
             SceneUi.PanelColor,
             takesInput: true);
 
@@ -37,29 +37,11 @@ public static partial class EditorScene
             centerX - width / 2 - 10,
             top - 10,
             width + 20,
-            282)));
-
-        Entity snapLabel = SceneUi.Text(
-            ui,
-            new Vector2(centerX, top + 12),
-            new Vector2(width, 24),
-            LocalizedText.Get(EditorStrings.Snap),
-            14,
-            SceneUi.DimTextColor,
-            new Color(0, 0, 0, 0));
-
-        Entity snap = BuildDropdown(
-            ui,
-            centerX,
-            top + 41,
-            width,
-            EditorDropdownKind.Snap,
-            new[] { "1/4 beat", "1/8 beat", "1/16 beat" },
-            selected: 0);
+            300)));
 
         Entity typeLabel = SceneUi.Text(
             ui,
-            new Vector2(centerX, top + 86),
+            new Vector2(centerX, top + 12),
             new Vector2(width, 24),
             LocalizedText.Get(EditorStrings.NoteType),
             14,
@@ -73,25 +55,16 @@ public static partial class EditorScene
         Entity noteType = BuildDropdown(
             ui,
             centerX,
-            top + 115,
+            top + 41,
             width,
             EditorDropdownKind.NoteType,
             labels,
             selected: (int)KeybindAction.M);
-
-        Playhead playhead = editor.GetComponent<Playhead>();
-        int snapIndex = playhead.SnapDivision switch
-        {
-            8 => 1,
-            16 => 2,
-            _ => 0,
-        };
-        SetDropdownSelected(snap, snapIndex);
         SetDropdownSelected(noteType, (int)KeybindAction.M);
 
         Entity characterLabel = SceneUi.Text(
             ui,
-            new Vector2(centerX, top + 146),
+            new Vector2(centerX, top + 86),
             new Vector2(width, 24),
             "CHARACTER",
             14,
@@ -100,36 +73,143 @@ public static partial class EditorScene
         Entity character = BuildDropdown(
             ui,
             centerX,
-            top + 175,
+            top + 115,
             width,
             EditorDropdownKind.Character,
             new[] { "CONTACT" },
             selected: 0);
 
-        Entity tools = BuildPlacementTools(ui, centerX, top + 250);
+        Entity tools = BuildPlacementTools(ui, centerX, top + 190);
+        Entity directionRoot = BuildDirectionWidget(
+            ui,
+            new Vector2(centerX - 270, top + 250),
+            screen);
+        editor.AddComponent(new EditorDirectionWidget(
+            directionRoot,
+            new Vector2(centerX - 270, top + 250)));
+        editor.AddComponent(new EditorSidebarLayout(
+            sidebarPanel,
+            typeLabel,
+            noteType,
+            characterLabel,
+            character,
+            tools,
+            top));
+    }
+
+    private static void BuildLeftMenu(
+        EntityStore entities,
+        Entity root,
+        Entity editor,
+        Vector2 screen)
+    {
+        const float width = 190;
+        const float top = 120;
+        const float centerX = 112;
+
+        UiBuilder panelUi = SceneUi.Layer(entities, root, 939);
+        Entity panel = panelUi.RectEntity(
+            new Vector2(centerX, top + 200),
+            new Vector2(width + 20, 400),
+            SceneUi.PanelColor,
+            takesInput: false);
+
+        UiBuilder ui = SceneUi.Layer(entities, root, 941);
+        Entity snapLabel = SceneUi.Text(
+            ui,
+            new Vector2(centerX, top + 12),
+            new Vector2(width, 24),
+            LocalizedText.Get(EditorStrings.Snap),
+            14,
+            SceneUi.DimTextColor,
+            new Color(0, 0, 0, 0));
+        Entity snap = BuildDropdown(
+            ui,
+            centerX,
+            top + 41,
+            width,
+            EditorDropdownKind.Snap,
+            new[] { "1/4 beat", "1/8 beat", "1/16 beat" },
+            selected: 0);
+        Playhead playhead = editor.GetComponent<Playhead>();
+        SetDropdownSelected(snap, playhead.SnapDivision switch
+        {
+            8 => 1,
+            16 => 2,
+            _ => 0,
+        });
+
         Entity saveAs = AddEditorButton(
             ui,
-            new Vector2(centerX, top + 343),
+            new Vector2(centerX, top + 310),
             new Vector2(width, 34),
             LocalizedText.Get(EditorStrings.SaveAs),
             EditorButtonKind.SaveAs);
         Entity load = AddEditorButton(
             ui,
-            new Vector2(centerX, top + 383),
+            new Vector2(centerX, top + 350),
             new Vector2(width, 34),
             LocalizedText.Get(EditorStrings.LoadLevel),
             EditorButtonKind.LoadLevel);
 
-        editor.AddComponent(new EditorSidebarLayout(
-            sidebarPanel,
+        editor.AddComponent(new EditorLeftMenu(
+            panel,
             snapLabel,
             snap,
-            typeLabel,
-            noteType,
-            tools,
             saveAs,
             load,
             top));
+    }
+
+    private static Entity BuildDirectionWidget(
+        UiBuilder ui,
+        Vector2 center,
+        Vector2 screen)
+    {
+        ui.Container(
+            center,
+            new Vector2(180, 180),
+            StackDirection.Vertical,
+            spacing: 0,
+            color: SceneUi.PanelColor);
+        Entity root = ui.Current;
+        Entity panel = root;
+        Entity label = HudText(
+            ui,
+            new Vector2(0, -72),
+            new Vector2(170, 18),
+            "DASH DIRECTION",
+            12,
+            SceneUi.DimTextColor);
+        root.AddChild(label);
+
+        (DashDirection Direction, string Label, Vector2 Offset)[] wheel =
+        {
+            (DashDirection.Up, "↑", new Vector2(0, -45)),
+            (DashDirection.UpRight, "↗", new Vector2(32, -32)),
+            (DashDirection.Right, "→", new Vector2(45, 0)),
+            (DashDirection.DownRight, "↘", new Vector2(32, 32)),
+            (DashDirection.Down, "↓", new Vector2(0, 45)),
+            (DashDirection.DownLeft, "↙", new Vector2(-32, 32)),
+            (DashDirection.Left, "←", new Vector2(-45, 0)),
+            (DashDirection.UpLeft, "↖", new Vector2(-32, -32)),
+        };
+
+        foreach ((DashDirection direction, string text, Vector2 offset) in wheel)
+        {
+            AddPlacementButton(
+                ui,
+                root,
+                offset,
+                text,
+                new EditorDashDirectionButton(direction),
+                32,
+                24);
+        }
+
+        _ = screen;
+        _ = panel;
+        return root;
     }
 
     private static Entity BuildPlacementTools(
@@ -186,39 +266,6 @@ public static partial class EditorScene
             LocalizedText.Get(EditorStrings.CharacterSwitch),
             new EditorPlacementButton(EditorPlacementMode.CharacterSwitch),
             40);
-
-        Entity label = HudText(
-            ui,
-            new Vector2(0, -35),
-            new Vector2(190, 18),
-            LocalizedText.Get(EditorStrings.DashDir),
-            12,
-            SceneUi.DimTextColor);
-        group.AddChild(label);
-
-        (DashDirection Direction, string Label, Vector2 Offset)[] wheel =
-        {
-            (DashDirection.Up, "↑", new Vector2(0, -45)),
-            (DashDirection.UpRight, "↗", new Vector2(32, -32)),
-            (DashDirection.Right, "→", new Vector2(45, 0)),
-            (DashDirection.DownRight, "↘", new Vector2(32, 32)),
-            (DashDirection.Down, "↓", new Vector2(0, 45)),
-            (DashDirection.DownLeft, "↙", new Vector2(-32, 32)),
-            (DashDirection.Left, "←", new Vector2(-45, 0)),
-            (DashDirection.UpLeft, "↖", new Vector2(-32, -32)),
-        };
-
-        foreach ((DashDirection direction, string text, Vector2 offset) in wheel)
-        {
-            AddPlacementButton(
-                ui,
-                group,
-                new Vector2(0, 20) + offset,
-                text,
-                new EditorDashDirectionButton(direction),
-                32,
-                24);
-        }
 
         return group;
     }

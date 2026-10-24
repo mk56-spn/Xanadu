@@ -278,11 +278,27 @@ public struct EditorHud(
 /// <summary>Entities in the editor sidebar that flow around open dropdowns.</summary>
 public struct EditorSidebarLayout(
     Entity panel,
-    Entity snapLabel,
-    Entity snapButton,
     Entity typeLabel,
     Entity typeButton,
+    Entity characterLabel,
+    Entity characterButton,
     Entity tools,
+    float top) : IComponent
+{
+    public Entity Panel = panel;
+    public Entity TypeLabel = typeLabel;
+    public Entity TypeButton = typeButton;
+    public Entity CharacterLabel = characterLabel;
+    public Entity CharacterButton = characterButton;
+    public Entity Tools = tools;
+    public float Top = top;
+}
+
+/// <summary>Left-side menu for snap and level file actions.</summary>
+public struct EditorLeftMenu(
+    Entity panel,
+    Entity snapLabel,
+    Entity snapButton,
     Entity saveAs,
     Entity load,
     float top) : IComponent
@@ -290,12 +306,16 @@ public struct EditorSidebarLayout(
     public Entity Panel = panel;
     public Entity SnapLabel = snapLabel;
     public Entity SnapButton = snapButton;
-    public Entity TypeLabel = typeLabel;
-    public Entity TypeButton = typeButton;
-    public Entity Tools = tools;
     public Entity SaveAs = saveAs;
     public Entity Load = load;
     public float Top = top;
+}
+
+/// <summary>Floating direction selector shown only for directional placement modes.</summary>
+public struct EditorDirectionWidget(Entity root, Vector2 home) : IComponent
+{
+    public Entity Root = root;
+    public Vector2 Home = home;
 }
 
 /// <summary>F2 editor-binding reference overlay.</summary>

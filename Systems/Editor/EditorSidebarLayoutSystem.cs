@@ -6,7 +6,7 @@ using Position = Writer.Ecs.Position;
 
 namespace Writer.Systems.Editor;
 
-/// <summary>Flows the editor sidebar around open dropdown lists.</summary>
+/// <summary>Flows the editor's right-side fields and moves its tool cluster.</summary>
 public sealed class EditorSidebarLayoutSystem : QuerySystem<EditorSidebarLayout>
 {
     private const float LabelHeight = 24f;
@@ -26,33 +26,29 @@ public sealed class EditorSidebarLayoutSystem : QuerySystem<EditorSidebarLayout>
 
         Query.ForEachEntity((ref layout, entity) =>
         {
-            float snapExtra = OpenExtra(layout.SnapButton);
             float typeExtra = OpenExtra(layout.TypeButton);
+            float characterExtra = OpenExtra(layout.CharacterButton);
 
-            float snapLabelY = layout.Top + LabelHeight / 2;
-            float snapButtonY = layout.Top + LabelHeight + ButtonHeight / 2;
-            float typeLabelY = snapLabelY + LabelHeight + ButtonHeight +
-                               Gap + snapExtra + LabelHeight / 2;
-            float typeButtonY = typeLabelY + LabelHeight / 2 +
-                                ButtonHeight / 2;
-            float toolsY = typeButtonY + ButtonHeight / 2 +
-                           Gap + typeExtra + 70;
-            float saveY = toolsY + 93;
-            float loadY = saveY + ButtonHeight + 6;
+            float typeLabelY = layout.Top + LabelHeight / 2;
+            float typeButtonY = layout.Top + LabelHeight + ButtonHeight / 2;
+            float characterLabelY = typeLabelY + LabelHeight + ButtonHeight +
+                                    Gap + typeExtra + LabelHeight / 2;
+            float characterButtonY = characterLabelY + LabelHeight / 2 +
+                                     ButtonHeight / 2;
+            float toolsY = characterButtonY + ButtonHeight / 2 +
+                           Gap + characterExtra + 70;
 
-            Move(layout.SnapLabel, snapLabelY, buffer);
-            Move(layout.SnapButton, snapButtonY, buffer);
             Move(layout.TypeLabel, typeLabelY, buffer);
             Move(layout.TypeButton, typeButtonY, buffer);
+            Move(layout.CharacterLabel, characterLabelY, buffer);
+            Move(layout.CharacterButton, characterButtonY, buffer);
             Move(layout.Tools, toolsY, buffer);
-            Move(layout.SaveAs, saveY, buffer);
-            Move(layout.Load, loadY, buffer);
 
-            AlignOpenList(layout.SnapButton, buffer);
             AlignOpenList(layout.TypeButton, buffer);
+            AlignOpenList(layout.CharacterButton, buffer);
 
             float top = layout.Top - 10;
-            float bottom = loadY + ButtonHeight / 2 + PanelPadding;
+            float bottom = toolsY + 70 + ButtonHeight / 2 + PanelPadding;
             if (!layout.Panel.IsNull &&
                 layout.Panel.HasComponent<Position>() &&
                 layout.Panel.HasComponent<Rectangle>())
@@ -80,13 +76,18 @@ public sealed class EditorSidebarLayoutSystem : QuerySystem<EditorSidebarLayout>
             if (entity.HasComponent<EditorSidebar>())
             {
                 ref EditorSidebar sidebar = ref entity.GetComponent<EditorSidebar>();
-                var rect = new Rect2(
-                    layout.Panel.GetComponent<Position>().Value.X -
-                    layout.Panel.GetComponent<Rectangle>().Bounds.Size.X / 2,
-                    top,
-                    layout.Panel.GetComponent<Rectangle>().Bounds.Size.X,
-                    bottom - top);
-                sidebar.Bounds = rect;
+                if (!layout.Panel.IsNull &&
+                    layout.Panel.HasComponent<Position>() &&
+                    layout.Panel.HasComponent<Rectangle>())
+                {
+                    var rect = new Rect2(
+                        layout.Panel.GetComponent<Position>().Value.X -
+                        layout.Panel.GetComponent<Rectangle>().Bounds.Size.X / 2,
+                        top,
+                        layout.Panel.GetComponent<Rectangle>().Bounds.Size.X,
+                        bottom - top);
+                    sidebar.Bounds = rect;
+                }
             }
         });
     }

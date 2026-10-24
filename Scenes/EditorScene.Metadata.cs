@@ -24,6 +24,8 @@ public static partial class EditorScene
         Playhead playhead = editor.GetComponent<Playhead>();
         LevelInfo level = editor.GetComponent<LevelInfo>();
 
+        BuildLeftMenu(entities, root, editor, screen);
+
         UiBuilder hudUi = SceneUi.Layer(entities, root, 945);
         float infoWidth = Mathf.Max(160, screen.X - 670);
 

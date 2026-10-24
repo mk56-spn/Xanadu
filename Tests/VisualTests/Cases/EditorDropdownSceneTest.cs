@@ -47,8 +47,8 @@ public sealed class EditorDropdownSceneTest : SceneTest
             "snap dropdown opened",
             () => FindDropdown(EditorDropdownKind.Snap).GetComponent<Dropdown>().Open);
         AddAssert(
-            "sidebar expands when open",
-            () => SidebarHeight() > _closedSidebarHeight + 50f);
+            "snap does not resize the right sidebar",
+            () => Math.Abs(SidebarHeight() - _closedSidebarHeight) < 0.1f);
         AddAssert(
             "sidebar top stays fixed when open",
             () => SidebarTop() == _closedSidebarTop);

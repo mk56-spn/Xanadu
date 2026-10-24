@@ -2,6 +2,7 @@ using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Godot;
 using Writer.Ecs;
+using Position = Writer.Ecs.Position;
 
 namespace Writer.Systems.Editor;
 
@@ -36,6 +37,29 @@ public sealed class EditorPlacementSystem : QuerySystem<EditorPlacementModeState
         ref EditorDashDirectionState direction =
             ref editor.GetComponent<EditorDashDirectionState>();
         CommandBuffer buffer = CommandBuffer;
+
+        foreach (Entity candidate in _entities
+                     .Query<EditorPlacementModeState, EditorDirectionWidget>()
+                     .ToEntityList())
+        {
+            EditorDirectionWidget widget =
+                candidate.GetComponent<EditorDirectionWidget>();
+            if (widget.Root.IsNull ||
+                !widget.Root.HasComponent<Position>())
+            {
+                continue;
+            }
+
+            ref Position position = ref widget.Root.GetComponent<Position>();
+            Vector2 target = mode.Mode == EditorPlacementMode.Movement
+                ? widget.Home
+                : new Vector2(-10_000, -10_000);
+            if (position.Value != target)
+            {
+                position.Value = target;
+                buffer.AddTag<Moved>(widget.Root.Id);
+            }
+        }
 
         foreach (Entity entity in _entities.Query<EditorPlacementButton>().ToEntityList())
         {
