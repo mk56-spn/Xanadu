@@ -32,6 +32,11 @@ public partial class AnimatorTool : Control
     private Entity _timeline;
     private bool _autoKeyEnabled;
     private float _timeScale = 1f;
+    private int _selectedBone = -1;
+    private bool _draggingBone;
+    private bool _wasPointerPressed;
+    private Vector2 _dragStartPointer;
+    private Vector2 _dragStartTranslation;
 
     public override void _Ready()
     {
@@ -68,6 +73,7 @@ public partial class AnimatorTool : Control
     public override void _Process(double delta)
     {
         float dt = (float)delta * _timeScale;
+        HandlePreviewInput();
         _runtime.Update(dt);
         _root.Update(new UpdateTick((float)delta, (float)Time.GetTicksMsec() / 1000f));
         HandleTimelineInput();
@@ -99,6 +105,16 @@ public partial class AnimatorTool : Control
             new Vector2(1200, 30), new Vector2(168, 30));
         BuildButton(ui, "LOAD XAF", ToolActionKind.Load,
             new Vector2(1200, 68), new Vector2(168, 30));
+        BuildButton(ui, "ROT -", ToolActionKind.RotateLeft,
+            new Vector2(1200, 106), new Vector2(80, 28));
+        BuildButton(ui, "ROT +", ToolActionKind.RotateRight,
+            new Vector2(1288, 106), new Vector2(80, 28));
+        BuildButton(ui, "SCALE -", ToolActionKind.ScaleDown,
+            new Vector2(1200, 142), new Vector2(80, 28));
+        BuildButton(ui, "SCALE +", ToolActionKind.ScaleUp,
+            new Vector2(1288, 142), new Vector2(80, 28));
+        BuildButton(ui, "KEY BONE", ToolActionKind.KeyBone,
+            new Vector2(1244, 178), new Vector2(168, 30));
 
         float left = 20;
         float top = 100;
@@ -166,6 +182,85 @@ public partial class AnimatorTool : Control
         return label;
     }
 
+    private Rect2 PreviewArea()
+    {
+        Vector2 screen = GetViewportRect().Size;
+        return new Rect2(250, 100, screen.X - 560, screen.Y - 270);
+    }
+
+    private void HandlePreviewInput()
+    {
+        PointerInput input = _pointer.Read();
+        Rect2 area = PreviewArea();
+        if (input.Pressed && !_wasPointerPressed && area.HasPoint(input.Position))
+        {
+            Transform2D[] world = XafRig.WorldBones(_package, _runtime.Pose);
+            Vector2 center = area.Position + area.Size / 2;
+            int hit = -1;
+            float best = 16f;
+            for (int i = 0; i < world.Length; i++)
+            {
+                float distance = (center + world[i].Origin)
+                    .DistanceTo(input.Position);
+                if (distance > best)
+                    continue;
+                best = distance;
+                hit = i;
+            }
+
+            if (hit >= 0)
+            {
+                _selectedBone = hit;
+                _runtime.SetPaused(true);
+                _draggingBone = true;
+                _dragStartPointer = input.Position;
+                _dragStartTranslation = _runtime.Pose.Bones[hit].Translation;
+                SetStatus($"SELECTED {_package.Skeleton.Bones[hit].Id}");
+            }
+        }
+        else if (input.Pressed && _draggingBone && _selectedBone >= 0)
+        {
+            Vector2 delta = input.Position - _dragStartPointer;
+            XafTransform transform = _runtime.Pose.Bones[_selectedBone];
+            transform.Translation = _dragStartTranslation + delta;
+            _runtime.Pose.Bones[_selectedBone] = transform;
+        }
+        else if (!input.Pressed && _wasPointerPressed && _draggingBone)
+        {
+            _draggingBone = false;
+            if (_autoKeyEnabled)
+                KeySelectedBone();
+        }
+
+        _wasPointerPressed = input.Pressed;
+    }
+
+    private XafClip? CurrentClip()
+    {
+        foreach (XafClip clip in _package.Clips)
+            if (clip.Id == _runtime.CurrentClip)
+                return clip;
+        return null;
+    }
+
+    private void KeySelectedBone()
+    {
+        if (_selectedBone < 0)
+            return;
+
+        XafClip? clip = CurrentClip();
+        if (clip is null)
+            return;
+
+        XafAuthoring.KeyBoneTransform(
+            _package,
+            clip,
+            _selectedBone,
+            _runtime.CurrentTime,
+            _runtime.Pose.Bones[_selectedBone]);
+        SetStatus($"KEYED {_package.Skeleton.Bones[_selectedBone].Id}");
+    }
+
     private void DrawPreview()
     {
         _canvas.Clear(_preview);
@@ -183,7 +278,13 @@ public partial class AnimatorTool : Control
         {
             XafBone bone = _package.Skeleton.Bones[i];
             Vector2 point = center + world[i].Origin;
-            _canvas.DrawCircle(_preview, point, 5, new Color("#facc15"));
+            _canvas.DrawCircle(
+                _preview,
+                point,
+                i == _selectedBone ? 8 : 5,
+                i == _selectedBone
+                    ? Colors.White
+                    : new Color("#facc15"));
             if (bone.Parent >= 0 && bone.Parent < world.Length)
             {
                 Vector2 parent = center + world[bone.Parent].Origin;
@@ -359,6 +460,20 @@ public partial class AnimatorTool : Control
         return clip;
     }
 
+    private void NudgeTransform(float rotation, float scale)
+    {
+        if (_selectedBone < 0)
+            return;
+
+        _runtime.SetPaused(true);
+        XafTransform transform = _runtime.Pose.Bones[_selectedBone];
+        transform.Rotation += rotation;
+        transform.Scale += new Vector2(scale, scale);
+        _runtime.Pose.Bones[_selectedBone] = transform;
+        if (_autoKeyEnabled)
+            KeySelectedBone();
+    }
+
     private void SavePackage()
     {
         string path = ProjectSettings.GlobalizePath(DefaultPath);
@@ -401,6 +516,21 @@ public partial class AnimatorTool : Control
                 _runtime.Play(action.Argument, 0.2f);
                 _runtime.SetPaused(false);
                 break;
+            case ToolActionKind.RotateLeft:
+                NudgeTransform(-0.25f, 1f);
+                break;
+            case ToolActionKind.RotateRight:
+                NudgeTransform(0.25f, 1f);
+                break;
+            case ToolActionKind.ScaleDown:
+                NudgeTransform(0f, -0.1f);
+                break;
+            case ToolActionKind.ScaleUp:
+                NudgeTransform(0f, 0.1f);
+                break;
+            case ToolActionKind.KeyBone:
+                KeySelectedBone();
+                break;
         }
     }
 
@@ -434,6 +564,11 @@ public partial class AnimatorTool : Control
         Save,
         Load,
         Clip,
+        RotateLeft,
+        RotateRight,
+        ScaleUp,
+        ScaleDown,
+        KeyBone,
     }
 
     public struct ToolAction(ToolActionKind kind, string argument = "") : IComponent
