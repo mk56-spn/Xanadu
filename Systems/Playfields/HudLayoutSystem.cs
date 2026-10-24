@@ -6,6 +6,7 @@ using Writer.Ecs;
 using Writer.Settings;
 using Writer.Systems.Canvas;
 using Writer.Systems.Input;
+using Writer.Systems.Ui;
 using Position = Writer.Ecs.Position;
 
 namespace Writer.Systems.Playfields;
@@ -18,10 +19,10 @@ public sealed class HudLayoutSystem(
     HudLayoutSettings settings,
     Rid overlay = default) : QuerySystem<HudLayout, PlayfieldView>
 {
+    private readonly UiDragController _drag = new();
     private bool _wasEditPressed;
     private bool _wasSecondaryPressed;
     private HudItemLayout? _dragging;
-    private Vector2 _dragStartPointer;
     private Vector2 _dragStartOffset;
 
     protected override void OnUpdate()
@@ -56,8 +57,13 @@ public sealed class HudLayoutSystem(
             var bounds = new Rect2(
                 item.Bounds.Position + item.Offset,
                 item.Bounds.Size);
-            Color fill = new(0.15f, 0.85f, 1f, 0.08f);
-            Color border = new(0.35f, 0.95f, 1f, 0.9f);
+            bool selected = layout.Selection.Contains(item.Handle);
+            Color fill = selected
+                ? new Color(0.8f, 0.95f, 1f, 0.14f)
+                : new Color(0.15f, 0.85f, 1f, 0.08f);
+            Color border = selected
+                ? Colors.White
+                : new Color(0.35f, 0.95f, 1f, 0.9f);
 
             canvas.DrawRect(overlay, bounds, fill);
             canvas.DrawLine(overlay, bounds.Position,
@@ -171,7 +177,11 @@ public sealed class HudLayoutSystem(
     {
         if (!layout.Editing)
         {
+            if (_dragging is not null)
+                _drag.End();
+
             _dragging = null;
+            layout.Selection.Clear();
             return;
         }
 
@@ -181,6 +191,7 @@ public sealed class HudLayoutSystem(
             if (_dragging is not null)
                 Save(_dragging, view);
 
+            _drag.End();
             _dragging = null;
             _wasSecondaryPressed = input.SecondaryPressed;
             return;
@@ -198,20 +209,24 @@ public sealed class HudLayoutSystem(
 
         _wasSecondaryPressed = input.SecondaryPressed;
 
-        if (_dragging is null)
+        if (_drag.Target.IsNull)
         {
             HudItemLayout? hit = HitTest(layout, input.Position);
-            if (hit is not null)
+            if (hit is not null && !hit.Handle.IsNull)
             {
+                if (input.Shift)
+                    layout.Selection.Toggle(hit.Handle);
+                else
+                    layout.Selection.Set(hit.Handle);
+
                 _dragging = hit;
-                _dragStartPointer = input.Position;
                 _dragStartOffset = hit.Offset;
+                _drag.Begin(hit.Handle, input.Position);
             }
         }
-
-        if (_dragging is not null)
+        else if (_drag.Update(input.Position) && _dragging is not null)
         {
-            _dragging.Offset = _dragStartOffset + (input.Position - _dragStartPointer);
+            _dragging.Offset = _dragStartOffset + _drag.Delta;
             ApplyMembers(_dragging, ref layout, playfield, buffer);
         }
     }

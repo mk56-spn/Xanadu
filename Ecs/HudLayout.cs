@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using Godot;
+using Writer.Systems.Ui;
 
 namespace Writer.Ecs;
 
@@ -16,6 +17,7 @@ public sealed class HudItemLayout(
     public Vector2 Offset;
     public bool Visible = true;
     public bool Initialized;
+    public Entity Handle;
     public readonly List<Entity> Members = new();
     public readonly List<Vector2> BasePositions = new();
 }
@@ -26,6 +28,7 @@ public struct HudLayout : IComponent
     public HudLayout() { }
 
     public List<HudItemLayout> Items = new();
+    public UiSelectionSet Selection = new();
     public bool Editing;
 
     public HudItemLayout Add(
@@ -47,6 +50,8 @@ public struct HudLayout : IComponent
                     : anchor);
         }
 
+        if (members.Length > 0)
+            item.Handle = members[0];
         Items.Add(item);
         return item;
     }

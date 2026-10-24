@@ -8,6 +8,7 @@ using Writer.Settings;
 using Writer.Editor;
 using Writer.Systems.Input;
 using Writer.Systems.Playfields;
+using Writer.Systems.Ui;
 
 namespace Writer.Systems.Editor;
 
@@ -27,12 +28,12 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
     private long _scrubWindowEnd;
     private bool _timelineDragging;
     private bool _timelineDragMoved;
-    private float _timelineDragStartX;
+    private readonly UiDragController _timelineDrag = new();
     private Entity _timelinePrimary;
     private EditorSnapshot _timelineBefore;
     private readonly Dictionary<int, long> _timelineStartTimes = new();
     private Entity _draggedEntity;
-    private Vector2 _dragStartPointer;
+    private readonly UiDragController _drag = new();
     private readonly Dictionary<int, Vector2> _dragStartPositions = new();
     private EditorSnapshot _dragBefore;
     private bool _pendingCreate;
@@ -100,7 +101,7 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
                     ref editor.GetComponent<NoteSelection>();
                 if (shift)
                 {
-                    ToggleSelection(ref timelineSelection, timelineHit);
+                    timelineSelection.Toggle(timelineHit);
                 }
                 else
                 {
@@ -141,12 +142,12 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
         {
             if (shift)
             {
-                ToggleSelection(ref selection, hit);
+                selection.Toggle(hit);
                 return;
             }
 
             _draggedEntity = hit;
-            _dragStartPointer = playfieldPosition;
+            _drag.Begin(hit, playfieldPosition);
             _dragStartPositions.Clear();
             _dragBefore = _history.Capture();
 
@@ -215,11 +216,15 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
 
         if (_timelineDragging)
         {
-            DragTimeline(
-                screenPosition,
-                EditorLayout.RulerRect(view),
-                ref playhead,
-                editor);
+            if (_timelineDrag.Update(screenPosition))
+            {
+                DragTimeline(
+                    screenPosition,
+                    EditorLayout.RulerRect(view),
+                    ref playhead,
+                    editor);
+            }
+
             return;
         }
 
@@ -264,7 +269,10 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
         }
 
         Vector2 pointer = view.ScreenToPlayfield(screenPosition);
-        Vector2 delta = pointer - _dragStartPointer;
+        if (!_drag.Update(pointer))
+            return;
+
+        Vector2 delta = _drag.Delta;
         foreach ((int id, Vector2 start) in _dragStartPositions)
         {
             Entity entity = _entities.GetEntityById(id);
@@ -285,6 +293,7 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
         if (_timelineDragging)
         {
             _timelineDragging = false;
+            _timelineDrag.End();
             if (!editor.IsNull)
                 SetScrubWindow(editor, false);
             if (_timelineDragMoved && !editor.IsNull)
@@ -497,18 +506,6 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
         box.Active = active;
     }
 
-    private static void ToggleSelection(ref NoteSelection selection, Entity entity)
-    {
-        var notes = new List<Entity>(selection.AllNotes);
-        int index = notes.FindIndex(selected => selected.Id == entity.Id);
-        if (index >= 0)
-            notes.RemoveAt(index);
-        else
-            notes.Add(entity);
-
-        selection.SetMany(notes);
-    }
-
     private const float ScrubDeadZone = 0.55f;
     private const float ScrubPanRate = 0.45f;
 
@@ -526,7 +523,7 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
             EditorLayout.TimelineWindow(playhead, zoom);
         _timelineDragging = true;
         _timelineDragMoved = false;
-        _timelineDragStartX = screenPosition.X;
+        _timelineDrag.Begin(primary, screenPosition);
         _timelinePrimary = primary;
         _timelineBefore = _history.Capture();
         _timelineStartTimes.Clear();
@@ -553,7 +550,7 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
         Entity editor)
     {
         long span = Math.Max(1, _scrubWindowEnd - _scrubWindowStart);
-        float delta = (screenPosition.X - _timelineDragStartX) /
+        float delta = _timelineDrag.Delta.X /
                       Math.Max(1f, bar.Size.X) * span;
         long maxTime = playhead.DurationMs > 0
             ? playhead.DurationMs
@@ -775,6 +772,7 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
     {
         _draggedEntity = default;
         _dragBefore = default;
+        _drag.End();
         _dragStartPositions.Clear();
     }
 

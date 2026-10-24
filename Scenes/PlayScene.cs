@@ -280,10 +280,11 @@ public static class PlayScene
             new Rect2(screen.X / 2 - 350, screen.Y / 2 - 90, 700, 180),
             countdown);
 
-        hud.Add(
+        HudItemLayout keyTrailItem = hud.Add(
             "key_trail",
             new Vector2(origin.X - 220, origin.Y + fieldHeight - 140),
             new Rect2(origin.X - 440, origin.Y + fieldHeight - 280, 430, 280));
+        keyTrailItem.Handle = entities.CreateEntity();
 
         playfieldEntity.AddComponent(hud);
 
