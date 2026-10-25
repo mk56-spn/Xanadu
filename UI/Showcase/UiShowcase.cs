@@ -24,7 +24,7 @@ public partial class UiShowcase : Control
     {
         _store = new EntityStore();
         _root = new SystemRoot(_store);
-        _pointer = new ShowcasePointer(this);
+        _pointer = new ShowcasePointer();
         var canvas = new GodotRectCanvas();
 
         _root.Add(new LayerParentSystem(GetCanvasItem()));
@@ -219,7 +219,7 @@ public partial class UiShowcase : Control
         {
             ui.Dropdown(
                 $"CATEGORY {(char)('A' + i)}",
-                new[] { "ONE", "TWO", "THREE" },
+                ["ONE", "TWO", "THREE"],
                 size: new Vector2(190, 32),
                 closeOthers: false,
                 buttonColor: new Color("#0f766e"),
@@ -236,7 +236,7 @@ public partial class UiShowcase : Control
     private static void Style(Entity entity, int size, Color color) =>
         entity.AddComponent(new TextStyle(size, color));
 
-    private sealed class ShowcasePointer(UiShowcase owner) : IPointerInputSource
+    private sealed class ShowcasePointer : IPointerInputSource
     {
         public Vector2 Position;
         public bool Pressed;

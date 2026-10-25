@@ -54,7 +54,7 @@ public partial class AnimatorTool : Control
         _store = new EntityStore();
         _root = new SystemRoot(_store);
         _canvas = new GodotRectCanvas();
-        _pointer = new ToolPointer(this);
+        _pointer = new ToolPointer();
         _preview = RenderingServer.CanvasItemCreate();
         RenderingServer.CanvasItemSetParent(_preview, GetCanvasItem());
         RenderingServer.CanvasItemSetZIndex(_preview, 1);
@@ -67,20 +67,11 @@ public partial class AnimatorTool : Control
         RenderingServer.CanvasItemSetParent(_timelineCanvas, GetCanvasItem());
         RenderingServer.CanvasItemSetZIndex(_timelineCanvas, 4);
 
-        _root.Add(new LayerParentSystem(GetCanvasItem()));
-        _root.Add(new ContainerLayoutSystem());
-        _root.Add(new UiAnchorSystem());
-        _root.Add(new DrawableInitialiseSystem());
-        _root.Add(new TransformSystem(_canvas));
-        _root.Add(new RectDrawSystem(_canvas));
-        _root.Add(new TextDrawSystem(_canvas));
-        _root.Add(new InputSystem(_pointer));
-        _root.Add(new UiDropdownSystem(_store));
-        _root.Add(new ButtonVisualSystem());
-        UiDebugOverlayGroup.Attach(
-            _root,
+        _root.Add(new UiSystemGroup(
+            _store,
+            GetCanvasItem(),
             _canvas,
-            GetCanvasItem());
+            _pointer));
 
         _package = LoadPackage();
         _runtime = new AnimatorRuntime(_package);
@@ -995,18 +986,14 @@ public partial class AnimatorTool : Control
         }
     }
 
-    private sealed class ToolPointer(AnimatorTool owner) : IPointerInputSource
+    private sealed class ToolPointer : IPointerInputSource
     {
         public Vector2 Position;
         public bool Pressed;
         public bool ClickPending;
-        public bool Forced;
-        public Vector2 ForcedPosition;
-        public bool ForcedPressed;
-
-        public PointerInput Read() => Forced
-            ? new PointerInput(ForcedPosition, ForcedPressed)
-            : new PointerInput(Position, Pressed || ClickPending);
+        public PointerInput Read() => new(
+            Position,
+            Pressed || ClickPending);
 
         public void EndFrame() => ClickPending = false;
     }

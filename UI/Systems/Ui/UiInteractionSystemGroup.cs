@@ -20,5 +20,6 @@ public sealed class UiInteractionSystemGroup : SystemGroup
         Add(scroll);
         Add(new ToggleSystem());
         Add(new ButtonVisualSystem());
+        Add(new UiSliderSystem(pointer));
     }
 }
