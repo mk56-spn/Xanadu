@@ -9,3 +9,4 @@ https://friflo.gitbook.io/friflo.engine.ecs/documentation
 
 #Try and keep files under 400 lines
 
+#Stop hard coding UI by not using containers, unless you have a really good reason.
