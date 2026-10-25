@@ -33,7 +33,10 @@ public sealed class DebugSystemGroup : SystemGroup
             systems,
             fps,
             paging));
-        Add(new Writer.Systems.Ui.UiDebugOverlayGroup(canvas, parentCanvas));
+        Writer.Systems.Ui.UiDebugOverlayGroup.Attach(
+            this,
+            canvas,
+            parentCanvas);
         Add(new Writer.Systems.Ui.UiSliderSystem(pointer));
         Add(new GravityDebugSystem(
             entitiesForSlider,

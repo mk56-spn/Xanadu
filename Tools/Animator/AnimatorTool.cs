@@ -61,10 +61,10 @@ public partial class AnimatorTool : Control
         _root.Add(new TextDrawSystem(_canvas));
         _root.Add(new InputSystem(_pointer));
         _root.Add(new ButtonVisualSystem());
-        _root.Add(new UiDebugOverlayGroup(
+        UiDebugOverlayGroup.Attach(
+            _root,
             _canvas,
-            GetCanvasItem(),
-            new GodotOverlayToggleSource(Key.F4)));
+            GetCanvasItem());
         _root.Add(new ToolActionSystem(this));
 
         _package = LoadPackage();

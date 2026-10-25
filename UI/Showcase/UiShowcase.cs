@@ -42,10 +42,10 @@ public partial class UiShowcase : Control
         _root.Add(_scroll);
         _root.Add(new ButtonVisualSystem());
         _root.Add(new UiSliderSystem(_pointer));
-        _root.Add(new UiDebugOverlayGroup(
+        UiDebugOverlayGroup.Attach(
+            _root,
             canvas,
-            GetCanvasItem(),
-            new GodotOverlayToggleSource(Key.F4)));
+            GetCanvasItem());
 
         Build();
         SetProcess(true);
