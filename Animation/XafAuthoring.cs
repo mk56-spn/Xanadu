@@ -127,6 +127,40 @@ public static class XafAuthoring
         return true;
     }
 
+    public static bool MoveKey(
+        XafClip clip,
+        XafChannelTarget target,
+        string targetId,
+        XafChannelProperty property,
+        float fromTime,
+        float toTime,
+        float tolerance = 0.0001f)
+    {
+        XafChannel? channel = clip.Channels.Find(candidate =>
+            candidate.Target == target &&
+            candidate.TargetId == targetId &&
+            candidate.Property == property);
+        if (channel is null)
+            return false;
+
+        int index = channel.Keyframes.FindIndex(key =>
+            Math.Abs(key.Time - fromTime) <= tolerance);
+        if (index < 0)
+            return false;
+
+        XafKeyframe key = channel.Keyframes[index];
+        channel.Keyframes.RemoveAt(index);
+        key.Time = Math.Clamp(toTime, 0f, clip.Duration);
+
+        int insert = channel.Keyframes.FindIndex(candidate =>
+            candidate.Time > key.Time);
+        if (insert < 0)
+            channel.Keyframes.Add(key);
+        else
+            channel.Keyframes.Insert(insert, key);
+        return true;
+    }
+
     public static XafClip? FindClip(XafPackage package, string id) =>
         package.Clips.Find(clip => clip.Id == id);
 

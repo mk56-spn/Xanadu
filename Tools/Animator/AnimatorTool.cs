@@ -42,6 +42,8 @@ public partial class AnimatorTool : Control
     private bool _onionEnabled;
     private int _selectedKeyChannel = -1;
     private int _selectedKeyIndex = -1;
+    private bool _draggingKey;
+    private float _keyDragStartX;
     private float _timeScale = 1f;
     private int _selectedBone = -1;
     private bool _draggingBone;
@@ -667,10 +669,12 @@ public partial class AnimatorTool : Control
                 {
                     _selectedKeyChannel = bestChannel;
                     _selectedKeyIndex = bestKey;
+                    _draggingKey = true;
+                    _keyDragStartX = input.Position.X;
                     _runtime.Seek(clip.Channels[bestChannel]
                         .Keyframes[bestKey].Time);
                     _runtime.SetPaused(true);
-                    SetStatus("KEY SELECTED • DELETE TO REMOVE");
+                    SetStatus("KEY SELECTED • DRAG TO RETIME • DELETE TO REMOVE");
                     _wasTimelinePressed = input.Pressed;
                     return;
                 }
@@ -685,7 +689,52 @@ public partial class AnimatorTool : Control
             _runtime.Seek(_runtime.CurrentDuration * t);
             _runtime.SetPaused(true);
         }
+        else if (input.Pressed && _draggingKey)
+        {
+            RetimeSelectedKey(input.Position.X, bar);
+        }
+        else if (!input.Pressed)
+        {
+            _draggingKey = false;
+        }
+
         _wasTimelinePressed = input.Pressed;
+    }
+
+    private void RetimeSelectedKey(float pointerX, Rect2 bar)
+    {
+        XafClip? clip = CurrentClip();
+        if (clip is null ||
+            _selectedKeyChannel < 0 ||
+            _selectedKeyChannel >= clip.Channels.Count ||
+            _selectedKeyIndex < 0)
+        {
+            return;
+        }
+
+        XafChannel channel = clip.Channels[_selectedKeyChannel];
+        if (_selectedKeyIndex >= channel.Keyframes.Count)
+            return;
+
+        XafKeyframe key = channel.Keyframes[_selectedKeyIndex];
+        float duration = Mathf.Max(0.1f, clip.Duration);
+        float target = Mathf.Clamp(
+            (pointerX - bar.Position.X) / Mathf.Max(1f, bar.Size.X) * duration,
+            0f,
+            duration);
+        if (XafAuthoring.MoveKey(
+                clip,
+                channel.Target,
+                channel.TargetId,
+                channel.Property,
+                key.Time,
+                target))
+        {
+            _selectedKeyIndex = channel.Keyframes.FindIndex(candidate =>
+                Mathf.Abs(candidate.Time - target) < 0.0001f);
+            _runtime.Seek(target);
+            SetStatus($"KEY {target:0.00}s");
+        }
     }
 
     private void DeleteSelectedKey()
