@@ -97,6 +97,12 @@ public sealed class UiDropdownSystem : QuerySystem<Dropdown>
         ref Position listPosition = ref dropdown.List.GetComponent<Position>();
         ref Rectangle listRectangle = ref dropdown.List.GetComponent<Rectangle>();
         float buttonHeight = button.GetComponent<Rectangle>().Bounds.Size.Y;
+        Vector2 buttonWorld = UiTransform.WorldPosition(
+            button,
+            button.GetComponent<Position>().Value);
+        Vector2 listParentWorld = UiTransform.WorldPosition(
+            dropdown.List,
+            Vector2.Zero);
         Vector2 size = dropdown.ListSize == Vector2.Zero
             ? listRectangle.Bounds.Size
             : dropdown.ListSize;
@@ -117,11 +123,12 @@ public sealed class UiDropdownSystem : QuerySystem<Dropdown>
             buffer.AddTag<Dirty>(dropdown.List.Id);
         }
 
-        listPosition.Value = button.GetComponent<Position>().Value +
-                             new Vector2(0, buttonHeight / 2 + size.Y / 2 + 4);
+        Vector2 listWorld = buttonWorld +
+                            new Vector2(0, buttonHeight / 2 + size.Y / 2 + 4);
+        listPosition.Value = listWorld - listParentWorld;
         buffer.AddTag<Moved>(dropdown.List.Id);
 
-        float top = listPosition.Value.Y - size.Y / 2 + 2;
+        float top = listWorld.Y - size.Y / 2 + 2;
         foreach (Entity option in _entities
                      .Query<DropdownOption>()
                      .ToEntityList())
@@ -137,7 +144,7 @@ public sealed class UiDropdownSystem : QuerySystem<Dropdown>
             float height = option.GetComponent<Rectangle>().Bounds.Size.Y;
             ref Position optionPosition = ref option.GetComponent<Position>();
             optionPosition.Value = new Vector2(
-                listPosition.Value.X,
+                listWorld.X,
                 top + height / 2);
             top += height + 2;
             buffer.AddTag<Moved>(option.Id);

@@ -43,6 +43,31 @@ public sealed class UiDropdownSystemTests
     }
 
     [Test]
+    public void AccountsForAParentedButtonTransform()
+    {
+        EntityStore store = new();
+        var root = new SystemRoot(store);
+        root.Add(new UiDropdownSystem(store));
+
+        Entity parent = store.CreateEntity(
+            new Position(new Vector2(100, 50)));
+        Entity button = store.CreateEntity(
+            new Position(new Vector2(800, 200)),
+            new Rectangle(new Rect2(-50, -20, 100, 40)));
+        parent.AddChild(button);
+        Entity list = store.CreateEntity(
+            new Position(new Vector2(-10_000, -10_000)),
+            new Rectangle(new Rect2(0, 0, 0, 0)));
+        button.AddComponent(new Dropdown(list, 0, new Vector2(100, 80)));
+
+        button.AddTag<Pressed>();
+        root.Update(new UpdateTick(1f / 60f, 1f));
+
+        Assert.That(list.GetComponent<Position>().Value,
+            Is.EqualTo(new Vector2(900, 314)));
+    }
+
+    [Test]
     public void SelectingAnOptionClosesTheDropdown()
     {
         EntityStore store = new();

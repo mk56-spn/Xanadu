@@ -33,9 +33,6 @@ public partial class AnimatorTool : Control
     private Entity _autoKey;
     private Entity _onionButton;
     private Entity _fileButton;
-    private Entity _fileMenu;
-    private bool _fileMenuOpen;
-    private bool _wasFileMenuPressed;
     private bool _actionPressed;
     private Entity _previewPanel;
     private Entity _timelinePanel;
@@ -72,6 +69,7 @@ public partial class AnimatorTool : Control
         _root.Add(new RectDrawSystem(_canvas));
         _root.Add(new TextDrawSystem(_canvas));
         _root.Add(new InputSystem(_pointer));
+        _root.Add(new UiDropdownSystem(_store));
         _root.Add(new ButtonVisualSystem());
         UiDebugOverlayGroup.Attach(
             _root,
@@ -92,6 +90,7 @@ public partial class AnimatorTool : Control
         HandlePreviewInput();
         _playback.Update(dt);
         _root.Update(new UpdateTick((float)delta, (float)Time.GetTicksMsec() / 1000f));
+        HandleFileMenuSelection();
         HandleTimelineInput();
         DrawPreview();
         DrawTimeline();
@@ -159,8 +158,14 @@ public partial class AnimatorTool : Control
         ui.End();
         _status = HudText(ui, Vector2.Zero, new Vector2(520, 24),
             "", 13, new Color("#a3e635"));
-        _fileButton = BuildButton(ui, "FILE ▾", ToolActionKind.ToggleFileMenu,
-            Vector2.Zero, new Vector2(96, 30));
+        _fileButton = ui.RectEntity(
+            Vector2.Zero,
+            new Vector2(96, 30),
+            new Color("#2563eb"),
+            "FILE ▾",
+            takesInput: true);
+        _fileButton.AddComponent(new TextStyle(13, new Color("#e2e8f0")));
+        _fileButton.AddComponent(ButtonVisual.Create(new Color("#2563eb")));
         ui.End();
 
         ui.Container(
@@ -255,20 +260,38 @@ public partial class AnimatorTool : Control
         ui.End();
 
         UiBuilder menuUi = UiBuilder.Begin(_store).Layer(2);
-        menuUi.Container(
+        Entity fileList = menuUi.RectEntity(
             new Vector2(-10_000, -10_000),
             new Vector2(180, 82),
-            StackDirection.Vertical,
-            spacing: 6,
-            color: new Color("#111827"),
-            padding: 6,
-            cross: StackCrossAlignment.Center);
-        _fileMenu = menuUi.Current;
-        BuildButton(menuUi, "SAVE XAF", ToolActionKind.Save,
-            Vector2.Zero, new Vector2(168, 30), direct: true);
-        BuildButton(menuUi, "LOAD XAF", ToolActionKind.Load,
-            Vector2.Zero, new Vector2(168, 30), direct: true);
+            new Color("#111827"),
+            takesInput: true);
+        Entity saveOption = BuildFileOption(menuUi, "SAVE XAF", _fileButton, 0);
+        Entity loadOption = BuildFileOption(menuUi, "LOAD XAF", _fileButton, 1);
+        _fileButton.AddComponent(new Dropdown(
+            fileList,
+            0,
+            new Vector2(180, 82)));
+        _ = saveOption;
+        _ = loadOption;
         menuUi.End();
+    }
+
+    private static Entity BuildFileOption(
+        UiBuilder ui,
+        string label,
+        Entity owner,
+        int value)
+    {
+        Entity option = ui.RectEntity(
+            new Vector2(-10_000, -10_000),
+            new Vector2(168, 30),
+            new Color("#2563eb"),
+            label,
+            takesInput: true);
+        option.AddComponent(new TextStyle(13, new Color("#e2e8f0")));
+        option.AddComponent(ButtonVisual.Create(new Color("#2563eb")));
+        option.AddComponent(new DropdownOption(owner, value));
+        return option;
     }
 
     private Entity BuildButton(
@@ -296,7 +319,6 @@ public partial class AnimatorTool : Control
         ui.Container(
             Vector2.Zero,
             new Vector2(width, 30),
-            StackDirection.Horizontal,
             spacing: 6,
             color: new Color(0, 0, 0, 0),
             cross: StackCrossAlignment.Center);
@@ -534,6 +556,19 @@ public partial class AnimatorTool : Control
             top + 28,
             Mathf.Max(1f, screen.X - margin * 2 - 48),
             bottomHeight - 40);
+    }
+
+    private void HandleFileMenuSelection()
+    {
+        if (!_fileButton.IsNull &&
+            _fileButton.TryGetComponent<DropdownChanged>(
+                out DropdownChanged changed))
+        {
+            _fileButton.RemoveComponent<DropdownChanged>();
+            RunAction(changed.Value == 0
+                ? new ToolAction(ToolActionKind.Save)
+                : new ToolAction(ToolActionKind.Load));
+        }
     }
 
     private void HandleTimelineInput()
@@ -793,43 +828,6 @@ public partial class AnimatorTool : Control
         }
     }
 
-    private void HandleFileMenuInput()
-    {
-        PointerInput input = _pointer.Read();
-        if (input.Pressed && !_wasFileMenuPressed && _fileMenuOpen)
-        {
-            foreach (Entity child in _fileMenu.ChildEntities)
-            {
-                if (!child.HasComponent<Rectangle>() ||
-                    !child.HasComponent<Position>() ||
-                    !child.HasComponent<ToolAction>())
-                {
-                    continue;
-                }
-
-                Vector2 center = UiTransform.WorldPosition(child, Vector2.Zero);
-                Vector2 size = child.GetComponent<Rectangle>().Bounds.Size;
-                var bounds = new Rect2(center - size / 2, size);
-                if (!bounds.HasPoint(input.Position))
-                    continue;
-
-                RunAction(child.GetComponent<ToolAction>());
-                break;
-            }
-        }
-        _wasFileMenuPressed = input.Pressed;
-    }
-
-    private void CloseFileMenu()
-    {
-        _fileMenuOpen = false;
-        if (_fileMenu.HasComponent<Position>())
-        {
-            _fileMenu.GetComponent<Position>().Value =
-                new Vector2(-10_000, -10_000);
-        }
-    }
-
     private void NudgeTransform(float rotation, float scale)
     {
         if (_selectedBone < 0)
@@ -861,16 +859,6 @@ public partial class AnimatorTool : Control
     {
         switch (action.Kind)
         {
-            case ToolActionKind.ToggleFileMenu:
-                _fileMenuOpen = !_fileMenuOpen;
-                if (_fileMenu.HasComponent<Position>())
-                {
-                    _fileMenu.GetComponent<Position>().Value =
-                        _fileMenuOpen
-                            ? new Vector2(GetViewportRect().Size.X - 350, 120)
-                            : new Vector2(-10_000, -10_000);
-                }
-                break;
             case ToolActionKind.Play:
                 _playback.Play();
                 _timeScale = 1f;
@@ -887,7 +875,6 @@ public partial class AnimatorTool : Control
                 break;
             case ToolActionKind.Save:
                 SavePackage();
-                CloseFileMenu();
                 break;
             case ToolActionKind.Load:
                 _package = LoadPackage();
@@ -895,7 +882,6 @@ public partial class AnimatorTool : Control
                 _playback.Replace(_runtime);
                 _runtime.Play("idle", 0.15f);
                 SetStatus("LOADED");
-                CloseFileMenu();
                 break;
             case ToolActionKind.Clip:
                 _runtime.Play(action.Argument, 0.2f);
@@ -949,7 +935,6 @@ public partial class AnimatorTool : Control
         Save,
         Load,
         Clip,
-        ToggleFileMenu,
         RotateLeft,
         RotateRight,
         ScaleUp,
