@@ -323,6 +323,19 @@ public sealed class UiBuilder
         return entity;
     }
 
+    /// <summary>Resumes adding children under an existing entity.</summary>
+    public UiBuilder Use(Entity parent)
+    {
+        if (parent.IsNull)
+            throw new ArgumentException("Parent entity is null.", nameof(parent));
+
+        _current = parent;
+        _parents.Clear();
+        if (parent.TryGetComponent<Drawable>(out Drawable drawable))
+            _layerZIndex = drawable.ZIndex;
+        return this;
+    }
+
     public UiBuilder End()
     {
         if (_parents.Count > 0)

@@ -38,6 +38,8 @@ public partial class AnimatorTool : Control
     private bool _actionPressed;
     private Entity _previewPanel;
     private Entity _timelinePanel;
+    private Entity _boneList;
+    private Entity _attachmentList;
     private bool _autoKeyEnabled;
     private bool _onionEnabled;
     private bool _restMode;
@@ -84,6 +86,7 @@ public partial class AnimatorTool : Control
         _playback = new AnimatorPlayback(_runtime);
         _runtime.Play("idle", 0.15f);
         BuildUi();
+        RebuildHierarchy();
         LoadAttachmentVisuals();
         SetProcess(true);
     }
@@ -190,20 +193,30 @@ public partial class AnimatorTool : Control
             cross: StackCrossAlignment.Start);
         HudText(ui, Vector2.Zero, new Vector2(210, 20),
             "BONES", 14, new Color("#facc15"));
-        for (int i = 0; i < _package.Skeleton.Bones.Count; i++)
-        {
-            XafBone bone = _package.Skeleton.Bones[i];
-            BuildButton(ui, bone.Id, ToolActionKind.SelectBone,
-                Vector2.Zero, new Vector2(200, 26), bone.Id);
-        }
+        ui.Container(
+            Vector2.Zero,
+            new Vector2(210, 4),
+            StackDirection.Vertical,
+            spacing: 2,
+            color: new Color(0, 0, 0, 0),
+            padding: 0,
+            cross: StackCrossAlignment.Start,
+            autoHeight: true);
+        _boneList = ui.Current;
+        ui.End();
         HudText(ui, Vector2.Zero, new Vector2(210, 20),
             "ATTACHMENTS", 14, new Color("#facc15"));
-        for (int i = 0; i < _package.Attachments.Count; i++)
-        {
-            XafAttachment attachment = _package.Attachments[i];
-            BuildButton(ui, attachment.Group, ToolActionKind.SelectAttachment,
-                Vector2.Zero, new Vector2(200, 26), i.ToString());
-        }
+        ui.Container(
+            Vector2.Zero,
+            new Vector2(210, 4),
+            StackDirection.Vertical,
+            spacing: 2,
+            color: new Color(0, 0, 0, 0),
+            padding: 0,
+            cross: StackCrossAlignment.Start,
+            autoHeight: true);
+        _attachmentList = ui.Current;
+        ui.End();
         ui.End();
 
         float centerWidth = screen.X - margin * 2 - 240 - 300 - gap * 2;
@@ -248,6 +261,10 @@ public partial class AnimatorTool : Control
         }, 168);
         BuildButton(ui, "KEY SELECTED", ToolActionKind.KeyBone,
             Vector2.Zero, new Vector2(168, 30));
+        BuildButton(ui, "ADD BONE", ToolActionKind.AddBone,
+            Vector2.Zero, new Vector2(168, 30));
+        BuildButton(ui, "DELETE BONE", ToolActionKind.DeleteBone,
+            Vector2.Zero, new Vector2(168, 30));
         HudText(ui, Vector2.Zero, new Vector2(210, 20),
             "CLIPS", 14, new Color("#facc15"));
         for (int i = 0; i < _package.Clips.Count; i++)
@@ -275,15 +292,16 @@ public partial class AnimatorTool : Control
         UiBuilder menuUi = UiBuilder.Begin(_store).Layer(2);
         Entity fileList = menuUi.RectEntity(
             new Vector2(-10_000, -10_000),
-            new Vector2(180, 82),
+            new Vector2(180, 112),
             new Color("#111827"),
             takesInput: true);
         Entity saveOption = BuildFileOption(menuUi, "SAVE XAF", _fileButton, 0);
         Entity loadOption = BuildFileOption(menuUi, "LOAD XAF", _fileButton, 1);
+        Entity newOption = BuildFileOption(menuUi, "NEW SKELETON", _fileButton, 2);
         _fileButton.AddComponent(new Dropdown(
             fileList,
             0,
-            new Vector2(180, 82)));
+            new Vector2(180, 112)));
         _ = saveOption;
         _ = loadOption;
         menuUi.End();
@@ -749,9 +767,12 @@ public partial class AnimatorTool : Control
                 out DropdownChanged changed))
         {
             _fileButton.RemoveComponent<DropdownChanged>();
-            RunAction(changed.Value == 0
-                ? new ToolAction(ToolActionKind.Save)
-                : new ToolAction(ToolActionKind.Load));
+            RunAction(changed.Value switch
+            {
+                0 => new ToolAction(ToolActionKind.Save),
+                1 => new ToolAction(ToolActionKind.Load),
+                _ => new ToolAction(ToolActionKind.NewSkeleton),
+            });
         }
     }
 
@@ -1073,6 +1094,106 @@ public partial class AnimatorTool : Control
         }
     }
 
+    private void RebuildHierarchy()
+    {
+        if (!_boneList.IsNull)
+        {
+            var children = new List<Entity>();
+            foreach (Entity child in _boneList.ChildEntities)
+                children.Add(child);
+            foreach (Entity child in children)
+                child.DeleteEntity();
+            _boneList.AddTag<LayoutDirty>();
+        }
+
+        if (!_attachmentList.IsNull)
+        {
+            var children = new List<Entity>();
+            foreach (Entity child in _attachmentList.ChildEntities)
+                children.Add(child);
+            foreach (Entity child in children)
+                child.DeleteEntity();
+            _attachmentList.AddTag<LayoutDirty>();
+        }
+
+        UiBuilder ui = UiBuilder.Begin(_store);
+        ui.Use(_boneList);
+        foreach (XafBone bone in _package.Skeleton.Bones)
+        {
+            BuildButton(ui, bone.Id, ToolActionKind.SelectBone,
+                Vector2.Zero, new Vector2(200, 26), bone.Id);
+        }
+
+        ui.Use(_attachmentList);
+        foreach (XafAttachment attachment in _package.Attachments)
+        {
+            BuildButton(ui, attachment.Group, ToolActionKind.SelectAttachment,
+                Vector2.Zero, new Vector2(200, 26),
+                _package.Attachments.IndexOf(attachment).ToString());
+        }
+    }
+
+    private void AddBone()
+    {
+        int parent = _selectedBone >= 0 ? _selectedBone : 0;
+        int index = 1;
+        string id;
+        do
+        {
+            id = $"bone-{index++}";
+        } while (_package.Skeleton.Bones.Exists(bone => bone.Id == id));
+
+        int created = XafRigAuthoring.AddBone(
+            _package,
+            parent,
+            id,
+            new Vector2(0, -40));
+        if (created < 0)
+        {
+            SetStatus("ADD BONE FAILED");
+            return;
+        }
+
+        _selectedBone = created;
+        _selectedAttachment = -1;
+        RebuildHierarchy();
+        SetStatus($"ADDED {id}");
+    }
+
+    private void DeleteBone()
+    {
+        if (_selectedBone < 0 ||
+            _selectedBone >= _package.Skeleton.Bones.Count)
+        {
+            return;
+        }
+
+        int parent = _package.Skeleton.Bones[_selectedBone].Parent;
+        if (!XafRigAuthoring.DeleteBone(_package, _selectedBone))
+        {
+            SetStatus("CANNOT DELETE BONE");
+            return;
+        }
+
+        _selectedBone = parent >= 0 ? parent : 0;
+        RebuildHierarchy();
+        SetStatus("BONE DELETED");
+    }
+
+    private void NewSkeleton()
+    {
+        _package = XafRigAuthoring.CreateEmptyPackage();
+        _runtime = new AnimatorRuntime(_package);
+        _playback.Replace(_runtime);
+        _runtime.Play("idle", 0f);
+        _selectedBone = 0;
+        _selectedAttachment = -1;
+        _restMode = false;
+        RebuildHierarchy();
+        LoadAttachmentVisuals();
+        SetStatus("NEW SKELETON");
+    }
+
     private void NudgeTransform(float rotation, float scale)
     {
         _runtime.SetPaused(true);
@@ -1120,6 +1241,15 @@ public partial class AnimatorTool : Control
                 _restMode = !_restMode;
                 _runtime.SetPaused(true);
                 SetStatus(_restMode ? "REST POSE" : "ANIMATION POSE");
+                break;
+            case ToolActionKind.AddBone:
+                AddBone();
+                break;
+            case ToolActionKind.DeleteBone:
+                DeleteBone();
+                break;
+            case ToolActionKind.NewSkeleton:
+                NewSkeleton();
                 break;
             case ToolActionKind.SelectBone:
                 _selectedBone = _package.Skeleton.Bones.FindIndex(
@@ -1223,6 +1353,9 @@ public partial class AnimatorTool : Control
         SelectBone,
         SelectAttachment,
         ToggleRest,
+        AddBone,
+        DeleteBone,
+        NewSkeleton,
     }
 
     public struct ToolAction(
