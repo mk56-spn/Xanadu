@@ -392,6 +392,23 @@ public partial class AnimatorTool : Control
         SetStatus($"KEYED {_package.Skeleton.Bones[_selectedBone].Id}");
     }
 
+    private void DrawBoneDirection(Vector2 from, Vector2 to, Color color)
+    {
+        Vector2 delta = to - from;
+        float length = delta.Length();
+        if (length < 2f)
+            return;
+
+        Vector2 direction = delta / length;
+        Vector2 side = new(-direction.Y, direction.X);
+        float size = Mathf.Clamp(length * 0.22f, 3f, 10f);
+        Vector2 basePoint = to - direction * size;
+        _canvas.DrawLine(_preview, to,
+            basePoint + side * size * 0.55f, color, 1.5f);
+        _canvas.DrawLine(_preview, to,
+            basePoint - side * size * 0.55f, color, 1.5f);
+    }
+
     private void DrawGhost(
         XafClip clip,
         float time,
@@ -408,9 +425,11 @@ public partial class AnimatorTool : Control
             Vector2 point = center + world[i].Origin;
             _canvas.DrawCircle(_preview, point, 3, color);
             if (bone.Parent >= 0 && bone.Parent < world.Length)
-                _canvas.DrawLine(_preview,
-                    center + world[bone.Parent].Origin,
-                    point, color, 1);
+            {
+                Vector2 parent = center + world[bone.Parent].Origin;
+                _canvas.DrawLine(_preview, parent, point, color, 1);
+                DrawBoneDirection(parent, point, color);
+            }
         }
     }
 
@@ -418,7 +437,7 @@ public partial class AnimatorTool : Control
     {
         _canvas.Clear(_preview);
         Vector2 screen = GetViewportRect().Size;
-        var area = new Rect2(250, 100, screen.X - 560, screen.Y - 270);
+        Rect2 area = PreviewArea();
         _canvas.DrawRect(_preview, area, new Color("#0f172a"));
         _canvas.DrawLine(_preview,
             new Vector2(area.Position.X, area.End.Y),
@@ -456,6 +475,7 @@ public partial class AnimatorTool : Control
                 Vector2 parent = center + world[bone.Parent].Origin;
                 _canvas.DrawLine(_preview, parent, point,
                     new Color("#38bdf8"), 2);
+                DrawBoneDirection(parent, point, new Color("#38bdf8"));
             }
             _canvas.DrawTextStyled(
                 _preview,
