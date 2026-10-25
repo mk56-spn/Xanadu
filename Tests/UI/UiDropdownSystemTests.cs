@@ -43,6 +43,33 @@ public sealed class UiDropdownSystemTests
     }
 
     [Test]
+    public void OpenListFollowsTheButtonWhenLayoutMovesIt()
+    {
+        EntityStore store = new();
+        var root = new SystemRoot(store);
+        root.Add(new UiDropdownSystem(store));
+
+        Entity button = store.CreateEntity(
+            new Position(new Vector2(100, 50)),
+            new Rectangle(new Rect2(-50, -20, 100, 40)));
+        Entity list = store.CreateEntity(
+            new Position(new Vector2(-10_000, -10_000)),
+            new Rectangle(new Rect2(0, 0, 0, 0)));
+        button.AddComponent(new Dropdown(list, 0, new Vector2(100, 80)));
+
+        button.AddTag<Pressed>();
+        root.Update(new UpdateTick(1f / 60f, 1f));
+        button.RemoveTag<Pressed>();
+        float first = list.GetComponent<Position>().Value.Y;
+
+        button.GetComponent<Position>().Value = new Vector2(100, 150);
+        root.Update(new UpdateTick(1f / 60f, 2f));
+
+        Assert.That(list.GetComponent<Position>().Value.Y,
+            Is.EqualTo(first + 100f));
+    }
+
+    [Test]
     public void AccountsForAParentedButtonTransform()
     {
         EntityStore store = new();

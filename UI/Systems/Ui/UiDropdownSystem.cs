@@ -38,6 +38,7 @@ public sealed class UiDropdownSystem : QuerySystem<Dropdown>
 
             if (pressed && !held)
             {
+                bool wasOpen = dropdown.Open;
                 bool open = !dropdown.Open;
                 if (open)
                 {
@@ -53,7 +54,16 @@ public sealed class UiDropdownSystem : QuerySystem<Dropdown>
 
                 dropdown.Open = open;
                 LayOut(entity, ref dropdown, buffer);
+                if (wasOpen != open)
+                    MarkContainerDirty(entity, buffer);
             }
+        }
+
+        foreach (Entity entity in Query.ToEntityList())
+        {
+            ref Dropdown dropdown = ref entity.GetComponent<Dropdown>();
+            if (dropdown.Open)
+                LayOut(entity, ref dropdown, buffer);
         }
 
         foreach (Entity entity in _entities
@@ -81,6 +91,7 @@ public sealed class UiDropdownSystem : QuerySystem<Dropdown>
             dropdown.Open = false;
             buffer.AddComponent(option.Owner.Id, new DropdownChanged(option.Value));
             LayOut(option.Owner, ref dropdown, buffer);
+            MarkContainerDirty(option.Owner, buffer);
         }
     }
 
@@ -106,8 +117,6 @@ public sealed class UiDropdownSystem : QuerySystem<Dropdown>
         Vector2 size = dropdown.ListSize == Vector2.Zero
             ? listRectangle.Bounds.Size
             : dropdown.ListSize;
-
-        MarkContainerDirty(button, buffer);
 
         if (!dropdown.Open)
         {
