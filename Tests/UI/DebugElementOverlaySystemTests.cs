@@ -7,6 +7,7 @@ using Writer.Ecs;
 using Writer.Systems.Canvas;
 using Writer.Systems.Ui;
 using Writer.Systems.Input;
+using Writer.Ui.Systems.Ui;
 using Position = Writer.Ecs.Position;
 
 namespace Writer.Tests.UI;
