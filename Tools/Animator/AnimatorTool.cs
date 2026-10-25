@@ -99,54 +99,77 @@ public partial class AnimatorTool : Control
         _status = HudText(ui, new Vector2(520, 50), new Vector2(420, 18),
             "", 12, new Color("#a3e635"));
 
-        BuildButton(ui, "PLAY", ToolActionKind.Play,
-            new Vector2(980, 30), new Vector2(80, 30));
-        BuildButton(ui, "STOP", ToolActionKind.Stop,
-            new Vector2(1068, 30), new Vector2(80, 30));
+        ui.Container(
+            new Vector2(1200, 120),
+            new Vector2(180, 250),
+            StackDirection.Vertical,
+            spacing: 8,
+            color: new Color(0, 0, 0, 0),
+            padding: 8);
+        BuildButtonRow(ui, new[]
+        {
+            ("PLAY", ToolActionKind.Play),
+            ("STOP", ToolActionKind.Stop),
+        }, 168);
         _autoKey = BuildButton(ui, "AUTO KEY OFF", ToolActionKind.AutoKey,
-            new Vector2(980, 68), new Vector2(168, 30));
+            Vector2.Zero, new Vector2(168, 30));
         BuildButton(ui, "SAVE XAF", ToolActionKind.Save,
-            new Vector2(1200, 30), new Vector2(168, 30));
+            Vector2.Zero, new Vector2(168, 30));
         BuildButton(ui, "LOAD XAF", ToolActionKind.Load,
-            new Vector2(1200, 68), new Vector2(168, 30));
-        BuildButton(ui, "ROT -", ToolActionKind.RotateLeft,
-            new Vector2(1200, 106), new Vector2(80, 28));
-        BuildButton(ui, "ROT +", ToolActionKind.RotateRight,
-            new Vector2(1288, 106), new Vector2(80, 28));
-        BuildButton(ui, "SCALE -", ToolActionKind.ScaleDown,
-            new Vector2(1200, 142), new Vector2(80, 28));
-        BuildButton(ui, "SCALE +", ToolActionKind.ScaleUp,
-            new Vector2(1288, 142), new Vector2(80, 28));
+            Vector2.Zero, new Vector2(168, 30));
+        BuildButtonRow(ui, new[]
+        {
+            ("ROT -", ToolActionKind.RotateLeft),
+            ("ROT +", ToolActionKind.RotateRight),
+        }, 168);
+        BuildButtonRow(ui, new[]
+        {
+            ("SCALE -", ToolActionKind.ScaleDown),
+            ("SCALE +", ToolActionKind.ScaleUp),
+        }, 168);
         BuildButton(ui, "KEY BONE", ToolActionKind.KeyBone,
-            new Vector2(1244, 178), new Vector2(168, 30));
+            Vector2.Zero, new Vector2(168, 30));
+        ui.End();
 
         float left = 20;
         float top = 100;
         float bottom = screen.Y - 150;
-        ui.RectEntity(new Vector2(left + 120, (top + bottom) / 2),
-            new Vector2(220, bottom - top), new Color("#111827"));
-        HudText(ui, new Vector2(left + 120, top + 20), new Vector2(190, 20),
+        ui.Container(
+            new Vector2(left + 120, (top + bottom) / 2),
+            new Vector2(220, bottom - top),
+            StackDirection.Vertical,
+            spacing: 8,
+            color: new Color("#111827"),
+            padding: 12,
+            cross: StackCrossAlignment.Start);
+        HudText(ui, Vector2.Zero, new Vector2(190, 20),
             "BONES", 14, new Color("#facc15"));
         for (int i = 0; i < _package.Skeleton.Bones.Count; i++)
         {
             XafBone bone = _package.Skeleton.Bones[i];
-            HudText(ui, new Vector2(left + 120, top + 52 + i * 24),
-                new Vector2(190, 20),
+            HudText(ui, Vector2.Zero, new Vector2(190, 20),
                 $"{bone.Id}  z{bone.ZOrder}", 13, new Color("#cbd5e1"));
         }
+        ui.End();
 
         float rightX = screen.X - 140;
-        ui.RectEntity(new Vector2(rightX, (top + bottom) / 2),
-            new Vector2(240, bottom - top), new Color("#111827"));
-        HudText(ui, new Vector2(rightX, top + 20), new Vector2(210, 20),
+        ui.Container(
+            new Vector2(rightX, (top + bottom) / 2),
+            new Vector2(240, bottom - top),
+            StackDirection.Vertical,
+            spacing: 8,
+            color: new Color("#111827"),
+            padding: 12,
+            cross: StackCrossAlignment.Start);
+        HudText(ui, Vector2.Zero, new Vector2(210, 20),
             "CLIPS", 14, new Color("#facc15"));
         for (int i = 0; i < _package.Clips.Count; i++)
         {
             XafClip clip = _package.Clips[i];
             BuildButton(ui, clip.Id.ToUpperInvariant(), ToolActionKind.Clip,
-                new Vector2(rightX, top + 52 + i * 36),
-                new Vector2(200, 28), clip.Id);
+                Vector2.Zero, new Vector2(200, 28), clip.Id);
         }
+        ui.End();
 
         _timeline = ui.RectEntity(
             new Vector2(screen.X / 2, screen.Y - 80),
@@ -170,6 +193,26 @@ public partial class AnimatorTool : Control
         button.AddComponent(ButtonVisual.Create(new Color("#2563eb")));
         button.AddComponent(new ToolAction(action, argument));
         return button;
+    }
+
+    private void BuildButtonRow(
+        UiBuilder ui,
+        (string Label, ToolActionKind Kind)[] buttons,
+        float width)
+    {
+        ui.Container(
+            Vector2.Zero,
+            new Vector2(width, 30),
+            StackDirection.Horizontal,
+            spacing: 6,
+            color: new Color(0, 0, 0, 0),
+            cross: StackCrossAlignment.Center);
+        foreach ((string label, ToolActionKind kind) in buttons)
+        {
+            BuildButton(ui, label, kind, Vector2.Zero,
+                new Vector2((width - 6) / 2, 30));
+        }
+        ui.End();
     }
 
     private Entity HudText(
