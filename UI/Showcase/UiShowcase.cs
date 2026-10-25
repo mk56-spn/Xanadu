@@ -5,8 +5,6 @@ using Godot;
 using Writer.Ecs;
 using Writer.Systems.Canvas;
 using Writer.Systems.Input;
-using Writer.Systems.Layout;
-using Writer.Systems.Rendering;
 using Writer.Systems.Ui;
 using Position = Writer.Ecs.Position;
 
@@ -27,25 +25,13 @@ public partial class UiShowcase : Control
         _pointer = new ShowcasePointer();
         var canvas = new GodotRectCanvas();
 
-        _root.Add(new LayerParentSystem(GetCanvasItem()));
-        _root.Add(new ContainerLayoutSystem());
-        _root.Add(new UiAnchorSystem());
-        _root.Add(new DrawableInitialiseSystem());
-        _root.Add(new TransformSystem(canvas));
-        _root.Add(new RectDrawSystem(canvas));
-        _root.Add(new GradientDrawSystem(canvas));
-        _root.Add(new TextDrawSystem(canvas));
-        _root.Add(new ImageDrawSystem(canvas));
-        _root.Add(new InputSystem(_pointer));
-        _scroll = new ScrollSystem();
-        _root.Add(_scroll);
-        _root.Add(new ButtonVisualSystem());
-        _root.Add(new UiDropdownSystem(_store));
-        _root.Add(new UiSliderSystem(_pointer));
-        UiDebugOverlayGroup.Attach(
-            _root,
+        UiSystemGroup ui = new(
+            _store,
+            GetCanvasItem(),
             canvas,
-            GetCanvasItem());
+            _pointer);
+        _root.Add(ui);
+        _scroll = ui.Scroll;
 
         Build();
         SetProcess(true);
