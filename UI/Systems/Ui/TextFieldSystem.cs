@@ -3,7 +3,7 @@ using Godot;
 using Friflo.Engine.ECS.Systems;
 using Writer.Ecs;
 
-namespace Writer.Systems.Editor;
+namespace Writer.Systems.Ui;
 
 /// <summary>Projects backing text-field values into drawable ECS text.</summary>
 public sealed class TextFieldSystem : QuerySystem<TextField, Text, FillColor>

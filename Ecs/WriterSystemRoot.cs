@@ -120,9 +120,9 @@ public sealed class WriterSystemRoot : SystemRoot, IDisposable
         RenderingServer.CanvasItemSetParent(_hudEditOverlay, parentCanvas);
         RenderingServer.CanvasItemSetZIndex(_hudEditOverlay, 950);
 
-        Add(new InitializationSystemGroup(parentCanvas));
+        Writer.Systems.Ui.UiBootstrap.AttachInitialization(this, parentCanvas);
         Add(new PhysicsSystemGroup(Physics));
-        Add(new PresentationSystemGroup(canvas));
+        Writer.Systems.Ui.UiBootstrap.AttachPresentation(this, canvas);
         Add(new AudioSystemGroup(_trackAudio, new GodotTrackClock(), canvas, _timeline));
         Add(new PlayfieldSystemGroup(
             entities,

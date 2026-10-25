@@ -30,7 +30,6 @@ public sealed class EditorSystemGroup : SystemGroup
         Add(new EditorSidebarLayoutSystem(entities));
         Add(new EditorPlacementSystem(entities));
         Add(new EditorButtonSystem(entities, commands));
-        Add(new TextFieldSystem());
         Add(new EditorMetadataSystem(entities, commands));
         Add(new EditorHudSystem(entities));
         Add(new WaveformPreviewSystem());

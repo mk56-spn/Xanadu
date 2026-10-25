@@ -2,7 +2,7 @@ using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Writer.Ecs;
 
-namespace Writer.Systems.Input;
+namespace Writer.Systems.Ui;
 
 /// <summary>Keeps editor text-field focus in sync with pointer presses.</summary>
 public sealed class TextFieldFocusSystem : QuerySystem<Rectangle>

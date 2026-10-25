@@ -19,13 +19,8 @@ public sealed class InputSystemGroup : SystemGroup
         ScrollSystem scroll)
         : base("Input")
     {
-        Add(new InputSystem(pointerInput));
-        Add(new UiDropdownSystem(entities));
-        Add(new TextFieldFocusSystem());
-        Add(scroll);
-        Add(new ToggleSystem());
+        Add(new UiInteractionSystemGroup(entities, pointerInput, scroll));
         Add(new VSyncToggleSystem(display));
-        Add(new ButtonVisualSystem());
         Add(scenes);
         Add(new KeybindUiSystem(keybinds));
     }
