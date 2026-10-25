@@ -25,6 +25,8 @@ public partial class AnimatorTool : Control
     private ToolPointer _pointer = null!;
     private Rid _preview;
     private Rid _timelineCanvas;
+    private Rid _svgCanvas;
+    private readonly List<SvgVisual> _svgVisuals = new();
     private bool _wasTimelinePressed;
     private XafPackage _package = null!;
     private AnimatorRuntime _runtime = null!;
@@ -57,6 +59,10 @@ public partial class AnimatorTool : Control
         RenderingServer.CanvasItemSetParent(_preview, GetCanvasItem());
         RenderingServer.CanvasItemSetZIndex(_preview, 1);
 
+        _svgCanvas = RenderingServer.CanvasItemCreate();
+        RenderingServer.CanvasItemSetParent(_svgCanvas, GetCanvasItem());
+        RenderingServer.CanvasItemSetZIndex(_svgCanvas, 1);
+
         _timelineCanvas = RenderingServer.CanvasItemCreate();
         RenderingServer.CanvasItemSetParent(_timelineCanvas, GetCanvasItem());
         RenderingServer.CanvasItemSetZIndex(_timelineCanvas, 4);
@@ -81,6 +87,7 @@ public partial class AnimatorTool : Control
         _playback = new AnimatorPlayback(_runtime);
         _runtime.Play("idle", 0.15f);
         BuildUi();
+        LoadAttachmentVisuals();
         SetProcess(true);
     }
 
@@ -476,6 +483,68 @@ public partial class AnimatorTool : Control
         }
     }
 
+    private void LoadAttachmentVisuals()
+    {
+        foreach (SvgVisual visual in _svgVisuals)
+        {
+            RenderingServer.FreeRid(visual.Item);
+            visual.Texture.Dispose();
+        }
+        _svgVisuals.Clear();
+
+        for (int i = 0; i < _package.Attachments.Count; i++)
+        {
+            XafAttachment attachment = _package.Attachments[i];
+            string path = ProjectSettings.GlobalizePath(attachment.SvgPath);
+            if (!System.IO.File.Exists(path))
+                continue;
+
+            try
+            {
+                string svg = System.IO.File.ReadAllText(path);
+                string isolated = XafSvgDocument.IsolateGroup(
+                    svg,
+                    attachment.Group);
+                var image = new Image();
+                Error error = image.LoadSvgFromString(isolated, 1f);
+                if (error != Error.Ok)
+                    throw new InvalidOperationException(error.ToString());
+                ImageTexture texture = ImageTexture.CreateFromImage(image);
+                Rid item = RenderingServer.CanvasItemCreate();
+                RenderingServer.CanvasItemSetParent(item, _svgCanvas);
+                RenderingServer.CanvasItemAddTextureRect(
+                    item,
+                    new Rect2(-image.GetSize() / 2, image.GetSize()),
+                    texture.GetRid());
+                _svgVisuals.Add(new SvgVisual(i, item, texture));
+            }
+            catch (Exception)
+            {
+                // Missing or malformed SVG should not prevent rig editing.
+            }
+        }
+    }
+
+    private void DrawSvgAttachments(
+        Transform2D[] attachments,
+        Vector2 center)
+    {
+        RenderingServer.CanvasItemClear(_svgCanvas);
+        foreach (SvgVisual visual in _svgVisuals)
+        {
+            if (visual.AttachmentIndex >= attachments.Length)
+                continue;
+
+            RenderingServer.CanvasItemSetTransform(
+                visual.Item,
+                new Transform2D(
+                    0f,
+                    Vector2.One,
+                    0f,
+                    center) * attachments[visual.AttachmentIndex]);
+        }
+    }
+
     private void DrawPreview()
     {
         _canvas.Clear(_preview);
@@ -530,6 +599,7 @@ public partial class AnimatorTool : Control
 
         Transform2D[] attachments = XafRig.WorldAttachments(
             _package, _runtime.Pose, world);
+        DrawSvgAttachments(attachments, center);
         for (int i = 0; i < attachments.Length; i++)
         {
             Vector2 point = center + attachments[i].Origin;
@@ -769,6 +839,20 @@ public partial class AnimatorTool : Control
             BoneId = "torso",
             Transform = new Transform2D(0f, new Vector2(0, -20)),
         });
+        package.Attachments.Add(new XafAttachment
+        {
+            SvgPath = "res://Assets/SVG/head.svg",
+            Group = "head",
+            BoneId = "head",
+            Transform = new Transform2D(0f, new Vector2(0, -5)),
+        });
+        package.Attachments.Add(new XafAttachment
+        {
+            SvgPath = "res://Assets/SVG/arm.svg",
+            Group = "arm",
+            BoneId = "arm",
+            Transform = new Transform2D(0f, new Vector2(55, 0)),
+        });
         package.Clips.Add(Clip("idle", 0f, 8f, 2f, 0f));
         package.Clips.Add(Clip("jumping", 0f, 20f, 1.2f, 1f));
         package.Clips.Add(Clip("landing", 20f, 0f, 1.2f, 0f));
@@ -926,6 +1010,11 @@ public partial class AnimatorTool : Control
 
         public void EndFrame() => ClickPending = false;
     }
+
+    private sealed record SvgVisual(
+        int AttachmentIndex,
+        Rid Item,
+        ImageTexture Texture);
 
     public enum ToolActionKind
     {
