@@ -37,7 +37,6 @@ public sealed class DebugSystemGroup : SystemGroup
             this,
             canvas,
             parentCanvas);
-        Add(new Writer.Systems.Ui.UiSliderSystem(pointer));
         Add(new GravityDebugSystem(
             entitiesForSlider,
             physics,
