@@ -62,6 +62,34 @@ public sealed class AnimatorRuntimeTests
     }
 
     [Test]
+    public void NonLoopingClipStopsAtItsDuration()
+    {
+        var runtime = new AnimatorRuntime(Package());
+        runtime.Play("jump");
+
+        runtime.Update(1f);
+        runtime.Update(1f);
+
+        Assert.That(runtime.CurrentTime,
+            Is.EqualTo(runtime.CurrentDuration));
+    }
+
+    [Test]
+    public void LoopingClipWrapsItsRuntimeTime()
+    {
+        var runtime = new AnimatorRuntime(Package());
+        XafClip clip = runtime.Package.Clips[2];
+        clip.Loop = true;
+        clip.LoopStart = 0f;
+        clip.LoopEnd = 1f;
+        runtime.Play("bob");
+
+        runtime.Update(1.5f);
+
+        Assert.That(runtime.CurrentTime, Is.EqualTo(0.5f).Within(0.001f));
+    }
+
+    [Test]
     public void UnknownClipDoesNotChangeState()
     {
         var runtime = new AnimatorRuntime(Package());

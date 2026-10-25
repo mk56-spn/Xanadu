@@ -1,3 +1,4 @@
+using Godot;
 using System;
 using System.Collections.Generic;
 
@@ -111,9 +112,9 @@ public sealed class AnimatorRuntime
         if (Paused || delta <= 0f)
             return;
 
-        _currentTime += delta;
+        _currentTime = ClampTime(_current, _currentTime + delta);
         if (_next is not null)
-            _nextTime += delta;
+            _nextTime = ClampTime(_next, _nextTime + delta);
 
         for (int i = 0; i < _additives.Count; i++)
         {
@@ -154,6 +155,21 @@ public sealed class AnimatorRuntime
         }
 
         Pose = basePose;
+    }
+
+    private static float ClampTime(XafClip? clip, float time)
+    {
+        if (clip is null)
+            return time;
+
+        if (clip.Loop)
+        {
+            float length = Math.Max(0.0001f, clip.LoopEnd - clip.LoopStart);
+            return clip.LoopStart +
+                   Mathf.PosMod(time - clip.LoopStart, length);
+        }
+
+        return Math.Clamp(time, 0f, clip.Duration);
     }
 
     private void FinishFade()

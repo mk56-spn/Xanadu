@@ -31,6 +31,9 @@ public partial class AnimatorTool : Control
     private Entity _status;
     private Entity _autoKey;
     private Entity _onionButton;
+    private Entity _fileButton;
+    private Entity _fileMenu;
+    private bool _fileMenuOpen;
     private Entity _previewPanel;
     private Entity _timelinePanel;
     private bool _autoKeyEnabled;
@@ -134,6 +137,8 @@ public partial class AnimatorTool : Control
         ui.End();
         _status = HudText(ui, Vector2.Zero, new Vector2(520, 24),
             "", 13, new Color("#a3e635"));
+        _fileButton = BuildButton(ui, "FILE ▾", ToolActionKind.ToggleFileMenu,
+            Vector2.Zero, new Vector2(96, 30));
         ui.End();
 
         ui.Container(
@@ -158,7 +163,8 @@ public partial class AnimatorTool : Control
         {
             XafBone bone = _package.Skeleton.Bones[i];
             HudText(ui, Vector2.Zero, new Vector2(210, 20),
-                $"{bone.Id}  z{bone.ZOrder}", 13, new Color("#cbd5e1"));
+                $"{bone.Id}  z{bone.ZOrder}", 13, new Color("#cbd5e1"),
+                TextAlign.Left);
         }
         ui.End();
 
@@ -189,10 +195,6 @@ public partial class AnimatorTool : Control
         _autoKey = BuildButton(ui, "AUTO KEY OFF", ToolActionKind.AutoKey,
             Vector2.Zero, new Vector2(168, 30));
         _onionButton = BuildButton(ui, "ONION OFF", ToolActionKind.Onion,
-            Vector2.Zero, new Vector2(168, 30));
-        BuildButton(ui, "SAVE XAF", ToolActionKind.Save,
-            Vector2.Zero, new Vector2(168, 30));
-        BuildButton(ui, "LOAD XAF", ToolActionKind.Load,
             Vector2.Zero, new Vector2(168, 30));
         BuildButtonRow(ui, new[]
         {
@@ -229,6 +231,22 @@ public partial class AnimatorTool : Control
         ui.End();
 
         ui.End();
+
+        UiBuilder menuUi = UiBuilder.Begin(_store).Layer(2);
+        menuUi.Container(
+            new Vector2(-10_000, -10_000),
+            new Vector2(180, 82),
+            StackDirection.Vertical,
+            spacing: 6,
+            color: new Color("#111827"),
+            padding: 6,
+            cross: StackCrossAlignment.Center);
+        _fileMenu = menuUi.Current;
+        BuildButton(menuUi, "SAVE XAF", ToolActionKind.Save,
+            Vector2.Zero, new Vector2(168, 30));
+        BuildButton(menuUi, "LOAD XAF", ToolActionKind.Load,
+            Vector2.Zero, new Vector2(168, 30));
+        menuUi.End();
     }
 
     private Entity BuildButton(
@@ -273,11 +291,13 @@ public partial class AnimatorTool : Control
         Vector2 size,
         string text,
         int fontSize,
-        Color color)
+        Color color,
+        TextAlign align = TextAlign.Center)
     {
         Entity label = ui.RectEntity(position, size,
             new Color(0, 0, 0, 0), text);
         label.AddComponent(new TextStyle(fontSize, color));
+        label.AddComponent(new TextAlignment(align));
         return label;
     }
 
@@ -698,6 +718,16 @@ public partial class AnimatorTool : Control
         return clip;
     }
 
+    private void CloseFileMenu()
+    {
+        _fileMenuOpen = false;
+        if (_fileMenu.HasComponent<Position>())
+        {
+            _fileMenu.GetComponent<Position>().Value =
+                new Vector2(-10_000, -10_000);
+        }
+    }
+
     private void NudgeTransform(float rotation, float scale)
     {
         if (_selectedBone < 0)
@@ -729,6 +759,16 @@ public partial class AnimatorTool : Control
     {
         switch (action.Kind)
         {
+            case ToolActionKind.ToggleFileMenu:
+                _fileMenuOpen = !_fileMenuOpen;
+                if (_fileMenu.HasComponent<Position>())
+                {
+                    _fileMenu.GetComponent<Position>().Value =
+                        _fileMenuOpen
+                            ? new Vector2(GetViewportRect().Size.X - 350, 120)
+                            : new Vector2(-10_000, -10_000);
+                }
+                break;
             case ToolActionKind.Play:
                 _runtime.SetPaused(false);
                 _timeScale = 1f;
@@ -743,12 +783,14 @@ public partial class AnimatorTool : Control
                 break;
             case ToolActionKind.Save:
                 SavePackage();
+                CloseFileMenu();
                 break;
             case ToolActionKind.Load:
                 _package = LoadPackage();
                 _runtime = new AnimatorRuntime(_package);
                 _runtime.Play("idle", 0.15f);
                 SetStatus("LOADED");
+                CloseFileMenu();
                 break;
             case ToolActionKind.Clip:
                 _runtime.Play(action.Argument, 0.2f);
@@ -808,6 +850,7 @@ public partial class AnimatorTool : Control
         Save,
         Load,
         Clip,
+        ToggleFileMenu,
         RotateLeft,
         RotateRight,
         ScaleUp,
