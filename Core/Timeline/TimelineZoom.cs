@@ -1,9 +1,9 @@
 using System;
 
-namespace Writer.Systems.Editor;
+namespace Writer.Timeline;
 
 /// <summary>Timeline zoom levels and the default six-second view.</summary>
-public static class EditorTimelineZoom
+public static class TimelineZoom
 {
     public const float TargetSeconds = 6f;
 

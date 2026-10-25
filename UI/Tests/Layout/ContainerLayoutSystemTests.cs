@@ -65,6 +65,65 @@ public sealed class ContainerLayoutSystemTests : EcsSystemTest
     }
 
     [Test]
+    public void MainAlignmentStartPacksChildrenAtTheLeadingEdgeInsidePadding()
+    {
+        Entity container = Store.CreateEntity(
+            new Rectangle(new Rect2(-100, -50, 200, 100)),
+            new UiContainer(
+                StackDirection.Vertical,
+                spacing: 4,
+                padding: 6,
+                main: StackMainAlignment.Start),
+            Tags.Get<LayoutDirty>());
+        Entity first = AddChild(container, new Vector2(20, 20));
+        Entity second = AddChild(container, new Vector2(20, 20));
+
+        Frame();
+
+        Assert.That(first.GetComponent<Position>().Value.Y, Is.EqualTo(-50 + 6 + 10));
+        Assert.That(second.GetComponent<Position>().Value.Y, Is.EqualTo(-50 + 6 + 20 + 4 + 10));
+    }
+
+    [Test]
+    public void MainAlignmentEndPacksChildrenAtTheTrailingEdgeInsidePadding()
+    {
+        Entity container = Store.CreateEntity(
+            new Rectangle(new Rect2(-100, -50, 200, 100)),
+            new UiContainer(
+                StackDirection.Horizontal,
+                spacing: 4,
+                padding: 6,
+                main: StackMainAlignment.End),
+            Tags.Get<LayoutDirty>());
+        Entity first = AddChild(container, new Vector2(20, 20));
+        Entity second = AddChild(container, new Vector2(30, 20));
+
+        Frame();
+
+        Assert.That(second.GetComponent<Position>().Value.X, Is.EqualTo(100 - 6 - 15));
+        Assert.That(first.GetComponent<Position>().Value.X, Is.EqualTo(100 - 6 - 30 - 4 - 10));
+    }
+
+    [Test]
+    public void StartAlignmentKeepsRowsStillWhenALaterRowIsRemoved()
+    {
+        Entity container = Store.CreateEntity(
+            new Rectangle(new Rect2(-100, -50, 200, 100)),
+            new UiContainer(StackDirection.Vertical, main: StackMainAlignment.Start),
+            Tags.Get<LayoutDirty>());
+        Entity first = AddChild(container, new Vector2(20, 20));
+        Entity second = AddChild(container, new Vector2(20, 20));
+        Frame();
+        float before = first.GetComponent<Position>().Value.Y;
+
+        second.AddTag<LayoutIgnore>();
+        container.AddTag<LayoutDirty>();
+        Frame();
+
+        Assert.That(first.GetComponent<Position>().Value.Y, Is.EqualTo(before));
+    }
+
+    [Test]
     public void AutoSizeMeasuresChildrenWithPadding()
     {
         Entity container = Store.CreateEntity(

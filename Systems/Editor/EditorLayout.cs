@@ -1,6 +1,7 @@
 using System;
 using Godot;
 using Writer.Ecs;
+using Writer.Timeline;
 
 namespace Writer.Systems.Editor;
 
@@ -64,14 +65,9 @@ public static class EditorLayout
         Playhead playhead,
         float zoom)
     {
-        long duration = Math.Max(1, playhead.DurationMs);
-        long window = Math.Max(1, (long)(duration / Math.Max(1f, zoom)));
-        long start = Math.Clamp(
-            playhead.TimeMs - window / 2,
-            0,
-            Math.Max(0, duration - window));
-
-        return (start, Math.Min(duration, start + window));
+        TimeWindow window = TimeWindow.Following(
+            playhead.TimeMs, playhead.DurationMs, zoom);
+        return (window.Start, window.End);
     }
 
     public static Rect2 PlayfieldRect(PlayfieldView view, Playfield playfield) =>

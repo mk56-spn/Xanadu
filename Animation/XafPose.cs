@@ -97,6 +97,13 @@ public static class XafSampler
             if (channel.Target == XafChannelTarget.Bone &&
                 boneIndices.TryGetValue(channel.TargetId, out int bone))
             {
+                // Bones keep their rest length unless explicitly movable.
+                if (IsTranslation(channel.Property) &&
+                    !package.Skeleton.Bones[bone].CanTranslate)
+                {
+                    continue;
+                }
+
                 Apply(ref pose.Bones[bone], channel.Property, value);
             }
             else if (channel.Target == XafChannelTarget.Attachment &&
@@ -131,7 +138,8 @@ public static class XafSampler
             float t = (time - previous.Time) / span;
             return previous.Interpolation switch
             {
-                XafInterpolation.Step => previous.Value,
+                // At the next key's own time the value is that key's.
+                XafInterpolation.Step => t >= 1f ? next.Value : previous.Value,
                 XafInterpolation.CubicBezier => Hermite(
                     previous.Value,
                     next.Value,
@@ -165,6 +173,9 @@ public static class XafSampler
                h01 * next +
                h11 * tangentIn * span;
     }
+
+    public static bool IsTranslation(XafChannelProperty property) =>
+        property is XafChannelProperty.TranslationX or XafChannelProperty.TranslationY;
 
     private static void Apply(
         ref XafTransform transform,

@@ -14,6 +14,7 @@ public static class UiTheme
     public static readonly Color Text = new("#e2e8f0");
     public static readonly Color TextDim = new("#94a3b8");
     public static readonly Color Accent = new("#facc15");
+    public static readonly Color Selected = new("#0f766e");
 
     public const int FontSize = 14;
     public const int SmallFontSize = 12;
@@ -23,4 +24,6 @@ public static class UiTheme
     public const float ContainerPadding = 12f;
     public const float ContainerSpacing = 8f;
     public const float DropdownOptionSpacing = 2f;
+    public const float TreeRowHeight = 26f;
+    public const float TreeIndent = 16f;
 }

@@ -144,7 +144,7 @@ public sealed class ContainerLayoutSystem : QuerySystem<Rectangle, UiContainer>
         if (count > 1)
             total += container.Spacing * (count - 1);
 
-        float cursor = -total / 2;
+        float cursor = StartOffset(container, rectangle, total);
 
         foreach (Entity child in entity.ChildEntities)
         {
@@ -179,6 +179,23 @@ public sealed class ContainerLayoutSystem : QuerySystem<Rectangle, UiContainer>
         }
 
         buffer.RemoveTag<LayoutDirty>(entity.Id);
+    }
+
+    private static float StartOffset(
+        UiContainer container,
+        Rectangle rectangle,
+        float total)
+    {
+        float size = container.Direction == StackDirection.Horizontal
+            ? rectangle.Bounds.Size.X
+            : rectangle.Bounds.Size.Y;
+
+        return container.Main switch
+        {
+            StackMainAlignment.Start => -size / 2 + container.Padding,
+            StackMainAlignment.End => size / 2 - container.Padding - total,
+            _ => -total / 2,
+        };
     }
 
     private static float CrossOffset(

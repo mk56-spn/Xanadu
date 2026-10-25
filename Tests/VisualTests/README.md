@@ -70,6 +70,9 @@ Interactive controls:
   and exit buttons
 - `movement-judgement` — movement note alone must increment hit count and show
   a visible judgement
+- `editor-dash-wheel` — the generic Writer.UI wheel appears in MOVE mode, a
+  clicked wedge writes the dash direction, the 1/2 editor shortcuts switch
+  normal/dash placement, and the widget hides again
 - `leave-editor` — real editor overlay, SAVE & LEAVE, return to song select
 
 ## NUnit integration feasibility

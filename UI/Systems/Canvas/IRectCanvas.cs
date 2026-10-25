@@ -20,6 +20,9 @@ public interface IRectCanvas
     /// <summary>Draws a filled circle.</summary>
     void DrawCircle(Rid canvas, Vector2 center, float radius, Color color) { }
 
+    /// <summary>Fills a convex polygon.</summary>
+    void DrawPolygon(Rid canvas, ReadOnlySpan<Vector2> points, Color color) { }
+
     /// <summary>Draws a connected polyline.</summary>
     void DrawPolyline(
         Rid canvas,

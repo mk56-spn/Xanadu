@@ -1,135 +1,70 @@
 {
   "Version": 2,
-  "Id": "8c3806ad63a54b2eb7abbad55a40ccda",
-  "Slug": "mortal-coil-character-test",
+  "Id": "573be3e01be74907b945a36cf0c566ab",
+  "Slug": "",
   "SongId": "cfd622f1f39b48cf8d13c84b10f44694",
-  "Name": "Mortal Coil — Character Test",
+  "Name": "Mortal Coil \u2014 Character Test",
   "SnapDivision": 4,
   "PlayfieldWidth": 1000,
   "PlayfieldHeight": 1000,
   "Notes": [
     {
       "TimeMs": 1211,
-      "X": 500,
-      "Y": 950,
-      "FadeInMs": 300,
-      "FadeOutMs": 300,
+      "X": 493.16492,
+      "Y": 868.13104,
       "Target": 3,
       "Kind": 0,
-      "DashDirection": 3
+      "DashDirection": 1
     },
     {
       "TimeMs": 1511,
-      "X": 500,
-      "Y": 950,
-      "FadeInMs": 300,
-      "FadeOutMs": 300,
-      "Target": 0,
-      "Kind": 0,
-      "DashDirection": 3
-    },
-    {
-      "TimeMs": 1811,
-      "X": 500,
-      "Y": 950,
-      "FadeInMs": 300,
-      "FadeOutMs": 300,
-      "Target": 1,
-      "Kind": 0,
-      "DashDirection": 3
-    },
-    {
-      "TimeMs": 2111,
-      "X": 500,
-      "Y": 950,
-      "FadeInMs": 300,
-      "FadeOutMs": 300,
-      "Target": 2,
-      "Kind": 0,
-      "DashDirection": 3
+      "X": 503.437,
+      "Y": 920.7817,
+      "Target": 3,
+      "Kind": 1,
+      "DashDirection": 1
     },
     {
       "TimeMs": 2411,
-      "X": 500,
-      "Y": 950,
-      "FadeInMs": 300,
-      "FadeOutMs": 300,
-      "Target": 2,
+      "X": 502.153,
+      "Y": 924.63403,
+      "Target": 5,
       "Kind": 1,
-      "DashDirection": 2
+      "DashDirection": 1
     },
     {
       "TimeMs": 2711,
-      "X": 650,
+      "X": 631.8385,
+      "Y": 845.0161,
+      "Target": 5,
+      "Kind": 1,
+      "DashDirection": 7
+    },
+    {
+      "TimeMs": 5711,
+      "X": 500,
       "Y": 950,
-      "FadeInMs": 300,
-      "FadeOutMs": 300,
       "Target": 3,
       "Kind": 0,
       "DashDirection": 3
     },
     {
-      "TimeMs": 3011,
-      "X": 650,
-      "Y": 950,
-      "FadeInMs": 300,
-      "FadeOutMs": 300,
-      "Target": 4,
-      "Kind": 0,
-      "DashDirection": 3
-    },
-    {
-      "TimeMs": 3311,
-      "X": 650,
-      "Y": 950,
-      "FadeInMs": 300,
-      "FadeOutMs": 300,
-      "Target": 5,
+      "TimeMs": 6311,
+      "X": 502.15298,
+      "Y": 952.88556,
+      "Target": 2,
       "Kind": 1,
-      "DashDirection": 6
+      "DashDirection": 1
     },
     {
-      "TimeMs": 3611,
+      "TimeMs": 6911,
       "X": 500,
       "Y": 950,
-      "FadeInMs": 300,
-      "FadeOutMs": 300,
-      "Target": 5,
-      "Kind": 0,
-      "DashDirection": 3
-    },
-    {
-      "TimeMs": 3911,
-      "X": 500,
-      "Y": 950,
-      "FadeInMs": 300,
-      "FadeOutMs": 300,
-      "Target": 6,
-      "Kind": 0,
-      "DashDirection": 3
-    },
-    {
-      "TimeMs": 4211,
-      "X": 500,
-      "Y": 950,
-      "FadeInMs": 300,
-      "FadeOutMs": 300,
       "Target": 3,
       "Kind": 0,
       "DashDirection": 3
     }
   ],
   "Mines": [],
-  "StartPoints": [
-    {
-      "Name": "Start",
-      "TimeMs": 0,
-      "X": 500,
-      "Y": 950,
-      "MomentumX": 0,
-      "MomentumY": 0,
-      "DirectionX": 0,
-      "DirectionY": -1
-    }
-  ]
+  "StartPoints": []
 }

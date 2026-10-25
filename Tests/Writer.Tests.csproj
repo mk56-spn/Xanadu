@@ -22,5 +22,6 @@
     <ProjectReference Include="../Core/Writer.Core.csproj" />
     <ProjectReference Include="../UI/Writer.Ui.csproj" />
     <ProjectReference Include="VisualTests/Writer.VisualTests.csproj" />
+    <ProjectReference Include="../Tools/Animator/Writer.AnimatorTool.csproj" />
   </ItemGroup>
 </Project>

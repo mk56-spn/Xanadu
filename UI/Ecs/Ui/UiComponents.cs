@@ -61,6 +61,14 @@ public enum StackCrossAlignment
     End,
 }
 
+/// <summary>Placement of the stacked children along the container's main axis.</summary>
+public enum StackMainAlignment
+{
+    Center,
+    Start,
+    End,
+}
+
 /// <summary>
 /// Container entity that stacks its child entities.  Auto-sized dimensions
 /// are derived from the children and <see cref="Padding"/>; <see cref="AnchorTop"/>
@@ -74,7 +82,8 @@ public struct UiContainer(
     StackCrossAlignment cross = StackCrossAlignment.Center,
     bool autoWidth = false,
     bool autoHeight = false,
-    bool anchorTop = false) : IComponent
+    bool anchorTop = false,
+    StackMainAlignment main = StackMainAlignment.Center) : IComponent
 {
     public StackDirection Direction = direction;
     public float Spacing = spacing;
@@ -84,6 +93,9 @@ public struct UiContainer(
     public bool AutoWidth = autoWidth;
     public bool AutoHeight = autoHeight;
     public bool AnchorTop = anchorTop;
+
+    /// <summary>Where children sit along the stacking direction; centered by default.</summary>
+    public StackMainAlignment Main = main;
 }
 
 /// <summary>Layer entity component. ZIndex determines draw order between layers.</summary>

@@ -36,6 +36,17 @@ public sealed class GodotRectCanvas : IRectCanvas
     public void DrawLine(Rid canvas, Vector2 from, Vector2 to, Color color, float width) =>
         RenderingServer.CanvasItemAddLine(canvas, from, to, color, width, true);
 
+    public void DrawPolygon(Rid canvas, ReadOnlySpan<Vector2> points, Color color)
+    {
+        if (points.Length < 3)
+            return;
+
+        Vector2[] vertices = points.ToArray();
+        var colors = new Color[vertices.Length];
+        Array.Fill(colors, color);
+        RenderingServer.CanvasItemAddPolygon(canvas, vertices, colors);
+    }
+
     public void DrawPolyline(
         Rid canvas,
         ReadOnlySpan<Vector2> points,

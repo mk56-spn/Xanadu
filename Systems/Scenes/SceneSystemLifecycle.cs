@@ -189,7 +189,7 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
     {
         if (!_sceneRoot.IsNull)
         {
-            DeleteSubtree(_sceneRoot);
+            UiLayout.DeleteSubtree(_sceneRoot);
             _sceneRoot = default;
         }
 
@@ -204,18 +204,6 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
 
         foreach (Entity trail in _entities.Query<KeyPressTrail>().ToEntityList())
             trail.DeleteEntity();
-    }
-
-    private static void DeleteSubtree(Entity entity)
-    {
-        var children = new List<Entity>();
-        foreach (Entity child in entity.ChildEntities)
-            children.Add(child);
-
-        foreach (Entity child in children)
-            DeleteSubtree(child);
-
-        entity.DeleteEntity();
     }
 
     private string LabelFor(SceneKind scene) => _controllers.LabelFor(scene);

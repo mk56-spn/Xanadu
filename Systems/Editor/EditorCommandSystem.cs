@@ -4,7 +4,7 @@ using System.Linq;
 using System.IO;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
-using Writer.Ecs;
+using Writer.Ecs; using Writer.Timeline;
 using Writer.Levels;
 using Writer.Settings;
 using Writer.Editor;
@@ -90,6 +90,18 @@ public sealed class EditorCommandSystem :
                 playhead.SnapDivision = NormalizeSnap(command.IntValue);
                 break;
 
+            case EditorCommandType.SetPlacementMode:
+                if (Enum.IsDefined(
+                        typeof(EditorPlacementMode),
+                        command.IntValue) &&
+                    editor.HasComponent<EditorPlacementModeState>())
+                {
+                    editor.GetComponent<EditorPlacementModeState>().Mode =
+                        (EditorPlacementMode)command.IntValue;
+                }
+
+                break;
+
             case EditorCommandType.TogglePlayback:
                 if (!playhead.Playing &&
                     playhead.DurationMs > 0 &&
@@ -124,14 +136,14 @@ public sealed class EditorCommandSystem :
 
             case EditorCommandType.LoadSong:
                 LoadSong(command.Text ?? "", ref level, ref playhead);
-                if (editor.HasComponent<EditorTimeline>())
-                    editor.GetComponent<EditorTimeline>().AutoZoomed = false;
+                if (editor.HasComponent<TimelineView>())
+                    editor.GetComponent<TimelineView>().AutoZoomed = false;
                 break;
 
             case EditorCommandType.LoadSongById:
                 LoadSongById(command.Text ?? "", ref level, ref playhead);
-                if (editor.HasComponent<EditorTimeline>())
-                    editor.GetComponent<EditorTimeline>().AutoZoomed = false;
+                if (editor.HasComponent<TimelineView>())
+                    editor.GetComponent<TimelineView>().AutoZoomed = false;
                 break;
 
             case EditorCommandType.DeleteSelection:
@@ -324,11 +336,11 @@ public sealed class EditorCommandSystem :
 
     private static void ZoomTimeline(int direction, Entity editor)
     {
-        if (!editor.HasComponent<EditorTimeline>())
+        if (!editor.HasComponent<TimelineView>())
             return;
 
-        ref EditorTimeline timeline = ref editor.GetComponent<EditorTimeline>();
-        timeline.Zoom = EditorTimelineZoom.Step(timeline.Zoom, direction);
+        ref TimelineView timeline = ref editor.GetComponent<TimelineView>();
+        timeline.Zoom = TimelineZoom.Step(timeline.Zoom, direction);
         timeline.AutoZoomed = true;
     }
 
@@ -489,8 +501,8 @@ public sealed class EditorCommandSystem :
         _history.Clear();
         LevelDocumentMapper.Apply(_entities, editor, document);
 
-        if (editor.HasComponent<EditorTimeline>())
-            editor.GetComponent<EditorTimeline>().AutoZoomed = false;
+        if (editor.HasComponent<TimelineView>())
+            editor.GetComponent<TimelineView>().AutoZoomed = false;
 
         if (editor.HasComponent<NoteSelection>())
             editor.GetComponent<NoteSelection>().Clear();

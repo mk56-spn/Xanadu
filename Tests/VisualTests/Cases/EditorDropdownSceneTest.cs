@@ -121,8 +121,8 @@ public sealed class EditorDropdownSceneTest : SceneTest
         AddStep("release zoom toolbar", () => Context.Pointer.Release());
         AddUntilStep(
             "toolbar zoom changed",
-            () => Context.Entities.Query<EditorTimeline>().ToEntityList()[0]
-                .GetComponent<EditorTimeline>().Zoom >= 32f);
+            () => Context.Entities.Query<TimelineView>().ToEntityList()[0]
+                .GetComponent<TimelineView>().Zoom >= 32f);
     }
 
     private bool NoteTypeOptionsAreColoured()

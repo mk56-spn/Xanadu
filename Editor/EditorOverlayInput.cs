@@ -116,6 +116,15 @@ public partial class EditorOverlay : CanvasLayer
         if (IsWarningOpen())
             return;
 
+        if (EditorPlacementKeybinds.TryGet(
+                key.Keycode,
+                out EditorPlacementMode placement))
+        {
+            SetPlacementMode(placement);
+            GetViewport().SetInputAsHandled();
+            return;
+        }
+
         if (key.Keycode == Key.Escape)
         {
             _onBack?.Invoke();
@@ -200,6 +209,20 @@ public partial class EditorOverlay : CanvasLayer
             return;
 
         _commands.Enqueue(EditorCommand.DeleteSelection());
+    }
+
+    private void SetPlacementMode(EditorPlacementMode mode)
+    {
+        if (_editor.IsNull)
+            return;
+
+        _commands.Enqueue(EditorCommand.SetPlacementMode(mode));
+        SetStatus(mode switch
+        {
+            EditorPlacementMode.Movement => "Place dash",
+            EditorPlacementMode.Notes => "Place normal",
+            _ => "Placement mode",
+        });
     }
 
     private void Undo()

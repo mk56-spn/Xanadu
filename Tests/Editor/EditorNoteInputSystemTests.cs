@@ -42,7 +42,7 @@ public sealed class EditorNoteInputSystemTests
         ref Playhead playhead = ref editor.GetComponent<Playhead>();
         playhead.DurationMs = 10_000;
         playhead.TimeMs = 5_000;
-        editor.AddComponent(new EditorTimeline());
+        editor.AddComponent(new TimelineView());
 
         Entity note = _store.CreateEntity(new Note(5_000, new Vector2(500, 500)));
         Rect2 ruler = EditorLayout.RulerRect(
@@ -60,7 +60,7 @@ public sealed class EditorNoteInputSystemTests
     public void DraggingATimelineNoteRetimesIt()
     {
         Entity editor = _store.Query<PlayfieldView>().ToEntityList()[0];
-        editor.AddComponent(new EditorTimeline(2f));
+        editor.AddComponent(new TimelineView(2f));
         ref Playhead playhead = ref editor.GetComponent<Playhead>();
         playhead.DurationMs = 10_000;
         playhead.TimeMs = 2_500;
@@ -87,7 +87,7 @@ public sealed class EditorNoteInputSystemTests
     public void TimelineDragRetimesTheWholeMixedSelection()
     {
         Entity editor = _store.Query<PlayfieldView>().ToEntityList()[0];
-        editor.AddComponent(new EditorTimeline(2f));
+        editor.AddComponent(new TimelineView(2f));
         ref Playhead playhead = ref editor.GetComponent<Playhead>();
         playhead.DurationMs = 10_000;
         playhead.TimeMs = 2_500;
@@ -122,7 +122,7 @@ public sealed class EditorNoteInputSystemTests
     public void TimelineRetimeIsUndoable()
     {
         Entity editor = _store.Query<PlayfieldView>().ToEntityList()[0];
-        editor.AddComponent(new EditorTimeline(2f));
+        editor.AddComponent(new TimelineView(2f));
         ref Playhead playhead = ref editor.GetComponent<Playhead>();
         playhead.DurationMs = 10_000;
         playhead.TimeMs = 2_500;
@@ -194,7 +194,7 @@ public sealed class EditorNoteInputSystemTests
         ref Playhead playhead = ref editor.GetComponent<Playhead>();
         playhead.DurationMs = 10_000;
         playhead.TimeMs = 5_000;
-        editor.AddComponent(new EditorTimeline());
+        editor.AddComponent(new TimelineView());
 
         Entity first = _store.CreateEntity(
             new Note(3_000, new Vector2(500, 500)));
@@ -315,7 +315,7 @@ public sealed class EditorNoteInputSystemTests
         ref Playhead playhead = ref editor.GetComponent<Playhead>();
         playhead.DurationMs = 10_000;
         playhead.TimeMs = 1_000;
-        editor.AddComponent(new EditorTimeline(2f));
+        editor.AddComponent(new TimelineView(2f));
 
         Rect2 ruler = EditorLayout.RulerRect(
             editor.GetComponent<PlayfieldView>());
@@ -325,7 +325,7 @@ public sealed class EditorNoteInputSystemTests
         _pointer.Current = new PointerInput(
             new Vector2(centerX + ruler.Size.X * 0.2f, y), true);
         _root.Update(new UpdateTick(1f / 60f, 0));
-        long before = editor.GetComponent<EditorTimeline>().ScrubStartMs;
+        long before = editor.GetComponent<TimelineView>().ScrubStartMs;
 
         _pointer.Current = new PointerInput(
             new Vector2(centerX + ruler.Size.X * 0.25f, y), true);
@@ -333,7 +333,7 @@ public sealed class EditorNoteInputSystemTests
             _root.Update(new UpdateTick(1f / 60f, 0));
 
         Assert.That(
-            editor.GetComponent<EditorTimeline>().ScrubStartMs,
+            editor.GetComponent<TimelineView>().ScrubStartMs,
             Is.EqualTo(before));
 
         _pointer.Current = new PointerInput(
@@ -342,7 +342,7 @@ public sealed class EditorNoteInputSystemTests
             _root.Update(new UpdateTick(1f / 60f, 0));
 
         Assert.That(
-            editor.GetComponent<EditorTimeline>().ScrubStartMs,
+            editor.GetComponent<TimelineView>().ScrubStartMs,
             Is.GreaterThan(before));
     }
 

@@ -4,27 +4,26 @@ using System.Linq;
 using Friflo.Engine.ECS;
 using Godot;
 using Writer.Ecs;
+using Writer.History;
 using Writer.Settings;
 
 namespace Writer.Editor;
 
-/// <summary>Snapshot-based undo/redo for note and movement-queue edits.</summary>
+/// <summary>Undo/redo for note, mine and start-point edits, on the shared <see cref="UndoHistory{T}"/>.</summary>
 public sealed class EditorHistory
 {
-    private const int MaxEntries = 200;
-
     private readonly EntityStore _entities;
-    private readonly Stack<SnapshotPair> _undo = new();
-    private readonly Stack<SnapshotPair> _redo = new();
+    private readonly UndoHistory<EditorSnapshot> _history;
 
     public EditorHistory(EntityStore entities)
     {
         _entities = entities;
+        _history = new UndoHistory<EditorSnapshot>(AreEqual, Apply);
     }
 
-    public bool CanUndo => _undo.Count > 0;
+    public bool CanUndo => _history.CanUndo;
 
-    public bool CanRedo => _redo.Count > 0;
+    public bool CanRedo => _history.CanRedo;
 
     public EditorSnapshot Capture()
     {
@@ -98,54 +97,19 @@ public sealed class EditorHistory
         return new EditorSnapshot(notes, mines, starts);
     }
 
-    public void Record(EditorSnapshot before, EditorSnapshot after)
-    {
-        if (before.Notes.SequenceEqual(after.Notes) &&
-            before.Mines.SequenceEqual(after.Mines) &&
-            before.StartPoints.SequenceEqual(after.StartPoints))
-        {
-            return;
-        }
+    public void Record(EditorSnapshot before, EditorSnapshot after) =>
+        _history.Record(before, after);
 
-        _undo.Push(new SnapshotPair(before, after));
-        _redo.Clear();
+    public bool Undo() => _history.Undo();
 
-        if (_undo.Count > MaxEntries)
-        {
-            SnapshotPair[] keep = _undo.Take(MaxEntries).Reverse().ToArray();
-            _undo.Clear();
-            foreach (SnapshotPair pair in keep)
-                _undo.Push(pair);
-        }
-    }
+    public bool Redo() => _history.Redo();
 
-    public bool Undo()
-    {
-        if (_undo.Count == 0)
-            return false;
+    public void Clear() => _history.Clear();
 
-        SnapshotPair pair = _undo.Pop();
-        Apply(pair.Before);
-        _redo.Push(pair);
-        return true;
-    }
-
-    public bool Redo()
-    {
-        if (_redo.Count == 0)
-            return false;
-
-        SnapshotPair pair = _redo.Pop();
-        Apply(pair.After);
-        _undo.Push(pair);
-        return true;
-    }
-
-    public void Clear()
-    {
-        _undo.Clear();
-        _redo.Clear();
-    }
+    private static bool AreEqual(EditorSnapshot before, EditorSnapshot after) =>
+        before.Notes.SequenceEqual(after.Notes) &&
+        before.Mines.SequenceEqual(after.Mines) &&
+        before.StartPoints.SequenceEqual(after.StartPoints);
 
     private void Apply(EditorSnapshot snapshot)
     {
@@ -189,10 +153,6 @@ public sealed class EditorHistory
                 start.Direction));
         }
     }
-
-    private readonly record struct SnapshotPair(
-        EditorSnapshot Before,
-        EditorSnapshot After);
 }
 
 /// <summary>Stable editable-state snapshot used by undo/redo.</summary>
