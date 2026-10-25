@@ -107,6 +107,8 @@ public sealed class UiDropdownSystem : QuerySystem<Dropdown>
             ? listRectangle.Bounds.Size
             : dropdown.ListSize;
 
+        MarkContainerDirty(button, buffer);
+
         if (!dropdown.Open)
         {
             listPosition.Value = Hidden;
@@ -149,6 +151,15 @@ public sealed class UiDropdownSystem : QuerySystem<Dropdown>
             top += height + 2;
             buffer.AddTag<Moved>(option.Id);
         }
+    }
+
+    private static void MarkContainerDirty(
+        Entity button,
+        CommandBuffer buffer)
+    {
+        Entity parent = button.Parent;
+        if (!parent.IsNull && parent.HasComponent<UiContainer>())
+            buffer.AddTag<LayoutDirty>(parent.Id);
     }
 
     private void HideOptions(Entity button, CommandBuffer buffer)
