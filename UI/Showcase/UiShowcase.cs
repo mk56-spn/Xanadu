@@ -136,14 +136,27 @@ public partial class UiShowcase : Control
         ui.RectEntity(new Vector2(1030, 170), new Vector2(360, 260),
             new Color("#111827"), "SCROLL VIEW");
         Style(ui.Current, 18, new Color("#facc15"));
+        const float scrollContentHeight = 220f;
+        const float scrollViewportHeight = 150f;
+        float scrollBaseY = -scrollViewportHeight / 2 + scrollContentHeight / 2;
         ui.Container(
             new Vector2(1030, 300),
-            new Vector2(320, 150),
+            new Vector2(320, scrollViewportHeight),
             StackDirection.Vertical,
-            spacing: 2,
+            spacing: 0,
             clip: true,
             color: new Color("#0f172a"),
+            padding: 0,
+            takesInput: true);
+        Entity scrollViewport = ui.Current;
+        ui.Container(
+            new Vector2(0, scrollBaseY),
+            new Vector2(320, scrollContentHeight),
+            StackDirection.Vertical,
+            spacing: 2,
+            color: new Color(0, 0, 0, 0),
             padding: 6);
+        Entity scrollContent = ui.Current;
         for (int i = 0; i < 6; i++)
         {
             Entity row = ui.RectEntity(
@@ -151,6 +164,13 @@ public partial class UiShowcase : Control
                 new Color(0, 0, 0, 0), $"SCROLL ROW {i + 1}");
             Style(row, 13, new Color("#94a3b8"));
         }
+        ui.End();
+        scrollViewport.RemoveTag<LayoutDirty>();
+        scrollViewport.AddComponent(new ScrollView(
+            scrollContent,
+            scrollContentHeight,
+            scrollViewportHeight,
+            scrollBaseY));
         ui.End();
 
         ui.RectEntity(new Vector2(300, 520), new Vector2(520, 180),
