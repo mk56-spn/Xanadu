@@ -20,6 +20,12 @@ public struct Dropdown(
     public readonly Entity GetIndexedValue() => List;
 }
 
+/// <summary>Set for one frame when the user chooses a dropdown option.</summary>
+public struct DropdownChanged(int value) : IComponent
+{
+    public int Value = value;
+}
+
 /// <summary>
 /// One selectable option inside a dropdown, linked to its owning button.
 /// </summary>

@@ -6,6 +6,7 @@ using Writer.Ecs;
 using Writer.Editor.Commands;
 using Writer.Settings;
 using Writer.Systems.Editor;
+using Writer.Systems.Ui;
 using Position = Writer.Ecs.Position;
 
 namespace Writer.Tests.Editor;
@@ -40,6 +41,7 @@ public sealed class EditorDropdownSystemTests
 
         var root = new SystemRoot(store);
         root.Add(new EditorDropdownSystem(store, commands));
+        root.Add(new UiDropdownSystem(store));
 
         button.AddTag<Pressed>();
         root.Update(new UpdateTick(1f / 60f, 0));
@@ -50,7 +52,7 @@ public sealed class EditorDropdownSystemTests
             Is.Not.EqualTo(new Vector2(-10_000, -10_000)));
         Assert.That(
             option.GetComponent<Position>().Value,
-            Is.EqualTo(new Vector2(800, 299)));
+            Is.EqualTo(new Vector2(800, 237)));
         Assert.That(
             list.GetComponent<Rectangle>().Bounds.Size,
             Is.EqualTo(new Vector2(190, 96)));
@@ -59,6 +61,7 @@ public sealed class EditorDropdownSystemTests
         root.Update(new UpdateTick(1f / 60f, 0));
 
         option.AddTag<Pressed>();
+        root.Update(new UpdateTick(1f / 60f, 0));
         root.Update(new UpdateTick(1f / 60f, 0));
 
         Assert.That(button.GetComponent<Dropdown>().Selected, Is.EqualTo(2));
@@ -99,7 +102,9 @@ public sealed class EditorDropdownSystemTests
             new Playhead(0, 120, 0, false),
             new EditorNoteTarget(KeybindAction.M));
 
-        Entity list = store.CreateEntity(new Position(Vector2.Zero));
+        Entity list = store.CreateEntity(
+            new Position(Vector2.Zero),
+            new Rectangle(new Rect2(-95, -48, 190, 96)));
         Entity button = store.CreateEntity(
             new Position(new Vector2(800, 200)),
             new Rectangle(new Rect2(-95, -17, 190, 34)),
@@ -111,8 +116,10 @@ public sealed class EditorDropdownSystemTests
 
         var root = new SystemRoot(store);
         root.Add(new EditorDropdownSystem(store, commands));
+        root.Add(new UiDropdownSystem(store));
 
         option.AddTag<Pressed>();
+        root.Update(new UpdateTick(1f / 60f, 0));
         root.Update(new UpdateTick(1f / 60f, 0));
 
         Assert.That(commands.TryDequeue(out EditorCommand command), Is.True);

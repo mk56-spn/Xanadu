@@ -13,11 +13,9 @@ public sealed class EditorSidebarLayoutSystem : QuerySystem<EditorSidebarLayout>
     private const float ButtonHeight = 34f;
     private const float Gap = 16f;
     private const float PanelPadding = 20f;
-    private readonly EntityStore _entities;
-
     public EditorSidebarLayoutSystem(EntityStore entities)
     {
-        _entities = entities;
+        _ = entities;
     }
 
     protected override void OnUpdate()
@@ -43,9 +41,6 @@ public sealed class EditorSidebarLayoutSystem : QuerySystem<EditorSidebarLayout>
             Move(layout.CharacterLabel, characterLabelY, buffer);
             Move(layout.CharacterButton, characterButtonY, buffer);
             Move(layout.Tools, toolsY, buffer);
-
-            AlignOpenList(layout.TypeButton, buffer);
-            AlignOpenList(layout.CharacterButton, buffer);
 
             float top = layout.Top - 10;
             float bottom = toolsY + 70 + ButtonHeight / 2 + PanelPadding;
@@ -90,62 +85,6 @@ public sealed class EditorSidebarLayoutSystem : QuerySystem<EditorSidebarLayout>
                 }
             }
         });
-    }
-
-    private void AlignOpenList(Entity button, CommandBuffer buffer)
-    {
-        if (button.IsNull ||
-            !button.HasComponent<Dropdown>() ||
-            !button.HasComponent<Position>() ||
-            !button.HasComponent<Rectangle>())
-        {
-            return;
-        }
-
-        Dropdown dropdown = button.GetComponent<Dropdown>();
-        if (!dropdown.Open ||
-            dropdown.List.IsNull ||
-            !dropdown.List.HasComponent<Position>())
-        {
-            return;
-        }
-
-        Position buttonPosition = button.GetComponent<Position>();
-        float buttonHeight = button.GetComponent<Rectangle>().Bounds.Size.Y;
-        Vector2 listSize = dropdown.ListSize;
-        Vector2 target = buttonPosition.Value + new Vector2(
-            0,
-            buttonHeight / 2 + listSize.Y / 2 + 4);
-
-        ref Position listPosition = ref dropdown.List.GetComponent<Position>();
-        if (listPosition.Value != target)
-        {
-            listPosition.Value = target;
-            buffer.AddTag<Moved>(dropdown.List.Id);
-        }
-
-        foreach (Entity option in _entities
-                     .Query<DropdownOption>()
-                     .ToEntityList())
-        {
-            DropdownOption binding = option.GetComponent<DropdownOption>();
-            if (binding.Owner.Id != button.Id ||
-                !option.HasComponent<Position>())
-            {
-                continue;
-            }
-
-            float listTop = target.Y - listSize.Y / 2;
-            ref Position optionPosition = ref option.GetComponent<Position>();
-            Vector2 optionTarget = new(
-                target.X,
-                listTop + 18 + binding.Value * 30);
-            if (optionPosition.Value != optionTarget)
-            {
-                optionPosition.Value = optionTarget;
-                buffer.AddTag<Moved>(option.Id);
-            }
-        }
     }
 
     private static float OpenExtra(Entity button)

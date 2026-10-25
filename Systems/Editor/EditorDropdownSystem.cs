@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Godot;
@@ -7,19 +6,14 @@ using Writer.Ecs;
 using Writer.Editor.Commands;
 using Writer.Settings;
 using Writer.Systems.Playfields;
-using Position = Writer.Ecs.Position;
 
 namespace Writer.Systems.Editor;
 
-/// <summary>Opens and selects values from the ECS editor dropdowns.</summary>
+/// <summary>Editor display and command semantics for generic UI dropdowns.</summary>
 public sealed class EditorDropdownSystem : QuerySystem<Dropdown>
 {
-    private static readonly Vector2 HiddenList = new(-10_000, -10_000);
-
     private readonly EntityStore _entities;
     private readonly EditorCommandBus _commands;
-    private readonly HashSet<int> _heldButtons = new();
-    private readonly HashSet<int> _heldOptions = new();
 
     public EditorDropdownSystem(
         EntityStore entities,
@@ -34,7 +28,6 @@ public sealed class EditorDropdownSystem : QuerySystem<Dropdown>
         Playhead playhead = default;
         EditorNoteTarget noteTarget = default;
         EditorCharacterTarget characterTarget = default;
-
         foreach (Entity editor in _entities
                      .Query<Playhead, EditorNoteTarget>()
                      .ToEntityList())
@@ -48,7 +41,6 @@ public sealed class EditorDropdownSystem : QuerySystem<Dropdown>
         }
 
         CommandBuffer buffer = CommandBuffer;
-
         Query.ForEachEntity((ref dropdown, entity) =>
         {
             if (!entity.HasComponent<EditorDropdownControl>())
@@ -57,244 +49,60 @@ public sealed class EditorDropdownSystem : QuerySystem<Dropdown>
             EditorDropdownKind kind =
                 entity.GetComponent<EditorDropdownControl>().Kind;
 
-            int expected = kind switch
+            if (entity.TryGetComponent<DropdownChanged>(
+                    out DropdownChanged changed))
             {
-                EditorDropdownKind.Snap => SnapIndex(playhead.SnapDivision),
-                EditorDropdownKind.Character => (int)characterTarget.Target,
-                _ => (int)noteTarget.Target,
-            };
+                dropdown.Selected = changed.Value;
+                Commit(kind, changed.Value);
+                buffer.RemoveComponent<DropdownChanged>(entity.Id);
+            }
+            else
+            {
+                dropdown.Selected = Expected(kind, playhead, noteTarget,
+                    characterTarget);
+            }
 
-            dropdown.Selected = expected;
             SetDisplay(entity, ref dropdown, kind, buffer);
-
-            bool pressed = entity.Tags.Has<Pressed>();
-            bool wasPressed = _heldButtons.Contains(entity.Id);
-
-            if (pressed)
-                _heldButtons.Add(entity.Id);
-            else
-                _heldButtons.Remove(entity.Id);
-
-            if (!pressed || wasPressed)
-                return;
-
-            bool open = !dropdown.Open;
-
-            foreach (Entity other in _entities.Query<Dropdown>().ToEntityList())
-            {
-                if (other.Id == entity.Id)
-                    continue;
-
-                ref Dropdown otherDropdown =
-                    ref other.GetComponent<Dropdown>();
-                otherDropdown.Open = false;
-                Hide(otherDropdown.List, buffer);
-            }
-
-            dropdown.Open = open;
-            SetListPosition(entity, ref dropdown, buffer);
         });
-
-        foreach (Entity entity in _entities
-                     .Query<DropdownOption>()
-                     .ToEntityList())
-        {
-            bool pressed = entity.Tags.Has<Pressed>();
-            bool wasPressed = _heldOptions.Contains(entity.Id);
-
-            if (pressed)
-                _heldOptions.Add(entity.Id);
-            else
-                _heldOptions.Remove(entity.Id);
-
-            if (!pressed || wasPressed)
-                continue;
-
-            DropdownOption option = entity.GetComponent<DropdownOption>();
-            if (option.Owner.IsNull ||
-                !option.Owner.HasComponent<Dropdown>() ||
-                !option.Owner.HasComponent<EditorDropdownControl>())
-            {
-                continue;
-            }
-
-            ref Dropdown dropdown =
-                ref option.Owner.GetComponent<Dropdown>();
-            EditorDropdownKind kind =
-                option.Owner.GetComponent<EditorDropdownControl>().Kind;
-
-            dropdown.Selected = option.Value;
-            dropdown.Open = false;
-            Hide(dropdown.List, buffer);
-
-            if (kind == EditorDropdownKind.Snap)
-            {
-                _commands.Enqueue(EditorCommand.SetSnap(SnapValue(option.Value)));
-            }
-            else if (kind == EditorDropdownKind.Character)
-            {
-                Entity editor = option.Owner.Store
-                    .Query<EditorCharacterTarget>()
-                    .ToEntityList()[0];
-                if (!editor.IsNull)
-                {
-                    editor.GetComponent<EditorCharacterTarget>().Target =
-                        (CharacterKind)Math.Clamp(
-                            option.Value,
-                            0,
-                            0);
-                }
-            }
-            else
-            {
-                _commands.Enqueue(EditorCommand.SetTarget(
-                    KeybindSettings.Actions[Math.Clamp(
-                        option.Value,
-                        0,
-                        KeybindSettings.Actions.Length - 1)]));
-            }
-
-            SetDisplay(option.Owner, ref dropdown, kind, buffer);
-        }
-
-        foreach (Entity entity in _entities
-                     .Query<DropdownOption>()
-                     .ToEntityList())
-        {
-            DropdownOption option = entity.GetComponent<DropdownOption>();
-            if (option.Owner.IsNull ||
-                !option.Owner.HasComponent<Dropdown>())
-            {
-                continue;
-            }
-
-            Dropdown dropdown = option.Owner.GetComponent<Dropdown>();
-
-            if (!entity.HasComponent<Position>())
-                continue;
-
-            ref Position position = ref entity.GetComponent<Position>();
-
-            if (!dropdown.Open || dropdown.List.IsNull)
-            {
-                position.Value = HiddenList;
-            }
-            else
-            {
-                Vector2 listPosition =
-                    dropdown.List.GetComponent<Position>().Value;
-                float listHeight =
-                    dropdown.List.GetComponent<Rectangle>().Bounds.Size.Y;
-
-                position.Value = new Vector2(
-                    listPosition.X,
-                    listPosition.Y -
-                    listHeight / 2 +
-                    18 +
-                    option.Value * 30);
-            }
-
-            buffer.AddTag<Moved>(entity.Id);
-        }
     }
 
-    private void SetListPosition(
-        Entity button,
-        ref Dropdown dropdown,
-        CommandBuffer buffer)
+    private void Commit(EditorDropdownKind kind, int value)
     {
-        if (dropdown.List.IsNull)
-            return;
-
-        ref Position position = ref dropdown.List.GetComponent<Position>();
-        ref Rectangle rectangle = ref dropdown.List.GetComponent<Rectangle>();
-        Vector2 targetSize = dropdown.Open
-            ? (dropdown.ListSize == Vector2.Zero
-                ? rectangle.Bounds.Size
-                : dropdown.ListSize)
-            : Vector2.Zero;
-        if (rectangle.Bounds.Size != targetSize)
+        if (kind == EditorDropdownKind.Snap)
         {
-            rectangle.Bounds = new Rect2(rectangle.Bounds.Position, targetSize);
-            buffer.AddTag<Dirty>(dropdown.List.Id);
+            _commands.Enqueue(EditorCommand.SetSnap(SnapValue(value)));
         }
-
-        Vector2 listPosition;
-        if (!dropdown.Open)
+        else if (kind == EditorDropdownKind.Character)
         {
-            listPosition = HiddenList;
-            position.Value = listPosition;
+            foreach (Entity editor in _entities
+                         .Query<EditorCharacterTarget>()
+                         .ToEntityList())
+            {
+                editor.GetComponent<EditorCharacterTarget>().Target =
+                    (CharacterKind)Math.Clamp(value, 0, 0);
+                break;
+            }
         }
         else
         {
-            ref Position buttonPosition = ref button.GetComponent<Position>();
-            float buttonHeight = button.GetComponent<Rectangle>().Bounds.Size.Y;
-            float listHeight = targetSize.Y;
-
-            listPosition = buttonPosition.Value + new Vector2(
-                0,
-                buttonHeight / 2 + listHeight / 2 + 4);
-            position.Value = listPosition;
+            _commands.Enqueue(EditorCommand.SetTarget(
+                KeybindSettings.Actions[Math.Clamp(
+                    value,
+                    0,
+                    KeybindSettings.Actions.Length - 1)]));
         }
-
-        buffer.AddTag<Moved>(dropdown.List.Id);
-        AlignOptions(button, dropdown, listPosition, targetSize, buffer);
     }
 
-    private void AlignOptions(
-        Entity button,
-        Dropdown dropdown,
-        Vector2 listPosition,
-        Vector2 listSize,
-        CommandBuffer buffer)
+    private static int Expected(
+        EditorDropdownKind kind,
+        Playhead playhead,
+        EditorNoteTarget noteTarget,
+        EditorCharacterTarget characterTarget) => kind switch
     {
-        bool open = dropdown.Open;
-        float listTop = listPosition.Y - listSize.Y / 2;
-        foreach (Entity option in _entities
-                     .Query<DropdownOption>()
-                     .ToEntityList())
-        {
-            DropdownOption binding = option.GetComponent<DropdownOption>();
-            if (binding.Owner.Id != button.Id ||
-                !option.HasComponent<Position>())
-            {
-                continue;
-            }
-
-            ref Position optionPosition = ref option.GetComponent<Position>();
-            Vector2 target = open
-                ? new Vector2(
-                    listPosition.X,
-                    listTop + 18 + binding.Value * 30)
-                : HiddenList;
-            if (optionPosition.Value == target)
-                continue;
-
-            optionPosition.Value = target;
-            buffer.AddTag<Moved>(option.Id);
-        }
-    }
-
-    private static void Hide(Entity list, CommandBuffer buffer)
-    {
-        if (list.IsNull || !list.HasComponent<Position>())
-            return;
-
-        ref Position position = ref list.GetComponent<Position>();
-        position.Value = HiddenList;
-        if (list.HasComponent<Rectangle>())
-        {
-            ref Rectangle rectangle = ref list.GetComponent<Rectangle>();
-            if (rectangle.Bounds.Size != Vector2.Zero)
-            {
-                rectangle.Bounds = new Rect2(
-                    rectangle.Bounds.Position,
-                    Vector2.Zero);
-                buffer.AddTag<Dirty>(list.Id);
-            }
-        }
-        buffer.AddTag<Moved>(list.Id);
-    }
+        EditorDropdownKind.Snap => SnapIndex(playhead.SnapDivision),
+        EditorDropdownKind.Character => (int)characterTarget.Target,
+        _ => (int)noteTarget.Target,
+    };
 
     private static void SetDisplay(
         Entity button,
@@ -302,13 +110,14 @@ public sealed class EditorDropdownSystem : QuerySystem<Dropdown>
         EditorDropdownKind kind,
         CommandBuffer buffer)
     {
-        if (button.IsNull || !button.HasComponent<Text>())
+        if (!button.HasComponent<Text>())
             return;
 
         string label = kind switch
         {
             EditorDropdownKind.Snap => $"SNAP  {SnapLabel(dropdown.Selected)}",
-            EditorDropdownKind.Character => $"CHAR  {CharacterLabel(dropdown.Selected)}",
+            EditorDropdownKind.Character =>
+                $"CHAR  {CharacterLabel(dropdown.Selected)}",
             _ => $"TYPE  {KeybindSettings.LabelFor(
                 KeybindSettings.Actions[Math.Clamp(
                     dropdown.Selected,

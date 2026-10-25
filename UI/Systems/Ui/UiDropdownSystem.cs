@@ -79,6 +79,7 @@ public sealed class UiDropdownSystem : QuerySystem<Dropdown>
             ref Dropdown dropdown = ref option.Owner.GetComponent<Dropdown>();
             dropdown.Selected = option.Value;
             dropdown.Open = false;
+            buffer.AddComponent(option.Owner.Id, new DropdownChanged(option.Value));
             LayOut(option.Owner, ref dropdown, buffer);
         }
     }
@@ -86,6 +87,7 @@ public sealed class UiDropdownSystem : QuerySystem<Dropdown>
     private void LayOut(Entity button, ref Dropdown dropdown, CommandBuffer buffer)
     {
         if (dropdown.List.IsNull ||
+            !dropdown.List.HasComponent<Rectangle>() ||
             !button.HasComponent<Position>() ||
             !button.HasComponent<Rectangle>())
         {
