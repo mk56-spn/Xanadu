@@ -139,6 +139,7 @@ public sealed class UiDropdownSystem : QuerySystem<Dropdown>
                             new Vector2(0, buttonHeight / 2 + size.Y / 2 + 4);
         listPosition.Value = listWorld - listParentWorld;
         buffer.AddTag<Moved>(dropdown.List.Id);
+        buffer.AddTag<Dirty>(dropdown.List.Id);
 
         float top = listWorld.Y - size.Y / 2 + 2;
         var options = new List<Entity>();
@@ -163,11 +164,15 @@ public sealed class UiDropdownSystem : QuerySystem<Dropdown>
         {
             float height = option.GetComponent<Rectangle>().Bounds.Size.Y;
             ref Position optionPosition = ref option.GetComponent<Position>();
+            Vector2 optionParentWorld = UiTransform.WorldPosition(
+                option,
+                Vector2.Zero);
             optionPosition.Value = new Vector2(
                 listWorld.X,
-                top + height / 2);
+                top + height / 2) - optionParentWorld;
             top += height + 2;
             buffer.AddTag<Moved>(option.Id);
+            buffer.AddTag<Dirty>(option.Id);
         }
     }
 
