@@ -97,7 +97,7 @@ public sealed class ContainerLayoutSystem : QuerySystem<Rectangle, UiContainer>
             if (!IsLayoutChild(child))
                 continue;
 
-            Vector2 childSize = child.GetComponent<Rectangle>().Bounds.Size;
+            Vector2 childSize = SlotSize(child, container.Direction);
             main += container.Direction == StackDirection.Horizontal
                 ? childSize.X
                 : childSize.Y;
@@ -134,7 +134,7 @@ public sealed class ContainerLayoutSystem : QuerySystem<Rectangle, UiContainer>
             if (!IsLayoutChild(child))
                 continue;
 
-            Vector2 childSize = child.GetComponent<Rectangle>().Bounds.Size;
+            Vector2 childSize = SlotSize(child, container.Direction);
             total += container.Direction == StackDirection.Horizontal
                 ? childSize.X
                 : childSize.Y;
@@ -153,6 +153,7 @@ public sealed class ContainerLayoutSystem : QuerySystem<Rectangle, UiContainer>
 
             ref Position position = ref child.GetComponent<Position>();
             Vector2 childSize = child.GetComponent<Rectangle>().Bounds.Size;
+            Vector2 slotSize = SlotSize(child, container.Direction);
             Vector2 target;
 
             if (container.Direction == StackDirection.Horizontal)
@@ -160,14 +161,14 @@ public sealed class ContainerLayoutSystem : QuerySystem<Rectangle, UiContainer>
                 target = new Vector2(
                     cursor + childSize.X / 2,
                     CrossOffset(container, rectangle, childSize.Y));
-                cursor += childSize.X + container.Spacing;
+                cursor += slotSize.X + container.Spacing;
             }
             else
             {
                 target = new Vector2(
                     CrossOffset(container, rectangle, childSize.X),
                     cursor + childSize.Y / 2);
-                cursor += childSize.Y + container.Spacing;
+                cursor += slotSize.Y + container.Spacing;
             }
 
             if (position.Value == target)
@@ -197,6 +198,24 @@ public sealed class ContainerLayoutSystem : QuerySystem<Rectangle, UiContainer>
             StackCrossAlignment.End => available / 2 - childCrossSize / 2,
             _ => 0,
         };
+    }
+
+    private static Vector2 SlotSize(Entity child, StackDirection direction)
+    {
+        Vector2 size = child.GetComponent<Rectangle>().Bounds.Size;
+        if (!child.HasComponent<Dropdown>())
+            return size;
+
+        Dropdown dropdown = child.GetComponent<Dropdown>();
+        if (!dropdown.Open)
+            return size;
+
+        Vector2 listSize = dropdown.ListSize;
+        if (direction == StackDirection.Vertical)
+            size.Y += listSize.Y + 4;
+        else
+            size.X = Mathf.Max(size.X, listSize.X);
+        return size;
     }
 
     private static bool IsLayoutChild(Entity child) =>

@@ -175,7 +175,8 @@ public partial class UiShowcase : Control
             spacing: 8,
             color: new Color("#111827"),
             padding: 12,
-            cross: StackCrossAlignment.Center);
+            cross: StackCrossAlignment.Center,
+            autoHeight: true);
         var dropdownButtons = new Entity[3];
         for (int i = 0; i < dropdownButtons.Length; i++)
         {

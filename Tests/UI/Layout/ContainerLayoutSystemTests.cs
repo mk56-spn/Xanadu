@@ -112,6 +112,34 @@ public sealed class ContainerLayoutSystemTests : EcsSystemTest
     }
 
     [Test]
+    public void OpenDropdownReservesMainAxisSpace()
+    {
+        Entity container = Store.CreateEntity(
+            new Rectangle(new Rect2(-100, -75, 200, 150)),
+            new UiContainer(
+                StackDirection.Vertical,
+                autoHeight: true),
+            Tags.Get<LayoutDirty>());
+        Entity first = AddChild(container, new Vector2(100, 30));
+        first.AddComponent(new Dropdown(
+            default,
+            0,
+            new Vector2(100, 80))
+        {
+            Open = true,
+        });
+        Entity second = AddChild(container, new Vector2(100, 30));
+
+        Frame();
+
+        Assert.That(
+            container.GetComponent<Rectangle>().Bounds.Size.Y,
+            Is.EqualTo(144));
+        Assert.That(second.GetComponent<Position>().Value.Y,
+            Is.EqualTo(57));
+    }
+
+    [Test]
     public void LayoutIgnoreExcludesAChildFromTheStack()
     {
         Entity container = AddContainer(StackDirection.Horizontal, spacing: 10);
