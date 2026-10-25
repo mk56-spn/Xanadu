@@ -36,6 +36,7 @@ public partial class AnimatorTool : Control
     private Entity _fileMenu;
     private bool _fileMenuOpen;
     private bool _wasFileMenuPressed;
+    private bool _actionPressed;
     private Entity _previewPanel;
     private Entity _timelinePanel;
     private bool _autoKeyEnabled;
@@ -76,7 +77,6 @@ public partial class AnimatorTool : Control
             _root,
             _canvas,
             GetCanvasItem());
-        _root.Add(new ToolActionSystem(this));
 
         _package = LoadPackage();
         _runtime = new AnimatorRuntime(_package);
@@ -278,7 +278,7 @@ public partial class AnimatorTool : Control
         Vector2 position,
         Vector2 size,
         string argument = "",
-        bool direct = false)
+        bool direct = true)
     {
         Entity button = ui.RectEntity(position, size,
             new Color("#2563eb"), label, takesInput: true);
@@ -761,6 +761,38 @@ public partial class AnimatorTool : Control
         return clip;
     }
 
+    private void HandleToolActions()
+    {
+        PointerInput input = _pointer.Read();
+        if (!input.Pressed)
+        {
+            _actionPressed = false;
+            return;
+        }
+
+        if (_actionPressed)
+            return;
+
+        foreach (Entity entity in _store.Query<ToolAction>().ToEntityList())
+        {
+            if (!entity.HasComponent<Rectangle>() ||
+                !entity.HasComponent<Position>())
+            {
+                continue;
+            }
+
+            Vector2 center = UiTransform.WorldPosition(entity, Vector2.Zero);
+            Vector2 size = entity.GetComponent<Rectangle>().Bounds.Size;
+            var bounds = new Rect2(center - size / 2, size);
+            if (!bounds.HasPoint(input.Position))
+                continue;
+
+            _actionPressed = true;
+            RunAction(entity.GetComponent<ToolAction>());
+            break;
+        }
+    }
+
     private void HandleFileMenuInput()
     {
         PointerInput input = _pointer.Read();
@@ -890,24 +922,6 @@ public partial class AnimatorTool : Control
                     _onionEnabled ? "ONION ON" : "ONION OFF";
                 SetStatus(_onionEnabled ? "ONION ON" : "ONION OFF");
                 break;
-        }
-    }
-
-    private sealed class ToolActionSystem(AnimatorTool owner)
-        : QuerySystem<ToolAction>
-    {
-        protected override void OnUpdate()
-        {
-            foreach (Entity entity in Query.ToEntityList())
-            {
-                if (!entity.Tags.Has<Pressed>())
-                    continue;
-                ToolAction action = entity.GetComponent<ToolAction>();
-                if (action.Direct)
-                    continue;
-                owner.RunAction(action);
-                entity.RemoveTag<Pressed>();
-            }
         }
     }
 

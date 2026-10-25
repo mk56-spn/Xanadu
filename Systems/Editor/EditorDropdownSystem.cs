@@ -219,9 +219,11 @@ public sealed class EditorDropdownSystem : QuerySystem<Dropdown>
             buffer.AddTag<Dirty>(dropdown.List.Id);
         }
 
+        Vector2 listPosition;
         if (!dropdown.Open)
         {
-            position.Value = HiddenList;
+            listPosition = HiddenList;
+            position.Value = listPosition;
         }
         else
         {
@@ -229,12 +231,48 @@ public sealed class EditorDropdownSystem : QuerySystem<Dropdown>
             float buttonHeight = button.GetComponent<Rectangle>().Bounds.Size.Y;
             float listHeight = targetSize.Y;
 
-            position.Value = buttonPosition.Value + new Vector2(
+            listPosition = buttonPosition.Value + new Vector2(
                 0,
                 buttonHeight / 2 + listHeight / 2 + 4);
+            position.Value = listPosition;
         }
 
         buffer.AddTag<Moved>(dropdown.List.Id);
+        AlignOptions(button, dropdown, listPosition, targetSize, buffer);
+    }
+
+    private void AlignOptions(
+        Entity button,
+        Dropdown dropdown,
+        Vector2 listPosition,
+        Vector2 listSize,
+        CommandBuffer buffer)
+    {
+        bool open = dropdown.Open;
+        float listTop = listPosition.Y - listSize.Y / 2;
+        foreach (Entity option in _entities
+                     .Query<DropdownOption>()
+                     .ToEntityList())
+        {
+            DropdownOption binding = option.GetComponent<DropdownOption>();
+            if (binding.Owner.Id != button.Id ||
+                !option.HasComponent<Position>())
+            {
+                continue;
+            }
+
+            ref Position optionPosition = ref option.GetComponent<Position>();
+            Vector2 target = open
+                ? new Vector2(
+                    listPosition.X,
+                    listTop + 18 + binding.Value * 30)
+                : HiddenList;
+            if (optionPosition.Value == target)
+                continue;
+
+            optionPosition.Value = target;
+            buffer.AddTag<Moved>(option.Id);
+        }
     }
 
     private static void Hide(Entity list, CommandBuffer buffer)
