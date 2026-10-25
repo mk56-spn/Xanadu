@@ -40,6 +40,7 @@ public partial class AnimatorTool : Control
     private Entity _timelinePanel;
     private bool _autoKeyEnabled;
     private bool _onionEnabled;
+    private bool _restMode;
     private int _selectedKeyChannel = -1;
     private int _selectedKeyIndex = -1;
     private bool _draggingKey;
@@ -233,6 +234,8 @@ public partial class AnimatorTool : Control
             Vector2.Zero, new Vector2(168, 30));
         _onionButton = BuildButton(ui, "ONION OFF", ToolActionKind.Onion,
             Vector2.Zero, new Vector2(168, 30));
+        BuildButton(ui, "REST POSE", ToolActionKind.ToggleRest,
+            Vector2.Zero, new Vector2(168, 30));
         BuildButtonRow(ui, new[]
         {
             ("ROT -", ToolActionKind.RotateLeft),
@@ -376,7 +379,8 @@ public partial class AnimatorTool : Control
     {
         PointerInput input = _pointer.Read();
         Rect2 area = PreviewArea();
-        Transform2D[] world = XafRig.WorldBones(_package, _runtime.Pose);
+        XafPose previewPose = RestModePose();
+        Transform2D[] world = XafRig.WorldBones(_package, previewPose);
         Vector2 center = area.Position + area.Size / 2;
 
         if (input.Pressed && !_wasPointerPressed && area.HasPoint(input.Position))
@@ -400,8 +404,12 @@ public partial class AnimatorTool : Control
                 _runtime.SetPaused(true);
                 _draggingBone = true;
                 _dragStartPointer = input.Position;
-                _dragStartTranslation = _runtime.Pose.Bones[hit].Translation;
-                SetStatus($"SELECTED {_package.Skeleton.Bones[hit].Id}");
+                _dragStartTranslation = _restMode
+                    ? _package.Skeleton.Bones[hit].Rest.Origin
+                    : _runtime.Pose.Bones[hit].Translation;
+                SetStatus(_restMode
+                    ? $"SELECTED {_package.Skeleton.Bones[hit].Id} (REST)"
+                    : $"SELECTED {_package.Skeleton.Bones[hit].Id}");
             }
             else
             {
@@ -426,37 +434,84 @@ public partial class AnimatorTool : Control
                     _runtime.SetPaused(true);
                     _draggingAttachment = true;
                     _dragStartPointer = input.Position;
-                    _dragStartAttachmentTranslation =
-                        _runtime.Pose.Attachments[attachmentHit].Translation;
-                    SetStatus($"SELECTED {_package.Attachments[attachmentHit].Group}");
+                    _dragStartAttachmentTranslation = _restMode
+                        ? _package.Attachments[attachmentHit].Transform.Origin
+                        : _runtime.Pose.Attachments[attachmentHit].Translation;
+                    SetStatus(_restMode
+                        ? $"SELECTED {_package.Attachments[attachmentHit].Group} (REST)"
+                        : $"SELECTED {_package.Attachments[attachmentHit].Group}");
                 }
             }
         }
         else if (input.Pressed && _draggingBone && _selectedBone >= 0)
         {
             Vector2 delta = input.Position - _dragStartPointer;
-            XafTransform transform = _runtime.Pose.Bones[_selectedBone];
-            transform.Translation = _dragStartTranslation + delta;
-            _runtime.Pose.Bones[_selectedBone] = transform;
+            if (_restMode)
+            {
+                XafBone bone = _package.Skeleton.Bones[_selectedBone];
+                bone.Rest = new Transform2D(
+                    bone.Rest.Rotation,
+                    bone.Rest.Scale,
+                    0f,
+                    _dragStartTranslation + delta);
+            }
+            else
+            {
+                XafTransform transform = _runtime.Pose.Bones[_selectedBone];
+                transform.Translation = _dragStartTranslation + delta;
+                _runtime.Pose.Bones[_selectedBone] = transform;
+            }
         }
         else if (input.Pressed && _draggingAttachment &&
                  _selectedAttachment >= 0)
         {
             Vector2 delta = input.Position - _dragStartPointer;
-            XafTransform transform = _runtime.Pose.Attachments[_selectedAttachment];
-            transform.Translation = _dragStartAttachmentTranslation + delta;
-            _runtime.Pose.Attachments[_selectedAttachment] = transform;
+            if (_restMode)
+            {
+                XafAttachment attachment =
+                    _package.Attachments[_selectedAttachment];
+                attachment.Transform = new Transform2D(
+                    attachment.Transform.Rotation,
+                    attachment.Transform.Scale,
+                    0f,
+                    _dragStartAttachmentTranslation + delta);
+            }
+            else
+            {
+                XafTransform transform =
+                    _runtime.Pose.Attachments[_selectedAttachment];
+                transform.Translation =
+                    _dragStartAttachmentTranslation + delta;
+                _runtime.Pose.Attachments[_selectedAttachment] = transform;
+            }
         }
         else if (!input.Pressed && _wasPointerPressed &&
                  (_draggingBone || _draggingAttachment))
         {
             _draggingBone = false;
             _draggingAttachment = false;
-            if (_autoKeyEnabled)
+            if (_autoKeyEnabled && !_restMode)
                 KeySelected();
         }
 
         _wasPointerPressed = input.Pressed;
+    }
+
+    private XafPose RestModePose()
+    {
+        if (!_restMode)
+            return _runtime.Pose;
+
+        var pose = new XafPose(
+            _package.Skeleton.Bones.Count,
+            _package.Attachments.Count);
+        for (int i = 0; i < pose.Bones.Length; i++)
+            pose.Bones[i] = XafTransform.From(
+                _package.Skeleton.Bones[i].Rest);
+        for (int i = 0; i < pose.Attachments.Length; i++)
+            pose.Attachments[i] = XafTransform.From(
+                _package.Attachments[i].Transform);
+        return pose;
     }
 
     private XafClip? CurrentClip()
@@ -610,10 +665,11 @@ public partial class AnimatorTool : Control
             new Vector2(area.End.X, area.End.Y),
             new Color("#334155"), 1);
 
-        Transform2D[] world = XafRig.WorldBones(_package, _runtime.Pose);
+        XafPose previewPose = RestModePose();
+        Transform2D[] world = XafRig.WorldBones(_package, previewPose);
         Vector2 center = area.Position + area.Size / 2;
 
-        if (_onionEnabled)
+        if (_onionEnabled && !_restMode)
         {
             XafClip? onionClip = CurrentClip();
             if (onionClip is not null)
@@ -652,7 +708,7 @@ public partial class AnimatorTool : Control
         }
 
         Transform2D[] attachments = XafRig.WorldAttachments(
-            _package, _runtime.Pose, world);
+            _package, previewPose, world);
         DrawSvgAttachments(attachments, center);
         for (int i = 0; i < attachments.Length; i++)
         {
@@ -1060,6 +1116,11 @@ public partial class AnimatorTool : Control
     {
         switch (action.Kind)
         {
+            case ToolActionKind.ToggleRest:
+                _restMode = !_restMode;
+                _runtime.SetPaused(true);
+                SetStatus(_restMode ? "REST POSE" : "ANIMATION POSE");
+                break;
             case ToolActionKind.SelectBone:
                 _selectedBone = _package.Skeleton.Bones.FindIndex(
                     bone => bone.Id == action.Argument);
@@ -1161,6 +1222,7 @@ public partial class AnimatorTool : Control
         Onion,
         SelectBone,
         SelectAttachment,
+        ToggleRest,
     }
 
     public struct ToolAction(
