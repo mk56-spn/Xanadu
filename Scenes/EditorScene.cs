@@ -47,7 +47,7 @@ public static partial class EditorScene
             new NoteSelection(default),
             new EditorPreview(false, 0, false),
             new EditorMetronome(false),
-            new EditorTimeline(32f),
+            new TimelineView(32f),
             new PlayfieldMode(PlayfieldKind.Editor),
             new PlayfieldView(new Vector2(originX, originY), scale, viewportSize));
 

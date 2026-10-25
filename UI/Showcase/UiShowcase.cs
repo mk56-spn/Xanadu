@@ -213,9 +213,56 @@ public partial class UiShowcase : Control
         }
         ui.End();
 
+        ui.Panel(
+            new Vector2(1440, 330),
+            new Vector2(300, 360),
+            cross: StackCrossAlignment.Start,
+            autoHeight: true,
+            main: StackMainAlignment.Start);
+        ui.Text("TREE", new Vector2(270, 22), UiTheme.FontSize, UiTheme.Accent);
+        Entity tree = ui.Tree(270);
+        ui.SetTreeItems(tree, new UiTreeItem[]
+        {
+            new("world", null, "World"),
+            new("hero", "world", "Hero"),
+            new("hero-sword", "hero", "Sword"),
+            new("hero-cape", "hero", "Cape"),
+            new("hero-cape-tip", "hero-cape", "Cape tip"),
+            new("lantern", "world", "Lantern"),
+            new("ground", null, "Ground"),
+        });
+        UiTreeControl.Select(tree, "hero-sword", raiseChanged: false);
+        ui.End();
+
+        ui.RectEntity(new Vector2(900, 770), new Vector2(360, 220),
+            new Color("#111827"));
+        Entity cheeseLabel = ui.RectEntity(
+            new Vector2(900, 686), new Vector2(320, 24),
+            new Color(0, 0, 0, 0), "CHEESE SELECTOR");
+        Style(cheeseLabel, 16, new Color("#facc15"));
+        ui.Wheel(
+            new Vector2(900, 792),
+            82,
+            new[] { "1", "2", "3", "4", "5", "6", "7", "8" },
+            selected: 1);
+
+        ui.RectEntity(new Vector2(1330, 770), new Vector2(320, 220),
+            new Color("#111827"));
+        Entity dialLabel = ui.RectEntity(
+            new Vector2(1330, 686), new Vector2(300, 24),
+            new Color(0, 0, 0, 0), "DIAL SELECTOR");
+        Style(dialLabel, 16, new Color("#38bdf8"));
+        ui.Wheel(
+            new Vector2(1330, 792),
+            76,
+            new[] { "N", "E", "S", "W" },
+            selected: 0,
+            hubRadius: 0.32f,
+            gap: 0.05f);
+
         ui.RectEntity(new Vector2(300, 780), new Vector2(850, 80),
             new Color("#1e293b"),
-            "RECTS · TEXT · CONTAINERS · BUTTONS · SCROLL · SLIDER · DROPDOWN");
+            "RECTS · TEXT · CONTAINERS · BUTTONS · SCROLL · SLIDER · DROPDOWN · WHEEL");
         Style(ui.Current, 16, new Color("#e2e8f0"));
     }
 

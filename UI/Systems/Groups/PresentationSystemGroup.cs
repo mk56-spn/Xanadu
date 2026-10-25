@@ -5,13 +5,14 @@ using Writer.Systems.Rendering;
 
 namespace Writer.Systems.Groups;
 
-/// <summary>Applies transforms and redraws dirty rectangles and text.</summary>
+/// <summary>Applies transforms and redraws dirty rectangles, wheels, and text.</summary>
 public sealed class PresentationSystemGroup : SystemGroup
 {
     public PresentationSystemGroup(IRectCanvas canvas) : base("Presentation")
     {
         Add(new TransformSystem(canvas));
         Add(new RectDrawSystem(canvas));
+        Add(new WheelDrawSystem(canvas));
         Add(new GradientDrawSystem(canvas));
         Add(new TextDrawSystem(canvas));
         Add(new ImageDrawSystem(canvas));

@@ -5,7 +5,7 @@ using Writer.Systems.Ui;
 
 namespace Writer.Systems.Ui;
 
-/// <summary>Generic pointer, focus, toggle, dropdown, and button interaction.</summary>
+/// <summary>Generic pointer, focus, toggle, dropdown, wheel, and button interaction.</summary>
 public sealed class UiInteractionSystemGroup : SystemGroup
 {
     public UiInteractionSystemGroup(
@@ -14,7 +14,9 @@ public sealed class UiInteractionSystemGroup : SystemGroup
         ScrollSystem scroll) : base("UiInteraction")
     {
         Add(new InputSystem(pointer));
+        Add(new UiWheelSystem(entities, pointer));
         Add(new UiDropdownSystem(entities));
+        Add(new UiTreeSystem());
         Add(new TextFieldFocusSystem());
         Add(new TextFieldSystem());
         Add(scroll);

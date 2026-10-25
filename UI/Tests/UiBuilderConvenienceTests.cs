@@ -131,4 +131,33 @@ public sealed class UiBuilderConvenienceTests
         Assert.That(state.CloseOthers, Is.False);
         Assert.That(state.ListSize.Y, Is.GreaterThan(0));
     }
+
+    [Test]
+    public void DeleteSubtreeRemovesTheEntityAndAllDescendants()
+    {
+        var store = new EntityStore();
+        Entity root = store.CreateEntity();
+        Entity child = store.CreateEntity();
+        Entity grandchild = store.CreateEntity();
+        root.AddChild(child);
+        child.AddChild(grandchild);
+        int before = store.Count;
+
+        UiLayout.DeleteSubtree(root);
+
+        Assert.That(store.Count, Is.EqualTo(before - 3));
+    }
+
+    [Test]
+    public void ADropdownStartsClosedWithItsListAndOptionsOffScreen()
+    {
+        var store = new EntityStore();
+        UiBuilder ui = UiBuilder.Begin(store, new FakeVisualRidFactory()).Layer(0);
+
+        UiDropdownControl dropdown = ui.Dropdown("PICK", new[] { "ONE", "TWO" });
+
+        Assert.That(dropdown.List.GetComponent<Position>().Value, Is.EqualTo(UiLayout.Hidden));
+        foreach (Entity option in dropdown.Options)
+            Assert.That(option.GetComponent<Position>().Value, Is.EqualTo(UiLayout.Hidden));
+    }
 }

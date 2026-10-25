@@ -70,7 +70,7 @@ public sealed class EditorPlayfieldDrawSystemTests
             new Playhead(0, 120, 0, false, durationMs: 5_000),
             view,
             new NoteSelection(default),
-            new EditorTimeline(4f));
+            new TimelineView(4f));
 
         var canvas = new RecordingCanvas();
         var root = new SystemRoot(store);
@@ -128,7 +128,7 @@ public sealed class EditorPlayfieldDrawSystemTests
             new Playhead(1_000, 120, 0, false, durationMs: 5_000),
             view,
             new NoteSelection(default),
-            new EditorTimeline(32f));
+            new TimelineView(32f));
         store.CreateEntity(new Note(1_000, new Vector2(100, 100)));
         store.CreateEntity(new Note(1_000, new Vector2(200, 200)));
 
@@ -225,7 +225,7 @@ public sealed class EditorPlayfieldDrawSystemTests
             new Playhead(1_000, 120, 0, false, durationMs: 5_000),
             view,
             new NoteSelection(default),
-            new EditorTimeline(32f));
+            new TimelineView(32f));
         for (int i = 0; i < 9; i++)
             store.CreateEntity(new Note(1_000, new Vector2(100 + i, 100)));
 
@@ -256,7 +256,7 @@ public sealed class EditorPlayfieldDrawSystemTests
             new Playhead(1_000, 120, 0, false, durationMs: 5_000),
             view,
             new NoteSelection(default),
-            new EditorTimeline(32f));
+            new TimelineView(32f));
         Entity first = store.CreateEntity(new Note(1_000, new Vector2(100, 100)));
         Entity second = store.CreateEntity(new Note(1_000, new Vector2(200, 200)));
         ref NoteSelection selection = ref editor.GetComponent<NoteSelection>();

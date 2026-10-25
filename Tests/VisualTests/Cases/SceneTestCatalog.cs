@@ -30,6 +30,7 @@ public static class SceneTestCatalog
         new ResultsSceneTest(),
         new RestartSceneTest(),
         new EditorDropdownSceneTest(),
+        new EditorDirectionWheelSceneTest(),
         new LeaveEditorSceneTest(),
     };
 }

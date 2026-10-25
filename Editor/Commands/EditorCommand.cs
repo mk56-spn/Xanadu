@@ -1,3 +1,4 @@
+using Writer.Ecs;
 using Writer.Settings;
 using Writer.Levels;
 
@@ -12,6 +13,7 @@ public enum EditorCommandType
     SetBpm,
     SetOffset,
     SetSnap,
+    SetPlacementMode,
     TogglePlayback,
     StopPlayback,
     Seek,
@@ -57,6 +59,9 @@ public readonly record struct EditorCommand(
 
     public static EditorCommand SetSnap(int value) =>
         new(EditorCommandType.SetSnap, IntValue: value);
+
+    public static EditorCommand SetPlacementMode(EditorPlacementMode mode) =>
+        new(EditorCommandType.SetPlacementMode, IntValue: (int)mode);
 
     public static EditorCommand TogglePlayback() =>
         new(EditorCommandType.TogglePlayback);

@@ -75,18 +75,6 @@ public struct LevelFile(string path) : IComponent
     public string Path = path;
 }
 
-/// <summary>Horizontal zoom for the editor timeline.</summary>
-public struct EditorTimeline(float zoom) : IComponent
-{
-    public float Zoom = zoom;
-    public bool AutoZoomed;
-
-    /// <summary>Visible window captured while the playhead is being dragged.</summary>
-    public bool Scrubbing;
-    public long ScrubStartMs;
-    public long ScrubEndMs;
-}
-
 /// <summary>The editor's currently selected note type for new notes.</summary>
 public struct EditorNoteTarget(KeybindAction target) : IComponent
 {
@@ -123,11 +111,6 @@ public struct EditorDashDirectionState(DashDirection direction) : IComponent
 public struct EditorPlacementButton(EditorPlacementMode mode) : IComponent
 {
     public EditorPlacementMode Mode = mode;
-}
-
-public struct EditorDashDirectionButton(DashDirection direction) : IComponent
-{
-    public DashDirection Direction = direction;
 }
 
 /// <summary>Cached waveform peaks for the editor timeline preview.</summary>
@@ -297,10 +280,16 @@ public struct EditorLeftMenu(
     public float Top = top;
 }
 
-/// <summary>Floating direction selector shown only for directional placement modes.</summary>
-public struct EditorDirectionWidget(Entity root, Vector2 home) : IComponent
+/// <summary>
+/// Binds the generic Writer.UI wheel to the editor's dash direction. The wheel
+/// owns presentation and pointer handling; this adapter only maps wedge indices
+/// to <see cref="DashDirection"/> and owns the floating widget's visibility.
+/// </summary>
+public struct EditorDirectionWheel(Entity wheel, Entity label, Vector2 home)
+    : IComponent
 {
-    public Entity Root = root;
+    public Entity Wheel = wheel;
+    public Entity Label = label;
     public Vector2 Home = home;
 }
 

@@ -8,7 +8,7 @@ namespace Writer.Animation;
 public sealed class XafPackage
 {
     public const ushort MajorVersion = 1;
-    public const ushort MinorVersion = 0;
+    public const ushort MinorVersion = 1;
 
     public ushort Major = MajorVersion;
     public ushort Minor = MinorVersion;
@@ -29,6 +29,14 @@ public sealed class XafBone
     public int Parent = -1;
     public Transform2D Rest = Transform2D.Identity;
     public int ZOrder;
+
+    /// <summary>
+    /// Lets animation translate this bone away from its rest offset. Bones are
+    /// fixed length by default; the root always moves.
+    /// </summary>
+    public bool AllowTranslation;
+
+    public bool CanTranslate => Parent < 0 || AllowTranslation;
 }
 
 /// <summary>Rigid SVG group attached to a bone.</summary>

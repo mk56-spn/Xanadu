@@ -261,21 +261,36 @@ public sealed class EditorCommandSystemTests : EcsSystemTest
     }
 
     [Test]
+    public void SetPlacementModeSwitchesTheEditorMode()
+    {
+        _editor.AddComponent(
+            new EditorPlacementModeState(EditorPlacementMode.Notes));
+
+        _commands.Enqueue(
+            EditorCommand.SetPlacementMode(EditorPlacementMode.Movement));
+        Frame();
+
+        Assert.That(
+            _editor.GetComponent<EditorPlacementModeState>().Mode,
+            Is.EqualTo(EditorPlacementMode.Movement));
+    }
+
+    [Test]
     public void ZoomsTheEditorTimeline()
     {
-        _editor.AddComponent(new EditorTimeline(1f));
+        _editor.AddComponent(new TimelineView(1f));
 
         _commands.Enqueue(EditorCommand.ZoomTimeline(1));
         Frame();
-        Assert.That(_editor.GetComponent<EditorTimeline>().Zoom, Is.EqualTo(2f));
+        Assert.That(_editor.GetComponent<TimelineView>().Zoom, Is.EqualTo(2f));
 
         _commands.Enqueue(EditorCommand.ZoomTimeline(1));
         Frame();
-        Assert.That(_editor.GetComponent<EditorTimeline>().Zoom, Is.EqualTo(4f));
+        Assert.That(_editor.GetComponent<TimelineView>().Zoom, Is.EqualTo(4f));
 
         _commands.Enqueue(EditorCommand.ZoomTimeline(-1));
         Frame();
-        Assert.That(_editor.GetComponent<EditorTimeline>().Zoom, Is.EqualTo(2f));
+        Assert.That(_editor.GetComponent<TimelineView>().Zoom, Is.EqualTo(2f));
     }
 
     [Test]

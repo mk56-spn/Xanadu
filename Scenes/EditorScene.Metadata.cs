@@ -182,7 +182,7 @@ public static partial class EditorScene
         UiBuilder helpUi = SceneUi.Layer(entities, root, 970);
         helpUi.Container(
             new Vector2(-10_000, -10_000),
-            new Vector2(560, 466),
+            new Vector2(560, 520),
             StackDirection.Vertical,
             spacing: 4,
             color: new Color("#0b1220"),
@@ -198,6 +198,8 @@ public static partial class EditorScene
             "MOUSE WHEEL            Seek 500 ms",
             "SHIFT + WHEEL          Seek 2 seconds",
             "T                      Tap tempo",
+            $"{EditorPlacementKeybinds.LabelFor(EditorPlacementMode.Notes),-23}Place normal notes",
+            $"{EditorPlacementKeybinds.LabelFor(EditorPlacementMode.Movement),-23}Place dash notes",
             "DELETE / BACKSPACE     Delete selection",
             "CTRL+Z / CTRL+Y        Undo / redo",
             "L                      Load song",

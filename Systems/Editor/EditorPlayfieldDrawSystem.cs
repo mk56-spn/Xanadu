@@ -5,6 +5,7 @@ using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Godot;
 using Writer.Ecs;
+using Writer.Timeline;
 using Writer.Levels;
 using Writer.Systems.Canvas;
 using Writer.Systems.Playfields;
@@ -56,9 +57,9 @@ public sealed class EditorPlayfieldDrawSystem :
                     playfield,
                     playhead,
                     selection,
-                    entity.HasComponent<EditorTimeline>()
-                        ? entity.GetComponent<EditorTimeline>()
-                        : new EditorTimeline(1f),
+                    entity.HasComponent<TimelineView>()
+                        ? entity.GetComponent<TimelineView>()
+                        : new TimelineView(1f),
                     entity.HasComponent<WaveformPreview>()
                         ? entity.GetComponent<WaveformPreview>()
                         : default,
@@ -73,7 +74,7 @@ public sealed class EditorPlayfieldDrawSystem :
         Playfield playfield,
         Playhead playhead,
         NoteSelection selection,
-        EditorTimeline timeline,
+        TimelineView timeline,
         WaveformPreview preview,
         EditorSelectionBox selectionBox)
     {
@@ -465,7 +466,7 @@ public sealed class EditorPlayfieldDrawSystem :
         PlayfieldView view,
         Playhead playhead,
         NoteSelection selection,
-        EditorTimeline timeline,
+        TimelineView timeline,
         WaveformPreview preview)
     {
         Rect2 ruler = EditorLayout.RulerRect(view);
@@ -636,12 +637,8 @@ public sealed class EditorPlayfieldDrawSystem :
         Rect2 ruler,
         long windowStart,
         long windowEnd,
-        long timeMs)
-    {
-        float span = Math.Max(1, windowEnd - windowStart);
-        float t = Math.Clamp((timeMs - windowStart) / span, 0f, 1f);
-        return ruler.Position.X + t * ruler.Size.X;
-    }
+        long timeMs) =>
+        new TimeWindow(windowStart, windowEnd).XForTime(ruler, timeMs);
 
     private void DrawPreview(
         PlayfieldView view,

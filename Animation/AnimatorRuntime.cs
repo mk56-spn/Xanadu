@@ -122,7 +122,7 @@ public sealed class AnimatorRuntime
 
     public void Update(float delta)
     {
-        if (Paused || delta <= 0f)
+        if (Paused || delta <= 0f || _current is null)
             return;
 
         _currentTime = ClampTime(_current, _currentTime + delta);
@@ -141,7 +141,7 @@ public sealed class AnimatorRuntime
 
         XafPose currentPose = XafSampler.Sample(
             Package,
-            _current!,
+            _current,
             _currentTime);
         XafPose basePose = currentPose;
 

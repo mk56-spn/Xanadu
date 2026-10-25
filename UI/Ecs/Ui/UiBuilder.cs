@@ -9,7 +9,7 @@ using Position = Writer.Ecs.Position;
 namespace Writer.Ecs;
 
 /// <summary>Chainable builder for layers, containers, and rectangles.</summary>
-public sealed class UiBuilder
+public sealed partial class UiBuilder
 {
     private static readonly Color DefaultContainerColor = new("#1e293b");
 
@@ -60,7 +60,8 @@ public sealed class UiBuilder
         StackCrossAlignment cross = StackCrossAlignment.Center,
         bool autoWidth = false,
         bool autoHeight = false,
-        bool anchorTop = false)
+        bool anchorTop = false,
+        StackMainAlignment main = StackMainAlignment.Center)
     {
         RequireLayer();
 
@@ -82,7 +83,8 @@ public sealed class UiBuilder
                 cross,
                 autoWidth,
                 autoHeight,
-                anchorTop),
+                anchorTop,
+                main),
             tags);
 
         if (text is not null)
@@ -141,7 +143,8 @@ public sealed class UiBuilder
         Vector2 size,
         StackDirection direction = StackDirection.Vertical,
         StackCrossAlignment cross = StackCrossAlignment.Start,
-        bool autoHeight = false)
+        bool autoHeight = false,
+        StackMainAlignment main = StackMainAlignment.Center)
     {
         return Container(
             position,
@@ -151,7 +154,8 @@ public sealed class UiBuilder
             color: UiTheme.Panel,
             padding: UiTheme.ContainerPadding,
             cross: cross,
-            autoHeight: autoHeight);
+            autoHeight: autoHeight,
+            main: main);
     }
 
     /// <summary>
@@ -182,8 +186,9 @@ public sealed class UiBuilder
             new Vector2(width, buttonHeight),
             buttonColor ?? UiTheme.Button);
 
+        // Closed lists start off-screen, as the dropdown system leaves them on close.
         Entity list = RectEntity(
-            Vector2.Zero,
+            UiLayout.Hidden,
             new Vector2(width, listHeight),
             UiTheme.Panel,
             takesInput: true);
@@ -193,7 +198,7 @@ public sealed class UiBuilder
         {
             Color optionFill = optionColor?.Invoke(i) ?? UiTheme.DropdownOption;
             Entity option = RectEntity(
-                Vector2.Zero,
+                UiLayout.Hidden,
                 new Vector2(width - 12, UiTheme.DropdownOptionHeight),
                 optionFill,
                 options[i],

@@ -72,6 +72,13 @@ public static class XafRigAuthoring
         }
 
         package.Skeleton.Bones.RemoveAt(index);
+        foreach (XafClip clip in package.Clips)
+        {
+            clip.Channels.RemoveAll(channel =>
+                channel.Target == XafChannelTarget.Bone &&
+                channel.TargetId == bone.Id);
+        }
+
         foreach (XafBone other in package.Skeleton.Bones)
         {
             if (other.Parent > index)

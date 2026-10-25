@@ -126,6 +126,17 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
             return;
         }
 
+        if (editor.HasComponent<EditorDirectionWheel>())
+        {
+            EditorDirectionWheel wheel =
+                editor.GetComponent<EditorDirectionWheel>();
+            if (!wheel.Wheel.IsNull &&
+                UiWheelGeometry.Contains(wheel.Wheel, screenPosition))
+            {
+                return;
+            }
+        }
+
         Vector2 playfieldPosition = view.ScreenToPlayfield(screenPosition);
         if (!IsInside(playfieldPosition, playfield))
             return;
@@ -526,8 +537,8 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
         Entity editor,
         Entity primary)
     {
-        float zoom = editor.HasComponent<EditorTimeline>()
-            ? editor.GetComponent<EditorTimeline>().Zoom
+        float zoom = editor.HasComponent<TimelineView>()
+            ? editor.GetComponent<TimelineView>().Zoom
             : 1f;
         (_scrubWindowStart, _scrubWindowEnd) =
             EditorLayout.TimelineWindow(playhead, zoom);
@@ -606,8 +617,8 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
         if (playhead.DurationMs <= 0)
             return;
 
-        float zoom = editor.HasComponent<EditorTimeline>()
-            ? editor.GetComponent<EditorTimeline>().Zoom
+        float zoom = editor.HasComponent<TimelineView>()
+            ? editor.GetComponent<TimelineView>().Zoom
             : 1f;
         (_scrubWindowStart, _scrubWindowEnd) =
             EditorLayout.TimelineWindow(playhead, zoom);
@@ -658,10 +669,10 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
 
     private void SetScrubWindow(Entity editor, bool active)
     {
-        if (!editor.HasComponent<EditorTimeline>())
+        if (!editor.HasComponent<TimelineView>())
             return;
 
-        ref EditorTimeline timeline = ref editor.GetComponent<EditorTimeline>();
+        ref TimelineView timeline = ref editor.GetComponent<TimelineView>();
         timeline.Scrubbing = active;
         timeline.ScrubStartMs = _scrubWindowStart;
         timeline.ScrubEndMs = _scrubWindowEnd;
@@ -676,8 +687,8 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
         if (playhead.DurationMs <= 0)
             return default;
 
-        float zoom = editor.HasComponent<EditorTimeline>()
-            ? editor.GetComponent<EditorTimeline>().Zoom
+        float zoom = editor.HasComponent<TimelineView>()
+            ? editor.GetComponent<TimelineView>().Zoom
             : 1f;
         (long start, long end) = EditorLayout.TimelineWindow(playhead, zoom);
         float span = Math.Max(1, end - start);

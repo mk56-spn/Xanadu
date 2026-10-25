@@ -2,11 +2,10 @@ using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Godot;
 using Writer.Ecs;
-using Position = Writer.Ecs.Position;
 
 namespace Writer.Systems.Editor;
 
-/// <summary>Exclusive note/mine/movement placement mode and dash-direction wheel.</summary>
+/// <summary>Exclusive note/mine/movement placement mode buttons.</summary>
 public sealed class EditorPlacementSystem : QuerySystem<EditorPlacementModeState>
 {
     private static readonly Color Selected = new("#2563eb");
@@ -22,7 +21,7 @@ public sealed class EditorPlacementSystem : QuerySystem<EditorPlacementModeState
     {
         Entity editor = default;
         foreach (Entity candidate in _entities
-                     .Query<EditorPlacementModeState, EditorDashDirectionState>()
+                     .Query<EditorPlacementModeState>()
                      .ToEntityList())
         {
             editor = candidate;
@@ -34,45 +33,13 @@ public sealed class EditorPlacementSystem : QuerySystem<EditorPlacementModeState
 
         ref EditorPlacementModeState mode =
             ref editor.GetComponent<EditorPlacementModeState>();
-        ref EditorDashDirectionState direction =
-            ref editor.GetComponent<EditorDashDirectionState>();
         CommandBuffer buffer = CommandBuffer;
-
-        foreach (Entity candidate in _entities
-                     .Query<EditorPlacementModeState, EditorDirectionWidget>()
-                     .ToEntityList())
-        {
-            EditorDirectionWidget widget =
-                candidate.GetComponent<EditorDirectionWidget>();
-            if (widget.Root.IsNull ||
-                !widget.Root.HasComponent<Position>())
-            {
-                continue;
-            }
-
-            ref Position position = ref widget.Root.GetComponent<Position>();
-            Vector2 target = mode.Mode == EditorPlacementMode.Movement
-                ? widget.Home
-                : new Vector2(-10_000, -10_000);
-            if (position.Value != target)
-            {
-                position.Value = target;
-                buffer.AddTag<Moved>(widget.Root.Id);
-            }
-        }
 
         foreach (Entity entity in _entities.Query<EditorPlacementButton>().ToEntityList())
         {
             if (entity.Tags.Has<Pressed>())
                 mode.Mode = entity.GetComponent<EditorPlacementButton>().Mode;
             SetColor(entity, entity.GetComponent<EditorPlacementButton>().Mode == mode.Mode, buffer);
-        }
-
-        foreach (Entity entity in _entities.Query<EditorDashDirectionButton>().ToEntityList())
-        {
-            if (entity.Tags.Has<Pressed>())
-                direction.Direction = entity.GetComponent<EditorDashDirectionButton>().Direction;
-            SetColor(entity, entity.GetComponent<EditorDashDirectionButton>().Direction == direction.Direction, buffer);
         }
     }
 

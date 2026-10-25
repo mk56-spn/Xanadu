@@ -161,6 +161,67 @@ public static class XafAuthoring
         return true;
     }
 
+    /// <summary>
+    /// Moves every channel key of a target at one time to another time, as a
+    /// pose key. A key already at the destination is replaced.
+    /// </summary>
+    public static bool MoveKeysAt(
+        XafClip clip,
+        XafChannelTarget target,
+        string targetId,
+        float fromTime,
+        float toTime,
+        float tolerance = XafTracks.TimeTolerance)
+    {
+        float destination = Math.Clamp(toTime, 0f, clip.Duration);
+        bool moved = false;
+        foreach (XafChannel channel in clip.Channels)
+        {
+            if (channel.Target != target || channel.TargetId != targetId)
+                continue;
+
+            int index = channel.Keyframes.FindIndex(key =>
+                Math.Abs(key.Time - fromTime) <= tolerance);
+            if (index < 0)
+                continue;
+
+            XafKeyframe key = channel.Keyframes[index];
+            channel.Keyframes.RemoveAt(index);
+            channel.Keyframes.RemoveAll(other =>
+                Math.Abs(other.Time - destination) <= tolerance);
+
+            key.Time = destination;
+            int insert = channel.Keyframes.FindIndex(other => other.Time > destination);
+            if (insert < 0)
+                channel.Keyframes.Add(key);
+            else
+                channel.Keyframes.Insert(insert, key);
+            moved = true;
+        }
+
+        return moved;
+    }
+
+    /// <summary>Removes every channel key of a target at one time.</summary>
+    public static bool RemoveKeysAt(
+        XafClip clip,
+        XafChannelTarget target,
+        string targetId,
+        float time,
+        float tolerance = XafTracks.TimeTolerance)
+    {
+        bool removed = false;
+        foreach (XafChannel channel in clip.Channels.ToArray())
+        {
+            if (channel.Target != target || channel.TargetId != targetId)
+                continue;
+
+            removed |= RemoveKey(clip, target, targetId, channel.Property, time, tolerance);
+        }
+
+        return removed;
+    }
+
     public static XafClip? FindClip(XafPackage package, string id) =>
         package.Clips.Find(clip => clip.Id == id);
 
@@ -195,10 +256,13 @@ public static class XafAuthoring
         XafTransform transform)
     {
         XafBone bone = package.Skeleton.Bones[boneIndex];
-        SetBoneProperty(package, clip, bone.Id,
-            XafChannelProperty.TranslationX, time, transform.Translation.X);
-        SetBoneProperty(package, clip, bone.Id,
-            XafChannelProperty.TranslationY, time, transform.Translation.Y);
+        if (bone.CanTranslate)
+        {
+            SetBoneProperty(package, clip, bone.Id,
+                XafChannelProperty.TranslationX, time, transform.Translation.X);
+            SetBoneProperty(package, clip, bone.Id,
+                XafChannelProperty.TranslationY, time, transform.Translation.Y);
+        }
         SetBoneProperty(package, clip, bone.Id,
             XafChannelProperty.Rotation, time, transform.Rotation);
         SetBoneProperty(package, clip, bone.Id,

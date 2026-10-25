@@ -31,7 +31,11 @@ public static class XafBinary
     public static XafPackage Load(string path) =>
         Read(File.ReadAllBytes(path));
 
-    public static byte[] Write(XafPackage package)
+    public static byte[] Write(XafPackage package) =>
+        Write(package, XafPackage.MinorVersion);
+
+    /// <summary>Writes an older minor revision; used to test reading old files.</summary>
+    public static byte[] Write(XafPackage package, ushort minor)
     {
         XafValidation.ThrowIfInvalid(package);
         var strings = new StringTable();
@@ -40,7 +44,7 @@ public static class XafBinary
         var chunks = new List<(ChunkId Id, byte[] Data)>
         {
             (ChunkId.Strings, WriteStrings(strings)),
-            (ChunkId.Skeleton, WriteSkeleton(package.Skeleton, strings)),
+            (ChunkId.Skeleton, WriteSkeleton(package.Skeleton, strings, minor)),
             (ChunkId.Attachments, WriteAttachments(package.Attachments, strings)),
             (ChunkId.Clips, WriteClips(package.Clips, strings)),
         };
@@ -49,7 +53,7 @@ public static class XafBinary
         using var writer = new BinaryWriter(stream, Encoding.UTF8, leaveOpen: true);
         writer.Write(Magic);
         writer.Write(package.Major);
-        writer.Write(package.Minor);
+        writer.Write(minor);
         writer.Write((uint)chunks.Count);
 
         const int directoryEntrySize = 12;
@@ -118,7 +122,7 @@ public static class XafBinary
         {
             Major = major,
             Minor = minor,
-            Skeleton = ReadSkeleton(data, skeletonChunk, strings),
+            Skeleton = ReadSkeleton(data, skeletonChunk, strings, minor),
             Attachments = ReadAttachments(data, attachmentsChunk, strings),
             Clips = ReadClips(data, clipsChunk, strings),
         };
@@ -180,7 +184,10 @@ public static class XafBinary
         return table;
     }
 
-    private static byte[] WriteSkeleton(XafSkeleton skeleton, StringTable strings)
+    private static byte[] WriteSkeleton(
+        XafSkeleton skeleton,
+        StringTable strings,
+        ushort minor)
     {
         using var stream = new MemoryStream();
         using var writer = new BinaryWriter(stream, Encoding.UTF8, leaveOpen: true);
@@ -191,6 +198,8 @@ public static class XafBinary
             writer.Write(bone.Parent);
             WriteTransform(writer, bone.Rest);
             writer.Write(bone.ZOrder);
+            if (minor >= 1)
+                writer.Write(bone.AllowTranslation);
         }
         writer.Flush();
         return stream.ToArray();
@@ -199,7 +208,8 @@ public static class XafBinary
     private static XafSkeleton ReadSkeleton(
         byte[] data,
         (int Offset, int Length) chunk,
-        StringTable strings)
+        StringTable strings,
+        ushort minor)
     {
         using var stream = new MemoryStream(data, chunk.Offset, chunk.Length, writable: false);
         using var reader = new BinaryReader(stream, Encoding.UTF8);
@@ -220,6 +230,7 @@ public static class XafBinary
                 Parent = parent,
                 Rest = ReadTransform(reader),
                 ZOrder = reader.ReadInt32(),
+                AllowTranslation = minor >= 1 && reader.ReadBoolean(),
             });
         }
         return skeleton;

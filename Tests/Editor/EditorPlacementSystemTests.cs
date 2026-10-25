@@ -1,5 +1,4 @@
 using Friflo.Engine.ECS;
-using Friflo.Engine.ECS.Systems;
 using NUnit.Framework;
 using Writer.Ecs;
 using Writer.Tests.Support;
@@ -11,17 +10,14 @@ namespace Writer.Tests.Editor;
 public sealed class EditorPlacementSystemTests : EcsSystemTest
 {
     [Test]
-    public void PlacementModesAndDirectionsAreExclusive()
+    public void PlacementModesAreExclusive()
     {
         Entity editor = Store.CreateEntity(
-            new EditorPlacementModeState(EditorPlacementMode.Notes),
-            new EditorDashDirectionState(DashDirection.Up));
+            new EditorPlacementModeState(EditorPlacementMode.Notes));
         Entity mineButton = Store.CreateEntity(
             new EditorPlacementButton(EditorPlacementMode.Mines));
         Entity moveButton = Store.CreateEntity(
             new EditorPlacementButton(EditorPlacementMode.Movement));
-        Entity directionButton = Store.CreateEntity(
-            new EditorDashDirectionButton(DashDirection.DownLeft));
 
         Root.Add(new EditorPlacementSystem(Store));
 
@@ -32,13 +28,6 @@ public sealed class EditorPlacementSystemTests : EcsSystemTest
             Is.EqualTo(EditorPlacementMode.Mines));
 
         mineButton.RemoveTag<Pressed>();
-        directionButton.AddTag<Pressed>();
-        Frame();
-        Assert.That(
-            editor.GetComponent<EditorDashDirectionState>().Direction,
-            Is.EqualTo(DashDirection.DownLeft));
-
-        directionButton.RemoveTag<Pressed>();
         moveButton.AddTag<Pressed>();
         Frame();
         Assert.That(

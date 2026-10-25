@@ -80,13 +80,13 @@ public static partial class EditorScene
             selected: 0);
 
         Entity tools = BuildPlacementTools(ui, centerX, top + 190);
-        Entity directionRoot = BuildDirectionWidget(
-            ui,
-            new Vector2(centerX - 270, top + 250),
-            screen);
-        editor.AddComponent(new EditorDirectionWidget(
-            directionRoot,
-            new Vector2(centerX - 270, top + 250)));
+        Vector2 wheelHome = new(centerX - 250, top + 255);
+        (UiWheelControl wheel, Entity wheelLabel) =
+            BuildDirectionWheel(ui, wheelHome);
+        editor.AddComponent(new EditorDirectionWheel(
+            wheel.Wheel,
+            wheelLabel,
+            wheelHome));
         editor.AddComponent(new EditorSidebarLayout(
             sidebarPanel,
             typeLabel,
@@ -146,55 +146,26 @@ public static partial class EditorScene
             top));
     }
 
-    private static Entity BuildDirectionWidget(
+    private static (UiWheelControl Wheel, Entity Label) BuildDirectionWheel(
         UiBuilder ui,
-        Vector2 center,
-        Vector2 screen)
+        Vector2 home)
     {
-        ui.Container(
-            center,
-            new Vector2(180, 180),
-            StackDirection.Vertical,
-            spacing: 0,
-            color: SceneUi.PanelColor);
-        Entity root = ui.Current;
-        Entity panel = root;
-        Entity label = HudText(
+        UiWheelControl wheel = ui.Wheel(
+            home,
+            92,
+            DashDirectionWheel.Labels,
+            selected: DashDirectionWheel.IndexOf(DashDirection.Up),
+            hubRadius: 0.30f,
+            gap: 0.045f);
+        Entity label = SceneUi.Text(
             ui,
-            new Vector2(0, -72),
-            new Vector2(170, 18),
+            home + new Vector2(0, -92 - 16),
+            new Vector2(190, 18),
             "DASH DIRECTION",
             12,
-            SceneUi.DimTextColor);
-        root.AddChild(label);
-
-        (DashDirection Direction, string Label, Vector2 Offset)[] wheel =
-        {
-            (DashDirection.Up, "↑", new Vector2(0, -45)),
-            (DashDirection.UpRight, "↗", new Vector2(32, -32)),
-            (DashDirection.Right, "→", new Vector2(45, 0)),
-            (DashDirection.DownRight, "↘", new Vector2(32, 32)),
-            (DashDirection.Down, "↓", new Vector2(0, 45)),
-            (DashDirection.DownLeft, "↙", new Vector2(-32, 32)),
-            (DashDirection.Left, "←", new Vector2(-45, 0)),
-            (DashDirection.UpLeft, "↖", new Vector2(-32, -32)),
-        };
-
-        foreach ((DashDirection direction, string text, Vector2 offset) in wheel)
-        {
-            AddPlacementButton(
-                ui,
-                root,
-                offset,
-                text,
-                new EditorDashDirectionButton(direction),
-                32,
-                24);
-        }
-
-        _ = screen;
-        _ = panel;
-        return root;
+            SceneUi.DimTextColor,
+            new Color(0, 0, 0, 0));
+        return (wheel, label);
     }
 
     private static Entity BuildPlacementTools(

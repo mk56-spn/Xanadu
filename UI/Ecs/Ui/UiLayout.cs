@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using Godot;
 using Writer.Ecs;
@@ -51,6 +52,20 @@ public static class UiLayout
 
         SetIgnored(entity, buffer, true);
         MarkParentDirty(entity, buffer);
+    }
+
+    /// <summary>
+    /// Deletes an entity and everything parented under it. <c>DeleteEntity</c>
+    /// alone leaves the children behind, still alive and still hit-testable.
+    /// </summary>
+    public static void DeleteSubtree(Entity entity)
+    {
+        var children = new List<Entity>();
+        foreach (Entity child in entity.ChildEntities)
+            children.Add(child);
+        foreach (Entity child in children)
+            DeleteSubtree(child);
+        entity.DeleteEntity();
     }
 
     private static void MarkParentDirty(Entity entity)
