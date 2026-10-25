@@ -164,6 +164,29 @@ public static class XafAuthoring
     public static XafClip? FindClip(XafPackage package, string id) =>
         package.Clips.Find(clip => clip.Id == id);
 
+    public static void KeyAttachmentTransform(
+        XafPackage package,
+        XafClip clip,
+        int attachmentIndex,
+        float time,
+        XafTransform transform)
+    {
+        if (attachmentIndex < 0 || attachmentIndex >= package.Attachments.Count)
+            return;
+
+        string group = package.Attachments[attachmentIndex].Group;
+        SetAttachmentProperty(package, clip, group,
+            XafChannelProperty.TranslationX, time, transform.Translation.X);
+        SetAttachmentProperty(package, clip, group,
+            XafChannelProperty.TranslationY, time, transform.Translation.Y);
+        SetAttachmentProperty(package, clip, group,
+            XafChannelProperty.Rotation, time, transform.Rotation);
+        SetAttachmentProperty(package, clip, group,
+            XafChannelProperty.ScaleX, time, transform.Scale.X);
+        SetAttachmentProperty(package, clip, group,
+            XafChannelProperty.ScaleY, time, transform.Scale.Y);
+    }
+
     public static void KeyBoneTransform(
         XafPackage package,
         XafClip clip,

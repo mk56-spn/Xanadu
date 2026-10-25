@@ -47,9 +47,12 @@ public partial class AnimatorTool : Control
     private float _timeScale = 1f;
     private int _selectedBone = -1;
     private bool _draggingBone;
+    private bool _draggingAttachment;
     private bool _wasPointerPressed;
     private Vector2 _dragStartPointer;
     private Vector2 _dragStartTranslation;
+    private Vector2 _dragStartAttachmentTranslation;
+    private int _selectedAttachment = -1;
 
     public override void _Ready()
     {
@@ -189,9 +192,16 @@ public partial class AnimatorTool : Control
         for (int i = 0; i < _package.Skeleton.Bones.Count; i++)
         {
             XafBone bone = _package.Skeleton.Bones[i];
-            HudText(ui, Vector2.Zero, new Vector2(210, 20),
-                $"{bone.Id}  z{bone.ZOrder}", 13, new Color("#cbd5e1"),
-                TextAlign.Left);
+            BuildButton(ui, bone.Id, ToolActionKind.SelectBone,
+                Vector2.Zero, new Vector2(200, 26), bone.Id);
+        }
+        HudText(ui, Vector2.Zero, new Vector2(210, 20),
+            "ATTACHMENTS", 14, new Color("#facc15"));
+        for (int i = 0; i < _package.Attachments.Count; i++)
+        {
+            XafAttachment attachment = _package.Attachments[i];
+            BuildButton(ui, attachment.Group, ToolActionKind.SelectAttachment,
+                Vector2.Zero, new Vector2(200, 26), i.ToString());
         }
         ui.End();
 
@@ -233,7 +243,7 @@ public partial class AnimatorTool : Control
             ("SCALE -", ToolActionKind.ScaleDown),
             ("SCALE +", ToolActionKind.ScaleUp),
         }, 168);
-        BuildButton(ui, "KEY BONE", ToolActionKind.KeyBone,
+        BuildButton(ui, "KEY SELECTED", ToolActionKind.KeyBone,
             Vector2.Zero, new Vector2(168, 30));
         HudText(ui, Vector2.Zero, new Vector2(210, 20),
             "CLIPS", 14, new Color("#facc15"));
@@ -366,10 +376,11 @@ public partial class AnimatorTool : Control
     {
         PointerInput input = _pointer.Read();
         Rect2 area = PreviewArea();
+        Transform2D[] world = XafRig.WorldBones(_package, _runtime.Pose);
+        Vector2 center = area.Position + area.Size / 2;
+
         if (input.Pressed && !_wasPointerPressed && area.HasPoint(input.Position))
         {
-            Transform2D[] world = XafRig.WorldBones(_package, _runtime.Pose);
-            Vector2 center = area.Position + area.Size / 2;
             int hit = -1;
             float best = 16f;
             for (int i = 0; i < world.Length; i++)
@@ -385,11 +396,40 @@ public partial class AnimatorTool : Control
             if (hit >= 0)
             {
                 _selectedBone = hit;
+                _selectedAttachment = -1;
                 _runtime.SetPaused(true);
                 _draggingBone = true;
                 _dragStartPointer = input.Position;
                 _dragStartTranslation = _runtime.Pose.Bones[hit].Translation;
                 SetStatus($"SELECTED {_package.Skeleton.Bones[hit].Id}");
+            }
+            else
+            {
+                Transform2D[] attachments = XafRig.WorldAttachments(
+                    _package, _runtime.Pose, world);
+                int attachmentHit = -1;
+                float attachmentBest = 22f;
+                for (int i = 0; i < attachments.Length; i++)
+                {
+                    float distance = (center + attachments[i].Origin)
+                        .DistanceTo(input.Position);
+                    if (distance > attachmentBest)
+                        continue;
+                    attachmentBest = distance;
+                    attachmentHit = i;
+                }
+
+                if (attachmentHit >= 0)
+                {
+                    _selectedAttachment = attachmentHit;
+                    _selectedBone = -1;
+                    _runtime.SetPaused(true);
+                    _draggingAttachment = true;
+                    _dragStartPointer = input.Position;
+                    _dragStartAttachmentTranslation =
+                        _runtime.Pose.Attachments[attachmentHit].Translation;
+                    SetStatus($"SELECTED {_package.Attachments[attachmentHit].Group}");
+                }
             }
         }
         else if (input.Pressed && _draggingBone && _selectedBone >= 0)
@@ -399,11 +439,21 @@ public partial class AnimatorTool : Control
             transform.Translation = _dragStartTranslation + delta;
             _runtime.Pose.Bones[_selectedBone] = transform;
         }
-        else if (!input.Pressed && _wasPointerPressed && _draggingBone)
+        else if (input.Pressed && _draggingAttachment &&
+                 _selectedAttachment >= 0)
+        {
+            Vector2 delta = input.Position - _dragStartPointer;
+            XafTransform transform = _runtime.Pose.Attachments[_selectedAttachment];
+            transform.Translation = _dragStartAttachmentTranslation + delta;
+            _runtime.Pose.Attachments[_selectedAttachment] = transform;
+        }
+        else if (!input.Pressed && _wasPointerPressed &&
+                 (_draggingBone || _draggingAttachment))
         {
             _draggingBone = false;
+            _draggingAttachment = false;
             if (_autoKeyEnabled)
-                KeySelectedBone();
+                KeySelected();
         }
 
         _wasPointerPressed = input.Pressed;
@@ -417,22 +467,33 @@ public partial class AnimatorTool : Control
         return null;
     }
 
-    private void KeySelectedBone()
+    private void KeySelected()
     {
-        if (_selectedBone < 0)
-            return;
-
         XafClip? clip = CurrentClip();
         if (clip is null)
             return;
 
-        XafAuthoring.KeyBoneTransform(
-            _package,
-            clip,
-            _selectedBone,
-            _runtime.CurrentTime,
-            _runtime.Pose.Bones[_selectedBone]);
-        SetStatus($"KEYED {_package.Skeleton.Bones[_selectedBone].Id}");
+        if (_selectedBone >= 0)
+        {
+            XafAuthoring.KeyBoneTransform(
+                _package,
+                clip,
+                _selectedBone,
+                _runtime.CurrentTime,
+                _runtime.Pose.Bones[_selectedBone]);
+            SetStatus($"KEYED {_package.Skeleton.Bones[_selectedBone].Id}");
+        }
+        else if (_selectedAttachment >= 0)
+        {
+            XafAuthoring.KeyAttachmentTransform(
+                _package,
+                clip,
+                _selectedAttachment,
+                _runtime.CurrentTime,
+                _runtime.Pose.Attachments[_selectedAttachment]);
+            SetStatus(
+                $"KEYED {_package.Attachments[_selectedAttachment].Group}");
+        }
     }
 
     private void DrawBoneDirection(Vector2 from, Vector2 to, Color color)
@@ -596,9 +657,13 @@ public partial class AnimatorTool : Control
         for (int i = 0; i < attachments.Length; i++)
         {
             Vector2 point = center + attachments[i].Origin;
+            float marker = i == _selectedAttachment ? 14f : 10f;
             _canvas.DrawRect(_preview,
-                new Rect2(point - new Vector2(5, 5), new Vector2(10, 10)),
-                new Color("#a3e635"));
+                new Rect2(point - new Vector2(marker / 2, marker / 2),
+                    new Vector2(marker, marker)),
+                i == _selectedAttachment
+                    ? Colors.White
+                    : new Color("#a3e635"));
         }
 
         _canvas.DrawTextStyled(
@@ -954,16 +1019,28 @@ public partial class AnimatorTool : Control
 
     private void NudgeTransform(float rotation, float scale)
     {
-        if (_selectedBone < 0)
-            return;
-
         _runtime.SetPaused(true);
-        XafTransform transform = _runtime.Pose.Bones[_selectedBone];
-        transform.Rotation += rotation;
-        transform.Scale += new Vector2(scale, scale);
-        _runtime.Pose.Bones[_selectedBone] = transform;
+        if (_selectedBone >= 0)
+        {
+            XafTransform transform = _runtime.Pose.Bones[_selectedBone];
+            transform.Rotation += rotation;
+            transform.Scale += new Vector2(scale, scale);
+            _runtime.Pose.Bones[_selectedBone] = transform;
+        }
+        else if (_selectedAttachment >= 0)
+        {
+            XafTransform transform = _runtime.Pose.Attachments[_selectedAttachment];
+            transform.Rotation += rotation;
+            transform.Scale += new Vector2(scale, scale);
+            _runtime.Pose.Attachments[_selectedAttachment] = transform;
+        }
+        else
+        {
+            return;
+        }
+
         if (_autoKeyEnabled)
-            KeySelectedBone();
+            KeySelected();
     }
 
     private void SavePackage()
@@ -983,6 +1060,22 @@ public partial class AnimatorTool : Control
     {
         switch (action.Kind)
         {
+            case ToolActionKind.SelectBone:
+                _selectedBone = _package.Skeleton.Bones.FindIndex(
+                    bone => bone.Id == action.Argument);
+                _selectedAttachment = -1;
+                SetStatus($"SELECTED {action.Argument}");
+                break;
+            case ToolActionKind.SelectAttachment:
+                if (int.TryParse(action.Argument, out int attachmentIndex) &&
+                    attachmentIndex >= 0 &&
+                    attachmentIndex < _package.Attachments.Count)
+                {
+                    _selectedAttachment = attachmentIndex;
+                    _selectedBone = -1;
+                    SetStatus($"SELECTED {_package.Attachments[attachmentIndex].Group}");
+                }
+                break;
             case ToolActionKind.Play:
                 _playback.Play();
                 _timeScale = 1f;
@@ -1024,7 +1117,7 @@ public partial class AnimatorTool : Control
                 NudgeTransform(0f, 0.1f);
                 break;
             case ToolActionKind.KeyBone:
-                KeySelectedBone();
+                KeySelected();
                 break;
             case ToolActionKind.Onion:
                 _onionEnabled = !_onionEnabled;
@@ -1066,6 +1159,8 @@ public partial class AnimatorTool : Control
         ScaleDown,
         KeyBone,
         Onion,
+        SelectBone,
+        SelectAttachment,
     }
 
     public struct ToolAction(
