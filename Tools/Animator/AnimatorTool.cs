@@ -30,9 +30,13 @@ public partial class AnimatorTool : Control
     private AnimatorRuntime _runtime = null!;
     private Entity _status;
     private Entity _autoKey;
+    private Entity _onionButton;
     private Entity _previewPanel;
     private Entity _timelinePanel;
     private bool _autoKeyEnabled;
+    private bool _onionEnabled;
+    private int _selectedKeyChannel = -1;
+    private int _selectedKeyIndex = -1;
     private float _timeScale = 1f;
     private int _selectedBone = -1;
     private bool _draggingBone;
@@ -183,6 +187,8 @@ public partial class AnimatorTool : Control
             ("STOP", ToolActionKind.Stop),
         }, 168);
         _autoKey = BuildButton(ui, "AUTO KEY OFF", ToolActionKind.AutoKey,
+            Vector2.Zero, new Vector2(168, 30));
+        _onionButton = BuildButton(ui, "ONION OFF", ToolActionKind.Onion,
             Vector2.Zero, new Vector2(168, 30));
         BuildButton(ui, "SAVE XAF", ToolActionKind.Save,
             Vector2.Zero, new Vector2(168, 30));
@@ -364,6 +370,28 @@ public partial class AnimatorTool : Control
         SetStatus($"KEYED {_package.Skeleton.Bones[_selectedBone].Id}");
     }
 
+    private void DrawGhost(
+        XafClip clip,
+        float time,
+        Color color,
+        Vector2 center)
+    {
+        float duration = Mathf.Max(0.001f, clip.Duration);
+        time = Mathf.Clamp(time, 0f, duration);
+        XafPose pose = XafSampler.Sample(_package, clip, time);
+        Transform2D[] world = XafRig.WorldBones(_package, pose);
+        for (int i = 0; i < world.Length; i++)
+        {
+            XafBone bone = _package.Skeleton.Bones[i];
+            Vector2 point = center + world[i].Origin;
+            _canvas.DrawCircle(_preview, point, 3, color);
+            if (bone.Parent >= 0 && bone.Parent < world.Length)
+                _canvas.DrawLine(_preview,
+                    center + world[bone.Parent].Origin,
+                    point, color, 1);
+        }
+    }
+
     private void DrawPreview()
     {
         _canvas.Clear(_preview);
@@ -377,6 +405,19 @@ public partial class AnimatorTool : Control
 
         Transform2D[] world = XafRig.WorldBones(_package, _runtime.Pose);
         Vector2 center = area.Position + area.Size / 2;
+
+        if (_onionEnabled)
+        {
+            XafClip? onionClip = CurrentClip();
+            if (onionClip is not null)
+            {
+                DrawGhost(onionClip, _runtime.CurrentTime - 0.1f,
+                    new Color("#38bdf8", 0.25f), center);
+                DrawGhost(onionClip, _runtime.CurrentTime + 0.1f,
+                    new Color("#fb7185", 0.25f), center);
+            }
+        }
+
         for (int i = 0; i < world.Length; i++)
         {
             XafBone bone = _package.Skeleton.Bones[i];
@@ -438,6 +479,46 @@ public partial class AnimatorTool : Control
         Rect2 bar = TimelineRect();
         if (input.Pressed && !_wasTimelinePressed && bar.HasPoint(input.Position))
         {
+            XafClip? clip = CurrentClip();
+            if (clip is not null)
+            {
+                float duration = Mathf.Max(0.1f, _runtime.CurrentDuration);
+                float best = 10f;
+                int bestChannel = -1;
+                int bestKey = -1;
+                for (int c = 0; c < clip.Channels.Count; c++)
+                {
+                    List<XafKeyframe> keys = clip.Channels[c].Keyframes;
+                    for (int k = 0; k < keys.Count; k++)
+                    {
+                        float x = Mathf.Lerp(
+                            bar.Position.X,
+                            bar.End.X,
+                            Mathf.Clamp(keys[k].Time / duration, 0f, 1f));
+                        float distance = Mathf.Abs(input.Position.X - x);
+                        if (distance >= best)
+                            continue;
+                        best = distance;
+                        bestChannel = c;
+                        bestKey = k;
+                    }
+                }
+
+                if (bestChannel >= 0)
+                {
+                    _selectedKeyChannel = bestChannel;
+                    _selectedKeyIndex = bestKey;
+                    _runtime.Seek(clip.Channels[bestChannel]
+                        .Keyframes[bestKey].Time);
+                    _runtime.SetPaused(true);
+                    SetStatus("KEY SELECTED • DELETE TO REMOVE");
+                    _wasTimelinePressed = input.Pressed;
+                    return;
+                }
+            }
+
+            _selectedKeyChannel = -1;
+            _selectedKeyIndex = -1;
             float t = Mathf.Clamp(
                 (input.Position.X - bar.Position.X) / Mathf.Max(1f, bar.Size.X),
                 0f,
@@ -446,6 +527,41 @@ public partial class AnimatorTool : Control
             _runtime.SetPaused(true);
         }
         _wasTimelinePressed = input.Pressed;
+    }
+
+    private void DeleteSelectedKey()
+    {
+        XafClip? clip = CurrentClip();
+        if (clip is null ||
+            _selectedKeyChannel < 0 ||
+            _selectedKeyChannel >= clip.Channels.Count)
+        {
+            return;
+        }
+
+        XafChannel channel = clip.Channels[_selectedKeyChannel];
+        if (_selectedKeyIndex < 0 ||
+            _selectedKeyIndex >= channel.Keyframes.Count)
+        {
+            return;
+        }
+
+        float time = channel.Keyframes[_selectedKeyIndex].Time;
+        XafAuthoring.RemoveKey(
+            clip,
+            channel.Target,
+            channel.TargetId,
+            channel.Property,
+            time);
+        _selectedKeyChannel = -1;
+        _selectedKeyIndex = -1;
+        SetStatus("KEY REMOVED");
+    }
+
+    public override void _UnhandledInput(InputEvent @event)
+    {
+        if (@event is InputEventKey { Pressed: true, Keycode: Key.Delete })
+            DeleteSelectedKey();
     }
 
     private void DrawTimeline()
@@ -482,18 +598,23 @@ public partial class AnimatorTool : Control
         if (clip is null)
             return;
 
-        foreach (XafChannel channel in clip.Channels)
+        for (int c = 0; c < clip.Channels.Count; c++)
         {
-            foreach (XafKeyframe key in channel.Keyframes)
+            List<XafKeyframe> keys = clip.Channels[c].Keyframes;
+            for (int k = 0; k < keys.Count; k++)
             {
+                XafKeyframe key = keys[k];
                 float keyX = Mathf.Lerp(
                     bar.Position.X,
                     bar.End.X,
                     Mathf.Clamp(key.Time / duration, 0f, 1f));
+                bool selected = c == _selectedKeyChannel &&
+                                k == _selectedKeyIndex;
                 _canvas.DrawCircle(
                     _timelineCanvas,
-                    new Vector2(keyX, bar.Position.Y + 19), 4,
-                    new Color("#38bdf8"));
+                    new Vector2(keyX, bar.Position.Y + 19),
+                    selected ? 6 : 4,
+                    selected ? Colors.White : new Color("#38bdf8"));
             }
         }
     }
@@ -648,6 +769,12 @@ public partial class AnimatorTool : Control
             case ToolActionKind.KeyBone:
                 KeySelectedBone();
                 break;
+            case ToolActionKind.Onion:
+                _onionEnabled = !_onionEnabled;
+                _onionButton.GetComponent<Text>().Value =
+                    _onionEnabled ? "ONION ON" : "ONION OFF";
+                SetStatus(_onionEnabled ? "ONION ON" : "ONION OFF");
+                break;
         }
     }
 
@@ -686,6 +813,7 @@ public partial class AnimatorTool : Control
         ScaleUp,
         ScaleDown,
         KeyBone,
+        Onion,
     }
 
     public struct ToolAction(ToolActionKind kind, string argument = "") : IComponent
