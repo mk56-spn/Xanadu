@@ -43,6 +43,74 @@ public sealed class UiDropdownSystemTests
     }
 
     [Test]
+    public void OptionsLayOutInValueOrder()
+    {
+        EntityStore store = new();
+        var root = new SystemRoot(store);
+        root.Add(new UiDropdownSystem(store));
+
+        Entity button = store.CreateEntity(
+            new Position(new Vector2(100, 50)),
+            new Rectangle(new Rect2(-50, -20, 100, 40)));
+        Entity list = store.CreateEntity(
+            new Position(new Vector2(-10_000, -10_000)),
+            new Rectangle(new Rect2(0, 0, 0, 0)));
+        button.AddComponent(new Dropdown(list, 0, new Vector2(100, 80)));
+
+        Entity third = store.CreateEntity(
+            new Position(new Vector2(-10_000, -10_000)),
+            new Rectangle(new Rect2(-40, -12, 80, 24)));
+        third.AddComponent(new DropdownOption(button, 2));
+        Entity first = store.CreateEntity(
+            new Position(new Vector2(-10_000, -10_000)),
+            new Rectangle(new Rect2(-40, -12, 80, 24)));
+        first.AddComponent(new DropdownOption(button, 0));
+
+        button.AddTag<Pressed>();
+        root.Update(new UpdateTick(1f / 60f, 1f));
+
+        Assert.That(first.GetComponent<Position>().Value.Y,
+            Is.LessThan(third.GetComponent<Position>().Value.Y));
+    }
+
+    [Test]
+    public void OpeningOneDropdownClosesTheOther()
+    {
+        EntityStore store = new();
+        var root = new SystemRoot(store);
+        root.Add(new UiDropdownSystem(store));
+
+        Entity first = store.CreateEntity(
+            new Position(new Vector2(100, 50)),
+            new Rectangle(new Rect2(-50, -20, 100, 40)));
+        Entity firstList = store.CreateEntity(
+            new Position(new Vector2(-10_000, -10_000)),
+            new Rectangle(new Rect2(0, 0, 0, 0)));
+        first.AddComponent(new Dropdown(firstList, 0));
+
+        Entity second = store.CreateEntity(
+            new Position(new Vector2(100, 150)),
+            new Rectangle(new Rect2(-50, -20, 100, 40)));
+        Entity secondList = store.CreateEntity(
+            new Position(new Vector2(-10_000, -10_000)),
+            new Rectangle(new Rect2(0, 0, 0, 0)));
+        second.AddComponent(new Dropdown(secondList, 0));
+
+        first.AddTag<Pressed>();
+        root.Update(new UpdateTick(1f / 60f, 1f));
+        first.RemoveTag<Pressed>();
+        Assert.That(first.GetComponent<Dropdown>().Open, Is.True);
+
+        second.AddTag<Pressed>();
+        root.Update(new UpdateTick(1f / 60f, 2f));
+
+        Assert.That(first.GetComponent<Dropdown>().Open, Is.False);
+        Assert.That(firstList.GetComponent<Position>().Value,
+            Is.EqualTo(new Vector2(-10_000, -10_000)));
+        Assert.That(second.GetComponent<Dropdown>().Open, Is.True);
+    }
+
+    [Test]
     public void OpenListFollowsTheButtonWhenLayoutMovesIt()
     {
         EntityStore store = new();
