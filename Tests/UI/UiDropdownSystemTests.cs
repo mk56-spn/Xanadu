@@ -43,6 +43,43 @@ public sealed class UiDropdownSystemTests
     }
 
     [Test]
+    public void NonExclusiveDropdownsStayOpenTogether()
+    {
+        EntityStore store = new();
+        var root = new SystemRoot(store);
+        root.Add(new UiDropdownSystem(store));
+
+        Entity first = store.CreateEntity(
+            new Position(new Vector2(100, 50)),
+            new Rectangle(new Rect2(-50, -20, 100, 40)));
+        first.AddComponent(new Dropdown(
+            store.CreateEntity(
+                new Position(new Vector2(-10_000, -10_000)),
+                new Rectangle(new Rect2(0, 0, 0, 0))),
+            0,
+            closeOthers: false));
+
+        Entity second = store.CreateEntity(
+            new Position(new Vector2(100, 150)),
+            new Rectangle(new Rect2(-50, -20, 100, 40)));
+        second.AddComponent(new Dropdown(
+            store.CreateEntity(
+                new Position(new Vector2(-10_000, -10_000)),
+                new Rectangle(new Rect2(0, 0, 0, 0))),
+            0,
+            closeOthers: false));
+
+        first.AddTag<Pressed>();
+        root.Update(new UpdateTick(1f / 60f, 1f));
+        first.RemoveTag<Pressed>();
+        second.AddTag<Pressed>();
+        root.Update(new UpdateTick(1f / 60f, 2f));
+
+        Assert.That(first.GetComponent<Dropdown>().Open, Is.True);
+        Assert.That(second.GetComponent<Dropdown>().Open, Is.True);
+    }
+
+    [Test]
     public void OptionsLayOutInValueOrder()
     {
         EntityStore store = new();

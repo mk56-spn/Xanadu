@@ -216,6 +216,55 @@ public partial class UiShowcase : Control
             }
         }
 
+        ui.Container(
+            new Vector2(1465, 570),
+            new Vector2(220, 170),
+            StackDirection.Vertical,
+            spacing: 8,
+            color: new Color("#111827"),
+            padding: 10,
+            cross: StackCrossAlignment.Center,
+            autoHeight: true);
+        var categoryButtons = new Entity[2];
+        for (int i = 0; i < categoryButtons.Length; i++)
+        {
+            Entity button = ui.RectEntity(
+                Vector2.Zero,
+                new Vector2(190, 32),
+                new Color("#0f766e"),
+                $"CATEGORY {(char)('A' + i)}",
+                takesInput: true);
+            Style(button, 14, new Color("#e2e8f0"));
+            button.AddComponent(ButtonVisual.Create(new Color("#0f766e")));
+            categoryButtons[i] = button;
+        }
+        ui.End();
+
+        for (int i = 0; i < categoryButtons.Length; i++)
+        {
+            Entity button = categoryButtons[i];
+            Entity list = ui.RectEntity(
+                new Vector2(-10_000, -10_000),
+                new Vector2(190, 104),
+                new Color("#111827"));
+            button.AddComponent(new Dropdown(
+                list,
+                0,
+                new Vector2(190, 104),
+                closeOthers: false));
+            for (int optionIndex = 0; optionIndex < 3; optionIndex++)
+            {
+                Entity option = ui.RectEntity(
+                    new Vector2(-10_000, -10_000),
+                    new Vector2(178, 28),
+                    new Color("#134e4a"),
+                    $"CATEGORY {(char)('A' + i)} · {optionIndex + 1}",
+                    takesInput: true);
+                Style(option, 13, new Color("#e2e8f0"));
+                option.AddComponent(new DropdownOption(button, optionIndex));
+            }
+        }
+
         ui.RectEntity(new Vector2(300, 780), new Vector2(850, 80),
             new Color("#1e293b"),
             "RECTS · TEXT · CONTAINERS · BUTTONS · SCROLL · SLIDER · DROPDOWN");

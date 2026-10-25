@@ -10,12 +10,16 @@ namespace Writer.Ecs;
 public struct Dropdown(
     Entity list,
     int selected,
-    Vector2? listSize = null) : ILinkComponent
+    Vector2? listSize = null,
+    bool closeOthers = true) : ILinkComponent
 {
     public Entity List = list;
     public int Selected = selected;
     public bool Open;
     public Vector2 ListSize = listSize ?? Vector2.Zero;
+
+    /// <summary>When false, opening this dropdown leaves other lists open.</summary>
+    public bool CloseOthers = closeOthers;
 
     public readonly Entity GetIndexedValue() => List;
 }
