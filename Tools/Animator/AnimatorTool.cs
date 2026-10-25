@@ -95,6 +95,25 @@ public partial class AnimatorTool : Control
         HandleTimelineInput();
         DrawPreview();
         DrawTimeline();
+        _pointer.EndFrame();
+    }
+
+    public override void _Input(InputEvent @event)
+    {
+        if (@event is InputEventMouseMotion motion)
+        {
+            _pointer.Position = motion.Position;
+        }
+        else if (@event is InputEventMouseButton
+                 {
+                     ButtonIndex: MouseButton.Left,
+                 } button)
+        {
+            _pointer.Position = button.Position;
+            _pointer.Pressed = button.Pressed;
+            if (button.Pressed)
+                _pointer.ClickPending = true;
+        }
     }
 
     private void BuildUi()
@@ -894,9 +913,18 @@ public partial class AnimatorTool : Control
 
     private sealed class ToolPointer(AnimatorTool owner) : IPointerInputSource
     {
-        public PointerInput Read() => new(
-            owner.GetViewport().GetMousePosition(),
-            Input.IsMouseButtonPressed(MouseButton.Left));
+        public Vector2 Position;
+        public bool Pressed;
+        public bool ClickPending;
+        public bool Forced;
+        public Vector2 ForcedPosition;
+        public bool ForcedPressed;
+
+        public PointerInput Read() => Forced
+            ? new PointerInput(ForcedPosition, ForcedPressed)
+            : new PointerInput(Position, Pressed || ClickPending);
+
+        public void EndFrame() => ClickPending = false;
     }
 
     public enum ToolActionKind
