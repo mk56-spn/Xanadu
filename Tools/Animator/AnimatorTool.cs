@@ -35,6 +35,7 @@ public partial class AnimatorTool : Control
     private Entity _fileButton;
     private Entity _fileMenu;
     private bool _fileMenuOpen;
+    private bool _wasFileMenuPressed;
     private Entity _previewPanel;
     private Entity _timelinePanel;
     private bool _autoKeyEnabled;
@@ -245,9 +246,9 @@ public partial class AnimatorTool : Control
             cross: StackCrossAlignment.Center);
         _fileMenu = menuUi.Current;
         BuildButton(menuUi, "SAVE XAF", ToolActionKind.Save,
-            Vector2.Zero, new Vector2(168, 30));
+            Vector2.Zero, new Vector2(168, 30), direct: true);
         BuildButton(menuUi, "LOAD XAF", ToolActionKind.Load,
-            Vector2.Zero, new Vector2(168, 30));
+            Vector2.Zero, new Vector2(168, 30), direct: true);
         menuUi.End();
     }
 
@@ -257,13 +258,14 @@ public partial class AnimatorTool : Control
         ToolActionKind action,
         Vector2 position,
         Vector2 size,
-        string argument = "")
+        string argument = "",
+        bool direct = false)
     {
         Entity button = ui.RectEntity(position, size,
             new Color("#2563eb"), label, takesInput: true);
         button.AddComponent(new TextStyle(13, new Color("#e2e8f0")));
         button.AddComponent(ButtonVisual.Create(new Color("#2563eb")));
-        button.AddComponent(new ToolAction(action, argument));
+        button.AddComponent(new ToolAction(action, argument, direct));
         return button;
     }
 
@@ -740,6 +742,33 @@ public partial class AnimatorTool : Control
         return clip;
     }
 
+    private void HandleFileMenuInput()
+    {
+        PointerInput input = _pointer.Read();
+        if (input.Pressed && !_wasFileMenuPressed && _fileMenuOpen)
+        {
+            foreach (Entity child in _fileMenu.ChildEntities)
+            {
+                if (!child.HasComponent<Rectangle>() ||
+                    !child.HasComponent<Position>() ||
+                    !child.HasComponent<ToolAction>())
+                {
+                    continue;
+                }
+
+                Vector2 center = UiTransform.WorldPosition(child, Vector2.Zero);
+                Vector2 size = child.GetComponent<Rectangle>().Bounds.Size;
+                var bounds = new Rect2(center - size / 2, size);
+                if (!bounds.HasPoint(input.Position))
+                    continue;
+
+                RunAction(child.GetComponent<ToolAction>());
+                break;
+            }
+        }
+        _wasFileMenuPressed = input.Pressed;
+    }
+
     private void CloseFileMenu()
     {
         _fileMenuOpen = false;
@@ -854,7 +883,10 @@ public partial class AnimatorTool : Control
             {
                 if (!entity.Tags.Has<Pressed>())
                     continue;
-                owner.RunAction(entity.GetComponent<ToolAction>());
+                ToolAction action = entity.GetComponent<ToolAction>();
+                if (action.Direct)
+                    continue;
+                owner.RunAction(action);
                 entity.RemoveTag<Pressed>();
             }
         }
@@ -884,9 +916,13 @@ public partial class AnimatorTool : Control
         Onion,
     }
 
-    public struct ToolAction(ToolActionKind kind, string argument = "") : IComponent
+    public struct ToolAction(
+        ToolActionKind kind,
+        string argument = "",
+        bool direct = false) : IComponent
     {
         public ToolActionKind Kind = kind;
         public string Argument = argument;
+        public bool Direct = direct;
     }
 }
