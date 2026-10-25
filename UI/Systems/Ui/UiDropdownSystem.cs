@@ -48,7 +48,8 @@ public sealed class UiDropdownSystem : QuerySystem<Dropdown>
                             continue;
                         ref Dropdown otherDropdown = ref other.GetComponent<Dropdown>();
                         otherDropdown.Open = false;
-                        LayOut(entity, ref otherDropdown, buffer);
+                        LayOut(other, ref otherDropdown, buffer);
+                        MarkContainerDirty(other, buffer);
                     }
                 }
 
@@ -140,18 +141,26 @@ public sealed class UiDropdownSystem : QuerySystem<Dropdown>
         buffer.AddTag<Moved>(dropdown.List.Id);
 
         float top = listWorld.Y - size.Y / 2 + 2;
+        var options = new List<Entity>();
         foreach (Entity option in _entities
                      .Query<DropdownOption>()
                      .ToEntityList())
         {
             DropdownOption binding = option.GetComponent<DropdownOption>();
-            if (binding.Owner.Id != button.Id ||
-                !option.HasComponent<Position>() ||
-                !option.HasComponent<Rectangle>())
+            if (binding.Owner.Id == button.Id &&
+                option.HasComponent<Position>() &&
+                option.HasComponent<Rectangle>())
             {
-                continue;
+                options.Add(option);
             }
+        }
 
+        options.Sort(static (left, right) =>
+            left.GetComponent<DropdownOption>().Value.CompareTo(
+                right.GetComponent<DropdownOption>().Value));
+
+        foreach (Entity option in options)
+        {
             float height = option.GetComponent<Rectangle>().Bounds.Size.Y;
             ref Position optionPosition = ref option.GetComponent<Position>();
             optionPosition.Value = new Vector2(
