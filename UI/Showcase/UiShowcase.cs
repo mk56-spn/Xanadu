@@ -41,6 +41,7 @@ public partial class UiShowcase : Control
         _scroll = new ScrollSystem();
         _root.Add(_scroll);
         _root.Add(new ButtonVisualSystem());
+        _root.Add(new UiDropdownSystem(_store));
         _root.Add(new UiSliderSystem(_pointer));
         UiDebugOverlayGroup.Attach(
             _root,
@@ -55,6 +56,25 @@ public partial class UiShowcase : Control
     {
         float time = (float)Time.GetTicksMsec() / 1000f;
         _root.Update(new UpdateTick((float)delta, time));
+        _pointer.EndFrame();
+    }
+
+    public override void _Input(InputEvent @event)
+    {
+        if (@event is InputEventMouseMotion motion)
+        {
+            _pointer.Position = motion.Position;
+        }
+        else if (@event is InputEventMouseButton
+                 {
+                     ButtonIndex: MouseButton.Left,
+                 } button)
+        {
+            _pointer.Position = button.Position;
+            _pointer.Pressed = button.Pressed;
+            if (button.Pressed)
+                _pointer.ClickPending = true;
+        }
     }
 
     public override void _UnhandledInput(InputEvent @event)
@@ -178,9 +198,15 @@ public partial class UiShowcase : Control
 
     private sealed class ShowcasePointer(UiShowcase owner) : IPointerInputSource
     {
+        public Vector2 Position;
+        public bool Pressed;
+        public bool ClickPending;
+
         public PointerInput Read() => new(
-            owner.GetViewport().GetMousePosition(),
-            Input.IsMouseButtonPressed(MouseButton.Left),
+            Position,
+            Pressed || ClickPending,
             Input.IsKeyPressed(Key.Shift));
+
+        public void EndFrame() => ClickPending = false;
     }
 }
