@@ -90,6 +90,21 @@ public sealed class AnimatorRuntimeTests
     }
 
     [Test]
+    public void RestartReturnsAClipToItsFirstFrame()
+    {
+        var runtime = new AnimatorRuntime(Package());
+        runtime.Play("jump");
+        runtime.Update(2f);
+        Assert.That(runtime.CurrentTime, Is.EqualTo(runtime.CurrentDuration));
+
+        runtime.Restart();
+        runtime.SetPaused(false);
+        runtime.Update(0.5f);
+
+        Assert.That(runtime.CurrentTime, Is.EqualTo(0.5f).Within(0.001f));
+    }
+
+    [Test]
     public void UnknownClipDoesNotChangeState()
     {
         var runtime = new AnimatorRuntime(Package());

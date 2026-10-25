@@ -28,6 +28,7 @@ public partial class AnimatorTool : Control
     private bool _wasTimelinePressed;
     private XafPackage _package = null!;
     private AnimatorRuntime _runtime = null!;
+    private AnimatorPlayback _playback = null!;
     private Entity _status;
     private Entity _autoKey;
     private Entity _onionButton;
@@ -78,6 +79,7 @@ public partial class AnimatorTool : Control
 
         _package = LoadPackage();
         _runtime = new AnimatorRuntime(_package);
+        _playback = new AnimatorPlayback(_runtime);
         _runtime.Play("idle", 0.15f);
         BuildUi();
         SetProcess(true);
@@ -87,7 +89,7 @@ public partial class AnimatorTool : Control
     {
         float dt = (float)delta * _timeScale;
         HandlePreviewInput();
-        _runtime.Update(dt);
+        _playback.Update(dt);
         _root.Update(new UpdateTick((float)delta, (float)Time.GetTicksMsec() / 1000f));
         HandleTimelineInput();
         DrawPreview();
@@ -770,11 +772,13 @@ public partial class AnimatorTool : Control
                 }
                 break;
             case ToolActionKind.Play:
-                _runtime.SetPaused(false);
+                _playback.Play();
                 _timeScale = 1f;
+                SetStatus("PLAYING");
                 break;
             case ToolActionKind.Stop:
-                _runtime.SetPaused(true);
+                _playback.Stop();
+                SetStatus("STOPPED");
                 break;
             case ToolActionKind.AutoKey:
                 _autoKeyEnabled = !_autoKeyEnabled;
@@ -788,6 +792,7 @@ public partial class AnimatorTool : Control
             case ToolActionKind.Load:
                 _package = LoadPackage();
                 _runtime = new AnimatorRuntime(_package);
+                _playback.Replace(_runtime);
                 _runtime.Play("idle", 0.15f);
                 SetStatus("LOADED");
                 CloseFileMenu();

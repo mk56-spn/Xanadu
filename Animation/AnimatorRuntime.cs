@@ -71,6 +71,19 @@ public sealed class AnimatorRuntime
         Paused = paused;
     }
 
+    public void Restart()
+    {
+        if (_current is null)
+            return;
+
+        _currentTime = 0f;
+        _next = null;
+        _nextTime = 0f;
+        _fadeDuration = 0f;
+        _fadeElapsed = 0f;
+        Pose = XafSampler.Sample(Package, _current, 0f);
+    }
+
     public void Seek(float time)
     {
         if (_current is null)
