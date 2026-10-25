@@ -5,6 +5,7 @@ using Friflo.Engine.ECS.Systems;
 using Godot;
 using Writer.Animation;
 using Writer.Ecs;
+using Position = Writer.Ecs.Position;
 using Writer.Systems.Canvas;
 using Writer.Systems.Input;
 using Writer.Systems.Layout;
@@ -29,7 +30,8 @@ public partial class AnimatorTool : Control
     private AnimatorRuntime _runtime = null!;
     private Entity _status;
     private Entity _autoKey;
-    private Entity _timeline;
+    private Entity _previewPanel;
+    private Entity _timelinePanel;
     private bool _autoKeyEnabled;
     private float _timeScale = 1f;
     private int _selectedBone = -1;
@@ -88,24 +90,93 @@ public partial class AnimatorTool : Control
     private void BuildUi()
     {
         Vector2 screen = GetViewportRect().Size;
+        const float margin = 16f;
+        const float topHeight = 88f;
+        const float bottomHeight = 112f;
+        const float gap = 12f;
+        float mainHeight = screen.Y - margin * 2 - topHeight - bottomHeight - gap * 2;
+
         UiBuilder ui = UiBuilder.Begin(_store).Layer(0);
         ui.RectEntity(screen / 2, screen, new Color("#090d16"));
 
-        HudText(ui, new Vector2(220, 26), new Vector2(360, 28),
+        ui.Container(
+            screen / 2,
+            screen,
+            StackDirection.Vertical,
+            spacing: gap,
+            padding: margin,
+            color: new Color(0, 0, 0, 0),
+            cross: StackCrossAlignment.Center);
+        ui.Container(
+            Vector2.Zero,
+            new Vector2(screen.X - margin * 2, topHeight),
+            StackDirection.Horizontal,
+            spacing: 16,
+            color: new Color("#111827"),
+            padding: 14,
+            cross: StackCrossAlignment.Center);
+        ui.Container(
+            Vector2.Zero,
+            new Vector2(650, topHeight - 28),
+            StackDirection.Vertical,
+            spacing: 4,
+            color: new Color(0, 0, 0, 0),
+            padding: 0,
+            cross: StackCrossAlignment.Start);
+        HudText(ui, Vector2.Zero, new Vector2(620, 28),
             "XAF ANIMATOR", 24, new Color("#facc15"));
-        HudText(ui, new Vector2(220, 52), new Vector2(520, 18),
+        HudText(ui, Vector2.Zero, new Vector2(620, 18),
             "skeleton / clips / rigid SVG groups", 12, new Color("#94a3b8"));
-
-        _status = HudText(ui, new Vector2(520, 50), new Vector2(420, 18),
-            "", 12, new Color("#a3e635"));
+        ui.End();
+        _status = HudText(ui, Vector2.Zero, new Vector2(520, 24),
+            "", 13, new Color("#a3e635"));
+        ui.End();
 
         ui.Container(
-            new Vector2(1200, 120),
-            new Vector2(180, 250),
+            Vector2.Zero,
+            new Vector2(screen.X - margin * 2, mainHeight),
+            StackDirection.Horizontal,
+            spacing: gap,
+            color: new Color(0, 0, 0, 0),
+            cross: StackCrossAlignment.Center);
+
+        ui.Container(
+            Vector2.Zero,
+            new Vector2(240, mainHeight),
             StackDirection.Vertical,
             spacing: 8,
-            color: new Color(0, 0, 0, 0),
-            padding: 8);
+            color: new Color("#111827"),
+            padding: 12,
+            cross: StackCrossAlignment.Start);
+        HudText(ui, Vector2.Zero, new Vector2(210, 20),
+            "BONES", 14, new Color("#facc15"));
+        for (int i = 0; i < _package.Skeleton.Bones.Count; i++)
+        {
+            XafBone bone = _package.Skeleton.Bones[i];
+            HudText(ui, Vector2.Zero, new Vector2(210, 20),
+                $"{bone.Id}  z{bone.ZOrder}", 13, new Color("#cbd5e1"));
+        }
+        ui.End();
+
+        float centerWidth = screen.X - margin * 2 - 240 - 300 - gap * 2;
+        ui.Container(
+            Vector2.Zero,
+            new Vector2(centerWidth, mainHeight),
+            StackDirection.Vertical,
+            spacing: 0,
+            color: new Color("#0f172a"),
+            padding: 0);
+        _previewPanel = ui.Current;
+        ui.End();
+
+        ui.Container(
+            Vector2.Zero,
+            new Vector2(300, mainHeight),
+            StackDirection.Vertical,
+            spacing: 8,
+            color: new Color("#111827"),
+            padding: 12,
+            cross: StackCrossAlignment.Center);
         BuildButtonRow(ui, new[]
         {
             ("PLAY", ToolActionKind.Play),
@@ -129,38 +200,6 @@ public partial class AnimatorTool : Control
         }, 168);
         BuildButton(ui, "KEY BONE", ToolActionKind.KeyBone,
             Vector2.Zero, new Vector2(168, 30));
-        ui.End();
-
-        float left = 20;
-        float top = 100;
-        float bottom = screen.Y - 150;
-        ui.Container(
-            new Vector2(left + 120, (top + bottom) / 2),
-            new Vector2(220, bottom - top),
-            StackDirection.Vertical,
-            spacing: 8,
-            color: new Color("#111827"),
-            padding: 12,
-            cross: StackCrossAlignment.Start);
-        HudText(ui, Vector2.Zero, new Vector2(190, 20),
-            "BONES", 14, new Color("#facc15"));
-        for (int i = 0; i < _package.Skeleton.Bones.Count; i++)
-        {
-            XafBone bone = _package.Skeleton.Bones[i];
-            HudText(ui, Vector2.Zero, new Vector2(190, 20),
-                $"{bone.Id}  z{bone.ZOrder}", 13, new Color("#cbd5e1"));
-        }
-        ui.End();
-
-        float rightX = screen.X - 140;
-        ui.Container(
-            new Vector2(rightX, (top + bottom) / 2),
-            new Vector2(240, bottom - top),
-            StackDirection.Vertical,
-            spacing: 8,
-            color: new Color("#111827"),
-            padding: 12,
-            cross: StackCrossAlignment.Start);
         HudText(ui, Vector2.Zero, new Vector2(210, 20),
             "CLIPS", 14, new Color("#facc15"));
         for (int i = 0; i < _package.Clips.Count; i++)
@@ -171,12 +210,19 @@ public partial class AnimatorTool : Control
         }
         ui.End();
 
-        _timeline = ui.RectEntity(
-            new Vector2(screen.X / 2, screen.Y - 80),
-            new Vector2(screen.X - 80, 90),
-            new Color("#111827"));
-        HudText(ui, new Vector2(screen.X / 2, screen.Y - 112),
-            new Vector2(500, 18), "TIMELINE", 12, new Color("#94a3b8"));
+        ui.End();
+
+        ui.Container(
+            Vector2.Zero,
+            new Vector2(screen.X - margin * 2, bottomHeight),
+            StackDirection.Horizontal,
+            spacing: 12,
+            color: new Color("#111827"),
+            padding: 10);
+        _timelinePanel = ui.Current;
+        ui.End();
+
+        ui.End();
     }
 
     private Entity BuildButton(
@@ -229,11 +275,21 @@ public partial class AnimatorTool : Control
         return label;
     }
 
-    private Rect2 PreviewArea()
+    private static Rect2 PanelArea(Entity panel)
     {
-        Vector2 screen = GetViewportRect().Size;
-        return new Rect2(250, 100, screen.X - 560, screen.Y - 270);
+        if (panel.IsNull ||
+            !panel.HasComponent<Rectangle>() ||
+            !panel.HasComponent<Position>())
+        {
+            return new Rect2();
+        }
+
+        Vector2 center = UiTransform.WorldPosition(panel, Vector2.Zero);
+        Vector2 size = panel.GetComponent<Rectangle>().Bounds.Size;
+        return new Rect2(center - size / 2, size);
     }
+
+    private Rect2 PreviewArea() => PanelArea(_previewPanel);
 
     private void HandlePreviewInput()
     {
@@ -366,7 +422,14 @@ public partial class AnimatorTool : Control
     private Rect2 TimelineRect()
     {
         Vector2 screen = GetViewportRect().Size;
-        return new Rect2(40, screen.Y - 118, screen.X - 80, 56);
+        const float margin = 16f;
+        const float bottomHeight = 112f;
+        float top = screen.Y - margin - bottomHeight;
+        return new Rect2(
+            margin + 24,
+            top + 28,
+            Mathf.Max(1f, screen.X - margin * 2 - 48),
+            bottomHeight - 40);
     }
 
     private void HandleTimelineInput()
@@ -389,6 +452,13 @@ public partial class AnimatorTool : Control
     {
         _canvas.Clear(_timelineCanvas);
         Rect2 bar = TimelineRect();
+        _canvas.DrawTextStyled(
+            _timelineCanvas,
+            new Rect2(bar.Position.X, bar.Position.Y - 18,
+                bar.Size.X, 16),
+            $"{_runtime.CurrentClip}  •  {_runtime.CurrentTime:0.00}s / {_runtime.CurrentDuration:0.00}s",
+            new Color("#94a3b8"),
+            12);
         _canvas.DrawRect(
             _timelineCanvas,
             new Rect2(bar.Position.X, bar.Position.Y + 18,
