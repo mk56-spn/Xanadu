@@ -40,7 +40,7 @@ public sealed class UiDropdownSystem : QuerySystem<Dropdown>
             {
                 bool wasOpen = dropdown.Open;
                 bool open = !dropdown.Open;
-                if (open)
+                if (open && dropdown.CloseOthers)
                 {
                     foreach (Entity other in Query.ToEntityList())
                     {
