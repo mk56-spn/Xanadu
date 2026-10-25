@@ -18,6 +18,7 @@ public sealed class UiBuilder
     private readonly Stack<Entity> _parents = new();
 
     private Entity _current;
+    private Entity _layer;
     private int _layerZIndex;
 
     public UiBuilder(EntityStore entities, IVisualRidFactory visuals)
@@ -40,6 +41,7 @@ public sealed class UiBuilder
             Tags.Get<Uninitialised>());
 
         _layerZIndex = zIndex;
+        _layer = layer;
         _parents.Clear();
         _current = layer;
         return this;
@@ -90,6 +92,151 @@ public sealed class UiBuilder
         _parents.Push(_current);
         _current = container;
         return this;
+    }
+
+    /// <summary>An unstyled/attached text drawable.</summary>
+    public Entity Text(
+        string value,
+        Vector2 size,
+        int fontSize = UiTheme.FontSize,
+        Color? color = null,
+        TextAlign align = TextAlign.Center,
+        Vector2? position = null)
+    {
+        Entity label = RectEntity(
+            position ?? Vector2.Zero,
+            size,
+            new Color(0, 0, 0, 0),
+            value);
+        label.AddComponent(new TextStyle(
+            fontSize,
+            color ?? UiTheme.Text));
+        label.AddComponent(new TextAlignment(align));
+        return label;
+    }
+
+    /// <summary>A button with fill, text style, and hover/flash visual state.</summary>
+    public Entity Button(
+        string value,
+        Vector2 size,
+        Color? color = null,
+        Vector2? position = null,
+        int fontSize = UiTheme.FontSize)
+    {
+        Color normal = color ?? UiTheme.Button;
+        Entity button = RectEntity(
+            position ?? Vector2.Zero,
+            size,
+            normal,
+            value,
+            takesInput: true);
+        button.AddComponent(new TextStyle(fontSize, UiTheme.Text));
+        button.AddComponent(ButtonVisual.Create(normal));
+        return button;
+    }
+
+    /// <summary>A panel container with sensible padding, spacing, and colors.</summary>
+    public UiBuilder Panel(
+        Vector2 position,
+        Vector2 size,
+        StackDirection direction = StackDirection.Vertical,
+        StackCrossAlignment cross = StackCrossAlignment.Start,
+        bool autoHeight = false)
+    {
+        return Container(
+            position,
+            size,
+            direction,
+            spacing: UiTheme.ContainerSpacing,
+            color: UiTheme.Panel,
+            padding: UiTheme.ContainerPadding,
+            cross: cross,
+            autoHeight: autoHeight);
+    }
+
+    /// <summary>
+    /// Creates a labeled dropdown in the current parent. The list and options
+    /// are created as siblings on the layer so they do not participate in the
+    /// parent container's stack.
+    /// </summary>
+    public UiDropdownControl Dropdown(
+        string label,
+        IReadOnlyList<string> options,
+        int selected = 0,
+        Vector2? size = null,
+        bool closeOthers = true,
+        Color? buttonColor = null,
+        Func<int, Color>? optionColor = null)
+    {
+        RequireLayer();
+
+        float width = size?.X ?? 280f;
+        float buttonHeight = size?.Y ?? UiTheme.ButtonHeight;
+        float listHeight = Math.Max(
+            4f,
+            options.Count *
+            (UiTheme.DropdownOptionHeight + UiTheme.DropdownOptionSpacing) + 4f);
+
+        Entity button = Button(
+            label,
+            new Vector2(width, buttonHeight),
+            buttonColor ?? UiTheme.Button);
+
+        Entity list = RectEntity(
+            Vector2.Zero,
+            new Vector2(width, listHeight),
+            UiTheme.Panel,
+            takesInput: true);
+        list.AddTag<LayoutIgnore>();
+        var optionEntities = new List<Entity>();
+        for (int i = 0; i < options.Count; i++)
+        {
+            Color optionFill = optionColor?.Invoke(i) ?? UiTheme.DropdownOption;
+            Entity option = RectEntity(
+                Vector2.Zero,
+                new Vector2(width - 12, UiTheme.DropdownOptionHeight),
+                optionFill,
+                options[i],
+                takesInput: true);
+            option.AddTag<LayoutIgnore>();
+            option.AddComponent(new TextStyle(
+                UiTheme.FontSize,
+                UiTheme.Text));
+            option.AddComponent(ButtonVisual.Create(optionFill));
+            option.AddComponent(new DropdownOption(button, i));
+            optionEntities.Add(option);
+        }
+
+
+        button.AddComponent(new Dropdown(
+            list,
+            selected,
+            new Vector2(width, listHeight),
+            closeOthers));
+        return new UiDropdownControl(button, list, optionEntities);
+    }
+
+    private Entity CreateLayerRect(
+        Vector2 position,
+        Vector2 size,
+        Color color,
+        string? text = null,
+        bool takesInput = false)
+    {
+        Tags tags = takesInput
+            ? Tags.Get<Uninitialised, Dirty, TakesInput>()
+            : Tags.Get<Uninitialised, Dirty>();
+        Entity entity = _entities.CreateEntity(
+            new VisualRid(_visuals.CreateCanvasItem()),
+            new Rectangle(new Rect2(-size / 2, size)),
+            new Drawable(_layerZIndex),
+            new Position(position),
+            new FillColor(color),
+            tags);
+        if (text is not null)
+            entity.AddComponent(new Text(text));
+        AddChild(_layer, entity);
+        return entity;
     }
 
     public UiBuilder Rect(

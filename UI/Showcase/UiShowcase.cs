@@ -197,44 +197,14 @@ public partial class UiShowcase : Control
             padding: 12,
             cross: StackCrossAlignment.Center,
             autoHeight: true);
-        var dropdownButtons = new Entity[3];
-        for (int i = 0; i < dropdownButtons.Length; i++)
+        for (int i = 0; i < 3; i++)
         {
-            Entity button = ui.RectEntity(
-                Vector2.Zero,
-                new Vector2(280, 32),
-                new Color("#2563eb"),
+            ui.Dropdown(
                 $"DROPDOWN {i + 1}",
-                takesInput: true);
-            Style(button, 15, new Color("#e2e8f0"));
-            button.AddComponent(ButtonVisual.Create(new Color("#2563eb")));
-            dropdownButtons[i] = button;
+                new[] { "OPTION 1", "OPTION 2", "OPTION 3" },
+                size: new Vector2(280, 32));
         }
         ui.End();
-
-        for (int i = 0; i < dropdownButtons.Length; i++)
-        {
-            Entity button = dropdownButtons[i];
-            Entity list = ui.RectEntity(
-                new Vector2(-10_000, -10_000),
-                new Vector2(280, 104),
-                new Color("#111827"));
-            button.AddComponent(new Dropdown(
-                list,
-                0,
-                new Vector2(280, 104)));
-            for (int optionIndex = 0; optionIndex < 3; optionIndex++)
-            {
-                Entity option = ui.RectEntity(
-                    new Vector2(-10_000, -10_000),
-                    new Vector2(268, 28),
-                    new Color("#1e293b"),
-                    $"DROPDOWN {i + 1} · OPTION {optionIndex + 1}",
-                    takesInput: true);
-                Style(option, 13, new Color("#e2e8f0"));
-                option.AddComponent(new DropdownOption(button, optionIndex));
-            }
-        }
 
         ui.Container(
             new Vector2(1465, 570),
@@ -245,45 +215,17 @@ public partial class UiShowcase : Control
             padding: 10,
             cross: StackCrossAlignment.Center,
             autoHeight: true);
-        var categoryButtons = new Entity[2];
-        for (int i = 0; i < categoryButtons.Length; i++)
+        for (int i = 0; i < 2; i++)
         {
-            Entity button = ui.RectEntity(
-                Vector2.Zero,
-                new Vector2(190, 32),
-                new Color("#0f766e"),
+            ui.Dropdown(
                 $"CATEGORY {(char)('A' + i)}",
-                takesInput: true);
-            Style(button, 14, new Color("#e2e8f0"));
-            button.AddComponent(ButtonVisual.Create(new Color("#0f766e")));
-            categoryButtons[i] = button;
+                new[] { "ONE", "TWO", "THREE" },
+                size: new Vector2(190, 32),
+                closeOthers: false,
+                buttonColor: new Color("#0f766e"),
+                optionColor: _ => new Color("#134e4a"));
         }
         ui.End();
-
-        for (int i = 0; i < categoryButtons.Length; i++)
-        {
-            Entity button = categoryButtons[i];
-            Entity list = ui.RectEntity(
-                new Vector2(-10_000, -10_000),
-                new Vector2(190, 104),
-                new Color("#111827"));
-            button.AddComponent(new Dropdown(
-                list,
-                0,
-                new Vector2(190, 104),
-                closeOthers: false));
-            for (int optionIndex = 0; optionIndex < 3; optionIndex++)
-            {
-                Entity option = ui.RectEntity(
-                    new Vector2(-10_000, -10_000),
-                    new Vector2(178, 28),
-                    new Color("#134e4a"),
-                    $"CATEGORY {(char)('A' + i)} · {optionIndex + 1}",
-                    takesInput: true);
-                Style(option, 13, new Color("#e2e8f0"));
-                option.AddComponent(new DropdownOption(button, optionIndex));
-            }
-        }
 
         ui.RectEntity(new Vector2(300, 780), new Vector2(850, 80),
             new Color("#1e293b"),
