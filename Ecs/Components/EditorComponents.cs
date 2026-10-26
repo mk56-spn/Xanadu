@@ -181,14 +181,6 @@ public struct EditorMetronome(bool enabled) : IComponent
     public bool Enabled = enabled;
 }
 
-/// <summary>Editor preview state and the state to restore on exit.</summary>
-public struct EditorPreview(bool active, long savedTimeMs, bool savedPlaying) : IComponent
-{
-    public bool Active = active;
-    public long SavedTimeMs = savedTimeMs;
-    public bool SavedPlaying = savedPlaying;
-}
-
 /// <summary>Pending warning message to show in the editor warning popup.</summary>
 public struct WarningRequest(string message) : IComponent
 {
@@ -235,16 +227,13 @@ public struct EditorHud(
     Entity song,
     Entity status,
     Entity time,
-    Entity notes,
-    Entity preview) : IComponent
+    Entity notes) : IComponent
 {
     public Entity Level = level;
     public Entity Song = song;
     public Entity Status = status;
     public Entity Time = time;
     public Entity Notes = notes;
-    public Entity Preview = preview;
-    public Vector2 PreviewHome = new(0, 24);
     public string StatusText = "";
 }
 

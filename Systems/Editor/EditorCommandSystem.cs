@@ -14,7 +14,7 @@ namespace Writer.Systems.Editor;
 
 /// <summary>Single ECS writer for editor intents from the Godot UI.</summary>
 public sealed class EditorCommandSystem :
-    QuerySystem<LevelInfo, Playfield, Playhead, EditorPreview, EditorMetronome>
+    QuerySystem<LevelInfo, Playfield, Playhead, EditorMetronome>
 {
     private readonly EntityStore _entities;
     private readonly EditorCommandBus _commands;
@@ -37,7 +37,6 @@ public sealed class EditorCommandSystem :
             ref level,
             ref playfield,
             ref playhead,
-            ref preview,
             ref metronome,
             entity) =>
         {
@@ -48,8 +47,7 @@ public sealed class EditorCommandSystem :
                     ref level,
                     ref playfield,
                     ref playhead,
-                    ref preview,
-                    ref metronome,
+                            ref metronome,
                     entity);
             }
         });
@@ -60,7 +58,6 @@ public sealed class EditorCommandSystem :
         ref LevelInfo level,
         ref Playfield playfield,
         ref Playhead playhead,
-        ref EditorPreview preview,
         ref EditorMetronome metronome,
         Entity editor)
     {
@@ -126,14 +123,6 @@ public sealed class EditorCommandSystem :
                 metronome.Enabled = command.IntValue != 0;
                 break;
 
-            case EditorCommandType.BeginPreview:
-                BeginPreview(ref playhead, ref preview);
-                break;
-
-            case EditorCommandType.EndPreview:
-                EndPreview(ref playhead, ref preview);
-                break;
-
             case EditorCommandType.LoadSong:
                 LoadSong(command.Text ?? "", ref level, ref playhead);
                 if (editor.HasComponent<TimelineView>())
@@ -188,42 +177,13 @@ public sealed class EditorCommandSystem :
                     command.Document,
                     command.Text ?? "",
                     editor,
-                    ref preview,
-                    ref metronome);
+                            ref metronome);
                 break;
 
             case EditorCommandType.SetLevelFile:
                 SetLevelFile(editor, command.Text ?? "");
                 break;
         }
-    }
-
-    private static void BeginPreview(ref Playhead playhead, ref EditorPreview preview)
-    {
-        if (preview.Active)
-            return;
-
-        long start = playhead.TimeMs;
-        if (playhead.DurationMs > 0 && start >= playhead.DurationMs)
-            start = 0;
-
-        preview.Active = true;
-        preview.SavedTimeMs = playhead.TimeMs;
-        preview.SavedPlaying = playhead.Playing;
-
-        playhead.TimeMs = start;
-        playhead.SeekRequestMs = start;
-        playhead.Playing = true;
-    }
-
-    private static void EndPreview(ref Playhead playhead, ref EditorPreview preview)
-    {
-        if (!preview.Active)
-            return;
-
-        playhead.Playing = preview.SavedPlaying;
-        playhead.SeekRequestMs = preview.SavedTimeMs;
-        preview.Active = false;
     }
 
     private static void LoadSongById(
@@ -488,7 +448,6 @@ public sealed class EditorCommandSystem :
         LevelDocument document,
         string path,
         Entity editor,
-        ref EditorPreview preview,
         ref EditorMetronome metronome)
     {
         document.Notes ??= new();
@@ -496,7 +455,6 @@ public sealed class EditorCommandSystem :
         document.StartPoints ??= new();
         document.Notes.RemoveAll(note => note is null);
 
-        preview.Active = false;
         metronome.Enabled = false;
         _history.Clear();
         LevelDocumentMapper.Apply(_entities, editor, document);

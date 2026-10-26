@@ -1,4 +1,5 @@
 using Godot;
+using Writer.Levels;
 using Writer.Ecs;
 using Writer.Editor.Commands;
 
@@ -36,6 +37,10 @@ public partial class EditorOverlay : CanvasLayer
             case EditorButtonKind.LoadSong:
                 OpenSongDialog();
                 break;
+
+            case EditorButtonKind.Preview:
+                StartPreview();
+                break;
         }
     }
 
@@ -64,33 +69,14 @@ public partial class EditorOverlay : CanvasLayer
         SetStatus($"Tap BPM {value}");
     }
 
-    private void TogglePreview()
+    /// <summary>Opens the real play scene on the current level, from a start point.</summary>
+    private void StartPreview()
     {
-        if (_editor.IsNull)
+        if (_editor.IsNull || _onPreview is null || !ValidateCurrent())
             return;
 
-        if (IsPreviewing())
-        {
-            EndPreview();
-            return;
-        }
-
-        if (!ValidateCurrent())
-            return;
-
-        _commands.Enqueue(EditorCommand.BeginPreview());
+        LevelDocument document = LevelDocumentMapper.Capture(_entities, _editor);
+        long playheadMs = _editor.GetComponent<Playhead>().TimeMs;
+        _onPreview(document, CurrentLevelPath(), playheadMs);
     }
-
-    private void EndPreview()
-    {
-        if (_editor.IsNull)
-            return;
-
-        _commands.Enqueue(EditorCommand.EndPreview());
-    }
-
-    private bool IsPreviewing() =>
-        !_editor.IsNull &&
-        _editor.HasComponent<EditorPreview>() &&
-        _editor.GetComponent<EditorPreview>().Active;
 }

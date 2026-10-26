@@ -43,7 +43,10 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
             state.Pending == SceneKind.Play &&
             IsPlayFinished())
         {
-            state.Pending = SceneKind.Results;
+            if (IsEditorPreview)
+                ReturnToEditor(ref state);
+            else
+                state.Pending = SceneKind.Results;
         }
 
         HandleActions(ref state);

@@ -24,8 +24,7 @@ public sealed class EditorPlayfieldDrawSystemTests
             new Playfield(1000, 1000),
             new Playhead(1_000, 120, 0, true, durationMs: 5_000),
             view,
-            new NoteSelection(default),
-            new EditorPreview(false, 0, false));
+            new NoteSelection(default));
         store.CreateEntity(new Note(1_000, new Vector2(100, 100)));
 
         var canvas = new RecordingCanvas();
@@ -277,30 +276,6 @@ public sealed class EditorPlayfieldDrawSystemTests
             selectedOutlines.Select(call => call.Bounds.Position)
                 .Distinct().Count(),
             Is.EqualTo(4));
-    }
-
-    [Test]
-    public void PreviewDrawsWithoutEditorChrome()
-    {
-        var view = new PlayfieldView(new Vector2(30, 30), 0.6f, new Vector2(1152, 648));
-        var store = new EntityStore();
-        store.CreateEntity(
-            new LevelInfo("Preview Level", ""),
-            new Playfield(1000, 1000),
-            new Playhead(500, 120, 0, true),
-            view,
-            new NoteSelection(default),
-            new EditorPreview(true, 500, true));
-
-        var canvas = new RecordingCanvas();
-        var root = new SystemRoot(store);
-        root.Add(new EditorPlayfieldDrawSystem(store, canvas, default));
-
-        root.Update(new UpdateTick(1f / 60f, 0));
-
-        Assert.That(canvas.Rects, Does.Contain(new Rect2(Vector2.Zero, view.ScreenSize)));
-        Assert.That(canvas.Rects, Does.Not.Contain(EditorLayout.RulerRect(view)));
-        Assert.That(canvas.Rects, Is.Not.Empty);
     }
 
     [Test]

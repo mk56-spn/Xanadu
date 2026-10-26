@@ -47,7 +47,7 @@ public partial class EditorOverlay : CanvasLayer
 
         if (key.Keycode == Key.F5)
         {
-            _onPlayFromStart?.Invoke();
+            StartPreview();
             GetViewport().SetInputAsHandled();
             return;
         }
@@ -62,13 +62,6 @@ public partial class EditorOverlay : CanvasLayer
         if (IsBindingsHelpVisible() && key.Keycode == Key.Escape)
         {
             ToggleBindingsHelp();
-            GetViewport().SetInputAsHandled();
-            return;
-        }
-
-        if (key.Keycode == Key.Escape && IsPreviewing())
-        {
-            EndPreview();
             GetViewport().SetInputAsHandled();
             return;
         }

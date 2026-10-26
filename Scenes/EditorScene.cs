@@ -45,7 +45,6 @@ public static partial class EditorScene
                 offsetMs: 0,
                 playing: false),
             new NoteSelection(default),
-            new EditorPreview(false, 0, false),
             new EditorMetronome(false),
             new TimelineView(32f),
             new PlayfieldMode(PlayfieldKind.Editor),

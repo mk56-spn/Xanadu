@@ -59,9 +59,6 @@ public sealed class EditorButtonSystem : QuerySystem<EditorButton>
     {
         Playhead playhead = editor.GetComponent<Playhead>();
         EditorMetronome metronome = editor.GetComponent<EditorMetronome>();
-        EditorPreview preview = editor.HasComponent<EditorPreview>()
-            ? editor.GetComponent<EditorPreview>()
-            : default;
 
         foreach (Entity entity in _entities.Query<EditorButton, Text>().ToEntityList())
         {
@@ -69,7 +66,6 @@ public sealed class EditorButtonSystem : QuerySystem<EditorButton>
             string label = kind switch
             {
                 EditorButtonKind.Play => playhead.Playing ? "II" : "▶",
-                EditorButtonKind.Preview => preview.Active ? "Exit Preview" : "Preview",
                 EditorButtonKind.Metronome => metronome.Enabled ? "Click On" : "Click Off",
                 _ => entity.GetComponent<Text>().Value,
             };
@@ -94,13 +90,6 @@ public sealed class EditorButtonSystem : QuerySystem<EditorButton>
                 _commands.Enqueue(EditorCommand.StopPlayback());
                 break;
 
-            case EditorButtonKind.Preview:
-                _commands.Enqueue(
-                    editor.GetComponent<EditorPreview>().Active
-                        ? EditorCommand.EndPreview()
-                        : EditorCommand.BeginPreview());
-                break;
-
             case EditorButtonKind.Metronome:
                 _commands.Enqueue(EditorCommand.SetMetronome(
                     !editor.GetComponent<EditorMetronome>().Enabled));
@@ -122,6 +111,7 @@ public sealed class EditorButtonSystem : QuerySystem<EditorButton>
                 _commands.Enqueue(EditorCommand.Redo());
                 break;
 
+            case EditorButtonKind.Preview:
             case EditorButtonKind.ToggleMetadata:
             case EditorButtonKind.Save:
             case EditorButtonKind.SaveAs:

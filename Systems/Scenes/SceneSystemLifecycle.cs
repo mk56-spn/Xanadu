@@ -113,6 +113,7 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
             _pendingResults = null;
         }
 
+        ClearPreviewIfLeaving(next);
         DestroyScene();
 
         _sceneRoot = _entities.CreateEntity(new SceneRoot(next));
@@ -143,6 +144,7 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
 
         state.Current = next;
         state.Pending = next;
+        RestorePreviewPlayhead(next);
         SceneUi.SetText(_labelEntity, LabelFor(next));
         _director.Apply(next);
     }
