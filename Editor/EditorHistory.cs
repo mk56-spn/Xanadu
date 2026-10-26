@@ -30,6 +30,7 @@ public sealed class EditorHistory
         var notes = new List<NoteSnapshot>();
         var mines = new List<MineSnapshot>();
         var starts = new List<StartPointSnapshot>();
+        var blocks = new List<BlockSnapshot>();
 
         foreach (Entity entity in _entities.Query<Note>().ToEntityList())
         {
@@ -94,7 +95,19 @@ public sealed class EditorHistory
             return x != 0 ? x : a.Position.Y.CompareTo(b.Position.Y);
         });
 
-        return new EditorSnapshot(notes, mines, starts);
+        foreach (Entity entity in _entities.Query<Block>().ToEntityList())
+        {
+            Block block = entity.GetComponent<Block>();
+            blocks.Add(new BlockSnapshot(block.Position, block.Size));
+        }
+
+        blocks.Sort(static (a, b) =>
+        {
+            int x = a.Position.X.CompareTo(b.Position.X);
+            return x != 0 ? x : a.Position.Y.CompareTo(b.Position.Y);
+        });
+
+        return new EditorSnapshot(notes, mines, starts, blocks);
     }
 
     public void Record(EditorSnapshot before, EditorSnapshot after) =>
@@ -109,7 +122,8 @@ public sealed class EditorHistory
     private static bool AreEqual(EditorSnapshot before, EditorSnapshot after) =>
         before.Notes.SequenceEqual(after.Notes) &&
         before.Mines.SequenceEqual(after.Mines) &&
-        before.StartPoints.SequenceEqual(after.StartPoints);
+        before.StartPoints.SequenceEqual(after.StartPoints) &&
+        before.Blocks.SequenceEqual(after.Blocks);
 
     private void Apply(EditorSnapshot snapshot)
     {
@@ -120,6 +134,9 @@ public sealed class EditorHistory
             entity.DeleteEntity();
 
         foreach (Entity entity in _entities.Query<StartPoint>().ToEntityList())
+            entity.DeleteEntity();
+
+        foreach (Entity entity in _entities.Query<Block>().ToEntityList())
             entity.DeleteEntity();
 
         foreach (NoteSnapshot note in snapshot.Notes)
@@ -152,6 +169,9 @@ public sealed class EditorHistory
                 start.Momentum,
                 start.Direction));
         }
+
+        foreach (BlockSnapshot block in snapshot.Blocks)
+            EditorItems.Create(_entities, new Block(block.Position, block.Size));
     }
 }
 
@@ -159,7 +179,8 @@ public sealed class EditorHistory
 public readonly record struct EditorSnapshot(
     List<NoteSnapshot> Notes,
     List<MineSnapshot> Mines,
-    List<StartPointSnapshot> StartPoints);
+    List<StartPointSnapshot> StartPoints,
+    List<BlockSnapshot> Blocks);
 
 /// <summary>Stable serializable start-point snapshot used by undo/redo.</summary>
 public readonly record struct StartPointSnapshot(
@@ -168,6 +189,11 @@ public readonly record struct StartPointSnapshot(
     Vector2 Position,
     System.Numerics.Vector2 Momentum,
     Vector2 Direction);
+
+/// <summary>Stable serializable block snapshot used by undo/redo.</summary>
+public readonly record struct BlockSnapshot(
+    Vector2 Position,
+    Vector2 Size);
 
 /// <summary>Stable serializable mine snapshot used by undo/redo.</summary>
 public readonly record struct MineSnapshot(

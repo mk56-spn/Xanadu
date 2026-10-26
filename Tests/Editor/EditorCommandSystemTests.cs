@@ -121,6 +121,27 @@ public sealed class EditorCommandSystemTests : EcsSystemTest
     }
 
     [Test]
+    public void DeleteSelectionRemovesBlocksAndUndoRestoresThem()
+    {
+        Entity block = Store.CreateEntity(
+            new Block(new Vector2(100, 100), new Vector2(200, 100)));
+        _editor.GetComponent<NoteSelection>().Note = block;
+
+        _commands.Enqueue(EditorCommand.DeleteSelection());
+        Frame();
+
+        Assert.That(Store.Query<Block>().Count, Is.Zero);
+
+        _commands.Enqueue(EditorCommand.Undo());
+        Frame();
+
+        Assert.That(Store.Query<Block>().Count, Is.EqualTo(1));
+        Assert.That(
+            Store.Query<Block>().ToEntityList()[0].GetComponent<Block>().Position,
+            Is.EqualTo(new Vector2(100, 100)));
+    }
+
+    [Test]
     public void PasteIsOneUndoableStep()
     {
         ref Playhead playhead = ref _editor.GetComponent<Playhead>();

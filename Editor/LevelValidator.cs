@@ -22,6 +22,21 @@ public static class LevelValidator
         if (document.Notes.Count == 0)
             issues.Add("Add at least one note.");
 
+        for (int i = 0; i < document.Blocks.Count; i++)
+        {
+            BlockDocument block = document.Blocks[i];
+
+            if (block.Width <= 0 || block.Height <= 0)
+                issues.Add($"Block {i + 1} has no size.");
+            else if (block.X < 0 ||
+                     block.Y < 0 ||
+                     block.X + block.Width > document.PlayfieldWidth ||
+                     block.Y + block.Height > document.PlayfieldHeight)
+            {
+                issues.Add($"Block {i + 1} is outside the playfield.");
+            }
+        }
+
         for (int i = 0; i < document.Notes.Count; i++)
         {
             NoteDocument note = document.Notes[i];

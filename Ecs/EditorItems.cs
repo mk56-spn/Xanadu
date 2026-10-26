@@ -88,6 +88,12 @@ public static class EditorItemPosition
             return true;
         }
 
+        if (entity.HasComponent<Block>())
+        {
+            position = entity.GetComponent<Block>().Center;
+            return true;
+        }
+
         position = default;
         return false;
     }
@@ -109,6 +115,13 @@ public static class EditorItemPosition
         if (entity.HasComponent<StartPoint>())
         {
             entity.GetComponent<StartPoint>().Position = position;
+            return true;
+        }
+
+        if (entity.HasComponent<Block>())
+        {
+            ref Block block = ref entity.GetComponent<Block>();
+            block.Position = position - block.Size / 2;
             return true;
         }
 

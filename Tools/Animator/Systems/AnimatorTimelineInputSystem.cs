@@ -21,7 +21,7 @@ public sealed class AnimatorTimelineInputSystem(
     IPointerInputSource pointer,
     IAnimatorWheel wheel) : QuerySystem<AnimatorDocument, AnimatorUi>
 {
-    private readonly UiMarquee<AnimatorKeyRef> _marquee = new();
+    private readonly KeyBox _marquee = new();
     private bool _panelHeld;
 
     /// <summary>Shift-clicked a selected key: remove it on release unless the press became a drag.</summary>
@@ -169,7 +169,7 @@ public sealed class AnimatorTimelineInputSystem(
         if (input.Shift)
         {
             // SelectTrack leaves the keys alone, so the selection is still there.
-            _marquee.Begin(input.Position, additive: true, existing);
+            _marquee.BeginAdditive(input.Position, existing);
             return;
         }
 
@@ -269,14 +269,8 @@ public sealed class AnimatorTimelineInputSystem(
     /// <summary>Follows the pointer and selects the keys the box covers, replacing or adding to the selection.</summary>
     private void DragBox(Entity session, AnimatorTimelineModel model, PointerInput input)
     {
-        if (!_marquee.Update(input.Position, out bool started))
-            return;
-
-        if (started)
-            session.GetComponent<AnimatorSelection>().HasKey = false;
-
-        _marquee.Publish(ref session.GetComponent<UiMarqueeBox>());
-        AnimatorKeyCommands.SelectKeys(session, _marquee.Selection(model.KeysIn(_marquee.Bounds)));
+        _marquee.Model = model;
+        _marquee.Drag(session, input.Position);
     }
 
     /// <summary>Moves one loop end to the pointer, snapped, and reports the new range.</summary>
@@ -330,12 +324,26 @@ public sealed class AnimatorTimelineInputSystem(
 
         if (drag.Kind == AnimatorDragKind.KeyBox)
         {
-            _marquee.End();
-            _marquee.Publish(ref session.GetComponent<UiMarqueeBox>());
+            _marquee.End(session);
         }
 
         _pendingToggle = false;
         session.GetComponent<TimelineView>().Scrubbing = false;
         drag = new AnimatorDrag();
+    }
+
+    /// <summary>Selects the keys a dragged box covers; a plain box also drops the primary key.</summary>
+    private sealed class KeyBox : UiBoxSelector<AnimatorKeyRef>
+    {
+        public AnimatorTimelineModel? Model { get; set; }
+
+        protected override IEnumerable<AnimatorKeyRef> HitsIn(Entity owner, Rect2 bounds) =>
+            Model!.KeysIn(bounds);
+
+        protected override void Select(Entity owner, List<AnimatorKeyRef> selection) =>
+            AnimatorKeyCommands.SelectKeys(owner, selection);
+
+        protected override void OnStarted(Entity owner) =>
+            owner.GetComponent<AnimatorSelection>().HasKey = false;
     }
 }

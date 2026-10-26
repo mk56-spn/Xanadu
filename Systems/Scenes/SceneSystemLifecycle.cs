@@ -201,6 +201,9 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
         foreach (Entity mine in _entities.Query<Mine>().ToEntityList())
             mine.DeleteEntity();
 
+        foreach (Entity block in _entities.Query<Block>().ToEntityList())
+            block.DeleteEntity();
+
         foreach (Entity trail in _entities.Query<HitTrail>().ToEntityList())
             trail.DeleteEntity();
 

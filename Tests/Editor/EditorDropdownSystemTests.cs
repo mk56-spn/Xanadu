@@ -94,36 +94,33 @@ public sealed class EditorDropdownSystemTests
     }
 
     [Test]
-    public void SelectingANoteTypeKeepsItForNewNotes()
+    public void PressingASwatchSetsTheNoteTypeInNoteModeOnly()
     {
         var store = new EntityStore();
         var commands = new EditorCommandBus();
-        Entity editor = store.CreateEntity(
-            new Playhead(0, 120, 0, false),
+        store.CreateEntity(
+            new EditorPlacementModeState(EditorPlacementMode.Notes),
             new EditorNoteTarget(KeybindAction.M));
-
-        Entity list = store.CreateEntity(
-            new Position(Vector2.Zero),
-            new Rectangle(new Rect2(-95, -48, 190, 96)));
-        Entity button = store.CreateEntity(
-            new Position(new Vector2(800, 200)),
-            new Rectangle(new Rect2(-95, -17, 190, 34)),
-            new Text(""),
-            new Dropdown(list, 3),
-            new EditorDropdownControl(EditorDropdownKind.NoteType));
-        Entity option = store.CreateEntity(
-            new DropdownOption(button, (int)KeybindAction.R3));
+        Vector2 home = new(100, 400);
+        Entity swatch = store.CreateEntity(
+            new Position(UiLayout.Hidden),
+            new EditorNoteSwatch(KeybindAction.R3, home));
 
         var root = new SystemRoot(store);
-        root.Add(new EditorDropdownSystem(store, commands));
-        root.Add(new UiDropdownSystem(store));
+        root.Add(new EditorNoteTypeBarSystem(store, commands));
 
-        option.AddTag<Pressed>();
         root.Update(new UpdateTick(1f / 60f, 0));
-        root.Update(new UpdateTick(1f / 60f, 0));
+        Assert.That(swatch.GetComponent<Position>().Value, Is.EqualTo(home));
 
+        swatch.AddTag<Pressed>();
+        root.Update(new UpdateTick(1f / 60f, 0));
         Assert.That(commands.TryDequeue(out EditorCommand command), Is.True);
         Assert.That(command.Type, Is.EqualTo(EditorCommandType.SetTarget));
         Assert.That(command.IntValue, Is.EqualTo((int)KeybindAction.R3));
+
+        store.Query<EditorPlacementModeState>().ToEntityList()[0]
+            .GetComponent<EditorPlacementModeState>().Mode = EditorPlacementMode.Mines;
+        root.Update(new UpdateTick(1f / 60f, 0));
+        Assert.That(swatch.GetComponent<Position>().Value, Is.EqualTo(UiLayout.Hidden));
     }
 }

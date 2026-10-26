@@ -22,12 +22,13 @@ public static partial class EditorScene
     {
         const float width = 190;
         const float top = 120;
+        const float SidebarHeight = 88;
         float centerX = screen.X - 112;
 
         UiBuilder panelUi = SceneUi.Layer(entities, root, 939);
         Entity sidebarPanel = panelUi.RectEntity(
-            new Vector2(centerX, top + 141),
-            new Vector2(width + 20, 300),
+            new Vector2(centerX, top + 34),
+            new Vector2(width + 20, SidebarHeight),
             SceneUi.PanelColor,
             takesInput: true);
 
@@ -37,34 +38,11 @@ public static partial class EditorScene
             centerX - width / 2 - 10,
             top - 10,
             width + 20,
-            300)));
-
-        Entity typeLabel = SceneUi.Text(
-            ui,
-            new Vector2(centerX, top + 12),
-            new Vector2(width, 24),
-            LocalizedText.Get(EditorStrings.NoteType),
-            14,
-            SceneUi.DimTextColor,
-            new Color(0, 0, 0, 0));
-
-        string[] labels = new string[KeybindSettings.Actions.Length];
-        for (int i = 0; i < labels.Length; i++)
-            labels[i] = KeybindSettings.LabelFor(KeybindSettings.Actions[i]);
-
-        Entity noteType = BuildDropdown(
-            ui,
-            centerX,
-            top + 41,
-            width,
-            EditorDropdownKind.NoteType,
-            labels,
-            selected: (int)KeybindAction.M);
-        SetDropdownSelected(noteType, (int)KeybindAction.M);
+            SidebarHeight)));
 
         Entity characterLabel = SceneUi.Text(
             ui,
-            new Vector2(centerX, top + 86),
+            new Vector2(centerX, top + 12),
             new Vector2(width, 24),
             "CHARACTER",
             14,
@@ -73,13 +51,12 @@ public static partial class EditorScene
         Entity character = BuildDropdown(
             ui,
             centerX,
-            top + 115,
+            top + 41,
             width,
             EditorDropdownKind.Character,
             new[] { "CONTACT" },
             selected: 0);
 
-        Entity tools = BuildPlacementTools(ui, centerX, top + 190);
         Vector2 wheelHome = new(centerX - 250, top + 255);
         (UiWheelControl wheel, Entity wheelLabel) =
             BuildDirectionWheel(ui, wheelHome);
@@ -89,11 +66,8 @@ public static partial class EditorScene
             wheelHome));
         editor.AddComponent(new EditorSidebarLayout(
             sidebarPanel,
-            typeLabel,
-            noteType,
             characterLabel,
             character,
-            tools,
             top));
     }
 
@@ -105,7 +79,7 @@ public static partial class EditorScene
     {
         const float width = 190;
         const float top = 120;
-        const float centerX = 112;
+        const float centerX = 164;
 
         UiBuilder panelUi = SceneUi.Layer(entities, root, 939);
         Entity panel = panelUi.RectEntity(
@@ -168,83 +142,81 @@ public static partial class EditorScene
         return (wheel, label);
     }
 
-    private static Entity BuildPlacementTools(
-        UiBuilder ui,
-        float centerX,
-        float centerY)
+    /// <summary>Icons for the placement tools, in bar order; two letters where no symbol fits.</summary>
+    private static readonly (EditorPlacementMode Mode, string Icon)[] ToolIcons =
     {
-        Entity group = ui.RectEntity(
-            new Vector2(centerX, centerY),
-            new Vector2(300, 140),
-            new Color(0, 0, 0, 0));
-        group.AddComponent(new UiContainer(StackDirection.Vertical));
+        (EditorPlacementMode.Notes, "🎵"),
+        (EditorPlacementMode.Mines, "✹"),
+        (EditorPlacementMode.Movement, "➜"),
+        (EditorPlacementMode.Start, "⚑"),
+        (EditorPlacementMode.Contact, "◎"),
+        (EditorPlacementMode.CharacterSwitch, "⇄"),
+        (EditorPlacementMode.Blocks, "■"),
+    };
 
-        AddPlacementButton(
-            ui,
-            group,
-            new Vector2(-105, -70),
-            LocalizedText.Get(EditorStrings.Note),
-            new EditorPlacementButton(EditorPlacementMode.Notes),
-            44);
-        AddPlacementButton(
-            ui,
-            group,
-            new Vector2(-63, -70),
-            LocalizedText.Get(EditorStrings.Mine),
-            new EditorPlacementButton(EditorPlacementMode.Mines),
-            44);
-        AddPlacementButton(
-            ui,
-            group,
-            new Vector2(-21, -70),
-            LocalizedText.Get(EditorStrings.Move),
-            new EditorPlacementButton(EditorPlacementMode.Movement),
-            44);
-        AddPlacementButton(
-            ui,
-            group,
-            new Vector2(21, -70),
-            LocalizedText.Get(EditorStrings.Start),
-            new EditorPlacementButton(EditorPlacementMode.Start),
-            44);
+    /// <summary>The vertical bar of placement tools down the left edge.</summary>
+    private static void BuildToolBar(EntityStore entities, Entity root)
+    {
+        const float buttonSize = 36;
+        const float step = 42;
+        const float centerX = 30;
+        const float top = 120;
+        float height = ToolIcons.Length * step + 6;
 
-        AddPlacementButton(
-            ui,
-            group,
-            new Vector2(63, -70),
-            LocalizedText.Get(EditorStrings.Contact),
-            new EditorPlacementButton(EditorPlacementMode.Contact),
-            44);
-        AddPlacementButton(
-            ui,
-            group,
-            new Vector2(105, -70),
-            LocalizedText.Get(EditorStrings.CharacterSwitch),
-            new EditorPlacementButton(EditorPlacementMode.CharacterSwitch),
-            40);
+        SceneUi.Layer(entities, root, 939).RectEntity(
+            new Vector2(centerX, top + height / 2 - 3),
+            new Vector2(buttonSize + 8, height),
+            SceneUi.PanelColor,
+            takesInput: true);
 
-        return group;
+        UiBuilder ui = SceneUi.Layer(entities, root, 941);
+        for (int i = 0; i < ToolIcons.Length; i++)
+        {
+            Entity button = ui.RectEntity(
+                new Vector2(centerX, top + buttonSize / 2 + i * step),
+                new Vector2(buttonSize, buttonSize),
+                SceneUi.MutedButtonColor,
+                ToolIcons[i].Icon,
+                takesInput: true);
+            button.AddComponent(new TextStyle(22, SceneUi.TextColor));
+            button.AddComponent(ButtonVisual.Create(SceneUi.MutedButtonColor));
+            button.AddComponent(new EditorPlacementButton(ToolIcons[i].Mode));
+        }
     }
 
-    private static void AddPlacementButton<T>(
-        UiBuilder ui,
-        Entity group,
-        Vector2 position,
-        string label,
-        T component,
-        float width = 56,
-        float height = 28) where T : struct, IComponent
+    /// <summary>The horizontal bar of note colours, shown only in note mode.</summary>
+    private static void BuildNoteTypeBar(EntityStore entities, Entity root)
     {
-        Entity button = ui.RectEntity(
-            position,
-            new Vector2(width, height),
-            SceneUi.MutedButtonColor,
-            label,
+        const float swatchSize = 24;
+        const float step = 29;
+        const float centerX = 164;
+        const float centerY = 380;
+        float width = KeybindSettings.Actions.Length * step + 8;
+
+        Vector2 panelHome = new(centerX, centerY);
+        Entity panel = SceneUi.Layer(entities, root, 939).RectEntity(
+            UiLayout.Hidden,
+            new Vector2(width, swatchSize + 12),
+            SceneUi.PanelColor,
             takesInput: true);
-        button.AddComponent(new TextStyle(13, SceneUi.TextColor));
-        button.AddComponent(ButtonVisual.Create(SceneUi.MutedButtonColor));
-        button.AddComponent(component);
-        group.AddChild(button);
+        panel.AddComponent(new EditorNoteBarPanel(panelHome));
+
+        UiBuilder ui = SceneUi.Layer(entities, root, 941);
+        float left = centerX - KeybindSettings.Actions.Length * step / 2 + step / 2;
+        for (int i = 0; i < KeybindSettings.Actions.Length; i++)
+        {
+            KeybindAction action = KeybindSettings.Actions[i];
+            Color color = PlayfieldRenderer.ColorFor(action);
+            Entity swatch = ui.RectEntity(
+                UiLayout.Hidden,
+                new Vector2(swatchSize, swatchSize),
+                color,
+                takesInput: true);
+            swatch.AddComponent(ButtonVisual.Create(color));
+            swatch.AddComponent(new EditorNoteSwatch(
+                action,
+                new Vector2(left + i * step, centerY)));
+        }
     }
 
     private static Entity BuildDropdown(
@@ -274,17 +246,14 @@ public static partial class EditorScene
 
         for (int i = 0; i < labels.Length; i++)
         {
-            Color optionColor = kind == EditorDropdownKind.NoteType
-                ? PlayfieldRenderer.ColorFor(KeybindSettings.Actions[i])
-                : SceneUi.MutedButtonColor;
             Entity option = ui.RectEntity(
                 new Vector2(-10_000, -10_000),
                 new Vector2(width - 6, 28),
-                optionColor,
+                SceneUi.MutedButtonColor,
                 labels[i],
                 takesInput: true);
             option.AddComponent(new TextStyle(13, SceneUi.TextColor));
-            option.AddComponent(ButtonVisual.Create(optionColor));
+            option.AddComponent(ButtonVisual.Create(SceneUi.MutedButtonColor));
             option.AddComponent(new DropdownOption(button, i));
         }
 

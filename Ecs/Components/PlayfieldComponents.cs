@@ -112,6 +112,24 @@ public struct Mine(
     public long FadeOutMs = fadeOutMs;
 }
 
+/// <summary>
+/// Static level geometry in playfield coordinates. Blocks never move in play;
+/// they are there so the player collides with them.
+/// </summary>
+public struct Block(Vector2 position, Vector2 size) : IComponent
+{
+    /// <summary>Top-left corner, so both edges can sit on grid lines.</summary>
+    public Vector2 Position = position;
+
+    public Vector2 Size = size;
+
+    public readonly Vector2 Center => Position + Size / 2;
+
+    public readonly Vector2 End => Position + Size;
+
+    public readonly Rect2 Bounds => new(Position, Size);
+}
+
 /// <summary>Whether a shared playfield is drawn for editing or playing.</summary>
 public enum PlayfieldKind
 {

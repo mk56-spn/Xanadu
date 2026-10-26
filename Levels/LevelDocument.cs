@@ -32,6 +32,20 @@ public sealed class LevelDocument
     public List<MineDocument> Mines { get; set; } = new();
 
     public List<StartPointDocument> StartPoints { get; set; } = new();
+
+    public List<BlockDocument> Blocks { get; set; } = new();
+}
+
+/// <summary>Serializable collidable block data.</summary>
+public sealed class BlockDocument
+{
+    public float X { get; set; }
+
+    public float Y { get; set; }
+
+    public float Width { get; set; }
+
+    public float Height { get; set; }
 }
 
 /// <summary>Serializable practice start state.</summary>

@@ -26,14 +26,12 @@ public sealed class EditorDropdownSystem : QuerySystem<Dropdown>
     protected override void OnUpdate()
     {
         Playhead playhead = default;
-        EditorNoteTarget noteTarget = default;
         EditorCharacterTarget characterTarget = default;
         foreach (Entity editor in _entities
-                     .Query<Playhead, EditorNoteTarget>()
+                     .Query<Playhead>()
                      .ToEntityList())
         {
             playhead = editor.GetComponent<Playhead>();
-            noteTarget = editor.GetComponent<EditorNoteTarget>();
             characterTarget = editor.HasComponent<EditorCharacterTarget>()
                 ? editor.GetComponent<EditorCharacterTarget>()
                 : new EditorCharacterTarget(CharacterKind.Contact);
@@ -58,8 +56,7 @@ public sealed class EditorDropdownSystem : QuerySystem<Dropdown>
             }
             else
             {
-                dropdown.Selected = Expected(kind, playhead, noteTarget,
-                    characterTarget);
+                dropdown.Selected = Expected(kind, playhead, characterTarget);
             }
 
             SetDisplay(entity, ref dropdown, kind, buffer);
@@ -83,25 +80,16 @@ public sealed class EditorDropdownSystem : QuerySystem<Dropdown>
                 break;
             }
         }
-        else
-        {
-            _commands.Enqueue(EditorCommand.SetTarget(
-                KeybindSettings.Actions[Math.Clamp(
-                    value,
-                    0,
-                    KeybindSettings.Actions.Length - 1)]));
-        }
+
     }
 
     private static int Expected(
         EditorDropdownKind kind,
         Playhead playhead,
-        EditorNoteTarget noteTarget,
         EditorCharacterTarget characterTarget) => kind switch
     {
         EditorDropdownKind.Snap => SnapIndex(playhead.SnapDivision),
-        EditorDropdownKind.Character => (int)characterTarget.Target,
-        _ => (int)noteTarget.Target,
+        _ => (int)characterTarget.Target,
     };
 
     private static void SetDisplay(
@@ -116,13 +104,7 @@ public sealed class EditorDropdownSystem : QuerySystem<Dropdown>
         string label = kind switch
         {
             EditorDropdownKind.Snap => $"SNAP  {SnapLabel(dropdown.Selected)}",
-            EditorDropdownKind.Character =>
-                $"CHAR  {CharacterLabel(dropdown.Selected)}",
-            _ => $"TYPE  {KeybindSettings.LabelFor(
-                KeybindSettings.Actions[Math.Clamp(
-                    dropdown.Selected,
-                    0,
-                    KeybindSettings.Actions.Length - 1)])}",
+            _ => $"CHAR  {CharacterLabel(dropdown.Selected)}",
         };
 
         ref Text text = ref button.GetComponent<Text>();
@@ -131,24 +113,6 @@ public sealed class EditorDropdownSystem : QuerySystem<Dropdown>
         {
             text.Value = label;
             changed = true;
-        }
-
-        if (kind == EditorDropdownKind.NoteType &&
-            button.HasComponent<ButtonVisual>())
-        {
-            Color color = PlayfieldRenderer.ColorFor(
-                KeybindSettings.Actions[Math.Clamp(
-                    dropdown.Selected,
-                    0,
-                    KeybindSettings.Actions.Length - 1)]);
-            ref ButtonVisual visual = ref button.GetComponent<ButtonVisual>();
-            if (visual.Normal != color)
-            {
-                visual.Normal = color;
-                visual.Hover = color.Lerp(Colors.White, 0.16f);
-                visual.Flash = Colors.White;
-                changed = true;
-            }
         }
 
         if (changed)

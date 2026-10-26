@@ -29,6 +29,7 @@ public sealed class EditorSystemGroup : SystemGroup
         Add(new EditorDropdownSystem(entities, commands));
         Add(new EditorSidebarLayoutSystem(entities));
         Add(new EditorPlacementSystem(entities));
+        Add(new EditorNoteTypeBarSystem(entities, commands));
         Add(new EditorDirectionWheelSystem());
         Add(new EditorButtonSystem(entities, commands));
         Add(new EditorMetadataSystem(entities, commands));

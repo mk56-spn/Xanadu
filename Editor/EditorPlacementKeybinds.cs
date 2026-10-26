@@ -11,6 +11,7 @@ public static class EditorPlacementKeybinds
 {
     public static readonly Key Normal = Key.Key1;
     public static readonly Key Dash = Key.Key2;
+    public static readonly Key Block = Key.Key3;
 
     public static bool TryGet(Key key, out EditorPlacementMode mode)
     {
@@ -26,6 +27,12 @@ public static class EditorPlacementKeybinds
             return true;
         }
 
+        if (key == Block || key == Key.Kp3)
+        {
+            mode = EditorPlacementMode.Blocks;
+            return true;
+        }
+
         mode = EditorPlacementMode.Notes;
         return false;
     }
@@ -35,6 +42,7 @@ public static class EditorPlacementKeybinds
     {
         EditorPlacementMode.Notes => "1",
         EditorPlacementMode.Movement => "2",
+        EditorPlacementMode.Blocks => "3",
         _ => "",
     };
 }
