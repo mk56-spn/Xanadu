@@ -20,6 +20,7 @@ public partial class AnimatorTool : Control
     private AnimatorPointer _pointer = null!;
     private UiSystemGroup _ui = null!;
     private SvgAttachmentVisuals _attachments = null!;
+    private Rid _grid;
     private Rid _preview;
     private Rid _svgCanvas;
     private Rid _timelineCanvas;
@@ -32,6 +33,7 @@ public partial class AnimatorTool : Control
         _pointer = new AnimatorPointer();
         var canvas = new GodotRectCanvas();
 
+        _grid = CreateCanvas(AnimatorLayout.GridZ);
         _svgCanvas = CreateCanvas(AnimatorLayout.SvgZ);
         _preview = CreateCanvas(AnimatorLayout.PreviewZ);
         _timelineCanvas = CreateCanvas(AnimatorLayout.TimelineZ);
@@ -42,6 +44,7 @@ public partial class AnimatorTool : Control
         _root.Add(_ui);
         _root.Add(new AnimatorSystemGroup(
             canvas,
+            _grid,
             _preview,
             _timelineCanvas,
             _attachments,
@@ -102,7 +105,7 @@ public partial class AnimatorTool : Control
         _store.OnEntityDelete -= FreeVisual;
         foreach (Entity entity in _store.Query<VisualRid>().ToEntityList())
             RenderingServer.FreeRid(entity.GetComponent<VisualRid>().Value);
-        foreach (Rid canvas in new[] { _preview, _svgCanvas, _timelineCanvas })
+        foreach (Rid canvas in new[] { _grid, _preview, _svgCanvas, _timelineCanvas })
             RenderingServer.FreeRid(canvas);
     }
 

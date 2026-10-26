@@ -14,8 +14,8 @@ public static partial class PlayfieldRenderer
     public static readonly Color PlayBackground = new("#090d16");
     public static readonly Color PlayfieldBackground = new("#0f172a");
     public static readonly Color BorderColor = new("#475569");
-    public static readonly Color GridColor = new("#273449");
-    public static readonly Color AxisColor = new("#64748b");
+    public static readonly Color GridColor = CanvasGrid.LineColor;
+    public static readonly Color AxisColor = CanvasGrid.AxisColor;
     public static readonly Color AccentColor = new("#facc15");
     public static readonly Color DimTextColor = new("#94a3b8");
     public static readonly Color NoteColor = new(1f, 0.55f, 0.15f);
@@ -85,29 +85,12 @@ public static partial class PlayfieldRenderer
     {
         const int divisions = 10;
 
-        for (int i = 0; i <= divisions; i++)
-        {
-            float t = i / (float)divisions;
-            float x = field.Position.X + field.Size.X * t;
-            float y = field.Position.Y + field.Size.Y * t;
-            bool center = i == divisions / 2;
-            Color color = center ? AxisColor : GridColor;
-            float width = center ? 2 : 1;
-
-            canvas.DrawLine(
-                rid,
-                new Vector2(x, field.Position.Y),
-                new Vector2(x, field.End.Y),
-                color,
-                width);
-
-            canvas.DrawLine(
-                rid,
-                new Vector2(field.Position.X, y),
-                new Vector2(field.End.X, y),
-                color,
-                width);
-        }
+        CanvasGrid.Draw(
+            canvas,
+            rid,
+            field,
+            field.Size / divisions,
+            field.Position + field.Size / 2);
 
         float labelY = field.End.Y - 20;
         DrawLeftText(canvas, rid, "0", field.Position.X + 6, labelY, DimTextColor, field.Size.X);

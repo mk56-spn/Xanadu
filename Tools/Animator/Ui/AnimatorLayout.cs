@@ -9,11 +9,12 @@ namespace Writer.Tools.Animator;
 public static class AnimatorLayout
 {
     // Input-capable panels draw at z 1, so the overlay canvases sit above them
-    // and the file menu layer above the overlays.
-    public const int SvgZ = 2;
-    public const int PreviewZ = 3;
-    public const int TimelineZ = 4;
-    public const int MenuLayer = 5;
+    // (grid under the SVG art) and the file menu layer above the overlays.
+    public const int GridZ = 2;
+    public const int SvgZ = 3;
+    public const int PreviewZ = 4;
+    public const int TimelineZ = 5;
+    public const int MenuLayer = 6;
 
     private const float Margin = 16f;
     private const float TopHeight = 88f;
