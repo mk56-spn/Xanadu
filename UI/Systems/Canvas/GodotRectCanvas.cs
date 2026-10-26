@@ -15,7 +15,16 @@ public sealed class GodotRectCanvas : IRectCanvas
     public void SetTransform(Rid canvas, Transform2D transform) =>
         RenderingServer.CanvasItemSetTransform(canvas, transform);
 
-    public void Clear(Rid canvas) => RenderingServer.CanvasItemClear(canvas);
+    public void Clear(Rid canvas)
+    {
+        RenderingServer.CanvasItemClear(canvas);
+        if (!_rotated.TryGetValue(canvas, out RotatedPool? pool))
+            return;
+
+        foreach (Rid item in pool.Items)
+            RenderingServer.CanvasItemClear(item);
+        pool.Used = 0;
+    }
 
     public void DrawRect(Rid canvas, Rect2 bounds, Color color) =>
         RenderingServer.CanvasItemAddRect(canvas, bounds, color);
@@ -95,7 +104,17 @@ public sealed class GodotRectCanvas : IRectCanvas
         int fontSize) =>
         DrawTextAligned(canvas, bounds, text, color, fontSize, HorizontalAlignment.Right);
 
-    private readonly System.Collections.Generic.Dictionary<Rid, Rid> _rotated = new();
+    /// <summary>
+    /// Rotated child items for vertical text, one per label drawn since the
+    /// canvas was last cleared, so several labels can be on screen at once.
+    /// </summary>
+    private readonly System.Collections.Generic.Dictionary<Rid, RotatedPool> _rotated = new();
+
+    private sealed class RotatedPool
+    {
+        public readonly System.Collections.Generic.List<Rid> Items = new();
+        public int Used;
+    }
 
     public void DrawTextVertical(
         Rid canvas,
@@ -107,14 +126,21 @@ public sealed class GodotRectCanvas : IRectCanvas
         if (string.IsNullOrEmpty(text))
             return;
 
-        if (!_rotated.TryGetValue(canvas, out Rid item))
+        if (!_rotated.TryGetValue(canvas, out RotatedPool? pool))
         {
-            item = RenderingServer.CanvasItemCreate();
-            RenderingServer.CanvasItemSetParent(item, canvas);
-            RenderingServer.CanvasItemSetZIndex(item, 2);
-            _rotated.Add(canvas, item);
+            pool = new RotatedPool();
+            _rotated.Add(canvas, pool);
         }
 
+        if (pool.Used == pool.Items.Count)
+        {
+            Rid created = RenderingServer.CanvasItemCreate();
+            RenderingServer.CanvasItemSetParent(created, canvas);
+            RenderingServer.CanvasItemSetZIndex(created, 2);
+            pool.Items.Add(created);
+        }
+
+        Rid item = pool.Items[pool.Used++];
         RenderingServer.CanvasItemClear(item);
         RenderingServer.CanvasItemSetTransform(
             item,
