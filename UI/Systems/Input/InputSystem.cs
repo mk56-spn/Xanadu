@@ -36,7 +36,8 @@ public sealed class InputSystem : QuerySystem<Rectangle, Drawable, Position>
             Rect2 local = rect.Bounds;
             Vector2 world = UiTransform.WorldPosition(entity, position.Value);
             Rect2 screen = new(world + local.Position, local.Size);
-            _candidates.Add(new Candidate(entity, screen, drawable.ZIndex));
+            if (!IsClippedOut(entity, input.Position))
+                _candidates.Add(new Candidate(entity, screen, drawable.ZIndex));
         });
 
         _candidates.Sort(static (left, right) =>
@@ -96,6 +97,26 @@ public sealed class InputSystem : QuerySystem<Rectangle, Drawable, Position>
         }
 
         _wasPressed = input.Pressed;
+    }
+
+    /// <summary>True when a clipping ancestor hides the point, e.g. scrolled-out rows.</summary>
+    private static bool IsClippedOut(Entity entity, Vector2 point)
+    {
+        for (Entity parent = entity.Parent; !parent.IsNull; parent = parent.Parent)
+        {
+            if (!parent.TryGetComponent(out UiContainer container) || !container.Clip ||
+                !parent.TryGetComponent(out Rectangle rect) ||
+                !parent.TryGetComponent(out Position position))
+            {
+                continue;
+            }
+
+            Vector2 world = UiTransform.WorldPosition(parent, position.Value);
+            if (!new Rect2(world + rect.Bounds.Position, rect.Bounds.Size).HasPoint(point))
+                return true;
+        }
+
+        return false;
     }
 
     private void ReleasePressed(CommandBuffer buffer)

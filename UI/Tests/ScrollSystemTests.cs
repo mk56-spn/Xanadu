@@ -21,7 +21,7 @@ public sealed class ScrollSystemTests
         Entity viewport = store.CreateEntity(
             new Position(new Vector2(500, 300)),
             new Rectangle(new Rect2(-100, -100, 200, 200)),
-            new ScrollView(content, 1000, 200, 400));
+            new ScrollView(content));
 
         var scroll = new ScrollSystem();
         var root = new SystemRoot(store);

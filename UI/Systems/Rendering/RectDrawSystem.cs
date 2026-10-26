@@ -1,5 +1,6 @@
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
+using Godot;
 using Writer.Ecs;
 using Writer.Systems.Canvas;
 
@@ -30,6 +31,15 @@ public sealed class RectDrawSystem : QuerySystem<Rectangle, Drawable, VisualRid,
 
             _canvas.Clear(visual.Value);
             _canvas.DrawRect(visual.Value, rect.Bounds, fillColor.Value);
+
+            // CanvasItemClear resets the clip flag, so re-apply it after every
+            // clear, as Godot's Control does on each NOTIFICATION_DRAW.
+            if (entity.TryGetComponent(out UiContainer container) && container.Clip)
+            {
+                RenderingServer.CanvasItemSetCustomRect(visual.Value, true, rect.Bounds);
+                RenderingServer.CanvasItemSetClip(visual.Value, true);
+            }
+
             buffer.RemoveTag<Dirty>(entity.Id);
         });
     }
