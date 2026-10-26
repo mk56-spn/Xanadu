@@ -1,5 +1,6 @@
 using Friflo.Engine.ECS.Systems;
 using Godot;
+using Writer.Animation;
 using Writer.Ecs;
 using Writer.Systems.Canvas;
 using Writer.Systems.Input;

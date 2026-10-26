@@ -1,9 +1,8 @@
 using System;
 using System.Collections.Generic;
 using Godot;
-using Writer.Animation;
 
-namespace Writer.Tools.Animator;
+namespace Writer.Animation;
 
 /// <summary>Rasterises each attachment's SVG group into a canvas item.</summary>
 public sealed class SvgAttachmentVisuals(Rid canvas) : IAttachmentVisuals
@@ -33,11 +32,9 @@ public sealed class SvgAttachmentVisuals(Rid canvas) : IAttachmentVisuals
                 ImageTexture texture = ImageTexture.CreateFromImage(image);
                 Rid item = RenderingServer.CanvasItemCreate();
                 RenderingServer.CanvasItemSetParent(item, canvas);
-                RenderingServer.CanvasItemAddTextureRect(
-                    item,
-                    new Rect2(-image.GetSize() / 2, image.GetSize()),
-                    texture.GetRid());
-                _visuals.Add(new Visual(i, item, texture));
+                var bounds = new Rect2(-image.GetSize() / 2, image.GetSize());
+                RenderingServer.CanvasItemAddTextureRect(item, bounds, texture.GetRid());
+                _visuals.Add(new Visual(i, item, texture, bounds));
             }
             catch (Exception)
             {
@@ -46,7 +43,7 @@ public sealed class SvgAttachmentVisuals(Rid canvas) : IAttachmentVisuals
         }
     }
 
-    public void Apply(Transform2D[] attachments, Vector2 origin)
+    public void Apply(Transform2D[] attachments, Transform2D placement)
     {
         foreach (Visual visual in _visuals)
         {
@@ -55,8 +52,23 @@ public sealed class SvgAttachmentVisuals(Rid canvas) : IAttachmentVisuals
 
             RenderingServer.CanvasItemSetTransform(
                 visual.Item,
-                new Transform2D(0f, origin) * attachments[visual.Index]);
+                placement * attachments[visual.Index]);
         }
+    }
+
+    public Rect2 Bounds(Transform2D[] attachments)
+    {
+        Rect2? merged = null;
+        foreach (Visual visual in _visuals)
+        {
+            if (visual.Index >= attachments.Length)
+                continue;
+
+            Rect2 placed = attachments[visual.Index] * visual.Bounds;
+            merged = merged is { } current ? current.Merge(placed) : placed;
+        }
+
+        return merged ?? new Rect2();
     }
 
     public void Release()
@@ -69,5 +81,5 @@ public sealed class SvgAttachmentVisuals(Rid canvas) : IAttachmentVisuals
         _visuals.Clear();
     }
 
-    private sealed record Visual(int Index, Rid Item, ImageTexture Texture);
+    private sealed record Visual(int Index, Rid Item, ImageTexture Texture, Rect2 Bounds);
 }
