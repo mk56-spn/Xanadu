@@ -160,7 +160,11 @@ public sealed class AnimatorTimelineInputTests : AnimatorToolTest
     {
         Session.GetComponent<AnimatorSelection>().Bone = 1;
 
-        Assert.That(Model().Tracks, Has.Member(new XafTrack(XafChannelTarget.Bone, "torso")));
+        Assert.That(
+            Model().Tracks,
+            Has.Some.Matches<AnimatorTrackRow>(row =>
+                row.Track == new XafTrack(XafChannelTarget.Bone, "torso") &&
+                !row.IsChannel));
     }
 
     [Test]

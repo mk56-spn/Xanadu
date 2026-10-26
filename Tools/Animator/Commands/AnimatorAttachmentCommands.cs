@@ -36,8 +36,7 @@ public static class AnimatorAttachmentCommands
         AnimatorSession.RigChanged(session);
 
         ref AnimatorSelection selection = ref session.GetComponent<AnimatorSelection>();
-        selection.Bone = -1;
-        selection.Attachment = package.Attachments.Count - 1;
+        selection.SelectOnlyAttachment(package.Attachments.Count - 1);
         selection.HasKey = false;
         AnimatorSession.SetStatus(session, $"ADDED {group} TO {boneId}");
     }

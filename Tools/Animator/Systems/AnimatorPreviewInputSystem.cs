@@ -9,13 +9,18 @@ using Writer.Tools.Animator.Commands;
 namespace Writer.Tools.Animator.Systems;
 
 /// <summary>
-/// Selects and drags bones and attachments in the preview panel. With IK drag
-/// on, a joint pulls its parent and grandparent along as a two-bone chain.
+/// Selects and drags bones and attachments in the preview panel. The wheel
+/// zooms around the pointer, the middle button pans, and hover highlights what
+/// a click would pick. With IK drag on, a joint pulls its parent and
+/// grandparent along as a two-bone chain.
 /// </summary>
-public sealed class AnimatorPreviewInputSystem(IPointerInputSource pointer)
-    : QuerySystem<AnimatorDocument, AnimatorUi>
+public sealed class AnimatorPreviewInputSystem(
+    IPointerInputSource pointer,
+    IAnimatorWheel? wheel = null) : QuerySystem<AnimatorDocument, AnimatorUi>
 {
     private bool _panelHeld;
+    private bool _middleHeld;
+    private Vector2 _lastMiddle;
 
     protected override void OnUpdate()
     {
@@ -27,27 +32,115 @@ public sealed class AnimatorPreviewInputSystem(IPointerInputSource pointer)
     {
         Entity panel = session.GetComponent<AnimatorUi>().Preview;
         PointerInput input = pointer.Read();
+        Rect2 area = AnimatorGeometry.PanelArea(panel);
+        ref AnimatorPreviewView view = ref session.GetComponent<AnimatorPreviewView>();
+
+        if (wheel is not null && area.HasPoint(input.Position))
+            Wheel(session, ref view, area, input);
+
+        if (Pan(ref view, area, input))
+        {
+            session.GetComponent<AnimatorHover>() = AnimatorHover.None;
+            return;
+        }
+
         bool pressed = !panel.IsNull && panel.Tags.Has<Pressed>();
         bool begin = pressed && !_panelHeld;
         _panelHeld = pressed;
 
-        Rect2 area = AnimatorGeometry.PanelArea(panel);
+        Hover(session, area, input, !input.Pressed && !begin);
+
         ref AnimatorDrag drag = ref session.GetComponent<AnimatorDrag>();
         if (begin)
         {
-            Begin(session, input.Position, area);
+            Begin(session, input.Position, area, input.Shift);
         }
         else if (drag.Kind is AnimatorDragKind.Bone or AnimatorDragKind.Attachment
                  or AnimatorDragKind.Swing or AnimatorDragKind.Ik)
         {
             if (input.Pressed)
-                Drag(session, input.Position, AnimatorGeometry.PreviewOrigin(area));
+                Drag(session, input.Position, area);
             else
                 End(session);
         }
     }
 
-    private static void Begin(Entity session, Vector2 pointer, Rect2 area)
+    private void Wheel(
+        Entity session,
+        ref AnimatorPreviewView view,
+        Rect2 area,
+        PointerInput input)
+    {
+        int notches = wheel!.TakeWheel();
+        if (notches == 0)
+            return;
+
+        view.ZoomAt(
+            input.Position,
+            area,
+            Mathf.Pow(AnimatorPreviewView.WheelStep, notches));
+        AnimatorSession.SetStatus(session, $"ZOOM x{view.Zoom:0.##}");
+    }
+
+    /// <summary>Middle-drag panning, independent of selection; true while it owns the pointer.</summary>
+    private bool Pan(ref AnimatorPreviewView view, Rect2 area, PointerInput input)
+    {
+        if (!input.Middle)
+        {
+            _middleHeld = false;
+            return false;
+        }
+
+        if (!_middleHeld)
+        {
+            _middleHeld = true;
+            _lastMiddle = input.Position;
+            return true;
+        }
+
+        if (area.HasPoint(input.Position))
+            view.Pan += input.Position - _lastMiddle;
+        _lastMiddle = input.Position;
+        return true;
+    }
+
+    /// <summary>Highlights the joint, label or attachment a click would pick.</summary>
+    private static void Hover(Entity session, Rect2 area, PointerInput input, bool okay)
+    {
+        ref AnimatorHover hover = ref session.GetComponent<AnimatorHover>();
+        if (!okay || !area.HasPoint(input.Position))
+        {
+            hover = AnimatorHover.None;
+            return;
+        }
+
+        AnimatorDocument document = session.GetComponent<AnimatorDocument>();
+        AnimatorModes modes = session.GetComponent<AnimatorModes>();
+        AnimatorPreviewView view = session.GetComponent<AnimatorPreviewView>();
+        Transform2D placement = AnimatorGeometry.PreviewPlacement(area, view);
+        XafPose pose = AnimatorGeometry.PreviewPose(document, modes);
+        Transform2D[] world = XafRig.WorldBones(document.Package, pose);
+
+        if (modes.Svg)
+        {
+            Transform2D[] attachments = XafRig.WorldAttachments(document.Package, pose, world);
+            hover = new AnimatorHover
+            {
+                Bone = -1,
+                Attachment = AnimatorGeometry.PickNearest(
+                    attachments, placement, input.Position, AnimatorGeometry.AttachmentHitRadius),
+            };
+            return;
+        }
+
+        hover = new AnimatorHover
+        {
+            Bone = AnimatorGeometry.PickBoneOrLabel(world, placement, input.Position),
+            Attachment = -1,
+        };
+    }
+
+    private static void Begin(Entity session, Vector2 pointer, Rect2 area, bool shift)
     {
         if (!area.HasPoint(pointer))
             return;
@@ -58,7 +151,8 @@ public sealed class AnimatorPreviewInputSystem(IPointerInputSource pointer)
         XafPackage package = document.Package;
         XafPose pose = AnimatorGeometry.PreviewPose(document, modes);
         Transform2D[] world = XafRig.WorldBones(package, pose);
-        Vector2 origin = AnimatorGeometry.PreviewOrigin(area);
+        AnimatorPreviewView view = session.GetComponent<AnimatorPreviewView>();
+        Transform2D placement = AnimatorGeometry.PreviewPlacement(area, view);
         string suffix = modes.Rest ? " (REST)" : "";
 
         // A reparent from the bone menu takes the next click as its new parent.
@@ -67,7 +161,7 @@ public sealed class AnimatorPreviewInputSystem(IPointerInputSource pointer)
         {
             int child = menu.Reparenting;
             menu.Reparenting = -1;
-            int target = AnimatorGeometry.PickBoneOrLabel(world, origin, pointer);
+            int target = AnimatorGeometry.PickBoneOrLabel(world, placement, pointer);
             if (target >= 0)
                 AnimatorEditing.ReparentBone(session, child, target);
             else
@@ -80,7 +174,21 @@ public sealed class AnimatorPreviewInputSystem(IPointerInputSource pointer)
         if (!modes.Svg)
         {
             int bone = AnimatorGeometry.PickNearest(
-                world, origin, pointer, AnimatorGeometry.BoneHitRadius);
+                world, placement, pointer, AnimatorGeometry.BoneHitRadius);
+            if (bone >= 0 && shift)
+            {
+                // Shift-click groups bones; a fixed-length bone is picked as
+                // the parent that actually turns, as a normal click does.
+                int target = modes.Rest || package.Skeleton.Bones[bone].CanTranslate
+                    ? bone
+                    : package.Skeleton.Bones[bone].Parent;
+                if (target >= 0)
+                {
+                    ToggleBone(session, target);
+                    return;
+                }
+            }
+
             if (bone >= 0 && modes.Ik && !modes.Rest && Chain(package, bone, out _, out _))
                 BeginIk(session, pointer, bone);
             else if (bone >= 0)
@@ -90,12 +198,11 @@ public sealed class AnimatorPreviewInputSystem(IPointerInputSource pointer)
 
         Transform2D[] attachments = XafRig.WorldAttachments(package, pose, world);
         int attachment = AnimatorGeometry.PickNearest(
-            attachments, origin, pointer, AnimatorGeometry.AttachmentHitRadius);
+            attachments, placement, pointer, AnimatorGeometry.AttachmentHitRadius);
         if (attachment < 0)
             return;
 
-        selection.Attachment = attachment;
-        selection.Bone = -1;
+        selection.SelectOnlyAttachment(attachment);
         document.Runtime.SetPaused(true);
         if (modes.Rest)
             AnimatorHistoryCommands.BeginGesture(session);
@@ -109,6 +216,18 @@ public sealed class AnimatorPreviewInputSystem(IPointerInputSource pointer)
             ParentWorld = parent >= 0 ? world[parent] : Transform2D.Identity,
         };
         AnimatorSession.SetStatus(session, $"SELECTED {owner.Group}{suffix}");
+    }
+
+    /// <summary>Adds or removes one bone from the group and says how many are selected.</summary>
+    private static void ToggleBone(Entity session, int bone)
+    {
+        ref AnimatorSelection selection = ref session.GetComponent<AnimatorSelection>();
+        selection.ToggleBone(bone);
+        int count = selection.Bones().Count;
+        string id = session.GetComponent<AnimatorDocument>().Package.Skeleton.Bones[bone].Id;
+        AnimatorSession.SetStatus(
+            session,
+            count > 1 ? $"{id} ADDED • {count} BONES SELECTED" : $"SELECTED {id}");
     }
 
     /// <summary>
@@ -133,7 +252,7 @@ public sealed class AnimatorPreviewInputSystem(IPointerInputSource pointer)
         {
             if (rest)
                 AnimatorHistoryCommands.BeginGesture(session);
-            selection.Bone = bone;
+            selection.SelectOnlyBone(bone);
             session.GetComponent<AnimatorDrag>() = new AnimatorDrag
             {
                 Kind = AnimatorDragKind.Bone,
@@ -145,7 +264,7 @@ public sealed class AnimatorPreviewInputSystem(IPointerInputSource pointer)
             return;
         }
 
-        selection.Bone = rig.Parent;
+        selection.SelectOnlyBone(rig.Parent);
         session.GetComponent<AnimatorDrag>() = new AnimatorDrag
         {
             Kind = AnimatorDragKind.Swing,
@@ -170,8 +289,7 @@ public sealed class AnimatorPreviewInputSystem(IPointerInputSource pointer)
         ref AnimatorDocument document = ref session.GetComponent<AnimatorDocument>();
         ref AnimatorSelection selection = ref session.GetComponent<AnimatorSelection>();
         document.Runtime.SetPaused(true);
-        selection.Bone = joint;
-        selection.Attachment = -1;
+        selection.SelectOnlyBone(joint);
         session.GetComponent<AnimatorDrag>() = new AnimatorDrag
         {
             Kind = AnimatorDragKind.Ik,
@@ -185,7 +303,7 @@ public sealed class AnimatorPreviewInputSystem(IPointerInputSource pointer)
     /// Solves the two-bone chain for the pointer, keeping the side the chain
     /// already bends to, then turns the grandparent and parent to match.
     /// </summary>
-    private static void Ik(Entity session, Vector2 pointer, Vector2 origin)
+    private static void Ik(Entity session, Vector2 pointer, Transform2D placement)
     {
         ref AnimatorDocument document = ref session.GetComponent<AnimatorDocument>();
         int joint = session.GetComponent<AnimatorDrag>().Joint;
@@ -199,7 +317,8 @@ public sealed class AnimatorPreviewInputSystem(IPointerInputSource pointer)
         Vector2 end = world[joint].Origin;
         Vector2 reach = end - root;
         bool bendPositive = new Vector2(-reach.Y, reach.X).Dot(elbow - root) >= 0f;
-        Vector2[] solved = XafFabrik.Solve(new[] { root, elbow, end }, pointer - origin, bendPositive);
+        Vector2 target = placement.AffineInverse() * pointer;
+        Vector2[] solved = XafFabrik.Solve(new[] { root, elbow, end }, target, bendPositive);
 
         Aim(document.Package, pose, grandparent, parent, solved[1]);
         Aim(document.Package, pose, parent, joint, solved[2]);
@@ -221,7 +340,7 @@ public sealed class AnimatorPreviewInputSystem(IPointerInputSource pointer)
         pose.Bones[bone].Rotation += delta;
     }
 
-    private static void Swing(Entity session, Vector2 pointer, Vector2 origin)
+    private static void Swing(Entity session, Vector2 pointer, Transform2D placement)
     {
         ref AnimatorDocument document = ref session.GetComponent<AnimatorDocument>();
         int joint = session.GetComponent<AnimatorDrag>().Joint;
@@ -229,7 +348,8 @@ public sealed class AnimatorPreviewInputSystem(IPointerInputSource pointer)
         XafPose pose = document.Runtime.Pose;
         Transform2D[] world = XafRig.WorldBones(document.Package, pose);
 
-        Vector2 toPointer = pointer - (origin + world[parent].Origin);
+        Vector2 local = placement.AffineInverse() * pointer;
+        Vector2 toPointer = local - world[parent].Origin;
         Vector2 toJoint = world[joint].Origin - world[parent].Origin;
         if (toPointer.LengthSquared() < 1f || toJoint.LengthSquared() < 0.0001f)
             return;
@@ -241,28 +361,33 @@ public sealed class AnimatorPreviewInputSystem(IPointerInputSource pointer)
         pose.Bones[parent].Rotation += delta;
     }
 
-    private static void Drag(Entity session, Vector2 pointer, Vector2 origin)
+    private static void Drag(Entity session, Vector2 pointer, Rect2 area)
     {
-        if (session.GetComponent<AnimatorDrag>().Kind == AnimatorDragKind.Swing)
+        AnimatorDrag drag = session.GetComponent<AnimatorDrag>();
+        AnimatorPreviewView view = session.GetComponent<AnimatorPreviewView>();
+        Transform2D placement = AnimatorGeometry.PreviewPlacement(area, view);
+
+        if (drag.Kind == AnimatorDragKind.Swing)
         {
-            Swing(session, pointer, origin);
+            Swing(session, pointer, placement);
             return;
         }
 
-        if (session.GetComponent<AnimatorDrag>().Kind == AnimatorDragKind.Ik)
+        if (drag.Kind == AnimatorDragKind.Ik)
         {
-            Ik(session, pointer, origin);
+            Ik(session, pointer, placement);
             return;
         }
 
         ref AnimatorDocument document = ref session.GetComponent<AnimatorDocument>();
-        AnimatorDrag drag = session.GetComponent<AnimatorDrag>();
         AnimatorSelection selection = session.GetComponent<AnimatorSelection>();
         bool rest = session.GetComponent<AnimatorModes>().Rest;
 
         // The pointer moves in screen space; the value lives in the parent's space.
+        Vector2 localNow = placement.AffineInverse() * pointer;
+        Vector2 localStart = placement.AffineInverse() * drag.StartPointer;
         Vector2 value = drag.StartValue +
-                        drag.ParentWorld.BasisXformInv(pointer - drag.StartPointer);
+                        drag.ParentWorld.BasisXformInv(localNow - localStart);
 
         if (drag.Kind == AnimatorDragKind.Bone && selection.Bone >= 0)
         {

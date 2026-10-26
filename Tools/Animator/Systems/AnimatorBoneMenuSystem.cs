@@ -73,7 +73,9 @@ public sealed class AnimatorBoneMenuSystem(IPointerInputSource pointer)
     private static int PickBone(Entity session, Rect2 area, Vector2 pointer) =>
         AnimatorGeometry.PickBoneOrLabel(
             PreviewWorld(session),
-            AnimatorGeometry.PreviewOrigin(area),
+            AnimatorGeometry.PreviewPlacement(
+                area,
+                session.GetComponent<AnimatorPreviewView>()),
             pointer);
 
     private static Transform2D[] PreviewWorld(Entity session)
@@ -145,7 +147,10 @@ public sealed class AnimatorBoneMenuSystem(IPointerInputSource pointer)
         }
 
         Rect2 area = AnimatorGeometry.PanelArea(ui.Preview);
-        Vector2 joint = AnimatorGeometry.PreviewOrigin(area) + PreviewWorld(session)[menu.Renaming].Origin;
+        Transform2D placement = AnimatorGeometry.PreviewPlacement(
+            area,
+            session.GetComponent<AnimatorPreviewView>());
+        Vector2 joint = placement * PreviewWorld(session)[menu.Renaming].Origin;
         return AnimatorGeometry.BoneLabel(joint);
     }
 

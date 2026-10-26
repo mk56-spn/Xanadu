@@ -15,7 +15,33 @@ public sealed class AnimatorLayoutTests : AnimatorToolTest
         // Margin 16 + left bar 240 + gap 12; gap 12 + right bar 300 + margin 16.
         Assert.That(preview.Position.X, Is.EqualTo(268f).Within(0.5f));
         Assert.That(preview.End.X, Is.EqualTo(Screen.X - 328f).Within(0.5f));
-        Assert.That(preview.Position.Y, Is.EqualTo(116f).Within(0.5f));
+        // Margin 16 + header 88 + gap 12, then the 36 px mode bar and its 8 px gap.
+        Assert.That(preview.Position.Y, Is.EqualTo(160f).Within(0.5f));
+    }
+
+    [Test]
+    public void TheEditingModesSitInABarAboveThePreview()
+    {
+        Rect2 preview = AnimatorGeometry.PanelArea(Ui.Preview);
+        Rect2 bar = AnimatorGeometry.PanelArea(ModeButton(AnimatorMode.AutoKey).Parent);
+
+        Assert.That(bar.End.Y, Is.LessThanOrEqualTo(preview.Position.Y + 0.5f));
+        Assert.That(bar.Position.X, Is.EqualTo(preview.Position.X).Within(0.5f));
+        Assert.That(bar.Size.X, Is.EqualTo(preview.Size.X).Within(0.5f));
+
+        foreach (AnimatorMode mode in new[]
+                 {
+                     AnimatorMode.AutoKey,
+                     AnimatorMode.Onion,
+                     AnimatorMode.Rest,
+                     AnimatorMode.Svg,
+                     AnimatorMode.Ik,
+                 })
+        {
+            Rect2 button = AnimatorGeometry.PanelArea(ModeButton(mode));
+            Assert.That(bar.Encloses(button.Grow(-0.5f)), Is.True);
+            Assert.That(button.End.Y, Is.LessThanOrEqualTo(preview.Position.Y));
+        }
     }
 
     [Test]

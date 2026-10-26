@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using Godot;
 using Writer.Ecs;
@@ -37,11 +38,14 @@ public static class AnimatorSession
                 Dirty = false,
             },
             new TimelineView(1f),
-            new AnimatorTracks(),
+            new AnimatorTracks { Expanded = new HashSet<XafTrack>() },
             AnimatorBoneMenu.Closed,
             new AnimatorClipboard());
         session.AddComponent(new AnimatorKeyMenu());
         session.AddComponent(new AnimatorSvgMenu { Choices = new() });
+        session.AddComponent(AnimatorHover.None);
+        session.AddComponent(AnimatorPreviewView.Default);
+        session.AddComponent(new AnimatorKeyClipboard());
         session.AddComponent(new UiMarqueeBox());
         session.AddComponent(new AnimatorHistory
         {
@@ -69,6 +73,7 @@ public static class AnimatorSession
         session.GetComponent<AnimatorSelection>() = AnimatorSelection.None;
         session.GetComponent<AnimatorDrag>() = new AnimatorDrag();
         session.GetComponent<AnimatorBoneMenu>() = AnimatorBoneMenu.Closed;
+        session.GetComponent<AnimatorTracks>().Expanded?.Clear();
         session.GetComponent<AnimatorKeyMenu>() = new AnimatorKeyMenu();
         session.GetComponent<AnimatorSvgMenu>() = new AnimatorSvgMenu { Choices = new() };
         AnimatorHistoryCommands.Clear(session);

@@ -75,6 +75,7 @@ public static class AnimatorFileCommands
 
         AnimatorSession.Replace(session, package);
         session.GetComponent<AnimatorModes>().Rest = false;
+        AnimatorPreviewCommands.Fit(session);
         SetBaseline(session);
         AnimatorSession.SetStatus(session, $"LOADED {path}");
     }
@@ -85,8 +86,10 @@ public static class AnimatorFileCommands
             return;
 
         AnimatorSession.Replace(session, XafRigAuthoring.CreateEmptyPackage());
-        session.GetComponent<AnimatorSelection>().Bone = 0;
+        ref AnimatorSelection selection = ref session.GetComponent<AnimatorSelection>();
+        selection.SelectOnlyBone(0);
         session.GetComponent<AnimatorModes>().Rest = false;
+        AnimatorPreviewCommands.Reset(session);
         SetBaseline(session);
         AnimatorSession.SetStatus(session, "NEW SKELETON");
     }

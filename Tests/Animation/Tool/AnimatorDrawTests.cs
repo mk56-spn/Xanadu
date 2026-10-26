@@ -106,6 +106,29 @@ public sealed class AnimatorDrawTests : AnimatorToolTest
     }
 
     [Test]
+    public void TheHeaderNamesTheLoopRangeWhenLooping()
+    {
+        Idle.Loop = true;
+        Idle.LoopStart = 0.25f;
+        Idle.LoopEnd = 1.5f;
+        Frame();
+
+        Assert.That(_canvas.Texts, Has.Some.Contains("loop 0.25-1.5s"));
+    }
+
+    [Test]
+    public void AnExpandedTrackDrawsItsChannelRows()
+    {
+        ref AnimatorTracks tracks = ref Session.GetComponent<AnimatorTracks>();
+        tracks.Expanded ??= new System.Collections.Generic.HashSet<XafTrack>();
+        tracks.Expanded.Add(new XafTrack(XafChannelTarget.Bone, "head"));
+        Frame();
+
+        Assert.That(_canvas.Texts, Has.Some.StartsWith("▾ head"));
+        Assert.That(_canvas.Texts, Does.Contain("rot"));
+    }
+
+    [Test]
     public void TimelineLabelsRowsAndRulerTicks()
     {
         Frame();

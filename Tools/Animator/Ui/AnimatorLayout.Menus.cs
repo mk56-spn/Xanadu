@@ -14,9 +14,9 @@ public static partial class AnimatorLayout
     {
         (string Label, ToolActionKind Kind)[] entries =
         {
-            ("SAVE XAF", ToolActionKind.Save),
-            ("LOAD XAF", ToolActionKind.Load),
-            ("NEW SKELETON", ToolActionKind.NewSkeleton),
+            ("SAVE", ToolActionKind.Save),
+            ("LOAD", ToolActionKind.Load),
+            ("NEW", ToolActionKind.NewSkeleton),
         };
         const float optionHeight = 30f;
         float listHeight = entries.Length *
@@ -31,6 +31,7 @@ public static partial class AnimatorLayout
                 new Vector2(168, optionHeight), position: UiLayout.Hidden);
             option.AddComponent(new ToolAction(entries[i].Kind));
             option.AddComponent(new DropdownOption(fileButton, i));
+            AnimatorTooltips.Attach(option, entries[i].Kind);
         }
         fileButton.AddComponent(new Dropdown(list, 0, listSize));
     }
@@ -41,7 +42,7 @@ public static partial class AnimatorLayout
     public static readonly Vector2 BoneNameSize = new(140, 22);
 
     /// <summary>Size of the key menu opened by right-clicking a timeline track row.</summary>
-    public static readonly Vector2 KeyMenuSize = new(150, 2 * 28 + 2 + 8);
+    public static readonly Vector2 KeyMenuSize = new(150, 3 * 28 + 2 * 2 + 8);
 
     /// <summary>Width of the ADD SVG picker; its height follows the number of choices.</summary>
     public const float SvgMenuWidth = 240f;
@@ -65,9 +66,9 @@ public static partial class AnimatorLayout
         {
             ("RENAME", ToolActionKind.RenameBone),
             ("REPARENT", ToolActionKind.ReparentBone),
-            ("ADD CHILD", ToolActionKind.AddBone),
-            ("ADD SVG", ToolActionKind.AddSvg),
-            ("DELETE", ToolActionKind.DeleteBone),
+            ("CHILD", ToolActionKind.AddBone),
+            ("SVG", ToolActionKind.AddSvg),
+            ("DEL", ToolActionKind.DeleteBone),
         };
 
         menu.Container(UiLayout.Hidden, BoneMenuSize, StackDirection.Vertical,
@@ -75,8 +76,10 @@ public static partial class AnimatorLayout
         refs.Ui.BoneMenu = menu.Current;
         foreach ((string label, ToolActionKind kind) in entries)
         {
-            menu.Button(label, new Vector2(BoneMenuSize.X - 8, 28),
-                fontSize: UiTheme.SmallFontSize).AddComponent(new ToolAction(kind));
+            Entity option = menu.Button(label, new Vector2(BoneMenuSize.X - 8, 28),
+                fontSize: UiTheme.SmallFontSize);
+            option.AddComponent(new ToolAction(kind));
+            AnimatorTooltips.Attach(option, kind);
         }
         menu.End();
 
@@ -105,6 +108,28 @@ public static partial class AnimatorLayout
         menu.End();
     }
 
+    /// <summary>
+    /// A floating explanation for the hovered button. It sits on the menu
+    /// layer, last, so it draws over menus; the tooltip system sizes it.
+    /// </summary>
+    private static void BuildTooltip(
+        EntityStore store,
+        IVisualRidFactory? visuals,
+        ref Refs refs)
+    {
+        UiBuilder tip = UiBuilder.Begin(store, visuals).Layer(TooltipLayer);
+        Entity tooltip = tip.RectEntity(
+            UiLayout.Hidden,
+            new Vector2(200, 24),
+            new Color("#1e293b"),
+            "",
+            takesInput: false);
+        tooltip.AddComponent(new TextStyle(11, UiTheme.Text));
+        tooltip.AddComponent(new TextAlignment(TextAlign.Center));
+        tip.End();
+        refs.Ui.Tooltip = tooltip;
+    }
+
     /// <summary>The key menu starts hidden; the key menu system moves it into place.</summary>
     private static void BuildKeyMenu(UiBuilder menu, ref Refs refs)
     {
@@ -114,8 +139,67 @@ public static partial class AnimatorLayout
         var size = new Vector2(KeyMenuSize.X - 8, 28);
         refs.Ui.KeyMenuAdd = menu.Button("ADD KEY", size, fontSize: UiTheme.SmallFontSize);
         refs.Ui.KeyMenuAdd.AddComponent(new ToolAction(ToolActionKind.AddKey));
-        refs.Ui.KeyMenuDelete = menu.Button("DELETE KEY", size, fontSize: UiTheme.SmallFontSize);
+        AnimatorTooltips.Attach(refs.Ui.KeyMenuAdd, ToolActionKind.AddKey);
+        refs.Ui.KeyMenuDelete = menu.Button("DEL KEY", size, fontSize: UiTheme.SmallFontSize);
         refs.Ui.KeyMenuDelete.AddComponent(new ToolAction(ToolActionKind.DeleteKey));
+        AnimatorTooltips.Attach(refs.Ui.KeyMenuDelete, ToolActionKind.DeleteKey);
+        Entity selectAll = menu.Button("SELECT ALL", size, fontSize: UiTheme.SmallFontSize);
+        selectAll.AddComponent(new ToolAction(ToolActionKind.SelectAllKeys));
+        AnimatorTooltips.Attach(selectAll, ToolActionKind.SelectAllKeys);
         menu.End();
+    }
+
+    /// <summary>
+    /// The transform inspector floats over the preview's top-right corner: the
+    /// selected bone or attachment's position, rotation and scale, plus reset.
+    /// </summary>
+    private static void BuildInspector(UiBuilder menu, Vector2 screen, ref Refs refs)
+    {
+        const float width = 236f;
+        const float height = 190f;
+        const float row = 26f;
+        const float inner = width - 16f;
+        var size = new Vector2(width, height);
+        var topLeft = new Vector2(
+            screen.X - Margin - RightWidth - Gap - width - 12f,
+            Margin + TopHeight + Gap + ModeInset + 12f);
+
+        menu.Container(topLeft + size / 2, size, StackDirection.Vertical,
+            spacing: 6, color: UiTheme.Panel, padding: 8, takesInput: true,
+            cross: StackCrossAlignment.Start, main: StackMainAlignment.Start);
+        refs.Ui.Inspector = menu.Current;
+        refs.Ui.InspectorTitle = menu.Text("NOTHING SELECTED",
+            new Vector2(inner, 18), UiTheme.SmallFontSize, UiTheme.Accent, TextAlign.Left);
+
+        menu.Container(Vector2.Zero, new Vector2(inner, row), spacing: 4, color: Clear);
+        menu.Text("POS", new Vector2(38, 20), 11, UiTheme.TextDim, TextAlign.Left);
+        refs.Ui.InspectPosX = NumericField(menu, new Vector2(64, 22));
+        refs.Ui.InspectPosY = NumericField(menu, new Vector2(64, 22));
+        menu.End();
+
+        menu.Container(Vector2.Zero, new Vector2(inner, row), spacing: 4, color: Clear);
+        menu.Text("ROT °", new Vector2(38, 20), 11, UiTheme.TextDim, TextAlign.Left);
+        refs.Ui.InspectRotation = NumericField(menu, new Vector2(72, 22));
+        menu.End();
+
+        menu.Container(Vector2.Zero, new Vector2(inner, row), spacing: 4, color: Clear);
+        menu.Text("SCALE", new Vector2(38, 20), 11, UiTheme.TextDim, TextAlign.Left);
+        refs.Ui.InspectScaleX = NumericField(menu, new Vector2(64, 22));
+        refs.Ui.InspectScaleY = NumericField(menu, new Vector2(64, 22));
+        menu.End();
+
+        Entity reset = menu.Button("RESET", new Vector2(inner, row),
+            fontSize: UiTheme.SmallFontSize);
+        reset.AddComponent(new ToolAction(ToolActionKind.ResetTransform));
+        AnimatorTooltips.Attach(reset, ToolActionKind.ResetTransform);
+        menu.End();
+    }
+
+    /// <summary>A text field that only accepts the characters a number needs.</summary>
+    private static Entity NumericField(UiBuilder menu, Vector2 size)
+    {
+        Entity field = TextInput(menu, size);
+        field.GetComponent<TextField>().Numeric = true;
+        return field;
     }
 }

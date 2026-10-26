@@ -54,6 +54,45 @@ public static class XafEasing
         return changed;
     }
 
+    /// <summary>Sets the preset on one channel's key at the time.</summary>
+    public static bool Apply(
+        XafClip clip,
+        XafChannelTarget target,
+        string targetId,
+        XafChannelProperty property,
+        float time,
+        XafEasePreset preset)
+    {
+        XafChannel? channel = FindChannel(clip, target, targetId, property);
+        if (channel is null)
+            return false;
+
+        int index = channel.Keyframes.FindIndex(key =>
+            Math.Abs(key.Time - time) <= XafTracks.TimeTolerance);
+        if (index < 0)
+            return false;
+
+        ApplyTo(channel, index, preset);
+        return true;
+    }
+
+    /// <summary>The preset of one channel's key at the time, or null when there is none.</summary>
+    public static XafEasePreset? Read(
+        XafClip clip,
+        XafChannelTarget target,
+        string targetId,
+        XafChannelProperty property,
+        float time)
+    {
+        XafChannel? channel = FindChannel(clip, target, targetId, property);
+        if (channel is null)
+            return null;
+
+        int index = channel.Keyframes.FindIndex(key =>
+            Math.Abs(key.Time - time) <= XafTracks.TimeTolerance);
+        return index >= 0 ? Classify(channel, index) : null;
+    }
+
     /// <summary>The preset of the first channel key found at the time, or null when there is none.</summary>
     public static XafEasePreset? Read(
         XafClip clip,
@@ -74,6 +113,16 @@ public static class XafEasing
 
         return null;
     }
+
+    private static XafChannel? FindChannel(
+        XafClip clip,
+        XafChannelTarget target,
+        string targetId,
+        XafChannelProperty property) =>
+        clip.Channels.Find(channel =>
+            channel.Target == target &&
+            channel.TargetId == targetId &&
+            channel.Property == property);
 
     private static void ApplyTo(XafChannel channel, int index, XafEasePreset preset)
     {

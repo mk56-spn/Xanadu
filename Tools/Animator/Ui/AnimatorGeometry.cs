@@ -34,16 +34,19 @@ public static class AnimatorGeometry
         new(joint + new Vector2(8, -12), new Vector2(100, 20));
 
     /// <summary>The bone whose joint or label is under the pointer, or -1; joints win.</summary>
-    public static int PickBoneOrLabel(Transform2D[] world, Vector2 origin, Vector2 pointer)
+    public static int PickBoneOrLabel(
+        Transform2D[] world,
+        Transform2D placement,
+        Vector2 pointer)
     {
-        int bone = PickNearest(world, origin, pointer, BoneHitRadius);
+        int bone = PickNearest(world, placement, pointer, BoneHitRadius);
         if (bone >= 0)
             return bone;
 
         // Later bones draw on top, so they take overlapping labels.
         for (int i = world.Length - 1; i >= 0; i--)
         {
-            if (BoneLabel(origin + world[i].Origin).HasPoint(pointer))
+            if (BoneLabel(placement * world[i].Origin).HasPoint(pointer))
                 return i;
         }
         return -1;
@@ -94,13 +97,21 @@ public static class AnimatorGeometry
         return default;
     }
 
-    /// <summary>Skeleton space origin: the middle of the preview panel.</summary>
+    /// <summary>Skeleton space origin with the default view: the middle of the preview panel.</summary>
     public static Vector2 PreviewOrigin(Rect2 area) => area.Position + area.Size / 2;
+
+    /// <summary>Screen point of the skeleton origin under a zoomed and panned view.</summary>
+    public static Vector2 PreviewOrigin(Rect2 area, in AnimatorPreviewView view) =>
+        view.ToScreen(Vector2.Zero, area);
+
+    /// <summary>Maps skeleton space to screen space for the current preview view.</summary>
+    public static Transform2D PreviewPlacement(Rect2 area, in AnimatorPreviewView view) =>
+        view.Placement(area);
 
     /// <summary>Index of the transform whose origin is nearest the pointer within the radius.</summary>
     public static int PickNearest(
         Transform2D[] world,
-        Vector2 origin,
+        Transform2D placement,
         Vector2 pointer,
         float radius)
     {
@@ -108,7 +119,7 @@ public static class AnimatorGeometry
         float best = radius;
         for (int i = 0; i < world.Length; i++)
         {
-            float distance = (origin + world[i].Origin).DistanceTo(pointer);
+            float distance = (placement * world[i].Origin).DistanceTo(pointer);
             if (distance > best)
                 continue;
             best = distance;

@@ -5,6 +5,7 @@ using Friflo.Engine.ECS.Systems;
 using Godot;
 using Writer.Animation;
 using Writer.Ecs;
+using Writer.Systems.Input;
 using Writer.Tools.Animator.Commands;
 
 namespace Writer.Tools.Animator.Systems;
@@ -13,7 +14,9 @@ namespace Writer.Tools.Animator.Systems;
 /// Rebuilds the bone, attachment and clip lists when the package changes and
 /// highlights the selected entries.
 /// </summary>
-public sealed class AnimatorHierarchySystem(IVisualRidFactory visuals)
+public sealed class AnimatorHierarchySystem(
+    IVisualRidFactory visuals,
+    IPointerInputSource? pointer = null)
     : QuerySystem<AnimatorDocument, AnimatorUi>
 {
     private static readonly Vector2 ItemSize = new(200, 26);
@@ -35,7 +38,7 @@ public sealed class AnimatorHierarchySystem(IVisualRidFactory visuals)
                 Rebuild(session, ui, package);
             }
 
-            SyncBoneTree(session, ui.BoneList, package);
+            SyncBoneTree(session, ui.BoneList, package, pointer?.Read().Shift ?? false);
             AnimatorSelection selection = session.GetComponent<AnimatorSelection>();
             SyncClipDropdown(session.GetComponent<AnimatorUi>().ClipDropdown,
                 session.GetComponent<AnimatorDocument>().Runtime.CurrentClip);
@@ -92,12 +95,15 @@ public sealed class AnimatorHierarchySystem(IVisualRidFactory visuals)
 
         Entity button = UiBuilder.Begin(Query.Store, visuals).Use(ui.ClipList)
             .Button("", ClipDropdownSize);
+        button.AddComponent(new UiTooltip("Choose the clip to edit"));
         UiDropdownControl control = UiBuilder.Begin(Query.Store, visuals).Use(ui.MenuLayer)
             .DropdownList(button, labels);
         for (int i = 0; i < control.Options.Count; i++)
         {
             control.Options[i].AddComponent(
                 new ToolAction(ToolActionKind.Clip, package.Clips[i].Id));
+            AnimatorTooltips.Attach(
+                control.Options[i], ToolActionKind.Clip, package.Clips[i].Id);
         }
         return control.Button;
     }
@@ -154,7 +160,11 @@ public sealed class AnimatorHierarchySystem(IVisualRidFactory visuals)
     /// a new parent, reparents onto it; a selection made elsewhere (the
     /// preview, add/delete, undo) is shown in the tree, expanding to reveal it.
     /// </summary>
-    private static void SyncBoneTree(Entity session, Entity tree, XafPackage package)
+    private static void SyncBoneTree(
+        Entity session,
+        Entity tree,
+        XafPackage package,
+        bool shift)
     {
         if (tree.IsNull)
             return;
@@ -168,6 +178,10 @@ public sealed class AnimatorHierarchySystem(IVisualRidFactory visuals)
                 int child = menu.Reparenting;
                 menu.Reparenting = -1;
                 AnimatorEditing.ReparentBone(session, child, XafRig.FindBone(package, changed.Id));
+            }
+            else if (shift)
+            {
+                ToggleBone(session, XafRig.FindBone(package, changed.Id), package);
             }
             else
             {
@@ -186,6 +200,45 @@ public sealed class AnimatorHierarchySystem(IVisualRidFactory visuals)
         // collapsing a branch that holds the selection.
         if (UiTreeControl.Selected(tree) != id)
             UiTreeControl.Select(tree, id, raiseChanged: false);
+
+        HighlightGroup(session, tree, package, id);
+    }
+
+    /// <summary>Shows the extra bones of a Shift-click group beside the primary tree row.</summary>
+    private static void HighlightGroup(
+        Entity session,
+        Entity tree,
+        XafPackage package,
+        string primaryId)
+    {
+        AnimatorSelection selection = session.GetComponent<AnimatorSelection>();
+        var extras = new List<string>();
+        foreach (int index in selection.Bones())
+        {
+            if (index < 0 || index >= package.Skeleton.Bones.Count)
+                continue;
+
+            string id = package.Skeleton.Bones[index].Id;
+            if (id != primaryId)
+                extras.Add(id);
+        }
+
+        UiTreeControl.SetMultiSelected(tree, extras);
+    }
+
+    private static void ToggleBone(Entity session, int bone, XafPackage package)
+    {
+        if (bone < 0)
+            return;
+
+        ref AnimatorSelection selection = ref session.GetComponent<AnimatorSelection>();
+        selection.ToggleBone(bone);
+        int count = selection.Bones().Count;
+        AnimatorSession.SetStatus(
+            session,
+            count > 1
+                ? $"{package.Skeleton.Bones[bone].Id} ADDED • {count} BONES SELECTED"
+                : $"SELECTED {package.Skeleton.Bones[bone].Id}");
     }
 
     private void AddEntry(
@@ -199,7 +252,9 @@ public sealed class AnimatorHierarchySystem(IVisualRidFactory visuals)
             return;
 
         UiBuilder ui = UiBuilder.Begin(Query.Store, visuals).Use(list);
-        ui.Button(label, size).AddComponent(new ToolAction(kind, argument));
+        Entity entry = ui.Button(label, size);
+        entry.AddComponent(new ToolAction(kind, argument));
+        AnimatorTooltips.Attach(entry, kind, argument);
     }
 
     private static void Clear(Entity list)

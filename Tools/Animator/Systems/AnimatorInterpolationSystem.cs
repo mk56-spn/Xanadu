@@ -39,8 +39,12 @@ public sealed class AnimatorInterpolationSystem : QuerySystem<ToolAction, Button
     {
         AnimatorSelection selection = session.GetComponent<AnimatorSelection>();
         XafClip? clip = AnimatorSession.CurrentClip(session.GetComponent<AnimatorDocument>());
-        return clip is null || !selection.HasKey
-            ? null
+        if (clip is null || !selection.HasKey)
+            return null;
+
+        return selection.KeyProperty is { } property
+            ? XafEasing.Read(
+                clip, selection.KeyTarget, selection.KeyId, property, selection.KeyTime)
             : XafEasing.Read(clip, selection.KeyTarget, selection.KeyId, selection.KeyTime);
     }
 }

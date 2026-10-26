@@ -17,6 +17,9 @@ public static partial class AnimatorLayout
     public const int TimelineZ = 5;
     public const int MenuLayer = 6;
 
+    /// <summary>Above every panel and menu, so a hover label is never clipped by one.</summary>
+    public const int TooltipLayer = 7;
+
     private const float Margin = 16f;
     private const float TopHeight = 88f;
     private const float BottomHeight = 216f;
@@ -45,11 +48,15 @@ public static partial class AnimatorLayout
     // just right of the bones list and under the preview's clip/time caption.
     private const float HistoryInset = 12f;
     private const float HistoryTop = 40f;
+
+    /// <summary>Height of the horizontal mode bar above the preview, and the gap under it.</summary>
+    private const float ModeBarHeight = 36f;
+    private const float ModeBarGap = 8f;
+    private const float ModeInset = ModeBarHeight + ModeBarGap;
     private const float HistoryPadding = 8f;
     private const float HistorySpacing = 6f;
     private const float HistoryButtonWidth = 76f;
     private const float HistoryButtonHeight = 30f;
-    private static readonly Vector2 ButtonSize = new(ButtonWidth, 30);
     private static readonly Color Clear = new(0, 0, 0, 0);
 
     /// <summary>Creates every panel and returns the entities the systems drive.</summary>
@@ -79,11 +86,16 @@ public static partial class AnimatorLayout
         UiBuilder menu = UiBuilder.Begin(store, visuals).Layer(MenuLayer);
         refs.Ui.MenuLayer = menu.Current;
         refs.Ui.ScreenSize = screen;
+
+        // The inspector is the bottom of the floating layer, so menus opened
+        // over the preview still draw above it.
+        BuildInspector(menu, screen, ref refs);
         BuildFileMenu(menu, refs.FileButton);
         BuildBoneMenu(menu, ref refs);
         BuildKeyMenu(menu, ref refs);
         BuildSvgMenu(menu, ref refs);
         BuildHistoryPanel(menu);
+        BuildTooltip(store, visuals, ref refs);
         return refs.Ui;
     }
 
@@ -118,6 +130,7 @@ public static partial class AnimatorLayout
 
         // As wide as its list, so opening the menu does not widen the header slot.
         refs.FileButton = ui.Button("FILE ▾", new Vector2(FileMenuWidth, 30));
+        refs.FileButton.AddComponent(new UiTooltip("Save, load or start a new skeleton"));
         ui.End();
     }
 
@@ -126,7 +139,7 @@ public static partial class AnimatorLayout
         ui.Panel(Vector2.Zero, new Vector2(LeftWidth, height),
             cross: StackCrossAlignment.Start, main: StackMainAlignment.Start);
         ui.Text("BONES", new Vector2(ListWidth, 20), UiTheme.FontSize, UiTheme.Accent);
-        Row(ui, ("ADD BONE", ToolActionKind.AddBone), ("DELETE", ToolActionKind.DeleteBone));
+        Row(ui, ("+ BONE", ToolActionKind.AddBone), ("DEL", ToolActionKind.DeleteBone));
 
         // Bones and attachments share one scrolling viewport so long rigs
         // never spill out of the panel over the timeline.
@@ -153,8 +166,30 @@ public static partial class AnimatorLayout
     {
         float width = screen.X - Margin * 2 - LeftWidth - RightWidth - Gap * 2;
         ui.Container(Vector2.Zero, new Vector2(width, height),
+            StackDirection.Vertical, spacing: ModeBarGap, color: Clear);
+        BuildModeBar(ui, width);
+        ui.Container(Vector2.Zero, new Vector2(width, height - ModeInset),
             StackDirection.Vertical, color: new Color("#0f172a"), takesInput: true);
         refs.Ui.Preview = ui.Current;
+        ui.End();
+        ui.End();
+    }
+
+    /// <summary>
+    /// Editing modes run horizontally over the viewport: they change what the
+    /// preview does, so they belong above it rather than in the action column.
+    /// </summary>
+    private static void BuildModeBar(UiBuilder ui, float width)
+    {
+        ui.Container(Vector2.Zero, new Vector2(width, ModeBarHeight),
+            spacing: 6, color: UiTheme.Panel, padding: 4, takesInput: true,
+            main: StackMainAlignment.Start);
+        ui.Text("MODES", new Vector2(48, 20), 11, UiTheme.TextDim, TextAlign.Left);
+        ModeButton(ui, "AUTO", AnimatorMode.AutoKey, 78);
+        ModeButton(ui, "ONION", AnimatorMode.Onion, 78);
+        ModeButton(ui, "REST", AnimatorMode.Rest, 72);
+        ModeButton(ui, "SVG", AnimatorMode.Svg, 66);
+        ModeButton(ui, "IK", AnimatorMode.Ik, 60);
         ui.End();
     }
 
@@ -163,16 +198,13 @@ public static partial class AnimatorLayout
         ui.Panel(Vector2.Zero, new Vector2(RightWidth, height),
             cross: StackCrossAlignment.Center, main: StackMainAlignment.Start);
         Row(ui, ("PLAY", ToolActionKind.Play), ("STOP", ToolActionKind.Stop));
-        ModeButton(ui, "AUTO KEY", AnimatorMode.AutoKey);
-        ModeButton(ui, "ONION", AnimatorMode.Onion);
-        ModeButton(ui, "REST POSE", AnimatorMode.Rest);
-        ModeButton(ui, "SVG PLACE", AnimatorMode.Svg);
-        ModeButton(ui, "IK DRAG", AnimatorMode.Ik);
-        Row(ui, ("ROT -", ToolActionKind.RotateLeft), ("ROT +", ToolActionKind.RotateRight));
-        Row(ui, ("SCALE -", ToolActionKind.ScaleDown), ("SCALE +", ToolActionKind.ScaleUp));
-        Row(ui, ("KEY", ToolActionKind.KeyBone), ("KEY POSE", ToolActionKind.KeyPose));
-        SmallRow(ui, ("COPY POSE", ToolActionKind.CopyPose), ("PASTE POSE", ToolActionKind.PastePose));
-        Row(ui, ("MIRROR", ToolActionKind.MirrorPose), ("MOVABLE", ToolActionKind.ToggleMovable));
+        Row(ui, ("ROT-", ToolActionKind.RotateLeft), ("ROT+", ToolActionKind.RotateRight));
+        Row(ui, ("SCL-", ToolActionKind.ScaleDown), ("SCL+", ToolActionKind.ScaleUp));
+        Row(ui, ("KEY", ToolActionKind.KeyBone), ("POSE", ToolActionKind.KeyPose));
+        SmallRow(ui, ("C POSE", ToolActionKind.CopyPose), ("P POSE", ToolActionKind.PastePose));
+        Row(ui, ("MIRROR", ToolActionKind.MirrorPose), ("MOVE", ToolActionKind.ToggleMovable));
+        SmallRow(ui, ("C KEYS", ToolActionKind.CopyKeys), ("P KEYS", ToolActionKind.PasteKeys));
+        Row(ui, ("FIT", ToolActionKind.FitPreview), ("1:1", ToolActionKind.ResetPreview));
         ui.End();
     }
 
@@ -195,11 +227,11 @@ public static partial class AnimatorLayout
         ui.RectEntity(Vector2.Zero, new Vector2(14, AnimatorTimelineModel.HeaderHeight), Clear);
         refs.Ui.ClipName = ClipNameField(ui);
         HeaderButton(ui, "NEW", ToolActionKind.NewClip, 44);
-        HeaderButton(ui, "COPY", ToolActionKind.DuplicateClip, 48);
-        HeaderButton(ui, "DELETE", ToolActionKind.DeleteClip, 56);
-        HeaderButton(ui, "LEN -", ToolActionKind.DurationDown, 48);
-        HeaderButton(ui, "LEN +", ToolActionKind.DurationUp, 48);
-        refs.Ui.LoopButton = HeaderButton(ui, "LOOP OFF", ToolActionKind.ToggleLoop, 76);
+        HeaderButton(ui, "DUP", ToolActionKind.DuplicateClip, 44);
+        HeaderButton(ui, "DEL", ToolActionKind.DeleteClip, 44);
+        HeaderButton(ui, "LEN-", ToolActionKind.DurationDown, 48);
+        HeaderButton(ui, "LEN+", ToolActionKind.DurationUp, 48);
+        refs.Ui.LoopButton = HeaderButton(ui, "LOOP", ToolActionKind.ToggleLoop, 76);
         ui.End();
         ui.End();
     }
@@ -223,17 +255,22 @@ public static partial class AnimatorLayout
 
     private static void InterpolationButton(UiBuilder ui, string label, XafEasePreset preset, float width)
     {
-        Entity button = HeaderButton(ui, label, ToolActionKind.Interpolate, width);
-        button.GetComponent<ToolAction>().Argument = preset.ToString();
+        HeaderButton(ui, label, ToolActionKind.Interpolate, width, preset.ToString());
     }
 
-    private static Entity HeaderButton(UiBuilder ui, string label, ToolActionKind kind, float width)
+    private static Entity HeaderButton(
+        UiBuilder ui,
+        string label,
+        ToolActionKind kind,
+        float width,
+        string argument = "")
     {
         Entity button = ui.Button(
             label,
             new Vector2(width, AnimatorTimelineModel.HeaderHeight),
             fontSize: UiTheme.SmallFontSize);
-        button.AddComponent(new ToolAction(kind));
+        button.AddComponent(new ToolAction(kind, argument));
+        AnimatorTooltips.Attach(button, kind, argument);
         return button;
     }
 
@@ -249,7 +286,7 @@ public static partial class AnimatorLayout
             HistoryButtonHeight + HistoryPadding * 2);
         var topLeft = new Vector2(
             Margin + LeftWidth + Gap + HistoryInset,
-            Margin + TopHeight + Gap + HistoryTop);
+            Margin + TopHeight + Gap + ModeInset + HistoryTop);
         menu.Container(topLeft + size / 2, size, StackDirection.Horizontal,
             spacing: HistorySpacing, color: UiTheme.Panel, padding: HistoryPadding,
             takesInput: true);
@@ -297,14 +334,19 @@ public static partial class AnimatorLayout
     {
         Entity button = ui.Button(label, size, fontSize: fontSize);
         button.AddComponent(new ToolAction(kind));
+        AnimatorTooltips.Attach(button, kind);
         return button;
     }
 
-    private static void ModeButton(UiBuilder ui, string label, AnimatorMode mode)
+    private static void ModeButton(UiBuilder ui, string label, AnimatorMode mode, float width)
     {
-        Entity button = ui.Button($"{label} OFF", ButtonSize);
+        Entity button = ui.Button(
+            $"{label} OFF",
+            new Vector2(width, 28),
+            fontSize: UiTheme.SmallFontSize);
         button.AddComponent(new Toggle($"{label} ON", $"{label} OFF", false));
         button.AddComponent(new ModeToggle(mode));
+        AnimatorTooltips.Attach(button, ToolActionKind.ToggleMode, mode.ToString());
     }
 
     private struct Refs

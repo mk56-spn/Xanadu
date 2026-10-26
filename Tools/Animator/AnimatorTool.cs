@@ -21,6 +21,8 @@ public partial class AnimatorTool : Control
     private AnimatorPointer _pointer = null!;
     private UiSystemGroup _ui = null!;
     private SvgAttachmentVisuals _attachments = null!;
+    private Entity _session;
+    private bool _fitted;
     private Rid _grid;
     private Rid _preview;
     private Rid _svgCanvas;
@@ -56,12 +58,12 @@ public partial class AnimatorTool : Control
             new GodotKeyboardState()));
 
         var files = new GodotAnimatorFiles();
-        Entity session = AnimatorSession.Create(
+        _session = AnimatorSession.Create(
             _store,
             AnimatorFileCommands.LoadOrDefault(files, DefaultPath),
             files,
             DefaultPath);
-        session.AddComponent(AnimatorLayout.Build(_store, GetViewportRect().Size));
+        _session.AddComponent(AnimatorLayout.Build(_store, GetViewportRect().Size));
         SetProcess(true);
     }
 
@@ -70,6 +72,11 @@ public partial class AnimatorTool : Control
         _root.Update(new UpdateTick(
             (float)delta,
             (float)Time.GetTicksMsec() / 1000f));
+
+        // Fit once the panels have been laid out, so the rig opens filling the preview.
+        if (!_fitted && AnimatorPreviewCommands.Fit(_session))
+            _fitted = true;
+
         _pointer.EndFrame();
     }
 
@@ -94,6 +101,11 @@ public partial class AnimatorTool : Control
             _pointer.Secondary = right.Pressed;
             if (right.Pressed)
                 _pointer.SecondaryPending = true;
+        }
+        else if (@event is InputEventMouseButton { ButtonIndex: MouseButton.Middle } middle)
+        {
+            _pointer.Position = middle.Position;
+            _pointer.Middle = middle.Pressed;
         }
         else if (@event is InputEventMouseButton
                  {

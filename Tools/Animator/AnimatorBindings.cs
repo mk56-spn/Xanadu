@@ -32,6 +32,10 @@ public static class AnimatorBindings
         new(new ToolAction(ToolActionKind.KeyPose), Key.K, Shift: true),
         new(new ToolAction(ToolActionKind.CopyPose), Key.C, Ctrl: true),
         new(new ToolAction(ToolActionKind.PastePose), Key.V, Ctrl: true),
+        new(new ToolAction(ToolActionKind.CopyKeys), Key.C, Ctrl: true, Shift: true),
+        new(new ToolAction(ToolActionKind.PasteKeys), Key.V, Ctrl: true, Shift: true),
+        new(new ToolAction(ToolActionKind.SelectAllKeys), Key.A, Ctrl: true),
+        new(new ToolAction(ToolActionKind.ResetTransform), Key.R, Shift: true),
         new(new ToolAction(ToolActionKind.MirrorPose), Key.M),
         new(new ToolAction(ToolActionKind.RotateLeft), Key.Q),
         new(new ToolAction(ToolActionKind.RotateRight), Key.E),
@@ -41,6 +45,10 @@ public static class AnimatorBindings
         new(new ToolAction(ToolActionKind.AddBone), Key.B),
         new(new ToolAction(ToolActionKind.DeleteBone), Key.Delete, Shift: true),
         new(new ToolAction(ToolActionKind.RenameBone), Key.F2),
+
+        // Preview framing.
+        new(new ToolAction(ToolActionKind.FitPreview), Key.F),
+        new(new ToolAction(ToolActionKind.ResetPreview), Key.F, Shift: true),
 
         // Editing modes.
         new(new ToolAction(ToolActionKind.ToggleMode, nameof(AnimatorMode.AutoKey)), Key.A),

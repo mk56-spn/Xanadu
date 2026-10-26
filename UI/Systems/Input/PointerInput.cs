@@ -7,4 +7,5 @@ public readonly record struct PointerInput(
     Vector2 Position,
     bool Pressed,
     bool Shift = false,
-    bool SecondaryPressed = false);
+    bool SecondaryPressed = false,
+    bool Middle = false);

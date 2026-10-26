@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Friflo.Engine.ECS;
 
 namespace Writer.Ecs;
@@ -7,6 +8,15 @@ public static class UiTreeControl
 {
     public static string Selected(Entity tree) =>
         tree.GetComponent<UiTree>().Selected;
+
+    /// <summary>Tints a second set of rows, for trees whose owner selects several nodes.</summary>
+    public static void SetMultiSelected(Entity tree, IEnumerable<string> ids)
+    {
+        HashSet<string> selected = tree.GetComponent<UiTree>().MultiSelected;
+        selected.Clear();
+        foreach (string id in ids)
+            selected.Add(id);
+    }
 
     public static bool IsExpanded(Entity tree, string id) =>
         !tree.GetComponent<UiTree>().Collapsed.Contains(id);

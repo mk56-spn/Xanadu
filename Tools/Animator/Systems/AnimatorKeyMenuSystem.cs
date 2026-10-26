@@ -11,7 +11,7 @@ namespace Writer.Tools.Animator.Systems;
 
 /// <summary>
 /// Right-clicking a track row in the timeline opens a menu to add a key at
-/// the clicked time or delete the key under the pointer. The options are
+/// the clicked time, delete the key under the pointer, or select every key. The options are
 /// <see cref="ToolAction"/> buttons; this system picks what was clicked,
 /// places the menu, closes it on the next click and dims the option that has
 /// nothing to act on.
@@ -66,19 +66,21 @@ public sealed class AnimatorKeyMenuSystem(IPointerInputSource pointer)
 
         // A key under the pointer is selected, so DELETE KEY acts on it; empty
         // space keeps the playhead where it is and remembers the time to key.
-        if (model.TryPickKey(input.Position, out XafTrack picked, out float keyTime))
+        if (model.TryPickKey(input.Position, out AnimatorTrackRow picked, out float keyTime))
         {
             // A key in a selected group keeps the group, so DELETE KEY removes them all.
             AnimatorKeyCommands.MakePrimary(session, picked, keyTime);
-            menu.Track = picked;
+            menu.Track = picked.Track;
+            menu.Property = picked.Property;
             menu.Time = keyTime;
         }
         else
         {
-            XafTrack track = model.TrackAt(row);
-            AnimatorKeyCommands.SelectTrack(session, track);
+            AnimatorTrackRow trackRow = model.TrackAt(row);
+            AnimatorKeyCommands.SelectTrack(session, trackRow);
             session.GetComponent<AnimatorSelection>().HasKey = false;
-            menu.Track = track;
+            menu.Track = trackRow.Track;
+            menu.Property = trackRow.Property;
             menu.Time = Mathf.Clamp(
                 (float)model.Snap(model.SecondsAtX(input.Position.X), input.Shift),
                 0f,
