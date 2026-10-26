@@ -176,15 +176,33 @@ public sealed partial class UiBuilder
 
         float width = size?.X ?? 280f;
         float buttonHeight = size?.Y ?? UiTheme.ButtonHeight;
-        float listHeight = Math.Max(
-            4f,
-            options.Count *
-            (UiTheme.DropdownOptionHeight + UiTheme.DropdownOptionSpacing) + 4f);
-
         Entity button = Button(
             label,
             new Vector2(width, buttonHeight),
             buttonColor ?? UiTheme.Button);
+
+        return DropdownList(button, options, selected, closeOthers, optionColor);
+    }
+
+    /// <summary>
+    /// Gives an existing button a dropdown list built on this builder's layer.
+    /// The button can live elsewhere, such as a header, while its list floats
+    /// on a higher layer and draws above the panels beneath it.
+    /// </summary>
+    public UiDropdownControl DropdownList(
+        Entity button,
+        IReadOnlyList<string> options,
+        int selected = 0,
+        bool closeOthers = true,
+        Func<int, Color>? optionColor = null)
+    {
+        RequireLayer();
+
+        float width = button.GetComponent<Rectangle>().Bounds.Size.X;
+        float listHeight = Math.Max(
+            4f,
+            options.Count *
+            (UiTheme.DropdownOptionHeight + UiTheme.DropdownOptionSpacing) + 4f);
 
         // Closed lists start off-screen, as the dropdown system leaves them on close.
         Entity list = RectEntity(
@@ -336,8 +354,16 @@ public sealed partial class UiBuilder
 
         _current = parent;
         _parents.Clear();
-        if (parent.TryGetComponent<Drawable>(out Drawable drawable))
+        if (parent.TryGetComponent<LayerComponent>(out LayerComponent layer))
+        {
+            // Resuming on a layer itself: new entities belong to that layer.
+            _layer = parent;
+            _layerZIndex = layer.ZIndex;
+        }
+        else if (parent.TryGetComponent<Drawable>(out Drawable drawable))
+        {
             _layerZIndex = drawable.ZIndex;
+        }
         return this;
     }
 
