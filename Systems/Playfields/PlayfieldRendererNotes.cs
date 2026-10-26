@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using Godot;
 using Writer.Ecs;
@@ -20,6 +21,7 @@ public static partial class PlayfieldRenderer
         Entity selectedNote)
     {
         float size = NoteSize * view.Scale;
+        DrawNoteGuides(canvas, rid, entities, view, playhead, size / 2);
 
         foreach (Entity entity in entities.Query<Note>().ToEntityList())
         {
@@ -104,6 +106,38 @@ public static partial class PlayfieldRenderer
             }
         }
     }
+
+    /// <summary>Guide lines in hit order, under the notes; simultaneous notes meet at a hub dot.</summary>
+    private static void DrawNoteGuides(
+        IRectCanvas canvas,
+        Rid rid,
+        EntityStore entities,
+        PlayfieldView view,
+        Playhead playhead,
+        float radius)
+    {
+        var points = new List<NoteGuides.Point>();
+        foreach (Entity entity in entities.Query<Note>().ToEntityList())
+        {
+            Note note = entity.GetComponent<Note>();
+            float alpha = NoteFade.Alpha(note, playhead.TimeMs);
+            if (alpha > 0)
+                points.Add(new NoteGuides.Point(note.TimeMs, view.PlayfieldToScreen(note.Position), alpha));
+        }
+
+        if (points.Count < 2)
+            return;
+
+        NoteGuides.Layout layout = NoteGuides.Build(points, radius);
+        foreach (NoteGuides.Segment guide in layout.Guides)
+            canvas.DrawLine(rid, guide.From, guide.To, Faded(GuideColor, guide.Alpha * 0.6f), 2);
+        foreach (NoteGuides.Segment spoke in layout.Spokes)
+            canvas.DrawLine(rid, spoke.From, spoke.To, Faded(GuideColor, spoke.Alpha * 0.8f), 2);
+        foreach (NoteGuides.Hub hub in layout.Hubs)
+            canvas.DrawCircle(rid, hub.Center, radius * NoteGuides.HubRadiusScale, Faded(GuideColor, hub.Alpha));
+    }
+
+    private static Color Faded(Color color, float alpha) => new(color.R, color.G, color.B, alpha);
 
     /// <summary>Radius of the approach ring at a 0..1 approach amount.</summary>
     public static float ApproachRadius(float noteRadius, float approach) =>
