@@ -153,13 +153,13 @@ public sealed class EditorPlayfieldDrawSystem :
                 _editor,
                 center,
                 13,
-                PlayfieldRenderer.SelectedNoteColor,
+                PlayfieldRenderer.StartPointColor,
                 2);
             _canvas.DrawTextStyled(
                 _editor,
                 new Rect2(center - new Vector2(10, 10), new Vector2(20, 20)),
                 "S",
-                PlayfieldRenderer.SelectedNoteColor,
+                PlayfieldRenderer.StartPointColor,
                 12);
             if (selection.Contains(entity))
             {
@@ -306,6 +306,53 @@ public sealed class EditorPlayfieldDrawSystem :
             PlayfieldRenderer.SelectedNoteColor,
             11);
     }
+
+    /// <summary>
+    /// Each start point as a full-height line on the ruler with its name
+    /// tagged to the left, so it does not cover a BPM label at the same time.
+    /// </summary>
+    private void DrawStartMarkers(
+        Rect2 ruler,
+        NoteSelection selection,
+        long windowStart,
+        long windowEnd)
+    {
+        foreach (Entity entity in _entities.Query<StartPoint>().ToEntityList())
+        {
+            StartPoint start = entity.GetComponent<StartPoint>();
+            if (start.TimeMs < windowStart || start.TimeMs > windowEnd)
+                continue;
+
+            Color color = selection.Contains(entity)
+                ? Colors.White
+                : PlayfieldRenderer.StartPointColor;
+            float x = XForTime(ruler, windowStart, windowEnd, start.TimeMs);
+            _canvas.DrawRect(
+                _editor,
+                new Rect2(x - 1, ruler.Position.Y, 2, ruler.Size.Y),
+                color);
+
+            string label = StartLabel(start);
+            float labelX = Mathf.Clamp(
+                x - 20,
+                ruler.Position.X + 2,
+                ruler.End.X - 20);
+            var labelBounds = new Rect2(
+                labelX,
+                ruler.Position.Y + 2,
+                18,
+                Mathf.Min(ruler.Size.Y - 4, label.Length * 11));
+            _canvas.DrawRect(
+                _editor,
+                labelBounds,
+                new Color(0.04f, 0.06f, 0.1f, 0.85f));
+            _canvas.DrawTextVertical(_editor, labelBounds, label, color, 11);
+        }
+    }
+
+    /// <summary>The start point's name, or "START" when it has none.</summary>
+    public static string StartLabel(StartPoint start) =>
+        string.IsNullOrWhiteSpace(start.Name) ? "START" : start.Name;
 
     private void DrawBeatBands(
         Rect2 ruler,
@@ -488,6 +535,7 @@ public sealed class EditorPlayfieldDrawSystem :
         DrawBeatBands(ruler, playhead, windowStart, windowEnd);
         DrawBpmMarker(ruler, playhead, windowStart, windowEnd);
         DrawWaveform(ruler, preview, windowStart, windowEnd);
+        DrawStartMarkers(ruler, selection, windowStart, windowEnd);
         int subdivisions = Math.Max(1, playhead.SnapDivision);
         double tickMs = TimingGrid.TickMs(playhead.Bpm, subdivisions);
 

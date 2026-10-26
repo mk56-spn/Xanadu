@@ -8,6 +8,7 @@ using Writer.Ecs;
 using Writer.Systems.Canvas;
 using Writer.Systems.Editor;
 using Writer.Systems.Playfields;
+using Writer.Timeline;
 
 namespace Writer.Tests.Editor;
 
@@ -302,6 +303,72 @@ public sealed class EditorPlayfieldDrawSystemTests
         Assert.That(canvas.Rects, Does.Contain(EditorLayout.FooterRect(view)));
         Assert.That(canvas.Rects, Does.Contain(EditorLayout.RulerRect(view)));
         Assert.That(canvas.Texts, Does.Contain("500"));
+    }
+
+    private static (EntityStore Store, Entity Field, RecordingCanvas Canvas, SystemRoot Root) StartPointScene()
+    {
+        var view = new PlayfieldView(new Vector2(30, 30), 0.6f, new Vector2(1152, 648));
+        var store = new EntityStore();
+        Entity field = store.CreateEntity(
+            new LevelInfo("Starts", ""),
+            new Playfield(1000, 1000),
+            new Playhead(1_000, 120, 0, false, durationMs: 60_000),
+            view,
+            new NoteSelection(default),
+            new TimelineView(8f));
+        var canvas = new RecordingCanvas();
+        var root = new SystemRoot(store);
+        root.Add(new EditorPlayfieldDrawSystem(store, canvas, default));
+        return (store, field, canvas, root);
+    }
+
+    private static StartPoint Start(string name, long timeMs) =>
+        new(name, timeMs, new Vector2(500, 500), System.Numerics.Vector2.Zero, Vector2.Zero);
+
+    private static bool IsStartMarker(RecordingCanvas.RectCall call, Rect2 ruler, Color color) =>
+        call.Color == color && call.Bounds.Size.X == 2 && call.Bounds.Size.Y == ruler.Size.Y;
+
+    [Test]
+    public void StartPointsShowOnTheTimelineWithTheirNames()
+    {
+        var (store, field, canvas, root) = StartPointScene();
+        store.CreateEntity(Start("chorus", 2_000));
+        store.CreateEntity(Start("", 1_500));
+
+        root.Update(new UpdateTick(1f / 60f, 0));
+
+        Rect2 ruler = EditorLayout.RulerRect(field.GetComponent<PlayfieldView>());
+        Assert.That(canvas.Texts, Does.Contain("chorus"));
+        Assert.That(canvas.Texts, Does.Contain("START"));
+        Assert.That(canvas.RectCalls.FindAll(call => IsStartMarker(call, ruler, PlayfieldRenderer.StartPointColor)),
+            Has.Count.EqualTo(2));
+    }
+
+    [Test]
+    public void StartPointsOutsideTheVisibleWindowAreNotDrawn()
+    {
+        var (store, field, canvas, root) = StartPointScene();
+        (_, long windowEnd) = EditorLayout.TimelineWindow(
+            field.GetComponent<Playhead>(),
+            field.GetComponent<TimelineView>().Zoom);
+        store.CreateEntity(Start("outro", windowEnd + 1_000));
+
+        root.Update(new UpdateTick(1f / 60f, 0));
+
+        Assert.That(canvas.Texts, Does.Not.Contain("outro"));
+    }
+
+    [Test]
+    public void TheSelectedStartPointIsHighlightedOnTheTimeline()
+    {
+        var (store, field, canvas, root) = StartPointScene();
+        Entity start = store.CreateEntity(Start("verse", 2_000));
+        field.GetComponent<NoteSelection>() = new NoteSelection(start);
+
+        root.Update(new UpdateTick(1f / 60f, 0));
+
+        Rect2 ruler = EditorLayout.RulerRect(field.GetComponent<PlayfieldView>());
+        Assert.That(canvas.RectCalls.Exists(call => IsStartMarker(call, ruler, Colors.White)), Is.True);
     }
 
     private sealed class RecordingCanvas : IRectCanvas
