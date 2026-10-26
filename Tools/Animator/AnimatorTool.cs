@@ -18,6 +18,7 @@ public partial class AnimatorTool : Control
     private EntityStore _store = null!;
     private SystemRoot _root = null!;
     private AnimatorPointer _pointer = null!;
+    private UiSystemGroup _ui = null!;
     private SvgAttachmentVisuals _attachments = null!;
     private Rid _preview;
     private Rid _svgCanvas;
@@ -37,7 +38,8 @@ public partial class AnimatorTool : Control
         _attachments = new SvgAttachmentVisuals(_svgCanvas);
 
         UiTextBridge.Attach(this, _store);
-        _root.Add(new UiSystemGroup(_store, GetCanvasItem(), canvas, _pointer));
+        _ui = new UiSystemGroup(_store, GetCanvasItem(), canvas, _pointer);
+        _root.Add(_ui);
         _root.Add(new AnimatorSystemGroup(
             canvas,
             _preview,
@@ -87,6 +89,7 @@ public partial class AnimatorTool : Control
                      ButtonIndex: MouseButton.WheelUp or MouseButton.WheelDown,
                  } scroll)
         {
+            _ui.Scroll.Request(scroll.Position, scroll.ButtonIndex == MouseButton.WheelUp ? -1 : 1);
             _pointer.Position = scroll.Position;
             _pointer.Control = scroll.CtrlPressed || scroll.MetaPressed;
             _pointer.Wheel += scroll.ButtonIndex == MouseButton.WheelUp ? 1 : -1;
