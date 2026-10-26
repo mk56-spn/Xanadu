@@ -12,6 +12,7 @@ public sealed class AnimatorSystemGroup : SystemGroup
 {
     public AnimatorSystemGroup(
         IRectCanvas canvas,
+        Rid gridCanvas,
         Rid previewCanvas,
         Rid timelineCanvas,
         IAttachmentVisuals attachments,
@@ -31,6 +32,7 @@ public sealed class AnimatorSystemGroup : SystemGroup
         Add(new AnimatorInterpolationSystem());
         Add(new AnimatorFileHeaderSystem());
         Add(new AnimatorStatusSystem());
+        Add(new AnimatorGridDrawSystem(canvas, gridCanvas));
         Add(new AnimatorPreviewDrawSystem(canvas, previewCanvas, attachments));
         Add(new AnimatorTimelineDrawSystem(canvas, timelineCanvas));
     }
