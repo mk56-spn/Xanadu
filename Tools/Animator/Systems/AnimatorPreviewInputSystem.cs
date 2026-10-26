@@ -8,7 +8,10 @@ using Writer.Tools.Animator.Commands;
 
 namespace Writer.Tools.Animator.Systems;
 
-/// <summary>Selects and drags bones and attachments in the preview panel.</summary>
+/// <summary>
+/// Selects and drags bones and attachments in the preview panel. With IK drag
+/// on, a joint pulls its parent and grandparent along as a two-bone chain.
+/// </summary>
 public sealed class AnimatorPreviewInputSystem(IPointerInputSource pointer)
     : QuerySystem<AnimatorDocument, AnimatorUi>
 {
@@ -35,7 +38,7 @@ public sealed class AnimatorPreviewInputSystem(IPointerInputSource pointer)
             Begin(session, input.Position, area);
         }
         else if (drag.Kind is AnimatorDragKind.Bone or AnimatorDragKind.Attachment
-                 or AnimatorDragKind.Swing)
+                 or AnimatorDragKind.Swing or AnimatorDragKind.Ik)
         {
             if (input.Pressed)
                 Drag(session, input.Position, AnimatorGeometry.PreviewOrigin(area));
@@ -78,7 +81,9 @@ public sealed class AnimatorPreviewInputSystem(IPointerInputSource pointer)
         {
             int bone = AnimatorGeometry.PickNearest(
                 world, origin, pointer, AnimatorGeometry.BoneHitRadius);
-            if (bone >= 0)
+            if (bone >= 0 && modes.Ik && !modes.Rest && Chain(package, bone, out _, out _))
+                BeginIk(session, pointer, bone);
+            else if (bone >= 0)
                 BeginBone(session, pointer, bone, modes.Rest, pose, world);
             return;
         }
@@ -152,6 +157,70 @@ public sealed class AnimatorPreviewInputSystem(IPointerInputSource pointer)
             $"ROTATING {document.Package.Skeleton.Bones[rig.Parent].Id}");
     }
 
+    /// <summary>The joint's parent and grandparent, when it has both.</summary>
+    private static bool Chain(XafPackage package, int joint, out int parent, out int grandparent)
+    {
+        parent = package.Skeleton.Bones[joint].Parent;
+        grandparent = parent >= 0 ? package.Skeleton.Bones[parent].Parent : -1;
+        return grandparent >= 0;
+    }
+
+    private static void BeginIk(Entity session, Vector2 pointer, int joint)
+    {
+        ref AnimatorDocument document = ref session.GetComponent<AnimatorDocument>();
+        ref AnimatorSelection selection = ref session.GetComponent<AnimatorSelection>();
+        document.Runtime.SetPaused(true);
+        selection.Bone = joint;
+        selection.Attachment = -1;
+        session.GetComponent<AnimatorDrag>() = new AnimatorDrag
+        {
+            Kind = AnimatorDragKind.Ik,
+            StartPointer = pointer,
+            Joint = joint,
+        };
+        AnimatorSession.SetStatus(session, $"IK {document.Package.Skeleton.Bones[joint].Id}");
+    }
+
+    /// <summary>
+    /// Solves the two-bone chain for the pointer, keeping the side the chain
+    /// already bends to, then turns the grandparent and parent to match.
+    /// </summary>
+    private static void Ik(Entity session, Vector2 pointer, Vector2 origin)
+    {
+        ref AnimatorDocument document = ref session.GetComponent<AnimatorDocument>();
+        int joint = session.GetComponent<AnimatorDrag>().Joint;
+        if (!Chain(document.Package, joint, out int parent, out int grandparent))
+            return;
+
+        XafPose pose = document.Runtime.Pose;
+        Transform2D[] world = XafRig.WorldBones(document.Package, pose);
+        Vector2 root = world[grandparent].Origin;
+        Vector2 elbow = world[parent].Origin;
+        Vector2 end = world[joint].Origin;
+        Vector2 reach = end - root;
+        bool bendPositive = new Vector2(-reach.Y, reach.X).Dot(elbow - root) >= 0f;
+        Vector2[] solved = XafFabrik.Solve(new[] { root, elbow, end }, pointer - origin, bendPositive);
+
+        Aim(document.Package, pose, grandparent, parent, solved[1]);
+        Aim(document.Package, pose, parent, joint, solved[2]);
+    }
+
+    /// <summary>Turns a bone about its origin so its child joint points at a skeleton-space target.</summary>
+    private static void Aim(XafPackage package, XafPose pose, int bone, int child, Vector2 target)
+    {
+        Transform2D[] world = XafRig.WorldBones(package, pose);
+        Vector2 toTarget = target - world[bone].Origin;
+        Vector2 toChild = world[child].Origin - world[bone].Origin;
+        if (toTarget.LengthSquared() < 0.0001f || toChild.LengthSquared() < 0.0001f)
+            return;
+
+        float delta = Mathf.Wrap(toTarget.Angle() - toChild.Angle(), -Mathf.Pi, Mathf.Pi);
+        // A mirrored bone turns local rotation the opposite way on screen.
+        if (world[bone].Determinant() < 0f)
+            delta = -delta;
+        pose.Bones[bone].Rotation += delta;
+    }
+
     private static void Swing(Entity session, Vector2 pointer, Vector2 origin)
     {
         ref AnimatorDocument document = ref session.GetComponent<AnimatorDocument>();
@@ -177,6 +246,12 @@ public sealed class AnimatorPreviewInputSystem(IPointerInputSource pointer)
         if (session.GetComponent<AnimatorDrag>().Kind == AnimatorDragKind.Swing)
         {
             Swing(session, pointer, origin);
+            return;
+        }
+
+        if (session.GetComponent<AnimatorDrag>().Kind == AnimatorDragKind.Ik)
+        {
+            Ik(session, pointer, origin);
             return;
         }
 
@@ -221,9 +296,17 @@ public sealed class AnimatorPreviewInputSystem(IPointerInputSource pointer)
 
     private static void End(Entity session)
     {
+        AnimatorDrag drag = session.GetComponent<AnimatorDrag>();
         session.GetComponent<AnimatorDrag>() = new AnimatorDrag();
         AnimatorHistoryCommands.EndGesture(session);
-        if (session.GetComponent<AnimatorModes>() is { AutoKey: true, Rest: false })
+        if (session.GetComponent<AnimatorModes>() is not { AutoKey: true, Rest: false })
+            return;
+
+        // An IK drag turned the parent and grandparent, so those are what get keyed.
+        XafPackage package = session.GetComponent<AnimatorDocument>().Package;
+        if (drag.Kind == AnimatorDragKind.Ik && Chain(package, drag.Joint, out int parent, out int grandparent))
+            AnimatorEditing.KeyBones(session, grandparent, parent);
+        else
             AnimatorEditing.KeySelected(session);
     }
 }
