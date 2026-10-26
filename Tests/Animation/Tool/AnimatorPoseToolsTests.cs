@@ -14,6 +14,7 @@ public sealed class AnimatorPoseToolsTests : AnimatorToolTest
     protected override void AddSystems()
     {
         Root.Add(new AnimatorActionSystem());
+        Root.Add(new AnimatorPreviewInputSystem(Pointer));
         Root.Add(new AnimatorShortcutSystem(Keyboard));
     }
 
@@ -29,6 +30,19 @@ public sealed class AnimatorPoseToolsTests : AnimatorToolTest
             Keyboard.Press(key);
         Frame();
         Keyboard.Clear();
+        Frame();
+    }
+
+    private void Drag(Vector2 from, Vector2 to)
+    {
+        Pointer.Position = from;
+        Pointer.Pressed = true;
+        Ui.Preview.AddTag<Pressed>();
+        Frame();
+        Pointer.Position = to;
+        Frame();
+        Pointer.Pressed = false;
+        Ui.Preview.RemoveTag<Pressed>();
         Frame();
     }
 
@@ -81,8 +95,50 @@ public sealed class AnimatorPoseToolsTests : AnimatorToolTest
         Assert.That(Session.GetComponent<AnimatorStatus>().Message, Is.EqualTo("COPY A POSE FIRST"));
     }
 
+    [Test]
+    public void IkDragPutsTheJointOnThePointerAndKeepsBoneLengths()
+    {
+        Session.GetComponent<AnimatorModes>().Ik = true;
+        Vector2 target = PreviewOrigin() + new Vector2(60, -100);
 
+        Pointer.Position = BoneScreenPosition(2);
+        Pointer.Pressed = true;
+        Ui.Preview.AddTag<Pressed>();
+        Frame();
+        Pointer.Position = target;
+        Frame();
 
+        Assert.That(Session.GetComponent<AnimatorDrag>().Kind, Is.EqualTo(AnimatorDragKind.Ik));
+        Transform2D[] world = XafRig.WorldBones(Package, Runtime.Pose);
+        Assert.That(world[2].Origin.DistanceTo(target - PreviewOrigin()), Is.LessThan(0.01f));
+        Assert.That(world[1].Origin.DistanceTo(world[0].Origin), Is.EqualTo(80f).Within(0.01f));
+        Assert.That(world[2].Origin.DistanceTo(world[1].Origin), Is.EqualTo(70f).Within(0.01f));
+    }
+
+    [Test]
+    public void IkDragWithAutoKeyKeysTheBentBones()
+    {
+        Session.GetComponent<AnimatorModes>().Ik = true;
+        Session.GetComponent<AnimatorModes>().AutoKey = true;
+
+        Drag(BoneScreenPosition(2), PreviewOrigin() + new Vector2(60, -100));
+
+        Assert.That(Channel("root", XafChannelProperty.Rotation), Is.Not.Null);
+        Assert.That(Channel("torso", XafChannelProperty.Rotation), Is.Not.Null);
+    }
+
+    [Test]
+    public void IkNeedsTwoBonesAboveTheJoint()
+    {
+        Session.GetComponent<AnimatorModes>().Ik = true;
+        Pointer.Position = BoneScreenPosition(1);
+        Pointer.Pressed = true;
+        Ui.Preview.AddTag<Pressed>();
+        Frame();
+
+        // The torso only has the root above it, so it swings the root as usual.
+        Assert.That(Session.GetComponent<AnimatorDrag>().Kind, Is.EqualTo(AnimatorDragKind.Swing));
+    }
 
     [Test]
     public void SpaceTogglesPlayback()

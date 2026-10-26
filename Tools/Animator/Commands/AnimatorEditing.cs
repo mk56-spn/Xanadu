@@ -55,6 +55,23 @@ public static class AnimatorEditing
         }
     }
 
+    /// <summary>Keys the current pose of the given bones at the playhead as one undo step.</summary>
+    public static void KeyBones(Entity session, params int[] bones) =>
+        AnimatorHistoryCommands.Edit(session, () =>
+        {
+            ref AnimatorDocument document = ref session.GetComponent<AnimatorDocument>();
+            XafClip? clip = AnimatorSession.CurrentClip(document);
+            if (clip is null || session.GetComponent<AnimatorModes>().Rest)
+                return;
+
+            foreach (int bone in bones)
+            {
+                XafAuthoring.KeyBoneTransform(document.Package, clip, bone,
+                    document.Runtime.CurrentTime, document.Runtime.Pose.Bones[bone]);
+            }
+            AnimatorSession.SetStatus(session, $"KEYED {bones.Length} BONES");
+        });
+
     /// <summary>Rotates and scales the selection in the pose, or in the rest pose.</summary>
     public static void Nudge(Entity session, float rotation, float scale) =>
         AnimatorHistoryCommands.Edit(session, () => NudgeCore(session, rotation, scale));

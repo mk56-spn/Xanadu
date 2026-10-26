@@ -56,6 +56,9 @@ public enum AnimatorMode
 
     /// <summary>Preview picks and drags SVG attachments instead of bones.</summary>
     Svg,
+
+    /// <summary>Dragging a joint bends its parent and grandparent to reach the pointer.</summary>
+    Ik,
 }
 
 /// <summary>Binds a <c>Toggle</c> entity to one animator editing mode.</summary>
@@ -128,6 +131,7 @@ public struct AnimatorModes : IComponent
     public bool AutoKey;
     public bool Onion;
     public bool Svg;
+    public bool Ik;
 }
 
 public enum AnimatorDragKind
@@ -140,6 +144,9 @@ public enum AnimatorDragKind
 
     /// <summary>Rotates a bone's parent so the grabbed joint follows the pointer.</summary>
     Swing,
+
+    /// <summary>Bends the grabbed joint's parent and grandparent so it reaches the pointer.</summary>
+    Ik,
 }
 
 /// <summary>Active pointer drag in the preview or timeline.</summary>

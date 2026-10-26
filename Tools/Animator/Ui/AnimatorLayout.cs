@@ -130,6 +130,7 @@ public static class AnimatorLayout
         ModeButton(ui, "ONION", AnimatorMode.Onion);
         ModeButton(ui, "REST POSE", AnimatorMode.Rest);
         ModeButton(ui, "SVG PLACE", AnimatorMode.Svg);
+        ModeButton(ui, "IK DRAG", AnimatorMode.Ik);
         Row(ui, ("ROT -", ToolActionKind.RotateLeft), ("ROT +", ToolActionKind.RotateRight));
         Row(ui, ("SCALE -", ToolActionKind.ScaleDown), ("SCALE +", ToolActionKind.ScaleUp));
         Row(ui, ("KEY", ToolActionKind.KeyBone), ("KEY POSE", ToolActionKind.KeyPose));
