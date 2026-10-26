@@ -38,7 +38,8 @@ public static class AnimatorSession
             },
             new TimelineView(1f),
             new AnimatorTracks(),
-            AnimatorBoneMenu.Closed);
+            AnimatorBoneMenu.Closed,
+            new AnimatorClipboard());
         session.AddComponent(new AnimatorHistory
         {
             History = AnimatorHistoryCommands.CreateHistory(session),

@@ -35,6 +35,10 @@ public enum ToolActionKind
     NewSkeleton,
     RenameBone,
     ReparentBone,
+    KeyPose,
+    CopyPose,
+    PastePose,
+    MirrorPose,
 }
 
 /// <summary>Command carried by a pressable UI entity.</summary>
@@ -173,6 +177,12 @@ public struct AnimatorBoneMenu : IComponent
     public int Reparenting;
 
     public static AnimatorBoneMenu Closed => new() { Renaming = -1, Reparenting = -1 };
+}
+
+/// <summary>A copied pose, by bone id, waiting to be pasted.</summary>
+public struct AnimatorClipboard : IComponent
+{
+    public System.Collections.Generic.Dictionary<string, XafTransform>? Pose;
 }
 
 /// <summary>Latest status line message shown in the header.</summary>

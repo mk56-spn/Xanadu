@@ -89,6 +89,18 @@ public static class AnimatorCommands
             case ToolActionKind.ReparentBone:
                 BeginBoneReparent(session);
                 break;
+            case ToolActionKind.KeyPose:
+                AnimatorPoseCommands.KeyPose(session);
+                break;
+            case ToolActionKind.CopyPose:
+                AnimatorPoseCommands.CopyPose(session);
+                break;
+            case ToolActionKind.PastePose:
+                AnimatorPoseCommands.PastePose(session);
+                break;
+            case ToolActionKind.MirrorPose:
+                AnimatorPoseCommands.MirrorPose(session);
+                break;
             case ToolActionKind.Save:
                 AnimatorFileCommands.Save(session);
                 break;
