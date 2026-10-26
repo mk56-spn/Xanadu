@@ -25,16 +25,16 @@ public sealed class AnimatorModeSystem : QuerySystem<Toggle, ModeToggle>
             ref ModeToggle binding = ref entity.GetComponent<ModeToggle>();
             ref AnimatorModes modes = ref session.GetComponent<AnimatorModes>();
 
-            if (toggle.Value != Get(modes, binding.Mode))
+            if (toggle.Value != modes.Get(binding.Mode))
             {
                 if (toggle.Value != binding.Synced)
                 {
-                    Set(ref modes, binding.Mode, toggle.Value);
+                    modes.Set(binding.Mode, toggle.Value);
                     Announce(session, binding.Mode, toggle.Value);
                 }
                 else
                 {
-                    toggle.Value = Get(modes, binding.Mode);
+                    toggle.Value = modes.Get(binding.Mode);
                 }
             }
 
@@ -44,38 +44,8 @@ public sealed class AnimatorModeSystem : QuerySystem<Toggle, ModeToggle>
         }
     }
 
-    private static bool Get(in AnimatorModes modes, AnimatorMode mode) => mode switch
-    {
-        AnimatorMode.AutoKey => modes.AutoKey,
-        AnimatorMode.Onion => modes.Onion,
-        AnimatorMode.Svg => modes.Svg,
-        AnimatorMode.Ik => modes.Ik,
-        _ => modes.Rest,
-    };
-
-    private static void Set(ref AnimatorModes modes, AnimatorMode mode, bool value)
-    {
-        switch (mode)
-        {
-            case AnimatorMode.AutoKey:
-                modes.AutoKey = value;
-                break;
-            case AnimatorMode.Onion:
-                modes.Onion = value;
-                break;
-            case AnimatorMode.Svg:
-                modes.Svg = value;
-                break;
-            case AnimatorMode.Ik:
-                modes.Ik = value;
-                break;
-            default:
-                modes.Rest = value;
-                break;
-        }
-    }
-
-    private static void Announce(Entity session, AnimatorMode mode, bool value)
+    /// <summary>Says what the mode change means, the same way a click on its toggle does.</summary>
+    public static void Announce(Entity session, AnimatorMode mode, bool value)
     {
         if (mode == AnimatorMode.Rest)
         {

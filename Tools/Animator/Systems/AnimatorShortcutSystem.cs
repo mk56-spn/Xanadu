@@ -11,10 +11,12 @@ using Writer.Tools.Animator.Commands;
 namespace Writer.Tools.Animator.Systems;
 
 /// <summary>
-/// Keyboard shortcuts. Ctrl+Z undo, Ctrl+Y or Ctrl+Shift+Z redo, Ctrl+S save,
-/// Delete removes the selected key, Ctrl+C / Ctrl+V copy and paste the pose.
-/// Space plays or pauses; Left/Right step the playhead one snap step, Up/Down
-/// jump to the previous/next key, and Home/End go to the clip's start/end.
+/// Keyboard shortcuts. The actions buttons perform come from
+/// <see cref="AnimatorBindings"/> and run through
+/// <see cref="AnimatorCommands.Run"/>, exactly as a pressed button does; this
+/// system only adds the keys no button covers: Left/Right step the playhead one
+/// snap step, Up/Down jump to the previous/next key, and Home/End go to the
+/// clip's start/end.
 /// </summary>
 public sealed class AnimatorShortcutSystem(IKeyboardState keyboard)
     : QuerySystem<AnimatorDocument>
@@ -22,15 +24,9 @@ public sealed class AnimatorShortcutSystem(IKeyboardState keyboard)
     /// <summary>Step used when the timeline is not laid out, as in a headless test.</summary>
     public const float DefaultStep = 1f / 30f;
 
+    /// <summary>Playhead moves that have no button of their own.</summary>
     private enum Shortcut
     {
-        Undo,
-        Redo,
-        Save,
-        Delete,
-        Copy,
-        Paste,
-        PlayPause,
         StepBack,
         StepForward,
         PreviousKey,
@@ -41,10 +37,13 @@ public sealed class AnimatorShortcutSystem(IKeyboardState keyboard)
 
     private readonly HashSet<Shortcut> _held = new();
     private readonly HashSet<Shortcut> _down = new();
+    private readonly HashSet<int> _heldBindings = new();
+    private readonly HashSet<int> _downBindings = new();
 
     protected override void OnUpdate()
     {
         _down.Clear();
+        _downBindings.Clear();
 
         // Typing in a name field must not trigger shortcuts such as Delete or Space.
         bool typing = Query.Store.Query<TextField>().AllTags(Tags.Get<TextFieldFocused>()).Count > 0;
@@ -58,23 +57,38 @@ public sealed class AnimatorShortcutSystem(IKeyboardState keyboard)
                 pressed.Add(shortcut);
         }
 
+        var actions = new List<ToolAction>();
+        foreach (int index in _downBindings)
+        {
+            if (!_heldBindings.Contains(index))
+                actions.Add(AnimatorBindings.All[index].Action);
+        }
+
         // While typing everything counts as held, so letting go of a key in
         // the field does not fire it once the field loses focus.
         if (typing)
+        {
             _held.UnionWith(Enum.GetValues<Shortcut>());
+            for (int i = 0; i < AnimatorBindings.All.Length; i++)
+                _heldBindings.Add(i);
+        }
         else
         {
             _held.Clear();
             _held.UnionWith(_down);
+            _heldBindings.Clear();
+            _heldBindings.UnionWith(_downBindings);
         }
 
-        if (pressed.Count == 0)
+        if (pressed.Count == 0 && actions.Count == 0)
             return;
 
         foreach (Entity session in Query.ToEntityList())
         {
             foreach (Shortcut shortcut in pressed)
                 Run(session, shortcut);
+            foreach (ToolAction action in actions)
+                AnimatorCommands.Run(session, action);
         }
     }
 
@@ -82,19 +96,25 @@ public sealed class AnimatorShortcutSystem(IKeyboardState keyboard)
     {
         bool control = keyboard.IsPressed(Key.Ctrl);
         bool shift = keyboard.IsPressed(Key.Shift);
-        Down(Shortcut.Undo, control && !shift && keyboard.IsPressed(Key.Z));
-        Down(Shortcut.Redo, control && (keyboard.IsPressed(Key.Y) || (shift && keyboard.IsPressed(Key.Z))));
-        Down(Shortcut.Save, control && keyboard.IsPressed(Key.S));
-        Down(Shortcut.Delete, keyboard.IsPressed(Key.Delete));
-        Down(Shortcut.Copy, control && keyboard.IsPressed(Key.C));
-        Down(Shortcut.Paste, control && keyboard.IsPressed(Key.V));
-        Down(Shortcut.PlayPause, keyboard.IsPressed(Key.Space));
         Down(Shortcut.StepBack, keyboard.IsPressed(Key.Left));
         Down(Shortcut.StepForward, keyboard.IsPressed(Key.Right));
         Down(Shortcut.PreviousKey, keyboard.IsPressed(Key.Up));
         Down(Shortcut.NextKey, keyboard.IsPressed(Key.Down));
         Down(Shortcut.Start, keyboard.IsPressed(Key.Home));
         Down(Shortcut.End, keyboard.IsPressed(Key.End));
+
+        // A chord counts when its modifiers match exactly, so plain O (onion)
+        // and Ctrl+O (load) are different bindings.
+        for (int i = 0; i < AnimatorBindings.All.Length; i++)
+        {
+            AnimatorBindings.Binding binding = AnimatorBindings.All[i];
+            if (binding.Ctrl == control &&
+                binding.Shift == shift &&
+                keyboard.IsPressed(binding.Key))
+            {
+                _downBindings.Add(i);
+            }
+        }
     }
 
     private void Down(Shortcut shortcut, bool down)
@@ -107,27 +127,6 @@ public sealed class AnimatorShortcutSystem(IKeyboardState keyboard)
     {
         switch (shortcut)
         {
-            case Shortcut.Undo:
-                AnimatorHistoryCommands.Undo(session);
-                break;
-            case Shortcut.Redo:
-                AnimatorHistoryCommands.Redo(session);
-                break;
-            case Shortcut.Save:
-                AnimatorFileCommands.Save(session);
-                break;
-            case Shortcut.Delete:
-                AnimatorKeyCommands.DeleteSelected(session);
-                break;
-            case Shortcut.Copy:
-                AnimatorPoseCommands.CopyPose(session);
-                break;
-            case Shortcut.Paste:
-                AnimatorPoseCommands.PastePose(session);
-                break;
-            case Shortcut.PlayPause:
-                PlayPause(session);
-                break;
             case Shortcut.StepBack:
                 Step(session, -1);
                 break;
@@ -146,21 +145,6 @@ public sealed class AnimatorShortcutSystem(IKeyboardState keyboard)
             case Shortcut.End:
                 SeekTo(session, session.GetComponent<AnimatorDocument>().Runtime.CurrentDuration);
                 break;
-        }
-    }
-
-    private static void PlayPause(Entity session)
-    {
-        AnimatorPlayback playback = session.GetComponent<AnimatorDocument>().Playback;
-        if (playback.IsPlaying)
-        {
-            playback.Stop();
-            AnimatorSession.SetStatus(session, "STOPPED");
-        }
-        else
-        {
-            playback.Play();
-            AnimatorSession.SetStatus(session, "PLAYING");
         }
     }
 
