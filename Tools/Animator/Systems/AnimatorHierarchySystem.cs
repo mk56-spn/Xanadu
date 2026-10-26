@@ -17,7 +17,7 @@ public sealed class AnimatorHierarchySystem(IVisualRidFactory visuals)
     : QuerySystem<AnimatorDocument, AnimatorUi>
 {
     private static readonly Vector2 ItemSize = new(200, 26);
-    private static readonly Vector2 ClipDropdownSize = new(168, 30);
+    private static readonly Vector2 ClipDropdownSize = new(AnimatorLayout.ClipWidth, 30);
     private static readonly Color Selected = new("#0f766e");
 
     private int _version = -1;
@@ -48,7 +48,13 @@ public sealed class AnimatorHierarchySystem(IVisualRidFactory visuals)
     private void Rebuild(Entity session, AnimatorUi ui, XafPackage package)
     {
         Clear(ui.AttachmentList);
+
+        // The old dropdown's list and options float on the menu layer, outside
+        // the header slot, so they have to be removed along with its button.
+        List<Entity> floating = ClipDropdownParts(ui.ClipDropdown);
         Clear(ui.ClipList);
+        foreach (Entity part in floating)
+            UiLayout.DeleteSubtree(part);
 
         var bones = new List<UiTreeItem>();
         foreach (XafBone bone in package.Skeleton.Bones)
@@ -66,30 +72,51 @@ public sealed class AnimatorHierarchySystem(IVisualRidFactory visuals)
                 ToolActionKind.SelectAttachment, ItemSize, i.ToString());
         }
 
-        session.GetComponent<AnimatorUi>().ClipDropdown = AddClipDropdown(ui.ClipList, package);
+        session.GetComponent<AnimatorUi>().ClipDropdown = AddClipDropdown(ui, package);
     }
 
     /// <summary>
-    /// A dropdown of the package's clips. Each option carries the same action
-    /// as a clip button, so the action system switches clips.
+    /// A dropdown of the package's clips: its button sits in the header slot
+    /// and its list on the menu layer, so an open list draws above the preview.
+    /// Each option carries the same action as a clip button, so the action
+    /// system switches clips.
     /// </summary>
-    private Entity AddClipDropdown(Entity list, XafPackage package)
+    private Entity AddClipDropdown(AnimatorUi ui, XafPackage package)
     {
-        if (list.IsNull)
+        if (ui.ClipList.IsNull || ui.MenuLayer.IsNull)
             return default;
 
         var labels = new List<string>();
         foreach (XafClip clip in package.Clips)
             labels.Add(clip.Id.ToUpperInvariant());
 
-        UiBuilder ui = UiBuilder.Begin(Query.Store, visuals).Use(list);
-        UiDropdownControl control = ui.Dropdown("", labels, size: ClipDropdownSize);
+        Entity button = UiBuilder.Begin(Query.Store, visuals).Use(ui.ClipList)
+            .Button("", ClipDropdownSize);
+        UiDropdownControl control = UiBuilder.Begin(Query.Store, visuals).Use(ui.MenuLayer)
+            .DropdownList(button, labels);
         for (int i = 0; i < control.Options.Count; i++)
         {
             control.Options[i].AddComponent(
                 new ToolAction(ToolActionKind.Clip, package.Clips[i].Id));
         }
         return control.Button;
+    }
+
+    /// <summary>The list and options of a clip dropdown, which live apart from its button.</summary>
+    private List<Entity> ClipDropdownParts(Entity button)
+    {
+        var parts = new List<Entity>();
+        if (button.IsNull || !button.TryGetComponent(out Dropdown dropdown))
+            return parts;
+
+        if (!dropdown.List.IsNull)
+            parts.Add(dropdown.List);
+        foreach (Entity option in Query.Store.Query<DropdownOption>().ToEntityList())
+        {
+            if (option.GetComponent<DropdownOption>().Owner.Id == button.Id)
+                parts.Add(option);
+        }
+        return parts;
     }
 
     /// <summary>Shows the current clip on the dropdown button and marks its option.</summary>

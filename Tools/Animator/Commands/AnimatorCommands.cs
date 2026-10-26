@@ -169,7 +169,7 @@ public static class AnimatorCommands
         }
 
         session.GetComponent<AnimatorBoneMenu>().Reparenting = bone;
-        AnimatorSession.SetStatus(session, $"CLICK THE NEW PARENT OF {rig.Id} IN THE TREE OR PREVIEW");
+        AnimatorSession.SetStatus(session, $"CLICK THE NEW PARENT OF {rig.Id}");
     }
 
     private static int SelectedBone(Entity session)
