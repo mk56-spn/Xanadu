@@ -4,6 +4,7 @@ using Writer.Animation;
 using Writer.Ecs;
 using Writer.Systems.Canvas;
 using Writer.Systems.Input;
+using Writer.Tools.Animator.Files;
 using Writer.Tools.Animator.Systems;
 
 namespace Writer.Tools.Animator;
@@ -18,6 +19,7 @@ public sealed class AnimatorSystemGroup : SystemGroup
         Rid timelineCanvas,
         IAttachmentVisuals attachments,
         IVisualRidFactory visuals,
+        IAnimatorSvgCatalog svgCatalog,
         IPointerInputSource pointer,
         IAnimatorWheel wheel,
         IKeyboardState keyboard) : base("Animator")
@@ -25,6 +27,7 @@ public sealed class AnimatorSystemGroup : SystemGroup
         Add(new AnimatorActionSystem());
         Add(new AnimatorModeSystem());
         Add(new AnimatorBoneMenuSystem(pointer));
+        Add(new AnimatorSvgMenuSystem(svgCatalog, visuals, pointer));
         Add(new AnimatorKeyMenuSystem(pointer));
         Add(new AnimatorPreviewInputSystem(pointer));
         Add(new AnimatorTimelineInputSystem(pointer, wheel));

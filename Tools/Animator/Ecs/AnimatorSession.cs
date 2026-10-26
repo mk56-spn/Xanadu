@@ -41,6 +41,7 @@ public static class AnimatorSession
             AnimatorBoneMenu.Closed,
             new AnimatorClipboard());
         session.AddComponent(new AnimatorKeyMenu());
+        session.AddComponent(new AnimatorSvgMenu { Choices = new() });
         session.AddComponent(new UiMarqueeBox());
         session.AddComponent(new AnimatorHistory
         {
@@ -69,6 +70,7 @@ public static class AnimatorSession
         session.GetComponent<AnimatorDrag>() = new AnimatorDrag();
         session.GetComponent<AnimatorBoneMenu>() = AnimatorBoneMenu.Closed;
         session.GetComponent<AnimatorKeyMenu>() = new AnimatorKeyMenu();
+        session.GetComponent<AnimatorSvgMenu>() = new AnimatorSvgMenu { Choices = new() };
         AnimatorHistoryCommands.Clear(session);
     }
 

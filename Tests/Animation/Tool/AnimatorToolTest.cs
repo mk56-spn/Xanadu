@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using Godot;
@@ -213,5 +214,26 @@ public abstract class AnimatorToolTest : EcsSystemTest
             SavedPath = path;
             Saved = package;
         }
+    }
+
+    /// <summary>A project's SVG art, as the ADD SVG picker sees it.</summary>
+    protected sealed class FakeAnimatorSvgCatalog : IAnimatorSvgCatalog
+    {
+        public readonly Dictionary<string, string[]> GroupsByFile = new();
+
+        public IReadOnlyList<string> Files()
+        {
+            var paths = new List<string>(GroupsByFile.Keys);
+            paths.Sort(StringComparer.OrdinalIgnoreCase);
+            return paths;
+        }
+
+        public IReadOnlyList<string> Groups(string svgPath) =>
+            GroupsByFile.TryGetValue(svgPath, out string[]? groups)
+                ? groups
+                : Array.Empty<string>();
+
+        /// <summary>Adds one file with the groups the picker should offer for it.</summary>
+        public void Add(string path, params string[] groups) => GroupsByFile[path] = groups;
     }
 }

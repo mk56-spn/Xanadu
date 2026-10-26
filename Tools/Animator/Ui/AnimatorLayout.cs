@@ -1,3 +1,4 @@
+using System;
 using Friflo.Engine.ECS;
 using Godot;
 using Writer.Animation;
@@ -82,6 +83,7 @@ public static class AnimatorLayout
         BuildFileMenu(menu, refs.FileButton);
         BuildBoneMenu(menu, ref refs);
         BuildKeyMenu(menu, ref refs);
+        BuildSvgMenu(menu, ref refs);
         BuildHistoryPanel(menu);
         return refs.Ui;
     }
@@ -263,12 +265,24 @@ public static class AnimatorLayout
     }
 
     /// <summary>Size of the bone context menu opened by right-clicking a bone label.</summary>
-    public static readonly Vector2 BoneMenuSize = new(150, 4 * 28 + 3 * 2 + 8);
+    public static readonly Vector2 BoneMenuSize = new(150, 5 * 28 + 4 * 2 + 8);
 
     public static readonly Vector2 BoneNameSize = new(140, 22);
 
     /// <summary>Size of the key menu opened by right-clicking a timeline track row.</summary>
     public static readonly Vector2 KeyMenuSize = new(150, 2 * 28 + 2 + 8);
+
+    /// <summary>Width of the ADD SVG picker; its height follows the number of choices.</summary>
+    public const float SvgMenuWidth = 240f;
+
+    /// <summary>Most choices the picker shows at once; the rest scroll.</summary>
+    public const int SvgMenuRows = 10;
+
+    public const float SvgRowHeight = 24f;
+
+    /// <summary>Height of the picker for <paramref name="rows"/> rows: rows, gaps and padding.</summary>
+    public static float SvgMenuHeight(int rows) =>
+        Math.Max(1, rows) * SvgRowHeight + (Math.Max(1, rows) - 1) * 2 + 8;
 
     /// <summary>
     /// The bone context menu and its rename field float above the panels and
@@ -281,6 +295,7 @@ public static class AnimatorLayout
             ("RENAME", ToolActionKind.RenameBone),
             ("REPARENT", ToolActionKind.ReparentBone),
             ("ADD CHILD", ToolActionKind.AddBone),
+            ("ADD SVG", ToolActionKind.AddSvg),
             ("DELETE", ToolActionKind.DeleteBone),
         };
 
@@ -296,6 +311,27 @@ public static class AnimatorLayout
 
         refs.Ui.BoneNameField = TextInput(menu, BoneNameSize);
         refs.Ui.BoneNameField.GetComponent<Position>().Value = UiLayout.Hidden;
+    }
+
+    /// <summary>
+    /// The ADD SVG picker starts hidden with an empty scrolling list; the SVG
+    /// menu system fills it with the project's groups and moves it into place.
+    /// </summary>
+    private static void BuildSvgMenu(UiBuilder menu, ref Refs refs)
+    {
+        var size = new Vector2(SvgMenuWidth, SvgMenuHeight(SvgMenuRows));
+        menu.Container(UiLayout.Hidden, size, StackDirection.Vertical,
+            color: UiTheme.Panel, padding: 4, takesInput: true, clip: true,
+            main: StackMainAlignment.Start);
+        refs.Ui.SvgMenu = menu.Current;
+        menu.Container(Vector2.Zero, new Vector2(SvgMenuWidth - 8, 4),
+            StackDirection.Vertical, spacing: 2, color: Clear,
+            cross: StackCrossAlignment.Start, autoHeight: true,
+            main: StackMainAlignment.Start);
+        refs.Ui.SvgMenuList = menu.Current;
+        menu.End();
+        refs.Ui.SvgMenu.AddComponent(new ScrollView(refs.Ui.SvgMenuList));
+        menu.End();
     }
 
     /// <summary>The key menu starts hidden; the key menu system moves it into place.</summary>

@@ -1,4 +1,5 @@
 using Friflo.Engine.ECS;
+using Godot;
 using Writer.Animation;
 
 namespace Writer.Tools.Animator.Commands;
@@ -95,6 +96,12 @@ public static class AnimatorCommands
             case ToolActionKind.DeleteKey:
                 AnimatorKeyCommands.DeleteSelected(session);
                 break;
+            case ToolActionKind.AddSvg:
+                OpenSvgMenu(session);
+                break;
+            case ToolActionKind.AttachSvg:
+                AttachSvgFromMenu(session, action.Argument);
+                break;
             case ToolActionKind.KeyPose:
                 AnimatorPoseCommands.KeyPose(session);
                 break;
@@ -156,9 +163,51 @@ public static class AnimatorCommands
         AnimatorKeyCommands.AddKeyAt(session, menu.Track, menu.Time);
     }
 
-    /// <summary>Shows the name field over the selected bone; the menu system focuses it.</summary>
-    private static void BeginBoneRename(Entity session)
+    /// <summary>
+    /// Opens the ADD SVG picker beside the bone menu, on the selected bone.
+    /// The picker system lists the project's groups and places the panel.
+    /// </summary>
+    private static void OpenSvgMenu(Entity session)
     {
+        int bone = SelectedBone(session);
+        if (bone < 0)
+        {
+            AnimatorSession.SetStatus(session, "SELECT A BONE FIRST");
+            return;
+        }
+
+        ref AnimatorSvgMenu menu = ref session.GetComponent<AnimatorSvgMenu>();
+        menu.Open = true;
+        menu.Bone = bone;
+        menu.Anchor = OpenAnchor(session);
+    }
+
+    /// <summary>Where the picker starts: just right of the bone menu that opened it.</summary>
+    private static Vector2 OpenAnchor(Entity session)
+    {
+        Vector2 boneMenu = session.GetComponent<AnimatorBoneMenu>().Anchor;
+        var offset = new Vector2(AnimatorLayout.BoneMenuSize.X + 4, 0);
+        return boneMenu + offset;
+    }
+
+    /// <summary>Adds the picker row the argument indexes, keeping the picker open.</summary>
+    private static void AttachSvgFromMenu(Entity session, string argument)
+    {
+        AnimatorSvgMenu menu = session.GetComponent<AnimatorSvgMenu>();
+        if (menu.Choices is null ||
+            !int.TryParse(argument, out int index) ||
+            index < 0 ||
+            index >= menu.Choices.Count)
+        {
+            return;
+        }
+
+        AnimatorSvgChoice choice = menu.Choices[index];
+        AnimatorAttachmentCommands.Add(session, choice.Path, choice.Group, menu.Bone);
+    }
+
+    /// <summary>Shows the name field over the selected bone; the menu system focuses it.</summary>
+    private static void BeginBoneRename(Entity session)    {
         int bone = SelectedBone(session);
         if (bone < 0)
             return;

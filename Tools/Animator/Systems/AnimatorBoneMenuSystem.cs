@@ -41,7 +41,7 @@ public sealed class AnimatorBoneMenuSystem(IPointerInputSource pointer)
 
             AnimatorUi ui = session.GetComponent<AnimatorUi>();
             AnimatorBoneMenu menu = session.GetComponent<AnimatorBoneMenu>();
-            Place(ui.BoneMenu, menu.Open ? menu.Anchor + AnimatorLayout.BoneMenuSize / 2 : UiLayout.Hidden);
+            AnimatorMenuPlacement.Place(ui.BoneMenu, menu.Open ? menu.Anchor + AnimatorLayout.BoneMenuSize / 2 : UiLayout.Hidden);
             Rename(session, ui.BoneNameField, input.Pressed);
         }
     }
@@ -109,7 +109,7 @@ public sealed class AnimatorBoneMenuSystem(IPointerInputSource pointer)
                 return;
 
             Rect2 label = NameFieldTarget(session, menu);
-            Place(field, label.Position + AnimatorLayout.BoneNameSize / 2);
+            AnimatorMenuPlacement.Place(field, label.Position + AnimatorLayout.BoneNameSize / 2);
             field.GetComponent<TextField>().Value = package.Skeleton.Bones[menu.Renaming].Id;
             foreach (Entity other in Query.Store.Query<TextField>()
                          .AllTags(Tags.Get<TextFieldFocused>()).ToEntityList())
@@ -154,20 +154,7 @@ public sealed class AnimatorBoneMenuSystem(IPointerInputSource pointer)
         menu.Renaming = -1;
         _renameFocused = false;
         field.RemoveTag<TextFieldFocused>();
-        Place(field, UiLayout.Hidden);
+        AnimatorMenuPlacement.Place(field, UiLayout.Hidden);
     }
 
-    private static void Place(Entity entity, Vector2 position)
-    {
-        if (entity.IsNull || !entity.HasComponent<Position>())
-            return;
-
-        ref Position current = ref entity.GetComponent<Position>();
-        if (current.Value == position)
-            return;
-
-        current.Value = position;
-        entity.AddTag<Moved>();
-        entity.AddTag<Dirty>();
-    }
 }

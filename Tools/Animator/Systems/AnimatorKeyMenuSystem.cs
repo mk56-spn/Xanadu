@@ -41,7 +41,7 @@ public sealed class AnimatorKeyMenuSystem(IPointerInputSource pointer)
 
             AnimatorUi ui = session.GetComponent<AnimatorUi>();
             AnimatorKeyMenu menu = session.GetComponent<AnimatorKeyMenu>();
-            Place(ui.KeyMenu, menu.Open ? menu.Anchor + AnimatorLayout.KeyMenuSize / 2 : UiLayout.Hidden);
+            AnimatorMenuPlacement.Place(ui.KeyMenu, menu.Open ? menu.Anchor + AnimatorLayout.KeyMenuSize / 2 : UiLayout.Hidden);
             if (menu.Open)
             {
                 bool hasKey = session.GetComponent<AnimatorSelection>().HasKey;
@@ -86,23 +86,10 @@ public sealed class AnimatorKeyMenuSystem(IPointerInputSource pointer)
         }
 
         menu.Open = true;
-        menu.Anchor = MenuAnchor(
+        menu.Anchor = AnimatorMenuPlacement.Anchor(
             input.Position,
             AnimatorLayout.KeyMenuSize,
             session.GetComponent<AnimatorUi>().ScreenSize);
-    }
-
-    /// <summary>
-    /// Top-left corner for a menu opened at a point: below and right of it,
-    /// flipped above or left where there is no room, and always on screen.
-    /// </summary>
-    public static Vector2 MenuAnchor(Vector2 point, Vector2 size, Vector2 screen)
-    {
-        float x = point.X + size.X > screen.X ? point.X - size.X : point.X;
-        float y = point.Y + size.Y > screen.Y ? point.Y - size.Y : point.Y;
-        return new Vector2(
-            Mathf.Clamp(x, 0f, Mathf.Max(0f, screen.X - size.X)),
-            Mathf.Clamp(y, 0f, Mathf.Max(0f, screen.Y - size.Y)));
     }
 
     private static void Tint(Entity button, bool enabled)
@@ -119,17 +106,4 @@ public sealed class AnimatorKeyMenuSystem(IPointerInputSource pointer)
         visual.Hover = target.Lerp(Colors.White, 0.16f);
     }
 
-    private static void Place(Entity entity, Vector2 position)
-    {
-        if (entity.IsNull || !entity.HasComponent<Position>())
-            return;
-
-        ref Position current = ref entity.GetComponent<Position>();
-        if (current.Value == position)
-            return;
-
-        current.Value = position;
-        entity.AddTag<Moved>();
-        entity.AddTag<Dirty>();
-    }
 }

@@ -50,6 +50,7 @@ public partial class AnimatorTool : Control
             _timelineCanvas,
             _attachments,
             new GodotVisualRidFactory(),
+            new GodotAnimatorSvgCatalog(),
             _pointer,
             _pointer,
             new GodotKeyboardState()));

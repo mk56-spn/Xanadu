@@ -312,13 +312,13 @@ public sealed class AnimatorKeyMenuTests : AnimatorToolTest
         var size = AnimatorLayout.KeyMenuSize;
         var screen = new Vector2(1600, 900);
 
-        Assert.That(AnimatorKeyMenuSystem.MenuAnchor(new Vector2(100, 100), size, screen),
+        Assert.That(AnimatorMenuPlacement.Anchor(new Vector2(100, 100), size, screen),
             Is.EqualTo(new Vector2(100, 100)));
-        Assert.That(AnimatorKeyMenuSystem.MenuAnchor(new Vector2(100, 880), size, screen),
+        Assert.That(AnimatorMenuPlacement.Anchor(new Vector2(100, 880), size, screen),
             Is.EqualTo(new Vector2(100, 880 - size.Y)));
-        Assert.That(AnimatorKeyMenuSystem.MenuAnchor(new Vector2(1590, 100), size, screen),
+        Assert.That(AnimatorMenuPlacement.Anchor(new Vector2(1590, 100), size, screen),
             Is.EqualTo(new Vector2(1590 - size.X, 100)));
-        Vector2 corner = AnimatorKeyMenuSystem.MenuAnchor(new Vector2(1600, 900), size, screen);
+        Vector2 corner = AnimatorMenuPlacement.Anchor(new Vector2(1600, 900), size, screen);
         Assert.That(corner.X + size.X, Is.LessThanOrEqualTo(screen.X));
         Assert.That(corner.Y + size.Y, Is.LessThanOrEqualTo(screen.Y));
     }
