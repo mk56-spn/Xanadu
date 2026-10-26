@@ -20,6 +20,7 @@ public sealed class AnimatorPreviewDrawSystem(
     private static readonly Color SwungOutline = new("#fde68a");
     private static readonly Color AttachmentColor = new("#a3e635");
     private static readonly Color Label = new("#cbd5e1");
+    private static readonly Color ReparentLabel = new("#fb923c");
     private const float OnionOffset = 0.1f;
 
     private int _version = -1;
@@ -84,6 +85,7 @@ public sealed class AnimatorPreviewDrawSystem(
                 2f);
         }
 
+        int reparenting = session.GetComponent<AnimatorBoneMenu>().Reparenting;
         for (int i = 0; i < world.Length; i++)
         {
             XafBone bone = document.Package.Skeleton.Bones[i];
@@ -91,11 +93,12 @@ public sealed class AnimatorPreviewDrawSystem(
             bool selected = i == selection.Bone;
             canvas.DrawCircle(target, point, selected ? 8 : 5,
                 selected ? Colors.White : BoneColor);
-            canvas.DrawTextStyled(
+            // Left-aligned so the text sits on its right-click target.
+            canvas.DrawTextStyledLeft(
                 target,
-                new Rect2(point + new Vector2(8, -12), new Vector2(100, 20)),
+                AnimatorGeometry.BoneLabel(point),
                 bone.Id,
-                Label,
+                i == reparenting ? ReparentLabel : Label,
                 12);
         }
 

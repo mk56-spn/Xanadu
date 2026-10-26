@@ -23,11 +23,14 @@ public sealed class AnimatorPointer : IPointerInputSource, IAnimatorWheel
     public Vector2 Position;
     public bool Pressed;
     public bool ClickPending;
+    public bool Secondary;
+    public bool SecondaryPending;
     public bool Shift;
     public int Wheel;
     public bool Control { get; set; }
 
-    public PointerInput Read() => new(Position, Pressed || ClickPending, Shift);
+    public PointerInput Read() =>
+        new(Position, Pressed || ClickPending, Shift, Secondary || SecondaryPending);
 
     public int TakeWheel()
     {
@@ -36,5 +39,9 @@ public sealed class AnimatorPointer : IPointerInputSource, IAnimatorWheel
         return wheel;
     }
 
-    public void EndFrame() => ClickPending = false;
+    public void EndFrame()
+    {
+        ClickPending = false;
+        SecondaryPending = false;
+    }
 }

@@ -87,6 +87,13 @@ public partial class AnimatorTool : Control
             if (button.Pressed)
                 _pointer.ClickPending = true;
         }
+        else if (@event is InputEventMouseButton { ButtonIndex: MouseButton.Right } right)
+        {
+            _pointer.Position = right.Position;
+            _pointer.Secondary = right.Pressed;
+            if (right.Pressed)
+                _pointer.SecondaryPending = true;
+        }
         else if (@event is InputEventMouseButton
                  {
                      Pressed: true,

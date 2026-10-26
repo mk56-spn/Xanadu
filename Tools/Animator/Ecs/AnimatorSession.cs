@@ -37,7 +37,8 @@ public static class AnimatorSession
                 Dirty = false,
             },
             new TimelineView(1f),
-            new AnimatorTracks());
+            new AnimatorTracks(),
+            AnimatorBoneMenu.Closed);
         session.AddComponent(new AnimatorHistory
         {
             History = AnimatorHistoryCommands.CreateHistory(session),
@@ -63,6 +64,7 @@ public static class AnimatorSession
         Restart(ref document, "idle");
         session.GetComponent<AnimatorSelection>() = AnimatorSelection.None;
         session.GetComponent<AnimatorDrag>() = new AnimatorDrag();
+        session.GetComponent<AnimatorBoneMenu>() = AnimatorBoneMenu.Closed;
         AnimatorHistoryCommands.Clear(session);
     }
 

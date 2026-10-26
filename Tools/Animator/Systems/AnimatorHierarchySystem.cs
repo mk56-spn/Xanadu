@@ -123,7 +123,8 @@ public sealed class AnimatorHierarchySystem(IVisualRidFactory visuals)
     }
 
     /// <summary>
-    /// A click in the tree selects that bone; a selection made elsewhere (the
+    /// A click in the tree selects that bone, or, while the bone menu waits for
+    /// a new parent, reparents onto it; a selection made elsewhere (the
     /// preview, add/delete, undo) is shown in the tree, expanding to reveal it.
     /// </summary>
     private static void SyncBoneTree(Entity session, Entity tree, XafPackage package)
@@ -134,9 +135,19 @@ public sealed class AnimatorHierarchySystem(IVisualRidFactory visuals)
         if (tree.TryGetComponent(out UiTreeChanged changed))
         {
             tree.RemoveComponent<UiTreeChanged>();
-            AnimatorCommands.Run(
-                session,
-                new ToolAction(ToolActionKind.SelectBone, changed.Id));
+            ref AnimatorBoneMenu menu = ref session.GetComponent<AnimatorBoneMenu>();
+            if (menu.Reparenting >= 0)
+            {
+                int child = menu.Reparenting;
+                menu.Reparenting = -1;
+                AnimatorEditing.ReparentBone(session, child, XafRig.FindBone(package, changed.Id));
+            }
+            else
+            {
+                AnimatorCommands.Run(
+                    session,
+                    new ToolAction(ToolActionKind.SelectBone, changed.Id));
+            }
         }
 
         int bone = session.GetComponent<AnimatorSelection>().Bone;

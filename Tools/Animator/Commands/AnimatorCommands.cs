@@ -83,6 +83,12 @@ public static class AnimatorCommands
             case ToolActionKind.DeleteBone:
                 AnimatorEditing.DeleteBone(session);
                 break;
+            case ToolActionKind.RenameBone:
+                BeginBoneRename(session);
+                break;
+            case ToolActionKind.ReparentBone:
+                BeginBoneReparent(session);
+                break;
             case ToolActionKind.Save:
                 AnimatorFileCommands.Save(session);
                 break;
@@ -123,6 +129,42 @@ public static class AnimatorCommands
         selection.Bone = index;
         selection.Attachment = -1;
         AnimatorSession.SetStatus(session, $"SELECTED {boneId}");
+    }
+
+    /// <summary>Shows the name field over the selected bone; the menu system focuses it.</summary>
+    private static void BeginBoneRename(Entity session)
+    {
+        int bone = SelectedBone(session);
+        if (bone < 0)
+            return;
+
+        session.GetComponent<AnimatorBoneMenu>().Renaming = bone;
+        AnimatorSession.SetStatus(session, "TYPE A NAME, ENTER TO RENAME");
+    }
+
+    /// <summary>The next bone clicked in the preview becomes the selected bone's parent.</summary>
+    private static void BeginBoneReparent(Entity session)
+    {
+        int bone = SelectedBone(session);
+        if (bone < 0)
+            return;
+
+        XafBone rig = session.GetComponent<AnimatorDocument>().Package.Skeleton.Bones[bone];
+        if (rig.Parent < 0)
+        {
+            AnimatorSession.SetStatus(session, "ROOT CANNOT BE REPARENTED");
+            return;
+        }
+
+        session.GetComponent<AnimatorBoneMenu>().Reparenting = bone;
+        AnimatorSession.SetStatus(session, $"CLICK THE NEW PARENT OF {rig.Id} IN THE TREE OR PREVIEW");
+    }
+
+    private static int SelectedBone(Entity session)
+    {
+        int bone = session.GetComponent<AnimatorSelection>().Bone;
+        int count = session.GetComponent<AnimatorDocument>().Package.Skeleton.Bones.Count;
+        return bone >= 0 && bone < count ? bone : -1;
     }
 
     private static void SelectAttachment(Entity session, string argument)

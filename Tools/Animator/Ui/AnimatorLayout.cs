@@ -2,6 +2,7 @@ using Friflo.Engine.ECS;
 using Godot;
 using Writer.Animation;
 using Writer.Ecs;
+using Position = Writer.Ecs.Position;
 
 namespace Writer.Tools.Animator;
 
@@ -56,6 +57,7 @@ public static class AnimatorLayout
         ui.End();
 
         BuildFileMenu(store, visuals, refs.FileButton);
+        BuildBoneMenu(store, visuals, ref refs);
         return refs.Ui;
     }
 
@@ -226,6 +228,40 @@ public static class AnimatorLayout
             option.AddComponent(new DropdownOption(fileButton, i));
         }
         fileButton.AddComponent(new Dropdown(list, 0, listSize));
+    }
+
+    /// <summary>Size of the bone context menu opened by right-clicking a bone label.</summary>
+    public static readonly Vector2 BoneMenuSize = new(150, 4 * 28 + 3 * 2 + 8);
+
+    public static readonly Vector2 BoneNameSize = new(140, 22);
+
+    /// <summary>
+    /// The bone context menu and its rename field float above the panels and
+    /// start hidden; the bone menu system moves them into place.
+    /// </summary>
+    private static void BuildBoneMenu(EntityStore store, IVisualRidFactory? visuals, ref Refs refs)
+    {
+        (string Label, ToolActionKind Kind)[] entries =
+        {
+            ("RENAME", ToolActionKind.RenameBone),
+            ("REPARENT", ToolActionKind.ReparentBone),
+            ("ADD CHILD", ToolActionKind.AddBone),
+            ("DELETE", ToolActionKind.DeleteBone),
+        };
+
+        UiBuilder menu = UiBuilder.Begin(store, visuals).Layer(MenuLayer);
+        menu.Container(UiLayout.Hidden, BoneMenuSize, StackDirection.Vertical,
+            spacing: 2, color: UiTheme.Panel, padding: 4, takesInput: true);
+        refs.Ui.BoneMenu = menu.Current;
+        foreach ((string label, ToolActionKind kind) in entries)
+        {
+            menu.Button(label, new Vector2(BoneMenuSize.X - 8, 28),
+                fontSize: UiTheme.SmallFontSize).AddComponent(new ToolAction(kind));
+        }
+        menu.End();
+
+        refs.Ui.BoneNameField = TextInput(menu, BoneNameSize);
+        refs.Ui.BoneNameField.GetComponent<Position>().Value = UiLayout.Hidden;
     }
 
     private static Entity List(UiBuilder ui, float width = 210f)

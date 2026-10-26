@@ -58,6 +58,20 @@ public sealed class AnimatorPreviewInputSystem(IPointerInputSource pointer)
         Vector2 origin = AnimatorGeometry.PreviewOrigin(area);
         string suffix = modes.Rest ? " (REST)" : "";
 
+        // A reparent from the bone menu takes the next click as its new parent.
+        ref AnimatorBoneMenu menu = ref session.GetComponent<AnimatorBoneMenu>();
+        if (menu.Reparenting >= 0)
+        {
+            int child = menu.Reparenting;
+            menu.Reparenting = -1;
+            int target = AnimatorGeometry.PickBoneOrLabel(world, origin, pointer);
+            if (target >= 0)
+                AnimatorEditing.ReparentBone(session, child, target);
+            else
+                AnimatorSession.SetStatus(session, "REPARENT CANCELLED");
+            return;
+        }
+
         // Bone movement and SVG placement are separate modes, so a click only
         // ever considers one kind of target.
         if (!modes.Svg)

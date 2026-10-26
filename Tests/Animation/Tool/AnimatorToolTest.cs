@@ -177,11 +177,12 @@ public abstract class AnimatorToolTest : EcsSystemTest
     {
         public Vector2 Position;
         public bool Pressed;
+        public bool Secondary;
         public bool Shift;
         public int Wheel;
         public bool Control { get; set; }
 
-        public PointerInput Read() => new(Position, Pressed, Shift);
+        public PointerInput Read() => new(Position, Pressed, Shift, Secondary);
 
         public int TakeWheel()
         {
