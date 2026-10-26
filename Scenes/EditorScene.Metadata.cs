@@ -25,6 +25,8 @@ public static partial class EditorScene
         LevelInfo level = editor.GetComponent<LevelInfo>();
 
         BuildLeftMenu(entities, root, editor, screen);
+        BuildToolBar(entities, root);
+        BuildNoteTypeBar(entities, root);
 
         UiBuilder hudUi = SceneUi.Layer(entities, root, 945);
         float infoWidth = Mathf.Max(160, screen.X - 670);
@@ -186,6 +188,7 @@ public static partial class EditorScene
             "T                      Tap tempo",
             $"{EditorPlacementKeybinds.LabelFor(EditorPlacementMode.Notes),-23}Place normal notes",
             $"{EditorPlacementKeybinds.LabelFor(EditorPlacementMode.Movement),-23}Place dash notes",
+            $"{EditorPlacementKeybinds.LabelFor(EditorPlacementMode.Blocks),-23}Place collidable blocks",
             "DELETE / BACKSPACE     Delete selection",
             "CTRL+Z / CTRL+Y        Undo / redo",
             "L                      Load song",

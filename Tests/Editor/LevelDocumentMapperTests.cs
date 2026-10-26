@@ -36,6 +36,8 @@ public sealed class LevelDocumentMapperTests
             new Vector2(300, 400),
             new System.Numerics.Vector2(2, -3),
             new Vector2(1, 0)));
+        sourceStore.CreateEntity(
+            new Block(new Vector2(120, 340), new Vector2(200, 100)));
 
         LevelDocument document = LevelDocumentMapper.Capture(sourceStore, source);
 
@@ -54,6 +56,11 @@ public sealed class LevelDocumentMapperTests
         Assert.That(document.StartPoints, Has.Count.EqualTo(1));
         Assert.That(document.StartPoints[0].Name, Is.EqualTo("Chorus"));
         Assert.That(document.StartPoints[0].MomentumX, Is.EqualTo(2));
+        Assert.That(document.Blocks, Has.Count.EqualTo(1));
+        Assert.That(document.Blocks[0].X, Is.EqualTo(120));
+        Assert.That(document.Blocks[0].Y, Is.EqualTo(340));
+        Assert.That(document.Blocks[0].Width, Is.EqualTo(200));
+        Assert.That(document.Blocks[0].Height, Is.EqualTo(100));
 
         var targetStore = new EntityStore();
         Entity target = targetStore.CreateEntity(
@@ -63,6 +70,8 @@ public sealed class LevelDocumentMapperTests
             new NoteSelection(default));
         targetStore.CreateEntity(new Note(9_999, Vector2.Zero));
         targetStore.CreateEntity(new Mine(9_999, Vector2.Zero));
+        targetStore.CreateEntity(
+            new Block(new Vector2(9, 9), new Vector2(10, 10)));
 
         LevelDocumentMapper.Apply(targetStore, target, document);
 
@@ -92,12 +101,21 @@ public sealed class LevelDocumentMapperTests
         Assert.That(
             targetStore.Query<Note>().ToEntityList()[1].GetComponent<Note>().Kind,
             Is.EqualTo(NoteKind.Movement));
+        Assert.That(targetStore.Query<Block>().Count, Is.EqualTo(1));
+        Assert.That(
+            targetStore.Query<Block>().ToEntityList()[0].GetComponent<Block>().Position,
+            Is.EqualTo(new Vector2(120, 340)));
+        Assert.That(
+            targetStore.Query<Block>().ToEntityList()[0].GetComponent<Block>().Size,
+            Is.EqualTo(new Vector2(200, 100)));
 
         foreach (Entity entity in targetStore.Query<Note>().ToEntityList())
             Assert.That(entity.Tags.Has<EditorItem>(), Is.True);
         foreach (Entity entity in targetStore.Query<Mine>().ToEntityList())
             Assert.That(entity.Tags.Has<EditorItem>(), Is.True);
         foreach (Entity entity in targetStore.Query<StartPoint>().ToEntityList())
+            Assert.That(entity.Tags.Has<EditorItem>(), Is.True);
+        foreach (Entity entity in targetStore.Query<Block>().ToEntityList())
             Assert.That(entity.Tags.Has<EditorItem>(), Is.True);
     }
 
@@ -112,9 +130,12 @@ public sealed class LevelDocumentMapperTests
         Entity start = EditorItems.Create(store, new StartPoint(
             "Start", 200, new Vector2(50, 60),
             System.Numerics.Vector2.Zero, new Vector2(0, -1)));
+        Entity block = EditorItems.Create(store,
+            new Block(new Vector2(70, 80), new Vector2(200, 100)));
 
         Assert.That(note.Tags.Has<EditorItem>(), Is.True);
         Assert.That(mine.Tags.Has<EditorItem>(), Is.True);
         Assert.That(start.Tags.Has<EditorItem>(), Is.True);
+        Assert.That(block.Tags.Has<EditorItem>(), Is.True);
     }
 }

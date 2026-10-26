@@ -47,6 +47,34 @@ public sealed class LevelValidatorTests
         Assert.That(LevelValidator.Validate(document), Has.Some.Contains("outside"));
     }
 
+    [Test]
+    public void OutOfBoundsBlockIsRejected()
+    {
+        LevelDocument document = ValidDocument();
+        document.Blocks.Add(new BlockDocument
+        {
+            X = 900,
+            Y = 0,
+            Width = 200,
+            Height = 100,
+        });
+
+        Assert.That(
+            LevelValidator.Validate(document),
+            Has.Some.Contains("outside"));
+    }
+
+    [Test]
+    public void BlockWithoutSizeIsRejected()
+    {
+        LevelDocument document = ValidDocument();
+        document.Blocks.Add(new BlockDocument { X = 0, Y = 0 });
+
+        Assert.That(
+            LevelValidator.Validate(document),
+            Has.Some.Contains("no size"));
+    }
+
     private static LevelDocument ValidDocument()
     {
         var document = new LevelDocument

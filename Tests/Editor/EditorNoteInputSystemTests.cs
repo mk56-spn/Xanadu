@@ -528,6 +528,52 @@ public sealed class EditorNoteInputSystemTests
     }
 
     [Test]
+    public void ShiftDraggingAcrossTheTimelineSelectsTheNotesUnderTheBox()
+    {
+        Entity editor = _store.Query<PlayfieldView>().ToEntityList()[0];
+        ref Playhead playhead = ref editor.GetComponent<Playhead>();
+        playhead.DurationMs = 10_000;
+        playhead.TimeMs = 5_000;
+        editor.AddComponent(new TimelineView());
+        editor.AddComponent(new UiMarqueeBox());
+
+        Entity covered = _store.CreateEntity(new Note(5_000, new Vector2(500, 500)));
+        Entity outside = _store.CreateEntity(new Note(7_000, new Vector2(500, 500)));
+        Entity kept = _store.CreateEntity(new Note(3_000, new Vector2(500, 500)));
+        editor.GetComponent<NoteSelection>().Note = kept;
+
+        Rect2 ruler = EditorLayout.RulerRect(editor.GetComponent<PlayfieldView>());
+        (long start, long end) = EditorLayout.TimelineWindow(playhead, 1f);
+        Rect2 slot = default;
+        foreach ((Entity note, Rect2 bounds) in EditorTimelineNotes.Slots(
+                     _store, ruler, start, end, 1f))
+        {
+            if (note.Id == covered.Id)
+                slot = bounds;
+        }
+
+        Vector2 from = new(slot.Position.X - 4, ruler.Position.Y + 2);
+        Vector2 to = new(slot.End.X + 1, ruler.End.Y - 2);
+
+        _pointer.Current = new PointerInput(from, true, true);
+        _root.Update(new UpdateTick(1f / 60f, 0));
+        _pointer.Current = new PointerInput(to, true, true);
+        _root.Update(new UpdateTick(1f / 60f, 0));
+
+        Assert.That(editor.GetComponent<UiMarqueeBox>().Active, Is.True);
+
+        _pointer.Current = new PointerInput(to, false, true);
+        _root.Update(new UpdateTick(1f / 60f, 0));
+
+        NoteSelection selection = editor.GetComponent<NoteSelection>();
+        Assert.That(selection.Contains(covered), Is.True);
+        Assert.That(selection.Contains(kept), Is.True);
+        Assert.That(selection.Contains(outside), Is.False);
+        Assert.That(editor.GetComponent<UiMarqueeBox>().Active, Is.False);
+        Assert.That(editor.GetComponent<TimelineView>().Scrubbing, Is.False);
+    }
+
+    [Test]
     public void ADraggedBoxIsPublishedForDrawingAndClearedOnRelease()
     {
         Entity editor = _store.Query<PlayfieldView>().ToEntityList()[0];
@@ -683,6 +729,168 @@ public sealed class EditorNoteInputSystemTests
         _pointer.Current = new PointerInput(new Vector2(100, 200), false);
         Assert.DoesNotThrow(() =>
             _root.Update(new UpdateTick(1f / 60f, 0)));
+    }
+
+
+    [Test]
+    public void BlockModePlacesAGridAlignedBlock()
+    {
+        Entity editor = EditorEntity();
+        editor.AddComponent(
+            new EditorPlacementModeState(EditorPlacementMode.Blocks));
+
+        Click(new Vector2(520, 520));
+
+        var blocks = _store.Query<Block>().ToEntityList();
+        Assert.That(blocks, Has.Count.EqualTo(1));
+        Assert.That(
+            blocks[0].GetComponent<Block>().Position,
+            Is.EqualTo(new Vector2(400, 500)));
+        Assert.That(
+            blocks[0].GetComponent<Block>().Size,
+            Is.EqualTo(new Vector2(200, 100)));
+        Assert.That(
+            editor.GetComponent<NoteSelection>().Note.Id,
+            Is.EqualTo(blocks[0].Id));
+        Assert.That(_history.CanUndo, Is.True);
+    }
+
+    [Test]
+    public void ClickingABlockSelectsIt()
+    {
+        Entity block = _store.CreateEntity(
+            new Block(new Vector2(400, 500), new Vector2(200, 100)));
+        Entity editor = EditorEntity();
+
+        Click(new Vector2(450, 520));
+
+        Assert.That(
+            editor.GetComponent<NoteSelection>().Note.Id,
+            Is.EqualTo(block.Id));
+    }
+
+    [Test]
+    public void DraggingABlockSnapsItsEdgesToTheGrid()
+    {
+        Entity block = _store.CreateEntity(
+            new Block(new Vector2(400, 500), new Vector2(200, 100)));
+
+        Drag(new Vector2(500, 550), new Vector2(560, 590));
+
+        Assert.That(
+            block.GetComponent<Block>().Position,
+            Is.EqualTo(new Vector2(500, 500)));
+    }
+
+    [Test]
+    public void DraggingABlockBeyondTheFieldStopsAtTheEdge()
+    {
+        Entity block = _store.CreateEntity(
+            new Block(new Vector2(400, 500), new Vector2(200, 100)));
+
+        Drag(new Vector2(500, 550), new Vector2(1200, 550));
+
+        Assert.That(
+            block.GetComponent<Block>().Position,
+            Is.EqualTo(new Vector2(800, 500)));
+    }
+
+    [Test]
+    public void DraggingABlockIsUndoable()
+    {
+        _store.CreateEntity(
+            new Block(new Vector2(400, 500), new Vector2(200, 100)));
+
+        Drag(new Vector2(500, 550), new Vector2(560, 590));
+        Assert.That(_history.Undo(), Is.True);
+
+        Assert.That(
+            _store.Query<Block>().ToEntityList()[0].GetComponent<Block>().Position,
+            Is.EqualTo(new Vector2(400, 500)));
+    }
+
+    [Test]
+    public void DraggingTheRightNubResizesTheBlock()
+    {
+        Entity block = SelectedPlatform();
+
+        Drag(new Vector2(600, 550), new Vector2(688, 550));
+
+        Assert.That(
+            block.GetComponent<Block>().Size,
+            Is.EqualTo(new Vector2(300, 100)));
+        Assert.That(
+            block.GetComponent<Block>().Position,
+            Is.EqualTo(new Vector2(400, 500)));
+    }
+
+    [Test]
+    public void DraggingTheTopNubResizesTheBlock()
+    {
+        Entity block = SelectedPlatform();
+
+        Drag(new Vector2(500, 500), new Vector2(500, 380));
+
+        Assert.That(
+            block.GetComponent<Block>().Position,
+            Is.EqualTo(new Vector2(400, 400)));
+        Assert.That(
+            block.GetComponent<Block>().Size,
+            Is.EqualTo(new Vector2(200, 200)));
+    }
+
+    [Test]
+    public void ANubCannotShrinkABlockBelowOneCell()
+    {
+        Entity block = SelectedPlatform();
+
+        Drag(new Vector2(600, 550), new Vector2(420, 550));
+
+        Assert.That(
+            block.GetComponent<Block>().Size.X,
+            Is.EqualTo(BlockGrid.Cell(new Playfield(1000, 1000)).X));
+    }
+
+    [Test]
+    public void ResizingABlockIsUndoable()
+    {
+        SelectedPlatform();
+
+        Drag(new Vector2(600, 550), new Vector2(688, 550));
+        Assert.That(_history.Undo(), Is.True);
+
+        Assert.That(
+            _store.Query<Block>().ToEntityList()[0].GetComponent<Block>().Size,
+            Is.EqualTo(new Vector2(200, 100)));
+    }
+
+    private Entity SelectedPlatform()
+    {
+        Entity block = _store.CreateEntity(
+            new Block(new Vector2(400, 500), new Vector2(200, 100)));
+        EditorEntity().GetComponent<NoteSelection>().Note = block;
+        return block;
+    }
+
+    private Entity EditorEntity() =>
+        _store.Query<PlayfieldView>().ToEntityList()[0];
+
+    private void Click(Vector2 point)
+    {
+        _pointer.Current = new PointerInput(point, true);
+        _root.Update(new UpdateTick(1f / 60f, 0));
+        _pointer.Current = new PointerInput(point, false);
+        _root.Update(new UpdateTick(1f / 60f, 0));
+    }
+
+    private void Drag(Vector2 from, Vector2 to)
+    {
+        _pointer.Current = new PointerInput(from, true);
+        _root.Update(new UpdateTick(1f / 60f, 0));
+        _pointer.Current = new PointerInput(to, true);
+        _root.Update(new UpdateTick(1f / 60f, 0));
+        _pointer.Current = new PointerInput(to, false);
+        _root.Update(new UpdateTick(1f / 60f, 0));
     }
 
     private sealed class ScriptedPointer : IPointerInputSource

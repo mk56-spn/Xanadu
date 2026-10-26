@@ -31,7 +31,9 @@ public static class LevelSerializer
         document.Notes.RemoveAll(note => note is null);
         document.Mines ??= new();
         document.StartPoints ??= new();
+        document.Blocks ??= new();
         document.Mines.RemoveAll(mine => mine is null);
+        document.Blocks.RemoveAll(block => block is null);
         return document;
     }
 }

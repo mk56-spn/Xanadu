@@ -13,7 +13,7 @@ using Writer.Systems.Playfields;
 namespace Writer.Systems.Editor;
 
 /// <summary>Draws editor chrome, the shared playfield, and the editor timeline.</summary>
-public sealed class EditorPlayfieldDrawSystem :
+public sealed partial class EditorPlayfieldDrawSystem :
     QuerySystem<PlayfieldView, Playfield, Playhead, NoteSelection>
 {
     public static readonly Color MainSnapColor = Colors.White;
@@ -81,6 +81,7 @@ public sealed class EditorPlayfieldDrawSystem :
         Rect2 field = PlayfieldRenderer.FieldRect(view, playfield);
         PlayfieldRenderer.DrawField(_canvas, _editor, field, 1);
         PlayfieldRenderer.DrawGrid(_canvas, _editor, playfield, field);
+        PlayfieldRenderer.DrawBlocks(_canvas, _editor, _entities, view, selection.Note);
         PlayfieldRenderer.DrawNotes(
             _canvas,
             _editor,
@@ -98,6 +99,7 @@ public sealed class EditorPlayfieldDrawSystem :
         DrawStartPoints(view, selection);
         DrawDashDestinations(view, playhead);
         DrawSelectionOutlines(view, playhead, selection);
+        DrawBlockHandles(view, selection);
         DrawRuler(view, playhead, selection, timeline, preview);
         DrawSelectionBox(selectionBox);
     }
@@ -569,63 +571,24 @@ public sealed class EditorPlayfieldDrawSystem :
                 main || half ? 2 : 1);
         }
 
-        var notesByTime = new Dictionary<long, List<Entity>>();
-        foreach (Entity entity in _entities.Query<Note>().ToEntityList())
+        foreach ((Entity entity, Rect2 bounds) in EditorTimelineNotes.Slots(
+                     _entities, ruler, windowStart, windowEnd, timeline.Zoom))
         {
-            Note note = entity.GetComponent<Note>();
-            if (note.TimeMs < windowStart || note.TimeMs > windowEnd)
-                continue;
+            _canvas.DrawRect(
+                _editor,
+                bounds,
+                PlayfieldRenderer.ColorFor(entity.GetComponent<Note>()));
 
-            long key = note.TimeMs;
-            if (!notesByTime.TryGetValue(key, out List<Entity>? notes))
+            if (selection.Contains(entity))
             {
-                notes = new List<Entity>();
-                notesByTime.Add(key, notes);
-            }
-
-            notes.Add(entity);
-        }
-
-        const int maxStack = 7;
-        const float noteGap = 1f;
-        float noteSquare = Math.Clamp(
-            6f + timeline.Zoom * 0.0625f,
-            6f,
-            8f);
-
-        foreach ((long timeMs, List<Entity> notes) in notesByTime)
-        {
-            float x = XForTime(ruler, windowStart, windowEnd, timeMs);
-            int visible = Math.Min(notes.Count, maxStack);
-            float totalHeight =
-                visible * noteSquare + Math.Max(0, visible - 1) * noteGap;
-            float startY = ruler.Position.Y +
-                           (ruler.Size.Y - totalHeight) / 2;
-
-            for (int i = 0; i < visible; i++)
-            {
-                var bounds = new Rect2(
-                    x - noteSquare / 2,
-                    startY + i * (noteSquare + noteGap),
-                    noteSquare,
-                    noteSquare);
-                Note note = notes[i].GetComponent<Note>();
-                _canvas.DrawRect(
+                PlayfieldRenderer.DrawBorder(
+                    _canvas,
                     _editor,
-                    bounds,
-                    PlayfieldRenderer.ColorFor(note));
-
-                if (selection.Contains(notes[i]))
-                {
-                    PlayfieldRenderer.DrawBorder(
-                        _canvas,
-                        _editor,
-                        new Rect2(
-                            bounds.Position - new Vector2(1.5f, 1.5f),
-                            bounds.Size + new Vector2(3, 3)),
-                        PlayfieldRenderer.SelectedNoteColor,
-                        1.5f);
-                }
+                    new Rect2(
+                        bounds.Position - new Vector2(1.5f, 1.5f),
+                        bounds.Size + new Vector2(3, 3)),
+                    PlayfieldRenderer.SelectedNoteColor,
+                    1.5f);
             }
         }
 

@@ -24,6 +24,7 @@ public static class LevelDocumentMapper
             Notes = new List<NoteDocument>(),
             Mines = new List<MineDocument>(),
             StartPoints = new List<StartPointDocument>(),
+            Blocks = new List<BlockDocument>(),
         };
 
         foreach (Entity entity in entities.Query<Note>().ToEntityList())
@@ -76,6 +77,25 @@ public static class LevelDocumentMapper
         }
 
         document.StartPoints.Sort((a, b) => a.TimeMs.CompareTo(b.TimeMs));
+
+        foreach (Entity entity in entities.Query<Block>().ToEntityList())
+        {
+            Block block = entity.GetComponent<Block>();
+            document.Blocks.Add(new BlockDocument
+            {
+                X = block.Position.X,
+                Y = block.Position.Y,
+                Width = block.Size.X,
+                Height = block.Size.Y,
+            });
+        }
+
+        document.Blocks.Sort((a, b) =>
+        {
+            int x = a.X.CompareTo(b.X);
+            return x != 0 ? x : a.Y.CompareTo(b.Y);
+        });
+
         return document;
     }
 
@@ -84,6 +104,7 @@ public static class LevelDocumentMapper
         document.Notes ??= new List<NoteDocument>();
         document.Mines ??= new List<MineDocument>();
         document.StartPoints ??= new List<StartPointDocument>();
+        document.Blocks ??= new List<BlockDocument>();
 
         foreach (Entity entity in entities.Query<Note>().ToEntityList())
             entity.DeleteEntity();
@@ -125,6 +146,16 @@ public static class LevelDocumentMapper
                 new Vector2(mine.X, mine.Y),
                 mine.FadeInMs,
                 mine.FadeOutMs));
+        }
+
+        foreach (Entity entity in entities.Query<Block>().ToEntityList())
+            entity.DeleteEntity();
+
+        foreach (BlockDocument block in document.Blocks)
+        {
+            EditorItems.Create(entities, new Block(
+                new Vector2(block.X, block.Y),
+                new Vector2(block.Width, block.Height)));
         }
 
         SongDocument? song = string.IsNullOrWhiteSpace(document.SongId)

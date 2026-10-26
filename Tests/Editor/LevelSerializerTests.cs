@@ -43,6 +43,38 @@ public sealed class LevelSerializerTests
     }
 
     [Test]
+    public void NullBlocksDeserializeToEmptyList()
+    {
+        LevelDocument document = LevelSerializer.Deserialize(
+            """{"Name":"Null Blocks","Blocks":null}""");
+
+        Assert.That(document.Blocks, Is.Not.Null);
+        Assert.That(document.Blocks, Is.Empty);
+    }
+
+    [Test]
+    public void BlocksRoundTrip()
+    {
+        var source = new LevelDocument();
+        source.Blocks.Add(new BlockDocument
+        {
+            X = 100,
+            Y = 200,
+            Width = 300,
+            Height = 40,
+        });
+
+        LevelDocument result = LevelSerializer.Deserialize(
+            LevelSerializer.Serialize(source));
+
+        Assert.That(result.Blocks, Has.Count.EqualTo(1));
+        Assert.That(result.Blocks[0].X, Is.EqualTo(100));
+        Assert.That(result.Blocks[0].Y, Is.EqualTo(200));
+        Assert.That(result.Blocks[0].Width, Is.EqualTo(300));
+        Assert.That(result.Blocks[0].Height, Is.EqualTo(40));
+    }
+
+    [Test]
     public void NotesDoNotSerializeFadeFields()
     {
         var source = new LevelDocument();

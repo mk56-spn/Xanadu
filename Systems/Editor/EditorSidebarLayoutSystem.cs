@@ -6,12 +6,11 @@ using Position = Writer.Ecs.Position;
 
 namespace Writer.Systems.Editor;
 
-/// <summary>Flows the editor's right-side fields and moves its tool cluster.</summary>
+/// <summary>Flows the editor's right-side fields around open dropdowns.</summary>
 public sealed class EditorSidebarLayoutSystem : QuerySystem<EditorSidebarLayout>
 {
     private const float LabelHeight = 24f;
     private const float ButtonHeight = 34f;
-    private const float Gap = 16f;
     private const float PanelPadding = 20f;
     public EditorSidebarLayoutSystem(EntityStore entities)
     {
@@ -24,26 +23,18 @@ public sealed class EditorSidebarLayoutSystem : QuerySystem<EditorSidebarLayout>
 
         Query.ForEachEntity((ref layout, entity) =>
         {
-            float typeExtra = OpenExtra(layout.TypeButton);
             float characterExtra = OpenExtra(layout.CharacterButton);
 
-            float typeLabelY = layout.Top + LabelHeight / 2;
-            float typeButtonY = layout.Top + LabelHeight + ButtonHeight / 2;
-            float characterLabelY = typeLabelY + LabelHeight + ButtonHeight +
-                                    Gap + typeExtra + LabelHeight / 2;
+            float characterLabelY = layout.Top + LabelHeight / 2;
             float characterButtonY = characterLabelY + LabelHeight / 2 +
                                      ButtonHeight / 2;
-            float toolsY = characterButtonY + ButtonHeight / 2 +
-                           Gap + characterExtra + 70;
 
-            Move(layout.TypeLabel, typeLabelY, buffer);
-            Move(layout.TypeButton, typeButtonY, buffer);
             Move(layout.CharacterLabel, characterLabelY, buffer);
             Move(layout.CharacterButton, characterButtonY, buffer);
-            Move(layout.Tools, toolsY, buffer);
 
             float top = layout.Top - 10;
-            float bottom = toolsY + 70 + ButtonHeight / 2 + PanelPadding;
+            float bottom = characterButtonY + ButtonHeight / 2 +
+                           characterExtra + PanelPadding;
             if (!layout.Panel.IsNull &&
                 layout.Panel.HasComponent<Position>() &&
                 layout.Panel.HasComponent<Rectangle>())

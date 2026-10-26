@@ -29,11 +29,11 @@ public sealed class EditorDropdownSceneTest : SceneTest
             "wait for editor sidebar",
             () => Context.Scenes.Current == SceneKind.Editor &&
                   VisualAssert.HasText(Context.Entities, "SNAP") &&
-                  VisualAssert.HasText(Context.Entities, "NOTE TYPE") &&
-                  Context.Entities.Query<Dropdown>().Count == 3);
+                  VisualAssert.HasText(Context.Entities, "CHARACTER") &&
+                  Context.Entities.Query<Dropdown>().Count == 2);
         AddAssert(
-            "note type options use lane colours",
-            NoteTypeOptionsAreColoured);
+            "note swatches use lane colours",
+            NoteSwatchesAreColoured);
         AddStep("record closed sidebar", () =>
         {
             _closedSidebarHeight = SidebarHeight();
@@ -54,30 +54,30 @@ public sealed class EditorDropdownSceneTest : SceneTest
             () => SidebarTop() == _closedSidebarTop);
 
         AddStep(
-            "click note type while snap is open",
-            () => ClickDropdown(EditorDropdownKind.NoteType));
-        AddWaitStep("hold type over snap", 2);
-        AddStep("release type over snap", () => Context.Pointer.Release());
+            "click character while snap is open",
+            () => ClickDropdown(EditorDropdownKind.Character));
+        AddWaitStep("hold character over snap", 2);
+        AddStep("release character over snap", () => Context.Pointer.Release());
         AddUntilStep(
-            "type replaces snap",
-            () => FindDropdown(EditorDropdownKind.NoteType)
+            "character replaces snap",
+            () => FindDropdown(EditorDropdownKind.Character)
                       .GetComponent<Dropdown>().Open &&
                   !FindDropdown(EditorDropdownKind.Snap)
                       .GetComponent<Dropdown>().Open);
         AddAssert(
-            "type list is aligned after snap closes",
-            () => DropdownListIsAligned(EditorDropdownKind.NoteType));
+            "character list is aligned after snap closes",
+            () => DropdownListIsAligned(EditorDropdownKind.Character));
 
         AddStep(
-            "reopen snap over type",
+            "reopen snap over character",
             () => ClickDropdown(EditorDropdownKind.Snap));
-        AddWaitStep("hold snap over type", 2);
-        AddStep("release snap over type", () => Context.Pointer.Release());
+        AddWaitStep("hold snap over character", 2);
+        AddStep("release snap over character", () => Context.Pointer.Release());
         AddUntilStep(
-            "snap replaces type",
+            "snap replaces character",
             () => FindDropdown(EditorDropdownKind.Snap)
                       .GetComponent<Dropdown>().Open &&
-                  !FindDropdown(EditorDropdownKind.NoteType)
+                  !FindDropdown(EditorDropdownKind.Character)
                       .GetComponent<Dropdown>().Open);
 
         AddStep("choose 1/16 snap", () => ClickDropdownOption(EditorDropdownKind.Snap, 2));
@@ -91,22 +91,20 @@ public sealed class EditorDropdownSceneTest : SceneTest
             "sidebar collapses when closed",
             () => SidebarHeight() == _closedSidebarHeight);
 
-        AddStep("click note type dropdown", () => ClickDropdown(EditorDropdownKind.NoteType));
-        AddWaitStep("hold note type dropdown", 2);
-        AddStep("release note type dropdown", () => Context.Pointer.Release());
-        AddAssert(
-            "note type dropdown opened",
-            () => FindDropdown(EditorDropdownKind.NoteType).GetComponent<Dropdown>().Open);
-
-        AddStep(
-            "choose R3 note type",
-            () => ClickDropdownOption(EditorDropdownKind.NoteType, (int)KeybindAction.R3));
-        AddWaitStep("hold note type option", 2);
-        AddStep("release note type option", () => Context.Pointer.Release());
+        AddStep("click R3 swatch", () => ClickSwatch(KeybindAction.R3));
+        AddWaitStep("hold swatch", 2);
+        AddStep("release swatch", () => Context.Pointer.Release());
         AddUntilStep(
             "note type changed",
             () => Context.Entities.Query<EditorNoteTarget>().ToEntityList()[0]
                 .GetComponent<EditorNoteTarget>().Target == KeybindAction.R3);
+
+        AddStep("click mine tool", () => ClickTool(EditorPlacementMode.Mines));
+        AddWaitStep("hold mine tool", 2);
+        AddStep("release mine tool", () => Context.Pointer.Release());
+        AddUntilStep(
+            "swatches hide outside note mode",
+            () => SwatchPosition() == UiLayout.Hidden);
 
         AddStep("click play toolbar", () => ClickEditorButton(EditorButtonKind.Play));
         AddWaitStep("hold play toolbar", 2);
@@ -125,28 +123,49 @@ public sealed class EditorDropdownSceneTest : SceneTest
                 .GetComponent<TimelineView>().Zoom >= 32f);
     }
 
-    private bool NoteTypeOptionsAreColoured()
+    private bool NoteSwatchesAreColoured()
     {
-        foreach (Entity entity in Context.Entities
-                     .Query<DropdownOption>()
-                     .ToEntityList())
+        int count = 0;
+        foreach (Entity entity in Context.Entities.Query<EditorNoteSwatch>().ToEntityList())
         {
-            DropdownOption option = entity.GetComponent<DropdownOption>();
-            if (option.Owner.IsNull ||
-                !option.Owner.HasComponent<EditorDropdownControl>() ||
-                option.Owner.GetComponent<EditorDropdownControl>().Kind !=
-                EditorDropdownKind.NoteType)
-            {
-                continue;
-            }
-
-            Color expected = PlayfieldRenderer.ColorFor(
-                KeybindSettings.Actions[option.Value]);
-            if (entity.GetComponent<FillColor>().Value != expected)
+            count++;
+            if (!entity.HasComponent<ButtonVisual>())
                 return false;
         }
 
-        return true;
+        return count == KeybindSettings.Actions.Length;
+    }
+
+    private Vector2 SwatchPosition()
+    {
+        foreach (Entity entity in Context.Entities.Query<EditorNoteSwatch>().ToEntityList())
+            return entity.GetComponent<Position>().Value;
+
+        return default;
+    }
+
+    private void ClickSwatch(KeybindAction action)
+    {
+        foreach (Entity entity in Context.Entities.Query<EditorNoteSwatch>().ToEntityList())
+        {
+            if (entity.GetComponent<EditorNoteSwatch>().Action != action)
+                continue;
+
+            Context.Pointer.Click(entity.GetComponent<Position>().Value);
+            return;
+        }
+    }
+
+    private void ClickTool(EditorPlacementMode mode)
+    {
+        foreach (Entity entity in Context.Entities.Query<EditorPlacementButton>().ToEntityList())
+        {
+            if (entity.GetComponent<EditorPlacementButton>().Mode != mode)
+                continue;
+
+            Context.Pointer.Click(entity.GetComponent<Position>().Value);
+            return;
+        }
     }
 
     private bool DropdownListIsAligned(EditorDropdownKind kind)

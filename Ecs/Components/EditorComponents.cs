@@ -85,6 +85,7 @@ public enum EditorPlacementMode
     Start,
     Contact,
     CharacterSwitch,
+    Blocks,
 }
 
 public struct EditorPlacementModeState(EditorPlacementMode mode) : IComponent
@@ -124,7 +125,6 @@ public struct EditorSidebar(Rect2 bounds) : IComponent
 public enum EditorDropdownKind
 {
     Snap,
-    NoteType,
     Character,
 }
 
@@ -229,20 +229,27 @@ public struct EditorHud(
 /// <summary>Entities in the editor sidebar that flow around open dropdowns.</summary>
 public struct EditorSidebarLayout(
     Entity panel,
-    Entity typeLabel,
-    Entity typeButton,
     Entity characterLabel,
     Entity characterButton,
-    Entity tools,
     float top) : IComponent
 {
     public Entity Panel = panel;
-    public Entity TypeLabel = typeLabel;
-    public Entity TypeButton = typeButton;
     public Entity CharacterLabel = characterLabel;
     public Entity CharacterButton = characterButton;
-    public Entity Tools = tools;
     public float Top = top;
+}
+
+/// <summary>A colour swatch in the note-type bar; pressing it sets the type new notes get.</summary>
+public struct EditorNoteSwatch(KeybindAction action, Vector2 home) : IComponent
+{
+    public KeybindAction Action = action;
+    public Vector2 Home = home;
+}
+
+/// <summary>The backing panel of the note-type bar, which only shows in note mode.</summary>
+public struct EditorNoteBarPanel(Vector2 home) : IComponent
+{
+    public Vector2 Home = home;
 }
 
 /// <summary>Left-side menu for snap and level file actions.</summary>

@@ -60,6 +60,7 @@ public static partial class PlayfieldRenderer
         canvas.DrawRect(rid, field, PlayfieldBackground);
         DrawBorder(canvas, rid, field, BorderColor, 2);
 
+        DrawBlocks(canvas, rid, entities, view);
         DrawNotes(canvas, rid, entities, view, playfield, playhead, default);
         DrawMines(canvas, rid, entities, view, playhead);
         DrawDashTrails(canvas, rid, entities);

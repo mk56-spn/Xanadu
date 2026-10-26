@@ -68,6 +68,30 @@ public sealed class EditorHistoryTests
     }
 
     [Test]
+    public void UndoRestoresAResizedBlock()
+    {
+        var store = new EntityStore();
+        Entity block = store.CreateEntity(
+            new Block(new Vector2(100, 100), new Vector2(200, 100)));
+        var history = new EditorHistory(store);
+        EditorSnapshot before = history.Capture();
+
+        block.GetComponent<Block>() =
+            new Block(new Vector2(100, 100), new Vector2(400, 100));
+        history.Record(before, history.Capture());
+
+        Assert.That(history.Undo(), Is.True);
+        Assert.That(
+            store.Query<Block>().ToEntityList()[0].GetComponent<Block>().Size,
+            Is.EqualTo(new Vector2(200, 100)));
+
+        Assert.That(history.Redo(), Is.True);
+        Assert.That(
+            store.Query<Block>().ToEntityList()[0].GetComponent<Block>().Size,
+            Is.EqualTo(new Vector2(400, 100)));
+    }
+
+    [Test]
     public void UndoRestoresDeletedStartPoint()
     {
         var store = new EntityStore();

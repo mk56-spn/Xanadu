@@ -29,4 +29,6 @@ public static class EditorStrings
 
     public static readonly LString CharacterSwitch =
         new("editor.mode.character_switch", "SWITCH");
+
+    public static readonly LString Block = new("editor.mode.block", "BLOCK");
 }

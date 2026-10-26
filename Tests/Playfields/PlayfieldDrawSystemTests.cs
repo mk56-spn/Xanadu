@@ -33,6 +33,29 @@ public sealed class PlayfieldDrawSystemTests
     }
 
     [Test]
+    public void PlayModeDrawsBlocks()
+    {
+        var store = new EntityStore();
+        store.CreateEntity(
+            new PlayfieldView(new Vector2(100, 100), 0.5f, new Vector2(1000, 1000)),
+            new Playfield(1000, 1000),
+            new Playhead(1_000, 120, 0, true, durationMs: 5_000),
+            new PlayfieldMode(PlayfieldKind.Play));
+        store.CreateEntity(
+            new Block(new Vector2(100, 200), new Vector2(200, 100)));
+
+        var canvas = new RecordingCanvas();
+        var root = new SystemRoot(store);
+        root.Add(new PlayfieldDrawSystem(store, canvas, default));
+
+        root.Update(new UpdateTick(1f / 60f, 0));
+
+        Assert.That(
+            canvas.Rects,
+            Does.Contain(new Rect2(new Vector2(150, 200), new Vector2(100, 50))));
+    }
+
+    [Test]
     public void PlayModeDoesNotDrawTheEditorGrid()
     {
         var store = new EntityStore();

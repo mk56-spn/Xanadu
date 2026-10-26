@@ -9,11 +9,12 @@ using Writer.Editor;
 using Writer.Systems.Input;
 using Writer.Systems.Playfields;
 using Writer.Systems.Ui;
+using Position = Writer.Ecs.Position;
 
 namespace Writer.Systems.Editor;
 
 /// <summary>Adds, selects, drags, and scrubs notes in playfield coordinates.</summary>
-public sealed class EditorNoteInputSystem : QuerySystem<Note>
+public sealed partial class EditorNoteInputSystem : QuerySystem<Note>
 {
     private const float NoteHitRadius = PlayfieldRenderer.NoteSize / 2;
     private const float MineHitRadius = PlayfieldRenderer.MineSize / 2;
@@ -35,8 +36,15 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
     private Entity _draggedEntity;
     private readonly UiDragController _drag = new();
     private readonly Dictionary<int, Vector2> _dragStartPositions = new();
+    private readonly Dictionary<int, Block> _dragStartBlocks = new();
     private EditorSnapshot _dragBefore;
-    private readonly UiMarquee<Entity> _marquee = new();
+    private readonly NoteBox _box;
+
+    // A resize drag started on one of the primary block's side handles.
+    private Entity _resizeEntity;
+    private BlockHandle _resizeHandle;
+    private Block _resizeStart;
+    private EditorSnapshot _resizeBefore;
 
     public EditorNoteInputSystem(
         EntityStore entities,
@@ -46,6 +54,7 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
         _entities = entities;
         _pointer = pointer;
         _history = history;
+        _box = new NoteBox(this);
     }
 
     protected override void OnUpdate()
@@ -77,9 +86,9 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
         Playfield playfield = editor.GetComponent<Playfield>();
         ref Playhead playhead = ref editor.GetComponent<Playhead>();
 
-        _marquee.Cancel();
+        _box.Cancel(editor);
         _timelineDragging = false;
-        SetSelectionBox(editor, Vector2.Zero, Vector2.Zero, false);
+        _resizeEntity = default;
 
         Rect2 bar = EditorLayout.RulerRect(view);
         if (bar.HasPoint(screenPosition))
@@ -107,6 +116,16 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
                 return;
             }
 
+            // Shift on empty strip drags a box over the notes, as on the
+            // playfield; a plain press scrubs.
+            if (shift && playhead.DurationMs > 0)
+            {
+                _box.OnTimeline = true;
+                _box.BeginAdditive(
+                    screenPosition, editor.GetComponent<NoteSelection>().AllNotes);
+                return;
+            }
+
             BeginScrub(screenPosition, bar, ref playhead, editor);
             return;
         }
@@ -116,6 +135,9 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
         {
             return;
         }
+
+        if (IsOverNoteBar(screenPosition))
+            return;
 
         if (editor.HasComponent<EditorDirectionWheel>())
         {
@@ -129,6 +151,12 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
         }
 
         Vector2 playfieldPosition = view.ScreenToPlayfield(screenPosition);
+
+        // Handles hang over the field's edge, so they get the press before the
+        // inside test would turn an edge drag away.
+        if (TryBeginResize(screenPosition, editor, view))
+            return;
+
         if (!IsInside(playfieldPosition, playfield))
             return;
 
@@ -137,6 +165,8 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
             hit = FindMineAt(playfieldPosition, playhead.TimeMs);
         if (hit.IsNull)
             hit = FindStartAt(playfieldPosition);
+        if (hit.IsNull)
+            hit = FindBlockAt(playfieldPosition);
 
         ref NoteSelection selection = ref editor.GetComponent<NoteSelection>();
 
@@ -151,6 +181,7 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
             _draggedEntity = hit;
             _drag.Begin(hit, playfieldPosition);
             _dragStartPositions.Clear();
+            _dragStartBlocks.Clear();
             _dragBefore = _history.Capture();
 
             if (!selection.Contains(hit))
@@ -162,6 +193,8 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
                     EditorItemPosition.TryGet(selected, out Vector2 selectedPosition))
                 {
                     _dragStartPositions[selected.Id] = selectedPosition;
+                    if (selected.HasComponent<Block>())
+                        _dragStartBlocks[selected.Id] = selected.GetComponent<Block>();
                 }
             }
 
@@ -177,10 +210,11 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
 
         // Shift-dragging adds to the selection; a plain press may place a note
         // when released without dragging, or box-select when dragged.
+        _box.OnTimeline = false;
         if (shift)
-            _marquee.Begin(screenPosition, additive: true, selection.AllNotes);
+            _box.BeginAdditive(screenPosition, selection.AllNotes);
         else
-            _marquee.Arm(screenPosition);
+            _box.Arm(screenPosition);
     }
 
     private void OnHold(Vector2 screenPosition)
@@ -196,6 +230,12 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
         PlayfieldView view = editor.GetComponent<PlayfieldView>();
         Playfield playfield = editor.GetComponent<Playfield>();
         ref Playhead playhead = ref editor.GetComponent<Playhead>();
+
+        if (!_resizeEntity.IsNull)
+        {
+            UpdateResize(screenPosition, view, playfield);
+            return;
+        }
 
         if (_scrubbing)
         {
@@ -221,16 +261,8 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
             return;
         }
 
-        if (_marquee.Update(screenPosition, out bool boxStarted))
-        {
-            if (boxStarted)
-                editor.GetComponent<NoteSelection>().SetMany(System.Array.Empty<Entity>());
-
-            SetSelectionBox(editor, _marquee.Start, _marquee.Current, true);
-            editor.GetComponent<NoteSelection>().SetMany(
-                _marquee.Selection(FindNotesIn(_marquee.Bounds, playhead.TimeMs)));
+        if (_box.Drag(editor, screenPosition))
             return;
-        }
 
         if (!EditorItems.IsItem(_draggedEntity) ||
             !EditorItemPosition.TryGet(_draggedEntity, out _))
@@ -250,6 +282,13 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
             if (!EditorItems.IsItem(entity))
                 continue;
 
+            if (_dragStartBlocks.TryGetValue(id, out Block block))
+            {
+                entity.GetComponent<Block>() =
+                    BlockEditing.Move(block, delta, playfield);
+                continue;
+            }
+
             Vector2 target = new(
                 Math.Clamp(start.X + delta.X, 0, playfield.Width),
                 Math.Clamp(start.Y + delta.Y, 0, playfield.Height));
@@ -260,6 +299,13 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
     private void OnRelease()
     {
         Entity editor = FindEditor();
+
+        if (!_resizeEntity.IsNull)
+        {
+            _history.Record(_resizeBefore, _history.Capture());
+            _resizeEntity = default;
+            return;
+        }
 
         if (_timelineDragging)
         {
@@ -282,17 +328,14 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
             return;
         }
 
-        if (!editor.IsNull)
-            SetSelectionBox(editor, Vector2.Zero, Vector2.Zero, false);
-
-        MarqueeEnd end = _marquee.End();
+        MarqueeEnd end = _box.End(editor);
         if (end == MarqueeEnd.Box)
             return;
 
         if (end == MarqueeEnd.Click)
         {
             if (!editor.IsNull)
-                CreatePlacementAt(editor, _marquee.Start);
+                CreatePlacementAt(editor, _box.Start);
             return;
         }
 
@@ -306,6 +349,14 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
 
     private void CreatePlacementAt(Entity editor, Vector2 screenPosition)
     {
+        if (editor.HasComponent<EditorPlacementModeState>() &&
+            editor.GetComponent<EditorPlacementModeState>().Mode ==
+            EditorPlacementMode.Blocks)
+        {
+            PlaceBlock(editor, screenPosition);
+            return;
+        }
+
         if (editor.HasComponent<EditorPlacementModeState>() &&
             editor.GetComponent<EditorPlacementModeState>().Mode ==
             EditorPlacementMode.Start)
@@ -452,22 +503,17 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
                 selected.Add(entity);
         }
 
+        foreach (Entity entity in _entities.Query<Block>().ToEntityList())
+        {
+            Block block = entity.GetComponent<Block>();
+            var blockBounds = new Rect2(
+                view.PlayfieldToScreen(block.Position),
+                block.Size * view.Scale);
+            if (screenBounds.Intersects(blockBounds))
+                selected.Add(entity);
+        }
+
         return selected;
-    }
-
-    private static void SetSelectionBox(
-        Entity editor,
-        Vector2 start,
-        Vector2 current,
-        bool active)
-    {
-        if (!editor.HasComponent<UiMarqueeBox>())
-            return;
-
-        ref UiMarqueeBox box = ref editor.GetComponent<UiMarqueeBox>();
-        box.Start = start;
-        box.Current = current;
-        box.Active = active;
     }
 
     private const float ScrubDeadZone = 0.55f;
@@ -630,53 +676,71 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
         if (playhead.DurationMs <= 0)
             return default;
 
+        foreach ((Entity note, Rect2 bounds) in TimelineSlots(editor, ruler, playhead))
+        {
+            if (bounds.HasPoint(screenPosition))
+                return note;
+        }
+
+        return default;
+    }
+
+    private List<(Entity Note, Rect2 Bounds)> TimelineSlots(
+        Entity editor,
+        Rect2 ruler,
+        Playhead playhead)
+    {
         float zoom = editor.HasComponent<TimelineView>()
             ? editor.GetComponent<TimelineView>().Zoom
             : 1f;
         (long start, long end) = EditorLayout.TimelineWindow(playhead, zoom);
-        float span = Math.Max(1, end - start);
-        float noteSquare = Math.Clamp(6f + zoom * 0.0625f, 6f, 8f);
-        const float noteGap = 1f;
+        return EditorTimelineNotes.Slots(_entities, ruler, start, end, zoom);
+    }
 
-        var notesByTime = new Dictionary<long, List<Entity>>();
-        foreach (Entity entity in _entities.Query<Note>().ToEntityList())
+    /// <summary>Drag-to-select for the playfield and for the timeline strip; they differ only in what a box covers.</summary>
+    private sealed class NoteBox(EditorNoteInputSystem system) : UiBoxSelector<Entity>
+    {
+        /// <summary>The box was started on the timeline strip rather than the playfield.</summary>
+        public bool OnTimeline { get; set; }
+
+        protected override IEnumerable<Entity> HitsIn(Entity owner, Rect2 bounds)
         {
-            Note note = entity.GetComponent<Note>();
-            if (note.TimeMs < start || note.TimeMs > end)
-                continue;
+            Playhead playhead = owner.GetComponent<Playhead>();
+            if (!OnTimeline)
+                return system.FindNotesIn(bounds, playhead.TimeMs);
 
-            if (!notesByTime.TryGetValue(note.TimeMs, out List<Entity>? notes))
+            var hits = new List<Entity>();
+            Rect2 ruler = EditorLayout.RulerRect(owner.GetComponent<PlayfieldView>());
+            foreach ((Entity note, Rect2 slot) in system.TimelineSlots(owner, ruler, playhead))
             {
-                notes = new List<Entity>();
-                notesByTime.Add(note.TimeMs, notes);
+                if (bounds.Intersects(slot))
+                    hits.Add(note);
             }
 
-            notes.Add(entity);
+            return hits;
         }
 
-        foreach ((long timeMs, List<Entity> notes) in notesByTime)
-        {
-            float x = ruler.Position.X +
-                      (timeMs - start) / span * ruler.Size.X;
-            int visible = Math.Min(notes.Count, 7);
-            float totalHeight = visible * noteSquare +
-                                Math.Max(0, visible - 1) * noteGap;
-            float top = ruler.Position.Y +
-                        (ruler.Size.Y - totalHeight) / 2;
+        protected override void Select(Entity owner, List<Entity> selection) =>
+            owner.GetComponent<NoteSelection>().SetMany(selection);
+    }
 
-            for (int i = 0; i < visible; i++)
+    /// <summary>The note-type bar floats over the playfield on small windows; presses on it are not placements.</summary>
+    private bool IsOverNoteBar(Vector2 screenPosition)
+    {
+        foreach (Entity panel in _entities
+                     .Query<EditorNoteBarPanel, Position, Rectangle>()
+                     .ToEntityList())
+        {
+            Vector2 center = panel.GetComponent<Position>().Value;
+            Rect2 local = panel.GetComponent<Rectangle>().Bounds;
+            if (center != UiLayout.Hidden &&
+                new Rect2(center + local.Position, local.Size).HasPoint(screenPosition))
             {
-                var bounds = new Rect2(
-                    x - noteSquare / 2,
-                    top + i * (noteSquare + noteGap),
-                    noteSquare,
-                    noteSquare);
-                if (bounds.HasPoint(screenPosition))
-                    return notes[i];
+                return true;
             }
         }
 
-        return default;
+        return false;
     }
 
     private Entity FindNoteAt(Vector2 position, long playheadMs)
@@ -738,6 +802,7 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
         _dragBefore = default;
         _drag.End();
         _dragStartPositions.Clear();
+        _dragStartBlocks.Clear();
     }
 
     private bool IsWarningOpen()

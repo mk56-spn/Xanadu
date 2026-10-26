@@ -305,6 +305,32 @@ public sealed class EditorPlayfieldDrawSystemTests
         Assert.That(canvas.Texts, Does.Contain("500"));
     }
 
+    [Test]
+    public void TheSelectedBlockShowsItsResizeNubs()
+    {
+        var (store, field, canvas, root) = StartPointScene();
+        Entity block = store.CreateEntity(
+            new Block(new Vector2(400, 500), new Vector2(200, 100)));
+        field.GetComponent<NoteSelection>().Note = block;
+
+        root.Update(new UpdateTick(1f / 60f, 0));
+
+        PlayfieldView view = field.GetComponent<PlayfieldView>();
+        Rect2 expected = new(
+            view.PlayfieldToScreen(new Vector2(400, 500)),
+            new Vector2(200, 100) * view.Scale);
+        Assert.That(
+            canvas.RectCalls.Exists(call =>
+                call.Color == PlayfieldRenderer.BlockSelectedEdge &&
+                call.Bounds.IsEqualApprox(expected)),
+            Is.True);
+        Assert.That(
+            canvas.RectCalls.FindAll(call =>
+                call.Color == PlayfieldRenderer.BlockEdge &&
+                call.Bounds.Size == new Vector2(10, 10)),
+            Has.Count.EqualTo(4));
+    }
+
     private static (EntityStore Store, Entity Field, RecordingCanvas Canvas, SystemRoot Root) StartPointScene()
     {
         var view = new PlayfieldView(new Vector2(30, 30), 0.6f, new Vector2(1152, 648));
