@@ -2,11 +2,13 @@ using System;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Godot;
+using Writer.Animation;
 using Writer.Ecs;
 using Writer.Editor;
 using Writer.Editor.Commands;
 using Writer.Systems.Audio;
 using Writer.Systems.Canvas;
+using Writer.Systems.Characters;
 using Writer.Systems.Debug;
 using Writer.Systems.Groups;
 using Writer.Systems.Input;
@@ -30,6 +32,7 @@ public sealed class WriterSystemRoot : SystemRoot, IDisposable
     private readonly Rid _timeline;
     private readonly Rid _hudEditOverlay;
     private readonly Rid _playfield;
+    private readonly Rid _characters;
     private readonly EntityStore _entities;
     private readonly MiniaudioTrackAudio _trackAudio = new();
     private readonly MiniaudioTrackAudio _playfieldAudio = new();
@@ -116,6 +119,10 @@ public sealed class WriterSystemRoot : SystemRoot, IDisposable
         RenderingServer.CanvasItemSetParent(_playfield, parentCanvas);
         RenderingServer.CanvasItemSetZIndex(_playfield, 800);
 
+        // Character rig art: a child of the playfield, so it draws over the field.
+        _characters = RenderingServer.CanvasItemCreate();
+        RenderingServer.CanvasItemSetParent(_characters, _playfield);
+
         _hudEditOverlay = RenderingServer.CanvasItemCreate();
         RenderingServer.CanvasItemSetParent(_hudEditOverlay, parentCanvas);
         RenderingServer.CanvasItemSetZIndex(_hudEditOverlay, 950);
@@ -134,7 +141,9 @@ public sealed class WriterSystemRoot : SystemRoot, IDisposable
             Offsets,
             pointerInput,
             Hud,
-            _hudEditOverlay));
+            _hudEditOverlay,
+            new GodotCharacterRigFiles(),
+            () => new SvgAttachmentVisuals(_characters)));
         _editorSystems = new EditorSystemGroup(
             entities,
             Commands,
@@ -246,6 +255,7 @@ public sealed class WriterSystemRoot : SystemRoot, IDisposable
         _playfieldAudio.Dispose();
         _metronomeAudio.Dispose();
         Physics.Dispose();
+        RenderingServer.FreeRid(_characters);
         RenderingServer.FreeRid(_playfield);
         RenderingServer.FreeRid(_timeline);
         RenderingServer.FreeRid(_debugOverlay);

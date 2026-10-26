@@ -18,6 +18,10 @@ public static partial class PlayfieldRenderer
     {
         foreach (Entity entity in entities.Query<Player, Position>().ToEntityList())
         {
+            // The character rig's art stands in for the box once it is on screen.
+            if (entity.Tags.Has<CharacterRigVisible>())
+                return;
+
             Player player = entity.GetComponent<Player>();
             Vector2 center = entity.GetComponent<Position>().Value;
             Vector2 size = player.Size;
