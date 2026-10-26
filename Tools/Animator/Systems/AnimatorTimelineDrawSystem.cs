@@ -17,12 +17,16 @@ public sealed class AnimatorTimelineDrawSystem(IRectCanvas canvas, Rid target)
     private static readonly Color RowEven = new("#0f172a");
     private static readonly Color RowOdd = new("#131d33");
     private static readonly Color RowSelected = new("#164e63");
+    private static readonly Color RowSelectedExtra = new("#115e59");
+    private static readonly Color RowSelectedChannel = new("#134e4a");
     private static readonly Color Grid = new("#1e293b");
     private static readonly Color Tick = new("#64748b");
     private static readonly Color Dim = new("#94a3b8");
     private static readonly Color Text = new("#e2e8f0");
     private static readonly Color KeyColor = new("#38bdf8");
     private static readonly Color Playhead = new("#facc15");
+    private static readonly Color LoopBand = new("#2dd4bf", 0.18f);
+    private static readonly Color LoopLine = new("#2dd4bf");
 
     protected override void OnUpdate()
     {
@@ -43,7 +47,8 @@ public sealed class AnimatorTimelineDrawSystem(IRectCanvas canvas, Rid target)
 
         DrawHeader(model, document.Runtime);
         DrawRuler(model);
-        DrawRows(model, selection, selected);
+        DrawRows(model, selection, selected, document.Package);
+        DrawLoop(model);
         DrawPlayhead(model, document.Runtime.CurrentTime);
 
         // The box being dragged to select keys, over everything else.
@@ -56,6 +61,9 @@ public sealed class AnimatorTimelineDrawSystem(IRectCanvas canvas, Rid target)
         string rows = model.Tracks.Count > model.VisibleRows
             ? $"   rows {model.FirstRow + 1}-{model.LastRow} of {model.Tracks.Count}"
             : "";
+        string loop = model.Clip.Loop
+            ? $"   loop {model.Clip.LoopStart:0.##}-{model.Clip.LoopEnd:0.##}s"
+            : "";
         canvas.DrawTextStyledLeft(
             target,
             new Rect2(
@@ -64,7 +72,7 @@ public sealed class AnimatorTimelineDrawSystem(IRectCanvas canvas, Rid target)
                 model.Panel.Size.X - AnimatorTimelineModel.Padding * 2,
                 AnimatorTimelineModel.HeaderHeight),
             $"{model.Clip.Id}   {runtime.CurrentTime:0.00}s / {model.Clip.Duration:0.00}s" +
-            $"   zoom x{model.Zoom:0.#}   snap {model.SnapStep:0.###}s (Shift = free){rows}",
+            $"   zoom x{model.Zoom:0.#}   snap {model.SnapStep:0.###}s (Shift = free){loop}{rows}",
             Dim,
             12);
     }
@@ -73,6 +81,15 @@ public sealed class AnimatorTimelineDrawSystem(IRectCanvas canvas, Rid target)
     {
         Rect2 ruler = model.Ruler;
         canvas.DrawRect(target, ruler, RulerBackground);
+        if (model.Clip.Loop)
+        {
+            float startX = model.XForSeconds(model.Clip.LoopStart);
+            float endX = model.XForSeconds(model.Clip.LoopEnd);
+            canvas.DrawRect(
+                target,
+                new Rect2(startX, ruler.Position.Y, Math.Max(1f, endX - startX), ruler.Size.Y),
+                LoopBand);
+        }
 
         double tickMs = model.SnapStep * 1000.0;
         int first = TimingGrid.FirstTick(model.Window.Start, 0, tickMs);
@@ -116,7 +133,8 @@ public sealed class AnimatorTimelineDrawSystem(IRectCanvas canvas, Rid target)
     private void DrawRows(
         AnimatorTimelineModel model,
         AnimatorSelection selection,
-        XafTrack? selected)
+        XafTrack? selected,
+        XafPackage package)
     {
         if (model.Tracks.Count == 0)
         {
@@ -135,16 +153,47 @@ public sealed class AnimatorTimelineDrawSystem(IRectCanvas canvas, Rid target)
             if (index >= model.Tracks.Count)
                 break;
 
-            XafTrack track = model.Tracks[index];
+            AnimatorTrackRow track = model.Tracks[index];
             Rect2 row = model.RowRect(screenRow);
-            bool isSelected = selected is { } chosen && chosen == track;
-            canvas.DrawRect(target, row, isSelected ? RowSelected : screenRow % 2 == 0 ? RowEven : RowOdd);
+            bool primary = selected is { } chosen && chosen == track.Track;
+            bool anySelected = IsSelectedTrack(selection, package, track.Track);
+            Color background = anySelected
+                ? primary
+                    ? track.IsChannel ? RowSelectedChannel : RowSelected
+                    : RowSelectedExtra
+                : screenRow % 2 == 0 ? RowEven : RowOdd;
+            canvas.DrawRect(target, row, background);
+
+            string label;
+            float labelX;
+            if (track.Property is { } property)
+            {
+                label = AnimatorTrackRow.PropertyLabel(property);
+                labelX = model.Labels.Position.X + 18;
+            }
+            else
+            {
+                label = track.Target == XafChannelTarget.Attachment
+                    ? $"{track.Id}  (svg)"
+                    : track.Id;
+                bool hasChannels = AnimatorTrackRows.HasChannels(model.Clip, track.Track);
+                if (hasChannels)
+                {
+                    label = (model.IsExpanded(track.Track) ? "▾ " : "▸ ") + label;
+                    labelX = model.Labels.Position.X + 6;
+                }
+                else
+                {
+                    labelX = model.Labels.Position.X + 6;
+                }
+            }
+
             canvas.DrawTextStyledLeft(
                 target,
-                new Rect2(model.Labels.Position.X + 6, row.Position.Y + 2, AnimatorTimelineModel.LabelWidth - 8, row.Size.Y - 4),
-                track.Target == XafChannelTarget.Attachment ? $"{track.Id}  (svg)" : track.Id,
-                isSelected ? Colors.White : Text,
-                12);
+                new Rect2(labelX, row.Position.Y + 2, AnimatorTimelineModel.LabelWidth - 8, row.Size.Y - 4),
+                label,
+                primary ? Colors.White : anySelected ? Text : track.IsChannel ? Dim : Text,
+                11);
             DrawKeys(model, selection, track, row);
         }
     }
@@ -152,23 +201,54 @@ public sealed class AnimatorTimelineDrawSystem(IRectCanvas canvas, Rid target)
     private void DrawKeys(
         AnimatorTimelineModel model,
         AnimatorSelection selection,
-        XafTrack track,
+        AnimatorTrackRow track,
         Rect2 row)
     {
-        foreach (float time in XafTracks.KeyTimes(model.Clip, track))
+        foreach (float time in AnimatorTrackRows.KeyTimes(model.Clip, track))
         {
             double ms = time * 1000.0;
             if (ms < model.Window.Start || ms > model.Window.End)
                 continue;
 
             bool chosen = selection.IsKeySelected(track, time);
-            XafEasePreset? ease = XafEasing.Read(model.Clip, track.Target, track.Id, time);
+            XafEasePreset? ease = track.Property is { } property
+                ? XafEasing.Read(model.Clip, track.Target, track.Id, property, time)
+                : XafEasing.Read(model.Clip, track.Target, track.Id, time);
             DrawKey(
                 new Vector2(model.XForSeconds(time), row.Position.Y + row.Size.Y / 2),
                 chosen ? AnimatorTimelineModel.KeyRadius + 1 : AnimatorTimelineModel.KeyRadius - 1,
                 chosen ? Colors.White : KeyColor,
                 ease ?? XafEasePreset.Linear);
         }
+    }
+
+    /// <summary>Whether a track belongs to any selected bone or attachment, not just the primary.</summary>
+    private static bool IsSelectedTrack(
+        AnimatorSelection selection,
+        XafPackage package,
+        XafTrack track)
+    {
+        if (track.Target == XafChannelTarget.Bone)
+            return selection.IsBoneSelected(XafRig.FindBone(package, track.Id));
+
+        int attachment = package.Attachments.FindIndex(candidate => candidate.Group == track.Id);
+        return selection.Attachment >= 0 && selection.Attachment == attachment;
+    }
+
+    /// <summary>Marks the loop range through the rows, with a grab tab at each end.</summary>
+    private void DrawLoop(AnimatorTimelineModel model)
+    {
+        if (!model.Clip.Loop)
+            return;
+
+        float startX = model.XForSeconds(model.Clip.LoopStart);
+        float endX = model.XForSeconds(model.Clip.LoopEnd);
+        float top = model.Ruler.Position.Y;
+        float bottom = model.Rows.Position.Y + model.VisibleRows * AnimatorTimelineModel.RowHeight;
+        canvas.DrawLine(target, new Vector2(startX, top), new Vector2(startX, bottom), LoopLine, 1);
+        canvas.DrawLine(target, new Vector2(endX, top), new Vector2(endX, bottom), LoopLine, 1);
+        canvas.DrawRect(target, new Rect2(startX - 4, top - 2, 8, 12), LoopLine);
+        canvas.DrawRect(target, new Rect2(endX - 4, top - 2, 8, 12), LoopLine);
     }
 
     private void DrawPlayhead(AnimatorTimelineModel model, float time)

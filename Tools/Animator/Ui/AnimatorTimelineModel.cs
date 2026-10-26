@@ -23,13 +23,17 @@ public sealed class AnimatorTimelineModel
     public const float RowHeight = 20f;
     public const float KeyRadius = 6f;
     public const float KeyHitRadius = 9f;
+    public const float LoopHandleRadius = 8f;
+
+    private static readonly HashSet<XafTrack> EmptyExpanded = new();
     public const float MinLabelPixels = 70f;
     public const float MinSnapPixels = 12f;
 
     private AnimatorTimelineModel(
         Rect2 panel,
         XafClip clip,
-        List<XafTrack> tracks,
+        List<AnimatorTrackRow> tracks,
+        IReadOnlySet<XafTrack> expanded,
         int firstRow,
         TimeWindow window,
         float zoom)
@@ -37,6 +41,7 @@ public sealed class AnimatorTimelineModel
         Panel = panel;
         Clip = clip;
         Tracks = tracks;
+        Expanded = expanded;
         Window = window;
         Zoom = zoom;
         Ruler = RulerOf(panel);
@@ -52,7 +57,10 @@ public sealed class AnimatorTimelineModel
 
     public Rect2 Panel { get; }
     public XafClip Clip { get; }
-    public IReadOnlyList<XafTrack> Tracks { get; }
+    public IReadOnlyList<AnimatorTrackRow> Tracks { get; }
+
+    /// <summary>Targets whose channel rows are shown.</summary>
+    public IReadOnlySet<XafTrack> Expanded { get; }
     public TimeWindow Window { get; }
     public float Zoom { get; }
     public Rect2 Ruler { get; }
@@ -87,11 +95,15 @@ public sealed class AnimatorTimelineModel
             : TimeWindow.Following(timeMs, durationMs, view.Zoom);
 
         XafTrack? selected = SelectedTrack(session, document.Package);
-        List<XafTrack> tracks = XafTracks.Of(document.Package, clip, selected);
+        IReadOnlySet<XafTrack> expanded =
+            session.GetComponent<AnimatorTracks>().Expanded ?? EmptyExpanded;
+        List<AnimatorTrackRow> tracks = AnimatorTrackRows.Build(
+            document.Package, clip, selected, expanded);
         return new AnimatorTimelineModel(
             panel,
             clip,
             tracks,
+            expanded,
             session.GetComponent<AnimatorTracks>().FirstRow,
             window,
             view.Zoom);
@@ -132,21 +144,36 @@ public sealed class AnimatorTimelineModel
         return FirstRow + row < Tracks.Count ? row : -1;
     }
 
-    public XafTrack TrackAt(int screenRow) => Tracks[FirstRow + screenRow];
+    public AnimatorTrackRow TrackAt(int screenRow) => Tracks[FirstRow + screenRow];
+
+    public bool IsExpanded(XafTrack track) => Expanded.Contains(track);
+
+    /// <summary>Whether the point presses the expand arrow at the start of a target row.</summary>
+    public bool IsExpandArrow(Vector2 point, int screenRow)
+    {
+        if (screenRow < 0 || FirstRow + screenRow >= Tracks.Count)
+            return false;
+
+        AnimatorTrackRow row = Tracks[FirstRow + screenRow];
+        return !row.IsChannel &&
+               point.X >= Labels.Position.X &&
+               point.X <= Labels.Position.X + 16f &&
+               AnimatorTrackRows.HasChannels(Clip, row.Track);
+    }
 
     /// <summary>The key set nearest the point, within the hit radius, on its row.</summary>
-    public bool TryPickKey(Vector2 point, out XafTrack track, out float time)
+    public bool TryPickKey(Vector2 point, out AnimatorTrackRow rowAt, out float time)
     {
-        track = default;
+        rowAt = default;
         time = 0f;
         int row = ScreenRowAt(point);
         if (row < 0 || !Rows.HasPoint(point))
             return false;
 
-        track = TrackAt(row);
+        rowAt = TrackAt(row);
         float best = KeyHitRadius;
         bool found = false;
-        foreach (float candidate in XafTracks.KeyTimes(Clip, track))
+        foreach (float candidate in AnimatorTrackRows.KeyTimes(Clip, rowAt))
         {
             float distance = Math.Abs(point.X - XForSeconds(candidate));
             if (distance >= best)
@@ -156,6 +183,27 @@ public sealed class AnimatorTimelineModel
             found = true;
         }
         return found;
+    }
+
+    /// <summary>
+    /// The loop end a press near its handle in the ruler grabs: true for the
+    /// start, false for the end. Only while the clip loops.
+    /// </summary>
+    public bool TryPickLoopHandle(Vector2 point, out bool start)
+    {
+        start = false;
+        if (!Clip.Loop || !Ruler.Grow(4f).HasPoint(point))
+            return false;
+
+        float startX = XForSeconds(Clip.LoopStart);
+        float endX = XForSeconds(Clip.LoopEnd);
+        float toStart = Math.Abs(point.X - startX);
+        float toEnd = Math.Abs(point.X - endX);
+        if (toStart > LoopHandleRadius && toEnd > LoopHandleRadius)
+            return false;
+
+        start = toStart <= toEnd;
+        return true;
     }
 
     /// <summary>Every visible key set whose marker touches the box, in row order.</summary>
@@ -172,8 +220,8 @@ public sealed class AnimatorTimelineModel
             if (!box.Intersects(row, includeBorders: true))
                 continue;
 
-            XafTrack track = Tracks[index];
-            foreach (float time in XafTracks.KeyTimes(Clip, track))
+            AnimatorTrackRow track = Tracks[index];
+            foreach (float time in AnimatorTrackRows.KeyTimes(Clip, track))
             {
                 double ms = time * 1000.0;
                 if (ms < Window.Start || ms > Window.End)
@@ -182,7 +230,7 @@ public sealed class AnimatorTimelineModel
                 Vector2 center = new(XForSeconds(time), row.GetCenter().Y);
                 var marker = new Rect2(center - new Vector2(KeyRadius, KeyRadius), new Vector2(KeyRadius * 2, KeyRadius * 2));
                 if (box.Intersects(marker, includeBorders: true))
-                    keys.Add(new AnimatorKeyRef(track.Target, track.Id, time));
+                    keys.Add(AnimatorTrackRows.Ref(track, time));
             }
         }
 

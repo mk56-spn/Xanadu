@@ -54,6 +54,24 @@ public enum ToolActionKind
 
     /// <summary>Flips one editing mode; the argument names the <see cref="AnimatorMode"/>.</summary>
     ToggleMode,
+
+    /// <summary>Frames the whole rig in the preview.</summary>
+    FitPreview,
+
+    /// <summary>Puts the preview back at one unit per pixel, centred.</summary>
+    ResetPreview,
+
+    /// <summary>Clears the selected bone's or attachment's pose back to its rest transform.</summary>
+    ResetTransform,
+
+    /// <summary>Copies the selected key sets, for pasting at another time or in another clip.</summary>
+    CopyKeys,
+
+    /// <summary>Pastes the copied key sets at the playhead.</summary>
+    PasteKeys,
+
+    /// <summary>Selects every key set in the current clip.</summary>
+    SelectAllKeys,
 }
 
 /// <summary>Command carried by a pressable UI entity.</summary>
@@ -98,12 +116,23 @@ public struct AnimatorDocument : IComponent
 }
 
 /// <summary>One selected key set: every channel key of a bone or attachment at one time.</summary>
-public readonly record struct AnimatorKeyRef(XafChannelTarget Target, string Id, float Time)
+public readonly record struct AnimatorKeyRef(
+    XafChannelTarget Target,
+    string Id,
+    float Time,
+    XafChannelProperty? Property = null)
 {
     public XafTrack Track => new(Target, Id);
 
+    /// <summary>Whether this ref is the key set of a target at a time.</summary>
     public bool Is(XafTrack track, float time) =>
+        Property is null &&
         Target == track.Target && Id == track.Id &&
+        System.Math.Abs(Time - time) <= XafTracks.TimeTolerance;
+
+    /// <summary>Whether this ref is exactly the key on a row at a time.</summary>
+    public bool Is(AnimatorTrackRow row, float time) =>
+        Target == row.Target && Id == row.Id && Property == row.Property &&
         System.Math.Abs(Time - time) <= XafTracks.TimeTolerance;
 }
 
@@ -113,10 +142,13 @@ public readonly record struct AnimatorKeyRef(XafChannelTarget Target, string Id,
 /// playhead and drags follow; a box select can add more in
 /// <see cref="Extra"/>.
 /// </summary>
-public struct AnimatorSelection : IComponent
+public partial struct AnimatorSelection : IComponent
 {
     public int Bone;
     public int Attachment;
+
+    /// <summary>The selected bones beside the primary one; null when only one is selected.</summary>
+    public List<int>? ExtraBones;
 
     private bool _hasKey;
 
@@ -137,6 +169,7 @@ public struct AnimatorSelection : IComponent
 
     public XafChannelTarget KeyTarget;
     public string KeyId;
+    public XafChannelProperty? KeyProperty;
     public float KeyTime;
 
     /// <summary>The other selected keys beside the primary one; null when only one is selected.</summary>
@@ -149,7 +182,7 @@ public struct AnimatorSelection : IComponent
         if (!_hasKey)
             return keys;
 
-        keys.Add(new AnimatorKeyRef(KeyTarget, KeyId, KeyTime));
+        keys.Add(new AnimatorKeyRef(KeyTarget, KeyId, KeyTime, KeyProperty));
         if (Extra is not null)
             keys.AddRange(Extra);
         return keys;
@@ -157,6 +190,9 @@ public struct AnimatorSelection : IComponent
 
     public readonly bool IsKeySelected(XafTrack track, float time) =>
         _hasKey && Keys().Exists(key => key.Is(track, time));
+
+    public readonly bool IsKeySelected(AnimatorTrackRow row, float time) =>
+        _hasKey && Keys().Exists(key => key.Is(row, time));
 
     public static AnimatorSelection None => new()
     {
@@ -182,10 +218,14 @@ public struct AnimatorFile : IComponent
     public bool DiscardArmed;
 }
 
-/// <summary>Vertical scroll of the keyframe timeline's track rows.</summary>
+/// <summary>
+/// Vertical scroll of the keyframe timeline's track rows, and the tracks whose
+/// channels are expanded into their own rows.
+/// </summary>
 public struct AnimatorTracks : IComponent
 {
     public int FirstRow;
+    public HashSet<XafTrack>? Expanded;
 }
 
 public struct AnimatorModes : IComponent
@@ -246,6 +286,12 @@ public enum AnimatorDragKind
 
     /// <summary>Drags a box over the timeline to select the keys it covers.</summary>
     KeyBox,
+
+    /// <summary>Drags the loop's start handle in the ruler.</summary>
+    LoopStart,
+
+    /// <summary>Drags the loop's end handle in the ruler.</summary>
+    LoopEnd,
 }
 
 /// <summary>Active pointer drag in the preview or timeline.</summary>
@@ -260,6 +306,18 @@ public struct AnimatorDrag : IComponent
 
     /// <summary>World transform of the dragged value's parent, so drags follow rotated rigs.</summary>
     public Transform2D ParentWorld;
+}
+
+/// <summary>
+/// What the pointer is over in the preview this frame, so the drawing can
+/// highlight it. Bone and attachment indices are -1 for none.
+/// </summary>
+public struct AnimatorHover : IComponent
+{
+    public int Bone;
+    public int Attachment;
+
+    public static AnimatorHover None => new() { Bone = -1, Attachment = -1 };
 }
 
 /// <summary>
@@ -299,6 +357,9 @@ public struct AnimatorKeyMenu : IComponent
     /// <summary>The bone or attachment whose row was clicked.</summary>
     public XafTrack Track;
 
+    /// <summary>The channel row clicked, or null for the target's merged row.</summary>
+    public XafChannelProperty? Property;
+
     /// <summary>Seconds into the clip under the pointer, snapped, or the time of the key clicked.</summary>
     public float Time;
 }
@@ -313,49 +374,6 @@ public struct AnimatorClipboard : IComponent
 public struct AnimatorStatus : IComponent
 {
     public string Message;
-}
-
-/// <summary>UI entities the animator systems read or write.</summary>
-public struct AnimatorUi : IComponent
-{
-    public Entity Status;
-    public Entity Preview;
-    public Entity Timeline;
-    public Entity BoneList;
-    public Entity AttachmentList;
-
-    /// <summary>Header slot that holds the clip dropdown button.</summary>
-    public Entity ClipList;
-
-    /// <summary>
-    /// Top layer for floating UI: menus, dropdown lists and the history panel.
-    /// It draws above the overlay canvases, so lists opened from the header
-    /// are not hidden behind the preview.
-    /// </summary>
-    public Entity MenuLayer;
-
-    /// <summary>The key menu and its two options; the menu system dims the one that does not apply.</summary>
-    public Entity KeyMenu;
-    public Entity KeyMenuAdd;
-    public Entity KeyMenuDelete;
-
-    /// <summary>Screen size the layout was built for, so floating menus can stay on screen.</summary>
-    public Vector2 ScreenSize;
-
-    /// <summary>Button of the clip dropdown; rebuilt with the clip list.</summary>
-    public Entity ClipDropdown;
-    public Entity ClipName;
-    public Entity LoopButton;
-    public Entity PathField;
-    public Entity DirtyLabel;
-
-    /// <summary>Floating bone context menu and the field used to rename a bone.</summary>
-    public Entity BoneMenu;
-    public Entity BoneNameField;
-
-    /// <summary>The ADD SVG picker and the list its choices are built into.</summary>
-    public Entity SvgMenu;
-    public Entity SvgMenuList;
 }
 
 /// <summary>Package snapshots for undo/redo, on the shared <see cref="UndoHistory{T}"/>.</summary>

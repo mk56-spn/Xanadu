@@ -97,6 +97,22 @@ public static class XafClipAuthoring
         return duration;
     }
 
+    /// <summary>Moves the loop's start, keeping at least the minimum length before its end.</summary>
+    public static float SetLoopStart(XafClip clip, float seconds)
+    {
+        float latest = Math.Max(0f, Math.Min(clip.Duration, clip.LoopEnd) - MinDuration);
+        clip.LoopStart = Math.Clamp(seconds, 0f, latest);
+        return clip.LoopStart;
+    }
+
+    /// <summary>Moves the loop's end, keeping at least the minimum length after its start.</summary>
+    public static float SetLoopEnd(XafClip clip, float seconds)
+    {
+        float earliest = Math.Min(clip.Duration, clip.LoopStart + MinDuration);
+        clip.LoopEnd = Math.Clamp(seconds, earliest, clip.Duration);
+        return clip.LoopEnd;
+    }
+
     /// <summary>Turns looping on or off. Turning it on loops the whole clip unless a range is set.</summary>
     public static void SetLoop(XafClip clip, bool loop)
     {

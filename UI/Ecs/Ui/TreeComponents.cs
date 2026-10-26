@@ -19,6 +19,9 @@ public struct UiTree : IComponent
     /// <summary>Id of the selected node, or empty for none.</summary>
     public string Selected;
 
+    /// <summary>Ids drawn as selected beside <see cref="Selected"/>, for multi-select trees.</summary>
+    public HashSet<string> MultiSelected;
+
     public float Width;
     public float RowHeight;
     public float Indent;
@@ -27,6 +30,7 @@ public struct UiTree : IComponent
     {
         Collapsed = new HashSet<string>(StringComparer.Ordinal),
         Selected = "",
+        MultiSelected = new HashSet<string>(StringComparer.Ordinal),
         Width = width,
         RowHeight = rowHeight,
         Indent = indent,

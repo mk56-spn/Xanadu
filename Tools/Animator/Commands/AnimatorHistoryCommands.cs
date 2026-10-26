@@ -88,8 +88,7 @@ public static class AnimatorHistoryCommands
 
         XafPackage package = session.GetComponent<AnimatorDocument>().Package;
         ref AnimatorSelection selection = ref session.GetComponent<AnimatorSelection>();
-        if (selection.Bone >= package.Skeleton.Bones.Count)
-            selection.Bone = -1;
+        selection.ClampBones(package.Skeleton.Bones.Count);
         if (selection.Attachment >= package.Attachments.Count)
             selection.Attachment = -1;
         selection.HasKey = false;

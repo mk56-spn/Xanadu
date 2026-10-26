@@ -101,6 +101,38 @@ public static class XafAuthoring
         return true;
     }
 
+    /// <summary>
+    /// Sets a channel key with its exact curve, including the tangents a
+    /// copy/paste keeps. Existing keys at the same time are replaced.
+    /// </summary>
+    public static bool SetKeyCurve(
+        XafClip clip,
+        XafChannelTarget target,
+        string targetId,
+        XafChannelProperty property,
+        float time,
+        float value,
+        XafInterpolation interpolation,
+        float tangentIn,
+        float tangentOut)
+    {
+        if (!SetChannel(clip, target, targetId, property, time, value, interpolation))
+            return false;
+
+        XafChannel? channel = clip.Channels.Find(candidate =>
+            candidate.Target == target &&
+            candidate.TargetId == targetId &&
+            candidate.Property == property);
+        XafKeyframe? key = channel?.Keyframes.Find(candidate =>
+            Math.Abs(candidate.Time - Math.Clamp(time, 0f, clip.Duration)) < 0.0001f);
+        if (key is null)
+            return false;
+
+        key.TangentIn = tangentIn;
+        key.TangentOut = tangentOut;
+        return true;
+    }
+
     public static bool RemoveKey(
         XafClip clip,
         XafChannelTarget target,
@@ -151,6 +183,8 @@ public static class XafAuthoring
         XafKeyframe key = channel.Keyframes[index];
         channel.Keyframes.RemoveAt(index);
         key.Time = Math.Clamp(toTime, 0f, clip.Duration);
+        channel.Keyframes.RemoveAll(other =>
+            Math.Abs(other.Time - key.Time) <= tolerance);
 
         int insert = channel.Keyframes.FindIndex(candidate =>
             candidate.Time > key.Time);

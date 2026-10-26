@@ -44,7 +44,8 @@ public sealed class AnimatorPreviewDrawSystem(
 
         canvas.Clear(target);
         Rect2 area = AnimatorGeometry.PanelArea(session.GetComponent<AnimatorUi>().Preview);
-        Vector2 origin = AnimatorGeometry.PreviewOrigin(area);
+        AnimatorPreviewView view = session.GetComponent<AnimatorPreviewView>();
+        Transform2D placement = AnimatorGeometry.PreviewPlacement(area, view);
         canvas.DrawLine(
             target,
             new Vector2(area.Position.X, area.End.Y),
@@ -62,9 +63,9 @@ public sealed class AnimatorPreviewDrawSystem(
             {
                 float time = document.Runtime.CurrentTime;
                 DrawGhost(document.Package, clip, time - OnionOffset,
-                    new Color("#38bdf8", 0.25f), origin);
+                    new Color("#38bdf8", 0.25f), placement);
                 DrawGhost(document.Package, clip, time + OnionOffset,
-                    new Color("#fb7185", 0.25f), origin);
+                    new Color("#fb7185", 0.25f), placement);
             }
         }
 
@@ -75,50 +76,64 @@ public sealed class AnimatorPreviewDrawSystem(
             if (parent < 0 || parent >= world.Length)
                 continue;
 
-            // Links that the selected bone swings are highlighted.
-            bool swung = parent == selection.Bone;
+            // Links that a selected bone swings are highlighted.
+            bool swung = selection.IsBoneSelected(parent);
             DrawBone(
-                origin + world[parent].Origin,
-                origin + world[i].Origin,
+                placement * world[parent].Origin,
+                placement * world[i].Origin,
                 swung ? SwungFill : BoneFill,
                 swung ? SwungOutline : BoneOutline,
                 2f);
         }
 
+        AnimatorHover hover = session.GetComponent<AnimatorHover>();
         int reparenting = session.GetComponent<AnimatorBoneMenu>().Reparenting;
+        var labels = new System.Collections.Generic.List<Rect2>();
         for (int i = 0; i < world.Length; i++)
         {
             XafBone bone = document.Package.Skeleton.Bones[i];
-            Vector2 point = origin + world[i].Origin;
-            bool selected = i == selection.Bone;
-            canvas.DrawCircle(target, point, selected ? 8 : 5,
-                selected ? Colors.White : BoneColor);
+            Vector2 point = placement * world[i].Origin;
+            bool primary = i == selection.Bone;
+            bool selected = selection.IsBoneSelected(i);
+            bool hovered = i == hover.Bone;
+            float marker = primary ? 8f : selected ? 7f : hovered ? 6f : 5f;
+            canvas.DrawCircle(target, point, marker,
+                selected ? Colors.White : hovered ? SwungOutline : BoneColor);
+
+            // Labels that would overlap are dropped unless they are the bone the
+            // pointer or the selection is on; crowded rigs stay readable unzoomed.
+            Rect2 label = AnimatorGeometry.BoneLabel(point);
+            if (!selected && !hovered && labels.Exists(drawn => drawn.Intersects(label)))
+                continue;
+            labels.Add(label);
             // Left-aligned so the text sits on its right-click target.
             canvas.DrawTextStyledLeft(
                 target,
-                AnimatorGeometry.BoneLabel(point),
+                label,
                 bone.Id,
                 i == reparenting ? ReparentLabel : Label,
                 12);
         }
 
         Transform2D[] attachments = XafRig.WorldAttachments(document.Package, pose, world);
-        visuals.Apply(attachments, new Transform2D(0f, origin));
+        visuals.Apply(attachments, placement);
         for (int i = 0; i < attachments.Length; i++)
         {
-            Vector2 point = origin + attachments[i].Origin;
-            float marker = i == selection.Attachment ? 14f : 10f;
+            Vector2 point = placement * attachments[i].Origin;
+            bool selected = i == selection.Attachment;
+            bool hovered = i == hover.Attachment;
+            float marker = selected ? 14f : hovered ? 12f : 10f;
             canvas.DrawRect(
                 target,
                 new Rect2(point - new Vector2(marker / 2, marker / 2),
                     new Vector2(marker, marker)),
-                i == selection.Attachment ? Colors.White : AttachmentColor);
+                selected ? Colors.White : hovered ? SwungOutline : AttachmentColor);
         }
 
         canvas.DrawTextStyledLeft(
             target,
             new Rect2(area.Position + new Vector2(12, 12), new Vector2(300, 20)),
-            $"{document.Runtime.CurrentClip}  {document.Runtime.CurrentTime:0.00}s",
+            $"{document.Runtime.CurrentClip}  {document.Runtime.CurrentTime:0.00}s   x{view.Zoom:0.##}",
             new Color("#e2e8f0"),
             14);
     }
@@ -128,19 +143,19 @@ public sealed class AnimatorPreviewDrawSystem(
         XafClip clip,
         float time,
         Color color,
-        Vector2 origin)
+        Transform2D placement)
     {
         time = Mathf.Clamp(time, 0f, Mathf.Max(0.001f, clip.Duration));
         Transform2D[] world = XafRig.WorldBones(package, XafSampler.Sample(package, clip, time));
         for (int i = 0; i < world.Length; i++)
         {
-            Vector2 point = origin + world[i].Origin;
+            Vector2 point = placement * world[i].Origin;
             canvas.DrawCircle(target, point, 3, color);
             int parent = package.Skeleton.Bones[i].Parent;
             if (parent < 0 || parent >= world.Length)
                 continue;
 
-            Vector2 from = origin + world[parent].Origin;
+            Vector2 from = placement * world[parent].Origin;
             DrawBone(from, point, new Color(color, color.A * 0.5f), color, 1f);
         }
     }

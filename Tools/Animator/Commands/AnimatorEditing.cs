@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using Godot;
 using Writer.Animation;
@@ -29,17 +30,25 @@ public static class AnimatorEditing
 
         float time = document.Runtime.CurrentTime;
         XafPose pose = document.Runtime.Pose;
-        if (selection.Bone >= 0)
+        List<int> bones = selection.Bones();
+        for (int i = bones.Count - 1; i >= 0; i--)
         {
-            XafAuthoring.KeyBoneTransform(
-                document.Package,
-                clip,
-                selection.Bone,
-                time,
-                pose.Bones[selection.Bone]);
-            AnimatorSession.SetStatus(
-                session,
-                $"KEYED {document.Package.Skeleton.Bones[selection.Bone].Id}");
+            if (bones[i] >= document.Package.Skeleton.Bones.Count)
+                bones.RemoveAt(i);
+        }
+
+        if (bones.Count > 0)
+        {
+            foreach (int bone in bones)
+            {
+                XafAuthoring.KeyBoneTransform(
+                    document.Package, clip, bone, time, pose.Bones[bone]);
+            }
+
+            string names = bones.Count == 1
+                ? document.Package.Skeleton.Bones[bones[0]].Id
+                : $"{bones.Count} BONES";
+            AnimatorSession.SetStatus(session, $"KEYED {names}");
         }
         else if (selection.Attachment >= 0)
         {
@@ -89,12 +98,23 @@ public static class AnimatorEditing
             return;
         }
 
-        if (selection.Bone >= 0)
-            Apply(ref document.Runtime.Pose.Bones[selection.Bone], rotation, scale);
+        List<int> bones = selection.Bones();
+        if (bones.Count > 0)
+        {
+            foreach (int bone in bones)
+            {
+                if (bone < document.Runtime.Pose.Bones.Length)
+                    Apply(ref document.Runtime.Pose.Bones[bone], rotation, scale);
+            }
+        }
         else if (selection.Attachment >= 0)
+        {
             Apply(ref document.Runtime.Pose.Attachments[selection.Attachment], rotation, scale);
+        }
         else
+        {
             return;
+        }
 
         if (modes.AutoKey)
             KeySelected(session);
@@ -107,21 +127,36 @@ public static class AnimatorEditing
     private static void ToggleMovableCore(Entity session)
     {
         XafPackage package = session.GetComponent<AnimatorDocument>().Package;
-        int index = session.GetComponent<AnimatorSelection>().Bone;
-        if (index < 0 || index >= package.Skeleton.Bones.Count)
-            return;
+        List<int> bones = session.GetComponent<AnimatorSelection>().Bones();
+        int changed = 0;
+        bool movable = false;
+        string changedId = "";
+        foreach (int index in bones)
+        {
+            if (index < 0 || index >= package.Skeleton.Bones.Count)
+                continue;
 
-        XafBone bone = package.Skeleton.Bones[index];
-        if (bone.Parent < 0)
+            XafBone bone = package.Skeleton.Bones[index];
+            if (bone.Parent < 0)
+                continue;
+
+            bone.AllowTranslation = !bone.AllowTranslation;
+            movable = bone.AllowTranslation;
+            changedId = bone.Id;
+            changed++;
+        }
+
+        if (changed == 0)
         {
             AnimatorSession.SetStatus(session, "ROOT IS ALWAYS MOVABLE");
             return;
         }
 
-        bone.AllowTranslation = !bone.AllowTranslation;
         AnimatorSession.SetStatus(
             session,
-            $"{bone.Id} {(bone.AllowTranslation ? "MOVABLE" : "FIXED LENGTH")}");
+            changed == 1
+                ? $"{changedId} {(movable ? "MOVABLE" : "FIXED LENGTH")}"
+                : $"{changed} BONES {(movable ? "MOVABLE" : "FIXED LENGTH")}");
     }
 
     public static void AddBone(Entity session) =>
@@ -150,8 +185,7 @@ public static class AnimatorEditing
             return;
         }
 
-        selection.Bone = created;
-        selection.Attachment = -1;
+        selection.SelectOnlyBone(created);
         AnimatorSession.RigChanged(session);
         AnimatorSession.SetStatus(session, $"ADDED {id}");
     }
@@ -176,7 +210,7 @@ public static class AnimatorEditing
             return;
         }
 
-        selection.Bone = parent >= 0 ? parent : 0;
+        selection.SelectOnlyBone(parent >= 0 ? parent : 0);
         AnimatorSession.RigChanged(session);
         AnimatorSession.SetStatus(session, "BONE DELETED");
     }
@@ -222,8 +256,7 @@ public static class AnimatorEditing
             // Reparenting may reorder the bones, so find the moved one again.
             moved = true;
             ref AnimatorSelection selection = ref session.GetComponent<AnimatorSelection>();
-            selection.Bone = XafRig.FindBone(package, id);
-            selection.Attachment = -1;
+            selection.SelectOnlyBone(XafRig.FindBone(package, id));
             AnimatorSession.RigChanged(session);
             AnimatorSession.SetStatus(session, $"{id} NOW UNDER {parentId}");
         });
@@ -239,10 +272,17 @@ public static class AnimatorEditing
         float rotation,
         float scale)
     {
-        if (selection.Bone >= 0)
+        List<int> bones = selection.Bones();
+        if (bones.Count > 0)
         {
-            XafBone bone = package.Skeleton.Bones[selection.Bone];
-            bone.Rest = Nudged(bone.Rest, rotation, scale);
+            foreach (int index in bones)
+            {
+                if (index < 0 || index >= package.Skeleton.Bones.Count)
+                    continue;
+
+                XafBone bone = package.Skeleton.Bones[index];
+                bone.Rest = Nudged(bone.Rest, rotation, scale);
+            }
         }
         else if (selection.Attachment >= 0)
         {

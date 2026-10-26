@@ -130,6 +130,24 @@ public static class AnimatorCommands
             case ToolActionKind.NewSkeleton:
                 AnimatorFileCommands.NewSkeleton(session);
                 break;
+            case ToolActionKind.FitPreview:
+                AnimatorPreviewCommands.Fit(session);
+                break;
+            case ToolActionKind.ResetPreview:
+                AnimatorPreviewCommands.Reset(session);
+                break;
+            case ToolActionKind.ResetTransform:
+                AnimatorTransformCommands.ResetSelected(session);
+                break;
+            case ToolActionKind.CopyKeys:
+                AnimatorKeyClipboardCommands.Copy(session);
+                break;
+            case ToolActionKind.PasteKeys:
+                AnimatorKeyClipboardCommands.Paste(session);
+                break;
+            case ToolActionKind.SelectAllKeys:
+                AnimatorKeyClipboardCommands.SelectAll(session);
+                break;
         }
     }
 
@@ -158,8 +176,7 @@ public static class AnimatorCommands
             return;
 
         ref AnimatorSelection selection = ref session.GetComponent<AnimatorSelection>();
-        selection.Bone = index;
-        selection.Attachment = -1;
+        selection.SelectOnlyBone(index);
         AnimatorSession.SetStatus(session, $"SELECTED {boneId}");
     }
 
@@ -167,7 +184,8 @@ public static class AnimatorCommands
     private static void AddKeyFromMenu(Entity session)
     {
         AnimatorKeyMenu menu = session.GetComponent<AnimatorKeyMenu>();
-        AnimatorKeyCommands.AddKeyAt(session, menu.Track, menu.Time);
+        AnimatorKeyCommands.AddKeyAt(
+            session, new AnimatorTrackRow(menu.Track, menu.Property), menu.Time);
     }
 
     /// <summary>
@@ -288,8 +306,7 @@ public static class AnimatorCommands
         }
 
         ref AnimatorSelection selection = ref session.GetComponent<AnimatorSelection>();
-        selection.Attachment = index;
-        selection.Bone = -1;
+        selection.SelectOnlyAttachment(index);
         AnimatorSession.SetStatus(
             session,
             $"SELECTED {package.Attachments[index].Group}");

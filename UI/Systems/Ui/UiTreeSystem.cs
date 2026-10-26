@@ -105,7 +105,9 @@ public sealed class UiTreeSystem : QuerySystem<UiTreeNode>
             SetVisible(row, !IsHidden(node, tree, _nodes[node.Tree.Id]), buffer);
             if (node.HasChildren)
                 SetArrow(node.Disclosure, tree.Collapsed.Contains(node.Id) ? Collapsed : Expanded, buffer);
-            Highlight(node.Label, tree.Selected == node.Id);
+            Highlight(
+                node.Label,
+                tree.Selected == node.Id || tree.MultiSelected.Contains(node.Id));
         }
     }
 
