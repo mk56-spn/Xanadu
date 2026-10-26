@@ -21,6 +21,10 @@ public static class AnimatorLayout
     private const float Gap = 12f;
     private const float LeftWidth = 240f;
     private const float RightWidth = 300f;
+    private const float ListWidth = LeftWidth - UiTheme.ContainerPadding * 2;
+
+    /// <summary>Label, button row and the spacing between them and the viewport.</summary>
+    private const float LeftFixedHeight = 20f + 30f + UiTheme.ContainerSpacing * 2;
     private const float ButtonWidth = 168f;
     private const float FileMenuWidth = 180f;
     private const float PathWidth = 400f;
@@ -80,10 +84,27 @@ public static class AnimatorLayout
     {
         ui.Panel(Vector2.Zero, new Vector2(LeftWidth, height),
             cross: StackCrossAlignment.Start, main: StackMainAlignment.Start);
-        ui.Text("BONES", new Vector2(210, 20), UiTheme.FontSize, UiTheme.Accent);
-        refs.Ui.BoneList = ui.Tree(200);
-        ui.Text("ATTACHMENTS", new Vector2(210, 20), UiTheme.FontSize, UiTheme.Accent);
-        refs.Ui.AttachmentList = List(ui);
+        ui.Text("BONES", new Vector2(ListWidth, 20), UiTheme.FontSize, UiTheme.Accent);
+        Row(ui, ("ADD BONE", ToolActionKind.AddBone), ("DELETE", ToolActionKind.DeleteBone));
+
+        // Bones and attachments share one scrolling viewport so long rigs
+        // never spill out of the panel over the timeline.
+        float viewportHeight = height - UiTheme.ContainerPadding * 2 - LeftFixedHeight;
+        ui.Container(Vector2.Zero, new Vector2(ListWidth, viewportHeight),
+            StackDirection.Vertical, clip: true, color: UiTheme.Panel,
+            takesInput: false);
+        Entity viewport = ui.Current;
+        ui.Container(Vector2.Zero, new Vector2(ListWidth, 4), StackDirection.Vertical,
+            spacing: UiTheme.ContainerSpacing, color: Clear,
+            cross: StackCrossAlignment.Start, autoHeight: true,
+            main: StackMainAlignment.Start);
+        Entity content = ui.Current;
+        refs.Ui.BoneList = ui.Tree(ListWidth - 10);
+        ui.Text("ATTACHMENTS", new Vector2(ListWidth, 20), UiTheme.FontSize, UiTheme.Accent);
+        refs.Ui.AttachmentList = List(ui, ListWidth - 10);
+        ui.End();
+        ui.End();
+        viewport.AddComponent(new ScrollView(content));
         ui.End();
     }
 
@@ -110,7 +131,6 @@ public static class AnimatorLayout
         Row(ui, ("SCALE -", ToolActionKind.ScaleDown), ("SCALE +", ToolActionKind.ScaleUp));
         Action(ui, "KEY SELECTED", ToolActionKind.KeyBone, ButtonSize);
         Action(ui, "MOVABLE", ToolActionKind.ToggleMovable, ButtonSize);
-        Row(ui, ("ADD BONE", ToolActionKind.AddBone), ("DELETE", ToolActionKind.DeleteBone));
         ui.Text("CLIPS", new Vector2(210, 20), UiTheme.FontSize, UiTheme.Accent);
         refs.Ui.ClipList = List(ui, ButtonWidth);
         ui.End();
