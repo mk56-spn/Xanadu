@@ -29,7 +29,26 @@ public static class AnimatorLayout
     private const float LeftFixedHeight = 20f + 30f + UiTheme.ContainerSpacing * 2;
     private const float ButtonWidth = 168f;
     private const float FileMenuWidth = 180f;
-    private const float PathWidth = 400f;
+
+    // Header slots; together they must fit in the header, which is one
+    // screen wide less its margins and padding.
+    private const float TitleWidth = 250f;
+    private const float StatusWidth = 340f;
+    private const float DirtyWidth = 100f;
+    private const float PathWidth = 320f;
+    private const float ClipLabelWidth = 48f;
+
+    /// <summary>Width of the clip dropdown button in the header.</summary>
+    public const float ClipWidth = 160f;
+
+    // The floating undo/redo panel sits at the preview's top-left corner,
+    // just right of the bones list and under the preview's clip/time caption.
+    private const float HistoryInset = 12f;
+    private const float HistoryTop = 40f;
+    private const float HistoryPadding = 8f;
+    private const float HistorySpacing = 6f;
+    private const float HistoryButtonWidth = 76f;
+    private const float HistoryButtonHeight = 30f;
     private static readonly Vector2 ButtonSize = new(ButtonWidth, 30);
     private static readonly Color Clear = new(0, 0, 0, 0);
 
@@ -56,8 +75,12 @@ public static class AnimatorLayout
         BuildTimeline(ui, screen, ref refs);
         ui.End();
 
-        BuildFileMenu(store, visuals, refs.FileButton);
-        BuildBoneMenu(store, visuals, ref refs);
+        // One floating layer holds every menu and the history panel.
+        UiBuilder menu = UiBuilder.Begin(store, visuals).Layer(MenuLayer);
+        refs.Ui.MenuLayer = menu.Current;
+        BuildFileMenu(menu, refs.FileButton);
+        BuildBoneMenu(menu, ref refs);
+        BuildHistoryPanel(menu);
         return refs.Ui;
     }
 
@@ -65,19 +88,31 @@ public static class AnimatorLayout
     {
         ui.Container(Vector2.Zero, new Vector2(screen.X - Margin * 2, TopHeight),
             spacing: 16, color: UiTheme.Panel, padding: 14);
-        ui.Container(Vector2.Zero, new Vector2(300, TopHeight - 28),
+        ui.Container(Vector2.Zero, new Vector2(TitleWidth, TopHeight - 28),
             StackDirection.Vertical, spacing: 4, color: Clear,
             cross: StackCrossAlignment.Start);
-        ui.Text("XAF ANIMATOR", new Vector2(290, 28), UiTheme.HeadingFontSize,
+        ui.Text("XAF ANIMATOR", new Vector2(TitleWidth - 10, 28), UiTheme.HeadingFontSize,
             UiTheme.Accent);
-        ui.Text("skeleton / clips / rigid SVG groups", new Vector2(290, 18),
+        ui.Text("skeleton / clips / rigid SVG groups", new Vector2(TitleWidth - 10, 18),
             UiTheme.SmallFontSize, UiTheme.TextDim);
         ui.End();
-        refs.Ui.Status = ui.Text("", new Vector2(380, 24), UiTheme.FontSize,
+
+        refs.Ui.Status = ui.Text("", new Vector2(StatusWidth, 24), UiTheme.FontSize,
             new Color("#a3e635"));
-        refs.Ui.DirtyLabel = ui.Text("", new Vector2(110, 24), UiTheme.SmallFontSize,
+        refs.Ui.DirtyLabel = ui.Text("", new Vector2(DirtyWidth, 24), UiTheme.SmallFontSize,
             UiTheme.Accent);
         refs.Ui.PathField = TextInput(ui, new Vector2(PathWidth, 26));
+
+        // The clip dropdown's button lives in this slot, beside the file menu; its
+        // list floats on the menu layer and drops over the preview, clear of the
+        // history panel. The slot is horizontal on purpose: a vertical container
+        // makes room for an open dropdown's list, which would push the button
+        // out of the header.
+        ui.Text("CLIPS", new Vector2(ClipLabelWidth, 20), UiTheme.SmallFontSize, UiTheme.Accent);
+        ui.Container(Vector2.Zero, new Vector2(ClipWidth, 30), color: Clear);
+        refs.Ui.ClipList = ui.Current;
+        ui.End();
+
         // As wide as its list, so opening the menu does not widen the header slot.
         refs.FileButton = ui.Button("FILE ▾", new Vector2(FileMenuWidth, 30));
         ui.End();
@@ -124,7 +159,6 @@ public static class AnimatorLayout
     {
         ui.Panel(Vector2.Zero, new Vector2(RightWidth, height),
             cross: StackCrossAlignment.Center, main: StackMainAlignment.Start);
-        Row(ui, ("UNDO", ToolActionKind.Undo), ("REDO", ToolActionKind.Redo));
         Row(ui, ("PLAY", ToolActionKind.Play), ("STOP", ToolActionKind.Stop));
         ModeButton(ui, "AUTO KEY", AnimatorMode.AutoKey);
         ModeButton(ui, "ONION", AnimatorMode.Onion);
@@ -136,8 +170,6 @@ public static class AnimatorLayout
         Row(ui, ("KEY", ToolActionKind.KeyBone), ("KEY POSE", ToolActionKind.KeyPose));
         SmallRow(ui, ("COPY POSE", ToolActionKind.CopyPose), ("PASTE POSE", ToolActionKind.PastePose));
         Row(ui, ("MIRROR", ToolActionKind.MirrorPose), ("MOVABLE", ToolActionKind.ToggleMovable));
-        ui.Text("CLIPS", new Vector2(210, 20), UiTheme.FontSize, UiTheme.Accent);
-        refs.Ui.ClipList = List(ui, ButtonWidth);
         ui.End();
     }
 
@@ -202,11 +234,8 @@ public static class AnimatorLayout
         return button;
     }
 
-    /// <summary>The file menu floats above the panels, so it lives on its own layer.</summary>
-    private static void BuildFileMenu(
-        EntityStore store,
-        IVisualRidFactory? visuals,
-        Entity fileButton)
+    /// <summary>The file menu floats above the panels, so it lives on the menu layer.</summary>
+    private static void BuildFileMenu(UiBuilder menu, Entity fileButton)
     {
         (string Label, ToolActionKind Kind)[] entries =
         {
@@ -219,7 +248,6 @@ public static class AnimatorLayout
             (optionHeight + UiTheme.DropdownOptionSpacing) + 4f;
         var listSize = new Vector2(FileMenuWidth, listHeight);
 
-        UiBuilder menu = UiBuilder.Begin(store, visuals).Layer(MenuLayer);
         Entity list = menu.RectEntity(UiLayout.Hidden, listSize, UiTheme.Panel,
             takesInput: true);
         for (int i = 0; i < entries.Length; i++)
@@ -241,7 +269,7 @@ public static class AnimatorLayout
     /// The bone context menu and its rename field float above the panels and
     /// start hidden; the bone menu system moves them into place.
     /// </summary>
-    private static void BuildBoneMenu(EntityStore store, IVisualRidFactory? visuals, ref Refs refs)
+    private static void BuildBoneMenu(UiBuilder menu, ref Refs refs)
     {
         (string Label, ToolActionKind Kind)[] entries =
         {
@@ -251,7 +279,6 @@ public static class AnimatorLayout
             ("DELETE", ToolActionKind.DeleteBone),
         };
 
-        UiBuilder menu = UiBuilder.Begin(store, visuals).Layer(MenuLayer);
         menu.Container(UiLayout.Hidden, BoneMenuSize, StackDirection.Vertical,
             spacing: 2, color: UiTheme.Panel, padding: 4, takesInput: true);
         refs.Ui.BoneMenu = menu.Current;
@@ -264,6 +291,28 @@ public static class AnimatorLayout
 
         refs.Ui.BoneNameField = TextInput(menu, BoneNameSize);
         refs.Ui.BoneNameField.GetComponent<Position>().Value = UiLayout.Hidden;
+    }
+
+    /// <summary>
+    /// Undo and redo in their own small panel floating over the preview's
+    /// top-left corner, right of the bones list. It takes input so clicks on
+    /// its padding do not fall through and start a drag in the preview.
+    /// </summary>
+    private static void BuildHistoryPanel(UiBuilder menu)
+    {
+        var size = new Vector2(
+            HistoryButtonWidth * 2 + HistorySpacing + HistoryPadding * 2,
+            HistoryButtonHeight + HistoryPadding * 2);
+        var topLeft = new Vector2(
+            Margin + LeftWidth + Gap + HistoryInset,
+            Margin + TopHeight + Gap + HistoryTop);
+        menu.Container(topLeft + size / 2, size, StackDirection.Horizontal,
+            spacing: HistorySpacing, color: UiTheme.Panel, padding: HistoryPadding,
+            takesInput: true);
+        var button = new Vector2(HistoryButtonWidth, HistoryButtonHeight);
+        Action(menu, "UNDO", ToolActionKind.Undo, button);
+        Action(menu, "REDO", ToolActionKind.Redo, button);
+        menu.End();
     }
 
     private static Entity List(UiBuilder ui, float width = 210f)

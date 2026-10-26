@@ -206,7 +206,16 @@ public struct AnimatorUi : IComponent
     public Entity Timeline;
     public Entity BoneList;
     public Entity AttachmentList;
+
+    /// <summary>Header slot that holds the clip dropdown button.</summary>
     public Entity ClipList;
+
+    /// <summary>
+    /// Top layer for floating UI: menus, dropdown lists and the history panel.
+    /// It draws above the overlay canvases, so lists opened from the header
+    /// are not hidden behind the preview.
+    /// </summary>
+    public Entity MenuLayer;
 
     /// <summary>Button of the clip dropdown; rebuilt with the clip list.</summary>
     public Entity ClipDropdown;
