@@ -105,6 +105,16 @@ public partial class Main : Control
 					GetViewport().SetInputAsHandled();
 				break;
 
+			case Key.Bracketleft:
+				if (_systems?.Scenes.CyclePreviewStart(-1) == true)
+					GetViewport().SetInputAsHandled();
+				break;
+
+			case Key.Bracketright:
+				if (_systems?.Scenes.CyclePreviewStart(1) == true)
+					GetViewport().SetInputAsHandled();
+				break;
+
 			case Key.Escape:
 				_systems?.Scenes.TryBack();
 				GetViewport().SetInputAsHandled();
@@ -186,7 +196,13 @@ public partial class Main : Control
 				_systems!.Commands,
 				_pointer!,
 				() => _systems?.Scenes.TryBack(),
-				() => _systems?.Scenes.TryForward());
+				() => _systems?.Scenes.TryForward(),
+				(document, path, playheadMs) => _systems?.Scenes.StartEditorPreview(
+					new LevelEntry(
+						path,
+						document,
+						new SongStore().Find(document.SongId)),
+					playheadMs));
 			AddChild(_editorOverlay);
 			_systems.Scenes.SaveEditor = () => _editorOverlay?.SaveCurrent() ?? false;
 			return;

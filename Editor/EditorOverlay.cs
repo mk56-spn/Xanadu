@@ -19,7 +19,7 @@ public partial class EditorOverlay
     private readonly IBlockingPointerInputSource? _pointer;
     private readonly Action? _onBack;
     private readonly Action? _onForward;
-    private readonly Action? _onPlayFromStart;
+    private readonly Action<LevelDocument, string, long>? _onPreview;
     private readonly TapTempo _tapTempo = new();
 
     private ConfirmationDialog _songPicker = null!;
@@ -43,7 +43,7 @@ public partial class EditorOverlay
         IBlockingPointerInputSource? pointer,
         Action? onBack = null,
         Action? onForward = null,
-        Action? onPlayFromStart = null,
+        Action<LevelDocument, string, long>? onPreview = null,
         bool openSongDialog = true)
     {
         _entities = entities;
@@ -51,7 +51,7 @@ public partial class EditorOverlay
         _pointer = pointer;
         _onBack = onBack;
         _onForward = onForward;
-        _onPlayFromStart = onPlayFromStart;
+        _onPreview = onPreview;
         _openSongDialog = openSongDialog;
         Layer = 100;
     }

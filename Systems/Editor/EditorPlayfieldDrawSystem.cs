@@ -45,14 +45,7 @@ public sealed class EditorPlayfieldDrawSystem :
             ref selection,
             entity) =>
         {
-            EditorPreview preview = entity.HasComponent<EditorPreview>()
-                ? entity.GetComponent<EditorPreview>()
-                : default;
-
-            if (preview.Active)
-                DrawPreview(view, playfield, playhead);
-            else
-                DrawEditor(
+            DrawEditor(
                     view,
                     playfield,
                     playhead,
@@ -639,35 +632,4 @@ public sealed class EditorPlayfieldDrawSystem :
         long windowEnd,
         long timeMs) =>
         new TimeWindow(windowStart, windowEnd).XForTime(ruler, timeMs);
-
-    private void DrawPreview(
-        PlayfieldView view,
-        Playfield playfield,
-        Playhead playhead)
-    {
-        _canvas.DrawRect(
-            _editor,
-            new Rect2(Vector2.Zero, view.ScreenSize),
-            PlayfieldRenderer.PlayBackground);
-
-        float size = MathF.Min(view.ScreenSize.X - 120, view.ScreenSize.Y - 100);
-        float scale = size / playfield.Width;
-        var previewView = new PlayfieldView(
-            new Vector2((view.ScreenSize.X - size) / 2, 50),
-            scale,
-            view.ScreenSize);
-        Rect2 field = PlayfieldRenderer.FieldRect(previewView, playfield);
-
-        PlayfieldRenderer.DrawField(_canvas, _editor, field, 1);
-        PlayfieldRenderer.DrawGrid(_canvas, _editor, playfield, field);
-        PlayfieldRenderer.DrawNotes(
-            _canvas,
-            _editor,
-            _entities,
-            previewView,
-            playfield,
-            playhead,
-            default);
-        PlayfieldRenderer.DrawTransport(_canvas, _editor, field, playhead);
-    }
 }

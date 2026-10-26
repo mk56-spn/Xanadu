@@ -15,22 +15,5 @@ public partial class EditorOverlay : CanvasLayer
         ProcessUiRequest();
         SyncTextFieldBridge();
         _pointer?.SetBlocked(AnyDialogVisible() || IsBindingsHelpVisible());
-
-        if (!_editor.HasComponent<Playhead>() ||
-            !_editor.HasComponent<EditorPreview>())
-        {
-            return;
-        }
-
-        Playhead playhead = _editor.GetComponent<Playhead>();
-        EditorPreview preview = _editor.GetComponent<EditorPreview>();
-        if (preview.Active &&
-            !playhead.Playing &&
-            playhead.DurationMs > 0 &&
-            playhead.TimeMs >= playhead.DurationMs)
-        {
-            EndPreview();
-            SetStatus("Preview ended");
-        }
     }
 }

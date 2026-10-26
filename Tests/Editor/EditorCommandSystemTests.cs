@@ -32,7 +32,6 @@ public sealed class EditorCommandSystemTests : EcsSystemTest
             new LevelFile(""),
             new Playfield(1000, 1000),
             new Playhead(0, 120, 0, false),
-            new EditorPreview(false, 0, false),
             new EditorMetronome(false),
             new NoteSelection(default));
     }
@@ -71,29 +70,6 @@ public sealed class EditorCommandSystemTests : EcsSystemTest
 
         Assert.That(playhead.Playing, Is.True);
         Assert.That(playhead.SeekRequestMs, Is.EqualTo(0));
-    }
-
-    [Test]
-    public void PreviewRoundTripRestoresSavedState()
-    {
-        ref Playhead playhead = ref _editor.GetComponent<Playhead>();
-        playhead.TimeMs = 500;
-
-        _commands.Enqueue(EditorCommand.BeginPreview());
-        Frame();
-
-        EditorPreview preview = _editor.GetComponent<EditorPreview>();
-        Assert.That(preview.Active, Is.True);
-        Assert.That(preview.SavedTimeMs, Is.EqualTo(500));
-        Assert.That(playhead.Playing, Is.True);
-
-        _commands.Enqueue(EditorCommand.EndPreview());
-        Frame();
-
-        preview = _editor.GetComponent<EditorPreview>();
-        Assert.That(preview.Active, Is.False);
-        Assert.That(playhead.Playing, Is.False);
-        Assert.That(playhead.SeekRequestMs, Is.EqualTo(500));
     }
 
     [Test]
@@ -332,11 +308,8 @@ public sealed class EditorCommandSystemTests : EcsSystemTest
     }
 
     [Test]
-    public void ApplyLevelReplacesChartAndResetsPreview()
+    public void ApplyLevelReplacesChart()
     {
-        ref EditorPreview preview = ref _editor.GetComponent<EditorPreview>();
-        preview.Active = true;
-
         var document = new LevelDocument
         {
             Name = "Loaded",
@@ -355,7 +328,6 @@ public sealed class EditorCommandSystemTests : EcsSystemTest
 
         Assert.That(_editor.GetComponent<LevelInfo>().Name, Is.EqualTo("Loaded"));
         Assert.That(_editor.GetComponent<Playhead>().Bpm, Is.EqualTo(120));
-        Assert.That(_editor.GetComponent<EditorPreview>().Active, Is.False);
         Assert.That(_editor.GetComponent<LevelFile>().Path, Is.EqualTo("/tmp/loaded.json"));
         Assert.That(Store.Query<Note>().Count, Is.EqualTo(1));
     }

@@ -69,26 +69,12 @@ public static partial class EditorScene
             "0 notes",
             13,
             SceneUi.DimTextColor);
-        Entity previewText = HudText(
-            hudUi,
-            new Vector2(screen.X / 2, 24),
-            new Vector2(screen.X - 80, 30),
-            "",
-            22,
-            Colors.White);
-        ref Position previewPosition = ref previewText.GetComponent<Position>();
-        previewPosition.Value = new Vector2(-10_000, -10_000);
-
         editor.AddComponent(new EditorHud(
             levelText,
             songText,
             statusText,
             timeText,
-            notesText,
-            previewText)
-        {
-            PreviewHome = new Vector2(screen.X / 2, 24),
-        });
+            notesText));
 
         UiBuilder panelUi = SceneUi.Layer(entities, root, 947);
         Vector2 home = new(

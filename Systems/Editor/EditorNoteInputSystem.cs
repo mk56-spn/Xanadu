@@ -72,7 +72,6 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
     {
         Entity editor = FindEditor();
         if (editor.IsNull ||
-            IsPreviewing(editor) ||
             IsWarningOpen() ||
             IsSceneConfirmationOpen())
         {
@@ -204,7 +203,6 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
     {
         Entity editor = FindEditor();
         if (editor.IsNull ||
-            IsPreviewing(editor) ||
             IsWarningOpen() ||
             IsSceneConfirmationOpen())
         {
@@ -796,10 +794,6 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
         _drag.End();
         _dragStartPositions.Clear();
     }
-
-    private static bool IsPreviewing(Entity editor) =>
-        editor.HasComponent<EditorPreview>() &&
-        editor.GetComponent<EditorPreview>().Active;
 
     private bool IsWarningOpen()
     {

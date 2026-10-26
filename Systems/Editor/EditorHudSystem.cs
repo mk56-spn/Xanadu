@@ -40,29 +40,6 @@ public sealed class EditorHudSystem : QuerySystem<EditorHud, LevelInfo, Playhead
             SetText(hud.Notes,
                 $"{_entities.Query<Note>().Count} notes",
                 buffer);
-
-            bool preview = entity.HasComponent<EditorPreview>() &&
-                           entity.GetComponent<EditorPreview>().Active;
-            SetText(hud.Preview,
-                preview
-                    ? $"PREVIEW - {level.Name}   " +
-                      $"{playhead.TimeMs / 1000f:0.00}s / " +
-                      $"{playhead.DurationMs / 1000f:0.00}s   Esc to return"
-                    : "",
-                buffer);
-
-            if (!hud.Preview.IsNull && hud.Preview.HasComponent<Position>())
-            {
-                ref Position position = ref hud.Preview.GetComponent<Position>();
-                Vector2 target = preview
-                    ? hud.PreviewHome
-                    : Hidden;
-                if (position.Value != target)
-                {
-                    position.Value = target;
-                    buffer.AddTag<Moved>(hud.Preview.Id);
-                }
-            }
         });
     }
 

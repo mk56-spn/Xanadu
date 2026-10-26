@@ -18,8 +18,6 @@ public enum EditorCommandType
     StopPlayback,
     Seek,
     SetMetronome,
-    BeginPreview,
-    EndPreview,
     LoadSong,
     LoadSongById,
     DeleteSelection,
@@ -74,12 +72,6 @@ public readonly record struct EditorCommand(
 
     public static EditorCommand SetMetronome(bool enabled) =>
         new(EditorCommandType.SetMetronome, IntValue: enabled ? 1 : 0);
-
-    public static EditorCommand BeginPreview() =>
-        new(EditorCommandType.BeginPreview);
-
-    public static EditorCommand EndPreview() =>
-        new(EditorCommandType.EndPreview);
 
     public static EditorCommand LoadSong(string path) =>
         new(EditorCommandType.LoadSong, Text: path);
