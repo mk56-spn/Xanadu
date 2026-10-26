@@ -105,6 +105,7 @@ public static class AnimatorLayout
         ModeButton(ui, "AUTO KEY", AnimatorMode.AutoKey);
         ModeButton(ui, "ONION", AnimatorMode.Onion);
         ModeButton(ui, "REST POSE", AnimatorMode.Rest);
+        ModeButton(ui, "SVG PLACE", AnimatorMode.Svg);
         Row(ui, ("ROT -", ToolActionKind.RotateLeft), ("ROT +", ToolActionKind.RotateRight));
         Row(ui, ("SCALE -", ToolActionKind.ScaleDown), ("SCALE +", ToolActionKind.ScaleUp));
         Action(ui, "KEY SELECTED", ToolActionKind.KeyBone, ButtonSize);

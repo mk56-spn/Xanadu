@@ -47,6 +47,9 @@ public enum AnimatorMode
     AutoKey,
     Onion,
     Rest,
+
+    /// <summary>Preview picks and drags SVG attachments instead of bones.</summary>
+    Svg,
 }
 
 /// <summary>Binds a <c>Toggle</c> entity to one animator editing mode.</summary>
@@ -118,6 +121,7 @@ public struct AnimatorModes : IComponent
     public bool Rest;
     public bool AutoKey;
     public bool Onion;
+    public bool Svg;
 }
 
 public enum AnimatorDragKind

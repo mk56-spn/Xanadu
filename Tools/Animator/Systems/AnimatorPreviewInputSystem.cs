@@ -58,11 +58,14 @@ public sealed class AnimatorPreviewInputSystem(IPointerInputSource pointer)
         Vector2 origin = AnimatorGeometry.PreviewOrigin(area);
         string suffix = modes.Rest ? " (REST)" : "";
 
-        int bone = AnimatorGeometry.PickNearest(
-            world, origin, pointer, AnimatorGeometry.BoneHitRadius);
-        if (bone >= 0)
+        // Bone movement and SVG placement are separate modes, so a click only
+        // ever considers one kind of target.
+        if (!modes.Svg)
         {
-            BeginBone(session, pointer, bone, modes.Rest, pose, world);
+            int bone = AnimatorGeometry.PickNearest(
+                world, origin, pointer, AnimatorGeometry.BoneHitRadius);
+            if (bone >= 0)
+                BeginBone(session, pointer, bone, modes.Rest, pose, world);
             return;
         }
 
