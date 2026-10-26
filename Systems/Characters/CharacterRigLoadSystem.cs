@@ -27,6 +27,7 @@ public sealed class CharacterRigLoadSystem(ICharacterRigFiles files)
                 continue;
 
             entity.RemoveComponent<CharacterRig>();
+            entity.RemoveComponent<CharacterMotion>();
             entity.RemoveTag<CharacterRigMissing>();
             entity.RemoveTag<CharacterRigVisible>();
             if (path is null)

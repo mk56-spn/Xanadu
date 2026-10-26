@@ -48,6 +48,7 @@ public sealed class PlayfieldSystemGroup : SystemGroup
         if (rigFiles is not null && rigVisuals is not null)
         {
             Add(new CharacterRigLoadSystem(rigFiles));
+            Add(new CharacterMotionSystem());
             Add(new CharacterRigAnimateSystem());
             Add(new CharacterRigDrawSystem(rigVisuals));
         }
