@@ -28,7 +28,14 @@ public struct PlaySession(
 public struct Player(Vector2 size) : IComponent
 {
     public Vector2 Size = size;
-    public static readonly Vector2 DefaultSize = new(30, 100);
+
+    /// <summary>
+    /// Contact.xaf's art is 209 px tall at rest and the rig is drawn scaled to
+    /// the player's height, so this height shows it at its authored size.
+    /// </summary>
+    public const float DefaultHeight = 209;
+
+    public static readonly Vector2 DefaultSize = new(30, DefaultHeight);
 }
 
 /// <summary>HUD rows for per-judgement counters.</summary>
