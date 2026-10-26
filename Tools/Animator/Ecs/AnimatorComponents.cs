@@ -48,6 +48,12 @@ public enum ToolActionKind
 
     /// <summary>Attaches one picker choice, by its index in the open picker.</summary>
     AttachSvg,
+
+    /// <summary>Plays if stopped, stops if playing, as the PLAY and STOP buttons do.</summary>
+    TogglePlay,
+
+    /// <summary>Flips one editing mode; the argument names the <see cref="AnimatorMode"/>.</summary>
+    ToggleMode,
 }
 
 /// <summary>Command carried by a pressable UI entity.</summary>
@@ -189,6 +195,39 @@ public struct AnimatorModes : IComponent
     public bool Onion;
     public bool Svg;
     public bool Ik;
+
+    /// <summary>Whether one editing mode is on.</summary>
+    public readonly bool Get(AnimatorMode mode) => mode switch
+    {
+        AnimatorMode.AutoKey => AutoKey,
+        AnimatorMode.Onion => Onion,
+        AnimatorMode.Svg => Svg,
+        AnimatorMode.Ik => Ik,
+        _ => Rest,
+    };
+
+    /// <summary>Turns one editing mode on or off, leaving the others alone.</summary>
+    public void Set(AnimatorMode mode, bool value)
+    {
+        switch (mode)
+        {
+            case AnimatorMode.AutoKey:
+                AutoKey = value;
+                break;
+            case AnimatorMode.Onion:
+                Onion = value;
+                break;
+            case AnimatorMode.Svg:
+                Svg = value;
+                break;
+            case AnimatorMode.Ik:
+                Ik = value;
+                break;
+            default:
+                Rest = value;
+                break;
+        }
+    }
 }
 
 public enum AnimatorDragKind
@@ -268,40 +307,6 @@ public struct AnimatorKeyMenu : IComponent
 public struct AnimatorClipboard : IComponent
 {
     public System.Collections.Generic.Dictionary<string, XafTransform>? Pose;
-}
-
-/// <summary>One attachment the SVG picker can add: a file and a group inside it.</summary>
-public readonly record struct AnimatorSvgChoice(string Path, string Group)
-{
-    /// <summary>The file's name, plus the group when the file holds more than one.</summary>
-    public string Label
-    {
-        get
-        {
-            string name = System.IO.Path.GetFileNameWithoutExtension(Path);
-            return string.Equals(name, Group, System.StringComparison.Ordinal)
-                ? name
-                : $"{name} / {Group}";
-        }
-    }
-}
-
-/// <summary>
-/// The ADD SVG picker opened from the bone menu. It lists every group of every
-/// SVG the project holds and adds the chosen one to <see cref="Bone"/>.
-/// </summary>
-public struct AnimatorSvgMenu : IComponent
-{
-    public bool Open;
-
-    /// <summary>Screen point the picker was asked to open at, before it is kept on screen.</summary>
-    public Vector2 Anchor;
-
-    /// <summary>The bone the chosen attachment is added to.</summary>
-    public int Bone;
-
-    /// <summary>Every addable group, refreshed each time the picker opens.</summary>
-    public List<AnimatorSvgChoice>? Choices;
 }
 
 /// <summary>Latest status line message shown in the header.</summary>

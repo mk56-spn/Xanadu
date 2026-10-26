@@ -1,6 +1,7 @@
 using Friflo.Engine.ECS;
 using Godot;
 using Writer.Animation;
+using Writer.Tools.Animator.Systems;
 
 namespace Writer.Tools.Animator.Commands;
 
@@ -101,6 +102,12 @@ public static class AnimatorCommands
                 break;
             case ToolActionKind.AttachSvg:
                 AttachSvgFromMenu(session, action.Argument);
+                break;
+            case ToolActionKind.TogglePlay:
+                TogglePlay(session);
+                break;
+            case ToolActionKind.ToggleMode:
+                ToggleMode(session, action.Argument);
                 break;
             case ToolActionKind.KeyPose:
                 AnimatorPoseCommands.KeyPose(session);
@@ -206,8 +213,37 @@ public static class AnimatorCommands
         AnimatorAttachmentCommands.Add(session, choice.Path, choice.Group, menu.Bone);
     }
 
+    /// <summary>Plays if stopped and stops if playing, the one action behind Space.</summary>
+    private static void TogglePlay(Entity session)
+    {
+        AnimatorDocument document = session.GetComponent<AnimatorDocument>();
+        if (document.Playback.IsPlaying)
+        {
+            document.Playback.Stop();
+            AnimatorSession.SetStatus(session, "STOPPED");
+        }
+        else
+        {
+            document.Playback.Play();
+            AnimatorSession.SetStatus(session, "PLAYING");
+        }
+    }
+
+    /// <summary>Flips one editing mode by name, as clicking its toggle does.</summary>
+    private static void ToggleMode(Entity session, string argument)
+    {
+        if (!System.Enum.TryParse(argument, out AnimatorMode mode))
+            return;
+
+        ref AnimatorModes modes = ref session.GetComponent<AnimatorModes>();
+        bool value = !modes.Get(mode);
+        modes.Set(mode, value);
+        AnimatorModeSystem.Announce(session, mode, value);
+    }
+
     /// <summary>Shows the name field over the selected bone; the menu system focuses it.</summary>
-    private static void BeginBoneRename(Entity session)    {
+    private static void BeginBoneRename(Entity session)
+    {
         int bone = SelectedBone(session);
         if (bone < 0)
             return;
