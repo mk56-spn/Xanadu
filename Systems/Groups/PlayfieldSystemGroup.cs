@@ -1,8 +1,11 @@
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
+using System;
 using Godot;
+using Writer.Animation;
 using Writer.Systems.Audio;
 using Writer.Systems.Canvas;
+using Writer.Systems.Characters;
 using Writer.Settings;
 using Writer.Systems.Input;
 using Writer.Systems.Playfields;
@@ -22,7 +25,9 @@ public sealed class PlayfieldSystemGroup : SystemGroup
         OffsetSettings offsets,
         IPointerInputSource? pointer = null,
         HudLayoutSettings? hudLayout = null,
-        Rid hudOverlay = default) : base("Playfield")
+        Rid hudOverlay = default,
+        ICharacterRigFiles? rigFiles = null,
+        Func<IAttachmentVisuals>? rigVisuals = null) : base("Playfield")
     {
         Add(new PlayfieldPlaybackSystem(audio));
         Add(new PlaySessionSystem(audio));
@@ -40,6 +45,13 @@ public sealed class PlayfieldSystemGroup : SystemGroup
             hudOverlay));
         Add(new ContactCounterSystem());
         Add(new PlayScoreSystem());
+        if (rigFiles is not null && rigVisuals is not null)
+        {
+            Add(new CharacterRigLoadSystem(rigFiles));
+            Add(new CharacterRigAnimateSystem());
+            Add(new CharacterRigDrawSystem(rigVisuals));
+        }
+
         Add(new PlayfieldDrawSystem(entities, canvas, playfieldCanvas));
     }
 }
