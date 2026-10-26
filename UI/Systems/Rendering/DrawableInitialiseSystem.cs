@@ -57,9 +57,6 @@ public sealed class DrawableInitialiseSystem : QuerySystem<Rectangle, Drawable, 
 
             RenderingServer.CanvasItemSetParent(visual.Value, parentCanvas);
 
-            if (entity.TryGetComponent<UiContainer>(out UiContainer container) && container.Clip)
-                RenderingServer.CanvasItemSetClip(visual.Value, true);
-
             RenderingServer.CanvasItemSetZIndex(
                 visual.Value,
                 LocalZIndex(entity));

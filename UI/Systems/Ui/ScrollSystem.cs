@@ -17,8 +17,6 @@ public sealed class ScrollSystem : QuerySystem<ScrollView, Rectangle, Position>
 
     protected override void OnUpdate()
     {
-        CommandBuffer buffer = CommandBuffer;
-
         while (_requests.Count > 0)
         {
             (Vector2 pointer, int direction) = _requests.Dequeue();
@@ -34,75 +32,40 @@ public sealed class ScrollSystem : QuerySystem<ScrollView, Rectangle, Position>
                     continue;
 
                 ref ScrollView view = ref entity.GetComponent<ScrollView>();
-                float max = Mathf.Max(0, view.ContentHeight - view.ViewportHeight);
-                float next = Mathf.Clamp(view.Offset + direction * 48f, 0, max);
-                if (next == view.Offset)
-                    break;
-
-                view.Offset = next;
-                if (!view.Content.IsNull &&
-                    view.Content.HasComponent<Position>())
-                {
-                    ref Position contentPosition =
-                        ref view.Content.GetComponent<Position>();
-                    contentPosition.Value = new Vector2(
-                        contentPosition.Value.X,
-                        view.BaseContentY - view.Offset);
-                    buffer.AddTag<Moved>(view.Content.Id);
-                }
-
+                view.Offset += direction * 48f;
                 break;
             }
         }
 
+        CommandBuffer buffer = CommandBuffer;
         foreach (Entity viewport in Query.ToEntityList())
-            UpdateVisibility(viewport);
+            Place(viewport, buffer);
     }
 
-    private static void UpdateVisibility(Entity viewport)
+    /// <summary>Clamps the offset and hangs the content from the viewport's top edge.</summary>
+    private static void Place(Entity viewport, CommandBuffer buffer)
     {
-        ScrollView view = viewport.GetComponent<ScrollView>();
+        ref ScrollView view = ref viewport.GetComponent<ScrollView>();
         if (view.Content.IsNull ||
-            !viewport.HasComponent<Rectangle>() ||
-            !viewport.HasComponent<Position>() ||
-            !view.Content.HasComponent<Position>())
+            !view.Content.HasComponent<Position>() ||
+            !view.Content.HasComponent<Rectangle>())
         {
             return;
         }
 
-        Rectangle viewportRect = viewport.GetComponent<Rectangle>();
-        Position viewportPosition = viewport.GetComponent<Position>();
-        Vector2 viewportWorld = UiTransform.WorldPosition(
-            viewport,
-            viewportPosition.Value);
-        float top = viewportWorld.Y + viewportRect.Bounds.Position.Y;
-        float bottom = top + viewportRect.Bounds.Size.Y;
+        float viewportHeight = viewport.GetComponent<Rectangle>().Bounds.Size.Y;
+        float contentHeight = view.Content.GetComponent<Rectangle>().Bounds.Size.Y;
+        view.Offset = Mathf.Clamp(
+            view.Offset,
+            0,
+            Mathf.Max(0, contentHeight - viewportHeight));
 
-        Position contentPosition = view.Content.GetComponent<Position>();
-        Vector2 contentWorld = UiTransform.WorldPosition(
-            view.Content,
-            contentPosition.Value);
+        ref Position content = ref view.Content.GetComponent<Position>();
+        float y = -viewportHeight / 2 + contentHeight / 2 - view.Offset;
+        if (content.Value.Y == y)
+            return;
 
-        foreach (Entity child in view.Content.ChildEntities)
-        {
-            if (!child.HasComponent<Position>() ||
-                !child.HasComponent<Rectangle>() ||
-                !child.HasComponent<VisualRid>())
-            {
-                continue;
-            }
-
-            Position childPosition = child.GetComponent<Position>();
-            Rectangle childRect = child.GetComponent<Rectangle>();
-            Vector2 world = UiTransform.WorldPosition(
-                child,
-                childPosition.Value);
-            float childTop = world.Y + childRect.Bounds.Position.Y;
-            float childBottom = childTop + childRect.Bounds.Size.Y;
-            bool visible = childTop >= top && childBottom <= bottom;
-            RenderingServer.CanvasItemSetVisible(
-                child.GetComponent<VisualRid>().Value,
-                visible);
-        }
+        content.Value = new Vector2(content.Value.X, y);
+        buffer.AddTag<Moved>(view.Content.Id);
     }
 }

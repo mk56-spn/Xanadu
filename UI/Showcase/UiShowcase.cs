@@ -151,12 +151,7 @@ public partial class UiShowcase : Control
             Style(row, 13, new Color("#94a3b8"));
         }
         ui.End();
-        scrollViewport.RemoveTag<LayoutDirty>();
-        scrollViewport.AddComponent(new ScrollView(
-            scrollContent,
-            scrollContentHeight,
-            scrollViewportHeight,
-            scrollBaseY));
+        scrollViewport.AddComponent(new ScrollView(scrollContent));
         ui.End();
 
         ui.RectEntity(new Vector2(300, 520), new Vector2(520, 180),
