@@ -214,6 +214,7 @@ public sealed class AnimatorPreviewInputTests : AnimatorToolTest
     public void PressingAnAttachmentMarkerSelectsAndDragsIt()
     {
         AnimatorDocument document = Session.GetComponent<AnimatorDocument>();
+        Session.GetComponent<AnimatorModes>().Svg = true;
         XafPose pose = document.Runtime.Pose;
         Transform2D[] bones = XafRig.WorldBones(Package, pose);
         Vector2 marker = PreviewOrigin() +
@@ -225,6 +226,17 @@ public sealed class AnimatorPreviewInputTests : AnimatorToolTest
         Assert.That(Session.GetComponent<AnimatorSelection>().Attachment, Is.EqualTo(0));
         Assert.That(Runtime.Pose.Attachments[0].Translation,
             Is.EqualTo(new Vector2(0, -12)).Using<Vector2>(Close));
+    }
+
+    [Test]
+    public void SvgModeIgnoresBonesAndBoneModeIgnoresAttachments()
+    {
+        Pointer.Position = BoneScreenPosition(1);
+        Session.GetComponent<AnimatorModes>().Svg = true;
+        Pointer.Pressed = true;
+        Frame();
+
+        Assert.That(Session.GetComponent<AnimatorSelection>().Bone, Is.EqualTo(-1));
     }
 
     [Test]

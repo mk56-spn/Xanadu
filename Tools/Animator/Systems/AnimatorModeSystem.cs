@@ -48,6 +48,7 @@ public sealed class AnimatorModeSystem : QuerySystem<Toggle, ModeToggle>
     {
         AnimatorMode.AutoKey => modes.AutoKey,
         AnimatorMode.Onion => modes.Onion,
+        AnimatorMode.Svg => modes.Svg,
         _ => modes.Rest,
     };
 
@@ -60,6 +61,9 @@ public sealed class AnimatorModeSystem : QuerySystem<Toggle, ModeToggle>
                 break;
             case AnimatorMode.Onion:
                 modes.Onion = value;
+                break;
+            case AnimatorMode.Svg:
+                modes.Svg = value;
                 break;
             default:
                 modes.Rest = value;
@@ -76,6 +80,12 @@ public sealed class AnimatorModeSystem : QuerySystem<Toggle, ModeToggle>
         }
         else
         {
+            if (mode == AnimatorMode.Svg)
+            {
+                AnimatorSession.SetStatus(session, value ? "SVG PLACEMENT" : "BONE MOVEMENT");
+                return;
+            }
+
             string name = mode == AnimatorMode.AutoKey ? "AUTO KEY" : "ONION";
             AnimatorSession.SetStatus(session, $"{name} {(value ? "ON" : "OFF")}");
         }
