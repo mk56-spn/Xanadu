@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Xml.Linq;
 
@@ -7,6 +8,45 @@ namespace Writer.Animation;
 /// <summary>SVG group isolation used before rasterizing a rigid attachment.</summary>
 public static class XafSvgDocument
 {
+    /// <summary>
+    /// Ids of the groups an SVG can be attached as, in document order. Only
+    /// <c>&lt;g&gt;</c> elements outside <c>defs</c> count, since those are what
+    /// an attachment isolates and rasterizes; their ids can then be passed to
+    /// <see cref="IsolateGroup"/>.
+    /// </summary>
+    public static List<string> Groups(string svg)
+    {
+        XDocument document;
+        try
+        {
+            document = XDocument.Parse(svg, LoadOptions.PreserveWhitespace);
+        }
+        catch (Exception exception)
+        {
+            throw new XafFormatException(
+                $"Invalid SVG: {exception.Message}");
+        }
+
+        var groups = new List<string>();
+        if (document.Root is null)
+            return groups;
+
+        foreach (XElement element in document.Root.Descendants())
+        {
+            if (element.Name.LocalName != "g" ||
+                element.Ancestors().Any(ancestor => ancestor.Name.LocalName == "defs"))
+            {
+                continue;
+            }
+
+            string? id = (string?)element.Attribute("id");
+            if (!string.IsNullOrWhiteSpace(id) && !groups.Contains(id))
+                groups.Add(id);
+        }
+
+        return groups;
+    }
+
     public static string IsolateGroup(string svg, string group)
     {
         if (string.IsNullOrWhiteSpace(group))

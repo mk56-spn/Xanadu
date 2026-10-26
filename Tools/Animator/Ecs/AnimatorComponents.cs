@@ -42,6 +42,12 @@ public enum ToolActionKind
     MirrorPose,
     AddKey,
     DeleteKey,
+
+    /// <summary>Opens the ADD SVG picker on the selected bone; no argument.</summary>
+    AddSvg,
+
+    /// <summary>Attaches one picker choice, by its index in the open picker.</summary>
+    AttachSvg,
 }
 
 /// <summary>Command carried by a pressable UI entity.</summary>
@@ -264,6 +270,40 @@ public struct AnimatorClipboard : IComponent
     public System.Collections.Generic.Dictionary<string, XafTransform>? Pose;
 }
 
+/// <summary>One attachment the SVG picker can add: a file and a group inside it.</summary>
+public readonly record struct AnimatorSvgChoice(string Path, string Group)
+{
+    /// <summary>The file's name, plus the group when the file holds more than one.</summary>
+    public string Label
+    {
+        get
+        {
+            string name = System.IO.Path.GetFileNameWithoutExtension(Path);
+            return string.Equals(name, Group, System.StringComparison.Ordinal)
+                ? name
+                : $"{name} / {Group}";
+        }
+    }
+}
+
+/// <summary>
+/// The ADD SVG picker opened from the bone menu. It lists every group of every
+/// SVG the project holds and adds the chosen one to <see cref="Bone"/>.
+/// </summary>
+public struct AnimatorSvgMenu : IComponent
+{
+    public bool Open;
+
+    /// <summary>Screen point the picker was asked to open at, before it is kept on screen.</summary>
+    public Vector2 Anchor;
+
+    /// <summary>The bone the chosen attachment is added to.</summary>
+    public int Bone;
+
+    /// <summary>Every addable group, refreshed each time the picker opens.</summary>
+    public List<AnimatorSvgChoice>? Choices;
+}
+
 /// <summary>Latest status line message shown in the header.</summary>
 public struct AnimatorStatus : IComponent
 {
@@ -307,6 +347,10 @@ public struct AnimatorUi : IComponent
     /// <summary>Floating bone context menu and the field used to rename a bone.</summary>
     public Entity BoneMenu;
     public Entity BoneNameField;
+
+    /// <summary>The ADD SVG picker and the list its choices are built into.</summary>
+    public Entity SvgMenu;
+    public Entity SvgMenuList;
 }
 
 /// <summary>Package snapshots for undo/redo, on the shared <see cref="UndoHistory{T}"/>.</summary>
