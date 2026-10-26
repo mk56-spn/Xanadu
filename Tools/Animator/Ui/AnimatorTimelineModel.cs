@@ -158,6 +158,37 @@ public sealed class AnimatorTimelineModel
         return found;
     }
 
+    /// <summary>Every visible key set whose marker touches the box, in row order.</summary>
+    public List<AnimatorKeyRef> KeysIn(Rect2 box)
+    {
+        var keys = new List<AnimatorKeyRef>();
+        for (int screenRow = 0; screenRow < VisibleRows; screenRow++)
+        {
+            int index = FirstRow + screenRow;
+            if (index >= Tracks.Count)
+                break;
+
+            Rect2 row = RowRect(screenRow);
+            if (!box.Intersects(row, includeBorders: true))
+                continue;
+
+            XafTrack track = Tracks[index];
+            foreach (float time in XafTracks.KeyTimes(Clip, track))
+            {
+                double ms = time * 1000.0;
+                if (ms < Window.Start || ms > Window.End)
+                    continue;
+
+                Vector2 center = new(XForSeconds(time), row.GetCenter().Y);
+                var marker = new Rect2(center - new Vector2(KeyRadius, KeyRadius), new Vector2(KeyRadius * 2, KeyRadius * 2));
+                if (box.Intersects(marker, includeBorders: true))
+                    keys.Add(new AnimatorKeyRef(track.Target, track.Id, time));
+            }
+        }
+
+        return keys;
+    }
+
     private static Rect2 RulerOf(Rect2 panel)
     {
         float x = panel.Position.X + Padding + LabelWidth + Gap;

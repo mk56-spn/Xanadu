@@ -56,8 +56,8 @@ public sealed class EditorPlayfieldDrawSystem :
                     entity.HasComponent<WaveformPreview>()
                         ? entity.GetComponent<WaveformPreview>()
                         : default,
-                    entity.HasComponent<EditorSelectionBox>()
-                        ? entity.GetComponent<EditorSelectionBox>()
+                    entity.HasComponent<UiMarqueeBox>()
+                        ? entity.GetComponent<UiMarqueeBox>()
                         : default);
         });
     }
@@ -69,7 +69,7 @@ public sealed class EditorPlayfieldDrawSystem :
         NoteSelection selection,
         TimelineView timeline,
         WaveformPreview preview,
-        EditorSelectionBox selectionBox)
+        UiMarqueeBox selectionBox)
     {
         _canvas.DrawRect(
             _editor,
@@ -218,31 +218,8 @@ public sealed class EditorPlayfieldDrawSystem :
         }
     }
 
-    private void DrawSelectionBox(EditorSelectionBox box)
-    {
-        if (!box.Active)
-            return;
-
-        Vector2 topLeft = new(
-            Math.Min(box.Start.X, box.Current.X),
-            Math.Min(box.Start.Y, box.Current.Y));
-        var bounds = new Rect2(
-            topLeft,
-            new Vector2(
-                Math.Abs(box.Current.X - box.Start.X),
-                Math.Abs(box.Current.Y - box.Start.Y)));
-
-        _canvas.DrawRect(
-            _editor,
-            bounds,
-            new Color(0.25f, 0.55f, 1f, 0.12f));
-        PlayfieldRenderer.DrawBorder(
-            _canvas,
-            _editor,
-            bounds,
-            new Color(0.45f, 0.7f, 1f, 0.9f),
-            1);
-    }
+    private void DrawSelectionBox(UiMarqueeBox box) =>
+        CanvasMarquee.Draw(_canvas, _editor, box);
 
     private void DrawChrome(PlayfieldView view)
     {

@@ -25,6 +25,7 @@ public sealed class AnimatorSystemGroup : SystemGroup
         Add(new AnimatorActionSystem());
         Add(new AnimatorModeSystem());
         Add(new AnimatorBoneMenuSystem(pointer));
+        Add(new AnimatorKeyMenuSystem(pointer));
         Add(new AnimatorPreviewInputSystem(pointer));
         Add(new AnimatorTimelineInputSystem(pointer, wheel));
         Add(new AnimatorShortcutSystem(keyboard));

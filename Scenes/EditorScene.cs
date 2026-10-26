@@ -50,10 +50,7 @@ public static partial class EditorScene
             new PlayfieldMode(PlayfieldKind.Editor),
             new PlayfieldView(new Vector2(originX, originY), scale, viewportSize));
 
-        editor.AddComponent(new EditorSelectionBox(
-            Vector2.Zero,
-            Vector2.Zero,
-            false));
+        editor.AddComponent(new UiMarqueeBox());
         editor.AddComponent(new WaveformPreview(
             "",
             System.Array.Empty<float>(),

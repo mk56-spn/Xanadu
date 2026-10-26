@@ -45,6 +45,10 @@ public sealed class AnimatorTimelineDrawSystem(IRectCanvas canvas, Rid target)
         DrawRuler(model);
         DrawRows(model, selection, selected);
         DrawPlayhead(model, document.Runtime.CurrentTime);
+
+        // The box being dragged to select keys, over everything else.
+        if (session.TryGetComponent(out UiMarqueeBox box))
+            CanvasMarquee.Draw(canvas, target, box);
     }
 
     private void DrawHeader(AnimatorTimelineModel model, AnimatorRuntime runtime)
@@ -157,10 +161,7 @@ public sealed class AnimatorTimelineDrawSystem(IRectCanvas canvas, Rid target)
             if (ms < model.Window.Start || ms > model.Window.End)
                 continue;
 
-            bool chosen = selection.HasKey &&
-                          selection.KeyTarget == track.Target &&
-                          selection.KeyId == track.Id &&
-                          Math.Abs(selection.KeyTime - time) <= XafTracks.TimeTolerance;
+            bool chosen = selection.IsKeySelected(track, time);
             XafEasePreset? ease = XafEasing.Read(model.Clip, track.Target, track.Id, time);
             DrawKey(
                 new Vector2(model.XForSeconds(time), row.Position.Y + row.Size.Y / 2),

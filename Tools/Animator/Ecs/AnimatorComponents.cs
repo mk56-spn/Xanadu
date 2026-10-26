@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using Godot;
 using Writer.Animation;
@@ -39,6 +40,8 @@ public enum ToolActionKind
     CopyPose,
     PastePose,
     MirrorPose,
+    AddKey,
+    DeleteKey,
 }
 
 /// <summary>Command carried by a pressable UI entity.</summary>
@@ -82,18 +85,66 @@ public struct AnimatorDocument : IComponent
     public int Version;
 }
 
+/// <summary>One selected key set: every channel key of a bone or attachment at one time.</summary>
+public readonly record struct AnimatorKeyRef(XafChannelTarget Target, string Id, float Time)
+{
+    public XafTrack Track => new(Target, Id);
+
+    public bool Is(XafTrack track, float time) =>
+        Target == track.Target && Id == track.Id &&
+        System.Math.Abs(Time - time) <= XafTracks.TimeTolerance;
+}
+
 /// <summary>
 /// The selected bone and attachment (indices, -1 for none) and the selected
-/// timeline key: every channel key of one target at one time.
+/// timeline keys. The first key is the primary one, the anchor that the
+/// playhead and drags follow; a box select can add more in
+/// <see cref="Extra"/>.
 /// </summary>
 public struct AnimatorSelection : IComponent
 {
     public int Bone;
     public int Attachment;
-    public bool HasKey;
+
+    private bool _hasKey;
+
+    /// <summary>
+    /// A key is selected. Clearing it drops <see cref="Extra"/> too, so a
+    /// leftover group never outlives its primary key.
+    /// </summary>
+    public bool HasKey
+    {
+        readonly get => _hasKey;
+        set
+        {
+            _hasKey = value;
+            if (!value)
+                Extra = null;
+        }
+    }
+
     public XafChannelTarget KeyTarget;
     public string KeyId;
     public float KeyTime;
+
+    /// <summary>The other selected keys beside the primary one; null when only one is selected.</summary>
+    public List<AnimatorKeyRef>? Extra;
+
+    /// <summary>Every selected key, the primary one first.</summary>
+    public readonly List<AnimatorKeyRef> Keys()
+    {
+        var keys = new List<AnimatorKeyRef>();
+        if (!_hasKey)
+            return keys;
+
+        keys.Add(new AnimatorKeyRef(KeyTarget, KeyId, KeyTime));
+        if (Extra is not null)
+            keys.AddRange(Extra);
+        return keys;
+    }
+
+    public readonly bool IsKeySelected(XafTrack track, float time) =>
+        _hasKey && Keys().Exists(key => key.Is(track, time));
 
     public static AnimatorSelection None => new()
     {
@@ -147,6 +198,9 @@ public enum AnimatorDragKind
 
     /// <summary>Bends the grabbed joint's parent and grandparent so it reaches the pointer.</summary>
     Ik,
+
+    /// <summary>Drags a box over the timeline to select the keys it covers.</summary>
+    KeyBox,
 }
 
 /// <summary>Active pointer drag in the preview or timeline.</summary>
@@ -186,6 +240,24 @@ public struct AnimatorBoneMenu : IComponent
     public static AnimatorBoneMenu Closed => new() { Renaming = -1, Reparenting = -1 };
 }
 
+/// <summary>
+/// The key menu opened by right-clicking a track row in the timeline, and
+/// where in the clip it was opened, which is what ADD KEY keys.
+/// </summary>
+public struct AnimatorKeyMenu : IComponent
+{
+    public bool Open;
+
+    /// <summary>Screen point of the menu's top-left corner.</summary>
+    public Vector2 Anchor;
+
+    /// <summary>The bone or attachment whose row was clicked.</summary>
+    public XafTrack Track;
+
+    /// <summary>Seconds into the clip under the pointer, snapped, or the time of the key clicked.</summary>
+    public float Time;
+}
+
 /// <summary>A copied pose, by bone id, waiting to be pasted.</summary>
 public struct AnimatorClipboard : IComponent
 {
@@ -216,6 +288,14 @@ public struct AnimatorUi : IComponent
     /// are not hidden behind the preview.
     /// </summary>
     public Entity MenuLayer;
+
+    /// <summary>The key menu and its two options; the menu system dims the one that does not apply.</summary>
+    public Entity KeyMenu;
+    public Entity KeyMenuAdd;
+    public Entity KeyMenuDelete;
+
+    /// <summary>Screen size the layout was built for, so floating menus can stay on screen.</summary>
+    public Vector2 ScreenSize;
 
     /// <summary>Button of the clip dropdown; rebuilt with the clip list.</summary>
     public Entity ClipDropdown;

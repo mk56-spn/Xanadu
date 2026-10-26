@@ -78,8 +78,10 @@ public static class AnimatorLayout
         // One floating layer holds every menu and the history panel.
         UiBuilder menu = UiBuilder.Begin(store, visuals).Layer(MenuLayer);
         refs.Ui.MenuLayer = menu.Current;
+        refs.Ui.ScreenSize = screen;
         BuildFileMenu(menu, refs.FileButton);
         BuildBoneMenu(menu, ref refs);
+        BuildKeyMenu(menu, ref refs);
         BuildHistoryPanel(menu);
         return refs.Ui;
     }
@@ -265,6 +267,9 @@ public static class AnimatorLayout
 
     public static readonly Vector2 BoneNameSize = new(140, 22);
 
+    /// <summary>Size of the key menu opened by right-clicking a timeline track row.</summary>
+    public static readonly Vector2 KeyMenuSize = new(150, 2 * 28 + 2 + 8);
+
     /// <summary>
     /// The bone context menu and its rename field float above the panels and
     /// start hidden; the bone menu system moves them into place.
@@ -291,6 +296,20 @@ public static class AnimatorLayout
 
         refs.Ui.BoneNameField = TextInput(menu, BoneNameSize);
         refs.Ui.BoneNameField.GetComponent<Position>().Value = UiLayout.Hidden;
+    }
+
+    /// <summary>The key menu starts hidden; the key menu system moves it into place.</summary>
+    private static void BuildKeyMenu(UiBuilder menu, ref Refs refs)
+    {
+        menu.Container(UiLayout.Hidden, KeyMenuSize, StackDirection.Vertical,
+            spacing: 2, color: UiTheme.Panel, padding: 4, takesInput: true);
+        refs.Ui.KeyMenu = menu.Current;
+        var size = new Vector2(KeyMenuSize.X - 8, 28);
+        refs.Ui.KeyMenuAdd = menu.Button("ADD KEY", size, fontSize: UiTheme.SmallFontSize);
+        refs.Ui.KeyMenuAdd.AddComponent(new ToolAction(ToolActionKind.AddKey));
+        refs.Ui.KeyMenuDelete = menu.Button("DELETE KEY", size, fontSize: UiTheme.SmallFontSize);
+        refs.Ui.KeyMenuDelete.AddComponent(new ToolAction(ToolActionKind.DeleteKey));
+        menu.End();
     }
 
     /// <summary>

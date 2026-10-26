@@ -89,6 +89,12 @@ public static class AnimatorCommands
             case ToolActionKind.ReparentBone:
                 BeginBoneReparent(session);
                 break;
+            case ToolActionKind.AddKey:
+                AddKeyFromMenu(session);
+                break;
+            case ToolActionKind.DeleteKey:
+                AnimatorKeyCommands.DeleteSelected(session);
+                break;
             case ToolActionKind.KeyPose:
                 AnimatorPoseCommands.KeyPose(session);
                 break;
@@ -141,6 +147,13 @@ public static class AnimatorCommands
         selection.Bone = index;
         selection.Attachment = -1;
         AnimatorSession.SetStatus(session, $"SELECTED {boneId}");
+    }
+
+    /// <summary>Adds a key at the row and time the key menu was opened on.</summary>
+    private static void AddKeyFromMenu(Entity session)
+    {
+        AnimatorKeyMenu menu = session.GetComponent<AnimatorKeyMenu>();
+        AnimatorKeyCommands.AddKeyAt(session, menu.Track, menu.Time);
     }
 
     /// <summary>Shows the name field over the selected bone; the menu system focuses it.</summary>

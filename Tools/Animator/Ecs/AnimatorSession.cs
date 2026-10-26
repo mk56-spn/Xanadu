@@ -40,6 +40,8 @@ public static class AnimatorSession
             new AnimatorTracks(),
             AnimatorBoneMenu.Closed,
             new AnimatorClipboard());
+        session.AddComponent(new AnimatorKeyMenu());
+        session.AddComponent(new UiMarqueeBox());
         session.AddComponent(new AnimatorHistory
         {
             History = AnimatorHistoryCommands.CreateHistory(session),
@@ -66,6 +68,7 @@ public static class AnimatorSession
         session.GetComponent<AnimatorSelection>() = AnimatorSelection.None;
         session.GetComponent<AnimatorDrag>() = new AnimatorDrag();
         session.GetComponent<AnimatorBoneMenu>() = AnimatorBoneMenu.Closed;
+        session.GetComponent<AnimatorKeyMenu>() = new AnimatorKeyMenu();
         AnimatorHistoryCommands.Clear(session);
     }
 

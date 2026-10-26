@@ -58,17 +58,6 @@ public struct NoteSelection : IComponent
     public void Clear() => _selection.Clear();
 }
 
-/// <summary>Screen-space marquee currently being dragged in the editor.</summary>
-public struct EditorSelectionBox(
-    Vector2 start,
-    Vector2 current,
-    bool active) : IComponent
-{
-    public Vector2 Start = start;
-    public Vector2 Current = current;
-    public bool Active = active;
-}
-
 /// <summary>Current level file path for Save (empty until saved).</summary>
 public struct LevelFile(string path) : IComponent
 {
