@@ -1,6 +1,6 @@
 {
   "Version": 2,
-  "Id": "92b85e5b439c46038dfbf8b1d084df0b",
+  "Id": "b86a9b579f1e49a283e647447f8fc41c",
   "Slug": "",
   "SongId": "cfd622f1f39b48cf8d13c84b10f44694",
   "Name": "Mortal Coil \u2014 Character Test",
@@ -80,5 +80,16 @@
     }
   ],
   "Mines": [],
-  "StartPoints": []
+  "StartPoints": [
+    {
+      "Name": "",
+      "TimeMs": 38411,
+      "X": 832.14514,
+      "Y": 891.24585,
+      "MomentumX": 0,
+      "MomentumY": 0,
+      "DirectionX": 0,
+      "DirectionY": -1
+    }
+  ]
 }
