@@ -503,6 +503,51 @@ public sealed class EditorNoteInputSystemTests
     }
 
     [Test]
+    public void ShiftDraggingABoxAddsToTheExistingSelection()
+    {
+        Entity first = _store.CreateEntity(new Note(1_000, new Vector2(100, 200)));
+        Entity second = _store.CreateEntity(new Note(1_000, new Vector2(400, 400)));
+        Entity editor = _store.Query<PlayfieldView>().ToEntityList()[0];
+
+        // Select the first note, then shift-drag a box over the second from empty space.
+        _pointer.Current = new PointerInput(new Vector2(100, 200), true);
+        _root.Update(new UpdateTick(1f / 60f, 0));
+        _pointer.Current = new PointerInput(new Vector2(100, 200), false);
+        _root.Update(new UpdateTick(1f / 60f, 0));
+        _pointer.Current = new PointerInput(new Vector2(700, 700), true, true);
+        _root.Update(new UpdateTick(1f / 60f, 0));
+        _pointer.Current = new PointerInput(new Vector2(350, 350), true, true);
+        _root.Update(new UpdateTick(1f / 60f, 0));
+        _pointer.Current = new PointerInput(new Vector2(350, 350), false, true);
+        _root.Update(new UpdateTick(1f / 60f, 0));
+
+        NoteSelection selection = editor.GetComponent<NoteSelection>();
+        Assert.That(selection.Contains(first), Is.True);
+        Assert.That(selection.Contains(second), Is.True);
+        Assert.That(_store.Query<Note>().Count, Is.EqualTo(2));
+    }
+
+    [Test]
+    public void ADraggedBoxIsPublishedForDrawingAndClearedOnRelease()
+    {
+        Entity editor = _store.Query<PlayfieldView>().ToEntityList()[0];
+        editor.AddComponent(new UiMarqueeBox());
+
+        _pointer.Current = new PointerInput(new Vector2(50, 60), true);
+        _root.Update(new UpdateTick(1f / 60f, 0));
+        _pointer.Current = new PointerInput(new Vector2(250, 160), true);
+        _root.Update(new UpdateTick(1f / 60f, 0));
+
+        UiMarqueeBox box = editor.GetComponent<UiMarqueeBox>();
+        Assert.That(box.Active, Is.True);
+        Assert.That(box.Bounds, Is.EqualTo(new Rect2(50, 60, 200, 100)));
+
+        _pointer.Current = new PointerInput(new Vector2(250, 160), false);
+        _root.Update(new UpdateTick(1f / 60f, 0));
+        Assert.That(editor.GetComponent<UiMarqueeBox>().Active, Is.False);
+    }
+
+    [Test]
     public void MineModeMarqueeSelectsWithoutPlacingAMine()
     {
         Entity editor = _store.Query<PlayfieldView>().ToEntityList()[0];

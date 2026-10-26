@@ -36,12 +36,7 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
     private readonly UiDragController _drag = new();
     private readonly Dictionary<int, Vector2> _dragStartPositions = new();
     private EditorSnapshot _dragBefore;
-    private bool _pendingCreate;
-    private bool _selecting;
-    private bool _additiveSelection;
-    private readonly List<Entity> _selectionBase = new();
-    private Vector2 _selectionStart;
-    private Vector2 _selectionCurrent;
+    private readonly UiMarquee<Entity> _marquee = new();
 
     public EditorNoteInputSystem(
         EntityStore entities,
@@ -82,11 +77,8 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
         Playfield playfield = editor.GetComponent<Playfield>();
         ref Playhead playhead = ref editor.GetComponent<Playhead>();
 
-        _pendingCreate = false;
-        _selecting = false;
+        _marquee.Cancel();
         _timelineDragging = false;
-        _additiveSelection = false;
-        _selectionBase.Clear();
         SetSelectionBox(editor, Vector2.Zero, Vector2.Zero, false);
 
         Rect2 bar = EditorLayout.RulerRect(view);
@@ -183,20 +175,12 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
             return;
         }
 
-        _selectionStart = screenPosition;
-        _selectionCurrent = screenPosition;
+        // Shift-dragging adds to the selection; a plain press may place a note
+        // when released without dragging, or box-select when dragged.
         if (shift)
-        {
-            _selectionBase.Clear();
-            foreach (Entity selected in selection.AllNotes)
-                _selectionBase.Add(selected);
-            _selecting = true;
-            _additiveSelection = true;
-        }
+            _marquee.Begin(screenPosition, additive: true, selection.AllNotes);
         else
-        {
-            _pendingCreate = true;
-        }
+            _marquee.Arm(screenPosition);
     }
 
     private void OnHold(Vector2 screenPosition)
@@ -237,36 +221,14 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
             return;
         }
 
-        if (_pendingCreate &&
-            screenPosition.DistanceTo(_selectionStart) > 4f)
+        if (_marquee.Update(screenPosition, out bool boxStarted))
         {
-            _pendingCreate = false;
-            _selecting = true;
-            _additiveSelection = false;
+            if (boxStarted)
+                editor.GetComponent<NoteSelection>().SetMany(System.Array.Empty<Entity>());
+
+            SetSelectionBox(editor, _marquee.Start, _marquee.Current, true);
             editor.GetComponent<NoteSelection>().SetMany(
-                System.Array.Empty<Entity>());
-        }
-
-        if (_selecting)
-        {
-            _selectionCurrent = screenPosition;
-            SetSelectionBox(
-                editor,
-                _selectionStart,
-                _selectionCurrent,
-                true);
-            var selected = new List<Entity>();
-            if (_additiveSelection)
-                selected.AddRange(_selectionBase);
-            foreach (Entity entity in FindNotesIn(
-                         Rect2From(_selectionStart, _selectionCurrent),
-                         playhead.TimeMs))
-            {
-                if (!selected.Contains(entity))
-                    selected.Add(entity);
-            }
-
-            editor.GetComponent<NoteSelection>().SetMany(selected);
+                _marquee.Selection(FindNotesIn(_marquee.Bounds, playhead.TimeMs)));
             return;
         }
 
@@ -323,19 +285,14 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
         if (!editor.IsNull)
             SetSelectionBox(editor, Vector2.Zero, Vector2.Zero, false);
 
-        if (_selecting)
-        {
-            _selecting = false;
-            _additiveSelection = false;
-            _pendingCreate = false;
+        MarqueeEnd end = _marquee.End();
+        if (end == MarqueeEnd.Box)
             return;
-        }
 
-        if (_pendingCreate)
+        if (end == MarqueeEnd.Click)
         {
-            _pendingCreate = false;
             if (!editor.IsNull)
-                CreatePlacementAt(editor, _selectionStart);
+                CreatePlacementAt(editor, _marquee.Start);
             return;
         }
 
@@ -498,28 +455,16 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
         return selected;
     }
 
-    private static Rect2 Rect2From(Vector2 start, Vector2 current)
-    {
-        Vector2 topLeft = new(
-            Math.Min(start.X, current.X),
-            Math.Min(start.Y, current.Y));
-        return new Rect2(
-            topLeft,
-            new Vector2(
-                Math.Abs(current.X - start.X),
-                Math.Abs(current.Y - start.Y)));
-    }
-
     private static void SetSelectionBox(
         Entity editor,
         Vector2 start,
         Vector2 current,
         bool active)
     {
-        if (!editor.HasComponent<EditorSelectionBox>())
+        if (!editor.HasComponent<UiMarqueeBox>())
             return;
 
-        ref EditorSelectionBox box = ref editor.GetComponent<EditorSelectionBox>();
+        ref UiMarqueeBox box = ref editor.GetComponent<UiMarqueeBox>();
         box.Start = start;
         box.Current = current;
         box.Active = active;
