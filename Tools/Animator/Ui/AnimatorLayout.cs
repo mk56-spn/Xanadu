@@ -132,8 +132,9 @@ public static class AnimatorLayout
         ModeButton(ui, "SVG PLACE", AnimatorMode.Svg);
         Row(ui, ("ROT -", ToolActionKind.RotateLeft), ("ROT +", ToolActionKind.RotateRight));
         Row(ui, ("SCALE -", ToolActionKind.ScaleDown), ("SCALE +", ToolActionKind.ScaleUp));
-        Action(ui, "KEY SELECTED", ToolActionKind.KeyBone, ButtonSize);
-        Action(ui, "MOVABLE", ToolActionKind.ToggleMovable, ButtonSize);
+        Row(ui, ("KEY", ToolActionKind.KeyBone), ("KEY POSE", ToolActionKind.KeyPose));
+        SmallRow(ui, ("COPY POSE", ToolActionKind.CopyPose), ("PASTE POSE", ToolActionKind.PastePose));
+        Row(ui, ("MIRROR", ToolActionKind.MirrorPose), ("MOVABLE", ToolActionKind.ToggleMovable));
         ui.Text("CLIPS", new Vector2(210, 20), UiTheme.FontSize, UiTheme.Accent);
         refs.Ui.ClipList = List(ui, ButtonWidth);
         ui.End();
@@ -283,9 +284,24 @@ public static class AnimatorLayout
         ui.End();
     }
 
-    private static Entity Action(UiBuilder ui, string label, ToolActionKind kind, Vector2 size)
+    /// <summary>A <see cref="Row"/> in the small font, for labels too long for half a button.</summary>
+    private static void SmallRow(UiBuilder ui, params (string Label, ToolActionKind Kind)[] buttons)
     {
-        Entity button = ui.Button(label, size);
+        ui.Container(Vector2.Zero, new Vector2(ButtonWidth, 30), spacing: 6, color: Clear);
+        var size = new Vector2((ButtonWidth - 6) / 2, 30);
+        foreach ((string label, ToolActionKind kind) in buttons)
+            Action(ui, label, kind, size, UiTheme.SmallFontSize);
+        ui.End();
+    }
+
+    private static Entity Action(
+        UiBuilder ui,
+        string label,
+        ToolActionKind kind,
+        Vector2 size,
+        int fontSize = UiTheme.FontSize)
+    {
+        Entity button = ui.Button(label, size, fontSize: fontSize);
         button.AddComponent(new ToolAction(kind));
         return button;
     }
