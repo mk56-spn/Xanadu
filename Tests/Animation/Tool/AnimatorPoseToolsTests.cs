@@ -14,6 +14,7 @@ public sealed class AnimatorPoseToolsTests : AnimatorToolTest
     protected override void AddSystems()
     {
         Root.Add(new AnimatorActionSystem());
+        Root.Add(new AnimatorShortcutSystem(Keyboard));
     }
 
     private void Run(ToolActionKind kind) =>
@@ -21,6 +22,15 @@ public sealed class AnimatorPoseToolsTests : AnimatorToolTest
 
     private XafChannel? Channel(string bone, XafChannelProperty property) =>
         Idle.Channels.Find(channel => channel.TargetId == bone && channel.Property == property);
+
+    private void Tap(params Key[] keys)
+    {
+        foreach (Key key in keys)
+            Keyboard.Press(key);
+        Frame();
+        Keyboard.Clear();
+        Frame();
+    }
 
     [Test]
     public void KeyPoseKeysEveryBoneAtThePlayhead()
@@ -35,6 +45,20 @@ public sealed class AnimatorPoseToolsTests : AnimatorToolTest
         Assert.That(XafSampler.Sample(Package, Idle, 0.5f).Bones[1].Rotation, Is.EqualTo(0.3f).Within(0.0001f));
     }
 
+    [Test]
+    public void APastedPoseCanBeKeyedAtAnotherTime()
+    {
+        Runtime.Seek(0.5f);
+        Runtime.Pose.Bones[1].Rotation = 0.4f;
+        Tap(Key.Ctrl, Key.C);
+
+        Runtime.Seek(1.5f);
+        Tap(Key.Ctrl, Key.V);
+        Assert.That(Runtime.Pose.Bones[1].Rotation, Is.EqualTo(0.4f));
+
+        Run(ToolActionKind.KeyPose);
+        Assert.That(XafSampler.Sample(Package, Idle, 1.5f).Bones[1].Rotation, Is.EqualTo(0.4f).Within(0.0001f));
+    }
 
     [Test]
     public void PastingWithAutoKeyKeysThePose()
@@ -60,9 +84,62 @@ public sealed class AnimatorPoseToolsTests : AnimatorToolTest
 
 
 
+    [Test]
+    public void SpaceTogglesPlayback()
+    {
+        Runtime.SetPaused(true);
 
+        Tap(Key.Space);
+        Assert.That(Runtime.Paused, Is.False);
 
+        Tap(Key.Space);
+        Assert.That(Runtime.Paused, Is.True);
+    }
 
+    [Test]
+    public void ArrowsStepThePlayheadAndHomeEndJumpToTheEnds()
+    {
+        Runtime.Seek(0f);
+
+        Tap(Key.Right);
+        Tap(Key.Right);
+        float stepped = Runtime.CurrentTime;
+        Assert.That(stepped, Is.GreaterThan(0f));
+        Tap(Key.Left);
+        Assert.That(Runtime.CurrentTime, Is.LessThan(stepped));
+        Assert.That(Runtime.Paused, Is.True);
+
+        Tap(Key.End);
+        Assert.That(Runtime.CurrentTime, Is.EqualTo(Idle.Duration));
+        Tap(Key.Home);
+        Assert.That(Runtime.CurrentTime, Is.EqualTo(0f));
+    }
+
+    [Test]
+    public void UpAndDownJumpBetweenKeys()
+    {
+        // The idle clip has head keys at 0, 1 and 2 seconds.
+        Runtime.Seek(0.4f);
+
+        Tap(Key.Down);
+        Assert.That(Runtime.CurrentTime, Is.EqualTo(1f));
+        Tap(Key.Down);
+        Assert.That(Runtime.CurrentTime, Is.EqualTo(2f));
+        Tap(Key.Up);
+        Tap(Key.Up);
+        Assert.That(Runtime.CurrentTime, Is.EqualTo(0f));
+    }
+
+    [Test]
+    public void ShortcutsAreIgnoredWhileTyping()
+    {
+        Runtime.SetPaused(true);
+        Ui.ClipName.AddTag<TextFieldFocused>();
+
+        Tap(Key.Space);
+
+        Assert.That(Runtime.Paused, Is.True);
+    }
 }
 
 [TestFixture]
