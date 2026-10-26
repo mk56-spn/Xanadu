@@ -100,7 +100,7 @@ public sealed class AnimatorPreviewDrawSystem(
         }
 
         Transform2D[] attachments = XafRig.WorldAttachments(document.Package, pose, world);
-        visuals.Apply(attachments, origin);
+        visuals.Apply(attachments, new Transform2D(0f, origin));
         for (int i = 0; i < attachments.Length; i++)
         {
             Vector2 point = origin + attachments[i].Origin;

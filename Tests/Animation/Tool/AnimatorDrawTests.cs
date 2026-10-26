@@ -186,7 +186,7 @@ public sealed class AnimatorDrawTests : AnimatorToolTest
 
         public void Reload(XafPackage package) => Reloads++;
 
-        public void Apply(Transform2D[] attachments, Vector2 origin) { }
+        public void Apply(Transform2D[] attachments, Transform2D placement) { }
     }
 
     private sealed class RecordingCanvas : IRectCanvas
