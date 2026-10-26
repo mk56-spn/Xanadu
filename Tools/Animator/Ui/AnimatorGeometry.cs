@@ -29,6 +29,71 @@ public static class AnimatorGeometry
         return new Rect2(center - size / 2, size);
     }
 
+    /// <summary>Where a bone's name is drawn beside its joint, which is also its right-click target.</summary>
+    public static Rect2 BoneLabel(Vector2 joint) =>
+        new(joint + new Vector2(8, -12), new Vector2(100, 20));
+
+    /// <summary>The bone whose joint or label is under the pointer, or -1; joints win.</summary>
+    public static int PickBoneOrLabel(Transform2D[] world, Vector2 origin, Vector2 pointer)
+    {
+        int bone = PickNearest(world, origin, pointer, BoneHitRadius);
+        if (bone >= 0)
+            return bone;
+
+        // Later bones draw on top, so they take overlapping labels.
+        for (int i = world.Length - 1; i >= 0; i--)
+        {
+            if (BoneLabel(origin + world[i].Origin).HasPoint(pointer))
+                return i;
+        }
+        return -1;
+    }
+
+    /// <summary>
+    /// Id of the bone whose row label in the bone tree is under the pointer,
+    /// or null. Collapsed rows and rows scrolled out of the clipping viewport
+    /// are skipped.
+    /// </summary>
+    public static string? TreeLabelAt(Entity tree, Vector2 pointer)
+    {
+        if (tree.IsNull)
+            return null;
+
+        Entity viewport = ClipViewport(tree);
+        if (!viewport.IsNull && !PanelArea(viewport).HasPoint(pointer))
+            return null;
+
+        foreach (Entity row in tree.ChildEntities)
+        {
+            if (row.Tags.Has<LayoutIgnore>() || !row.HasComponent<UiTreeNode>())
+                continue;
+
+            UiTreeNode node = row.GetComponent<UiTreeNode>();
+            if (PanelArea(node.Label).HasPoint(pointer))
+                return node.Id;
+        }
+        return null;
+    }
+
+    /// <summary>Screen rectangle of a bone's row label in the bone tree, if it is shown.</summary>
+    public static Rect2? TreeLabel(Entity tree, string id)
+    {
+        Entity row = tree.IsNull ? default : UiTreeControl.FindNode(tree, id);
+        if (row.IsNull || row.Tags.Has<LayoutIgnore>())
+            return null;
+        return PanelArea(row.GetComponent<UiTreeNode>().Label);
+    }
+
+    private static Entity ClipViewport(Entity entity)
+    {
+        for (Entity parent = entity.Parent; !parent.IsNull; parent = parent.Parent)
+        {
+            if (parent.HasComponent<ScrollView>())
+                return parent;
+        }
+        return default;
+    }
+
     /// <summary>Skeleton space origin: the middle of the preview panel.</summary>
     public static Vector2 PreviewOrigin(Rect2 area) => area.Position + area.Size / 2;
 

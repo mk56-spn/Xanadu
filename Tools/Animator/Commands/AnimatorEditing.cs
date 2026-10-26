@@ -164,6 +164,58 @@ public static class AnimatorEditing
         AnimatorSession.SetStatus(session, "BONE DELETED");
     }
 
+    /// <summary>Renames a bone; false when the name is empty or already used.</summary>
+    public static bool RenameBone(Entity session, int index, string id)
+    {
+        bool renamed = false;
+        AnimatorHistoryCommands.Edit(session, () =>
+        {
+            XafPackage package = session.GetComponent<AnimatorDocument>().Package;
+            if (!XafRigAuthoring.RenameBone(package, index, id))
+                return;
+
+            renamed = true;
+            AnimatorSession.RigChanged(session);
+            AnimatorSession.SetStatus(session, $"RENAMED TO {id}");
+        });
+
+        if (!renamed)
+            AnimatorSession.SetStatus(session, "NAME EMPTY OR ALREADY USED");
+        return renamed;
+    }
+
+    /// <summary>Moves a bone under a new parent and keeps it selected.</summary>
+    public static bool ReparentBone(Entity session, int index, int parent)
+    {
+        bool moved = false;
+        AnimatorHistoryCommands.Edit(session, () =>
+        {
+            XafPackage package = session.GetComponent<AnimatorDocument>().Package;
+            if (index < 0 || index >= package.Skeleton.Bones.Count ||
+                parent < 0 || parent >= package.Skeleton.Bones.Count)
+            {
+                return;
+            }
+
+            string id = package.Skeleton.Bones[index].Id;
+            string parentId = package.Skeleton.Bones[parent].Id;
+            if (!XafRigAuthoring.ReparentBone(package, index, parent))
+                return;
+
+            // Reparenting may reorder the bones, so find the moved one again.
+            moved = true;
+            ref AnimatorSelection selection = ref session.GetComponent<AnimatorSelection>();
+            selection.Bone = XafRig.FindBone(package, id);
+            selection.Attachment = -1;
+            AnimatorSession.RigChanged(session);
+            AnimatorSession.SetStatus(session, $"{id} NOW UNDER {parentId}");
+        });
+
+        if (!moved)
+            AnimatorSession.SetStatus(session, "CANNOT REPARENT THERE");
+        return moved;
+    }
+
     private static void NudgeRest(
         XafPackage package,
         AnimatorSelection selection,

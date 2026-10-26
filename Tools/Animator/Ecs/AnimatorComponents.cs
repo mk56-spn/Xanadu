@@ -33,6 +33,8 @@ public enum ToolActionKind
     AddBone,
     DeleteBone,
     NewSkeleton,
+    RenameBone,
+    ReparentBone,
 }
 
 /// <summary>Command carried by a pressable UI entity.</summary>
@@ -150,6 +152,29 @@ public struct AnimatorDrag : IComponent
     public Transform2D ParentWorld;
 }
 
+/// <summary>
+/// The bone context menu opened by right-clicking a bone label in the preview,
+/// and the rename or reparent it started. Bone indices are -1 for none.
+/// </summary>
+public struct AnimatorBoneMenu : IComponent
+{
+    public bool Open;
+
+    /// <summary>Screen point the menu opens at.</summary>
+    public Vector2 Anchor;
+
+    /// <summary>Opened from the bone tree rather than the preview, so renames edit in the tree row.</summary>
+    public bool FromTree;
+
+    /// <summary>Bone whose name field is shown, waiting for focus or being typed.</summary>
+    public int Renaming;
+
+    /// <summary>Bone waiting for its new parent to be clicked in the preview.</summary>
+    public int Reparenting;
+
+    public static AnimatorBoneMenu Closed => new() { Renaming = -1, Reparenting = -1 };
+}
+
 /// <summary>Latest status line message shown in the header.</summary>
 public struct AnimatorStatus : IComponent
 {
@@ -172,6 +197,10 @@ public struct AnimatorUi : IComponent
     public Entity LoopButton;
     public Entity PathField;
     public Entity DirtyLabel;
+
+    /// <summary>Floating bone context menu and the field used to rename a bone.</summary>
+    public Entity BoneMenu;
+    public Entity BoneNameField;
 }
 
 /// <summary>Package snapshots for undo/redo, on the shared <see cref="UndoHistory{T}"/>.</summary>
