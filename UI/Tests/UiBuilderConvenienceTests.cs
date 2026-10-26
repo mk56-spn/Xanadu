@@ -149,6 +149,32 @@ public sealed class UiBuilderConvenienceTests
     }
 
     [Test]
+    public void DropdownListBuildsAListOnAnotherLayerForAnExistingButton()
+    {
+        var store = new EntityStore();
+        var visuals = new FakeVisualRidFactory();
+        UiBuilder panel = UiBuilder.Begin(store, visuals).Layer(0);
+        panel.Container(Vector2.Zero, new Vector2(300, 60));
+        Entity container = panel.Current;
+        Entity button = panel.Button("PICK", new Vector2(160, 30));
+        Entity menuLayer = UiBuilder.Begin(store, visuals).Layer(6).Current;
+
+        // Resuming on the layer itself puts the new entities on that layer.
+        UiDropdownControl dropdown = UiBuilder.Begin(store, visuals).Use(menuLayer)
+            .DropdownList(button, new[] { "ONE", "TWO" });
+
+        Assert.That(dropdown.Button.Id, Is.EqualTo(button.Id));
+        Assert.That(button.Parent.Id, Is.EqualTo(container.Id));
+        Assert.That(dropdown.List.Parent.Id, Is.EqualTo(menuLayer.Id));
+        Assert.That(dropdown.List.GetComponent<Drawable>().ZIndex, Is.EqualTo(6));
+        Assert.That(dropdown.List.GetComponent<Rectangle>().Bounds.Size.X, Is.EqualTo(160f));
+        Assert.That(dropdown.Options, Has.Count.EqualTo(2));
+        Assert.That(dropdown.Options[1].Parent.Id, Is.EqualTo(menuLayer.Id));
+        Assert.That(dropdown.Options[1].GetComponent<Drawable>().ZIndex, Is.EqualTo(6));
+        Assert.That(button.GetComponent<Dropdown>().List.Id, Is.EqualTo(dropdown.List.Id));
+    }
+
+    [Test]
     public void ADropdownStartsClosedWithItsListAndOptionsOffScreen()
     {
         var store = new EntityStore();
