@@ -1,6 +1,6 @@
 {
   "Version": 2,
-  "Id": "573be3e01be74907b945a36cf0c566ab",
+  "Id": "92b85e5b439c46038dfbf8b1d084df0b",
   "Slug": "",
   "SongId": "cfd622f1f39b48cf8d13c84b10f44694",
   "Name": "Mortal Coil \u2014 Character Test",
@@ -14,7 +14,9 @@
       "Y": 868.13104,
       "Target": 3,
       "Kind": 0,
-      "DashDirection": 1
+      "DashDirection": 1,
+      "ContactRequired": 1,
+      "Character": 0
     },
     {
       "TimeMs": 1511,
@@ -22,7 +24,9 @@
       "Y": 920.7817,
       "Target": 3,
       "Kind": 1,
-      "DashDirection": 1
+      "DashDirection": 1,
+      "ContactRequired": 1,
+      "Character": 0
     },
     {
       "TimeMs": 2411,
@@ -30,7 +34,9 @@
       "Y": 924.63403,
       "Target": 5,
       "Kind": 1,
-      "DashDirection": 1
+      "DashDirection": 1,
+      "ContactRequired": 1,
+      "Character": 0
     },
     {
       "TimeMs": 2711,
@@ -38,7 +44,9 @@
       "Y": 845.0161,
       "Target": 5,
       "Kind": 1,
-      "DashDirection": 7
+      "DashDirection": 7,
+      "ContactRequired": 1,
+      "Character": 0
     },
     {
       "TimeMs": 5711,
@@ -46,7 +54,9 @@
       "Y": 950,
       "Target": 3,
       "Kind": 0,
-      "DashDirection": 3
+      "DashDirection": 3,
+      "ContactRequired": 1,
+      "Character": 0
     },
     {
       "TimeMs": 6311,
@@ -54,7 +64,9 @@
       "Y": 952.88556,
       "Target": 2,
       "Kind": 1,
-      "DashDirection": 1
+      "DashDirection": 1,
+      "ContactRequired": 1,
+      "Character": 0
     },
     {
       "TimeMs": 6911,
@@ -62,7 +74,9 @@
       "Y": 950,
       "Target": 3,
       "Kind": 0,
-      "DashDirection": 3
+      "DashDirection": 3,
+      "ContactRequired": 1,
+      "Character": 0
     }
   ],
   "Mines": [],
