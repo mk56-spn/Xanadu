@@ -25,7 +25,7 @@ public static class LevelSerializer
         if (string.IsNullOrWhiteSpace(document.Id))
             document.Id = System.Guid.NewGuid().ToString("N");
         if (string.IsNullOrWhiteSpace(document.Slug))
-            document.Slug = "level-" + document.Id[..8];
+            document.Slug = "level-" + document.Id[..System.Math.Min(8, document.Id.Length)];
 
         document.Notes ??= new();
         document.Notes.RemoveAll(note => note is null);
@@ -57,6 +57,36 @@ public static class LevelSerializer
             mine.Groups ??= new();
         foreach (BlockDocument block in document.Blocks)
             block.Groups ??= new();
+
+        NormalizeShaders(document);
         return document;
+    }
+
+    /// <summary>Keeps only shaders a level may carry, one per slot, and clears references to the rest.</summary>
+    private static void NormalizeShaders(LevelDocument document)
+    {
+        document.Shaders ??= new();
+        var seen = new System.Collections.Generic.HashSet<int>();
+        document.Shaders.RemoveAll(shader =>
+            shader is null ||
+            !Xanadu.Ecs.LevelShaders.IsSlot(shader.Slot) ||
+            !seen.Add(shader.Slot) ||
+            !ShaderSourceRules.IsAcceptable(shader.Source, out _));
+        foreach (ShaderDocument shader in document.Shaders)
+        {
+            shader.Name ??= "";
+            shader.Params ??= new();
+        }
+
+        int Valid(int slot) => seen.Contains(slot) && document.Shaders.Exists(s => s.Slot == slot) ? slot : 0;
+
+        document.PlayerShader = Valid(document.PlayerShader);
+        document.FieldShader = Valid(document.FieldShader);
+        foreach (NoteDocument note in document.Notes)
+            note.Shader = Valid(note.Shader);
+        foreach (MineDocument mine in document.Mines)
+            mine.Shader = Valid(mine.Shader);
+        foreach (BlockDocument block in document.Blocks)
+            block.Shader = Valid(block.Shader);
     }
 }

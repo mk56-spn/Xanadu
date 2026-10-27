@@ -1,5 +1,6 @@
 using System;
 using Godot;
+using Xanadu.Ecs;
 
 namespace Xanadu.Systems.Canvas;
 
@@ -7,6 +8,34 @@ namespace Xanadu.Systems.Canvas;
 public sealed class GodotRectCanvas : IRectCanvas
 {
     private const int FontSize = 16;
+    private const string BoldFontPath = "res://Assets/Fonts/SourceSans3-Variable.ttf";
+    private const int BoldWeight = 700;
+
+    private static Font? _boldFont;
+
+    /// <summary>
+    /// Source Sans 3 at weight 700, or the fallback font if the file cannot
+    /// be loaded. The file is a variable font whose default weight is light.
+    /// </summary>
+    private static Font BoldFont => _boldFont ??= LoadBoldFont();
+
+    private static Font LoadBoldFont()
+    {
+        if (GD.Load<FontFile>(BoldFontPath) is not { } file)
+        {
+            GD.PushError($"Bold font '{BoldFontPath}' not found; using the default font.");
+            return ThemeDB.FallbackFont;
+        }
+
+        return new FontVariation
+        {
+            BaseFont = file,
+            VariationOpentype = new Godot.Collections.Dictionary
+            {
+                { TextServerManager.GetPrimaryInterface().NameToTag("wght"), BoldWeight },
+            },
+        };
+    }
     private const float TextPadding = 4;
 
     public void SetVisible(Rid canvas, bool visible) =>
@@ -159,6 +188,28 @@ public sealed class GodotRectCanvas : IRectCanvas
             color);
     }
 
+    public void DrawTextWeighted(
+        Rid canvas,
+        Rect2 bounds,
+        string text,
+        Color color,
+        int fontSize,
+        TextAlign align,
+        bool bold) =>
+        DrawTextAligned(
+            canvas,
+            bounds,
+            text,
+            color,
+            fontSize,
+            align switch
+            {
+                TextAlign.Left => HorizontalAlignment.Left,
+                TextAlign.Right => HorizontalAlignment.Right,
+                _ => HorizontalAlignment.Center,
+            },
+            bold ? BoldFont : ThemeDB.FallbackFont);
+
     public void DrawTextLeft(Rid canvas, Rect2 bounds, string text, Color color) =>
         DrawTextAligned(canvas, bounds, text, color, FontSize, HorizontalAlignment.Left);
 
@@ -171,12 +222,13 @@ public sealed class GodotRectCanvas : IRectCanvas
         string text,
         Color color,
         int fontSize,
-        HorizontalAlignment alignment)
+        HorizontalAlignment alignment,
+        Font? face = null)
     {
         if (string.IsNullOrEmpty(text))
             return;
 
-        Font font = ThemeDB.FallbackFont;
+        Font font = face ?? ThemeDB.FallbackFont;
         float baseline = bounds.Position.Y +
                          (bounds.Size.Y - font.GetHeight(fontSize)) / 2 +
                          font.GetAscent(fontSize);

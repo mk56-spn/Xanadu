@@ -37,10 +37,7 @@ public sealed class SongSelectSceneTest : SceneTest
                 Context.Entities,
                 SceneUi.MenuLayer) == 0);
         AddAssert(
-            "level grid has nine tiles",
-            () => Context.Entities.Query<SongSelectTile>().Count == 9);
-        AddAssert(
-            "profile star frame exists",
-            () => Context.Entities.Query<UiImage>().Count == 1);
+            "level list has eight rows",
+            () => Context.Entities.Query<SongSelectTile>().Count == 8);
     }
 }

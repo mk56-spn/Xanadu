@@ -197,6 +197,8 @@ public static partial class EditorScene
             "ESC                    Back",
             "ENTER                  Forward",
             "F5                     Play from selected start",
+            "F8                     Tune shader uniforms",
+            "F9                     Level shaders",
             "F2                     Toggle this list",
         };
         foreach (string binding in bindings)

@@ -5,6 +5,7 @@ using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Godot;
 using Xanadu.Ecs;
+using Xanadu.Systems.Shaders;
 using Xanadu.Timeline;
 using Xanadu.Levels;
 using Xanadu.Systems.Canvas;
@@ -23,14 +24,15 @@ public sealed partial class EditorPlayfieldDrawSystem :
     private static readonly Color EditorBackground = new("#1e1e1e");
     private static readonly Color PanelBackground = new("#111827");
 
-    private readonly IRectCanvas _canvas;
+    private readonly ShaderRoutingCanvas _canvas;
+    private readonly GodotShaderCanvasItems _shaderItems = new();
     private readonly EntityStore _entities;
     private readonly Rid _editor;
 
     public EditorPlayfieldDrawSystem(EntityStore entities, IRectCanvas canvas, Rid editor)
     {
         _entities = entities;
-        _canvas = canvas;
+        _canvas = new ShaderRoutingCanvas(canvas, editor, _shaderItems);
         _editor = editor;
     }
 
@@ -45,6 +47,15 @@ public sealed partial class EditorPlayfieldDrawSystem :
             ref selection,
             entity) =>
         {
+            if (entity.TryGetComponent(out LevelShaders shaders))
+            {
+                LevelShaderMaterials.Ensure(shaders);
+                _shaderItems.MaterialOf = slot => LevelShaderMaterials.MaterialOf(shaders, slot);
+            }
+
+            _analysis = entity.HasComponent<EditorAnalysis>()
+                ? entity.GetComponent<EditorAnalysis>()
+                : default;
             DrawEditor(
                     view,
                     playfield,
@@ -533,6 +544,7 @@ public sealed partial class EditorPlayfieldDrawSystem :
             ? (timeline.ScrubStartMs, timeline.ScrubEndMs)
             : EditorLayout.TimelineWindow(playhead, timeline.Zoom);
 
+        DrawAnalysis(playhead, EditorLayout.AnalysisRect(view), windowStart, windowEnd);
         DrawBeatBands(ruler, playhead, windowStart, windowEnd);
         DrawBpmMarker(ruler, playhead, windowStart, windowEnd);
         DrawWaveform(ruler, preview, windowStart, windowEnd);

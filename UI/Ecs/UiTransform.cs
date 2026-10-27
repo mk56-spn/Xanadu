@@ -22,4 +22,8 @@ public static class UiTransform
 
         return world;
     }
+
+    /// <summary>Canvas transform for an entity's local position and rotation.</summary>
+    public static Transform2D Local(Entity entity, Vector2 position) =>
+        new(entity.TryGetComponent(out UiRotation rotation) ? rotation.Radians : 0, position);
 }

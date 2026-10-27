@@ -50,6 +50,19 @@ public static class EditorLayout
             TimelineHeight);
     }
 
+    public const float AnalysisHeight = 18;
+
+    /// <summary>The density strip, in the gap between the transport and the timeline.</summary>
+    public static Rect2 AnalysisRect(PlayfieldView view)
+    {
+        Rect2 ruler = RulerRect(view);
+        return new Rect2(
+            ruler.Position.X,
+            ruler.Position.Y - AnalysisHeight - 2,
+            ruler.Size.X,
+            AnalysisHeight);
+    }
+
     /// <summary>Centre of the lens icon that labels the timeline zoom controls.</summary>
     public static Vector2 ZoomLensCenter(PlayfieldView view)
     {

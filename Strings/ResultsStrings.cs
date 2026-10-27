@@ -8,6 +8,7 @@ public static class ResultsStrings
     public static readonly LString MaxCombo = new("results.max_combo", "MAX COMBO");
     public static readonly LString Score = new("results.score", "SCORE");
     public static readonly LString Retry = new("results.retry", "RETRY");
+    public static readonly LString WatchReplay = new("results.watch_replay", "WATCH REPLAY");
     public static readonly LString SongSelect = new("results.song_select", "SONG SELECT");
     public static readonly LString MainMenu = new("results.main_menu", "MAIN MENU");
 }

@@ -53,6 +53,13 @@ public partial class EditorOverlay : CanvasLayer
             return;
         }
 
+        if (key.Keycode == Key.F9)
+        {
+            ToggleShaderDialog();
+            GetViewport().SetInputAsHandled();
+            return;
+        }
+
         if (key.Keycode == Key.F2)
         {
             ToggleBindingsHelp();

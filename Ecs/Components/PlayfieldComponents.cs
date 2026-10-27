@@ -11,6 +11,12 @@ public struct LevelInfo(
     string artist = "",
     string difficulty = "") : IComponent
 {
+    /// <summary>
+    /// The level's stable identity, carried through editing so a re-saved
+    /// level is still the level replays and scores were recorded against.
+    /// </summary>
+    public string LevelId = "";
+    public string Slug = "";
     public string SongId = "";
     public string Name = name;
     public string AudioPath = audioPath;

@@ -24,7 +24,7 @@ public sealed class TransformSystem : QuerySystem<VisualRid, Position>
 
         Query.ForEachEntity((ref visual, ref position, entity) =>
         {
-            _canvas.SetTransform(visual.Value, new Transform2D(0, position.Value));
+            _canvas.SetTransform(visual.Value, UiTransform.Local(entity, position.Value));
             buffer.RemoveTag<Moved>(entity.Id);
         });
     }

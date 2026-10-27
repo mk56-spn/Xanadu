@@ -22,9 +22,11 @@ public sealed class GravityDebugSystem(
         if (!_built)
             return;
 
-        Query.ForEachEntity((ref slider, _) =>
+        Query.ForEachEntity((ref slider, entity) =>
         {
-            physics.SetGravity(slider.Value);
+            // Other panels, such as the shader tuner, own sliders too.
+            if (!entity.HasComponent<ShaderParam>())
+                physics.SetGravity(slider.Value);
         });
     }
 

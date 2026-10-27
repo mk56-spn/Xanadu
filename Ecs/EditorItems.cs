@@ -10,6 +10,17 @@ public static class EditorItems
         where T : struct, IComponent =>
         entities.CreateEntity(component, Tags.Get<EditorItem>());
 
+    /// <summary>
+    /// Creates an item that already carries its shader. Adding the component
+    /// afterwards is a structural change, which editor commands cannot make
+    /// while they are being processed.
+    /// </summary>
+    public static Entity Create<T>(EntityStore entities, T component, int shaderSlot)
+        where T : struct, IComponent =>
+        LevelShaders.IsSlot(shaderSlot)
+            ? entities.CreateEntity(component, new ItemShader(shaderSlot), Tags.Get<EditorItem>())
+            : Create(entities, component);
+
     public static bool IsItem(Entity entity) =>
         !entity.IsNull && entity.Tags.Has<EditorItem>();
 }

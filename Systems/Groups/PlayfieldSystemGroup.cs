@@ -10,6 +10,7 @@ using Xanadu.Settings;
 using Xanadu.Systems.Input;
 using Xanadu.Systems.Particles;
 using Xanadu.Systems.Playfields;
+using Xanadu.Systems.Replays;
 
 namespace Xanadu.Systems.Groups;
 
@@ -29,11 +30,19 @@ public sealed class PlayfieldSystemGroup : SystemGroup
         Rid hudOverlay = default,
         ICharacterRigFiles? rigFiles = null,
         Func<IAttachmentVisuals>? rigVisuals = null,
-        IParticleEmitter? particles = null) : base("Playfield")
+        IParticleEmitter? particles = null,
+        ReplayKeyboard? replayKeyboard = null) : base("Playfield")
     {
         Add(new PlayfieldPlaybackSystem(audio));
         Add(new PlaySessionSystem(audio));
         Add(new GroupModulationSystem(entities));
+        if (replayKeyboard is not null)
+        {
+            // Before anything that reads the keys, so a replayed press is seen this frame.
+            Add(new ReplayRecordSystem(keybinds, replayKeyboard.Real));
+            Add(new ReplayPlaybackSystem(keybinds, replayKeyboard));
+        }
+
         Add(new PlayerMovementSystem(entities, keybinds, keyboard, offsets));
         Add(new PlayerArenaSystem());
         Add(new PlayKeyTrailSystem(entities, keybinds, keyboard));

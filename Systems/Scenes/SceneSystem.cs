@@ -5,6 +5,7 @@ using Friflo.Engine.ECS.Systems;
 using Godot;
 using Xanadu.Ecs;
 using Xanadu.Levels;
+using Xanadu.Replays;
 using Xanadu.Profiles;
 using Xanadu.Scenes;
 using Xanadu.Settings;
@@ -65,7 +66,8 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
         KeybindSettings? keybinds = null,
         bool transitions = true,
         ProfileStore? profiles = null,
-        DisplaySettings? display = null)
+        DisplaySettings? display = null,
+        ReplayStore? replays = null)
     {
         _entities = entities;
         _director = director;
@@ -75,6 +77,7 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
         _keybinds = keybinds ?? new KeybindSettings(persist: false);
         _profiles = profiles ?? new ProfileStore(persist: false);
         _display = display ?? new DisplaySettings(persist: false, apply: false);
+        _replays = replays;
         _transitionsEnabled = transitions;
         _controllers = SceneControllerRegistry.CreateDefault(this);
         EditorSceneActions.Register(_actionRegistry);
@@ -339,6 +342,7 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
         SetPlayback(false);
         _pendingPlayEntry = _lastPlayEntry;
         _pendingStart = CurrentPreviewStart;
+        _pendingReplay = _watchingReplay ? _lastReplay : null;
         _pendingResults = null;
         _restartRequested = true;
         state.Pending = SceneKind.Play;

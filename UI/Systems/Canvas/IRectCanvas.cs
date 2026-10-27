@@ -1,11 +1,18 @@
 using System;
 using Godot;
+using Xanadu.Ecs;
 
 namespace Xanadu.Systems.Canvas;
 
 /// <summary>Canvas operations used by draw systems.</summary>
 public interface IRectCanvas
 {
+    /// <summary>
+    /// Routes the draws that follow through a custom shader slot, 1-based, or
+    /// none for 0. Canvases with no shaders ignore it.
+    /// </summary>
+    void SelectShader(int slot) { }
+
     void SetVisible(Rid canvas, bool visible);
 
     void SetTransform(Rid canvas, Transform2D transform);
@@ -120,4 +127,31 @@ public interface IRectCanvas
         Color color,
         int fontSize) =>
         DrawTextStyled(canvas, bounds, text, color, fontSize);
+
+    /// <summary>
+    /// Draws text with an explicit size, alignment and weight. Canvases with
+    /// no bold face draw it at regular weight.
+    /// </summary>
+    void DrawTextWeighted(
+        Rid canvas,
+        Rect2 bounds,
+        string text,
+        Color color,
+        int fontSize,
+        TextAlign align,
+        bool bold)
+    {
+        switch (align)
+        {
+            case TextAlign.Left:
+                DrawTextStyledLeft(canvas, bounds, text, color, fontSize);
+                break;
+            case TextAlign.Right:
+                DrawTextStyledRight(canvas, bounds, text, color, fontSize);
+                break;
+            default:
+                DrawTextStyled(canvas, bounds, text, color, fontSize);
+                break;
+        }
+    }
 }

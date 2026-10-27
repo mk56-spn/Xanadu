@@ -37,6 +37,7 @@ public sealed class UiInteractionSystemGroup : SystemGroup
         Add(new ButtonVisualSystem());
         Add(new DisabledVisualSystem(entities));
         Add(new UiSliderSystem(pointer));
+        Add(new UiColorPickerSystem(pointer));
         if (tooltips)
             Add(new UiTooltipSystem(entities, pointer, visuals, screen));
     }

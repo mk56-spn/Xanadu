@@ -63,6 +63,8 @@ public static partial class EditorScene
         editor.AddComponent(new EditorUiRequest());
         editor.AddComponent(LevelGroups.Create());
         editor.AddComponent(EditorGroupState.Closed);
+        editor.AddComponent(EditorAnalysis.Create());
+        editor.AddComponent(LevelShaders.Create());
 
         if (parent is { } root)
             root.AddChild(editor);

@@ -63,6 +63,8 @@ public partial class EditorOverlay
         CreateTextFieldBridge();
         BuildSongDialog();
         BuildSaveDialogs();
+        BuildRecoveryDialog();
+        BuildShaderDialog();
 
         if (_openSongDialog &&
             _editor.HasComponent<LevelInfo>() &&

@@ -29,6 +29,7 @@ public static partial class PlayfieldRenderer
             if (block.Size.X <= 0 || block.Size.Y <= 0)
                 continue;
 
+            canvas.SelectShader(ItemShader.Of(entity));
             Rect2 screen = new(
                 view.PlayfieldToScreen(block.Position),
                 block.Size * view.Scale);
@@ -53,5 +54,7 @@ public static partial class PlayfieldRenderer
                     edge.A);
             }
         }
+
+        canvas.SelectShader(0);
     }
 }
