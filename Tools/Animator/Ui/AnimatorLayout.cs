@@ -196,6 +196,7 @@ public static partial class AnimatorLayout
         ModeButton(ui, "REST", AnimatorMode.Rest, 72);
         ModeButton(ui, "SVG", AnimatorMode.Svg, 66);
         ModeButton(ui, "IK", AnimatorMode.Ik, 60);
+        ModeButton(ui, "PIN", AnimatorMode.Pin, 66);
         ui.End();
     }
 
@@ -232,6 +233,8 @@ public static partial class AnimatorLayout
         InterpolationButton(ui, "OUT", XafEasePreset.EaseOut, 40);
         ui.RectEntity(Vector2.Zero, new Vector2(14, AnimatorTimelineModel.HeaderHeight), Clear);
         refs.Ui.ClipName = ClipNameField(ui);
+        HeaderButton(ui, "GAME", ToolActionKind.SequenceGame, 52);
+        HeaderButton(ui, "ALL", ToolActionKind.SequenceAll, 40);
         HeaderButton(ui, "NEW", ToolActionKind.NewClip, 44);
         refs.Ui.LoopButton = HeaderButton(ui, "LOOP", ToolActionKind.ToggleLoop, 76);
         ui.End();

@@ -94,7 +94,9 @@ public static class AnimatorEditing
 
         if (modes.Rest)
         {
+            AnimatorRestPin.Pinned? pinned = AnimatorRestPin.Capture(session, selection.Bones());
             NudgeRest(document.Package, selection, rotation, scale);
+            AnimatorRestPin.Restore(session, pinned);
             return;
         }
 

@@ -18,6 +18,8 @@ public static class AnimatorBindings
     {
         // Playback and files.
         new(new ToolAction(ToolActionKind.TogglePlay), Key.Space),
+        new(new ToolAction(ToolActionKind.SequenceGame), Key.P),
+        new(new ToolAction(ToolActionKind.SequenceAll), Key.P, Shift: true),
         new(new ToolAction(ToolActionKind.Save), Key.S, Ctrl: true),
         new(new ToolAction(ToolActionKind.Load), Key.O, Ctrl: true),
         new(new ToolAction(ToolActionKind.NewSkeleton), Key.N, Ctrl: true),
@@ -56,6 +58,7 @@ public static class AnimatorBindings
         new(new ToolAction(ToolActionKind.ToggleMode, nameof(AnimatorMode.Rest)), Key.R),
         new(new ToolAction(ToolActionKind.ToggleMode, nameof(AnimatorMode.Svg)), Key.G),
         new(new ToolAction(ToolActionKind.ToggleMode, nameof(AnimatorMode.Ik)), Key.I),
+        new(new ToolAction(ToolActionKind.ToggleMode, nameof(AnimatorMode.Pin)), Key.H),
 
         // Timeline keys.
         new(new ToolAction(ToolActionKind.DeleteKey), Key.Delete),

@@ -46,6 +46,8 @@ public static class AnimatorSession
         session.AddComponent(AnimatorHover.None);
         session.AddComponent(AnimatorPreviewView.Default);
         session.AddComponent(new AnimatorKeyClipboard());
+        session.AddComponent(new AnimatorSequence());
+        session.AddComponent(new AnimatorSnapGuides());
         session.AddComponent(new UiMarqueeBox());
         session.AddComponent(new AnimatorHistory
         {

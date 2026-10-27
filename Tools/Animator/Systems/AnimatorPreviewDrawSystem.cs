@@ -115,6 +115,8 @@ public sealed class AnimatorPreviewDrawSystem(
                 12);
         }
 
+        DrawSnapGuides(session.GetComponent<AnimatorSnapGuides>(), placement, area);
+
         Transform2D[] attachments = XafRig.WorldAttachments(document.Package, pose, world);
         visuals.Apply(attachments, placement);
         for (int i = 0; i < attachments.Length; i++)
@@ -172,5 +174,22 @@ public sealed class AnimatorPreviewDrawSystem(
         kite.CopyTo(closed);
         closed[4] = kite[0];
         canvas.DrawPolyline(target, closed, outline, width);
+    }
+
+    /// <summary>The lines a dragged joint is snapped to, across the whole preview.</summary>
+    private void DrawSnapGuides(AnimatorSnapGuides guides, Transform2D placement, Rect2 area)
+    {
+        Color color = new("#22d3ee", 0.8f);
+        if (guides.HasX)
+        {
+            float x = (placement * new Vector2(guides.X, 0f)).X;
+            canvas.DrawLine(target, new Vector2(x, area.Position.Y), new Vector2(x, area.End.Y), color, 1);
+        }
+
+        if (guides.HasY)
+        {
+            float y = (placement * new Vector2(0f, guides.Y)).Y;
+            canvas.DrawLine(target, new Vector2(area.Position.X, y), new Vector2(area.End.X, y), color, 1);
+        }
     }
 }

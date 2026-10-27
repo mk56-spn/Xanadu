@@ -59,7 +59,7 @@ public sealed class AnimatorPreviewInputSystem(
                  or AnimatorDragKind.Swing or AnimatorDragKind.Ik)
         {
             if (input.Pressed)
-                Drag(session, input.Position, area);
+                Drag(session, input.Position, area, input.Shift);
             else
                 End(session);
         }
@@ -259,6 +259,7 @@ public sealed class AnimatorPreviewInputSystem(
                 StartPointer = pointer,
                 StartValue = rest ? rig.Rest.Origin : pose.Bones[bone].Translation,
                 ParentWorld = rig.Parent >= 0 ? world[rig.Parent] : Transform2D.Identity,
+                Pinned = rest ? AnimatorRestPin.Capture(session, new[] { bone }) : null,
             };
             AnimatorSession.SetStatus(session, rest ? $"SELECTED {rig.Id} (REST)" : $"SELECTED {rig.Id}");
             return;
@@ -361,7 +362,36 @@ public sealed class AnimatorPreviewInputSystem(
         pose.Bones[parent].Rotation += delta;
     }
 
-    private static void Drag(Entity session, Vector2 pointer, Rect2 area)
+    /// <summary>
+    /// Snaps the dragged joint's X and Y to nearby joints of other bones and
+    /// publishes the guides to draw. Holding Shift drags freely.
+    /// </summary>
+    private static Vector2 AlignToOtherBones(
+        Entity session,
+        AnimatorDrag drag,
+        int bone,
+        Vector2 value,
+        Transform2D placement,
+        bool free)
+    {
+        ref AnimatorSnapGuides guides = ref session.GetComponent<AnimatorSnapGuides>();
+        guides = default;
+        if (free)
+            return value;
+
+        AnimatorDocument document = session.GetComponent<AnimatorDocument>();
+        AnimatorModes modes = session.GetComponent<AnimatorModes>();
+        Transform2D[] world = XafRig.WorldBones(
+            document.Package, AnimatorGeometry.PreviewPose(document, modes));
+        float radius = AnimatorSnap.Pixels / Mathf.Max(0.0001f, Mathf.Abs(placement.Scale.X));
+        Vector2 wanted = drag.ParentWorld * value;
+        Vector2 snapped = AnimatorSnap.Align(
+            document.Package, world, bone, wanted, radius, out AnimatorSnapGuides found);
+        guides = found;
+        return drag.ParentWorld.AffineInverse() * snapped;
+    }
+
+    private static void Drag(Entity session, Vector2 pointer, Rect2 area, bool shift)
     {
         AnimatorDrag drag = session.GetComponent<AnimatorDrag>();
         AnimatorPreviewView view = session.GetComponent<AnimatorPreviewView>();
@@ -391,10 +421,12 @@ public sealed class AnimatorPreviewInputSystem(
 
         if (drag.Kind == AnimatorDragKind.Bone && selection.Bone >= 0)
         {
+            value = AlignToOtherBones(session, drag, selection.Bone, value, placement, shift);
             if (rest)
             {
                 XafBone bone = document.Package.Skeleton.Bones[selection.Bone];
                 bone.Rest = new Transform2D(bone.Rest.Rotation, bone.Rest.Scale, 0f, value);
+                AnimatorRestPin.Restore(session, drag.Pinned);
             }
             else
             {
@@ -421,6 +453,7 @@ public sealed class AnimatorPreviewInputSystem(
 
     private static void End(Entity session)
     {
+        session.GetComponent<AnimatorSnapGuides>() = default;
         AnimatorDrag drag = session.GetComponent<AnimatorDrag>();
         session.GetComponent<AnimatorDrag>() = new AnimatorDrag();
         AnimatorHistoryCommands.EndGesture(session);
