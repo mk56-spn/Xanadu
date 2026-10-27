@@ -1,22 +1,19 @@
-using System.Text.Json;
-using Xanadu.Ecs.Storage;
+using Xanadu.Ecs;
 
 namespace Xanadu.Levels;
 
-/// <summary>JSON serialization for level documents.</summary>
+/// <summary>
+/// XMF map serialization for level documents, plus the normalization every
+/// load goes through. Levels are binary; the map shares XAF character
+/// packages' chunked container.
+/// </summary>
 public static class LevelSerializer
 {
-    private static JsonSerializerOptions Options => JsonFileStore.Options;
+    public static byte[] Serialize(LevelDocument document) =>
+        XmfBinary.Write(document);
 
-    public static string Serialize(LevelDocument document) =>
-        JsonSerializer.Serialize(document, Options);
-
-    public static LevelDocument Deserialize(string json)
-    {
-        LevelDocument document =
-            JsonSerializer.Deserialize<LevelDocument>(json, Options) ?? new LevelDocument();
-        return Normalize(document);
-    }
+    public static LevelDocument Deserialize(byte[] map) =>
+        Normalize(XmfBinary.Read(map));
 
     public static LevelDocument Normalize(LevelDocument document)
     {
@@ -34,7 +31,7 @@ public static class LevelSerializer
         document.StartPoints.RemoveAll(start => start is null);
         document.Blocks ??= new();
         document.Groups ??= new();
-        document.Groups.RemoveAll(group => group is null || group.Id is < 0 or >= Xanadu.Ecs.GroupLimits.Count);
+        document.Groups.RemoveAll(group => group is null || group.Id is < 0 or >= GroupLimits.Count);
         foreach (GroupDocument group in document.Groups)
         {
             group.Name ??= "";
@@ -43,7 +40,7 @@ public static class LevelSerializer
             foreach (GroupEffectDocument effect in group.Effects)
             {
                 if (!System.Enum.IsDefined(effect.Ease))
-                    effect.Ease = Xanadu.Ecs.GroupEase.Linear;
+                    effect.Ease = GroupEase.Linear;
             }
         }
 
@@ -69,7 +66,7 @@ public static class LevelSerializer
         var seen = new System.Collections.Generic.HashSet<int>();
         document.Shaders.RemoveAll(shader =>
             shader is null ||
-            !Xanadu.Ecs.LevelShaders.IsSlot(shader.Slot) ||
+            !LevelShaders.IsSlot(shader.Slot) ||
             !seen.Add(shader.Slot) ||
             !ShaderSourceRules.IsAcceptable(shader.Source, out _));
         foreach (ShaderDocument shader in document.Shaders)

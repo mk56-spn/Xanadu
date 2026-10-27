@@ -14,7 +14,7 @@ public sealed class LevelStoreTests
         string directory = Path.Combine(
             Path.GetTempPath(),
             "writer-level-tests-" + Guid.NewGuid().ToString("N"));
-        string path = Path.Combine(directory, "delete.json");
+        string path = Path.Combine(directory, "delete.xmf");
         try
         {
             LevelStore.Save(new LevelDocument { Name = "Delete" }, path);
@@ -41,12 +41,12 @@ public sealed class LevelStoreTests
         try
         {
             Directory.CreateDirectory(directory);
-            File.WriteAllText(Path.Combine(directory, "unnamed-1.json"), "{}");
-            File.WriteAllText(Path.Combine(directory, "unnamed-2.json"), "{}");
+            File.WriteAllText(Path.Combine(directory, "unnamed-1.xmf"), "{}");
+            File.WriteAllText(Path.Combine(directory, "unnamed-2.xmf"), "{}");
 
             Assert.That(
                 LevelStore.NextUnnamedPath(directory),
-                Is.EqualTo(Path.Combine(directory, "unnamed-3.json")));
+                Is.EqualTo(Path.Combine(directory, "unnamed-3.xmf")));
         }
         finally
         {
@@ -61,7 +61,7 @@ public sealed class LevelStoreTests
         string directory = Path.Combine(
             Path.GetTempPath(),
             "writer-level-tests-" + Guid.NewGuid().ToString("N"));
-        string path = Path.Combine(directory, "level.json");
+        string path = Path.Combine(directory, "level.xmf");
 
         try
         {

@@ -4,8 +4,8 @@ using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
 using Godot;
-using Xanadu.Ecs.Storage;
 using Xanadu.Levels;
+using Xanadu.Storage;
 
 namespace Xanadu.Editor.Recovery;
 
@@ -18,7 +18,18 @@ public sealed class LevelRecoveryStore(string directory)
 {
     public const string UserFolder = "user://recovery";
 
+    private const string Format = "XMR";
+    private const ushort MajorVersion = 1;
+
+    private static readonly byte[] Magic = "XMR1"u8.ToArray();
+
     private static LevelRecoveryStore? _default;
+
+    private enum ChunkId : uint
+    {
+        Meta = 1,
+        Map = 2,
+    }
 
     public static LevelRecoveryStore Default =>
         _default ??= new LevelRecoveryStore(ProjectSettings.GlobalizePath(UserFolder));
@@ -33,13 +44,25 @@ public sealed class LevelRecoveryStore(string directory)
         public LevelDocument Level { get; set; } = new();
     }
 
-    public void Write(string levelPath, LevelDocument level, DateTimeOffset now) =>
-        JsonFileStore.Save(PathFor(levelPath), new Entry
+    public void Write(string levelPath, LevelDocument level, DateTimeOffset now)
+    {
+        System.IO.Directory.CreateDirectory(Directory);
+
+        byte[] meta;
+        using (var stream = new MemoryStream())
+        using (var writer = new BinaryWriter(stream, Encoding.UTF8, leaveOpen: true))
         {
-            LevelPath = levelPath,
-            SavedAt = now,
-            Level = level,
-        });
+            writer.Write(levelPath);
+            writer.Write(now.UtcTicks);
+            writer.Flush();
+            meta = stream.ToArray();
+        }
+
+        var file = new ChunkWriter(Magic, MajorVersion, 0);
+        file.Add((uint)ChunkId.Meta, meta);
+        file.Add((uint)ChunkId.Map, XmfBinary.Write(level));
+        File.WriteAllBytes(PathFor(levelPath), file.ToArray());
+    }
 
     /// <summary>The autosave for a level, or null if there is none or it cannot be read.</summary>
     public Entry? Read(string levelPath)
@@ -50,14 +73,23 @@ public sealed class LevelRecoveryStore(string directory)
 
         try
         {
-            Entry? entry = JsonFileStore.Load<Entry>(path);
-            if (entry is null)
-                return null;
+            ChunkReader file = ChunkReader.Open(
+                File.ReadAllBytes(path),
+                Magic,
+                MajorVersion,
+                Format);
 
-            entry.Level = LevelSerializer.Normalize(entry.Level ?? new LevelDocument());
-            return entry;
+            using BinaryReader meta = file.Get((uint)ChunkId.Meta, Format).OpenReader();
+            return new Entry
+            {
+                LevelPath = meta.ReadString(),
+                SavedAt = new DateTimeOffset(meta.ReadInt64(), TimeSpan.Zero),
+                Level = LevelSerializer.Deserialize(
+                    file.Get((uint)ChunkId.Map, Format).ToArray()),
+            };
         }
-        catch (Exception exception) when (exception is IOException or System.Text.Json.JsonException)
+        catch (Exception exception)
+            when (exception is IOException or FormatException or XmfFormatException)
         {
             GD.PushError($"Ignoring unreadable recovery file '{path}': {exception.Message}");
             return null;
@@ -72,7 +104,7 @@ public sealed class LevelRecoveryStore(string directory)
     }
 
     /// <summary>
-    /// A form of the level that two captures of the same state agree on: a
+    /// A digest of the level that two captures of the same state agree on: a
     /// level not yet saved gets a fresh identity from every capture, and the
     /// capture sorts notes by time alone, so ties could come out either way.
     /// </summary>
@@ -88,7 +120,7 @@ public sealed class LevelRecoveryStore(string directory)
         copy.Mines = copy.Mines
             .OrderBy(m => m.TimeMs).ThenBy(m => m.X).ThenBy(m => m.Y)
             .ToList();
-        return LevelSerializer.Serialize(copy);
+        return Convert.ToHexString(SHA256.HashData(LevelSerializer.Serialize(copy)));
     }
 
     private string PathFor(string levelPath)
@@ -96,6 +128,6 @@ public sealed class LevelRecoveryStore(string directory)
         string key = string.IsNullOrEmpty(levelPath)
             ? "untitled"
             : Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(levelPath)))[..16];
-        return Path.Combine(Directory, key + ".recovery.json");
+        return Path.Combine(Directory, key + ".recovery.xmf");
     }
 }

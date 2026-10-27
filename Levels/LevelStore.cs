@@ -3,12 +3,10 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using Godot;
-using Xanadu.Ecs.Storage;
 
 namespace Xanadu.Levels;
 
-/// <summary>A loaded level file and its document.</summary>
-/// <summary>Reads and writes levels below user://levels.</summary>
+/// <summary>Reads and writes XMF level maps below user://levels.</summary>
 public static class LevelStore
 {
     public const string LevelsFolder = "user://levels";
@@ -55,7 +53,7 @@ public static class LevelStore
         if (string.IsNullOrEmpty(safe))
             safe = "untitled";
 
-        return Path.Combine(Directory, safe + ".json");
+        return Path.Combine(Directory, safe + XmfBinary.Extension);
     }
 
     public static string NextUnnamedPath() => NextUnnamedPath(Directory);
@@ -65,7 +63,9 @@ public static class LevelStore
         System.IO.Directory.CreateDirectory(directory);
         for (int index = 1; ; index++)
         {
-            string path = Path.Combine(directory, $"unnamed-{index}.json");
+            string path = Path.Combine(
+                directory,
+                $"unnamed-{index}{XmfBinary.Extension}");
             if (!File.Exists(path))
                 return path;
         }
@@ -76,7 +76,7 @@ public static class LevelStore
 
     public static void Save(LevelDocument document, string path)
     {
-        JsonFileStore.Save(path, document);
+        XmfBinary.Save(path, document);
     }
 
     public static void Delete(string path)
@@ -85,12 +85,8 @@ public static class LevelStore
             File.Delete(path);
     }
 
-    public static LevelDocument Load(string path)
-    {
-        LevelDocument document = JsonFileStore.Load<LevelDocument>(path)
-            ?? new LevelDocument();
-        return LevelSerializer.Normalize(document);
-    }
+    public static LevelDocument Load(string path) =>
+        LevelSerializer.Normalize(XmfBinary.Load(path));
 
     /// <summary>Loads every valid level from user data and the bundled Levels folder.</summary>
     public static List<LevelEntry> List()
@@ -127,7 +123,7 @@ public static class LevelStore
 
             foreach (string path in System.IO.Directory.EnumerateFiles(
                          directory,
-                         "*.json").OrderBy(
+                         "*" + XmfBinary.Extension).OrderBy(
                          static file => file,
                          StringComparer.Ordinal))
             {

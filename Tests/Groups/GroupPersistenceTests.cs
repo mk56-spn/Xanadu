@@ -88,7 +88,7 @@ public sealed class GroupPersistenceTests
     }
 
     [Test]
-    public void GroupsSurviveJson()
+    public void GroupsSurviveAMapFile()
     {
         var store = new EntityStore();
         Entity editor = Editor(store);
@@ -96,8 +96,8 @@ public sealed class GroupPersistenceTests
         Entity note = store.CreateEntity(new Note(500, new Vector2(10, 20)));
         note.AddComponent(new ItemGroups(ItemGroups.Bit(2)));
 
-        string json = LevelSerializer.Serialize(LevelDocumentMapper.Capture(store, editor));
-        LevelDocument back = LevelSerializer.Deserialize(json);
+        byte[] map = LevelSerializer.Serialize(LevelDocumentMapper.Capture(store, editor));
+        LevelDocument back = LevelSerializer.Deserialize(map);
 
         Assert.That(back.Groups, Has.Count.EqualTo(2));
         Assert.That(back.Groups[0].Effects[0].End, Is.EqualTo(0.6f).Within(0.0001f));
@@ -109,9 +109,17 @@ public sealed class GroupPersistenceTests
     [Test]
     public void AnUnknownEaseFallsBackToLinear()
     {
-        const string json = "{\"Groups\":[{\"Id\":0,\"Effects\":[{\"Ease\":99}]}]}";
+        var level = new LevelDocument();
+        level.Groups.Add(new GroupDocument
+        {
+            Id = 0,
+            Effects =
+            {
+                new GroupEffectDocument { Ease = (GroupEase)99 },
+            },
+        });
 
-        LevelDocument document = LevelSerializer.Deserialize(json);
+        LevelDocument document = LevelSerializer.Normalize(level);
 
         Assert.That(document.Groups[0].Effects[0].Ease, Is.EqualTo(GroupEase.Linear));
     }
@@ -119,9 +127,12 @@ public sealed class GroupPersistenceTests
     [Test]
     public void AnOldLevelWithoutGroupsStillLoads()
     {
-        const string json = "{\"Notes\":[{\"TimeMs\":100,\"X\":1,\"Y\":2}],\"Mines\":[{\"TimeMs\":5}],\"Blocks\":[{\"Width\":4,\"Height\":4}]}";
+        var document = new LevelDocument();
+        document.Notes.Add(new NoteDocument { TimeMs = 100, X = 1, Y = 2 });
+        document.Mines.Add(new MineDocument { TimeMs = 5 });
+        document.Blocks.Add(new BlockDocument { Width = 4, Height = 4 });
 
-        LevelDocument document = LevelSerializer.Deserialize(json);
+        document = LevelSerializer.Normalize(document);
         var store = new EntityStore();
         Entity editor = Editor(store);
         LevelDocumentMapper.Apply(store, editor, document);
@@ -147,9 +158,12 @@ public sealed class GroupPersistenceTests
     [Test]
     public void BadGroupDataIsDroppedOnLoad()
     {
-        const string json = "{\"Groups\":[{\"Id\":99,\"Name\":\"far\"},{\"Id\":1,\"Name\":\"ok\"},null]}";
+        var level = new LevelDocument();
+        level.Groups.Add(new GroupDocument { Id = 99, Name = "far" });
+        level.Groups.Add(new GroupDocument { Id = 1, Name = "ok" });
+        level.Groups.Add(null!);
 
-        LevelDocument document = LevelSerializer.Deserialize(json);
+        LevelDocument document = LevelSerializer.Normalize(level);
 
         Assert.That(document.Groups.ConvertAll(group => group.Id), Is.EqualTo(new[] { 1 }));
     }

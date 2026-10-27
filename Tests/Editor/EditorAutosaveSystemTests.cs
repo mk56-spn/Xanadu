@@ -15,7 +15,7 @@ namespace Xanadu.Tests.Editor;
 [TestFixture]
 public sealed class EditorAutosaveSystemTests
 {
-    private const string LevelPath = "/levels/mine.json";
+    private const string LevelPath = "/levels/mine.xmf";
 
     private string _directory = null!;
     private EntityStore _store = null!;
@@ -108,7 +108,7 @@ public sealed class EditorAutosaveSystemTests
         Pass(11);
         Assert.That(_recovery.Read(""), Is.Not.Null);
 
-        _editor.GetComponent<LevelFile>().Path = "/levels/new.json";
+        _editor.GetComponent<LevelFile>().Path = "/levels/new.xmf";
         _editor.AddTag<EditorSaved>();
         Pass(0.1f);
 
@@ -171,14 +171,14 @@ public sealed class EditorAutosaveSystemTests
     public void ALevelLoadedFromDiskBecomesTheNewCleanState()
     {
         Pass(0.1f);
-        _editor.GetComponent<LevelFile>().Path = "/levels/other.json";
+        _editor.GetComponent<LevelFile>().Path = "/levels/other.xmf";
         AddNote(500);
         _editor.AddTag<EditorBaselineStale>();
         Pass(0.1f);
 
         Pass(60);
 
-        Assert.That(_recovery.Read("/levels/other.json"), Is.Null);
+        Assert.That(_recovery.Read("/levels/other.xmf"), Is.Null);
     }
 
     private Entity NewEditor(string path)

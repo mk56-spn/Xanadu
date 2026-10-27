@@ -37,7 +37,7 @@ public sealed class SceneReplayTests
 
         var document = new LevelDocument { Name = "Replay Level" };
         document.Notes.Add(new NoteDocument { TimeMs = 0, X = 200, Y = 300 });
-        string path = Path.Combine(_directory, "replay-level.json");
+        string path = Path.Combine(_directory, "replay-level.xmf");
         LevelStore.Save(document, path);
         _level = new LevelEntry(path, LevelStore.Load(path));
 

@@ -355,12 +355,12 @@ public sealed class EditorCommandSystemTests : EcsSystemTest
             Y = 200,
         });
 
-        _commands.Enqueue(EditorCommand.ApplyLevel(document, "/tmp/loaded.json"));
+        _commands.Enqueue(EditorCommand.ApplyLevel(document, "/tmp/loaded.xmf"));
         Frame();
 
         Assert.That(_editor.GetComponent<LevelInfo>().Name, Is.EqualTo("Loaded"));
         Assert.That(_editor.GetComponent<Playhead>().Bpm, Is.EqualTo(120));
-        Assert.That(_editor.GetComponent<LevelFile>().Path, Is.EqualTo("/tmp/loaded.json"));
+        Assert.That(_editor.GetComponent<LevelFile>().Path, Is.EqualTo("/tmp/loaded.xmf"));
         Assert.That(Store.Query<Note>().Count, Is.EqualTo(1));
     }
 }

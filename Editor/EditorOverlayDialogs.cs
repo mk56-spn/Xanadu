@@ -21,9 +21,9 @@ public partial class EditorOverlay : CanvasLayer
             Access = FileDialog.AccessEnum.Filesystem,
             UseNativeDialog = false,
             Title = "Save level",
-            Filters = ["*.json ; Level Files"],
+            Filters = ["*" + XmfBinary.Extension + " ; XMF Levels"],
             CurrentDir = LevelStore.Directory,
-            CurrentFile = "untitled.json",
+            CurrentFile = "untitled" + XmfBinary.Extension,
         };
         _saveAsDialog.FileSelected += OnSaveAsSelected;
         AddChild(_saveAsDialog);
@@ -34,7 +34,7 @@ public partial class EditorOverlay : CanvasLayer
             Access = FileDialog.AccessEnum.Filesystem,
             UseNativeDialog = false,
             Title = "Load level",
-            Filters = ["*.json ; Level Files"],
+            Filters = ["*" + XmfBinary.Extension + " ; XMF Levels"],
             CurrentDir = LevelStore.Directory,
         };
         _loadDialog.FileSelected += OnLoadSelected;
@@ -167,8 +167,8 @@ public partial class EditorOverlay : CanvasLayer
         try
         {
             LevelDocument document = LevelDocumentMapper.Capture(_entities, _editor);
-            if (!path.EndsWith(".json", StringComparison.OrdinalIgnoreCase))
-                path += ".json";
+            if (!path.EndsWith(XmfBinary.Extension, StringComparison.OrdinalIgnoreCase))
+                path += XmfBinary.Extension;
 
             LevelStore.Save(document, path);
             _commands.Enqueue(EditorCommand.SetLevelFile(path));

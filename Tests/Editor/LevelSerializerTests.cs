@@ -1,7 +1,8 @@
+using System.Linq;
 using NUnit.Framework;
-using Xanadu.Levels;
-using Xanadu.Editor;
 using Xanadu.Ecs;
+using Xanadu.Editor;
+using Xanadu.Levels;
 using Xanadu.Settings;
 
 namespace Xanadu.Tests.Editor;
@@ -9,6 +10,14 @@ namespace Xanadu.Tests.Editor;
 [TestFixture]
 public sealed class LevelSerializerTests
 {
+    [Test]
+    public void MapsAreXmfFiles()
+    {
+        byte[] map = LevelSerializer.Serialize(new LevelDocument());
+
+        Assert.That(map.Take(4), Is.EqualTo("XMF1"u8.ToArray()));
+    }
+
     [Test]
     public void LevelIdentityAndSongReferenceRoundTrip()
     {
@@ -29,27 +38,31 @@ public sealed class LevelSerializerTests
     }
 
     [Test]
-    public void NullNotesDeserializeToEmptyList()
+    public void NormalizeFillsMissingLists()
     {
-        LevelDocument document = LevelSerializer.Deserialize(
-            """{"Name":"Null Notes","Notes":null}""");
+        var document = new LevelDocument
+        {
+            Notes = null!,
+            Mines = null!,
+            Blocks = null!,
+            StartPoints = null!,
+            Groups = null!,
+            Shaders = null!,
+        };
 
-        Assert.That(document.Notes, Is.Not.Null);
-        Assert.That(document.Notes, Is.Empty);
-        Assert.That(document.Mines, Is.Not.Null);
-        Assert.That(document.Mines, Is.Empty);
-        Assert.That(document.Version, Is.EqualTo(2));
-        Assert.DoesNotThrow(() => LevelValidator.Validate(document));
-    }
+        LevelDocument result = LevelSerializer.Normalize(document);
 
-    [Test]
-    public void NullBlocksDeserializeToEmptyList()
-    {
-        LevelDocument document = LevelSerializer.Deserialize(
-            """{"Name":"Null Blocks","Blocks":null}""");
-
-        Assert.That(document.Blocks, Is.Not.Null);
-        Assert.That(document.Blocks, Is.Empty);
+        Assert.That(result.Notes, Is.Not.Null);
+        Assert.That(result.Notes, Is.Empty);
+        Assert.That(result.Mines, Is.Not.Null);
+        Assert.That(result.Mines, Is.Empty);
+        Assert.That(result.Blocks, Is.Not.Null);
+        Assert.That(result.Blocks, Is.Empty);
+        Assert.That(result.StartPoints, Is.Not.Null);
+        Assert.That(result.Groups, Is.Not.Null);
+        Assert.That(result.Shaders, Is.Not.Null);
+        Assert.That(result.Version, Is.EqualTo(2));
+        Assert.DoesNotThrow(() => LevelValidator.Validate(result));
     }
 
     [Test]
@@ -72,22 +85,6 @@ public sealed class LevelSerializerTests
         Assert.That(result.Blocks[0].Y, Is.EqualTo(200));
         Assert.That(result.Blocks[0].Width, Is.EqualTo(300));
         Assert.That(result.Blocks[0].Height, Is.EqualTo(40));
-    }
-
-    [Test]
-    public void NotesDoNotSerializeFadeFields()
-    {
-        var source = new LevelDocument();
-        source.Notes.Add(new NoteDocument
-        {
-            TimeMs = 1_000,
-            X = 100,
-            Y = 200,
-        });
-
-        string json = LevelSerializer.Serialize(source);
-
-        Assert.That(json, Does.Not.Contain("Fade"));
     }
 
     [Test]
@@ -116,8 +113,8 @@ public sealed class LevelSerializerTests
             Y = 600,
         });
 
-        string json = LevelSerializer.Serialize(source);
-        LevelDocument result = LevelSerializer.Deserialize(json);
+        LevelDocument result = LevelSerializer.Deserialize(
+            LevelSerializer.Serialize(source));
 
         Assert.That(result.Version, Is.EqualTo(2));
         Assert.That(result.Name, Is.EqualTo("Test Level"));

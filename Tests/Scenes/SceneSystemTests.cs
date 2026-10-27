@@ -231,7 +231,7 @@ public sealed class SceneSystemTests
         _profiles.Create("Scored");
         var document = new LevelDocument { Name = "Scored Level" };
         document.Notes.Add(new NoteDocument { TimeMs = 0, X = 200, Y = 300 });
-        string path = Path.Combine(_directory, "scored-level.json");
+        string path = Path.Combine(_directory, "scored-level.xmf");
         LevelStore.Save(document, path);
 
         _scenes.StartPlay(new LevelEntry(path, document));
@@ -775,7 +775,7 @@ public sealed class SceneSystemTests
 
     private LevelEntry CreateLevel(string name, string audioPath, int bpm)
     {
-        string path = Path.Combine(_directory, name.Replace(' ', '-') + ".json");
+        string path = Path.Combine(_directory, name.Replace(' ', '-') + XmfBinary.Extension);
         var document = new LevelDocument
         {
             Name = name,
