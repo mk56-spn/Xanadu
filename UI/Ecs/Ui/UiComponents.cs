@@ -138,5 +138,11 @@ public struct UiAnchor(Vector2 anchor, Vector2 pivot) : IComponent
 /// <summary>Marks a full-screen backdrop that must draw below sibling UI.</summary>
 public struct UiBackground : IComponent;
 
+/// <summary>Marks a floating panel that must draw above ordinary sibling UI.</summary>
+public struct UiOverlay : ITag;
+
+/// <summary>Marks an element inside a floating overlay, above the overlay's backing.</summary>
+public struct UiOverlayItem : ITag;
+
 /// <summary>Marks a slider fill so it draws above its track.</summary>
 public struct UiSliderFill : ITag;

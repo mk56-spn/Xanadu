@@ -32,6 +32,7 @@ public sealed class WriterSystemRoot : SystemRoot, IDisposable
     private EditorSystemGroup _editorSystems = null!;
     private readonly Rid _timeline;
     private readonly Rid _hudEditOverlay;
+    private readonly Rid _groupPreview;
     private readonly Rid _playfield;
     private readonly Rid _characters;
     private readonly Rid _particleCanvas;
@@ -135,6 +136,13 @@ public sealed class WriterSystemRoot : SystemRoot, IDisposable
         RenderingServer.CanvasItemSetParent(_hudEditOverlay, parentCanvas);
         RenderingServer.CanvasItemSetZIndex(_hudEditOverlay, 950);
 
+        // The group overlay's live preview draws above the dialog but below the
+        // debug overlay; only the editor scene shows it.
+        _groupPreview = RenderingServer.CanvasItemCreate();
+        RenderingServer.CanvasItemSetParent(_groupPreview, parentCanvas);
+        RenderingServer.CanvasItemSetZIndex(_groupPreview, 985);
+        RenderingServer.CanvasItemSetVisible(_groupPreview, false);
+
         Writer.Systems.Ui.UiBootstrap.AttachInitialization(this, parentCanvas);
         Add(new PhysicsSystemGroup(Physics, entities));
         Writer.Systems.Ui.UiBootstrap.AttachPresentation(this, canvas);
@@ -159,6 +167,7 @@ public sealed class WriterSystemRoot : SystemRoot, IDisposable
             pointerInput,
             canvas,
             _playfield,
+            _groupPreview,
             _metronomeAudio,
             EditorHistory);
         _editorSystems.Enabled = false;
@@ -188,8 +197,11 @@ public sealed class WriterSystemRoot : SystemRoot, IDisposable
         SetMonitorPerf(true);
     }
 
-    private void OnSceneChanged(SceneKind scene) =>
+    private void OnSceneChanged(SceneKind scene)
+    {
         _editorSystems.Enabled = scene == SceneKind.Editor;
+        RenderingServer.CanvasItemSetVisible(_groupPreview, scene == SceneKind.Editor);
+    }
 
     private void OnEntityDelete(EntityDelete entityDelete)
     {
@@ -277,6 +289,7 @@ public sealed class WriterSystemRoot : SystemRoot, IDisposable
         RenderingServer.FreeRid(_particleCanvas);
         RenderingServer.FreeRid(_characters);
         RenderingServer.FreeRid(_playfield);
+        RenderingServer.FreeRid(_groupPreview);
         RenderingServer.FreeRid(_timeline);
         RenderingServer.FreeRid(_debugOverlay);
     }

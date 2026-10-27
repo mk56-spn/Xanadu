@@ -19,16 +19,19 @@ public sealed class EditorSystemGroup : SystemGroup
         IPointerInputSource pointerInput,
         IRectCanvas canvas,
         Rid playfieldCanvas,
+        Rid groupPreviewCanvas,
         ITrackAudio metronomeAudio,
         EditorHistory history) : base("Editor")
     {
         Add(new EditorCommandSystem(entities, commands, history));
         Add(new EditorTimelineSystem());
         Add(new EditorMetronomeSystem(metronomeAudio));
+        Add(new EditorGroupTargetSystem(entities, pointerInput, history));
         Add(new EditorNoteInputSystem(entities, pointerInput, history));
         Add(new EditorDropdownSystem(entities, commands));
         Add(new EditorSidebarLayoutSystem(entities));
-        Add(new EditorGroupSystem(entities, history, pointerInput));
+        Add(new EditorGroupSystem(entities, history, pointerInput, commands));
+        Add(new EditorGroupPreviewSystem(entities, canvas, groupPreviewCanvas));
         Add(new EditorPlacementSystem(entities));
         Add(new EditorNoteTypeBarSystem(entities, commands));
         Add(new EditorDirectionWheelSystem());

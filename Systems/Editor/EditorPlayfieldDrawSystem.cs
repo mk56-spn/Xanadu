@@ -62,8 +62,9 @@ public sealed partial class EditorPlayfieldDrawSystem :
                     entity.HasComponent<LevelGroups>()
                         ? entity.GetComponent<LevelGroups>()
                         : default,
-                    entity.HasComponent<EditorGroupState>() &&
-                    entity.GetComponent<EditorGroupState>().Preview);
+                    entity.HasComponent<EditorGroupState>()
+                        ? entity.GetComponent<EditorGroupState>()
+                        : EditorGroupState.Closed);
         });
     }
 
@@ -76,7 +77,7 @@ public sealed partial class EditorPlayfieldDrawSystem :
         WaveformPreview preview,
         UiMarqueeBox selectionBox,
         LevelGroups groups,
-        bool previewGroups)
+        EditorGroupState groupState)
     {
         _canvas.DrawRect(
             _editor,
@@ -105,9 +106,11 @@ public sealed partial class EditorPlayfieldDrawSystem :
             playhead);
         DrawStartPoints(view, selection);
         DrawDashDestinations(view, playhead);
-        if (previewGroups)
-            DrawGroupPreview(view, playhead, groups);
+        if (groupState.Preview)
+            DrawGroupPreview(view, playhead, groups, groupState);
         DrawSelectionOutlines(view, playhead, selection);
+        if (groupState.TargetEdit)
+            DrawGroupTarget(view, playfield, groups, groupState, selection);
         DrawBlockHandles(view, selection);
         DrawRuler(view, playhead, selection, timeline, preview);
         DrawSelectionBox(selectionBox);

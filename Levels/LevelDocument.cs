@@ -62,6 +62,9 @@ public sealed class GroupEffectDocument
     /// <summary>How the effect travels between <see cref="Start"/> and <see cref="End"/>.</summary>
     public GroupEase Ease { get; set; } = GroupEase.Linear;
 
+    /// <summary>A muted effect stays in the group but contributes nothing.</summary>
+    public bool Muted { get; set; }
+
     /// <summary>The move's offset, for a move.</summary>
     public float X { get; set; }
 

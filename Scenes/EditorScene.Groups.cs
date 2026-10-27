@@ -94,6 +94,12 @@ public static partial class EditorScene
                 new Rect2(0, 0, 1, EditorGroupLayout.MaxRows * EditorGroupLayout.RowHeight));
         }
 
+        Piece(
+            ticks.RectEntity(UiLayout.Hidden, new Vector2(2, EditorGroupLayout.MaxRows * EditorGroupLayout.RowHeight), Colors.White),
+            EditorGroupPart.PlayheadLine,
+            0,
+            Place(EditorGroupPart.PlayheadLine, 0, dialog));
+
         UiBuilder bars = SceneUi.Layer(entities, root, 979);
         for (int row = 0; row < EditorGroupLayout.MaxRows; row++)
         {
@@ -128,21 +134,64 @@ public static partial class EditorScene
         Piece(GroupButton(ui, "+ MOVE", SceneUi.ButtonColor, 100, 28), EditorGroupPart.AddMove, 0, Place(EditorGroupPart.AddMove, 0, dialog));
         Piece(GroupButton(ui, "+ COLOR", SceneUi.ButtonColor, 100, 28), EditorGroupPart.AddColor, 0, Place(EditorGroupPart.AddColor, 0, dialog));
         Piece(GroupButton(ui, "SNAP", SceneUi.ButtonColor, 110, 28), EditorGroupPart.SnapToggle, 0, Place(EditorGroupPart.SnapToggle, 0, dialog));
+        Entity solo = GroupButton(ui, "SOLO", SceneUi.MutedButtonColor, 88, 28);
+        solo.AddComponent(new UiTooltip("Preview only this group"));
+        Piece(solo, EditorGroupPart.SoloToggle, 0, Place(EditorGroupPart.SoloToggle, 0, dialog));
+        Entity play = GroupButton(ui, "PLAY", SceneUi.ButtonColor, 70, 28);
+        play.AddComponent(new UiTooltip("Play or pause the live preview"));
+        Piece(play, EditorGroupPart.PlayToggle, 0, Place(EditorGroupPart.PlayToggle, 0, dialog));
         Piece(GroupButton(ui, "<", SceneUi.MutedButtonColor, 40, 28), EditorGroupPart.ScrollLeft, 0, Place(EditorGroupPart.ScrollLeft, 0, dialog));
         Piece(GroupButton(ui, ">", SceneUi.MutedButtonColor, 40, 28), EditorGroupPart.ScrollRight, 0, Place(EditorGroupPart.ScrollRight, 0, dialog));
         Piece(GroupButton(ui, "-", SceneUi.MutedButtonColor, 40, 28), EditorGroupPart.ZoomOut, 0, Place(EditorGroupPart.ZoomOut, 0, dialog));
         Piece(GroupButton(ui, "+", SceneUi.MutedButtonColor, 40, 28), EditorGroupPart.ZoomIn, 0, Place(EditorGroupPart.ZoomIn, 0, dialog));
 
+        Entity selected = SceneUi.Text(
+            ui,
+            UiLayout.Hidden,
+            new Vector2(170, 28),
+            "NO EFFECT",
+            11,
+            SceneUi.DimTextColor,
+            new Color(0, 0, 0, 0));
+        selected.AddComponent(new TextAlignment(TextAlign.Left));
+        Piece(selected, EditorGroupPart.SelectionText, 0, Place(EditorGroupPart.SelectionText, 0, dialog));
+        Entity target = GroupButton(ui, "TARGET", SceneUi.MutedButtonColor, 70, 28);
+        target.AddComponent(new UiTooltip("Drag the selected move's offset on the playfield"));
+        Piece(target, EditorGroupPart.SelectionTarget, 0, Place(EditorGroupPart.SelectionTarget, 0, dialog));
+        Entity duplicate = GroupButton(ui, "DUP", SceneUi.MutedButtonColor, 60, 28);
+        duplicate.AddComponent(new UiTooltip("Duplicate the selected effect"));
+        Piece(duplicate, EditorGroupPart.SelectionDuplicate, 0, Place(EditorGroupPart.SelectionDuplicate, 0, dialog));
+        Entity mute = GroupButton(ui, "MUTE", SceneUi.MutedButtonColor, 70, 28);
+        mute.AddComponent(new UiTooltip("Mute or unmute the selected effect"));
+        Piece(mute, EditorGroupPart.SelectionMute, 0, Place(EditorGroupPart.SelectionMute, 0, dialog));
+        Entity nudgeLeft = GroupButton(ui, "◀", SceneUi.MutedButtonColor, 32, 28);
+        nudgeLeft.AddComponent(new UiTooltip("Nudge the selected effect one beat left"));
+        Piece(nudgeLeft, EditorGroupPart.SelectionNudgeLeft, 0, Place(EditorGroupPart.SelectionNudgeLeft, 0, dialog));
+        Entity nudgeRight = GroupButton(ui, "▶", SceneUi.MutedButtonColor, 32, 28);
+        nudgeRight.AddComponent(new UiTooltip("Nudge the selected effect one beat right"));
+        Piece(nudgeRight, EditorGroupPart.SelectionNudgeRight, 0, Place(EditorGroupPart.SelectionNudgeRight, 0, dialog));
+        Entity pick = GroupButton(ui, "PICK", SceneUi.MutedButtonColor, 54, 28);
+        pick.AddComponent(new UiTooltip("Pick a colour for the selected colour effect"));
+        Piece(pick, EditorGroupPart.SelectionPick, 0, Place(EditorGroupPart.SelectionPick, 0, dialog));
+
         Entity hint = SceneUi.Text(
             ui,
             UiLayout.Hidden,
             new Vector2(dialog.X - 40, 44),
-            "Times in seconds. An effect tweens from START to END, then holds. Drag a bar to retime, or an end for START/END. EASE cycles it.",
+            "Drag a bar to retime, its ends for START/END. EASE cycles the curve. Pick a row to use the selection bar.",
             11,
             SceneUi.DimTextColor,
             new Color(0, 0, 0, 0));
         hint.AddComponent(new TextAlignment(TextAlign.Left));
         Piece(hint, EditorGroupPart.Hint, 0, Place(EditorGroupPart.Hint, 0, dialog));
+
+        UiBuilder previewUi = SceneUi.Layer(entities, root, 981);
+        Rect2 previewArea = Place(EditorGroupPart.PreviewPanel, 0, dialog);
+        Piece(
+            previewUi.RectEntity(UiLayout.Hidden, previewArea.Size, new Color("#0b1220"), takesInput: false),
+            EditorGroupPart.PreviewPanel,
+            0,
+            previewArea);
 
         for (int row = 0; row < EditorGroupLayout.MaxRows; row++)
         {
@@ -158,6 +207,45 @@ public static partial class EditorScene
             Piece(ease, EditorGroupPart.RowEase, row, Place(EditorGroupPart.RowEase, row, dialog));
             Piece(GroupButton(ui, "X", SceneUi.MutedButtonColor, 30, 28), EditorGroupPart.RowDelete, row, Place(EditorGroupPart.RowDelete, row, dialog));
         }
+        UiBuilder palette = ui;
+        Rect2 paletteArea = Place(EditorGroupPart.PalettePanel, 0, dialog);
+        Piece(
+            palette.RectEntity(UiLayout.Hidden, paletteArea.Size, new Color("#111827"), takesInput: true),
+            EditorGroupPart.PalettePanel,
+            0,
+            paletteArea);
+        Entity paletteTitle = SceneUi.Text(
+            palette,
+            UiLayout.Hidden,
+            new Vector2(90, 24),
+            "COLOUR",
+            13,
+            SceneUi.DimTextColor,
+            new Color(0, 0, 0, 0));
+        paletteTitle.AddComponent(new TextAlignment(TextAlign.Left));
+        Piece(paletteTitle, EditorGroupPart.PaletteTitle, 0, Place(EditorGroupPart.PaletteTitle, 0, dialog));
+        Piece(GroupButton(palette, "X", SceneUi.MutedButtonColor, 30, 24), EditorGroupPart.PaletteClose, 0, Place(EditorGroupPart.PaletteClose, 0, dialog));
+        for (int i = 0; i < EditorGroupPalette.Swatches.Length; i++)
+        {
+            Color swatchColor = EditorGroupPalette.Swatches[i];
+            Entity swatch = palette.RectEntity(
+                UiLayout.Hidden,
+                new Vector2(44, 30),
+                swatchColor,
+                takesInput: true);
+            swatch.AddComponent(ButtonVisual.Create(swatchColor));
+            Piece(swatch, EditorGroupPart.PaletteSwatch, i, Place(EditorGroupPart.PaletteSwatch, i, dialog));
+        }
+
+        for (int i = 0; i < EditorGroupPalette.Alphas.Length; i++)
+        {
+            Piece(
+                GroupButton(palette, EditorGroupPalette.AlphaLabel(i), SceneUi.MutedButtonColor, 68, 26),
+                EditorGroupPart.PaletteAlpha,
+                i,
+                Place(EditorGroupPart.PaletteAlpha, i, dialog));
+        }
+
     }
 
     private static Rect2 Place(EditorGroupPart part, int row, Vector2 dialog) =>
@@ -166,6 +254,14 @@ public static partial class EditorScene
     private static Entity Piece(Entity entity, EditorGroupPart part, int row, Rect2 _)
     {
         entity.AddComponent(new EditorGroupPiece(part, row));
+        if (part == EditorGroupPart.PalettePanel)
+            entity.AddTag<UiOverlay>();
+        else if (part is EditorGroupPart.PaletteTitle or EditorGroupPart.PaletteClose
+                 or EditorGroupPart.PaletteSwatch or EditorGroupPart.PaletteAlpha)
+        {
+            entity.AddTag<UiOverlayItem>();
+        }
+
         return entity;
     }
 

@@ -235,6 +235,7 @@ public static class LevelDocumentMapper
                     Start = effect.Start,
                     End = effect.End,
                     Ease = effect.Ease,
+                    Muted = effect.Muted,
                     X = effect.Offset.X,
                     Y = effect.Offset.Y,
                     Tint = effect.Tint.ToHtml(),
@@ -266,7 +267,8 @@ public static class LevelDocumentMapper
                     effect.End,
                     new Vector2(effect.X, effect.Y),
                     new Color(effect.Tint ?? "#ffffffff"),
-                    effect.Ease));
+                    effect.Ease,
+                    effect.Muted));
             }
         }
 

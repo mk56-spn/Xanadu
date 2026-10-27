@@ -104,17 +104,44 @@ public partial class EditorOverlay : CanvasLayer
             return;
         }
 
-        if (GetViewport().GuiGetFocusOwner() is LineEdit)
+        if (IsWarningOpen())
             return;
 
-        if (IsWarningOpen())
+        if (IsGroupTargetEditing())
+        {
+            if (key.Keycode == Key.Escape)
+            {
+                CloseGroupTarget();
+                GetViewport().SetInputAsHandled();
+                return;
+            }
+
+            if (key.Keycode == Key.T)
+            {
+                ReopenTargetedGroup();
+                GetViewport().SetInputAsHandled();
+                return;
+            }
+        }
+
+        if (GetViewport().GuiGetFocusOwner() is LineEdit)
             return;
 
         // The group overlay is modal: Escape closes it and nothing else reaches the editor.
         if (IsGroupOverlayOpen())
         {
             if (key.Keycode == Key.Escape)
-                CloseGroupOverlay();
+            {
+                if (IsGroupPaletteOpen())
+                    CloseGroupPalette();
+                else
+                    CloseGroupOverlay();
+            }
+            else if (key.Keycode == Key.Space)
+            {
+                _commands.Enqueue(EditorCommand.TogglePlayback());
+            }
+
             GetViewport().SetInputAsHandled();
             return;
         }

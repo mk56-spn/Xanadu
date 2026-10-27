@@ -34,21 +34,24 @@ public readonly record struct GroupEffect(
     float End,
     Vector2 Offset,
     Color Tint,
-    GroupEase Ease = GroupEase.Linear)
+    GroupEase Ease = GroupEase.Linear,
+    bool Muted = false)
 {
     public static GroupEffect Move(
         float start,
         float end,
         Vector2 offset,
-        GroupEase ease = GroupEase.Linear) =>
-        new(GroupEffectKind.Move, start, end, offset, Colors.White, ease);
+        GroupEase ease = GroupEase.Linear,
+        bool muted = false) =>
+        new(GroupEffectKind.Move, start, end, offset, Colors.White, ease, muted);
 
     public static GroupEffect Colour(
         float start,
         float end,
         Color tint,
-        GroupEase ease = GroupEase.Linear) =>
-        new(GroupEffectKind.Color, start, end, Vector2.Zero, tint, ease);
+        GroupEase ease = GroupEase.Linear,
+        bool muted = false) =>
+        new(GroupEffectKind.Color, start, end, Vector2.Zero, tint, ease, muted);
 
     /// <summary>
     /// How far through the effect a time is, from 0 before it starts to 1 once

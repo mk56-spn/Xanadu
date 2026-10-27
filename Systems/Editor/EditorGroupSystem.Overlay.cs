@@ -11,6 +11,9 @@ namespace Writer.Systems.Editor;
 /// <summary>Placing the group overlay's pieces: rows, bars and the beat ruler.</summary>
 public sealed partial class EditorGroupSystem
 {
+    private static readonly Color RowIdle = new("#16223a");
+    private static readonly Color RowSelected = new("#1d2a42");
+
     // ------------------------------------------------------------------ showing
 
     private void ShowOverlay(
@@ -44,12 +47,16 @@ public sealed partial class EditorGroupSystem
         SetText(Piece(EditorGroupPart.MemberText), mine > 0 ? $"{members} ITEMS  ({mine} SELECTED)" : $"{members} ITEMS", buffer);
         SetText(Piece(EditorGroupPart.SnapToggle), state.Snap ? "SNAP ON" : "SNAP OFF", buffer);
         Tint(Piece(EditorGroupPart.SnapToggle), state.Snap ? CellUsed : SceneColors.Muted, buffer);
+        SetText(Piece(EditorGroupPart.PlayToggle), playhead.Playing ? "PAUSE" : "PLAY", buffer);
+        Tint(Piece(EditorGroupPart.PlayToggle), playhead.Playing ? CellOpen : CellUsed, buffer);
 
         Entity name = Piece(EditorGroupPart.NameField);
         if (!name.IsNull && !name.Tags.Has<TextFieldFocused>())
             SetFieldText(name, group.Name, buffer);
 
         ShowRows(state, group, dialog, origin, buffer);
+        ShowSelection(state, group, buffer);
+        ShowPalette(state, group, dialog, origin, buffer);
         ShowRuler(state, playhead, dialog, origin, buffer);
     }
 
@@ -58,8 +65,13 @@ public sealed partial class EditorGroupSystem
         EditorGroupPart.Dialog, EditorGroupPart.Title, EditorGroupPart.NameField, EditorGroupPart.Close,
         EditorGroupPart.MemberText, EditorGroupPart.AddSelected, EditorGroupPart.RemoveSelected,
         EditorGroupPart.SelectMembers, EditorGroupPart.SnapToggle, EditorGroupPart.AddMove,
-        EditorGroupPart.AddColor, EditorGroupPart.ScrollLeft, EditorGroupPart.ScrollRight,
-        EditorGroupPart.ZoomOut, EditorGroupPart.ZoomIn, EditorGroupPart.Hint,
+        EditorGroupPart.AddColor, EditorGroupPart.SoloToggle, EditorGroupPart.PlayToggle,
+        EditorGroupPart.ScrollLeft, EditorGroupPart.ScrollRight, EditorGroupPart.ZoomOut,
+        EditorGroupPart.ZoomIn, EditorGroupPart.Hint, EditorGroupPart.PreviewPanel,
+        EditorGroupPart.SelectionText, EditorGroupPart.SelectionTarget,
+        EditorGroupPart.SelectionDuplicate, EditorGroupPart.SelectionMute,
+        EditorGroupPart.SelectionNudgeLeft, EditorGroupPart.SelectionNudgeRight,
+        EditorGroupPart.SelectionPick,
     };
 
     private static readonly EditorGroupPart[] RowParts =
@@ -79,6 +91,13 @@ public sealed partial class EditorGroupSystem
         Rect2 timeline = Offset(EditorGroupLayout.Timeline(dialog), origin);
         for (int row = 0; row < EditorGroupLayout.MaxRows; row++)
         {
+            if (state.PaletteOpen)
+            {
+                foreach (EditorGroupPart part in RowParts)
+                    Hide(Piece(part, row), buffer);
+                continue;
+            }
+
             if (row >= group.Effects.Count)
             {
                 foreach (EditorGroupPart part in RowParts)
@@ -90,6 +109,8 @@ public sealed partial class EditorGroupSystem
 
             GroupEffect effect = group.Effects[row];
             bool isMove = effect.Kind == GroupEffectKind.Move;
+            bool selected = state.SelectedGroup == state.Open && state.SelectedEffect == row;
+            Tint(Piece(EditorGroupPart.RowTrack, row), selected ? RowSelected : RowIdle, buffer);
             foreach (EditorGroupPart part in RowParts)
             {
                 if (part == EditorGroupPart.RowBar)
@@ -106,6 +127,7 @@ public sealed partial class EditorGroupSystem
                 Place(Piece(part, row), rect, origin, buffer);
             }
 
+            SetText(Piece(EditorGroupPart.RowIndex, row), (row + 1) + (effect.Muted ? "*" : ""), buffer);
             SetText(Piece(EditorGroupPart.RowKind, row), isMove ? "MOVE" : "COLOR", buffer);
             Tint(Piece(EditorGroupPart.RowKind, row), isMove ? MoveColor.Darkened(0.55f) : OpaqueTint(effect).Darkened(0.45f), buffer);
             Entity ease = Piece(EditorGroupPart.RowEase, row);
@@ -129,7 +151,12 @@ public sealed partial class EditorGroupSystem
             }
 
             Rect2 bar = BarRect(effect, row, state, timeline);
-            ShowBar(Piece(EditorGroupPart.RowBar, row), bar, timeline, isMove ? MoveColor : OpaqueTint(effect), buffer);
+            Color barColor = isMove ? MoveColor : OpaqueTint(effect);
+            if (effect.Muted)
+                barColor = barColor.Darkened(0.55f);
+            else if (selected)
+                barColor = barColor.Lightened(0.18f);
+            ShowBar(Piece(EditorGroupPart.RowBar, row), bar, timeline, barColor, buffer);
         }
     }
 
@@ -193,6 +220,24 @@ public sealed partial class EditorGroupSystem
         for (; slot < EditorGroupLayout.TickSlots; slot++)
             Hide(Piece(EditorGroupPart.TickLine, slot), buffer);
 
+        float playheadSeconds = playhead.TimeMs / 1000f;
+        if (playheadSeconds >= state.ViewStart &&
+            playheadSeconds <= state.ViewStart + state.ViewSpan)
+        {
+            float lineX = EditorGroupLayout.XForTime(
+                timeline, state.ViewStart, state.ViewSpan, playheadSeconds);
+            Place(
+                Piece(EditorGroupPart.PlayheadLine),
+                new Rect2(0, 0, 2, EditorGroupLayout.MaxRows * EditorGroupLayout.RowHeight),
+                new Vector2(lineX, timeline.Position.Y),
+                buffer);
+            Tint(Piece(EditorGroupPart.PlayheadLine), Colors.White, buffer);
+        }
+        else
+        {
+            Hide(Piece(EditorGroupPart.PlayheadLine), buffer);
+        }
+
         // Second labels at round numbers.
         double labelStep = LabelStep(state.ViewSpan);
         int label = 0;
@@ -208,6 +253,104 @@ public sealed partial class EditorGroupSystem
 
         for (; label < EditorGroupLayout.LabelSlots; label++)
             Hide(Piece(EditorGroupPart.TickLabel, label), buffer);
+    }
+
+    /// <summary>The bar under the toolbar that acts on the selected effect.</summary>
+    private void ShowSelection(
+        EditorGroupState state,
+        GroupDefinition group,
+        CommandBuffer buffer)
+    {
+        bool selected = TrySelected(state, group, out int row, out GroupEffect effect);
+        bool move = selected && effect.Kind == GroupEffectKind.Move;
+        bool colour = selected && effect.Kind == GroupEffectKind.Color;
+
+        Entity label = Piece(EditorGroupPart.SelectionText);
+        if (selected)
+        {
+            string kind = move ? "MOVE" : "COLOR";
+            string text = $"{kind} {row + 1}  {effect.Start:0.##}–{effect.End:0.##}";
+            if (effect.Muted)
+                text += "  MUTED";
+            SetText(label, text, buffer);
+            SetTextColor(label, new Color("#facc15"), buffer);
+        }
+        else
+        {
+            SetText(label, "NO EFFECT SELECTED", buffer);
+            SetTextColor(label, new Color("#94a3b8"), buffer);
+        }
+
+        SetText(Piece(EditorGroupPart.SelectionTarget), "TARGET", buffer);
+        Tint(Piece(EditorGroupPart.SelectionTarget), move ? CellUsed : SceneColors.Muted, buffer);
+        SetText(Piece(EditorGroupPart.SelectionDuplicate), "DUP", buffer);
+        Tint(
+            Piece(EditorGroupPart.SelectionDuplicate),
+            selected && group.Effects.Count < EditorGroupLayout.MaxRows ? CellUsed : SceneColors.Muted,
+            buffer);
+        SetText(Piece(EditorGroupPart.SelectionMute), effect.Muted ? "UNMUTE" : "MUTE", buffer);
+        Tint(
+            Piece(EditorGroupPart.SelectionMute),
+            selected ? (effect.Muted ? new Color("#b91c1c") : CellUsed) : SceneColors.Muted,
+            buffer);
+        Tint(Piece(EditorGroupPart.SelectionNudgeLeft), selected ? CellUsed : SceneColors.Muted, buffer);
+        Tint(Piece(EditorGroupPart.SelectionNudgeRight), selected ? CellUsed : SceneColors.Muted, buffer);
+        SetText(Piece(EditorGroupPart.SelectionPick), "PICK", buffer);
+        Tint(
+            Piece(EditorGroupPart.SelectionPick),
+            colour ? OpaqueTint(effect).Darkened(0.35f) : SceneColors.Muted,
+            buffer);
+
+        SetText(
+            Piece(EditorGroupPart.SoloToggle),
+            state.SoloGroup == state.Open ? "SOLO ON" : "SOLO",
+            buffer);
+        Tint(
+            Piece(EditorGroupPart.SoloToggle),
+            state.SoloGroup == state.Open ? CellUsed : SceneColors.Muted,
+            buffer);
+    }
+
+    /// <summary>The colour palette, shown over the dialog while PICK is on.</summary>
+    private void ShowPalette(
+        EditorGroupState state,
+        GroupDefinition group,
+        Vector2 dialog,
+        Vector2 origin,
+        CommandBuffer buffer)
+    {
+        GroupEffect effect = default;
+        bool show = state.PaletteOpen &&
+                    TrySelected(state, group, out _, out effect) &&
+                    effect.Kind == GroupEffectKind.Color;
+        if (!show)
+        {
+            Hide(Piece(EditorGroupPart.PalettePanel), buffer);
+            Hide(Piece(EditorGroupPart.PaletteTitle), buffer);
+            Hide(Piece(EditorGroupPart.PaletteClose), buffer);
+            for (int i = 0; i < EditorGroupPalette.Swatches.Length; i++)
+                Hide(Piece(EditorGroupPart.PaletteSwatch, i), buffer);
+            for (int i = 0; i < EditorGroupPalette.Alphas.Length; i++)
+                Hide(Piece(EditorGroupPart.PaletteAlpha, i), buffer);
+            return;
+        }
+
+        Place(Piece(EditorGroupPart.PalettePanel), EditorGroupLayout.Place(EditorGroupPart.PalettePanel, 0, dialog), origin, buffer);
+        Place(Piece(EditorGroupPart.PaletteTitle), EditorGroupLayout.Place(EditorGroupPart.PaletteTitle, 0, dialog), origin, buffer);
+        Place(Piece(EditorGroupPart.PaletteClose), EditorGroupLayout.Place(EditorGroupPart.PaletteClose, 0, dialog), origin, buffer);
+        for (int i = 0; i < EditorGroupPalette.Swatches.Length; i++)
+            Place(Piece(EditorGroupPart.PaletteSwatch, i), EditorGroupLayout.Place(EditorGroupPart.PaletteSwatch, i, dialog), origin, buffer);
+        for (int i = 0; i < EditorGroupPalette.Alphas.Length; i++)
+        {
+            Entity alpha = Piece(EditorGroupPart.PaletteAlpha, i);
+            Place(alpha, EditorGroupLayout.Place(EditorGroupPart.PaletteAlpha, i, dialog), origin, buffer);
+            Tint(
+                alpha,
+                Mathf.IsEqualApprox(effect.Tint.A, EditorGroupPalette.Alphas[i])
+                    ? CellUsed
+                    : SceneColors.Muted,
+                buffer);
+        }
     }
 
     /// <summary>A round spacing for second labels that gives no more than the label slots.</summary>
