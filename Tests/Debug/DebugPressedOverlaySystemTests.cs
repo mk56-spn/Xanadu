@@ -3,14 +3,14 @@ using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Godot;
 using NUnit.Framework;
-using Writer.Ecs;
-using Writer.Tests.Support;
-using Writer.Systems.Canvas;
-using Writer.Systems.Debug;
-using Writer.Systems.Input;
-using Position = Writer.Ecs.Position;
+using Xanadu.Ecs;
+using Xanadu.Tests.Support;
+using Xanadu.Systems.Canvas;
+using Xanadu.Systems.Debug;
+using Xanadu.Systems.Input;
+using Position = Xanadu.Ecs.Position;
 
-namespace Writer.Tests.Debug;
+namespace Xanadu.Tests.Debug;
 
 [TestFixture]
 public sealed class DebugPressedOverlaySystemTests : EcsSystemTest

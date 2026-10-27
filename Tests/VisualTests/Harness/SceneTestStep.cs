@@ -1,6 +1,6 @@
 using System;
 
-namespace Writer.Tests.VisualTests;
+namespace Xanadu.Tests.VisualTests;
 
 public enum SceneTestStepState
 {

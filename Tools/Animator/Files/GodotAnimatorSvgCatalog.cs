@@ -2,9 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using Godot;
-using Writer.Animation;
+using Xanadu.Animation;
 
-namespace Writer.Tools.Animator.Files;
+namespace Xanadu.Tools.Animator.Files;
 
 /// <summary>
 /// Lists the SVG files under <c>res://Assets</c> and reads their group ids from

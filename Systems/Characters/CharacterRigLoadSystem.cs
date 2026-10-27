@@ -1,9 +1,9 @@
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
-using Writer.Animation;
-using Writer.Ecs;
+using Xanadu.Animation;
+using Xanadu.Ecs;
 
-namespace Writer.Systems.Characters;
+namespace Xanadu.Systems.Characters;
 
 /// <summary>
 /// Keeps each play-mode player's rig in step with its <see cref="PlayerCharacter"/>:

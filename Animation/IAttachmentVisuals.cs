@@ -1,6 +1,6 @@
 using Godot;
 
-namespace Writer.Animation;
+namespace Xanadu.Animation;
 
 /// <summary>Draws the rigid SVG groups of a package.</summary>
 public interface IAttachmentVisuals

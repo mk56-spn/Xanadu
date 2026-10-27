@@ -3,13 +3,13 @@ using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Godot;
-using Writer.Ecs;
-using Writer.Scoring;
-using Writer.Settings;
-using Writer.Systems.Input;
-using Position = Writer.Ecs.Position;
+using Xanadu.Ecs;
+using Xanadu.Scoring;
+using Xanadu.Settings;
+using Xanadu.Systems.Input;
+using Position = Xanadu.Ecs.Position;
 
-namespace Writer.Systems.Playfields;
+namespace Xanadu.Systems.Playfields;
 
 /// <summary>
 /// Hits notes when the player is over them and the note's target key is

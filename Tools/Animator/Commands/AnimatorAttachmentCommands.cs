@@ -1,9 +1,9 @@
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using Godot;
-using Writer.Animation;
+using Xanadu.Animation;
 
-namespace Writer.Tools.Animator.Commands;
+namespace Xanadu.Tools.Animator.Commands;
 
 /// <summary>Attachments: the rigid SVG groups that hang off a bone.</summary>
 public static class AnimatorAttachmentCommands

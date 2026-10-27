@@ -1,14 +1,14 @@
 using Friflo.Engine.ECS;
 using Godot;
-using Writer.Ecs;
-using Writer.Systems.Scenes;
+using Xanadu.Ecs;
+using Xanadu.Systems.Scenes;
 
-namespace Writer.Tests.VisualTests;
+namespace Xanadu.Tests.VisualTests;
 
 /// <summary>Everything a visual test needs to boot and inspect a scene.</summary>
 public sealed record VisualTestContext(
     EntityStore Entities,
-    WriterSystemRoot Systems,
+    XanaduSystemRoot Systems,
     Vector2 Screen,
     Control Host,
     ScriptedPointerInputSource Pointer,

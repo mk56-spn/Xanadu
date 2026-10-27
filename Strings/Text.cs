@@ -1,7 +1,7 @@
 using System;
 using Godot;
 
-namespace Writer.Strings;
+namespace Xanadu.Strings;
 
 /// <summary>A translatable key with an English fallback.</summary>
 public readonly record struct LString(string Key, string Fallback);

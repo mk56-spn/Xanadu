@@ -1,7 +1,7 @@
 using System;
-using Writer.Ecs;
+using Xanadu.Ecs;
 
-namespace Writer.Systems.Editor;
+namespace Xanadu.Systems.Editor;
 
 /// <summary>Mouse-wheel timeline seeking.</summary>
 public static class EditorScroll

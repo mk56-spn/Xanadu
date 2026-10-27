@@ -2,7 +2,7 @@ using System.IO;
 using System.Linq;
 using NUnit.Framework;
 
-namespace Writer.Tests.Architecture;
+namespace Xanadu.Tests.Architecture;
 
 [TestFixture]
 public sealed class ProjectBoundaryTests
@@ -16,11 +16,11 @@ public sealed class ProjectBoundaryTests
     {
         string[] forbidden =
         {
-            "Writer.Scenes",
-            "Writer.Editor",
-            "Writer.Levels",
-            "Writer.Settings",
-            "Writer.Profiles",
+            "Xanadu.Scenes",
+            "Xanadu.Editor",
+            "Xanadu.Levels",
+            "Xanadu.Settings",
+            "Xanadu.Profiles",
         };
 
         foreach (string file in Directory.GetFiles(
@@ -44,8 +44,8 @@ public sealed class ProjectBoundaryTests
                      Path.Combine(Root, "Core"), "*.cs", SearchOption.AllDirectories))
         {
             string source = File.ReadAllText(file);
-            Assert.That(source.Contains("using Writer.Ui"), Is.False, file);
-            Assert.That(source.Contains("using Writer.Scenes"), Is.False, file);
+            Assert.That(source.Contains("using Xanadu.Ui"), Is.False, file);
+            Assert.That(source.Contains("using Xanadu.Scenes"), Is.False, file);
         }
     }
 

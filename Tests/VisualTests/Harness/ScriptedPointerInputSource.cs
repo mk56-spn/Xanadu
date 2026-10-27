@@ -1,7 +1,7 @@
 using Godot;
-using Writer.Systems.Input;
+using Xanadu.Systems.Input;
 
-namespace Writer.Tests.VisualTests;
+namespace Xanadu.Tests.VisualTests;
 
 /// <summary>Deterministic pointer source used by scene tests.</summary>
 public sealed class ScriptedPointerInputSource : IBlockingPointerInputSource

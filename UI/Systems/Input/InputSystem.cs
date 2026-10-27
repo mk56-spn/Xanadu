@@ -2,10 +2,10 @@ using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Godot;
-using Writer.Ecs;
-using Position = Writer.Ecs.Position;
+using Xanadu.Ecs;
+using Position = Xanadu.Ecs.Position;
 
-namespace Writer.Systems.Input;
+namespace Xanadu.Systems.Input;
 
 /// <summary>
 /// Hit-tests <see cref="TakesInput"/> drawables in descending layer order and
@@ -59,7 +59,8 @@ public sealed class InputSystem : QuerySystem<Rectangle, Drawable, Position>
         CommandBuffer buffer = CommandBuffer;
 
         Entity? hoverTarget = target is { } hoverCandidate &&
-                              hoverCandidate.HasComponent<ButtonVisual>()
+                              (hoverCandidate.HasComponent<ButtonVisual>() ||
+                               hoverCandidate.HasComponent<UiTooltip>())
             ? hoverCandidate
             : null;
 

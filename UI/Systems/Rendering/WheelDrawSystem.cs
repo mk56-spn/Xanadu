@@ -1,10 +1,10 @@
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Godot;
-using Writer.Ecs;
-using Writer.Systems.Canvas;
+using Xanadu.Ecs;
+using Xanadu.Systems.Canvas;
 
-namespace Writer.Systems.Rendering;
+namespace Xanadu.Systems.Rendering;
 
 /// <summary>
 /// Paints dirty <see cref="UiWheel"/> entities as a ring of wedge buttons with

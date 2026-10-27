@@ -1,6 +1,6 @@
 using System;
 
-namespace Writer.Tests.VisualTests;
+namespace Xanadu.Tests.VisualTests;
 
 /// <summary>Runs scene test steps one at a time and reports the first failure.</summary>
 public sealed class SceneTestRunner

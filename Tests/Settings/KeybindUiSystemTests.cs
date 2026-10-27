@@ -2,11 +2,11 @@ using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Godot;
 using NUnit.Framework;
-using Writer.Ecs;
-using Writer.Settings;
-using Writer.Systems.Input;
+using Xanadu.Ecs;
+using Xanadu.Settings;
+using Xanadu.Systems.Input;
 
-namespace Writer.Tests.Settings;
+namespace Xanadu.Tests.Settings;
 
 [TestFixture]
 public sealed class KeybindUiSystemTests

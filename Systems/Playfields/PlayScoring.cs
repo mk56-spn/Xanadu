@@ -1,8 +1,8 @@
 using System;
-using Writer.Ecs;
-using Writer.Scoring;
+using Xanadu.Ecs;
+using Xanadu.Scoring;
 
-namespace Writer.Systems.Playfields;
+namespace Xanadu.Systems.Playfields;
 
 /// <summary>Shared judgement application for notes and movement notes.</summary>
 public static class PlayScoring

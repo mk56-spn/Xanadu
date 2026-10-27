@@ -1,6 +1,6 @@
 using Friflo.Engine.ECS;
 
-namespace Writer.Ecs;
+namespace Xanadu.Ecs;
 
 /// <summary>Box2D body attached to an ECS entity.</summary>
 public struct PhysicsBody(Box2DSharp.Dynamics.Body body) : IComponent

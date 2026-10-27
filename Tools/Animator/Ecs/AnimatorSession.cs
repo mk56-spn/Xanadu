@@ -1,12 +1,12 @@
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using Godot;
-using Writer.Ecs;
-using Writer.Animation;
-using Writer.Tools.Animator.Commands;
-using Writer.Tools.Animator.Files;
+using Xanadu.Ecs;
+using Xanadu.Animation;
+using Xanadu.Tools.Animator.Commands;
+using Xanadu.Tools.Animator.Files;
 
-namespace Writer.Tools.Animator;
+namespace Xanadu.Tools.Animator;
 
 /// <summary>Creates and reads the single entity that holds animator editing state.</summary>
 public static class AnimatorSession

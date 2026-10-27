@@ -2,11 +2,11 @@ using System;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Godot;
-using Writer.Ecs;
-using Writer.Editor;
-using Writer.Systems.Input;
+using Xanadu.Ecs;
+using Xanadu.Editor;
+using Xanadu.Systems.Input;
 
-namespace Writer.Systems.Editor;
+namespace Xanadu.Systems.Editor;
 
 /// <summary>
 /// Drags the selected move effect's offset by its on-canvas handle. The handle

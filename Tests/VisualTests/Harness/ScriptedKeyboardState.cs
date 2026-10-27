@@ -1,8 +1,8 @@
 using System.Collections.Generic;
 using Godot;
-using Writer.Systems.Input;
+using Xanadu.Systems.Input;
 
-namespace Writer.Tests.VisualTests;
+namespace Xanadu.Tests.VisualTests;
 
 /// <summary>Frame-sampled keyboard state controlled by scene tests.</summary>
 public sealed class ScriptedKeyboardState : IKeyboardState

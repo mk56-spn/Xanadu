@@ -1,8 +1,8 @@
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
-using Writer.Systems.Physics;
+using Xanadu.Systems.Physics;
 
-namespace Writer.Systems.Groups;
+namespace Xanadu.Systems.Groups;
 
 /// <summary>Applies character momentum and advances the external Box2D world.</summary>
 public sealed class PhysicsSystemGroup : SystemGroup

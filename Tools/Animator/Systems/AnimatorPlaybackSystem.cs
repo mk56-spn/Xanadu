@@ -1,7 +1,7 @@
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 
-namespace Writer.Tools.Animator.Systems;
+namespace Xanadu.Tools.Animator.Systems;
 
 /// <summary>Advances the runtime of each animator session.</summary>
 public sealed class AnimatorPlaybackSystem : QuerySystem<AnimatorDocument>

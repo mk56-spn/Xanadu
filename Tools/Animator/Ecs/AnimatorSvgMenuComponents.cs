@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using Godot;
 
-namespace Writer.Tools.Animator;
+namespace Xanadu.Tools.Animator;
 
 /// <summary>One attachment the SVG picker can add: a file and a group inside it.</summary>
 public readonly record struct AnimatorSvgChoice(string Path, string Group)

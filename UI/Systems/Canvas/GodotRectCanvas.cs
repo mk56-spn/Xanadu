@@ -1,7 +1,7 @@
 using System;
 using Godot;
 
-namespace Writer.Systems.Canvas;
+namespace Xanadu.Systems.Canvas;
 
 /// <summary>Production canvas operations backed by Godot's RenderingServer.</summary>
 public sealed class GodotRectCanvas : IRectCanvas

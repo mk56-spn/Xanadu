@@ -1,7 +1,7 @@
 using Godot;
-using Writer.Ecs;
+using Xanadu.Ecs;
 
-namespace Writer.Systems.Particles;
+namespace Xanadu.Systems.Particles;
 
 /// <summary>Plays one-off particle bursts; the Godot implementation is the only one that draws.</summary>
 public interface IParticleEmitter

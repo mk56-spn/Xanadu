@@ -1,11 +1,11 @@
 using System.Collections.Generic;
 using Godot;
 using NUnit.Framework;
-using Writer.Systems.Canvas;
-using Writer.Tools.Animator;
-using Writer.Tools.Animator.Systems;
+using Xanadu.Systems.Canvas;
+using Xanadu.Tools.Animator;
+using Xanadu.Tools.Animator.Systems;
 
-namespace Writer.Tests.Animation.Tool;
+namespace Xanadu.Tests.Animation.Tool;
 
 [TestFixture]
 public sealed class AnimatorGridDrawTests : AnimatorToolTest

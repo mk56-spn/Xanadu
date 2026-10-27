@@ -1,7 +1,7 @@
 using Friflo.Engine.ECS;
 using Godot;
 
-namespace Writer.Ecs;
+namespace Xanadu.Ecs;
 
 /// <summary>
 /// Generic dropdown state attached to its button entity.

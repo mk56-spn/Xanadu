@@ -1,10 +1,10 @@
 using Friflo.Engine.ECS;
 using Godot;
-using Writer.Ecs;
-using Writer.Editor;
-using Writer.Systems.Playfields;
+using Xanadu.Ecs;
+using Xanadu.Editor;
+using Xanadu.Systems.Playfields;
 
-namespace Writer.Systems.Editor;
+namespace Xanadu.Systems.Editor;
 
 /// <summary>Resize handles for the selected block.</summary>
 public sealed partial class EditorPlayfieldDrawSystem

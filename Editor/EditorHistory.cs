@@ -3,11 +3,11 @@ using System.Collections.Generic;
 using System.Linq;
 using Friflo.Engine.ECS;
 using Godot;
-using Writer.Ecs;
-using Writer.History;
-using Writer.Settings;
+using Xanadu.Ecs;
+using Xanadu.History;
+using Xanadu.Settings;
 
-namespace Writer.Editor;
+namespace Xanadu.Editor;
 
 /// <summary>Undo/redo for note, mine and start-point edits, on the shared <see cref="UndoHistory{T}"/>.</summary>
 public sealed class EditorHistory

@@ -1,8 +1,8 @@
-using Writer.Ecs;
-using Writer.Settings;
+using Xanadu.Ecs;
+using Xanadu.Settings;
 using System.Collections.Generic;
 
-namespace Writer.Levels;
+namespace Xanadu.Levels;
 
 /// <summary>Serializable level document.</summary>
 public sealed class LevelDocument

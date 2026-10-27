@@ -1,7 +1,7 @@
 using Friflo.Engine.ECS;
 using Godot;
 
-namespace Writer.Systems.Ui;
+namespace Xanadu.Systems.Ui;
 
 /// <summary>Tracks a pointer drag without imposing movement semantics.</summary>
 public sealed class UiDragController(float threshold = 4f)

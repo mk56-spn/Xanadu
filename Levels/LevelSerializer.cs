@@ -1,7 +1,7 @@
 using System.Text.Json;
-using Writer.Ecs.Storage;
+using Xanadu.Ecs.Storage;
 
-namespace Writer.Levels;
+namespace Xanadu.Levels;
 
 /// <summary>JSON serialization for level documents.</summary>
 public static class LevelSerializer
@@ -34,7 +34,7 @@ public static class LevelSerializer
         document.StartPoints.RemoveAll(start => start is null);
         document.Blocks ??= new();
         document.Groups ??= new();
-        document.Groups.RemoveAll(group => group is null || group.Id is < 0 or >= Writer.Ecs.GroupLimits.Count);
+        document.Groups.RemoveAll(group => group is null || group.Id is < 0 or >= Xanadu.Ecs.GroupLimits.Count);
         foreach (GroupDocument group in document.Groups)
         {
             group.Name ??= "";
@@ -43,7 +43,7 @@ public static class LevelSerializer
             foreach (GroupEffectDocument effect in group.Effects)
             {
                 if (!System.Enum.IsDefined(effect.Ease))
-                    effect.Ease = Writer.Ecs.GroupEase.Linear;
+                    effect.Ease = Xanadu.Ecs.GroupEase.Linear;
             }
         }
 

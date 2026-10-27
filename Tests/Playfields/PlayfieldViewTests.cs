@@ -1,8 +1,8 @@
 using Godot;
 using NUnit.Framework;
-using Writer.Ecs;
+using Xanadu.Ecs;
 
-namespace Writer.Tests.Playfields;
+namespace Xanadu.Tests.Playfields;
 
 [TestFixture]
 public sealed class PlayfieldViewTests

@@ -2,7 +2,7 @@ using Godot;
 using System;
 using System.Collections.Generic;
 
-namespace Writer.Animation;
+namespace Xanadu.Animation;
 
 /// <summary>Runtime state for one character animator instance.</summary>
 public sealed class AnimatorRuntime

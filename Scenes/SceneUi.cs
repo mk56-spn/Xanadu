@@ -1,8 +1,8 @@
 using Friflo.Engine.ECS;
 using Godot;
-using Writer.Ecs;
+using Xanadu.Ecs;
 
-namespace Writer.Scenes;
+namespace Xanadu.Scenes;
 
 /// <summary>Shared ECS entities and styling for game scene UI.</summary>
 public static class SceneUi

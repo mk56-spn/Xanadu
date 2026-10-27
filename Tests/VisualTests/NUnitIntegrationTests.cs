@@ -3,7 +3,7 @@ using System.Diagnostics;
 using System.IO;
 using NUnit.Framework;
 
-namespace Writer.Tests.VisualTests;
+namespace Xanadu.Tests.VisualTests;
 
 /// <summary>
 /// One NUnit test per Godot scene, so Rider exposes a run arrow beside every

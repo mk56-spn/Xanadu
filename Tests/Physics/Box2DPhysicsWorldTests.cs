@@ -3,10 +3,10 @@ using Box2DSharp.Collision.Shapes;
 using Box2DSharp.Dynamics;
 using Godot;
 using NUnit.Framework;
-using Writer.Systems.Physics;
+using Xanadu.Systems.Physics;
 using NVector2 = System.Numerics.Vector2;
 
-namespace Writer.Tests.Physics;
+namespace Xanadu.Tests.Physics;
 
 [TestFixture]
 public sealed class Box2DPhysicsWorldTests

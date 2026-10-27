@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using Godot;
 
-namespace Writer.Animation;
+namespace Xanadu.Animation;
 
 /// <summary>Small mutation helpers used by the animator authoring tool.</summary>
 public static class XafAuthoring

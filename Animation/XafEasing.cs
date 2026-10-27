@@ -1,6 +1,6 @@
 using System;
 
-namespace Writer.Animation;
+namespace Xanadu.Animation;
 
 /// <summary>Interpolation presets for the segment that leaves a key.</summary>
 public enum XafEasePreset

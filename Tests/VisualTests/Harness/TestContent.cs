@@ -1,6 +1,6 @@
-using Writer.Levels;
+using Xanadu.Levels;
 
-namespace Writer.Tests.VisualTests;
+namespace Xanadu.Tests.VisualTests;
 
 /// <summary>Shared fixtures for visual scenes that need a song and chart.</summary>
 public static class TestContent

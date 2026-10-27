@@ -1,9 +1,9 @@
 using Friflo.Engine.ECS;
 using Godot;
-using Writer.Ecs;
-using Writer.Editor;
+using Xanadu.Ecs;
+using Xanadu.Editor;
 
-namespace Writer.Systems.Editor;
+namespace Xanadu.Systems.Editor;
 
 /// <summary>
 /// Block placement, picking and side-handle resizing. Split out of the note

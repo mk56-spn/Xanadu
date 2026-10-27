@@ -1,8 +1,8 @@
 using Friflo.Engine.ECS;
 using Godot;
-using Writer.Ecs;
+using Xanadu.Ecs;
 
-namespace Writer.Scenes;
+namespace Xanadu.Scenes;
 
 /// <summary>Creates a single miniaudio-backed track for the timeline test.</summary>
 public static class TrackScene

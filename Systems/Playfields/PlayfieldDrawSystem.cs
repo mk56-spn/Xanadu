@@ -1,10 +1,10 @@
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Godot;
-using Writer.Ecs;
-using Writer.Systems.Canvas;
+using Xanadu.Ecs;
+using Xanadu.Systems.Canvas;
 
-namespace Writer.Systems.Playfields;
+namespace Xanadu.Systems.Playfields;
 
 /// <summary>Draws the shared playfield for play scenes.</summary>
 public sealed class PlayfieldDrawSystem :

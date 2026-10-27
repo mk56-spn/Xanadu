@@ -2,11 +2,11 @@ using System;
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
-using Writer.Ecs;
-using Writer.Editor.Commands;
-using Writer.Settings;
+using Xanadu.Ecs;
+using Xanadu.Editor.Commands;
+using Xanadu.Settings;
 
-namespace Writer.Systems.Editor;
+namespace Xanadu.Systems.Editor;
 
 /// <summary>Executes the ECS editor toolbar and keeps its labels current.</summary>
 public sealed class EditorButtonSystem : QuerySystem<EditorButton>

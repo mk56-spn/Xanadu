@@ -14,8 +14,8 @@
     <PackageReference Include="NUnit3TestAdapter" Version="6.3.1" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="../Writer.Ui.csproj" />
-    <ProjectReference Include="../../Core/Writer.Core.csproj" />
+    <ProjectReference Include="../Xanadu.Ui.csproj" />
+    <ProjectReference Include="../../Core/Xanadu.Core.csproj" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="../../Tests/Support/EcsSystemTest.cs" Link="Support/EcsSystemTest.cs" />

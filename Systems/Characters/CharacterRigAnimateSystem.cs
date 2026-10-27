@@ -1,7 +1,7 @@
 using Friflo.Engine.ECS.Systems;
-using Writer.Ecs;
+using Xanadu.Ecs;
 
-namespace Writer.Systems.Characters;
+namespace Xanadu.Systems.Characters;
 
 /// <summary>Advances each character rig's clip playback by the frame time.</summary>
 public sealed class CharacterRigAnimateSystem : QuerySystem<CharacterRig>

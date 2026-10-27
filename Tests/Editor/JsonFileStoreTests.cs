@@ -1,8 +1,8 @@
 using System.IO;
 using NUnit.Framework;
-using Writer.Ecs.Storage;
+using Xanadu.Ecs.Storage;
 
-namespace Writer.Tests.Editor;
+namespace Xanadu.Tests.Editor;
 
 [TestFixture]
 public sealed class JsonFileStoreTests

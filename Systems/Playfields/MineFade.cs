@@ -1,7 +1,7 @@
 using System;
-using Writer.Ecs;
+using Xanadu.Ecs;
 
-namespace Writer.Systems.Playfields;
+namespace Xanadu.Systems.Playfields;
 
 /// <summary>Visibility window for mine hazards.</summary>
 public static class MineFade

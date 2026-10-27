@@ -2,12 +2,12 @@ using System;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Godot;
-using Writer.Animation;
-using Writer.Ecs;
-using Writer.Levels;
-using Writer.Systems.Canvas;
+using Xanadu.Animation;
+using Xanadu.Ecs;
+using Xanadu.Levels;
+using Xanadu.Systems.Canvas;
 
-namespace Writer.Tools.Animator.Systems;
+namespace Xanadu.Tools.Animator.Systems;
 
 /// <summary>Draws the keyframe timeline: ruler, track rows, key diamonds and the playhead.</summary>
 public sealed class AnimatorTimelineDrawSystem(IRectCanvas canvas, Rid target)

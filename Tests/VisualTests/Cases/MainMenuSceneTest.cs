@@ -3,15 +3,15 @@ using System.Linq;
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using Godot;
-using Writer.Ecs;
-using Position = Writer.Ecs.Position;
-using Writer.Editor;
-using Writer.Levels;
-using Writer.Scenes;
-using Writer.Settings;
-using Writer.Systems.Playfields;
+using Xanadu.Ecs;
+using Position = Xanadu.Ecs.Position;
+using Xanadu.Editor;
+using Xanadu.Levels;
+using Xanadu.Scenes;
+using Xanadu.Settings;
+using Xanadu.Systems.Playfields;
 
-namespace Writer.Tests.VisualTests;
+namespace Xanadu.Tests.VisualTests;
 
 public sealed class MainMenuSceneTest : SceneTest
 {
@@ -24,10 +24,10 @@ public sealed class MainMenuSceneTest : SceneTest
         AddUntilStep(
             "wait for main menu",
             () => VisualAssert.IsSceneReady(Context, SceneKind.Main, SceneUi.MenuLayer) &&
-                  VisualAssert.HasText(Context.Entities, "WRITER"));
+                  VisualAssert.HasText(Context.Entities, "XANADU"));
         AddAssert(
-            "WRITER title exists",
-            () => VisualAssert.HasText(Context.Entities, "WRITER"));
+            "XANADU title exists",
+            () => VisualAssert.HasText(Context.Entities, "XANADU"));
         AddAssert(
             "PLAY button exists",
             () => VisualAssert.HasText(Context.Entities, "PLAY"));

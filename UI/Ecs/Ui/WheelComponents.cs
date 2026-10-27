@@ -1,14 +1,14 @@
 using Friflo.Engine.ECS;
 using Godot;
 
-namespace Writer.Ecs;
+namespace Xanadu.Ecs;
 
 /// <summary>
-/// Generic radial option selector, the Writer.UI "cheese wheel". The rectangle
+/// Generic radial option selector, the Xanadu.UI "cheese wheel". The rectangle
 /// bounds define the wheel's diameter and every wedge picks one entry from
 /// <see cref="Labels"/>. Wedges are blue until selected; the selected wedge is
 /// yellow. Interaction and painting live in the matching systems, so the
-/// component can be used by any ECS scene that includes the Writer.UI pipeline.
+/// component can be used by any ECS scene that includes the Xanadu.UI pipeline.
 /// </summary>
 public struct UiWheel : IComponent
 {

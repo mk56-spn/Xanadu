@@ -3,10 +3,10 @@ using System.Globalization;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Godot;
-using Writer.Ecs;
-using Writer.Levels;
+using Xanadu.Ecs;
+using Xanadu.Levels;
 
-namespace Writer.Systems.Editor;
+namespace Xanadu.Systems.Editor;
 
 /// <summary>Placing the group overlay's pieces: rows, bars and the beat ruler.</summary>
 public sealed partial class EditorGroupSystem
@@ -300,6 +300,16 @@ public sealed partial class EditorGroupSystem
             Piece(EditorGroupPart.SelectionPick),
             colour ? OpaqueTint(effect).Darkened(0.35f) : SceneColors.Muted,
             buffer);
+
+        UiLayout.SetDisabled(Piece(EditorGroupPart.SelectionTarget), buffer, !move);
+        UiLayout.SetDisabled(
+            Piece(EditorGroupPart.SelectionDuplicate),
+            buffer,
+            !selected || group.Effects.Count >= EditorGroupLayout.MaxRows);
+        UiLayout.SetDisabled(Piece(EditorGroupPart.SelectionMute), buffer, !selected);
+        UiLayout.SetDisabled(Piece(EditorGroupPart.SelectionNudgeLeft), buffer, !selected);
+        UiLayout.SetDisabled(Piece(EditorGroupPart.SelectionNudgeRight), buffer, !selected);
+        UiLayout.SetDisabled(Piece(EditorGroupPart.SelectionPick), buffer, !colour);
 
         SetText(
             Piece(EditorGroupPart.SoloToggle),

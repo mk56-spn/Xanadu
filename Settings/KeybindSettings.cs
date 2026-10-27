@@ -4,7 +4,7 @@ using System.IO;
 using System.Text.Json;
 using Godot;
 
-namespace Writer.Settings;
+namespace Xanadu.Settings;
 
 /// <summary>The seven playfield key bindings.</summary>
 public enum KeybindAction

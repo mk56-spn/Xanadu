@@ -1,11 +1,11 @@
 using Friflo.Engine.ECS;
 using Godot;
-using Writer.Ecs;
-using Writer.Levels;
-using Writer.Scenes;
-using Position = Writer.Ecs.Position;
+using Xanadu.Ecs;
+using Xanadu.Levels;
+using Xanadu.Scenes;
+using Position = Xanadu.Ecs.Position;
 
-namespace Writer.Tests.VisualTests;
+namespace Xanadu.Tests.VisualTests;
 
 /// <summary>
 /// Groups in a play scene: items move by the sum of their groups' moves, hold

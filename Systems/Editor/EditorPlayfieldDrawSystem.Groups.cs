@@ -1,9 +1,9 @@
 using Friflo.Engine.ECS;
 using Godot;
-using Writer.Ecs;
-using Writer.Systems.Playfields;
+using Xanadu.Ecs;
+using Xanadu.Systems.Playfields;
 
-namespace Writer.Systems.Editor;
+namespace Xanadu.Systems.Editor;
 
 /// <summary>The editor's group preview: translucent ghosts where groups will move and tint items.</summary>
 public sealed partial class EditorPlayfieldDrawSystem

@@ -1,10 +1,10 @@
 using System;
 using Godot;
-using Writer.Ecs;
-using Writer.Systems.Editor;
-using Writer.Editor.Commands;
+using Xanadu.Ecs;
+using Xanadu.Systems.Editor;
+using Xanadu.Editor.Commands;
 
-namespace Writer.Editor;
+namespace Xanadu.Editor;
 
 /// <summary>Editor overlay keyboard shortcuts and transport actions.</summary>
 public partial class EditorOverlay : CanvasLayer

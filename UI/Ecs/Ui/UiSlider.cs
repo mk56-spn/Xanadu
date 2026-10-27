@@ -1,6 +1,6 @@
 using Friflo.Engine.ECS;
 
-namespace Writer.Ecs;
+namespace Xanadu.Ecs;
 
 /// <summary>Minimal ECS slider bound to a fill rectangle and label.</summary>
 public struct UiSlider(

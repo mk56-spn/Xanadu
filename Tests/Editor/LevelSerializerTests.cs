@@ -1,10 +1,10 @@
 using NUnit.Framework;
-using Writer.Levels;
-using Writer.Editor;
-using Writer.Ecs;
-using Writer.Settings;
+using Xanadu.Levels;
+using Xanadu.Editor;
+using Xanadu.Ecs;
+using Xanadu.Settings;
 
-namespace Writer.Tests.Editor;
+namespace Xanadu.Tests.Editor;
 
 [TestFixture]
 public sealed class LevelSerializerTests

@@ -1,7 +1,7 @@
 using Godot;
-using Writer.Animation;
+using Xanadu.Animation;
 
-namespace Writer.Tools.Animator;
+namespace Xanadu.Tools.Animator;
 
 /// <summary>
 /// Every keybinding in the animator: the actions buttons perform, plus the key

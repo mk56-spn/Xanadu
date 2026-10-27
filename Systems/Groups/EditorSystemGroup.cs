@@ -1,14 +1,14 @@
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Godot;
-using Writer.Editor;
-using Writer.Editor.Commands;
-using Writer.Systems.Audio;
-using Writer.Systems.Canvas;
-using Writer.Systems.Editor;
-using Writer.Systems.Input;
+using Xanadu.Editor;
+using Xanadu.Editor.Commands;
+using Xanadu.Systems.Audio;
+using Xanadu.Systems.Canvas;
+using Xanadu.Systems.Editor;
+using Xanadu.Systems.Input;
 
-namespace Writer.Systems.Groups;
+namespace Xanadu.Systems.Groups;
 
 /// <summary>Editor-only systems, enabled while the Editor scene is active.</summary>
 public sealed class EditorSystemGroup : SystemGroup

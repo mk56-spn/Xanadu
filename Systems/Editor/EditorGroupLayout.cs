@@ -1,9 +1,9 @@
 using System;
 using Godot;
-using Writer.Ecs;
-using Writer.Levels;
+using Xanadu.Ecs;
+using Xanadu.Levels;
 
-namespace Writer.Systems.Editor;
+namespace Xanadu.Systems.Editor;
 
 /// <summary>
 /// Where each piece of the group overlay sits, in pixels from the dialog's

@@ -4,7 +4,7 @@ using System.IO;
 using System.Text;
 using Godot;
 
-namespace Writer.Animation;
+namespace Xanadu.Animation;
 
 /// <summary>Binary XAF1 reader/writer with a chunk directory.</summary>
 public static class XafBinary

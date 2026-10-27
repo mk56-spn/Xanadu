@@ -1,10 +1,10 @@
 using Friflo.Engine.ECS;
 using Godot;
-using Writer.Ecs;
-using Writer.Strings;
-using Writer.Scoring;
+using Xanadu.Ecs;
+using Xanadu.Strings;
+using Xanadu.Scoring;
 
-namespace Writer.Scenes;
+namespace Xanadu.Scenes;
 
 /// <summary>Post-play results with score, accuracy, max combo, and hit ratio.</summary>
 public static class ResultsScene

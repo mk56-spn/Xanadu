@@ -1,7 +1,7 @@
 using System;
-using Writer.Ecs;
+using Xanadu.Ecs;
 
-namespace Writer.Systems.Playfields;
+namespace Xanadu.Systems.Playfields;
 
 /// <summary>Shared presentation timing for every play note.</summary>
 public static class NoteFade

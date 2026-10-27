@@ -1,6 +1,6 @@
 using Friflo.Engine.ECS;
 
-namespace Writer.Ecs;
+namespace Xanadu.Ecs;
 
 /// <summary>Playback state for a miniaudio-backed test track.</summary>
 public struct TrackProgress(

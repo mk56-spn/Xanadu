@@ -1,12 +1,12 @@
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Godot;
-using Writer.Systems.Canvas;
-using Writer.Systems.Debug;
-using Writer.Systems.Input;
-using Writer.Systems.Ui;
+using Xanadu.Systems.Canvas;
+using Xanadu.Systems.Debug;
+using Xanadu.Systems.Input;
+using Xanadu.Systems.Ui;
 
-namespace Writer.Systems.Groups;
+namespace Xanadu.Systems.Groups;
 
 /// <summary>Draws the F3 pressed-entity overlay and ECS/system metrics.</summary>
 public sealed class DebugSystemGroup : SystemGroup
@@ -21,7 +21,7 @@ public sealed class DebugSystemGroup : SystemGroup
         IFpsSource fps,
         EntityStore entitiesForSlider,
         IPointerInputSource pointer,
-        Writer.Systems.Physics.Box2DPhysicsWorld physics,
+        Xanadu.Systems.Physics.Box2DPhysicsWorld physics,
         IOverlayToggleSource gravityToggle,
         IOverlayPageSource? paging = null) : base("Debug")
     {
@@ -33,7 +33,7 @@ public sealed class DebugSystemGroup : SystemGroup
             systems,
             fps,
             paging));
-        Writer.Systems.Ui.UiDebugOverlayGroup.Attach(
+        Xanadu.Systems.Ui.UiDebugOverlayGroup.Attach(
             this,
             canvas,
             parentCanvas);

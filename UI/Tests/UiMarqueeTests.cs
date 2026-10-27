@@ -1,10 +1,10 @@
 using System.Collections.Generic;
 using Godot;
 using NUnit.Framework;
-using Writer.Ecs;
-using Writer.Systems.Ui;
+using Xanadu.Ecs;
+using Xanadu.Systems.Ui;
 
-namespace Writer.Tests.UI;
+namespace Xanadu.Tests.UI;
 
 [TestFixture]
 public sealed class UiMarqueeTests

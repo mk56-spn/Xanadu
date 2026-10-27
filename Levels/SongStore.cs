@@ -7,9 +7,9 @@ using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using Godot;
-using Writer.Ecs.Storage;
+using Xanadu.Ecs.Storage;
 
-namespace Writer.Levels;
+namespace Xanadu.Levels;
 
 /// <summary>
 /// Owns the song library. Imported audio is copied into a per-song folder and

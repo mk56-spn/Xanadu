@@ -2,11 +2,11 @@ using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using Godot;
 using NUnit.Framework;
-using Writer.Ecs;
-using Writer.Systems.Particles;
-using Writer.Tests.Support;
+using Xanadu.Ecs;
+using Xanadu.Systems.Particles;
+using Xanadu.Tests.Support;
 
-namespace Writer.Tests.Particles;
+namespace Xanadu.Tests.Particles;
 
 [TestFixture]
 public sealed class ParticleBurstSystemTests : EcsSystemTest

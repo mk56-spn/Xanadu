@@ -1,10 +1,10 @@
 using System;
 using Godot;
-using Writer.Levels;
-using Writer.Ecs;
-using Writer.Systems.Scenes;
+using Xanadu.Levels;
+using Xanadu.Ecs;
+using Xanadu.Systems.Scenes;
 
-namespace Writer;
+namespace Xanadu;
 
 /// <summary>Developer-only song timing/add-song overlay.</summary>
 public partial class SongTimingOverlay : CanvasLayer

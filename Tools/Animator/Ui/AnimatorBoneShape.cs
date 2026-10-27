@@ -1,7 +1,7 @@
 using System;
 using Godot;
 
-namespace Writer.Tools.Animator;
+namespace Xanadu.Tools.Animator;
 
 /// <summary>
 /// The kite ("rhombus") a bone is drawn as: widest near its parent joint and

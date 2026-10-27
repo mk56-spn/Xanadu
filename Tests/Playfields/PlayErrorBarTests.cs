@@ -1,13 +1,13 @@
-using Position = Writer.Ecs.Position;
+using Position = Xanadu.Ecs.Position;
 using Friflo.Engine.ECS;
 using Godot;
 using NUnit.Framework;
-using Writer.Ecs;
-using Writer.Scoring;
-using Writer.Systems.Playfields;
-using Writer.Tests.Support;
+using Xanadu.Ecs;
+using Xanadu.Scoring;
+using Xanadu.Systems.Playfields;
+using Xanadu.Tests.Support;
 
-namespace Writer.Tests.Playfields;
+namespace Xanadu.Tests.Playfields;
 
 [TestFixture]
 public sealed class PlayErrorBarTests : EcsSystemTest

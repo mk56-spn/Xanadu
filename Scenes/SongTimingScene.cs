@@ -1,9 +1,9 @@
 using Friflo.Engine.ECS;
 using Godot;
-using Writer.Ecs;
-using Writer.Levels;
+using Xanadu.Ecs;
+using Xanadu.Levels;
 
-namespace Writer.Scenes;
+namespace Xanadu.Scenes;
 
 /// <summary>A separate screen for editing shared song timing.</summary>
 public static class SongTimingScene

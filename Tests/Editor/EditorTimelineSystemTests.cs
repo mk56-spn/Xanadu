@@ -1,11 +1,11 @@
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using NUnit.Framework;
-using Writer.Ecs;
-using Writer.Timeline;
-using Writer.Systems.Editor;
+using Xanadu.Ecs;
+using Xanadu.Timeline;
+using Xanadu.Systems.Editor;
 
-namespace Writer.Tests.Editor;
+namespace Xanadu.Tests.Editor;
 
 [TestFixture]
 public sealed class EditorTimelineSystemTests

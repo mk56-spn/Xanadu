@@ -5,11 +5,11 @@ using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Godot;
 using NUnit.Framework;
-using Writer.Ecs;
-using Writer.Systems.Physics;
-using Position = Writer.Ecs.Position;
+using Xanadu.Ecs;
+using Xanadu.Systems.Physics;
+using Position = Xanadu.Ecs.Position;
 
-namespace Writer.Tests.Physics;
+namespace Xanadu.Tests.Physics;
 
 [TestFixture]
 public sealed class PlayerBodySystemTests

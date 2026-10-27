@@ -1,9 +1,9 @@
 using Friflo.Engine.ECS.Systems;
 using Godot;
-using Writer.Systems.Canvas;
-using Writer.Systems.Groups;
+using Xanadu.Systems.Canvas;
+using Xanadu.Systems.Groups;
 
-namespace Writer.Systems.Ui;
+namespace Xanadu.Systems.Ui;
 
 /// <summary>UI-owned assembly points for the generic ECS render pipeline.</summary>
 public static class UiBootstrap

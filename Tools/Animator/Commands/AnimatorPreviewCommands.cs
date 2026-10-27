@@ -1,8 +1,8 @@
 using Friflo.Engine.ECS;
 using Godot;
-using Writer.Animation;
+using Xanadu.Animation;
 
-namespace Writer.Tools.Animator.Commands;
+namespace Xanadu.Tools.Animator.Commands;
 
 /// <summary>Preview framing: fit the whole rig in the panel, or go back to one unit per pixel.</summary>
 public static class AnimatorPreviewCommands

@@ -1,8 +1,8 @@
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
-using Writer.Ecs;
+using Xanadu.Ecs;
 
-namespace Writer.Systems.Playfields;
+namespace Xanadu.Systems.Playfields;
 
 /// <summary>Advances and removes short-lived dash indicators.</summary>
 public sealed class DashTrailSystem : QuerySystem<DashTrail>

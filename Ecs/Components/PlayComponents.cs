@@ -1,7 +1,7 @@
 using Friflo.Engine.ECS;
 using Godot;
 
-namespace Writer.Ecs;
+namespace Xanadu.Ecs;
 
 /// <summary>Play-session progress and its status text entity.</summary>
 public struct PlaySession(
@@ -79,40 +79,40 @@ public struct KeyTrail : IComponent
     public float R2;
     public float R3;
 
-    public readonly float Get(Writer.Settings.KeybindAction action) =>
+    public readonly float Get(Xanadu.Settings.KeybindAction action) =>
         action switch
         {
-            Writer.Settings.KeybindAction.L1 => L1,
-            Writer.Settings.KeybindAction.L2 => L2,
-            Writer.Settings.KeybindAction.L3 => L3,
-            Writer.Settings.KeybindAction.M => M,
-            Writer.Settings.KeybindAction.R1 => R1,
-            Writer.Settings.KeybindAction.R2 => R2,
-            Writer.Settings.KeybindAction.R3 => R3,
+            Xanadu.Settings.KeybindAction.L1 => L1,
+            Xanadu.Settings.KeybindAction.L2 => L2,
+            Xanadu.Settings.KeybindAction.L3 => L3,
+            Xanadu.Settings.KeybindAction.M => M,
+            Xanadu.Settings.KeybindAction.R1 => R1,
+            Xanadu.Settings.KeybindAction.R2 => R2,
+            Xanadu.Settings.KeybindAction.R3 => R3,
             _ => 0f,
         };
 
-    public void Set(Writer.Settings.KeybindAction action, float value)
+    public void Set(Xanadu.Settings.KeybindAction action, float value)
     {
         switch (action)
         {
-            case Writer.Settings.KeybindAction.L1: L1 = value; break;
-            case Writer.Settings.KeybindAction.L2: L2 = value; break;
-            case Writer.Settings.KeybindAction.L3: L3 = value; break;
-            case Writer.Settings.KeybindAction.M: M = value; break;
-            case Writer.Settings.KeybindAction.R1: R1 = value; break;
-            case Writer.Settings.KeybindAction.R2: R2 = value; break;
-            case Writer.Settings.KeybindAction.R3: R3 = value; break;
+            case Xanadu.Settings.KeybindAction.L1: L1 = value; break;
+            case Xanadu.Settings.KeybindAction.L2: L2 = value; break;
+            case Xanadu.Settings.KeybindAction.L3: L3 = value; break;
+            case Xanadu.Settings.KeybindAction.M: M = value; break;
+            case Xanadu.Settings.KeybindAction.R1: R1 = value; break;
+            case Xanadu.Settings.KeybindAction.R2: R2 = value; break;
+            case Xanadu.Settings.KeybindAction.R3: R3 = value; break;
         }
     }
 }
 
 /// <summary>A press/release segment in the key-input history trail.</summary>
 public struct KeyPressTrail(
-    Writer.Settings.KeybindAction action,
+    Xanadu.Settings.KeybindAction action,
     long startMs) : IComponent
 {
-    public Writer.Settings.KeybindAction Action = action;
+    public Xanadu.Settings.KeybindAction Action = action;
     public long StartMs = startMs;
     public long EndMs = -1;
 }
@@ -174,17 +174,17 @@ public struct ContactCounters : IComponent
         Counts = new int[7];
     }
 
-    public readonly int Get(Writer.Settings.KeybindAction action) =>
+    public readonly int Get(Xanadu.Settings.KeybindAction action) =>
         Counts.Length == 0 ? 0 : Counts[(int)action];
 
-    public void Add(Writer.Settings.KeybindAction action, int amount = 1)
+    public void Add(Xanadu.Settings.KeybindAction action, int amount = 1)
     {
         int index = (int)action;
         if ((uint)index < (uint)Counts.Length)
             Counts[index] += amount;
     }
 
-    public bool Consume(Writer.Settings.KeybindAction action, int amount)
+    public bool Consume(Xanadu.Settings.KeybindAction action, int amount)
     {
         int index = (int)action;
         if ((uint)index >= (uint)Counts.Length ||

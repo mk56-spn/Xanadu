@@ -1,9 +1,9 @@
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
-using Writer.Ecs;
-using Writer.Settings;
+using Xanadu.Ecs;
+using Xanadu.Settings;
 
-namespace Writer.Systems.Playfields;
+namespace Xanadu.Systems.Playfields;
 
 /// <summary>Projects Contact per-input counters into the HUD.</summary>
 public sealed class ContactCounterSystem : QuerySystem<ContactCounters, ContactCounterHud>

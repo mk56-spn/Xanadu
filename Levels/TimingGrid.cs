@@ -1,6 +1,6 @@
 using System;
 
-namespace Writer.Levels;
+namespace Xanadu.Levels;
 
 /// <summary>Shared beat/subdivision math for editor and timeline rendering.</summary>
 public static class TimingGrid

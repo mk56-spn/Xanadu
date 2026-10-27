@@ -1,9 +1,9 @@
 using System;
 using System.Collections.Generic;
 using Godot;
-using Writer.Ecs;
+using Xanadu.Ecs;
 
-namespace Writer.Systems.Ui;
+namespace Xanadu.Systems.Ui;
 
 /// <summary>How a press on empty space ended.</summary>
 public enum MarqueeEnd

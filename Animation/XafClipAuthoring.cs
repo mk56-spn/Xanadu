@@ -1,7 +1,7 @@
 using System;
 using System.Linq;
 
-namespace Writer.Animation;
+namespace Xanadu.Animation;
 
 /// <summary>Clip-level edits for the animator tool: add, copy, remove, rename, length and looping.</summary>
 public static class XafClipAuthoring

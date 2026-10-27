@@ -3,13 +3,13 @@ using System.Collections.Generic;
 using System.IO;
 using Friflo.Engine.ECS;
 using Godot;
-using Writer.Ecs;
-using Writer.Levels;
-using Writer.Editor.Commands;
-using Writer.Systems.Editor;
-using Writer.Systems.Input;
+using Xanadu.Ecs;
+using Xanadu.Levels;
+using Xanadu.Editor.Commands;
+using Xanadu.Systems.Editor;
+using Xanadu.Systems.Input;
 
-namespace Writer.Editor;
+namespace Xanadu.Editor;
 
 /// <summary>Native file dialogs and text-input bridge for the ECS editor UI.</summary>
 public partial class EditorOverlay

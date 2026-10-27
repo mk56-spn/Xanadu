@@ -1,9 +1,9 @@
 using Friflo.Engine.ECS;
 using Godot;
-using Writer.Ecs;
-using Writer.Strings;
+using Xanadu.Ecs;
+using Xanadu.Strings;
 
-namespace Writer.Scenes;
+namespace Xanadu.Scenes;
 
 /// <summary>Title screen with play, editor, and settings entry points.</summary>
 public static class MainMenuScene

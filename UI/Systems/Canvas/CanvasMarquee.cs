@@ -1,7 +1,7 @@
 using Godot;
-using Writer.Ecs;
+using Xanadu.Ecs;
 
-namespace Writer.Systems.Canvas;
+namespace Xanadu.Systems.Canvas;
 
 /// <summary>Shared drawing of the box a view drags to select, so every view's looks the same.</summary>
 public static class CanvasMarquee

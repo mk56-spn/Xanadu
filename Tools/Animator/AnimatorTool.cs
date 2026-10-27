@@ -1,15 +1,15 @@
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Godot;
-using Writer.Animation;
-using Writer.Ecs;
-using Writer.Systems.Canvas;
-using Writer.Systems.Input;
-using Writer.Systems.Ui;
-using Writer.Tools.Animator.Commands;
-using Writer.Tools.Animator.Files;
+using Xanadu.Animation;
+using Xanadu.Ecs;
+using Xanadu.Systems.Canvas;
+using Xanadu.Systems.Input;
+using Xanadu.Systems.Ui;
+using Xanadu.Tools.Animator.Commands;
+using Xanadu.Tools.Animator.Files;
 
-namespace Writer.Tools.Animator;
+namespace Xanadu.Tools.Animator;
 
 /// <summary>Standalone XAF skeleton/animation authoring tool: hosts the ECS and feeds it input.</summary>
 public partial class AnimatorTool : Control
@@ -43,7 +43,12 @@ public partial class AnimatorTool : Control
         _attachments = new SvgAttachmentVisuals(_svgCanvas);
 
         UiTextBridge.Attach(this, _store);
-        _ui = new UiSystemGroup(_store, GetCanvasItem(), canvas, _pointer);
+        _ui = new UiSystemGroup(
+            _store,
+            GetCanvasItem(),
+            canvas,
+            _pointer,
+            tooltips: false);
         _root.Add(_ui);
         _root.Add(new AnimatorSystemGroup(
             canvas,

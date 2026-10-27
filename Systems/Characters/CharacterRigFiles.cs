@@ -1,9 +1,9 @@
 using System;
 using Godot;
-using Writer.Animation;
-using Writer.Ecs;
+using Xanadu.Animation;
+using Xanadu.Ecs;
 
-namespace Writer.Systems.Characters;
+namespace Xanadu.Systems.Characters;
 
 /// <summary>Loads character XAF packages.</summary>
 public interface ICharacterRigFiles

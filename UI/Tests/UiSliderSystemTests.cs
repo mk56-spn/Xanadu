@@ -1,13 +1,13 @@
 using Friflo.Engine.ECS;
 using Godot;
 using NUnit.Framework;
-using Writer.Ecs;
-using Writer.Systems.Input;
-using Writer.Systems.Ui;
-using Writer.Tests.Support;
-using Position = Writer.Ecs.Position;
+using Xanadu.Ecs;
+using Xanadu.Systems.Input;
+using Xanadu.Systems.Ui;
+using Xanadu.Tests.Support;
+using Position = Xanadu.Ecs.Position;
 
-namespace Writer.Tests.UI;
+namespace Xanadu.Tests.UI;
 
 [TestFixture]
 public sealed class UiSliderSystemTests : EcsSystemTest

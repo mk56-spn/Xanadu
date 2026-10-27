@@ -1,4 +1,4 @@
-namespace Writer.Animation;
+namespace Xanadu.Animation;
 
 /// <summary>Play/pause controls shared by the animator tool and preview hosts.</summary>
 public sealed class AnimatorPlayback

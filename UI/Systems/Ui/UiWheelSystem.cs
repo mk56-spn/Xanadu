@@ -1,10 +1,10 @@
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Godot;
-using Writer.Ecs;
-using Writer.Systems.Input;
+using Xanadu.Ecs;
+using Xanadu.Systems.Input;
 
-namespace Writer.Systems.Ui;
+namespace Xanadu.Systems.Ui;
 
 /// <summary>
 /// Generic pointer interaction for <see cref="UiWheel"/> entities: hover the
@@ -57,6 +57,7 @@ public sealed class UiWheelSystem : QuerySystem<UiWheel, Drawable>
             Entity active = _entities.GetEntityById(_activeWheelId);
             if (active.IsNull ||
                 !active.HasComponent<UiWheel>() ||
+                active.Tags.Has<Disabled>() ||
                 !active.Tags.Has<Pressed>())
             {
                 _activeWheelId = 0;

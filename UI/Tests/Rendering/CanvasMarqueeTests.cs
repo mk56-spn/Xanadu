@@ -1,10 +1,10 @@
 using System.Collections.Generic;
 using Godot;
 using NUnit.Framework;
-using Writer.Ecs;
-using Writer.Systems.Canvas;
+using Xanadu.Ecs;
+using Xanadu.Systems.Canvas;
 
-namespace Writer.Tests.UI.Rendering;
+namespace Xanadu.Tests.UI.Rendering;
 
 [TestFixture]
 public sealed class CanvasMarqueeTests

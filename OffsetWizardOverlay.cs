@@ -1,9 +1,9 @@
 using System;
 using System.Collections.Generic;
 using Godot;
-using Writer.Settings;
+using Xanadu.Settings;
 
-namespace Writer;
+namespace Xanadu;
 
 /// <summary>Native click-track calibration wizard for the global timing offset.</summary>
 public partial class OffsetWizardOverlay : CanvasLayer

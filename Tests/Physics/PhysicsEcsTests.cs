@@ -3,12 +3,12 @@ using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Godot;
 using NUnit.Framework;
-using Writer.Ecs;
-using Writer.Systems.Physics;
+using Xanadu.Ecs;
+using Xanadu.Systems.Physics;
 using NVector2 = System.Numerics.Vector2;
-using Position = Writer.Ecs.Position;
+using Position = Xanadu.Ecs.Position;
 
-namespace Writer.Tests.Physics;
+namespace Xanadu.Tests.Physics;
 
 [TestFixture]
 public sealed class PhysicsEcsTests

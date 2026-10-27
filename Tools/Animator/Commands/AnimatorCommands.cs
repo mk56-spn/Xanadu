@@ -1,9 +1,9 @@
 using Friflo.Engine.ECS;
 using Godot;
-using Writer.Animation;
-using Writer.Tools.Animator.Systems;
+using Xanadu.Animation;
+using Xanadu.Tools.Animator.Systems;
 
-namespace Writer.Tools.Animator.Commands;
+namespace Xanadu.Tools.Animator.Commands;
 
 /// <summary>Executes <see cref="ToolAction"/> requests against the session entity.</summary>
 public static class AnimatorCommands

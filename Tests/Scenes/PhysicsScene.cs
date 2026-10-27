@@ -1,12 +1,12 @@
 using Box2DSharp.Dynamics;
 using Friflo.Engine.ECS;
 using Godot;
-using Writer.Ecs;
-using Writer.Systems.Physics;
+using Xanadu.Ecs;
+using Xanadu.Systems.Physics;
 using NVector2 = System.Numerics.Vector2;
-using Position = Writer.Ecs.Position;
+using Position = Xanadu.Ecs.Position;
 
-namespace Writer.Scenes;
+namespace Xanadu.Scenes;
 
 /// <summary>Box2D-backed character test. Character size: 30 x 100 pixels.</summary>
 public static class PhysicsScene

@@ -1,9 +1,9 @@
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Godot;
-using Writer.Ecs;
+using Xanadu.Ecs;
 
-namespace Writer.Systems.Rendering;
+namespace Xanadu.Systems.Rendering;
 
 /// <summary>
 /// Parents uninitialised layer canvas items to the main control and clears

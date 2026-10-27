@@ -3,11 +3,15 @@
     <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
     <EnableDynamicLoading>true</EnableDynamicLoading>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <GodotProjectDir>$(MSBuildProjectDirectory)/</GodotProjectDir>
   </PropertyGroup>
   <ItemGroup>
-    <ProjectReference Include="../../Core/Writer.Core.csproj" />
-    <ProjectReference Include="../Writer.Ui.csproj" />
+    <Compile Remove="NUnitIntegrationTests.cs" />
+    <Compile Remove="SceneTestRunnerTests.cs" />
+    <ProjectReference Include="../../Xanadu.csproj" />
+    <ProjectReference Include="../../Core/Xanadu.Core.csproj" ReferenceOutputAssembly="true" />
+    <ProjectReference Include="../../UI/Xanadu.Ui.csproj" ReferenceOutputAssembly="true" />
   </ItemGroup>
   <Target Name="CanonicalizeGodotProjectDir" BeforeTargets="GenerateMSBuildEditorConfigFileCore"
           Condition="$([MSBuild]::IsOSPlatform('Linux'))">

@@ -1,9 +1,9 @@
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Godot;
-using Writer.Ecs;
+using Xanadu.Ecs;
 
-namespace Writer.Systems.Input;
+namespace Xanadu.Systems.Input;
 
 /// <summary>Animates button hover fades and short click flashes.</summary>
 public sealed class ButtonVisualSystem : QuerySystem<ButtonVisual, FillColor>

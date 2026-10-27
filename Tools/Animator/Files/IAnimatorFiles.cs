@@ -1,6 +1,6 @@
-using Writer.Animation;
+using Xanadu.Animation;
 
-namespace Writer.Tools.Animator.Files;
+namespace Xanadu.Tools.Animator.Files;
 
 /// <summary>Reads and writes XAF packages at a path.</summary>
 public interface IAnimatorFiles

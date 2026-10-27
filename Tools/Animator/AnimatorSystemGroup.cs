@@ -1,13 +1,13 @@
 using Friflo.Engine.ECS.Systems;
 using Godot;
-using Writer.Animation;
-using Writer.Ecs;
-using Writer.Systems.Canvas;
-using Writer.Systems.Input;
-using Writer.Tools.Animator.Files;
-using Writer.Tools.Animator.Systems;
+using Xanadu.Animation;
+using Xanadu.Ecs;
+using Xanadu.Systems.Canvas;
+using Xanadu.Systems.Input;
+using Xanadu.Tools.Animator.Files;
+using Xanadu.Tools.Animator.Systems;
 
-namespace Writer.Tools.Animator;
+namespace Xanadu.Tools.Animator;
 
 /// <summary>Animator-specific systems; run after the generic UI group.</summary>
 public sealed class AnimatorSystemGroup : SystemGroup

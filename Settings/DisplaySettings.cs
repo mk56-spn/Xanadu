@@ -3,7 +3,7 @@ using System.IO;
 using System.Text.Json;
 using Godot;
 
-namespace Writer.Settings;
+namespace Xanadu.Settings;
 
 /// <summary>Persisted display options such as vertical sync.</summary>
 public sealed class DisplaySettings

@@ -1,9 +1,9 @@
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using Godot;
-using Writer.Animation;
+using Xanadu.Animation;
 
-namespace Writer.Tools.Animator.Commands;
+namespace Xanadu.Tools.Animator.Commands;
 
 /// <summary>
 /// Exact transform edits from the inspector: typed values replace the pose or

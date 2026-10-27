@@ -1,11 +1,11 @@
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Godot;
-using Writer.Animation;
-using Writer.Ecs;
-using Writer.Tools.Animator.Commands;
+using Xanadu.Animation;
+using Xanadu.Ecs;
+using Xanadu.Tools.Animator.Commands;
 
-namespace Writer.Tools.Animator.Systems;
+namespace Xanadu.Tools.Animator.Systems;
 
 /// <summary>
 /// The clip controls in the timeline header: the name field shows the current

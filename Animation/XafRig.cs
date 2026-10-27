@@ -1,6 +1,6 @@
 using Godot;
 
-namespace Writer.Animation;
+namespace Xanadu.Animation;
 
 /// <summary>Resolves local sampled poses into skeleton and attachment world transforms.</summary>
 public static class XafRig

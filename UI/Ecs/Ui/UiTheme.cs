@@ -1,6 +1,6 @@
 using Godot;
 
-namespace Writer.Ecs;
+namespace Xanadu.Ecs;
 
 /// <summary>Shared defaults for the generic ECS UI.</summary>
 public static class UiTheme
@@ -15,6 +15,9 @@ public static class UiTheme
     public static readonly Color TextDim = new("#94a3b8");
     public static readonly Color Accent = new("#facc15");
     public static readonly Color Selected = new("#0f766e");
+    public static readonly Color Focus = new("#f8fafc");
+    public static readonly Color Disabled = new("#1f2937");
+    public static readonly Color Tooltip = new("#243044");
 
     public const int FontSize = 14;
     public const int SmallFontSize = 12;
@@ -26,4 +29,6 @@ public static class UiTheme
     public const float DropdownOptionSpacing = 2f;
     public const float TreeRowHeight = 26f;
     public const float TreeIndent = 16f;
+    public const int FocusLayer = 995;
+    public const int TooltipLayer = 996;
 }

@@ -1,7 +1,7 @@
 using Friflo.Engine.ECS;
 using Godot;
 
-namespace Writer.Ecs;
+namespace Xanadu.Ecs;
 
 /// <summary>Creates entities that participate in editor selection and deletion.</summary>
 public static class EditorItems

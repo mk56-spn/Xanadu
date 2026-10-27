@@ -1,11 +1,11 @@
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Godot;
-using Writer.Ecs;
-using Writer.Editor;
-using Position = Writer.Ecs.Position;
+using Xanadu.Ecs;
+using Xanadu.Editor;
+using Position = Xanadu.Ecs.Position;
 
-namespace Writer.Systems.Editor;
+namespace Xanadu.Systems.Editor;
 
 /// <summary>Shows and dismisses the ECS warning popup.</summary>
 public sealed class WarningPopupSystem : QuerySystem<WarningPopup>

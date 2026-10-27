@@ -1,9 +1,9 @@
 using System;
 using Friflo.Engine.ECS;
-using Writer.Animation;
-using Writer.History;
+using Xanadu.Animation;
+using Xanadu.History;
 
-namespace Writer.Tools.Animator.Commands;
+namespace Xanadu.Tools.Animator.Commands;
 
 /// <summary>
 /// Undo/redo for package edits. Single-shot edits go through <see cref="Edit"/>;

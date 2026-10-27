@@ -3,13 +3,13 @@ using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Godot;
 using NUnit.Framework;
-using Writer.Ecs;
-using Writer.Tests.Support;
-using Writer.Systems.Canvas;
-using Writer.Systems.Layout;
-using Position = Writer.Ecs.Position;
+using Xanadu.Ecs;
+using Xanadu.Tests.Support;
+using Xanadu.Systems.Canvas;
+using Xanadu.Systems.Layout;
+using Position = Xanadu.Ecs.Position;
 
-namespace Writer.Tests.UI.Layout;
+namespace Xanadu.Tests.UI.Layout;
 
 [TestFixture]
 public sealed class TransformSystemTests : EcsSystemTest

@@ -1,9 +1,9 @@
 using System;
 using Godot;
 using Godot.Collections;
-using Writer.Ecs;
+using Xanadu.Ecs;
 
-namespace Writer.Systems.Particles;
+namespace Xanadu.Systems.Particles;
 
 /// <summary>
 /// Bursts of GPU particles drawn straight through the RenderingServer, set up

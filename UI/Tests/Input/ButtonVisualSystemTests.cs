@@ -2,11 +2,11 @@ using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Godot;
 using NUnit.Framework;
-using Writer.Ecs;
-using Writer.Tests.Support;
-using Writer.Systems.Input;
+using Xanadu.Ecs;
+using Xanadu.Tests.Support;
+using Xanadu.Systems.Input;
 
-namespace Writer.Tests.UI.Input;
+namespace Xanadu.Tests.UI.Input;
 
 [TestFixture]
 public sealed class ButtonVisualSystemTests : EcsSystemTest

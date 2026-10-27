@@ -3,15 +3,15 @@ using System;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Godot;
-using Writer.Ecs;
-using Writer.Settings;
-using Writer.Editor;
-using Writer.Systems.Input;
-using Writer.Systems.Playfields;
-using Writer.Systems.Ui;
-using Position = Writer.Ecs.Position;
+using Xanadu.Ecs;
+using Xanadu.Settings;
+using Xanadu.Editor;
+using Xanadu.Systems.Input;
+using Xanadu.Systems.Playfields;
+using Xanadu.Systems.Ui;
+using Position = Xanadu.Ecs.Position;
 
-namespace Writer.Systems.Editor;
+namespace Xanadu.Systems.Editor;
 
 /// <summary>Adds, selects, drags, and scrubs notes in playfield coordinates.</summary>
 public sealed partial class EditorNoteInputSystem : QuerySystem<Note>

@@ -1,9 +1,9 @@
 using Friflo.Engine.ECS;
 using Godot;
 using NUnit.Framework;
-using Writer.Systems.Ui;
+using Xanadu.Systems.Ui;
 
-namespace Writer.Tests.UI;
+namespace Xanadu.Tests.UI;
 
 [TestFixture]
 public sealed class UiInteractionTests

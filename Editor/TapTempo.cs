@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace Writer.Editor;
+namespace Xanadu.Editor;
 
 /// <summary>Computes BPM from a short sequence of tap timestamps.</summary>
 public sealed class TapTempo

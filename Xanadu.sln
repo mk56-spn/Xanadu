@@ -1,33 +1,33 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 2012
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Writer", "Writer.csproj", "{51266C2D-1FDE-40D0-A3C4-719422EA3262}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Xanadu", "Xanadu.csproj", "{51266C2D-1FDE-40D0-A3C4-719422EA3262}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tests", "Tests", "{0AB3BF05-4346-4AA6-1389-037BE0695223}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Writer.Tests", "Tests\Writer.Tests.csproj", "{AA6A04CE-C6A3-4416-A0BC-6F74D92E40B3}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Xanadu.Tests", "Tests\Xanadu.Tests.csproj", "{AA6A04CE-C6A3-4416-A0BC-6F74D92E40B3}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Core", "Core", "{FBF56CC3-7AE6-AD2D-3F14-7F97FD322CD6}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Writer.Core", "Core\Writer.Core.csproj", "{AC72AF25-E292-4F70-A04F-CB10533C7017}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Xanadu.Core", "Core\Xanadu.Core.csproj", "{AC72AF25-E292-4F70-A04F-CB10533C7017}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "UI", "UI", "{FA674B5A-3394-926C-2B1E-70E5B00E4A5C}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Writer.Ui", "UI\Writer.Ui.csproj", "{1105D2D6-3D15-47EB-8712-FD50DAD5100A}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Xanadu.Ui", "UI\Xanadu.Ui.csproj", "{1105D2D6-3D15-47EB-8712-FD50DAD5100A}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Showcase", "Showcase", "{A3E6CE67-623D-5B56-D124-BE18C99E6D8C}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Writer.Ui.Showcase", "UI\Showcase\Writer.Ui.Showcase.csproj", "{A3C19C76-1EE3-43E6-8F4B-66E35170462C}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Xanadu.Ui.Showcase", "UI\Showcase\Xanadu.Ui.Showcase.csproj", "{A3C19C76-1EE3-43E6-8F4B-66E35170462C}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tools", "Tools", "{07C2787E-EAC7-C090-1BA3-A61EC2A24D84}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Animator", "Animator", "{F443C0CB-5926-57E6-04E9-965BDFB23718}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Writer.AnimatorTool", "Tools\Animator\Writer.AnimatorTool.csproj", "{6CF1F49B-8624-4122-AB54-6FB98FC2D0D0}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Xanadu.AnimatorTool", "Tools\Animator\Xanadu.AnimatorTool.csproj", "{6CF1F49B-8624-4122-AB54-6FB98FC2D0D0}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tests", "Tests", "{7A2FE296-A475-61B6-EF8E-68829B4C7EC5}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Writer.Ui.Tests", "UI\Tests\Writer.Ui.Tests.csproj", "{DC5B4268-5253-4B37-9F83-3D8CB48C5EC7}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Xanadu.Ui.Tests", "UI\Tests\Xanadu.Ui.Tests.csproj", "{DC5B4268-5253-4B37-9F83-3D8CB48C5EC7}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

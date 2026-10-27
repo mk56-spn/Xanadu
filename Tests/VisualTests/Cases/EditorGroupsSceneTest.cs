@@ -1,11 +1,11 @@
 using Friflo.Engine.ECS;
 using Godot;
-using Writer.Ecs;
-using Writer.Scenes;
-using Writer.Systems.Editor;
-using Position = Writer.Ecs.Position;
+using Xanadu.Ecs;
+using Xanadu.Scenes;
+using Xanadu.Systems.Editor;
+using Position = Xanadu.Ecs.Position;
 
-namespace Writer.Tests.VisualTests;
+namespace Xanadu.Tests.VisualTests;
 
 /// <summary>
 /// Groups in the editor: the sidebar grid opens a group's overlay, selected

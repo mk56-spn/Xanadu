@@ -10,7 +10,7 @@ config_version=5
 
 [application]
 
-config/name="Writer"
+config/name="Xanadu"
 run/main_scene="uid://dqjh8ogmn33xg"
 config/features=PackedStringArray("4.8", "C#", "Forward Plus")
 config/icon="res://icon.svg"
@@ -24,7 +24,7 @@ window/stretch/aspect="expand"
 
 [dotnet]
 
-project/assembly_name="Writer"
+project/assembly_name="Xanadu"
 
 [gui]
 

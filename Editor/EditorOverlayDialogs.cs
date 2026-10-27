@@ -2,11 +2,11 @@ using System;
 using System.IO;
 using System.Linq;
 using Godot;
-using Writer.Ecs;
-using Writer.Levels;
-using Writer.Editor.Commands;
+using Xanadu.Ecs;
+using Xanadu.Levels;
+using Xanadu.Editor.Commands;
 
-namespace Writer.Editor;
+namespace Xanadu.Editor;
 
 /// <summary>Editor overlay native file dialogs and save/load actions.</summary>
 public partial class EditorOverlay : CanvasLayer

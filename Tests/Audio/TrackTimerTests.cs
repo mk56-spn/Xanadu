@@ -1,7 +1,7 @@
 using NUnit.Framework;
-using Writer.Systems.Audio;
+using Xanadu.Systems.Audio;
 
-namespace Writer.Tests.Audio;
+namespace Xanadu.Tests.Audio;
 
 [TestFixture]
 public sealed class TrackTimerTests

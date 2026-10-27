@@ -3,11 +3,11 @@ using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Godot;
 using NUnit.Framework;
-using Writer.Ecs;
-using Writer.Systems.Canvas;
-using Writer.Systems.Rendering;
+using Xanadu.Ecs;
+using Xanadu.Systems.Canvas;
+using Xanadu.Systems.Rendering;
 
-namespace Writer.Tests.UI.Rendering;
+namespace Xanadu.Tests.UI.Rendering;
 
 [TestFixture]
 public sealed class GradientDrawSystemTests

@@ -1,11 +1,11 @@
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Godot;
-using Writer.Ecs;
-using Writer.Systems.Canvas;
-using Position = Writer.Ecs.Position;
+using Xanadu.Ecs;
+using Xanadu.Systems.Canvas;
+using Position = Xanadu.Ecs.Position;
 
-namespace Writer.Systems.Layout;
+namespace Xanadu.Systems.Layout;
 
 /// <summary>Applies local positions to moved canvas items.</summary>
 public sealed class TransformSystem : QuerySystem<VisualRid, Position>

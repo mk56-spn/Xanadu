@@ -1,9 +1,9 @@
 using Friflo.Engine.ECS;
 using Godot;
-using Writer.Ecs;
-using Writer.Systems.Editor;
+using Xanadu.Ecs;
+using Xanadu.Systems.Editor;
 
-namespace Writer.Scenes;
+namespace Xanadu.Scenes;
 
 /// <summary>The groups grid in the editor's sidebar and the overlay screen a group opens.</summary>
 public static partial class EditorScene

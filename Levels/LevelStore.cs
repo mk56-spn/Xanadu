@@ -3,9 +3,9 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using Godot;
-using Writer.Ecs.Storage;
+using Xanadu.Ecs.Storage;
 
-namespace Writer.Levels;
+namespace Xanadu.Levels;
 
 /// <summary>A loaded level file and its document.</summary>
 /// <summary>Reads and writes levels below user://levels.</summary>

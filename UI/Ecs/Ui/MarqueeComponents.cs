@@ -1,7 +1,7 @@
 using Friflo.Engine.ECS;
 using Godot;
 
-namespace Writer.Ecs;
+namespace Xanadu.Ecs;
 
 /// <summary>
 /// The screen-space box a view is dragging to select, for its draw system to

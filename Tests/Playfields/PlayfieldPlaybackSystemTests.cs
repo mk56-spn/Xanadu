@@ -1,12 +1,12 @@
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using NUnit.Framework;
-using Writer.Ecs;
-using Writer.Systems.Audio;
-using Writer.Systems.Playfields;
-using Writer.Tests.Support;
+using Xanadu.Ecs;
+using Xanadu.Systems.Audio;
+using Xanadu.Systems.Playfields;
+using Xanadu.Tests.Support;
 
-namespace Writer.Tests.Playfields;
+namespace Xanadu.Tests.Playfields;
 
 [TestFixture]
 public sealed class PlayfieldPlaybackSystemTests

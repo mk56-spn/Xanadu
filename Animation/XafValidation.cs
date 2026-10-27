@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace Writer.Animation;
+namespace Xanadu.Animation;
 
 /// <summary>Structural validation for XAF packages.</summary>
 public static class XafValidation

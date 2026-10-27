@@ -2,12 +2,12 @@ using System;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Godot;
-using Writer.Ecs;
-using Writer.Systems.Physics;
+using Xanadu.Ecs;
+using Xanadu.Systems.Physics;
 using NVector2 = System.Numerics.Vector2;
-using Position = Writer.Ecs.Position;
+using Position = Xanadu.Ecs.Position;
 
-namespace Writer.Systems.Playfields;
+namespace Xanadu.Systems.Playfields;
 
 /// <summary>Wraps the player laterally and caps the arena top and bottom.</summary>
 public sealed class PlayerArenaSystem : QuerySystem<Player, PhysicsBody, Position, PlayfieldView, Playfield>

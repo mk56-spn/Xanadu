@@ -1,8 +1,8 @@
 using Friflo.Engine.ECS;
 using Godot;
-using Writer.Ecs;
+using Xanadu.Ecs;
 
-namespace Writer.Systems.Ui;
+namespace Xanadu.Systems.Ui;
 
 /// <summary>
 /// Hidden native text input that mirrors whichever ECS <see cref="TextField"/>

@@ -2,30 +2,30 @@ using System;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Godot;
-using Writer.Animation;
-using Writer.Ecs;
-using Writer.Editor;
-using Writer.Editor.Commands;
-using Writer.Systems.Audio;
-using Writer.Systems.Canvas;
-using Writer.Systems.Characters;
-using Writer.Systems.Debug;
-using Writer.Systems.Groups;
-using Writer.Systems.Input;
-using Writer.Systems.Particles;
-using Writer.Systems.Physics;
-using Writer.Profiles;
-using Writer.Settings;
-using Writer.Levels;
-using Writer.Systems.Scenes;
-using Writer.Systems.Ui;
+using Xanadu.Animation;
+using Xanadu.Ecs;
+using Xanadu.Editor;
+using Xanadu.Editor.Commands;
+using Xanadu.Systems.Audio;
+using Xanadu.Systems.Canvas;
+using Xanadu.Systems.Characters;
+using Xanadu.Systems.Debug;
+using Xanadu.Systems.Groups;
+using Xanadu.Systems.Input;
+using Xanadu.Systems.Particles;
+using Xanadu.Systems.Physics;
+using Xanadu.Profiles;
+using Xanadu.Settings;
+using Xanadu.Levels;
+using Xanadu.Systems.Scenes;
+using Xanadu.Systems.Ui;
 
-namespace Writer.Ecs;
+namespace Xanadu.Ecs;
 
 /// <summary>
 /// Owns Godot resources and composes the application's phase groups.
 /// </summary>
-public sealed class WriterSystemRoot : SystemRoot, IDisposable
+public sealed class XanaduSystemRoot : SystemRoot, IDisposable
 {
     private readonly Rid _debugOverlay;
     private readonly SceneDirector _sceneDirector;
@@ -64,7 +64,7 @@ public sealed class WriterSystemRoot : SystemRoot, IDisposable
 
     public ProfileStore Profiles { get; }
 
-    public WriterSystemRoot(
+    public XanaduSystemRoot(
         EntityStore entities,
         Rid parentCanvas,
         IPointerInputSource pointerInput,
@@ -73,7 +73,7 @@ public sealed class WriterSystemRoot : SystemRoot, IDisposable
         KeybindSettings? keybinds = null,
         bool transitions = true,
         IKeyboardState? keyboard = null,
-        HudLayoutSettings? hudLayout = null) : base(entities, "Writer")
+        HudLayoutSettings? hudLayout = null) : base(entities, "Xanadu")
     {
         var canvas = new GodotRectCanvas();
         _entities = entities;
@@ -143,9 +143,9 @@ public sealed class WriterSystemRoot : SystemRoot, IDisposable
         RenderingServer.CanvasItemSetZIndex(_groupPreview, 985);
         RenderingServer.CanvasItemSetVisible(_groupPreview, false);
 
-        Writer.Systems.Ui.UiBootstrap.AttachInitialization(this, parentCanvas);
+        Xanadu.Systems.Ui.UiBootstrap.AttachInitialization(this, parentCanvas);
         Add(new PhysicsSystemGroup(Physics, entities));
-        Writer.Systems.Ui.UiBootstrap.AttachPresentation(this, canvas);
+        Xanadu.Systems.Ui.UiBootstrap.AttachPresentation(this, canvas);
         Add(new AudioSystemGroup(_trackAudio, new GodotTrackClock(), canvas, _timeline));
         Add(new PlayfieldSystemGroup(
             entities,
@@ -178,7 +178,10 @@ public sealed class WriterSystemRoot : SystemRoot, IDisposable
             Scenes,
             Keybinds,
             Display,
-            _scroll));
+            _scroll,
+            Keyboard,
+            new GodotVisualRidFactory(),
+            viewportSize));
         Add(new DebugSystemGroup(
             canvas,
             _debugOverlay,

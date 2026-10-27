@@ -1,11 +1,13 @@
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
-using Writer.Settings;
-using Writer.Systems.Input;
-using Writer.Systems.Ui;
-using Writer.Systems.Scenes;
+using Godot;
+using Xanadu.Ecs;
+using Xanadu.Settings;
+using Xanadu.Systems.Input;
+using Xanadu.Systems.Ui;
+using Xanadu.Systems.Scenes;
 
-namespace Writer.Systems.Groups;
+namespace Xanadu.Systems.Groups;
 
 /// <summary>Resolves pointer input against ECS drawables and scene buttons.</summary>
 public sealed class InputSystemGroup : SystemGroup
@@ -16,10 +18,19 @@ public sealed class InputSystemGroup : SystemGroup
         SceneSystem scenes,
         KeybindSettings keybinds,
         DisplaySettings display,
-        ScrollSystem scroll)
+        ScrollSystem scroll,
+        IKeyboardState? keyboard = null,
+        IVisualRidFactory? visuals = null,
+        Vector2 screen = default)
         : base("Input")
     {
-        Add(new UiInteractionSystemGroup(entities, pointerInput, scroll));
+        Add(new UiInteractionSystemGroup(
+            entities,
+            pointerInput,
+            scroll,
+            keyboard,
+            visuals,
+            screen));
         Add(new VSyncToggleSystem(display));
         Add(scenes);
         Add(new KeybindUiSystem(keybinds));

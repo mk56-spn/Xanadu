@@ -2,11 +2,11 @@ using System;
 using Friflo.Engine.ECS;
 using Godot;
 using Friflo.Engine.ECS.Systems;
-using Writer.Ecs;
-using Writer.Scoring;
-using Position = Writer.Ecs.Position;
+using Xanadu.Ecs;
+using Xanadu.Scoring;
+using Position = Xanadu.Ecs.Position;
 
-namespace Writer.Systems.Playfields;
+namespace Xanadu.Systems.Playfields;
 
 /// <summary>Projects score, accuracy, rank, judgement, and combo into the play HUD.</summary>
 public sealed class PlayScoreSystem : QuerySystem<ScoreState, Playhead>

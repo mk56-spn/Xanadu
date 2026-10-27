@@ -1,10 +1,10 @@
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Godot;
-using Writer.Ecs;
-using Writer.Systems.Canvas;
+using Xanadu.Ecs;
+using Xanadu.Systems.Canvas;
 
-namespace Writer.Systems.Rendering;
+namespace Xanadu.Systems.Rendering;
 
 /// <summary>Draws dirty entity text into the entity canvas item.</summary>
 public sealed class TextDrawSystem : QuerySystem<Text, Rectangle, Drawable, VisualRid>

@@ -1,9 +1,9 @@
 using Friflo.Engine.ECS;
 using Godot;
 using Friflo.Engine.ECS.Systems;
-using Writer.Ecs;
+using Xanadu.Ecs;
 
-namespace Writer.Systems.Ui;
+namespace Xanadu.Systems.Ui;
 
 /// <summary>Projects backing text-field values into drawable ECS text.</summary>
 public sealed class TextFieldSystem : QuerySystem<TextField, Text, FillColor>

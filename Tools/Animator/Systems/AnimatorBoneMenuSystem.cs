@@ -1,13 +1,13 @@
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Godot;
-using Writer.Animation;
-using Writer.Ecs;
-using Writer.Systems.Input;
-using Writer.Tools.Animator.Commands;
-using Position = Writer.Ecs.Position;
+using Xanadu.Animation;
+using Xanadu.Ecs;
+using Xanadu.Systems.Input;
+using Xanadu.Tools.Animator.Commands;
+using Position = Xanadu.Ecs.Position;
 
-namespace Writer.Tools.Animator.Systems;
+namespace Xanadu.Tools.Animator.Systems;
 
 /// <summary>
 /// Right-clicking a bone in the bone tree, or its label or joint in the

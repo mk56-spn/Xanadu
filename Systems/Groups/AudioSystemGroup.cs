@@ -1,9 +1,9 @@
 using Friflo.Engine.ECS.Systems;
 using Godot;
-using Writer.Systems.Audio;
-using Writer.Systems.Canvas;
+using Xanadu.Systems.Audio;
+using Xanadu.Systems.Canvas;
 
-namespace Writer.Systems.Groups;
+namespace Xanadu.Systems.Groups;
 
 /// <summary>Advances track playback and draws its timeline.</summary>
 public sealed class AudioSystemGroup : SystemGroup

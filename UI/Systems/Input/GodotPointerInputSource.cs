@@ -1,6 +1,6 @@
 using Godot;
 
-namespace Writer.Systems.Input;
+namespace Xanadu.Systems.Input;
 
 /// <summary>Reads pointer state from the Godot Control that hosts the UI.</summary>
 public sealed class GodotPointerInputSource(Control host) : IBlockingPointerInputSource

@@ -1,8 +1,8 @@
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
-using Writer.Ecs;
+using Xanadu.Ecs;
 
-namespace Writer.Tools.Animator.Systems;
+namespace Xanadu.Tools.Animator.Systems;
 
 /// <summary>
 /// Keeps mode toggles and <see cref="AnimatorModes"/> in step. Whichever side

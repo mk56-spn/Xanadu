@@ -2,7 +2,7 @@ using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using NUnit.Framework;
 
-namespace Writer.Tests.Support;
+namespace Xanadu.Tests.Support;
 
 /// <summary>
 /// Owns the common EntityStore/SystemRoot pair used by system-level tests.

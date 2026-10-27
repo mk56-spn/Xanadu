@@ -1,11 +1,11 @@
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using Godot;
-using Writer.Animation;
-using Writer.History;
-using Writer.Tools.Animator.Files;
+using Xanadu.Animation;
+using Xanadu.History;
+using Xanadu.Tools.Animator.Files;
 
-namespace Writer.Tools.Animator;
+namespace Xanadu.Tools.Animator;
 
 public enum ToolActionKind
 {
@@ -324,7 +324,7 @@ public struct AnimatorDrag : IComponent
     public Transform2D ParentWorld;
 
     /// <summary>The children a rest drag holds still when PIN is on.</summary>
-    public Writer.Tools.Animator.Commands.AnimatorRestPin.Pinned? Pinned;
+    public Xanadu.Tools.Animator.Commands.AnimatorRestPin.Pinned? Pinned;
 }
 
 /// <summary>

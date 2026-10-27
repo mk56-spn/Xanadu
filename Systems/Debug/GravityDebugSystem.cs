@@ -1,11 +1,11 @@
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Godot;
-using Writer.Ecs;
-using Writer.Systems.Input;
-using Writer.Systems.Physics;
+using Xanadu.Ecs;
+using Xanadu.Systems.Input;
+using Xanadu.Systems.Physics;
 
-namespace Writer.Systems.Debug;
+namespace Xanadu.Systems.Debug;
 
 /// <summary>F6 ECS gravity slider panel.</summary>
 public sealed class GravityDebugSystem(

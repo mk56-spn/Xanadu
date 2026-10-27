@@ -1,6 +1,6 @@
 using System;
 
-namespace Writer.Systems.Audio;
+namespace Xanadu.Systems.Audio;
 
 /// <summary>Audio backend used by track and editor transport systems.</summary>
 public interface ITrackAudio : IDisposable

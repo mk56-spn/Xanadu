@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
 
-namespace Writer.Tools.Animator;
+namespace Xanadu.Tools.Animator;
 
 /// <summary>One stop in a clip sequence: play a clip for this long, then fade into the next.</summary>
 public readonly record struct AnimatorSequenceStep(string Clip, float Seconds);

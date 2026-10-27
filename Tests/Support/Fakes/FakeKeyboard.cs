@@ -1,8 +1,8 @@
 using System.Collections.Generic;
 using Godot;
-using Writer.Systems.Input;
+using Xanadu.Systems.Input;
 
-namespace Writer.Tests.Support;
+namespace Xanadu.Tests.Support;
 
 /// <summary>Deterministic keyboard state for input-system tests.</summary>
 public sealed class FakeKeyboard : IKeyboardState

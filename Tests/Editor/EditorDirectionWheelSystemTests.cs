@@ -1,12 +1,12 @@
 using Friflo.Engine.ECS;
 using Godot;
 using NUnit.Framework;
-using Writer.Ecs;
-using Writer.Tests.Support;
-using Writer.Systems.Editor;
-using Position = Writer.Ecs.Position;
+using Xanadu.Ecs;
+using Xanadu.Tests.Support;
+using Xanadu.Systems.Editor;
+using Position = Xanadu.Ecs.Position;
 
-namespace Writer.Tests.Editor;
+namespace Xanadu.Tests.Editor;
 
 [TestFixture]
 public sealed class EditorDirectionWheelSystemTests : EcsSystemTest

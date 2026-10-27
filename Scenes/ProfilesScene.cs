@@ -1,11 +1,11 @@
 using System;
 using Friflo.Engine.ECS;
 using Godot;
-using Writer.Ecs;
-using Writer.Strings;
-using Writer.Profiles;
+using Xanadu.Ecs;
+using Xanadu.Strings;
+using Xanadu.Profiles;
 
-namespace Writer.Scenes;
+namespace Xanadu.Scenes;
 
 /// <summary>Local profile picker shown before the main menu.</summary>
 public static class ProfilesScene

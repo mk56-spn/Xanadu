@@ -1,6 +1,6 @@
 using Godot;
 
-namespace Writer.Animation;
+namespace Xanadu.Animation;
 
 /// <summary>Fixed-step Verlet chain for hair and swinging attachments.</summary>
 public sealed class XafVerletChain

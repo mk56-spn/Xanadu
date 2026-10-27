@@ -1,14 +1,14 @@
 using Friflo.Engine.ECS;
 using Godot;
 using NUnit.Framework;
-using Writer.Animation;
-using Writer.Ecs;
-using Writer.Systems.Characters;
-using Writer.Systems.Physics;
-using Writer.Tests.Support;
-using Position = Writer.Ecs.Position;
+using Xanadu.Animation;
+using Xanadu.Ecs;
+using Xanadu.Systems.Characters;
+using Xanadu.Systems.Physics;
+using Xanadu.Tests.Support;
+using Position = Xanadu.Ecs.Position;
 
-namespace Writer.Tests.Characters;
+namespace Xanadu.Tests.Characters;
 
 [TestFixture]
 public sealed class CharacterMotionTests : EcsSystemTest

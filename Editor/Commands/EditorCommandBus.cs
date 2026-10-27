@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 
-namespace Writer.Editor.Commands;
+namespace Xanadu.Editor.Commands;
 
 /// <summary>Single-writer queue between Godot UI and editor ECS systems.</summary>
 public sealed class EditorCommandBus

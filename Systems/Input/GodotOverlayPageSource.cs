@@ -1,6 +1,6 @@
 using Godot;
 
-namespace Writer.Systems.Input;
+namespace Xanadu.Systems.Input;
 
 /// <summary>PageUp/PageDown debug overlay paging.</summary>
 public sealed class GodotOverlayPageSource : IOverlayPageSource

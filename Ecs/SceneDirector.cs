@@ -1,6 +1,6 @@
 using System;
 
-namespace Writer.Ecs;
+namespace Xanadu.Ecs;
 
 /// <summary>Notifies Godot-facing code when the ECS scene system changes scenes.</summary>
 public sealed class SceneDirector

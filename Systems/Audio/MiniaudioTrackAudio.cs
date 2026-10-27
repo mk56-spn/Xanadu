@@ -4,7 +4,7 @@ using System.Text;
 using Godot;
 using Miniaudio;
 
-namespace Writer.Systems.Audio;
+namespace Xanadu.Systems.Audio;
 
 /// <summary>Miniaudio-backed track player with lazy device initialization.</summary>
 public sealed unsafe class MiniaudioTrackAudio : ITrackAudio

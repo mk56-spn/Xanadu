@@ -1,6 +1,6 @@
 using Godot;
 
-namespace Writer.Systems.Debug;
+namespace Xanadu.Systems.Debug;
 
 /// <summary>Reads the current frame rate from Godot.</summary>
 public sealed class GodotFpsSource : IFpsSource

@@ -1,7 +1,7 @@
 using NUnit.Framework;
-using Writer.Tests.VisualTests;
+using Xanadu.Tests.VisualTests;
 
-namespace Writer.Tests.VisualTests;
+namespace Xanadu.Tests.VisualTests;
 
 [TestFixture]
 public sealed class SceneTestRunnerTests

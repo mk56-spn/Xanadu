@@ -4,13 +4,13 @@ using System.Linq;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Godot;
-using Writer.Ecs;
-using Writer.Timeline;
-using Writer.Levels;
-using Writer.Systems.Canvas;
-using Writer.Systems.Playfields;
+using Xanadu.Ecs;
+using Xanadu.Timeline;
+using Xanadu.Levels;
+using Xanadu.Systems.Canvas;
+using Xanadu.Systems.Playfields;
 
-namespace Writer.Systems.Editor;
+namespace Xanadu.Systems.Editor;
 
 /// <summary>Draws editor chrome, the shared playfield, and the editor timeline.</summary>
 public sealed partial class EditorPlayfieldDrawSystem :

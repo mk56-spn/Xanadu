@@ -1,6 +1,6 @@
 using System;
 
-namespace Writer.Timeline;
+namespace Xanadu.Timeline;
 
 /// <summary>Picks readable tick spacing for a time ruler.</summary>
 public static class TimelineTicks

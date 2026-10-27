@@ -3,15 +3,15 @@ using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Godot;
 using NUnit.Framework;
-using Writer.Tests.Support;
-using Writer.Ecs;
-using Writer.Levels;
-using Writer.Editor;
-using Writer.Editor.Commands;
-using Writer.Settings;
-using Writer.Systems.Editor;
+using Xanadu.Tests.Support;
+using Xanadu.Ecs;
+using Xanadu.Levels;
+using Xanadu.Editor;
+using Xanadu.Editor.Commands;
+using Xanadu.Settings;
+using Xanadu.Systems.Editor;
 
-namespace Writer.Tests.Editor;
+namespace Xanadu.Tests.Editor;
 
 [TestFixture]
 public sealed class EditorCommandSystemTests : EcsSystemTest

@@ -1,7 +1,7 @@
 using Godot;
-using Writer.Systems.Input;
+using Xanadu.Systems.Input;
 
-namespace Writer.Tools.Animator;
+namespace Xanadu.Tools.Animator;
 
 /// <summary>Mouse-wheel input for the timeline, consumed once per frame.</summary>
 public interface IAnimatorWheel

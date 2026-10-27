@@ -2,10 +2,10 @@ using System;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Godot;
-using Writer.Animation;
-using Writer.Systems.Canvas;
+using Xanadu.Animation;
+using Xanadu.Systems.Canvas;
 
-namespace Writer.Tools.Animator.Systems;
+namespace Xanadu.Tools.Animator.Systems;
 
 /// <summary>Draws the skeleton, onion-skin ghosts, selection markers and SVG attachments.</summary>
 public sealed class AnimatorPreviewDrawSystem(

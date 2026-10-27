@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 
-namespace Writer.Tools.Animator;
+namespace Xanadu.Tools.Animator;
 
 /// <summary>
 /// Bone multi-selection. <see cref="AnimatorSelection.Bone"/> stays the primary

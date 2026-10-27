@@ -1,10 +1,10 @@
-using Position = Writer.Ecs.Position;
+using Position = Xanadu.Ecs.Position;
 using Friflo.Engine.ECS;
 using Godot;
 using NUnit.Framework;
-using Writer.Ecs;
+using Xanadu.Ecs;
 
-namespace Writer.Tests.Editor;
+namespace Xanadu.Tests.Editor;
 
 [TestFixture]
 public sealed class EditorItemsTests

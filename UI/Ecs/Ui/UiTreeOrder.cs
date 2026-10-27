@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace Writer.Ecs;
+namespace Xanadu.Ecs;
 
 /// <summary>Depth-first ordering and depths for a flat list of tree items.</summary>
 internal static class UiTreeOrder

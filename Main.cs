@@ -2,21 +2,21 @@ using System;
 using System.IO;
 using Friflo.Engine.ECS;
 using Godot;
-using Writer.Ecs;
-using Writer.Levels;
-using Writer.Misc;
-using Writer.Editor;
-using Writer.Strings;
-using Writer.Systems.Input;
+using Xanadu.Ecs;
+using Xanadu.Levels;
+using Xanadu.Misc;
+using Xanadu.Editor;
+using Xanadu.Strings;
+using Xanadu.Systems.Input;
 
-namespace Writer;
+namespace Xanadu;
 
-// Godot lifecycle only. System wiring lives in WriterSystemRoot.
+// Godot lifecycle only. System wiring lives in XanaduSystemRoot.
 public partial class Main : Control
 {
 	public EntityStore Entities { get; } = new();
 
-	private WriterSystemRoot? _systems;
+	private XanaduSystemRoot? _systems;
 	private GodotPointerInputSource? _pointer;
 	private SceneDirector? _sceneDirector;
 	private EditorOverlay? _editorOverlay;
@@ -33,7 +33,7 @@ public partial class Main : Control
 		_pointer = new GodotPointerInputSource(this);
 		_sceneDirector = new SceneDirector();
 		_sceneDirector.Changed += OnSceneChanged;
-		_systems = new WriterSystemRoot(
+		_systems = new XanaduSystemRoot(
 			Entities,
 			GetCanvasItem(),
 			_pointer,

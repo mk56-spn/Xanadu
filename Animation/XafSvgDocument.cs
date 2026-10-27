@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Xml.Linq;
 
-namespace Writer.Animation;
+namespace Xanadu.Animation;
 
 /// <summary>SVG group isolation used before rasterizing a rigid attachment.</summary>
 public static class XafSvgDocument

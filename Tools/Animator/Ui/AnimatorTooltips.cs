@@ -1,7 +1,7 @@
 using Friflo.Engine.ECS;
-using Writer.Ecs;
+using Xanadu.Ecs;
 
-namespace Writer.Tools.Animator;
+namespace Xanadu.Tools.Animator;
 
 /// <summary>
 /// One-line explanations for the animator's abbreviated buttons. Every button

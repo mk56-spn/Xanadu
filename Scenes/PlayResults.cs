@@ -1,4 +1,4 @@
-namespace Writer.Scenes;
+namespace Xanadu.Scenes;
 
 /// <summary>Snapshot of a finished play used by the results scene.</summary>
 public readonly record struct PlayResults(

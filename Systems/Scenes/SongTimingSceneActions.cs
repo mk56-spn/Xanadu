@@ -1,6 +1,6 @@
-using Writer.Ecs;
+using Xanadu.Ecs;
 
-namespace Writer.Systems.Scenes;
+namespace Xanadu.Systems.Scenes;
 
 public static class SongTimingSceneActions
 {

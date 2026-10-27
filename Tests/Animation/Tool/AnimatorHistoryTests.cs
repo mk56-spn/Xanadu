@@ -1,15 +1,15 @@
 using System.Collections.Generic;
 using Godot;
 using NUnit.Framework;
-using Writer.Animation;
-using Writer.Ecs;
-using Writer.Systems.Ui;
-using Writer.Tests.Support;
-using Writer.Tools.Animator;
-using Writer.Tools.Animator.Commands;
-using Writer.Tools.Animator.Systems;
+using Xanadu.Animation;
+using Xanadu.Ecs;
+using Xanadu.Systems.Ui;
+using Xanadu.Tests.Support;
+using Xanadu.Tools.Animator;
+using Xanadu.Tools.Animator.Commands;
+using Xanadu.Tools.Animator.Systems;
 
-namespace Writer.Tests.Animation.Tool;
+namespace Xanadu.Tests.Animation.Tool;
 
 [TestFixture]
 public sealed class AnimatorHistoryTests : AnimatorToolTest

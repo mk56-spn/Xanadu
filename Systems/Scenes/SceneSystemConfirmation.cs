@@ -3,15 +3,15 @@ using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Godot;
-using Writer.Ecs;
-using Writer.Levels;
-using Writer.Profiles;
-using Writer.Scenes;
-using Writer.Settings;
-using SceneState = Writer.Ecs.SceneState;
-using Position = Writer.Ecs.Position;
+using Xanadu.Ecs;
+using Xanadu.Levels;
+using Xanadu.Profiles;
+using Xanadu.Scenes;
+using Xanadu.Settings;
+using SceneState = Xanadu.Ecs.SceneState;
+using Position = Xanadu.Ecs.Position;
 
-namespace Writer.Systems.Scenes;
+namespace Xanadu.Systems.Scenes;
 
 public sealed partial class SceneSystem : QuerySystem<SceneState>
 {

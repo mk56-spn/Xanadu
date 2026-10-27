@@ -2,14 +2,14 @@ using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Godot;
 using NUnit.Framework;
-using Writer.Ecs;
-using Writer.Editor.Commands;
-using Writer.Settings;
-using Writer.Systems.Editor;
-using Writer.Systems.Ui;
-using Position = Writer.Ecs.Position;
+using Xanadu.Ecs;
+using Xanadu.Editor.Commands;
+using Xanadu.Settings;
+using Xanadu.Systems.Editor;
+using Xanadu.Systems.Ui;
+using Position = Xanadu.Ecs.Position;
 
-namespace Writer.Tests.Editor;
+namespace Xanadu.Tests.Editor;
 
 [TestFixture]
 public sealed class EditorDropdownSystemTests

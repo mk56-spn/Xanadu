@@ -1,8 +1,8 @@
 using Friflo.Engine.ECS;
 using Godot;
-using Writer.Settings;
+using Xanadu.Settings;
 
-namespace Writer.Ecs;
+namespace Xanadu.Ecs;
 
 /// <summary>Level metadata for the editor and play scene.</summary>
 public struct LevelInfo(

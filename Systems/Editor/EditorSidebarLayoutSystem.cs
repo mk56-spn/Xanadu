@@ -1,10 +1,10 @@
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Godot;
-using Writer.Ecs;
-using Position = Writer.Ecs.Position;
+using Xanadu.Ecs;
+using Position = Xanadu.Ecs.Position;
 
-namespace Writer.Systems.Editor;
+namespace Xanadu.Systems.Editor;
 
 /// <summary>Flows the editor's right-side fields around open dropdowns.</summary>
 public sealed class EditorSidebarLayoutSystem : QuerySystem<EditorSidebarLayout>

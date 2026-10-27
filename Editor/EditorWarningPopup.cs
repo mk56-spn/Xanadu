@@ -1,8 +1,8 @@
 using Friflo.Engine.ECS;
 using Godot;
-using Writer.Ecs;
+using Xanadu.Ecs;
 
-namespace Writer.Editor;
+namespace Xanadu.Editor;
 
 /// <summary>Builds and requests the editor's ECS warning popup.</summary>
 public static class EditorWarningPopup

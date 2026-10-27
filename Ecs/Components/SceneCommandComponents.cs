@@ -1,6 +1,6 @@
 using Friflo.Engine.ECS;
 
-namespace Writer.Ecs;
+namespace Xanadu.Ecs;
 
 /// <summary>Scene-scoped button/action identifiers.</summary>
 public enum SceneActionId

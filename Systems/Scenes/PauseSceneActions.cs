@@ -1,6 +1,6 @@
-using Writer.Ecs;
+using Xanadu.Ecs;
 
-namespace Writer.Systems.Scenes;
+namespace Xanadu.Systems.Scenes;
 
 /// <summary>Action registration for play HUD and pause controls.</summary>
 public static class PauseSceneActions

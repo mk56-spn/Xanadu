@@ -1,11 +1,11 @@
 using Friflo.Engine.ECS.Systems;
 using System;
 using Godot;
-using Writer.Ecs;
-using Writer.Levels;
-using SceneState = Writer.Ecs.SceneState;
+using Xanadu.Ecs;
+using Xanadu.Levels;
+using SceneState = Xanadu.Ecs.SceneState;
 
-namespace Writer.Systems.Scenes;
+namespace Xanadu.Systems.Scenes;
 
 public sealed partial class SceneSystem : QuerySystem<SceneState>
 {

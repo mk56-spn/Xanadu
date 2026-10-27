@@ -1,9 +1,9 @@
-using Writer.Ecs;
+using Xanadu.Ecs;
 
-namespace Writer.Editor;
+namespace Xanadu.Editor;
 
 /// <summary>
-/// The dash-direction configuration of the generic Writer.UI wheel. The order
+/// The dash-direction configuration of the generic Xanadu.UI wheel. The order
 /// is clockwise from straight up, which is also the wheel's default winding.
 /// </summary>
 public static class DashDirectionWheel

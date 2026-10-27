@@ -1,12 +1,12 @@
 using Friflo.Engine.ECS;
 using Godot;
 using NUnit.Framework;
-using Writer.Ecs;
-using LayerComponent = Writer.Ecs.Layer;
-using Position = Writer.Ecs.Position;
-using Writer.Tests.Support;
+using Xanadu.Ecs;
+using LayerComponent = Xanadu.Ecs.Layer;
+using Position = Xanadu.Ecs.Position;
+using Xanadu.Tests.Support;
 
-namespace Writer.Tests.UI;
+namespace Xanadu.Tests.UI;
 
 [TestFixture]
 public sealed class UiBuilderTests

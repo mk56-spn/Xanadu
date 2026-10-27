@@ -1,10 +1,10 @@
 using Friflo.Engine.ECS;
 using NUnit.Framework;
-using Writer.Ecs;
-using Writer.Tests.Support;
-using Writer.Systems.Editor;
+using Xanadu.Ecs;
+using Xanadu.Tests.Support;
+using Xanadu.Systems.Editor;
 
-namespace Writer.Tests.Editor;
+namespace Xanadu.Tests.Editor;
 
 [TestFixture]
 public sealed class EditorPlacementSystemTests : EcsSystemTest

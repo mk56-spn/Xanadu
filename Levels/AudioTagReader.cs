@@ -2,7 +2,7 @@ using System;
 using System.IO;
 using System.Text;
 
-namespace Writer.Levels;
+namespace Xanadu.Levels;
 
 /// <summary>Reads basic title/artist metadata from MP3 ID3 tags.</summary>
 public static class AudioTagReader
