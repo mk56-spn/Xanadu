@@ -146,6 +146,17 @@ public sealed class ShaderRoutingCanvas(IRectCanvas inner, Rid root, IShaderCanv
         TextAlign align,
         bool bold) =>
         inner.DrawTextWeighted(Route(canvas), bounds, text, color, fontSize, align, bold);
+
+    public void DrawTextGlow(
+        Rid canvas,
+        Rect2 bounds,
+        string text,
+        Color color,
+        int fontSize,
+        TextAlign align,
+        bool bold,
+        TextGlow glow) =>
+        inner.DrawTextGlow(Route(canvas), bounds, text, color, fontSize, align, bold, glow);
 }
 
 /// <summary>Shader canvas items backed by the rendering server.</summary>

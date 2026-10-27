@@ -35,6 +35,17 @@ public struct TextStyle(int fontSize, Color color, bool bold = false) : ICompone
     public bool Bold = bold;
 }
 
+/// <summary>
+/// Soft glow drawn behind an entity's text: a gaussian-blurred copy of the
+/// text in <see cref="Color"/>. Works on any entity with <see cref="Text"/>.
+/// </summary>
+public struct TextGlow(Color color, float radius = 12f, float intensity = 1.5f) : IComponent
+{
+    public Color Color = color;
+    public float Radius = radius;
+    public float Intensity = intensity;
+}
+
 public enum TextAlign
 {
     Center,

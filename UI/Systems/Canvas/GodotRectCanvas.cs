@@ -38,6 +38,8 @@ public sealed class GodotRectCanvas : IRectCanvas
     }
     private const float TextPadding = 4;
 
+    private readonly GodotTextGlow _glow = new();
+
     public void SetVisible(Rid canvas, bool visible) =>
         RenderingServer.CanvasItemSetVisible(canvas, visible);
 
@@ -47,6 +49,7 @@ public sealed class GodotRectCanvas : IRectCanvas
     public void Clear(Rid canvas)
     {
         RenderingServer.CanvasItemClear(canvas);
+        _glow.Clear(canvas);
         if (!_rotated.TryGetValue(canvas, out RotatedPool? pool))
             return;
 
@@ -210,13 +213,37 @@ public sealed class GodotRectCanvas : IRectCanvas
             },
             bold ? BoldFont : ThemeDB.FallbackFont);
 
+    public void DrawTextGlow(
+        Rid canvas,
+        Rect2 bounds,
+        string text,
+        Color color,
+        int fontSize,
+        TextAlign align,
+        bool bold,
+        TextGlow glow) =>
+        _glow.Draw(
+            canvas,
+            bounds,
+            text,
+            color,
+            fontSize,
+            align switch
+            {
+                TextAlign.Left => HorizontalAlignment.Left,
+                TextAlign.Right => HorizontalAlignment.Right,
+                _ => HorizontalAlignment.Center,
+            },
+            bold ? BoldFont : ThemeDB.FallbackFont,
+            glow);
+
     public void DrawTextLeft(Rid canvas, Rect2 bounds, string text, Color color) =>
         DrawTextAligned(canvas, bounds, text, color, FontSize, HorizontalAlignment.Left);
 
     public void DrawTextRight(Rid canvas, Rect2 bounds, string text, Color color) =>
         DrawTextAligned(canvas, bounds, text, color, FontSize, HorizontalAlignment.Right);
 
-    private static void DrawTextAligned(
+    internal static void DrawTextAligned(
         Rid canvas,
         Rect2 bounds,
         string text,

@@ -87,6 +87,11 @@ public partial class UiShowcase : Control
             new Color("#111827"), "XANADU.UI SHOWCASE");
         Style(ui.Current, 32, new Color("#facc15"));
 
+        Entity glowing = ui.RectEntity(new Vector2(705, 250), new Vector2(260, 70),
+            new Color(0, 0, 0, 0), "GLOWING TEXT");
+        Style(glowing, 34, new Color("#fef9c3"));
+        glowing.AddComponent(new TextGlow(new Color(0.98f, 0.8f, 0.08f, 0.5f)));
+
         ui.Container(
             new Vector2(300, 170),
             new Vector2(520, 120),
