@@ -32,13 +32,14 @@ public static partial class AnimatorLayout
     private const float LeftFixedHeight = 20f + 30f + UiTheme.ContainerSpacing * 2;
     private const float ButtonWidth = 168f;
     private const float FileMenuWidth = 180f;
+    private const float ClipMenuWidth = 120f;
 
     // Header slots; together they must fit in the header, which is one
     // screen wide less its margins and padding.
     private const float TitleWidth = 250f;
-    private const float StatusWidth = 340f;
+    private const float StatusWidth = 220f;
     private const float DirtyWidth = 100f;
-    private const float PathWidth = 320f;
+    private const float PathWidth = 290f;
     private const float ClipLabelWidth = 48f;
 
     /// <summary>Width of the clip dropdown button in the header.</summary>
@@ -91,6 +92,7 @@ public static partial class AnimatorLayout
         // over the preview still draw above it.
         BuildInspector(menu, screen, ref refs);
         BuildFileMenu(menu, refs.FileButton);
+        BuildClipMenu(menu, refs.ClipMenuButton);
         BuildBoneMenu(menu, ref refs);
         BuildKeyMenu(menu, ref refs);
         BuildSvgMenu(menu, ref refs);
@@ -131,6 +133,10 @@ public static partial class AnimatorLayout
         // As wide as its list, so opening the menu does not widen the header slot.
         refs.FileButton = ui.Button("FILE ▾", new Vector2(FileMenuWidth, 30));
         refs.FileButton.AddComponent(new UiTooltip("Save, load or start a new skeleton"));
+
+        // The clip's length, duplicate and delete are rarely touched, so they live in a menu.
+        refs.ClipMenuButton = ui.Button("CLIP ▾", new Vector2(ClipMenuWidth, 30));
+        refs.ClipMenuButton.AddComponent(new UiTooltip("Change the clip's length, duplicate or delete it"));
         ui.End();
     }
 
@@ -227,10 +233,6 @@ public static partial class AnimatorLayout
         ui.RectEntity(Vector2.Zero, new Vector2(14, AnimatorTimelineModel.HeaderHeight), Clear);
         refs.Ui.ClipName = ClipNameField(ui);
         HeaderButton(ui, "NEW", ToolActionKind.NewClip, 44);
-        HeaderButton(ui, "DUP", ToolActionKind.DuplicateClip, 44);
-        HeaderButton(ui, "DEL", ToolActionKind.DeleteClip, 44);
-        HeaderButton(ui, "LEN-", ToolActionKind.DurationDown, 48);
-        HeaderButton(ui, "LEN+", ToolActionKind.DurationUp, 48);
         refs.Ui.LoopButton = HeaderButton(ui, "LOOP", ToolActionKind.ToggleLoop, 76);
         ui.End();
         ui.End();
@@ -353,5 +355,6 @@ public static partial class AnimatorLayout
     {
         public AnimatorUi Ui;
         public Entity FileButton;
+        public Entity ClipMenuButton;
     }
 }

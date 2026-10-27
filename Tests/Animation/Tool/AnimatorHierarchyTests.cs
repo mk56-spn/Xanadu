@@ -69,8 +69,8 @@ public sealed class AnimatorHierarchyTests : AnimatorToolTest
         Assert.That(Ui.ClipDropdown.Id, Is.Not.EqualTo(before.Id));
         Assert.That(ClipLabels(), Is.EqualTo(new[] { "IDLE", "JUMP", "CLIP" }));
         Assert.That(Ui.ClipDropdown.GetComponent<Text>().Value, Is.EqualTo("CLIP"));
-        // The clip dropdown and the FILE menu.
-        Assert.That(Store.Query<Dropdown>().Count, Is.EqualTo(2));
+        // The clip dropdown, the FILE menu and the CLIP menu.
+        Assert.That(Store.Query<Dropdown>().Count, Is.EqualTo(3));
     }
 
     [Test]
@@ -83,8 +83,8 @@ public sealed class AnimatorHierarchyTests : AnimatorToolTest
         }
 
         Assert.That(ClipLabels(), Has.Count.EqualTo(Package.Clips.Count));
-        // The FILE menu's three entries plus one option per clip.
-        Assert.That(Store.Query<DropdownOption>().Count, Is.EqualTo(3 + Package.Clips.Count));
+        // The FILE menu's three entries, the CLIP menu's four, and one option per clip.
+        Assert.That(Store.Query<DropdownOption>().Count, Is.EqualTo(3 + 4 + Package.Clips.Count));
     }
 
     [Test]

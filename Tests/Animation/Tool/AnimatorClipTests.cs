@@ -96,6 +96,43 @@ public sealed class AnimatorClipTests : AnimatorToolTest
     }
 
     [Test]
+    public void LengthDuplicateAndDeleteLiveOnlyInTheClipMenu()
+    {
+        foreach (ToolActionKind kind in new[]
+                 {
+                     ToolActionKind.DurationUp, ToolActionKind.DurationDown,
+                     ToolActionKind.DuplicateClip, ToolActionKind.DeleteClip,
+                 })
+        {
+            var controls = new System.Collections.Generic.List<Entity>();
+            foreach (Entity entity in Store.Query<ToolAction>().ToEntityList())
+            {
+                if (entity.GetComponent<ToolAction>().Kind == kind)
+                    controls.Add(entity);
+            }
+
+            Assert.That(controls, Has.Count.EqualTo(1), kind.ToString());
+            Assert.That(controls[0].HasComponent<DropdownOption>(), Is.True, kind.ToString());
+        }
+    }
+
+    [Test]
+    public void ChoosingLengthInTheClipMenuLengthensTheClip()
+    {
+        Entity option = default;
+        foreach (Entity entity in Store.Query<ToolAction, DropdownOption>().ToEntityList())
+        {
+            if (entity.GetComponent<ToolAction>().Kind == ToolActionKind.DurationUp)
+                option = entity;
+        }
+
+        option.AddTag<Pressed>();
+        Frame();
+
+        Assert.That(Idle.Duration, Is.EqualTo(2.1f).Within(0.0001f));
+    }
+
+    [Test]
     public void ShorteningPullsThePlayheadBackInside()
     {
         XafClip jump = Package.Clips[1];

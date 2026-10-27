@@ -10,30 +10,44 @@ namespace Writer.Tools.Animator;
 public static partial class AnimatorLayout
 {
     /// <summary>The file menu floats above the panels, so it lives on the menu layer.</summary>
-    private static void BuildFileMenu(UiBuilder menu, Entity fileButton)
-    {
-        (string Label, ToolActionKind Kind)[] entries =
+    private static void BuildFileMenu(UiBuilder menu, Entity fileButton) =>
+        BuildActionMenu(menu, fileButton, new[]
         {
             ("SAVE", ToolActionKind.Save),
             ("LOAD", ToolActionKind.Load),
             ("NEW", ToolActionKind.NewSkeleton),
-        };
-        const float optionHeight = 30f;
-        float listHeight = entries.Length *
-            (optionHeight + UiTheme.DropdownOptionSpacing) + 4f;
-        var listSize = new Vector2(FileMenuWidth, listHeight);
+        });
 
-        Entity list = menu.RectEntity(UiLayout.Hidden, listSize, UiTheme.Panel,
-            takesInput: true);
+    /// <summary>The clip menu holds the clip edits that are rarely needed.</summary>
+    private static void BuildClipMenu(UiBuilder menu, Entity clipButton) =>
+        BuildActionMenu(menu, clipButton, new[]
+        {
+            ("LENGTH -0.1s", ToolActionKind.DurationDown),
+            ("LENGTH +0.1s", ToolActionKind.DurationUp),
+            ("DUPLICATE", ToolActionKind.DuplicateClip),
+            ("DELETE", ToolActionKind.DeleteClip),
+        });
+
+    /// <summary>
+    /// A header button that drops a list of <see cref="ToolAction"/> options.
+    /// The list comes from <see cref="UiBuilder.DropdownList"/>, which keeps it
+    /// out of the layout pass; without that the container layout collapses it.
+    /// </summary>
+    private static void BuildActionMenu(
+        UiBuilder menu,
+        Entity button,
+        (string Label, ToolActionKind Kind)[] entries)
+    {
+        var labels = new string[entries.Length];
+        for (int i = 0; i < entries.Length; i++)
+            labels[i] = entries[i].Label;
+
+        UiDropdownControl dropdown = menu.DropdownList(button, labels);
         for (int i = 0; i < entries.Length; i++)
         {
-            Entity option = menu.Button(entries[i].Label,
-                new Vector2(168, optionHeight), position: UiLayout.Hidden);
-            option.AddComponent(new ToolAction(entries[i].Kind));
-            option.AddComponent(new DropdownOption(fileButton, i));
-            AnimatorTooltips.Attach(option, entries[i].Kind);
+            dropdown.Options[i].AddComponent(new ToolAction(entries[i].Kind));
+            AnimatorTooltips.Attach(dropdown.Options[i], entries[i].Kind);
         }
-        fileButton.AddComponent(new Dropdown(list, 0, listSize));
     }
 
     /// <summary>Size of the bone context menu opened by right-clicking a bone label.</summary>
