@@ -30,6 +30,9 @@ public struct DropdownChanged(int value) : IComponent
     public int Value = value;
 }
 
+/// <summary>Marks the backing panel of a dropdown's list, so it draws above ordinary content.</summary>
+public struct DropdownListPanel : ITag;
+
 /// <summary>
 /// One selectable option inside a dropdown, linked to its owning button.
 /// </summary>

@@ -70,6 +70,16 @@ public sealed class DrawableInitialiseSystem : QuerySystem<Rectangle, Drawable, 
         if (entity.HasComponent<UiBackground>())
             return -1;
 
+        // A dropdown floats above whatever it opens over, and its options above
+        // it. Sharing the ordinary local z left their order to whichever the
+        // initialise pass reached first, and nested content (a panel's text
+        // stacks its own z on its parent's) could still draw over the list.
+        if (entity.HasComponent<DropdownOption>())
+            return 4;
+
+        if (entity.Tags.Has<DropdownListPanel>())
+            return 3;
+
         if (entity.Tags.Has<UiSliderFill>())
             return 2;
 

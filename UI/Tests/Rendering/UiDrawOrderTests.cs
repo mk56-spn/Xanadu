@@ -27,4 +27,24 @@ public sealed class UiDrawOrderTests
         Assert.That(DrawableInitialiseSystem.LocalZIndex(button),
             Is.EqualTo(1));
     }
+
+    [Test]
+    public void ADropdownListDrawsAboveContentAndItsOptionsAboveIt()
+    {
+        var store = new EntityStore();
+        Entity owner = store.CreateEntity();
+        Entity list = store.CreateEntity();
+        list.AddTag<TakesInput>();
+        list.AddTag<DropdownListPanel>();
+        Entity option = store.CreateEntity(new DropdownOption(owner, 0), new Text("A"));
+        Entity ordinary = store.CreateEntity(new Text("Title"));
+
+        int content = DrawableInitialiseSystem.LocalZIndex(ordinary);
+        int listZ = DrawableInitialiseSystem.LocalZIndex(list);
+        int optionZ = DrawableInitialiseSystem.LocalZIndex(option);
+
+        // Nested text adds its own z to its parent's, so the list must clear two of them.
+        Assert.That(listZ, Is.GreaterThan(content * 2));
+        Assert.That(optionZ, Is.GreaterThan(listZ));
+    }
 }

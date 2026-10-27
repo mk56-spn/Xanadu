@@ -211,6 +211,7 @@ public sealed partial class UiBuilder
             UiTheme.Panel,
             takesInput: true);
         list.AddTag<LayoutIgnore>();
+        list.AddTag<DropdownListPanel>();
         var optionEntities = new List<Entity>();
         for (int i = 0; i < options.Count; i++)
         {
