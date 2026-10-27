@@ -89,6 +89,7 @@ public sealed class PlayerMovementSystem : QuerySystem<Player, Position, Playfie
                 body.Body.GetAngle());
             position.Value = targetScreen;
             _entities.CreateEntity(new DashTrail(screen, targetScreen));
+            _entities.CreateEntity(new ParticleBurst(targetScreen, ParticleKind.Dash));
 
             if (entity.HasComponent<ScoreState>())
             {

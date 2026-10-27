@@ -8,6 +8,7 @@ using Writer.Systems.Canvas;
 using Writer.Systems.Characters;
 using Writer.Settings;
 using Writer.Systems.Input;
+using Writer.Systems.Particles;
 using Writer.Systems.Playfields;
 
 namespace Writer.Systems.Groups;
@@ -27,7 +28,8 @@ public sealed class PlayfieldSystemGroup : SystemGroup
         HudLayoutSettings? hudLayout = null,
         Rid hudOverlay = default,
         ICharacterRigFiles? rigFiles = null,
-        Func<IAttachmentVisuals>? rigVisuals = null) : base("Playfield")
+        Func<IAttachmentVisuals>? rigVisuals = null,
+        IParticleEmitter? particles = null) : base("Playfield")
     {
         Add(new PlayfieldPlaybackSystem(audio));
         Add(new PlaySessionSystem(audio));
@@ -37,6 +39,8 @@ public sealed class PlayfieldSystemGroup : SystemGroup
         Add(new PlayNoteInputSystem(entities, keybinds, keyboard, offsets));
         Add(new HitTrailSystem());
         Add(new DashTrailSystem());
+        if (particles is not null)
+            Add(new ParticleBurstSystem(particles));
         Add(new HudLayoutSystem(
             canvas,
             pointer ?? new NullPointerInputSource(),

@@ -75,6 +75,24 @@ public sealed class PlayerMovementSystemTests
     }
 
     [Test]
+    public void ADashSetsOffASprayWhereItEnds()
+    {
+        _root.Update(new UpdateTick(1f / 60f, 0));
+        _store.CreateEntity(new Note(
+            0,
+            new Vector2(500, 500),
+            target: KeybindAction.L3,
+            kind: NoteKind.Movement,
+            dashDirection: DashDirection.Left));
+        _keyboard.Press(Key.F);
+        _root.Update(new UpdateTick(1f / 60f, 0));
+
+        Entity burst = _store.Query<ParticleBurst>().ToEntityList()[0];
+        Assert.That(burst.GetComponent<ParticleBurst>().Kind, Is.EqualTo(ParticleKind.Dash));
+        Assert.That(burst.GetComponent<ParticleBurst>().Position, Is.EqualTo(_player.GetComponent<Position>().Value));
+    }
+
+    [Test]
     public void DashesFromTheNoteCenterInsteadOfThePlayerPosition()
     {
         ref Position position = ref _player.GetComponent<Position>();

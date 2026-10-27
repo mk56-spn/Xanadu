@@ -1,6 +1,7 @@
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Writer.Animation;
+using Godot;
 using Writer.Ecs;
 using Position = Writer.Ecs.Position;
 
@@ -60,11 +61,24 @@ public sealed class CharacterMotionSystem : QuerySystem<CharacterRig, Player, Po
             if (next == motion.State && !rejump)
                 continue;
 
+            if (Landed(motion.State, next))
+            {
+                // Dust at the feet: the player's position is its centre.
+                Vector2 feet = entity.GetComponent<Position>().Value +
+                               new Vector2(0, entity.GetComponent<Player>().Size.Y / 2);
+                entity.Store.CreateEntity(new ParticleBurst(feet, ParticleKind.Landing));
+            }
+
             motion.State = next;
             motion.StateTime = 0f;
             Play(runtime, next, restart: rejump);
         }
     }
+
+    /// <summary>Whether a change of state is touching down: from the air onto the floor.</summary>
+    public static bool Landed(CharacterMotionState from, CharacterMotionState to) =>
+        from is CharacterMotionState.Jumping or CharacterMotionState.Falling &&
+        to is CharacterMotionState.Landing or CharacterMotionState.Grounded;
 
     /// <summary>The state after this frame, given whether the player rose and whether it is on the floor.</summary>
     public static CharacterMotionState Next(
