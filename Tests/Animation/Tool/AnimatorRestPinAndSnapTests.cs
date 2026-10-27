@@ -196,4 +196,69 @@ public sealed class AnimatorRestPinAndSnapTests : AnimatorToolTest
         Assert.That(Torso.Rest.Origin.Y, Is.EqualTo(-146f).Within(0.5f));
         Assert.That(AnimatorSnap.Subtree(Package, 1), Is.EquivalentTo(new[] { 1, 2 }));
     }
+
+    [Test]
+    public void SwingingABoneTurnsItIntoLineWithAnotherJoint()
+    {
+        // Pose mode: the head is fixed length, so dragging it swings the torso. The head
+        // sits straight above the torso and the root; drag it a little off and it snaps back.
+        DragBone(2, new Vector2(5, 0));
+
+        Assert.That(Session.GetComponent<AnimatorDrag>().Kind, Is.EqualTo(AnimatorDragKind.Swing));
+        Assert.That(Runtime.Pose.Bones[1].Rotation, Is.EqualTo(0f).Within(0.0001f));
+        AnimatorSnapGuides guides = Session.GetComponent<AnimatorSnapGuides>();
+        Assert.That(guides.HasX, Is.True);
+        Assert.That(guides.X, Is.EqualTo(0f).Within(0.0001f));
+    }
+
+    [Test]
+    public void SwingingWithShiftHeldTurnsFreely()
+    {
+        DragBone(2, new Vector2(5, 0), shiftWhileDragging: true);
+
+        Assert.That(Mathf.Abs(Runtime.Pose.Bones[1].Rotation), Is.GreaterThan(0.01f));
+        Assert.That(Session.GetComponent<AnimatorSnapGuides>().HasX, Is.False);
+    }
+
+    [Test]
+    public void SwingingKeepsTheBonesLength()
+    {
+        DragBone(2, new Vector2(5, 0));
+
+        Transform2D[] world = XafRig.WorldBones(Package, Runtime.Pose);
+        Assert.That(world[2].Origin.DistanceTo(world[1].Origin), Is.EqualTo(70f).Within(0.01f));
+    }
+
+    [Test]
+    public void SwingingSnapsToAJointOnTheOtherAxisToo()
+    {
+        // A marker at the head's height to the right; swing the head toward it.
+        Package.Skeleton.Bones.Add(new XafBone { Id = "marker", Parent = -1, Rest = new Transform2D(0f, new Vector2(60, -75)) });
+        AnimatorSession.RigChanged(Session);
+
+        // Pointing right of the torso, near the marker's Y (-75): the torso is at -80, so the head ends up level with it.
+        DragBone(2, new Vector2(70, 73));
+
+        AnimatorSnapGuides guides = Session.GetComponent<AnimatorSnapGuides>();
+        Transform2D[] world = XafRig.WorldBones(Package, Runtime.Pose);
+        Assert.That(guides.HasY || guides.HasX, Is.True);
+        Assert.That(world[2].Origin.DistanceTo(world[1].Origin), Is.EqualTo(70f).Within(0.01f));
+        if (guides.HasY)
+            Assert.That(world[2].Origin.Y, Is.EqualTo(guides.Y).Within(0.01f));
+    }
+
+    [Test]
+    public void AnIkTargetSnapsToAJointOutsideTheChain()
+    {
+        // A separate root bone to snap to; the chain is root > torso > head.
+        Package.Skeleton.Bones.Add(new XafBone { Id = "marker", Parent = -1, Rest = new Transform2D(0f, new Vector2(30, -100)) });
+        AnimatorSession.RigChanged(Session);
+        Session.GetComponent<AnimatorModes>().Ik = true;
+
+        DragBone(2, new Vector2(27, 50));
+
+        Transform2D[] world = XafRig.WorldBones(Package, Runtime.Pose);
+        Assert.That(world[2].Origin.X, Is.EqualTo(30f).Within(0.01f));
+        Assert.That(Session.GetComponent<AnimatorSnapGuides>().HasX, Is.True);
+    }
 }
