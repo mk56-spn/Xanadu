@@ -4,6 +4,7 @@ using NUnit.Framework;
 using Writer.Animation;
 using Writer.Ecs;
 using Writer.Tools.Animator;
+using Writer.Tools.Animator.Commands;
 using Writer.Tools.Animator.Systems;
 
 namespace Writer.Tests.Animation.Tool;
@@ -41,6 +42,83 @@ public sealed class AnimatorInspectorTests : AnimatorToolTest
         Frame();
         field.RemoveTag<TextFieldFocused>();
         Frame();
+    }
+
+    [Test]
+    public void LayerShowsAndSetsTheDrawOrderOfTheSelectedBonesArt()
+    {
+        // The fixture has one SVG, "body", on the torso at layer 0.
+        SelectBone(1);
+        Assert.That(FieldValue(Ui.InspectLayer), Is.EqualTo("0"));
+
+        Type(Ui.InspectLayer, "-3");
+
+        Assert.That(Package.Attachments[0].ZOrder, Is.EqualTo(-3));
+        Assert.That(FieldValue(Ui.InspectLayer), Is.EqualTo("-3"));
+        Assert.That(Session.GetComponent<AnimatorStatus>().Message, Does.Contain("LAYER -3"));
+    }
+
+    [Test]
+    public void LayerOnABoneWithoutArtDoesNothingAndSaysSo()
+    {
+        SelectBone(0);
+        Assert.That(FieldValue(Ui.InspectLayer), Is.EqualTo(""));
+
+        Type(Ui.InspectLayer, "5");
+
+        Assert.That(Package.Attachments[0].ZOrder, Is.EqualTo(0));
+        Assert.That(Session.GetComponent<AnimatorStatus>().Message, Does.Contain("SELECT A BONE OR SVG"));
+    }
+
+    [Test]
+    public void LayerOnASelectedSvgSetsJustThatOne()
+    {
+        Package.Attachments.Add(new XafAttachment
+        {
+            SvgPath = "res://leg.svg",
+            Group = "leg",
+            BoneId = "torso",
+        });
+        AnimatorSession.RigChanged(Session);
+        Session.GetComponent<AnimatorSelection>().SelectOnlyAttachment(1);
+        Frame();
+
+        Type(Ui.InspectLayer, "-1");
+
+        Assert.That(Package.Attachments[1].ZOrder, Is.EqualTo(-1));
+        Assert.That(Package.Attachments[0].ZOrder, Is.EqualTo(0));
+    }
+
+    [Test]
+    public void ABoneWhoseArtSitsOnDifferentLayersShowsNoSingleLayer()
+    {
+        Package.Attachments.Add(new XafAttachment
+        {
+            SvgPath = "res://leg.svg",
+            Group = "leg",
+            BoneId = "torso",
+            ZOrder = 4,
+        });
+        AnimatorSession.RigChanged(Session);
+        SelectBone(1);
+
+        Assert.That(FieldValue(Ui.InspectLayer), Is.EqualTo(""));
+
+        Type(Ui.InspectLayer, "2");
+
+        Assert.That(Package.Attachments[0].ZOrder, Is.EqualTo(2));
+        Assert.That(Package.Attachments[1].ZOrder, Is.EqualTo(2));
+    }
+
+    [Test]
+    public void ALayerChangeIsOneUndoStep()
+    {
+        SelectBone(1);
+        Type(Ui.InspectLayer, "7");
+
+        AnimatorCommands.Run(Session, new ToolAction(ToolActionKind.Undo));
+
+        Assert.That(Package.Attachments[0].ZOrder, Is.EqualTo(0));
     }
 
     [Test]

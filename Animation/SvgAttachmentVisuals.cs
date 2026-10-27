@@ -32,6 +32,11 @@ public sealed class SvgAttachmentVisuals(Rid canvas) : IAttachmentVisuals
                 ImageTexture texture = ImageTexture.CreateFromImage(image);
                 Rid item = RenderingServer.CanvasItemCreate();
                 RenderingServer.CanvasItemSetParent(item, canvas);
+
+                // Higher layers draw in front; equal layers keep the attachment order.
+                RenderingServer.CanvasItemSetZIndex(
+                    item,
+                    Math.Clamp(attachment.ZOrder, XafAttachment.MinLayer, XafAttachment.MaxLayer));
                 var bounds = new Rect2(-image.GetSize() / 2, image.GetSize());
                 RenderingServer.CanvasItemAddTextureRect(item, bounds, texture.GetRid());
                 _visuals.Add(new Visual(i, item, texture, bounds));

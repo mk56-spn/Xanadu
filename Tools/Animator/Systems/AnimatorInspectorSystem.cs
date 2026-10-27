@@ -24,12 +24,13 @@ public sealed class AnimatorInspectorSystem : QuerySystem<AnimatorDocument, Anim
         Rotation,
         ScaleX,
         ScaleY,
+        Layer,
     }
 
     private static readonly Color NormalTitle = new("#facc15");
     private static readonly Color UnkeyedTitle = new("#fb923c");
 
-    private readonly bool[] _wasFocused = new bool[5];
+    private readonly bool[] _wasFocused = new bool[6];
     private int _editBone = -1;
     private int _editAttachment = -1;
     private int _editExtras;
@@ -52,6 +53,7 @@ public sealed class AnimatorInspectorSystem : QuerySystem<AnimatorDocument, Anim
         Sync(session, ui, ui.InspectRotation, Field.Rotation);
         Sync(session, ui, ui.InspectScaleX, Field.ScaleX);
         Sync(session, ui, ui.InspectScaleY, Field.ScaleY);
+        Sync(session, ui, ui.InspectLayer, Field.Layer);
         Title(session, ui.InspectorTitle);
     }
 
@@ -101,6 +103,12 @@ public sealed class AnimatorInspectorSystem : QuerySystem<AnimatorDocument, Anim
             return;
         }
 
+        if (kind == Field.Layer)
+        {
+            AnimatorAttachmentCommands.SetLayer(session, (int)Mathf.Round(value));
+            return;
+        }
+
         Vector2 translation = Translation(session);
         Vector2 scale = Scale(session);
         switch (kind)
@@ -127,6 +135,9 @@ public sealed class AnimatorInspectorSystem : QuerySystem<AnimatorDocument, Anim
 
     private static string Format(Entity session, Field kind)
     {
+        if (kind == Field.Layer)
+            return AnimatorAttachmentCommands.TryGetLayer(session, out int layer) ? layer.ToString(CultureInfo.InvariantCulture) : "";
+
         if (!TryTransform(session, out XafTransform transform))
             return "";
 
