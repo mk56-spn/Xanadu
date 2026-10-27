@@ -26,6 +26,9 @@ public sealed class AnimatorTimelineInputSystem(
 
     /// <summary>Shift-clicked a selected key: remove it on release unless the press became a drag.</summary>
     private bool _pendingToggle;
+
+    /// <summary>What the current key drag started from, so each move is measured from there.</summary>
+    private AnimatorKeyCommands.KeyDragOrigin? _keyDrag;
     private AnimatorTrackRow _pendingTrack;
     private float _pendingTime;
 
@@ -258,7 +261,8 @@ public sealed class AnimatorTimelineInputSystem(
         else if (kind == AnimatorDragKind.Key)
         {
             double seconds = model.Snap(model.SecondsAtX(input.Position.X), input.Shift);
-            AnimatorKeyCommands.RetimeSelected(session, (float)seconds);
+            _keyDrag ??= AnimatorKeyCommands.BeginKeyDrag(session);
+            AnimatorKeyCommands.RetimeSelected(session, (float)seconds, _keyDrag);
         }
         else
         {
@@ -328,6 +332,7 @@ public sealed class AnimatorTimelineInputSystem(
         }
 
         _pendingToggle = false;
+        _keyDrag = null;
         session.GetComponent<TimelineView>().Scrubbing = false;
         drag = new AnimatorDrag();
     }

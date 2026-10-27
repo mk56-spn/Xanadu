@@ -44,7 +44,7 @@ public static class AnimatorTooltips
         ToolActionKind.DurationUp => "Lengthen the clip by 0.1 s (Ctrl+=)",
         ToolActionKind.ToggleLoop => "Loop the clip; drag the teal handles to set the range (L)",
         ToolActionKind.AddKey => "Insert a key at this time",
-        ToolActionKind.DeleteKey => "Delete the selected keys (Delete)",
+        ToolActionKind.DeleteKey => "Delete the selected keys (Delete or Backspace)",
         ToolActionKind.CopyKeys => "Copy selected keys across times or clips (Ctrl+Shift+C)",
         ToolActionKind.PasteKeys => "Paste copied keys at the playhead (Ctrl+Shift+V)",
         ToolActionKind.SelectAllKeys => "Select every key in the clip (Ctrl+A)",

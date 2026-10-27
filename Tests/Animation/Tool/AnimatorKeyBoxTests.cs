@@ -96,6 +96,20 @@ public sealed class AnimatorKeyBoxTests : AnimatorToolTest
         DragBox(At(RootTrack, 0.25f), At(HeadTrack, 1.2f));
 
     [Test]
+    public void AKeyOnTheLastFrameOfAnOddLengthClipIsStillVisible()
+    {
+        // 1.2f is 1200.00005 ms as a float, a hair past the 1200 ms window end.
+        Idle.Duration = 1.2f;
+        Idle.Channels.Add(Channel("root", 1.2f));
+        AnimatorTimelineModel model = AnimatorTimelineModel.Create(Session)!;
+
+        Assert.That(model.IsVisible(1.2f), Is.True);
+        Assert.That(
+            model.KeysIn(model.Rows),
+            Has.Some.Matches<AnimatorKeyRef>(key => key.Time == 1.2f));
+    }
+
+    [Test]
     public void DraggingABoxSelectsEveryKeyItCovers()
     {
         // From empty space on the root row, down to the head row.

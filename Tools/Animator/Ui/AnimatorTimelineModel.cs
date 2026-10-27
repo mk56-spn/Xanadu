@@ -120,6 +120,18 @@ public sealed class AnimatorTimelineModel
         return null;
     }
 
+    /// <summary>
+    /// Whether a key time falls in the visible window. The window is whole
+    /// milliseconds and key times are floats, so a key on the clip's last frame
+    /// reads a fraction of a millisecond past the end; a millisecond of slack
+    /// keeps it from vanishing.
+    /// </summary>
+    public bool IsVisible(double seconds)
+    {
+        double ms = seconds * 1000.0;
+        return ms >= Window.Start - 1.0 && ms <= Window.End + 1.0;
+    }
+
     public float XForSeconds(double seconds) => Window.XForTime(Ruler, seconds * 1000.0);
 
     public double SecondsAtX(float x) => Window.TimeForX(Ruler, x) / 1000.0;
@@ -223,8 +235,7 @@ public sealed class AnimatorTimelineModel
             AnimatorTrackRow track = Tracks[index];
             foreach (float time in AnimatorTrackRows.KeyTimes(Clip, track))
             {
-                double ms = time * 1000.0;
-                if (ms < Window.Start || ms > Window.End)
+                if (!IsVisible(time))
                     continue;
 
                 Vector2 center = new(XForSeconds(time), row.GetCenter().Y);
