@@ -39,14 +39,29 @@ public sealed class TextDrawSystem : QuerySystem<Text, Rectangle, Drawable, Visu
                     ? entity.GetComponent<TextAlignment>().Align
                     : TextAlign.Center;
 
-                _canvas.DrawTextWeighted(
-                    visual.Value,
-                    rect.Bounds,
-                    text.Value,
-                    style.Color,
-                    style.FontSize,
-                    align,
-                    style.Bold);
+                if (entity.HasComponent<TextGlow>())
+                {
+                    _canvas.DrawTextGlow(
+                        visual.Value,
+                        rect.Bounds,
+                        text.Value,
+                        style.Color,
+                        style.FontSize,
+                        align,
+                        style.Bold,
+                        entity.GetComponent<TextGlow>());
+                }
+                else
+                {
+                    _canvas.DrawTextWeighted(
+                        visual.Value,
+                        rect.Bounds,
+                        text.Value,
+                        style.Color,
+                        style.FontSize,
+                        align,
+                        style.Bold);
+                }
             }
             else
             {

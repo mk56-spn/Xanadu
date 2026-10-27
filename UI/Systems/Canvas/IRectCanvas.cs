@@ -154,4 +154,19 @@ public interface IRectCanvas
                 break;
         }
     }
+
+    /// <summary>
+    /// Draws text with a glow behind it. Canvases that cannot blur draw the
+    /// text without the glow.
+    /// </summary>
+    void DrawTextGlow(
+        Rid canvas,
+        Rect2 bounds,
+        string text,
+        Color color,
+        int fontSize,
+        TextAlign align,
+        bool bold,
+        TextGlow glow) =>
+        DrawTextWeighted(canvas, bounds, text, color, fontSize, align, bold);
 }
