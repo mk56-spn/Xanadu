@@ -359,17 +359,17 @@ public sealed class EditorCommandSystem :
             if (entity.HasComponent<Note>())
             {
                 Note note = entity.GetComponent<Note>();
-                _clipboard.Add(new ClipboardItem(note.TimeMs, note, null, null));
+                _clipboard.Add(new ClipboardItem(note.TimeMs, note, null, null, MaskOf(entity)));
             }
             else if (entity.HasComponent<Mine>())
             {
                 Mine mine = entity.GetComponent<Mine>();
-                _clipboard.Add(new ClipboardItem(mine.TimeMs, null, mine, null));
+                _clipboard.Add(new ClipboardItem(mine.TimeMs, null, mine, null, MaskOf(entity)));
             }
             else if (entity.HasComponent<StartPoint>())
             {
                 StartPoint start = entity.GetComponent<StartPoint>();
-                _clipboard.Add(new ClipboardItem(start.TimeMs, null, null, start));
+                _clipboard.Add(new ClipboardItem(start.TimeMs, null, null, start, MaskOf(entity)));
             }
         }
     }
@@ -396,17 +396,24 @@ public sealed class EditorCommandSystem :
             if (item.Note is { } note)
             {
                 note.TimeMs = time;
-                created.Add(EditorItems.Create(_entities, note));
+                Entity pasted = EditorItems.Create(_entities, note);
+                Subscribe(pasted, item.Groups);
+                created.Add(pasted);
             }
             else if (item.Mine is { } mine)
             {
                 mine.TimeMs = time;
-                created.Add(EditorItems.Create(_entities, mine));
+                Entity pasted = EditorItems.Create(_entities, mine);
+                Subscribe(pasted, item.Groups);
+                created.Add(pasted);
             }
             else if (item.StartPoint is { } start)
             {
                 start.TimeMs = time;
-                created.Add(EditorItems.Create(_entities, start));
+                start.Groups = item.Groups;
+                Entity pasted = EditorItems.Create(_entities, start);
+                Subscribe(pasted, item.Groups);
+                created.Add(pasted);
             }
         }
 
@@ -484,7 +491,17 @@ public sealed class EditorCommandSystem :
         long TimeMs,
         Note? Note,
         Mine? Mine,
-        StartPoint? StartPoint);
+        StartPoint? StartPoint,
+        uint Groups);
+
+    private static uint MaskOf(Entity entity) =>
+        entity.TryGetComponent(out ItemGroups groups) ? groups.Mask : 0u;
+
+    private void Subscribe(Entity item, uint mask)
+    {
+        if (mask != 0)
+            CommandBuffer.AddComponent(item.Id, new ItemGroups(mask));
+    }
 
     private static int NormalizeSnap(int snap) => snap switch
     {

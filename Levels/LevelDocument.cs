@@ -34,11 +34,49 @@ public sealed class LevelDocument
     public List<StartPointDocument> StartPoints { get; set; } = new();
 
     public List<BlockDocument> Blocks { get; set; } = new();
+
+    /// <summary>The groups that have a name or effects; the rest are empty slots.</summary>
+    public List<GroupDocument> Groups { get; set; } = new();
+}
+
+/// <summary>Serializable group: a slot number, a name and its timed effects.</summary>
+public sealed class GroupDocument
+{
+    /// <summary>The slot, 0 to <see cref="GroupLimits.Count"/> - 1, items refer to.</summary>
+    public int Id { get; set; }
+
+    public string Name { get; set; } = "";
+
+    public List<GroupEffectDocument> Effects { get; set; } = new();
+}
+
+/// <summary>Serializable group effect; times are seconds.</summary>
+public sealed class GroupEffectDocument
+{
+    public GroupEffectKind Kind { get; set; }
+
+    public float Start { get; set; }
+
+    public float End { get; set; }
+
+    /// <summary>How the effect travels between <see cref="Start"/> and <see cref="End"/>.</summary>
+    public GroupEase Ease { get; set; } = GroupEase.Linear;
+
+    /// <summary>The move's offset, for a move.</summary>
+    public float X { get; set; }
+
+    public float Y { get; set; }
+
+    /// <summary>The target colour as #rrggbbaa, for a colour effect.</summary>
+    public string Tint { get; set; } = "#ffffffff";
 }
 
 /// <summary>Serializable collidable block data.</summary>
 public sealed class BlockDocument
 {
+    /// <summary>The groups this block belongs to.</summary>
+    public List<int> Groups { get; set; } = new();
+
     public float X { get; set; }
 
     public float Y { get; set; }
@@ -51,6 +89,9 @@ public sealed class BlockDocument
 /// <summary>Serializable practice start state.</summary>
 public sealed class StartPointDocument
 {
+    /// <summary>The groups this start point belongs to.</summary>
+    public List<int> Groups { get; set; } = new();
+
     public string Name { get; set; } = "";
 
     public long TimeMs { get; set; }
@@ -71,6 +112,9 @@ public sealed class StartPointDocument
 /// <summary>Serializable mine hazard data.</summary>
 public sealed class MineDocument
 {
+    /// <summary>The groups this mine belongs to.</summary>
+    public List<int> Groups { get; set; } = new();
+
     public long TimeMs { get; set; }
 
     public float X { get; set; }
@@ -85,6 +129,9 @@ public sealed class MineDocument
 /// <summary>Serializable note data.</summary>
 public sealed class NoteDocument
 {
+    /// <summary>The groups this note belongs to.</summary>
+    public List<int> Groups { get; set; } = new();
+
     public long TimeMs { get; set; }
 
     public float X { get; set; }

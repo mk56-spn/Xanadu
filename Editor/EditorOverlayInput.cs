@@ -23,6 +23,7 @@ public partial class EditorOverlay : CanvasLayer
             if (_editor.IsNull ||
                 AnyDialogVisible() ||
                 IsWarningOpen() ||
+                IsGroupOverlayOpen() ||
                 GetViewport().GuiGetFocusOwner() is LineEdit)
             {
                 return;
@@ -108,6 +109,15 @@ public partial class EditorOverlay : CanvasLayer
 
         if (IsWarningOpen())
             return;
+
+        // The group overlay is modal: Escape closes it and nothing else reaches the editor.
+        if (IsGroupOverlayOpen())
+        {
+            if (key.Keycode == Key.Escape)
+                CloseGroupOverlay();
+            GetViewport().SetInputAsHandled();
+            return;
+        }
 
         if (EditorPlacementKeybinds.TryGet(
                 key.Keycode,

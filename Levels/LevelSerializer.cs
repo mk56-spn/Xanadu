@@ -31,9 +31,32 @@ public static class LevelSerializer
         document.Notes.RemoveAll(note => note is null);
         document.Mines ??= new();
         document.StartPoints ??= new();
+        document.StartPoints.RemoveAll(start => start is null);
         document.Blocks ??= new();
+        document.Groups ??= new();
+        document.Groups.RemoveAll(group => group is null || group.Id is < 0 or >= Writer.Ecs.GroupLimits.Count);
+        foreach (GroupDocument group in document.Groups)
+        {
+            group.Name ??= "";
+            group.Effects ??= new();
+            group.Effects.RemoveAll(effect => effect is null);
+            foreach (GroupEffectDocument effect in group.Effects)
+            {
+                if (!System.Enum.IsDefined(effect.Ease))
+                    effect.Ease = Writer.Ecs.GroupEase.Linear;
+            }
+        }
+
+        foreach (NoteDocument note in document.Notes)
+            note.Groups ??= new();
+        foreach (StartPointDocument start in document.StartPoints)
+            start.Groups ??= new();
         document.Mines.RemoveAll(mine => mine is null);
         document.Blocks.RemoveAll(block => block is null);
+        foreach (MineDocument mine in document.Mines)
+            mine.Groups ??= new();
+        foreach (BlockDocument block in document.Blocks)
+            block.Groups ??= new();
         return document;
     }
 }

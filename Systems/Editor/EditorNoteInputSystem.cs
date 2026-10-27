@@ -77,6 +77,7 @@ public sealed partial class EditorNoteInputSystem : QuerySystem<Note>
         Entity editor = FindEditor();
         if (editor.IsNull ||
             IsWarningOpen() ||
+            IsGroupOverlayOpen() ||
             IsSceneConfirmationOpen())
         {
             return;
@@ -222,6 +223,7 @@ public sealed partial class EditorNoteInputSystem : QuerySystem<Note>
         Entity editor = FindEditor();
         if (editor.IsNull ||
             IsWarningOpen() ||
+            IsGroupOverlayOpen() ||
             IsSceneConfirmationOpen())
         {
             return;
@@ -803,6 +805,17 @@ public sealed partial class EditorNoteInputSystem : QuerySystem<Note>
         _drag.End();
         _dragStartPositions.Clear();
         _dragStartBlocks.Clear();
+    }
+
+    private bool IsGroupOverlayOpen()
+    {
+        foreach (Entity entity in _entities.Query<EditorGroupState>().ToEntityList())
+        {
+            if (entity.GetComponent<EditorGroupState>().Open >= 0)
+                return true;
+        }
+
+        return false;
     }
 
     private bool IsWarningOpen()

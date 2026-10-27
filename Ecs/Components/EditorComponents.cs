@@ -292,13 +292,17 @@ public struct StartPoint(
     long timeMs,
     Vector2 position,
     System.Numerics.Vector2 momentum,
-    Vector2 direction) : IComponent
+    Vector2 direction,
+    uint groups = 0) : IComponent
 {
     public string Name = name;
     public long TimeMs = timeMs;
     public Vector2 Position = position;
     public System.Numerics.Vector2 Momentum = momentum;
     public Vector2 Direction = direction;
+
+    /// <summary>Groups this start point belongs to, copied so a play launch can offset the spawn.</summary>
+    public uint Groups = groups;
 }
 
 /// <summary>Separate start-point property panel shown below level metadata.</summary>

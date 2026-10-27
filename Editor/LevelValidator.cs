@@ -53,6 +53,19 @@ public static class LevelValidator
             }
         }
 
+        foreach (GroupDocument group in document.Groups)
+        {
+            string name = group.Name.Length > 0 ? group.Name : $"Group {group.Id + 1}";
+            for (int i = 0; i < group.Effects.Count; i++)
+            {
+                GroupEffectDocument effect = group.Effects[i];
+                if (effect.Start < 0)
+                    issues.Add($"{name} effect {i + 1} starts before 0.");
+                if (effect.End < effect.Start)
+                    issues.Add($"{name} effect {i + 1} ends before it starts.");
+            }
+        }
+
         return issues;
     }
 }

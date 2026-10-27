@@ -58,7 +58,12 @@ public sealed partial class EditorPlayfieldDrawSystem :
                         : default,
                     entity.HasComponent<UiMarqueeBox>()
                         ? entity.GetComponent<UiMarqueeBox>()
-                        : default);
+                        : default,
+                    entity.HasComponent<LevelGroups>()
+                        ? entity.GetComponent<LevelGroups>()
+                        : default,
+                    entity.HasComponent<EditorGroupState>() &&
+                    entity.GetComponent<EditorGroupState>().Preview);
         });
     }
 
@@ -69,7 +74,9 @@ public sealed partial class EditorPlayfieldDrawSystem :
         NoteSelection selection,
         TimelineView timeline,
         WaveformPreview preview,
-        UiMarqueeBox selectionBox)
+        UiMarqueeBox selectionBox,
+        LevelGroups groups,
+        bool previewGroups)
     {
         _canvas.DrawRect(
             _editor,
@@ -98,6 +105,8 @@ public sealed partial class EditorPlayfieldDrawSystem :
             playhead);
         DrawStartPoints(view, selection);
         DrawDashDestinations(view, playhead);
+        if (previewGroups)
+            DrawGroupPreview(view, playhead, groups);
         DrawSelectionOutlines(view, playhead, selection);
         DrawBlockHandles(view, selection);
         DrawRuler(view, playhead, selection, timeline, preview);
@@ -171,6 +180,16 @@ public sealed partial class EditorPlayfieldDrawSystem :
                     17,
                     Colors.White,
                     2);
+            }
+
+            if (entity.TryGetComponent(out ItemGroups groups) && groups.Mask != 0)
+            {
+                PlayfieldRenderer.DrawGroupBadge(
+                    _canvas,
+                    _editor,
+                    center + new Vector2(15, -15),
+                    groups.Mask,
+                    1f);
             }
         }
     }

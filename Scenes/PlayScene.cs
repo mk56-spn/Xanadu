@@ -86,10 +86,13 @@ public static class PlayScene
             ref Playhead playhead = ref playfieldEntity.GetComponent<Playhead>();
             playhead.TimeMs = point.TimeMs;
             playhead.SeekRequestMs = point.TimeMs;
+            Vector2 spawn = playfieldEntity.TryGetComponent(out LevelGroups levelGroups)
+                ? SpawnPosition(levelGroups, point)
+                : point.Position;
             ref Position playerPosition = ref playfieldEntity.GetComponent<Position>();
             playerPosition.Value = playfieldEntity
                 .GetComponent<PlayfieldView>()
-                .PlayfieldToScreen(point.Position);
+                .PlayfieldToScreen(spawn);
             ref Momentum momentum = ref playfieldEntity.GetComponent<Momentum>();
             momentum.Value = point.Momentum;
         }
@@ -341,6 +344,10 @@ public static class PlayScene
             Math.Max(lastNote, lastMine),
             start?.TimeMs ?? 0));
     }
+
+    /// <summary>Where the player starts: the start point plus its groups' move at its time.</summary>
+    public static Vector2 SpawnPosition(LevelGroups groups, StartPoint start) =>
+        start.Position + GroupModulation.Offset(groups.Groups, start.Groups, start.TimeMs / 1000f);
 
     private static void BuildErrorBar(
         UiBuilder ui,

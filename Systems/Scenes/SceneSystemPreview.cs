@@ -36,7 +36,8 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
                 point.TimeMs,
                 new Godot.Vector2(point.X, point.Y),
                 new System.Numerics.Vector2(point.MomentumX, point.MomentumY),
-                new Godot.Vector2(point.DirectionX, point.DirectionY)))
+                new Godot.Vector2(point.DirectionX, point.DirectionY),
+                ItemGroups.FromList(point.Groups)))
             .OrderBy(point => point.TimeMs)
             .ToList();
 

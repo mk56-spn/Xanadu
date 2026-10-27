@@ -31,6 +31,8 @@ public static class SceneTestCatalog
         new RestartSceneTest(),
         new EditorDropdownSceneTest(),
         new EditorDirectionWheelSceneTest(),
+        new EditorGroupsSceneTest(),
+        new PlayGroupsSceneTest(),
         new LeaveEditorSceneTest(),
     };
 }

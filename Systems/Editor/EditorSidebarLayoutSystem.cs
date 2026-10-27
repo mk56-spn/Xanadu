@@ -12,6 +12,7 @@ public sealed class EditorSidebarLayoutSystem : QuerySystem<EditorSidebarLayout>
     private const float LabelHeight = 24f;
     private const float ButtonHeight = 34f;
     private const float PanelPadding = 20f;
+    private const float Gap = 8f;
     public EditorSidebarLayoutSystem(EntityStore entities)
     {
         _ = entities;
@@ -32,9 +33,13 @@ public sealed class EditorSidebarLayoutSystem : QuerySystem<EditorSidebarLayout>
             Move(layout.CharacterLabel, characterLabelY, buffer);
             Move(layout.CharacterButton, characterButtonY, buffer);
 
+            // The groups grid sits under the character dropdown and moves with it.
+            float gridTop = characterButtonY + ButtonHeight / 2 + characterExtra + Gap;
+            if (entity.HasComponent<EditorGroupGrid>())
+                PlaceGroupGrid(entity.GetComponent<EditorGroupGrid>(), gridTop, buffer);
+
             float top = layout.Top - 10;
-            float bottom = characterButtonY + ButtonHeight / 2 +
-                           characterExtra + PanelPadding;
+            float bottom = gridTop + EditorGroupLayout.GridHeight + PanelPadding;
             if (!layout.Panel.IsNull &&
                 layout.Panel.HasComponent<Position>() &&
                 layout.Panel.HasComponent<Rectangle>())
@@ -76,6 +81,15 @@ public sealed class EditorSidebarLayoutSystem : QuerySystem<EditorSidebarLayout>
                 }
             }
         });
+    }
+
+    /// <summary>The label and the rows of cells, from <paramref name="gridTop"/> down.</summary>
+    private static void PlaceGroupGrid(EditorGroupGrid grid, float gridTop, CommandBuffer buffer)
+    {
+        Move(grid.Label, gridTop + 10, buffer);
+        for (int i = 0; i < grid.Cells.Length; i++)
+            Move(grid.Cells[i], gridTop + 20 + 17 + i / GroupLimits.Columns * 40f, buffer);
+        Move(grid.Preview, gridTop + EditorGroupLayout.PreviewTop, buffer);
     }
 
     private static float OpenExtra(Entity button)

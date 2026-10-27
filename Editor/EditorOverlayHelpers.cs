@@ -40,6 +40,29 @@ public partial class EditorOverlay : CanvasLayer
         (_saveAsDialog?.Visible ?? false) ||
         (_loadDialog?.Visible ?? false);
 
+    /// <summary>Whether a group's overlay screen is up, which takes over the keyboard and the pointer.</summary>
+    private bool IsGroupOverlayOpen()
+    {
+        foreach (Entity entity in _entities.Query<EditorGroupState>().ToEntityList())
+        {
+            if (entity.GetComponent<EditorGroupState>().Open >= 0)
+                return true;
+        }
+
+        return false;
+    }
+
+    /// <summary>Closes the group overlay.</summary>
+    private void CloseGroupOverlay()
+    {
+        foreach (Entity entity in _entities.Query<EditorGroupState>().ToEntityList())
+        {
+            ref EditorGroupState state = ref entity.GetComponent<EditorGroupState>();
+            state.Open = -1;
+            state.DragRow = -1;
+        }
+    }
+
     private bool IsWarningOpen()
     {
         foreach (Entity entity in _entities.Query<WarningPopup>().ToEntityList())

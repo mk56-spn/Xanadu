@@ -222,7 +222,7 @@ public sealed class WriterSystemRoot : SystemRoot, IDisposable
         {
             if (entity.HasComponent<StartPoint>())
             {
-                start = entity.GetComponent<StartPoint>();
+                start = StartWithGroups(entity);
                 break;
             }
         }
@@ -233,7 +233,7 @@ public sealed class WriterSystemRoot : SystemRoot, IDisposable
             long best = long.MaxValue;
             foreach (Entity entity in _entities.Query<StartPoint>().ToEntityList())
             {
-                StartPoint candidate = entity.GetComponent<StartPoint>();
+                StartPoint candidate = StartWithGroups(entity);
                 long distance = Math.Abs(candidate.TimeMs - time);
                 if (distance >= best)
                     continue;
@@ -250,6 +250,15 @@ public sealed class WriterSystemRoot : SystemRoot, IDisposable
             ? editor.GetComponent<LevelFile>().Path
             : "";
         Scenes.StartPlay(new LevelEntry(path, document), start);
+    }
+
+    /// <summary>A start point with its group membership copied for the play launch.</summary>
+    private static StartPoint StartWithGroups(Entity entity)
+    {
+        StartPoint start = entity.GetComponent<StartPoint>();
+        if (entity.TryGetComponent(out ItemGroups groups))
+            start.Groups = groups.Mask;
+        return start;
     }
 
     /// <summary>Queues a wheel scroll at a viewport position.</summary>

@@ -22,15 +22,13 @@ public sealed class MortalCoilChartTests
             Path.Combine(root, "Songs", "catalog.json"))!.Single();
 
         Assert.That(level.SongId, Is.EqualTo(song.Id));
-        Assert.That(level.StartPoints, Has.Count.EqualTo(1));
-        Assert.That(level.Notes, Has.Count.EqualTo(11));
+        Assert.That(level.StartPoints, Is.Empty);
+        Assert.That(level.Notes, Has.Count.EqualTo(7));
         Assert.That(level.Notes.Count(note => note.Kind == NoteKind.Movement),
-            Is.EqualTo(2));
+            Is.EqualTo(4));
         Assert.That(level.Notes.All(note =>
             (note.TimeMs - song.OffsetMs) % 300 == 0), Is.True);
         Assert.That(level.Notes[4].DashDirection,
-            Is.EqualTo(DashDirection.Right));
-        Assert.That(level.Notes[7].DashDirection,
-            Is.EqualTo(DashDirection.Left));
+            Is.EqualTo(DashDirection.DownRight));
     }
 }
