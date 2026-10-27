@@ -41,7 +41,11 @@ public static class AnimatorPoseCommands
         AnimatorSession.SetStatus(session, $"COPIED POSE AT {document.Runtime.CurrentTime:0.00}s");
     }
 
-    /// <summary>Poses the bones the copied pose names; keyed straight away with auto key.</summary>
+    /// <summary>
+    /// Poses the bones the copied pose names and keys them at the playhead. A
+    /// paste is an explicit edit, so it keys whether or not auto key is on;
+    /// otherwise the pose would vanish on the next frame and never be saved.
+    /// </summary>
     public static void PastePose(Entity session)
     {
         Dictionary<string, XafTransform>? copied = session.GetComponent<AnimatorClipboard>().Pose;
@@ -56,13 +60,27 @@ public static class AnimatorPoseCommands
 
         ref AnimatorDocument document = ref session.GetComponent<AnimatorDocument>();
         document.Runtime.SetPaused(true);
+        var pasted = new List<int>();
         for (int i = 0; i < document.Package.Skeleton.Bones.Count; i++)
         {
-            if (copied.TryGetValue(document.Package.Skeleton.Bones[i].Id, out XafTransform transform))
-                document.Runtime.Pose.Bones[i] = transform;
+            if (!copied.TryGetValue(document.Package.Skeleton.Bones[i].Id, out XafTransform transform))
+                continue;
+
+            document.Runtime.Pose.Bones[i] = transform;
+            pasted.Add(i);
         }
 
-        Finish(session, "PASTED POSE");
+        AnimatorHistoryCommands.Edit(session, () =>
+        {
+            if (!TryCurrentClip(session, out XafClip clip))
+                return;
+
+            ref AnimatorDocument edited = ref session.GetComponent<AnimatorDocument>();
+            float time = edited.Runtime.CurrentTime;
+            foreach (int bone in pasted)
+                XafAuthoring.KeyBoneTransform(edited.Package, clip, bone, time, edited.Runtime.Pose.Bones[bone]);
+            AnimatorSession.SetStatus(session, $"PASTED POSE AND KEYED {pasted.Count} BONES AT {time:0.00}s");
+        });
     }
 
     /// <summary>

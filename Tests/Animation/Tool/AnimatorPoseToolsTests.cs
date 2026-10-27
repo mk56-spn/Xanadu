@@ -60,7 +60,7 @@ public sealed class AnimatorPoseToolsTests : AnimatorToolTest
     }
 
     [Test]
-    public void APastedPoseCanBeKeyedAtAnotherTime()
+    public void APastedPoseIsKeyedAtTheNewTimeWithoutAutoKey()
     {
         Runtime.Seek(0.5f);
         Runtime.Pose.Bones[1].Rotation = 0.4f;
@@ -68,10 +68,23 @@ public sealed class AnimatorPoseToolsTests : AnimatorToolTest
 
         Runtime.Seek(1.5f);
         Tap(Key.Ctrl, Key.V);
-        Assert.That(Runtime.Pose.Bones[1].Rotation, Is.EqualTo(0.4f));
 
-        Run(ToolActionKind.KeyPose);
+        Assert.That(Runtime.Pose.Bones[1].Rotation, Is.EqualTo(0.4f));
         Assert.That(XafSampler.Sample(Package, Idle, 1.5f).Bones[1].Rotation, Is.EqualTo(0.4f).Within(0.0001f));
+        Assert.That(Channel("torso", XafChannelProperty.Rotation)!.Keyframes.Exists(key => key.Time == 1.5f), Is.True);
+    }
+
+    [Test]
+    public void APastedPoseIsOneUndoStep()
+    {
+        Runtime.Pose.Bones[1].Rotation = 0.4f;
+        Run(ToolActionKind.CopyPose);
+        Runtime.Seek(1.5f);
+        Run(ToolActionKind.PastePose);
+
+        Run(ToolActionKind.Undo);
+
+        Assert.That(Channel("torso", XafChannelProperty.Rotation)?.Keyframes.Exists(key => key.Time == 1.5f) ?? false, Is.False);
     }
 
     [Test]
