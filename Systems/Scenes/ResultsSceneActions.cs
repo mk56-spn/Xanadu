@@ -10,6 +10,9 @@ public static class ResultsSceneActions
         registry.Register(SceneKind.Results, SceneActionId.Retry,
             context => context.Scenes.RetryPlay());
 
+        registry.Register(SceneKind.Results, SceneActionId.WatchReplay,
+            context => context.Scenes.WatchLastReplay());
+
         registry.Register(SceneKind.Results, SceneActionId.SongSelect,
             context => context.Scenes.Request(SceneKind.SongSelect));
 

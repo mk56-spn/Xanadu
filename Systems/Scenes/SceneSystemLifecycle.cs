@@ -5,6 +5,7 @@ using Friflo.Engine.ECS.Systems;
 using Godot;
 using Xanadu.Ecs;
 using Xanadu.Levels;
+using Xanadu.Replays;
 using Xanadu.Profiles;
 using Xanadu.Scenes;
 using Xanadu.Settings;
@@ -81,8 +82,12 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
         LevelEntry? playEntry = null;
         PlayResults results = default;
 
+        Replay? replay = null;
         if (next == SceneKind.Play)
         {
+            replay = _pendingReplay;
+            _pendingReplay = null;
+            _watchingReplay = replay is not null;
             playEntry = _pendingPlayEntry ?? LoadEntry(state.SelectedLevelPath);
             _pendingPlayEntry = null;
 
@@ -98,13 +103,17 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
         else
         {
             _pendingPlayEntry = null;
+            _pendingReplay = null;
         }
 
         if (next == SceneKind.Results)
         {
             results = _pendingResults ?? CapturePlayResults();
-            if (_pendingResults is null && _lastPlayEntry is not null)
+            if (_pendingResults is null && _lastPlayEntry is not null && !_watchingReplay)
+            {
                 _profiles.RecordScore(_lastPlayEntry.Path, results);
+                SaveReplay(_lastPlayEntry, results);
+            }
 
             _pendingResults = null;
         }
@@ -130,7 +139,14 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
             _loadLevels,
             next == SceneKind.Editor ? _pendingEditorEntry : playEntry,
             results,
-            _pendingStart);
+            _pendingStart,
+            replay,
+            RecordReplay: _replays is not null &&
+                          next == SceneKind.Play &&
+                          replay is null &&
+                          _pendingStart is null &&
+                          !IsEditorPreview,
+            CanWatchReplay: _lastReplay is not null);
         _pendingEditorEntry = null;
         _pendingStart = null;
 

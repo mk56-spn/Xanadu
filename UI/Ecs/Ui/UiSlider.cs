@@ -9,7 +9,8 @@ public struct UiSlider(
     float min,
     float max,
     float value,
-    string prefix = "") : IComponent
+    string prefix = "",
+    string format = "0") : IComponent
 {
     public Entity Fill = fill;
     public Entity Label = label;
@@ -17,4 +18,7 @@ public struct UiSlider(
     public float Max = max;
     public float Value = value;
     public string Prefix = prefix;
+
+    /// <summary>Number format for the value shown in the label.</summary>
+    public string Format = format;
 }

@@ -37,6 +37,32 @@ public sealed class LevelDocument
 
     /// <summary>The groups that have a name or effects; the rest are empty slots.</summary>
     public List<GroupDocument> Groups { get; set; } = new();
+
+    /// <summary>Custom shaders, in slots 1 to <see cref="ShaderLimits.Count"/>.</summary>
+    public List<ShaderDocument> Shaders { get; set; } = new();
+
+    /// <summary>The shader slot the player is drawn with, or 0 for none.</summary>
+    public int PlayerShader { get; set; }
+
+    /// <summary>The shader slot the playfield background is drawn with, or 0 for none.</summary>
+    public int FieldShader { get; set; }
+}
+
+/// <summary>
+/// A shader a level carries with it: the source, copied in so the level is
+/// self-contained, and the uniform values tuned for it.
+/// </summary>
+public sealed class ShaderDocument
+{
+    /// <summary>The slot, 1 to <see cref="ShaderLimits.Count"/>, items refer to.</summary>
+    public int Slot { get; set; }
+
+    public string Name { get; set; } = "";
+
+    public string Source { get; set; } = "";
+
+    /// <summary>Tuned uniform values by name; vectors and colours are one float per channel.</summary>
+    public Dictionary<string, float[]> Params { get; set; } = new();
 }
 
 /// <summary>Serializable group: a slot number, a name and its timed effects.</summary>
@@ -80,6 +106,9 @@ public sealed class BlockDocument
     /// <summary>The groups this block belongs to.</summary>
     public List<int> Groups { get; set; } = new();
 
+    /// <summary>The shader slot it is drawn with, or 0 for none.</summary>
+    public int Shader { get; set; }
+
     public float X { get; set; }
 
     public float Y { get; set; }
@@ -118,6 +147,9 @@ public sealed class MineDocument
     /// <summary>The groups this mine belongs to.</summary>
     public List<int> Groups { get; set; } = new();
 
+    /// <summary>The shader slot it is drawn with, or 0 for none.</summary>
+    public int Shader { get; set; }
+
     public long TimeMs { get; set; }
 
     public float X { get; set; }
@@ -134,6 +166,9 @@ public sealed class NoteDocument
 {
     /// <summary>The groups this note belongs to.</summary>
     public List<int> Groups { get; set; } = new();
+
+    /// <summary>The shader slot it is drawn with, or 0 for none.</summary>
+    public int Shader { get; set; }
 
     public long TimeMs { get; set; }
 

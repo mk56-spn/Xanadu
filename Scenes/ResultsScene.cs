@@ -14,7 +14,8 @@ public static class ResultsScene
         Entity root,
         Vector2 screen,
         PlayResults results,
-        IVisualRidFactory? visuals = null)
+        IVisualRidFactory? visuals = null,
+        bool canWatchReplay = false)
     {
         UiBuilder ui = SceneUi.Layer(entities, root, SceneUi.MenuLayer, visuals);
         SceneUi.Background(ui, screen);
@@ -167,6 +168,18 @@ public static class ResultsScene
             14,
             SceneUi.TextColor,
             SceneUi.PanelColor);
+
+        if (canWatchReplay)
+        {
+            Entity watch = SceneUi.ButtonEntity(
+                ui,
+                new Vector2(centerX, screen.Y - 140),
+                new Vector2(220, 44),
+                LocalizedText.Get(ResultsStrings.WatchReplay),
+                16,
+                SceneUi.MutedButtonColor);
+            watch.AddComponent(new SceneCommand(SceneActionId.WatchReplay));
+        }
 
         Entity retry = SceneUi.ButtonEntity(
             ui,

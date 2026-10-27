@@ -94,28 +94,28 @@ public partial class Main : Control
 			return;
 
 		switch (keycode)
-		{
-			case Key.Left:
-				if (_systems?.Scenes.TryStepCarousel(-1) == true)
-					GetViewport().SetInputAsHandled();
-				break;
+		    {
+			    case Key.Left:
+				    if (_systems?.Scenes.TryStepCarousel(-1) == true)
+					    GetViewport().SetInputAsHandled();
+				    break;
 
-			case Key.Right:
-				if (_systems?.Scenes.TryStepCarousel(1) == true)
-					GetViewport().SetInputAsHandled();
-				break;
+			    case Key.Right:
+				    if (_systems?.Scenes.TryStepCarousel(1) == true)
+					    GetViewport().SetInputAsHandled();
+				    break;
 
-			case Key.Bracketleft:
-				if (_systems?.Scenes.CyclePreviewStart(-1) == true)
-					GetViewport().SetInputAsHandled();
-				break;
+			    case Key.Bracketleft:
+				    if (_systems?.Scenes.CyclePreviewStart(-1) == true)
+					    GetViewport().SetInputAsHandled();
+				    break;
 
-			case Key.Bracketright:
-				if (_systems?.Scenes.CyclePreviewStart(1) == true)
-					GetViewport().SetInputAsHandled();
-				break;
+			    case Key.Bracketright:
+				    if (_systems?.Scenes.CyclePreviewStart(1) == true)
+					    GetViewport().SetInputAsHandled();
+				    break;
 
-			case Key.Escape:
+			    case Key.Escape:
 				_systems?.Scenes.TryBack();
 				GetViewport().SetInputAsHandled();
 				break;

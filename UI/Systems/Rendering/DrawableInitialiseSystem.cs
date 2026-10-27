@@ -60,7 +60,10 @@ public sealed class DrawableInitialiseSystem : QuerySystem<Rectangle, Drawable, 
             RenderingServer.CanvasItemSetZIndex(
                 visual.Value,
                 LocalZIndex(entity));
-            RenderingServer.CanvasItemSetTransform(visual.Value, new Transform2D(0, position.Value));
+            RenderingServer.CanvasItemSetTransform(visual.Value, UiTransform.Local(entity, position.Value));
+            if (entity.TryGetComponent(out UiMaterial material))
+                RenderingServer.CanvasItemSetMaterial(visual.Value, material.Material.GetRid());
+
             buffer.RemoveTag<Uninitialised>(entity.Id);
         });
     }
@@ -86,7 +89,7 @@ public sealed class DrawableInitialiseSystem : QuerySystem<Rectangle, Drawable, 
         if (entity.Tags.Has<UiOverlay>())
             return 5;
 
-        if (entity.Tags.Has<UiSliderFill>())
+        if (entity.Tags.Has<UiSliderFill>() || entity.Tags.Has<UiRaised>())
             return 2;
 
         return entity.HasComponent<Text>() ||

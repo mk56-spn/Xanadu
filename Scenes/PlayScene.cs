@@ -7,6 +7,7 @@ using Xanadu.Ecs;
 using Xanadu.Strings;
 using Position = Xanadu.Ecs.Position;
 using Xanadu.Levels;
+using Xanadu.Replays;
 using Xanadu.Settings;
 using Xanadu.Scoring;
 using Xanadu.Systems.Playfields;
@@ -27,7 +28,9 @@ public static class PlayScene
         LevelEntry entry,
         KeybindSettings keybinds,
         IVisualRidFactory? visuals = null,
-        StartPoint? start = null)
+        StartPoint? start = null,
+        Replay? replay = null,
+        bool record = false)
     {
         LevelDocument document = entry.Document;
         SongDocument? song = entry.Song;
@@ -65,6 +68,7 @@ public static class PlayScene
             new Character(1f),
             new Momentum(System.Numerics.Vector2.Zero));
 
+        playfieldEntity.AddComponent(LevelShaders.Create());
         root.AddChild(playfieldEntity);
         playfieldEntity.AddComponent(new PlayerCharacter(CharacterKind.Contact));
         playfieldEntity.AddComponent(new ContactCounters());
@@ -343,6 +347,11 @@ public static class PlayScene
             countdown,
             Math.Max(lastNote, lastMine),
             start?.TimeMs ?? 0));
+
+        if (replay is not null)
+            playfieldEntity.AddComponent(new ReplayPlayer(replay));
+        else if (record)
+            playfieldEntity.AddComponent(ReplayRecorder.Create());
     }
 
     /// <summary>Where the player starts: the start point plus its groups' move at its time.</summary>

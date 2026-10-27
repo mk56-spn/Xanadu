@@ -47,6 +47,22 @@ public sealed class TextDrawSystemTests : EcsSystemTest
     }
 
     [Test]
+    public void BoldTextStyleReachesTheCanvasAsBold()
+    {
+        Entity bold = AddText("Title");
+        bold.AddComponent(new TextStyle(32, Colors.Gold, bold: true));
+        bold.AddComponent(new TextAlignment(TextAlign.Left));
+        Entity regular = AddText("Body");
+        regular.AddComponent(new TextStyle(16, Colors.White));
+
+        Frame();
+
+        Assert.That(_canvas.Draws.Single(d => d.Text == "Title").Bold, Is.True);
+        Assert.That(_canvas.Draws.Single(d => d.Text == "Title").Align, Is.EqualTo(TextAlign.Left));
+        Assert.That(_canvas.Draws.Single(d => d.Text == "Body").Bold, Is.False);
+    }
+
+    [Test]
     public void TextStyleOverridesFontSizeAndColor()
     {
         Entity entity = AddText("Title");
@@ -151,6 +167,16 @@ public sealed class TextDrawSystemTests : EcsSystemTest
                 fontSize,
                 TextAlign.Right));
 
+        public void DrawTextWeighted(
+            Rid canvas,
+            Rect2 bounds,
+            string text,
+            Color color,
+            int fontSize,
+            TextAlign align,
+            bool bold) =>
+            Draws.Add(new DrawCall(canvas, bounds, text, color, fontSize, align, bold));
+
         public void DrawTextLeft(Rid canvas, Rect2 bounds, string text, Color color) { }
 
         public void DrawTextRight(Rid canvas, Rect2 bounds, string text, Color color) { }
@@ -161,6 +187,7 @@ public sealed class TextDrawSystemTests : EcsSystemTest
             string Text,
             Color Color,
             int FontSize = 0,
-            TextAlign? Align = null);
+            TextAlign? Align = null,
+            bool Bold = false);
     }
 }

@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
+using Xanadu.Levels;
 
 namespace Xanadu.Ecs;
 
@@ -65,7 +66,11 @@ public struct SongSelectState(
     int count,
     List<Entity> tiles,
     List<Entity> names,
-    List<Entity> metas,
+    List<Entity> songs,
+    List<Entity> artists,
+    List<Entity> details,
+    Entity thumb,
+    List<Entity> chips,
     Entity play,
     Entity edit,
     string playLabel,
@@ -73,14 +78,22 @@ public struct SongSelectState(
 {
     public int Selected = selected;
     public int Count = count;
+
+    /// <summary>Animated list position in levels; eases toward <see cref="Selected"/>.</summary>
+    public float Scroll;
+
+    public IReadOnlyList<LevelEntry> Catalog = [];
     public List<Entity> Tiles = tiles;
     public List<Entity> Names = names;
-    public List<Entity> Metas = metas;
+    public List<Entity> Songs = songs;
+    public List<Entity> Artists = artists;
+    public List<Entity> Details = details;
+    public Entity Thumb = thumb;
+    public List<Entity> Chips = chips;
     public Entity Play = play;
     public Entity Edit = edit;
     public string PlayLabel = playLabel;
     public string EditLabel = editLabel;
-    public int PageStart;
 }
 
 /// <summary>A clickable level slot in the song-select grid.</summary>

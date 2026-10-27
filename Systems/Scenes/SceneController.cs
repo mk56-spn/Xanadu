@@ -5,6 +5,7 @@ using Godot;
 using Xanadu.Ecs;
 using Xanadu.Levels;
 using Xanadu.Profiles;
+using Xanadu.Replays;
 using Xanadu.Scenes;
 using SceneState = Xanadu.Ecs.SceneState;
 using Xanadu.Settings;
@@ -24,7 +25,10 @@ public sealed record SceneBuildContext(
     Func<List<LevelEntry>> LoadLevels,
     LevelEntry? Entry = null,
     PlayResults? Results = null,
-    StartPoint? Start = null);
+    StartPoint? Start = null,
+    Replay? Replay = null,
+    bool RecordReplay = false,
+    bool CanWatchReplay = false);
 
 /// <summary>A scene-specific builder registered with the scene manager.</summary>
 public interface ISceneController
@@ -211,7 +215,9 @@ public sealed class SceneControllerRegistry
             c.Entry!,
             c.Keybinds,
             c.Visuals,
-            c.Start);
+            c.Start,
+            c.Replay,
+            c.RecordReplay);
         public SceneKind BackTarget => SceneKind.SongSelect;
         public bool PausesOnBack => true;
     }
@@ -220,7 +226,7 @@ public sealed class SceneControllerRegistry
     {
         public SceneKind Kind => SceneKind.Results;
         public string Label => "RESULTS";
-        public void Build(SceneBuildContext c) => ResultsScene.Build(c.Entities, c.Root, c.Screen, c.Results ?? default, c.Visuals);
+        public void Build(SceneBuildContext c) => ResultsScene.Build(c.Entities, c.Root, c.Screen, c.Results ?? default, c.Visuals, c.CanWatchReplay);
         public bool TryForward(SceneSystem system)
         {
             system.Request(SceneKind.SongSelect);

@@ -54,6 +54,9 @@ public sealed class XanaduSystemRoot : SystemRoot, IDisposable
     public KeybindSettings Keybinds { get; }
     public IKeyboardState Keyboard { get; }
 
+    /// <summary>What the playfield reads: the keyboard, or a replay's keys.</summary>
+    public Xanadu.Systems.Replays.ReplayKeyboard PlayKeyboard { get; }
+
     public ToastSystem Toasts { get; }
 
     public OffsetSettings Offsets { get; }
@@ -82,6 +85,7 @@ public sealed class XanaduSystemRoot : SystemRoot, IDisposable
         Commands = new EditorCommandBus();
         Keybinds = keybinds ?? new KeybindSettings();
         Keyboard = keyboard ?? new GodotKeyboardState();
+        PlayKeyboard = new Xanadu.Systems.Replays.ReplayKeyboard(Keyboard);
         Toasts = new ToastSystem(
             entities,
             viewportSize,
@@ -105,7 +109,8 @@ public sealed class XanaduSystemRoot : SystemRoot, IDisposable
             keybinds: Keybinds,
             transitions: transitions,
             profiles: Profiles,
-            display: Display);
+            display: Display,
+            replays: Xanadu.Replays.ReplayStore.Default);
         _sceneDirector = sceneDirector;
         sceneDirector.Changed += OnSceneChanged;
 
@@ -145,6 +150,7 @@ public sealed class XanaduSystemRoot : SystemRoot, IDisposable
 
         Xanadu.Systems.Ui.UiBootstrap.AttachInitialization(this, parentCanvas);
         Add(new PhysicsSystemGroup(Physics, entities));
+        Add(new Xanadu.Systems.Scenes.SongSelectScrollSystem());
         Xanadu.Systems.Ui.UiBootstrap.AttachPresentation(this, canvas);
         Add(new AudioSystemGroup(_trackAudio, new GodotTrackClock(), canvas, _timeline));
         Add(new PlayfieldSystemGroup(
@@ -153,14 +159,15 @@ public sealed class XanaduSystemRoot : SystemRoot, IDisposable
             _playfield,
             _playfieldAudio,
             Keybinds,
-            Keyboard,
+            PlayKeyboard,
             Offsets,
             pointerInput,
             Hud,
             _hudEditOverlay,
             new GodotCharacterRigFiles(),
             () => new SvgAttachmentVisuals(_characters),
-            _particles));
+            _particles,
+            PlayKeyboard));
         _editorSystems = new EditorSystemGroup(
             entities,
             Commands,
@@ -195,6 +202,10 @@ public sealed class XanaduSystemRoot : SystemRoot, IDisposable
             Physics,
             new GodotOverlayToggleSource(Key.F6),
             new GodotOverlayPageSource()));
+        Add(new Xanadu.Systems.Shaders.ShaderTunerSystem(
+            entities,
+            Keyboard,
+            Xanadu.Systems.Shaders.ShaderParamStore.Default));
         Add(Toasts);
 
         SetMonitorPerf(true);

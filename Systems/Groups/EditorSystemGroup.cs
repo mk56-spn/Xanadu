@@ -3,6 +3,7 @@ using Friflo.Engine.ECS.Systems;
 using Godot;
 using Xanadu.Editor;
 using Xanadu.Editor.Commands;
+using Xanadu.Editor.Recovery;
 using Xanadu.Systems.Audio;
 using Xanadu.Systems.Canvas;
 using Xanadu.Systems.Editor;
@@ -25,6 +26,7 @@ public sealed class EditorSystemGroup : SystemGroup
     {
         Add(new EditorCommandSystem(entities, commands, history));
         Add(new EditorTimelineSystem());
+        Add(new EditorAutosaveSystem(entities, LevelRecoveryStore.Default));
         Add(new EditorMetronomeSystem(metronomeAudio));
         Add(new EditorGroupTargetSystem(entities, pointerInput, history));
         Add(new EditorNoteInputSystem(entities, pointerInput, history));
@@ -39,6 +41,7 @@ public sealed class EditorSystemGroup : SystemGroup
         Add(new EditorMetadataSystem(entities, commands));
         Add(new EditorHudSystem(entities));
         Add(new WaveformPreviewSystem());
+        Add(new EditorAnalysisSystem(entities));
         Add(new EditorPlayfieldDrawSystem(entities, canvas, playfieldCanvas));
         Add(new WarningPopupSystem(entities));
     }

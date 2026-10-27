@@ -94,18 +94,73 @@ public sealed class SceneSystemTests
         SongSelectState view = root.GetComponent<SongSelectState>();
         Assert.That(view.Count, Is.EqualTo(2));
         Assert.That(view.Selected, Is.EqualTo(0));
-        Assert.That(view.Names[0].GetComponent<Text>().Value,
+        Assert.That(view.Names[4].GetComponent<Text>().Value,
             Is.EqualTo("First Level"));
 
         Entity step = _store.CreateEntity(new SceneCommand(SceneActionId.Next), Tags.Get<Pressed>());
         Frame();
 
+        SettleScroll(root);
         view = root.GetComponent<SongSelectState>();
         Assert.That(view.Selected, Is.EqualTo(1));
-        Assert.That(view.Names[1].GetComponent<Text>().Value,
+        Assert.That(view.Names[4].GetComponent<Text>().Value,
             Is.EqualTo("Second Level"));
 
         step.DeleteEntity();
+    }
+
+    private static void SettleScroll(Entity root)
+    {
+        ref SongSelectState view = ref root.GetComponent<SongSelectState>();
+        for (int i = 0; i < 600 && SongSelectScene.AdvanceScroll(ref view, 1f / 60f); i++)
+        {
+        }
+    }
+
+    [Test]
+    public void SongSelectScrollEasesBetweenSlotsThenRests()
+    {
+        _scenes.Start(SceneKind.SongSelect);
+        Frame();
+
+        Entity root = _store.Query<SceneRoot>().ToEntityList()[0];
+        float restY = root.GetComponent<SongSelectState>()
+            .Tiles[4].GetComponent<Xanadu.Ecs.Position>().Value.Y;
+
+        Entity step = _store.CreateEntity(new SceneCommand(SceneActionId.Next), Tags.Get<Pressed>());
+        Frame();
+        step.DeleteEntity();
+
+        ref SongSelectState view = ref root.GetComponent<SongSelectState>();
+        Assert.That(SongSelectScene.AdvanceScroll(ref view, 1f / 60f), Is.True);
+        Assert.That(view.Scroll, Is.GreaterThan(0).And.LessThan(1));
+        float midY = view.Tiles[4].GetComponent<Xanadu.Ecs.Position>().Value.Y;
+        Assert.That(midY, Is.LessThan(restY));
+
+        SettleScroll(root);
+        Assert.That(view.Scroll, Is.EqualTo(1f));
+        Assert.That(
+            view.Tiles[4].GetComponent<Xanadu.Ecs.Position>().Value.Y,
+            Is.EqualTo(restY).Within(0.01f));
+        Assert.That(SongSelectScene.AdvanceScroll(ref view, 1f / 60f), Is.False);
+    }
+
+    [Test]
+    public void SongSelectScrollAdvancesAcrossFramesInTheSystemRoot()
+    {
+        _root.Add(new Xanadu.Systems.Scenes.SongSelectScrollSystem());
+        _scenes.Start(SceneKind.SongSelect);
+        Frame();
+
+        Assert.That(_scenes.TryStepCarousel(1), Is.True);
+        Entity root = _store.Query<SceneRoot>().ToEntityList()[0];
+        Frame();
+        float first = root.GetComponent<SongSelectState>().Scroll;
+        Frame();
+        float second = root.GetComponent<SongSelectState>().Scroll;
+
+        Assert.That(first, Is.GreaterThan(0).And.LessThan(1));
+        Assert.That(second, Is.GreaterThan(first).And.LessThan(1));
     }
 
     [Test]
@@ -122,10 +177,11 @@ public sealed class SceneSystemTests
         Frame();
 
         Entity root = _store.Query<SceneRoot>().ToEntityList()[0];
+        SettleScroll(root);
         SongSelectState view = root.GetComponent<SongSelectState>();
         Assert.That(view.Selected, Is.EqualTo(1));
         Assert.That(
-            view.Names[1].GetComponent<Text>().Value,
+            view.Names[4].GetComponent<Text>().Value,
             Is.EqualTo("Second Level"));
         Assert.That(
             _store.Query<Xanadu.Ecs.SceneState>().ToEntityList()[0]
@@ -163,9 +219,9 @@ public sealed class SceneSystemTests
 
         Entity root = _store.Query<SceneRoot>().ToEntityList()[0];
         SongSelectState view = root.GetComponent<SongSelectState>();
-        Assert.That(view.Tiles, Has.Count.EqualTo(9));
+        Assert.That(view.Tiles, Has.Count.EqualTo(8));
         Assert.That(
-            view.Names[0].GetComponent<Text>().Value,
+            view.Names[4].GetComponent<Text>().Value,
             Is.EqualTo("First Level"));
     }
 

@@ -52,19 +52,25 @@ public static partial class PlayfieldRenderer
         EntityStore entities,
         PlayfieldView view,
         Playfield playfield,
-        Playhead playhead)
+        Playhead playhead,
+        int fieldShader = 0,
+        int playerShader = 0)
     {
         canvas.DrawRect(rid, new Rect2(Vector2.Zero, view.ScreenSize), PlayBackground);
 
         Rect2 field = FieldRect(view, playfield);
+        canvas.SelectShader(fieldShader);
         canvas.DrawRect(rid, field, PlayfieldBackground);
         DrawBorder(canvas, rid, field, BorderColor, 2);
+        canvas.SelectShader(0);
 
         DrawBlocks(canvas, rid, entities, view);
         DrawNotes(canvas, rid, entities, view, playfield, playhead, default);
         DrawMines(canvas, rid, entities, view, playhead);
         DrawDashTrails(canvas, rid, entities);
+        canvas.SelectShader(playerShader);
         DrawPlayer(canvas, rid, entities, view);
+        canvas.SelectShader(0);
         DrawHitTrails(canvas, rid, entities);
         DrawKeyTrail(canvas, rid, entities, field, playhead);
         DrawTransport(canvas, rid, field, playhead);

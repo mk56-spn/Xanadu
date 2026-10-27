@@ -39,33 +39,14 @@ public sealed class TextDrawSystem : QuerySystem<Text, Rectangle, Drawable, Visu
                     ? entity.GetComponent<TextAlignment>().Align
                     : TextAlign.Center;
 
-                if (align == TextAlign.Left)
-                {
-                    _canvas.DrawTextStyledLeft(
-                        visual.Value,
-                        rect.Bounds,
-                        text.Value,
-                        style.Color,
-                        style.FontSize);
-                }
-                else if (align == TextAlign.Right)
-                {
-                    _canvas.DrawTextStyledRight(
-                        visual.Value,
-                        rect.Bounds,
-                        text.Value,
-                        style.Color,
-                        style.FontSize);
-                }
-                else
-                {
-                    _canvas.DrawTextStyled(
-                        visual.Value,
-                        rect.Bounds,
-                        text.Value,
-                        style.Color,
-                        style.FontSize);
-                }
+                _canvas.DrawTextWeighted(
+                    visual.Value,
+                    rect.Bounds,
+                    text.Value,
+                    style.Color,
+                    style.FontSize,
+                    align,
+                    style.Bold);
             }
             else
             {

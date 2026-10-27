@@ -28,6 +28,14 @@ public static class LevelDocumentMapper
             Groups = CaptureGroups(editor),
         };
 
+        CaptureShaders(editor, document);
+
+        // A brand-new level keeps the identity the document constructor made.
+        if (level.LevelId.Length > 0)
+            document.Id = level.LevelId;
+        if (level.Slug.Length > 0)
+            document.Slug = level.Slug;
+
         foreach (Entity entity in entities.Query<Note>().ToEntityList())
         {
             Note note = entity.GetComponent<Note>();
@@ -42,6 +50,7 @@ public static class LevelDocumentMapper
                 ContactRequired = note.ContactRequired,
                 Character = note.Character,
                 Groups = GroupsOf(entity),
+                Shader = ItemShader.Of(entity),
             });
         }
 
@@ -58,6 +67,7 @@ public static class LevelDocumentMapper
                 FadeInMs = mine.FadeInMs,
                 FadeOutMs = mine.FadeOutMs,
                 Groups = GroupsOf(entity),
+                Shader = ItemShader.Of(entity),
             });
         }
 
@@ -92,6 +102,7 @@ public static class LevelDocumentMapper
                 Width = block.Size.X,
                 Height = block.Size.Y,
                 Groups = GroupsOf(entity),
+                Shader = ItemShader.Of(entity),
             });
         }
 
@@ -119,6 +130,7 @@ public static class LevelDocumentMapper
             entity.DeleteEntity();
 
         ApplyGroups(editor, document.Groups);
+        ApplyShaders(editor, document);
 
         foreach (NoteDocument note in document.Notes)
         {
@@ -129,7 +141,7 @@ public static class LevelDocumentMapper
                 note.Kind,
                 note.DashDirection,
                 note.ContactRequired,
-                note.Character));
+                note.Character), note.Shader);
             Subscribe(created, note.Groups);
         }
 
@@ -157,7 +169,7 @@ public static class LevelDocumentMapper
                 mine.TimeMs,
                 new Vector2(mine.X, mine.Y),
                 mine.FadeInMs,
-                mine.FadeOutMs));
+                mine.FadeOutMs), mine.Shader);
             Subscribe(created, mine.Groups);
         }
 
@@ -168,7 +180,7 @@ public static class LevelDocumentMapper
         {
             Entity created = EditorItems.Create(entities, new Block(
                 new Vector2(block.X, block.Y),
-                new Vector2(block.Width, block.Height)));
+                new Vector2(block.Width, block.Height)), block.Shader);
             Subscribe(created, block.Groups);
         }
 
@@ -177,6 +189,8 @@ public static class LevelDocumentMapper
             : new SongStore().Find(document.SongId);
 
         ref LevelInfo level = ref editor.GetComponent<LevelInfo>();
+        level.LevelId = document.Id ?? "";
+        level.Slug = document.Slug ?? "";
         level.SongId = document.SongId;
         level.Name = document.Name;
         level.AudioPath = song?.AudioPath ?? level.AudioPath;
@@ -196,6 +210,62 @@ public static class LevelDocumentMapper
         playhead.Playing = false;
         playhead.SeekRequestMs = 0;
         playhead.AudioRevision++;
+    }
+
+    private static void CaptureShaders(Entity editor, LevelDocument document)
+    {
+        if (!editor.TryGetComponent(out LevelShaders shaders))
+            return;
+
+        for (int i = 0; i < shaders.Slots.Length; i++)
+        {
+            ShaderSlot? slot = shaders.Slots[i];
+            if (slot is null)
+                continue;
+
+            document.Shaders.Add(new ShaderDocument
+            {
+                Slot = i + 1,
+                Name = slot.Name,
+                Source = slot.Source,
+                Params = new Dictionary<string, float[]>(slot.Params),
+            });
+        }
+
+        document.PlayerShader = shaders.PlayerSlot;
+        document.FieldShader = shaders.FieldSlot;
+    }
+
+    private static void ApplyShaders(Entity editor, LevelDocument document)
+    {
+        LevelShaders shaders = LevelShaders.Create();
+        foreach (ShaderDocument shader in document.Shaders ?? new List<ShaderDocument>())
+        {
+            if (!LevelShaders.IsSlot(shader.Slot))
+                continue;
+
+            shaders.Slots[shader.Slot - 1] = new ShaderSlot
+            {
+                Name = shader.Name ?? "",
+                Source = shader.Source ?? "",
+                Params = new Dictionary<string, float[]>(shader.Params ?? new()),
+            };
+        }
+
+        shaders.PlayerSlot = LevelShaders.IsSlot(document.PlayerShader) ? document.PlayerShader : 0;
+        shaders.FieldSlot = LevelShaders.IsSlot(document.FieldShader) ? document.FieldShader : 0;
+
+        if (editor.HasComponent<LevelShaders>())
+        {
+            editor.GetComponent<LevelShaders>() = shaders;
+            return;
+        }
+
+        // Adding the component is a structural change, which the editor's command
+        // system cannot make mid-update; its entity is built with the component,
+        // so this only runs for a level with shaders on an entity made without one.
+        if (document.Shaders is { Count: > 0 })
+            editor.AddComponent(shaders);
     }
 
     private static List<int> GroupsOf(Entity entity) =>

@@ -14,6 +14,7 @@ public sealed class PresentationSystemGroup : SystemGroup
         Add(new RectDrawSystem(canvas));
         Add(new WheelDrawSystem(canvas));
         Add(new GradientDrawSystem(canvas));
+        Add(new ShapeDrawSystem(canvas));
         Add(new TextDrawSystem(canvas));
         Add(new ImageDrawSystem(canvas));
     }

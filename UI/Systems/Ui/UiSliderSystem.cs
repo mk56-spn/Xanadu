@@ -1,4 +1,5 @@
 using System;
+using System.Globalization;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Xanadu.Ecs;
@@ -12,13 +13,19 @@ namespace Xanadu.Systems.Ui;
 public sealed class UiSliderSystem(IPointerInputSource pointer)
     : QuerySystem<UiSlider, Rectangle, Position>
 {
-    private bool _dragging;
+    // The slider under the pointer when the press began. Only it follows the
+    // pointer until release, wherever the pointer then goes.
+    private Entity _dragged;
+    private bool _wasPressed;
 
     protected override void OnUpdate()
     {
         PointerInput input = pointer.Read();
         if (!input.Pressed)
-            _dragging = false;
+            _dragged = default;
+
+        bool pressStarted = input.Pressed && !_wasPressed;
+        _wasPressed = input.Pressed;
 
         CommandBuffer buffer = CommandBuffer;
         Query.ForEachEntity((ref slider, ref rect, ref position, entity) =>
@@ -28,10 +35,10 @@ public sealed class UiSliderSystem(IPointerInputSource pointer)
                 world + rect.Bounds.Position,
                 rect.Bounds.Size);
 
-            if (input.Pressed && bounds.HasPoint(input.Position))
-                _dragging = true;
+            if (pressStarted && _dragged.IsNull && bounds.HasPoint(input.Position))
+                _dragged = entity;
 
-            if (_dragging)
+            if (_dragged == entity)
             {
                 float t = Mathf.Clamp(
                     (input.Position.X - bounds.Position.X) /
@@ -94,7 +101,7 @@ public sealed class UiSliderSystem(IPointerInputSource pointer)
         if (!slider.Label.IsNull && slider.Label.HasComponent<Text>())
         {
             slider.Label.GetComponent<Text>().Value =
-                $"{slider.Prefix}{slider.Value:0}";
+                $"{slider.Prefix}{slider.Value.ToString(slider.Format, CultureInfo.InvariantCulture)}";
             buffer.AddTag<Dirty>(slider.Label.Id);
         }
     }

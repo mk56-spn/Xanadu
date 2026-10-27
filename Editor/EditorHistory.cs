@@ -43,7 +43,8 @@ public sealed class EditorHistory
                 note.DashDirection,
                 note.ContactRequired,
                 note.Character,
-                MaskOf(entity)));
+                MaskOf(entity),
+                ItemShader.Of(entity)));
         }
 
         notes.Sort(static (a, b) =>
@@ -64,7 +65,8 @@ public sealed class EditorHistory
                 mine.Position,
                 mine.FadeInMs,
                 mine.FadeOutMs,
-                MaskOf(entity)));
+                MaskOf(entity),
+                ItemShader.Of(entity)));
         }
 
         mines.Sort(static (a, b) =>
@@ -101,7 +103,7 @@ public sealed class EditorHistory
         foreach (Entity entity in _entities.Query<Block>().ToEntityList())
         {
             Block block = entity.GetComponent<Block>();
-            blocks.Add(new BlockSnapshot(block.Position, block.Size, MaskOf(entity)));
+            blocks.Add(new BlockSnapshot(block.Position, block.Size, MaskOf(entity), ItemShader.Of(entity)));
         }
 
         blocks.Sort(static (a, b) =>
@@ -128,6 +130,7 @@ public sealed class EditorHistory
         if (mask != 0)
             item.AddComponent(new ItemGroups(mask));
     }
+
 
     public void Record(EditorSnapshot before, EditorSnapshot after) =>
         _history.Record(before, after);
@@ -184,7 +187,7 @@ public sealed class EditorHistory
                 note.Kind,
                 note.DashDirection,
                 note.ContactRequired,
-                note.Character));
+                note.Character), note.Shader);
             Subscribe(created, note.Groups);
         }
 
@@ -194,7 +197,7 @@ public sealed class EditorHistory
                 mine.TimeMs,
                 mine.Position,
                 mine.FadeInMs,
-                mine.FadeOutMs));
+                mine.FadeOutMs), mine.Shader);
             Subscribe(created, mine.Groups);
         }
 
@@ -212,7 +215,7 @@ public sealed class EditorHistory
 
         foreach (BlockSnapshot block in snapshot.Blocks)
         {
-            Entity created = EditorItems.Create(_entities, new Block(block.Position, block.Size));
+            Entity created = EditorItems.Create(_entities, new Block(block.Position, block.Size), block.Shader);
             Subscribe(created, block.Groups);
         }
     }
@@ -239,7 +242,8 @@ public readonly record struct StartPointSnapshot(
 public readonly record struct BlockSnapshot(
     Vector2 Position,
     Vector2 Size,
-    uint Groups = 0);
+    uint Groups = 0,
+    int Shader = 0);
 
 /// <summary>Stable serializable mine snapshot used by undo/redo.</summary>
 public readonly record struct MineSnapshot(
@@ -247,7 +251,8 @@ public readonly record struct MineSnapshot(
     Vector2 Position,
     long FadeInMs,
     long FadeOutMs,
-    uint Groups = 0);
+    uint Groups = 0,
+    int Shader = 0);
 
 /// <summary>Stable serializable note snapshot used by undo/redo.</summary>
 public readonly record struct NoteSnapshot(
@@ -258,4 +263,5 @@ public readonly record struct NoteSnapshot(
     DashDirection DashDirection,
     int ContactRequired,
     CharacterKind Character,
-    uint Groups = 0);
+    uint Groups = 0,
+    int Shader = 0);

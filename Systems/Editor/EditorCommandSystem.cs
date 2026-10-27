@@ -13,13 +13,16 @@ using Xanadu.Editor.Commands;
 namespace Xanadu.Systems.Editor;
 
 /// <summary>Single ECS writer for editor intents from the Godot UI.</summary>
-public sealed class EditorCommandSystem :
+public sealed partial class EditorCommandSystem :
     QuerySystem<LevelInfo, Playfield, Playhead, EditorMetronome>
 {
     private readonly EntityStore _entities;
     private readonly EditorCommandBus _commands;
     private readonly EditorHistory _history;
     private readonly List<ClipboardItem> _clipboard = new();
+
+    /// <summary>Edits that change existing entities, which cannot happen while the query runs.</summary>
+    private readonly List<Action> _afterQuery = new();
 
     public EditorCommandSystem(
         EntityStore entities,
@@ -51,6 +54,11 @@ public sealed class EditorCommandSystem :
                     entity);
             }
         });
+
+        foreach (Action edit in _afterQuery)
+            edit();
+
+        _afterQuery.Clear();
     }
 
     private void Apply(
@@ -180,8 +188,38 @@ public sealed class EditorCommandSystem :
                             ref metronome);
                 break;
 
+            case EditorCommandType.RecoverLevel:
+                if (command.Document is null)
+                    break;
+
+                ApplyLevel(
+                    command.Document,
+                    command.Text ?? "",
+                    editor,
+                    ref metronome,
+                    isOnDisk: false);
+                break;
+
+            case EditorCommandType.ImportShader:
+                ImportShader(command, editor);
+                break;
+
+            case EditorCommandType.RemoveShader:
+                RemoveShader(command.IntValue, editor);
+                break;
+
+            case EditorCommandType.AssignShader:
+                AssignShader(command.IntValue, editor);
+                break;
+
+            case EditorCommandType.SetPlayerShader:
+            case EditorCommandType.SetFieldShader:
+                SetSpecialShader(command, editor);
+                break;
+
             case EditorCommandType.SetLevelFile:
                 SetLevelFile(editor, command.Text ?? "");
+                CommandBuffer.AddTag<EditorSaved>(editor.Id);
                 break;
         }
     }
@@ -359,12 +397,12 @@ public sealed class EditorCommandSystem :
             if (entity.HasComponent<Note>())
             {
                 Note note = entity.GetComponent<Note>();
-                _clipboard.Add(new ClipboardItem(note.TimeMs, note, null, null, MaskOf(entity)));
+                _clipboard.Add(new ClipboardItem(note.TimeMs, note, null, null, MaskOf(entity), ItemShader.Of(entity)));
             }
             else if (entity.HasComponent<Mine>())
             {
                 Mine mine = entity.GetComponent<Mine>();
-                _clipboard.Add(new ClipboardItem(mine.TimeMs, null, mine, null, MaskOf(entity)));
+                _clipboard.Add(new ClipboardItem(mine.TimeMs, null, mine, null, MaskOf(entity), ItemShader.Of(entity)));
             }
             else if (entity.HasComponent<StartPoint>())
             {
@@ -396,14 +434,14 @@ public sealed class EditorCommandSystem :
             if (item.Note is { } note)
             {
                 note.TimeMs = time;
-                Entity pasted = EditorItems.Create(_entities, note);
+                Entity pasted = EditorItems.Create(_entities, note, item.Shader);
                 Subscribe(pasted, item.Groups);
                 created.Add(pasted);
             }
             else if (item.Mine is { } mine)
             {
                 mine.TimeMs = time;
-                Entity pasted = EditorItems.Create(_entities, mine);
+                Entity pasted = EditorItems.Create(_entities, mine, item.Shader);
                 Subscribe(pasted, item.Groups);
                 created.Add(pasted);
             }
@@ -455,7 +493,8 @@ public sealed class EditorCommandSystem :
         LevelDocument document,
         string path,
         Entity editor,
-        ref EditorMetronome metronome)
+        ref EditorMetronome metronome,
+        bool isOnDisk = true)
     {
         document.Notes ??= new();
         document.Mines ??= new();
@@ -473,6 +512,10 @@ public sealed class EditorCommandSystem :
             editor.GetComponent<NoteSelection>().Clear();
 
         SetLevelFile(editor, path);
+
+        // A level straight from disk is the clean state to measure edits against.
+        if (isOnDisk)
+            CommandBuffer.AddTag<EditorBaselineStale>(editor.Id);
     }
 
     private static void SetLevelFile(Entity editor, string path)
@@ -492,7 +535,8 @@ public sealed class EditorCommandSystem :
         Note? Note,
         Mine? Mine,
         StartPoint? StartPoint,
-        uint Groups);
+        uint Groups,
+        int Shader = 0);
 
     private static uint MaskOf(Entity entity) =>
         entity.TryGetComponent(out ItemGroups groups) ? groups.Mask : 0u;

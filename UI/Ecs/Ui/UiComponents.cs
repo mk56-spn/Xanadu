@@ -27,11 +27,12 @@ public struct Text(string value) : IComponent
     public string Value = value;
 }
 
-/// <summary>Optional font size and color for an ECS text drawable.</summary>
-public struct TextStyle(int fontSize, Color color) : IComponent
+/// <summary>Optional font size, color and weight for an ECS text drawable.</summary>
+public struct TextStyle(int fontSize, Color color, bool bold = false) : IComponent
 {
     public int FontSize = fontSize;
     public Color Color = color;
+    public bool Bold = bold;
 }
 
 public enum TextAlign
@@ -146,3 +147,10 @@ public struct UiOverlayItem : ITag;
 
 /// <summary>Marks a slider fill so it draws above its track.</summary>
 public struct UiSliderFill : ITag;
+
+/// <summary>
+/// Draws above ordinary buttons and text among its siblings. Equal local z
+/// falls back to initialise order, which follows archetypes, so content that
+/// must sit on a button (list-row text, selection outlines) needs this.
+/// </summary>
+public struct UiRaised : ITag;

@@ -38,7 +38,9 @@ public partial class EditorOverlay : CanvasLayer
     private bool AnyDialogVisible() =>
         (_songPicker?.Visible ?? false) ||
         (_saveAsDialog?.Visible ?? false) ||
-        (_loadDialog?.Visible ?? false);
+        (_loadDialog?.Visible ?? false) ||
+        IsRecoveryDialogVisible() ||
+        IsShaderDialogVisible();
 
     /// <summary>Whether a group's overlay screen is up, which takes over the keyboard and the pointer.</summary>
     private bool IsGroupOverlayOpen()

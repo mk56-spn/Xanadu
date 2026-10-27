@@ -30,6 +30,7 @@ public static partial class PlayfieldRenderer
             if (alpha <= 0)
                 continue;
 
+            canvas.SelectShader(ItemShader.Of(entity));
             Vector2 center = view.PlayfieldToScreen(note.Position);
             float radius = size / 2;
             Color laneColor = GroupColor.For(entity, ColorFor(note));
@@ -76,6 +77,8 @@ public static partial class PlayfieldRenderer
                     color.A);
             }
         }
+
+        canvas.SelectShader(0);
     }
 
     /// <summary>Draws just a note's body at a position, shared by play and the editor's group preview.</summary>
@@ -194,6 +197,7 @@ public static partial class PlayfieldRenderer
             if (alpha <= 0)
                 continue;
 
+            canvas.SelectShader(ItemShader.Of(entity));
             Vector2 center = view.PlayfieldToScreen(mine.Position);
             var bounds = new Rect2(
                 center - new Vector2(size / 2, size / 2),
@@ -236,6 +240,8 @@ public static partial class PlayfieldRenderer
                     color.A);
             }
         }
+
+        canvas.SelectShader(0);
     }
 
     public static Color ColorFor(Note note) =>

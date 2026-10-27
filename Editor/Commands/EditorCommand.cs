@@ -29,7 +29,13 @@ public enum EditorCommandType
     Undo,
     Redo,
     ApplyLevel,
+    RecoverLevel,
     SetLevelFile,
+    ImportShader,
+    RemoveShader,
+    AssignShader,
+    SetPlayerShader,
+    SetFieldShader,
 }
 
 /// <summary>Data-only editor command.</summary>
@@ -38,7 +44,8 @@ public readonly record struct EditorCommand(
     string? Text = null,
     int IntValue = 0,
     long LongValue = 0,
-    LevelDocument? Document = null)
+    LevelDocument? Document = null,
+    string? Text2 = null)
 {
     public static EditorCommand SetName(string value) =>
         new(EditorCommandType.SetName, Text: value);
@@ -106,6 +113,28 @@ public readonly record struct EditorCommand(
     public static EditorCommand ApplyLevel(LevelDocument document, string path) =>
         new(EditorCommandType.ApplyLevel, Text: path, Document: document);
 
+    /// <summary>Like <see cref="ApplyLevel"/>, but the level is unsaved work, not what is on disk.</summary>
+    public static EditorCommand RecoverLevel(LevelDocument document, string path) =>
+        new(EditorCommandType.RecoverLevel, Text: path, Document: document);
+
     public static EditorCommand SetLevelFile(string path) =>
         new(EditorCommandType.SetLevelFile, Text: path);
+
+    /// <summary>Puts shader source into a 1-based slot, replacing what was there.</summary>
+    public static EditorCommand ImportShader(int slot, string name, string source) =>
+        new(EditorCommandType.ImportShader, Text: name, IntValue: slot, Text2: source);
+
+    /// <summary>Empties a slot and takes the shader off everything that used it.</summary>
+    public static EditorCommand RemoveShader(int slot) =>
+        new(EditorCommandType.RemoveShader, IntValue: slot);
+
+    /// <summary>Sets the shader of the selected items; 0 takes it off.</summary>
+    public static EditorCommand AssignShader(int slot) =>
+        new(EditorCommandType.AssignShader, IntValue: slot);
+
+    public static EditorCommand SetPlayerShader(int slot) =>
+        new(EditorCommandType.SetPlayerShader, IntValue: slot);
+
+    public static EditorCommand SetFieldShader(int slot) =>
+        new(EditorCommandType.SetFieldShader, IntValue: slot);
 }
