@@ -26,7 +26,7 @@ public sealed class ProfileStoreTests
             Assert.That(store.Select(first.Id), Is.True);
             Assert.That(store.ActiveProfile?.Name, Is.EqualTo("Alice"));
 
-            string level = Path.Combine(Path.GetTempPath(), "level.json");
+            string level = Path.Combine(Path.GetTempPath(), "level.xmf");
             store.RecordScore(level, new PlayResults("Level", 900_000, 0.97, 42, 50, 55));
             store.RecordScore(level, new PlayResults("Level", 800_000, 0.90, 20, 40, 55));
 
@@ -48,7 +48,7 @@ public sealed class ProfileStoreTests
     public void AllScoresHandlesOverflowSizedLists()
     {
         var store = new ProfileStore(persist: false);
-        string level = Path.Combine(Path.GetTempPath(), "level.json");
+        string level = Path.Combine(Path.GetTempPath(), "level.xmf");
         for (int i = 0; i < 30; i++)
         {
             store.Create($"Player {i}");
@@ -68,7 +68,7 @@ public sealed class ProfileStoreTests
     {
         var store = new ProfileStore(persist: false);
         UserProfile alice = store.Create("Alice");
-        string level = Path.Combine(Path.GetTempPath(), "level.json");
+        string level = Path.Combine(Path.GetTempPath(), "level.xmf");
         store.RecordScore(level, new PlayResults("Level", 700_000, 0.7, 10, 20, 30));
 
         UserProfile bob = store.Create("Bob");

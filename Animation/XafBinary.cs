@@ -3,12 +3,15 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using Godot;
+using Xanadu.Storage;
 
 namespace Xanadu.Animation;
 
 /// <summary>Binary XAF1 reader/writer with a chunk directory.</summary>
 public static class XafBinary
 {
+    private const string Format = "XAF";
+
     private static readonly byte[] Magic = "XAF1"u8.ToArray();
 
     private enum ChunkId : uint
@@ -38,93 +41,45 @@ public static class XafBinary
     public static byte[] Write(XafPackage package, ushort minor)
     {
         XafValidation.ThrowIfInvalid(package);
-        var strings = new StringTable();
+        var strings = new StringTable(Format);
         IndexStrings(package, strings);
 
-        var chunks = new List<(ChunkId Id, byte[] Data)>
-        {
-            (ChunkId.Strings, WriteStrings(strings)),
-            (ChunkId.Skeleton, WriteSkeleton(package.Skeleton, strings, minor)),
-            (ChunkId.Attachments, WriteAttachments(package.Attachments, strings)),
-            (ChunkId.Clips, WriteClips(package.Clips, strings)),
-        };
-
-        using var stream = new MemoryStream();
-        using var writer = new BinaryWriter(stream, Encoding.UTF8, leaveOpen: true);
-        writer.Write(Magic);
-        writer.Write(package.Major);
-        writer.Write(minor);
-        writer.Write((uint)chunks.Count);
-
-        const int directoryEntrySize = 12;
-        int directoryStart = (int)stream.Position;
-        writer.Write(new byte[chunks.Count * directoryEntrySize]);
-
-        var positions = new List<(uint Offset, uint Length)>();
-        foreach ((ChunkId id, byte[] data) in chunks)
-        {
-            positions.Add(((uint)stream.Position, (uint)data.Length));
-            writer.Write(data);
-        }
-
-        long end = stream.Position;
-        stream.Position = directoryStart;
-        for (int i = 0; i < chunks.Count; i++)
-        {
-            writer.Write((uint)chunks[i].Id);
-            writer.Write(positions[i].Offset);
-            writer.Write(positions[i].Length);
-        }
-
-        writer.Flush();
-        return stream.ToArray();
+        var file = new ChunkWriter(Magic, XafPackage.MajorVersion, minor);
+        file.Add((uint)ChunkId.Strings, strings.Write());
+        file.Add((uint)ChunkId.Skeleton, WriteSkeleton(package.Skeleton, strings, minor));
+        file.Add((uint)ChunkId.Attachments, WriteAttachments(package.Attachments, strings));
+        file.Add((uint)ChunkId.Clips, WriteClips(package.Clips, strings));
+        return file.ToArray();
     }
 
     public static XafPackage Read(byte[] data)
     {
-        using var stream = new MemoryStream(data, writable: false);
-        using var reader = new BinaryReader(stream, Encoding.UTF8, leaveOpen: true);
-
-        Span<byte> magic = stackalloc byte[4];
-        if (reader.Read(magic) != 4 || !magic.SequenceEqual(Magic))
-            throw new XafFormatException("Not an XAF1 package.");
-
-        ushort major = reader.ReadUInt16();
-        ushort minor = reader.ReadUInt16();
-        if (major != XafPackage.MajorVersion)
-            throw new XafFormatException($"Unsupported XAF major version {major}.");
-
-        uint chunkCount = reader.ReadUInt32();
-        if (chunkCount > 64)
-            throw new XafFormatException("Too many XAF chunks.");
-
-        var directory = new Dictionary<ChunkId, (int Offset, int Length)>();
-        for (uint i = 0; i < chunkCount; i++)
+        try
         {
-            var id = (ChunkId)reader.ReadUInt32();
-            int offset = checked((int)reader.ReadUInt32());
-            int length = checked((int)reader.ReadUInt32());
-            if (offset < 0 || length < 0 || offset + length > data.Length)
-                throw new XafFormatException("XAF chunk outside file bounds.");
-            directory[id] = (offset, length);
+            return ReadPackage(data);
         }
-
-        if (!directory.TryGetValue(ChunkId.Strings, out var stringsChunk) ||
-            !directory.TryGetValue(ChunkId.Skeleton, out var skeletonChunk) ||
-            !directory.TryGetValue(ChunkId.Attachments, out var attachmentsChunk) ||
-            !directory.TryGetValue(ChunkId.Clips, out var clipsChunk))
+        catch (FormatException exception)
         {
-            throw new XafFormatException("XAF package is missing a required chunk.");
+            throw new XafFormatException(exception.Message);
         }
+    }
 
-        var strings = ReadStrings(data, stringsChunk);
+    private static XafPackage ReadPackage(byte[] data)
+    {
+        ChunkReader file = ChunkReader.Open(data, Magic, XafPackage.MajorVersion, Format);
+        Chunk stringsChunk = file.Get((uint)ChunkId.Strings, Format);
+        Chunk skeletonChunk = file.Get((uint)ChunkId.Skeleton, Format);
+        Chunk attachmentsChunk = file.Get((uint)ChunkId.Attachments, Format);
+        Chunk clipsChunk = file.Get((uint)ChunkId.Clips, Format);
+
+        StringTable strings = StringTable.Read(stringsChunk, Format);
         var package = new XafPackage
         {
-            Major = major,
-            Minor = minor,
-            Skeleton = ReadSkeleton(data, skeletonChunk, strings, minor),
-            Attachments = ReadAttachments(data, attachmentsChunk, strings),
-            Clips = ReadClips(data, clipsChunk, strings),
+            Major = XafPackage.MajorVersion,
+            Minor = file.Minor,
+            Skeleton = ReadSkeleton(skeletonChunk, strings, file.Minor),
+            Attachments = ReadAttachments(attachmentsChunk, strings),
+            Clips = ReadClips(clipsChunk, strings),
         };
         XafValidation.ThrowIfInvalid(package);
         return package;
@@ -148,42 +103,6 @@ public static class XafBinary
         }
     }
 
-    private static byte[] WriteStrings(StringTable table)
-    {
-        using var stream = new MemoryStream();
-        using var writer = new BinaryWriter(stream, Encoding.UTF8, leaveOpen: true);
-        writer.Write((uint)table.Values.Count);
-        foreach (string value in table.Values)
-        {
-            byte[] bytes = Encoding.UTF8.GetBytes(value);
-            writer.Write((uint)bytes.Length);
-            writer.Write(bytes);
-        }
-        writer.Flush();
-        return stream.ToArray();
-    }
-
-    private static StringTable ReadStrings(
-        byte[] data,
-        (int Offset, int Length) chunk)
-    {
-        using var stream = new MemoryStream(data, chunk.Offset, chunk.Length, writable: false);
-        using var reader = new BinaryReader(stream, Encoding.UTF8);
-        uint count = reader.ReadUInt32();
-        if (count > 100_000)
-            throw new XafFormatException("XAF string table is too large.");
-
-        var table = new StringTable();
-        for (uint i = 0; i < count; i++)
-        {
-            int length = checked((int)reader.ReadUInt32());
-            if (length < 0 || length > stream.Length - stream.Position)
-                throw new XafFormatException("Invalid XAF string length.");
-            table.Values.Add(Encoding.UTF8.GetString(reader.ReadBytes(length)));
-        }
-        return table;
-    }
-
     private static byte[] WriteSkeleton(
         XafSkeleton skeleton,
         StringTable strings,
@@ -194,7 +113,7 @@ public static class XafBinary
         writer.Write((uint)skeleton.Bones.Count);
         foreach (XafBone bone in skeleton.Bones)
         {
-            WriteStringIndex(writer, strings, bone.Id);
+            strings.WriteIndex(writer, bone.Id);
             writer.Write(bone.Parent);
             WriteTransform(writer, bone.Rest);
             writer.Write(bone.ZOrder);
@@ -206,13 +125,11 @@ public static class XafBinary
     }
 
     private static XafSkeleton ReadSkeleton(
-        byte[] data,
-        (int Offset, int Length) chunk,
+        Chunk chunk,
         StringTable strings,
         ushort minor)
     {
-        using var stream = new MemoryStream(data, chunk.Offset, chunk.Length, writable: false);
-        using var reader = new BinaryReader(stream, Encoding.UTF8);
+        using BinaryReader reader = chunk.OpenReader();
         uint count = reader.ReadUInt32();
         if (count > 4096)
             throw new XafFormatException("XAF skeleton is too large.");
@@ -220,7 +137,7 @@ public static class XafBinary
         var skeleton = new XafSkeleton();
         for (uint i = 0; i < count; i++)
         {
-            string id = ReadStringIndex(reader, strings);
+            string id = strings.ReadIndex(reader);
             int parent = reader.ReadInt32();
             if (parent < -1 || parent >= count || parent == i)
                 throw new XafFormatException($"Invalid parent for bone '{id}'.");
@@ -245,9 +162,9 @@ public static class XafBinary
         writer.Write((uint)attachments.Count);
         foreach (XafAttachment attachment in attachments)
         {
-            WriteStringIndex(writer, strings, attachment.SvgPath);
-            WriteStringIndex(writer, strings, attachment.Group);
-            WriteStringIndex(writer, strings, attachment.BoneId);
+            strings.WriteIndex(writer, attachment.SvgPath);
+            strings.WriteIndex(writer, attachment.Group);
+            strings.WriteIndex(writer, attachment.BoneId);
             WriteTransform(writer, attachment.Transform);
             writer.Write(attachment.ZOrder);
         }
@@ -256,12 +173,10 @@ public static class XafBinary
     }
 
     private static List<XafAttachment> ReadAttachments(
-        byte[] data,
-        (int Offset, int Length) chunk,
+        Chunk chunk,
         StringTable strings)
     {
-        using var stream = new MemoryStream(data, chunk.Offset, chunk.Length, writable: false);
-        using var reader = new BinaryReader(stream, Encoding.UTF8);
+        using BinaryReader reader = chunk.OpenReader();
         uint count = reader.ReadUInt32();
         if (count > 100_000)
             throw new XafFormatException("XAF attachment table is too large.");
@@ -271,9 +186,9 @@ public static class XafBinary
         {
             attachments.Add(new XafAttachment
             {
-                SvgPath = ReadStringIndex(reader, strings),
-                Group = ReadStringIndex(reader, strings),
-                BoneId = ReadStringIndex(reader, strings),
+                SvgPath = strings.ReadIndex(reader),
+                Group = strings.ReadIndex(reader),
+                BoneId = strings.ReadIndex(reader),
                 Transform = ReadTransform(reader),
                 ZOrder = reader.ReadInt32(),
             });
@@ -288,7 +203,7 @@ public static class XafBinary
         writer.Write((uint)clips.Count);
         foreach (XafClip clip in clips)
         {
-            WriteStringIndex(writer, strings, clip.Id);
+            strings.WriteIndex(writer, clip.Id);
             writer.Write(clip.Duration);
             writer.Write(clip.Loop);
             writer.Write(clip.LoopStart);
@@ -298,7 +213,7 @@ public static class XafBinary
             foreach (XafChannel channel in clip.Channels)
             {
                 writer.Write((byte)channel.Target);
-                WriteStringIndex(writer, strings, channel.TargetId);
+                strings.WriteIndex(writer, channel.TargetId);
                 writer.Write((byte)channel.Property);
                 writer.Write((uint)channel.Keyframes.Count);
                 foreach (XafKeyframe key in channel.Keyframes)
@@ -316,12 +231,10 @@ public static class XafBinary
     }
 
     private static List<XafClip> ReadClips(
-        byte[] data,
-        (int Offset, int Length) chunk,
+        Chunk chunk,
         StringTable strings)
     {
-        using var stream = new MemoryStream(data, chunk.Offset, chunk.Length, writable: false);
-        using var reader = new BinaryReader(stream, Encoding.UTF8);
+        using BinaryReader reader = chunk.OpenReader();
         uint count = reader.ReadUInt32();
         if (count > 4096)
             throw new XafFormatException("XAF clip table is too large.");
@@ -331,7 +244,7 @@ public static class XafBinary
         {
             var clip = new XafClip
             {
-                Id = ReadStringIndex(reader, strings),
+                Id = strings.ReadIndex(reader),
                 Duration = reader.ReadSingle(),
                 Loop = reader.ReadBoolean(),
                 LoopStart = reader.ReadSingle(),
@@ -347,7 +260,7 @@ public static class XafBinary
                 var channel = new XafChannel
                 {
                     Target = (XafChannelTarget)reader.ReadByte(),
-                    TargetId = ReadStringIndex(reader, strings),
+                    TargetId = strings.ReadIndex(reader),
                     Property = (XafChannelProperty)reader.ReadByte(),
                 };
 
@@ -388,38 +301,4 @@ public static class XafBinary
             new Vector2(reader.ReadSingle(), reader.ReadSingle()),
             new Vector2(reader.ReadSingle(), reader.ReadSingle()),
             new Vector2(reader.ReadSingle(), reader.ReadSingle()));
-
-    private static void WriteStringIndex(
-        BinaryWriter writer,
-        StringTable strings,
-        string value) =>
-        writer.Write((uint)strings.GetIndex(value));
-
-    private static string ReadStringIndex(BinaryReader reader, StringTable strings)
-    {
-        uint index = reader.ReadUInt32();
-        if (index >= strings.Values.Count)
-            throw new XafFormatException("XAF string index out of range.");
-        return strings.Values[(int)index];
-    }
-
-    private sealed class StringTable
-    {
-        private readonly Dictionary<string, int> _indices = new(StringComparer.Ordinal);
-        public List<string> Values { get; } = new();
-
-        public void Add(string value)
-        {
-            if (_indices.ContainsKey(value))
-                return;
-            _indices[value] = Values.Count;
-            Values.Add(value);
-        }
-
-        public int GetIndex(string value)
-        {
-            Add(value);
-            return _indices[value];
-        }
-    }
 }
