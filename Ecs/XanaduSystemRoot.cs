@@ -36,6 +36,7 @@ public sealed class XanaduSystemRoot : SystemRoot, IDisposable
     private readonly Rid _playfield;
     private readonly Rid _characters;
     private readonly Rid _particleCanvas;
+    private readonly Rid _hitboxes;
     private readonly GodotParticleEmitter _particles;
     private readonly EntityStore _entities;
     private readonly MiniaudioTrackAudio _trackAudio = new();
@@ -137,6 +138,12 @@ public sealed class XanaduSystemRoot : SystemRoot, IDisposable
         RenderingServer.CanvasItemSetParent(_particleCanvas, _playfield);
         _particles = new GodotParticleEmitter(_particleCanvas);
 
+        // The F10 hitbox outlines: after the art, so the rig cannot hide them,
+        // but still inside the playfield's layer so the HUD stays on top.
+        _hitboxes = RenderingServer.CanvasItemCreate();
+        RenderingServer.CanvasItemSetParent(_hitboxes, _playfield);
+        RenderingServer.CanvasItemSetVisible(_hitboxes, false);
+
         _hudEditOverlay = RenderingServer.CanvasItemCreate();
         RenderingServer.CanvasItemSetParent(_hudEditOverlay, parentCanvas);
         RenderingServer.CanvasItemSetZIndex(_hudEditOverlay, 950);
@@ -167,7 +174,9 @@ public sealed class XanaduSystemRoot : SystemRoot, IDisposable
             new GodotCharacterRigFiles(),
             () => new SvgAttachmentVisuals(_characters),
             _particles,
-            PlayKeyboard));
+            PlayKeyboard,
+            _hitboxes,
+            new GodotOverlayToggleSource(Key.F10)));
         _editorSystems = new EditorSystemGroup(
             entities,
             Commands,
@@ -301,6 +310,7 @@ public sealed class XanaduSystemRoot : SystemRoot, IDisposable
         Physics.Dispose();
         _particles.Dispose();
         RenderingServer.FreeRid(_particleCanvas);
+        RenderingServer.FreeRid(_hitboxes);
         RenderingServer.FreeRid(_characters);
         RenderingServer.FreeRid(_playfield);
         RenderingServer.FreeRid(_groupPreview);

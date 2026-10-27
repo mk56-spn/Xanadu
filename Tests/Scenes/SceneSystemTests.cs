@@ -261,6 +261,30 @@ public sealed class SceneSystemTests
     }
 
     [Test]
+    public void PlaySceneScalesThePlayerWithThePlayfield()
+    {
+        var document = new LevelDocument
+        {
+            Name = "Scaled Level",
+            PlayfieldWidth = 1000,
+            PlayfieldHeight = 1000,
+        };
+
+        _scenes.StartPlay(new LevelEntry("memory://scaled", document));
+        Frame();
+
+        Entity playfield = _store.Query<PlayfieldMode>().ToEntityList()[0];
+        float scale = playfield.GetComponent<PlayfieldView>().Scale;
+        Vector2 size = playfield.GetComponent<Player>().Size;
+
+        // The 1280x720 test screen cannot fit a 1000px field, so the player has
+        // to come out smaller than 200 px too, in the same proportion.
+        Assert.That(scale, Is.LessThan(1f));
+        Assert.That(size, Is.EqualTo(Player.DefaultSize * scale));
+        Assert.That(size.Y / size.X, Is.EqualTo(200f / 30f).Within(0.0001f));
+    }
+
+    [Test]
     public void StartPlayUsesTheProvidedEntry()
     {
         var document = new LevelDocument
