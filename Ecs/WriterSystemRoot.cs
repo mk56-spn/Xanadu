@@ -12,6 +12,7 @@ using Writer.Systems.Characters;
 using Writer.Systems.Debug;
 using Writer.Systems.Groups;
 using Writer.Systems.Input;
+using Writer.Systems.Particles;
 using Writer.Systems.Physics;
 using Writer.Profiles;
 using Writer.Settings;
@@ -33,6 +34,8 @@ public sealed class WriterSystemRoot : SystemRoot, IDisposable
     private readonly Rid _hudEditOverlay;
     private readonly Rid _playfield;
     private readonly Rid _characters;
+    private readonly Rid _particleCanvas;
+    private readonly GodotParticleEmitter _particles;
     private readonly EntityStore _entities;
     private readonly MiniaudioTrackAudio _trackAudio = new();
     private readonly MiniaudioTrackAudio _playfieldAudio = new();
@@ -123,6 +126,11 @@ public sealed class WriterSystemRoot : SystemRoot, IDisposable
         _characters = RenderingServer.CanvasItemCreate();
         RenderingServer.CanvasItemSetParent(_characters, _playfield);
 
+        // Particle bursts: after the characters, so they draw over the rig.
+        _particleCanvas = RenderingServer.CanvasItemCreate();
+        RenderingServer.CanvasItemSetParent(_particleCanvas, _playfield);
+        _particles = new GodotParticleEmitter(_particleCanvas);
+
         _hudEditOverlay = RenderingServer.CanvasItemCreate();
         RenderingServer.CanvasItemSetParent(_hudEditOverlay, parentCanvas);
         RenderingServer.CanvasItemSetZIndex(_hudEditOverlay, 950);
@@ -143,7 +151,8 @@ public sealed class WriterSystemRoot : SystemRoot, IDisposable
             Hud,
             _hudEditOverlay,
             new GodotCharacterRigFiles(),
-            () => new SvgAttachmentVisuals(_characters)));
+            () => new SvgAttachmentVisuals(_characters),
+            _particles));
         _editorSystems = new EditorSystemGroup(
             entities,
             Commands,
@@ -255,6 +264,8 @@ public sealed class WriterSystemRoot : SystemRoot, IDisposable
         _playfieldAudio.Dispose();
         _metronomeAudio.Dispose();
         Physics.Dispose();
+        _particles.Dispose();
+        RenderingServer.FreeRid(_particleCanvas);
         RenderingServer.FreeRid(_characters);
         RenderingServer.FreeRid(_playfield);
         RenderingServer.FreeRid(_timeline);

@@ -109,6 +109,52 @@ public sealed class CharacterMotionTests : EcsSystemTest
         Assert.That(Clip(player), Is.EqualTo("jumping"));
     }
 
+    private System.Collections.Generic.List<ParticleBurst> Bursts()
+    {
+        var bursts = new System.Collections.Generic.List<ParticleBurst>();
+        foreach (Entity entity in Store.Query<ParticleBurst>().ToEntityList())
+            bursts.Add(entity.GetComponent<ParticleBurst>());
+        return bursts;
+    }
+
+    [Test]
+    public void LandingSetsOffDustAtTheFeetOnce()
+    {
+        Entity player = Player(Floor - 200);
+        Frame(2);
+        Assert.That(Bursts(), Is.Empty);
+
+        MoveTo(player, Floor);
+        Frame();
+        Frame(30);
+
+        Assert.That(Bursts(), Has.Count.EqualTo(1));
+        Assert.That(Bursts()[0].Kind, Is.EqualTo(ParticleKind.Landing));
+        // The player is 100 px tall and its position is the centre.
+        Assert.That(Bursts()[0].Position, Is.EqualTo(new Vector2(400, Floor + 50)));
+    }
+
+    [Test]
+    public void StandingOrJumpingSetsOffNoDust()
+    {
+        Entity player = Player(Floor);
+        Frame(3);
+        MoveTo(player, Floor - 150);
+        Frame(2);
+
+        Assert.That(Bursts(), Is.Empty);
+    }
+
+    [Test]
+    public void OnlyTouchingDownFromTheAirCountsAsLanding()
+    {
+        Assert.That(CharacterMotionSystem.Landed(CharacterMotionState.Falling, CharacterMotionState.Landing), Is.True);
+        Assert.That(CharacterMotionSystem.Landed(CharacterMotionState.Jumping, CharacterMotionState.Grounded), Is.True);
+        Assert.That(CharacterMotionSystem.Landed(CharacterMotionState.Landing, CharacterMotionState.Grounded), Is.False);
+        Assert.That(CharacterMotionSystem.Landed(CharacterMotionState.Grounded, CharacterMotionState.Jumping), Is.False);
+        Assert.That(CharacterMotionSystem.Landed(CharacterMotionState.Jumping, CharacterMotionState.Falling), Is.False);
+    }
+
     [Test]
     public void TouchingDownPlaysTheLandingClipThenGoesIdle()
     {
