@@ -3,13 +3,13 @@ config_version=5
 
 [application]
 
-config/name="Writer XAF Animator"
+config/name="Xanadu XAF Animator"
 run/main_scene="res://Animator.tscn"
 config/features=PackedStringArray("4.8", "C#", "Forward Plus")
 
 [dotnet]
 
-project/assembly_name="Writer.AnimatorTool"
+project/assembly_name="Xanadu.AnimatorTool"
 
 [display]
 

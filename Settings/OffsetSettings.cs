@@ -2,7 +2,7 @@ using System;
 using System.IO;
 using System.Text.Json;
 
-namespace Writer.Settings;
+namespace Xanadu.Settings;
 
 /// <summary>Persisted global input/audio calibration offset.</summary>
 public sealed class OffsetSettings

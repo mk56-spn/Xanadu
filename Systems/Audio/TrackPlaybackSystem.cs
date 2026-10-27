@@ -1,9 +1,9 @@
 using System;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
-using Writer.Ecs;
+using Xanadu.Ecs;
 
-namespace Writer.Systems.Audio;
+namespace Xanadu.Systems.Audio;
 
 /// <summary>Advances Beatoraja-style TIMER_PLAY and keeps miniaudio in sync.</summary>
 public sealed class TrackPlaybackSystem : QuerySystem<TrackProgress>

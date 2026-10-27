@@ -2,12 +2,12 @@ using Godot;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using NUnit.Framework;
-using Writer.Ecs;
-using Writer.Settings;
-using Writer.Systems.Input;
-using Writer.Systems.Ui;
+using Xanadu.Ecs;
+using Xanadu.Settings;
+using Xanadu.Systems.Input;
+using Xanadu.Systems.Ui;
 
-namespace Writer.Tests.UI;
+namespace Xanadu.Tests.UI;
 
 [TestFixture]
 public sealed class ToggleSystemTests

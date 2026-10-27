@@ -1,4 +1,4 @@
-namespace Writer.Strings;
+namespace Xanadu.Strings;
 
 public static class SongSelectStrings
 {

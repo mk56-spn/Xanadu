@@ -1,9 +1,9 @@
 using Friflo.Engine.ECS;
 using Godot;
-using Writer.Ecs;
-using Position = Writer.Ecs.Position;
+using Xanadu.Ecs;
+using Position = Xanadu.Ecs.Position;
 
-namespace Writer.Tools.Animator;
+namespace Xanadu.Tools.Animator;
 
 /// <summary>
 /// Placement shared by the animator's floating menus: keeping them on screen,

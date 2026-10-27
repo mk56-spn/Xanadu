@@ -3,10 +3,10 @@ using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Godot;
-using Writer.Ecs;
-using Position = Writer.Ecs.Position;
+using Xanadu.Ecs;
+using Position = Xanadu.Ecs.Position;
 
-namespace Writer.Systems.Layout;
+namespace Xanadu.Systems.Layout;
 
 /// <summary>
 /// Resolves every native <see cref="UiContainer"/> each frame. Auto-sized

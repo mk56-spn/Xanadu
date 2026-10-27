@@ -1,10 +1,10 @@
 using Godot;
 using NUnit.Framework;
-using Writer.Animation;
-using Writer.Tools.Animator;
-using Writer.Tools.Animator.Commands;
+using Xanadu.Animation;
+using Xanadu.Tools.Animator;
+using Xanadu.Tools.Animator.Commands;
 
-namespace Writer.Tests.Animation.Tool;
+namespace Xanadu.Tests.Animation.Tool;
 
 [TestFixture]
 public sealed class AnimatorEditingTests : AnimatorToolTest

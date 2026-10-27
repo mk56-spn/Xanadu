@@ -1,15 +1,64 @@
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using Godot;
-using Writer.Ecs;
+using Xanadu.Ecs;
 
-namespace Writer.Ecs;
+namespace Xanadu.Ecs;
 
 /// <summary>Helpers for participating in native ECS container layout.</summary>
 public static class UiLayout
 {
     /// <summary>Off-screen position used by panels that are not visible.</summary>
     public static readonly Vector2 Hidden = new(-10_000, -10_000);
+
+    /// <summary>Disables or enables a control, dropping any interaction state it held.</summary>
+    public static void SetDisabled(Entity entity, bool disabled)
+    {
+        if (entity.IsNull)
+            return;
+
+        if (disabled)
+        {
+            if (entity.Tags.Has<Disabled>())
+                return;
+
+            entity.AddTag<Disabled>();
+            entity.RemoveTag<Focused>();
+            entity.RemoveTag<Hovered>();
+            entity.RemoveTag<Pressed>();
+            entity.RemoveTag<TextFieldFocused>();
+        }
+        else
+        {
+            entity.RemoveTag<Disabled>();
+        }
+    }
+
+    /// <summary>Buffered variant for use inside system queries.</summary>
+    public static void SetDisabled(
+        Entity entity,
+        CommandBuffer buffer,
+        bool disabled)
+    {
+        if (entity.IsNull)
+            return;
+
+        if (disabled)
+        {
+            if (entity.Tags.Has<Disabled>())
+                return;
+
+            buffer.AddTag<Disabled>(entity.Id);
+            buffer.RemoveTag<Focused>(entity.Id);
+            buffer.RemoveTag<Hovered>(entity.Id);
+            buffer.RemoveTag<Pressed>(entity.Id);
+            buffer.RemoveTag<TextFieldFocused>(entity.Id);
+        }
+        else
+        {
+            buffer.RemoveTag<Disabled>(entity.Id);
+        }
+    }
 
     /// <summary>Includes or excludes an entity from its parent's stack.</summary>
     public static void SetIgnored(Entity entity, bool ignored)

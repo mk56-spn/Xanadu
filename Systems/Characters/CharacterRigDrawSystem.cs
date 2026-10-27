@@ -3,11 +3,11 @@ using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Godot;
-using Writer.Animation;
-using Writer.Ecs;
-using Position = Writer.Ecs.Position;
+using Xanadu.Animation;
+using Xanadu.Ecs;
+using Position = Xanadu.Ecs.Position;
 
-namespace Writer.Systems.Characters;
+namespace Xanadu.Systems.Characters;
 
 /// <summary>
 /// Draws each player's character rig in place of the plain player box. The

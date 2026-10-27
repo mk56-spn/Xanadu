@@ -2,14 +2,14 @@ using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Godot;
 using NUnit.Framework;
-using Writer.Ecs;
-using Writer.Systems.Layout;
-using Writer.Systems.Input;
-using Writer.Systems.Ui;
-using Position = Writer.Ecs.Position;
-using Writer.Tests.Support;
+using Xanadu.Ecs;
+using Xanadu.Systems.Layout;
+using Xanadu.Systems.Input;
+using Xanadu.Systems.Ui;
+using Position = Xanadu.Ecs.Position;
+using Xanadu.Tests.Support;
 
-namespace Writer.Tests.UI;
+namespace Xanadu.Tests.UI;
 
 [TestFixture]
 public sealed class UiBuilderConvenienceTests

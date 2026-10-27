@@ -1,10 +1,10 @@
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using Godot;
-using Writer.Settings;
-using Writer.Systems.Ui;
+using Xanadu.Settings;
+using Xanadu.Systems.Ui;
 
-namespace Writer.Ecs;
+namespace Xanadu.Ecs;
 
 /// <summary>Marks an editable playfield entity. Editor-only; never serialized.</summary>
 public struct EditorItem : ITag;
@@ -266,7 +266,7 @@ public struct EditorLeftMenu(
 }
 
 /// <summary>
-/// Binds the generic Writer.UI wheel to the editor's dash direction. The wheel
+/// Binds the generic Xanadu.UI wheel to the editor's dash direction. The wheel
 /// owns presentation and pointer handling; this adapter only maps wedge indices
 /// to <see cref="DashDirection"/> and owns the floating widget's visibility.
 /// </summary>

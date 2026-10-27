@@ -1,9 +1,9 @@
 using Godot;
-using Writer.Levels;
-using Writer.Ecs;
-using Writer.Editor.Commands;
+using Xanadu.Levels;
+using Xanadu.Ecs;
+using Xanadu.Editor.Commands;
 
-namespace Writer.Editor;
+namespace Xanadu.Editor;
 
 /// <summary>Editor overlay command and preview controls.</summary>
 public partial class EditorOverlay : CanvasLayer

@@ -1,9 +1,9 @@
 using Godot;
 using NUnit.Framework;
-using Writer.Ecs;
-using Writer.Systems.Playfields;
+using Xanadu.Ecs;
+using Xanadu.Systems.Playfields;
 
-namespace Writer.Tests.Playfields;
+namespace Xanadu.Tests.Playfields;
 
 [TestFixture]
 public sealed class MineFadeTests

@@ -3,11 +3,11 @@ using System.Globalization;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Godot;
-using Writer.Ecs;
-using Writer.Editor.Commands;
-using Position = Writer.Ecs.Position;
+using Xanadu.Ecs;
+using Xanadu.Editor.Commands;
+using Position = Xanadu.Ecs.Position;
 
-namespace Writer.Systems.Editor;
+namespace Xanadu.Systems.Editor;
 
 /// <summary>Shows the ECS metadata panel and syncs its text fields to editor state.</summary>
 public sealed class EditorMetadataSystem : QuerySystem<EditorMetadataPanel>

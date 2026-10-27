@@ -1,9 +1,9 @@
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
-using Writer.Ecs;
-using Writer.Settings;
+using Xanadu.Ecs;
+using Xanadu.Settings;
 
-namespace Writer.Systems.Ui;
+namespace Xanadu.Systems.Ui;
 
 /// <summary>Applies ECS VSync toggle changes to display settings.</summary>
 public sealed class VSyncToggleSystem : QuerySystem<Toggle>

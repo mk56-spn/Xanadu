@@ -4,11 +4,11 @@ using System.IO;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Godot;
-using Writer.Ecs;
-using Writer.Systems.Canvas;
-using Writer.Levels;
+using Xanadu.Ecs;
+using Xanadu.Systems.Canvas;
+using Xanadu.Levels;
 
-namespace Writer.Systems.Audio;
+namespace Xanadu.Systems.Audio;
 
 /// <summary>Draws the track timeline, playhead, and drift history from TrackProgress.</summary>
 public sealed class TimelineDrawSystem : QuerySystem<TrackProgress>

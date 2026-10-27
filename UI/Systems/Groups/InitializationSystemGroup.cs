@@ -1,9 +1,9 @@
 using Friflo.Engine.ECS.Systems;
 using Godot;
-using Writer.Systems.Layout;
-using Writer.Systems.Rendering;
+using Xanadu.Systems.Layout;
+using Xanadu.Systems.Rendering;
 
-namespace Writer.Systems.Groups;
+namespace Xanadu.Systems.Groups;
 
 /// <summary>Creates layer hierarchy, resolves container layout, and initialises drawables.</summary>
 public sealed class InitializationSystemGroup : SystemGroup

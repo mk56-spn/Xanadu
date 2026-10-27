@@ -1,7 +1,7 @@
 using NUnit.Framework;
-using Writer.Systems.Playfields;
+using Xanadu.Systems.Playfields;
 
-namespace Writer.Tests.Playfields;
+namespace Xanadu.Tests.Playfields;
 
 [TestFixture]
 public sealed class ApproachRadiusTests

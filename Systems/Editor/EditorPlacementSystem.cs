@@ -1,9 +1,9 @@
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Godot;
-using Writer.Ecs;
+using Xanadu.Ecs;
 
-namespace Writer.Systems.Editor;
+namespace Xanadu.Systems.Editor;
 
 /// <summary>Exclusive note/mine/movement placement mode buttons.</summary>
 public sealed class EditorPlacementSystem : QuerySystem<EditorPlacementModeState>

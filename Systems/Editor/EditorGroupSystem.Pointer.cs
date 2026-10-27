@@ -2,11 +2,11 @@ using System;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Godot;
-using Writer.Ecs;
-using Writer.Editor.Commands;
-using Writer.Systems.Input;
+using Xanadu.Ecs;
+using Xanadu.Editor.Commands;
+using Xanadu.Systems.Input;
 
-namespace Writer.Systems.Editor;
+namespace Xanadu.Systems.Editor;
 
 /// <summary>Dragging an effect's bar and its ends on the group timeline.</summary>
 public sealed partial class EditorGroupSystem

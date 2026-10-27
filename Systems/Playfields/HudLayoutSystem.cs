@@ -2,14 +2,14 @@ using System;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Godot;
-using Writer.Ecs;
-using Writer.Settings;
-using Writer.Systems.Canvas;
-using Writer.Systems.Input;
-using Writer.Systems.Ui;
-using Position = Writer.Ecs.Position;
+using Xanadu.Ecs;
+using Xanadu.Settings;
+using Xanadu.Systems.Canvas;
+using Xanadu.Systems.Input;
+using Xanadu.Systems.Ui;
+using Position = Xanadu.Ecs.Position;
 
-namespace Writer.Systems.Playfields;
+namespace Xanadu.Systems.Playfields;
 
 /// <summary>Applies saved HUD positions/visibility and edits them in play mode.</summary>
 public sealed class HudLayoutSystem(

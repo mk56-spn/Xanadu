@@ -1,9 +1,9 @@
 using System;
 using System.IO;
 using NUnit.Framework;
-using Writer.Settings;
+using Xanadu.Settings;
 
-namespace Writer.Tests.Settings;
+namespace Xanadu.Tests.Settings;
 
 [TestFixture]
 public sealed class HudLayoutSettingsTests

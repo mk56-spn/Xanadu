@@ -1,10 +1,10 @@
 using Friflo.Engine.ECS;
 using Godot;
-using Writer.Ecs;
-using Writer.Strings;
-using Writer.Settings;
+using Xanadu.Ecs;
+using Xanadu.Strings;
+using Xanadu.Settings;
 
-namespace Writer.Scenes;
+namespace Xanadu.Scenes;
 
 /// <summary>Settings scene with rebindable playfield keys.</summary>
 public static class SettingsScene

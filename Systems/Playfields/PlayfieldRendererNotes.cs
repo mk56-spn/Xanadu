@@ -2,12 +2,12 @@ using System;
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using Godot;
-using Writer.Ecs;
-using Writer.Settings;
-using Writer.Systems.Canvas;
-using Position = Writer.Ecs.Position;
+using Xanadu.Ecs;
+using Xanadu.Settings;
+using Xanadu.Systems.Canvas;
+using Position = Xanadu.Ecs.Position;
 
-namespace Writer.Systems.Playfields;
+namespace Xanadu.Systems.Playfields;
 
 public static partial class PlayfieldRenderer
 {

@@ -1,8 +1,8 @@
 using Friflo.Engine.ECS;
 using Godot;
-using Writer.Ecs;
+using Xanadu.Ecs;
 
-namespace Writer.Scenes;
+namespace Xanadu.Scenes;
 
 /// <summary>Creates throwaway layers and rectangles for exercising the ECS systems.</summary>
 public static class TestScene

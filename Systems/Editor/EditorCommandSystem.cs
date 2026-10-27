@@ -4,13 +4,13 @@ using System.Linq;
 using System.IO;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
-using Writer.Ecs; using Writer.Timeline;
-using Writer.Levels;
-using Writer.Settings;
-using Writer.Editor;
-using Writer.Editor.Commands;
+using Xanadu.Ecs; using Xanadu.Timeline;
+using Xanadu.Levels;
+using Xanadu.Settings;
+using Xanadu.Editor;
+using Xanadu.Editor.Commands;
 
-namespace Writer.Systems.Editor;
+namespace Xanadu.Systems.Editor;
 
 /// <summary>Single ECS writer for editor intents from the Godot UI.</summary>
 public sealed class EditorCommandSystem :

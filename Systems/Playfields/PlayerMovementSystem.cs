@@ -3,14 +3,14 @@ using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Godot;
-using Writer.Ecs;
-using Writer.Settings;
-using Writer.Systems.Input;
-using Writer.Systems.Physics;
+using Xanadu.Ecs;
+using Xanadu.Settings;
+using Xanadu.Systems.Input;
+using Xanadu.Systems.Physics;
 using NVector2 = System.Numerics.Vector2;
-using Position = Writer.Ecs.Position;
+using Position = Xanadu.Ecs.Position;
 
-namespace Writer.Systems.Playfields;
+namespace Xanadu.Systems.Playfields;
 
 /// <summary>
 /// Dashes the player while a movement queue is on them. The player is a Box2D

@@ -1,8 +1,8 @@
 using Friflo.Engine.ECS;
 using Godot;
-using Writer.Ecs;
+using Xanadu.Ecs;
 
-namespace Writer.Editor;
+namespace Xanadu.Editor;
 
 /// <summary>Editor overlay per-frame bridge and preview lifecycle.</summary>
 public partial class EditorOverlay : CanvasLayer

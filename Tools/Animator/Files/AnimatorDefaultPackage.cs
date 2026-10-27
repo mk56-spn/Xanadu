@@ -1,7 +1,7 @@
 using Godot;
-using Writer.Animation;
+using Xanadu.Animation;
 
-namespace Writer.Tools.Animator.Files;
+namespace Xanadu.Tools.Animator.Files;
 
 /// <summary>Placeholder rig shown when no XAF file exists yet.</summary>
 public static class AnimatorDefaultPackage

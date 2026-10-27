@@ -1,9 +1,9 @@
 using Friflo.Engine.ECS;
 using Godot;
-using Writer.Ecs;
-using Writer.Strings;
+using Xanadu.Ecs;
+using Xanadu.Strings;
 
-namespace Writer.Scenes;
+namespace Xanadu.Scenes;
 
 /// <summary>Background scene for the native offset calibration wizard.</summary>
 public static class OffsetWizardScene

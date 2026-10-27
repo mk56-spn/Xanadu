@@ -1,7 +1,7 @@
 using NUnit.Framework;
-using Writer.Editor;
+using Xanadu.Editor;
 
-namespace Writer.Tests.Editor;
+namespace Xanadu.Tests.Editor;
 
 [TestFixture]
 public sealed class TapTempoTests

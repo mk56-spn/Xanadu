@@ -1,12 +1,12 @@
 using System;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
-using Writer.Ecs;
+using Xanadu.Ecs;
 using Godot;
-using Writer.Systems.Input;
-using Position = Writer.Ecs.Position;
+using Xanadu.Systems.Input;
+using Position = Xanadu.Ecs.Position;
 
-namespace Writer.Systems.Ui;
+namespace Xanadu.Systems.Ui;
 
 /// <summary>Pointer interaction and fill/label rendering for ECS sliders.</summary>
 public sealed class UiSliderSystem(IPointerInputSource pointer)

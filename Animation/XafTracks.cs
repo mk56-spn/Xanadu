@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace Writer.Animation;
+namespace Xanadu.Animation;
 
 /// <summary>One animated target of a clip: a bone or an attachment.</summary>
 public readonly record struct XafTrack(XafChannelTarget Target, string Id);

@@ -1,9 +1,9 @@
 using Friflo.Engine.ECS;
 using NUnit.Framework;
-using Writer.Ecs;
-using Writer.Systems.Scenes;
+using Xanadu.Ecs;
+using Xanadu.Systems.Scenes;
 
-namespace Writer.Tests.Scenes;
+namespace Xanadu.Tests.Scenes;
 
 [TestFixture]
 public sealed class SceneActionRegistryTests

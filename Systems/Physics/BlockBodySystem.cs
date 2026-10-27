@@ -1,9 +1,9 @@
 using Box2DSharp.Dynamics;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
-using Writer.Ecs;
+using Xanadu.Ecs;
 
-namespace Writer.Systems.Physics;
+namespace Xanadu.Systems.Physics;
 
 /// <summary>
 /// Gives blocks a static Box2D box, but only while a play scene is running.

@@ -1,7 +1,7 @@
 using Friflo.Engine.ECS;
-using Writer.Animation;
+using Xanadu.Animation;
 
-namespace Writer.Tools.Animator.Commands;
+namespace Xanadu.Tools.Animator.Commands;
 
 /// <summary>Create, copy, remove, rename, resize and loop the clips of the package.</summary>
 public static class AnimatorClipCommands

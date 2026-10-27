@@ -1,8 +1,8 @@
 using System;
 using NUnit.Framework;
-using Writer.Misc;
+using Xanadu.Misc;
 
-namespace Writer.Tests;
+namespace Xanadu.Tests;
 
 [TestFixture]
 public sealed class ScreenshotNamingTests
@@ -11,21 +11,21 @@ public sealed class ScreenshotNamingTests
     public void UsesGameNameDateAndReadableTime()
     {
         string file = ScreenshotNaming.Create(
-            "Writer",
+            "Xanadu",
             new DateTime(2026, 10, 22, 2, 13, 30),
             _ => false);
 
-        Assert.That(file, Is.EqualTo("Writer 2026-10-22 02-13-30.png"));
+        Assert.That(file, Is.EqualTo("Xanadu 2026-10-22 02-13-30.png"));
     }
 
     [Test]
     public void AddsASuffixWhenTheNameAlreadyExists()
     {
         string file = ScreenshotNaming.Create(
-            "Writer",
+            "Xanadu",
             new DateTime(2026, 10, 22, 2, 13, 30),
-            candidate => candidate == "Writer 2026-10-22 02-13-30.png");
+            candidate => candidate == "Xanadu 2026-10-22 02-13-30.png");
 
-        Assert.That(file, Is.EqualTo("Writer 2026-10-22 02-13-30 (2).png"));
+        Assert.That(file, Is.EqualTo("Xanadu 2026-10-22 02-13-30 (2).png"));
     }
 }

@@ -1,10 +1,10 @@
 using Box2DSharp.Dynamics;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
-using Writer.Ecs;
-using Position = Writer.Ecs.Position;
+using Xanadu.Ecs;
+using Position = Xanadu.Ecs.Position;
 
-namespace Writer.Systems.Physics;
+namespace Xanadu.Systems.Physics;
 
 /// <summary>Creates a Box2D body for player entities that do not have one yet.</summary>
 public sealed class PlayerBodySystem : QuerySystem<Player, Position>

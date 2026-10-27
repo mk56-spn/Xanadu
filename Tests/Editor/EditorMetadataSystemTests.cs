@@ -2,11 +2,11 @@ using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Godot;
 using NUnit.Framework;
-using Writer.Ecs;
-using Writer.Systems.Editor;
-using Position = Writer.Ecs.Position;
+using Xanadu.Ecs;
+using Xanadu.Systems.Editor;
+using Position = Xanadu.Ecs.Position;
 
-namespace Writer.Tests.Editor;
+namespace Xanadu.Tests.Editor;
 
 [TestFixture]
 public sealed class EditorMetadataSystemTests
@@ -15,7 +15,7 @@ public sealed class EditorMetadataSystemTests
     public void EditingAStartFieldUpdatesTheSelectedStartPoint()
     {
         var store = new EntityStore();
-        var commands = new Writer.Editor.Commands.EditorCommandBus();
+        var commands = new Xanadu.Editor.Commands.EditorCommandBus();
         Entity panel = store.CreateEntity(
             new Position(Vector2.Zero),
             new Rectangle(new Rect2(-190, -110, 380, 220)));

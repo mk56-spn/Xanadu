@@ -2,11 +2,11 @@ using System;
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using Godot;
-using Writer.Ecs;
-using LayerComponent = Writer.Ecs.Layer;
-using Position = Writer.Ecs.Position;
+using Xanadu.Ecs;
+using LayerComponent = Xanadu.Ecs.Layer;
+using Position = Xanadu.Ecs.Position;
 
-namespace Writer.Ecs;
+namespace Xanadu.Ecs;
 
 /// <summary>Chainable builder for layers, containers, and rectangles.</summary>
 public sealed partial class UiBuilder

@@ -1,8 +1,8 @@
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
-using Writer.Ecs;
+using Xanadu.Ecs;
 
-namespace Writer.Tools.Animator.Systems;
+namespace Xanadu.Tools.Animator.Systems;
 
 /// <summary>Shows the session status message in the header text entity.</summary>
 public sealed class AnimatorStatusSystem : QuerySystem<AnimatorStatus, AnimatorUi>

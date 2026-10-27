@@ -1,8 +1,8 @@
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
-using Writer.Ecs;
+using Xanadu.Ecs;
 
-namespace Writer.Systems.Particles;
+namespace Xanadu.Systems.Particles;
 
 /// <summary>Plays each requested <see cref="ParticleBurst"/> once, then removes the request.</summary>
 public sealed class ParticleBurstSystem(IParticleEmitter emitter) : QuerySystem<ParticleBurst>

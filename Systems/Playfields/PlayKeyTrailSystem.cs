@@ -2,11 +2,11 @@ using System;
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
-using Writer.Ecs;
-using Writer.Settings;
-using Writer.Systems.Input;
+using Xanadu.Ecs;
+using Xanadu.Settings;
+using Xanadu.Systems.Input;
 
-namespace Writer.Systems.Playfields;
+namespace Xanadu.Systems.Playfields;
 
 /// <summary>Lights active keys and records press/release segments over time.</summary>
 public sealed class PlayKeyTrailSystem : QuerySystem<Playhead, KeyTrail>

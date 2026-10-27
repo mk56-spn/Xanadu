@@ -1,7 +1,7 @@
 using System;
-using Writer.Ecs;
+using Xanadu.Ecs;
 
-namespace Writer.Systems.Editor;
+namespace Xanadu.Systems.Editor;
 
 /// <summary>BPM/offset-aware note and scrub snapping.</summary>
 public static class EditorTiming

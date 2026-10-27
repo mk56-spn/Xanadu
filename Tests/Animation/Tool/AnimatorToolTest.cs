@@ -3,15 +3,15 @@ using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using Godot;
 using NUnit.Framework;
-using Writer.Animation;
-using Writer.Ecs;
-using Writer.Systems.Input;
-using Writer.Systems.Layout;
-using Writer.Tests.Support;
-using Writer.Tools.Animator;
-using Writer.Tools.Animator.Files;
+using Xanadu.Animation;
+using Xanadu.Ecs;
+using Xanadu.Systems.Input;
+using Xanadu.Systems.Layout;
+using Xanadu.Tests.Support;
+using Xanadu.Tools.Animator;
+using Xanadu.Tools.Animator.Files;
 
-namespace Writer.Tests.Animation.Tool;
+namespace Xanadu.Tests.Animation.Tool;
 
 /// <summary>
 /// Builds the real animator layout and session on a headless store. Tests add

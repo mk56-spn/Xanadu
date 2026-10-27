@@ -1,11 +1,11 @@
 using System.Collections.Generic;
 using Godot;
 using NUnit.Framework;
-using Writer.Ecs;
-using Writer.Scenes;
-using Writer.Systems.Editor;
+using Xanadu.Ecs;
+using Xanadu.Scenes;
+using Xanadu.Systems.Editor;
 
-namespace Writer.Tests.Groups;
+namespace Xanadu.Tests.Groups;
 
 [TestFixture]
 public sealed class GroupModulationTests

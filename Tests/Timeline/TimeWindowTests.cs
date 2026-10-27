@@ -1,8 +1,8 @@
 using Godot;
 using NUnit.Framework;
-using Writer.Timeline;
+using Xanadu.Timeline;
 
-namespace Writer.Tests.Timeline;
+namespace Xanadu.Tests.Timeline;
 
 [TestFixture]
 public sealed class TimeWindowTests

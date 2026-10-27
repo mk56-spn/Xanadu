@@ -1,6 +1,6 @@
 using System;
 
-namespace Writer.Scoring;
+namespace Xanadu.Scoring;
 
 /// <summary>Timing judgement tiers for a play note.</summary>
 public enum Judgement

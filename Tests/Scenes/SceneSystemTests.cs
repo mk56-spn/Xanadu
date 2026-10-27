@@ -6,15 +6,15 @@ using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Godot;
 using NUnit.Framework;
-using Writer.Ecs;
-using Writer.Levels;
-using Writer.Scenes;
-using Writer.Profiles;
-using Writer.Settings;
-using Writer.Systems.Scenes;
-using Writer.Tests.Support;
+using Xanadu.Ecs;
+using Xanadu.Levels;
+using Xanadu.Scenes;
+using Xanadu.Profiles;
+using Xanadu.Settings;
+using Xanadu.Systems.Scenes;
+using Xanadu.Tests.Support;
 
-namespace Writer.Tests.Scenes;
+namespace Xanadu.Tests.Scenes;
 
 [TestFixture]
 public sealed class SceneSystemTests
@@ -78,7 +78,7 @@ public sealed class SceneSystemTests
         Assert.That(_store.Query<SceneRoot>().ToEntityList()[0].GetComponent<SceneRoot>().Scene,
             Is.EqualTo(SceneKind.Main));
         Assert.That(HasText("MAIN"), Is.True);
-        Assert.That(HasText("WRITER"), Is.True);
+        Assert.That(HasText("XANADU"), Is.True);
     }
 
     [Test]
@@ -128,8 +128,8 @@ public sealed class SceneSystemTests
             view.Names[1].GetComponent<Text>().Value,
             Is.EqualTo("Second Level"));
         Assert.That(
-            _store.Query<Writer.Ecs.SceneState>().ToEntityList()[0]
-                .GetComponent<Writer.Ecs.SceneState>().SelectedLevelPath,
+            _store.Query<Xanadu.Ecs.SceneState>().ToEntityList()[0]
+                .GetComponent<Xanadu.Ecs.SceneState>().SelectedLevelPath,
             Is.EqualTo(_catalog[1].Path));
     }
 
@@ -251,7 +251,7 @@ public sealed class SceneSystemTests
             Is.EqualTo(new System.Numerics.Vector2(4, -2)));
         Vector2 expected = playfield.GetComponent<PlayfieldView>()
             .PlayfieldToScreen(new Vector2(200, 300));
-        Assert.That(playfield.GetComponent<Writer.Ecs.Position>().Value,
+        Assert.That(playfield.GetComponent<Xanadu.Ecs.Position>().Value,
             Is.EqualTo(expected));
     }
 

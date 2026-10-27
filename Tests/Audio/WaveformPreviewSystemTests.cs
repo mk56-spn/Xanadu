@@ -4,10 +4,10 @@ using System.Text;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using NUnit.Framework;
-using Writer.Ecs;
-using Writer.Systems.Editor;
+using Xanadu.Ecs;
+using Xanadu.Systems.Editor;
 
-namespace Writer.Tests.Audio;
+namespace Xanadu.Tests.Audio;
 
 [TestFixture]
 public sealed class WaveformPreviewSystemTests

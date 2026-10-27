@@ -2,14 +2,14 @@ using System;
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using Godot;
-using Writer.Ecs;
-using Writer.Levels;
-using Writer.Profiles;
-using Writer.Scenes;
-using SceneState = Writer.Ecs.SceneState;
-using Writer.Settings;
+using Xanadu.Ecs;
+using Xanadu.Levels;
+using Xanadu.Profiles;
+using Xanadu.Scenes;
+using SceneState = Xanadu.Ecs.SceneState;
+using Xanadu.Settings;
 
-namespace Writer.Systems.Scenes;
+namespace Xanadu.Systems.Scenes;
 
 /// <summary>Dependencies and payload for building a scene.</summary>
 public sealed record SceneBuildContext(

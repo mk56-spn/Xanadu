@@ -1,6 +1,6 @@
 using Godot;
 
-namespace Writer.Systems.Canvas;
+namespace Xanadu.Systems.Canvas;
 
 /// <summary>
 /// Shared grid drawing for editor-style views. Lines are spaced one cell

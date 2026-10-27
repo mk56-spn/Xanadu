@@ -1,7 +1,7 @@
 using Friflo.Engine.ECS;
 using Godot;
 
-namespace Writer.Ecs;
+namespace Xanadu.Ecs;
 
 /// <summary>Clickable boolean toggle with configurable on/off labels and colors.</summary>
 public struct Toggle : IComponent

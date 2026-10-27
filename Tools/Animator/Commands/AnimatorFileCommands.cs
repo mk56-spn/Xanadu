@@ -1,9 +1,9 @@
 using System;
 using Friflo.Engine.ECS;
-using Writer.Animation;
-using Writer.Tools.Animator.Files;
+using Xanadu.Animation;
+using Xanadu.Tools.Animator.Files;
 
-namespace Writer.Tools.Animator.Commands;
+namespace Xanadu.Tools.Animator.Commands;
 
 /// <summary>Save, load and new-skeleton commands, the file path and the unsaved-changes state.</summary>
 public static class AnimatorFileCommands

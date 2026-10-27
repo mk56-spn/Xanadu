@@ -1,9 +1,9 @@
 using Friflo.Engine.ECS;
 using Godot;
-using Writer.Ecs;
-using Writer.Systems.Canvas;
+using Xanadu.Ecs;
+using Xanadu.Systems.Canvas;
 
-namespace Writer.Systems.Playfields;
+namespace Xanadu.Systems.Playfields;
 
 /// <summary>Draws collidable blocks in both editor and play modes.</summary>
 public static partial class PlayfieldRenderer

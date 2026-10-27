@@ -1,6 +1,6 @@
 using Godot;
 
-namespace Writer.Systems.Editor;
+namespace Xanadu.Systems.Editor;
 
 /// <summary>The fixed colours and alpha steps offered by the group colour palette.</summary>
 public static class EditorGroupPalette

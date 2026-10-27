@@ -3,11 +3,11 @@ using System.Globalization;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Godot;
-using Writer.Animation;
-using Writer.Ecs;
-using Writer.Tools.Animator.Commands;
+using Xanadu.Animation;
+using Xanadu.Ecs;
+using Xanadu.Tools.Animator.Commands;
 
-namespace Writer.Tools.Animator.Systems;
+namespace Xanadu.Tools.Animator.Systems;
 
 /// <summary>
 /// The floating transform inspector over the preview. It shows the selected

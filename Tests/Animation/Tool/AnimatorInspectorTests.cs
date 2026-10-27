@@ -1,13 +1,13 @@
 using Friflo.Engine.ECS;
 using Godot;
 using NUnit.Framework;
-using Writer.Animation;
-using Writer.Ecs;
-using Writer.Tools.Animator;
-using Writer.Tools.Animator.Commands;
-using Writer.Tools.Animator.Systems;
+using Xanadu.Animation;
+using Xanadu.Ecs;
+using Xanadu.Tools.Animator;
+using Xanadu.Tools.Animator.Commands;
+using Xanadu.Tools.Animator.Systems;
 
-namespace Writer.Tests.Animation.Tool;
+namespace Xanadu.Tests.Animation.Tool;
 
 /// <summary>The floating transform inspector: exact values, degrees, reset and the unkeyed flag.</summary>
 [TestFixture]

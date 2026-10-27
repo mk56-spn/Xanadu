@@ -1,7 +1,7 @@
 using NUnit.Framework;
-using Writer.Scoring;
+using Xanadu.Scoring;
 
-namespace Writer.Tests.Scoring;
+namespace Xanadu.Tests.Scoring;
 
 [TestFixture]
 public sealed class ScoreRulesTests

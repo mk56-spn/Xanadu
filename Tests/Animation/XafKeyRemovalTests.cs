@@ -1,7 +1,7 @@
 using NUnit.Framework;
-using Writer.Animation;
+using Xanadu.Animation;
 
-namespace Writer.Tests.Animation;
+namespace Xanadu.Tests.Animation;
 
 [TestFixture]
 public sealed class XafKeyRemovalTests

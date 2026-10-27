@@ -1,10 +1,10 @@
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Godot;
-using Writer.Animation;
-using Writer.Ecs;
+using Xanadu.Animation;
+using Xanadu.Ecs;
 
-namespace Writer.Tools.Animator.Systems;
+namespace Xanadu.Tools.Animator.Systems;
 
 /// <summary>Highlights the interpolation preset buttons that match the selected key set.</summary>
 public sealed class AnimatorInterpolationSystem : QuerySystem<ToolAction, ButtonVisual>

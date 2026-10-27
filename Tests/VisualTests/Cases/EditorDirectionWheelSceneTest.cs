@@ -1,14 +1,14 @@
 using Friflo.Engine.ECS;
 using Godot;
-using Writer.Ecs;
-using Writer.Editor;
-using Writer.Scenes;
-using Position = Writer.Ecs.Position;
+using Xanadu.Ecs;
+using Xanadu.Editor;
+using Xanadu.Scenes;
+using Position = Xanadu.Ecs.Position;
 
-namespace Writer.Tests.VisualTests;
+namespace Xanadu.Tests.VisualTests;
 
 /// <summary>
-/// Regression: dash direction is chosen with the generic Writer.UI wheel, which
+/// Regression: dash direction is chosen with the generic Xanadu.UI wheel, which
 /// appears only in MOVE mode and writes the selected wedge back to editor state.
 /// </summary>
 public sealed class EditorDirectionWheelSceneTest : SceneTest

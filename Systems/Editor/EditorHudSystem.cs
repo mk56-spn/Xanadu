@@ -3,10 +3,10 @@ using System.IO;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Godot;
-using Writer.Ecs;
-using Position = Writer.Ecs.Position;
+using Xanadu.Ecs;
+using Position = Xanadu.Ecs.Position;
 
-namespace Writer.Systems.Editor;
+namespace Xanadu.Systems.Editor;
 
 /// <summary>Updates the ECS editor header, footer, status, and preview labels.</summary>
 public sealed class EditorHudSystem : QuerySystem<EditorHud, LevelInfo, Playhead>

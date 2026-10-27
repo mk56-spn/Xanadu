@@ -1,4 +1,4 @@
-namespace Writer.Levels;
+namespace Xanadu.Levels;
 
 /// <summary>A loaded level and the program-owned song it references.</summary>
 public sealed record LevelEntry(

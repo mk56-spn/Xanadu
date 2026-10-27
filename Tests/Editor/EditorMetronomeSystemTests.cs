@@ -1,12 +1,12 @@
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using NUnit.Framework;
-using Writer.Ecs;
-using Writer.Systems.Audio;
-using Writer.Systems.Editor;
-using Writer.Tests.Support;
+using Xanadu.Ecs;
+using Xanadu.Systems.Audio;
+using Xanadu.Systems.Editor;
+using Xanadu.Tests.Support;
 
-namespace Writer.Tests.Editor;
+namespace Xanadu.Tests.Editor;
 
 [TestFixture]
 public sealed class EditorMetronomeSystemTests

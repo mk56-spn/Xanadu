@@ -4,14 +4,14 @@ using System.Globalization;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Godot;
-using Writer.Ecs;
-using Writer.Editor;
-using Writer.Editor.Commands;
-using Writer.Levels;
-using Writer.Systems.Input;
-using Position = Writer.Ecs.Position;
+using Xanadu.Ecs;
+using Xanadu.Editor;
+using Xanadu.Editor.Commands;
+using Xanadu.Levels;
+using Xanadu.Systems.Input;
+using Position = Xanadu.Ecs.Position;
 
-namespace Writer.Systems.Editor;
+namespace Xanadu.Systems.Editor;
 
 /// <summary>
 /// The editor's groups: the sidebar grid that opens a group, and the overlay
@@ -110,7 +110,10 @@ public sealed partial class EditorGroupSystem : QuerySystem<EditorGroupState>
     private void CollectPieces()
     {
         _pieces = new Dictionary<(EditorGroupPart, int), Entity>();
-        foreach (Entity entity in _entities.Query<EditorGroupPiece>().ToEntityList())
+        foreach (Entity entity in _entities
+                     .Query<EditorGroupPiece>()
+                     .WithDisabled()
+                     .ToEntityList())
         {
             EditorGroupPiece piece = entity.GetComponent<EditorGroupPiece>();
             _pieces[(piece.Part, piece.Row)] = entity;

@@ -1,8 +1,8 @@
-using Writer.Ecs;
-using Writer.Settings;
-using Writer.Levels;
+using Xanadu.Ecs;
+using Xanadu.Settings;
+using Xanadu.Levels;
 
-namespace Writer.Editor.Commands;
+namespace Xanadu.Editor.Commands;
 
 /// <summary>Editor intents emitted by UI controls and consumed by systems.</summary>
 public enum EditorCommandType

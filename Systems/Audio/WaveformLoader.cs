@@ -6,7 +6,7 @@ using System.Text;
 using Godot;
 using Miniaudio;
 
-namespace Writer.Systems.Audio;
+namespace Xanadu.Systems.Audio;
 
 /// <summary>Stereo amplitude envelopes and duration decoded once per audio file.</summary>
 public sealed record WaveformData(

@@ -1,7 +1,7 @@
 using Friflo.Engine.ECS;
-using Writer.Settings;
+using Xanadu.Settings;
 
-namespace Writer.Ecs;
+namespace Xanadu.Ecs;
 
 /// <summary>Settings button that captures a new key for an action.</summary>
 public struct KeybindButton(KeybindAction action) : IComponent

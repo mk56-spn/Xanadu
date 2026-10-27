@@ -1,9 +1,9 @@
 using System;
 using Godot;
-using Writer.Ecs;
-using Writer.Timeline;
+using Xanadu.Ecs;
+using Xanadu.Timeline;
 
-namespace Writer.Systems.Editor;
+namespace Xanadu.Systems.Editor;
 
 /// <summary>Shared editor header, footer, transport, playfield, and timeline geometry.</summary>
 public static class EditorLayout

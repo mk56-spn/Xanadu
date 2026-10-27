@@ -1,10 +1,10 @@
 using Friflo.Engine.ECS;
 using Godot;
-using Writer.Ecs;
-using Writer.Systems.Editor;
-using Position = Writer.Ecs.Position;
+using Xanadu.Ecs;
+using Xanadu.Systems.Editor;
+using Position = Xanadu.Ecs.Position;
 
-namespace Writer.Editor;
+namespace Xanadu.Editor;
 
 /// <summary>F2 editor-binding reference overlay toggle.</summary>
 public partial class EditorOverlay : CanvasLayer

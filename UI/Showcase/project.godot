@@ -1,15 +1,15 @@
-; Engine configuration file for the standalone Writer.Ui showcase.
+; Engine configuration file for the standalone Xanadu.Ui showcase.
 config_version=5
 
 [application]
 
-config/name="Writer UI Showcase"
+config/name="Xanadu UI Showcase"
 run/main_scene="res://UiShowcase.tscn"
 config/features=PackedStringArray("4.8", "C#", "Forward Plus")
 
 [dotnet]
 
-project/assembly_name="Writer.Ui.Showcase"
+project/assembly_name="Xanadu.Ui.Showcase"
 
 [display]
 

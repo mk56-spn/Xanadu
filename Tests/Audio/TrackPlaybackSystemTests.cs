@@ -2,11 +2,11 @@ using System;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using NUnit.Framework;
-using Writer.Ecs;
-using Writer.Systems.Audio;
-using Writer.Tests.Support;
+using Xanadu.Ecs;
+using Xanadu.Systems.Audio;
+using Xanadu.Tests.Support;
 
-namespace Writer.Tests.Audio;
+namespace Xanadu.Tests.Audio;
 
 [TestFixture]
 public sealed class TrackPlaybackSystemTests : EcsSystemTest

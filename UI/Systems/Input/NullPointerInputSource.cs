@@ -1,6 +1,6 @@
 using Godot;
 
-namespace Writer.Systems.Input;
+namespace Xanadu.Systems.Input;
 
 /// <summary>Pointer source used by headless systems when no input exists.</summary>
 public sealed class NullPointerInputSource : IPointerInputSource

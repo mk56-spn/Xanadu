@@ -1,7 +1,7 @@
 using Friflo.Engine.ECS;
 using Godot;
 
-namespace Writer.Ecs;
+namespace Xanadu.Ecs;
 
 /// <summary>Reads and drives a wheel created by <see cref="UiBuilder.Wheel"/>.</summary>
 public sealed class UiWheelControl(Entity wheel)

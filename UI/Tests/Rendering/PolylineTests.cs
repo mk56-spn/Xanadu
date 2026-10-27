@@ -2,9 +2,9 @@ using System;
 using System.Collections.Generic;
 using Godot;
 using NUnit.Framework;
-using Writer.Systems.Canvas;
+using Xanadu.Systems.Canvas;
 
-namespace Writer.Tests.UI.Rendering;
+namespace Xanadu.Tests.UI.Rendering;
 
 [TestFixture]
 public sealed class PolylineTests

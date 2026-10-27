@@ -1,15 +1,15 @@
 using Friflo.Engine.ECS;
 using Godot;
-using Writer.Ecs;
-using Position = Writer.Ecs.Position;
-using Writer.Levels;
-using Writer.Settings;
-using Writer.Editor;
-using Writer.Systems.Editor;
-using Writer.Strings;
-using Writer.Systems.Playfields;
+using Xanadu.Ecs;
+using Position = Xanadu.Ecs.Position;
+using Xanadu.Levels;
+using Xanadu.Settings;
+using Xanadu.Editor;
+using Xanadu.Systems.Editor;
+using Xanadu.Strings;
+using Xanadu.Systems.Playfields;
 
-namespace Writer.Scenes;
+namespace Xanadu.Scenes;
 
 /// <summary>Creates the initial editor state and a playfield centered between the header and footer.</summary>
 public static partial class EditorScene

@@ -1,9 +1,9 @@
 using System;
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
-using Writer.Animation;
+using Xanadu.Animation;
 
-namespace Writer.Tools.Animator.Commands;
+namespace Xanadu.Tools.Animator.Commands;
 
 /// <summary>
 /// Copying, pasting and selecting all key sets. The clipboard keeps channel

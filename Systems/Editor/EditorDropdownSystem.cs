@@ -2,12 +2,12 @@ using System;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Godot;
-using Writer.Ecs;
-using Writer.Editor.Commands;
-using Writer.Settings;
-using Writer.Systems.Playfields;
+using Xanadu.Ecs;
+using Xanadu.Editor.Commands;
+using Xanadu.Settings;
+using Xanadu.Systems.Playfields;
 
-namespace Writer.Systems.Editor;
+namespace Xanadu.Systems.Editor;
 
 /// <summary>Editor display and command semantics for generic UI dropdowns.</summary>
 public sealed class EditorDropdownSystem : QuerySystem<Dropdown>

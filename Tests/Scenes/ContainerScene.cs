@@ -1,9 +1,9 @@
 using Friflo.Engine.ECS;
 using Godot;
-using Writer.Ecs;
-using Position = Writer.Ecs.Position;
+using Xanadu.Ecs;
+using Position = Xanadu.Ecs.Position;
 
-namespace Writer.Scenes;
+namespace Xanadu.Scenes;
 
 /// <summary>Builds 30 nested container trees with varying child counts.</summary>
 public static class ContainerScene

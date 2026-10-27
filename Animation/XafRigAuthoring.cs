@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using Godot;
 
-namespace Writer.Animation;
+namespace Xanadu.Animation;
 
 /// <summary>Skeleton-level mutations for the animator tool.</summary>
 public static class XafRigAuthoring

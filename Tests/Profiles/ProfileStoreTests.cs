@@ -2,10 +2,10 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using NUnit.Framework;
-using Writer.Profiles;
-using Writer.Scenes;
+using Xanadu.Profiles;
+using Xanadu.Scenes;
 
-namespace Writer.Tests.Profiles;
+namespace Xanadu.Tests.Profiles;
 
 [TestFixture]
 public sealed class ProfileStoreTests

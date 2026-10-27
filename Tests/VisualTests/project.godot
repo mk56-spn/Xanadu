@@ -4,13 +4,13 @@ config_version=5
 
 [application]
 
-config/name="Writer Visual Tests"
+config/name="Xanadu Visual Tests"
 run/main_scene="res://VisualTests.tscn"
 config/features=PackedStringArray("4.8", "C#", "Forward Plus")
 
 [dotnet]
 
-project/assembly_name="Writer.VisualTests"
+project/assembly_name="Xanadu.VisualTests"
 
 [rendering]
 

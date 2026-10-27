@@ -3,11 +3,11 @@ using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Godot;
-using Writer.Ecs;
-using Writer.Systems.Input;
-using Writer.Tools.Animator.Files;
+using Xanadu.Ecs;
+using Xanadu.Systems.Input;
+using Xanadu.Tools.Animator.Files;
 
-namespace Writer.Tools.Animator.Systems;
+namespace Xanadu.Tools.Animator.Systems;
 
 /// <summary>
 /// The ADD SVG picker. It lists every group of every SVG the project holds,

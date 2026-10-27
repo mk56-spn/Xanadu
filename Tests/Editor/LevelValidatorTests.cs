@@ -1,9 +1,9 @@
 using System.Collections.Generic;
 using NUnit.Framework;
-using Writer.Levels;
-using Writer.Editor;
+using Xanadu.Levels;
+using Xanadu.Editor;
 
-namespace Writer.Tests.Editor;
+namespace Xanadu.Tests.Editor;
 
 [TestFixture]
 public sealed class LevelValidatorTests

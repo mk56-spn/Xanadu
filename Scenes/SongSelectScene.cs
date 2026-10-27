@@ -1,12 +1,12 @@
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using Godot;
-using Writer.Ecs;
-using Writer.Strings;
-using Writer.Levels;
-using Writer.Profiles;
+using Xanadu.Ecs;
+using Xanadu.Strings;
+using Xanadu.Levels;
+using Xanadu.Profiles;
 
-namespace Writer.Scenes;
+namespace Xanadu.Scenes;
 
 /// <summary>Three-by-three level grid with an empty details pane.</summary>
 public static class SongSelectScene

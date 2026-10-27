@@ -1,10 +1,10 @@
 using System.IO;
 using System.Linq;
 using NUnit.Framework;
-using Writer.Ecs.Storage;
-using Writer.Levels;
+using Xanadu.Ecs.Storage;
+using Xanadu.Levels;
 
-namespace Writer.Tests.Editor;
+namespace Xanadu.Tests.Editor;
 
 [TestFixture]
 public sealed class SongCatalogTests

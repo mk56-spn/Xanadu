@@ -1,6 +1,6 @@
 using Friflo.Engine.ECS;
 
-namespace Writer.Ecs;
+namespace Xanadu.Ecs;
 
 /// <summary>One cell of the groups grid in the editor's sidebar.</summary>
 public struct EditorGroupCell(int index) : IComponent

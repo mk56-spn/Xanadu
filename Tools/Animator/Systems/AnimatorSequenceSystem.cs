@@ -1,8 +1,8 @@
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
-using Writer.Tools.Animator.Commands;
+using Xanadu.Tools.Animator.Commands;
 
-namespace Writer.Tools.Animator.Systems;
+namespace Xanadu.Tools.Animator.Systems;
 
 /// <summary>Steps each session's clip chain along; it runs before playback so a hand-over starts on the same frame.</summary>
 public sealed class AnimatorSequenceSystem : QuerySystem<AnimatorDocument, AnimatorSequence>

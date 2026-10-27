@@ -4,15 +4,15 @@ using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Godot;
 using NUnit.Framework;
-using Writer.Ecs;
-using Writer.Settings;
-using Writer.Systems.Input;
-using Writer.Systems.Physics;
-using Writer.Systems.Playfields;
-using Position = Writer.Ecs.Position;
-using Writer.Tests.Support;
+using Xanadu.Ecs;
+using Xanadu.Settings;
+using Xanadu.Systems.Input;
+using Xanadu.Systems.Physics;
+using Xanadu.Systems.Playfields;
+using Position = Xanadu.Ecs.Position;
+using Xanadu.Tests.Support;
 
-namespace Writer.Tests.Playfields;
+namespace Xanadu.Tests.Playfields;
 
 [TestFixture]
 public sealed class PlayerMovementSystemTests

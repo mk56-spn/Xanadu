@@ -1,6 +1,6 @@
 using Godot;
 
-namespace Writer.Animation;
+namespace Xanadu.Animation;
 
 /// <summary>Small 2D FABRIK solver used by visual IK bone chains.</summary>
 public static class XafFabrik

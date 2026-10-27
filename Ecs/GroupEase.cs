@@ -1,6 +1,6 @@
 using Godot;
 
-namespace Writer.Ecs;
+namespace Xanadu.Ecs;
 
 /// <summary>How a group effect travels from its start to its end.</summary>
 public enum GroupEase

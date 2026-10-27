@@ -1,7 +1,7 @@
 using Godot;
-using Writer.Ecs;
+using Xanadu.Ecs;
 
-namespace Writer.Editor;
+namespace Xanadu.Editor;
 
 /// <summary>
 /// Keyboard shortcuts that choose the editor placement mode. Number keys keep

@@ -1,4 +1,4 @@
-namespace Writer.Systems.Input;
+namespace Xanadu.Systems.Input;
 
 /// <summary>Page controls for multi-page debug overlays.</summary>
 public interface IOverlayPageSource

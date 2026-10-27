@@ -2,13 +2,13 @@ using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Godot;
 using NUnit.Framework;
-using Writer.Ecs;
-using Writer.Editor;
-using Writer.Systems.Editor;
-using Writer.Settings;
-using Writer.Systems.Input;
+using Xanadu.Ecs;
+using Xanadu.Editor;
+using Xanadu.Systems.Editor;
+using Xanadu.Settings;
+using Xanadu.Systems.Input;
 
-namespace Writer.Tests.Editor;
+namespace Xanadu.Tests.Editor;
 
 [TestFixture]
 public sealed class EditorNoteInputSystemTests

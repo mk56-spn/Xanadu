@@ -1,11 +1,11 @@
 using Friflo.Engine.ECS;
 using Godot;
 using NUnit.Framework;
-using Writer.Ecs;
-using Writer.Levels;
-using Writer.Settings;
+using Xanadu.Ecs;
+using Xanadu.Levels;
+using Xanadu.Settings;
 
-namespace Writer.Tests.Editor;
+namespace Xanadu.Tests.Editor;
 
 [TestFixture]
 public sealed class LevelDocumentMapperTests

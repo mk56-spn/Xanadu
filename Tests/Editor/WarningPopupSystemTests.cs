@@ -2,13 +2,13 @@ using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Godot;
 using NUnit.Framework;
-using Writer.Ecs;
-using Writer.Editor;
-using Writer.Systems.Editor;
-using Position = Writer.Ecs.Position;
-using Writer.Tests.Support;
+using Xanadu.Ecs;
+using Xanadu.Editor;
+using Xanadu.Systems.Editor;
+using Position = Xanadu.Ecs.Position;
+using Xanadu.Tests.Support;
 
-namespace Writer.Tests.Editor;
+namespace Xanadu.Tests.Editor;
 
 [TestFixture]
 public sealed class WarningPopupSystemTests : EcsSystemTest

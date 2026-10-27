@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using Godot;
 
-namespace Writer.Ecs;
+namespace Xanadu.Ecs;
 
 public sealed partial class UiBuilder
 {

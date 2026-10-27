@@ -1,12 +1,12 @@
 using System;
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
-using Writer.Ecs;
-using Writer.Levels;
-using Writer.Scenes;
-using SceneState = Writer.Ecs.SceneState;
+using Xanadu.Ecs;
+using Xanadu.Levels;
+using Xanadu.Scenes;
+using SceneState = Xanadu.Ecs.SceneState;
 
-namespace Writer.Systems.Scenes;
+namespace Xanadu.Systems.Scenes;
 
 /// <summary>Owns the song-select catalog, selection, and carousel.</summary>
 public sealed class SongSelectController : ISceneController

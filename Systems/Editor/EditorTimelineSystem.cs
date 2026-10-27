@@ -1,9 +1,9 @@
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
-using Writer.Ecs;
-using Writer.Timeline;
+using Xanadu.Ecs;
+using Xanadu.Timeline;
 
-namespace Writer.Systems.Editor;
+namespace Xanadu.Systems.Editor;
 
 /// <summary>Chooses the default timeline zoom once the song length is known.</summary>
 public sealed class EditorTimelineSystem : QuerySystem<Playhead, TimelineView>

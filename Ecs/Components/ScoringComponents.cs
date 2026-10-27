@@ -1,9 +1,9 @@
 using System;
 using Friflo.Engine.ECS;
 using Godot;
-using Writer.Scoring;
+using Xanadu.Scoring;
 
-namespace Writer.Ecs;
+namespace Xanadu.Ecs;
 
 /// <summary>Play-mode score, accuracy, combo, and display entities.</summary>
 public struct ScoreState(

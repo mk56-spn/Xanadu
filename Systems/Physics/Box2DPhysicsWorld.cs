@@ -4,7 +4,7 @@ using Box2DSharp.Dynamics;
 using Godot;
 using NVector2 = System.Numerics.Vector2;
 
-namespace Writer.Systems.Physics;
+namespace Xanadu.Systems.Physics;
 
 /// <summary>
 /// Pure C# Box2D world. Screen coordinates are y-down pixels; physics

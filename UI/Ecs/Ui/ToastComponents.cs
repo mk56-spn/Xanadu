@@ -1,6 +1,6 @@
 using Friflo.Engine.ECS;
 
-namespace Writer.Ecs;
+namespace Xanadu.Ecs;
 
 /// <summary>Transient timed notification shown by the general toast system.</summary>
 public struct Toast : IComponent

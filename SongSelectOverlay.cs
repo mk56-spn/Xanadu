@@ -1,9 +1,9 @@
 using System;
 using Godot;
-using Writer.Levels;
-using Writer.Scenes;
+using Xanadu.Levels;
+using Xanadu.Scenes;
 
-namespace Writer;
+namespace Xanadu;
 
 /// <summary>Native right-click menu for Song Select level actions.</summary>
 public partial class SongSelectOverlay : CanvasLayer

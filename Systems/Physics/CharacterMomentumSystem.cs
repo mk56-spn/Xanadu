@@ -1,8 +1,8 @@
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
-using Writer.Ecs;
+using Xanadu.Ecs;
 
-namespace Writer.Systems.Physics;
+namespace Xanadu.Systems.Physics;
 
 /// <summary>Applies queued ECS momentum to character physics bodies.</summary>
 public sealed class CharacterMomentumSystem : QuerySystem<Character, PhysicsBody, Momentum>

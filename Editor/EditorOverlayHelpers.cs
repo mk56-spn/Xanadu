@@ -3,11 +3,11 @@ using System.Collections.Generic;
 using System.IO;
 using Friflo.Engine.ECS;
 using Godot;
-using Writer.Ecs;
-using Writer.Levels;
-using Writer.Systems.Editor;
+using Xanadu.Ecs;
+using Xanadu.Levels;
+using Xanadu.Systems.Editor;
 
-namespace Writer.Editor;
+namespace Xanadu.Editor;
 
 /// <summary>Editor overlay shared helpers.</summary>
 public partial class EditorOverlay : CanvasLayer

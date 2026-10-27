@@ -1,7 +1,7 @@
 using System.Collections.Generic;
-using Writer.Levels;
+using Xanadu.Levels;
 
-namespace Writer.Editor;
+namespace Xanadu.Editor;
 
 /// <summary>Validates a level before saving or previewing.</summary>
 public static class LevelValidator

@@ -2,15 +2,15 @@ using System;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Godot;
-using Writer.Ecs;
-using Writer.Systems.Canvas;
-using Writer.Systems.Input;
-using Writer.Systems.Ui;
-using Position = Writer.Ecs.Position;
+using Xanadu.Ecs;
+using Xanadu.Systems.Canvas;
+using Xanadu.Systems.Input;
+using Xanadu.Systems.Ui;
+using Position = Xanadu.Ecs.Position;
 
-namespace Writer.Ui.Showcase;
+namespace Xanadu.Ui.Showcase;
 
-/// <summary>Standalone demo of the generic Writer.Ui feature set.</summary>
+/// <summary>Standalone demo of the generic Xanadu.Ui feature set.</summary>
 public partial class UiShowcase : Control
 {
     private EntityStore _store = null!;
@@ -29,7 +29,8 @@ public partial class UiShowcase : Control
             _store,
             GetCanvasItem(),
             canvas,
-            _pointer);
+            _pointer,
+            screen: GetViewportRect().Size);
         _root.Add(ui);
         _scroll = ui.Scroll;
 
@@ -83,7 +84,7 @@ public partial class UiShowcase : Control
 
         ui.RectEntity(screen / 2, screen, new Color("#0b1020"));
         ui.RectEntity(new Vector2(120, 60), new Vector2(900, 64),
-            new Color("#111827"), "WRITER.UI SHOWCASE");
+            new Color("#111827"), "XANADU.UI SHOWCASE");
         Style(ui.Current, 32, new Color("#facc15"));
 
         ui.Container(
@@ -100,6 +101,7 @@ public partial class UiShowcase : Control
                 $"BUTTON {i + 1}", takesInput: true);
             Style(button, 18, new Color("#e2e8f0"));
             button.AddComponent(ButtonVisual.Create(new Color("#2563eb")));
+            button.AddComponent(new UiTooltip($"Button {i + 1} explains itself"));
         }
         ui.End();
 

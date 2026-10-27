@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 
-namespace Writer.Animation;
+namespace Xanadu.Animation;
 
 /// <summary>Deep copy and structural comparison of packages, used for undo snapshots.</summary>
 public static class XafPackageCopy

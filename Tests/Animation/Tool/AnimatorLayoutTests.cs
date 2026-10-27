@@ -1,8 +1,8 @@
 using Godot;
 using NUnit.Framework;
-using Writer.Tools.Animator;
+using Xanadu.Tools.Animator;
 
-namespace Writer.Tests.Animation.Tool;
+namespace Xanadu.Tests.Animation.Tool;
 
 [TestFixture]
 public sealed class AnimatorLayoutTests : AnimatorToolTest

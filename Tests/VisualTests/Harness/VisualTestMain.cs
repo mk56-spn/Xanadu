@@ -3,13 +3,13 @@ using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Godot;
-using Writer.Ecs;
-using Writer.Levels;
-using Writer.Editor;
-using Writer.Settings;
-using Writer.Systems.Input;
+using Xanadu.Ecs;
+using Xanadu.Levels;
+using Xanadu.Editor;
+using Xanadu.Settings;
+using Xanadu.Systems.Input;
 
-namespace Writer.Tests.VisualTests;
+namespace Xanadu.Tests.VisualTests;
 
 /// <summary>
 /// Interactive visual test suite. The left sidebar lists every scene test;
@@ -27,7 +27,7 @@ public partial class VisualTestMain : Control
     private readonly SceneTestRunner _runner = new();
 
     private EntityStore? _entities;
-    private WriterSystemRoot? _systems;
+    private XanaduSystemRoot? _systems;
     private SceneDirector? _director;
     private ScriptedPointerInputSource? _pointer;
     private ScriptedKeyboardState? _keyboard;
@@ -372,7 +372,7 @@ public partial class VisualTestMain : Control
         _keyboard = new ScriptedKeyboardState();
         _director = new SceneDirector();
 
-        _systems = new WriterSystemRoot(
+        _systems = new XanaduSystemRoot(
             _entities,
             _testHost.GetCanvasItem(),
             _pointer,

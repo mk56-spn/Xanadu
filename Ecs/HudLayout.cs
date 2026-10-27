@@ -1,9 +1,9 @@
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using Godot;
-using Writer.Systems.Ui;
+using Xanadu.Systems.Ui;
 
-namespace Writer.Ecs;
+namespace Xanadu.Ecs;
 
 /// <summary>One movable/visibility-toggleable group of play HUD entities.</summary>
 public sealed class HudItemLayout(
@@ -45,8 +45,8 @@ public struct HudLayout : IComponent
 
             item.Members.Add(member);
             item.BasePositions.Add(
-                member.HasComponent<Writer.Ecs.Position>()
-                    ? member.GetComponent<Writer.Ecs.Position>().Value
+                member.HasComponent<Xanadu.Ecs.Position>()
+                    ? member.GetComponent<Xanadu.Ecs.Position>().Value
                     : anchor);
         }
 

@@ -1,9 +1,9 @@
 using Friflo.Engine.ECS;
 using Godot;
 using Friflo.Engine.ECS.Systems;
-using Writer.Ecs;
+using Xanadu.Ecs;
 
-namespace Writer.Systems.Ui;
+namespace Xanadu.Systems.Ui;
 
 /// <summary>Handles click-to-toggle ECS buttons and keeps their labels in sync.</summary>
 public sealed class ToggleSystem : QuerySystem<Toggle, Text>

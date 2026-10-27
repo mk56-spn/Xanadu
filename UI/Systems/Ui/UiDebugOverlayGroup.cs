@@ -1,10 +1,10 @@
 using Godot;
 using Friflo.Engine.ECS.Systems;
-using Writer.Systems.Canvas;
-using Writer.Systems.Input;
-using Writer.Ui.Systems.Ui;
+using Xanadu.Systems.Canvas;
+using Xanadu.Systems.Input;
+using Xanadu.Ui.Systems.Ui;
 
-namespace Writer.Systems.Ui;
+namespace Xanadu.Systems.Ui;
 
 /// <summary>Creates and wires the F4 UI bounds overlay.</summary>
 public sealed class UiDebugOverlayGroup : SystemGroup

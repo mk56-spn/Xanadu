@@ -1,7 +1,7 @@
 using Friflo.Engine.ECS;
-using Writer.Ecs;
+using Xanadu.Ecs;
 
-namespace Writer.Systems.Scenes;
+namespace Xanadu.Systems.Scenes;
 
 /// <summary>Action registration for the level editor.</summary>
 public static class EditorSceneActions

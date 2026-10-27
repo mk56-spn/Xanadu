@@ -1,10 +1,10 @@
 using Friflo.Engine.ECS;
 using Godot;
-using Writer.Animation;
-using Writer.Ecs;
-using Position = Writer.Ecs.Position;
+using Xanadu.Animation;
+using Xanadu.Ecs;
+using Position = Xanadu.Ecs.Position;
 
-namespace Writer.Tools.Animator;
+namespace Xanadu.Tools.Animator;
 
 /// <summary>Builds the animator panels from native containers.</summary>
 public static partial class AnimatorLayout

@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using Godot;
 
-namespace Writer.Animation;
+namespace Xanadu.Animation;
 
 /// <summary>Rasterises each attachment's SVG group into a canvas item.</summary>
 public sealed class SvgAttachmentVisuals(Rid canvas) : IAttachmentVisuals

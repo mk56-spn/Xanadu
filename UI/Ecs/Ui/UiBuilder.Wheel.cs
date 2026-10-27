@@ -3,14 +3,14 @@ using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using Godot;
 
-namespace Writer.Ecs;
+namespace Xanadu.Ecs;
 
 public sealed partial class UiBuilder
 {
     /// <summary>
-    /// Creates the generic Writer.UI radial selector (the cheese wheel) in the
+    /// Creates the generic Xanadu.UI radial selector (the cheese wheel) in the
     /// current parent. The wheel paints and hit-tests itself through the
-    /// Writer.UI systems; callers only supply labels, an initial selection, and
+    /// Xanadu.UI systems; callers only supply labels, an initial selection, and
     /// optional per-wedge colours.
     /// </summary>
     public UiWheelControl Wheel(

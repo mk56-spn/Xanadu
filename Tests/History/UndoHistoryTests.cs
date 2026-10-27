@@ -1,8 +1,8 @@
 using System.Collections.Generic;
 using NUnit.Framework;
-using Writer.History;
+using Xanadu.History;
 
-namespace Writer.Tests.History;
+namespace Xanadu.Tests.History;
 
 [TestFixture]
 public sealed class UndoHistoryTests

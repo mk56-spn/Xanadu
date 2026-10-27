@@ -1,9 +1,9 @@
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
-using Writer.Ecs;
-using Writer.Tools.Animator.Commands;
+using Xanadu.Ecs;
+using Xanadu.Tools.Animator.Commands;
 
-namespace Writer.Tools.Animator.Systems;
+namespace Xanadu.Tools.Animator.Systems;
 
 /// <summary>
 /// The file controls in the window header: the path field shows and edits where

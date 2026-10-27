@@ -1,6 +1,6 @@
 using Godot;
 
-namespace Writer.Systems.Input;
+namespace Xanadu.Systems.Input;
 
 /// <summary>Reads the live Godot keyboard.</summary>
 public sealed class GodotKeyboardState : IKeyboardState

@@ -1,8 +1,8 @@
 using System.Collections.Generic;
 using Godot;
-using Writer.Animation;
+using Xanadu.Animation;
 
-namespace Writer.Tools.Animator.Commands;
+namespace Xanadu.Tools.Animator.Commands;
 
 /// <summary>
 /// Lines a dragged joint up with the other joints: its X and Y each jump to a

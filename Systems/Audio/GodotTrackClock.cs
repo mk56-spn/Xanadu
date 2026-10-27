@@ -1,6 +1,6 @@
 using Godot;
 
-namespace Writer.Systems.Audio;
+namespace Xanadu.Systems.Audio;
 
 /// <summary>Reads Godot's monotonic microsecond tick counter.</summary>
 public sealed class GodotTrackClock : ITrackClock

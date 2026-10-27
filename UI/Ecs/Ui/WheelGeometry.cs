@@ -1,7 +1,7 @@
 using Friflo.Engine.ECS;
 using Godot;
 
-namespace Writer.Ecs;
+namespace Xanadu.Ecs;
 
 /// <summary>Pure polar math for <see cref="UiWheel"/> hit-testing and layout.</summary>
 public static class UiWheelGeometry

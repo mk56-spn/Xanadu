@@ -2,11 +2,11 @@ using System;
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using Godot;
-using Writer.Animation;
-using Writer.Ecs;
-using Writer.Timeline;
+using Xanadu.Animation;
+using Xanadu.Ecs;
+using Xanadu.Timeline;
 
-namespace Writer.Tools.Animator;
+namespace Xanadu.Tools.Animator;
 
 /// <summary>
 /// Where everything in the keyframe timeline is on screen this frame: the

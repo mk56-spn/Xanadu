@@ -1,11 +1,11 @@
 using Friflo.Engine.ECS;
 using Godot;
 using NUnit.Framework;
-using Writer.Ecs;
-using Writer.Editor;
-using Writer.Levels;
+using Xanadu.Ecs;
+using Xanadu.Editor;
+using Xanadu.Levels;
 
-namespace Writer.Tests.Groups;
+namespace Xanadu.Tests.Groups;
 
 [TestFixture]
 public sealed class GroupPersistenceTests

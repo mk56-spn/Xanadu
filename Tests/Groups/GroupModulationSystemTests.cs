@@ -2,12 +2,12 @@ using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Godot;
 using NUnit.Framework;
-using Writer.Ecs;
-using Writer.Systems.Physics;
-using Writer.Systems.Playfields;
-using Writer.Tests.Support;
+using Xanadu.Ecs;
+using Xanadu.Systems.Physics;
+using Xanadu.Systems.Playfields;
+using Xanadu.Tests.Support;
 
-namespace Writer.Tests.Groups;
+namespace Xanadu.Tests.Groups;
 
 [TestFixture]
 public sealed class GroupModulationSystemTests : EcsSystemTest

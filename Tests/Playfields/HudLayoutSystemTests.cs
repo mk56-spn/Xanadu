@@ -2,15 +2,15 @@ using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using Godot;
 using NUnit.Framework;
-using Writer.Ecs;
-using Writer.Settings;
-using Writer.Systems.Canvas;
-using Writer.Systems.Input;
-using Writer.Systems.Playfields;
-using Writer.Tests.Support;
-using Position = Writer.Ecs.Position;
+using Xanadu.Ecs;
+using Xanadu.Settings;
+using Xanadu.Systems.Canvas;
+using Xanadu.Systems.Input;
+using Xanadu.Systems.Playfields;
+using Xanadu.Tests.Support;
+using Position = Xanadu.Ecs.Position;
 
-namespace Writer.Tests.Playfields;
+namespace Xanadu.Tests.Playfields;
 
 [TestFixture]
 public sealed class HudLayoutSystemTests : EcsSystemTest

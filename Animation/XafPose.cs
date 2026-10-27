@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using Godot;
 
-namespace Writer.Animation;
+namespace Xanadu.Animation;
 
 /// <summary>Per-bone and per-attachment transform values for one sampled pose.</summary>
 public sealed class XafPose

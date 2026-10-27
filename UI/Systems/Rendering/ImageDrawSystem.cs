@@ -1,9 +1,9 @@
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
-using Writer.Ecs;
-using Writer.Systems.Canvas;
+using Xanadu.Ecs;
+using Xanadu.Systems.Canvas;
 
-namespace Writer.Systems.Rendering;
+namespace Xanadu.Systems.Rendering;
 
 /// <summary>Draws dirty ECS image entities.</summary>
 public sealed class ImageDrawSystem : QuerySystem<Rectangle, Drawable, VisualRid, UiImage>

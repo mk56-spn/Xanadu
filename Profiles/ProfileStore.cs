@@ -4,10 +4,10 @@ using System.IO;
 using System.Linq;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using Writer.Systems.Scenes;
-using Writer.Scenes;
+using Xanadu.Systems.Scenes;
+using Xanadu.Scenes;
 
-namespace Writer.Profiles;
+namespace Xanadu.Profiles;
 
 /// <summary>A saved local player profile and their level scores.</summary>
 public sealed class UserProfile
@@ -138,7 +138,7 @@ public sealed class ProfileStore
             MaxCombo = result.MaxCombo,
             NotesHit = result.NotesHit,
             TotalNotes = result.TotalNotes,
-            Rank = Writer.Scoring.ScoreRules.RankFor(result.Accuracy),
+            Rank = Xanadu.Scoring.ScoreRules.RankFor(result.Accuracy),
             PlayedUtc = DateTime.UtcNow,
         };
         profile.Scores[key] = record;

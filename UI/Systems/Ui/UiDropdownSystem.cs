@@ -2,10 +2,10 @@ using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Godot;
-using Writer.Ecs;
-using Position = Writer.Ecs.Position;
+using Xanadu.Ecs;
+using Position = Xanadu.Ecs.Position;
 
-namespace Writer.Systems.Ui;
+namespace Xanadu.Systems.Ui;
 
 /// <summary>Generic ECS dropdown open/close, list layout, and option selection.</summary>
 public sealed class UiDropdownSystem : QuerySystem<Dropdown>
@@ -24,6 +24,24 @@ public sealed class UiDropdownSystem : QuerySystem<Dropdown>
     protected override void OnUpdate()
     {
         CommandBuffer buffer = CommandBuffer;
+
+        // A disabled dropdown must not leave its list floating over the scene.
+        foreach (Entity disabled in _entities
+                     .Query<Dropdown>()
+                     .WithDisabled()
+                     .ToEntityList())
+        {
+            if (!disabled.Tags.Has<Disabled>())
+                continue;
+
+            ref Dropdown closed = ref disabled.GetComponent<Dropdown>();
+            if (!closed.Open)
+                continue;
+
+            closed.Open = false;
+            LayOut(disabled, ref closed, buffer);
+            MarkContainerDirty(disabled, buffer);
+        }
 
         foreach (Entity entity in Query.ToEntityList())
         {
@@ -82,7 +100,8 @@ public sealed class UiDropdownSystem : QuerySystem<Dropdown>
 
             DropdownOption option = entity.GetComponent<DropdownOption>();
             if (option.Owner.IsNull ||
-                !option.Owner.HasComponent<Dropdown>())
+                !option.Owner.HasComponent<Dropdown>() ||
+                option.Owner.Tags.Has<Disabled>())
             {
                 continue;
             }

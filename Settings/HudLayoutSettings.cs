@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text.Json;
 
-namespace Writer.Settings;
+namespace Xanadu.Settings;
 
 /// <summary>Persisted visibility and normalized position for play HUD items.</summary>
 public sealed class HudLayoutSettings

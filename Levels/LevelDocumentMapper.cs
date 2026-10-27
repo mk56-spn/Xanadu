@@ -1,9 +1,9 @@
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using Godot;
-using Writer.Ecs;
+using Xanadu.Ecs;
 
-namespace Writer.Levels;
+namespace Xanadu.Levels;
 
 /// <summary>Copies editor ECS state to and from the serializable document.</summary>
 public static class LevelDocumentMapper

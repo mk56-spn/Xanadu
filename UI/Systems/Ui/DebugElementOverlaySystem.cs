@@ -1,11 +1,11 @@
 using Friflo.Engine.ECS.Systems;
 using Godot;
-using Writer.Ecs;
-using Writer.Systems.Canvas;
-using Writer.Systems.Input;
-using Position = Writer.Ecs.Position;
+using Xanadu.Ecs;
+using Xanadu.Systems.Canvas;
+using Xanadu.Systems.Input;
+using Position = Xanadu.Ecs.Position;
 
-namespace Writer.Ui.Systems.Ui;
+namespace Xanadu.Ui.Systems.Ui;
 
 /// <summary>F4 overlay showing button and container bounds.</summary>
 public sealed class DebugElementOverlaySystem(

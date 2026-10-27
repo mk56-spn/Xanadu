@@ -5,12 +5,12 @@ using System.Linq;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Godot;
-using Writer.Ecs;
-using Writer.Systems.Canvas;
-using Writer.Systems.Input;
-using Position = Writer.Ecs.Position;
+using Xanadu.Ecs;
+using Xanadu.Systems.Canvas;
+using Xanadu.Systems.Input;
+using Position = Xanadu.Ecs.Position;
 
-namespace Writer.Systems.Debug;
+namespace Xanadu.Systems.Debug;
 
 /// <summary>F3 debug overlay with pressed-entity highlighting and ECS metrics.</summary>
 public sealed class DebugPressedOverlaySystem : QuerySystem<Rectangle, Position>

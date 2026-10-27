@@ -2,13 +2,13 @@ using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Godot;
-using Writer.Ecs;
-using Writer.Editor.Commands;
-using Writer.Settings;
-using Writer.Systems.Playfields;
-using Position = Writer.Ecs.Position;
+using Xanadu.Ecs;
+using Xanadu.Editor.Commands;
+using Xanadu.Settings;
+using Xanadu.Systems.Playfields;
+using Position = Xanadu.Ecs.Position;
 
-namespace Writer.Systems.Editor;
+namespace Xanadu.Systems.Editor;
 
 /// <summary>
 /// The note-type bar: a row of colour swatches that shows only in note mode.

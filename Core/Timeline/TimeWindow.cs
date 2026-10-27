@@ -1,7 +1,7 @@
 using System;
 using Godot;
 
-namespace Writer.Timeline;
+namespace Xanadu.Timeline;
 
 /// <summary>
 /// The visible span of a timeline, in milliseconds, and its mapping to screen

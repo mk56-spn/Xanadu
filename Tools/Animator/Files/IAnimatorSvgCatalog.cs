@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 
-namespace Writer.Tools.Animator.Files;
+namespace Xanadu.Tools.Animator.Files;
 
 /// <summary>
 /// The SVG art a rig can attach: every <c>.svg</c> file the project holds and

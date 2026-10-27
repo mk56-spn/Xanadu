@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
 
-namespace Writer.Ecs;
+namespace Xanadu.Ecs;
 
 /// <summary>Entities created by <see cref="UiBuilder.Dropdown"/>.</summary>
 public sealed class UiDropdownControl(

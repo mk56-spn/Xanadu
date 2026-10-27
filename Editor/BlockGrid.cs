@@ -1,7 +1,7 @@
 using Godot;
-using Writer.Ecs;
+using Xanadu.Ecs;
 
-namespace Writer.Editor;
+namespace Xanadu.Editor;
 
 /// <summary>
 /// The playfield grid blocks snap to. It is the same grid the editor draws:

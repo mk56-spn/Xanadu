@@ -1,11 +1,11 @@
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
-using Writer.Animation;
+using Xanadu.Animation;
 using Godot;
-using Writer.Ecs;
-using Position = Writer.Ecs.Position;
+using Xanadu.Ecs;
+using Position = Xanadu.Ecs.Position;
 
-namespace Writer.Systems.Characters;
+namespace Xanadu.Systems.Characters;
 
 /// <summary>
 /// Works out whether each rigged player is on the ground, jumping or falling

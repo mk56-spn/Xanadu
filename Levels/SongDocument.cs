@@ -1,4 +1,4 @@
-namespace Writer.Levels;
+namespace Xanadu.Levels;
 
 /// <summary>Program-owned song metadata and shared timing.</summary>
 public sealed class SongDocument

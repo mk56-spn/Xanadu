@@ -1,8 +1,8 @@
 using System;
 using Godot;
-using Writer.Animation;
+using Xanadu.Animation;
 
-namespace Writer.Tools.Animator.Files;
+namespace Xanadu.Tools.Animator.Files;
 
 /// <summary>Reads and writes XAF files at <c>res://</c>, <c>user://</c> or absolute paths.</summary>
 public sealed class GodotAnimatorFiles : IAnimatorFiles

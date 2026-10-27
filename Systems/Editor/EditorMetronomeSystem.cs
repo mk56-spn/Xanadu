@@ -1,10 +1,10 @@
 using System;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
-using Writer.Ecs;
-using Writer.Systems.Audio;
+using Xanadu.Ecs;
+using Xanadu.Systems.Audio;
 
-namespace Writer.Systems.Editor;
+namespace Xanadu.Systems.Editor;
 
 /// <summary>Plays a click on BPM/offset beat boundaries.</summary>
 public sealed class EditorMetronomeSystem : QuerySystem<Playhead, EditorMetronome>

@@ -2,7 +2,7 @@ using System;
 using System.IO;
 using System.Linq;
 
-namespace Writer.Misc;
+namespace Xanadu.Misc;
 
 /// <summary>Builds readable, collision-free screenshot file names.</summary>
 public static class ScreenshotNaming
@@ -13,7 +13,7 @@ public static class ScreenshotNaming
         Func<string, bool> exists)
     {
         string safeName = Sanitize(
-            string.IsNullOrWhiteSpace(gameName) ? "Writer" : gameName);
+            string.IsNullOrWhiteSpace(gameName) ? "Xanadu" : gameName);
         string baseName = $"{safeName} {timestamp:yyyy-MM-dd HH-mm-ss}";
         string file = $"{baseName}.png";
         int suffix = 2;

@@ -4,7 +4,7 @@ using System.Linq;
 using Friflo.Engine.ECS;
 using Godot;
 
-namespace Writer.Ecs;
+namespace Xanadu.Ecs;
 
 /// <summary>How many groups a level has. They are fixed slots, shown as a grid.</summary>
 public static class GroupLimits

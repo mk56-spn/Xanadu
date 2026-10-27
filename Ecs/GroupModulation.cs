@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using Godot;
 
-namespace Writer.Ecs;
+namespace Xanadu.Ecs;
 
 /// <summary>
 /// What a set of groups does to an item at a moment: where it is moved to and

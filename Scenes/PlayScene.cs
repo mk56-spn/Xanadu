@@ -3,15 +3,15 @@ using System.Collections.Generic;
 using System.Linq;
 using Friflo.Engine.ECS;
 using Godot;
-using Writer.Ecs;
-using Writer.Strings;
-using Position = Writer.Ecs.Position;
-using Writer.Levels;
-using Writer.Settings;
-using Writer.Scoring;
-using Writer.Systems.Playfields;
+using Xanadu.Ecs;
+using Xanadu.Strings;
+using Position = Xanadu.Ecs.Position;
+using Xanadu.Levels;
+using Xanadu.Settings;
+using Xanadu.Scoring;
+using Xanadu.Systems.Playfields;
 
-namespace Writer.Scenes;
+namespace Xanadu.Scenes;
 
 /// <summary>Reuses the editor playfield to play a selected level.</summary>
 public static class PlayScene
@@ -245,41 +245,41 @@ public static class PlayScene
             new Color(0, 0, 0, 0)));
 
         counterMembers.Add(CounterText(ui, screen.X - 200, 220, "FLAWLESS+",
-            PlayScoreSystem.ColorFor(Writer.Scoring.Judgement.FlawlessP),
+            PlayScoreSystem.ColorFor(Xanadu.Scoring.Judgement.FlawlessP),
             TextAlign.Left));
         counterMembers.Add(CounterText(ui, screen.X - 200, 246, LocalizedText.Get(PlayStrings.Flawless),
-            PlayScoreSystem.ColorFor(Writer.Scoring.Judgement.Flawless),
+            PlayScoreSystem.ColorFor(Xanadu.Scoring.Judgement.Flawless),
             TextAlign.Left));
         counterMembers.Add(CounterText(ui, screen.X - 200, 272, LocalizedText.Get(PlayStrings.Clean),
-            PlayScoreSystem.ColorFor(Writer.Scoring.Judgement.Clean),
+            PlayScoreSystem.ColorFor(Xanadu.Scoring.Judgement.Clean),
             TextAlign.Left));
         counterMembers.Add(CounterText(ui, screen.X - 200, 298, LocalizedText.Get(PlayStrings.Fair),
-            PlayScoreSystem.ColorFor(Writer.Scoring.Judgement.Fair),
+            PlayScoreSystem.ColorFor(Xanadu.Scoring.Judgement.Fair),
             TextAlign.Left));
         counterMembers.Add(CounterText(ui, screen.X - 200, 324, LocalizedText.Get(PlayStrings.Deficient),
-            PlayScoreSystem.ColorFor(Writer.Scoring.Judgement.Deficient),
+            PlayScoreSystem.ColorFor(Xanadu.Scoring.Judgement.Deficient),
             TextAlign.Left));
         counterMembers.Add(CounterText(ui, screen.X - 200, 350, LocalizedText.Get(PlayStrings.Terrible),
-            PlayScoreSystem.ColorFor(Writer.Scoring.Judgement.Terrible),
+            PlayScoreSystem.ColorFor(Xanadu.Scoring.Judgement.Terrible),
             TextAlign.Left));
         counterMembers.Add(CounterText(ui, screen.X - 200, 376, LocalizedText.Get(PlayStrings.Miss),
-            PlayScoreSystem.ColorFor(Writer.Scoring.Judgement.Miss),
+            PlayScoreSystem.ColorFor(Xanadu.Scoring.Judgement.Miss),
             TextAlign.Left));
 
         Entity flawlessPlus = CounterNumber(ui, screen.X - 65, 220,
-            PlayScoreSystem.ColorFor(Writer.Scoring.Judgement.FlawlessP));
+            PlayScoreSystem.ColorFor(Xanadu.Scoring.Judgement.FlawlessP));
         Entity flawless = CounterNumber(ui, screen.X - 65, 246,
-            PlayScoreSystem.ColorFor(Writer.Scoring.Judgement.Flawless));
+            PlayScoreSystem.ColorFor(Xanadu.Scoring.Judgement.Flawless));
         Entity clean = CounterNumber(ui, screen.X - 65, 272,
-            PlayScoreSystem.ColorFor(Writer.Scoring.Judgement.Clean));
+            PlayScoreSystem.ColorFor(Xanadu.Scoring.Judgement.Clean));
         Entity fair = CounterNumber(ui, screen.X - 65, 298,
-            PlayScoreSystem.ColorFor(Writer.Scoring.Judgement.Fair));
+            PlayScoreSystem.ColorFor(Xanadu.Scoring.Judgement.Fair));
         Entity deficient = CounterNumber(ui, screen.X - 65, 324,
-            PlayScoreSystem.ColorFor(Writer.Scoring.Judgement.Deficient));
+            PlayScoreSystem.ColorFor(Xanadu.Scoring.Judgement.Deficient));
         Entity terrible = CounterNumber(ui, screen.X - 65, 350,
-            PlayScoreSystem.ColorFor(Writer.Scoring.Judgement.Terrible));
+            PlayScoreSystem.ColorFor(Xanadu.Scoring.Judgement.Terrible));
         Entity miss = CounterNumber(ui, screen.X - 65, 376,
-            PlayScoreSystem.ColorFor(Writer.Scoring.Judgement.Miss));
+            PlayScoreSystem.ColorFor(Xanadu.Scoring.Judgement.Miss));
         counterMembers.Add(flawlessPlus);
         counterMembers.Add(flawless);
         counterMembers.Add(clean);

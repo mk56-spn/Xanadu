@@ -1,6 +1,6 @@
-using Writer.Systems.Audio;
+using Xanadu.Systems.Audio;
 
-namespace Writer.Tests.Support;
+namespace Xanadu.Tests.Support;
 
 /// <summary>Configurable recording audio backend shared by transport tests.</summary>
 public sealed class RecordingTrackAudio : ITrackAudio

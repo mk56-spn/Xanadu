@@ -1,7 +1,7 @@
 using Godot;
-using Writer.Ecs;
+using Xanadu.Ecs;
 
-namespace Writer.Editor;
+namespace Xanadu.Editor;
 
 /// <summary>Which side of a block a resize starts from.</summary>
 public enum BlockHandle

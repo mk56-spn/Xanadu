@@ -1,8 +1,8 @@
 using Friflo.Engine.ECS;
 using Godot;
-using Position = Writer.Ecs.Position;
+using Position = Xanadu.Ecs.Position;
 
-namespace Writer.Ecs;
+namespace Xanadu.Ecs;
 
 public static class UiTransform
 {

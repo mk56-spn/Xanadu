@@ -1,7 +1,7 @@
 using System;
 using Godot;
 
-namespace Writer.Systems.Canvas;
+namespace Xanadu.Systems.Canvas;
 
 /// <summary>Canvas operations used by draw systems.</summary>
 public interface IRectCanvas

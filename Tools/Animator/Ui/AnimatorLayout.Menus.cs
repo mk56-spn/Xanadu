@@ -1,10 +1,10 @@
 using System;
 using Friflo.Engine.ECS;
 using Godot;
-using Writer.Ecs;
-using Position = Writer.Ecs.Position;
+using Xanadu.Ecs;
+using Position = Xanadu.Ecs.Position;
 
-namespace Writer.Tools.Animator;
+namespace Xanadu.Tools.Animator;
 
 /// <summary>The animator's floating menus and the sizes their systems place them by.</summary>
 public static partial class AnimatorLayout

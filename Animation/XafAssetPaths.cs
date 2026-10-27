@@ -1,7 +1,7 @@
 using System;
 using System.IO;
 
-namespace Writer.Animation;
+namespace Xanadu.Animation;
 
 /// <summary>
 /// Resolves a package's <c>res://</c> SVG paths against the Godot project that

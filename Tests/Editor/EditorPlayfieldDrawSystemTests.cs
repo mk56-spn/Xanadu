@@ -4,13 +4,13 @@ using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Godot;
 using NUnit.Framework;
-using Writer.Ecs;
-using Writer.Systems.Canvas;
-using Writer.Systems.Editor;
-using Writer.Systems.Playfields;
-using Writer.Timeline;
+using Xanadu.Ecs;
+using Xanadu.Systems.Canvas;
+using Xanadu.Systems.Editor;
+using Xanadu.Systems.Playfields;
+using Xanadu.Timeline;
 
-namespace Writer.Tests.Editor;
+namespace Xanadu.Tests.Editor;
 
 [TestFixture]
 public sealed class EditorPlayfieldDrawSystemTests
@@ -188,7 +188,7 @@ public sealed class EditorPlayfieldDrawSystemTests
             new Note(
                 1_000,
                 new Vector2(100, 100),
-                target: Writer.Settings.KeybindAction.R1));
+                target: Xanadu.Settings.KeybindAction.R1));
         store.CreateEntity(
             new LevelInfo("Markers", ""),
             new Playfield(1000, 1000),
@@ -203,7 +203,7 @@ public sealed class EditorPlayfieldDrawSystemTests
         root.Update(new UpdateTick(1f / 60f, 0));
 
         Color lane = PlayfieldRenderer.ColorFor(
-            Writer.Settings.KeybindAction.R1);
+            Xanadu.Settings.KeybindAction.R1);
         Assert.That(
             canvas.RectCalls.Any(call => call.Color == lane),
             Is.True);

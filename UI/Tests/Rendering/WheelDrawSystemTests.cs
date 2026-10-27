@@ -3,12 +3,12 @@ using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using Godot;
 using NUnit.Framework;
-using Writer.Ecs;
-using Writer.Tests.Support;
-using Writer.Systems.Canvas;
-using Writer.Systems.Rendering;
+using Xanadu.Ecs;
+using Xanadu.Tests.Support;
+using Xanadu.Systems.Canvas;
+using Xanadu.Systems.Rendering;
 
-namespace Writer.Tests.UI.Rendering;
+namespace Xanadu.Tests.UI.Rendering;
 
 [TestFixture]
 public sealed class WheelDrawSystemTests : EcsSystemTest

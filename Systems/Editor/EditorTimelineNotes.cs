@@ -2,10 +2,10 @@ using System;
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using Godot;
-using Writer.Ecs;
-using Writer.Timeline;
+using Xanadu.Ecs;
+using Xanadu.Timeline;
 
-namespace Writer.Systems.Editor;
+namespace Xanadu.Systems.Editor;
 
 /// <summary>
 /// Where each note sits on the editor timeline strip: a column per time, the

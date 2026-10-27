@@ -1,9 +1,9 @@
 using Godot;
 using NUnit.Framework;
-using Writer.Ecs;
-using Writer.Editor;
+using Xanadu.Ecs;
+using Xanadu.Editor;
 
-namespace Writer.Tests.Editor;
+namespace Xanadu.Tests.Editor;
 
 [TestFixture]
 public sealed class BlockEditingTests
