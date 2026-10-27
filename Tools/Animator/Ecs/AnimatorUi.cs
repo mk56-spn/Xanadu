@@ -53,6 +53,7 @@ public struct AnimatorUi : IComponent
     public Entity InspectRotation;
     public Entity InspectScaleX;
     public Entity InspectScaleY;
+    public Entity InspectLayer;
 
     /// <summary>Floating hover explanation, moved by the tooltip system.</summary>
     public Entity Tooltip;

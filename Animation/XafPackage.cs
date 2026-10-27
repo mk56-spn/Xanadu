@@ -42,6 +42,10 @@ public sealed class XafBone
 /// <summary>Rigid SVG group attached to a bone.</summary>
 public sealed class XafAttachment
 {
+    /// <summary>The range of draw layers, which is what a canvas item's z index allows.</summary>
+    public const int MinLayer = -4096;
+    public const int MaxLayer = 4096;
+
     public string SvgPath = "";
     public string Group = "";
     public string BoneId = "";

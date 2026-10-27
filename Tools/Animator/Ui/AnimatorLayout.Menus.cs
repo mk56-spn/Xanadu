@@ -170,7 +170,7 @@ public static partial class AnimatorLayout
     private static void BuildInspector(UiBuilder menu, Vector2 screen, ref Refs refs)
     {
         const float width = 236f;
-        const float height = 190f;
+        const float height = 222f;
         const float row = 26f;
         const float inner = width - 16f;
         var size = new Vector2(width, height);
@@ -186,20 +186,26 @@ public static partial class AnimatorLayout
             new Vector2(inner, 18), UiTheme.SmallFontSize, UiTheme.Accent, TextAlign.Left);
 
         menu.Container(Vector2.Zero, new Vector2(inner, row), spacing: 4, color: Clear);
-        menu.Text("POS", new Vector2(38, 20), 11, UiTheme.TextDim, TextAlign.Left);
+        menu.Text("POS", new Vector2(48, 20), 11, UiTheme.TextDim, TextAlign.Left);
         refs.Ui.InspectPosX = NumericField(menu, new Vector2(64, 22));
         refs.Ui.InspectPosY = NumericField(menu, new Vector2(64, 22));
         menu.End();
 
         menu.Container(Vector2.Zero, new Vector2(inner, row), spacing: 4, color: Clear);
-        menu.Text("ROT °", new Vector2(38, 20), 11, UiTheme.TextDim, TextAlign.Left);
+        menu.Text("ROT °", new Vector2(48, 20), 11, UiTheme.TextDim, TextAlign.Left);
         refs.Ui.InspectRotation = NumericField(menu, new Vector2(72, 22));
         menu.End();
 
         menu.Container(Vector2.Zero, new Vector2(inner, row), spacing: 4, color: Clear);
-        menu.Text("SCALE", new Vector2(38, 20), 11, UiTheme.TextDim, TextAlign.Left);
+        menu.Text("SCALE", new Vector2(48, 20), 11, UiTheme.TextDim, TextAlign.Left);
         refs.Ui.InspectScaleX = NumericField(menu, new Vector2(64, 22));
         refs.Ui.InspectScaleY = NumericField(menu, new Vector2(64, 22));
+        menu.End();
+
+        menu.Container(Vector2.Zero, new Vector2(inner, row), spacing: 4, color: Clear);
+        menu.Text("LAYER", new Vector2(48, 20), 11, UiTheme.TextDim, TextAlign.Left);
+        refs.Ui.InspectLayer = NumericField(menu, new Vector2(64, 22));
+        refs.Ui.InspectLayer.AddComponent(new UiTooltip("Draw order of the SVG art: higher layers draw in front"));
         menu.End();
 
         Entity reset = menu.Button("RESET", new Vector2(inner, row),
