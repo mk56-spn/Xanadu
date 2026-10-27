@@ -21,8 +21,15 @@ public static class AnimatorCommands
                 AnimatorSession.SetStatus(session, "PLAYING");
                 break;
             case ToolActionKind.Stop:
+                AnimatorSequenceCommands.Finish(session);
                 session.GetComponent<AnimatorDocument>().Playback.Stop();
                 AnimatorSession.SetStatus(session, "STOPPED");
+                break;
+            case ToolActionKind.SequenceGame:
+                AnimatorSequenceCommands.StartGame(session);
+                break;
+            case ToolActionKind.SequenceAll:
+                AnimatorSequenceCommands.StartAll(session);
                 break;
             case ToolActionKind.Clip:
                 PlayClip(session, action.Argument);

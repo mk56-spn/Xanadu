@@ -23,12 +23,15 @@ public static class AnimatorTransformCommands
             int changed = 0;
             if (modes.Rest)
             {
-                foreach (int index in Bones(session, selection))
+                List<int> edited = Bones(session, selection);
+                AnimatorRestPin.Pinned? pinned = AnimatorRestPin.Capture(session, edited);
+                foreach (int index in edited)
                 {
                     XafBone bone = document.Package.Skeleton.Bones[index];
                     bone.Rest = new Transform2D(radians, bone.Rest.Scale, 0f, bone.Rest.Origin);
                     changed++;
                 }
+                AnimatorRestPin.Restore(session, pinned);
             }
             else
             {
@@ -78,12 +81,15 @@ public static class AnimatorTransformCommands
             int changed = 0;
             if (modes.Rest)
             {
-                foreach (int index in Bones(session, selection))
+                List<int> edited = Bones(session, selection);
+                AnimatorRestPin.Pinned? pinned = AnimatorRestPin.Capture(session, edited);
+                foreach (int index in edited)
                 {
                     XafBone bone = document.Package.Skeleton.Bones[index];
                     bone.Rest = new Transform2D(bone.Rest.Rotation, clamped, 0f, bone.Rest.Origin);
                     changed++;
                 }
+                AnimatorRestPin.Restore(session, pinned);
             }
             else
             {
@@ -135,13 +141,16 @@ public static class AnimatorTransformCommands
             int fixedBones = 0;
             if (modes.Rest)
             {
-                foreach (int index in Bones(session, selection))
+                List<int> edited = Bones(session, selection);
+                AnimatorRestPin.Pinned? pinned = AnimatorRestPin.Capture(session, edited);
+                foreach (int index in edited)
                 {
                     XafBone bone = document.Package.Skeleton.Bones[index];
                     bone.Rest = new Transform2D(
                         bone.Rest.Rotation, bone.Rest.Scale, 0f, translation);
                     changed++;
                 }
+                AnimatorRestPin.Restore(session, pinned);
             }
             else
             {

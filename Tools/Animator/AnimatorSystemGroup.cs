@@ -32,6 +32,7 @@ public sealed class AnimatorSystemGroup : SystemGroup
         Add(new AnimatorPreviewInputSystem(pointer, wheel));
         Add(new AnimatorTimelineInputSystem(pointer, wheel));
         Add(new AnimatorShortcutSystem(keyboard));
+        Add(new AnimatorSequenceSystem());
         Add(new AnimatorPlaybackSystem());
         Add(new AnimatorHierarchySystem(visuals, pointer));
         Add(new AnimatorClipHeaderSystem());

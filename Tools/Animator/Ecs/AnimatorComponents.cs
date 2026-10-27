@@ -72,6 +72,12 @@ public enum ToolActionKind
 
     /// <summary>Selects every key set in the current clip.</summary>
     SelectAllKeys,
+
+    /// <summary>Plays jump, fall, land and idle into each other, as the game does.</summary>
+    SequenceGame,
+
+    /// <summary>Plays every clip in the file into the next.</summary>
+    SequenceAll,
 }
 
 /// <summary>Command carried by a pressable UI entity.</summary>
@@ -92,6 +98,9 @@ public enum AnimatorMode
 
     /// <summary>Dragging a joint bends its parent and grandparent to reach the pointer.</summary>
     Ik,
+
+    /// <summary>In the rest pose, moving or turning a bone leaves the bones below it where they are.</summary>
+    Pin,
 }
 
 /// <summary>Binds a <c>Toggle</c> entity to one animator editing mode.</summary>
@@ -236,6 +245,9 @@ public struct AnimatorModes : IComponent
     public bool Svg;
     public bool Ik;
 
+    /// <summary>Rest-pose edits leave the bones below the edited one where they are.</summary>
+    public bool Pin;
+
     /// <summary>Whether one editing mode is on.</summary>
     public readonly bool Get(AnimatorMode mode) => mode switch
     {
@@ -243,6 +255,7 @@ public struct AnimatorModes : IComponent
         AnimatorMode.Onion => Onion,
         AnimatorMode.Svg => Svg,
         AnimatorMode.Ik => Ik,
+        AnimatorMode.Pin => Pin,
         _ => Rest,
     };
 
@@ -262,6 +275,9 @@ public struct AnimatorModes : IComponent
                 break;
             case AnimatorMode.Ik:
                 Ik = value;
+                break;
+            case AnimatorMode.Pin:
+                Pin = value;
                 break;
             default:
                 Rest = value;
@@ -306,6 +322,21 @@ public struct AnimatorDrag : IComponent
 
     /// <summary>World transform of the dragged value's parent, so drags follow rotated rigs.</summary>
     public Transform2D ParentWorld;
+
+    /// <summary>The children a rest drag holds still when PIN is on.</summary>
+    public Writer.Tools.Animator.Commands.AnimatorRestPin.Pinned? Pinned;
+}
+
+/// <summary>
+/// The alignment guides a joint drag is snapped to, in skeleton space, for
+/// the preview to draw. Empty when nothing is snapped.
+/// </summary>
+public struct AnimatorSnapGuides : IComponent
+{
+    public bool HasX;
+    public float X;
+    public bool HasY;
+    public float Y;
 }
 
 /// <summary>
