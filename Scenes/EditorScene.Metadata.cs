@@ -199,6 +199,7 @@ public static partial class EditorScene
             "F5                     Play from selected start",
             "F8                     Tune shader uniforms",
             "F9                     Level shaders",
+            "F10                    Toggle hitboxes",
             "F2                     Toggle this list",
         };
         foreach (string binding in bindings)

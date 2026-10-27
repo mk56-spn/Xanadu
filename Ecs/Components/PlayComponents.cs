@@ -24,18 +24,28 @@ public struct PlaySession(
     public long StartTimeMs = startTimeMs;
 }
 
-/// <summary>The player character's pixel dimensions in play mode.</summary>
+/// <summary>
+/// The player character's box. A play scene stores it in screen pixels for the
+/// playfield's view, so the character is drawn at the same scale as the level.
+/// </summary>
 public struct Player(Vector2 size) : IComponent
 {
     public Vector2 Size = size;
 
     /// <summary>
     /// Contact.xaf's art is 209 px tall at rest and the rig is drawn scaled to
-    /// the player's height, so this height shows it at its authored size.
+    /// the player's height, so this height makes it a little smaller than
+    /// authored. It is in playfield units; the playfield's scale turns it into
+    /// screen pixels.
     /// </summary>
-    public const float DefaultHeight = 209;
+    public const float DefaultHeight = 200;
 
-    public static readonly Vector2 DefaultSize = new(30, DefaultHeight);
+    public const float DefaultWidth = 30;
+
+    public static readonly Vector2 DefaultSize = new(DefaultWidth, DefaultHeight);
+
+    /// <summary>The box's size on screen for a playfield drawn at <paramref name="scale"/>.</summary>
+    public static Vector2 ScaledSize(float scale) => DefaultSize * scale;
 }
 
 /// <summary>HUD rows for per-judgement counters.</summary>

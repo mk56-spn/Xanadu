@@ -15,7 +15,7 @@ public sealed class EditorAnalysisTests
         Vector2.Zero,
         new Vector2(1000, 1000),
         1f,
-        new Vector2(30, 209),
+        Player.DefaultSize,
         72,
         3000f,
         150f);

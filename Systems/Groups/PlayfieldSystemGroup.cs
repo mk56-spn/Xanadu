@@ -31,7 +31,9 @@ public sealed class PlayfieldSystemGroup : SystemGroup
         ICharacterRigFiles? rigFiles = null,
         Func<IAttachmentVisuals>? rigVisuals = null,
         IParticleEmitter? particles = null,
-        ReplayKeyboard? replayKeyboard = null) : base("Playfield")
+        ReplayKeyboard? replayKeyboard = null,
+        Rid hitboxCanvas = default,
+        IOverlayToggleSource? hitboxToggle = null) : base("Playfield")
     {
         Add(new PlayfieldPlaybackSystem(audio));
         Add(new PlaySessionSystem(audio));
@@ -68,5 +70,13 @@ public sealed class PlayfieldSystemGroup : SystemGroup
         }
 
         Add(new PlayfieldDrawSystem(entities, canvas, playfieldCanvas));
+        if (hitboxToggle is not null)
+        {
+            Add(new PlayfieldHitboxOverlaySystem(
+                entities,
+                canvas,
+                hitboxCanvas,
+                hitboxToggle));
+        }
     }
 }

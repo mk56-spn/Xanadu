@@ -61,7 +61,7 @@ public static class PlayScene
                 playing: false),
             new PlayfieldView(origin, scale, screen),
             new PlayfieldMode(PlayfieldKind.Play),
-            new Player(Player.DefaultSize),
+            new Player(Player.ScaledSize(scale)),
             new Position(new Vector2(
                 origin.X + fieldWidth / 2,
                 origin.Y + fieldHeight / 2)),

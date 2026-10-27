@@ -39,7 +39,7 @@ public readonly record struct PlayabilityGeometry(
         view.ScreenOrigin,
         new Vector2(playfield.Width, playfield.Height) * view.Scale,
         view.Scale,
-        Player.DefaultSize,
+        Player.ScaledSize(view.Scale),
         PlayfieldRenderer.NoteSize * view.Scale,
         Box2DPhysicsWorld.DefaultGravity * Box2DPhysicsWorld.PixelsPerMeter,
         windowMs);
