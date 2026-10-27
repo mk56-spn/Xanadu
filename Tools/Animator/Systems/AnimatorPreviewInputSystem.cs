@@ -304,7 +304,7 @@ public sealed class AnimatorPreviewInputSystem(
     /// Solves the two-bone chain for the pointer, keeping the side the chain
     /// already bends to, then turns the grandparent and parent to match.
     /// </summary>
-    private static void Ik(Entity session, Vector2 pointer, Transform2D placement)
+    private static void Ik(Entity session, Vector2 pointer, Transform2D placement, bool free)
     {
         ref AnimatorDocument document = ref session.GetComponent<AnimatorDocument>();
         int joint = session.GetComponent<AnimatorDrag>().Joint;
@@ -319,6 +319,19 @@ public sealed class AnimatorPreviewInputSystem(
         Vector2 reach = end - root;
         bool bendPositive = new Vector2(-reach.Y, reach.X).Dot(elbow - root) >= 0f;
         Vector2 target = placement.AffineInverse() * pointer;
+        ref AnimatorSnapGuides guides = ref session.GetComponent<AnimatorSnapGuides>();
+        guides = default;
+        if (!free)
+        {
+            // The chain moves, so it only snaps to joints outside it; its root stays a target.
+            float radius = AnimatorSnap.Pixels / Mathf.Max(0.0001f, Mathf.Abs(placement.Scale.X));
+            target = AnimatorSnap.AlignPoint(
+                target,
+                AnimatorSnap.Joints(document.Package, world, grandparent, keepRoot: true),
+                radius,
+                out guides);
+        }
+
         Vector2[] solved = XafFabrik.Solve(new[] { root, elbow, end }, target, bendPositive);
 
         Aim(document.Package, pose, grandparent, parent, solved[1]);
@@ -341,7 +354,7 @@ public sealed class AnimatorPreviewInputSystem(
         pose.Bones[bone].Rotation += delta;
     }
 
-    private static void Swing(Entity session, Vector2 pointer, Transform2D placement)
+    private static void Swing(Entity session, Vector2 pointer, Transform2D placement, bool free)
     {
         ref AnimatorDocument document = ref session.GetComponent<AnimatorDocument>();
         int joint = session.GetComponent<AnimatorDrag>().Joint;
@@ -352,8 +365,25 @@ public sealed class AnimatorPreviewInputSystem(
         Vector2 local = placement.AffineInverse() * pointer;
         Vector2 toPointer = local - world[parent].Origin;
         Vector2 toJoint = world[joint].Origin - world[parent].Origin;
+        ref AnimatorSnapGuides guides = ref session.GetComponent<AnimatorSnapGuides>();
+        guides = default;
         if (toPointer.LengthSquared() < 1f || toJoint.LengthSquared() < 0.0001f)
             return;
+
+        // The joint can only move on a circle about its parent, so it snaps by turning to line up
+        // with another joint. The parent itself is a target (a straight bone); what it carries is not.
+        if (!free)
+        {
+            float radius = AnimatorSnap.Pixels / Mathf.Max(0.0001f, Mathf.Abs(placement.Scale.X));
+            Vector2 snapped = AnimatorSnap.Direction(
+                world[parent].Origin,
+                toJoint.Length(),
+                toPointer.Normalized(),
+                AnimatorSnap.Joints(document.Package, world, parent, keepRoot: true),
+                radius,
+                out guides);
+            toPointer = snapped * toPointer.Length();
+        }
 
         float delta = Mathf.Wrap(toPointer.Angle() - toJoint.Angle(), -Mathf.Pi, Mathf.Pi);
         // A mirrored parent turns local rotation the opposite way on screen.
@@ -399,13 +429,13 @@ public sealed class AnimatorPreviewInputSystem(
 
         if (drag.Kind == AnimatorDragKind.Swing)
         {
-            Swing(session, pointer, placement);
+            Swing(session, pointer, placement, shift);
             return;
         }
 
         if (drag.Kind == AnimatorDragKind.Ik)
         {
-            Ik(session, pointer, placement);
+            Ik(session, pointer, placement, shift);
             return;
         }
 

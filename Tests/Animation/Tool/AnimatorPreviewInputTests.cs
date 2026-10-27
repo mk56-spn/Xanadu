@@ -120,6 +120,8 @@ public sealed class AnimatorPreviewInputTests : AnimatorToolTest
         Vector2 start = BoneScreenPosition(1);
         PressAt(start);
 
+        // These check the drag maths, so drag freely; snapping has its own tests.
+        Pointer.Shift = true;
         MoveTo(start + new Vector2(10, 5));
 
         Assert.That(Session.GetComponent<AnimatorSelection>().Bone, Is.EqualTo(1));
@@ -186,6 +188,7 @@ public sealed class AnimatorPreviewInputTests : AnimatorToolTest
         Session.GetComponent<AnimatorModes>().AutoKey = true;
         Vector2 start = BoneScreenPosition(1);
         PressAt(start);
+        Pointer.Shift = true;
         MoveTo(start + new Vector2(10, 0));
 
         Release();
