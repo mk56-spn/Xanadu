@@ -59,6 +59,7 @@ public static class AnimatorBindings
 
         // Timeline keys.
         new(new ToolAction(ToolActionKind.DeleteKey), Key.Delete),
+        new(new ToolAction(ToolActionKind.DeleteKey), Key.Backspace),
 
         // Clips.
         new(new ToolAction(ToolActionKind.NewClip), Key.N, Ctrl: true, Shift: true),

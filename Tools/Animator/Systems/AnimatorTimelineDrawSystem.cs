@@ -206,8 +206,7 @@ public sealed class AnimatorTimelineDrawSystem(IRectCanvas canvas, Rid target)
     {
         foreach (float time in AnimatorTrackRows.KeyTimes(model.Clip, track))
         {
-            double ms = time * 1000.0;
-            if (ms < model.Window.Start || ms > model.Window.End)
+            if (!model.IsVisible(time))
                 continue;
 
             bool chosen = selection.IsKeySelected(track, time);

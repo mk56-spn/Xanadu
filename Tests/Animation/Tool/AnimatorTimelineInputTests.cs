@@ -75,6 +75,62 @@ public sealed class AnimatorTimelineInputTests : AnimatorToolTest
     }
 
     [Test]
+    public void DraggingAKeyAcrossAnotherAndBackLeavesBothWhereTheyWere()
+    {
+        PressAt(KeyPoint("head", 1f));
+
+        foreach (float time in new[] { 1.5f, 2f, 1.5f, 1f })
+        {
+            Pointer.Position = KeyPoint("head", time);
+            Frame();
+        }
+
+        Assert.That(HeadTimes(), Is.EqualTo(new[] { 0f, 1f, 2f }).Within(0.0001f));
+    }
+
+    [Test]
+    public void DroppingAKeyOnAnotherReplacesOnlyThatOne()
+    {
+        PressAt(KeyPoint("head", 1f));
+
+        foreach (float time in new[] { 1.5f, 2f })
+        {
+            Pointer.Position = KeyPoint("head", time);
+            Frame();
+        }
+        Release();
+
+        Assert.That(HeadTimes(), Is.EqualTo(new[] { 0f, 2f }).Within(0.0001f));
+    }
+
+    [Test]
+    public void CrossingAnotherChannelsKeyDoesNotPickItUp()
+    {
+        var translation = new XafChannel
+        {
+            Target = XafChannelTarget.Bone,
+            TargetId = "head",
+            Property = XafChannelProperty.TranslationX,
+        };
+        translation.Keyframes.Add(new XafKeyframe { Time = 1.5f, Value = 4f });
+        Idle.Channels.Add(translation);
+        PressAt(KeyPoint("head", 1f));
+        Pointer.Shift = true;
+
+        foreach (float time in new[] { 1.25f, 1.5f, 1.75f })
+        {
+            Pointer.Position = KeyPoint("head", time);
+            Frame();
+        }
+        Release();
+
+        Assert.That(translation.Keyframes, Has.Count.EqualTo(1));
+        Assert.That(translation.Keyframes[0].Time, Is.EqualTo(1.5f).Within(0.0001f));
+        Assert.That(Selection.Keys(), Has.Count.EqualTo(1));
+        Assert.That(Selection.KeyTime, Is.EqualTo(1.75f).Within(0.002f));
+    }
+
+    [Test]
     public void HoldingShiftRetimesWithoutSnapping()
     {
         PressAt(KeyPoint("head", 1f));
@@ -178,6 +234,18 @@ public sealed class AnimatorTimelineInputTests : AnimatorToolTest
 
         Assert.That(HeadTimes(), Is.EqualTo(new[] { 0f, 2f }));
         Assert.That(Selection.HasKey, Is.False);
+    }
+
+    [Test]
+    public void BackspaceRemovesTheSelectedKeySet()
+    {
+        PressAt(KeyPoint("head", 1f));
+        Release();
+
+        Keyboard.Press(Key.Backspace);
+        Frame(3);
+
+        Assert.That(HeadTimes(), Is.EqualTo(new[] { 0f, 2f }));
     }
 
     [Test]

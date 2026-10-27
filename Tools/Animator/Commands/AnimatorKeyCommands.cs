@@ -148,17 +148,48 @@ public static class AnimatorKeyCommands
         selection.Extra = keys.Count > 1 ? new List<AnimatorKeyRef>(keys.Skip(1)) : null;
     }
 
+    /// <summary>The clip and the key selection as a key drag began.</summary>
+    public sealed record KeyDragOrigin(XafClip Clip, List<AnimatorKeyRef> Keys);
+
+    /// <summary>Captures what a key drag starts from, or null when no key is selected.</summary>
+    public static KeyDragOrigin? BeginKeyDrag(Entity session)
+    {
+        XafClip? clip = AnimatorSession.CurrentClip(session.GetComponent<AnimatorDocument>());
+        List<AnimatorKeyRef> keys = session.GetComponent<AnimatorSelection>().Keys();
+        return clip is null || keys.Count == 0
+            ? null
+            : new KeyDragOrigin(XafPackageCopy.Clone(clip), keys);
+    }
+
     /// <summary>
     /// Moves the primary key set to a time and the rest of the selection with
     /// it, by the same amount, stopping where the earliest or latest key
     /// reaches the clip's ends. The playhead follows the primary key.
     /// </summary>
-    public static void RetimeSelected(Entity session, float seconds)
+    public static void RetimeSelected(Entity session, float seconds) =>
+        RetimeSelected(session, seconds, null);
+
+    /// <summary>
+    /// As <see cref="RetimeSelected(Entity, float)"/>, but measured from where
+    /// the drag began: the clip is put back first, so keys the drag passed
+    /// over on the way are neither overwritten nor picked up. Only the keys at
+    /// the drop time are replaced.
+    /// </summary>
+    public static void RetimeSelected(Entity session, float seconds, KeyDragOrigin? origin)
     {
         ref AnimatorDocument document = ref session.GetComponent<AnimatorDocument>();
         ref AnimatorSelection selection = ref session.GetComponent<AnimatorSelection>();
         XafClip? clip = AnimatorSession.CurrentClip(document);
-        if (clip is null || !selection.HasKey)
+        if (clip is null)
+            return;
+
+        if (origin is not null)
+        {
+            Restore(clip, origin.Clip);
+            Assign(ref selection, origin.Keys);
+        }
+
+        if (!selection.HasKey)
             return;
 
         List<AnimatorKeyRef> keys = selection.Keys();
@@ -189,6 +220,33 @@ public static class AnimatorKeyCommands
         AnimatorSession.SetStatus(
             session,
             moved.Count == 1 ? $"KEY {moved[0].Time:0.00}s" : $"{moved.Count} KEYS  {moved[0].Time:0.00}s");
+    }
+
+    /// <summary>
+    /// Puts a clip's channels back to a copy's keys. Channels that still exist
+    /// keep their identity, so nothing holding one goes stale.
+    /// </summary>
+    private static void Restore(XafClip clip, XafClip origin)
+    {
+        var channels = new List<XafChannel>();
+        foreach (XafChannel saved in XafPackageCopy.Clone(origin).Channels)
+        {
+            XafChannel? live = clip.Channels.Find(candidate =>
+                candidate.Target == saved.Target &&
+                candidate.TargetId == saved.TargetId &&
+                candidate.Property == saved.Property);
+            if (live is null)
+            {
+                channels.Add(saved);
+                continue;
+            }
+
+            live.Keyframes = saved.Keyframes;
+            channels.Add(live);
+        }
+
+        clip.Channels.Clear();
+        clip.Channels.AddRange(channels);
     }
 
     /// <summary>Sets how the selected keys ease into their next key.</summary>
