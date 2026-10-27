@@ -23,6 +23,7 @@ public sealed class GroupPersistenceTests
         groups[2].Effects.Add(GroupEffect.Move(0.4f, 0.6f, new Vector2(30, -10), GroupEase.Out));
         groups[2].Effects.Add(GroupEffect.Colour(0.8f, 1.2f, new Color(1f, 0.5f, 0.25f, 0.5f), GroupEase.In));
         groups[9].Effects.Add(GroupEffect.Move(1f, 1f, new Vector2(1, 2)));
+        groups[9].Effects[0] = groups[9].Effects[0] with { Muted = true };
     }
 
     [Test]
@@ -61,6 +62,7 @@ public sealed class GroupPersistenceTests
         Assert.That(groups[2].Effects[1].Tint.A, Is.EqualTo(0.5f).Within(0.01f));
         Assert.That(groups[2].Effects[1].Ease, Is.EqualTo(GroupEase.In));
         Assert.That(groups[9].Effects[0].Start, Is.EqualTo(1f));
+        Assert.That(groups[9].Effects[0].Muted, Is.True);
 
         Entity noteBack = target.Query<Note>().ToEntityList()[0];
         Assert.That(ItemGroups.ToList(noteBack.GetComponent<ItemGroups>().Mask), Is.EqualTo(new[] { 2, 9 }));
@@ -100,6 +102,7 @@ public sealed class GroupPersistenceTests
         Assert.That(back.Groups, Has.Count.EqualTo(2));
         Assert.That(back.Groups[0].Effects[0].End, Is.EqualTo(0.6f).Within(0.0001f));
         Assert.That(back.Groups[0].Effects[0].Ease, Is.EqualTo(GroupEase.Out));
+        Assert.That(back.Groups[1].Effects[0].Muted, Is.True);
         Assert.That(back.Notes[0].Groups, Is.EqualTo(new[] { 2 }));
     }
 

@@ -3,6 +3,7 @@ using Godot;
 using NUnit.Framework;
 using Writer.Ecs;
 using Writer.Scenes;
+using Writer.Systems.Editor;
 
 namespace Writer.Tests.Groups;
 
@@ -225,6 +226,31 @@ public sealed class GroupModulationTests
 
         // Ease-out is three quarters of the way through at the halfway point.
         Assert.That(coverage, Is.EqualTo(0.75f).Within(0.001f));
+    }
+
+    [Test]
+    public void TargetHandleRoundsAndCentres()
+    {
+        Assert.That(
+            EditorGroupTarget.Tidy(new Vector2(10.24f, -3.76f)),
+            Is.EqualTo(new Vector2(10f, -4f)));
+
+        Rect2 handle = EditorGroupTarget.HandleRect(new Vector2(100, 100));
+        Assert.That(handle.GetCenter(), Is.EqualTo(new Vector2(100, 100)));
+        Assert.That(handle.Size, Is.EqualTo(new Vector2(28, 28)));
+    }
+
+    [Test]
+    public void MutedMovesAndColoursAreIgnored()
+    {
+        GroupDefinition[] groups = Slots();
+        groups[0].Effects.Add(GroupEffect.Move(
+            0f, 1f, new Vector2(100, 0), GroupEase.Linear, muted: true));
+        groups[1].Effects.Add(GroupEffect.Colour(
+            0f, 1f, Colors.Red, GroupEase.Linear, muted: true));
+
+        Assert.That(GroupModulation.Offset(groups, In(0, 1), 10f), Is.EqualTo(Vector2.Zero));
+        Assert.That(GroupModulation.TryColor(groups, In(0, 1), 10f, out _, out _), Is.False);
     }
 
     [Test]

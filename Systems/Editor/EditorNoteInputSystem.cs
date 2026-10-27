@@ -62,6 +62,12 @@ public sealed partial class EditorNoteInputSystem : QuerySystem<Note>
         PointerInput input = _pointer.Read();
         bool pressed = input.Pressed;
 
+        if (IsGroupTargetEditing())
+        {
+            _wasPressed = pressed;
+            return;
+        }
+
         if (pressed && !_wasPressed)
             OnPress(input.Position, input.Shift);
         else if (pressed)
@@ -812,6 +818,17 @@ public sealed partial class EditorNoteInputSystem : QuerySystem<Note>
         foreach (Entity entity in _entities.Query<EditorGroupState>().ToEntityList())
         {
             if (entity.GetComponent<EditorGroupState>().Open >= 0)
+                return true;
+        }
+
+        return false;
+    }
+
+    private bool IsGroupTargetEditing()
+    {
+        foreach (Entity entity in _entities.Query<EditorGroupState>().ToEntityList())
+        {
+            if (entity.GetComponent<EditorGroupState>().TargetEdit)
                 return true;
         }
 

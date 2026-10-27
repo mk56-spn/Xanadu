@@ -21,7 +21,7 @@ public static class GroupModulation
         {
             foreach (GroupEffect effect in group.Effects)
             {
-                if (effect.Kind == GroupEffectKind.Move)
+                if (effect.Kind == GroupEffectKind.Move && !effect.Muted)
                     total += effect.Offset * effect.Progress(seconds);
             }
         }
@@ -48,7 +48,7 @@ public static class GroupModulation
         {
             foreach (GroupEffect effect in group.Effects)
             {
-                if (effect.Kind == GroupEffectKind.Color && seconds >= effect.Start)
+                if (effect.Kind == GroupEffectKind.Color && !effect.Muted && seconds >= effect.Start)
                     started.Add(effect);
             }
         }

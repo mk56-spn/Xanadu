@@ -80,6 +80,12 @@ public sealed class DrawableInitialiseSystem : QuerySystem<Rectangle, Drawable, 
         if (entity.Tags.Has<DropdownListPanel>())
             return 3;
 
+        if (entity.Tags.Has<UiOverlayItem>())
+            return 6;
+
+        if (entity.Tags.Has<UiOverlay>())
+            return 5;
+
         if (entity.Tags.Has<UiSliderFill>())
             return 2;
 

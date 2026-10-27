@@ -176,6 +176,19 @@ public sealed partial class EditorGroupSystem
         SetFieldText(field, value.ToString("0.###", CultureInfo.InvariantCulture), buffer);
     }
 
+    private static void SetTextColor(Entity entity, Color color, CommandBuffer buffer)
+    {
+        if (entity.IsNull || !entity.HasComponent<TextStyle>())
+            return;
+
+        ref TextStyle style = ref entity.GetComponent<TextStyle>();
+        if (style.Color == color)
+            return;
+
+        style.Color = color;
+        buffer.AddTag<Dirty>(entity.Id);
+    }
+
     private static void SetNumericMode(Entity field, bool numeric)
     {
         if (!field.IsNull && field.HasComponent<TextField>())

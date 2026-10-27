@@ -32,6 +32,19 @@ public struct EditorGroupState : IComponent
     /// <summary>Whether the editor draws ghosts of where the groups put their members.</summary>
     public bool Preview;
 
+    /// <summary>The group and effect the overlay's selection bar acts on.</summary>
+    public int SelectedGroup;
+    public int SelectedEffect;
+
+    /// <summary>While set, the selected move effect's offset is dragged on the playfield.</summary>
+    public bool TargetEdit;
+
+    /// <summary>The group soloed in the editor preview, or -1 for all groups.</summary>
+    public int SoloGroup;
+
+    /// <summary>Whether the colour palette is showing over the overlay.</summary>
+    public bool PaletteOpen;
+
     /// <summary>The effect row being dragged on the timeline, or -1.</summary>
     public int DragRow;
 
@@ -47,6 +60,9 @@ public struct EditorGroupState : IComponent
         Snap = true,
         ViewStart = 0f,
         ViewSpan = 6f,
+        SelectedGroup = -1,
+        SelectedEffect = -1,
+        SoloGroup = -1,
         DragRow = -1,
     };
 }
@@ -57,6 +73,7 @@ public enum EditorGroupDragMode
     Whole,
     Start,
     End,
+    Scrub,
 }
 
 /// <summary>The pieces of the group overlay, so one system can find and place them.</summary>
@@ -74,11 +91,33 @@ public enum EditorGroupPart
     SnapToggle,
     AddMove,
     AddColor,
+    SoloToggle,
+    PlayToggle,
     ScrollLeft,
     ScrollRight,
     ZoomIn,
     ZoomOut,
     Hint,
+
+    /// <summary>The selected-effect bar under the toolbar.</summary>
+    SelectionText,
+    SelectionTarget,
+    SelectionDuplicate,
+    SelectionMute,
+    SelectionNudgeLeft,
+    SelectionNudgeRight,
+    SelectionPick,
+
+    /// <summary>The live preview panel and its playhead marker.</summary>
+    PreviewPanel,
+    PlayheadLine,
+
+    /// <summary>The colour palette popover.</summary>
+    PalettePanel,
+    PaletteTitle,
+    PaletteClose,
+    PaletteSwatch,
+    PaletteAlpha,
 
     /// <summary>Per-row pieces.</summary>
     RowIndex,

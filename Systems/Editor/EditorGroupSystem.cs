@@ -6,6 +6,7 @@ using Friflo.Engine.ECS.Systems;
 using Godot;
 using Writer.Ecs;
 using Writer.Editor;
+using Writer.Editor.Commands;
 using Writer.Levels;
 using Writer.Systems.Input;
 using Position = Writer.Ecs.Position;
@@ -32,17 +33,23 @@ public sealed partial class EditorGroupSystem : QuerySystem<EditorGroupState>
     private readonly EntityStore _entities;
     private readonly EditorHistory _history;
     private readonly IPointerInputSource _pointer;
+    private readonly EditorCommandBus _commands;
     private readonly HashSet<int> _held = new();
     private readonly HashSet<int> _focused = new();
     private bool _pointerHeld;
     private EditorSnapshot _dragBefore;
     private Dictionary<(EditorGroupPart, int), Entity> _pieces = new();
 
-    public EditorGroupSystem(EntityStore entities, EditorHistory history, IPointerInputSource pointer)
+    public EditorGroupSystem(
+        EntityStore entities,
+        EditorHistory history,
+        IPointerInputSource pointer,
+        EditorCommandBus commands)
     {
         _entities = entities;
         _history = history;
         _pointer = pointer;
+        _commands = commands;
     }
 
     protected override void OnUpdate()
@@ -81,7 +88,7 @@ public sealed partial class EditorGroupSystem : QuerySystem<EditorGroupState>
             return;
         }
 
-        HandlePointer(ref state, group, playhead, dialog, origin);
+        HandlePointer(ref state, group, ref playhead, dialog, origin);
         ShowOverlay(editor, state, group, playhead, dialog, origin, buffer);
         CommitFields(group, state, playhead);
     }
@@ -190,71 +197,21 @@ public sealed partial class EditorGroupSystem : QuerySystem<EditorGroupState>
     private static EditorGroupState Reopen(Entity editor, int index)
     {
         EditorGroupState state = editor.GetComponent<EditorGroupState>();
+        if (state.SelectedGroup != index)
+        {
+            state.SelectedGroup = index;
+            state.SelectedEffect = -1;
+            state.SoloGroup = -1;
+        }
+
         state.Open = index;
+        state.TargetEdit = false;
+        state.PaletteOpen = false;
         state.DragRow = -1;
         return state;
     }
 
     // ------------------------------------------------------------------ buttons
-
-    private void HandleButtons(Entity editor, ref EditorGroupState state, GroupDefinition group, Playhead playhead)
-    {
-        if (JustPressed(Piece(EditorGroupPart.Close)))
-        {
-            state.Open = -1;
-            state.DragRow = -1;
-            return;
-        }
-
-        if (JustPressed(Piece(EditorGroupPart.SnapToggle)))
-            state.Snap = !state.Snap;
-
-        if (JustPressed(Piece(EditorGroupPart.ScrollLeft)))
-            state.ViewStart = Math.Max(0f, state.ViewStart - state.ViewSpan / 2f);
-        if (JustPressed(Piece(EditorGroupPart.ScrollRight)))
-            state.ViewStart += state.ViewSpan / 2f;
-        if (JustPressed(Piece(EditorGroupPart.ZoomOut)))
-            state.ViewSpan = Math.Min(240f, state.ViewSpan * 2f);
-        if (JustPressed(Piece(EditorGroupPart.ZoomIn)))
-            state.ViewSpan = Math.Max(0.25f, state.ViewSpan / 2f);
-
-        float now = SnapIf(state, playhead.TimeMs / 1000f, playhead);
-        if (JustPressed(Piece(EditorGroupPart.AddMove)) && group.Effects.Count < EditorGroupLayout.MaxRows)
-            Edit(() => group.Effects.Add(GroupEffect.Move(now, now + 0.5f, new Vector2(0, -80))));
-        if (JustPressed(Piece(EditorGroupPart.AddColor)) && group.Effects.Count < EditorGroupLayout.MaxRows)
-            Edit(() => group.Effects.Add(GroupEffect.Colour(now, now + 0.5f, DefaultTint)));
-
-        int open = state.Open;
-        if (JustPressed(Piece(EditorGroupPart.AddSelected)))
-            Edit(() => SetMembership(editor, open, add: true));
-        if (JustPressed(Piece(EditorGroupPart.RemoveSelected)))
-            Edit(() => SetMembership(editor, open, add: false));
-        if (JustPressed(Piece(EditorGroupPart.SelectMembers)))
-            SelectMembers(editor, open);
-
-        for (int row = 0; row < group.Effects.Count && row < EditorGroupLayout.MaxRows; row++)
-        {
-            int index = row;
-            if (JustPressed(Piece(EditorGroupPart.RowDelete, row)))
-            {
-                Edit(() => group.Effects.RemoveAt(index));
-                return;
-            }
-
-            if (JustPressed(Piece(EditorGroupPart.RowKind, row)))
-            {
-                Edit(() => group.Effects[index] = Toggled(group.Effects[index]));
-            }
-
-            if (JustPressed(Piece(EditorGroupPart.RowEase, row)))
-            {
-                Edit(() => group.Effects[index] = group.Effects[index] with
-                {
-                    Ease = GroupEaseCurves.Next(group.Effects[index].Ease),
-                });
-            }
-        }
-    }
 
     private static GroupEffect Toggled(GroupEffect effect) =>
         effect.Kind == GroupEffectKind.Move

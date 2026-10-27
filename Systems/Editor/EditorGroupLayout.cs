@@ -21,17 +21,20 @@ public static class EditorGroupLayout
     /// <summary>How far below the grid's top the preview toggle sits, from centre to centre.</summary>
     public const float PreviewTop = 191f;
 
-    public const float RowHeight = 36f;
+    public const float RowHeight = 30f;
     public const float Pad = 20f;
     public const int TickSlots = 96;
     public const int LabelSlots = 9;
 
-    private const float RowsTop = 168f;
+    private const float SelectionTop = 134f;
+    private const float RowsTop = 202f;
     private const float TableWidth = 500f;
+    private const float PreviewMin = 96f;
+    private const float PreviewMax = 200f;
 
     public static Vector2 DialogSize(Vector2 screen) => new(
         Math.Min(1120f, screen.X - 48f),
-        Math.Min(576f, screen.Y - 48f));
+        Math.Min(720f, screen.Y - 24f));
 
     /// <summary>The area the timeline's rows share, to the right of the table.</summary>
     public static Rect2 Timeline(Vector2 dialog) => new(
@@ -53,6 +56,33 @@ public static class EditorGroupLayout
         return new Rect2(timeline.Position.X, RowsTop + row * RowHeight + 2f, timeline.Size.X, RowHeight - 4f);
     }
 
+    /// <summary>The square live preview at the bottom-left of the dialog.</summary>
+    public static Rect2 PreviewArea(Vector2 dialog)
+    {
+        float rowsBottom = RowsTop + MaxRows * RowHeight;
+        float size = Math.Clamp(dialog.Y - rowsBottom - 64f, PreviewMin, PreviewMax);
+        return new Rect2(Pad, dialog.Y - size - Pad, size, size);
+    }
+
+    /// <summary>The explanatory line to the right of the live preview.</summary>
+    public static Rect2 HintArea(Vector2 dialog)
+    {
+        Rect2 preview = PreviewArea(dialog);
+        return new Rect2(
+            preview.End.X + 12,
+            preview.Position.Y,
+            Math.Max(80f, dialog.X - preview.End.X - Pad - 12),
+            44f);
+    }
+
+    /// <summary>The small easing-curve display on the selection bar.</summary>
+    public static Rect2 CurveArea(Vector2 dialog) =>
+        new(Pad + 530f, SelectionTop, 44f, 28f);
+
+    /// <summary>The colour palette popover, centred over the dialog.</summary>
+    public static Rect2 PalettePanel(Vector2 dialog) =>
+        new((dialog.X - 330f) / 2f, (dialog.Y - 190f) / 2f, 330f, 190f);
+
     public static float XForTime(Rect2 timeline, float viewStart, float viewSpan, float seconds) =>
         timeline.Position.X + (seconds - viewStart) / viewSpan * timeline.Size.X;
 
@@ -63,7 +93,9 @@ public static class EditorGroupLayout
     public static Rect2 Place(EditorGroupPart part, int row, Vector2 dialog)
     {
         float right = dialog.X - Pad;
-        float rowTop = RowsTop + row * RowHeight + 4f;
+        float rowTop = RowsTop + row * RowHeight + 2f;
+        Rect2 preview = PreviewArea(dialog);
+        Rect2 palette = PalettePanel(dialog);
         return part switch
         {
             EditorGroupPart.Scrim => new Rect2(Vector2.Zero, dialog),
@@ -78,11 +110,35 @@ public static class EditorGroupLayout
             EditorGroupPart.AddMove => new Rect2(Pad, 100, 100, 28),
             EditorGroupPart.AddColor => new Rect2(Pad + 108, 100, 100, 28),
             EditorGroupPart.SnapToggle => new Rect2(Pad + 216, 100, 110, 28),
+            EditorGroupPart.SoloToggle => new Rect2(Pad + 334, 100, 88, 28),
+            EditorGroupPart.PlayToggle => new Rect2(Pad + 430, 100, 70, 28),
             EditorGroupPart.ScrollLeft => new Rect2(right - 4 * 40 - 3 * 4, 100, 40, 28),
             EditorGroupPart.ScrollRight => new Rect2(right - 3 * 40 - 2 * 4, 100, 40, 28),
             EditorGroupPart.ZoomOut => new Rect2(right - 2 * 40 - 4, 100, 40, 28),
             EditorGroupPart.ZoomIn => new Rect2(right - 40, 100, 40, 28),
-            EditorGroupPart.Hint => new Rect2(Pad, dialog.Y - 52, dialog.X - 2 * Pad, 44),
+            EditorGroupPart.SelectionText => new Rect2(Pad, SelectionTop, 170, 28),
+            EditorGroupPart.SelectionTarget => new Rect2(Pad + 176, SelectionTop, 70, 28),
+            EditorGroupPart.SelectionDuplicate => new Rect2(Pad + 252, SelectionTop, 60, 28),
+            EditorGroupPart.SelectionMute => new Rect2(Pad + 318, SelectionTop, 70, 28),
+            EditorGroupPart.SelectionNudgeLeft => new Rect2(Pad + 394, SelectionTop, 32, 28),
+            EditorGroupPart.SelectionNudgeRight => new Rect2(Pad + 430, SelectionTop, 32, 28),
+            EditorGroupPart.SelectionPick => new Rect2(Pad + 468, SelectionTop, 54, 28),
+            EditorGroupPart.Hint => HintArea(dialog),
+            EditorGroupPart.PreviewPanel => preview,
+            EditorGroupPart.PlayheadLine => new Rect2(0, RowsTop, 2, MaxRows * RowHeight),
+            EditorGroupPart.PalettePanel => palette,
+            EditorGroupPart.PaletteTitle => new Rect2(palette.Position.X + 16, palette.Position.Y + 8, 120, 24),
+            EditorGroupPart.PaletteClose => new Rect2(palette.End.X - 38, palette.Position.Y + 8, 30, 24),
+            EditorGroupPart.PaletteSwatch => new Rect2(
+                palette.Position.X + 16 + (row % 6) * 50,
+                palette.Position.Y + 42 + (row / 6) * 36,
+                44,
+                30),
+            EditorGroupPart.PaletteAlpha => new Rect2(
+                palette.Position.X + 16 + row * 76,
+                palette.Position.Y + 146,
+                68,
+                26),
             EditorGroupPart.RowIndex => new Rect2(Pad, rowTop, 24, 28),
             EditorGroupPart.RowKind => new Rect2(Pad + 30, rowTop, 64, 28),
             EditorGroupPart.RowStart => new Rect2(Pad + 100, rowTop, 64, 28),
