@@ -28,6 +28,7 @@ public sealed class EditorSystemGroup : SystemGroup
         Add(new EditorNoteInputSystem(entities, pointerInput, history));
         Add(new EditorDropdownSystem(entities, commands));
         Add(new EditorSidebarLayoutSystem(entities));
+        Add(new EditorGroupSystem(entities, history, pointerInput));
         Add(new EditorPlacementSystem(entities));
         Add(new EditorNoteTypeBarSystem(entities, commands));
         Add(new EditorDirectionWheelSystem());

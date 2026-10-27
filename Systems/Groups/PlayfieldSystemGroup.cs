@@ -33,6 +33,7 @@ public sealed class PlayfieldSystemGroup : SystemGroup
     {
         Add(new PlayfieldPlaybackSystem(audio));
         Add(new PlaySessionSystem(audio));
+        Add(new GroupModulationSystem(entities));
         Add(new PlayerMovementSystem(entities, keybinds, keyboard, offsets));
         Add(new PlayerArenaSystem());
         Add(new PlayKeyTrailSystem(entities, keybinds, keyboard));

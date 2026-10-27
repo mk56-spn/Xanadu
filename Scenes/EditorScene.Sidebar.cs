@@ -22,12 +22,12 @@ public static partial class EditorScene
     {
         const float width = 190;
         const float top = 120;
-        const float SidebarHeight = 88;
+        const float SidebarHeight = 88 + GroupGridHeight;
         float centerX = screen.X - 112;
 
         UiBuilder panelUi = SceneUi.Layer(entities, root, 939);
         Entity sidebarPanel = panelUi.RectEntity(
-            new Vector2(centerX, top + 34),
+            new Vector2(centerX, top - 10 + SidebarHeight / 2),
             new Vector2(width + 20, SidebarHeight),
             SceneUi.PanelColor,
             takesInput: true);
@@ -57,6 +57,7 @@ public static partial class EditorScene
             new[] { "CONTACT" },
             selected: 0);
 
+        BuildGroupGrid(ui, editor, centerX, top);
         Vector2 wheelHome = new(centerX - 250, top + 255);
         (UiWheelControl wheel, Entity wheelLabel) =
             BuildDirectionWheel(ui, wheelHome);

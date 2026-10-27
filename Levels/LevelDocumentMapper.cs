@@ -25,6 +25,7 @@ public static class LevelDocumentMapper
             Mines = new List<MineDocument>(),
             StartPoints = new List<StartPointDocument>(),
             Blocks = new List<BlockDocument>(),
+            Groups = CaptureGroups(editor),
         };
 
         foreach (Entity entity in entities.Query<Note>().ToEntityList())
@@ -40,6 +41,7 @@ public static class LevelDocumentMapper
                 DashDirection = note.DashDirection,
                 ContactRequired = note.ContactRequired,
                 Character = note.Character,
+                Groups = GroupsOf(entity),
             });
         }
 
@@ -55,6 +57,7 @@ public static class LevelDocumentMapper
                 Y = mine.Position.Y,
                 FadeInMs = mine.FadeInMs,
                 FadeOutMs = mine.FadeOutMs,
+                Groups = GroupsOf(entity),
             });
         }
 
@@ -73,6 +76,7 @@ public static class LevelDocumentMapper
                 MomentumY = start.Momentum.Y,
                 DirectionX = start.Direction.X,
                 DirectionY = start.Direction.Y,
+                Groups = GroupsOf(entity),
             });
         }
 
@@ -87,6 +91,7 @@ public static class LevelDocumentMapper
                 Y = block.Position.Y,
                 Width = block.Size.X,
                 Height = block.Size.Y,
+                Groups = GroupsOf(entity),
             });
         }
 
@@ -105,6 +110,7 @@ public static class LevelDocumentMapper
         document.Mines ??= new List<MineDocument>();
         document.StartPoints ??= new List<StartPointDocument>();
         document.Blocks ??= new List<BlockDocument>();
+        document.Groups ??= new List<GroupDocument>();
 
         foreach (Entity entity in entities.Query<Note>().ToEntityList())
             entity.DeleteEntity();
@@ -112,9 +118,11 @@ public static class LevelDocumentMapper
         foreach (Entity entity in entities.Query<Mine>().ToEntityList())
             entity.DeleteEntity();
 
+        ApplyGroups(editor, document.Groups);
+
         foreach (NoteDocument note in document.Notes)
         {
-            EditorItems.Create(entities, new Note(
+            Entity created = EditorItems.Create(entities, new Note(
                 note.TimeMs,
                 new Vector2(note.X, note.Y),
                 note.Target,
@@ -122,6 +130,7 @@ public static class LevelDocumentMapper
                 note.DashDirection,
                 note.ContactRequired,
                 note.Character));
+            Subscribe(created, note.Groups);
         }
 
         foreach (Entity entity in entities.Query<StartPoint>().ToEntityList())
@@ -129,23 +138,27 @@ public static class LevelDocumentMapper
 
         foreach (StartPointDocument start in document.StartPoints)
         {
-            EditorItems.Create(entities, new StartPoint(
+            uint groups = ItemGroups.FromList(start.Groups);
+            Entity created = EditorItems.Create(entities, new StartPoint(
                 start.Name,
                 start.TimeMs,
                 new Vector2(start.X, start.Y),
                 new System.Numerics.Vector2(
                     start.MomentumX,
                     start.MomentumY),
-                new Vector2(start.DirectionX, start.DirectionY)));
+                new Vector2(start.DirectionX, start.DirectionY),
+                groups));
+            Subscribe(created, groups);
         }
 
         foreach (MineDocument mine in document.Mines)
         {
-            EditorItems.Create(entities, new Mine(
+            Entity created = EditorItems.Create(entities, new Mine(
                 mine.TimeMs,
                 new Vector2(mine.X, mine.Y),
                 mine.FadeInMs,
                 mine.FadeOutMs));
+            Subscribe(created, mine.Groups);
         }
 
         foreach (Entity entity in entities.Query<Block>().ToEntityList())
@@ -153,9 +166,10 @@ public static class LevelDocumentMapper
 
         foreach (BlockDocument block in document.Blocks)
         {
-            EditorItems.Create(entities, new Block(
+            Entity created = EditorItems.Create(entities, new Block(
                 new Vector2(block.X, block.Y),
                 new Vector2(block.Width, block.Height)));
+            Subscribe(created, block.Groups);
         }
 
         SongDocument? song = string.IsNullOrWhiteSpace(document.SongId)
@@ -182,5 +196,83 @@ public static class LevelDocumentMapper
         playhead.Playing = false;
         playhead.SeekRequestMs = 0;
         playhead.AudioRevision++;
+    }
+
+    private static List<int> GroupsOf(Entity entity) =>
+        entity.TryGetComponent(out ItemGroups groups) ? ItemGroups.ToList(groups.Mask) : new List<int>();
+
+    /// <summary>Puts a new item into the groups the document lists for it.</summary>
+    private static void Subscribe(Entity item, List<int>? groups)
+    {
+        Subscribe(item, ItemGroups.FromList(groups));
+    }
+
+    private static void Subscribe(Entity item, uint mask)
+    {
+        if (mask != 0)
+            item.AddComponent(new ItemGroups(mask));
+    }
+
+    /// <summary>The groups with a name or effects, as documents.</summary>
+    private static List<GroupDocument> CaptureGroups(Entity editor)
+    {
+        var result = new List<GroupDocument>();
+        if (!editor.TryGetComponent(out LevelGroups levelGroups))
+            return result;
+
+        for (int i = 0; i < levelGroups.Groups.Length; i++)
+        {
+            GroupDefinition group = levelGroups.Groups[i];
+            if (group.IsEmpty)
+                continue;
+
+            var document = new GroupDocument { Id = i, Name = group.Name };
+            foreach (GroupEffect effect in group.Effects)
+            {
+                document.Effects.Add(new GroupEffectDocument
+                {
+                    Kind = effect.Kind,
+                    Start = effect.Start,
+                    End = effect.End,
+                    Ease = effect.Ease,
+                    X = effect.Offset.X,
+                    Y = effect.Offset.Y,
+                    Tint = effect.Tint.ToHtml(),
+                });
+            }
+
+            result.Add(document);
+        }
+
+        return result;
+    }
+
+    /// <summary>Puts the document's groups on the level's entity, every other slot empty.</summary>
+    private static void ApplyGroups(Entity editor, List<GroupDocument> documents)
+    {
+        LevelGroups levelGroups = LevelGroups.Create();
+        foreach (GroupDocument document in documents)
+        {
+            if (document.Id is < 0 or >= GroupLimits.Count)
+                continue;
+
+            GroupDefinition group = levelGroups.Groups[document.Id];
+            group.Name = document.Name ?? "";
+            foreach (GroupEffectDocument effect in document.Effects ?? new List<GroupEffectDocument>())
+            {
+                group.Effects.Add(new GroupEffect(
+                    effect.Kind,
+                    effect.Start,
+                    effect.End,
+                    new Vector2(effect.X, effect.Y),
+                    new Color(effect.Tint ?? "#ffffffff"),
+                    effect.Ease));
+            }
+        }
+
+        if (editor.HasComponent<LevelGroups>())
+            editor.GetComponent<LevelGroups>() = levelGroups;
+        else
+            editor.AddComponent(levelGroups);
     }
 }

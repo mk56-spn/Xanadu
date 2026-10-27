@@ -32,10 +32,10 @@ public static partial class PlayfieldRenderer
 
             Vector2 center = view.PlayfieldToScreen(note.Position);
             float radius = size / 2;
-            Color laneColor = ColorFor(note);
+            Color laneColor = GroupColor.For(entity, ColorFor(note));
             Color color = entity.Tags.Has<NoteMissed>()
-                ? new Color(0.4f, 0.4f, 0.5f, alpha * 0.45f)
-                : new Color(laneColor.R, laneColor.G, laneColor.B, alpha);
+                ? new Color(0.4f, 0.4f, 0.5f, alpha * laneColor.A * 0.45f)
+                : new Color(laneColor.R, laneColor.G, laneColor.B, alpha * laneColor.A);
 
             float approach = NoteFade.Approach(note.TimeMs, playhead.TimeMs);
             if (approach >= 0)
@@ -46,50 +46,11 @@ public static partial class PlayfieldRenderer
                     rid,
                     center,
                     approachRadius,
-                    new Color(laneColor.R, laneColor.G, laneColor.B, alpha * 0.75f),
+                    new Color(laneColor.R, laneColor.G, laneColor.B, alpha * laneColor.A * 0.75f),
                     2);
             }
 
-            if (note.Kind == NoteKind.Movement)
-            {
-                canvas.DrawCircleOutline(rid, center, radius, color, 2);
-                canvas.DrawTextStyled(
-                    rid,
-                    new Rect2(
-                        center - new Vector2(radius, radius),
-                        new Vector2(radius * 2, radius * 2)),
-                    DashArrow(note.DashDirection),
-                    color,
-                    Math.Max(10, (int)(radius * 1.1f)));
-            }
-            else if (note.Kind == NoteKind.Contact)
-            {
-                canvas.DrawCircleOutline(rid, center, radius, color, 3);
-                canvas.DrawTextStyled(
-                    rid,
-                    new Rect2(
-                        center - new Vector2(radius, radius),
-                        new Vector2(radius * 2, radius * 2)),
-                    "C",
-                    color,
-                    Math.Max(12, (int)(radius * 1.1f)));
-            }
-            else if (note.Kind == NoteKind.CharacterSwitch)
-            {
-                canvas.DrawCircleOutline(rid, center, radius, color, 3);
-                canvas.DrawTextStyled(
-                    rid,
-                    new Rect2(
-                        center - new Vector2(radius, radius),
-                        new Vector2(radius * 2, radius * 2)),
-                    note.Character.ToString()[..1],
-                    CharacterSwitchColor,
-                    Math.Max(12, (int)(radius * 1.1f)));
-            }
-            else
-            {
-                canvas.DrawCircle(rid, center, radius, color);
-            }
+            DrawNoteBody(canvas, rid, note, center, radius, color);
 
             if (!selectedNote.IsNull && selectedNote.Id == entity.Id)
             {
@@ -101,9 +62,70 @@ public static partial class PlayfieldRenderer
                         SelectedNoteColor.R,
                         SelectedNoteColor.G,
                         SelectedNoteColor.B,
-                        alpha),
+                        color.A),
                     2);
             }
+
+            if (entity.TryGetComponent(out ItemGroups groups) && groups.Mask != 0)
+            {
+                DrawGroupBadge(
+                    canvas,
+                    rid,
+                    center + new Vector2(radius * 0.78f, -radius * 0.78f),
+                    groups.Mask,
+                    color.A);
+            }
+        }
+    }
+
+    /// <summary>Draws just a note's body at a position, shared by play and the editor's group preview.</summary>
+    public static void DrawNoteBody(
+        IRectCanvas canvas,
+        Rid rid,
+        Note note,
+        Vector2 center,
+        float radius,
+        Color color)
+    {
+        if (note.Kind == NoteKind.Movement)
+        {
+            canvas.DrawCircleOutline(rid, center, radius, color, 2);
+            canvas.DrawTextStyled(
+                rid,
+                new Rect2(
+                    center - new Vector2(radius, radius),
+                    new Vector2(radius * 2, radius * 2)),
+                DashArrow(note.DashDirection),
+                color,
+                Math.Max(10, (int)(radius * 1.1f)));
+        }
+        else if (note.Kind == NoteKind.Contact)
+        {
+            canvas.DrawCircleOutline(rid, center, radius, color, 3);
+            canvas.DrawTextStyled(
+                rid,
+                new Rect2(
+                    center - new Vector2(radius, radius),
+                    new Vector2(radius * 2, radius * 2)),
+                "C",
+                color,
+                Math.Max(12, (int)(radius * 1.1f)));
+        }
+        else if (note.Kind == NoteKind.CharacterSwitch)
+        {
+            canvas.DrawCircleOutline(rid, center, radius, color, 3);
+            canvas.DrawTextStyled(
+                rid,
+                new Rect2(
+                    center - new Vector2(radius, radius),
+                    new Vector2(radius * 2, radius * 2)),
+                note.Character.ToString()[..1],
+                CharacterSwitchColor,
+                Math.Max(12, (int)(radius * 1.1f)));
+        }
+        else
+        {
+            canvas.DrawCircle(rid, center, radius, color);
         }
     }
 
@@ -176,7 +198,7 @@ public static partial class PlayfieldRenderer
             var bounds = new Rect2(
                 center - new Vector2(size / 2, size / 2),
                 new Vector2(size, size));
-            Color color = new Color(1f, 0.22f, 0.16f, alpha);
+            Color color = GroupColor.For(entity, new Color(1f, 0.22f, 0.16f, alpha));
 
             canvas.DrawRect(
                 rid,
@@ -203,6 +225,16 @@ public static partial class PlayfieldRenderer
                 new Vector2(bounds.Position.X + 5, bounds.End.Y - 5),
                 color,
                 2);
+
+            if (entity.TryGetComponent(out ItemGroups groups) && groups.Mask != 0)
+            {
+                DrawGroupBadge(
+                    canvas,
+                    rid,
+                    center + new Vector2(size * 0.55f, -size * 0.55f),
+                    groups.Mask,
+                    color.A);
+            }
         }
     }
 

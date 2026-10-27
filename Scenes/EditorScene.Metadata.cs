@@ -27,6 +27,7 @@ public static partial class EditorScene
         BuildLeftMenu(entities, root, editor, screen);
         BuildToolBar(entities, root);
         BuildNoteTypeBar(entities, root);
+        BuildGroupOverlay(entities, root, screen);
 
         UiBuilder hudUi = SceneUi.Layer(entities, root, 945);
         float infoWidth = Mathf.Max(160, screen.X - 670);

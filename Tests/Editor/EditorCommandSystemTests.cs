@@ -33,7 +33,8 @@ public sealed class EditorCommandSystemTests : EcsSystemTest
             new Playfield(1000, 1000),
             new Playhead(0, 120, 0, false),
             new EditorMetronome(false),
-            new NoteSelection(default));
+            new NoteSelection(default),
+            LevelGroups.Create());
     }
 
     [Test]
@@ -219,9 +220,11 @@ public sealed class EditorCommandSystemTests : EcsSystemTest
         playhead.TimeMs = 2_000;
         playhead.DurationMs = 10_000;
         Entity mine = Store.CreateEntity(new Mine(100, new Vector2(10, 20)));
+        mine.AddComponent(new ItemGroups(ItemGroups.Bit(3)));
         Entity start = Store.CreateEntity(new StartPoint(
             "Start", 400, new Vector2(30, 40),
             System.Numerics.Vector2.Zero, new Vector2(0, -1)));
+        start.AddComponent(new ItemGroups(ItemGroups.Bit(5)));
         _editor.GetComponent<NoteSelection>().SetMany(new[] { mine, start });
 
         _commands.Enqueue(EditorCommand.CopySelection());
@@ -230,6 +233,14 @@ public sealed class EditorCommandSystemTests : EcsSystemTest
 
         Assert.That(Store.Query<Mine>().Count, Is.EqualTo(2));
         Assert.That(Store.Query<StartPoint>().Count, Is.EqualTo(2));
+        Assert.That(
+            Store.Query<Mine>().ToEntityList().All(entity =>
+                entity.GetComponent<ItemGroups>().Has(3)),
+            Is.True);
+        Assert.That(
+            Store.Query<StartPoint>().ToEntityList().All(entity =>
+                entity.GetComponent<ItemGroups>().Has(5)),
+            Is.True);
         Assert.That(
             _editor.GetComponent<NoteSelection>().AllNotes.Count,
             Is.EqualTo(2));

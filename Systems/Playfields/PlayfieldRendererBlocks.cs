@@ -33,12 +33,25 @@ public static partial class PlayfieldRenderer
                 view.PlayfieldToScreen(block.Position),
                 block.Size * view.Scale);
             bool chosen = entity == selected;
+            Color edge = chosen ? BlockSelectedEdge : GroupColor.For(entity, BlockEdge);
+            Color fill = GroupColor.For(entity, BlockFill);
 
-            canvas.DrawRect(rid, screen, chosen ? BlockSelectedEdge : BlockEdge);
+            canvas.DrawRect(rid, screen, edge);
             float border = Mathf.Min(
                 2f,
                 Mathf.Min(screen.Size.X, screen.Size.Y) / 2);
-            canvas.DrawRect(rid, screen.Grow(-border), BlockFill);
+            canvas.DrawRect(rid, screen.Grow(-border), fill);
+
+            if (entity.TryGetComponent(out ItemGroups groups) && groups.Mask != 0)
+            {
+                float inset = Mathf.Min(12f, Mathf.Min(screen.Size.X, screen.Size.Y) / 2f);
+                DrawGroupBadge(
+                    canvas,
+                    rid,
+                    new Vector2(screen.End.X - inset, screen.Position.Y + inset),
+                    groups.Mask,
+                    edge.A);
+            }
         }
     }
 }

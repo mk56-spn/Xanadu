@@ -331,6 +331,41 @@ public sealed class EditorPlayfieldDrawSystemTests
             Has.Count.EqualTo(4));
     }
 
+    [Test]
+    public void PreviewDrawsAGhostWithTheGroupsColour()
+    {
+        var view = new PlayfieldView(new Vector2(30, 30), 0.6f, new Vector2(1152, 648));
+        var store = new EntityStore();
+        LevelGroups groups = LevelGroups.Create();
+        groups.Groups[0].Effects.Add(GroupEffect.Colour(0f, 0.5f, new Color(1f, 0f, 0f, 1f)));
+        EditorGroupState state = EditorGroupState.Closed;
+        state.Preview = true;
+        Entity field = store.CreateEntity(
+            new LevelInfo("Preview", ""),
+            new Playfield(1000, 1000),
+            new Playhead(1_000, 120, 0, false, durationMs: 60_000),
+            view,
+            new NoteSelection(default),
+            groups,
+            state);
+        Entity start = store.CreateEntity(Start("Intro", 1_000));
+        start.AddComponent(new ItemGroups(ItemGroups.Bit(0)));
+
+        var canvas = new RecordingCanvas();
+        var root = new SystemRoot(store);
+        root.Add(new EditorPlayfieldDrawSystem(store, canvas, default));
+
+        root.Update(new UpdateTick(1f / 60f, 0));
+
+        Assert.That(
+            canvas.Lines.Any(line =>
+                line.Color.R > 0.99f &&
+                line.Color.G < 0.01f &&
+                line.Color.A > 0.5f),
+            Is.True);
+        Assert.That(field.GetComponent<EditorGroupState>().Preview, Is.True);
+    }
+
     private static (EntityStore Store, Entity Field, RecordingCanvas Canvas, SystemRoot Root) StartPointScene()
     {
         var view = new PlayfieldView(new Vector2(30, 30), 0.6f, new Vector2(1152, 648));

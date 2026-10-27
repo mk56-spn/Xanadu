@@ -31,12 +31,21 @@ public sealed class BlockBodySystem : QuerySystem<Block>
         CommandBuffer buffer = CommandBuffer;
         Query.ForEachEntity((ref block, entity) =>
         {
-            if (entity.HasComponent<PhysicsBody>() ||
-                block.Size.X <= 0 ||
-                block.Size.Y <= 0)
+            // A block a group moves takes its collision box with it.
+            if (entity.HasComponent<PhysicsBody>())
             {
+                if (entity.HasComponent<GroupBase>())
+                {
+                    entity.GetComponent<PhysicsBody>().Body.SetTransform(
+                        Box2DPhysicsWorld.ToPhysics(view.PlayfieldToScreen(block.Center)),
+                        0f);
+                }
+
                 return;
             }
+
+            if (block.Size.X <= 0 || block.Size.Y <= 0)
+                return;
 
             Body body = _physics.CreateStaticBox(
                 view.PlayfieldToScreen(block.Center),

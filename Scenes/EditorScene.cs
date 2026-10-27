@@ -61,6 +61,8 @@ public static partial class EditorScene
         editor.AddComponent(new EditorPlacementModeState(EditorPlacementMode.Notes));
         editor.AddComponent(new EditorDashDirectionState(DashDirection.UpRight));
         editor.AddComponent(new EditorUiRequest());
+        editor.AddComponent(LevelGroups.Create());
+        editor.AddComponent(EditorGroupState.Closed);
 
         if (parent is { } root)
             root.AddChild(editor);
