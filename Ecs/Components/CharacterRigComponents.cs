@@ -43,3 +43,17 @@ public struct CharacterMotion : IComponent
     /// <summary>Screen Y of the player's centre last frame; up is negative.</summary>
     public float LastY;
 }
+
+/// <summary>
+/// An attack pose layered additively over a rigged player's base animation,
+/// triggered by a note hit; which one plays depends on the note's height
+/// relative to the player.
+/// </summary>
+public struct CharacterAttack : IComponent
+{
+    /// <summary>The attack clip currently layered on, or "" when none is active.</summary>
+    public string ClipId;
+
+    /// <summary>Seconds since <see cref="ClipId"/> started.</summary>
+    public float StateTime;
+}

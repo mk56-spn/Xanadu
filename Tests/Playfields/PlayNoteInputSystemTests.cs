@@ -3,9 +3,11 @@ using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Godot;
 using NUnit.Framework;
+using Xanadu.Animation;
 using Xanadu.Ecs;
 using Xanadu.Scoring;
 using Xanadu.Settings;
+using Xanadu.Systems.Characters;
 using Xanadu.Systems.Input;
 using Xanadu.Systems.Playfields;
 using Position = Xanadu.Ecs.Position;
@@ -74,6 +76,36 @@ public sealed class PlayNoteInputSystemTests
         Assert.That(
             _judgementText.GetComponent<Position>().Value,
             Is.EqualTo(new Vector2(500, 500)));
+    }
+
+    [Test]
+    public void HittingANoteAboveThePlayerTriggersTheHighKick()
+    {
+        Entity playfield = CreatePlayfield(totalNotes: 1);
+        playfield.AddComponent(new CharacterRig(AttackTestRig()));
+        CreateNote(1_000, new Vector2(500, 450)); // player sits at screen y 500; this note is above it, in reach.
+        SetPlayhead(playfield, 1_000);
+        Press(KeybindAction.M);
+
+        Frame();
+
+        Assert.That(playfield.GetComponent<CharacterAttack>().ClipId, Is.EqualTo(CharacterAttackSystem.HighClip));
+        Assert.That(
+            playfield.GetComponent<CharacterRig>().Runtime.Additives[0].Clip.Id,
+            Is.EqualTo(CharacterAttackSystem.HighClip));
+    }
+
+    private static AnimatorRuntime AttackTestRig()
+    {
+        var package = new XafPackage();
+        package.Skeleton.Bones.Add(new XafBone { Id = "root", Parent = -1, Rest = Transform2D.Identity });
+        package.Clips.Add(new XafClip { Id = "idle", Duration = 1f, Loop = true, LoopEnd = 1f });
+        package.Clips.Add(new XafClip { Id = CharacterAttackSystem.LowClip, Duration = 0.2f });
+        package.Clips.Add(new XafClip { Id = CharacterAttackSystem.MidClip, Duration = 0.2f });
+        package.Clips.Add(new XafClip { Id = CharacterAttackSystem.HighClip, Duration = 0.2f });
+        var runtime = new AnimatorRuntime(package);
+        runtime.Play("idle", 0f);
+        return runtime;
     }
 
     [Test]
