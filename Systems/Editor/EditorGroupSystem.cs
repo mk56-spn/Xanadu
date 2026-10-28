@@ -194,7 +194,7 @@ public sealed partial class EditorGroupSystem : QuerySystem<EditorGroupState>
             editor.GetComponent<EditorGroupState>() = state;
         }
 
-        SetText(grid.Preview, state.Preview ? "PREVIEW ON" : "PREVIEW OFF", buffer);
+        UiText.Set(grid.Preview, state.Preview ? "PREVIEW ON" : "PREVIEW OFF", buffer);
         Tint(grid.Preview, state.Preview ? CellUsed : CellEmpty, buffer);
     }
 

@@ -31,9 +31,9 @@ public sealed class PlayScoreSystem : QuerySystem<ScoreState, Playhead>
 
         Query.ForEachEntity((ref score, ref playhead, entity) =>
         {
-            SetText(score.ScoreText, $"SCORE {score.Score:0000000}", buffer);
-            SetText(score.ComboText, $"COMBO {score.Combo}", buffer);
-            SetText(
+            UiText.Set(score.ScoreText, $"SCORE {score.Score:0000000}", buffer);
+            UiText.Set(score.ComboText, $"COMBO {score.Combo}", buffer);
+            UiText.Set(
                 score.AccuracyText,
                 $"ACC {score.Accuracy * 100:0.00}%  {ScoreRules.RankFor(score.Accuracy)}",
                 buffer);
@@ -42,7 +42,7 @@ public sealed class PlayScoreSystem : QuerySystem<ScoreState, Playhead>
                 playhead.TimeMs >= score.JudgementTimeMs &&
                 playhead.TimeMs - score.JudgementTimeMs <= 700;
 
-            SetText(
+            UiText.Set(
                 score.JudgementText,
                 showJudgement
                     ? ScoreRules.LabelFor(score.LastJudgement)
@@ -70,19 +70,19 @@ public sealed class PlayScoreSystem : QuerySystem<ScoreState, Playhead>
             {
                 JudgementCounter counter =
                     entity.GetComponent<JudgementCounter>();
-                SetText(counter.FlawlessPlus,
+                UiText.Set(counter.FlawlessPlus,
                     score.FlawlessPCount.ToString(), buffer);
-                SetText(counter.Flawless,
+                UiText.Set(counter.Flawless,
                     score.FlawlessCount.ToString(), buffer);
-                SetText(counter.Clean,
+                UiText.Set(counter.Clean,
                     score.CleanCount.ToString(), buffer);
-                SetText(counter.Fair,
+                UiText.Set(counter.Fair,
                     score.FairCount.ToString(), buffer);
-                SetText(counter.Deficient,
+                UiText.Set(counter.Deficient,
                     score.DeficientCount.ToString(), buffer);
-                SetText(counter.Terrible,
+                UiText.Set(counter.Terrible,
                     score.TerribleCount.ToString(), buffer);
-                SetText(counter.Miss,
+                UiText.Set(counter.Miss,
                     score.MissCount.ToString(), buffer);
             }
 
@@ -142,16 +142,6 @@ public sealed class PlayScoreSystem : QuerySystem<ScoreState, Playhead>
         }
     }
 
-    private static void SetText(Entity entity, string value, CommandBuffer buffer)
-    {
-        if (entity.IsNull || !entity.HasComponent<Text>())
-            return;
-
-        ref Text text = ref entity.GetComponent<Text>();
-        if (text.Value == value)
-            return;
-
-        text.Value = value;
-        buffer.AddTag<Dirty>(entity.Id);
-    }
+    private static void Count(ref ScoreState score, Judgement judgement) =>
+        PlayScoring.Count(ref score, judgement);
 }
