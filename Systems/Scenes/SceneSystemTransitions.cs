@@ -17,27 +17,27 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
 {
     private void UpdateImmediate(ref SceneState state)
     {
-        if (_restartRequested)
-        {
+        if (StepScene(ref state))
             Switch(ref state);
-            return;
-        }
+    }
+
+    /// <summary>
+    /// Runs one scene decision step — restart, pause, confirmation, a finished
+    /// play, then scene actions — and reports whether the scene should switch.
+    /// The immediate path switches on the spot and the fading path starts a fade
+    /// out, but both run this same sequence, so a new scene action cannot apply
+    /// to only one of them.
+    /// </summary>
+    private bool StepScene(ref SceneState state)
+    {
+        if (_restartRequested)
+            return true;
 
         if (HandlePause(ref state))
-        {
-            if (state.Pending != state.Current || _restartRequested)
-                Switch(ref state);
-
-            return;
-        }
+            return SceneChanged(ref state);
 
         if (HandleConfirmation(ref state))
-        {
-            if (state.Pending != state.Current || _restartRequested)
-                Switch(ref state);
-
-            return;
-        }
+            return SceneChanged(ref state);
 
         if (state.Current == SceneKind.Play &&
             state.Pending == SceneKind.Play &&
@@ -50,10 +50,12 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
         }
 
         HandleActions(ref state);
-
-        if (state.Pending != state.Current || _restartRequested)
-            Switch(ref state);
+        return SceneChanged(ref state);
     }
+
+    /// <summary>Whether a handler has asked for a different scene.</summary>
+    private bool SceneChanged(ref SceneState state) =>
+        state.Pending != state.Current || _restartRequested;
 
     private void BeginFadeOut()
     {
