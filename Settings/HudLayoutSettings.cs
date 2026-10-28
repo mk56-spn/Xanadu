@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
-using System.IO;
-using System.Text.Json;
+using Xanadu.Ecs.Storage;
 
 namespace Xanadu.Settings;
 
@@ -9,20 +8,13 @@ namespace Xanadu.Settings;
 public sealed class HudLayoutSettings
 {
     private const string DefaultPath = "user://hud-layout.json";
-    private static readonly JsonSerializerOptions JsonOptions = new()
-    {
-        WriteIndented = true,
-    };
-
-    private readonly string _path;
-    private readonly bool _persist;
+    private readonly PersistedFile<HudLayoutData> _file;
     private readonly Dictionary<string, HudLayoutEntry> _items = new();
 
     public HudLayoutSettings(string? path = null, bool persist = true)
     {
-        _path = path ?? DefaultPath;
-        _persist = persist;
-        if (_persist)
+        _file = new PersistedFile<HudLayoutData>(path, DefaultPath, persist);
+        if (persist)
             Load();
     }
 
@@ -51,56 +43,16 @@ public sealed class HudLayoutSettings
 
     public void Load()
     {
-        try
-        {
-            string path = ResolvePath();
-            if (!File.Exists(path))
-                return;
-
-            HudLayoutData? data = JsonSerializer.Deserialize<HudLayoutData>(
-                File.ReadAllText(path),
-                JsonOptions);
-            if (data?.Items is null)
-                return;
-
-            _items.Clear();
-            foreach ((string id, HudLayoutEntry entry) in data.Items)
-                _items[id] = entry;
-        }
-        catch (Exception)
-        {
-            // Malformed HUD layout falls back to defaults.
-        }
-    }
-
-    public void Save()
-    {
-        if (!_persist)
+        HudLayoutData? data = _file.Load();
+        if (data?.Items is null)
             return;
 
-        try
-        {
-            string path = ResolvePath();
-            string? directory = Path.GetDirectoryName(path);
-            if (!string.IsNullOrEmpty(directory))
-                Directory.CreateDirectory(directory);
-
-            File.WriteAllText(
-                path,
-                JsonSerializer.Serialize(
-                    new HudLayoutData { Items = _items },
-                    JsonOptions));
-        }
-        catch (Exception)
-        {
-            // Persistence is best-effort; the session still uses the layout.
-        }
+        _items.Clear();
+        foreach ((string id, HudLayoutEntry entry) in data.Items)
+            _items[id] = entry;
     }
 
-    private string ResolvePath() =>
-        _path.StartsWith("user://", StringComparison.Ordinal)
-            ? Godot.ProjectSettings.GlobalizePath(_path)
-            : _path;
+    public void Save() => _file.Save(new HudLayoutData { Items = _items });
 
     public sealed class HudLayoutEntry
     {

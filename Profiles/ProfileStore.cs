@@ -2,8 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Text.Json;
 using System.Text.Json.Serialization;
+using Xanadu.Ecs.Storage;
 using Xanadu.Systems.Scenes;
 using Xanadu.Scenes;
 
@@ -34,21 +34,12 @@ public sealed class ScoreRecord
 public sealed class ProfileStore
 {
     private const string DefaultPath = "user://profiles.json";
-    private static readonly JsonSerializerOptions JsonOptions = new()
-    {
-        WriteIndented = true,
-        PropertyNameCaseInsensitive = true,
-        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
-    };
-
-    private readonly string _path;
-    private readonly bool _persist;
+    private readonly PersistedFile<ProfileData> _file;
 
     public ProfileStore(string? path = null, bool persist = true)
     {
-        _path = path ?? DefaultPath;
-        _persist = persist;
-        if (_persist)
+        _file = new PersistedFile<ProfileData>(path, DefaultPath, persist);
+        if (persist)
             Load();
     }
 
@@ -148,60 +139,25 @@ public sealed class ProfileStore
 
     public void Load()
     {
-        try
-        {
-            string path = ResolvePath();
-            if (!File.Exists(path))
-                return;
-
-            ProfileData? data = JsonSerializer.Deserialize<ProfileData>(
-                File.ReadAllText(path),
-                JsonOptions);
-            if (data is null)
-                return;
-
-            Profiles = data.Profiles ?? new List<UserProfile>();
-            foreach (UserProfile profile in Profiles)
-                profile.Scores ??= new Dictionary<string, ScoreRecord>();
-
-            ActiveProfileId = Profiles.Any(profile => profile.Id == data.ActiveProfileId)
-                ? data.ActiveProfileId
-                : "";
-        }
-        catch (Exception)
-        {
-            Profiles = new List<UserProfile>();
-            ActiveProfileId = "";
-        }
-    }
-
-    public void Save()
-    {
-        if (!_persist)
+        ProfileData? data = _file.Load();
+        if (data is null)
             return;
 
-        try
-        {
-            string path = ResolvePath();
-            string? directory = Path.GetDirectoryName(path);
-            if (!string.IsNullOrEmpty(directory))
-                Directory.CreateDirectory(directory);
+        Profiles = data.Profiles ?? new List<UserProfile>();
+        foreach (UserProfile profile in Profiles)
+            profile.Scores ??= new Dictionary<string, ScoreRecord>();
 
-            File.WriteAllText(
-                path,
-                JsonSerializer.Serialize(
-                    new ProfileData
-                    {
-                        ActiveProfileId = ActiveProfileId,
-                        Profiles = Profiles,
-                    },
-                    JsonOptions));
-        }
-        catch (Exception)
-        {
-            // Keep the in-memory session usable if persistence fails.
-        }
+        ActiveProfileId = Profiles.Any(profile => profile.Id == data.ActiveProfileId)
+            ? data.ActiveProfileId
+            : "";
     }
+
+    public void Save() =>
+        _file.Save(new ProfileData
+        {
+            ActiveProfileId = ActiveProfileId,
+            Profiles = Profiles,
+        });
 
     private static string NormalizeKey(string levelPath)
     {
@@ -217,11 +173,6 @@ public sealed class ProfileStore
             return levelPath;
         }
     }
-
-    private string ResolvePath() =>
-        _path.StartsWith("user://", StringComparison.Ordinal)
-            ? Godot.ProjectSettings.GlobalizePath(_path)
-            : _path;
 
     private sealed class ProfileData
     {
