@@ -22,7 +22,7 @@ public sealed partial class EditorPlayfieldDrawSystem :
     public static readonly Color HalfSnapColor = Palette.Danger;
     public static readonly Color QuarterSnapColor = Palette.PrimarySoft;
 
-    private static readonly Color EditorBackground = new("#1e1e1e");
+    private static readonly Color EditorBackground = Palette.Stage;
     private static readonly Color PanelBackground = Palette.Surface;
 
     private readonly ShaderRoutingCanvas _canvas;
@@ -523,7 +523,7 @@ public sealed partial class EditorPlayfieldDrawSystem :
         WaveformPreview preview)
     {
         Rect2 ruler = EditorLayout.RulerRect(view);
-        _canvas.DrawRect(_editor, ruler, PlayfieldRenderer.PlayfieldBackground);
+        _canvas.DrawRect(_editor, ruler, Palette.SurfaceDeep);
         PlayfieldRenderer.DrawBorder(
             _canvas,
             _editor,

@@ -21,13 +21,17 @@ public static class Palette
     /// <summary>The window/game backdrop behind everything.</summary>
     public static readonly Color Background = new("#0b1020");
 
-    /// <summary>Letterbox behind the playfield, a shade deeper than the window.</summary>
-    public static readonly Color BackgroundPlay = new("#090d16");
+    /// <summary>
+    /// The stage: the playfield surface and the space around it in play and in
+    /// the editor. True black, so a level reads as a field rather than a blue
+    /// panel and the slate UI around it reads as chrome.
+    /// </summary>
+    public static readonly Color Stage = new("#000000");
 
     /// <summary>Inputs, rulers, and preview wells recessed into a panel.</summary>
     public static readonly Color SurfaceInset = new("#0b1220");
 
-    /// <summary>The playfield well and alternating timeline rows.</summary>
+    /// <summary>The timeline ruler, animator rows, and other recessed UI wells.</summary>
     public static readonly Color SurfaceDeep = new("#0f172a");
 
     /// <summary>Panels, cards, and popup bodies.</summary>
