@@ -26,6 +26,7 @@ public static class SceneTestCatalog
         new SettingsSceneTest(),
         new OffsetWizardSceneTest(),
         new PlaySceneTest(),
+        new RainbowNoteShaderSceneTest(),
         new MovementJudgementSceneTest(),
         new ResultsSceneTest(),
         new RestartSceneTest(),

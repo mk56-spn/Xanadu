@@ -1,11 +1,12 @@
 using Xanadu.Ecs;
+using Xanadu.Items;
 using Xanadu.Settings;
 using System.Collections.Generic;
 
 namespace Xanadu.Levels;
 
 /// <summary>Serializable level document.</summary>
-public sealed class LevelDocument
+public sealed class LevelDocument : IChartItems
 {
     public int Version { get; set; } = 2;
 
@@ -188,8 +189,8 @@ public sealed class NoteDocument
     /// <summary>The groups this note belongs to.</summary>
     public List<int> Groups { get; set; } = new();
 
-    /// <summary>The shader slot it is drawn with, or 0 for none.</summary>
-    public int Shader { get; set; }
+    /// <summary>The self-contained item a note is: the primitives and shaders it uses.</summary>
+    public Xif Item { get; set; } = new();
 
     public long TimeMs { get; set; }
 

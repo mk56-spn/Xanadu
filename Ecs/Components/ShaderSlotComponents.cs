@@ -64,3 +64,13 @@ public struct ItemShader(int slot) : IComponent
     public static int Of(Entity entity) =>
         entity.TryGetComponent(out ItemShader shader) ? shader.Slot : 0;
 }
+
+/// <summary>The common shader, by resource path, an item is drawn with instead of a map slot.</summary>
+public struct ItemCommonShader(string path) : IComponent
+{
+    public string Path = path;
+
+    /// <summary>The common shader path an entity is drawn with, or "" when it has none.</summary>
+    public static string Of(Entity entity) =>
+        entity.TryGetComponent(out ItemCommonShader shader) ? shader.Path : "";
+}

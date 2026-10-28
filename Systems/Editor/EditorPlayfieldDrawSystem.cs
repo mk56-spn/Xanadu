@@ -52,6 +52,7 @@ public sealed partial class EditorPlayfieldDrawSystem :
             {
                 LevelShaderMaterials.Ensure(shaders);
                 _shaderItems.MaterialOf = slot => LevelShaderMaterials.MaterialOf(shaders, slot);
+                _shaderItems.CommonMaterialOf = CommonShaderMaterials.MaterialOf;
             }
 
             _analysis = entity.HasComponent<EditorAnalysis>()

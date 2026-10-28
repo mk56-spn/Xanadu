@@ -42,18 +42,6 @@ public static partial class XmfBinary
         Spikes = 9,
     }
 
-    public static void Save(string path, LevelDocument document)
-    {
-        byte[] data = Write(document);
-        string? directory = Path.GetDirectoryName(path);
-        if (!string.IsNullOrEmpty(directory))
-            Directory.CreateDirectory(directory);
-        File.WriteAllBytes(path, data);
-    }
-
-    public static LevelDocument Load(string path) =>
-        Read(File.ReadAllBytes(path));
-
     public static byte[] Write(LevelDocument document)
     {
         var strings = new StringTable(Format);
@@ -116,6 +104,8 @@ public static partial class XmfBinary
         strings.Add(document.Slug);
         strings.Add(document.SongId);
         strings.Add(document.Name);
+        foreach (NoteDocument note in document.Notes)
+            IndexItemStrings(note.Item, strings);
         foreach (StartPointDocument start in document.StartPoints)
             strings.Add(start.Name);
         foreach (GroupDocument group in document.Groups)

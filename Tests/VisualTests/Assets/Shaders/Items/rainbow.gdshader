@@ -1,0 +1,1 @@
+../../../../../Assets/Shaders/Items/rainbow.gdshader

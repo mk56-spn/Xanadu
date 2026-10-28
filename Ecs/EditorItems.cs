@@ -17,9 +17,26 @@ public static class EditorItems
     /// </summary>
     public static Entity Create<T>(EntityStore entities, T component, int shaderSlot)
         where T : struct, IComponent =>
-        LevelShaders.IsSlot(shaderSlot)
-            ? entities.CreateEntity(component, new ItemShader(shaderSlot), Tags.Get<EditorItem>())
-            : Create(entities, component);
+        Create(entities, component, shaderSlot, "");
+
+    /// <summary>
+    /// Creates an item that already carries its map shader slot and, or
+    /// instead, a common shader by path.
+    /// </summary>
+    public static Entity Create<T>(EntityStore entities, T component, int shaderSlot, string commonShaderPath)
+        where T : struct, IComponent
+    {
+        bool hasSlot = LevelShaders.IsSlot(shaderSlot);
+        bool hasCommon = !string.IsNullOrEmpty(commonShaderPath);
+
+        if (hasSlot && hasCommon)
+            return entities.CreateEntity(component, new ItemShader(shaderSlot), new ItemCommonShader(commonShaderPath), Tags.Get<EditorItem>());
+        if (hasSlot)
+            return entities.CreateEntity(component, new ItemShader(shaderSlot), Tags.Get<EditorItem>());
+        if (hasCommon)
+            return entities.CreateEntity(component, new ItemCommonShader(commonShaderPath), Tags.Get<EditorItem>());
+        return Create(entities, component);
+    }
 
     public static bool IsItem(Entity entity) =>
         !entity.IsNull && entity.Tags.Has<EditorItem>();

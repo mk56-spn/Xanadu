@@ -1,4 +1,7 @@
+using System;
+using System.Collections.Generic;
 using Xanadu.Ecs;
+using Xanadu.Items;
 
 namespace Xanadu.Levels;
 
@@ -20,76 +23,151 @@ public static class LevelSerializer
         if (document.Version <= 0)
             document.Version = 1;
         if (string.IsNullOrWhiteSpace(document.Id))
-            document.Id = System.Guid.NewGuid().ToString("N");
+            document.Id = Guid.NewGuid().ToString("N");
         if (string.IsNullOrWhiteSpace(document.Slug))
-            document.Slug = "level-" + document.Id[..System.Math.Min(8, document.Id.Length)];
+            document.Slug = "level-" + document.Id[..Math.Min(8, document.Id.Length)];
 
-        document.Notes ??= new();
-        document.Notes.RemoveAll(note => note is null);
-        document.Mines ??= new();
-        document.StartPoints ??= new();
-        document.StartPoints.RemoveAll(start => start is null);
-        document.Blocks ??= new();
-        document.Spikes ??= new();
-        document.Groups ??= new();
-        document.Groups.RemoveAll(group => group is null || group.Id is < 0 or >= GroupLimits.Count);
-        foreach (GroupDocument group in document.Groups)
+        document.Shaders ??= new();
+        Func<int, int> validShader = NormalizeShaderPool(document.Shaders);
+        NormalizeChartItems(document, validShader);
+        return document;
+    }
+
+    public static byte[] SerializeMapset(XmfMapset mapset) =>
+        XmfBinary.WriteMapset(mapset);
+
+    public static XmfMapset DeserializeMapset(byte[] map) =>
+        NormalizeMapset(XmfBinary.ReadMapset(map));
+
+    public static XmfMapset NormalizeMapset(XmfMapset mapset)
+    {
+        if (mapset.Version <= 0)
+            mapset.Version = 1;
+        if (string.IsNullOrWhiteSpace(mapset.Id))
+            mapset.Id = Guid.NewGuid().ToString("N");
+        if (string.IsNullOrWhiteSpace(mapset.Slug))
+            mapset.Slug = "mapset-" + mapset.Id[..Math.Min(8, mapset.Id.Length)];
+
+        mapset.Shaders ??= new();
+        Func<int, int> validShader = NormalizeShaderPool(mapset.Shaders);
+
+        mapset.Variants ??= new();
+        mapset.Variants.RemoveAll(variant => variant is null);
+        foreach (XmfVariant variant in mapset.Variants)
+        {
+            if (string.IsNullOrWhiteSpace(variant.Id))
+                variant.Id = Guid.NewGuid().ToString("N");
+            if (string.IsNullOrWhiteSpace(variant.Slug))
+                variant.Slug = "variant-" + variant.Id[..Math.Min(8, variant.Id.Length)];
+            variant.Name ??= "Untitled";
+            NormalizeChartItems(variant, validShader);
+        }
+
+        return mapset;
+    }
+
+    /// <summary>Keeps only shaders a pool may carry, one per slot, and returns a validator for references to it.</summary>
+    private static Func<int, int> NormalizeShaderPool(List<ShaderDocument> shaders)
+    {
+        var seen = new HashSet<int>();
+        shaders.RemoveAll(shader =>
+            shader is null ||
+            !LevelShaders.IsSlot(shader.Slot) ||
+            !seen.Add(shader.Slot) ||
+            !ShaderSourceRules.IsAcceptable(shader.Source, out _));
+        foreach (ShaderDocument shader in shaders)
+        {
+            shader.Name ??= "";
+            shader.Params ??= new();
+        }
+
+        return slot => seen.Contains(slot) && shaders.Exists(s => s.Slot == slot) ? slot : 0;
+    }
+
+    /// <summary>Normalizes a chart's placed items, and the shader references they and it carry.</summary>
+    private static void NormalizeChartItems(IChartItems chart, Func<int, int> validShader)
+    {
+        chart.Notes ??= new();
+        chart.Notes.RemoveAll(note => note is null);
+        chart.Mines ??= new();
+        chart.Mines.RemoveAll(mine => mine is null);
+        chart.StartPoints ??= new();
+        chart.StartPoints.RemoveAll(start => start is null);
+        chart.Blocks ??= new();
+        chart.Blocks.RemoveAll(block => block is null);
+        chart.Spikes ??= new();
+        chart.Spikes.RemoveAll(spike => spike is null);
+        chart.Groups ??= new();
+        chart.Groups.RemoveAll(group => group is null || group.Id is < 0 or >= GroupLimits.Count);
+
+        foreach (GroupDocument group in chart.Groups)
         {
             group.Name ??= "";
             group.Effects ??= new();
             group.Effects.RemoveAll(effect => effect is null);
             foreach (GroupEffectDocument effect in group.Effects)
             {
-                if (!System.Enum.IsDefined(effect.Ease))
+                if (!Enum.IsDefined(effect.Ease))
                     effect.Ease = GroupEase.Linear;
             }
         }
 
-        foreach (NoteDocument note in document.Notes)
-            note.Groups ??= new();
-        foreach (StartPointDocument start in document.StartPoints)
-            start.Groups ??= new();
-        document.Mines.RemoveAll(mine => mine is null);
-        document.Blocks.RemoveAll(block => block is null);
-        document.Spikes.RemoveAll(spike => spike is null);
-        foreach (MineDocument mine in document.Mines)
-            mine.Groups ??= new();
-        foreach (BlockDocument block in document.Blocks)
-            block.Groups ??= new();
-        foreach (SpikeDocument spike in document.Spikes)
-            spike.Groups ??= new();
-
-        NormalizeShaders(document);
-        return document;
-    }
-
-    /// <summary>Keeps only shaders a level may carry, one per slot, and clears references to the rest.</summary>
-    private static void NormalizeShaders(LevelDocument document)
-    {
-        document.Shaders ??= new();
-        var seen = new System.Collections.Generic.HashSet<int>();
-        document.Shaders.RemoveAll(shader =>
-            shader is null ||
-            !LevelShaders.IsSlot(shader.Slot) ||
-            !seen.Add(shader.Slot) ||
-            !ShaderSourceRules.IsAcceptable(shader.Source, out _));
-        foreach (ShaderDocument shader in document.Shaders)
+        foreach (NoteDocument note in chart.Notes)
         {
-            shader.Name ??= "";
-            shader.Params ??= new();
+            note.Groups ??= new();
+            note.Item ??= new();
+            NormalizeItem(note.Item, validShader);
+        }
+        foreach (StartPointDocument start in chart.StartPoints)
+            start.Groups ??= new();
+        foreach (MineDocument mine in chart.Mines)
+        {
+            mine.Groups ??= new();
+            mine.Shader = validShader(mine.Shader);
+        }
+        foreach (BlockDocument block in chart.Blocks)
+        {
+            block.Groups ??= new();
+            block.Shader = validShader(block.Shader);
+        }
+        foreach (SpikeDocument spike in chart.Spikes)
+        {
+            spike.Groups ??= new();
+            spike.Shader = validShader(spike.Shader);
         }
 
-        int Valid(int slot) => seen.Contains(slot) && document.Shaders.Exists(s => s.Slot == slot) ? slot : 0;
-
-        document.PlayerShader = Valid(document.PlayerShader);
-        document.FieldShader = Valid(document.FieldShader);
-        foreach (NoteDocument note in document.Notes)
-            note.Shader = Valid(note.Shader);
-        foreach (MineDocument mine in document.Mines)
-            mine.Shader = Valid(mine.Shader);
-        foreach (BlockDocument block in document.Blocks)
-            block.Shader = Valid(block.Shader);
-        foreach (SpikeDocument spike in document.Spikes)
-            spike.Shader = Valid(spike.Shader);
+        chart.PlayerShader = validShader(chart.PlayerShader);
+        chart.FieldShader = validShader(chart.FieldShader);
     }
+
+    /// <summary>Keeps only shader references a Xif may carry, and clears the rest.</summary>
+    private static void NormalizeItem(Xif item, Func<int, int> validMapSlot)
+    {
+        item.Primitives ??= new();
+        item.Shaders ??= new();
+        item.Params ??= new();
+
+        foreach (XifShaderRef shader in item.Shaders)
+            shader.Path ??= "";
+        item.Shaders.RemoveAll(shader => shader is null || !IsResolvableShaderRef(shader, validMapSlot));
+
+        foreach (XifPrimitive primitive in item.Primitives)
+        {
+            primitive.Kind ??= "";
+            primitive.Ref ??= "";
+            primitive.Shader ??= new();
+            primitive.Shader.Path ??= "";
+            if (!primitive.Shader.IsNone && !IsResolvableShaderRef(primitive.Shader, validMapSlot))
+                primitive.Shader = new();
+        }
+    }
+
+    /// <summary>Whether a shader reference points at a slot or path its item may actually use.</summary>
+    private static bool IsResolvableShaderRef(XifShaderRef shader, Func<int, int> validMapSlot) =>
+        shader.Scope switch
+        {
+            XifShaderScope.Map => validMapSlot(shader.Slot) != 0,
+            XifShaderScope.Common => CommonShaders.IsKnown(shader.Path),
+            _ => false,
+        };
 }

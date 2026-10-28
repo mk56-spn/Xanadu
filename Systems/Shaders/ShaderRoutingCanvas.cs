@@ -11,8 +11,12 @@ public interface IShaderCanvasItems
 {
     Rid CreateItem(Rid parent);
 
-    /// <summary>Gives an item the material of a shader slot, or none for slot 0.</summary>
-    void SetMaterial(Rid item, int slot);
+    /// <summary>
+    /// Gives an item the material of a shader slot, or of a common shader by
+    /// path when one is given (it takes priority over the slot), or none when
+    /// both are empty.
+    /// </summary>
+    void SetMaterial(Rid item, int slot, string commonPath);
 }
 
 /// <summary>
@@ -31,7 +35,9 @@ public sealed class ShaderRoutingCanvas(IRectCanvas inner, Rid root, IShaderCanv
     private readonly List<Rid> _pool = new();
     private int _used;
     private int _slot;
+    private string _commonPath = "";
     private int _runSlot = -1;
+    private string _runCommonPath = "";
     private Rid _run;
     private bool _hasRun;
     private bool _shadedSeen;
@@ -39,7 +45,17 @@ public sealed class ShaderRoutingCanvas(IRectCanvas inner, Rid root, IShaderCanv
     /// <summary>How many child items this frame's draws needed.</summary>
     public int ItemsUsed => _used;
 
-    public void SelectShader(int slot) => _slot = slot;
+    public void SelectShader(int slot)
+    {
+        _slot = slot;
+        _commonPath = "";
+    }
+
+    public void SelectCommonShader(string path)
+    {
+        _commonPath = path ?? "";
+        _slot = 0;
+    }
 
     public void Clear(Rid canvas)
     {
@@ -52,7 +68,9 @@ public sealed class ShaderRoutingCanvas(IRectCanvas inner, Rid root, IShaderCanv
 
         _used = 0;
         _slot = 0;
+        _commonPath = "";
         _runSlot = -1;
+        _runCommonPath = "";
         _hasRun = false;
         _shadedSeen = false;
     }
@@ -63,10 +81,10 @@ public sealed class ShaderRoutingCanvas(IRectCanvas inner, Rid root, IShaderCanv
         if (canvas != root)
             return canvas;
 
-        if (!_shadedSeen && _slot == 0)
+        if (!_shadedSeen && _slot == 0 && _commonPath.Length == 0)
             return root;
 
-        if (_hasRun && _runSlot == _slot)
+        if (_hasRun && _runSlot == _slot && _runCommonPath == _commonPath)
             return _run;
 
         if (_used == _pool.Count)
@@ -74,9 +92,10 @@ public sealed class ShaderRoutingCanvas(IRectCanvas inner, Rid root, IShaderCanv
 
         _run = _pool[_used++];
         _runSlot = _slot;
+        _runCommonPath = _commonPath;
         _hasRun = true;
         _shadedSeen = true;
-        items.SetMaterial(_run, _slot);
+        items.SetMaterial(_run, _slot, _commonPath);
         return _run;
     }
 
@@ -186,6 +205,9 @@ public sealed class GodotShaderCanvasItems : IShaderCanvasItems
     /// <summary>Looks up the material of a slot; set each frame from the level being drawn.</summary>
     public Func<int, Rid> MaterialOf { get; set; } = static _ => default;
 
+    /// <summary>Looks up a common shader's material by resource path.</summary>
+    public Func<string, Rid> CommonMaterialOf { get; set; } = static _ => default;
+
     public Rid CreateItem(Rid parent)
     {
         Rid item = RenderingServer.CanvasItemCreate();
@@ -193,6 +215,11 @@ public sealed class GodotShaderCanvasItems : IShaderCanvasItems
         return item;
     }
 
-    public void SetMaterial(Rid item, int slot) =>
-        RenderingServer.CanvasItemSetMaterial(item, slot == 0 ? default : MaterialOf(slot));
+    public void SetMaterial(Rid item, int slot, string commonPath)
+    {
+        Rid material = commonPath.Length > 0
+            ? CommonMaterialOf(commonPath)
+            : slot == 0 ? default : MaterialOf(slot);
+        RenderingServer.CanvasItemSetMaterial(item, material);
+    }
 }
