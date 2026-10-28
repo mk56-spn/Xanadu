@@ -112,7 +112,7 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
         fill.Value = new Color(0f, 0f, 0f, alpha);
 
         ref Position position = ref _transitionPanel.GetComponent<Position>();
-        position.Value = visible ? _screen / 2 : HiddenTransition;
+        position.Value = visible ? _screen / 2 : UiLayout.Hidden;
 
         _transitionPanel.AddTag<Moved>();
         _transitionPanel.AddTag<Dirty>();
@@ -124,7 +124,7 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
             .Layer(1000);
 
         _transitionPanel = builder.RectEntity(
-            HiddenTransition,
+            UiLayout.Hidden,
             _screen,
             new Color(0f, 0f, 0f, 0f),
             takesInput: true);

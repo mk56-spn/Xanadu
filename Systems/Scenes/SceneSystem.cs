@@ -44,9 +44,6 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
     private readonly DisplaySettings _display;
 
     private const float TransitionSeconds = 0.22f;
-    private static readonly Vector2 HiddenConfirmation = new(-10_000, -10_000);
-    private static readonly Vector2 HiddenPause = new(-10_000, -10_000);
-    private static readonly Vector2 HiddenTransition = new(-10_000, -10_000);
 
     private enum TransitionPhase
     {

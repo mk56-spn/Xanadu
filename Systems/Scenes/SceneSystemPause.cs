@@ -21,7 +21,7 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
             .Layer(SceneUi.PauseLayer);
 
         builder.Container(
-            HiddenPause,
+            UiLayout.Hidden,
             _screen,
             StackDirection.Vertical,
             color: new Color(0.02f, 0.03f, 0.06f, 0.82f),
@@ -219,7 +219,7 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
 
         pause.Visible = false;
         ref Position position = ref _pausePanel.GetComponent<Position>();
-        position.Value = HiddenPause;
+        position.Value = UiLayout.Hidden;
         _pausePanel.AddTag<Moved>();
     }
 

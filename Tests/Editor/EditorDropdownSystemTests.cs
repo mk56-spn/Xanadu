@@ -24,7 +24,7 @@ public sealed class EditorDropdownSystemTests
             new EditorNoteTarget(KeybindAction.M));
 
         Entity list = store.CreateEntity(
-            new Position(new Vector2(-10_000, -10_000)),
+            new Position(UiLayout.Hidden),
             new Rectangle(new Rect2(-95, -48, 190, 96)));
 
         Entity button = store.CreateEntity(
@@ -49,7 +49,7 @@ public sealed class EditorDropdownSystemTests
         Assert.That(button.GetComponent<Dropdown>().Open, Is.True);
         Assert.That(
             list.GetComponent<Position>().Value,
-            Is.Not.EqualTo(new Vector2(-10_000, -10_000)));
+            Is.Not.EqualTo(UiLayout.Hidden));
         Assert.That(
             option.GetComponent<Position>().Value,
             Is.EqualTo(new Vector2(800, 237)));
