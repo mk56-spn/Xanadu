@@ -13,8 +13,9 @@ using Position = Xanadu.Ecs.Position;
 namespace Xanadu.Systems.Playfields;
 
 /// <summary>
-/// Hits notes when the player is over them and the note's target key is
-/// pressed inside the timing window.
+/// Hits notes when the player is within <see cref="NoteReach"/> of them and the
+/// note's target key is pressed inside the timing window. Mines keep using the
+/// character's damage box.
 /// </summary>
 public sealed class PlayNoteInputSystem : QuerySystem<Note>
 {
@@ -125,15 +126,11 @@ public sealed class PlayNoteInputSystem : QuerySystem<Note>
         ref Playhead playhead = ref playfield.GetComponent<Playhead>();
         ref ScoreState score = ref playfield.GetComponent<ScoreState>();
         ref PlayfieldView view = ref playfield.GetComponent<PlayfieldView>();
-        Player player = playfield.GetComponent<Player>();
         Vector2 playerScreen = playfield.GetComponent<Position>().Value;
 
         if (playhead.DurationMs > 0 && playhead.TimeMs >= playhead.DurationMs)
             return;
 
-        var playerRect = new Rect2(
-            playerScreen - player.Size / 2,
-            player.Size);
         long judgedTime = playhead.TimeMs - _offsets.OffsetMs;
         long missWindow = (long)ScoreRules.JudgementDeviation(Judgement.Miss);
         Entity hit = default;
@@ -164,13 +161,8 @@ public sealed class PlayNoteInputSystem : QuerySystem<Note>
             if (NoteFade.Alpha(note, judgedTime) <= 0)
                 continue;
 
-            float noteSize = PlayfieldRenderer.NoteSize * view.Scale;
             Vector2 noteScreen = view.PlayfieldToScreen(note.Position);
-            var noteRect = new Rect2(
-                noteScreen - new Vector2(noteSize / 2, noteSize / 2),
-                new Vector2(noteSize, noteSize));
-
-            if (!playerRect.Intersects(noteRect))
+            if (!NoteReach.Contains(playerScreen, view, noteScreen))
                 continue;
 
             if (error < bestError)

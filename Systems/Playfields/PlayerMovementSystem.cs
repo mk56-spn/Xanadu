@@ -66,12 +66,11 @@ public sealed class PlayerMovementSystem : QuerySystem<Player, Position, Playfie
 
             Vector2 screen = Box2DPhysicsWorld.ToScreen(body.Body.GetPosition());
 
-            if (PlayerTouchesTrueNote(screen, player, view, playhead.TimeMs))
+            if (PlayerTouchesTrueNote(screen, view, playhead.TimeMs))
                 return;
 
             if (!TryFindMovementNote(
                     screen,
-                    player,
                     view,
                     playhead.TimeMs,
                     pressed,
@@ -122,17 +121,12 @@ public sealed class PlayerMovementSystem : QuerySystem<Player, Position, Playfie
 
     private bool TryFindMovementNote(
         Vector2 playerScreen,
-        Player player,
         PlayfieldView view,
         long timeMs,
         HashSet<KeybindAction> pressed,
         out Note result)
     {
         result = default;
-        float noteSize = PlayfieldRenderer.NoteSize * view.Scale;
-        var playerRect = new Rect2(
-            playerScreen - player.Size / 2,
-            player.Size);
 
         foreach (Entity entity in _entities.Query<Note>().ToEntityList())
         {
@@ -147,10 +141,7 @@ public sealed class PlayerMovementSystem : QuerySystem<Player, Position, Playfie
             }
 
             Vector2 noteScreen = view.PlayfieldToScreen(note.Position);
-            var noteRect = new Rect2(
-                noteScreen - new Vector2(noteSize / 2, noteSize / 2),
-                new Vector2(noteSize, noteSize));
-            if (!playerRect.Intersects(noteRect))
+            if (!NoteReach.Contains(playerScreen, view, noteScreen))
                 continue;
 
             result = note;
@@ -187,16 +178,12 @@ public sealed class PlayerMovementSystem : QuerySystem<Player, Position, Playfie
         return !session.Started || session.Finished;
     }
 
+    /// <summary>Whether a note the player can hit by key is within reach, so a press goes to it instead of a dash.</summary>
     private bool PlayerTouchesTrueNote(
         Vector2 playerScreen,
-        Player player,
         PlayfieldView view,
         long timeMs)
     {
-        var playerRect = new Rect2(
-            playerScreen - player.Size / 2,
-            player.Size);
-
         foreach (Entity entity in _entities.Query<Note>().ToEntityList())
         {
             if (entity.Tags.Has<NoteMissed>())
@@ -213,14 +200,13 @@ public sealed class PlayerMovementSystem : QuerySystem<Player, Position, Playfie
             if (NoteFade.Alpha(note, timeMs) <= 0)
                 continue;
 
-            float noteSize = PlayfieldRenderer.NoteSize * view.Scale;
-            Vector2 noteScreen = view.PlayfieldToScreen(note.Position);
-            var noteRect = new Rect2(
-                noteScreen - new Vector2(noteSize / 2, noteSize / 2),
-                new Vector2(noteSize, noteSize));
-
-            if (playerRect.Intersects(noteRect))
+            if (NoteReach.Contains(
+                    playerScreen,
+                    view,
+                    view.PlayfieldToScreen(note.Position)))
+            {
                 return true;
+            }
         }
 
         return false;
