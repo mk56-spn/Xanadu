@@ -4,6 +4,7 @@ using Godot;
 using Friflo.Engine.ECS.Systems;
 using Xanadu.Ecs;
 using Xanadu.Scoring;
+using Xanadu.Theme;
 using Position = Xanadu.Ecs.Position;
 
 namespace Xanadu.Systems.Playfields;
@@ -13,14 +14,14 @@ public sealed class PlayScoreSystem : QuerySystem<ScoreState, Playhead>
 {
     public static Color ColorFor(Judgement judgement) => judgement switch
     {
-        Judgement.FlawlessP => new("#facc15"),
-        Judgement.Flawless => new("#22d3ee"),
-        Judgement.Clean => new("#4ade80"),
-        Judgement.Fair => new("#60a5fa"),
-        Judgement.Deficient => new("#fb923c"),
-        Judgement.Terrible => new("#ef4444"),
-        Judgement.Miss => new("#94a3b8"),
-        Judgement.Mine => new("#ff3b30"),
+        Judgement.FlawlessP => Palette.Accent,
+        Judgement.Flawless => Palette.Cyan,
+        Judgement.Clean => Palette.SuccessBright,
+        Judgement.Fair => Palette.InfoSoft,
+        Judgement.Deficient => Palette.Warning,
+        Judgement.Terrible => Palette.Danger,
+        Judgement.Miss => Palette.TextDim,
+        Judgement.Mine => Palette.DangerBright,
         _ => Colors.White,
     };
 

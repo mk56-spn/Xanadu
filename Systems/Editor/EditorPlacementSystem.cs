@@ -2,14 +2,15 @@ using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Godot;
 using Xanadu.Ecs;
+using Xanadu.Theme;
 
 namespace Xanadu.Systems.Editor;
 
 /// <summary>Exclusive note/mine/movement placement mode buttons.</summary>
 public sealed class EditorPlacementSystem : QuerySystem<EditorPlacementModeState>
 {
-    private static readonly Color Selected = new("#2563eb");
-    private static readonly Color Normal = new("#334155");
+    private static readonly Color Selected = Palette.Primary;
+    private static readonly Color Normal = Palette.Muted;
     private readonly EntityStore _entities;
 
     public EditorPlacementSystem(EntityStore entities)

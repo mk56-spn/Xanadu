@@ -2,6 +2,7 @@ using Friflo.Engine.ECS;
 using Godot;
 using Xanadu.Ecs;
 using Xanadu.Systems.Playfields;
+using Xanadu.Theme;
 
 namespace Xanadu.Systems.Editor;
 
@@ -240,7 +241,7 @@ public sealed partial class EditorPlayfieldDrawSystem
             : new Vector2(playfield.Width, playfield.Height) / 2f;
         Vector2 from = view.PlayfieldToScreen(anchor);
         Vector2 to = view.PlayfieldToScreen(anchor + effect.Offset);
-        Color accent = new("#facc15");
+        Color accent = Palette.Accent;
 
         _canvas.DrawLine(_editor, from, to, new Color(accent.R, accent.G, accent.B, 0.55f), 2);
         _canvas.DrawCircleOutline(_editor, to, EditorGroupTarget.HandleRadius, accent, 2);

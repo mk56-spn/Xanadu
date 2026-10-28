@@ -4,6 +4,7 @@ using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Godot;
 using Xanadu.Ecs;
+using Xanadu.Theme;
 using Position = Xanadu.Ecs.Position;
 
 namespace Xanadu.Systems.Ui;
@@ -16,7 +17,7 @@ public sealed class ToastSystem : QuerySystem<Toast>
     private const float DefaultDuration = 1.8f;
     private static readonly Vector2 HiddenPosition = new(-10_000, -10_000);
     private static readonly Color PanelColor = new(0.03f, 0.04f, 0.08f, 0.94f);
-    private static readonly Color TextColor = new("#f8fafc");
+    private static readonly Color TextColor = Palette.TextBright;
 
     private readonly Queue<string> _queue = new();
     private readonly Vector2 _home;

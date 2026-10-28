@@ -2,6 +2,7 @@ using Friflo.Engine.ECS;
 using Godot;
 using Friflo.Engine.ECS.Systems;
 using Xanadu.Ecs;
+using Xanadu.Theme;
 
 namespace Xanadu.Systems.Ui;
 
@@ -9,7 +10,7 @@ namespace Xanadu.Systems.Ui;
 public sealed class TextFieldSystem : QuerySystem<TextField, Text, FillColor>
 {
     private static readonly Color FocusColor = new("#172554");
-    private static readonly Color NormalColor = new("#0b1220");
+    private static readonly Color NormalColor = Palette.SurfaceInset;
 
     protected override void OnUpdate()
     {

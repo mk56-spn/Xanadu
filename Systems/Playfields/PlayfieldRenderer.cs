@@ -4,6 +4,7 @@ using Godot;
 using Xanadu.Ecs;
 using Xanadu.Settings;
 using Xanadu.Systems.Canvas;
+using Xanadu.Theme;
 using Position = Xanadu.Ecs.Position;
 
 namespace Xanadu.Systems.Playfields;
@@ -11,32 +12,32 @@ namespace Xanadu.Systems.Playfields;
 /// <summary>Shared playfield geometry and drawing used by editor and play modes.</summary>
 public static partial class PlayfieldRenderer
 {
-    public static readonly Color PlayBackground = new("#090d16");
-    public static readonly Color PlayfieldBackground = new("#0f172a");
-    public static readonly Color BorderColor = new("#475569");
+    public static readonly Color PlayBackground = Palette.BackgroundPlay;
+    public static readonly Color PlayfieldBackground = Palette.SurfaceDeep;
+    public static readonly Color BorderColor = Palette.BorderStrong;
     public static readonly Color GridColor = CanvasGrid.LineColor;
     public static readonly Color AxisColor = CanvasGrid.AxisColor;
-    public static readonly Color AccentColor = new("#facc15");
-    public static readonly Color DimTextColor = new("#94a3b8");
+    public static readonly Color AccentColor = Palette.Accent;
+    public static readonly Color DimTextColor = Palette.TextDim;
     public static readonly Color NoteColor = new(1f, 0.55f, 0.15f);
     public static readonly Color SelectedNoteColor = new(1f, 0.9f, 0.3f);
-    public static readonly Color PlayerColor = new("#e2e8f0");
-    public static readonly Color QueueColor = new("#38bdf8");
-    public static readonly Color CharacterSwitchColor = new("#a3e635");
-    public static readonly Color GuideColor = new("#e2e8f0");
-    public static readonly Color StartPointColor = new("#4ade80");
+    public static readonly Color PlayerColor = Palette.Text;
+    public static readonly Color QueueColor = Palette.Info;
+    public static readonly Color CharacterSwitchColor = Palette.Lime;
+    public static readonly Color GuideColor = Palette.Text;
+    public static readonly Color StartPointColor = Palette.SuccessBright;
 
     public const float MineSize = 18;
 
     private static readonly Color[] LaneColors =
     {
-        new("#22d3ee"),
-        new("#3b82f6"),
-        new("#8b5cf6"),
-        new("#facc15"),
-        new("#fb923c"),
-        new("#ef4444"),
-        new("#ec4899"),
+        Palette.Cyan,
+        Palette.PrimarySoft,
+        Palette.Violet,
+        Palette.Accent,
+        Palette.Warning,
+        Palette.Danger,
+        Palette.Pink,
     };
 
     public const float NoteSize = 72;

@@ -7,6 +7,7 @@ using Xanadu.Animation;
 using Xanadu.Ecs;
 using Xanadu.Systems.Input;
 using Xanadu.Tools.Animator.Commands;
+using Xanadu.Theme;
 
 namespace Xanadu.Tools.Animator.Systems;
 
@@ -21,7 +22,7 @@ public sealed class AnimatorHierarchySystem(
 {
     private static readonly Vector2 ItemSize = new(200, 26);
     private static readonly Vector2 ClipDropdownSize = new(AnimatorLayout.ClipWidth, 30);
-    private static readonly Color Selected = new("#0f766e");
+    private static readonly Color Selected = Palette.Selected;
 
     private int _version = -1;
 

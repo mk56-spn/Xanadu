@@ -3,6 +3,7 @@ using Friflo.Engine.ECS.Systems;
 using Godot;
 using Xanadu.Ecs;
 using Xanadu.Systems.Canvas;
+using Xanadu.Theme;
 
 namespace Xanadu.Systems.Rendering;
 
@@ -17,12 +18,12 @@ public sealed class WheelDrawSystem : QuerySystem<UiWheel, Rectangle, Drawable, 
     private const int SegmentsPerWedge = 8;
     private const float SelectionInset = 2.5f;
 
-    private static readonly Color Unselected = new("#2563eb");
-    private static readonly Color Selected = new("#facc15");
+    private static readonly Color Unselected = Palette.Primary;
+    private static readonly Color Selected = Palette.Accent;
     private static readonly Color Rim = new("#1e40af");
-    private static readonly Color Hub = new("#0b1020");
-    private static readonly Color UnselectedLabel = new("#f8fafc");
-    private static readonly Color SelectedLabel = new("#1e293b");
+    private static readonly Color Hub = Palette.Background;
+    private static readonly Color UnselectedLabel = Palette.TextBright;
+    private static readonly Color SelectedLabel = Palette.SurfaceAlt;
     private static readonly Color HubLabel = new("#fde047");
 
     private readonly IRectCanvas _canvas;

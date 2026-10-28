@@ -2,6 +2,7 @@ using Friflo.Engine.ECS;
 using Godot;
 using Xanadu.Ecs;
 using Xanadu.Systems.Editor;
+using Xanadu.Theme;
 
 namespace Xanadu.Scenes;
 
@@ -67,8 +68,8 @@ public static partial class EditorScene
     private static void BuildGroupOverlay(EntityStore entities, Entity root, Vector2 screen)
     {
         Vector2 dialog = EditorGroupLayout.DialogSize(screen);
-        Color panel = new("#0f172a");
-        Color field = new("#16223a");
+        Color panel = Palette.SurfaceDeep;
+        Color field = Palette.SurfaceRaised;
 
         UiBuilder scrim = SceneUi.Layer(entities, root, 975);
         Piece(scrim.RectEntity(UiLayout.Hidden, screen, new Color(0, 0, 0, 0.7f), takesInput: true),
@@ -88,7 +89,7 @@ public static partial class EditorScene
         for (int slot = 0; slot < EditorGroupLayout.TickSlots; slot++)
         {
             Piece(
-                ticks.RectEntity(UiLayout.Hidden, new Vector2(1, EditorGroupLayout.MaxRows * EditorGroupLayout.RowHeight), new Color("#1e293b")),
+                ticks.RectEntity(UiLayout.Hidden, new Vector2(1, EditorGroupLayout.MaxRows * EditorGroupLayout.RowHeight), Palette.SurfaceAlt),
                 EditorGroupPart.TickLine,
                 slot,
                 new Rect2(0, 0, 1, EditorGroupLayout.MaxRows * EditorGroupLayout.RowHeight));
@@ -105,7 +106,7 @@ public static partial class EditorScene
         {
             Rect2 track = Place(EditorGroupPart.RowTrack, row, dialog);
             Piece(
-                bars.RectEntity(UiLayout.Hidden, new Vector2(10, track.Size.Y - 8), new Color("#38bdf8")),
+                bars.RectEntity(UiLayout.Hidden, new Vector2(10, track.Size.Y - 8), Palette.Info),
                 EditorGroupPart.RowBar,
                 row,
                 new Rect2(0, 0, 10, track.Size.Y - 8));
@@ -188,7 +189,7 @@ public static partial class EditorScene
         UiBuilder previewUi = SceneUi.Layer(entities, root, 981);
         Rect2 previewArea = Place(EditorGroupPart.PreviewPanel, 0, dialog);
         Piece(
-            previewUi.RectEntity(UiLayout.Hidden, previewArea.Size, new Color("#0b1220"), takesInput: false),
+            previewUi.RectEntity(UiLayout.Hidden, previewArea.Size, Palette.SurfaceInset, takesInput: false),
             EditorGroupPart.PreviewPanel,
             0,
             previewArea);
@@ -210,7 +211,7 @@ public static partial class EditorScene
         UiBuilder palette = ui;
         Rect2 paletteArea = Place(EditorGroupPart.PalettePanel, 0, dialog);
         Piece(
-            palette.RectEntity(UiLayout.Hidden, paletteArea.Size, new Color("#111827"), takesInput: true),
+            palette.RectEntity(UiLayout.Hidden, paletteArea.Size, Palette.Surface, takesInput: true),
             EditorGroupPart.PalettePanel,
             0,
             paletteArea);
@@ -275,7 +276,7 @@ public static partial class EditorScene
 
     private static Entity GroupField(UiBuilder ui, string value, bool numeric, float width)
     {
-        Entity field = ui.RectEntity(UiLayout.Hidden, new Vector2(width, 28), new Color("#16223a"), value, takesInput: true);
+        Entity field = ui.RectEntity(UiLayout.Hidden, new Vector2(width, 28), Palette.SurfaceRaised, value, takesInput: true);
         field.AddComponent(new TextStyle(13, SceneUi.TextColor));
         field.AddComponent(new TextAlignment(TextAlign.Left));
         field.AddComponent(new TextField(value, numeric));

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using Godot;
 using Xanadu.Settings;
+using Xanadu.Theme;
 
 namespace Xanadu;
 
@@ -131,7 +132,7 @@ public partial class OffsetWizardOverlay : CanvasLayer
             HorizontalAlignment = HorizontalAlignment.Center,
         };
         title.AddThemeFontSizeOverride("font_size", 32);
-        title.AddThemeColorOverride("font_color", new Color("#facc15"));
+        title.AddThemeColorOverride("font_color", Palette.Accent);
         panel.AddChild(title);
 
         var instructions = new Label
@@ -144,7 +145,7 @@ public partial class OffsetWizardOverlay : CanvasLayer
             AutowrapMode = TextServer.AutowrapMode.WordSmart,
         };
         instructions.AddThemeFontSizeOverride("font_size", 16);
-        instructions.AddThemeColorOverride("font_color", new Color("#cbd5e1"));
+        instructions.AddThemeColorOverride("font_color", Palette.TextMuted);
         panel.AddChild(instructions);
 
         _offsetLabel = new Label
@@ -154,7 +155,7 @@ public partial class OffsetWizardOverlay : CanvasLayer
             HorizontalAlignment = HorizontalAlignment.Center,
         };
         _offsetLabel.AddThemeFontSizeOverride("font_size", 26);
-        _offsetLabel.AddThemeColorOverride("font_color", new Color("#f8fafc"));
+        _offsetLabel.AddThemeColorOverride("font_color", Palette.TextBright);
         panel.AddChild(_offsetLabel);
 
         _statusLabel = new Label
@@ -165,7 +166,7 @@ public partial class OffsetWizardOverlay : CanvasLayer
             AutowrapMode = TextServer.AutowrapMode.WordSmart,
         };
         _statusLabel.AddThemeFontSizeOverride("font_size", 16);
-        _statusLabel.AddThemeColorOverride("font_color", new Color("#94a3b8"));
+        _statusLabel.AddThemeColorOverride("font_color", Palette.TextDim);
         panel.AddChild(_statusLabel);
 
         _startButton = AddButton(panel, new Vector2(70, 320), "START", StartRun);

@@ -1,5 +1,6 @@
 using Friflo.Engine.ECS;
 using Godot;
+using Xanadu.Theme;
 
 namespace Xanadu.Ecs;
 
@@ -24,8 +25,8 @@ public struct Toggle : IComponent
         OffText = offText;
         Value = value;
         Held = false;
-        OnColor = onColor ?? new Color("#2563eb");
-        OffColor = offColor ?? new Color("#334155");
+        OnColor = onColor ?? Palette.Primary;
+        OffColor = offColor ?? Palette.Muted;
     }
 }
 

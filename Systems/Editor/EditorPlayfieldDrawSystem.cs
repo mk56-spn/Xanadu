@@ -10,6 +10,7 @@ using Xanadu.Timeline;
 using Xanadu.Levels;
 using Xanadu.Systems.Canvas;
 using Xanadu.Systems.Playfields;
+using Xanadu.Theme;
 
 namespace Xanadu.Systems.Editor;
 
@@ -18,11 +19,11 @@ public sealed partial class EditorPlayfieldDrawSystem :
     QuerySystem<PlayfieldView, Playfield, Playhead, NoteSelection>
 {
     public static readonly Color MainSnapColor = Colors.White;
-    public static readonly Color HalfSnapColor = new("#ef4444");
-    public static readonly Color QuarterSnapColor = new("#3b82f6");
+    public static readonly Color HalfSnapColor = Palette.Danger;
+    public static readonly Color QuarterSnapColor = Palette.PrimarySoft;
 
     private static readonly Color EditorBackground = new("#1e1e1e");
-    private static readonly Color PanelBackground = new("#111827");
+    private static readonly Color PanelBackground = Palette.Surface;
 
     private readonly ShaderRoutingCanvas _canvas;
     private readonly GodotShaderCanvasItems _shaderItems = new();

@@ -8,6 +8,7 @@ using Xanadu.Editor;
 using Xanadu.Systems.Editor;
 using Xanadu.Strings;
 using Xanadu.Systems.Playfields;
+using Xanadu.Theme;
 
 namespace Xanadu.Scenes;
 
@@ -45,7 +46,7 @@ public static partial class EditorScene
             new Vector2(infoWidth, 18),
             "Song: No song loaded",
             14,
-            new Color("#cbd5e1"));
+            Palette.TextMuted);
         Entity statusText = HudText(
             hudUi,
             new Vector2(144 + infoWidth / 2, 58),
@@ -56,7 +57,7 @@ public static partial class EditorScene
         hudUi.RectEntity(
             new Vector2(170, 960),
             new Vector2(300, 36),
-            new Color("#0b1220"));
+            Palette.SurfaceInset);
         AddHudFrame(hudUi, new Vector2(170, 960), new Vector2(300, 36));
         Entity timeText = HudText(
             hudUi,
@@ -64,7 +65,7 @@ public static partial class EditorScene
             new Vector2(292, 30),
             "00:00.000 / 00:00.000",
             20,
-            new Color("#cbd5e1"));
+            Palette.TextMuted);
         Entity notesText = HudText(
             hudUi,
             new Vector2(screen.X - 140, 960),
@@ -174,7 +175,7 @@ public static partial class EditorScene
             new Vector2(560, 520),
             StackDirection.Vertical,
             spacing: 4,
-            color: new Color("#0b1220"),
+            color: Palette.SurfaceInset,
             takesInput: true);
         Entity helpPanel = helpUi.Current;
         string[] bindings =
@@ -229,7 +230,7 @@ public static partial class EditorScene
         Vector2 center,
         Vector2 size)
     {
-        Color color = new("#475569");
+        Color color = Palette.BorderStrong;
         Vector2 topLeft = center - size / 2;
         ui.RectEntity(
             new Vector2(center.X, topLeft.Y),
@@ -291,7 +292,7 @@ public static partial class EditorScene
         Entity field = ui.RectEntity(
             Vector2.Zero,
             new Vector2(340, 28),
-            new Color("#0b1220"),
+            Palette.SurfaceInset,
             value,
             takesInput: true);
         field.AddComponent(new TextStyle(14, SceneUi.TextColor));

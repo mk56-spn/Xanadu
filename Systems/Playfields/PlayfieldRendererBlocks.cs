@@ -2,15 +2,16 @@ using Friflo.Engine.ECS;
 using Godot;
 using Xanadu.Ecs;
 using Xanadu.Systems.Canvas;
+using Xanadu.Theme;
 
 namespace Xanadu.Systems.Playfields;
 
 /// <summary>Draws collidable blocks in both editor and play modes.</summary>
 public static partial class PlayfieldRenderer
 {
-    public static readonly Color BlockFill = new("#1f2937");
-    public static readonly Color BlockEdge = new("#475569");
-    public static readonly Color BlockSelectedEdge = new("#facc15");
+    public static readonly Color BlockFill = Palette.SurfaceDisabled;
+    public static readonly Color BlockEdge = Palette.BorderStrong;
+    public static readonly Color BlockSelectedEdge = Palette.Accent;
 
     /// <summary>
     /// Draws every block as a filled slab. The selected one, if any, gets an

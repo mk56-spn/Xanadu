@@ -6,6 +6,7 @@ using Xanadu.Animation;
 using Xanadu.Ecs;
 using Xanadu.Levels;
 using Xanadu.Systems.Canvas;
+using Xanadu.Theme;
 
 namespace Xanadu.Tools.Animator.Systems;
 
@@ -13,18 +14,18 @@ namespace Xanadu.Tools.Animator.Systems;
 public sealed class AnimatorTimelineDrawSystem(IRectCanvas canvas, Rid target)
     : QuerySystem<AnimatorDocument, AnimatorUi>
 {
-    private static readonly Color RulerBackground = new("#0b1220");
-    private static readonly Color RowEven = new("#0f172a");
+    private static readonly Color RulerBackground = Palette.SurfaceInset;
+    private static readonly Color RowEven = Palette.SurfaceDeep;
     private static readonly Color RowOdd = new("#131d33");
     private static readonly Color RowSelected = new("#164e63");
     private static readonly Color RowSelectedExtra = new("#115e59");
-    private static readonly Color RowSelectedChannel = new("#134e4a");
-    private static readonly Color Grid = new("#1e293b");
-    private static readonly Color Tick = new("#64748b");
-    private static readonly Color Dim = new("#94a3b8");
-    private static readonly Color Text = new("#e2e8f0");
-    private static readonly Color KeyColor = new("#38bdf8");
-    private static readonly Color Playhead = new("#facc15");
+    private static readonly Color RowSelectedChannel = Palette.SelectedDeep;
+    private static readonly Color Grid = Palette.SurfaceAlt;
+    private static readonly Color Tick = Palette.BorderSubtle;
+    private static readonly Color Dim = Palette.TextDim;
+    private static readonly Color Text = Palette.Text;
+    private static readonly Color KeyColor = Palette.Info;
+    private static readonly Color Playhead = Palette.Accent;
     private static readonly Color LoopBand = new("#2dd4bf", 0.18f);
     private static readonly Color LoopLine = new("#2dd4bf");
 

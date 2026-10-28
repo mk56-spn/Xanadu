@@ -4,6 +4,7 @@ using Godot;
 using Xanadu.Ecs;
 using Xanadu.Systems.Canvas;
 using Xanadu.Systems.Playfields;
+using Xanadu.Theme;
 
 namespace Xanadu.Systems.Editor;
 
@@ -59,7 +60,7 @@ public sealed class EditorGroupPreviewSystem :
         Playfield playfield,
         Playhead playhead)
     {
-        _canvas.DrawRect(_preview, area.Grow(2), new Color("#334155"));
+        _canvas.DrawRect(_preview, area.Grow(2), Palette.Muted);
         _canvas.DrawRect(_preview, area, PlayfieldRenderer.PlayfieldBackground);
 
         float scale = Mathf.Min(
@@ -96,7 +97,7 @@ public sealed class EditorGroupPreviewSystem :
             _preview,
             new Rect2(area.Position + new Vector2(6, 4), new Vector2(90, 15)),
             solo == 0 ? "LIVE" : "LIVE · SOLO",
-            new Color("#94a3b8"));
+            Palette.TextDim);
     }
 
     private void DrawBlocks(
@@ -270,8 +271,8 @@ public sealed class EditorGroupPreviewSystem :
 
         GroupEffect effect = group.Effects[state.SelectedEffect];
         Rect2 area = Offset(EditorGroupLayout.CurveArea(dialog), origin);
-        _canvas.DrawRect(_preview, area.Grow(1), new Color("#334155"));
-        _canvas.DrawRect(_preview, area, new Color("#0b1220"));
+        _canvas.DrawRect(_preview, area.Grow(1), Palette.Muted);
+        _canvas.DrawRect(_preview, area, Palette.SurfaceInset);
 
         var points = new Vector2[21];
         for (int i = 0; i < points.Length; i++)
@@ -284,7 +285,7 @@ public sealed class EditorGroupPreviewSystem :
         }
 
         Color color = effect.Kind == GroupEffectKind.Move
-            ? new Color("#38bdf8")
+            ? Palette.Info
             : new Color(effect.Tint.R, effect.Tint.G, effect.Tint.B);
         if (effect.Muted)
             color = color.Darkened(0.55f);
@@ -295,7 +296,7 @@ public sealed class EditorGroupPreviewSystem :
     private void DrawPaletteFrame(Vector2 dialog, Vector2 origin)
     {
         Rect2 area = Offset(EditorGroupLayout.PalettePanel(dialog), origin);
-        Color border = new("#64748b");
+        Color border = Palette.BorderSubtle;
         _canvas.DrawRect(_preview, new Rect2(area.Position, new Vector2(area.Size.X, 2)), border);
         _canvas.DrawRect(_preview, new Rect2(new Vector2(area.Position.X, area.End.Y - 2), new Vector2(area.Size.X, 2)), border);
         _canvas.DrawRect(_preview, new Rect2(area.Position, new Vector2(2, area.Size.Y)), border);

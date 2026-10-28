@@ -1,23 +1,24 @@
 using Godot;
+using Xanadu.Theme;
 
 namespace Xanadu.Ecs;
 
 /// <summary>Shared defaults for the generic ECS UI.</summary>
 public static class UiTheme
 {
-    public static readonly Color Background = new("#0b1020");
-    public static readonly Color Panel = new("#111827");
-    public static readonly Color PanelAlt = new("#1e293b");
-    public static readonly Color Button = new("#2563eb");
-    public static readonly Color ButtonMuted = new("#334155");
-    public static readonly Color DropdownOption = new("#1e293b");
-    public static readonly Color Text = new("#e2e8f0");
-    public static readonly Color TextDim = new("#94a3b8");
-    public static readonly Color Accent = new("#facc15");
-    public static readonly Color Selected = new("#0f766e");
-    public static readonly Color Focus = new("#f8fafc");
-    public static readonly Color Disabled = new("#1f2937");
-    public static readonly Color Tooltip = new("#243044");
+    public static readonly Color Background = Palette.Background;
+    public static readonly Color Panel = Palette.Surface;
+    public static readonly Color PanelAlt = Palette.SurfaceAlt;
+    public static readonly Color Button = Palette.Primary;
+    public static readonly Color ButtonMuted = Palette.Muted;
+    public static readonly Color DropdownOption = Palette.SurfaceAlt;
+    public static readonly Color Text = Palette.Text;
+    public static readonly Color TextDim = Palette.TextDim;
+    public static readonly Color Accent = Palette.Accent;
+    public static readonly Color Selected = Palette.Selected;
+    public static readonly Color Focus = Palette.TextBright;
+    public static readonly Color Disabled = Palette.SurfaceDisabled;
+    public static readonly Color Tooltip = Palette.Tooltip;
 
     public const int FontSize = 14;
     public const int SmallFontSize = 12;

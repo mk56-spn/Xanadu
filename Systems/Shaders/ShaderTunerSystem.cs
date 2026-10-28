@@ -6,6 +6,7 @@ using Godot;
 using Xanadu.Ecs;
 using Xanadu.Systems.Debug;
 using Xanadu.Systems.Input;
+using Xanadu.Theme;
 
 namespace Xanadu.Systems.Shaders;
 
@@ -145,7 +146,7 @@ public sealed class ShaderTunerSystem(
             PanelWidth - 32,
             store.Path,
             11,
-            new Color("#94a3b8"));
+            Palette.TextDim);
         Track(_footer);
     }
 
@@ -224,11 +225,11 @@ public sealed class ShaderTunerSystem(
             250,
             "",
             14,
-            new Color("#e2e8f0"));
+            Palette.Text);
         Entity track = ui.RectEntity(
             new Vector2(left + 250 + 120, y),
             new Vector2(230, 14),
-            new Color("#334155"),
+            Palette.Muted,
             takesInput: true);
         Entity fill = ui.RectEntity(
             new Vector2(left + 250 + 120, y),
@@ -259,7 +260,7 @@ public sealed class ShaderTunerSystem(
         float y)
     {
         float left = PanelCenterX - PanelWidth / 2 + 16;
-        Track(Label(ui, left, y, PanelWidth - 32, uniform.Name, 14, new Color("#e2e8f0")));
+        Track(Label(ui, left, y, PanelWidth - 32, uniform.Name, 14, Palette.Text));
 
         Vector2 center = new(
             left + ColorPickerLayout.Size.X / 2,
@@ -281,11 +282,11 @@ public sealed class ShaderTunerSystem(
         Entity button = ui.RectEntity(
             new Vector2(x, y + 14),
             new Vector2(120, 34),
-            new Color("#334155"),
+            Palette.Muted,
             label,
             takesInput: true);
         button.AddComponent(new TextStyle(16, Colors.White));
-        button.AddComponent(ButtonVisual.Create(new Color("#334155")));
+        button.AddComponent(ButtonVisual.Create(Palette.Muted));
         button.AddComponent(new ShaderTunerButton(action));
         Track(button);
     }

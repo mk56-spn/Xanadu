@@ -6,6 +6,7 @@ using Godot;
 using Xanadu.Ecs;
 using Xanadu.Systems.Input;
 using Xanadu.Systems.Physics;
+using Xanadu.Theme;
 
 namespace Xanadu.Systems.Debug;
 
@@ -64,12 +65,12 @@ public sealed class GravityDebugSystem(
         Entity track = ui.RectEntity(
             new Vector2(330, 190),
             new Vector2(340, 16),
-            new Color("#334155"),
+            Palette.Muted,
             takesInput: true);
         Entity fill = ui.RectEntity(
             new Vector2(160, 190),
             new Vector2(340, 16),
-            new Color("#38bdf8"), "");
+            Palette.Info, "");
         Entity value = ui.RectEntity(
             new Vector2(330, 230),
             new Vector2(300, 24),

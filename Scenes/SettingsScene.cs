@@ -3,6 +3,7 @@ using Godot;
 using Xanadu.Ecs;
 using Xanadu.Strings;
 using Xanadu.Settings;
+using Xanadu.Theme;
 
 namespace Xanadu.Scenes;
 
@@ -72,7 +73,7 @@ public static class SettingsScene
             LocalizedText.Get(SettingsStrings.VSyncOn),
             LocalizedText.Get(SettingsStrings.VSyncOff),
             display.VSyncEnabled,
-            new Color("#2563eb"),
+            Palette.Primary,
             SceneUi.MutedButtonColor));
         vsync.AddComponent(new VSyncToggle());
 

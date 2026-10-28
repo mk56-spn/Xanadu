@@ -4,6 +4,7 @@ using Friflo.Engine.ECS.Systems;
 using Godot;
 using Xanadu.Animation;
 using Xanadu.Systems.Canvas;
+using Xanadu.Theme;
 
 namespace Xanadu.Tools.Animator.Systems;
 
@@ -13,14 +14,14 @@ public sealed class AnimatorPreviewDrawSystem(
     Rid target,
     IAttachmentVisuals visuals) : QuerySystem<AnimatorDocument, AnimatorUi>
 {
-    private static readonly Color BoneColor = new("#facc15");
-    private static readonly Color BoneFill = new("#38bdf8", 0.30f);
-    private static readonly Color BoneOutline = new("#38bdf8");
-    private static readonly Color SwungFill = new("#facc15", 0.35f);
+    private static readonly Color BoneColor = Palette.Accent;
+    private static readonly Color BoneFill = new(Palette.Info, 0.30f);
+    private static readonly Color BoneOutline = Palette.Info;
+    private static readonly Color SwungFill = new(Palette.Accent, 0.35f);
     private static readonly Color SwungOutline = new("#fde68a");
-    private static readonly Color AttachmentColor = new("#a3e635");
-    private static readonly Color Label = new("#cbd5e1");
-    private static readonly Color ReparentLabel = new("#fb923c");
+    private static readonly Color AttachmentColor = Palette.Lime;
+    private static readonly Color Label = Palette.TextMuted;
+    private static readonly Color ReparentLabel = Palette.Warning;
     private const float OnionOffset = 0.1f;
 
     private int _version = -1;
@@ -50,7 +51,7 @@ public sealed class AnimatorPreviewDrawSystem(
             target,
             new Vector2(area.Position.X, area.End.Y),
             new Vector2(area.End.X, area.End.Y),
-            new Color("#334155"),
+            Palette.Muted,
             1);
 
         XafPose pose = AnimatorGeometry.PreviewPose(document, modes);
@@ -63,9 +64,9 @@ public sealed class AnimatorPreviewDrawSystem(
             {
                 float time = document.Runtime.CurrentTime;
                 DrawGhost(document.Package, clip, time - OnionOffset,
-                    new Color("#38bdf8", 0.25f), placement);
+                    new Color(Palette.Info, 0.25f), placement);
                 DrawGhost(document.Package, clip, time + OnionOffset,
-                    new Color("#fb7185", 0.25f), placement);
+                    new Color(Palette.Rose, 0.25f), placement);
             }
         }
 
@@ -136,7 +137,7 @@ public sealed class AnimatorPreviewDrawSystem(
             target,
             new Rect2(area.Position + new Vector2(12, 12), new Vector2(300, 20)),
             $"{document.Runtime.CurrentClip}  {document.Runtime.CurrentTime:0.00}s   x{view.Zoom:0.##}",
-            new Color("#e2e8f0"),
+            Palette.Text,
             14);
     }
 
@@ -179,7 +180,7 @@ public sealed class AnimatorPreviewDrawSystem(
     /// <summary>The lines a dragged joint is snapped to, across the whole preview.</summary>
     private void DrawSnapGuides(AnimatorSnapGuides guides, Transform2D placement, Rect2 area)
     {
-        Color color = new("#22d3ee", 0.8f);
+        Color color = new(Palette.Cyan, 0.8f);
         if (guides.HasX)
         {
             float x = (placement * new Vector2(guides.X, 0f)).X;

@@ -1,4 +1,5 @@
 using Godot;
+using Xanadu.Theme;
 
 namespace Xanadu.Systems.Editor;
 
@@ -8,17 +9,17 @@ public static class EditorGroupPalette
     public static readonly Color[] Swatches =
     {
         new("#ffffff"),
-        new("#1e293b"),
-        new("#ef4444"),
-        new("#fb923c"),
-        new("#facc15"),
-        new("#22c55e"),
-        new("#22d3ee"),
-        new("#3b82f6"),
-        new("#8b5cf6"),
-        new("#ec4899"),
-        new("#94a3b8"),
-        new("#64748b"),
+        Palette.SurfaceAlt,
+        Palette.Danger,
+        Palette.Warning,
+        Palette.Accent,
+        Palette.Success,
+        Palette.Cyan,
+        Palette.PrimarySoft,
+        Palette.Violet,
+        Palette.Pink,
+        Palette.TextDim,
+        Palette.BorderSubtle,
     };
 
     public static readonly float[] Alphas = { 0.25f, 0.5f, 0.75f, 1f };
@@ -28,5 +29,5 @@ public static class EditorGroupPalette
 
     /// <summary>The swatch colour with <paramref name="alpha"/> kept from the effect.</summary>
     public static Color WithAlpha(Color colour, float alpha) =>
-        new(colour.R, colour.G, colour.B, alpha);
+        Palette.WithAlpha(colour, alpha);
 }

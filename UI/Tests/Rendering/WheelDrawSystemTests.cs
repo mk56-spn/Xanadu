@@ -7,14 +7,15 @@ using Xanadu.Ecs;
 using Xanadu.Tests.Support;
 using Xanadu.Systems.Canvas;
 using Xanadu.Systems.Rendering;
+using Xanadu.Theme;
 
 namespace Xanadu.Tests.UI.Rendering;
 
 [TestFixture]
 public sealed class WheelDrawSystemTests : EcsSystemTest
 {
-    private static readonly Color Blue = new("#2563eb");
-    private static readonly Color Yellow = new("#facc15");
+    private static readonly Color Blue = Palette.Primary;
+    private static readonly Color Yellow = Palette.Accent;
 
     private RecordingWheelCanvas _canvas = null!;
 
@@ -59,8 +60,8 @@ public sealed class WheelDrawSystemTests : EcsSystemTest
 
         Frame();
 
-        Assert.That(_canvas.Texts[2].Color, Is.EqualTo(new Color("#1e293b")));
-        Assert.That(_canvas.Texts[0].Color, Is.EqualTo(new Color("#f8fafc")));
+        Assert.That(_canvas.Texts[2].Color, Is.EqualTo(Palette.SurfaceAlt));
+        Assert.That(_canvas.Texts[0].Color, Is.EqualTo(Palette.TextBright));
     }
 
     [Test]

@@ -9,6 +9,7 @@ using Xanadu.Editor;
 using Xanadu.Editor.Commands;
 using Xanadu.Levels;
 using Xanadu.Systems.Input;
+using Xanadu.Theme;
 using Position = Xanadu.Ecs.Position;
 
 namespace Xanadu.Systems.Editor;
@@ -21,12 +22,12 @@ namespace Xanadu.Systems.Editor;
 /// </summary>
 public sealed partial class EditorGroupSystem : QuerySystem<EditorGroupState>
 {
-    private static readonly Color MoveColor = new("#38bdf8");
-    private static readonly Color DefaultTint = new("#ef4444");
+    private static readonly Color MoveColor = Palette.Info;
+    private static readonly Color DefaultTint = Palette.Danger;
     private static readonly Color CellEmpty = SceneColors.Muted;
-    private static readonly Color CellUsed = new("#1d4ed8");
-    private static readonly Color CellSelected = new("#facc15");
-    private static readonly Color CellOpen = new("#22d3ee");
+    private static readonly Color CellUsed = Palette.PrimaryDeep;
+    private static readonly Color CellSelected = Palette.Accent;
+    private static readonly Color CellOpen = Palette.Cyan;
 
     private const float EdgeGrab = 7f;
 
@@ -297,5 +298,5 @@ public sealed partial class EditorGroupSystem : QuerySystem<EditorGroupState>
 /// <summary>The editor's muted button colour, named once for the systems that tint with it.</summary>
 internal static class SceneColors
 {
-    public static readonly Color Muted = new("#334155");
+    public static readonly Color Muted = Palette.Muted;
 }

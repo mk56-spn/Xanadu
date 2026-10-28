@@ -4,6 +4,7 @@ using Godot;
 using Xanadu.Animation;
 using Xanadu.Ecs;
 using Xanadu.Tools.Animator.Commands;
+using Xanadu.Theme;
 
 namespace Xanadu.Tools.Animator.Systems;
 
@@ -13,8 +14,8 @@ namespace Xanadu.Tools.Animator.Systems;
 /// </summary>
 public sealed class AnimatorClipHeaderSystem : QuerySystem<AnimatorDocument, AnimatorUi>
 {
-    private static readonly Color LoopOn = new("#0f766e");
-    private static readonly Color LoopOff = new("#334155");
+    private static readonly Color LoopOn = Palette.Selected;
+    private static readonly Color LoopOff = Palette.Muted;
 
     private bool _wasEditing;
     private string _editedClip = "";

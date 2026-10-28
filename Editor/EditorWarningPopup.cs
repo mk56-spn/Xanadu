@@ -1,6 +1,7 @@
 using Friflo.Engine.ECS;
 using Godot;
 using Xanadu.Ecs;
+using Xanadu.Theme;
 
 namespace Xanadu.Editor;
 
@@ -23,31 +24,31 @@ public static class EditorWarningPopup
             PopupSize,
             StackDirection.Vertical,
             spacing: 10,
-            color: new Color("#3b1515"));
+            color: Palette.DangerSurfaceAlt);
 
         Entity panel = builder.Current;
 
         builder.Rect(
             Vector2.Zero,
             new Vector2(400, 26),
-            new Color("#9f1d1d"),
+            Palette.DangerDark,
             "WARNING");
 
         builder.Rect(
             Vector2.Zero,
             new Vector2(400, 48),
-            new Color("#3b1515"),
+            Palette.DangerSurfaceAlt,
             NoSongMessage);
         Entity message = LastChild(panel);
 
         builder.Rect(
             Vector2.Zero,
             new Vector2(120, 34),
-            new Color("#b45309"),
+            Palette.WarningDeep,
             "OK",
             takesInput: true);
         Entity button = LastChild(panel);
-        button.AddComponent(ButtonVisual.Create(new Color("#b45309")));
+        button.AddComponent(ButtonVisual.Create(Palette.WarningDeep));
 
         builder.End();
 

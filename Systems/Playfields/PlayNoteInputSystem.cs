@@ -7,6 +7,7 @@ using Xanadu.Ecs;
 using Xanadu.Scoring;
 using Xanadu.Settings;
 using Xanadu.Systems.Input;
+using Xanadu.Theme;
 using Position = Xanadu.Ecs.Position;
 
 namespace Xanadu.Systems.Playfields;
@@ -110,7 +111,7 @@ public sealed class PlayNoteInputSystem : QuerySystem<Note>
 
             _entities.CreateEntity(new HitTrail(
                 mineScreen,
-                new Color("#ff3b30"),
+                Palette.DangerBright,
                 KeybindSettings.KeyLabel(_keybinds.Get(action))));
             entity.DeleteEntity();
             return true;

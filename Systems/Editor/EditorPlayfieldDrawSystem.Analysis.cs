@@ -4,16 +4,17 @@ using Xanadu.Ecs;
 using Xanadu.Editor.Analysis;
 using Xanadu.Systems.Playfields;
 using Xanadu.Timeline;
+using Xanadu.Theme;
 
 namespace Xanadu.Systems.Editor;
 
 public sealed partial class EditorPlayfieldDrawSystem
 {
     private static readonly Color DensityBackground = new(0.043f, 0.067f, 0.106f, 0.9f);
-    private static readonly Color CalmColor = new("#3b82f6");
-    private static readonly Color BusyColor = new("#ef4444");
+    private static readonly Color CalmColor = Palette.PrimarySoft;
+    private static readonly Color BusyColor = Palette.Danger;
     private static readonly Color TravelColor = new(1f, 1f, 1f, 0.7f);
-    private static readonly Color IssueColor = new("#ff3b30");
+    private static readonly Color IssueColor = Palette.DangerBright;
 
     // A quiet chart should not look like a wall: scale against at least this much.
     private const float MinNotesScale = 8f;
