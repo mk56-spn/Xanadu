@@ -36,13 +36,13 @@ public static partial class SongSelectScene
 
         ui.End();
 
-        // The menu has nothing to open yet, so it carries no command.
+        // The menu has nothing of its own yet, so for now it opens the editor like the hammer.
         ActionDiamond(
             ui,
             MenuCenter,
             MenuSize,
             LocalizedText.Get(SongSelectStrings.Menu),
-            SceneActionId.None);
+            SceneActionId.Edit);
         foreach (Vector2[] bar in Bars(MenuSize * 0.4f))
             Icon(ui, bar, Gold);
 
