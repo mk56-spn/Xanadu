@@ -1,6 +1,5 @@
 using System;
-using System.IO;
-using System.Text.Json;
+using Xanadu.Ecs.Storage;
 
 namespace Xanadu.Settings;
 
@@ -8,19 +7,12 @@ namespace Xanadu.Settings;
 public sealed class OffsetSettings
 {
     private const string DefaultPath = "user://offset.json";
-    private static readonly JsonSerializerOptions JsonOptions = new()
-    {
-        WriteIndented = true,
-    };
-
-    private readonly string _path;
-    private readonly bool _persist;
+    private readonly PersistedFile<OffsetData> _file;
 
     public OffsetSettings(string? path = null, bool persist = true)
     {
-        _path = path ?? DefaultPath;
-        _persist = persist;
-        if (_persist)
+        _file = new PersistedFile<OffsetData>(path, DefaultPath, persist);
+        if (persist)
             Load();
     }
 
@@ -40,52 +32,12 @@ public sealed class OffsetSettings
 
     public void Load()
     {
-        try
-        {
-            string path = ResolvePath();
-            if (!File.Exists(path))
-                return;
-
-            OffsetData? data = JsonSerializer.Deserialize<OffsetData>(
-                File.ReadAllText(path),
-                JsonOptions);
-            if (data is not null)
-                OffsetMs = Math.Clamp(data.OffsetMs, -300, 300);
-        }
-        catch (Exception)
-        {
-            // A malformed calibration file falls back to zero.
-        }
+        OffsetData? data = _file.Load();
+        if (data is not null)
+            OffsetMs = Math.Clamp(data.OffsetMs, -300, 300);
     }
 
-    public void Save()
-    {
-        if (!_persist)
-            return;
-
-        try
-        {
-            string path = ResolvePath();
-            string? directory = Path.GetDirectoryName(path);
-            if (!string.IsNullOrEmpty(directory))
-                Directory.CreateDirectory(directory);
-
-            File.WriteAllText(
-                path,
-                JsonSerializer.Serialize(
-                    new OffsetData { OffsetMs = OffsetMs },
-                    JsonOptions));
-        }
-        catch (Exception)
-        {
-            // Persistence is best-effort; the session still uses the value.
-        }
-    }
-
-    private string ResolvePath() =>
-        _path.StartsWith("user://", StringComparison.Ordinal)
-            ? Godot.ProjectSettings.GlobalizePath(_path)
-            : _path;
+    public void Save() => _file.Save(new OffsetData { OffsetMs = OffsetMs });
 
     private sealed class OffsetData
     {

@@ -1,7 +1,6 @@
 using System;
-using System.IO;
-using System.Text.Json;
 using Godot;
+using Xanadu.Ecs.Storage;
 
 namespace Xanadu.Settings;
 
@@ -9,13 +8,7 @@ namespace Xanadu.Settings;
 public sealed class DisplaySettings
 {
     private const string DefaultPath = "user://display.json";
-    private static readonly JsonSerializerOptions JsonOptions = new()
-    {
-        WriteIndented = true,
-    };
-
-    private readonly string _path;
-    private readonly bool _persist;
+    private readonly PersistedFile<DisplayData> _file;
     private readonly bool _apply;
 
     public DisplaySettings(
@@ -23,10 +16,9 @@ public sealed class DisplaySettings
         bool persist = true,
         bool apply = true)
     {
-        _path = path ?? DefaultPath;
-        _persist = persist;
+        _file = new PersistedFile<DisplayData>(path, DefaultPath, persist);
         _apply = apply;
-        if (_persist)
+        if (persist)
             Load();
         Apply();
     }
@@ -44,47 +36,12 @@ public sealed class DisplaySettings
 
     public void Load()
     {
-        try
-        {
-            string path = ResolvePath();
-            if (!File.Exists(path))
-                return;
-
-            DisplayData? data = JsonSerializer.Deserialize<DisplayData>(
-                File.ReadAllText(path),
-                JsonOptions);
-            if (data is not null)
-                VSyncEnabled = data.VSyncEnabled;
-        }
-        catch (Exception)
-        {
-            // Malformed display settings fall back to the default.
-        }
+        DisplayData? data = _file.Load();
+        if (data is not null)
+            VSyncEnabled = data.VSyncEnabled;
     }
 
-    public void Save()
-    {
-        if (!_persist)
-            return;
-
-        try
-        {
-            string path = ResolvePath();
-            string? directory = Path.GetDirectoryName(path);
-            if (!string.IsNullOrEmpty(directory))
-                Directory.CreateDirectory(directory);
-
-            File.WriteAllText(
-                path,
-                JsonSerializer.Serialize(
-                    new DisplayData { VSyncEnabled = VSyncEnabled },
-                    JsonOptions));
-        }
-        catch (Exception)
-        {
-            // Persistence is best-effort; the session still uses the value.
-        }
-    }
+    public void Save() => _file.Save(new DisplayData { VSyncEnabled = VSyncEnabled });
 
     public void Apply()
     {
@@ -103,11 +60,6 @@ public sealed class DisplaySettings
             // Headless test and export contexts may not expose a window.
         }
     }
-
-    private string ResolvePath() =>
-        _path.StartsWith("user://", StringComparison.Ordinal)
-            ? ProjectSettings.GlobalizePath(_path)
-            : _path;
 
     private sealed class DisplayData
     {

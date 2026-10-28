@@ -1,8 +1,7 @@
 using System;
 using System.Collections.Generic;
-using System.IO;
-using System.Text.Json;
 using Godot;
+using Xanadu.Ecs.Storage;
 
 namespace Xanadu.Settings;
 
@@ -34,24 +33,17 @@ public sealed class KeybindSettings
 
     private const string DefaultPath = "user://keybinds.json";
 
-    private static readonly JsonSerializerOptions JsonOptions = new()
-    {
-        WriteIndented = true,
-    };
-
     private readonly Dictionary<KeybindAction, Key> _keys = new();
-    private readonly string _path;
-    private readonly bool _persist;
+    private readonly PersistedFile<Dictionary<string, int>> _file;
 
     public KeybindSettings(string? path = null, bool persist = true)
     {
-        _path = path ?? DefaultPath;
-        _persist = persist;
+        _file = new PersistedFile<Dictionary<string, int>>(path, DefaultPath, persist);
 
         foreach (KeybindAction action in Actions)
             _keys[action] = DefaultFor(action);
 
-        if (_persist)
+        if (persist)
             Load();
     }
 
@@ -140,70 +132,27 @@ public sealed class KeybindSettings
 
     private void Load()
     {
-        try
+        Dictionary<string, int>? values = _file.Load();
+        if (values is null)
+            return;
+
+        foreach (KeybindAction action in Actions)
         {
-            string path = ResolvePath();
-            if (!File.Exists(path))
-                return;
-
-            Dictionary<string, int>? values =
-                JsonSerializer.Deserialize<Dictionary<string, int>>(
-                    File.ReadAllText(path),
-                    JsonOptions);
-
-            if (values is null)
-                return;
-
-            foreach (KeybindAction action in Actions)
+            if (values.TryGetValue(action.ToString(), out int raw) &&
+                Enum.IsDefined(typeof(Key), (long)raw))
             {
-                if (values.TryGetValue(action.ToString(), out int raw) &&
-                    Enum.IsDefined(typeof(Key), (long)raw))
-                {
-                    _keys[action] = (Key)raw;
-                }
+                _keys[action] = (Key)raw;
             }
-        }
-        catch (Exception exception) when (
-            exception is IOException or
-            UnauthorizedAccessException or
-            JsonException)
-        {
-            GD.PushWarning($"Could not load keybinds: {exception.Message}");
         }
     }
 
     private void Save()
     {
-        if (!_persist)
-            return;
+        var values = new Dictionary<string, int>();
 
-        try
-        {
-            var values = new Dictionary<string, int>();
+        foreach (KeyValuePair<KeybindAction, Key> pair in _keys)
+            values[pair.Key.ToString()] = (int)pair.Value;
 
-            foreach (KeyValuePair<KeybindAction, Key> pair in _keys)
-                values[pair.Key.ToString()] = (int)pair.Value;
-
-            string path = ResolvePath();
-            string? directory = Path.GetDirectoryName(path);
-            if (!string.IsNullOrEmpty(directory))
-                Directory.CreateDirectory(directory);
-
-            File.WriteAllText(
-                path,
-                JsonSerializer.Serialize(values, JsonOptions));
-        }
-        catch (Exception exception) when (
-            exception is IOException or
-            UnauthorizedAccessException or
-            JsonException)
-        {
-            GD.PushWarning($"Could not save keybinds: {exception.Message}");
-        }
+        _file.Save(values);
     }
-
-    private string ResolvePath() =>
-        _path.StartsWith("user://", StringComparison.Ordinal)
-            ? ProjectSettings.GlobalizePath(_path)
-            : _path;
 }
