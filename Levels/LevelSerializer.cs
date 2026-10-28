@@ -30,6 +30,7 @@ public static class LevelSerializer
         document.StartPoints ??= new();
         document.StartPoints.RemoveAll(start => start is null);
         document.Blocks ??= new();
+        document.Spikes ??= new();
         document.Groups ??= new();
         document.Groups.RemoveAll(group => group is null || group.Id is < 0 or >= GroupLimits.Count);
         foreach (GroupDocument group in document.Groups)
@@ -50,10 +51,13 @@ public static class LevelSerializer
             start.Groups ??= new();
         document.Mines.RemoveAll(mine => mine is null);
         document.Blocks.RemoveAll(block => block is null);
+        document.Spikes.RemoveAll(spike => spike is null);
         foreach (MineDocument mine in document.Mines)
             mine.Groups ??= new();
         foreach (BlockDocument block in document.Blocks)
             block.Groups ??= new();
+        foreach (SpikeDocument spike in document.Spikes)
+            spike.Groups ??= new();
 
         NormalizeShaders(document);
         return document;
@@ -85,5 +89,7 @@ public static class LevelSerializer
             mine.Shader = Valid(mine.Shader);
         foreach (BlockDocument block in document.Blocks)
             block.Shader = Valid(block.Shader);
+        foreach (SpikeDocument spike in document.Spikes)
+            spike.Shader = Valid(spike.Shader);
     }
 }

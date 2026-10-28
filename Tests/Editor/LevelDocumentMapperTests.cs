@@ -38,6 +38,8 @@ public sealed class LevelDocumentMapperTests
             new Vector2(1, 0)));
         sourceStore.CreateEntity(
             new Block(new Vector2(120, 340), new Vector2(200, 100)));
+        sourceStore.CreateEntity(
+            new Spike(new Vector2(400, 800), new Vector2(100, 100)));
 
         LevelDocument document = LevelDocumentMapper.Capture(sourceStore, source);
 
@@ -61,6 +63,11 @@ public sealed class LevelDocumentMapperTests
         Assert.That(document.Blocks[0].Y, Is.EqualTo(340));
         Assert.That(document.Blocks[0].Width, Is.EqualTo(200));
         Assert.That(document.Blocks[0].Height, Is.EqualTo(100));
+        Assert.That(document.Spikes, Has.Count.EqualTo(1));
+        Assert.That(document.Spikes[0].X, Is.EqualTo(400));
+        Assert.That(document.Spikes[0].Y, Is.EqualTo(800));
+        Assert.That(document.Spikes[0].Width, Is.EqualTo(100));
+        Assert.That(document.Spikes[0].Height, Is.EqualTo(100));
 
         var targetStore = new EntityStore();
         Entity target = targetStore.CreateEntity(
@@ -72,6 +79,8 @@ public sealed class LevelDocumentMapperTests
         targetStore.CreateEntity(new Mine(9_999, Vector2.Zero));
         targetStore.CreateEntity(
             new Block(new Vector2(9, 9), new Vector2(10, 10)));
+        targetStore.CreateEntity(
+            new Spike(new Vector2(9, 9), new Vector2(10, 10)));
 
         LevelDocumentMapper.Apply(targetStore, target, document);
 
@@ -108,6 +117,13 @@ public sealed class LevelDocumentMapperTests
         Assert.That(
             targetStore.Query<Block>().ToEntityList()[0].GetComponent<Block>().Size,
             Is.EqualTo(new Vector2(200, 100)));
+        Assert.That(targetStore.Query<Spike>().Count, Is.EqualTo(1));
+        Assert.That(
+            targetStore.Query<Spike>().ToEntityList()[0].GetComponent<Spike>().Position,
+            Is.EqualTo(new Vector2(400, 800)));
+        Assert.That(
+            targetStore.Query<Spike>().ToEntityList()[0].GetComponent<Spike>().Size,
+            Is.EqualTo(new Vector2(100, 100)));
 
         foreach (Entity entity in targetStore.Query<Note>().ToEntityList())
             Assert.That(entity.Tags.Has<EditorItem>(), Is.True);
@@ -116,6 +132,8 @@ public sealed class LevelDocumentMapperTests
         foreach (Entity entity in targetStore.Query<StartPoint>().ToEntityList())
             Assert.That(entity.Tags.Has<EditorItem>(), Is.True);
         foreach (Entity entity in targetStore.Query<Block>().ToEntityList())
+            Assert.That(entity.Tags.Has<EditorItem>(), Is.True);
+        foreach (Entity entity in targetStore.Query<Spike>().ToEntityList())
             Assert.That(entity.Tags.Has<EditorItem>(), Is.True);
     }
 

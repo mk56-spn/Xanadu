@@ -69,6 +69,7 @@ public sealed class PlayfieldSystemGroup : SystemGroup, IDisposable
 
         Add(new PlayerMovementSystem(entities, keybinds, keyboard, offsets));
         Add(new PlayerArenaSystem());
+        Add(new SpikeContactSystem(entities));
         Add(new PlayKeyTrailSystem(entities, keybinds, keyboard));
         Add(new PlayNoteInputSystem(entities, keybinds, keyboard, offsets));
         Add(new HitTrailSystem());

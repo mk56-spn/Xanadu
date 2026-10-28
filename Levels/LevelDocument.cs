@@ -35,6 +35,9 @@ public sealed class LevelDocument
 
     public List<BlockDocument> Blocks { get; set; } = new();
 
+    /// <summary>Spike tiles: permanent hazards that kill on contact.</summary>
+    public List<SpikeDocument> Spikes { get; set; } = new();
+
     /// <summary>The groups that have a name or effects; the rest are empty slots.</summary>
     public List<GroupDocument> Groups { get; set; } = new();
 
@@ -104,6 +107,24 @@ public sealed class GroupEffectDocument
 public sealed class BlockDocument
 {
     /// <summary>The groups this block belongs to.</summary>
+    public List<int> Groups { get; set; } = new();
+
+    /// <summary>The shader slot it is drawn with, or 0 for none.</summary>
+    public int Shader { get; set; }
+
+    public float X { get; set; }
+
+    public float Y { get; set; }
+
+    public float Width { get; set; }
+
+    public float Height { get; set; }
+}
+
+/// <summary>Serializable spike tile data: a hazard that kills on contact.</summary>
+public sealed class SpikeDocument
+{
+    /// <summary>The groups this spike belongs to.</summary>
     public List<int> Groups { get; set; } = new();
 
     /// <summary>The shader slot it is drawn with, or 0 for none.</summary>

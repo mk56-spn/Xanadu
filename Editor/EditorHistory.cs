@@ -9,7 +9,7 @@ using Xanadu.Settings;
 
 namespace Xanadu.Editor;
 
-/// <summary>Undo/redo for note, mine and start-point edits, on the shared <see cref="UndoHistory{T}"/>.</summary>
+/// <summary>Undo/redo for note, mine, start-point, block and spike edits, on the shared <see cref="UndoHistory{T}"/>.</summary>
 public sealed class EditorHistory
 {
     private readonly EntityStore _entities;
@@ -31,6 +31,7 @@ public sealed class EditorHistory
         var mines = new List<MineSnapshot>();
         var starts = new List<StartPointSnapshot>();
         var blocks = new List<BlockSnapshot>();
+        var spikes = new List<SpikeSnapshot>();
 
         foreach (Entity entity in _entities.Query<Note>().ToEntityList())
         {
@@ -112,7 +113,29 @@ public sealed class EditorHistory
             return x != 0 ? x : a.Position.Y.CompareTo(b.Position.Y);
         });
 
-        return new EditorSnapshot(notes, mines, starts, blocks, CaptureGroups());
+        foreach (Entity entity in _entities.Query<Spike>().ToEntityList())
+        {
+            Spike spike = entity.GetComponent<Spike>();
+            spikes.Add(new SpikeSnapshot(
+                spike.Position,
+                spike.Size,
+                MaskOf(entity),
+                ItemShader.Of(entity)));
+        }
+
+        spikes.Sort(static (a, b) =>
+        {
+            int x = a.Position.X.CompareTo(b.Position.X);
+            return x != 0 ? x : a.Position.Y.CompareTo(b.Position.Y);
+        });
+
+        return new EditorSnapshot(
+            notes,
+            mines,
+            starts,
+            blocks,
+            spikes,
+            CaptureGroups());
     }
 
     private static uint MaskOf(Entity entity) =>
@@ -146,6 +169,7 @@ public sealed class EditorHistory
         before.Mines.SequenceEqual(after.Mines) &&
         before.StartPoints.SequenceEqual(after.StartPoints) &&
         before.Blocks.SequenceEqual(after.Blocks) &&
+        before.Spikes.SequenceEqual(after.Spikes) &&
         SameGroups(before.Groups, after.Groups);
 
     private static bool SameGroups(GroupDefinition[]? a, GroupDefinition[]? b)
@@ -167,6 +191,9 @@ public sealed class EditorHistory
             entity.DeleteEntity();
 
         foreach (Entity entity in _entities.Query<Block>().ToEntityList())
+            entity.DeleteEntity();
+
+        foreach (Entity entity in _entities.Query<Spike>().ToEntityList())
             entity.DeleteEntity();
 
         if (snapshot.Groups is not null)
@@ -218,6 +245,12 @@ public sealed class EditorHistory
             Entity created = EditorItems.Create(_entities, new Block(block.Position, block.Size), block.Shader);
             Subscribe(created, block.Groups);
         }
+
+        foreach (SpikeSnapshot spike in snapshot.Spikes)
+        {
+            Entity created = EditorItems.Create(_entities, new Spike(spike.Position, spike.Size), spike.Shader);
+            Subscribe(created, spike.Groups);
+        }
     }
 }
 
@@ -227,6 +260,7 @@ public readonly record struct EditorSnapshot(
     List<MineSnapshot> Mines,
     List<StartPointSnapshot> StartPoints,
     List<BlockSnapshot> Blocks,
+    List<SpikeSnapshot> Spikes,
     GroupDefinition[]? Groups = null);
 
 /// <summary>Stable serializable start-point snapshot used by undo/redo.</summary>
@@ -240,6 +274,13 @@ public readonly record struct StartPointSnapshot(
 
 /// <summary>Stable serializable block snapshot used by undo/redo.</summary>
 public readonly record struct BlockSnapshot(
+    Vector2 Position,
+    Vector2 Size,
+    uint Groups = 0,
+    int Shader = 0);
+
+/// <summary>Stable serializable spike snapshot used by undo/redo.</summary>
+public readonly record struct SpikeSnapshot(
     Vector2 Position,
     Vector2 Size,
     uint Groups = 0,

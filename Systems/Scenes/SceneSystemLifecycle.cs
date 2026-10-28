@@ -71,7 +71,9 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
             results = _pendingResults ?? CapturePlayResults();
             if (_pendingResults is null && _lastPlayEntry is not null && !_watchingReplay)
             {
-                _profiles.RecordScore(_lastPlayEntry.Path, results);
+                // A death is not a score to record, but the attempt is still a replay.
+                if (!results.Failed)
+                    _profiles.RecordScore(_lastPlayEntry.Path, results);
                 SaveReplay(_lastPlayEntry, results);
             }
 
@@ -143,6 +145,7 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
         {
             LevelInfo level = entity.GetComponent<LevelInfo>();
             ScoreState score = entity.GetComponent<ScoreState>();
+            PlaySession session = entity.GetComponent<PlaySession>();
             return new PlayResults(
                 level.Name,
                 score.Score,
@@ -156,7 +159,8 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
                 score.FairCount,
                 score.DeficientCount,
                 score.TerribleCount,
-                score.MissCount);
+                score.MissCount,
+                Failed: session.Died);
         }
 
         return new PlayResults("", 0, 0, 0, 0, 0);
@@ -178,6 +182,9 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
 
         foreach (Entity block in _entities.Query<Block>().ToEntityList())
             block.DeleteEntity();
+
+        foreach (Entity spike in _entities.Query<Spike>().ToEntityList())
+            spike.DeleteEntity();
 
         foreach (Entity trail in _entities.Query<HitTrail>().ToEntityList())
             trail.DeleteEntity();

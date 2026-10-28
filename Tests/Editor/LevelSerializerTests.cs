@@ -45,6 +45,7 @@ public sealed class LevelSerializerTests
             Notes = null!,
             Mines = null!,
             Blocks = null!,
+            Spikes = null!,
             StartPoints = null!,
             Groups = null!,
             Shaders = null!,
@@ -58,6 +59,8 @@ public sealed class LevelSerializerTests
         Assert.That(result.Mines, Is.Empty);
         Assert.That(result.Blocks, Is.Not.Null);
         Assert.That(result.Blocks, Is.Empty);
+        Assert.That(result.Spikes, Is.Not.Null);
+        Assert.That(result.Spikes, Is.Empty);
         Assert.That(result.StartPoints, Is.Not.Null);
         Assert.That(result.Groups, Is.Not.Null);
         Assert.That(result.Shaders, Is.Not.Null);
@@ -85,6 +88,42 @@ public sealed class LevelSerializerTests
         Assert.That(result.Blocks[0].Y, Is.EqualTo(200));
         Assert.That(result.Blocks[0].Width, Is.EqualTo(300));
         Assert.That(result.Blocks[0].Height, Is.EqualTo(40));
+    }
+
+    [Test]
+    public void SpikesRoundTrip()
+    {
+        var source = new LevelDocument();
+        source.Spikes.Add(new SpikeDocument
+        {
+            X = 200,
+            Y = 800,
+            Width = 100,
+            Height = 100,
+            Groups = new System.Collections.Generic.List<int> { 3 },
+        });
+
+        LevelDocument result = LevelSerializer.Deserialize(
+            LevelSerializer.Serialize(source));
+
+        Assert.That(result.Spikes, Has.Count.EqualTo(1));
+        Assert.That(result.Spikes[0].X, Is.EqualTo(200));
+        Assert.That(result.Spikes[0].Y, Is.EqualTo(800));
+        Assert.That(result.Spikes[0].Width, Is.EqualTo(100));
+        Assert.That(result.Spikes[0].Height, Is.EqualTo(100));
+        Assert.That(result.Spikes[0].Groups, Is.EqualTo(new[] { 3 }));
+    }
+
+    [Test]
+    public void ALevelWithoutSpikesStillLoads()
+    {
+        // The spike chunk is optional, so files written before it existed load
+        // with no spikes rather than failing.
+        LevelDocument result = LevelSerializer.Deserialize(
+            LevelSerializer.Serialize(new LevelDocument()));
+
+        Assert.That(result.Spikes, Is.Not.Null);
+        Assert.That(result.Spikes, Is.Empty);
     }
 
     [Test]

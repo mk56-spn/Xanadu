@@ -142,6 +142,40 @@ public sealed class PlaySessionSystemTests
         Assert.That(countdown.GetComponent<Text>().Value, Is.Empty);
     }
 
+    [Test]
+    public void ADiedRunStopsTheMusicAndFinishesAfterAShortBeat()
+    {
+        var store = new EntityStore();
+        var root = new SystemRoot(store);
+        var audio = new RecordingTrackAudio();
+        root.Add(new PlaySessionSystem(audio));
+
+        Entity status = store.CreateEntity(new Text("PLAYING"));
+        Entity play = store.CreateEntity(
+            new Playhead(0, 120, 0, true),
+            new PlaySession(status, lastNoteMs: 4_000));
+
+        ref Playhead playhead = ref play.GetComponent<Playhead>();
+        playhead.DurationMs = 5_000;
+        ref PlaySession session = ref play.GetComponent<PlaySession>();
+        session.Started = true;
+        session.CountdownDone = true;
+        session.Died = true;
+
+        root.Update(new UpdateTick(1f / 60f, 0));
+
+        Assert.That(status.GetComponent<Text>().Value, Is.EqualTo("DEAD"));
+        Assert.That(playhead.Playing, Is.False);
+        Assert.That(session.Finished, Is.False);
+        Assert.That(audio.Volume, Is.Zero);
+        Assert.That(audio.PauseCount, Is.GreaterThan(0));
+
+        Advance(root, 0.7f);
+
+        Assert.That(play.GetComponent<PlaySession>().Finished, Is.True);
+        Assert.That(status.GetComponent<Text>().Value, Is.EqualTo("DEAD"));
+    }
+
     private static void Advance(SystemRoot root, float seconds)
     {
         int frames = (int)MathF.Ceiling(seconds * 60f);

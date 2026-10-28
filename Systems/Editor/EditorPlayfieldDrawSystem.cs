@@ -102,6 +102,7 @@ public sealed partial class EditorPlayfieldDrawSystem :
         PlayfieldRenderer.DrawField(_canvas, _editor, field, 1);
         PlayfieldRenderer.DrawGrid(_canvas, _editor, playfield, field);
         PlayfieldRenderer.DrawBlocks(_canvas, _editor, _entities, view, selection.Note);
+        PlayfieldRenderer.DrawSpikes(_canvas, _editor, _entities, view, selection.Note);
         PlayfieldRenderer.DrawNotes(
             _canvas,
             _editor,

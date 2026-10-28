@@ -139,6 +139,44 @@ public static partial class XmfBinary
         return blocks;
     }
 
+    private static byte[] WriteSpikes(List<SpikeDocument> spikes)
+    {
+        using var stream = new MemoryStream();
+        using var writer = new BinaryWriter(stream, Encoding.UTF8, leaveOpen: true);
+        writer.Write((uint)spikes.Count);
+        foreach (SpikeDocument spike in spikes)
+        {
+            WriteGroups(writer, spike.Groups);
+            writer.Write(spike.Shader);
+            writer.Write(spike.X);
+            writer.Write(spike.Y);
+            writer.Write(spike.Width);
+            writer.Write(spike.Height);
+        }
+        writer.Flush();
+        return stream.ToArray();
+    }
+
+    private static List<SpikeDocument> ReadSpikes(Chunk chunk)
+    {
+        using BinaryReader reader = chunk.OpenReader();
+        uint count = ReadCount(reader, MaxItems, "spike");
+        var spikes = new List<SpikeDocument>((int)count);
+        for (uint i = 0; i < count; i++)
+        {
+            spikes.Add(new SpikeDocument
+            {
+                Groups = ReadGroups(reader),
+                Shader = reader.ReadInt32(),
+                X = reader.ReadSingle(),
+                Y = reader.ReadSingle(),
+                Width = reader.ReadSingle(),
+                Height = reader.ReadSingle(),
+            });
+        }
+        return spikes;
+    }
+
     private static byte[] WriteStartPoints(
         List<StartPointDocument> starts,
         StringTable strings)

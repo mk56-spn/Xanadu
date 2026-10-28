@@ -53,6 +53,11 @@ public sealed class GroupModulationSystem : QuerySystem<ItemGroups>
             Vector2 basePosition = BaseOf(entity, entity.GetComponent<Block>().Position);
             entity.GetComponent<Block>().Position = basePosition + GroupModulation.Offset(groups, mask, seconds);
         }
+        else if (entity.HasComponent<Spike>())
+        {
+            Vector2 basePosition = BaseOf(entity, entity.GetComponent<Spike>().Position);
+            entity.GetComponent<Spike>().Position = basePosition + GroupModulation.Offset(groups, mask, seconds);
+        }
         else if (entity.HasComponent<StartPoint>())
         {
             Vector2 basePosition = BaseOf(entity, entity.GetComponent<StartPoint>().Position);

@@ -14,6 +14,8 @@ public sealed class EditorPlacementKeybindsTests
     [TestCase(Key.Kp2, EditorPlacementMode.Movement)]
     [TestCase(Key.Key3, EditorPlacementMode.Blocks)]
     [TestCase(Key.Kp3, EditorPlacementMode.Blocks)]
+    [TestCase(Key.Key4, EditorPlacementMode.Spikes)]
+    [TestCase(Key.Kp4, EditorPlacementMode.Spikes)]
     public void MapsDefaultPlacementKeys(
         Key key,
         EditorPlacementMode expected)
@@ -44,5 +46,8 @@ public sealed class EditorPlacementKeybindsTests
         Assert.That(
             EditorPlacementKeybinds.LabelFor(EditorPlacementMode.Blocks),
             Is.EqualTo("3"));
+        Assert.That(
+            EditorPlacementKeybinds.LabelFor(EditorPlacementMode.Spikes),
+            Is.EqualTo("4"));
     }
 }

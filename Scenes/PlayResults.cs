@@ -14,4 +14,7 @@ public readonly record struct PlayResults(
     int FairCount = 0,
     int DeficientCount = 0,
     int TerribleCount = 0,
-    int MissCount = 0);
+    int MissCount = 0,
+
+    /// <summary>The run ended in death, so it failed regardless of accuracy.</summary>
+    bool Failed = false);

@@ -16,6 +16,9 @@ public sealed class PlaySessionSystem : QuerySystem<PlaySession, Playhead>
     private const float CountdownSeconds = 3f;
     private const float GoSeconds = 0.6f;
 
+    /// <summary>How long a death holds before the results screen takes over.</summary>
+    private const float DeathSeconds = 0.6f;
+
     private readonly ITrackAudio _audio;
 
     public PlaySessionSystem(ITrackAudio audio)
@@ -34,6 +37,12 @@ public sealed class PlaySessionSystem : QuerySystem<PlaySession, Playhead>
 
             if (session.Finished)
                 return;
+
+            if (session.Died)
+            {
+                UpdateDeath(ref session, ref playhead, buffer);
+                return;
+            }
 
             if (!session.CountdownDone)
             {
@@ -125,6 +134,36 @@ public sealed class PlaySessionSystem : QuerySystem<PlaySession, Playhead>
         {
             SetStatus(ref session, "AUDIO UNAVAILABLE", buffer);
         }
+    }
+
+    /// <summary>
+    /// Ends a run killed by a spike: the music cuts immediately, the status says
+    /// DEAD, and after a short beat the session finishes so the scene can show
+    /// the failed results.
+    /// </summary>
+    private void UpdateDeath(
+        ref PlaySession session,
+        ref Playhead playhead,
+        CommandBuffer buffer)
+    {
+        if (!session.Ending)
+        {
+            session.Ending = true;
+            session.FadeElapsed = 0f;
+            session.FadeDuration = DeathSeconds;
+            playhead.Playing = false;
+            _audio.SetVolume(0f);
+            _audio.Pause();
+            SetStatus(ref session, "DEAD", buffer);
+            return;
+        }
+
+        session.FadeElapsed += Tick.deltaTime;
+        if (session.FadeElapsed < session.FadeDuration)
+            return;
+
+        session.Finished = true;
+        SetStatus(ref session, "DEAD", buffer);
     }
 
     private static void StartPlayback(

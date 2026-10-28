@@ -66,6 +66,7 @@ public static partial class PlayfieldRenderer
         canvas.SelectShader(0);
 
         DrawBlocks(canvas, rid, entities, view);
+        DrawSpikes(canvas, rid, entities, view);
         DrawNotes(canvas, rid, entities, view, playfield, playhead, default);
         DrawNotePops(canvas, rid, entities);
         DrawMines(canvas, rid, entities, view, playhead);
@@ -94,7 +95,7 @@ public static partial class PlayfieldRenderer
         Playfield playfield,
         Rect2 field)
     {
-        const int divisions = 10;
+        const int divisions = PlayfieldGrid.Divisions;
 
         CanvasGrid.Draw(
             canvas,

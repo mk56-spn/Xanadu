@@ -119,6 +119,22 @@ public struct Mine(
 }
 
 /// <summary>
+/// A spike tile in playfield coordinates. It is permanent geometry, never
+/// timed: touching it kills the player on contact.
+/// </summary>
+public struct Spike(Vector2 position, Vector2 size) : IComponent
+{
+    /// <summary>Top-left corner, so both edges can sit on grid lines.</summary>
+    public Vector2 Position = position;
+
+    public Vector2 Size = size;
+
+    public readonly Vector2 Center => Position + Size / 2;
+
+    public readonly Rect2 Bounds => new(Position, Size);
+}
+
+/// <summary>
 /// Static level geometry in playfield coordinates. Blocks never move in play;
 /// they are there so the player collides with them.
 /// </summary>

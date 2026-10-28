@@ -422,6 +422,96 @@ public sealed class EditorNoteInputSystemTests
     }
 
     [Test]
+    public void SpikeModePaintsOneTilePerGridCell()
+    {
+        Entity editor = _store.Query<PlayfieldView>().ToEntityList()[0];
+        editor.AddComponent(new EditorPlacementModeState(EditorPlacementMode.Spikes));
+
+        _pointer.Current = new PointerInput(new Vector2(350, 640), true);
+        _root.Update(new UpdateTick(1f / 60f, 0));
+        _pointer.Current = new PointerInput(new Vector2(450, 640), true);
+        _root.Update(new UpdateTick(1f / 60f, 0));
+        _pointer.Current = new PointerInput(new Vector2(350, 740), true);
+        _root.Update(new UpdateTick(1f / 60f, 0));
+        _pointer.Current = new PointerInput(new Vector2(350, 740), false);
+        _root.Update(new UpdateTick(1f / 60f, 0));
+
+        var spikes = _store.Query<Spike>().ToEntityList();
+        Assert.That(spikes, Has.Count.EqualTo(3));
+        Assert.That(
+            spikes[0].GetComponent<Spike>().Position,
+            Is.EqualTo(new Vector2(300, 600)));
+        Assert.That(
+            spikes[0].GetComponent<Spike>().Size,
+            Is.EqualTo(new Vector2(100, 100)));
+        Assert.That(
+            spikes[1].GetComponent<Spike>().Position,
+            Is.EqualTo(new Vector2(400, 600)));
+        Assert.That(
+            spikes[2].GetComponent<Spike>().Position,
+            Is.EqualTo(new Vector2(300, 700)));
+        Assert.That(_store.Query<Note>().Count, Is.Zero);
+    }
+
+    [Test]
+    public void SpikePaintingSkipsCellThatAlreadyHasATile()
+    {
+        Entity editor = _store.Query<PlayfieldView>().ToEntityList()[0];
+        editor.AddComponent(new EditorPlacementModeState(EditorPlacementMode.Spikes));
+        _store.CreateEntity(
+            new Spike(new Vector2(400, 600), new Vector2(100, 100)));
+
+        _pointer.Current = new PointerInput(new Vector2(350, 640), true);
+        _root.Update(new UpdateTick(1f / 60f, 0));
+        _pointer.Current = new PointerInput(new Vector2(450, 640), true);
+        _root.Update(new UpdateTick(1f / 60f, 0));
+        _pointer.Current = new PointerInput(new Vector2(450, 640), false);
+        _root.Update(new UpdateTick(1f / 60f, 0));
+
+        Assert.That(_store.Query<Spike>().Count, Is.EqualTo(2));
+    }
+
+    [Test]
+    public void UndoRemovesAWholeSpikeStroke()
+    {
+        Entity editor = _store.Query<PlayfieldView>().ToEntityList()[0];
+        editor.AddComponent(new EditorPlacementModeState(EditorPlacementMode.Spikes));
+
+        _pointer.Current = new PointerInput(new Vector2(350, 640), true);
+        _root.Update(new UpdateTick(1f / 60f, 0));
+        _pointer.Current = new PointerInput(new Vector2(450, 640), true);
+        _root.Update(new UpdateTick(1f / 60f, 0));
+        _pointer.Current = new PointerInput(new Vector2(550, 640), true);
+        _root.Update(new UpdateTick(1f / 60f, 0));
+        _pointer.Current = new PointerInput(new Vector2(550, 640), false);
+        _root.Update(new UpdateTick(1f / 60f, 0));
+
+        Assert.That(_store.Query<Spike>().Count, Is.EqualTo(3));
+        Assert.That(_history.Undo(), Is.True);
+        Assert.That(_store.Query<Spike>().Count, Is.Zero);
+    }
+
+    [Test]
+    public void DraggingASpikeSnapsItToTheGrid()
+    {
+        Entity editor = _store.Query<PlayfieldView>().ToEntityList()[0];
+        Entity spike = _store.CreateEntity(
+            new Spike(new Vector2(300, 600), new Vector2(100, 100)),
+            Tags.Get<EditorItem>());
+
+        _pointer.Current = new PointerInput(new Vector2(350, 650), true);
+        _root.Update(new UpdateTick(1f / 60f, 0));
+        _pointer.Current = new PointerInput(new Vector2(490, 685), true);
+        _root.Update(new UpdateTick(1f / 60f, 0));
+        _pointer.Current = new PointerInput(new Vector2(490, 685), false);
+        _root.Update(new UpdateTick(1f / 60f, 0));
+
+        Assert.That(
+            spike.GetComponent<Spike>().Position,
+            Is.EqualTo(new Vector2(400, 600)));
+    }
+
+    [Test]
     public void SidebarClicksDoNotPlaceNotes()
     {
         Entity editor = _store.Query<PlayfieldView>().ToEntityList()[0];
