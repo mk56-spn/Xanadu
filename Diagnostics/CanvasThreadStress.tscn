@@ -1,0 +1,7 @@
+[gd_scene format=3 uid="uid://cy40ujh2ksq43"]
+
+[ext_resource type="Script" uid="uid://bvbj1j6sh66io" path="res://Diagnostics/CanvasThreadStress.cs" id="1_stress"]
+
+[node name="CanvasThreadStress" type="Node2D" unique_id=1679197440]
+script = ExtResource("1_stress")
+Workers = 12
