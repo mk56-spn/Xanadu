@@ -182,6 +182,9 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
         foreach (Entity trail in _entities.Query<HitTrail>().ToEntityList())
             trail.DeleteEntity();
 
+        foreach (Entity pop in _entities.Query<NotePop>().ToEntityList())
+            pop.DeleteEntity();
+
         foreach (Entity trail in _entities.Query<KeyPressTrail>().ToEntityList())
             trail.DeleteEntity();
     }

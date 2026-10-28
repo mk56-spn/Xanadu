@@ -76,6 +76,65 @@ public sealed class PlayNoteInputSystemTests
             Is.EqualTo(new Vector2(500, 500)));
     }
 
+    [Test]
+    public void HittingANoteLeavesAPopWhereItWas()
+    {
+        Entity playfield = CreatePlayfield(totalNotes: 1);
+        CreateNote(1_000, new Vector2(500, 500));
+        SetPlayhead(playfield, 1_000);
+        Press(KeybindAction.M);
+
+        Frame();
+
+        var pops = _store.Query<NotePop>().ToEntityList();
+        Assert.That(pops, Has.Count.EqualTo(1));
+        NotePop pop = pops[0].GetComponent<NotePop>();
+        Assert.That(pop.Position, Is.EqualTo(new Vector2(500, 500)));
+        Assert.That(pop.Radius, Is.EqualTo(PlayfieldRenderer.NoteSize / 2f));
+        Assert.That(pop.Age, Is.GreaterThanOrEqualTo(0f));
+        Assert.That(pop.Age, Is.LessThan(pop.Lifetime));
+        Assert.That(
+            pop.Color,
+            Is.EqualTo(PlayfieldRenderer.ColorFor(KeybindAction.M)));
+        Assert.That(_store.Query<Note>().Count, Is.Zero);
+    }
+
+    [Test]
+    public void AMissedNoteLeavesNoPop()
+    {
+        Entity playfield = CreatePlayfield(totalNotes: 1);
+        CreateNote(1_000, new Vector2(500, 500));
+        SetPlayhead(playfield, 1_151);
+        Press(KeybindAction.M);
+
+        Frame();
+
+        Assert.That(_store.Query<NotePop>().Count, Is.Zero);
+        Assert.That(
+            playfield.GetComponent<ScoreState>().LastJudgement,
+            Is.EqualTo(Judgement.Miss));
+    }
+
+    [Test]
+    public void ContactThatCannotBePaidForLeavesNoPop()
+    {
+        Entity playfield = CreatePlayfield(totalNotes: 1);
+        playfield.AddComponent(new ContactCounters());
+        playfield.GetComponent<ContactCounters>().Add(KeybindAction.R2, 1);
+        CreateNote(
+            1_000,
+            new Vector2(500, 500),
+            KeybindAction.R2,
+            NoteKind.Contact,
+            contactRequired: 2);
+        SetPlayhead(playfield, 1_000);
+        Press(KeybindAction.R2);
+
+        Frame();
+
+        Assert.That(_store.Query<NotePop>().Count, Is.Zero);
+    }
+
     [TestCase(KeybindAction.L1)]
     [TestCase(KeybindAction.L2)]
     [TestCase(KeybindAction.L3)]
