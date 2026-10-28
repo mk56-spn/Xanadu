@@ -330,6 +330,37 @@ public sealed class PlayNoteInputSystemTests
     }
 
     [Test]
+    public void NoteWithinReachIsHitEvenOffTheThinBox()
+    {
+        Entity playfield = CreatePlayfield(totalNotes: 1);
+        // 90 px to the right: clear of the 30 wide damage box, inside the sphere.
+        CreateNote(1_000, new Vector2(590, 500));
+        SetPlayhead(playfield, 1_000);
+        Press(KeybindAction.M);
+
+        Frame();
+
+        Assert.That(_store.Query<Note>().Count, Is.Zero);
+        Assert.That(
+            playfield.GetComponent<ScoreState>().LastJudgement,
+            Is.EqualTo(Judgement.FlawlessP));
+    }
+
+    [Test]
+    public void NoteBeyondReachIsNotHit()
+    {
+        Entity playfield = CreatePlayfield(totalNotes: 1);
+        Entity note = CreateNote(1_000, new Vector2(620, 500));
+        SetPlayhead(playfield, 1_000);
+        Press(KeybindAction.M);
+
+        Frame();
+
+        Assert.That(note.HasComponent<Note>(), Is.True);
+        Assert.That(playfield.GetComponent<ScoreState>().Score, Is.Zero);
+    }
+
+    [Test]
     public void ThirtySecondBeatHitsAllSevenNoteTypesPerfectly()
     {
         const int noteCount = 30;

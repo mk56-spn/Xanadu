@@ -8,9 +8,10 @@ using Xanadu.Systems.Input;
 namespace Xanadu.Systems.Playfields;
 
 /// <summary>
-/// F10: draws the boxes play actually collides with — the player's box and
-/// every block's box — over the playfield art, in both play and editor scenes.
-/// The art covers the playfield canvas, so the boxes get their own canvas.
+/// F10: draws what play actually collides and input-checks with — the player's
+/// box, every block's box, and the sphere notes are checked against — over the
+/// playfield art, in both play and editor scenes. The art covers the playfield
+/// canvas, so the boxes get their own canvas.
 /// </summary>
 public sealed class PlayfieldHitboxOverlaySystem : QuerySystem<PlayfieldView>
 {

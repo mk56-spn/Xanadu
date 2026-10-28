@@ -90,8 +90,8 @@ public static class PlayabilityAnalyzer
         foreach (AnalysedNote note in ordered)
         {
             Vector2 screen = ToScreen(note.Position, geometry);
-            float reachX = (geometry.PlayerSize.X + geometry.NoteSize) / 2;
-            float reachY = (geometry.PlayerSize.Y + geometry.NoteSize) / 2;
+            // Notes are checked against a sphere around the player, not its box.
+            float reach = NoteReach.OnScreen(geometry.Scale);
 
             float sideways = Math.Abs(screen.X - player.X);
             sideways = Math.Min(sideways, geometry.FieldSize.X - sideways);
@@ -104,21 +104,21 @@ public static class PlayabilityAnalyzer
                 floor,
                 player.Y + 0.5f * geometry.GravityPixelsPerSecondSquared * earliest * earliest);
 
-            if (sideways >= reachX)
+            if (sideways >= reach)
             {
                 issues.Add(new PlayabilityIssue(
                     note.TimeMs,
                     note.Position,
                     PlayabilityProblem.TooFarSideways,
-                    (sideways - reachX) / geometry.Scale));
+                    (sideways - reach) / geometry.Scale));
             }
-            else if (screen.Y + reachY <= highest)
+            else if (screen.Y + reach <= highest)
             {
                 issues.Add(new PlayabilityIssue(
                     note.TimeMs,
                     note.Position,
                     PlayabilityProblem.TooHigh,
-                    (highest - (screen.Y + reachY)) / geometry.Scale));
+                    (highest - (screen.Y + reach)) / geometry.Scale));
             }
 
             if (note.Kind != NoteKind.Movement)

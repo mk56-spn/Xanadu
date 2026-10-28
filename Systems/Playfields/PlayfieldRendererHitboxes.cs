@@ -15,13 +15,17 @@ public static partial class PlayfieldRenderer
     /// <summary>A block's box while hitboxes are shown (F10).</summary>
     public static readonly Color BlockHitboxColor = Palette.Rose;
 
+    /// <summary>The sphere notes are checked against while hitboxes are shown (F10).</summary>
+    public static readonly Color NoteReachColor = Palette.Accent;
+
     private static readonly Color HitboxFill = new(1f, 1f, 1f, 0.1f);
 
     /// <summary>
-    /// Outlines the boxes collision actually uses: the player's box, which is
-    /// already in screen pixels, and every block's box scaled by the view. The
-    /// character art is drawn over the playfield, so this needs its own canvas
-    /// above the characters to stay visible.
+    /// Outlines what collision and input actually use: the player's box, every
+    /// block's box, and the sphere notes are checked against. The box stays
+    /// what damage is measured with; notes are reach-checked against the
+    /// sphere. The character art is drawn over the playfield, so this needs its
+    /// own canvas above the characters to stay visible.
     /// </summary>
     public static void DrawHitboxes(
         IRectCanvas canvas,
@@ -49,6 +53,12 @@ public static partial class PlayfieldRenderer
             Vector2 center = entity.GetComponent<Position>().Value;
             var screen = new Rect2(center - player.Size / 2, player.Size);
             DrawHitbox(canvas, rid, screen, PlayerHitboxColor);
+            canvas.DrawCircleOutline(
+                rid,
+                center,
+                NoteReach.OnScreen(view.Scale),
+                NoteReachColor,
+                1.5f);
         }
     }
 

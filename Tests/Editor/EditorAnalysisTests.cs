@@ -44,6 +44,13 @@ public sealed class EditorAnalysisTests
     }
 
     [Test]
+    public void ANoteJustOffThePlayersThinBoxIsStillReachable()
+    {
+        // 60 px sideways: outside the box's reach, inside the note-reach sphere.
+        Assert.That(Analyze(null, Hit(1000, 560, 900)), Is.Empty);
+    }
+
+    [Test]
     public void ANoteAboveWhereGravityLetsThePlayerBeCannotBeReached()
     {
         List<PlayabilityIssue> issues = Analyze(null, Hit(1000, 500, 100));
