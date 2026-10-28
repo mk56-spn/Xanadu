@@ -29,7 +29,6 @@ public sealed class SongSelectController : ISceneController
                 _stateEntity.GetComponent<SceneState>().SelectedIndex,
                 0,
                 _catalog.Count - 1)];
-    public string Label => "SONG SELECT";
     public SceneKind BackTarget => SceneKind.Main;
 
     public bool TryForward(SceneSystem system)

@@ -1,3 +1,4 @@
+using Godot;
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using Xanadu.Levels;
@@ -67,14 +68,12 @@ public struct SongSelectState(
     List<Entity> tiles,
     List<Entity> names,
     List<Entity> songs,
-    List<Entity> artists,
-    List<Entity> details,
     Entity thumb,
     List<Entity> chips,
     Entity play,
     Entity edit,
-    string playLabel,
-    string editLabel) : IComponent
+    Entity emptyTitle,
+    Entity emptyHint) : IComponent
 {
     public int Selected = selected;
     public int Count = count;
@@ -86,14 +85,47 @@ public struct SongSelectState(
     public List<Entity> Tiles = tiles;
     public List<Entity> Names = names;
     public List<Entity> Songs = songs;
-    public List<Entity> Artists = artists;
-    public List<Entity> Details = details;
     public Entity Thumb = thumb;
     public List<Entity> Chips = chips;
     public Entity Play = play;
     public Entity Edit = edit;
-    public string PlayLabel = playLabel;
-    public string EditLabel = editLabel;
+
+    /// <summary>The icon shapes inside the play and edit buttons: the play triangle first, then the hammer's parts.</summary>
+    public List<Entity> ActionIcons = [];
+
+    /// <summary>Shown instead of the rows when there are no levels: why, and the line that opens the editor.</summary>
+    public Entity EmptyTitle = emptyTitle;
+    public Entity EmptyHint = emptyHint;
+
+    /// <summary>The info card's lines: difficulty name, genre, title and artist.</summary>
+    public Entity InfoDifficulty;
+    public Entity InfoGenre;
+    public Entity InfoTitle;
+    public Entity InfoArtist;
+
+    /// <summary>The level readout in the panel under the player banner.</summary>
+    public Entity LevelLabel;
+
+    /// <summary>The panel behind the level readout; it resizes to fit the text.</summary>
+    public Entity LevelPanel;
+
+    /// <summary>The clipped viewport the score rows scroll in.</summary>
+    public Entity ScoreViewport;
+
+    /// <summary>Holds every score row; it is as tall as the rows in use.</summary>
+    public Entity ScoreContent;
+
+    /// <summary>One black bar, accuracy text and score text per pooled row.</summary>
+    public List<Entity> ScoreBars = [];
+    public List<Entity> ScoreAccuracies = [];
+    public List<Entity> ScoreValues = [];
+
+    /// <summary>The thumb on the scores scrollbar, and the span last drawn for it.</summary>
+    public Entity ScoreThumb;
+    public Vector2 ScoreThumbSpan;
+
+    /// <summary>The level the score rows were last filled for, so a new level starts at the top.</summary>
+    public string ScoresFor = "";
 }
 
 /// <summary>A clickable level slot in the song-select grid.</summary>

@@ -39,6 +39,7 @@ public sealed class GodotRectCanvas : IRectCanvas
     private const float TextPadding = 4;
 
     private readonly GodotTextGlow _glow = new();
+    private readonly GodotShapeGlow _shapeGlow = new();
 
     public void SetVisible(Rid canvas, bool visible) =>
         RenderingServer.CanvasItemSetVisible(canvas, visible);
@@ -50,6 +51,7 @@ public sealed class GodotRectCanvas : IRectCanvas
     {
         RenderingServer.CanvasItemClear(canvas);
         _glow.Clear(canvas);
+        _shapeGlow.Clear(canvas);
         if (!_rotated.TryGetValue(canvas, out RotatedPool? pool))
             return;
 
@@ -221,7 +223,8 @@ public sealed class GodotRectCanvas : IRectCanvas
         int fontSize,
         TextAlign align,
         bool bold,
-        TextGlow glow) =>
+        TextGlow glow,
+        TextOutline? outline = null) =>
         _glow.Draw(
             canvas,
             bounds,
@@ -235,7 +238,41 @@ public sealed class GodotRectCanvas : IRectCanvas
                 _ => HorizontalAlignment.Center,
             },
             bold ? BoldFont : ThemeDB.FallbackFont,
-            glow);
+            glow,
+            outline);
+
+    public void DrawShapeGlow(
+        Rid canvas,
+        ReadOnlySpan<Vector2> points,
+        bool closed,
+        bool filled,
+        float strokeWidth,
+        ShapeGlow glow) =>
+        _shapeGlow.Draw(canvas, points, closed, filled, strokeWidth, glow);
+
+    public void DrawTextOutline(
+        Rid canvas,
+        Rect2 bounds,
+        string text,
+        Color color,
+        int fontSize,
+        TextAlign align,
+        bool bold,
+        int size) =>
+        DrawTextAligned(
+            canvas,
+            bounds,
+            text,
+            color,
+            fontSize,
+            align switch
+            {
+                TextAlign.Left => HorizontalAlignment.Left,
+                TextAlign.Right => HorizontalAlignment.Right,
+                _ => HorizontalAlignment.Center,
+            },
+            bold ? BoldFont : ThemeDB.FallbackFont,
+            size);
 
     public void DrawTextLeft(Rid canvas, Rect2 bounds, string text, Color color) =>
         DrawTextAligned(canvas, bounds, text, color, FontSize, HorizontalAlignment.Left);
@@ -250,7 +287,8 @@ public sealed class GodotRectCanvas : IRectCanvas
         Color color,
         int fontSize,
         HorizontalAlignment alignment,
-        Font? face = null)
+        Font? face = null,
+        int outlineSize = 0)
     {
         if (string.IsNullOrEmpty(text))
             return;
@@ -260,13 +298,15 @@ public sealed class GodotRectCanvas : IRectCanvas
                          (bounds.Size.Y - font.GetHeight(fontSize)) / 2 +
                          font.GetAscent(fontSize);
 
-        font.DrawString(
-            canvas,
-            new Vector2(bounds.Position.X + TextPadding, baseline),
-            text,
-            alignment,
-            Mathf.Max(0, bounds.Size.X - TextPadding * 2),
-            fontSize,
-            color);
+        var origin = new Vector2(bounds.Position.X + TextPadding, baseline);
+        float width = Mathf.Max(0, bounds.Size.X - TextPadding * 2);
+        if (outlineSize > 0)
+        {
+            font.DrawStringOutline(
+                canvas, origin, text, alignment, width, fontSize, outlineSize, color);
+            return;
+        }
+
+        font.DrawString(canvas, origin, text, alignment, width, fontSize, color);
     }
 }

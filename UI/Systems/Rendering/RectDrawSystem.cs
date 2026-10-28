@@ -30,11 +30,46 @@ public sealed class RectDrawSystem : QuerySystem<Rectangle, Drawable, VisualRid,
                 return;
 
             _canvas.Clear(visual.Value);
-            _canvas.DrawRect(visual.Value, rect.Bounds, fillColor.Value);
+            bool hasContainer = entity.TryGetComponent(out UiContainer container);
+            float skew = hasContainer ? container.Skew : 0;
+            float chamfer = entity.TryGetComponent(out UiChamfer cut) ? cut.Size : 0;
+            bool diamond = entity.HasComponent<UiDiamond>();
+            if (diamond)
+            {
+                _canvas.DrawPolygon(
+                    visual.Value,
+                    UiOutline.Diamond(rect.Bounds),
+                    fillColor.Value);
+            }
+            else if (skew != 0 || chamfer > 0)
+            {
+                _canvas.DrawPolygon(
+                    visual.Value,
+                    UiOutline.Points(rect.Bounds, skew, chamfer),
+                    fillColor.Value);
+            }
+            else
+            {
+                _canvas.DrawRect(visual.Value, rect.Bounds, fillColor.Value);
+            }
+
+            if (entity.TryGetComponent(out UiBorder border) &&
+                border.Color.A > 0 &&
+                border.Width > 0)
+            {
+                Vector2[] outline = diamond
+                    ? UiOutline.Diamond(rect.Bounds)
+                    : UiOutline.Points(rect.Bounds, skew, chamfer);
+                _canvas.DrawPolyline(
+                    visual.Value,
+                    [.. outline, outline[0]],
+                    border.Color,
+                    border.Width);
+            }
 
             // CanvasItemClear resets the clip flag, so re-apply it after every
             // clear, as Godot's Control does on each NOTIFICATION_DRAW.
-            if (entity.TryGetComponent(out UiContainer container) && container.Clip)
+            if (hasContainer && container.Clip)
             {
                 RenderingServer.CanvasItemSetCustomRect(visual.Value, true, rect.Bounds);
                 RenderingServer.CanvasItemSetClip(visual.Value, true);

@@ -15,6 +15,9 @@ public sealed class SongDocument
 
     public string Artist { get; set; } = "";
 
+    /// <summary>The song's genre, shown on song select. Empty when unknown.</summary>
+    public string Genre { get; set; } = "";
+
     /// <summary>Absolute path to the copied audio inside the song store.</summary>
     public string AudioPath { get; set; } = "";
 

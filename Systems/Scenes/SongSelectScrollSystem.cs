@@ -23,6 +23,7 @@ public sealed class SongSelectScrollSystem : QuerySystem<SongSelectState>
         {
             ref SongSelectState state = ref list.GetComponent<SongSelectState>();
             SongSelectScene.AdvanceScroll(ref state, delta);
+            SongSelectScene.RefreshScoreThumb(ref state);
         }
     }
 }

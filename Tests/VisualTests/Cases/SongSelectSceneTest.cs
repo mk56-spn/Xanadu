@@ -37,7 +37,37 @@ public sealed class SongSelectSceneTest : SceneTest
                 Context.Entities,
                 SceneUi.MenuLayer) == 0);
         AddAssert(
-            "level list has eight rows",
-            () => Context.Entities.Query<SongSelectTile>().Count == 8);
+            "level list has nine rows",
+            () => Context.Entities.Query<SongSelectTile>().Count == 9);
+        AddAssert(
+            "the empty carousel says so",
+            () => VisualAssert.HasText(Context.Entities, "NO LEVELS FOUND"));
+        AddAssert(
+            "the empty carousel offers to create a level",
+            () => VisualAssert.HasText(
+                Context.Entities,
+                "CREATE A LEVEL IN THE EDITOR"));
+        AddStep("click the create level button", ClickCreateLevel);
+        AddUntilStep(
+            "the editor opens a new level",
+            () => Context.Scenes.Current == SceneKind.Editor &&
+                  Context.Entities.Query<LevelFile>().Count == 1);
+    }
+
+    private void ClickCreateLevel()
+    {
+        foreach (Entity entity in Context.Entities.Query<Text>().ToEntityList())
+        {
+            if (entity.GetComponent<Text>().Value !=
+                "CREATE A LEVEL IN THE EDITOR")
+            {
+                continue;
+            }
+
+            Context.Pointer.Click(UiTransform.WorldPosition(
+                entity,
+                entity.GetComponent<Position>().Value));
+            return;
+        }
     }
 }

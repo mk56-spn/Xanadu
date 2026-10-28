@@ -26,7 +26,6 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
     private readonly ProfileStore _profiles;
 
     private Entity _stateEntity;
-    private Entity _labelEntity;
     private Entity _confirmationPanel;
     private Entity _pausePanel;
     private Entity _transitionPanel;

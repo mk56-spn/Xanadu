@@ -25,6 +25,17 @@ public sealed class ShapeDrawSystem : QuerySystem<Drawable, VisualRid, UiShape>
         {
             _canvas.Clear(visual.Value);
 
+            if (entity.TryGetComponent(out ShapeGlow glow))
+            {
+                _canvas.DrawShapeGlow(
+                    visual.Value,
+                    shape.Points,
+                    shape.Closed,
+                    shape.Fill.A > 0,
+                    shape.Stroke.A > 0 ? shape.StrokeWidth : 0,
+                    glow);
+            }
+
             if (shape.Fill.A > 0)
                 _canvas.DrawPolygon(visual.Value, shape.Points, shape.Fill);
 

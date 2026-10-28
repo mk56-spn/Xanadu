@@ -1,8 +1,10 @@
 using System.Collections.Generic;
+using System.Linq;
 using Friflo.Engine.ECS;
 using Godot;
 using Xanadu.Ecs;
 using Xanadu.Levels;
+using Xanadu.Strings;
 using Position = Xanadu.Ecs.Position;
 
 namespace Xanadu.Scenes;
@@ -10,32 +12,43 @@ namespace Xanadu.Scenes;
 /// <summary>The staggered level list: scrolling rows around the selected level.</summary>
 public static partial class SongSelectScene
 {
-    private const int RowCount = 8;
+    private const int RowCount = 9;
 
     /// <summary>The row holding the selected level when the list is at rest.</summary>
     private const int SelectedRow = 4;
 
-    /// <summary>The visible slot, out of six, that the selection rests in.</summary>
+    /// <summary>The visible slot, out of seven, that the selection rests in.</summary>
     private const int SelectedSlot = 3;
 
     /// <summary>Exponential catch-up rate of the scroll, per second.</summary>
     public const float ScrollRate = 16f;
-    private static readonly Vector2 RowSize = new(500, 80);
+    private static readonly Vector2 RowSize = new(500, 48);
     private static readonly Color Transparent = new(0, 0, 0, 0);
     private static readonly Color RowColor = Colors.Black;
-    private static readonly Color MapsetColor = new("#fbb03b");
 
-    // Slots -1 and 6 sit just off either end and exist only for the slide.
+    // Slots -1 and 7 sit just off either end and exist only for the slide.
     private static readonly float[] RowLeft =
-        [14.4f, 52.138f, 89.859f, 122.696f, 149.198f, 104.308f, 80.21f, 60f];
+        [47.1f, 73.877f, 100.68f, 124.695f, 152.827f, 142.029f, 115.577f, 80.889f, 50f];
+
+    // Evenly spaced now the rows are slim; slot 3, the selection, keeps its place.
+    private const float RowPitch = 60;
+    private const float SelectedTop = 500.705f;
 
     private static readonly float[] RowTop =
-        [86.9f, 189.847f, 292.799f, 395.751f, 498.044f, 601.776f, 700.601f, 803.5f];
+        [.. Enumerable.Range(0, 9).Select(i => SelectedTop + (i - 4) * RowPitch)];
 
-    private static readonly Vector2 NameOffset = TextCenter(15.24f, 40, 320, 40);
-    private static readonly Vector2 SongOffset = TextCenter(15.24f, 68, 320, 30);
-    private static readonly Vector2 ArtistOffset = TextCenter(338.74f, 36, 150, 18);
-    private static readonly Vector2 DetailOffset = TextCenter(338.74f, 60, 150, 18);
+    private const float RowChamfer = 14;
+    private const int NameSize = 26;
+    private const int SongSize = 22;
+    private const float RowGap = 10;
+    private const float RowTextHeight = 34;
+
+    private const float RowOpacity = 0.8f;
+
+    /// <summary>Where the text starts: the canvas insets it by a little more.</summary>
+    private const float RowPadding = 15.24f - TextInset;
+    private const float RowBorder = 3;
+    private static readonly Color RowBorderColor = new("#999999");
 
     private const float TrackTop = 345.748f;
     private const float TrackBottom = 738.57f;
@@ -46,64 +59,114 @@ public static partial class SongSelectScene
         List<Entity> Tiles,
         List<Entity> Names,
         List<Entity> Songs,
-        List<Entity> Artists,
-        List<Entity> Details,
-        Entity Thumb);
+        Entity Thumb,
+        Entity EmptyTitle,
+        Entity EmptyHint);
 
-    private static ListViews BuildList(UiBuilder ui)
+    private static ListViews BuildList(UiBuilder ui, bool loadAssets)
     {
+        // Each row is a chamfered container: the map's name, then the song's name
+        // in brackets, flowing left to right.
         var tiles = new List<Entity>();
+        var names = new List<Entity>();
+        var songs = new List<Entity>();
         for (int row = 0; row < RowCount; row++)
         {
-            Entity tile = ui.RectEntity(
+            ui.Container(
                 RowSize / 2,
                 RowSize,
-                RowColor,
-                "",
-                takesInput: true);
+                StackDirection.Horizontal,
+                spacing: RowGap,
+                color: RowColor,
+                takesInput: true,
+                padding: RowPadding,
+                main: StackMainAlignment.Start);
+            Entity tile = ui.Current;
             tile.AddComponent(ButtonVisual.Create(RowColor));
             tile.AddComponent(new SongSelectTile(-1));
+            tile.AddComponent(new UiChamfer(RowChamfer));
+            tile.AddComponent(new UiBorder(Fade(RowBorderColor, RowOpacity), RowBorder));
             tiles.Add(tile);
+
+            Entity name = RowText(ui, NameSize, Colors.White);
+            names.Add(name);
+
+            Entity song = RowText(ui, SongSize, Gold);
+            song.AddComponent(new TextGlow(new Color(Gold, 0.6f), radius: 8, intensity: 1.4f));
+            songs.Add(song);
+            ui.End();
         }
 
+        // The selection stays in its slot while the rows slide through it.
         float left = RowLeft[SelectedSlot + 1];
         float top = RowTop[SelectedSlot + 1];
         Entity outline = ui.ShapeEntity(
-            [
-                new(left, top), new(left + RowSize.X, top),
-                new(left + RowSize.X, top + RowSize.Y), new(left, top + RowSize.Y),
-            ],
+            UiOutline.Points(new Rect2(left, top, RowSize.X, RowSize.Y), 0, RowChamfer),
             Transparent,
-            Amber,
-            2);
+            new Color(Gold, RowOpacity),
+            RowBorder);
         outline.AddTag<UiRaised>();
-        ui.ShapeEntity(
-            [new(86.396f, 540.628f), new(132.38f, 540.628f)],
-            Transparent,
-            Amber,
-            4,
-            closed: false);
-        ui.ShapeEntity(
-            [new(132.38f, 512.012f), new(132.38f, 569.307f)],
-            Transparent,
-            Amber,
-            4,
-            closed: false);
 
-        var names = new List<Entity>();
-        var songs = new List<Entity>();
-        var artists = new List<Entity>();
-        var details = new List<Entity>();
-        for (int row = 0; row < RowCount; row++)
-        {
-            names.Add(RowText(ui, 320, 40, MapsetColor));
-            songs.Add(RowText(ui, 320, 30, Colors.White));
-            artists.Add(RowText(ui, 150, 18, Colors.White));
-            details.Add(RowText(ui, 150, 18, Colors.White));
-        }
+        // The marker beside it, centred on the slim row.
+        float middle = top + RowSize.Y / 2;
+        ui.ShapeEntity(
+            [new(86.396f, middle), new(132.38f, middle)],
+            Transparent,
+            Gold,
+            4,
+            closed: false);
+        ui.ShapeEntity(
+            [new(132.38f, middle - 20), new(132.38f, middle + 20)],
+            Transparent,
+            Gold,
+            4,
+            closed: false);
 
         BuildScrollbar(ui, out Entity thumb);
-        return new ListViews(tiles, names, songs, artists, details, thumb);
+        Entity emptyTitle = EmptyMessage(
+            ui,
+            new Vector2(399.198f, 516),
+            new Vector2(460, 32),
+            LocalizedText.Get(SongSelectStrings.NoLevels),
+            26,
+            Gold);
+        Entity emptyHint = EmptyMessage(
+            ui,
+            new Vector2(399.198f, 556),
+            EmptyHintSize,
+            LocalizedText.Get(SongSelectStrings.CreateLevel),
+            16,
+            Colors.White,
+            clickable: true);
+        emptyHint.AddComponent(new SceneCommand(SceneActionId.Edit));
+        return new ListViews(
+            tiles,
+            names,
+            songs,
+            thumb,
+            emptyTitle,
+            emptyHint);
+    }
+
+    /// <summary>The two lines the empty carousel shows in place of its rows.</summary>
+    private static Entity EmptyMessage(
+        UiBuilder ui,
+        Vector2 center,
+        Vector2 size,
+        string text,
+        int fontSize,
+        Color color,
+        bool clickable = false)
+    {
+        Entity message = ui.RectEntity(
+            center,
+            size,
+            Transparent,
+            text,
+            takesInput: clickable);
+        message.AddComponent(new TextStyle(fontSize, color));
+        message.AddTag<UiRaised>();
+        return message;
     }
 
     private static void BuildScrollbar(UiBuilder ui, out Entity thumb)
@@ -120,31 +183,34 @@ public static partial class SongSelectScene
         thumb = ui.ShapeEntity(
             [new(TrackX, TrackTop), new(TrackX, TrackBottom)],
             default,
-            MapsetColor,
+            Gold,
             24,
             closed: false);
+        thumb.AddComponent(new ShapeGlow(new Color(Gold, 0.6f), radius: 10, intensity: 1.5f));
+        thumb.AddTag<UiRaised>();
     }
 
     private static readonly Color ListBackdropTrack = new(0, 0, 0, 0.7f);
 
-    /// <summary>Centre, relative to the row's corner, of text hung from a baseline.</summary>
-    private static Vector2 TextCenter(float x, float baseline, float width, int fontSize) =>
-        new(x + width / 2, baseline - fontSize * 0.33f);
-
-    private static Entity RowText(UiBuilder ui, float width, int fontSize, Color color)
+    /// <summary>A bold left-aligned label inside a row; its width is set when the row is bound.</summary>
+    private static Entity RowText(UiBuilder ui, int fontSize, Color color)
     {
         Entity text = SceneUi.Text(
             ui,
             Vector2.Zero,
-            new Vector2(width, fontSize * 1.4f),
+            new Vector2(RowLabelWidth("", fontSize), RowTextHeight),
             "",
             fontSize,
             color,
             Transparent);
         text.AddComponent(new TextAlignment(TextAlign.Left));
-        text.AddTag<UiRaised>();
+        text.GetComponent<TextStyle>().Bold = true;
         return text;
     }
+
+    /// <summary>The width a bold label needs, with the canvas's padding either side.</summary>
+    private static float RowLabelWidth(string text, int fontSize) =>
+        UiTextMetrics.Width(text, fontSize, bold: true) + TextInset * 2;
 
     private static Vector2[] RoundedRect(
         float left,
@@ -222,20 +288,16 @@ public static partial class SongSelectScene
                 Interpolate(RowLeft, slot),
                 Interpolate(RowTop, slot));
             Place(state.Tiles[row], corner + RowSize / 2);
-            Place(state.Names[row], corner + NameOffset);
-            Place(state.Songs[row], corner + SongOffset);
-            Place(state.Artists[row], corner + ArtistOffset);
-            Place(state.Details[row], corner + DetailOffset);
 
-            SetTileColor(state.Tiles[row], Fade(RowColor, alpha));
-            SetTextColor(state.Names[row], Fade(MapsetColor, alpha));
-            SetTextColor(state.Songs[row], Fade(Colors.White, alpha));
-            SetTextColor(state.Artists[row], Fade(Colors.White, alpha));
-            SetTextColor(state.Details[row], Fade(Colors.White, alpha));
+            SetTileColor(state.Tiles[row], Fade(RowColor, alpha * RowOpacity));
+            SetBorderColor(state.Tiles[row], Fade(RowBorderColor, alpha * RowOpacity));
+            SetTextColor(state.Names[row], Fade(Colors.White, alpha));
+            SetTextColor(state.Songs[row], Fade(Gold, alpha));
+            SetGlowColor(state.Songs[row], Fade(new Color(Gold, 0.6f), alpha));
         }
 
         float length = Mathf.Clamp(
-            (TrackBottom - TrackTop) * 6 / Mathf.Max(catalog.Count, 1),
+            (TrackBottom - TrackTop) * 7 / Mathf.Max(catalog.Count, 1),
             MinThumb,
             TrackBottom - TrackTop);
         float travel = TrackBottom - TrackTop - length;
@@ -243,19 +305,59 @@ public static partial class SongSelectScene
             ? Mathf.Clamp(state.Scroll / (catalog.Count - 1), 0, 1)
             : 0;
         float start = TrackTop + travel * t;
-        ref UiShape thumb = ref state.Thumb.GetComponent<UiShape>();
-        thumb.Points = [new(TrackX, start), new(TrackX, start + length)];
-        state.Thumb.AddTag<Dirty>();
+        // An empty list has nothing to scroll, so the thumb collapses to a point.
+        Vector2[] span = catalog.Count == 0
+            ? [new(TrackX, TrackTop)]
+            : [new(TrackX, start), new(TrackX, start + length)];
+        SetPoints(state.Thumb, span);
+    }
+
+    private static void SetPoints(Entity shape, Vector2[] points)
+    {
+        shape.GetComponent<UiShape>().Points = points;
+        shape.AddTag<Dirty>();
+    }
+
+    private static void SetBorderColor(Entity entity, Color color)
+    {
+        ref UiBorder border = ref entity.GetComponent<UiBorder>();
+        if (border.Color == color)
+            return;
+
+        border.Color = color;
+        entity.AddTag<Dirty>();
+    }
+
+    private static void SetGlowColor(Entity entity, Color color)
+    {
+        ref TextGlow glow = ref entity.GetComponent<TextGlow>();
+        if (glow.Color == color)
+            return;
+
+        glow.Color = color;
+        entity.AddTag<Dirty>();
     }
 
     private static void BindRow(ref SongSelectState state, int row, LevelEntry? entry)
     {
-        SceneUi.SetText(state.Names[row], Fit(MapsetName(entry), 18));
-        SceneUi.SetText(state.Songs[row], Fit(SongTitle(entry), 20));
-        SceneUi.SetText(state.Artists[row], Fit(entry?.Song?.Artist ?? "", 16));
-        SceneUi.SetText(
-            state.Details[row],
-            entry is null ? "" : $"{entry.Document.Notes.Count} notes");
+        // The map's name, then the song's in brackets; short enough to share a row.
+        string name = Fit(MapsetName(entry), 14);
+        string song = entry is null ? "" : $"[{Fit(SongTitle(entry), 12)}]";
+        FitLabel(state.Names[row], name, NameSize);
+        FitLabel(state.Songs[row], song, SongSize);
+    }
+
+    /// <summary>Sets a label's text and gives it exactly the width it needs, so the row can flow.</summary>
+    private static void FitLabel(Entity label, string text, int fontSize)
+    {
+        SceneUi.SetText(label, text);
+        ref Rectangle rect = ref label.GetComponent<Rectangle>();
+        var size = new Vector2(RowLabelWidth(text, fontSize), rect.Bounds.Size.Y);
+        if (rect.Bounds.Size == size)
+            return;
+
+        rect.Bounds = new Rect2(-size / 2, size);
+        label.Parent.AddTag<LayoutDirty>();
     }
 
     /// <summary>Linear lookup in a table whose first entry is slot -1.</summary>
@@ -268,7 +370,7 @@ public static partial class SongSelectScene
 
     /// <summary>Rows fade in over the slot above the list and out below it.</summary>
     private static float SlotAlpha(float slot) =>
-        slot < 0 ? Mathf.Clamp(slot + 1, 0, 1) : Mathf.Clamp(6 - slot, 0, 1);
+        slot < 0 ? Mathf.Clamp(slot + 1, 0, 1) : Mathf.Clamp(7 - slot, 0, 1);
 
     private static Color Fade(Color color, float alpha) =>
         new(color, color.A * alpha);

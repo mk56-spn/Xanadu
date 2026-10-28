@@ -11,6 +11,11 @@ namespace Xanadu.Scenes;
 /// <summary>Staggered level list with preview and player card panes.</summary>
 public static partial class SongSelectScene
 {
+
+    /// <summary>Back, edit and play share the foot of the list panel.</summary>
+    private const float ActionY = 1035;
+    private static readonly Vector2 EmptyHintSize = new(360, 30);
+
     public static SongSelectState Build(
         EntityStore entities,
         Entity root,
@@ -24,39 +29,25 @@ public static partial class SongSelectScene
         bool loadAssets = visuals is GodotVisualRidFactory;
         ApplyBackgroundShader(SceneUi.Background(ui, screen), loadAssets);
 
-        BuildChrome(ui);
+        BuildChrome(ui, loadAssets);
 
         SceneUi.Button(
             ui,
-            new Vector2(100, 1045.6f),
+            new Vector2(100, ActionY),
             new Vector2(150, 44),
             LocalizedText.Get(SongSelectStrings.Back),
             SceneKind.Main,
             18,
             SceneUi.MutedButtonColor);
 
-        BuildPlayerCard(ui, profiles);
+        (Entity level, Entity levelPanel) = BuildPlayerCard(ui, profiles, loadAssets);
+        ScoreViews scores = BuildScores(ui, loadAssets);
 
-        ListViews list = BuildList(ui);
-        List<Entity> chips = BuildPreview(ui, loadAssets);
+        ListViews list = BuildList(ui, loadAssets);
+        PreviewViews preview = BuildPreview(ui, loadAssets);
 
-        float actionY = 1045.6f;
-        Entity edit = SceneUi.ButtonEntity(
-            ui,
-            new Vector2(1500, actionY),
-            new Vector2(180, 48),
-            LocalizedText.Get(SongSelectStrings.EditLevel),
-            16,
-            SceneUi.MutedButtonColor);
-        edit.AddComponent(new SceneCommand(SceneActionId.Edit));
-
-        Entity play = SceneUi.ButtonEntity(
-            ui,
-            new Vector2(1720, actionY),
-            new Vector2(180, 48),
-            LocalizedText.Get(SongSelectStrings.Play),
-            20);
-        play.AddComponent(new SceneCommand(SceneActionId.Play));
+        InfoViews info = BuildInfo(ui, loadAssets);
+        ActionViews actions = BuildActions(ui);
 
         var state = new SongSelectState(
             selected,
@@ -64,15 +55,26 @@ public static partial class SongSelectScene
             list.Tiles,
             list.Names,
             list.Songs,
-            list.Artists,
-            list.Details,
             list.Thumb,
-            chips,
-            play,
-            edit,
-            LocalizedText.Get(SongSelectStrings.Play),
-            LocalizedText.Get(SongSelectStrings.EditLevel));
+            preview.Chips,
+            preview.Art,
+            actions.Edit,
+            list.EmptyTitle,
+            list.EmptyHint);
 
+        state.InfoDifficulty = info.Difficulty;
+        state.InfoGenre = info.Genre;
+        state.InfoTitle = info.Title;
+        state.InfoArtist = info.Artist;
+        state.ActionIcons = actions.Icons;
+        state.LevelLabel = level;
+        state.LevelPanel = levelPanel;
+        state.ScoreViewport = scores.Viewport;
+        state.ScoreContent = scores.Content;
+        state.ScoreBars = scores.Bars;
+        state.ScoreAccuracies = scores.Accuracies;
+        state.ScoreValues = scores.Values;
+        state.ScoreThumb = scores.Thumb;
         state.Scroll = Mathf.Clamp(selected, 0, Mathf.Max(catalog.Count - 1, 0));
         Refresh(ref state, catalog, selected, profiles);
         return state;
@@ -92,23 +94,43 @@ public static partial class SongSelectScene
         state.Catalog = catalog;
         RefreshList(ref state);
         RefreshChips(ref state, catalog);
+        RefreshLevel(ref state);
+        RefreshInfo(ref state, catalog);
+        RefreshScores(ref state, catalog, profiles);
+        RefreshEmptyState(ref state, catalog.Count == 0);
 
         bool blocked = catalog.Count > 0 &&
             catalog[state.Selected].IsBlocked;
-        SetActionVisible(state.Play, state.PlayLabel, !blocked);
-        SetActionVisible(state.Edit, state.EditLabel, !blocked);
+        RefreshActions(ref state, !blocked);
     }
 
-    private static void SetActionVisible(
+    /// <summary>
+    /// With no levels the carousel has no rows to show, so it says why and
+    /// offers a line that starts a new level in the editor.
+    /// </summary>
+    private static void RefreshEmptyState(ref SongSelectState state, bool empty)
+    {
+        SceneUi.SetText(
+            state.EmptyTitle,
+            empty ? LocalizedText.Get(SongSelectStrings.NoLevels) : "");
+        SetVisible(
+            state.EmptyHint,
+            LocalizedText.Get(SongSelectStrings.CreateLevel),
+            empty,
+            EmptyHintSize);
+    }
+
+    private static void SetVisible(
         Entity button,
         string label,
-        bool visible)
+        bool visible,
+        Vector2 shownSize)
     {
         if (button.IsNull || !button.HasComponent<Rectangle>())
             return;
 
         ref Rectangle rect = ref button.GetComponent<Rectangle>();
-        var size = visible ? new Vector2(180, 48) : Vector2.Zero;
+        var size = visible ? shownSize : Vector2.Zero;
         if (rect.Bounds.Size == size)
             return;
 

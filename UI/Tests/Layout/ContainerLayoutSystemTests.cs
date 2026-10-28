@@ -280,6 +280,47 @@ public sealed class ContainerLayoutSystemTests : EcsSystemTest
         return container;
     }
 
+    [Test]
+    public void SkewedVerticalStackFlowsChildrenAlongTheSlantedSide()
+    {
+        float skew = Mathf.DegToRad(6);
+        Entity container = Store.CreateEntity(
+            new Rectangle(new Rect2(-100, -50, 200, 100)),
+            new UiContainer(StackDirection.Vertical, spacing: 10, skew: skew),
+            Tags.Get<LayoutDirty>());
+        Entity upper = AddChild(container, new Vector2(20, 20));
+        Entity lower = AddChild(container, new Vector2(20, 20));
+
+        Frame();
+
+        Vector2 up = upper.GetComponent<Position>().Value;
+        Vector2 down = lower.GetComponent<Position>().Value;
+        Assert.That(up.Y, Is.LessThan(down.Y));
+        Assert.That(up.X, Is.EqualTo(-Mathf.Tan(skew) * up.Y).Within(0.001f));
+        Assert.That(up.X, Is.GreaterThan(down.X));
+    }
+
+    [Test]
+    public void AutoWidthWithAnchorLeftGrowsRightwards()
+    {
+        Entity container = Store.CreateEntity(
+            new Rectangle(new Rect2(-50, -25, 100, 50)),
+            new Position(new Vector2(200, 0)),
+            new UiContainer(
+                StackDirection.Horizontal,
+                autoWidth: true,
+                anchorLeft: true),
+            Tags.Get<LayoutDirty>());
+        AddChild(container, new Vector2(300, 20));
+
+        Frame();
+
+        Rect2 bounds = container.GetComponent<Rectangle>().Bounds;
+        float left = container.GetComponent<Position>().Value.X + bounds.Position.X;
+        Assert.That(bounds.Size.X, Is.EqualTo(300));
+        Assert.That(left, Is.EqualTo(150).Within(0.001f));
+    }
+
     private Entity AddContainer(StackDirection direction, float spacing) =>
         Store.CreateEntity(
             new Rectangle(new Rect2(-100, -50, 200, 100)),

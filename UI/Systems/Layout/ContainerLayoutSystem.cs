@@ -59,17 +59,26 @@ public sealed class ContainerLayoutSystem : QuerySystem<Rectangle, UiContainer>
             return;
 
         float top = 0;
+        float left = 0;
         bool hasPosition = entity.HasComponent<Position>();
         if (hasPosition)
-            top = entity.GetComponent<Position>().Value.Y +
-                  rectangle.Bounds.Position.Y;
+        {
+            Vector2 at = entity.GetComponent<Position>().Value;
+            top = at.Y + rectangle.Bounds.Position.Y;
+            left = at.X + rectangle.Bounds.Position.X;
+        }
 
         rectangle.Bounds = new Rect2(-size / 2, size);
 
-        if (hasPosition && container.AnchorTop)
+        if (hasPosition && (container.AnchorTop || container.AnchorLeft))
         {
             ref Position position = ref entity.GetComponent<Position>();
-            position.Value.Y = top - rectangle.Bounds.Position.Y;
+            if (container.AnchorTop)
+                position.Value.Y = top - rectangle.Bounds.Position.Y;
+
+            if (container.AnchorLeft)
+                position.Value.X = left - rectangle.Bounds.Position.X;
+
             buffer.AddTag<Moved>(entity.Id);
         }
 
@@ -170,6 +179,11 @@ public sealed class ContainerLayoutSystem : QuerySystem<Rectangle, UiContainer>
                     cursor + childSize.Y / 2);
                 cursor += slotSize.Y + container.Spacing;
             }
+
+            // A skewed vertical stack flows along its slanted sides: the higher a
+            // child sits, the further right.
+            if (container.Skew != 0 && container.Direction == StackDirection.Vertical)
+                target.X -= Mathf.Tan(container.Skew) * target.Y;
 
             if (position.Value == target)
                 continue;
