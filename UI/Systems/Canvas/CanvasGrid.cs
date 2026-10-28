@@ -1,4 +1,5 @@
 using Godot;
+using Xanadu.Theme;
 
 namespace Xanadu.Systems.Canvas;
 
@@ -9,8 +10,8 @@ namespace Xanadu.Systems.Canvas;
 /// </summary>
 public static class CanvasGrid
 {
-    public static readonly Color LineColor = new("#273449");
-    public static readonly Color AxisColor = new("#64748b");
+    public static readonly Color LineColor = Palette.GridLine;
+    public static readonly Color AxisColor = Palette.BorderSubtle;
 
     /// <summary>Tolerance so lines landing exactly on the bounds edge are kept.</summary>
     private const float EdgeEpsilon = 0.01f;

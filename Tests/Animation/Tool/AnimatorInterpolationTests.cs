@@ -6,6 +6,7 @@ using Xanadu.Ecs;
 using Xanadu.Tools.Animator;
 using Xanadu.Tools.Animator.Commands;
 using Xanadu.Tools.Animator.Systems;
+using Xanadu.Theme;
 
 namespace Xanadu.Tests.Animation.Tool;
 
@@ -95,7 +96,7 @@ public sealed class AnimatorInterpolationTests : AnimatorToolTest
         Frame();
 
         Assert.That(PresetButton(XafEasePreset.EaseOut).GetComponent<ButtonVisual>().Normal,
-            Is.EqualTo(new Color("#0f766e")));
+            Is.EqualTo(Palette.Selected));
         Assert.That(PresetButton(XafEasePreset.Step).GetComponent<ButtonVisual>().Normal,
             Is.EqualTo(UiTheme.Button));
 

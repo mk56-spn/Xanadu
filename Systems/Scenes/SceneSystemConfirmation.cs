@@ -8,6 +8,7 @@ using Xanadu.Levels;
 using Xanadu.Profiles;
 using Xanadu.Scenes;
 using Xanadu.Settings;
+using Xanadu.Theme;
 using SceneState = Xanadu.Ecs.SceneState;
 using Position = Xanadu.Ecs.Position;
 
@@ -25,7 +26,7 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
             new Vector2(520, 200),
             StackDirection.Vertical,
             spacing: 12,
-            color: new Color("#2a1215"));
+            color: Palette.DangerSurface);
 
         Entity panel = builder.Current;
 
@@ -36,7 +37,7 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
             "",
             26,
             SceneUi.AccentColor,
-            new Color("#9f1d1d"));
+            Palette.DangerDark);
 
         Entity message = SceneUi.Text(
             builder,
@@ -45,7 +46,7 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
             "",
             16,
             SceneUi.TextColor,
-            new Color("#2a1215"));
+            Palette.DangerSurface);
 
         builder.Container(
             Vector2.Zero,

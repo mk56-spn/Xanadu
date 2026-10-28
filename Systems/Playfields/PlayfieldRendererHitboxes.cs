@@ -2,6 +2,7 @@ using Friflo.Engine.ECS;
 using Godot;
 using Xanadu.Ecs;
 using Xanadu.Systems.Canvas;
+using Xanadu.Theme;
 using Position = Xanadu.Ecs.Position;
 
 namespace Xanadu.Systems.Playfields;
@@ -9,10 +10,10 @@ namespace Xanadu.Systems.Playfields;
 public static partial class PlayfieldRenderer
 {
     /// <summary>The player's box while hitboxes are shown (F10).</summary>
-    public static readonly Color PlayerHitboxColor = new("#22c55e");
+    public static readonly Color PlayerHitboxColor = Palette.Success;
 
     /// <summary>A block's box while hitboxes are shown (F10).</summary>
-    public static readonly Color BlockHitboxColor = new("#fb7185");
+    public static readonly Color BlockHitboxColor = Palette.Rose;
 
     private static readonly Color HitboxFill = new(1f, 1f, 1f, 0.1f);
 

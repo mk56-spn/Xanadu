@@ -2,6 +2,7 @@ using Friflo.Engine.ECS;
 using Godot;
 using Xanadu.Animation;
 using Xanadu.Ecs;
+using Xanadu.Theme;
 using Position = Xanadu.Ecs.Position;
 
 namespace Xanadu.Tools.Animator;
@@ -115,7 +116,7 @@ public static partial class AnimatorLayout
         ui.End();
 
         refs.Ui.Status = ui.Text("", new Vector2(StatusWidth, 24), UiTheme.FontSize,
-            new Color("#a3e635"));
+            Palette.Lime);
         refs.Ui.DirtyLabel = ui.Text("", new Vector2(DirtyWidth, 24), UiTheme.SmallFontSize,
             UiTheme.Accent);
         refs.Ui.PathField = TextInput(ui, new Vector2(PathWidth, 26));
@@ -175,7 +176,7 @@ public static partial class AnimatorLayout
             StackDirection.Vertical, spacing: ModeBarGap, color: Clear);
         BuildModeBar(ui, width);
         ui.Container(Vector2.Zero, new Vector2(width, height - ModeInset),
-            StackDirection.Vertical, color: new Color("#0f172a"), takesInput: true);
+            StackDirection.Vertical, color: Palette.SurfaceDeep, takesInput: true);
         refs.Ui.Preview = ui.Current;
         ui.End();
         ui.End();
@@ -249,7 +250,7 @@ public static partial class AnimatorLayout
         Entity field = ui.RectEntity(
             Vector2.Zero,
             size,
-            new Color("#0b1220"),
+            Palette.SurfaceInset,
             "",
             takesInput: true);
         field.AddComponent(new TextField(""));

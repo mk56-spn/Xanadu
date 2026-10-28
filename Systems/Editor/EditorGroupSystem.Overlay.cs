@@ -5,13 +5,14 @@ using Friflo.Engine.ECS.Systems;
 using Godot;
 using Xanadu.Ecs;
 using Xanadu.Levels;
+using Xanadu.Theme;
 
 namespace Xanadu.Systems.Editor;
 
 /// <summary>Placing the group overlay's pieces: rows, bars and the beat ruler.</summary>
 public sealed partial class EditorGroupSystem
 {
-    private static readonly Color RowIdle = new("#16223a");
+    private static readonly Color RowIdle = Palette.SurfaceRaised;
     private static readonly Color RowSelected = new("#1d2a42");
 
     // ------------------------------------------------------------------ showing
@@ -213,7 +214,7 @@ public sealed partial class EditorGroupSystem
             bool beat = tick % Math.Max(1, playhead.SnapDivision) == 0;
             Entity line = Piece(EditorGroupPart.TickLine, slot);
             Place(line, new Rect2(0, 0, 1, EditorGroupLayout.MaxRows * EditorGroupLayout.RowHeight), new Vector2(x, timeline.Position.Y), buffer);
-            Tint(line, beat ? new Color("#475569") : new Color("#1e293b"), buffer);
+            Tint(line, beat ? Palette.BorderStrong : Palette.SurfaceAlt, buffer);
             slot++;
         }
 
@@ -273,12 +274,12 @@ public sealed partial class EditorGroupSystem
             if (effect.Muted)
                 text += "  MUTED";
             SetText(label, text, buffer);
-            SetTextColor(label, new Color("#facc15"), buffer);
+            SetTextColor(label, Palette.Accent, buffer);
         }
         else
         {
             SetText(label, "NO EFFECT SELECTED", buffer);
-            SetTextColor(label, new Color("#94a3b8"), buffer);
+            SetTextColor(label, Palette.TextDim, buffer);
         }
 
         SetText(Piece(EditorGroupPart.SelectionTarget), "TARGET", buffer);
@@ -291,7 +292,7 @@ public sealed partial class EditorGroupSystem
         SetText(Piece(EditorGroupPart.SelectionMute), effect.Muted ? "UNMUTE" : "MUTE", buffer);
         Tint(
             Piece(EditorGroupPart.SelectionMute),
-            selected ? (effect.Muted ? new Color("#b91c1c") : CellUsed) : SceneColors.Muted,
+            selected ? (effect.Muted ? Palette.DangerDeep : CellUsed) : SceneColors.Muted,
             buffer);
         Tint(Piece(EditorGroupPart.SelectionNudgeLeft), selected ? CellUsed : SceneColors.Muted, buffer);
         Tint(Piece(EditorGroupPart.SelectionNudgeRight), selected ? CellUsed : SceneColors.Muted, buffer);

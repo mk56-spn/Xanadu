@@ -5,6 +5,7 @@ using NUnit.Framework;
 using Xanadu.Ecs;
 using Xanadu.Tests.Support;
 using Xanadu.Systems.Input;
+using Xanadu.Theme;
 
 namespace Xanadu.Tests.UI.Input;
 
@@ -20,7 +21,7 @@ public sealed class ButtonVisualSystemTests : EcsSystemTest
     [Test]
     public void HoverFadesToHoverColorAndBack()
     {
-        Color normal = new("#334155");
+        Color normal = Palette.Muted;
         Entity button = AddButton(normal);
         Color hover = button.GetComponent<ButtonVisual>().Hover;
 
@@ -36,7 +37,7 @@ public sealed class ButtonVisualSystemTests : EcsSystemTest
     [Test]
     public void PressFlashesAndThenFadesBack()
     {
-        Color normal = new("#334155");
+        Color normal = Palette.Muted;
         Entity button = AddButton(normal);
 
         button.AddTag<Pressed>();

@@ -6,6 +6,7 @@ using Xanadu.Ecs;
 using Xanadu.Settings;
 using Xanadu.Systems.Input;
 using Xanadu.Systems.Ui;
+using Xanadu.Theme;
 
 namespace Xanadu.Tests.UI;
 
@@ -21,10 +22,10 @@ public sealed class ToggleSystemTests
             new Toggle("V-SYNC: ON", "V-SYNC: OFF", false),
             new Text("V-SYNC: OFF"),
             new ButtonVisual(
-                new Color("#334155"),
-                new Color("#334155"),
+                Palette.Muted,
+                Palette.Muted,
                 Colors.White),
-            new FillColor(new Color("#334155")),
+            new FillColor(Palette.Muted),
             new VSyncToggle(),
             Tags.Get<Pressed>());
 
@@ -41,7 +42,7 @@ public sealed class ToggleSystemTests
         Assert.That(display.VSyncEnabled, Is.True);
         Assert.That(
             toggle.GetComponent<ButtonVisual>().Normal,
-            Is.EqualTo(new Color("#2563eb")));
+            Is.EqualTo(Palette.Primary));
     }
 
     [Test]

@@ -1,6 +1,7 @@
 using Friflo.Engine.ECS;
 using Godot;
 using Xanadu.Ecs;
+using Xanadu.Theme;
 
 namespace Xanadu.Scenes;
 
@@ -12,13 +13,13 @@ public static class SceneUi
     public const int ConfirmationLayer = 970;
     public const int PauseLayer = 980;
 
-    public static readonly Color BackgroundColor = new("#0b1020");
-    public static readonly Color PanelColor = new("#111827");
-    public static readonly Color ButtonColor = new("#2563eb");
-    public static readonly Color MutedButtonColor = new("#334155");
-    public static readonly Color AccentColor = new("#facc15");
-    public static readonly Color TextColor = new("#e2e8f0");
-    public static readonly Color DimTextColor = new("#94a3b8");
+    public static readonly Color BackgroundColor = Palette.Background;
+    public static readonly Color PanelColor = Palette.Surface;
+    public static readonly Color ButtonColor = Palette.Primary;
+    public static readonly Color MutedButtonColor = Palette.Muted;
+    public static readonly Color AccentColor = Palette.Accent;
+    public static readonly Color TextColor = Palette.Text;
+    public static readonly Color DimTextColor = Palette.TextDim;
 
     public static UiBuilder Layer(
         EntityStore entities,

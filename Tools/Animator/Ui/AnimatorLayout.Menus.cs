@@ -2,6 +2,7 @@ using System;
 using Friflo.Engine.ECS;
 using Godot;
 using Xanadu.Ecs;
+using Xanadu.Theme;
 using Position = Xanadu.Ecs.Position;
 
 namespace Xanadu.Tools.Animator;
@@ -135,7 +136,7 @@ public static partial class AnimatorLayout
         Entity tooltip = tip.RectEntity(
             UiLayout.Hidden,
             new Vector2(200, 24),
-            new Color("#1e293b"),
+            Palette.SurfaceAlt,
             "",
             takesInput: false);
         tooltip.AddComponent(new TextStyle(11, UiTheme.Text));

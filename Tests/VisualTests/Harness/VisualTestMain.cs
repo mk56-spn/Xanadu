@@ -8,6 +8,7 @@ using Xanadu.Levels;
 using Xanadu.Editor;
 using Xanadu.Settings;
 using Xanadu.Systems.Input;
+using Xanadu.Theme;
 
 namespace Xanadu.Tests.VisualTests;
 
@@ -202,7 +203,7 @@ public partial class VisualTestMain : Control
         {
             Position = Vector2.Zero,
             Size = new Vector2(SidebarWidth, window.Y),
-            Color = new Color("#0b111b"),
+            Color = Palette.Background,
             MouseFilter = MouseFilterEnum.Stop,
         };
         AddChild(sidebar);
@@ -272,8 +273,8 @@ public partial class VisualTestMain : Control
                 FocusMode = FocusModeEnum.None,
                 MouseDefaultCursorShape = CursorShape.PointingHand,
             };
-            run.AddThemeColorOverride("font_color", new Color("#4ade80"));
-            run.AddThemeColorOverride("font_hover_color", new Color("#86efac"));
+            run.AddThemeColorOverride("font_color", Palette.SuccessBright);
+            run.AddThemeColorOverride("font_hover_color", Palette.SuccessLight);
             run.AddThemeFontSizeOverride("font_size", 18);
             run.Pressed += () => OnRunPressed(index);
             _runButtons.Add(run);
@@ -564,10 +565,10 @@ public partial class VisualTestMain : Control
                 "font_color",
                 _statuses[i] switch
                 {
-                    TestStatus.Running => new Color("#facc15"),
-                    TestStatus.Passed => new Color("#4ade80"),
+                    TestStatus.Running => Palette.Accent,
+                    TestStatus.Passed => Palette.SuccessBright,
                     TestStatus.Failed => new Color("#f87171"),
-                    _ => new Color("#cbd5e1"),
+                    _ => Palette.TextMuted,
                 });
         }
     }

@@ -3,13 +3,14 @@ using Friflo.Engine.ECS.Systems;
 using Godot;
 using Xanadu.Animation;
 using Xanadu.Ecs;
+using Xanadu.Theme;
 
 namespace Xanadu.Tools.Animator.Systems;
 
 /// <summary>Highlights the interpolation preset buttons that match the selected key set.</summary>
 public sealed class AnimatorInterpolationSystem : QuerySystem<ToolAction, ButtonVisual>
 {
-    private static readonly Color Active = new("#0f766e");
+    private static readonly Color Active = Palette.Selected;
 
     protected override void OnUpdate()
     {

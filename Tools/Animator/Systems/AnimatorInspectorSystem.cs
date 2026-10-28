@@ -6,6 +6,7 @@ using Godot;
 using Xanadu.Animation;
 using Xanadu.Ecs;
 using Xanadu.Tools.Animator.Commands;
+using Xanadu.Theme;
 
 namespace Xanadu.Tools.Animator.Systems;
 
@@ -27,8 +28,8 @@ public sealed class AnimatorInspectorSystem : QuerySystem<AnimatorDocument, Anim
         Layer,
     }
 
-    private static readonly Color NormalTitle = new("#facc15");
-    private static readonly Color UnkeyedTitle = new("#fb923c");
+    private static readonly Color NormalTitle = Palette.Accent;
+    private static readonly Color UnkeyedTitle = Palette.Warning;
 
     private readonly bool[] _wasFocused = new bool[6];
     private int _editBone = -1;

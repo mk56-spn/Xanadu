@@ -11,6 +11,7 @@ using Xanadu.Replays;
 using Xanadu.Settings;
 using Xanadu.Scoring;
 using Xanadu.Systems.Playfields;
+using Xanadu.Theme;
 
 namespace Xanadu.Scenes;
 
@@ -375,7 +376,7 @@ public static class PlayScene
         members.Add(ui.RectEntity(
             new Vector2(centerX, y),
             new Vector2(fullWidth + 24, 38),
-            new Color("#0b111b")));
+            Palette.Background));
 
         (Judgement Judgement, double Inner, double Outer)[] bands =
         {

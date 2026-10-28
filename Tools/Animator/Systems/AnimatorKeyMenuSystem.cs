@@ -5,6 +5,7 @@ using Xanadu.Animation;
 using Xanadu.Ecs;
 using Xanadu.Systems.Input;
 using Xanadu.Tools.Animator.Commands;
+using Xanadu.Theme;
 using Position = Xanadu.Ecs.Position;
 
 namespace Xanadu.Tools.Animator.Systems;
@@ -19,7 +20,7 @@ namespace Xanadu.Tools.Animator.Systems;
 public sealed class AnimatorKeyMenuSystem(IPointerInputSource pointer)
     : QuerySystem<AnimatorDocument, AnimatorUi>
 {
-    private static readonly Color Dimmed = new("#334155");
+    private static readonly Color Dimmed = Palette.Muted;
 
     private bool _primaryHeld;
     private bool _secondaryHeld;

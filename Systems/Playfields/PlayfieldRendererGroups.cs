@@ -2,13 +2,14 @@ using Friflo.Engine.ECS;
 using Godot;
 using Xanadu.Ecs;
 using Xanadu.Systems.Canvas;
+using Xanadu.Theme;
 
 namespace Xanadu.Systems.Playfields;
 
 /// <summary>The small group badge drawn on an item that belongs to at least one group.</summary>
 public static partial class PlayfieldRenderer
 {
-    public static readonly Color GroupBadgeColor = new("#38bdf8");
+    public static readonly Color GroupBadgeColor = Palette.Info;
     private static readonly Color GroupBadgeInk = new("#04101f");
 
     /// <summary>

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using Godot;
 using Xanadu.Ecs;
+using Xanadu.Theme;
 using LayerComponent = Xanadu.Ecs.Layer;
 using Position = Xanadu.Ecs.Position;
 
@@ -11,7 +12,7 @@ namespace Xanadu.Ecs;
 /// <summary>Chainable builder for layers, containers, and rectangles.</summary>
 public sealed partial class UiBuilder
 {
-    private static readonly Color DefaultContainerColor = new("#1e293b");
+    private static readonly Color DefaultContainerColor = Palette.SurfaceAlt;
 
     private readonly EntityStore _entities;
     private readonly IVisualRidFactory _visuals;
