@@ -47,6 +47,8 @@ public static class AnimatorBindings
         new(new ToolAction(ToolActionKind.AddBone), Key.B),
         new(new ToolAction(ToolActionKind.DeleteBone), Key.Delete, Shift: true),
         new(new ToolAction(ToolActionKind.RenameBone), Key.F2),
+        new(new ToolAction(ToolActionKind.AddChain), Key.V),
+        new(new ToolAction(ToolActionKind.DeleteChain), Key.Delete, Ctrl: true),
 
         // Preview framing.
         new(new ToolAction(ToolActionKind.FitPreview), Key.F),
@@ -59,6 +61,8 @@ public static class AnimatorBindings
         new(new ToolAction(ToolActionKind.ToggleMode, nameof(AnimatorMode.Svg)), Key.G),
         new(new ToolAction(ToolActionKind.ToggleMode, nameof(AnimatorMode.Ik)), Key.I),
         new(new ToolAction(ToolActionKind.ToggleMode, nameof(AnimatorMode.Pin)), Key.H),
+        new(new ToolAction(ToolActionKind.ToggleMode, nameof(AnimatorMode.Kites)), Key.X),
+        new(new ToolAction(ToolActionKind.ToggleMode, nameof(AnimatorMode.Handles)), Key.J),
 
         // Timeline keys.
         new(new ToolAction(ToolActionKind.DeleteKey), Key.Delete),

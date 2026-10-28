@@ -13,7 +13,7 @@ public static class XafAssetPaths
     private const string ResPrefix = "res://";
 
     /// <summary>
-    /// Rewrites every <c>res://</c> attachment path to an absolute path under the
+    /// Rewrites every <c>res://</c> attachment and chain art path to an absolute path under the
     /// project root that contains <paramref name="xafFullPath"/>. Paths are left
     /// unchanged when no enclosing <c>project.godot</c> is found.
     /// </summary>
@@ -29,6 +29,12 @@ public static class XafAssetPaths
                 continue;
 
             attachment.SvgPath = Path.Combine(root, attachment.SvgPath[ResPrefix.Length..]);
+        }
+
+        foreach (XafChain chain in package.Chains)
+        {
+            if (chain.SvgPath.StartsWith(ResPrefix, StringComparison.Ordinal))
+                chain.SvgPath = Path.Combine(root, chain.SvgPath[ResPrefix.Length..]);
         }
     }
 

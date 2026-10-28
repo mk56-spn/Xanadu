@@ -34,6 +34,9 @@ public struct AnimatorSvgMenu : IComponent
     /// <summary>The bone the chosen attachment is added to.</summary>
     public int Bone;
 
+    /// <summary>The choice is the art of the selected chain, not a new attachment, and closes the picker.</summary>
+    public bool ForChain;
+
     /// <summary>Every addable group, refreshed each time the picker opens.</summary>
     public List<AnimatorSvgChoice>? Choices;
 }

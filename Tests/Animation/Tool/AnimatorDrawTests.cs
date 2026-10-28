@@ -22,6 +22,7 @@ public sealed class AnimatorDrawTests : AnimatorToolTest
     {
         _canvas = new RecordingCanvas();
         _visuals = new RecordingVisuals();
+        Root.Add(new AnimatorChainSimulationSystem());
         Root.Add(new AnimatorPreviewDrawSystem(_canvas, default, _visuals));
         Root.Add(new AnimatorTimelineDrawSystem(_canvas, default));
     }
@@ -48,6 +49,160 @@ public sealed class AnimatorDrawTests : AnimatorToolTest
 
         Assert.That(Circles(5), Is.EqualTo(2));
         Assert.That(Circles(8), Is.EqualTo(1));
+    }
+
+    private void AddChain(string art)
+    {
+        Package.Chains.Add(new XafChain
+        {
+            Id = "hair", BoneId = "head", Segments = 6, SvgPath = art, Group = art.Length > 0 ? "hair_segment" : "",
+        });
+        Frame(2);
+    }
+
+    [Test]
+    public void ChainArtIsHandedTheSimulatedPointsEveryFrame()
+    {
+        AddChain(XafChain.DefaultSvgPath);
+        int before = _visuals.ChainFrames;
+
+        Frame(3);
+
+        Assert.That(_visuals.ChainFrames, Is.EqualTo(before + 3));
+        Assert.That(_visuals.ChainPoints, Is.EqualTo(7));
+    }
+
+    [Test]
+    public void AChainWithArtDrawsNoLineUntilItIsSelectedWhileOneWithoutDoes()
+    {
+        AddChain(XafChain.DefaultSvgPath);
+        Assert.That(Circles(3), Is.EqualTo(0));
+        Assert.That(Circles(4), Is.EqualTo(0));
+
+        Session.GetComponent<AnimatorSelection>().SelectOnlyChain(0);
+        Frame();
+        Assert.That(Circles(4), Is.EqualTo(6));
+
+        Package.Chains[0].SvgPath = "";
+        Package.Chains[0].Group = "";
+        Session.GetComponent<AnimatorSelection>().SelectOnlyBone(1);
+        Frame();
+        Assert.That(Circles(3), Is.EqualTo(6));
+    }
+
+    private int AttachmentSquares() =>
+        _canvas.RectSizes.FindAll(size => size == new Vector2(10, 10)).Count;
+
+    [Test]
+    public void AttachmentSquaresOnlyShowInSvgMode()
+    {
+        // The timeline draws squares of its own into the same recorder, so compare against it.
+        Frame();
+        Assert.That(Package.Attachments, Has.Count.EqualTo(1));
+        int without = AttachmentSquares();
+
+        Session.GetComponent<AnimatorModes>().Svg = true;
+        Frame();
+        Assert.That(AttachmentSquares(), Is.EqualTo(without + 1));
+
+        Session.GetComponent<AnimatorModes>().Svg = false;
+        Frame();
+        Assert.That(AttachmentSquares(), Is.EqualTo(without));
+    }
+
+    [Test]
+    public void HandlesAreJointDotsAndLabelsAndCanBeTurnedOff()
+    {
+        // A selected bone also gets a timeline row labelled with its name, so the
+        // preview's label is counted by what disappears.
+        Session.GetComponent<AnimatorSelection>().Bone = 1;
+        Frame();
+        Assert.That(Session.GetComponent<AnimatorModes>().Handles, Is.True);
+        Assert.That(Circles(5), Is.EqualTo(2));
+        Assert.That(Circles(8), Is.EqualTo(1));
+        int labels = _canvas.Texts.FindAll(text => text == "torso").Count;
+
+        Session.GetComponent<AnimatorModes>().Handles = false;
+        Frame();
+
+        Assert.That(Circles(5) + Circles(7) + Circles(8), Is.EqualTo(0));
+        Assert.That(_canvas.Texts.FindAll(text => text == "torso"), Has.Count.EqualTo(labels - 1));
+        // The bone shapes are their own toggle.
+        Assert.That(_canvas.PolygonColors, Has.Count.EqualTo(Package.Skeleton.Bones.Count - 1));
+    }
+
+    [Test]
+    public void EachBoneLabelHasAPlateBehindItThatHidesWithTheHandles()
+    {
+        // Plates are sized by name length: "torso" has its own size, "root" and "head" share one.
+        int Plates(string name) => _canvas.RectSizes.FindAll(size =>
+            size == AnimatorGeometry.BoneLabelBackdrop(
+                AnimatorGeometry.BoneLabel(Vector2.Zero), name).Size).Count;
+
+        Frame();
+        Assert.That(Plates("torso"), Is.EqualTo(1));
+        Assert.That(Plates("head"), Is.EqualTo(2));
+
+        Session.GetComponent<AnimatorModes>().Handles = false;
+        Frame();
+        Assert.That(Plates("torso"), Is.EqualTo(0));
+        Assert.That(Plates("head"), Is.EqualTo(0));
+    }
+
+    [Test]
+    public void ALabelPlateStartsAtTheTextAndNeverOutgrowsTheLabelBox()
+    {
+        Rect2 label = AnimatorGeometry.BoneLabel(new Vector2(200, 100));
+
+        Rect2 plate = AnimatorGeometry.BoneLabelBackdrop(label, "torso");
+        Assert.That(plate.Size, Is.EqualTo(new Vector2(45, 18)));
+        Assert.That(plate.Position, Is.EqualTo(label.Position + new Vector2(1, 1)));
+
+        Rect2 longPlate = AnimatorGeometry.BoneLabelBackdrop(label, "upper_arm_with_a_very_longPlatename");
+        Assert.That(label.Encloses(longPlate), Is.True);
+    }
+
+    [Test]
+    public void HandlesOffAlsoHidesTheOnionGhostJoints()
+    {
+        Session.GetComponent<AnimatorModes>().Onion = true;
+        Session.GetComponent<AnimatorModes>().Handles = false;
+        Frame();
+
+        Assert.That(Circles(3), Is.EqualTo(0));
+        Assert.That(_canvas.PolygonColors, Has.Count.EqualTo(3 * (Package.Skeleton.Bones.Count - 1)));
+    }
+
+    [Test]
+    public void BonesAreDrawnAsKitesUnlessTheModeIsOff()
+    {
+        Frame();
+        Assert.That(Session.GetComponent<AnimatorModes>().Kites, Is.True);
+        Assert.That(_canvas.PolygonColors, Has.Count.EqualTo(Package.Skeleton.Bones.Count - 1));
+
+        Session.GetComponent<AnimatorModes>().Kites = false;
+        Session.GetComponent<AnimatorSelection>().Bone = 1;
+        Frame();
+
+        Assert.That(_canvas.PolygonColors, Is.Empty);
+        // Joints stay, so bones can still be seen, picked and selected.
+        Assert.That(Circles(5), Is.EqualTo(2));
+        Assert.That(Circles(8), Is.EqualTo(1));
+    }
+
+    [Test]
+    public void TurningKitesOffAlsoClearsTheOnionGhostKites()
+    {
+        Session.GetComponent<AnimatorModes>().Onion = true;
+        Frame();
+        int withKites = _canvas.PolygonColors.Count;
+        Assert.That(withKites, Is.EqualTo(3 * (Package.Skeleton.Bones.Count - 1)));
+
+        Session.GetComponent<AnimatorModes>().Kites = false;
+        Frame();
+
+        Assert.That(_canvas.PolygonColors, Is.Empty);
+        Assert.That(Circles(3), Is.EqualTo(2 * Package.Skeleton.Bones.Count));
     }
 
     [Test]
@@ -206,10 +361,18 @@ public sealed class AnimatorDrawTests : AnimatorToolTest
     private sealed class RecordingVisuals : IAttachmentVisuals
     {
         public int Reloads;
+        public int ChainFrames;
+        public int ChainPoints;
 
         public void Reload(XafPackage package) => Reloads++;
 
         public void Apply(Transform2D[] attachments, Transform2D placement) { }
+
+        public void ApplyChains(XafPackage package, XafChainSimulation simulation, Transform2D placement)
+        {
+            ChainFrames++;
+            ChainPoints = simulation.Points(0).Count;
+        }
     }
 
     private sealed class RecordingCanvas : IRectCanvas
@@ -222,6 +385,9 @@ public sealed class AnimatorDrawTests : AnimatorToolTest
         /// <summary>One-pixel-high rects drawn this frame: the strips of key diamonds.</summary>
         public int StripCount { get; private set; }
 
+        /// <summary>Sizes of every rect drawn this frame, which tells the attachment squares apart.</summary>
+        public List<Vector2> RectSizes { get; } = new();
+
         /// <summary>Fill colours of the filled polygons (bone shapes) drawn this frame.</summary>
         public List<Color> PolygonColors { get; } = new();
 
@@ -233,6 +399,7 @@ public sealed class AnimatorDrawTests : AnimatorToolTest
                 LastFrameCircles = new List<float>();
                 Texts.Clear();
                 StripCount = 0;
+                RectSizes.Clear();
                 PolygonColors.Clear();
             }
         }
@@ -253,6 +420,7 @@ public sealed class AnimatorDrawTests : AnimatorToolTest
         public void SetTransform(Rid canvas, Transform2D transform) { }
         public void DrawRect(Rid canvas, Rect2 bounds, Color color)
         {
+            RectSizes.Add(bounds.Size);
             if (bounds.Size.Y == 1f)
                 StripCount++;
         }

@@ -12,7 +12,9 @@ namespace Xanadu.Systems.Characters;
 /// <summary>
 /// Draws each player's character rig in place of the plain player box. The
 /// art is scaled to the player's height and stands on the box's bottom edge;
-/// visuals of players that are gone or lost their rig are released.
+/// visuals of players that are gone or lost their rig are released. The rig's
+/// Verlet chains, such as hair, are simulated in rig space from its animated
+/// bones, so they swing with the animation.
 /// </summary>
 public sealed class CharacterRigDrawSystem(Func<IAttachmentVisuals> createVisuals)
     : QuerySystem<CharacterRig, Player, Position>
@@ -37,7 +39,7 @@ public sealed class CharacterRigDrawSystem(Func<IAttachmentVisuals> createVisual
                 instance?.Visuals.Release();
                 IAttachmentVisuals visuals = createVisuals();
                 visuals.Reload(package);
-                instance = new Instance(runtime, visuals, visuals.Bounds(attachments));
+                instance = new Instance(runtime, visuals, visuals.Bounds(attachments), new XafChainSimulation());
                 _instances[entity.Id] = instance;
             }
 
@@ -49,9 +51,10 @@ public sealed class CharacterRigDrawSystem(Func<IAttachmentVisuals> createVisual
 
             Vector2 size = entity.GetComponent<Player>().Size;
             Vector2 center = entity.GetComponent<Position>().Value;
-            instance.Visuals.Apply(
-                attachments,
-                Placement(instance.RigBounds, center + new Vector2(0, size.Y / 2), size.Y));
+            Transform2D placement = Placement(instance.RigBounds, center + new Vector2(0, size.Y / 2), size.Y);
+            instance.Visuals.Apply(attachments, placement);
+            instance.Chains.Update(package, bones, Tick.deltaTime);
+            instance.Visuals.ApplyChains(package, instance.Chains, placement);
             if (!entity.Tags.Has<CharacterRigVisible>())
                 entity.AddTag<CharacterRigVisible>();
         }
@@ -89,5 +92,9 @@ public sealed class CharacterRigDrawSystem(Func<IAttachmentVisuals> createVisual
         }
     }
 
-    private sealed record Instance(AnimatorRuntime Runtime, IAttachmentVisuals Visuals, Rect2 RigBounds);
+    private sealed record Instance(
+        AnimatorRuntime Runtime,
+        IAttachmentVisuals Visuals,
+        Rect2 RigBounds,
+        XafChainSimulation Chains);
 }

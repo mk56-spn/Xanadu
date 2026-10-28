@@ -12,7 +12,7 @@ using Xanadu.Theme;
 namespace Xanadu.Tools.Animator.Systems;
 
 /// <summary>
-/// Rebuilds the bone, attachment and clip lists when the package changes and
+/// Rebuilds the bone, attachment, chain and clip lists when the package changes and
 /// highlights the selected entries.
 /// </summary>
 public sealed class AnimatorHierarchySystem(
@@ -46,12 +46,16 @@ public sealed class AnimatorHierarchySystem(
             Highlight(ui.AttachmentList, entry =>
                 entry.Kind == ToolActionKind.SelectAttachment &&
                 entry.Argument == selection.Attachment.ToString());
+            Highlight(ui.ChainList, entry =>
+                entry.Kind == ToolActionKind.SelectChain &&
+                entry.Argument == selection.Chain.ToString());
         }
     }
 
     private void Rebuild(Entity session, AnimatorUi ui, XafPackage package)
     {
         Clear(ui.AttachmentList);
+        Clear(ui.ChainList);
 
         // The old dropdown's list and options float on the menu layer, outside
         // the header slot, so they have to be removed along with its button.
@@ -74,6 +78,12 @@ public sealed class AnimatorHierarchySystem(
         {
             AddEntry(ui.AttachmentList, package.Attachments[i].Group,
                 ToolActionKind.SelectAttachment, ItemSize, i.ToString());
+        }
+
+        for (int i = 0; i < package.Chains.Count; i++)
+        {
+            AddEntry(ui.ChainList, package.Chains[i].Id,
+                ToolActionKind.SelectChain, ItemSize, i.ToString());
         }
 
         session.GetComponent<AnimatorUi>().ClipDropdown = AddClipDropdown(ui, package);
@@ -174,7 +184,12 @@ public sealed class AnimatorHierarchySystem(
         {
             tree.RemoveComponent<UiTreeChanged>();
             ref AnimatorBoneMenu menu = ref session.GetComponent<AnimatorBoneMenu>();
-            if (menu.Reparenting >= 0)
+            if (session.GetComponent<AnimatorChains>().Picking != AnimatorChainPick.None)
+            {
+                // A chain inspector button is waiting for a bone, and the tree is a way to give one.
+                AnimatorChainPlacementCommands.PickBone(session, XafRig.FindBone(package, changed.Id));
+            }
+            else if (menu.Reparenting >= 0)
             {
                 int child = menu.Reparenting;
                 menu.Reparenting = -1;

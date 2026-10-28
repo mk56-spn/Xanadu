@@ -14,6 +14,10 @@ public static class AnimatorCommands
         if (action.Kind is not (ToolActionKind.Load or ToolActionKind.NewSkeleton))
             session.GetComponent<AnimatorFile>().DiscardArmed = false;
 
+        // And a chain button waiting for a bone click: pressing anything else drops it.
+        if (action.Kind is not (ToolActionKind.PickChainBone or ToolActionKind.PickColliderBone))
+            session.GetComponent<AnimatorChains>().Picking = AnimatorChainPick.None;
+
         switch (action.Kind)
         {
             case ToolActionKind.Play:
@@ -109,6 +113,25 @@ public static class AnimatorCommands
                 break;
             case ToolActionKind.AttachSvg:
                 AttachSvgFromMenu(session, action.Argument);
+                break;
+            case ToolActionKind.AddChain:
+                AnimatorChainCommands.Add(session);
+                break;
+            case ToolActionKind.SelectChain:
+                if (int.TryParse(action.Argument, out int chain))
+                    AnimatorChainCommands.Select(session, chain);
+                break;
+            case ToolActionKind.DeleteChain:
+                AnimatorChainCommands.Delete(session);
+                break;
+            case ToolActionKind.PickChainArt:
+                AnimatorChainPlacementCommands.OpenArtPicker(session);
+                break;
+            case ToolActionKind.PickChainBone:
+                AnimatorChainPlacementCommands.BeginPick(session, AnimatorChainPick.Anchor);
+                break;
+            case ToolActionKind.PickColliderBone:
+                AnimatorChainPlacementCommands.BeginPick(session, AnimatorChainPick.Collider);
                 break;
             case ToolActionKind.TogglePlay:
                 TogglePlay(session);
@@ -210,6 +233,7 @@ public static class AnimatorCommands
 
         ref AnimatorSvgMenu menu = ref session.GetComponent<AnimatorSvgMenu>();
         menu.Open = true;
+        menu.ForChain = false;
         menu.Bone = bone;
         menu.Anchor = OpenAnchor(session);
     }
@@ -235,7 +259,10 @@ public static class AnimatorCommands
         }
 
         AnimatorSvgChoice choice = menu.Choices[index];
-        AnimatorAttachmentCommands.Add(session, choice.Path, choice.Group, menu.Bone);
+        if (menu.ForChain)
+            AnimatorChainPlacementCommands.SetArt(session, choice);
+        else
+            AnimatorAttachmentCommands.Add(session, choice.Path, choice.Group, menu.Bone);
     }
 
     /// <summary>Plays if stopped and stops if playing, the one action behind Space.</summary>

@@ -8,12 +8,13 @@ namespace Xanadu.Animation;
 public sealed class XafPackage
 {
     public const ushort MajorVersion = 1;
-    public const ushort MinorVersion = 1;
+    public const ushort MinorVersion = 3;
 
     public ushort Major = MajorVersion;
     public ushort Minor = MinorVersion;
     public XafSkeleton Skeleton = new();
     public List<XafAttachment> Attachments = new();
+    public List<XafChain> Chains = new();
     public List<XafClip> Clips = new();
 }
 
@@ -51,6 +52,67 @@ public sealed class XafAttachment
     public string BoneId = "";
     public Transform2D Transform = Transform2D.Identity;
     public int ZOrder;
+}
+
+/// <summary>
+/// A Verlet chain hanging off a bone, for hair, tails and cloth edges. The file
+/// holds only the settings; the points are simulated where the rig is shown.
+/// </summary>
+public sealed class XafChain
+{
+    public const int MinSegments = 1;
+    public const int MaxSegments = 64;
+    public const float MinSegmentLength = 1f;
+    public const float MaxSegmentLength = 500f;
+
+    /// <summary>The golden rhombus a new chain is built from, one per segment.</summary>
+    public const string DefaultSvgPath = "res://Assets/SVG/Char/hair_segment.svg";
+    public const string DefaultGroup = "hair_segment";
+
+    public string Id = "";
+
+    /// <summary>The bone the first point is pinned to.</summary>
+    public string BoneId = "";
+
+    /// <summary>Where the first point sits, in the bone's own space.</summary>
+    public Vector2 Offset;
+
+    public int Segments = 6;
+    public float SegmentLength = 20f;
+
+    /// <summary>Downward pull in pixels per second squared.</summary>
+    public float Gravity = 900f;
+
+    /// <summary>Share of velocity kept each step; 1 never slows down, 0 stops dead.</summary>
+    public float Damping = 0.96f;
+
+    /// <summary>
+    /// The SVG group drawn once per segment, long side along the chain; empty
+    /// draws no art. The art is stretched to fit each segment, so any shape works.
+    /// </summary>
+    public string SvgPath = DefaultSvgPath;
+    public string Group = DefaultGroup;
+
+    /// <summary>Width of the art at the first segment; it tapers towards the tip.</summary>
+    public float Width = 10f;
+
+    /// <summary>
+    /// Sideways pull in pixels per second squared, positive towards the way the
+    /// character faces. A little of it sends a chain that lands on the collider
+    /// off the front of it, over the shoulder, rather than behind.
+    /// </summary>
+    public float Lean;
+
+    /// <summary>
+    /// A circle on a bone that the chain cannot enter, so it rests on it instead
+    /// of passing through. Radius 0 means no collider.
+    /// </summary>
+    public string CollideBoneId = "";
+    public Vector2 CollideOffset;
+    public float CollideRadius;
+
+    public bool HasArt => SvgPath.Length > 0 && Group.Length > 0;
+    public bool HasCollider => CollideRadius > 0f && CollideBoneId.Length > 0;
 }
 
 public sealed class XafClip

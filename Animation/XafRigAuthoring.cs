@@ -67,7 +67,8 @@ public static class XafRigAuthoring
             return false;
 
         if (package.Attachments.Exists(attachment =>
-                attachment.BoneId == bone.Id))
+                attachment.BoneId == bone.Id) ||
+            package.Chains.Exists(chain => chain.BoneId == bone.Id))
         {
             return false;
         }
@@ -89,7 +90,7 @@ public static class XafRigAuthoring
     }
 
     /// <summary>
-    /// Renames a bone and every attachment and clip channel that refers to it.
+    /// Renames a bone and every attachment, chain and clip channel that refers to it.
     /// False when the name is empty, unchanged or used by another bone.
     /// </summary>
     public static bool RenameBone(XafPackage package, int index, string id)
@@ -108,6 +109,12 @@ public static class XafRigAuthoring
         {
             if (attachment.BoneId == old)
                 attachment.BoneId = id;
+        }
+
+        foreach (XafChain chain in package.Chains)
+        {
+            if (chain.BoneId == old)
+                chain.BoneId = id;
         }
 
         foreach (XafClip clip in package.Clips)

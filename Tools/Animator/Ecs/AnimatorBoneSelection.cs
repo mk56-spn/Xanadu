@@ -29,11 +29,12 @@ public partial struct AnimatorSelection
     public readonly bool IsBoneSelected(int index) =>
         index >= 0 && (index == Bone || (ExtraBones?.Contains(index) ?? false));
 
-    /// <summary>Selects one bone, dropping any other bones and the attachment.</summary>
+    /// <summary>Selects one bone, dropping any other bones, the attachment and the chain.</summary>
     public void SelectOnlyBone(int index)
     {
         Bone = index;
         Attachment = -1;
+        Chain = -1;
         ExtraBones = null;
     }
 
@@ -41,6 +42,15 @@ public partial struct AnimatorSelection
     {
         Attachment = index;
         Bone = -1;
+        Chain = -1;
+        ExtraBones = null;
+    }
+
+    public void SelectOnlyChain(int index)
+    {
+        Chain = index;
+        Bone = -1;
+        Attachment = -1;
         ExtraBones = null;
     }
 
@@ -54,6 +64,7 @@ public partial struct AnimatorSelection
             return;
 
         Attachment = -1;
+        Chain = -1;
         if (Bone == index)
         {
             if (ExtraBones is { Count: > 0 })

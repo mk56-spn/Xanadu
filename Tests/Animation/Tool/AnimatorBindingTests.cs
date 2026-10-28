@@ -64,6 +64,10 @@ public sealed class AnimatorBindingTests : AnimatorToolTest
             ToolActionKind.Clip,
             ToolActionKind.SelectBone,
             ToolActionKind.SelectAttachment,
+            ToolActionKind.SelectChain,
+            ToolActionKind.PickChainArt,
+            ToolActionKind.PickChainBone,
+            ToolActionKind.PickColliderBone,
             ToolActionKind.ReparentBone,
             ToolActionKind.AddKey,
             ToolActionKind.AddSvg,
@@ -93,6 +97,40 @@ public sealed class AnimatorBindingTests : AnimatorToolTest
             AnimatorBindings.Find(Key.O, ctrl: true, shift: false)!.Value.Action.Kind,
             Is.EqualTo(ToolActionKind.Load));
         Assert.That(AnimatorBindings.Find(Key.O, ctrl: false, shift: true), Is.Null);
+    }
+
+    [Test]
+    public void XTogglesTheBoneKitesAndTheirButtonFollows()
+    {
+        Entity toggle = ModeButton(AnimatorMode.Kites);
+        Frame();
+        Assert.That(Session.GetComponent<AnimatorModes>().Kites, Is.True);
+        Assert.That(toggle.GetComponent<Toggle>().Value, Is.True);
+
+        Tap(Key.X);
+        Frame();
+        Assert.That(Session.GetComponent<AnimatorModes>().Kites, Is.False);
+        Assert.That(toggle.GetComponent<Toggle>().Value, Is.False);
+        Assert.That(Status, Is.EqualTo("BONE KITES OFF"));
+
+        Tap(Key.X);
+        Assert.That(Session.GetComponent<AnimatorModes>().Kites, Is.True);
+        Assert.That(Status, Is.EqualTo("BONE KITES ON"));
+    }
+
+    [Test]
+    public void JTogglesTheHandlesAndTheirButtonFollows()
+    {
+        Entity toggle = ModeButton(AnimatorMode.Handles);
+        Frame();
+        Assert.That(Session.GetComponent<AnimatorModes>().Handles, Is.True);
+        Assert.That(toggle.GetComponent<Toggle>().Value, Is.True);
+
+        Tap(Key.J);
+        Frame();
+        Assert.That(Session.GetComponent<AnimatorModes>().Handles, Is.False);
+        Assert.That(toggle.GetComponent<Toggle>().Value, Is.False);
+        Assert.That(Status, Is.EqualTo("HANDLES OFF"));
     }
 
     [Test]
@@ -183,6 +221,20 @@ public sealed class AnimatorBindingTests : AnimatorToolTest
         Assert.That(Package.Skeleton.Bones, Has.Count.EqualTo(4));
 
         Tap(Key.Ctrl, Key.Z);
+        Assert.That(Package.Skeleton.Bones, Has.Count.EqualTo(3));
+    }
+
+    [Test]
+    public void VHangsAChainOffTheSelectedBoneAndControlDeleteRemovesIt()
+    {
+        Session.GetComponent<AnimatorSelection>().Bone = 2;
+
+        Tap(Key.V);
+        Assert.That(Package.Chains, Has.Count.EqualTo(1));
+        Assert.That(Package.Chains[0].BoneId, Is.EqualTo("head"));
+
+        Tap(Key.Ctrl, Key.Delete);
+        Assert.That(Package.Chains, Is.Empty);
         Assert.That(Package.Skeleton.Bones, Has.Count.EqualTo(3));
     }
 
