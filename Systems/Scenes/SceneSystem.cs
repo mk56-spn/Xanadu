@@ -292,41 +292,13 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
             return;
         }
 
-        if (state.Pending != state.Current || _restartRequested)
+        if (SceneChanged(ref state))
         {
             BeginFadeOut();
             return;
         }
 
-        if (HandlePause(ref state))
-        {
-            if (state.Pending != state.Current || _restartRequested)
-                BeginFadeOut();
-
-            return;
-        }
-
-        if (HandleConfirmation(ref state))
-        {
-            if (state.Pending != state.Current || _restartRequested)
-                BeginFadeOut();
-
-            return;
-        }
-
-        if (state.Current == SceneKind.Play &&
-            state.Pending == SceneKind.Play &&
-            IsPlayFinished())
-        {
-            if (IsEditorPreview)
-                ReturnToEditor(ref state);
-            else
-                state.Pending = SceneKind.Results;
-        }
-
-        HandleActions(ref state);
-
-        if (state.Pending != state.Current || _restartRequested)
+        if (StepScene(ref state))
             BeginFadeOut();
     }
 
