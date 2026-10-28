@@ -11,6 +11,7 @@ public struct AnimatorUi : IComponent
     public Entity Timeline;
     public Entity BoneList;
     public Entity AttachmentList;
+    public Entity ChainList;
 
     /// <summary>Header slot that holds the clip dropdown button.</summary>
     public Entity ClipList;
@@ -54,6 +55,27 @@ public struct AnimatorUi : IComponent
     public Entity InspectScaleX;
     public Entity InspectScaleY;
     public Entity InspectLayer;
+
+    /// <summary>
+    /// Floating chain inspector under the transform inspector, shown while a
+    /// chain is selected, and its fields.
+    /// </summary>
+    public Entity ChainInspector;
+    public Entity ChainTitle;
+    public Entity ChainArtButton;
+    public Entity ChainBoneButton;
+    public Entity ChainOffsetX;
+    public Entity ChainOffsetY;
+    public Entity ChainColliderButton;
+    public Entity ChainColliderX;
+    public Entity ChainColliderY;
+    public Entity ChainSegments;
+    public Entity ChainLength;
+    public Entity ChainWidth;
+    public Entity ChainGravity;
+    public Entity ChainLean;
+    public Entity ChainDamping;
+    public Entity ChainCollide;
 
     /// <summary>Floating hover explanation, moved by the tooltip system.</summary>
     public Entity Tooltip;

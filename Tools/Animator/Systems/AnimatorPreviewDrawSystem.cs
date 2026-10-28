@@ -4,11 +4,12 @@ using Friflo.Engine.ECS.Systems;
 using Godot;
 using Xanadu.Animation;
 using Xanadu.Systems.Canvas;
+using Xanadu.Tools.Animator.Commands;
 using Xanadu.Theme;
 
 namespace Xanadu.Tools.Animator.Systems;
 
-/// <summary>Draws the skeleton, onion-skin ghosts, selection markers and SVG attachments.</summary>
+/// <summary>Draws the skeleton, Verlet chains, onion-skin ghosts, selection markers and SVG attachments.</summary>
 public sealed class AnimatorPreviewDrawSystem(
     IRectCanvas canvas,
     Rid target,
@@ -20,7 +21,10 @@ public sealed class AnimatorPreviewDrawSystem(
     private static readonly Color SwungFill = new(Palette.Accent, 0.35f);
     private static readonly Color SwungOutline = new("#fde68a");
     private static readonly Color AttachmentColor = Palette.Lime;
+    private static readonly Color ChainColor = Palette.Cyan;
+    private static readonly Color ColliderColor = Palette.Lime;
     private static readonly Color Label = Palette.TextMuted;
+    private static readonly Color LabelBackdrop = new(Palette.SurfaceDeep, 0.85f);
     private static readonly Color ReparentLabel = Palette.Warning;
     private const float OnionOffset = 0.1f;
 
@@ -64,14 +68,17 @@ public sealed class AnimatorPreviewDrawSystem(
             {
                 float time = document.Runtime.CurrentTime;
                 DrawGhost(document.Package, clip, time - OnionOffset,
-                    new Color(Palette.Info, 0.25f), placement);
+                    new Color(Palette.Info, 0.25f), placement, modes.Kites, modes.Handles);
                 DrawGhost(document.Package, clip, time + OnionOffset,
-                    new Color(Palette.Rose, 0.25f), placement);
+                    new Color(Palette.Rose, 0.25f), placement, modes.Kites, modes.Handles);
             }
         }
 
+        DrawChains(session, document.Package, selection, placement);
+        DrawChainHandles(document.Package, selection, world, placement);
+
         // Bone shapes first so joints and labels stay readable on top of them.
-        for (int i = 0; i < world.Length; i++)
+        for (int i = 0; modes.Kites && i < world.Length; i++)
         {
             int parent = document.Package.Skeleton.Bones[i].Parent;
             if (parent < 0 || parent >= world.Length)
@@ -90,7 +97,7 @@ public sealed class AnimatorPreviewDrawSystem(
         AnimatorHover hover = session.GetComponent<AnimatorHover>();
         int reparenting = session.GetComponent<AnimatorBoneMenu>().Reparenting;
         var labels = new System.Collections.Generic.List<Rect2>();
-        for (int i = 0; i < world.Length; i++)
+        for (int i = 0; modes.Handles && i < world.Length; i++)
         {
             XafBone bone = document.Package.Skeleton.Bones[i];
             Vector2 point = placement * world[i].Origin;
@@ -107,6 +114,7 @@ public sealed class AnimatorPreviewDrawSystem(
             if (!selected && !hovered && labels.Exists(drawn => drawn.Intersects(label)))
                 continue;
             labels.Add(label);
+            canvas.DrawRect(target, AnimatorGeometry.BoneLabelBackdrop(label, bone.Id), LabelBackdrop);
             // Left-aligned so the text sits on its right-click target.
             canvas.DrawTextStyledLeft(
                 target,
@@ -120,7 +128,10 @@ public sealed class AnimatorPreviewDrawSystem(
 
         Transform2D[] attachments = XafRig.WorldAttachments(document.Package, pose, world);
         visuals.Apply(attachments, placement);
-        for (int i = 0; i < attachments.Length; i++)
+        visuals.ApplyChains(document.Package, session.GetComponent<AnimatorChains>().Simulation, placement);
+
+        // The squares are the handles for placing art, so they only show while placing it.
+        for (int i = 0; modes.Svg && i < attachments.Length; i++)
         {
             Vector2 point = placement * attachments[i].Origin;
             bool selected = i == selection.Attachment;
@@ -141,21 +152,83 @@ public sealed class AnimatorPreviewDrawSystem(
             14);
     }
 
+    /// <summary>
+    /// Draws a line through the simulated points of each chain without art, and of
+    /// the selected chain, which is brighter.
+    /// </summary>
+    private void DrawChains(
+        Entity session,
+        XafPackage package,
+        AnimatorSelection selection,
+        Transform2D placement)
+    {
+        XafChainSimulation simulation = session.GetComponent<AnimatorChains>().Simulation;
+        Span<Vector2> line = stackalloc Vector2[XafChain.MaxSegments + 1];
+        for (int i = 0; i < package.Chains.Count; i++)
+        {
+            System.Collections.Generic.IReadOnlyList<Vector2> points = simulation.Points(i);
+            if (points.Count < 2 || points.Count > line.Length)
+                continue;
+
+            // Chains with art are the art; only the selected one also shows its line.
+            bool selected = i == selection.Chain;
+            if (package.Chains[i].HasArt && !selected)
+                continue;
+
+            Color color = selected ? Colors.White : ChainColor;
+            for (int p = 0; p < points.Count; p++)
+                line[p] = placement * points[p];
+
+            canvas.DrawPolyline(target, line[..points.Count], color, selected ? 3f : 2f);
+            for (int p = 1; p < points.Count; p++)
+                canvas.DrawCircle(target, line[p], selected ? 4f : 3f, color);
+        }
+    }
+
+    /// <summary>
+    /// The selected chain's two handles: a dot on its first point and a ring on its
+    /// collider, which the pointer can drag along their bones.
+    /// </summary>
+    private void DrawChainHandles(
+        XafPackage package,
+        AnimatorSelection selection,
+        Transform2D[] world,
+        Transform2D placement)
+    {
+        if (!AnimatorChainHandles.TryGet(package, selection.Chain, world, out Vector2 root, out Vector2? collider))
+            return;
+
+        XafChain chain = package.Chains[selection.Chain];
+        if (collider is { } center)
+        {
+            Vector2 screen = placement * center;
+            canvas.DrawCircleOutline(target, screen, chain.CollideRadius * Mathf.Abs(placement.Scale.X), ColliderColor, 1.5f);
+            canvas.DrawCircle(target, screen, 4f, ColliderColor);
+        }
+
+        Vector2 rootScreen = placement * root;
+        canvas.DrawCircle(target, rootScreen, 7f, Colors.White);
+        canvas.DrawCircle(target, rootScreen, 5f, ChainColor);
+    }
+
     private void DrawGhost(
         XafPackage package,
         XafClip clip,
         float time,
         Color color,
-        Transform2D placement)
+        Transform2D placement,
+        bool kites,
+        bool handles)
     {
         time = Mathf.Clamp(time, 0f, Mathf.Max(0.001f, clip.Duration));
         Transform2D[] world = XafRig.WorldBones(package, XafSampler.Sample(package, clip, time));
         for (int i = 0; i < world.Length; i++)
         {
             Vector2 point = placement * world[i].Origin;
-            canvas.DrawCircle(target, point, 3, color);
+            if (handles)
+                canvas.DrawCircle(target, point, 3, color);
             int parent = package.Skeleton.Bones[i].Parent;
-            if (parent < 0 || parent >= world.Length)
+            if (!kites || parent < 0 || parent >= world.Length)
                 continue;
 
             Vector2 from = placement * world[parent].Origin;

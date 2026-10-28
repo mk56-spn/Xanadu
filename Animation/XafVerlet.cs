@@ -2,7 +2,12 @@ using Godot;
 
 namespace Xanadu.Animation;
 
-/// <summary>Fixed-step Verlet chain for hair and swinging attachments.</summary>
+/// <summary>
+/// Fixed-step Verlet chain for hair and swinging attachments. Each link is
+/// relaxed from both ends, so a fast-moving anchor drags the whole chain along
+/// instead of folding links over; relaxing only from the anchor end made fast
+/// head movement whip the hair.
+/// </summary>
 public sealed class XafVerletChain
 {
     private readonly Vector2[] _previous;
@@ -33,7 +38,14 @@ public sealed class XafVerletChain
     public Vector2[] Points { get; }
     public Vector2 Gravity { get; set; } = new(0, 900);
     public float Damping { get; set; } = 0.96f;
-    public int ConstraintIterations { get; set; } = 8;
+    public int ConstraintIterations { get; set; } = 16;
+
+    /// <summary>
+    /// A circle the points cannot enter, so the chain rests on it rather than
+    /// passing through; radius 0 turns it off. The anchor is not moved.
+    /// </summary>
+    public Vector2 ColliderCenter { get; set; }
+    public float ColliderRadius { get; set; }
 
     public void Step(float delta)
     {
@@ -58,9 +70,50 @@ public sealed class XafVerletChain
                 float length = direction.Length();
                 if (length <= 0.0001f)
                     continue;
-                Points[i] = Points[i - 1] +
-                            direction / length * _segmentLength;
+
+                // The anchor is fixed, so the first link moves only its free end.
+                Vector2 correction = direction * ((length - _segmentLength) / length);
+                if (i == 1)
+                {
+                    Points[i] -= correction;
+                    continue;
+                }
+
+                Points[i] -= correction * 0.5f;
+                Points[i - 1] += correction * 0.5f;
             }
+
+            Points[0] = Anchor;
+            PushOutOfCollider();
+        }
+    }
+
+    /// <summary>
+    /// Moves points that are inside the collider out to its edge, along the line
+    /// from its centre, and drops the part of their speed that was heading in so
+    /// they slide off instead of being thrown. A point dead on the centre goes
+    /// up, which is where a chain pulled down would have come from.
+    /// </summary>
+    private void PushOutOfCollider()
+    {
+        if (ColliderRadius <= 0f)
+            return;
+
+        for (int i = 1; i < Points.Length; i++)
+        {
+            Vector2 offset = Points[i] - ColliderCenter;
+            float distance = offset.Length();
+            if (distance >= ColliderRadius)
+                continue;
+
+            Vector2 outward = distance > 0.0001f ? offset / distance : Vector2.Up;
+            Vector2 velocity = Points[i] - _previous[i];
+            float inward = velocity.Dot(outward);
+            if (inward < 0f)
+                velocity -= outward * inward;
+
+            Points[i] = ColliderCenter + outward * ColliderRadius;
+            _previous[i] = Points[i] - velocity;
         }
     }
 

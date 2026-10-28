@@ -33,6 +33,21 @@ public static class AnimatorGeometry
     public static Rect2 BoneLabel(Vector2 joint) =>
         new(joint + new Vector2(8, -12), new Vector2(100, 20));
 
+    /// <summary>Rough width of one character of a bone label, which is drawn at font size 12.</summary>
+    private const float LabelCharWidth = 7f;
+
+    /// <summary>
+    /// The plate drawn behind a bone's name so it can be read over light art. The
+    /// canvas cannot measure text, so the width comes from the name's length; the
+    /// plate starts at the text's edge and never grows past the label's own box.
+    /// </summary>
+    public static Rect2 BoneLabelBackdrop(Rect2 label, string name) =>
+        new(
+            label.Position + new Vector2(1, 1),
+            new Vector2(
+                Mathf.Min(label.Size.X - 1, name.Length * LabelCharWidth + 10),
+                label.Size.Y - 2));
+
     /// <summary>The bone whose joint or label is under the pointer, or -1; joints win.</summary>
     public static int PickBoneOrLabel(
         Transform2D[] world,

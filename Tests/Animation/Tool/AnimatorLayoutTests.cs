@@ -36,6 +36,9 @@ public sealed class AnimatorLayoutTests : AnimatorToolTest
                      AnimatorMode.Rest,
                      AnimatorMode.Svg,
                      AnimatorMode.Ik,
+                     AnimatorMode.Pin,
+                     AnimatorMode.Kites,
+                     AnimatorMode.Handles,
                  })
         {
             Rect2 button = AnimatorGeometry.PanelArea(ModeButton(mode));

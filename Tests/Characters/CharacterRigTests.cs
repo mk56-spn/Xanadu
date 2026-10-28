@@ -62,6 +62,32 @@ public sealed class CharacterRigTests : EcsSystemTest
     }
 
     [Test]
+    public void TheRigsChainsAreSimulatedAndHandedToTheVisualsEveryFrameThroughThePlacement()
+    {
+        _files.Package = RigPackage();
+        _files.Package.Chains.Add(new XafChain { Id = "hair", BoneId = "torso", Segments = 6 });
+        Player();
+        Frame(10);
+
+        FakeVisuals visuals = _visuals[0];
+        Assert.That(visuals.ChainFrames, Is.EqualTo(10));
+        Assert.That(visuals.ChainPoints, Is.EqualTo(7));
+        // The same rig-to-canvas placement the attachments use, so hair scales and stands with the body.
+        Assert.That(visuals.ChainPlacement.X.Length(), Is.GreaterThan(0f));
+        Assert.That(visuals.ChainPlacement.X.Length(), Is.EqualTo(100f / 200f).Within(0.0001f));
+    }
+
+    [Test]
+    public void ARigWithoutChainsStillDrawsAndAsksForNoChainPoints()
+    {
+        Player();
+        Frame(3);
+
+        Assert.That(_visuals[0].ChainFrames, Is.EqualTo(3));
+        Assert.That(_visuals[0].ChainPoints, Is.EqualTo(0));
+    }
+
+    [Test]
     public void AMissingFileKeepsThePlainBoxAndIsNotRetried()
     {
         _files.Package = null;
@@ -130,11 +156,16 @@ public sealed class CharacterRigTests : EcsSystemTest
         {
             XafPackage package = RigPackage();
             package.Attachments.Add(new XafAttachment { SvgPath = "/abs/kept.svg" });
+            package.Chains.Add(new XafChain { Id = "hair", BoneId = "torso", SvgPath = "res://Assets/SVG/Char/hair_segment.svg" });
+            package.Chains.Add(new XafChain { Id = "bare", BoneId = "torso", SvgPath = "", Group = "" });
             XafAssetPaths.Rebase(package, Path.Combine(characters, "contact.xaf"));
 
             Assert.That(package.Attachments[0].SvgPath,
                 Is.EqualTo(Path.Combine(root, "Assets/SVG/torso.svg")));
             Assert.That(package.Attachments[1].SvgPath, Is.EqualTo("/abs/kept.svg"));
+            Assert.That(package.Chains[0].SvgPath,
+                Is.EqualTo(Path.Combine(root, "Assets/SVG/Char/hair_segment.svg")));
+            Assert.That(package.Chains[1].SvgPath, Is.EqualTo(""));
         }
         finally
         {
@@ -179,8 +210,19 @@ public sealed class CharacterRigTests : EcsSystemTest
     {
         public bool Released;
 
+        public int ChainFrames;
+        public int ChainPoints;
+        public Transform2D ChainPlacement;
+
         public void Reload(XafPackage package) { }
         public void Apply(Transform2D[] attachments, Transform2D placement) { }
+
+        public void ApplyChains(XafPackage package, XafChainSimulation simulation, Transform2D placement)
+        {
+            ChainFrames++;
+            ChainPoints = simulation.Points(0).Count;
+            ChainPlacement = placement;
+        }
         public Rect2 Bounds(Transform2D[] attachments) => new(-25, -200, 50, 200);
         public void Release() => Released = true;
     }

@@ -28,7 +28,7 @@ public static class AnimatorSession
                 Files = files,
             },
             AnimatorSelection.None,
-            new AnimatorModes(),
+            new AnimatorModes { Kites = true, Handles = true },
             new AnimatorDrag(),
             new AnimatorStatus { Message = "" },
             new AnimatorFile
@@ -48,6 +48,7 @@ public static class AnimatorSession
         session.AddComponent(new AnimatorKeyClipboard());
         session.AddComponent(new AnimatorSequence());
         session.AddComponent(new AnimatorSnapGuides());
+        session.AddComponent(new AnimatorChains { Simulation = new XafChainSimulation() });
         session.AddComponent(new UiMarqueeBox());
         session.AddComponent(new AnimatorHistory
         {
@@ -75,6 +76,7 @@ public static class AnimatorSession
         session.GetComponent<AnimatorSelection>() = AnimatorSelection.None;
         session.GetComponent<AnimatorDrag>() = new AnimatorDrag();
         session.GetComponent<AnimatorBoneMenu>() = AnimatorBoneMenu.Closed;
+        session.GetComponent<AnimatorChains>().Picking = AnimatorChainPick.None;
         session.GetComponent<AnimatorTracks>().Expanded?.Clear();
         session.GetComponent<AnimatorKeyMenu>() = new AnimatorKeyMenu();
         session.GetComponent<AnimatorSvgMenu>() = new AnimatorSvgMenu { Choices = new() };

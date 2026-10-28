@@ -56,7 +56,8 @@ public sealed class AnimatorPreviewInputSystem(
             Begin(session, input.Position, area, input.Shift);
         }
         else if (drag.Kind is AnimatorDragKind.Bone or AnimatorDragKind.Attachment
-                 or AnimatorDragKind.Swing or AnimatorDragKind.Ik)
+                     or AnimatorDragKind.Swing or AnimatorDragKind.Ik ||
+                 AnimatorChainHandles.IsChainDrag(drag.Kind))
         {
             if (input.Pressed)
                 Drag(session, input.Position, area, input.Shift);
@@ -168,6 +169,21 @@ public sealed class AnimatorPreviewInputSystem(
                 AnimatorSession.SetStatus(session, "REPARENT CANCELLED");
             return;
         }
+
+        // A chain inspector button waits for a bone: the click gives it one, or cancels.
+        if (session.GetComponent<AnimatorChains>().Picking != AnimatorChainPick.None)
+        {
+            int picked = AnimatorGeometry.PickBoneOrLabel(world, placement, pointer);
+            if (picked >= 0)
+                AnimatorChainPlacementCommands.PickBone(session, picked);
+            else
+                AnimatorChainPlacementCommands.CancelPick(session);
+            return;
+        }
+
+        // The selected chain's root and collider are handles that win over the bones under them.
+        if (AnimatorChainHandles.TryBegin(session, pointer, placement, world))
+            return;
 
         // Bone movement and SVG placement are separate modes, so a click only
         // ever considers one kind of target.
@@ -427,6 +443,12 @@ public sealed class AnimatorPreviewInputSystem(
         AnimatorPreviewView view = session.GetComponent<AnimatorPreviewView>();
         Transform2D placement = AnimatorGeometry.PreviewPlacement(area, view);
 
+        if (AnimatorChainHandles.IsChainDrag(drag.Kind))
+        {
+            AnimatorChainHandles.Drag(session, pointer, placement);
+            return;
+        }
+
         if (drag.Kind == AnimatorDragKind.Swing)
         {
             Swing(session, pointer, placement, shift);
@@ -487,8 +509,11 @@ public sealed class AnimatorPreviewInputSystem(
         AnimatorDrag drag = session.GetComponent<AnimatorDrag>();
         session.GetComponent<AnimatorDrag>() = new AnimatorDrag();
         AnimatorHistoryCommands.EndGesture(session);
-        if (session.GetComponent<AnimatorModes>() is not { AutoKey: true, Rest: false })
+        if (AnimatorChainHandles.IsChainDrag(drag.Kind) ||
+            session.GetComponent<AnimatorModes>() is not { AutoKey: true, Rest: false })
+        {
             return;
+        }
 
         // An IK drag turned the parent and grandparent, so those are what get keyed.
         XafPackage package = session.GetComponent<AnimatorDocument>().Package;

@@ -65,6 +65,8 @@ public sealed class AnimatorModeSystem : QuerySystem<Toggle, ModeToggle>
                 AnimatorMode.AutoKey => "AUTO KEY",
                 AnimatorMode.Ik => "IK DRAG",
                 AnimatorMode.Pin => "PIN CHILDREN",
+                AnimatorMode.Kites => "BONE KITES",
+                AnimatorMode.Handles => "HANDLES",
                 _ => "ONION",
             };
             AnimatorSession.SetStatus(session, $"{name} {(value ? "ON" : "OFF")}");

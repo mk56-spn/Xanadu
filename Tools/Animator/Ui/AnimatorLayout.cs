@@ -97,6 +97,7 @@ public static partial class AnimatorLayout
         BuildBoneMenu(menu, ref refs);
         BuildKeyMenu(menu, ref refs);
         BuildSvgMenu(menu, ref refs);
+        BuildChainInspector(menu, ref refs);
         BuildHistoryPanel(menu);
         BuildTooltip(store, visuals, ref refs);
         return refs.Ui;
@@ -163,6 +164,8 @@ public static partial class AnimatorLayout
         refs.Ui.BoneList = ui.Tree(ListWidth - 10);
         ui.Text("ATTACHMENTS", new Vector2(ListWidth, 20), UiTheme.FontSize, UiTheme.Accent);
         refs.Ui.AttachmentList = List(ui, ListWidth - 10);
+        ui.Text("CHAINS", new Vector2(ListWidth, 20), UiTheme.FontSize, UiTheme.Accent);
+        refs.Ui.ChainList = List(ui, ListWidth - 10);
         ui.End();
         ui.End();
         viewport.AddComponent(new ScrollView(content));
@@ -198,6 +201,8 @@ public static partial class AnimatorLayout
         ModeButton(ui, "SVG", AnimatorMode.Svg, 66);
         ModeButton(ui, "IK", AnimatorMode.Ik, 60);
         ModeButton(ui, "PIN", AnimatorMode.Pin, 66);
+        ModeButton(ui, "KITES", AnimatorMode.Kites, 84, on: true);
+        ModeButton(ui, "HANDLES", AnimatorMode.Handles, 104, on: true);
         ui.End();
     }
 
@@ -344,13 +349,13 @@ public static partial class AnimatorLayout
         return button;
     }
 
-    private static void ModeButton(UiBuilder ui, string label, AnimatorMode mode, float width)
+    private static void ModeButton(UiBuilder ui, string label, AnimatorMode mode, float width, bool on = false)
     {
         Entity button = ui.Button(
-            $"{label} OFF",
+            $"{label} {(on ? "ON" : "OFF")}",
             new Vector2(width, 28),
             fontSize: UiTheme.SmallFontSize);
-        button.AddComponent(new Toggle($"{label} ON", $"{label} OFF", false));
+        button.AddComponent(new Toggle($"{label} ON", $"{label} OFF", on));
         button.AddComponent(new ModeToggle(mode));
         AnimatorTooltips.Attach(button, ToolActionKind.ToggleMode, mode.ToString());
     }

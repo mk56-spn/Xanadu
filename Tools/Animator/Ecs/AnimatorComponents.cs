@@ -73,6 +73,24 @@ public enum ToolActionKind
     /// <summary>Selects every key set in the current clip.</summary>
     SelectAllKeys,
 
+    /// <summary>Hangs a new Verlet chain off the selected bone; no argument.</summary>
+    AddChain,
+
+    /// <summary>Selects a chain, by its index in the package.</summary>
+    SelectChain,
+
+    /// <summary>Deletes the selected chain; no argument.</summary>
+    DeleteChain,
+
+    /// <summary>Opens the SVG picker to choose the art of the selected chain; no argument.</summary>
+    PickChainArt,
+
+    /// <summary>The next bone clicked becomes the one the selected chain hangs from; no argument.</summary>
+    PickChainBone,
+
+    /// <summary>The next bone clicked becomes the one the selected chain's collider follows; no argument.</summary>
+    PickColliderBone,
+
     /// <summary>Plays jump, fall, land and idle into each other, as the game does.</summary>
     SequenceGame,
 
@@ -101,6 +119,12 @@ public enum AnimatorMode
 
     /// <summary>In the rest pose, moving or turning a bone leaves the bones below it where they are.</summary>
     Pin,
+
+    /// <summary>Draws each bone as a filled kite; off leaves just the joints and labels.</summary>
+    Kites,
+
+    /// <summary>Draws the joint dots and bone labels; off leaves just the art and the bone shapes.</summary>
+    Handles,
 }
 
 /// <summary>Binds a <c>Toggle</c> entity to one animator editing mode.</summary>
@@ -156,6 +180,9 @@ public partial struct AnimatorSelection : IComponent
     public int Bone;
     public int Attachment;
 
+    /// <summary>The selected Verlet chain; -1 for none.</summary>
+    public int Chain;
+
     /// <summary>The selected bones beside the primary one; null when only one is selected.</summary>
     public List<int>? ExtraBones;
 
@@ -207,6 +234,7 @@ public partial struct AnimatorSelection : IComponent
     {
         Bone = -1,
         Attachment = -1,
+        Chain = -1,
         HasKey = false,
         KeyId = "",
     };
@@ -248,6 +276,12 @@ public struct AnimatorModes : IComponent
     /// <summary>Rest-pose edits leave the bones below the edited one where they are.</summary>
     public bool Pin;
 
+    /// <summary>Bones are drawn as kites; on by default, since the tool opens showing them.</summary>
+    public bool Kites;
+
+    /// <summary>Joint dots and bone labels are drawn; on by default.</summary>
+    public bool Handles;
+
     /// <summary>Whether one editing mode is on.</summary>
     public readonly bool Get(AnimatorMode mode) => mode switch
     {
@@ -256,6 +290,8 @@ public struct AnimatorModes : IComponent
         AnimatorMode.Svg => Svg,
         AnimatorMode.Ik => Ik,
         AnimatorMode.Pin => Pin,
+        AnimatorMode.Kites => Kites,
+        AnimatorMode.Handles => Handles,
         _ => Rest,
     };
 
@@ -278,6 +314,12 @@ public struct AnimatorModes : IComponent
                 break;
             case AnimatorMode.Pin:
                 Pin = value;
+                break;
+            case AnimatorMode.Kites:
+                Kites = value;
+                break;
+            case AnimatorMode.Handles:
+                Handles = value;
                 break;
             default:
                 Rest = value;
@@ -308,6 +350,12 @@ public enum AnimatorDragKind
 
     /// <summary>Drags the loop's end handle in the ruler.</summary>
     LoopEnd,
+
+    /// <summary>Drags the first point of the selected chain along its bone.</summary>
+    ChainRoot,
+
+    /// <summary>Drags the collider of the selected chain along its bone.</summary>
+    ChainCollider,
 }
 
 /// <summary>Active pointer drag in the preview or timeline.</summary>

@@ -91,6 +91,8 @@ public static class AnimatorHistoryCommands
         selection.ClampBones(package.Skeleton.Bones.Count);
         if (selection.Attachment >= package.Attachments.Count)
             selection.Attachment = -1;
+        if (selection.Chain >= package.Chains.Count)
+            selection.Chain = -1;
         selection.HasKey = false;
         session.GetComponent<AnimatorDrag>() = new AnimatorDrag();
     }

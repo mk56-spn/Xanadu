@@ -37,11 +37,13 @@ public sealed class AnimatorSystemGroup : SystemGroup
         Add(new AnimatorHierarchySystem(visuals, pointer));
         Add(new AnimatorClipHeaderSystem());
         Add(new AnimatorInspectorSystem());
+        Add(new AnimatorChainInspectorSystem());
         Add(new AnimatorInterpolationSystem());
         Add(new AnimatorFileHeaderSystem());
         Add(new AnimatorStatusSystem());
         Add(new AnimatorTooltipSystem(pointer));
         Add(new AnimatorGridDrawSystem(canvas, gridCanvas));
+        Add(new AnimatorChainSimulationSystem());
         Add(new AnimatorPreviewDrawSystem(canvas, previewCanvas, attachments));
         Add(new AnimatorTimelineDrawSystem(canvas, timelineCanvas));
     }

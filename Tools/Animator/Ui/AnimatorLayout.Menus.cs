@@ -51,8 +51,22 @@ public static partial class AnimatorLayout
         }
     }
 
+    /// <summary>Size of the transform inspector, which the chain inspector shares the spot of.</summary>
+    private const float InspectorWidth = 236f;
+    private const float InspectorHeight = 222f;
+
+    /// <summary>Top-left of the floating inspectors: the preview's top-right corner, under the mode bar.</summary>
+    public static Vector2 InspectorTopLeft(Vector2 screen) =>
+        new(
+            screen.X - Margin - RightWidth - Gap - InspectorWidth - 12f,
+            Margin + TopHeight + Gap + ModeInset + 12f);
+
+    /// <summary>Where the transform inspector is centred when it is shown.</summary>
+    public static Vector2 InspectorCenter(Vector2 screen) =>
+        InspectorTopLeft(screen) + new Vector2(InspectorWidth, InspectorHeight) / 2;
+
     /// <summary>Size of the bone context menu opened by right-clicking a bone label.</summary>
-    public static readonly Vector2 BoneMenuSize = new(150, 5 * 28 + 4 * 2 + 8);
+    public static readonly Vector2 BoneMenuSize = new(150, 6 * 28 + 5 * 2 + 8);
 
     public static readonly Vector2 BoneNameSize = new(140, 22);
 
@@ -83,6 +97,7 @@ public static partial class AnimatorLayout
             ("REPARENT", ToolActionKind.ReparentBone),
             ("CHILD", ToolActionKind.AddBone),
             ("SVG", ToolActionKind.AddSvg),
+            ("CHAIN", ToolActionKind.AddChain),
             ("DEL", ToolActionKind.DeleteBone),
         };
 
@@ -170,14 +185,12 @@ public static partial class AnimatorLayout
     /// </summary>
     private static void BuildInspector(UiBuilder menu, Vector2 screen, ref Refs refs)
     {
-        const float width = 236f;
-        const float height = 222f;
+        const float width = InspectorWidth;
+        const float height = InspectorHeight;
         const float row = 26f;
         const float inner = width - 16f;
         var size = new Vector2(width, height);
-        var topLeft = new Vector2(
-            screen.X - Margin - RightWidth - Gap - width - 12f,
-            Margin + TopHeight + Gap + ModeInset + 12f);
+        Vector2 topLeft = InspectorTopLeft(screen);
 
         menu.Container(topLeft + size / 2, size, StackDirection.Vertical,
             spacing: 6, color: UiTheme.Panel, padding: 8, takesInput: true,

@@ -32,6 +32,27 @@ public static class XafPackageCopy
             });
         }
 
+        foreach (XafChain chain in package.Chains)
+        {
+            copy.Chains.Add(new XafChain
+            {
+                Id = chain.Id,
+                BoneId = chain.BoneId,
+                Offset = chain.Offset,
+                Segments = chain.Segments,
+                SegmentLength = chain.SegmentLength,
+                Gravity = chain.Gravity,
+                Damping = chain.Damping,
+                SvgPath = chain.SvgPath,
+                Group = chain.Group,
+                Width = chain.Width,
+                Lean = chain.Lean,
+                CollideBoneId = chain.CollideBoneId,
+                CollideOffset = chain.CollideOffset,
+                CollideRadius = chain.CollideRadius,
+            });
+        }
+
         foreach (XafClip clip in package.Clips)
             copy.Clips.Add(Clone(clip));
         return copy;
@@ -40,6 +61,7 @@ public static class XafPackageCopy
     public static bool AreEqual(XafPackage a, XafPackage b) =>
         ListEqual(a.Skeleton.Bones, b.Skeleton.Bones, BoneEqual) &&
         ListEqual(a.Attachments, b.Attachments, AttachmentEqual) &&
+        ListEqual(a.Chains, b.Chains, ChainEqual) &&
         ListEqual(a.Clips, b.Clips, ClipEqual);
 
     public static XafClip Clone(XafClip clip)
@@ -83,6 +105,14 @@ public static class XafPackageCopy
     private static bool AttachmentEqual(XafAttachment a, XafAttachment b) =>
         a.SvgPath == b.SvgPath && a.Group == b.Group && a.BoneId == b.BoneId &&
         a.Transform == b.Transform && a.ZOrder == b.ZOrder;
+
+    private static bool ChainEqual(XafChain a, XafChain b) =>
+        a.Id == b.Id && a.BoneId == b.BoneId && a.Offset == b.Offset &&
+        a.Segments == b.Segments && a.SegmentLength == b.SegmentLength &&
+        a.Gravity == b.Gravity && a.Damping == b.Damping &&
+        a.SvgPath == b.SvgPath && a.Group == b.Group && a.Width == b.Width &&
+        a.Lean == b.Lean && a.CollideBoneId == b.CollideBoneId &&
+        a.CollideOffset == b.CollideOffset && a.CollideRadius == b.CollideRadius;
 
     private static bool ClipEqual(XafClip a, XafClip b) =>
         a.Id == b.Id && a.Duration == b.Duration && a.Loop == b.Loop &&

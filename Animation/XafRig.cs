@@ -37,6 +37,18 @@ public static class XafRig
         return world;
     }
 
+    /// <summary>World transforms of every bone in the rest pose.</summary>
+    public static Transform2D[] RestWorld(XafPackage package)
+    {
+        var world = new Transform2D[package.Skeleton.Bones.Count];
+        for (int i = 0; i < world.Length; i++)
+        {
+            XafBone bone = package.Skeleton.Bones[i];
+            world[i] = bone.Parent < 0 ? bone.Rest : world[bone.Parent] * bone.Rest;
+        }
+        return world;
+    }
+
     public static int FindBone(XafPackage package, string boneId)
     {
         for (int i = 0; i < package.Skeleton.Bones.Count; i++)

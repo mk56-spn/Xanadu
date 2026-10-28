@@ -44,6 +44,44 @@ public static class XafValidation
                 issues.Add($"Attachment references missing bone '{attachment.BoneId}'.");
         }
 
+        var chainIds = new HashSet<string>(StringComparer.Ordinal);
+        foreach (XafChain chain in package.Chains)
+        {
+            if (string.IsNullOrWhiteSpace(chain.Id))
+                issues.Add("Chain has an empty id.");
+            else if (!chainIds.Add(chain.Id))
+                issues.Add($"Duplicate chain id '{chain.Id}'.");
+            if (!boneIds.Contains(chain.BoneId))
+                issues.Add($"Chain '{chain.Id}' references missing bone '{chain.BoneId}'.");
+            if (chain.Segments < XafChain.MinSegments || chain.Segments > XafChain.MaxSegments)
+                issues.Add($"Chain '{chain.Id}' has an invalid segment count.");
+            if (!(chain.SegmentLength >= XafChain.MinSegmentLength) ||
+                chain.SegmentLength > XafChain.MaxSegmentLength)
+            {
+                issues.Add($"Chain '{chain.Id}' has an invalid segment length.");
+            }
+            if (!float.IsFinite(chain.Gravity) || !float.IsFinite(chain.Offset.X) ||
+                !float.IsFinite(chain.Offset.Y))
+            {
+                issues.Add($"Chain '{chain.Id}' has a non-finite value.");
+            }
+            if (!(chain.Damping >= 0f && chain.Damping <= 1f))
+                issues.Add($"Chain '{chain.Id}' has an invalid damping.");
+            if (chain.SvgPath.Length > 0 != chain.Group.Length > 0)
+                issues.Add($"Chain '{chain.Id}' needs both an SVG path and a group, or neither.");
+            if (!(chain.Width > 0f) || !float.IsFinite(chain.Width) || !float.IsFinite(chain.Lean))
+                issues.Add($"Chain '{chain.Id}' has an invalid width or lean.");
+            if (!(chain.CollideRadius >= 0f) || !float.IsFinite(chain.CollideRadius) ||
+                !float.IsFinite(chain.CollideOffset.X) || !float.IsFinite(chain.CollideOffset.Y))
+            {
+                issues.Add($"Chain '{chain.Id}' has an invalid collider.");
+            }
+            else if (chain.CollideRadius > 0f && !boneIds.Contains(chain.CollideBoneId))
+            {
+                issues.Add($"Chain '{chain.Id}' collides with missing bone '{chain.CollideBoneId}'.");
+            }
+        }
+
         var clipIds = new HashSet<string>(StringComparer.Ordinal);
         foreach (XafClip clip in package.Clips)
         {
