@@ -1,3 +1,5 @@
+using System;
+using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Godot;
@@ -11,15 +13,25 @@ namespace Xanadu.Systems.Debug;
 public sealed class GravityDebugSystem(
     EntityStore entities,
     Box2DPhysicsWorld physics,
-    IOverlayToggleSource toggle) : QuerySystem<UiSlider>
+    IOverlayToggleSource toggle,
+    Func<bool> inGameplay) : QuerySystem<UiSlider>
 {
-    private bool _built;
+    private readonly List<Entity> _panel = [];
+    private readonly float _defaultGravity = physics.Gravity;
+    private readonly OverlayLatch _latch = new(toggle);
 
     protected override void OnUpdate()
     {
-        if (!_built && toggle.IsTogglePressed())
-            Build();
-        if (!_built)
+        // The panel belongs to a gameplay instance: leaving one closes it.
+        if (_latch.Update(inGameplay()))
+        {
+            if (_latch.Visible)
+                Build();
+            else
+                Teardown();
+        }
+
+        if (!_latch.Visible)
             return;
 
         Query.ForEachEntity((ref slider, entity) =>
@@ -30,17 +42,24 @@ public sealed class GravityDebugSystem(
         });
     }
 
+    private void Teardown()
+    {
+        foreach (Entity part in _panel)
+            part.DeleteEntity();
+        _panel.Clear();
+    }
+
     private void Build()
     {
-        _built = true;
         UiBuilder ui = UiBuilder.Begin(entities).Layer(1002);
-        ui.RectEntity(new Vector2(330, 170), new Vector2(420, 150), new Color("#0b111b"));
+        Entity background = ui.RectEntity(
+            new Vector2(330, 170), new Vector2(420, 150), DebugPanelStyle.Background);
         Entity label = ui.RectEntity(
             new Vector2(330, 120),
             new Vector2(380, 28),
             new Color(0, 0, 0, 0),
             $"GRAVITY {physics.Gravity:0} m/s²");
-        label.AddComponent(new TextStyle(18, new Color("#facc15")));
+        label.AddComponent(new TextStyle(DebugPanelStyle.TitleSize, DebugPanelStyle.Accent));
 
         Entity track = ui.RectEntity(
             new Vector2(330, 190),
@@ -56,9 +75,9 @@ public sealed class GravityDebugSystem(
             new Vector2(300, 24),
             new Color(0, 0, 0, 0),
             $"GRAVITY {physics.Gravity:0}");
-        value.AddComponent(new TextStyle(16, new Color("#e2e8f0")));
+        value.AddComponent(new TextStyle(DebugPanelStyle.RowSize, DebugPanelStyle.Text));
 
         track.AddComponent(new UiSlider(
-            fill, value, 0f, 80f, physics.Gravity, "GRAVITY "));
+            fill, value, 0f, 80f, physics.Gravity, "GRAVITY ", defaultValue: _defaultGravity));
     }
 }

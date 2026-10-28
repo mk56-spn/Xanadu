@@ -1,3 +1,4 @@
+using System;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Godot;
@@ -23,6 +24,7 @@ public sealed class DebugSystemGroup : SystemGroup
         IPointerInputSource pointer,
         Xanadu.Systems.Physics.Box2DPhysicsWorld physics,
         IOverlayToggleSource gravityToggle,
+        Func<bool> inGameplay,
         IOverlayPageSource? paging = null) : base("Debug")
     {
         Add(new DebugPressedOverlaySystem(
@@ -40,6 +42,7 @@ public sealed class DebugSystemGroup : SystemGroup
         Add(new GravityDebugSystem(
             entitiesForSlider,
             physics,
-            gravityToggle));
+            gravityToggle,
+            inGameplay));
     }
 }

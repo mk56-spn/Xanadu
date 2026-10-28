@@ -30,14 +30,12 @@ public sealed class DebugPressedOverlaySystem : QuerySystem<Rectangle, Position>
 
     private readonly IRectCanvas _canvas;
     private readonly Rid _overlay;
-    private readonly IOverlayToggleSource _toggle;
+    private readonly OverlayLatch _latch;
     private readonly EntityStore? _store;
     private readonly SystemRoot? _systems;
     private readonly IFpsSource? _fpsSource;
     private readonly IOverlayPageSource? _paging;
 
-    private bool _visible;
-    private bool _wasTogglePressed;
     private readonly List<ArchetypeRow> _archetypeRows = new();
     private int _archetypeCacheCount = -1;
     private long _archetypeRefreshAt;
@@ -56,7 +54,7 @@ public sealed class DebugPressedOverlaySystem : QuerySystem<Rectangle, Position>
     {
         _canvas = canvas;
         _overlay = overlay;
-        _toggle = toggle;
+        _latch = new OverlayLatch(toggle);
         _store = store;
         _systems = systems;
         _fpsSource = fpsSource;
@@ -65,17 +63,11 @@ public sealed class DebugPressedOverlaySystem : QuerySystem<Rectangle, Position>
 
     protected override void OnUpdate()
     {
-        bool togglePressed = _toggle.IsTogglePressed();
-        if (togglePressed && !_wasTogglePressed)
-        {
-            _visible = !_visible;
-            _canvas.SetVisible(_overlay, _visible);
-        }
-
-        _wasTogglePressed = togglePressed;
+        if (_latch.Update())
+            _canvas.SetVisible(_overlay, _latch.Visible);
         _canvas.Clear(_overlay);
 
-        if (!_visible)
+        if (!_latch.Visible)
             return;
 
         if (_store is not null)

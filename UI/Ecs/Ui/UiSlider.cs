@@ -10,7 +10,8 @@ public struct UiSlider(
     float max,
     float value,
     string prefix = "",
-    string format = "0") : IComponent
+    string format = "0",
+    float? defaultValue = null) : IComponent
 {
     public Entity Fill = fill;
     public Entity Label = label;
@@ -21,4 +22,7 @@ public struct UiSlider(
 
     /// <summary>Number format for the value shown in the label.</summary>
     public string Format = format;
+
+    /// <summary>Value restored by a right-click on the track.</summary>
+    public float Default = defaultValue ?? value;
 }

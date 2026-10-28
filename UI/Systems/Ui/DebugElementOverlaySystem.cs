@@ -19,21 +19,14 @@ public sealed class DebugElementOverlaySystem(
     private static readonly Color ContainerFill = new(1f, 0.8f, 0.2f, 0.10f);
     private static readonly Color ContainerBorder = new(1f, 0.85f, 0.25f, 0.7f);
     private static readonly Color PinColor = new(0.3f, 1f, 0.45f, 0.95f);
-    private bool _visible;
-    private bool _wasTogglePressed;
+    private readonly OverlayLatch _latch = new(toggle);
 
     protected override void OnUpdate()
     {
-        bool pressed = toggle.IsTogglePressed();
-        if (pressed && !_wasTogglePressed)
-        {
-            _visible = !_visible;
-            canvas.SetVisible(overlay, _visible);
-        }
-
-        _wasTogglePressed = pressed;
+        if (_latch.Update())
+            canvas.SetVisible(overlay, _latch.Visible);
         canvas.Clear(overlay);
-        if (!_visible)
+        if (!_latch.Visible)
             return;
 
         Query.ForEachEntity((ref rect, ref position, entity) =>
