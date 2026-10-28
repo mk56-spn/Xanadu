@@ -88,6 +88,7 @@ public sealed class PlayfieldSystemGroup : SystemGroup, IDisposable
         {
             Add(new CharacterRigLoadSystem(rigFiles));
             Add(new CharacterMotionSystem());
+            Add(new CharacterAttackSystem());
             Add(new CharacterRigAnimateSystem());
             Add(new CharacterRigDrawSystem(
                 () => new SvgAttachmentVisuals(_characters.Rid)));

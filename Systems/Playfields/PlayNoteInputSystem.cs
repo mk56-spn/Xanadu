@@ -6,6 +6,7 @@ using Godot;
 using Xanadu.Ecs;
 using Xanadu.Scoring;
 using Xanadu.Settings;
+using Xanadu.Systems.Characters;
 using Xanadu.Systems.Input;
 using Xanadu.Theme;
 using Position = Xanadu.Ecs.Position;
@@ -188,12 +189,15 @@ public sealed class PlayNoteInputSystem : QuerySystem<Note>
                 KeybindSettings.KeyLabel(_keybinds.Get(hitNote.Target))));
 
             if (Hit(ref score, hit, bestOffset, playfield))
+            {
+                CharacterAttackSystem.Trigger(playfield, hitPosition.Y, playerScreen.Y);
                 _entities.CreateEntity(new NotePop(
                     hitNote,
                     hitPosition,
                     hitColor,
                     hitRadius,
                     PlayfieldRenderer.NotePopLifetime));
+            }
         }
     }
 
