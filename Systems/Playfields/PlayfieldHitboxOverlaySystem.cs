@@ -17,10 +17,7 @@ public sealed class PlayfieldHitboxOverlaySystem : QuerySystem<PlayfieldView>
     private readonly EntityStore _entities;
     private readonly IRectCanvas _canvas;
     private readonly Rid _overlay;
-    private readonly IOverlayToggleSource _toggle;
-
-    private bool _visible;
-    private bool _wasTogglePressed;
+    private readonly OverlayLatch _latch;
 
     public PlayfieldHitboxOverlaySystem(
         EntityStore entities,
@@ -31,24 +28,18 @@ public sealed class PlayfieldHitboxOverlaySystem : QuerySystem<PlayfieldView>
         _entities = entities;
         _canvas = canvas;
         _overlay = overlay;
-        _toggle = toggle;
+        _latch = new OverlayLatch(toggle);
         _canvas.SetVisible(_overlay, false);
     }
 
     protected override void OnUpdate()
     {
-        bool pressed = _toggle.IsTogglePressed();
-        if (pressed && !_wasTogglePressed)
-        {
-            _visible = !_visible;
-            _canvas.SetVisible(_overlay, _visible);
-        }
-
-        _wasTogglePressed = pressed;
+        if (_latch.Update())
+            _canvas.SetVisible(_overlay, _latch.Visible);
 
         // Cleared even when hidden: the scene may have changed underneath it.
         _canvas.Clear(_overlay);
-        if (!_visible)
+        if (!_latch.Visible)
             return;
 
         foreach (Entity entity in Query.ToEntityList())

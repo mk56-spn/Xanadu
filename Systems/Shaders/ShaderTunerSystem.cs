@@ -4,6 +4,7 @@ using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Godot;
 using Xanadu.Ecs;
+using Xanadu.Systems.Debug;
 using Xanadu.Systems.Input;
 
 namespace Xanadu.Systems.Shaders;
@@ -28,14 +29,14 @@ public sealed class ShaderTunerSystem(
     private const string HueShader = "res://Assets/Shaders/Ui/color_hue.gdshader";
     private const string UiShaders = "res://Assets/Shaders/Ui/";
 
-    private static readonly Color PanelColor = new(0.04f, 0.06f, 0.1f, 0.94f);
-    private static readonly Color Accent = new("#ffc035");
+    private static readonly Color PanelColor = DebugPanelStyle.Background;
+    private static readonly Color Accent = DebugPanelStyle.Accent;
 
     private readonly List<Entity> _parts = new();
     private readonly List<ShaderTarget> _targets = new();
     private Entity _layer;
     private Entity _footer;
-    private bool _wasDown;
+    private readonly OverlayLatch _latch = new(new KeyboardToggleSource(keyboard, key));
 
     /// <param name="Slot">
     /// Set for a level's own shader: its tuned values live in the level, so
@@ -52,16 +53,16 @@ public sealed class ShaderTunerSystem(
 
     protected override void OnUpdate()
     {
-        bool down = keyboard.IsPressed(key);
-        if (down && !_wasDown)
+        if (_latch.Update())
         {
-            if (IsOpen)
-                Close();
-            else
+            if (_latch.Visible)
                 Open();
+            else
+                Close();
+            if (!IsOpen)
+                _latch.Hide();
         }
 
-        _wasDown = down;
         if (!IsOpen)
             return;
 
@@ -241,7 +242,8 @@ public sealed class ShaderTunerSystem(
             uniform.Max,
             Mathf.Clamp(value, uniform.Min, uniform.Max),
             uniform.ChannelName(channel) + "  ",
-            uniform.Kind == UniformKind.Int ? "0" : "0.###"));
+            uniform.Kind == UniformKind.Int ? "0" : "0.###",
+            defaultValue));
         track.AddComponent(new ShaderParam(shader, uniform.Name, channel, defaultValue));
         Track(text);
         Track(track);

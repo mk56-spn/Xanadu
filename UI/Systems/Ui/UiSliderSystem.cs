@@ -17,6 +17,7 @@ public sealed class UiSliderSystem(IPointerInputSource pointer)
     // pointer until release, wherever the pointer then goes.
     private Entity _dragged;
     private bool _wasPressed;
+    private bool _wasSecondary;
 
     protected override void OnUpdate()
     {
@@ -26,6 +27,9 @@ public sealed class UiSliderSystem(IPointerInputSource pointer)
 
         bool pressStarted = input.Pressed && !_wasPressed;
         _wasPressed = input.Pressed;
+
+        bool resetStarted = input.SecondaryPressed && !_wasSecondary;
+        _wasSecondary = input.SecondaryPressed;
 
         CommandBuffer buffer = CommandBuffer;
         Query.ForEachEntity((ref slider, ref rect, ref position, entity) =>
@@ -37,6 +41,9 @@ public sealed class UiSliderSystem(IPointerInputSource pointer)
 
             if (pressStarted && _dragged.IsNull && bounds.HasPoint(input.Position))
                 _dragged = entity;
+
+            if (resetStarted && bounds.HasPoint(input.Position))
+                slider.Value = slider.Default;
 
             if (_dragged == entity)
             {
