@@ -185,6 +185,8 @@ public sealed class PlayNoteInputSystem : QuerySystem<Note>
         {
             Note hitNote = hit.GetComponent<Note>();
             Vector2 hitPosition = view.PlayfieldToScreen(hitNote.Position);
+            Color hitColor = GroupColor.For(hit, PlayfieldRenderer.ColorFor(hitNote));
+            float hitRadius = PlayfieldRenderer.NoteSize * view.Scale / 2f;
             score.JudgementPosition = hitPosition;
             score.JudgementTimeMs = playhead.TimeMs;
 
@@ -193,11 +195,17 @@ public sealed class PlayNoteInputSystem : QuerySystem<Note>
                 PlayfieldRenderer.ColorFor(hitNote.Target),
                 KeybindSettings.KeyLabel(_keybinds.Get(hitNote.Target))));
 
-            Hit(ref score, hit, bestOffset, playfield);
+            if (Hit(ref score, hit, bestOffset, playfield))
+                _entities.CreateEntity(new NotePop(
+                    hitNote,
+                    hitPosition,
+                    hitColor,
+                    hitRadius,
+                    PlayfieldRenderer.NotePopLifetime));
         }
     }
 
-    private static void Hit(
+    private static bool Hit(
         ref ScoreState score,
         Entity noteEntity,
         long offsetMs,
@@ -225,7 +233,7 @@ public sealed class PlayNoteInputSystem : QuerySystem<Note>
                 ref score,
                 (long)ScoreRules.JudgementDeviation(Judgement.Miss) + 1);
             noteEntity.DeleteEntity();
-            return;
+            return false;
         }
 
         PlayScoring.Apply(ref score, offsetMs);
@@ -236,6 +244,7 @@ public sealed class PlayNoteInputSystem : QuerySystem<Note>
         }
 
         noteEntity.DeleteEntity();
+        return true;
     }
 
     private static void ApplyCharacter(Entity playfield, CharacterKind kind)

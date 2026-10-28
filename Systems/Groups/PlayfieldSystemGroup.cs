@@ -72,6 +72,7 @@ public sealed class PlayfieldSystemGroup : SystemGroup, IDisposable
         Add(new PlayKeyTrailSystem(entities, keybinds, keyboard));
         Add(new PlayNoteInputSystem(entities, keybinds, keyboard, offsets));
         Add(new HitTrailSystem());
+        Add(new NotePopSystem());
         Add(new DashTrailSystem());
         Add(new ParticleBurstSystem(_particles));
         Add(new HudLayoutSystem(

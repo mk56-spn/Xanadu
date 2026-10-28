@@ -141,6 +141,26 @@ public struct HitTrail(
     public float Lifetime = lifetime;
 }
 
+/// <summary>
+/// A note the moment it was hit: the note keeps its shape and colour, swells,
+/// and fades away from where it was, so a hit reads as a pop rather than the
+/// note simply vanishing. Screen space, like <see cref="HitTrail"/>.
+/// </summary>
+public struct NotePop(
+    Note note,
+    Vector2 position,
+    Color color,
+    float radius,
+    float lifetime = 0.22f) : IComponent
+{
+    public Note Note = note;
+    public Vector2 Position = position;
+    public Color Color = color;
+    public float Radius = radius;
+    public float Age;
+    public float Lifetime = lifetime;
+}
+
 /// <summary>A short-lived line from a dash start to its landing point.</summary>
 public struct DashTrail(
     Vector2 from,

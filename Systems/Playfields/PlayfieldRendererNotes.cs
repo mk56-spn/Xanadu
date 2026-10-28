@@ -123,7 +123,11 @@ public static partial class PlayfieldRenderer
                     center - new Vector2(radius, radius),
                     new Vector2(radius * 2, radius * 2)),
                 note.Character.ToString()[..1],
-                CharacterSwitchColor,
+                new Color(
+                    CharacterSwitchColor.R,
+                    CharacterSwitchColor.G,
+                    CharacterSwitchColor.B,
+                    CharacterSwitchColor.A * color.A),
                 Math.Max(12, (int)(radius * 1.1f)));
         }
         else
