@@ -12,8 +12,8 @@ namespace Xanadu.Systems.Playfields;
 /// <summary>Shared playfield geometry and drawing used by editor and play modes.</summary>
 public static partial class PlayfieldRenderer
 {
-    public static readonly Color PlayBackground = Palette.BackgroundPlay;
-    public static readonly Color PlayfieldBackground = Palette.SurfaceDeep;
+    public static readonly Color PlayBackground = Palette.Stage;
+    public static readonly Color PlayfieldBackground = Palette.Stage;
     public static readonly Color BorderColor = Palette.BorderStrong;
     public static readonly Color GridColor = CanvasGrid.LineColor;
     public static readonly Color AxisColor = CanvasGrid.AxisColor;
