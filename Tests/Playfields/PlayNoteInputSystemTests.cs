@@ -77,6 +77,31 @@ public sealed class PlayNoteInputSystemTests
     }
 
     [Test]
+    public void JudgementSitsOnTheNoteItJudged()
+    {
+        Entity playfield = CreatePlayfield(totalNotes: 1);
+        ref PlayfieldView view = ref playfield.GetComponent<PlayfieldView>();
+        view = new PlayfieldView(
+            new Vector2(400, 100),
+            0.5f,
+            new Vector2(1000, 1000));
+
+        Entity note = CreateNote(1_000, new Vector2(600, 800));
+        Vector2 noteScreen = view.PlayfieldToScreen(
+            note.GetComponent<Note>().Position);
+        SetPlayerPosition(playfield, noteScreen);
+        SetPlayhead(playfield, 1_000);
+        Press(KeybindAction.M);
+
+        Frame();
+
+        Assert.That(_store.Query<Note>().Count, Is.Zero);
+        Assert.That(
+            _judgementText.GetComponent<Position>().Value,
+            Is.EqualTo(noteScreen));
+    }
+
+    [Test]
     public void HittingANoteLeavesAPopWhereItWas()
     {
         Entity playfield = CreatePlayfield(totalNotes: 1);
