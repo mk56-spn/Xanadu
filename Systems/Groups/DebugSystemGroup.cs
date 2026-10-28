@@ -10,11 +10,13 @@ using Xanadu.Systems.Ui;
 namespace Xanadu.Systems.Groups;
 
 /// <summary>Draws the F3 pressed-entity overlay and ECS/system metrics.</summary>
-public sealed class DebugSystemGroup : SystemGroup
+public sealed class DebugSystemGroup : SystemGroup, IDisposable
 {
+    private readonly CanvasItemHandle _overlay;
+    private readonly UiDebugOverlayGroup _uiOverlay;
+
     public DebugSystemGroup(
         IRectCanvas canvas,
-        Rid overlay,
         Rid parentCanvas,
         IOverlayToggleSource toggle,
         EntityStore store,
@@ -27,15 +29,17 @@ public sealed class DebugSystemGroup : SystemGroup
         Func<bool> inGameplay,
         IOverlayPageSource? paging = null) : base("Debug")
     {
+        _overlay = new CanvasItemHandle(parentCanvas, 1000, visible: false);
+
         Add(new DebugPressedOverlaySystem(
             canvas,
-            overlay,
+            _overlay.Rid,
             toggle,
             store,
             systems,
             fps,
             paging));
-        Xanadu.Systems.Ui.UiDebugOverlayGroup.Attach(
+        _uiOverlay = Xanadu.Systems.Ui.UiDebugOverlayGroup.Attach(
             this,
             canvas,
             parentCanvas);
@@ -44,5 +48,11 @@ public sealed class DebugSystemGroup : SystemGroup
             physics,
             gravityToggle,
             inGameplay));
+    }
+
+    public void Dispose()
+    {
+        _uiOverlay.Dispose();
+        _overlay.Dispose();
     }
 }

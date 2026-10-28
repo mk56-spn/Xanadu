@@ -2,7 +2,6 @@ using System;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Godot;
-using Xanadu.Animation;
 using Xanadu.Ecs;
 using Xanadu.Editor;
 using Xanadu.Editor.Commands;
@@ -12,7 +11,6 @@ using Xanadu.Systems.Characters;
 using Xanadu.Systems.Debug;
 using Xanadu.Systems.Groups;
 using Xanadu.Systems.Input;
-using Xanadu.Systems.Particles;
 using Xanadu.Systems.Physics;
 using Xanadu.Profiles;
 using Xanadu.Settings;
@@ -27,17 +25,11 @@ namespace Xanadu.Ecs;
 /// </summary>
 public sealed class XanaduSystemRoot : SystemRoot, IDisposable
 {
-    private readonly Rid _debugOverlay;
     private readonly SceneDirector _sceneDirector;
-    private EditorSystemGroup _editorSystems = null!;
-    private readonly Rid _timeline;
-    private readonly Rid _hudEditOverlay;
-    private readonly Rid _groupPreview;
-    private readonly Rid _playfield;
-    private readonly Rid _characters;
-    private readonly Rid _particleCanvas;
-    private readonly Rid _hitboxes;
-    private readonly GodotParticleEmitter _particles;
+    private readonly PlayfieldSystemGroup _playfieldSystems;
+    private readonly EditorSystemGroup _editorSystems;
+    private readonly AudioSystemGroup _audioSystems;
+    private readonly DebugSystemGroup _debugSystems;
     private readonly EntityStore _entities;
     private readonly MiniaudioTrackAudio _trackAudio = new();
     private readonly MiniaudioTrackAudio _playfieldAudio = new();
@@ -116,79 +108,41 @@ public sealed class XanaduSystemRoot : SystemRoot, IDisposable
         _sceneDirector = sceneDirector;
         sceneDirector.Changed += OnSceneChanged;
 
-        _debugOverlay = RenderingServer.CanvasItemCreate();
-        RenderingServer.CanvasItemSetParent(_debugOverlay, parentCanvas);
-        RenderingServer.CanvasItemSetZIndex(_debugOverlay, 1000);
-        RenderingServer.CanvasItemSetVisible(_debugOverlay, false);
-
-
-        _timeline = RenderingServer.CanvasItemCreate();
-        RenderingServer.CanvasItemSetParent(_timeline, parentCanvas);
-        RenderingServer.CanvasItemSetZIndex(_timeline, 900);
-
-        _playfield = RenderingServer.CanvasItemCreate();
-        RenderingServer.CanvasItemSetParent(_playfield, parentCanvas);
-        RenderingServer.CanvasItemSetZIndex(_playfield, 800);
-
-        // Character rig art: a child of the playfield, so it draws over the field.
-        _characters = RenderingServer.CanvasItemCreate();
-        RenderingServer.CanvasItemSetParent(_characters, _playfield);
-
-        // Particle bursts: after the characters, so they draw over the rig.
-        _particleCanvas = RenderingServer.CanvasItemCreate();
-        RenderingServer.CanvasItemSetParent(_particleCanvas, _playfield);
-        _particles = new GodotParticleEmitter(_particleCanvas);
-
-        // The F10 hitbox outlines: after the art, so the rig cannot hide them,
-        // but still inside the playfield's layer so the HUD stays on top.
-        _hitboxes = RenderingServer.CanvasItemCreate();
-        RenderingServer.CanvasItemSetParent(_hitboxes, _playfield);
-        RenderingServer.CanvasItemSetVisible(_hitboxes, false);
-
-        _hudEditOverlay = RenderingServer.CanvasItemCreate();
-        RenderingServer.CanvasItemSetParent(_hudEditOverlay, parentCanvas);
-        RenderingServer.CanvasItemSetZIndex(_hudEditOverlay, 950);
-
-        // The group overlay's live preview draws above the dialog but below the
-        // debug overlay; only the editor scene shows it.
-        _groupPreview = RenderingServer.CanvasItemCreate();
-        RenderingServer.CanvasItemSetParent(_groupPreview, parentCanvas);
-        RenderingServer.CanvasItemSetZIndex(_groupPreview, 985);
-        RenderingServer.CanvasItemSetVisible(_groupPreview, false);
-
         Xanadu.Systems.Ui.UiBootstrap.AttachInitialization(this, parentCanvas);
         Add(new PhysicsSystemGroup(Physics, entities));
         Add(new Xanadu.Systems.Scenes.SongSelectScrollSystem());
         Add(new Xanadu.Systems.Audio.SongPreviewSystem(entities, _previewAudio));
         Xanadu.Systems.Ui.UiBootstrap.AttachPresentation(this, canvas);
-        Add(new AudioSystemGroup(_trackAudio, new GodotTrackClock(), canvas, _timeline));
-        Add(new PlayfieldSystemGroup(
+        _audioSystems = new AudioSystemGroup(
+            _trackAudio,
+            new GodotTrackClock(),
+            canvas,
+            parentCanvas);
+        Add(_audioSystems);
+        _playfieldSystems = new PlayfieldSystemGroup(
             entities,
             canvas,
-            _playfield,
+            parentCanvas,
             _playfieldAudio,
             Keybinds,
             PlayKeyboard,
             Offsets,
             pointerInput,
             Hud,
-            _hudEditOverlay,
             new GodotCharacterRigFiles(),
-            () => new SvgAttachmentVisuals(_characters),
-            _particles,
             PlayKeyboard,
-            _hitboxes,
-            new GodotOverlayToggleSource(Key.F10)));
+            new GodotOverlayToggleSource(Key.F10));
+        Add(_playfieldSystems);
         _editorSystems = new EditorSystemGroup(
             entities,
             Commands,
             pointerInput,
             canvas,
-            _playfield,
-            _groupPreview,
+            _playfieldSystems.Playfield,
+            parentCanvas,
             _metronomeAudio,
             EditorHistory);
-        _editorSystems.Enabled = false;
+        _editorSystems.SetActive(false);
         Add(_editorSystems);
         Add(new InputSystemGroup(
             entities,
@@ -200,9 +154,8 @@ public sealed class XanaduSystemRoot : SystemRoot, IDisposable
             Keyboard,
             new GodotVisualRidFactory(),
             viewportSize));
-        Add(new DebugSystemGroup(
+        _debugSystems = new DebugSystemGroup(
             canvas,
-            _debugOverlay,
             parentCanvas,
             new GodotOverlayToggleSource(Key.F3),
             entities,
@@ -213,7 +166,8 @@ public sealed class XanaduSystemRoot : SystemRoot, IDisposable
             Physics,
             new GodotOverlayToggleSource(Key.F6),
             () => _sceneDirector.Current == SceneKind.Play,
-            new GodotOverlayPageSource()));
+            new GodotOverlayPageSource());
+        Add(_debugSystems);
         Add(new Xanadu.Systems.Shaders.ShaderTunerSystem(
             entities,
             Keyboard,
@@ -223,11 +177,8 @@ public sealed class XanaduSystemRoot : SystemRoot, IDisposable
         SetMonitorPerf(true);
     }
 
-    private void OnSceneChanged(SceneKind scene)
-    {
-        _editorSystems.Enabled = scene == SceneKind.Editor;
-        RenderingServer.CanvasItemSetVisible(_groupPreview, scene == SceneKind.Editor);
-    }
+    private void OnSceneChanged(SceneKind scene) =>
+        _editorSystems.SetActive(scene == SceneKind.Editor);
 
     private void OnEntityDelete(EntityDelete entityDelete)
     {
@@ -312,13 +263,9 @@ public sealed class XanaduSystemRoot : SystemRoot, IDisposable
         _metronomeAudio.Dispose();
         _previewAudio.Dispose();
         Physics.Dispose();
-        _particles.Dispose();
-        RenderingServer.FreeRid(_particleCanvas);
-        RenderingServer.FreeRid(_hitboxes);
-        RenderingServer.FreeRid(_characters);
-        RenderingServer.FreeRid(_playfield);
-        RenderingServer.FreeRid(_groupPreview);
-        RenderingServer.FreeRid(_timeline);
-        RenderingServer.FreeRid(_debugOverlay);
+        _debugSystems.Dispose();
+        _editorSystems.Dispose();
+        _playfieldSystems.Dispose();
+        _audioSystems.Dispose();
     }
 }
