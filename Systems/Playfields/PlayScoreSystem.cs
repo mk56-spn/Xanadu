@@ -90,9 +90,11 @@ public sealed class PlayScoreSystem : QuerySystem<ScoreState, Playhead>
                 !score.JudgementText.IsNull &&
                 score.JudgementText.HasComponent<Position>())
             {
+                // The judgement belongs to the note that was hit, so it always
+                // sits on it; it is not a HUD element that can be moved away.
                 ref Position position =
                     ref score.JudgementText.GetComponent<Position>();
-                position.Value = score.JudgementPosition + score.HudOffset;
+                position.Value = score.JudgementPosition;
                 buffer.AddTag<Moved>(score.JudgementText.Id);
             }
         });

@@ -217,11 +217,8 @@ public static class PlayScene
             new Vector2(screen.X - 150, 68),
             new Rect2(screen.X - 260, 56, 220, 24),
             accuracyText);
-        hud.Add(
-            "judgement",
-            new Vector2(screen.X / 2, screen.Y / 2 - 120),
-            new Rect2(screen.X / 2 - 260, screen.Y / 2 - 142, 520, 44),
-            judgementText);
+        // The judgement text is not a HUD layout item: it is placed on the note
+        // that was hit, so it cannot be dragged away from it.
         hud.Add(
             "score",
             new Vector2(160, screen.Y - 24),

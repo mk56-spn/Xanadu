@@ -27,7 +27,8 @@ public struct ScoreState(
     public Judgement LastJudgement;
     public bool HasJudgement;
     public long LastOffsetMs;
-    public Vector2 HudOffset;
+
+    /// <summary>Screen position of the note that was judged; judgements sit on it.</summary>
     public Vector2 JudgementPosition;
     public long JudgementTimeMs;
     public int FlawlessPCount;

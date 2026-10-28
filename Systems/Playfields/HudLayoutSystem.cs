@@ -149,11 +149,6 @@ public sealed class HudLayoutSystem(
             }
         }
 
-        if (item.Id == "judgement" && playfield.HasComponent<ScoreState>())
-        {
-            playfield.GetComponent<ScoreState>().HudOffset = item.Offset;
-        }
-
         if (item.Id == "error_bar" && playfield.HasComponent<ErrorBar>())
         {
             ref ErrorBar bar = ref playfield.GetComponent<ErrorBar>();
