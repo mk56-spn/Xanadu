@@ -20,8 +20,6 @@ public sealed class DebugPressedOverlaySystem : QuerySystem<Rectangle, Position>
     private const float PanelHeight = 360;
     private const float LineHeight = 18;
 
-    private static readonly Color Fill = new(1f, 0.85f, 0.2f, 0.3f);
-    private static readonly Color Border = Colors.Yellow;
     private static readonly Color PanelBackground = new(0.02f, 0.03f, 0.06f, 0.9f);
     private static readonly Color PanelBorder = new(0.45f, 0.6f, 0.85f, 0.8f);
     private static readonly Color TitleColor = new(1f, 0.85f, 0.3f);

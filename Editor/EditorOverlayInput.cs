@@ -280,14 +280,4 @@ public partial class EditorOverlay : CanvasLayer
         _commands.Enqueue(EditorCommand.Redo());
         SetStatus("Redo");
     }
-
-    private void OnZoom(int direction)
-    {
-        if (_editor.IsNull)
-            return;
-
-        _commands.Enqueue(EditorCommand.ZoomTimeline(direction));
-    }
-
-
 }

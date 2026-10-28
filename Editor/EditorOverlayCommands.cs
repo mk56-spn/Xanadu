@@ -44,15 +44,6 @@ public partial class EditorOverlay : CanvasLayer
         }
     }
 
-    private void ToggleMetronome()
-    {
-        if (_editor.IsNull || !_editor.HasComponent<EditorMetronome>())
-            return;
-
-        EditorMetronome metronome = _editor.GetComponent<EditorMetronome>();
-        _commands.Enqueue(EditorCommand.SetMetronome(!metronome.Enabled));
-    }
-
     private void TapTempo()
     {
         if (_editor.IsNull)

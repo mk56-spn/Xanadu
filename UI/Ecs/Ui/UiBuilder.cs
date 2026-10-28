@@ -245,29 +245,6 @@ public sealed partial class UiBuilder
         return new UiDropdownControl(button, list, optionEntities);
     }
 
-    private Entity CreateLayerRect(
-        Vector2 position,
-        Vector2 size,
-        Color color,
-        string? text = null,
-        bool takesInput = false)
-    {
-        Tags tags = takesInput
-            ? Tags.Get<Uninitialised, Dirty, TakesInput>()
-            : Tags.Get<Uninitialised, Dirty>();
-        Entity entity = _entities.CreateEntity(
-            new VisualRid(_visuals.CreateCanvasItem()),
-            new Rectangle(new Rect2(-size / 2, size)),
-            new Drawable(_layerZIndex),
-            new Position(position),
-            new FillColor(color),
-            tags);
-        if (text is not null)
-            entity.AddComponent(new Text(text));
-        AddChild(_layer, entity);
-        return entity;
-    }
-
     public UiBuilder Rect(
         Vector2 position,
         Vector2 size,
