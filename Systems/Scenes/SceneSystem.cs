@@ -30,7 +30,6 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
     private Entity _pausePanel;
     private Entity _transitionPanel;
     private Entity _sceneRoot;
-    private List<LevelEntry> _catalog = new();
     private LevelEntry? _pendingPlayEntry;
     private StartPoint? _pendingStart;
     private LevelEntry? _pendingEditorEntry;

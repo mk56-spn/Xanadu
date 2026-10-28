@@ -11,7 +11,6 @@ namespace Xanadu.Systems.Editor;
 /// <summary>Updates the ECS editor header, footer, status, and preview labels.</summary>
 public sealed class EditorHudSystem : QuerySystem<EditorHud, LevelInfo, Playhead>
 {
-    private static readonly Vector2 Hidden = new(-10_000, -10_000);
     private readonly EntityStore _entities;
 
     public EditorHudSystem(EntityStore entities)
