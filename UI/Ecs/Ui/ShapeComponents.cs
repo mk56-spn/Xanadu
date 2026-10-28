@@ -20,3 +20,14 @@ public struct UiShape(
     public float StrokeWidth = strokeWidth;
     public bool Closed = closed;
 }
+
+/// <summary>
+/// Soft glow drawn behind a shape: a gaussian-blurred copy of its fill and
+/// stroke in <see cref="Color"/>. Works on any entity with <see cref="UiShape"/>.
+/// </summary>
+public struct ShapeGlow(Color color, float radius = 12f, float intensity = 1.5f) : IComponent
+{
+    public Color Color = color;
+    public float Radius = radius;
+    public float Intensity = intensity;
+}

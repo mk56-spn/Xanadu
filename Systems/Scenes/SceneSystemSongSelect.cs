@@ -42,8 +42,12 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
             return false;
 
         ref SceneState state = ref _stateEntity.GetComponent<SceneState>();
-        LevelEntry? entry = LoadEntry(state.SelectedLevelPath);
-        if (entry is null)
+        string path = state.SelectedLevelPath;
+        LevelEntry? entry = LoadEntry(path);
+
+        // An empty path means there are no levels at all; the editor starts a
+        // new one. A path that fails to load is an error, not a new level.
+        if (entry is null && !string.IsNullOrWhiteSpace(path))
             return false;
 
         _pendingEditorEntry = entry;

@@ -34,7 +34,6 @@ public sealed record SceneBuildContext(
 public interface ISceneController
 {
     SceneKind Kind { get; }
-    string Label { get; }
     void Build(SceneBuildContext context);
     bool TryForward(SceneSystem system) => false;
     SceneKind BackTarget => SceneKind.None;
@@ -60,11 +59,6 @@ public sealed class SceneControllerRegistry
         return true;
     }
 
-    public string LabelFor(SceneKind kind) =>
-        _controllers.TryGetValue(kind, out ISceneController? controller)
-            ? controller.Label
-            : "";
-
     public ISceneController? Get(SceneKind kind) =>
         _controllers.TryGetValue(kind, out ISceneController? controller)
             ? controller
@@ -88,7 +82,6 @@ public sealed class SceneControllerRegistry
     private sealed class SongTimingController : ISceneController
     {
         public SceneKind Kind => SceneKind.SongTiming;
-        public string Label => "SONG TIMING";
         public SceneKind BackTarget => SceneKind.Editor;
 
         public void Build(SceneBuildContext c)
@@ -157,7 +150,6 @@ public sealed class SceneControllerRegistry
     private sealed class MainMenuController : ISceneController
     {
         public SceneKind Kind => SceneKind.Main;
-        public string Label => "MAIN";
         public void Build(SceneBuildContext c) => MainMenuScene.Build(c.Entities, c.Root, c.Screen, c.Visuals);
         public bool TryForward(SceneSystem system)
         {
@@ -169,7 +161,6 @@ public sealed class SceneControllerRegistry
     private sealed class ProfilesController : ISceneController
     {
         public SceneKind Kind => SceneKind.Profiles;
-        public string Label => "PROFILES";
         public void Build(SceneBuildContext c) => ProfilesScene.Build(c.Entities, c.Root, c.Screen, c.Profiles, c.Visuals);
         public void HandleActions(SceneSystem system, ref SceneState state)
         {
@@ -198,7 +189,6 @@ public sealed class SceneControllerRegistry
     private sealed class EditorController : ISceneController
     {
         public SceneKind Kind => SceneKind.Editor;
-        public string Label => "EDITOR";
         public void Build(SceneBuildContext c) => EditorScene.Build(c.Entities, c.Screen, c.Root, c.Entry);
         public SceneKind BackTarget => SceneKind.SongSelect;
         public bool ConfirmsOnBack => true;
@@ -207,7 +197,6 @@ public sealed class SceneControllerRegistry
     private sealed class PlayController : ISceneController
     {
         public SceneKind Kind => SceneKind.Play;
-        public string Label => "PLAY";
         public void Build(SceneBuildContext c) => PlayScene.Build(
             c.Entities,
             c.Root,
@@ -225,7 +214,6 @@ public sealed class SceneControllerRegistry
     private sealed class ResultsController : ISceneController
     {
         public SceneKind Kind => SceneKind.Results;
-        public string Label => "RESULTS";
         public void Build(SceneBuildContext c) => ResultsScene.Build(c.Entities, c.Root, c.Screen, c.Results ?? default, c.Visuals, c.CanWatchReplay);
         public bool TryForward(SceneSystem system)
         {
@@ -238,7 +226,6 @@ public sealed class SceneControllerRegistry
     private sealed class SettingsController : ISceneController
     {
         public SceneKind Kind => SceneKind.Settings;
-        public string Label => "SETTINGS";
         public void Build(SceneBuildContext c) => SettingsScene.Build(
             c.Entities,
             c.Root,
@@ -265,7 +252,6 @@ public sealed class SceneControllerRegistry
     private sealed class OffsetWizardController : ISceneController
     {
         public SceneKind Kind => SceneKind.OffsetWizard;
-        public string Label => "OFFSET WIZARD";
         public void Build(SceneBuildContext c) => OffsetWizardScene.Build(c.Entities, c.Root, c.Screen, c.Visuals);
         public SceneKind BackTarget => SceneKind.Main;
     }

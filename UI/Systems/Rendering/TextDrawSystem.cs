@@ -49,10 +49,26 @@ public sealed class TextDrawSystem : QuerySystem<Text, Rectangle, Drawable, Visu
                         style.FontSize,
                         align,
                         style.Bold,
-                        entity.GetComponent<TextGlow>());
+                        entity.GetComponent<TextGlow>(),
+                        entity.TryGetComponent(out TextOutline glowOutline)
+                            ? glowOutline
+                            : null);
                 }
                 else
                 {
+                    if (entity.TryGetComponent(out TextOutline outline))
+                    {
+                        _canvas.DrawTextOutline(
+                            visual.Value,
+                            rect.Bounds,
+                            text.Value,
+                            outline.Color,
+                            style.FontSize,
+                            align,
+                            style.Bold,
+                            outline.Size);
+                    }
+
                     _canvas.DrawTextWeighted(
                         visual.Value,
                         rect.Bounds,

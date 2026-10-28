@@ -46,6 +46,13 @@ public struct TextGlow(Color color, float radius = 12f, float intensity = 1.5f) 
     public float Intensity = intensity;
 }
 
+/// <summary>Outline drawn around an entity's text, under the fill.</summary>
+public struct TextOutline(Color color, int size = 4) : IComponent
+{
+    public Color Color = color;
+    public int Size = size;
+}
+
 public enum TextAlign
 {
     Center,
@@ -95,7 +102,9 @@ public struct UiContainer(
     bool autoWidth = false,
     bool autoHeight = false,
     bool anchorTop = false,
-    StackMainAlignment main = StackMainAlignment.Center) : IComponent
+    StackMainAlignment main = StackMainAlignment.Center,
+    float skew = 0,
+    bool anchorLeft = false) : IComponent
 {
     public StackDirection Direction = direction;
     public float Spacing = spacing;
@@ -108,6 +117,26 @@ public struct UiContainer(
 
     /// <summary>Where children sit along the stacking direction; centered by default.</summary>
     public StackMainAlignment Main = main;
+
+    /// <summary>
+    /// Shear in radians. The container draws as a parallelogram whose top edge
+    /// leans right of its bottom edge by this angle, and a vertical stack flows
+    /// its children along the slanted sides.
+    /// </summary>
+    public float Skew = skew;
+
+    /// <summary>Keeps the left edge fixed when an auto-width container resizes.</summary>
+    public bool AnchorLeft = anchorLeft;
+
+    /// <summary>The container's corners, clockwise from the top left, with the skew applied.</summary>
+    public static Vector2[] Corners(Rect2 bounds, float skew) => UiOutline.Points(bounds, skew, 0);
+}
+
+/// <summary>An outline drawn around a container or rectangle, following its skew.</summary>
+public struct UiBorder(Color color, float width) : IComponent
+{
+    public Color Color = color;
+    public float Width = width;
 }
 
 /// <summary>Layer entity component. ZIndex determines draw order between layers.</summary>

@@ -42,6 +42,7 @@ public sealed class XanaduSystemRoot : SystemRoot, IDisposable
     private readonly MiniaudioTrackAudio _trackAudio = new();
     private readonly MiniaudioTrackAudio _playfieldAudio = new();
     private readonly MiniaudioTrackAudio _metronomeAudio = new();
+    private readonly MiniaudioTrackAudio _previewAudio = new();
     private readonly ScrollSystem _scroll = new();
 
     public Box2DPhysicsWorld Physics { get; } = new();
@@ -158,6 +159,7 @@ public sealed class XanaduSystemRoot : SystemRoot, IDisposable
         Xanadu.Systems.Ui.UiBootstrap.AttachInitialization(this, parentCanvas);
         Add(new PhysicsSystemGroup(Physics, entities));
         Add(new Xanadu.Systems.Scenes.SongSelectScrollSystem());
+        Add(new Xanadu.Systems.Audio.SongPreviewSystem(entities, _previewAudio));
         Xanadu.Systems.Ui.UiBootstrap.AttachPresentation(this, canvas);
         Add(new AudioSystemGroup(_trackAudio, new GodotTrackClock(), canvas, _timeline));
         Add(new PlayfieldSystemGroup(
@@ -307,6 +309,7 @@ public sealed class XanaduSystemRoot : SystemRoot, IDisposable
         _trackAudio.Dispose();
         _playfieldAudio.Dispose();
         _metronomeAudio.Dispose();
+        _previewAudio.Dispose();
         Physics.Dispose();
         _particles.Dispose();
         RenderingServer.FreeRid(_particleCanvas);

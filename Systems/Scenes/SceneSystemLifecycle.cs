@@ -21,9 +21,6 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
         if (_stateEntity.IsNull)
             _stateEntity = _entities.CreateEntity(new SceneState(SceneKind.None));
 
-        if (_labelEntity.IsNull)
-            BuildLabel();
-
         if (_confirmationPanel.IsNull)
             BuildConfirmation();
 
@@ -32,43 +29,6 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
 
         if (_transitionPanel.IsNull)
             BuildTransition();
-    }
-
-    private void BuildLabel()
-    {
-        UiBuilder label = UiBuilder.Begin(_entities, _visuals)
-            .Layer(SceneUi.SceneLabelLayer);
-
-        var position = new Vector2(_screen.X - 210, 52);
-        var size = new Vector2(380, 100);
-
-        (Vector2 Size, float Alpha)[] backdrops =
-        {
-            (new Vector2(500, 160), 0.025f),
-            (new Vector2(460, 140), 0.030f),
-            (new Vector2(410, 115), 0.035f),
-            (size, 0.040f),
-        };
-
-        foreach ((Vector2 backdropSize, float alpha) in backdrops)
-        {
-            label.LinearGradientEntity(
-                position,
-                backdropSize,
-                new LinearGradient(
-                    new Color(0f, 0f, 0f, 0f),
-                    new Color(0f, 0f, 0f, alpha)));
-        }
-
-        _labelEntity = label.RectEntity(
-            position,
-            size,
-            new Color(0f, 0f, 0f, 0f),
-            "");
-
-        _labelEntity.AddComponent(new TextStyle(
-            56,
-            new Color(0f, 0f, 0f, 0.45f)));
     }
 
     private void Switch(ref SceneState state)
@@ -161,7 +121,6 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
         state.Current = next;
         state.Pending = next;
         RestorePreviewPlayhead(next);
-        SceneUi.SetText(_labelEntity, LabelFor(next));
         _director.Apply(next);
     }
 
@@ -226,6 +185,4 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
         foreach (Entity trail in _entities.Query<KeyPressTrail>().ToEntityList())
             trail.DeleteEntity();
     }
-
-    private string LabelFor(SceneKind scene) => _controllers.LabelFor(scene);
 }

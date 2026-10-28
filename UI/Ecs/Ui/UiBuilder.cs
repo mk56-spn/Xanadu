@@ -61,7 +61,9 @@ public sealed partial class UiBuilder
         bool autoWidth = false,
         bool autoHeight = false,
         bool anchorTop = false,
-        StackMainAlignment main = StackMainAlignment.Center)
+        StackMainAlignment main = StackMainAlignment.Center,
+        float skew = 0,
+        bool anchorLeft = false)
     {
         RequireLayer();
 
@@ -84,7 +86,9 @@ public sealed partial class UiBuilder
                 autoWidth,
                 autoHeight,
                 anchorTop,
-                main),
+                main,
+                skew,
+                anchorLeft),
             tags);
 
         if (text is not null)

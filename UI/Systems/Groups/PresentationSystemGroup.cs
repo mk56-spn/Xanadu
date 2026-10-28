@@ -17,5 +17,6 @@ public sealed class PresentationSystemGroup : SystemGroup
         Add(new ShapeDrawSystem(canvas));
         Add(new TextDrawSystem(canvas));
         Add(new ImageDrawSystem(canvas));
+        Add(new BarGraphDrawSystem(canvas));
     }
 }

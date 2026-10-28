@@ -68,7 +68,7 @@ public sealed class SceneSystemTests
     }
 
     [Test]
-    public void MainMenuStartsAndLabelsScene()
+    public void MainMenuStartsScene()
     {
         _scenes.Start(SceneKind.Main);
         Frame();
@@ -77,7 +77,6 @@ public sealed class SceneSystemTests
         Assert.That(_store.Query<SceneRoot>().Count, Is.EqualTo(1));
         Assert.That(_store.Query<SceneRoot>().ToEntityList()[0].GetComponent<SceneRoot>().Scene,
             Is.EqualTo(SceneKind.Main));
-        Assert.That(HasText("MAIN"), Is.True);
         Assert.That(HasText("XANADU"), Is.True);
     }
 
@@ -107,6 +106,64 @@ public sealed class SceneSystemTests
             Is.EqualTo("Second Level"));
 
         step.DeleteEntity();
+    }
+
+    [Test]
+    public void SongSelectWithNoLevelsInvitesCreatingOne()
+    {
+        _catalog.Clear();
+
+        _scenes.Start(SceneKind.SongSelect);
+        Frame();
+
+        Assert.That(_director.Current, Is.EqualTo(SceneKind.SongSelect));
+        Assert.That(HasText("NO LEVELS FOUND"), Is.True);
+        Assert.That(HasText("CREATE A LEVEL IN THE EDITOR"), Is.True);
+
+        Entity root = _store.Query<SceneRoot>().ToEntityList()[0];
+        SongSelectState view = root.GetComponent<SongSelectState>();
+        Assert.That(view.Count, Is.EqualTo(0));
+        Assert.That(view.Thumb.GetComponent<UiShape>().Points,
+            Has.Length.EqualTo(1), "an empty list has no scrollbar thumb");
+
+        // The hint is a button: it takes input and asks for the editor.
+        Entity hint = _store.Query<Text>().ToEntityList()
+            .First(entity => entity.GetComponent<Text>().Value ==
+                             "CREATE A LEVEL IN THE EDITOR");
+        Assert.That(hint.Tags.Has<TakesInput>(), Is.True);
+        Assert.That(
+            hint.GetComponent<SceneCommand>().Action,
+            Is.EqualTo(SceneActionId.Edit));
+    }
+
+    [Test]
+    public void EditWithNoLevelsStartsANewOne()
+    {
+        _catalog.Clear();
+
+        _scenes.Start(SceneKind.SongSelect);
+        Frame();
+
+        Assert.That(_scenes.EditSelected(), Is.True);
+        Assert.That(
+            _store.Query<Xanadu.Ecs.SceneState>().ToEntityList()[0]
+                .GetComponent<Xanadu.Ecs.SceneState>().Pending,
+            Is.EqualTo(SceneKind.Editor));
+    }
+
+    [Test]
+    public void SongSelectWithLevelsHidesTheCreateLevelHint()
+    {
+        _scenes.Start(SceneKind.SongSelect);
+        Frame();
+
+        Assert.That(HasText("NO LEVELS FOUND"), Is.False);
+        Assert.That(HasText("CREATE A LEVEL IN THE EDITOR"), Is.False);
+
+        Entity root = _store.Query<SceneRoot>().ToEntityList()[0];
+        Assert.That(
+            root.GetComponent<SongSelectState>().Thumb.GetComponent<UiShape>().Points,
+            Has.Length.EqualTo(2));
     }
 
     private static void SettleScroll(Entity root)
@@ -219,10 +276,107 @@ public sealed class SceneSystemTests
 
         Entity root = _store.Query<SceneRoot>().ToEntityList()[0];
         SongSelectState view = root.GetComponent<SongSelectState>();
-        Assert.That(view.Tiles, Has.Count.EqualTo(8));
+        Assert.That(view.Tiles, Has.Count.EqualTo(9));
         Assert.That(
             view.Names[4].GetComponent<Text>().Value,
             Is.EqualTo("First Level"));
+    }
+
+    [Test]
+    public void ScoreBarsShowAccuracyThenScoreHighestFirst()
+    {
+        _profiles.Create("Low");
+        _profiles.RecordScore(
+            _catalog[0].Path,
+            new PlayResults("First Level", 400_000, 0.5, 10, 10, 20));
+        _profiles.Create("High");
+        _profiles.RecordScore(
+            _catalog[0].Path,
+            new PlayResults("First Level", 900_000, 0.9876, 42, 50, 55));
+
+        _scenes.Start(SceneKind.SongSelect);
+        Frame();
+
+        SongSelectState view = _store.Query<SceneRoot>().ToEntityList()[0]
+            .GetComponent<SongSelectState>();
+        Assert.That(view.ScoreAccuracies[0].GetComponent<Text>().Value, Is.EqualTo("98.76%"));
+        Assert.That(view.ScoreValues[0].GetComponent<Text>().Value, Is.EqualTo("0900000"));
+        Assert.That(view.ScoreAccuracies[1].GetComponent<Text>().Value, Is.EqualTo("50.00%"));
+        Assert.That(view.ScoreValues[1].GetComponent<Text>().Value, Is.EqualTo("0400000"));
+        Assert.That(view.ScoreValues[2].GetComponent<Text>().Value, Is.Empty);
+    }
+
+    [Test]
+    public void ScoresScrollAndTheScrollbarFollows()
+    {
+        _root.Add(new Xanadu.Systems.Scenes.SongSelectScrollSystem());
+        _root.Add(new Xanadu.Systems.Layout.ContainerLayoutSystem());
+        _root.Add(new Xanadu.Systems.Ui.ScrollSystem());
+        for (int i = 0; i < 8; i++)
+        {
+            _profiles.Create($"Player {i}");
+            _profiles.RecordScore(
+                _catalog[0].Path,
+                new PlayResults("First Level", 900_000 - i * 1000, 0.9, 10, 10, 20));
+        }
+
+        _scenes.Start(SceneKind.SongSelect);
+        Frame();
+
+        Entity root = _store.Query<SceneRoot>().ToEntityList()[0];
+        SongSelectState view = root.GetComponent<SongSelectState>();
+        Assert.That(
+            view.ScoreContent.GetComponent<Rectangle>().Bounds.Size.Y,
+            Is.GreaterThan(224));
+        float top = view.ScoreThumbSpan.X;
+
+        view.ScoreViewport.GetComponent<ScrollView>().Offset = 1000;
+        Frame();
+        Frame();
+
+        view = root.GetComponent<SongSelectState>();
+        Assert.That(view.ScoreThumbSpan.X, Is.GreaterThan(top));
+        Assert.That(
+            view.ScoreThumbSpan.X + view.ScoreThumbSpan.Y,
+            Is.EqualTo(1036.348f).Within(0.01f));
+    }
+
+    [Test]
+    public void SongSelectPlaysTheSelectedSongAndStopsOnLeaving()
+    {
+        string first = Path.Combine(_directory, "first.wav");
+        string second = Path.Combine(_directory, "second.wav");
+        File.WriteAllBytes(first, [0]);
+        File.WriteAllBytes(second, [0]);
+        _catalog[0] = _catalog[0] with
+        {
+            Song = new SongDocument { Id = "a", AudioPath = first },
+            SongAvailable = true,
+        };
+        _catalog[1] = _catalog[1] with
+        {
+            Song = new SongDocument { Id = "b", AudioPath = second },
+            SongAvailable = true,
+        };
+
+        var audio = new FakeTrackAudio();
+        _root.Add(new Xanadu.Systems.Audio.SongPreviewSystem(_store, audio));
+
+        _scenes.Start(SceneKind.SongSelect);
+        Frames(10);
+        Assert.That(audio.Loaded, Is.Empty, "a new selection waits to settle");
+
+        Frames(20);
+        Assert.That(audio.Loaded, Is.EqualTo(new[] { first }));
+        Assert.That(audio.IsPlaying, Is.True);
+
+        _scenes.StepSongSelect(1);
+        Frames(30);
+        Assert.That(audio.Loaded, Is.EqualTo(new[] { first, second }));
+
+        _scenes.Start(SceneKind.Main);
+        Frames(3);
+        Assert.That(audio.IsPlaying, Is.False);
     }
 
     [Test]
@@ -253,7 +407,6 @@ public sealed class SceneSystemTests
         Frame();
 
         Assert.That(_director.Current, Is.EqualTo(SceneKind.Play));
-        Assert.That(HasText("PLAY"), Is.True);
 
         Entity playfield = _store.Query<PlayfieldMode>().ToEntityList()[0];
         Assert.That(playfield.GetComponent<PlayfieldMode>().Kind, Is.EqualTo(PlayfieldKind.Play));
@@ -423,34 +576,6 @@ public sealed class SceneSystemTests
     }
 
     [Test]
-    public void SceneTagUsesLargeLowOpacityBlackText()
-    {
-        _scenes.Start(SceneKind.Main);
-        Frame();
-
-        Entity tag = default;
-        foreach (Entity entity in _store.Query<Text>().ToEntityList())
-        {
-            if (entity.GetComponent<Text>().Value == "MAIN")
-            {
-                tag = entity;
-                break;
-            }
-        }
-
-        Assert.That(tag.IsNull, Is.False);
-        TextStyle style = tag.GetComponent<TextStyle>();
-        Assert.That(style.FontSize, Is.EqualTo(56));
-        Assert.That(style.Color.R, Is.Zero);
-        Assert.That(style.Color.G, Is.Zero);
-        Assert.That(style.Color.B, Is.Zero);
-        Assert.That(style.Color.A, Is.LessThan(0.6f));
-        Assert.That(
-            tag.GetComponent<Rectangle>().Bounds.Size,
-            Is.EqualTo(new Vector2(380, 100)));
-    }
-
-    [Test]
     public void BackFromSongSelectGoesToMain()
     {
         _scenes.Start(SceneKind.SongSelect);
@@ -460,7 +585,70 @@ public sealed class SceneSystemTests
         Frame();
 
         Assert.That(_director.Current, Is.EqualTo(SceneKind.Main));
-        Assert.That(HasText("MAIN"), Is.True);
+        Assert.That(HasText("XANADU"), Is.True);
+    }
+
+    [Test]
+    public void ClickingTheLevelArtPlaysAndEditIsADiamond()
+    {
+        _scenes.Start(SceneKind.SongSelect);
+        Frame();
+
+        SongSelectState view = _store.Query<SceneRoot>().ToEntityList()[0]
+            .GetComponent<SongSelectState>();
+        Assert.That(view.Play.GetComponent<SceneCommand>().Action, Is.EqualTo(SceneActionId.Play));
+        Assert.That(view.Play.Tags.Has<TakesInput>(), Is.True);
+        Assert.That(view.Play.HasComponent<UiMaterial>(), Is.False, "the test factory loads no shaders");
+
+        Assert.That(view.Edit.GetComponent<SceneCommand>().Action, Is.EqualTo(SceneActionId.Edit));
+        Assert.That(view.Edit.Tags.Has<TakesInput>(), Is.True);
+        Assert.That(view.Edit.HasComponent<UiDiamond>(), Is.True);
+        Assert.That(view.Edit.GetComponent<UiContainer>().Skew, Is.Zero);
+        Assert.That(view.ActionIcons, Is.Not.Empty);
+    }
+
+    [Test]
+    public void SongSelectInfoShowsDifficultyThenGenreTitleAndArtist()
+    {
+        _catalog[0] = _catalog[0] with
+        {
+            Song = new SongDocument
+            {
+                Id = "a",
+                Title = "Choo Choo Train",
+                Artist = "Slake",
+                Genre = "J-Revival",
+            },
+            SongAvailable = true,
+        };
+
+        _scenes.Start(SceneKind.SongSelect);
+        Frame();
+
+        SongSelectState view = _store.Query<SceneRoot>().ToEntityList()[0]
+            .GetComponent<SongSelectState>();
+        Assert.That(view.InfoDifficulty.GetComponent<Text>().Value, Is.EqualTo("FIRST LEVEL"));
+        Assert.That(view.InfoGenre.GetComponent<Text>().Value, Is.EqualTo("J-REVIVAL"));
+        Assert.That(view.InfoTitle.GetComponent<Text>().Value, Is.EqualTo("Choo Choo Train"));
+        Assert.That(view.InfoArtist.GetComponent<Text>().Value, Is.EqualTo("Slake"));
+    }
+
+    [Test]
+    public void LongTitlesShrinkToFitTheInfoCard()
+    {
+        _catalog[0] = _catalog[0] with
+        {
+            Song = new SongDocument { Id = "a", Title = new string('W', 40) },
+            SongAvailable = true,
+        };
+
+        _scenes.Start(SceneKind.SongSelect);
+        Frame();
+
+        SongSelectState view = _store.Query<SceneRoot>().ToEntityList()[0]
+            .GetComponent<SongSelectState>();
+        Assert.That(view.InfoTitle.GetComponent<TextStyle>().FontSize, Is.LessThan(46));
+        Assert.That(view.InfoTitle.GetComponent<TextStyle>().FontSize, Is.GreaterThanOrEqualTo(24));
     }
 
     [Test]
@@ -478,8 +666,12 @@ public sealed class SceneSystemTests
         _scenes.Start(SceneKind.SongSelect);
         Frame();
 
-        Assert.That(HasText("SONG MISSING"), Is.True);
-        Assert.That(HasText("PLAY"), Is.False);
+        Assert.That(HasText("[SONG MISSING]"), Is.True);
+
+        SongSelectState view = _store.Query<SceneRoot>().ToEntityList()[0]
+            .GetComponent<SongSelectState>();
+        Assert.That(view.Play.Tags.Has<TakesInput>(), Is.False);
+        Assert.That(view.Edit.Tags.Has<TakesInput>(), Is.False);
     }
 
     [Test]
@@ -810,6 +1002,50 @@ public sealed class SceneSystemTests
     }
 
     private void Frame() => _root.Update(new UpdateTick(1f / 60f, 0));
+
+    private void Frames(int count)
+    {
+        for (int i = 0; i < count; i++)
+            Frame();
+    }
+
+    private sealed class FakeTrackAudio : Xanadu.Systems.Audio.ITrackAudio
+    {
+        public List<string> Loaded { get; } = new();
+
+        public bool IsPlaying { get; private set; }
+
+        public float PositionSeconds => 0;
+
+        public float LengthSeconds => 60;
+
+        public bool Play(string audioPath, float volume) => Load(audioPath, volume) && Resume();
+
+        public bool Load(string audioPath, float volume)
+        {
+            IsPlaying = false;
+            Loaded.Add(audioPath);
+            return true;
+        }
+
+        public bool Resume() => IsPlaying = true;
+
+        public void Pause() => IsPlaying = false;
+
+        public void Seek(float seconds)
+        {
+        }
+
+        public void SetVolume(float volume)
+        {
+        }
+
+        public void Stop() => IsPlaying = false;
+
+        public void Dispose()
+        {
+        }
+    }
 
     private void Advance(int frames)
     {

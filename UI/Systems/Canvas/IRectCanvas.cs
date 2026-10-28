@@ -167,6 +167,38 @@ public interface IRectCanvas
         int fontSize,
         TextAlign align,
         bool bold,
-        TextGlow glow) =>
+        TextGlow glow,
+        TextOutline? outline = null)
+    {
+        if (outline is { } line)
+            DrawTextOutline(canvas, bounds, text, line.Color, fontSize, align, bold, line.Size);
+
         DrawTextWeighted(canvas, bounds, text, color, fontSize, align, bold);
+    }
+
+    /// <summary>
+    /// Draws a glow behind a shape's outline. Canvases that cannot blur draw nothing.
+    /// </summary>
+    void DrawShapeGlow(
+        Rid canvas,
+        ReadOnlySpan<Vector2> points,
+        bool closed,
+        bool filled,
+        float strokeWidth,
+        ShapeGlow glow)
+    {
+    }
+
+    /// <summary>Draws just the outline of text; canvases that cannot outline draw nothing.</summary>
+    void DrawTextOutline(
+        Rid canvas,
+        Rect2 bounds,
+        string text,
+        Color color,
+        int fontSize,
+        TextAlign align,
+        bool bold,
+        int size)
+    {
+    }
 }
