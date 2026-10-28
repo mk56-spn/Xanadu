@@ -35,7 +35,7 @@ public sealed partial class EditorGroupSystem
         }
 
         string title = group.Name.Length > 0 ? $"GROUP {state.Open + 1}" : $"GROUP {state.Open + 1}";
-        SetText(Piece(EditorGroupPart.Title), title, buffer);
+        UiText.Set(Piece(EditorGroupPart.Title), title, buffer);
 
         int members = CountMembers(state.Open);
         int mine = 0;
@@ -45,10 +45,10 @@ public sealed partial class EditorGroupSystem
                 mine++;
         }
 
-        SetText(Piece(EditorGroupPart.MemberText), mine > 0 ? $"{members} ITEMS  ({mine} SELECTED)" : $"{members} ITEMS", buffer);
-        SetText(Piece(EditorGroupPart.SnapToggle), state.Snap ? "SNAP ON" : "SNAP OFF", buffer);
+        UiText.Set(Piece(EditorGroupPart.MemberText), mine > 0 ? $"{members} ITEMS  ({mine} SELECTED)" : $"{members} ITEMS", buffer);
+        UiText.Set(Piece(EditorGroupPart.SnapToggle), state.Snap ? "SNAP ON" : "SNAP OFF", buffer);
         Tint(Piece(EditorGroupPart.SnapToggle), state.Snap ? CellUsed : SceneColors.Muted, buffer);
-        SetText(Piece(EditorGroupPart.PlayToggle), playhead.Playing ? "PAUSE" : "PLAY", buffer);
+        UiText.Set(Piece(EditorGroupPart.PlayToggle), playhead.Playing ? "PAUSE" : "PLAY", buffer);
         Tint(Piece(EditorGroupPart.PlayToggle), playhead.Playing ? CellOpen : CellUsed, buffer);
 
         Entity name = Piece(EditorGroupPart.NameField);
@@ -128,11 +128,11 @@ public sealed partial class EditorGroupSystem
                 Place(Piece(part, row), rect, origin, buffer);
             }
 
-            SetText(Piece(EditorGroupPart.RowIndex, row), (row + 1) + (effect.Muted ? "*" : ""), buffer);
-            SetText(Piece(EditorGroupPart.RowKind, row), isMove ? "MOVE" : "COLOR", buffer);
+            UiText.Set(Piece(EditorGroupPart.RowIndex, row), (row + 1) + (effect.Muted ? "*" : ""), buffer);
+            UiText.Set(Piece(EditorGroupPart.RowKind, row), isMove ? "MOVE" : "COLOR", buffer);
             Tint(Piece(EditorGroupPart.RowKind, row), isMove ? MoveColor.Darkened(0.55f) : OpaqueTint(effect).Darkened(0.45f), buffer);
             Entity ease = Piece(EditorGroupPart.RowEase, row);
-            SetText(ease, EaseLabel(effect.Ease), buffer);
+            UiText.Set(ease, EaseLabel(effect.Ease), buffer);
             Tint(ease, isMove ? MoveColor.Darkened(0.7f) : OpaqueTint(effect).Darkened(0.65f), buffer);
 
             SetNumber(Piece(EditorGroupPart.RowStart, row), effect.Start, buffer);
@@ -248,7 +248,7 @@ public sealed partial class EditorGroupSystem
             float x = EditorGroupLayout.XForTime(timeline, state.ViewStart, state.ViewSpan, (float)t);
             Entity text = Piece(EditorGroupPart.TickLabel, label);
             Place(text, new Rect2(0, 0, 70, 16), new Vector2(x - 35, ruler.Position.Y + 8), buffer);
-            SetText(text, t.ToString("0.##", CultureInfo.InvariantCulture) + "s", buffer);
+            UiText.Set(text, t.ToString("0.##", CultureInfo.InvariantCulture) + "s", buffer);
             label++;
         }
 
@@ -273,30 +273,30 @@ public sealed partial class EditorGroupSystem
             string text = $"{kind} {row + 1}  {effect.Start:0.##}–{effect.End:0.##}";
             if (effect.Muted)
                 text += "  MUTED";
-            SetText(label, text, buffer);
+            UiText.Set(label, text, buffer);
             SetTextColor(label, Palette.Accent, buffer);
         }
         else
         {
-            SetText(label, "NO EFFECT SELECTED", buffer);
+            UiText.Set(label, "NO EFFECT SELECTED", buffer);
             SetTextColor(label, Palette.TextDim, buffer);
         }
 
-        SetText(Piece(EditorGroupPart.SelectionTarget), "TARGET", buffer);
+        UiText.Set(Piece(EditorGroupPart.SelectionTarget), "TARGET", buffer);
         Tint(Piece(EditorGroupPart.SelectionTarget), move ? CellUsed : SceneColors.Muted, buffer);
-        SetText(Piece(EditorGroupPart.SelectionDuplicate), "DUP", buffer);
+        UiText.Set(Piece(EditorGroupPart.SelectionDuplicate), "DUP", buffer);
         Tint(
             Piece(EditorGroupPart.SelectionDuplicate),
             selected && group.Effects.Count < EditorGroupLayout.MaxRows ? CellUsed : SceneColors.Muted,
             buffer);
-        SetText(Piece(EditorGroupPart.SelectionMute), effect.Muted ? "UNMUTE" : "MUTE", buffer);
+        UiText.Set(Piece(EditorGroupPart.SelectionMute), effect.Muted ? "UNMUTE" : "MUTE", buffer);
         Tint(
             Piece(EditorGroupPart.SelectionMute),
             selected ? (effect.Muted ? Palette.DangerDeep : CellUsed) : SceneColors.Muted,
             buffer);
         Tint(Piece(EditorGroupPart.SelectionNudgeLeft), selected ? CellUsed : SceneColors.Muted, buffer);
         Tint(Piece(EditorGroupPart.SelectionNudgeRight), selected ? CellUsed : SceneColors.Muted, buffer);
-        SetText(Piece(EditorGroupPart.SelectionPick), "PICK", buffer);
+        UiText.Set(Piece(EditorGroupPart.SelectionPick), "PICK", buffer);
         Tint(
             Piece(EditorGroupPart.SelectionPick),
             colour ? OpaqueTint(effect).Darkened(0.35f) : SceneColors.Muted,
@@ -312,7 +312,7 @@ public sealed partial class EditorGroupSystem
         UiLayout.SetDisabled(Piece(EditorGroupPart.SelectionNudgeRight), buffer, !selected);
         UiLayout.SetDisabled(Piece(EditorGroupPart.SelectionPick), buffer, !colour);
 
-        SetText(
+        UiText.Set(
             Piece(EditorGroupPart.SoloToggle),
             state.SoloGroup == state.Open ? "SOLO ON" : "SOLO",
             buffer);

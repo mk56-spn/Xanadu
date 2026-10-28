@@ -25,35 +25,22 @@ public sealed class EditorHudSystem : QuerySystem<EditorHud, LevelInfo, Playhead
 
         Query.ForEachEntity((ref hud, ref level, ref playhead, entity) =>
         {
-            SetText(hud.Level,
+            UiText.Set(hud.Level,
                 string.IsNullOrWhiteSpace(level.Name) ? "Untitled" : level.Name,
                 buffer);
-            SetText(hud.Song,
+            UiText.Set(hud.Song,
                 "Song: " + (string.IsNullOrWhiteSpace(level.AudioPath)
                     ? "No song loaded"
                     : Path.GetFileName(level.AudioPath)),
                 buffer);
-            SetText(hud.Status, hud.StatusText, buffer);
-            SetText(hud.Time,
+            UiText.Set(hud.Status, hud.StatusText, buffer);
+            UiText.Set(hud.Time,
                 $"{FormatMs(playhead.TimeMs)} / {FormatMs(playhead.DurationMs)}",
                 buffer);
-            SetText(hud.Notes,
+            UiText.Set(hud.Notes,
                 $"{_entities.Query<Note>().Count} notes",
                 buffer);
         });
-    }
-
-    private static void SetText(Entity entity, string value, CommandBuffer buffer)
-    {
-        if (entity.IsNull || !entity.HasComponent<Text>())
-            return;
-
-        ref Text text = ref entity.GetComponent<Text>();
-        if (text.Value == value)
-            return;
-
-        text.Value = value;
-        buffer.AddTag<Dirty>(entity.Id);
     }
 
     private static string FormatMs(long milliseconds)

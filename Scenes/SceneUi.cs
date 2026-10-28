@@ -150,18 +150,7 @@ public static class SceneUi
         return button;
     }
 
-    public static void SetText(Entity entity, string text)
-    {
-        if (entity.IsNull || !entity.HasComponent<Text>())
-            return;
-
-        ref Text component = ref entity.GetComponent<Text>();
-        if (component.Value == text)
-            return;
-
-        component.Value = text;
-        entity.AddTag<Dirty>();
-    }
+    public static void SetText(Entity entity, string text) => UiText.Set(entity, text);
 
 /// <summary>Creates a clipped vertical scrolling viewport and returns its content.</summary>
 public static Entity ScrollView(

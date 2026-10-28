@@ -142,19 +142,6 @@ public sealed partial class EditorGroupSystem
         buffer.AddTag<Dirty>(entity.Id);
     }
 
-    private static void SetText(Entity entity, string value, CommandBuffer buffer)
-    {
-        if (entity.IsNull || !entity.HasComponent<Text>())
-            return;
-
-        ref Text text = ref entity.GetComponent<Text>();
-        if (text.Value == value)
-            return;
-
-        text.Value = value;
-        buffer.AddTag<Dirty>(entity.Id);
-    }
-
     private static void SetFieldText(Entity field, string value, CommandBuffer buffer)
     {
         if (field.IsNull || !field.HasComponent<TextField>())
