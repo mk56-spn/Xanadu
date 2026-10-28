@@ -1,6 +1,8 @@
 using System;
+using System.Linq;
 using NUnit.Framework;
 using Xanadu.Ecs;
+using Xanadu.Items;
 using Xanadu.Levels;
 using Xanadu.Settings;
 using Xanadu.Storage;
@@ -29,7 +31,19 @@ public sealed class XmfBinaryTests
         source.Notes.Add(new NoteDocument
         {
             Groups = { 1, 3 },
-            Shader = 1,
+            Item = new Xif
+            {
+                Id = "lantern",
+                Name = "Lantern",
+                Owner = XifOwner.Game,
+                Primitives = { new XifPrimitive { Kind = "svg", Ref = "res://lantern.svg" } },
+                Shaders =
+                {
+                    XifShaderRef.OfMap(1),
+                    XifShaderRef.OfCommon("res://Assets/Shaders/Items/rainbow.gdshader"),
+                },
+                Params = { ["glow"] = new[] { 0.5f } },
+            },
             TimeMs = 1_234,
             X = 10,
             Y = 20,
@@ -115,7 +129,16 @@ public sealed class XmfBinaryTests
 
         NoteDocument note = map.Notes[0];
         Assert.That(note.Groups, Is.EqualTo(new[] { 1, 3 }));
-        Assert.That(note.Shader, Is.EqualTo(1));
+        Assert.That(note.Item.Id, Is.EqualTo("lantern"));
+        Assert.That(note.Item.Name, Is.EqualTo("Lantern"));
+        Assert.That(note.Item.Owner, Is.EqualTo(XifOwner.Game));
+        XifPrimitive primitive = note.Item.Primitives.Single();
+        Assert.That(primitive.Kind, Is.EqualTo("svg"));
+        Assert.That(primitive.Ref, Is.EqualTo("res://lantern.svg"));
+        Assert.That(note.Item.PrimaryShader, Is.EqualTo(1));
+        XifShaderRef commonShader = note.Item.Shaders.Single(s => s.Scope == XifShaderScope.Common);
+        Assert.That(commonShader.Path, Is.EqualTo("res://Assets/Shaders/Items/rainbow.gdshader"));
+        Assert.That(note.Item.Params["glow"], Is.EqualTo(new[] { 0.5f }));
         Assert.That(note.TimeMs, Is.EqualTo(1_234));
         Assert.That(note.Target, Is.EqualTo(KeybindAction.R3));
         Assert.That(note.Kind, Is.EqualTo(NoteKind.Contact));

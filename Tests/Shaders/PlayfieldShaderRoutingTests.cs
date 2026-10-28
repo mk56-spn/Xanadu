@@ -4,6 +4,7 @@ using Friflo.Engine.ECS;
 using Godot;
 using NUnit.Framework;
 using Xanadu.Ecs;
+using Xanadu.Levels;
 using Xanadu.Systems.Canvas;
 using Xanadu.Systems.Playfields;
 
@@ -38,6 +39,24 @@ public sealed class PlayfieldShaderRoutingTests
     }
 
     [Test]
+    public void ANoteWithTheCommonRainbowShaderIsDrawnUnderItAndItIsClearedAfterwards()
+    {
+        var store = new EntityStore();
+        store.CreateEntity(
+            new Note(1000, new Vector2(100, 100)),
+            new ItemCommonShader(CommonShaders.Paths[0]));
+        store.CreateEntity(new Note(1000, new Vector2(300, 100)));
+        var canvas = new LogCanvas();
+
+        PlayfieldRenderer.DrawNotes(canvas, default, store, View, Field, Head, default);
+
+        Assert.That(canvas.CommonSelections, Does.Contain(CommonShaders.Paths[0]));
+        Assert.That(canvas.CommonAtEachDraw, Does.Contain(CommonShaders.Paths[0]));
+        Assert.That(canvas.CommonSelections[^1], Is.Empty, "the common shader is cleared once the notes are done");
+        Assert.That(canvas.Selections[^1], Is.EqualTo(0), "the slot is cleared too");
+    }
+
+    [Test]
     public void MinesAndBlocksAreShadedToo()
     {
         var store = new EntityStore();
@@ -56,14 +75,23 @@ public sealed class PlayfieldShaderRoutingTests
     private sealed class LogCanvas : IRectCanvas
     {
         private int _slot;
+        private string _commonPath = "";
 
         public List<int> Selections { get; } = new();
         public List<int> SlotAtEachDraw { get; } = new();
+        public List<string> CommonSelections { get; } = new();
+        public List<string> CommonAtEachDraw { get; } = new();
 
         public void SelectShader(int slot)
         {
             _slot = slot;
             Selections.Add(slot);
+        }
+
+        public void SelectCommonShader(string path)
+        {
+            _commonPath = path;
+            CommonSelections.Add(path);
         }
 
         public void SetVisible(Rid canvas, bool visible) { }
@@ -72,22 +100,27 @@ public sealed class PlayfieldShaderRoutingTests
 
         public void Clear(Rid canvas) { }
 
-        public void DrawRect(Rid canvas, Rect2 bounds, Color color) => SlotAtEachDraw.Add(_slot);
+        public void DrawRect(Rid canvas, Rect2 bounds, Color color) => Mark();
 
-        public void DrawCircle(Rid canvas, Vector2 center, float radius, Color color) => SlotAtEachDraw.Add(_slot);
+        public void DrawCircle(Rid canvas, Vector2 center, float radius, Color color) => Mark();
 
         public void DrawPolyline(Rid canvas, ReadOnlySpan<Vector2> points, Color color, float width, bool antialiased = true) =>
-            SlotAtEachDraw.Add(_slot);
+            Mark();
 
-        public void DrawLine(Rid canvas, Vector2 from, Vector2 to, Color color, float width) => SlotAtEachDraw.Add(_slot);
+        public void DrawLine(Rid canvas, Vector2 from, Vector2 to, Color color, float width) => Mark();
 
-        public void DrawText(Rid canvas, Rect2 bounds, string text, Color color) => SlotAtEachDraw.Add(_slot);
+        public void DrawText(Rid canvas, Rect2 bounds, string text, Color color) => Mark();
 
         public void DrawTextLeft(Rid canvas, Rect2 bounds, string text, Color color) { }
 
         public void DrawTextRight(Rid canvas, Rect2 bounds, string text, Color color) { }
 
-        public void DrawTextStyled(Rid canvas, Rect2 bounds, string text, Color color, int fontSize) =>
+        public void DrawTextStyled(Rid canvas, Rect2 bounds, string text, Color color, int fontSize) => Mark();
+
+        private void Mark()
+        {
             SlotAtEachDraw.Add(_slot);
+            CommonAtEachDraw.Add(_commonPath);
+        }
     }
 }

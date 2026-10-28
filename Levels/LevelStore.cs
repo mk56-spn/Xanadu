@@ -74,9 +74,25 @@ public static class LevelStore
     public static void EnsureDirectory() =>
         System.IO.Directory.CreateDirectory(Directory);
 
+    /// <summary>
+    /// Saves a level as the one variant of it in <paramref name="path"/>. If
+    /// the mapset there already has other variants, they are kept; only the
+    /// variant with this level's identity is replaced or added.
+    /// </summary>
     public static void Save(LevelDocument document, string path)
     {
-        XmfBinary.Save(path, document);
+        XmfMapset mapset = TryLoadMapset(path) ?? new XmfMapset();
+        mapset.SongId = document.SongId;
+        mapset.Shaders = document.Shaders ?? new List<ShaderDocument>();
+
+        XmfVariant variant = ToVariant(document);
+        int index = mapset.Variants.FindIndex(v => v.Id == variant.Id);
+        if (index >= 0)
+            mapset.Variants[index] = variant;
+        else
+            mapset.Variants.Add(variant);
+
+        SaveMapset(mapset, path);
     }
 
     public static void Delete(string path)
@@ -85,8 +101,75 @@ public static class LevelStore
             File.Delete(path);
     }
 
-    public static LevelDocument Load(string path) =>
-        LevelSerializer.Normalize(XmfBinary.Load(path));
+    /// <summary>Loads a level from its mapset's first variant.</summary>
+    public static LevelDocument Load(string path)
+    {
+        XmfMapset mapset = LoadMapset(path);
+        XmfVariant variant = mapset.Variants.Count > 0 ? mapset.Variants[0] : new XmfVariant();
+        return ToLevelDocument(mapset, variant);
+    }
+
+    public static XmfMapset LoadMapset(string path) =>
+        LevelSerializer.NormalizeMapset(XmfBinary.ReadMapset(File.ReadAllBytes(path)));
+
+    public static void SaveMapset(XmfMapset mapset, string path) =>
+        XmfBinary.SaveMapset(path, mapset);
+
+    private static XmfMapset? TryLoadMapset(string path)
+    {
+        if (!File.Exists(path))
+            return null;
+
+        try
+        {
+            return LoadMapset(path);
+        }
+        catch (Exception)
+        {
+            return null;
+        }
+    }
+
+    /// <summary>The variant a level document's own chart makes.</summary>
+    public static XmfVariant ToVariant(LevelDocument document) => new()
+    {
+        Id = document.Id,
+        Slug = document.Slug,
+        Name = document.Name,
+        SnapDivision = document.SnapDivision,
+        PlayfieldWidth = document.PlayfieldWidth,
+        PlayfieldHeight = document.PlayfieldHeight,
+        Notes = document.Notes,
+        Mines = document.Mines,
+        StartPoints = document.StartPoints,
+        Blocks = document.Blocks,
+        Spikes = document.Spikes,
+        Groups = document.Groups,
+        PlayerShader = document.PlayerShader,
+        FieldShader = document.FieldShader,
+    };
+
+    /// <summary>The level document a variant makes, carrying its mapset's song and shaders.</summary>
+    public static LevelDocument ToLevelDocument(XmfMapset mapset, XmfVariant variant) => new()
+    {
+        Version = mapset.Version,
+        Id = variant.Id,
+        Slug = variant.Slug,
+        SongId = mapset.SongId,
+        Name = variant.Name,
+        SnapDivision = variant.SnapDivision,
+        PlayfieldWidth = variant.PlayfieldWidth,
+        PlayfieldHeight = variant.PlayfieldHeight,
+        Notes = variant.Notes,
+        Mines = variant.Mines,
+        StartPoints = variant.StartPoints,
+        Blocks = variant.Blocks,
+        Spikes = variant.Spikes,
+        Groups = variant.Groups,
+        Shaders = mapset.Shaders,
+        PlayerShader = variant.PlayerShader,
+        FieldShader = variant.FieldShader,
+    };
 
     /// <summary>Loads every valid level from user data and the bundled Levels folder.</summary>
     public static List<LevelEntry> List()

@@ -81,6 +81,28 @@ public sealed class ShaderRoutingCanvasTests
     }
 
     [Test]
+    public void ACommonShaderGetsItsOwnItemAndTakesPriorityOverASlot()
+    {
+        const string rainbow = "res://Assets/Shaders/Items/rainbow.gdshader";
+
+        _canvas.SelectShader(1);
+        _canvas.DrawRect(Root, new Rect2(), Colors.Red);
+        _canvas.SelectCommonShader(rainbow);
+        _canvas.DrawRect(Root, new Rect2(), Colors.Red);
+
+        Assert.That(_items.Created, Has.Count.EqualTo(2));
+        Assert.That(_items.Materials, Is.EqualTo(new[] { 1, 0 }));
+        Assert.That(_items.CommonMaterials, Is.EqualTo(new[] { "", rainbow }));
+
+        // Selecting a slot again drops the common shader, starting a fresh run.
+        _canvas.SelectShader(1);
+        _canvas.DrawRect(Root, new Rect2(), Colors.Red);
+
+        Assert.That(_items.Materials, Is.EqualTo(new[] { 1, 0, 1 }));
+        Assert.That(_items.CommonMaterials, Is.EqualTo(new[] { "", rainbow, "" }));
+    }
+
+    [Test]
     public void ClearingStartsTheNextFrameFromTheRootAndReusesItems()
     {
         Draw(slot: 1);
@@ -146,6 +168,7 @@ public sealed class ShaderRoutingCanvasTests
     {
         public List<Rid> Created { get; } = new();
         public List<int> Materials { get; } = new();
+        public List<string> CommonMaterials { get; } = new();
 
         public Rid CreateItem(Rid parent)
         {
@@ -155,7 +178,11 @@ public sealed class ShaderRoutingCanvasTests
             return item;
         }
 
-        public void SetMaterial(Rid item, int slot) => Materials.Add(slot);
+        public void SetMaterial(Rid item, int slot, string commonPath)
+        {
+            Materials.Add(slot);
+            CommonMaterials.Add(commonPath);
+        }
     }
 
     private sealed class RecordingCanvas : IRectCanvas

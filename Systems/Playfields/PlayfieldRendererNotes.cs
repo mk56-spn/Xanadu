@@ -30,7 +30,11 @@ public static partial class PlayfieldRenderer
             if (alpha <= 0)
                 continue;
 
-            canvas.SelectShader(ItemShader.Of(entity));
+            string commonShader = ItemCommonShader.Of(entity);
+            if (commonShader.Length > 0)
+                canvas.SelectCommonShader(commonShader);
+            else
+                canvas.SelectShader(ItemShader.Of(entity));
             Vector2 center = view.PlayfieldToScreen(note.Position);
             float radius = size / 2;
             Color laneColor = GroupColor.For(entity, ColorFor(note));
@@ -78,6 +82,7 @@ public static partial class PlayfieldRenderer
             }
         }
 
+        canvas.SelectCommonShader("");
         canvas.SelectShader(0);
     }
 

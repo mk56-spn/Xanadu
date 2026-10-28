@@ -13,6 +13,12 @@ public interface IRectCanvas
     /// </summary>
     void SelectShader(int slot) { }
 
+    /// <summary>
+    /// Routes the draws that follow through a common shader, by resource
+    /// path, or none for an empty path. Canvases with no shaders ignore it.
+    /// </summary>
+    void SelectCommonShader(string path) { }
+
     void SetVisible(Rid canvas, bool visible);
 
     void SetTransform(Rid canvas, Transform2D transform);

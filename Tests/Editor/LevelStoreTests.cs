@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Linq;
 using NUnit.Framework;
 using Xanadu.Levels;
 
@@ -83,6 +84,40 @@ public sealed class LevelStoreTests
             Assert.That(loaded.Name, Is.EqualTo("Store Test"));
             Assert.That(loaded.Notes, Has.Count.EqualTo(1));
             Assert.That(loaded.Notes[0].TimeMs, Is.EqualTo(500));
+        }
+        finally
+        {
+            if (Directory.Exists(directory))
+                Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    [Test]
+    public void SavingADifferentLevelToTheSamePathKeepsBothAsVariants()
+    {
+        string directory = Path.Combine(
+            Path.GetTempPath(),
+            "writer-level-tests-" + Guid.NewGuid().ToString("N"));
+        string path = Path.Combine(directory, "mapset.xmf");
+
+        try
+        {
+            var easy = new LevelDocument { Id = "easy", Name = "Easy", SongId = "song-1" };
+            LevelStore.Save(easy, path);
+
+            var hard = new LevelDocument { Id = "hard", Name = "Hard", SongId = "song-1" };
+            LevelStore.Save(hard, path);
+
+            XmfMapset mapset = LevelStore.LoadMapset(path);
+
+            Assert.That(mapset.Variants.Select(v => v.Name), Is.EquivalentTo(new[] { "Easy", "Hard" }));
+
+            // Re-saving one variant does not drop the other.
+            easy.Name = "Easy Renamed";
+            LevelStore.Save(easy, path);
+
+            mapset = LevelStore.LoadMapset(path);
+            Assert.That(mapset.Variants.Select(v => v.Name), Is.EquivalentTo(new[] { "Easy Renamed", "Hard" }));
         }
         finally
         {

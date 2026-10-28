@@ -41,6 +41,7 @@ public sealed class PlayfieldDrawSystem :
                     : LevelShaders.Create();
                 LevelShaderMaterials.Ensure(shaders);
                 _shaderItems.MaterialOf = slot => LevelShaderMaterials.MaterialOf(shaders, slot);
+                _shaderItems.CommonMaterialOf = CommonShaderMaterials.MaterialOf;
 
                 PlayfieldRenderer.DrawPlay(
                     _canvas,

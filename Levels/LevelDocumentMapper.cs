@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using Godot;
 using Xanadu.Ecs;
+using Xanadu.Items;
 
 namespace Xanadu.Levels;
 
@@ -50,7 +51,7 @@ public static class LevelDocumentMapper
                 ContactRequired = note.ContactRequired,
                 Character = note.Character,
                 Groups = GroupsOf(entity),
-                Shader = ItemShader.Of(entity),
+                Item = Xif.FromEcs(ItemShader.Of(entity), ItemCommonShader.Of(entity)),
             });
         }
 
@@ -162,7 +163,7 @@ public static class LevelDocumentMapper
                 note.Kind,
                 note.DashDirection,
                 note.ContactRequired,
-                note.Character), note.Shader);
+                note.Character), note.Item?.PrimaryShader ?? 0, note.Item?.PrimaryCommonShader ?? "");
             Subscribe(created, note.Groups);
         }
 
