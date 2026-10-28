@@ -240,7 +240,7 @@ public static partial class EditorScene
 
         float listHeight = labels.Length * 30 + 6;
         Entity list = ui.RectEntity(
-            new Vector2(-10_000, -10_000),
+            UiLayout.Hidden,
             Vector2.Zero,
             new Color(0, 0, 0, 0),
             takesInput: true);
@@ -248,7 +248,7 @@ public static partial class EditorScene
         for (int i = 0; i < labels.Length; i++)
         {
             Entity option = ui.RectEntity(
-                new Vector2(-10_000, -10_000),
+                UiLayout.Hidden,
                 new Vector2(width - 6, 28),
                 SceneUi.MutedButtonColor,
                 labels[i],

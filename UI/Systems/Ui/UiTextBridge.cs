@@ -19,7 +19,7 @@ public sealed partial class UiTextBridge : LineEdit
     {
         var bridge = new UiTextBridge
         {
-            Position = new Vector2(-10_000, -10_000),
+            Position = UiLayout.Hidden,
             Size = new Vector2(10, 10),
             Modulate = new Color(1, 1, 1, 0),
             MouseFilter = MouseFilterEnum.Ignore,

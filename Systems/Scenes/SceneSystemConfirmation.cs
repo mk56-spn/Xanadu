@@ -22,7 +22,7 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
             .Layer(SceneUi.ConfirmationLayer);
 
         builder.Container(
-            HiddenConfirmation,
+            UiLayout.Hidden,
             new Vector2(520, 200),
             StackDirection.Vertical,
             spacing: 12,
@@ -189,7 +189,7 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
 
         confirmation.Visible = false;
         ref Position position = ref _confirmationPanel.GetComponent<Position>();
-        position.Value = HiddenConfirmation;
+        position.Value = UiLayout.Hidden;
         _confirmationPanel.AddTag<Moved>();
     }
 

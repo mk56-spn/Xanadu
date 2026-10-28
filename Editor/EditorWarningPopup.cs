@@ -11,7 +11,6 @@ public static class EditorWarningPopup
     public const int LayerZIndex = 850;
     public const string NoSongMessage = "Load a song before placing notes.";
 
-    public static readonly Vector2 HiddenPosition = new(-10_000, -10_000);
 
     private static readonly Vector2 PopupSize = new(440, 170);
 
@@ -20,7 +19,7 @@ public static class EditorWarningPopup
     {
         UiBuilder builder = UiBuilder.Begin(entities, visuals).Layer(LayerZIndex);
         builder.Container(
-            HiddenPosition,
+            UiLayout.Hidden,
             PopupSize,
             StackDirection.Vertical,
             spacing: 10,

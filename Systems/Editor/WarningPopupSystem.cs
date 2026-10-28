@@ -88,7 +88,7 @@ public sealed class WarningPopupSystem : QuerySystem<WarningPopup>
         CommandBuffer buffer)
     {
         ref Position position = ref popupEntity.GetComponent<Position>();
-        position.Value = EditorWarningPopup.HiddenPosition;
+        position.Value = UiLayout.Hidden;
         buffer.AddTag<Moved>(popupEntity.Id);
         popup.Visible = false;
     }

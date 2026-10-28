@@ -23,12 +23,12 @@ public sealed class UiDropdownSystemTests
             new Position(new Vector2(100, 50)),
             new Rectangle(new Rect2(-50, -20, 100, 40)));
         Entity list = store.CreateEntity(
-            new Position(new Vector2(-10_000, -10_000)),
+            new Position(UiLayout.Hidden),
             new Rectangle(new Rect2(0, 0, 0, 0)));
         button.AddComponent(new Dropdown(list, 0, new Vector2(100, 80)));
 
         Entity option = store.CreateEntity(
-            new Position(new Vector2(-10_000, -10_000)),
+            new Position(UiLayout.Hidden),
             new Rectangle(new Rect2(-40, -12, 80, 24)));
         option.AddComponent(new DropdownOption(button, 0));
 
@@ -54,7 +54,7 @@ public sealed class UiDropdownSystemTests
             new Rectangle(new Rect2(-50, -20, 100, 40)));
         first.AddComponent(new Dropdown(
             store.CreateEntity(
-                new Position(new Vector2(-10_000, -10_000)),
+                new Position(UiLayout.Hidden),
                 new Rectangle(new Rect2(0, 0, 0, 0))),
             0,
             closeOthers: false));
@@ -64,7 +64,7 @@ public sealed class UiDropdownSystemTests
             new Rectangle(new Rect2(-50, -20, 100, 40)));
         second.AddComponent(new Dropdown(
             store.CreateEntity(
-                new Position(new Vector2(-10_000, -10_000)),
+                new Position(UiLayout.Hidden),
                 new Rectangle(new Rect2(0, 0, 0, 0))),
             0,
             closeOthers: false));
@@ -90,16 +90,16 @@ public sealed class UiDropdownSystemTests
             new Position(new Vector2(100, 50)),
             new Rectangle(new Rect2(-50, -20, 100, 40)));
         Entity list = store.CreateEntity(
-            new Position(new Vector2(-10_000, -10_000)),
+            new Position(UiLayout.Hidden),
             new Rectangle(new Rect2(0, 0, 0, 0)));
         button.AddComponent(new Dropdown(list, 0, new Vector2(100, 80)));
 
         Entity third = store.CreateEntity(
-            new Position(new Vector2(-10_000, -10_000)),
+            new Position(UiLayout.Hidden),
             new Rectangle(new Rect2(-40, -12, 80, 24)));
         third.AddComponent(new DropdownOption(button, 2));
         Entity first = store.CreateEntity(
-            new Position(new Vector2(-10_000, -10_000)),
+            new Position(UiLayout.Hidden),
             new Rectangle(new Rect2(-40, -12, 80, 24)));
         first.AddComponent(new DropdownOption(button, 0));
 
@@ -121,7 +121,7 @@ public sealed class UiDropdownSystemTests
             new Position(new Vector2(100, 50)),
             new Rectangle(new Rect2(-50, -20, 100, 40)));
         Entity firstList = store.CreateEntity(
-            new Position(new Vector2(-10_000, -10_000)),
+            new Position(UiLayout.Hidden),
             new Rectangle(new Rect2(0, 0, 0, 0)));
         first.AddComponent(new Dropdown(firstList, 0));
 
@@ -129,7 +129,7 @@ public sealed class UiDropdownSystemTests
             new Position(new Vector2(100, 150)),
             new Rectangle(new Rect2(-50, -20, 100, 40)));
         Entity secondList = store.CreateEntity(
-            new Position(new Vector2(-10_000, -10_000)),
+            new Position(UiLayout.Hidden),
             new Rectangle(new Rect2(0, 0, 0, 0)));
         second.AddComponent(new Dropdown(secondList, 0));
 
@@ -143,7 +143,7 @@ public sealed class UiDropdownSystemTests
 
         Assert.That(first.GetComponent<Dropdown>().Open, Is.False);
         Assert.That(firstList.GetComponent<Position>().Value,
-            Is.EqualTo(new Vector2(-10_000, -10_000)));
+            Is.EqualTo(UiLayout.Hidden));
         Assert.That(second.GetComponent<Dropdown>().Open, Is.True);
     }
 
@@ -158,7 +158,7 @@ public sealed class UiDropdownSystemTests
             new Position(new Vector2(100, 50)),
             new Rectangle(new Rect2(-50, -20, 100, 40)));
         Entity list = store.CreateEntity(
-            new Position(new Vector2(-10_000, -10_000)),
+            new Position(UiLayout.Hidden),
             new Rectangle(new Rect2(0, 0, 0, 0)));
         button.AddComponent(new Dropdown(list, 0, new Vector2(100, 80)));
 
@@ -188,7 +188,7 @@ public sealed class UiDropdownSystemTests
             new Rectangle(new Rect2(-50, -20, 100, 40)));
         parent.AddChild(button);
         Entity list = store.CreateEntity(
-            new Position(new Vector2(-10_000, -10_000)),
+            new Position(UiLayout.Hidden),
             new Rectangle(new Rect2(0, 0, 0, 0)));
         button.AddComponent(new Dropdown(list, 0, new Vector2(100, 80)));
 
@@ -210,11 +210,11 @@ public sealed class UiDropdownSystemTests
             new Position(new Vector2(100, 50)),
             new Rectangle(new Rect2(-50, -20, 100, 40)));
         Entity list = store.CreateEntity(
-            new Position(new Vector2(-10_000, -10_000)),
+            new Position(UiLayout.Hidden),
             new Rectangle(new Rect2(0, 0, 0, 0)));
         button.AddComponent(new Dropdown(list, 0));
         Entity option = store.CreateEntity(
-            new Position(new Vector2(-10_000, -10_000)),
+            new Position(UiLayout.Hidden),
             new Rectangle(new Rect2(-40, -12, 80, 24)));
         option.AddComponent(new DropdownOption(button, 2));
 
@@ -228,6 +228,6 @@ public sealed class UiDropdownSystemTests
         Assert.That(button.GetComponent<Dropdown>().Open, Is.False);
         Assert.That(button.GetComponent<Dropdown>().Selected, Is.EqualTo(2));
         Assert.That(option.GetComponent<Position>().Value,
-            Is.EqualTo(new Vector2(-10_000, -10_000)));
+            Is.EqualTo(UiLayout.Hidden));
     }
 }

@@ -56,7 +56,7 @@ public sealed class WarningPopupSystemTests : EcsSystemTest
         Assert.That(_popup.GetComponent<WarningPopup>().Visible, Is.False);
         Assert.That(
             _popup.GetComponent<Position>().Value,
-            Is.EqualTo(EditorWarningPopup.HiddenPosition));
+            Is.EqualTo(UiLayout.Hidden));
     }
 
     [Test]

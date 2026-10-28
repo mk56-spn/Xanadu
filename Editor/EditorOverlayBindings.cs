@@ -9,7 +9,6 @@ namespace Xanadu.Editor;
 /// <summary>F2 editor-binding reference overlay toggle.</summary>
 public partial class EditorOverlay : CanvasLayer
 {
-    private static readonly Vector2 HiddenBindings = new(-10_000, -10_000);
 
     private void ToggleBindingsHelp()
     {
@@ -22,7 +21,7 @@ public partial class EditorOverlay : CanvasLayer
             return;
 
         ref Position position = ref help.Panel.GetComponent<Position>();
-        position.Value = help.Visible ? help.Home : HiddenBindings;
+        position.Value = help.Visible ? help.Home : UiLayout.Hidden;
         help.Panel.AddTag<Moved>();
     }
 

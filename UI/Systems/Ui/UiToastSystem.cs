@@ -15,7 +15,6 @@ public sealed class ToastSystem : QuerySystem<Toast>
     private const float PopInSeconds = 0.16f;
     private const float FadeOutSeconds = 0.28f;
     private const float DefaultDuration = 1.8f;
-    private static readonly Vector2 HiddenPosition = new(-10_000, -10_000);
     private static readonly Color PanelColor = new(0.03f, 0.04f, 0.08f, 0.94f);
     private static readonly Color TextColor = Palette.TextBright;
 
@@ -32,7 +31,7 @@ public sealed class ToastSystem : QuerySystem<Toast>
 
         UiBuilder ui = UiBuilder.Begin(entities, visuals).Layer(990);
         _toast = ui.RectEntity(
-            HiddenPosition,
+            UiLayout.Hidden,
             new Vector2(620, 42),
             new Color(PanelColor, 0f),
             "");
@@ -97,7 +96,7 @@ public sealed class ToastSystem : QuerySystem<Toast>
         else
         {
             toast.Active = false;
-            SetVisual(string.Empty, HiddenPosition, 0f);
+            SetVisual(string.Empty, UiLayout.Hidden, 0f);
             Mark(buffer);
             return;
         }

@@ -12,7 +12,6 @@ namespace Xanadu.Systems.Editor;
 /// <summary>Shows the ECS metadata panel and syncs its text fields to editor state.</summary>
 public sealed class EditorMetadataSystem : QuerySystem<EditorMetadataPanel>
 {
-    private static readonly Vector2 Hidden = new(-10_000, -10_000);
     private readonly EntityStore _entities;
     private readonly EditorCommandBus _commands;
 
@@ -51,7 +50,7 @@ public sealed class EditorMetadataSystem : QuerySystem<EditorMetadataPanel>
                 {
                     ref Position position =
                         ref panel.Panel.GetComponent<Position>();
-                    position.Value = panel.Visible ? panel.Home : Hidden;
+                    position.Value = panel.Visible ? panel.Home : UiLayout.Hidden;
                     CommandBuffer buffer = CommandBuffer;
                     buffer.AddTag<Moved>(panel.Panel.Id);
                 }
@@ -80,7 +79,7 @@ public sealed class EditorMetadataSystem : QuerySystem<EditorMetadataPanel>
                         ref startPanelEntity.GetComponent<Position>();
                     position.Value = visible
                         ? startPanel.Home
-                        : new Vector2(-10_000, -10_000);
+                        : UiLayout.Hidden;
                     CommandBuffer startBuffer = CommandBuffer;
                     startBuffer.AddTag<Moved>(startPanelEntity.Id);
                 }

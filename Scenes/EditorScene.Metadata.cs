@@ -85,7 +85,7 @@ public static partial class EditorScene
             screen.X - 24 - 190,
             EditorLayout.HeaderHeight + 8 + 155);
         panelUi.Container(
-            new Vector2(-10_000, -10_000),
+            UiLayout.Hidden,
             new Vector2(380, 310),
             StackDirection.Vertical,
             spacing: 5,
@@ -135,7 +135,7 @@ public static partial class EditorScene
             screen.X - 24 - 190,
             EditorLayout.HeaderHeight + 8 + 310 + 8 + 110);
         startUi.Container(
-            new Vector2(-10_000, -10_000),
+            UiLayout.Hidden,
             new Vector2(380, 220),
             StackDirection.Vertical,
             spacing: 5,
@@ -171,7 +171,7 @@ public static partial class EditorScene
 
         UiBuilder helpUi = SceneUi.Layer(entities, root, 970);
         helpUi.Container(
-            new Vector2(-10_000, -10_000),
+            UiLayout.Hidden,
             new Vector2(560, 520),
             StackDirection.Vertical,
             spacing: 4,

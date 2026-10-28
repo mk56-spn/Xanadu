@@ -10,7 +10,6 @@ namespace Xanadu.Systems.Ui;
 /// <summary>Generic ECS dropdown open/close, list layout, and option selection.</summary>
 public sealed class UiDropdownSystem : QuerySystem<Dropdown>
 {
-    private static readonly Vector2 Hidden = new(-10_000, -10_000);
 
     private readonly EntityStore _entities;
     private readonly HashSet<int> _heldButtons = new();
@@ -140,7 +139,7 @@ public sealed class UiDropdownSystem : QuerySystem<Dropdown>
 
         if (!dropdown.Open)
         {
-            listPosition.Value = Hidden;
+            listPosition.Value = UiLayout.Hidden;
             if (listRectangle.Bounds.Size != Vector2.Zero)
                 listRectangle.Bounds = new Rect2(Vector2.Zero, Vector2.Zero);
             buffer.AddTag<Moved>(dropdown.List.Id);
@@ -218,7 +217,7 @@ public sealed class UiDropdownSystem : QuerySystem<Dropdown>
             }
 
             ref Position position = ref option.GetComponent<Position>();
-            position.Value = Hidden;
+            position.Value = UiLayout.Hidden;
             buffer.AddTag<Moved>(option.Id);
         }
     }
