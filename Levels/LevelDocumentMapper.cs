@@ -112,6 +112,26 @@ public static class LevelDocumentMapper
             return x != 0 ? x : a.Y.CompareTo(b.Y);
         });
 
+        foreach (Entity entity in entities.Query<Spike>().ToEntityList())
+        {
+            Spike spike = entity.GetComponent<Spike>();
+            document.Spikes.Add(new SpikeDocument
+            {
+                X = spike.Position.X,
+                Y = spike.Position.Y,
+                Width = spike.Size.X,
+                Height = spike.Size.Y,
+                Groups = GroupsOf(entity),
+                Shader = ItemShader.Of(entity),
+            });
+        }
+
+        document.Spikes.Sort((a, b) =>
+        {
+            int x = a.X.CompareTo(b.X);
+            return x != 0 ? x : a.Y.CompareTo(b.Y);
+        });
+
         return document;
     }
 
@@ -121,6 +141,7 @@ public static class LevelDocumentMapper
         document.Mines ??= new List<MineDocument>();
         document.StartPoints ??= new List<StartPointDocument>();
         document.Blocks ??= new List<BlockDocument>();
+        document.Spikes ??= new List<SpikeDocument>();
         document.Groups ??= new List<GroupDocument>();
 
         foreach (Entity entity in entities.Query<Note>().ToEntityList())
@@ -182,6 +203,17 @@ public static class LevelDocumentMapper
                 new Vector2(block.X, block.Y),
                 new Vector2(block.Width, block.Height)), block.Shader);
             Subscribe(created, block.Groups);
+        }
+
+        foreach (Entity entity in entities.Query<Spike>().ToEntityList())
+            entity.DeleteEntity();
+
+        foreach (SpikeDocument spike in document.Spikes)
+        {
+            Entity created = EditorItems.Create(entities, new Spike(
+                new Vector2(spike.X, spike.Y),
+                new Vector2(spike.Width, spike.Height)), spike.Shader);
+            Subscribe(created, spike.Groups);
         }
 
         SongDocument? song = string.IsNullOrWhiteSpace(document.SongId)

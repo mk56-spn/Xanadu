@@ -259,6 +259,7 @@ public partial class EditorOverlay : CanvasLayer
             EditorPlacementMode.Movement => "Place dash",
             EditorPlacementMode.Notes => "Place normal",
             EditorPlacementMode.Blocks => "Place blocks",
+            EditorPlacementMode.Spikes => "Place spikes",
             _ => "Placement mode",
         });
     }

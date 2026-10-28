@@ -18,6 +18,7 @@ public static class SceneUi
     public static readonly Color ButtonColor = Palette.Primary;
     public static readonly Color MutedButtonColor = Palette.Muted;
     public static readonly Color AccentColor = Palette.Accent;
+    public static readonly Color DangerColor = Palette.Danger;
     public static readonly Color TextColor = Palette.Text;
     public static readonly Color DimTextColor = Palette.TextDim;
 

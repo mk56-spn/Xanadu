@@ -37,6 +37,21 @@ public static class LevelValidator
             }
         }
 
+        for (int i = 0; i < document.Spikes.Count; i++)
+        {
+            SpikeDocument spike = document.Spikes[i];
+
+            if (spike.Width <= 0 || spike.Height <= 0)
+                issues.Add($"Spike {i + 1} has no size.");
+            else if (spike.X < 0 ||
+                     spike.Y < 0 ||
+                     spike.X + spike.Width > document.PlayfieldWidth ||
+                     spike.Y + spike.Height > document.PlayfieldHeight)
+            {
+                issues.Add($"Spike {i + 1} is outside the playfield.");
+            }
+        }
+
         for (int i = 0; i < document.Notes.Count; i++)
         {
             NoteDocument note = document.Notes[i];

@@ -153,6 +153,7 @@ public static partial class EditorScene
         (EditorPlacementMode.Contact, "◎"),
         (EditorPlacementMode.CharacterSwitch, "⇄"),
         (EditorPlacementMode.Blocks, "■"),
+        (EditorPlacementMode.Spikes, "▲"),
     };
 
     /// <summary>The vertical bar of placement tools down the left edge.</summary>

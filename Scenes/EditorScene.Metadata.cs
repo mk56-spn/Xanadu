@@ -191,6 +191,7 @@ public static partial class EditorScene
             $"{EditorPlacementKeybinds.LabelFor(EditorPlacementMode.Notes),-23}Place normal notes",
             $"{EditorPlacementKeybinds.LabelFor(EditorPlacementMode.Movement),-23}Place dash notes",
             $"{EditorPlacementKeybinds.LabelFor(EditorPlacementMode.Blocks),-23}Place collidable blocks",
+            $"{EditorPlacementKeybinds.LabelFor(EditorPlacementMode.Spikes),-23}Place spikes (drag to paint)",
             "DELETE / BACKSPACE     Delete selection",
             "CTRL+Z / CTRL+Y        Undo / redo",
             "L                      Load song",

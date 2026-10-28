@@ -75,6 +75,49 @@ public sealed class LevelValidatorTests
             Has.Some.Contains("no size"));
     }
 
+    [Test]
+    public void ValidSpikesAreAccepted()
+    {
+        LevelDocument document = ValidDocument();
+        document.Spikes.Add(new SpikeDocument
+        {
+            X = 900,
+            Y = 900,
+            Width = 100,
+            Height = 100,
+        });
+
+        Assert.That(LevelValidator.Validate(document), Is.Empty);
+    }
+
+    [Test]
+    public void OutOfBoundsSpikeIsRejected()
+    {
+        LevelDocument document = ValidDocument();
+        document.Spikes.Add(new SpikeDocument
+        {
+            X = 950,
+            Y = 0,
+            Width = 100,
+            Height = 100,
+        });
+
+        Assert.That(
+            LevelValidator.Validate(document),
+            Has.Some.Contains("Spike 1 is outside"));
+    }
+
+    [Test]
+    public void SpikeWithoutSizeIsRejected()
+    {
+        LevelDocument document = ValidDocument();
+        document.Spikes.Add(new SpikeDocument { X = 0, Y = 0 });
+
+        Assert.That(
+            LevelValidator.Validate(document),
+            Has.Some.Contains("Spike 1 has no size"));
+    }
+
     private static LevelDocument ValidDocument()
     {
         var document = new LevelDocument

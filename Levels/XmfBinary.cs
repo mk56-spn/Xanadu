@@ -37,6 +37,9 @@ public static partial class XmfBinary
         StartPoints = 6,
         Groups = 7,
         Shaders = 8,
+
+        /// <summary>Optional, so files written before spikes existed still load.</summary>
+        Spikes = 9,
     }
 
     public static void Save(string path, LevelDocument document)
@@ -65,6 +68,10 @@ public static partial class XmfBinary
         file.Add((uint)ChunkId.StartPoints, WriteStartPoints(document.StartPoints, strings));
         file.Add((uint)ChunkId.Groups, WriteGroups(document.Groups, strings));
         file.Add((uint)ChunkId.Shaders, WriteShaders(document.Shaders, strings));
+        // Omitted when empty so a level without spikes is byte-identical to one
+        // written before spikes existed.
+        if (document.Spikes.Count > 0)
+            file.Add((uint)ChunkId.Spikes, WriteSpikes(document.Spikes));
         return file.ToArray();
     }
 
@@ -96,6 +103,9 @@ public static partial class XmfBinary
             strings);
         document.Groups = ReadGroups(file.Get((uint)ChunkId.Groups, Format), strings);
         document.Shaders = ReadShaders(file.Get((uint)ChunkId.Shaders, Format), strings);
+        document.Spikes = file.TryGet((uint)ChunkId.Spikes, out Chunk spikes)
+            ? ReadSpikes(spikes)
+            : new List<SpikeDocument>();
         return document;
     }
 

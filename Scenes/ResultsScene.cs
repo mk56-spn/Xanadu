@@ -75,9 +75,9 @@ public static class ResultsScene
             ui,
             new Vector2(centerX, y + 108),
             new Vector2(panelWidth - 80, 30),
-            ScoreRules.RankFor(results.Accuracy),
+            results.Failed ? "FAIL" : ScoreRules.RankFor(results.Accuracy),
             26,
-            SceneUi.TextColor,
+            results.Failed ? SceneUi.DangerColor : SceneUi.TextColor,
             SceneUi.PanelColor);
 
         y += 165;

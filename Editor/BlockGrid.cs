@@ -1,5 +1,6 @@
 using Godot;
 using Xanadu.Ecs;
+using Xanadu.Systems.Playfields;
 
 namespace Xanadu.Editor;
 
@@ -11,12 +12,10 @@ namespace Xanadu.Editor;
 /// </summary>
 public static class BlockGrid
 {
-    /// <summary>Cells per axis, matching <c>PlayfieldRenderer.DrawGrid</c>.</summary>
-    public const int Divisions = 10;
+    /// <summary>Cells per axis, shared with the drawn grid and spike tiles.</summary>
+    public const int Divisions = PlayfieldGrid.Divisions;
 
-    public static Vector2 Cell(Playfield playfield) => new(
-        playfield.Width / (float)Divisions,
-        playfield.Height / (float)Divisions);
+    public static Vector2 Cell(Playfield playfield) => PlayfieldGrid.Cell(playfield);
 
     /// <summary>Nearest grid line, rounding halves up so snapping is predictable.</summary>
     public static float Snap(float value, float cell) =>

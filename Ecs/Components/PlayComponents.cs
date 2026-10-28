@@ -18,6 +18,10 @@ public struct PlaySession(
     public float CountdownElapsed;
     public bool Ending;
     public bool Finished;
+
+    /// <summary>Killed by a spike; the run ends as a failure rather than a finish.</summary>
+    public bool Died;
+
     public float Elapsed;
     public float FadeElapsed;
     public float FadeDuration = 1.5f;

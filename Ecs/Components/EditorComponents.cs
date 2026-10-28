@@ -76,7 +76,7 @@ public struct EditorCharacterTarget(CharacterKind target) : IComponent
     public CharacterKind Target = target;
 }
 
-/// <summary>Whether clicking the field places mines instead of notes.</summary>
+/// <summary>What clicking the field places: a note kind, or another playfield item.</summary>
 public enum EditorPlacementMode
 {
     Notes,
@@ -86,6 +86,7 @@ public enum EditorPlacementMode
     Contact,
     CharacterSwitch,
     Blocks,
+    Spikes,
 }
 
 public struct EditorPlacementModeState(EditorPlacementMode mode) : IComponent

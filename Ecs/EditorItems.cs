@@ -105,6 +105,12 @@ public static class EditorItemPosition
             return true;
         }
 
+        if (entity.HasComponent<Spike>())
+        {
+            position = entity.GetComponent<Spike>().Center;
+            return true;
+        }
+
         position = default;
         return false;
     }
@@ -133,6 +139,13 @@ public static class EditorItemPosition
         {
             ref Block block = ref entity.GetComponent<Block>();
             block.Position = position - block.Size / 2;
+            return true;
+        }
+
+        if (entity.HasComponent<Spike>())
+        {
+            ref Spike spike = ref entity.GetComponent<Spike>();
+            spike.Position = position - spike.Size / 2;
             return true;
         }
 

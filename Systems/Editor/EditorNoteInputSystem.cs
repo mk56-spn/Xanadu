@@ -37,8 +37,14 @@ public sealed partial class EditorNoteInputSystem : QuerySystem<Note>
     private readonly UiDragController _drag = new();
     private readonly Dictionary<int, Vector2> _dragStartPositions = new();
     private readonly Dictionary<int, Block> _dragStartBlocks = new();
+    private readonly Dictionary<int, Spike> _dragStartSpikes = new();
     private EditorSnapshot _dragBefore;
     private readonly NoteBox _box;
+
+    // A paint stroke laying spike tiles; the whole stroke is one undo step.
+    private bool _paintingSpikes;
+    private bool _spikeStrokeAdded;
+    private EditorSnapshot _spikeBefore;
 
     // A resize drag started on one of the primary block's side handles.
     private Entity _resizeEntity;
@@ -173,9 +179,22 @@ public sealed partial class EditorNoteInputSystem : QuerySystem<Note>
         if (hit.IsNull)
             hit = FindStartAt(playfieldPosition);
         if (hit.IsNull)
+            hit = FindSpikeAt(playfieldPosition);
+        if (hit.IsNull)
             hit = FindBlockAt(playfieldPosition);
 
         ref NoteSelection selection = ref editor.GetComponent<NoteSelection>();
+
+        // An empty cell in spike mode starts a paint stroke instead of arming a
+        // placement, so dragging lays a run of tiles.
+        if (hit.IsNull && IsSpikeMode(editor))
+        {
+            _paintingSpikes = true;
+            _spikeStrokeAdded = false;
+            _spikeBefore = _history.Capture();
+            PaintSpikeAt(playfieldPosition, playfield);
+            return;
+        }
 
         if (!hit.IsNull)
         {
@@ -189,6 +208,7 @@ public sealed partial class EditorNoteInputSystem : QuerySystem<Note>
             _drag.Begin(hit, playfieldPosition);
             _dragStartPositions.Clear();
             _dragStartBlocks.Clear();
+            _dragStartSpikes.Clear();
             _dragBefore = _history.Capture();
 
             if (!selection.Contains(hit))
@@ -202,6 +222,8 @@ public sealed partial class EditorNoteInputSystem : QuerySystem<Note>
                     _dragStartPositions[selected.Id] = selectedPosition;
                     if (selected.HasComponent<Block>())
                         _dragStartBlocks[selected.Id] = selected.GetComponent<Block>();
+                    if (selected.HasComponent<Spike>())
+                        _dragStartSpikes[selected.Id] = selected.GetComponent<Spike>();
                 }
             }
 
@@ -272,6 +294,12 @@ public sealed partial class EditorNoteInputSystem : QuerySystem<Note>
         if (_box.Drag(editor, screenPosition))
             return;
 
+        if (_paintingSpikes)
+        {
+            PaintSpikeAt(view.ScreenToPlayfield(screenPosition), playfield);
+            return;
+        }
+
         if (!EditorItems.IsItem(_draggedEntity) ||
             !EditorItemPosition.TryGet(_draggedEntity, out _))
         {
@@ -297,6 +325,13 @@ public sealed partial class EditorNoteInputSystem : QuerySystem<Note>
                 continue;
             }
 
+            if (_dragStartSpikes.TryGetValue(id, out Spike spike))
+            {
+                entity.GetComponent<Spike>() =
+                    SpikeRules.Move(spike, delta, playfield);
+                continue;
+            }
+
             Vector2 target = new(
                 Math.Clamp(start.X + delta.X, 0, playfield.Width),
                 Math.Clamp(start.Y + delta.Y, 0, playfield.Height));
@@ -307,6 +342,16 @@ public sealed partial class EditorNoteInputSystem : QuerySystem<Note>
     private void OnRelease()
     {
         Entity editor = FindEditor();
+
+        if (_paintingSpikes)
+        {
+            _paintingSpikes = false;
+            if (_spikeStrokeAdded && !editor.IsNull)
+                _history.Record(_spikeBefore, _history.Capture());
+            _spikeStrokeAdded = false;
+            _spikeBefore = default;
+            return;
+        }
 
         if (!_resizeEntity.IsNull)
         {
@@ -508,6 +553,16 @@ public sealed partial class EditorNoteInputSystem : QuerySystem<Note>
             StartPoint start = entity.GetComponent<StartPoint>();
             Vector2 center = view.PlayfieldToScreen(start.Position);
             if (screenBounds.HasPoint(center))
+                selected.Add(entity);
+        }
+
+        foreach (Entity entity in _entities.Query<Spike>().ToEntityList())
+        {
+            Spike spike = entity.GetComponent<Spike>();
+            var spikeBounds = new Rect2(
+                view.PlayfieldToScreen(spike.Position),
+                spike.Size * view.Scale);
+            if (screenBounds.Intersects(spikeBounds))
                 selected.Add(entity);
         }
 
@@ -811,6 +866,7 @@ public sealed partial class EditorNoteInputSystem : QuerySystem<Note>
         _drag.End();
         _dragStartPositions.Clear();
         _dragStartBlocks.Clear();
+        _dragStartSpikes.Clear();
     }
 
     private bool IsGroupOverlayOpen()
