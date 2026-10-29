@@ -165,7 +165,8 @@ public sealed class UiNodeTests
         Vector2 size = label.Entity.GetComponent<Rectangle>().Bounds.Size;
 
         Assert.That(size.X,
-            Is.EqualTo(UiTextMetrics.Width("HELLO", 20)).Within(0.01f));
+            Is.EqualTo(UiTextMetrics.Width("HELLO", 20) + UiNode.TextInset * 2)
+                .Within(0.01f));
         Assert.That(size.Y, Is.EqualTo(20 * UiNode.TextLineHeight));
         Assert.That(label.Entity.GetComponent<TextStyle>().FontSize,
             Is.EqualTo(20));

@@ -13,6 +13,12 @@ public readonly partial struct UiNode
     public const float TextLineHeight = 1.5f;
 
     /// <summary>
+    /// The canvas draws text inset by this much on each side and clips to the
+    /// box, so a measured box has to include both insets.
+    /// </summary>
+    public const float TextInset = 4f;
+
+    /// <summary>
     /// A text label. Size, colour, alignment and weight are part of the text's
     /// identity, so they are parameters; glow, outline and live updates are
     /// chained. Left is the default: centring is a statement, not a fallback.
@@ -137,7 +143,9 @@ public readonly partial struct UiNode
         return new UiDropdownNode(_surface!, control);
     }
 
-    /// <summary>The box a label of this text and size wants.</summary>
+    /// <summary>The box a label of this text and size wants, insets included.</summary>
     public static Vector2 Measure(string value, int fontSize) =>
-        new(UiTextMetrics.Width(value, fontSize), fontSize * TextLineHeight);
+        new(
+            UiTextMetrics.Width(value, fontSize) + TextInset * 2,
+            fontSize * TextLineHeight);
 }

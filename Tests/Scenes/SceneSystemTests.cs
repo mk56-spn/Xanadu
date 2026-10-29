@@ -948,8 +948,10 @@ public sealed class SceneSystemTests
         foreach (Entity rect in _store.Query<Rectangle>().ToEntityList())
         {
             int z = rect.GetComponent<Drawable>().ZIndex;
+            // Scenes are authored against the 1920x1080 design stage; the host
+            // scales the surface, so the backdrop is stage-sized, not screen-sized.
             if (z == SceneUi.MenuLayer - 1 &&
-                rect.GetComponent<Rectangle>().Bounds.Size == new Vector2(1280, 720))
+                rect.GetComponent<Rectangle>().Bounds.Size == UiStage.Design1080)
             {
                 hasFullScreenBackground = true;
             }

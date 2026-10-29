@@ -61,8 +61,8 @@ public sealed class SettingsSceneTest : SceneTest
             "keybinds are on the content layer",
             KeybindsAreOnContentLayer);
         AddAssert(
-            "keybinds are parented above background",
-            KeybindsAreParentedToContent);
+            "keybinds live inside the content layer",
+            KeybindsAreInsideContent);
         AddAssert(
             "keybinds are animated",
             KeybindsAreAnimated);
@@ -97,7 +97,11 @@ public sealed class SettingsSceneTest : SceneTest
         return true;
     }
 
-    private bool KeybindsAreParentedToContent()
+    /// <summary>
+    /// The keybinds hang off the card's grid now, so "inside the content layer"
+    /// means an ancestor, not the direct parent.
+    /// </summary>
+    private bool KeybindsAreInsideContent()
     {
         Entity content = VisualAssert.LayerAt(
             Context.Entities,
@@ -108,7 +112,21 @@ public sealed class SettingsSceneTest : SceneTest
 
         foreach (Entity button in Context.Entities.Query<KeybindButton>().ToEntityList())
         {
-            if (button.Parent.IsNull || button.Parent.Id != content.Id)
+            Entity parent = button.Parent;
+            bool inside = false;
+
+            while (!parent.IsNull)
+            {
+                if (parent.Id == content.Id)
+                {
+                    inside = true;
+                    break;
+                }
+
+                parent = parent.Parent;
+            }
+
+            if (!inside)
                 return false;
         }
 
