@@ -73,13 +73,22 @@ public readonly partial struct UiNode
         string? iconPath,
         float size = UiTheme.ButtonHeight,
         Color? color = null,
+        int fontSize = UiType.Label) =>
+        IconButton(fallback, iconPath, new Vector2(size, size), color, fontSize);
+
+    /// <summary>An icon button in an explicit box, for toolbar-sized controls.</summary>
+    public UiNode IconButton(
+        string fallback,
+        string? iconPath,
+        Vector2 size,
+        Color? color = null,
         int fontSize = UiType.Label)
     {
         UiBuilder builder = BeginChildren();
         Entity created = builder.IconButton(
             fallback,
             iconPath,
-            new Vector2(size, size),
+            size,
             color,
             fontSize);
         return Leaf(created);
