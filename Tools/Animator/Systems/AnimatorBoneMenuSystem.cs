@@ -46,7 +46,8 @@ public sealed class AnimatorBoneMenuSystem(IPointerInputSource pointer)
                 continue;
             }
 
-            if (secondary)
+            // Preview mode is for watching: no bone menu over the rig.
+            if (secondary && !AnimatorPreviewModeCommands.IsOn(session))
                 RightClick(session, input.Position);
             else if (primary)
                 session.GetComponent<AnimatorBoneMenu>().Open = false;

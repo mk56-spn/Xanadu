@@ -14,6 +14,29 @@ public static class AnimatorEditing
     public static void KeySelected(Entity session) =>
         AnimatorHistoryCommands.Edit(session, () => Key(session));
 
+    /// <summary>
+    /// Records a pose edit in the clip. Selected keys of what was edited take
+    /// the change, with or without auto-key; otherwise auto-key keys the
+    /// selection at the playhead. Returns a note for the caller's status.
+    /// </summary>
+    public static string KeyEdit(Entity session)
+    {
+        int keys = 0;
+        AnimatorHistoryCommands.Edit(session, () => keys = AnimatorKeyEditCommands.Apply(session));
+        if (keys > 0)
+        {
+            string note = keys == 1 ? " · KEY EDITED" : $" · {keys} KEYS EDITED";
+            AnimatorSession.SetStatus(session, note.TrimStart(' ', '·'));
+            return note;
+        }
+
+        if (!session.GetComponent<AnimatorModes>().AutoKey)
+            return "";
+
+        KeySelected(session);
+        return " · KEYED";
+    }
+
     private static void Key(Entity session)
     {
         ref AnimatorDocument document = ref session.GetComponent<AnimatorDocument>();
@@ -128,8 +151,7 @@ public static class AnimatorEditing
             return;
         }
 
-        if (modes.AutoKey)
-            KeySelected(session);
+        KeyEdit(session);
     }
 
     /// <summary>Lets the selected bone translate, or locks it back to its rest length.</summary>

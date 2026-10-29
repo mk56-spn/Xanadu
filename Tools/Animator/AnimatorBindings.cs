@@ -23,6 +23,9 @@ public static class AnimatorBindings
         new(new ToolAction(ToolActionKind.PreviewTransition), Key.P, Ctrl: true),
         new(new ToolAction(ToolActionKind.ToggleFlowLoop), Key.P, Ctrl: true, Shift: true),
         new(new ToolAction(ToolActionKind.ToggleSlow), Key.Comma),
+        new(new ToolAction(ToolActionKind.TogglePreviewMode), Key.Tab),
+        new(new ToolAction(ToolActionKind.ExitPreviewMode), Key.Escape),
+        new(new ToolAction(ToolActionKind.OpenInfo), Key.I, Ctrl: true),
         new(new ToolAction(ToolActionKind.TransitionFadeDown), Key.Minus, Shift: true),
         new(new ToolAction(ToolActionKind.TransitionFadeUp), Key.Equal, Shift: true),
         new(new ToolAction(ToolActionKind.Save), Key.S, Ctrl: true),
@@ -54,6 +57,8 @@ public static class AnimatorBindings
         new(new ToolAction(ToolActionKind.RenameBone), Key.F2),
         new(new ToolAction(ToolActionKind.AddChain), Key.V),
         new(new ToolAction(ToolActionKind.DeleteChain), Key.Delete, Ctrl: true),
+        new(new ToolAction(ToolActionKind.AddCloth), Key.C),
+        new(new ToolAction(ToolActionKind.DeleteCloth), Key.C, Shift: true),
         new(new ToolAction(ToolActionKind.AddEffect), Key.W),
         new(new ToolAction(ToolActionKind.DeleteEffect), Key.W, Shift: true),
         new(new ToolAction(ToolActionKind.ToggleEffectVisible), Key.U),
@@ -73,6 +78,8 @@ public static class AnimatorBindings
         new(new ToolAction(ToolActionKind.ToggleMode, nameof(AnimatorMode.Pin)), Key.H),
         new(new ToolAction(ToolActionKind.ToggleMode, nameof(AnimatorMode.Kites)), Key.X),
         new(new ToolAction(ToolActionKind.ToggleMode, nameof(AnimatorMode.Handles)), Key.J),
+        new(new ToolAction(ToolActionKind.ToggleMode, nameof(AnimatorMode.MotionPaths)), Key.N),
+        new(new ToolAction(ToolActionKind.TogglePathWindow), Key.N, Shift: true),
 
         // Timeline keys.
         new(new ToolAction(ToolActionKind.DeleteKey), Key.Delete),

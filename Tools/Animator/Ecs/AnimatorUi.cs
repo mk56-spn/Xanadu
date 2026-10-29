@@ -27,6 +27,37 @@ public struct AnimatorUi : IComponent
     public Entity ChainList;
     public Entity EffectList;
 
+    /// <summary>The collapsible sections of the rig list, titled with their counts.</summary>
+    public Entity BoneSection;
+    public Entity AttachmentSection;
+    public Entity ChainSection;
+    public Entity EffectSection;
+    public Entity ClothSection;
+    public Entity ClothList;
+
+    /// <summary>The POSE / EFFECT / FLOW tab strip, switched to follow the selection.</summary>
+    public Entity Tabs;
+
+    /// <summary>The EFFECT tab's title: the selected effect and its bone.</summary>
+    public Entity EffectCaption;
+
+    /// <summary>
+    /// The shell's regions, which preview mode hides, resizes and recolours:
+    /// the viewport column takes the room the tool strip and right panel give
+    /// up, and the preview bar takes the timeline's place.
+    /// </summary>
+    public Entity Header;
+    public Entity MainRow;
+    public Entity ToolStrip;
+    public Entity ViewportColumn;
+    public Entity StatusLine;
+    public Entity RightPanel;
+    public Entity PreviewBar;
+    public Entity PreviewCaption;
+
+    /// <summary>The header button that enters and leaves preview mode.</summary>
+    public Entity PreviewButton;
+
     /// <summary>The shared XIF editor, shown beside the inspector while an effect is selected.</summary>
     public Entity XifEditor;
 
@@ -60,6 +91,11 @@ public struct AnimatorUi : IComponent
     /// <summary>The NEW CLIP dialog, its dimmer and the fields that describe the clip.</summary>
     public Entity NewClipBackdrop;
     public Entity NewClipDialog;
+
+    /// <summary>The file info popup, its dimmer, and the readout under the path field.</summary>
+    public Entity InfoBackdrop;
+    public Entity InfoPanel;
+    public Entity InfoText;
     public Entity NewClipDuplicate;
     public Entity NewClipName;
     public Entity NewClipLength;
@@ -93,6 +129,17 @@ public struct AnimatorUi : IComponent
     /// chain is selected, and its fields.
     /// </summary>
     public Entity ChainInspector;
+
+    /// <summary>The cloth inspector, which takes the transform inspector's spot while a cloth is selected.</summary>
+    public Entity ClothInspector;
+    public Entity ClothTitle;
+    public Entity ClothBoneButton;
+    public Entity ClothPinsButton;
+    public Entity ClothCollidersButton;
+    public Entity ClothFill;
+
+    /// <summary>The cloth inspector's number fields, in <see cref="Commands.AnimatorClothCommands.Setting"/> order.</summary>
+    public Entity[] ClothFields;
     public Entity ChainTitle;
     public Entity ChainArtButton;
     public Entity ChainBoneButton;

@@ -18,6 +18,11 @@ public static class AnimatorCommands
         // And a chain button waiting for a bone click: pressing anything else drops it.
         if (action.Kind is not (ToolActionKind.PickChainBone or ToolActionKind.PickColliderBone))
             session.GetComponent<AnimatorChains>().Picking = AnimatorChainPick.None;
+        if (action.Kind is not (ToolActionKind.PickClothBone or ToolActionKind.PinClothPoints or
+            ToolActionKind.PickClothColliders))
+        {
+            session.GetComponent<AnimatorCloths>().Picking = AnimatorClothPick.None;
+        }
 
         switch (action.Kind)
         {
@@ -82,6 +87,12 @@ public static class AnimatorCommands
             case ToolActionKind.Clip:
                 PlayClip(session, action.Argument);
                 break;
+            case ToolActionKind.TogglePreviewMode:
+                AnimatorPreviewModeCommands.Set(session, !session.GetComponent<AnimatorPreviewMode>().On);
+                break;
+            case ToolActionKind.ExitPreviewMode:
+                AnimatorPreviewModeCommands.Set(session, false);
+                break;
             case ToolActionKind.Undo:
                 AnimatorHistoryCommands.Undo(session);
                 break;
@@ -102,6 +113,19 @@ public static class AnimatorCommands
                 break;
             case ToolActionKind.CloseNewClip:
                 AnimatorNewClipDialogCommands.Close(session);
+                break;
+            case ToolActionKind.OpenInfo:
+                session.GetComponent<AnimatorInfoPanel>().Open = true;
+                break;
+            case ToolActionKind.CloseInfo:
+                session.GetComponent<AnimatorInfoPanel>().Open = false;
+                break;
+            case ToolActionKind.TogglePathWindow:
+                ref AnimatorModes modes = ref session.GetComponent<AnimatorModes>();
+                modes.PathWindow = !modes.PathWindow;
+                AnimatorSession.SetStatus(session, modes.PathWindow
+                    ? "MOTION PATHS: ONE SECOND AROUND THE PLAYHEAD"
+                    : "MOTION PATHS: WHOLE CLIP");
                 break;
             case ToolActionKind.OpenClipLength:
                 session.GetComponent<AnimatorClipLength>().Open = true;
@@ -190,6 +214,25 @@ public static class AnimatorCommands
                 break;
             case ToolActionKind.PickColliderBone:
                 AnimatorChainPlacementCommands.BeginPick(session, AnimatorChainPick.Collider);
+                break;
+            case ToolActionKind.AddCloth:
+                AnimatorClothCommands.Add(session);
+                break;
+            case ToolActionKind.SelectCloth:
+                if (int.TryParse(action.Argument, out int cloth))
+                    AnimatorClothCommands.Select(session, cloth);
+                break;
+            case ToolActionKind.DeleteCloth:
+                AnimatorClothCommands.Delete(session);
+                break;
+            case ToolActionKind.PickClothBone:
+                AnimatorClothCommands.TogglePick(session, AnimatorClothPick.Bone);
+                break;
+            case ToolActionKind.PinClothPoints:
+                AnimatorClothCommands.TogglePick(session, AnimatorClothPick.Pins);
+                break;
+            case ToolActionKind.PickClothColliders:
+                AnimatorClothCommands.TogglePick(session, AnimatorClothPick.Colliders);
                 break;
             case ToolActionKind.TogglePlay:
                 TogglePlay(session);

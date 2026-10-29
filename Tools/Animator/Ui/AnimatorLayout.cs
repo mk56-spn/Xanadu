@@ -59,11 +59,11 @@ public static partial class AnimatorLayout
     private const float TitleWidth = EditorShellMetrics.NameWidth;
     private const float StatusWidth = 200f;
     private const float DirtyWidth = 80f;
-    private const float PathWidth = 260f;
+    private const float StatusButtonWidth = 44f;
     private const float ClipLabelWidth = 48f;
+    private const float PreviewButtonWidth = 110f;
     private const float HeaderControl = EditorShellMetrics.HeaderControlHeight;
     private const float HistoryButton = HeaderControl;
-    private const float HeaderField = 30f;
     private const float TimelineButtonGap = 4f;
     private const float TimelineGroupGap = 12f;
     private const float TimelineCaptionWidth = 480f;
@@ -94,11 +94,13 @@ public static partial class AnimatorLayout
         BuildHeader(ui, screen, ref refs);
         ui.Container(Vector2.Zero, new Vector2(screen.X - Margin * 2, mainHeight),
             spacing: Gap, color: Clear);
-        BuildToolStrip(ui, mainHeight);
+        refs.Ui.MainRow = ui.Current;
+        BuildToolStrip(ui, mainHeight, ref refs);
         BuildViewport(ui, shell, ref refs);
         BuildRightPanel(ui, shell, ref refs);
         ui.End();
         BuildTimeline(ui, screen, ref refs);
+        BuildPreviewBar(ui, screen, ref refs);
         ui.End();
 
         // One floating layer holds every menu and the history panel.
@@ -117,7 +119,9 @@ public static partial class AnimatorLayout
         BuildKeyMenu(menu, ref refs);
         BuildSvgMenu(menu, ref refs);
         BuildChainInspector(menu, ref refs);
+        BuildClothInspector(menu, ref refs);
         BuildNewClipDialog(menu, screen, ref refs);
+        BuildInfoPanel(menu, screen, ref refs);
         refs.Ui.XifEditor = XifEditorPanel.Build(
             UiNode.Wrap(refs.Ui.MenuLayer, visuals),
             XifEditorCenter(screen),
@@ -130,23 +134,20 @@ public static partial class AnimatorLayout
     {
         ui.Container(Vector2.Zero, new Vector2(screen.X - Margin * 2, TopHeight),
             color: UiTheme.Panel);
+        refs.Ui.Header = ui.Current;
 
         // Name, then undo and redo at the left edge and the dropdowns at the
         // right: the same places as in every editor.
         EdgeGroup(ui, new Vector2(0, 0.5f), TopHeight, EditorShellMetrics.HeaderGap,
             (TopHeight - HeaderControl) / 2);
         ui.Container(Vector2.Zero, new Vector2(TitleWidth, HeaderControl),
-            StackDirection.Vertical, spacing: 4, color: UiTheme.PanelAlt,
-            cross: StackCrossAlignment.Center);
-        ui.Text("XAF ANIMATOR", new Vector2(TitleWidth - 10, 28), UiTheme.HeadingFontSize,
+            color: UiTheme.PanelAlt);
+        ui.Text("XAF ANIMATOR", new Vector2(TitleWidth - 10, HeaderControl), UiType.Label,
             UiTheme.Accent);
-        ui.Text("skeleton / clips / rigid SVG groups", new Vector2(TitleWidth - 10, 18),
-            UiTheme.SmallFontSize, UiTheme.TextDim);
         ui.End();
         var history = new Vector2(HistoryButton, HistoryButton);
         IconAction(ui, "UN", "undo", ToolActionKind.Undo, history);
         IconAction(ui, "RE", "redo", ToolActionKind.Redo, history);
-        refs.Ui.PathField = TextInput(ui, new Vector2(PathWidth, HeaderField));
         ui.End();
 
         EdgeGroup(ui, new Vector2(1, 0.5f), TopHeight, EditorShellMetrics.HeaderGap,
@@ -156,6 +157,8 @@ public static partial class AnimatorLayout
         // list floats on the menu layer and drops over the preview. The slot is
         // horizontal on purpose: a vertical container makes room for an open
         // dropdown's list, which would push the button out of the header.
+        refs.Ui.PreviewButton = Action(ui, "PREVIEW", ToolActionKind.TogglePreviewMode,
+            new Vector2(PreviewButtonWidth, HeaderControl), UiTheme.SmallFontSize);
         ui.Text("CLIPS", new Vector2(ClipLabelWidth, 20), UiTheme.SmallFontSize, UiTheme.Accent);
         ui.Container(Vector2.Zero, new Vector2(ClipWidth, HeaderControl), color: Clear);
         refs.Ui.ClipList = ui.Current;
@@ -166,7 +169,7 @@ public static partial class AnimatorLayout
         refs.FileButton.AddComponent(new UiTooltip("Save, load, or start a new skeleton or clip"));
 
         refs.Ui.ConfigButton = ui.Button("CONFIG ▾", new Vector2(ConfigMenuWidth, HeaderControl));
-        refs.Ui.ConfigButton.AddComponent(new UiTooltip("Clip length and delete"));
+        refs.Ui.ConfigButton.AddComponent(new UiTooltip("Clip length, delete, and the file's info"));
         refs.ConfigButton = refs.Ui.ConfigButton;
         ui.End();
         ui.End();
@@ -198,39 +201,6 @@ public static partial class AnimatorLayout
         return button;
     }
 
-    /// <summary>The bones, attachments and chains: the tree on top of the right panel.</summary>
-    private static void BuildTree(UiBuilder ui, float height, ref Refs refs)
-    {
-        ui.Panel(Vector2.Zero, new Vector2(RightPanelWidth, height),
-            cross: StackCrossAlignment.Start, main: StackMainAlignment.Start);
-        ui.Text("BONES", new Vector2(ListWidth, 20), UiTheme.FontSize, UiTheme.Accent);
-        Row(ui, ("+ BONE", ToolActionKind.AddBone), ("DEL", ToolActionKind.DeleteBone));
-
-        // Bones and attachments share one scrolling viewport so long rigs
-        // never spill out of the panel over the timeline.
-        float viewportHeight = height - UiTheme.ContainerPadding * 2 - LeftFixedHeight;
-        ui.Container(Vector2.Zero, new Vector2(ListWidth, viewportHeight),
-            StackDirection.Vertical, clip: true, color: UiTheme.Panel,
-            takesInput: false);
-        Entity viewport = ui.Current;
-        ui.Container(Vector2.Zero, new Vector2(ListWidth, 4), StackDirection.Vertical,
-            spacing: UiTheme.ContainerSpacing, color: Clear,
-            cross: StackCrossAlignment.Start, autoHeight: true,
-            main: StackMainAlignment.Start);
-        Entity content = ui.Current;
-        refs.Ui.BoneList = ui.Tree(ListWidth - 10);
-        ui.Text("ATTACHMENTS", new Vector2(ListWidth, 20), UiTheme.FontSize, UiTheme.Accent);
-        refs.Ui.AttachmentList = List(ui, ListWidth - 10);
-        ui.Text("CHAINS", new Vector2(ListWidth, 20), UiTheme.FontSize, UiTheme.Accent);
-        refs.Ui.ChainList = List(ui, ListWidth - 10);
-        ui.Text("EFFECTS", new Vector2(ListWidth, 20), UiTheme.FontSize, UiTheme.Accent);
-        refs.Ui.EffectList = List(ui, ListWidth - 10);
-        ui.End();
-        ui.End();
-        viewport.AddComponent(new ScrollView(content));
-        ui.End();
-    }
-
     /// <summary>The preview over the status line along the viewport's bottom edge.</summary>
     private static void BuildViewport(UiBuilder ui, EditorShellRects shell, ref Refs refs)
     {
@@ -238,6 +208,7 @@ public static partial class AnimatorLayout
         Vector2 line = shell.StatusLine.Size;
         ui.Container(Vector2.Zero, new Vector2(area.X, area.Y + line.Y),
             StackDirection.Vertical, color: Clear);
+        refs.Ui.ViewportColumn = ui.Current;
         ui.Container(Vector2.Zero, area, StackDirection.Vertical,
             color: Palette.SurfaceDeep, takesInput: true);
         refs.Ui.Preview = ui.Current;
@@ -245,10 +216,18 @@ public static partial class AnimatorLayout
 
         ui.Container(Vector2.Zero, line, spacing: 12, color: UiTheme.Panel,
             padding: 4, main: StackMainAlignment.Start);
+        refs.Ui.StatusLine = ui.Current;
         refs.Ui.Status = ui.Text("", new Vector2(StatusWidth, line.Y - 8), UiTheme.FontSize,
             Palette.Lime, TextAlign.Left);
         refs.Ui.DirtyLabel = ui.Text("", new Vector2(DirtyWidth, line.Y - 8), UiTheme.SmallFontSize,
             UiTheme.Accent, TextAlign.Left);
+
+        // Framing belongs to the viewport, so it sits on the viewport's own line.
+        EdgeGroup(ui, new Vector2(1, 0.5f), line.Y, 4, 2);
+        var frame = new Vector2(StatusButtonWidth, line.Y - 4);
+        Action(ui, "FIT", ToolActionKind.FitPreview, frame, UiTheme.SmallFontSize);
+        Action(ui, "1:1", ToolActionKind.ResetPreview, frame, UiTheme.SmallFontSize);
+        ui.End();
         ui.End();
         ui.End();
     }
@@ -257,12 +236,13 @@ public static partial class AnimatorLayout
     /// The editing modes are the tools, so they run down the shell's tool
     /// strip at the left edge: two letters each, lit while the mode is on.
     /// </summary>
-    private static void BuildToolStrip(UiBuilder ui, float height)
+    private static void BuildToolStrip(UiBuilder ui, float height, ref Refs refs)
     {
         ui.Container(Vector2.Zero, new Vector2(StripWidth, height),
             StackDirection.Vertical, spacing: EditorShellMetrics.ToolGap,
             color: UiTheme.Panel, padding: StripPadding, takesInput: true,
             main: StackMainAlignment.Start);
+        refs.Ui.ToolStrip = ui.Current;
         ModeButton(ui, "AK", AnimatorMode.AutoKey);
         ModeButton(ui, "ON", AnimatorMode.Onion);
         ModeButton(ui, "RS", AnimatorMode.Rest);
@@ -271,128 +251,9 @@ public static partial class AnimatorLayout
         ModeButton(ui, "PN", AnimatorMode.Pin);
         ModeButton(ui, "KT", AnimatorMode.Kites, on: true);
         ModeButton(ui, "HD", AnimatorMode.Handles, on: true);
+        ModeButton(ui, "MP", AnimatorMode.MotionPaths);
         ui.End();
     }
-
-    /// <summary>
-    /// The tree on top, then the tab strip, then room for the selected tab's
-    /// body, which floats over the room (see <see cref="BuildTabBodies"/>).
-    /// </summary>
-    private static void BuildRightPanel(UiBuilder ui, EditorShellRects shell, ref Refs refs)
-    {
-        ui.Container(Vector2.Zero, shell.RightPanel.Size, StackDirection.Vertical,
-            color: UiTheme.Panel, main: StackMainAlignment.Start);
-        BuildTree(ui, shell.RightTree.Size.Y, ref refs);
-
-        ui.Container(Vector2.Zero, shell.RightTabs.Size, color: Clear);
-        refs.TabStrip = ui.Current;
-        refs.TabButtons = new Entity[TabNames.Length];
-        for (int i = 0; i < TabNames.Length; i++)
-        {
-            Rect2 tab = EditorShell.Tab(shell, i, TabNames.Length);
-            refs.TabButtons[i] = ui.Button(TabNames[i], tab.Size,
-                fontSize: UiTheme.SmallFontSize);
-        }
-        ui.End();
-
-        ui.RectEntity(Vector2.Zero, shell.RightBody.Size, Clear);
-        ui.End();
-    }
-
-    private static readonly string[] TabNames = { "POSE", "EDIT", "FLOW" };
-
-    /// <summary>
-    /// The tab bodies float on the menu layer: a container in a stack cannot be
-    /// hidden, so each body is parked off screen until its tab is selected.
-    /// </summary>
-    private static void BuildTabBodies(UiBuilder menu, EditorShellRects shell, ref Refs refs)
-    {
-        var bodies = new Entity[TabNames.Length];
-        for (int i = 0; i < bodies.Length; i++)
-        {
-            menu.Container(UiLayout.Hidden, shell.RightBody.Size, StackDirection.Vertical,
-                spacing: UiTheme.ContainerSpacing, color: UiTheme.Panel,
-                padding: UiTheme.ContainerPadding, takesInput: true,
-                cross: StackCrossAlignment.Center, main: StackMainAlignment.Start);
-            bodies[i] = menu.Current;
-            if (i == 0)
-            {
-                Row(menu, ("ROT-", ToolActionKind.RotateLeft), ("ROT+", ToolActionKind.RotateRight));
-                Row(menu, ("SCL-", ToolActionKind.ScaleDown), ("SCL+", ToolActionKind.ScaleUp));
-                Row(menu, ("KEY", ToolActionKind.KeyBone), ("POSE", ToolActionKind.KeyPose));
-                Row(menu, ("MIRROR", ToolActionKind.MirrorPose), ("MOVE", ToolActionKind.ToggleMovable));
-            }
-            else if (i == 2)
-            {
-                BuildFlowBody(menu, shell.RightBody.Size, ref refs);
-            }
-            else
-            {
-                SmallRow(menu, ("C POSE", ToolActionKind.CopyPose), ("P POSE", ToolActionKind.PastePose));
-                SmallRow(menu, ("C KEYS", ToolActionKind.CopyKeys), ("P KEYS", ToolActionKind.PasteKeys));
-                Row(menu, ("FIT", ToolActionKind.FitPreview), ("1:1", ToolActionKind.ResetPreview));
-                SmallRow(menu, ("+ STREAK", ToolActionKind.AddEffect), ("DEL FX", ToolActionKind.DeleteEffect));
-                SmallRow(menu, ("FADE -", ToolActionKind.EffectOpacityDown), ("FADE +", ToolActionKind.EffectOpacityUp));
-                SmallRow(menu, ("SHOW/HIDE", ToolActionKind.ToggleEffectVisible));
-            }
-            menu.End();
-        }
-
-        refs.TabStrip.AddComponent(new UiTabs(
-            refs.TabButtons,
-            bodies,
-            shell.RightBody.Position + shell.RightBody.Size / 2));
-    }
-
-    private static void BuildTimeline(UiBuilder ui, Vector2 screen, ref Refs refs)
-    {
-        float width = screen.X - Margin * 2;
-        ui.Container(Vector2.Zero, new Vector2(width, BottomHeight),
-            StackDirection.Vertical, color: UiTheme.Panel, padding: 10,
-            takesInput: true, main: StackMainAlignment.Start);
-        refs.Ui.Timeline = ui.Current;
-
-        // Transport and the caption at the left; the clip's controls at the right,
-        // in groups: interpolation, name, preview, loop.
-        float h = AnimatorTimelineModel.HeaderHeight;
-        ui.Container(Vector2.Zero, new Vector2(width - 20, h), color: Clear);
-        EdgeGroup(ui, new Vector2(0, 0.5f), h, TimelineGroupGap, 0);
-        ui.Container(Vector2.Zero, new Vector2(4, h), spacing: TimelineButtonGap,
-            color: Clear, autoWidth: true);
-        var transport = new Vector2(AnimatorTimelineModel.TransportButtonWidth, h);
-        IconAction(ui, "PL", "play", ToolActionKind.Play, transport);
-        IconAction(ui, "ST", "stop", ToolActionKind.Stop, transport);
-        ui.End();
-        refs.Ui.TimelineCaption = ui.Text("", new Vector2(TimelineCaptionWidth, h),
-            UiTheme.SmallFontSize, UiTheme.TextDim, TextAlign.Left);
-        ui.End();
-
-        EdgeGroup(ui, new Vector2(1, 0.5f), h, TimelineGroupGap, 0);
-        ui.Container(Vector2.Zero, new Vector2(4, h), spacing: TimelineButtonGap,
-            color: Clear, autoWidth: true);
-        InterpolationButton(ui, "STEP", XafEasePreset.Step, 44);
-        InterpolationButton(ui, "LINEAR", XafEasePreset.Linear, 56);
-        InterpolationButton(ui, "EASE", XafEasePreset.Ease, 48);
-        InterpolationButton(ui, "IN", XafEasePreset.EaseIn, 34);
-        InterpolationButton(ui, "OUT", XafEasePreset.EaseOut, 40);
-        ui.End();
-        refs.Ui.ClipName = ClipNameField(ui);
-
-        // Game preview and loop settings stay above the timeline, side by side,
-        // because they change what the clip does rather than the clip itself.
-        ui.Container(Vector2.Zero, new Vector2(4, h), spacing: TimelineButtonGap,
-            color: Clear, autoWidth: true);
-        HeaderButton(ui, "GAME", ToolActionKind.SequenceGame, 52);
-        HeaderButton(ui, "ALL", ToolActionKind.SequenceAll, 40);
-        ui.End();
-        refs.Ui.LoopButton = HeaderButton(ui, "LOOP", ToolActionKind.ToggleLoop, 76);
-        ui.End();
-        ui.End();
-        ui.End();
-    }
-
-    private static Entity ClipNameField(UiBuilder ui) =>
-        TextInput(ui, new Vector2(150, AnimatorTimelineModel.HeaderHeight));
 
     private static Entity TextInput(UiBuilder ui, Vector2 size)
     {
@@ -441,8 +302,8 @@ public static partial class AnimatorLayout
 
     private static void Row(UiBuilder ui, params (string Label, ToolActionKind Kind)[] buttons)
     {
-        ui.Container(Vector2.Zero, new Vector2(ButtonWidth, 30), spacing: 6, color: Clear);
-        var size = new Vector2((ButtonWidth - 6) / 2, 30);
+        ui.Container(Vector2.Zero, new Vector2(ButtonWidth, RowHeight), spacing: 6, color: Clear);
+        var size = RowButton(buttons.Length);
         foreach ((string label, ToolActionKind kind) in buttons)
             Action(ui, label, kind, size);
         ui.End();
@@ -451,12 +312,19 @@ public static partial class AnimatorLayout
     /// <summary>A <see cref="Row"/> in the small font, for labels too long for half a button.</summary>
     private static void SmallRow(UiBuilder ui, params (string Label, ToolActionKind Kind)[] buttons)
     {
-        ui.Container(Vector2.Zero, new Vector2(ButtonWidth, 30), spacing: 6, color: Clear);
-        var size = new Vector2((ButtonWidth - 6) / 2, 30);
+        ui.Container(Vector2.Zero, new Vector2(ButtonWidth, RowHeight), spacing: 6, color: Clear);
+        var size = RowButton(buttons.Length);
         foreach ((string label, ToolActionKind kind) in buttons)
             Action(ui, label, kind, size, UiTheme.SmallFontSize);
         ui.End();
     }
+
+    /// <summary>The buttons of a row share its width; a lone button takes all of it.</summary>
+    private static Vector2 RowButton(int count) =>
+        new((ButtonWidth - 6 * (count - 1)) / count, RowHeight);
+
+    /// <summary>Panel buttons are used often but need not be large: a list row's height.</summary>
+    private const float RowHeight = UiTheme.TreeRowHeight;
 
     private static Entity Action(
         UiBuilder ui,

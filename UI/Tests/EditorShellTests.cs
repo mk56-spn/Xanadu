@@ -17,9 +17,9 @@ public sealed class EditorShellTests
     {
         EditorShellRects rects = Animator();
 
-        Assert.That(rects.Header, Is.EqualTo(new Rect2(0, 0, 1920, 80)));
+        Assert.That(rects.Header, Is.EqualTo(new Rect2(0, 0, 1920, 44)));
         Assert.That(rects.Footer, Is.EqualTo(new Rect2(0, 864, 1920, 216)));
-        Assert.That(rects.ToolStrip, Is.EqualTo(new Rect2(0, 80, 64, 784)));
+        Assert.That(rects.ToolStrip, Is.EqualTo(new Rect2(0, 44, 64, 820)));
         Assert.That(rects.RightPanel.End.X, Is.EqualTo(1920f));
         Assert.That(rects.Viewport.Position.X, Is.EqualTo(rects.ToolStrip.End.X));
         Assert.That(rects.Viewport.End.X, Is.EqualTo(rects.RightPanel.Position.X));
@@ -65,7 +65,7 @@ public sealed class EditorShellTests
         Assert.That(rects.RightTabs.Position.Y, Is.EqualTo(rects.RightTree.End.Y));
         Assert.That(rects.RightBody.Position.Y, Is.EqualTo(rects.RightTabs.End.Y));
         Assert.That(rects.RightBody.End.Y, Is.EqualTo(rects.RightPanel.End.Y));
-        Assert.That(rects.RightTree.Size.Y, Is.EqualTo(313f));
+        Assert.That(rects.RightTree.Size.Y, Is.EqualTo(328f));
     }
 
     [Test]

@@ -20,6 +20,11 @@ public static class AnimatorTooltips
         ToolActionKind.Load => "Load the XAF package (Ctrl+O)",
         ToolActionKind.NewSkeleton => "Start an empty skeleton (Ctrl+N)",
         ToolActionKind.Undo => "Undo the last edit (Ctrl+Z)",
+        ToolActionKind.TogglePathWindow => "Motion paths for the whole clip, or one second around the playhead (Shift+N)",
+        ToolActionKind.OpenInfo => "The file's path and what it holds (Ctrl+I)",
+        ToolActionKind.CloseInfo => "Close the file info",
+        ToolActionKind.TogglePreviewMode => "Hide the editing panels and watch the clip (Tab)",
+        ToolActionKind.ExitPreviewMode => "Back to editing (Esc)",
         ToolActionKind.Redo => "Redo the last undone edit (Ctrl+Y)",
         ToolActionKind.RotateLeft => "Turn selected bones -0.25 rad (Q)",
         ToolActionKind.RotateRight => "Turn selected bones +0.25 rad (E)",
@@ -42,6 +47,15 @@ public static class AnimatorTooltips
         ToolActionKind.PickChainBone => "Then click the bone the chain hangs from; the chain stays where it is",
         ToolActionKind.PickColliderBone => "Then click the bone the collider follows; the collider stays where it is",
         ToolActionKind.SelectChain => "Select this Verlet chain",
+        ToolActionKind.AddCloth =>
+            "Add a dress hanging from the selected bone, its bodice pinned down to the bone's joint (C)",
+        ToolActionKind.SelectCloth => "Select this cloth",
+        ToolActionKind.DeleteCloth => "Delete the selected cloth (Shift+C)",
+        ToolActionKind.PickClothBone => "Then click the bone the cloth is laid out from",
+        ToolActionKind.PinClothPoints =>
+            "Then click points of the cloth to pin each to the nearest bone, or free it; click again here to stop",
+        ToolActionKind.PickClothColliders =>
+            "Then click bones the cloth's edges cannot pass through, or click one again to drop it; click here to stop",
         ToolActionKind.AddEffect => "Hang a speed streak off the selected bone, shown for 0.15 s from the playhead (W)",
         ToolActionKind.SelectEffect => "Select this effect; key it like a bone, show or hide it with U",
         ToolActionKind.DeleteEffect => "Delete the selected effect and its keys (Shift+W)",
@@ -105,6 +119,8 @@ public static class AnimatorTooltips
             nameof(AnimatorMode.Kites) => "Show each bone as a filled kite; off leaves only joints and labels (X)",
             nameof(AnimatorMode.Handles) => "Show joint dots and bone labels; off leaves just the art (J)",
             nameof(AnimatorMode.Ik) => "Drag a joint as a two-bone IK chain (I)",
+            nameof(AnimatorMode.MotionPaths) =>
+                "Show where joints travel: the selected bones, the extremities in preview; red marks sharp turns (N, Shift+N for around the playhead only)",
             _ => "Toggle this editing mode",
         },
         _ => null,

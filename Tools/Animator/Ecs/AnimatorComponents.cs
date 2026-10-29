@@ -103,6 +103,24 @@ public enum ToolActionKind
     /// <summary>The next bone clicked becomes the one the selected chain's collider follows; no argument.</summary>
     PickColliderBone,
 
+    /// <summary>Adds a dress hanging from the selected bone; no argument.</summary>
+    AddCloth,
+
+    /// <summary>Selects a cloth, by its index in the package.</summary>
+    SelectCloth,
+
+    /// <summary>Deletes the selected cloth; no argument.</summary>
+    DeleteCloth,
+
+    /// <summary>The next bone clicked becomes the one the selected cloth is laid out from; no argument.</summary>
+    PickClothBone,
+
+    /// <summary>Starts or stops pinning: each point clicked is pinned to the nearest bone, or freed.</summary>
+    PinClothPoints,
+
+    /// <summary>Starts or stops choosing colliders: each bone clicked starts or stops being one.</summary>
+    PickClothColliders,
+
     /// <summary>Plays jump, fall, land and idle into each other, as the game does.</summary>
     SequenceGame,
 
@@ -150,6 +168,21 @@ public enum ToolActionKind
 
     /// <summary>Keys the selected effect's opacity one step higher at the playhead.</summary>
     EffectOpacityUp,
+
+    /// <summary>Enters preview mode, or leaves it: the editing panels give way to the viewport.</summary>
+    TogglePreviewMode,
+
+    /// <summary>Leaves preview mode; does nothing while editing.</summary>
+    ExitPreviewMode,
+
+    /// <summary>Opens the file info popup: the file's path and what it holds.</summary>
+    OpenInfo,
+
+    /// <summary>Closes the file info popup.</summary>
+    CloseInfo,
+
+    /// <summary>Shows motion paths for the whole clip, or only around the playhead.</summary>
+    TogglePathWindow,
 }
 
 /// <summary>Command carried by a pressable UI entity.</summary>
@@ -179,6 +212,9 @@ public enum AnimatorMode
 
     /// <summary>Draws the joint dots and bone labels; off leaves just the art and the bone shapes.</summary>
     Handles,
+
+    /// <summary>Draws where joints travel over the clip: the selected bones, or the extremities in preview.</summary>
+    MotionPaths,
 }
 
 /// <summary>Binds a <c>Toggle</c> entity to one animator editing mode.</summary>
@@ -243,6 +279,9 @@ public partial struct AnimatorSelection : IComponent
     /// <summary>The selected effect; -1 for none.</summary>
     public int Effect;
 
+    /// <summary>The selected cloth; -1 for none.</summary>
+    public int Cloth;
+
     /// <summary>The selected bones beside the primary one; null when only one is selected.</summary>
     public List<int>? ExtraBones;
 
@@ -296,6 +335,7 @@ public partial struct AnimatorSelection : IComponent
         Attachment = -1,
         Chain = -1,
         Effect = -1,
+        Cloth = -1,
         HasKey = false,
         KeyId = "",
     };
@@ -343,6 +383,12 @@ public struct AnimatorModes : IComponent
     /// <summary>Joint dots and bone labels are drawn; on by default.</summary>
     public bool Handles;
 
+    /// <summary>Motion paths are drawn.</summary>
+    public bool MotionPaths;
+
+    /// <summary>Motion paths show only the second around the playhead, not the whole clip.</summary>
+    public bool PathWindow;
+
     /// <summary>Whether one editing mode is on.</summary>
     public readonly bool Get(AnimatorMode mode) => mode switch
     {
@@ -353,6 +399,7 @@ public struct AnimatorModes : IComponent
         AnimatorMode.Pin => Pin,
         AnimatorMode.Kites => Kites,
         AnimatorMode.Handles => Handles,
+        AnimatorMode.MotionPaths => MotionPaths,
         _ => Rest,
     };
 
@@ -381,6 +428,9 @@ public struct AnimatorModes : IComponent
                 break;
             case AnimatorMode.Handles:
                 Handles = value;
+                break;
+            case AnimatorMode.MotionPaths:
+                MotionPaths = value;
                 break;
             default:
                 Rest = value;
@@ -497,6 +547,12 @@ public struct AnimatorClipLength : IComponent
 /// choice live in the UI fields, and creating the clip reads them.
 /// </summary>
 public struct AnimatorNewClipDialog : IComponent
+{
+    public bool Open;
+}
+
+/// <summary>The file info popup, centred over a dimmer; a click outside it closes it.</summary>
+public struct AnimatorInfoPanel : IComponent
 {
     public bool Open;
 }

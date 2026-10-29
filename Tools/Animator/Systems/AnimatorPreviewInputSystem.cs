@@ -44,7 +44,8 @@ public sealed class AnimatorPreviewInputSystem(
         if (wheel is not null && area.HasPoint(input.Position))
             Wheel(session, ref view, area, input);
 
-        if (Pan(ref view, area, input))
+        // Preview mode still pans and zooms, but picks and drags nothing.
+        if (Pan(ref view, area, input) || AnimatorPreviewModeCommands.IsOn(session))
         {
             session.GetComponent<AnimatorHover>() = AnimatorHover.None;
             return;
@@ -184,6 +185,13 @@ public sealed class AnimatorPreviewInputSystem(
                 AnimatorChainPlacementCommands.PickBone(session, picked);
             else
                 AnimatorChainPlacementCommands.CancelPick(session);
+            return;
+        }
+
+        // A cloth inspector button waits for clicks: they pin points or pick bones until stopped.
+        if (session.GetComponent<AnimatorCloths>().Picking != AnimatorClothPick.None)
+        {
+            AnimatorClothCommands.Click(session, pointer, placement, world);
             return;
         }
 
@@ -516,17 +524,23 @@ public sealed class AnimatorPreviewInputSystem(
         AnimatorDrag drag = session.GetComponent<AnimatorDrag>();
         session.GetComponent<AnimatorDrag>() = new AnimatorDrag();
         AnimatorHistoryCommands.EndGesture(session);
-        if (AnimatorChainHandles.IsChainDrag(drag.Kind) ||
-            session.GetComponent<AnimatorModes>() is not { AutoKey: true, Rest: false })
-        {
+        AnimatorModes modes = session.GetComponent<AnimatorModes>();
+        if (AnimatorChainHandles.IsChainDrag(drag.Kind) || drag.Kind == AnimatorDragKind.None || modes.Rest)
             return;
-        }
 
-        // An IK drag turned the parent and grandparent, so those are what get keyed.
+        // An IK drag turned the parent and grandparent, so those are what get
+        // keyed; selected keys on them take the change instead.
         XafPackage package = session.GetComponent<AnimatorDocument>().Package;
         if (drag.Kind == AnimatorDragKind.Ik && Chain(package, drag.Joint, out int parent, out int grandparent))
-            AnimatorEditing.KeyBones(session, grandparent, parent);
+        {
+            int edited = 0;
+            AnimatorHistoryCommands.Edit(session, () => edited = AnimatorKeyEditCommands.Apply(session));
+            if (edited == 0 && modes.AutoKey)
+                AnimatorEditing.KeyBones(session, grandparent, parent);
+        }
         else
-            AnimatorEditing.KeySelected(session);
+        {
+            AnimatorEditing.KeyEdit(session);
+        }
     }
 }
