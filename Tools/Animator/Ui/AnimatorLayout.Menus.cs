@@ -180,11 +180,11 @@ public static partial class AnimatorLayout
     private const float InspectorWidth = 236f;
     private const float InspectorHeight = 222f;
 
-    /// <summary>Top-left of the floating inspectors: the preview's top-right corner, under the mode bar.</summary>
+    /// <summary>Top-left of the floating inspectors: the preview's top-right corner.</summary>
     public static Vector2 InspectorTopLeft(Vector2 screen) =>
         new(
             screen.X - Margin - RightWidth - Gap - InspectorWidth - 12f,
-            Margin + TopHeight + Gap + ModeInset + 12f);
+            Margin + TopHeight + Gap + 12f);
 
     /// <summary>Where the transform inspector is centred when it is shown.</summary>
     public static Vector2 InspectorCenter(Vector2 screen) =>

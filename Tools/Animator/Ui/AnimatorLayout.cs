@@ -69,10 +69,8 @@ public static partial class AnimatorLayout
     /// <summary>Width of the clip dropdown button in the header.</summary>
     public const float ClipWidth = 160f;
 
-    /// <summary>Height of the horizontal mode bar above the preview, and the gap under it.</summary>
-    private const float ModeBarHeight = 36f;
-    private const float ModeBarGap = 8f;
-    private const float ModeInset = ModeBarHeight + ModeBarGap;
+    private const float StripWidth = EditorShellMetrics.ToolStripWidth;
+    private const float StripPadding = (EditorShellMetrics.ToolStripWidth - EditorShellMetrics.ToolButton) / 2;
     private static readonly Color Clear = new(0, 0, 0, 0);
 
     /// <summary>Creates every panel and returns the entities the systems drive.</summary>
@@ -91,6 +89,7 @@ public static partial class AnimatorLayout
         BuildHeader(ui, screen, ref refs);
         ui.Container(Vector2.Zero, new Vector2(screen.X - Margin * 2, mainHeight),
             spacing: Gap, color: Clear);
+        BuildToolStrip(ui, mainHeight);
         BuildLeft(ui, mainHeight, ref refs);
         BuildPreview(ui, screen, mainHeight, ref refs);
         BuildRight(ui, mainHeight, ref refs);
@@ -208,35 +207,31 @@ public static partial class AnimatorLayout
 
     private static void BuildPreview(UiBuilder ui, Vector2 screen, float height, ref Refs refs)
     {
-        float width = screen.X - Margin * 2 - LeftWidth - RightWidth - Gap * 2;
+        float width = screen.X - Margin * 2 - StripWidth - LeftWidth - RightWidth - Gap * 3;
         ui.Container(Vector2.Zero, new Vector2(width, height),
-            StackDirection.Vertical, spacing: ModeBarGap, color: Clear);
-        BuildModeBar(ui, width);
-        ui.Container(Vector2.Zero, new Vector2(width, height - ModeInset),
             StackDirection.Vertical, color: Palette.SurfaceDeep, takesInput: true);
         refs.Ui.Preview = ui.Current;
-        ui.End();
         ui.End();
     }
 
     /// <summary>
-    /// Editing modes run horizontally over the viewport: they change what the
-    /// preview does, so they belong above it rather than in the action column.
+    /// The editing modes are the tools, so they run down the shell's tool
+    /// strip at the left edge: two letters each, lit while the mode is on.
     /// </summary>
-    private static void BuildModeBar(UiBuilder ui, float width)
+    private static void BuildToolStrip(UiBuilder ui, float height)
     {
-        ui.Container(Vector2.Zero, new Vector2(width, ModeBarHeight),
-            spacing: 6, color: UiTheme.Panel, padding: 4, takesInput: true,
+        ui.Container(Vector2.Zero, new Vector2(StripWidth, height),
+            StackDirection.Vertical, spacing: EditorShellMetrics.ToolGap,
+            color: UiTheme.Panel, padding: StripPadding, takesInput: true,
             main: StackMainAlignment.Start);
-        ui.Text("MODES", new Vector2(48, 20), 11, UiTheme.TextDim, TextAlign.Left);
-        ModeButton(ui, "AUTO", AnimatorMode.AutoKey, 78);
-        ModeButton(ui, "ONION", AnimatorMode.Onion, 78);
-        ModeButton(ui, "REST", AnimatorMode.Rest, 72);
-        ModeButton(ui, "SVG", AnimatorMode.Svg, 66);
-        ModeButton(ui, "IK", AnimatorMode.Ik, 60);
-        ModeButton(ui, "PIN", AnimatorMode.Pin, 66);
-        ModeButton(ui, "KITES", AnimatorMode.Kites, 84, on: true);
-        ModeButton(ui, "HANDLES", AnimatorMode.Handles, 104, on: true);
+        ModeButton(ui, "AK", AnimatorMode.AutoKey);
+        ModeButton(ui, "ON", AnimatorMode.Onion);
+        ModeButton(ui, "RS", AnimatorMode.Rest);
+        ModeButton(ui, "SV", AnimatorMode.Svg);
+        ModeButton(ui, "IK", AnimatorMode.Ik);
+        ModeButton(ui, "PN", AnimatorMode.Pin);
+        ModeButton(ui, "KT", AnimatorMode.Kites, on: true);
+        ModeButton(ui, "HD", AnimatorMode.Handles, on: true);
         ui.End();
     }
 
@@ -364,13 +359,11 @@ public static partial class AnimatorLayout
         return button;
     }
 
-    private static void ModeButton(UiBuilder ui, string label, AnimatorMode mode, float width, bool on = false)
+    private static void ModeButton(UiBuilder ui, string label, AnimatorMode mode, bool on = false)
     {
-        Entity button = ui.Button(
-            $"{label} {(on ? "ON" : "OFF")}",
-            new Vector2(width, 28),
-            fontSize: UiTheme.SmallFontSize);
-        button.AddComponent(new Toggle($"{label} ON", $"{label} OFF", on));
+        var size = new Vector2(EditorShellMetrics.ToolButton, EditorShellMetrics.ToolButton);
+        Entity button = ui.Button(label, size);
+        button.AddComponent(new Toggle(label, label, on));
         button.AddComponent(new ModeToggle(mode));
         AnimatorTooltips.Attach(button, ToolActionKind.ToggleMode, mode.ToString());
     }
