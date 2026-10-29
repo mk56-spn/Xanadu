@@ -483,6 +483,9 @@ public sealed partial class EditorNoteInputSystem : QuerySystem<Note>
         DashDirection direction = editor.HasComponent<EditorDashDirectionState>()
             ? editor.GetComponent<EditorDashDirectionState>().Direction
             : DashDirection.Up;
+        DashStrength strength = editor.HasComponent<EditorDashStrengthState>()
+            ? editor.GetComponent<EditorDashStrengthState>().Strength
+            : DashStrength.Single;
         Entity created = EditorItems.Create(_entities, new Note(
             time,
             playfieldPosition,
@@ -497,7 +500,8 @@ public sealed partial class EditorNoteInputSystem : QuerySystem<Note>
                 _ => NoteKind.Hit,
             },
             dashDirection: direction,
-            character: character));
+            character: character,
+            dashStrength: strength));
         _history.Record(before, _history.Capture());
         editor.GetComponent<NoteSelection>().Note = created;
     }

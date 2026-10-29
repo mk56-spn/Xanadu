@@ -151,5 +151,25 @@ public sealed class PlayerMovementSystemTests
         Assert.That(_player.GetComponent<Position>().Value.X, Is.EqualTo(500));
     }
 
+    [TestCase(DashStrength.Single, 350f)]
+    [TestCase(DashStrength.Double, 200f)]
+    [TestCase(DashStrength.Triple, 50f)]
+    public void DashStrengthSetsTheDistanceTravelled(
+        DashStrength strength,
+        float expectedX)
+    {
+        _root.Update(new UpdateTick(1f / 60f, 0));
+        _store.CreateEntity(new Note(
+            0,
+            new Vector2(500, 500),
+            target: KeybindAction.L3,
+            kind: NoteKind.Movement,
+            dashDirection: DashDirection.Left,
+            dashStrength: strength));
 
+        _keyboard.Press(Key.F);
+        _root.Update(new UpdateTick(1f / 60f, 0));
+
+        Assert.That(_player.GetComponent<Position>().Value.X, Is.EqualTo(expectedX));
+    }
 }

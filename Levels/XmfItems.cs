@@ -18,6 +18,9 @@ public static partial class XmfBinary
 
     private static byte[] WriteNotes(List<NoteDocument> notes, StringTable strings)
     {
+        bool anyStrength = notes.Exists(
+            note => note.DashStrength != DashStrength.Single);
+
         using var stream = new MemoryStream();
         using var writer = new BinaryWriter(stream, Encoding.UTF8, leaveOpen: true);
         writer.Write((uint)notes.Count);
@@ -34,6 +37,15 @@ public static partial class XmfBinary
             writer.Write(note.ContactRequired);
             writer.Write((byte)note.Character);
         }
+
+        // Optional trailing strength bytes keep files written before dash
+        // strength existed readable, and leave default-strength files unchanged.
+        if (anyStrength)
+        {
+            foreach (NoteDocument note in notes)
+                writer.Write((byte)note.DashStrength);
+        }
+
         writer.Flush();
         return stream.ToArray();
     }
@@ -59,6 +71,21 @@ public static partial class XmfBinary
                 Character = ReadEnum<CharacterKind>(reader),
             });
         }
+
+        if (reader.BaseStream.Position < reader.BaseStream.Length)
+        {
+            for (int i = 0; i < notes.Count; i++)
+            {
+                if (reader.BaseStream.Position >= reader.BaseStream.Length)
+                    throw new FormatException("XMF note strengths are truncated.");
+
+                notes[i].DashStrength = ReadEnum<DashStrength>(reader);
+            }
+
+            if (reader.BaseStream.Position != reader.BaseStream.Length)
+                throw new FormatException("XMF notes contain trailing data.");
+        }
+
         return notes;
     }
 

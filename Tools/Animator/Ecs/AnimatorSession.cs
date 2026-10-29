@@ -42,6 +42,8 @@ public static class AnimatorSession
             AnimatorBoneMenu.Closed,
             new AnimatorClipboard());
         session.AddComponent(new AnimatorKeyMenu());
+        session.AddComponent(new AnimatorClipLength());
+        session.AddComponent(new AnimatorNewClipDialog());
         session.AddComponent(new AnimatorSvgMenu { Choices = new() });
         session.AddComponent(AnimatorHover.None);
         session.AddComponent(AnimatorPreviewView.Default);
@@ -79,6 +81,8 @@ public static class AnimatorSession
         session.GetComponent<AnimatorChains>().Picking = AnimatorChainPick.None;
         session.GetComponent<AnimatorTracks>().Expanded?.Clear();
         session.GetComponent<AnimatorKeyMenu>() = new AnimatorKeyMenu();
+        session.GetComponent<AnimatorClipLength>() = new AnimatorClipLength();
+        session.GetComponent<AnimatorNewClipDialog>() = new AnimatorNewClipDialog();
         session.GetComponent<AnimatorSvgMenu>() = new AnimatorSvgMenu { Choices = new() };
         AnimatorHistoryCommands.Clear(session);
     }

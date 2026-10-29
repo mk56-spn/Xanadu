@@ -45,9 +45,21 @@ public sealed class AnimatorShortcutSystem(IKeyboardState keyboard)
         _down.Clear();
         _downBindings.Clear();
 
-        // Typing in a name field must not trigger shortcuts such as Delete or Space.
+        // Typing in a name field or having the NEW CLIP dialog open must not
+        // trigger shortcuts such as Delete or Space.
         bool typing = Query.Store.Query<TextField>().AllTags(Tags.Get<TextFieldFocused>()).Count > 0;
-        if (!typing)
+        bool modal = false;
+        foreach (Entity session in Query.Store.Query<AnimatorNewClipDialog>().ToEntityList())
+        {
+            if (!session.GetComponent<AnimatorNewClipDialog>().Open)
+                continue;
+
+            modal = true;
+            break;
+        }
+
+        bool blocked = typing || modal;
+        if (!blocked)
             ReadKeys();
 
         var pressed = new List<Shortcut>();
@@ -64,9 +76,9 @@ public sealed class AnimatorShortcutSystem(IKeyboardState keyboard)
                 actions.Add(AnimatorBindings.All[index].Action);
         }
 
-        // While typing everything counts as held, so letting go of a key in
+        // While blocked everything counts as held, so letting go of a key in
         // the field does not fire it once the field loses focus.
-        if (typing)
+        if (blocked)
         {
             _held.UnionWith(Enum.GetValues<Shortcut>());
             for (int i = 0; i < AnimatorBindings.All.Length; i++)

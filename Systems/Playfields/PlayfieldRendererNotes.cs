@@ -97,7 +97,8 @@ public static partial class PlayfieldRenderer
     {
         if (note.Kind == NoteKind.Movement)
         {
-            canvas.DrawCircleOutline(rid, center, radius, color, 2);
+            int strength = DashStrengthLevel(note.DashStrength);
+            canvas.DrawCircleOutline(rid, center, radius, color, 1 + strength);
             canvas.DrawTextStyled(
                 rid,
                 new Rect2(
@@ -106,6 +107,21 @@ public static partial class PlayfieldRenderer
                 DashArrow(note.DashDirection),
                 color,
                 Math.Max(10, (int)(radius * 1.1f)));
+
+            if (strength > 1)
+            {
+                Vector2 badgeCenter = center + new Vector2(radius * 0.55f, radius * 0.55f);
+                canvas.DrawCircle(rid, badgeCenter, radius * 0.34f,
+                    new Color(0f, 0f, 0f, color.A * 0.55f));
+                canvas.DrawTextStyled(
+                    rid,
+                    new Rect2(
+                        badgeCenter - new Vector2(radius * 0.45f, radius * 0.45f),
+                        new Vector2(radius * 0.9f, radius * 0.9f)),
+                    DashStrengthLabel(note.DashStrength),
+                    color,
+                    Math.Max(8, (int)(radius * 0.55f)));
+            }
         }
         else if (note.Kind == NoteKind.Contact)
         {
@@ -188,6 +204,24 @@ public static partial class PlayfieldRenderer
             DashDirection.DownLeft => "↙",
             DashDirection.Left => "←",
             _ => "↖",
+        };
+
+    /// <summary>One, two or three dash lengths.</summary>
+    public static int DashStrengthLevel(DashStrength strength) =>
+        strength switch
+        {
+            DashStrength.Double => 2,
+            DashStrength.Triple => 3,
+            _ => 1,
+        };
+
+    /// <summary>The small badge that marks a double or triple dash; empty for a single.</summary>
+    public static string DashStrengthLabel(DashStrength strength) =>
+        strength switch
+        {
+            DashStrength.Double => "×2",
+            DashStrength.Triple => "×3",
+            _ => "",
         };
 
     public static void DrawMines(

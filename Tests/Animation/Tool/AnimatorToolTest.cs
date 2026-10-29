@@ -94,6 +94,31 @@ public abstract class AnimatorToolTest : EcsSystemTest
         return default;
     }
 
+    /// <summary>Every button carrying an action, in creation order.</summary>
+    protected List<Entity> Buttons(ToolActionKind kind)
+    {
+        var found = new List<Entity>();
+        foreach (Entity entity in Store.Query<ToolAction>().ToEntityList())
+        {
+            if (entity.GetComponent<ToolAction>().Kind == kind)
+                found.Add(entity);
+        }
+
+        return found;
+    }
+
+    /// <summary>Whether <paramref name="entity"/> is inside <paramref name="ancestor"/>.</summary>
+    protected static bool IsInside(Entity entity, Entity ancestor)
+    {
+        for (Entity parent = entity.Parent; !parent.IsNull; parent = parent.Parent)
+        {
+            if (parent.Id == ancestor.Id)
+                return true;
+        }
+
+        return false;
+    }
+
     /// <summary>The tree label for a bone, as the user would click it.</summary>
     protected Entity BoneLabel(string boneId) =>
         UiTreeControl.FindNode(Ui.BoneList, boneId).GetComponent<UiTreeNode>().Label;

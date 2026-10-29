@@ -34,12 +34,23 @@ public sealed class AnimatorBoneMenuSystem(IPointerInputSource pointer)
 
         foreach (Entity session in Query.ToEntityList())
         {
+            AnimatorUi ui = session.GetComponent<AnimatorUi>();
+            if (session.GetComponent<AnimatorNewClipDialog>().Open)
+            {
+                ref AnimatorBoneMenu closed = ref session.GetComponent<AnimatorBoneMenu>();
+                closed.Open = false;
+                if (closed.Renaming >= 0)
+                    Stop(ref closed, ui.BoneNameField);
+                else
+                    AnimatorMenuPlacement.Place(ui.BoneMenu, UiLayout.Hidden);
+                continue;
+            }
+
             if (secondary)
                 RightClick(session, input.Position);
             else if (primary)
                 session.GetComponent<AnimatorBoneMenu>().Open = false;
 
-            AnimatorUi ui = session.GetComponent<AnimatorUi>();
             AnimatorBoneMenu menu = session.GetComponent<AnimatorBoneMenu>();
             AnimatorMenuPlacement.Place(ui.BoneMenu, menu.Open ? menu.Anchor + AnimatorLayout.BoneMenuSize / 2 : UiLayout.Hidden);
             Rename(session, ui.BoneNameField, input.Pressed);

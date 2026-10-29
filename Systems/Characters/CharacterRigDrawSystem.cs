@@ -51,7 +51,8 @@ public sealed class CharacterRigDrawSystem(Func<IAttachmentVisuals> createVisual
 
             Vector2 size = entity.GetComponent<Player>().Size;
             Vector2 center = entity.GetComponent<Position>().Value;
-            Transform2D placement = Placement(instance.RigBounds, center + new Vector2(0, size.Y / 2), size.Y);
+            bool faceLeft = entity.TryGetComponent(out CharacterFacing facing) && facing.Left;
+            Transform2D placement = Placement(instance.RigBounds, center + new Vector2(0, size.Y / 2), size.Y, faceLeft);
             instance.Visuals.Apply(attachments, placement);
             instance.Chains.Update(package, bones, Tick.deltaTime);
             instance.Visuals.ApplyChains(package, instance.Chains, placement);
@@ -64,13 +65,15 @@ public sealed class CharacterRigDrawSystem(Func<IAttachmentVisuals> createVisual
 
     /// <summary>
     /// Maps rig space to canvas space so the rig is <paramref name="height"/> tall
-    /// with the bottom-centre of <paramref name="rigBounds"/> on <paramref name="feet"/>.
+    /// with the bottom-centre of <paramref name="rigBounds"/> on <paramref name="feet"/>,
+    /// mirrored about that point when <paramref name="flip"/> is set.
     /// </summary>
-    public static Transform2D Placement(Rect2 rigBounds, Vector2 feet, float height)
+    public static Transform2D Placement(Rect2 rigBounds, Vector2 feet, float height, bool flip = false)
     {
         float scale = height / rigBounds.Size.Y;
         var rigFeet = new Vector2(rigBounds.GetCenter().X, rigBounds.End.Y);
-        return new Transform2D(0f, new Vector2(scale, scale), 0f, feet - rigFeet * scale);
+        var scaleXY = new Vector2(flip ? -scale : scale, scale);
+        return new Transform2D(0f, scaleXY, 0f, feet - rigFeet * scaleXY);
     }
 
     private void ReleaseUnseen()

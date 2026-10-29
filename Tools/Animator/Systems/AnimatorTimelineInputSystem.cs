@@ -40,6 +40,12 @@ public sealed class AnimatorTimelineInputSystem(
 
     private void Update(Entity session)
     {
+        if (session.GetComponent<AnimatorNewClipDialog>().Open)
+        {
+            wheel.TakeWheel();
+            return;
+        }
+
         AnimatorTimelineModel? model = AnimatorTimelineModel.Create(session);
         PointerInput input = pointer.Read();
         Entity panel = session.GetComponent<AnimatorUi>().Timeline;

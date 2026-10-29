@@ -39,6 +39,19 @@ public sealed class AnimatorSvgMenuSystem(
         ref AnimatorSvgMenu menu = ref session.GetComponent<AnimatorSvgMenu>();
         AnimatorUi ui = session.GetComponent<AnimatorUi>();
 
+        if (session.GetComponent<AnimatorNewClipDialog>().Open)
+        {
+            if (menu.Open)
+            {
+                menu.Open = false;
+                Clear(ui);
+            }
+
+            AnimatorMenuPlacement.Place(ui.SvgMenu, UiLayout.Hidden);
+            _wasOpen = false;
+            return;
+        }
+
         // The frame it opens is the one frame a press belongs to the option
         // that opened it, not to clicking off the panel.
         bool opened = menu.Open && !_wasOpen;

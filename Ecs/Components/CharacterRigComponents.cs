@@ -12,7 +12,7 @@ public struct CharacterRigSource(string path) : IComponent
 /// <summary>A loaded, animating character rig.</summary>
 public struct CharacterRig(AnimatorRuntime runtime) : IComponent
 {
-    public AnimatorRuntime Runtime = runtime;
+    public readonly AnimatorRuntime Runtime = runtime;
 }
 
 /// <summary>The rig source could not be loaded; the player keeps its plain box.</summary>
@@ -20,6 +20,12 @@ public struct CharacterRigMissing : ITag;
 
 /// <summary>The rig's art is on screen, so the plain player box is not drawn.</summary>
 public struct CharacterRigVisible : ITag;
+
+/// <summary>Which way a rigged player faces; the art is drawn facing right until a leftward dash flips it.</summary>
+public struct CharacterFacing : IComponent
+{
+    public bool Left;
+}
 
 /// <summary>What a rigged player is doing, which picks the clip it plays.</summary>
 public enum CharacterMotionState

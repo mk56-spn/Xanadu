@@ -42,6 +42,7 @@ public sealed class EditorSystemGroup : SystemGroup, IDisposable
         Add(new EditorGroupSystem(entities, history, pointerInput, commands));
         Add(new EditorGroupPreviewSystem(entities, canvas, _groupPreview.Rid));
         Add(new EditorPlacementSystem(entities));
+        Add(new EditorDashStrengthSystem(entities));
         Add(new EditorNoteTypeBarSystem(entities, commands));
         Add(new EditorDirectionWheelSystem());
         Add(new EditorButtonSystem(entities, commands));

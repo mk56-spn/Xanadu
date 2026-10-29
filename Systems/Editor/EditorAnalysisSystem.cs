@@ -44,13 +44,15 @@ public sealed class EditorAnalysisSystem(EntityStore entities)
                     note.TimeMs,
                     note.Position,
                     note.Kind,
-                    note.DashDirection));
+                    note.DashDirection,
+                    note.DashStrength));
                 // Summed, so the order the query visits notes in does not matter.
                 signature += HashCode.Combine(
                     note.TimeMs,
                     note.Position,
                     note.Kind,
-                    note.DashDirection);
+                    note.DashDirection,
+                    note.DashStrength);
             });
 
             if (analysis.Density is not null && signature == analysis.Signature)

@@ -114,6 +114,39 @@ public static partial class EditorScene
             _ => 0,
         });
 
+        SceneUi.Text(
+            ui,
+            new Vector2(centerX, top + 80),
+            new Vector2(width, 20),
+            "DASH STRENGTH",
+            12,
+            SceneUi.DimTextColor,
+            new Color(0, 0, 0, 0));
+        const float strengthWidth = 54;
+        const float strengthGap = 6;
+        const float strengthTotal = strengthWidth * 3 + strengthGap * 2;
+        float strengthLeft = centerX - strengthTotal / 2 + strengthWidth / 2;
+        for (int i = 0; i < 3; i++)
+        {
+            var strength = (DashStrength)i;
+            Entity button = SceneUi.ButtonEntity(
+                ui,
+                new Vector2(
+                    strengthLeft + i * (strengthWidth + strengthGap),
+                    top + 112),
+                new Vector2(strengthWidth, 28),
+                i == 0 ? "1×" : i == 1 ? "2×" : "3×",
+                12,
+                SceneUi.MutedButtonColor);
+            button.AddComponent(new EditorDashStrengthButton(strength));
+            button.AddComponent(new UiTooltip(strength switch
+            {
+                DashStrength.Double => "Dash notes carry the player twice as far",
+                DashStrength.Triple => "Dash notes carry the player three times as far",
+                _ => "Dash notes carry the player one dash length",
+            }));
+        }
+
         editor.AddComponent(new EditorLeftMenu(
             panel,
             snapLabel,

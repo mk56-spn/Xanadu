@@ -7,13 +7,13 @@ namespace Xanadu.Systems.Playfields;
 public static class NoteFade
 {
     /// <summary>Temporary shared fade-in until note variance is reintroduced.</summary>
-    public const long FadeInMs = 300;
+    public const long FadeInMs = 600;
 
     /// <summary>Temporary shared fade-out until note variance is reintroduced.</summary>
     public const long FadeOutMs = 300;
 
     /// <summary>Shared approach-ring duration for every note kind.</summary>
-    public const float ApproachWindowMs = 300f;
+    public const float ApproachWindowMs = 600f;
 
     public static float Alpha(Note note, long playheadMs) =>
         Alpha(note.TimeMs, playheadMs);

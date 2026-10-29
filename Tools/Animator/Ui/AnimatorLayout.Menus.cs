@@ -1,4 +1,5 @@
 using System;
+using System.Globalization;
 using Friflo.Engine.ECS;
 using Godot;
 using Xanadu.Ecs;
@@ -17,17 +18,141 @@ public static partial class AnimatorLayout
             ("SAVE", ToolActionKind.Save),
             ("LOAD", ToolActionKind.Load),
             ("NEW", ToolActionKind.NewSkeleton),
+            ("NEW CLIP…", ToolActionKind.OpenNewClip),
         });
 
-    /// <summary>The clip menu holds the clip edits that are rarely needed.</summary>
-    private static void BuildClipMenu(UiBuilder menu, Entity clipButton) =>
-        BuildActionMenu(menu, clipButton, new[]
+    /// <summary>
+    /// The CONFIG menu holds the clip edits that are not part of playing or
+    /// previewing: its length and deleting it.
+    /// </summary>
+    private static void BuildConfigMenu(UiBuilder menu, Entity configButton) =>
+        BuildActionMenu(menu, configButton, new[]
         {
-            ("LENGTH -0.1s", ToolActionKind.DurationDown),
-            ("LENGTH +0.1s", ToolActionKind.DurationUp),
-            ("DUPLICATE", ToolActionKind.DuplicateClip),
+            ("LENGTH…", ToolActionKind.OpenClipLength),
             ("DELETE", ToolActionKind.DeleteClip),
         });
+
+    /// <summary>
+    /// The clip length panel starts hidden; <see cref="Systems.AnimatorClipConfigSystem"/>
+    /// places it under the CONFIG button and closes it on any click outside.
+    /// Six arrows step the length by 0.1 s, 1 s and 10 s in either direction.
+    /// </summary>
+    private static void BuildClipLengthPanel(UiBuilder menu, ref Refs refs)
+    {
+        float inner = ClipLengthSize.X - ClipLengthPadding * 2;
+        menu.Container(UiLayout.Hidden, ClipLengthSize, StackDirection.Vertical,
+            spacing: 6, color: UiTheme.Panel, padding: ClipLengthPadding,
+            takesInput: true, cross: StackCrossAlignment.Start,
+            main: StackMainAlignment.Start);
+        refs.Ui.ClipLengthPanel = menu.Current;
+        menu.Text("CLIP LENGTH", new Vector2(inner, 18), UiTheme.SmallFontSize,
+            UiTheme.Accent, TextAlign.Left);
+
+        menu.Container(Vector2.Zero, new Vector2(inner, ClipLengthRowHeight),
+            spacing: ClipLengthSpacing, color: Clear,
+            cross: StackCrossAlignment.Center);
+        for (int arrows = 3; arrows >= 1; arrows--)
+            LengthStepButton(menu, shorter: true, arrows);
+        refs.Ui.ClipLengthField = NumericField(menu,
+            new Vector2(ClipLengthFieldWidth, ClipLengthRowHeight));
+        refs.Ui.ClipLengthField.AddComponent(new UiTooltip("Clip length in seconds"));
+        for (int arrows = 1; arrows <= 3; arrows++)
+            LengthStepButton(menu, shorter: false, arrows);
+        menu.End();
+        menu.End();
+    }
+
+    /// <summary>One arrow step: 1, 2 or 3 arrows change the length by 0.1, 1 or 10 s.</summary>
+    private static Entity LengthStepButton(UiBuilder menu, bool shorter, int arrows)
+    {
+        float seconds = Commands.AnimatorClipCommands.LengthSteps[arrows - 1];
+        Entity button = menu.Button(
+            new string(shorter ? '◀' : '▶', arrows),
+            new Vector2(ClipLengthArrowWidth, ClipLengthRowHeight),
+            fontSize: UiTheme.SmallFontSize);
+        button.AddComponent(new ToolAction(
+            shorter ? ToolActionKind.DurationDown : ToolActionKind.DurationUp,
+            seconds.ToString(CultureInfo.InvariantCulture)));
+        button.AddComponent(new UiTooltip(
+            $"{(shorter ? "Shorten" : "Lengthen")} the clip by {seconds:0.###} s"));
+        return button;
+    }
+
+    /// <summary>
+    /// The NEW CLIP dialog and the dimmer behind it. Both start hidden;
+    /// <see cref="Systems.AnimatorNewClipDialogSystem"/> centres them and
+    /// <see cref="Commands.AnimatorNewClipDialogCommands"/> creates the clip.
+    /// </summary>
+    private static void BuildNewClipDialog(UiBuilder menu, Vector2 screen, ref Refs refs)
+    {
+        Entity backdrop = menu.RectEntity(
+            UiLayout.Hidden,
+            screen,
+            Palette.WithAlpha(Palette.Stage, 0.6f),
+            takesInput: true);
+        backdrop.AddTag<UiOverlay>();
+        refs.Ui.NewClipBackdrop = backdrop;
+
+        float inner = NewClipDialogSize.X - NewClipPadding * 2;
+        float fieldWidth = inner - NewClipLabelWidth - NewClipSpacing;
+        menu.Container(UiLayout.Hidden, NewClipDialogSize, StackDirection.Vertical,
+            spacing: NewClipSpacing, color: UiTheme.Panel, padding: NewClipPadding,
+            takesInput: true, cross: StackCrossAlignment.Start,
+            main: StackMainAlignment.Start);
+        refs.Ui.NewClipDialog = menu.Current;
+        refs.Ui.NewClipDialog.AddTag<UiOverlayItem>();
+        menu.Text("NEW CLIP", new Vector2(inner, 20), UiTheme.FontSize,
+            UiTheme.Accent, TextAlign.Left);
+
+        refs.Ui.NewClipDuplicate = menu.Button(
+            "DUPLICATE CURRENT OFF",
+            new Vector2(inner, NewClipRowHeight),
+            fontSize: UiTheme.SmallFontSize);
+        refs.Ui.NewClipDuplicate.AddComponent(new Toggle(
+            "DUPLICATE CURRENT ON",
+            "DUPLICATE CURRENT OFF",
+            false));
+        refs.Ui.NewClipDuplicate.AddComponent(new UiTooltip(
+            "Copy the current clip's keys into the new clip"));
+
+        DialogFieldRow(menu, "NAME", inner, fieldWidth, out Entity name);
+        refs.Ui.NewClipName = name;
+        DialogFieldRow(menu, "LENGTH", inner, fieldWidth, out Entity length);
+        refs.Ui.NewClipLength = length;
+        refs.Ui.NewClipLength.GetComponent<TextField>().Numeric = true;
+        refs.Ui.NewClipLength.AddComponent(new UiTooltip("Length in seconds"));
+
+        refs.Ui.NewClipError = menu.Text("", new Vector2(inner, 16), 11,
+            Palette.Danger, TextAlign.Left);
+
+        float buttonWidth = (inner - 12f) / 2;
+        var buttonSize = new Vector2(buttonWidth, NewClipButtonHeight);
+        menu.Container(Vector2.Zero, new Vector2(inner, NewClipButtonHeight),
+            spacing: 12, color: Clear);
+        Action(menu, "CANCEL", ToolActionKind.CloseNewClip, buttonSize,
+            UiTheme.SmallFontSize);
+        Action(menu, "CREATE CLIP", ToolActionKind.CreateClip, buttonSize,
+            UiTheme.SmallFontSize);
+        menu.End();
+        menu.End();
+    }
+
+    /// <summary>A label and text field on one row of the NEW CLIP dialog.</summary>
+    private static void DialogFieldRow(
+        UiBuilder menu,
+        string label,
+        float width,
+        float fieldWidth,
+        out Entity field)
+    {
+        menu.Container(Vector2.Zero, new Vector2(width, NewClipRowHeight),
+            spacing: NewClipSpacing, color: Clear,
+            cross: StackCrossAlignment.Center);
+        menu.Text(label, new Vector2(NewClipLabelWidth, 20), 11, UiTheme.TextDim,
+            TextAlign.Left);
+        field = TextInput(menu, new Vector2(fieldWidth, NewClipRowHeight));
+        menu.End();
+    }
 
     /// <summary>
     /// A header button that drops a list of <see cref="ToolAction"/> options.

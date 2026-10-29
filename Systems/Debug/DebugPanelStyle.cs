@@ -3,7 +3,7 @@ using Xanadu.Theme;
 
 namespace Xanadu.Systems.Debug;
 
-/// <summary>Look shared by the interactive debug panels (F6 gravity, F8 shaders).</summary>
+/// <summary>Look shared by the interactive debug panels (the F8 shader tuner).</summary>
 public static class DebugPanelStyle
 {
     public static readonly Color Background = Palette.WithAlpha(Palette.Background, 0.94f);

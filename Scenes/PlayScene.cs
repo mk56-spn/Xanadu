@@ -50,6 +50,7 @@ public static class PlayScene
         var origin = new Vector2(
             (screen.X - fieldWidth) / 2,
             TopInset + (screen.Y - TopInset - BottomInset - fieldHeight) / 2);
+        Vector2 playerSize = Player.ScaledSize(scale);
 
         Entity playfieldEntity = entities.CreateEntity(
             new LevelInfo(document.Name, song?.AudioPath ?? ""),
@@ -62,10 +63,10 @@ public static class PlayScene
                 playing: false),
             new PlayfieldView(origin, scale, screen),
             new PlayfieldMode(PlayfieldKind.Play),
-            new Player(Player.ScaledSize(scale)),
+            new Player(playerSize),
             new Position(new Vector2(
                 origin.X + fieldWidth / 2,
-                origin.Y + fieldHeight / 2)),
+                origin.Y + fieldHeight - playerSize.Y / 2)),
             new Character(1f),
             new Momentum(System.Numerics.Vector2.Zero));
 

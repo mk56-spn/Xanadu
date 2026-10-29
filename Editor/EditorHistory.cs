@@ -45,7 +45,8 @@ public sealed class EditorHistory
                 note.ContactRequired,
                 note.Character,
                 MaskOf(entity),
-                ItemShader.Of(entity)));
+                ItemShader.Of(entity),
+                note.DashStrength));
         }
 
         notes.Sort(static (a, b) =>
@@ -55,7 +56,11 @@ public sealed class EditorHistory
                 return time;
 
             int x = a.Position.X.CompareTo(b.Position.X);
-            return x != 0 ? x : a.Position.Y.CompareTo(b.Position.Y);
+            if (x != 0)
+                return x;
+
+            int y = a.Position.Y.CompareTo(b.Position.Y);
+            return y != 0 ? y : a.DashStrength.CompareTo(b.DashStrength);
         });
 
         foreach (Entity entity in _entities.Query<Mine>().ToEntityList())
@@ -214,7 +219,8 @@ public sealed class EditorHistory
                 note.Kind,
                 note.DashDirection,
                 note.ContactRequired,
-                note.Character), note.Shader);
+                note.Character,
+                note.DashStrength), note.Shader);
             Subscribe(created, note.Groups);
         }
 
@@ -305,4 +311,5 @@ public readonly record struct NoteSnapshot(
     int ContactRequired,
     CharacterKind Character,
     uint Groups = 0,
-    int Shader = 0);
+    int Shader = 0,
+    DashStrength DashStrength = DashStrength.Single);

@@ -30,6 +30,12 @@ public sealed class AnimatorPreviewInputSystem(
 
     private void Update(Entity session)
     {
+        if (session.GetComponent<AnimatorNewClipDialog>().Open)
+        {
+            session.GetComponent<AnimatorHover>() = AnimatorHover.None;
+            return;
+        }
+
         Entity panel = session.GetComponent<AnimatorUi>().Preview;
         PointerInput input = pointer.Read();
         Rect2 area = AnimatorGeometry.PanelArea(panel);

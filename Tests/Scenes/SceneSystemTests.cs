@@ -438,6 +438,32 @@ public sealed class SceneSystemTests
     }
 
     [Test]
+    public void PlaySceneStartsThePlayerOnTheFloor()
+    {
+        var document = new LevelDocument
+        {
+            Name = "Floor Level",
+            PlayfieldWidth = 1000,
+            PlayfieldHeight = 1000,
+        };
+
+        _scenes.StartPlay(new LevelEntry("memory://floor", document));
+        Frame();
+
+        Entity playfield = _store.Query<PlayfieldMode>().ToEntityList()[0];
+        PlayfieldView view = playfield.GetComponent<PlayfieldView>();
+        Playfield field = playfield.GetComponent<Playfield>();
+        Player player = playfield.GetComponent<Player>();
+        Vector2 position = playfield.GetComponent<Xanadu.Ecs.Position>().Value;
+
+        float floor = view.ScreenOrigin.Y + field.Height * view.Scale;
+        float centerX = view.ScreenOrigin.X + field.Width * view.Scale / 2;
+        Assert.That(position.X, Is.EqualTo(centerX).Within(0.5f));
+        Assert.That(position.Y + player.Size.Y / 2,
+            Is.EqualTo(floor).Within(0.5f));
+    }
+
+    [Test]
     public void StartPlayUsesTheProvidedEntry()
     {
         var document = new LevelDocument

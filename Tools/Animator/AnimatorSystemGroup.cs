@@ -24,7 +24,9 @@ public sealed class AnimatorSystemGroup : SystemGroup
         IAnimatorWheel wheel,
         IKeyboardState keyboard) : base("Animator")
     {
+        Add(new AnimatorClipConfigSystem(pointer));
         Add(new AnimatorActionSystem());
+        Add(new AnimatorNewClipDialogSystem(pointer));
         Add(new AnimatorModeSystem());
         Add(new AnimatorBoneMenuSystem(pointer));
         Add(new AnimatorSvgMenuSystem(svgCatalog, visuals, pointer));

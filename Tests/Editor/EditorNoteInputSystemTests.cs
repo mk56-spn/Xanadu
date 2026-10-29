@@ -391,6 +391,8 @@ public sealed class EditorNoteInputSystemTests
             new EditorPlacementModeState(EditorPlacementMode.Movement));
         editor.AddComponent(
             new EditorDashDirectionState(DashDirection.UpRight));
+        editor.AddComponent(
+            new EditorDashStrengthState(DashStrength.Double));
 
         _pointer.Current = new PointerInput(new Vector2(300, 400), true);
         _root.Update(new UpdateTick(1f / 60f, 0));
@@ -403,6 +405,8 @@ public sealed class EditorNoteInputSystemTests
             Is.EqualTo(NoteKind.Movement));
         Assert.That(notes[0].GetComponent<Note>().DashDirection,
             Is.EqualTo(DashDirection.UpRight));
+        Assert.That(notes[0].GetComponent<Note>().DashStrength,
+            Is.EqualTo(DashStrength.Double));
         Assert.That(_store.Query<Mine>().Count, Is.Zero);
     }
 

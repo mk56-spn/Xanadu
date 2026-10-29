@@ -161,11 +161,6 @@ public sealed class XanaduSystemRoot : SystemRoot, IDisposable
             entities,
             this,
             new GodotFpsSource(),
-            entities,
-            pointerInput,
-            Physics,
-            new GodotOverlayToggleSource(Key.F6),
-            () => _sceneDirector.Current == SceneKind.Play,
             new GodotOverlayPageSource());
         Add(_debugSystems);
         Add(new Xanadu.Systems.Shaders.ShaderTunerSystem(

@@ -51,8 +51,8 @@ public sealed class AnimatorBindingTests : AnimatorToolTest
 
     /// <summary>
     /// Every action a button can request has a key, apart from the ones that
-    /// only make sense from the pointer: picking a clip or bone, choosing the
-    /// parent of a reparent, and the menus opened at the pointer.
+    /// only make sense from the pointer or an open dialog: picking a clip or
+    /// bone, choosing the parent of a reparent, and the menus opened at the pointer.
     /// </summary>
     [Test]
     public void EveryButtonActionHasAKey()
@@ -72,6 +72,8 @@ public sealed class AnimatorBindingTests : AnimatorToolTest
             ToolActionKind.AddKey,
             ToolActionKind.AddSvg,
             ToolActionKind.AttachSvg,
+            ToolActionKind.CreateClip,
+            ToolActionKind.CloseNewClip,
         };
 
         var bound = new HashSet<ToolActionKind>();

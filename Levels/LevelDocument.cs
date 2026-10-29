@@ -207,4 +207,7 @@ public sealed class NoteDocument
     public int ContactRequired { get; set; } = 1;
 
     public CharacterKind Character { get; set; } = CharacterKind.Contact;
+
+    /// <summary>One, two or three dash lengths for a movement note.</summary>
+    public DashStrength DashStrength { get; set; } = DashStrength.Single;
 }
