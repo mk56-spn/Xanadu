@@ -4,6 +4,7 @@ using Xanadu.Animation;
 using Xanadu.Ecs;
 using Xanadu.Systems.Canvas;
 using Xanadu.Systems.Input;
+using Xanadu.Systems.Ui;
 using Xanadu.Tools.Animator.Files;
 using Xanadu.Tools.Animator.Systems;
 
@@ -27,6 +28,7 @@ public sealed class AnimatorSystemGroup : SystemGroup
         Add(new AnimatorClipConfigSystem(pointer));
         Add(new AnimatorActionSystem());
         Add(new AnimatorNewClipDialogSystem(pointer));
+        Add(new XifEditorSystem(pointer, visuals));
         Add(new AnimatorModeSystem());
         Add(new AnimatorBoneMenuSystem(pointer));
         Add(new AnimatorSvgMenuSystem(svgCatalog, visuals, pointer));

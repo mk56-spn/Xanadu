@@ -27,6 +27,9 @@ public struct AnimatorUi : IComponent
     public Entity ChainList;
     public Entity EffectList;
 
+    /// <summary>The shared XIF editor, shown beside the inspector while an effect is selected.</summary>
+    public Entity XifEditor;
+
     /// <summary>Header slot that holds the clip dropdown button.</summary>
     public Entity ClipList;
 

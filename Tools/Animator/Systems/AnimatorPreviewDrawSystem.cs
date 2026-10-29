@@ -32,6 +32,7 @@ public sealed class AnimatorPreviewDrawSystem(
 
     private readonly AnimatorFlowOverlay _flow = new(canvas, target);
     private int _version = -1;
+    private int _effectsVersion = -1;
 
     protected override void OnUpdate()
     {
@@ -47,7 +48,13 @@ public sealed class AnimatorPreviewDrawSystem(
         if (document.Version != _version)
         {
             _version = document.Version;
+            _effectsVersion = document.EffectsVersion;
             visuals.Reload(document.Package);
+        }
+        else if (document.EffectsVersion != _effectsVersion)
+        {
+            _effectsVersion = document.EffectsVersion;
+            visuals.ReloadEffects(document.Package);
         }
 
         canvas.Clear(target);

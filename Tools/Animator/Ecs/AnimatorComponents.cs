@@ -200,6 +200,9 @@ public struct AnimatorDocument : IComponent
 
     /// <summary>Bumped when the package is replaced or its rig structure changes.</summary>
     public int Version;
+
+    /// <summary>Bumped when only effects' items changed, so the preview rebuilds just those.</summary>
+    public int EffectsVersion;
 }
 
 /// <summary>One selected key set: every channel key of a bone or attachment at one time.</summary>

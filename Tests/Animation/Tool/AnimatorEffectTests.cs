@@ -1,6 +1,8 @@
 using NUnit.Framework;
 using Xanadu.Animation;
+using Godot;
 using Xanadu.Ecs;
+using Position = Xanadu.Ecs.Position;
 using Xanadu.Tests.Support;
 using Xanadu.Tools.Animator;
 using Xanadu.Tools.Animator.Systems;
@@ -15,6 +17,7 @@ public sealed class AnimatorEffectTests : AnimatorToolTest
     {
         Root.Add(new AnimatorActionSystem());
         Root.Add(new AnimatorHierarchySystem(new FakeVisualRidFactory()));
+        Root.Add(new Xanadu.Systems.Ui.XifEditorSystem(Pointer, new FakeVisualRidFactory()));
     }
 
     private string Status => Session.GetComponent<AnimatorStatus>().Message;
@@ -25,6 +28,34 @@ public sealed class AnimatorEffectTests : AnimatorToolTest
         Session.GetComponent<AnimatorSelection>().SelectOnlyBone(1);
         Runtime.Seek(seconds);
         Click(Button(ToolActionKind.AddEffect));
+    }
+
+    [Test]
+    public void TheXifEditorEditsTheSelectedEffectsItemOnTheAnimatorsHistory()
+    {
+        Assert.That(Ui.XifEditor.GetComponent<Position>().Value, Is.EqualTo(UiLayout.Hidden));
+        AddStreakOnTorsoAt(0.5f);
+        Frame();
+
+        Assert.That(Ui.XifEditor.GetComponent<Position>().Value,
+            Is.EqualTo(AnimatorLayout.XifEditorCenter(Screen)));
+        XifEditor editor = Ui.XifEditor.GetComponent<XifEditor>();
+        Assert.That(editor.Parts.Title.GetComponent<Text>().Value, Is.EqualTo("STREAK  ITEM"));
+
+        int before = Package.Effects[0].Item.Primitives[0].Points.Count;
+        int effectsVersion = Session.GetComponent<AnimatorDocument>().EffectsVersion;
+        foreach (Friflo.Engine.ECS.Entity button in Store.Query<XifEditorAction>().ToEntityList())
+        {
+            if (button.GetComponent<XifEditorAction>().Kind == XifEditorActionKind.InsertPoint)
+                Click(button);
+        }
+
+        Assert.That(Package.Effects[0].Item.Primitives[0].Points, Has.Count.EqualTo(before + 1));
+        Assert.That(Session.GetComponent<AnimatorDocument>().EffectsVersion, Is.GreaterThan(effectsVersion));
+
+        Click(Button(ToolActionKind.Undo));
+        Assert.That(Package.Effects[0].Item.Primitives[0].Points, Has.Count.EqualTo(before));
+        Assert.That(Package.Effects, Has.Count.EqualTo(1), "one undo undoes the point, not the streak");
     }
 
     [Test]
