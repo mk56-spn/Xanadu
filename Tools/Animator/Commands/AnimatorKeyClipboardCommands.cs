@@ -191,9 +191,12 @@ public static class AnimatorKeyClipboardCommands
     private static bool TargetExists(Entity session, AnimatorKeySample sample)
     {
         XafPackage package = session.GetComponent<AnimatorDocument>().Package;
-        return sample.Target == XafChannelTarget.Bone
-            ? package.Skeleton.Bones.Exists(bone => bone.Id == sample.Id)
-            : package.Attachments.Exists(attachment => attachment.Group == sample.Id);
+        return sample.Target switch
+        {
+            XafChannelTarget.Bone => package.Skeleton.Bones.Exists(bone => bone.Id == sample.Id),
+            XafChannelTarget.Effect => package.Effects.Exists(effect => effect.Id == sample.Id),
+            _ => package.Attachments.Exists(attachment => attachment.Group == sample.Id),
+        };
     }
 
     private static XafClip? CurrentClip(Entity session) =>

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using Godot;
+using Xanadu.Items;
 using Xanadu.Storage;
 
 namespace Xanadu.Animation;
@@ -22,6 +23,7 @@ public static class XafBinary
         Clips = 4,
         Chains = 5,
         Transitions = 6,
+        Effects = 7,
     }
 
     public static void Save(string path, XafPackage package)
@@ -55,6 +57,8 @@ public static class XafBinary
             file.Add((uint)ChunkId.Chains, WriteChains(package.Chains, strings, minor));
         if (minor >= 4)
             file.Add((uint)ChunkId.Transitions, WriteTransitions(package.Transitions, strings));
+        if (minor >= 5)
+            file.Add((uint)ChunkId.Effects, WriteEffects(package.Effects, strings));
         return file.ToArray();
     }
 
@@ -91,6 +95,8 @@ public static class XafBinary
             package.Chains = ReadChains(file.Get((uint)ChunkId.Chains, Format), strings, file.Minor);
         if (file.Minor >= 4)
             package.Transitions = ReadTransitions(file.Get((uint)ChunkId.Transitions, Format), strings);
+        if (file.Minor >= 5)
+            package.Effects = ReadEffects(file.Get((uint)ChunkId.Effects, Format), strings);
         XafValidation.ThrowIfInvalid(package);
         return package;
     }
@@ -123,6 +129,12 @@ public static class XafBinary
         {
             table.Add(rule.From);
             table.Add(rule.To);
+        }
+        foreach (XafEffect effect in package.Effects)
+        {
+            table.Add(effect.Id);
+            table.Add(effect.BoneId);
+            XifBinary.Index(effect.Item, table);
         }
     }
 
@@ -283,6 +295,49 @@ public static class XafBinary
             chains.Add(chain);
         }
         return chains;
+    }
+
+    /// <summary>Each effect: its id, bone, resting transform and layer, then its item with the item's geometry.</summary>
+    private static byte[] WriteEffects(List<XafEffect> effects, StringTable strings)
+    {
+        using var stream = new MemoryStream();
+        using var writer = new BinaryWriter(stream, Encoding.UTF8, leaveOpen: true);
+        writer.Write((uint)effects.Count);
+        foreach (XafEffect effect in effects)
+        {
+            strings.WriteIndex(writer, effect.Id);
+            strings.WriteIndex(writer, effect.BoneId);
+            WriteTransform(writer, effect.Transform);
+            writer.Write(effect.ZOrder);
+            XifBinary.Write(writer, effect.Item, strings);
+            XifBinary.WriteGeometry(writer, effect.Item);
+        }
+        writer.Flush();
+        return stream.ToArray();
+    }
+
+    private static List<XafEffect> ReadEffects(Chunk chunk, StringTable strings)
+    {
+        using BinaryReader reader = chunk.OpenReader();
+        uint count = reader.ReadUInt32();
+        if (count > 4096)
+            throw new XafFormatException("XAF effect table is too large.");
+
+        var effects = new List<XafEffect>();
+        for (uint i = 0; i < count; i++)
+        {
+            var effect = new XafEffect
+            {
+                Id = strings.ReadIndex(reader),
+                BoneId = strings.ReadIndex(reader),
+                Transform = ReadTransform(reader),
+                ZOrder = reader.ReadInt32(),
+                Item = XifBinary.Read(reader, strings),
+            };
+            XifBinary.ReadGeometry(reader, effect.Item);
+            effects.Add(effect);
+        }
+        return effects;
     }
 
     private static byte[] WriteTransitions(List<XafTransition> transitions, StringTable strings)

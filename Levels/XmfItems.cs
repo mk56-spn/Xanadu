@@ -20,6 +20,7 @@ public static partial class XmfBinary
     {
         bool anyStrength = notes.Exists(
             note => note.DashStrength != DashStrength.Single);
+        bool anyGeometry = notes.Exists(note => XifBinary.HasGeometry(note.Item));
 
         using var stream = new MemoryStream();
         using var writer = new BinaryWriter(stream, Encoding.UTF8, leaveOpen: true);
@@ -40,10 +41,17 @@ public static partial class XmfBinary
 
         // Optional trailing strength bytes keep files written before dash
         // strength existed readable, and leave default-strength files unchanged.
-        if (anyStrength)
+        // Item geometry follows them, so strengths are written whenever it is.
+        if (anyStrength || anyGeometry)
         {
             foreach (NoteDocument note in notes)
                 writer.Write((byte)note.DashStrength);
+        }
+
+        if (anyGeometry)
+        {
+            foreach (NoteDocument note in notes)
+                XifBinary.WriteGeometry(writer, note.Item);
         }
 
         writer.Flush();
@@ -82,6 +90,12 @@ public static partial class XmfBinary
                 notes[i].DashStrength = ReadEnum<DashStrength>(reader);
             }
 
+            if (reader.BaseStream.Position < reader.BaseStream.Length)
+            {
+                foreach (NoteDocument note in notes)
+                    XifBinary.ReadGeometry(reader, note.Item);
+            }
+
             if (reader.BaseStream.Position != reader.BaseStream.Length)
                 throw new FormatException("XMF notes contain trailing data.");
         }
@@ -90,101 +104,12 @@ public static partial class XmfBinary
     }
 
     /// <summary>Every string a Xif's chunk entry carries, so it ends up in the shared table.</summary>
-    private static void IndexItemStrings(Xif item, StringTable strings)
-    {
-        strings.Add(item.Id);
-        strings.Add(item.Name);
-        foreach (XifPrimitive primitive in item.Primitives)
-        {
-            strings.Add(primitive.Kind);
-            strings.Add(primitive.Ref);
-            strings.Add(primitive.Shader.Path);
-        }
-        foreach (string key in item.Params.Keys)
-            strings.Add(key);
-        foreach (XifShaderRef shader in item.Shaders)
-            strings.Add(shader.Path);
-    }
+    private static void IndexItemStrings(Xif item, StringTable strings) => XifBinary.Index(item, strings);
 
-    private static void WriteShaderRef(BinaryWriter writer, XifShaderRef shader, StringTable strings)
-    {
-        writer.Write((byte)shader.Scope);
-        writer.Write(shader.Slot);
-        strings.WriteIndex(writer, shader.Path);
-    }
+    private static void WriteItem(BinaryWriter writer, Xif item, StringTable strings) =>
+        XifBinary.Write(writer, item, strings);
 
-    private static XifShaderRef ReadShaderRef(BinaryReader reader, StringTable strings) => new()
-    {
-        Scope = ReadEnum<XifShaderScope>(reader),
-        Slot = reader.ReadInt32(),
-        Path = strings.ReadIndex(reader),
-    };
-
-    private static void WriteItem(BinaryWriter writer, Xif item, StringTable strings)
-    {
-        strings.WriteIndex(writer, item.Id);
-        strings.WriteIndex(writer, item.Name);
-        writer.Write((byte)item.Owner);
-
-        writer.Write((uint)item.Primitives.Count);
-        foreach (XifPrimitive primitive in item.Primitives)
-        {
-            strings.WriteIndex(writer, primitive.Kind);
-            strings.WriteIndex(writer, primitive.Ref);
-            WriteShaderRef(writer, primitive.Shader, strings);
-        }
-
-        writer.Write((uint)item.Shaders.Count);
-        foreach (XifShaderRef shader in item.Shaders)
-            WriteShaderRef(writer, shader, strings);
-
-        writer.Write((uint)item.Params.Count);
-        foreach (KeyValuePair<string, float[]> param in item.Params)
-        {
-            strings.WriteIndex(writer, param.Key);
-            writer.Write((uint)param.Value.Length);
-            foreach (float channel in param.Value)
-                writer.Write(channel);
-        }
-    }
-
-    private static Xif ReadItem(BinaryReader reader, StringTable strings)
-    {
-        var item = new Xif
-        {
-            Id = strings.ReadIndex(reader),
-            Name = strings.ReadIndex(reader),
-            Owner = ReadEnum<XifOwner>(reader),
-        };
-
-        uint primitiveCount = ReadCount(reader, MaxItems, "xif primitive");
-        for (uint i = 0; i < primitiveCount; i++)
-        {
-            item.Primitives.Add(new XifPrimitive
-            {
-                Kind = strings.ReadIndex(reader),
-                Ref = strings.ReadIndex(reader),
-                Shader = ReadShaderRef(reader, strings),
-            });
-        }
-
-        uint shaderCount = ReadCount(reader, MaxParams, "xif shader");
-        for (uint i = 0; i < shaderCount; i++)
-            item.Shaders.Add(ReadShaderRef(reader, strings));
-
-        uint paramCount = ReadCount(reader, MaxParams, "xif param");
-        for (uint i = 0; i < paramCount; i++)
-        {
-            string key = strings.ReadIndex(reader);
-            uint channelCount = ReadCount(reader, MaxChannels, "xif param channel");
-            var channels = new float[channelCount];
-            for (uint c = 0; c < channelCount; c++)
-                channels[c] = reader.ReadSingle();
-            item.Params[key] = channels;
-        }
-
-        return item;
-    }
+    private static Xif ReadItem(BinaryReader reader, StringTable strings) => XifBinary.Read(reader, strings);
 
     private static byte[] WriteMines(List<MineDocument> mines)
     {

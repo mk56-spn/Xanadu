@@ -163,9 +163,12 @@ public sealed class AnimatorTimelineDrawSystem(IRectCanvas canvas, Rid target)
             }
             else
             {
-                label = track.Target == XafChannelTarget.Attachment
-                    ? $"{track.Id}  (svg)"
-                    : track.Id;
+                label = track.Target switch
+                {
+                    XafChannelTarget.Attachment => $"{track.Id}  (svg)",
+                    XafChannelTarget.Effect => $"{track.Id}  (fx)",
+                    _ => track.Id,
+                };
                 bool hasChannels = AnimatorTrackRows.HasChannels(model.Clip, track.Track);
                 if (hasChannels)
                 {
@@ -240,7 +243,7 @@ public sealed class AnimatorTimelineDrawSystem(IRectCanvas canvas, Rid target)
         }
     }
 
-    /// <summary>Whether a track belongs to any selected bone or attachment, not just the primary.</summary>
+    /// <summary>Whether a track belongs to any selected bone, attachment or effect, not just the primary.</summary>
     private static bool IsSelectedTrack(
         AnimatorSelection selection,
         XafPackage package,
@@ -248,6 +251,8 @@ public sealed class AnimatorTimelineDrawSystem(IRectCanvas canvas, Rid target)
     {
         if (track.Target == XafChannelTarget.Bone)
             return selection.IsBoneSelected(XafRig.FindBone(package, track.Id));
+        if (track.Target == XafChannelTarget.Effect)
+            return selection.Effect >= 0 && selection.Effect == package.Effects.FindIndex(effect => effect.Id == track.Id);
 
         int attachment = package.Attachments.FindIndex(candidate => candidate.Group == track.Id);
         return selection.Attachment >= 0 && selection.Attachment == attachment;

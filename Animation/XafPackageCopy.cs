@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Xanadu.Items;
 
 namespace Xanadu.Animation;
 
@@ -55,6 +56,17 @@ public static class XafPackageCopy
 
         foreach (XafClip clip in package.Clips)
             copy.Clips.Add(Clone(clip));
+        foreach (XafEffect effect in package.Effects)
+        {
+            copy.Effects.Add(new XafEffect
+            {
+                Id = effect.Id,
+                BoneId = effect.BoneId,
+                Transform = effect.Transform,
+                ZOrder = effect.ZOrder,
+                Item = XifCopy.Clone(effect.Item),
+            });
+        }
         foreach (XafTransition rule in package.Transitions)
         {
             copy.Transitions.Add(new XafTransition
@@ -73,7 +85,8 @@ public static class XafPackageCopy
         ListEqual(a.Attachments, b.Attachments, AttachmentEqual) &&
         ListEqual(a.Chains, b.Chains, ChainEqual) &&
         ListEqual(a.Clips, b.Clips, ClipEqual) &&
-        ListEqual(a.Transitions, b.Transitions, TransitionEqual);
+        ListEqual(a.Transitions, b.Transitions, TransitionEqual) &&
+        ListEqual(a.Effects, b.Effects, EffectEqual);
 
     public static XafClip Clone(XafClip clip)
     {
@@ -129,6 +142,10 @@ public static class XafPackageCopy
         a.Id == b.Id && a.Duration == b.Duration && a.Loop == b.Loop &&
         a.LoopStart == b.LoopStart && a.LoopEnd == b.LoopEnd &&
         ListEqual(a.Channels, b.Channels, ChannelEqual);
+
+    private static bool EffectEqual(XafEffect a, XafEffect b) =>
+        a.Id == b.Id && a.BoneId == b.BoneId && a.Transform == b.Transform &&
+        a.ZOrder == b.ZOrder && XifCopy.AreEqual(a.Item, b.Item);
 
     private static bool TransitionEqual(XafTransition a, XafTransition b) =>
         a.From == b.From && a.To == b.To && a.Fade == b.Fade && a.Curve == b.Curve;

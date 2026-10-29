@@ -82,6 +82,20 @@ public static class XafValidation
             }
         }
 
+        var effectIds = new HashSet<string>(StringComparer.Ordinal);
+        foreach (XafEffect effect in package.Effects)
+        {
+            if (string.IsNullOrWhiteSpace(effect.Id))
+                issues.Add("Effect has an empty id.");
+            else if (!effectIds.Add(effect.Id))
+                issues.Add($"Duplicate effect id '{effect.Id}'.");
+            if (!boneIds.Contains(effect.BoneId))
+                issues.Add($"Effect '{effect.Id}' references missing bone '{effect.BoneId}'.");
+            if (effect.ZOrder < XafAttachment.MinLayer || effect.ZOrder > XafAttachment.MaxLayer)
+                issues.Add($"Effect '{effect.Id}' has a layer out of range.");
+            XafEffects.Validate(effect, issues);
+        }
+
         var clipIds = new HashSet<string>(StringComparer.Ordinal);
         foreach (XafClip clip in package.Clips)
         {
@@ -104,6 +118,13 @@ public static class XafValidation
                     !boneIds.Contains(channel.TargetId))
                 {
                     issues.Add($"Clip '{clip.Id}' targets missing bone '{channel.TargetId}'.");
+                }
+                if (channel.Target == XafChannelTarget.Effect && !effectIds.Contains(channel.TargetId))
+                    issues.Add($"Clip '{clip.Id}' targets missing effect '{channel.TargetId}'.");
+                if (channel.Target != XafChannelTarget.Effect &&
+                    channel.Property is XafChannelProperty.Opacity or XafChannelProperty.Visible)
+                {
+                    issues.Add($"Clip '{clip.Id}' keys {channel.Property} on '{channel.TargetId}', which only effects have.");
                 }
                 if (channel.Target == XafChannelTarget.Attachment &&
                     !package.Attachments.Exists(attachment =>

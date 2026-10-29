@@ -112,7 +112,7 @@ public sealed class AnimatorTimelineModel
             view.Zoom);
     }
 
-    /// <summary>The track of the selected bone or attachment, if any.</summary>
+    /// <summary>The track of the selected bone, attachment or effect, if any.</summary>
     public static XafTrack? SelectedTrack(Entity session, XafPackage package)
     {
         AnimatorSelection selection = session.GetComponent<AnimatorSelection>();
@@ -120,6 +120,8 @@ public sealed class AnimatorTimelineModel
             return new XafTrack(XafChannelTarget.Bone, package.Skeleton.Bones[selection.Bone].Id);
         if (selection.Attachment >= 0 && selection.Attachment < package.Attachments.Count)
             return new XafTrack(XafChannelTarget.Attachment, package.Attachments[selection.Attachment].Group);
+        if (selection.Effect >= 0 && selection.Effect < package.Effects.Count)
+            return new XafTrack(XafChannelTarget.Effect, package.Effects[selection.Effect].Id);
         return null;
     }
 

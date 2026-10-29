@@ -60,6 +60,25 @@ public static class AnimatorCommands
             case ToolActionKind.ToggleSlow:
                 AnimatorFlowCommands.ToggleSlow(session);
                 break;
+            case ToolActionKind.AddEffect:
+                AnimatorEffectCommands.Add(session);
+                break;
+            case ToolActionKind.SelectEffect:
+                if (int.TryParse(action.Argument, out int effect))
+                    AnimatorEffectCommands.Select(session, effect);
+                break;
+            case ToolActionKind.DeleteEffect:
+                AnimatorEffectCommands.Delete(session);
+                break;
+            case ToolActionKind.ToggleEffectVisible:
+                AnimatorEffectCommands.ToggleVisible(session);
+                break;
+            case ToolActionKind.EffectOpacityDown:
+                AnimatorEffectCommands.StepOpacity(session, -AnimatorEffectCommands.OpacityStep);
+                break;
+            case ToolActionKind.EffectOpacityUp:
+                AnimatorEffectCommands.StepOpacity(session, AnimatorEffectCommands.OpacityStep);
+                break;
             case ToolActionKind.Clip:
                 PlayClip(session, action.Argument);
                 break;

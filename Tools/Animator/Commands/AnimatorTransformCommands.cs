@@ -57,6 +57,9 @@ public static class AnimatorTransformCommands
                 changed = 1;
             }
 
+            if (changed == 0 && EditEffect(session, transform => transform with { Rotation = radians }))
+                changed = 1;
+
             if (changed == 0)
                 return;
 
@@ -114,6 +117,9 @@ public static class AnimatorTransformCommands
                 }
                 changed = 1;
             }
+
+            if (changed == 0 && EditEffect(session, transform => transform with { Scale = clamped }))
+                changed = 1;
 
             if (changed == 0)
                 return;
@@ -186,6 +192,9 @@ public static class AnimatorTransformCommands
                 changed = 1;
             }
 
+            if (changed == 0 && EditEffect(session, transform => transform with { Translation = translation }))
+                changed = 1;
+
             if (changed == 0)
             {
                 if (fixedBones > 0)
@@ -243,9 +252,18 @@ public static class AnimatorTransformCommands
                 changed = 1;
             }
 
+            if (changed == 0 && AnimatorEffectCommands.Selected(session) is var effect and >= 0 &&
+                effect < document.Runtime.Pose.Effects.Length)
+            {
+                XafEffect rested = document.Package.Effects[effect];
+                document.Runtime.Pose.Effects[effect].Transform = XafTransform.From(rested.Transform);
+                name = rested.Id;
+                changed = 1;
+            }
+
             if (changed == 0)
             {
-                AnimatorSession.SetStatus(session, "SELECT A BONE OR ATTACHMENT FIRST");
+                AnimatorSession.SetStatus(session, "SELECT A BONE, ATTACHMENT OR EFFECT FIRST");
                 return;
             }
 
@@ -255,6 +273,32 @@ public static class AnimatorTransformCommands
                 session,
                 changed == 1 ? $"RESET {name} TO REST" : $"RESET {changed} BONES TO REST");
         });
+
+    /// <summary>
+    /// Changes the selected effect's transform: its resting place on the bone
+    /// in rest mode, its pose otherwise. False when no effect is selected.
+    /// </summary>
+    private static bool EditEffect(Entity session, System.Func<XafTransform, XafTransform> change)
+    {
+        int index = AnimatorEffectCommands.Selected(session);
+        ref AnimatorDocument document = ref session.GetComponent<AnimatorDocument>();
+        if (index < 0)
+            return false;
+
+        if (session.GetComponent<AnimatorModes>().Rest)
+        {
+            XafEffect effect = document.Package.Effects[index];
+            effect.Transform = change(XafTransform.From(effect.Transform)).ToTransform();
+            return true;
+        }
+
+        if (index >= document.Runtime.Pose.Effects.Length)
+            return false;
+
+        ref XafEffectState state = ref document.Runtime.Pose.Effects[index];
+        state.Transform = change(state.Transform);
+        return true;
+    }
 
     /// <summary>The selected bones still inside the skeleton.</summary>
     private static List<int> Bones(Entity session, AnimatorSelection selection)

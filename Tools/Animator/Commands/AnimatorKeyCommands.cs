@@ -9,7 +9,7 @@ namespace Xanadu.Tools.Animator.Commands;
 /// <summary>Timeline key and track selection, retiming and removal.</summary>
 public static class AnimatorKeyCommands
 {
-    /// <summary>Selects the bone or attachment a track animates.</summary>
+    /// <summary>Selects the bone, attachment or effect a track animates.</summary>
     public static void SelectTrack(Entity session, AnimatorTrackRow row)
     {
         XafPackage package = session.GetComponent<AnimatorDocument>().Package;
@@ -20,6 +20,13 @@ public static class AnimatorKeyCommands
             if (bone < 0)
                 return;
             selection.SelectOnlyBone(bone);
+        }
+        else if (row.Target == XafChannelTarget.Effect)
+        {
+            int effect = package.Effects.FindIndex(candidate => candidate.Id == row.Id);
+            if (effect < 0)
+                return;
+            selection.SelectOnlyEffect(effect);
         }
         else
         {
@@ -309,14 +316,16 @@ public static class AnimatorKeyCommands
             if (row.Property is { } property && channel.Property != property)
                 continue;
 
+            // Visibility is held, so a new key keeps what shows there and stays a switch.
+            bool held = channel.Property == XafChannelProperty.Visible;
             XafAuthoring.SetChannel(
                 clip,
                 row.Target,
                 row.Id,
                 channel.Property,
                 time,
-                XafSampler.SampleChannel(channel, time),
-                InterpolationBefore(channel, time));
+                held ? XafSampler.SampleHeld(channel, time) : XafSampler.SampleChannel(channel, time),
+                held ? XafInterpolation.Step : InterpolationBefore(channel, time));
         }
 
         SelectKey(session, row, time);

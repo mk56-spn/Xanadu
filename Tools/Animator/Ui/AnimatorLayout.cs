@@ -219,6 +219,8 @@ public static partial class AnimatorLayout
         refs.Ui.AttachmentList = List(ui, ListWidth - 10);
         ui.Text("CHAINS", new Vector2(ListWidth, 20), UiTheme.FontSize, UiTheme.Accent);
         refs.Ui.ChainList = List(ui, ListWidth - 10);
+        ui.Text("EFFECTS", new Vector2(ListWidth, 20), UiTheme.FontSize, UiTheme.Accent);
+        refs.Ui.EffectList = List(ui, ListWidth - 10);
         ui.End();
         ui.End();
         viewport.AddComponent(new ScrollView(content));
@@ -325,6 +327,9 @@ public static partial class AnimatorLayout
                 SmallRow(menu, ("C POSE", ToolActionKind.CopyPose), ("P POSE", ToolActionKind.PastePose));
                 SmallRow(menu, ("C KEYS", ToolActionKind.CopyKeys), ("P KEYS", ToolActionKind.PasteKeys));
                 Row(menu, ("FIT", ToolActionKind.FitPreview), ("1:1", ToolActionKind.ResetPreview));
+                SmallRow(menu, ("+ STREAK", ToolActionKind.AddEffect), ("DEL FX", ToolActionKind.DeleteEffect));
+                SmallRow(menu, ("FADE -", ToolActionKind.EffectOpacityDown), ("FADE +", ToolActionKind.EffectOpacityUp));
+                SmallRow(menu, ("SHOW/HIDE", ToolActionKind.ToggleEffectVisible));
             }
             menu.End();
         }

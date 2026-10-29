@@ -25,7 +25,9 @@ public readonly record struct AnimatorTrackRow(XafTrack Track, XafChannelPropert
         XafChannelProperty.TranslationY => "pos y",
         XafChannelProperty.Rotation => "rot",
         XafChannelProperty.ScaleX => "scl x",
-        _ => "scl y",
+        XafChannelProperty.ScaleY => "scl y",
+        XafChannelProperty.Opacity => "alpha",
+        _ => "show",
     };
 
     public static implicit operator AnimatorTrackRow(XafTrack track) => new(track);
@@ -41,6 +43,8 @@ public static class AnimatorTrackRows
         XafChannelProperty.Rotation,
         XafChannelProperty.ScaleX,
         XafChannelProperty.ScaleY,
+        XafChannelProperty.Visible,
+        XafChannelProperty.Opacity,
     };
 
     /// <summary>

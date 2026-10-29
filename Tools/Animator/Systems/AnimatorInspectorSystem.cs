@@ -34,6 +34,7 @@ public sealed class AnimatorInspectorSystem : QuerySystem<AnimatorDocument, Anim
     private readonly bool[] _wasFocused = new bool[6];
     private int _editBone = -1;
     private int _editAttachment = -1;
+    private int _editEffect = -1;
     private int _editExtras;
     private bool _editRest;
 
@@ -83,6 +84,7 @@ public sealed class AnimatorInspectorSystem : QuerySystem<AnimatorDocument, Anim
         AnimatorSelection selection = session.GetComponent<AnimatorSelection>();
         _editBone = selection.Bone;
         _editAttachment = selection.Attachment;
+        _editEffect = selection.Effect;
         _editExtras = selection.ExtraBones?.Count ?? 0;
         _editRest = session.GetComponent<AnimatorModes>().Rest;
     }
@@ -93,6 +95,7 @@ public sealed class AnimatorInspectorSystem : QuerySystem<AnimatorDocument, Anim
         AnimatorSelection selection = session.GetComponent<AnimatorSelection>();
         bool targetChanged = selection.Bone != _editBone ||
                              selection.Attachment != _editAttachment ||
+                             selection.Effect != _editEffect ||
                              (selection.ExtraBones?.Count ?? 0) != _editExtras ||
                              session.GetComponent<AnimatorModes>().Rest != _editRest;
         if (targetChanged)
@@ -189,6 +192,15 @@ public sealed class AnimatorInspectorSystem : QuerySystem<AnimatorDocument, Anim
             return true;
         }
 
+        if (selection.Effect >= 0 && selection.Effect < document.Package.Effects.Count &&
+            selection.Effect < document.Runtime.Pose.Effects.Length)
+        {
+            transform = rest
+                ? XafTransform.From(document.Package.Effects[selection.Effect].Transform)
+                : document.Runtime.Pose.Effects[selection.Effect].Transform;
+            return true;
+        }
+
         return false;
     }
 
@@ -219,6 +231,14 @@ public sealed class AnimatorInspectorSystem : QuerySystem<AnimatorDocument, Anim
             XafAttachment attachment = document.Package.Attachments[selection.Attachment];
             unkeyed = !modes.Rest && IsUnkeyed(session, null, attachment.Group);
             value = attachment.Group + "  SVG" + (modes.Rest ? " REST" : unkeyed ? "  UNKEYED" : "");
+        }
+        else if (selection.Effect >= 0 && selection.Effect < document.Package.Effects.Count &&
+                 selection.Effect < document.Runtime.Pose.Effects.Length)
+        {
+            XafEffect effect = document.Package.Effects[selection.Effect];
+            XafEffectState state = document.Runtime.Pose.Effects[selection.Effect];
+            string shown = state.Visible ? $"{state.Opacity * 100f:0}%" : "HIDDEN";
+            value = $"{effect.Id}  FX {shown}" + (modes.Rest ? "  REST" : "");
         }
         else
         {

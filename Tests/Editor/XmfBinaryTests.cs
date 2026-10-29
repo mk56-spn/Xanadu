@@ -13,6 +13,44 @@ namespace Xanadu.Tests.Editor;
 public sealed class XmfBinaryTests
 {
     [Test]
+    public void ANotesPolygonItemKeepsItsOutlineAndFill()
+    {
+        var polygon = new XifPrimitive
+        {
+            Kind = XifPrimitive.PolygonKind,
+            Points = { new Godot.Vector2(0, 0), new Godot.Vector2(10, 0), new Godot.Vector2(5, 8) },
+            Fill = new Godot.Color(1f, 0.5f, 0f, 0.75f),
+        };
+        var source = new LevelDocument();
+        source.Notes.Add(new NoteDocument { Item = new Xif { Primitives = { polygon } } });
+        source.Notes.Add(new NoteDocument { DashStrength = DashStrength.Double });
+
+        LevelDocument loaded = XmfBinary.Read(XmfBinary.Write(source));
+
+        XifPrimitive read = loaded.Notes[0].Item.Primitives.Single();
+        Assert.That(read.Points, Is.EqualTo(polygon.Points));
+        Assert.That(read.Fill, Is.EqualTo(polygon.Fill));
+        Assert.That(loaded.Notes[1].DashStrength, Is.EqualTo(DashStrength.Double));
+    }
+
+    [Test]
+    public void ALevelWithoutItemGeometryIsWrittenAsBefore()
+    {
+        var source = new LevelDocument();
+        source.Notes.Add(new NoteDocument
+        {
+            Item = new Xif { Primitives = { new XifPrimitive { Kind = "svg", Ref = "res://lantern.svg" } } },
+        });
+        byte[] plain = XmfBinary.Write(source);
+
+        source.Notes[0].Item.Primitives[0].Fill = new Godot.Color(1f, 0f, 0f);
+        byte[] tinted = XmfBinary.Write(source);
+
+        // One byte per note of strength, then one point count and four fill floats per primitive.
+        Assert.That(tinted.Length - plain.Length, Is.EqualTo(1 + 4 + 16));
+    }
+
+    [Test]
     public void RoundTripsEveryPartOfTheMap()
     {
         var source = new LevelDocument

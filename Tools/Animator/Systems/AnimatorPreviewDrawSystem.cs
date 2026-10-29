@@ -28,6 +28,7 @@ public sealed class AnimatorPreviewDrawSystem(
     private static readonly Color ReparentLabel = Palette.Warning;
     private const float OnionOffset = 0.1f;
     private static readonly Color FlowGhost = new(Palette.Accent, 0.3f);
+    private static readonly Color EffectOutline = Palette.Rose;
 
     private readonly AnimatorFlowOverlay _flow = new(canvas, target);
     private int _version = -1;
@@ -132,6 +133,9 @@ public sealed class AnimatorPreviewDrawSystem(
         Transform2D[] attachments = XafRig.WorldAttachments(document.Package, pose, world);
         visuals.Apply(attachments, placement);
         visuals.ApplyChains(document.Package, session.GetComponent<AnimatorChains>().Simulation, placement);
+        Transform2D[] effects = XafRig.WorldEffects(document.Package, pose, world);
+        visuals.ApplyEffects(pose, effects, placement);
+        DrawSelectedEffect(document.Package, pose, selection, effects, placement);
 
         // The squares are the handles for placing art, so they only show while placing it.
         for (int i = 0; modes.Svg && i < attachments.Length; i++)
@@ -230,6 +234,38 @@ public sealed class AnimatorPreviewDrawSystem(
         Vector2 rootScreen = placement * root;
         canvas.DrawCircle(target, rootScreen, 7f, Colors.White);
         canvas.DrawCircle(target, rootScreen, 5f, ChainColor);
+    }
+
+    /// <summary>
+    /// The selected effect's outline, solid while it shows and faint
+    /// while hidden, so it can be placed at a time it is not on screen.
+    /// </summary>
+    private void DrawSelectedEffect(
+        XafPackage package,
+        XafPose pose,
+        AnimatorSelection selection,
+        Transform2D[] effects,
+        Transform2D placement)
+    {
+        int index = selection.Effect;
+        if (index < 0 || index >= effects.Length || index >= package.Effects.Count)
+            return;
+
+        bool visible = index < pose.Effects.Length && pose.Effects[index].Visible;
+        Color color = visible ? EffectOutline : new Color(EffectOutline, 0.35f);
+        Transform2D toScreen = placement * effects[index];
+        foreach (Xanadu.Items.XifPrimitive primitive in package.Effects[index].Item.Primitives)
+        {
+            int count = primitive.Points.Count;
+            if (count < 2)
+                continue;
+
+            var outline = new Vector2[count + 1];
+            for (int i = 0; i <= count; i++)
+                outline[i] = toScreen * primitive.Points[i % count];
+            canvas.DrawPolyline(target, outline, color, 1.5f);
+        }
+        canvas.DrawCircle(target, toScreen.Origin, 4f, color);
     }
 
     private void DrawGhost(
