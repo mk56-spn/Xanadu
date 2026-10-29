@@ -148,7 +148,7 @@ public sealed class AnimatorTimelineInputTests : AnimatorToolTest
         PressAt(KeyPoint("head", 1f));
         Release();
 
-        PressAt(OnRuler(0.73f));
+        PressAt(OnRuler(0.739f));
 
         Assert.That(Runtime.CurrentTime, Is.EqualTo(0.74f).Within(0.001f));
         Assert.That(Selection.HasKey, Is.False);

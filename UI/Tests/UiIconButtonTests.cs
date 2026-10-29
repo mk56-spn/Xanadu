@@ -25,8 +25,7 @@ public sealed class UiIconButtonTests
     [TearDown]
     public void TearDown()
     {
-        UiIcons.Loader = path =>
-            ResourceLoader.Exists(path) ? ResourceLoader.Load<Texture2D>(path) : null;
+        UiIcons.Loader = _ => null;
     }
 
     [Test]

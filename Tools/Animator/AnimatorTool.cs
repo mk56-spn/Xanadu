@@ -68,6 +68,7 @@ public partial class AnimatorTool : Control
             AnimatorFileCommands.LoadOrDefault(files, DefaultPath),
             files,
             DefaultPath);
+        UiIcons.Loader = UiIcons.FromResources;
         _session.AddComponent(AnimatorLayout.Build(_store, GetViewportRect().Size));
         SetProcess(true);
     }

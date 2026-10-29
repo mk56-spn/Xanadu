@@ -1,4 +1,5 @@
 using Godot;
+using Xanadu.Ecs;
 using NUnit.Framework;
 using Xanadu.Tools.Animator;
 
@@ -12,11 +13,11 @@ public sealed class AnimatorLayoutTests : AnimatorToolTest
     {
         Rect2 preview = AnimatorGeometry.PanelArea(Ui.Preview);
 
-        // Margin 16 + left bar 240 + gap 12; gap 12 + right bar 300 + margin 16.
-        Assert.That(preview.Position.X, Is.EqualTo(268f).Within(0.5f));
-        Assert.That(preview.End.X, Is.EqualTo(Screen.X - 328f).Within(0.5f));
-        // Margin 16 + header 88 + gap 12, then the 36 px mode bar and its 8 px gap.
-        Assert.That(preview.Position.Y, Is.EqualTo(160f).Within(0.5f));
+        // Left bar 240 + gap 12; gap 12 + right bar 300; the panels run flush to the screen.
+        Assert.That(preview.Position.X, Is.EqualTo(252f).Within(0.5f));
+        Assert.That(preview.End.X, Is.EqualTo(Screen.X - 312f).Within(0.5f));
+        // The shell's 80 px header + gap 12, then the 36 px mode bar and its 8 px gap.
+        Assert.That(preview.Position.Y, Is.EqualTo(136f).Within(0.5f));
     }
 
     [Test]
@@ -55,8 +56,9 @@ public sealed class AnimatorLayoutTests : AnimatorToolTest
 
         Assert.That(timeline.Position.Y, Is.GreaterThanOrEqualTo(preview.End.Y));
         Assert.That(timeline.End.Y, Is.LessThanOrEqualTo(Screen.Y));
-        Assert.That(timeline.Position.X, Is.EqualTo(16f).Within(0.5f));
-        Assert.That(timeline.Size.X, Is.EqualTo(Screen.X - 32f).Within(0.5f));
+        Assert.That(timeline.Position.X, Is.EqualTo(0f).Within(0.5f));
+        Assert.That(timeline.Size.X, Is.EqualTo(Screen.X).Within(0.5f));
+        Assert.That(timeline.Size.Y, Is.EqualTo(EditorFooterHeight.Animator).Within(0.5f));
     }
 
     [Test]
