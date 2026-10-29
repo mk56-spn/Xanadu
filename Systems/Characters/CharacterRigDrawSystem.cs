@@ -39,7 +39,8 @@ public sealed class CharacterRigDrawSystem(Func<IAttachmentVisuals> createVisual
                 instance?.Visuals.Release();
                 IAttachmentVisuals visuals = createVisuals();
                 visuals.Reload(package);
-                instance = new Instance(runtime, visuals, visuals.Bounds(attachments), new XafChainSimulation());
+                instance = new Instance(
+                    runtime, visuals, visuals.Bounds(attachments), new XafChainSimulation(), new XafClothSimulation());
                 _instances[entity.Id] = instance;
             }
 
@@ -56,6 +57,8 @@ public sealed class CharacterRigDrawSystem(Func<IAttachmentVisuals> createVisual
             instance.Visuals.Apply(attachments, placement);
             instance.Chains.Update(package, bones, Tick.deltaTime);
             instance.Visuals.ApplyChains(package, instance.Chains, placement);
+            instance.Cloths.Update(package, bones, Tick.deltaTime);
+            instance.Visuals.ApplyCloths(package, instance.Cloths, placement);
             instance.Visuals.ApplyEffects(runtime.Pose, XafRig.WorldEffects(package, runtime.Pose, bones), placement);
             if (!entity.Tags.Has<CharacterRigVisible>())
                 entity.AddTag<CharacterRigVisible>();
@@ -100,5 +103,6 @@ public sealed class CharacterRigDrawSystem(Func<IAttachmentVisuals> createVisual
         AnimatorRuntime Runtime,
         IAttachmentVisuals Visuals,
         Rect2 RigBounds,
-        XafChainSimulation Chains);
+        XafChainSimulation Chains,
+        XafClothSimulation Cloths);
 }

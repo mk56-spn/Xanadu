@@ -67,6 +67,8 @@ public static class XafPackageCopy
                 Item = XifCopy.Clone(effect.Item),
             });
         }
+        foreach (XafCloth cloth in package.Cloths)
+            copy.Cloths.Add(Clone(cloth));
         foreach (XafTransition rule in package.Transitions)
         {
             copy.Transitions.Add(new XafTransition
@@ -86,7 +88,34 @@ public static class XafPackageCopy
         ListEqual(a.Chains, b.Chains, ChainEqual) &&
         ListEqual(a.Clips, b.Clips, ClipEqual) &&
         ListEqual(a.Transitions, b.Transitions, TransitionEqual) &&
-        ListEqual(a.Effects, b.Effects, EffectEqual);
+        ListEqual(a.Effects, b.Effects, EffectEqual) &&
+        ListEqual(a.Cloths, b.Cloths, ClothEqual);
+
+    public static XafCloth Clone(XafCloth cloth)
+    {
+        var copy = new XafCloth
+        {
+            Id = cloth.Id,
+            BoneId = cloth.BoneId,
+            Offset = cloth.Offset,
+            Columns = cloth.Columns,
+            Rows = cloth.Rows,
+            TopWidth = cloth.TopWidth,
+            HemWidth = cloth.HemWidth,
+            Length = cloth.Length,
+            Gravity = cloth.Gravity,
+            Lean = cloth.Lean,
+            Damping = cloth.Damping,
+            Stiffness = cloth.Stiffness,
+            Fill = cloth.Fill,
+            ZOrder = cloth.ZOrder,
+        };
+        foreach (XafClothPin pin in cloth.Pins)
+            copy.Pins.Add(new XafClothPin { Column = pin.Column, Row = pin.Row, BoneId = pin.BoneId });
+        foreach (XafClothCollider collider in cloth.Colliders)
+            copy.Colliders.Add(new XafClothCollider { BoneId = collider.BoneId, Radius = collider.Radius });
+        return copy;
+    }
 
     public static XafClip Clone(XafClip clip)
     {
@@ -142,6 +171,15 @@ public static class XafPackageCopy
         a.Id == b.Id && a.Duration == b.Duration && a.Loop == b.Loop &&
         a.LoopStart == b.LoopStart && a.LoopEnd == b.LoopEnd &&
         ListEqual(a.Channels, b.Channels, ChannelEqual);
+
+    private static bool ClothEqual(XafCloth a, XafCloth b) =>
+        a.Id == b.Id && a.BoneId == b.BoneId && a.Offset == b.Offset &&
+        a.Columns == b.Columns && a.Rows == b.Rows && a.TopWidth == b.TopWidth &&
+        a.HemWidth == b.HemWidth && a.Length == b.Length && a.Gravity == b.Gravity &&
+        a.Lean == b.Lean && a.Damping == b.Damping && a.Stiffness == b.Stiffness &&
+        a.Fill == b.Fill && a.ZOrder == b.ZOrder &&
+        ListEqual(a.Pins, b.Pins, (x, y) => x.Column == y.Column && x.Row == y.Row && x.BoneId == y.BoneId) &&
+        ListEqual(a.Colliders, b.Colliders, (x, y) => x.BoneId == y.BoneId && x.Radius == y.Radius);
 
     private static bool EffectEqual(XafEffect a, XafEffect b) =>
         a.Id == b.Id && a.BoneId == b.BoneId && a.Transform == b.Transform &&

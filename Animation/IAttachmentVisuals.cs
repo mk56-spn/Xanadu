@@ -21,6 +21,12 @@ public interface IAttachmentVisuals
     void ApplyChains(XafPackage package, XafChainSimulation simulation, Transform2D placement) { }
 
     /// <summary>
+    /// Draws each cloth as a filled sheet through its simulated points, on the
+    /// cloth's own layer among the attachments.
+    /// </summary>
+    void ApplyCloths(XafPackage package, XafClothSimulation simulation, Transform2D placement) { }
+
+    /// <summary>
     /// Places each effect at its rig-space transform and shows it at its
     /// pose's alpha; an effect the pose does not show is hidden.
     /// </summary>
