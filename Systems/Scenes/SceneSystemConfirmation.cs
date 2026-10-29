@@ -16,76 +16,48 @@ namespace Xanadu.Systems.Scenes;
 
 public sealed partial class SceneSystem : QuerySystem<SceneState>
 {
+    private const float ConfirmWidth = 520;
+    private const float ConfirmHeight = 200;
+    private const float ConfirmTextWidth = 480;
+    private const float ConfirmTitleHeight = 30;
+    private const float ConfirmMessageHeight = 50;
+    private const float ConfirmActionHeight = 42;
+    private const float SaveWidth = 190;
+    private const float ConfirmActionWidth = 150;
+
     private void BuildConfirmation()
     {
-        UiBuilder builder = UiBuilder.Begin(_entities, _visuals)
-            .Layer(SceneUi.ConfirmationLayer);
+        UiNode ui = UiNode.Layer(
+            _entities, default, SceneUi.ConfirmationLayer, _visuals, UiStage.Full);
 
-        builder.Container(
-            UiLayout.Hidden,
-            new Vector2(520, 200),
-            StackDirection.Vertical,
-            spacing: 12,
-            color: Palette.DangerSurface);
+        UiNode panel = ui.Column()
+            .Size(ConfirmWidth, ConfirmHeight)
+            .At(UiLayout.Hidden)
+            .Fill(Palette.DangerSurface)
+            .Pad(UiMetrics.Space.Md)
+            .Gap(UiMetrics.Space.Md)
+            .Main(StackMainAlignment.Center)
+            .Cross(StackCrossAlignment.Center);
 
-        Entity panel = builder.Current;
+        UiNode title = panel.Text(
+                "", UiType.Section, SceneUi.AccentColor, TextAlign.Center)
+            .Size(ConfirmTextWidth, ConfirmTitleHeight)
+            .Fill(Palette.DangerDark);
+        UiNode message = panel.Text(
+                "", UiType.Body, SceneUi.TextColor, TextAlign.Center)
+            .Size(ConfirmTextWidth, ConfirmMessageHeight);
 
-        Entity title = SceneUi.Text(
-            builder,
-            Vector2.Zero,
-            new Vector2(480, 30),
-            "",
-            26,
-            SceneUi.AccentColor,
-            Palette.DangerDark);
+        UiNode buttons = panel.Row().Gap(UiMetrics.Space.Sm);
+        UiNode save = buttons.Button(
+                "SAVE & LEAVE", UiType.Small, SceneUi.ButtonColor)
+            .Size(SaveWidth, ConfirmActionHeight);
+        UiNode yes = buttons.Button("YES", UiType.Label, SceneUi.ButtonColor)
+            .Size(ConfirmActionWidth, ConfirmActionHeight);
+        UiNode no = buttons.Button("CANCEL", UiType.Label, SceneUi.MutedButtonColor)
+            .Size(ConfirmActionWidth, ConfirmActionHeight);
 
-        Entity message = SceneUi.Text(
-            builder,
-            Vector2.Zero,
-            new Vector2(480, 50),
-            "",
-            16,
-            SceneUi.TextColor,
-            Palette.DangerSurface);
-
-        builder.Container(
-            Vector2.Zero,
-            new Vector2(520, 44),
-            StackDirection.Horizontal,
-            spacing: 10);
-
-        Entity save = builder.RectEntity(
-            Vector2.Zero,
-            new Vector2(190, 42),
-            SceneUi.ButtonColor,
-            "SAVE & LEAVE",
-            takesInput: true);
-        save.AddComponent(new TextStyle(15, SceneUi.TextColor));
-        save.AddComponent(ButtonVisual.Create(SceneUi.ButtonColor));
-
-        Entity yes = builder.RectEntity(
-            Vector2.Zero,
-            new Vector2(150, 42),
-            SceneUi.ButtonColor,
-            "YES",
-            takesInput: true);
-        yes.AddComponent(new TextStyle(18, SceneUi.TextColor));
-        yes.AddComponent(ButtonVisual.Create(SceneUi.ButtonColor));
-
-        Entity no = builder.RectEntity(
-            Vector2.Zero,
-            new Vector2(150, 42),
-            SceneUi.MutedButtonColor,
-            "CANCEL",
-            takesInput: true);
-        no.AddComponent(new TextStyle(18, SceneUi.TextColor));
-        no.AddComponent(ButtonVisual.Create(SceneUi.MutedButtonColor));
-
-        builder.End();
-        builder.End();
-
-        panel.AddComponent(new SceneConfirmation(title, message, yes, no, save));
-        _confirmationPanel = panel;
+        panel.With(new SceneConfirmation(title, message, yes, no, save));
+        _confirmationPanel = panel.Entity;
     }
 
     private bool HandleConfirmation(ref SceneState state)

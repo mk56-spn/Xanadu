@@ -8,6 +8,7 @@ using Xanadu.Levels;
 using Xanadu.Profiles;
 using Xanadu.Scenes;
 using Xanadu.Settings;
+using Xanadu.Theme;
 using SceneState = Xanadu.Ecs.SceneState;
 using Position = Xanadu.Ecs.Position;
 
@@ -15,89 +16,55 @@ namespace Xanadu.Systems.Scenes;
 
 public sealed partial class SceneSystem : QuerySystem<SceneState>
 {
+    private const float PauseWidth = 520;
+    private const float PauseHeight = 300;
+    private const float MessageWidth = 480;
+    private const float MessageHeight = 36;
+    private const float ActionWidth = 140;
+    private const float LeaveWidth = 160;
+    private const float ActionHeight = 42;
+
     private void BuildPause()
     {
-        UiBuilder builder = UiBuilder.Begin(_entities, _visuals)
-            .Layer(SceneUi.PauseLayer);
+        UiNode ui = UiNode.Layer(
+            _entities, default, SceneUi.PauseLayer, _visuals, UiStage.Full);
 
-        builder.Container(
-            UiLayout.Hidden,
-            _screen,
-            StackDirection.Vertical,
-            color: new Color(0.02f, 0.03f, 0.06f, 0.82f),
-            takesInput: true);
+        UiNode root = ui.Column()
+            .Box(UiStage.Full.Bounds)
+            .At(UiLayout.Hidden)
+            .Fill(new Color(0.02f, 0.03f, 0.06f, 0.82f))
+            .Input()
+            .Cross(StackCrossAlignment.Center)
+            .Main(StackMainAlignment.Center);
 
-        Entity root = builder.Current;
+        UiNode panel = root.Column()
+            .Size(PauseWidth, PauseHeight)
+            .Fill(SceneUi.PanelColor)
+            .Pad(UiMetrics.Space.Md)
+            .Gap(UiMetrics.Space.Md)
+            .Main(StackMainAlignment.Center)
+            .Cross(StackCrossAlignment.Center);
 
-        builder.Container(
-            Vector2.Zero,
-            new Vector2(520, 300),
-            StackDirection.Vertical,
-            spacing: 12,
-            color: SceneUi.PanelColor);
+        Entity title = panel.Text(
+            "PAUSED", UiType.Heading, SceneUi.AccentColor, TextAlign.Center);
+        Entity message = panel.Text(
+                "", UiType.Body, SceneUi.TextColor, TextAlign.Center)
+            .Size(MessageWidth, MessageHeight);
 
-        Entity panel = builder.Current;
+        UiNode buttons = panel.Row().Gap(UiMetrics.Space.Md);
+        UiNode resume = buttons.Button("RESUME", UiType.Label, SceneUi.ButtonColor)
+            .Size(ActionWidth, ActionHeight)
+            .On(SceneActionId.Resume);
+        UiNode retry = buttons.Button("RETRY", UiType.Label, SceneUi.ButtonColor)
+            .Size(ActionWidth, ActionHeight)
+            .On(SceneActionId.Retry);
+        UiNode leave = buttons.Button(
+                "LEAVE LEVEL", UiType.Label, SceneUi.MutedButtonColor)
+            .Size(LeaveWidth, ActionHeight)
+            .On(SceneActionId.Leave);
 
-        Entity title = SceneUi.Text(
-            builder,
-            Vector2.Zero,
-            new Vector2(480, 44),
-            "PAUSED",
-            36,
-            SceneUi.AccentColor,
-            SceneUi.PanelColor);
-
-        Entity message = SceneUi.Text(
-            builder,
-            Vector2.Zero,
-            new Vector2(480, 36),
-            "",
-            16,
-            SceneUi.TextColor,
-            SceneUi.PanelColor);
-
-        builder.Container(
-            Vector2.Zero,
-            new Vector2(480, 44),
-            StackDirection.Horizontal,
-            spacing: 12);
-
-        Entity resume = builder.RectEntity(
-            Vector2.Zero,
-            new Vector2(140, 42),
-            SceneUi.ButtonColor,
-            "RESUME",
-            takesInput: true);
-        resume.AddComponent(new TextStyle(18, SceneUi.TextColor));
-        resume.AddComponent(ButtonVisual.Create(SceneUi.ButtonColor));
-        resume.AddComponent(new SceneCommand(SceneActionId.Resume));
-
-        Entity retry = builder.RectEntity(
-            Vector2.Zero,
-            new Vector2(140, 42),
-            SceneUi.ButtonColor,
-            "RETRY",
-            takesInput: true);
-        retry.AddComponent(new TextStyle(18, SceneUi.TextColor));
-        retry.AddComponent(ButtonVisual.Create(SceneUi.ButtonColor));
-        retry.AddComponent(new SceneCommand(SceneActionId.Retry));
-
-        Entity leave = builder.RectEntity(
-            Vector2.Zero,
-            new Vector2(160, 42),
-            SceneUi.MutedButtonColor,
-            "LEAVE LEVEL",
-            takesInput: true);
-        leave.AddComponent(new TextStyle(18, SceneUi.TextColor));
-        leave.AddComponent(ButtonVisual.Create(SceneUi.MutedButtonColor));
-        leave.AddComponent(new SceneCommand(SceneActionId.Leave));
-
-        builder.End();
-        builder.End();
-        builder.End();
-
-        root.AddComponent(new ScenePause(title, message, resume, retry, leave));
-        _pausePanel = root;
+        root.With(new ScenePause(title, message, resume, retry, leave));
+        _pausePanel = root.Entity;
     }
 
     private bool HandlePause(ref SceneState state)
