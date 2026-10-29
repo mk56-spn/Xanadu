@@ -20,10 +20,10 @@ public readonly partial struct UiNode
 
     /// <summary>
     /// The advance estimator is close but not exact, and a box half a pixel
-    /// short drops the last glyph. Five percent is invisible in a measured box
+    /// short drops the last glyph. Eight percent is invisible in a measured box
     /// and covers the estimate's error at any length.
     /// </summary>
-    public const float MeasureSlack = 1.05f;
+    public const float MeasureSlack = 1.08f;
 
     /// <summary>
     /// A text label. Size, colour, alignment and weight are part of the text's

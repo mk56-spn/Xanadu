@@ -25,6 +25,7 @@ public static class UiTextMetrics
         ' ' => 0.32f,
         'i' or 'l' or 'j' or '!' or '|' or '.' or ',' or ':' or ';' or '\'' => 0.28f,
         'I' or 't' or 'f' or 'r' or '(' or ')' or '[' or ']' or '1' => 0.36f,
+        '%' => 0.90f,
         'm' or 'M' => 0.86f,
         'w' or 'W' => 0.84f,
         >= 'A' and <= 'Z' => 0.74f,

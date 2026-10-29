@@ -95,7 +95,7 @@ public sealed class SceneControllerRegistry
                 return;
             }
 
-            SongTimingScene.Build(c.Entities, c.Root, c.Screen, song, c.Visuals);
+            SongTimingScene.Build(c.Entities, c.Root, song, c.Visuals);
         }
 
         public void HandleActions(SceneSystem system, ref SceneState state)
@@ -214,7 +214,7 @@ public sealed class SceneControllerRegistry
     private sealed class ResultsController : ISceneController
     {
         public SceneKind Kind => SceneKind.Results;
-        public void Build(SceneBuildContext c) => ResultsScene.Build(c.Entities, c.Root, c.Screen, c.Results ?? default, c.Visuals, c.CanWatchReplay);
+        public void Build(SceneBuildContext c) => ResultsScene.Build(c.Entities, c.Root, c.Results ?? default, c.Visuals, c.CanWatchReplay);
         public bool TryForward(SceneSystem system)
         {
             system.Request(SceneKind.SongSelect);
