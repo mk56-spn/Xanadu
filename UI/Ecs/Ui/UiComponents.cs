@@ -89,9 +89,11 @@ public enum StackMainAlignment
 }
 
 /// <summary>
-/// Container entity that stacks its child entities.  Auto-sized dimensions
-/// are derived from the children and <see cref="Padding"/>; <see cref="AnchorTop"/>
-/// keeps the current top edge fixed when an auto-height container resizes.
+/// Container entity that stacks its child entities, or, with
+/// <see cref="Columns"/> above zero, lays them out in a grid.  Auto-sized
+/// dimensions are derived from the children and <see cref="Padding"/>;
+/// <see cref="AnchorTop"/> keeps the current top edge fixed when an
+/// auto-height container resizes.
 /// </summary>
 public struct UiContainer(
     StackDirection direction,
@@ -104,7 +106,9 @@ public struct UiContainer(
     bool anchorTop = false,
     StackMainAlignment main = StackMainAlignment.Center,
     float skew = 0,
-    bool anchorLeft = false) : IComponent
+    bool anchorLeft = false,
+    int columns = 0,
+    float lineSpacing = -1) : IComponent
 {
     public StackDirection Direction = direction;
     public float Spacing = spacing;
@@ -127,6 +131,21 @@ public struct UiContainer(
 
     /// <summary>Keeps the left edge fixed when an auto-width container resizes.</summary>
     public bool AnchorLeft = anchorLeft;
+
+    /// <summary>
+    /// Zero stacks children along <see cref="Direction"/>. Above zero the children
+    /// fill a grid of this many columns, row by row: each column is as wide as its
+    /// widest child, each row as tall as its tallest, and a child is centred in its
+    /// cell. <see cref="Main"/> places the grid horizontally and <see cref="Cross"/>
+    /// vertically when the container is larger than the grid.
+    /// </summary>
+    public int Columns = columns;
+
+    /// <summary>Gap between grid rows; negative uses <see cref="Spacing"/>, which is the column gap.</summary>
+    public float LineSpacing = lineSpacing;
+
+    public readonly bool IsGrid => Columns > 0;
+    public readonly float RowSpacing => LineSpacing < 0 ? Spacing : LineSpacing;
 
     /// <summary>The container's corners, clockwise from the top left, with the skew applied.</summary>
     public static Vector2[] Corners(Rect2 bounds, float skew) => UiOutline.Points(bounds, skew, 0);

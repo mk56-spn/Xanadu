@@ -70,7 +70,9 @@ public sealed partial class UiBuilder
         bool anchorTop = false,
         StackMainAlignment main = StackMainAlignment.Center,
         float skew = 0,
-        bool anchorLeft = false)
+        bool anchorLeft = false,
+        int columns = 0,
+        float lineSpacing = -1)
     {
         RequireLayer();
 
@@ -95,7 +97,9 @@ public sealed partial class UiBuilder
                 anchorTop,
                 main,
                 skew,
-                anchorLeft),
+                anchorLeft,
+                columns,
+                lineSpacing),
             tags);
 
         if (text is not null)
@@ -106,6 +110,38 @@ public sealed partial class UiBuilder
         _current = container;
         return this;
     }
+
+    /// <summary>
+    /// A container that lays its children out in a grid of
+    /// <paramref name="columns"/> columns, filling row by row. With
+    /// <paramref name="autoSize"/> it shrinks to fit its cells.
+    /// </summary>
+    public UiBuilder Grid(
+        Vector2 position,
+        Vector2 size,
+        int columns,
+        float spacing = 0,
+        float lineSpacing = -1,
+        float padding = 0,
+        bool autoSize = true,
+        Color? color = null,
+        bool takesInput = false,
+        StackMainAlignment main = StackMainAlignment.Center,
+        StackCrossAlignment cross = StackCrossAlignment.Center) =>
+        Container(
+            position,
+            size,
+            StackDirection.Horizontal,
+            spacing,
+            color: color ?? new Color(0, 0, 0, 0),
+            takesInput: takesInput,
+            padding: padding,
+            cross: cross,
+            autoWidth: autoSize,
+            autoHeight: autoSize,
+            main: main,
+            columns: Math.Max(1, columns),
+            lineSpacing: lineSpacing);
 
     /// <summary>An unstyled/attached text drawable.</summary>
     public Entity Text(
