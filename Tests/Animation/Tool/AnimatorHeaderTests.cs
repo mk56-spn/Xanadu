@@ -119,13 +119,13 @@ public sealed class AnimatorHeaderTests : AnimatorToolTest
     {
         Rect2 undo = Area(Button(ToolActionKind.Undo));
         Rect2 redo = Area(Button(ToolActionKind.Redo));
-        Rect2 status = Area(Ui.Status);
+        Rect2 path = Area(Ui.PathField);
 
         Assert.That(undo.End.Y, Is.LessThanOrEqualTo(EditorShellMetrics.HeaderHeight));
         Assert.That(undo.Position.X, Is.GreaterThanOrEqualTo(EditorShellMetrics.NameWidth));
         Assert.That(redo.Position.X, Is.GreaterThan(undo.End.X));
         Assert.That(redo.Position.Y, Is.EqualTo(undo.Position.Y).Within(0.5f));
-        Assert.That(status.Position.X, Is.GreaterThan(redo.End.X));
+        Assert.That(path.Position.X, Is.GreaterThan(redo.End.X));
     }
 
     [Test]

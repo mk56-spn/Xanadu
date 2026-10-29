@@ -26,14 +26,13 @@ public static partial class AnimatorLayout
     private const float Margin = 0f;
     private const float TopHeight = EditorShellMetrics.HeaderHeight;
     private const float BottomHeight = EditorFooterHeight.Animator;
-    private const float Gap = 12f;
-    private const float LeftWidth = 240f;
-    private const float RightWidth = 300f;
-    private const float ListWidth = LeftWidth - UiTheme.ContainerPadding * 2;
+    private const float Gap = 0f;
+    private const float RightPanelWidth = EditorShellMetrics.RightPanelWidth;
+    private const float ListWidth = RightPanelWidth - UiTheme.ContainerPadding * 2;
 
     /// <summary>Label, button row and the spacing between them and the viewport.</summary>
     private const float LeftFixedHeight = 20f + 30f + UiTheme.ContainerSpacing * 2;
-    private const float ButtonWidth = 168f;
+    private const float ButtonWidth = RightPanelWidth - UiTheme.ContainerPadding * 2;
     private const float FileMenuWidth = 180f;
     private const float ConfigMenuWidth = 150f;
 
@@ -60,7 +59,7 @@ public static partial class AnimatorLayout
     private const float TitleWidth = EditorShellMetrics.NameWidth;
     private const float StatusWidth = 200f;
     private const float DirtyWidth = 80f;
-    private const float PathWidth = 200f;
+    private const float PathWidth = 260f;
     private const float ClipLabelWidth = 48f;
     private const float HeaderControl = EditorShellMetrics.HeaderControlHeight;
     private const float HistoryButton = 50f;
@@ -80,7 +79,9 @@ public static partial class AnimatorLayout
         IVisualRidFactory? visuals = null)
     {
         var refs = new Refs();
-        float mainHeight = screen.Y - Margin * 2 - TopHeight - BottomHeight - Gap * 2;
+        EditorShellRects shell = EditorShell.Compute(
+            screen, new EditorShellOptions(EditorFooterHeight.Animator));
+        float mainHeight = shell.ToolStrip.Size.Y;
         UiBuilder ui = UiBuilder.Begin(store, visuals).Layer(0);
         ui.RectEntity(screen / 2, screen, UiTheme.Background);
 
@@ -90,9 +91,8 @@ public static partial class AnimatorLayout
         ui.Container(Vector2.Zero, new Vector2(screen.X - Margin * 2, mainHeight),
             spacing: Gap, color: Clear);
         BuildToolStrip(ui, mainHeight);
-        BuildLeft(ui, mainHeight, ref refs);
-        BuildPreview(ui, screen, mainHeight, ref refs);
-        BuildRight(ui, mainHeight, ref refs);
+        BuildViewport(ui, shell, ref refs);
+        BuildRightPanel(ui, shell, ref refs);
         ui.End();
         BuildTimeline(ui, screen, ref refs);
         ui.End();
@@ -104,6 +104,7 @@ public static partial class AnimatorLayout
 
         // The inspector is the bottom of the floating layer, so menus opened
         // over the preview still draw above it.
+        BuildTabBodies(menu, shell, ref refs);
         BuildInspector(menu, screen, ref refs);
         BuildFileMenu(menu, refs.FileButton);
         BuildConfigMenu(menu, refs.ConfigButton);
@@ -136,10 +137,6 @@ public static partial class AnimatorLayout
         IconAction(ui, "UN", "undo", ToolActionKind.Undo, history);
         IconAction(ui, "RE", "redo", ToolActionKind.Redo, history);
 
-        refs.Ui.Status = ui.Text("", new Vector2(StatusWidth, 24), UiTheme.FontSize,
-            Palette.Lime);
-        refs.Ui.DirtyLabel = ui.Text("", new Vector2(DirtyWidth, 24), UiTheme.SmallFontSize,
-            UiTheme.Accent);
         refs.Ui.PathField = TextInput(ui, new Vector2(PathWidth, 26));
 
         // The clip dropdown's button lives in this slot, beside the file menu; its
@@ -175,9 +172,10 @@ public static partial class AnimatorLayout
         return button;
     }
 
-    private static void BuildLeft(UiBuilder ui, float height, ref Refs refs)
+    /// <summary>The bones, attachments and chains: the tree on top of the right panel.</summary>
+    private static void BuildTree(UiBuilder ui, float height, ref Refs refs)
     {
-        ui.Panel(Vector2.Zero, new Vector2(LeftWidth, height),
+        ui.Panel(Vector2.Zero, new Vector2(RightPanelWidth, height),
             cross: StackCrossAlignment.Start, main: StackMainAlignment.Start);
         ui.Text("BONES", new Vector2(ListWidth, 20), UiTheme.FontSize, UiTheme.Accent);
         Row(ui, ("+ BONE", ToolActionKind.AddBone), ("DEL", ToolActionKind.DeleteBone));
@@ -205,12 +203,25 @@ public static partial class AnimatorLayout
         ui.End();
     }
 
-    private static void BuildPreview(UiBuilder ui, Vector2 screen, float height, ref Refs refs)
+    /// <summary>The preview over the status line along the viewport's bottom edge.</summary>
+    private static void BuildViewport(UiBuilder ui, EditorShellRects shell, ref Refs refs)
     {
-        float width = screen.X - Margin * 2 - StripWidth - LeftWidth - RightWidth - Gap * 3;
-        ui.Container(Vector2.Zero, new Vector2(width, height),
-            StackDirection.Vertical, color: Palette.SurfaceDeep, takesInput: true);
+        Vector2 area = shell.Viewport.Size;
+        Vector2 line = shell.StatusLine.Size;
+        ui.Container(Vector2.Zero, new Vector2(area.X, area.Y + line.Y),
+            StackDirection.Vertical, color: Clear);
+        ui.Container(Vector2.Zero, area, StackDirection.Vertical,
+            color: Palette.SurfaceDeep, takesInput: true);
         refs.Ui.Preview = ui.Current;
+        ui.End();
+
+        ui.Container(Vector2.Zero, line, spacing: 12, color: UiTheme.Panel,
+            padding: 4, main: StackMainAlignment.Start);
+        refs.Ui.Status = ui.Text("", new Vector2(StatusWidth, line.Y - 8), UiTheme.FontSize,
+            Palette.Lime, TextAlign.Left);
+        refs.Ui.DirtyLabel = ui.Text("", new Vector2(DirtyWidth, line.Y - 8), UiTheme.SmallFontSize,
+            UiTheme.Accent, TextAlign.Left);
+        ui.End();
         ui.End();
     }
 
@@ -235,18 +246,67 @@ public static partial class AnimatorLayout
         ui.End();
     }
 
-    private static void BuildRight(UiBuilder ui, float height, ref Refs refs)
+    /// <summary>
+    /// The tree on top, then the tab strip, then room for the selected tab's
+    /// body, which floats over the room (see <see cref="BuildTabBodies"/>).
+    /// </summary>
+    private static void BuildRightPanel(UiBuilder ui, EditorShellRects shell, ref Refs refs)
     {
-        ui.Panel(Vector2.Zero, new Vector2(RightWidth, height),
-            cross: StackCrossAlignment.Center, main: StackMainAlignment.Start);
-        Row(ui, ("ROT-", ToolActionKind.RotateLeft), ("ROT+", ToolActionKind.RotateRight));
-        Row(ui, ("SCL-", ToolActionKind.ScaleDown), ("SCL+", ToolActionKind.ScaleUp));
-        Row(ui, ("KEY", ToolActionKind.KeyBone), ("POSE", ToolActionKind.KeyPose));
-        SmallRow(ui, ("C POSE", ToolActionKind.CopyPose), ("P POSE", ToolActionKind.PastePose));
-        Row(ui, ("MIRROR", ToolActionKind.MirrorPose), ("MOVE", ToolActionKind.ToggleMovable));
-        SmallRow(ui, ("C KEYS", ToolActionKind.CopyKeys), ("P KEYS", ToolActionKind.PasteKeys));
-        Row(ui, ("FIT", ToolActionKind.FitPreview), ("1:1", ToolActionKind.ResetPreview));
+        ui.Container(Vector2.Zero, shell.RightPanel.Size, StackDirection.Vertical,
+            color: UiTheme.Panel, main: StackMainAlignment.Start);
+        BuildTree(ui, shell.RightTree.Size.Y, ref refs);
+
+        ui.Container(Vector2.Zero, shell.RightTabs.Size, color: Clear);
+        refs.TabStrip = ui.Current;
+        refs.TabButtons = new Entity[TabNames.Length];
+        for (int i = 0; i < TabNames.Length; i++)
+        {
+            Rect2 tab = EditorShell.Tab(shell, i, TabNames.Length);
+            refs.TabButtons[i] = ui.Button(TabNames[i], tab.Size,
+                fontSize: UiTheme.SmallFontSize);
+        }
         ui.End();
+
+        ui.RectEntity(Vector2.Zero, shell.RightBody.Size, Clear);
+        ui.End();
+    }
+
+    private static readonly string[] TabNames = { "POSE", "EDIT" };
+
+    /// <summary>
+    /// The tab bodies float on the menu layer: a container in a stack cannot be
+    /// hidden, so each body is parked off screen until its tab is selected.
+    /// </summary>
+    private static void BuildTabBodies(UiBuilder menu, EditorShellRects shell, ref Refs refs)
+    {
+        var bodies = new Entity[TabNames.Length];
+        for (int i = 0; i < bodies.Length; i++)
+        {
+            menu.Container(UiLayout.Hidden, shell.RightBody.Size, StackDirection.Vertical,
+                spacing: UiTheme.ContainerSpacing, color: UiTheme.Panel,
+                padding: UiTheme.ContainerPadding, takesInput: true,
+                cross: StackCrossAlignment.Center, main: StackMainAlignment.Start);
+            bodies[i] = menu.Current;
+            if (i == 0)
+            {
+                Row(menu, ("ROT-", ToolActionKind.RotateLeft), ("ROT+", ToolActionKind.RotateRight));
+                Row(menu, ("SCL-", ToolActionKind.ScaleDown), ("SCL+", ToolActionKind.ScaleUp));
+                Row(menu, ("KEY", ToolActionKind.KeyBone), ("POSE", ToolActionKind.KeyPose));
+                Row(menu, ("MIRROR", ToolActionKind.MirrorPose), ("MOVE", ToolActionKind.ToggleMovable));
+            }
+            else
+            {
+                SmallRow(menu, ("C POSE", ToolActionKind.CopyPose), ("P POSE", ToolActionKind.PastePose));
+                SmallRow(menu, ("C KEYS", ToolActionKind.CopyKeys), ("P KEYS", ToolActionKind.PasteKeys));
+                Row(menu, ("FIT", ToolActionKind.FitPreview), ("1:1", ToolActionKind.ResetPreview));
+            }
+            menu.End();
+        }
+
+        refs.TabStrip.AddComponent(new UiTabs(
+            refs.TabButtons,
+            bodies,
+            shell.RightBody.Position + shell.RightBody.Size / 2));
     }
 
     private static void BuildTimeline(UiBuilder ui, Vector2 screen, ref Refs refs)
@@ -386,5 +446,7 @@ public static partial class AnimatorLayout
         public AnimatorUi Ui;
         public Entity FileButton;
         public Entity ConfigButton;
+        public Entity TabStrip;
+        public Entity[] TabButtons;
     }
 }
