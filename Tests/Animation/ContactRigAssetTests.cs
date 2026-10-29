@@ -63,14 +63,17 @@ public sealed class ContactRigAssetTests
         XafRig.WorldAttachments(package, RestPoseOf(package), XafRig.WorldBones(package, RestPoseOf(package)));
 
     [Test]
-    public void TheRigIsValidAndKeepsItsFourClips()
+    public void TheRigIsValidAndKeepsItsClips()
     {
         XafPackage package = Load();
 
         Assert.That(XafValidation.Validate(package), Is.Empty);
         Assert.That(package.Skeleton.Bones, Has.Count.EqualTo(15));
         Assert.That(package.Clips.ConvertAll(clip => clip.Id),
-            Is.EqualTo(new[] { "idle", "jumping", "landing", "death" }));
+            Is.EqualTo(new[]
+            {
+                "idle", "jumping", "landing", "death", "attack_low", "attack_mid",
+            }));
     }
 
     /// <summary>

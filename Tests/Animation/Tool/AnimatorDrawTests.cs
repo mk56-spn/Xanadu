@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Friflo.Engine.ECS;
 using Godot;
 using NUnit.Framework;
 using Xanadu.Animation;
@@ -268,7 +269,10 @@ public sealed class AnimatorDrawTests : AnimatorToolTest
         Idle.LoopEnd = 1.5f;
         Frame();
 
-        Assert.That(_canvas.Texts, Has.Some.Contains("loop 0.25-1.5s"));
+        Entity caption = Session.GetComponent<AnimatorUi>().TimelineCaption;
+        Assert.That(
+            caption.GetComponent<Text>().Value,
+            Does.Contain("loop 0.25-1.5s"));
     }
 
     [Test]
