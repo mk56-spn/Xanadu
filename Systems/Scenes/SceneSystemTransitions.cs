@@ -120,13 +120,11 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
 
     private void BuildTransition()
     {
-        UiBuilder builder = UiBuilder.Begin(_entities, _visuals)
-            .Layer(1000);
+        UiNode ui = UiNode.Layer(_entities, default, 1000, _visuals, UiStage.Full);
 
-        _transitionPanel = builder.RectEntity(
-            UiLayout.Hidden,
-            _screen,
-            new Color(0f, 0f, 0f, 0f),
-            takesInput: true);
+        _transitionPanel = ui.Rect(new Color(0f, 0f, 0f, 0f), size: _screen)
+            .At(UiLayout.Hidden)
+            .Input()
+            .Entity;
     }
 }
