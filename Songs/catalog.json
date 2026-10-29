@@ -9,5 +9,27 @@
     "Bpm": 200,
     "OffsetMs": 1211,
     "ContentHash": "c5687b4250ff9dd25af82d3f87534d38b5d0e5db3a23553e0d43169691e75335"
+  },
+  {
+    "Version": 1,
+    "Id": "6b426dcb520440978928cdcdd1e40e3c",
+    "Slug": "our-everlasting-dream-6b426dcb",
+    "Title": "Our Everlasting Dream",
+    "Artist": "Helblinde",
+    "AudioPath": "res://Assets/Songs/Helblinde - Our Everlasting Dream.mp3",
+    "Bpm": 175,
+    "OffsetMs": 0,
+    "ContentHash": "731c226ecaa24f2996afe8dd5f35579823d384cd810f6342f67a9675d6e6f084"
+  },
+  {
+    "Version": 1,
+    "Id": "eac04a0008ff452d8646767147cc4071",
+    "Slug": "unconquered-eac04a00",
+    "Title": "Unconquered",
+    "Artist": "Helblinde",
+    "AudioPath": "res://Assets/Songs/Helblinde - Unconquered.mp3",
+    "Bpm": 140,
+    "OffsetMs": -11,
+    "ContentHash": "e8de13fcb2a90225abdc233137b74917e563da8840cf1add674f8971bb62f7b7"
   }
 ]

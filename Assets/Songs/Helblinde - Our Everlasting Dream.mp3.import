@@ -1,0 +1,19 @@
+[remap]
+
+importer="mp3"
+type="AudioStreamMP3"
+uid="uid://cndwd1keo2jh4"
+path="res://.godot/imported/Helblinde - Our Everlasting Dream.mp3-351a93196597d34470e662b85fab57a3.mp3str"
+
+[deps]
+
+source_file="res://Assets/Songs/Helblinde - Our Everlasting Dream.mp3"
+dest_files=["res://.godot/imported/Helblinde - Our Everlasting Dream.mp3-351a93196597d34470e662b85fab57a3.mp3str"]
+
+[params]
+
+loop=false
+loop_offset=0
+bpm=0
+beat_count=0
+bar_beats=4
