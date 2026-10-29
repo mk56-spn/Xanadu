@@ -229,7 +229,6 @@ public sealed class SceneControllerRegistry
         public void Build(SceneBuildContext c) => SettingsScene.Build(
             c.Entities,
             c.Root,
-            c.Screen,
             c.Keybinds,
             c.Display,
             c.Visuals);
