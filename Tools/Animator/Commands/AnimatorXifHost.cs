@@ -25,7 +25,7 @@ public sealed class AnimatorXifHost(EntityStore store) : IXifEditorHost
         get
         {
             Entity session = Session;
-            if (session.IsNull)
+            if (session.IsNull || AnimatorPreviewModeCommands.IsOn(session))
                 return null;
 
             int index = AnimatorEffectCommands.Selected(session);

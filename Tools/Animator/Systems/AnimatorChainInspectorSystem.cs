@@ -54,6 +54,14 @@ public sealed class AnimatorChainInspectorSystem : QuerySystem<AnimatorDocument,
         if (ui.ChainInspector.IsNull)
             return;
 
+        // Preview mode gives the inspectors' corner back to the viewport.
+        if (AnimatorPreviewModeCommands.IsOn(session))
+        {
+            AnimatorMenuPlacement.Place(ui.ChainInspector, UiLayout.Hidden);
+            AnimatorMenuPlacement.Place(ui.Inspector, UiLayout.Hidden);
+            return;
+        }
+
         XafPackage package = session.GetComponent<AnimatorDocument>().Package;
         int selected = session.GetComponent<AnimatorSelection>().Chain;
         bool shown = selected >= 0 && selected < package.Chains.Count;
@@ -65,10 +73,12 @@ public sealed class AnimatorChainInspectorSystem : QuerySystem<AnimatorDocument,
                 ? AnimatorLayout.ChainInspectorTopLeft(ui.ScreenSize) + AnimatorLayout.ChainInspectorSize / 2
                 : UiLayout.Hidden);
 
-        // The transform inspector has nothing to show for a chain, so it gives up its spot.
+        // The transform inspector has nothing to show for a chain or a cloth, so it gives up its spot.
         AnimatorMenuPlacement.Place(
             ui.Inspector,
-            shown ? UiLayout.Hidden : AnimatorLayout.InspectorCenter(ui.ScreenSize));
+            shown || AnimatorClothCommands.Selected(session) >= 0
+                ? UiLayout.Hidden
+                : AnimatorLayout.InspectorCenter(ui.ScreenSize));
 
         SetText(ui.ChainTitle, chain is null ? "NO CHAIN" : chain.Id + "  CHAIN");
         AnimatorChainPick picking = session.GetComponent<AnimatorChains>().Picking;

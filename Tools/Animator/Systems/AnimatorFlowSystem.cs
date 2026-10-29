@@ -182,6 +182,10 @@ public sealed class AnimatorFlowSystem(IVisualRidFactory visuals) : QuerySystem<
         string curveName = rule?.Curve.ToString() ?? "";
         foreach (Entity button in Query.Store.Query<ToolAction>().ToEntityList())
         {
+            // The preview bar paints its own buttons in its own colours.
+            if (button.Tags.Has<AnimatorPreviewBarButton>())
+                continue;
+
             ToolAction action = button.GetComponent<ToolAction>();
             switch (action.Kind)
             {

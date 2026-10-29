@@ -17,6 +17,33 @@ public struct AnimatorChains : IComponent
     public AnimatorChainPick Picking;
 }
 
+/// <summary>
+/// The live simulation of the package's cloths, rebuilt with a new document
+/// as the chains are, and what clicks in the preview are for while a cloth
+/// inspector button waits for them.
+/// </summary>
+public struct AnimatorCloths : IComponent
+{
+    public XafClothSimulation Simulation;
+    public XafPackage? Package;
+    public AnimatorClothPick Picking;
+}
+
+/// <summary>What clicks in the preview do for the selected cloth.</summary>
+public enum AnimatorClothPick
+{
+    None,
+
+    /// <summary>The next bone clicked becomes the one the cloth is laid out from.</summary>
+    Bone,
+
+    /// <summary>Each point clicked is pinned to the bone nearest it, or freed; until stopped.</summary>
+    Pins,
+
+    /// <summary>Each bone clicked starts or stops being a collider; until stopped.</summary>
+    Colliders,
+}
+
 /// <summary>What the next bone clicked is for.</summary>
 public enum AnimatorChainPick
 {

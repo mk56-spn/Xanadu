@@ -44,6 +44,15 @@ public partial class AnimatorTool : Control
     /// <summary>Set by <c>--streak=bone</c>: hang a streak off that bone and hold the playhead where it shows.</summary>
     private string? _streak;
 
+    /// <summary>Set by <c>--preview</c>: open in preview mode.</summary>
+    private bool _startInPreview;
+
+    /// <summary>Set by <c>--paths=bone,bone</c>: motion paths on, with those bones selected.</summary>
+    private string? _paths;
+
+    /// <summary>Set by <c>--dress=bone</c>: a dress hanging from that bone, selected.</summary>
+    private string? _dress;
+
     public override void _Ready()
     {
         _store = new EntityStore();
@@ -108,6 +117,15 @@ public partial class AnimatorTool : Control
             StartFlow(_flow);
         if (_frames == 2 && _streak is not null)
             AddStreak(_streak);
+        if (_frames == 2 && _dress is not null)
+        {
+            AnimatorCommands.Run(_session, new ToolAction(ToolActionKind.SelectBone, _dress));
+            AnimatorCommands.Run(_session, new ToolAction(ToolActionKind.AddCloth));
+        }
+        if (_frames == 2 && _paths is not null)
+            ShowPaths(_paths);
+        if (_frames == 2 && _startInPreview)
+            AnimatorCommands.Run(_session, new ToolAction(ToolActionKind.TogglePreviewMode));
         bool due = _shotSeconds >= 0f ? _elapsed >= _shotSeconds : _frames == _shotAt;
         if (_shotPath is not null && due)
         {
@@ -120,7 +138,10 @@ public partial class AnimatorTool : Control
     /// Reads the capture flags, so an agent can check the tool without a
     /// desktop capture: <c>--shot=path</c>, <c>--shot-frames=n</c> or
     /// <c>--shot-seconds=s</c> (counted from the flow preview's start), and
-    /// <c>--flow=from&gt;to</c> and <c>--streak=bone</c>.
+    /// <c>--flow=from&gt;to</c>, <c>--streak=bone</c>, <c>--preview</c> and
+    /// <c>--paths=bone,bone</c> (motion paths on, those bones selected; empty for none),
+    /// with <c>@clip</c> after the bones to open that clip paused at its middle,
+    /// and <c>--dress=bone</c> (adds a dress hanging from that bone and selects it).
     /// </summary>
     private void ReadArguments()
     {
@@ -140,6 +161,12 @@ public partial class AnimatorTool : Control
                 _flow = argument["--flow=".Length..];
             else if (argument.StartsWith("--streak=", StringComparison.Ordinal))
                 _streak = argument["--streak=".Length..];
+            else if (argument == "--preview")
+                _startInPreview = true;
+            else if (argument.StartsWith("--paths=", StringComparison.Ordinal))
+                _paths = argument["--paths=".Length..];
+            else if (argument.StartsWith("--dress=", StringComparison.Ordinal))
+                _dress = argument["--dress=".Length..];
         }
     }
 
@@ -154,6 +181,33 @@ public partial class AnimatorTool : Control
         AnimatorCommands.Run(_session, new ToolAction(ToolActionKind.Clip, clips[0]));
         AnimatorCommands.Run(_session, new ToolAction(ToolActionKind.SelectTransition, clips[1]));
         AnimatorCommands.Run(_session, new ToolAction(ToolActionKind.PreviewTransition));
+    }
+
+    private void ShowPaths(string bones)
+    {
+        _session.GetComponent<AnimatorModes>().MotionPaths = true;
+        string[] parts = bones.Split('@');
+        if (parts.Length == 2)
+        {
+            AnimatorCommands.Run(_session, new ToolAction(ToolActionKind.Clip, parts[1]));
+            AnimatorRuntime runtime = _session.GetComponent<AnimatorDocument>().Runtime;
+            runtime.SetPaused(true);
+            runtime.Seek(runtime.CurrentDuration / 2);
+        }
+
+        XafPackage package = _session.GetComponent<AnimatorDocument>().Package;
+        string[] ids = parts[0].Split(',', StringSplitOptions.RemoveEmptyEntries);
+        for (int i = 0; i < ids.Length; i++)
+        {
+            int bone = XafRig.FindBone(package, ids[i]);
+            if (bone < 0)
+                continue;
+            ref AnimatorSelection selection = ref _session.GetComponent<AnimatorSelection>();
+            if (i == 0)
+                selection.SelectOnlyBone(bone);
+            else
+                selection.ToggleBone(bone);
+        }
     }
 
     private void AddStreak(string bone)

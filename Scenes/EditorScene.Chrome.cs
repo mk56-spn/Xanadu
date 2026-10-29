@@ -22,6 +22,9 @@ public static partial class EditorScene
 {
     private const float HeaderControl = EditorShellMetrics.HeaderControlHeight;
     private const float HeaderPad = (EditorShellMetrics.HeaderHeight - HeaderControl) / 2;
+
+    /// <summary>The transport's time and note count sit in from the footer's edges.</summary>
+    private const float FooterPad = 15f;
     private const string IconDir = "res://Assets/Icons/";
     private static readonly Color Clear = new(0, 0, 0, 0);
 
@@ -95,9 +98,9 @@ public static partial class EditorScene
             .Main(StackMainAlignment.Center);
         name.Text(
                 "LEVEL EDITOR",
-                UiTheme.HeadingFontSize,
+                UiType.Label,
                 SceneUi.AccentColor)
-            .Size(EditorShellMetrics.NameWidth - 10, 28);
+            .Size(EditorShellMetrics.NameWidth - 10, HeaderControl);
 
         AddEditorAction(
             left.IconButton("UN", IconDir + "undo.svg", HeaderControl, SceneUi.ButtonColor)
@@ -108,23 +111,24 @@ public static partial class EditorScene
                 .Entity,
             EditorButtonKind.Redo);
 
-        UiNode info = left.Column()
+        // Level and song share one line, so the header stays a single control tall.
+        UiNode info = left.Row()
             .Size(HeaderInfoWidth, HeaderControl)
-            .Cross(StackCrossAlignment.Start)
-            .Main(StackMainAlignment.Center);
+            .Gap(EditorShellMetrics.HeaderGap)
+            .Main(StackMainAlignment.Start);
         Entity level = HudText(
             info,
             Vector2.Zero,
-            new Vector2(HeaderInfoWidth, 28),
+            new Vector2(HeaderLevelWidth, HeaderControl),
             "Untitled",
-            22,
+            UiType.Label,
             SceneUi.AccentColor);
         Entity song = HudText(
             info,
             Vector2.Zero,
-            new Vector2(HeaderInfoWidth, 18),
+            new Vector2(HeaderInfoWidth - HeaderLevelWidth - EditorShellMetrics.HeaderGap, HeaderControl),
             "Song: No song loaded",
-            14,
+            UiType.Small,
             Palette.TextMuted);
 
         UiNode right = EdgeGroup(header, new Vector2(1, 0.5f));
@@ -151,6 +155,7 @@ public static partial class EditorScene
     }
 
     private const float HeaderInfoWidth = 420;
+    private const float HeaderLevelWidth = 160;
 
     /// <summary>
     /// A group that sizes to its content and hugs one edge of its parent:
@@ -262,7 +267,7 @@ public static partial class EditorScene
 
         UiNode timeGroup = transport.Row()
             .Height(EditorLayout.TransportHeight)
-            .Pad(HeaderPad)
+            .Pad(FooterPad)
             .Anchor(new Vector2(0, 0.5f));
         Entity time = HudText(
             timeGroup.Row()
@@ -277,7 +282,7 @@ public static partial class EditorScene
 
         UiNode notesGroup = transport.Row()
             .Height(EditorLayout.TransportHeight)
-            .Pad(HeaderPad)
+            .Pad(FooterPad)
             .Anchor(new Vector2(1, 0.5f));
         Entity notes = HudText(
             notesGroup,

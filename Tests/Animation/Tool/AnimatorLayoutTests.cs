@@ -61,8 +61,8 @@ public sealed class AnimatorLayoutTests : AnimatorToolTest
     public void TheSelectedTabsBodyFillsTheBodySlotAndTheOtherIsParked()
     {
         EditorShellRects shell = Shell();
-        Entity pose = Button(ToolActionKind.KeyBone).Parent.Parent;
-        Entity edit = Button(ToolActionKind.FitPreview).Parent.Parent;
+        Entity pose = TabBody(Button(ToolActionKind.KeyBone));
+        Entity edit = TabBody(Button(ToolActionKind.ToggleEffectVisible));
 
         Frame();
 
@@ -78,6 +78,54 @@ public sealed class AnimatorLayoutTests : AnimatorToolTest
 
     private Entity TabButton(int index) =>
         Store.Query<UiTabs>().ToEntityList()[0].GetComponent<UiTabs>().Buttons[index];
+
+    /// <summary>The tab body a control sits in, however deep its sections nest it.</summary>
+    private Entity TabBody(Entity control)
+    {
+        Entity[] bodies = Store.Query<UiTabs>().ToEntityList()[0].GetComponent<UiTabs>().Bodies;
+        for (Entity at = control; !at.IsNull; at = at.Parent)
+        {
+            if (System.Array.IndexOf(bodies, at) >= 0)
+                return at;
+        }
+        return default;
+    }
+
+    [Test]
+    public void FramingSitsAtTheRightOfTheStatusLine()
+    {
+        Rect2 line = Shell().StatusLine;
+        Rect2 fit = AnimatorGeometry.PanelArea(Button(ToolActionKind.FitPreview));
+        Rect2 reset = AnimatorGeometry.PanelArea(Button(ToolActionKind.ResetPreview));
+
+        Assert.That(line.Encloses(fit), Is.True);
+        Assert.That(line.Encloses(reset), Is.True);
+        Assert.That(reset.Position.X, Is.GreaterThan(fit.End.X));
+        Assert.That(reset.End.X, Is.GreaterThan(line.End.X - 10f));
+    }
+
+    [Test]
+    public void RigSectionsCarryTheirOwnButtons()
+    {
+        Rect2 tree = Shell().RightTree;
+        Entity deleteBone = Button(ToolActionKind.DeleteBone);
+        Entity addEffect = Button(ToolActionKind.AddEffect);
+
+        Assert.That(tree.Encloses(AnimatorGeometry.PanelArea(deleteBone)), Is.True);
+        Assert.That(Section(deleteBone), Is.EqualTo(Ui.BoneSection));
+        Assert.That(Section(addEffect), Is.EqualTo(Ui.EffectSection));
+        Assert.That(Section(Button(ToolActionKind.DeleteEffect)), Is.EqualTo(Ui.EffectSection));
+    }
+
+    private static Entity Section(Entity control)
+    {
+        for (Entity at = control; !at.IsNull; at = at.Parent)
+        {
+            if (at.HasComponent<UiCollapsible>())
+                return at;
+        }
+        return default;
+    }
 
     [Test]
     public void TheEditingModesRunDownTheToolStrip()
@@ -155,12 +203,12 @@ public sealed class AnimatorLayoutTests : AnimatorToolTest
     [Test]
     public void HeaderPutsHistoryAtTheLeftAndTheDropdownsAtTheRight()
     {
-        Rect2 header = AnimatorGeometry.PanelArea(Ui.PathField.Parent.Parent);
+        Rect2 header = AnimatorGeometry.PanelArea(Ui.Header);
         Rect2 config = AnimatorGeometry.PanelArea(Ui.ConfigButton);
         Rect2 undo = AnimatorGeometry.PanelArea(Button(ToolActionKind.Undo));
 
-        Assert.That(config.End.X, Is.EqualTo(header.End.X - 15f).Within(0.5f));
-        Assert.That(undo.Position.X, Is.LessThan(AnimatorGeometry.PanelArea(Ui.PathField).Position.X));
+        Assert.That(config.End.X, Is.EqualTo(header.End.X - (EditorShellMetrics.HeaderHeight - EditorShellMetrics.HeaderControlHeight) / 2).Within(0.5f));
+        Assert.That(undo.End.X, Is.LessThan(AnimatorGeometry.PanelArea(Ui.PreviewButton).Position.X));
         Assert.That(config.GetCenter().Y, Is.EqualTo(undo.GetCenter().Y).Within(0.5f));
     }
 
@@ -177,5 +225,13 @@ public sealed class AnimatorLayoutTests : AnimatorToolTest
         Assert.That(model.Labels.End.X, Is.LessThanOrEqualTo(model.Rows.Position.X));
         Assert.That(model.Rows.Position.Y, Is.GreaterThanOrEqualTo(model.Ruler.End.Y));
         Assert.That(model.VisibleRows, Is.GreaterThanOrEqualTo(6));
+    }
+
+    [Test]
+    public void ThePathLivesInTheFileInfoPopupNotTheHeader()
+    {
+        Assert.That(Ui.PathField.Parent.Parent, Is.EqualTo(Ui.InfoPanel));
+        Assert.That(AnimatorGeometry.PanelArea(Ui.Header)
+            .Intersects(AnimatorGeometry.PanelArea(Ui.PathField)), Is.False);
     }
 }

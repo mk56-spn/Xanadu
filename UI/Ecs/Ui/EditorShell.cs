@@ -9,7 +9,7 @@ namespace Xanadu.Ecs;
 /// </summary>
 public static class EditorShellMetrics
 {
-    public const float HeaderHeight = 80f;
+    public const float HeaderHeight = 44f;
     public const float ToolStripWidth = 64f;
     public const float RightPanelWidth = 276f;
 
@@ -27,8 +27,8 @@ public static class EditorShellMetrics
     public const float StatusLineHeight = 24f;
 
     /// <summary>Header control height, centred in the header.</summary>
-    public const float HeaderControlHeight = 50f;
-    public const float HeaderPad = 16f;
+    public const float HeaderControlHeight = 30f;
+    public const float HeaderPad = 7f;
     public const float HeaderGap = 12f;
 
     /// <summary>The editor name box at the header's left.</summary>

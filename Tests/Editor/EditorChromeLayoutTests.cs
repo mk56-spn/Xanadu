@@ -14,6 +14,9 @@ namespace Xanadu.Tests.Editor;
 [TestFixture]
 public sealed class EditorChromeLayoutTests : EcsSystemTest
 {
+    private const float HeaderPad =
+        (EditorShellMetrics.HeaderHeight - EditorShellMetrics.HeaderControlHeight) / 2;
+
     private static readonly Vector2 Screen = new(1920, 1080);
     private EditorShellRects _shell;
 
@@ -118,9 +121,9 @@ public sealed class EditorChromeLayoutTests : EcsSystemTest
         Rect2 menu = Area(ByText("MENU ▾"));
         Rect2 name = Area(ByText("LEVEL EDITOR").Parent);
 
-        Assert.That(menu.End.X, Is.EqualTo(Screen.X - 15f).Within(0.5f));
+        Assert.That(menu.End.X, Is.EqualTo(Screen.X - HeaderPad).Within(0.5f));
         Assert.That(file.End.X, Is.LessThan(menu.Position.X));
-        Assert.That(name.Position.X, Is.EqualTo(15f).Within(0.5f));
+        Assert.That(name.Position.X, Is.EqualTo(HeaderPad).Within(0.5f));
         Assert.That(file.Position.Y, Is.EqualTo(menu.Position.Y).Within(0.5f));
     }
 

@@ -28,6 +28,7 @@ public sealed class AnimatorSystemGroup : SystemGroup
         Add(new AnimatorClipConfigSystem(pointer));
         Add(new AnimatorActionSystem());
         Add(new AnimatorNewClipDialogSystem(pointer));
+        Add(new AnimatorInfoPanelSystem(pointer));
         Add(new XifEditorSystem(pointer, visuals));
         Add(new AnimatorModeSystem());
         Add(new AnimatorBoneMenuSystem(pointer));
@@ -39,10 +40,13 @@ public sealed class AnimatorSystemGroup : SystemGroup
         Add(new AnimatorSequenceSystem());
         Add(new AnimatorPlaybackSystem());
         Add(new AnimatorHierarchySystem(visuals, pointer));
+        Add(new AnimatorRigPanelSystem());
         Add(new AnimatorFlowSystem(visuals));
+        Add(new AnimatorPreviewModeSystem());
         Add(new AnimatorClipHeaderSystem());
         Add(new AnimatorInspectorSystem());
         Add(new AnimatorChainInspectorSystem());
+        Add(new AnimatorClothInspectorSystem());
         Add(new AnimatorInterpolationSystem());
         Add(new AnimatorFileHeaderSystem());
         Add(new AnimatorStatusSystem());

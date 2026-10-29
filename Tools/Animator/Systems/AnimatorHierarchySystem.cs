@@ -20,7 +20,7 @@ public sealed class AnimatorHierarchySystem(
     IPointerInputSource? pointer = null)
     : QuerySystem<AnimatorDocument, AnimatorUi>
 {
-    private static readonly Vector2 ItemSize = new(200, 26);
+    private static readonly Vector2 ItemSize = new(AnimatorLayout.EntryWidth, UiTheme.TreeRowHeight);
     private static readonly Vector2 ClipDropdownSize = new(AnimatorLayout.ClipWidth, EditorShellMetrics.HeaderControlHeight);
     private static readonly Color Selected = Palette.Selected;
 
@@ -52,6 +52,9 @@ public sealed class AnimatorHierarchySystem(
             Highlight(ui.EffectList, entry =>
                 entry.Kind == ToolActionKind.SelectEffect &&
                 entry.Argument == selection.Effect.ToString());
+            Highlight(ui.ClothList, entry =>
+                entry.Kind == ToolActionKind.SelectCloth &&
+                entry.Argument == selection.Cloth.ToString());
         }
     }
 
@@ -60,6 +63,7 @@ public sealed class AnimatorHierarchySystem(
         Clear(ui.AttachmentList);
         Clear(ui.ChainList);
         Clear(ui.EffectList);
+        Clear(ui.ClothList);
 
         // The old dropdown's list and options float on the menu layer, outside
         // the header slot, so they have to be removed along with its button.
@@ -94,6 +98,12 @@ public sealed class AnimatorHierarchySystem(
         {
             AddEntry(ui.EffectList, $"{package.Effects[i].Id}  on {package.Effects[i].BoneId}",
                 ToolActionKind.SelectEffect, ItemSize, i.ToString());
+        }
+
+        for (int i = 0; i < package.Cloths.Count; i++)
+        {
+            AddEntry(ui.ClothList, $"{package.Cloths[i].Id}  on {package.Cloths[i].BoneId}",
+                ToolActionKind.SelectCloth, ItemSize, i.ToString());
         }
 
         session.GetComponent<AnimatorUi>().ClipDropdown = AddClipDropdown(ui, package);
@@ -278,7 +288,9 @@ public sealed class AnimatorHierarchySystem(
             return;
 
         UiBuilder ui = UiBuilder.Begin(Query.Store, visuals).Use(list);
-        Entity entry = ui.Button(label, size);
+        // Styled like a tree row, so the four sections of the list read as one list.
+        Entity entry = ui.Button(label, size, UiTheme.PanelAlt);
+        entry.AddComponent(new TextAlignment(TextAlign.Left));
         entry.AddComponent(new ToolAction(kind, argument));
         AnimatorTooltips.Attach(entry, kind, argument);
     }
@@ -308,7 +320,7 @@ public sealed class AnimatorHierarchySystem(
 
             Color target = isSelected(child.GetComponent<ToolAction>())
                 ? Selected
-                : UiTheme.Button;
+                : UiTheme.PanelAlt;
             ref ButtonVisual visual = ref child.GetComponent<ButtonVisual>();
             if (visual.Normal == target)
                 continue;

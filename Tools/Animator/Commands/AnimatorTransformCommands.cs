@@ -63,10 +63,9 @@ public static class AnimatorTransformCommands
             if (changed == 0)
                 return;
 
-            if (modes.AutoKey && !modes.Rest)
-                AnimatorEditing.KeySelected(session);
+            string keyed = modes.Rest ? "" : AnimatorEditing.KeyEdit(session);
             AnimatorSession.SetStatus(
-                session, changed == 1 ? "ROTATION SET" : $"ROTATION SET ON {changed} BONES");
+                session, (changed == 1 ? "ROTATION SET" : $"ROTATION SET ON {changed} BONES") + keyed);
         });
 
     /// <summary>Sets the selection's scale exactly, in the pose or the rest transform.</summary>
@@ -124,10 +123,9 @@ public static class AnimatorTransformCommands
             if (changed == 0)
                 return;
 
-            if (modes.AutoKey && !modes.Rest)
-                AnimatorEditing.KeySelected(session);
+            string keyed = modes.Rest ? "" : AnimatorEditing.KeyEdit(session);
             AnimatorSession.SetStatus(
-                session, changed == 1 ? "SCALE SET" : $"SCALE SET ON {changed} BONES");
+                session, (changed == 1 ? "SCALE SET" : $"SCALE SET ON {changed} BONES") + keyed);
         });
 
     /// <summary>
@@ -205,15 +203,14 @@ public static class AnimatorTransformCommands
                 return;
             }
 
-            if (modes.AutoKey && !modes.Rest)
-                AnimatorEditing.KeySelected(session);
+            string keyed = modes.Rest ? "" : AnimatorEditing.KeyEdit(session);
             AnimatorSession.SetStatus(
                 session,
-                fixedBones > 0
+                (fixedBones > 0
                     ? $"POSITION SET ({fixedBones} FIXED SKIPPED)"
                     : changed == 1
                         ? "POSITION SET"
-                        : $"POSITION SET ON {changed} BONES");
+                        : $"POSITION SET ON {changed} BONES") + keyed);
         });
 
     /// <summary>
@@ -267,11 +264,10 @@ public static class AnimatorTransformCommands
                 return;
             }
 
-            if (modes.AutoKey)
-                AnimatorEditing.KeySelected(session);
+            string keyed = modes.Rest ? "" : AnimatorEditing.KeyEdit(session);
             AnimatorSession.SetStatus(
                 session,
-                changed == 1 ? $"RESET {name} TO REST" : $"RESET {changed} BONES TO REST");
+                (changed == 1 ? $"RESET {name} TO REST" : $"RESET {changed} BONES TO REST") + keyed);
         });
 
     /// <summary>

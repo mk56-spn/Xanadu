@@ -31,6 +31,8 @@ public sealed class AnimatorPreviewDrawSystem(
     private static readonly Color EffectOutline = Palette.Rose;
 
     private readonly AnimatorFlowOverlay _flow = new(canvas, target);
+    private readonly AnimatorMotionPathOverlay _paths = new(canvas, target);
+    private readonly AnimatorClothOverlay _cloth = new(canvas, target);
     private int _version = -1;
     private int _effectsVersion = -1;
 
@@ -85,7 +87,11 @@ public sealed class AnimatorPreviewDrawSystem(
         }
 
         DrawFlowGhost(session, document, placement, modes);
+
+        // Under the bones, so the rig stays readable over its own trails.
+        _paths.Draw(document, modes, selection, AnimatorPreviewModeCommands.IsOn(session), placement);
         DrawChains(session, document.Package, selection, placement);
+        _cloth.Draw(session, document.Package, world, placement);
         DrawChainHandles(document.Package, selection, world, placement);
 
         // Bone shapes first so joints and labels stay readable on top of them.
@@ -140,6 +146,7 @@ public sealed class AnimatorPreviewDrawSystem(
         Transform2D[] attachments = XafRig.WorldAttachments(document.Package, pose, world);
         visuals.Apply(attachments, placement);
         visuals.ApplyChains(document.Package, session.GetComponent<AnimatorChains>().Simulation, placement);
+        visuals.ApplyCloths(document.Package, session.GetComponent<AnimatorCloths>().Simulation, placement);
         Transform2D[] effects = XafRig.WorldEffects(document.Package, pose, world);
         visuals.ApplyEffects(pose, effects, placement);
         DrawSelectedEffect(document.Package, pose, selection, effects, placement);

@@ -23,13 +23,14 @@ public static partial class AnimatorLayout
 
     /// <summary>
     /// The CONFIG menu holds the clip edits that are not part of playing or
-    /// previewing: its length and deleting it.
+    /// previewing (its length and deleting it), and the file's info.
     /// </summary>
     private static void BuildConfigMenu(UiBuilder menu, Entity configButton) =>
         BuildActionMenu(menu, configButton, new[]
         {
             ("LENGTH…", ToolActionKind.OpenClipLength),
             ("DELETE", ToolActionKind.DeleteClip),
+            ("FILE INFO…", ToolActionKind.OpenInfo),
         });
 
     /// <summary>
