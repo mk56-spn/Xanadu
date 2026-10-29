@@ -1,6 +1,8 @@
 using Godot;
+using Friflo.Engine.ECS;
 using Xanadu.Ecs;
 using NUnit.Framework;
+using Xanadu.Systems.Ui;
 using Xanadu.Tools.Animator;
 
 namespace Xanadu.Tests.Animation.Tool;
@@ -8,17 +10,71 @@ namespace Xanadu.Tests.Animation.Tool;
 [TestFixture]
 public sealed class AnimatorLayoutTests : AnimatorToolTest
 {
+    protected override void AddSystems() => Root.Add(new UiTabSystem());
+
+    private static EditorShellRects Shell() =>
+        EditorShell.Compute(Screen, new EditorShellOptions(EditorFooterHeight.Animator));
+
     [Test]
-    public void PanelsFillTheMiddleBandBetweenTheSidebars()
+    public void ThePreviewFillsTheShellsViewport()
     {
         Rect2 preview = AnimatorGeometry.PanelArea(Ui.Preview);
+        Rect2 viewport = Shell().Viewport;
 
-        // Tool strip 64 + gap 12 + left bar 240 + gap 12; gap 12 + right bar 300; flush to the screen.
-        Assert.That(preview.Position.X, Is.EqualTo(328f).Within(0.5f));
-        Assert.That(preview.End.X, Is.EqualTo(Screen.X - 312f).Within(0.5f));
-        // The shell's 80 px header + gap 12.
-        Assert.That(preview.Position.Y, Is.EqualTo(92f).Within(0.5f));
+        Assert.That(preview.Position.X, Is.EqualTo(viewport.Position.X).Within(0.5f));
+        Assert.That(preview.Position.Y, Is.EqualTo(viewport.Position.Y).Within(0.5f));
+        Assert.That(preview.Size.X, Is.EqualTo(viewport.Size.X).Within(0.5f));
+        Assert.That(preview.Size.Y, Is.EqualTo(viewport.Size.Y).Within(0.5f));
     }
+
+    [Test]
+    public void StatusAndDirtyFlagSitOnTheStatusLineUnderThePreview()
+    {
+        Rect2 line = Shell().StatusLine;
+        Rect2 status = AnimatorGeometry.PanelArea(Ui.Status);
+        Rect2 dirty = AnimatorGeometry.PanelArea(Ui.DirtyLabel);
+
+        Assert.That(line.Encloses(status), Is.True);
+        Assert.That(line.Encloses(dirty), Is.True);
+        Assert.That(dirty.Position.X, Is.GreaterThan(status.Position.X));
+    }
+
+    [Test]
+    public void TheTreeSitsOnTopOfTheRightPanelAboveTheTabs()
+    {
+        EditorShellRects shell = Shell();
+        Rect2 bones = AnimatorGeometry.PanelArea(Ui.BoneList);
+        Rect2 pose = AnimatorGeometry.PanelArea(TabButton(0));
+        Rect2 edit = AnimatorGeometry.PanelArea(TabButton(1));
+
+        Assert.That(shell.RightTree.Encloses(bones), Is.True);
+        Assert.That(pose.Position.Y, Is.EqualTo(shell.RightTabs.Position.Y).Within(0.5f));
+        Assert.That(pose.Position.X, Is.EqualTo(shell.RightTabs.Position.X).Within(0.5f));
+        Assert.That(edit.Position.X, Is.EqualTo(pose.End.X).Within(0.5f));
+        Assert.That(edit.End.X, Is.EqualTo(shell.RightTabs.End.X).Within(0.5f));
+    }
+
+    [Test]
+    public void TheSelectedTabsBodyFillsTheBodySlotAndTheOtherIsParked()
+    {
+        EditorShellRects shell = Shell();
+        Entity pose = Button(ToolActionKind.KeyBone).Parent.Parent;
+        Entity edit = Button(ToolActionKind.FitPreview).Parent.Parent;
+
+        Frame();
+
+        Assert.That(AnimatorGeometry.PanelArea(pose).Position.X, Is.EqualTo(shell.RightBody.Position.X).Within(0.5f));
+        Assert.That(AnimatorGeometry.PanelArea(pose).Position.Y, Is.EqualTo(shell.RightBody.Position.Y).Within(0.5f));
+        Assert.That(edit.GetComponent<Xanadu.Ecs.Position>().Value, Is.EqualTo(UiLayout.Hidden));
+
+        Click(TabButton(1));
+
+        Assert.That(AnimatorGeometry.PanelArea(edit).Position.Y, Is.EqualTo(shell.RightBody.Position.Y).Within(0.5f));
+        Assert.That(pose.GetComponent<Xanadu.Ecs.Position>().Value, Is.EqualTo(UiLayout.Hidden));
+    }
+
+    private Entity TabButton(int index) =>
+        Store.Query<UiTabs>().ToEntityList()[0].GetComponent<UiTabs>().Buttons[index];
 
     [Test]
     public void TheEditingModesRunDownTheToolStrip()
@@ -28,7 +84,7 @@ public sealed class AnimatorLayoutTests : AnimatorToolTest
 
         Assert.That(strip.Position.X, Is.EqualTo(0f).Within(0.5f));
         Assert.That(strip.Size.X, Is.EqualTo(EditorShellMetrics.ToolStripWidth).Within(0.5f));
-        Assert.That(strip.End.X, Is.LessThan(preview.Position.X));
+        Assert.That(strip.End.X, Is.LessThanOrEqualTo(preview.Position.X + 0.5f));
 
         float previous = float.MinValue;
         foreach (AnimatorMode mode in new[]
