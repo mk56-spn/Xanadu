@@ -63,10 +63,8 @@ public static partial class SongSelectScene
         Entity EmptyTitle,
         Entity EmptyHint);
 
-    private static ListViews BuildList(UiBuilder ui, bool loadAssets)
+    private static ListViews BuildList(UiNode ui, bool loadAssets)
     {
-        UiNode root = UiNode.Wrap(ui.Current, ui.Visuals);
-
         // Each row is a chamfered container: the map's name, then the song's name
         // in brackets, flowing left to right.
         var tiles = new List<Entity>();
@@ -74,7 +72,7 @@ public static partial class SongSelectScene
         var songs = new List<Entity>();
         for (int row = 0; row < RowCount; row++)
         {
-            UiNode tile = root.Row()
+            UiNode tile = ui.Row()
                 .Size(RowSize)
                 .Gap(RowGap)
                 .Fill(RowColor)
@@ -97,7 +95,7 @@ public static partial class SongSelectScene
         // The selection stays in its slot while the rows slide through it.
         float left = RowLeft[SelectedSlot + 1];
         float top = RowTop[SelectedSlot + 1];
-        root.Shape(
+        ui.Shape(
                 UiOutline.Points(new Rect2(left, top, RowSize.X, RowSize.Y), 0, RowChamfer),
                 Transparent,
                 new Color(Gold, RowOpacity),
@@ -106,29 +104,29 @@ public static partial class SongSelectScene
 
         // The marker beside it, centred on the slim row.
         float middle = top + RowSize.Y / 2;
-        root.Shape(
+        ui.Shape(
             [new(86.396f, middle), new(132.38f, middle)],
             Transparent,
             Gold,
             4,
             closed: false);
-        root.Shape(
+        ui.Shape(
             [new(132.38f, middle - 20), new(132.38f, middle + 20)],
             Transparent,
             Gold,
             4,
             closed: false);
 
-        BuildScrollbar(root, out Entity thumb);
+        BuildScrollbar(ui, out Entity thumb);
         Entity emptyTitle = EmptyMessage(
-            root,
+            ui,
             new Vector2(399.198f, 516),
             new Vector2(460, 32),
             LocalizedText.Get(SongSelectStrings.NoLevels),
             26,
             Gold);
         Entity emptyHint = EmptyMessage(
-            root,
+            ui,
             new Vector2(399.198f, 556),
             EmptyHintSize,
             LocalizedText.Get(SongSelectStrings.CreateLevel),
@@ -147,31 +145,31 @@ public static partial class SongSelectScene
 
     /// <summary>The two lines the empty carousel shows in place of its rows.</summary>
     private static Entity EmptyMessage(
-        UiNode root,
+        UiNode parent,
         Vector2 center,
         Vector2 size,
         string text,
         int fontSize,
         Color color,
         bool clickable = false) =>
-        root.Rect(Transparent, text, size)
+        parent.Rect(Transparent, text, size)
             .At(center)
             .Input(clickable)
             .With(new TextStyle(fontSize, color))
             .Raised();
 
-    private static void BuildScrollbar(UiNode root, out Entity thumb)
+    private static void BuildScrollbar(UiNode parent, out Entity thumb)
     {
-        root.Shape(
+        parent.Shape(
             RoundedRect(12.202f, 319.569f, 69.781f, 764.748f, 14.489f),
             ListBackdropTrack);
-        root.Shape(
+        parent.Shape(
             [new(TrackX, TrackTop), new(TrackX, TrackBottom)],
             default,
             Colors.Black,
             20,
             closed: false);
-        Entity marker = root.Shape(
+        Entity marker = parent.Shape(
                 [new(TrackX, TrackTop), new(TrackX, TrackBottom)],
                 default,
                 Gold,

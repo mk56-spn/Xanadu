@@ -17,14 +17,12 @@ public static partial class SongSelectScene
     private const float VisualizerBarWidth = 7;
     private const float VisualizerHeight = 80;
 
-    private static void BuildChrome(UiBuilder ui, bool loadAssets)
+    private static void BuildChrome(UiNode ui, bool loadAssets)
     {
-        UiNode root = UiNode.Wrap(ui.Current, ui.Visuals);
-
         // One straight edge, leaning the same 6 degrees as the preview frame.
         const float edgeBottom = 662.194f;
         float edgeTop = edgeBottom + Mathf.Tan(PreviewTilt) * 1080;
-        Entity wedge = root.Shape(
+        Entity wedge = ui.Shape(
             [
                 new(0, 0),
                 new(edgeTop, 0),
@@ -40,12 +38,12 @@ public static partial class SongSelectScene
             new(481.727f, 84.749f), new(616.372f, 84.749f),
         ];
 
-        root.Shape(underline, default, Gold, 3, closed: false)
+        ui.Shape(underline, default, Gold, 3, closed: false)
             .With(new ShapeGlow(new Color(Gold, 0.9f), radius: 10, intensity: 2f))
             .Raised();
 
         // The visualizer hangs from the underline, its bars driven by the song preview.
-        root.Rect(Transparent, size: Vector2.One)
+        ui.Rect(Transparent, size: Vector2.One)
             .With(new UiBarGraph(
                 underline,
                 VisualizerBars,
@@ -55,7 +53,7 @@ public static partial class SongSelectScene
                 GoldLight))
             .Raised();
 
-        root.Text(
+        ui.Text(
                 LocalizedText.Get(SongSelectStrings.Title),
                 70,
                 Colors.White,

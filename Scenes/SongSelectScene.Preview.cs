@@ -53,16 +53,16 @@ public static partial class SongSelectScene
 
     private readonly record struct PreviewViews(List<Entity> Chips, Entity Art);
 
-    private static PreviewViews BuildPreview(UiBuilder ui, bool loadAssets)
+    private static PreviewViews BuildPreview(UiNode ui, bool loadAssets)
     {
-        Entity backing = ui.ShapeEntity(
-            Box(new Vector2(530, 530)),
-            PanelBlack,
-            position: FrameCenter,
-            rotation: PreviewTilt);
+        Entity backing = ui.Shape(Box(new Vector2(530, 530)), PanelBlack)
+            .At(FrameCenter)
+            .With(new UiRotation(PreviewTilt))
+            .Entity;
         Frost(backing, loadAssets);
+
         // Clicking the level's art plays the level.
-        Entity levelArt = TiltedArt(
+        UiNode levelArt = TiltedArt(
             ui,
             FrameCenter,
             500,
@@ -74,15 +74,16 @@ public static partial class SongSelectScene
                 top: new Color(0.04f, 0.17f, 0.1f),
                 bottom: new Color(0.07f, 0.36f, 0.19f)),
             takesInput: true);
-        levelArt.AddComponent(new SceneCommand(SceneActionId.Play));
-        levelArt.AddComponent(new UiTooltip(LocalizedText.Get(SongSelectStrings.Play)));
+        levelArt.On(SceneActionId.Play)
+            .Tooltip(LocalizedText.Get(SongSelectStrings.Play));
 
         // Holds the shader for now; the player's own art goes here later.
-        Entity playerBacking = ui.ShapeEntity(
-            Box(new Vector2(PlayerFrameBacking, PlayerFrameBacking)),
-            PanelBlack,
-            position: PlayerFrameCenter,
-            rotation: PreviewTilt);
+        Entity playerBacking = ui.Shape(
+                Box(new Vector2(PlayerFrameBacking, PlayerFrameBacking)),
+                PanelBlack)
+            .At(PlayerFrameCenter)
+            .With(new UiRotation(PreviewTilt))
+            .Entity;
         Frost(playerBacking, loadAssets);
         TiltedArt(
             ui,
@@ -98,62 +99,53 @@ public static partial class SongSelectScene
 
         // The chip bar is a skewed container; its right end runs off screen.
         const float barLeft = 1459.085f;
-        ui.Container(
-            new Vector2(barLeft + 210, 528),
-            new Vector2(420, 80),
-            StackDirection.Horizontal,
-            spacing: ChipSpacing - ChipSize.X,
-            color: Dim,
-            padding: 8,
-            main: StackMainAlignment.Start,
-            skew: PreviewTilt);
+        UiNode bar = ui.Row()
+            .Size(420, 80)
+            .At(new Vector2(barLeft + 210, 528))
+            .Gap(ChipSpacing - ChipSize.X)
+            .Fill(Dim)
+            .Pad(8)
+            .Main(StackMainAlignment.Start)
+            .Skew(PreviewTilt);
 
         var chips = new List<Entity>();
         for (int i = 0; i < ChipCount; i++)
         {
-            ui.Container(
-                Vector2.Zero,
-                ChipSize,
-                StackDirection.Vertical,
-                color: Transparent,
-                text: "",
-                skew: PreviewTilt);
-            Entity chip = ui.Current;
-            chip.AddComponent(new TextStyle(28, Colors.Black, bold: true));
-            chip.AddComponent(new UiBorder(Transparent, 4));
-            chips.Add(chip);
-            ui.End();
+            UiNode chip = bar.Column()
+                .Size(ChipSize)
+                .Fill(Transparent)
+                .Skew(PreviewTilt)
+                .With(new Text(""))
+                .With(new TextStyle(28, Colors.Black, bold: true))
+                .Border(Transparent, 4);
+            chips.Add(chip.Entity);
         }
 
-        ui.End();
-        return new PreviewViews(chips, levelArt);
+        return new PreviewViews(chips, levelArt.Entity);
     }
 
     /// <summary>
     /// A black square rotated by the preview tilt, carrying a notes shader when
     /// there is one. It is a rect, not a polygon, so the shader gets real UVs.
     /// </summary>
-    private static Entity TiltedArt(
-        UiBuilder ui,
+    private static UiNode TiltedArt(
+        UiNode parent,
         Vector2 center,
         float size,
         ShaderMaterial? material,
         bool takesInput = false)
     {
-        Entity art = ui.RectEntity(
-            center,
-            new Vector2(size, size),
-            Colors.Black,
-            takesInput: takesInput);
-        art.AddComponent(new UiRotation(PreviewTilt));
+        UiNode art = parent.Rect(Colors.Black, size: new Vector2(size, size))
+            .At(center)
+            .Input(takesInput)
+            .With(new UiRotation(PreviewTilt))
+            .Raised();
 
         // A frosted backing draws over anything made after it unless that is raised.
-        art.AddTag<UiRaised>();
         if (material is null)
             return art;
 
-        art.AddComponent(new UiMaterial(material));
-        art.AddComponent(new SpectrumEnergy());
+        art.With(new UiMaterial(material)).With(new SpectrumEnergy());
         return art;
     }
 
