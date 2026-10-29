@@ -70,9 +70,14 @@ Opening files: `FileDialog` to pick a file, plus the invisible `LineEdit` that
 `EditorOverlay` uses to receive OS keyboard/clipboard text (Godot has no other
 way to get it). Both live in `Editor/EditorOverlay*`.
 
+The only other Godot widget allowed is the `FileDialog` Main opens to import an
+audio file (`Add song`); it is triggered by an ECS button and owns no layout.
+
 The rest of `EditorOverlay*` — the song picker's `ItemList`/`ConfirmationDialog`,
 the `Label`s — is existing debt, not precedent. Do not add more Godot UI
-anywhere, including test harnesses and tools.
+anywhere, including test harnesses and tools. The offset wizard, the song-select
+context menu and the add-song button are ECS now; there is no overlay class for
+them any more.
 
 ### Roots and design space
 
