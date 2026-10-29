@@ -23,66 +23,58 @@ public static partial class SongSelectScene
 
     private static ActionViews BuildActions(UiBuilder ui)
     {
+        UiNode root = UiNode.Wrap(ui.Current, ui.Visuals);
         var icons = new List<Entity>();
 
-        Entity edit = ActionDiamond(
-            ui,
+        UiNode edit = ActionDiamond(
+            root,
             EditCenter,
             EditSize,
             LocalizedText.Get(SongSelectStrings.EditLevel),
             SceneActionId.Edit);
         foreach (Vector2[] part in Hammer(EditSize * 0.42f))
-            icons.Add(Icon(ui, part, Gold));
-
-        ui.End();
+            icons.Add(Icon(edit, part));
 
         // The menu has nothing of its own yet, so for now it opens the editor like the hammer.
-        ActionDiamond(
-            ui,
+        UiNode menu = ActionDiamond(
+            root,
             MenuCenter,
             MenuSize,
             LocalizedText.Get(SongSelectStrings.Menu),
             SceneActionId.Edit);
         foreach (Vector2[] bar in Bars(MenuSize * 0.4f))
-            Icon(ui, bar, Gold);
-
-        ui.End();
+            Icon(menu, bar);
 
         return new ActionViews(edit, icons);
     }
 
-    /// <summary>A clickable diamond with a gold outline; left open so its icon can be added inside.</summary>
-    private static Entity ActionDiamond(
-        UiBuilder ui,
+    /// <summary>A clickable diamond with a gold outline and its icon inside.</summary>
+    private static UiNode ActionDiamond(
+        UiNode parent,
         Vector2 center,
         float size,
         string tooltip,
         SceneActionId action)
     {
-        ui.Container(
-            center,
-            new Vector2(size, size),
-            StackDirection.Vertical,
-            color: Dim,
-            takesInput: true);
-        Entity button = ui.Current;
-        button.AddComponent(new UiDiamond());
-        button.AddComponent(new UiBorder(Gold, 4));
-        button.AddComponent(ButtonVisual.Create(Dim));
-        button.AddComponent(new UiTooltip(tooltip));
+        UiNode button = parent.Column()
+            .Size(size, size)
+            .At(center)
+            .Fill(Dim)
+            .Input()
+            .With(new UiDiamond())
+            .Border(Gold, 4)
+            .With(ButtonVisual.Create(Dim))
+            .Tooltip(tooltip);
+
         if (action != SceneActionId.None)
-            button.AddComponent(new SceneCommand(action));
+            button.On(action);
 
         return button;
     }
 
-    /// <summary>A filled shape inside the open button, centred on it and left out of its stacking.</summary>
-    private static Entity Icon(UiBuilder ui, Vector2[] points, Color color)
-    {
-        Entity icon = ui.ShapeEntity(points, color);
-        icon.AddTag<LayoutIgnore>();
-        return icon;
-    }
+    /// <summary>A filled shape inside the button, centred on it and left out of its stacking.</summary>
+    private static Entity Icon(UiNode button, Vector2[] points) =>
+        button.Shape(points, Gold).IgnoreLayout();
 
     /// <summary>A hammer leaning to the left: the head, then the handle, as two polygons.</summary>
     private static Vector2[][] Hammer(float size)
