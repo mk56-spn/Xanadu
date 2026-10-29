@@ -36,5 +36,6 @@ public static class SceneTestCatalog
         new EditorFocusSceneTest(),
         new PlayGroupsSceneTest(),
         new LeaveEditorSceneTest(),
+        new PauseSceneTest(),
     };
 }
