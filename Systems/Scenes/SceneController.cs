@@ -200,7 +200,6 @@ public sealed class SceneControllerRegistry
         public void Build(SceneBuildContext c) => PlayScene.Build(
             c.Entities,
             c.Root,
-            c.Screen,
             c.Entry!,
             c.Keybinds,
             c.Visuals,
