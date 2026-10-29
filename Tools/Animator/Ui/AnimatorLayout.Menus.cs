@@ -186,6 +186,10 @@ public static partial class AnimatorLayout
             screen.X - Margin - RightPanelWidth - Gap - InspectorWidth - 12f,
             Margin + TopHeight + Gap + 12f);
 
+    /// <summary>Where the XIF editor is centred while an effect is selected: just left of the inspector, level with it.</summary>
+    public static Vector2 XifEditorCenter(Vector2 screen) =>
+        InspectorTopLeft(screen) + new Vector2(-8f - XifEditorPanel.Width / 2, XifEditorPanel.Height / 2);
+
     /// <summary>Where the transform inspector is centred when it is shown.</summary>
     public static Vector2 InspectorCenter(Vector2 screen) =>
         InspectorTopLeft(screen) + new Vector2(InspectorWidth, InspectorHeight) / 2;

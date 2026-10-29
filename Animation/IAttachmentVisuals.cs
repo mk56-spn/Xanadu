@@ -26,6 +26,9 @@ public interface IAttachmentVisuals
     /// </summary>
     void ApplyEffects(XafPose pose, Transform2D[] effects, Transform2D placement) { }
 
+    /// <summary>Rebuilds only the effects, after their items were edited; the default rebuilds everything.</summary>
+    void ReloadEffects(XafPackage package) => Reload(package);
+
     /// <summary>Rig-space bounds of the loaded art at the given attachment transforms; empty when nothing loaded.</summary>
     Rect2 Bounds(Transform2D[] attachments) => new();
 

@@ -118,6 +118,10 @@ public static partial class AnimatorLayout
         BuildSvgMenu(menu, ref refs);
         BuildChainInspector(menu, ref refs);
         BuildNewClipDialog(menu, screen, ref refs);
+        refs.Ui.XifEditor = XifEditorPanel.Build(
+            UiNode.Wrap(refs.Ui.MenuLayer, visuals),
+            XifEditorCenter(screen),
+            new Commands.AnimatorXifHost(store));
         BuildTooltip(store, visuals, ref refs);
         return refs.Ui;
     }

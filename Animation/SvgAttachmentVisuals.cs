@@ -41,6 +41,15 @@ public sealed class SvgAttachmentVisuals(Rid canvas) : IAttachmentVisuals
                 _chains.Add(new ChainVisual(i, texture!, size, chainLayer));
         }
 
+        ReloadEffects(package);
+    }
+
+    public void ReloadEffects(XafPackage package)
+    {
+        foreach (EffectVisual visual in _effects)
+            RenderingServer.FreeRid(visual.Item);
+        _effects.Clear();
+
         for (int i = 0; i < package.Effects.Count; i++)
         {
             XafEffect effect = package.Effects[i];

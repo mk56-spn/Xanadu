@@ -41,7 +41,16 @@ public sealed class AnimatorFlowTests : AnimatorToolTest
     [Test]
     public void TheListHasARowForEveryOtherClipMarkedWithTheGamesHandOvers()
     {
-        List<Entity> rows = Buttons(ToolActionKind.SelectTransition);
+        // In the order the list shows them, not the order a query happens to return.
+        var rows = new List<Entity>();
+        foreach (Entity row in Ui.FlowList.ChildEntities)
+        {
+            foreach (Entity button in row.ChildEntities)
+            {
+                if (button.GetComponent<ToolAction>().Kind == ToolActionKind.SelectTransition)
+                    rows.Add(button);
+            }
+        }
 
         Assert.That(rows.ConvertAll(row => row.GetComponent<ToolAction>().Argument),
             Is.EqualTo(new[] { "jump", "landing" }));
@@ -49,7 +58,7 @@ public sealed class AnimatorFlowTests : AnimatorToolTest
 
         // This rig has no "jumping" clip, so the game's only hand-over from idle is none.
         Assert.That(Label(rows[0]), Is.EqualTo("JUMP"));
-        Assert.That(Label(Buttons(ToolActionKind.AllowTransition)[0]), Is.EqualTo("ANY"));
+        Assert.That(Label(Button(ToolActionKind.AllowTransition, "jump")), Is.EqualTo("ANY"));
     }
 
     [Test]
