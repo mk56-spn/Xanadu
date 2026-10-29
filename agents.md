@@ -125,8 +125,13 @@ GODOT=/home/dhs/Documents/Godot_v4.8-dev7_mono_linux_x86_64/Godot_v4.8-dev7_mono
   --visual-test=<slug> --visual-test-shot=<path under the repo>
 ```
 
-**The game.** `F12` saves to `screenshots/`; `Main` falls back from `user://` to
-`res://screenshots` when `user://` is read-only.
+**The game.** `--shot=<path>` saves the window once it settles, then exits.
+`F12` does the same on demand into `screenshots/` (`Main` falls back from
+`user://` to `res://screenshots`). Do not combine either with `--headless`.
+
+```bash
+"$GODOT" --path . --resolution 1280x720 -- --shot=<path under the repo>
+```
 
 **Desktop capture**, if you really need it: set `XDG_CONFIG_HOME` and
 `XDG_CACHE_HOME` to a directory inside the repo (e.g. `.tmp/config`) or
