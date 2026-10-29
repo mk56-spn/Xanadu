@@ -25,114 +25,98 @@ public static partial class EditorScene
         Entity root,
         Vector2 screen)
     {
-        PlayfieldView view = editor.GetComponent<PlayfieldView>();
         Playhead playhead = editor.GetComponent<Playhead>();
         LevelInfo level = editor.GetComponent<LevelInfo>();
 
         BuildGroupOverlay(entities, root, screen);
 
         // Popups sit above the chrome (960) and below the header menus (970).
-        UiBuilder panelUi = SceneUi.Layer(entities, root, 962);
+        UiNode panelUi = UiNode.Layer(entities, root, 962, null, UiStage.Full);
         Vector2 home = new(
             screen.X - 24 - 190,
             EditorLayout.HeaderHeight + 8 + MetadataPanelHeight / 2);
-        panelUi.Container(
-            UiLayout.Hidden,
-            new Vector2(MetadataPanelWidth, MetadataPanelHeight),
-            StackDirection.Vertical,
-            spacing: 5,
-            color: SceneUi.PanelColor,
-            takesInput: true);
-        Entity panel = panelUi.Current;
+        UiNode panelNode = panelUi.Column()
+            .Size(MetadataPanelWidth, MetadataPanelHeight)
+            .At(UiLayout.Hidden)
+            .Gap(5)
+            .Fill(SceneUi.PanelColor)
+            .Input();
+        Entity panel = panelNode.Entity;
 
-        AddMetadataLabel(panelUi, LocalizedText.Get(EditorStrings.LevelName));
+        AddMetadataLabel(panelNode, LocalizedText.Get(EditorStrings.LevelName));
         Entity nameField = AddMetadataField(
-            panelUi,
+            panelNode,
             level.Name,
             EditorFieldKind.LevelName,
             false);
 
-        AddMetadataLabel(panelUi, LocalizedText.Get(EditorStrings.Artist));
+        AddMetadataLabel(panelNode, LocalizedText.Get(EditorStrings.Artist));
         Entity artistField = AddMetadataField(
-            panelUi,
+            panelNode,
             level.Artist,
             EditorFieldKind.Artist,
             false);
 
-        AddMetadataLabel(panelUi, LocalizedText.Get(EditorStrings.Difficulty));
+        AddMetadataLabel(panelNode, LocalizedText.Get(EditorStrings.Difficulty));
         Entity difficultyField = AddMetadataField(
-            panelUi,
+            panelNode,
             level.Difficulty,
             EditorFieldKind.Difficulty,
             false);
 
-        AddMetadataLabel(panelUi, LocalizedText.Get(EditorStrings.Bpm));
+        AddMetadataLabel(panelNode, LocalizedText.Get(EditorStrings.Bpm));
         Entity bpmField = AddMetadataField(
-            panelUi,
+            panelNode,
             playhead.Bpm.ToString(),
             EditorFieldKind.Bpm,
             true);
 
-        AddMetadataLabel(panelUi, LocalizedText.Get(EditorStrings.BeatOffset));
+        AddMetadataLabel(panelNode, LocalizedText.Get(EditorStrings.BeatOffset));
         Entity offsetField = AddMetadataField(
-            panelUi,
+            panelNode,
             playhead.OffsetMs.ToString(),
             EditorFieldKind.Offset,
             true);
 
-        AddMetadataLabel(panelUi, LocalizedText.Get(EditorStrings.Background));
-        AddBackgroundRow(panelUi);
+        AddMetadataLabel(panelNode, LocalizedText.Get(EditorStrings.Background));
+        AddBackgroundRow(panelNode);
 
         editor.AddComponent(new EditorMetadataPanel(panel, home));
 
-        UiBuilder startUi = SceneUi.Layer(entities, root, 961);
+        UiNode startUi = UiNode.Layer(entities, root, 961, null, UiStage.Full);
         Vector2 startHome = new(
             screen.X - 24 - 190,
             EditorLayout.HeaderHeight + 8 + MetadataPanelHeight + 8 + StartPanelHeight / 2);
-        startUi.Container(
-            UiLayout.Hidden,
-            new Vector2(MetadataPanelWidth, StartPanelHeight),
-            StackDirection.Vertical,
-            spacing: 5,
-            color: SceneUi.PanelColor,
-            takesInput: true);
-        Entity startPanel = startUi.Current;
+        UiNode startNode = startUi.Column()
+            .Size(MetadataPanelWidth, StartPanelHeight)
+            .At(UiLayout.Hidden)
+            .Gap(5)
+            .Fill(SceneUi.PanelColor)
+            .Input();
+        Entity startPanel = startNode.Entity;
         HudText(
-            startUi,
+            startNode,
             Vector2.Zero,
             new Vector2(340, 20),
             LocalizedText.Get(EditorStrings.StartPoint),
             14,
             SceneUi.AccentColor);
-        AddMetadataLabel(startUi, LocalizedText.Get(EditorStrings.StartTime));
-        AddMetadataField(
-            startUi,
-            "",
-            EditorFieldKind.StartTime,
-            true);
-        AddMetadataLabel(startUi, LocalizedText.Get(EditorStrings.StartMomentumX));
-        AddMetadataField(
-            startUi,
-            "",
-            EditorFieldKind.StartMomentumX,
-            true);
-        AddMetadataLabel(startUi, LocalizedText.Get(EditorStrings.StartMomentumY));
-        AddMetadataField(
-            startUi,
-            "",
-            EditorFieldKind.StartMomentumY,
-            true);
+        AddMetadataLabel(startNode, LocalizedText.Get(EditorStrings.StartTime));
+        AddMetadataField(startNode, "", EditorFieldKind.StartTime, true);
+        AddMetadataLabel(startNode, LocalizedText.Get(EditorStrings.StartMomentumX));
+        AddMetadataField(startNode, "", EditorFieldKind.StartMomentumX, true);
+        AddMetadataLabel(startNode, LocalizedText.Get(EditorStrings.StartMomentumY));
+        AddMetadataField(startNode, "", EditorFieldKind.StartMomentumY, true);
         editor.AddComponent(new EditorStartPanel(startPanel, startHome));
 
-        UiBuilder helpUi = SceneUi.Layer(entities, root, 970);
-        helpUi.Container(
-            UiLayout.Hidden,
-            new Vector2(560, 520),
-            StackDirection.Vertical,
-            spacing: 4,
-            color: Palette.SurfaceInset,
-            takesInput: true);
-        Entity helpPanel = helpUi.Current;
+        UiNode helpUi = UiNode.Layer(entities, root, 970, null, UiStage.Full);
+        UiNode helpNode = helpUi.Column()
+            .Size(560, 520)
+            .At(UiLayout.Hidden)
+            .Gap(4)
+            .Fill(Palette.SurfaceInset)
+            .Input();
+        Entity helpPanel = helpNode.Entity;
         string[] bindings =
         {
             "EDITOR BINDINGS   (F2)",
@@ -162,7 +146,7 @@ public static partial class EditorScene
         foreach (string binding in bindings)
         {
             HudText(
-                helpUi,
+                helpNode,
                 Vector2.Zero,
                 new Vector2(520, 24),
                 binding,
@@ -207,80 +191,71 @@ public static partial class EditorScene
     }
 
     private static Entity HudText(
+        UiNode parent,
+        Vector2 center,
+        Vector2 size,
+        string text,
+        int fontSize,
+        Color color) =>
+        parent.Text(text, fontSize, color, TextAlign.Left)
+            .Size(size)
+            .At(center);
+
+    // Temporary bridge while the chrome and groups still build on UiBuilder.
+    private static Entity HudText(
         UiBuilder ui,
         Vector2 center,
         Vector2 size,
         string text,
         int fontSize,
-        Color color)
-    {
-        Entity entity = SceneUi.Text(
-            ui,
+        Color color) =>
+        HudText(
+            UiNode.Wrap(ui.Current, ui.Visuals),
             center,
             size,
             text,
             fontSize,
-            color,
-            new Color(0, 0, 0, 0));
-        entity.AddComponent(new TextAlignment(TextAlign.Left));
-        return entity;
-    }
+            color);
 
     private static void AddMetadataLabel(
-        UiBuilder ui,
-        string text)
-    {
+        UiNode parent,
+        string text) =>
         HudText(
-            ui,
+            parent,
             Vector2.Zero,
             new Vector2(340, 16),
             text,
             11,
             SceneUi.DimTextColor);
-    }
 
     private static Entity AddMetadataField(
-        UiBuilder ui,
+        UiNode parent,
         string value,
         EditorFieldKind kind,
-        bool numeric)
-    {
-        Entity field = ui.RectEntity(
-            Vector2.Zero,
-            new Vector2(340, 28),
-            Palette.SurfaceInset,
-            value,
-            takesInput: true);
-        field.AddComponent(new TextStyle(14, SceneUi.TextColor));
-        field.AddComponent(new TextAlignment(TextAlign.Left));
-        field.AddComponent(new TextField(value, numeric));
-        field.AddComponent(new EditorField(kind));
-        return field;
-    }
+        bool numeric) =>
+        parent.Rect(Palette.SurfaceInset, value, new Vector2(340, 28))
+            .Input()
+            .With(new TextStyle(14, SceneUi.TextColor))
+            .Align(TextAlign.Left)
+            .With(new TextField(value, numeric))
+            .With(new EditorField(kind));
 
     /// <summary>
     /// The map's background colour: a live swatch, its stored hex value, and
     /// the buttons that open the picker or return the map to the theme default.
     /// </summary>
-    private static void AddBackgroundRow(UiBuilder ui)
+    private static void AddBackgroundRow(UiNode parent)
     {
-        ui.Container(
-            Vector2.Zero,
-            new Vector2(340, 28),
-            StackDirection.Horizontal,
-            spacing: 6,
-            color: Clear);
-        Entity swatch = ui.RectEntity(
-            Vector2.Zero,
-            new Vector2(44, 28),
-            PlayfieldRenderer.PlayfieldBackground,
-            takesInput: true);
-        swatch.AddComponent(new EditorBackgroundSwatch());
-        swatch.AddComponent(new EditorButton(EditorButtonKind.BackgroundColor));
-        swatch.AddComponent(new UiTooltip("Choose the map's background colour"));
+        UiNode row = parent.Row().Size(340, 28).Gap(6);
+
+        row.Rect(PlayfieldRenderer.PlayfieldBackground, size: new Vector2(44, 28))
+            .Input()
+            .With(new EditorBackgroundSwatch())
+            .With(new EditorButton(EditorButtonKind.BackgroundColor))
+            .Tooltip("Choose the map's background colour");
 
         Entity hex = HudText(
-            ui,
+            row,
             Vector2.Zero,
             new Vector2(120, 28),
             "DEFAULT",
@@ -288,20 +263,13 @@ public static partial class EditorScene
             SceneUi.DimTextColor);
         hex.AddComponent(new EditorBackgroundHex());
 
-        Entity edit = ui.Button(
-            "EDIT",
-            new Vector2(80, 28),
-            SceneUi.MutedButtonColor,
-            fontSize: 12);
-        edit.AddComponent(new EditorButton(EditorButtonKind.BackgroundColor));
+        row.Button("EDIT", 12, SceneUi.MutedButtonColor)
+            .Size(80, 28)
+            .With(new EditorButton(EditorButtonKind.BackgroundColor));
 
-        Entity reset = ui.Button(
-            "RESET",
-            new Vector2(76, 28),
-            SceneUi.MutedButtonColor,
-            fontSize: 12);
-        reset.AddComponent(new EditorButton(EditorButtonKind.ResetBackgroundColor));
-        reset.AddComponent(new UiTooltip("Use the theme's stage colour"));
-        ui.End();
+        row.Button("RESET", 12, SceneUi.MutedButtonColor)
+            .Size(76, 28)
+            .With(new EditorButton(EditorButtonKind.ResetBackgroundColor))
+            .Tooltip("Use the theme's stage colour");
     }
 }
