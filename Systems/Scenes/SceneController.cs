@@ -150,7 +150,7 @@ public sealed class SceneControllerRegistry
     private sealed class MainMenuController : ISceneController
     {
         public SceneKind Kind => SceneKind.Main;
-        public void Build(SceneBuildContext c) => MainMenuScene.Build(c.Entities, c.Root, c.Screen, c.Visuals);
+        public void Build(SceneBuildContext c) => MainMenuScene.Build(c.Entities, c.Root, c.Visuals);
         public bool TryForward(SceneSystem system)
         {
             system.Request(SceneKind.SongSelect);
@@ -161,7 +161,7 @@ public sealed class SceneControllerRegistry
     private sealed class ProfilesController : ISceneController
     {
         public SceneKind Kind => SceneKind.Profiles;
-        public void Build(SceneBuildContext c) => ProfilesScene.Build(c.Entities, c.Root, c.Screen, c.Profiles, c.Visuals);
+        public void Build(SceneBuildContext c) => ProfilesScene.Build(c.Entities, c.Root, c.Profiles, c.Visuals);
         public void HandleActions(SceneSystem system, ref SceneState state)
         {
             foreach (Entity entity in system.Entities
@@ -251,7 +251,7 @@ public sealed class SceneControllerRegistry
     private sealed class OffsetWizardController : ISceneController
     {
         public SceneKind Kind => SceneKind.OffsetWizard;
-        public void Build(SceneBuildContext c) => OffsetWizardScene.Build(c.Entities, c.Root, c.Screen, c.Visuals);
+        public void Build(SceneBuildContext c) => OffsetWizardScene.Build(c.Entities, c.Root, c.Visuals);
         public SceneKind BackTarget => SceneKind.Main;
     }
 }

@@ -19,6 +19,13 @@ public readonly partial struct UiNode
     public const float TextInset = 4f;
 
     /// <summary>
+    /// The advance estimator is close but not exact, and a box half a pixel
+    /// short drops the last glyph. Five percent is invisible in a measured box
+    /// and covers the estimate's error at any length.
+    /// </summary>
+    public const float MeasureSlack = 1.05f;
+
+    /// <summary>
     /// A text label. Size, colour, alignment and weight are part of the text's
     /// identity, so they are parameters; glow, outline and live updates are
     /// chained. Left is the default: centring is a statement, not a fallback.
@@ -146,6 +153,6 @@ public readonly partial struct UiNode
     /// <summary>The box a label of this text and size wants, insets included.</summary>
     public static Vector2 Measure(string value, int fontSize) =>
         new(
-            UiTextMetrics.Width(value, fontSize) + TextInset * 2,
+            UiTextMetrics.Width(value, fontSize) * MeasureSlack + TextInset * 2,
             fontSize * TextLineHeight);
 }
