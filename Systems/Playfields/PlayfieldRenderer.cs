@@ -55,13 +55,14 @@ public static partial class PlayfieldRenderer
         Playfield playfield,
         Playhead playhead,
         int fieldShader = 0,
-        int playerShader = 0)
+        int playerShader = 0,
+        Color? background = null)
     {
         canvas.DrawRect(rid, new Rect2(Vector2.Zero, view.ScreenSize), PlayBackground);
 
         Rect2 field = FieldRect(view, playfield);
         canvas.SelectShader(fieldShader);
-        canvas.DrawRect(rid, field, PlayfieldBackground);
+        canvas.DrawRect(rid, field, background ?? PlayfieldBackground);
         DrawBorder(canvas, rid, field, BorderColor, 2);
         canvas.SelectShader(0);
 
@@ -83,9 +84,10 @@ public static partial class PlayfieldRenderer
         IRectCanvas canvas,
         Rid rid,
         Rect2 field,
-        float borderWidth = 1)
+        float borderWidth = 1,
+        Color? background = null)
     {
-        canvas.DrawRect(rid, field, PlayfieldBackground);
+        canvas.DrawRect(rid, field, background ?? PlayfieldBackground);
         DrawBorder(canvas, rid, field, BorderColor, borderWidth);
     }
 

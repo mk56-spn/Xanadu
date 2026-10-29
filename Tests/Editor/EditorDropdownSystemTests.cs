@@ -94,33 +94,50 @@ public sealed class EditorDropdownSystemTests
     }
 
     [Test]
-    public void PressingASwatchSetsTheNoteTypeInNoteModeOnly()
+    public void PressingASwatchSetsTheNoteKey()
     {
         var store = new EntityStore();
         var commands = new EditorCommandBus();
         store.CreateEntity(
             new EditorPlacementModeState(EditorPlacementMode.Notes),
             new EditorNoteTarget(KeybindAction.M));
-        Vector2 home = new(100, 400);
         Entity swatch = store.CreateEntity(
-            new Position(UiLayout.Hidden),
-            new EditorNoteSwatch(KeybindAction.R3, home));
+            new Position(Vector2.Zero),
+            new EditorNoteSwatch(KeybindAction.R3));
 
         var root = new SystemRoot(store);
         root.Add(new EditorNoteTypeBarSystem(store, commands));
-
-        root.Update(new UpdateTick(1f / 60f, 0));
-        Assert.That(swatch.GetComponent<Position>().Value, Is.EqualTo(home));
 
         swatch.AddTag<Pressed>();
         root.Update(new UpdateTick(1f / 60f, 0));
         Assert.That(commands.TryDequeue(out EditorCommand command), Is.True);
         Assert.That(command.Type, Is.EqualTo(EditorCommandType.SetTarget));
         Assert.That(command.IntValue, Is.EqualTo((int)KeybindAction.R3));
+    }
 
-        store.Query<EditorPlacementModeState>().ToEntityList()[0]
-            .GetComponent<EditorPlacementModeState>().Mode = EditorPlacementMode.Mines;
+    [TestCase(EditorPlacementMode.Notes, true)]
+    [TestCase(EditorPlacementMode.Movement, true)]
+    [TestCase(EditorPlacementMode.Mines, false)]
+    [TestCase(EditorPlacementMode.Start, false)]
+    [TestCase(EditorPlacementMode.CharacterSwitch, false)]
+    public void TheNoteKeyBarShowsForTheKindsThatCarryAKey(EditorPlacementMode mode, bool shown)
+    {
+        var store = new EntityStore();
+        store.CreateEntity(
+            new EditorPlacementModeState(mode),
+            new EditorNoteTarget(KeybindAction.M));
+        Entity panel = store.CreateEntity(
+            new Position(new Vector2(10, 20)),
+            new EditorNoteBarPanel());
+
+        var root = new SystemRoot(store);
+        root.Add(new EditorNoteTypeBarSystem(store, new EditorCommandBus()));
         root.Update(new UpdateTick(1f / 60f, 0));
-        Assert.That(swatch.GetComponent<Position>().Value, Is.EqualTo(UiLayout.Hidden));
+
+        Assert.That(EditorNoteTypeBarSystem.ShowsFor(mode), Is.EqualTo(shown));
+        Assert.That(panel.Tags.Has<LayoutIgnore>(), Is.EqualTo(!shown));
+        Assert.That(
+            panel.GetComponent<Position>().Value == UiLayout.Hidden,
+            Is.EqualTo(!shown));
     }
 }

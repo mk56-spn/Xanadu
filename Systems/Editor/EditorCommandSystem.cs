@@ -217,6 +217,10 @@ public sealed partial class EditorCommandSystem :
                 SetSpecialShader(command, editor);
                 break;
 
+            case EditorCommandType.SetBackgroundColor:
+                level.Background = command.ColorValue;
+                break;
+
             case EditorCommandType.SetLevelFile:
                 SetLevelFile(editor, command.Text ?? "");
                 CommandBuffer.AddTag<EditorSaved>(editor.Id);

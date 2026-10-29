@@ -37,6 +37,7 @@ public abstract class AnimatorToolTest : EcsSystemTest
         Keyboard = new FakeKeyboard();
         Files = new FakeAnimatorFiles();
         Root.Add(new ContainerLayoutSystem());
+        Root.Add(new UiAnchorSystem());
         AddSystems();
         Session = AnimatorSession.Create(Store, CreatePackage(), Files, "res://test.xaf");
         Session.AddComponent(AnimatorLayout.Build(

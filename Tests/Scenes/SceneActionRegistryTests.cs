@@ -34,6 +34,32 @@ public sealed class SceneActionRegistryTests
     }
 
     [Test]
+    public void EditorToggleMetadataUpdatesTheExistingRequestComponent()
+    {
+        var registry = new SceneActionRegistry();
+        EditorSceneActions.Register(registry);
+        var store = new EntityStore();
+        Entity editor = store.CreateEntity(
+            new LevelInfo("Level", ""),
+            new EditorUiRequest());
+        Entity button = store.CreateEntity(
+            new SceneCommand(SceneActionId.ToggleMetadata));
+
+        bool handled = registry.TryInvoke(
+            SceneKind.Editor,
+            new SceneActionContext(
+                null!,
+                store,
+                button,
+                button.GetComponent<SceneCommand>()));
+
+        Assert.That(handled, Is.True);
+        Assert.That(
+            editor.GetComponent<EditorUiRequest>().Kind,
+            Is.EqualTo(EditorButtonKind.ToggleMetadata));
+    }
+
+    [Test]
     public void UnknownCommandIsNotHandled()
     {
         var registry = new SceneActionRegistry();

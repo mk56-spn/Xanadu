@@ -22,6 +22,9 @@ public struct LevelInfo(
     public string AudioPath = audioPath;
     public string Artist = artist;
     public string Difficulty = difficulty;
+
+    /// <summary>The playfield background, or null when the level uses the theme default.</summary>
+    public Color? Background = null;
 }
 
 /// <summary>Logical playfield dimensions.</summary>

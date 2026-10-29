@@ -69,6 +69,7 @@ public sealed class LevelStoreTests
             var document = new LevelDocument
             {
                 Name = "Store Test",
+                BackgroundColor = "#204060",
             };
             document.Notes.Add(new NoteDocument
             {
@@ -82,6 +83,7 @@ public sealed class LevelStoreTests
 
             Assert.That(File.Exists(path), Is.True);
             Assert.That(loaded.Name, Is.EqualTo("Store Test"));
+            Assert.That(loaded.BackgroundColor, Is.EqualTo("#204060"));
             Assert.That(loaded.Notes, Has.Count.EqualTo(1));
             Assert.That(loaded.Notes[0].TimeMs, Is.EqualTo(500));
         }

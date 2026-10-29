@@ -157,6 +157,8 @@ public enum EditorButtonKind
     LoadSong,
     Undo,
     Redo,
+    BackgroundColor,
+    ResetBackgroundColor,
 }
 
 /// <summary>An ECS editor toolbar button.</summary>
@@ -223,6 +225,12 @@ public struct EditorMetadataPanel(Entity panel, Vector2 home) : IComponent
     public bool Visible;
 }
 
+/// <summary>The swatch that shows, and opens, the map's background colour.</summary>
+public struct EditorBackgroundSwatch : IComponent;
+
+/// <summary>The text beside the background swatch: the stored colour or DEFAULT.</summary>
+public struct EditorBackgroundHex : IComponent;
+
 /// <summary>ECS editor HUD text entities updated from editor state.</summary>
 public struct EditorHud(
     Entity level,
@@ -251,17 +259,16 @@ public struct EditorSidebarLayout(
 }
 
 /// <summary>A colour swatch in the note-type bar; pressing it sets the type new notes get.</summary>
-public struct EditorNoteSwatch(KeybindAction action, Vector2 home) : IComponent
+public struct EditorNoteSwatch(KeybindAction action) : IComponent
 {
     public KeybindAction Action = action;
-    public Vector2 Home = home;
 }
 
-/// <summary>The backing panel of the note-type bar, which only shows in note mode.</summary>
-public struct EditorNoteBarPanel(Vector2 home) : IComponent
-{
-    public Vector2 Home = home;
-}
+/// <summary>
+/// The note-key bar inside the left panel. It shows while placing notes or dash
+/// notes, the two kinds that carry a key, and leaves the layout otherwise.
+/// </summary>
+public struct EditorNoteBarPanel : IComponent;
 
 /// <summary>Left-side menu for snap and level file actions.</summary>
 public struct EditorLeftMenu(

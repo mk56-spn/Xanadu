@@ -131,6 +131,8 @@ public static partial class EditorScene
             }));
         }
         ui.End();
+
+        BuildNoteKeyBar(ui, inner);
         ui.End();
 
         editor.AddComponent(new EditorLeftMenu(panel, snapLabel, snap));
@@ -199,39 +201,43 @@ public static partial class EditorScene
         (EditorPlacementMode.Spikes, "▲"),
     };
 
-    /// <summary>The horizontal bar of note colours, shown only in note mode.</summary>
-    private static void BuildNoteTypeBar(EntityStore entities, Entity root)
+    /// <summary>
+    /// The note keys new notes get, as a row of colour swatches at the foot of
+    /// the left panel. Notes and dash notes both carry a key, so the bar shows in
+    /// both modes; elsewhere it leaves the panel and the panel shrinks.
+    /// </summary>
+    private static void BuildNoteKeyBar(UiBuilder ui, float width)
     {
         const float swatchSize = 24;
-        const float step = 29;
-        const float centerX = EditorShellMetrics.ToolStripWidth + 8 + 105;
-        const float centerY = 380;
-        float width = KeybindSettings.Actions.Length * step + 8;
-
-        Vector2 panelHome = new(centerX, centerY);
-        Entity panel = SceneUi.Layer(entities, root, 939).RectEntity(
-            UiLayout.Hidden,
-            new Vector2(width, swatchSize + 12),
-            SceneUi.PanelColor,
-            takesInput: true);
-        panel.AddComponent(new EditorNoteBarPanel(panelHome));
-
-        UiBuilder ui = SceneUi.Layer(entities, root, 941);
-        float left = centerX - KeybindSettings.Actions.Length * step / 2 + step / 2;
-        for (int i = 0; i < KeybindSettings.Actions.Length; i++)
+        const float swatchGap = 5;
+        ui.Container(
+            Vector2.Zero,
+            new Vector2(width, 4),
+            StackDirection.Vertical,
+            spacing: UiTheme.ContainerSpacing,
+            color: Clear,
+            autoHeight: true);
+        ui.Current.AddComponent(new EditorNoteBarPanel());
+        SidebarLabel(ui, "NOTE KEY", width, 12);
+        ui.Container(
+            Vector2.Zero,
+            new Vector2(width, swatchSize),
+            StackDirection.Horizontal,
+            spacing: swatchGap,
+            color: Clear);
+        foreach (KeybindAction action in KeybindSettings.Actions)
         {
-            KeybindAction action = KeybindSettings.Actions[i];
             Color color = PlayfieldRenderer.ColorFor(action);
             Entity swatch = ui.RectEntity(
-                UiLayout.Hidden,
+                Vector2.Zero,
                 new Vector2(swatchSize, swatchSize),
                 color,
                 takesInput: true);
             swatch.AddComponent(ButtonVisual.Create(color));
-            swatch.AddComponent(new EditorNoteSwatch(
-                action,
-                new Vector2(left + i * step, centerY)));
+            swatch.AddComponent(new EditorNoteSwatch(action));
         }
+        ui.End();
+        ui.End();
     }
 
     private static Entity BuildDropdown(

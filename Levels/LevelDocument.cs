@@ -28,6 +28,9 @@ public sealed class LevelDocument : IChartItems
 
     public int PlayfieldHeight { get; set; } = 1000;
 
+    /// <summary>The playfield background as #rrggbb or #rrggbbaa, or "" for the theme default.</summary>
+    public string BackgroundColor { get; set; } = "";
+
     public List<NoteDocument> Notes { get; set; } = new();
 
     public List<MineDocument> Mines { get; set; } = new();

@@ -43,6 +43,9 @@ public sealed class PlayfieldDrawSystem :
                 _shaderItems.MaterialOf = slot => LevelShaderMaterials.MaterialOf(shaders, slot);
                 _shaderItems.CommonMaterialOf = CommonShaderMaterials.MaterialOf;
 
+                Color? background = entity.TryGetComponent(out LevelInfo info)
+                    ? info.Background
+                    : null;
                 PlayfieldRenderer.DrawPlay(
                     _canvas,
                     _playfield,
@@ -51,7 +54,8 @@ public sealed class PlayfieldDrawSystem :
                     playfield,
                     playhead,
                     shaders.FieldSlot,
-                    shaders.PlayerSlot);
+                    shaders.PlayerSlot,
+                    background);
             }
         });
     }

@@ -65,6 +65,7 @@ public partial class EditorOverlay
         BuildSaveDialogs();
         BuildRecoveryDialog();
         BuildShaderDialog();
+        BuildBackgroundDialog();
 
         if (_openSongDialog &&
             _editor.HasComponent<LevelInfo>() &&

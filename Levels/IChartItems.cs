@@ -21,6 +21,9 @@ public interface IChartItems
 
     List<GroupDocument> Groups { get; set; }
 
+    /// <summary>The playfield background as #rrggbb or #rrggbbaa, or "" for the theme default.</summary>
+    string BackgroundColor { get; set; }
+
     /// <summary>The shader slot, from the owning shader pool, the player is drawn with, or 0.</summary>
     int PlayerShader { get; set; }
 

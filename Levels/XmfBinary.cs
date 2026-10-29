@@ -104,6 +104,7 @@ public static partial class XmfBinary
         strings.Add(document.Slug);
         strings.Add(document.SongId);
         strings.Add(document.Name);
+        strings.Add(document.BackgroundColor);
         foreach (NoteDocument note in document.Notes)
             IndexItemStrings(note.Item, strings);
         foreach (StartPointDocument start in document.StartPoints)
@@ -137,6 +138,9 @@ public static partial class XmfBinary
         writer.Write(document.PlayfieldHeight);
         writer.Write(document.PlayerShader);
         writer.Write(document.FieldShader);
+        // Appended after the original fields so maps written before backgrounds
+        // existed still read, and older readers simply ignore the extra index.
+        strings.WriteIndex(writer, document.BackgroundColor);
         writer.Flush();
         return stream.ToArray();
     }
@@ -144,7 +148,7 @@ public static partial class XmfBinary
     private static LevelDocument ReadMeta(Chunk chunk, StringTable strings)
     {
         using BinaryReader reader = chunk.OpenReader();
-        return new LevelDocument
+        var document = new LevelDocument
         {
             Version = reader.ReadInt32(),
             Id = strings.ReadIndex(reader),
@@ -157,6 +161,11 @@ public static partial class XmfBinary
             PlayerShader = reader.ReadInt32(),
             FieldShader = reader.ReadInt32(),
         };
+
+        if (reader.BaseStream.Length - reader.BaseStream.Position >= sizeof(uint))
+            document.BackgroundColor = strings.ReadIndex(reader);
+
+        return document;
     }
 
     private static void WriteGroups(BinaryWriter writer, List<int> groups)

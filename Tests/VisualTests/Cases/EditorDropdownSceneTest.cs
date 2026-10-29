@@ -30,7 +30,7 @@ public sealed class EditorDropdownSceneTest : SceneTest
             () => Context.Scenes.Current == SceneKind.Editor &&
                   VisualAssert.HasText(Context.Entities, "SNAP") &&
                   VisualAssert.HasText(Context.Entities, "CHARACTER") &&
-                  Context.Entities.Query<Dropdown>().Count == 2);
+                  Context.Entities.Query<EditorDropdownControl>().Count == 2);
         AddAssert(
             "note swatches use lane colours",
             NoteSwatchesAreColoured);
@@ -103,8 +103,8 @@ public sealed class EditorDropdownSceneTest : SceneTest
         AddWaitStep("hold mine tool", 2);
         AddStep("release mine tool", () => Context.Pointer.Release());
         AddUntilStep(
-            "swatches hide outside note mode",
-            () => SwatchPosition() == UiLayout.Hidden);
+            "the note key bar hides for mines",
+            () => NoteBarPosition() == UiLayout.Hidden);
 
         AddStep("click play toolbar", () => ClickEditorButton(EditorButtonKind.Play));
         AddWaitStep("hold play toolbar", 2);
@@ -136,9 +136,9 @@ public sealed class EditorDropdownSceneTest : SceneTest
         return count == KeybindSettings.Actions.Length;
     }
 
-    private Vector2 SwatchPosition()
+    private Vector2 NoteBarPosition()
     {
-        foreach (Entity entity in Context.Entities.Query<EditorNoteSwatch>().ToEntityList())
+        foreach (Entity entity in Context.Entities.Query<EditorNoteBarPanel>().ToEntityList())
             return entity.GetComponent<Position>().Value;
 
         return default;
@@ -151,7 +151,8 @@ public sealed class EditorDropdownSceneTest : SceneTest
             if (entity.GetComponent<EditorNoteSwatch>().Action != action)
                 continue;
 
-            Context.Pointer.Click(entity.GetComponent<Position>().Value);
+            Context.Pointer.Click(UiTransform.WorldPosition(
+                entity, entity.GetComponent<Position>().Value));
             return;
         }
     }
@@ -163,7 +164,7 @@ public sealed class EditorDropdownSceneTest : SceneTest
             if (entity.GetComponent<EditorPlacementButton>().Mode != mode)
                 continue;
 
-            Context.Pointer.Click(entity.GetComponent<Position>().Value);
+            Context.Pointer.Click(WorldPosition(entity, entity.GetComponent<Position>().Value));
             return;
         }
     }
@@ -175,12 +176,13 @@ public sealed class EditorDropdownSceneTest : SceneTest
         if (!dropdown.Open || dropdown.List.IsNull)
             return false;
 
-        Vector2 buttonPosition = button.GetComponent<Position>().Value;
+        Vector2 buttonPosition = WorldPosition(button, button.GetComponent<Position>().Value);
         float buttonHeight = button.GetComponent<Rectangle>().Bounds.Size.Y;
         Vector2 expected = buttonPosition + new Vector2(
             0,
             buttonHeight / 2 + dropdown.ListSize.Y / 2 + 4);
-        return dropdown.List.GetComponent<Position>().Value == expected;
+        Vector2 list = WorldPosition(dropdown.List, dropdown.List.GetComponent<Position>().Value);
+        return list.DistanceTo(expected) < 0.5f;
     }
 
     private float SidebarHeight()
@@ -196,7 +198,7 @@ public sealed class EditorDropdownSceneTest : SceneTest
         Entity panel = SidebarPanel();
         return panel.IsNull
             ? 0
-            : panel.GetComponent<Position>().Value.Y +
+            : WorldPosition(panel, panel.GetComponent<Position>().Value).Y +
               panel.GetComponent<Rectangle>().Bounds.Position.Y;
     }
 
@@ -229,7 +231,7 @@ public sealed class EditorDropdownSceneTest : SceneTest
     private void ClickDropdown(EditorDropdownKind kind)
     {
         Entity button = FindDropdown(kind);
-        Context.Pointer.Click(button.GetComponent<Position>().Value);
+        Context.Pointer.Click(WorldPosition(button, button.GetComponent<Position>().Value));
     }
 
     private void ClickDropdownOption(EditorDropdownKind kind, int value)

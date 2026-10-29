@@ -41,6 +41,14 @@ public partial class EditorOverlay : CanvasLayer
             case EditorButtonKind.Preview:
                 StartPreview();
                 break;
+
+            case EditorButtonKind.BackgroundColor:
+                OpenBackgroundDialog();
+                break;
+
+            case EditorButtonKind.ResetBackgroundColor:
+                _commands.Enqueue(EditorCommand.SetBackgroundColor(null));
+                break;
         }
     }
 

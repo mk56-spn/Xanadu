@@ -1,8 +1,10 @@
+using System.IO;
 using System.Linq;
 using NUnit.Framework;
 using Xanadu.Ecs;
 using Xanadu.Items;
 using Xanadu.Levels;
+using Xanadu.Storage;
 
 namespace Xanadu.Tests.Editor;
 
@@ -29,7 +31,13 @@ public sealed class XmfMapsetBinaryTests
         easy.Notes.Add(new NoteDocument { TimeMs = 100, X = 1, Y = 2 });
         mapset.Variants.Add(easy);
 
-        var hard = new XmfVariant { Id = "hard", Name = "Hard", FieldShader = 1 };
+        var hard = new XmfVariant
+        {
+            Id = "hard",
+            Name = "Hard",
+            FieldShader = 1,
+            BackgroundColor = "#20406080",
+        };
         hard.Notes.Add(new NoteDocument
         {
             TimeMs = 50,
@@ -50,14 +58,79 @@ public sealed class XmfMapsetBinaryTests
         XmfVariant readEasy = read.Variants.Single(v => v.Id == "easy");
         Assert.That(readEasy.Name, Is.EqualTo("Easy"));
         Assert.That(readEasy.PlayerShader, Is.EqualTo(1));
+        Assert.That(readEasy.BackgroundColor, Is.Empty);
         Assert.That(readEasy.Notes.Single().TimeMs, Is.EqualTo(100));
         Assert.That(readEasy.Notes.Single().DashStrength, Is.EqualTo(DashStrength.Single));
 
         XmfVariant readHard = read.Variants.Single(v => v.Id == "hard");
         Assert.That(readHard.FieldShader, Is.EqualTo(1));
+        Assert.That(readHard.BackgroundColor, Is.EqualTo("#20406080"));
         Assert.That(readHard.Notes, Has.Count.EqualTo(2));
         Assert.That(readHard.Notes[0].DashStrength, Is.EqualTo(DashStrength.Double));
         Assert.That(readHard.Notes[1].DashStrength, Is.EqualTo(DashStrength.Single));
+    }
+
+    [Test]
+    public void MapsetVariantsWrittenBeforeBackgroundsExistedStillLoad()
+    {
+        var mapset = new XmfMapset
+        {
+            Id = "mapset-old",
+            Slug = "old-mapset",
+            SongId = "song-1",
+        };
+        mapset.Variants.Add(new XmfVariant
+        {
+            Id = "old",
+            Name = "Old",
+            BackgroundColor = "#204060",
+        });
+
+        byte[] current = XmfBinary.WriteMapset(mapset);
+        ChunkReader reader = ChunkReader.Open(
+            current,
+            "XMF2"u8.ToArray(),
+            XmfBinary.MapsetMajorVersion,
+            "XMF2");
+        var file = new ChunkWriter(
+            "XMF2"u8.ToArray(),
+            XmfBinary.MapsetMajorVersion,
+            0);
+        for (uint id = 1; id <= 4; id++)
+        {
+            if (!reader.TryGet(id, out Chunk chunk))
+                continue;
+
+            byte[] payload = chunk.ToArray();
+            if (id == 4)
+                payload = TrimVariantBackgrounds(payload);
+            file.Add(id, payload);
+        }
+
+        XmfMapset old = XmfBinary.ReadMapset(file.ToArray());
+
+        Assert.That(old.Variants.Single().BackgroundColor, Is.Empty);
+    }
+
+    /// <summary>Rebuilds a variants chunk as it was before each blob carried a background index.</summary>
+    private static byte[] TrimVariantBackgrounds(byte[] payload)
+    {
+        using var input = new MemoryStream(payload, writable: false);
+        using var reader = new BinaryReader(input);
+        using var output = new MemoryStream();
+        using var writer = new BinaryWriter(output);
+        uint count = reader.ReadUInt32();
+        writer.Write(count);
+        for (uint i = 0; i < count; i++)
+        {
+            uint length = reader.ReadUInt32();
+            byte[] blob = reader.ReadBytes((int)length);
+            writer.Write(length - sizeof(uint));
+            writer.Write(blob, 0, blob.Length - sizeof(uint));
+        }
+
+        writer.Flush();
+        return output.ToArray();
     }
 
     [Test]

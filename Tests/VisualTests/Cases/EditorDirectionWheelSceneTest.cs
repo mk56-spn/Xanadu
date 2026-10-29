@@ -39,6 +39,10 @@ public sealed class EditorDirectionWheelSceneTest : SceneTest
             () => PlaceMode() == EditorPlacementMode.Movement &&
                   Wheel().GetComponent<Position>().Value != UiLayout.Hidden);
         AddAssert(
+            "the note key bar stays up for dash notes",
+            () => NoteBar().GetComponent<Position>().Value != UiLayout.Hidden &&
+                  !NoteBar().Tags.Has<LayoutIgnore>());
+        AddAssert(
             "current direction selected",
             () => Wheel().GetComponent<UiWheel>().Selected ==
                   DashDirectionWheel.IndexOf(Direction()));
@@ -105,6 +109,9 @@ public sealed class EditorDirectionWheelSceneTest : SceneTest
 
     private Entity Wheel() =>
         Context.Entities.Query<UiWheel>().ToEntityList()[0];
+
+    private Entity NoteBar() =>
+        Context.Entities.Query<EditorNoteBarPanel>().ToEntityList()[0];
 
     private EditorPlacementMode PlaceMode() =>
         Context.Entities.Query<EditorPlacementModeState>()

@@ -21,7 +21,7 @@ public sealed class AnimatorHierarchySystem(
     : QuerySystem<AnimatorDocument, AnimatorUi>
 {
     private static readonly Vector2 ItemSize = new(200, 26);
-    private static readonly Vector2 ClipDropdownSize = new(AnimatorLayout.ClipWidth, 30);
+    private static readonly Vector2 ClipDropdownSize = new(AnimatorLayout.ClipWidth, EditorShellMetrics.HeaderControlHeight);
     private static readonly Color Selected = Palette.Selected;
 
     private int _version = -1;

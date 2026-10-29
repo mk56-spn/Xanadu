@@ -1,3 +1,4 @@
+using Godot;
 using Xanadu.Ecs;
 using Xanadu.Settings;
 using Xanadu.Levels;
@@ -36,6 +37,7 @@ public enum EditorCommandType
     AssignShader,
     SetPlayerShader,
     SetFieldShader,
+    SetBackgroundColor,
 }
 
 /// <summary>Data-only editor command.</summary>
@@ -45,7 +47,8 @@ public readonly record struct EditorCommand(
     int IntValue = 0,
     long LongValue = 0,
     LevelDocument? Document = null,
-    string? Text2 = null)
+    string? Text2 = null,
+    Color? ColorValue = null)
 {
     public static EditorCommand SetName(string value) =>
         new(EditorCommandType.SetName, Text: value);
@@ -137,4 +140,8 @@ public readonly record struct EditorCommand(
 
     public static EditorCommand SetFieldShader(int slot) =>
         new(EditorCommandType.SetFieldShader, IntValue: slot);
+
+    /// <summary>Sets the playfield background; null returns it to the theme default.</summary>
+    public static EditorCommand SetBackgroundColor(Color? color) =>
+        new(EditorCommandType.SetBackgroundColor, ColorValue: color);
 }

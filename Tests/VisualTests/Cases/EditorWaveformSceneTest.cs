@@ -24,7 +24,7 @@ public sealed class EditorWaveformSceneTest : SceneTest
         AddUntilStep(
             "wait for editor",
             () => Context.Scenes.Current == SceneKind.Editor &&
-                  VisualAssert.HasText(Context.Entities, "MENU"));
+                  VisualAssert.HasText(Context.Entities, "LEVEL EDITOR"));
         AddAssert(
             "editor binding help exists",
             () => Context.Entities.Query<EditorBindingsHelp>().Count == 1 &&
