@@ -39,6 +39,9 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
         if (HandleConfirmation(ref state))
             return SceneChanged(ref state);
 
+        if (HandleSongMenu(ref state))
+            return SceneChanged(ref state);
+
         if (state.Current == SceneKind.Play &&
             state.Pending == SceneKind.Play &&
             IsPlayFinished())
