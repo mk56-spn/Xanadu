@@ -15,8 +15,8 @@ namespace Xanadu.Tests.Animation.Tool;
 [TestFixture]
 public sealed class AnimatorHeaderTests : AnimatorToolTest
 {
-    // Margin 16, then the header's 88.
-    private const float HeaderBottom = 104f;
+    // The shared shell's header runs along the screen's top edge.
+    private const float HeaderBottom = EditorShellMetrics.HeaderHeight;
 
     protected override void AddSystems()
     {
@@ -51,21 +51,25 @@ public sealed class AnimatorHeaderTests : AnimatorToolTest
     public void TheClipDropdownSitsInTheHeader()
     {
         Rect2 button = Area(Ui.ClipDropdown);
+        Rect2 header = EditorShell
+            .Compute(Screen, new EditorShellOptions(EditorFooterHeight.Animator))
+            .Header;
 
-        Assert.That(button.Position.Y, Is.GreaterThanOrEqualTo(16f));
-        Assert.That(button.End.Y, Is.LessThanOrEqualTo(HeaderBottom));
-        Assert.That(button.End.X, Is.LessThanOrEqualTo(Screen.X - 16f));
+        Assert.That(header.Encloses(button), Is.True);
+        Assert.That(button.End.X, Is.LessThanOrEqualTo(header.End.X));
     }
 
     [Test]
     public void TheConfigButtonSitsInTheHeaderAfterTheClips()
     {
         Rect2 config = Area(Ui.ConfigButton);
+        Rect2 header = EditorShell
+            .Compute(Screen, new EditorShellOptions(EditorFooterHeight.Animator))
+            .Header;
 
-        Assert.That(config.Position.Y, Is.GreaterThanOrEqualTo(16f));
-        Assert.That(config.End.Y, Is.LessThanOrEqualTo(HeaderBottom));
+        Assert.That(header.Encloses(config), Is.True);
         Assert.That(config.Position.X, Is.GreaterThan(Area(Ui.ClipDropdown).End.X));
-        Assert.That(config.End.X, Is.LessThanOrEqualTo(Screen.X - 16f));
+        Assert.That(config.End.X, Is.LessThanOrEqualTo(header.End.X));
         Assert.That(Ui.ConfigButton.GetComponent<Text>().Value, Is.EqualTo("CONFIG ▾"));
     }
 
