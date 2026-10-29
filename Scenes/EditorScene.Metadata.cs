@@ -25,60 +25,8 @@ public static partial class EditorScene
         Playhead playhead = editor.GetComponent<Playhead>();
         LevelInfo level = editor.GetComponent<LevelInfo>();
 
-        BuildLeftMenu(entities, root, editor, screen);
-        BuildToolBar(entities, root, screen);
         BuildNoteTypeBar(entities, root);
         BuildGroupOverlay(entities, root, screen);
-
-        UiBuilder hudUi = SceneUi.Layer(entities, root, 945);
-        float infoWidth = Mathf.Max(160, screen.X - 670);
-
-        Entity levelText = HudText(
-            hudUi,
-            new Vector2(144 + infoWidth / 2, 18),
-            new Vector2(infoWidth, 28),
-            string.IsNullOrWhiteSpace(level.Name) ? "Untitled" : level.Name,
-            22,
-            SceneUi.AccentColor);
-        Entity songText = HudText(
-            hudUi,
-            new Vector2(144 + infoWidth / 2, 40),
-            new Vector2(infoWidth, 18),
-            "Song: No song loaded",
-            14,
-            Palette.TextMuted);
-        Entity statusText = HudText(
-            hudUi,
-            new Vector2(144 + infoWidth / 2, 58),
-            new Vector2(infoWidth, 18),
-            "Space play   Home stop   Delete note   ←/→ nudge   Ctrl+Z/Y undo   T tap tempo   Target: select a note",
-            12,
-            SceneUi.DimTextColor);
-        hudUi.RectEntity(
-            new Vector2(170, 960),
-            new Vector2(300, 36),
-            Palette.SurfaceInset);
-        AddHudFrame(hudUi, new Vector2(170, 960), new Vector2(300, 36));
-        Entity timeText = HudText(
-            hudUi,
-            new Vector2(170, 960),
-            new Vector2(292, 30),
-            "00:00.000 / 00:00.000",
-            20,
-            Palette.TextMuted);
-        Entity notesText = HudText(
-            hudUi,
-            new Vector2(screen.X - 140, 960),
-            new Vector2(240, 16),
-            "0 notes",
-            13,
-            SceneUi.DimTextColor);
-        editor.AddComponent(new EditorHud(
-            levelText,
-            songText,
-            statusText,
-            timeText,
-            notesText));
 
         UiBuilder panelUi = SceneUi.Layer(entities, root, 947);
         Vector2 home = new(
