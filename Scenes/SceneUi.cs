@@ -5,7 +5,13 @@ using Xanadu.Theme;
 
 namespace Xanadu.Scenes;
 
-/// <summary>Shared ECS entities and styling for game scene UI.</summary>
+/// <summary>
+/// Shared layer ids and palette aliases for game scene UI. Construction lives on
+/// <see cref="UiNode"/> (and the scene-level helpers in
+/// <see cref="UiNodeActions"/> / <see cref="HudUi"/>); only <see cref="Text"/>
+/// and <see cref="Layer"/> remain here for the editor partials that have not
+/// moved yet.
+/// </summary>
 public static class SceneUi
 {
     public const int MenuLayer = 100;
@@ -33,60 +39,10 @@ public static class SceneUi
         return builder;
     }
 
-    public static Entity Background(UiBuilder builder, Vector2 screen)
-    {
-        Entity background =
-            builder.RectEntity(screen / 2, screen, BackgroundColor);
-        background.AddComponent(new UiBackground());
-        return background;
-    }
-
-    public static Entity Panel(
-        UiBuilder builder,
-        Vector2 center,
-        Vector2 size,
-        Color? color = null) =>
-        builder.RectEntity(center, size, color ?? PanelColor);
-
-    /// <summary>A transparent text label drawn above its parent panel.</summary>
-    public static Entity Label(
-        UiBuilder builder,
-        Vector2 center,
-        Vector2 size,
-        string text,
-        int fontSize,
-        Color color,
-        Color? background = null) =>
-        Text(
-            builder,
-            center,
-            size,
-            text,
-            fontSize,
-            color,
-            background ?? new Color(0, 0, 0, 0));
-
-    /// <summary>A styled button entity without an attached action component.</summary>
-    public static Entity ButtonEntity(
-        UiBuilder builder,
-        Vector2 center,
-        Vector2 size,
-        string label,
-        int fontSize = 18,
-        Color? color = null)
-    {
-        Color normal = color ?? ButtonColor;
-        Entity button = builder.RectEntity(
-            center,
-            size,
-            normal,
-            label,
-            takesInput: true);
-        button.AddComponent(new TextStyle(fontSize, TextColor));
-        button.AddComponent(ButtonVisual.Create(normal));
-        return button;
-    }
-
+    /// <summary>
+    /// A fixed-box label backed by the window colour. Migrated code uses
+    /// <see cref="UiNode.Text"/> instead; this stays for the editor partials.
+    /// </summary>
     public static Entity Text(
         UiBuilder builder,
         Vector2 center,
@@ -106,81 +62,5 @@ public static class SceneUi
         return entity;
     }
 
-    public static Entity Button(
-        UiBuilder builder,
-        Vector2 center,
-        Vector2 size,
-        string label,
-        SceneKind target,
-        int fontSize = 18,
-        Color? color = null)
-    {
-        Color normal = color ?? ButtonColor;
-
-        Entity button = builder.RectEntity(
-            center,
-            size,
-            normal,
-            label,
-            takesInput: true);
-
-        button.AddComponent(new TextStyle(fontSize, TextColor));
-        button.AddComponent(ButtonVisual.Create(normal));
-        button.AddComponent(new SceneAction(target));
-        return button;
-    }
-
-    public static Entity CarouselButton(
-        UiBuilder builder,
-        Vector2 center,
-        Vector2 size,
-        string label,
-        int direction)
-    {
-        Entity button = builder.RectEntity(
-            center,
-            size,
-            MutedButtonColor,
-            label,
-            takesInput: true);
-
-        button.AddComponent(new TextStyle(24, TextColor));
-        button.AddComponent(ButtonVisual.Create(MutedButtonColor));
-        button.AddComponent(new SceneCommand(
-            direction < 0 ? SceneActionId.Previous : SceneActionId.Next));
-        return button;
-    }
-
     public static void SetText(Entity entity, string text) => UiText.Set(entity, text);
-
-/// <summary>Creates a clipped vertical scrolling viewport and returns its content.</summary>
-public static Entity ScrollView(
-    UiBuilder ui,
-    Vector2 center,
-    Vector2 size,
-    float contentHeight,
-    out Entity content)
-{
-    ui.Container(
-        center,
-        size,
-        StackDirection.Vertical,
-        spacing: 0,
-        clip: true,
-        color: new Color(0, 0, 0, 0),
-        takesInput: true);
-    Entity viewport = ui.Current;
-
-    float baseContentY = -size.Y / 2 + contentHeight / 2;
-    ui.Container(
-        new Vector2(0, baseContentY),
-        new Vector2(size.X, contentHeight),
-        StackDirection.Vertical,
-        spacing: 4,
-        color: new Color(0, 0, 0, 0));
-    content = ui.Current;
-    viewport.AddComponent(new ScrollView(content));
-    return viewport;
-}
-
 }
