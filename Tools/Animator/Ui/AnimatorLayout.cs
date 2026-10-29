@@ -293,7 +293,7 @@ public static partial class AnimatorLayout
         ui.End();
     }
 
-    private static readonly string[] TabNames = { "POSE", "EDIT" };
+    private static readonly string[] TabNames = { "POSE", "EDIT", "FLOW" };
 
     /// <summary>
     /// The tab bodies float on the menu layer: a container in a stack cannot be
@@ -315,6 +315,10 @@ public static partial class AnimatorLayout
                 Row(menu, ("SCL-", ToolActionKind.ScaleDown), ("SCL+", ToolActionKind.ScaleUp));
                 Row(menu, ("KEY", ToolActionKind.KeyBone), ("POSE", ToolActionKind.KeyPose));
                 Row(menu, ("MIRROR", ToolActionKind.MirrorPose), ("MOVE", ToolActionKind.ToggleMovable));
+            }
+            else if (i == 2)
+            {
+                BuildFlowBody(menu, shell.RightBody.Size, ref refs);
             }
             else
             {

@@ -8,12 +8,12 @@ namespace Xanadu.Tools.Animator.Commands;
 /// <summary>
 /// Previews clips playing into each other without starting the game: a chain
 /// is a list of clips with how long each plays, and each hands over to the
-/// next with the same crossfade the game uses.
+/// next with the fade and curve the package's transition table gives it.
 /// </summary>
 public static class AnimatorSequenceCommands
 {
-    /// <summary>The game's crossfade between clips, so the preview blends the same way.</summary>
-    public const float FadeSeconds = 0.1f;
+    /// <summary>The crossfade of a hand-over that has no rule, as in the game.</summary>
+    public const float FadeSeconds = XafTransitions.DefaultFade;
 
     /// <summary>How long the game holds a jump before it can turn into a fall.</summary>
     public const float JumpSeconds = 0.3f;
@@ -57,7 +57,7 @@ public static class AnimatorSequenceCommands
     public static void StartGame(Entity session)
     {
         XafPackage package = session.GetComponent<AnimatorDocument>().Package;
-        Start(session, GameSteps(package), "GAME CHAIN");
+        Start(session, GameSteps(package), "GAME CHAIN", strict: true);
     }
 
     public static void StartAll(Entity session)
@@ -67,7 +67,12 @@ public static class AnimatorSequenceCommands
     }
 
     /// <summary>Begins a chain at its first clip, from the start, and plays it.</summary>
-    public static void Start(Entity session, List<AnimatorSequenceStep> steps, string name)
+    public static void Start(
+        Entity session,
+        List<AnimatorSequenceStep> steps,
+        string name,
+        bool loop = false,
+        bool strict = false)
     {
         // A chain of one clip is just playing it, so it needs two to mean anything.
         if (steps.Count < 2)
@@ -77,8 +82,11 @@ public static class AnimatorSequenceCommands
         }
 
         AnimatorRuntime runtime = session.GetComponent<AnimatorDocument>().Runtime;
-        string originClip = runtime.CurrentClip;
-        float originTime = runtime.CurrentTime;
+        AnimatorSequence running = session.GetComponent<AnimatorSequence>();
+
+        // Restarting a running chain still ends on what was being edited before it.
+        string originClip = running.Active ? running.OriginClip : runtime.CurrentClip;
+        float originTime = running.Active ? running.OriginTime : runtime.CurrentTime;
         runtime.Play(steps[0].Clip, 0f);
         runtime.Restart();
         runtime.SetPaused(false);
@@ -89,8 +97,11 @@ public static class AnimatorSequenceCommands
             Steps = steps,
             OriginClip = originClip,
             OriginTime = originTime,
+            Name = name,
+            Loop = loop,
+            Strict = strict,
         };
-        AnimatorSession.SetStatus(session, Describe(steps, 0));
+        AnimatorSession.SetStatus(session, Describe(name, steps, 0));
     }
 
     /// <summary>
@@ -134,6 +145,16 @@ public static class AnimatorSequenceCommands
 
         sequence.Elapsed -= steps[sequence.Index].Seconds;
         sequence.Index++;
+        if (sequence.Index >= steps.Count && sequence.Loop)
+        {
+            // Back to the start with a cut, so each pass shows the same hand-overs.
+            sequence.Index = 0;
+            sequence.Elapsed = 0f;
+            runtime.Play(steps[0].Clip, 0f);
+            runtime.Restart();
+            return;
+        }
+
         if (sequence.Index >= steps.Count)
         {
             Finish(session);
@@ -141,8 +162,24 @@ public static class AnimatorSequenceCommands
             return;
         }
 
-        runtime.Play(steps[sequence.Index].Clip, FadeSeconds);
-        AnimatorSession.SetStatus(session, Describe(steps, sequence.Index));
+        string from = steps[sequence.Index - 1].Clip;
+        string clip = steps[sequence.Index].Clip;
+        XafPackage package = session.GetComponent<AnimatorDocument>().Package;
+        if (sequence.Strict && !runtime.Transition(clip))
+        {
+            // As in the game: the old clip plays on through the refused step.
+            steps[sequence.Index] = steps[sequence.Index] with { Clip = from };
+            AnimatorSession.SetStatus(session,
+                $"{from.ToUpperInvariant()} ▸ {clip.ToUpperInvariant()} NOT ALLOWED: GAME STAYS ON {from.ToUpperInvariant()}");
+            return;
+        }
+
+        if (!sequence.Strict)
+        {
+            (float fade, XafFadeCurve curve) = XafTransitions.Blend(package, from, clip);
+            runtime.Play(clip, fade, curve);
+        }
+        AnimatorSession.SetStatus(session, Describe(sequence.Name, steps, sequence.Index));
     }
 
     /// <summary>Whether the runtime is still playing what the chain expects, so a clip picked by hand ends it.</summary>
@@ -156,8 +193,8 @@ public static class AnimatorSequenceCommands
         return index > 0 && runtime.IsCrossfading && runtime.CurrentClip == steps[index - 1].Clip;
     }
 
-    private static string Describe(List<AnimatorSequenceStep> steps, int index) =>
-        $"CHAIN {index + 1}/{steps.Count}: {steps[index].Clip.ToUpperInvariant()}";
+    private static string Describe(string name, List<AnimatorSequenceStep> steps, int index) =>
+        $"{name} {index + 1}/{steps.Count}: {steps[index].Clip.ToUpperInvariant()}";
 
     /// <summary>Adds a step, folding it into the last when it is the same clip, since nothing changes between them.</summary>
     private static void Add(List<AnimatorSequenceStep> steps, string clip, float seconds)
@@ -169,7 +206,7 @@ public static class AnimatorSequenceCommands
     }
 
     /// <summary>One full play of a clip: its length, or one pass of the loop range when it loops.</summary>
-    private static float FullSeconds(XafPackage package, string id)
+    public static float FullSeconds(XafPackage package, string id)
     {
         XafClip? clip = package.Clips.Find(candidate => candidate.Id == id);
         if (clip is null)

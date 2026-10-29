@@ -36,6 +36,30 @@ public static class AnimatorCommands
             case ToolActionKind.SequenceAll:
                 AnimatorSequenceCommands.StartAll(session);
                 break;
+            case ToolActionKind.AllowTransition:
+                AnimatorFlowCommands.Toggle(session, action.Argument);
+                break;
+            case ToolActionKind.SelectTransition:
+                AnimatorFlowCommands.Select(session, action.Argument);
+                break;
+            case ToolActionKind.TransitionFadeDown:
+                AnimatorFlowCommands.StepFade(session, -XafTransitions.FadeStep);
+                break;
+            case ToolActionKind.TransitionFadeUp:
+                AnimatorFlowCommands.StepFade(session, XafTransitions.FadeStep);
+                break;
+            case ToolActionKind.TransitionCurve:
+                AnimatorFlowCommands.SetCurve(session, action.Argument);
+                break;
+            case ToolActionKind.PreviewTransition:
+                AnimatorFlowCommands.Preview(session);
+                break;
+            case ToolActionKind.ToggleFlowLoop:
+                AnimatorFlowCommands.ToggleLoop(session);
+                break;
+            case ToolActionKind.ToggleSlow:
+                AnimatorFlowCommands.ToggleSlow(session);
+                break;
             case ToolActionKind.Clip:
                 PlayClip(session, action.Argument);
                 break;

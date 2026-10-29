@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Xanadu.Animation;
@@ -33,7 +34,25 @@ public sealed class CharacterMotionSystem : QuerySystem<CharacterRig, Player, Po
     /// <summary>Slack in pixels for resting on a block, whose contact leaves a small gap.</summary>
     private const float BlockTolerance = 2f;
 
-    private const float FadeSeconds = 0.1f;
+    /// <summary>
+    /// Every change of state <see cref="Next"/> can make. Rising always jumps,
+    /// leaving the floor falls, touching it lands (or goes straight to the
+    /// ground without a landing clip), and a landing ends on the ground.
+    /// </summary>
+    private static readonly (CharacterMotionState From, CharacterMotionState To)[] StateChanges =
+    {
+        (CharacterMotionState.Grounded, CharacterMotionState.Jumping),
+        (CharacterMotionState.Landing, CharacterMotionState.Jumping),
+        (CharacterMotionState.Falling, CharacterMotionState.Jumping),
+        (CharacterMotionState.Jumping, CharacterMotionState.Falling),
+        (CharacterMotionState.Grounded, CharacterMotionState.Falling),
+        (CharacterMotionState.Landing, CharacterMotionState.Falling),
+        (CharacterMotionState.Jumping, CharacterMotionState.Landing),
+        (CharacterMotionState.Falling, CharacterMotionState.Landing),
+        (CharacterMotionState.Jumping, CharacterMotionState.Grounded),
+        (CharacterMotionState.Falling, CharacterMotionState.Grounded),
+        (CharacterMotionState.Landing, CharacterMotionState.Grounded),
+    };
 
     protected override void OnUpdate()
     {
@@ -114,13 +133,39 @@ public sealed class CharacterMotionSystem : QuerySystem<CharacterRig, Player, Po
     /// Clip for a state. A rig without a falling clip keeps its jump pose
     /// while falling, and one without a jump clip stays idle.
     /// </summary>
-    public static string ClipFor(CharacterMotionState state, AnimatorRuntime runtime) => state switch
+    public static string ClipFor(CharacterMotionState state, AnimatorRuntime runtime) =>
+        ClipFor(state, runtime.Package);
+
+    public static string ClipFor(CharacterMotionState state, XafPackage package) => state switch
     {
-        CharacterMotionState.Jumping => First(runtime, JumpClip, IdleClip),
-        CharacterMotionState.Falling => First(runtime, FallClip, JumpClip, IdleClip),
-        CharacterMotionState.Landing => First(runtime, LandClip, IdleClip),
+        CharacterMotionState.Jumping => First(package, JumpClip, IdleClip),
+        CharacterMotionState.Falling => First(package, FallClip, JumpClip, IdleClip),
+        CharacterMotionState.Landing => First(package, LandClip, IdleClip),
         _ => IdleClip,
     };
+
+    /// <summary>
+    /// The clip hand-overs this system can ask a rig for, given the clips it
+    /// has. The package's transition table decides whether each one happens
+    /// and how it blends; one it does not allow leaves the old clip playing.
+    /// </summary>
+    public static List<(string From, string To)> Transitions(XafPackage package)
+    {
+        bool landing = HasClip(package, LandClip);
+        var pairs = new List<(string, string)>();
+        foreach ((CharacterMotionState from, CharacterMotionState to) in StateChanges)
+        {
+            // With a landing clip, touching down always lands first.
+            if (landing && to == CharacterMotionState.Grounded && from != CharacterMotionState.Landing)
+                continue;
+
+            string a = ClipFor(from, package);
+            string b = ClipFor(to, package);
+            if (a != b && !pairs.Contains((a, b)))
+                pairs.Add((a, b));
+        }
+        return pairs;
+    }
 
     private static void Play(AnimatorRuntime runtime, CharacterMotionState state, bool restart)
     {
@@ -128,7 +173,7 @@ public sealed class CharacterMotionSystem : QuerySystem<CharacterRig, Player, Po
         if (restart && runtime.CurrentClip == clip)
             runtime.Restart();
         else
-            runtime.Play(clip, FadeSeconds);
+            runtime.Transition(clip);
     }
 
     /// <summary>Before play starts the player has no body and just stands where it was placed.</summary>
@@ -170,18 +215,20 @@ public sealed class CharacterMotionSystem : QuerySystem<CharacterRig, Player, Po
         return false;
     }
 
-    private static string First(AnimatorRuntime runtime, params string[] clips)
+    private static string First(XafPackage package, params string[] clips)
     {
         foreach (string clip in clips)
         {
-            if (HasClip(runtime, clip))
+            if (HasClip(package, clip))
                 return clip;
         }
         return clips[^1];
     }
 
-    private static bool HasClip(AnimatorRuntime runtime, string id) =>
-        runtime.Package.Clips.Exists(clip => clip.Id == id);
+    private static bool HasClip(AnimatorRuntime runtime, string id) => HasClip(runtime.Package, id);
+
+    private static bool HasClip(XafPackage package, string id) =>
+        package.Clips.Exists(clip => clip.Id == id);
 
     private static float ClipLength(AnimatorRuntime runtime, string id) =>
         runtime.Package.Clips.Find(clip => clip.Id == id)?.Duration ?? 0f;

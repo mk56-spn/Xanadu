@@ -234,6 +234,53 @@ public sealed class CharacterMotionTests : EcsSystemTest
         Assert.That(Clip(player), Is.EqualTo("idle"));
     }
 
+    [Test]
+    public void TheGameAsksForEveryHandOverItsStatesCanMake()
+    {
+        Assert.That(CharacterMotionSystem.Transitions(Package(falling: true)), Is.EquivalentTo(new[]
+        {
+            ("idle", "jumping"), ("landing", "jumping"), ("falling", "jumping"),
+            ("jumping", "falling"), ("idle", "falling"), ("landing", "falling"),
+            ("jumping", "landing"), ("falling", "landing"), ("landing", "idle"),
+        }));
+
+        // Without a falling clip the jump pose is kept, so jump-to-fall is no hand-over at all.
+        Assert.That(CharacterMotionSystem.Transitions(Package(falling: false)), Is.EquivalentTo(new[]
+        {
+            ("idle", "jumping"), ("landing", "jumping"), ("jumping", "landing"), ("landing", "idle"),
+        }));
+    }
+
+    [Test]
+    public void AJumpTheRigDoesNotAllowKeepsTheIdleClip()
+    {
+        Entity player = Player(Floor);
+        XafPackage package = player.GetComponent<CharacterRig>().Runtime.Package;
+        XafTransitions.Allow(package, "jumping", "landing");
+        Frame();
+
+        MoveTo(player, Floor - 50);
+        Frame();
+
+        Assert.That(State(player), Is.EqualTo(CharacterMotionState.Jumping));
+        Assert.That(Clip(player), Is.EqualTo("idle"));
+    }
+
+    [Test]
+    public void AnAllowedJumpFadesWithItsRule()
+    {
+        Entity player = Player(Floor);
+        AnimatorRuntime runtime = player.GetComponent<CharacterRig>().Runtime;
+        XafTransitions.Allow(runtime.Package, "idle", "jumping").Fade = 0.4f;
+        Frame();
+
+        MoveTo(player, Floor - 50);
+        Frame();
+
+        Assert.That(Clip(player), Is.EqualTo("jumping"));
+        Assert.That(runtime.FadeDuration, Is.EqualTo(0.4f));
+    }
+
     private static XafPackage Package(bool falling)
     {
         var package = new XafPackage();

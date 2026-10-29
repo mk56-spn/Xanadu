@@ -37,6 +37,7 @@ public sealed class AnimatorSystemGroup : SystemGroup
         Add(new AnimatorSequenceSystem());
         Add(new AnimatorPlaybackSystem());
         Add(new AnimatorHierarchySystem(visuals, pointer));
+        Add(new AnimatorFlowSystem(visuals));
         Add(new AnimatorClipHeaderSystem());
         Add(new AnimatorInspectorSystem());
         Add(new AnimatorChainInspectorSystem());

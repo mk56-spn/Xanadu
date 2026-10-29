@@ -8,7 +8,7 @@ namespace Xanadu.Animation;
 public sealed class XafPackage
 {
     public const ushort MajorVersion = 1;
-    public const ushort MinorVersion = 3;
+    public const ushort MinorVersion = 4;
 
     public ushort Major = MajorVersion;
     public ushort Minor = MinorVersion;
@@ -16,6 +16,9 @@ public sealed class XafPackage
     public List<XafAttachment> Attachments = new();
     public List<XafChain> Chains = new();
     public List<XafClip> Clips = new();
+
+    /// <summary>Which clips may fade into which, and how; see <see cref="XafTransitions"/>.</summary>
+    public List<XafTransition> Transitions = new();
 }
 
 /// <summary>Bone hierarchy with one root and stable string IDs.</summary>

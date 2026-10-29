@@ -8,6 +8,16 @@ public struct AnimatorUi : IComponent
 {
     public Entity Status;
     public Entity Preview;
+
+    /// <summary>
+    /// The FLOW tab: its title, the list of clips the current one may fade
+    /// into, and the readouts of the selected transition.
+    /// </summary>
+    public Entity FlowTitle;
+    public Entity FlowList;
+    public Entity FlowRule;
+    public Entity FlowFade;
+    public Entity FlowGap;
     public Entity Timeline;
 
     /// <summary>The clip, time, zoom and snap readout beside the timeline's transport.</summary>

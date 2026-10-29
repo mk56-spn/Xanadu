@@ -77,6 +77,19 @@ public sealed class ContactRigAssetTests
     }
 
     /// <summary>
+    /// Once the rig has transition rules, the game's own hand-overs must be
+    /// among them, or a jump or landing would leave the old clip playing.
+    /// </summary>
+    [Test]
+    public void TheRigAllowsEveryHandOverTheGameAsksFor()
+    {
+        XafPackage package = Load();
+
+        foreach ((string from, string to) in Xanadu.Systems.Characters.CharacterMotionSystem.Transitions(package))
+            Assert.That(XafTransitions.Allows(package, from, to), Is.True, $"{from} to {to}");
+    }
+
+    /// <summary>
     /// A part's layer is added to the animator's art canvas, which sits just above
     /// the preview panel, so a layer below -1 draws behind the panel and vanishes.
     /// The parts therefore share one layer and overlap in list order, which is

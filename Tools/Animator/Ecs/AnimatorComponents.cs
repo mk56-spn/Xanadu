@@ -108,6 +108,30 @@ public enum ToolActionKind
 
     /// <summary>Plays every clip in the file into the next.</summary>
     SequenceAll,
+
+    /// <summary>Allows or forbids the current clip fading into the clip the argument names, and selects it.</summary>
+    AllowTransition,
+
+    /// <summary>Selects the hand-over from the current clip into the clip the argument names, for the FLOW tab to edit.</summary>
+    SelectTransition,
+
+    /// <summary>Shortens the selected transition's fade by one step.</summary>
+    TransitionFadeDown,
+
+    /// <summary>Lengthens the selected transition's fade by one step.</summary>
+    TransitionFadeUp,
+
+    /// <summary>Sets the selected transition's fade curve; the argument names the <see cref="XafFadeCurve"/>.</summary>
+    TransitionCurve,
+
+    /// <summary>Plays the current clip into the selected one with its fade, as the game would.</summary>
+    PreviewTransition,
+
+    /// <summary>Makes the transition preview repeat until stopped.</summary>
+    ToggleFlowLoop,
+
+    /// <summary>Plays every preview at a quarter of its speed, to watch a fade closely.</summary>
+    ToggleSlow,
 }
 
 /// <summary>Command carried by a pressable UI entity.</summary>
