@@ -52,6 +52,7 @@ public sealed class PlayerMovementSystem : QuerySystem<Player, Position, Playfie
             return;
 
         CommandBuffer buffer = CommandBuffer;
+        var facings = new List<(Entity Entity, bool Left)>();
 
         Query.ForEachEntity((ref player, ref position, ref view, ref body, ref playhead, entity) =>
         {
@@ -90,7 +91,7 @@ public sealed class PlayerMovementSystem : QuerySystem<Player, Position, Playfie
             position.Value = targetScreen;
             float horizontal = DashDirectionVector(movement.DashDirection).X;
             if (horizontal != 0f)
-                entity.AddComponent(new CharacterFacing { Left = horizontal < 0f });
+                facings.Add((entity, horizontal < 0f));
             _entities.CreateEntity(new DashTrail(screen, targetScreen));
             _entities.CreateEntity(new ParticleBurst(targetScreen, ParticleKind.Dash));
 
@@ -121,6 +122,10 @@ public sealed class PlayerMovementSystem : QuerySystem<Player, Position, Playfie
                 }
             }
         });
+
+        // Structural changes have to wait until the query loop is done.
+        foreach ((Entity entity, bool left) in facings)
+            entity.AddComponent(new CharacterFacing { Left = left });
     }
 
     private bool TryFindMovementNote(
