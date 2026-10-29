@@ -66,6 +66,24 @@ public sealed class AnimatorLayoutTests : AnimatorToolTest
     }
 
     [Test]
+    public void PlayAndStopSitAtTheLeftOfTheTimelineStripAndLoopStaysAtItsRight()
+    {
+        Rect2 panel = AnimatorGeometry.PanelArea(Ui.Timeline);
+        Rect2 play = AnimatorGeometry.PanelArea(Button(ToolActionKind.Play));
+        Rect2 stop = AnimatorGeometry.PanelArea(Button(ToolActionKind.Stop));
+        Rect2 loop = AnimatorGeometry.PanelArea(Ui.LoopButton);
+
+        Assert.That(panel.Encloses(play), Is.True);
+        Assert.That(play.Position.Y, Is.LessThan(panel.Position.Y + 40f));
+        Assert.That(stop.Position.X, Is.GreaterThan(play.End.X));
+        Assert.That(stop.End.X, Is.LessThanOrEqualTo(
+            panel.Position.X + 10f + AnimatorTimelineModel.TransportWidth + 0.5f));
+        Assert.That(loop.Position.X, Is.GreaterThan(stop.End.X));
+        Assert.That(panel.Encloses(loop), Is.True);
+        Assert.That(loop.Position.Y, Is.EqualTo(play.Position.Y).Within(0.5f));
+    }
+
+    [Test]
     public void TimelineRulerRowsAndLabelsLieInsideItsPanel()
     {
         Rect2 panel = AnimatorGeometry.PanelArea(Ui.Timeline);

@@ -68,9 +68,11 @@ public sealed class AnimatorTimelineDrawSystem(IRectCanvas canvas, Rid target)
         canvas.DrawTextStyledLeft(
             target,
             new Rect2(
-                model.Panel.Position.X + AnimatorTimelineModel.Padding,
+                model.Panel.Position.X + AnimatorTimelineModel.Padding +
+                AnimatorTimelineModel.TransportWidth,
                 model.Panel.Position.Y + AnimatorTimelineModel.Padding,
-                model.Panel.Size.X - AnimatorTimelineModel.Padding * 2,
+                model.Panel.Size.X - AnimatorTimelineModel.Padding * 2 -
+                AnimatorTimelineModel.TransportWidth,
                 AnimatorTimelineModel.HeaderHeight),
             $"{model.Clip.Id}   {runtime.CurrentTime:0.00}s / {model.Clip.Duration:0.00}s" +
             $"   zoom x{model.Zoom:0.#}   snap {model.SnapStep:0.###}s (Shift = free){loop}{rows}",

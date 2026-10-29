@@ -239,7 +239,6 @@ public static partial class AnimatorLayout
     {
         ui.Panel(Vector2.Zero, new Vector2(RightWidth, height),
             cross: StackCrossAlignment.Center, main: StackMainAlignment.Start);
-        Row(ui, ("PLAY", ToolActionKind.Play), ("STOP", ToolActionKind.Stop));
         Row(ui, ("ROT-", ToolActionKind.RotateLeft), ("ROT+", ToolActionKind.RotateRight));
         Row(ui, ("SCL-", ToolActionKind.ScaleDown), ("SCL+", ToolActionKind.ScaleUp));
         Row(ui, ("KEY", ToolActionKind.KeyBone), ("POSE", ToolActionKind.KeyPose));
@@ -258,8 +257,21 @@ public static partial class AnimatorLayout
             takesInput: true, main: StackMainAlignment.Start);
         refs.Ui.Timeline = ui.Current;
 
-        // The clip controls sit right-aligned in the header, over the drawn caption.
-        ui.Container(Vector2.Zero, new Vector2(width - 20, AnimatorTimelineModel.HeaderHeight),
+        // Transport sits at the header's left, with the drawn caption after it; the
+        // clip controls are right-aligned in the rest of the row.
+        float row = width - 20;
+        ui.Container(Vector2.Zero, new Vector2(row, AnimatorTimelineModel.HeaderHeight),
+            spacing: 0, color: Clear, main: StackMainAlignment.Start);
+        var transport = new Vector2(
+            AnimatorTimelineModel.TransportButtonWidth, AnimatorTimelineModel.HeaderHeight);
+        ui.Container(Vector2.Zero,
+            new Vector2(AnimatorTimelineModel.TransportWidth, AnimatorTimelineModel.HeaderHeight),
+            spacing: 6, color: Clear, main: StackMainAlignment.Start);
+        IconAction(ui, "PL", "play", ToolActionKind.Play, transport);
+        IconAction(ui, "ST", "stop", ToolActionKind.Stop, transport);
+        ui.End();
+        ui.Container(Vector2.Zero,
+            new Vector2(row - AnimatorTimelineModel.TransportWidth, AnimatorTimelineModel.HeaderHeight),
             spacing: 6, color: Clear, main: StackMainAlignment.End);
         InterpolationButton(ui, "STEP", XafEasePreset.Step, 44);
         InterpolationButton(ui, "LINEAR", XafEasePreset.Linear, 56);
@@ -275,6 +287,7 @@ public static partial class AnimatorLayout
         HeaderButton(ui, "ALL", ToolActionKind.SequenceAll, 40);
         ui.RectEntity(Vector2.Zero, new Vector2(8, AnimatorTimelineModel.HeaderHeight), Clear);
         refs.Ui.LoopButton = HeaderButton(ui, "LOOP", ToolActionKind.ToggleLoop, 76);
+        ui.End();
         ui.End();
         ui.End();
     }
