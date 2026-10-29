@@ -15,6 +15,15 @@ public sealed class SvgAttachmentVisuals(Rid canvas) : IAttachmentVisuals
     private readonly List<Visual> _visuals = new();
     private readonly List<ChainVisual> _chains = new();
     private readonly List<EffectVisual> _effects = new();
+    private readonly List<ClothVisual> _cloths = new();
+
+    // Godot sorts the items of one layer by draw index. Attachments keep the
+    // default of zero, so the body layers as it always has; cloth, chains and
+    // effects come after them, so a dress on the legs' layer covers the legs
+    // and stays under the next layer up.
+    private const int ClothOrder = 10_000;
+    private const int ChainOrder = 20_000;
+    private const int EffectOrder = 30_000;
 
     public void Reload(XafPackage package)
     {
@@ -39,6 +48,17 @@ public sealed class SvgAttachmentVisuals(Rid canvas) : IAttachmentVisuals
             XafChain chain = package.Chains[i];
             if (chain.HasArt && TryRaster(chain.SvgPath, chain.Group, out ImageTexture? texture, out Vector2 size))
                 _chains.Add(new ChainVisual(i, texture!, size, chainLayer));
+        }
+
+        for (int i = 0; i < package.Cloths.Count; i++)
+        {
+            XafCloth cloth = package.Cloths[i];
+            Rid item = RenderingServer.CanvasItemCreate();
+            RenderingServer.CanvasItemSetParent(item, canvas);
+            RenderingServer.CanvasItemSetZIndex(
+                item, Math.Clamp(cloth.ZOrder, XafAttachment.MinLayer, XafAttachment.MaxLayer));
+            RenderingServer.CanvasItemSetDrawIndex(item, ClothOrder + i);
+            _cloths.Add(new ClothVisual(i, item));
         }
 
         ReloadEffects(package);
@@ -102,7 +122,11 @@ public sealed class SvgAttachmentVisuals(Rid canvas) : IAttachmentVisuals
 
             // Segments can be added or removed while editing, so the pieces follow the points.
             while (visual.Items.Count < segments)
-                visual.Items.Add(CreateItem(visual.Texture, visual.Size, visual.Layer));
+            {
+                Rid piece = CreateItem(visual.Texture, visual.Size, visual.Layer);
+                RenderingServer.CanvasItemSetDrawIndex(piece, ChainOrder + visual.Items.Count);
+                visual.Items.Add(piece);
+            }
             while (visual.Items.Count > segments)
             {
                 RenderingServer.FreeRid(visual.Items[^1]);
@@ -115,6 +139,50 @@ public sealed class SvgAttachmentVisuals(Rid canvas) : IAttachmentVisuals
                     visual.Items[s],
                     placement * XafChainArt.Segment(points[s], points[s + 1], s, segments, chain.Width, visual.Size));
             }
+        }
+    }
+
+    public void ApplyCloths(XafPackage package, XafClothSimulation simulation, Transform2D placement)
+    {
+        foreach (ClothVisual visual in _cloths)
+        {
+            RenderingServer.CanvasItemClear(visual.Item);
+            if (visual.Index >= package.Cloths.Count)
+                continue;
+
+            XafCloth cloth = package.Cloths[visual.Index];
+            IReadOnlyList<Vector2> points = simulation.Points(visual.Index);
+            if (points.Count != cloth.Count)
+                continue;
+
+            var placed = new Vector2[points.Count];
+            for (int i = 0; i < placed.Length; i++)
+                placed[i] = placement * points[i];
+
+            // The grid is rebuilt when its size changes, so the triangles follow the cloth.
+            if (visual.Columns != cloth.Columns || visual.Rows != cloth.Rows)
+            {
+                visual.Columns = cloth.Columns;
+                visual.Rows = cloth.Rows;
+                visual.Triangles = XafClothLayout.Triangles(cloth.Columns, cloth.Rows);
+                visual.Outline = XafClothLayout.Outline(cloth.Columns, cloth.Rows);
+            }
+
+            var colors = new Color[placed.Length];
+            for (int row = 0; row < cloth.Rows; row++)
+            {
+                // A little darker towards the hem, so the sheet reads as hanging cloth, not a flat shape.
+                Color shade = cloth.Fill.Darkened(0.25f * row / Math.Max(1, cloth.Rows - 1));
+                for (int column = 0; column < cloth.Columns; column++)
+                    colors[cloth.Index(column, row)] = shade;
+            }
+
+            RenderingServer.CanvasItemAddTriangleArray(visual.Item, visual.Triangles, placed, colors);
+            var outline = new Vector2[visual.Outline.Length];
+            for (int i = 0; i < outline.Length; i++)
+                outline[i] = placed[visual.Outline[i]];
+            RenderingServer.CanvasItemAddPolyline(
+                visual.Item, outline, new[] { cloth.Fill.Darkened(0.45f) }, 1.5f, true);
         }
     }
 
@@ -153,6 +221,10 @@ public sealed class SvgAttachmentVisuals(Rid canvas) : IAttachmentVisuals
         foreach (EffectVisual effect in _effects)
             RenderingServer.FreeRid(effect.Item);
         _effects.Clear();
+
+        foreach (ClothVisual cloth in _cloths)
+            RenderingServer.FreeRid(cloth.Item);
+        _cloths.Clear();
     }
 
     /// <summary>
@@ -188,6 +260,7 @@ public sealed class SvgAttachmentVisuals(Rid canvas) : IAttachmentVisuals
         Rid canvasItem = RenderingServer.CanvasItemCreate();
         RenderingServer.CanvasItemSetParent(canvasItem, canvas);
         RenderingServer.CanvasItemSetZIndex(canvasItem, layer);
+        RenderingServer.CanvasItemSetDrawIndex(canvasItem, EffectOrder + _effects.Count);
         RenderingServer.CanvasItemSetVisible(canvasItem, false);
         RenderingServer.CanvasItemAddTriangleArray(canvasItem, triangles, points, colors, uvs,
             texture: texture?.GetRid() ?? default);
@@ -246,6 +319,17 @@ public sealed class SvgAttachmentVisuals(Rid canvas) : IAttachmentVisuals
     /// One chain's art: the texture shared by its pieces, the layer they all draw
     /// on, and a canvas item per segment.
     /// </summary>
+    /// <summary>One cloth's canvas item, redrawn every frame, and the grid its triangles were built for.</summary>
+    private sealed class ClothVisual(int index, Rid item)
+    {
+        public int Index { get; } = index;
+        public Rid Item { get; } = item;
+        public int Columns { get; set; }
+        public int Rows { get; set; }
+        public int[] Triangles { get; set; } = Array.Empty<int>();
+        public int[] Outline { get; set; } = Array.Empty<int>();
+    }
+
     private sealed record ChainVisual(int Index, ImageTexture Texture, Vector2 Size, int Layer)
     {
         public List<Rid> Items { get; } = new();

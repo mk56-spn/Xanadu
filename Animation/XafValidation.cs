@@ -96,6 +96,8 @@ public static class XafValidation
             XafEffects.Validate(effect, issues);
         }
 
+        XafClothValidation.Validate(package, boneIds, issues);
+
         var clipIds = new HashSet<string>(StringComparer.Ordinal);
         foreach (XafClip clip in package.Clips)
         {

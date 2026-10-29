@@ -9,7 +9,7 @@ namespace Xanadu.Animation;
 public sealed class XafPackage
 {
     public const ushort MajorVersion = 1;
-    public const ushort MinorVersion = 5;
+    public const ushort MinorVersion = 6;
 
     public ushort Major = MajorVersion;
     public ushort Minor = MinorVersion;
@@ -23,6 +23,9 @@ public sealed class XafPackage
 
     /// <summary>Items drawn on the rig only while a clip keys them visible, such as streaks and flashes.</summary>
     public List<XafEffect> Effects = new();
+
+    /// <summary>Simulated sheets pinned to the body, such as a dress; see <see cref="XafCloth"/>.</summary>
+    public List<XafCloth> Cloths = new();
 }
 
 /// <summary>
