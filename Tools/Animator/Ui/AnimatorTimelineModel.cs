@@ -18,7 +18,11 @@ public sealed class AnimatorTimelineModel
     public const float Padding = 10f;
     public const float LabelWidth = 170f;
     public const float Gap = 8f;
-    public const float HeaderHeight = 20f;
+    public const float HeaderHeight = 28f;
+
+    /// <summary>The play and stop buttons at the header's left; the caption starts after them.</summary>
+    public const float TransportButtonWidth = 34f;
+    public const float TransportWidth = TransportButtonWidth * 2 + 6f + 10f;
     public const float RulerHeight = 24f;
     public const float RowHeight = 20f;
     public const float KeyRadius = 6f;
