@@ -19,17 +19,19 @@ public static partial class SongSelectScene
 
     private static void BuildChrome(UiBuilder ui, bool loadAssets)
     {
+        UiNode root = UiNode.Wrap(ui.Current, ui.Visuals);
+
         // One straight edge, leaning the same 6 degrees as the preview frame.
         const float edgeBottom = 662.194f;
         float edgeTop = edgeBottom + Mathf.Tan(PreviewTilt) * 1080;
-        Entity wedge = ui.ShapeEntity(
+        Entity wedge = root.Shape(
             [
                 new(0, 0),
                 new(edgeTop, 0),
                 new(edgeBottom, 1080),
                 new(0, 1080),
             ],
-            ListBackdrop);
+            ListBackdrop).Entity;
         Frost(wedge, loadAssets);
 
         Vector2[] underline =
@@ -38,31 +40,29 @@ public static partial class SongSelectScene
             new(481.727f, 84.749f), new(616.372f, 84.749f),
         ];
 
-        Entity line = ui.ShapeEntity(underline, default, Gold, 3, closed: false);
-        line.AddComponent(new ShapeGlow(new Color(Gold, 0.9f), radius: 10, intensity: 2f));
-        line.AddTag<UiRaised>();
+        root.Shape(underline, default, Gold, 3, closed: false)
+            .With(new ShapeGlow(new Color(Gold, 0.9f), radius: 10, intensity: 2f))
+            .Raised();
 
         // The visualizer hangs from the underline, its bars driven by the song preview.
-        Entity visualizer = ui.RectEntity(Vector2.Zero, Vector2.One, Transparent);
-        visualizer.AddComponent(new UiBarGraph(
-            underline,
-            VisualizerBars,
-            VisualizerBarWidth,
-            VisualizerHeight,
-            new Color(Gold, 0.8f),
-            GoldLight));
-        visualizer.AddTag<UiRaised>();
+        root.Rect(Transparent, size: Vector2.One)
+            .With(new UiBarGraph(
+                underline,
+                VisualizerBars,
+                VisualizerBarWidth,
+                VisualizerHeight,
+                new Color(Gold, 0.8f),
+                GoldLight))
+            .Raised();
 
-        Entity title = SceneUi.Text(
-            ui,
-            TextCenter(12.202f, 108.339f, 460, 70),
-            new Vector2(460, 84),
-            LocalizedText.Get(SongSelectStrings.Title),
-            70,
-            Colors.White,
-            new Color(0, 0, 0, 0));
-        title.AddComponent(new TextAlignment(TextAlign.Left));
-        title.GetComponent<TextStyle>().Bold = true;
+        root.Text(
+                LocalizedText.Get(SongSelectStrings.Title),
+                70,
+                Colors.White,
+                TextAlign.Left)
+            .Size(460, 84)
+            .At(TextCenter(12.202f, 108.339f, 460, 70))
+            .Bold();
     }
 
     /// <summary>

@@ -24,6 +24,7 @@ public static partial class SongSelectScene
 
     private static InfoViews BuildInfo(UiBuilder ui, bool loadAssets)
     {
+        UiNode root = UiNode.Wrap(ui.Current, ui.Visuals);
         const float differenceHeight = 44;
         const float genreHeight = 30;
         const float titleHeight = 60;
@@ -34,53 +35,43 @@ public static partial class SongSelectScene
 
         // The card's left edge runs down the same slant as everything else, and
         // its right end runs off screen.
-        ui.Container(
-            new Vector2(InfoLeft + InfoWidth / 2, InfoTop + height / 2),
-            new Vector2(InfoWidth, height),
-            StackDirection.Vertical,
-            spacing: gap,
-            color: Dim,
-            padding: InfoPadding,
-            cross: StackCrossAlignment.Start,
-            main: StackMainAlignment.Start,
-            skew: PreviewTilt);
-        Frost(ui.Current, loadAssets);
+        UiNode panel = root.Column()
+            .Size(InfoWidth, height)
+            .At(new Vector2(InfoLeft + InfoWidth / 2, InfoTop + height / 2))
+            .Fill(Dim)
+            .Pad(InfoPadding)
+            .Gap(gap)
+            .Cross(StackCrossAlignment.Start)
+            .Main(StackMainAlignment.Start)
+            .Skew(PreviewTilt);
+        Frost(panel.Entity, loadAssets);
 
         // The difficulty's name sits on a small skewed plate in the chip colour.
-        ui.Container(
-            Vector2.Zero,
-            new Vector2(300, differenceHeight),
-            StackDirection.Vertical,
-            color: Transparent,
-            text: "",
-            skew: PreviewTilt);
-        Entity difficulty = ui.Current;
-        difficulty.AddComponent(new TextStyle(30, Colors.White, bold: true));
-        difficulty.AddComponent(new UiBorder(Transparent, 3));
-        ui.End();
+        Entity difficulty = panel.Column()
+            .Size(300, differenceHeight)
+            .Fill(Transparent)
+            .Skew(PreviewTilt)
+            .With(new Text(""))
+            .With(new TextStyle(30, Colors.White, bold: true))
+            .Border(Transparent, 3);
 
-        Entity genre = InfoLine(ui, genreHeight, 22, Gold);
-        Entity title = InfoLine(ui, titleHeight, TitleLargest, Colors.White);
-        Entity artist = InfoLine(ui, artistHeight, 28, new Color(0.85f, 0.87f, 0.9f));
-        ui.End();
+        Entity genre = InfoLine(panel, genreHeight, 22, Gold);
+        Entity title = InfoLine(panel, titleHeight, TitleLargest, Colors.White);
+        Entity artist = InfoLine(
+            panel, artistHeight, 28, new Color(0.85f, 0.87f, 0.9f));
 
         return new InfoViews(difficulty, genre, title, artist);
     }
 
-    private static Entity InfoLine(UiBuilder ui, float height, int fontSize, Color color)
-    {
-        Entity line = SceneUi.Text(
-            ui,
-            Vector2.Zero,
-            new Vector2(InfoTextWidth, height),
-            "",
-            fontSize,
-            color,
-            Transparent);
-        line.AddComponent(new TextAlignment(TextAlign.Left));
-        line.GetComponent<TextStyle>().Bold = true;
-        return line;
-    }
+    private static Entity InfoLine(
+        UiNode panel,
+        float height,
+        int fontSize,
+        Color color) =>
+        panel.Text("", fontSize, color, TextAlign.Left)
+            .Size(InfoTextWidth, height)
+            .Bold();
+
 
     private static void RefreshInfo(ref SongSelectState state, IReadOnlyList<LevelEntry> catalog)
     {

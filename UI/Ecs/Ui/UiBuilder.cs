@@ -16,6 +16,13 @@ public sealed partial class UiBuilder
 
     private readonly EntityStore _entities;
     private readonly IVisualRidFactory _visuals;
+
+    /// <summary>
+    /// The factory this builder creates canvas items with. Exposed so a tree can
+    /// be continued through <see cref="UiNode.Wrap"/> without inventing a
+    /// second one (which would need the engine in tests).
+    /// </summary>
+    public IVisualRidFactory Visuals => _visuals;
     private readonly Stack<Entity> _parents = new();
 
     private Entity _current;
