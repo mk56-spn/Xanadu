@@ -10,7 +10,7 @@ public sealed record VisualTestContext(
     EntityStore Entities,
     XanaduSystemRoot Systems,
     Vector2 Screen,
-    Control Host,
+    Node2D Host,
     ScriptedPointerInputSource Pointer,
     ScriptedKeyboardState Keyboard)
 {
