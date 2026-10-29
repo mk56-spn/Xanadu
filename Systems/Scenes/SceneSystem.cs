@@ -107,6 +107,11 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
     /// <summary>Saves the active editor before confirming a leave, when available.</summary>
     public Func<bool>? SaveEditor { get; set; }
 
+    /// <summary>Opens the host's file picker; the host owns the dialog.</summary>
+    public Action? AddSongRequested { get; set; }
+
+    public void RequestAddSong() => AddSongRequested?.Invoke();
+
     /// <summary>Queues a scene transition.</summary>
     public void Request(SceneKind scene)
     {

@@ -8,5 +8,8 @@ public static class SongTimingSceneActions
     {
         registry.Register(SceneKind.SongTiming, SceneActionId.Back,
             context => context.Scenes.CloseSongTiming());
+
+        registry.Register(SceneKind.SongTiming, SceneActionId.AddSong,
+            context => context.Scenes.RequestAddSong());
     }
 }

@@ -25,7 +25,7 @@ public partial class Main : Control
 	private SceneDirector? _sceneDirector;
 	private EditorOverlay? _editorOverlay;
 	private OffsetWizardOverlay? _offsetWizard;
-	private SongTimingOverlay? _songTimingOverlay;
+	private FileDialog? _addSongDialog;
 
 	public override void _Ready()
 	{
@@ -47,7 +47,41 @@ public partial class Main : Control
 			// surface, so every scene lays out at 1920x1080 and scales as one.
 			UiStage.Design1080);
 
+		_systems.Scenes.AddSongRequested = ShowAddSongDialog;
 		_systems.Scenes.Start(SceneKind.Profiles);
+	}
+
+	/// <summary>Opens the only Godot picker left: choosing an audio file to import.</summary>
+	private void ShowAddSongDialog()
+	{
+		if (_addSongDialog is null)
+		{
+			_addSongDialog = new FileDialog
+			{
+				FileMode = FileDialog.FileModeEnum.OpenFile,
+				Access = FileDialog.AccessEnum.Filesystem,
+				UseNativeDialog = false,
+				Title = "Add song",
+				Filters = ["*.mp3, *.wav, *.ogg, *.flac ; Audio Files"],
+			};
+			_addSongDialog.FileSelected += OnAddSongSelected;
+			AddChild(_addSongDialog);
+		}
+
+		_addSongDialog.PopupCentered(new Vector2I(900, 600));
+	}
+
+	private void OnAddSongSelected(string path)
+	{
+		try
+		{
+			SongDocument song = new SongStore().Import(path);
+			_systems?.Scenes.OpenSongTiming(song.Id, SceneKind.SongSelect);
+		}
+		catch (Exception exception)
+		{
+			GD.PushError($"Add song failed: {exception.Message}");
+		}
 	}
 
 	public override void _Input(InputEvent @event)
@@ -220,19 +254,6 @@ public partial class Main : Control
 			_editorOverlay.Close();
 			_editorOverlay = null;
 		}
-
-		if (scene == SceneKind.SongTiming)
-		{
-			if (_songTimingOverlay is not null)
-				return;
-
-			_songTimingOverlay = new SongTimingOverlay(_systems!.Scenes);
-			AddChild(_songTimingOverlay);
-			return;
-		}
-
-		_songTimingOverlay?.QueueFree();
-		_songTimingOverlay = null;
 
 		if (scene == SceneKind.OffsetWizard)
 		{

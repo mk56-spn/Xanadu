@@ -54,6 +54,19 @@ public sealed class SongTimingSceneTests
     }
 
     [Test]
+    public void TheActionRowOffersAddSong()
+    {
+        Build();
+
+        var actions = _store.Query<SceneCommand>().ToEntityList()
+            .Select(entity => entity.GetComponent<SceneCommand>().Action)
+            .ToList();
+
+        Assert.That(actions, Does.Contain(SceneActionId.AddSong));
+        Assert.That(actions, Does.Contain(SceneActionId.Back));
+    }
+
+    [Test]
     public void TheViewPointsAtTheThreeLiveLabels()
     {
         Build();

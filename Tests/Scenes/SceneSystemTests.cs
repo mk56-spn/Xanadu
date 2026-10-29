@@ -68,6 +68,27 @@ public sealed class SceneSystemTests
     }
 
     [Test]
+    public void TheAddSongActionAsksTheHostForAFile()
+    {
+        bool asked = false;
+        _scenes.AddSongRequested = () => asked = true;
+
+        var registry = new SceneActionRegistry();
+        SongTimingSceneActions.Register(registry);
+
+        bool handled = registry.TryInvoke(
+            SceneKind.SongTiming,
+            new SceneActionContext(
+                _scenes,
+                _store,
+                default,
+                new SceneCommand(SceneActionId.AddSong)));
+
+        Assert.That(handled, Is.True);
+        Assert.That(asked, Is.True);
+    }
+
+    [Test]
     public void MainMenuStartsScene()
     {
         _scenes.Start(SceneKind.Main);
