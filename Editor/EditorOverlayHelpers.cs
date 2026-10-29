@@ -40,6 +40,7 @@ public partial class EditorOverlay : CanvasLayer
         (_saveAsDialog?.Visible ?? false) ||
         (_loadDialog?.Visible ?? false) ||
         IsRecoveryDialogVisible() ||
+        IsBackgroundDialogVisible() ||
         IsShaderDialogVisible();
 
     /// <summary>Whether a group's overlay screen is up, which takes over the keyboard and the pointer.</summary>

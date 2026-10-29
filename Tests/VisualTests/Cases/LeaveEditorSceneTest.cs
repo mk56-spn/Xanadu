@@ -28,7 +28,7 @@ public sealed class LeaveEditorSceneTest : SceneTest
         AddUntilStep(
             "wait for editor",
             () => Context.Scenes.Current == SceneKind.Editor &&
-                  VisualAssert.HasText(Context.Entities, "MENU"));
+                  VisualAssert.HasText(Context.Entities, "LEVEL EDITOR"));
         AddStep("create editor overlay", CreateOverlay);
         AddStep("wire editor save", () =>
             Context.Scenes.SaveEditor = () => _saved = true);

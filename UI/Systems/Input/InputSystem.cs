@@ -83,18 +83,20 @@ public sealed class InputSystem : QuerySystem<Rectangle, Drawable, Position>
 
         if (input.Pressed && !_wasPressed)
         {
-            ReleasePressed(buffer);
+            ReleasePressed();
 
             if (target is { } pressed)
             {
-                buffer.AddTag<Pressed>(pressed.Id);
+                // Add the tag immediately, not through the command buffer: the
+                // dropdown and scene systems later in this frame must see the
+                // same press, and the buffer is not flushed until the group ends.
+                pressed.AddTag<Pressed>();
                 _pressed = pressed;
-
             }
         }
         else if (!input.Pressed && _wasPressed)
         {
-            ReleasePressed(buffer);
+            ReleasePressed();
         }
 
         _wasPressed = input.Pressed;
@@ -120,7 +122,7 @@ public sealed class InputSystem : QuerySystem<Rectangle, Drawable, Position>
         return false;
     }
 
-    private void ReleasePressed(CommandBuffer buffer)
+    private void ReleasePressed()
     {
         if (_pressed is not { } pressed || pressed.IsNull)
         {
@@ -128,7 +130,7 @@ public sealed class InputSystem : QuerySystem<Rectangle, Drawable, Position>
             return;
         }
 
-        buffer.RemoveTag<Pressed>(pressed.Id);
+        pressed.RemoveTag<Pressed>();
         _pressed = null;
     }
 

@@ -9,6 +9,9 @@ public struct AnimatorUi : IComponent
     public Entity Status;
     public Entity Preview;
     public Entity Timeline;
+
+    /// <summary>The clip, time, zoom and snap readout beside the timeline's transport.</summary>
+    public Entity TimelineCaption;
     public Entity BoneList;
     public Entity AttachmentList;
     public Entity ChainList;

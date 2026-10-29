@@ -41,10 +41,12 @@ public sealed class LevelDocumentMapperTests
             new Block(new Vector2(120, 340), new Vector2(200, 100)));
         sourceStore.CreateEntity(
             new Spike(new Vector2(400, 800), new Vector2(100, 100)));
+        source.GetComponent<LevelInfo>().Background = new Color("#204060");
 
         LevelDocument document = LevelDocumentMapper.Capture(sourceStore, source);
 
         Assert.That(document.Name, Is.EqualTo("Mapped"));
+        Assert.That(document.BackgroundColor, Is.EqualTo("#204060"));
         Assert.That(document.SnapDivision, Is.EqualTo(16));
         Assert.That(document.Notes, Has.Count.EqualTo(2));
         Assert.That(document.Notes[0].Target, Is.EqualTo(KeybindAction.L1));
@@ -89,6 +91,9 @@ public sealed class LevelDocumentMapperTests
         Assert.That(target.GetComponent<LevelInfo>().Name, Is.EqualTo("Mapped"));
         Assert.That(target.GetComponent<LevelInfo>().Artist, Is.Empty);
         Assert.That(target.GetComponent<LevelInfo>().Difficulty, Is.EqualTo("Mapped"));
+        Assert.That(
+            target.GetComponent<LevelInfo>().Background,
+            Is.EqualTo(new Color("#204060")));
         Assert.That(target.GetComponent<Playfield>().Width, Is.EqualTo(1000));
         Assert.That(target.GetComponent<Playhead>().Bpm, Is.EqualTo(120));
         Assert.That(target.GetComponent<Playhead>().SnapDivision, Is.EqualTo(16));

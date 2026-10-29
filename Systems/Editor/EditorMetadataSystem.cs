@@ -5,6 +5,7 @@ using Friflo.Engine.ECS.Systems;
 using Godot;
 using Xanadu.Ecs;
 using Xanadu.Editor.Commands;
+using Xanadu.Levels;
 using Position = Xanadu.Ecs.Position;
 
 namespace Xanadu.Systems.Editor;
@@ -59,6 +60,7 @@ public sealed class EditorMetadataSystem : QuerySystem<EditorMetadataPanel>
 
         LevelInfo level = editor.GetComponent<LevelInfo>();
         Playhead playhead = editor.GetComponent<Playhead>();
+        UpdateBackgroundColorControl(level);
         bool hasSelectedStart = TryGetSelectedStart(
             editor,
             out Entity selectedStartEntity,
@@ -180,6 +182,34 @@ public sealed class EditorMetadataSystem : QuerySystem<EditorMetadataPanel>
                     }
                     break;
             }
+        }
+    }
+
+    /// <summary>Mirrors the level's background colour onto the metadata swatch and its hex label.</summary>
+    private void UpdateBackgroundColorControl(LevelInfo level)
+    {
+        Color color = level.Background ?? LevelBackground.Default;
+        foreach (Entity entity in _entities.Query<EditorBackgroundSwatch, FillColor>().ToEntityList())
+        {
+            ref FillColor fill = ref entity.GetComponent<FillColor>();
+            if (fill.Value == color)
+                continue;
+
+            fill.Value = color;
+            CommandBuffer.AddTag<Dirty>(entity.Id);
+        }
+
+        string label = level.Background is { } background
+            ? LevelBackground.Format(background)
+            : "DEFAULT";
+        foreach (Entity entity in _entities.Query<EditorBackgroundHex, Text>().ToEntityList())
+        {
+            ref Text text = ref entity.GetComponent<Text>();
+            if (text.Value == label)
+                continue;
+
+            text.Value = label;
+            CommandBuffer.AddTag<Dirty>(entity.Id);
         }
     }
 

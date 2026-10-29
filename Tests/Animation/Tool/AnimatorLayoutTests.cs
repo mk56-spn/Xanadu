@@ -4,6 +4,7 @@ using Xanadu.Ecs;
 using NUnit.Framework;
 using Xanadu.Systems.Ui;
 using Xanadu.Tools.Animator;
+using Xanadu.Animation;
 
 namespace Xanadu.Tests.Animation.Tool;
 
@@ -132,11 +133,33 @@ public sealed class AnimatorLayoutTests : AnimatorToolTest
         Assert.That(panel.Encloses(play), Is.True);
         Assert.That(play.Position.Y, Is.LessThan(panel.Position.Y + 40f));
         Assert.That(stop.Position.X, Is.GreaterThan(play.End.X));
-        Assert.That(stop.End.X, Is.LessThanOrEqualTo(
-            panel.Position.X + 10f + AnimatorTimelineModel.TransportWidth + 0.5f));
-        Assert.That(loop.Position.X, Is.GreaterThan(stop.End.X));
-        Assert.That(panel.Encloses(loop), Is.True);
+        Assert.That(play.Position.X, Is.EqualTo(panel.Position.X + 10f).Within(0.5f));
+        Assert.That(loop.End.X, Is.EqualTo(panel.End.X - 10f).Within(0.5f));
         Assert.That(loop.Position.Y, Is.EqualTo(play.Position.Y).Within(0.5f));
+    }
+
+    [Test]
+    public void TheCaptionSitsBetweenTheTransportAndTheClipControls()
+    {
+        Rect2 stop = AnimatorGeometry.PanelArea(Button(ToolActionKind.Stop));
+        Rect2 caption = AnimatorGeometry.PanelArea(Ui.TimelineCaption);
+        Rect2 interpolation = AnimatorGeometry.PanelArea(Button(ToolActionKind.Interpolate, nameof(XafEasePreset.Step)));
+
+        Assert.That(caption.Position.X, Is.GreaterThan(stop.End.X));
+        Assert.That(caption.End.X, Is.LessThan(interpolation.Position.X));
+        Assert.That(caption.GetCenter().Y, Is.EqualTo(stop.GetCenter().Y).Within(0.5f));
+    }
+
+    [Test]
+    public void HeaderPutsHistoryAtTheLeftAndTheDropdownsAtTheRight()
+    {
+        Rect2 header = AnimatorGeometry.PanelArea(Ui.PathField.Parent.Parent);
+        Rect2 config = AnimatorGeometry.PanelArea(Ui.ConfigButton);
+        Rect2 undo = AnimatorGeometry.PanelArea(Button(ToolActionKind.Undo));
+
+        Assert.That(config.End.X, Is.EqualTo(header.End.X - 15f).Within(0.5f));
+        Assert.That(undo.Position.X, Is.LessThan(AnimatorGeometry.PanelArea(Ui.PathField).Position.X));
+        Assert.That(config.GetCenter().Y, Is.EqualTo(undo.GetCenter().Y).Within(0.5f));
     }
 
     [Test]

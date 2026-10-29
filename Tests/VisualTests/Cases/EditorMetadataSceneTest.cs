@@ -26,20 +26,18 @@ public sealed class EditorMetadataSceneTest : SceneTest
             () => Context.Scenes.Current == SceneKind.Editor &&
                   VisualAssert.HasText(Context.Entities, "SNAP"));
 
-        AddStep("open metadata panel", () =>
-        {
-            foreach (Entity button in Context.Entities
-                         .Query<SceneCommand>()
-                         .ToEntityList())
-            {
-                if (button.GetComponent<SceneCommand>().Action ==
-                    SceneActionId.ToggleMetadata)
-                {
-                    button.AddTag<Pressed>();
-                    return;
-                }
-            }
-        });
+        AddStep("open song menu", () =>
+            Context.Pointer.Click(Center(ByText("SONG ▾"))));
+        AddWaitStep("hold song menu", 2);
+        AddStep("release song menu", () => Context.Pointer.Release());
+        AddUntilStep(
+            "song menu opens",
+            () => ByText("SONG ▾").GetComponent<Dropdown>().Open);
+
+        AddStep("click level info", () =>
+            Context.Pointer.Click(Center(ByText("LEVEL INFO"))));
+        AddWaitStep("hold level info", 2);
+        AddStep("release level info", () => Context.Pointer.Release());
         AddUntilStep(
             "wait for metadata panel",
             () => Context.Entities.Query<EditorMetadataPanel>().ToEntityList()[0]
@@ -53,6 +51,28 @@ public sealed class EditorMetadataSceneTest : SceneTest
                   !Context.Entities.Query<EditorStartPanel>()
                       .ToEntityList()[0]
                       .GetComponent<EditorStartPanel>().Visible);
+
+        AddStep("set map background", () =>
+            Context.Systems.Commands.Enqueue(
+                Xanadu.Editor.Commands.EditorCommand.SetBackgroundColor(
+                    new Color("#204060"))));
+        AddUntilStep(
+            "background reaches the level",
+            () => Context.Entities.Query<LevelInfo>().ToEntityList()
+                .Any(level => level.GetComponent<LevelInfo>().Background ==
+                    new Color("#204060")));
+        AddAssert(
+            "background swatch matches",
+            () => Context.Entities.Query<EditorBackgroundSwatch, FillColor>()
+                .ToEntityList()
+                .Any(swatch =>
+                    swatch.GetComponent<FillColor>().Value ==
+                    new Color("#204060")));
+        AddAssert(
+            "background hex label matches",
+            () => Context.Entities.Query<EditorBackgroundHex, Text>()
+                .ToEntityList()
+                .Any(hex => hex.GetComponent<Text>().Value == "#204060"));
 
         AddStep("click level name field", () =>
         {
@@ -153,4 +173,13 @@ public sealed class EditorMetadataSceneTest : SceneTest
                 .AllTags(Tags.Get<TextFieldFocused>())
                 .Count == 1);
     }
+
+    private Entity ByText(string value) =>
+        Context.Entities.Query<Text>().ToEntityList()
+            .First(entity => entity.GetComponent<Text>().Value == value);
+
+    private static Vector2 Center(Entity entity) =>
+        UiTransform.WorldPosition(
+            entity,
+            entity.GetComponent<Position>().Value);
 }

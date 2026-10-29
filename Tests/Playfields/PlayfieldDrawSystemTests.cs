@@ -33,6 +33,33 @@ public sealed class PlayfieldDrawSystemTests
     }
 
     [Test]
+    public void PlayModeUsesTheMapsBackgroundColour()
+    {
+        var view = new PlayfieldView(new Vector2(100, 100), 0.5f, new Vector2(1000, 1000));
+        var playfield = new Playfield(1000, 1000);
+        var store = new EntityStore();
+        store.CreateEntity(
+            new LevelInfo("Shaded", "") { Background = new Color("#204060") },
+            view,
+            playfield,
+            new Playhead(1_000, 120, 0, true, durationMs: 5_000),
+            new PlayfieldMode(PlayfieldKind.Play));
+
+        var canvas = new RecordingCanvas();
+        var root = new SystemRoot(store);
+        root.Add(new PlayfieldDrawSystem(store, canvas, default));
+
+        root.Update(new UpdateTick(1f / 60f, 0));
+
+        Rect2 field = PlayfieldRenderer.FieldRect(view, playfield);
+        Assert.That(
+            canvas.RectCalls.Exists(call =>
+                call.Bounds == field &&
+                call.Color == new Color("#204060")),
+            Is.True);
+    }
+
+    [Test]
     public void PlayModeDrawsBlocks()
     {
         var store = new EntityStore();
@@ -140,6 +167,8 @@ public sealed class PlayfieldDrawSystemTests
     {
         public List<Rect2> Rects { get; } = new();
 
+        public List<RectCall> RectCalls { get; } = new();
+
         public List<LineCall> Lines { get; } = new();
 
         public List<CircleCall> Circles { get; } = new();
@@ -150,7 +179,11 @@ public sealed class PlayfieldDrawSystemTests
 
         public void Clear(Rid canvas) { }
 
-        public void DrawRect(Rid canvas, Rect2 bounds, Color color) => Rects.Add(bounds);
+        public void DrawRect(Rid canvas, Rect2 bounds, Color color)
+        {
+            Rects.Add(bounds);
+            RectCalls.Add(new RectCall(bounds, color));
+        }
 
         public void DrawCircle(Rid canvas, Vector2 center, float radius, Color color) =>
             Circles.Add(new CircleCall(center, radius, color));
@@ -176,6 +209,8 @@ public sealed class PlayfieldDrawSystemTests
         public void DrawTextLeft(Rid canvas, Rect2 bounds, string text, Color color) { }
 
         public void DrawTextRight(Rid canvas, Rect2 bounds, string text, Color color) { }
+
+        public readonly record struct RectCall(Rect2 Bounds, Color Color);
 
         public readonly record struct LineCall(Vector2 From, Vector2 To, Color Color);
 

@@ -62,7 +62,11 @@ public static partial class AnimatorLayout
     private const float PathWidth = 260f;
     private const float ClipLabelWidth = 48f;
     private const float HeaderControl = EditorShellMetrics.HeaderControlHeight;
-    private const float HistoryButton = 50f;
+    private const float HistoryButton = HeaderControl;
+    private const float HeaderField = 30f;
+    private const float TimelineButtonGap = 4f;
+    private const float TimelineGroupGap = 12f;
+    private const float TimelineCaptionWidth = 480f;
     private const string IconDir = "res://Assets/Icons/";
 
     /// <summary>Width of the clip dropdown button in the header.</summary>
@@ -120,11 +124,13 @@ public static partial class AnimatorLayout
 
     private static void BuildHeader(UiBuilder ui, Vector2 screen, ref Refs refs)
     {
-        float pad = (TopHeight - HeaderControl) / 2;
         ui.Container(Vector2.Zero, new Vector2(screen.X - Margin * 2, TopHeight),
-            spacing: EditorShellMetrics.HeaderGap, color: UiTheme.Panel, padding: pad);
+            color: UiTheme.Panel);
 
-        // Name, then undo and redo: the same place in every editor.
+        // Name, then undo and redo at the left edge and the dropdowns at the
+        // right: the same places as in every editor.
+        EdgeGroup(ui, new Vector2(0, 0.5f), TopHeight, EditorShellMetrics.HeaderGap,
+            (TopHeight - HeaderControl) / 2);
         ui.Container(Vector2.Zero, new Vector2(TitleWidth, HeaderControl),
             StackDirection.Vertical, spacing: 4, color: UiTheme.PanelAlt,
             cross: StackCrossAlignment.Center);
@@ -136,26 +142,42 @@ public static partial class AnimatorLayout
         var history = new Vector2(HistoryButton, HistoryButton);
         IconAction(ui, "UN", "undo", ToolActionKind.Undo, history);
         IconAction(ui, "RE", "redo", ToolActionKind.Redo, history);
+        refs.Ui.PathField = TextInput(ui, new Vector2(PathWidth, HeaderField));
+        ui.End();
 
-        refs.Ui.PathField = TextInput(ui, new Vector2(PathWidth, 26));
+        EdgeGroup(ui, new Vector2(1, 0.5f), TopHeight, EditorShellMetrics.HeaderGap,
+            (TopHeight - HeaderControl) / 2);
 
         // The clip dropdown's button lives in this slot, beside the file menu; its
         // list floats on the menu layer and drops over the preview. The slot is
         // horizontal on purpose: a vertical container makes room for an open
         // dropdown's list, which would push the button out of the header.
         ui.Text("CLIPS", new Vector2(ClipLabelWidth, 20), UiTheme.SmallFontSize, UiTheme.Accent);
-        ui.Container(Vector2.Zero, new Vector2(ClipWidth, 30), color: Clear);
+        ui.Container(Vector2.Zero, new Vector2(ClipWidth, HeaderControl), color: Clear);
         refs.Ui.ClipList = ui.Current;
         ui.End();
 
         // As wide as its list, so opening the menu does not widen the header slot.
-        refs.FileButton = ui.Button("FILE ▾", new Vector2(FileMenuWidth, 30));
+        refs.FileButton = ui.Button("FILE ▾", new Vector2(FileMenuWidth, HeaderControl));
         refs.FileButton.AddComponent(new UiTooltip("Save, load, or start a new skeleton or clip"));
 
-        refs.Ui.ConfigButton = ui.Button("CONFIG ▾", new Vector2(ConfigMenuWidth, 30));
+        refs.Ui.ConfigButton = ui.Button("CONFIG ▾", new Vector2(ConfigMenuWidth, HeaderControl));
         refs.Ui.ConfigButton.AddComponent(new UiTooltip("Clip length and delete"));
         refs.ConfigButton = refs.Ui.ConfigButton;
         ui.End();
+        ui.End();
+    }
+
+    /// <summary>
+    /// A row that sizes to its children and docks to one edge of its parent, so
+    /// a bar can hold a left group and a right group with free space between.
+    /// </summary>
+    private static void EdgeGroup(UiBuilder ui, Vector2 anchor, float height, float spacing, float padding)
+    {
+        ui.Container(Vector2.Zero, new Vector2(4, height), spacing: spacing,
+            padding: padding, color: Clear, autoWidth: true);
+        ui.Current.AddTag<LayoutIgnore>();
+        ui.Current.AddComponent(new UiAnchor(anchor, anchor));
     }
 
     /// <summary>A square icon button for a tool action; two letters stand in until the icon exists.</summary>
@@ -317,35 +339,39 @@ public static partial class AnimatorLayout
             takesInput: true, main: StackMainAlignment.Start);
         refs.Ui.Timeline = ui.Current;
 
-        // Transport sits at the header's left, with the drawn caption after it; the
-        // clip controls are right-aligned in the rest of the row.
-        float row = width - 20;
-        ui.Container(Vector2.Zero, new Vector2(row, AnimatorTimelineModel.HeaderHeight),
-            spacing: 0, color: Clear, main: StackMainAlignment.Start);
-        var transport = new Vector2(
-            AnimatorTimelineModel.TransportButtonWidth, AnimatorTimelineModel.HeaderHeight);
-        ui.Container(Vector2.Zero,
-            new Vector2(AnimatorTimelineModel.TransportWidth, AnimatorTimelineModel.HeaderHeight),
-            spacing: 6, color: Clear, main: StackMainAlignment.Start);
+        // Transport and the caption at the left; the clip's controls at the right,
+        // in groups: interpolation, name, preview, loop.
+        float h = AnimatorTimelineModel.HeaderHeight;
+        ui.Container(Vector2.Zero, new Vector2(width - 20, h), color: Clear);
+        EdgeGroup(ui, new Vector2(0, 0.5f), h, TimelineGroupGap, 0);
+        ui.Container(Vector2.Zero, new Vector2(4, h), spacing: TimelineButtonGap,
+            color: Clear, autoWidth: true);
+        var transport = new Vector2(AnimatorTimelineModel.TransportButtonWidth, h);
         IconAction(ui, "PL", "play", ToolActionKind.Play, transport);
         IconAction(ui, "ST", "stop", ToolActionKind.Stop, transport);
         ui.End();
-        ui.Container(Vector2.Zero,
-            new Vector2(row - AnimatorTimelineModel.TransportWidth, AnimatorTimelineModel.HeaderHeight),
-            spacing: 6, color: Clear, main: StackMainAlignment.End);
+        refs.Ui.TimelineCaption = ui.Text("", new Vector2(TimelineCaptionWidth, h),
+            UiTheme.SmallFontSize, UiTheme.TextDim, TextAlign.Left);
+        ui.End();
+
+        EdgeGroup(ui, new Vector2(1, 0.5f), h, TimelineGroupGap, 0);
+        ui.Container(Vector2.Zero, new Vector2(4, h), spacing: TimelineButtonGap,
+            color: Clear, autoWidth: true);
         InterpolationButton(ui, "STEP", XafEasePreset.Step, 44);
         InterpolationButton(ui, "LINEAR", XafEasePreset.Linear, 56);
         InterpolationButton(ui, "EASE", XafEasePreset.Ease, 48);
         InterpolationButton(ui, "IN", XafEasePreset.EaseIn, 34);
         InterpolationButton(ui, "OUT", XafEasePreset.EaseOut, 40);
-        ui.RectEntity(Vector2.Zero, new Vector2(14, AnimatorTimelineModel.HeaderHeight), Clear);
+        ui.End();
         refs.Ui.ClipName = ClipNameField(ui);
 
         // Game preview and loop settings stay above the timeline, side by side,
         // because they change what the clip does rather than the clip itself.
+        ui.Container(Vector2.Zero, new Vector2(4, h), spacing: TimelineButtonGap,
+            color: Clear, autoWidth: true);
         HeaderButton(ui, "GAME", ToolActionKind.SequenceGame, 52);
         HeaderButton(ui, "ALL", ToolActionKind.SequenceAll, 40);
-        ui.RectEntity(Vector2.Zero, new Vector2(8, AnimatorTimelineModel.HeaderHeight), Clear);
+        ui.End();
         refs.Ui.LoopButton = HeaderButton(ui, "LOOP", ToolActionKind.ToggleLoop, 76);
         ui.End();
         ui.End();

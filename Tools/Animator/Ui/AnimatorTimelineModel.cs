@@ -20,9 +20,8 @@ public sealed class AnimatorTimelineModel
     public const float Gap = 8f;
     public const float HeaderHeight = 28f;
 
-    /// <summary>The play and stop buttons at the header's left; the caption starts after them.</summary>
+    /// <summary>Width of the play and stop buttons at the header's left.</summary>
     public const float TransportButtonWidth = 34f;
-    public const float TransportWidth = TransportButtonWidth * 2 + 6f + 10f;
     public const float RulerHeight = 24f;
     public const float RowHeight = 20f;
     public const float KeyRadius = 6f;
@@ -143,6 +142,23 @@ public sealed class AnimatorTimelineModel
     /// <summary>Rounds a time to the snap step; <paramref name="free"/> leaves it as is.</summary>
     public double Snap(double seconds, bool free) =>
         free || SnapStep <= 0 ? seconds : Math.Round(seconds / SnapStep) * SnapStep;
+
+    /// <summary>The readout beside the transport: clip, time, zoom, snap, loop and scroll.</summary>
+    public string Caption(float currentTime)
+    {
+        string rows = Tracks.Count > VisibleRows
+            ? $"   rows {FirstRow + 1}-{LastRow} of {Tracks.Count}"
+            : "";
+        string loop = Clip.Loop
+            ? $"   loop {Clip.LoopStart:0.##}-{Clip.LoopEnd:0.##}s"
+            : "";
+        return $"{Clip.Id}   {currentTime:0.00}s / {Clip.Duration:0.00}s" +
+               $"   zoom x{Zoom:0.#}   snap {SnapStep:0.###}s (Shift = free){loop}{rows}";
+    }
+
+    /// <summary>Bottom of the last row on screen; lines through the rows stop here.</summary>
+    public float RowsBottom =>
+        Rows.Position.Y + Math.Max(0, LastRow - FirstRow) * RowHeight;
 
     public Rect2 RowRect(int screenRow) =>
         new(Rows.Position.X, Rows.Position.Y + screenRow * RowHeight, Rows.Size.X, RowHeight);

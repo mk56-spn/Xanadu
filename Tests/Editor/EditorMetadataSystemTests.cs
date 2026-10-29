@@ -12,6 +12,35 @@ namespace Xanadu.Tests.Editor;
 public sealed class EditorMetadataSystemTests
 {
     [Test]
+    public void BackgroundColourUpdatesTheSwatchAndHexLabel()
+    {
+        var store = new EntityStore();
+        var commands = new Xanadu.Editor.Commands.EditorCommandBus();
+        Entity panel = store.CreateEntity(
+            new Position(Vector2.Zero),
+            new Rectangle(new Rect2(-190, -110, 380, 220)));
+        Entity swatch = store.CreateEntity(
+            new FillColor(Colors.White),
+            new EditorBackgroundSwatch());
+        Entity hex = store.CreateEntity(
+            new Text("DEFAULT"),
+            new EditorBackgroundHex());
+        Entity editor = store.CreateEntity(
+            new LevelInfo("Level", "") { Background = new Color("#204060") },
+            new Playhead(0, 120, 0, false),
+            new EditorMetadataPanel(panel, Vector2.Zero));
+
+        var root = new SystemRoot(store);
+        root.Add(new EditorMetadataSystem(store, commands));
+        root.Update(new UpdateTick(1f / 60f, 0));
+
+        Assert.That(
+            swatch.GetComponent<FillColor>().Value,
+            Is.EqualTo(new Color("#204060")));
+        Assert.That(hex.GetComponent<Text>().Value, Is.EqualTo("#204060"));
+    }
+
+    [Test]
     public void EditingAStartFieldUpdatesTheSelectedStartPoint()
     {
         var store = new EntityStore();

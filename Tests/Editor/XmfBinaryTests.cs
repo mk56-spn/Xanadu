@@ -25,6 +25,7 @@ public sealed class XmfBinaryTests
             SnapDivision = 8,
             PlayfieldWidth = 900,
             PlayfieldHeight = 800,
+            BackgroundColor = "#204060",
             PlayerShader = 2,
             FieldShader = 1,
         };
@@ -125,6 +126,7 @@ public sealed class XmfBinaryTests
         Assert.That(map.SnapDivision, Is.EqualTo(8));
         Assert.That(map.PlayfieldWidth, Is.EqualTo(900));
         Assert.That(map.PlayfieldHeight, Is.EqualTo(800));
+        Assert.That(map.BackgroundColor, Is.EqualTo("#204060"));
         Assert.That(map.PlayerShader, Is.EqualTo(2));
         Assert.That(map.FieldShader, Is.EqualTo(1));
 
@@ -181,6 +183,39 @@ public sealed class XmfBinaryTests
         Assert.That(shader.Name, Is.EqualTo("Glow"));
         Assert.That(shader.Source, Does.Contain("shader_type canvas_item"));
         Assert.That(shader.Params["tint"], Is.EqualTo(new[] { 1f, 0.5f, 0f, 1f }));
+    }
+
+    [Test]
+    public void MapsWrittenBeforeBackgroundsExistedStillLoad()
+    {
+        byte[] current = XmfBinary.Write(new LevelDocument { Name = "Old" });
+
+        // Rebuild the file with the trailing background index cut off the meta
+        // chunk, as it is in a map saved before maps carried a background.
+        ChunkReader reader = ChunkReader.Open(
+            current,
+            "XMF1"u8.ToArray(),
+            XmfBinary.MajorVersion,
+            "XMF");
+        var file = new ChunkWriter(
+            "XMF1"u8.ToArray(),
+            XmfBinary.MajorVersion,
+            0);
+        for (uint id = 1; id <= 9; id++)
+        {
+            if (!reader.TryGet(id, out Chunk chunk))
+                continue;
+
+            byte[] payload = chunk.ToArray();
+            if (id == 2)
+                payload = payload[..^sizeof(uint)];
+            file.Add(id, payload);
+        }
+
+        LevelDocument map = XmfBinary.Read(file.ToArray());
+
+        Assert.That(map.Name, Is.EqualTo("Old"));
+        Assert.That(map.BackgroundColor, Is.Empty);
     }
 
     [Test]

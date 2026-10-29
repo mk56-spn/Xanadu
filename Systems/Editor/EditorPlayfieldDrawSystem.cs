@@ -58,6 +58,9 @@ public sealed partial class EditorPlayfieldDrawSystem :
             _analysis = entity.HasComponent<EditorAnalysis>()
                 ? entity.GetComponent<EditorAnalysis>()
                 : default;
+            Color? background = entity.TryGetComponent(out LevelInfo info)
+                ? info.Background
+                : null;
             DrawEditor(
                     view,
                     playfield,
@@ -77,7 +80,8 @@ public sealed partial class EditorPlayfieldDrawSystem :
                         : default,
                     entity.HasComponent<EditorGroupState>()
                         ? entity.GetComponent<EditorGroupState>()
-                        : EditorGroupState.Closed);
+                        : EditorGroupState.Closed,
+                    background);
         });
     }
 
@@ -90,7 +94,8 @@ public sealed partial class EditorPlayfieldDrawSystem :
         WaveformPreview preview,
         UiMarqueeBox selectionBox,
         LevelGroups groups,
-        EditorGroupState groupState)
+        EditorGroupState groupState,
+        Color? background)
     {
         _canvas.DrawRect(
             _editor,
@@ -100,7 +105,7 @@ public sealed partial class EditorPlayfieldDrawSystem :
         DrawChrome(view);
 
         Rect2 field = PlayfieldRenderer.FieldRect(view, playfield);
-        PlayfieldRenderer.DrawField(_canvas, _editor, field, 1);
+        PlayfieldRenderer.DrawField(_canvas, _editor, field, 1, background);
         PlayfieldRenderer.DrawGrid(_canvas, _editor, playfield, field);
         PlayfieldRenderer.DrawBlocks(_canvas, _editor, _entities, view, selection.Note);
         PlayfieldRenderer.DrawSpikes(_canvas, _editor, _entities, view, selection.Note);

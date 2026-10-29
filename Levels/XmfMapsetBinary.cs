@@ -100,6 +100,7 @@ public static partial class XmfBinary
         strings.Add(variant.Id);
         strings.Add(variant.Slug);
         strings.Add(variant.Name);
+        strings.Add(variant.BackgroundColor);
         foreach (NoteDocument note in variant.Notes)
             IndexItemStrings(note.Item, strings);
         foreach (StartPointDocument start in variant.StartPoints)
@@ -175,6 +176,9 @@ public static partial class XmfBinary
         WriteBlob(writer, WriteStartPoints(variant.StartPoints, strings));
         WriteBlob(writer, WriteGroups(variant.Groups, strings));
         WriteBlob(writer, WriteSpikes(variant.Spikes));
+        // The background comes last so a variant written before backgrounds
+        // existed still reads; older readers ignore the trailing index.
+        strings.WriteIndex(writer, variant.BackgroundColor);
         writer.Flush();
         return stream.ToArray();
     }
@@ -201,6 +205,9 @@ public static partial class XmfBinary
         variant.StartPoints = ReadStartPoints(ReadBlobChunk(reader), strings);
         variant.Groups = ReadGroups(ReadBlobChunk(reader), strings);
         variant.Spikes = ReadSpikes(ReadBlobChunk(reader));
+        if (stream.Length - stream.Position >= sizeof(uint))
+            variant.BackgroundColor = strings.ReadIndex(reader);
+
         return variant;
     }
 

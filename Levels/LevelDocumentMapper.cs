@@ -22,6 +22,9 @@ public static class LevelDocumentMapper
             SnapDivision = playhead.SnapDivision,
             PlayfieldWidth = playfield.Width,
             PlayfieldHeight = playfield.Height,
+            BackgroundColor = level.Background is { } background
+                ? LevelBackground.Format(background)
+                : "",
             Notes = new List<NoteDocument>(),
             Mines = new List<MineDocument>(),
             StartPoints = new List<StartPointDocument>(),
@@ -231,6 +234,11 @@ public static class LevelDocumentMapper
         level.AudioPath = song?.AudioPath ?? level.AudioPath;
         level.Artist = song?.Artist ?? "";
         level.Difficulty = document.Name;
+        level.Background = LevelBackground.TryParse(
+            document.BackgroundColor,
+            out Color background)
+            ? background
+            : null;
 
         ref Playfield playfield = ref editor.GetComponent<Playfield>();
         playfield.Width = document.PlayfieldWidth;

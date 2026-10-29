@@ -46,7 +46,7 @@ public sealed class AnimatorTimelineDrawSystem(IRectCanvas canvas, Rid target)
         AnimatorSelection selection = session.GetComponent<AnimatorSelection>();
         XafTrack? selected = AnimatorTimelineModel.SelectedTrack(session, document.Package);
 
-        DrawHeader(model, document.Runtime);
+        WriteCaption(session, model, document.Runtime);
         DrawRuler(model);
         DrawRows(model, selection, selected, document.Package);
         DrawLoop(model);
@@ -57,27 +57,20 @@ public sealed class AnimatorTimelineDrawSystem(IRectCanvas canvas, Rid target)
             CanvasMarquee.Draw(canvas, target, box);
     }
 
-    private void DrawHeader(AnimatorTimelineModel model, AnimatorRuntime runtime)
+    /// <summary>Writes the readout into the caption beside the transport; layout places it.</summary>
+    private void WriteCaption(Entity session, AnimatorTimelineModel model, AnimatorRuntime runtime)
     {
-        string rows = model.Tracks.Count > model.VisibleRows
-            ? $"   rows {model.FirstRow + 1}-{model.LastRow} of {model.Tracks.Count}"
-            : "";
-        string loop = model.Clip.Loop
-            ? $"   loop {model.Clip.LoopStart:0.##}-{model.Clip.LoopEnd:0.##}s"
-            : "";
-        canvas.DrawTextStyledLeft(
-            target,
-            new Rect2(
-                model.Panel.Position.X + AnimatorTimelineModel.Padding +
-                AnimatorTimelineModel.TransportWidth,
-                model.Panel.Position.Y + AnimatorTimelineModel.Padding,
-                model.Panel.Size.X - AnimatorTimelineModel.Padding * 2 -
-                AnimatorTimelineModel.TransportWidth,
-                AnimatorTimelineModel.HeaderHeight),
-            $"{model.Clip.Id}   {runtime.CurrentTime:0.00}s / {model.Clip.Duration:0.00}s" +
-            $"   zoom x{model.Zoom:0.#}   snap {model.SnapStep:0.###}s (Shift = free){loop}{rows}",
-            Dim,
-            12);
+        Entity label = session.GetComponent<AnimatorUi>().TimelineCaption;
+        if (label.IsNull || !label.HasComponent<Text>())
+            return;
+
+        string caption = model.Caption(runtime.CurrentTime);
+        ref Text text = ref label.GetComponent<Text>();
+        if (text.Value == caption)
+            return;
+
+        text.Value = caption;
+        CommandBuffer.AddTag<Dirty>(label.Id);
     }
 
     private void DrawRuler(AnimatorTimelineModel model)
@@ -118,12 +111,6 @@ public sealed class AnimatorTimelineDrawSystem(IRectCanvas canvas, Rid target)
             if (!major || x + 28 > ruler.End.X)
                 continue;
 
-            canvas.DrawLine(
-                target,
-                new Vector2(x, model.Rows.Position.Y),
-                new Vector2(x, model.Rows.Position.Y + model.VisibleRows * AnimatorTimelineModel.RowHeight),
-                Grid,
-                1);
             canvas.DrawTextStyledLeft(
                 target,
                 new Rect2(x + 3, ruler.Position.Y + 1, 60, 12),
@@ -197,7 +184,36 @@ public sealed class AnimatorTimelineDrawSystem(IRectCanvas canvas, Rid target)
                 label,
                 primary ? Colors.White : anySelected ? Text : track.IsChannel ? Dim : Text,
                 11);
-            DrawKeys(model, selection, track, row);
+        }
+
+        // Over the stripes, under the keys.
+        DrawGridLines(model);
+        for (int screenRow = 0; screenRow < model.LastRow - model.FirstRow; screenRow++)
+            DrawKeys(model, selection, model.Tracks[model.FirstRow + screenRow], model.RowRect(screenRow));
+    }
+
+    /// <summary>A line down through the rows at each labelled ruler tick.</summary>
+    private void DrawGridLines(AnimatorTimelineModel model)
+    {
+        double stepMs = model.LabelStep * 1000.0;
+        if (stepMs <= 0)
+            return;
+
+        int first = TimingGrid.FirstTick(model.Window.Start, 0, stepMs);
+        int last = TimingGrid.LastTick(model.Window.End, 0, stepMs);
+        for (int tick = first; tick <= last && last - first <= 1000; tick++)
+        {
+            double ms = TimingGrid.TickTime(tick, 0, stepMs);
+            if (ms < model.Window.Start - 1 || ms > model.Window.End + 1)
+                continue;
+
+            float x = model.Window.XForTime(model.Ruler, ms);
+            canvas.DrawLine(
+                target,
+                new Vector2(x, model.Rows.Position.Y),
+                new Vector2(x, model.RowsBottom),
+                Grid,
+                1);
         }
     }
 
@@ -246,7 +262,7 @@ public sealed class AnimatorTimelineDrawSystem(IRectCanvas canvas, Rid target)
         float startX = model.XForSeconds(model.Clip.LoopStart);
         float endX = model.XForSeconds(model.Clip.LoopEnd);
         float top = model.Ruler.Position.Y;
-        float bottom = model.Rows.Position.Y + model.VisibleRows * AnimatorTimelineModel.RowHeight;
+        float bottom = model.RowsBottom;
         canvas.DrawLine(target, new Vector2(startX, top), new Vector2(startX, bottom), LoopLine, 1);
         canvas.DrawLine(target, new Vector2(endX, top), new Vector2(endX, bottom), LoopLine, 1);
         canvas.DrawRect(target, new Rect2(startX - 4, top - 2, 8, 12), LoopLine);
@@ -257,7 +273,7 @@ public sealed class AnimatorTimelineDrawSystem(IRectCanvas canvas, Rid target)
     {
         float x = model.XForSeconds(time);
         float top = model.Ruler.Position.Y;
-        float bottom = model.Rows.Position.Y + model.VisibleRows * AnimatorTimelineModel.RowHeight;
+        float bottom = model.RowsBottom;
         canvas.DrawLine(target, new Vector2(x, top), new Vector2(x, bottom), Playhead, 2);
         canvas.DrawRect(target, new Rect2(x - 5, top - 4, 10, 10), Playhead);
     }

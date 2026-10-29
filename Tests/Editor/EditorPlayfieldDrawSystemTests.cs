@@ -306,6 +306,33 @@ public sealed class EditorPlayfieldDrawSystemTests
     }
 
     [Test]
+    public void TheMapsBackgroundColourFillsTheField()
+    {
+        var view = new PlayfieldView(new Vector2(276, 88), 0.404f, new Vector2(1152, 648));
+        var playfield = new Playfield(1000, 1000);
+        var store = new EntityStore();
+        store.CreateEntity(
+            new LevelInfo("Shaded", "") { Background = new Color("#204060") },
+            playfield,
+            new Playhead(0, 120, 0, false),
+            view,
+            new NoteSelection(default));
+
+        var canvas = new RecordingCanvas();
+        var root = new SystemRoot(store);
+        root.Add(new EditorPlayfieldDrawSystem(store, canvas, default));
+
+        root.Update(new UpdateTick(1f / 60f, 0));
+
+        Rect2 field = EditorLayout.PlayfieldRect(view, playfield);
+        Assert.That(
+            canvas.RectCalls.Exists(call =>
+                call.Bounds == field &&
+                call.Color == new Color("#204060")),
+            Is.True);
+    }
+
+    [Test]
     public void TheSelectedBlockShowsItsResizeNubs()
     {
         var (store, field, canvas, root) = StartPointScene();

@@ -46,7 +46,10 @@ public sealed class EditorGroupPreviewSystem :
             Vector2 dialog = EditorGroupLayout.DialogSize(screen);
             Vector2 origin = (screen - dialog) / 2;
             Rect2 area = Offset(EditorGroupLayout.PreviewArea(dialog), origin);
-            DrawPreview(area, state, levelGroups, playfield, playhead);
+            Color? background = entity.TryGetComponent(out LevelInfo info)
+                ? info.Background
+                : null;
+            DrawPreview(area, state, levelGroups, playfield, playhead, background);
             DrawCurve(state, levelGroups, dialog, origin);
             if (state.PaletteOpen)
                 DrawPaletteFrame(dialog, origin);
@@ -58,7 +61,8 @@ public sealed class EditorGroupPreviewSystem :
         EditorGroupState state,
         LevelGroups levelGroups,
         Playfield playfield,
-        Playhead playhead)
+        Playhead playhead,
+        Color? background)
     {
         _canvas.DrawRect(_preview, area.Grow(2), Palette.Muted);
         _canvas.DrawRect(_preview, area, PlayfieldRenderer.PlayfieldBackground);
@@ -69,7 +73,10 @@ public sealed class EditorGroupPreviewSystem :
         Vector2 fieldSize = new(playfield.Width * scale, playfield.Height * scale);
         Vector2 fieldOrigin = area.Position + (area.Size - fieldSize) / 2;
         Rect2 field = new(fieldOrigin, fieldSize);
-        _canvas.DrawRect(_preview, field, PlayfieldRenderer.PlayfieldBackground);
+        _canvas.DrawRect(
+            _preview,
+            field,
+            background ?? PlayfieldRenderer.PlayfieldBackground);
         CanvasGrid.Draw(
             _canvas,
             _preview,

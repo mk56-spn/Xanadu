@@ -136,6 +136,7 @@ public static class LevelSerializer
             spike.Shader = validShader(spike.Shader);
         }
 
+        chart.BackgroundColor = LevelBackground.Normalize(chart.BackgroundColor);
         chart.PlayerShader = validShader(chart.PlayerShader);
         chart.FieldShader = validShader(chart.FieldShader);
     }

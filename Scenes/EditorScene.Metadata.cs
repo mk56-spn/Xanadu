@@ -15,6 +15,10 @@ namespace Xanadu.Scenes;
 /// <summary>Creates the initial editor state and a playfield centered between the header and footer.</summary>
 public static partial class EditorScene
 {
+    private const float MetadataPanelWidth = 380;
+    private const float MetadataPanelHeight = 370;
+    private const float StartPanelHeight = 220;
+
     private static void BuildEditorUi(
         EntityStore entities,
         Entity editor,
@@ -25,16 +29,16 @@ public static partial class EditorScene
         Playhead playhead = editor.GetComponent<Playhead>();
         LevelInfo level = editor.GetComponent<LevelInfo>();
 
-        BuildNoteTypeBar(entities, root);
         BuildGroupOverlay(entities, root, screen);
 
-        UiBuilder panelUi = SceneUi.Layer(entities, root, 947);
+        // Popups sit above the chrome (960) and below the header menus (970).
+        UiBuilder panelUi = SceneUi.Layer(entities, root, 962);
         Vector2 home = new(
             screen.X - 24 - 190,
-            EditorLayout.HeaderHeight + 8 + 155);
+            EditorLayout.HeaderHeight + 8 + MetadataPanelHeight / 2);
         panelUi.Container(
             UiLayout.Hidden,
-            new Vector2(380, 310),
+            new Vector2(MetadataPanelWidth, MetadataPanelHeight),
             StackDirection.Vertical,
             spacing: 5,
             color: SceneUi.PanelColor,
@@ -76,15 +80,18 @@ public static partial class EditorScene
             EditorFieldKind.Offset,
             true);
 
+        AddMetadataLabel(panelUi, LocalizedText.Get(EditorStrings.Background));
+        AddBackgroundRow(panelUi);
+
         editor.AddComponent(new EditorMetadataPanel(panel, home));
 
-        UiBuilder startUi = SceneUi.Layer(entities, root, 946);
+        UiBuilder startUi = SceneUi.Layer(entities, root, 961);
         Vector2 startHome = new(
             screen.X - 24 - 190,
-            EditorLayout.HeaderHeight + 8 + 310 + 8 + 110);
+            EditorLayout.HeaderHeight + 8 + MetadataPanelHeight + 8 + StartPanelHeight / 2);
         startUi.Container(
             UiLayout.Hidden,
-            new Vector2(380, 220),
+            new Vector2(MetadataPanelWidth, StartPanelHeight),
             StackDirection.Vertical,
             spacing: 5,
             color: SceneUi.PanelColor,
@@ -249,5 +256,52 @@ public static partial class EditorScene
         field.AddComponent(new TextField(value, numeric));
         field.AddComponent(new EditorField(kind));
         return field;
+    }
+
+    /// <summary>
+    /// The map's background colour: a live swatch, its stored hex value, and
+    /// the buttons that open the picker or return the map to the theme default.
+    /// </summary>
+    private static void AddBackgroundRow(UiBuilder ui)
+    {
+        ui.Container(
+            Vector2.Zero,
+            new Vector2(340, 28),
+            StackDirection.Horizontal,
+            spacing: 6,
+            color: Clear);
+        Entity swatch = ui.RectEntity(
+            Vector2.Zero,
+            new Vector2(44, 28),
+            PlayfieldRenderer.PlayfieldBackground,
+            takesInput: true);
+        swatch.AddComponent(new EditorBackgroundSwatch());
+        swatch.AddComponent(new EditorButton(EditorButtonKind.BackgroundColor));
+        swatch.AddComponent(new UiTooltip("Choose the map's background colour"));
+
+        Entity hex = HudText(
+            ui,
+            Vector2.Zero,
+            new Vector2(120, 28),
+            "DEFAULT",
+            13,
+            SceneUi.DimTextColor);
+        hex.AddComponent(new EditorBackgroundHex());
+
+        Entity edit = ui.Button(
+            "EDIT",
+            new Vector2(80, 28),
+            SceneUi.MutedButtonColor,
+            fontSize: 12);
+        edit.AddComponent(new EditorButton(EditorButtonKind.BackgroundColor));
+
+        Entity reset = ui.Button(
+            "RESET",
+            new Vector2(76, 28),
+            SceneUi.MutedButtonColor,
+            fontSize: 12);
+        reset.AddComponent(new EditorButton(EditorButtonKind.ResetBackgroundColor));
+        reset.AddComponent(new UiTooltip("Use the theme's stage colour"));
+        ui.End();
     }
 }

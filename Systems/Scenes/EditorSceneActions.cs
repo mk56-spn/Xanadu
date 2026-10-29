@@ -38,7 +38,10 @@ public static class EditorSceneActions
                      .Query<LevelInfo>()
                      .ToEntityList())
         {
-            editor.AddComponent(new EditorUiRequest(kind));
+            // The editor is built with the request component; adding it again
+            // would be a structural change inside the scene's query loop.
+            if (editor.HasComponent<EditorUiRequest>())
+                editor.GetComponent<EditorUiRequest>().Kind = kind;
             return;
         }
     }

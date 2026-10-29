@@ -11,6 +11,7 @@ public static class EditorStrings
     public static readonly LString Difficulty = new("editor.difficulty", "DIFFICULTY");
     public static readonly LString Bpm = new("editor.bpm", "BPM");
     public static readonly LString BeatOffset = new("editor.beat_offset", "BEAT OFFSET (MS)");
+    public static readonly LString Background = new("editor.background", "BACKGROUND");
     public static readonly LString StartPoint = new("editor.start_point", "START POINT");
     public static readonly LString StartTime = new("editor.start_time", "START TIME (MS)");
     public static readonly LString StartMomentumX = new("editor.start_momentum_x", "START MOMENTUM X");

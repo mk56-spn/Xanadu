@@ -6,14 +6,13 @@ using Xanadu.Ecs;
 using Xanadu.Editor.Commands;
 using Xanadu.Settings;
 using Xanadu.Systems.Playfields;
-using Position = Xanadu.Ecs.Position;
 
 namespace Xanadu.Systems.Editor;
 
 /// <summary>
-/// The note-type bar: a row of colour swatches that shows only in note mode.
-/// Pressing one picks the type new notes get; the picked swatch stays bright
-/// and the rest dim.
+/// The note-key bar: a row of colour swatches that shows while placing notes
+/// or dash notes, the two kinds that carry a key. Pressing one picks the key
+/// new notes get; the picked swatch stays bright and the rest dim.
 /// </summary>
 public sealed class EditorNoteTypeBarSystem : QuerySystem<EditorNoteSwatch>
 {
@@ -44,20 +43,15 @@ public sealed class EditorNoteTypeBarSystem : QuerySystem<EditorNoteSwatch>
         if (editor.IsNull)
             return;
 
-        bool visible = editor.GetComponent<EditorPlacementModeState>().Mode ==
-                       EditorPlacementMode.Notes;
+        bool visible = ShowsFor(editor.GetComponent<EditorPlacementModeState>().Mode);
         KeybindAction target = editor.GetComponent<EditorNoteTarget>().Target;
         CommandBuffer buffer = CommandBuffer;
 
         foreach (Entity panel in _entities.Query<EditorNoteBarPanel>().ToEntityList())
-        {
-            Move(panel, visible ? panel.GetComponent<EditorNoteBarPanel>().Home : UiLayout.Hidden, buffer);
-        }
+            SetShown(panel, visible, buffer);
 
         Query.ForEachEntity((ref swatch, entity) =>
         {
-            Move(entity, visible ? swatch.Home : UiLayout.Hidden, buffer);
-
             bool pressed = visible && entity.Tags.Has<Pressed>();
             bool wasPressed = _held.Contains(entity.Id);
             if (pressed)
@@ -74,6 +68,10 @@ public sealed class EditorNoteTypeBarSystem : QuerySystem<EditorNoteSwatch>
             Shade(entity, swatch.Action, swatch.Action == target, buffer);
         });
     }
+
+    /// <summary>Notes and dash notes carry a key; the other placement tools do not.</summary>
+    public static bool ShowsFor(EditorPlacementMode mode) =>
+        mode is EditorPlacementMode.Notes or EditorPlacementMode.Movement;
 
     private static void Shade(
         Entity swatch,
@@ -96,16 +94,24 @@ public sealed class EditorNoteTypeBarSystem : QuerySystem<EditorNoteSwatch>
         buffer.AddTag<Dirty>(swatch.Id);
     }
 
-    private static void Move(Entity entity, Vector2 target, CommandBuffer buffer)
+    /// <summary>
+    /// A shown bar rejoins its container, which places it; a hidden one leaves
+    /// the layout and parks off screen.
+    /// </summary>
+    private static void SetShown(Entity panel, bool shown, CommandBuffer buffer)
     {
-        if (entity.IsNull || !entity.HasComponent<Position>())
+        if (shown == !panel.Tags.Has<LayoutIgnore>())
             return;
 
-        ref Position position = ref entity.GetComponent<Position>();
-        if (position.Value == target)
+        if (!shown)
+        {
+            UiLayout.Hide(panel, buffer);
             return;
+        }
 
-        position.Value = target;
-        buffer.AddTag<Moved>(entity.Id);
+        UiLayout.SetIgnored(panel, buffer, false);
+        Entity parent = panel.Parent;
+        if (!parent.IsNull && parent.HasComponent<UiContainer>())
+            buffer.AddTag<LayoutDirty>(parent.Id);
     }
 }
