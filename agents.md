@@ -84,6 +84,11 @@ anywhere, including test harnesses and tools.
 
 ### Hard coding
 
+- Font sizes come from `UiType` (`Display`..`Caption`); control heights, gaps,
+  borders and radii come from `UiMetrics`. A new screen carries no type or
+  control size numbers.
+- Author against `UiStage` (`Page()`, `Stage.Center`, `Stage.Bounds`), never a
+  screen-size parameter. The stage is 1920x1080 and the host scales it.
 - **Stop hard coding UI by not using containers, unless you have a really good
   reason. IMPORTANT**
 
