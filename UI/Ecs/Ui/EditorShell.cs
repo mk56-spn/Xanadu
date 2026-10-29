@@ -10,7 +10,6 @@ namespace Xanadu.Ecs;
 public static class EditorShellMetrics
 {
     public const float HeaderHeight = 80f;
-    public const float FooterHeight = 200f;
     public const float ToolStripWidth = 64f;
     public const float RightPanelWidth = 276f;
 
@@ -18,8 +17,14 @@ public static class EditorShellMetrics
     public const float ToolButton = 56f;
     public const float ToolGap = 3f;
 
-    /// <summary>Height of the tab strip on top of the right panel.</summary>
+    /// <summary>Height of the tab strip above the properties, under the tree.</summary>
     public const float TabHeight = 28f;
+
+    /// <summary>The tree's share of the right panel's height; properties get the rest.</summary>
+    public const float TreeShare = 0.4f;
+
+    /// <summary>The strip along the viewport's bottom edge for playhead, zoom and the like.</summary>
+    public const float StatusLineHeight = 24f;
 
     /// <summary>Header control height, centred in the header.</summary>
     public const float HeaderControlHeight = 50f;
@@ -37,18 +42,36 @@ public static class EditorShellMetrics
     public const float SettingsWidth = 110f;
 }
 
-/// <summary>The few things a tool may change about the shell, each for a logical reason.</summary>
+/// <summary>
+/// The footer heights the tools choose from. A tool picks one when it builds
+/// its shell; it is fixed for the session, never dragged.
+/// </summary>
+public static class EditorFooterHeight
+{
+    /// <summary>Keyframe rows under a preview: enough for a clip's tracks.</summary>
+    public const float Animator = 216f;
+
+    /// <summary>The level editor's timeline is the main work area, so it gets more room.</summary>
+    public const float Level = 280f;
+}
+
+/// <summary>
+/// The few things a tool may change about the shell, each for a logical
+/// reason. The footer height has no default: every tool must pick one.
+/// </summary>
 public sealed record EditorShellOptions(
+    float FooterHeight,
     bool ToolStrip = true,
-    bool RightPanel = true,
-    float FooterHeight = EditorShellMetrics.FooterHeight);
+    bool RightPanel = true);
 
 /// <summary>Where each region of the shell sits, in screen pixels.</summary>
 public readonly record struct EditorShellRects(
     Rect2 Header,
     Rect2 ToolStrip,
     Rect2 Viewport,
+    Rect2 StatusLine,
     Rect2 RightPanel,
+    Rect2 RightTree,
     Rect2 RightTabs,
     Rect2 RightBody,
     Rect2 Footer);
@@ -64,18 +87,22 @@ public static class EditorShell
         float right = options.RightPanel ? EditorShellMetrics.RightPanelWidth : 0f;
         float middle = Math.Max(0f, screen.Y - header - footer);
         float viewportWidth = Math.Max(0f, screen.X - strip - right);
+        float status = Math.Min(EditorShellMetrics.StatusLineHeight, middle);
 
-        var rightPanel = new Rect2(screen.X - right, header, right, middle);
-        float tabs = options.RightPanel ? EditorShellMetrics.TabHeight : 0f;
+        float tree = options.RightPanel ? (float)Math.Floor(middle * EditorShellMetrics.TreeShare) : 0f;
+        float tabs = options.RightPanel
+            ? Math.Min(EditorShellMetrics.TabHeight, middle - tree)
+            : 0f;
+        float rightX = screen.X - right;
         return new EditorShellRects(
             Header: new Rect2(0, 0, screen.X, header),
             ToolStrip: new Rect2(0, header, strip, middle),
-            Viewport: new Rect2(strip, header, viewportWidth, middle),
-            RightPanel: rightPanel,
-            RightTabs: new Rect2(rightPanel.Position, new Vector2(right, tabs)),
-            RightBody: new Rect2(
-                rightPanel.Position + new Vector2(0, tabs),
-                new Vector2(right, Math.Max(0f, middle - tabs))),
+            Viewport: new Rect2(strip, header, viewportWidth, middle - status),
+            StatusLine: new Rect2(strip, header + middle - status, viewportWidth, status),
+            RightPanel: new Rect2(rightX, header, right, middle),
+            RightTree: new Rect2(rightX, header, right, tree),
+            RightTabs: new Rect2(rightX, header + tree, right, tabs),
+            RightBody: new Rect2(rightX, header + tree + tabs, right, Math.Max(0f, middle - tree - tabs)),
             Footer: new Rect2(0, header + middle, screen.X, footer));
     }
 
