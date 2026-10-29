@@ -150,6 +150,26 @@ public readonly partial struct UiNode
         return new UiDropdownNode(_surface!, control);
     }
 
+    /// <summary>
+    /// A floating option list for a button built elsewhere, drawn on the layer
+    /// above the tree so a panel never clips it.
+    /// </summary>
+    public UiDropdownNode DropdownList(
+        Entity button,
+        IReadOnlyList<string> options,
+        int selected = 0,
+        Func<int, Color>? optionColor = null)
+    {
+        UiBuilder builder = BeginChildren();
+        UiDropdownControl control = builder.DropdownList(
+            button,
+            options,
+            selected,
+            closeOthers: true,
+            optionColor);
+        return new UiDropdownNode(_surface!, control);
+    }
+
     /// <summary>The box a label of this text and size wants, insets included.</summary>
     public static Vector2 Measure(string value, int fontSize) =>
         new(
