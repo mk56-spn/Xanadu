@@ -25,7 +25,6 @@ public static class PlayScene
     public static void Build(
         EntityStore entities,
         Entity root,
-        Vector2 screen,
         LevelEntry entry,
         KeybindSettings keybinds,
         IVisualRidFactory? visuals = null,
@@ -35,6 +34,7 @@ public static class PlayScene
     {
         LevelDocument document = entry.Document;
         SongDocument? song = entry.Song;
+        Vector2 screen = UiStage.Full.Size;
 
         float logicalSize = Mathf.Max(1, Mathf.Max(
             document.PlayfieldWidth,
@@ -103,23 +103,19 @@ public static class PlayScene
             momentum.Value = point.Momentum;
         }
 
-        UiBuilder ui = SceneUi.Layer(entities, root, SceneUi.PlayHudLayer, visuals);
+        UiNode ui = UiNode.Layer(
+            entities, root, SceneUi.PlayHudLayer, visuals, UiStage.Full);
         HudLayout hud = new();
 
-        Entity pause = ui.RectEntity(
-            new Vector2(95, 44),
-            new Vector2(150, 44),
-            SceneUi.MutedButtonColor,
-            LocalizedText.Get(PlayStrings.Pause),
-            takesInput: true);
+        ui.HudButton(
+                new Vector2(95, 44),
+                new Vector2(150, 44),
+                LocalizedText.Get(PlayStrings.Pause),
+                UiType.Label,
+                SceneUi.MutedButtonColor)
+            .On(SceneActionId.Pause);
 
-        pause.AddComponent(new TextStyle(18, SceneUi.TextColor));
-        pause.AddComponent(ButtonVisual.Create(SceneUi.MutedButtonColor));
-        pause.AddComponent(new SceneCommand(SceneActionId.Pause));
-
-        Entity titleText = SceneUi.Text(
-            ui,
-            new Vector2(screen.X / 2, 30),
+        Entity titleText = ui.HudText(new Vector2(screen.X / 2, 30),
             new Vector2(620, 30),
             string.IsNullOrWhiteSpace(document.Name) ? "UNTITLED" : document.Name,
             20,
@@ -133,9 +129,7 @@ public static class PlayScene
             ? "Unrated"
             : document.Name;
 
-        Entity artistText = SceneUi.Text(
-            ui,
-            new Vector2(screen.X / 2, 58),
+        Entity artistText = ui.HudText(new Vector2(screen.X / 2, 58),
             new Vector2(620, 22),
             $"{artist}   ·   {difficulty}",
             14,
@@ -149,41 +143,31 @@ public static class PlayScene
             titleText,
             artistText);
 
-        Entity status = SceneUi.Text(
-            ui,
-            new Vector2(screen.X / 2, screen.Y - 24),
+        Entity status = ui.HudText(new Vector2(screen.X / 2, screen.Y - 24),
             new Vector2(760, 24),
             "LOADING...",
             16,
             SceneUi.DimTextColor);
 
-        Entity scoreText = SceneUi.Text(
-            ui,
-            new Vector2(160, screen.Y - 24),
+        Entity scoreText = ui.HudText(new Vector2(160, screen.Y - 24),
             new Vector2(280, 24),
             "SCORE 0000000",
             18,
             SceneUi.TextColor);
 
-        Entity comboText = SceneUi.Text(
-            ui,
-            new Vector2(screen.X - 150, screen.Y - 24),
+        Entity comboText = ui.HudText(new Vector2(screen.X - 150, screen.Y - 24),
             new Vector2(220, 24),
             "COMBO 0",
             16,
             SceneUi.DimTextColor);
 
-        Entity accuracyText = SceneUi.Text(
-            ui,
-            new Vector2(screen.X - 150, 68),
+        Entity accuracyText = ui.HudText(new Vector2(screen.X - 150, 68),
             new Vector2(220, 24),
             "ACC 0.00%  FAIL",
             14,
             SceneUi.DimTextColor);
 
-        Entity judgementText = SceneUi.Text(
-            ui,
-            new Vector2(screen.X / 2, screen.Y / 2 - 120),
+        Entity judgementText = ui.HudText(new Vector2(screen.X / 2, screen.Y / 2 - 120),
             new Vector2(520, 44),
             "",
             28,
@@ -196,9 +180,7 @@ public static class PlayScene
         for (int i = 0; i < contactLabels.Length; i++)
         {
             KeybindAction action = KeybindSettings.Actions[i];
-            contactLabels[i] = SceneUi.Text(
-                ui,
-                new Vector2(screen.X / 2 + (i - 3) * 74, 92),
+            contactLabels[i] = ui.HudText(new Vector2(screen.X / 2 + (i - 3) * 74, 92),
                 new Vector2(70, 22),
                 $"{KeybindSettings.LabelFor(action)} 0",
                 13,
@@ -238,9 +220,7 @@ public static class PlayScene
 
         float counterX = screen.X - 150;
         var counterMembers = new List<Entity>();
-        counterMembers.Add(SceneUi.Text(
-            ui,
-            new Vector2(counterX, 190),
+        counterMembers.Add(ui.HudText(new Vector2(counterX, 190),
             new Vector2(260, 22),
             LocalizedText.Get(PlayStrings.Judgements),
             14,
@@ -296,9 +276,7 @@ public static class PlayScene
             new Rect2(screen.X - 280, 178, 280, 220),
             counterMembers.ToArray());
 
-        Entity countdown = SceneUi.Text(
-            ui,
-            new Vector2(screen.X / 2, screen.Y / 2),
+        Entity countdown = ui.HudText(new Vector2(screen.X / 2, screen.Y / 2),
             new Vector2(700, 180),
             "",
             120,
@@ -358,7 +336,7 @@ public static class PlayScene
         start.Position + GroupModulation.Offset(groups.Groups, start.Groups, start.TimeMs / 1000f);
 
     private static void BuildErrorBar(
-        UiBuilder ui,
+        UiNode ui,
         Entity playfield,
         Vector2 screen,
         HudLayout hud)
@@ -371,7 +349,7 @@ public static class PlayScene
         float pixelsPerMs = innerWidth / (maxMs * 2);
 
         var members = new List<Entity>();
-        members.Add(ui.RectEntity(
+        members.Add(ui.HudRect(
             new Vector2(centerX, y),
             new Vector2(fullWidth + 24, 38),
             Palette.Background));
@@ -393,40 +371,35 @@ public static class PlayScene
             color.A = 0.82f;
             float width = (float)(outer - inner) * pixelsPerMs;
             float offset = (float)((inner + outer) / 2) * pixelsPerMs;
-            members.Add(ui.RectEntity(
+            members.Add(ui.HudRect(
                 new Vector2(centerX - offset, y),
                 new Vector2(width, 14),
                 color));
-            members.Add(ui.RectEntity(
+            members.Add(ui.HudRect(
                 new Vector2(centerX + offset, y),
                 new Vector2(width, 14),
                 color));
         }
 
-        members.Add(ui.RectEntity(
+        members.Add(ui.HudRect(
             new Vector2(centerX, y),
             new Vector2(2, 26),
             Colors.White));
 
-        Entity marker = ui.RectEntity(
+        Entity marker = ui.HudRect(
             new Vector2(centerX, y),
             new Vector2(4, 30),
-            new Color(1, 1, 1, 0),
-            "");
+            new Color(1, 1, 1, 0)).Entity;
         members.Add(marker);
 
-        members.Add(SceneUi.Text(
-            ui,
-            new Vector2(centerX - innerWidth / 2, y + 28),
+        members.Add(ui.HudText(new Vector2(centerX - innerWidth / 2, y + 28),
             new Vector2(100, 20),
             "EARLY",
             12,
             SceneUi.DimTextColor,
             new Color(0, 0, 0, 0)));
 
-        members.Add(SceneUi.Text(
-            ui,
-            new Vector2(centerX + innerWidth / 2, y + 28),
+        members.Add(ui.HudText(new Vector2(centerX + innerWidth / 2, y + 28),
             new Vector2(100, 20),
             "LATE",
             12,
@@ -448,40 +421,36 @@ public static class PlayScene
     }
 
     private static Entity CounterText(
-        UiBuilder ui,
+        UiNode ui,
         float x,
         float y,
         string text,
         Color color,
         TextAlign align)
     {
-        Entity entity = SceneUi.Text(
-            ui,
-            new Vector2(x, y),
-            new Vector2(160, 22),
-            text,
-            13,
-            color,
-            new Color(0, 0, 0, 0));
-        entity.AddComponent(new TextAlignment(align));
-        return entity;
+        return ui.HudText(
+                new Vector2(x, y),
+                new Vector2(160, 22),
+                text,
+                UiType.Small,
+                color,
+                new Color(0, 0, 0, 0))
+            .Align(align);
     }
 
     private static Entity CounterNumber(
-        UiBuilder ui,
+        UiNode ui,
         float x,
         float y,
         Color color)
     {
-        Entity entity = SceneUi.Text(
-            ui,
-            new Vector2(x, y),
-            new Vector2(90, 22),
-            "0",
-            13,
-            color,
-            new Color(0, 0, 0, 0));
-        entity.AddComponent(new TextAlignment(TextAlign.Right));
-        return entity;
+        return ui.HudText(
+                new Vector2(x, y),
+                new Vector2(90, 22),
+                "0",
+                UiType.Small,
+                color,
+                new Color(0, 0, 0, 0))
+            .Align(TextAlign.Right);
     }
 }
