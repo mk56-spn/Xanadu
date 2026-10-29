@@ -29,6 +29,9 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
 
         if (_transitionPanel.IsNull)
             BuildTransition();
+
+        if (_songMenu.IsNull)
+            BuildSongMenu();
     }
 
     private void Switch(ref SceneState state)
@@ -37,6 +40,8 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
         _keybinds.CancelCapture();
         HidePauseVisual();
         HideConfirmation();
+        HideSongMenu();
+        HideDeleteLevel();
 
         SceneKind next = state.Pending;
         LevelEntry? playEntry = null;

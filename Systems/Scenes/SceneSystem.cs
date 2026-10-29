@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Godot;
+using Xanadu.Systems.Input;
 using Xanadu.Ecs;
 using Xanadu.Levels;
 using Xanadu.Replays;
@@ -30,6 +31,7 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
     private Entity _pausePanel;
     private Entity _transitionPanel;
     private Entity _sceneRoot;
+    private readonly IPointerInputSource? _pointer;
     private LevelEntry? _pendingPlayEntry;
     private StartPoint? _pendingStart;
     private LevelEntry? _pendingEditorEntry;
@@ -62,7 +64,8 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
         bool transitions = true,
         ProfileStore? profiles = null,
         DisplaySettings? display = null,
-        ReplayStore? replays = null)
+        ReplayStore? replays = null,
+        IPointerInputSource? pointer = null)
     {
         _entities = entities;
         _director = director;
@@ -73,6 +76,7 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
         _profiles = profiles ?? new ProfileStore(persist: false);
         _display = display ?? new DisplaySettings(persist: false, apply: false);
         _replays = replays;
+        _pointer = pointer;
         _transitionsEnabled = transitions;
         _controllers = SceneControllerRegistry.CreateDefault(this);
         EditorSceneActions.Register(_actionRegistry);

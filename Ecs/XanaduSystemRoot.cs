@@ -104,7 +104,8 @@ public sealed class XanaduSystemRoot : SystemRoot, IDisposable
             transitions: transitions,
             profiles: Profiles,
             display: Display,
-            replays: Xanadu.Replays.ReplayStore.Default);
+            replays: Xanadu.Replays.ReplayStore.Default,
+            pointer: pointerInput);
         _sceneDirector = sceneDirector;
         sceneDirector.Changed += OnSceneChanged;
 
