@@ -44,7 +44,7 @@ public sealed class UiNodeTests
     public void ChildrenGoToTheNodeTheyWereCalledOn()
     {
         UiNode layer = Layer();
-        UiNode page = layer.Page(new Vector2(800, 600));
+        UiNode page = layer.Page();
         UiNode row = page.Row();
         row.Text("A");
         row.Text("B");
@@ -55,6 +55,31 @@ public sealed class UiNodeTests
         Assert.That(page.Entity.ChildCount, Is.EqualTo(2),
             "the row and the text called on the page, not on the row");
         Assert.That(page.Entity.Parent, Is.EqualTo(layer.Entity));
+    }
+
+    [Test]
+    public void PageFillsTheStageAndCarriesIt()
+    {
+        UiNode layer = Layer();
+        UiNode page = layer.Page();
+
+        Assert.That(layer.Stage, Is.EqualTo(UiStage.Full));
+        Assert.That(page.Stage, Is.EqualTo(UiStage.Full));
+        Assert.That(page.Entity.GetComponent<Rectangle>().Bounds.Size,
+            Is.EqualTo(UiStage.Design1080));
+        Assert.That(page.Entity.GetComponent<Position>().Value,
+            Is.EqualTo(UiStage.Full.Center));
+    }
+
+    [Test]
+    public void ALayerCanBeAuthoredAgainstAnotherStage()
+    {
+        var stage = new UiStage(new Vector2(1920, 1080), new Vector2(2560, 1080), 1f);
+        UiNode layer = UiNode.Layer(_store, default, 0, _visuals, stage);
+        UiNode page = layer.Page();
+
+        Assert.That(page.Entity.GetComponent<Rectangle>().Bounds.Size,
+            Is.EqualTo(new Vector2(2560, 1080)));
     }
 
     [Test]
@@ -76,7 +101,7 @@ public sealed class UiNodeTests
     [Test]
     public void GapMarksTheContainerAndItsParentForLayout()
     {
-        UiNode page = Layer().Page(new Vector2(800, 600));
+        UiNode page = Layer().Page();
         UiNode row = page.Row();
 
         page.Entity.RemoveTag<LayoutDirty>();

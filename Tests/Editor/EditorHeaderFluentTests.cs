@@ -47,7 +47,7 @@ public sealed class EditorHeaderFluentTests : EcsSystemTest
     private void BuildHeader(Entity parent)
     {
         UiNode header = UiNode.Layer(Store, parent, 960)
-            .Page(Screen)
+            .Page()
             .Row()
             .Size(Screen.X, EditorShellMetrics.HeaderHeight);
 

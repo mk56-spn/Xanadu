@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using Godot;
+using Xanadu.Theme;
 
 namespace Xanadu.Ecs;
 
@@ -12,35 +13,41 @@ public readonly partial struct UiNode
     public const float TextLineHeight = 1.5f;
 
     /// <summary>
-    /// A text label. The box is measured from the text and the font size, so
-    /// call sites stop carrying guessed widths; <c>Size</c> pins it when a
-    /// fixed box matters.
+    /// A text label. Size, colour, alignment and weight are part of the text's
+    /// identity, so they are parameters; glow, outline and live updates are
+    /// chained. Left is the default: centring is a statement, not a fallback.
+    /// The box is measured from the text, so call sites stop carrying guessed
+    /// widths; <c>Size</c> pins it when a fixed box matters.
     /// </summary>
-    public UiNode Text(string value, int fontSize = UiTheme.FontSize, Color? color = null)
+    public UiNode Text(
+        string value,
+        int size = UiType.Body,
+        Color? color = null,
+        TextAlign align = TextAlign.Left,
+        bool bold = false)
     {
         UiBuilder builder = BeginChildren();
-        Entity created = builder.Text(
-            value,
-            Measure(value, fontSize),
-            fontSize,
-            color ?? UiTheme.Text);
+        Color ink = color ?? UiTheme.Text;
+        Entity created = builder.Text(value, Measure(value, size), size, ink, align);
+        if (bold)
+            created.AddComponent(new TextStyle(size, ink, bold: true));
         return Leaf(created);
     }
 
     /// <summary>A button with fill, label and hover/flash state, sized to its label.</summary>
     public UiNode Button(
         string label,
-        int fontSize = UiTheme.FontSize,
+        int size = UiType.Body,
         Color? color = null)
     {
         UiBuilder builder = BeginChildren();
         Entity created = builder.Button(
             label,
             new Vector2(
-                UiTextMetrics.Width(label, fontSize) + UiTheme.ContainerPadding * 2,
+                UiTextMetrics.Width(label, size) + UiTheme.ContainerPadding * 2,
                 UiTheme.ButtonHeight),
             color,
-            fontSize: fontSize);
+            fontSize: size);
         return Leaf(created);
     }
 
@@ -53,7 +60,7 @@ public readonly partial struct UiNode
         string? iconPath,
         float size = UiTheme.ButtonHeight,
         Color? color = null,
-        int fontSize = 18)
+        int fontSize = UiType.Label)
     {
         UiBuilder builder = BeginChildren();
         Entity created = builder.IconButton(

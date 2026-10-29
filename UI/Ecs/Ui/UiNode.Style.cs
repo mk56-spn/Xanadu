@@ -40,7 +40,10 @@ public readonly partial struct UiNode
         return At(box.GetCenter());
     }
 
-    /// <summary>Fills the given screen with the node, centred on it.</summary>
+    /// <summary>Fills the stage with the node.</summary>
+    public UiNode Cover() => Box(Stage.Bounds);
+
+    /// <summary>Fills an explicit screen with the node, for odd hosts.</summary>
     public UiNode Cover(Vector2 screen) => Box(new Rect2(Vector2.Zero, screen));
 
     /// <summary>Moves the node's centre to a parent-local point.</summary>
