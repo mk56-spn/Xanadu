@@ -29,6 +29,7 @@ public sealed class UiInteractionSystemGroup : SystemGroup
         Add(new UiWheelSystem(entities, pointer));
         Add(new UiDropdownSystem(entities));
         Add(new UiTreeSystem());
+        Add(new UiCollapsibleSystem());
         Add(new TextFieldFocusSystem());
         Add(new TextFieldSystem());
         Add(new DisabledTextFieldSystem(entities));
