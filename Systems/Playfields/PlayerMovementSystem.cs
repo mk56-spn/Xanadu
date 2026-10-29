@@ -81,12 +81,16 @@ public sealed class PlayerMovementSystem : QuerySystem<Player, Position, Playfie
 
             Vector2 target = DashTarget(
                 movement.Position,
-                movement.DashDirection);
+                movement.DashDirection,
+                movement.DashStrength);
             Vector2 targetScreen = view.PlayfieldToScreen(target);
             body.Body.SetTransform(
                 Box2DPhysicsWorld.ToPhysics(targetScreen),
                 body.Body.GetAngle());
             position.Value = targetScreen;
+            float horizontal = DashDirectionVector(movement.DashDirection).X;
+            if (horizontal != 0f)
+                entity.AddComponent(new CharacterFacing { Left = horizontal < 0f });
             _entities.CreateEntity(new DashTrail(screen, targetScreen));
             _entities.CreateEntity(new ParticleBurst(targetScreen, ParticleKind.Dash));
 
@@ -153,8 +157,19 @@ public sealed class PlayerMovementSystem : QuerySystem<Player, Position, Playfie
 
     public static Vector2 DashTarget(
         Vector2 notePosition,
-        DashDirection direction) =>
-        notePosition + DashDirectionVector(direction) * DashPixels;
+        DashDirection direction,
+        DashStrength strength = DashStrength.Single) =>
+        notePosition +
+        DashDirectionVector(direction) * DashPixels * DashStrengthMultiplier(strength);
+
+    /// <summary>One, two or three dash lengths.</summary>
+    public static int DashStrengthMultiplier(DashStrength strength) =>
+        strength switch
+        {
+            DashStrength.Double => 2,
+            DashStrength.Triple => 3,
+            _ => 1,
+        };
 
     public static Vector2 DashDirectionVector(DashDirection direction) =>
         direction switch

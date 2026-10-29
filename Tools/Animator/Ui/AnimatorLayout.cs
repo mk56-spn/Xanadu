@@ -33,7 +33,25 @@ public static partial class AnimatorLayout
     private const float LeftFixedHeight = 20f + 30f + UiTheme.ContainerSpacing * 2;
     private const float ButtonWidth = 168f;
     private const float FileMenuWidth = 180f;
-    private const float ClipMenuWidth = 120f;
+    private const float ConfigMenuWidth = 150f;
+
+    // The clip length panel: six step buttons around a numeric field. One, two
+    // and three arrows step 0.1 s, 1 s and 10 s.
+    public static readonly Vector2 ClipLengthSize = new(388f, 74f);
+    public const float ClipLengthGap = 6f;
+    private const float ClipLengthPadding = 10f;
+    private const float ClipLengthSpacing = 4f;
+    private const float ClipLengthArrowWidth = 40f;
+    private const float ClipLengthFieldWidth = 100f;
+    private const float ClipLengthRowHeight = 30f;
+
+    // The NEW CLIP dialog, centred over a dimmer that blocks the panels below.
+    public static readonly Vector2 NewClipDialogSize = new(380f, 228f);
+    private const float NewClipPadding = 12f;
+    private const float NewClipSpacing = 8f;
+    private const float NewClipRowHeight = 30f;
+    private const float NewClipButtonHeight = 32f;
+    private const float NewClipLabelWidth = 70f;
 
     // Header slots; together they must fit in the header, which is one
     // screen wide less its margins and padding.
@@ -93,12 +111,14 @@ public static partial class AnimatorLayout
         // over the preview still draw above it.
         BuildInspector(menu, screen, ref refs);
         BuildFileMenu(menu, refs.FileButton);
-        BuildClipMenu(menu, refs.ClipMenuButton);
+        BuildConfigMenu(menu, refs.ConfigButton);
+        BuildClipLengthPanel(menu, ref refs);
         BuildBoneMenu(menu, ref refs);
         BuildKeyMenu(menu, ref refs);
         BuildSvgMenu(menu, ref refs);
         BuildChainInspector(menu, ref refs);
         BuildHistoryPanel(menu);
+        BuildNewClipDialog(menu, screen, ref refs);
         BuildTooltip(store, visuals, ref refs);
         return refs.Ui;
     }
@@ -134,11 +154,11 @@ public static partial class AnimatorLayout
 
         // As wide as its list, so opening the menu does not widen the header slot.
         refs.FileButton = ui.Button("FILE ▾", new Vector2(FileMenuWidth, 30));
-        refs.FileButton.AddComponent(new UiTooltip("Save, load or start a new skeleton"));
+        refs.FileButton.AddComponent(new UiTooltip("Save, load, or start a new skeleton or clip"));
 
-        // The clip's length, duplicate and delete are rarely touched, so they live in a menu.
-        refs.ClipMenuButton = ui.Button("CLIP ▾", new Vector2(ClipMenuWidth, 30));
-        refs.ClipMenuButton.AddComponent(new UiTooltip("Change the clip's length, duplicate or delete it"));
+        refs.Ui.ConfigButton = ui.Button("CONFIG ▾", new Vector2(ConfigMenuWidth, 30));
+        refs.Ui.ConfigButton.AddComponent(new UiTooltip("Clip length and delete"));
+        refs.ConfigButton = refs.Ui.ConfigButton;
         ui.End();
     }
 
@@ -239,9 +259,12 @@ public static partial class AnimatorLayout
         InterpolationButton(ui, "OUT", XafEasePreset.EaseOut, 40);
         ui.RectEntity(Vector2.Zero, new Vector2(14, AnimatorTimelineModel.HeaderHeight), Clear);
         refs.Ui.ClipName = ClipNameField(ui);
+
+        // Game preview and loop settings stay above the timeline, side by side,
+        // because they change what the clip does rather than the clip itself.
         HeaderButton(ui, "GAME", ToolActionKind.SequenceGame, 52);
         HeaderButton(ui, "ALL", ToolActionKind.SequenceAll, 40);
-        HeaderButton(ui, "NEW", ToolActionKind.NewClip, 44);
+        ui.RectEntity(Vector2.Zero, new Vector2(8, AnimatorTimelineModel.HeaderHeight), Clear);
         refs.Ui.LoopButton = HeaderButton(ui, "LOOP", ToolActionKind.ToggleLoop, 76);
         ui.End();
         ui.End();
@@ -364,6 +387,6 @@ public static partial class AnimatorLayout
     {
         public AnimatorUi Ui;
         public Entity FileButton;
-        public Entity ClipMenuButton;
+        public Entity ConfigButton;
     }
 }

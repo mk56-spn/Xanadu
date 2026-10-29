@@ -22,12 +22,24 @@ public enum ToolActionKind
     Undo,
     Redo,
     Interpolate,
-    NewClip,
+    /// <summary>Duplicates the current clip directly; the NEW CLIP dialog can also copy it.</summary>
     DuplicateClip,
     DeleteClip,
     DurationDown,
     DurationUp,
     ToggleLoop,
+
+    /// <summary>Opens the clip length field and step buttons in the CONFIG menu.</summary>
+    OpenClipLength,
+
+    /// <summary>Opens the NEW CLIP dialog; the argument "duplicate" starts it copying the current clip.</summary>
+    OpenNewClip,
+
+    /// <summary>Creates the clip described by the NEW CLIP dialog.</summary>
+    CreateClip,
+
+    /// <summary>Closes the NEW CLIP dialog without creating a clip.</summary>
+    CloseNewClip,
     SelectBone,
     SelectAttachment,
     ToggleMovable,
@@ -420,6 +432,24 @@ public struct AnimatorBoneMenu : IComponent
     public int Reparenting;
 
     public static AnimatorBoneMenu Closed => new() { Renaming = -1, Reparenting = -1 };
+}
+
+/// <summary>
+/// The clip length field and its six step buttons, opened from the CONFIG
+/// menu. The panel floats under the header so the timeline stays visible.
+/// </summary>
+public struct AnimatorClipLength : IComponent
+{
+    public bool Open;
+}
+
+/// <summary>
+/// The NEW CLIP dialog: whether it is open. Its name, length and duplicate
+/// choice live in the UI fields, and creating the clip reads them.
+/// </summary>
+public struct AnimatorNewClipDialog : IComponent
+{
+    public bool Open;
 }
 
 /// <summary>

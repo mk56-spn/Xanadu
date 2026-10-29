@@ -69,7 +69,8 @@ public static class AnimatorBindings
         new(new ToolAction(ToolActionKind.DeleteKey), Key.Backspace),
 
         // Clips.
-        new(new ToolAction(ToolActionKind.NewClip), Key.N, Ctrl: true, Shift: true),
+        new(new ToolAction(ToolActionKind.OpenNewClip), Key.N, Ctrl: true, Shift: true),
+        new(new ToolAction(ToolActionKind.OpenClipLength), Key.L, Ctrl: true),
         new(new ToolAction(ToolActionKind.DuplicateClip), Key.D, Ctrl: true),
         new(new ToolAction(ToolActionKind.DeleteClip), Key.Delete, Ctrl: true, Shift: true),
         new(new ToolAction(ToolActionKind.DurationDown), Key.Minus, Ctrl: true),

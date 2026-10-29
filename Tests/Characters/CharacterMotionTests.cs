@@ -189,6 +189,42 @@ public sealed class CharacterMotionTests : EcsSystemTest
     }
 
     [Test]
+    public void LandingOnTopOfABlockPlaysTheLandingClipThenGoesIdle()
+    {
+        // The block's top is at y = 300, so a 100 px tall player rests at y = 250.
+        Store.CreateEntity(new Block(new Vector2(350, 300), new Vector2(100, 50)));
+        Entity player = Player(100);
+        Frame(2);
+        Assert.That(State(player), Is.EqualTo(CharacterMotionState.Falling));
+
+        MoveTo(player, 250);
+        Frame();
+
+        Assert.That(State(player), Is.EqualTo(CharacterMotionState.Landing));
+
+        Frame(30);
+
+        Assert.That(State(player), Is.EqualTo(CharacterMotionState.Grounded));
+        Assert.That(Clip(player), Is.EqualTo("idle"));
+    }
+
+    [Test]
+    public void HoveringBesideOrAboveABlockIsNotGrounded()
+    {
+        // Same height as the block's top, but the player at x = 400 is clear of it.
+        Store.CreateEntity(new Block(new Vector2(600, 300), new Vector2(100, 50)));
+        Entity beside = Player(250);
+        Frame(2);
+        Assert.That(State(beside), Is.EqualTo(CharacterMotionState.Falling));
+
+        // Over the block but well above its top.
+        Store.CreateEntity(new Block(new Vector2(350, 300), new Vector2(100, 50)));
+        Entity above = Player(150);
+        Frame(2);
+        Assert.That(State(above), Is.EqualTo(CharacterMotionState.Falling));
+    }
+
+    [Test]
     public void BeforePlayStartsThePlayerStandsWhereverItIs()
     {
         Entity player = Player(Floor - 200, simulated: false);

@@ -63,13 +63,13 @@ public sealed class AnimatorHierarchyTests : AnimatorToolTest
     public void TheDropdownIsRebuiltWhenTheClipListChanges()
     {
         Entity before = Ui.ClipDropdown;
-        AnimatorCommands.Run(Session, new ToolAction(ToolActionKind.NewClip));
+        AnimatorClipCommands.Create(Session, "clip", 1f, false);
         Frame(2);
 
         Assert.That(Ui.ClipDropdown.Id, Is.Not.EqualTo(before.Id));
         Assert.That(ClipLabels(), Is.EqualTo(new[] { "IDLE", "JUMP", "CLIP" }));
         Assert.That(Ui.ClipDropdown.GetComponent<Text>().Value, Is.EqualTo("CLIP"));
-        // The clip dropdown, the FILE menu and the CLIP menu.
+        // The clip dropdown, the FILE menu and the CONFIG menu.
         Assert.That(Store.Query<Dropdown>().Count, Is.EqualTo(3));
     }
 
@@ -78,13 +78,13 @@ public sealed class AnimatorHierarchyTests : AnimatorToolTest
     {
         for (int i = 0; i < 3; i++)
         {
-            AnimatorCommands.Run(Session, new ToolAction(ToolActionKind.NewClip));
+            AnimatorClipCommands.Create(Session, $"clip{i}", 1f, false);
             Frame(2);
         }
 
         Assert.That(ClipLabels(), Has.Count.EqualTo(Package.Clips.Count));
-        // The FILE menu's three entries, the CLIP menu's four, and one option per clip.
-        Assert.That(Store.Query<DropdownOption>().Count, Is.EqualTo(3 + 4 + Package.Clips.Count));
+        // The FILE menu's four entries, the CONFIG menu's two, and one option per clip.
+        Assert.That(Store.Query<DropdownOption>().Count, Is.EqualTo(4 + 2 + Package.Clips.Count));
     }
 
     [Test]

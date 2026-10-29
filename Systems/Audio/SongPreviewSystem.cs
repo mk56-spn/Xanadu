@@ -20,6 +20,12 @@ public sealed class SongPreviewSystem : QuerySystem<SongSelectState>
     private const float Debounce = 0.3f;
 
     private const float Volume = 0.5f;
+
+    /// <summary>A new song fades in over this many seconds.</summary>
+    private const float FadeInSeconds = 1.2f;
+
+    /// <summary>The old song fades out over this many seconds once the selection moves off it.</summary>
+    private const float FadeOutSeconds = 0.25f;
     private const int AnalysisRate = 22050;
     private const int CachedSongs = 4;
 
@@ -49,6 +55,7 @@ public sealed class SongPreviewSystem : QuerySystem<SongSelectState>
     private readonly float[] _bands = new float[SpectrumAnalyzer.DefaultBands];
     private readonly float[] _energy = new float[EnergyGroups];
     private float _reactive;
+    private float _fade;
 
     public SongPreviewSystem(EntityStore entities, ITrackAudio audio)
     {
@@ -78,8 +85,26 @@ public sealed class SongPreviewSystem : QuerySystem<SongSelectState>
         else if (_playing.Length > 0 && !_audio.IsPlaying)
             Restart();
 
+        UpdateFade(delta);
         PollAnalysis();
         UpdateBars(delta);
+    }
+
+    /// <summary>Fades the music out as soon as the selection leaves it, and the next song in once it starts.</summary>
+    private void UpdateFade(float delta)
+    {
+        if (_playing.Length == 0)
+            return;
+
+        float next = _wanted == _playing
+            ? Math.Min(1f, _fade + delta / FadeInSeconds)
+            : Math.Max(0f, _fade - delta / FadeOutSeconds);
+        if (next == _fade)
+            return;
+
+        _fade = next;
+        // Squared, so the ramp follows loudness rather than raw amplitude.
+        _audio.SetVolume(Volume * _fade * _fade);
     }
 
     private static string AudioFor(SongSelectState state)
@@ -114,6 +139,8 @@ public sealed class SongPreviewSystem : QuerySystem<SongSelectState>
         float length = _audio.LengthSeconds;
         _startSeconds = length > 20 ? length * 0.33 : 0;
         _audio.Seek((float)_startSeconds);
+        _fade = 0f;
+        _audio.SetVolume(0f);
         _audio.Resume();
 
         if (_cache.TryGetValue(path, out SpectrumData? known))

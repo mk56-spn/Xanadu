@@ -35,12 +35,19 @@ public sealed class AnimatorKeyMenuSystem(IPointerInputSource pointer)
 
         foreach (Entity session in Query.ToEntityList())
         {
+            AnimatorUi ui = session.GetComponent<AnimatorUi>();
+            if (session.GetComponent<AnimatorNewClipDialog>().Open)
+            {
+                session.GetComponent<AnimatorKeyMenu>().Open = false;
+                AnimatorMenuPlacement.Place(ui.KeyMenu, UiLayout.Hidden);
+                continue;
+            }
+
             if (secondary)
                 RightClick(session, input);
             else if (primary)
                 session.GetComponent<AnimatorKeyMenu>().Open = false;
 
-            AnimatorUi ui = session.GetComponent<AnimatorUi>();
             AnimatorKeyMenu menu = session.GetComponent<AnimatorKeyMenu>();
             AnimatorMenuPlacement.Place(ui.KeyMenu, menu.Open ? menu.Anchor + AnimatorLayout.KeyMenuSize / 2 : UiLayout.Hidden);
             if (menu.Open)

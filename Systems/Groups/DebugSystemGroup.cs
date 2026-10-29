@@ -22,11 +22,6 @@ public sealed class DebugSystemGroup : SystemGroup, IDisposable
         EntityStore store,
         SystemRoot systems,
         IFpsSource fps,
-        EntityStore entitiesForSlider,
-        IPointerInputSource pointer,
-        Xanadu.Systems.Physics.Box2DPhysicsWorld physics,
-        IOverlayToggleSource gravityToggle,
-        Func<bool> inGameplay,
         IOverlayPageSource? paging = null) : base("Debug")
     {
         _overlay = new CanvasItemHandle(parentCanvas, 1000, visible: false);
@@ -43,11 +38,6 @@ public sealed class DebugSystemGroup : SystemGroup, IDisposable
             this,
             canvas,
             parentCanvas);
-        Add(new GravityDebugSystem(
-            entitiesForSlider,
-            physics,
-            gravityToggle,
-            inGameplay));
     }
 
     public void Dispose()

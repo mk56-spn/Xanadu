@@ -19,7 +19,8 @@ public sealed class MortalCoilChartTests
         LevelDocument level = JsonFileStore.Load<LevelDocument>(
             Path.Combine(root, "Levels", "mortal-coil-character-test.json"))!;
         SongDocument song = JsonFileStore.Load<SongDocument[]>(
-            Path.Combine(root, "Songs", "catalog.json"))!.Single();
+            Path.Combine(root, "Songs", "catalog.json"))!
+            .Single(candidate => candidate.Id == level.SongId);
 
         Assert.That(level.SongId, Is.EqualTo(song.Id));
         Assert.That(level.StartPoints, Is.Empty);

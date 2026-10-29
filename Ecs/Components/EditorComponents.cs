@@ -99,6 +99,18 @@ public struct EditorDashDirectionState(DashDirection direction) : IComponent
     public DashDirection Direction = direction;
 }
 
+/// <summary>The dash strength newly placed movement notes get.</summary>
+public struct EditorDashStrengthState(DashStrength strength) : IComponent
+{
+    public DashStrength Strength = strength;
+}
+
+/// <summary>One of the editor's 1×, 2× and 3× dash strength buttons.</summary>
+public struct EditorDashStrengthButton(DashStrength strength) : IComponent
+{
+    public DashStrength Strength = strength;
+}
+
 public struct EditorPlacementButton(EditorPlacementMode mode) : IComponent
 {
     public EditorPlacementMode Mode = mode;

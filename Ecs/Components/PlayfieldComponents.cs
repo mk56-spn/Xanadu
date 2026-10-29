@@ -87,6 +87,14 @@ public enum DashDirection
     UpLeft,
 }
 
+/// <summary>How far a movement note carries the player: one, two or three dash lengths.</summary>
+public enum DashStrength
+{
+    Single,
+    Double,
+    Triple,
+}
+
 public struct Note(
     long timeMs,
     Vector2 position,
@@ -94,7 +102,8 @@ public struct Note(
     NoteKind kind = NoteKind.Hit,
     DashDirection dashDirection = DashDirection.Up,
     int contactRequired = 1,
-    CharacterKind character = CharacterKind.Contact) : IComponent
+    CharacterKind character = CharacterKind.Contact,
+    DashStrength dashStrength = DashStrength.Single) : IComponent
 {
     public long TimeMs = timeMs;
     public Vector2 Position = position;
@@ -103,6 +112,7 @@ public struct Note(
     public DashDirection DashDirection = dashDirection;
     public int ContactRequired = contactRequired;
     public CharacterKind Character = character;
+    public DashStrength DashStrength = dashStrength;
 }
 
 /// <summary>A mine hazard placed in playfield coordinates.</summary>

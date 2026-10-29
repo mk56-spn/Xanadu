@@ -148,7 +148,8 @@ public sealed partial class EditorPlayfieldDrawSystem :
             Vector2 from = view.PlayfieldToScreen(note.Position);
             Vector2 target = PlayerMovementSystem.DashTarget(
                 note.Position,
-                note.DashDirection);
+                note.DashDirection,
+                note.DashStrength);
             Vector2 to = view.PlayfieldToScreen(target);
             Color color = PlayfieldRenderer.ColorFor(note.Target);
             color.A = 0.55f;
@@ -160,14 +161,16 @@ public sealed partial class EditorPlayfieldDrawSystem :
                 size / 2,
                 color,
                 2);
+            string arrow = PlayfieldRenderer.DashArrow(note.DashDirection);
+            string strength = PlayfieldRenderer.DashStrengthLabel(note.DashStrength);
             _canvas.DrawTextStyled(
                 _editor,
                 new Rect2(
                     to - new Vector2(size / 2, size / 2),
                     new Vector2(size, size)),
-                PlayfieldRenderer.DashArrow(note.DashDirection),
+                strength.Length == 0 ? arrow : $"{arrow} {strength}",
                 color,
-                Mathf.Max(10, (int)(size * 0.7f)));
+                Mathf.Max(9, (int)(size * (strength.Length == 0 ? 0.7f : 0.55f))));
         }
     }
 

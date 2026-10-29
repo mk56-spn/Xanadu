@@ -126,7 +126,8 @@ public static class PlayabilityAnalyzer
 
             // Assume the dash happens, even for an unreachable note, so one
             // bad note does not flag everything after it.
-            Vector2 target = PlayerMovementSystem.DashTarget(note.Position, note.Direction);
+            Vector2 target = PlayerMovementSystem.DashTarget(
+                note.Position, note.Direction, note.Strength);
             Vector2 landed = ToScreen(target, geometry);
             player = new Vector2(
                 Wrap(landed.X, geometry),

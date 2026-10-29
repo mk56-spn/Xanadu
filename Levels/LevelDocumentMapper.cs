@@ -50,6 +50,7 @@ public static class LevelDocumentMapper
                 DashDirection = note.DashDirection,
                 ContactRequired = note.ContactRequired,
                 Character = note.Character,
+                DashStrength = note.DashStrength,
                 Groups = GroupsOf(entity),
                 Item = Xif.FromEcs(ItemShader.Of(entity), ItemCommonShader.Of(entity)),
             });
@@ -163,7 +164,8 @@ public static class LevelDocumentMapper
                 note.Kind,
                 note.DashDirection,
                 note.ContactRequired,
-                note.Character), note.Item?.PrimaryShader ?? 0, note.Item?.PrimaryCommonShader ?? "");
+                note.Character,
+                note.DashStrength), note.Item?.PrimaryShader ?? 0, note.Item?.PrimaryCommonShader ?? "");
             Subscribe(created, note.Groups);
         }
 

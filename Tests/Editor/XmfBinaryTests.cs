@@ -52,6 +52,7 @@ public sealed class XmfBinaryTests
             DashDirection = DashDirection.DownLeft,
             ContactRequired = 4,
             Character = CharacterKind.Mage,
+            DashStrength = DashStrength.Triple,
         });
         source.Mines.Add(new MineDocument
         {
@@ -145,6 +146,7 @@ public sealed class XmfBinaryTests
         Assert.That(note.DashDirection, Is.EqualTo(DashDirection.DownLeft));
         Assert.That(note.ContactRequired, Is.EqualTo(4));
         Assert.That(note.Character, Is.EqualTo(CharacterKind.Mage));
+        Assert.That(note.DashStrength, Is.EqualTo(DashStrength.Triple));
 
         MineDocument mine = map.Mines[0];
         Assert.That(mine.Groups, Is.EqualTo(new[] { 2 }));

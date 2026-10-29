@@ -116,6 +116,7 @@ public sealed class LevelRecoveryStore(string directory)
         copy.Notes = copy.Notes
             .OrderBy(n => n.TimeMs).ThenBy(n => n.X).ThenBy(n => n.Y)
             .ThenBy(n => n.Kind).ThenBy(n => n.Target).ThenBy(n => n.DashDirection)
+            .ThenBy(n => n.DashStrength)
             .ToList();
         copy.Mines = copy.Mines
             .OrderBy(m => m.TimeMs).ThenBy(m => m.X).ThenBy(m => m.Y)

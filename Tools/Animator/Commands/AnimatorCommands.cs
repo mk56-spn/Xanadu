@@ -1,3 +1,4 @@
+using System.Globalization;
 using Friflo.Engine.ECS;
 using Godot;
 using Xanadu.Animation;
@@ -48,8 +49,22 @@ public static class AnimatorCommands
                 if (System.Enum.TryParse(action.Argument, out XafEasePreset preset))
                     AnimatorKeyCommands.SetInterpolation(session, preset);
                 break;
-            case ToolActionKind.NewClip:
-                AnimatorClipCommands.New(session);
+            case ToolActionKind.OpenNewClip:
+                AnimatorNewClipDialogCommands.Open(
+                    session,
+                    action.Argument == "duplicate");
+                break;
+            case ToolActionKind.CreateClip:
+                AnimatorNewClipDialogCommands.Create(session);
+                break;
+            case ToolActionKind.CloseNewClip:
+                AnimatorNewClipDialogCommands.Close(session);
+                break;
+            case ToolActionKind.OpenClipLength:
+                session.GetComponent<AnimatorClipLength>().Open = true;
+                AnimatorSession.SetStatus(
+                    session,
+                    "TYPE A LENGTH OR STEP WITH THE ARROWS");
                 break;
             case ToolActionKind.DuplicateClip:
                 AnimatorClipCommands.Duplicate(session);
@@ -58,10 +73,10 @@ public static class AnimatorCommands
                 AnimatorClipCommands.Delete(session);
                 break;
             case ToolActionKind.DurationDown:
-                AnimatorClipCommands.StepDuration(session, -AnimatorClipCommands.DurationStep);
+                AnimatorClipCommands.StepDuration(session, -DurationStep(action.Argument));
                 break;
             case ToolActionKind.DurationUp:
-                AnimatorClipCommands.StepDuration(session, AnimatorClipCommands.DurationStep);
+                AnimatorClipCommands.StepDuration(session, DurationStep(action.Argument));
                 break;
             case ToolActionKind.ToggleLoop:
                 AnimatorClipCommands.ToggleLoop(session);
@@ -321,6 +336,13 @@ public static class AnimatorCommands
         session.GetComponent<AnimatorBoneMenu>().Reparenting = bone;
         AnimatorSession.SetStatus(session, $"CLICK THE NEW PARENT OF {rig.Id}");
     }
+
+    /// <summary>The step a length arrow asks for, or the default 0.1 s for a keybinding.</summary>
+    private static float DurationStep(string argument) =>
+        float.TryParse(argument, NumberStyles.Float, CultureInfo.InvariantCulture,
+            out float seconds) && seconds > 0f
+            ? seconds
+            : AnimatorClipCommands.DurationStep;
 
     private static int SelectedBone(Entity session)
     {

@@ -10,12 +10,13 @@ namespace Xanadu.Tools.Animator.Systems;
 
 /// <summary>
 /// The clip controls in the timeline header: the name field shows the current
-/// clip and renames it when editing ends, and the loop button shows its state.
+/// clip and renames it when editing ends, and the LOOP button shows whether
+/// the clip loops.
 /// </summary>
 public sealed class AnimatorClipHeaderSystem : QuerySystem<AnimatorDocument, AnimatorUi>
 {
     private static readonly Color LoopOn = Palette.Selected;
-    private static readonly Color LoopOff = Palette.Muted;
+    private static readonly Color LoopOff = UiTheme.Button;
 
     private bool _wasEditing;
     private string _editedClip = "";
@@ -64,18 +65,21 @@ public sealed class AnimatorClipHeaderSystem : QuerySystem<AnimatorDocument, Ani
 
     private static void SyncLoop(Entity session, Entity button)
     {
-        if (button.IsNull || !button.HasComponent<Text>() || !button.HasComponent<ButtonVisual>())
+        if (button.IsNull || !button.HasComponent<Text>())
             return;
 
         XafClip? clip = AnimatorSession.CurrentClip(session.GetComponent<AnimatorDocument>());
         bool loop = clip?.Loop ?? false;
-        string label = "LOOP";
+        string label = loop ? "LOOP ON" : "LOOP OFF";
         ref Text text = ref button.GetComponent<Text>();
         if (text.Value != label)
         {
             text.Value = label;
             button.AddTag<Dirty>();
         }
+
+        if (!button.HasComponent<ButtonVisual>())
+            return;
 
         Color target = loop ? LoopOn : LoopOff;
         ref ButtonVisual visual = ref button.GetComponent<ButtonVisual>();

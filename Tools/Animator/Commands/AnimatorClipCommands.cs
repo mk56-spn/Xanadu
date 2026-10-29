@@ -8,13 +8,37 @@ public static class AnimatorClipCommands
 {
     public const float DurationStep = 0.1f;
 
-    public static void New(Entity session) =>
+    /// <summary>Length changes for the one, two and three arrow step buttons.</summary>
+    public static readonly float[] LengthSteps = { 0.1f, 1f, 10f };
+
+    /// <summary>
+    /// Creates the clip the NEW CLIP dialog describes. False when the name is
+    /// empty or already used; the caller reports why.
+    /// </summary>
+    public static bool Create(Entity session, string name, float duration, bool duplicate)
+    {
+        string trimmed = (name ?? "").Trim();
+        XafPackage package = Package(session);
+        if (trimmed.Length == 0 || package.Clips.Exists(clip => clip.Id == trimmed))
+            return false;
+
+        bool created = false;
         AnimatorHistoryCommands.Edit(session, () =>
         {
-            XafClip clip = XafClipAuthoring.Add(Package(session));
+            XafClip? source = duplicate ? Current(session) : null;
+            XafClip clip = source is null
+                ? XafClipAuthoring.Add(package, trimmed)
+                : XafClipAuthoring.Duplicate(package, source);
+            if (!XafClipAuthoring.Rename(package, clip, trimmed))
+                return;
+
+            float actual = XafClipAuthoring.SetDuration(clip, duration);
             Show(session, clip.Id);
-            AnimatorSession.SetStatus(session, $"NEW CLIP {clip.Id}");
+            created = true;
+            AnimatorSession.SetStatus(session, $"NEW CLIP {clip.Id} {actual:0.00}s");
         });
+        return created;
+    }
 
     public static void Duplicate(Entity session) =>
         AnimatorHistoryCommands.Edit(session, () =>
@@ -85,6 +109,26 @@ public static class AnimatorClipCommands
             AnimatorSession.SetStatus(
                 session,
                 actual > wanted + 0.0001f && delta < 0
+                    ? $"LENGTH {actual:0.00}s (KEYS END THERE)"
+                    : $"LENGTH {actual:0.00}s");
+        });
+
+    /// <summary>Sets the current clip's length, clamped to at least its last key.</summary>
+    public static void SetDuration(Entity session, float seconds) =>
+        AnimatorHistoryCommands.Edit(session, () =>
+        {
+            XafClip? clip = Current(session);
+            if (clip is null)
+                return;
+
+            float actual = XafClipAuthoring.SetDuration(clip, seconds);
+            AnimatorRuntime runtime = session.GetComponent<AnimatorDocument>().Runtime;
+            if (runtime.CurrentTime > actual)
+                runtime.Seek(actual);
+
+            AnimatorSession.SetStatus(
+                session,
+                actual > seconds + 0.0001f
                     ? $"LENGTH {actual:0.00}s (KEYS END THERE)"
                     : $"LENGTH {actual:0.00}s");
         });

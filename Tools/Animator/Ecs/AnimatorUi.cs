@@ -34,6 +34,21 @@ public struct AnimatorUi : IComponent
     /// <summary>Button of the clip dropdown; rebuilt with the clip list.</summary>
     public Entity ClipDropdown;
     public Entity ClipName;
+
+    /// <summary>The CONFIG dropdown button in the header and its floating length panel.</summary>
+    public Entity ConfigButton;
+    public Entity ClipLengthPanel;
+    public Entity ClipLengthField;
+
+    /// <summary>The NEW CLIP dialog, its dimmer and the fields that describe the clip.</summary>
+    public Entity NewClipBackdrop;
+    public Entity NewClipDialog;
+    public Entity NewClipDuplicate;
+    public Entity NewClipName;
+    public Entity NewClipLength;
+    public Entity NewClipError;
+
+    /// <summary>The LOOP button above the timeline, next to the game preview buttons.</summary>
     public Entity LoopButton;
     public Entity PathField;
     public Entity DirtyLabel;

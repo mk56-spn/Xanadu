@@ -8,4 +8,5 @@ public readonly record struct AnalysedNote(
     long TimeMs,
     Vector2 Position,
     NoteKind Kind,
-    DashDirection Direction);
+    DashDirection Direction,
+    DashStrength Strength = DashStrength.Single);

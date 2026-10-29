@@ -1,5 +1,6 @@
 using System.Linq;
 using NUnit.Framework;
+using Xanadu.Ecs;
 using Xanadu.Items;
 using Xanadu.Levels;
 
@@ -29,7 +30,13 @@ public sealed class XmfMapsetBinaryTests
         mapset.Variants.Add(easy);
 
         var hard = new XmfVariant { Id = "hard", Name = "Hard", FieldShader = 1 };
-        hard.Notes.Add(new NoteDocument { TimeMs = 50, X = 3, Y = 4 });
+        hard.Notes.Add(new NoteDocument
+        {
+            TimeMs = 50,
+            X = 3,
+            Y = 4,
+            DashStrength = DashStrength.Double,
+        });
         hard.Notes.Add(new NoteDocument { TimeMs = 150, X = 5, Y = 6 });
         mapset.Variants.Add(hard);
 
@@ -44,10 +51,13 @@ public sealed class XmfMapsetBinaryTests
         Assert.That(readEasy.Name, Is.EqualTo("Easy"));
         Assert.That(readEasy.PlayerShader, Is.EqualTo(1));
         Assert.That(readEasy.Notes.Single().TimeMs, Is.EqualTo(100));
+        Assert.That(readEasy.Notes.Single().DashStrength, Is.EqualTo(DashStrength.Single));
 
         XmfVariant readHard = read.Variants.Single(v => v.Id == "hard");
         Assert.That(readHard.FieldShader, Is.EqualTo(1));
         Assert.That(readHard.Notes, Has.Count.EqualTo(2));
+        Assert.That(readHard.Notes[0].DashStrength, Is.EqualTo(DashStrength.Double));
+        Assert.That(readHard.Notes[1].DashStrength, Is.EqualTo(DashStrength.Single));
     }
 
     [Test]
