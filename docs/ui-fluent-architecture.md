@@ -1,9 +1,10 @@
 # A fluent UI tree API
 
-**Status:** proposal + working prototype. Nothing existing is wired to it yet.
-The prototype lives in `UI/Ecs/Ui/UiNode*.cs`, `UiSurface.cs`, `UiEdge.cs`,
-`UiDropdownNode.cs`, and is covered by `UI/Tests/UiNodeTests.cs` and
-`Tests/Editor/EditorHeaderFluentTests.cs`.
+**Status:** in use. Every game screen builds through `UiNode` and the design
+stage; the editor partials are the last holdouts. `UiType`/`UiMetrics` and
+`UiStage` landed, and `SceneUi`'s construction helpers are deleted. The API
+lives in `UI/Ecs/Ui/UiNode*.cs`, `UiSurface.cs`, `UiStage.cs`, `UiEdge.cs`,
+`UiDropdownNode.cs`; scene-level sugar in `Scenes/UiNodeActions.cs`.
 
 ---
 
@@ -320,31 +321,54 @@ pin later where the design allows, so the layout diff is controlled.
 
 ---
 
-## 6. Migration plan
+## 6. Migration status
 
-Ordered so each step compiles and ships on its own.
+Every screen below builds through `UiNode` and reads `UiStage`; none takes a
+screen size.
 
-1. **Entry point** — `SceneUi.Layer(...)` returns `UiNode` instead of
-   `UiBuilder`; add `On(kind)` / `On(SceneActionId)` extensions in `Scenes/`.
-2. **Leaf-only screens** — pause, confirmation, tooltip, toast, focus ring.
-   Purely mechanical, no layout risk (positions are explicit).
-3. **Editor header, footer and tool strip** — the prototype test is step 3
-   already written; delete `EdgeGroup`, `AddEditorButton`,
-   `AddEditorButtonInContainer`, `AddEditorAction` as it lands.
-4. **Song select** (list, preview, scores, player card) — declares its geometry
-   today, so a straight translation.
-5. **Editor panels** (metadata, sidebar, groups) — mostly `.Panel()`, `.Gap()`,
-   `.Input()`, and `.With(...)` for the editor components.
-6. **Cleanup** — `UiBuilder` keeps only entity creation and becomes the surface's
-   internal factory; the `SceneUi.*` helpers that remain are the few that
-   compute something (e.g. `Fade`), not ones that restate a button.
+| Screen | Notes |
+| --- | --- |
+| Settings, Profiles, Main menu, Offset wizard | flat layouts, rows/columns and tokens |
+| Song timing, Results | live labels pinned, action rows, stat card |
+| Pause, Confirmation, Transitions | runtime overlays built inside `SceneSystem` |
+| Play HUD | HUD positions kept as drag-and-save layout data |
+| Song select | all eight partials: actions, chrome, info, list, player card, preview, scores |
 
-Each phase can be verified with the existing tests: `UI/Tests` (176) and
-`Tests/Editor` (233) both pass today with the prototype added.
+Remaining: the editor partials (`EditorScene.Chrome`, `.Sidebar`, `.Metadata`,
+`.Groups`) still use `UiBuilder` and `SceneUi.Text`, and their helpers cross
+files (`HudText`, `SidebarLabel`), so they move together.
+
+Cleanup already done: `SceneUi`'s construction helpers (`Background`, `Panel`,
+`Label`, `Button`, `ButtonEntity`, `CarouselButton`, `ScrollView`) are gone.
+Only layer ids, palette aliases, `Layer` and `Text` remain for the editor.
 
 ---
 
-## 7. What the prototype proves
+## 7. Rules that emerged
+
+1. **Measure static text, pin live text.** A measured box clips when a system
+   later writes a longer string (`BPM 120` → `BPM 1200`), so labels a system
+   rewrites keep an explicit `Size`.
+2. **HUD positions are data.** The play HUD's coordinates are `HudLayout`
+   entries the player can drag and save; they stay explicit rather than stacked.
+3. **Screens come from the stage.** `Page()`, `Cover()`, `Stage.Center` and
+   `Stage.Bounds` replace per-scene screen math; no scene takes a screen size.
+4. **Identity in the signature, decoration chained.** `Text(value, size, colour,
+   align, bold)`; glow, outline, tooltips chain.
+5. **Tokens for the long tail.** `UiType` and `UiMetrics` cover type, control
+   heights, space, borders and radii. Numbers that remain are named scene
+   constants (card width, HUD layout), never inline literals.
+6. **Measuring needs slack.** The shipped font is measured against
+   `UiTextMetrics`; boxes include the canvas's 4px insets and an 8% margin,
+   because a box one glyph short silently drops that glyph.
+7. **Transition states must be temporary.** Song select briefly bridged
+   `UiBuilder` and `UiNode` through `UiNode.Wrap(ui.Current, ui.Visuals)`. It
+   exposed a real bug — Wrap ignored the caller's visual factory, crashing tests
+   that pass a fake one — and is gone.
+
+---
+
+## 8. What the prototype proves
 
 * Children always land under the node they were called on.
 * Chained calls edit components in place and dirty exactly what changed
@@ -358,17 +382,21 @@ Each phase can be verified with the existing tests: `UI/Tests` (176) and
 * The editor header rebuilt fluently passes the chrome tests' geometry
   assertions (`menu.End.X == screen.X - 15`, name at `x == 15`, undo/redo order).
 
-## 8. Open questions
+## 9. Open questions
+
+Resolved since the proposal: measured text by default (yes, with the insets and
+margin above), left alignment as the default, `Start` as the default main
+alignment.
+
+Still open:
 
 1. **Naming** — `UiNode.Layer(...)` / `UiNode.Wrap(...)` vs a separate
    `Ui.Layer(...)` entry type. `Ui` collides with the `Xanadu.Systems.Ui`
    namespace, hence the static on the node.
-2. **Measured text by default** — I think yes; the alternative is a required
-   size and we keep the 290 literals.
-3. **`Start` as the default main alignment** — it only changes fixed-size
-   stacks that relied on `Center`.
-4. **Dropdown styling** — `dropdown.Button.Size(...)` today because extension
+2. **Dropdown styling** — `dropdown.Button.Size(...)` today because extension
    methods do not apply through the implicit conversion. Acceptable, or give
    `UiDropdownNode` a `Size`/`Fill`/`At` passthrough?
-5. **Delete `UiBuilder`'s public surface** after migration, or keep it as the
-   low-level factory?
+3. **Delete `UiBuilder`'s public surface** after the editor moves, or keep it as
+   the low-level factory? `SceneUi.Layer` still returns it for the editor.
+4. **`SceneUi.SetText` and the colour aliases** — fold into `UiText`/`Palette`
+   once the editor is off them.
