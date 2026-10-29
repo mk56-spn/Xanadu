@@ -10,13 +10,18 @@ namespace Xanadu.Ecs;
 /// </summary>
 public static class UiIcons
 {
-    /// <summary>Replaceable so tests can run without the engine's resource loader.</summary>
-    public static Func<string, Texture2D?> Loader { get; set; } = LoadFromResources;
+    /// <summary>
+    /// Loads nothing until a running tool installs <see cref="FromResources"/>:
+    /// the engine's resource loader takes the process down when there is no engine,
+    /// which is the case in unit tests.
+    /// </summary>
+    public static Func<string, Texture2D?> Loader { get; set; } = _ => null;
 
     public static Texture2D? Load(string? path) =>
         string.IsNullOrEmpty(path) ? null : Loader(path);
 
-    private static Texture2D? LoadFromResources(string path) =>
+    /// <summary>The engine's loader; a missing file gives no icon rather than an error.</summary>
+    public static Texture2D? FromResources(string path) =>
         ResourceLoader.Exists(path) ? ResourceLoader.Load<Texture2D>(path) : null;
 }
 

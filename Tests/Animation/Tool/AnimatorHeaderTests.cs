@@ -115,33 +115,28 @@ public sealed class AnimatorHeaderTests : AnimatorToolTest
     }
 
     [Test]
-    public void UndoAndRedoFloatOverThePreviewRightOfTheBonesList()
+    public void UndoAndRedoSitInTheHeaderRightOfTheName()
     {
         Rect2 undo = Area(Button(ToolActionKind.Undo));
         Rect2 redo = Area(Button(ToolActionKind.Redo));
-        Rect2 preview = AnimatorGeometry.PanelArea(Ui.Preview);
+        Rect2 status = Area(Ui.Status);
 
-        // The bones list ends at 16 + 240; the preview starts a gap later.
-        Assert.That(undo.Position.X, Is.GreaterThanOrEqualTo(256f));
-        Assert.That(preview.Encloses(undo), Is.True);
-        Assert.That(preview.Encloses(redo), Is.True);
+        Assert.That(undo.End.Y, Is.LessThanOrEqualTo(EditorShellMetrics.HeaderHeight));
+        Assert.That(undo.Position.X, Is.GreaterThanOrEqualTo(EditorShellMetrics.NameWidth));
         Assert.That(redo.Position.X, Is.GreaterThan(undo.End.X));
         Assert.That(redo.Position.Y, Is.EqualTo(undo.Position.Y).Within(0.5f));
+        Assert.That(status.Position.X, Is.GreaterThan(redo.End.X));
     }
 
     [Test]
-    public void TheHistoryPanelDrawsAboveThePreviewAndSwallowsClicksOnItsPadding()
+    public void UndoAndRedoShowTwoLettersUntilTheirIconsLoad()
     {
-        Entity undo = Button(ToolActionKind.Undo);
-        Entity panel = undo.Parent;
-
-        Assert.That(undo.GetComponent<Drawable>().ZIndex, Is.EqualTo(AnimatorLayout.MenuLayer));
-        Assert.That(panel.Tags.Has<TakesInput>(), Is.True);
-        Assert.That(panel.Parent.Id, Is.EqualTo(Ui.MenuLayer.Id));
+        Assert.That(Button(ToolActionKind.Undo).GetComponent<Text>().Value, Is.EqualTo("UN"));
+        Assert.That(Button(ToolActionKind.Redo).GetComponent<Text>().Value, Is.EqualTo("RE"));
     }
 
     [Test]
-    public void UndoAndRedoStillWorkFromTheirPanel()
+    public void UndoAndRedoStillWorkFromTheHeader()
     {
         Session.GetComponent<AnimatorSelection>().Bone = 1;
         Runtime.Seek(0.5f);

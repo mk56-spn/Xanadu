@@ -21,9 +21,11 @@ public static partial class AnimatorLayout
     /// <summary>Above every panel and menu, so a hover label is never clipped by one.</summary>
     public const int TooltipLayer = 7;
 
-    private const float Margin = 16f;
-    private const float TopHeight = 88f;
-    private const float BottomHeight = 216f;
+    // The frame comes from the shared editor shell, so the header and footer
+    // sit where they do in every tool; the panels run flush to the screen edge.
+    private const float Margin = 0f;
+    private const float TopHeight = EditorShellMetrics.HeaderHeight;
+    private const float BottomHeight = EditorFooterHeight.Animator;
     private const float Gap = 12f;
     private const float LeftWidth = 240f;
     private const float RightWidth = 300f;
@@ -54,29 +56,23 @@ public static partial class AnimatorLayout
     private const float NewClipLabelWidth = 70f;
 
     // Header slots; together they must fit in the header, which is one
-    // screen wide less its margins and padding.
-    private const float TitleWidth = 250f;
-    private const float StatusWidth = 220f;
-    private const float DirtyWidth = 100f;
-    private const float PathWidth = 290f;
+    // screen wide less its padding. The window is 1600 wide.
+    private const float TitleWidth = EditorShellMetrics.NameWidth;
+    private const float StatusWidth = 200f;
+    private const float DirtyWidth = 80f;
+    private const float PathWidth = 200f;
     private const float ClipLabelWidth = 48f;
+    private const float HeaderControl = EditorShellMetrics.HeaderControlHeight;
+    private const float HistoryButton = 50f;
+    private const string IconDir = "res://Assets/Icons/";
 
     /// <summary>Width of the clip dropdown button in the header.</summary>
     public const float ClipWidth = 160f;
-
-    // The floating undo/redo panel sits at the preview's top-left corner,
-    // just right of the bones list and under the preview's clip/time caption.
-    private const float HistoryInset = 12f;
-    private const float HistoryTop = 40f;
 
     /// <summary>Height of the horizontal mode bar above the preview, and the gap under it.</summary>
     private const float ModeBarHeight = 36f;
     private const float ModeBarGap = 8f;
     private const float ModeInset = ModeBarHeight + ModeBarGap;
-    private const float HistoryPadding = 8f;
-    private const float HistorySpacing = 6f;
-    private const float HistoryButtonWidth = 76f;
-    private const float HistoryButtonHeight = 30f;
     private static readonly Color Clear = new(0, 0, 0, 0);
 
     /// <summary>Creates every panel and returns the entities the systems drive.</summary>
@@ -117,7 +113,6 @@ public static partial class AnimatorLayout
         BuildKeyMenu(menu, ref refs);
         BuildSvgMenu(menu, ref refs);
         BuildChainInspector(menu, ref refs);
-        BuildHistoryPanel(menu);
         BuildNewClipDialog(menu, screen, ref refs);
         BuildTooltip(store, visuals, ref refs);
         return refs.Ui;
@@ -125,16 +120,22 @@ public static partial class AnimatorLayout
 
     private static void BuildHeader(UiBuilder ui, Vector2 screen, ref Refs refs)
     {
+        float pad = (TopHeight - HeaderControl) / 2;
         ui.Container(Vector2.Zero, new Vector2(screen.X - Margin * 2, TopHeight),
-            spacing: 16, color: UiTheme.Panel, padding: 14);
-        ui.Container(Vector2.Zero, new Vector2(TitleWidth, TopHeight - 28),
-            StackDirection.Vertical, spacing: 4, color: Clear,
-            cross: StackCrossAlignment.Start);
+            spacing: EditorShellMetrics.HeaderGap, color: UiTheme.Panel, padding: pad);
+
+        // Name, then undo and redo: the same place in every editor.
+        ui.Container(Vector2.Zero, new Vector2(TitleWidth, HeaderControl),
+            StackDirection.Vertical, spacing: 4, color: UiTheme.PanelAlt,
+            cross: StackCrossAlignment.Center);
         ui.Text("XAF ANIMATOR", new Vector2(TitleWidth - 10, 28), UiTheme.HeadingFontSize,
             UiTheme.Accent);
         ui.Text("skeleton / clips / rigid SVG groups", new Vector2(TitleWidth - 10, 18),
             UiTheme.SmallFontSize, UiTheme.TextDim);
         ui.End();
+        var history = new Vector2(HistoryButton, HistoryButton);
+        IconAction(ui, "UN", "undo", ToolActionKind.Undo, history);
+        IconAction(ui, "RE", "redo", ToolActionKind.Redo, history);
 
         refs.Ui.Status = ui.Text("", new Vector2(StatusWidth, 24), UiTheme.FontSize,
             Palette.Lime);
@@ -143,10 +144,9 @@ public static partial class AnimatorLayout
         refs.Ui.PathField = TextInput(ui, new Vector2(PathWidth, 26));
 
         // The clip dropdown's button lives in this slot, beside the file menu; its
-        // list floats on the menu layer and drops over the preview, clear of the
-        // history panel. The slot is horizontal on purpose: a vertical container
-        // makes room for an open dropdown's list, which would push the button
-        // out of the header.
+        // list floats on the menu layer and drops over the preview. The slot is
+        // horizontal on purpose: a vertical container makes room for an open
+        // dropdown's list, which would push the button out of the header.
         ui.Text("CLIPS", new Vector2(ClipLabelWidth, 20), UiTheme.SmallFontSize, UiTheme.Accent);
         ui.Container(Vector2.Zero, new Vector2(ClipWidth, 30), color: Clear);
         refs.Ui.ClipList = ui.Current;
@@ -160,6 +160,20 @@ public static partial class AnimatorLayout
         refs.Ui.ConfigButton.AddComponent(new UiTooltip("Clip length and delete"));
         refs.ConfigButton = refs.Ui.ConfigButton;
         ui.End();
+    }
+
+    /// <summary>A square icon button for a tool action; two letters stand in until the icon exists.</summary>
+    private static Entity IconAction(
+        UiBuilder ui,
+        string fallback,
+        string icon,
+        ToolActionKind kind,
+        Vector2 size)
+    {
+        Entity button = ui.IconButton(fallback, $"{IconDir}{icon}.svg", size);
+        button.AddComponent(new ToolAction(kind));
+        AnimatorTooltips.Attach(button, kind);
+        return button;
     }
 
     private static void BuildLeft(UiBuilder ui, float height, ref Refs refs)
@@ -306,28 +320,6 @@ public static partial class AnimatorLayout
         button.AddComponent(new ToolAction(kind, argument));
         AnimatorTooltips.Attach(button, kind, argument);
         return button;
-    }
-
-    /// <summary>
-    /// Undo and redo in their own small panel floating over the preview's
-    /// top-left corner, right of the bones list. It takes input so clicks on
-    /// its padding do not fall through and start a drag in the preview.
-    /// </summary>
-    private static void BuildHistoryPanel(UiBuilder menu)
-    {
-        var size = new Vector2(
-            HistoryButtonWidth * 2 + HistorySpacing + HistoryPadding * 2,
-            HistoryButtonHeight + HistoryPadding * 2);
-        var topLeft = new Vector2(
-            Margin + LeftWidth + Gap + HistoryInset,
-            Margin + TopHeight + Gap + ModeInset + HistoryTop);
-        menu.Container(topLeft + size / 2, size, StackDirection.Horizontal,
-            spacing: HistorySpacing, color: UiTheme.Panel, padding: HistoryPadding,
-            takesInput: true);
-        var button = new Vector2(HistoryButtonWidth, HistoryButtonHeight);
-        Action(menu, "UNDO", ToolActionKind.Undo, button);
-        Action(menu, "REDO", ToolActionKind.Redo, button);
-        menu.End();
     }
 
     private static Entity List(UiBuilder ui, float width = 210f)
