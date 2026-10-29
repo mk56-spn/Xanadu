@@ -65,6 +65,8 @@ public static partial class SongSelectScene
 
     private static ListViews BuildList(UiBuilder ui, bool loadAssets)
     {
+        UiNode root = UiNode.Wrap(ui.Current, ui.Visuals);
+
         // Each row is a chamfered container: the map's name, then the song's name
         // in brackets, flowing left to right.
         var tiles = new List<Entity>();
@@ -72,66 +74,61 @@ public static partial class SongSelectScene
         var songs = new List<Entity>();
         for (int row = 0; row < RowCount; row++)
         {
-            ui.Container(
-                RowSize / 2,
-                RowSize,
-                StackDirection.Horizontal,
-                spacing: RowGap,
-                color: RowColor,
-                takesInput: true,
-                padding: RowPadding,
-                main: StackMainAlignment.Start);
-            Entity tile = ui.Current;
-            tile.AddComponent(ButtonVisual.Create(RowColor));
-            tile.AddComponent(new SongSelectTile(-1));
-            tile.AddComponent(new UiChamfer(RowChamfer));
-            tile.AddComponent(new UiBorder(Fade(RowBorderColor, RowOpacity), RowBorder));
-            tiles.Add(tile);
+            UiNode tile = root.Row()
+                .Size(RowSize)
+                .Gap(RowGap)
+                .Fill(RowColor)
+                .Input()
+                .Pad(RowPadding)
+                .Main(StackMainAlignment.Start)
+                .With(ButtonVisual.Create(RowColor))
+                .With(new SongSelectTile(-1))
+                .Chamfer(RowChamfer)
+                .Border(Fade(RowBorderColor, RowOpacity), RowBorder);
+            tiles.Add(tile.Entity);
 
-            Entity name = RowText(ui, NameSize, Colors.White);
-            names.Add(name);
+            names.Add(RowText(tile, NameSize, Colors.White).Entity);
 
-            Entity song = RowText(ui, SongSize, Gold);
-            song.AddComponent(new TextGlow(new Color(Gold, 0.6f), radius: 8, intensity: 1.4f));
-            songs.Add(song);
-            ui.End();
+            UiNode song = RowText(tile, SongSize, Gold)
+                .Glow(new Color(Gold, 0.6f), radius: 8, intensity: 1.4f);
+            songs.Add(song.Entity);
         }
 
         // The selection stays in its slot while the rows slide through it.
         float left = RowLeft[SelectedSlot + 1];
         float top = RowTop[SelectedSlot + 1];
-        Entity outline = ui.ShapeEntity(
-            UiOutline.Points(new Rect2(left, top, RowSize.X, RowSize.Y), 0, RowChamfer),
-            Transparent,
-            new Color(Gold, RowOpacity),
-            RowBorder);
-        outline.AddTag<UiRaised>();
+        root.Shape(
+                UiOutline.Points(new Rect2(left, top, RowSize.X, RowSize.Y), 0, RowChamfer),
+                Transparent,
+                new Color(Gold, RowOpacity),
+                RowBorder)
+            .Raised();
 
         // The marker beside it, centred on the slim row.
         float middle = top + RowSize.Y / 2;
-        ui.ShapeEntity(
+        root.Shape(
             [new(86.396f, middle), new(132.38f, middle)],
             Transparent,
             Gold,
             4,
             closed: false);
-        ui.ShapeEntity(
+        root.Shape(
             [new(132.38f, middle - 20), new(132.38f, middle + 20)],
             Transparent,
             Gold,
             4,
             closed: false);
 
-        BuildScrollbar(ui, out Entity thumb);
+        BuildScrollbar(root, out Entity thumb);
         Entity emptyTitle = EmptyMessage(
-            ui,
+            root,
             new Vector2(399.198f, 516),
             new Vector2(460, 32),
             LocalizedText.Get(SongSelectStrings.NoLevels),
             26,
             Gold);
         Entity emptyHint = EmptyMessage(
-            ui,
+            root,
             new Vector2(399.198f, 556),
             EmptyHintSize,
             LocalizedText.Get(SongSelectStrings.CreateLevel),
@@ -150,63 +147,48 @@ public static partial class SongSelectScene
 
     /// <summary>The two lines the empty carousel shows in place of its rows.</summary>
     private static Entity EmptyMessage(
-        UiBuilder ui,
+        UiNode root,
         Vector2 center,
         Vector2 size,
         string text,
         int fontSize,
         Color color,
-        bool clickable = false)
-    {
-        Entity message = ui.RectEntity(
-            center,
-            size,
-            Transparent,
-            text,
-            takesInput: clickable);
-        message.AddComponent(new TextStyle(fontSize, color));
-        message.AddTag<UiRaised>();
-        return message;
-    }
+        bool clickable = false) =>
+        root.Rect(Transparent, text, size)
+            .At(center)
+            .Input(clickable)
+            .With(new TextStyle(fontSize, color))
+            .Raised();
 
-    private static void BuildScrollbar(UiBuilder ui, out Entity thumb)
+    private static void BuildScrollbar(UiNode root, out Entity thumb)
     {
-        ui.ShapeEntity(
+        root.Shape(
             RoundedRect(12.202f, 319.569f, 69.781f, 764.748f, 14.489f),
             ListBackdropTrack);
-        ui.ShapeEntity(
+        root.Shape(
             [new(TrackX, TrackTop), new(TrackX, TrackBottom)],
             default,
             Colors.Black,
             20,
             closed: false);
-        thumb = ui.ShapeEntity(
-            [new(TrackX, TrackTop), new(TrackX, TrackBottom)],
-            default,
-            Gold,
-            24,
-            closed: false);
-        thumb.AddComponent(new ShapeGlow(new Color(Gold, 0.6f), radius: 10, intensity: 1.5f));
-        thumb.AddTag<UiRaised>();
+        Entity marker = root.Shape(
+                [new(TrackX, TrackTop), new(TrackX, TrackBottom)],
+                default,
+                Gold,
+                24,
+                closed: false)
+            .With(new ShapeGlow(new Color(Gold, 0.6f), radius: 10, intensity: 1.5f))
+            .Raised();
+        thumb = marker;
     }
 
     private static readonly Color ListBackdropTrack = new(0, 0, 0, 0.7f);
 
     /// <summary>A bold left-aligned label inside a row; its width is set when the row is bound.</summary>
-    private static Entity RowText(UiBuilder ui, int fontSize, Color color)
-    {
-        Entity text = SceneUi.Text(
-            ui,
-            Vector2.Zero,
-            new Vector2(RowLabelWidth("", fontSize), RowTextHeight),
-            "",
-            fontSize,
-            color,
-            Transparent);
-        text.AddComponent(new TextAlignment(TextAlign.Left));
-        text.GetComponent<TextStyle>().Bold = true;
-        return text;
-    }
+    private static UiNode RowText(UiNode tile, int fontSize, Color color) =>
+        tile.Text("", fontSize, color, TextAlign.Left)
+            .Size(RowLabelWidth("", fontSize), RowTextHeight)
+            .Bold();
 
     /// <summary>The width a bold label needs, with the canvas's padding either side.</summary>
     private static float RowLabelWidth(string text, int fontSize) =>

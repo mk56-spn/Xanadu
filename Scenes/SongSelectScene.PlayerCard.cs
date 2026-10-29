@@ -19,18 +19,19 @@ public static partial class SongSelectScene
         ProfileStore profiles,
         bool loadAssets)
     {
+        UiNode root = UiNode.Wrap(ui.Current, ui.Visuals);
+
         // The banner is a skewed container whose right side runs off screen.
         const float bannerLeft = 1511.73f;
         const float bannerWidth = 1941.542f - bannerLeft;
-        ui.Container(
-            new Vector2(bannerLeft + bannerWidth / 2, 115.94f),
-            new Vector2(bannerWidth, 98.396f),
-            StackDirection.Horizontal,
-            color: PanelBlack,
-            padding: 1568.914f - bannerLeft - TextInset,
-            main: StackMainAlignment.Start,
-            skew: PreviewTilt);
-        Frost(ui.Current, loadAssets);
+        UiNode banner = root.Row()
+            .Size(bannerWidth, 98.396f)
+            .At(new Vector2(bannerLeft + bannerWidth / 2, 115.94f))
+            .Fill(PanelBlack)
+            .Pad(1568.914f - bannerLeft - TextInset)
+            .Main(StackMainAlignment.Start)
+            .Skew(PreviewTilt);
+        Frost(banner.Entity, loadAssets);
 
         string name = profiles.ActiveProfile?.Name ??
             LocalizedText.Get(SongSelectStrings.NoProfile);
@@ -38,54 +39,40 @@ public static partial class SongSelectScene
 
         // The banner fits eight characters at full size; longer names shrink to stay inside it.
         int size = Mathf.Clamp(Mathf.FloorToInt(620f / name.Length), 28, 70);
-        Entity banner = SceneUi.Text(
-            ui,
-            Vector2.Zero,
-            new Vector2(350, 84),
-            name,
-            size,
-            Colors.White,
-            Transparent);
-        banner.AddComponent(new TextAlignment(TextAlign.Left));
+        UiNode bannerText = banner.Text(name, size, Colors.White, TextAlign.Left)
+            .Size(350, 84)
+            .Bold();
+
         if (loadAssets)
         {
             // Gold to cream across 285 pixels from where the text starts.
-            banner.AddComponent(new UiMaterial(UiTextGradient.Create(
+            bannerText.With(new UiMaterial(UiTextGradient.Create(
                 Gold,
                 GoldLight,
                 new Vector2(-171, 0),
                 new Vector2(114.4f, 0))));
         }
 
-        banner.GetComponent<TextStyle>().Bold = true;
-        ui.End();
-
         // The readout's panel sizes itself to its label and keeps its left edge put.
-        ui.Container(
-            new Vector2(LevelPanelEdge + 100, LevelPanelTop + LevelPanelHeight / 2),
-            new Vector2(200, LevelPanelHeight),
-            StackDirection.Horizontal,
-            color: Dim,
-            padding: LevelTextLeft - TextInset - LevelPanelEdge,
-            autoWidth: true,
-            main: StackMainAlignment.Start,
-            skew: PreviewTilt,
-            anchorLeft: true);
-        Entity panel = ui.Current;
-        Entity level = SceneUi.Text(
-            ui,
-            Vector2.Zero,
-            new Vector2(LevelLabelWidth(0), 70),
-            "",
-            50,
-            LevelFill,
-            Transparent);
-        level.AddComponent(new TextAlignment(TextAlign.Left));
-        level.GetComponent<TextStyle>().Bold = true;
-        level.AddComponent(new TextOutline(LevelEdge(LevelColor(1)), LevelOutline));
-        level.AddComponent(new TextGlow(LevelGlow(LevelColor(1)), radius: 12, intensity: LevelGlowIntensity));
-        ui.End();
-        return (level, panel);
+        UiNode panel = root.Row()
+            .Size(200, LevelPanelHeight)
+            .At(new Vector2(
+                LevelPanelEdge + 100,
+                LevelPanelTop + LevelPanelHeight / 2))
+            .Fill(Dim)
+            .Pad(LevelTextLeft - TextInset - LevelPanelEdge)
+            .AutoWidth()
+            .Main(StackMainAlignment.Start)
+            .Skew(PreviewTilt)
+            .AnchorLeft();
+
+        UiNode level = panel.Text("", 50, LevelFill, TextAlign.Left)
+            .Size(LevelLabelWidth(0), 70)
+            .Bold()
+            .Outline(LevelEdge(LevelColor(1)), LevelOutline)
+            .Glow(LevelGlow(LevelColor(1)), radius: 12, intensity: LevelGlowIntensity);
+
+        return (level.Entity, panel.Entity);
     }
 
     private const float LevelTextLeft = 1525.582f;
