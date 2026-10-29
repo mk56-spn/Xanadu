@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Godot;
+using Xanadu.Items;
 
 namespace Xanadu.Animation;
 
@@ -8,7 +9,7 @@ namespace Xanadu.Animation;
 public sealed class XafPackage
 {
     public const ushort MajorVersion = 1;
-    public const ushort MinorVersion = 4;
+    public const ushort MinorVersion = 5;
 
     public ushort Major = MajorVersion;
     public ushort Minor = MinorVersion;
@@ -19,6 +20,26 @@ public sealed class XafPackage
 
     /// <summary>Which clips may fade into which, and how; see <see cref="XafTransitions"/>.</summary>
     public List<XafTransition> Transitions = new();
+
+    /// <summary>Items drawn on the rig only while a clip keys them visible, such as streaks and flashes.</summary>
+    public List<XafEffect> Effects = new();
+}
+
+/// <summary>
+/// An item that rides on a bone and appears only where a clip keys it
+/// visible: a speed streak, an impact flash. Its look is a <see cref="Xif"/>;
+/// clips key its transform, opacity and visibility like an attachment's.
+/// </summary>
+public sealed class XafEffect
+{
+    public string Id = "";
+    public string BoneId = "";
+
+    /// <summary>Where it sits on its bone when no clip moves it.</summary>
+    public Transform2D Transform = Transform2D.Identity;
+
+    public int ZOrder;
+    public Xif Item = new();
 }
 
 /// <summary>Bone hierarchy with one root and stable string IDs.</summary>
@@ -132,6 +153,9 @@ public enum XafChannelTarget
 {
     Bone,
     Attachment,
+
+    /// <summary>An <see cref="XafEffect"/>, by id.</summary>
+    Effect,
 }
 
 /// <summary>Individual scalar transform channel; allows independent curves.</summary>
@@ -142,6 +166,12 @@ public enum XafChannelProperty
     Rotation,
     ScaleX,
     ScaleY,
+
+    /// <summary>An effect's opacity, 0 to 1.</summary>
+    Opacity,
+
+    /// <summary>Whether an effect shows: 1 from a key on, 0 from a key off. Always held, never blended.</summary>
+    Visible,
 }
 
 public enum XafInterpolation

@@ -56,6 +56,7 @@ public sealed class CharacterRigDrawSystem(Func<IAttachmentVisuals> createVisual
             instance.Visuals.Apply(attachments, placement);
             instance.Chains.Update(package, bones, Tick.deltaTime);
             instance.Visuals.ApplyChains(package, instance.Chains, placement);
+            instance.Visuals.ApplyEffects(runtime.Pose, XafRig.WorldEffects(package, runtime.Pose, bones), placement);
             if (!entity.Tags.Has<CharacterRigVisible>())
                 entity.AddTag<CharacterRigVisible>();
         }

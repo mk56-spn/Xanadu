@@ -4,25 +4,49 @@ using Godot;
 
 namespace Xanadu.Animation;
 
-/// <summary>Per-bone and per-attachment transform values for one sampled pose.</summary>
+/// <summary>Per-bone, per-attachment and per-effect values for one sampled pose.</summary>
 public sealed class XafPose
 {
     public XafTransform[] Bones;
     public XafTransform[] Attachments;
 
-    public XafPose(int boneCount, int attachmentCount)
+    /// <summary>One per package effect; empty for a pose built without them.</summary>
+    public XafEffectState[] Effects;
+
+    public XafPose(int boneCount, int attachmentCount, int effectCount = 0)
     {
         Bones = new XafTransform[boneCount];
         Attachments = new XafTransform[attachmentCount];
+        Effects = new XafEffectState[effectCount];
     }
 
     public XafPose Clone()
     {
-        var pose = new XafPose(Bones.Length, Attachments.Length);
+        var pose = new XafPose(Bones.Length, Attachments.Length, Effects.Length);
         Array.Copy(Bones, pose.Bones, Bones.Length);
         Array.Copy(Attachments, pose.Attachments, Attachments.Length);
+        Array.Copy(Effects, pose.Effects, Effects.Length);
         return pose;
     }
+}
+
+/// <summary>An effect in one pose: where it is on its bone, how opaque, and whether it shows at all.</summary>
+public struct XafEffectState
+{
+    public XafTransform Transform;
+    public float Opacity;
+    public bool Visible;
+
+    /// <summary>How much of it is drawn: its opacity while visible, nothing otherwise.</summary>
+    public readonly float Alpha => Visible ? Math.Clamp(Opacity, 0f, 1f) : 0f;
+
+    /// <summary>At its resting place on the bone, fully opaque, and hidden until a clip shows it.</summary>
+    public static XafEffectState Rest(XafEffect effect) => new()
+    {
+        Transform = XafTransform.From(effect.Transform),
+        Opacity = 1f,
+        Visible = false,
+    };
 }
 
 /// <summary>Decomposed 2D transform used for interpolation and additive blending.</summary>
@@ -61,7 +85,13 @@ public static class XafSampler
     {
         var pose = new XafPose(
             package.Skeleton.Bones.Count,
-            package.Attachments.Count);
+            package.Attachments.Count,
+            package.Effects.Count);
+
+        // Effects are drawn as authored even from an additive layer: a streak
+        // in an attack clip is where the clip put it, not an offset from rest.
+        for (int i = 0; i < pose.Effects.Length; i++)
+            pose.Effects[i] = XafEffectState.Rest(package.Effects[i]);
 
         for (int i = 0; i < pose.Bones.Length; i++)
         {
@@ -91,8 +121,19 @@ public static class XafSampler
         for (int i = 0; i < package.Attachments.Count; i++)
             attachmentIndices[package.Attachments[i].Group] = i;
 
+        var effectIndices = new Dictionary<string, int>(StringComparer.Ordinal);
+        for (int i = 0; i < package.Effects.Count; i++)
+            effectIndices[package.Effects[i].Id] = i;
+
         foreach (XafChannel channel in clip.Channels)
         {
+            if (channel.Target == XafChannelTarget.Effect)
+            {
+                if (effectIndices.TryGetValue(channel.TargetId, out int effect))
+                    ApplyEffect(ref pose.Effects[effect], channel, time);
+                continue;
+            }
+
             float value = SampleChannel(channel, time);
             if (channel.Target == XafChannelTarget.Bone &&
                 boneIndices.TryGetValue(channel.TargetId, out int bone))
@@ -174,6 +215,41 @@ public static class XafSampler
                h11 * tangentIn * span;
     }
 
+    /// <summary>
+    /// A held value: the latest key at or before the time, so a visibility
+    /// key switches exactly where it sits rather than half way to the next.
+    /// Before the first key it is <paramref name="before"/>, so an effect is
+    /// hidden until the key that shows it.
+    /// </summary>
+    public static float SampleHeld(XafChannel channel, float time, float before = 0f)
+    {
+        var keys = channel.Keyframes;
+        float value = before;
+        foreach (XafKeyframe key in keys)
+        {
+            if (key.Time > time + XafTracks.TimeTolerance)
+                break;
+            value = key.Value;
+        }
+        return value;
+    }
+
+    private static void ApplyEffect(ref XafEffectState effect, XafChannel channel, float time)
+    {
+        switch (channel.Property)
+        {
+            case XafChannelProperty.Visible:
+                effect.Visible = SampleHeld(channel, time) >= 0.5f;
+                break;
+            case XafChannelProperty.Opacity:
+                effect.Opacity = Math.Clamp(SampleChannel(channel, time), 0f, 1f);
+                break;
+            default:
+                Apply(ref effect.Transform, channel.Property, SampleChannel(channel, time));
+                break;
+        }
+    }
+
     public static bool IsTranslation(XafChannelProperty property) =>
         property is XafChannelProperty.TranslationX or XafChannelProperty.TranslationY;
 
@@ -217,7 +293,23 @@ public static class XafBlend
                 from.Attachments[i],
                 to.Attachments[i],
                 weight);
+        for (int i = 0; i < Math.Min(result.Effects.Length, to.Effects.Length); i++)
+            result.Effects[i] = Blend(from.Effects[i], to.Effects[i], weight);
         return result;
+    }
+
+    /// <summary>
+    /// An effect shown by either pose fades with the crossfade: its drawn
+    /// alpha moves from one pose's to the other's, and it sits where the
+    /// pose that shows it puts it, so one appearing does not slide in from rest.
+    /// </summary>
+    public static XafEffectState Blend(XafEffectState from, XafEffectState to, float weight)
+    {
+        float alpha = Mathf.Lerp(from.Alpha, to.Alpha, weight);
+        XafTransform transform = from.Visible == to.Visible
+            ? Blend(from.Transform, to.Transform, weight)
+            : to.Visible ? to.Transform : from.Transform;
+        return new XafEffectState { Transform = transform, Opacity = alpha, Visible = alpha > 0f };
     }
 
     public static XafPose Add(XafPose basePose, XafPose additive, float weight)
@@ -231,6 +323,15 @@ public static class XafBlend
                 result.Attachments[i],
                 additive.Attachments[i],
                 weight);
+
+        // A layer that shows an effect draws it over the base, at the layer's weight.
+        for (int i = 0; i < Math.Min(result.Effects.Length, additive.Effects.Length); i++)
+        {
+            XafEffectState layer = additive.Effects[i];
+            float alpha = layer.Alpha * weight;
+            if (alpha > result.Effects[i].Alpha)
+                result.Effects[i] = layer with { Opacity = alpha, Visible = alpha > 0f };
+        }
         return result;
     }
 

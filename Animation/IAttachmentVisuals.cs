@@ -20,6 +20,12 @@ public interface IAttachmentVisuals
     /// </summary>
     void ApplyChains(XafPackage package, XafChainSimulation simulation, Transform2D placement) { }
 
+    /// <summary>
+    /// Places each effect at its rig-space transform and shows it at its
+    /// pose's alpha; an effect the pose does not show is hidden.
+    /// </summary>
+    void ApplyEffects(XafPose pose, Transform2D[] effects, Transform2D placement) { }
+
     /// <summary>Rig-space bounds of the loaded art at the given attachment transforms; empty when nothing loaded.</summary>
     Rect2 Bounds(Transform2D[] attachments) => new();
 

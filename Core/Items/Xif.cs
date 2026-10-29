@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Godot;
 
 namespace Xanadu.Items;
 
@@ -45,12 +46,29 @@ public sealed class XifShaderRef
 /// </summary>
 public sealed class XifPrimitive
 {
+    /// <summary>An SVG drawn from <see cref="Ref"/>.</summary>
+    public const string SvgKind = "svg";
+
+    /// <summary>A filled outline: <see cref="Points"/>, tinted by <see cref="Fill"/>, textured by <see cref="Ref"/> if set.</summary>
+    public const string PolygonKind = "polygon";
+
     public string Kind { get; set; } = "";
 
     public string Ref { get; set; } = "";
 
     /// <summary>The shader this layer is drawn with; <see cref="XifShaderRef.IsNone"/> when it has none.</summary>
     public XifShaderRef Shader { get; set; } = new();
+
+    /// <summary>A polygon's outline in the item's own space, in order; empty for other kinds.</summary>
+    public List<Vector2> Points { get; set; } = new();
+
+    /// <summary>A polygon's colour, multiplied with its texture when it has one.</summary>
+    public Color Fill { get; set; } = Colors.White;
+
+    public bool IsPolygon => Kind == PolygonKind;
+
+    /// <summary>Whether this primitive carries geometry beyond the kind, ref and shader every format stores.</summary>
+    public bool HasGeometry => Points.Count > 0 || Fill != Colors.White;
 }
 
 /// <summary>

@@ -282,6 +282,37 @@ public static class XafAuthoring
             XafChannelProperty.ScaleY, time, transform.Scale.Y);
     }
 
+    /// <summary>Keys an effect's transform and opacity at a time; its visibility is keyed apart, held.</summary>
+    public static void KeyEffect(
+        XafPackage package,
+        XafClip clip,
+        int effectIndex,
+        float time,
+        XafEffectState state)
+    {
+        if (effectIndex < 0 || effectIndex >= package.Effects.Count)
+            return;
+
+        string id = package.Effects[effectIndex].Id;
+        XafTransform transform = state.Transform;
+        SetChannel(clip, XafChannelTarget.Effect, id, XafChannelProperty.TranslationX, time, transform.Translation.X);
+        SetChannel(clip, XafChannelTarget.Effect, id, XafChannelProperty.TranslationY, time, transform.Translation.Y);
+        SetChannel(clip, XafChannelTarget.Effect, id, XafChannelProperty.Rotation, time, transform.Rotation);
+        SetChannel(clip, XafChannelTarget.Effect, id, XafChannelProperty.ScaleX, time, transform.Scale.X);
+        SetChannel(clip, XafChannelTarget.Effect, id, XafChannelProperty.ScaleY, time, transform.Scale.Y);
+        SetChannel(clip, XafChannelTarget.Effect, id, XafChannelProperty.Opacity, time, state.Opacity);
+    }
+
+    /// <summary>Keys an effect shown or hidden from a time on, as a held key.</summary>
+    public static void KeyEffectVisible(XafPackage package, XafClip clip, int effectIndex, float time, bool visible)
+    {
+        if (effectIndex < 0 || effectIndex >= package.Effects.Count)
+            return;
+
+        SetChannel(clip, XafChannelTarget.Effect, package.Effects[effectIndex].Id,
+            XafChannelProperty.Visible, time, visible ? 1f : 0f, XafInterpolation.Step);
+    }
+
     public static void KeyBoneTransform(
         XafPackage package,
         XafClip clip,

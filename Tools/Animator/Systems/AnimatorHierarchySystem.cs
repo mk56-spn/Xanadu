@@ -12,7 +12,7 @@ using Xanadu.Theme;
 namespace Xanadu.Tools.Animator.Systems;
 
 /// <summary>
-/// Rebuilds the bone, attachment, chain and clip lists when the package changes and
+/// Rebuilds the bone, attachment, chain, effect and clip lists when the package changes and
 /// highlights the selected entries.
 /// </summary>
 public sealed class AnimatorHierarchySystem(
@@ -49,6 +49,9 @@ public sealed class AnimatorHierarchySystem(
             Highlight(ui.ChainList, entry =>
                 entry.Kind == ToolActionKind.SelectChain &&
                 entry.Argument == selection.Chain.ToString());
+            Highlight(ui.EffectList, entry =>
+                entry.Kind == ToolActionKind.SelectEffect &&
+                entry.Argument == selection.Effect.ToString());
         }
     }
 
@@ -56,6 +59,7 @@ public sealed class AnimatorHierarchySystem(
     {
         Clear(ui.AttachmentList);
         Clear(ui.ChainList);
+        Clear(ui.EffectList);
 
         // The old dropdown's list and options float on the menu layer, outside
         // the header slot, so they have to be removed along with its button.
@@ -84,6 +88,12 @@ public sealed class AnimatorHierarchySystem(
         {
             AddEntry(ui.ChainList, package.Chains[i].Id,
                 ToolActionKind.SelectChain, ItemSize, i.ToString());
+        }
+
+        for (int i = 0; i < package.Effects.Count; i++)
+        {
+            AddEntry(ui.EffectList, $"{package.Effects[i].Id}  on {package.Effects[i].BoneId}",
+                ToolActionKind.SelectEffect, ItemSize, i.ToString());
         }
 
         session.GetComponent<AnimatorUi>().ClipDropdown = AddClipDropdown(ui, package);

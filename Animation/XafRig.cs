@@ -37,6 +37,25 @@ public static class XafRig
         return world;
     }
 
+    /// <summary>Where each effect is in rig space; one on a missing bone sits at the rig origin.</summary>
+    public static Transform2D[] WorldEffects(
+        XafPackage package,
+        XafPose pose,
+        Transform2D[] worldBones)
+    {
+        var world = new Transform2D[package.Effects.Count];
+        for (int i = 0; i < world.Length; i++)
+        {
+            XafEffect effect = package.Effects[i];
+            int bone = FindBone(package, effect.BoneId);
+            Transform2D local = i < pose.Effects.Length
+                ? pose.Effects[i].Transform.ToTransform()
+                : effect.Transform;
+            world[i] = bone < 0 ? local : worldBones[bone] * local;
+        }
+        return world;
+    }
+
     /// <summary>World transforms of every bone in the rest pose.</summary>
     public static Transform2D[] RestWorld(XafPackage package)
     {

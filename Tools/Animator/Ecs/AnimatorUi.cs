@@ -25,6 +25,7 @@ public struct AnimatorUi : IComponent
     public Entity BoneList;
     public Entity AttachmentList;
     public Entity ChainList;
+    public Entity EffectList;
 
     /// <summary>Header slot that holds the clip dropdown button.</summary>
     public Entity ClipList;

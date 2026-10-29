@@ -54,6 +54,11 @@ public static class AnimatorBindings
         new(new ToolAction(ToolActionKind.RenameBone), Key.F2),
         new(new ToolAction(ToolActionKind.AddChain), Key.V),
         new(new ToolAction(ToolActionKind.DeleteChain), Key.Delete, Ctrl: true),
+        new(new ToolAction(ToolActionKind.AddEffect), Key.W),
+        new(new ToolAction(ToolActionKind.DeleteEffect), Key.W, Shift: true),
+        new(new ToolAction(ToolActionKind.ToggleEffectVisible), Key.U),
+        new(new ToolAction(ToolActionKind.EffectOpacityDown), Key.Key9),
+        new(new ToolAction(ToolActionKind.EffectOpacityUp), Key.Key0),
 
         // Preview framing.
         new(new ToolAction(ToolActionKind.FitPreview), Key.F),

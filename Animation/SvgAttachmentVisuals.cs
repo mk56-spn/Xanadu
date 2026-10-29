@@ -1,14 +1,20 @@
 using System;
 using System.Collections.Generic;
 using Godot;
+using Xanadu.Items;
+using Xanadu.Systems.Shaders;
 
 namespace Xanadu.Animation;
 
-/// <summary>Rasterises each attachment's SVG group, and each chain's art, into canvas items.</summary>
+/// <summary>
+/// Rasterises each attachment's SVG group, and each chain's art, into canvas
+/// items, and builds each effect's polygons with their textures and shaders.
+/// </summary>
 public sealed class SvgAttachmentVisuals(Rid canvas) : IAttachmentVisuals
 {
     private readonly List<Visual> _visuals = new();
     private readonly List<ChainVisual> _chains = new();
+    private readonly List<EffectVisual> _effects = new();
 
     public void Reload(XafPackage package)
     {
@@ -33,6 +39,31 @@ public sealed class SvgAttachmentVisuals(Rid canvas) : IAttachmentVisuals
             XafChain chain = package.Chains[i];
             if (chain.HasArt && TryRaster(chain.SvgPath, chain.Group, out ImageTexture? texture, out Vector2 size))
                 _chains.Add(new ChainVisual(i, texture!, size, chainLayer));
+        }
+
+        for (int i = 0; i < package.Effects.Count; i++)
+        {
+            XafEffect effect = package.Effects[i];
+            int layer = Math.Clamp(effect.ZOrder, XafAttachment.MinLayer, XafAttachment.MaxLayer);
+            foreach (XifPrimitive primitive in effect.Item.Primitives)
+            {
+                if (primitive.IsPolygon && TryPolygon(primitive, effect.Item, layer) is { } visual)
+                    _effects.Add(visual with { Index = i });
+            }
+        }
+    }
+
+    public void ApplyEffects(XafPose pose, Transform2D[] effects, Transform2D placement)
+    {
+        foreach (EffectVisual visual in _effects)
+        {
+            float alpha = visual.Index < pose.Effects.Length ? pose.Effects[visual.Index].Alpha : 0f;
+            RenderingServer.CanvasItemSetVisible(visual.Item, alpha > 0f && visual.Index < effects.Length);
+            if (alpha <= 0f || visual.Index >= effects.Length)
+                continue;
+
+            RenderingServer.CanvasItemSetTransform(visual.Item, placement * effects[visual.Index]);
+            RenderingServer.CanvasItemSetModulate(visual.Item, new Color(1f, 1f, 1f, alpha));
         }
     }
 
@@ -109,6 +140,53 @@ public sealed class SvgAttachmentVisuals(Rid canvas) : IAttachmentVisuals
             chain.Texture.Dispose();
         }
         _chains.Clear();
+
+        foreach (EffectVisual effect in _effects)
+            RenderingServer.FreeRid(effect.Item);
+        _effects.Clear();
+    }
+
+    /// <summary>
+    /// One polygon primitive as a hidden canvas item: its outline triangulated,
+    /// tinted by its fill, textured across its bounds when its ref names a
+    /// texture, and drawn with its shader, or the item's, when one is common.
+    /// An outline that cannot be triangulated is skipped rather than drawn wrong.
+    /// </summary>
+    private EffectVisual? TryPolygon(XifPrimitive primitive, Xif item, int layer)
+    {
+        Vector2[] points = primitive.Points.ToArray();
+        int[] triangles = points.Length >= 3 ? Geometry2D.TriangulatePolygon(points) : Array.Empty<int>();
+        if (triangles.Length == 0)
+            return null;
+
+        Texture2D? texture = primitive.Ref.Length > 0 && ResourceLoader.Exists(primitive.Ref)
+            ? ResourceLoader.Load<Texture2D>(primitive.Ref)
+            : null;
+        var bounds = new Rect2(points[0], Vector2.Zero);
+        foreach (Vector2 point in points)
+            bounds = bounds.Expand(point);
+        var uvs = new Vector2[points.Length];
+        for (int i = 0; i < points.Length; i++)
+        {
+            uvs[i] = new Vector2(
+                bounds.Size.X > 0f ? (points[i].X - bounds.Position.X) / bounds.Size.X : 0f,
+                bounds.Size.Y > 0f ? (points[i].Y - bounds.Position.Y) / bounds.Size.Y : 0f);
+        }
+
+        var colors = new Color[points.Length];
+        Array.Fill(colors, primitive.Fill);
+
+        Rid canvasItem = RenderingServer.CanvasItemCreate();
+        RenderingServer.CanvasItemSetParent(canvasItem, canvas);
+        RenderingServer.CanvasItemSetZIndex(canvasItem, layer);
+        RenderingServer.CanvasItemSetVisible(canvasItem, false);
+        RenderingServer.CanvasItemAddTriangleArray(canvasItem, triangles, points, colors, uvs,
+            texture: texture?.GetRid() ?? default);
+
+        string shader = !primitive.Shader.IsNone ? primitive.Shader.Path : item.PrimaryCommonShader;
+        if (shader.Length > 0 && CommonShaderMaterials.MaterialOf(shader) is { IsValid: true } material)
+            RenderingServer.CanvasItemSetMaterial(canvasItem, material);
+        return new EffectVisual(-1, canvasItem, texture);
     }
 
     /// <summary>
@@ -151,6 +229,9 @@ public sealed class SvgAttachmentVisuals(Rid canvas) : IAttachmentVisuals
     }
 
     private sealed record Visual(int Index, Rid Item, ImageTexture Texture, Rect2 Bounds);
+
+    /// <summary>One polygon of an effect; the texture is held so it outlives the canvas item drawing it.</summary>
+    private sealed record EffectVisual(int Index, Rid Item, Texture2D? Texture);
 
     /// <summary>
     /// One chain's art: the texture shared by its pieces, the layer they all draw

@@ -41,6 +41,9 @@ public partial class AnimatorTool : Control
     /// <summary>Set by <c>--flow=from&gt;to</c>: open the FLOW tab on that hand-over and preview it.</summary>
     private string? _flow;
 
+    /// <summary>Set by <c>--streak=bone</c>: hang a streak off that bone and hold the playhead where it shows.</summary>
+    private string? _streak;
+
     public override void _Ready()
     {
         _store = new EntityStore();
@@ -103,6 +106,8 @@ public partial class AnimatorTool : Control
             _elapsed += (float)delta;
         if (_frames == 2 && _flow is not null)
             StartFlow(_flow);
+        if (_frames == 2 && _streak is not null)
+            AddStreak(_streak);
         bool due = _shotSeconds >= 0f ? _elapsed >= _shotSeconds : _frames == _shotAt;
         if (_shotPath is not null && due)
         {
@@ -115,7 +120,7 @@ public partial class AnimatorTool : Control
     /// Reads the capture flags, so an agent can check the tool without a
     /// desktop capture: <c>--shot=path</c>, <c>--shot-frames=n</c> or
     /// <c>--shot-seconds=s</c> (counted from the flow preview's start), and
-    /// <c>--flow=from&gt;to</c>.
+    /// <c>--flow=from&gt;to</c> and <c>--streak=bone</c>.
     /// </summary>
     private void ReadArguments()
     {
@@ -133,6 +138,8 @@ public partial class AnimatorTool : Control
                 _shotSeconds = Math.Max(0f, seconds);
             else if (argument.StartsWith("--flow=", StringComparison.Ordinal))
                 _flow = argument["--flow=".Length..];
+            else if (argument.StartsWith("--streak=", StringComparison.Ordinal))
+                _streak = argument["--streak=".Length..];
         }
     }
 
@@ -147,6 +154,16 @@ public partial class AnimatorTool : Control
         AnimatorCommands.Run(_session, new ToolAction(ToolActionKind.Clip, clips[0]));
         AnimatorCommands.Run(_session, new ToolAction(ToolActionKind.SelectTransition, clips[1]));
         AnimatorCommands.Run(_session, new ToolAction(ToolActionKind.PreviewTransition));
+    }
+
+    private void AddStreak(string bone)
+    {
+        AnimatorCommands.Run(_session, new ToolAction(ToolActionKind.SelectBone, bone));
+        AnimatorRuntime runtime = _session.GetComponent<AnimatorDocument>().Runtime;
+        runtime.SetPaused(true);
+        runtime.Seek(0f);
+        AnimatorCommands.Run(_session, new ToolAction(ToolActionKind.AddEffect));
+        _session.GetComponent<AnimatorDocument>().Runtime.Seek(0.05f);
     }
 
     private void CaptureShot(string path)

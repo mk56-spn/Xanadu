@@ -132,6 +132,24 @@ public enum ToolActionKind
 
     /// <summary>Plays every preview at a quarter of its speed, to watch a fade closely.</summary>
     ToggleSlow,
+
+    /// <summary>Hangs a speed streak off the selected bone, shown from the playhead; no argument.</summary>
+    AddEffect,
+
+    /// <summary>Selects an effect, by its index in the package.</summary>
+    SelectEffect,
+
+    /// <summary>Deletes the selected effect and its keys; no argument.</summary>
+    DeleteEffect,
+
+    /// <summary>Keys the selected effect shown, or hidden if it is showing, at the playhead.</summary>
+    ToggleEffectVisible,
+
+    /// <summary>Keys the selected effect's opacity one step lower at the playhead.</summary>
+    EffectOpacityDown,
+
+    /// <summary>Keys the selected effect's opacity one step higher at the playhead.</summary>
+    EffectOpacityUp,
 }
 
 /// <summary>Command carried by a pressable UI entity.</summary>
@@ -219,6 +237,9 @@ public partial struct AnimatorSelection : IComponent
     /// <summary>The selected Verlet chain; -1 for none.</summary>
     public int Chain;
 
+    /// <summary>The selected effect; -1 for none.</summary>
+    public int Effect;
+
     /// <summary>The selected bones beside the primary one; null when only one is selected.</summary>
     public List<int>? ExtraBones;
 
@@ -271,6 +292,7 @@ public partial struct AnimatorSelection : IComponent
         Bone = -1,
         Attachment = -1,
         Chain = -1,
+        Effect = -1,
         HasKey = false,
         KeyId = "",
     };

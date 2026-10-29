@@ -93,6 +93,8 @@ public static class AnimatorHistoryCommands
             selection.Attachment = -1;
         if (selection.Chain >= package.Chains.Count)
             selection.Chain = -1;
+        if (selection.Effect >= package.Effects.Count)
+            selection.Effect = -1;
         selection.HasKey = false;
         session.GetComponent<AnimatorDrag>() = new AnimatorDrag();
     }

@@ -32,7 +32,10 @@ public sealed class AnimatorRuntime
             _clips[clip.Id] = clip;
         Pose = new XafPose(
             package.Skeleton.Bones.Count,
-            package.Attachments.Count);
+            package.Attachments.Count,
+            package.Effects.Count);
+        for (int i = 0; i < Pose.Effects.Length; i++)
+            Pose.Effects[i] = XafEffectState.Rest(package.Effects[i]);
     }
 
     public XafPackage Package { get; }

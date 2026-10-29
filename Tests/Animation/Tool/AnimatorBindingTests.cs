@@ -66,6 +66,7 @@ public sealed class AnimatorBindingTests : AnimatorToolTest
             ToolActionKind.SelectBone,
             ToolActionKind.SelectAttachment,
             ToolActionKind.SelectChain,
+            ToolActionKind.SelectEffect,
             ToolActionKind.PickChainArt,
             ToolActionKind.PickChainBone,
             ToolActionKind.PickColliderBone,

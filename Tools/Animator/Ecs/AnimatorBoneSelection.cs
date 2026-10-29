@@ -35,6 +35,7 @@ public partial struct AnimatorSelection
         Bone = index;
         Attachment = -1;
         Chain = -1;
+        Effect = -1;
         ExtraBones = null;
     }
 
@@ -43,6 +44,7 @@ public partial struct AnimatorSelection
         Attachment = index;
         Bone = -1;
         Chain = -1;
+        Effect = -1;
         ExtraBones = null;
     }
 
@@ -51,6 +53,16 @@ public partial struct AnimatorSelection
         Chain = index;
         Bone = -1;
         Attachment = -1;
+        Effect = -1;
+        ExtraBones = null;
+    }
+
+    public void SelectOnlyEffect(int index)
+    {
+        Effect = index;
+        Bone = -1;
+        Attachment = -1;
+        Chain = -1;
         ExtraBones = null;
     }
 
@@ -65,6 +77,7 @@ public partial struct AnimatorSelection
 
         Attachment = -1;
         Chain = -1;
+        Effect = -1;
         if (Bone == index)
         {
             if (ExtraBones is { Count: > 0 })

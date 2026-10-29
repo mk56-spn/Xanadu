@@ -62,6 +62,11 @@ public static class AnimatorEditing
                 session,
                 $"KEYED {document.Package.Attachments[selection.Attachment].Group}");
         }
+        else if (AnimatorEffectCommands.Selected(session) is var effect and >= 0 && effect < pose.Effects.Length)
+        {
+            XafAuthoring.KeyEffect(document.Package, clip, effect, time, pose.Effects[effect]);
+            AnimatorSession.SetStatus(session, $"KEYED {document.Package.Effects[effect].Id}");
+        }
     }
 
     /// <summary>Keys the current pose of the given bones at the playhead as one undo step.</summary>
@@ -112,6 +117,11 @@ public static class AnimatorEditing
         else if (selection.Attachment >= 0)
         {
             Apply(ref document.Runtime.Pose.Attachments[selection.Attachment], rotation, scale);
+        }
+        else if (AnimatorEffectCommands.Selected(session) is var effect and >= 0 &&
+                 effect < document.Runtime.Pose.Effects.Length)
+        {
+            Apply(ref document.Runtime.Pose.Effects[effect].Transform, rotation, scale);
         }
         else
         {
@@ -290,6 +300,11 @@ public static class AnimatorEditing
         {
             XafAttachment attachment = package.Attachments[selection.Attachment];
             attachment.Transform = Nudged(attachment.Transform, rotation, scale);
+        }
+        else if (selection.Effect >= 0 && selection.Effect < package.Effects.Count)
+        {
+            XafEffect effect = package.Effects[selection.Effect];
+            effect.Transform = Nudged(effect.Transform, rotation, scale);
         }
     }
 

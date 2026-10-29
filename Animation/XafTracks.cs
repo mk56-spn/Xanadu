@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace Xanadu.Animation;
 
-/// <summary>One animated target of a clip: a bone or an attachment.</summary>
+/// <summary>One animated target of a clip: a bone, an attachment or an effect.</summary>
 public readonly record struct XafTrack(XafChannelTarget Target, string Id);
 
 /// <summary>Groups a clip's channels into per-target tracks for a dope-sheet view.</summary>
@@ -14,7 +14,7 @@ public static class XafTracks
 
     /// <summary>
     /// The targets that have keys in the clip: bones in skeleton order, then
-    /// attachments in package order. <paramref name="alwaysInclude"/> adds a
+    /// attachments, then effects, in package order. <paramref name="alwaysInclude"/> adds a
     /// target with no keys yet, so a selection still has a row to key into.
     /// </summary>
     public static List<XafTrack> Of(
@@ -43,6 +43,13 @@ public static class XafTracks
         foreach (XafAttachment attachment in package.Attachments)
         {
             var track = new XafTrack(XafChannelTarget.Attachment, attachment.Group);
+            if (animated.Contains(track))
+                tracks.Add(track);
+        }
+
+        foreach (XafEffect effect in package.Effects)
+        {
+            var track = new XafTrack(XafChannelTarget.Effect, effect.Id);
             if (animated.Contains(track))
                 tracks.Add(track);
         }

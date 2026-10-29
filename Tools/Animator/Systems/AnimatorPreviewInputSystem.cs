@@ -269,6 +269,7 @@ public sealed class AnimatorPreviewInputSystem(
         XafBone rig = document.Package.Skeleton.Bones[bone];
         document.Runtime.SetPaused(true);
         selection.Attachment = -1;
+        selection.Effect = -1;
 
         if (rest || rig.CanTranslate)
         {
