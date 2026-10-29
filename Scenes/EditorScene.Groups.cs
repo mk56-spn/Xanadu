@@ -12,8 +12,7 @@ public static partial class EditorScene
     /// <summary>Room the grid takes in the sidebar: its label, four rows of cells and a margin.</summary>
     public const float GroupGridHeight = EditorGroupLayout.GridHeight;
 
-    /// <summary>The groups grid. Its cells are placed in a column of the sidebar; the layout system sets their rows.</summary>
-    /// <summary>The groups label, the grid of group cells in rows, and the preview toggle, flowing in the sidebar.</summary>
+    /// <summary>The groups label, a grid of the group cells and the preview toggle, flowing in the sidebar.</summary>
     private static void BuildGroupGrid(UiBuilder ui, Entity editor, float width)
     {
         const float cell = 40f;
@@ -22,27 +21,23 @@ public static partial class EditorScene
         Entity label = SidebarLabel(ui, "GROUPS", width, 14);
 
         var cells = new Entity[GroupLimits.Count];
-        for (int row = 0; row < GroupLimits.Count / GroupLimits.Columns; row++)
+        ui.Grid(
+            Vector2.Zero,
+            new Vector2(width, 34),
+            GroupLimits.Columns,
+            spacing: gap,
+            lineSpacing: UiTheme.ContainerSpacing);
+        for (int i = 0; i < cells.Length; i++)
         {
-            ui.Container(
-                Vector2.Zero,
-                new Vector2(width, 34),
-                StackDirection.Horizontal,
-                spacing: gap,
-                color: Clear);
-            for (int column = 0; column < GroupLimits.Columns; column++)
-            {
-                int i = row * GroupLimits.Columns + column;
-                Entity button = ui.Button(
-                    (i + 1).ToString(),
-                    new Vector2(cell, 34),
-                    SceneUi.MutedButtonColor);
-                button.AddComponent(new EditorGroupCell(i));
-                button.AddComponent(new UiTooltip($"Edit group {i + 1}"));
-                cells[i] = button;
-            }
-            ui.End();
+            Entity button = ui.Button(
+                (i + 1).ToString(),
+                new Vector2(cell, 34),
+                SceneUi.MutedButtonColor);
+            button.AddComponent(new EditorGroupCell(i));
+            button.AddComponent(new UiTooltip($"Edit group {i + 1}"));
+            cells[i] = button;
         }
+        ui.End();
 
         Entity preview = ui.Button(
             "PREVIEW OFF",

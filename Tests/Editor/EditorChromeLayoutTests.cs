@@ -141,6 +141,21 @@ public sealed class EditorChromeLayoutTests : EcsSystemTest
     }
 
     [Test]
+    public void TheGroupCellsFormAFourByFourGrid()
+    {
+        Rect2 first = Area(Cell(0));
+        Rect2 second = Area(Cell(1));
+        Rect2 fifth = Area(Cell(GroupLimits.Columns));
+        Rect2 last = Area(Cell(GroupLimits.Count - 1));
+
+        Assert.That(second.Position.Y, Is.EqualTo(first.Position.Y).Within(0.5f));
+        Assert.That(second.Position.X - first.End.X, Is.EqualTo(6f).Within(0.5f));
+        Assert.That(fifth.Position.X, Is.EqualTo(first.Position.X).Within(0.5f));
+        Assert.That(fifth.Position.Y, Is.GreaterThan(first.End.Y));
+        Assert.That(last.Position.X, Is.EqualTo(Area(Cell(GroupLimits.Columns - 1)).Position.X).Within(0.5f));
+    }
+
+    [Test]
     public void AnOpenCharacterDropdownPushesTheGroupsDown()
     {
         Entity character = _characterButton();
