@@ -29,68 +29,7 @@ public static partial class EditorScene
             color: new Color(0, 0, 0, 0));
         Entity regionRoot = ui.Current;
 
-        ui.Container(
-            Vector2.Zero,
-            new Vector2(screen.X, EditorLayout.HeaderHeight),
-            StackDirection.Horizontal,
-            spacing: 0,
-            padding: 16,
-            color: new Color(0, 0, 0, 0));
-        Entity menu = SceneUi.ButtonEntity(
-            ui,
-            Vector2.Zero,
-            new Vector2(104, 38),
-            LocalizedText.Get(EditorStrings.Menu),
-            14,
-            SceneUi.MutedButtonColor);
-        menu.AddComponent(new SceneCommand(SceneActionId.Exit));
-
-        const float levelWidth = 104;
-        const float saveWidth = 88;
-        const float songWidth = 128;
-        const float timingWidth = 96;
-        const float undoWidth = 64;
-        const float redoWidth = 64;
-        const float actionsWidth =
-            songWidth + saveWidth + levelWidth + timingWidth +
-            undoWidth + redoWidth + 40;
-        ui.RectEntity(
-            Vector2.Zero,
-            new Vector2(
-                Mathf.Max(0, screen.X - 32 - 104 - actionsWidth),
-                1),
-            new Color(0, 0, 0, 0));
-        ui.Container(
-            Vector2.Zero,
-            new Vector2(actionsWidth, 38),
-            StackDirection.Horizontal,
-            spacing: 8,
-            color: new Color(0, 0, 0, 0));
-        Entity timing = SceneUi.ButtonEntity(
-            ui,
-            Vector2.Zero,
-            new Vector2(timingWidth, 38),
-            "TIMING",
-            14,
-            SceneUi.MutedButtonColor);
-        timing.AddComponent(new SceneCommand(SceneActionId.SongTiming));
-        AddEditorButtonInContainer(
-            ui,
-            new Vector2(songWidth, 38),
-            LocalizedText.Get(EditorStrings.LoadSong),
-            EditorButtonKind.LoadSong);
-        AddEditorButtonInContainer(
-            ui,
-            new Vector2(saveWidth, 38),
-            LocalizedText.Get(EditorStrings.Save),
-            EditorButtonKind.Save);
-        AddEditorButtonInContainer(
-            ui,
-            new Vector2(levelWidth, 38),
-            LocalizedText.Get(EditorStrings.Level),
-            EditorButtonKind.ToggleMetadata);
-        ui.End();
-        ui.End();
+        BuildHeader(entities, root, ui, screen);
 
         float middleHeight = screen.Y - EditorLayout.HeaderHeight;
         ui.Container(
@@ -158,6 +97,97 @@ public static partial class EditorScene
         ui.End();
 
         _ = regionRoot;
+    }
+
+    private const float HeaderControl = EditorShellMetrics.HeaderControlHeight;
+    private const string IconDir = "res://Assets/Icons/";
+
+    /// <summary>
+    /// The shared header: the name, undo and redo at the left, and the file,
+    /// song and menu dropdowns at the right, where every editor puts them.
+    /// </summary>
+    private static void BuildHeader(
+        EntityStore entities,
+        Entity root,
+        UiBuilder ui,
+        Vector2 screen)
+    {
+        const float pad = (EditorShellMetrics.HeaderHeight - HeaderControl) / 2;
+        const float historyButton = 50;
+        const float menuWidth = EditorShellMetrics.SettingsWidth;
+        const float dropdownWidth = EditorShellMetrics.DropdownWidth;
+        const float gap = EditorShellMetrics.HeaderGap;
+        const float rightWidth = dropdownWidth * 2 + menuWidth + gap * 2;
+        const float leftWidth = EditorShellMetrics.NameWidth + historyButton * 2 + gap * 2;
+        var clear = new Color(0, 0, 0, 0);
+
+        ui.Container(
+            Vector2.Zero,
+            new Vector2(screen.X, EditorLayout.HeaderHeight),
+            StackDirection.Horizontal,
+            spacing: gap,
+            padding: pad,
+            color: clear);
+
+        ui.Container(
+            Vector2.Zero,
+            new Vector2(EditorShellMetrics.NameWidth, HeaderControl),
+            StackDirection.Vertical,
+            color: SceneUi.PanelColor);
+        ui.Text(
+            "LEVEL EDITOR",
+            new Vector2(EditorShellMetrics.NameWidth - 10, 28),
+            UiTheme.HeadingFontSize,
+            SceneUi.AccentColor);
+        ui.End();
+
+        var history = new Vector2(historyButton, historyButton);
+        AddEditorAction(
+            ui.IconButton("UN", IconDir + "undo.svg", history, SceneUi.ButtonColor),
+            EditorButtonKind.Undo);
+        AddEditorAction(
+            ui.IconButton("RE", IconDir + "redo.svg", history, SceneUi.ButtonColor),
+            EditorButtonKind.Redo);
+
+        ui.RectEntity(
+            Vector2.Zero,
+            new Vector2(Mathf.Max(0, screen.X - pad * 2 - gap * 2 - leftWidth - rightWidth), 1),
+            clear);
+
+        Entity file = ui.Button("FILE ▾", new Vector2(dropdownWidth, HeaderControl), SceneUi.MutedButtonColor);
+        Entity song = ui.Button("SONG ▾", new Vector2(dropdownWidth, HeaderControl), SceneUi.MutedButtonColor);
+        Entity menu = ui.Button("MENU ▾", new Vector2(menuWidth, HeaderControl), SceneUi.MutedButtonColor);
+        ui.End();
+
+        // The lists float on their own layer so opening one never moves the header.
+        UiBuilder lists = SceneUi.Layer(entities, root, 970);
+        HeaderMenu(lists, file,
+            ("SAVE", EditorButtonKind.Save),
+            ("SAVE AS", EditorButtonKind.SaveAs),
+            ("LOAD LEVEL", EditorButtonKind.LoadLevel));
+        HeaderMenu(lists, song,
+            ("LOAD SONG", EditorButtonKind.LoadSong),
+            ("TIMING", SceneActionId.SongTiming),
+            ("LEVEL INFO", EditorButtonKind.ToggleMetadata));
+        HeaderMenu(lists, menu,
+            ("EXIT", SceneActionId.Exit));
+    }
+
+    /// <summary>A header dropdown whose options run editor buttons or scene actions.</summary>
+    private static void HeaderMenu(UiBuilder lists, Entity button, params (string Label, object Action)[] entries)
+    {
+        var labels = new string[entries.Length];
+        for (int i = 0; i < entries.Length; i++)
+            labels[i] = entries[i].Label;
+
+        UiDropdownControl dropdown = lists.DropdownList(button, labels);
+        for (int i = 0; i < entries.Length; i++)
+        {
+            if (entries[i].Action is EditorButtonKind kind)
+                AddEditorAction(dropdown.Options[i], kind);
+            else if (entries[i].Action is SceneActionId action)
+                dropdown.Options[i].AddComponent(new SceneCommand(action));
+        }
     }
 
     private static void BuildToolbar(

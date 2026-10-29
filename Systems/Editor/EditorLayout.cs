@@ -9,10 +9,12 @@ namespace Xanadu.Systems.Editor;
 public static class EditorLayout
 {
     public const float Margin = 16;
-    public const float HeaderHeight = 72;
-    public const float FooterHeight = 88;
+
+    /// <summary>The shell's header; the transport row, a gap and the footer proper fill the shell's footer height.</summary>
+    public const float HeaderHeight = EditorShellMetrics.HeaderHeight;
     public const float TransportHeight = 42;
     public const float Gap = 10;
+    public const float FooterHeight = EditorFooterHeight.Level - TransportHeight - Gap;
 
     public const float TimelineHeight = 64;
     public const float TimelineWidthRatio = 0.66f;

@@ -20,24 +20,25 @@ public static partial class EditorScene
         Entity editor,
         Vector2 screen)
     {
-        const float width = 190;
-        const float top = 120;
+        // The shell's right panel: flush to the screen edge, under the header.
+        const float width = EditorShellMetrics.RightPanelWidth - 24;
+        const float top = EditorShellMetrics.HeaderHeight + 10;
         const float SidebarHeight = 88 + GroupGridHeight;
-        float centerX = screen.X - 112;
+        float centerX = screen.X - EditorShellMetrics.RightPanelWidth / 2;
 
         UiBuilder panelUi = SceneUi.Layer(entities, root, 939);
         Entity sidebarPanel = panelUi.RectEntity(
             new Vector2(centerX, top - 10 + SidebarHeight / 2),
-            new Vector2(width + 20, SidebarHeight),
+            new Vector2(width + 24, SidebarHeight),
             SceneUi.PanelColor,
             takesInput: true);
 
         UiBuilder ui = SceneUi.Layer(entities, root, 940);
 
         editor.AddComponent(new EditorSidebar(new Rect2(
-            centerX - width / 2 - 10,
+            centerX - width / 2 - 12,
             top - 10,
-            width + 20,
+            width + 24,
             SidebarHeight)));
 
         Entity characterLabel = SceneUi.Text(
@@ -78,9 +79,10 @@ public static partial class EditorScene
         Entity editor,
         Vector2 screen)
     {
+        // Clear of the tool strip at the left edge.
         const float width = 190;
-        const float top = 120;
-        const float centerX = 164;
+        const float top = EditorShellMetrics.HeaderHeight + 10;
+        const float centerX = EditorShellMetrics.ToolStripWidth + 8 + (width + 20) / 2;
 
         UiBuilder panelUi = SceneUi.Layer(entities, root, 939);
         Entity panel = panelUi.RectEntity(
@@ -189,18 +191,18 @@ public static partial class EditorScene
         (EditorPlacementMode.Spikes, "▲"),
     };
 
-    /// <summary>The vertical bar of placement tools down the left edge.</summary>
-    private static void BuildToolBar(EntityStore entities, Entity root)
+    /// <summary>The placement tools run down the shell's tool strip at the left edge.</summary>
+    private static void BuildToolBar(EntityStore entities, Entity root, Vector2 screen)
     {
-        const float buttonSize = 36;
-        const float step = 42;
-        const float centerX = 30;
-        const float top = 120;
-        float height = ToolIcons.Length * step + 6;
+        const float buttonSize = EditorShellMetrics.ToolButton;
+        const float step = EditorShellMetrics.ToolButton + EditorShellMetrics.ToolGap;
+        const float centerX = EditorShellMetrics.ToolStripWidth / 2;
+        const float top = EditorShellMetrics.HeaderHeight;
+        float height = screen.Y - top - EditorFooterHeight.Level;
 
         SceneUi.Layer(entities, root, 939).RectEntity(
-            new Vector2(centerX, top + height / 2 - 3),
-            new Vector2(buttonSize + 8, height),
+            new Vector2(centerX, top + height / 2),
+            new Vector2(EditorShellMetrics.ToolStripWidth, height),
             SceneUi.PanelColor,
             takesInput: true);
 
@@ -208,12 +210,14 @@ public static partial class EditorScene
         for (int i = 0; i < ToolIcons.Length; i++)
         {
             Entity button = ui.RectEntity(
-                new Vector2(centerX, top + buttonSize / 2 + i * step),
+                new Vector2(
+                    centerX,
+                    top + EditorShellMetrics.ToolGap + buttonSize / 2 + i * step),
                 new Vector2(buttonSize, buttonSize),
                 SceneUi.MutedButtonColor,
                 ToolIcons[i].Icon,
                 takesInput: true);
-            button.AddComponent(new TextStyle(22, SceneUi.TextColor));
+            button.AddComponent(new TextStyle(26, SceneUi.TextColor));
             button.AddComponent(ButtonVisual.Create(SceneUi.MutedButtonColor));
             button.AddComponent(new EditorPlacementButton(ToolIcons[i].Mode));
         }
@@ -224,7 +228,7 @@ public static partial class EditorScene
     {
         const float swatchSize = 24;
         const float step = 29;
-        const float centerX = 164;
+        const float centerX = EditorShellMetrics.ToolStripWidth + 8 + 105;
         const float centerY = 380;
         float width = KeybindSettings.Actions.Length * step + 8;
 
