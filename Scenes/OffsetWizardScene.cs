@@ -2,44 +2,42 @@ using Friflo.Engine.ECS;
 using Godot;
 using Xanadu.Ecs;
 using Xanadu.Strings;
+using Xanadu.Theme;
 
 namespace Xanadu.Scenes;
 
 /// <summary>Background scene for the native offset calibration wizard.</summary>
 public static class OffsetWizardScene
 {
+    private const float TitleY = 90;
+    private const float HintY = 140;
+    private const float BackWidth = 150;
+
     public static void Build(
         EntityStore entities,
         Entity root,
-        Vector2 screen,
         IVisualRidFactory? visuals = null)
     {
-        UiBuilder ui = SceneUi.Layer(entities, root, SceneUi.MenuLayer, visuals);
-        SceneUi.Background(ui, screen);
+        UiStage stage = UiStage.Full;
+        UiNode ui = UiNode.Layer(entities, root, SceneUi.MenuLayer, visuals, stage);
 
-        SceneUi.Text(
-            ui,
-            new Vector2(screen.X / 2, 90),
-            new Vector2(900, 58),
-            LocalizedText.Get(OffsetWizardStrings.Title),
-            38,
-            SceneUi.AccentColor);
+        ui.Rect(SceneUi.BackgroundColor).Cover().Below();
+        ui.Text(
+                LocalizedText.Get(OffsetWizardStrings.Title),
+                UiType.Title,
+                SceneUi.AccentColor)
+            .At(new Vector2(stage.Center.X, TitleY));
+        ui.Text("Tap SPACE with every click.", UiType.Label, SceneUi.DimTextColor)
+            .At(new Vector2(stage.Center.X, HintY));
 
-        SceneUi.Text(
-            ui,
-            new Vector2(screen.X / 2, 140),
-            new Vector2(900, 28),
-            "Tap SPACE with every click.",
-            18,
-            SceneUi.DimTextColor);
-
-        SceneUi.Button(
-            ui,
-            new Vector2(100, 44),
-            new Vector2(150, 44),
-            LocalizedText.Get(OffsetWizardStrings.Back),
-            SceneKind.Main,
-            18,
-            SceneUi.MutedButtonColor);
+        ui.Button(
+                LocalizedText.Get(OffsetWizardStrings.Back),
+                UiType.Label,
+                SceneUi.MutedButtonColor)
+            .Size(BackWidth, UiMetrics.Control.Lg)
+            .At(new Vector2(
+                UiMetrics.Space.Xl + BackWidth / 2,
+                UiMetrics.Space.Xl + UiMetrics.Control.Lg / 2))
+            .On(SceneKind.Main);
     }
 }

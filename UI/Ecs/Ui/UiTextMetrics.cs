@@ -3,8 +3,9 @@ namespace Xanadu.Ecs;
 /// <summary>
 /// A rough width for a line of text, for sizing boxes before a font is at
 /// hand. It runs a little generous, since text wider than its box is clipped.
-/// Uppercase is deliberately over-estimated: UI labels are mostly caps, and a
-/// box one glyph short silently drops that glyph.
+/// The advances were calibrated against the shipped font: lowercase needs
+/// ~0.62em, caps ~0.70em. Keep the bias high — a box a glyph short silently
+/// drops that glyph.
 /// </summary>
 public static class UiTextMetrics
 {
@@ -21,14 +22,14 @@ public static class UiTextMetrics
     /// <summary>The advance of one character, in ems.</summary>
     private static float Advance(char c) => c switch
     {
-        ' ' => 0.28f,
+        ' ' => 0.32f,
         'i' or 'l' or 'j' or '!' or '|' or '.' or ',' or ':' or ';' or '\'' => 0.28f,
         'I' or 't' or 'f' or 'r' or '(' or ')' or '[' or ']' or '1' => 0.36f,
         'm' or 'M' => 0.86f,
         'w' or 'W' => 0.84f,
         >= 'A' and <= 'Z' => 0.74f,
-        >= '0' and <= '9' => 0.57f,
-        >= 'a' and <= 'z' => 0.54f,
+        >= '0' and <= '9' => 0.60f,
+        >= 'a' and <= 'z' => 0.62f,
         _ => 0.6f,
     };
 }
