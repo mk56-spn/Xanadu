@@ -13,47 +13,42 @@ public static partial class EditorScene
     public const float GroupGridHeight = EditorGroupLayout.GridHeight;
 
     /// <summary>The groups grid. Its cells are placed in a column of the sidebar; the layout system sets their rows.</summary>
-    private static void BuildGroupGrid(UiBuilder ui, Entity editor, float centerX, float top)
+    /// <summary>The groups label, the grid of group cells in rows, and the preview toggle, flowing in the sidebar.</summary>
+    private static void BuildGroupGrid(UiBuilder ui, Entity editor, float width)
     {
         const float cell = 40f;
         const float gap = 6f;
-        float width = GroupLimits.Columns * cell + (GroupLimits.Columns - 1) * gap;
-        float left = centerX - width / 2 + cell / 2;
 
-        Entity label = SceneUi.Text(
-            ui,
-            new Vector2(centerX, top + 80),
-            new Vector2(190, 20),
-            "GROUPS",
-            14,
-            SceneUi.DimTextColor,
-            new Color(0, 0, 0, 0));
+        Entity label = SidebarLabel(ui, "GROUPS", width, 14);
 
         var cells = new Entity[GroupLimits.Count];
-        for (int i = 0; i < cells.Length; i++)
+        for (int row = 0; row < GroupLimits.Count / GroupLimits.Columns; row++)
         {
-            int column = i % GroupLimits.Columns;
-            Entity button = ui.RectEntity(
-                new Vector2(left + column * (cell + gap), top + 100),
-                new Vector2(cell, 34),
-                SceneUi.MutedButtonColor,
-                (i + 1).ToString(),
-                takesInput: true);
-            button.AddComponent(new TextStyle(14, SceneUi.TextColor));
-            button.AddComponent(ButtonVisual.Create(SceneUi.MutedButtonColor));
-            button.AddComponent(new EditorGroupCell(i));
-            button.AddComponent(new UiTooltip($"Edit group {i + 1}"));
-            cells[i] = button;
+            ui.Container(
+                Vector2.Zero,
+                new Vector2(width, 34),
+                StackDirection.Horizontal,
+                spacing: gap,
+                color: Clear);
+            for (int column = 0; column < GroupLimits.Columns; column++)
+            {
+                int i = row * GroupLimits.Columns + column;
+                Entity button = ui.Button(
+                    (i + 1).ToString(),
+                    new Vector2(cell, 34),
+                    SceneUi.MutedButtonColor);
+                button.AddComponent(new EditorGroupCell(i));
+                button.AddComponent(new UiTooltip($"Edit group {i + 1}"));
+                cells[i] = button;
+            }
+            ui.End();
         }
 
-        Entity preview = ui.RectEntity(
-            new Vector2(centerX, top + 300),
+        Entity preview = ui.Button(
+            "PREVIEW OFF",
             new Vector2(150, 30),
             SceneUi.MutedButtonColor,
-            "PREVIEW OFF",
-            takesInput: true);
-        preview.AddComponent(new TextStyle(12, SceneUi.TextColor));
-        preview.AddComponent(ButtonVisual.Create(SceneUi.MutedButtonColor));
+            fontSize: 12);
         preview.AddComponent(new UiTooltip("Show where the groups move and tint their members at the playhead"));
 
         editor.AddComponent(new EditorGroupGrid(label, cells, preview));

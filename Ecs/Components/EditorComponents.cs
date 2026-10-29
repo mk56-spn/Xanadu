@@ -243,13 +243,11 @@ public struct EditorHud(
 public struct EditorSidebarLayout(
     Entity panel,
     Entity characterLabel,
-    Entity characterButton,
-    float top) : IComponent
+    Entity characterButton) : IComponent
 {
     public Entity Panel = panel;
     public Entity CharacterLabel = characterLabel;
     public Entity CharacterButton = characterButton;
-    public float Top = top;
 }
 
 /// <summary>A colour swatch in the note-type bar; pressing it sets the type new notes get.</summary>
@@ -269,13 +267,11 @@ public struct EditorNoteBarPanel(Vector2 home) : IComponent
 public struct EditorLeftMenu(
     Entity panel,
     Entity snapLabel,
-    Entity snapButton,
-    float top) : IComponent
+    Entity snapButton) : IComponent
 {
     public Entity Panel = panel;
     public Entity SnapLabel = snapLabel;
     public Entity SnapButton = snapButton;
-    public float Top = top;
 }
 
 /// <summary>

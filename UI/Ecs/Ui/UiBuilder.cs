@@ -28,8 +28,14 @@ public sealed partial class UiBuilder
         _visuals = visuals;
     }
 
+    /// <summary>
+    /// Used when a builder is begun without a factory. Unit tests set it to a
+    /// fake, since the default one needs the engine's rendering server.
+    /// </summary>
+    public static IVisualRidFactory? DefaultVisuals { get; set; }
+
     public static UiBuilder Begin(EntityStore entities, IVisualRidFactory? visuals = null) =>
-        new(entities, visuals ?? new GodotVisualRidFactory());
+        new(entities, visuals ?? DefaultVisuals ?? new GodotVisualRidFactory());
 
     /// <summary>The entity currently receiving children.</summary>
     public Entity Current => _current;

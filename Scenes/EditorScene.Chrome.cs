@@ -8,127 +8,95 @@ using Xanadu.Editor;
 using Xanadu.Systems.Editor;
 using Xanadu.Strings;
 using Xanadu.Systems.Playfields;
+using Xanadu.Theme;
 
 namespace Xanadu.Scenes;
 
-/// <summary>Creates the initial editor state and a playfield centered between the header and footer.</summary>
+/// <summary>
+/// The editor's chrome, built as one container tree on the shared shell: a
+/// header, a middle row (tool strip, viewport column, sidebar) and a footer.
+/// Groups that hug an edge are anchored to their parent; everything else
+/// flows, so nothing here positions a control by hand.
+/// </summary>
 public static partial class EditorScene
 {
+    private const float HeaderControl = EditorShellMetrics.HeaderControlHeight;
+    private const float HeaderPad = (EditorShellMetrics.HeaderHeight - HeaderControl) / 2;
+    private const string IconDir = "res://Assets/Icons/";
+    private static readonly Color Clear = new(0, 0, 0, 0);
+
     private static void BuildEditorChrome(
         EntityStore entities,
         Entity root,
         Entity editor,
         Vector2 screen)
     {
+        EditorShellRects shell = EditorShell.Compute(
+            screen, new EditorShellOptions(EditorFooterHeight.Level));
         UiBuilder ui = SceneUi.Layer(entities, root, 960);
-        ui.Container(
-            screen / 2,
-            screen,
-            StackDirection.Vertical,
-            spacing: 0,
-            color: new Color(0, 0, 0, 0));
-        Entity regionRoot = ui.Current;
+        ui.Container(screen / 2, screen, StackDirection.Vertical, color: Clear);
 
-        BuildHeader(entities, root, ui, screen);
-
-        float middleHeight = screen.Y - EditorLayout.HeaderHeight;
+        Header header = BuildHeader(ui, screen);
         ui.Container(
             Vector2.Zero,
-            new Vector2(screen.X, middleHeight),
+            new Vector2(screen.X, shell.ToolStrip.Size.Y),
             StackDirection.Horizontal,
-            spacing: 0,
-            color: new Color(0, 0, 0, 0));
-        ui.RectEntity(
-            Vector2.Zero,
-            new Vector2(Mathf.Max(0, screen.X - 210), middleHeight),
-            new Color(0, 0, 0, 0));
-        ui.Container(
-            Vector2.Zero,
-            new Vector2(210, middleHeight),
-            StackDirection.Vertical,
-            spacing: 0,
-            color: new Color(0, 0, 0, 0));
+            color: Clear,
+            main: StackMainAlignment.Start);
+        BuildToolStrip(ui, shell);
+        Entity status = BuildViewportColumn(ui, editor, shell);
+        BuildSidebar(ui, editor, shell);
         ui.End();
+        Footer footer = BuildFooter(ui, screen);
         ui.End();
 
-        ui.Container(
-            Vector2.Zero,
-            new Vector2(screen.X, 200),
-            StackDirection.Vertical,
-            spacing: 0,
-            color: new Color(0, 0, 0, 0));
-        Entity footer = ui.Current;
-        footer.AddTag<LayoutIgnore>();
-        footer.AddComponent(new UiAnchor(
-            new Vector2(0.5f, 1f),
-            new Vector2(0.5f, 1f)));
-        float[] widths = { 64, 64, 108, 108 };
-        string[] labels = { "▶", "■", "Preview", "Click Off" };
-        EditorButtonKind[] kinds =
-        {
-            EditorButtonKind.Play,
-            EditorButtonKind.Stop,
-            EditorButtonKind.Preview,
-            EditorButtonKind.Metronome,
-        };
-        float transportWidth = 0;
-        for (int i = 0; i < widths.Length; i++)
-            transportWidth += widths[i] + (i > 0 ? 8 : 0);
-        ui.Container(
-            Vector2.Zero,
-            new Vector2(transportWidth, 42),
-            StackDirection.Horizontal,
-            spacing: 8,
-            color: new Color(0, 0, 0, 0));
-        for (int i = 0; i < labels.Length; i++)
-        {
-            AddEditorButtonInContainer(
-                ui,
-                new Vector2(widths[i], 38),
-                labels[i],
-                kinds[i],
-                fontSize: i < 2 ? 18 : 14);
-        }
-        ui.RectEntity(
-            Vector2.Zero,
-            new Vector2(1, 158),
-            new Color(0, 0, 0, 0));
-        ui.End();
-        ui.End();
+        editor.AddComponent(new EditorHud(
+            header.Level,
+            header.Song,
+            status,
+            footer.Time,
+            footer.Notes));
 
-        _ = regionRoot;
+        // The lists float on their own layer so opening one never moves the header.
+        UiBuilder lists = SceneUi.Layer(entities, root, 970);
+        HeaderMenu(lists, header.File,
+            ("SAVE", EditorButtonKind.Save),
+            ("SAVE AS", EditorButtonKind.SaveAs),
+            ("LOAD LEVEL", EditorButtonKind.LoadLevel));
+        HeaderMenu(lists, header.SongMenu,
+            ("LOAD SONG", EditorButtonKind.LoadSong),
+            ("TIMING", SceneActionId.SongTiming),
+            ("LEVEL INFO", EditorButtonKind.ToggleMetadata));
+        HeaderMenu(lists, header.Menu,
+            ("EXIT", SceneActionId.Exit));
+
+        BuildDirectionWheelOverlay(entities, root, editor, shell);
     }
 
-    private const float HeaderControl = EditorShellMetrics.HeaderControlHeight;
-    private const string IconDir = "res://Assets/Icons/";
+    private readonly record struct Header(
+        Entity Level,
+        Entity Song,
+        Entity File,
+        Entity SongMenu,
+        Entity Menu);
+
+    private readonly record struct Footer(Entity Time, Entity Notes);
 
     /// <summary>
-    /// The shared header: the name, undo and redo at the left, and the file,
-    /// song and menu dropdowns at the right, where every editor puts them.
+    /// The name, undo and redo at the left and the dropdowns at the right, where
+    /// every editor puts them. Each half is anchored to its edge.
     /// </summary>
-    private static void BuildHeader(
-        EntityStore entities,
-        Entity root,
-        UiBuilder ui,
-        Vector2 screen)
+    private static Header BuildHeader(UiBuilder ui, Vector2 screen)
     {
-        const float pad = (EditorShellMetrics.HeaderHeight - HeaderControl) / 2;
-        const float historyButton = 50;
-        const float menuWidth = EditorShellMetrics.SettingsWidth;
-        const float dropdownWidth = EditorShellMetrics.DropdownWidth;
-        const float gap = EditorShellMetrics.HeaderGap;
-        const float rightWidth = dropdownWidth * 2 + menuWidth + gap * 2;
-        const float leftWidth = EditorShellMetrics.NameWidth + historyButton * 2 + gap * 2;
-        var clear = new Color(0, 0, 0, 0);
-
         ui.Container(
             Vector2.Zero,
-            new Vector2(screen.X, EditorLayout.HeaderHeight),
+            new Vector2(screen.X, EditorShellMetrics.HeaderHeight),
             StackDirection.Horizontal,
-            spacing: gap,
-            padding: pad,
-            color: clear);
+            color: Clear);
 
+        Entity level;
+        Entity song;
+        EdgeGroup(ui, new Vector2(0, 0.5f));
         ui.Container(
             Vector2.Zero,
             new Vector2(EditorShellMetrics.NameWidth, HeaderControl),
@@ -141,7 +109,7 @@ public static partial class EditorScene
             SceneUi.AccentColor);
         ui.End();
 
-        var history = new Vector2(historyButton, historyButton);
+        var history = new Vector2(HeaderControl, HeaderControl);
         AddEditorAction(
             ui.IconButton("UN", IconDir + "undo.svg", history, SceneUi.ButtonColor),
             EditorButtonKind.Undo);
@@ -149,28 +117,54 @@ public static partial class EditorScene
             ui.IconButton("RE", IconDir + "redo.svg", history, SceneUi.ButtonColor),
             EditorButtonKind.Redo);
 
-        ui.RectEntity(
+        ui.Container(
             Vector2.Zero,
-            new Vector2(Mathf.Max(0, screen.X - pad * 2 - gap * 2 - leftWidth - rightWidth), 1),
-            clear);
-
-        Entity file = ui.Button("FILE ▾", new Vector2(dropdownWidth, HeaderControl), SceneUi.MutedButtonColor);
-        Entity song = ui.Button("SONG ▾", new Vector2(dropdownWidth, HeaderControl), SceneUi.MutedButtonColor);
-        Entity menu = ui.Button("MENU ▾", new Vector2(menuWidth, HeaderControl), SceneUi.MutedButtonColor);
+            new Vector2(HeaderInfoWidth, HeaderControl),
+            StackDirection.Vertical,
+            color: Clear,
+            cross: StackCrossAlignment.Start);
+        level = HudText(
+            ui, Vector2.Zero, new Vector2(HeaderInfoWidth, 28),
+            "Untitled", 22, SceneUi.AccentColor);
+        song = HudText(
+            ui, Vector2.Zero, new Vector2(HeaderInfoWidth, 18),
+            "Song: No song loaded", 14, Palette.TextMuted);
+        ui.End();
         ui.End();
 
-        // The lists float on their own layer so opening one never moves the header.
-        UiBuilder lists = SceneUi.Layer(entities, root, 970);
-        HeaderMenu(lists, file,
-            ("SAVE", EditorButtonKind.Save),
-            ("SAVE AS", EditorButtonKind.SaveAs),
-            ("LOAD LEVEL", EditorButtonKind.LoadLevel));
-        HeaderMenu(lists, song,
-            ("LOAD SONG", EditorButtonKind.LoadSong),
-            ("TIMING", SceneActionId.SongTiming),
-            ("LEVEL INFO", EditorButtonKind.ToggleMetadata));
-        HeaderMenu(lists, menu,
-            ("EXIT", SceneActionId.Exit));
+        EdgeGroup(ui, new Vector2(1, 0.5f));
+        Entity file = ui.Button(
+            "FILE ▾", new Vector2(EditorShellMetrics.DropdownWidth, HeaderControl), SceneUi.MutedButtonColor);
+        Entity songMenu = ui.Button(
+            "SONG ▾", new Vector2(EditorShellMetrics.DropdownWidth, HeaderControl), SceneUi.MutedButtonColor);
+        Entity menu = ui.Button(
+            "MENU ▾", new Vector2(EditorShellMetrics.SettingsWidth, HeaderControl), SceneUi.MutedButtonColor);
+        ui.End();
+
+        ui.End();
+        return new Header(level, song, file, songMenu, menu);
+    }
+
+    private const float HeaderInfoWidth = 420;
+
+    /// <summary>
+    /// Opens a group that sizes to its content and hugs one edge of its parent:
+    /// anchored there and skipped by the parent's flow. Close it with <c>End</c>.
+    /// </summary>
+    private static Entity EdgeGroup(UiBuilder ui, Vector2 anchor)
+    {
+        ui.Container(
+            Vector2.Zero,
+            new Vector2(4, EditorShellMetrics.HeaderHeight),
+            StackDirection.Horizontal,
+            spacing: EditorShellMetrics.HeaderGap,
+            padding: HeaderPad,
+            color: Clear,
+            autoWidth: true);
+        Entity group = ui.Current;
+        group.AddTag<LayoutIgnore>();
+        group.AddComponent(new UiAnchor(anchor, anchor));
+        return group;
     }
 
     /// <summary>A header dropdown whose options run editor buttons or scene actions.</summary>
@@ -188,6 +182,136 @@ public static partial class EditorScene
             else if (entries[i].Action is SceneActionId action)
                 dropdown.Options[i].AddComponent(new SceneCommand(action));
         }
+    }
+
+    /// <summary>
+    /// The space between the strip and the sidebar. The playfield is drawn
+    /// here by systems; this column holds the panels docked to its corners.
+    /// </summary>
+    private static Entity BuildViewportColumn(UiBuilder ui, Entity editor, EditorShellRects shell)
+    {
+        ui.Container(
+            Vector2.Zero,
+            new Vector2(shell.Viewport.Size.X, shell.ToolStrip.Size.Y),
+            StackDirection.Vertical,
+            color: Clear);
+
+        BuildLeftPanel(ui, editor);
+
+        ui.Container(
+            Vector2.Zero,
+            shell.StatusLine.Size,
+            StackDirection.Horizontal,
+            color: SceneUi.PanelColor,
+            padding: 4,
+            main: StackMainAlignment.Start);
+        Entity line = ui.Current;
+        line.AddTag<LayoutIgnore>();
+        line.AddComponent(new UiAnchor(new Vector2(0, 1), new Vector2(0, 1)));
+        Entity status = HudText(
+            ui,
+            Vector2.Zero,
+            new Vector2(shell.StatusLine.Size.X - 8, shell.StatusLine.Size.Y - 8),
+            "Space play   Home stop   Delete note   ←/→ nudge   Ctrl+Z/Y undo   T tap tempo   Target: select a note",
+            12,
+            SceneUi.DimTextColor);
+        ui.End();
+
+        ui.End();
+        return status;
+    }
+
+    /// <summary>
+    /// Transport in the middle of the row, the time at its left edge and the
+    /// note count at its right, then the room systems draw the density strip
+    /// and the ruler in.
+    /// </summary>
+    private static Footer BuildFooter(UiBuilder ui, Vector2 screen)
+    {
+        ui.Container(
+            Vector2.Zero,
+            new Vector2(screen.X, EditorFooterHeight.Level),
+            StackDirection.Vertical,
+            color: Clear,
+            main: StackMainAlignment.Start);
+
+        ui.Container(
+            Vector2.Zero,
+            new Vector2(screen.X, EditorLayout.TransportHeight),
+            StackDirection.Horizontal,
+            spacing: 8,
+            color: Clear);
+
+        EditorButtonKind[] kinds =
+        {
+            EditorButtonKind.Play,
+            EditorButtonKind.Stop,
+            EditorButtonKind.Preview,
+            EditorButtonKind.Metronome,
+        };
+        float[] widths = { 64, 64, 108, 108 };
+        string[] labels = { "▶", "■", "Preview", "Click Off" };
+        string?[] icons = { "play", "stop", null, null };
+        for (int i = 0; i < kinds.Length; i++)
+        {
+            var size = new Vector2(widths[i], 38);
+            if (icons[i] is { } icon)
+            {
+                AddEditorAction(
+                    ui.IconButton(labels[i], IconDir + icon + ".svg", size, SceneUi.ButtonColor, 18),
+                    kinds[i]);
+            }
+            else
+            {
+                AddEditorButtonInContainer(ui, size, labels[i], kinds[i]);
+            }
+        }
+
+        ui.Container(
+            Vector2.Zero,
+            new Vector2(4, EditorLayout.TransportHeight),
+            StackDirection.Horizontal,
+            padding: HeaderPad,
+            color: Clear,
+            autoWidth: true);
+        Entity timeGroup = ui.Current;
+        timeGroup.AddTag<LayoutIgnore>();
+        timeGroup.AddComponent(new UiAnchor(new Vector2(0, 0.5f), new Vector2(0, 0.5f)));
+        ui.Container(
+            Vector2.Zero,
+            new Vector2(300, 36),
+            StackDirection.Horizontal,
+            color: Palette.SurfaceInset);
+        ui.Current.AddComponent(new UiBorder(Palette.BorderStrong, 1));
+        Entity time = HudText(
+            ui, Vector2.Zero, new Vector2(292, 30),
+            "00:00.000 / 00:00.000", 20, Palette.TextMuted);
+        ui.End();
+        ui.End();
+
+        ui.Container(
+            Vector2.Zero,
+            new Vector2(4, EditorLayout.TransportHeight),
+            StackDirection.Horizontal,
+            padding: HeaderPad,
+            color: Clear,
+            autoWidth: true);
+        Entity notesGroup = ui.Current;
+        notesGroup.AddTag<LayoutIgnore>();
+        notesGroup.AddComponent(new UiAnchor(new Vector2(1, 0.5f), new Vector2(1, 0.5f)));
+        Entity notes = HudText(
+            ui, Vector2.Zero, new Vector2(240, 16),
+            "0 notes", 13, SceneUi.DimTextColor);
+        ui.End();
+        ui.End();
+
+        // Systems draw the density strip and the ruler into this room.
+        ui.RectEntity(
+            Vector2.Zero,
+            new Vector2(screen.X, EditorFooterHeight.Level - EditorLayout.TransportHeight),
+            Clear);
+        ui.End();
+        return new Footer(time, notes);
     }
 
     private static void BuildToolbar(

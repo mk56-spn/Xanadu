@@ -14,97 +14,86 @@ namespace Xanadu.Scenes;
 /// <summary>Creates the initial editor state and a playfield centered between the header and footer.</summary>
 public static partial class EditorScene
 {
-    private static void BuildSidebar(
-        EntityStore entities,
-        Entity root,
-        Entity editor,
-        Vector2 screen)
+    private const float PanelPadding = UiTheme.ContainerPadding;
+    private const float LeftPanelWidth = 210;
+
+    /// <summary>The placement tools run down the shell's tool strip at the left edge.</summary>
+    private static void BuildToolStrip(UiBuilder ui, EditorShellRects shell)
     {
-        // The shell's right panel: flush to the screen edge, under the header.
-        const float width = EditorShellMetrics.RightPanelWidth - 24;
-        const float top = EditorShellMetrics.HeaderHeight + 10;
-        const float SidebarHeight = 88 + GroupGridHeight;
-        float centerX = screen.X - EditorShellMetrics.RightPanelWidth / 2;
+        ui.Container(
+            Vector2.Zero,
+            shell.ToolStrip.Size,
+            StackDirection.Vertical,
+            spacing: EditorShellMetrics.ToolGap,
+            color: SceneUi.PanelColor,
+            padding: (EditorShellMetrics.ToolStripWidth - EditorShellMetrics.ToolButton) / 2,
+            takesInput: true,
+            main: StackMainAlignment.Start);
+        var size = new Vector2(EditorShellMetrics.ToolButton, EditorShellMetrics.ToolButton);
+        foreach ((EditorPlacementMode mode, string icon) in ToolIcons)
+        {
+            Entity button = ui.Button(icon, size, SceneUi.MutedButtonColor, fontSize: 26);
+            button.AddComponent(new EditorPlacementButton(mode));
+        }
+        ui.End();
+    }
 
-        UiBuilder panelUi = SceneUi.Layer(entities, root, 939);
-        Entity sidebarPanel = panelUi.RectEntity(
-            new Vector2(centerX, top - 10 + SidebarHeight / 2),
-            new Vector2(width + 24, SidebarHeight),
-            SceneUi.PanelColor,
-            takesInput: true);
+    /// <summary>
+    /// The shell's right panel, docked to the right edge for the full height of
+    /// the middle row. Its controls flow top to bottom, so an open dropdown
+    /// pushes the groups down by itself.
+    /// </summary>
+    private static void BuildSidebar(UiBuilder ui, Entity editor, EditorShellRects shell)
+    {
+        float inner = shell.RightPanel.Size.X - PanelPadding * 2;
+        ui.Container(
+            Vector2.Zero,
+            shell.RightPanel.Size,
+            StackDirection.Vertical,
+            spacing: UiTheme.ContainerSpacing,
+            color: SceneUi.PanelColor,
+            padding: PanelPadding,
+            takesInput: true,
+            main: StackMainAlignment.Start);
+        Entity panel = ui.Current;
+        panel.AddTag<LayoutIgnore>();
+        panel.AddComponent(new UiAnchor(new Vector2(1, 0), new Vector2(1, 0)));
 
-        UiBuilder ui = SceneUi.Layer(entities, root, 940);
-
-        editor.AddComponent(new EditorSidebar(new Rect2(
-            centerX - width / 2 - 12,
-            top - 10,
-            width + 24,
-            SidebarHeight)));
-
-        Entity characterLabel = SceneUi.Text(
-            ui,
-            new Vector2(centerX, top + 12),
-            new Vector2(width, 24),
-            "CHARACTER",
-            14,
-            SceneUi.DimTextColor,
-            new Color(0, 0, 0, 0));
+        Entity characterLabel = SidebarLabel(ui, "CHARACTER", inner, 14);
         Entity character = BuildDropdown(
             ui,
-            centerX,
-            top + 41,
-            width,
+            inner,
             EditorDropdownKind.Character,
             new[] { "CONTACT" },
             selected: 0);
+        BuildGroupGrid(ui, editor, inner);
+        ui.End();
 
-        BuildGroupGrid(ui, editor, centerX, top);
-        Vector2 wheelHome = new(centerX - 250, top + 255);
-        (UiWheelControl wheel, Entity wheelLabel) =
-            BuildDirectionWheel(ui, wheelHome);
-        editor.AddComponent(new EditorDirectionWheel(
-            wheel.Wheel,
-            wheelLabel,
-            wheelHome));
-        editor.AddComponent(new EditorSidebarLayout(
-            sidebarPanel,
-            characterLabel,
-            character,
-            top));
+        editor.AddComponent(new EditorSidebar(shell.RightPanel));
+        editor.AddComponent(new EditorSidebarLayout(panel, characterLabel, character));
     }
 
-    private static void BuildLeftMenu(
-        EntityStore entities,
-        Entity root,
-        Entity editor,
-        Vector2 screen)
+    /// <summary>Snap and dash strength, docked to the viewport's top-left corner.</summary>
+    private static void BuildLeftPanel(UiBuilder ui, Entity editor)
     {
-        // Clear of the tool strip at the left edge.
-        const float width = 190;
-        const float top = EditorShellMetrics.HeaderHeight + 10;
-        const float centerX = EditorShellMetrics.ToolStripWidth + 8 + (width + 20) / 2;
+        float inner = LeftPanelWidth - PanelPadding * 2;
+        ui.Container(
+            Vector2.Zero,
+            new Vector2(LeftPanelWidth, 4),
+            StackDirection.Vertical,
+            spacing: UiTheme.ContainerSpacing,
+            color: SceneUi.PanelColor,
+            padding: PanelPadding,
+            autoHeight: true,
+            main: StackMainAlignment.Start);
+        Entity panel = ui.Current;
+        panel.AddTag<LayoutIgnore>();
+        panel.AddComponent(new UiAnchor(Vector2.Zero, Vector2.Zero));
 
-        UiBuilder panelUi = SceneUi.Layer(entities, root, 939);
-        Entity panel = panelUi.RectEntity(
-            new Vector2(centerX, top + 115),
-            new Vector2(width + 20, 230),
-            SceneUi.PanelColor,
-            takesInput: false);
-
-        UiBuilder ui = SceneUi.Layer(entities, root, 941);
-        Entity snapLabel = SceneUi.Text(
-            ui,
-            new Vector2(centerX, top + 12),
-            new Vector2(width, 24),
-            LocalizedText.Get(EditorStrings.Snap),
-            14,
-            SceneUi.DimTextColor,
-            new Color(0, 0, 0, 0));
+        Entity snapLabel = SidebarLabel(ui, LocalizedText.Get(EditorStrings.Snap), inner, 14);
         Entity snap = BuildDropdown(
             ui,
-            centerX,
-            top + 41,
-            width,
+            inner,
             EditorDropdownKind.Snap,
             new[] { "1/4 beat", "1/8 beat", "1/16 beat" },
             selected: 0);
@@ -116,30 +105,23 @@ public static partial class EditorScene
             _ => 0,
         });
 
-        SceneUi.Text(
-            ui,
-            new Vector2(centerX, top + 80),
-            new Vector2(width, 20),
-            "DASH STRENGTH",
-            12,
-            SceneUi.DimTextColor,
-            new Color(0, 0, 0, 0));
-        const float strengthWidth = 54;
+        SidebarLabel(ui, "DASH STRENGTH", inner, 12);
         const float strengthGap = 6;
-        const float strengthTotal = strengthWidth * 3 + strengthGap * 2;
-        float strengthLeft = centerX - strengthTotal / 2 + strengthWidth / 2;
+        float strengthWidth = (inner - strengthGap * 2) / 3;
+        ui.Container(
+            Vector2.Zero,
+            new Vector2(inner, 28),
+            StackDirection.Horizontal,
+            spacing: strengthGap,
+            color: Clear);
         for (int i = 0; i < 3; i++)
         {
             var strength = (DashStrength)i;
-            Entity button = SceneUi.ButtonEntity(
-                ui,
-                new Vector2(
-                    strengthLeft + i * (strengthWidth + strengthGap),
-                    top + 112),
-                new Vector2(strengthWidth, 28),
+            Entity button = ui.Button(
                 i == 0 ? "1×" : i == 1 ? "2×" : "3×",
-                12,
-                SceneUi.MutedButtonColor);
+                new Vector2(strengthWidth, 28),
+                SceneUi.MutedButtonColor,
+                fontSize: 12);
             button.AddComponent(new EditorDashStrengthButton(strength));
             button.AddComponent(new UiTooltip(strength switch
             {
@@ -148,12 +130,38 @@ public static partial class EditorScene
                 _ => "Dash notes carry the player one dash length",
             }));
         }
+        ui.End();
+        ui.End();
 
-        editor.AddComponent(new EditorLeftMenu(
-            panel,
-            snapLabel,
-            snap,
-            top));
+        editor.AddComponent(new EditorLeftMenu(panel, snapLabel, snap));
+    }
+
+    private static Entity SidebarLabel(UiBuilder ui, string text, float width, int fontSize) =>
+        SceneUi.Text(
+            ui,
+            Vector2.Zero,
+            new Vector2(width, fontSize + 10),
+            text,
+            fontSize,
+            SceneUi.DimTextColor,
+            Clear);
+
+    /// <summary>
+    /// The dash direction wheel floats beside the sidebar: it only shows for
+    /// dash notes and the editor moves it on and off screen.
+    /// </summary>
+    private static void BuildDirectionWheelOverlay(
+        EntityStore entities,
+        Entity root,
+        Entity editor,
+        EditorShellRects shell)
+    {
+        UiBuilder ui = SceneUi.Layer(entities, root, 941);
+        Vector2 home = new(
+            shell.RightPanel.Position.X - 125,
+            shell.RightPanel.Position.Y + 265);
+        (UiWheelControl wheel, Entity label) = BuildDirectionWheel(ui, home);
+        editor.AddComponent(new EditorDirectionWheel(wheel.Wheel, label, home));
     }
 
     private static (UiWheelControl Wheel, Entity Label) BuildDirectionWheel(
@@ -190,38 +198,6 @@ public static partial class EditorScene
         (EditorPlacementMode.Blocks, "■"),
         (EditorPlacementMode.Spikes, "▲"),
     };
-
-    /// <summary>The placement tools run down the shell's tool strip at the left edge.</summary>
-    private static void BuildToolBar(EntityStore entities, Entity root, Vector2 screen)
-    {
-        const float buttonSize = EditorShellMetrics.ToolButton;
-        const float step = EditorShellMetrics.ToolButton + EditorShellMetrics.ToolGap;
-        const float centerX = EditorShellMetrics.ToolStripWidth / 2;
-        const float top = EditorShellMetrics.HeaderHeight;
-        float height = screen.Y - top - EditorFooterHeight.Level;
-
-        SceneUi.Layer(entities, root, 939).RectEntity(
-            new Vector2(centerX, top + height / 2),
-            new Vector2(EditorShellMetrics.ToolStripWidth, height),
-            SceneUi.PanelColor,
-            takesInput: true);
-
-        UiBuilder ui = SceneUi.Layer(entities, root, 941);
-        for (int i = 0; i < ToolIcons.Length; i++)
-        {
-            Entity button = ui.RectEntity(
-                new Vector2(
-                    centerX,
-                    top + EditorShellMetrics.ToolGap + buttonSize / 2 + i * step),
-                new Vector2(buttonSize, buttonSize),
-                SceneUi.MutedButtonColor,
-                ToolIcons[i].Icon,
-                takesInput: true);
-            button.AddComponent(new TextStyle(26, SceneUi.TextColor));
-            button.AddComponent(ButtonVisual.Create(SceneUi.MutedButtonColor));
-            button.AddComponent(new EditorPlacementButton(ToolIcons[i].Mode));
-        }
-    }
 
     /// <summary>The horizontal bar of note colours, shown only in note mode.</summary>
     private static void BuildNoteTypeBar(EntityStore entities, Entity root)
@@ -260,46 +236,13 @@ public static partial class EditorScene
 
     private static Entity BuildDropdown(
         UiBuilder ui,
-        float centerX,
-        float centerY,
         float width,
         EditorDropdownKind kind,
         string[] labels,
         int selected)
     {
-        Entity button = ui.RectEntity(
-            new Vector2(centerX, centerY),
-            new Vector2(width, 34),
-            SceneUi.ButtonColor,
-            "",
-            takesInput: true);
-        button.AddComponent(new TextStyle(13, SceneUi.TextColor));
-        button.AddComponent(ButtonVisual.Create(SceneUi.ButtonColor));
-
-        float listHeight = labels.Length * 30 + 6;
-        Entity list = ui.RectEntity(
-            UiLayout.Hidden,
-            Vector2.Zero,
-            new Color(0, 0, 0, 0),
-            takesInput: true);
-
-        for (int i = 0; i < labels.Length; i++)
-        {
-            Entity option = ui.RectEntity(
-                UiLayout.Hidden,
-                new Vector2(width - 6, 28),
-                SceneUi.MutedButtonColor,
-                labels[i],
-                takesInput: true);
-            option.AddComponent(new TextStyle(13, SceneUi.TextColor));
-            option.AddComponent(ButtonVisual.Create(SceneUi.MutedButtonColor));
-            option.AddComponent(new DropdownOption(button, i));
-        }
-
-        button.AddComponent(new Dropdown(
-            list,
-            selected,
-            new Vector2(width, listHeight)));
+        Entity button = ui.Button("", new Vector2(width, 34), SceneUi.ButtonColor, fontSize: 13);
+        ui.DropdownList(button, labels, selected, optionColor: _ => SceneUi.MutedButtonColor);
         button.AddComponent(new EditorDropdownControl(kind));
         return button;
     }

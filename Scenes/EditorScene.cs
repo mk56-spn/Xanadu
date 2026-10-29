@@ -27,6 +27,7 @@ public static partial class EditorScene
                        EditorLayout.FooterHeight -
                        EditorLayout.TransportHeight -
                        EditorLayout.Gap -
+                       EditorShellMetrics.StatusLineHeight -
                        EditorLayout.Margin;
         float availableHeight = Mathf.Max(1, bottom - top);
         float availableWidth = Mathf.Max(1, viewportSize.X - EditorLayout.Margin * 2);
@@ -81,7 +82,6 @@ public static partial class EditorScene
             BuildEditorUi(entities, editor, menuRoot, viewportSize);
 
             BuildEditorChrome(entities, menuRoot, editor, viewportSize);
-            BuildSidebar(entities, menuRoot, editor, viewportSize);
             BuildToolbar(entities, menuRoot, editor, viewportSize);
             }
 
