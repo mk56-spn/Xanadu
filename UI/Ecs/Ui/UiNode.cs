@@ -58,6 +58,9 @@ public readonly partial struct UiNode
     /// <summary>Lets a node stand in wherever the raw entity was expected.</summary>
     public static implicit operator Entity(UiNode node) => node._entity;
 
+    /// <summary>The design frame the tree is authored against.</summary>
+    public UiStage Stage => Surface.Stage;
+
     /// <summary>
     /// Starts a tree: creates the layer at <paramref name="zIndex"/>, parents it
     /// under <paramref name="parent"/> when one is given, and returns its root.
@@ -66,14 +69,16 @@ public readonly partial struct UiNode
         EntityStore entities,
         Entity parent,
         int zIndex,
-        IVisualRidFactory? visuals = null)
+        IVisualRidFactory? visuals = null,
+        UiStage? stage = null)
     {
         UiBuilder builder = UiBuilder.Begin(entities, visuals).Layer(zIndex);
         Entity layer = builder.Current;
         if (!parent.IsNull)
             parent.AddChild(layer);
 
-        return new UiNode(new UiSurface(entities, builder, layer), layer);
+        var surface = new UiSurface(entities, builder, layer, stage ?? UiStage.Full);
+        return new UiNode(surface, layer);
     }
 
     /// <summary>
@@ -92,7 +97,11 @@ public readonly partial struct UiNode
 
         UiBuilder builder = UiBuilder.Begin(entity.Store);
         builder.Use(entity);
-        var surface = new UiSurface(entity.Store, builder, layer.IsNull ? entity : layer);
+        var surface = new UiSurface(
+            entity.Store,
+            builder,
+            layer.IsNull ? entity : layer,
+            UiStage.Full);
         return new UiNode(surface, entity);
     }
 
@@ -102,6 +111,10 @@ public readonly partial struct UiNode
     // ---------------------------------------------------------------- layout
 
     /// <summary>A full-screen root that stacks vertically from the top.</summary>
+    public UiNode Page() =>
+        Stack(StackDirection.Vertical).Box(Stage.Bounds);
+
+    /// <summary>A full-screen root on an explicit surface, for odd hosts.</summary>
     public UiNode Page(Vector2 screen) =>
         Stack(StackDirection.Vertical).Box(new Rect2(Vector2.Zero, screen));
 

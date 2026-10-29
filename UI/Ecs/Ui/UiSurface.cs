@@ -15,11 +15,12 @@ namespace Xanadu.Ecs;
 /// </remarks>
 public sealed class UiSurface
 {
-    internal UiSurface(EntityStore store, UiBuilder builder, Entity layer)
+    internal UiSurface(EntityStore store, UiBuilder builder, Entity layer, UiStage stage)
     {
         Store = store;
         Builder = builder;
         Layer = layer;
+        Stage = stage;
     }
 
     /// <summary>The store the tree lives in.</summary>
@@ -30,6 +31,9 @@ public sealed class UiSurface
 
     /// <summary>The layer as a node, for building the tree's outermost children.</summary>
     public UiNode Root => new(this, Layer);
+
+    /// <summary>The design frame this tree is authored against.</summary>
+    public UiStage Stage { get; }
 
     internal UiBuilder Builder { get; }
 }
