@@ -22,9 +22,8 @@ public static partial class SongSelectScene
 
     private readonly record struct InfoViews(Entity Difficulty, Entity Genre, Entity Title, Entity Artist);
 
-    private static InfoViews BuildInfo(UiBuilder ui, bool loadAssets)
+    private static InfoViews BuildInfo(UiNode ui, bool loadAssets)
     {
-        UiNode root = UiNode.Wrap(ui.Current, ui.Visuals);
         const float differenceHeight = 44;
         const float genreHeight = 30;
         const float titleHeight = 60;
@@ -35,7 +34,7 @@ public static partial class SongSelectScene
 
         // The card's left edge runs down the same slant as everything else, and
         // its right end runs off screen.
-        UiNode panel = root.Column()
+        UiNode panel = ui.Column()
             .Size(InfoWidth, height)
             .At(new Vector2(InfoLeft + InfoWidth / 2, InfoTop + height / 2))
             .Fill(Dim)

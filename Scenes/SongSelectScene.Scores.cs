@@ -53,101 +53,92 @@ public static partial class SongSelectScene
     /// stack of row containers, each laying its accuracy and score side by
     /// side. Only the scrollbar, which sits outside the stack, is placed by hand.
     /// </summary>
-    private static ScoreViews BuildScores(UiBuilder ui, bool loadAssets)
+    private static ScoreViews BuildScores(UiNode ui, bool loadAssets)
     {
         const float padding = 16.33f;
-        ui.Container(
-            new Vector2(PanelRight - PanelWidth / 2, 871.275f),
-            new Vector2(PanelWidth, 375.369f),
-            StackDirection.Vertical,
-            spacing: 12.43f,
-            color: Dim,
-            padding: padding,
-            cross: StackCrossAlignment.Start,
-            main: StackMainAlignment.Start);
-        Frost(ui.Current, loadAssets);
 
-        Entity tab = SceneUi.Text(
-            ui,
-            Vector2.Zero,
-            new Vector2(159.293f, 60.113f),
-            LocalizedText.Get(SongSelectStrings.Scores),
-            35,
-            Gold,
-            Dim);
-        tab.GetComponent<TextStyle>().Bold = true;
-        tab.AddComponent(new TextGlow(new Color(Gold, 0.6f), radius: 10, intensity: 1.5f));
+        UiNode panel = ui.Column()
+            .Size(PanelWidth, 375.369f)
+            .At(new Vector2(PanelRight - PanelWidth / 2, 871.275f))
+            .Gap(12.43f)
+            .Fill(Dim)
+            .Pad(padding)
+            .Cross(StackCrossAlignment.Start)
+            .Main(StackMainAlignment.Start);
+        Frost(panel.Entity, loadAssets);
 
-        ui.Container(
-            Vector2.Zero,
-            new Vector2(ScoreViewWidth, ScoreViewHeight),
-            StackDirection.Vertical,
-            spacing: 0,
-            clip: true,
-            color: Transparent,
-            takesInput: true);
-        Entity viewport = ui.Current;
+        panel.Text(
+                LocalizedText.Get(SongSelectStrings.Scores),
+                35,
+                Gold,
+                TextAlign.Center)
+            .Size(159.293f, 60.113f)
+            .Fill(Dim)
+            .Bold()
+            .Glow(new Color(Gold, 0.6f), radius: 10, intensity: 1.5f);
 
-        ui.Container(
-            Vector2.Zero,
-            new Vector2(ScoreViewWidth, ScoreViewHeight),
-            StackDirection.Vertical,
-            spacing: BarGap,
-            color: Transparent,
-            autoHeight: true,
-            main: StackMainAlignment.Start);
-        Entity content = ui.Current;
+        UiNode viewport = panel.Column()
+            .Size(ScoreViewWidth, ScoreViewHeight)
+            .Clip()
+            .Input()
+            .Fill(Transparent);
+
+        UiNode content = viewport.Column()
+            .Size(ScoreViewWidth, ScoreViewHeight)
+            .Gap(BarGap)
+            .AutoHeight()
+            .Main(StackMainAlignment.Start)
+            .Fill(Transparent);
 
         var bars = new List<Entity>();
         var accuracies = new List<Entity>();
         var values = new List<Entity>();
         for (int i = 0; i < MaxScoreBars; i++)
         {
-            ui.Container(
-                Vector2.Zero,
-                new Vector2(ScoreViewWidth, BarHeight),
-                StackDirection.Horizontal,
-                color: Transparent,
-                padding: BarInset,
-                main: StackMainAlignment.Start);
-            bars.Add(ui.Current);
-            accuracies.Add(ScoreText(ui, ScoreAccuracyWidth, TextAlign.Left, GoldLight));
+            UiNode bar = content.Row()
+                .Size(ScoreViewWidth, BarHeight)
+                .Fill(Transparent)
+                .Pad(BarInset)
+                .Main(StackMainAlignment.Start);
+            bars.Add(bar.Entity);
+
+            accuracies.Add(ScoreText(
+                bar, ScoreAccuracyWidth, TextAlign.Left, GoldLight).Entity);
             values.Add(ScoreText(
-                ui,
+                bar,
                 ScoreViewWidth - BarInset * 2 - ScoreAccuracyWidth,
                 TextAlign.Right,
-                Colors.White));
-            ui.End();
+                Colors.White).Entity);
         }
 
-        ui.End();
-        viewport.AddComponent(new ScrollView(content));
-        ui.End();
-        ui.End();
+        viewport.With(new ScrollView(content.Entity));
 
-        ui.ShapeEntity(
+        ui.Shape(
             RoundedRect(BarTrackLeft, BarTrackTop, BarTrackRight, BarTrackBottom, 3.2f),
             Dim);
-        Entity thumb = ui.ShapeEntity(
-            RoundedRect(BarTrackLeft, BarTrackTop, BarTrackRight, BarTrackBottom, 3.2f),
-            Gold);
-        thumb.AddComponent(new ShapeGlow(new Color(Gold, 0.6f), radius: 10, intensity: 1.5f));
-        thumb.AddTag<UiRaised>();
+        Entity thumb = ui.Shape(
+                RoundedRect(BarTrackLeft, BarTrackTop, BarTrackRight, BarTrackBottom, 3.2f),
+                Gold)
+            .With(new ShapeGlow(new Color(Gold, 0.6f), radius: 10, intensity: 1.5f))
+            .Raised();
 
-        return new ScoreViews(viewport, content, bars, accuracies, values, thumb);
+        return new ScoreViews(
+            viewport.Entity,
+            content.Entity,
+            bars,
+            accuracies,
+            values,
+            thumb);
     }
 
-    private static Entity ScoreText(UiBuilder ui, float width, TextAlign align, Color color)
-    {
-        Entity text = ui.RectEntity(
-            Vector2.Zero,
-            new Vector2(width, BarHeight),
-            Transparent,
-            "");
-        text.AddComponent(new TextStyle(28, color, bold: true));
-        text.AddComponent(new TextAlignment(align));
-        return text;
-    }
+    private static UiNode ScoreText(
+        UiNode bar,
+        float width,
+        TextAlign align,
+        Color color) =>
+        bar.Rect(Transparent, "", new Vector2(width, BarHeight))
+            .With(new TextStyle(28, color, bold: true))
+            .Align(align);
 
     /// <summary>
     /// Fills the rows with the selected level's scores. Unused rows drop out of

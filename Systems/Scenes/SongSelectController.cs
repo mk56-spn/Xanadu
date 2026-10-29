@@ -70,7 +70,6 @@ public sealed class SongSelectController : ISceneController
         SongSelectState view = SongSelectScene.Build(
             context.Entities,
             context.Root,
-            context.Screen,
             _catalog,
             state.SelectedIndex,
             context.Profiles,

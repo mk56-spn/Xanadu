@@ -15,16 +15,14 @@ public static partial class SongSelectScene
 
     /// <summary>Builds the banner and the level readout under it, returning the readout's label and panel.</summary>
     private static (Entity Label, Entity Panel) BuildPlayerCard(
-        UiBuilder ui,
+        UiNode ui,
         ProfileStore profiles,
         bool loadAssets)
     {
-        UiNode root = UiNode.Wrap(ui.Current, ui.Visuals);
-
         // The banner is a skewed container whose right side runs off screen.
         const float bannerLeft = 1511.73f;
         const float bannerWidth = 1941.542f - bannerLeft;
-        UiNode banner = root.Row()
+        UiNode banner = ui.Row()
             .Size(bannerWidth, 98.396f)
             .At(new Vector2(bannerLeft + bannerWidth / 2, 115.94f))
             .Fill(PanelBlack)
@@ -54,7 +52,7 @@ public static partial class SongSelectScene
         }
 
         // The readout's panel sizes itself to its label and keeps its left edge put.
-        UiNode panel = root.Row()
+        UiNode panel = ui.Row()
             .Size(200, LevelPanelHeight)
             .At(new Vector2(
                 LevelPanelEdge + 100,

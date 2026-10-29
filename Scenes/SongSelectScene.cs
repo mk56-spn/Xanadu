@@ -5,6 +5,7 @@ using Xanadu.Ecs;
 using Xanadu.Strings;
 using Xanadu.Levels;
 using Xanadu.Profiles;
+using Xanadu.Theme;
 
 namespace Xanadu.Scenes;
 
@@ -19,26 +20,27 @@ public static partial class SongSelectScene
     public static SongSelectState Build(
         EntityStore entities,
         Entity root,
-        Vector2 screen,
         IReadOnlyList<LevelEntry> catalog,
         int selected,
         ProfileStore profiles,
         IVisualRidFactory? visuals = null)
     {
-        UiBuilder ui = SceneUi.Layer(entities, root, SceneUi.MenuLayer, visuals);
+        UiNode ui = UiNode.Layer(
+            entities, root, SceneUi.MenuLayer, visuals, UiStage.Full);
         bool loadAssets = visuals is GodotVisualRidFactory;
-        ApplyBackgroundShader(SceneUi.Background(ui, screen), loadAssets);
+
+        Entity background = ui.Rect(SceneUi.BackgroundColor).Cover().Below().Entity;
+        ApplyBackgroundShader(background, loadAssets);
 
         BuildChrome(ui, loadAssets);
 
-        SceneUi.Button(
-            ui,
-            new Vector2(100, ActionY),
-            new Vector2(150, 44),
-            LocalizedText.Get(SongSelectStrings.Back),
-            SceneKind.Main,
-            18,
-            SceneUi.MutedButtonColor);
+        ui.Button(
+                LocalizedText.Get(SongSelectStrings.Back),
+                UiType.Label,
+                SceneUi.MutedButtonColor)
+            .Size(150, 44)
+            .At(new Vector2(100, ActionY))
+            .On(SceneKind.Main);
 
         (Entity level, Entity levelPanel) = BuildPlayerCard(ui, profiles, loadAssets);
         ScoreViews scores = BuildScores(ui, loadAssets);

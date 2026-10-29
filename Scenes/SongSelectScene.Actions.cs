@@ -21,13 +21,12 @@ public static partial class SongSelectScene
 
     private readonly record struct ActionViews(Entity Edit, List<Entity> Icons);
 
-    private static ActionViews BuildActions(UiBuilder ui)
+    private static ActionViews BuildActions(UiNode ui)
     {
-        UiNode root = UiNode.Wrap(ui.Current, ui.Visuals);
         var icons = new List<Entity>();
 
         UiNode edit = ActionDiamond(
-            root,
+            ui,
             EditCenter,
             EditSize,
             LocalizedText.Get(SongSelectStrings.EditLevel),
@@ -37,7 +36,7 @@ public static partial class SongSelectScene
 
         // The menu has nothing of its own yet, so for now it opens the editor like the hammer.
         UiNode menu = ActionDiamond(
-            root,
+            ui,
             MenuCenter,
             MenuSize,
             LocalizedText.Get(SongSelectStrings.Menu),
