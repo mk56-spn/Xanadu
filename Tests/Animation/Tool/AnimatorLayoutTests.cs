@@ -13,23 +13,24 @@ public sealed class AnimatorLayoutTests : AnimatorToolTest
     {
         Rect2 preview = AnimatorGeometry.PanelArea(Ui.Preview);
 
-        // Left bar 240 + gap 12; gap 12 + right bar 300; the panels run flush to the screen.
-        Assert.That(preview.Position.X, Is.EqualTo(252f).Within(0.5f));
+        // Tool strip 64 + gap 12 + left bar 240 + gap 12; gap 12 + right bar 300; flush to the screen.
+        Assert.That(preview.Position.X, Is.EqualTo(328f).Within(0.5f));
         Assert.That(preview.End.X, Is.EqualTo(Screen.X - 312f).Within(0.5f));
-        // The shell's 80 px header + gap 12, then the 36 px mode bar and its 8 px gap.
-        Assert.That(preview.Position.Y, Is.EqualTo(136f).Within(0.5f));
+        // The shell's 80 px header + gap 12.
+        Assert.That(preview.Position.Y, Is.EqualTo(92f).Within(0.5f));
     }
 
     [Test]
-    public void TheEditingModesSitInABarAboveThePreview()
+    public void TheEditingModesRunDownTheToolStrip()
     {
+        Rect2 strip = AnimatorGeometry.PanelArea(ModeButton(AnimatorMode.AutoKey).Parent);
         Rect2 preview = AnimatorGeometry.PanelArea(Ui.Preview);
-        Rect2 bar = AnimatorGeometry.PanelArea(ModeButton(AnimatorMode.AutoKey).Parent);
 
-        Assert.That(bar.End.Y, Is.LessThanOrEqualTo(preview.Position.Y + 0.5f));
-        Assert.That(bar.Position.X, Is.EqualTo(preview.Position.X).Within(0.5f));
-        Assert.That(bar.Size.X, Is.EqualTo(preview.Size.X).Within(0.5f));
+        Assert.That(strip.Position.X, Is.EqualTo(0f).Within(0.5f));
+        Assert.That(strip.Size.X, Is.EqualTo(EditorShellMetrics.ToolStripWidth).Within(0.5f));
+        Assert.That(strip.End.X, Is.LessThan(preview.Position.X));
 
+        float previous = float.MinValue;
         foreach (AnimatorMode mode in new[]
                  {
                      AnimatorMode.AutoKey,
@@ -43,8 +44,11 @@ public sealed class AnimatorLayoutTests : AnimatorToolTest
                  })
         {
             Rect2 button = AnimatorGeometry.PanelArea(ModeButton(mode));
-            Assert.That(bar.Encloses(button.Grow(-0.5f)), Is.True);
-            Assert.That(button.End.Y, Is.LessThanOrEqualTo(preview.Position.Y));
+            Assert.That(strip.Encloses(button.Grow(-0.5f)), Is.True);
+            Assert.That(button.Size, Is.EqualTo(new Vector2(
+                EditorShellMetrics.ToolButton, EditorShellMetrics.ToolButton)));
+            Assert.That(button.Position.Y, Is.GreaterThan(previous));
+            previous = button.Position.Y;
         }
     }
 
