@@ -34,6 +34,7 @@ public sealed class UiInteractionSystemGroup : SystemGroup
         Add(new DisabledTextFieldSystem(entities));
         Add(scroll);
         Add(new ToggleSystem());
+        Add(new UiTabSystem());
         Add(new ButtonVisualSystem());
         Add(new DisabledVisualSystem(entities));
         Add(new UiSliderSystem(pointer));
