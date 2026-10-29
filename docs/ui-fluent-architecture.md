@@ -1,9 +1,9 @@
 # A fluent UI tree API
 
-**Status:** in use. Every game screen builds through `UiNode` and the design
-stage; the editor partials are the last holdouts. `UiType`/`UiMetrics` and
-`UiStage` landed, and `SceneUi`'s construction helpers are deleted. The API
-lives in `UI/Ecs/Ui/UiNode*.cs`, `UiSurface.cs`, `UiStage.cs`, `UiEdge.cs`,
+**Status:** migrated. Every game screen and every editor panel builds through
+`UiNode`; `UiType`/`UiMetrics` and `UiStage` are in use, and `SceneUi` is down to
+layer ids, palette aliases and `SetText`. The API lives in
+`UI/Ecs/Ui/UiNode*.cs`, `UiSurface.cs`, `UiStage.cs`, `UiEdge.cs`,
 `UiDropdownNode.cs`; scene-level sugar in `Scenes/UiNodeActions.cs`.
 
 ---
@@ -333,14 +333,16 @@ screen size.
 | Pause, Confirmation, Transitions | runtime overlays built inside `SceneSystem` |
 | Play HUD | HUD positions kept as drag-and-save layout data |
 | Song select | all eight partials: actions, chrome, info, list, player card, preview, scores |
+| Editor | chrome, tool strip, sidebar, metadata/start/help panels, groups grid and overlay |
+| Editor warning popup | layer node, column, three rects |
 
-Remaining: the editor partials (`EditorScene.Chrome`, `.Sidebar`, `.Metadata`,
-`.Groups`) still use `UiBuilder` and `SceneUi.Text`, and their helpers cross
-files (`HudText`, `SidebarLabel`), so they move together.
+Cleanup finished: `SceneUi`'s construction helpers (`Background`, `Panel`,
+`Label`, `Button`, `ButtonEntity`, `CarouselButton`, `ScrollView`, `Text`,
+`Layer`) are gone, as are the `AddEditorButton` recipes (now three-line helpers
+over `UiNode.Button`) and every temporary `Wrap`/bridge.
 
-Cleanup already done: `SceneUi`'s construction helpers (`Background`, `Panel`,
-`Label`, `Button`, `ButtonEntity`, `CarouselButton`, `ScrollView`) are gone.
-Only layer ids, palette aliases, `Layer` and `Text` remain for the editor.
+One `UiBuilder` caller remains on purpose: the F8 shader tuner
+(`Systems/Shaders/ShaderTunerSystem.cs`) is a debug overlay, not a scene.
 
 ---
 

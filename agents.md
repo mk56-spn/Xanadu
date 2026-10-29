@@ -53,8 +53,9 @@ Working examples of the slice this project uses: `docs/ecs/README.md`.
 ## UI
 
 UI is ECS entities — `Rectangle`, `Text`, `TextStyle`, `ButtonVisual`,
-`TakesInput`, `Toggle`, … — built with `UiBuilder` or `UiNode` and rendered by
-the `Xanadu.Ui` systems.
+`TakesInput`, `Toggle`, … — built with `UiNode` and rendered by the `Xanadu.Ui`
+systems. `UiBuilder` is the low-level factory behind it; the only direct caller
+left is the F8 shader tuner (a debug overlay).
 
 **Never build UI out of Godot Control widgets.** This includes `Button`,
 `Label`, `LineEdit`, `TextEdit`, `Panel`, `ColorRect`, `TextureRect`,
@@ -150,5 +151,5 @@ under `~/.local/share`.
 ## See also
 
 - `Tests/VisualTests/README.md` — the scene-test harness, its step model and flags.
-- `docs/ui-fluent-architecture.md` — the proposed `UiNode` API. A proposal plus a
-  working prototype, not yet the house style; `UiBuilder` is still what ships.
+- `docs/ui-fluent-architecture.md` — the `UiNode` design, the rules the
+  migration settled on, and its open questions. This is the house style.

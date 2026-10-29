@@ -17,42 +17,30 @@ public static class EditorWarningPopup
     /// <summary>Creates the popup hierarchy hidden below the editor overlay.</summary>
     public static Entity Build(EntityStore entities, IVisualRidFactory? visuals = null)
     {
-        UiBuilder builder = UiBuilder.Begin(entities, visuals).Layer(LayerZIndex);
-        builder.Container(
-            UiLayout.Hidden,
-            PopupSize,
-            StackDirection.Vertical,
-            spacing: 10,
-            color: Palette.DangerSurfaceAlt);
+        UiNode ui = UiNode.Layer(entities, default, LayerZIndex, visuals, UiStage.Full);
 
-        Entity panel = builder.Current;
+        UiNode panel = ui.Column()
+            .Size(PopupSize)
+            .At(UiLayout.Hidden)
+            .Gap(10)
+            .Fill(Palette.DangerSurfaceAlt);
 
-        builder.Rect(
-            Vector2.Zero,
-            new Vector2(400, 26),
-            Palette.DangerDark,
-            "WARNING");
+        panel.Rect(Palette.DangerDark, "WARNING", new Vector2(400, 26));
+        Entity message = panel.Rect(
+                Palette.DangerSurfaceAlt,
+                NoSongMessage,
+                new Vector2(400, 48))
+            .Entity;
+        Entity button = panel.Rect(
+                Palette.WarningDeep,
+                "OK",
+                new Vector2(120, 34))
+            .Input()
+            .With(ButtonVisual.Create(Palette.WarningDeep))
+            .Entity;
 
-        builder.Rect(
-            Vector2.Zero,
-            new Vector2(400, 48),
-            Palette.DangerSurfaceAlt,
-            NoSongMessage);
-        Entity message = LastChild(panel);
-
-        builder.Rect(
-            Vector2.Zero,
-            new Vector2(120, 34),
-            Palette.WarningDeep,
-            "OK",
-            takesInput: true);
-        Entity button = LastChild(panel);
-        button.AddComponent(ButtonVisual.Create(Palette.WarningDeep));
-
-        builder.End();
-
-        panel.AddComponent(new WarningPopup(message, button));
-        return panel;
+        panel.With(new WarningPopup(message, button));
+        return panel.Entity;
     }
 
     /// <summary>Queues a warning for the popup system to display.</summary>
@@ -71,12 +59,4 @@ public static class EditorWarningPopup
         editor.AddComponent(new WarningRequest(message));
     }
 
-    private static Entity LastChild(Entity parent)
-    {
-        Entity last = default;
-        foreach (Entity child in parent.ChildEntities)
-            last = child;
-
-        return last;
-    }
 }
