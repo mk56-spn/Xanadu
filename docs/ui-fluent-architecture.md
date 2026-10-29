@@ -335,6 +335,9 @@ screen size.
 | Song select | all eight partials: actions, chrome, info, list, player card, preview, scores |
 | Editor | chrome, tool strip, sidebar, metadata/start/help panels, groups grid and overlay |
 | Editor warning popup | layer node, column, three rects |
+| Offset wizard | ECS panel; `OffsetWizardSystem` owns the click track, taps and save |
+| Song-select menu | right-click menu + delete confirmation; no native menu |
+| Add-song picker | ECS button in song timing; Main opens the FileDialog and imports |
 
 Cleanup finished: `SceneUi`'s construction helpers (`Background`, `Panel`,
 `Label`, `Button`, `ButtonEntity`, `CarouselButton`, `ScrollView`, `Text`,

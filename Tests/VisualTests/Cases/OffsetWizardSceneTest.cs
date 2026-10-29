@@ -1,18 +1,9 @@
-using System;
-using System.Linq;
-using System.Collections.Generic;
-using Friflo.Engine.ECS;
-using Godot;
 using Xanadu.Ecs;
-using Position = Xanadu.Ecs.Position;
-using Xanadu.Editor;
-using Xanadu.Levels;
 using Xanadu.Scenes;
-using Xanadu.Settings;
-using Xanadu.Systems.Playfields;
 
 namespace Xanadu.Tests.VisualTests;
 
+/// <summary>The offset wizard's ECS panel and controls.</summary>
 public sealed class OffsetWizardSceneTest : SceneTest
 {
     public override string Name => "Offset wizard";
@@ -20,15 +11,31 @@ public sealed class OffsetWizardSceneTest : SceneTest
 
     protected override void SetUpSteps()
     {
-        AddStep("open offset wizard", () => Context.Scenes.Start(SceneKind.OffsetWizard));
+        AddStep(
+            "open offset wizard",
+            () => Context.Scenes.Start(SceneKind.OffsetWizard));
         AddUntilStep(
             "wait for offset wizard",
-            () => Context.Scenes.Current == SceneKind.OffsetWizard &&
-                  VisualAssert.HasText(Context.Entities, "OFFSET WIZARD"));
+            () => VisualAssert.IsSceneReady(
+                Context,
+                SceneKind.OffsetWizard,
+                SceneUi.MenuLayer) &&
+                VisualAssert.HasText(Context.Entities, "OFFSET WIZARD"));
         AddAssert(
-            "offset instructions exist",
+            "wizard actions exist",
+            () => VisualAssert.HasText(Context.Entities, "START") &&
+                  VisualAssert.HasText(Context.Entities, "SAVE") &&
+                  VisualAssert.HasText(Context.Entities, "BACK") &&
+                  VisualAssert.HasText(Context.Entities, "RESET OFFSET"));
+        AddAssert(
+            "wizard instructions are shown",
             () => VisualAssert.HasText(
                 Context.Entities,
-                "Tap SPACE with every click."));
+                "Listen to the eight clicks and tap SPACE exactly with each one."));
+        AddAssert(
+            "wizard layer is initialized",
+            () => VisualAssert.CountUninitialised(
+                Context.Entities,
+                SceneUi.MenuLayer) == 0);
     }
 }

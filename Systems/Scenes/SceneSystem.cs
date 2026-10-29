@@ -84,6 +84,10 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
         PauseSceneActions.Register(_actionRegistry);
         SongSelectSceneActions.Register(_actionRegistry);
         SongTimingSceneActions.Register(_actionRegistry);
+        _actionRegistry.Register(
+            SceneKind.OffsetWizard,
+            SceneActionId.Back,
+            context => context.Scenes.TryBack());
     }
 
     public ProfileStore Profiles => _profiles;
