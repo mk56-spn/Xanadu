@@ -2,100 +2,100 @@ using Friflo.Engine.ECS;
 using Godot;
 using Xanadu.Ecs;
 using Xanadu.Levels;
+using Xanadu.Theme;
 
 namespace Xanadu.Scenes;
 
-/// <summary>A separate screen for editing shared song timing.</summary>
+/// <summary>
+/// A separate screen for editing shared song timing. The live labels keep fixed
+/// boxes because systems rewrite them as the values change; everything else is
+/// measured or token-sized.
+/// </summary>
 public static class SongTimingScene
 {
-    public static Entity Build(
+    private const float TitleY = 70;
+    private const float SongY = 140;
+    private const float BpmY = 250;
+    private const float OffsetY = 330;
+    private const float ActionsY = 450;
+
+    private const float SongWidth = 900;
+    private const float SongHeight = 34;
+    private const float ValueWidth = 500;
+    private const float ValueHeight = 50;
+
+    private const float AdjustWidth = 150;
+    private const float AdjustHeight = 42;
+    private const float AdjustOffset = 180;
+
+    private const float ActionWidth = 200;
+    private const float ActionGap = 20;
+
+    public static void Build(
         EntityStore entities,
         Entity root,
-        Vector2 screen,
         SongDocument song,
         IVisualRidFactory? visuals = null)
     {
-        UiBuilder ui = SceneUi.Layer(entities, root, SceneUi.MenuLayer, visuals);
-        SceneUi.Background(ui, screen);
+        UiStage stage = UiStage.Full;
+        UiNode ui = UiNode.Layer(entities, root, SceneUi.MenuLayer, visuals, stage);
 
-        SceneUi.Text(
-            ui,
-            new Vector2(screen.X / 2, 70),
-            new Vector2(900, 54),
-            "SONG TIMING",
-            40,
-            SceneUi.AccentColor);
+        ui.Rect(SceneUi.BackgroundColor).Cover().Below();
+        ui.Text("SONG TIMING", UiType.Title, SceneUi.AccentColor)
+            .At(new Vector2(stage.Center.X, TitleY));
 
-        Entity title = SceneUi.Text(
-            ui,
-            new Vector2(screen.X / 2, 140),
-            new Vector2(900, 34),
-            song.Title,
-            24,
-            SceneUi.TextColor);
+        UiNode title = ui.Text(
+                song.Title,
+                UiType.Section,
+                SceneUi.TextColor,
+                TextAlign.Center)
+            .Size(SongWidth, SongHeight)
+            .At(new Vector2(stage.Center.X, SongY));
 
-        Entity bpm = SceneUi.Text(
-            ui,
-            new Vector2(screen.X / 2, 250),
-            new Vector2(500, 50),
-            $"BPM {song.Bpm}",
-            28,
-            SceneUi.TextColor);
-        Entity offset = SceneUi.Text(
-            ui,
-            new Vector2(screen.X / 2, 330),
-            new Vector2(500, 50),
-            $"OFFSET {song.OffsetMs} MS",
-            28,
-            SceneUi.TextColor);
+        UiNode bpm = ui.Text(
+                $"BPM {song.Bpm}",
+                UiType.Heading,
+                SceneUi.TextColor,
+                TextAlign.Center)
+            .Size(ValueWidth, ValueHeight)
+            .At(new Vector2(stage.Center.X, BpmY));
 
-        AddAdjust(ui, new Vector2(screen.X / 2 - 180, 250),
-            "-1 BPM", SongTimingAdjustKind.Bpm, -1);
-        AddAdjust(ui, new Vector2(screen.X / 2 + 180, 250),
-            "+1 BPM", SongTimingAdjustKind.Bpm, 1);
-        AddAdjust(ui, new Vector2(screen.X / 2 - 180, 330),
-            "-10 MS", SongTimingAdjustKind.Offset, -10);
-        AddAdjust(ui, new Vector2(screen.X / 2 + 180, 330),
-            "+10 MS", SongTimingAdjustKind.Offset, 10);
+        UiNode offset = ui.Text(
+                $"OFFSET {song.OffsetMs} MS",
+                UiType.Heading,
+                SceneUi.TextColor,
+                TextAlign.Center)
+            .Size(ValueWidth, ValueHeight)
+            .At(new Vector2(stage.Center.X, OffsetY));
 
-        Entity save = ui.RectEntity(
-            new Vector2(screen.X / 2 - 110, 450),
-            new Vector2(200, 46),
-            SceneUi.ButtonColor,
-            "SAVE",
-            takesInput: true);
-        save.AddComponent(new TextStyle(18, SceneUi.TextColor));
-        save.AddComponent(ButtonVisual.Create(SceneUi.ButtonColor));
-        save.AddComponent(new SongTimingSave());
+        Adjust(ui, stage, BpmY, -1f, "-1 BPM", SongTimingAdjustKind.Bpm, -1);
+        Adjust(ui, stage, BpmY, 1f, "+1 BPM", SongTimingAdjustKind.Bpm, 1);
+        Adjust(ui, stage, OffsetY, -1f, "-10 MS", SongTimingAdjustKind.Offset, -10);
+        Adjust(ui, stage, OffsetY, 1f, "+10 MS", SongTimingAdjustKind.Offset, 10);
 
-        Entity back = SceneUi.ButtonEntity(
-            ui,
-            new Vector2(screen.X / 2 + 110, 450),
-            new Vector2(200, 46),
-            "BACK",
-            18,
-            SceneUi.MutedButtonColor);
-        back.AddComponent(new SceneCommand(SceneActionId.Back));
+        UiNode actions = ui.Row()
+            .Gap(ActionGap)
+            .At(new Vector2(stage.Center.X, ActionsY));
+        actions.Button("SAVE", UiType.Label, SceneUi.ButtonColor)
+            .Size(ActionWidth, UiMetrics.Control.Lg)
+            .With(new SongTimingSave());
+        actions.Button("BACK", UiType.Label, SceneUi.MutedButtonColor)
+            .Size(ActionWidth, UiMetrics.Control.Lg)
+            .On(SceneActionId.Back);
 
         root.AddComponent(new SongTimingView(title, bpm, offset));
-        return root;
     }
 
-    private static void AddAdjust(
-        UiBuilder ui,
-        Vector2 center,
+    private static void Adjust(
+        UiNode ui,
+        UiStage stage,
+        float y,
+        float side,
         string label,
         SongTimingAdjustKind kind,
-        int delta)
-    {
-        Entity button = ui.RectEntity(
-            center,
-            new Vector2(150, 42),
-            SceneUi.MutedButtonColor,
-            label,
-            takesInput: true);
-        button.AddComponent(new TextStyle(16, SceneUi.TextColor));
-        button.AddComponent(ButtonVisual.Create(SceneUi.MutedButtonColor));
-        button.AddComponent(new SongTimingAdjust(kind, delta));
-    }
+        int delta) =>
+        ui.Button(label, UiType.Body, SceneUi.MutedButtonColor)
+            .Size(AdjustWidth, AdjustHeight)
+            .At(new Vector2(stage.Center.X + side * AdjustOffset, y))
+            .With(new SongTimingAdjust(kind, delta));
 }
