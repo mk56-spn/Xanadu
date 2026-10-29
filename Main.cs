@@ -16,6 +16,10 @@ public partial class Main : Control
 {
 	public EntityStore Entities { get; } = new();
 
+	/// <summary>Set by <c>--shot=path</c>: capture the window there, then quit.</summary>
+	private string? _shotPath;
+	private int _shotFrames = -1;
+
 	private XanaduSystemRoot? _systems;
 	private GodotPointerInputSource? _pointer;
 	private SceneDirector? _sceneDirector;
@@ -34,12 +38,15 @@ public partial class Main : Control
 		_pointer = new GodotPointerInputSource(this);
 		_sceneDirector = new SceneDirector();
 		_sceneDirector.Changed += OnSceneChanged;
+		ParseShotArgument();
 		_systems = new XanaduSystemRoot(
 			Entities,
 			GetCanvasItem(),
 			_pointer,
 			_sceneDirector,
-			GetViewportRect().Size);
+			// Design space, not the window: the project stretches the whole
+			// surface, so every scene lays out at 1920x1080 and scales as one.
+			UiStage.Design1080);
 
 		_systems.Scenes.Start(SceneKind.Profiles);
 	}
@@ -268,6 +275,45 @@ public partial class Main : Control
 	{
 		float time = (float)Time.GetTicksMsec() / 1000f;
 		_systems?.Update(new UpdateTick((float)delta, time));
+
+		if (TryCaptureShot())
+			return;
+	}
+
+	/// <summary>
+	/// Reads <c>--shot=path</c> so a headless-minded agent can verify a screen
+	/// without the compositor: the game saves its own viewport once it settles.
+	/// </summary>
+	private void ParseShotArgument()
+	{
+		foreach (string argument in OS.GetCmdlineUserArgs())
+		{
+			if (argument.StartsWith("--shot=", StringComparison.Ordinal))
+			{
+				_shotPath = argument["--shot=".Length..];
+				_shotFrames = 0;
+			}
+		}
+	}
+
+	private bool TryCaptureShot()
+	{
+		if (_shotPath is null || _shotFrames < 0)
+			return false;
+
+		if (++_shotFrames < 60)
+			return false;
+
+		_shotFrames = -1;
+		Image image = GetViewport().GetTexture().GetImage();
+		Error error = image.SavePng(_shotPath);
+		if (error == Error.Ok)
+			GD.Print($"Wrote {_shotPath}");
+		else
+			GD.PrintErr($"Could not write {_shotPath}: {error}");
+
+		GetTree().Quit(error == Error.Ok ? 0 : 1);
+		return true;
 	}
 
 	public override void _ExitTree()
