@@ -27,7 +27,9 @@ public sealed class AnimatorPreviewDrawSystem(
     private static readonly Color LabelBackdrop = new(Palette.SurfaceDeep, 0.85f);
     private static readonly Color ReparentLabel = Palette.Warning;
     private const float OnionOffset = 0.1f;
+    private static readonly Color FlowGhost = new(Palette.Accent, 0.3f);
 
+    private readonly AnimatorFlowOverlay _flow = new(canvas, target);
     private int _version = -1;
 
     protected override void OnUpdate()
@@ -74,6 +76,7 @@ public sealed class AnimatorPreviewDrawSystem(
             }
         }
 
+        DrawFlowGhost(session, document, placement, modes);
         DrawChains(session, document.Package, selection, placement);
         DrawChainHandles(document.Package, selection, world, placement);
 
@@ -150,6 +153,24 @@ public sealed class AnimatorPreviewDrawSystem(
             $"{document.Runtime.CurrentClip}  {document.Runtime.CurrentTime:0.00}s   x{view.Zoom:0.##}",
             Palette.Text,
             14);
+        _flow.Draw(session, area);
+    }
+
+    /// <summary>
+    /// While a transition preview leads in on the old clip, the new clip's
+    /// first frame shows as a ghost, so the distance the fade has to cover is
+    /// visible before it starts.
+    /// </summary>
+    private void DrawFlowGhost(Entity session, in AnimatorDocument document, Transform2D placement, AnimatorModes modes)
+    {
+        AnimatorSequence sequence = session.GetComponent<AnimatorSequence>();
+        if (modes.Rest || !sequence.Active || sequence.Name != "FLOW" || sequence.Steps is not { Count: > 1 } steps)
+            return;
+
+        string next = steps[Math.Min(sequence.Index + 1, steps.Count - 1)].Clip;
+        XafClip? clip = document.Package.Clips.Find(candidate => candidate.Id == next);
+        if (sequence.Index == 0 && clip is not null)
+            DrawGhost(document.Package, clip, 0f, FlowGhost, placement, modes.Kites, modes.Handles);
     }
 
     /// <summary>

@@ -55,6 +55,16 @@ public static class XafPackageCopy
 
         foreach (XafClip clip in package.Clips)
             copy.Clips.Add(Clone(clip));
+        foreach (XafTransition rule in package.Transitions)
+        {
+            copy.Transitions.Add(new XafTransition
+            {
+                From = rule.From,
+                To = rule.To,
+                Fade = rule.Fade,
+                Curve = rule.Curve,
+            });
+        }
         return copy;
     }
 
@@ -62,7 +72,8 @@ public static class XafPackageCopy
         ListEqual(a.Skeleton.Bones, b.Skeleton.Bones, BoneEqual) &&
         ListEqual(a.Attachments, b.Attachments, AttachmentEqual) &&
         ListEqual(a.Chains, b.Chains, ChainEqual) &&
-        ListEqual(a.Clips, b.Clips, ClipEqual);
+        ListEqual(a.Clips, b.Clips, ClipEqual) &&
+        ListEqual(a.Transitions, b.Transitions, TransitionEqual);
 
     public static XafClip Clone(XafClip clip)
     {
@@ -118,6 +129,9 @@ public static class XafPackageCopy
         a.Id == b.Id && a.Duration == b.Duration && a.Loop == b.Loop &&
         a.LoopStart == b.LoopStart && a.LoopEnd == b.LoopEnd &&
         ListEqual(a.Channels, b.Channels, ChannelEqual);
+
+    private static bool TransitionEqual(XafTransition a, XafTransition b) =>
+        a.From == b.From && a.To == b.To && a.Fade == b.Fade && a.Curve == b.Curve;
 
     private static bool ChannelEqual(XafChannel a, XafChannel b) =>
         a.Target == b.Target && a.TargetId == b.TargetId && a.Property == b.Property &&

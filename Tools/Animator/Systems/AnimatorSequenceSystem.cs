@@ -11,6 +11,6 @@ public sealed class AnimatorSequenceSystem : QuerySystem<AnimatorDocument, Anima
     {
         float delta = Tick.deltaTime;
         foreach (Entity session in Query.ToEntityList())
-            AnimatorSequenceCommands.Tick(session, delta);
+            AnimatorSequenceCommands.Tick(session, delta * AnimatorFlowCommands.Speed(session));
     }
 }

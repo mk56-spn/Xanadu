@@ -47,12 +47,14 @@ public sealed class AnimatorLayoutTests : AnimatorToolTest
         Rect2 bones = AnimatorGeometry.PanelArea(Ui.BoneList);
         Rect2 pose = AnimatorGeometry.PanelArea(TabButton(0));
         Rect2 edit = AnimatorGeometry.PanelArea(TabButton(1));
+        Rect2 flow = AnimatorGeometry.PanelArea(TabButton(2));
 
         Assert.That(shell.RightTree.Encloses(bones), Is.True);
         Assert.That(pose.Position.Y, Is.EqualTo(shell.RightTabs.Position.Y).Within(0.5f));
         Assert.That(pose.Position.X, Is.EqualTo(shell.RightTabs.Position.X).Within(0.5f));
         Assert.That(edit.Position.X, Is.EqualTo(pose.End.X).Within(0.5f));
-        Assert.That(edit.End.X, Is.EqualTo(shell.RightTabs.End.X).Within(0.5f));
+        Assert.That(flow.Position.X, Is.EqualTo(edit.End.X).Within(0.5f));
+        Assert.That(flow.End.X, Is.EqualTo(shell.RightTabs.End.X).Within(0.5f));
     }
 
     [Test]

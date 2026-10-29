@@ -24,5 +24,17 @@ public struct AnimatorSequence : IComponent
     public string OriginClip;
     public float OriginTime;
 
+    /// <summary>What the status line calls the chain.</summary>
+    public string Name;
+
+    /// <summary>Starts over from the first step at the end, until stopped.</summary>
+    public bool Loop;
+
+    /// <summary>
+    /// Plays as the game does: a hand-over the transition table does not allow
+    /// is refused, and the clip before it keeps playing.
+    /// </summary>
+    public bool Strict;
+
     public readonly bool Active => Steps is not null;
 }

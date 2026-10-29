@@ -124,6 +124,22 @@ public static class XafValidation
             }
         }
 
+        var pairs = new HashSet<(string, string)>();
+        foreach (XafTransition rule in package.Transitions)
+        {
+            string name = $"Transition '{rule.From}' to '{rule.To}'";
+            if (!clipIds.Contains(rule.From) || !clipIds.Contains(rule.To))
+                issues.Add($"{name} references a missing clip.");
+            else if (rule.From == rule.To)
+                issues.Add($"{name} goes nowhere.");
+            if (!pairs.Add((rule.From, rule.To)))
+                issues.Add($"Duplicate {name.ToLowerInvariant()}.");
+            if (!(rule.Fade >= 0f && rule.Fade <= XafTransitions.MaxFade))
+                issues.Add($"{name} has an invalid fade.");
+            if (!Enum.IsDefined(rule.Curve))
+                issues.Add($"{name} has an unknown curve.");
+        }
+
         return issues;
     }
 

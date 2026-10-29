@@ -2,6 +2,7 @@ using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Godot;
 using Xanadu.Animation;
+using Xanadu.Tools.Animator.Commands;
 
 namespace Xanadu.Tools.Animator.Systems;
 
@@ -29,7 +30,8 @@ public sealed class AnimatorChainSimulationSystem : QuerySystem<AnimatorDocument
 
             XafPose pose = AnimatorGeometry.PreviewPose(document, session.GetComponent<AnimatorModes>());
             Transform2D[] world = XafRig.WorldBones(document.Package, pose);
-            chains.Simulation.Update(document.Package, world, delta);
+            // Slowed with the bones, so hair keeps up with them in slow motion.
+            chains.Simulation.Update(document.Package, world, delta * AnimatorFlowCommands.Speed(session));
         }
     }
 }

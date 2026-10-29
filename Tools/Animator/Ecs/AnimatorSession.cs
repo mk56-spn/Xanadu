@@ -49,6 +49,7 @@ public static class AnimatorSession
         session.AddComponent(AnimatorPreviewView.Default);
         session.AddComponent(new AnimatorKeyClipboard());
         session.AddComponent(new AnimatorSequence());
+        session.AddComponent(new AnimatorFlow { Target = "" });
         session.AddComponent(new AnimatorSnapGuides());
         session.AddComponent(new AnimatorChains { Simulation = new XafChainSimulation() });
         session.AddComponent(new UiMarqueeBox());

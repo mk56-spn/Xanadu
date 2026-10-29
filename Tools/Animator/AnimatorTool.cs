@@ -1,3 +1,4 @@
+using System;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Godot;
@@ -27,6 +28,18 @@ public partial class AnimatorTool : Control
     private Rid _preview;
     private Rid _svgCanvas;
     private Rid _timelineCanvas;
+
+    /// <summary>Set by <c>--shot=path</c>: capture the window there after <see cref="_shotAt"/> frames, then quit.</summary>
+    private string? _shotPath;
+    private int _shotAt = 60;
+    private int _frames;
+
+    /// <summary>Set by <c>--shot-seconds=s</c>: capture once this much time has passed, in place of a frame count.</summary>
+    private float _shotSeconds = -1f;
+    private float _elapsed;
+
+    /// <summary>Set by <c>--flow=from&gt;to</c>: open the FLOW tab on that hand-over and preview it.</summary>
+    private string? _flow;
 
     public override void _Ready()
     {
@@ -70,6 +83,7 @@ public partial class AnimatorTool : Control
             DefaultPath);
         UiIcons.Loader = UiIcons.FromResources;
         _session.AddComponent(AnimatorLayout.Build(_store, GetViewportRect().Size));
+        ReadArguments();
         SetProcess(true);
     }
 
@@ -84,6 +98,66 @@ public partial class AnimatorTool : Control
             _fitted = true;
 
         _pointer.EndFrame();
+        _frames++;
+        if (_frames > 2)
+            _elapsed += (float)delta;
+        if (_frames == 2 && _flow is not null)
+            StartFlow(_flow);
+        bool due = _shotSeconds >= 0f ? _elapsed >= _shotSeconds : _frames == _shotAt;
+        if (_shotPath is not null && due)
+        {
+            CaptureShot(_shotPath);
+            _shotPath = null;
+        }
+    }
+
+    /// <summary>
+    /// Reads the capture flags, so an agent can check the tool without a
+    /// desktop capture: <c>--shot=path</c>, <c>--shot-frames=n</c> or
+    /// <c>--shot-seconds=s</c> (counted from the flow preview's start), and
+    /// <c>--flow=from&gt;to</c>.
+    /// </summary>
+    private void ReadArguments()
+    {
+        foreach (string argument in OS.GetCmdlineUserArgs())
+        {
+            if (argument.StartsWith("--shot=", StringComparison.Ordinal))
+                _shotPath = argument["--shot=".Length..];
+            else if (argument.StartsWith("--shot-frames=", StringComparison.Ordinal) &&
+                     int.TryParse(argument["--shot-frames=".Length..], out int frames))
+                _shotAt = Math.Max(2, frames);
+            else if (argument.StartsWith("--shot-seconds=", StringComparison.Ordinal) &&
+                     float.TryParse(argument["--shot-seconds=".Length..],
+                         System.Globalization.NumberStyles.Float,
+                         System.Globalization.CultureInfo.InvariantCulture, out float seconds))
+                _shotSeconds = Math.Max(0f, seconds);
+            else if (argument.StartsWith("--flow=", StringComparison.Ordinal))
+                _flow = argument["--flow=".Length..];
+        }
+    }
+
+    private void StartFlow(string flow)
+    {
+        string[] clips = flow.Split('>');
+        if (clips.Length != 2)
+            return;
+
+        foreach (Entity strip in _store.Query<UiTabs>().ToEntityList())
+            strip.GetComponent<UiTabs>().Selected = 2;
+        AnimatorCommands.Run(_session, new ToolAction(ToolActionKind.Clip, clips[0]));
+        AnimatorCommands.Run(_session, new ToolAction(ToolActionKind.SelectTransition, clips[1]));
+        AnimatorCommands.Run(_session, new ToolAction(ToolActionKind.PreviewTransition));
+    }
+
+    private void CaptureShot(string path)
+    {
+        Image image = GetViewport().GetTexture().GetImage();
+        Error error = image.SavePng(path);
+        if (error == Error.Ok)
+            GD.Print($"Wrote {path}");
+        else
+            GD.PrintErr($"Could not write {path}: {error}");
+        GetTree().Quit(error == Error.Ok ? 0 : 1);
     }
 
     public override void _Input(InputEvent @event)

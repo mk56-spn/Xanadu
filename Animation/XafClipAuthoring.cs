@@ -46,7 +46,11 @@ public static class XafClipAuthoring
         if (package.Clips.Count <= 1)
             return false;
 
-        return package.Clips.Remove(clip);
+        if (!package.Clips.Remove(clip))
+            return false;
+
+        XafTransitions.RemoveClip(package, clip.Id);
+        return true;
     }
 
     /// <summary>Renames a clip to a trimmed, non-empty id no other clip uses.</summary>
@@ -60,6 +64,7 @@ public static class XafClipAuthoring
         if (package.Clips.Exists(other => other != clip && other.Id == trimmed))
             return false;
 
+        XafTransitions.RenameClip(package, clip.Id, trimmed);
         clip.Id = trimmed;
         return true;
     }

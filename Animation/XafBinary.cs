@@ -21,6 +21,7 @@ public static class XafBinary
         Attachments = 3,
         Clips = 4,
         Chains = 5,
+        Transitions = 6,
     }
 
     public static void Save(string path, XafPackage package)
@@ -52,6 +53,8 @@ public static class XafBinary
         file.Add((uint)ChunkId.Clips, WriteClips(package.Clips, strings));
         if (minor >= 2)
             file.Add((uint)ChunkId.Chains, WriteChains(package.Chains, strings, minor));
+        if (minor >= 4)
+            file.Add((uint)ChunkId.Transitions, WriteTransitions(package.Transitions, strings));
         return file.ToArray();
     }
 
@@ -86,6 +89,8 @@ public static class XafBinary
         };
         if (file.Minor >= 2)
             package.Chains = ReadChains(file.Get((uint)ChunkId.Chains, Format), strings, file.Minor);
+        if (file.Minor >= 4)
+            package.Transitions = ReadTransitions(file.Get((uint)ChunkId.Transitions, Format), strings);
         XafValidation.ThrowIfInvalid(package);
         return package;
     }
@@ -113,6 +118,11 @@ public static class XafBinary
             table.Add(clip.Id);
             foreach (XafChannel channel in clip.Channels)
                 table.Add(channel.TargetId);
+        }
+        foreach (XafTransition rule in package.Transitions)
+        {
+            table.Add(rule.From);
+            table.Add(rule.To);
         }
     }
 
@@ -273,6 +283,43 @@ public static class XafBinary
             chains.Add(chain);
         }
         return chains;
+    }
+
+    private static byte[] WriteTransitions(List<XafTransition> transitions, StringTable strings)
+    {
+        using var stream = new MemoryStream();
+        using var writer = new BinaryWriter(stream, Encoding.UTF8, leaveOpen: true);
+        writer.Write((uint)transitions.Count);
+        foreach (XafTransition rule in transitions)
+        {
+            strings.WriteIndex(writer, rule.From);
+            strings.WriteIndex(writer, rule.To);
+            writer.Write(rule.Fade);
+            writer.Write((byte)rule.Curve);
+        }
+        writer.Flush();
+        return stream.ToArray();
+    }
+
+    private static List<XafTransition> ReadTransitions(Chunk chunk, StringTable strings)
+    {
+        using BinaryReader reader = chunk.OpenReader();
+        uint count = reader.ReadUInt32();
+        if (count > 100_000)
+            throw new XafFormatException("XAF transition table is too large.");
+
+        var transitions = new List<XafTransition>();
+        for (uint i = 0; i < count; i++)
+        {
+            transitions.Add(new XafTransition
+            {
+                From = strings.ReadIndex(reader),
+                To = strings.ReadIndex(reader),
+                Fade = reader.ReadSingle(),
+                Curve = (XafFadeCurve)reader.ReadByte(),
+            });
+        }
+        return transitions;
     }
 
     private static byte[] WriteClips(List<XafClip> clips, StringTable strings)
