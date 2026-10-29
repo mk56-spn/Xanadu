@@ -256,7 +256,7 @@ public static partial class EditorScene
             }
             else
             {
-                AddEditorButtonInContainer(transport, size, labels[i], kinds[i]);
+                AddEditorButton(transport, size, labels[i], kinds[i]);
             }
         }
 
@@ -313,43 +313,32 @@ public static partial class EditorScene
 
         AddEditorButton(
             ui,
-            new Vector2(zoomX, zoomY),
             new Vector2(zoomSize, zoomSize),
             "-",
             EditorButtonKind.ZoomOut,
-            fontSize: 18);
+            fontSize: 18,
+            center: new Vector2(zoomX, zoomY));
         AddEditorButton(
             ui,
-            new Vector2(zoomX + zoomSize + 6, zoomY),
             new Vector2(zoomSize, zoomSize),
             "+",
             EditorButtonKind.ZoomIn,
-            fontSize: 18);
+            fontSize: 18,
+            center: new Vector2(zoomX + zoomSize + 6, zoomY));
     }
 
-    private static Entity AddEditorButtonInContainer(
-        UiNode ui,
-        Vector2 size,
-        string label,
-        EditorButtonKind kind,
-        int fontSize = 14)
-    {
-        UiNode button = ui.Button(label, fontSize, SceneUi.ButtonColor).Size(size);
-        AddEditorAction(button.Entity, kind);
-        return button.Entity;
-    }
-
+    /// <summary>A styled editor button, flowing in its parent or placed explicitly.</summary>
     private static Entity AddEditorButton(
         UiNode ui,
-        Vector2 center,
         Vector2 size,
         string label,
         EditorButtonKind kind,
-        int fontSize = 14)
+        int fontSize = 14,
+        Vector2? center = null)
     {
-        UiNode button = ui.Button(label, fontSize, SceneUi.ButtonColor)
-            .Size(size)
-            .At(center);
+        UiNode button = ui.Button(label, fontSize, SceneUi.ButtonColor).Size(size);
+        if (center is { } at)
+            button.At(at);
         AddEditorAction(button.Entity, kind);
         return button.Entity;
     }

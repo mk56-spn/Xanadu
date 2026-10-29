@@ -159,6 +159,28 @@ public readonly partial struct UiNode
         return new UiDropdownNode(_surface!, control);
     }
 
+    /// <summary>The radial selector, painted and hit-tested by the Xanadu.UI systems.</summary>
+    public UiWheelControl Wheel(
+        Vector2 position,
+        float radius,
+        IReadOnlyList<string> labels,
+        int selected = 0,
+        IReadOnlyList<Color>? colors = null,
+        float hubRadius = 0.28f,
+        float gap = 0.035f,
+        float startAngle = UiWheelGeometry.DefaultStartAngle,
+        bool takesInput = true) =>
+        BeginChildren().Wheel(
+            position,
+            radius,
+            labels,
+            selected,
+            colors,
+            hubRadius,
+            gap,
+            startAngle,
+            takesInput);
+
     /// <summary>
     /// A floating option list for a button built elsewhere, drawn on the layer
     /// above the tree so a panel never clips it.

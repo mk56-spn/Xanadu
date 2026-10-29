@@ -105,12 +105,6 @@ public readonly partial struct UiNode
         return new UiNode(surface, entity);
     }
 
-    /// <summary>
-    /// The low-level builder pointed at this node, for callers that have not
-    /// migrated to the node methods yet. Transitional: prefer the node API.
-    /// </summary>
-    public UiBuilder Builder => BeginChildren();
-
     /// <summary>The layer this node draws on, for spawning floating parts.</summary>
     public UiNode LayerNode => IsNull ? default : new UiNode(_surface!, _surface!.Layer);
 

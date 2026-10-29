@@ -39,10 +39,6 @@ public static partial class EditorScene
         }
     }
 
-    // Temporary bridge while the chrome still builds on UiBuilder.
-    private static void BuildToolStrip(UiBuilder ui, EditorShellRects shell) =>
-        BuildToolStrip(UiNode.Wrap(ui.Current, ui.Visuals), shell);
-
     /// <summary>
     /// The shell's right panel, docked to the right edge for the full height of
     /// the middle row. Its controls flow top to bottom, so an open dropdown
@@ -67,7 +63,7 @@ public static partial class EditorScene
             EditorDropdownKind.Character,
             new[] { "CONTACT" },
             selected: 0);
-        BuildGroupGrid(panel.Builder, editor, inner);
+        BuildGroupGrid(panel, editor, inner);
 
         editor.AddComponent(new EditorSidebar(shell.RightPanel));
         editor.AddComponent(new EditorSidebarLayout(
@@ -75,10 +71,6 @@ public static partial class EditorScene
             characterLabel,
             character));
     }
-
-    // Temporary bridge while the chrome still builds on UiBuilder.
-    private static void BuildSidebar(UiBuilder ui, Entity editor, EditorShellRects shell) =>
-        BuildSidebar(UiNode.Wrap(ui.Current, ui.Visuals), editor, shell);
 
     /// <summary>Snap and dash strength, docked to the viewport's top-left corner.</summary>
     private static void BuildLeftPanel(UiNode ui, Entity editor)
@@ -134,10 +126,6 @@ public static partial class EditorScene
         editor.AddComponent(new EditorLeftMenu(panel.Entity, snapLabel, snap));
     }
 
-    // Temporary bridge while the chrome still builds on UiBuilder.
-    private static void BuildLeftPanel(UiBuilder ui, Entity editor) =>
-        BuildLeftPanel(UiNode.Wrap(ui.Current, ui.Visuals), editor);
-
     private static Entity SidebarLabel(
         UiNode parent,
         string text,
@@ -145,14 +133,6 @@ public static partial class EditorScene
         int fontSize) =>
         parent.Text(text, fontSize, SceneUi.DimTextColor, TextAlign.Center)
             .Size(width, fontSize + 10);
-
-    // Temporary bridge while the groups still build on UiBuilder.
-    private static Entity SidebarLabel(
-        UiBuilder ui,
-        string text,
-        float width,
-        int fontSize) =>
-        SidebarLabel(UiNode.Wrap(ui.Current, ui.Visuals), text, width, fontSize);
 
     /// <summary>
     /// The dash direction wheel floats beside the sidebar: it only shows for
@@ -164,7 +144,7 @@ public static partial class EditorScene
         Entity editor,
         EditorShellRects shell)
     {
-        UiBuilder ui = SceneUi.Layer(entities, root, 941);
+        UiNode ui = UiNode.Layer(entities, root, 941, null, UiStage.Full);
         Vector2 home = new(
             shell.RightPanel.Position.X - 125,
             shell.RightPanel.Position.Y + 265);
@@ -173,7 +153,7 @@ public static partial class EditorScene
     }
 
     private static (UiWheelControl Wheel, Entity Label) BuildDirectionWheel(
-        UiBuilder ui,
+        UiNode ui,
         Vector2 home)
     {
         UiWheelControl wheel = ui.Wheel(
@@ -183,14 +163,13 @@ public static partial class EditorScene
             selected: DashDirectionWheel.IndexOf(DashDirection.Up),
             hubRadius: 0.30f,
             gap: 0.045f);
-        Entity label = SceneUi.Text(
-            ui,
-            home + new Vector2(0, -92 - 16),
-            new Vector2(190, 18),
-            "DASH DIRECTION",
-            12,
-            SceneUi.DimTextColor,
-            new Color(0, 0, 0, 0));
+        Entity label = ui.Text(
+                "DASH DIRECTION",
+                12,
+                SceneUi.DimTextColor,
+                TextAlign.Center)
+            .Size(190, 18)
+            .At(home + new Vector2(0, -92 - 16));
         return (wheel, label);
     }
 
