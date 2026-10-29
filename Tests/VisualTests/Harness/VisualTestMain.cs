@@ -7,24 +7,22 @@ using Xanadu.Ecs;
 using Xanadu.Levels;
 using Xanadu.Editor;
 using Xanadu.Settings;
-using Xanadu.Systems.Input;
 using Xanadu.Theme;
 
 namespace Xanadu.Tests.VisualTests;
 
 /// <summary>
-/// Interactive visual test suite. The left sidebar lists every scene test;
-/// the right pane hosts the live ECS scene. Run All walks the suite, marking
-/// each test passed or failed without exiting unless --visual-test-exit is set.
+/// Interactive visual test suite. The left sidebar — built as ECS UI — lists
+/// every scene test; the right pane hosts the live ECS scene. Run All walks the
+/// suite, marking each test passed or failed without exiting unless
+/// <c>--visual-test-exit</c> is set. No Godot UI widget is created here: the
+/// root <see cref="Control"/> only supplies a canvas item, and the pane is a
+/// <see cref="Node2D"/> whose transform puts the scene beside the sidebar.
 /// </summary>
 public partial class VisualTestMain : Control
 {
-    private const int SidebarWidth = 340;
-
     private readonly List<SceneTest> _tests = new(SceneTestCatalog.All);
-    private readonly List<Button> _testButtons = new();
-    private readonly List<Button> _runButtons = new();
-    private readonly List<TestStatus> _statuses = new();
+    private readonly List<VisualTestStatus> _statuses = new();
     private readonly SceneTestRunner _runner = new();
 
     private EntityStore? _entities;
@@ -34,12 +32,8 @@ public partial class VisualTestMain : Control
     private ScriptedKeyboardState? _keyboard;
     private VisualTestContext? _context;
 
-    private SubViewport? _viewport;
-    private Control? _testHost;
-    private VBoxContainer? _testList;
-    private Label? _summary;
-    private Label? _detail;
-    private Button? _runAll;
+    private Node2D? _testHost;
+    private VisualTestSidebar? _sidebar;
     private Vector2 _paneSize;
 
     private int _index = -1;
@@ -49,14 +43,8 @@ public partial class VisualTestMain : Control
     private bool _exitWhenDone;
     private int _pendingStartIndex = -1;
     private ulong _pendingStartAtMs;
-
-    private enum TestStatus
-    {
-        Pending,
-        Running,
-        Passed,
-        Failed,
-    }
+    private string? _shotPath;
+    private int _shotFrames = -1;
 
     public override void _Ready()
     {
@@ -87,6 +75,8 @@ public partial class VisualTestMain : Control
         {
             SelectTest(0);
         }
+
+        _shotFrames = _shotPath is null ? -1 : 0;
     }
 
     private string? _invalidRequest;
@@ -95,6 +85,15 @@ public partial class VisualTestMain : Control
 
     public override void _Process(double delta)
     {
+        float time = (float)Time.GetTicksMsec() / 1000f;
+        _sidebar?.Frame((float)delta, time);
+
+        while (_sidebar is not null && _sidebar.TryTake(out VisualTestAction action))
+            Handle(action);
+
+        if (TryCaptureShot())
+            return;
+
         if (_pendingStartIndex >= 0 &&
             Time.GetTicksMsec() >= _pendingStartAtMs)
         {
@@ -107,7 +106,6 @@ public partial class VisualTestMain : Control
         if (_systems is null || _context is null || _runner.Test is null)
             return;
 
-        float time = (float)Time.GetTicksMsec() / 1000f;
         _systems.Update(new UpdateTick((float)delta, time));
 
         if (_resultHandled)
@@ -126,6 +124,16 @@ public partial class VisualTestMain : Control
 
     public override void _UnhandledInput(InputEvent @event)
     {
+        if (@event is InputEventMouseButton
+            {
+                Pressed: true,
+                ButtonIndex: MouseButton.Left,
+            })
+        {
+            _sidebar?.LatchPress();
+            return;
+        }
+
         if (@event is not InputEventKey { Pressed: true, Echo: false } key)
             return;
 
@@ -151,157 +159,27 @@ public partial class VisualTestMain : Control
     public override void _ExitTree()
     {
         CloseTestOverlays();
+        _sidebar?.Dispose();
+        _sidebar = null;
     }
 
     private void BuildUi()
     {
-        Vector2 window = GetViewportRect().Size;
-        if (window.X <= 0 || window.Y <= 0)
-            window = new Vector2(1920, 1080);
-
         _paneSize = new Vector2(
-            Mathf.Max(640, window.X - SidebarWidth),
-            window.Y);
+            VisualTestSidebar.DesignWidth - VisualTestSidebar.SidebarWidth,
+            VisualTestSidebar.DesignHeight);
 
-        var background = new ColorRect
+        _testHost = new Node2D
         {
-            Position = Vector2.Zero,
-            Size = window,
-            Color = new Color("#05070b"),
-            MouseFilter = MouseFilterEnum.Ignore,
+            Name = "TestHost",
+            Position = new Vector2(VisualTestSidebar.SidebarWidth, 0),
         };
-        AddChild(background);
-
-        var viewportContainer = new SubViewportContainer
-        {
-            Position = new Vector2(SidebarWidth, 0),
-            Size = _paneSize,
-            Stretch = true,
-            MouseFilter = MouseFilterEnum.Ignore,
-        };
-        AddChild(viewportContainer);
-
-        _viewport = new SubViewport
-        {
-            Size = (Vector2I)_paneSize,
-            TransparentBg = false,
-            RenderTargetUpdateMode = SubViewport.UpdateMode.Always,
-            HandleInputLocally = false,
-            GuiDisableInput = true,
-        };
-        viewportContainer.AddChild(_viewport);
-
-        _testHost = new Control
-        {
-            Position = Vector2.Zero,
-            Size = _paneSize,
-            MouseFilter = MouseFilterEnum.Ignore,
-        };
-        _viewport.AddChild(_testHost);
-
-        var sidebar = new ColorRect
-        {
-            Position = Vector2.Zero,
-            Size = new Vector2(SidebarWidth, window.Y),
-            Color = Palette.Background,
-            MouseFilter = MouseFilterEnum.Stop,
-        };
-        AddChild(sidebar);
-
-        var content = new VBoxContainer
-        {
-            Position = new Vector2(16, 16),
-            Size = new Vector2(SidebarWidth - 32, window.Y - 32),
-            CustomMinimumSize = new Vector2(SidebarWidth - 32, 0),
-        };
-        sidebar.AddChild(content);
-
-        var title = new Label
-        {
-            Text = "SCENE TESTS",
-            CustomMinimumSize = new Vector2(0, 34),
-        };
-        title.AddThemeFontSizeOverride("font_size", 22);
-        content.AddChild(title);
-
-        _runAll = new Button
-        {
-            Text = "RUN ALL",
-            CustomMinimumSize = new Vector2(0, 38),
-        };
-        _runAll.Pressed += StartSuite;
-        content.AddChild(_runAll);
-
-        _summary = new Label
-        {
-            Text = "Ready.",
-            AutowrapMode = TextServer.AutowrapMode.WordSmart,
-            CustomMinimumSize = new Vector2(0, 44),
-        };
-        content.AddChild(_summary);
-
-        var scroll = new ScrollContainer
-        {
-            SizeFlagsVertical = SizeFlags.ExpandFill,
-            HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled,
-        };
-        content.AddChild(scroll);
-
-        _testList = new VBoxContainer
-        {
-            SizeFlagsHorizontal = SizeFlags.ExpandFill,
-        };
-        scroll.AddChild(_testList);
+        AddChild(_testHost);
 
         for (int i = 0; i < _tests.Count; i++)
-        {
-            int index = i;
-            _statuses.Add(TestStatus.Pending);
+            _statuses.Add(VisualTestStatus.Pending);
 
-            var row = new HBoxContainer
-            {
-                CustomMinimumSize = new Vector2(0, 34),
-            };
-            _testList.AddChild(row);
-
-            var run = new Button
-            {
-                Text = "▶",
-                Flat = true,
-                TooltipText = $"Run {_tests[index].Name}",
-                CustomMinimumSize = new Vector2(28, 34),
-                FocusMode = FocusModeEnum.None,
-                MouseDefaultCursorShape = CursorShape.PointingHand,
-            };
-            run.AddThemeColorOverride("font_color", Palette.SuccessBright);
-            run.AddThemeColorOverride("font_hover_color", Palette.SuccessLight);
-            run.AddThemeFontSizeOverride("font_size", 18);
-            run.Pressed += () => OnRunPressed(index);
-            _runButtons.Add(run);
-            row.AddChild(run);
-
-            var button = new Button
-            {
-                Text = _tests[index].Name,
-                Alignment = HorizontalAlignment.Left,
-                SizeFlagsHorizontal = SizeFlags.ExpandFill,
-                CustomMinimumSize = new Vector2(0, 34),
-                FocusMode = FocusModeEnum.None,
-                MouseDefaultCursorShape = CursorShape.PointingHand,
-            };
-            button.Pressed += () => OnTestPressed(index);
-            _testButtons.Add(button);
-            row.AddChild(button);
-        }
-
-        _detail = new Label
-        {
-            Text = "Select a test, then press it again or press Run All.",
-            AutowrapMode = TextServer.AutowrapMode.WordSmart,
-            CustomMinimumSize = new Vector2(0, 180),
-            VerticalAlignment = VerticalAlignment.Top,
-        };
-        content.AddChild(_detail);
+        _sidebar = new VisualTestSidebar(this, _tests);
     }
 
     private void ParseArguments()
@@ -315,6 +193,8 @@ public partial class VisualTestMain : Control
                 requested = argument["--visual-test=".Length..];
             else if (argument == "--visual-test-exit")
                 exit = true;
+            else if (argument.StartsWith("--visual-test-shot=", StringComparison.Ordinal))
+                _shotPath = argument["--visual-test-shot=".Length..];
         }
 
         _exitWhenDone = exit;
@@ -338,6 +218,23 @@ public partial class VisualTestMain : Control
         }
 
         _invalidRequest = requested;
+    }
+
+    private void Handle(VisualTestAction action)
+    {
+        switch (action.Kind)
+        {
+            case VisualTestActionKind.RunAll:
+                StartSuite();
+                break;
+            case VisualTestActionKind.Run:
+                if (!_suiteRunning)
+                    RunTest(action.Index);
+                break;
+            case VisualTestActionKind.Select:
+                OnTestPressed(action.Index);
+                break;
+        }
     }
 
     private void DisposeCurrentRoot()
@@ -392,14 +289,6 @@ public partial class VisualTestMain : Control
             _keyboard);
     }
 
-    private void OnRunPressed(int index)
-    {
-        if (_suiteRunning)
-            return;
-
-        RunTest(index);
-    }
-
     private void OnTestPressed(int index)
     {
         if (_suiteRunning)
@@ -428,10 +317,13 @@ public partial class VisualTestMain : Control
 
         SceneTest test = _tests[_index];
         test.Attach(_context!);
-        _statuses[_index] = TestStatus.Pending;
-        UpdateButtons();
-        _summary!.Text = $"{test.Name} selected. Press again to run.";
-        _detail!.Text = "Selected. Press the row again or press R to run it.";
+        SetStatus(_index, VisualTestStatus.Pending);
+        _sidebar?.SetSelected(_index);
+        _sidebar?.SetSummary(
+            $"{test.Name} selected. Press again to run.",
+            Palette.TextMuted);
+        _sidebar?.SetDetail(
+            ["Selected. Press the row again or press R to run it."]);
     }
 
     private void RunTest(int index)
@@ -445,18 +337,19 @@ public partial class VisualTestMain : Control
 
     private void StartSuite()
     {
-        if (_suiteRunning || _testList is null)
+        if (_suiteRunning || _sidebar is null)
             return;
 
         _suiteRunning = true;
         _autoSingle = false;
-        _runAll!.Disabled = true;
+        _sidebar.SetBusy(true);
 
         for (int i = 0; i < _statuses.Count; i++)
-            _statuses[i] = TestStatus.Pending;
+            SetStatus(i, VisualTestStatus.Pending);
 
-        UpdateButtons();
-        _summary!.Text = $"Running all {_tests.Count} tests...";
+        _sidebar.SetSummary(
+            $"Running all {_tests.Count} tests...",
+            Palette.Accent);
         StartTest(0, execute: true);
     }
 
@@ -477,15 +370,15 @@ public partial class VisualTestMain : Control
 
         if (execute)
         {
-            _statuses[_index] = TestStatus.Running;
+            SetStatus(_index, VisualTestStatus.Running);
             _runner.Start(test);
-            }
+        }
         else
         {
-            _statuses[_index] = TestStatus.Pending;
+            SetStatus(_index, VisualTestStatus.Pending);
         }
 
-        UpdateButtons();
+        _sidebar?.SetSelected(_index);
         UpdateDetail();
     }
 
@@ -495,8 +388,9 @@ public partial class VisualTestMain : Control
         if (test is null || _index < 0 || _index >= _tests.Count)
             return;
 
-        _statuses[_index] = result.Passed ? TestStatus.Passed : TestStatus.Failed;
-        UpdateButtons();
+        SetStatus(
+            _index,
+            result.Passed ? VisualTestStatus.Passed : VisualTestStatus.Failed);
         UpdateDetail();
 
         GD.Print(
@@ -519,8 +413,9 @@ public partial class VisualTestMain : Control
         if (_autoSingle)
         {
             _autoSingle = false;
-            _summary!.Text =
-                $"{(result.Passed ? "PASS" : "FAIL")}: {test.Name}";
+            _sidebar?.SetSummary(
+                $"{(result.Passed ? "PASS" : "FAIL")}: {test.Name}",
+                result.Passed ? Palette.SuccessBright : Palette.Danger);
             if (_exitWhenDone)
             {
                 PrintSummary();
@@ -532,64 +427,42 @@ public partial class VisualTestMain : Control
     private void FinishSuite()
     {
         _suiteRunning = false;
-        _runAll!.Disabled = false;
+        _sidebar?.SetBusy(false);
         int passed = 0;
-        foreach (TestStatus status in _statuses)
+        foreach (VisualTestStatus status in _statuses)
         {
-            if (status == TestStatus.Passed)
+            if (status == VisualTestStatus.Passed)
                 passed++;
         }
 
-        _summary!.Text = $"Stopped. {passed}/{_tests.Count} passed.";
+        bool clean = passed == _tests.Count;
+        _sidebar?.SetSummary(
+            $"Stopped. {passed}/{_tests.Count} passed.",
+            clean ? Palette.SuccessBright : Palette.Danger);
         PrintSummary();
 
         if (_exitWhenDone)
-            GetTree().Quit(passed == _tests.Count ? 0 : 1);
+            GetTree().Quit(clean ? 0 : 1);
+    }
+
+    private void SetStatus(int index, VisualTestStatus status)
+    {
+        if (index < 0 || index >= _statuses.Count)
+            return;
+
+        _statuses[index] = status;
+        _sidebar?.SetStatus(index, status);
     }
 
     private void PrintSummary()
     {
-        bool failed = _statuses.Contains(TestStatus.Failed);
+        bool failed = _statuses.Contains(VisualTestStatus.Failed);
         GD.Print(failed ? "Scene tests failed." : "Scene tests passed.");
-    }
-
-    private void UpdateButtons()
-    {
-        for (int i = 0; i < _testButtons.Count; i++)
-        {
-            Button button = _testButtons[i];
-            button.Text = DisplayText(i);
-            button.Disabled = _suiteRunning;
-            _runButtons[i].Disabled = _suiteRunning;
-            button.AddThemeColorOverride(
-                "font_color",
-                _statuses[i] switch
-                {
-                    TestStatus.Running => Palette.Accent,
-                    TestStatus.Passed => Palette.SuccessBright,
-                    TestStatus.Failed => new Color("#f87171"),
-                    _ => Palette.TextMuted,
-                });
-        }
-    }
-
-    private string DisplayText(int index)
-    {
-        string marker = _statuses[index] switch
-        {
-            TestStatus.Running => ">",
-            TestStatus.Passed => "+",
-            TestStatus.Failed => "!",
-            _ => " ",
-        };
-
-        string selected = index == _index ? ">" : " ";
-        return $"{marker}{selected} {_tests[index].Name}";
     }
 
     private void UpdateDetail()
     {
-        if (_detail is null)
+        if (_sidebar is null)
             return;
 
         SceneTest? test = _runner.Test;
@@ -625,7 +498,7 @@ public partial class VisualTestMain : Control
             lines.Add("RUNNING...");
         }
 
-        _detail.Text = string.Join("\n", lines);
+        _sidebar.SetDetail(lines);
     }
 
     private void CloseTestOverlays()
@@ -641,6 +514,31 @@ public partial class VisualTestMain : Control
                 overlay.QueueFree();
             }
         }
+    }
+
+    /// <summary>
+    /// Saves the rendered window to <c>--visual-test-shot=path</c> once it has
+    /// settled, then quits. Reading our own viewport needs neither the
+    /// compositor nor the window being visible.
+    /// </summary>
+    private bool TryCaptureShot()
+    {
+        if (_shotPath is null || _shotFrames < 0)
+            return false;
+
+        if (++_shotFrames < 60)
+            return false;
+
+        _shotFrames = -1;
+        Image image = GetViewport().GetTexture().GetImage();
+        Error error = image.SavePng(_shotPath);
+        if (error == Error.Ok)
+            GD.Print($"Wrote {_shotPath}");
+        else
+            GD.PrintErr($"Could not write {_shotPath}: {error}");
+
+        GetTree().Quit(error == Error.Ok ? 0 : 1);
+        return true;
     }
 
     private void PrintTestList()

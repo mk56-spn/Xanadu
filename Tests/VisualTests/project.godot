@@ -8,6 +8,15 @@ config/name="Xanadu Visual Tests"
 run/main_scene="res://VisualTests.tscn"
 config/features=PackedStringArray("4.8", "C#", "Forward Plus")
 
+[display]
+
+; Authored at 1920x1080 and scaled as one 16:9 surface. The harness lays out in
+; design units, so nothing in it reads the window size.
+window/size/viewport_width=1920
+window/size/viewport_height=1080
+window/stretch/mode="canvas_items"
+window/stretch/aspect="keep"
+
 [dotnet]
 
 project/assembly_name="Xanadu.VisualTests"
