@@ -27,6 +27,7 @@ public partial class Main : Control
 	public override void _Ready()
 	{
 		LocalizedText.EnableGodot();
+		UiIcons.Loader = UiIcons.FromResources;
 		SongStore.CatalogFilePath =
 			ProjectSettings.GlobalizePath("res://Songs/catalog.json");
 		SetProcess(true);

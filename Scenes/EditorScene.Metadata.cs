@@ -26,7 +26,7 @@ public static partial class EditorScene
         LevelInfo level = editor.GetComponent<LevelInfo>();
 
         BuildLeftMenu(entities, root, editor, screen);
-        BuildToolBar(entities, root);
+        BuildToolBar(entities, root, screen);
         BuildNoteTypeBar(entities, root);
         BuildGroupOverlay(entities, root, screen);
 

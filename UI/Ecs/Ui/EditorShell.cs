@@ -51,8 +51,11 @@ public static class EditorFooterHeight
     /// <summary>Keyframe rows under a preview: enough for a clip's tracks.</summary>
     public const float Animator = 216f;
 
-    /// <summary>The level editor's timeline is the main work area, so it gets more room.</summary>
-    public const float Level = 280f;
+    /// <summary>
+    /// The level editor's transport row, density strip and ruler: the playfield
+    /// above is the main work area, so the footer takes only what they need.
+    /// </summary>
+    public const float Level = 140f;
 }
 
 /// <summary>
