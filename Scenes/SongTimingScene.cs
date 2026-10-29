@@ -79,6 +79,9 @@ public static class SongTimingScene
         actions.Button("SAVE", UiType.Label, SceneUi.ButtonColor)
             .Size(ActionWidth, UiMetrics.Control.Lg)
             .With(new SongTimingSave());
+        actions.Button("ADD SONG…", UiType.Label, SceneUi.MutedButtonColor)
+            .Size(ActionWidth, UiMetrics.Control.Lg)
+            .On(SceneActionId.AddSong);
         actions.Button("BACK", UiType.Label, SceneUi.MutedButtonColor)
             .Size(ActionWidth, UiMetrics.Control.Lg)
             .On(SceneActionId.Back);
