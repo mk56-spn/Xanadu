@@ -165,31 +165,6 @@ public static partial class EditorScene
         _ = (nameField, artistField, difficultyField, bpmField, offsetField);
     }
 
-    private static void AddHudFrame(
-        UiBuilder ui,
-        Vector2 center,
-        Vector2 size)
-    {
-        Color color = Palette.BorderStrong;
-        Vector2 topLeft = center - size / 2;
-        ui.RectEntity(
-            new Vector2(center.X, topLeft.Y),
-            new Vector2(size.X, 1),
-            color);
-        ui.RectEntity(
-            new Vector2(center.X, topLeft.Y + size.Y),
-            new Vector2(size.X, 1),
-            color);
-        ui.RectEntity(
-            new Vector2(topLeft.X, center.Y),
-            new Vector2(1, size.Y),
-            color);
-        ui.RectEntity(
-            new Vector2(topLeft.X + size.X, center.Y),
-            new Vector2(1, size.Y),
-            color);
-    }
-
     private static Entity HudText(
         UiNode parent,
         Vector2 center,
@@ -200,22 +175,6 @@ public static partial class EditorScene
         parent.Text(text, fontSize, color, TextAlign.Left)
             .Size(size)
             .At(center);
-
-    // Temporary bridge while the chrome and groups still build on UiBuilder.
-    private static Entity HudText(
-        UiBuilder ui,
-        Vector2 center,
-        Vector2 size,
-        string text,
-        int fontSize,
-        Color color) =>
-        HudText(
-            UiNode.Wrap(ui.Current, ui.Visuals),
-            center,
-            size,
-            text,
-            fontSize,
-            color);
 
     private static void AddMetadataLabel(
         UiNode parent,

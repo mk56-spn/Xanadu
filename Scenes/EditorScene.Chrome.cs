@@ -33,22 +33,20 @@ public static partial class EditorScene
     {
         EditorShellRects shell = EditorShell.Compute(
             screen, new EditorShellOptions(EditorFooterHeight.Level));
-        UiBuilder ui = SceneUi.Layer(entities, root, 960);
-        ui.Container(screen / 2, screen, StackDirection.Vertical, color: Clear);
+        UiNode ui = UiNode.Layer(entities, root, 960, null, UiStage.Full);
 
-        Header header = BuildHeader(ui, screen);
-        ui.Container(
-            Vector2.Zero,
-            new Vector2(screen.X, shell.ToolStrip.Size.Y),
-            StackDirection.Horizontal,
-            color: Clear,
-            main: StackMainAlignment.Start);
-        BuildToolStrip(ui, shell);
-        Entity status = BuildViewportColumn(ui, editor, shell);
-        BuildSidebar(ui, editor, shell);
-        ui.End();
-        Footer footer = BuildFooter(ui, screen);
-        ui.End();
+        UiNode page = ui.Column().Box(new Rect2(Vector2.Zero, screen));
+
+        Header header = BuildHeader(page, screen);
+
+        UiNode middle = page.Row()
+            .Size(screen.X, shell.ToolStrip.Size.Y)
+            .Main(StackMainAlignment.Start);
+        BuildToolStrip(middle, shell);
+        Entity status = BuildViewportColumn(middle, editor, shell);
+        BuildSidebar(middle, editor, shell);
+
+        Footer footer = BuildFooter(page, screen);
 
         editor.AddComponent(new EditorHud(
             header.Level,
@@ -58,7 +56,7 @@ public static partial class EditorScene
             footer.Notes));
 
         // The lists float on their own layer so opening one never moves the header.
-        UiBuilder lists = SceneUi.Layer(entities, root, 970);
+        UiNode lists = UiNode.Layer(entities, root, 970, null, UiStage.Full);
         HeaderMenu(lists, header.File,
             ("SAVE", EditorButtonKind.Save),
             ("SAVE AS", EditorButtonKind.SaveAs),
@@ -86,95 +84,96 @@ public static partial class EditorScene
     /// The name, undo and redo at the left and the dropdowns at the right, where
     /// every editor puts them. Each half is anchored to its edge.
     /// </summary>
-    private static Header BuildHeader(UiBuilder ui, Vector2 screen)
+    private static Header BuildHeader(UiNode ui, Vector2 screen)
     {
-        ui.Container(
-            Vector2.Zero,
-            new Vector2(screen.X, EditorShellMetrics.HeaderHeight),
-            StackDirection.Horizontal,
-            color: Clear);
+        UiNode header = ui.Row().Size(screen.X, EditorShellMetrics.HeaderHeight);
 
-        Entity level;
-        Entity song;
-        EdgeGroup(ui, new Vector2(0, 0.5f));
-        ui.Container(
-            Vector2.Zero,
-            new Vector2(EditorShellMetrics.NameWidth, HeaderControl),
-            StackDirection.Vertical,
-            color: SceneUi.PanelColor);
-        ui.Text(
-            "LEVEL EDITOR",
-            new Vector2(EditorShellMetrics.NameWidth - 10, 28),
-            UiTheme.HeadingFontSize,
-            SceneUi.AccentColor);
-        ui.End();
+        UiNode left = EdgeGroup(header, new Vector2(0, 0.5f));
+        UiNode name = left.Column()
+            .Size(EditorShellMetrics.NameWidth, HeaderControl)
+            .Fill(SceneUi.PanelColor)
+            .Main(StackMainAlignment.Center);
+        name.Text(
+                "LEVEL EDITOR",
+                UiTheme.HeadingFontSize,
+                SceneUi.AccentColor)
+            .Size(EditorShellMetrics.NameWidth - 10, 28);
 
-        var history = new Vector2(HeaderControl, HeaderControl);
         AddEditorAction(
-            ui.IconButton("UN", IconDir + "undo.svg", history, SceneUi.ButtonColor),
+            left.IconButton("UN", IconDir + "undo.svg", HeaderControl, SceneUi.ButtonColor)
+                .Entity,
             EditorButtonKind.Undo);
         AddEditorAction(
-            ui.IconButton("RE", IconDir + "redo.svg", history, SceneUi.ButtonColor),
+            left.IconButton("RE", IconDir + "redo.svg", HeaderControl, SceneUi.ButtonColor)
+                .Entity,
             EditorButtonKind.Redo);
 
-        ui.Container(
+        UiNode info = left.Column()
+            .Size(HeaderInfoWidth, HeaderControl)
+            .Cross(StackCrossAlignment.Start)
+            .Main(StackMainAlignment.Center);
+        Entity level = HudText(
+            info,
             Vector2.Zero,
-            new Vector2(HeaderInfoWidth, HeaderControl),
-            StackDirection.Vertical,
-            color: Clear,
-            cross: StackCrossAlignment.Start);
-        level = HudText(
-            ui, Vector2.Zero, new Vector2(HeaderInfoWidth, 28),
-            "Untitled", 22, SceneUi.AccentColor);
-        song = HudText(
-            ui, Vector2.Zero, new Vector2(HeaderInfoWidth, 18),
-            "Song: No song loaded", 14, Palette.TextMuted);
-        ui.End();
-        ui.End();
+            new Vector2(HeaderInfoWidth, 28),
+            "Untitled",
+            22,
+            SceneUi.AccentColor);
+        Entity song = HudText(
+            info,
+            Vector2.Zero,
+            new Vector2(HeaderInfoWidth, 18),
+            "Song: No song loaded",
+            14,
+            Palette.TextMuted);
 
-        EdgeGroup(ui, new Vector2(1, 0.5f));
-        Entity file = ui.Button(
-            "FILE ▾", new Vector2(EditorShellMetrics.DropdownWidth, HeaderControl), SceneUi.MutedButtonColor);
-        Entity songMenu = ui.Button(
-            "SONG ▾", new Vector2(EditorShellMetrics.DropdownWidth, HeaderControl), SceneUi.MutedButtonColor);
-        Entity menu = ui.Button(
-            "MENU ▾", new Vector2(EditorShellMetrics.SettingsWidth, HeaderControl), SceneUi.MutedButtonColor);
-        ui.End();
+        UiNode right = EdgeGroup(header, new Vector2(1, 0.5f));
+        Entity file = right.Button(
+                "FILE ▾",
+                UiTheme.FontSize,
+                SceneUi.MutedButtonColor)
+            .Size(EditorShellMetrics.DropdownWidth, HeaderControl)
+            .Entity;
+        Entity songMenu = right.Button(
+                "SONG ▾",
+                UiTheme.FontSize,
+                SceneUi.MutedButtonColor)
+            .Size(EditorShellMetrics.DropdownWidth, HeaderControl)
+            .Entity;
+        Entity menu = right.Button(
+                "MENU ▾",
+                UiTheme.FontSize,
+                SceneUi.MutedButtonColor)
+            .Size(EditorShellMetrics.SettingsWidth, HeaderControl)
+            .Entity;
 
-        ui.End();
         return new Header(level, song, file, songMenu, menu);
     }
 
     private const float HeaderInfoWidth = 420;
 
     /// <summary>
-    /// Opens a group that sizes to its content and hugs one edge of its parent:
-    /// anchored there and skipped by the parent's flow. Close it with <c>End</c>.
+    /// A group that sizes to its content and hugs one edge of its parent:
+    /// anchored there and skipped by the parent's flow.
     /// </summary>
-    private static Entity EdgeGroup(UiBuilder ui, Vector2 anchor)
-    {
-        ui.Container(
-            Vector2.Zero,
-            new Vector2(4, EditorShellMetrics.HeaderHeight),
-            StackDirection.Horizontal,
-            spacing: EditorShellMetrics.HeaderGap,
-            padding: HeaderPad,
-            color: Clear,
-            autoWidth: true);
-        Entity group = ui.Current;
-        group.AddTag<LayoutIgnore>();
-        group.AddComponent(new UiAnchor(anchor, anchor));
-        return group;
-    }
+    private static UiNode EdgeGroup(UiNode ui, Vector2 anchor) =>
+        ui.Row()
+            .Height(EditorShellMetrics.HeaderHeight)
+            .Gap(EditorShellMetrics.HeaderGap)
+            .Pad(HeaderPad)
+            .Anchor(anchor);
 
     /// <summary>A header dropdown whose options run editor buttons or scene actions.</summary>
-    private static void HeaderMenu(UiBuilder lists, Entity button, params (string Label, object Action)[] entries)
+    private static void HeaderMenu(
+        UiNode lists,
+        Entity button,
+        params (string Label, object Action)[] entries)
     {
         var labels = new string[entries.Length];
         for (int i = 0; i < entries.Length; i++)
             labels[i] = entries[i].Label;
 
-        UiDropdownControl dropdown = lists.DropdownList(button, labels);
+        UiDropdownControl dropdown = lists.DropdownList(button, labels).Control;
         for (int i = 0; i < entries.Length; i++)
         {
             if (entries[i].Action is EditorButtonKind kind)
@@ -188,37 +187,30 @@ public static partial class EditorScene
     /// The space between the strip and the sidebar. The playfield is drawn
     /// here by systems; this column holds the panels docked to its corners.
     /// </summary>
-    private static Entity BuildViewportColumn(UiBuilder ui, Entity editor, EditorShellRects shell)
+    private static Entity BuildViewportColumn(
+        UiNode ui,
+        Entity editor,
+        EditorShellRects shell)
     {
-        ui.Container(
-            Vector2.Zero,
-            new Vector2(shell.Viewport.Size.X, shell.ToolStrip.Size.Y),
-            StackDirection.Vertical,
-            color: Clear);
+        UiNode column = ui.Column()
+            .Size(shell.Viewport.Size.X, shell.ToolStrip.Size.Y);
 
-        BuildLeftPanel(ui, editor);
+        BuildLeftPanel(column, editor);
 
-        ui.Container(
-            Vector2.Zero,
-            shell.StatusLine.Size,
-            StackDirection.Horizontal,
-            color: SceneUi.PanelColor,
-            padding: 4,
-            main: StackMainAlignment.Start);
-        Entity line = ui.Current;
-        line.AddTag<LayoutIgnore>();
-        line.AddComponent(new UiAnchor(new Vector2(0, 1), new Vector2(0, 1)));
-        Entity status = HudText(
-            ui,
+        UiNode line = column.Row()
+            .Size(shell.StatusLine.Size)
+            .Fill(SceneUi.PanelColor)
+            .Pad(4)
+            .Main(StackMainAlignment.Start)
+            .Anchor(new Vector2(0, 1));
+
+        return HudText(
+            line,
             Vector2.Zero,
             new Vector2(shell.StatusLine.Size.X - 8, shell.StatusLine.Size.Y - 8),
             "Space play   Home stop   Delete note   ←/→ nudge   Ctrl+Z/Y undo   T tap tempo   Target: select a note",
             12,
             SceneUi.DimTextColor);
-        ui.End();
-
-        ui.End();
-        return status;
     }
 
     /// <summary>
@@ -226,21 +218,16 @@ public static partial class EditorScene
     /// note count at its right, then the room systems draw the density strip
     /// and the ruler in.
     /// </summary>
-    private static Footer BuildFooter(UiBuilder ui, Vector2 screen)
+    private static Footer BuildFooter(UiNode ui, Vector2 screen)
     {
-        ui.Container(
-            Vector2.Zero,
-            new Vector2(screen.X, EditorFooterHeight.Level),
-            StackDirection.Vertical,
-            color: Clear,
-            main: StackMainAlignment.Start);
+        UiNode footer = ui.Column()
+            .Size(screen.X, EditorFooterHeight.Level)
+            .Main(StackMainAlignment.Start);
 
-        ui.Container(
-            Vector2.Zero,
-            new Vector2(screen.X, EditorLayout.TransportHeight),
-            StackDirection.Horizontal,
-            spacing: 8,
-            color: Clear);
+        UiNode transport = footer.Row()
+            .Size(screen.X, EditorLayout.TransportHeight)
+            .Gap(8)
+            .Main(StackMainAlignment.Center);
 
         EditorButtonKind[] kinds =
         {
@@ -258,59 +245,55 @@ public static partial class EditorScene
             if (icons[i] is { } icon)
             {
                 AddEditorAction(
-                    ui.IconButton(labels[i], IconDir + icon + ".svg", size, SceneUi.ButtonColor, 18),
+                    transport.IconButton(
+                            labels[i],
+                            IconDir + icon + ".svg",
+                            size,
+                            SceneUi.ButtonColor,
+                            18)
+                        .Entity,
                     kinds[i]);
             }
             else
             {
-                AddEditorButtonInContainer(ui, size, labels[i], kinds[i]);
+                AddEditorButtonInContainer(transport, size, labels[i], kinds[i]);
             }
         }
 
-        ui.Container(
-            Vector2.Zero,
-            new Vector2(4, EditorLayout.TransportHeight),
-            StackDirection.Horizontal,
-            padding: HeaderPad,
-            color: Clear,
-            autoWidth: true);
-        Entity timeGroup = ui.Current;
-        timeGroup.AddTag<LayoutIgnore>();
-        timeGroup.AddComponent(new UiAnchor(new Vector2(0, 0.5f), new Vector2(0, 0.5f)));
-        ui.Container(
-            Vector2.Zero,
-            new Vector2(300, 36),
-            StackDirection.Horizontal,
-            color: Palette.SurfaceInset);
-        ui.Current.AddComponent(new UiBorder(Palette.BorderStrong, 1));
+        UiNode timeGroup = transport.Row()
+            .Height(EditorLayout.TransportHeight)
+            .Pad(HeaderPad)
+            .Anchor(new Vector2(0, 0.5f));
         Entity time = HudText(
-            ui, Vector2.Zero, new Vector2(292, 30),
-            "00:00.000 / 00:00.000", 20, Palette.TextMuted);
-        ui.End();
-        ui.End();
-
-        ui.Container(
+            timeGroup.Row()
+                .Size(300, 36)
+                .Fill(Palette.SurfaceInset)
+                .Border(Palette.BorderStrong, 1),
             Vector2.Zero,
-            new Vector2(4, EditorLayout.TransportHeight),
-            StackDirection.Horizontal,
-            padding: HeaderPad,
-            color: Clear,
-            autoWidth: true);
-        Entity notesGroup = ui.Current;
-        notesGroup.AddTag<LayoutIgnore>();
-        notesGroup.AddComponent(new UiAnchor(new Vector2(1, 0.5f), new Vector2(1, 0.5f)));
+            new Vector2(292, 30),
+            "00:00.000 / 00:00.000",
+            20,
+            Palette.TextMuted);
+
+        UiNode notesGroup = transport.Row()
+            .Height(EditorLayout.TransportHeight)
+            .Pad(HeaderPad)
+            .Anchor(new Vector2(1, 0.5f));
         Entity notes = HudText(
-            ui, Vector2.Zero, new Vector2(240, 16),
-            "0 notes", 13, SceneUi.DimTextColor);
-        ui.End();
-        ui.End();
+            notesGroup,
+            Vector2.Zero,
+            new Vector2(240, 16),
+            "0 notes",
+            13,
+            SceneUi.DimTextColor);
 
         // Systems draw the density strip and the ruler into this room.
-        ui.RectEntity(
-            Vector2.Zero,
-            new Vector2(screen.X, EditorFooterHeight.Level - EditorLayout.TransportHeight),
-            Clear);
-        ui.End();
+        footer.Rect(
+            Clear,
+            size: new Vector2(
+                screen.X,
+                EditorFooterHeight.Level - EditorLayout.TransportHeight));
+
         return new Footer(time, notes);
     }
 
@@ -320,7 +303,7 @@ public static partial class EditorScene
         Entity editor,
         Vector2 screen)
     {
-        UiBuilder ui = SceneUi.Layer(entities, root, 960);
+        UiNode ui = UiNode.Layer(entities, root, 960, null, UiStage.Full);
 
         Vector2 lens = EditorLayout.ZoomLensCenter(
             editor.GetComponent<PlayfieldView>());
@@ -345,42 +328,30 @@ public static partial class EditorScene
     }
 
     private static Entity AddEditorButtonInContainer(
-        UiBuilder ui,
+        UiNode ui,
         Vector2 size,
         string label,
         EditorButtonKind kind,
         int fontSize = 14)
     {
-        Entity button = ui.RectEntity(
-            Vector2.Zero,
-            size,
-            SceneUi.ButtonColor,
-            label,
-            takesInput: true);
-        button.AddComponent(new TextStyle(fontSize, SceneUi.TextColor));
-        button.AddComponent(ButtonVisual.Create(SceneUi.ButtonColor));
-        AddEditorAction(button, kind);
-        return button;
+        UiNode button = ui.Button(label, fontSize, SceneUi.ButtonColor).Size(size);
+        AddEditorAction(button.Entity, kind);
+        return button.Entity;
     }
 
     private static Entity AddEditorButton(
-        UiBuilder ui,
+        UiNode ui,
         Vector2 center,
         Vector2 size,
         string label,
         EditorButtonKind kind,
         int fontSize = 14)
     {
-        Entity button = ui.RectEntity(
-            center,
-            size,
-            SceneUi.ButtonColor,
-            label,
-            takesInput: true);
-        button.AddComponent(new TextStyle(fontSize, SceneUi.TextColor));
-        button.AddComponent(ButtonVisual.Create(SceneUi.ButtonColor));
-        AddEditorAction(button, kind);
-        return button;
+        UiNode button = ui.Button(label, fontSize, SceneUi.ButtonColor)
+            .Size(size)
+            .At(center);
+        AddEditorAction(button.Entity, kind);
+        return button.Entity;
     }
 
     private static void AddEditorAction(Entity button, EditorButtonKind kind)
