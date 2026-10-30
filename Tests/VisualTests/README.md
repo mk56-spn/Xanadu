@@ -98,6 +98,7 @@ fixed frame count.
 | `editor-dash-wheel` | Editor dash wheel |
 | `character-notes` | Pair, dash, momentum and switch note bodies |
 | `splitline-rail` | Splitline rail and taps |
+| `note-key-checking` | A press only hits its own note key |
 | `editor-groups` | Editor groups |
 | `editor-focus` | Editor focus and tooltips |
 | `play-groups` | Play groups |
