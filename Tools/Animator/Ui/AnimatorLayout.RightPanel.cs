@@ -121,10 +121,11 @@ public static partial class AnimatorLayout
         var bodies = new Entity[TabNames.Length];
         for (int i = 0; i < bodies.Length; i++)
         {
-            menu.Container(UiLayout.Hidden, shell.RightBody.Size, StackDirection.Vertical,
+            menu.Container(Vector2.Zero, shell.RightBody.Size, StackDirection.Vertical,
                 spacing: UiTheme.ContainerSpacing, color: UiTheme.Panel,
                 padding: UiTheme.ContainerPadding, takesInput: true,
                 cross: StackCrossAlignment.Center, main: StackMainAlignment.Start);
+            UiLayout.SetHidden(menu.Current, true);
             bodies[i] = menu.Current;
             switch (i)
             {

@@ -205,16 +205,14 @@ public sealed class ContainerLayoutSystemTests : EcsSystemTest
         Entity first = AddChild(container, new Vector2(40, 20));
         Entity hidden = AddChild(container, new Vector2(100, 20));
         Entity second = AddChild(container, new Vector2(60, 20));
-        hidden.AddTag<LayoutIgnore>();
-        hidden.GetComponent<Position>().Value = UiLayout.Hidden;
+        UiLayout.SetHidden(hidden, true);
 
         Frame();
 
         Assert.That(first.GetComponent<Position>().Value.X, Is.EqualTo(-35));
         Assert.That(second.GetComponent<Position>().Value.X, Is.EqualTo(25));
         Assert.That(
-            hidden.GetComponent<Position>().Value,
-            Is.EqualTo(UiLayout.Hidden));
+            UiLayout.IsHidden(hidden), Is.True);
     }
 
     [Test]

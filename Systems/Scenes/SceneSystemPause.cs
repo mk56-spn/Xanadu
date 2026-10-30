@@ -31,7 +31,7 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
 
         UiNode root = ui.Column()
             .Box(UiStage.Full.Bounds)
-            .At(UiLayout.Hidden)
+            .Hidden()
             .Fill(new Color(0.02f, 0.03f, 0.06f, 0.82f))
             .Input()
             .Cross(StackCrossAlignment.Center)
@@ -74,7 +74,7 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
 
         ref ScenePause pause = ref _pausePanel.GetComponent<ScenePause>();
 
-        if (!pause.Visible)
+        if (UiLayout.IsHidden(_pausePanel))
             return false;
 
         if (!pause.Resume.IsNull && pause.Resume.Tags.Has<Pressed>())
@@ -100,7 +100,7 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
 
     private bool IsPauseVisible() =>
         !_pausePanel.IsNull &&
-        _pausePanel.GetComponent<ScenePause>().Visible;
+        !UiLayout.IsHidden(_pausePanel);
 
     private void ShowPause()
     {
@@ -109,14 +109,14 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
 
         ref ScenePause pause = ref _pausePanel.GetComponent<ScenePause>();
 
-        if (pause.Visible)
+        if (!UiLayout.IsHidden(_pausePanel))
             return;
 
         SceneUi.SetText(pause.Message, "Resume, retry, or leave the level.");
         ref Position position = ref _pausePanel.GetComponent<Position>();
         position.Value = _screen / 2;
-        pause.Visible = true;
         _pausePanel.AddTag<Moved>();
+        UiLayout.SetHidden(_pausePanel, false);
         SetPlayback(false);
     }
 
@@ -179,15 +179,7 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
         if (_pausePanel.IsNull)
             return;
 
-        ref ScenePause pause = ref _pausePanel.GetComponent<ScenePause>();
-
-        if (!pause.Visible)
-            return;
-
-        pause.Visible = false;
-        ref Position position = ref _pausePanel.GetComponent<Position>();
-        position.Value = UiLayout.Hidden;
-        _pausePanel.AddTag<Moved>();
+        UiLayout.SetHidden(_pausePanel, true);
     }
 
     private void SetPlayback(bool playing)

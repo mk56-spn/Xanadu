@@ -13,9 +13,6 @@ public readonly record struct UiTreeItem(string Id, string? Parent, string Label
 /// <summary>State of a tree control; lives on the tree container entity.</summary>
 public struct UiTree : IComponent
 {
-    /// <summary>Ids of nodes whose children are hidden.</summary>
-    public HashSet<string> Collapsed;
-
     /// <summary>Id of the selected node, or empty for none.</summary>
     public string Selected;
 
@@ -28,7 +25,6 @@ public struct UiTree : IComponent
 
     public static UiTree Create(float width, float rowHeight, float indent) => new()
     {
-        Collapsed = new HashSet<string>(StringComparer.Ordinal),
         Selected = "",
         MultiSelected = new HashSet<string>(StringComparer.Ordinal),
         Width = width,
@@ -37,33 +33,21 @@ public struct UiTree : IComponent
     };
 }
 
-/// <summary>A row of a tree, on the row container entity.</summary>
+/// <summary>
+/// A node of a tree. The hierarchy is the entity tree: a node's first child is
+/// its row and, when it has children, its second is the body holding their nodes.
+/// A collapsed node's body is hidden.
+/// </summary>
 public struct UiTreeNode : IComponent
 {
-    public Entity Tree;
     public string Id;
-
-    /// <summary>Id of the parent node, or empty for a root.</summary>
-    public string Parent;
-    public int Depth;
-    public bool HasChildren;
-
-    /// <summary>The expand/collapse arrow; present on every row so labels stay aligned.</summary>
-    public Entity Disclosure;
-    public Entity Label;
 }
 
 /// <summary>Marks the arrow button that expands or collapses a node.</summary>
-public struct UiTreeDisclosure(Entity node) : IComponent
-{
-    public Entity Node = node;
-}
+public struct UiTreeDisclosure : ITag;
 
 /// <summary>Marks the label button that selects a node.</summary>
-public struct UiTreeLabel(Entity node) : IComponent
-{
-    public Entity Node = node;
-}
+public struct UiTreeLabel : ITag;
 
 /// <summary>Set on the tree entity when the user selects a node; the consumer removes it.</summary>
 public struct UiTreeChanged(string id) : IComponent

@@ -43,7 +43,7 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
 
         UiNode menu = ui.Column()
             .Size(SongMenuWidth, SongMenuHeight)
-            .At(UiLayout.Hidden)
+            .Hidden()
             .Fill(SceneUi.PanelColor)
             .Pad(UiMetrics.Space.Xs)
             .Gap(UiMetrics.Space.Xxs)
@@ -66,7 +66,7 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
 
         UiNode confirm = ui.Column()
             .Size(DeleteWidth, DeleteHeight)
-            .At(UiLayout.Hidden)
+            .Hidden()
             .Fill(SceneUi.PanelColor)
             .Pad(UiMetrics.Space.Md)
             .Gap(UiMetrics.Space.Md)
@@ -110,7 +110,7 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
 
         ref SceneDeleteLevel confirm =
             ref _deleteLevelPanel.GetComponent<SceneDeleteLevel>();
-        if (confirm.Visible)
+        if (!UiLayout.IsHidden(_deleteLevelPanel))
         {
             if (IsPressed(confirm.Confirm))
             {
@@ -129,7 +129,7 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
         }
 
         ref SceneSongMenu menu = ref _songMenu.GetComponent<SceneSongMenu>();
-        if (menu.Visible)
+        if (!UiLayout.IsHidden(_songMenu))
         {
             if (IsPressed(menu.Timing))
             {
@@ -179,8 +179,6 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
         if (_songMenu.IsNull)
             return;
 
-        ref SceneSongMenu menu = ref _songMenu.GetComponent<SceneSongMenu>();
-        menu.Visible = true;
         Vector2 size = UiStage.Full.Size;
         ref Position position = ref _songMenu.GetComponent<Position>();
         position.Value = new Vector2(
@@ -193,6 +191,7 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
                 SongMenuHeight / 2 + MenuMargin,
                 size.Y - SongMenuHeight / 2 - MenuMargin));
         _songMenu.AddTag<Moved>();
+        UiLayout.SetHidden(_songMenu, false);
     }
 
     private void HideSongMenu()
@@ -200,14 +199,7 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
         if (_songMenu.IsNull)
             return;
 
-        ref SceneSongMenu menu = ref _songMenu.GetComponent<SceneSongMenu>();
-        if (!menu.Visible)
-            return;
-
-        menu.Visible = false;
-        ref Position position = ref _songMenu.GetComponent<Position>();
-        position.Value = UiLayout.Hidden;
-        _songMenu.AddTag<Moved>();
+        UiLayout.SetHidden(_songMenu, true);
     }
 
     private void ShowDeleteLevel()
@@ -215,12 +207,10 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
         if (_deleteLevelPanel.IsNull)
             return;
 
-        ref SceneDeleteLevel confirm =
-            ref _deleteLevelPanel.GetComponent<SceneDeleteLevel>();
-        confirm.Visible = true;
         ref Position position = ref _deleteLevelPanel.GetComponent<Position>();
         position.Value = UiStage.Full.Center;
         _deleteLevelPanel.AddTag<Moved>();
+        UiLayout.SetHidden(_deleteLevelPanel, false);
     }
 
     private void HideDeleteLevel()
@@ -228,15 +218,7 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
         if (_deleteLevelPanel.IsNull)
             return;
 
-        ref SceneDeleteLevel confirm =
-            ref _deleteLevelPanel.GetComponent<SceneDeleteLevel>();
-        if (!confirm.Visible)
-            return;
-
-        confirm.Visible = false;
-        ref Position position = ref _deleteLevelPanel.GetComponent<Position>();
-        position.Value = UiLayout.Hidden;
-        _deleteLevelPanel.AddTag<Moved>();
+        UiLayout.SetHidden(_deleteLevelPanel, true);
     }
 
     private void OpenSelectedTiming()

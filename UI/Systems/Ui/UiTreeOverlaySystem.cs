@@ -135,11 +135,8 @@ public sealed class UiTreeOverlaySystem(
 
     private void Visit(Entity entity, string? parent)
     {
-        if (entity.TryGetComponent(out Position position) &&
-            position.Value == UiLayout.Hidden)
-        {
+        if (!entity.Enabled)
             return;
-        }
 
         bool button = entity.HasComponent<ButtonVisual>();
         if ((button || entity.HasComponent<UiContainer>()) &&

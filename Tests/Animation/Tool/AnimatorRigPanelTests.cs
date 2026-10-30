@@ -24,7 +24,7 @@ public sealed class AnimatorRigPanelTests : AnimatorToolTest
     private int SelectedTab => Ui.Tabs.GetComponent<UiTabs>().Selected;
 
     private static string Header(Entity section) =>
-        section.GetComponent<UiCollapsible>().Header.GetComponent<Text>().Value;
+        UiCollapsibleControl.HeaderOf(section).GetComponent<Text>().Value;
 
     private void AddStreakOnTorso()
     {

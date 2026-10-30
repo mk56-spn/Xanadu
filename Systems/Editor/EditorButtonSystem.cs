@@ -19,6 +19,9 @@ public sealed class EditorButtonSystem : QuerySystem<EditorButton>
     {
         _entities = entities;
         _commands = commands;
+
+        // A press can land on a control that hides itself the same frame.
+        Filter.WithDisabled();
     }
 
     protected override void OnUpdate()

@@ -64,7 +64,7 @@ public static partial class EditorScene
         Piece(
             scrim.Rect(new Color(0, 0, 0, 0.7f))
                 .Size(screen)
-                .At(UiLayout.Hidden)
+                .Hidden()
                 .Input(),
             EditorGroupPart.Scrim,
             0,
@@ -72,7 +72,7 @@ public static partial class EditorScene
 
         UiNode back = UiNode.Layer(entities, root, 976, null, UiStage.Full);
         Piece(
-            back.Rect(panel).Size(dialog).At(UiLayout.Hidden).Input(),
+            back.Rect(panel).Size(dialog).Hidden().Input(),
             EditorGroupPart.Dialog,
             0,
             Place(EditorGroupPart.Dialog, 0, dialog));
@@ -82,7 +82,7 @@ public static partial class EditorScene
         {
             Rect2 track = Place(EditorGroupPart.RowTrack, row, dialog);
             Piece(
-                tracks.Rect(field).Size(track.Size).At(UiLayout.Hidden),
+                tracks.Rect(field).Size(track.Size).Hidden(),
                 EditorGroupPart.RowTrack,
                 row,
                 track);
@@ -96,7 +96,7 @@ public static partial class EditorScene
                     .Size(new Vector2(
                         1,
                         EditorGroupLayout.MaxRows * EditorGroupLayout.RowHeight))
-                    .At(UiLayout.Hidden),
+                    .Hidden(),
                 EditorGroupPart.TickLine,
                 slot,
                 new Rect2(
@@ -111,7 +111,7 @@ public static partial class EditorScene
                 .Size(new Vector2(
                     2,
                     EditorGroupLayout.MaxRows * EditorGroupLayout.RowHeight))
-                .At(UiLayout.Hidden),
+                .Hidden(),
             EditorGroupPart.PlayheadLine,
             0,
             Place(EditorGroupPart.PlayheadLine, 0, dialog));
@@ -123,7 +123,7 @@ public static partial class EditorScene
             Piece(
                 bars.Rect(Palette.Info)
                     .Size(new Vector2(10, track.Size.Y - 8))
-                    .At(UiLayout.Hidden),
+                    .Hidden(),
                 EditorGroupPart.RowBar,
                 row,
                 new Rect2(0, 0, 10, track.Size.Y - 8));
@@ -135,7 +135,7 @@ public static partial class EditorScene
             Piece(
                 ui.Text("", 11, SceneUi.DimTextColor)
                     .Size(70, 16)
-                    .At(UiLayout.Hidden),
+                    .Hidden(),
                 EditorGroupPart.TickLabel,
                 slot,
                 new Rect2(0, 0, 70, 16));
@@ -144,7 +144,7 @@ public static partial class EditorScene
         Piece(
             ui.Text("GROUP", 22, SceneUi.AccentColor, TextAlign.Left)
                 .Size(190, 30)
-                .At(UiLayout.Hidden),
+                .Hidden(),
             EditorGroupPart.Title,
             0,
             Place(EditorGroupPart.Title, 0, dialog));
@@ -163,7 +163,7 @@ public static partial class EditorScene
         Piece(
             ui.Text("", 13, SceneUi.TextColor, TextAlign.Left)
                 .Size(190, 28)
-                .At(UiLayout.Hidden),
+                .Hidden(),
             EditorGroupPart.MemberText,
             0,
             Place(EditorGroupPart.MemberText, 0, dialog));
@@ -193,7 +193,7 @@ public static partial class EditorScene
         Piece(
             ui.Text("NO EFFECT", 11, SceneUi.DimTextColor, TextAlign.Left)
                 .Size(170, 28)
-                .At(UiLayout.Hidden),
+                .Hidden(),
             EditorGroupPart.SelectionText,
             0,
             Place(EditorGroupPart.SelectionText, 0, dialog));
@@ -241,7 +241,7 @@ public static partial class EditorScene
                     SceneUi.DimTextColor,
                     TextAlign.Left)
                 .Size(dialog.X - 40, 44)
-                .At(UiLayout.Hidden),
+                .Hidden(),
             EditorGroupPart.Hint,
             0,
             Place(EditorGroupPart.Hint, 0, dialog));
@@ -251,7 +251,7 @@ public static partial class EditorScene
         Piece(
             previewUi.Rect(Palette.SurfaceInset)
                 .Size(previewArea.Size)
-                .At(UiLayout.Hidden),
+                .Hidden(),
             EditorGroupPart.PreviewPanel,
             0,
             previewArea);
@@ -261,7 +261,7 @@ public static partial class EditorScene
             Piece(
                 ui.Text((row + 1).ToString(), 12, SceneUi.DimTextColor)
                     .Size(24, 28)
-                    .At(UiLayout.Hidden),
+                    .Hidden(),
                 EditorGroupPart.RowIndex,
                 row,
                 Place(EditorGroupPart.RowIndex, row, dialog));
@@ -284,7 +284,7 @@ public static partial class EditorScene
         Piece(
             palette.Rect(Palette.Surface)
                 .Size(paletteArea.Size)
-                .At(UiLayout.Hidden)
+                .Hidden()
                 .Input(),
             EditorGroupPart.PalettePanel,
             0,
@@ -292,7 +292,7 @@ public static partial class EditorScene
         Piece(
             palette.Text("COLOUR", 13, SceneUi.DimTextColor, TextAlign.Left)
                 .Size(90, 24)
-                .At(UiLayout.Hidden),
+                .Hidden(),
             EditorGroupPart.PaletteTitle,
             0,
             Place(EditorGroupPart.PaletteTitle, 0, dialog));
@@ -303,7 +303,7 @@ public static partial class EditorScene
             Piece(
                 palette.Rect(swatchColor)
                     .Size(new Vector2(44, 30))
-                    .At(UiLayout.Hidden)
+                    .Hidden()
                     .Input()
                     .With(ButtonVisual.Create(swatchColor)),
                 EditorGroupPart.PaletteSwatch,
@@ -346,7 +346,7 @@ public static partial class EditorScene
         float height) =>
         parent.Button(label, 12, color)
             .Size(width, height)
-            .At(UiLayout.Hidden);
+            .Hidden();
 
     private static Entity GroupField(
         UiNode parent,
@@ -354,7 +354,7 @@ public static partial class EditorScene
         bool numeric,
         float width) =>
         parent.Rect(Palette.SurfaceRaised, value, new Vector2(width, 28))
-            .At(UiLayout.Hidden)
+            .Hidden()
             .Input()
             .With(new TextStyle(13, SceneUi.TextColor))
             .Align(TextAlign.Left)

@@ -51,7 +51,7 @@ public sealed class AnimatorClothTests : AnimatorToolTest
         Assert.That(Package.Cloths, Has.Count.EqualTo(1));
         Assert.That(Dress.BoneId, Is.EqualTo("torso"));
         Assert.That(AnimatorClothCommands.Selected(Session), Is.EqualTo(0));
-        Assert.That(Ui.ClothInspector.GetComponent<Position>().Value, Is.Not.EqualTo(UiLayout.Hidden));
+        Assert.That(UiLayout.IsHidden(Ui.ClothInspector), Is.False);
         Assert.That(Ui.ClothTitle.GetComponent<Text>().Value, Is.EqualTo("DRESS  CLOTH"));
     }
 

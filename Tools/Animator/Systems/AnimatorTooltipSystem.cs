@@ -110,6 +110,6 @@ public sealed class AnimatorTooltipSystem(IPointerInputSource pointer)
             }
         }
 
-        AnimatorMenuPlacement.Place(tooltip, UiLayout.Hidden);
+        AnimatorMenuPlacement.Hide(tooltip);
     }
 }

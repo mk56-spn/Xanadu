@@ -153,7 +153,7 @@ public sealed class ShaderTunerSystem(
     private void CollectTargets()
     {
         _targets.Clear();
-        foreach (Entity entity in entities.Query<UiMaterial>().ToEntityList())
+        foreach (Entity entity in entities.Query<UiMaterial>().WithDisabled().ToEntityList())
         {
             if (entity.GetComponent<UiMaterial>().Material is not ShaderMaterial
                 {
@@ -373,6 +373,7 @@ public sealed class ShaderTunerSystem(
     {
         foreach (Entity button in entities
                      .Query<ShaderTunerButton>()
+                     .WithDisabled()
                      .AllTags(Tags.Get<Pressed>())
                      .ToEntityList())
         {

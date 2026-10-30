@@ -18,9 +18,10 @@ public sealed class UiFocusRing
         for (int i = 0; i < _edges.Length; i++)
         {
             Entity edge = ui.RectEntity(
-                UiLayout.Hidden,
+                Vector2.Zero,
                 new Vector2(RingWidth, RingWidth),
                 UiTheme.Focus);
+            UiLayout.SetHidden(edge, true);
             edge.AddComponent(new UiFocusRingEdge(i));
             _edges[i] = edge;
         }
@@ -50,7 +51,7 @@ public sealed class UiFocusRing
     public void Hide(CommandBuffer buffer)
     {
         foreach (Entity edge in _edges)
-            Hide(edge, buffer);
+            UiLayout.SetHidden(edge, buffer, true);
     }
 
     private static void SetEdge(
@@ -62,6 +63,7 @@ public sealed class UiFocusRing
         if (edge.IsNull)
             return;
 
+        UiLayout.SetHidden(edge, buffer, false);
         ref Rectangle rectangle = ref edge.GetComponent<Rectangle>();
         if (rectangle.Bounds.Size != size)
         {
@@ -75,18 +77,5 @@ public sealed class UiFocusRing
             edgePosition.Value = position;
             buffer.AddTag<Moved>(edge.Id);
         }
-    }
-
-    private static void Hide(Entity edge, CommandBuffer buffer)
-    {
-        if (edge.IsNull || !edge.HasComponent<Position>())
-            return;
-
-        ref Position position = ref edge.GetComponent<Position>();
-        if (position.Value == UiLayout.Hidden)
-            return;
-
-        position.Value = UiLayout.Hidden;
-        buffer.AddTag<Moved>(edge.Id);
     }
 }

@@ -106,7 +106,7 @@ public sealed class UiWheelTests : EcsSystemTest
     public void HiddenWheelIsNotHit()
     {
         Entity wheel = AddWheel(selected: 2);
-        wheel.GetComponent<Position>().Value = UiLayout.Hidden;
+        UiLayout.SetHidden(wheel, true);
 
         _pointer.Current = new PointerInput(new Vector2(200, 120), true);
         Frame(2);

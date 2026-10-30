@@ -28,9 +28,7 @@ public sealed class EditorWaveformSceneTest : SceneTest
         AddAssert(
             "editor binding help exists",
             () => Context.Entities.Query<EditorBindingsHelp>().Count == 1 &&
-                  !Context.Entities.Query<EditorBindingsHelp>()
-                      .ToEntityList()[0]
-                      .GetComponent<EditorBindingsHelp>().Visible);
+                  UiLayout.IsHidden(Context.Entities.Query<EditorBindingsHelp>().ToEntityList()[0].GetComponent<EditorBindingsHelp>().Panel));
 
         AddStep("select the test track", () =>
         {

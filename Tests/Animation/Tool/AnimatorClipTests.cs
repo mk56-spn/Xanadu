@@ -287,8 +287,7 @@ public sealed class AnimatorClipTests : AnimatorToolTest
         PressAt(AnimatorGeometry.PanelArea(Ui.Preview).GetCenter());
 
         Assert.That(Session.GetComponent<AnimatorClipLength>().Open, Is.False);
-        Assert.That(Ui.ClipLengthPanel.GetComponent<Position>().Value,
-            Is.EqualTo(UiLayout.Hidden));
+        Assert.That(UiLayout.IsHidden(Ui.ClipLengthPanel), Is.True);
     }
 
     [Test]

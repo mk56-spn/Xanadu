@@ -107,7 +107,7 @@ public sealed class AnimatorSvgMenuTests : AnimatorToolTest
                 new AnimatorSvgChoice("res://Assets/SVG/arm.svg", "sleeve"),
                 new AnimatorSvgChoice("res://Assets/SVG/body.svg", "body"),
             }));
-        Assert.That(Ui.SvgMenu.GetComponent<Position>().Value, Is.Not.EqualTo(UiLayout.Hidden));
+        Assert.That(UiLayout.IsHidden(Ui.SvgMenu), Is.False);
     }
 
     [Test]
@@ -183,7 +183,7 @@ public sealed class AnimatorSvgMenuTests : AnimatorToolTest
 
         Assert.That(Menu.Open, Is.False);
         Assert.That(Rows(), Is.Empty);
-        Assert.That(Ui.SvgMenu.GetComponent<Position>().Value, Is.EqualTo(UiLayout.Hidden));
+        Assert.That(UiLayout.IsHidden(Ui.SvgMenu), Is.True);
     }
 
     [Test]

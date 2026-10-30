@@ -263,7 +263,6 @@ public struct WarningPopup(Entity message, Entity button) : IComponent
 {
     public Entity Message = message;
     public Entity Button = button;
-    public bool Visible;
 }
 
 public enum EditorFieldKind
@@ -284,12 +283,11 @@ public struct EditorField(EditorFieldKind kind) : IComponent
     public EditorFieldKind Kind = kind;
 }
 
-/// <summary>Editor metadata panel visibility and home position.</summary>
+/// <summary>Editor metadata panel and its home position; the panel starts hidden.</summary>
 public struct EditorMetadataPanel(Entity panel, Vector2 home) : IComponent
 {
     public Entity Panel = panel;
     public Vector2 Home = home;
-    public bool Visible;
 }
 
 /// <summary>The swatch that shows, and opens, the map's background colour.</summary>
@@ -366,7 +364,6 @@ public struct EditorBindingsHelp(Entity panel, Vector2 home) : IComponent
 {
     public Entity Panel = panel;
     public Vector2 Home = home;
-    public bool Visible;
 }
 
 /// <summary>Saved practice start state: time, position, momentum, and facing.</summary>
@@ -393,7 +390,6 @@ public struct EditorStartPanel(Entity panel, Vector2 home) : IComponent
 {
     public Entity Panel = panel;
     public Vector2 Home = home;
-    public bool Visible;
 }
 
 /// <summary>

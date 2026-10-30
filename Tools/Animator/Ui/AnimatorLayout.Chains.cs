@@ -39,9 +39,10 @@ public static partial class AnimatorLayout
     private static void BuildChainInspector(UiBuilder menu, ref Refs refs)
     {
         const float inner = ChainInspectorWidth - 16f;
-        menu.Container(UiLayout.Hidden, ChainInspectorSize, StackDirection.Vertical,
+        menu.Container(Vector2.Zero, ChainInspectorSize, StackDirection.Vertical,
             spacing: ChainSpacing, color: UiTheme.Panel, padding: 8, takesInput: true,
             cross: StackCrossAlignment.Start, main: StackMainAlignment.Start);
+        UiLayout.SetHidden(menu.Current, true);
         refs.Ui.ChainInspector = menu.Current;
         refs.Ui.ChainTitle = menu.Text("NO CHAIN",
             new Vector2(inner, 18), UiTheme.SmallFontSize, UiTheme.Accent, TextAlign.Left);

@@ -69,7 +69,7 @@ public sealed class UiFocusSystemTests
     [Test]
     public void DisabledButtonsAreSkippedByTabAndInput()
     {
-        _first.AddTag<Disabled>();
+        _first.AddTag<UiDisabled>();
         _pointer.Input = new PointerInput(new Vector2(100, 100), true);
         Frame();
         Assert.That(_first.Tags.Has<Pressed>(), Is.False);
@@ -90,7 +90,7 @@ public sealed class UiFocusSystemTests
         Frame();
         Assert.That(_first.Tags.Has<Focused>(), Is.True);
 
-        _first.AddTag<Disabled>();
+        _first.AddTag<UiDisabled>();
         Frame();
         Assert.That(_first.Tags.Has<Focused>(), Is.False);
 
@@ -146,8 +146,7 @@ public sealed class UiFocusSystemTests
         Assert.That(edges.Count, Is.EqualTo(4));
         foreach (Entity edge in edges)
         {
-            Assert.That(edge.GetComponent<Position>().Value,
-                Is.Not.EqualTo(UiLayout.Hidden));
+            Assert.That(UiLayout.IsHidden(edge), Is.False);
         }
 
         Entity top = edges[0];
@@ -187,7 +186,7 @@ public sealed class UiFocusSystemTests
     {
         foreach (Entity edge in _store.Query<UiFocusRingEdge>().ToEntityList())
         {
-            if (edge.GetComponent<Position>().Value != UiLayout.Hidden)
+            if (!UiLayout.IsHidden(edge))
                 return true;
         }
 

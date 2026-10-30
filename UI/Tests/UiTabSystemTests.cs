@@ -31,7 +31,7 @@ public sealed class UiTabSystemTests
             _buttons[i] = _store.CreateEntity(
                 ButtonVisual.Create(Colors.Gray),
                 new FillColor(Colors.Gray));
-            _bodies[i] = _store.CreateEntity(new Position(UiLayout.Hidden));
+            _bodies[i] = _store.CreateEntity(new Position(Vector2.Zero));
         }
 
         _strip = _store.CreateEntity(new UiTabs(_buttons, _bodies, Slot));
@@ -55,7 +55,7 @@ public sealed class UiTabSystemTests
         Frame();
 
         Assert.That(_bodies[0].GetComponent<Position>().Value, Is.EqualTo(Slot));
-        Assert.That(_bodies[1].GetComponent<Position>().Value, Is.EqualTo(UiLayout.Hidden));
+        Assert.That(UiLayout.IsHidden(_bodies[1]), Is.True);
     }
 
     [Test]
@@ -66,7 +66,7 @@ public sealed class UiTabSystemTests
 
         Assert.That(_strip.GetComponent<UiTabs>().Selected, Is.EqualTo(1));
         Assert.That(_bodies[1].GetComponent<Position>().Value, Is.EqualTo(Slot));
-        Assert.That(_bodies[0].GetComponent<Position>().Value, Is.EqualTo(UiLayout.Hidden));
+        Assert.That(UiLayout.IsHidden(_bodies[0]), Is.True);
     }
 
     [Test]

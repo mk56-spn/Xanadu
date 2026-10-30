@@ -8,8 +8,38 @@ namespace Xanadu.Ecs;
 /// <summary>Helpers for participating in native ECS container layout.</summary>
 public static class UiLayout
 {
-    /// <summary>Off-screen position used by panels that are not visible.</summary>
-    public static readonly Vector2 Hidden = new(-10_000, -10_000);
+    /// <summary>
+    /// Shows or hides a node and its subtree: hidden nodes leave every query, the
+    /// canvas and their parent's stack. A node hidden on its own stays hidden
+    /// when an ancestor is shown again.
+    /// </summary>
+    public static void SetHidden(Entity entity, bool hidden)
+    {
+        if (entity.IsNull || entity.Tags.Has<UiHidden>() == hidden)
+            return;
+
+        UiTreeEvents.Ensure(entity.Store);
+        if (hidden)
+            entity.AddTag<UiHidden>();
+        else
+            entity.RemoveTag<UiHidden>();
+    }
+
+    /// <summary>Buffered variant for use inside system queries.</summary>
+    public static void SetHidden(Entity entity, CommandBuffer buffer, bool hidden)
+    {
+        if (entity.IsNull || entity.Tags.Has<UiHidden>() == hidden)
+            return;
+
+        UiTreeEvents.Ensure(entity.Store);
+        if (hidden)
+            buffer.AddTag<UiHidden>(entity.Id);
+        else
+            buffer.RemoveTag<UiHidden>(entity.Id);
+    }
+
+    /// <summary>True when this node itself was hidden, whatever its ancestors do.</summary>
+    public static bool IsHidden(Entity entity) => entity.Tags.Has<UiHidden>();
 
     /// <summary>Disables or enables a control, dropping any interaction state it held.</summary>
     public static void SetDisabled(Entity entity, bool disabled)
@@ -19,10 +49,10 @@ public static class UiLayout
 
         if (disabled)
         {
-            if (entity.Tags.Has<Disabled>())
+            if (entity.Tags.Has<UiDisabled>())
                 return;
 
-            entity.AddTag<Disabled>();
+            entity.AddTag<UiDisabled>();
             entity.RemoveTag<Focused>();
             entity.RemoveTag<Hovered>();
             entity.RemoveTag<Pressed>();
@@ -30,7 +60,7 @@ public static class UiLayout
         }
         else
         {
-            entity.RemoveTag<Disabled>();
+            entity.RemoveTag<UiDisabled>();
         }
     }
 
@@ -45,10 +75,10 @@ public static class UiLayout
 
         if (disabled)
         {
-            if (entity.Tags.Has<Disabled>())
+            if (entity.Tags.Has<UiDisabled>())
                 return;
 
-            buffer.AddTag<Disabled>(entity.Id);
+            buffer.AddTag<UiDisabled>(entity.Id);
             buffer.RemoveTag<Focused>(entity.Id);
             buffer.RemoveTag<Hovered>(entity.Id);
             buffer.RemoveTag<Pressed>(entity.Id);
@@ -56,7 +86,7 @@ public static class UiLayout
         }
         else
         {
-            buffer.RemoveTag<Disabled>(entity.Id);
+            buffer.RemoveTag<UiDisabled>(entity.Id);
         }
     }
 
@@ -83,38 +113,56 @@ public static class UiLayout
             buffer.RemoveTag<LayoutIgnore>(entity.Id);
     }
 
-    /// <summary>Hides an entity and removes it from its parent's layout.</summary>
-    public static void Hide(Entity entity, CommandBuffer buffer)
-    {
-        if (entity.IsNull)
-            return;
-
-        if (entity.HasComponent<Position>())
-        {
-            ref Position position = ref entity.GetComponent<Position>();
-            if (position.Value != Hidden)
-            {
-                position.Value = Hidden;
-                buffer.AddTag<Moved>(entity.Id);
-            }
-        }
-
-        SetIgnored(entity, buffer, true);
-        MarkParentDirty(entity, buffer);
-    }
-
     /// <summary>
     /// Deletes an entity and everything parented under it. <c>DeleteEntity</c>
     /// alone leaves the children behind, still alive and still hit-testable.
     /// </summary>
     public static void DeleteSubtree(Entity entity)
     {
-        var children = new List<Entity>();
+        if (entity.IsNull)
+            return;
+
+        var subtree = new EntityList(entity.Store);
+        subtree.AddTree(entity);
+        foreach (Entity member in subtree)
+            member.DeleteEntity();
+    }
+
+    /// <summary>Deletes everything under an entity and keeps the entity.</summary>
+    public static void DeleteChildren(Entity entity)
+    {
+        var children = new List<Entity>(entity.ChildCount);
         foreach (Entity child in entity.ChildEntities)
             children.Add(child);
         foreach (Entity child in children)
             DeleteSubtree(child);
-        entity.DeleteEntity();
+    }
+
+    /// <summary>
+    /// Puts a child at an index under a parent, moving it from any other parent.
+    /// Use this, not <c>Entity.InsertChild</c>: a tag added to the parent from a
+    /// child-changed event in the middle of an insert silently loses the child
+    /// (Friflo 4.0.0-preview.2), and <see cref="UiTreeEvents"/> does exactly that.
+    /// </summary>
+    public static void MoveChild(Entity parent, Entity child, int index)
+    {
+        if (child.Parent == parent && parent.GetChildIndex(child) == index)
+            return;
+
+        var order = new List<Entity>(parent.ChildCount + 1);
+        foreach (Entity sibling in parent.ChildEntities)
+        {
+            if (sibling != child)
+                order.Add(sibling);
+        }
+        order.Insert(index, child);
+
+        for (int i = index; i < order.Count; i++)
+        {
+            if (order[i].Parent == parent)
+                parent.RemoveChild(order[i]);
+            parent.AddChild(order[i]);
+        }
     }
 
     private static void MarkParentDirty(Entity entity)
@@ -122,12 +170,5 @@ public static class UiLayout
         Entity parent = entity.Parent;
         if (!parent.IsNull && parent.HasComponent<UiContainer>())
             parent.AddTag<LayoutDirty>();
-    }
-
-    private static void MarkParentDirty(Entity entity, CommandBuffer buffer)
-    {
-        Entity parent = entity.Parent;
-        if (!parent.IsNull && parent.HasComponent<UiContainer>())
-            buffer.AddTag<LayoutDirty>(parent.Id);
     }
 }

@@ -39,7 +39,7 @@ public sealed class AnimatorKeyMenuSystem(IPointerInputSource pointer)
             if (session.GetComponent<AnimatorNewClipDialog>().Open)
             {
                 session.GetComponent<AnimatorKeyMenu>().Open = false;
-                AnimatorMenuPlacement.Place(ui.KeyMenu, UiLayout.Hidden);
+                AnimatorMenuPlacement.Hide(ui.KeyMenu);
                 continue;
             }
 
@@ -49,7 +49,7 @@ public sealed class AnimatorKeyMenuSystem(IPointerInputSource pointer)
                 session.GetComponent<AnimatorKeyMenu>().Open = false;
 
             AnimatorKeyMenu menu = session.GetComponent<AnimatorKeyMenu>();
-            AnimatorMenuPlacement.Place(ui.KeyMenu, menu.Open ? menu.Anchor + AnimatorLayout.KeyMenuSize / 2 : UiLayout.Hidden);
+            AnimatorMenuPlacement.Place(ui.KeyMenu, menu.Anchor + AnimatorLayout.KeyMenuSize / 2, shown: menu.Open);
             if (menu.Open)
             {
                 bool hasKey = session.GetComponent<AnimatorSelection>().HasKey;

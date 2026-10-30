@@ -74,21 +74,6 @@ public sealed class AnimatorPreviewModeSystem : QuerySystem<AnimatorPreviewMode,
         {
             (modes.Kites, modes.Handles) = (mode.Kites, mode.Handles);
         }
-
-        // The tab bodies float on the menu layer, so they are parked by hand.
-        if (!ui.Tabs.IsNull && ui.Tabs.HasComponent<UiTabs>())
-        {
-            ref UiTabs tabs = ref ui.Tabs.GetComponent<UiTabs>();
-            if (on)
-            {
-                mode.TabBodyCenter = tabs.BodyCenter;
-                tabs.BodyCenter = UiLayout.Hidden;
-            }
-            else
-            {
-                tabs.BodyCenter = mode.TabBodyCenter;
-            }
-        }
     }
 
     /// <summary>The bar's readout, and its loop and slow buttons lit while they are on.</summary>
@@ -131,17 +116,7 @@ public sealed class AnimatorPreviewModeSystem : QuerySystem<AnimatorPreviewMode,
 
     private static void SetShown(Entity entity, bool shown)
     {
-        if (entity.IsNull || shown == !entity.Tags.Has<LayoutIgnore>())
-            return;
-
-        if (!shown && entity.HasComponent<Position>())
-        {
-            entity.GetComponent<Position>().Value = UiLayout.Hidden;
-            entity.AddTag<Moved>();
-        }
-
-        // Shown again, the parent's stack puts it back in its slot.
-        UiLayout.SetIgnored(entity, !shown);
+        UiLayout.SetHidden(entity, !shown);
     }
 
     private static void Resize(Entity entity, Vector2 size)

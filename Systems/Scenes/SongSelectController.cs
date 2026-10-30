@@ -81,6 +81,7 @@ public sealed class SongSelectController : ISceneController
     {
         foreach (Entity entity in system.Entities
                      .Query<SongSelectTile>()
+                     .WithDisabled()
                      .AllTags(Tags.Get<Pressed>())
                      .ToEntityList())
         {

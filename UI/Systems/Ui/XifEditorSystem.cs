@@ -17,9 +17,20 @@ namespace Xanadu.Systems.Ui;
 /// its readouts and outlines in step with the item. Every edit goes through
 /// the host, which records it however its tool does undo.
 /// </summary>
-public sealed class XifEditorSystem(IPointerInputSource pointer, IVisualRidFactory? visuals = null)
-    : QuerySystem<XifEditor>
+public sealed class XifEditorSystem : QuerySystem<XifEditor>
 {
+    private readonly IPointerInputSource _pointer;
+    private readonly IVisualRidFactory? _visuals;
+
+    public XifEditorSystem(IPointerInputSource pointer, IVisualRidFactory? visuals = null)
+    {
+        _pointer = pointer;
+        _visuals = visuals;
+
+        // The panel hides itself while the host has no item, and still has to notice one.
+        Filter.WithDisabled();
+    }
+
     /// <summary>A press this close to a point, in screen pixels, grabs it.</summary>
     public const float GrabRadius = 9f;
 
@@ -32,7 +43,7 @@ public sealed class XifEditorSystem(IPointerInputSource pointer, IVisualRidFacto
 
     protected override void OnUpdate()
     {
-        PointerInput input = pointer.Read();
+        PointerInput input = _pointer.Read();
         bool pressedNow = input.Pressed && !_wasPressed;
         _wasPressed = input.Pressed;
 
@@ -49,12 +60,14 @@ public sealed class XifEditorSystem(IPointerInputSource pointer, IVisualRidFacto
             if (editor.Dragging)
                 editor.Host.EndGesture();
             editor.Dragging = false;
-            Place(panel, UiLayout.Hidden);
             HideOutlines(ref editor);
+            UiLayout.SetHidden(panel, true);
             return;
         }
 
         Place(panel, editor.Home);
+        UiLayout.SetHidden(panel, false);
+        editor = ref panel.GetComponent<XifEditor>();
         Clamp(ref editor, item);
         RunActions(panel, ref editor, item);
         item = editor.Host.Item ?? item;
@@ -80,7 +93,7 @@ public sealed class XifEditorSystem(IPointerInputSource pointer, IVisualRidFacto
     private void RunActions(Entity panel, ref XifEditor editor, Xif item)
     {
         var requests = new List<XifEditorActionKind>();
-        foreach (Entity button in Query.Store.Query<XifEditorAction>().ToEntityList())
+        foreach (Entity button in Query.Store.Query<XifEditorAction>().WithDisabled().ToEntityList())
         {
             XifEditorAction action = button.GetComponent<XifEditorAction>();
             if (action.Editor.Id != panel.Id)
@@ -339,7 +352,8 @@ public sealed class XifEditorSystem(IPointerInputSource pointer, IVisualRidFacto
         }
 
         Vector2 origin = toScreen * Vector2.Zero;
-        Place(editor.Parts.Origin, box.HasPoint(origin) ? origin : UiLayout.Hidden);
+        Place(editor.Parts.Origin, origin);
+        UiLayout.SetHidden(editor.Parts.Origin, !box.HasPoint(origin));
         DrawHandles(ref editor, selected, toScreen);
     }
 
@@ -351,11 +365,11 @@ public sealed class XifEditorSystem(IPointerInputSource pointer, IVisualRidFacto
             foreach (Entity handle in editor.Handles)
                 UiLayout.DeleteSubtree(handle);
             editor.Handles.Clear();
-            UiNode layer = UiNode.Wrap(editor.Parts.Canvas, visuals).LayerNode;
+            UiNode layer = UiNode.Wrap(editor.Parts.Canvas, _visuals).LayerNode;
             for (int i = 0; i < count; i++)
             {
                 editor.Handles.Add(layer.Rect(Handle, size: new Vector2(HandleSize, HandleSize))
-                    .IgnoreLayout().Tag<UiOverlayItem>().At(UiLayout.Hidden));
+                    .IgnoreLayout().Tag<UiOverlayItem>().Hidden());
             }
         }
 
@@ -363,6 +377,7 @@ public sealed class XifEditorSystem(IPointerInputSource pointer, IVisualRidFacto
         {
             Entity handle = editor.Handles[i];
             Place(handle, toScreen * selected!.Points[i]);
+            UiLayout.SetHidden(handle, false);
             Color color = i == editor.Point ? SelectedHandle : Handle;
             if (handle.TryGetComponent(out FillColor fill) && fill.Value != color)
             {
@@ -374,11 +389,11 @@ public sealed class XifEditorSystem(IPointerInputSource pointer, IVisualRidFacto
 
     private void HideOutlines(ref XifEditor editor)
     {
-        Place(editor.Parts.Others, UiLayout.Hidden);
-        Place(editor.Parts.Shape, UiLayout.Hidden);
-        Place(editor.Parts.Origin, UiLayout.Hidden);
+        UiLayout.SetHidden(editor.Parts.Others, true);
+        UiLayout.SetHidden(editor.Parts.Shape, true);
+        UiLayout.SetHidden(editor.Parts.Origin, true);
         foreach (Entity handle in editor.Handles)
-            Place(handle, UiLayout.Hidden);
+            UiLayout.SetHidden(handle, true);
     }
 
     /// <summary>
@@ -392,11 +407,12 @@ public sealed class XifEditorSystem(IPointerInputSource pointer, IVisualRidFacto
 
         if (points.Count < 2)
         {
-            Place(entity, UiLayout.Hidden);
+            UiLayout.SetHidden(entity, true);
             return;
         }
 
         Place(entity, Vector2.Zero);
+        UiLayout.SetHidden(entity, false);
         ref UiShape shape = ref entity.GetComponent<UiShape>();
         shape.Points = points.ToArray();
         shape.Closed = closed;

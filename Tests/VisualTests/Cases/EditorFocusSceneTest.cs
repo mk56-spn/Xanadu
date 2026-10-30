@@ -40,7 +40,7 @@ public sealed class EditorFocusSceneTest : SceneTest
             () => Context.Entities
                 .Query<UiFocusRingEdge>()
                 .ToEntityList()
-                .Any(edge => edge.GetComponent<Position>().Value != UiLayout.Hidden));
+                .Any(edge => !UiLayout.IsHidden(edge)));
 
         AddStep("hover group 1", () => Context.Pointer.Position = CellCenter(0));
         AddUntilStep(

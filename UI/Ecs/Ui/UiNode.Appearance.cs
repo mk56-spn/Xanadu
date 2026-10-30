@@ -152,6 +152,16 @@ public readonly partial struct UiNode
         return this;
     }
 
+    /// <summary>Shows or hides the node and its subtree.</summary>
+    public UiNode Hidden(bool hidden = true)
+    {
+        if (IsNull)
+            return this;
+
+        UiLayout.SetHidden(_entity, hidden);
+        return this;
+    }
+
     /// <summary>Greys the node out and drops any interaction state it held.</summary>
     public UiNode Disabled(bool disabled = true)
     {

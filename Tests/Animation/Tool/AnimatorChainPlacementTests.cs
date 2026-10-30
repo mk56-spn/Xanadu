@@ -150,14 +150,14 @@ public sealed class AnimatorChainPlacementTests : AnimatorToolTest
         Assert.That(Ui.Inspector.GetComponent<Position>().Value, Is.EqualTo(AnimatorLayout.InspectorCenter(Screen)));
 
         AddChainOnHead();
-        Assert.That(Ui.Inspector.GetComponent<Position>().Value, Is.EqualTo(UiLayout.Hidden));
+        Assert.That(UiLayout.IsHidden(Ui.Inspector), Is.True);
         Assert.That(
             Ui.ChainInspector.GetComponent<Position>().Value,
             Is.EqualTo(AnimatorLayout.ChainInspectorTopLeft(Screen) + AnimatorLayout.ChainInspectorSize / 2));
 
         SelectBone(1);
         Assert.That(Ui.Inspector.GetComponent<Position>().Value, Is.EqualTo(AnimatorLayout.InspectorCenter(Screen)));
-        Assert.That(Ui.ChainInspector.GetComponent<Position>().Value, Is.EqualTo(UiLayout.Hidden));
+        Assert.That(UiLayout.IsHidden(Ui.ChainInspector), Is.True);
     }
 
     [Test]

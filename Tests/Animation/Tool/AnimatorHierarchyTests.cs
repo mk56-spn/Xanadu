@@ -33,7 +33,7 @@ public sealed class AnimatorHierarchyTests : AnimatorToolTest
     private List<string> ClipLabels()
     {
         var options = new List<(int Value, string Label)>();
-        foreach (Entity option in Store.Query<ToolAction, DropdownOption>().ToEntityList())
+        foreach (Entity option in Store.Query<ToolAction, DropdownOption>().WithDisabled().ToEntityList())
         {
             if (option.GetComponent<ToolAction>().Kind == ToolActionKind.Clip)
             {
@@ -84,7 +84,7 @@ public sealed class AnimatorHierarchyTests : AnimatorToolTest
 
         Assert.That(ClipLabels(), Has.Count.EqualTo(Package.Clips.Count));
         // The FILE menu's four entries, the CONFIG menu's three, and one option per clip.
-        Assert.That(Store.Query<DropdownOption>().Count, Is.EqualTo(4 + 3 + Package.Clips.Count));
+        Assert.That(Store.Query<DropdownOption>().WithDisabled().Count, Is.EqualTo(4 + 3 + Package.Clips.Count));
     }
 
     [Test]
@@ -122,14 +122,13 @@ public sealed class AnimatorHierarchyTests : AnimatorToolTest
     [Test]
     public void BonesAreShownAsATreeMatchingTheRigHierarchy()
     {
-        UiTreeNode torso = UiTreeControl.FindNode(Ui.BoneList, "torso").GetComponent<UiTreeNode>();
-        UiTreeNode head = UiTreeControl.FindNode(Ui.BoneList, "head").GetComponent<UiTreeNode>();
+        Entity root = UiTreeControl.FindNode(Ui.BoneList, "root");
+        Entity torso = UiTreeControl.FindNode(Ui.BoneList, "torso");
+        Entity head = UiTreeControl.FindNode(Ui.BoneList, "head");
 
-        Assert.That(UiTreeControl.FindNode(Ui.BoneList, "root").GetComponent<UiTreeNode>().Depth, Is.EqualTo(0));
-        Assert.That(torso.Depth, Is.EqualTo(1));
-        Assert.That(torso.Parent, Is.EqualTo("root"));
-        Assert.That(head.Depth, Is.EqualTo(2));
-        Assert.That(head.Parent, Is.EqualTo("torso"));
+        Assert.That(UiTreeControl.ParentNode(root).IsNull, Is.True);
+        Assert.That(UiTreeControl.ParentNode(torso), Is.EqualTo(root));
+        Assert.That(UiTreeControl.ParentNode(head), Is.EqualTo(torso));
     }
 
     [Test]

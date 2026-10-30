@@ -21,9 +21,10 @@ public static partial class AnimatorLayout
     private static void BuildEventInspector(UiBuilder menu, ref Refs refs)
     {
         const float inner = ChainInspectorWidth - 16f;
-        menu.Container(UiLayout.Hidden, EventInspectorSize, StackDirection.Vertical,
+        menu.Container(Vector2.Zero, EventInspectorSize, StackDirection.Vertical,
             spacing: ChainSpacing, color: UiTheme.Panel, padding: 8, takesInput: true,
             cross: StackCrossAlignment.Start, main: StackMainAlignment.Start);
+        UiLayout.SetHidden(menu.Current, true);
         refs.Ui.EventInspector = menu.Current;
         refs.Ui.EventTitle = menu.Text("EVENT",
             new Vector2(inner, 18), UiTheme.SmallFontSize, UiTheme.Accent, TextAlign.Left);

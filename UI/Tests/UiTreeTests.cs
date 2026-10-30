@@ -42,9 +42,9 @@ public sealed class UiTreeTests : EcsSystemTest
 
     private Entity Row(string id) => UiTreeControl.FindNode(_tree, id);
 
-    private Entity Label(string id) => Row(id).GetComponent<UiTreeNode>().Label;
+    private Entity Label(string id) => UiTreeControl.Label(Row(id));
 
-    private Entity Arrow(string id) => Row(id).GetComponent<UiTreeNode>().Disclosure;
+    private Entity Arrow(string id) => UiTreeControl.Disclosure(Row(id));
 
     private void Click(Entity entity)
     {
@@ -54,11 +54,11 @@ public sealed class UiTreeTests : EcsSystemTest
         Frame();
     }
 
-    private bool Visible(string id) => !Row(id).Tags.Has<LayoutIgnore>();
+    private bool Visible(string id) => Row(id).Enabled;
 
     private float Top(string id)
     {
-        Entity row = Row(id);
+        Entity row = UiTreeControl.Row(Row(id));
         return UiTransform.WorldPosition(row, row.GetComponent<Position>().Value).Y;
     }
 
@@ -72,10 +72,10 @@ public sealed class UiTreeTests : EcsSystemTest
     private List<string> VisibleIds()
     {
         var ids = new List<string>();
-        foreach (Entity row in _tree.ChildEntities)
+        foreach (Entity node in UiTreeControl.Nodes(_tree))
         {
-            if (!row.Tags.Has<LayoutIgnore>())
-                ids.Add(row.GetComponent<UiTreeNode>().Id);
+            if (node.Enabled)
+                ids.Add(node.GetComponent<UiTreeNode>().Id);
         }
         return ids;
     }
@@ -118,8 +118,8 @@ public sealed class UiTreeTests : EcsSystemTest
     [Test]
     public void OnlyNodesWithChildrenHaveAnArrow()
     {
-        Assert.That(Arrow("torso").HasComponent<UiTreeDisclosure>(), Is.True);
-        Assert.That(Arrow("head").HasComponent<UiTreeDisclosure>(), Is.False);
+        Assert.That(Arrow("torso").Tags.Has<UiTreeDisclosure>(), Is.True);
+        Assert.That(Arrow("head").Tags.Has<UiTreeDisclosure>(), Is.False);
         Assert.That(Arrow("torso").GetComponent<Text>().Value, Is.EqualTo("▾"));
     }
 
@@ -248,7 +248,7 @@ public sealed class UiTreeTests : EcsSystemTest
         Frame(2);
 
         Assert.That(UiTreeControl.Selected(_tree), Is.EqualTo(""));
-        Assert.That(_tree.GetComponent<UiTree>().Collapsed, Is.Empty);
+        Assert.That(UiTreeControl.IsExpanded(_tree, "root"), Is.True);
     }
 
     [Test]
@@ -264,9 +264,9 @@ public sealed class UiTreeTests : EcsSystemTest
         Frame(2);
 
         Assert.That(Store.Count, Is.EqualTo(entities));
-        Assert.That(Store.Query<UiTreeNode>().Count, Is.EqualTo(Items.Length));
-        Assert.That(Store.Query<UiTreeLabel>().Count, Is.EqualTo(Items.Length));
-        Assert.That(Store.Query<UiTreeDisclosure>().Count, Is.EqualTo(2));
+        Assert.That(Store.Query<UiTreeNode>().WithDisabled().Count, Is.EqualTo(Items.Length));
+        Assert.That(Store.Query().WithDisabled().AllTags(Tags.Get<UiTreeLabel>()).Count, Is.EqualTo(Items.Length));
+        Assert.That(Store.Query().WithDisabled().AllTags(Tags.Get<UiTreeDisclosure>()).Count, Is.EqualTo(2));
     }
 
     [Test]
@@ -277,7 +277,7 @@ public sealed class UiTreeTests : EcsSystemTest
         ui.SetTreeItems(_tree, new UiTreeItem[] { new("orphan", "nobody", "Orphan") });
         Frame(2);
 
-        Assert.That(Row("orphan").GetComponent<UiTreeNode>().Depth, Is.EqualTo(0));
+        Assert.That(UiTreeControl.ParentNode(Row("orphan")).IsNull, Is.True);
     }
 
     [Test]

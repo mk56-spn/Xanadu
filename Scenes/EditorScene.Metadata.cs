@@ -37,7 +37,7 @@ public static partial class EditorScene
             EditorLayout.HeaderHeight + 8 + MetadataPanelHeight / 2);
         UiNode panelNode = panelUi.Column()
             .Size(MetadataPanelWidth, MetadataPanelHeight)
-            .At(UiLayout.Hidden)
+            .Hidden()
             .Gap(5)
             .Fill(SceneUi.PanelColor)
             .Input();
@@ -89,7 +89,7 @@ public static partial class EditorScene
             EditorLayout.HeaderHeight + 8 + MetadataPanelHeight + 8 + StartPanelHeight / 2);
         UiNode startNode = startUi.Column()
             .Size(MetadataPanelWidth, StartPanelHeight)
-            .At(UiLayout.Hidden)
+            .Hidden()
             .Gap(5)
             .Fill(SceneUi.PanelColor)
             .Input();
@@ -112,7 +112,7 @@ public static partial class EditorScene
         UiNode helpUi = UiNode.Layer(entities, root, 970, null, UiStage.Full);
         UiNode helpNode = helpUi.Column()
             .Size(560, 520)
-            .At(UiLayout.Hidden)
+            .Hidden()
             .Gap(4)
             .Fill(Palette.SurfaceInset)
             .Input();

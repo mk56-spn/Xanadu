@@ -79,7 +79,7 @@ public sealed class EditorGroupsSceneTest : SceneTest
         AddStep("open the colour picker", () => Click(Piece(EditorGroupPart.SelectionPick)));
         AddWaitStep("hold PICK", 2);
         AddStep("release PICK", () => Context.Pointer.Release());
-        AddUntilStep("the palette opens", () => State().PaletteOpen && Piece(EditorGroupPart.PalettePanel).GetComponent<Position>().Value != UiLayout.Hidden);
+        AddUntilStep("the palette opens", () => State().PaletteOpen && !UiLayout.IsHidden(Piece(EditorGroupPart.PalettePanel)));
 
         AddStep("pick a yellow swatch", () => Click(Piece(EditorGroupPart.PaletteSwatch, 4)));
         AddWaitStep("hold the swatch", 2);
@@ -265,7 +265,7 @@ public sealed class EditorGroupsSceneTest : SceneTest
 
     private Entity Piece(EditorGroupPart part, int row = 0)
     {
-        foreach (Entity entity in Context.Entities.Query<EditorGroupPiece>().ToEntityList())
+        foreach (Entity entity in Context.Entities.Query<EditorGroupPiece>().WithDisabled().ToEntityList())
         {
             EditorGroupPiece piece = entity.GetComponent<EditorGroupPiece>();
             if (piece.Part == part && piece.Row == row)
@@ -276,7 +276,7 @@ public sealed class EditorGroupsSceneTest : SceneTest
     }
 
     private bool Visible(EditorGroupPart part, int row = 0) =>
-        Piece(part, row).GetComponent<Position>().Value != UiLayout.Hidden;
+        !UiLayout.IsHidden(Piece(part, row));
 
     private void Click(Entity entity) =>
         Context.Pointer.Click(UiTransform.WorldPosition(entity, entity.GetComponent<Position>().Value));

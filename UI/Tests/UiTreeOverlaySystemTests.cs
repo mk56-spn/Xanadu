@@ -22,7 +22,11 @@ public sealed class UiTreeOverlaySystemTests : EcsSystemTest
         _toggle = new ScriptedToggle();
         Root.Add(new ContainerLayoutSystem());
         Root.Add(new UiTreeSystem());
-        Root.Add(new UiTreeOverlaySystem(_toggle, new FakeVisualRidFactory()));
+
+        // The panel deletes rows, so like in the game it plays back separately from layout.
+        var debug = new Friflo.Engine.ECS.Systems.SystemGroup("Debug");
+        debug.Add(new UiTreeOverlaySystem(_toggle, new FakeVisualRidFactory()));
+        Root.Add(debug);
     }
 
     private Entity Panel(Entity? parent = null, Vector2? position = null)
@@ -57,7 +61,7 @@ public sealed class UiTreeOverlaySystemTests : EcsSystemTest
 
     private Entity Row(Entity listed) => UiTreeControl.FindNode(Tree, listed.Id.ToString());
 
-    private int RowCount => Tree.ChildEntities.Count;
+    private int RowCount => UiTreeControl.Nodes(Tree).Count();
 
     [Test]
     public void TreeSitsInAScrollView()
@@ -81,10 +85,10 @@ public sealed class UiTreeOverlaySystemTests : EcsSystemTest
         Open();
 
         Assert.That(RowCount, Is.EqualTo(4));
-        Assert.That(Row(outer).GetComponent<UiTreeNode>().Depth, Is.EqualTo(0));
-        Assert.That(Row(play).GetComponent<UiTreeNode>().Parent, Is.EqualTo(inner.Id.ToString()));
-        Assert.That(Row(quit).GetComponent<UiTreeNode>().Parent, Is.EqualTo(outer.Id.ToString()));
-        Assert.That(Row(play).GetComponent<UiTreeNode>().Label.GetComponent<Text>().Value, Does.StartWith("PLAY"));
+        Assert.That(UiTreeControl.ParentNode(Row(outer)).IsNull, Is.True);
+        Assert.That(UiTreeControl.ParentNode(Row(play)), Is.EqualTo(Row(inner)));
+        Assert.That(UiTreeControl.ParentNode(Row(quit)), Is.EqualTo(Row(outer)));
+        Assert.That(UiTreeControl.Label(Row(play)).GetComponent<Text>().Value, Does.StartWith("PLAY"));
     }
 
     [Test]
@@ -100,14 +104,15 @@ public sealed class UiTreeOverlaySystemTests : EcsSystemTest
         Open();
 
         Assert.That(RowCount, Is.EqualTo(2));
-        Assert.That(Row(nested).GetComponent<UiTreeNode>().Parent, Is.EqualTo(outer.Id.ToString()));
+        Assert.That(UiTreeControl.ParentNode(Row(nested)), Is.EqualTo(Row(outer)));
     }
 
     [Test]
     public void HiddenSubtreesAreLeftOut()
     {
         Entity outer = Panel();
-        Entity hidden = Panel(outer, UiLayout.Hidden);
+        Entity hidden = Panel(outer);
+        UiLayout.SetHidden(hidden, true);
         Entity gone = Button("GONE", hidden);
         Entity here = Button("HERE", outer);
 
@@ -174,10 +179,10 @@ public sealed class UiTreeOverlaySystemTests : EcsSystemTest
         Entity quit = Button("QUIT", outer);
         Open();
 
-        Click(Row(play).GetComponent<UiTreeNode>().Label);
+        Click(UiTreeControl.Label(Row(play)));
         Assert.That(play.Tags.Has<UiTreeOverlaySelected>(), Is.True);
 
-        Click(Row(quit).GetComponent<UiTreeNode>().Label);
+        Click(UiTreeControl.Label(Row(quit)));
         Assert.That(play.Tags.Has<UiTreeOverlaySelected>(), Is.False);
         Assert.That(quit.Tags.Has<UiTreeOverlaySelected>(), Is.True);
         Assert.That(Tree.HasComponent<UiTreeChanged>(), Is.False);
@@ -189,15 +194,15 @@ public sealed class UiTreeOverlaySystemTests : EcsSystemTest
         Entity outer = Panel();
         Entity play = Button("PLAY", outer);
         Open();
-        Click(Row(play).GetComponent<UiTreeNode>().Label);
+        Click(UiTreeControl.Label(Row(play)));
 
-        play.GetComponent<Position>().Value = UiLayout.Hidden;
+        UiLayout.SetHidden(play, true);
         Frame();
         Assert.That(play.Tags.Has<UiTreeOverlaySelected>(), Is.False);
 
-        play.GetComponent<Position>().Value = Vector2.Zero;
+        UiLayout.SetHidden(play, false);
         Frame();
-        Click(Row(play).GetComponent<UiTreeNode>().Label);
+        Click(UiTreeControl.Label(Row(play)));
         Open();
         Assert.That(play.Tags.Has<UiTreeOverlaySelected>(), Is.False);
     }

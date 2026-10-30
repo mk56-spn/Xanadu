@@ -45,8 +45,8 @@ public sealed class AnimatorInfoPanelSystem(IPointerInputSource pointer)
         _wasOpen = panel.Open;
         if (!panel.Open)
         {
-            AnimatorMenuPlacement.Place(ui.InfoBackdrop, UiLayout.Hidden);
-            AnimatorMenuPlacement.Place(ui.InfoPanel, UiLayout.Hidden);
+            AnimatorMenuPlacement.Hide(ui.InfoBackdrop);
+            AnimatorMenuPlacement.Hide(ui.InfoPanel);
             if (!ui.PathField.IsNull && ui.PathField.Tags.Has<TextFieldFocused>())
                 ui.PathField.RemoveTag<TextFieldFocused>();
             return;

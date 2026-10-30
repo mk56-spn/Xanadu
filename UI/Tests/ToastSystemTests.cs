@@ -36,7 +36,7 @@ public sealed class ToastSystemTests
 
         Assert.That(toast.GetComponent<Toast>().Active, Is.False);
         Assert.That(toast.GetComponent<Text>().Value, Is.Empty);
-        Assert.That(toast.GetComponent<Position>().Value.X, Is.EqualTo(UiLayout.Hidden.X));
+        Assert.That(UiLayout.IsHidden(toast), Is.True);
     }
 
     [Test]

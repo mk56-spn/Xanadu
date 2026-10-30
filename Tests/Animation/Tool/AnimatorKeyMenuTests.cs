@@ -279,7 +279,7 @@ public sealed class AnimatorKeyMenuTests : AnimatorToolTest
         Frame();
 
         Assert.That(Menu.Open, Is.False);
-        Assert.That(Ui.KeyMenu.GetComponent<Position>().Value, Is.EqualTo(UiLayout.Hidden));
+        Assert.That(UiLayout.IsHidden(Ui.KeyMenu), Is.True);
     }
 
     [Test]

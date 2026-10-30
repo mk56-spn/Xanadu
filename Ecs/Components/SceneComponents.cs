@@ -148,7 +148,6 @@ public struct SceneConfirmation(
     public Entity No = no;
     public Entity Save = save;
     public SceneKind Target;
-    public bool Visible;
 }
 
 /// <summary>The song-select right-click menu and its two actions.</summary>
@@ -156,7 +155,6 @@ public struct SceneSongMenu(Entity timing, Entity delete) : IComponent
 {
     public Entity Timing = timing;
     public Entity Delete = delete;
-    public bool Visible;
 }
 
 /// <summary>The delete-level confirmation opened from the song-select menu.</summary>
@@ -164,7 +162,6 @@ public struct SceneDeleteLevel(Entity confirm, Entity cancel) : IComponent
 {
     public Entity Confirm = confirm;
     public Entity Cancel = cancel;
-    public bool Visible;
 }
 
 /// <summary>Gameplay pause overlay state.</summary>
@@ -180,5 +177,4 @@ public struct ScenePause(
     public Entity Resume = resume;
     public Entity Retry = retry;
     public Entity Leave = leave;
-    public bool Visible;
 }

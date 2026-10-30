@@ -18,7 +18,7 @@ public sealed class EditorDirectionWheelSystemTests : EcsSystemTest
     protected override void OnEcsSetUp()
     {
         _wheel = Store.CreateEntity(
-            new Position(UiLayout.Hidden),
+            new Position(Vector2.Zero),
             new Rectangle(new Rect2(-90, -90, 180, 180)),
             new UiWheel
             {
@@ -29,7 +29,7 @@ public sealed class EditorDirectionWheelSystemTests : EcsSystemTest
                 StartAngle = UiWheelGeometry.DefaultStartAngle,
                 Gap = 0.04f,
             });
-        _label = Store.CreateEntity(new Position(UiLayout.Hidden));
+        _label = Store.CreateEntity(new Position(Vector2.Zero));
         _editor = Store.CreateEntity(
             new EditorPlacementModeState(EditorPlacementMode.Notes),
             new EditorDashDirectionState(DashDirection.UpRight),
@@ -46,10 +46,8 @@ public sealed class EditorDirectionWheelSystemTests : EcsSystemTest
     {
         Frame();
 
-        Assert.That(_wheel.GetComponent<Position>().Value,
-            Is.EqualTo(UiLayout.Hidden));
-        Assert.That(_label.GetComponent<Position>().Value,
-            Is.EqualTo(UiLayout.Hidden));
+        Assert.That(UiLayout.IsHidden(_wheel), Is.True);
+        Assert.That(UiLayout.IsHidden(_label), Is.True);
     }
 
     [Test]

@@ -27,6 +27,9 @@ public sealed class EditorNoteTypeBarSystem : QuerySystem<EditorNoteSwatch>
     {
         _entities = entities;
         _commands = commands;
+
+        // A press can land on a control that hides itself the same frame.
+        Filter.WithDisabled();
     }
 
     protected override void OnUpdate()
@@ -47,7 +50,7 @@ public sealed class EditorNoteTypeBarSystem : QuerySystem<EditorNoteSwatch>
         KeybindAction target = editor.GetComponent<EditorNoteTarget>().Target;
         CommandBuffer buffer = CommandBuffer;
 
-        foreach (Entity panel in _entities.Query<EditorNoteBarPanel>().ToEntityList())
+        foreach (Entity panel in _entities.Query<EditorNoteBarPanel>().WithDisabled().ToEntityList())
             SetShown(panel, visible, buffer);
 
         Query.ForEachEntity((ref swatch, entity) =>
@@ -102,22 +105,8 @@ public sealed class EditorNoteTypeBarSystem : QuerySystem<EditorNoteSwatch>
 
     /// <summary>
     /// A shown bar rejoins its container, which places it; a hidden one leaves
-    /// the layout and parks off screen.
+    /// the layout and is hidden.
     /// </summary>
-    private static void SetShown(Entity panel, bool shown, CommandBuffer buffer)
-    {
-        if (shown == !panel.Tags.Has<LayoutIgnore>())
-            return;
-
-        if (!shown)
-        {
-            UiLayout.Hide(panel, buffer);
-            return;
-        }
-
-        UiLayout.SetIgnored(panel, buffer, false);
-        Entity parent = panel.Parent;
-        if (!parent.IsNull && parent.HasComponent<UiContainer>())
-            buffer.AddTag<LayoutDirty>(parent.Id);
-    }
+    private static void SetShown(Entity panel, bool shown, CommandBuffer buffer) =>
+        UiLayout.SetHidden(panel, buffer, !shown);
 }

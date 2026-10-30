@@ -68,12 +68,12 @@ public sealed class AnimatorLayoutTests : AnimatorToolTest
 
         Assert.That(AnimatorGeometry.PanelArea(pose).Position.X, Is.EqualTo(shell.RightBody.Position.X).Within(0.5f));
         Assert.That(AnimatorGeometry.PanelArea(pose).Position.Y, Is.EqualTo(shell.RightBody.Position.Y).Within(0.5f));
-        Assert.That(edit.GetComponent<Xanadu.Ecs.Position>().Value, Is.EqualTo(UiLayout.Hidden));
+        Assert.That(UiLayout.IsHidden(edit), Is.True);
 
         Click(TabButton(1));
 
         Assert.That(AnimatorGeometry.PanelArea(edit).Position.Y, Is.EqualTo(shell.RightBody.Position.Y).Within(0.5f));
-        Assert.That(pose.GetComponent<Xanadu.Ecs.Position>().Value, Is.EqualTo(UiLayout.Hidden));
+        Assert.That(UiLayout.IsHidden(pose), Is.True);
     }
 
     private Entity TabButton(int index) =>
@@ -231,7 +231,6 @@ public sealed class AnimatorLayoutTests : AnimatorToolTest
     public void ThePathLivesInTheFileInfoPopupNotTheHeader()
     {
         Assert.That(Ui.PathField.Parent.Parent, Is.EqualTo(Ui.InfoPanel));
-        Assert.That(AnimatorGeometry.PanelArea(Ui.Header)
-            .Intersects(AnimatorGeometry.PanelArea(Ui.PathField)), Is.False);
+        Assert.That(Ui.PathField.Enabled, Is.False, "hidden until the popup opens");
     }
 }

@@ -124,13 +124,7 @@ public partial class EditorOverlay : CanvasLayer
 
     private bool IsWarningOpen()
     {
-        foreach (Entity entity in _entities.Query<WarningPopup>().ToEntityList())
-        {
-            if (entity.GetComponent<WarningPopup>().Visible)
-                return true;
-        }
-
-        return false;
+        return _entities.Query<WarningPopup>().Count > 0;
     }
 
     private Entity FindEditor()

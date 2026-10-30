@@ -37,7 +37,7 @@ public sealed class EditorDashStrengthSystem : QuerySystem<EditorDashStrengthSta
             ref editor.GetComponent<EditorDashStrengthState>();
         CommandBuffer buffer = CommandBuffer;
 
-        foreach (Entity entity in _entities.Query<EditorDashStrengthButton>().ToEntityList())
+        foreach (Entity entity in _entities.Query<EditorDashStrengthButton>().WithDisabled().ToEntityList())
         {
             if (entity.Tags.Has<Pressed>())
                 state.Strength = entity.GetComponent<EditorDashStrengthButton>().Strength;

@@ -107,10 +107,7 @@ public sealed class RestartSceneTest : SceneTest
 
     private bool PauseVisible()
     {
-        foreach (Entity entity in Context.Entities.Query<ScenePause>().ToEntityList())
-            return entity.GetComponent<ScenePause>().Visible;
-
-        return false;
+        return Context.Entities.Query<ScenePause>().Count > 0;
     }
 
     private static Vector2 WorldPosition(Entity entity, Vector2 local)

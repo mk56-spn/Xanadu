@@ -47,7 +47,7 @@ public sealed class AnimatorSvgMenuSystem(
                 Clear(ui);
             }
 
-            AnimatorMenuPlacement.Place(ui.SvgMenu, UiLayout.Hidden);
+            AnimatorMenuPlacement.Hide(ui.SvgMenu);
             _wasOpen = false;
             return;
         }
@@ -62,7 +62,7 @@ public sealed class AnimatorSvgMenuSystem(
 
         if (!menu.Open)
         {
-            AnimatorMenuPlacement.Place(ui.SvgMenu, UiLayout.Hidden);
+            AnimatorMenuPlacement.Hide(ui.SvgMenu);
             _wasOpen = false;
             return;
         }
@@ -75,7 +75,7 @@ public sealed class AnimatorSvgMenuSystem(
         {
             menu.Open = false;
             Clear(ui);
-            AnimatorMenuPlacement.Place(ui.SvgMenu, UiLayout.Hidden);
+            AnimatorMenuPlacement.Hide(ui.SvgMenu);
             _wasOpen = false;
             return;
         }
@@ -127,7 +127,6 @@ public sealed class AnimatorSvgMenuSystem(
                 menu.ForChain ? $"Draw each chain segment as {menu.Choices[i].Label}" : $"Attach {menu.Choices[i].Label}"));
         }
         builder.End();
-        ui.SvgMenuList.AddTag<LayoutDirty>();
     }
 
     /// <summary>Removes the built rows, as a reload or another rig can change the choices.</summary>
@@ -136,12 +135,7 @@ public sealed class AnimatorSvgMenuSystem(
         if (ui.SvgMenuList.IsNull)
             return;
 
-        var rows = new List<Entity>();
-        foreach (Entity child in ui.SvgMenuList.ChildEntities)
-            rows.Add(child);
-        foreach (Entity row in rows)
-            UiLayout.DeleteSubtree(row);
-        ui.SvgMenuList.AddTag<LayoutDirty>();
+        UiLayout.DeleteChildren(ui.SvgMenuList);
     }
 
     private static Vector2 SizeFor(AnimatorSvgMenu menu)

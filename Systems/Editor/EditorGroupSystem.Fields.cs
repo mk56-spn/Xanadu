@@ -105,6 +105,7 @@ public sealed partial class EditorGroupSystem
         if (entity.IsNull || !entity.HasComponent<Position>())
             return;
 
+        UiLayout.SetHidden(entity, buffer, false);
         Vector2 center = origin + rect.Position + rect.Size / 2;
         ref Position position = ref entity.GetComponent<Position>();
         if (position.Value != center)
@@ -116,18 +117,8 @@ public sealed partial class EditorGroupSystem
         Resize(entity, rect.Size, buffer);
     }
 
-    private static void Hide(Entity entity, CommandBuffer buffer)
-    {
-        if (entity.IsNull || !entity.HasComponent<Position>())
-            return;
-
-        ref Position position = ref entity.GetComponent<Position>();
-        if (position.Value == UiLayout.Hidden)
-            return;
-
-        position.Value = UiLayout.Hidden;
-        buffer.AddTag<Moved>(entity.Id);
-    }
+    private static void Hide(Entity entity, CommandBuffer buffer) =>
+        UiLayout.SetHidden(entity, buffer, true);
 
     private static void Resize(Entity entity, Vector2 size, CommandBuffer buffer)
     {

@@ -86,7 +86,8 @@ public sealed class AnimatorTimelineModel
         AnimatorUi ui = session.GetComponent<AnimatorUi>();
         AnimatorDocument document = session.GetComponent<AnimatorDocument>();
         XafClip? clip = AnimatorSession.CurrentClip(document);
-        if (clip is null || ui.Timeline.IsNull)
+        // A hidden panel has no timeline to draw or to hit.
+        if (clip is null || ui.Timeline.IsNull || !ui.Timeline.Enabled)
             return null;
 
         Rect2 panel = AnimatorGeometry.PanelArea(ui.Timeline);

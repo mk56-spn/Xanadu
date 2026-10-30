@@ -104,7 +104,7 @@ public sealed class EditorDropdownSceneTest : SceneTest
         AddStep("release mine tool", () => Context.Pointer.Release());
         AddUntilStep(
             "the note key bar hides for mines",
-            () => NoteBarPosition() == UiLayout.Hidden);
+            () => Context.Entities.Query<EditorNoteBarPanel>().Count == 0);
 
         AddStep("click play toolbar", () => ClickEditorButton(EditorButtonKind.Play));
         AddWaitStep("hold play toolbar", 2);

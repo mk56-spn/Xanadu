@@ -27,12 +27,24 @@ public sealed class AnimatorPreviewModeTests : AnimatorToolTest
     private static EditorShellRects Shell() =>
         EditorShell.Compute(Screen, new EditorShellOptions(EditorFooterHeight.Animator));
 
-    private static bool Shown(Entity entity) => !entity.Tags.Has<LayoutIgnore>();
+    private static bool Shown(Entity entity) => entity.Enabled;
 
     private void Toggle()
     {
         Click(Ui.PreviewButton);
         Frame(3);
+    }
+
+    [Test]
+    public void TheTimelineIsNotDrawnOrHitWhilePreviewing()
+    {
+        Assert.That(AnimatorTimelineModel.Create(Session), Is.Not.Null);
+
+        Toggle();
+        Assert.That(AnimatorTimelineModel.Create(Session), Is.Null);
+
+        Toggle();
+        Assert.That(AnimatorTimelineModel.Create(Session), Is.Not.Null);
     }
 
     [Test]
@@ -44,7 +56,7 @@ public sealed class AnimatorPreviewModeTests : AnimatorToolTest
         Assert.That(Shown(Ui.RightPanel), Is.False);
         Assert.That(Shown(Ui.Timeline), Is.False);
         Assert.That(Shown(Ui.PreviewBar), Is.True);
-        Assert.That(Ui.Inspector.GetComponent<Position>().Value, Is.EqualTo(UiLayout.Hidden));
+        Assert.That(UiLayout.IsHidden(Ui.Inspector), Is.True);
         Assert.That(Ui.PreviewButton.GetComponent<Text>().Value, Is.EqualTo("EXIT PREVIEW"));
     }
 

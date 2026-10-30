@@ -1,37 +1,24 @@
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
-using Godot;
 using Xanadu.Ecs;
 
 namespace Xanadu.Systems.Ui;
 
-/// <summary>Paints disabled text fields with the flat disabled colour.</summary>
+/// <summary>Paints greyed-out text fields with the flat disabled colour.</summary>
 public sealed class DisabledTextFieldSystem : QuerySystem<TextField, FillColor>
 {
-    private readonly EntityStore _entities;
-
-    public DisabledTextFieldSystem(EntityStore entities)
-    {
-        _entities = entities;
-    }
+    public DisabledTextFieldSystem() => Filter.AllTags(Tags.Get<UiDisabled>());
 
     protected override void OnUpdate()
     {
         CommandBuffer buffer = CommandBuffer;
-        foreach (Entity entity in _entities
-                     .Query<TextField, FillColor>()
-                     .WithDisabled()
-                     .ToEntityList())
+        Query.ForEachEntity((ref TextField _, ref FillColor fill, Entity entity) =>
         {
-            if (!entity.Tags.Has<Disabled>())
-                continue;
-
-            ref FillColor fill = ref entity.GetComponent<FillColor>();
             if (fill.Value == UiTheme.Disabled)
-                continue;
+                return;
 
             fill.Value = UiTheme.Disabled;
             buffer.AddTag<Dirty>(entity.Id);
-        }
+        });
     }
 }

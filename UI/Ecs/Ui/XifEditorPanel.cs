@@ -24,12 +24,12 @@ public static class XifEditorPanel
     private static float Inner => Width - UiTheme.ContainerPadding * 2;
 
     /// <summary>
-    /// Builds the panel parked off screen on <paramref name="layer"/>; it moves
-    /// to <paramref name="home"/> (its centre) whenever the host has an item.
+    /// Builds the panel hidden on <paramref name="layer"/>; it shows at
+    /// <paramref name="home"/> (its centre) whenever the host has an item.
     /// </summary>
     public static Entity Build(UiNode layer, Vector2 home, IXifEditorHost host)
     {
-        UiNode panel = layer.Panel().Size(Width, Height).At(UiLayout.Hidden)
+        UiNode panel = layer.Panel().Size(Width, Height).Hidden()
             .Main(StackMainAlignment.Start);
         Entity editor = panel;
         var parts = new XifEditorParts();
@@ -54,11 +54,11 @@ public static class XifEditorPanel
         // Overlay puts them above the box, whose z stacks on the panel's.
         UiNode floating = panel.LayerNode;
         parts.Others = floating.Shape(Square(), new Color(0, 0, 0, 0), new Color(UiTheme.TextDim, 0.5f), 1f)
-            .IgnoreLayout().Overlay().At(UiLayout.Hidden);
+            .IgnoreLayout().Overlay().Hidden();
         parts.Shape = floating.Shape(Square(), new Color(Palette.Accent, 0.25f), Palette.Accent, 1.5f)
-            .IgnoreLayout().Overlay().At(UiLayout.Hidden);
+            .IgnoreLayout().Overlay().Hidden();
         parts.Origin = floating.Shape(Cross(), new Color(0, 0, 0, 0), Palette.Rose, 1.5f, closed: false)
-            .IgnoreLayout().Overlay().At(UiLayout.Hidden);
+            .IgnoreLayout().Overlay().Hidden();
 
         UiNode points = panel.Row().Size(Inner, Row).Gap(4);
         Button(points, "+ PT", XifEditorActionKind.InsertPoint, editor, 48, "Insert a point after the selected one");

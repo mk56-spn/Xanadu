@@ -42,7 +42,7 @@ public sealed class AnimatorBoneMenuSystem(IPointerInputSource pointer)
                 if (closed.Renaming >= 0)
                     Stop(ref closed, ui.BoneNameField);
                 else
-                    AnimatorMenuPlacement.Place(ui.BoneMenu, UiLayout.Hidden);
+                    AnimatorMenuPlacement.Hide(ui.BoneMenu);
                 continue;
             }
 
@@ -53,7 +53,7 @@ public sealed class AnimatorBoneMenuSystem(IPointerInputSource pointer)
                 session.GetComponent<AnimatorBoneMenu>().Open = false;
 
             AnimatorBoneMenu menu = session.GetComponent<AnimatorBoneMenu>();
-            AnimatorMenuPlacement.Place(ui.BoneMenu, menu.Open ? menu.Anchor + AnimatorLayout.BoneMenuSize / 2 : UiLayout.Hidden);
+            AnimatorMenuPlacement.Place(ui.BoneMenu, menu.Anchor + AnimatorLayout.BoneMenuSize / 2, shown: menu.Open);
             Rename(session, ui.BoneNameField, input.Pressed);
         }
     }
@@ -171,7 +171,7 @@ public sealed class AnimatorBoneMenuSystem(IPointerInputSource pointer)
         menu.Renaming = -1;
         _renameFocused = false;
         field.RemoveTag<TextFieldFocused>();
-        AnimatorMenuPlacement.Place(field, UiLayout.Hidden);
+        AnimatorMenuPlacement.Hide(field);
     }
 
 }

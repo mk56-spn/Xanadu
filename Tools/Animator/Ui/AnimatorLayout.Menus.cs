@@ -41,10 +41,11 @@ public static partial class AnimatorLayout
     private static void BuildClipLengthPanel(UiBuilder menu, ref Refs refs)
     {
         float inner = ClipLengthSize.X - ClipLengthPadding * 2;
-        menu.Container(UiLayout.Hidden, ClipLengthSize, StackDirection.Vertical,
+        menu.Container(Vector2.Zero, ClipLengthSize, StackDirection.Vertical,
             spacing: 6, color: UiTheme.Panel, padding: ClipLengthPadding,
             takesInput: true, cross: StackCrossAlignment.Start,
             main: StackMainAlignment.Start);
+        UiLayout.SetHidden(menu.Current, true);
         refs.Ui.ClipLengthPanel = menu.Current;
         menu.Text("CLIP LENGTH", new Vector2(inner, 18), UiTheme.SmallFontSize,
             UiTheme.Accent, TextAlign.Left);
@@ -87,19 +88,21 @@ public static partial class AnimatorLayout
     private static void BuildNewClipDialog(UiBuilder menu, Vector2 screen, ref Refs refs)
     {
         Entity backdrop = menu.RectEntity(
-            UiLayout.Hidden,
+            Vector2.Zero,
             screen,
             Palette.WithAlpha(Palette.Stage, 0.6f),
             takesInput: true);
+        UiLayout.SetHidden(backdrop, true);
         backdrop.AddTag<UiOverlay>();
         refs.Ui.NewClipBackdrop = backdrop;
 
         float inner = NewClipDialogSize.X - NewClipPadding * 2;
         float fieldWidth = inner - NewClipLabelWidth - NewClipSpacing;
-        menu.Container(UiLayout.Hidden, NewClipDialogSize, StackDirection.Vertical,
+        menu.Container(Vector2.Zero, NewClipDialogSize, StackDirection.Vertical,
             spacing: NewClipSpacing, color: UiTheme.Panel, padding: NewClipPadding,
             takesInput: true, cross: StackCrossAlignment.Start,
             main: StackMainAlignment.Start);
+        UiLayout.SetHidden(menu.Current, true);
         refs.Ui.NewClipDialog = menu.Current;
         refs.Ui.NewClipDialog.AddTag<UiOverlayItem>();
         menu.Text("NEW CLIP", new Vector2(inner, 20), UiTheme.FontSize,
@@ -231,8 +234,9 @@ public static partial class AnimatorLayout
             ("DEL", ToolActionKind.DeleteBone),
         };
 
-        menu.Container(UiLayout.Hidden, BoneMenuSize, StackDirection.Vertical,
+        menu.Container(Vector2.Zero, BoneMenuSize, StackDirection.Vertical,
             spacing: 2, color: UiTheme.Panel, padding: 4, takesInput: true);
+        UiLayout.SetHidden(menu.Current, true);
         refs.Ui.BoneMenu = menu.Current;
         foreach ((string label, ToolActionKind kind) in entries)
         {
@@ -244,7 +248,7 @@ public static partial class AnimatorLayout
         menu.End();
 
         refs.Ui.BoneNameField = TextInput(menu, BoneNameSize);
-        refs.Ui.BoneNameField.GetComponent<Position>().Value = UiLayout.Hidden;
+        UiLayout.SetHidden(refs.Ui.BoneNameField, true);
     }
 
     /// <summary>
@@ -254,9 +258,10 @@ public static partial class AnimatorLayout
     private static void BuildSvgMenu(UiBuilder menu, ref Refs refs)
     {
         var size = new Vector2(SvgMenuWidth, SvgMenuHeight(SvgMenuRows));
-        menu.Container(UiLayout.Hidden, size, StackDirection.Vertical,
+        menu.Container(Vector2.Zero, size, StackDirection.Vertical,
             color: UiTheme.Panel, padding: 4, takesInput: true, clip: true,
             main: StackMainAlignment.Start);
+        UiLayout.SetHidden(menu.Current, true);
         refs.Ui.SvgMenu = menu.Current;
         menu.Container(Vector2.Zero, new Vector2(SvgMenuWidth - 8, 4),
             StackDirection.Vertical, spacing: 2, color: Clear,
@@ -279,11 +284,12 @@ public static partial class AnimatorLayout
     {
         UiBuilder tip = UiBuilder.Begin(store, visuals).Layer(TooltipLayer);
         Entity tooltip = tip.RectEntity(
-            UiLayout.Hidden,
+            Vector2.Zero,
             new Vector2(200, 24),
             Palette.SurfaceAlt,
             "",
             takesInput: false);
+        UiLayout.SetHidden(tooltip, true);
         tooltip.AddComponent(new TextStyle(11, UiTheme.Text));
         tooltip.AddComponent(new TextAlignment(TextAlign.Center));
         tip.End();
@@ -293,8 +299,9 @@ public static partial class AnimatorLayout
     /// <summary>The key menu starts hidden; the key menu system moves it into place.</summary>
     private static void BuildKeyMenu(UiBuilder menu, ref Refs refs)
     {
-        menu.Container(UiLayout.Hidden, KeyMenuSize, StackDirection.Vertical,
+        menu.Container(Vector2.Zero, KeyMenuSize, StackDirection.Vertical,
             spacing: 2, color: UiTheme.Panel, padding: 4, takesInput: true);
+        UiLayout.SetHidden(menu.Current, true);
         refs.Ui.KeyMenu = menu.Current;
         var size = new Vector2(KeyMenuSize.X - 8, 28);
         refs.Ui.KeyMenuAdd = menu.Button("ADD KEY", size, fontSize: UiTheme.SmallFontSize);

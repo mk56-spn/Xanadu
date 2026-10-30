@@ -20,6 +20,9 @@ public sealed class EditorContactCostSystem : QuerySystem<EditorContactCostButto
     public EditorContactCostSystem(EntityStore entities)
     {
         _entities = entities;
+
+        // A press can land on a control that hides itself the same frame.
+        Filter.WithDisabled();
     }
 
     protected override void OnUpdate()

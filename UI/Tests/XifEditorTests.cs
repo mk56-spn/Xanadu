@@ -92,7 +92,7 @@ public sealed class XifEditorTests : EcsSystemTest
         _host.Current = null;
         Frame();
 
-        Assert.That(_panel.GetComponent<Position>().Value, Is.EqualTo(UiLayout.Hidden));
+        Assert.That(UiLayout.IsHidden(_panel), Is.True);
     }
 
     [Test]

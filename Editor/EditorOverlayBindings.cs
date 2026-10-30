@@ -15,18 +15,18 @@ public partial class EditorOverlay : CanvasLayer
         if (_editor.IsNull || !_editor.HasComponent<EditorBindingsHelp>())
             return;
 
-        ref EditorBindingsHelp help = ref _editor.GetComponent<EditorBindingsHelp>();
-        help.Visible = !help.Visible;
-        if (help.Panel.IsNull || !help.Panel.HasComponent<Position>())
+        EditorBindingsHelp help = _editor.GetComponent<EditorBindingsHelp>();
+        Entity panel = help.Panel;
+        if (panel.IsNull || !panel.HasComponent<Position>())
             return;
 
-        ref Position position = ref help.Panel.GetComponent<Position>();
-        position.Value = help.Visible ? help.Home : UiLayout.Hidden;
-        help.Panel.AddTag<Moved>();
+        panel.GetComponent<Position>().Value = help.Home;
+        panel.AddTag<Moved>();
+        UiLayout.SetHidden(panel, !UiLayout.IsHidden(panel));
     }
 
     private bool IsBindingsHelpVisible() =>
         !_editor.IsNull &&
         _editor.HasComponent<EditorBindingsHelp>() &&
-        _editor.GetComponent<EditorBindingsHelp>().Visible;
+        !UiLayout.IsHidden(_editor.GetComponent<EditorBindingsHelp>().Panel);
 }

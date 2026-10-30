@@ -79,8 +79,8 @@ public sealed class AnimatorNewClipDialogSystem(IPointerInputSource pointer)
 
     private static void Hide(AnimatorUi ui)
     {
-        AnimatorMenuPlacement.Place(ui.NewClipBackdrop, UiLayout.Hidden);
-        AnimatorMenuPlacement.Place(ui.NewClipDialog, UiLayout.Hidden);
+        AnimatorMenuPlacement.Hide(ui.NewClipBackdrop);
+        AnimatorMenuPlacement.Hide(ui.NewClipDialog);
         ClearFocus(ui.NewClipName);
         ClearFocus(ui.NewClipLength);
     }

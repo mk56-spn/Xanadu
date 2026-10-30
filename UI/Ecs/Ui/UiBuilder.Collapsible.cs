@@ -36,14 +36,11 @@ public sealed partial class UiBuilder
         Entity body = _current;
         if (!expanded)
         {
-            body.GetComponent<Position>().Value = UiLayout.Hidden;
-            body.AddTag<LayoutIgnore>();
+            UiLayout.SetHidden(body, true);
         }
 
         section.AddComponent(new UiCollapsible
         {
-            Header = header,
-            Body = body,
             Title = title,
             Expanded = expanded,
         });
@@ -67,6 +64,12 @@ public static class UiCollapsibleControl
     /// <summary>The header label: the arrow for the state, then the title.</summary>
     public static string Header(string title, bool expanded) =>
         $"{(expanded ? ExpandedGlyph : CollapsedGlyph)}  {title}";
+
+    /// <summary>The header button: a section's first child.</summary>
+    public static Entity HeaderOf(Entity section) => section.ChildEntities[0];
+
+    /// <summary>The body holding the content: a section's second child.</summary>
+    public static Entity BodyOf(Entity section) => section.ChildEntities[1];
 
     public static bool IsExpanded(Entity section) =>
         !section.IsNull && section.TryGetComponent(out UiCollapsible state) && state.Expanded;
