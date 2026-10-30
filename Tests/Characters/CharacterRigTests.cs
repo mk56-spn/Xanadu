@@ -104,7 +104,7 @@ public sealed class CharacterRigTests : EcsSystemTest
     {
         Entity player = Player();
         Frame();
-        player.GetComponent<PlayerCharacter>().Kind = CharacterKind.Mage;
+        player.GetComponent<PlayerCharacter>().Kind = CharacterKind.Form;
         Frame();
 
         Assert.That(player.HasComponent<CharacterRig>(), Is.False);

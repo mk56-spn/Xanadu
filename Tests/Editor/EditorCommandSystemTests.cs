@@ -275,12 +275,12 @@ public sealed class EditorCommandSystemTests : EcsSystemTest
             new EditorPlacementModeState(EditorPlacementMode.Notes));
 
         _commands.Enqueue(
-            EditorCommand.SetPlacementMode(EditorPlacementMode.Movement));
+            EditorCommand.SetPlacementMode(EditorPlacementMode.Dash));
         Frame();
 
         Assert.That(
             _editor.GetComponent<EditorPlacementModeState>().Mode,
-            Is.EqualTo(EditorPlacementMode.Movement));
+            Is.EqualTo(EditorPlacementMode.Dash));
     }
 
     [Test]

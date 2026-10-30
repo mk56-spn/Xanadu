@@ -72,6 +72,10 @@ public sealed class PlayfieldSystemGroup : SystemGroup, IDisposable
         Add(new SpikeContactSystem(entities));
         Add(new PlayKeyTrailSystem(entities, keybinds, keyboard));
         Add(new PlayNoteInputSystem(entities, keybinds, keyboard, offsets));
+        Add(new RailHoldSystem(keyboard, keybinds));
+        Add(new ContactBarrierSystem(entities, offsets));
+        Add(new SplitlineSystem());
+        Add(new SplitlineBallsSystem());
         Add(new HitTrailSystem());
         Add(new NotePopSystem());
         Add(new DashTrailSystem());
@@ -83,6 +87,7 @@ public sealed class PlayfieldSystemGroup : SystemGroup, IDisposable
             hudLayout ?? new HudLayoutSettings(persist: false),
             _hudOverlay.Rid));
         Add(new ContactCounterSystem());
+        Add(new WeaponHudSystem());
         Add(new PlayScoreSystem());
         if (rigFiles is not null)
         {

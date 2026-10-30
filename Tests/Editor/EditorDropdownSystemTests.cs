@@ -116,7 +116,9 @@ public sealed class EditorDropdownSystemTests
     }
 
     [TestCase(EditorPlacementMode.Notes, true)]
-    [TestCase(EditorPlacementMode.Movement, true)]
+    [TestCase(EditorPlacementMode.Pair, true)]
+    [TestCase(EditorPlacementMode.Dash, false)]
+    [TestCase(EditorPlacementMode.Momentum, false)]
     [TestCase(EditorPlacementMode.Mines, false)]
     [TestCase(EditorPlacementMode.Start, false)]
     [TestCase(EditorPlacementMode.CharacterSwitch, false)]

@@ -15,9 +15,9 @@ public sealed class SpikeRulesTests
     {
         Spike spike = SpikeRules.TileAt(new Vector2(350, 640), Field);
 
-        Assert.That(spike.Size, Is.EqualTo(new Vector2(100, 100)));
-        Assert.That(spike.Position, Is.EqualTo(new Vector2(300, 600)));
-        Assert.That(spike.Bounds, Is.EqualTo(new Rect2(300, 600, 100, 100)));
+        Assert.That(spike.Size, Is.EqualTo(new Vector2(50, 50)));
+        Assert.That(spike.Position, Is.EqualTo(new Vector2(350, 600)));
+        Assert.That(spike.Bounds, Is.EqualTo(new Rect2(350, 600, 50, 50)));
     }
 
     [Test]
@@ -25,7 +25,7 @@ public sealed class SpikeRulesTests
     {
         Spike spike = SpikeRules.TileAt(new Vector2(1000, 1000), Field);
 
-        Assert.That(spike.Position, Is.EqualTo(new Vector2(900, 900)));
+        Assert.That(spike.Position, Is.EqualTo(new Vector2(950, 950)));
     }
 
     [Test]

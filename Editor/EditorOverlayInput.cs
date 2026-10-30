@@ -256,10 +256,17 @@ public partial class EditorOverlay : CanvasLayer
         _commands.Enqueue(EditorCommand.SetPlacementMode(mode));
         SetStatus(mode switch
         {
-            EditorPlacementMode.Movement => "Place dash",
             EditorPlacementMode.Notes => "Place normal",
+            EditorPlacementMode.Pair => "Place pair",
+            EditorPlacementMode.Dash => "Place dash",
+            EditorPlacementMode.Momentum => "Place momentum",
             EditorPlacementMode.Blocks => "Place blocks",
             EditorPlacementMode.Spikes => "Place spikes",
+            EditorPlacementMode.Contact => "Place contact",
+            EditorPlacementMode.CharacterSwitch => "Place character switch",
+            EditorPlacementMode.WeaponSwitch => "Place weapon switch",
+            EditorPlacementMode.Channel => "Place channel start",
+            EditorPlacementMode.FormStep => "Place Form step",
             _ => "Placement mode",
         });
     }

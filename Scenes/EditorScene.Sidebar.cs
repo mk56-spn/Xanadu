@@ -61,7 +61,7 @@ public static partial class EditorScene
             panel,
             inner,
             EditorDropdownKind.Character,
-            new[] { "CONTACT" },
+            new[] { "CONTACT", "ARMED", "SPLITLINE", "FORM" },
             selected: 0);
         BuildGroupGrid(panel, editor, inner);
 
@@ -100,7 +100,7 @@ public static partial class EditorScene
             _ => 0,
         });
 
-        SidebarLabel(panel, "DASH STRENGTH", inner, 12);
+        SidebarLabel(panel, "MOVE STRENGTH", inner, 12);
         const float strengthGap = 6;
         float strengthWidth = (inner - strengthGap * 2) / 3;
         UiNode strengths = panel.Row().Size(inner, 28).Gap(strengthGap);
@@ -115,11 +115,57 @@ public static partial class EditorScene
                 .With(new EditorDashStrengthButton(strength))
                 .Tooltip(strength switch
                 {
-                    DashStrength.Double => "Dash notes carry the player twice as far",
-                    DashStrength.Triple => "Dash notes carry the player three times as far",
-                    _ => "Dash notes carry the player one dash length",
+                    DashStrength.Double => "Dashes carry twice as far; momentum notes push twice as hard",
+                    DashStrength.Triple => "Dashes carry three times as far; momentum notes push three times as hard",
+                    _ => "One dash length; one momentum push",
                 });
         }
+
+        SidebarLabel(panel, "CONTACT COST", inner, 12);
+        const float costGap = 6;
+        float costWidth = (inner - costGap * 3) / 4;
+        UiNode costs = panel.Row().Size(inner, 28).Gap(costGap);
+        costs.Button("L−", 12, SceneUi.MutedButtonColor)
+            .Size(costWidth, 28)
+            .With(new EditorContactCostButton(left: true, delta: -1))
+            .Tooltip("Remove one left-side charge from new barriers");
+        costs.Button("L+", 12, SceneUi.MutedButtonColor)
+            .Size(costWidth, 28)
+            .With(new EditorContactCostButton(left: true, delta: 1))
+            .Tooltip("Add one left-side charge to new barriers");
+        costs.Button("R−", 12, SceneUi.MutedButtonColor)
+            .Size(costWidth, 28)
+            .With(new EditorContactCostButton(left: false, delta: -1))
+            .Tooltip("Remove one right-side charge from new barriers");
+        costs.Button("R+", 12, SceneUi.MutedButtonColor)
+            .Size(costWidth, 28)
+            .With(new EditorContactCostButton(left: false, delta: 1))
+            .Tooltip("Add one right-side charge to new barriers");
+        Entity costReadout = panel.Text(
+                "L1  R1",
+                12,
+                SceneUi.DimTextColor,
+                TextAlign.Center)
+            .Size(inner, 18);
+        editor.AddComponent(new EditorContactCostState(1, 1));
+        editor.AddComponent(new EditorContactCostReadout(costReadout));
+
+        SidebarLabel(panel, "FORM SHAPE", inner, 12);
+        panel.Button(
+                "ATTACH SELECTED BLOCKS",
+                10,
+                SceneUi.MutedButtonColor)
+            .Size(inner, 26)
+            .With(new EditorShapeAttachButton())
+            .Tooltip("Attach the selected blocks to a new construction shape");
+        Entity shapeReadout = panel.Text(
+                "NO SHAPE",
+                12,
+                SceneUi.DimTextColor,
+                TextAlign.Center)
+            .Size(inner, 18);
+        editor.AddComponent(new EditorShapeState(0));
+        editor.AddComponent(new EditorShapeReadout(shapeReadout));
 
         BuildNoteKeyBar(panel, inner);
 
@@ -164,7 +210,7 @@ public static partial class EditorScene
             hubRadius: 0.30f,
             gap: 0.045f);
         Entity label = ui.Text(
-                "DASH DIRECTION",
+                "MOVE DIRECTION",
                 12,
                 SceneUi.DimTextColor,
                 TextAlign.Center)
@@ -177,19 +223,25 @@ public static partial class EditorScene
     private static readonly (EditorPlacementMode Mode, string Icon)[] ToolIcons =
     {
         (EditorPlacementMode.Notes, "🎵"),
+        (EditorPlacementMode.Pair, "P"),
+        (EditorPlacementMode.Dash, "➜"),
+        (EditorPlacementMode.Momentum, "M"),
         (EditorPlacementMode.Mines, "✹"),
-        (EditorPlacementMode.Movement, "➜"),
         (EditorPlacementMode.Start, "⚑"),
         (EditorPlacementMode.Contact, "◎"),
         (EditorPlacementMode.CharacterSwitch, "⇄"),
+        (EditorPlacementMode.WeaponSwitch, "W"),
+        (EditorPlacementMode.Channel, "◑"),
+        (EditorPlacementMode.FormStep, "F"),
         (EditorPlacementMode.Blocks, "■"),
         (EditorPlacementMode.Spikes, "▲"),
     };
 
     /// <summary>
     /// The note keys new notes get, as a row of colour swatches at the foot of
-    /// the left panel. Notes and dash notes both carry a key, so the bar shows in
-    /// both modes; elsewhere it leaves the panel and the panel shrinks.
+    /// the left panel. Normal notes take a specific key and pair notes take
+    /// their number from the selected key, so the bar shows in both modes;
+    /// elsewhere it leaves the panel and the panel shrinks.
     /// </summary>
     private static void BuildNoteKeyBar(UiNode parent, float width)
     {

@@ -17,7 +17,7 @@ public sealed class EditorPlacementSystemTests : EcsSystemTest
         Entity mineButton = Store.CreateEntity(
             new EditorPlacementButton(EditorPlacementMode.Mines));
         Entity moveButton = Store.CreateEntity(
-            new EditorPlacementButton(EditorPlacementMode.Movement));
+            new EditorPlacementButton(EditorPlacementMode.Dash));
 
         Root.Add(new EditorPlacementSystem(Store));
 
@@ -32,6 +32,6 @@ public sealed class EditorPlacementSystemTests : EcsSystemTest
         Frame();
         Assert.That(
             editor.GetComponent<EditorPlacementModeState>().Mode,
-            Is.EqualTo(EditorPlacementMode.Movement));
+            Is.EqualTo(EditorPlacementMode.Dash));
     }
 }

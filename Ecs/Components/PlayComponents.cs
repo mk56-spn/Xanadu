@@ -1,5 +1,7 @@
+using System;
 using Friflo.Engine.ECS;
 using Godot;
+using Xanadu.Settings;
 
 namespace Xanadu.Ecs;
 
@@ -183,7 +185,7 @@ public enum CharacterKind
     Contact,
     Armed,
     SplitLine,
-    Mage,
+    Form,
 }
 
 /// <summary>Identifies which character rules are active for the player.</summary>
@@ -192,48 +194,159 @@ public struct PlayerCharacter(CharacterKind kind) : IComponent
     public CharacterKind Kind = kind;
 }
 
-/// <summary>Marks a character that performs a dash on movement notes.</summary>
-public struct DashMovement : ITag;
+/// <summary>The two weapons Armed carries.</summary>
+public enum WeaponKind
+{
+    Spear,
+    Axe,
+}
 
-/// <summary>Marks a character that owns contact counters.</summary>
-public struct ContactCharacter : ITag;
+/// <summary>Armed's currently equipped weapon; left-side switches pick the spear, right-side the axe.</summary>
+public struct ArmedWeapon(WeaponKind kind) : IComponent
+{
+    public WeaponKind Kind = kind;
+}
 
-/// <summary>Accumulated hits per input for the Contact character.</summary>
+/// <summary>The play HUD label that shows Armed's current weapon.</summary>
+public struct WeaponHud(Entity label) : IComponent
+{
+    public Entity Label = label;
+}
+
+/// <summary>Which Splitline channels are absorbing, and when they end.</summary>
+public struct SplitlineState : IComponent
+{
+    public bool LeftActive;
+    public bool RightActive;
+    public long LeftEndMs;
+    public long RightEndMs;
+
+    /// <summary>True while both channels are absorbed and the character is off the field.</summary>
+    public bool Absent;
+
+    /// <summary>Where the character was when the second channel took it.</summary>
+    public Vector2 ReturnPosition;
+}
+
+/// <summary>The character is absent because both Splitline channels absorbed it.</summary>
+public struct SplitlineAbsent : ITag;
+
+/// <summary>The two trailing Splitline balls; visual only.</summary>
+public struct SplitlineBalls : IComponent
+{
+    public Vector2 Left;
+    public Vector2 Right;
+}
+
+/// <summary>A rail hold that is currently being held down.</summary>
+public struct RailHold(
+    KeybindAction action,
+    ChannelSide side,
+    PairIndex index,
+    long startMs,
+    long endMs,
+    Entity playfield) : IComponent
+{
+    public KeybindAction Action = action;
+    public ChannelSide Side = side;
+    public PairIndex Index = index;
+    public long StartMs = startMs;
+    public long EndMs = endMs;
+    public Entity Playfield = playfield;
+}
+
+/// <summary>A form-shape block that has not been built yet: invisible and non-solid.</summary>
+public struct ConstructionHidden : ITag;
+
+/// <summary>Form's active construction shape and how much of it is built.</summary>
+public struct ConstructionState : IComponent
+{
+    public int ShapeId;
+    public int BuiltPieces;
+    public int TotalPieces;
+    public bool Active;
+}
+
+/// <summary>
+/// The two side pools Contact spends on barriers. A left hit feeds the left
+/// pool and a right hit the right pool, whatever the key number.
+/// </summary>
 public struct ContactCounters : IComponent
 {
-    public int[] Counts;
-
-    public ContactCounters()
-    {
-        Counts = new int[7];
-    }
+    public int Left;
+    public int Right;
 
     public readonly int Get(Xanadu.Settings.KeybindAction action) =>
-        Counts.Length == 0 ? 0 : Counts[(int)action];
+        IsLeft(action) ? Left : IsRight(action) ? Right : 0;
+
+    public readonly int GetSide(bool left) => left ? Left : Right;
 
     public void Add(Xanadu.Settings.KeybindAction action, int amount = 1)
     {
-        int index = (int)action;
-        if ((uint)index < (uint)Counts.Length)
-            Counts[index] += amount;
+        if (IsLeft(action))
+            Left += amount;
+        else if (IsRight(action))
+            Right += amount;
+    }
+
+    public void AddSide(bool left, int amount = 1)
+    {
+        if (left)
+            Left += amount;
+        else
+            Right += amount;
+    }
+
+    /// <summary>
+    /// Spends the two costs, draining whatever is available even when the
+    /// check fails. Returns whether both costs were fully paid.
+    /// </summary>
+    public bool Consume(int left, int right)
+    {
+        int paidLeft = Math.Min(Left, Math.Max(0, left));
+        int paidRight = Math.Min(Right, Math.Max(0, right));
+        Left -= paidLeft;
+        Right -= paidRight;
+        return paidLeft == left && paidRight == right;
     }
 
     public bool Consume(Xanadu.Settings.KeybindAction action, int amount)
     {
-        int index = (int)action;
-        if ((uint)index >= (uint)Counts.Length ||
-            Counts[index] < amount)
+        int index = IsLeft(action) ? 0 : IsRight(action) ? 1 : -1;
+        if (index < 0)
+            return false;
+
+        int available = index == 0 ? Left : Right;
+        if (available < amount)
         {
+            if (index == 0)
+                Left -= available;
+            else
+                Right -= available;
             return false;
         }
 
-        Counts[index] -= amount;
+        if (index == 0)
+            Left -= amount;
+        else
+            Right -= amount;
         return true;
     }
+
+    private static bool IsLeft(Xanadu.Settings.KeybindAction action) => action is
+        Xanadu.Settings.KeybindAction.L1 or
+        Xanadu.Settings.KeybindAction.L2 or
+        Xanadu.Settings.KeybindAction.L3;
+
+    private static bool IsRight(Xanadu.Settings.KeybindAction action) => action is
+        Xanadu.Settings.KeybindAction.R1 or
+        Xanadu.Settings.KeybindAction.R2 or
+        Xanadu.Settings.KeybindAction.R3;
 }
 
-/// <summary>HUD labels for the Contact counter row.</summary>
-public struct ContactCounterHud(Entity[] labels) : IComponent
+/// <summary>HUD labels for the left and right Contact stacks.</summary>
+public struct ContactCounterHud(Entity left, Entity right) : IComponent
 {
-    public Entity[] Labels = labels;
+    public Entity Left = left;
+    public Entity Right = right;
 }

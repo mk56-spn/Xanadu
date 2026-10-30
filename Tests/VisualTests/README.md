@@ -96,6 +96,8 @@ fixed frame count.
 | `restart` | Retry |
 | `editor-dropdowns` | Editor dropdowns |
 | `editor-dash-wheel` | Editor dash wheel |
+| `character-notes` | Pair, dash, momentum and switch note bodies |
+| `splitline-rail` | Splitline rail and taps |
 | `editor-groups` | Editor groups |
 | `editor-focus` | Editor focus and tooltips |
 | `play-groups` | Play groups |

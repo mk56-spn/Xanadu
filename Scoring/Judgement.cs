@@ -14,6 +14,7 @@ public enum Judgement
     Terrible,
     Miss,
     Mine,
+    Contact,
 }
 
 /// <summary>Judgement windows, accuracy weights, and rank thresholds.</summary>
@@ -22,6 +23,12 @@ public static class ScoreRules
     public const int MaxScore = 1_000_000;
 
     public const double MineAccuracyPenalty = 0.01;
+
+    /// <summary>Accuracy lost when a contact barrier is not fully paid.</summary>
+    public const double ContactAccuracyPenalty = 0.02;
+
+    /// <summary>Accuracy lost when a rail hold is released early.</summary>
+    public const double HoldAccuracyPenalty = 0.01;
 
     /// <summary>The max deviation a given judgement type can have.</summary>
     public static double JudgementDeviation(Judgement judgement)
@@ -99,6 +106,7 @@ public static class ScoreRules
         Judgement.Terrible => "TERRIBLE",
         Judgement.Miss => "MISS",
         Judgement.Mine => "BOOM",
+        Judgement.Contact => "CONTACT",
         _ => "",
     };
 }

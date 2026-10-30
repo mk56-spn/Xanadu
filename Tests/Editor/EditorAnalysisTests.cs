@@ -24,7 +24,7 @@ public sealed class EditorAnalysisTests
         new(time, new Vector2(x, y), NoteKind.Hit, DashDirection.Up);
 
     private static AnalysedNote Dash(long time, float x, float y, DashDirection direction) =>
-        new(time, new Vector2(x, y), NoteKind.Movement, direction);
+        new(time, new Vector2(x, y), NoteKind.Dash, direction);
 
     private static List<PlayabilityIssue> Analyze(Vector2? start = null, params AnalysedNote[] notes) =>
         PlayabilityAnalyzer.Analyze(notes, Field, start);

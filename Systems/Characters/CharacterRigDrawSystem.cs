@@ -27,6 +27,14 @@ public sealed class CharacterRigDrawSystem(Func<IAttachmentVisuals> createVisual
         _seen.Clear();
         foreach (Entity entity in Query.ToEntityList())
         {
+            if (entity.Tags.Has<SplitlineAbsent>())
+            {
+                if (_instances.Remove(entity.Id, out Instance? gone))
+                    gone.Visuals.Release();
+                entity.RemoveTag<CharacterRigVisible>();
+                continue;
+            }
+
             _seen.Add(entity.Id);
             AnimatorRuntime runtime = entity.GetComponent<CharacterRig>().Runtime;
             XafPackage package = runtime.Package;

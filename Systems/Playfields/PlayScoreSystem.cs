@@ -22,6 +22,7 @@ public sealed class PlayScoreSystem : QuerySystem<ScoreState, Playhead>
         Judgement.Terrible => Palette.Danger,
         Judgement.Miss => Palette.TextDim,
         Judgement.Mine => Palette.DangerBright,
+        Judgement.Contact => Palette.Warning,
         _ => Colors.White,
     };
 
@@ -117,6 +118,7 @@ public sealed class PlayScoreSystem : QuerySystem<ScoreState, Playhead>
         bool show = visible &&
                     score.LastJudgement != Judgement.Miss &&
                     score.LastJudgement != Judgement.Mine &&
+                    score.LastJudgement != Judgement.Contact &&
                     score.LastJudgement != Judgement.None;
         Color color = show
             ? ColorFor(score.LastJudgement)

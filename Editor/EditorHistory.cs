@@ -46,7 +46,13 @@ public sealed class EditorHistory
                 note.Character,
                 MaskOf(entity),
                 ItemShader.Of(entity),
-                note.DashStrength));
+                note.DashStrength,
+                note.PairIndex,
+                note.Momentum,
+                note.ContactLeft,
+                note.ContactRight,
+                note.ChannelSide,
+                note.HoldMs));
         }
 
         notes.Sort(static (a, b) =>
@@ -60,7 +66,31 @@ public sealed class EditorHistory
                 return x;
 
             int y = a.Position.Y.CompareTo(b.Position.Y);
-            return y != 0 ? y : a.DashStrength.CompareTo(b.DashStrength);
+            if (y != 0)
+                return y;
+
+            int strength = a.DashStrength.CompareTo(b.DashStrength);
+            if (strength != 0)
+                return strength;
+
+            int pair = a.PairIndex.CompareTo(b.PairIndex);
+            if (pair != 0)
+                return pair;
+
+            int momentum = a.Momentum.CompareTo(b.Momentum);
+            if (momentum != 0)
+                return momentum;
+
+            int contact = a.ContactLeft.CompareTo(b.ContactLeft);
+            if (contact != 0)
+                return contact;
+
+            int right = a.ContactRight.CompareTo(b.ContactRight);
+            if (right != 0)
+                return right;
+
+            int side = a.ChannelSide.CompareTo(b.ChannelSide);
+            return side != 0 ? side : a.HoldMs.CompareTo(b.HoldMs);
         });
 
         foreach (Entity entity in _entities.Query<Mine>().ToEntityList())
@@ -109,7 +139,13 @@ public sealed class EditorHistory
         foreach (Entity entity in _entities.Query<Block>().ToEntityList())
         {
             Block block = entity.GetComponent<Block>();
-            blocks.Add(new BlockSnapshot(block.Position, block.Size, MaskOf(entity), ItemShader.Of(entity)));
+            blocks.Add(new BlockSnapshot(
+                block.Position,
+                block.Size,
+                MaskOf(entity),
+                ItemShader.Of(entity),
+                block.ShapeId,
+                block.ShapePiece));
         }
 
         blocks.Sort(static (a, b) =>
@@ -220,7 +256,13 @@ public sealed class EditorHistory
                 note.DashDirection,
                 note.ContactRequired,
                 note.Character,
-                note.DashStrength), note.Shader);
+                note.DashStrength,
+                note.PairIndex,
+                note.Momentum,
+                note.ContactLeft,
+                note.ContactRight,
+                note.ChannelSide,
+                note.HoldMs), note.Shader);
             Subscribe(created, note.Groups);
         }
 
@@ -248,7 +290,13 @@ public sealed class EditorHistory
 
         foreach (BlockSnapshot block in snapshot.Blocks)
         {
-            Entity created = EditorItems.Create(_entities, new Block(block.Position, block.Size), block.Shader);
+            Entity created = EditorItems.Create(_entities, new Block(
+                block.Position,
+                block.Size,
+                block.ShapeId,
+                block.ShapePiece), block.Shader);
+            if (block.ShapeId > 0)
+                created.AddTag<ConstructionHidden>();
             Subscribe(created, block.Groups);
         }
 
@@ -283,7 +331,9 @@ public readonly record struct BlockSnapshot(
     Vector2 Position,
     Vector2 Size,
     uint Groups = 0,
-    int Shader = 0);
+    int Shader = 0,
+    int ShapeId = 0,
+    int ShapePiece = 0);
 
 /// <summary>Stable serializable spike snapshot used by undo/redo.</summary>
 public readonly record struct SpikeSnapshot(
@@ -312,4 +362,10 @@ public readonly record struct NoteSnapshot(
     CharacterKind Character,
     uint Groups = 0,
     int Shader = 0,
-    DashStrength DashStrength = DashStrength.Single);
+    DashStrength DashStrength = DashStrength.Single,
+    PairIndex PairIndex = PairIndex.One,
+    float Momentum = Note.DefaultMomentum,
+    int ContactLeft = 0,
+    int ContactRight = 0,
+    ChannelSide ChannelSide = ChannelSide.Left,
+    long HoldMs = 0);

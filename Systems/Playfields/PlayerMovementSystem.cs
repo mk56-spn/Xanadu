@@ -4,6 +4,7 @@ using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Godot;
 using Xanadu.Ecs;
+using Xanadu.Scoring;
 using Xanadu.Settings;
 using Xanadu.Systems.Input;
 using Xanadu.Systems.Physics;
@@ -13,8 +14,9 @@ using Position = Xanadu.Ecs.Position;
 namespace Xanadu.Systems.Playfields;
 
 /// <summary>
-/// Dashes the player while a movement queue is on them. The player is a Box2D
-/// character, so gravity keeps acting between dashes.
+/// Resolves dash and momentum notes. Both are claimed by any key: a press
+/// first goes to a normal or pair note it can hit, and only an unclaimed press
+/// moves the player. A press never claims more than one movement note.
 /// </summary>
 public sealed class PlayerMovementSystem : QuerySystem<Player, Position, PlayfieldView, PhysicsBody, Playhead>
 {
@@ -41,7 +43,7 @@ public sealed class PlayerMovementSystem : QuerySystem<Player, Position, Playfie
 
     protected override void OnUpdate()
     {
-        var pressed = new HashSet<KeybindAction>();
+        var pressed = new List<KeybindAction>();
         foreach (KeybindAction action in KeybindSettings.Actions)
         {
             if (JustPressed(_keybinds.Get(action)))
@@ -59,67 +61,89 @@ public sealed class PlayerMovementSystem : QuerySystem<Player, Position, Playfie
             if (entity.Tags.Has<PlayPaused>() || IsWaiting(entity))
                 return;
 
-            if (entity.HasComponent<PlayerCharacter>() &&
-                !entity.Tags.Has<DashMovement>())
-            {
+            SplitlineState splitline = entity.TryGetComponent(out SplitlineState state)
+                ? state
+                : default;
+            if (splitline.Absent)
                 return;
-            }
 
             Vector2 screen = Box2DPhysicsWorld.ToScreen(body.Body.GetPosition());
+            long judgedTime = playhead.TimeMs - _offsets.OffsetMs;
+            CharacterKind? character = entity.TryGetComponent(
+                out PlayerCharacter playerCharacter)
+                ? playerCharacter.Kind
+                : null;
+            bool armed = character == CharacterKind.Armed;
+            WeaponKind weapon = entity.TryGetComponent(out ArmedWeapon equipped)
+                ? equipped.Kind
+                : WeaponKind.Spear;
+            bool facesLeft = entity.TryGetComponent(out CharacterFacing facing) &&
+                             facing.Left;
 
-            if (PlayerTouchesTrueNote(screen, view, playhead.TimeMs))
-                return;
-
-            if (!TryFindMovementNote(
-                    screen,
-                    view,
-                    playhead.TimeMs,
-                    pressed,
-                    out Note movement))
+            foreach (KeybindAction action in pressed)
             {
-                return;
-            }
-
-            Vector2 target = DashTarget(
-                movement.Position,
-                movement.DashDirection,
-                movement.DashStrength);
-            Vector2 targetScreen = view.PlayfieldToScreen(target);
-            body.Body.SetTransform(
-                Box2DPhysicsWorld.ToPhysics(targetScreen),
-                body.Body.GetAngle());
-            position.Value = targetScreen;
-            float horizontal = DashDirectionVector(movement.DashDirection).X;
-            if (horizontal != 0f)
-                facings.Add((entity, horizontal < 0f));
-            _entities.CreateEntity(new DashTrail(screen, targetScreen));
-            _entities.CreateEntity(new ParticleBurst(targetScreen, ParticleKind.Dash));
-
-            if (entity.HasComponent<ScoreState>())
-            {
-                ref ScoreState score = ref entity.GetComponent<ScoreState>();
-                long judgedTime = playhead.TimeMs - _offsets.OffsetMs;
-                PlayScoring.Apply(ref score, movement.TimeMs - judgedTime);
-                score.JudgementPosition = view.PlayfieldToScreen(
-                    movement.Position);
-                score.JudgementTimeMs = playhead.TimeMs;
-                _entities.CreateEntity(new HitTrail(
-                    score.JudgementPosition,
-                    PlayfieldRenderer.ColorFor(movement.Target),
-                    KeybindSettings.KeyLabel(_keybinds.Get(movement.Target))));
-            }
-
-            foreach (Entity noteEntity in _entities
-                         .Query<Note>()
-                         .ToEntityList())
-            {
-                if (noteEntity.GetComponent<Note>().TimeMs == movement.TimeMs &&
-                    noteEntity.GetComponent<Note>().Position == movement.Position &&
-                    noteEntity.GetComponent<Note>().Kind == NoteKind.Movement)
+                if (splitline.LeftActive && NoteRules.IsLeft(action) ||
+                    splitline.RightActive && NoteRules.IsRight(action))
                 {
-                    buffer.DeleteEntity(noteEntity.Id);
-                    break;
+                    continue;
                 }
+
+                // A press that can hit a note belongs to the note first.
+                if (PressHitsNote(
+                        action,
+                        screen,
+                        view,
+                        judgedTime,
+                        character,
+                        armed,
+                        weapon,
+                        facesLeft))
+                {
+                    continue;
+                }
+
+                if (!TryFindMovementNote(
+                        screen,
+                        view,
+                        judgedTime,
+                        out Entity noteEntity,
+                        out Note movement))
+                {
+                    continue;
+                }
+
+                if (movement.Kind == NoteKind.Dash)
+                {
+                    ApplyDash(ref body, ref position, movement, view);
+                    _entities.CreateEntity(new DashTrail(screen, position.Value));
+                    _entities.CreateEntity(new ParticleBurst(position.Value, ParticleKind.Dash));
+                }
+                else
+                {
+                    ApplyMomentum(ref body, movement);
+                    Vector2 push = screen + DashDirectionVector(movement.DashDirection) * 60f;
+                    _entities.CreateEntity(new DashTrail(screen, push));
+                    _entities.CreateEntity(new ParticleBurst(screen, ParticleKind.Dash));
+                }
+
+                float horizontal = DashDirectionVector(movement.DashDirection).X;
+                if (horizontal != 0f)
+                    facings.Add((entity, horizontal < 0f));
+
+                if (entity.HasComponent<ScoreState>())
+                {
+                    ref ScoreState score = ref entity.GetComponent<ScoreState>();
+                    PlayScoring.Apply(ref score, movement.TimeMs - judgedTime);
+                    score.JudgementPosition = view.PlayfieldToScreen(movement.Position);
+                    score.JudgementTimeMs = playhead.TimeMs;
+                    _entities.CreateEntity(new HitTrail(
+                        score.JudgementPosition,
+                        PlayfieldRenderer.ColorFor(movement),
+                        KeybindSettings.KeyLabel(_keybinds.Get(action))));
+                }
+
+                buffer.DeleteEntity(noteEntity.Id);
+                break;
             }
         });
 
@@ -128,23 +152,61 @@ public sealed class PlayerMovementSystem : QuerySystem<Player, Position, Playfie
             entity.AddComponent(new CharacterFacing { Left = left });
     }
 
+    private static void ApplyDash(
+        ref PhysicsBody body,
+        ref Position position,
+        Note movement,
+        PlayfieldView view)
+    {
+        Vector2 target = DashTarget(
+            movement.Position,
+            movement.DashDirection,
+            movement.DashStrength);
+        Vector2 targetScreen = view.PlayfieldToScreen(target);
+        body.Body.SetTransform(
+            Box2DPhysicsWorld.ToPhysics(targetScreen),
+            body.Body.GetAngle());
+        position.Value = targetScreen;
+    }
+
+    private static void ApplyMomentum(
+        ref PhysicsBody body,
+        Note movement)
+    {
+        body.Body.ApplyLinearImpulseToCenter(
+            MomentumImpulse(movement, body.Body.Mass),
+            true);
+    }
+
+    /// <summary>The impulse a momentum note applies to a body of <paramref name="mass"/> kg.</summary>
+    public static NVector2 MomentumImpulse(Note note, float mass)
+    {
+        Vector2 direction = DashDirectionVector(note.DashDirection);
+        float velocityChange = note.Momentum / Box2DPhysicsWorld.PixelsPerMeter;
+        return new NVector2(
+            direction.X * velocityChange * mass,
+            direction.Y * velocityChange * mass);
+    }
+
     private bool TryFindMovementNote(
         Vector2 playerScreen,
         PlayfieldView view,
-        long timeMs,
-        HashSet<KeybindAction> pressed,
+        long judgedTime,
+        out Entity resultEntity,
         out Note result)
     {
+        resultEntity = default;
         result = default;
+        long bestError = long.MaxValue;
+        float bestDistance = float.MaxValue;
 
         foreach (Entity entity in _entities.Query<Note>().ToEntityList())
         {
             Note note = entity.GetComponent<Note>();
-            if (note.Kind != NoteKind.Movement ||
+            if (!NoteRules.IsMovement(note.Kind) ||
                 entity.Tags.Has<NoteMissed>() ||
-                !pressed.Contains(note.Target) ||
-                Math.Abs(note.TimeMs - timeMs) > ActiveWindowMs ||
-                NoteFade.Alpha(note, timeMs) <= 0)
+                Math.Abs(note.TimeMs - judgedTime) > ActiveWindowMs ||
+                NoteFade.Alpha(note, judgedTime) <= 0)
             {
                 continue;
             }
@@ -153,11 +215,21 @@ public sealed class PlayerMovementSystem : QuerySystem<Player, Position, Playfie
             if (!NoteReach.Contains(playerScreen, view, noteScreen))
                 continue;
 
+            long error = Math.Abs(note.TimeMs - judgedTime);
+            float distance = playerScreen.DistanceSquaredTo(noteScreen);
+            if (error > bestError ||
+                (error == bestError && distance >= bestDistance))
+            {
+                continue;
+            }
+
+            bestError = error;
+            bestDistance = distance;
+            resultEntity = entity;
             result = note;
-            return true;
         }
 
-        return false;
+        return !resultEntity.IsNull;
     }
 
     public static Vector2 DashTarget(
@@ -198,35 +270,49 @@ public sealed class PlayerMovementSystem : QuerySystem<Player, Position, Playfie
         return !session.Started || session.Finished;
     }
 
-    /// <summary>Whether a note the player can hit by key is within reach, so a press goes to it instead of a dash.</summary>
-    private bool PlayerTouchesTrueNote(
+    /// <summary>
+    /// Whether this key would hit a note right now, so the press must not be
+    /// spent on a movement note. Pair notes match by index, so either side
+    /// counts; normal notes match their own key.
+    /// </summary>
+    private bool PressHitsNote(
+        KeybindAction action,
         Vector2 playerScreen,
         PlayfieldView view,
-        long timeMs)
+        long judgedTime,
+        CharacterKind? character,
+        bool armed,
+        WeaponKind weapon,
+        bool facesLeft)
     {
+        long window = (long)ScoreRules.JudgementDeviation(Judgement.Miss);
+
         foreach (Entity entity in _entities.Query<Note>().ToEntityList())
         {
             if (entity.Tags.Has<NoteMissed>())
                 continue;
 
             Note note = entity.GetComponent<Note>();
-            if (note.Kind != NoteKind.Hit &&
-                note.Kind != NoteKind.Contact &&
-                note.Kind != NoteKind.CharacterSwitch)
+            if (!NoteRules.IsKeyed(note.Kind) ||
+                !NoteRules.ActiveFor(note.Kind, character) ||
+                !NoteRules.Matches(note, action) ||
+                Math.Abs(note.TimeMs - judgedTime) > window ||
+                NoteFade.Alpha(note, judgedTime) <= 0)
             {
                 continue;
             }
 
-            if (NoteFade.Alpha(note, timeMs) <= 0)
-                continue;
-
-            if (NoteReach.Contains(
+            Vector2 noteScreen = view.PlayfieldToScreen(note.Position);
+            bool inRange = armed && (note.Kind is NoteKind.Hit or NoteKind.Pair)
+                ? WeaponHitRules.Contains(
+                    weapon,
                     playerScreen,
-                    view,
-                    view.PlayfieldToScreen(note.Position)))
-            {
+                    facesLeft,
+                    noteScreen,
+                    view.Scale)
+                : NoteReach.Contains(playerScreen, view, noteScreen);
+            if (inRange)
                 return true;
-            }
         }
 
         return false;

@@ -123,6 +123,12 @@ public sealed class BlockDocument
     public float Width { get; set; }
 
     public float Height { get; set; }
+
+    /// <summary>The Form construction shape this block belongs to, or 0 for permanent geometry.</summary>
+    public int ShapeId { get; set; }
+
+    /// <summary>The order this block is revealed in its shape.</summary>
+    public int ShapePiece { get; set; }
 }
 
 /// <summary>Serializable spike tile data: a hazard that kills on contact.</summary>
@@ -211,6 +217,30 @@ public sealed class NoteDocument
 
     public CharacterKind Character { get; set; } = CharacterKind.Contact;
 
-    /// <summary>One, two or three dash lengths for a movement note.</summary>
+    /// <summary>One, two or three dash lengths for a dash note.</summary>
     public DashStrength DashStrength { get; set; } = DashStrength.Single;
+
+    /// <summary>The pair a pair note belongs to; ignored by every other kind.</summary>
+    public PairIndex PairIndex { get; set; } = PairIndex.One;
+
+    /// <summary>A momentum note's push in playfield units per second; ignored by other kinds.</summary>
+    public float Momentum { get; set; } = Note.DefaultMomentum;
+
+    /// <summary>The left-side charge a contact barrier spends.</summary>
+    public int ContactLeft { get; set; }
+
+    /// <summary>The right-side charge a contact barrier spends.</summary>
+    public int ContactRight { get; set; }
+
+    /// <summary>The Splitline side a channel/rail note belongs to.</summary>
+    public ChannelSide ChannelSide { get; set; } = ChannelSide.Left;
+
+    /// <summary>How long a rail hold lasts; zero for a tap.</summary>
+    public long HoldMs { get; set; }
+
+    /// <summary>The Form construction shape a construction/step note belongs to.</summary>
+    public int ShapeId { get; set; }
+
+    /// <summary>Which attached block a construction step reveals.</summary>
+    public int ShapePiece { get; set; }
 }

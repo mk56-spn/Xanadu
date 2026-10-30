@@ -62,7 +62,7 @@ public sealed class PlayerMovementSystemTests
             0,
             new Vector2(500, 500),
             target: KeybindAction.L3,
-            kind: NoteKind.Movement,
+            kind: NoteKind.Dash,
             dashDirection: DashDirection.Left));
         _keyboard.Press(Key.F);
         _root.Update(new UpdateTick(1f / 60f, 0));
@@ -82,7 +82,7 @@ public sealed class PlayerMovementSystemTests
             0,
             new Vector2(500, 500),
             target: KeybindAction.L3,
-            kind: NoteKind.Movement,
+            kind: NoteKind.Dash,
             dashDirection: DashDirection.Left));
         _keyboard.Press(Key.F);
         _root.Update(new UpdateTick(1f / 60f, 0));
@@ -104,7 +104,7 @@ public sealed class PlayerMovementSystemTests
             0,
             new Vector2(950, 500),
             target: KeybindAction.L3,
-            kind: NoteKind.Movement,
+            kind: NoteKind.Dash,
             dashDirection: DashDirection.Left));
 
         _keyboard.Press(Key.F);
@@ -125,7 +125,7 @@ public sealed class PlayerMovementSystemTests
             0,
             new Vector2(500, 50),
             target: KeybindAction.M,
-            kind: NoteKind.Movement,
+            kind: NoteKind.Dash,
             dashDirection: DashDirection.Up));
 
         _keyboard.Press(Key.Space);
@@ -135,20 +135,87 @@ public sealed class PlayerMovementSystemTests
     }
 
     [Test]
-    public void TrueNoteBlocksMovement()
+    public void AKeyThatCanHitATrueNoteDoesNotDash()
     {
         _store.CreateEntity(new Note(0, new Vector2(500, 500)));
         _store.CreateEntity(new Note(
             0,
             new Vector2(500, 500),
-            target: KeybindAction.L3,
-            kind: NoteKind.Movement,
+            kind: NoteKind.Dash,
+            dashDirection: DashDirection.Left));
+
+        _keyboard.Press(Key.Space);
+        _root.Update(new UpdateTick(1f / 60f, 0));
+
+        Assert.That(_player.GetComponent<Position>().Value.X, Is.EqualTo(500));
+    }
+
+    [Test]
+    public void AKeyThatCannotHitTheNoteStillDashes()
+    {
+        _store.CreateEntity(new Note(0, new Vector2(500, 500)));
+        _store.CreateEntity(new Note(
+            0,
+            new Vector2(500, 500),
+            kind: NoteKind.Dash,
             dashDirection: DashDirection.Left));
 
         _keyboard.Press(Key.F);
         _root.Update(new UpdateTick(1f / 60f, 0));
 
-        Assert.That(_player.GetComponent<Position>().Value.X, Is.EqualTo(500));
+        Assert.That(_player.GetComponent<Position>().Value.X, Is.EqualTo(350));
+    }
+
+    [Test]
+    public void AnyKeyClaimsADashNoteWithNoKeyOfItsOwn()
+    {
+        _store.CreateEntity(new Note(
+            0,
+            new Vector2(500, 500),
+            target: KeybindAction.M,
+            kind: NoteKind.Dash,
+            dashDirection: DashDirection.Left));
+
+        _keyboard.Press(Key.F);
+        _root.Update(new UpdateTick(1f / 60f, 0));
+
+        Assert.That(_player.GetComponent<Position>().Value.X, Is.EqualTo(350));
+    }
+
+    [Test]
+    public void AMomentumNotePushesTheBodyInItsDirection()
+    {
+        Entity note = _store.CreateEntity(new Note(
+            0,
+            new Vector2(500, 500),
+            kind: NoteKind.Momentum,
+            dashDirection: DashDirection.Right,
+            momentum: 600f));
+
+        _keyboard.Press(Key.F);
+        _root.Update(new UpdateTick(1f / 60f, 0));
+
+        Assert.That(note.IsNull, Is.True);
+        Assert.That(
+            _player.GetComponent<PhysicsBody>().Body.LinearVelocity.X,
+            Is.GreaterThan(0f));
+    }
+
+    [Test]
+    public void MomentumImpulseScalesWithTheAuthoredMagnitude()
+    {
+        var note = new Note(
+            0,
+            Vector2.Zero,
+            kind: NoteKind.Momentum,
+            dashDirection: DashDirection.Right,
+            momentum: 600f);
+
+        System.Numerics.Vector2 impulse =
+            PlayerMovementSystem.MomentumImpulse(note, mass: 1f);
+
+        Assert.That(impulse.X, Is.EqualTo(6f).Within(0.0001f));
+        Assert.That(impulse.Y, Is.EqualTo(0f).Within(0.0001f));
     }
 
     [TestCase(DashStrength.Single, 350f)]
@@ -163,7 +230,7 @@ public sealed class PlayerMovementSystemTests
             0,
             new Vector2(500, 500),
             target: KeybindAction.L3,
-            kind: NoteKind.Movement,
+            kind: NoteKind.Dash,
             dashDirection: DashDirection.Left,
             dashStrength: strength));
 

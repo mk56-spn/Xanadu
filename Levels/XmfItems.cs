@@ -103,6 +103,79 @@ public static partial class XmfBinary
         return notes;
     }
 
+    /// <summary>
+    /// Pair index, momentum magnitude and contact costs are newer than the note
+    /// chunk. They live in an optional trailing chunk so files written before
+    /// they existed still load, and readers that do not know the chunk can
+    /// ignore it.
+    /// </summary>
+    internal static bool HasNoteExtras(List<NoteDocument> notes) => notes.Exists(
+        note => note.PairIndex != PairIndex.One ||
+                note.Momentum != Note.DefaultMomentum ||
+                note.ContactLeft != 0 ||
+                note.ContactRight != 0 ||
+                note.ChannelSide != ChannelSide.Left ||
+                note.HoldMs != 0 ||
+                note.ShapeId != 0 ||
+                note.ShapePiece != 0);
+
+    internal static byte[] WriteNoteExtras(List<NoteDocument> notes)
+    {
+        using var stream = new MemoryStream();
+        using var writer = new BinaryWriter(stream, Encoding.UTF8, leaveOpen: true);
+        writer.Write((uint)notes.Count);
+        foreach (NoteDocument note in notes)
+        {
+            writer.Write((byte)note.PairIndex);
+            writer.Write(note.Momentum);
+            writer.Write(note.ContactLeft);
+            writer.Write(note.ContactRight);
+            writer.Write((byte)note.ChannelSide);
+            writer.Write(note.HoldMs);
+            writer.Write(note.ShapeId);
+            writer.Write(note.ShapePiece);
+        }
+        writer.Flush();
+        return stream.ToArray();
+    }
+
+    internal static void ReadNoteExtras(Chunk chunk, List<NoteDocument> notes)
+    {
+        using BinaryReader reader = chunk.OpenReader();
+        uint count = ReadCount(reader, MaxItems, "note extra");
+        if (count != notes.Count)
+            throw new FormatException("XMF note extras do not match the note count.");
+
+        for (int i = 0; i < notes.Count; i++)
+        {
+            PairIndex pairIndex = ReadEnum<PairIndex>(reader);
+            float momentum = reader.ReadSingle();
+            int contactLeft = reader.ReadInt32();
+            int contactRight = reader.ReadInt32();
+            ChannelSide channelSide = ReadEnum<ChannelSide>(reader);
+            long holdMs = reader.ReadInt64();
+            int shapeId = reader.ReadInt32();
+            int shapePiece = reader.ReadInt32();
+            if (!float.IsFinite(momentum) || momentum < 0f)
+                throw new FormatException("XMF momentum note has an invalid magnitude.");
+            if (contactLeft < 0 || contactRight < 0)
+                throw new FormatException("XMF contact barrier has a negative charge cost.");
+            if (holdMs < 0)
+                throw new FormatException("XMF rail hold has a negative length.");
+            if (shapeId < 0 || shapePiece < 0)
+                throw new FormatException("XMF construction note has a negative shape reference.");
+
+            notes[i].PairIndex = pairIndex;
+            notes[i].Momentum = momentum;
+            notes[i].ContactLeft = contactLeft;
+            notes[i].ContactRight = contactRight;
+            notes[i].ChannelSide = channelSide;
+            notes[i].HoldMs = holdMs;
+            notes[i].ShapeId = shapeId;
+            notes[i].ShapePiece = shapePiece;
+        }
+    }
+
     /// <summary>Every string a Xif's chunk entry carries, so it ends up in the shared table.</summary>
     private static void IndexItemStrings(Xif item, StringTable strings) => XifBinary.Index(item, strings);
 
@@ -187,6 +260,41 @@ public static partial class XmfBinary
             });
         }
         return blocks;
+    }
+
+    internal static bool HasBlockExtras(List<BlockDocument> blocks) => blocks.Exists(
+        block => block.ShapeId != 0 || block.ShapePiece != 0);
+
+    internal static byte[] WriteBlockExtras(List<BlockDocument> blocks)
+    {
+        using var stream = new MemoryStream();
+        using var writer = new BinaryWriter(stream, Encoding.UTF8, leaveOpen: true);
+        writer.Write((uint)blocks.Count);
+        foreach (BlockDocument block in blocks)
+        {
+            writer.Write(block.ShapeId);
+            writer.Write(block.ShapePiece);
+        }
+        writer.Flush();
+        return stream.ToArray();
+    }
+
+    internal static void ReadBlockExtras(Chunk chunk, List<BlockDocument> blocks)
+    {
+        using BinaryReader reader = chunk.OpenReader();
+        uint count = ReadCount(reader, MaxItems, "block extra");
+        if (count != blocks.Count)
+            throw new FormatException("XMF block extras do not match the block count.");
+
+        for (int i = 0; i < blocks.Count; i++)
+        {
+            int shapeId = reader.ReadInt32();
+            int shapePiece = reader.ReadInt32();
+            if (shapeId < 0 || shapePiece < 0)
+                throw new FormatException("XMF block has a negative Form shape reference.");
+            blocks[i].ShapeId = shapeId;
+            blocks[i].ShapePiece = shapePiece;
+        }
     }
 
     private static byte[] WriteSpikes(List<SpikeDocument> spikes)

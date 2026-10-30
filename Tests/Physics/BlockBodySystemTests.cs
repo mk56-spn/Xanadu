@@ -97,6 +97,31 @@ public sealed class BlockBodySystemTests
         Assert.That(position.Y, Is.InRange(500f, 560f));
     }
 
+    [Test]
+    public void ConstructionBlocksOnlyGetABodyWhenRevealed()
+    {
+        var store = new EntityStore();
+        CreateView(store, PlayfieldKind.Play, Vector2.Zero, 1f);
+        Entity block = store.CreateEntity(new Block(
+            new Vector2(100, 100),
+            new Vector2(200, 100),
+            shapeId: 4,
+            shapePiece: 0));
+        block.AddTag<ConstructionHidden>();
+
+        using var physics = new Box2DPhysicsWorld();
+        var root = new SystemRoot(store);
+        root.Add(new BlockBodySystem(physics, store));
+        root.Update(new UpdateTick(1f / 60f, 0));
+
+        Assert.That(block.HasComponent<PhysicsBody>(), Is.False);
+
+        block.RemoveTag<ConstructionHidden>();
+        root.Update(new UpdateTick(1f / 60f, 0));
+
+        Assert.That(block.HasComponent<PhysicsBody>(), Is.True);
+    }
+
     private static PlayfieldView CreateView(
         EntityStore store,
         PlayfieldKind kind,

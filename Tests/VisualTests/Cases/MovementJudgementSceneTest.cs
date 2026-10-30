@@ -33,7 +33,7 @@ public sealed class MovementJudgementSceneTest : SceneTest
                 X = 500,
                 Y = 1000,
                 Target = KeybindAction.L3,
-                Kind = NoteKind.Movement,
+                Kind = NoteKind.Dash,
                 DashDirection = DashDirection.Right,
             });
             Context.Scenes.StartPlay(

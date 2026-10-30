@@ -40,6 +40,12 @@ public static partial class XmfBinary
 
         /// <summary>Optional, so files written before spikes existed still load.</summary>
         Spikes = 9,
+
+        /// <summary>Optional pair index and momentum data, absent in older maps.</summary>
+        NoteExtras = 10,
+
+        /// <summary>Optional Form shape references on blocks.</summary>
+        BlockExtras = 11,
     }
 
     public static byte[] Write(LevelDocument document)
@@ -60,6 +66,10 @@ public static partial class XmfBinary
         // written before spikes existed.
         if (document.Spikes.Count > 0)
             file.Add((uint)ChunkId.Spikes, WriteSpikes(document.Spikes));
+        if (HasNoteExtras(document.Notes))
+            file.Add((uint)ChunkId.NoteExtras, WriteNoteExtras(document.Notes));
+        if (HasBlockExtras(document.Blocks))
+            file.Add((uint)ChunkId.BlockExtras, WriteBlockExtras(document.Blocks));
         return file.ToArray();
     }
 
@@ -84,8 +94,12 @@ public static partial class XmfBinary
 
         LevelDocument document = ReadMeta(file.Get((uint)ChunkId.Meta, Format), strings);
         document.Notes = ReadNotes(file.Get((uint)ChunkId.Notes, Format), strings);
+        if (file.TryGet((uint)ChunkId.NoteExtras, out Chunk noteExtras))
+            ReadNoteExtras(noteExtras, document.Notes);
         document.Mines = ReadMines(file.Get((uint)ChunkId.Mines, Format));
         document.Blocks = ReadBlocks(file.Get((uint)ChunkId.Blocks, Format));
+        if (file.TryGet((uint)ChunkId.BlockExtras, out Chunk blockExtras))
+            ReadBlockExtras(blockExtras, document.Blocks);
         document.StartPoints = ReadStartPoints(
             file.Get((uint)ChunkId.StartPoints, Format),
             strings);

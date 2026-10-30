@@ -9,8 +9,10 @@ using Xanadu.Scoring;
 using Xanadu.Settings;
 using Xanadu.Systems.Characters;
 using Xanadu.Systems.Input;
+using Xanadu.Systems.Physics;
 using Xanadu.Systems.Playfields;
 using Position = Xanadu.Ecs.Position;
+using NVector2 = System.Numerics.Vector2;
 using Xanadu.Tests.Support;
 
 namespace Xanadu.Tests.Playfields;
@@ -20,6 +22,7 @@ public sealed class PlayNoteInputSystemTests
 {
     private EntityStore _store = null!;
     private SystemRoot _root = null!;
+    private Box2DPhysicsWorld _physics = null!;
     private FakeKeyboard _keyboard = null!;
     private KeybindSettings _keybinds = null!;
     private OffsetSettings _offsets = null!;
@@ -33,6 +36,7 @@ public sealed class PlayNoteInputSystemTests
     {
         _store = new EntityStore();
         _root = new SystemRoot(_store);
+        _physics = new Box2DPhysicsWorld();
         _keyboard = new FakeKeyboard();
         _keybinds = new KeybindSettings(persist: false);
         _offsets = new OffsetSettings(persist: false);
@@ -44,8 +48,14 @@ public sealed class PlayNoteInputSystemTests
             new TextStyle(28, Colors.White),
             new Position(Vector2.Zero));
         _root.Add(new PlayNoteInputSystem(_store, _keybinds, _keyboard, _offsets));
+        _root.Add(new RailHoldSystem(_keyboard, _keybinds));
+        _root.Add(new ContactBarrierSystem(_store, _offsets));
+        _root.Add(new SplitlineSystem());
         _root.Add(new PlayScoreSystem());
     }
+
+    [TearDown]
+    public void TearDown() => _physics.Dispose();
 
     [Test]
     public void CorrectKeyWhileOnTheNoteAwardsAJudgement()
@@ -173,23 +183,111 @@ public sealed class PlayNoteInputSystemTests
     }
 
     [Test]
-    public void ContactThatCannotBePaidForLeavesNoPop()
+    public void ContactBarrierSpendsBothSideCostsAutomatically()
     {
         Entity playfield = CreatePlayfield(totalNotes: 1);
-        playfield.AddComponent(new ContactCounters());
-        playfield.GetComponent<ContactCounters>().Add(KeybindAction.R2, 1);
+        playfield.AddComponent(new PlayerCharacter(CharacterKind.Contact));
+        playfield.AddComponent(new ContactCounters
+        {
+            Left = 3,
+            Right = 2,
+        });
         CreateNote(
             1_000,
             new Vector2(500, 500),
-            KeybindAction.R2,
-            NoteKind.Contact,
-            contactRequired: 2);
+            kind: NoteKind.Contact,
+            contactRequired: 0,
+            contactLeft: 2,
+            contactRight: 1);
         SetPlayhead(playfield, 1_000);
-        Press(KeybindAction.R2);
 
         Frame();
 
-        Assert.That(_store.Query<NotePop>().Count, Is.Zero);
+        ContactCounters counters = playfield.GetComponent<ContactCounters>();
+        Assert.That(counters.Left, Is.EqualTo(1));
+        Assert.That(counters.Right, Is.EqualTo(1));
+        Assert.That(_store.Query<Note>().Count, Is.Zero);
+        Assert.That(
+            playfield.GetComponent<ScoreState>().AccuracyPenalty,
+            Is.Zero);
+    }
+
+    [Test]
+    public void ContactBarrierFailsShortAndBreaksCombo()
+    {
+        Entity playfield = CreatePlayfield(totalNotes: 1);
+        playfield.AddComponent(new PlayerCharacter(CharacterKind.Contact));
+        playfield.AddComponent(new ContactCounters { Left = 1 });
+        playfield.GetComponent<ScoreState>().Combo = 7;
+        CreateNote(
+            1_000,
+            new Vector2(500, 500),
+            kind: NoteKind.Contact,
+            contactRequired: 0,
+            contactLeft: 2,
+            contactRight: 1);
+        SetPlayhead(playfield, 1_000);
+
+        Frame();
+
+        ContactCounters counters = playfield.GetComponent<ContactCounters>();
+        Assert.That(counters.Left, Is.Zero);
+        Assert.That(counters.Right, Is.Zero);
+        ScoreState score = playfield.GetComponent<ScoreState>();
+        Assert.That(score.Combo, Is.Zero);
+        Assert.That(score.LastJudgement, Is.EqualTo(Judgement.Contact));
+        Assert.That(
+            score.AccuracyPenalty,
+            Is.EqualTo(ScoreRules.ContactAccuracyPenalty).Within(0.0001));
+        Assert.That(_judgementText.GetComponent<Text>().Value,
+            Is.EqualTo("CONTACT"));
+    }
+
+    [Test]
+    public void ContactBarrierIsInertForOtherCharacters()
+    {
+        Entity playfield = CreatePlayfield(totalNotes: 1);
+        playfield.AddComponent(new PlayerCharacter(CharacterKind.Armed));
+        playfield.AddComponent(new ContactCounters { Left = 3, Right = 3 });
+        Entity barrier = CreateNote(
+            1_000,
+            new Vector2(500, 500),
+            kind: NoteKind.Contact,
+            contactRequired: 0,
+            contactLeft: 1,
+            contactRight: 1);
+        SetPlayhead(playfield, 1_000);
+
+        Frame();
+
+        Assert.That(barrier.HasComponent<Note>(), Is.True);
+        ContactCounters counters = playfield.GetComponent<ContactCounters>();
+        Assert.That(counters.Left, Is.EqualTo(3));
+        Assert.That(counters.Right, Is.EqualTo(3));
+    }
+
+    [Test]
+    public void ContactBarrierThatExpiresIsNotAScoredMiss()
+    {
+        Entity playfield = CreatePlayfield(totalNotes: 1);
+        playfield.AddComponent(new PlayerCharacter(CharacterKind.Contact));
+        playfield.AddComponent(new ContactCounters { Left = 3, Right = 3 });
+        Entity barrier = CreateNote(
+            1_000,
+            new Vector2(900, 900),
+            kind: NoteKind.Contact,
+            contactRequired: 0,
+            contactLeft: 1,
+            contactRight: 1);
+        SetPlayhead(playfield, 1_200);
+
+        Frame();
+
+        Assert.That(barrier.IsNull, Is.True);
+        ScoreState score = playfield.GetComponent<ScoreState>();
+        Assert.That(score.MissCount, Is.Zero);
+        Assert.That(score.AccuracyPenalty, Is.Zero);
+        Assert.That(score.LastJudgement, Is.EqualTo(Judgement.None));
     }
 
     [TestCase(KeybindAction.L1)]
@@ -583,8 +681,6 @@ public sealed class PlayNoteInputSystemTests
     {
         Entity playfield = CreatePlayfield(totalNotes: 1);
         playfield.AddComponent(new PlayerCharacter(CharacterKind.Contact));
-        playfield.AddTag<DashMovement>();
-        playfield.AddTag<ContactCharacter>();
         playfield.AddComponent(new ContactCounters());
         CreateNote(
             1_000,
@@ -600,8 +696,118 @@ public sealed class PlayNoteInputSystemTests
         Assert.That(
             playfield.GetComponent<PlayerCharacter>().Kind,
             Is.EqualTo(CharacterKind.Armed));
-        Assert.That(playfield.Tags.Has<DashMovement>(), Is.False);
-        Assert.That(playfield.Tags.Has<ContactCharacter>(), Is.False);
+        // The contact bank is a run resource; switching away keeps it.
+        Assert.That(playfield.HasComponent<ContactCounters>(), Is.True);
+    }
+
+    [Test]
+    public void WeaponSwitchNoteChangesTheWeaponByThePressedSide()
+    {
+        Entity playfield = CreatePlayfield(totalNotes: 1);
+        playfield.AddComponent(new PlayerCharacter(CharacterKind.Armed));
+        playfield.AddComponent(new ArmedWeapon(WeaponKind.Spear));
+        CreateNote(
+            1_000,
+            new Vector2(500, 500),
+            kind: NoteKind.WeaponSwitch);
+        SetPlayhead(playfield, 1_000);
+        Press(KeybindAction.R2);
+
+        Frame();
+
+        Assert.That(
+            playfield.GetComponent<ArmedWeapon>().Kind,
+            Is.EqualTo(WeaponKind.Axe));
+        Assert.That(
+            playfield.GetComponent<ScoreState>().LastJudgement,
+            Is.EqualTo(Judgement.FlawlessP));
+    }
+
+    [Test]
+    public void WeaponSwitchNoteIsInertForContact()
+    {
+        Entity playfield = CreatePlayfield(totalNotes: 1);
+        playfield.AddComponent(new PlayerCharacter(CharacterKind.Contact));
+        playfield.AddComponent(new ContactCounters());
+        Entity note = CreateNote(
+            1_000,
+            new Vector2(500, 500),
+            kind: NoteKind.WeaponSwitch);
+        SetPlayhead(playfield, 1_000);
+        Press(KeybindAction.L1);
+
+        Frame();
+
+        Assert.That(note.HasComponent<Note>(), Is.True);
+        Assert.That(
+            playfield.GetComponent<ScoreState>().NotesHit,
+            Is.Zero);
+    }
+
+    [Test]
+    public void ArmedSwingHitsEverySameTimestampNoteInsideTheSpear()
+    {
+        Entity playfield = CreatePlayfield(totalNotes: 3);
+        playfield.AddComponent(new PlayerCharacter(CharacterKind.Armed));
+        playfield.AddComponent(new ArmedWeapon(WeaponKind.Spear));
+        playfield.AddComponent(new CharacterFacing());
+        CreateNote(1_000, new Vector2(600, 500), KeybindAction.L1);
+        CreateNote(1_000, new Vector2(550, 500), KeybindAction.R2);
+        Entity outside = CreateNote(
+            1_000,
+            new Vector2(600, 540),
+            KeybindAction.L3);
+        SetPlayhead(playfield, 1_000);
+        Press(KeybindAction.L1);
+
+        Frame();
+
+        Assert.That(outside.HasComponent<Note>(), Is.True);
+        Assert.That(
+            playfield.GetComponent<ScoreState>().NotesHit,
+            Is.EqualTo(2));
+        Assert.That(_store.Query<Note>().Count, Is.EqualTo(1));
+    }
+
+    [Test]
+    public void SpearHitClearsDownwardMomentum()
+    {
+        Entity playfield = CreatePlayfield(totalNotes: 1);
+        playfield.AddComponent(new PlayerCharacter(CharacterKind.Armed));
+        playfield.AddComponent(new ArmedWeapon(WeaponKind.Spear));
+        playfield.AddComponent(new CharacterFacing());
+        var body = _physics.CreateDynamicBox(
+            new Vector2(500, 500),
+            Player.DefaultSize);
+        playfield.AddComponent(new PhysicsBody(body));
+        body.SetLinearVelocity(new NVector2(0f, 5f));
+        CreateNote(1_000, new Vector2(600, 500), KeybindAction.L1);
+        SetPlayhead(playfield, 1_000);
+        Press(KeybindAction.L1);
+
+        Frame();
+
+        Assert.That(body.LinearVelocity.Y, Is.Zero);
+    }
+
+    [Test]
+    public void AxeHitKnocksThePlayerBackwards()
+    {
+        Entity playfield = CreatePlayfield(totalNotes: 1);
+        playfield.AddComponent(new PlayerCharacter(CharacterKind.Armed));
+        playfield.AddComponent(new ArmedWeapon(WeaponKind.Axe));
+        playfield.AddComponent(new CharacterFacing());
+        var body = _physics.CreateDynamicBox(
+            new Vector2(500, 500),
+            Player.DefaultSize);
+        playfield.AddComponent(new PhysicsBody(body));
+        CreateNote(1_000, new Vector2(600, 500), KeybindAction.L1);
+        SetPlayhead(playfield, 1_000);
+        Press(KeybindAction.L1);
+
+        Frame();
+
+        Assert.That(body.LinearVelocity.X, Is.LessThan(0f));
     }
 
     [Test]
@@ -621,53 +827,50 @@ public sealed class PlayNoteInputSystemTests
     }
 
     [Test]
-    public void ContactConsumesItsRequiredCounter()
+    public void OldContactNoteUsesItsKeySideAsALegacyCost()
     {
         Entity playfield = CreatePlayfield(totalNotes: 1);
-        playfield.AddComponent(new ContactCounters());
-        playfield.GetComponent<ContactCounters>().Add(KeybindAction.R2, 3);
+        playfield.AddComponent(new PlayerCharacter(CharacterKind.Contact));
+        playfield.AddComponent(new ContactCounters { Left = 2, Right = 1 });
         CreateNote(
             1_000,
             new Vector2(500, 500),
             KeybindAction.R2,
             NoteKind.Contact,
-            contactRequired: 2);
+            contactRequired: 1);
         SetPlayhead(playfield, 1_000);
-        Press(KeybindAction.R2);
 
         Frame();
 
+        ContactCounters counters = playfield.GetComponent<ContactCounters>();
+        Assert.That(counters.Left, Is.EqualTo(2));
+        Assert.That(counters.Right, Is.Zero);
         Assert.That(
-            playfield.GetComponent<ContactCounters>().Get(KeybindAction.R2),
-            Is.EqualTo(1));
-        Assert.That(
-            playfield.GetComponent<ScoreState>().LastJudgement,
-            Is.EqualTo(Judgement.FlawlessP));
+            playfield.GetComponent<ScoreState>().AccuracyPenalty,
+            Is.Zero);
     }
 
     [Test]
-    public void ContactFailsWhenItDoesNotHaveEnoughCounter()
+    public void PausedContactBarrierDoesNotResolve()
     {
-        Entity playfield = CreatePlayfield(totalNotes: 1);
-        playfield.AddComponent(new ContactCounters());
-        playfield.GetComponent<ContactCounters>().Add(KeybindAction.R2, 1);
-        CreateNote(
+        Entity playfield = CreatePlayfield(totalNotes: 1, paused: true);
+        playfield.AddComponent(new PlayerCharacter(CharacterKind.Contact));
+        playfield.AddComponent(new ContactCounters { Left = 1, Right = 1 });
+        Entity barrier = CreateNote(
             1_000,
             new Vector2(500, 500),
-            KeybindAction.R2,
-            NoteKind.Contact,
-            contactRequired: 2);
+            kind: NoteKind.Contact,
+            contactRequired: 0,
+            contactLeft: 1,
+            contactRight: 1);
         SetPlayhead(playfield, 1_000);
-        Press(KeybindAction.R2);
 
         Frame();
 
-        Assert.That(
-            playfield.GetComponent<ContactCounters>().Get(KeybindAction.R2),
-            Is.EqualTo(1));
-        Assert.That(
-            playfield.GetComponent<ScoreState>().LastJudgement,
-            Is.EqualTo(Judgement.Miss));
+        Assert.That(barrier.HasComponent<Note>(), Is.True);
+        ContactCounters counters = playfield.GetComponent<ContactCounters>();
+        Assert.That(counters.Left, Is.EqualTo(1));
+        Assert.That(counters.Right, Is.EqualTo(1));
     }
 
     [Test]
@@ -701,6 +904,264 @@ public sealed class PlayNoteInputSystemTests
             Is.EqualTo(Judgement.Miss));
     }
 
+    [Test]
+    public void PairNoteIsClaimedByEitherSideAndBanksThatSide()
+    {
+        Entity playfield = CreatePlayfield(totalNotes: 1);
+        playfield.AddComponent(new PlayerCharacter(CharacterKind.Contact));
+        playfield.AddComponent(new ContactCounters());
+        CreateNote(
+            1_000,
+            new Vector2(500, 500),
+            KeybindAction.L2,
+            NoteKind.Pair,
+            pairIndex: PairIndex.Two);
+        SetPlayhead(playfield, 1_000);
+        Press(KeybindAction.R2);
+
+        Frame();
+
+        Assert.That(
+            playfield.GetComponent<ScoreState>().LastJudgement,
+            Is.EqualTo(Judgement.FlawlessP));
+        Assert.That(
+            playfield.GetComponent<ContactCounters>().Get(KeybindAction.R2),
+            Is.EqualTo(1));
+        Assert.That(
+            playfield.GetComponent<ContactCounters>().Get(KeybindAction.L2),
+            Is.Zero);
+    }
+
+    [Test]
+    public void PairNoteIsJudgedOnlyOnceWhenBothSidesArePressed()
+    {
+        Entity playfield = CreatePlayfield(totalNotes: 1);
+        playfield.AddComponent(new PlayerCharacter(CharacterKind.Contact));
+        playfield.AddComponent(new ContactCounters());
+        CreateNote(
+            1_000,
+            new Vector2(500, 500),
+            kind: NoteKind.Pair,
+            pairIndex: PairIndex.Two);
+        SetPlayhead(playfield, 1_000);
+        Press(KeybindAction.L2);
+        Press(KeybindAction.R2);
+
+        Frame();
+
+        Assert.That(playfield.GetComponent<ScoreState>().NotesHit, Is.EqualTo(1));
+        ContactCounters counters = playfield.GetComponent<ContactCounters>();
+        Assert.That(
+            counters.Get(KeybindAction.L2) + counters.Get(KeybindAction.R2),
+            Is.EqualTo(1));
+    }
+
+    [Test]
+    public void ChannelStartAbsorbsTheSideUntilItsEndMarker()
+    {
+        Entity playfield = CreatePlayfield(totalNotes: 1);
+        playfield.AddComponent(new PlayerCharacter(CharacterKind.SplitLine));
+        playfield.AddComponent(new SplitlineState());
+        CreateNote(
+            1_000,
+            new Vector2(500, 500),
+            KeybindAction.L1,
+            NoteKind.Channel,
+            channelSide: ChannelSide.Left);
+        Entity end = CreateNote(
+            2_000,
+            Vector2.Zero,
+            kind: NoteKind.ChannelEnd,
+            channelSide: ChannelSide.Left);
+        SetPlayhead(playfield, 1_000);
+        Press(KeybindAction.L1);
+
+        Frame();
+
+        SplitlineState state = playfield.GetComponent<SplitlineState>();
+        Assert.That(state.LeftActive, Is.True);
+        Assert.That(state.LeftEndMs, Is.EqualTo(2_000));
+        Assert.That(end.IsNull, Is.True);
+        Assert.That(_store.Query<Note>().Count, Is.Zero);
+    }
+
+    [Test]
+    public void RailTapUsesTheAbsorbedSideKey()
+    {
+        Entity playfield = CreatePlayfield(totalNotes: 1);
+        playfield.AddComponent(new PlayerCharacter(CharacterKind.SplitLine));
+        playfield.AddComponent(new SplitlineState
+        {
+            LeftActive = true,
+            LeftEndMs = 5_000,
+        });
+        CreateNote(
+            1_000,
+            Vector2.Zero,
+            kind: NoteKind.Rail,
+            pairIndex: PairIndex.One,
+            channelSide: ChannelSide.Left);
+        SetPlayhead(playfield, 1_000);
+        Press(KeybindAction.L1);
+
+        Frame();
+
+        Assert.That(_store.Query<Note>().Count, Is.Zero);
+        Assert.That(
+            playfield.GetComponent<ScoreState>().LastJudgement,
+            Is.EqualTo(Judgement.FlawlessP));
+    }
+
+    [Test]
+    public void RailHoldStartsAHoldAndReleasingEarlyFailsIt()
+    {
+        Entity playfield = CreatePlayfield(totalNotes: 1);
+        playfield.AddComponent(new PlayerCharacter(CharacterKind.SplitLine));
+        playfield.AddComponent(new SplitlineState
+        {
+            LeftActive = true,
+            LeftEndMs = 5_000,
+        });
+        CreateNote(
+            1_000,
+            Vector2.Zero,
+            kind: NoteKind.Rail,
+            pairIndex: PairIndex.One,
+            channelSide: ChannelSide.Left,
+            holdMs: 500);
+        SetPlayhead(playfield, 1_000);
+        Press(KeybindAction.L1);
+
+        Frame();
+        Assert.That(_store.Query<RailHold>().Count, Is.EqualTo(1));
+
+        Release(KeybindAction.L1);
+        SetPlayhead(playfield, 1_100);
+        Frame();
+
+        Assert.That(_store.Query<RailHold>().Count, Is.Zero);
+        Assert.That(
+            playfield.GetComponent<ScoreState>().AccuracyPenalty,
+            Is.GreaterThan(0));
+        Assert.That(
+            playfield.GetComponent<ScoreState>().LastJudgement,
+            Is.EqualTo(Judgement.Miss));
+    }
+
+    [Test]
+    public void BothChannelsRemoveThePlayerUntilOneEnds()
+    {
+        Entity playfield = CreatePlayfield(totalNotes: 1);
+        playfield.AddComponent(new SplitlineState
+        {
+            LeftActive = true,
+            RightActive = true,
+            LeftEndMs = 2_000,
+            RightEndMs = 5_000,
+        });
+
+        Frame();
+        Assert.That(playfield.GetComponent<SplitlineState>().Absent, Is.True);
+        Assert.That(playfield.Tags.Has<SplitlineAbsent>(), Is.True);
+
+        SetPlayhead(playfield, 2_000);
+        Frame();
+
+        SplitlineState state = playfield.GetComponent<SplitlineState>();
+        Assert.That(state.LeftActive, Is.False);
+        Assert.That(state.Absent, Is.False);
+        Assert.That(playfield.Tags.Has<SplitlineAbsent>(), Is.False);
+    }
+
+    [Test]
+    public void ConstructionMarkerStartsTheShape()
+    {
+        Entity playfield = CreatePlayfield(totalNotes: 1);
+        playfield.AddComponent(new PlayerCharacter(CharacterKind.Form));
+        _store.CreateEntity(new Block(
+            Vector2.Zero,
+            new Vector2(100, 100),
+            shapeId: 5,
+            shapePiece: 0)).AddTag<ConstructionHidden>();
+        _store.CreateEntity(new Block(
+            new Vector2(200, 0),
+            new Vector2(100, 100),
+            shapeId: 5,
+            shapePiece: 1)).AddTag<ConstructionHidden>();
+        CreateNote(
+            1_000,
+            new Vector2(500, 500),
+            KeybindAction.L1,
+            NoteKind.Construction,
+            shapeId: 5);
+        SetPlayhead(playfield, 1_000);
+        Press(KeybindAction.L1);
+
+        Frame();
+
+        ConstructionState state = playfield.GetComponent<ConstructionState>();
+        Assert.That(state.Active, Is.True);
+        Assert.That(state.ShapeId, Is.EqualTo(5));
+        Assert.That(state.TotalPieces, Is.EqualTo(2));
+    }
+
+    [Test]
+    public void ConstructionStepRevealsItsBlockAndCompletesTheShape()
+    {
+        Entity playfield = CreatePlayfield(totalNotes: 1);
+        playfield.AddComponent(new PlayerCharacter(CharacterKind.Form));
+        playfield.AddComponent(new ConstructionState
+        {
+            Active = true,
+            ShapeId = 5,
+            TotalPieces = 2,
+        });
+        Entity block = _store.CreateEntity(new Block(
+            Vector2.Zero,
+            new Vector2(100, 100),
+            shapeId: 5,
+            shapePiece: 0));
+        block.AddTag<ConstructionHidden>();
+        CreateNote(
+            1_000,
+            new Vector2(500, 500),
+            KeybindAction.L1,
+            NoteKind.ConstructionStep,
+            shapeId: 5,
+            shapePiece: 0);
+        SetPlayhead(playfield, 1_000);
+        Press(KeybindAction.L1);
+
+        Frame();
+
+        Assert.That(block.Tags.Has<ConstructionHidden>(), Is.False);
+        ConstructionState state = playfield.GetComponent<ConstructionState>();
+        Assert.That(state.BuiltPieces, Is.EqualTo(1));
+        Assert.That(_store.Query<Note>().Count, Is.Zero);
+    }
+
+    [Test]
+    public void ConstructionStepIsInertWithoutAnActiveShape()
+    {
+        Entity playfield = CreatePlayfield(totalNotes: 1);
+        playfield.AddComponent(new PlayerCharacter(CharacterKind.Form));
+        playfield.AddComponent(new ConstructionState { ShapeId = 5 });
+        Entity step = CreateNote(
+            1_000,
+            new Vector2(500, 500),
+            KeybindAction.L1,
+            NoteKind.ConstructionStep,
+            shapeId: 5,
+            shapePiece: 0);
+        SetPlayhead(playfield, 1_000);
+        Press(KeybindAction.L1);
+
+        Frame();
+
+        Assert.That(step.HasComponent<Note>(), Is.True);
+        Assert.That(playfield.GetComponent<ScoreState>().NotesHit, Is.Zero);
+    }
+
     private Entity CreatePlayfield(int totalNotes, bool paused = false)
     {
         Entity playfield = _store.CreateEntity(
@@ -729,14 +1190,30 @@ public sealed class PlayNoteInputSystemTests
         KeybindAction target = KeybindAction.M,
         NoteKind kind = NoteKind.Hit,
         int contactRequired = 1,
-        CharacterKind character = CharacterKind.Contact) =>
+        CharacterKind character = CharacterKind.Contact,
+        PairIndex pairIndex = PairIndex.One,
+        float momentum = Note.DefaultMomentum,
+        int contactLeft = 0,
+        int contactRight = 0,
+        ChannelSide channelSide = ChannelSide.Left,
+        long holdMs = 0,
+        int shapeId = 0,
+        int shapePiece = 0) =>
         _store.CreateEntity(new Note(
             timeMs,
             position,
             target: target,
             kind: kind,
             contactRequired: contactRequired,
-            character: character));
+            character: character,
+            pairIndex: pairIndex,
+            momentum: momentum,
+            contactLeft: contactLeft,
+            contactRight: contactRight,
+            channelSide: channelSide,
+            holdMs: holdMs,
+            shapeId: shapeId,
+            shapePiece: shapePiece));
 
     private void SetPlayhead(Entity playfield, long timeMs) =>
         playfield.GetComponent<Playhead>().TimeMs = timeMs;

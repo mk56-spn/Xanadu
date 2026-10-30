@@ -82,7 +82,7 @@ public sealed class EditorChromeLayoutTests : EcsSystemTest
             tools.Add(Area(entity));
         tools.Sort((a, b) => a.Position.Y.CompareTo(b.Position.Y));
 
-        Assert.That(tools, Has.Count.EqualTo(8));
+        Assert.That(tools, Has.Count.EqualTo(13));
         Assert.That(tools[0].Position.X, Is.EqualTo(4f).Within(0.5f));
         Assert.That(tools[0].Position.Y, Is.GreaterThanOrEqualTo(EditorShellMetrics.HeaderHeight));
         for (int i = 1; i < tools.Count; i++)
