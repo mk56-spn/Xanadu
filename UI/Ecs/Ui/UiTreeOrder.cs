@@ -1,12 +1,13 @@
 using System;
 using System.Collections.Generic;
+using Friflo.Engine.ECS;
 
 namespace Xanadu.Ecs;
 
-/// <summary>Depth-first ordering and depths for a flat list of tree items.</summary>
-internal static class UiTreeOrder
+/// <summary>Orderings over trees: depth-first for a flat list of items, and paint order for entities.</summary>
+public static class UiTreeOrder
 {
-    public static List<UiBuilder.TreeRow> DepthFirst(IReadOnlyList<UiTreeItem> items)
+    internal static List<UiBuilder.TreeRow> DepthFirst(IReadOnlyList<UiTreeItem> items)
     {
         var byId = new Dictionary<string, UiTreeItem>(StringComparer.Ordinal);
         foreach (UiTreeItem item in items)
@@ -44,6 +45,41 @@ internal static class UiTreeOrder
                 Visit(item, 0, children, ordered, visited);
         }
         return ordered;
+    }
+
+    /// <summary>
+    /// True when <paramref name="entity"/> paints after <paramref name="other"/>
+    /// on the same layer: a child after its ancestors, a later sibling after an
+    /// earlier one and everything under it. Separate trees fall back on ids.
+    /// </summary>
+    public static bool IsPaintedAfter(Entity entity, Entity other)
+    {
+        var path = new List<Entity>();
+        for (Entity at = entity; !at.IsNull; at = at.Parent)
+            path.Add(at);
+
+        var otherPath = new List<Entity>();
+        for (Entity at = other; !at.IsNull; at = at.Parent)
+            otherPath.Add(at);
+
+        int i = path.Count - 1;
+        int j = otherPath.Count - 1;
+        if (path[i] != otherPath[j])
+            return entity.Id > other.Id;
+
+        while (i > 0 && j > 0 && path[i - 1] == otherPath[j - 1])
+        {
+            i--;
+            j--;
+        }
+
+        if (i == 0)
+            return false;
+        if (j == 0)
+            return true;
+
+        Entity parent = path[i];
+        return parent.GetChildIndex(path[i - 1]) > parent.GetChildIndex(otherPath[j - 1]);
     }
 
     private static void Visit(

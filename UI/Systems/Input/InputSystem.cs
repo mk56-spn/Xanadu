@@ -8,8 +8,8 @@ using Position = Xanadu.Ecs.Position;
 namespace Xanadu.Systems.Input;
 
 /// <summary>
-/// Hit-tests <see cref="TakesInput"/> drawables in descending layer order and
-/// tags the topmost hit with <see cref="Pressed"/> while the pointer is down.
+/// Hit-tests <see cref="TakesInput"/> drawables in paint order and tags the
+/// topmost hit with <see cref="Pressed"/> while the pointer is down.
 /// </summary>
 public sealed class InputSystem : QuerySystem<Rectangle, Drawable, Position>
 {
@@ -37,24 +37,15 @@ public sealed class InputSystem : QuerySystem<Rectangle, Drawable, Position>
             Rect2 local = rect.Bounds;
             Vector2 world = UiTransform.WorldPosition(entity, position.Value);
             Rect2 screen = new(world + local.Position, local.Size);
-            if (!IsClippedOut(entity, input.Position))
-                _candidates.Add(new Candidate(entity, screen, drawable.ZIndex));
-        });
-
-        _candidates.Sort(static (left, right) =>
-        {
-            int layer = right.Layer.CompareTo(left.Layer);
-            return layer != 0 ? layer : right.Entity.Id.CompareTo(left.Entity.Id);
+            if (screen.HasPoint(input.Position) && !IsClippedOut(entity, input.Position))
+                _candidates.Add(new Candidate(entity, drawable.ZIndex));
         });
 
         Entity? target = null;
         foreach (Candidate candidate in _candidates)
         {
-            if (!candidate.Bounds.HasPoint(input.Position))
-                continue;
-
-            target = candidate.Entity;
-            break;
+            if (target is not { } best || IsAbove(candidate, best))
+                target = candidate.Entity;
         }
 
         CommandBuffer buffer = CommandBuffer;
@@ -135,5 +126,16 @@ public sealed class InputSystem : QuerySystem<Rectangle, Drawable, Position>
         _pressed = null;
     }
 
-    private readonly record struct Candidate(Entity Entity, Rect2 Bounds, int Layer);
+    /// <summary>
+    /// Whether a hit paints over the best so far: the higher layer, then by the
+    /// tree, where a child is above its parent and a later sibling above an earlier
+    /// one. Ids say nothing about this, because deleted ids are recycled.
+    /// </summary>
+    private bool IsAbove(in Candidate candidate, Entity best)
+    {
+        int layer = candidate.Layer.CompareTo(best.GetComponent<Drawable>().ZIndex);
+        return layer != 0 ? layer > 0 : UiTreeOrder.IsPaintedAfter(candidate.Entity, best);
+    }
+
+    private readonly record struct Candidate(Entity Entity, int Layer);
 }
