@@ -73,9 +73,6 @@ public static partial class SongSelectScene
         state.LevelPanel = levelPanel;
         state.ScoreViewport = scores.Viewport;
         state.ScoreContent = scores.Content;
-        state.ScoreBars = scores.Bars;
-        state.ScoreAccuracies = scores.Accuracies;
-        state.ScoreValues = scores.Values;
         state.ScoreThumb = scores.Thumb;
         state.Scroll = Mathf.Clamp(selected, 0, Mathf.Max(catalog.Count - 1, 0));
         Refresh(ref state, catalog, selected, profiles);

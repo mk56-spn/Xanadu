@@ -35,6 +35,7 @@ public sealed class EditorSystemGroup : SystemGroup, IDisposable
         Add(new EditorTimelineSystem());
         Add(new EditorAutosaveSystem(entities, LevelRecoveryStore.Default));
         Add(new EditorMetronomeSystem(metronomeAudio));
+        Add(new EditorViewSystem(pointerInput));
         Add(new EditorGroupTargetSystem(entities, pointerInput, history));
         Add(new EditorNoteInputSystem(entities, pointerInput, history));
         Add(new EditorDropdownSystem(entities, commands));

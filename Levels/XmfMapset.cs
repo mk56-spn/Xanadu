@@ -16,9 +16,9 @@ public sealed class XmfVariant : IChartItems
 
     public int SnapDivision { get; set; } = 4;
 
-    public int PlayfieldWidth { get; set; } = 1000;
+    public int PlayfieldWidth { get; set; } = LevelDocument.DefaultFieldSize;
 
-    public int PlayfieldHeight { get; set; } = 1000;
+    public int PlayfieldHeight { get; set; } = LevelDocument.DefaultFieldSize;
 
     /// <summary>The playfield background as #rrggbb or #rrggbbaa, or "" for the theme default.</summary>
     public string BackgroundColor { get; set; } = "";

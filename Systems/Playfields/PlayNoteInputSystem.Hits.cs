@@ -110,12 +110,7 @@ public sealed partial class PlayNoteInputSystem
         if (triggerAttack)
             CharacterAttackSystem.Trigger(playfield, hitPosition.Y, playerScreen.Y);
 
-        _entities.CreateEntity(new NotePop(
-            note,
-            hitPosition,
-            hitColor,
-            hitRadius,
-            PlayfieldRenderer.NotePopLifetime));
+        HitEffects.Spawn(_entities, playfield, note, hitPosition, hitColor, hitRadius);
         return true;
     }
 

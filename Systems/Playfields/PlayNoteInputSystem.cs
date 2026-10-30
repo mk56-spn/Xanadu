@@ -138,12 +138,7 @@ public sealed partial class PlayNoteInputSystem : QuerySystem<Note>
             position,
             PlayfieldRenderer.ColorFor(hitNote),
             KeybindSettings.KeyLabel(_keybinds.Get(action))));
-        _entities.CreateEntity(new NotePop(
-            hitNote,
-            position,
-            color,
-            radius,
-            PlayfieldRenderer.NotePopLifetime));
+        HitEffects.Spawn(_entities, playfield, hitNote, position, color, radius);
 
         if (hitNote.HoldMs > 0)
         {

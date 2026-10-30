@@ -15,6 +15,25 @@ public interface IAttachmentVisuals
     void Apply(Transform2D[] attachments, Transform2D placement);
 
     /// <summary>
+    /// Shows each attachment as the pose keys it (which art, on which layer,
+    /// or hidden) and bends the meshed ones with the bones. Called after
+    /// <see cref="Apply"/>, with the same pose's bone and attachment transforms.
+    /// </summary>
+    void ApplyStates(XafPackage package, XafPose pose, Transform2D[] bones, Transform2D[] attachments,
+        Transform2D placement) { }
+
+    /// <summary>
+    /// The canvas-space points and triangles a meshed attachment was last drawn
+    /// with, for an editor to outline; false when it is not drawn as a mesh.
+    /// </summary>
+    bool TryMesh(int attachment, out Vector2[] points, out int[] triangles)
+    {
+        points = System.Array.Empty<Vector2>();
+        triangles = System.Array.Empty<int>();
+        return false;
+    }
+
+    /// <summary>
     /// Places the art of each chain that has any, one piece per segment, along
     /// the simulated points. Chains are drawn over the attachments.
     /// </summary>

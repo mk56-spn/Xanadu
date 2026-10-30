@@ -1,3 +1,4 @@
+using System;
 using Godot;
 using Xanadu.Ecs;
 
@@ -9,12 +10,23 @@ namespace Xanadu.Systems.Playfields;
 /// </summary>
 public static class PlayfieldGrid
 {
-    /// <summary>Cells per axis.</summary>
+    /// <summary>Cells per axis for every <see cref="Span"/> units of field.</summary>
     public const int Divisions = 20;
 
+    /// <summary>
+    /// The field length that gets <see cref="Divisions"/> cells. A field up to
+    /// about this size is split into exactly that many; a bigger one gets that
+    /// many per span, so its cells stay about the same size instead of
+    /// stretching with the field.
+    /// </summary>
+    public const float Span = 1000f;
+
+    /// <summary>Cells along an axis of <paramref name="size"/> units; always even, so the centre lines are cell edges.</summary>
+    public static int DivisionsFor(int size) => Divisions * Math.Max(1, (int)MathF.Round(size / Span));
+
     public static Vector2 Cell(Playfield playfield) => new(
-        playfield.Width / (float)Divisions,
-        playfield.Height / (float)Divisions);
+        playfield.Width / (float)DivisionsFor(playfield.Width),
+        playfield.Height / (float)DivisionsFor(playfield.Height));
 
     /// <summary>The top-left of the cell containing <paramref name="point"/>.</summary>
     public static Vector2 Snap(Vector2 point, Playfield playfield)

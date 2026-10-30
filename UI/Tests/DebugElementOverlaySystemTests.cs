@@ -44,6 +44,33 @@ public sealed class DebugElementOverlaySystemTests
         Assert.That(canvas.Texts, Does.Contain("GREEN PINS"));
     }
 
+    [Test]
+    public void SelectedEntityIsDrawnLastInItsOwnColour()
+    {
+        var store = new EntityStore();
+        Entity picked = store.CreateEntity(
+            new Position(new Vector2(100, 100)),
+            new Rectangle(new Rect2(-25, -20, 50, 40)),
+            new ButtonVisual(Colors.Red, Colors.Red, Colors.White));
+        store.CreateEntity(
+            new Position(new Vector2(100, 100)),
+            new Rectangle(new Rect2(-10, -10, 20, 20)),
+            new ButtonVisual(Colors.Red, Colors.Red, Colors.White));
+        picked.AddTag<UiTreeOverlaySelected>();
+
+        var canvas = new RecordingCanvas();
+        var root = new SystemRoot(store)
+        {
+            new DebugElementOverlaySystem(canvas, default, new ScriptedToggle { Pressed = true }),
+        };
+        root.Update(new UpdateTick(1f / 60f, 0));
+
+        // Other box, then the picked box (fill + 4 edges), then the legend.
+        Assert.That(canvas.Rects, Has.Count.EqualTo(11));
+        Assert.That(canvas.Rects[5], Is.EqualTo(new Rect2(75, 80, 50, 40)));
+        Assert.That(canvas.Colors[5], Is.Not.EqualTo(canvas.Colors[0]));
+    }
+
     private sealed class ScriptedToggle : IOverlayToggleSource
     {
         public bool Pressed;
@@ -54,12 +81,17 @@ public sealed class DebugElementOverlaySystemTests
     {
         public bool Visible { get; private set; }
         public List<Rect2> Rects { get; } = new();
+        public List<Color> Colors { get; } = new();
         public List<(Vector2 Center, float Radius)> Circles { get; } = new();
         public List<string> Texts { get; } = new();
         public void SetVisible(Rid canvas, bool visible) => Visible = visible;
         public void SetTransform(Rid canvas, Transform2D transform) { }
         public void Clear(Rid canvas) { }
-        public void DrawRect(Rid canvas, Rect2 bounds, Color color) => Rects.Add(bounds);
+        public void DrawRect(Rid canvas, Rect2 bounds, Color color)
+        {
+            Rects.Add(bounds);
+            Colors.Add(color);
+        }
         public void DrawCircle(Rid canvas, Vector2 center, float radius, Color color) =>
             Circles.Add((center, radius));
         public void DrawCircleOutline(

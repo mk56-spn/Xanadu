@@ -634,6 +634,20 @@ public sealed class EditorNoteInputSystemTests
     }
 
     [Test]
+    public void PressesOnAPanelOverTheFieldDoNotPlaceNotes()
+    {
+        _store.CreateEntity(
+            new Xanadu.Ecs.Position(new Vector2(100, 200)),
+            new Rectangle(new Rect2(-60, -60, 120, 120)),
+            Tags.Get<TakesInput>());
+
+        _pointer.Current = new PointerInput(new Vector2(100, 200), true);
+        _root.Update(new UpdateTick(1f / 60f, 0));
+
+        Assert.That(_store.Query<Note>().Count, Is.Zero);
+    }
+
+    [Test]
     public void ClickingExistingNoteSelectsWithoutAdding()
     {
         _pointer.Current = new PointerInput(new Vector2(100, 200), true);

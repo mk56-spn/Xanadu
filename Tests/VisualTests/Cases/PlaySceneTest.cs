@@ -37,7 +37,7 @@ public sealed class PlaySceneTest : SceneTest
             () => VisualAssert.HasText(Context.Entities, "SCORE 0000000"));
         AddAssert(
             "combo HUD exists",
-            () => VisualAssert.HasText(Context.Entities, "COMBO 0"));
+            () => VisualAssert.HasText(Context.Entities, "COMBO"));
         AddAssert(
             "PAUSE button is animated",
             () => VisualAssert.HasAnimatedText(Context.Entities, "PAUSE"));

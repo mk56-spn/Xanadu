@@ -52,6 +52,8 @@ public partial class AnimatorTool : Control
 
     /// <summary>Set by <c>--dress=bone</c>: a dress hanging from that bone, selected.</summary>
     private string? _dress;
+    private string? _cloth;
+    private string? _svg;
 
     public override void _Ready()
     {
@@ -122,6 +124,10 @@ public partial class AnimatorTool : Control
             AnimatorCommands.Run(_session, new ToolAction(ToolActionKind.SelectBone, _dress));
             AnimatorCommands.Run(_session, new ToolAction(ToolActionKind.AddCloth));
         }
+        if (_frames == 2 && _svg is not null)
+            AnimatorCommands.Run(_session, new ToolAction(ToolActionKind.SelectAttachment, _svg));
+        if (_frames == 2 && _cloth is not null)
+            AnimatorCommands.Run(_session, new ToolAction(ToolActionKind.SelectCloth, _cloth));
         if (_frames == 2 && _paths is not null)
             ShowPaths(_paths);
         if (_frames == 2 && _startInPreview)
@@ -141,7 +147,9 @@ public partial class AnimatorTool : Control
     /// <c>--flow=from&gt;to</c>, <c>--streak=bone</c>, <c>--preview</c> and
     /// <c>--paths=bone,bone</c> (motion paths on, those bones selected; empty for none),
     /// with <c>@clip</c> after the bones to open that clip paused at its middle,
-    /// and <c>--dress=bone</c> (adds a dress hanging from that bone and selects it).
+    /// <c>--dress=bone</c> (adds a dress hanging from that bone and selects it)
+    /// <c>--cloth=index</c> (selects an existing cloth, so its overlay shows) and
+    /// <c>--svg=index</c> (selects an attachment, so its mesh outline shows).
     /// </summary>
     private void ReadArguments()
     {
@@ -167,6 +175,10 @@ public partial class AnimatorTool : Control
                 _paths = argument["--paths=".Length..];
             else if (argument.StartsWith("--dress=", StringComparison.Ordinal))
                 _dress = argument["--dress=".Length..];
+            else if (argument.StartsWith("--svg=", StringComparison.Ordinal))
+                _svg = argument["--svg=".Length..];
+            else if (argument.StartsWith("--cloth=", StringComparison.Ordinal))
+                _cloth = argument["--cloth=".Length..];
         }
     }
 

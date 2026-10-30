@@ -129,7 +129,7 @@ public static partial class AnimatorLayout
             switch (i)
             {
                 case PoseTab:
-                    BuildPoseBody(menu);
+                    BuildScrolling(menu, shell.RightBody.Size, BuildPoseBody);
                     break;
                 case EffectTab:
                     BuildEffectBody(menu, ref refs);
@@ -147,6 +147,27 @@ public static partial class AnimatorLayout
             shell.RightBody.Position + shell.RightBody.Size / 2));
     }
 
+    /// <summary>
+    /// A body whose rows may outgrow the tab: they sit in a clipped viewport
+    /// that scrolls, so they never spill over the timeline below.
+    /// </summary>
+    private static void BuildScrolling(UiBuilder menu, Vector2 body, System.Action<UiBuilder> rows)
+    {
+        float width = body.X - UiTheme.ContainerPadding * 2;
+        menu.Container(Vector2.Zero, new Vector2(width, body.Y - UiTheme.ContainerPadding * 2),
+            StackDirection.Vertical, clip: true, color: UiTheme.Panel, takesInput: false);
+        Entity viewport = menu.Current;
+        menu.Container(Vector2.Zero, new Vector2(width, 4), StackDirection.Vertical,
+            spacing: UiTheme.ContainerSpacing, color: Clear,
+            cross: StackCrossAlignment.Center, autoHeight: true,
+            main: StackMainAlignment.Start);
+        Entity content = menu.Current;
+        rows(menu);
+        menu.End();
+        menu.End();
+        viewport.AddComponent(new ScrollView(content));
+    }
+
     /// <summary>Moving the selected bones, then keying them and passing poses between frames.</summary>
     private static void BuildPoseBody(UiBuilder menu)
     {
@@ -154,12 +175,25 @@ public static partial class AnimatorLayout
         Row(menu, ("ROT -", ToolActionKind.RotateLeft), ("ROT +", ToolActionKind.RotateRight));
         Row(menu, ("SCALE -", ToolActionKind.ScaleDown), ("SCALE +", ToolActionKind.ScaleUp));
         Row(menu, ("MIRROR", ToolActionKind.MirrorPose), ("MOVE", ToolActionKind.ToggleMovable));
+        Row(menu, ("LOCK BEND", ToolActionKind.LockBend));
+        menu.EndCollapsible();
+
+        // The selected SVG: what it shows, on which layer, and whether it bends.
+        menu.Collapsible("ART", ButtonWidth);
+        SmallRow(menu, ("+ ART", ToolActionKind.AddArt), ("DROP ART", ToolActionKind.DropArt));
+        SmallRow(menu, ("ART <", ToolActionKind.PreviousArt), ("ART >", ToolActionKind.NextArt));
+        SmallRow(menu, ("LAYER -", ToolActionKind.LayerDownKey), ("LAYER +", ToolActionKind.LayerUpKey));
+        SmallRow(menu, ("SHOW / HIDE", ToolActionKind.ToggleArtVisible));
+        SmallRow(menu, ("MESH", ToolActionKind.ToggleMesh), ("BONES", ToolActionKind.PickMeshBones));
+        SmallRow(menu, ("DETAIL -", ToolActionKind.MeshDetailDown), ("DETAIL +", ToolActionKind.MeshDetailUp));
+        SmallRow(menu, ("BLEND -", ToolActionKind.MeshBlendDown), ("BLEND +", ToolActionKind.MeshBlendUp));
         menu.EndCollapsible();
 
         menu.Collapsible("KEYS", ButtonWidth);
         SmallRow(menu, ("KEY BONE", ToolActionKind.KeyBone), ("KEY POSE", ToolActionKind.KeyPose));
         SmallRow(menu, ("COPY POSE", ToolActionKind.CopyPose), ("PASTE POSE", ToolActionKind.PastePose));
         SmallRow(menu, ("COPY KEYS", ToolActionKind.CopyKeys), ("PASTE KEYS", ToolActionKind.PasteKeys));
+        SmallRow(menu, ("+ EVENT", ToolActionKind.AddEvent));
         menu.EndCollapsible();
     }
 

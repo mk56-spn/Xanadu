@@ -38,6 +38,9 @@ GODOT=/path/to/Godot_v4.8-dev7_mono_linux.x86_64
   --visual-test=settings --visual-test-shot=/tmp/harness.png
 ```
 
+`--visual-test-full` drops the sidebar so the scene, and a shot of it, spans
+the whole window; without it the stage starts 340 px in and its right edge is cut off.
+
 `--visual-test-exit` is the CI-only exit switch: without it, finishing a run
 leaves the window open. `--visual-test=all` keeps going past failures.
 

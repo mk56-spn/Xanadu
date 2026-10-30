@@ -20,6 +20,13 @@ public readonly record struct AnimatorSvgChoice(string Path, string Group)
     }
 }
 
+/// <summary>Clicking bones in the preview toggles which of them bend <see cref="Attachment"/>'s mesh.</summary>
+public struct AnimatorMeshPick : IComponent
+{
+    public bool Active;
+    public int Attachment;
+}
+
 /// <summary>
 /// The ADD SVG picker opened from the bone menu. It lists every group of every
 /// SVG the project holds and adds the chosen one to <see cref="Bone"/>.
@@ -36,6 +43,9 @@ public struct AnimatorSvgMenu : IComponent
 
     /// <summary>The choice is the art of the selected chain, not a new attachment, and closes the picker.</summary>
     public bool ForChain;
+
+    /// <summary>The choice is new alternate art for the selected attachment, and closes the picker.</summary>
+    public bool ForArt;
 
     /// <summary>Every addable group, refreshed each time the picker opens.</summary>
     public List<AnimatorSvgChoice>? Choices;

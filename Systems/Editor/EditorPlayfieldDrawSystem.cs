@@ -102,11 +102,11 @@ public sealed partial class EditorPlayfieldDrawSystem :
             new Rect2(Vector2.Zero, view.ScreenSize),
             EditorBackground);
 
-        DrawChrome(view);
-
+        Rect2 area = EditorViewport.Area(view.ScreenSize);
         Rect2 field = PlayfieldRenderer.FieldRect(view, playfield);
+        PlayfieldRenderer.DrawOuterGrid(_canvas, _editor, playfield, field, area);
         PlayfieldRenderer.DrawField(_canvas, _editor, field, 1, background);
-        PlayfieldRenderer.DrawGrid(_canvas, _editor, playfield, field);
+        PlayfieldRenderer.DrawGrid(_canvas, _editor, playfield, field, area);
         PlayfieldRenderer.DrawBlocks(_canvas, _editor, _entities, view, selection.Note);
         PlayfieldRenderer.DrawSpikes(_canvas, _editor, _entities, view, selection.Note);
         PlayfieldRenderer.DrawNotes(
@@ -139,6 +139,10 @@ public sealed partial class EditorPlayfieldDrawSystem :
         if (groupState.TargetEdit)
             DrawGroupTarget(view, playfield, groups, groupState, selection);
         DrawBlockHandles(view, selection);
+
+        // The chrome goes over the field, so a panned or zoomed field stays out of it.
+        DrawMasks(view, area);
+        DrawChrome(view);
         DrawRuler(view, playhead, selection, timeline, preview);
         DrawSelectionBox(selectionBox);
     }
@@ -281,6 +285,16 @@ public sealed partial class EditorPlayfieldDrawSystem :
 
     private void DrawSelectionBox(UiMarqueeBox box) =>
         CanvasMarquee.Draw(_canvas, _editor, box);
+
+    /// <summary>Covers everything above and below the field area with the editor's background.</summary>
+    private void DrawMasks(PlayfieldView view, Rect2 area)
+    {
+        _canvas.DrawRect(_editor, new Rect2(0, 0, view.ScreenSize.X, area.Position.Y), EditorBackground);
+        _canvas.DrawRect(
+            _editor,
+            new Rect2(0, area.End.Y, view.ScreenSize.X, view.ScreenSize.Y - area.End.Y),
+            EditorBackground);
+    }
 
     private void DrawChrome(PlayfieldView view)
     {

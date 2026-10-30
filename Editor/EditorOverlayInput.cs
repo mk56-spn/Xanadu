@@ -29,8 +29,17 @@ public partial class EditorOverlay : CanvasLayer
                 return;
             }
 
-            ref Playhead playhead = ref _editor.GetComponent<Playhead>();
             int direction = wheel.ButtonIndex == MouseButton.WheelUp ? -1 : 1;
+            if (wheel.CtrlPressed && _editor.HasComponent<EditorViewNavigation>())
+            {
+                // Ctrl+wheel zooms the field view about the pointer instead of seeking.
+                ref EditorViewNavigation navigation = ref _editor.GetComponent<EditorViewNavigation>();
+                navigation.ZoomSteps -= direction;
+                GetViewport().SetInputAsHandled();
+                return;
+            }
+
+            ref Playhead playhead = ref _editor.GetComponent<Playhead>();
             _commands.Enqueue(EditorCommand.Seek(
                 EditorScroll.Target(
                     playhead,
@@ -49,6 +58,15 @@ public partial class EditorOverlay : CanvasLayer
         if (key.Keycode == Key.F5)
         {
             StartPreview();
+            GetViewport().SetInputAsHandled();
+            return;
+        }
+
+        if (key.Keycode == Key.Home &&
+            GetViewport().GuiGetFocusOwner() is not LineEdit &&
+            _editor.HasComponent<EditorViewNavigation>())
+        {
+            _editor.GetComponent<EditorViewNavigation>().FitRequested = true;
             GetViewport().SetInputAsHandled();
             return;
         }

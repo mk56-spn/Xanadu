@@ -1,13 +1,18 @@
+using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Godot;
 using Xanadu.Ecs;
 using Xanadu.Systems.Canvas;
 using Xanadu.Systems.Input;
+using Xanadu.Theme;
 using Position = Xanadu.Ecs.Position;
 
 namespace Xanadu.Ui.Systems.Ui;
 
-/// <summary>F4 overlay showing button and container bounds.</summary>
+/// <summary>
+/// F4 overlay showing button and container bounds. The entity picked in the F4
+/// tree is drawn last in its own colour, so its children's boxes cannot hide it.
+/// </summary>
 public sealed class DebugElementOverlaySystem(
     IRectCanvas canvas,
     Rid overlay,
@@ -18,6 +23,8 @@ public sealed class DebugElementOverlaySystem(
     private static readonly Color ButtonBorder = new(1f, 0.3f, 0.3f, 0.8f);
     private static readonly Color ContainerFill = new(1f, 0.8f, 0.2f, 0.10f);
     private static readonly Color ContainerBorder = new(1f, 0.85f, 0.25f, 0.7f);
+    private static readonly Color SelectedFill = new(0.2f, 0.9f, 1f, 0.3f);
+    private static readonly Color SelectedBorder = new(0.3f, 0.95f, 1f, 1f);
     private static readonly Color PinColor = new(0.3f, 1f, 0.45f, 0.95f);
     private readonly OverlayLatch _latch = new(toggle);
 
@@ -29,6 +36,7 @@ public sealed class DebugElementOverlaySystem(
         if (!_latch.Visible)
             return;
 
+        Rect2? selected = null;
         Query.ForEachEntity((ref rect, ref position, entity) =>
         {
             if (rect.Bounds.Size.X <= 0 || rect.Bounds.Size.Y <= 0)
@@ -43,10 +51,17 @@ public sealed class DebugElementOverlaySystem(
             var bounds = new Rect2(
                 world + rect.Bounds.Position,
                 rect.Bounds.Size);
-            if (button)
-                DrawBounds(bounds, ButtonFill, ButtonBorder);
-            if (container)
-                DrawBounds(bounds, ContainerFill, ContainerBorder);
+            if (entity.Tags.Has<UiTreeOverlaySelected>())
+            {
+                selected = bounds;
+            }
+            else
+            {
+                if (button)
+                    DrawBounds(bounds, ButtonFill, ButtonBorder);
+                if (container)
+                    DrawBounds(bounds, ContainerFill, ContainerBorder);
+            }
 
             if (entity.HasComponent<UiAnchor>())
             {
@@ -63,6 +78,9 @@ public sealed class DebugElementOverlaySystem(
                     1);
             }
         });
+
+        if (selected is { } picked)
+            DrawBounds(picked, SelectedFill, SelectedBorder, UiMetrics.Border.Medium);
 
         canvas.DrawRect(
             overlay,
@@ -83,12 +101,20 @@ public sealed class DebugElementOverlaySystem(
             new Rect2(24, 52, 294, 16),
             "GREEN PINS",
             PinColor);
+        canvas.DrawTextLeft(
+            overlay,
+            new Rect2(150, 52, 168, 16),
+            "CYAN SELECTED",
+            SelectedBorder);
     }
 
-    private void DrawBounds(Rect2 bounds, Color fill, Color border)
+    private void DrawBounds(
+        Rect2 bounds,
+        Color fill,
+        Color border,
+        float width = UiMetrics.Border.Thin)
     {
         canvas.DrawRect(overlay, bounds, fill);
-        const float width = 1f;
         canvas.DrawRect(
             overlay,
             new Rect2(bounds.Position, new Vector2(bounds.Size.X, width)),

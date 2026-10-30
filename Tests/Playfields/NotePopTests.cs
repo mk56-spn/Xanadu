@@ -14,10 +14,10 @@ public sealed class NotePopTests
             Is.EqualTo(10f).Within(0.001f));
         Assert.That(
             PlayfieldRenderer.NotePopRadius(10f, 1f),
-            Is.EqualTo(15f).Within(0.001f));
+            Is.EqualTo(16f).Within(0.001f));
         Assert.That(
             PlayfieldRenderer.NotePopRadius(10f, 0.5f),
-            Is.GreaterThan(10f).And.LessThan(15f));
+            Is.GreaterThan(10f).And.LessThan(16f));
     }
 
     [Test]

@@ -24,8 +24,50 @@ public static class AnimatorCommands
             session.GetComponent<AnimatorCloths>().Picking = AnimatorClothPick.None;
         }
 
+        if (action.Kind != ToolActionKind.PickMeshBones)
+            session.GetComponent<AnimatorMeshPick>().Active = false;
+
         switch (action.Kind)
         {
+            case ToolActionKind.AddArt:
+                AnimatorArtCommands.OpenArtPicker(session);
+                break;
+            case ToolActionKind.DropArt:
+                AnimatorArtCommands.DropArt(session);
+                break;
+            case ToolActionKind.PreviousArt:
+                AnimatorArtCommands.StepArt(session, -1);
+                break;
+            case ToolActionKind.NextArt:
+                AnimatorArtCommands.StepArt(session, 1);
+                break;
+            case ToolActionKind.LayerDownKey:
+                AnimatorArtCommands.StepLayer(session, -1);
+                break;
+            case ToolActionKind.LayerUpKey:
+                AnimatorArtCommands.StepLayer(session, 1);
+                break;
+            case ToolActionKind.ToggleArtVisible:
+                AnimatorArtCommands.ToggleVisible(session);
+                break;
+            case ToolActionKind.ToggleMesh:
+                AnimatorArtCommands.ToggleMesh(session);
+                break;
+            case ToolActionKind.PickMeshBones:
+                AnimatorArtCommands.TogglePickBones(session);
+                break;
+            case ToolActionKind.MeshDetailDown:
+                AnimatorArtCommands.StepDetail(session, -1);
+                break;
+            case ToolActionKind.MeshDetailUp:
+                AnimatorArtCommands.StepDetail(session, 1);
+                break;
+            case ToolActionKind.MeshBlendDown:
+                AnimatorArtCommands.StepBlend(session, -1);
+                break;
+            case ToolActionKind.MeshBlendUp:
+                AnimatorArtCommands.StepBlend(session, 1);
+                break;
             case ToolActionKind.Play:
                 session.GetComponent<AnimatorDocument>().Playback.Play();
                 AnimatorSession.SetStatus(session, "PLAYING");
@@ -168,6 +210,15 @@ public static class AnimatorCommands
                 break;
             case ToolActionKind.ScaleUp:
                 AnimatorEditing.Nudge(session, 0f, AnimatorEditing.ScaleStep);
+                break;
+            case ToolActionKind.AddEvent:
+                AnimatorEventCommands.Add(session);
+                break;
+            case ToolActionKind.DeleteEvent:
+                AnimatorEventCommands.Delete(session);
+                break;
+            case ToolActionKind.LockBend:
+                AnimatorEditing.LockBend(session);
                 break;
             case ToolActionKind.ToggleMovable:
                 AnimatorEditing.ToggleMovable(session);
@@ -335,6 +386,7 @@ public static class AnimatorCommands
         ref AnimatorSvgMenu menu = ref session.GetComponent<AnimatorSvgMenu>();
         menu.Open = true;
         menu.ForChain = false;
+        menu.ForArt = false;
         menu.Bone = bone;
         menu.Anchor = OpenAnchor(session);
     }
@@ -360,7 +412,9 @@ public static class AnimatorCommands
         }
 
         AnimatorSvgChoice choice = menu.Choices[index];
-        if (menu.ForChain)
+        if (menu.ForArt)
+            AnimatorArtCommands.AddArt(session, choice);
+        else if (menu.ForChain)
             AnimatorChainPlacementCommands.SetArt(session, choice);
         else
             AnimatorAttachmentCommands.Add(session, choice.Path, choice.Group, menu.Bone);

@@ -30,8 +30,8 @@ public sealed class XafCloth
     public Vector2 Offset;
 
     /// <summary>Points across the sheet, and rows of them from the top edge to the hem.</summary>
-    public int Columns = 7;
-    public int Rows = 13;
+    public int Columns = 11;
+    public int Rows = 21;
 
     /// <summary>Width at the top edge and at the hem; rows between flare evenly from one to the other.</summary>
     public float TopWidth = 26f;
@@ -47,7 +47,7 @@ public sealed class XafCloth
     public float Lean;
 
     /// <summary>Share of velocity kept each step; 1 never slows down, 0 stops dead.</summary>
-    public float Damping = 0.94f;
+    public float Damping = 0.975f;
 
     /// <summary>How hard the sheet resists folding, 0 to 1: low drapes like silk, high holds like felt.</summary>
     public float Stiffness = 0.5f;
@@ -58,6 +58,7 @@ public sealed class XafCloth
     public int ZOrder = 2;
 
     public List<XafClothPin> Pins = new();
+    public List<XafClothTether> Tethers = new();
     public List<XafClothCollider> Colliders = new();
 
     public int Count => Columns * Rows;
@@ -66,6 +67,9 @@ public sealed class XafCloth
 
     public bool IsPinned(int column, int row) =>
         Pins.Exists(pin => pin.Column == column && pin.Row == row);
+
+    public bool IsTethered(int column, int row) =>
+        Tethers.Exists(tether => tether.Column == column && tether.Row == row);
 }
 
 /// <summary>A point of the grid carried by a bone; where it sits on the bone comes from the rest pose.</summary>
@@ -74,6 +78,22 @@ public sealed class XafClothPin
     public int Column;
     public int Row;
     public string BoneId = "";
+}
+
+/// <summary>
+/// A point of the grid kept near a bone without being fixed to it: it swings
+/// freely, but never strays more than <see cref="Radius"/> from the spot it sat
+/// on the bone in the rest pose. A hem tethered to the shins follows a kick
+/// and keeps the knees covered while still moving like cloth.
+/// </summary>
+public sealed class XafClothTether
+{
+    public const float DefaultRadius = 12f;
+
+    public int Column;
+    public int Row;
+    public string BoneId = "";
+    public float Radius = DefaultRadius;
 }
 
 /// <summary>

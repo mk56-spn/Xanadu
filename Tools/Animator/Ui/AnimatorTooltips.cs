@@ -35,6 +35,25 @@ public static class AnimatorTooltips
         ToolActionKind.CopyPose => "Copy the whole pose (Ctrl+C)",
         ToolActionKind.PastePose => "Paste the copied pose (Ctrl+V)",
         ToolActionKind.MirrorPose => "Mirror the pose left to right (M)",
+        ToolActionKind.AddArt => "Give the selected SVG more art it can switch to, such as a fist for an open hand",
+        ToolActionKind.DropArt => "Remove the alternate art the selected SVG shows at the playhead; keys on it go back to its own art (Ctrl+Shift+A)",
+        ToolActionKind.PreviousArt => "Key the selected SVG's previous art at the playhead; it switches exactly there (Shift+[)",
+        ToolActionKind.NextArt => "Key the selected SVG's next art at the playhead; it switches exactly there (Shift+])",
+        ToolActionKind.LayerDownKey => "Key the selected SVG one layer further back from the playhead on, to pass behind the body (Shift+,)",
+        ToolActionKind.LayerUpKey => "Key the selected SVG one layer further forward from the playhead on (Shift+.)",
+        ToolActionKind.ToggleArtVisible => "Key the selected SVG hidden from the playhead on, or shown again (Shift+U)",
+        ToolActionKind.ToggleMesh =>
+            "Draw the selected SVG as a mesh that bends with its bone and the ones below, so joints have no hard seam; again for rigid (Shift+G)",
+        ToolActionKind.PickMeshBones => "Then click bones to let them bend the selected mesh, or stop them; click nothing to finish",
+        ToolActionKind.MeshDetailDown => "Fewer mesh cells: cheaper, bends more coarsely (Ctrl+[)",
+        ToolActionKind.MeshDetailUp => "More mesh cells: smoother bends (Ctrl+])",
+        ToolActionKind.MeshBlendDown => "A narrower zone where two bones share the mesh: a tighter crease (Ctrl+,)",
+        ToolActionKind.MeshBlendUp => "A wider zone where two bones share the mesh: a softer bend (Ctrl+.)",
+        ToolActionKind.AddEvent =>
+            "Mark the playhead's moment in this clip with a named event the game is told about, such as the frame a kick lands (Shift+E)",
+        ToolActionKind.DeleteEvent => "Delete the selected event (Ctrl+Shift+E)",
+        ToolActionKind.LockBend =>
+            "Lock the selected knee or elbow to bend only the way it bends now, or free it again (Shift+J)",
         ToolActionKind.ToggleMovable => "Let the bone translate or lock its length (T)",
         ToolActionKind.AddBone => "Add a child bone to the selected bone (B)",
         ToolActionKind.DeleteBone => "Delete the selected bone and its keys (Shift+Delete)",
@@ -48,12 +67,12 @@ public static class AnimatorTooltips
         ToolActionKind.PickColliderBone => "Then click the bone the collider follows; the collider stays where it is",
         ToolActionKind.SelectChain => "Select this Verlet chain",
         ToolActionKind.AddCloth =>
-            "Add a dress hanging from the selected bone, its bodice pinned down to the bone's joint (C)",
+            "Add a dress hanging from the selected bone: its bodice pinned down to a waist just above the bone's joint, its hem just above the feet (C)",
         ToolActionKind.SelectCloth => "Select this cloth",
         ToolActionKind.DeleteCloth => "Delete the selected cloth (Shift+C)",
         ToolActionKind.PickClothBone => "Then click the bone the cloth is laid out from",
         ToolActionKind.PinClothPoints =>
-            "Then click points of the cloth to pin each to the nearest bone, or free it; click again here to stop",
+            "Then click points of the cloth: a free point is pinned to the nearest bone, a pinned one tethered to it instead (free to swing within REACH), a tethered one freed; click again here to stop",
         ToolActionKind.PickClothColliders =>
             "Then click bones the cloth's edges cannot pass through, or click one again to drop it; click here to stop",
         ToolActionKind.AddEffect => "Hang a speed streak off the selected bone, shown for 0.15 s from the playhead (W)",

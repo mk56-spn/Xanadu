@@ -55,6 +55,8 @@ public static class AnimatorSession
         session.AddComponent(new AnimatorChains { Simulation = new XafChainSimulation() });
         session.AddComponent(new AnimatorCloths { Simulation = new XafClothSimulation() });
         session.AddComponent(new AnimatorPreviewMode());
+        session.AddComponent(AnimatorEventSelection.None);
+        session.AddComponent(new AnimatorMeshPick());
         session.AddComponent(new UiMarqueeBox());
         session.AddComponent(new AnimatorHistory
         {
@@ -88,6 +90,8 @@ public static class AnimatorSession
         session.GetComponent<AnimatorClipLength>() = new AnimatorClipLength();
         session.GetComponent<AnimatorNewClipDialog>() = new AnimatorNewClipDialog();
         session.GetComponent<AnimatorSvgMenu>() = new AnimatorSvgMenu { Choices = new() };
+        session.GetComponent<AnimatorEventSelection>() = AnimatorEventSelection.None;
+        session.GetComponent<AnimatorMeshPick>() = new AnimatorMeshPick();
         AnimatorHistoryCommands.Clear(session);
     }
 

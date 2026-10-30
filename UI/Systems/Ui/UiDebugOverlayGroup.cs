@@ -7,7 +7,7 @@ using Xanadu.Ui.Systems.Ui;
 
 namespace Xanadu.Systems.Ui;
 
-/// <summary>Creates and wires the F4 UI bounds overlay.</summary>
+/// <summary>Creates and wires the F4 UI bounds and tree overlays.</summary>
 public sealed class UiDebugOverlayGroup : SystemGroup, IDisposable
 {
     private readonly CanvasItemHandle _overlay;
@@ -36,11 +36,10 @@ public sealed class UiDebugOverlayGroup : SystemGroup, IDisposable
         int zIndex = 1001) : base("UiDebugOverlay")
     {
         _overlay = new CanvasItemHandle(parentCanvas, zIndex, visible: false);
+        toggle ??= new GodotOverlayToggleSource(Key.F4);
 
-        Add(new DebugElementOverlaySystem(
-            canvas,
-            _overlay.Rid,
-            toggle ?? new GodotOverlayToggleSource(Key.F4)));
+        Add(new DebugElementOverlaySystem(canvas, _overlay.Rid, toggle));
+        Add(new UiTreeOverlaySystem(toggle));
     }
 
     public void Dispose() => _overlay.Dispose();

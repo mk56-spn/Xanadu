@@ -51,6 +51,27 @@ public sealed class CharacterRigTests : EcsSystemTest
     }
 
     [Test]
+    public void AClipEventBecomesAnEntityForOneFrame()
+    {
+        XafEventAuthoring.Add(_files.Package!.Clips.Find(clip => clip.Id == "idle")!, 0.5f, "step");
+        Entity player = Player();
+
+        int seen = 0;
+        for (int frame = 0; frame < 60; frame++)
+        {
+            Frame();
+            foreach (Entity fired in Store.Query<CharacterRigEvent>().ToEntityList())
+            {
+                CharacterRigEvent item = fired.GetComponent<CharacterRigEvent>();
+                Assert.That((item.Character, item.Clip, item.Name), Is.EqualTo((player, "idle", "step")));
+                seen++;
+            }
+        }
+
+        Assert.That(seen, Is.EqualTo(1), "passed once in the first second, and gone the frame after");
+    }
+
+    [Test]
     public void TheRigIsLoadedOnceAndKeepsAnimating()
     {
         Entity player = Player();

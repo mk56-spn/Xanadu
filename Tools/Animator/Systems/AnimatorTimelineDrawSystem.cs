@@ -7,6 +7,7 @@ using Xanadu.Ecs;
 using Xanadu.Levels;
 using Xanadu.Systems.Canvas;
 using Xanadu.Theme;
+using Xanadu.Tools.Animator.Commands;
 
 namespace Xanadu.Tools.Animator.Systems;
 
@@ -28,6 +29,9 @@ public sealed class AnimatorTimelineDrawSystem(IRectCanvas canvas, Rid target)
     private static readonly Color Playhead = Palette.Accent;
     private static readonly Color LoopBand = new("#2dd4bf", 0.18f);
     private static readonly Color LoopLine = new("#2dd4bf");
+    private static readonly Color EventColor = Palette.Lime;
+    private static readonly Color EventSelected = Palette.Warning;
+    private static readonly Color EventLine = new(Palette.Lime, 0.25f);
 
     protected override void OnUpdate()
     {
@@ -51,6 +55,7 @@ public sealed class AnimatorTimelineDrawSystem(IRectCanvas canvas, Rid target)
         DrawRows(model, selection, selected, document.Package);
         DrawLoop(model);
         DrawPlayhead(model, document.Runtime.CurrentTime);
+        DrawEvents(model, AnimatorEventCommands.Selected(session, out _));
 
         // The box being dragged to select keys, over everything else.
         if (session.TryGetComponent(out UiMarqueeBox box))
@@ -272,6 +277,32 @@ public sealed class AnimatorTimelineDrawSystem(IRectCanvas canvas, Rid target)
         canvas.DrawLine(target, new Vector2(endX, top), new Vector2(endX, bottom), LoopLine, 1);
         canvas.DrawRect(target, new Rect2(startX - 4, top - 2, 8, 12), LoopLine);
         canvas.DrawRect(target, new Rect2(endX - 4, top - 2, 8, 12), LoopLine);
+    }
+
+    /// <summary>
+    /// Each clip event as a flag on the ruler with its name beside it, and a
+    /// faint line down through the rows so it can be lined up with keys.
+    /// </summary>
+    private void DrawEvents(AnimatorTimelineModel model, int selected)
+    {
+        Rect2 ruler = model.Ruler;
+        for (int i = 0; i < model.Clip.Events.Count; i++)
+        {
+            XafEvent item = model.Clip.Events[i];
+            float x = model.XForSeconds(item.Time);
+            if (x < ruler.Position.X - 1 || x > ruler.End.X + 1)
+                continue;
+
+            Color color = i == selected ? EventSelected : EventColor;
+            canvas.DrawLine(target, new Vector2(x, ruler.End.Y), new Vector2(x, model.RowsBottom), EventLine, 1);
+            canvas.DrawRect(target, new Rect2(x - 1, ruler.Position.Y, 2, ruler.Size.Y), color);
+            canvas.DrawRect(target, new Rect2(x + 1, ruler.Position.Y, 8, 7), color);
+            if (x + 4 + 60 <= ruler.End.X)
+            {
+                canvas.DrawTextStyledLeft(target, new Rect2(x + 4, ruler.Position.Y + 12, 90, 12),
+                    item.Name, color, 10);
+            }
+        }
     }
 
     private void DrawPlayhead(AnimatorTimelineModel model, float time)

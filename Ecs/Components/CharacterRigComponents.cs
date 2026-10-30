@@ -15,6 +15,21 @@ public struct CharacterRig(AnimatorRuntime runtime) : IComponent
     public readonly AnimatorRuntime Runtime = runtime;
 }
 
+/// <summary>
+/// An event a character's clip passed this frame, such as the frame a kick
+/// lands: an entity of its own, so any system can query for them. It lives
+/// until the rig next animates, so every system sees it exactly once.
+/// </summary>
+public struct CharacterRigEvent(Entity character, string clip, string name, float time) : IComponent
+{
+    public Entity Character = character;
+    public string Clip = clip;
+    public string Name = name;
+
+    /// <summary>Where in the clip the event sits, in seconds.</summary>
+    public float Time = time;
+}
+
 /// <summary>The rig source could not be loaded; the player keeps its plain box.</summary>
 public struct CharacterRigMissing : ITag;
 

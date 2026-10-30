@@ -33,7 +33,6 @@ public sealed class PlayScoreSystem : QuerySystem<ScoreState, Playhead>
         Query.ForEachEntity((ref score, ref playhead, entity) =>
         {
             UiText.Set(score.ScoreText, $"SCORE {score.Score:0000000}", buffer);
-            UiText.Set(score.ComboText, $"COMBO {score.Combo}", buffer);
             UiText.Set(
                 score.AccuracyText,
                 $"ACC {score.Accuracy * 100:0.00}%  {ScoreRules.RankFor(score.Accuracy)}",
@@ -95,7 +94,9 @@ public sealed class PlayScoreSystem : QuerySystem<ScoreState, Playhead>
                 // sits on it; it is not a HUD element that can be moved away.
                 ref Position position =
                     ref score.JudgementText.GetComponent<Position>();
-                position.Value = score.JudgementPosition;
+                position.Value = entity.TryGetComponent(out PlayCamera camera)
+                    ? score.JudgementPosition - camera.Shift
+                    : score.JudgementPosition;
                 buffer.AddTag<Moved>(score.JudgementText.Id);
             }
         });

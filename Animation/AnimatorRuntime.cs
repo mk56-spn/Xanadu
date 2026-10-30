@@ -24,6 +24,11 @@ public sealed class AnimatorRuntime
     /// </summary>
     private XafPose? _frozen;
     private readonly List<AdditiveLayer> _additives = new();
+    private readonly List<XafFiredEvent> _fired = new();
+
+    // A clip that has just begun also reports an event sitting on its first instant.
+    private bool _currentStarted;
+    private bool _nextStarted;
 
     public AnimatorRuntime(XafPackage package)
     {
@@ -39,6 +44,12 @@ public sealed class AnimatorRuntime
     }
 
     public XafPackage Package { get; }
+
+    /// <summary>
+    /// The events the last <see cref="Update"/> passed, in the clip playing and
+    /// in the clip fading in; cleared by the next update. Seeking passes none.
+    /// </summary>
+    public IReadOnlyList<XafFiredEvent> Fired => _fired;
     public XafPose Pose { get; private set; }
     public string CurrentClip => _current?.Id ?? "";
     public string NextClip => _next?.Id ?? "";
@@ -79,6 +90,7 @@ public sealed class AnimatorRuntime
         {
             _current = clip;
             _currentTime = 0f;
+            _currentStarted = true;
             _next = null;
             _frozen = null;
             Pose = XafSampler.Sample(Package, clip, 0f);
@@ -126,6 +138,7 @@ public sealed class AnimatorRuntime
             return;
 
         _currentTime = 0f;
+        _currentStarted = true;
         _next = null;
         _frozen = null;
         _nextTime = 0f;
@@ -140,6 +153,7 @@ public sealed class AnimatorRuntime
             return;
 
         _currentTime = Math.Clamp(time, 0f, _current.Duration);
+        _currentStarted = false;
         _next = null;
         _frozen = null;
         _nextTime = 0f;
@@ -173,12 +187,21 @@ public sealed class AnimatorRuntime
 
     public void Update(float delta)
     {
+        _fired.Clear();
         if (Paused || delta <= 0f || _current is null)
             return;
 
+        float currentFrom = _currentTime;
         _currentTime = ClampTime(_current, _currentTime + delta);
+        Pass(_current, currentFrom, _currentTime, delta, _currentStarted);
+        _currentStarted = false;
         if (_next is not null)
+        {
+            float nextFrom = _nextTime;
             _nextTime = ClampTime(_next, _nextTime + delta);
+            Pass(_next, nextFrom, _nextTime, delta, _nextStarted);
+            _nextStarted = false;
+        }
 
         for (int i = 0; i < _additives.Count; i++)
         {
@@ -217,6 +240,13 @@ public sealed class AnimatorRuntime
         Pose = basePose;
     }
 
+    /// <summary>Notes the events a clip passed going from one time to another; a loop that came round wrapped.</summary>
+    private void Pass(XafClip clip, float from, float to, float delta, bool started)
+    {
+        bool wrapped = clip.Loop && to < from - XafTracks.TimeTolerance && delta > 0f;
+        XafEventAuthoring.Passed(clip, from, to, wrapped, started, _fired);
+    }
+
     private static float ClampTime(XafClip? clip, float time) =>
         clip is null ? time : WrapTime(clip, time);
 
@@ -242,6 +272,7 @@ public sealed class AnimatorRuntime
             _frozen = Pose.Clone();
             _current = _next;
             _currentTime = _nextTime;
+            _currentStarted = _nextStarted;
         }
         else
         {
@@ -250,6 +281,7 @@ public sealed class AnimatorRuntime
 
         _next = clip;
         _nextTime = 0f;
+        _nextStarted = true;
         _fadeDuration = Math.Max(0f, fadeSeconds);
         _fadeElapsed = 0f;
         _fadeCurve = curve;
@@ -264,6 +296,7 @@ public sealed class AnimatorRuntime
 
         _current = _next;
         _currentTime = _nextTime;
+        _currentStarted = _nextStarted;
         _next = null;
         _frozen = null;
         _fadeDuration = 0f;

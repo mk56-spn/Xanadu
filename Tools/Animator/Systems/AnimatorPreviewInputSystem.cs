@@ -188,6 +188,13 @@ public sealed class AnimatorPreviewInputSystem(
             return;
         }
 
+        // The BONES button waits for clicks: each toggles a bone bending the mesh, nothing finishes.
+        if (session.GetComponent<AnimatorMeshPick>().Active)
+        {
+            AnimatorArtCommands.PickBone(session, AnimatorGeometry.PickBoneOrLabel(world, placement, pointer));
+            return;
+        }
+
         // A cloth inspector button waits for clicks: they pin points or pick bones until stopped.
         if (session.GetComponent<AnimatorCloths>().Picking != AnimatorClothPick.None)
         {
@@ -332,8 +339,9 @@ public sealed class AnimatorPreviewInputSystem(
     }
 
     /// <summary>
-    /// Solves the two-bone chain for the pointer, keeping the side the chain
-    /// already bends to, then turns the grandparent and parent to match.
+    /// Solves the two-bone chain for the pointer, folding the middle joint to
+    /// its bend lock's side, or else the side it already bends to, then turns
+    /// the grandparent and parent to match.
     /// </summary>
     private static void Ik(Entity session, Vector2 pointer, Transform2D placement, bool free)
     {
@@ -348,7 +356,8 @@ public sealed class AnimatorPreviewInputSystem(
         Vector2 elbow = world[parent].Origin;
         Vector2 end = world[joint].Origin;
         Vector2 reach = end - root;
-        bool bendPositive = new Vector2(-reach.Y, reach.X).Dot(elbow - root) >= 0f;
+        bool bendPositive = XafJointLocks.BendPositive(document.Package, parent) ??
+                            new Vector2(-reach.Y, reach.X).Dot(elbow - root) >= 0f;
         Vector2 target = placement.AffineInverse() * pointer;
         ref AnimatorSnapGuides guides = ref session.GetComponent<AnimatorSnapGuides>();
         guides = default;
@@ -367,6 +376,7 @@ public sealed class AnimatorPreviewInputSystem(
 
         Aim(document.Package, pose, grandparent, parent, solved[1]);
         Aim(document.Package, pose, parent, joint, solved[2]);
+        XafJointLocks.Apply(document.Package, pose);
     }
 
     /// <summary>Turns a bone about its origin so its child joint points at a skeleton-space target.</summary>
@@ -421,6 +431,7 @@ public sealed class AnimatorPreviewInputSystem(
         if (world[parent].Determinant() < 0f)
             delta = -delta;
         pose.Bones[parent].Rotation += delta;
+        XafJointLocks.Apply(document.Package, pose);
     }
 
     /// <summary>

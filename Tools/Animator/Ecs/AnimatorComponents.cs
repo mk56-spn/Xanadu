@@ -43,6 +43,22 @@ public enum ToolActionKind
     SelectBone,
     SelectAttachment,
     ToggleMovable,
+    LockBend,
+    AddEvent,
+    DeleteEvent,
+    AddArt,
+    DropArt,
+    PreviousArt,
+    NextArt,
+    LayerDownKey,
+    LayerUpKey,
+    ToggleArtVisible,
+    ToggleMesh,
+    PickMeshBones,
+    MeshDetailDown,
+    MeshDetailUp,
+    MeshBlendDown,
+    MeshBlendUp,
     AddBone,
     DeleteBone,
     NewSkeleton,
@@ -467,6 +483,9 @@ public enum AnimatorDragKind
 
     /// <summary>Drags the collider of the selected chain along its bone.</summary>
     ChainCollider,
+
+    /// <summary>Retiming a clip event by its flag on the ruler.</summary>
+    Event,
 }
 
 /// <summary>Active pointer drag in the preview or timeline.</summary>

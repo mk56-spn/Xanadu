@@ -8,7 +8,7 @@ namespace Xanadu.Animation;
 
 /// <summary>
 /// The XAF cloth chunk, from minor revision 6: each cloth's settings, then its
-/// pins and colliders. Older files have no cloths.
+/// pins and colliders, and from revision 7 its tethers. Older files have no cloths.
 /// </summary>
 public static class XafClothBinary
 {
@@ -26,10 +26,12 @@ public static class XafClothBinary
                 strings.Add(pin.BoneId);
             foreach (XafClothCollider collider in cloth.Colliders)
                 strings.Add(collider.BoneId);
+            foreach (XafClothTether tether in cloth.Tethers)
+                strings.Add(tether.BoneId);
         }
     }
 
-    public static byte[] Write(List<XafCloth> cloths, StringTable strings)
+    public static byte[] Write(List<XafCloth> cloths, StringTable strings, ushort minor)
     {
         using var stream = new MemoryStream();
         using var writer = new BinaryWriter(stream, Encoding.UTF8, leaveOpen: true);
@@ -69,12 +71,23 @@ public static class XafClothBinary
                 strings.WriteIndex(writer, collider.BoneId);
                 writer.Write(collider.Radius);
             }
+
+            if (minor < 7)
+                continue;
+            writer.Write((uint)cloth.Tethers.Count);
+            foreach (XafClothTether tether in cloth.Tethers)
+            {
+                writer.Write(tether.Column);
+                writer.Write(tether.Row);
+                strings.WriteIndex(writer, tether.BoneId);
+                writer.Write(tether.Radius);
+            }
         }
         writer.Flush();
         return stream.ToArray();
     }
 
-    public static List<XafCloth> Read(Chunk chunk, StringTable strings)
+    public static List<XafCloth> Read(Chunk chunk, StringTable strings, ushort minor)
     {
         using BinaryReader reader = chunk.OpenReader();
         uint count = reader.ReadUInt32();
@@ -125,6 +138,23 @@ public static class XafClothBinary
                     BoneId = strings.ReadIndex(reader),
                     Radius = reader.ReadSingle(),
                 });
+            }
+
+            if (minor >= 7)
+            {
+                uint tethers = reader.ReadUInt32();
+                if (tethers > MaxPins)
+                    throw new XafFormatException("XAF cloth tether table is too large.");
+                for (uint t = 0; t < tethers; t++)
+                {
+                    cloth.Tethers.Add(new XafClothTether
+                    {
+                        Column = reader.ReadInt32(),
+                        Row = reader.ReadInt32(),
+                        BoneId = strings.ReadIndex(reader),
+                        Radius = reader.ReadSingle(),
+                    });
+                }
             }
             cloths.Add(cloth);
         }

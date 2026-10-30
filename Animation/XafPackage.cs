@@ -9,7 +9,7 @@ namespace Xanadu.Animation;
 public sealed class XafPackage
 {
     public const ushort MajorVersion = 1;
-    public const ushort MinorVersion = 6;
+    public const ushort MinorVersion = 9;
 
     public ushort Major = MajorVersion;
     public ushort Minor = MinorVersion;
@@ -64,6 +64,12 @@ public sealed class XafBone
     /// </summary>
     public bool AllowTranslation;
 
+    /// <summary>
+    /// A bend lock for the joint at this bone's origin, such as a knee or an
+    /// elbow: 0 bends freely, 1 or -1 only that way (see <see cref="XafJointLocks"/>).
+    /// </summary>
+    public int Bend;
+
     public bool CanTranslate => Parent < 0 || AllowTranslation;
 }
 
@@ -75,10 +81,35 @@ public sealed class XafAttachment
     public const int MaxLayer = 4096;
 
     public string SvgPath = "";
+
+    /// <summary>The SVG group drawn, and the attachment's id: clips key it by this name.</summary>
     public string Group = "";
     public string BoneId = "";
     public Transform2D Transform = Transform2D.Identity;
     public int ZOrder;
+
+    /// <summary>
+    /// Other art the attachment can show instead, such as a fist for an open
+    /// hand; a clip keys which one with <see cref="XafChannelProperty.Art"/>,
+    /// where 0 is the attachment's own art and 1 the first of these.
+    /// </summary>
+    public List<XafArt> Alternates = new();
+
+    /// <summary>When set, the art is drawn as a mesh bent by the bones near it instead of rigidly.</summary>
+    public XafMesh? Mesh;
+
+    public int ArtCount => 1 + Alternates.Count;
+
+    /// <summary>The file and group of an art index, the attachment's own art for 0 or one out of range.</summary>
+    public XafArt Art(int index) =>
+        index >= 1 && index <= Alternates.Count ? Alternates[index - 1] : new XafArt { SvgPath = SvgPath, Group = Group };
+}
+
+/// <summary>One piece of art: a group inside an SVG file.</summary>
+public sealed class XafArt
+{
+    public string SvgPath = "";
+    public string Group = "";
 }
 
 /// <summary>
@@ -150,6 +181,9 @@ public sealed class XafClip
     public float LoopStart;
     public float LoopEnd;
     public List<XafChannel> Channels = new();
+
+    /// <summary>Named moments the game is told about as playback passes them; see <see cref="XafEvent"/>.</summary>
+    public List<XafEvent> Events = new();
 }
 
 public enum XafChannelTarget
@@ -173,8 +207,17 @@ public enum XafChannelProperty
     /// <summary>An effect's opacity, 0 to 1.</summary>
     Opacity,
 
-    /// <summary>Whether an effect shows: 1 from a key on, 0 from a key off. Always held, never blended.</summary>
+    /// <summary>
+    /// Whether an effect or attachment shows: 1 from a key on, 0 from a key
+    /// off. Always held, never blended.
+    /// </summary>
     Visible,
+
+    /// <summary>Which of an attachment's art it shows, 0 for its own; held.</summary>
+    Art,
+
+    /// <summary>An attachment's draw layer from the key on, in place of its own; held.</summary>
+    Layer,
 }
 
 public enum XafInterpolation

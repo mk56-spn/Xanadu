@@ -16,14 +16,18 @@ public static class CanvasGrid
     /// <summary>Tolerance so lines landing exactly on the bounds edge are kept.</summary>
     private const float EdgeEpsilon = 0.01f;
 
-    /// <summary>Draws grid lines across <paramref name="bounds"/>.</summary>
+    /// <summary>Draws grid lines across <paramref name="bounds"/>, in the given colours or the grid's own.</summary>
     public static void Draw(
         IRectCanvas canvas,
         Rid rid,
         Rect2 bounds,
         Vector2 cell,
-        Vector2 axis)
+        Vector2 axis,
+        Color? lineColor = null,
+        Color? axisColor = null)
     {
+        Color line = lineColor ?? LineColor;
+        Color centre = axisColor ?? AxisColor;
         if (cell.X <= 0 || cell.Y <= 0)
             return;
 
@@ -35,7 +39,7 @@ public static class CanvasGrid
                 rid,
                 new Vector2(x, bounds.Position.Y),
                 new Vector2(x, bounds.End.Y),
-                i == 0 ? AxisColor : LineColor,
+                i == 0 ? centre : line,
                 i == 0 ? 2 : 1);
         }
 
@@ -47,7 +51,7 @@ public static class CanvasGrid
                 rid,
                 new Vector2(bounds.Position.X, y),
                 new Vector2(bounds.End.X, y),
-                i == 0 ? AxisColor : LineColor,
+                i == 0 ? centre : line,
                 i == 0 ? 2 : 1);
         }
     }

@@ -182,6 +182,18 @@ public partial class VisualTestMain : Control
         _sidebar = new VisualTestSidebar(this, _tests);
     }
 
+    /// <summary>
+    /// Drops the sidebar and shows the scene across the whole window, so a shot
+    /// sees the full 1920-wide stage, right-hand HUD included.
+    /// </summary>
+    private void ShowStageOnly()
+    {
+        _sidebar?.Dispose();
+        _sidebar = null;
+        if (_testHost is not null)
+            _testHost.Position = Vector2.Zero;
+    }
+
     private void ParseArguments()
     {
         string? requested = null;
@@ -195,6 +207,8 @@ public partial class VisualTestMain : Control
                 exit = true;
             else if (argument.StartsWith("--visual-test-shot=", StringComparison.Ordinal))
                 _shotPath = argument["--visual-test-shot=".Length..];
+            else if (argument == "--visual-test-full")
+                ShowStageOnly();
         }
 
         _exitWhenDone = exit;

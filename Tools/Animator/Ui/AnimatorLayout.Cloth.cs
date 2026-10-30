@@ -16,7 +16,7 @@ public static partial class AnimatorLayout
     /// Rows under the title: bone, offset, grid, widths, length, gravity, lean,
     /// damping, stiffness, layer, colour, pins, colliders, collider size, delete.
     /// </summary>
-    private const int ClothRows = 15;
+    private const int ClothRows = 16;
 
     public static readonly Vector2 ClothInspectorSize =
         new(ChainInspectorWidth, 8 * 2 + 18 + ClothRows * ChainRow + ClothRows * ChainSpacing);
@@ -38,7 +38,7 @@ public static partial class AnimatorLayout
             "The centre of the top edge, in its bone's own space",
             out fields[(int)Setting.OffsetX], out fields[(int)Setting.OffsetY]);
         ChainPair(menu, "GRID", inner,
-            "Points across, and rows from the top edge to the hem; pins on rows that go are dropped",
+            "Points across, and rows from the top edge to the hem; pins and tethers on rows that go are dropped",
             out fields[(int)Setting.Columns], out fields[(int)Setting.Rows]);
         ChainPair(menu, "WIDTH", inner,
             "Width at the top edge, and at the hem; the rows between flare evenly",
@@ -63,6 +63,8 @@ public static partial class AnimatorLayout
         menu.End();
 
         refs.Ui.ClothPinsButton = ChainButton(menu, "PINS", ToolActionKind.PinClothPoints, inner);
+        fields[(int)Setting.TetherReach] = ChainField(menu, "REACH", inner,
+            "How far every tethered point may swing from its spot on its bone");
         refs.Ui.ClothCollidersButton = ChainButton(menu, "HITS", ToolActionKind.PickClothColliders, inner);
         fields[(int)Setting.HitSize] = ChainField(menu, "HIT SIZE", inner,
             "Radius of every collider: about the thickness of a leg");

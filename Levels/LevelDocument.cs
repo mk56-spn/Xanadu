@@ -24,9 +24,12 @@ public sealed class LevelDocument : IChartItems
 
     public int SnapDivision { get; set; } = 4;
 
-    public int PlayfieldWidth { get; set; } = 1000;
+    /// <summary>A new level's playfield, in units on each side; the editor and the play camera scroll round it.</summary>
+    public const int DefaultFieldSize = 5000;
 
-    public int PlayfieldHeight { get; set; } = 1000;
+    public int PlayfieldWidth { get; set; } = DefaultFieldSize;
+
+    public int PlayfieldHeight { get; set; } = DefaultFieldSize;
 
     /// <summary>The playfield background as #rrggbb or #rrggbbaa, or "" for the theme default.</summary>
     public string BackgroundColor { get; set; } = "";

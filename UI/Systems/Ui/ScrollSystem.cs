@@ -20,6 +20,7 @@ public sealed class ScrollSystem : QuerySystem<ScrollView, Rectangle, Position>
         while (_requests.Count > 0)
         {
             (Vector2 pointer, int direction) = _requests.Dequeue();
+            Entity target = default;
             foreach (Entity entity in Query.ToEntityList())
             {
                 Rectangle rect = entity.GetComponent<Rectangle>();
@@ -28,18 +29,31 @@ public sealed class ScrollSystem : QuerySystem<ScrollView, Rectangle, Position>
                 var bounds = new Rect2(
                     world + rect.Bounds.Position,
                     rect.Bounds.Size);
-                if (!bounds.HasPoint(pointer))
-                    continue;
-
-                ref ScrollView view = ref entity.GetComponent<ScrollView>();
-                view.Offset += direction * 48f;
-                break;
+                if (bounds.HasPoint(pointer) &&
+                    (target.IsNull || LayerZ(entity) > LayerZ(target)))
+                {
+                    target = entity;
+                }
             }
+
+            if (!target.IsNull)
+                target.GetComponent<ScrollView>().Offset += direction * 48f;
         }
 
         CommandBuffer buffer = CommandBuffer;
         foreach (Entity viewport in Query.ToEntityList())
             Place(viewport, buffer);
+    }
+
+    /// <summary>The z index of the layer a viewport draws on, so the topmost one takes the wheel.</summary>
+    private static int LayerZ(Entity entity)
+    {
+        for (; !entity.IsNull; entity = entity.Parent)
+        {
+            if (entity.TryGetComponent(out Layer layer))
+                return layer.ZIndex;
+        }
+        return int.MinValue;
     }
 
     /// <summary>Clamps the offset and hangs the content from the viewport's top edge.</summary>
