@@ -13,6 +13,8 @@ namespace Xanadu.Systems.Ui;
 /// pointer clicks to focus, and a four-edge ring around the focused control.
 /// Disabled and clipped-out controls are skipped. Space is deliberately left
 /// alone so game shortcuts keep working while a control has focus.
+/// The ring is a keyboard affordance only: a pointer gives focus without it,
+/// and pressing a control that already has focus dismisses it.
 /// </summary>
 public sealed class UiFocusSystem : QuerySystem<Rectangle, Drawable, Position>
 {
@@ -23,6 +25,7 @@ public sealed class UiFocusSystem : QuerySystem<Rectangle, Drawable, Position>
     private readonly UiFocusRing _ring;
 
     private Entity _focused;
+    private bool _keyboardFocus;
     private bool _wasPressed;
     private bool _tabHeld;
     private bool _activateHeld;
@@ -185,7 +188,7 @@ public sealed class UiFocusSystem : QuerySystem<Rectangle, Drawable, Position>
             if (!target.Entity.Tags.Has<Pressed>())
                 continue;
 
-            SetFocus(target.Entity, buffer);
+            SetFocus(target.Entity, buffer, keyboard: false);
             _pressSeen = true;
             return;
         }
@@ -249,7 +252,7 @@ public sealed class UiFocusSystem : QuerySystem<Rectangle, Drawable, Position>
         int next = current < 0
             ? (backwards ? focusables.Count - 1 : 0)
             : (current + (backwards ? -1 : 1) + focusables.Count) % focusables.Count;
-        SetFocus(focusables[next].Entity, buffer);
+        SetFocus(focusables[next].Entity, buffer, keyboard: true);
     }
 
     private static bool Activate(Entity entity)
@@ -271,10 +274,13 @@ public sealed class UiFocusSystem : QuerySystem<Rectangle, Drawable, Position>
         return true;
     }
 
-    private void SetFocus(Entity entity, CommandBuffer buffer)
+    private void SetFocus(Entity entity, CommandBuffer buffer, bool keyboard)
     {
         if (entity.Id == _focused.Id)
+        {
+            _keyboardFocus = keyboard;
             return;
+        }
 
         if (!_focused.IsNull)
         {
@@ -283,6 +289,7 @@ public sealed class UiFocusSystem : QuerySystem<Rectangle, Drawable, Position>
         }
 
         _focused = entity;
+        _keyboardFocus = keyboard;
         if (entity.IsNull)
             return;
 
@@ -299,6 +306,7 @@ public sealed class UiFocusSystem : QuerySystem<Rectangle, Drawable, Position>
         buffer.RemoveTag<Focused>(_focused.Id);
         buffer.RemoveTag<TextFieldFocused>(_focused.Id);
         _focused = default;
+        _keyboardFocus = false;
     }
 
     private void RemoveSynthetic(PointerInput input)
@@ -314,7 +322,7 @@ public sealed class UiFocusSystem : QuerySystem<Rectangle, Drawable, Position>
 
     private void UpdateRing(CommandBuffer buffer)
     {
-        if (_focused.IsNull || !IsVisible(_focused))
+        if (_focused.IsNull || !_keyboardFocus || !IsVisible(_focused))
             _ring.Hide(buffer);
         else
             _ring.Show(_focused, buffer);

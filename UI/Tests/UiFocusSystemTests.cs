@@ -157,6 +157,43 @@ public sealed class UiFocusSystemTests
             Is.EqualTo(84f).Within(0.1f));
     }
 
+    [Test]
+    public void PointerFocusShowsNoRing()
+    {
+        _pointer.Input = new PointerInput(new Vector2(100, 200), true);
+        Frame();
+        Frame();
+
+        Assert.That(_second.Tags.Has<Focused>(), Is.True);
+        Assert.That(RingVisible(), Is.False);
+    }
+
+    [Test]
+    public void PressingTheKeyboardFocusedControlHidesTheRing()
+    {
+        Press(Key.Tab);
+        Frame();
+        Assert.That(RingVisible(), Is.True);
+
+        _pointer.Input = new PointerInput(new Vector2(100, 100), true);
+        Frame();
+        Frame();
+
+        Assert.That(_first.Tags.Has<Focused>(), Is.True);
+        Assert.That(RingVisible(), Is.False);
+    }
+
+    private bool RingVisible()
+    {
+        foreach (Entity edge in _store.Query<UiFocusRingEdge>().ToEntityList())
+        {
+            if (edge.GetComponent<Position>().Value != UiLayout.Hidden)
+                return true;
+        }
+
+        return false;
+    }
+
     private Entity Button(string label, Vector2 position)
     {
         Entity button = _ui.RectEntity(
