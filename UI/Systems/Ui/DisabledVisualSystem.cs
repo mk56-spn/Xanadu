@@ -5,40 +5,22 @@ using Xanadu.Ecs;
 
 namespace Xanadu.Systems.Ui;
 
-/// <summary>
-/// Dims disabled buttons. Normal queries skip <see cref="Disabled"/> entities,
-/// so this one asks for them explicitly and leaves the enabled styling to
-/// <see cref="ButtonVisualSystem"/>.
-/// </summary>
+/// <summary>Dims greyed-out buttons; <see cref="ButtonVisualSystem"/> styles the rest.</summary>
 public sealed class DisabledVisualSystem : QuerySystem<ButtonVisual, FillColor>
 {
-    private readonly EntityStore _entities;
-
-    public DisabledVisualSystem(EntityStore entities)
-    {
-        _entities = entities;
-    }
+    public DisabledVisualSystem() => Filter.AllTags(Tags.Get<UiDisabled>());
 
     protected override void OnUpdate()
     {
         CommandBuffer buffer = CommandBuffer;
-        foreach (Entity entity in _entities
-                     .Query<ButtonVisual, FillColor>()
-                     .WithDisabled()
-                     .ToEntityList())
+        Query.ForEachEntity((ref ButtonVisual visual, ref FillColor fill, Entity entity) =>
         {
-            if (!entity.Tags.Has<Disabled>())
-                continue;
-
-            Color target = entity.GetComponent<ButtonVisual>()
-                .Normal
-                .Darkened(0.55f);
-            ref FillColor fill = ref entity.GetComponent<FillColor>();
+            Color target = visual.Normal.Darkened(0.55f);
             if (fill.Value == target)
-                continue;
+                return;
 
             fill.Value = target;
             buffer.AddTag<Dirty>(entity.Id);
-        }
+        });
     }
 }

@@ -52,8 +52,7 @@ public sealed class UiTooltipSystemTests
 
         Frame(0.4f);
         Assert.That(TooltipText(), Is.EqualTo("A useful hint"));
-        Assert.That(_system.Tooltip.GetComponent<Position>().Value,
-            Is.Not.EqualTo(UiLayout.Hidden));
+        Assert.That(UiLayout.IsHidden(_system.Tooltip), Is.False);
     }
 
     [Test]
@@ -66,8 +65,7 @@ public sealed class UiTooltipSystemTests
         Frame(0.1f);
 
         Assert.That(TooltipText(), Is.Empty);
-        Assert.That(_system.Tooltip.GetComponent<Position>().Value,
-            Is.EqualTo(UiLayout.Hidden));
+        Assert.That(UiLayout.IsHidden(_system.Tooltip), Is.True);
     }
 
     [Test]

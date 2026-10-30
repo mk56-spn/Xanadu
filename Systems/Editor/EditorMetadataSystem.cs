@@ -45,15 +45,13 @@ public sealed class EditorMetadataSystem : QuerySystem<EditorMetadataPanel>
             if (request.Kind == EditorButtonKind.ToggleMetadata)
             {
                 request.Kind = EditorButtonKind.None;
-                panel.Visible = !panel.Visible;
                 if (!panel.Panel.IsNull &&
                     panel.Panel.HasComponent<Position>())
                 {
-                    ref Position position =
-                        ref panel.Panel.GetComponent<Position>();
-                    position.Value = panel.Visible ? panel.Home : UiLayout.Hidden;
+                    panel.Panel.GetComponent<Position>().Value = panel.Home;
                     CommandBuffer buffer = CommandBuffer;
                     buffer.AddTag<Moved>(panel.Panel.Id);
+                    UiLayout.SetHidden(panel.Panel, buffer, !UiLayout.IsHidden(panel.Panel));
                 }
             }
         }
@@ -72,24 +70,21 @@ public sealed class EditorMetadataSystem : QuerySystem<EditorMetadataPanel>
             ref EditorStartPanel startPanel =
                 ref editor.GetComponent<EditorStartPanel>();
             bool visible = hasSelectedStart;
-            if (startPanel.Visible != visible)
+            if (UiLayout.IsHidden(startPanelEntity) == visible)
             {
-                startPanel.Visible = visible;
                 if (startPanelEntity.HasComponent<Position>())
                 {
-                    ref Position position =
-                        ref startPanelEntity.GetComponent<Position>();
-                    position.Value = visible
-                        ? startPanel.Home
-                        : UiLayout.Hidden;
+                    startPanelEntity.GetComponent<Position>().Value = startPanel.Home;
                     CommandBuffer startBuffer = CommandBuffer;
                     startBuffer.AddTag<Moved>(startPanelEntity.Id);
+                    UiLayout.SetHidden(startPanelEntity, startBuffer, !visible);
                 }
             }
         }
 
         foreach (Entity entity in _entities
                      .Query<EditorField, TextField>()
+                     .WithDisabled()
                      .ToEntityList())
         {
             EditorField binding = entity.GetComponent<EditorField>();
@@ -189,7 +184,7 @@ public sealed class EditorMetadataSystem : QuerySystem<EditorMetadataPanel>
     private void UpdateBackgroundColorControl(LevelInfo level)
     {
         Color color = level.Background ?? LevelBackground.Default;
-        foreach (Entity entity in _entities.Query<EditorBackgroundSwatch, FillColor>().ToEntityList())
+        foreach (Entity entity in _entities.Query<EditorBackgroundSwatch, FillColor>().WithDisabled().ToEntityList())
         {
             ref FillColor fill = ref entity.GetComponent<FillColor>();
             if (fill.Value == color)
@@ -202,7 +197,7 @@ public sealed class EditorMetadataSystem : QuerySystem<EditorMetadataPanel>
         string label = level.Background is { } background
             ? LevelBackground.Format(background)
             : "DEFAULT";
-        foreach (Entity entity in _entities.Query<EditorBackgroundHex, Text>().ToEntityList())
+        foreach (Entity entity in _entities.Query<EditorBackgroundHex, Text>().WithDisabled().ToEntityList())
         {
             ref Text text = ref entity.GetComponent<Text>();
             if (text.Value == label)

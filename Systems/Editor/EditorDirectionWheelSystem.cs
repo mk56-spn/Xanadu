@@ -46,13 +46,10 @@ public sealed class EditorDirectionWheelSystem : QuerySystem<EditorDirectionWhee
             float radius = link.Wheel.HasComponent<Rectangle>()
                 ? link.Wheel.GetComponent<Rectangle>().Bounds.Size.X / 2
                 : 0;
-            Move(link.Wheel, visible ? link.Home : UiLayout.Hidden, buffer);
-            Move(
-                link.Label,
-                visible
-                    ? link.Home + new Vector2(0, -radius - LabelGap)
-                    : UiLayout.Hidden,
-                buffer);
+            Move(link.Wheel, link.Home, buffer);
+            Move(link.Label, link.Home + new Vector2(0, -radius - LabelGap), buffer);
+            UiLayout.SetHidden(link.Wheel, buffer, !visible);
+            UiLayout.SetHidden(link.Label, buffer, !visible);
 
             if (visible && entity.HasComponent<EditorDashDirectionState>())
             {

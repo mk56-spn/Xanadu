@@ -66,15 +66,15 @@ public sealed class UiCollapsibleTests : EcsSystemTest
     [Test]
     public void HeaderShowsTheTitleAndState()
     {
-        Assert.That(State(_first).Header.GetComponent<Text>().Value, Is.EqualTo("▾  FIRST"));
-        Assert.That(State(_closed).Header.GetComponent<Text>().Value, Is.EqualTo("▸  CLOSED"));
+        Assert.That(UiCollapsibleControl.HeaderOf(_first).GetComponent<Text>().Value, Is.EqualTo("▾  FIRST"));
+        Assert.That(UiCollapsibleControl.HeaderOf(_closed).GetComponent<Text>().Value, Is.EqualTo("▸  CLOSED"));
     }
 
     [Test]
     public void AStartClosedSectionIsOnlyItsHeader()
     {
-        Assert.That(State(_closed).Body.Tags.Has<LayoutIgnore>(), Is.True);
-        Assert.That(Height(_closed), Is.EqualTo(Height(State(_closed).Header)).Within(0.01f));
+        Assert.That(UiLayout.IsHidden(UiCollapsibleControl.BodyOf(_closed)), Is.True);
+        Assert.That(Height(_closed), Is.EqualTo(Height(UiCollapsibleControl.HeaderOf(_closed))).Within(0.01f));
     }
 
     [Test]
@@ -82,12 +82,12 @@ public sealed class UiCollapsibleTests : EcsSystemTest
     {
         float before = Top(_second);
 
-        Click(State(_first).Header);
+        Click(UiCollapsibleControl.HeaderOf(_first));
 
         Assert.That(State(_first).Expanded, Is.False);
-        Assert.That(State(_first).Body.Tags.Has<LayoutIgnore>(), Is.True);
+        Assert.That(UiLayout.IsHidden(UiCollapsibleControl.BodyOf(_first)), Is.True);
         Assert.That(Top(_second), Is.LessThan(before));
-        Assert.That(State(_first).Header.GetComponent<Text>().Value, Is.EqualTo("▸  FIRST"));
+        Assert.That(UiCollapsibleControl.HeaderOf(_first).GetComponent<Text>().Value, Is.EqualTo("▸  FIRST"));
     }
 
     [Test]
@@ -95,18 +95,18 @@ public sealed class UiCollapsibleTests : EcsSystemTest
     {
         float before = Top(_second);
 
-        Click(State(_first).Header);
-        Click(State(_first).Header);
+        Click(UiCollapsibleControl.HeaderOf(_first));
+        Click(UiCollapsibleControl.HeaderOf(_first));
 
         Assert.That(State(_first).Expanded, Is.True);
-        Assert.That(State(_first).Body.Tags.Has<LayoutIgnore>(), Is.False);
+        Assert.That(UiLayout.IsHidden(UiCollapsibleControl.BodyOf(_first)), Is.False);
         Assert.That(Top(_second), Is.EqualTo(before).Within(0.01f));
     }
 
     [Test]
     public void HoldingTheHeaderTogglesOnce()
     {
-        Entity header = State(_first).Header;
+        Entity header = UiCollapsibleControl.HeaderOf(_first);
         header.AddTag<Pressed>();
         Frame(3);
 

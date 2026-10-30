@@ -33,10 +33,10 @@ public static partial class AnimatorLayout
     /// </summary>
     private static void BuildPreviewBar(UiBuilder ui, Vector2 screen, ref Refs refs)
     {
-        ui.Container(UiLayout.Hidden, new Vector2(screen.X - Margin * 2, PreviewBarHeight),
+        ui.Container(Vector2.Zero, new Vector2(screen.X - Margin * 2, PreviewBarHeight),
             color: PreviewChrome, takesInput: true);
+        UiLayout.SetHidden(ui.Current, true);
         refs.Ui.PreviewBar = ui.Current;
-        refs.Ui.PreviewBar.AddTag<LayoutIgnore>();
 
         float pad = (PreviewBarHeight - PreviewControl) / 2;
         EdgeGroup(ui, new Vector2(0, 0.5f), PreviewBarHeight, EditorShellMetrics.HeaderGap, pad);

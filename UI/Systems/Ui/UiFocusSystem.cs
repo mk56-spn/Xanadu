@@ -103,7 +103,7 @@ public sealed class UiFocusSystem : QuerySystem<Rectangle, Drawable, Position>
 
     private static bool IsFocusable(Entity entity)
     {
-        if (entity.Tags.Has<Disabled>() || entity.Tags.Has<FocusIgnore>())
+        if (entity.Tags.Has<UiDisabled>() || entity.Tags.Has<FocusIgnore>())
             return false;
 
         if (entity.Tags.Has<Focusable>())
@@ -119,7 +119,8 @@ public sealed class UiFocusSystem : QuerySystem<Rectangle, Drawable, Position>
 
     private bool IsVisible(Entity entity)
     {
-        if (entity.Tags.Has<Disabled>() ||
+        if (!entity.Enabled ||
+            entity.Tags.Has<UiDisabled>() ||
             !entity.HasComponent<Position>() ||
             !entity.HasComponent<Rectangle>())
         {
@@ -131,9 +132,6 @@ public sealed class UiFocusSystem : QuerySystem<Rectangle, Drawable, Position>
             return false;
 
         Position position = entity.GetComponent<Position>();
-        if (position.Value == UiLayout.Hidden)
-            return false;
-
         Vector2 world = UiTransform.WorldPosition(entity, position.Value);
         Rect2 bounds = new(world + rect.Bounds.Position, rect.Bounds.Size);
         if (_screen != Vector2.Zero && !bounds.Intersects(new Rect2(Vector2.Zero, _screen)))
@@ -141,12 +139,6 @@ public sealed class UiFocusSystem : QuerySystem<Rectangle, Drawable, Position>
 
         for (Entity parent = entity.Parent; !parent.IsNull; parent = parent.Parent)
         {
-            if (parent.HasComponent<Position>() &&
-                parent.GetComponent<Position>().Value == UiLayout.Hidden)
-            {
-                return false;
-            }
-
             if (!parent.TryGetComponent(out UiContainer container) ||
                 !container.Clip ||
                 !parent.TryGetComponent(out Rectangle parentRect) ||
@@ -219,7 +211,7 @@ public sealed class UiFocusSystem : QuerySystem<Rectangle, Drawable, Position>
         bool activate = _keyboard.IsPressed(Key.Enter) ||
                         _keyboard.IsPressed(Key.KpEnter);
         if (activate && !_activateHeld && !input.Pressed &&
-            !_focused.IsNull && !_focused.Tags.Has<Disabled>() &&
+            !_focused.IsNull && !_focused.Tags.Has<UiDisabled>() &&
             Activate(_focused))
         {
             _syntheticId = _focused.Id;

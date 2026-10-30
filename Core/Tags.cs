@@ -23,6 +23,19 @@ public struct LayoutDirty : ITag { }
 /// <summary>Excludes a child from its container's stack while keeping it alive.</summary>
 public struct LayoutIgnore : ITag { }
 
+/// <summary>
+/// Authored: this node and everything under it are not shown. Set it through
+/// <c>UiLayout.SetHidden</c>; <c>UiTreeEvents</c> keeps the native
+/// <see cref="Disabled"/> tag on the subtree, which takes it out of every query.
+/// </summary>
+public struct UiHidden : ITag { }
+
+/// <summary>A greyed-out control: still drawn and laid out, but it takes no input or focus.</summary>
+public struct UiDisabled : ITag { }
+
+/// <summary>Marks a canvas item whose visibility must follow its entity's enabled state.</summary>
+public struct VisibilityDirty : ITag { }
+
 /// <summary>Marks a drawable whose canvas transform needs updating.</summary>
 public struct Moved : ITag { }
 

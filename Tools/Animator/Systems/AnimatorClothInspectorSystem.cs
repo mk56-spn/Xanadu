@@ -40,11 +40,7 @@ public sealed class AnimatorClothInspectorSystem : QuerySystem<AnimatorDocument,
 
         int index = AnimatorClothCommands.Selected(session);
         bool shown = index >= 0 && !AnimatorPreviewModeCommands.IsOn(session);
-        AnimatorMenuPlacement.Place(
-            ui.ClothInspector,
-            shown
-                ? AnimatorLayout.InspectorTopLeft(ui.ScreenSize) + AnimatorLayout.ClothInspectorSize / 2
-                : UiLayout.Hidden);
+        AnimatorMenuPlacement.Place(ui.ClothInspector, AnimatorLayout.InspectorTopLeft(ui.ScreenSize) + AnimatorLayout.ClothInspectorSize / 2, shown: shown);
 
         XafCloth? cloth = index >= 0 ? session.GetComponent<AnimatorDocument>().Package.Cloths[index] : null;
         AnimatorClothPick picking = session.GetComponent<AnimatorCloths>().Picking;

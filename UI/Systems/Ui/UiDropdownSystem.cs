@@ -18,6 +18,7 @@ public sealed class UiDropdownSystem : QuerySystem<Dropdown>
     public UiDropdownSystem(EntityStore entities)
     {
         _entities = entities;
+        Filter.WithoutAnyTags(Tags.Get<UiDisabled>());
     }
 
     protected override void OnUpdate()
@@ -27,19 +28,15 @@ public sealed class UiDropdownSystem : QuerySystem<Dropdown>
         // A disabled dropdown must not leave its list floating over the scene.
         foreach (Entity disabled in _entities
                      .Query<Dropdown>()
-                     .WithDisabled()
+                     .AllTags(Tags.Get<UiDisabled>())
                      .ToEntityList())
         {
-            if (!disabled.Tags.Has<Disabled>())
-                continue;
-
             ref Dropdown closed = ref disabled.GetComponent<Dropdown>();
             if (!closed.Open)
                 continue;
 
             closed.Open = false;
             LayOut(disabled, ref closed, buffer);
-            MarkContainerDirty(disabled, buffer);
         }
 
         foreach (Entity entity in Query.ToEntityList())
@@ -55,7 +52,6 @@ public sealed class UiDropdownSystem : QuerySystem<Dropdown>
 
             if (pressed && !held)
             {
-                bool wasOpen = dropdown.Open;
                 bool open = !dropdown.Open;
                 if (open && dropdown.CloseOthers)
                 {
@@ -66,14 +62,11 @@ public sealed class UiDropdownSystem : QuerySystem<Dropdown>
                         ref Dropdown otherDropdown = ref other.GetComponent<Dropdown>();
                         otherDropdown.Open = false;
                         LayOut(other, ref otherDropdown, buffer);
-                        MarkContainerDirty(other, buffer);
                     }
                 }
 
                 dropdown.Open = open;
                 LayOut(entity, ref dropdown, buffer);
-                if (wasOpen != open)
-                    MarkContainerDirty(entity, buffer);
             }
         }
 
@@ -84,8 +77,10 @@ public sealed class UiDropdownSystem : QuerySystem<Dropdown>
                 LayOut(entity, ref dropdown, buffer);
         }
 
+        // Options hide themselves when pressed, and still have to let go of the press.
         foreach (Entity entity in _entities
                      .Query<DropdownOption>()
+                     .WithDisabled()
                      .ToEntityList())
         {
             bool pressed = entity.Tags.Has<Pressed>();
@@ -100,7 +95,7 @@ public sealed class UiDropdownSystem : QuerySystem<Dropdown>
             DropdownOption option = entity.GetComponent<DropdownOption>();
             if (option.Owner.IsNull ||
                 !option.Owner.HasComponent<Dropdown>() ||
-                option.Owner.Tags.Has<Disabled>())
+                option.Owner.Tags.Has<UiDisabled>())
             {
                 continue;
             }
@@ -110,7 +105,6 @@ public sealed class UiDropdownSystem : QuerySystem<Dropdown>
             dropdown.Open = false;
             buffer.AddComponent(option.Owner.Id, new DropdownChanged(option.Value));
             LayOut(option.Owner, ref dropdown, buffer);
-            MarkContainerDirty(option.Owner, buffer);
         }
     }
 
@@ -139,11 +133,8 @@ public sealed class UiDropdownSystem : QuerySystem<Dropdown>
 
         if (!dropdown.Open)
         {
-            listPosition.Value = UiLayout.Hidden;
-            if (listRectangle.Bounds.Size != Vector2.Zero)
-                listRectangle.Bounds = new Rect2(Vector2.Zero, Vector2.Zero);
-            buffer.AddTag<Moved>(dropdown.List.Id);
-            HideOptions(button, buffer);
+            UiLayout.SetHidden(dropdown.List, buffer, true);
+            SetOptionsHidden(button, buffer, true);
             return;
         }
 
@@ -156,23 +147,15 @@ public sealed class UiDropdownSystem : QuerySystem<Dropdown>
         Vector2 listWorld = buttonWorld +
                             new Vector2(0, buttonHeight / 2 + size.Y / 2 + 4);
         listPosition.Value = listWorld - listParentWorld;
+        UiLayout.SetHidden(dropdown.List, buffer, false);
+        SetOptionsHidden(button, buffer, false);
         buffer.AddTag<Moved>(dropdown.List.Id);
         buffer.AddTag<Dirty>(dropdown.List.Id);
 
         float top = listWorld.Y - size.Y / 2 + 2;
         var options = new List<Entity>();
-        foreach (Entity option in _entities
-                     .Query<DropdownOption>()
-                     .ToEntityList())
-        {
-            DropdownOption binding = option.GetComponent<DropdownOption>();
-            if (binding.Owner.Id == button.Id &&
-                option.HasComponent<Position>() &&
-                option.HasComponent<Rectangle>())
-            {
-                options.Add(option);
-            }
-        }
+        foreach (EntityLink<DropdownOption> link in button.GetIncomingLinks<DropdownOption>())
+            options.Add(link.Entity);
 
         options.Sort(static (left, right) =>
             left.GetComponent<DropdownOption>().Value.CompareTo(
@@ -194,31 +177,9 @@ public sealed class UiDropdownSystem : QuerySystem<Dropdown>
         }
     }
 
-    private static void MarkContainerDirty(
-        Entity button,
-        CommandBuffer buffer)
+    private static void SetOptionsHidden(Entity button, CommandBuffer buffer, bool hidden)
     {
-        Entity parent = button.Parent;
-        if (!parent.IsNull && parent.HasComponent<UiContainer>())
-            buffer.AddTag<LayoutDirty>(parent.Id);
-    }
-
-    private void HideOptions(Entity button, CommandBuffer buffer)
-    {
-        foreach (Entity option in _entities
-                     .Query<DropdownOption>()
-                     .ToEntityList())
-        {
-            DropdownOption binding = option.GetComponent<DropdownOption>();
-            if (binding.Owner.Id != button.Id ||
-                !option.HasComponent<Position>())
-            {
-                continue;
-            }
-
-            ref Position position = ref option.GetComponent<Position>();
-            position.Value = UiLayout.Hidden;
-            buffer.AddTag<Moved>(option.Id);
-        }
+        foreach (EntityLink<DropdownOption> link in button.GetIncomingLinks<DropdownOption>())
+            UiLayout.SetHidden(link.Entity, buffer, hidden);
     }
 }

@@ -81,14 +81,10 @@ public static class AnimatorGeometry
         if (!viewport.IsNull && !PanelArea(viewport).HasPoint(pointer))
             return null;
 
-        foreach (Entity row in tree.ChildEntities)
+        foreach (Entity node in UiTreeControl.Nodes(tree))
         {
-            if (row.Tags.Has<LayoutIgnore>() || !row.HasComponent<UiTreeNode>())
-                continue;
-
-            UiTreeNode node = row.GetComponent<UiTreeNode>();
-            if (PanelArea(node.Label).HasPoint(pointer))
-                return node.Id;
+            if (node.Enabled && PanelArea(UiTreeControl.Label(node)).HasPoint(pointer))
+                return node.GetComponent<UiTreeNode>().Id;
         }
         return null;
     }
@@ -96,10 +92,10 @@ public static class AnimatorGeometry
     /// <summary>Screen rectangle of a bone's row label in the bone tree, if it is shown.</summary>
     public static Rect2? TreeLabel(Entity tree, string id)
     {
-        Entity row = tree.IsNull ? default : UiTreeControl.FindNode(tree, id);
-        if (row.IsNull || row.Tags.Has<LayoutIgnore>())
+        Entity node = tree.IsNull ? default : UiTreeControl.FindNode(tree, id);
+        if (node.IsNull || !node.Enabled)
             return null;
-        return PanelArea(row.GetComponent<UiTreeNode>().Label);
+        return PanelArea(UiTreeControl.Label(node));
     }
 
     private static Entity ClipViewport(Entity entity)

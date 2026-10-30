@@ -623,14 +623,14 @@ public sealed class SceneSystemTests
         Frame();
 
         _scenes.TryBack();
-        Assert.That(Pause().Visible, Is.True);
+        Assert.That(!UiLayout.IsHidden(PausePanel()), Is.True);
 
         Pause().Retry.AddTag<Pressed>();
         Frame();
 
         Assert.That(_director.Current, Is.EqualTo(SceneKind.Play));
         Assert.That(_store.Query<Note>().Count, Is.EqualTo(1));
-        Assert.That(Pause().Visible, Is.False);
+        Assert.That(!UiLayout.IsHidden(PausePanel()), Is.False);
     }
 
     [Test]
@@ -795,7 +795,7 @@ public sealed class SceneSystemTests
 
         _scenes.TryBack();
 
-        Assert.That(Pause().Visible, Is.True);
+        Assert.That(!UiLayout.IsHidden(PausePanel()), Is.True);
         Assert.That(
             Pause().Title.GetComponent<Text>().Value,
             Is.EqualTo("PAUSED"));
@@ -806,7 +806,7 @@ public sealed class SceneSystemTests
         _scenes.TryForward();
         Frame();
 
-        Assert.That(Pause().Visible, Is.False);
+        Assert.That(!UiLayout.IsHidden(PausePanel()), Is.False);
         Assert.That(playhead.Playing, Is.True);
         Assert.That(playfield.Tags.Has<PlayPaused>(), Is.False);
         Assert.That(_director.Current, Is.EqualTo(SceneKind.Play));
@@ -827,7 +827,7 @@ public sealed class SceneSystemTests
         Pause().Resume.AddTag<Pressed>();
         Frame();
 
-        Assert.That(Pause().Visible, Is.False);
+        Assert.That(!UiLayout.IsHidden(PausePanel()), Is.False);
         Assert.That(playhead.Playing, Is.True);
         Assert.That(playfield.Tags.Has<PlayPaused>(), Is.False);
     }
@@ -862,7 +862,7 @@ public sealed class SceneSystemTests
             .AddTag<Pressed>();
         Frame();
 
-        Assert.That(Pause().Visible, Is.True);
+        Assert.That(!UiLayout.IsHidden(PausePanel()), Is.True);
         Assert.That(_director.Current, Is.EqualTo(SceneKind.Play));
     }
 
@@ -875,12 +875,12 @@ public sealed class SceneSystemTests
         Frame();
 
         _scenes.TryBack();
-        Assert.That(Pause().Visible, Is.True);
+        Assert.That(!UiLayout.IsHidden(PausePanel()), Is.True);
 
         _scenes.TryBack();
         Frame();
 
-        Assert.That(Pause().Visible, Is.False);
+        Assert.That(!UiLayout.IsHidden(PausePanel()), Is.False);
         Assert.That(_director.Current, Is.EqualTo(SceneKind.Play));
     }
 
@@ -909,19 +909,16 @@ public sealed class SceneSystemTests
         transitional.TryBack();
         Advance(2);
         Assert.That(
-            _store.Query<ScenePause>().ToEntityList()[0]
-                .GetComponent<ScenePause>().Visible,
+            !UiLayout.IsHidden(PausePanel()),
             Is.True);
 
-        _store.Query<ScenePause>().ToEntityList()[0]
-            .GetComponent<ScenePause>().Retry.AddTag<Pressed>();
+        PausePanel().GetComponent<ScenePause>().Retry.AddTag<Pressed>();
 
         Advance(40);
 
         Assert.That(_director.Current, Is.EqualTo(SceneKind.Play));
         Assert.That(
-            _store.Query<ScenePause>().ToEntityList()[0]
-                .GetComponent<ScenePause>().Visible,
+            !UiLayout.IsHidden(PausePanel()),
             Is.False);
         Assert.That(_store.Query<Note>().Count, Is.EqualTo(1));
     }
@@ -1057,9 +1054,10 @@ public sealed class SceneSystemTests
         return new LevelEntry(path, LevelStore.Load(path));
     }
 
-    private ScenePause Pause() =>
-        _store.Query<ScenePause>().ToEntityList()[0]
-            .GetComponent<ScenePause>();
+    private Entity PausePanel() =>
+        _store.Query<ScenePause>().WithDisabled().ToEntityList()[0];
+
+    private ScenePause Pause() => PausePanel().GetComponent<ScenePause>();
 
     private Entity Playfield() =>
         _store.Query<PlayfieldMode>().ToEntityList()[0];

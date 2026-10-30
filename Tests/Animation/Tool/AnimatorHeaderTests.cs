@@ -156,8 +156,7 @@ public sealed class AnimatorHeaderTests : AnimatorToolTest
     public void TheLengthPanelStartsHidden()
     {
         Assert.That(Session.GetComponent<AnimatorClipLength>().Open, Is.False);
-        Assert.That(Ui.ClipLengthPanel.GetComponent<Position>().Value,
-            Is.EqualTo(UiLayout.Hidden));
+        Assert.That(UiLayout.IsHidden(Ui.ClipLengthPanel), Is.True);
     }
 
     [Test]
@@ -205,18 +204,15 @@ public sealed class AnimatorHeaderTests : AnimatorToolTest
         PressAt(Area(Ui.Preview).GetCenter());
 
         Assert.That(Session.GetComponent<AnimatorClipLength>().Open, Is.False);
-        Assert.That(Ui.ClipLengthPanel.GetComponent<Position>().Value,
-            Is.EqualTo(UiLayout.Hidden));
+        Assert.That(UiLayout.IsHidden(Ui.ClipLengthPanel), Is.True);
     }
 
     [Test]
     public void TheNewClipDialogStartsHidden()
     {
         Assert.That(Session.GetComponent<AnimatorNewClipDialog>().Open, Is.False);
-        Assert.That(Ui.NewClipDialog.GetComponent<Position>().Value,
-            Is.EqualTo(UiLayout.Hidden));
-        Assert.That(Ui.NewClipBackdrop.GetComponent<Position>().Value,
-            Is.EqualTo(UiLayout.Hidden));
+        Assert.That(UiLayout.IsHidden(Ui.NewClipDialog), Is.True);
+        Assert.That(UiLayout.IsHidden(Ui.NewClipBackdrop), Is.True);
     }
 
     [Test]
@@ -267,10 +263,8 @@ public sealed class AnimatorHeaderTests : AnimatorToolTest
         PressAt(new Vector2(40, 40));
 
         Assert.That(Session.GetComponent<AnimatorNewClipDialog>().Open, Is.False);
-        Assert.That(Ui.NewClipDialog.GetComponent<Position>().Value,
-            Is.EqualTo(UiLayout.Hidden));
-        Assert.That(Ui.NewClipBackdrop.GetComponent<Position>().Value,
-            Is.EqualTo(UiLayout.Hidden));
+        Assert.That(UiLayout.IsHidden(Ui.NewClipDialog), Is.True);
+        Assert.That(UiLayout.IsHidden(Ui.NewClipBackdrop), Is.True);
     }
 
     [Test]
@@ -281,8 +275,7 @@ public sealed class AnimatorHeaderTests : AnimatorToolTest
         Click(Button(ToolActionKind.CloseNewClip));
 
         Assert.That(Session.GetComponent<AnimatorNewClipDialog>().Open, Is.False);
-        Assert.That(Ui.NewClipDialog.GetComponent<Position>().Value,
-            Is.EqualTo(UiLayout.Hidden));
+        Assert.That(UiLayout.IsHidden(Ui.NewClipDialog), Is.True);
     }
 
     [Test]

@@ -15,6 +15,9 @@ public sealed class WarningPopupSystem : QuerySystem<WarningPopup>
     public WarningPopupSystem(EntityStore entities)
     {
         _entities = entities;
+
+        // A hidden popup still has to hear about the next warning.
+        Filter.WithDisabled();
     }
 
     protected override void OnUpdate()
@@ -36,14 +39,14 @@ public sealed class WarningPopupSystem : QuerySystem<WarningPopup>
 
         Query.ForEachEntity((ref popup, entity) =>
         {
-            if (popup.Visible)
+            if (entity.Enabled)
             {
                 bool songLoaded = !string.IsNullOrEmpty(level.AudioPath);
                 bool dismissed = !popup.Button.IsNull &&
                                  popup.Button.Tags.Has<Pressed>();
 
                 if (songLoaded || dismissed)
-                    Hide(entity, ref popup, buffer);
+                    Hide(entity, buffer);
 
                 return;
             }
@@ -79,18 +82,14 @@ public sealed class WarningPopupSystem : QuerySystem<WarningPopup>
         ref Position position = ref popupEntity.GetComponent<Position>();
         position.Value = center;
         buffer.AddTag<Moved>(popupEntity.Id);
-        popup.Visible = true;
+        UiLayout.SetHidden(popupEntity, buffer, false);
     }
 
     private static void Hide(
         Entity popupEntity,
-        ref WarningPopup popup,
         CommandBuffer buffer)
     {
-        ref Position position = ref popupEntity.GetComponent<Position>();
-        position.Value = UiLayout.Hidden;
-        buffer.AddTag<Moved>(popupEntity.Id);
-        popup.Visible = false;
+        UiLayout.SetHidden(popupEntity, buffer, true);
     }
 
     private Entity FindEditor()

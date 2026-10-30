@@ -31,18 +31,20 @@ public static partial class AnimatorLayout
     private static void BuildInfoPanel(UiBuilder menu, Vector2 screen, ref Refs refs)
     {
         Entity backdrop = menu.RectEntity(
-            UiLayout.Hidden,
+            Vector2.Zero,
             screen,
             Palette.WithAlpha(Palette.Stage, 0.6f),
             takesInput: true);
+        UiLayout.SetHidden(backdrop, true);
         backdrop.AddTag<UiOverlay>();
         refs.Ui.InfoBackdrop = backdrop;
 
         float inner = InfoPanelSize.X - InfoPadding * 2;
-        menu.Container(UiLayout.Hidden, InfoPanelSize, StackDirection.Vertical,
+        menu.Container(Vector2.Zero, InfoPanelSize, StackDirection.Vertical,
             spacing: InfoSpacing, color: UiTheme.Panel, padding: InfoPadding,
             takesInput: true, cross: StackCrossAlignment.Start,
             main: StackMainAlignment.Start);
+        UiLayout.SetHidden(menu.Current, true);
         refs.Ui.InfoPanel = menu.Current;
         refs.Ui.InfoPanel.AddTag<UiOverlayItem>();
         menu.Text("FILE INFO", new Vector2(inner, 20), UiTheme.FontSize,

@@ -36,7 +36,7 @@ public sealed class EditorPlacementSystem : QuerySystem<EditorPlacementModeState
             ref editor.GetComponent<EditorPlacementModeState>();
         CommandBuffer buffer = CommandBuffer;
 
-        foreach (Entity entity in _entities.Query<EditorPlacementButton>().ToEntityList())
+        foreach (Entity entity in _entities.Query<EditorPlacementButton>().WithDisabled().ToEntityList())
         {
             if (entity.Tags.Has<Pressed>())
                 mode.Mode = entity.GetComponent<EditorPlacementButton>().Mode;

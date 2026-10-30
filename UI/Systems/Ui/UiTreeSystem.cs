@@ -8,16 +8,14 @@ namespace Xanadu.Systems.Ui;
 
 /// <summary>
 /// Drives tree controls: arrow presses expand and collapse, label presses
-/// select, rows under a collapsed ancestor are hidden, and the selection is
-/// highlighted.
+/// select, and arrows and the selection highlight follow the state.
 /// </summary>
-public sealed class UiTreeSystem : QuerySystem<UiTreeNode>
+public sealed class UiTreeSystem : QuerySystem<UiTree>
 {
     private const string Expanded = "▾";
     private const string Collapsed = "▸";
 
     private readonly HashSet<int> _held = new();
-    private readonly Dictionary<int, Dictionary<string, Entity>> _nodes = new();
 
     protected override void OnUpdate()
     {
@@ -28,42 +26,30 @@ public sealed class UiTreeSystem : QuerySystem<UiTreeNode>
 
     private void HandleDisclosures()
     {
-        foreach (Entity arrow in Query.Store.Query<UiTreeDisclosure>().ToEntityList())
+        foreach (Entity arrow in Parts<UiTreeDisclosure>())
         {
             if (!PressedNow(arrow))
                 continue;
 
-            Entity node = arrow.GetComponent<UiTreeDisclosure>().Node;
-            if (node.IsNull || !node.HasComponent<UiTreeNode>())
-                continue;
-
-            UiTreeNode data = node.GetComponent<UiTreeNode>();
-            if (!data.Tree.IsNull)
-            {
-                UiTreeControl.SetExpanded(
-                    data.Tree,
-                    data.Id,
-                    !UiTreeControl.IsExpanded(data.Tree, data.Id));
-            }
+            Entity body = UiTreeControl.Body(UiTreeControl.NodeOfPart(arrow));
+            UiLayout.SetHidden(body, !UiLayout.IsHidden(body));
         }
     }
 
     private void HandleLabels()
     {
-        foreach (Entity label in Query.Store.Query<UiTreeLabel>().ToEntityList())
+        foreach (Entity label in Parts<UiTreeLabel>())
         {
             if (!PressedNow(label))
                 continue;
 
-            Entity node = label.GetComponent<UiTreeLabel>().Node;
-            if (node.IsNull || !node.HasComponent<UiTreeNode>())
-                continue;
-
-            UiTreeNode data = node.GetComponent<UiTreeNode>();
-            if (!data.Tree.IsNull)
-                UiTreeControl.Select(data.Tree, data.Id);
+            Entity node = UiTreeControl.NodeOfPart(label);
+            UiTreeControl.Select(UiTreeControl.TreeOf(node), node.GetComponent<UiTreeNode>().Id);
         }
     }
+
+    private EntityList Parts<T>() where T : struct, ITag =>
+        Query.Store.Query().WithDisabled().AllTags(Tags.Get<T>()).ToEntityList();
 
     /// <summary>True on the first frame an entity is pressed.</summary>
     private bool PressedNow(Entity entity)
@@ -79,67 +65,24 @@ public sealed class UiTreeSystem : QuerySystem<UiTreeNode>
 
     private void Present()
     {
-        foreach (Dictionary<string, Entity> map in _nodes.Values)
-            map.Clear();
-
-        var rows = Query.ToEntityList();
-        foreach (Entity row in rows)
+        foreach (Entity tree in Query.ToEntityList())
         {
-            UiTreeNode node = row.GetComponent<UiTreeNode>();
-            if (node.Tree.IsNull || !node.Tree.HasComponent<UiTree>())
-                continue;
+            UiTree state = tree.GetComponent<UiTree>();
+            foreach (Entity node in UiTreeControl.Nodes(tree))
+            {
+                Entity body = UiTreeControl.Body(node);
+                if (!body.IsNull)
+                    SetArrow(UiTreeControl.Disclosure(node), UiLayout.IsHidden(body) ? Collapsed : Expanded);
 
-            if (!_nodes.TryGetValue(node.Tree.Id, out Dictionary<string, Entity>? map))
-                _nodes[node.Tree.Id] = map = new Dictionary<string, Entity>();
-            map[node.Id] = row;
-        }
-
-        CommandBuffer buffer = CommandBuffer;
-        foreach (Entity row in rows)
-        {
-            UiTreeNode node = row.GetComponent<UiTreeNode>();
-            if (node.Tree.IsNull || !node.Tree.HasComponent<UiTree>())
-                continue;
-
-            UiTree tree = node.Tree.GetComponent<UiTree>();
-            SetVisible(row, !IsHidden(node, tree, _nodes[node.Tree.Id]), buffer);
-            if (node.HasChildren)
-                SetArrow(node.Disclosure, tree.Collapsed.Contains(node.Id) ? Collapsed : Expanded, buffer);
-            Highlight(
-                node.Label,
-                tree.Selected == node.Id || tree.MultiSelected.Contains(node.Id));
+                string id = node.GetComponent<UiTreeNode>().Id;
+                Highlight(UiTreeControl.Label(node), state.Selected == id || state.MultiSelected.Contains(id));
+            }
         }
     }
 
-    private static bool IsHidden(
-        UiTreeNode node,
-        UiTree tree,
-        Dictionary<string, Entity> byId)
+    private static void SetArrow(Entity arrow, string glyph)
     {
-        string parent = node.Parent;
-        for (int guard = 0; parent.Length > 0 && guard < byId.Count; guard++)
-        {
-            if (tree.Collapsed.Contains(parent))
-                return true;
-            if (!byId.TryGetValue(parent, out Entity parentRow))
-                return false;
-            parent = parentRow.GetComponent<UiTreeNode>().Parent;
-        }
-        return false;
-    }
-
-    private static void SetVisible(Entity row, bool visible, CommandBuffer buffer)
-    {
-        bool ignored = row.Tags.Has<LayoutIgnore>();
-        if (!visible && !ignored)
-            UiLayout.Hide(row, buffer);
-        else if (visible && ignored)
-            UiLayout.SetIgnored(row, false);
-    }
-
-    private static void SetArrow(Entity arrow, string glyph, CommandBuffer buffer)
-    {
-        if (arrow.IsNull || !arrow.HasComponent<Text>())
+        if (!arrow.HasComponent<Text>())
             return;
 
         ref Text text = ref arrow.GetComponent<Text>();
@@ -147,12 +90,12 @@ public sealed class UiTreeSystem : QuerySystem<UiTreeNode>
             return;
 
         text.Value = glyph;
-        buffer.AddTag<Dirty>(arrow.Id);
+        arrow.AddTag<Dirty>();
     }
 
     private static void Highlight(Entity label, bool selected)
     {
-        if (label.IsNull || !label.HasComponent<ButtonVisual>())
+        if (!label.HasComponent<ButtonVisual>())
             return;
 
         Color target = selected ? UiTheme.Selected : UiTheme.PanelAlt;

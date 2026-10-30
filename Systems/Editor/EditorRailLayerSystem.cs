@@ -26,6 +26,9 @@ public sealed class EditorRailLayerSystem : QuerySystem<EditorRailButton>
     {
         _entities = entities;
         _history = history;
+
+        // A press can land on a control that hides itself the same frame.
+        Filter.WithDisabled();
     }
 
     protected override void OnUpdate()
@@ -57,6 +60,7 @@ public sealed class EditorRailLayerSystem : QuerySystem<EditorRailButton>
 
         foreach (Entity entity in _entities
                      .Query<EditorChannelEndButton>()
+                     .WithDisabled()
                      .ToEntityList())
         {
             if (!PressedNow(entity))
@@ -69,6 +73,7 @@ public sealed class EditorRailLayerSystem : QuerySystem<EditorRailButton>
 
         foreach (Entity entity in _entities
                      .Query<EditorRailHoldButton>()
+                     .WithDisabled()
                      .ToEntityList())
         {
             if (!PressedNow(entity))

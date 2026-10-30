@@ -57,7 +57,7 @@ public sealed class UiWheelSystem : QuerySystem<UiWheel, Drawable>
             Entity active = _entities.GetEntityById(_activeWheelId);
             if (active.IsNull ||
                 !active.HasComponent<UiWheel>() ||
-                active.Tags.Has<Disabled>() ||
+                active.Tags.Has<UiDisabled>() ||
                 !active.Tags.Has<Pressed>())
             {
                 _activeWheelId = 0;

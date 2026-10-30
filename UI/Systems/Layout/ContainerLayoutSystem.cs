@@ -386,6 +386,7 @@ public sealed class ContainerLayoutSystem : QuerySystem<Rectangle, UiContainer>
     }
 
     private static bool IsLayoutChild(Entity child) =>
+        child.Enabled &&
         !child.Tags.Has<LayoutIgnore>() &&
         child.HasComponent<Rectangle>() &&
         child.HasComponent<Position>();

@@ -11,6 +11,8 @@ public sealed class ButtonVisualSystem : QuerySystem<ButtonVisual, FillColor>
     private const float HoverSpeed = 12f;
     private const float FlashSeconds = 0.12f;
 
+    public ButtonVisualSystem() => Filter.WithoutAnyTags(Tags.Get<UiDisabled>());
+
     protected override void OnUpdate()
     {
         CommandBuffer buffer = CommandBuffer;

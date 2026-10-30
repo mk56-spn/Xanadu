@@ -8,10 +8,13 @@ namespace Xanadu.Systems.Ui;
 
 /// <summary>
 /// Switches tabs when a tab button is pressed, shows the selected body in its
-/// slot, parks the rest off screen and lights the selected button.
+/// slot, hides the rest and lights the selected button.
 /// </summary>
 public sealed class UiTabSystem : QuerySystem<UiTabs>
 {
+    /// <summary>Bodies float outside the strip, so a hidden strip has to hide them itself.</summary>
+    public UiTabSystem() => Filter.WithDisabled();
+
     protected override void OnUpdate()
     {
         foreach (Entity strip in Query.ToEntityList())
@@ -27,8 +30,10 @@ public sealed class UiTabSystem : QuerySystem<UiTabs>
 
             for (int i = 0; i < tabs.Bodies.Length; i++)
             {
-                Place(tabs.Bodies[i], i == tabs.Selected ? tabs.BodyCenter : UiLayout.Hidden);
+                Place(tabs.Bodies[i], tabs.BodyCenter);
+                UiLayout.SetHidden(tabs.Bodies[i], !strip.Enabled || i != tabs.Selected);
                 Tint(tabs.Buttons[i], i == tabs.Selected ? tabs.OnColor : tabs.OffColor);
+                tabs = ref strip.GetComponent<UiTabs>();
             }
         }
     }

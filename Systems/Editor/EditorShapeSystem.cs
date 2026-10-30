@@ -22,6 +22,9 @@ public sealed class EditorShapeSystem : QuerySystem<EditorShapeAttachButton>
     {
         _entities = entities;
         _history = history;
+
+        // A press can land on a control that hides itself the same frame.
+        Filter.WithDisabled();
     }
 
     protected override void OnUpdate()

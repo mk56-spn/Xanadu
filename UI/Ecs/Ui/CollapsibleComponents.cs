@@ -10,8 +10,6 @@ namespace Xanadu.Ecs;
 /// </summary>
 public struct UiCollapsible : IComponent
 {
-    public Entity Header;
-    public Entity Body;
     public string Title;
     public bool Expanded;
     public bool Held;

@@ -40,17 +40,14 @@ public sealed class EditorMetadataSceneTest : SceneTest
         AddStep("release level info", () => Context.Pointer.Release());
         AddUntilStep(
             "wait for metadata panel",
-            () => Context.Entities.Query<EditorMetadataPanel>().ToEntityList()[0]
-                .GetComponent<EditorMetadataPanel>().Visible);
+            () => !UiLayout.IsHidden(Context.Entities.Query<EditorMetadataPanel>().ToEntityList()[0].GetComponent<EditorMetadataPanel>().Panel));
         AddAssert(
             "metadata fields exist",
-            () => Context.Entities.Query<EditorField>().Count == 8);
+            () => Context.Entities.Query<EditorField>().WithDisabled().Count == 8);
         AddAssert(
             "start property panel is separate",
             () => Context.Entities.Query<EditorStartPanel>().Count == 1 &&
-                  !Context.Entities.Query<EditorStartPanel>()
-                      .ToEntityList()[0]
-                      .GetComponent<EditorStartPanel>().Visible);
+                  !!UiLayout.IsHidden(Context.Entities.Query<EditorStartPanel>().ToEntityList()[0].GetComponent<EditorStartPanel>().Panel));
 
         AddStep("set map background", () =>
             Context.Systems.Commands.Enqueue(
@@ -144,8 +141,7 @@ public sealed class EditorMetadataSceneTest : SceneTest
         });
         AddUntilStep(
             "wait for start panel",
-            () => Context.Entities.Query<EditorStartPanel>().ToEntityList()[0]
-                .GetComponent<EditorStartPanel>().Visible);
+            () => !UiLayout.IsHidden(Context.Entities.Query<EditorStartPanel>().ToEntityList()[0].GetComponent<EditorStartPanel>().Panel));
 
         AddStep("click start time field", () =>
         {

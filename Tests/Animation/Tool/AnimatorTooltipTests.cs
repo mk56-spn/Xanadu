@@ -91,7 +91,7 @@ public sealed class AnimatorTooltipTests : AnimatorToolTest
         Frame();
 
         Assert.That(TooltipText, Is.Empty);
-        Assert.That(TooltipArea().Position.Y, Is.LessThan(0f));
+        Assert.That(UiLayout.IsHidden(Ui.Tooltip), Is.True);
     }
 
     [Test]

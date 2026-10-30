@@ -108,6 +108,7 @@ public sealed class SceneControllerRegistry
             bool changed = false;
             foreach (Entity entity in system.Entities
                          .Query<SongTimingAdjust>()
+                         .WithDisabled()
                          .AllTags(Tags.Get<Pressed>())
                          .ToEntityList())
             {
@@ -123,6 +124,7 @@ public sealed class SceneControllerRegistry
             bool savePressed = false;
             foreach (Entity entity in system.Entities
                          .Query<SongTimingSave>()
+                         .WithDisabled()
                          .AllTags(Tags.Get<Pressed>())
                          .ToEntityList())
             {
@@ -166,6 +168,7 @@ public sealed class SceneControllerRegistry
         {
             foreach (Entity entity in system.Entities
                          .Query<ProfileSelect>()
+                         .WithDisabled()
                          .AllTags(Tags.Get<Pressed>())
                          .ToEntityList())
             {
@@ -176,6 +179,7 @@ public sealed class SceneControllerRegistry
 
             foreach (Entity entity in system.Entities
                          .Query<ProfileCreate>()
+                         .WithDisabled()
                          .AllTags(Tags.Get<Pressed>())
                          .ToEntityList())
             {
@@ -238,6 +242,7 @@ public sealed class SceneControllerRegistry
         {
             foreach (Entity entity in system.Entities
                          .Query<KeybindButton>()
+                         .WithDisabled()
                          .AllTags(Tags.Get<Pressed>())
                          .ToEntityList())
             {

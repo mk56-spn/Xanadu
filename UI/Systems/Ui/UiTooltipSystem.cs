@@ -44,12 +44,13 @@ public sealed class UiTooltipSystem : QuerySystem<UiTooltip>
 
         UiBuilder ui = UiBuilder.Begin(entities, visuals).Layer(UiTheme.TooltipLayer);
         _tooltip = ui.RectEntity(
-            UiLayout.Hidden,
+            Vector2.Zero,
             new Vector2(MinWidth, Height),
             new Color(UiTheme.Tooltip, 0.96f),
             "",
             takesInput: false);
         _tooltip.AddComponent(new TextStyle(UiTheme.SmallFontSize, UiTheme.Text));
+        UiLayout.SetHidden(_tooltip, true);
     }
 
     /// <summary>The tooltip panel entity, exposed for tests.</summary>
@@ -64,7 +65,7 @@ public sealed class UiTooltipSystem : QuerySystem<UiTooltip>
         Entity hovered = Hovered();
 
         if (hovered.IsNull ||
-            hovered.Tags.Has<Disabled>() ||
+            hovered.Tags.Has<UiDisabled>() ||
             input.Pressed ||
             input.SecondaryPressed ||
             input.Middle ||
@@ -140,6 +141,7 @@ public sealed class UiTooltipSystem : QuerySystem<UiTooltip>
             _tooltip.AddTag<Dirty>();
         }
 
+        UiLayout.SetHidden(_tooltip, false);
         ref Position position = ref _tooltip.GetComponent<Position>();
         Vector2 center = topLeft + size / 2f;
         if (position.Value != center)
@@ -161,11 +163,6 @@ public sealed class UiTooltipSystem : QuerySystem<UiTooltip>
             _tooltip.AddTag<Dirty>();
         }
 
-        ref Position position = ref _tooltip.GetComponent<Position>();
-        if (position.Value != UiLayout.Hidden)
-        {
-            position.Value = UiLayout.Hidden;
-            _tooltip.AddTag<Moved>();
-        }
+        UiLayout.SetHidden(_tooltip, true);
     }
 }

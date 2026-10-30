@@ -43,7 +43,9 @@
    `entity.GetRelations<T>()` returns them; `ILinkRelation` links to entities.
 9. **The entity tree is built in.** `TreeNode` + `AddChild` / `Parent` /
    `ChildEntities`, with `TreeMembership` and `ChildEntitiesChanged`. Don't
-   hand-roll parent ids.
+   hand-roll parent ids, and don't store a reference to a child or parent the
+   tree already gives you. Reorder with `UiLayout.MoveChild`, never `InsertChild`
+   (see `docs/ecs/README.md`).
 10. **Entities are handles.** `Entity` is a small struct (store + id); `default`
     is null, so check `IsNull`; `entity.Store` gets the store. Components live in
     archetypes, not in the handle.
@@ -97,6 +99,25 @@ them any more.
   screen-size parameter. The stage is 1920x1080 and the host scales it.
 - **Stop hard coding UI by not using containers, unless you have a really good
   reason. IMPORTANT**
+
+### Showing and hiding
+
+Hide with `UiLayout.SetHidden` / `UiNode.Hidden()`, never by moving a node off
+screen, painting it transparent or keeping a `Visible` flag. `UiHidden` is what
+you author; `UiTreeEvents` keeps the native `Disabled` tag on the subtree, so every
+query, the canvas and the parent's stack leave it out. `LayoutIgnore` only means
+"visible, but placed outside the stack". `UiDisabled` is a greyed-out control:
+drawn and laid out, but taking no input.
+
+Queries skip hidden entities, so add `WithDisabled` when a system:
+
+- **shows the thing it queries**, or it can never come back;
+- **reacts to a press**: a press can land on a control that hides itself that
+  frame, and the system still has to see it and let go of it;
+- **collects parts to delete or restyle** that may be hidden.
+
+A system that paints its own canvas from a panel's rectangle must check
+`panel.Enabled` itself.
 
 ## Code
 

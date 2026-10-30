@@ -90,10 +90,8 @@ public sealed class UiBuilderConvenienceTests
 
         Dropdown state = dropdown.Button.GetComponent<Dropdown>();
         Assert.That(state.Open, Is.True);
-        Assert.That(dropdown.List.GetComponent<Position>().Value,
-            Is.Not.EqualTo(UiLayout.Hidden));
-        Assert.That(dropdown.Options[0].GetComponent<Position>().Value,
-            Is.Not.EqualTo(UiLayout.Hidden));
+        Assert.That(UiLayout.IsHidden(dropdown.List), Is.False);
+        Assert.That(UiLayout.IsHidden(dropdown.Options[0]), Is.False);
         Assert.That(
             container.GetComponent<Rectangle>().Bounds.Size.Y,
             Is.GreaterThan(30f));
@@ -182,8 +180,8 @@ public sealed class UiBuilderConvenienceTests
 
         UiDropdownControl dropdown = ui.Dropdown("PICK", new[] { "ONE", "TWO" });
 
-        Assert.That(dropdown.List.GetComponent<Position>().Value, Is.EqualTo(UiLayout.Hidden));
+        Assert.That(UiLayout.IsHidden(dropdown.List), Is.True);
         foreach (Entity option in dropdown.Options)
-            Assert.That(option.GetComponent<Position>().Value, Is.EqualTo(UiLayout.Hidden));
+            Assert.That(UiLayout.IsHidden(option), Is.True);
     }
 }

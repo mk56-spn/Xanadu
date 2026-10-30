@@ -54,12 +54,7 @@ public sealed class AnimatorFlowSystem(IVisualRidFactory visuals) : QuerySystem<
         string from,
         List<(string From, string To)> game)
     {
-        var children = new List<Entity>();
-        foreach (Entity child in list.ChildEntities)
-            children.Add(child);
-        foreach (Entity child in children)
-            UiLayout.DeleteSubtree(child);
-        list.AddTag<LayoutDirty>();
+        UiLayout.DeleteChildren(list);
 
         foreach (XafClip clip in package.Clips)
         {
@@ -180,7 +175,7 @@ public sealed class AnimatorFlowSystem(IVisualRidFactory visuals) : QuerySystem<
         }
 
         string curveName = rule?.Curve.ToString() ?? "";
-        foreach (Entity button in Query.Store.Query<ToolAction>().ToEntityList())
+        foreach (Entity button in Query.Store.Query<ToolAction>().WithDisabled().ToEntityList())
         {
             // The preview bar paints its own buttons in its own colours.
             if (button.Tags.Has<AnimatorPreviewBarButton>())

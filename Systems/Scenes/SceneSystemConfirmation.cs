@@ -32,7 +32,7 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
 
         UiNode panel = ui.Column()
             .Size(ConfirmWidth, ConfirmHeight)
-            .At(UiLayout.Hidden)
+            .Hidden()
             .Fill(Palette.DangerSurface)
             .Pad(UiMetrics.Space.Md)
             .Gap(UiMetrics.Space.Md)
@@ -68,7 +68,7 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
         ref SceneConfirmation confirmation =
             ref _confirmationPanel.GetComponent<SceneConfirmation>();
 
-        if (!confirmation.Visible)
+        if (UiLayout.IsHidden(_confirmationPanel))
             return false;
 
         if (!confirmation.Yes.IsNull && confirmation.Yes.Tags.Has<Pressed>())
@@ -97,7 +97,7 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
 
     private bool IsConfirmationVisible() =>
         !_confirmationPanel.IsNull &&
-        _confirmationPanel.GetComponent<SceneConfirmation>().Visible;
+        !UiLayout.IsHidden(_confirmationPanel);
 
     private void ShowConfirmation(SceneKind current, SceneKind target)
     {
@@ -113,14 +113,7 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
         confirmation.Target = target;
         if (!confirmation.Save.IsNull)
         {
-            if (play)
-                confirmation.Save.AddTag<LayoutIgnore>();
-            else
-                confirmation.Save.RemoveTag<LayoutIgnore>();
-
-            Entity parent = confirmation.Save.Parent;
-            if (!parent.IsNull && parent.HasComponent<UiContainer>())
-                parent.AddTag<LayoutDirty>();
+            UiLayout.SetHidden(confirmation.Save, play);
         }
         SceneUi.SetText(
             confirmation.Title,
@@ -133,8 +126,8 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
 
         ref Position position = ref _confirmationPanel.GetComponent<Position>();
         position.Value = _screen / 2;
-        confirmation.Visible = true;
         _confirmationPanel.AddTag<Moved>();
+        UiLayout.SetHidden(_confirmationPanel, false);
     }
 
     private bool EditorHasSavedLevel()
@@ -153,16 +146,7 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
         if (_confirmationPanel.IsNull)
             return;
 
-        ref SceneConfirmation confirmation =
-            ref _confirmationPanel.GetComponent<SceneConfirmation>();
-
-        if (!confirmation.Visible)
-            return;
-
-        confirmation.Visible = false;
-        ref Position position = ref _confirmationPanel.GetComponent<Position>();
-        position.Value = UiLayout.Hidden;
-        _confirmationPanel.AddTag<Moved>();
+        UiLayout.SetHidden(_confirmationPanel, true);
     }
 
     private void Confirm(ref SceneState state)

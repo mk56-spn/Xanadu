@@ -148,11 +148,8 @@ public sealed class AnimatorHierarchySystem(
 
         if (!dropdown.List.IsNull)
             parts.Add(dropdown.List);
-        foreach (Entity option in Query.Store.Query<DropdownOption>().ToEntityList())
-        {
-            if (option.GetComponent<DropdownOption>().Owner.Id == button.Id)
-                parts.Add(option);
-        }
+        foreach (EntityLink<DropdownOption> link in button.GetIncomingLinks<DropdownOption>())
+            parts.Add(link.Entity);
         return parts;
     }
 
@@ -170,7 +167,7 @@ public sealed class AnimatorHierarchySystem(
             button.AddTag<Dirty>();
         }
 
-        foreach (Entity option in Query.Store.Query<ToolAction, ButtonVisual, DropdownOption>().ToEntityList())
+        foreach (Entity option in Query.Store.Query<ToolAction, ButtonVisual, DropdownOption>().WithDisabled().ToEntityList())
         {
             ToolAction action = option.GetComponent<ToolAction>();
             if (action.Kind != ToolActionKind.Clip)
@@ -300,12 +297,7 @@ public sealed class AnimatorHierarchySystem(
         if (list.IsNull)
             return;
 
-        var children = new List<Entity>();
-        foreach (Entity child in list.ChildEntities)
-            children.Add(child);
-        foreach (Entity child in children)
-            UiLayout.DeleteSubtree(child);
-        list.AddTag<LayoutDirty>();
+        UiLayout.DeleteChildren(list);
     }
 
     private static void Highlight(Entity list, System.Func<ToolAction, bool> isSelected)

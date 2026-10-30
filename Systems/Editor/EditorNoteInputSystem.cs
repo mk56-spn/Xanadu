@@ -905,9 +905,6 @@ public sealed partial class EditorNoteInputSystem : QuerySystem<Note>
                      .ToEntityList())
         {
             Vector2 local = entity.GetComponent<Position>().Value;
-            if (local == UiLayout.Hidden)
-                continue;
-
             Rect2 bounds = entity.GetComponent<Rectangle>().Bounds;
             Vector2 center = UiTransform.WorldPosition(entity, local);
             if (new Rect2(center + bounds.Position, bounds.Size).HasPoint(screenPosition))
@@ -925,8 +922,7 @@ public sealed partial class EditorNoteInputSystem : QuerySystem<Note>
         {
             Vector2 center = panel.GetComponent<Position>().Value;
             Rect2 local = panel.GetComponent<Rectangle>().Bounds;
-            if (center != UiLayout.Hidden &&
-                new Rect2(center + local.Position, local.Size).HasPoint(screenPosition))
+            if (new Rect2(center + local.Position, local.Size).HasPoint(screenPosition))
             {
                 return true;
             }
@@ -1022,24 +1018,12 @@ public sealed partial class EditorNoteInputSystem : QuerySystem<Note>
 
     private bool IsWarningOpen()
     {
-        foreach (Entity entity in _entities.Query<WarningPopup>().ToEntityList())
-        {
-            if (entity.GetComponent<WarningPopup>().Visible)
-                return true;
-        }
-
-        return false;
+        return _entities.Query<WarningPopup>().Count > 0;
     }
 
     private bool IsSceneConfirmationOpen()
     {
-        foreach (Entity entity in _entities.Query<SceneConfirmation>().ToEntityList())
-        {
-            if (entity.GetComponent<SceneConfirmation>().Visible)
-                return true;
-        }
-
-        return false;
+        return _entities.Query<SceneConfirmation>().Count > 0;
     }
 
     private Entity FindEditor()

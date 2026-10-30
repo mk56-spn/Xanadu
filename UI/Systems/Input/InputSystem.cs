@@ -24,6 +24,7 @@ public sealed class InputSystem : QuerySystem<Rectangle, Drawable, Position>
     {
         _source = source;
         Filter.AllTags(Tags.Get<TakesInput>());
+        Filter.WithoutAnyTags(Tags.Get<UiDisabled>());
     }
 
     protected override void OnUpdate()

@@ -84,12 +84,22 @@ public abstract class AnimatorToolTest : EcsSystemTest
 
     protected Entity Button(ToolActionKind kind, string argument = "")
     {
-        foreach (Entity entity in Store.Query<ToolAction>().ToEntityList())
+        // The button on screen wins over a twin in a hidden bar or menu.
+        Entity hidden = default;
+        foreach (Entity entity in Store.Query<ToolAction>().WithDisabled().ToEntityList())
         {
             ToolAction action = entity.GetComponent<ToolAction>();
-            if (action.Kind == kind && action.Argument == argument)
+            if (action.Kind != kind || action.Argument != argument)
+                continue;
+
+            if (entity.Enabled)
                 return entity;
+            if (hidden.IsNull)
+                hidden = entity;
         }
+
+        if (!hidden.IsNull)
+            return hidden;
 
         Assert.Fail($"No button for {kind} '{argument}'.");
         return default;
@@ -99,7 +109,7 @@ public abstract class AnimatorToolTest : EcsSystemTest
     protected List<Entity> Buttons(ToolActionKind kind)
     {
         var found = new List<Entity>();
-        foreach (Entity entity in Store.Query<ToolAction>().ToEntityList())
+        foreach (Entity entity in Store.Query<ToolAction>().WithDisabled().ToEntityList())
         {
             if (entity.GetComponent<ToolAction>().Kind == kind)
                 found.Add(entity);
@@ -122,19 +132,19 @@ public abstract class AnimatorToolTest : EcsSystemTest
 
     /// <summary>The tree label for a bone, as the user would click it.</summary>
     protected Entity BoneLabel(string boneId) =>
-        UiTreeControl.FindNode(Ui.BoneList, boneId).GetComponent<UiTreeNode>().Label;
+        UiTreeControl.Label(UiTreeControl.FindNode(Ui.BoneList, boneId));
 
     protected Entity BoneArrow(string boneId) =>
-        UiTreeControl.FindNode(Ui.BoneList, boneId).GetComponent<UiTreeNode>().Disclosure;
+        UiTreeControl.Disclosure(UiTreeControl.FindNode(Ui.BoneList, boneId));
 
     /// <summary>Bone ids shown in the tree, top to bottom, skipping hidden rows.</summary>
     protected List<string> VisibleBones()
     {
         var ids = new List<string>();
-        foreach (Entity row in Ui.BoneList.ChildEntities)
+        foreach (Entity node in UiTreeControl.Nodes(Ui.BoneList))
         {
-            if (!row.Tags.Has<LayoutIgnore>())
-                ids.Add(row.GetComponent<UiTreeNode>().Id);
+            if (node.Enabled)
+                ids.Add(node.GetComponent<UiTreeNode>().Id);
         }
         return ids;
     }

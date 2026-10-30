@@ -24,12 +24,11 @@ public sealed class EditorDirectionWheelSceneTest : SceneTest
         AddUntilStep(
             "wait for the generic wheel",
             () => Context.Scenes.Current == SceneKind.Editor &&
-                  Context.Entities.Query<UiWheel>().Count == 1 &&
-                  Context.Entities.Query<EditorDirectionWheel>().Count == 1 &&
-                  VisualAssert.HasText(Context.Entities, "MOVE DIRECTION"));
+                  Context.Entities.Query<UiWheel>().WithDisabled().Count == 1 &&
+                  Context.Entities.Query<EditorDirectionWheel>().Count == 1);
         AddUntilStep(
             "wheel starts hidden outside movement modes",
-            () => Wheel().GetComponent<Position>().Value == UiLayout.Hidden);
+            () => UiLayout.IsHidden(Wheel()));
 
         AddStep("click DASH placement", () => ClickPlacement(EditorPlacementMode.Dash));
         AddWaitStep("hold DASH", 2);
@@ -37,11 +36,10 @@ public sealed class EditorDirectionWheelSceneTest : SceneTest
         AddUntilStep(
             "wheel appears in DASH mode",
             () => PlaceMode() == EditorPlacementMode.Dash &&
-                  Wheel().GetComponent<Position>().Value != UiLayout.Hidden);
+                  !UiLayout.IsHidden(Wheel()));
         AddAssert(
             "the note key bar hides for any-key dash notes",
-            () => NoteBar().GetComponent<Position>().Value == UiLayout.Hidden &&
-                  NoteBar().Tags.Has<LayoutIgnore>());
+            () => UiLayout.IsHidden(NoteBar()));
         AddAssert(
             "current direction selected",
             () => Wheel().GetComponent<UiWheel>().Selected ==
@@ -70,7 +68,7 @@ public sealed class EditorDirectionWheelSceneTest : SceneTest
         AddUntilStep(
             "wheel hides again",
             () => PlaceMode() == EditorPlacementMode.Notes &&
-                  Wheel().GetComponent<Position>().Value == UiLayout.Hidden);
+                  UiLayout.IsHidden(Wheel()));
 
         AddStep("create editor overlay", CreateOverlay);
         AddWaitStep("overlay settles", 2);
@@ -78,12 +76,12 @@ public sealed class EditorDirectionWheelSceneTest : SceneTest
         AddUntilStep(
             "dash key switches to DASH and shows the wheel",
             () => PlaceMode() == EditorPlacementMode.Dash &&
-                  Wheel().GetComponent<Position>().Value != UiLayout.Hidden);
+                  !UiLayout.IsHidden(Wheel()));
         AddStep("press the normal placement key", () => Press(Key.Key1));
         AddUntilStep(
             "normal key switches to NOTES and hides the wheel",
             () => PlaceMode() == EditorPlacementMode.Notes &&
-                  Wheel().GetComponent<Position>().Value == UiLayout.Hidden);
+                  UiLayout.IsHidden(Wheel()));
         AddStep("close editor overlay", () => _overlay?.Close());
     }
 
@@ -108,10 +106,10 @@ public sealed class EditorDirectionWheelSceneTest : SceneTest
     }
 
     private Entity Wheel() =>
-        Context.Entities.Query<UiWheel>().ToEntityList()[0];
+        Context.Entities.Query<UiWheel>().WithDisabled().ToEntityList()[0];
 
     private Entity NoteBar() =>
-        Context.Entities.Query<EditorNoteBarPanel>().ToEntityList()[0];
+        Context.Entities.Query<EditorNoteBarPanel>().WithDisabled().ToEntityList()[0];
 
     private EditorPlacementMode PlaceMode() =>
         Context.Entities.Query<EditorPlacementModeState>()

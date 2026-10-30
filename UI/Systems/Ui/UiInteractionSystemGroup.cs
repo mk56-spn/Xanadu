@@ -32,12 +32,12 @@ public sealed class UiInteractionSystemGroup : SystemGroup
         Add(new UiCollapsibleSystem());
         Add(new TextFieldFocusSystem());
         Add(new TextFieldSystem());
-        Add(new DisabledTextFieldSystem(entities));
+        Add(new DisabledTextFieldSystem());
         Add(scroll);
         Add(new ToggleSystem());
         Add(new UiTabSystem());
         Add(new ButtonVisualSystem());
-        Add(new DisabledVisualSystem(entities));
+        Add(new DisabledVisualSystem());
         Add(new UiSliderSystem(pointer));
         Add(new UiColorPickerSystem(pointer));
         if (tooltips)

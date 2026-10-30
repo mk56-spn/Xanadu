@@ -18,9 +18,6 @@ public struct AnimatorPreviewMode : IComponent
     /// <summary>The bone drawing modes on entry, put back on exit; preview draws only the art.</summary>
     public bool Kites;
     public bool Handles;
-
-    /// <summary>Where the tab bodies sit while editing; preview parks them.</summary>
-    public Vector2 TabBodyCenter;
 }
 
 /// <summary>Marks a preview bar button, which the preview mode system paints rather than the FLOW tab.</summary>

@@ -81,7 +81,7 @@ public sealed class AnimatorClipConfigSystem(IPointerInputSource pointer)
 
     private void Hide(AnimatorUi ui)
     {
-        AnimatorMenuPlacement.Place(ui.ClipLengthPanel, UiLayout.Hidden);
+        AnimatorMenuPlacement.Hide(ui.ClipLengthPanel);
         ClearFocus(ui.ClipLengthField);
         _wasEditing = false;
     }

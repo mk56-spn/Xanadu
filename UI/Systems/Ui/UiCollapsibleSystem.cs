@@ -6,8 +6,7 @@ namespace Xanadu.Systems.Ui;
 
 /// <summary>
 /// Folds and unfolds collapsible sections: a header press flips the section,
-/// a folded body is parked off screen and dropped from the stack, and the
-/// header's arrow follows the state.
+/// a folded body is hidden, and the header's arrow follows the state.
 /// </summary>
 public sealed class UiCollapsibleSystem : QuerySystem<UiCollapsible>
 {
@@ -17,36 +16,20 @@ public sealed class UiCollapsibleSystem : QuerySystem<UiCollapsible>
         foreach (Entity section in Query.ToEntityList())
         {
             ref UiCollapsible state = ref section.GetComponent<UiCollapsible>();
-            bool pressed = !state.Header.IsNull && state.Header.Tags.Has<Pressed>();
+            Entity header = UiCollapsibleControl.HeaderOf(section);
+            bool pressed = header.Tags.Has<Pressed>();
             if (pressed && !state.Held)
                 state.Expanded = !state.Expanded;
             state.Held = pressed;
 
-            SetBody(section, state.Body, state.Expanded, buffer);
-            SetHeader(state.Header, UiCollapsibleControl.Header(state.Title, state.Expanded), buffer);
-        }
-    }
-
-    private static void SetBody(Entity section, Entity body, bool expanded, CommandBuffer buffer)
-    {
-        if (body.IsNull)
-            return;
-
-        bool ignored = body.Tags.Has<LayoutIgnore>();
-        if (!expanded && !ignored)
-        {
-            UiLayout.Hide(body, buffer);
-        }
-        else if (expanded && ignored)
-        {
-            UiLayout.SetIgnored(body, buffer, false);
-            buffer.AddTag<LayoutDirty>(section.Id);
+            UiLayout.SetHidden(UiCollapsibleControl.BodyOf(section), buffer, !state.Expanded);
+            SetHeader(header, UiCollapsibleControl.Header(state.Title, state.Expanded), buffer);
         }
     }
 
     private static void SetHeader(Entity header, string label, CommandBuffer buffer)
     {
-        if (header.IsNull || !header.HasComponent<Text>())
+        if (!header.HasComponent<Text>())
             return;
 
         ref Text text = ref header.GetComponent<Text>();

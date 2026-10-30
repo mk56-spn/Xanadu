@@ -28,12 +28,25 @@ public static class AnimatorMenuPlacement
     public static void Place(Entity entity, Vector2 topLeft, Vector2 size) =>
         Place(entity, topLeft + size / 2);
 
-    /// <summary>Moves a menu's centre, flagging it for redraw and its parent for layout.</summary>
+    /// <summary>Hides a menu until it is next placed.</summary>
+    public static void Hide(Entity entity) => UiLayout.SetHidden(entity, true);
+
+    /// <summary>Places a menu at its centre while <paramref name="shown"/>, and hides it otherwise.</summary>
+    public static void Place(Entity entity, Vector2 position, bool shown)
+    {
+        if (shown)
+            Place(entity, position);
+        else
+            Hide(entity);
+    }
+
+    /// <summary>Shows a menu and moves its centre, flagging it for redraw and its parent for layout.</summary>
     public static void Place(Entity entity, Vector2 position)
     {
         if (entity.IsNull || !entity.HasComponent<Position>())
             return;
 
+        UiLayout.SetHidden(entity, false);
         ref Position current = ref entity.GetComponent<Position>();
         if (current.Value == position)
             return;

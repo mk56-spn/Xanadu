@@ -23,6 +23,7 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
 
         foreach (Entity entity in _entities
                      .Query<SceneCommand>()
+                     .WithDisabled()
                      .AllTags(Tags.Get<Pressed>())
                      .ToEntityList())
         {
@@ -40,6 +41,7 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
 
         foreach (Entity entity in _entities
                      .Query<SceneAction>()
+                     .WithDisabled()
                      .AllTags(Tags.Get<Pressed>())
                      .ToEntityList())
         {

@@ -103,7 +103,7 @@ public sealed class AnimatorBoneMenuTests : AnimatorToolTest
         RightClick(LabelPoint(1));
         ClickPreview(PreviewOrigin() + new Vector2(300, 200));
         Assert.That(Menu.Open, Is.False);
-        Assert.That(Ui.BoneMenu.GetComponent<Position>().Value, Is.EqualTo(UiLayout.Hidden));
+        Assert.That(UiLayout.IsHidden(Ui.BoneMenu), Is.True);
     }
 
     [Test]
@@ -137,7 +137,7 @@ public sealed class AnimatorBoneMenuTests : AnimatorToolTest
         Entity field = Ui.BoneNameField;
         Assert.That(field.Tags.Has<TextFieldFocused>(), Is.True);
         Assert.That(field.GetComponent<TextField>().Value, Is.EqualTo("head"));
-        Assert.That(field.GetComponent<Position>().Value, Is.Not.EqualTo(UiLayout.Hidden));
+        Assert.That(UiLayout.IsHidden(field), Is.False);
 
         field.GetComponent<TextField>().Value = " skull ";
         field.RemoveTag<TextFieldFocused>();
@@ -145,7 +145,7 @@ public sealed class AnimatorBoneMenuTests : AnimatorToolTest
 
         Assert.That(Package.Skeleton.Bones[2].Id, Is.EqualTo("skull"));
         Assert.That(Idle.Channels[0].TargetId, Is.EqualTo("skull"));
-        Assert.That(field.GetComponent<Position>().Value, Is.EqualTo(UiLayout.Hidden));
+        Assert.That(UiLayout.IsHidden(field), Is.True);
     }
 
     [Test]

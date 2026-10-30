@@ -60,13 +60,7 @@ public sealed class LeaveEditorSceneTest : SceneTest
 
     private bool ConfirmationIsVisible()
     {
-        foreach (Entity entity in Context.Entities.Query<SceneConfirmation>().ToEntityList())
-        {
-            if (entity.GetComponent<SceneConfirmation>().Visible)
-                return true;
-        }
-
-        return false;
+        return Context.Entities.Query<SceneConfirmation>().Count > 0;
     }
 
     private void ClickSave()
@@ -74,7 +68,7 @@ public sealed class LeaveEditorSceneTest : SceneTest
         foreach (Entity entity in Context.Entities.Query<SceneConfirmation>().ToEntityList())
         {
             SceneConfirmation confirmation = entity.GetComponent<SceneConfirmation>();
-            if (!confirmation.Visible || confirmation.Save.IsNull)
+            if (confirmation.Save.IsNull)
                 continue;
 
             Entity save = confirmation.Save;

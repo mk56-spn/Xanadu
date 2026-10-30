@@ -24,7 +24,7 @@ public sealed class UiDisabledTests
         UiLayout.SetDisabled(button, true);
 
         Entity disabled = store.GetEntityById(button.Id);
-        Assert.That(disabled.Tags.Has<Disabled>(), Is.True);
+        Assert.That(disabled.Tags.Has<UiDisabled>(), Is.True);
         Assert.That(disabled.Tags.Has<Pressed>(), Is.False);
         Assert.That(disabled.Tags.Has<Hovered>(), Is.False);
         Assert.That(disabled.Tags.Has<Focused>(), Is.False);
@@ -32,7 +32,7 @@ public sealed class UiDisabledTests
 
         UiLayout.SetDisabled(disabled, false);
         Entity enabled = store.GetEntityById(button.Id);
-        Assert.That(enabled.Tags.Has<Disabled>(), Is.False);
+        Assert.That(enabled.Tags.Has<UiDisabled>(), Is.False);
     }
 
     [Test]
@@ -52,7 +52,7 @@ public sealed class UiDisabledTests
 
         var root = new SystemRoot(store);
         root.Add(new ButtonVisualSystem());
-        root.Add(new DisabledVisualSystem(store));
+        root.Add(new DisabledVisualSystem());
         root.Update(new UpdateTick(1f / 60f, 0));
 
         Color fill = store.GetEntityById(button.Id).GetComponent<FillColor>().Value;

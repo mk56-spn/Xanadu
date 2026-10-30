@@ -53,6 +53,9 @@ grep -A8 'name="M:Friflo.Engine.ECS.Entity.AddChild' "$XML"
 | read the current matches | `Query.ToEntityList()` | [ContainerLayoutSystem.cs](../../UI/Systems/Layout/ContainerLayoutSystem.cs) |
 | edit a component in place | `ref var c = ref entity.GetComponent<T>(); c.X = 1; entity.AddTag<Dirty>();` | [UiNode.Style.cs](../../UI/Ecs/Ui/UiNode.Style.cs) |
 | walk the tree | `parent.AddChild(child)`, `entity.Parent`, `entity.ChildEntities` | [UiBuilder.cs](../../UI/Ecs/Ui/UiBuilder.cs) |
+| hide a subtree | `UiLayout.SetHidden(entity, true)`; the native `Disabled` tag follows | [UiTreeEvents.cs](../../UI/Ecs/Ui/UiTreeEvents.cs) |
+| react to the tree changing | `store.OnChildEntitiesChanged`, `store.OnTagsChanged` | [UiTreeEvents.cs](../../UI/Ecs/Ui/UiTreeEvents.cs) |
+| find what links to an entity | `target.GetIncomingLinks<TLink>()` | [UiDropdownSystem.cs](../../UI/Systems/Ui/UiDropdownSystem.cs) |
 | compose systems | `SystemRoot` + `SystemGroup` + `UpdateTick` | [UiSystemGroup.cs](../../UI/Systems/Ui/UiSystemGroup.cs) |
 
 ## Query performance
@@ -81,3 +84,11 @@ package reference.
   not add a second one.
 - Deleting a parent does not delete its children. Use
   `UiLayout.DeleteSubtree` ([UiLayout.cs](../../UI/Ecs/Ui/UiLayout.cs)).
+- `Entity.InsertChild` silently loses the child if a handler structurally changes
+  the parent during the move (seen on 4.0.0-preview.2), and `UiTreeEvents` does.
+  Use `UiLayout.MoveChild`, which is built from whole `RemoveChild`/`AddChild` calls.
+- A child added under a disabled parent stays enabled, and `EnableTree` re-enables
+  everything under it, including what was disabled on purpose. Don't use
+  `Enabled`/`DisableTree` directly on UI: `UiLayout.SetHidden` handles both.
+- Queries skip disabled entities unless asked with `WithDisabled`; `ChildEntities`
+  does not skip them.

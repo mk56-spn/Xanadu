@@ -67,7 +67,7 @@ public sealed class SongMenuTests
     {
         RightClick(UiStage.Full.Center + new Vector2(0, -10));
 
-        Assert.That(Menu().Visible, Is.True);
+        Assert.That(!UiLayout.IsHidden(MenuPanel()), Is.True);
     }
 
     [Test]
@@ -75,7 +75,7 @@ public sealed class SongMenuTests
     {
         RightClick(new Vector2(40, 40));
 
-        Assert.That(Menu().Visible, Is.False);
+        Assert.That(!UiLayout.IsHidden(MenuPanel()), Is.False);
     }
 
     [Test]
@@ -89,14 +89,14 @@ public sealed class SongMenuTests
         Frame();
 
         SceneDeleteLevel confirm = Confirm();
-        Assert.That(confirm.Visible, Is.True);
+        Assert.That(!UiLayout.IsHidden(ConfirmPanel()), Is.True);
         Assert.That(File.Exists(path), Is.True);
 
         confirm.Confirm.AddTag<Pressed>();
         Frame();
 
         Assert.That(File.Exists(path), Is.False);
-        Assert.That(Confirm().Visible, Is.False);
+        Assert.That(!UiLayout.IsHidden(ConfirmPanel()), Is.False);
     }
 
     [Test]
@@ -111,7 +111,7 @@ public sealed class SongMenuTests
         Frame();
 
         Assert.That(File.Exists(path), Is.True);
-        Assert.That(Confirm().Visible, Is.False);
+        Assert.That(!UiLayout.IsHidden(ConfirmPanel()), Is.False);
     }
 
     private void RightClick(Vector2 at)
@@ -122,13 +122,13 @@ public sealed class SongMenuTests
         Frame();
     }
 
-    private SceneSongMenu Menu() =>
-        _store.Query<SceneSongMenu>().ToEntityList()[0]
-            .GetComponent<SceneSongMenu>();
+    private Entity MenuPanel() => _store.Query<SceneSongMenu>().WithDisabled().ToEntityList()[0];
 
-    private SceneDeleteLevel Confirm() =>
-        _store.Query<SceneDeleteLevel>().ToEntityList()[0]
-            .GetComponent<SceneDeleteLevel>();
+    private Entity ConfirmPanel() => _store.Query<SceneDeleteLevel>().WithDisabled().ToEntityList()[0];
+
+    private SceneSongMenu Menu() => MenuPanel().GetComponent<SceneSongMenu>();
+
+    private SceneDeleteLevel Confirm() => ConfirmPanel().GetComponent<SceneDeleteLevel>();
 
     private void Frame() => _root.Update(new UpdateTick(1f / 60f, 0));
 

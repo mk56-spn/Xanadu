@@ -35,7 +35,7 @@ public sealed class WarningPopupSystemTests : EcsSystemTest
         Frame();
 
         WarningPopup popup = _popup.GetComponent<WarningPopup>();
-        Assert.That(popup.Visible, Is.True);
+        Assert.That(UiLayout.IsHidden(_popup), Is.False);
         Assert.That(popup.Message.GetComponent<Text>().Value, Is.EqualTo("No song"));
         Assert.That(
             _popup.GetComponent<Position>().Value,
@@ -53,10 +53,9 @@ public sealed class WarningPopupSystemTests : EcsSystemTest
 
         Frame();
 
-        Assert.That(_popup.GetComponent<WarningPopup>().Visible, Is.False);
+        Assert.That(UiLayout.IsHidden(_popup), Is.True);
         Assert.That(
-            _popup.GetComponent<Position>().Value,
-            Is.EqualTo(UiLayout.Hidden));
+            UiLayout.IsHidden(_popup), Is.True);
     }
 
     [Test]
@@ -70,7 +69,7 @@ public sealed class WarningPopupSystemTests : EcsSystemTest
 
         Frame();
 
-        Assert.That(_popup.GetComponent<WarningPopup>().Visible, Is.False);
+        Assert.That(UiLayout.IsHidden(_popup), Is.True);
     }
 
 

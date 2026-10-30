@@ -33,7 +33,7 @@ public sealed class AnimatorEffectTests : AnimatorToolTest
     [Test]
     public void TheXifEditorEditsTheSelectedEffectsItemOnTheAnimatorsHistory()
     {
-        Assert.That(Ui.XifEditor.GetComponent<Position>().Value, Is.EqualTo(UiLayout.Hidden));
+        Assert.That(UiLayout.IsHidden(Ui.XifEditor), Is.True);
         AddStreakOnTorsoAt(0.5f);
         Frame();
 

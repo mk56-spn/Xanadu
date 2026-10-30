@@ -237,6 +237,7 @@ public sealed class AnimatorFileTests : AnimatorToolTest
     public void ControlSIsIgnoredWhileTypingInAField()
     {
         Edit();
+        UiLayout.SetHidden(Ui.InfoPanel, false);
         Ui.PathField.AddTag<TextFieldFocused>();
 
         Keyboard.Press(Key.Ctrl);

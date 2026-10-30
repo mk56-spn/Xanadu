@@ -23,7 +23,7 @@ public sealed partial class UiBuilder
     /// second one (which would need the engine in tests).
     /// </summary>
     public IVisualRidFactory Visuals => _visuals;
-    private readonly Stack<Entity> _parents = new();
+    private Entity _root;
 
     private Entity _current;
     private Entity _layer;
@@ -41,8 +41,11 @@ public sealed partial class UiBuilder
     /// </summary>
     public static IVisualRidFactory? DefaultVisuals { get; set; }
 
-    public static UiBuilder Begin(EntityStore entities, IVisualRidFactory? visuals = null) =>
-        new(entities, visuals ?? DefaultVisuals ?? new GodotVisualRidFactory());
+    public static UiBuilder Begin(EntityStore entities, IVisualRidFactory? visuals = null)
+    {
+        UiTreeEvents.Ensure(entities);
+        return new UiBuilder(entities, visuals ?? DefaultVisuals ?? new GodotVisualRidFactory());
+    }
 
     /// <summary>The entity currently receiving children.</summary>
     public Entity Current => _current;
@@ -56,7 +59,7 @@ public sealed partial class UiBuilder
 
         _layerZIndex = zIndex;
         _layer = layer;
-        _parents.Clear();
+        _root = layer;
         _current = layer;
         return this;
     }
@@ -113,7 +116,6 @@ public sealed partial class UiBuilder
             container.AddComponent(new Text(text));
 
         Attach(container);
-        _parents.Push(_current);
         _current = container;
         return this;
     }
@@ -258,25 +260,27 @@ public sealed partial class UiBuilder
             options.Count *
             (UiTheme.DropdownOptionHeight + UiTheme.DropdownOptionSpacing) + 4f);
 
-        // Closed lists start off-screen, as the dropdown system leaves them on close.
+        // Closed lists start hidden, as the dropdown system leaves them on close.
         Entity list = RectEntity(
-            UiLayout.Hidden,
+            Vector2.Zero,
             new Vector2(width, listHeight),
             UiTheme.Panel,
             takesInput: true);
         list.AddTag<LayoutIgnore>();
+        UiLayout.SetHidden(list, true);
         list.AddTag<DropdownListPanel>();
         var optionEntities = new List<Entity>();
         for (int i = 0; i < options.Count; i++)
         {
             Color optionFill = optionColor?.Invoke(i) ?? UiTheme.DropdownOption;
             Entity option = RectEntity(
-                UiLayout.Hidden,
+                Vector2.Zero,
                 new Vector2(width - 12, UiTheme.DropdownOptionHeight),
                 optionFill,
                 options[i],
                 takesInput: true);
             option.AddTag<LayoutIgnore>();
+            UiLayout.SetHidden(option, true);
             option.AddComponent(new TextStyle(
                 UiTheme.FontSize,
                 UiTheme.Text));
@@ -385,7 +389,7 @@ public sealed partial class UiBuilder
             throw new ArgumentException("Parent entity is null.", nameof(parent));
 
         _current = parent;
-        _parents.Clear();
+        _root = parent;
         if (parent.TryGetComponent<LayerComponent>(out LayerComponent layer))
         {
             // Resuming on a layer itself: new entities belong to that layer.
@@ -401,8 +405,8 @@ public sealed partial class UiBuilder
 
     public UiBuilder End()
     {
-        if (_parents.Count > 0)
-            _current = _parents.Pop();
+        if (_current != _root)
+            _current = _current.Parent;
 
         return this;
     }
@@ -411,9 +415,6 @@ public sealed partial class UiBuilder
     public void AddChild(Entity parent, Entity child)
     {
         parent.AddChild(child);
-
-        if (parent.HasComponent<UiContainer>())
-            parent.AddTag<LayoutDirty>();
     }
 
     private void Attach(Entity child)

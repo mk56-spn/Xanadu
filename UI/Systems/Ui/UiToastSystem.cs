@@ -31,12 +31,13 @@ public sealed class ToastSystem : QuerySystem<Toast>
 
         UiBuilder ui = UiBuilder.Begin(entities, visuals).Layer(990);
         _toast = ui.RectEntity(
-            UiLayout.Hidden,
+            Vector2.Zero,
             new Vector2(620, 42),
             new Color(PanelColor, 0f),
             "");
         _toast.AddComponent(new TextStyle(16, new Color(TextColor, 0f)));
         _toast.AddComponent(new Toast());
+        UiLayout.SetHidden(_toast, true);
     }
 
     public void Show(string message, float duration = DefaultDuration)
@@ -58,10 +59,8 @@ public sealed class ToastSystem : QuerySystem<Toast>
         if (_toast.IsNull || !_toast.HasComponent<Toast>())
             return;
 
-        ref Toast toast = ref _toast.GetComponent<Toast>();
         CommandBuffer buffer = CommandBuffer;
-
-        if (!toast.Active)
+        if (!_toast.GetComponent<Toast>().Active)
         {
             if (_queue.Count == 0)
                 return;
@@ -69,6 +68,8 @@ public sealed class ToastSystem : QuerySystem<Toast>
             Begin(_queue.Dequeue(), DefaultDuration);
         }
 
+        // Showing the toast moved its components, so take the reference after it.
+        ref Toast toast = ref _toast.GetComponent<Toast>();
         toast.Age += Tick.deltaTime;
 
         float total = PopInSeconds + toast.Duration + FadeOutSeconds;
@@ -96,8 +97,9 @@ public sealed class ToastSystem : QuerySystem<Toast>
         else
         {
             toast.Active = false;
-            SetVisual(string.Empty, UiLayout.Hidden, 0f);
+            SetVisual(string.Empty, _home, 0f);
             Mark(buffer);
+            UiLayout.SetHidden(_toast, buffer, true);
             return;
         }
 
@@ -110,6 +112,7 @@ public sealed class ToastSystem : QuerySystem<Toast>
 
     private void Begin(string message, float duration)
     {
+        UiLayout.SetHidden(_toast, false);
         ref Toast toast = ref _toast.GetComponent<Toast>();
         toast.Message = message;
         toast.Age = 0f;

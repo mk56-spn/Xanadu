@@ -12,6 +12,9 @@ public sealed class AnimatorActionSystem : QuerySystem<ToolAction>
     private readonly HashSet<int> _held = new();
     private readonly List<ToolAction> _requests = new();
 
+    /// <summary>A press can land on a menu item that hides itself the same frame.</summary>
+    public AnimatorActionSystem() => Filter.WithDisabled();
+
     protected override void OnUpdate()
     {
         _requests.Clear();

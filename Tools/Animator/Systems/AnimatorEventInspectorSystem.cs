@@ -36,9 +36,7 @@ public sealed class AnimatorEventInspectorSystem : QuerySystem<AnimatorDocument,
         Rect2 timeline = AnimatorGeometry.PanelArea(ui.Timeline);
         Vector2 topLeft = timeline.Position +
                           new Vector2(AnimatorTimelineModel.LabelWidth + 24f, -AnimatorLayout.EventInspectorSize.Y - 8f);
-        AnimatorMenuPlacement.Place(
-            ui.EventInspector,
-            shown ? topLeft + AnimatorLayout.EventInspectorSize / 2 : UiLayout.Hidden);
+        AnimatorMenuPlacement.Place(ui.EventInspector, topLeft + AnimatorLayout.EventInspectorSize / 2, shown: shown);
 
         SetText(ui.EventTitle, selected is null ? "EVENT" : $"EVENT IN {clip!.Id.ToUpperInvariant()}");
         _nameWasFocused = Sync(ui.EventName, _nameWasFocused, selected?.Name ?? "",

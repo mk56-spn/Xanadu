@@ -180,7 +180,7 @@ site. The allocation is the same; only the syntax differs.
 **Placement**: `.Anchor(UiEdge)` `.Anchor(anchor, pivot)` `.IgnoreLayout()`
 
 **Look**: `.Fill(color)` `.Border(color, w)` `.Chamfer(px)` `.Raised()`
-`.Below()` `.Overlay()`
+`.Below()` `.Overlay()` `.Hidden(bool)`
 
 **Text**: `.Font(px)` `.TextColor(c)` `.Bold()` `.Align(TextAlign)`
 `.Glow(c, r, i)` `.Outline(c, w)` `.SetText(s)`
@@ -266,20 +266,21 @@ Before:
 
 ```csharp
 panelUi.Container(
-    UiLayout.Hidden,
+    Vector2.Zero,
     new Vector2(MetadataPanelWidth, MetadataPanelHeight),
     StackDirection.Vertical,
     spacing: 5,
     color: SceneUi.PanelColor,
     takesInput: true);
 Entity panel = panelUi.Current;
+UiLayout.SetHidden(panel, true);
 ```
 
 After:
 
 ```csharp
 UiNode panel = tools.Panel().Size(MetadataPanelWidth, MetadataPanelHeight)
-    .Gap(5).At(UiLayout.Hidden);
+    .Gap(5).Hidden();
 ```
 
 ### 4.4 A list row — `SongSelectScene.List`

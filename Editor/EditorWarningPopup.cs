@@ -21,7 +21,7 @@ public static class EditorWarningPopup
 
         UiNode panel = ui.Column()
             .Size(PopupSize)
-            .At(UiLayout.Hidden)
+            .Hidden()
             .Gap(10)
             .Fill(Palette.DangerSurfaceAlt);
 

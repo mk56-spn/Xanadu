@@ -18,27 +18,82 @@ public static class UiTreeControl
             selected.Add(id);
     }
 
-    public static bool IsExpanded(Entity tree, string id) =>
-        !tree.GetComponent<UiTree>().Collapsed.Contains(id);
-
-    public static void SetExpanded(Entity tree, string id, bool expanded)
+    public static bool IsExpanded(Entity tree, string id)
     {
-        SetCollapsed(tree, id, expanded);
-        MarkDirty(tree);
+        Entity body = Body(FindNode(tree, id));
+        return body.IsNull || !UiLayout.IsHidden(body);
     }
 
-    /// <summary>The row entity of a node, or a null entity when there is none.</summary>
+    public static void SetExpanded(Entity tree, string id, bool expanded) =>
+        UiLayout.SetHidden(Body(FindNode(tree, id)), !expanded);
+
+    /// <summary>Every node of a tree, depth first, collapsed branches included.</summary>
+    public static IEnumerable<Entity> Nodes(Entity tree)
+    {
+        foreach (Entity child in tree.ChildEntities)
+        {
+            if (!child.HasComponent<UiTreeNode>())
+                continue;
+
+            yield return child;
+            Entity body = Body(child);
+            if (body.IsNull)
+                continue;
+
+            foreach (Entity descendant in Nodes(body))
+                yield return descendant;
+        }
+    }
+
+    /// <summary>The node with this id, or a null entity when there is none.</summary>
     public static Entity FindNode(Entity tree, string id)
     {
-        foreach (Entity row in tree.ChildEntities)
+        foreach (Entity node in Nodes(tree))
         {
-            if (row.HasComponent<UiTreeNode>() &&
-                row.GetComponent<UiTreeNode>().Id == id)
-            {
-                return row;
-            }
+            if (node.GetComponent<UiTreeNode>().Id == id)
+                return node;
         }
         return default;
+    }
+
+    /// <summary>The row a node draws: its arrow slot and label.</summary>
+    public static Entity Row(Entity node) =>
+        !node.IsNull && node.ChildCount > 0 ? node.ChildEntities[0] : default;
+
+    /// <summary>The stack holding a node's children, or a null entity for a leaf.</summary>
+    public static Entity Body(Entity node) =>
+        !node.IsNull && node.ChildCount > 1 ? node.ChildEntities[1] : default;
+
+    /// <summary>A node's arrow button, or the empty slot that keeps a leaf's label aligned.</summary>
+    public static Entity Disclosure(Entity node)
+    {
+        Entity row = Row(node);
+        return row.ChildEntities[row.ChildCount - 2];
+    }
+
+    public static Entity Label(Entity node)
+    {
+        Entity row = Row(node);
+        return row.ChildEntities[row.ChildCount - 1];
+    }
+
+    /// <summary>The node a row's arrow or label belongs to.</summary>
+    public static Entity NodeOfPart(Entity part) => part.Parent.Parent;
+
+    /// <summary>The node above this one, or a null entity for a root.</summary>
+    public static Entity ParentNode(Entity node)
+    {
+        Entity above = node.Parent.Parent;
+        return !above.IsNull && above.HasComponent<UiTreeNode>() ? above : default;
+    }
+
+    /// <summary>The tree a node belongs to.</summary>
+    public static Entity TreeOf(Entity node)
+    {
+        Entity entity = node;
+        while (!entity.IsNull && !entity.HasComponent<UiTree>())
+            entity = entity.Parent;
+        return entity;
     }
 
     /// <summary>
@@ -55,7 +110,7 @@ public static class UiTreeControl
     {
         // Revealing tags entities, which moves components; take no reference before it.
         if (reveal && id.Length > 0)
-            Reveal(tree, id);
+            Reveal(FindNode(tree, id));
 
         if (tree.GetComponent<UiTree>().Selected == id)
             return false;
@@ -66,30 +121,12 @@ public static class UiTreeControl
         return true;
     }
 
-    private static void Reveal(Entity tree, string id)
+    private static void Reveal(Entity node)
     {
-        Entity node = FindNode(tree, id);
-        int guard = 0;
-        while (!node.IsNull && guard++ < 1024)
-        {
-            string parent = node.GetComponent<UiTreeNode>().Parent;
-            if (parent.Length == 0)
-                return;
+        if (node.IsNull)
+            return;
 
-            if (!IsExpanded(tree, parent))
-                SetExpanded(tree, parent, true);
-            node = FindNode(tree, parent);
-        }
+        for (Entity above = ParentNode(node); !above.IsNull; above = ParentNode(above))
+            UiLayout.SetHidden(Body(above), false);
     }
-
-    private static void SetCollapsed(Entity tree, string id, bool expanded)
-    {
-        var collapsed = tree.GetComponent<UiTree>().Collapsed;
-        if (expanded)
-            collapsed.Remove(id);
-        else
-            collapsed.Add(id);
-    }
-
-    private static void MarkDirty(Entity tree) => tree.AddTag<LayoutDirty>();
 }

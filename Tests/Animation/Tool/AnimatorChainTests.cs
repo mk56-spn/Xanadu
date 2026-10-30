@@ -105,7 +105,7 @@ public sealed class AnimatorChainTests : AnimatorToolTest
     [Test]
     public void TheInspectorShowsOnlyWhileAChainIsSelected()
     {
-        Assert.That(InspectorCenter, Is.EqualTo(UiLayout.Hidden));
+        Assert.That(UiLayout.IsHidden(Ui.ChainInspector), Is.True);
 
         AddChainOnHead();
         Assert.That(
@@ -113,7 +113,7 @@ public sealed class AnimatorChainTests : AnimatorToolTest
             Is.EqualTo(AnimatorLayout.ChainInspectorTopLeft(Screen) + AnimatorLayout.ChainInspectorSize / 2));
 
         SelectBone(1);
-        Assert.That(InspectorCenter, Is.EqualTo(UiLayout.Hidden));
+        Assert.That(UiLayout.IsHidden(Ui.ChainInspector), Is.True);
     }
 
     [Test]

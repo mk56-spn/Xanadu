@@ -25,9 +25,10 @@ public static partial class AnimatorLayout
     private static void BuildClothInspector(UiBuilder menu, ref Refs refs)
     {
         const float inner = ChainInspectorWidth - 16f;
-        menu.Container(UiLayout.Hidden, ClothInspectorSize, StackDirection.Vertical,
+        menu.Container(Vector2.Zero, ClothInspectorSize, StackDirection.Vertical,
             spacing: ChainSpacing, color: UiTheme.Panel, padding: 8, takesInput: true,
             cross: StackCrossAlignment.Start, main: StackMainAlignment.Start);
+        UiLayout.SetHidden(menu.Current, true);
         refs.Ui.ClothInspector = menu.Current;
         refs.Ui.ClothTitle = menu.Text("NO CLOTH",
             new Vector2(inner, 18), UiTheme.SmallFontSize, UiTheme.Accent, TextAlign.Left);
