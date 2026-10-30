@@ -215,6 +215,34 @@ public sealed class UiTreeOverlaySystemTests : EcsSystemTest
         Frame();
     }
 
+    [Test]
+    public void RowsTakeInputFromThePanelEvenOnRecycledIds()
+    {
+        var pointer = new ScriptedPointer();
+        Root.Add(new Xanadu.Systems.Input.InputSystem(pointer));
+        Entity outer = Panel();
+        Entity play = Button("PLAY", outer);
+        Entity[] junk = Enumerable.Range(0, 300).Select(_ => Store.CreateEntity()).ToArray();
+        foreach (Entity entity in junk)
+            entity.DeleteEntity();
+
+        Open();
+        Frame(4);
+        Entity label = UiTreeControl.Label(Row(play));
+        pointer.Current = new PointerInput(
+            UiTransform.WorldPosition(label, label.GetComponent<Position>().Value),
+            true);
+        Frame();
+
+        Assert.That(label.Tags.Has<Pressed>(), Is.True);
+    }
+
+    private sealed class ScriptedPointer : IPointerInputSource
+    {
+        public PointerInput Current;
+        public PointerInput Read() => Current;
+    }
+
     private sealed class ScriptedToggle : IOverlayToggleSource
     {
         public bool Pressed;
