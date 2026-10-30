@@ -745,14 +745,14 @@ public sealed class PlayNoteInputSystemTests
     }
 
     [Test]
-    public void ArmedSwingHitsEverySameKeyNoteInsideTheSpear()
+    public void ArmedSwingHitsEverySameTimestampNoteInsideTheSpear()
     {
         Entity playfield = CreatePlayfield(totalNotes: 3);
         playfield.AddComponent(new PlayerCharacter(CharacterKind.Armed));
         playfield.AddComponent(new ArmedWeapon(WeaponKind.Spear));
         playfield.AddComponent(new CharacterFacing());
         CreateNote(1_000, new Vector2(600, 500), KeybindAction.L1);
-        CreateNote(1_000, new Vector2(550, 500), KeybindAction.L1);
+        CreateNote(1_000, new Vector2(550, 500), KeybindAction.R2);
         Entity outside = CreateNote(
             1_000,
             new Vector2(600, 540),
@@ -767,30 +767,6 @@ public sealed class PlayNoteInputSystemTests
             playfield.GetComponent<ScoreState>().NotesHit,
             Is.EqualTo(2));
         Assert.That(_store.Query<Note>().Count, Is.EqualTo(1));
-    }
-
-    [Test]
-    public void ArmedSwingDoesNotHitADifferentKeyAtTheSameTime()
-    {
-        Entity playfield = CreatePlayfield(totalNotes: 2);
-        playfield.AddComponent(new PlayerCharacter(CharacterKind.Armed));
-        playfield.AddComponent(new ArmedWeapon(WeaponKind.Spear));
-        playfield.AddComponent(new CharacterFacing());
-        CreateNote(1_000, new Vector2(600, 500), KeybindAction.L1);
-        CreateNote(1_000, new Vector2(550, 500), KeybindAction.R2);
-        SetPlayhead(playfield, 1_000);
-        Press(KeybindAction.L1);
-
-        Frame();
-
-        Assert.That(
-            playfield.GetComponent<ScoreState>().NotesHit,
-            Is.EqualTo(1));
-        var remaining = _store.Query<Note>().ToEntityList();
-        Assert.That(remaining, Has.Count.EqualTo(1));
-        Assert.That(
-            remaining[0].GetComponent<Note>().Target,
-            Is.EqualTo(KeybindAction.R2));
     }
 
     [Test]
