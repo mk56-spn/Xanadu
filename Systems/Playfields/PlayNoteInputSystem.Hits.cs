@@ -13,8 +13,9 @@ public sealed partial class PlayNoteInputSystem
 {
     /// <summary>
     /// Armed's swing: the first note matches the key and the weapon hitbox,
-    /// then every ordinary note at the same timestamp inside that hitbox is
-    /// struck too, even when its own key does not match.
+    /// then every other ordinary note at the same timestamp and inside that
+    /// hitbox is struck if the press matches it too. A swing never steals a
+    /// note that belongs to another key.
     /// </summary>
     private void HitSwing(
         KeybindAction action,
@@ -42,6 +43,7 @@ public sealed partial class PlayNoteInputSystem
             Note note = entity.GetComponent<Note>();
             if (note.Kind is not (NoteKind.Hit or NoteKind.Pair) ||
                 note.TimeMs != firstNote.TimeMs ||
+                !NoteRules.Matches(note, action) ||
                 NoteFade.Alpha(note, judgedTime) <= 0)
             {
                 continue;

@@ -52,7 +52,9 @@ public sealed class EditorHistory
                 note.ContactLeft,
                 note.ContactRight,
                 note.ChannelSide,
-                note.HoldMs));
+                note.HoldMs,
+                note.ShapeId,
+                note.ShapePiece));
         }
 
         notes.Sort(static (a, b) =>
@@ -262,7 +264,9 @@ public sealed class EditorHistory
                 note.ContactLeft,
                 note.ContactRight,
                 note.ChannelSide,
-                note.HoldMs), note.Shader);
+                note.HoldMs,
+                note.ShapeId,
+                note.ShapePiece), note.Shader);
             Subscribe(created, note.Groups);
         }
 
@@ -368,4 +372,6 @@ public readonly record struct NoteSnapshot(
     int ContactLeft = 0,
     int ContactRight = 0,
     ChannelSide ChannelSide = ChannelSide.Left,
-    long HoldMs = 0);
+    long HoldMs = 0,
+    int ShapeId = 0,
+    int ShapePiece = 0);
