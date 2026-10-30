@@ -33,21 +33,39 @@ public sealed class ContainerLayoutSystem : QuerySystem<Rectangle, UiContainer>
 
         CommandBuffer buffer = CommandBuffer;
 
-        foreach (Entity entity in containers)
-            Resize(entity, buffer);
+        // A resize reaches its auto-sized ancestors this frame, however deep the tree.
+        var queued = new HashSet<Entity>(containers);
+        for (int i = 0; i < containers.Count; i++)
+        {
+            Entity entity = containers[i];
+            Entity parent = entity.Parent;
+            if (Resize(entity, buffer) &&
+                !parent.IsNull &&
+                parent.HasComponent<UiContainer>() &&
+                parent.HasComponent<Rectangle>() &&
+                queued.Add(parent))
+            {
+                int depth = Depth(parent);
+                int at = i + 1;
+                while (at < containers.Count && Depth(containers[at]) >= depth)
+                    at++;
+                containers.Insert(at, parent);
+            }
+        }
 
         foreach (Entity entity in containers)
             Layout(entity, buffer);
     }
 
-    private static void Resize(Entity entity, CommandBuffer buffer)
+    /// <summary>Fits an auto-sized container to its content; true when its size changed.</summary>
+    private static bool Resize(Entity entity, CommandBuffer buffer)
     {
         UiContainer container = entity.GetComponent<UiContainer>();
         if (!container.AutoWidth && !container.AutoHeight)
-            return;
+            return false;
 
         if (!Measure(entity, container, out Vector2 contentSize))
-            return;
+            return false;
 
         ref Rectangle rectangle = ref entity.GetComponent<Rectangle>();
         Vector2 currentSize = rectangle.Bounds.Size;
@@ -56,7 +74,7 @@ public sealed class ContainerLayoutSystem : QuerySystem<Rectangle, UiContainer>
             container.AutoHeight ? contentSize.Y : currentSize.Y);
 
         if (size == currentSize)
-            return;
+            return false;
 
         float top = 0;
         float left = 0;
@@ -84,12 +102,7 @@ public sealed class ContainerLayoutSystem : QuerySystem<Rectangle, UiContainer>
 
         buffer.AddTag<Dirty>(entity.Id);
         buffer.AddTag<LayoutDirty>(entity.Id);
-
-        if (!entity.Parent.IsNull &&
-            entity.Parent.HasComponent<UiContainer>())
-        {
-            buffer.AddTag<LayoutDirty>(entity.Parent.Id);
-        }
+        return true;
     }
 
     private static bool Measure(
