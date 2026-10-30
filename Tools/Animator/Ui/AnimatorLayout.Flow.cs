@@ -39,7 +39,7 @@ public static partial class AnimatorLayout
         Entity viewport = menu.Current;
         refs.Ui.FlowList = List(menu, ListWidth);
         menu.End();
-        viewport.AddComponent(new ScrollView(refs.Ui.FlowList));
+        viewport.AddComponent(new ScrollView());
 
         refs.Ui.FlowRule = menu.Text("", new Vector2(ListWidth, FlowTextHeight), UiTheme.SmallFontSize,
             UiTheme.Text, TextAlign.Left);

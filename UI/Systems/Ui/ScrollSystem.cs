@@ -60,26 +60,27 @@ public sealed class ScrollSystem : QuerySystem<ScrollView, Rectangle, Position>
     private static void Place(Entity viewport, CommandBuffer buffer)
     {
         ref ScrollView view = ref viewport.GetComponent<ScrollView>();
-        if (view.Content.IsNull ||
-            !view.Content.HasComponent<Position>() ||
-            !view.Content.HasComponent<Rectangle>())
+        Entity body = viewport.ChildCount > 0 ? viewport.ChildEntities[0] : default;
+        if (body.IsNull ||
+            !body.HasComponent<Position>() ||
+            !body.HasComponent<Rectangle>())
         {
             return;
         }
 
         float viewportHeight = viewport.GetComponent<Rectangle>().Bounds.Size.Y;
-        float contentHeight = view.Content.GetComponent<Rectangle>().Bounds.Size.Y;
+        float contentHeight = body.GetComponent<Rectangle>().Bounds.Size.Y;
         view.Offset = Mathf.Clamp(
             view.Offset,
             0,
             Mathf.Max(0, contentHeight - viewportHeight));
 
-        ref Position content = ref view.Content.GetComponent<Position>();
+        ref Position content = ref body.GetComponent<Position>();
         float y = -viewportHeight / 2 + contentHeight / 2 - view.Offset;
         if (content.Value.Y == y)
             return;
 
         content.Value = new Vector2(content.Value.X, y);
-        buffer.AddTag<Moved>(view.Content.Id);
+        buffer.AddTag<Moved>(body.Id);
     }
 }

@@ -159,7 +159,7 @@ public partial class UiShowcase : Control
             Style(row, 13, Palette.TextDim);
         }
         ui.End();
-        scrollViewport.AddComponent(new ScrollView(scrollContent));
+        scrollViewport.AddComponent(new ScrollView());
         ui.End();
 
         ui.RectEntity(new Vector2(300, 520), new Vector2(520, 180),

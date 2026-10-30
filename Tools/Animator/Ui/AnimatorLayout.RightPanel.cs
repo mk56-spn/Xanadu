@@ -91,7 +91,7 @@ public static partial class AnimatorLayout
 
         ui.End();
         ui.End();
-        viewport.AddComponent(new ScrollView(content));
+        viewport.AddComponent(new ScrollView());
         ui.End();
     }
 
@@ -166,7 +166,7 @@ public static partial class AnimatorLayout
         rows(menu);
         menu.End();
         menu.End();
-        viewport.AddComponent(new ScrollView(content));
+        viewport.AddComponent(new ScrollView());
     }
 
     /// <summary>Moving the selected bones, then keying them and passing poses between frames.</summary>

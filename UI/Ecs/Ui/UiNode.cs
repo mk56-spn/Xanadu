@@ -204,7 +204,7 @@ public readonly partial struct UiNode
             autoHeight: false);
         content = new UiNode(_surface!, builder.Current);
 
-        viewport.AddComponent(new ScrollView(content.Entity));
+        viewport.AddComponent(new ScrollView());
         builder.End();
         builder.End();
 

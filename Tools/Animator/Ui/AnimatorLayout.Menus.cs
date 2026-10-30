@@ -269,7 +269,7 @@ public static partial class AnimatorLayout
             main: StackMainAlignment.Start);
         refs.Ui.SvgMenuList = menu.Current;
         menu.End();
-        refs.Ui.SvgMenu.AddComponent(new ScrollView(refs.Ui.SvgMenuList));
+        refs.Ui.SvgMenu.AddComponent(new ScrollView());
         menu.End();
     }
 

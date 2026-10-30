@@ -55,8 +55,6 @@ public static partial class SongSelectScene
             selected,
             catalog.Count,
             list.Tiles,
-            list.Names,
-            list.Songs,
             list.Thumb,
             preview.Chips,
             preview.Art,
