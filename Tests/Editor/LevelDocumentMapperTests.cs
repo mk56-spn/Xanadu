@@ -27,7 +27,7 @@ public sealed class LevelDocumentMapperTests
             1_000,
             new Vector2(300, 400),
             target: KeybindAction.R3,
-            kind: NoteKind.Movement,
+            kind: NoteKind.Dash,
             dashDirection: DashDirection.DownLeft,
             dashStrength: DashStrength.Triple));
         sourceStore.CreateEntity(new Mine(900, new Vector2(450, 550)));
@@ -51,7 +51,7 @@ public sealed class LevelDocumentMapperTests
         Assert.That(document.Notes, Has.Count.EqualTo(2));
         Assert.That(document.Notes[0].Target, Is.EqualTo(KeybindAction.L1));
         Assert.That(document.Notes[1].Target, Is.EqualTo(KeybindAction.R3));
-        Assert.That(document.Notes[1].Kind, Is.EqualTo(NoteKind.Movement));
+        Assert.That(document.Notes[1].Kind, Is.EqualTo(NoteKind.Dash));
         Assert.That(
             document.Notes[1].DashDirection,
             Is.EqualTo(DashDirection.DownLeft));
@@ -116,7 +116,7 @@ public sealed class LevelDocumentMapperTests
             Is.EqualTo(900));
         Assert.That(
             targetStore.Query<Note>().ToEntityList()[1].GetComponent<Note>().Kind,
-            Is.EqualTo(NoteKind.Movement));
+            Is.EqualTo(NoteKind.Dash));
         Assert.That(
             targetStore.Query<Note>().ToEntityList()[1].GetComponent<Note>().DashStrength,
             Is.EqualTo(DashStrength.Triple));
@@ -145,6 +145,59 @@ public sealed class LevelDocumentMapperTests
             Assert.That(entity.Tags.Has<EditorItem>(), Is.True);
         foreach (Entity entity in targetStore.Query<Spike>().ToEntityList())
             Assert.That(entity.Tags.Has<EditorItem>(), Is.True);
+    }
+
+    [Test]
+    public void CapturesAndAppliesPairAndMomentumData()
+    {
+        var sourceStore = new EntityStore();
+        Entity source = sourceStore.CreateEntity(
+            new LevelInfo("Mapped", "res://song.mp3"),
+            new Playfield(1000, 1000),
+            new Playhead(0, 150, 0, false),
+            new NoteSelection(default));
+        sourceStore.CreateEntity(new Note(
+            500,
+            new Vector2(100, 200),
+            kind: NoteKind.Pair,
+            pairIndex: PairIndex.Three));
+        sourceStore.CreateEntity(new Note(
+            900,
+            new Vector2(300, 400),
+            kind: NoteKind.Momentum,
+            dashDirection: DashDirection.UpLeft,
+            momentum: 900f));
+        sourceStore.CreateEntity(new Note(
+            1_200,
+            new Vector2(500, 600),
+            kind: NoteKind.Contact,
+            contactRequired: 0,
+            contactLeft: 2,
+            contactRight: 1));
+
+        LevelDocument document = LevelDocumentMapper.Capture(sourceStore, source);
+
+        Assert.That(document.Notes[0].PairIndex, Is.EqualTo(PairIndex.Three));
+        Assert.That(document.Notes[1].Momentum, Is.EqualTo(900f));
+        Assert.That(document.Notes[2].ContactLeft, Is.EqualTo(2));
+        Assert.That(document.Notes[2].ContactRight, Is.EqualTo(1));
+
+        var targetStore = new EntityStore();
+        Entity target = targetStore.CreateEntity(
+            new LevelInfo("Target", ""),
+            new Playfield(1000, 1000),
+            new Playhead(0, 120, 0, false),
+            new NoteSelection(default));
+        LevelDocumentMapper.Apply(targetStore, target, document);
+
+        var notes = targetStore.Query<Note>().ToEntityList();
+        Assert.That(notes[0].GetComponent<Note>().PairIndex,
+            Is.EqualTo(PairIndex.Three));
+        Assert.That(notes[1].GetComponent<Note>().Momentum, Is.EqualTo(900f));
+        Assert.That(notes[2].GetComponent<Note>().ContactLeft, Is.EqualTo(2));
+        Assert.That(notes[2].GetComponent<Note>().ContactRight, Is.EqualTo(1));
+        Assert.That(notes[1].GetComponent<Note>().DashDirection,
+            Is.EqualTo(DashDirection.UpLeft));
     }
 
     [Test]

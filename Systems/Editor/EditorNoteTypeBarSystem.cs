@@ -69,9 +69,15 @@ public sealed class EditorNoteTypeBarSystem : QuerySystem<EditorNoteSwatch>
         });
     }
 
-    /// <summary>Notes and dash notes carry a key; the other placement tools do not.</summary>
+    /// <summary>
+    /// Normal notes carry a specific key and pair notes take their number from
+    /// the selected key; dash and momentum notes are any-key and hide the bar.
+    /// </summary>
     public static bool ShowsFor(EditorPlacementMode mode) =>
-        mode is EditorPlacementMode.Notes or EditorPlacementMode.Movement;
+        mode is EditorPlacementMode.Notes or
+            EditorPlacementMode.Pair or
+            EditorPlacementMode.Channel or
+            EditorPlacementMode.FormStep;
 
     private static void Shade(
         Entity swatch,

@@ -18,6 +18,9 @@ public static partial class PlayfieldRenderer
     /// <summary>The sphere notes are checked against while hitboxes are shown (F10).</summary>
     public static readonly Color NoteReachColor = Palette.Accent;
 
+    /// <summary>Armed's weapon hitbox while hitboxes are shown (F10).</summary>
+    public static readonly Color WeaponHitboxColor = Palette.Info;
+
     private static readonly Color HitboxFill = new(1f, 1f, 1f, 0.1f);
 
     /// <summary>
@@ -59,7 +62,90 @@ public static partial class PlayfieldRenderer
                 NoteReach.OnScreen(view.Scale),
                 NoteReachColor,
                 1.5f);
+
+            if (entity.TryGetComponent(out PlayerCharacter character) &&
+                character.Kind == CharacterKind.Armed &&
+                entity.TryGetComponent(out ArmedWeapon weapon))
+            {
+                bool facesLeft =
+                    entity.TryGetComponent(out CharacterFacing facing) &&
+                    facing.Left;
+                DrawWeaponHitbox(
+                    canvas,
+                    rid,
+                    weapon.Kind,
+                    center,
+                    facesLeft,
+                    view.Scale);
+            }
         }
+    }
+
+    private static void DrawWeaponHitbox(
+        IRectCanvas canvas,
+        Rid rid,
+        WeaponKind weapon,
+        Vector2 center,
+        bool facesLeft,
+        float scale)
+    {
+        if (weapon == WeaponKind.Spear)
+        {
+            float length = WeaponHitRules.SpearLength * scale;
+            float thickness = WeaponHitRules.SpearThickness * scale;
+            var bounds = new Rect2(
+                new Vector2(facesLeft ? center.X - length : center.X,
+                    center.Y - thickness / 2f),
+                new Vector2(length, thickness));
+            DrawHitbox(canvas, rid, bounds, WeaponHitboxColor);
+            return;
+        }
+
+        float inner = WeaponHitRules.AxeInner * scale;
+        float outer = WeaponHitRules.AxeOuter * scale;
+        float start = facesLeft ? Mathf.Pi / 2f : -Mathf.Pi / 2f;
+        float end = start + Mathf.Pi;
+        const int segments = 24;
+
+        DrawArc(canvas, rid, center, inner, start, end, segments, WeaponHitboxColor);
+        DrawArc(canvas, rid, center, outer, start, end, segments, WeaponHitboxColor);
+
+        Vector2 innerStart = center + new Vector2(
+            Mathf.Cos(start) * inner,
+            Mathf.Sin(start) * inner);
+        Vector2 innerEnd = center + new Vector2(
+            Mathf.Cos(end) * inner,
+            Mathf.Sin(end) * inner);
+        Vector2 outerStart = center + new Vector2(
+            Mathf.Cos(start) * outer,
+            Mathf.Sin(start) * outer);
+        Vector2 outerEnd = center + new Vector2(
+            Mathf.Cos(end) * outer,
+            Mathf.Sin(end) * outer);
+        canvas.DrawLine(rid, innerStart, outerStart, WeaponHitboxColor, 1.5f);
+        canvas.DrawLine(rid, innerEnd, outerEnd, WeaponHitboxColor, 1.5f);
+    }
+
+    private static void DrawArc(
+        IRectCanvas canvas,
+        Rid rid,
+        Vector2 center,
+        float radius,
+        float start,
+        float end,
+        int segments,
+        Color color)
+    {
+        var points = new Vector2[segments + 1];
+        for (int i = 0; i <= segments; i++)
+        {
+            float angle = start + (end - start) * i / segments;
+            points[i] = center + new Vector2(
+                Mathf.Cos(angle) * radius,
+                Mathf.Sin(angle) * radius);
+        }
+
+        canvas.DrawPolyline(rid, points, color, 1.5f);
     }
 
     private static void DrawHitbox(

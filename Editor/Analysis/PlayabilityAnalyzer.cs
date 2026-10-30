@@ -73,7 +73,7 @@ public static class PlayabilityAnalyzer
         ordered.Sort(static (a, b) =>
         {
             int time = a.TimeMs.CompareTo(b.TimeMs);
-            return time != 0 ? time : (a.Kind == NoteKind.Movement).CompareTo(b.Kind == NoteKind.Movement);
+            return time != 0 ? time : (a.Kind == NoteKind.Dash).CompareTo(b.Kind == NoteKind.Dash);
         });
 
         Vector2 half = geometry.PlayerSize / 2;
@@ -121,7 +121,7 @@ public static class PlayabilityAnalyzer
                     (highest - (screen.Y + reach)) / geometry.Scale));
             }
 
-            if (note.Kind != NoteKind.Movement)
+            if (note.Kind != NoteKind.Dash)
                 continue;
 
             // Assume the dash happens, even for an unreachable note, so one

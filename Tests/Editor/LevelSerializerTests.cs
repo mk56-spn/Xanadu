@@ -142,7 +142,7 @@ public sealed class LevelSerializerTests
             X = 250,
             Y = 400,
             Target = KeybindAction.R2,
-            Kind = NoteKind.Movement,
+            Kind = NoteKind.Dash,
             DashDirection = DashDirection.UpRight,
         });
         source.Mines.Add(new MineDocument
@@ -165,7 +165,7 @@ public sealed class LevelSerializerTests
         Assert.That(result.Notes[0].X, Is.EqualTo(250));
         Assert.That(result.Notes[0].Y, Is.EqualTo(400));
         Assert.That(result.Notes[0].Target, Is.EqualTo(KeybindAction.R2));
-        Assert.That(result.Notes[0].Kind, Is.EqualTo(NoteKind.Movement));
+        Assert.That(result.Notes[0].Kind, Is.EqualTo(NoteKind.Dash));
         Assert.That(
             result.Notes[0].DashDirection,
             Is.EqualTo(DashDirection.UpRight));

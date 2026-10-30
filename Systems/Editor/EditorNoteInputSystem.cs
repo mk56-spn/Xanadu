@@ -230,8 +230,11 @@ public sealed partial class EditorNoteInputSystem : QuerySystem<Note>
             if (hit.HasComponent<Note>() &&
                 editor.HasComponent<EditorNoteTarget>())
             {
+                Note selected = hit.GetComponent<Note>();
                 editor.GetComponent<EditorNoteTarget>().Target =
-                    hit.GetComponent<Note>().Target;
+                    selected.Kind == NoteKind.Pair
+                        ? NoteRules.ActionFor(selected.PairIndex)
+                        : selected.Target;
             }
 
             return;
@@ -486,25 +489,120 @@ public sealed partial class EditorNoteInputSystem : QuerySystem<Note>
         DashStrength strength = editor.HasComponent<EditorDashStrengthState>()
             ? editor.GetComponent<EditorDashStrengthState>().Strength
             : DashStrength.Single;
+        bool isMovement = mode is
+            EditorPlacementMode.Dash or
+            EditorPlacementMode.Momentum;
+        bool isPair = mode == EditorPlacementMode.Pair;
+        bool isContact = mode == EditorPlacementMode.Contact;
+        bool isChannel = mode == EditorPlacementMode.Channel;
+        bool isFormStep = mode == EditorPlacementMode.FormStep;
+        EditorShapeState shape = editor.HasComponent<EditorShapeState>()
+            ? editor.GetComponent<EditorShapeState>()
+            : new EditorShapeState(0);
+        if (isFormStep && shape.ShapeId == 0)
+            return;
+
+        KeybindAction channelTarget = target == KeybindAction.M
+            ? KeybindAction.L1
+            : target;
+        int shapePiece = isFormStep ? NextShapePiece(shape.ShapeId) : 0;
+        EditorContactCostState costs = editor.HasComponent<EditorContactCostState>()
+            ? editor.GetComponent<EditorContactCostState>()
+            : new EditorContactCostState(1, 1);
         Entity created = EditorItems.Create(_entities, new Note(
             time,
             playfieldPosition,
-            target: mode == EditorPlacementMode.CharacterSwitch
+            target: mode == EditorPlacementMode.CharacterSwitch ||
+                    mode == EditorPlacementMode.WeaponSwitch ||
+                    isMovement ||
+                    isPair ||
+                    isContact
                 ? KeybindAction.M
-                : target,
+                : isChannel
+                    ? channelTarget
+                    : isFormStep
+                        ? channelTarget
+                        : target,
             kind: mode switch
             {
-                EditorPlacementMode.Movement => NoteKind.Movement,
+                EditorPlacementMode.Pair => NoteKind.Pair,
+                EditorPlacementMode.Dash => NoteKind.Dash,
+                EditorPlacementMode.Momentum => NoteKind.Momentum,
                 EditorPlacementMode.Contact => NoteKind.Contact,
                 EditorPlacementMode.CharacterSwitch => NoteKind.CharacterSwitch,
+                EditorPlacementMode.WeaponSwitch => NoteKind.WeaponSwitch,
+                EditorPlacementMode.Channel => NoteKind.Channel,
+                EditorPlacementMode.FormStep => NoteKind.ConstructionStep,
                 _ => NoteKind.Hit,
             },
             dashDirection: direction,
+            contactRequired: isContact ? 0 : 1,
             character: character,
-            dashStrength: strength));
+            dashStrength: strength,
+            pairIndex: NoteRules.PairIndexFor(target),
+            momentum: MomentumFor(strength),
+            contactLeft: isContact ? costs.Left : 0,
+            contactRight: isContact ? costs.Right : 0,
+            channelSide: isChannel
+                ? NoteRules.SideOf(channelTarget)
+                : ChannelSide.Left,
+            shapeId: isFormStep ? shape.ShapeId : 0,
+            shapePiece: shapePiece));
+        if (isFormStep)
+            ReindexConstructionSteps(shape.ShapeId);
         _history.Record(before, _history.Capture());
         editor.GetComponent<NoteSelection>().Note = created;
     }
+
+    private int NextShapePiece(int shapeId)
+    {
+        int count = 0;
+        foreach (Entity entity in _entities.Query<Note>().ToEntityList())
+        {
+            Note note = entity.GetComponent<Note>();
+            if (note.Kind == NoteKind.ConstructionStep &&
+                note.ShapeId == shapeId)
+            {
+                count++;
+            }
+        }
+
+        return count;
+    }
+
+    private void ReindexConstructionSteps(int shapeId)
+    {
+        var steps = new List<Entity>();
+        foreach (Entity entity in _entities.Query<Note>().ToEntityList())
+        {
+            Note note = entity.GetComponent<Note>();
+            if (note.Kind == NoteKind.ConstructionStep &&
+                note.ShapeId == shapeId)
+            {
+                steps.Add(entity);
+            }
+        }
+
+        steps.Sort((a, b) =>
+            a.GetComponent<Note>().TimeMs.CompareTo(
+                b.GetComponent<Note>().TimeMs));
+        for (int i = 0; i < steps.Count; i++)
+        {
+            ref Note note = ref steps[i].GetComponent<Note>();
+            note.ShapePiece = i;
+        }
+    }
+
+    /// <summary>
+    /// The editor's three movement strength buttons pick a dash distance and a
+    /// momentum push, so a mapper gets a consistent 1×/2×/3× language.
+    /// </summary>
+    private static float MomentumFor(DashStrength strength) => strength switch
+    {
+        DashStrength.Double => 900f,
+        DashStrength.Triple => 1200f,
+        _ => 600f,
+    };
 
     private List<Entity> FindNotesIn(Rect2 screenBounds, long playheadMs)
     {
@@ -520,7 +618,9 @@ public sealed partial class EditorNoteInputSystem : QuerySystem<Note>
         foreach (Entity entity in _entities.Query<Note>().ToEntityList())
         {
             Note note = entity.GetComponent<Note>();
-            if (NoteFade.Alpha(note, playheadMs) <= 0.05f ||
+            if (NoteRules.IsRail(note.Kind) ||
+                NoteRules.IsChannelEnd(note.Kind) ||
+                NoteFade.Alpha(note, playheadMs) <= 0.05f ||
                 !IsInside(note.Position, playfield))
             {
                 continue;

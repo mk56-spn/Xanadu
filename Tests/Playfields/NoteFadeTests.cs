@@ -27,7 +27,7 @@ public sealed class NoteFadeTests
         var movement = new Note(
             1_000,
             Vector2.Zero,
-            kind: NoteKind.Movement);
+            kind: NoteKind.Dash);
 
         foreach (long time in new long[] { 700, 850, 1_000, 1_150, 1_300 })
         {

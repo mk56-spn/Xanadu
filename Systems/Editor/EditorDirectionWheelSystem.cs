@@ -35,10 +35,13 @@ public sealed class EditorDirectionWheelSystem : QuerySystem<EditorDirectionWhee
                 link.Wheel.RemoveComponent<UiWheelChanged>();
             }
 
-            bool visible =
-                entity.HasComponent<EditorPlacementModeState>() &&
-                entity.GetComponent<EditorPlacementModeState>().Mode ==
-                EditorPlacementMode.Movement;
+            EditorPlacementMode mode =
+                entity.HasComponent<EditorPlacementModeState>()
+                    ? entity.GetComponent<EditorPlacementModeState>().Mode
+                    : EditorPlacementMode.Notes;
+            bool visible = mode is
+                EditorPlacementMode.Dash or
+                EditorPlacementMode.Momentum;
 
             float radius = link.Wheel.HasComponent<Rectangle>()
                 ? link.Wheel.GetComponent<Rectangle>().Bounds.Size.X / 2

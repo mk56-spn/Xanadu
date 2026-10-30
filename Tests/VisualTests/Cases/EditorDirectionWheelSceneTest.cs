@@ -9,7 +9,7 @@ namespace Xanadu.Tests.VisualTests;
 
 /// <summary>
 /// Regression: dash direction is chosen with the generic Xanadu.UI wheel, which
-/// appears only in MOVE mode and writes the selected wedge back to editor state.
+/// appears only in movement modes and writes the selected wedge back to editor state.
 /// </summary>
 public sealed class EditorDirectionWheelSceneTest : SceneTest
 {
@@ -26,22 +26,22 @@ public sealed class EditorDirectionWheelSceneTest : SceneTest
             () => Context.Scenes.Current == SceneKind.Editor &&
                   Context.Entities.Query<UiWheel>().Count == 1 &&
                   Context.Entities.Query<EditorDirectionWheel>().Count == 1 &&
-                  VisualAssert.HasText(Context.Entities, "DASH DIRECTION"));
+                  VisualAssert.HasText(Context.Entities, "MOVE DIRECTION"));
         AddUntilStep(
-            "wheel starts hidden outside MOVE mode",
+            "wheel starts hidden outside movement modes",
             () => Wheel().GetComponent<Position>().Value == UiLayout.Hidden);
 
-        AddStep("click MOVE placement", () => ClickPlacement(EditorPlacementMode.Movement));
-        AddWaitStep("hold MOVE", 2);
-        AddStep("release MOVE", () => Context.Pointer.Release());
+        AddStep("click DASH placement", () => ClickPlacement(EditorPlacementMode.Dash));
+        AddWaitStep("hold DASH", 2);
+        AddStep("release DASH", () => Context.Pointer.Release());
         AddUntilStep(
-            "wheel appears in MOVE mode",
-            () => PlaceMode() == EditorPlacementMode.Movement &&
+            "wheel appears in DASH mode",
+            () => PlaceMode() == EditorPlacementMode.Dash &&
                   Wheel().GetComponent<Position>().Value != UiLayout.Hidden);
         AddAssert(
-            "the note key bar stays up for dash notes",
-            () => NoteBar().GetComponent<Position>().Value != UiLayout.Hidden &&
-                  !NoteBar().Tags.Has<LayoutIgnore>());
+            "the note key bar hides for any-key dash notes",
+            () => NoteBar().GetComponent<Position>().Value == UiLayout.Hidden &&
+                  NoteBar().Tags.Has<LayoutIgnore>());
         AddAssert(
             "current direction selected",
             () => Wheel().GetComponent<UiWheel>().Selected ==
@@ -74,10 +74,10 @@ public sealed class EditorDirectionWheelSceneTest : SceneTest
 
         AddStep("create editor overlay", CreateOverlay);
         AddWaitStep("overlay settles", 2);
-        AddStep("press the dash placement key", () => Press(Key.Key2));
+        AddStep("press the dash placement key", () => Press(Key.Key3));
         AddUntilStep(
-            "dash key switches to MOVE and shows the wheel",
-            () => PlaceMode() == EditorPlacementMode.Movement &&
+            "dash key switches to DASH and shows the wheel",
+            () => PlaceMode() == EditorPlacementMode.Dash &&
                   Wheel().GetComponent<Position>().Value != UiLayout.Hidden);
         AddStep("press the normal placement key", () => Press(Key.Key1));
         AddUntilStep(

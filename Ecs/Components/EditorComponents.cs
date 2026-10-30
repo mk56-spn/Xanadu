@@ -81,12 +81,17 @@ public enum EditorPlacementMode
 {
     Notes,
     Mines,
-    Movement,
+    Dash,
     Start,
     Contact,
     CharacterSwitch,
     Blocks,
     Spikes,
+    Pair,
+    Momentum,
+    WeaponSwitch,
+    Channel,
+    FormStep,
 }
 
 public struct EditorPlacementModeState(EditorPlacementMode mode) : IComponent
@@ -103,6 +108,68 @@ public struct EditorDashDirectionState(DashDirection direction) : IComponent
 public struct EditorDashStrengthState(DashStrength strength) : IComponent
 {
     public DashStrength Strength = strength;
+}
+
+/// <summary>The left and right charge newly placed contact barriers ask for.</summary>
+public struct EditorContactCostState(int left, int right) : IComponent
+{
+    public int Left = left;
+    public int Right = right;
+}
+
+/// <summary>One of the editor's four contact-cost buttons.</summary>
+public struct EditorContactCostButton(bool left, int delta) : IComponent
+{
+    public bool Left = left;
+    public int Delta = delta;
+}
+
+/// <summary>The text entity that shows the current contact cost.</summary>
+public struct EditorContactCostReadout(Entity text) : IComponent
+{
+    public Entity Text = text;
+}
+
+/// <summary>The hold length newly placed rail notes get, in milliseconds.</summary>
+public struct EditorRailHoldState(long holdMs) : IComponent
+{
+    public long HoldMs = holdMs;
+}
+
+/// <summary>The text entity that shows the current rail hold length.</summary>
+public struct EditorRailHoldReadout(Entity text) : IComponent
+{
+    public Entity Text = text;
+}
+
+/// <summary>A rail-layer button that places a tap on a side key at the playhead.</summary>
+public struct EditorRailButton(KeybindAction action) : IComponent
+{
+    public KeybindAction Action = action;
+}
+
+/// <summary>Cycles the hold length used by new rail notes.</summary>
+public struct EditorRailHoldButton : IComponent;
+
+/// <summary>A rail-layer button that places a channel end marker at the playhead.</summary>
+public struct EditorChannelEndButton(ChannelSide side) : IComponent
+{
+    public ChannelSide Side = side;
+}
+
+/// <summary>The Form construction shape new steps are authored into, or 0 for none.</summary>
+public struct EditorShapeState(int shapeId) : IComponent
+{
+    public int ShapeId = shapeId;
+}
+
+/// <summary>Attaches the selected blocks to a new Form shape at the playhead.</summary>
+public struct EditorShapeAttachButton : IComponent;
+
+/// <summary>The text entity that shows the active Form shape id.</summary>
+public struct EditorShapeReadout(Entity text) : IComponent
+{
+    public Entity Text = text;
 }
 
 /// <summary>One of the editor's 1×, 2× and 3× dash strength buttons.</summary>

@@ -96,7 +96,7 @@ public sealed class BlockEditingTests
             Field);
 
         Assert.That(resized.Position, Is.EqualTo(new Vector2(400, 500)));
-        Assert.That(resized.Size, Is.EqualTo(new Vector2(200, 200)));
+        Assert.That(resized.Size, Is.EqualTo(new Vector2(200, 250)));
     }
 
     [Test]
@@ -127,7 +127,7 @@ public sealed class BlockEditingTests
             new Vector2(60, 40),
             Field);
 
-        Assert.That(moved.Position, Is.EqualTo(new Vector2(500, 500)));
+        Assert.That(moved.Position, Is.EqualTo(new Vector2(450, 550)));
         Assert.That(moved.Size, Is.EqualTo(Platform.Size));
     }
 

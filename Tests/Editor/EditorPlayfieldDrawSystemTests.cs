@@ -163,7 +163,7 @@ public sealed class EditorPlayfieldDrawSystemTests
         store.CreateEntity(new Note(
             1_000,
             new Vector2(100, 100),
-            kind: NoteKind.Movement,
+            kind: NoteKind.Dash,
             dashDirection: DashDirection.Right));
 
         var canvas = new RecordingCanvas();

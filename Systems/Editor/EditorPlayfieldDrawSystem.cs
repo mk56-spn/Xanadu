@@ -117,6 +117,14 @@ public sealed partial class EditorPlayfieldDrawSystem :
             playfield,
             playhead,
             selection.Note);
+        PlayfieldRenderer.DrawRails(
+            _canvas,
+            _editor,
+            _entities,
+            view,
+            playfield,
+            playhead,
+            previewBoth: true);
         PlayfieldRenderer.DrawMines(
             _canvas,
             _editor,
@@ -144,22 +152,29 @@ public sealed partial class EditorPlayfieldDrawSystem :
         foreach (Entity entity in _entities.Query<Note>().ToEntityList())
         {
             Note note = entity.GetComponent<Note>();
-            if (note.Kind != NoteKind.Movement ||
+            if (note.Kind is not (NoteKind.Dash or NoteKind.Momentum) ||
                 NoteFade.Alpha(note, playhead.TimeMs) <= 0)
             {
                 continue;
             }
 
+            bool dash = note.Kind == NoteKind.Dash;
             Vector2 from = view.PlayfieldToScreen(note.Position);
-            Vector2 target = PlayerMovementSystem.DashTarget(
-                note.Position,
-                note.DashDirection,
-                note.DashStrength);
+            Vector2 target = dash
+                ? PlayerMovementSystem.DashTarget(
+                    note.Position,
+                    note.DashDirection,
+                    note.DashStrength)
+                : note.Position +
+                  PlayerMovementSystem.DashDirectionVector(note.DashDirection) * 60f;
             Vector2 to = view.PlayfieldToScreen(target);
-            Color color = PlayfieldRenderer.ColorFor(note.Target);
+            Color color = PlayfieldRenderer.ColorFor(note);
             color.A = 0.55f;
 
             _canvas.DrawLine(_editor, from, to, color, 2);
+            if (!dash)
+                continue;
+
             _canvas.DrawCircleOutline(
                 _editor,
                 to,

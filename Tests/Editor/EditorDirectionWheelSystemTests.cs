@@ -56,7 +56,7 @@ public sealed class EditorDirectionWheelSystemTests : EcsSystemTest
     public void MovementModeShowsWheelAndReflectsTheCurrentDirection()
     {
         _editor.GetComponent<EditorPlacementModeState>().Mode =
-            EditorPlacementMode.Movement;
+            EditorPlacementMode.Dash;
 
         Frame();
 
@@ -72,7 +72,7 @@ public sealed class EditorDirectionWheelSystemTests : EcsSystemTest
     public void WheelSelectionUpdatesTheDashDirection()
     {
         _editor.GetComponent<EditorPlacementModeState>().Mode =
-            EditorPlacementMode.Movement;
+            EditorPlacementMode.Dash;
         Frame();
         _wheel.AddComponent(new UiWheelChanged(6));
 
@@ -90,7 +90,7 @@ public sealed class EditorDirectionWheelSystemTests : EcsSystemTest
     public void DirectionChangesSelectTheMatchingWedge()
     {
         _editor.GetComponent<EditorPlacementModeState>().Mode =
-            EditorPlacementMode.Movement;
+            EditorPlacementMode.Dash;
         Frame();
         _editor.GetComponent<EditorDashDirectionState>().Direction =
             DashDirection.DownLeft;

@@ -32,6 +32,8 @@ public static class SceneTestCatalog
         new RestartSceneTest(),
         new EditorDropdownSceneTest(),
         new EditorDirectionWheelSceneTest(),
+        new CharacterNotesSceneTest(),
+        new SplitlineSceneTest(),
         new EditorGroupsSceneTest(),
         new EditorFocusSceneTest(),
         new PlayGroupsSceneTest(),

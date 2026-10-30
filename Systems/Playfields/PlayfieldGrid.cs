@@ -10,7 +10,7 @@ namespace Xanadu.Systems.Playfields;
 public static class PlayfieldGrid
 {
     /// <summary>Cells per axis.</summary>
-    public const int Divisions = 10;
+    public const int Divisions = 20;
 
     public static Vector2 Cell(Playfield playfield) => new(
         playfield.Width / (float)Divisions,

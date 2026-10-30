@@ -54,6 +54,14 @@ public static class LevelDocumentMapper
                 ContactRequired = note.ContactRequired,
                 Character = note.Character,
                 DashStrength = note.DashStrength,
+                PairIndex = note.PairIndex,
+                Momentum = note.Momentum,
+                ContactLeft = note.ContactLeft,
+                ContactRight = note.ContactRight,
+                ChannelSide = note.ChannelSide,
+                HoldMs = note.HoldMs,
+                ShapeId = note.ShapeId,
+                ShapePiece = note.ShapePiece,
                 Groups = GroupsOf(entity),
                 Item = Xif.FromEcs(ItemShader.Of(entity), ItemCommonShader.Of(entity)),
             });
@@ -106,6 +114,8 @@ public static class LevelDocumentMapper
                 Y = block.Position.Y,
                 Width = block.Size.X,
                 Height = block.Size.Y,
+                ShapeId = block.ShapeId,
+                ShapePiece = block.ShapePiece,
                 Groups = GroupsOf(entity),
                 Shader = ItemShader.Of(entity),
             });
@@ -168,7 +178,15 @@ public static class LevelDocumentMapper
                 note.DashDirection,
                 note.ContactRequired,
                 note.Character,
-                note.DashStrength), note.Item?.PrimaryShader ?? 0, note.Item?.PrimaryCommonShader ?? "");
+                note.DashStrength,
+                note.PairIndex,
+                note.Momentum,
+                note.ContactLeft,
+                note.ContactRight,
+                note.ChannelSide,
+                note.HoldMs,
+                note.ShapeId,
+                note.ShapePiece), note.Item?.PrimaryShader ?? 0, note.Item?.PrimaryCommonShader ?? "");
             Subscribe(created, note.Groups);
         }
 
@@ -207,7 +225,11 @@ public static class LevelDocumentMapper
         {
             Entity created = EditorItems.Create(entities, new Block(
                 new Vector2(block.X, block.Y),
-                new Vector2(block.Width, block.Height)), block.Shader);
+                new Vector2(block.Width, block.Height),
+                block.ShapeId,
+                block.ShapePiece), block.Shader);
+            if (block.ShapeId > 0)
+                created.AddTag<ConstructionHidden>();
             Subscribe(created, block.Groups);
         }
 

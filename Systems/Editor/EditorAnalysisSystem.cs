@@ -52,7 +52,14 @@ public sealed class EditorAnalysisSystem(EntityStore entities)
                     note.Position,
                     note.Kind,
                     note.DashDirection,
-                    note.DashStrength);
+                    note.DashStrength,
+                    note.PairIndex,
+                    note.Momentum,
+                    HashCode.Combine(
+                        note.ContactLeft,
+                        note.ContactRight,
+                        note.ChannelSide,
+                        note.HoldMs));
             });
 
             if (analysis.Density is not null && signature == analysis.Signature)

@@ -25,7 +25,7 @@ public sealed class MortalCoilChartTests
         Assert.That(level.SongId, Is.EqualTo(song.Id));
         Assert.That(level.StartPoints, Is.Empty);
         Assert.That(level.Notes, Has.Count.EqualTo(7));
-        Assert.That(level.Notes.Count(note => note.Kind == NoteKind.Movement),
+        Assert.That(level.Notes.Count(note => note.Kind == NoteKind.Dash),
             Is.EqualTo(4));
         Assert.That(level.Notes.All(note =>
             (note.TimeMs - song.OffsetMs) % 300 == 0), Is.True);

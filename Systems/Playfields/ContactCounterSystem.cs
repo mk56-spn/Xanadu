@@ -1,11 +1,10 @@
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Xanadu.Ecs;
-using Xanadu.Settings;
 
 namespace Xanadu.Systems.Playfields;
 
-/// <summary>Projects Contact per-input counters into the HUD.</summary>
+/// <summary>Projects the left and right Contact stacks into the HUD.</summary>
 public sealed class ContactCounterSystem : QuerySystem<ContactCounters, ContactCounterHud>
 {
     protected override void OnUpdate()
@@ -14,21 +13,21 @@ public sealed class ContactCounterSystem : QuerySystem<ContactCounters, ContactC
 
         Query.ForEachEntity((ref counters, ref hud, _) =>
         {
-            for (int i = 0; i < hud.Labels.Length; i++)
-            {
-                Entity label = hud.Labels[i];
-                if (label.IsNull || !label.HasComponent<Text>())
-                    continue;
-
-                KeybindAction action = KeybindSettings.Actions[i];
-                string value = $"{KeybindSettings.LabelFor(action)} {counters.Get(action)}";
-                ref Text text = ref label.GetComponent<Text>();
-                if (text.Value == value)
-                    continue;
-
-                text.Value = value;
-                buffer.AddTag<Dirty>(label.Id);
-            }
+            Set(hud.Left, $"L {counters.Left}", buffer);
+            Set(hud.Right, $"R {counters.Right}", buffer);
         });
+    }
+
+    private static void Set(Entity label, string value, CommandBuffer buffer)
+    {
+        if (label.IsNull || !label.HasComponent<Text>())
+            return;
+
+        ref Text text = ref label.GetComponent<Text>();
+        if (text.Value == value)
+            return;
+
+        text.Value = value;
+        buffer.AddTag<Dirty>(label.Id);
     }
 }

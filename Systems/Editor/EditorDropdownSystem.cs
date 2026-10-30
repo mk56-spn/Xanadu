@@ -76,7 +76,10 @@ public sealed class EditorDropdownSystem : QuerySystem<Dropdown>
                          .ToEntityList())
             {
                 editor.GetComponent<EditorCharacterTarget>().Target =
-                    (CharacterKind)Math.Clamp(value, 0, 0);
+                    (CharacterKind)Math.Clamp(
+                        value,
+                        0,
+                        Enum.GetValues<CharacterKind>().Length - 1);
                 break;
             }
         }
@@ -119,7 +122,13 @@ public sealed class EditorDropdownSystem : QuerySystem<Dropdown>
             buffer.AddTag<Dirty>(button.Id);
     }
 
-    private static string CharacterLabel(int index) => "CONTACT";
+    private static string CharacterLabel(int index) => index switch
+    {
+        1 => "ARMED",
+        2 => "SPLITLINE",
+        3 => "FORM",
+        _ => "CONTACT",
+    };
 
     private static int SnapIndex(int division) => division switch
     {

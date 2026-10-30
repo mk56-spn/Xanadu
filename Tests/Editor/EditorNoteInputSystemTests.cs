@@ -157,15 +157,18 @@ public sealed class EditorNoteInputSystemTests
         Entity editor = _store.Query<PlayfieldView>().ToEntityList()[0];
         editor.AddComponent(new EditorPlacementModeState(
             EditorPlacementMode.Contact));
+        editor.AddComponent(new EditorContactCostState(2, 0));
 
         _pointer.Current = new PointerInput(new Vector2(300, 400), true);
         _root.Update(new UpdateTick(1f / 60f, 0));
         _pointer.Current = new PointerInput(new Vector2(300, 400), false);
         _root.Update(new UpdateTick(1f / 60f, 0));
 
-        Entity note = _store.Query<Note>().ToEntityList()[0];
-        Assert.That(note.GetComponent<Note>().Kind,
-            Is.EqualTo(NoteKind.Contact));
+        Note note = _store.Query<Note>().ToEntityList()[0].GetComponent<Note>();
+        Assert.That(note.Kind, Is.EqualTo(NoteKind.Contact));
+        Assert.That(note.ContactLeft, Is.EqualTo(2));
+        Assert.That(note.ContactRight, Is.Zero);
+        Assert.That(note.Target, Is.EqualTo(KeybindAction.M));
     }
 
     [Test]
@@ -185,6 +188,63 @@ public sealed class EditorNoteInputSystemTests
         Assert.That(note.Kind, Is.EqualTo(NoteKind.CharacterSwitch));
         Assert.That(note.Target, Is.EqualTo(KeybindAction.M));
         Assert.That(note.Character, Is.EqualTo(CharacterKind.Armed));
+    }
+
+    [Test]
+    public void WeaponSwitchModePlacesAWeaponSwitchNote()
+    {
+        Entity editor = _store.Query<PlayfieldView>().ToEntityList()[0];
+        editor.AddComponent(new EditorPlacementModeState(
+            EditorPlacementMode.WeaponSwitch));
+
+        _pointer.Current = new PointerInput(new Vector2(300, 400), true);
+        _root.Update(new UpdateTick(1f / 60f, 0));
+        _pointer.Current = new PointerInput(new Vector2(300, 400), false);
+        _root.Update(new UpdateTick(1f / 60f, 0));
+
+        Note note = _store.Query<Note>().ToEntityList()[0].GetComponent<Note>();
+        Assert.That(note.Kind, Is.EqualTo(NoteKind.WeaponSwitch));
+        Assert.That(note.Target, Is.EqualTo(KeybindAction.M));
+    }
+
+    [Test]
+    public void ChannelModePlacesAChannelStartOnTheSelectedSide()
+    {
+        Entity editor = _store.Query<PlayfieldView>().ToEntityList()[0];
+        editor.AddComponent(new EditorPlacementModeState(
+            EditorPlacementMode.Channel));
+        editor.AddComponent(new EditorNoteTarget(KeybindAction.R2));
+
+        _pointer.Current = new PointerInput(new Vector2(300, 400), true);
+        _root.Update(new UpdateTick(1f / 60f, 0));
+        _pointer.Current = new PointerInput(new Vector2(300, 400), false);
+        _root.Update(new UpdateTick(1f / 60f, 0));
+
+        Note note = _store.Query<Note>().ToEntityList()[0].GetComponent<Note>();
+        Assert.That(note.Kind, Is.EqualTo(NoteKind.Channel));
+        Assert.That(note.Target, Is.EqualTo(KeybindAction.R2));
+        Assert.That(note.ChannelSide, Is.EqualTo(ChannelSide.Right));
+    }
+
+    [Test]
+    public void FormStepModePlacesAStepForTheActiveShape()
+    {
+        Entity editor = _store.Query<PlayfieldView>().ToEntityList()[0];
+        editor.AddComponent(new EditorPlacementModeState(
+            EditorPlacementMode.FormStep));
+        editor.AddComponent(new EditorNoteTarget(KeybindAction.R3));
+        editor.AddComponent(new EditorShapeState(7));
+
+        _pointer.Current = new PointerInput(new Vector2(300, 400), true);
+        _root.Update(new UpdateTick(1f / 60f, 0));
+        _pointer.Current = new PointerInput(new Vector2(300, 400), false);
+        _root.Update(new UpdateTick(1f / 60f, 0));
+
+        Note note = _store.Query<Note>().ToEntityList()[0].GetComponent<Note>();
+        Assert.That(note.Kind, Is.EqualTo(NoteKind.ConstructionStep));
+        Assert.That(note.Target, Is.EqualTo(KeybindAction.R3));
+        Assert.That(note.ShapeId, Is.EqualTo(7));
+        Assert.That(note.ShapePiece, Is.Zero);
     }
 
     [Test]
@@ -388,7 +448,7 @@ public sealed class EditorNoteInputSystemTests
     {
         Entity editor = _store.Query<PlayfieldView>().ToEntityList()[0];
         editor.AddComponent(
-            new EditorPlacementModeState(EditorPlacementMode.Movement));
+            new EditorPlacementModeState(EditorPlacementMode.Dash));
         editor.AddComponent(
             new EditorDashDirectionState(DashDirection.UpRight));
         editor.AddComponent(
@@ -402,12 +462,58 @@ public sealed class EditorNoteInputSystemTests
         var notes = _store.Query<Note>().ToEntityList();
         Assert.That(notes, Has.Count.EqualTo(1));
         Assert.That(notes[0].GetComponent<Note>().Kind,
-            Is.EqualTo(NoteKind.Movement));
+            Is.EqualTo(NoteKind.Dash));
         Assert.That(notes[0].GetComponent<Note>().DashDirection,
             Is.EqualTo(DashDirection.UpRight));
         Assert.That(notes[0].GetComponent<Note>().DashStrength,
             Is.EqualTo(DashStrength.Double));
         Assert.That(_store.Query<Mine>().Count, Is.Zero);
+    }
+
+    [Test]
+    public void PairModePlacesTheNumberedPairFromTheSelectedKey()
+    {
+        Entity editor = _store.Query<PlayfieldView>().ToEntityList()[0];
+        editor.AddComponent(
+            new EditorPlacementModeState(EditorPlacementMode.Pair));
+        editor.AddComponent(new EditorNoteTarget(KeybindAction.R2));
+
+        _pointer.Current = new PointerInput(new Vector2(300, 400), true);
+        _root.Update(new UpdateTick(1f / 60f, 0));
+        _pointer.Current = new PointerInput(new Vector2(300, 400), false);
+        _root.Update(new UpdateTick(1f / 60f, 0));
+
+        var notes = _store.Query<Note>().ToEntityList();
+        Assert.That(notes, Has.Count.EqualTo(1));
+        Note note = notes[0].GetComponent<Note>();
+        Assert.That(note.Kind, Is.EqualTo(NoteKind.Pair));
+        Assert.That(note.PairIndex, Is.EqualTo(PairIndex.Two));
+        // Pair notes do not store a side.
+        Assert.That(note.Target, Is.EqualTo(KeybindAction.M));
+    }
+
+    [Test]
+    public void MomentumModePlacesTheAuthoredDirectionAndStrength()
+    {
+        Entity editor = _store.Query<PlayfieldView>().ToEntityList()[0];
+        editor.AddComponent(
+            new EditorPlacementModeState(EditorPlacementMode.Momentum));
+        editor.AddComponent(
+            new EditorDashDirectionState(DashDirection.Left));
+        editor.AddComponent(
+            new EditorDashStrengthState(DashStrength.Double));
+
+        _pointer.Current = new PointerInput(new Vector2(300, 400), true);
+        _root.Update(new UpdateTick(1f / 60f, 0));
+        _pointer.Current = new PointerInput(new Vector2(300, 400), false);
+        _root.Update(new UpdateTick(1f / 60f, 0));
+
+        var notes = _store.Query<Note>().ToEntityList();
+        Assert.That(notes, Has.Count.EqualTo(1));
+        Note note = notes[0].GetComponent<Note>();
+        Assert.That(note.Kind, Is.EqualTo(NoteKind.Momentum));
+        Assert.That(note.DashDirection, Is.EqualTo(DashDirection.Left));
+        Assert.That(note.Momentum, Is.EqualTo(900f));
     }
 
     [Test]
@@ -444,16 +550,16 @@ public sealed class EditorNoteInputSystemTests
         Assert.That(spikes, Has.Count.EqualTo(3));
         Assert.That(
             spikes[0].GetComponent<Spike>().Position,
-            Is.EqualTo(new Vector2(300, 600)));
+            Is.EqualTo(new Vector2(350, 600)));
         Assert.That(
             spikes[0].GetComponent<Spike>().Size,
-            Is.EqualTo(new Vector2(100, 100)));
+            Is.EqualTo(new Vector2(50, 50)));
         Assert.That(
             spikes[1].GetComponent<Spike>().Position,
-            Is.EqualTo(new Vector2(400, 600)));
+            Is.EqualTo(new Vector2(450, 600)));
         Assert.That(
             spikes[2].GetComponent<Spike>().Position,
-            Is.EqualTo(new Vector2(300, 700)));
+            Is.EqualTo(new Vector2(350, 700)));
         Assert.That(_store.Query<Note>().Count, Is.Zero);
     }
 
@@ -712,7 +818,7 @@ public sealed class EditorNoteInputSystemTests
     {
         Entity editor = _store.Query<PlayfieldView>().ToEntityList()[0];
         editor.AddComponent(
-            new EditorPlacementModeState(EditorPlacementMode.Movement));
+            new EditorPlacementModeState(EditorPlacementMode.Dash));
         _store.CreateEntity(new Note(1_000, new Vector2(200, 200)));
         _store.CreateEntity(new Note(1_000, new Vector2(300, 300)));
 
@@ -839,10 +945,10 @@ public sealed class EditorNoteInputSystemTests
         Assert.That(blocks, Has.Count.EqualTo(1));
         Assert.That(
             blocks[0].GetComponent<Block>().Position,
-            Is.EqualTo(new Vector2(400, 500)));
+            Is.EqualTo(new Vector2(450, 500)));
         Assert.That(
             blocks[0].GetComponent<Block>().Size,
-            Is.EqualTo(new Vector2(200, 100)));
+            Is.EqualTo(new Vector2(100, 50)));
         Assert.That(
             editor.GetComponent<NoteSelection>().Note.Id,
             Is.EqualTo(blocks[0].Id));
@@ -873,7 +979,7 @@ public sealed class EditorNoteInputSystemTests
 
         Assert.That(
             block.GetComponent<Block>().Position,
-            Is.EqualTo(new Vector2(500, 500)));
+            Is.EqualTo(new Vector2(450, 550)));
     }
 
     [Test]

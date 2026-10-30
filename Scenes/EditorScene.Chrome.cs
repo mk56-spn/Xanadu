@@ -48,6 +48,7 @@ public static partial class EditorScene
         BuildToolStrip(middle, shell);
         Entity status = BuildViewportColumn(middle, editor, shell);
         BuildSidebar(middle, editor, shell);
+        BuildRailLayer(entities, root, editor, shell);
 
         Footer footer = BuildFooter(page, screen);
 

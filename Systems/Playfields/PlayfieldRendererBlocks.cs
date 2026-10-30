@@ -24,10 +24,24 @@ public static partial class PlayfieldRenderer
         PlayfieldView view,
         Entity selected = default)
     {
+        bool playing = false;
+        foreach (Entity playfield in entities.Query<PlayfieldMode>().ToEntityList())
+        {
+            if (playfield.GetComponent<PlayfieldMode>().Kind == PlayfieldKind.Play)
+            {
+                playing = true;
+                break;
+            }
+        }
+
         foreach (Entity entity in entities.Query<Block>().ToEntityList())
         {
             Block block = entity.GetComponent<Block>();
             if (block.Size.X <= 0 || block.Size.Y <= 0)
+                continue;
+
+            bool hidden = entity.Tags.Has<ConstructionHidden>();
+            if (hidden && playing)
                 continue;
 
             canvas.SelectShader(ItemShader.Of(entity));
@@ -37,6 +51,11 @@ public static partial class PlayfieldRenderer
             bool chosen = entity == selected;
             Color edge = chosen ? BlockSelectedEdge : GroupColor.For(entity, BlockEdge);
             Color fill = GroupColor.For(entity, BlockFill);
+            if (hidden)
+            {
+                edge.A *= 0.35f;
+                fill.A *= 0.35f;
+            }
 
             canvas.DrawRect(rid, screen, edge);
             float border = Mathf.Min(

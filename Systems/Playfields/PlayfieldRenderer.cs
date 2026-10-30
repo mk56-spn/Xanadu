@@ -24,6 +24,15 @@ public static partial class PlayfieldRenderer
     public static readonly Color PlayerColor = Palette.Text;
     public static readonly Color QueueColor = Palette.Info;
     public static readonly Color CharacterSwitchColor = Palette.Lime;
+    public static readonly Color PairColor = Palette.TextBright;
+    public static readonly Color DashColor = Palette.Info;
+    public static readonly Color MomentumColor = Palette.Rose;
+    public static readonly Color ContactBarrierColor = Palette.Violet;
+    public static readonly Color WeaponSwitchColor = Palette.Success;
+    public static readonly Color ChannelColor = Palette.Selected;
+    public static readonly Color RailColor = Palette.InfoSoft;
+    public static readonly Color ConstructionColor = Palette.Primary;
+    public static readonly Color ConstructionStepColor = Palette.Accent;
     public static readonly Color GuideColor = Palette.Text;
     public static readonly Color StartPointColor = Palette.SuccessBright;
 
@@ -69,11 +78,13 @@ public static partial class PlayfieldRenderer
         DrawBlocks(canvas, rid, entities, view);
         DrawSpikes(canvas, rid, entities, view);
         DrawNotes(canvas, rid, entities, view, playfield, playhead, default);
+        DrawRails(canvas, rid, entities, view, playfield, playhead, previewBoth: false);
         DrawNotePops(canvas, rid, entities);
         DrawMines(canvas, rid, entities, view, playhead);
         DrawDashTrails(canvas, rid, entities);
         canvas.SelectShader(playerShader);
         DrawPlayer(canvas, rid, entities, view);
+        DrawSplitlineBalls(canvas, rid, entities, view);
         canvas.SelectShader(0);
         DrawHitTrails(canvas, rid, entities);
         DrawKeyTrail(canvas, rid, entities, field, playhead);

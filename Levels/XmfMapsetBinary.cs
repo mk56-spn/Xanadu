@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
+using Xanadu.Ecs;
 using Xanadu.Storage;
 
 namespace Xanadu.Levels;
@@ -27,6 +28,12 @@ public static partial class XmfBinary
         Meta = 2,
         Shaders = 3,
         Variants = 4,
+
+        /// <summary>Optional pair/momentum data, absent in older mapsets.</summary>
+        NoteExtras = 5,
+
+        /// <summary>Optional Form shape references on blocks.</summary>
+        BlockExtras = 6,
     }
 
     public static void SaveMapset(string path, XmfMapset mapset)
@@ -51,6 +58,10 @@ public static partial class XmfBinary
         file.Add((uint)MapsetChunkId.Meta, WriteMapsetMeta(mapset, strings));
         file.Add((uint)MapsetChunkId.Shaders, WriteShaders(mapset.Shaders, strings));
         file.Add((uint)MapsetChunkId.Variants, WriteVariants(mapset.Variants, strings));
+        if (mapset.Variants.Exists(variant => HasNoteExtras(variant.Notes)))
+            file.Add((uint)MapsetChunkId.NoteExtras, WriteVariantNoteExtras(mapset.Variants));
+        if (mapset.Variants.Exists(variant => HasBlockExtras(variant.Blocks)))
+            file.Add((uint)MapsetChunkId.BlockExtras, WriteVariantBlockExtras(mapset.Variants));
         return file.ToArray();
     }
 
@@ -76,6 +87,10 @@ public static partial class XmfBinary
         XmfMapset mapset = ReadMapsetMeta(file.Get((uint)MapsetChunkId.Meta, MapsetFormat), strings);
         mapset.Shaders = ReadShaders(file.Get((uint)MapsetChunkId.Shaders, MapsetFormat), strings);
         mapset.Variants = ReadVariants(file.Get((uint)MapsetChunkId.Variants, MapsetFormat), strings);
+        if (file.TryGet((uint)MapsetChunkId.NoteExtras, out Chunk noteExtras))
+            ReadVariantNoteExtras(noteExtras, mapset.Variants);
+        if (file.TryGet((uint)MapsetChunkId.BlockExtras, out Chunk blockExtras))
+            ReadVariantBlockExtras(blockExtras, mapset.Variants);
         return mapset;
     }
 
@@ -209,6 +224,121 @@ public static partial class XmfBinary
             variant.BackgroundColor = strings.ReadIndex(reader);
 
         return variant;
+    }
+
+    private static byte[] WriteVariantNoteExtras(List<XmfVariant> variants)
+    {
+        using var stream = new MemoryStream();
+        using var writer = new BinaryWriter(stream, Encoding.UTF8, leaveOpen: true);
+        writer.Write((uint)variants.Count);
+        foreach (XmfVariant variant in variants)
+        {
+            writer.Write((uint)variant.Notes.Count);
+            foreach (NoteDocument note in variant.Notes)
+            {
+                writer.Write((byte)note.PairIndex);
+                writer.Write(note.Momentum);
+                writer.Write(note.ContactLeft);
+                writer.Write(note.ContactRight);
+                writer.Write((byte)note.ChannelSide);
+                writer.Write(note.HoldMs);
+                writer.Write(note.ShapeId);
+                writer.Write(note.ShapePiece);
+            }
+        }
+        writer.Flush();
+        return stream.ToArray();
+    }
+
+    private static void ReadVariantNoteExtras(
+        Chunk chunk,
+        List<XmfVariant> variants)
+    {
+        using BinaryReader reader = chunk.OpenReader();
+        uint variantCount = ReadCount(reader, MaxItems, "variant note extra");
+        if (variantCount != variants.Count)
+            throw new FormatException("XMF variant note extras do not match the variant count.");
+
+        foreach (XmfVariant variant in variants)
+        {
+            uint noteCount = ReadCount(reader, MaxItems, "note extra");
+            if (noteCount != variant.Notes.Count)
+                throw new FormatException("XMF note extras do not match the note count.");
+
+            for (int i = 0; i < variant.Notes.Count; i++)
+            {
+                PairIndex pairIndex = ReadEnum<PairIndex>(reader);
+                float momentum = reader.ReadSingle();
+                int contactLeft = reader.ReadInt32();
+                int contactRight = reader.ReadInt32();
+                ChannelSide channelSide = ReadEnum<ChannelSide>(reader);
+                long holdMs = reader.ReadInt64();
+                int shapeId = reader.ReadInt32();
+                int shapePiece = reader.ReadInt32();
+                if (!float.IsFinite(momentum) || momentum < 0f)
+                    throw new FormatException("XMF momentum note has an invalid magnitude.");
+                if (contactLeft < 0 || contactRight < 0)
+                    throw new FormatException("XMF contact barrier has a negative charge cost.");
+                if (holdMs < 0)
+                    throw new FormatException("XMF rail hold has a negative length.");
+                if (shapeId < 0 || shapePiece < 0)
+                    throw new FormatException("XMF construction note has a negative shape reference.");
+
+                variant.Notes[i].PairIndex = pairIndex;
+                variant.Notes[i].Momentum = momentum;
+                variant.Notes[i].ContactLeft = contactLeft;
+                variant.Notes[i].ContactRight = contactRight;
+                variant.Notes[i].ChannelSide = channelSide;
+                variant.Notes[i].HoldMs = holdMs;
+                variant.Notes[i].ShapeId = shapeId;
+                variant.Notes[i].ShapePiece = shapePiece;
+            }
+        }
+    }
+
+    private static byte[] WriteVariantBlockExtras(List<XmfVariant> variants)
+    {
+        using var stream = new MemoryStream();
+        using var writer = new BinaryWriter(stream, Encoding.UTF8, leaveOpen: true);
+        writer.Write((uint)variants.Count);
+        foreach (XmfVariant variant in variants)
+        {
+            writer.Write((uint)variant.Blocks.Count);
+            foreach (BlockDocument block in variant.Blocks)
+            {
+                writer.Write(block.ShapeId);
+                writer.Write(block.ShapePiece);
+            }
+        }
+        writer.Flush();
+        return stream.ToArray();
+    }
+
+    private static void ReadVariantBlockExtras(
+        Chunk chunk,
+        List<XmfVariant> variants)
+    {
+        using BinaryReader reader = chunk.OpenReader();
+        uint variantCount = ReadCount(reader, MaxItems, "variant block extra");
+        if (variantCount != variants.Count)
+            throw new FormatException("XMF variant block extras do not match the variant count.");
+
+        foreach (XmfVariant variant in variants)
+        {
+            uint blockCount = ReadCount(reader, MaxItems, "block extra");
+            if (blockCount != variant.Blocks.Count)
+                throw new FormatException("XMF block extras do not match the block count.");
+
+            for (int i = 0; i < variant.Blocks.Count; i++)
+            {
+                int shapeId = reader.ReadInt32();
+                int shapePiece = reader.ReadInt32();
+                if (shapeId < 0 || shapePiece < 0)
+                    throw new FormatException("XMF block has a negative Form shape reference.");
+                variant.Blocks[i].ShapeId = shapeId;
+                variant.Blocks[i].ShapePiece = shapePiece;
+            }
+        }
     }
 
     private static void WriteBlob(BinaryWriter writer, byte[] blob)

@@ -31,6 +31,17 @@ public sealed class BlockBodySystem : QuerySystem<Block>
         CommandBuffer buffer = CommandBuffer;
         Query.ForEachEntity((ref block, entity) =>
         {
+            if (entity.Tags.Has<ConstructionHidden>())
+            {
+                if (entity.TryGetComponent(out PhysicsBody hiddenBody))
+                {
+                    _physics.DestroyBody(hiddenBody.Body);
+                    buffer.RemoveComponent<PhysicsBody>(entity.Id);
+                }
+
+                return;
+            }
+
             // A block a group moves takes its collision box with it.
             if (entity.HasComponent<PhysicsBody>())
             {
