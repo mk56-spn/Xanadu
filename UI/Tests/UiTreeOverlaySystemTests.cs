@@ -69,7 +69,7 @@ public sealed class UiTreeOverlaySystemTests : EcsSystemTest
         Panel();
         Open();
 
-        Entity content = Store.Query<ScrollView>().Entities.Single().GetComponent<ScrollView>().Content;
+        Entity content = Store.Query<ScrollView>().Entities.Single().ChildEntities[0];
         Assert.That(Tree.Parent, Is.EqualTo(content));
         Assert.That(Store.Query<ScrollView>().Entities.Single().GetComponent<UiContainer>().Clip, Is.True);
     }

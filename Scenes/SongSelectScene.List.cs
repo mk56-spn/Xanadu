@@ -57,19 +57,23 @@ public static partial class SongSelectScene
 
     private readonly record struct ListViews(
         List<Entity> Tiles,
-        List<Entity> Names,
-        List<Entity> Songs,
         Entity Thumb,
         Entity EmptyTitle,
         Entity EmptyHint);
+
+    /// <summary>The name label of a carousel row.</summary>
+    public static Entity TileName(in SongSelectState state, int row) =>
+        state.Tiles[row].ChildEntities[0];
+
+    /// <summary>The song label of a carousel row.</summary>
+    public static Entity TileSong(in SongSelectState state, int row) =>
+        state.Tiles[row].ChildEntities[1];
 
     private static ListViews BuildList(UiNode ui, bool loadAssets)
     {
         // Each row is a chamfered container: the map's name, then the song's name
         // in brackets, flowing left to right.
         var tiles = new List<Entity>();
-        var names = new List<Entity>();
-        var songs = new List<Entity>();
         for (int row = 0; row < RowCount; row++)
         {
             UiNode tile = ui.Row()
@@ -85,11 +89,10 @@ public static partial class SongSelectScene
                 .Border(Fade(RowBorderColor, RowOpacity), RowBorder);
             tiles.Add(tile.Entity);
 
-            names.Add(RowText(tile, NameSize, Colors.White).Entity);
-
-            UiNode song = RowText(tile, SongSize, Gold)
+            // A tile's children are its name, then its song.
+            RowText(tile, NameSize, Colors.White);
+            RowText(tile, SongSize, Gold)
                 .Glow(new Color(Gold, 0.6f), radius: 8, intensity: 1.4f);
-            songs.Add(song.Entity);
         }
 
         // The selection stays in its slot while the rows slide through it.
@@ -136,8 +139,6 @@ public static partial class SongSelectScene
         emptyHint.AddComponent(new SceneCommand(SceneActionId.Edit));
         return new ListViews(
             tiles,
-            names,
-            songs,
             thumb,
             emptyTitle,
             emptyHint);
@@ -271,9 +272,9 @@ public static partial class SongSelectScene
 
             SetTileColor(state.Tiles[row], Fade(RowColor, alpha * RowOpacity));
             SetBorderColor(state.Tiles[row], Fade(RowBorderColor, alpha * RowOpacity));
-            SetTextColor(state.Names[row], Fade(Colors.White, alpha));
-            SetTextColor(state.Songs[row], Fade(Gold, alpha));
-            SetGlowColor(state.Songs[row], Fade(new Color(Gold, 0.6f), alpha));
+            SetTextColor(TileName(state, row), Fade(Colors.White, alpha));
+            SetTextColor(TileSong(state, row), Fade(Gold, alpha));
+            SetGlowColor(TileSong(state, row), Fade(new Color(Gold, 0.6f), alpha));
         }
 
         float length = Mathf.Clamp(
@@ -323,8 +324,8 @@ public static partial class SongSelectScene
         // The map's name, then the song's in brackets; short enough to share a row.
         string name = Fit(MapsetName(entry), 14);
         string song = entry is null ? "" : $"[{Fit(SongTitle(entry), 12)}]";
-        FitLabel(state.Names[row], name, NameSize);
-        FitLabel(state.Songs[row], song, SongSize);
+        FitLabel(TileName(state, row), name, NameSize);
+        FitLabel(TileSong(state, row), song, SongSize);
     }
 
     /// <summary>Sets a label's text and gives it exactly the width it needs, so the row can flow.</summary>

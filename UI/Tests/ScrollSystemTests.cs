@@ -21,7 +21,8 @@ public sealed class ScrollSystemTests
         Entity viewport = store.CreateEntity(
             new Position(new Vector2(500, 300)),
             new Rectangle(new Rect2(-100, -100, 200, 200)),
-            new ScrollView(content));
+            new ScrollView());
+        viewport.AddChild(content);
 
         var scroll = new ScrollSystem();
         var root = new SystemRoot(store);
@@ -73,7 +74,8 @@ public sealed class ScrollSystemTests
         Entity viewport = store.CreateEntity(
             new Position(new Vector2(500, 300)),
             new Rectangle(new Rect2(-100, -100, 200, 200)),
-            new ScrollView(content));
+            new ScrollView());
+        viewport.AddChild(content);
         layer.AddChild(viewport);
         return viewport;
     }

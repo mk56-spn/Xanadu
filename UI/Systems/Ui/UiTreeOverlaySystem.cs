@@ -94,7 +94,7 @@ public sealed class UiTreeOverlaySystem(
         _tree = ui.Tree(inner);
         ui.End();
         ui.End();
-        viewport.AddComponent(new ScrollView(content));
+        viewport.AddComponent(new ScrollView());
         ui.End();
         _shown.Clear();
     }

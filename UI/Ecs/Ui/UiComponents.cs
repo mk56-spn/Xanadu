@@ -177,13 +177,12 @@ public struct VisualRid : IComponent
 }
 
 /// <summary>
-/// Vertical ECS scroll viewport. The content hangs from the viewport's top
-/// edge; both heights are read from their rectangles every frame, so content
-/// that grows or shrinks (auto-height lists, rebuilt trees) keeps scrolling.
+/// Vertical ECS scroll viewport; its first child is the content. The content
+/// hangs from the viewport's top edge; both heights are read from their rectangles
+/// every frame, so content that grows or shrinks keeps scrolling.
 /// </summary>
-public struct ScrollView(Entity content) : IComponent
+public struct ScrollView : IComponent
 {
-    public Entity Content = content;
     public float Offset;
 }
 

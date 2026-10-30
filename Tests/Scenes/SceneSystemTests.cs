@@ -114,7 +114,7 @@ public sealed class SceneSystemTests
         SongSelectState view = root.GetComponent<SongSelectState>();
         Assert.That(view.Count, Is.EqualTo(2));
         Assert.That(view.Selected, Is.EqualTo(0));
-        Assert.That(view.Names[4].GetComponent<Text>().Value,
+        Assert.That(SongSelectScene.TileName(view, 4).GetComponent<Text>().Value,
             Is.EqualTo("First Level"));
 
         Entity step = _store.CreateEntity(new SceneCommand(SceneActionId.Next), Tags.Get<Pressed>());
@@ -123,7 +123,7 @@ public sealed class SceneSystemTests
         SettleScroll(root);
         view = root.GetComponent<SongSelectState>();
         Assert.That(view.Selected, Is.EqualTo(1));
-        Assert.That(view.Names[4].GetComponent<Text>().Value,
+        Assert.That(SongSelectScene.TileName(view, 4).GetComponent<Text>().Value,
             Is.EqualTo("Second Level"));
 
         step.DeleteEntity();
@@ -259,7 +259,7 @@ public sealed class SceneSystemTests
         SongSelectState view = root.GetComponent<SongSelectState>();
         Assert.That(view.Selected, Is.EqualTo(1));
         Assert.That(
-            view.Names[4].GetComponent<Text>().Value,
+            SongSelectScene.TileName(view, 4).GetComponent<Text>().Value,
             Is.EqualTo("Second Level"));
         Assert.That(
             _store.Query<Xanadu.Ecs.SceneState>().ToEntityList()[0]
@@ -299,7 +299,7 @@ public sealed class SceneSystemTests
         SongSelectState view = root.GetComponent<SongSelectState>();
         Assert.That(view.Tiles, Has.Count.EqualTo(9));
         Assert.That(
-            view.Names[4].GetComponent<Text>().Value,
+            SongSelectScene.TileName(view, 4).GetComponent<Text>().Value,
             Is.EqualTo("First Level"));
     }
 
@@ -320,11 +320,11 @@ public sealed class SceneSystemTests
 
         SongSelectState view = _store.Query<SceneRoot>().ToEntityList()[0]
             .GetComponent<SongSelectState>();
-        Assert.That(view.ScoreAccuracies[0].GetComponent<Text>().Value, Is.EqualTo("98.76%"));
-        Assert.That(view.ScoreValues[0].GetComponent<Text>().Value, Is.EqualTo("0900000"));
-        Assert.That(view.ScoreAccuracies[1].GetComponent<Text>().Value, Is.EqualTo("50.00%"));
-        Assert.That(view.ScoreValues[1].GetComponent<Text>().Value, Is.EqualTo("0400000"));
-        Assert.That(view.ScoreBars, Has.Count.EqualTo(2));
+        Assert.That(view.ScoreContent.Entity.ChildEntities[0].ChildEntities[0].GetComponent<Text>().Value, Is.EqualTo("98.76%"));
+        Assert.That(view.ScoreContent.Entity.ChildEntities[0].ChildEntities[1].GetComponent<Text>().Value, Is.EqualTo("0900000"));
+        Assert.That(view.ScoreContent.Entity.ChildEntities[1].ChildEntities[0].GetComponent<Text>().Value, Is.EqualTo("50.00%"));
+        Assert.That(view.ScoreContent.Entity.ChildEntities[1].ChildEntities[1].GetComponent<Text>().Value, Is.EqualTo("0400000"));
+        Assert.That(view.ScoreContent.Entity.ChildCount, Is.EqualTo(2));
     }
 
     [Test]
@@ -336,8 +336,7 @@ public sealed class SceneSystemTests
 
         Entity root = _store.Query<SceneRoot>().ToEntityList()[0];
         SongSelectState view = root.GetComponent<SongSelectState>();
-        Assert.That(view.ScoreBars, Is.Empty);
-        Assert.That(view.ScoreContent.Entity.ChildEntities.Count, Is.EqualTo(0));
+        Assert.That(view.ScoreContent.Entity.ChildCount, Is.EqualTo(0));
 
         _profiles.RecordScore(
             _catalog[0].Path,
@@ -345,10 +344,10 @@ public sealed class SceneSystemTests
         SongSelectScene.Refresh(ref root.GetComponent<SongSelectState>(), _catalog, 0, _profiles);
         Assert.That(view.ScoreContent.Entity.ChildEntities.Count, Is.EqualTo(1));
 
-        Entity bar = view.ScoreBars[0];
+        Entity bar = view.ScoreContent.Entity.ChildEntities[0];
         var unplayed = new List<LevelEntry> { new("unplayed.xan", _catalog[0].Document) };
         SongSelectScene.Refresh(ref root.GetComponent<SongSelectState>(), unplayed, 0, _profiles);
-        Assert.That(view.ScoreBars, Is.Empty);
+        Assert.That(view.ScoreContent.Entity.ChildCount, Is.EqualTo(0));
         Assert.That(bar.IsNull, Is.True);
     }
 

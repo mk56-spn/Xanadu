@@ -84,7 +84,7 @@ public static partial class SongSelectScene
             .Main(StackMainAlignment.Start)
             .Fill(Transparent);
 
-        viewport.With(new ScrollView(content.Entity));
+        viewport.With(new ScrollView());
 
         ui.Shape(
             RoundedRect(BarTrackLeft, BarTrackTop, BarTrackRight, BarTrackBottom, 3.2f),
@@ -130,46 +130,34 @@ public static partial class SongSelectScene
             state.ScoreViewport.GetComponent<ScrollView>().Offset = 0;
         }
 
-        bool restack = state.ScoreBars.Count != scores.Count;
-        while (state.ScoreBars.Count < scores.Count)
-            AddScoreRow(ref state);
-        while (state.ScoreBars.Count > scores.Count)
-            RemoveLastScoreRow(ref state);
+        Entity rows = state.ScoreContent.Entity;
+        while (rows.ChildCount < scores.Count)
+            AddScoreRow(state.ScoreContent);
+        while (rows.ChildCount > scores.Count)
+            UiLayout.DeleteSubtree(rows.ChildEntities[rows.ChildCount - 1]);
 
         for (int i = 0; i < scores.Count; i++)
         {
-            SceneUi.SetText(state.ScoreAccuracies[i], $"{scores[i].Record.Accuracy * 100:0.00}%");
-            SceneUi.SetText(state.ScoreValues[i], $"{scores[i].Record.Score:0000000}");
+            ChildEntities cells = rows.ChildEntities[i].ChildEntities;
+            SceneUi.SetText(cells[0], $"{scores[i].Record.Accuracy * 100:0.00}%");
+            SceneUi.SetText(cells[1], $"{scores[i].Record.Score:0000000}");
         }
-
-        if (restack)
-            state.ScoreContent.Entity.AddTag<LayoutDirty>();
     }
 
-    private static void AddScoreRow(ref SongSelectState state)
+    /// <summary>One black bar holding the accuracy, then the score.</summary>
+    private static void AddScoreRow(UiNode rows)
     {
-        UiNode bar = state.ScoreContent.Row()
+        UiNode bar = rows.Row()
             .Size(ScoreViewWidth, BarHeight)
             .Fill(PanelBlack)
             .Pad(BarInset)
             .Main(StackMainAlignment.Start);
-        state.ScoreBars.Add(bar.Entity);
-        state.ScoreAccuracies.Add(ScoreText(
-            bar, ScoreAccuracyWidth, TextAlign.Left, GoldLight).Entity);
-        state.ScoreValues.Add(ScoreText(
+        ScoreText(bar, ScoreAccuracyWidth, TextAlign.Left, GoldLight);
+        ScoreText(
             bar,
             ScoreViewWidth - BarInset * 2 - ScoreAccuracyWidth,
             TextAlign.Right,
-            Colors.White).Entity);
-    }
-
-    private static void RemoveLastScoreRow(ref SongSelectState state)
-    {
-        int last = state.ScoreBars.Count - 1;
-        UiLayout.DeleteSubtree(state.ScoreBars[last]);
-        state.ScoreBars.RemoveAt(last);
-        state.ScoreAccuracies.RemoveAt(last);
-        state.ScoreValues.RemoveAt(last);
+            Colors.White);
     }
 
     /// <summary>Sizes and places the scrollbar thumb for how far the scores are scrolled.</summary>

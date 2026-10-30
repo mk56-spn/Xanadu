@@ -66,8 +66,6 @@ public struct SongSelectState(
     int selected,
     int count,
     List<Entity> tiles,
-    List<Entity> names,
-    List<Entity> songs,
     Entity thumb,
     List<Entity> chips,
     Entity play,
@@ -83,8 +81,6 @@ public struct SongSelectState(
 
     public IReadOnlyList<LevelEntry> Catalog = [];
     public List<Entity> Tiles = tiles;
-    public List<Entity> Names = names;
-    public List<Entity> Songs = songs;
     public Entity Thumb = thumb;
     public List<Entity> Chips = chips;
     public Entity Play = play;
@@ -112,13 +108,8 @@ public struct SongSelectState(
     /// <summary>The clipped viewport the score rows scroll in.</summary>
     public Entity ScoreViewport;
 
-    /// <summary>Holds the score rows and is as tall as them; kept as a node to add rows later.</summary>
+    /// <summary>Holds one row per score and is as tall as them; kept as a node to add rows later.</summary>
     public UiNode ScoreContent;
-
-    /// <summary>One black bar, accuracy text and score text per score shown.</summary>
-    public List<Entity> ScoreBars = [];
-    public List<Entity> ScoreAccuracies = [];
-    public List<Entity> ScoreValues = [];
 
     /// <summary>The thumb on the scores scrollbar, and the span last drawn for it.</summary>
     public Entity ScoreThumb;
