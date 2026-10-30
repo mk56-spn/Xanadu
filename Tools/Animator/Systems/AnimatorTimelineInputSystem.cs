@@ -65,7 +65,7 @@ public sealed class AnimatorTimelineInputSystem(
         {
             Begin(session, model, input);
         }
-        else if (drag.Kind is AnimatorDragKind.Key or AnimatorDragKind.Scrub or
+        else if (drag.Kind is AnimatorDragKind.Event or AnimatorDragKind.Key or AnimatorDragKind.Scrub or
                  AnimatorDragKind.KeyBox or AnimatorDragKind.LoopStart or
                  AnimatorDragKind.LoopEnd)
         {
@@ -93,6 +93,20 @@ public sealed class AnimatorTimelineInputSystem(
     private void Begin(Entity session, AnimatorTimelineModel model, PointerInput input)
     {
         Vector2 point = input.Position;
+        if (model.TryPickEvent(point, out int picked))
+        {
+            AnimatorEventCommands.Select(session, model.Clip.Id, picked);
+            AnimatorHistoryCommands.BeginGesture(session);
+            session.GetComponent<AnimatorDrag>() = new AnimatorDrag
+            {
+                Kind = AnimatorDragKind.Event,
+                StartPointer = point,
+            };
+            AnimatorSession.SetStatus(session,
+                $"EVENT {model.Clip.Events[picked].Name.ToUpperInvariant()} · DRAG TO MOVE IT");
+            return;
+        }
+
         if (model.TryPickLoopHandle(point, out bool loopStart))
         {
             BeginLoop(session, loopStart);
@@ -260,7 +274,13 @@ public sealed class AnimatorTimelineInputSystem(
             return;
         }
 
-        if (kind is AnimatorDragKind.LoopStart or AnimatorDragKind.LoopEnd)
+        if (kind == AnimatorDragKind.Event)
+        {
+            // A press that has not moved is only a pick, so it does not snap the event to the grid.
+            if (input.Position.DistanceTo(session.GetComponent<AnimatorDrag>().StartPointer) >= 3f)
+                AnimatorEventCommands.Retime(session, (float)model.Snap(model.SecondsAtX(input.Position.X), input.Shift));
+        }
+        else if (kind is AnimatorDragKind.LoopStart or AnimatorDragKind.LoopEnd)
         {
             DragLoop(session, model, kind, input);
         }
@@ -318,6 +338,9 @@ public sealed class AnimatorTimelineInputSystem(
                 AnimatorKeyCommands.ToggleKey(session, _pendingTrack, _pendingTime);
             AnimatorHistoryCommands.EndGesture(session);
         }
+
+        if (drag.Kind == AnimatorDragKind.Event)
+            AnimatorHistoryCommands.EndGesture(session);
 
         if (drag.Kind is AnimatorDragKind.LoopStart or AnimatorDragKind.LoopEnd)
         {

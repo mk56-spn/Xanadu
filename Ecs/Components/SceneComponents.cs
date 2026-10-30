@@ -112,10 +112,10 @@ public struct SongSelectState(
     /// <summary>The clipped viewport the score rows scroll in.</summary>
     public Entity ScoreViewport;
 
-    /// <summary>Holds every score row; it is as tall as the rows in use.</summary>
-    public Entity ScoreContent;
+    /// <summary>Holds the score rows and is as tall as them; kept as a node to add rows later.</summary>
+    public UiNode ScoreContent;
 
-    /// <summary>One black bar, accuracy text and score text per pooled row.</summary>
+    /// <summary>One black bar, accuracy text and score text per score shown.</summary>
     public List<Entity> ScoreBars = [];
     public List<Entity> ScoreAccuracies = [];
     public List<Entity> ScoreValues = [];

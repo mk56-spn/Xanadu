@@ -14,7 +14,7 @@ namespace Xanadu.Scenes;
 /// <summary>Creates the initial editor state and a playfield centered between the header and footer.</summary>
 public static partial class EditorScene
 {
-    private const int FieldSize = 1000;
+    private const int FieldSize = LevelDocument.DefaultFieldSize;
 
     public static void Build(
         EntityStore entities,
@@ -22,24 +22,13 @@ public static partial class EditorScene
         Entity? parent = null,
         LevelEntry? entry = null)
     {
-        float top = EditorLayout.HeaderHeight + EditorLayout.Margin;
-        float bottom = viewportSize.Y -
-                       EditorLayout.FooterHeight -
-                       EditorLayout.TransportHeight -
-                       EditorLayout.Gap -
-                       EditorShellMetrics.StatusLineHeight -
-                       EditorLayout.Margin;
-        float availableHeight = Mathf.Max(1, bottom - top);
-        float availableWidth = Mathf.Max(1, viewportSize.X - EditorLayout.Margin * 2);
-        float renderedSize = Mathf.Min(FieldSize, Mathf.Min(availableHeight, availableWidth));
-        float scale = renderedSize / FieldSize;
-        float originX = (viewportSize.X - renderedSize) / 2;
-        float originY = top + (availableHeight - renderedSize) / 2;
+        var field = new Playfield(FieldSize, FieldSize);
+        PlayfieldView view = EditorViewport.Open(viewportSize, field);
 
         Entity editor = entities.CreateEntity(
             new LevelInfo("Untitled", ""),
             new LevelFile(""),
-            new Playfield(FieldSize, FieldSize),
+            field,
             new Playhead(
                 timeMs: 0,
                 bpm: 120,
@@ -49,8 +38,9 @@ public static partial class EditorScene
             new EditorMetronome(false),
             new TimelineView(32f),
             new PlayfieldMode(PlayfieldKind.Editor),
-            new PlayfieldView(new Vector2(originX, originY), scale, viewportSize));
+            view);
 
+        editor.AddComponent(new EditorViewNavigation(new Vector2(field.Width, field.Height)));
         editor.AddComponent(new UiMarqueeBox());
         editor.AddComponent(new WaveformPreview(
             "",

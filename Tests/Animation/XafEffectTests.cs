@@ -150,7 +150,7 @@ public sealed class XafEffectTests
         Assert.That(issues, Does.Contain("references missing bone 'missing'"));
         Assert.That(issues, Does.Contain("map shader slot"));
         Assert.That(issues, Does.Contain("fewer than three points"));
-        Assert.That(issues, Does.Contain("which only effects have"));
+        Assert.That(issues, Does.Contain("which it does not have"));
         Assert.That(issues, Does.Contain("missing effect 'ghost'"));
     }
 

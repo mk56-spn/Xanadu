@@ -130,6 +130,12 @@ public struct AnimatorUi : IComponent
     /// </summary>
     public Entity ChainInspector;
 
+    /// <summary>The event inspector over the timeline, shown while an event is selected, and its fields.</summary>
+    public Entity EventInspector;
+    public Entity EventTitle;
+    public Entity EventName;
+    public Entity EventTime;
+
     /// <summary>The cloth inspector, which takes the transform inspector's spot while a cloth is selected.</summary>
     public Entity ClothInspector;
     public Entity ClothTitle;

@@ -1,72 +1,51 @@
-using Godot;
 using NUnit.Framework;
 using Xanadu.Animation;
 
 namespace Xanadu.Tests.Animation;
 
+/// <summary>Removing alternate art keeps clips showing the same art, and picking mesh bones never loses the own bone.</summary>
 [TestFixture]
 public sealed class XafAttachmentAuthoringTests
 {
+    private static XafPackage Package()
+    {
+        XafPackage package = XafRigAuthoring.CreateEmptyPackage();
+        XafRigAuthoring.AddBone(package, 0, "arm", new Godot.Vector2(0, -50));
+        XafRigAuthoring.AddBone(package, 1, "forearm", new Godot.Vector2(0, 30));
+        package.Attachments.Add(new XafAttachment { SvgPath = "res://a.svg", Group = "arm", BoneId = "arm" });
+        return package;
+    }
+
     [Test]
-    public void KeysAllAttachmentTransformChannels()
+    public void DroppingArtMovesLaterKeysDownAndSendsItsOwnKeysHome()
     {
         XafPackage package = Package();
         XafClip clip = package.Clips[0];
+        XafAttachmentAuthoring.AddAlternate(package, 0, "res://a.svg", "fist");
+        XafAttachmentAuthoring.AddAlternate(package, 0, "res://a.svg", "point");
+        XafAttachmentAuthoring.KeyArt(package, clip, 0, 0f, 1);
+        XafAttachmentAuthoring.KeyArt(package, clip, 0, 1f, 2);
 
-        XafAuthoring.KeyAttachmentTransform(
-            package,
-            clip,
-            0,
-            0.5f,
-            new XafTransform
-            {
-                Translation = new Vector2(4, 5),
-                Rotation = 0.25f,
-                Scale = new Vector2(2, 3),
-            });
+        XafAttachmentAuthoring.RemoveAlternate(package, 0, 1);
 
-        Assert.That(clip.Channels, Has.Count.EqualTo(5));
-        Assert.That(clip.Channels.TrueForAll(channel =>
-            channel.Target == XafChannelTarget.Attachment &&
-            channel.TargetId == "body" &&
-            channel.Keyframes.Count == 1 &&
-            channel.Keyframes[0].Time == 0.5f), Is.True);
+        Assert.That(XafSampler.Sample(package, clip, 0.5f).AttachmentStates[0].Art, Is.EqualTo(0));
+        Assert.That(package.Attachments[0].Art(XafSampler.Sample(package, clip, 1.5f).AttachmentStates[0].Art).Group,
+            Is.EqualTo("point"));
     }
 
     [Test]
-    public void IgnoreInvalidAttachmentIndex()
+    public void PickingMeshBonesStartsFromTheAutomaticOnesAndKeepsTheOwnBone()
     {
         XafPackage package = Package();
+        XafAttachmentAuthoring.ToggleMesh(package, 0);
+        XafAttachment arm = package.Attachments[0];
 
-        XafAuthoring.KeyAttachmentTransform(
-            package,
-            package.Clips[0],
-            99,
-            0f,
-            XafTransform.Identity);
+        Assert.That(XafAttachmentAuthoring.ToggleMeshBone(package, 0, 1), Is.False, "the own bone always bends it");
+        XafAttachmentAuthoring.ToggleMeshBone(package, 0, 2);
+        Assert.That(arm.Mesh!.Bones, Is.EqualTo(new[] { "arm" }), "the forearm is out; the arm stays");
+        Assert.That(XafSkin.Influences(package, arm), Is.EqualTo(new[] { 1 }));
 
-        Assert.That(package.Clips[0].Channels, Is.Empty);
-    }
-
-    private static XafPackage Package()
-    {
-        var package = new XafPackage();
-        package.Skeleton.Bones.Add(new XafBone
-        {
-            Id = "root",
-            Parent = -1,
-        });
-        package.Attachments.Add(new XafAttachment
-        {
-            SvgPath = "res://body.svg",
-            Group = "body",
-            BoneId = "root",
-        });
-        package.Clips.Add(new XafClip
-        {
-            Id = "idle",
-            Duration = 2f,
-        });
-        return package;
+        XafAttachmentAuthoring.ToggleMeshBone(package, 0, 0);
+        Assert.That(XafSkin.Influences(package, arm), Is.EqualTo(new[] { 1, 0 }));
     }
 }

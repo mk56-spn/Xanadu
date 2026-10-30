@@ -8,17 +8,21 @@ namespace Xanadu.Systems.Playfields;
 
 public static partial class PlayfieldRenderer
 {
-    public const float NotePopLifetime = 0.22f;
+    public const float NotePopLifetime = 0.32f;
 
     /// <summary>How much bigger a hit pop grows by the end of its life.</summary>
-    private const float PopGrowth = 0.5f;
+    private const float PopGrowth = 0.6f;
 
-    /// <summary>How far the shockwave travels past the note's edge, in pixels.</summary>
-    private const float RingGrowth = 8f;
+    /// <summary>How far the shockwave travels past the note's edge, as a share of the note's radius.</summary>
+    private const float RingGrowth = 1.6f;
+
+    /// <summary>Share of the pop the white flash at its start lasts.</summary>
+    private const float FlashShare = 0.35f;
 
     /// <summary>
-    /// Draws each recently hit note where it was: the note's own shape swells
-    /// and fades out, with a short shockwave leaving its edge.
+    /// Draws each recently hit note where it was: a white flash over the note,
+    /// the note's own shape swelling and fading out, and a thick shockwave
+    /// that races out from its edge and thins as it goes.
     /// </summary>
     public static void DrawNotePops(
         IRectCanvas canvas,
@@ -39,12 +43,23 @@ public static partial class PlayfieldRenderer
 
             DrawNoteBody(canvas, rid, pop.Note, pop.Position, radius, color);
 
+            float swell = PopSwell(t);
             canvas.DrawCircleOutline(
                 rid,
                 pop.Position,
-                radius + RingGrowth * PopSwell(t),
-                new Color(color.R, color.G, color.B, color.A * 0.65f),
-                2);
+                pop.Radius * (1f + RingGrowth * swell),
+                new Color(color.R, color.G, color.B, color.A * 0.8f),
+                Math.Max(1f, 7f * (1f - swell)));
+
+            if (t < FlashShare)
+            {
+                float flash = 1f - t / FlashShare;
+                canvas.DrawCircle(
+                    rid,
+                    pop.Position,
+                    pop.Radius * (0.9f + 0.4f * swell),
+                    new Color(1f, 1f, 1f, 0.75f * flash * flash));
+            }
         }
     }
 

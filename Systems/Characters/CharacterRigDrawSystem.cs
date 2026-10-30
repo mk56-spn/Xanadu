@@ -63,6 +63,7 @@ public sealed class CharacterRigDrawSystem(Func<IAttachmentVisuals> createVisual
             bool faceLeft = entity.TryGetComponent(out CharacterFacing facing) && facing.Left;
             Transform2D placement = Placement(instance.RigBounds, center + new Vector2(0, size.Y / 2), size.Y, faceLeft);
             instance.Visuals.Apply(attachments, placement);
+            instance.Visuals.ApplyStates(package, runtime.Pose, bones, attachments, placement);
             instance.Chains.Update(package, bones, Tick.deltaTime);
             instance.Visuals.ApplyChains(package, instance.Chains, placement);
             instance.Cloths.Update(package, bones, Tick.deltaTime);

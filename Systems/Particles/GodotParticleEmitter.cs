@@ -15,7 +15,7 @@ namespace Xanadu.Systems.Particles;
 /// </summary>
 public sealed class GodotParticleEmitter : IParticleEmitter, IDisposable
 {
-    private const int PoolSize = 6;
+    private const int PoolSize = 10;
     private const float TextureSize = 16f;
 
     private readonly Rid _parent;
@@ -32,15 +32,17 @@ public sealed class GodotParticleEmitter : IParticleEmitter, IDisposable
 
         ParticleProcessMaterial landing = LandingMaterial();
         ParticleProcessMaterial dash = DashMaterial();
-        _keepAlive = new Resource[] { _texture, landing, dash };
+        ParticleProcessMaterial hit = HitMaterial();
+        _keepAlive = new Resource[] { _texture, landing, dash, hit };
         _pools = new[]
         {
             new Pool(Build(landing, amount: 14, lifetime: 0.55f)),
             new Pool(Build(dash, amount: 18, lifetime: 0.45f)),
+            new Pool(Build(hit, amount: 28, lifetime: 0.4f)),
         };
     }
 
-    public void Burst(Vector2 position, ParticleKind kind)
+    public void Burst(Vector2 position, ParticleKind kind, Color tint)
     {
         Pool pool = _pools[(int)kind];
         Emitter emitter = pool.Emitters[pool.Next];
@@ -48,6 +50,7 @@ public sealed class GodotParticleEmitter : IParticleEmitter, IDisposable
 
         // The burst is local to its canvas item, which sits where it goes off.
         RenderingServer.CanvasItemSetTransform(emitter.Item, new Transform2D(0f, position));
+        RenderingServer.CanvasItemSetModulate(emitter.Item, tint);
         RenderingServer.ParticlesRestart(emitter.Particles);
         RenderingServer.ParticlesSetEmitting(emitter.Particles, true);
     }
@@ -135,6 +138,35 @@ public sealed class GodotParticleEmitter : IParticleEmitter, IDisposable
         ScaleMax = 1.4f,
         ColorRamp = FadeOut(new Color(0.45f, 0.85f, 1f, 0.95f)),
     };
+
+    /// <summary>
+    /// Sparks: a fast, bright ring thrown out in every direction that brakes
+    /// hard and shrinks away; white, so the burst's tint gives it the note's colour.
+    /// </summary>
+    private static ParticleProcessMaterial HitMaterial() => new()
+    {
+        ParticleFlagDisableZ = true,
+        Direction = new Vector3(0, -1, 0),
+        Spread = 180f,
+        InitialVelocityMin = 260f,
+        InitialVelocityMax = 620f,
+        Gravity = new Vector3(0, 300, 0),
+        DampingMin = 500f,
+        DampingMax = 900f,
+        ScaleMin = 0.9f,
+        ScaleMax = 2f,
+        ScaleCurve = Shrink(),
+        ColorRamp = FadeOut(new Color(1.6f, 1.6f, 1.6f, 1f)),
+    };
+
+    /// <summary>Full size at birth, nothing at death.</summary>
+    private static CurveTexture Shrink()
+    {
+        var curve = new Curve();
+        curve.AddPoint(new Vector2(0f, 1f));
+        curve.AddPoint(new Vector2(1f, 0f));
+        return new CurveTexture { Curve = curve };
+    }
 
     private static GradientTexture1D FadeOut(Color color)
     {

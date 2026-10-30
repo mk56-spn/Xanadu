@@ -70,6 +70,7 @@ public static class XafRigAuthoring
                 attachment.BoneId == bone.Id) ||
             package.Chains.Exists(chain => chain.BoneId == bone.Id) ||
             package.Effects.Exists(effect => effect.BoneId == bone.Id) ||
+            package.Attachments.Exists(attachment => attachment.Mesh?.Bones.Contains(bone.Id) == true) ||
             XafClothAuthoring.UsesBone(package, bone.Id))
         {
             return false;
@@ -126,6 +127,16 @@ public static class XafRigAuthoring
         }
 
         XafClothAuthoring.RenameBone(package, old, id);
+        foreach (XafAttachment attachment in package.Attachments)
+        {
+            if (attachment.Mesh is not { } mesh)
+                continue;
+            for (int i = 0; i < mesh.Bones.Count; i++)
+            {
+                if (mesh.Bones[i] == old)
+                    mesh.Bones[i] = id;
+            }
+        }
 
         foreach (XafClip clip in package.Clips)
         {

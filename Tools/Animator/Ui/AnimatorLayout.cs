@@ -120,6 +120,7 @@ public static partial class AnimatorLayout
         BuildSvgMenu(menu, ref refs);
         BuildChainInspector(menu, ref refs);
         BuildClothInspector(menu, ref refs);
+        BuildEventInspector(menu, ref refs);
         BuildNewClipDialog(menu, screen, ref refs);
         BuildInfoPanel(menu, screen, ref refs);
         refs.Ui.XifEditor = XifEditorPanel.Build(

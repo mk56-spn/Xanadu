@@ -65,9 +65,12 @@ public static partial class PlayfieldRenderer
         Playhead playhead,
         int fieldShader = 0,
         int playerShader = 0,
-        Color? background = null)
+        Color? background = null,
+        Vector2 camera = default,
+        Rect2? frame = null)
     {
-        canvas.DrawRect(rid, new Rect2(Vector2.Zero, view.ScreenSize), PlayBackground);
+        // Under a camera the layer is scrolled by it, so the backdrop follows to keep the screen covered.
+        canvas.DrawRect(rid, new Rect2(camera, view.ScreenSize), PlayBackground);
 
         Rect2 field = FieldRect(view, playfield);
         canvas.SelectShader(fieldShader);
@@ -87,8 +90,8 @@ public static partial class PlayfieldRenderer
         DrawSplitlineBalls(canvas, rid, entities, view);
         canvas.SelectShader(0);
         DrawHitTrails(canvas, rid, entities);
-        DrawKeyTrail(canvas, rid, entities, field, playhead);
-        DrawTransport(canvas, rid, field, playhead);
+        DrawKeyTrail(canvas, rid, entities, frame ?? field, playhead, camera.X);
+        DrawTransport(canvas, rid, frame ?? field, playhead);
     }
 
     public static void DrawField(
@@ -102,20 +105,23 @@ public static partial class PlayfieldRenderer
         DrawBorder(canvas, rid, field, BorderColor, borderWidth);
     }
 
+    /// <summary>Thinnest a drawn grid cell gets on screen; past that every second line is dropped.</summary>
+    private const float MinGridCell = 10f;
+
+    /// <summary>
+    /// Draws the field's grid, only where <paramref name="visible"/> shows it,
+    /// and the field's size along its bottom edge.
+    /// </summary>
     public static void DrawGrid(
         IRectCanvas canvas,
         Rid rid,
         Playfield playfield,
-        Rect2 field)
+        Rect2 field,
+        Rect2? visible = null)
     {
-        const int divisions = PlayfieldGrid.Divisions;
-
-        CanvasGrid.Draw(
-            canvas,
-            rid,
-            field,
-            field.Size / divisions,
-            field.Position + field.Size / 2);
+        Rect2 bounds = visible is { } area ? field.Intersection(area) : field;
+        if (bounds.Size.X > 0 && bounds.Size.Y > 0)
+            CanvasGrid.Draw(canvas, rid, bounds, DrawnCell(playfield, field), field.Position + field.Size / 2);
 
         float labelY = field.End.Y - 20;
         DrawLeftText(canvas, rid, "0", field.Position.X + 6, labelY, DimTextColor, field.Size.X);
@@ -137,13 +143,36 @@ public static partial class PlayfieldRenderer
             field.Size.X);
     }
 
+    /// <summary>
+    /// Carries the field's grid on past its edges across <paramref name="area"/>,
+    /// fainter, so the grid does not stop dead at the border. Drawn before the
+    /// field, which covers it inside.
+    /// </summary>
+    public static void DrawOuterGrid(
+        IRectCanvas canvas,
+        Rid rid,
+        Playfield playfield,
+        Rect2 field,
+        Rect2 area)
+    {
+        CanvasGrid.Draw(
+            canvas,
+            rid,
+            area,
+            DrawnCell(playfield, field),
+            field.Position + field.Size / 2,
+            new Color(GridColor, GridColor.A * 0.45f),
+            new Color(GridColor, GridColor.A * 0.45f));
+    }
 
-
-
-
-
-
-
+    /// <summary>The grid's cell on screen, doubled until it is not too dense to read.</summary>
+    private static Vector2 DrawnCell(Playfield playfield, Rect2 field)
+    {
+        Vector2 cell = PlayfieldGrid.Cell(playfield) * (field.Size.X / Math.Max(1, playfield.Width));
+        while (cell.X > 0 && cell.X < MinGridCell)
+            cell *= 2;
+        return cell;
+    }
 
     public static void DrawBorder(
         IRectCanvas canvas,

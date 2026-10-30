@@ -324,7 +324,32 @@ public sealed class SceneSystemTests
         Assert.That(view.ScoreValues[0].GetComponent<Text>().Value, Is.EqualTo("0900000"));
         Assert.That(view.ScoreAccuracies[1].GetComponent<Text>().Value, Is.EqualTo("50.00%"));
         Assert.That(view.ScoreValues[1].GetComponent<Text>().Value, Is.EqualTo("0400000"));
-        Assert.That(view.ScoreValues[2].GetComponent<Text>().Value, Is.Empty);
+        Assert.That(view.ScoreBars, Has.Count.EqualTo(2));
+    }
+
+    [Test]
+    public void ScoreRowsExistOnlyForRealScores()
+    {
+        _profiles.Create("Only");
+        _scenes.Start(SceneKind.SongSelect);
+        Frame();
+
+        Entity root = _store.Query<SceneRoot>().ToEntityList()[0];
+        SongSelectState view = root.GetComponent<SongSelectState>();
+        Assert.That(view.ScoreBars, Is.Empty);
+        Assert.That(view.ScoreContent.Entity.ChildEntities.Count, Is.EqualTo(0));
+
+        _profiles.RecordScore(
+            _catalog[0].Path,
+            new PlayResults("First Level", 400_000, 0.5, 10, 10, 20));
+        SongSelectScene.Refresh(ref root.GetComponent<SongSelectState>(), _catalog, 0, _profiles);
+        Assert.That(view.ScoreContent.Entity.ChildEntities.Count, Is.EqualTo(1));
+
+        Entity bar = view.ScoreBars[0];
+        var unplayed = new List<LevelEntry> { new("unplayed.xan", _catalog[0].Document) };
+        SongSelectScene.Refresh(ref root.GetComponent<SongSelectState>(), unplayed, 0, _profiles);
+        Assert.That(view.ScoreBars, Is.Empty);
+        Assert.That(bar.IsNull, Is.True);
     }
 
     [Test]
@@ -347,7 +372,7 @@ public sealed class SceneSystemTests
         Entity root = _store.Query<SceneRoot>().ToEntityList()[0];
         SongSelectState view = root.GetComponent<SongSelectState>();
         Assert.That(
-            view.ScoreContent.GetComponent<Rectangle>().Bounds.Size.Y,
+            view.ScoreContent.Entity.GetComponent<Rectangle>().Bounds.Size.Y,
             Is.GreaterThan(224));
         float top = view.ScoreThumbSpan.X;
 

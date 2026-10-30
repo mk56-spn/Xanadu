@@ -94,7 +94,8 @@ public static partial class PlayfieldRenderer
         Rid rid,
         EntityStore entities,
         Rect2 field,
-        Playhead playhead)
+        Playhead playhead,
+        float screenLeft = 0f)
     {
         KeyTrail? state = null;
         string[]? labels = null;
@@ -118,7 +119,7 @@ public static partial class PlayfieldRenderer
         float total = KeybindSettings.Actions.Length * keySize +
                       (KeybindSettings.Actions.Length - 1) * gap;
         Vector2 hudOffset = state.Value.Offset;
-        float startX = Math.Max(10, field.Position.X - total - 12) + hudOffset.X;
+        float startX = Math.Max(screenLeft + 10, field.Position.X - total - 12) + hudOffset.X;
         float centerY = field.End.Y - 28 + hudOffset.Y;
 
         float keyBottom = centerY + keySize / 2;

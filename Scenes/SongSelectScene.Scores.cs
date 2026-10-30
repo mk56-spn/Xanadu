@@ -11,16 +11,13 @@ namespace Xanadu.Scenes;
 
 /// <summary>
 /// The scores panel: every profile's best on the selected level, highest
-/// first, as a black bar each showing accuracy then score. The list scrolls
-/// with the wheel and its scrollbar follows.
+/// first, as a black bar each showing accuracy then score. Bars exist only for
+/// scores that exist. The list scrolls with the wheel and its scrollbar follows.
 /// </summary>
 public static partial class SongSelectScene
 {
-    /// <summary>Bars always shown, filled or not, as in the design.</summary>
-    private const int MinScoreBars = 4;
-
-    /// <summary>Most scores one level can list; further profiles are not shown.</summary>
-    private const int MaxScoreBars = 30;
+    /// <summary>Bars the viewport shows before the list starts to scroll.</summary>
+    private const int VisibleScoreBars = 4;
 
     private const float BarHeight = 50;
     private const float BarGap = 8;
@@ -31,7 +28,7 @@ public static partial class SongSelectScene
 
     /// <summary>The panel's width less its padding, the gap before the scrollbar and the scrollbar itself.</summary>
     private const float ScoreViewWidth = 486.75f;
-    private const float ScoreViewHeight = MinScoreBars * BarHeight + (MinScoreBars - 1) * BarGap;
+    private const float ScoreViewHeight = VisibleScoreBars * BarHeight + (VisibleScoreBars - 1) * BarGap;
     private const float ScoreAccuracyWidth = 150;
 
     private const float BarTrackLeft = 1863.358f;
@@ -42,16 +39,13 @@ public static partial class SongSelectScene
 
     private readonly record struct ScoreViews(
         Entity Viewport,
-        Entity Content,
-        List<Entity> Bars,
-        List<Entity> Accuracies,
-        List<Entity> Values,
+        UiNode Content,
         Entity Thumb);
 
     /// <summary>
     /// The panel is a container: the tab, then a clipped viewport holding a
-    /// stack of row containers, each laying its accuracy and score side by
-    /// side. Only the scrollbar, which sits outside the stack, is placed by hand.
+    /// stack that <see cref="RefreshScores"/> fills with a row container per
+    /// score, each laying its accuracy and score side by side. Only the scrollbar, which sits outside the stack, is placed by hand.
     /// </summary>
     private static ScoreViews BuildScores(UiNode ui, bool loadAssets)
     {
@@ -90,27 +84,6 @@ public static partial class SongSelectScene
             .Main(StackMainAlignment.Start)
             .Fill(Transparent);
 
-        var bars = new List<Entity>();
-        var accuracies = new List<Entity>();
-        var values = new List<Entity>();
-        for (int i = 0; i < MaxScoreBars; i++)
-        {
-            UiNode bar = content.Row()
-                .Size(ScoreViewWidth, BarHeight)
-                .Fill(Transparent)
-                .Pad(BarInset)
-                .Main(StackMainAlignment.Start);
-            bars.Add(bar.Entity);
-
-            accuracies.Add(ScoreText(
-                bar, ScoreAccuracyWidth, TextAlign.Left, GoldLight).Entity);
-            values.Add(ScoreText(
-                bar,
-                ScoreViewWidth - BarInset * 2 - ScoreAccuracyWidth,
-                TextAlign.Right,
-                Colors.White).Entity);
-        }
-
         viewport.With(new ScrollView(content.Entity));
 
         ui.Shape(
@@ -124,10 +97,7 @@ public static partial class SongSelectScene
 
         return new ScoreViews(
             viewport.Entity,
-            content.Entity,
-            bars,
-            accuracies,
-            values,
+            content,
             thumb);
     }
 
@@ -141,8 +111,8 @@ public static partial class SongSelectScene
             .Align(align);
 
     /// <summary>
-    /// Fills the rows with the selected level's scores. Unused rows drop out of
-    /// the stack, so it measures only the bars in use and the scroll range follows.
+    /// Fills the rows with the selected level's scores, adding and deleting rows
+    /// to match, so the stack measures only real scores and the scroll range follows.
     /// </summary>
     private static void RefreshScores(
         ref SongSelectState state,
@@ -154,42 +124,52 @@ public static partial class SongSelectScene
             ? []
             : profiles.AllScores(path);
 
-        int shown = Mathf.Min(scores.Count, MaxScoreBars);
-        int bars = Mathf.Clamp(shown, MinScoreBars, MaxScoreBars);
-
         if (state.ScoresFor != path)
         {
             state.ScoresFor = path;
             state.ScoreViewport.GetComponent<ScrollView>().Offset = 0;
         }
 
-        bool restack = false;
-        for (int i = 0; i < MaxScoreBars; i++)
+        bool restack = state.ScoreBars.Count != scores.Count;
+        while (state.ScoreBars.Count < scores.Count)
+            AddScoreRow(ref state);
+        while (state.ScoreBars.Count > scores.Count)
+            RemoveLastScoreRow(ref state);
+
+        for (int i = 0; i < scores.Count; i++)
         {
-            Entity bar = state.ScoreBars[i];
-            bool used = i < bars;
-            if (bar.Tags.Has<LayoutIgnore>() == used)
-            {
-                if (used)
-                    bar.RemoveTag<LayoutIgnore>();
-                else
-                    bar.AddTag<LayoutIgnore>();
-
-                restack = true;
-            }
-
-            SetTileColor(bar, used ? PanelBlack : Transparent);
-            bool filled = i < shown;
-            SceneUi.SetText(
-                state.ScoreAccuracies[i],
-                filled ? $"{scores[i].Record.Accuracy * 100:0.00}%" : "");
-            SceneUi.SetText(
-                state.ScoreValues[i],
-                filled ? $"{scores[i].Record.Score:0000000}" : "");
+            SceneUi.SetText(state.ScoreAccuracies[i], $"{scores[i].Record.Accuracy * 100:0.00}%");
+            SceneUi.SetText(state.ScoreValues[i], $"{scores[i].Record.Score:0000000}");
         }
 
         if (restack)
-            state.ScoreContent.AddTag<LayoutDirty>();
+            state.ScoreContent.Entity.AddTag<LayoutDirty>();
+    }
+
+    private static void AddScoreRow(ref SongSelectState state)
+    {
+        UiNode bar = state.ScoreContent.Row()
+            .Size(ScoreViewWidth, BarHeight)
+            .Fill(PanelBlack)
+            .Pad(BarInset)
+            .Main(StackMainAlignment.Start);
+        state.ScoreBars.Add(bar.Entity);
+        state.ScoreAccuracies.Add(ScoreText(
+            bar, ScoreAccuracyWidth, TextAlign.Left, GoldLight).Entity);
+        state.ScoreValues.Add(ScoreText(
+            bar,
+            ScoreViewWidth - BarInset * 2 - ScoreAccuracyWidth,
+            TextAlign.Right,
+            Colors.White).Entity);
+    }
+
+    private static void RemoveLastScoreRow(ref SongSelectState state)
+    {
+        int last = state.ScoreBars.Count - 1;
+        UiLayout.DeleteSubtree(state.ScoreBars[last]);
+        state.ScoreBars.RemoveAt(last);
+        state.ScoreAccuracies.RemoveAt(last);
+        state.ScoreValues.RemoveAt(last);
     }
 
     /// <summary>Sizes and places the scrollbar thumb for how far the scores are scrolled.</summary>
@@ -199,7 +179,7 @@ public static partial class SongSelectScene
             return;
 
         float track = BarTrackBottom - BarTrackTop;
-        float content = state.ScoreContent.GetComponent<Rectangle>().Bounds.Size.Y;
+        float content = state.ScoreContent.Entity.GetComponent<Rectangle>().Bounds.Size.Y;
         float range = Mathf.Max(0, content - ScoreViewHeight);
         float length = range <= 0
             ? track

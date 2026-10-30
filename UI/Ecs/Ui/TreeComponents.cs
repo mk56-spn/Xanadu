@@ -70,3 +70,6 @@ public struct UiTreeChanged(string id) : IComponent
 {
     public string Id = id;
 }
+
+/// <summary>Marks the entity picked in the F4 UI tree, for the bounds overlay to colour.</summary>
+public struct UiTreeOverlaySelected : ITag;

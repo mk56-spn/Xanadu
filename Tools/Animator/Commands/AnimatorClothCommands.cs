@@ -32,6 +32,7 @@ public static class AnimatorClothCommands
         Stiffness,
         Layer,
         HitSize,
+        TetherReach,
     }
 
     /// <summary>The selected cloth, if it still exists.</summary>
@@ -108,7 +109,7 @@ public static class AnimatorClothCommands
         AnimatorSession.SetStatus(session, cloths.Picking switch
         {
             AnimatorClothPick.Bone => "CLICK THE BONE THE CLOTH IS LAID OUT FROM",
-            AnimatorClothPick.Pins => "CLICK POINTS TO PIN OR FREE THEM",
+            AnimatorClothPick.Pins => "CLICK A POINT: FREE > PINNED > TETHERED > FREE",
             AnimatorClothPick.Colliders => "CLICK BONES THE CLOTH DRAPES OVER",
             _ => "DONE",
         });
@@ -145,10 +146,12 @@ public static class AnimatorClothCommands
             XafCloth cloth = package.Cloths[index];
             int bone = AnimatorClothGeometry.NearestBone(package, world, points[point]);
             (int column, int row) = (point % cloth.Columns, point / cloth.Columns);
-            AnimatorHistoryCommands.Edit(session, () => XafClothAuthoring.TogglePin(package, index, column, row, bone));
-            AnimatorSession.SetStatus(session, cloth.IsPinned(column, row)
-                ? $"PINNED TO {package.Skeleton.Bones[bone].Id}"
-                : "FREED");
+            AnimatorHistoryCommands.Edit(session, () => XafClothAuthoring.CyclePoint(package, index, column, row, bone));
+            string boneId = package.Skeleton.Bones[bone].Id;
+            AnimatorSession.SetStatus(session,
+                cloth.IsPinned(column, row) ? $"PINNED TO {boneId}" :
+                cloth.IsTethered(column, row) ? $"TETHERED TO {boneId}" :
+                "FREED");
             return;
         }
 
@@ -242,6 +245,9 @@ public static class AnimatorClothCommands
                     break;
                 case Setting.HitSize:
                     XafClothAuthoring.SetColliderRadius(package, index, value);
+                    break;
+                case Setting.TetherReach:
+                    XafClothAuthoring.SetTetherRadius(package, index, value);
                     break;
             }
             AnimatorSession.SetStatus(session, $"{setting.ToString().ToUpperInvariant()} SET");

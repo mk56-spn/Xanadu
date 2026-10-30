@@ -6,13 +6,14 @@ namespace Xanadu.Editor;
 
 /// <summary>
 /// The playfield grid blocks snap to. It is the same grid the editor draws:
-/// the field is divided into <see cref="Divisions"/> cells per axis, and the
+/// the field is divided into <see cref="Divisions"/> cells per axis for each
+/// thousand units of it (see <see cref="PlayfieldGrid"/>), and the
 /// axis lines passing through the field centre land on cell boundaries, so
 /// every drawn line sits on a whole multiple of the cell size.
 /// </summary>
 public static class BlockGrid
 {
-    /// <summary>Cells per axis, shared with the drawn grid and spike tiles.</summary>
+    /// <summary>Cells per thousand units of each axis, shared with the drawn grid and spike tiles.</summary>
     public const int Divisions = PlayfieldGrid.Divisions;
 
     public static Vector2 Cell(Playfield playfield) => PlayfieldGrid.Cell(playfield);

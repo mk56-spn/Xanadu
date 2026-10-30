@@ -70,6 +70,37 @@ public struct PlayfieldView(Vector2 screenOrigin, float scale, Vector2 screenSiz
 }
 
 /// <summary>
+/// The play camera, for a playfield bigger than the screen. Gameplay works in
+/// layout pixels (the <see cref="PlayfieldView"/> space the player, notes and
+/// physics share); the camera only decides which part of that is shown in
+/// <see cref="Viewport"/>, by scrolling the playfield layer by <see cref="Shift"/>.
+/// A field smaller than the viewport sits centred and never scrolls.
+/// </summary>
+public struct PlayCamera(Rect2 viewport) : IComponent
+{
+    /// <summary>The screen area the playfield is shown in.</summary>
+    public Rect2 Viewport = viewport;
+
+    /// <summary>How far the view has scrolled from the layout, following the player.</summary>
+    public Vector2 Offset;
+
+    /// <summary>False until the camera first jumps onto the player.</summary>
+    public bool Placed;
+
+    /// <summary>A hit's kick, 1 at its peak, easing to 0.</summary>
+    public float Kick;
+
+    /// <summary>Where the kick has knocked the view this frame.</summary>
+    public Vector2 KickOffset;
+
+    /// <summary>Everything the playfield layer is moved by: subtract it from a layout position to get the screen.</summary>
+    public readonly Vector2 Shift => Offset + KickOffset;
+
+    /// <summary>The part of the layout on screen.</summary>
+    public readonly Rect2 Visible => new(Viewport.Position + Offset, Viewport.Size);
+}
+
+/// <summary>
 /// What a note does. The numeric values are serialized, so kinds are appended
 /// rather than reordered; <c>Dash</c> keeps the old <c>Movement</c> value so
 /// existing maps still load.

@@ -22,6 +22,9 @@ public static class PlayScene
     private const float BottomInset = 54;
     private const float SideInset = 40;
 
+    /// <summary>The most of the field, in units, the screen shows at once.</summary>
+    public const float ViewSize = 1000;
+
     public static void Build(
         EntityStore entities,
         Entity root,
@@ -36,20 +39,26 @@ public static class PlayScene
         SongDocument? song = entry.Song;
         Vector2 screen = UiStage.Full.Size;
 
-        float logicalSize = Mathf.Max(1, Mathf.Max(
-            document.PlayfieldWidth,
-            document.PlayfieldHeight));
-        float available = Mathf.Min(
+        // A field up to ViewSize units fits the screen whole, as it always did;
+        // a bigger one is shown at that same scale and the camera follows the
+        // player across it.
+        var viewport = new Rect2(
+            SideInset,
+            TopInset,
             screen.X - SideInset * 2,
             screen.Y - TopInset - BottomInset);
+        float logicalSize = Mathf.Max(1, Mathf.Min(ViewSize, Mathf.Max(
+            document.PlayfieldWidth,
+            document.PlayfieldHeight)));
+        float available = Mathf.Min(viewport.Size.X, viewport.Size.Y);
         float renderedSize = Mathf.Min(logicalSize, Mathf.Max(1, available));
         float scale = renderedSize / logicalSize;
 
         float fieldWidth = document.PlayfieldWidth * scale;
         float fieldHeight = document.PlayfieldHeight * scale;
         var origin = new Vector2(
-            (screen.X - fieldWidth) / 2,
-            TopInset + (screen.Y - TopInset - BottomInset - fieldHeight) / 2);
+            (screen.X - Mathf.Min(fieldWidth, viewport.Size.X)) / 2,
+            TopInset + (viewport.Size.Y - Mathf.Min(fieldHeight, viewport.Size.Y)) / 2);
         Vector2 playerSize = Player.ScaledSize(scale);
 
         Entity playfieldEntity = entities.CreateEntity(
@@ -70,6 +79,7 @@ public static class PlayScene
             new Character(1f),
             new Momentum(System.Numerics.Vector2.Zero));
 
+        playfieldEntity.AddComponent(new PlayCamera(viewport));
         playfieldEntity.AddComponent(LevelShaders.Create());
         root.AddChild(playfieldEntity);
         playfieldEntity.AddComponent(new PlayerCharacter(CharacterKind.Contact));
@@ -156,11 +166,21 @@ public static class PlayScene
             18,
             SceneUi.TextColor);
 
-        Entity comboText = ui.HudText(new Vector2(screen.X - 150, screen.Y - 24),
-            new Vector2(220, 24),
-            "COMBO 0",
-            16,
-            SceneUi.DimTextColor);
+        // The combo: a big number over a small caption, animated by ComboHudSystem.
+        var comboCenter = new Vector2(screen.X - 150, screen.Y - 126);
+        Entity comboText = ui.HudText(comboCenter,
+            new Vector2(260, 84),
+            "0",
+            UiType.Display,
+            SceneUi.DimTextColor,
+            new Color(0, 0, 0, 0));
+        Entity comboCaption = ui.HudText(comboCenter + new Vector2(0, 46),
+            new Vector2(260, 20),
+            "COMBO",
+            UiType.Small,
+            SceneUi.DimTextColor,
+            new Color(0, 0, 0, 0));
+        playfieldEntity.AddComponent(new ComboHud(comboText, comboCaption));
 
         Entity accuracyText = ui.HudText(new Vector2(screen.X - 150, 68),
             new Vector2(220, 24),
@@ -225,9 +245,10 @@ public static class PlayScene
             scoreText);
         hud.Add(
             "combo",
-            new Vector2(screen.X - 150, screen.Y - 24),
-            new Rect2(screen.X - 260, screen.Y - 36, 220, 24),
-            comboText);
+            comboCenter + new Vector2(0, 10),
+            new Rect2(comboCenter.X - 130, comboCenter.Y - 42, 260, 104),
+            comboText,
+            comboCaption);
         hud.Add(
             "status",
             new Vector2(screen.X / 2, screen.Y - 24),
@@ -305,10 +326,13 @@ public static class PlayScene
             new Rect2(screen.X / 2 - 350, screen.Y / 2 - 90, 700, 180),
             countdown);
 
+        // Left of the field, or at the screen's left edge when the field fills the width.
+        float trailX = Mathf.Max(origin.X - 220, SideInset + 220);
+        float shownBottom = origin.Y + Mathf.Min(fieldHeight, viewport.Size.Y);
         HudItemLayout keyTrailItem = hud.Add(
             "key_trail",
-            new Vector2(origin.X - 220, origin.Y + fieldHeight - 140),
-            new Rect2(origin.X - 440, origin.Y + fieldHeight - 280, 430, 280));
+            new Vector2(trailX, shownBottom - 140),
+            new Rect2(trailX - 220, shownBottom - 280, 430, 280));
         keyTrailItem.Handle = entities.CreateEntity();
 
         playfieldEntity.AddComponent(hud);

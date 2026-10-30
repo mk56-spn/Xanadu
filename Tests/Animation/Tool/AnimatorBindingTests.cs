@@ -84,6 +84,8 @@ public sealed class AnimatorBindingTests : AnimatorToolTest
             ToolActionKind.AllowTransition,
             ToolActionKind.SelectTransition,
             ToolActionKind.TransitionCurve,
+            ToolActionKind.AddArt,
+            ToolActionKind.PickMeshBones,
         };
 
         var bound = new HashSet<ToolActionKind>();

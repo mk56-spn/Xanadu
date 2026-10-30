@@ -50,7 +50,7 @@ public sealed class AnimatorClothInspectorSystem : QuerySystem<AnimatorDocument,
         AnimatorClothPick picking = session.GetComponent<AnimatorCloths>().Picking;
         SetText(ui.ClothTitle, cloth is null ? "NO CLOTH" : cloth.Id.ToUpperInvariant() + "  CLOTH");
         SetButton(ui.ClothBoneButton, cloth?.BoneId ?? "", picking == AnimatorClothPick.Bone, "CLICK A BONE");
-        SetButton(ui.ClothPinsButton, cloth is null ? "" : $"{cloth.Pins.Count} PINNED · EDIT",
+        SetButton(ui.ClothPinsButton, cloth is null ? "" : $"{cloth.Pins.Count} PINNED · {cloth.Tethers.Count} TIED",
             picking == AnimatorClothPick.Pins, "CLICK POINTS · HERE TO STOP");
         SetButton(ui.ClothCollidersButton, cloth is null ? "" : $"{cloth.Colliders.Count} BONES · EDIT",
             picking == AnimatorClothPick.Colliders, "CLICK BONES · HERE TO STOP");
@@ -113,7 +113,8 @@ public sealed class AnimatorClothInspectorSystem : QuerySystem<AnimatorDocument,
         Setting.Damping => Number(cloth.Damping),
         Setting.Stiffness => Number(cloth.Stiffness),
         Setting.Layer => cloth.ZOrder.ToString(CultureInfo.InvariantCulture),
-        _ => cloth.Colliders.Count > 0 ? Number(cloth.Colliders[0].Radius) : "",
+        Setting.HitSize => cloth.Colliders.Count > 0 ? Number(cloth.Colliders[0].Radius) : "",
+        _ => cloth.Tethers.Count > 0 ? Number(cloth.Tethers[0].Radius) : "",
     };
 
     private static string Number(float value) => value.ToString("0.###", CultureInfo.InvariantCulture);

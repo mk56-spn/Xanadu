@@ -33,6 +33,7 @@ public sealed class AnimatorPreviewDrawSystem(
     private readonly AnimatorFlowOverlay _flow = new(canvas, target);
     private readonly AnimatorMotionPathOverlay _paths = new(canvas, target);
     private readonly AnimatorClothOverlay _cloth = new(canvas, target);
+    private readonly AnimatorMeshOverlay _mesh = new(canvas, target);
     private int _version = -1;
     private int _effectsVersion = -1;
 
@@ -145,6 +146,8 @@ public sealed class AnimatorPreviewDrawSystem(
 
         Transform2D[] attachments = XafRig.WorldAttachments(document.Package, pose, world);
         visuals.Apply(attachments, placement);
+        visuals.ApplyStates(document.Package, pose, world, attachments, placement);
+        _mesh.Draw(session, visuals, document.Package, world, placement);
         visuals.ApplyChains(document.Package, session.GetComponent<AnimatorChains>().Simulation, placement);
         visuals.ApplyCloths(document.Package, session.GetComponent<AnimatorCloths>().Simulation, placement);
         Transform2D[] effects = XafRig.WorldEffects(document.Package, pose, world);

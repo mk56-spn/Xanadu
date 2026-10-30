@@ -88,7 +88,9 @@ public sealed class PlayfieldSystemGroup : SystemGroup, IDisposable
             _hudOverlay.Rid));
         Add(new ContactCounterSystem());
         Add(new WeaponHudSystem());
+        Add(new PlayCameraSystem());
         Add(new PlayScoreSystem());
+        Add(new ComboHudSystem());
         if (rigFiles is not null)
         {
             Add(new CharacterRigLoadSystem(rigFiles));

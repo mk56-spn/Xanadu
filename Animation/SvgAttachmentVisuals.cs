@@ -10,7 +10,7 @@ namespace Xanadu.Animation;
 /// Rasterises each attachment's SVG group, and each chain's art, into canvas
 /// items, and builds each effect's polygons with their textures and shaders.
 /// </summary>
-public sealed class SvgAttachmentVisuals(Rid canvas) : IAttachmentVisuals
+public sealed partial class SvgAttachmentVisuals(Rid canvas) : IAttachmentVisuals
 {
     private readonly List<Visual> _visuals = new();
     private readonly List<ChainVisual> _chains = new();
@@ -31,15 +31,21 @@ public sealed class SvgAttachmentVisuals(Rid canvas) : IAttachmentVisuals
         for (int i = 0; i < package.Attachments.Count; i++)
         {
             XafAttachment attachment = package.Attachments[i];
-            if (!TryRaster(attachment.SvgPath, attachment.Group, out ImageTexture? texture, out Vector2 size))
-                continue;
+            for (int art = 0; art < attachment.ArtCount; art++)
+            {
+                XafArt source = attachment.Art(art);
+                if (!TryRaster(source.SvgPath, source.Group, out ImageTexture? texture, out Vector2 size))
+                    continue;
 
-            // Higher layers draw in front; equal layers keep the attachment order.
-            Rid item = CreateItem(
-                texture!,
-                size,
-                Math.Clamp(attachment.ZOrder, XafAttachment.MinLayer, XafAttachment.MaxLayer));
-            _visuals.Add(new Visual(i, item, texture!, new Rect2(-size / 2, size)));
+                // Higher layers draw in front; equal layers keep the attachment order.
+                // Only the attachment's own art shows until a pose says otherwise.
+                Rid item = CreateItem(
+                    texture!,
+                    size,
+                    Math.Clamp(attachment.ZOrder, XafAttachment.MinLayer, XafAttachment.MaxLayer));
+                RenderingServer.CanvasItemSetVisible(item, art == 0);
+                _visuals.Add(new Visual(i, art, item, texture!, new Rect2(-size / 2, size)));
+            }
         }
 
         int chainLayer = XafChainArt.Layer(package);
@@ -191,7 +197,7 @@ public sealed class SvgAttachmentVisuals(Rid canvas) : IAttachmentVisuals
         Rect2? merged = null;
         foreach (Visual visual in _visuals)
         {
-            if (visual.Index >= attachments.Length)
+            if (visual.Index >= attachments.Length || visual.Art != 0)
                 continue;
 
             Rect2 placed = attachments[visual.Index] * visual.Bounds;
@@ -310,7 +316,14 @@ public sealed class SvgAttachmentVisuals(Rid canvas) : IAttachmentVisuals
         return item;
     }
 
-    private sealed record Visual(int Index, Rid Item, ImageTexture Texture, Rect2 Bounds);
+    /// <summary>One art option of one attachment; <see cref="Mesh"/> is set once it has been drawn as a mesh.</summary>
+    private sealed record Visual(int Index, int Art, Rid Item, ImageTexture Texture, Rect2 Bounds)
+    {
+        public MeshCache? Mesh { get; set; }
+
+        /// <summary>Whether the last pose showed this art.</summary>
+        public bool Shown { get; set; } = Art == 0;
+    }
 
     /// <summary>One polygon of an effect; the texture is held so it outlives the canvas item drawing it.</summary>
     private sealed record EffectVisual(int Index, Rid Item, Texture2D? Texture);

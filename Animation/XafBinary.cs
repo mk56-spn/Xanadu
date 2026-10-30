@@ -25,6 +25,8 @@ public static class XafBinary
 		Transitions = 6,
 		Effects = 7,
 		Cloths = 8,
+		Events = 9,
+		AttachmentExtras = 10,
 	}
 
 	public static void Save(string path, XafPackage package)
@@ -61,7 +63,12 @@ public static class XafBinary
 		if (minor >= 5)
 			file.Add((uint)ChunkId.Effects, WriteEffects(package.Effects, strings));
 		if (minor >= 6)
-			file.Add((uint)ChunkId.Cloths, XafClothBinary.Write(package.Cloths, strings));
+			file.Add((uint)ChunkId.Cloths, XafClothBinary.Write(package.Cloths, strings, minor));
+		if (minor >= 9)
+		{
+			file.Add((uint)ChunkId.Events, XafExtrasBinary.WriteEvents(package.Clips, strings));
+			file.Add((uint)ChunkId.AttachmentExtras, XafExtrasBinary.WriteAttachments(package.Attachments, strings));
+		}
 		return file.ToArray();
 	}
 
@@ -101,7 +108,12 @@ public static class XafBinary
 		if (file.Minor >= 5)
 			package.Effects = ReadEffects(file.Get((uint)ChunkId.Effects, Format), strings);
 		if (file.Minor >= 6)
-			package.Cloths = XafClothBinary.Read(file.Get((uint)ChunkId.Cloths, Format), strings);
+			package.Cloths = XafClothBinary.Read(file.Get((uint)ChunkId.Cloths, Format), strings, file.Minor);
+		if (file.Minor >= 9)
+		{
+			XafExtrasBinary.ReadEvents(file.Get((uint)ChunkId.Events, Format), strings, package.Clips);
+			XafExtrasBinary.ReadAttachments(file.Get((uint)ChunkId.AttachmentExtras, Format), strings, package.Attachments);
+		}
 		XafValidation.ThrowIfInvalid(package);
 		return package;
 	}
@@ -142,6 +154,7 @@ public static class XafBinary
 			XifBinary.Index(effect.Item, table);
 		}
 		XafClothBinary.Index(package.Cloths, table);
+		XafExtrasBinary.Index(package, table);
 	}
 
 	private static byte[] WriteSkeleton(
@@ -160,6 +173,8 @@ public static class XafBinary
 			writer.Write(bone.ZOrder);
 			if (minor >= 1)
 				writer.Write(bone.AllowTranslation);
+			if (minor >= 8)
+				writer.Write((sbyte)bone.Bend);
 		}
 		writer.Flush();
 		return stream.ToArray();
@@ -189,6 +204,7 @@ public static class XafBinary
 				Rest = ReadTransform(reader),
 				ZOrder = reader.ReadInt32(),
 				AllowTranslation = minor >= 1 && reader.ReadBoolean(),
+				Bend = minor >= 8 ? reader.ReadSByte() : 0,
 			});
 		}
 		return skeleton;

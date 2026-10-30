@@ -69,3 +69,23 @@ public struct ErrorBar(
     public float HalfWidth = halfWidth;
     public float MaxOffsetMs = maxOffsetMs;
 }
+
+/// <summary>
+/// The big combo counter: the number and the word under it, and how far
+/// through its animations it is. It swells and flashes on every hit, harder
+/// on every fiftieth, and flashes red when the combo breaks.
+/// </summary>
+public struct ComboHud(Entity number, Entity caption) : IComponent
+{
+    public Entity Number = number;
+    public Entity Caption = caption;
+
+    /// <summary>The combo the counter last showed.</summary>
+    public int Shown;
+
+    /// <summary>The swell from the last hit, its peak at 1 (more on a milestone), easing to 0.</summary>
+    public float Punch;
+
+    /// <summary>The red flash from the last break, 1 at its peak, easing to 0.</summary>
+    public float Break;
+}

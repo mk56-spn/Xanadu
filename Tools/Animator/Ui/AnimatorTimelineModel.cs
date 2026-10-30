@@ -223,6 +223,29 @@ public sealed class AnimatorTimelineModel
     /// The loop end a press near its handle in the ruler grabs: true for the
     /// start, false for the end. Only while the clip loops.
     /// </summary>
+    /// <summary>How near, in pixels, a press on the ruler must be to an event's flag to pick it.</summary>
+    public const float EventHitRadius = 6f;
+
+    /// <summary>The clip event whose flag on the ruler is under the point, the nearest if several.</summary>
+    public bool TryPickEvent(Vector2 point, out int index)
+    {
+        index = -1;
+        if (!Ruler.Grow(4f).HasPoint(point))
+            return false;
+
+        float best = EventHitRadius;
+        for (int i = 0; i < Clip.Events.Count; i++)
+        {
+            float distance = Math.Abs(point.X - XForSeconds(Clip.Events[i].Time));
+            if (distance <= best)
+            {
+                best = distance;
+                index = i;
+            }
+        }
+        return index >= 0;
+    }
+
     public bool TryPickLoopHandle(Vector2 point, out bool start)
     {
         start = false;

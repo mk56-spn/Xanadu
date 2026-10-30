@@ -47,6 +47,7 @@ public sealed class AnimatorSystemGroup : SystemGroup
         Add(new AnimatorInspectorSystem());
         Add(new AnimatorChainInspectorSystem());
         Add(new AnimatorClothInspectorSystem());
+        Add(new AnimatorEventInspectorSystem());
         Add(new AnimatorInterpolationSystem());
         Add(new AnimatorFileHeaderSystem());
         Add(new AnimatorStatusSystem());

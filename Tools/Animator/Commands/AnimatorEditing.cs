@@ -136,6 +136,7 @@ public static class AnimatorEditing
                 if (bone < document.Runtime.Pose.Bones.Length)
                     Apply(ref document.Runtime.Pose.Bones[bone], rotation, scale);
             }
+            XafJointLocks.Apply(document.Package, document.Runtime.Pose);
         }
         else if (selection.Attachment >= 0)
         {
@@ -152,6 +153,47 @@ public static class AnimatorEditing
         }
 
         KeyEdit(session);
+    }
+
+    /// <summary>
+    /// Locks the selected bones' joints to the way they bend now, or frees
+    /// locked ones; a joint held straight has no way to lock to.
+    /// </summary>
+    public static void LockBend(Entity session) =>
+        AnimatorHistoryCommands.Edit(session, () => LockBendCore(session));
+
+    private static void LockBendCore(Entity session)
+    {
+        ref AnimatorDocument document = ref session.GetComponent<AnimatorDocument>();
+        XafPackage package = document.Package;
+        Transform2D[] world = XafRig.WorldBones(package, document.Runtime.Pose);
+        string status = "SELECT A KNEE OR ELBOW BONE FIRST";
+        foreach (int index in session.GetComponent<AnimatorSelection>().Bones())
+        {
+            if (index < 0 || index >= package.Skeleton.Bones.Count)
+                continue;
+
+            XafBone bone = package.Skeleton.Bones[index];
+            if (bone.Bend != 0)
+            {
+                bone.Bend = 0;
+                status = $"{bone.Id} BENDS FREELY";
+            }
+            else if (!XafJointLocks.TryBend(package, world, index, out float bend))
+            {
+                status = $"{bone.Id} HAS NO JOINT TO LOCK";
+            }
+            else if (Mathf.Abs(bend) < XafJointLocks.Straight)
+            {
+                status = $"BEND {bone.Id} THE RIGHT WAY FIRST";
+            }
+            else
+            {
+                bone.Bend = bend > 0f ? 1 : -1;
+                status = $"{bone.Id} NOW BENDS ONE WAY ONLY";
+            }
+        }
+        AnimatorSession.SetStatus(session, status);
     }
 
     /// <summary>Lets the selected bone translate, or locks it back to its rest length.</summary>

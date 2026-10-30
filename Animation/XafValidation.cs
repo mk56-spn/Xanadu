@@ -29,6 +29,8 @@ public static class XafValidation
             }
             if (bone.Parent == -1)
                 rootCount++;
+            if (bone.Bend is < -1 or > 1)
+                issues.Add($"Bone '{bone.Id}' has an invalid bend lock.");
         }
 
         if (rootCount != 1)
@@ -38,6 +40,24 @@ public static class XafValidation
         {
             if (string.IsNullOrWhiteSpace(attachment.SvgPath))
                 issues.Add("Attachment has an empty SVG path.");
+            foreach (XafArt art in attachment.Alternates)
+            {
+                if (string.IsNullOrWhiteSpace(art.SvgPath) || string.IsNullOrWhiteSpace(art.Group))
+                    issues.Add($"Attachment '{attachment.Group}' has alternate art with no file or group.");
+            }
+            if (attachment.Mesh is { } mesh)
+            {
+                if (mesh.Detail < XafMesh.MinDetail || mesh.Detail > XafMesh.MaxDetail ||
+                    !(mesh.Blend >= 0f && mesh.Blend <= XafMesh.MaxBlend))
+                {
+                    issues.Add($"Attachment '{attachment.Group}' has an invalid mesh.");
+                }
+                foreach (string bone in mesh.Bones)
+                {
+                    if (!boneIds.Contains(bone))
+                        issues.Add($"Attachment '{attachment.Group}' bends with missing bone '{bone}'.");
+                }
+            }
             if (string.IsNullOrWhiteSpace(attachment.Group))
                 issues.Add("Attachment has an empty SVG group.");
             if (!boneIds.Contains(attachment.BoneId))
@@ -101,6 +121,7 @@ public static class XafValidation
         var clipIds = new HashSet<string>(StringComparer.Ordinal);
         foreach (XafClip clip in package.Clips)
         {
+            XafEventAuthoring.Validate(clip, issues);
             if (string.IsNullOrWhiteSpace(clip.Id))
                 issues.Add("Clip has an empty id.");
             else if (!clipIds.Add(clip.Id))
@@ -123,10 +144,16 @@ public static class XafValidation
                 }
                 if (channel.Target == XafChannelTarget.Effect && !effectIds.Contains(channel.TargetId))
                     issues.Add($"Clip '{clip.Id}' targets missing effect '{channel.TargetId}'.");
-                if (channel.Target != XafChannelTarget.Effect &&
-                    channel.Property is XafChannelProperty.Opacity or XafChannelProperty.Visible)
+                if (channel.Target != XafChannelTarget.Attachment &&
+                    channel.Property is XafChannelProperty.Art or XafChannelProperty.Layer)
                 {
-                    issues.Add($"Clip '{clip.Id}' keys {channel.Property} on '{channel.TargetId}', which only effects have.");
+                    issues.Add($"Clip '{clip.Id}' keys {channel.Property} on '{channel.TargetId}', which only attachments have.");
+                }
+                if ((channel.Target == XafChannelTarget.Bone &&
+                     channel.Property is XafChannelProperty.Opacity or XafChannelProperty.Visible) ||
+                    (channel.Target == XafChannelTarget.Attachment && channel.Property == XafChannelProperty.Opacity))
+                {
+                    issues.Add($"Clip '{clip.Id}' keys {channel.Property} on '{channel.TargetId}', which it does not have.");
                 }
                 if (channel.Target == XafChannelTarget.Attachment &&
                     !package.Attachments.Exists(attachment =>

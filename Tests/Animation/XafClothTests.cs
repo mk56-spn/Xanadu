@@ -144,6 +144,38 @@ public sealed class XafClothTests
     }
 
     [Test]
+    public void AKickFasterThanAFrameStillLiftsTheSkirt()
+    {
+        XafPackage package = Dressed();
+        XafCloth dress = package.Cloths[0];
+        var simulation = new XafClothSimulation();
+        Hang(package, simulation, Rest(package));
+
+        XafPose pose = XafClothLayout.RestPose(package);
+        pose.Bones[Thigh].Rotation = -1.4f;
+        Transform2D[] kicked = XafRig.WorldBones(package, pose);
+        IReadOnlyList<Vector2> points = Hang(package, simulation, kicked, 0.3f);
+
+        var thigh = XafClothLayout.Capsule(package, new XafClothCollider { BoneId = "thigh" }, kicked)!.Value;
+        Vector2 axis = (thigh.To - thigh.From).Normalized();
+        float length = thigh.From.DistanceTo(thigh.To);
+        int front = dress.Columns - 1;
+        int above = 0;
+        for (int row = 0; row < dress.Rows; row++)
+        {
+            Vector2 point = points[dress.Index(front, row)];
+            float along = (point - thigh.From).Dot(axis);
+            if (dress.IsPinned(front, row) || along < 0f || along > length)
+                continue;
+
+            Vector2 core = thigh.From + axis * along;
+            Assert.That(point.Y, Is.LessThan(core.Y), $"front edge row {row} rides on top of the thigh");
+            above++;
+        }
+        Assert.That(above, Is.GreaterThan(0), "the front edge reaches over the thigh");
+    }
+
+    [Test]
     public void DressesSurviveASaveACopyAndABoneRename()
     {
         XafPackage package = Dressed();
@@ -151,13 +183,20 @@ public sealed class XafClothTests
         dress.Fill = new Color(0.2f, 0.4f, 0.6f, 0.8f);
         dress.Lean = 40f;
         dress.ZOrder = 5;
+        XafClothAuthoring.ToggleTether(package, 0, 0, dress.Rows - 1, 4);
+        XafClothAuthoring.SetTetherRadius(package, 0, 30f);
 
         XafPackage loaded = XafBinary.Read(XafBinary.Write(package));
         Assert.That(XafPackageCopy.AreEqual(package, loaded), Is.True);
         Assert.That(XafPackageCopy.AreEqual(package, XafPackageCopy.Clone(package)), Is.True);
 
+        Assert.That(loaded.Cloths[0].Tethers, Has.Count.EqualTo(1));
+        Assert.That(loaded.Cloths[0].Tethers[0].Radius, Is.EqualTo(30f));
+
         XafRigAuthoring.RenameBone(package, Thigh, "leg");
         Assert.That(package.Cloths[0].Colliders.ConvertAll(collider => collider.BoneId), Does.Contain("leg"));
+        XafRigAuthoring.RenameBone(package, 4, "calf");
+        Assert.That(package.Cloths[0].Tethers[0].BoneId, Is.EqualTo("calf"));
         Assert.That(XafValidation.Validate(package), Is.Empty);
     }
 
@@ -181,6 +220,75 @@ public sealed class XafClothTests
         XafClothAuthoring.ToggleCollider(package, 0, 5);
 
         Assert.That(XafRigAuthoring.DeleteBone(package, 5), Is.False, "the foot is now a collider");
+    }
+
+    [Test]
+    public void ARevisionSixFileKeepsItsClothButNotItsTethers()
+    {
+        XafPackage package = Dressed();
+        XafClothAuthoring.ToggleTether(package, 0, 0, package.Cloths[0].Rows - 1, 4);
+
+        XafPackage old = XafBinary.Read(XafBinary.Write(package, 6));
+
+        Assert.That(old.Cloths, Has.Count.EqualTo(1));
+        Assert.That(old.Cloths[0].Tethers, Is.Empty);
+    }
+
+    [Test]
+    public void APointCyclesFromFreeToPinnedToTetheredToFree()
+    {
+        XafPackage package = Dressed();
+        XafCloth dress = package.Cloths[0];
+        int row = dress.Rows - 1;
+
+        XafClothAuthoring.CyclePoint(package, 0, 0, row, 4);
+        Assert.That((dress.IsPinned(0, row), dress.IsTethered(0, row)), Is.EqualTo((true, false)));
+        XafClothAuthoring.CyclePoint(package, 0, 0, row, 4);
+        Assert.That((dress.IsPinned(0, row), dress.IsTethered(0, row)), Is.EqualTo((false, true)));
+        XafClothAuthoring.CyclePoint(package, 0, 0, row, 4);
+        Assert.That((dress.IsPinned(0, row), dress.IsTethered(0, row)), Is.EqualTo((false, false)));
+    }
+
+    [Test]
+    public void ATetheredHemStaysWithinReachOfItsBone()
+    {
+        XafPackage package = Dressed();
+        XafCloth dress = package.Cloths[0];
+        int hem = dress.Index(dress.Columns / 2, dress.Rows - 1);
+        XafClothAuthoring.ToggleTether(package, 0, dress.Columns / 2, dress.Rows - 1, Torso);
+        XafClothAuthoring.SetTetherRadius(package, 0, 10f);
+        Transform2D[] rest = Rest(package);
+        Vector2 onBone = rest[Torso].AffineInverse() * XafClothLayout.RestPoints(package, dress, rest)[hem];
+
+        var simulation = new XafClothSimulation();
+        Hang(package, simulation, rest);
+        XafPose pose = XafClothLayout.RestPose(package);
+        pose.Bones[0].Translation = new Vector2(300, 0);
+        Transform2D[] moved = XafRig.WorldBones(package, pose);
+        simulation.Update(package, moved, XafClothSimulation.FixedStep * 2);
+
+        Assert.That(simulation.Points(0)[hem].DistanceTo(moved[Torso] * onBone), Is.LessThanOrEqualTo(10.5f),
+            "the body lurched 300 px, and the hem came with it");
+    }
+
+    [Test]
+    public void TheSkirtNeverFoldsThroughItself()
+    {
+        XafPackage package = Dressed();
+        XafCloth dress = package.Cloths[0];
+        var simulation = new XafClothSimulation();
+        Hang(package, simulation, Rest(package));
+        XafPose pose = XafClothLayout.RestPose(package);
+        pose.Bones[Torso].Rotation = 1.2f;
+        IReadOnlyList<Vector2> points = Hang(package, simulation, XafRig.WorldBones(package, pose), 0.5f);
+
+        int[] triangles = XafClothLayout.Triangles(dress.Columns, dress.Rows);
+        for (int t = 0; t < triangles.Length; t += 3)
+        {
+            Vector2 a = points[triangles[t]];
+            float area = (points[triangles[t + 1]] - a).Cross(points[triangles[t + 2]] - a);
+            Assert.That(area, Is.GreaterThan(0f), $"triangle {t / 3} kept its winding");
+        }
     }
 
     [Test]

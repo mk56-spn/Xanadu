@@ -149,7 +149,7 @@ public sealed partial class EditorNoteInputSystem : QuerySystem<Note>
             return;
         }
 
-        if (IsOverNoteBar(screenPosition))
+        if (IsOverNoteBar(screenPosition) || IsOverPanel(screenPosition))
             return;
 
         if (editor.HasComponent<EditorDirectionWheel>())
@@ -892,6 +892,31 @@ public sealed partial class EditorNoteInputSystem : QuerySystem<Note>
     }
 
     /// <summary>The note-type bar floats over the playfield on small windows; presses on it are not placements.</summary>
+    /// <summary>
+    /// Whether the press lands on a panel or control that takes input. The
+    /// field runs on under the editor's panels once it is bigger than the
+    /// screen, so a press on a panel must not also place a note beneath it.
+    /// </summary>
+    private bool IsOverPanel(Vector2 screenPosition)
+    {
+        foreach (Entity entity in _entities
+                     .Query<Position, Rectangle>()
+                     .AllTags(Tags.Get<TakesInput>())
+                     .ToEntityList())
+        {
+            Vector2 local = entity.GetComponent<Position>().Value;
+            if (local == UiLayout.Hidden)
+                continue;
+
+            Rect2 bounds = entity.GetComponent<Rectangle>().Bounds;
+            Vector2 center = UiTransform.WorldPosition(entity, local);
+            if (new Rect2(center + bounds.Position, bounds.Size).HasPoint(screenPosition))
+                return true;
+        }
+
+        return false;
+    }
+
     private bool IsOverNoteBar(Vector2 screenPosition)
     {
         foreach (Entity panel in _entities

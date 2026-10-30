@@ -18,6 +18,7 @@ public static class XafPackageCopy
                 Rest = bone.Rest,
                 ZOrder = bone.ZOrder,
                 AllowTranslation = bone.AllowTranslation,
+                Bend = bone.Bend,
             });
         }
 
@@ -30,6 +31,10 @@ public static class XafPackageCopy
                 BoneId = attachment.BoneId,
                 Transform = attachment.Transform,
                 ZOrder = attachment.ZOrder,
+                Alternates = attachment.Alternates.ConvertAll(art => new XafArt { SvgPath = art.SvgPath, Group = art.Group }),
+                Mesh = attachment.Mesh is { } mesh
+                    ? new XafMesh { Detail = mesh.Detail, Blend = mesh.Blend, Bones = new List<string>(mesh.Bones) }
+                    : null,
             });
         }
 
@@ -114,6 +119,13 @@ public static class XafPackageCopy
             copy.Pins.Add(new XafClothPin { Column = pin.Column, Row = pin.Row, BoneId = pin.BoneId });
         foreach (XafClothCollider collider in cloth.Colliders)
             copy.Colliders.Add(new XafClothCollider { BoneId = collider.BoneId, Radius = collider.Radius });
+        foreach (XafClothTether tether in cloth.Tethers)
+        {
+            copy.Tethers.Add(new XafClothTether
+            {
+                Column = tether.Column, Row = tether.Row, BoneId = tether.BoneId, Radius = tether.Radius,
+            });
+        }
         return copy;
     }
 
@@ -126,6 +138,7 @@ public static class XafPackageCopy
             Loop = clip.Loop,
             LoopStart = clip.LoopStart,
             LoopEnd = clip.LoopEnd,
+            Events = clip.Events.ConvertAll(item => new XafEvent { Time = item.Time, Name = item.Name }),
         };
         foreach (XafChannel channel in clip.Channels)
         {
@@ -153,11 +166,18 @@ public static class XafPackageCopy
 
     private static bool BoneEqual(XafBone a, XafBone b) =>
         a.Id == b.Id && a.Parent == b.Parent && a.Rest == b.Rest &&
-        a.ZOrder == b.ZOrder && a.AllowTranslation == b.AllowTranslation;
+        a.ZOrder == b.ZOrder && a.AllowTranslation == b.AllowTranslation && a.Bend == b.Bend;
 
     private static bool AttachmentEqual(XafAttachment a, XafAttachment b) =>
         a.SvgPath == b.SvgPath && a.Group == b.Group && a.BoneId == b.BoneId &&
-        a.Transform == b.Transform && a.ZOrder == b.ZOrder;
+        a.Transform == b.Transform && a.ZOrder == b.ZOrder &&
+        ListEqual(a.Alternates, b.Alternates, (x, y) => x.SvgPath == y.SvgPath && x.Group == y.Group) &&
+        MeshEqual(a.Mesh, b.Mesh);
+
+    private static bool MeshEqual(XafMesh? a, XafMesh? b) =>
+        a is null || b is null
+            ? a is null && b is null
+            : a.Detail == b.Detail && a.Blend == b.Blend && ListEqual(a.Bones, b.Bones, (x, y) => x == y);
 
     private static bool ChainEqual(XafChain a, XafChain b) =>
         a.Id == b.Id && a.BoneId == b.BoneId && a.Offset == b.Offset &&
@@ -170,7 +190,8 @@ public static class XafPackageCopy
     private static bool ClipEqual(XafClip a, XafClip b) =>
         a.Id == b.Id && a.Duration == b.Duration && a.Loop == b.Loop &&
         a.LoopStart == b.LoopStart && a.LoopEnd == b.LoopEnd &&
-        ListEqual(a.Channels, b.Channels, ChannelEqual);
+        ListEqual(a.Channels, b.Channels, ChannelEqual) &&
+        ListEqual(a.Events, b.Events, (x, y) => x.Time == y.Time && x.Name == y.Name);
 
     private static bool ClothEqual(XafCloth a, XafCloth b) =>
         a.Id == b.Id && a.BoneId == b.BoneId && a.Offset == b.Offset &&
@@ -179,7 +200,9 @@ public static class XafPackageCopy
         a.Lean == b.Lean && a.Damping == b.Damping && a.Stiffness == b.Stiffness &&
         a.Fill == b.Fill && a.ZOrder == b.ZOrder &&
         ListEqual(a.Pins, b.Pins, (x, y) => x.Column == y.Column && x.Row == y.Row && x.BoneId == y.BoneId) &&
-        ListEqual(a.Colliders, b.Colliders, (x, y) => x.BoneId == y.BoneId && x.Radius == y.Radius);
+        ListEqual(a.Colliders, b.Colliders, (x, y) => x.BoneId == y.BoneId && x.Radius == y.Radius) &&
+        ListEqual(a.Tethers, b.Tethers, (x, y) =>
+            x.Column == y.Column && x.Row == y.Row && x.BoneId == y.BoneId && x.Radius == y.Radius);
 
     private static bool EffectEqual(XafEffect a, XafEffect b) =>
         a.Id == b.Id && a.BoneId == b.BoneId && a.Transform == b.Transform &&

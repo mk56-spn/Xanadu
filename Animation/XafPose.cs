@@ -10,6 +10,9 @@ public sealed class XafPose
     public XafTransform[] Bones;
     public XafTransform[] Attachments;
 
+    /// <summary>One per attachment: the art, layer and visibility clips key; the default is as authored.</summary>
+    public XafAttachmentState[] AttachmentStates;
+
     /// <summary>One per package effect; empty for a pose built without them.</summary>
     public XafEffectState[] Effects;
 
@@ -17,6 +20,7 @@ public sealed class XafPose
     {
         Bones = new XafTransform[boneCount];
         Attachments = new XafTransform[attachmentCount];
+        AttachmentStates = new XafAttachmentState[attachmentCount];
         Effects = new XafEffectState[effectCount];
     }
 
@@ -25,9 +29,28 @@ public sealed class XafPose
         var pose = new XafPose(Bones.Length, Attachments.Length, Effects.Length);
         Array.Copy(Bones, pose.Bones, Bones.Length);
         Array.Copy(Attachments, pose.Attachments, Attachments.Length);
+        Array.Copy(AttachmentStates, pose.AttachmentStates, AttachmentStates.Length);
         Array.Copy(Effects, pose.Effects, Effects.Length);
         return pose;
     }
+}
+
+/// <summary>
+/// What a clip keys on an attachment besides its transform. The default value
+/// is the attachment as authored: its own art, its own layer, shown.
+/// </summary>
+public struct XafAttachmentState
+{
+    /// <summary>Which art shows; 0 is the attachment's own (see <see cref="XafAttachment.Art"/>).</summary>
+    public int Art;
+
+    /// <summary>Whether a clip has keyed the layer; when not, the attachment's own is used.</summary>
+    public bool HasLayer;
+    public int Layer;
+
+    public bool Hidden;
+
+    public readonly int LayerOf(XafAttachment attachment) => HasLayer ? Layer : attachment.ZOrder;
 }
 
 /// <summary>An effect in one pose: where it is on its bone, how opaque, and whether it shows at all.</summary>
@@ -150,7 +173,10 @@ public static class XafSampler
             else if (channel.Target == XafChannelTarget.Attachment &&
                      attachmentIndices.TryGetValue(channel.TargetId, out int attachment))
             {
-                Apply(ref pose.Attachments[attachment], channel.Property, value);
+                if (IsHeld(channel.Property))
+                    ApplyState(ref pose.AttachmentStates[attachment], channel, time);
+                else
+                    Apply(ref pose.Attachments[attachment], channel.Property, value);
             }
         }
 
@@ -250,6 +276,29 @@ public static class XafSampler
         }
     }
 
+    /// <summary>Properties that switch at their keys rather than blending between them.</summary>
+    public static bool IsHeld(XafChannelProperty property) =>
+        property is XafChannelProperty.Visible or XafChannelProperty.Art or XafChannelProperty.Layer;
+
+    private static void ApplyState(ref XafAttachmentState state, XafChannel channel, float time)
+    {
+        switch (channel.Property)
+        {
+            case XafChannelProperty.Visible:
+                state.Hidden = SampleHeld(channel, time, before: 1f) < 0.5f;
+                break;
+            case XafChannelProperty.Art:
+                state.Art = Math.Max(0, (int)MathF.Round(SampleHeld(channel, time)));
+                break;
+            case XafChannelProperty.Layer:
+                // Before the first key the attachment keeps its own layer.
+                float layer = SampleHeld(channel, time, before: float.NaN);
+                state.HasLayer = !float.IsNaN(layer);
+                state.Layer = state.HasLayer ? (int)MathF.Round(layer) : 0;
+                break;
+        }
+    }
+
     public static bool IsTranslation(XafChannelProperty property) =>
         property is XafChannelProperty.TranslationX or XafChannelProperty.TranslationY;
 
@@ -295,6 +344,11 @@ public static class XafBlend
                 weight);
         for (int i = 0; i < Math.Min(result.Effects.Length, to.Effects.Length); i++)
             result.Effects[i] = Blend(from.Effects[i], to.Effects[i], weight);
+
+        // Art, layer and visibility cannot blend; they switch half way through the fade.
+        if (weight >= 0.5f)
+            Array.Copy(to.AttachmentStates, result.AttachmentStates,
+                Math.Min(result.AttachmentStates.Length, to.AttachmentStates.Length));
         return result;
     }
 

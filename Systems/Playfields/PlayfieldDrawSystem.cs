@@ -26,6 +26,7 @@ public sealed class PlayfieldDrawSystem :
     protected override void OnUpdate()
     {
         _canvas.Clear(_playfield);
+        Vector2 shift = Vector2.Zero;
 
         Query.ForEachEntity((
             ref view,
@@ -46,6 +47,16 @@ public sealed class PlayfieldDrawSystem :
                 Color? background = entity.TryGetComponent(out LevelInfo info)
                     ? info.Background
                     : null;
+
+                // The camera scrolls the whole layer, characters and particles
+                // included; what stays put on screen is drawn inside what it shows.
+                Rect2 frame = PlayfieldRenderer.FieldRect(view, playfield);
+                if (entity.TryGetComponent(out PlayCamera camera))
+                {
+                    shift = camera.Shift.Round();
+                    frame = frame.Intersection(camera.Visible);
+                }
+
                 PlayfieldRenderer.DrawPlay(
                     _canvas,
                     _playfield,
@@ -55,8 +66,12 @@ public sealed class PlayfieldDrawSystem :
                     playhead,
                     shaders.FieldSlot,
                     shaders.PlayerSlot,
-                    background);
+                    background,
+                    shift,
+                    frame);
             }
         });
+
+        _canvas.SetTransform(_playfield, new Transform2D(0f, -shift));
     }
 }

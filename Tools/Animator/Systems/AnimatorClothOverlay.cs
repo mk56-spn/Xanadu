@@ -10,8 +10,9 @@ namespace Xanadu.Tools.Animator.Systems;
 
 /// <summary>
 /// Shows the selected cloth's structure over the preview: its grid, its
-/// pinned points (bright) and free ones (small), and its colliders as capsule
-/// outlines. Brighter while a pick mode waits for clicks, so it is clear what
+/// pinned points (bright), tethered ones (cyan; while pinning, with a line to
+/// their anchor and a ring for their reach), free ones (small), and its
+/// colliders as capsule outlines. Brighter while a pick mode waits for clicks, so it is clear what
 /// a click will do. Nothing is drawn in preview mode.
 /// </summary>
 public sealed class AnimatorClothOverlay(IRectCanvas canvas, Rid target)
@@ -21,6 +22,8 @@ public sealed class AnimatorClothOverlay(IRectCanvas canvas, Rid target)
     private static readonly Color Pinned = Palette.Accent;
     private static readonly Color Collider = new(Palette.Lime, 0.7f);
     private static readonly Color Picking = Palette.Warning;
+    private static readonly Color Tethered = Palette.Cyan;
+    private static readonly Color Reach = new(Palette.Cyan, 0.35f);
 
     public void Draw(Entity session, XafPackage package, Transform2D[] world, Transform2D placement)
     {
@@ -55,12 +58,16 @@ public sealed class AnimatorClothOverlay(IRectCanvas canvas, Rid target)
                 Vector2 at = placement * points[cloth.Index(column, row)];
                 if (cloth.IsPinned(column, row))
                     canvas.DrawCircle(target, at, pinning ? 4.5f : 3.5f, Pinned);
+                else if (cloth.IsTethered(column, row))
+                    canvas.DrawCircle(target, at, pinning ? 4.5f : 3.5f, Tethered);
                 else
                     canvas.DrawCircle(target, at, pinning ? 3f : 1.5f, pinning ? Picking : Free);
             }
         }
 
         float scale = placement.X.Length();
+        if (pinning)
+            DrawTethers(package, cloth, world, placement, points, scale);
         foreach (XafClothCollider collider in cloth.Colliders)
         {
             if (XafClothLayout.Capsule(package, collider, world) is not { } capsule)
@@ -68,6 +75,28 @@ public sealed class AnimatorClothOverlay(IRectCanvas canvas, Rid target)
 
             DrawCapsule(placement * capsule.From, placement * capsule.To, collider.Radius * scale,
                 colliding ? Picking : Collider);
+        }
+    }
+
+    /// <summary>Each tether's anchor on its bone, its reach around that, and a line to the point.</summary>
+    private void DrawTethers(XafPackage package, XafCloth cloth, Transform2D[] world, Transform2D placement,
+        IReadOnlyList<Vector2> points, float scale)
+    {
+        if (cloth.Tethers.Count == 0)
+            return;
+
+        Transform2D[] rest = XafRig.WorldBones(package, XafClothLayout.RestPose(package));
+        Vector2[] laidOut = XafClothLayout.RestPoints(package, cloth, rest);
+        foreach (XafClothTether tether in cloth.Tethers)
+        {
+            int bone = XafRig.FindBone(package, tether.BoneId);
+            int point = cloth.Index(tether.Column, tether.Row);
+            if (bone < 0 || bone >= world.Length || point >= points.Count)
+                continue;
+
+            Vector2 anchor = placement * (world[bone] * (rest[bone].AffineInverse() * laidOut[point]));
+            canvas.DrawCircleOutline(target, anchor, tether.Radius * scale, Reach, 1f, 24);
+            canvas.DrawLine(target, anchor, placement * points[point], Reach, 1f);
         }
     }
 
