@@ -85,7 +85,7 @@ These are the implementation defaults for one press:
    active character's hit shape.
 2. If one or more qualify, hit the nearest/best one.
 3. If no note qualifies, the press may claim an eligible dash or momentum note.
-4. Only one note is claimed per press, except for Armed's same-key swing.
+4. Only one note is claimed per press, except for Armed's same-timestamp swing.
 5. A pair note is judged once. Either side can claim it; if both are pressed at
    once, the first claim wins and the other press is a separate input.
 
@@ -238,9 +238,7 @@ index, barrier = side.
 - A press must match a note's key, as normal. That matching note must be inside
   the current weapon's hitbox; it is the first hit.
 - The swing then also hits every other note at the **same authored timestamp**
-  that is inside the weapon hitbox **and matches the same press** (the same key,
-  or the same pair index for pair notes). A swing never steals another key's
-  note.
+  that is inside the weapon hitbox. Their keys do not need to match.
 - Notes at that timestamp outside the hitbox are missed.
 - One press is one swing.
 - The swing uses the character's facing direction.
@@ -365,7 +363,7 @@ shape and the survival problem the shape solves.
 | Rail tap/hold | side key | rail | yes | no |
 | Construction step | authored key | standard | yes per step | no |
 
-- Only one note per press, except Armed's same-key swing.
+- Only one note per press, except Armed's same-timestamp swing.
 - Any-key notes are claimed only if the press did not hit a note.
 
 ### 4.2 Failure and death
