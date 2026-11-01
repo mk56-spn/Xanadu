@@ -56,8 +56,8 @@ public sealed partial class EditorPlayfieldDrawSystem
                 continue;
 
             Color color = tinted
-                ? new GroupColor(mix, coverage).Apply(PlayfieldRenderer.ColorFor(note))
-                : PlayfieldRenderer.ColorFor(note);
+                ? new GroupColor(mix, coverage).Apply(SelfModulate.For(entity, PlayfieldRenderer.ColorFor(note)))
+                : SelfModulate.For(entity, PlayfieldRenderer.ColorFor(note));
             float groupAlpha = color.A;
             color.A = fade * 0.55f * groupAlpha;
             Vector2 baseCenter = view.PlayfieldToScreen(note.Position);
@@ -104,8 +104,8 @@ public sealed partial class EditorPlayfieldDrawSystem
                 continue;
 
             Color color = tinted
-                ? new GroupColor(mix, coverage).Apply(new Color(1f, 0.22f, 0.16f))
-                : new Color(1f, 0.22f, 0.16f);
+                ? new GroupColor(mix, coverage).Apply(SelfModulate.For(entity, new Color(1f, 0.22f, 0.16f)))
+                : SelfModulate.For(entity, new Color(1f, 0.22f, 0.16f));
             float groupAlpha = color.A;
             color.A = fade * 0.65f * groupAlpha;
             Vector2 center = view.PlayfieldToScreen(mine.Position);
@@ -149,8 +149,8 @@ public sealed partial class EditorPlayfieldDrawSystem
                 continue;
 
             Color edge = tinted
-                ? new GroupColor(mix, coverage).Apply(PlayfieldRenderer.BlockEdge)
-                : PlayfieldRenderer.BlockEdge;
+                ? new GroupColor(mix, coverage).Apply(SelfModulate.For(entity, PlayfieldRenderer.BlockEdge))
+                : SelfModulate.For(entity, PlayfieldRenderer.BlockEdge);
             float groupAlpha = edge.A;
             edge.A = 0.7f * groupAlpha;
             var screen = new Rect2(
@@ -161,7 +161,7 @@ public sealed partial class EditorPlayfieldDrawSystem
             _canvas.DrawRect(
                 _editor,
                 screen.Grow(-2),
-                new Color(PlayfieldRenderer.BlockFill.R, PlayfieldRenderer.BlockFill.G, PlayfieldRenderer.BlockFill.B, 0.16f));
+                new Color(SelfModulate.For(entity, PlayfieldRenderer.BlockFill), 0.16f));
         }
     }
 

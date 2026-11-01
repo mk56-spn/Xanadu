@@ -8,7 +8,7 @@ public static class EditorItems
 {
     public static Entity Create<T>(EntityStore entities, T component)
         where T : struct, IComponent =>
-        entities.CreateEntity(component, Tags.Get<EditorItem>());
+        entities.CreateEntity(component, new SelfModulate(Colors.White), Tags.Get<EditorItem>());
 
     /// <summary>
     /// Creates an item that already carries its shader. Adding the component
@@ -30,11 +30,11 @@ public static class EditorItems
         bool hasCommon = !string.IsNullOrEmpty(commonShaderPath);
 
         if (hasSlot && hasCommon)
-            return entities.CreateEntity(component, new ItemShader(shaderSlot), new ItemCommonShader(commonShaderPath), Tags.Get<EditorItem>());
+            return entities.CreateEntity(component, new ItemShader(shaderSlot), new ItemCommonShader(commonShaderPath), new SelfModulate(Colors.White), Tags.Get<EditorItem>());
         if (hasSlot)
-            return entities.CreateEntity(component, new ItemShader(shaderSlot), Tags.Get<EditorItem>());
+            return entities.CreateEntity(component, new ItemShader(shaderSlot), new SelfModulate(Colors.White), Tags.Get<EditorItem>());
         if (hasCommon)
-            return entities.CreateEntity(component, new ItemCommonShader(commonShaderPath), Tags.Get<EditorItem>());
+            return entities.CreateEntity(component, new ItemCommonShader(commonShaderPath), new SelfModulate(Colors.White), Tags.Get<EditorItem>());
         return Create(entities, component);
     }
 

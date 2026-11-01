@@ -62,6 +62,7 @@ public static class LevelDocumentMapper
                 HoldMs = note.HoldMs,
                 ShapeId = note.ShapeId,
                 ShapePiece = note.ShapePiece,
+                SelfModulate = SelfModulate.Packed(entity),
                 Groups = GroupsOf(entity),
                 Item = Xif.FromEcs(ItemShader.Of(entity), ItemCommonShader.Of(entity)),
             });
@@ -79,6 +80,7 @@ public static class LevelDocumentMapper
                 Y = mine.Position.Y,
                 FadeInMs = mine.FadeInMs,
                 FadeOutMs = mine.FadeOutMs,
+                SelfModulate = SelfModulate.Packed(entity),
                 Groups = GroupsOf(entity),
                 Shader = ItemShader.Of(entity),
             });
@@ -116,6 +118,7 @@ public static class LevelDocumentMapper
                 Height = block.Size.Y,
                 ShapeId = block.ShapeId,
                 ShapePiece = block.ShapePiece,
+                SelfModulate = SelfModulate.Packed(entity),
                 Groups = GroupsOf(entity),
                 Shader = ItemShader.Of(entity),
             });
@@ -136,6 +139,7 @@ public static class LevelDocumentMapper
                 Y = spike.Position.Y,
                 Width = spike.Size.X,
                 Height = spike.Size.Y,
+                SelfModulate = SelfModulate.Packed(entity),
                 Groups = GroupsOf(entity),
                 Shader = ItemShader.Of(entity),
             });
@@ -188,6 +192,7 @@ public static class LevelDocumentMapper
                 note.ShapeId,
                 note.ShapePiece), note.Item?.PrimaryShader ?? 0, note.Item?.PrimaryCommonShader ?? "");
             Subscribe(created, note.Groups);
+            SelfModulate.Put(created, note.SelfModulate);
         }
 
         foreach (Entity entity in entities.Query<StartPoint>().ToEntityList())
@@ -216,6 +221,7 @@ public static class LevelDocumentMapper
                 mine.FadeInMs,
                 mine.FadeOutMs), mine.Shader);
             Subscribe(created, mine.Groups);
+            SelfModulate.Put(created, mine.SelfModulate);
         }
 
         foreach (Entity entity in entities.Query<Block>().ToEntityList())
@@ -231,6 +237,7 @@ public static class LevelDocumentMapper
             if (block.ShapeId > 0)
                 created.AddTag<ConstructionHidden>();
             Subscribe(created, block.Groups);
+            SelfModulate.Put(created, block.SelfModulate);
         }
 
         foreach (Entity entity in entities.Query<Spike>().ToEntityList())
@@ -242,6 +249,7 @@ public static class LevelDocumentMapper
                 new Vector2(spike.X, spike.Y),
                 new Vector2(spike.Width, spike.Height)), spike.Shader);
             Subscribe(created, spike.Groups);
+            SelfModulate.Put(created, spike.SelfModulate);
         }
 
         SongDocument? song = string.IsNullOrWhiteSpace(document.SongId)

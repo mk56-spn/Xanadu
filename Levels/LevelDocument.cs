@@ -113,6 +113,9 @@ public sealed class GroupEffectDocument
 /// <summary>Serializable collidable block data.</summary>
 public sealed class BlockDocument
 {
+    /// <summary>The colour its drawing is multiplied by, as RGBA8; white changes nothing.</summary>
+    public uint SelfModulate { get; set; } = Xanadu.Ecs.SelfModulate.White;
+
     /// <summary>The groups this block belongs to.</summary>
     public List<int> Groups { get; set; } = new();
 
@@ -137,6 +140,9 @@ public sealed class BlockDocument
 /// <summary>Serializable spike tile data: a hazard that kills on contact.</summary>
 public sealed class SpikeDocument
 {
+    /// <summary>The colour its drawing is multiplied by, as RGBA8; white changes nothing.</summary>
+    public uint SelfModulate { get; set; } = Xanadu.Ecs.SelfModulate.White;
+
     /// <summary>The groups this spike belongs to.</summary>
     public List<int> Groups { get; set; } = new();
 
@@ -178,6 +184,9 @@ public sealed class StartPointDocument
 /// <summary>Serializable mine hazard data.</summary>
 public sealed class MineDocument
 {
+    /// <summary>The colour its drawing is multiplied by, as RGBA8; white changes nothing.</summary>
+    public uint SelfModulate { get; set; } = Xanadu.Ecs.SelfModulate.White;
+
     /// <summary>The groups this mine belongs to.</summary>
     public List<int> Groups { get; set; } = new();
 
@@ -198,6 +207,9 @@ public sealed class MineDocument
 /// <summary>Serializable note data.</summary>
 public sealed class NoteDocument
 {
+    /// <summary>The colour its drawing is multiplied by, as RGBA8; white changes nothing.</summary>
+    public uint SelfModulate { get; set; } = Xanadu.Ecs.SelfModulate.White;
+
     /// <summary>The groups this note belongs to.</summary>
     public List<int> Groups { get; set; } = new();
 

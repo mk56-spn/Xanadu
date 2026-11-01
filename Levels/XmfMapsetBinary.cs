@@ -34,6 +34,9 @@ public static partial class XmfBinary
 
         /// <summary>Optional Form shape references on blocks.</summary>
         BlockExtras = 6,
+
+        /// <summary>Optional item colours, absent when every item is untinted.</summary>
+        SelfModulates = 7,
     }
 
     public static void SaveMapset(string path, XmfMapset mapset)
@@ -62,6 +65,8 @@ public static partial class XmfBinary
             file.Add((uint)MapsetChunkId.NoteExtras, WriteVariantNoteExtras(mapset.Variants));
         if (mapset.Variants.Exists(variant => HasBlockExtras(variant.Blocks)))
             file.Add((uint)MapsetChunkId.BlockExtras, WriteVariantBlockExtras(mapset.Variants));
+        if (mapset.Variants.Exists(HasSelfModulates))
+            file.Add((uint)MapsetChunkId.SelfModulates, WriteVariantSelfModulates(mapset.Variants));
         return file.ToArray();
     }
 
@@ -91,6 +96,8 @@ public static partial class XmfBinary
             ReadVariantNoteExtras(noteExtras, mapset.Variants);
         if (file.TryGet((uint)MapsetChunkId.BlockExtras, out Chunk blockExtras))
             ReadVariantBlockExtras(blockExtras, mapset.Variants);
+        if (file.TryGet((uint)MapsetChunkId.SelfModulates, out Chunk selfModulates))
+            ReadVariantSelfModulates(selfModulates, mapset.Variants);
         return mapset;
     }
 
@@ -294,6 +301,27 @@ public static partial class XmfBinary
                 variant.Notes[i].ShapePiece = shapePiece;
             }
         }
+    }
+
+    private static byte[] WriteVariantSelfModulates(List<XmfVariant> variants)
+    {
+        using var stream = new MemoryStream();
+        using var writer = new BinaryWriter(stream, Encoding.UTF8, leaveOpen: true);
+        writer.Write((uint)variants.Count);
+        foreach (XmfVariant variant in variants)
+            WriteSelfModulates(writer, variant);
+        writer.Flush();
+        return stream.ToArray();
+    }
+
+    private static void ReadVariantSelfModulates(Chunk chunk, List<XmfVariant> variants)
+    {
+        using BinaryReader reader = chunk.OpenReader();
+        uint count = ReadCount(reader, MaxItems, "variant self modulate");
+        if (count != variants.Count)
+            throw new FormatException("XMF variant self modulates do not match the variant count.");
+        foreach (XmfVariant variant in variants)
+            ReadSelfModulates(reader, variant);
     }
 
     private static byte[] WriteVariantBlockExtras(List<XmfVariant> variants)

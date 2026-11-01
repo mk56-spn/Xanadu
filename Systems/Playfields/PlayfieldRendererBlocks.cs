@@ -9,7 +9,7 @@ namespace Xanadu.Systems.Playfields;
 /// <summary>Draws collidable blocks in both editor and play modes.</summary>
 public static partial class PlayfieldRenderer
 {
-    public static readonly Color BlockFill = Palette.SurfaceDisabled;
+    public static readonly Color BlockFill = Colors.White;
     public static readonly Color BlockEdge = Palette.BorderStrong;
     public static readonly Color BlockSelectedEdge = Palette.Accent;
 

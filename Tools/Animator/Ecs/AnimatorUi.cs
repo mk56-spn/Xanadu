@@ -7,6 +7,9 @@ namespace Xanadu.Tools.Animator;
 public struct AnimatorUi : IComponent
 {
     public Entity Status;
+
+    /// <summary>The selected attachment's self modulate.</summary>
+    public Entity ModulateField;
     public Entity Preview;
 
     /// <summary>

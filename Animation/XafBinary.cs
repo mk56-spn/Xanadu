@@ -27,6 +27,7 @@ public static class XafBinary
 		Cloths = 8,
 		Events = 9,
 		AttachmentExtras = 10,
+		AttachmentModulates = 11,
 	}
 
 	public static void Save(string path, XafPackage package)
@@ -69,6 +70,8 @@ public static class XafBinary
 			file.Add((uint)ChunkId.Events, XafExtrasBinary.WriteEvents(package.Clips, strings));
 			file.Add((uint)ChunkId.AttachmentExtras, XafExtrasBinary.WriteAttachments(package.Attachments, strings));
 		}
+		if (minor >= 10)
+			file.Add((uint)ChunkId.AttachmentModulates, XafExtrasBinary.WriteModulates(package.Attachments));
 		return file.ToArray();
 	}
 
@@ -114,6 +117,8 @@ public static class XafBinary
 			XafExtrasBinary.ReadEvents(file.Get((uint)ChunkId.Events, Format), strings, package.Clips);
 			XafExtrasBinary.ReadAttachments(file.Get((uint)ChunkId.AttachmentExtras, Format), strings, package.Attachments);
 		}
+		if (file.Minor >= 10)
+			XafExtrasBinary.ReadModulates(file.Get((uint)ChunkId.AttachmentModulates, Format), package.Attachments);
 		XafValidation.ThrowIfInvalid(package);
 		return package;
 	}

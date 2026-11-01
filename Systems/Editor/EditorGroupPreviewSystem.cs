@@ -124,11 +124,11 @@ public sealed class EditorGroupPreviewSystem :
                 ? Vector2.Zero
                 : GroupModulation.Offset(groups, mask, seconds);
             Color edge = inSolo
-                ? Tint(groups, mask, seconds, PlayfieldRenderer.BlockEdge)
-                : PlayfieldRenderer.BlockEdge;
+                ? Tint(groups, mask, seconds, SelfModulate.For(entity, PlayfieldRenderer.BlockEdge))
+                : SelfModulate.For(entity, PlayfieldRenderer.BlockEdge);
             Color fill = inSolo
-                ? Tint(groups, mask, seconds, PlayfieldRenderer.BlockFill)
-                : PlayfieldRenderer.BlockFill;
+                ? Tint(groups, mask, seconds, SelfModulate.For(entity, PlayfieldRenderer.BlockFill))
+                : SelfModulate.For(entity, PlayfieldRenderer.BlockFill);
             float alpha = inSolo ? 1f : 0.28f;
             edge.A *= alpha;
             fill.A *= alpha;
@@ -163,8 +163,8 @@ public sealed class EditorGroupPreviewSystem :
                 ? Vector2.Zero
                 : GroupModulation.Offset(groups, mask, seconds);
             Color color = inSolo
-                ? Tint(groups, mask, seconds, PlayfieldRenderer.ColorFor(note))
-                : PlayfieldRenderer.ColorFor(note);
+                ? Tint(groups, mask, seconds, SelfModulate.For(entity, PlayfieldRenderer.ColorFor(note)))
+                : SelfModulate.For(entity, PlayfieldRenderer.ColorFor(note));
             float groupAlpha = color.A;
             color.A = fade * (inSolo ? 0.9f : 0.25f) * groupAlpha;
             Vector2 center = view.PlayfieldToScreen(note.Position + offset);
@@ -199,8 +199,8 @@ public sealed class EditorGroupPreviewSystem :
                 ? Vector2.Zero
                 : GroupModulation.Offset(groups, mask, seconds);
             Color color = inSolo
-                ? Tint(groups, mask, seconds, new Color(1f, 0.22f, 0.16f))
-                : new Color(1f, 0.22f, 0.16f);
+                ? Tint(groups, mask, seconds, SelfModulate.For(entity, new Color(1f, 0.22f, 0.16f)))
+                : SelfModulate.For(entity, new Color(1f, 0.22f, 0.16f));
             float groupAlpha = color.A;
             color.A = fade * (inSolo ? 0.9f : 0.25f) * groupAlpha;
             Vector2 center = view.PlayfieldToScreen(mine.Position + offset);

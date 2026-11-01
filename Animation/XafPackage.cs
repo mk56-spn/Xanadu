@@ -9,7 +9,7 @@ namespace Xanadu.Animation;
 public sealed class XafPackage
 {
     public const ushort MajorVersion = 1;
-    public const ushort MinorVersion = 9;
+    public const ushort MinorVersion = 10;
 
     public ushort Major = MajorVersion;
     public ushort Minor = MinorVersion;
@@ -87,6 +87,9 @@ public sealed class XafAttachment
     public string BoneId = "";
     public Transform2D Transform = Transform2D.Identity;
     public int ZOrder;
+
+    /// <summary>The colour its art is multiplied by; white changes nothing.</summary>
+    public Color SelfModulate = Colors.White;
 
     /// <summary>
     /// Other art the attachment can show instead, such as a fist for an open
