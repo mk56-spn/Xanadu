@@ -329,7 +329,9 @@ public partial class VisualTestMain : Control
             $"{test.Name} selected. Press again to run.",
             Palette.TextMuted);
         _sidebar?.SetDetail(
-            ["Selected. Press the row again or press R to run it."]);
+            [new VisualTestDetailLine(
+                "Selected. Press the row again or press R to run it.",
+                Palette.TextDim)]);
     }
 
     private void RunTest(int index)
@@ -475,37 +477,48 @@ public partial class VisualTestMain : Control
         if (test is null)
             return;
 
-        var lines = new List<string>
+        var lines = new List<VisualTestDetailLine>
         {
-            test.Name,
-            "",
+            new(test.Name, Palette.Text),
+            new("", Palette.TextDim),
         };
 
+        int focus = -1;
         foreach (SceneTestStep step in test.Steps)
         {
-            string marker = step.State switch
-            {
-                SceneTestStepState.Running => ">",
-                SceneTestStepState.Passed => "[x]",
-                SceneTestStepState.Failed => "[!]",
-                _ => "[ ]",
-            };
-            lines.Add($"{marker} {step.Description}");
+            // The first unfinished step, so the view holds still between two steps.
+            if (focus < 0 && step.State != SceneTestStepState.Passed)
+                focus = lines.Count;
+
+            lines.Add(new VisualTestDetailLine(step.Description, StepColor(step.State)));
         }
 
+        lines.Add(new VisualTestDetailLine("", Palette.TextDim));
         if (_runner.Result is { } result)
         {
-            lines.Add("");
-            lines.Add($"{(result.Passed ? "PASS" : "FAIL")}  {result.Message}");
+            lines.Add(new VisualTestDetailLine(
+                $"{(result.Passed ? "PASS" : "FAIL")}  {result.Message}",
+                result.Passed ? Palette.SuccessBright : Palette.Danger));
+
+            if (result.Passed)
+                focus = lines.Count - 1;
         }
         else
         {
-            lines.Add("");
-            lines.Add("RUNNING...");
+            lines.Add(new VisualTestDetailLine("RUNNING...", Palette.Accent));
         }
 
-        _sidebar.SetDetail(lines);
+        _sidebar.SetDetail(lines, focus);
     }
+
+    /// <summary>A check stays grey until it passes, the same colours as the test rows.</summary>
+    private static Color StepColor(SceneTestStepState state) => state switch
+    {
+        SceneTestStepState.Running => Palette.Accent,
+        SceneTestStepState.Passed => Palette.SuccessBright,
+        SceneTestStepState.Failed => Palette.Danger,
+        _ => Palette.TextDim,
+    };
 
     private void CloseTestOverlays()
     {

@@ -23,9 +23,6 @@ public static class UiLayers
 
     public const int PlayHud = 900;
 
-    /// <summary>The visual test harness, which sits beside the scene it tests.</summary>
-    public const int VisualTestSidebar = 900;
-
     // Editor, in the order its panels stack.
     public const int EditorSidebar = 941;
     public const int EditorChrome = 960;
@@ -53,6 +50,9 @@ public static class UiLayers
 
     /// <summary>The fade between scenes covers everything but the debug views.</summary>
     public const int SceneTransition = 1000;
+
+    /// <summary>The visual test harness, above any scene panel that reaches under it.</summary>
+    public const int VisualTestSidebar = 1001;
 
     // Debug views. The pressed overlay and the UI tree overlay share a value.
     public const int DebugPressed = 1002;
