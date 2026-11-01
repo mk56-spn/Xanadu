@@ -9,8 +9,9 @@ or an agent can look at it — see [Capturing](#capturing).
 
 ## How it is built
 
-- The sidebar is ECS UI, like the rest of the project: a title, `RUN ALL`, one
-  row per test and the current test's steps. No Godot widget is created.
+- The sidebar is ECS UI, like the rest of the project: a title, `RUN ALL`, then
+  two scroll views, one row per test and the current test's steps. A step is grey
+  until it passes and turns green. No Godot widget is created.
 - The pane beside it is a `Node2D` host offset by the sidebar width, so the
   scene renders in the main viewport next to the sidebar.
 - Everything is authored at 1920x1080 and `project.godot` scales the whole

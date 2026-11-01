@@ -31,10 +31,13 @@ public enum VisualTestActionKind
 /// <summary>One click, queued for the harness to handle next frame.</summary>
 public readonly record struct VisualTestAction(VisualTestActionKind Kind, int Index);
 
+/// <summary>One line of the detail block, in the colour of what it reports.</summary>
+public readonly record struct VisualTestDetailLine(string Text, Color Color);
+
 /// <summary>
 /// The scene-test browser, built as an ECS UI tree like everything else: a
-/// title, a run-all button, one row per test and a detail block for the current
-/// test's steps. The host Control's canvas item is the only Godot UI surface it
+/// title, a run-all button, then two scroll views stacked so they cannot overlap,
+/// one with a row per test and one with the current test's steps. The host Control's canvas item is the only Godot UI surface it
 /// touches, and no Godot widget is created.
 /// </summary>
 public sealed class VisualTestSidebar : IDisposable
@@ -46,33 +49,35 @@ public sealed class VisualTestSidebar : IDisposable
     /// <summary>Width of the list down the left of the window.</summary>
     public const float SidebarWidth = 340;
 
-    private const float Padding = 16;
+    private const float Padding = UiMetrics.Space.Lg;
     private const float ContentWidth = SidebarWidth - Padding * 2;
-    private const float RowsTop = 108;
-    private const float RowPitch = 28;
-    private const float RowHeight = 24;
+    private const float RowHeight = UiMetrics.Control.Xs;
+    private const float RowGap = UiMetrics.Space.Xs;
+    private const float RowPitch = RowHeight + RowGap;
     private const float ArrowWidth = 26;
-    private const float NameWidth = ContentWidth - ArrowWidth - 4;
-    private const float DetailTop = RowsTop + 20 * RowPitch;
-    private const int DetailLines = 16;
-    private const float DetailPitch = 15;
-
-    private static readonly Color Clear = new(0, 0, 0, 0);
+    private const float NameWidth = ContentWidth - ArrowWidth - RowGap;
+    private const float ListHeight = 16 * RowPitch;
+    private const float DetailHeight = 460;
+    private const float DetailPitch = UiMetrics.Space.Lg;
 
     private readonly IReadOnlyList<SceneTest> _tests;
     private readonly VisualTestStatus[] _statuses;
     private readonly Entity[] _rows;
     private readonly Entity[] _arrows;
-    private readonly Entity[] _detail;
+    private readonly List<UiNode> _detail = new();
+    private readonly Dictionary<string, List<string>> _wrapped = new();
     private readonly EntityStore _store = new();
     private readonly SystemRoot _root;
-    private readonly UiBuilder _ui;
     private readonly GodotPointerInputSource _pointer;
     private readonly SidebarCommands _commands = new();
 
     private Entity _summary;
     private Entity _runAll;
+    private Entity _listView;
+    private Entity _detailView;
+    private UiNode _detailContent;
     private int _selected = -1;
+    private int _detailFocus = -1;
 
     public VisualTestSidebar(Control host, IReadOnlyList<SceneTest> tests)
     {
@@ -80,7 +85,6 @@ public sealed class VisualTestSidebar : IDisposable
         _statuses = new VisualTestStatus[tests.Count];
         _rows = new Entity[tests.Count];
         _arrows = new Entity[tests.Count];
-        _detail = new Entity[DetailLines];
 
         _pointer = new GodotPointerInputSource(host);
         _root = new SystemRoot(_store);
@@ -94,13 +98,19 @@ public sealed class VisualTestSidebar : IDisposable
             wheel: _pointer));
         _root.Add(_commands);
 
-        _ui = UiBuilder.Begin(_store).Layer(UiLayers.VisualTestSidebar);
         Entity root = _store.CreateEntity();
-        root.AddChild(_ui.Current);
+        UiNode panel = UiNode.Layer(_store, root, UiLayers.VisualTestSidebar)
+            .Column()
+            .Box(new Rect2(0, 0, SidebarWidth, DesignHeight))
+            .Fill(Palette.Background)
+            .Pad(Padding)
+            .Gap(UiMetrics.Space.Sm)
+            .Main(StackMainAlignment.Start)
+            .Cross(StackCrossAlignment.Start);
 
-        BuildChrome();
-        BuildRows();
-        BuildDetail();
+        BuildChrome(panel);
+        BuildRows(panel);
+        BuildDetail(panel);
         RefreshRows();
     }
 
@@ -147,7 +157,10 @@ public sealed class VisualTestSidebar : IDisposable
             RefreshRow(previous);
 
         if (index >= 0)
+        {
             RefreshRow(index);
+            KeepRowInView(index);
+        }
     }
 
     /// <summary>Disables every control while a suite walks the tests.</summary>
@@ -162,54 +175,116 @@ public sealed class VisualTestSidebar : IDisposable
         }
     }
 
-    /// <summary>The current test's steps, one line each; extra lines are cleared.</summary>
-    public void SetDetail(IReadOnlyList<string> lines)
+    /// <summary>
+    /// The current test's steps; long lines wrap and extra lines are hidden. When
+    /// <paramref name="focus"/> moves, the view follows it, so a running step is
+    /// on screen while the wheel stays free between steps.
+    /// </summary>
+    public void SetDetail(IReadOnlyList<VisualTestDetailLine> lines, int focus = -1)
     {
-        for (int i = 0; i < _detail.Length; i++)
-            UiText.Set(_detail[i], i < lines.Count ? lines[i] : "");
+        int shown = 0;
+        float focusTop = 0;
+
+        for (int i = 0; i < lines.Count; i++)
+        {
+            if (i == focus)
+                focusTop = shown * DetailPitch;
+
+            foreach (string text in Wrapped(lines[i].Text))
+                ShowDetailLine(shown++, text, lines[i].Color);
+        }
+
+        for (int i = shown; i < _detail.Count; i++)
+        {
+            if (!UiLayout.IsHidden(_detail[i]))
+                UiLayout.SetHidden(_detail[i], true);
+        }
+
+        if (focus != _detailFocus)
+        {
+            _detailFocus = focus;
+            _detailView.GetComponent<ScrollView>().Offset =
+                focus < 0 ? 0 : focusTop - DetailHeight / 2;
+        }
     }
 
-    private void BuildChrome()
+    private void BuildChrome(UiNode panel)
     {
-        Rect(0, 0, SidebarWidth, DesignHeight, Palette.Background);
-        Text(Padding, 12, ContentWidth, 26, "SCENE TESTS", 20, Palette.Accent);
+        panel.Text("SCENE TESTS", UiType.Section, Palette.Accent);
 
-        _runAll = Button(
-            Padding, 44, ContentWidth, 30,
-            "RUN ALL", 14, Palette.Text, Palette.Primary,
-            new VisualTestCommand(VisualTestActionKind.RunAll, -1));
+        _runAll = Button(panel, ContentWidth, "RUN ALL", Palette.Text, Palette.Primary)
+            .Height(UiMetrics.Control.Sm)
+            .With(new VisualTestCommand(VisualTestActionKind.RunAll, -1));
 
-        _summary = Text(Padding, 80, ContentWidth, 18, "Ready.", 12, Palette.TextDim);
+        _summary = panel.Text("Ready.", UiType.Caption, Palette.TextDim).Width(ContentWidth);
     }
 
-    private void BuildRows()
+    private void BuildRows(UiNode panel)
     {
+        float contentHeight = _tests.Count * RowPitch - RowGap;
+        _listView = panel.Scroll(new Vector2(ContentWidth, ListHeight), contentHeight, out UiNode content);
+        content.IgnoreLayout().Gap(RowGap).Main(StackMainAlignment.Start);
+
         for (int i = 0; i < _tests.Count; i++)
         {
-            float y = RowsTop + i * RowPitch;
-            _arrows[i] = Button(
-                Padding, y, ArrowWidth, RowHeight,
-                "▶", 13, Palette.SuccessBright, Palette.Surface,
-                new VisualTestCommand(VisualTestActionKind.Run, i));
-            _rows[i] = Button(
-                Padding + ArrowWidth + 4, y, NameWidth, RowHeight,
-                _tests[i].Name, 13, Palette.TextMuted, Palette.Surface,
-                new VisualTestCommand(VisualTestActionKind.Select, i));
+            UiNode row = content.Row().Gap(RowGap);
+            _arrows[i] = Button(row, ArrowWidth, "▶", Palette.SuccessBright, Palette.Surface)
+                .With(new VisualTestCommand(VisualTestActionKind.Run, i));
+            _rows[i] = Button(row, NameWidth, _tests[i].Name, Palette.TextMuted, Palette.Surface)
+                .With(new VisualTestCommand(VisualTestActionKind.Select, i))
+                .Tooltip(_tests[i].Name);
         }
     }
 
-    private void BuildDetail()
+    private void BuildDetail(UiNode panel)
     {
-        float top = RowsTop + _tests.Count * RowPitch + 16;
-        top = Mathf.Min(top, DetailTop);
-        Text(Padding, top, ContentWidth, 16, "DETAIL", 11, Palette.TextDim);
+        panel.Text("DETAIL", UiType.Caption, Palette.TextDim);
 
-        for (int i = 0; i < DetailLines; i++)
+        _detailView = panel.Scroll(new Vector2(ContentWidth, DetailHeight), 0, out _detailContent);
+        _detailContent
+            .IgnoreLayout()
+            .AutoHeight()
+            .Gap(0)
+            .Main(StackMainAlignment.Start)
+            .Cross(StackCrossAlignment.Start);
+    }
+
+    private void ShowDetailLine(int index, string text, Color color)
+    {
+        while (_detail.Count <= index)
         {
-            _detail[i] = Text(
-                Padding, top + 18 + i * DetailPitch, ContentWidth, DetailPitch,
-                "", 11, Palette.TextDim);
+            _detail.Add(_detailContent
+                .Text("", UiType.Caption, UiTheme.Text)
+                .Size(ContentWidth, DetailPitch));
         }
+
+        Entity line = _detail[index];
+        if (UiLayout.IsHidden(line))
+            UiLayout.SetHidden(line, false);
+
+        UiText.Set(line, text);
+        SetTextColor(line, color);
+    }
+
+    /// <summary>The lines a text wraps to. Cached, as steps are redrawn every frame of a run.</summary>
+    private List<string> Wrapped(string text)
+    {
+        if (_wrapped.TryGetValue(text, out List<string>? lines))
+            return lines;
+
+        lines = text.Length == 0 ? [""] : UiTextFit.Wrap(text, UiType.Caption, ContentWidth);
+        _wrapped[text] = lines;
+        return lines;
+    }
+
+    private void KeepRowInView(int index)
+    {
+        ref ScrollView view = ref _listView.GetComponent<ScrollView>();
+        float top = index * RowPitch;
+        if (top < view.Offset)
+            view.Offset = top;
+        else if (top + RowHeight > view.Offset + ListHeight)
+            view.Offset = top + RowHeight - ListHeight;
     }
 
     private void RefreshRows()
@@ -229,7 +304,9 @@ public sealed class VisualTestSidebar : IDisposable
         };
 
         string selected = index == _selected ? ">" : " ";
-        UiText.Set(_rows[index], $"{marker}{selected} {_tests[index].Name}");
+        UiText.Set(
+            _rows[index],
+            UiTextFit.Cut($"{marker}{selected} {_tests[index].Name}", UiType.Caption, NameWidth));
 
         SetTextColor(_rows[index], _statuses[index] switch
         {
@@ -247,6 +324,9 @@ public sealed class VisualTestSidebar : IDisposable
     private static void SetTextColor(Entity entity, Color color)
     {
         ref TextStyle style = ref entity.GetComponent<TextStyle>();
+        if (style.Color == color)
+            return;
+
         style.Color = color;
         entity.AddTag<Dirty>();
     }
@@ -262,57 +342,11 @@ public sealed class VisualTestSidebar : IDisposable
         entity.AddTag<Dirty>();
     }
 
-    private Entity Text(
-        float x,
-        float y,
-        float width,
-        float height,
-        string text,
-        int fontSize,
-        Color color)
-    {
-        Entity entity = _ui.RectEntity(
-            Center(x, y, width, height),
-            new Vector2(width, height),
-            Clear,
-            text);
-        entity.AddComponent(new TextStyle(fontSize, color));
-        entity.AddComponent(new TextAlignment(TextAlign.Left));
-        return entity;
-    }
-
-    private Entity Button(
-        float x,
-        float y,
-        float width,
-        float height,
-        string text,
-        int fontSize,
-        Color textColor,
-        Color fill,
-        VisualTestCommand command)
-    {
-        Entity entity = _ui.RectEntity(
-            Center(x, y, width, height),
-            new Vector2(width, height),
-            fill,
-            text,
-            takesInput: true);
-        entity.AddComponent(new TextStyle(fontSize, textColor));
-        entity.AddComponent(new TextAlignment(TextAlign.Left));
-        entity.AddComponent(ButtonVisual.Create(fill));
-        entity.AddComponent(command);
-        return entity;
-    }
-
-    private void Rect(float x, float y, float width, float height, Color color) =>
-        _ui.RectEntity(
-            Center(x, y, width, height),
-            new Vector2(width, height),
-            color);
-
-    private static Vector2 Center(float x, float y, float width, float height) =>
-        new(x + width / 2, y + height / 2);
+    private static UiNode Button(UiNode parent, float width, string text, Color textColor, Color fill) =>
+        parent.Button(text, UiType.Caption, fill)
+            .Size(width, RowHeight)
+            .TextColor(textColor)
+            .Align(TextAlign.Left);
 
     public void Dispose()
     {
