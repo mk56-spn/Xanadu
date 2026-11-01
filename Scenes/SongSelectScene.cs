@@ -26,11 +26,8 @@ public static partial class SongSelectScene
         IVisualRidFactory? visuals = null)
     {
         UiNode ui = UiNode.Layer(
-            entities, root, SceneUi.MenuLayer, visuals, UiStage.Full);
+            entities, root, UiLayers.Menu, visuals, UiStage.Full);
         bool loadAssets = visuals is GodotVisualRidFactory;
-
-        Entity background = ui.Rect(SceneUi.BackgroundColor).Cover().Below().Entity;
-        ApplyBackgroundShader(background, loadAssets);
 
         BuildChrome(ui, loadAssets);
 

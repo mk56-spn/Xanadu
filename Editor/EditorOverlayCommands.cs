@@ -71,11 +71,17 @@ public partial class EditorOverlay : CanvasLayer
     /// <summary>Opens the real play scene on the current level, from a start point.</summary>
     private void StartPreview()
     {
-        if (_editor.IsNull || _onPreview is null || !ValidateCurrent())
+        if (_editor.IsNull || _onPreview is null)
+            return;
+
+        // Preview rebuilds the editor from its in-memory level when it returns.
+        // Saving first makes that copy the clean state, so the autosave file is
+        // cleared instead of being offered back as a recovery on every preview.
+        if (!SaveCurrent(out string path))
             return;
 
         LevelDocument document = LevelDocumentMapper.Capture(_entities, _editor);
         long playheadMs = _editor.GetComponent<Playhead>().TimeMs;
-        _onPreview(document, CurrentLevelPath(), playheadMs);
+        _onPreview(document, path, playheadMs);
     }
 }

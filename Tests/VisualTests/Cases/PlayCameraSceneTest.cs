@@ -24,7 +24,7 @@ public sealed class PlayCameraSceneTest : SceneTest
         AddStep("open a 5000-unit play scene", OpenPlay);
         AddUntilStep(
             "wait for play HUD",
-            () => VisualAssert.IsSceneReady(Context, SceneKind.Play, SceneUi.PlayHudLayer) &&
+            () => VisualAssert.IsSceneReady(Context, SceneKind.Play, UiLayers.PlayHud) &&
                   VisualAssert.HasText(Context.Entities, "Visual Camera Test"));
         AddUntilStep("the camera finds the player", () => Playfield().GetComponent<PlayCamera>().Placed);
         AddAssert("the player is in view", () =>

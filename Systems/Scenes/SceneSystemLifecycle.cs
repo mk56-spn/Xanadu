@@ -125,6 +125,8 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
                 context with { Entry = null, Results = null });
         }
 
+        SyncBackground(next);
+
         state.Current = next;
         state.Pending = next;
         RestorePreviewPlayhead(next);

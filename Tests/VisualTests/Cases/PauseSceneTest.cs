@@ -20,7 +20,7 @@ public sealed class PauseSceneTest : SceneTest
             () => VisualAssert.IsSceneReady(
                 Context,
                 SceneKind.Play,
-                SceneUi.PlayHudLayer) &&
+                UiLayers.PlayHud) &&
                 VisualAssert.HasText(Context.Entities, "Visual Pause Test"));
         AddStep("pause", () => Context.Scenes.PausePlay());
         AddUntilStep(
@@ -41,7 +41,7 @@ public sealed class PauseSceneTest : SceneTest
             "pause overlay is initialized",
             () => VisualAssert.CountUninitialised(
                 Context.Entities,
-                SceneUi.PauseLayer) == 0);
+                UiLayers.Pause) == 0);
     }
 
     private bool PauseVisible()

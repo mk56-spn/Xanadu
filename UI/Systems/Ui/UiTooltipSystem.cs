@@ -42,7 +42,7 @@ public sealed class UiTooltipSystem : QuerySystem<UiTooltip>
         _pointer = pointer;
         _screen = screen;
 
-        UiBuilder ui = UiBuilder.Begin(entities, visuals).Layer(UiTheme.TooltipLayer);
+        UiBuilder ui = UiBuilder.Begin(entities, visuals).Layer(UiLayers.Tooltip);
         _tooltip = ui.RectEntity(
             Vector2.Zero,
             new Vector2(MinWidth, Height),

@@ -75,7 +75,7 @@ public sealed class ContactBarrierSystem : QuerySystem<Player, Position, Playfie
                 }
 
                 Vector2 noteScreen = view.PlayfieldToScreen(note.Position);
-                if (!NoteReach.Contains(playerScreen, view, noteScreen))
+                if (!NoteReach.Contains(playerScreen, view, noteScreen, CharacterKind.Contact))
                     continue;
 
                 (int left, int right) = ContactRules.Costs(note);

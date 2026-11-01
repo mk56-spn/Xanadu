@@ -263,7 +263,7 @@ public sealed partial class PlayNoteInputSystem : QuerySystem<Note>
                     facesLeft,
                     noteScreen,
                     view.Scale)
-                : NoteReach.Contains(playerScreen, view, noteScreen);
+                : NoteReach.Contains(playerScreen, view, noteScreen, character);
             if (!inRange)
                 continue;
 

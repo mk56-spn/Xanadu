@@ -111,6 +111,7 @@ public sealed class XanaduSystemRoot : SystemRoot, IDisposable
 
         Xanadu.Systems.Ui.UiBootstrap.AttachInitialization(this, parentCanvas);
         Add(new PhysicsSystemGroup(Physics, entities));
+        Add(new Xanadu.Systems.Scenes.SongSelectHoldSystem(Keyboard, Scenes));
         Add(new Xanadu.Systems.Scenes.SongSelectScrollSystem());
         Add(new OffsetWizardSystem(
             entities,

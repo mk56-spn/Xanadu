@@ -60,6 +60,16 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
     private bool SceneChanged(ref SceneState state) =>
         state.Pending != state.Current || _restartRequested;
 
+    /// <summary>
+    /// Fades through black, unless both scenes share a background: then only the
+    /// scene's own layers fade, so the background stays on screen.
+    /// </summary>
+    private void BeginSwitch(ref SceneState state)
+    {
+        _fadeSceneOnly = SharesBackground(state.Current, state.Pending);
+        BeginFadeOut();
+    }
+
     private void BeginFadeOut()
     {
         _transitionPhase = TransitionPhase.FadeOut;
@@ -101,6 +111,7 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
 
         _transitionPhase = TransitionPhase.None;
         SetTransitionVisual(0f, visible: false);
+        _fadeSceneOnly = false;
     }
 
     private bool IsTransitioning() =>
@@ -112,7 +123,10 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
             return;
 
         ref FillColor fill = ref _transitionPanel.GetComponent<FillColor>();
-        fill.Value = new Color(0f, 0f, 0f, alpha);
+        // The panel stays up even when clear: it blocks input during the fade.
+        fill.Value = new Color(0f, 0f, 0f, _fadeSceneOnly ? 0f : alpha);
+        if (_fadeSceneOnly)
+            SetSceneOpacity(1f - alpha);
 
         ref Position position = ref _transitionPanel.GetComponent<Position>();
         position.Value = _screen / 2;
@@ -122,9 +136,21 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
         UiLayout.SetHidden(_transitionPanel, !visible);
     }
 
+    private void SetSceneOpacity(float opacity)
+    {
+        if (_sceneRoot.IsNull)
+            return;
+
+        foreach (Entity child in _sceneRoot.ChildEntities)
+        {
+            if (child.HasComponent<Layer>())
+                UiLayout.SetLayerOpacity(child, opacity);
+        }
+    }
+
     private void BuildTransition()
     {
-        UiNode ui = UiNode.Layer(_entities, default, 1000, _visuals, UiStage.Full);
+        UiNode ui = UiNode.Layer(_entities, default, UiLayers.SceneTransition, _visuals, UiStage.Full);
 
         _transitionPanel = ui.Rect(new Color(0f, 0f, 0f, 0f), size: _screen)
             .Hidden()

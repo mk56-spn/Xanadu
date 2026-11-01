@@ -166,6 +166,15 @@ public struct Layer(int zIndex) : IIndexedComponent<int>
     public int GetIndexedValue() => ZIndex;
 }
 
+/// <summary>
+/// Opacity of a whole layer, everything under it included. Set it through
+/// <see cref="UiLayout.SetLayerOpacity"/>.
+/// </summary>
+public struct LayerOpacity(float value) : IComponent
+{
+    public float Value = value;
+}
+
 /// <summary>RenderingServer canvas item owned by an entity.</summary>
 public struct VisualRid : IComponent
 {

@@ -34,6 +34,7 @@ public sealed record SceneBuildContext(
 public interface ISceneController
 {
     SceneKind Kind { get; }
+    SceneBackgroundKind Background => SceneBackgroundKind.None;
     void Build(SceneBuildContext context);
     bool TryForward(SceneSystem system) => false;
     SceneKind BackTarget => SceneKind.None;
@@ -152,6 +153,7 @@ public sealed class SceneControllerRegistry
     private sealed class MainMenuController : ISceneController
     {
         public SceneKind Kind => SceneKind.Main;
+        public SceneBackgroundKind Background => SceneBackgroundKind.Menu;
         public void Build(SceneBuildContext c) => MainMenuScene.Build(c.Entities, c.Root, c.Visuals);
         public bool TryForward(SceneSystem system)
         {
@@ -163,6 +165,7 @@ public sealed class SceneControllerRegistry
     private sealed class ProfilesController : ISceneController
     {
         public SceneKind Kind => SceneKind.Profiles;
+        public SceneBackgroundKind Background => SceneBackgroundKind.Menu;
         public void Build(SceneBuildContext c) => ProfilesScene.Build(c.Entities, c.Root, c.Profiles, c.Visuals);
         public void HandleActions(SceneSystem system, ref SceneState state)
         {

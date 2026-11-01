@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using System.Linq;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Godot;
@@ -17,26 +16,32 @@ namespace Xanadu.Ui.Systems.Ui;
 /// and collapsing keep working while it is open. The selected row's entity is
 /// tagged for the bounds overlay to colour.
 /// </summary>
-public sealed class UiTreeOverlaySystem(
-    IOverlayToggleSource toggle,
-    IVisualRidFactory? visuals = null)
-    : QuerySystem<Rectangle, Position>
+public sealed class UiTreeOverlaySystem : QuerySystem<Rectangle, Position>
 {
-    private const int LayerZ = 1002;
     private const float PanelWidth = 420;
     private const float HeaderHeight = UiMetrics.Control.Xs;
+    private const float LegendHeight = UiMetrics.Control.Xs;
     private const float Padding = UiMetrics.Space.Sm;
 
-    private readonly OverlayLatch _latch = new(toggle);
+    private readonly IVisualRidFactory? _visuals;
+    private readonly OverlayLatch _latch;
     private readonly HashSet<Entity> _roots = new();
     private readonly List<Entity> _ordered = new();
     private List<UiTreeItem> _items = new();
     private List<UiTreeItem> _shown = new();
+    private readonly Dictionary<int, (string Source, string Id, string Label)> _labels = new();
     private int _buttons;
     private Entity _layer;
     private Entity _header;
     private Entity _tree;
     private Entity _selected;
+
+    public UiTreeOverlaySystem(IOverlayToggleSource toggle, IVisualRidFactory? visuals = null)
+    {
+        _latch = new OverlayLatch(toggle);
+        _visuals = visuals;
+        Filter.WithoutAnyTags(Tags.Get<DebugUi>());
+    }
 
     protected override void OnUpdate()
     {
@@ -51,7 +56,7 @@ public sealed class UiTreeOverlaySystem(
             Open();
 
         Collect();
-        if (!_items.SequenceEqual(_shown))
+        if (!IsShown())
             Refresh();
         SyncSelected();
     }
@@ -62,25 +67,38 @@ public sealed class UiTreeOverlaySystem(
         float height = stage.Y - UiMetrics.Space.Lg * 2;
         float inner = PanelWidth - Padding * 2;
 
-        UiBuilder ui = UiBuilder.Begin(Query.Store, visuals).Layer(LayerZ);
+        UiBuilder ui = UiBuilder.Begin(Query.Store, _visuals).Layer(UiLayers.DebugUiTree);
         _layer = ui.Current;
+        _layer.AddTag<DebugUi>();
         ui.Container(
             new Vector2(stage.X - UiMetrics.Space.Lg - PanelWidth / 2, stage.Y / 2),
             new Vector2(PanelWidth, height),
             StackDirection.Vertical,
             spacing: UiMetrics.Space.Xs,
-            color: UiTheme.Panel,
+            color: DebugPalette.Panel,
             takesInput: true,
             padding: Padding,
             main: StackMainAlignment.Start);
-        _header = ui.Text("", new Vector2(inner, HeaderHeight), UiType.Small, Palette.Accent, TextAlign.Left);
+        _header = ui.Text("", new Vector2(inner, HeaderHeight), UiType.Small, DebugPalette.Title, TextAlign.Left);
+        ui.Container(
+            Vector2.Zero,
+            new Vector2(inner, LegendHeight),
+            StackDirection.Horizontal,
+            spacing: UiMetrics.Space.Md,
+            color: new Color(0, 0, 0, 0),
+            main: StackMainAlignment.Start);
+        Legend(ui, "BUTTONS", DebugPalette.ButtonBorder);
+        Legend(ui, "CONTAINERS", DebugPalette.ContainerBorder);
+        Legend(ui, "PINS", DebugPalette.Pin);
+        Legend(ui, "SELECTED", DebugPalette.SelectedBorder);
+        ui.End();
 
         ui.Container(
             Vector2.Zero,
-            new Vector2(inner, height - Padding * 2 - HeaderHeight - UiMetrics.Space.Xs),
+            new Vector2(inner, height - Padding * 2 - HeaderHeight - LegendHeight - UiMetrics.Space.Xs * 2),
             StackDirection.Vertical,
             clip: true,
-            color: UiTheme.Panel);
+            color: new Color(0, 0, 0, 0));
         Entity viewport = ui.Current;
         ui.Container(
             Vector2.Zero,
@@ -99,6 +117,10 @@ public sealed class UiTreeOverlaySystem(
         _shown.Clear();
     }
 
+    /// <summary>A word in the colour of the F4 boxes it names.</summary>
+    private static void Legend(UiBuilder ui, string word, Color color) =>
+        ui.Text(word, UiNode.Measure(word, UiType.Caption), UiType.Caption, color, TextAlign.Left);
+
     private void Close()
     {
         if (_layer.IsNull)
@@ -106,6 +128,7 @@ public sealed class UiTreeOverlaySystem(
 
         Mark(default);
         UiLayout.DeleteSubtree(_layer);
+        _labels.Clear();
         _layer = default;
         _header = default;
         _tree = default;
@@ -123,7 +146,7 @@ public sealed class UiTreeOverlaySystem(
             Entity top = entity;
             while (!top.Parent.IsNull)
                 top = top.Parent;
-            if (top != _layer && _roots.Add(top))
+            if (_roots.Add(top))
                 _ordered.Add(top);
         });
 
@@ -144,8 +167,8 @@ public sealed class UiTreeOverlaySystem(
             rect.Bounds.Size.X > 0 &&
             rect.Bounds.Size.Y > 0)
         {
-            string id = entity.Id.ToString();
-            _items.Add(new UiTreeItem(id, parent, Label(entity, button)));
+            (string id, string label) = Row(entity, button);
+            _items.Add(new UiTreeItem(id, parent, label));
             _buttons += button ? 1 : 0;
             parent = id;
         }
@@ -154,12 +177,33 @@ public sealed class UiTreeOverlaySystem(
             Visit(child, parent);
     }
 
-    private static string Label(Entity entity, bool button)
+    /// <summary>A row's id and label, built again only when what the label shows changes.</summary>
+    private (string Id, string Label) Row(Entity entity, bool button)
     {
-        if (entity.TryGetComponent(out Text text) && !string.IsNullOrWhiteSpace(text.Value))
-            return $"{text.Value.ReplaceLineEndings(" ")}  #{entity.Id}";
-        string kind = button ? "BUTTON" : ContainerKind(entity.GetComponent<UiContainer>());
-        return $"{kind}  #{entity.Id}";
+        string source = entity.TryGetComponent(out Text text) && !string.IsNullOrWhiteSpace(text.Value)
+            ? text.Value
+            : button ? "BUTTON" : ContainerKind(entity.GetComponent<UiContainer>());
+
+        if (!_labels.TryGetValue(entity.Id, out (string Source, string Id, string Label) row) ||
+            row.Source != source)
+        {
+            row = (source, entity.Id.ToString(), $"{source.ReplaceLineEndings(" ")}  #{entity.Id}");
+            _labels[entity.Id] = row;
+        }
+        return (row.Id, row.Label);
+    }
+
+    private bool IsShown()
+    {
+        if (_items.Count != _shown.Count)
+            return false;
+
+        for (int i = 0; i < _items.Count; i++)
+        {
+            if (_items[i] != _shown[i])
+                return false;
+        }
+        return true;
     }
 
     private static string ContainerKind(in UiContainer container)
@@ -193,7 +237,7 @@ public sealed class UiTreeOverlaySystem(
 
     private void Refresh()
     {
-        UiBuilder.Begin(Query.Store, visuals).SetTreeItems(_tree, _items);
+        UiBuilder.Begin(Query.Store, _visuals).SetTreeItems(_tree, _items);
         _header.GetComponent<Text>().Value =
             $"F4 UI TREE   CONTAINERS {_items.Count - _buttons}   BUTTONS {_buttons}";
         _header.AddTag<Dirty>();

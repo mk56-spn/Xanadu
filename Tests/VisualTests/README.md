@@ -98,6 +98,7 @@ fixed frame count.
 | `results` | Results |
 | `restart` | Retry |
 | `editor-dropdowns` | Editor dropdowns |
+| `editor-preview-save` | Preview saves before playing |
 | `editor-dash-wheel` | Editor dash wheel |
 | `character-notes` | Pair, dash, momentum and switch note bodies |
 | `splitline-rail` | Splitline rail and taps |

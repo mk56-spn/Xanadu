@@ -11,6 +11,7 @@ public sealed class InitializationSystemGroup : SystemGroup
     public InitializationSystemGroup(Rid parentCanvas) : base("Initialization")
     {
         Add(new LayerParentSystem(parentCanvas));
+        Add(new LayerOpacitySystem());
         Add(new ContainerLayoutSystem());
         Add(new UiAnchorSystem());
         Add(new DrawableInitialiseSystem());

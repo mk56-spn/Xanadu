@@ -31,6 +31,7 @@ public partial class AnimatorTool : Control
 
     /// <summary>Set by <c>--shot=path</c>: capture the window there after <see cref="_shotAt"/> frames, then quit.</summary>
     private string? _shotPath;
+    private bool _openLayers;
     private int _shotAt = 60;
     private int _frames;
 
@@ -67,7 +68,7 @@ public partial class AnimatorTool : Control
         _svgCanvas = CreateCanvas(AnimatorLayout.SvgZ);
         _preview = CreateCanvas(AnimatorLayout.PreviewZ);
         _timelineCanvas = CreateCanvas(AnimatorLayout.TimelineZ);
-        _attachments = new SvgAttachmentVisuals(_svgCanvas);
+        _attachments = new SvgAttachmentVisuals(_svgCanvas, containLayers: true);
 
         UiTextBridge.Attach(this, _store);
         _ui = new UiSystemGroup(
@@ -130,6 +131,8 @@ public partial class AnimatorTool : Control
             AnimatorCommands.Run(_session, new ToolAction(ToolActionKind.SelectCloth, _cloth));
         if (_frames == 2 && _paths is not null)
             ShowPaths(_paths);
+        if (_frames == 2 && _openLayers)
+            _store.Query<UiTabs>().ToEntityList()[0].GetComponent<UiTabs>().Selected = AnimatorLayout.LayersTab;
         if (_frames == 2 && _startInPreview)
             AnimatorCommands.Run(_session, new ToolAction(ToolActionKind.TogglePreviewMode));
         bool due = _shotSeconds >= 0f ? _elapsed >= _shotSeconds : _frames == _shotAt;
@@ -144,7 +147,7 @@ public partial class AnimatorTool : Control
     /// Reads the capture flags, so an agent can check the tool without a
     /// desktop capture: <c>--shot=path</c>, <c>--shot-frames=n</c> or
     /// <c>--shot-seconds=s</c> (counted from the flow preview's start), and
-    /// <c>--flow=from&gt;to</c>, <c>--streak=bone</c>, <c>--preview</c> and
+    /// <c>--flow=from&gt;to</c>, <c>--streak=bone</c>, <c>--layers</c>, <c>--preview</c> and
     /// <c>--paths=bone,bone</c> (motion paths on, those bones selected; empty for none),
     /// with <c>@clip</c> after the bones to open that clip paused at its middle,
     /// <c>--dress=bone</c> (adds a dress hanging from that bone and selects it)
@@ -169,6 +172,8 @@ public partial class AnimatorTool : Control
                 _flow = argument["--flow=".Length..];
             else if (argument.StartsWith("--streak=", StringComparison.Ordinal))
                 _streak = argument["--streak=".Length..];
+            else if (argument == "--layers")
+                _openLayers = true;
             else if (argument == "--preview")
                 _startInPreview = true;
             else if (argument.StartsWith("--paths=", StringComparison.Ordinal))

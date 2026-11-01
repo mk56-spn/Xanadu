@@ -24,6 +24,9 @@ public struct AnimatorUi : IComponent
     public Entity TimelineCaption;
     public Entity BoneList;
     public Entity AttachmentList;
+
+    /// <summary>The LAYERS tab's rows; the layer panel system fills it.</summary>
+    public Entity LayerList;
     public Entity ChainList;
     public Entity EffectList;
 

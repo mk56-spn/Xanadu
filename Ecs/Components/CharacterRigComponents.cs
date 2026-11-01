@@ -36,7 +36,7 @@ public struct CharacterRigMissing : ITag;
 /// <summary>The rig's art is on screen, so the plain player box is not drawn.</summary>
 public struct CharacterRigVisible : ITag;
 
-/// <summary>Which way a rigged player faces; the art is drawn facing right until a leftward dash flips it.</summary>
+/// <summary>Which way a rigged player faces; the art is drawn facing right until a leftward dash or a hit on the left flips it.</summary>
 public struct CharacterFacing : IComponent
 {
     public bool Left;

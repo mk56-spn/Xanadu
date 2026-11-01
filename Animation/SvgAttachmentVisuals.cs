@@ -10,7 +10,13 @@ namespace Xanadu.Animation;
 /// Rasterises each attachment's SVG group, and each chain's art, into canvas
 /// items, and builds each effect's polygons with their textures and shaders.
 /// </summary>
-public sealed partial class SvgAttachmentVisuals(Rid canvas) : IAttachmentVisuals
+/// <param name="canvas">The canvas item the art hangs from.</param>
+/// <param name="containLayers">
+/// Keep all the art at the canvas's own z and order its layers by draw index, so
+/// no layer can reach past the canvas to whatever is drawn above it. Without this
+/// a layer is a z index relative to the canvas, as the game's characters use.
+/// </param>
+public sealed partial class SvgAttachmentVisuals(Rid canvas, bool containLayers = false) : IAttachmentVisuals
 {
     private readonly List<Visual> _visuals = new();
     private readonly List<ChainVisual> _chains = new();
@@ -39,10 +45,7 @@ public sealed partial class SvgAttachmentVisuals(Rid canvas) : IAttachmentVisual
 
                 // Higher layers draw in front; equal layers keep the attachment order.
                 // Only the attachment's own art shows until a pose says otherwise.
-                Rid item = CreateItem(
-                    texture!,
-                    size,
-                    Math.Clamp(attachment.ZOrder, XafAttachment.MinLayer, XafAttachment.MaxLayer));
+                Rid item = CreateItem(texture!, size, attachment.ZOrder);
                 RenderingServer.CanvasItemSetVisible(item, art == 0);
                 _visuals.Add(new Visual(i, art, item, texture!, new Rect2(-size / 2, size)));
             }
@@ -61,9 +64,7 @@ public sealed partial class SvgAttachmentVisuals(Rid canvas) : IAttachmentVisual
             XafCloth cloth = package.Cloths[i];
             Rid item = RenderingServer.CanvasItemCreate();
             RenderingServer.CanvasItemSetParent(item, canvas);
-            RenderingServer.CanvasItemSetZIndex(
-                item, Math.Clamp(cloth.ZOrder, XafAttachment.MinLayer, XafAttachment.MaxLayer));
-            RenderingServer.CanvasItemSetDrawIndex(item, ClothOrder + i);
+            SetLayer(item, cloth.ZOrder, ClothOrder + i);
             _cloths.Add(new ClothVisual(i, item));
         }
 
@@ -129,8 +130,7 @@ public sealed partial class SvgAttachmentVisuals(Rid canvas) : IAttachmentVisual
             // Segments can be added or removed while editing, so the pieces follow the points.
             while (visual.Items.Count < segments)
             {
-                Rid piece = CreateItem(visual.Texture, visual.Size, visual.Layer);
-                RenderingServer.CanvasItemSetDrawIndex(piece, ChainOrder + visual.Items.Count);
+                Rid piece = CreateItem(visual.Texture, visual.Size, visual.Layer, ChainOrder + visual.Items.Count);
                 visual.Items.Add(piece);
             }
             while (visual.Items.Count > segments)
@@ -265,8 +265,7 @@ public sealed partial class SvgAttachmentVisuals(Rid canvas) : IAttachmentVisual
 
         Rid canvasItem = RenderingServer.CanvasItemCreate();
         RenderingServer.CanvasItemSetParent(canvasItem, canvas);
-        RenderingServer.CanvasItemSetZIndex(canvasItem, layer);
-        RenderingServer.CanvasItemSetDrawIndex(canvasItem, EffectOrder + _effects.Count);
+        SetLayer(canvasItem, layer, EffectOrder + _effects.Count);
         RenderingServer.CanvasItemSetVisible(canvasItem, false);
         RenderingServer.CanvasItemAddTriangleArray(canvasItem, triangles, points, colors, uvs,
             texture: texture?.GetRid() ?? default);
@@ -307,18 +306,36 @@ public sealed partial class SvgAttachmentVisuals(Rid canvas) : IAttachmentVisual
         }
     }
 
-    private Rid CreateItem(ImageTexture texture, Vector2 size, int zIndex)
+    private void SetLayer(Rid item, int layer, int order)
+    {
+        layer = Math.Clamp(layer, XafAttachment.MinLayer, XafAttachment.MaxLayer);
+        if (containLayers)
+        {
+            RenderingServer.CanvasItemSetDrawIndex(item, ArtDrawOrder.Of(layer, order));
+            return;
+        }
+
+        RenderingServer.CanvasItemSetZIndex(item, layer);
+        RenderingServer.CanvasItemSetDrawIndex(item, order);
+    }
+
+    private Rid CreateItem(ImageTexture texture, Vector2 size, int layer, int order = 0)
     {
         Rid item = RenderingServer.CanvasItemCreate();
         RenderingServer.CanvasItemSetParent(item, canvas);
-        RenderingServer.CanvasItemSetZIndex(item, zIndex);
+        SetLayer(item, layer, order);
         RenderingServer.CanvasItemAddTextureRect(item, new Rect2(-size / 2, size), texture.GetRid());
         return item;
     }
 
-    /// <summary>One art option of one attachment; <see cref="Mesh"/> is set once it has been drawn as a mesh.</summary>
+    /// <summary>
+    /// One art option of one attachment; <see cref="Mesh"/> is set once it has been
+    /// drawn as a mesh, and <see cref="Layer"/> holds the layer it was last given.
+    /// </summary>
     private sealed record Visual(int Index, int Art, Rid Item, ImageTexture Texture, Rect2 Bounds)
     {
+        public int? Layer { get; set; }
+
         public MeshCache? Mesh { get; set; }
 
         /// <summary>Whether the last pose showed this art.</summary>

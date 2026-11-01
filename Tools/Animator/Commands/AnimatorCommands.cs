@@ -41,6 +41,12 @@ public static class AnimatorCommands
             case ToolActionKind.NextArt:
                 AnimatorArtCommands.StepArt(session, 1);
                 break;
+            case ToolActionKind.MoveLayerForward:
+                AnimatorLayerCommands.Move(session, action.Argument, 1);
+                break;
+            case ToolActionKind.MoveLayerBack:
+                AnimatorLayerCommands.Move(session, action.Argument, -1);
+                break;
             case ToolActionKind.LayerDownKey:
                 AnimatorArtCommands.StepLayer(session, -1);
                 break;

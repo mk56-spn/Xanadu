@@ -90,6 +90,11 @@ them any more.
   the whole surface. Relative layout (containers, anchors) is for different
   content, not for different resolutions yet.
 
+### Debug views
+
+Every debug view (F1, F3, F4, F8, F10) takes its colours from `DebugPalette` in the UI
+module, wherever the view lives. Add a missing colour there, never in the view.
+
 ### Hard coding
 
 - Font sizes come from `UiType` (`Display`..`Caption`); control heights, gaps,
@@ -99,6 +104,11 @@ them any more.
   screen-size parameter. The stage is 1920x1080 and the host scales it.
 - **Stop hard coding UI by not using containers, unless you have a really good
   reason. IMPORTANT**
+
+### Layers
+
+Every layer's z index is named in `UiLayers`, bottom to top. Add a name there and
+pass it to `UiNode.Layer`; never pass a number or keep a local constant.
 
 ### Showing and hiding
 

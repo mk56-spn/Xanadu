@@ -27,7 +27,7 @@ public sealed class PlaySceneTest : SceneTest
             () => VisualAssert.IsSceneReady(
                 Context,
                 SceneKind.Play,
-                SceneUi.PlayHudLayer) &&
+                UiLayers.PlayHud) &&
                 VisualAssert.HasText(Context.Entities, "Visual Play Test"));
         AddAssert(
             "level title exists",
@@ -45,7 +45,7 @@ public sealed class PlaySceneTest : SceneTest
             "play HUD layer is initialized",
             () => VisualAssert.CountUninitialised(
                 Context.Entities,
-                SceneUi.PlayHudLayer) == 0);
+                UiLayers.PlayHud) == 0);
         AddAssert(
             "player exists",
             () => Context.Entities.Query<Player>().Count == 1);

@@ -41,6 +41,7 @@ public sealed class AnimatorSystemGroup : SystemGroup
         Add(new AnimatorPlaybackSystem());
         Add(new AnimatorHierarchySystem(visuals, pointer));
         Add(new AnimatorRigPanelSystem());
+        Add(new AnimatorLayerPanelSystem(visuals));
         Add(new AnimatorFlowSystem(visuals));
         Add(new AnimatorPreviewModeSystem());
         Add(new AnimatorClipHeaderSystem());

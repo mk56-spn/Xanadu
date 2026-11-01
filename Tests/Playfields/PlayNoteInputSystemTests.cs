@@ -105,6 +105,51 @@ public sealed class PlayNoteInputSystemTests
             Is.EqualTo(CharacterAttackSystem.HighClip));
     }
 
+    [Test]
+    public void HittingANoteToTheLeftFlipsTheCharacterLeft()
+    {
+        Entity playfield = CreatePlayfield(totalNotes: 1);
+        playfield.AddComponent(new CharacterRig(AttackTestRig()));
+        CreateNote(1_000, new Vector2(420, 500));
+        SetPlayhead(playfield, 1_000);
+        Press(KeybindAction.M);
+
+        Frame();
+
+        Assert.That(playfield.GetComponent<CharacterFacing>().Left, Is.True);
+        Assert.That(
+            playfield.GetComponent<CharacterAttack>().ClipId,
+            Is.EqualTo(CharacterAttackSystem.MidClip));
+    }
+
+    [Test]
+    public void HittingANoteToTheRightFlipsTheCharacterRight()
+    {
+        Entity playfield = CreatePlayfield(totalNotes: 1);
+        playfield.AddComponent(new CharacterFacing { Left = true });
+        CreateNote(1_000, new Vector2(580, 500));
+        SetPlayhead(playfield, 1_000);
+        Press(KeybindAction.M);
+
+        Frame();
+
+        Assert.That(playfield.GetComponent<CharacterFacing>().Left, Is.False);
+    }
+
+    [Test]
+    public void HittingANoteStraightAheadKeepsTheFacing()
+    {
+        Entity playfield = CreatePlayfield(totalNotes: 1);
+        playfield.AddComponent(new CharacterFacing { Left = true });
+        CreateNote(1_000, new Vector2(500, 500));
+        SetPlayhead(playfield, 1_000);
+        Press(KeybindAction.M);
+
+        Frame();
+
+        Assert.That(playfield.GetComponent<CharacterFacing>().Left, Is.True);
+    }
+
     private static AnimatorRuntime AttackTestRig()
     {
         var package = new XafPackage();
@@ -113,6 +158,9 @@ public sealed class PlayNoteInputSystemTests
         package.Clips.Add(new XafClip { Id = CharacterAttackSystem.LowClip, Duration = 0.2f });
         package.Clips.Add(new XafClip { Id = CharacterAttackSystem.MidClip, Duration = 0.2f });
         package.Clips.Add(new XafClip { Id = CharacterAttackSystem.HighClip, Duration = 0.2f });
+        package.Clips.Add(new XafClip { Id = CharacterAttackSystem.AirLowClip, Duration = 0.2f });
+        package.Clips.Add(new XafClip { Id = CharacterAttackSystem.AirMidClip, Duration = 0.2f });
+        package.Clips.Add(new XafClip { Id = CharacterAttackSystem.AirHighClip, Duration = 0.2f });
         var runtime = new AnimatorRuntime(package);
         runtime.Play("idle", 0f);
         return runtime;
@@ -180,6 +228,30 @@ public sealed class PlayNoteInputSystemTests
         Assert.That(
             playfield.GetComponent<ScoreState>().LastJudgement,
             Is.EqualTo(Judgement.Miss));
+    }
+
+    [Test]
+    public void ContactBarrierResolvesWhenTheReachTouchesItsEdge()
+    {
+        Entity playfield = CreatePlayfield(totalNotes: 1);
+        playfield.AddComponent(new PlayerCharacter(CharacterKind.Contact));
+        playfield.AddComponent(new ContactCounters
+        {
+            Left = 1,
+            Right = 1,
+        });
+        CreateNote(
+            1_000,
+            new Vector2(635, 500),
+            kind: NoteKind.Contact,
+            contactRequired: 0,
+            contactLeft: 1,
+            contactRight: 1);
+        SetPlayhead(playfield, 1_000);
+
+        Frame();
+
+        Assert.That(_store.Query<Note>().Count, Is.Zero);
     }
 
     [Test]

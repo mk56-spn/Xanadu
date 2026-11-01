@@ -121,24 +121,32 @@ public partial class EditorOverlay : CanvasLayer
         _commands.Enqueue(EditorCommand.LoadSongById(_songs[index].Id));
     }
 
+    public bool SaveCurrent() => SaveCurrent(out _);
+
     /// <summary>Saves on the way out: null when saved, otherwise why it could not.</summary>
     public string? SaveForLeaving() => SaveCurrent() ? null : _saveProblem;
 
-    public bool SaveCurrent()
+    /// <summary>
+    /// Saves the level to its current path, or to a fresh unnamed one, and
+    /// reports where it wrote so a caller can keep using that path.
+    /// </summary>
+    private bool SaveCurrent(out string path)
     {
+        path = "";
         if (_editor.IsNull || !ValidateCurrent())
             return false;
 
         try
         {
             LevelDocument document = LevelDocumentMapper.Capture(_entities, _editor);
-            string path = CurrentLevelPath();
-            if (string.IsNullOrEmpty(path))
-                path = LevelStore.NextUnnamedPath();
+            string target = CurrentLevelPath();
+            if (string.IsNullOrEmpty(target))
+                target = LevelStore.NextUnnamedPath();
 
-            LevelStore.Save(document, path);
-            _commands.Enqueue(EditorCommand.SetLevelFile(path));
-            SetStatus($"Saved {Path.GetFileName(path)}");
+            LevelStore.Save(document, target);
+            _commands.Enqueue(EditorCommand.SetLevelFile(target));
+            SetStatus($"Saved {Path.GetFileName(target)}");
+            path = target;
             return true;
         }
         catch (Exception exception)

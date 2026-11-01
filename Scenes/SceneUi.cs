@@ -6,16 +6,11 @@ using Xanadu.Theme;
 namespace Xanadu.Scenes;
 
 /// <summary>
-/// Shared layer ids and palette aliases for game scene UI. Construction lives
+/// Shared palette aliases for game scene UI. Construction lives
 /// on <see cref="UiNode"/>; this type only names things.
 /// </summary>
 public static class SceneUi
 {
-    public const int MenuLayer = 100;
-    public const int PlayHudLayer = 900;
-    public const int ConfirmationLayer = 970;
-    public const int PauseLayer = 980;
-
     public static readonly Color BackgroundColor = Palette.Background;
     public static readonly Color PanelColor = Palette.Surface;
     public static readonly Color ButtonColor = Palette.Primary;

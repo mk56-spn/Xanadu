@@ -21,7 +21,7 @@ public sealed class SplitlineSceneTest : SceneTest
             () => VisualAssert.IsSceneReady(
                 Context,
                 SceneKind.Play,
-                SceneUi.PlayHudLayer) &&
+                UiLayers.PlayHud) &&
                 Context.Entities.Query<Player>().Count == 1);
         AddStep("absorb the left side", AbsorbLeft);
         AddUntilStep(

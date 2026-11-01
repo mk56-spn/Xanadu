@@ -28,7 +28,7 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
     private void BuildConfirmation()
     {
         UiNode ui = UiNode.Layer(
-            _entities, default, SceneUi.ConfirmationLayer, _visuals, UiStage.Full);
+            _entities, default, UiLayers.Confirmation, _visuals, UiStage.Full);
 
         UiNode panel = ui.Column()
             .Size(ConfirmWidth, ConfirmHeight)

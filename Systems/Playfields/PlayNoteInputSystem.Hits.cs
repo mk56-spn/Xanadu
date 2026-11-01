@@ -107,11 +107,30 @@ public sealed partial class PlayNoteInputSystem
         if (!Hit(ref score, noteEntity, offsetMs, playfield, action))
             return false;
 
+        FaceHit(playfield, hitPosition.X, playerScreen.X);
+
         if (triggerAttack)
             CharacterAttackSystem.Trigger(playfield, hitPosition.Y, playerScreen.Y);
 
         HitEffects.Spawn(_entities, playfield, note, hitPosition, hitColor, hitRadius);
         return true;
+    }
+
+    /// <summary>
+    /// Turns the character towards a note it just hit, the way a horizontal dash
+    /// turns it towards the dash. A note directly above or below leaves the
+    /// facing alone.
+    /// </summary>
+    private static void FaceHit(Entity playfield, float noteScreenX, float playerScreenX)
+    {
+        float dx = noteScreenX - playerScreenX;
+        if (dx == 0f)
+            return;
+
+        if (!playfield.HasComponent<CharacterFacing>())
+            playfield.AddComponent(new CharacterFacing());
+
+        playfield.GetComponent<CharacterFacing>().Left = dx < 0f;
     }
 
     private static void ApplyWeaponEffect(

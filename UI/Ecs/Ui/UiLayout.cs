@@ -38,6 +38,20 @@ public static class UiLayout
             buffer.RemoveTag<UiHidden>(entity.Id);
     }
 
+    /// <summary>Fades a layer and everything drawn under it. 1 is opaque, and the default.</summary>
+    public static void SetLayerOpacity(Entity layer, float opacity)
+    {
+        if (layer.TryGetComponent(out LayerOpacity current) && current.Value == opacity)
+            return;
+
+        layer.AddComponent(new LayerOpacity(opacity));
+        layer.AddTag<LayerOpacityDirty>();
+    }
+
+    /// <summary>A layer's opacity; 1 when it was never faded.</summary>
+    public static float LayerOpacityOf(Entity layer) =>
+        layer.TryGetComponent(out LayerOpacity opacity) ? opacity.Value : 1f;
+
     /// <summary>True when this node itself was hidden, whatever its ancestors do.</summary>
     public static bool IsHidden(Entity entity) => entity.Tags.Has<UiHidden>();
 

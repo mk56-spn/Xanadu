@@ -146,8 +146,8 @@ public sealed class EditorDropdownSystem : QuerySystem<Dropdown>
 
     private static string SnapLabel(int index) => index switch
     {
-        1 => "1/8",
-        2 => "1/16",
-        _ => "1/4",
+        1 => "1/4",
+        2 => "1/8",
+        _ => "1/2",
     };
 }

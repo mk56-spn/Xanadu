@@ -9,12 +9,13 @@ namespace Xanadu.Systems.Rendering;
 
 /// <summary>
 /// Initialises uninitialised drawables by parenting their canvas item under a
-/// container parent or the layer matching <see cref="Drawable.ZIndex"/>, then
+/// container parent, the layer above it in the tree or, for an entity outside
+/// any layer's tree, the layer matching <see cref="Drawable.ZIndex"/>, then
 /// applying <see cref="Position"/>. Missing layers fall back to layer 0.
 /// </summary>
 public sealed class DrawableInitialiseSystem : QuerySystem<Rectangle, Drawable, VisualRid, Position>
 {
-    private const int DefaultLayer = 0;
+    private const int DefaultLayer = UiLayers.Base;
 
     private readonly Dictionary<int, ArchetypeQuery<VisualRid, Layer>> _layerQueries = new();
 
@@ -30,7 +31,8 @@ public sealed class DrawableInitialiseSystem : QuerySystem<Rectangle, Drawable, 
         Query.ForEachEntity((ref _, ref drawable, ref visual, ref position, entity) =>
         {
             int requested = drawable.ZIndex;
-            if (!TryGetLayerCanvas(entity.Store, requested, out Rid layerCanvas))
+            if (!TryGetOwnLayerCanvas(entity, out Rid layerCanvas) &&
+                !TryGetLayerCanvas(entity.Store, requested, out layerCanvas))
             {
                 GD.PushError(
                     $"Drawable entity {entity.Id} references missing layer {requested}; falling back to layer {DefaultLayer}.");
@@ -97,6 +99,25 @@ public sealed class DrawableInitialiseSystem : QuerySystem<Rectangle, Drawable, 
                entity.Tags.Has<TakesInput>()
             ? 1
             : 0;
+    }
+
+    /// <summary>
+    /// The layer this entity hangs under in the tree. Two layers can share a z
+    /// index, and fading one must not reach what belongs to the other.
+    /// </summary>
+    private static bool TryGetOwnLayerCanvas(Entity entity, out Rid canvas)
+    {
+        for (Entity node = entity.Parent; !node.IsNull; node = node.Parent)
+        {
+            if (node.HasComponent<Layer>() && node.TryGetComponent(out VisualRid visual))
+            {
+                canvas = visual.Value;
+                return true;
+            }
+        }
+
+        canvas = default;
+        return false;
     }
 
     private bool TryGetLayerCanvas(EntityStore store, int zIndex, out Rid canvas)

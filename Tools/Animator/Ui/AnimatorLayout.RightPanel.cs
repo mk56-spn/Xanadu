@@ -21,7 +21,11 @@ public static partial class AnimatorLayout
     public const int PoseTab = 0;
     public const int EffectTab = 1;
     public const int FlowTab = 2;
-    private static readonly string[] TabNames = { "POSE", "EFFECT", "FLOW" };
+    public const int LayersTab = 3;
+    private static readonly string[] TabNames = { "POSE", "EFFECT", "FLOW", "LAYERS" };
+
+    /// <summary>Width of a row in the LAYERS tab, inside the tab's padding.</summary>
+    public const float LayerRowWidth = RightPanelWidth - UiTheme.ContainerPadding * 2;
 
     /// <summary>The tree on top, then the tab strip, then room for the selected tab's body.</summary>
     private static void BuildRightPanel(UiBuilder ui, EditorShellRects shell, ref Refs refs)
@@ -135,8 +139,13 @@ public static partial class AnimatorLayout
                 case EffectTab:
                     BuildEffectBody(menu, ref refs);
                     break;
-                default:
+                case FlowTab:
                     BuildFlowBody(menu, shell.RightBody.Size, ref refs);
+                    break;
+                default:
+                    Entity layers = default;
+                    BuildScrolling(menu, shell.RightBody.Size, rows => layers = List(rows, LayerRowWidth));
+                    refs.Ui.LayerList = layers;
                     break;
             }
             menu.End();

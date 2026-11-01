@@ -77,7 +77,7 @@ public sealed class EditorFocusSceneTest : SceneTest
     {
         foreach (Entity entity in Context.Entities.Query<Text, Drawable>().ToEntityList())
         {
-            if (entity.GetComponent<Drawable>().ZIndex == UiTheme.TooltipLayer)
+            if (entity.GetComponent<Drawable>().ZIndex == UiLayers.Tooltip)
                 return entity.GetComponent<Text>().Value;
         }
 

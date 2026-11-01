@@ -745,6 +745,66 @@ public sealed class SceneSystemTests
         Assert.That(view.Edit.Tags.Has<TakesInput>(), Is.False);
     }
 
+    private int SelectedLevel() =>
+        _store.Query<SongSelectState>().ToEntityList()[0].GetComponent<SongSelectState>().Selected;
+
+    [Test]
+    public void HoldingAnArrowKeepsScrollingAndStopsAtTheEnd()
+    {
+        var keyboard = new FakeKeyboard();
+        _root.Add(new SongSelectHoldSystem(keyboard, _scenes));
+        _scenes.Start(SceneKind.SongSelect);
+        Frame();
+
+        keyboard.Press(Key.Right);
+        Frame();
+        Assert.That(SelectedLevel(), Is.EqualTo(1), "the press moves at once");
+
+        for (int i = 0; i < 120; i++)
+            Frame();
+        Assert.That(SelectedLevel(), Is.EqualTo(1), "and stops at the last level");
+
+        keyboard.Release(Key.Right);
+        keyboard.Press(Key.Left);
+        Frame();
+        Assert.That(SelectedLevel(), Is.EqualTo(0));
+    }
+
+    [Test]
+    public void BothArrowsTogetherDoNothing()
+    {
+        var keyboard = new FakeKeyboard();
+        _root.Add(new SongSelectHoldSystem(keyboard, _scenes));
+        _scenes.Start(SceneKind.SongSelect);
+        Frame();
+
+        keyboard.Press(Key.Right);
+        keyboard.Press(Key.Left);
+        Frame();
+
+        Assert.That(SelectedLevel(), Is.EqualTo(0));
+    }
+
+    [Test]
+    public void AnArrowHeldOnTheWayInDoesNotScrollUntilPressedAgain()
+    {
+        var keyboard = new FakeKeyboard();
+        _root.Add(new SongSelectHoldSystem(keyboard, _scenes));
+        keyboard.Press(Key.Right);
+        Frame();
+
+        _scenes.Start(SceneKind.SongSelect);
+        for (int i = 0; i < 60; i++)
+            Frame();
+        Assert.That(SelectedLevel(), Is.EqualTo(0));
+
+        keyboard.Release(Key.Right);
+        Frame();
+        keyboard.Press(Key.Right);
+        Frame();
+        Assert.That(SelectedLevel(), Is.EqualTo(1));
+    }
+
     [Test]
     public void ArrowCarouselStepsAndClamps()
     {
@@ -965,6 +1025,106 @@ public sealed class SceneSystemTests
     }
 
     [Test]
+    public void MenuScenesShareOneBackground()
+    {
+        _scenes.Start(SceneKind.Profiles);
+        Frame();
+        Entity background = MenuBackground();
+
+        foreach (SceneKind scene in new[] { SceneKind.Main, SceneKind.SongSelect, SceneKind.Main })
+        {
+            _scenes.Start(scene);
+            Frame();
+            Assert.That(MenuBackground(), Is.EqualTo(background), scene.ToString());
+        }
+    }
+
+    [Test]
+    public void SceneWithoutSharedBackgroundDropsItAndReturningRebuildsIt()
+    {
+        _scenes.Start(SceneKind.Main);
+        Frame();
+
+        _scenes.Start(SceneKind.Settings);
+        Frame();
+        Assert.That(_store.Query<SceneBackground>().Count, Is.EqualTo(0));
+
+        _scenes.Start(SceneKind.Main);
+        Frame();
+        Assert.That(_store.Query<SceneBackground>().Count, Is.EqualTo(1));
+    }
+
+    [Test]
+    public void SharedBackgroundFadesOnlyTheSceneLayers()
+    {
+        var transitional = new SceneSystem(
+            _store,
+            _director,
+            new Vector2(1280, 720),
+            new FakeVisualRidFactory(),
+            () => _catalog,
+            _keybinds,
+            transitions: true);
+        _root.Add(transitional);
+        transitional.Start(SceneKind.Profiles);
+        Advance(40);
+        Entity background = MenuBackground();
+
+        transitional.Start(SceneKind.Main);
+        Advance(5);
+
+        Assert.That(_director.Current, Is.EqualTo(SceneKind.Profiles));
+        Assert.That(MenuLayerOpacity(), Is.GreaterThan(0f).And.LessThan(1f));
+        Assert.That(UiLayout.LayerOpacityOf(background), Is.EqualTo(1f));
+        Assert.That(TransitionOverlayAlpha(), Is.EqualTo(0f), "no fade to black");
+
+        Advance(40);
+
+        Assert.That(_director.Current, Is.EqualTo(SceneKind.Main));
+        Assert.That(MenuBackground(), Is.EqualTo(background));
+        Assert.That(MenuLayerOpacity(), Is.EqualTo(1f));
+    }
+
+    [Test]
+    public void LeavingTheSharedBackgroundStillFadesThroughBlack()
+    {
+        var transitional = new SceneSystem(
+            _store,
+            _director,
+            new Vector2(1280, 720),
+            new FakeVisualRidFactory(),
+            () => _catalog,
+            _keybinds,
+            transitions: true);
+        _root.Add(transitional);
+        transitional.Start(SceneKind.Main);
+        Advance(40);
+
+        transitional.Start(SceneKind.Settings);
+        Advance(5);
+
+        Assert.That(MenuLayerOpacity(), Is.EqualTo(1f));
+        Assert.That(TransitionOverlayAlpha(), Is.GreaterThan(0f));
+    }
+
+    private float MenuLayerOpacity() =>
+        UiLayout.LayerOpacityOf(_store.Query<Layer>().ToEntityList()
+            .Single(layer => layer.GetComponent<Layer>().ZIndex == UiLayers.Menu));
+
+    private float TransitionOverlayAlpha()
+    {
+        Entity layer = _store.Query<Layer>().ToEntityList()
+            .Single(entity => entity.GetComponent<Layer>().ZIndex == UiLayers.SceneTransition);
+        foreach (Entity panel in layer.ChildEntities)
+            return panel.GetComponent<FillColor>().Value.A;
+
+        throw new InvalidOperationException("The transition layer has no panel.");
+    }
+
+    private Entity MenuBackground() =>
+        _store.Query<SceneBackground>().ToEntityList().Single();
+
+    [Test]
     public void SettingsKeepsBackgroundBelowContent()
     {
         _scenes.Start(SceneKind.Settings);
@@ -975,9 +1135,9 @@ public sealed class SceneSystemTests
         foreach (Entity layer in _store.Query<Layer>().ToEntityList())
         {
             int z = layer.GetComponent<Layer>().ZIndex;
-            if (z == SceneUi.MenuLayer - 1)
+            if (z == UiLayers.MenuBackground)
                 backgroundLayers++;
-            else if (z == SceneUi.MenuLayer)
+            else if (z == UiLayers.Menu)
                 contentLayers++;
         }
 
@@ -992,13 +1152,13 @@ public sealed class SceneSystemTests
             int z = rect.GetComponent<Drawable>().ZIndex;
             // Scenes are authored against the 1920x1080 design stage; the host
             // scales the surface, so the backdrop is stage-sized, not screen-sized.
-            if (z == SceneUi.MenuLayer - 1 &&
+            if (z == UiLayers.MenuBackground &&
                 rect.GetComponent<Rectangle>().Bounds.Size == UiStage.Design1080)
             {
                 hasFullScreenBackground = true;
             }
 
-            if (z == SceneUi.MenuLayer &&
+            if (z == UiLayers.Menu &&
                 rect.HasComponent<Text>() &&
                 rect.GetComponent<Text>().Value == "SETTINGS")
             {

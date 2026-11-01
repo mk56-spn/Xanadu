@@ -9,10 +9,9 @@ using Xanadu.Systems.Ui;
 
 namespace Xanadu.Systems.Groups;
 
-/// <summary>Draws the F3 pressed-entity overlay and ECS/system metrics.</summary>
+/// <summary>Runs the F1 frame rate, the F3 ECS and system metrics and the F4 UI overlays.</summary>
 public sealed class DebugSystemGroup : SystemGroup, IDisposable
 {
-    private readonly CanvasItemHandle _overlay;
     private readonly UiDebugOverlayGroup _uiOverlay;
 
     public DebugSystemGroup(
@@ -24,16 +23,13 @@ public sealed class DebugSystemGroup : SystemGroup, IDisposable
         IFpsSource fps,
         IOverlayPageSource? paging = null) : base("Debug")
     {
-        _overlay = new CanvasItemHandle(parentCanvas, 1000, visible: false);
-
         Add(new DebugPressedOverlaySystem(
-            canvas,
-            _overlay.Rid,
             toggle,
             store,
             systems,
             fps,
             paging));
+        Add(new FpsCounterSystem(new GodotOverlayToggleSource(Key.F1), store, fps));
         _uiOverlay = Xanadu.Systems.Ui.UiDebugOverlayGroup.Attach(
             this,
             canvas,
@@ -43,6 +39,5 @@ public sealed class DebugSystemGroup : SystemGroup, IDisposable
     public void Dispose()
     {
         _uiOverlay.Dispose();
-        _overlay.Dispose();
     }
 }

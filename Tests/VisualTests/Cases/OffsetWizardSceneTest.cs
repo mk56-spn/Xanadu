@@ -19,7 +19,7 @@ public sealed class OffsetWizardSceneTest : SceneTest
             () => VisualAssert.IsSceneReady(
                 Context,
                 SceneKind.OffsetWizard,
-                SceneUi.MenuLayer) &&
+                UiLayers.Menu) &&
                 VisualAssert.HasText(Context.Entities, "OFFSET WIZARD"));
         AddAssert(
             "wizard actions exist",
@@ -36,6 +36,6 @@ public sealed class OffsetWizardSceneTest : SceneTest
             "wizard layer is initialized",
             () => VisualAssert.CountUninitialised(
                 Context.Entities,
-                SceneUi.MenuLayer) == 0);
+                UiLayers.Menu) == 0);
     }
 }

@@ -31,7 +31,7 @@ public static partial class EditorScene
         BuildGroupOverlay(entities, root, screen);
 
         // Popups sit above the chrome (960) and below the header menus (970).
-        UiNode panelUi = UiNode.Layer(entities, root, 962, null, UiStage.Full);
+        UiNode panelUi = UiNode.Layer(entities, root, UiLayers.EditorMetadata, null, UiStage.Full);
         Vector2 home = new(
             screen.X - 24 - 190,
             EditorLayout.HeaderHeight + 8 + MetadataPanelHeight / 2);
@@ -83,7 +83,7 @@ public static partial class EditorScene
 
         editor.AddComponent(new EditorMetadataPanel(panel, home));
 
-        UiNode startUi = UiNode.Layer(entities, root, 961, null, UiStage.Full);
+        UiNode startUi = UiNode.Layer(entities, root, UiLayers.EditorStartPoints, null, UiStage.Full);
         Vector2 startHome = new(
             screen.X - 24 - 190,
             EditorLayout.HeaderHeight + 8 + MetadataPanelHeight + 8 + StartPanelHeight / 2);
@@ -109,7 +109,7 @@ public static partial class EditorScene
         AddMetadataField(startNode, "", EditorFieldKind.StartMomentumY, true);
         editor.AddComponent(new EditorStartPanel(startPanel, startHome));
 
-        UiNode helpUi = UiNode.Layer(entities, root, 970, null, UiStage.Full);
+        UiNode helpUi = UiNode.Layer(entities, root, UiLayers.EditorHelp, null, UiStage.Full);
         UiNode helpNode = helpUi.Column()
             .Size(560, 520)
             .Hidden()

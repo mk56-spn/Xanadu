@@ -38,8 +38,8 @@ public sealed class AnimatorTooltipTests : AnimatorToolTest
     {
         Assert.That(
             Tooltip.GetComponent<Drawable>().ZIndex,
-            Is.EqualTo(AnimatorLayout.TooltipLayer));
-        Assert.That(AnimatorLayout.TooltipLayer, Is.GreaterThan(AnimatorLayout.MenuLayer));
+            Is.EqualTo(UiLayers.AnimatorTooltip));
+        Assert.That(UiLayers.AnimatorTooltip, Is.GreaterThan(UiLayers.AnimatorMenu));
         Assert.That(Tooltip.Tags.Has<TakesInput>(), Is.False);
     }
 

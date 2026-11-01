@@ -60,7 +60,7 @@ public static partial class EditorScene
         Color panel = Palette.SurfaceDeep;
         Color field = Palette.SurfaceRaised;
 
-        UiNode scrim = UiNode.Layer(entities, root, 975, null, UiStage.Full);
+        UiNode scrim = UiNode.Layer(entities, root, UiLayers.EditorGroupsScrim, null, UiStage.Full);
         Piece(
             scrim.Rect(new Color(0, 0, 0, 0.7f))
                 .Size(screen)
@@ -70,14 +70,14 @@ public static partial class EditorScene
             0,
             new Rect2(Vector2.Zero, screen));
 
-        UiNode back = UiNode.Layer(entities, root, 976, null, UiStage.Full);
+        UiNode back = UiNode.Layer(entities, root, UiLayers.EditorGroupsBack, null, UiStage.Full);
         Piece(
             back.Rect(panel).Size(dialog).Hidden().Input(),
             EditorGroupPart.Dialog,
             0,
             Place(EditorGroupPart.Dialog, 0, dialog));
 
-        UiNode tracks = UiNode.Layer(entities, root, 977, null, UiStage.Full);
+        UiNode tracks = UiNode.Layer(entities, root, UiLayers.EditorGroupsTracks, null, UiStage.Full);
         for (int row = 0; row < EditorGroupLayout.MaxRows; row++)
         {
             Rect2 track = Place(EditorGroupPart.RowTrack, row, dialog);
@@ -88,7 +88,7 @@ public static partial class EditorScene
                 track);
         }
 
-        UiNode ticks = UiNode.Layer(entities, root, 978, null, UiStage.Full);
+        UiNode ticks = UiNode.Layer(entities, root, UiLayers.EditorGroupsTicks, null, UiStage.Full);
         for (int slot = 0; slot < EditorGroupLayout.TickSlots; slot++)
         {
             Piece(
@@ -116,7 +116,7 @@ public static partial class EditorScene
             0,
             Place(EditorGroupPart.PlayheadLine, 0, dialog));
 
-        UiNode bars = UiNode.Layer(entities, root, 979, null, UiStage.Full);
+        UiNode bars = UiNode.Layer(entities, root, UiLayers.EditorGroupsBars, null, UiStage.Full);
         for (int row = 0; row < EditorGroupLayout.MaxRows; row++)
         {
             Rect2 track = Place(EditorGroupPart.RowTrack, row, dialog);
@@ -129,7 +129,7 @@ public static partial class EditorScene
                 new Rect2(0, 0, 10, track.Size.Y - 8));
         }
 
-        UiNode ui = UiNode.Layer(entities, root, 980, null, UiStage.Full);
+        UiNode ui = UiNode.Layer(entities, root, UiLayers.EditorGroups, null, UiStage.Full);
         for (int slot = 0; slot < EditorGroupLayout.LabelSlots; slot++)
         {
             Piece(
@@ -246,7 +246,7 @@ public static partial class EditorScene
             0,
             Place(EditorGroupPart.Hint, 0, dialog));
 
-        UiNode previewUi = UiNode.Layer(entities, root, 981, null, UiStage.Full);
+        UiNode previewUi = UiNode.Layer(entities, root, UiLayers.EditorGroupsPreview, null, UiStage.Full);
         Rect2 previewArea = Place(EditorGroupPart.PreviewPanel, 0, dialog);
         Piece(
             previewUi.Rect(Palette.SurfaceInset)

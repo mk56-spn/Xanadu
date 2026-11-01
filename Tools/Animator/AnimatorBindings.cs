@@ -60,6 +60,8 @@ public static class AnimatorBindings
         new(new ToolAction(ToolActionKind.NextArt), Key.Bracketright, Shift: true),
         new(new ToolAction(ToolActionKind.LayerDownKey), Key.Comma, Shift: true),
         new(new ToolAction(ToolActionKind.LayerUpKey), Key.Period, Shift: true),
+        new(new ToolAction(ToolActionKind.MoveLayerBack), Key.Bracketleft, Ctrl: true, Shift: true),
+        new(new ToolAction(ToolActionKind.MoveLayerForward), Key.Bracketright, Ctrl: true, Shift: true),
         new(new ToolAction(ToolActionKind.ToggleArtVisible), Key.U, Shift: true),
         new(new ToolAction(ToolActionKind.ToggleMesh), Key.G, Shift: true),
         new(new ToolAction(ToolActionKind.MeshDetailDown), Key.Bracketleft, Ctrl: true),

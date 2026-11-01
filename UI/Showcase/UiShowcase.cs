@@ -81,7 +81,7 @@ public partial class UiShowcase : Control
     private void Build()
     {
         Vector2 screen = GetViewportRect().Size;
-        UiBuilder ui = UiBuilder.Begin(_store).Layer(0);
+        UiBuilder ui = UiBuilder.Begin(_store).Layer(UiLayers.Base);
 
         ui.RectEntity(screen / 2, screen, Palette.Background);
         ui.RectEntity(new Vector2(120, 60), new Vector2(900, 64),

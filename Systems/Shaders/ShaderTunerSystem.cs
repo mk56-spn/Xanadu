@@ -4,7 +4,6 @@ using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Godot;
 using Xanadu.Ecs;
-using Xanadu.Systems.Debug;
 using Xanadu.Systems.Input;
 using Xanadu.Theme;
 
@@ -21,19 +20,23 @@ public sealed class ShaderTunerSystem(
     ShaderParamStore store,
     Key key = Key.F8) : QuerySystem<UiSlider, ShaderParam>
 {
-    private const int LayerZ = 1003;
     private const float PanelCenterX = 1640;
     private const float PanelWidth = 520;
     private const float RowHeight = 30;
-    private const float PickerBlockHeight = ColorPickerLayout.Height + 34;
+    private const float Top = 20;
+    private const float Padding = UiMetrics.Space.Lg;
+    private const float Inner = PanelWidth - Padding * 2;
+    private const float SliderWidth = 230;
+    private const float SliderHeight = 14;
+
+    private static readonly Vector2 ButtonSize = new(120, 34);
+    private static readonly Color Clear = new(0, 0, 0, 0);
+
     private const string SquareShader = "res://Assets/Shaders/Ui/color_sv.gdshader";
     private const string HueShader = "res://Assets/Shaders/Ui/color_hue.gdshader";
     private const string UiShaders = "res://Assets/Shaders/Ui/";
 
-    private static readonly Color PanelColor = DebugPanelStyle.Background;
-    private static readonly Color Accent = DebugPanelStyle.Accent;
 
-    private readonly List<Entity> _parts = new();
     private readonly List<ShaderTarget> _targets = new();
     private Entity _layer;
     private Entity _footer;
@@ -77,44 +80,26 @@ public sealed class ShaderTunerSystem(
         if (_targets.Count == 0)
             return;
 
-        int rows = 0;
-        int pickers = 0;
-        foreach (ShaderTarget target in _targets)
-        {
-            foreach (ShaderUniform uniform in target.Uniforms)
-            {
-                if (uniform.Kind == UniformKind.Color)
-                    pickers++;
-                else
-                    rows += uniform.Channels;
-            }
-        }
-
-        float height = 30 + _targets.Count * 36 + rows * RowHeight +
-            pickers * PickerBlockHeight + 90;
-        float top = 20;
-        float centerY = top + height / 2;
-
-        UiBuilder ui = UiBuilder.Begin(entities).Layer(LayerZ);
+        UiBuilder ui = UiBuilder.Begin(entities).Layer(UiLayers.ShaderTuner);
         _layer = ui.Current;
-        Track(ui.RectEntity(
-            new Vector2(PanelCenterX, centerY),
-            new Vector2(PanelWidth, height),
-            PanelColor));
+        _layer.AddTag<DebugUi>();
 
-        float y = top + 30;
+        // Pinned by its top edge, so it grows down with however much there is to tune.
+        ui.Container(
+            new Vector2(PanelCenterX, Top),
+            new Vector2(PanelWidth, 4),
+            StackDirection.Vertical,
+            spacing: UiMetrics.Space.Xs,
+            color: DebugPalette.Panel,
+            padding: Padding,
+            cross: StackCrossAlignment.Start,
+            autoHeight: true,
+            anchorTop: true,
+            main: StackMainAlignment.Start);
+
         foreach (ShaderTarget target in _targets)
         {
-            Entity header = Label(
-                ui,
-                PanelCenterX - PanelWidth / 2 + 16,
-                y,
-                PanelWidth - 32,
-                target.Title ?? target.Shader.Split('/')[^1],
-                18,
-                Accent);
-            Track(header);
-            y += 36;
+            Label(ui, Inner, target.Title ?? target.Shader.Split('/')[^1], UiType.Label, DebugPalette.Title);
 
             ShaderMaterial material = target.Materials[0];
             foreach (ShaderUniform uniform in target.Uniforms)
@@ -123,31 +108,26 @@ public sealed class ShaderTunerSystem(
                 float[] defaults = ShaderUniforms.Default(material.Shader, uniform);
                 if (uniform.Kind == UniformKind.Color)
                 {
-                    AddColorPicker(ui, target.Shader, uniform, values, defaults, y);
-                    y += PickerBlockHeight;
+                    AddColorPicker(ui, target.Shader, uniform, values, defaults);
                     continue;
                 }
 
                 for (int channel = 0; channel < uniform.Channels; channel++)
-                {
-                    AddRow(ui, target.Shader, uniform, channel, values[channel], defaults[channel], y);
-                    y += RowHeight;
-                }
+                    AddRow(ui, target.Shader, uniform, channel, values[channel], defaults[channel]);
             }
         }
 
-        y += 14;
-        AddButton(ui, "SAVE", ShaderTunerAction.Save, PanelCenterX - 70, y);
-        AddButton(ui, "RESET", ShaderTunerAction.Reset, PanelCenterX + 70, y);
-        _footer = Label(
-            ui,
-            PanelCenterX - PanelWidth / 2 + 16,
-            y + 40,
-            PanelWidth - 32,
-            store.Path,
-            11,
-            Palette.TextDim);
-        Track(_footer);
+        ui.Container(
+            Vector2.Zero,
+            new Vector2(Inner, ButtonSize.Y),
+            StackDirection.Horizontal,
+            spacing: UiMetrics.Space.Md,
+            color: Clear);
+        AddButton(ui, "SAVE", ShaderTunerAction.Save);
+        AddButton(ui, "RESET", ShaderTunerAction.Reset);
+        ui.End();
+        _footer = Label(ui, Inner, store.Path, UiType.Caption, DebugPalette.TextDim);
+        ui.End();
     }
 
     private void CollectTargets()
@@ -214,28 +194,30 @@ public sealed class ShaderTunerSystem(
         ShaderUniform uniform,
         int channel,
         float value,
-        float defaultValue,
-        float y)
+        float defaultValue)
     {
-        float left = PanelCenterX - PanelWidth / 2 + 16;
-        Entity text = Label(
-            ui,
-            left,
-            y,
-            250,
-            "",
-            14,
-            Palette.Text);
+        ui.Container(
+            Vector2.Zero,
+            new Vector2(Inner, RowHeight),
+            StackDirection.Horizontal,
+            color: Clear,
+            main: StackMainAlignment.Start);
+        Entity text = Label(ui, Inner - SliderWidth, "", UiType.Small, DebugPalette.Text);
         Entity track = ui.RectEntity(
-            new Vector2(left + 250 + 120, y),
-            new Vector2(230, 14),
-            Palette.Muted,
+            Vector2.Zero,
+            new Vector2(SliderWidth, SliderHeight),
+            DebugPalette.Control,
             takesInput: true);
+
+        // The slider system lays its fill over the track.
         Entity fill = ui.RectEntity(
-            new Vector2(left + 250 + 120, y),
-            new Vector2(230, 14),
-            Accent,
+            Vector2.Zero,
+            new Vector2(SliderWidth, SliderHeight),
+            DebugPalette.Title,
             "");
+        fill.AddTag<LayoutIgnore>();
+        ui.End();
+
         track.AddComponent(new UiSlider(
             fill,
             text,
@@ -246,71 +228,50 @@ public sealed class ShaderTunerSystem(
             uniform.Kind == UniformKind.Int ? "0" : "0.###",
             defaultValue));
         track.AddComponent(new ShaderParam(shader, uniform.Name, channel, defaultValue));
-        Track(text);
-        Track(track);
-        Track(fill);
     }
 
-    private void AddColorPicker(
+    private static void AddColorPicker(
         UiBuilder ui,
         string shader,
         ShaderUniform uniform,
         float[] value,
-        float[] defaults,
-        float y)
+        float[] defaults)
     {
-        float left = PanelCenterX - PanelWidth / 2 + 16;
-        Track(Label(ui, left, y, PanelWidth - 32, uniform.Name, 14, Palette.Text));
+        Label(ui, Inner, uniform.Name, UiType.Small, DebugPalette.Text);
 
-        Vector2 center = new(
-            left + ColorPickerLayout.Size.X / 2,
-            y + 16 + ColorPickerLayout.Size.Y / 2);
+        // A picker places its own parts around its square, so it gets a slot its size.
+        var slot = new Vector2(Inner, ColorPickerLayout.Height);
+        ui.Container(Vector2.Zero, slot, StackDirection.Vertical, color: Clear);
         List<Entity> parts = ui.ColorPicker(
-            center,
+            (ColorPickerLayout.Size - slot) / 2,
             new Color(value[0], value[1], value[2], value[3]),
             ShaderMaterials.Load(SquareShader),
             ShaderMaterials.Load(HueShader));
+        foreach (Entity part in parts)
+            part.AddTag<LayoutIgnore>();
+        ui.End();
+
         parts[0].AddComponent(new ShaderColorParam(
             shader,
             uniform.Name,
             new Color(defaults[0], defaults[1], defaults[2], defaults[3])));
-        _parts.AddRange(parts);
     }
 
-    private void AddButton(UiBuilder ui, string label, ShaderTunerAction action, float x, float y)
+    private static void AddButton(UiBuilder ui, string label, ShaderTunerAction action)
     {
         Entity button = ui.RectEntity(
-            new Vector2(x, y + 14),
-            new Vector2(120, 34),
-            Palette.Muted,
+            Vector2.Zero,
+            ButtonSize,
+            DebugPalette.Control,
             label,
             takesInput: true);
-        button.AddComponent(new TextStyle(16, Colors.White));
-        button.AddComponent(ButtonVisual.Create(Palette.Muted));
+        button.AddComponent(new TextStyle(UiType.Body, DebugPalette.ControlText));
+        button.AddComponent(ButtonVisual.Create(DebugPalette.Control));
         button.AddComponent(new ShaderTunerButton(action));
-        Track(button);
     }
 
-    private static Entity Label(
-        UiBuilder ui,
-        float left,
-        float y,
-        float width,
-        string text,
-        int fontSize,
-        Color color)
-    {
-        Entity label = ui.Text(
-            text,
-            new Vector2(width, fontSize * 1.5f),
-            fontSize,
-            color,
-            TextAlign.Left,
-            new Vector2(left + width / 2, y));
-        return label;
-    }
-
-    private void Track(Entity entity) => _parts.Add(entity);
+    private static Entity Label(UiBuilder ui, float width, string text, int fontSize, Color color) =>
+        ui.Text(text, new Vector2(width, fontSize * 1.5f), fontSize, color, TextAlign.Left);
 
     /// <summary>Current slider values, grouped as one array per uniform.</summary>
     private Dictionary<(string, string), float[]> GatherValues()
@@ -431,14 +392,7 @@ public sealed class ShaderTunerSystem(
     private void Close()
     {
         Save();
-        foreach (Entity part in _parts)
-        {
-            if (!part.IsNull)
-                part.DeleteEntity();
-        }
-
-        _parts.Clear();
-        _layer.DeleteEntity();
+        UiLayout.DeleteSubtree(_layer);
         _layer = default;
         _targets.Clear();
     }

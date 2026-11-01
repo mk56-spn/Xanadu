@@ -119,6 +119,8 @@ public static class AnimatorTooltips
         ToolActionKind.Clip => $"Edit clip {argument.ToUpperInvariant()}",
         ToolActionKind.SelectBone => "Select this bone",
         ToolActionKind.SelectAttachment => "Select this SVG attachment",
+        ToolActionKind.MoveLayerForward => "Draw this art in front of the one above it (Ctrl+Shift+])",
+        ToolActionKind.MoveLayerBack => "Draw this art behind the one below it (Ctrl+Shift+[)",
         ToolActionKind.Interpolate => argument switch
         {
             "Step" => "Hold the value until the next key (1)",

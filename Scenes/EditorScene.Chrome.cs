@@ -36,7 +36,7 @@ public static partial class EditorScene
     {
         EditorShellRects shell = EditorShell.Compute(
             screen, new EditorShellOptions(EditorFooterHeight.Level));
-        UiNode ui = UiNode.Layer(entities, root, 960, null, UiStage.Full);
+        UiNode ui = UiNode.Layer(entities, root, UiLayers.EditorChrome, null, UiStage.Full);
 
         UiNode page = ui.Column().Box(new Rect2(Vector2.Zero, screen));
 
@@ -60,7 +60,7 @@ public static partial class EditorScene
             footer.Notes));
 
         // The lists float on their own layer so opening one never moves the header.
-        UiNode lists = UiNode.Layer(entities, root, 970, null, UiStage.Full);
+        UiNode lists = UiNode.Layer(entities, root, UiLayers.EditorLists, null, UiStage.Full);
         HeaderMenu(lists, header.File,
             ("SAVE", EditorButtonKind.Save),
             ("SAVE AS", EditorButtonKind.SaveAs),
@@ -315,7 +315,7 @@ public static partial class EditorScene
         Entity editor,
         Vector2 screen)
     {
-        UiNode ui = UiNode.Layer(entities, root, 960, null, UiStage.Full);
+        UiNode ui = UiNode.Layer(entities, root, UiLayers.EditorChrome, null, UiStage.Full);
 
         Vector2 lens = EditorLayout.ZoomLensCenter(
             editor.GetComponent<PlayfieldView>());

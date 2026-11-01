@@ -29,7 +29,7 @@ public sealed class ToastSystem : QuerySystem<Toast>
     {
         _home = new Vector2(screen.X / 2, 100);
 
-        UiBuilder ui = UiBuilder.Begin(entities, visuals).Layer(990);
+        UiBuilder ui = UiBuilder.Begin(entities, visuals).Layer(UiLayers.Toast);
         _toast = ui.RectEntity(
             Vector2.Zero,
             new Vector2(620, 42),

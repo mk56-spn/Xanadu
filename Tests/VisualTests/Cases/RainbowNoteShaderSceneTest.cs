@@ -33,7 +33,7 @@ public sealed class RainbowNoteShaderSceneTest : SceneTest
             () => VisualAssert.IsSceneReady(
                 Context,
                 SceneKind.Play,
-                SceneUi.PlayHudLayer));
+                UiLayers.PlayHud));
 
         AddAssert(
             "the note carries the common shader component",

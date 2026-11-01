@@ -195,6 +195,20 @@ public sealed class UiHiddenTests
     }
 
     [Test]
+    public void DebugUiIsInheritedDownTheTree()
+    {
+        Entity root = Node();
+        root.AddTag<DebugUi>();
+        Entity child = Node(root);
+        Entity below = Node(child);
+        Entity other = Node();
+
+        Assert.That(child.Tags.Has<DebugUi>(), Is.True);
+        Assert.That(below.Tags.Has<DebugUi>(), Is.True);
+        Assert.That(other.Tags.Has<DebugUi>(), Is.False);
+    }
+
+    [Test]
     public void DeleteSubtreeDeletesEveryDescendant()
     {
         Entity root = Node();

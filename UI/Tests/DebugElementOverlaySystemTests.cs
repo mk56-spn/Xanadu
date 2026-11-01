@@ -38,10 +38,9 @@ public sealed class DebugElementOverlaySystemTests
         root.Update(new UpdateTick(1f / 60f, 0));
 
         Assert.That(canvas.Visible, Is.True);
-        Assert.That(canvas.Rects, Has.Count.EqualTo(11));
+        Assert.That(canvas.Rects, Has.Count.EqualTo(10));
         Assert.That(canvas.Circles, Has.Count.EqualTo(2));
         Assert.That(canvas.Circles[0].Center, Is.EqualTo(new Vector2(300, 280)));
-        Assert.That(canvas.Texts, Does.Contain("GREEN PINS"));
     }
 
     [Test]
@@ -65,8 +64,8 @@ public sealed class DebugElementOverlaySystemTests
         };
         root.Update(new UpdateTick(1f / 60f, 0));
 
-        // Other box, then the picked box (fill + 4 edges), then the legend.
-        Assert.That(canvas.Rects, Has.Count.EqualTo(11));
+        // Other box, then the picked box (fill + 4 edges).
+        Assert.That(canvas.Rects, Has.Count.EqualTo(10));
         Assert.That(canvas.Rects[5], Is.EqualTo(new Rect2(75, 80, 50, 40)));
         Assert.That(canvas.Colors[5], Is.Not.EqualTo(canvas.Colors[0]));
     }

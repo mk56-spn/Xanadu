@@ -46,7 +46,6 @@ public sealed class VisualTestSidebar : IDisposable
     /// <summary>Width of the list down the left of the window.</summary>
     public const float SidebarWidth = 340;
 
-    private const int LayerZ = 900;
     private const float Padding = 16;
     private const float ContentWidth = SidebarWidth - Padding * 2;
     private const float RowsTop = 108;
@@ -94,7 +93,7 @@ public sealed class VisualTestSidebar : IDisposable
             screen: new Vector2(DesignWidth, DesignHeight)));
         _root.Add(_commands);
 
-        _ui = UiBuilder.Begin(_store).Layer(LayerZ);
+        _ui = UiBuilder.Begin(_store).Layer(UiLayers.VisualTestSidebar);
         Entity root = _store.CreateEntity();
         root.AddChild(_ui.Current);
 

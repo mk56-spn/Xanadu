@@ -282,7 +282,7 @@ public static partial class AnimatorLayout
         IVisualRidFactory? visuals,
         ref Refs refs)
     {
-        UiBuilder tip = UiBuilder.Begin(store, visuals).Layer(TooltipLayer);
+        UiBuilder tip = UiBuilder.Begin(store, visuals).Layer(UiLayers.AnimatorTooltip);
         Entity tooltip = tip.RectEntity(
             Vector2.Zero,
             new Vector2(200, 24),

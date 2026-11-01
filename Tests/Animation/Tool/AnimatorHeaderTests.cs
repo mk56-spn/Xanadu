@@ -100,7 +100,7 @@ public sealed class AnimatorHeaderTests : AnimatorToolTest
 
         Entity list = Ui.ClipDropdown.GetComponent<Dropdown>().List;
         Assert.That(Area(list).Position.Y, Is.EqualTo(Area(Ui.ClipDropdown).End.Y + 4f).Within(0.5f));
-        Assert.That(list.GetComponent<Drawable>().ZIndex, Is.EqualTo(AnimatorLayout.MenuLayer));
+        Assert.That(list.GetComponent<Drawable>().ZIndex, Is.EqualTo(UiLayers.AnimatorMenu));
         Assert.That(list.Parent.Id, Is.EqualTo(Ui.MenuLayer.Id));
     }
 
@@ -193,7 +193,7 @@ public sealed class AnimatorHeaderTests : AnimatorToolTest
         Assert.That(Ui.ClipLengthPanel.Parent.Id, Is.EqualTo(Ui.MenuLayer.Id));
         Assert.That(Ui.ClipLengthPanel.Tags.Has<TakesInput>(), Is.True);
         Assert.That(Ui.ClipLengthPanel.GetComponent<Drawable>().ZIndex,
-            Is.EqualTo(AnimatorLayout.MenuLayer));
+            Is.EqualTo(UiLayers.AnimatorMenu));
     }
 
     [Test]
