@@ -19,7 +19,7 @@ namespace Xanadu.Tools.Animator.Systems;
 /// </summary>
 public sealed class AnimatorTimelineInputSystem(
     IPointerInputSource pointer,
-    IAnimatorWheel wheel) : QuerySystem<AnimatorDocument, AnimatorUi>
+    IWheelSource wheel) : QuerySystem<AnimatorDocument, AnimatorUi>
 {
     private readonly KeyBox _marquee = new();
     private bool _panelHeld;

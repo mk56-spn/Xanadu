@@ -14,41 +14,6 @@ public partial class EditorOverlay : CanvasLayer
         if (_closed)
             return;
 
-        if (@event is InputEventMouseButton
-            {
-                Pressed: true,
-                ButtonIndex: MouseButton.WheelUp or MouseButton.WheelDown,
-            } wheel)
-        {
-            if (_editor.IsNull ||
-                AnyDialogVisible() ||
-                IsWarningOpen() ||
-                IsGroupOverlayOpen() ||
-                GetViewport().GuiGetFocusOwner() is LineEdit)
-            {
-                return;
-            }
-
-            int direction = wheel.ButtonIndex == MouseButton.WheelUp ? -1 : 1;
-            if (wheel.CtrlPressed && _editor.HasComponent<EditorViewNavigation>())
-            {
-                // Ctrl+wheel zooms the field view about the pointer instead of seeking.
-                ref EditorViewNavigation navigation = ref _editor.GetComponent<EditorViewNavigation>();
-                navigation.ZoomSteps -= direction;
-                GetViewport().SetInputAsHandled();
-                return;
-            }
-
-            ref Playhead playhead = ref _editor.GetComponent<Playhead>();
-            _commands.Enqueue(EditorCommand.Seek(
-                EditorScroll.Target(
-                    playhead,
-                    direction,
-                    wheel.ShiftPressed)));
-            GetViewport().SetInputAsHandled();
-            return;
-        }
-
         if (@event is not InputEventKey { Pressed: true, Echo: false } key)
             return;
 

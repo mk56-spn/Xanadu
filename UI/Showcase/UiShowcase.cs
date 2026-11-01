@@ -16,24 +16,22 @@ public partial class UiShowcase : Control
 {
     private EntityStore _store = null!;
     private SystemRoot _root = null!;
-    private ShowcasePointer _pointer = null!;
-    private ScrollSystem _scroll = null!;
+    private GodotPointerInputSource _pointer = null!;
 
     public override void _Ready()
     {
         _store = new EntityStore();
         _root = new SystemRoot(_store);
-        _pointer = new ShowcasePointer();
+        _pointer = new GodotPointerInputSource(this);
         var canvas = new GodotRectCanvas();
 
-        UiSystemGroup ui = new(
+        _root.Add(new UiSystemGroup(
             _store,
             GetCanvasItem(),
             canvas,
             _pointer,
-            screen: GetViewportRect().Size);
-        _root.Add(ui);
-        _scroll = ui.Scroll;
+            screen: GetViewportRect().Size,
+            wheel: _pointer));
 
         Build();
         SetProcess(true);
@@ -46,37 +44,7 @@ public partial class UiShowcase : Control
         _pointer.EndFrame();
     }
 
-    public override void _Input(InputEvent @event)
-    {
-        if (@event is InputEventMouseMotion motion)
-        {
-            _pointer.Position = motion.Position;
-        }
-        else if (@event is InputEventMouseButton
-                 {
-                     ButtonIndex: MouseButton.Left,
-                 } button)
-        {
-            _pointer.Position = button.Position;
-            _pointer.Pressed = button.Pressed;
-            if (button.Pressed)
-                _pointer.ClickPending = true;
-        }
-    }
-
-    public override void _UnhandledInput(InputEvent @event)
-    {
-        if (@event is InputEventMouseButton
-            {
-                Pressed: true,
-                ButtonIndex: MouseButton.WheelUp or MouseButton.WheelDown,
-            } wheel)
-        {
-            _scroll.Request(
-                GetViewport().GetMousePosition(),
-                wheel.ButtonIndex == MouseButton.WheelUp ? -1 : 1);
-        }
-    }
+    public override void _Input(InputEvent @event) => _pointer.Feed(@event);
 
     private void Build()
     {
@@ -271,18 +239,4 @@ public partial class UiShowcase : Control
 
     private static void Style(Entity entity, int size, Color color) =>
         entity.AddComponent(new TextStyle(size, color));
-
-    private sealed class ShowcasePointer : IPointerInputSource
-    {
-        public Vector2 Position;
-        public bool Pressed;
-        public bool ClickPending;
-
-        public PointerInput Read() => new(
-            Position,
-            Pressed || ClickPending,
-            Input.IsKeyPressed(Key.Shift));
-
-        public void EndFrame() => ClickPending = false;
-    }
 }

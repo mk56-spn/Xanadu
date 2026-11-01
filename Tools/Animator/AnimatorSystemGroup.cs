@@ -22,7 +22,7 @@ public sealed class AnimatorSystemGroup : SystemGroup
         IVisualRidFactory visuals,
         IAnimatorSvgCatalog svgCatalog,
         IPointerInputSource pointer,
-        IAnimatorWheel wheel,
+        IWheelSource wheel,
         IKeyboardState keyboard) : base("Animator")
     {
         Add(new AnimatorClipConfigSystem(pointer));

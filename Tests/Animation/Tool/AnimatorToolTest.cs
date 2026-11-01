@@ -210,7 +210,7 @@ public abstract class AnimatorToolTest : EcsSystemTest
             Rest = new Transform2D(0f, offset),
         });
 
-    protected sealed class FakePointer : IPointerInputSource, IAnimatorWheel
+    protected sealed class FakePointer : IPointerInputSource, IWheelSource
     {
         public Vector2 Position;
         public bool Pressed;
@@ -221,6 +221,10 @@ public abstract class AnimatorToolTest : EcsSystemTest
         public bool Control { get; set; }
 
         public PointerInput Read() => new(Position, Pressed, Shift, Secondary, Middle);
+
+        public int Notches => Wheel;
+
+        bool IWheelSource.Shift => Shift;
 
         public int TakeWheel()
         {

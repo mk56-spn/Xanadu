@@ -90,7 +90,8 @@ public sealed class VisualTestSidebar : IDisposable
             new GodotRectCanvas(),
             _pointer,
             keyboard: new GodotKeyboardState(),
-            screen: new Vector2(DesignWidth, DesignHeight)));
+            screen: new Vector2(DesignWidth, DesignHeight),
+            wheel: _pointer));
         _root.Add(_commands);
 
         _ui = UiBuilder.Begin(_store).Layer(UiLayers.VisualTestSidebar);
@@ -107,14 +108,17 @@ public sealed class VisualTestSidebar : IDisposable
     public EntityStore Store => _store;
 
     /// <summary>Runs the UI systems for one frame.</summary>
-    public void Frame(float delta, float time) =>
+    public void Frame(float delta, float time)
+    {
         _root.Update(new UpdateTick(delta, time));
+        _pointer.EndFrame();
+    }
 
     /// <summary>Takes the next click, if any. Select and Run are per row.</summary>
     public bool TryTake(out VisualTestAction action) => _commands.TryTake(out action);
 
-    /// <summary>Catches a click that was pressed and released between two frames.</summary>
-    public void LatchPress() => _pointer.LatchPress();
+    /// <summary>Forwards an event, so a click between two frames is not lost.</summary>
+    public void Feed(InputEvent @event) => _pointer.Feed(@event);
 
     /// <summary>Shows the one-line status under the title.</summary>
     public void SetSummary(string text, Color color)
