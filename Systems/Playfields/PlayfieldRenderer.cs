@@ -122,7 +122,15 @@ public static partial class PlayfieldRenderer
         Rect2 bounds = visible is { } area ? field.Intersection(area) : field;
         if (bounds.Size.X > 0 && bounds.Size.Y > 0)
             CanvasGrid.Draw(canvas, rid, bounds, DrawnCell(playfield, field), field.Position + field.Size / 2);
+    }
 
+    /// <summary>The field's width marks along its bottom edge, which stay with the grid off.</summary>
+    public static void DrawFieldLabels(
+        IRectCanvas canvas,
+        Rid rid,
+        Playfield playfield,
+        Rect2 field)
+    {
         float labelY = field.End.Y - 20;
         DrawLeftText(canvas, rid, "0", field.Position.X + 6, labelY, DimTextColor, field.Size.X);
         DrawLeftText(

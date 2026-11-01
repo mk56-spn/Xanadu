@@ -133,6 +133,12 @@ public static partial class EditorScene
             Palette.TextMuted);
 
         UiNode right = EdgeGroup(header, new Vector2(1, 0.5f));
+        ViewportGrid.Attach(right.Button(
+                ViewportGrid.Label,
+                UiTheme.FontSize,
+                SceneUi.MutedButtonColor)
+            .Size(ViewportGrid.ToggleWidth, HeaderControl)
+            .Entity);
         Entity file = right.Button(
                 "FILE ▾",
                 UiTheme.FontSize,

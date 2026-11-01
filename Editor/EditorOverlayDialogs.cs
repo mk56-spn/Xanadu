@@ -121,6 +121,9 @@ public partial class EditorOverlay : CanvasLayer
         _commands.Enqueue(EditorCommand.LoadSongById(_songs[index].Id));
     }
 
+    /// <summary>Saves on the way out: null when saved, otherwise why it could not.</summary>
+    public string? SaveForLeaving() => SaveCurrent() ? null : _saveProblem;
+
     public bool SaveCurrent()
     {
         if (_editor.IsNull || !ValidateCurrent())
@@ -140,6 +143,7 @@ public partial class EditorOverlay : CanvasLayer
         }
         catch (Exception exception)
         {
+            _saveProblem = exception.Message;
             SetStatus($"Save failed: {exception.Message}");
             return false;
         }

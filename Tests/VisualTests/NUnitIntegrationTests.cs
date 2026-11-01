@@ -52,6 +52,9 @@ public sealed class VisualSceneTests
     [Test]
     public void LeaveEditor() => RunScene("leave-editor");
 
+    [Test]
+    public void EditorExitMenu() => RunScene("editor-exit-menu");
+
     private static void RunScene(string slug)
     {
         string godot = Environment.GetEnvironmentVariable("GODOT_BIN") ?? "";
