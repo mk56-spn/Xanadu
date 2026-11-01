@@ -36,11 +36,13 @@ public static partial class SongSelectScene
     private const float BarTrackTop = 726.929f;
     private const float BarTrackBottom = 1036.348f;
     private const float MinScoreThumb = 24;
+    private const float BarHitMargin = 6;
 
     private readonly record struct ScoreViews(
         Entity Viewport,
         UiNode Content,
-        Entity Thumb);
+        Entity Thumb,
+        Entity Track);
 
     /// <summary>
     /// The panel is a container: the tab, then a clipped viewport holding a
@@ -95,10 +97,20 @@ public static partial class SongSelectScene
             .With(new ShapeGlow(new Color(Gold, 0.6f), radius: 10, intensity: 1.5f))
             .Raised();
 
+        // Invisible and a little wider than the thin bar: what the pointer actually presses.
+        Entity track = ui.Rect(
+                Transparent,
+                "",
+                new Vector2(BarTrackRight - BarTrackLeft + BarHitMargin * 2, BarTrackBottom - BarTrackTop))
+            .At(new Vector2((BarTrackLeft + BarTrackRight) / 2, (BarTrackTop + BarTrackBottom) / 2))
+            .Input()
+            .Raised();
+
         return new ScoreViews(
             viewport.Entity,
             content,
-            thumb);
+            thumb,
+            track);
     }
 
     private static UiNode ScoreText(
@@ -160,20 +172,41 @@ public static partial class SongSelectScene
             Colors.White);
     }
 
+    /// <summary>How much the score rows overflow their viewport.</summary>
+    private static float ScoreRange(in SongSelectState state) =>
+        Mathf.Max(0, state.ScoreContent.Entity.GetComponent<Rectangle>().Bounds.Size.Y - ScoreViewHeight);
+
+    /// <summary>The scores' scrollbar; without overflow the thumb fills the track.</summary>
+    public static VerticalSlider ScoreSlider(in SongSelectState state)
+    {
+        float content = state.ScoreContent.Entity.GetComponent<Rectangle>().Bounds.Size.Y;
+        return new VerticalSlider(
+            BarTrackTop,
+            BarTrackBottom,
+            ScoreRange(state) <= 0 ? 1f : ScoreViewHeight / content,
+            MinScoreThumb);
+    }
+
+    /// <summary>How far down the scores are scrolled, from 0 to 1.</summary>
+    public static float ScoreValue(in SongSelectState state)
+    {
+        float range = ScoreRange(state);
+        return range <= 0 ? 0 : state.ScoreViewport.GetComponent<ScrollView>().Offset / range;
+    }
+
+    /// <summary>Scrolls the scores to a point from 0 at the top to 1 at the bottom.</summary>
+    public static void SetScoreValue(in SongSelectState state, float value) =>
+        state.ScoreViewport.GetComponent<ScrollView>().Offset = value * ScoreRange(state);
+
     /// <summary>Sizes and places the scrollbar thumb for how far the scores are scrolled.</summary>
     public static void RefreshScoreThumb(ref SongSelectState state)
     {
         if (state.ScoreViewport.IsNull)
             return;
 
-        float track = BarTrackBottom - BarTrackTop;
-        float content = state.ScoreContent.Entity.GetComponent<Rectangle>().Bounds.Size.Y;
-        float range = Mathf.Max(0, content - ScoreViewHeight);
-        float length = range <= 0
-            ? track
-            : Mathf.Clamp(track * ScoreViewHeight / content, MinScoreThumb, track);
-        float offset = Mathf.Clamp(state.ScoreViewport.GetComponent<ScrollView>().Offset, 0, range);
-        float start = BarTrackTop + (range <= 0 ? 0 : (track - length) * offset / range);
+        VerticalSlider slider = ScoreSlider(state);
+        float length = slider.ThumbLength;
+        float start = slider.ThumbTop(ScoreValue(state));
 
         var span = new Vector2(start, length);
         if (state.ScoreThumbSpan == span)

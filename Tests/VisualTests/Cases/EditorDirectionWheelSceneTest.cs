@@ -1,5 +1,6 @@
 using Friflo.Engine.ECS;
 using Godot;
+using Xanadu.Systems.Input;
 using Xanadu.Ecs;
 using Xanadu.Editor;
 using Xanadu.Scenes;
@@ -95,15 +96,7 @@ public sealed class EditorDirectionWheelSceneTest : SceneTest
         Context.Host.AddChild(_overlay);
     }
 
-    private void Press(Key key)
-    {
-        _overlay?._UnhandledInput(new InputEventKey
-        {
-            Pressed = true,
-            Keycode = key,
-            PhysicalKeycode = key,
-        });
-    }
+    private void Press(Key key) => Context.Systems.KeyPresses.Press(new KeyChord(key));
 
     private Entity Wheel() =>
         Context.Entities.Query<UiWheel>().WithDisabled().ToEntityList()[0];

@@ -60,6 +60,10 @@ public partial class EditorOverlay
     public override void _Ready()
     {
         _editor = FindEditor();
+        if (!_editor.IsNull)
+            _editor.AddComponent(new EditorShortcutHost(this));
+            _editor.AddComponent(new Xanadu.Systems.Timeline.TimelineHost(
+                new EditorTimelineHost(_editor, _commands, SetStatus)));
 
         CreateTextFieldBridge();
         BuildSongDialog();

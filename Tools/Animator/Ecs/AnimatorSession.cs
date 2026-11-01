@@ -41,6 +41,7 @@ public static class AnimatorSession
             new AnimatorTracks { Expanded = new HashSet<XafTrack>() },
             AnimatorBoneMenu.Closed,
             new AnimatorClipboard());
+        session.AddComponent(new Xanadu.Systems.Timeline.TimelineHost(new AnimatorTimelineHost(session)));
         session.AddComponent(new AnimatorKeyMenu());
         session.AddComponent(new AnimatorClipLength());
         session.AddComponent(new AnimatorNewClipDialog());

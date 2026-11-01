@@ -126,6 +126,16 @@ public static class PlayScene
                 SceneUi.MutedButtonColor)
             .On(SceneActionId.Pause);
 
+        // Under PAUSE, clear of the field; PlaySkipSystem shows it while the entrance can be skipped.
+        Entity skipButton = ui.HudButton(
+                new Vector2(95, 100),
+                new Vector2(150, 44),
+                LocalizedText.Get(PlayStrings.Skip),
+                UiType.Label,
+                SceneUi.ButtonColor)
+            .Hidden()
+            .Entity;
+
         Entity titleText = ui.HudText(new Vector2(screen.X / 2, 30),
             new Vector2(620, 30),
             string.IsNullOrWhiteSpace(document.Name) ? "UNTITLED" : document.Name,
@@ -364,7 +374,12 @@ public static class PlayScene
             status,
             countdown,
             Math.Max(lastNote, lastMine),
-            start?.TimeMs ?? 0));
+            start?.TimeMs ?? 0,
+            PlaySkipSystem.SkipTarget(
+                document.Notes.Select(note => note.TimeMs)
+                    .Concat(document.Mines.Select(mine => mine.TimeMs)),
+                start?.TimeMs ?? 0),
+            skipButton));
 
         if (replay is not null)
             playfieldEntity.AddComponent(new ReplayPlayer(replay));

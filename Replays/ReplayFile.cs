@@ -9,12 +9,13 @@ namespace Xanadu.Replays;
 /// The .xrs replay format. Little-endian binary:
 /// <c>"XRS"</c>, a version byte, the header fields, the result, then the
 /// events as a count followed by (time delta, action and down flag) pairs.
-/// Time deltas are LEB128 varints, so a long replay stays small.
+/// Time deltas are LEB128 varints, so a long replay stays small. Version 2 ends
+/// with the song time the entrance was skipped at, or -1; version 1 has none.
 /// </summary>
 public static class ReplayFile
 {
     public const string Extension = ".xrs";
-    public const byte Version = 1;
+    public const byte Version = 2;
 
     private const byte DownFlag = 0x80;
     private static readonly byte[] Magic = "XRS"u8.ToArray();
@@ -51,6 +52,8 @@ public static class ReplayFile
             writer.Write((byte)((int)replayEvent.Action | (replayEvent.Down ? DownFlag : 0)));
             previous = replayEvent.TimeMs;
         }
+
+        writer.Write(replay.SkipFromMs);
     }
 
     /// <exception cref="InvalidDataException">The data is not a readable replay.</exception>
@@ -63,7 +66,7 @@ public static class ReplayFile
                 throw new InvalidDataException("Not an .xrs replay.");
 
             byte version = reader.ReadByte();
-            if (version != Version)
+            if (version is not (1 or Version))
                 throw new InvalidDataException($"Unsupported replay version {version}.");
 
             string levelId = reader.ReadString();
@@ -96,6 +99,8 @@ public static class ReplayFile
                 events[i] = new ReplayEvent(time, (KeybindAction)action, (packed & DownFlag) != 0);
             }
 
+            long skipFromMs = version >= 2 ? reader.ReadInt64() : -1;
+
             return new Replay(
                 levelId,
                 levelName,
@@ -106,7 +111,8 @@ public static class ReplayFile
                 new ReplayResult(
                     score, accuracy, counts[0], counts[1], counts[2], counts[3],
                     counts[4], counts[5], counts[6], counts[7], counts[8], counts[9]),
-                events);
+                events,
+                skipFromMs);
         }
         catch (EndOfStreamException exception)
         {

@@ -56,10 +56,29 @@ public sealed class AnimatorTimelineDrawSystem(IRectCanvas canvas, Rid target)
         DrawLoop(model);
         DrawPlayhead(model, document.Runtime.CurrentTime);
         DrawEvents(model, AnimatorEventCommands.Selected(session, out _));
+        DrawRowBar(model, session.GetComponent<AnimatorDrag>().Kind == AnimatorDragKind.RowScroll);
 
         // The box being dragged to select keys, over everything else.
-        if (session.TryGetComponent(out UiMarqueeBox box))
-            CanvasMarquee.Draw(canvas, target, box);
+        if (session.TryGetComponent(out UiMarqueeBox box) && box.Active &&
+            model.BoxOnScreen(box.Bounds) is { } onScreen)
+        {
+            CanvasMarquee.Draw(canvas, target, onScreen);
+        }
+    }
+
+    /// <summary>The scrollbar beside the rows, only when some of them are out of sight.</summary>
+    private void DrawRowBar(AnimatorTimelineModel model, bool dragging)
+    {
+        if (!model.HasRowBar)
+            return;
+
+        Rect2 bar = model.RowBar;
+        VerticalSlider slider = model.RowSlider;
+        canvas.DrawRect(target, bar, RowEven);
+        canvas.DrawRect(
+            target,
+            new Rect2(bar.Position.X, slider.ThumbTop(model.RowValue), bar.Size.X, slider.ThumbLength),
+            dragging ? Text : Tick);
     }
 
     /// <summary>Writes the readout into the caption beside the transport; layout places it.</summary>

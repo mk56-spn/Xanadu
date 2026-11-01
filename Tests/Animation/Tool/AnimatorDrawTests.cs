@@ -52,6 +52,22 @@ public sealed class AnimatorDrawTests : AnimatorToolTest
         Assert.That(Circles(8), Is.EqualTo(1));
     }
 
+    [Test]
+    public void DrawsARotationHandleOnlyOnChildlessBonesWhileHandlesShow()
+    {
+        Frame();
+        Assert.That(Circles(4.5f), Is.EqualTo(1));
+
+        Session.GetComponent<AnimatorModes>().Svg = true;
+        Frame();
+        Assert.That(Circles(4.5f), Is.EqualTo(0));
+
+        Session.GetComponent<AnimatorModes>().Svg = false;
+        Session.GetComponent<AnimatorModes>().Handles = false;
+        Frame();
+        Assert.That(Circles(4.5f), Is.EqualTo(0));
+    }
+
     private void AddChain(string art)
     {
         Package.Chains.Add(new XafChain

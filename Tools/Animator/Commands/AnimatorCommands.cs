@@ -79,9 +79,7 @@ public static class AnimatorCommands
                 AnimatorSession.SetStatus(session, "PLAYING");
                 break;
             case ToolActionKind.Stop:
-                AnimatorSequenceCommands.Finish(session);
-                session.GetComponent<AnimatorDocument>().Playback.Stop();
-                AnimatorSession.SetStatus(session, "STOPPED");
+                Stop(session);
                 break;
             case ToolActionKind.SequenceGame:
                 AnimatorSequenceCommands.StartGame(session);
@@ -424,6 +422,18 @@ public static class AnimatorCommands
             AnimatorChainPlacementCommands.SetArt(session, choice);
         else
             AnimatorAttachmentCommands.Add(session, choice.Path, choice.Group, menu.Bone);
+    }
+
+    /// <summary>Stops playback; pressed again once stopped, it returns to the clip's start.</summary>
+    private static void Stop(Entity session)
+    {
+        AnimatorDocument document = session.GetComponent<AnimatorDocument>();
+        bool alreadyStopped = !document.Playback.IsPlaying && !session.GetComponent<AnimatorSequence>().Active;
+        AnimatorSequenceCommands.Finish(session);
+        document.Playback.Stop();
+        if (alreadyStopped)
+            document.Runtime.Seek(0f);
+        AnimatorSession.SetStatus(session, alreadyStopped ? "BACK TO START" : "STOPPED");
     }
 
     /// <summary>Plays if stopped and stops if playing, the one action behind Space.</summary>

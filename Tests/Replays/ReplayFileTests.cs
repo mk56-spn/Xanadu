@@ -73,6 +73,24 @@ public sealed class ReplayFileTests
     }
 
     [Test]
+    public void SkipTimeSurvivesTheRoundTrip()
+    {
+        byte[] bytes = Bytes(Sample() with { SkipFromMs = 1_234 });
+
+        Assert.That(ReplayFile.Read(new MemoryStream(bytes)).SkipFromMs, Is.EqualTo(1_234));
+    }
+
+    [Test]
+    public void VersionOneReplayHasNoSkip()
+    {
+        byte[] bytes = Bytes(Sample());
+        bytes[3] = 1;
+        Array.Resize(ref bytes, bytes.Length - sizeof(long));
+
+        Assert.That(ReplayFile.Read(new MemoryStream(bytes)).SkipFromMs, Is.EqualTo(-1));
+    }
+
+    [Test]
     public void UnknownVersionIsRejected()
     {
         byte[] bytes = Bytes(Sample());

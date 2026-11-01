@@ -212,7 +212,7 @@ public sealed class EditorChromeLayoutTests : EcsSystemTest
         Rect2 left = Area(Store.Query<EditorLeftMenu>().ToEntityList()[0]
             .GetComponent<EditorLeftMenu>().Panel);
         Rect2 hint = Area(ByText(
-            "Space play   Home stop   Delete note   ←/→ nudge   Ctrl+Z/Y undo   T tap tempo   Target: select a note").Parent);
+            "Space play   Home/End jump   Delete note   ←/→ nudge   Ctrl+Z/Y undo   T tap tempo   Target: select a note").Parent);
 
         Assert.That(left.Position.X, Is.EqualTo(_shell.Viewport.Position.X).Within(0.5f));
         Assert.That(left.Position.Y, Is.EqualTo(_shell.Viewport.Position.Y).Within(0.5f));

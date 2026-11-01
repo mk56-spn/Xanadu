@@ -14,7 +14,7 @@ public static class AnimatorTooltips
     public static string? For(ToolActionKind kind, string argument = "") => kind switch
     {
         ToolActionKind.Play => "Play from the playhead (Space)",
-        ToolActionKind.Stop => "Pause playback (Space)",
+        ToolActionKind.Stop => "Stop playback (Space); when stopped, return to the start",
         ToolActionKind.TogglePlay => "Play or pause (Space)",
         ToolActionKind.Save => "Save the XAF package (Ctrl+S)",
         ToolActionKind.Load => "Load the XAF package (Ctrl+O)",

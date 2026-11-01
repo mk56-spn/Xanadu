@@ -247,8 +247,9 @@ public sealed class EditorCommandSystemTests : EcsSystemTest
     }
 
     [Test]
-    public void SetTargetIsUndoable()
+    public void SetTargetLeavesPlacedNotesAlone()
     {
+        _editor.AddComponent(new EditorNoteTarget(KeybindAction.M));
         Entity note = Store.CreateEntity(
             new Note(500, new Vector2(10, 20), target: KeybindAction.M));
         _editor.GetComponent<NoteSelection>().Note = note;
@@ -257,12 +258,8 @@ public sealed class EditorCommandSystemTests : EcsSystemTest
         Frame();
 
         Assert.That(
-            Store.Query<Note>().ToEntityList()[0].GetComponent<Note>().Target,
+            _editor.GetComponent<EditorNoteTarget>().Target,
             Is.EqualTo(KeybindAction.R3));
-
-        _commands.Enqueue(EditorCommand.Undo());
-        Frame();
-
         Assert.That(
             Store.Query<Note>().ToEntityList()[0].GetComponent<Note>().Target,
             Is.EqualTo(KeybindAction.M));

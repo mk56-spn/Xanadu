@@ -14,6 +14,7 @@ public sealed class AnimatorTimelineInputTests : AnimatorToolTest
 {
     protected override void AddSystems()
     {
+        Root.Add(new Xanadu.Systems.Groups.TimelineSystemGroup(Pointer, Pointer));
         Root.Add(new AnimatorTimelineInputSystem(Pointer, Pointer));
         Root.Add(new AnimatorShortcutSystem(Keyboard));
     }
@@ -332,6 +333,84 @@ public sealed class AnimatorTimelineInputTests : AnimatorToolTest
             Frame();
         }
         Assert.That(Session.GetComponent<AnimatorTracks>().FirstRow, Is.EqualTo(max));
+    }
+
+    private AnimatorTimelineModel ManyRows()
+    {
+        for (int i = 0; i < 40; i++)
+        {
+            string id = $"extra-{i}";
+            XafRigAuthoring.AddBone(Package, 0, id, Vector2.Zero);
+            XafAuthoring.SetBoneProperty(Package, Idle, id, XafChannelProperty.Rotation, 0.5f, 1f);
+        }
+
+        return Model();
+    }
+
+    private static Vector2 OnRowBar(AnimatorTimelineModel model, float y) =>
+        new(model.RowBar.Position.X + 2, y);
+
+    [Test]
+    public void TheRowBarOnlyShowsWhenRowsAreOutOfSight()
+    {
+        Assert.That(Model().HasRowBar, Is.False);
+
+        Assert.That(ManyRows().HasRowBar, Is.True);
+    }
+
+    [Test]
+    public void TheRowBarSitsClearOfTheRowsInsideThePanel()
+    {
+        AnimatorTimelineModel model = ManyRows();
+
+        Assert.That(model.RowBar.Position.X, Is.GreaterThanOrEqualTo(model.Rows.End.X));
+        Assert.That(model.RowBar.End.X, Is.LessThanOrEqualTo(model.Panel.End.X));
+    }
+
+    [Test]
+    public void DraggingTheRowBarThumbScrollsTheRowsToTheEnds()
+    {
+        AnimatorTimelineModel model = ManyRows();
+        int max = model.Tracks.Count - model.VisibleRows;
+        float top = model.RowSlider.ThumbTop(0f);
+
+        PressAt(OnRowBar(model, top + 2));
+        Assert.That(Session.GetComponent<AnimatorDrag>().Kind, Is.EqualTo(AnimatorDragKind.RowScroll));
+        Assert.That(Model().FirstRow, Is.EqualTo(0), "grabbing the thumb does not jump");
+
+        Pointer.Position = OnRowBar(model, model.RowBar.End.Y + 500);
+        Frame();
+        Assert.That(Model().FirstRow, Is.EqualTo(max));
+
+        Pointer.Position = OnRowBar(model, model.RowBar.Position.Y - 500);
+        Frame();
+        Assert.That(Model().FirstRow, Is.EqualTo(0));
+
+        Release();
+        Assert.That(Session.GetComponent<AnimatorDrag>().Kind, Is.EqualTo(AnimatorDragKind.None));
+    }
+
+    [Test]
+    public void PressingTheBareRowBarJumpsThereWithoutTouchingTheClip()
+    {
+        AnimatorTimelineModel model = ManyRows();
+        float time = Runtime.CurrentTime;
+
+        PressAt(OnRowBar(model, model.RowBar.End.Y - 1));
+
+        Assert.That(Model().FirstRow, Is.GreaterThan(0));
+        Assert.That(Runtime.CurrentTime, Is.EqualTo(time));
+        Assert.That(Selection.HasKey, Is.False);
+    }
+
+    [Test]
+    public void WithNothingToScrollThePaddingIsNotABar()
+    {
+        AnimatorTimelineModel model = Model();
+
+        PressAt(OnRowBar(model, model.RowBar.Position.Y + 2));
+
+        Assert.That(Session.GetComponent<AnimatorDrag>().Kind, Is.Not.EqualTo(AnimatorDragKind.RowScroll));
     }
 
     [Test]

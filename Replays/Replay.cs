@@ -26,7 +26,8 @@ public readonly record struct ReplayResult(
 /// One recorded play: which level, who played it, and every key press and
 /// release by song time. Replaying feeds those back into the same systems
 /// that read the keyboard, so judgement, scoring and movement are re-derived
-/// rather than stored.
+/// rather than stored. <c>SkipFromMs</c> is the song time the entrance was
+/// skipped at, or -1.
 /// </summary>
 public sealed record Replay(
     string LevelId,
@@ -36,4 +37,5 @@ public sealed record Replay(
     DateTimeOffset RecordedAt,
     int NoteCount,
     ReplayResult Result,
-    IReadOnlyList<ReplayEvent> Events);
+    IReadOnlyList<ReplayEvent> Events,
+    long SkipFromMs = -1);

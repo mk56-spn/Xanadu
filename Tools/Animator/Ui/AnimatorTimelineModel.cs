@@ -28,6 +28,10 @@ public sealed class AnimatorTimelineModel
     public const float KeyHitRadius = 9f;
     public const float LoopHandleRadius = 8f;
 
+    /// <summary>The row scrollbar's width; it lives in the panel's right padding, clear of the rows.</summary>
+    public const float RowBarWidth = 8f;
+    public const float MinRowThumb = 16f;
+
     private static readonly HashSet<XafTrack> EmptyExpanded = new();
     public const float MinLabelPixels = 70f;
     public const float MinSnapPixels = 12f;
@@ -163,6 +167,36 @@ public sealed class AnimatorTimelineModel
     public float RowsBottom =>
         Rows.Position.Y + Math.Max(0, LastRow - FirstRow) * RowHeight;
 
+    /// <summary>Whether there are more rows than fit, so the scrollbar shows.</summary>
+    public bool HasRowBar => Tracks.Count > VisibleRows;
+
+    /// <summary>The scrollbar's drawn track, beside the rows.</summary>
+    public Rect2 RowBar => new(
+        Rows.End.X + (Padding - RowBarWidth) / 2,
+        Rows.Position.Y,
+        RowBarWidth,
+        VisibleRows * RowHeight);
+
+    /// <summary>Where a press takes the scrollbar: the whole padding, out to the panel's edge.</summary>
+    public Rect2 RowBarHit => new(
+        Rows.End.X,
+        Rows.Position.Y,
+        Panel.End.X - Rows.End.X,
+        VisibleRows * RowHeight);
+
+    public VerticalSlider RowSlider => new(
+        RowBar.Position.Y,
+        RowBar.End.Y,
+        Tracks.Count > 0 ? (float)VisibleRows / Tracks.Count : 1f,
+        MinRowThumb);
+
+    /// <summary>How far down the rows are scrolled, from 0 to 1.</summary>
+    public float RowValue => HasRowBar ? (float)FirstRow / (Tracks.Count - VisibleRows) : 0f;
+
+    /// <summary>The first row that a scrollbar value shows.</summary>
+    public int FirstRowFor(float value) =>
+        HasRowBar ? (int)Math.Round(value * (Tracks.Count - VisibleRows)) : 0;
+
     public Rect2 RowRect(int screenRow) =>
         new(Rows.Position.X, Rows.Position.Y + screenRow * RowHeight, Rows.Size.X, RowHeight);
 
@@ -264,17 +298,35 @@ public sealed class AnimatorTimelineModel
         return true;
     }
 
-    /// <summary>Every visible key set whose marker touches the box, in row order.</summary>
+    /// <summary>A screen point as if the rows were not scrolled, so it stays on its row when they are.</summary>
+    public Vector2 ToContent(Vector2 screen) => screen + new Vector2(0, FirstRow * RowHeight);
+
+    /// <summary>
+    /// Where a box in row content space shows on screen: scrolled with the rows and
+    /// cut off at their edges. Null when all of it is scrolled out of sight.
+    /// </summary>
+    public Rect2? BoxOnScreen(Rect2 box)
+    {
+        float top = Rows.Position.Y;
+        float bottom = top + VisibleRows * RowHeight;
+        float scroll = FirstRow * RowHeight;
+        float from = Math.Max(box.Position.Y - scroll, top);
+        float to = Math.Min(box.End.Y - scroll, bottom);
+        return to <= from
+            ? null
+            : new Rect2(box.Position.X, from, box.Size.X, to - from);
+    }
+
+    /// <summary>
+    /// Every key set in the time window whose marker touches a box in row content
+    /// space, in row order, including rows scrolled out of sight.
+    /// </summary>
     public List<AnimatorKeyRef> KeysIn(Rect2 box)
     {
         var keys = new List<AnimatorKeyRef>();
-        for (int screenRow = 0; screenRow < VisibleRows; screenRow++)
+        for (int index = 0; index < Tracks.Count; index++)
         {
-            int index = FirstRow + screenRow;
-            if (index >= Tracks.Count)
-                break;
-
-            Rect2 row = RowRect(screenRow);
+            Rect2 row = RowRect(index);
             if (!box.Intersects(row, includeBorders: true))
                 continue;
 

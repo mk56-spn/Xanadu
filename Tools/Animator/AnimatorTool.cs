@@ -20,6 +20,7 @@ public partial class AnimatorTool : Control
     private EntityStore _store = null!;
     private SystemRoot _root = null!;
     private GodotPointerInputSource _pointer = null!;
+    private readonly KeyPressQueue _keys = new();
     private SvgAttachmentVisuals _attachments = null!;
     private Entity _session;
     private bool _fitted;
@@ -87,7 +88,7 @@ public partial class AnimatorTool : Control
             new GodotAnimatorSvgCatalog(),
             _pointer,
             _pointer,
-            new GodotKeyboardState()));
+            _keys));
 
         var files = new GodotAnimatorFiles();
         _session = AnimatorSession.Create(
@@ -248,6 +249,8 @@ public partial class AnimatorTool : Control
     }
 
     public override void _Input(InputEvent @event) => _pointer.Feed(@event);
+
+    public override void _UnhandledInput(InputEvent @event) => _keys.Feed(@event);
 
     public override void _ExitTree()
     {

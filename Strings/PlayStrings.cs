@@ -3,6 +3,7 @@ namespace Xanadu.Strings;
 public static class PlayStrings
 {
     public static readonly LString Pause = new("play.pause", "PAUSE");
+    public static readonly LString Skip = new("play.skip", "SKIP [ENTER]");
     public static readonly LString Judgements = new("play.judgements", "JUDGEMENTS");
     public static readonly LString Untitled = new("common.untitled", "UNTITLED");
     public static readonly LString Flawless = new("play.judgement.flawless", "FLAWLESS");

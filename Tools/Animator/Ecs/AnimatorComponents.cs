@@ -471,6 +471,12 @@ public enum AnimatorDragKind
     /// <summary>Bends the grabbed joint's parent and grandparent so it reaches the pointer.</summary>
     Ik,
 
+    /// <summary>Turns a childless bone about its own joint by the handle on its stem.</summary>
+    Rotate,
+
+    /// <summary>Drags the scrollbar beside the track rows.</summary>
+    RowScroll,
+
     /// <summary>Drags a box over the timeline to select the keys it covers.</summary>
     KeyBox,
 
@@ -497,8 +503,20 @@ public struct AnimatorDrag : IComponent
     public Vector2 StartPointer;
     public Vector2 StartValue;
 
-    /// <summary>The grabbed joint while swinging its parent.</summary>
+    /// <summary>The grabbed joint while swinging its parent, or the bone a rotate drag turns.</summary>
     public int Joint;
+
+    /// <summary>Where along the row scrollbar's thumb the pointer took hold.</summary>
+    public float ScrollGrab;
+
+    /// <summary>The bone's local rotation when a rotate drag began.</summary>
+    public float StartRotation;
+
+    /// <summary>The pointer's angle around the joint last frame during a rotate drag.</summary>
+    public float PointerAngle;
+
+    /// <summary>How far the pointer has gone around the joint since a rotate drag began.</summary>
+    public float Turned;
 
     /// <summary>World transform of the dragged value's parent, so drags follow rotated rigs.</summary>
     public Transform2D ParentWorld;
@@ -611,13 +629,19 @@ public struct AnimatorStatus : IComponent
     public string Message;
 }
 
-/// <summary>Package snapshots for undo/redo, on the shared <see cref="UndoHistory{T}"/>.</summary>
+/// <summary>
+/// One undo state: the package, plus the pose on screen and where in which clip
+/// it was, since an unkeyed pose edit lives only in the runtime.
+/// </summary>
+public readonly record struct AnimatorSnapshot(XafPackage Package, XafPose Pose, string Clip, float Time);
+
+/// <summary>Document snapshots for undo/redo, on the shared <see cref="UndoHistory{T}"/>.</summary>
 public struct AnimatorHistory : IComponent
 {
-    public UndoHistory<XafPackage> History;
+    public UndoHistory<AnimatorSnapshot> History;
 
-    /// <summary>Package state at the start of a drag, recorded when the drag ends.</summary>
-    public XafPackage? Gesture;
+    /// <summary>State at the start of a drag, recorded when the drag ends.</summary>
+    public AnimatorSnapshot? Gesture;
 
     /// <summary>Nesting depth of <c>Edit</c> calls, so only the outermost one records.</summary>
     public int Depth;

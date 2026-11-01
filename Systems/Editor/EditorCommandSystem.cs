@@ -357,38 +357,6 @@ public sealed partial class EditorCommandSystem :
 
         if (editor.HasComponent<EditorNoteTarget>())
             editor.GetComponent<EditorNoteTarget>().Target = target;
-
-        if (!editor.HasComponent<NoteSelection>())
-            return;
-
-        ref NoteSelection selection = ref editor.GetComponent<NoteSelection>();
-        var notes = new List<Entity>();
-        foreach (Entity entity in selection.AllNotes)
-        {
-            if (!entity.IsNull && entity.HasComponent<Note>())
-                notes.Add(entity);
-        }
-
-        if (notes.Count == 0)
-            return;
-
-        EditorSnapshot before = _history.Capture();
-        bool changed = false;
-
-        foreach (Entity entity in notes)
-        {
-            ref Note note = ref entity.GetComponent<Note>();
-            if (note.Target == target)
-                continue;
-
-            note.Target = target;
-            changed = true;
-        }
-
-        if (!changed)
-            return;
-
-        _history.Record(before, _history.Capture());
     }
 
     private void CopySelection(Entity editor)

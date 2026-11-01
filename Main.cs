@@ -96,48 +96,8 @@ public partial class Main : Control
 		}
 	}
 
-	public override void _UnhandledInput(InputEvent @event)
-	{
-		if (@event is not InputEventKey { Pressed: true, Echo: false } key)
-			return;
-
-		Key keycode = key.Keycode != Key.None
-			? key.Keycode
-			: key.PhysicalKeycode;
-
-		if (_systems?.Keybinds.TryCapture(keycode) == true)
-		{
-			GetViewport().SetInputAsHandled();
-			return;
-		}
-
-		if (_editorOverlay is not null)
-			return;
-
-		switch (keycode)
-			{
-				case Key.Bracketleft:
-					if (_systems?.Scenes.CyclePreviewStart(-1) == true)
-						GetViewport().SetInputAsHandled();
-					break;
-
-				case Key.Bracketright:
-					if (_systems?.Scenes.CyclePreviewStart(1) == true)
-						GetViewport().SetInputAsHandled();
-					break;
-
-				case Key.Escape:
-				_systems?.Scenes.TryBack();
-				GetViewport().SetInputAsHandled();
-				break;
-
-			case Key.Enter:
-			case Key.KpEnter:
-				_systems?.Scenes.TryForward();
-				GetViewport().SetInputAsHandled();
-				break;
-		}
-	}
+	public override void _UnhandledInput(InputEvent @event) =>
+		_systems?.KeyPresses.Feed(@event);
 
 	private void CaptureScreenshot()
 	{

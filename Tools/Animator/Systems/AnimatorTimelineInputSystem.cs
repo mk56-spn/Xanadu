@@ -58,14 +58,19 @@ public sealed class AnimatorTimelineInputSystem(
             return;
 
         if (notches != 0 && model.Panel.HasPoint(input.Position))
-            Wheel(session, model, input.Position, notches);
+        {
+            Wheel(session, model, notches);
+
+            // A box being dragged has to see the scroll this frame.
+            model = AnimatorTimelineModel.Create(session)!;
+        }
 
         ref AnimatorDrag drag = ref session.GetComponent<AnimatorDrag>();
         if (begin && model.Panel.HasPoint(input.Position))
         {
             Begin(session, model, input);
         }
-        else if (drag.Kind is AnimatorDragKind.Event or AnimatorDragKind.Key or AnimatorDragKind.Scrub or
+        else if (drag.Kind is AnimatorDragKind.RowScroll or AnimatorDragKind.Event or AnimatorDragKind.Key or AnimatorDragKind.Scrub or
                  AnimatorDragKind.KeyBox or AnimatorDragKind.LoopStart or
                  AnimatorDragKind.LoopEnd)
         {
@@ -76,15 +81,9 @@ public sealed class AnimatorTimelineInputSystem(
         }
     }
 
-    private void Wheel(Entity session, AnimatorTimelineModel model, Vector2 point, int notches)
+    /// <summary>Zooming is the shared timeline group's; what reaches here scrolls the rows.</summary>
+    private static void Wheel(Entity session, AnimatorTimelineModel model, int notches)
     {
-        if (wheel.Control || model.Ruler.HasPoint(point))
-        {
-            ref TimelineView view = ref session.GetComponent<TimelineView>();
-            view.Zoom = TimelineZoom.Step(view.Zoom, notches > 0 ? 1 : -1);
-            return;
-        }
-
         int max = Math.Max(0, model.Tracks.Count - model.VisibleRows);
         ref AnimatorTracks tracks = ref session.GetComponent<AnimatorTracks>();
         tracks.FirstRow = Math.Clamp(model.FirstRow - Math.Sign(notches), 0, max);
@@ -93,6 +92,18 @@ public sealed class AnimatorTimelineInputSystem(
     private void Begin(Entity session, AnimatorTimelineModel model, PointerInput input)
     {
         Vector2 point = input.Position;
+        if (model.HasRowBar && model.RowBarHit.HasPoint(point))
+        {
+            session.GetComponent<AnimatorDrag>() = new AnimatorDrag
+            {
+                Kind = AnimatorDragKind.RowScroll,
+                StartPointer = point,
+                ScrollGrab = model.RowSlider.Grab(point.Y, model.RowValue),
+            };
+            DragRows(session, model, point.Y);
+            return;
+        }
+
         if (model.TryPickEvent(point, out int picked))
         {
             AnimatorEventCommands.Select(session, model.Clip.Id, picked);
@@ -192,13 +203,13 @@ public sealed class AnimatorTimelineInputSystem(
         if (input.Shift)
         {
             // SelectTrack leaves the keys alone, so the selection is still there.
-            _marquee.BeginAdditive(input.Position, existing);
+            _marquee.BeginAdditive(model.ToContent(input.Position), existing);
             return;
         }
 
         session.GetComponent<AnimatorSelection>().HasKey = false;
         Scrub(session, model, input);
-        _marquee.Arm(input.Position);
+        _marquee.Arm(model.ToContent(input.Position));
     }
 
     /// <summary>Shows or hides a target's per-channel rows, and selects it as well.</summary>
@@ -268,6 +279,12 @@ public sealed class AnimatorTimelineInputSystem(
         AnimatorDragKind kind,
         PointerInput input)
     {
+        if (kind == AnimatorDragKind.RowScroll)
+        {
+            DragRows(session, model, input.Position.Y);
+            return;
+        }
+
         if (kind == AnimatorDragKind.KeyBox)
         {
             DragBox(session, model, input);
@@ -296,11 +313,19 @@ public sealed class AnimatorTimelineInputSystem(
         }
     }
 
+    /// <summary>Scrolls the rows to where the scrollbar's thumb has been dragged.</summary>
+    private static void DragRows(Entity session, AnimatorTimelineModel model, float y)
+    {
+        float grab = session.GetComponent<AnimatorDrag>().ScrollGrab;
+        session.GetComponent<AnimatorTracks>().FirstRow =
+            model.FirstRowFor(model.RowSlider.ValueAt(y, grab));
+    }
+
     /// <summary>Follows the pointer and selects the keys the box covers, replacing or adding to the selection.</summary>
     private void DragBox(Entity session, AnimatorTimelineModel model, PointerInput input)
     {
         _marquee.Model = model;
-        _marquee.Drag(session, input.Position);
+        _marquee.Drag(session, model.ToContent(input.Position));
     }
 
     /// <summary>Moves one loop end to the pointer, snapped, and reports the new range.</summary>
@@ -366,7 +391,11 @@ public sealed class AnimatorTimelineInputSystem(
         drag = new AnimatorDrag();
     }
 
-    /// <summary>Selects the keys a dragged box covers; a plain box also drops the primary key.</summary>
+    /// <summary>
+    /// Selects the keys a dragged box covers; a plain box also drops the primary key.
+    /// The box lives in row content space, so scrolling mid-drag keeps the rows it
+    /// started on and stretches it over the ones scrolled to.
+    /// </summary>
     private sealed class KeyBox : UiBoxSelector<AnimatorKeyRef>
     {
         public AnimatorTimelineModel? Model { get; set; }

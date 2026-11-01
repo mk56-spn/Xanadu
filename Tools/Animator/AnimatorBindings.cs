@@ -4,7 +4,8 @@ using Xanadu.Animation;
 namespace Xanadu.Tools.Animator;
 
 /// <summary>
-/// Every keybinding in the animator: the actions buttons perform, plus the key
+/// The animator's own keybindings (<see cref="Xanadu.Systems.Timeline.TimelineShortcuts"/>
+/// holds those every timeline shares): the actions buttons perform, plus the key
 /// that does the same thing. Shortcuts run them through
 /// <see cref="Commands.AnimatorCommands.Run"/>, the one path a pressed button
 /// takes too, so a binding needs no code of its own.
@@ -17,13 +18,13 @@ public static class AnimatorBindings
     public static readonly Binding[] All =
     {
         // Playback and files.
-        new(new ToolAction(ToolActionKind.TogglePlay), Key.Space),
         new(new ToolAction(ToolActionKind.SequenceGame), Key.P),
         new(new ToolAction(ToolActionKind.SequenceAll), Key.P, Shift: true),
         new(new ToolAction(ToolActionKind.PreviewTransition), Key.P, Ctrl: true),
         new(new ToolAction(ToolActionKind.ToggleFlowLoop), Key.P, Ctrl: true, Shift: true),
         new(new ToolAction(ToolActionKind.ToggleSlow), Key.Comma),
         new(new ToolAction(ToolActionKind.TogglePreviewMode), Key.Tab),
+        new(new ToolAction(ToolActionKind.TogglePreviewMode), Key.F5),
         new(new ToolAction(ToolActionKind.ExitPreviewMode), Key.Escape),
         new(new ToolAction(ToolActionKind.OpenInfo), Key.I, Ctrl: true),
         new(new ToolAction(ToolActionKind.TransitionFadeDown), Key.Minus, Shift: true),

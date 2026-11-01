@@ -152,6 +152,24 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
         LeavePlay(ref state);
     }
 
+    /// <summary>
+    /// Enter asks the play scene to skip its entrance, unless Enter plays a note
+    /// on this keybind layout. <c>PlaySkipSystem</c> decides whether it can.
+    /// </summary>
+    public bool RequestPlaySkip()
+    {
+        foreach (KeybindAction action in KeybindSettings.Actions)
+        {
+            if (Keybinds.Get(action) is Key.Enter or Key.KpEnter)
+                return false;
+        }
+
+        foreach (Entity entity in _entities.Query<PlaySession>().ToEntityList())
+            entity.GetComponent<PlaySession>().SkipRequested = true;
+
+        return true;
+    }
+
     public void PausePlay()
     {
         EnsureState();

@@ -7,6 +7,7 @@ using Friflo.Engine.ECS.Systems;
 using Godot;
 using NUnit.Framework;
 using Xanadu.Ecs;
+using Xanadu.Systems.Input;
 using Xanadu.Levels;
 using Xanadu.Scenes;
 using Xanadu.Profiles;
@@ -384,6 +385,123 @@ public sealed class SceneSystemTests
         Assert.That(
             view.ScoreThumbSpan.X + view.ScoreThumbSpan.Y,
             Is.EqualTo(1036.348f).Within(0.01f));
+    }
+
+    private void AddLevels(int count)
+    {
+        LevelEntry first = _catalog[0];
+        while (_catalog.Count < count)
+            _catalog.Add(new LevelEntry($"{first.Path}-{_catalog.Count}", first.Document));
+    }
+
+    private void DragBar(FakePointerInput pointer, Entity track, float y)
+    {
+        pointer.Current = new PointerInput(new Vector2(0, y), true, false, false, false);
+        if (!track.Tags.Has<Pressed>())
+            track.AddTag<Pressed>();
+        Frame();
+    }
+
+    [Test]
+    public void DraggingTheListScrollbarMovesTheSelectionToBothEnds()
+    {
+        AddLevels(20);
+        var pointer = new FakePointerInput();
+        _root.Add(new SongSelectScrollbarSystem(pointer, _scenes));
+        _scenes.Start(SceneKind.SongSelect);
+        Frame();
+        Entity track = _store.Query<SongSelectState>().ToEntityList()[0].GetComponent<SongSelectState>().ListTrack;
+
+        DragBar(pointer, track, 5000);
+        Assert.That(SelectedLevel(), Is.EqualTo(19));
+
+        DragBar(pointer, track, -5000);
+        Assert.That(SelectedLevel(), Is.EqualTo(0));
+    }
+
+    [TestCase(40f, 738f, 19)]
+    [TestCase(1870f, 1030f, 0)]
+    public void ThePointerReachesTheBarsThroughTheRealInputSystem(float x, float y, int selected)
+    {
+        AddLevels(20);
+        var pointer = new FakePointerInput();
+        _root.Add(new InputSystem(pointer));
+        _root.Add(new SongSelectScrollbarSystem(pointer, _scenes));
+        _scenes.Start(SceneKind.SongSelect);
+        Frame();
+        SongSelectState view = _store.Query<SongSelectState>().ToEntityList()[0].GetComponent<SongSelectState>();
+
+        pointer.Current = new PointerInput(new Vector2(x, y), true, false, false, false);
+        Frame();
+
+        Entity track = selected > 0 ? view.ListTrack : view.ScoreTrack;
+        Assert.That(track.Tags.Has<Pressed>(), Is.True);
+        Assert.That(SelectedLevel(), Is.EqualTo(selected));
+    }
+
+    [Test]
+    public void ReleasingTheListScrollbarLetsGo()
+    {
+        AddLevels(20);
+        var pointer = new FakePointerInput();
+        _root.Add(new SongSelectScrollbarSystem(pointer, _scenes));
+        _scenes.Start(SceneKind.SongSelect);
+        Frame();
+        Entity track = _store.Query<SongSelectState>().ToEntityList()[0].GetComponent<SongSelectState>().ListTrack;
+
+        DragBar(pointer, track, 5000);
+        track.RemoveTag<Pressed>();
+        Frame();
+
+        pointer.Current = new PointerInput(new Vector2(0, -5000), false, false, false, false);
+        Frame();
+        Assert.That(SelectedLevel(), Is.EqualTo(19));
+    }
+
+    [Test]
+    public void AListThatFitsHasNothingToDrag()
+    {
+        var pointer = new FakePointerInput();
+        _root.Add(new SongSelectScrollbarSystem(pointer, _scenes));
+        _scenes.Start(SceneKind.SongSelect);
+        Frame();
+        Entity track = _store.Query<SongSelectState>().ToEntityList()[0].GetComponent<SongSelectState>().ListTrack;
+
+        DragBar(pointer, track, 5000);
+
+        Assert.That(SelectedLevel(), Is.EqualTo(0));
+    }
+
+    [Test]
+    public void DraggingTheScoresScrollbarScrollsThem()
+    {
+        var pointer = new FakePointerInput();
+        _root.Add(new SongSelectScrollbarSystem(pointer, _scenes));
+        _root.Add(new Xanadu.Systems.Scenes.SongSelectScrollSystem());
+        _root.Add(new Xanadu.Systems.Layout.ContainerLayoutSystem());
+        _root.Add(new Xanadu.Systems.Ui.ScrollSystem());
+        for (int i = 0; i < 8; i++)
+        {
+            _profiles.Create($"Player {i}");
+            _profiles.RecordScore(
+                _catalog[0].Path,
+                new PlayResults("First Level", 900_000 - i * 1000, 0.9, 10, 10, 20));
+        }
+
+        _scenes.Start(SceneKind.SongSelect);
+        Frame();
+        Frame();
+        SongSelectState view = _store.Query<SongSelectState>().ToEntityList()[0].GetComponent<SongSelectState>();
+
+        DragBar(pointer, view.ScoreTrack, 5000);
+        Frame();
+
+        float content = view.ScoreContent.Entity.GetComponent<Rectangle>().Bounds.Size.Y;
+        Assert.That(view.ScoreViewport.GetComponent<ScrollView>().Offset, Is.GreaterThan(0));
+        Assert.That(
+            SongSelectScene.ScoreValue(_store.Query<SongSelectState>().ToEntityList()[0].GetComponent<SongSelectState>()),
+            Is.EqualTo(1f).Within(0.001f),
+            $"content {content}");
     }
 
     [Test]
@@ -905,6 +1023,25 @@ public sealed class SceneSystemTests
 
         Assert.That(_director.Current, Is.EqualTo(SceneKind.SongSelect));
         Assert.That(_store.Query<PlayfieldMode>().Count, Is.EqualTo(0));
+    }
+
+    [Test]
+    public void EnterInPlayRequestsASkipUnlessItPlaysANote()
+    {
+        _scenes.Start(SceneKind.SongSelect);
+        Frame();
+        _scenes.TryForward();
+        Frame();
+        Entity play = _store.Query<PlaySession>().ToEntityList()[0];
+
+        _scenes.TryForward();
+        Assert.That(play.GetComponent<PlaySession>().SkipRequested, Is.True);
+
+        play.GetComponent<PlaySession>().SkipRequested = false;
+        _scenes.Keybinds.BeginCapture(KeybindAction.M);
+        _scenes.Keybinds.TryCapture(Godot.Key.Enter);
+        _scenes.TryForward();
+        Assert.That(play.GetComponent<PlaySession>().SkipRequested, Is.False);
     }
 
     [Test]

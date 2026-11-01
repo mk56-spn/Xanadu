@@ -25,7 +25,8 @@ public sealed class EditorSystemGroup : SystemGroup, IDisposable
         Rid playfieldCanvas,
         Rid parentCanvas,
         ITrackAudio metronomeAudio,
-        EditorHistory history) : base("Editor")
+        EditorHistory history,
+        IWheelSource? wheel = null) : base("Editor")
     {
         // The group overlay's live preview draws above the dialog but below the
         // debug overlay; only the editor scene shows it.
@@ -33,6 +34,8 @@ public sealed class EditorSystemGroup : SystemGroup, IDisposable
 
         Add(new EditorCommandSystem(entities, commands, history));
         Add(new EditorTimelineSystem());
+        if (wheel is not null)
+            Add(new TimelineSystemGroup(pointerInput, wheel));
         Add(new EditorAutosaveSystem(entities, LevelRecoveryStore.Default));
         Add(new EditorMetronomeSystem(metronomeAudio));
         Add(new EditorViewSystem(pointerInput));

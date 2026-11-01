@@ -63,7 +63,7 @@ public sealed class AnimatorPreviewInputSystem(
             Begin(session, input.Position, area, input.Shift);
         }
         else if (drag.Kind is AnimatorDragKind.Bone or AnimatorDragKind.Attachment
-                     or AnimatorDragKind.Swing or AnimatorDragKind.Ik ||
+                     or AnimatorDragKind.Swing or AnimatorDragKind.Ik or AnimatorDragKind.Rotate ||
                  AnimatorChainHandles.IsChainDrag(drag.Kind))
         {
             if (input.Pressed)
@@ -141,12 +141,23 @@ public sealed class AnimatorPreviewInputSystem(
             return;
         }
 
+        // A click waiting to pick a bone ignores the rotation handles, so hovering does too.
+        int tip = AnimatorTipHandles.Shown(modes) && !AwaitingPick(session)
+            ? AnimatorTipHandles.Pick(document.Package, world, placement, input.Position)
+            : -1;
         hover = new AnimatorHover
         {
-            Bone = AnimatorGeometry.PickBoneOrLabel(world, placement, input.Position),
+            Bone = tip >= 0 ? tip : AnimatorGeometry.PickBoneOrLabel(world, placement, input.Position),
             Attachment = -1,
         };
     }
+
+    /// <summary>Whether the next click answers a reparent, chain, mesh or cloth pick.</summary>
+    private static bool AwaitingPick(Entity session) =>
+        session.GetComponent<AnimatorBoneMenu>().Reparenting >= 0 ||
+        session.GetComponent<AnimatorChains>().Picking != AnimatorChainPick.None ||
+        session.GetComponent<AnimatorMeshPick>().Active ||
+        session.GetComponent<AnimatorCloths>().Picking != AnimatorClothPick.None;
 
     private static void Begin(Entity session, Vector2 pointer, Rect2 area, bool shift)
     {
@@ -206,6 +217,9 @@ public sealed class AnimatorPreviewInputSystem(
         if (AnimatorChainHandles.TryBegin(session, pointer, placement, world))
             return;
 
+        if (AnimatorTipHandles.TryBegin(session, pointer, placement, pose, world))
+            return;
+
         // Bone movement and SVG placement are separate modes, so a click only
         // ever considers one kind of target.
         if (!modes.Svg)
@@ -241,8 +255,7 @@ public sealed class AnimatorPreviewInputSystem(
 
         selection.SelectOnlyAttachment(attachment);
         document.Runtime.SetPaused(true);
-        if (modes.Rest)
-            AnimatorHistoryCommands.BeginGesture(session);
+        AnimatorHistoryCommands.BeginGesture(session);
         XafAttachment owner = package.Attachments[attachment];
         int parent = XafRig.FindBone(package, owner.BoneId);
         session.GetComponent<AnimatorDrag>() = new AnimatorDrag
@@ -285,11 +298,10 @@ public sealed class AnimatorPreviewInputSystem(
         document.Runtime.SetPaused(true);
         selection.Attachment = -1;
         selection.Effect = -1;
+        AnimatorHistoryCommands.BeginGesture(session);
 
         if (rest || rig.CanTranslate)
         {
-            if (rest)
-                AnimatorHistoryCommands.BeginGesture(session);
             selection.SelectOnlyBone(bone);
             session.GetComponent<AnimatorDrag>() = new AnimatorDrag
             {
@@ -328,6 +340,7 @@ public sealed class AnimatorPreviewInputSystem(
         ref AnimatorDocument document = ref session.GetComponent<AnimatorDocument>();
         ref AnimatorSelection selection = ref session.GetComponent<AnimatorSelection>();
         document.Runtime.SetPaused(true);
+        AnimatorHistoryCommands.BeginGesture(session);
         selection.SelectOnlyBone(joint);
         session.GetComponent<AnimatorDrag>() = new AnimatorDrag
         {
@@ -487,6 +500,12 @@ public sealed class AnimatorPreviewInputSystem(
             return;
         }
 
+        if (drag.Kind == AnimatorDragKind.Rotate)
+        {
+            AnimatorTipHandles.Drag(session, pointer, placement, shift);
+            return;
+        }
+
         ref AnimatorDocument document = ref session.GetComponent<AnimatorDocument>();
         AnimatorSelection selection = session.GetComponent<AnimatorSelection>();
         bool rest = session.GetComponent<AnimatorModes>().Rest;
@@ -534,11 +553,15 @@ public sealed class AnimatorPreviewInputSystem(
         session.GetComponent<AnimatorSnapGuides>() = default;
         AnimatorDrag drag = session.GetComponent<AnimatorDrag>();
         session.GetComponent<AnimatorDrag>() = new AnimatorDrag();
-        AnimatorHistoryCommands.EndGesture(session);
         AnimatorModes modes = session.GetComponent<AnimatorModes>();
-        if (AnimatorChainHandles.IsChainDrag(drag.Kind) || drag.Kind == AnimatorDragKind.None || modes.Rest)
-            return;
+        bool keys = !AnimatorChainHandles.IsChainDrag(drag.Kind) && drag.Kind != AnimatorDragKind.None && !modes.Rest;
 
+        // The drag and any key it leaves are one undo step.
+        AnimatorHistoryCommands.EndGesture(session, keys ? () => KeyDrag(session, drag, modes) : null);
+    }
+
+    private static void KeyDrag(Entity session, AnimatorDrag drag, AnimatorModes modes)
+    {
         // An IK drag turned the parent and grandparent, so those are what get
         // keyed; selected keys on them take the change instead.
         XafPackage package = session.GetComponent<AnimatorDocument>().Package;

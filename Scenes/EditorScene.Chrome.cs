@@ -220,7 +220,7 @@ public static partial class EditorScene
             line,
             Vector2.Zero,
             new Vector2(shell.StatusLine.Size.X - 8, shell.StatusLine.Size.Y - 8),
-            "Space play   Home stop   Delete note   ←/→ nudge   Ctrl+Z/Y undo   T tap tempo   Target: select a note",
+            "Space play   Home/End jump   Delete note   ←/→ nudge   Ctrl+Z/Y undo   T tap tempo   Target: select a note",
             12,
             SceneUi.DimTextColor);
     }
