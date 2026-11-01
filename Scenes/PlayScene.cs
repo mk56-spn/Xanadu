@@ -115,7 +115,7 @@ public static class PlayScene
         }
 
         UiNode ui = UiNode.Layer(
-            entities, root, SceneUi.PlayHudLayer, visuals, UiStage.Full);
+            entities, root, UiLayers.PlayHud, visuals, UiStage.Full);
         HudLayout hud = new();
 
         ui.HudButton(

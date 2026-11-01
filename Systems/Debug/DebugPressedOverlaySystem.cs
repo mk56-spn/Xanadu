@@ -5,38 +5,39 @@ using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Godot;
 using Xanadu.Ecs;
-using Xanadu.Systems.Canvas;
 using Xanadu.Systems.Input;
+using Xanadu.Theme;
 using Position = Xanadu.Ecs.Position;
 
 namespace Xanadu.Systems.Debug;
 
-/// <summary>F3 debug overlay with pressed-entity highlighting and ECS metrics.</summary>
+/// <summary>
+/// The F3 panels: ECS and system metrics beside the archetype table. They are
+/// ordinary ECS UI, tagged <see cref="DebugUi"/> so that what they report leaves them out.
+/// </summary>
 public sealed partial class DebugPressedOverlaySystem : QuerySystem<Rectangle, Position>
 {
-    private const float BorderWidth = 2;
-    private const float PanelWidth = 470;
-    private const float PanelHeight = 360;
-    private const float LineHeight = 18;
-    private const float ArchetypeWidth = 640;
-    private const float GlyphWidth = 7f;
-    private const int ArchetypeSampleSize = 4;
+    /// <summary>Above the F4 boxes, so they do not tint the panels.</summary>
+    private const int FontSize = UiType.Body;
+    private const int SummaryLines = 4;
+    private const int NameLength = 26;
 
-    private static readonly Color PanelBackground = new(0.02f, 0.03f, 0.06f, 0.9f);
-    private static readonly Color PanelBorder = new(0.45f, 0.6f, 0.85f, 0.8f);
-    private static readonly Color TitleColor = new(1f, 0.85f, 0.3f);
-    private static readonly Color TextColor = new(0.82f, 0.88f, 1f);
-    private static readonly Color HeaderColor = new(0.55f, 0.7f, 1f);
-    private static readonly Color SelectionColor = new(0.2f, 0.32f, 0.55f, 0.55f);
-    private static readonly Color GrowthColor = new(1f, 0.45f, 0.4f);
+    private static readonly Vector2 TopLeft = new(UiMetrics.Space.Lg, UiMetrics.Space.Lg);
 
-    private readonly IRectCanvas _canvas;
-    private readonly Rid _overlay;
-    private readonly OverlayLatch _latch;
-    private readonly EntityStore? _store;
+    private readonly EntityStore _store;
     private readonly SystemRoot? _systems;
     private readonly IFpsSource? _fpsSource;
     private readonly IOverlayPageSource? _paging;
+    private readonly IVisualRidFactory? _visuals;
+    private readonly OverlayLatch _latch;
+    private readonly Dictionary<BaseSystem, string> _names = new();
+    private readonly ArchetypeQuery _debug;
+    private readonly ArchetypeQuery _dirty;
+    private readonly ArchetypeQuery _moved;
+    private readonly ArchetypeQuery _input;
+    private readonly ArchetypeQuery _pressed;
+    private readonly ArchetypeQuery _containers;
+    private readonly ArchetypeQuery _layoutDirty;
 
     private readonly ArchetypeTable _archetypes = new();
     private readonly List<int> _sampleIds = new();
@@ -47,161 +48,170 @@ public sealed partial class DebugPressedOverlaySystem : QuerySystem<Rectangle, P
     private bool _selectDownHeld;
     private bool _sortHeld;
 
+    private Entity _layer;
+    private UiNode _summary;
+    private DebugTable _systemTable = null!;
+    private DebugTable _archetypeTable = null!;
+    private Entity _archetypeTitle;
+    private Entity _pageLine;
+    private UiNode _detail;
+    private ArchetypeRow? _detailFor;
+
     public DebugPressedOverlaySystem(
-        IRectCanvas canvas,
-        Rid overlay,
         IOverlayToggleSource toggle,
-        EntityStore? store = null,
+        EntityStore store,
         SystemRoot? systems = null,
         IFpsSource? fpsSource = null,
-        IOverlayPageSource? paging = null)
+        IOverlayPageSource? paging = null,
+        IVisualRidFactory? visuals = null)
     {
-        _canvas = canvas;
-        _overlay = overlay;
         _latch = new OverlayLatch(toggle);
         _store = store;
         _systems = systems;
         _fpsSource = fpsSource;
         _paging = paging;
+        _visuals = visuals;
+
+        Tags debug = Tags.Get<DebugUi>();
+        _debug = store.Query().WithDisabled().AllTags(debug);
+        _dirty = store.Query<Rectangle>().AllTags(Tags.Get<Dirty>()).WithoutAnyTags(debug);
+        _moved = store.Query<VisualRid>().AllTags(Tags.Get<Moved>()).WithoutAnyTags(debug);
+        _input = store.Query<Rectangle>().AllTags(Tags.Get<TakesInput>()).WithoutAnyTags(debug);
+        _pressed = store.Query<Rectangle>().AllTags(Tags.Get<Pressed>()).WithoutAnyTags(debug);
+        _containers = store.Query<UiContainer>().WithoutAnyTags(debug);
+        _layoutDirty = store.Query<UiContainer>().AllTags(Tags.Get<LayoutDirty>()).WithoutAnyTags(debug);
     }
 
     protected override void OnUpdate()
     {
-        if (_latch.Update())
-            _canvas.SetVisible(_overlay, _latch.Visible);
-        _canvas.Clear(_overlay);
-
+        _latch.Update();
         if (!_latch.Visible)
+        {
+            Close();
             return;
+        }
+
+        if (_layer.IsNull)
+            Open();
 
         _elapsedMs += (long)(Tick.deltaTime * 1000);
-
-        if (_store is not null)
-            DrawMetricsPanel();
+        _archetypes.Refresh(_store, _elapsedMs);
+        RefreshMetrics();
+        RefreshArchetypes();
     }
 
-    private void DrawBorder(Rect2 bounds, Color color, float width)
+    private void Open()
     {
-        _canvas.DrawRect(_overlay,
-            new Rect2(bounds.Position, new Vector2(bounds.Size.X, width)), color);
-        _canvas.DrawRect(_overlay,
-            new Rect2(new Vector2(bounds.Position.X, bounds.End.Y - width),
-                new Vector2(bounds.Size.X, width)), color);
-        _canvas.DrawRect(_overlay,
-            new Rect2(bounds.Position, new Vector2(width, bounds.Size.Y)), color);
-        _canvas.DrawRect(_overlay,
-            new Rect2(new Vector2(bounds.End.X - width, bounds.Position.Y),
-                new Vector2(width, bounds.Size.Y)), color);
+        UiNode layer = UiNode.Layer(_store, default, UiLayers.DebugPressed, _visuals, UiStage.Full).Tag<DebugUi>();
+        _layer = layer.Entity;
+
+        // Pinned by its top left corner, so it grows right and down with its contents.
+        UiNode panels = layer.Row()
+            .At(TopLeft)
+            .AnchorTop()
+            .AnchorLeft()
+            .Gap(UiMetrics.Space.Md)
+            .Cross(StackCrossAlignment.Start);
+
+        UiNode metrics = Panel(panels);
+        metrics.Text("F3 ECS DEBUG", FontSize, DebugPalette.Title);
+        _summary = metrics.Column().Cross(StackCrossAlignment.Start);
+        for (int i = 0; i < SummaryLines; i++)
+            _summary.Text("", FontSize, DebugPalette.Text);
+
+        _systemTable = new DebugTable(
+            metrics,
+            new DebugColumn("System", TextAlign.Left),
+            new DebugColumn("last ms", TextAlign.Right),
+            new DebugColumn("avg ms", TextAlign.Right),
+            new DebugColumn("upd", TextAlign.Right));
+
+        BuildArchetypePanel(Panel(panels));
     }
 
-    private void DrawMetricsPanel()
+    private void Close()
     {
-        if (_store is not EntityStore store)
+        if (_layer.IsNull)
             return;
 
-        var lines = new List<string>();
+        UiLayout.DeleteSubtree(_layer);
+        _layer = default;
+        _detailFor = null;
+    }
+
+    private static UiNode Panel(UiNode parent) => parent.Column()
+        .Fill(DebugPalette.Panel)
+        .Border(DebugPalette.PanelBorder)
+        .Pad(UiMetrics.Space.Sm)
+        .Gap(UiMetrics.Space.Sm)
+        .Cross(StackCrossAlignment.Start);
+
+    private void RefreshMetrics()
+    {
         double fps = _fpsSource?.GetFps() ?? 60;
         float frameMs = 1000f / Mathf.Max(1f, (float)fps);
-
         float totalMs = 0;
         long totalMemory = 0;
-        var systemRows = new List<SystemRow>();
 
         if (_systems is not null)
         {
+            _systemTable.SetRowCount(_systems.ChildSystems.Count);
+            int row = 0;
             foreach (BaseSystem system in _systems.ChildSystems)
             {
                 SystemPerf perf = system.Perf;
                 totalMs += perf.LastMs;
                 totalMemory += perf.LastMemory;
 
-                string name = ShortName(system);
-                if (name.Length > 26)
-                    name = name[..26];
-
-                systemRows.Add(new SystemRow(
-                    name,
-                    perf.LastMs.ToString("0.00", CultureInfo.InvariantCulture),
-                    perf.LastAvgMs(60).ToString("0.00", CultureInfo.InvariantCulture),
-                    perf.UpdateCount.ToString(CultureInfo.InvariantCulture)));
+                _systemTable.Set(row, 0, Name(system));
+                _systemTable.Set(row, 1, perf.LastMs.ToString("0.00", CultureInfo.InvariantCulture));
+                _systemTable.Set(row, 2, perf.LastAvgMs(60).ToString("0.00", CultureInfo.InvariantCulture));
+                _systemTable.Set(row, 3, perf.UpdateCount.ToString(CultureInfo.InvariantCulture));
+                row++;
             }
         }
 
-        int dirty = store.Query<Rectangle>().AllTags(Tags.Get<Dirty>()).Count;
-        int moved = store.Query<VisualRid>().AllTags(Tags.Get<Moved>()).Count;
-        int input = store.Query<Rectangle>().AllTags(Tags.Get<TakesInput>()).Count;
-        int pressed = store.Query<Rectangle>().AllTags(Tags.Get<Pressed>()).Count;
-        int containers = store.Query<UiContainer>().Count;
-        int layoutDirty = store.Query<UiContainer>().AllTags(Tags.Get<LayoutDirty>()).Count;
-
-        lines.Add(
+        SetSummary(0,
             $"FPS {fps,3:0}   frame {frameMs,5:0.0} ms   systems {totalMs,5:0.00} ms   " +
             $"alloc {totalMemory / 1024f,5:0.0} KB");
-        lines.Add(
-            $"Entities {store.Count,5}   capacity {store.Capacity,5}   " +
-            $"archetypes {store.ArchetypeCount,3}");
-        lines.Add(
-            $"Dirty {dirty,3}   Moved {moved,3}   Input {input,3}   Pressed {pressed,2}   " +
-            $"LayoutDirty {layoutDirty,2}");
-        lines.Add($"Containers {containers,4}");
-        lines.Add("");
-
-        var panel = new Rect2(16, 16, PanelWidth, PanelHeight);
-        _canvas.DrawRect(_overlay, panel, PanelBackground);
-        DrawBorder(panel, PanelBorder, 1);
-
-        float x = panel.Position.X + 10;
-        float y = panel.Position.Y + 8;
-
-        DrawPanelLine("F3 ECS DEBUG", x, y, TitleColor, PanelWidth - 20);
-        y += LineHeight;
-
-        foreach (string line in lines)
-        {
-            DrawPanelLine(line, x, y, TextColor, PanelWidth - 20);
-            y += LineHeight;
-        }
-
-        const float nameWidth = 205;
-        const float numericWidth = 62;
-        float lastX = x + nameWidth;
-        float avgX = lastX + numericWidth;
-        float updX = avgX + numericWidth;
-
-        DrawPanelLeft("System", x, y, nameWidth, HeaderColor);
-        DrawPanelRight("last ms", lastX, y, numericWidth, HeaderColor);
-        DrawPanelRight("avg ms", avgX, y, numericWidth, HeaderColor);
-        DrawPanelRight("upd", updX, y, numericWidth, HeaderColor);
-        y += LineHeight;
-
-        foreach (SystemRow row in systemRows)
-        {
-            DrawPanelLeft(row.Name, x, y, nameWidth, TextColor);
-            DrawPanelRight(row.Last, lastX, y, numericWidth, TextColor);
-            DrawPanelRight(row.Avg, avgX, y, numericWidth, TextColor);
-            DrawPanelRight(row.Updates, updX, y, numericWidth, TextColor);
-            y += LineHeight;
-        }
-
-        DrawArchetypePanel(store);
+        SetSummary(1,
+            $"Entities {_store.Count - _debug.Count,5}   capacity {_store.Capacity,5}   " +
+            $"archetypes {_archetypes.Count,3}");
+        SetSummary(2,
+            $"Dirty {_dirty.Count,3}   Moved {_moved.Count,3}   Input {_input.Count,3}   " +
+            $"Pressed {_pressed.Count,2}   LayoutDirty {_layoutDirty.Count,2}");
+        SetSummary(3, $"Containers {_containers.Count,4}");
     }
 
-    private void DrawPanelLine(string text, float x, float y, Color color, float width) =>
-        DrawPanelLeft(text, x, y, width, color);
+    private void SetSummary(int line, string text) =>
+        SetLine(_summary.Entity.ChildEntities[line], text);
 
-    private void DrawPanelLeft(string text, float x, float y, float width, Color color) =>
-        _canvas.DrawTextLeft(_overlay, new Rect2(x, y, width, LineHeight), text, color);
-
-    private void DrawPanelRight(string text, float x, float y, float width, Color color) =>
-        _canvas.DrawTextRight(_overlay, new Rect2(x, y, width, LineHeight), text, color);
-
-    private static string ShortName(BaseSystem system)
+    /// <summary>Sets a line of text, widening it if it has outgrown its box.</summary>
+    private static void SetLine(Entity line, string text)
     {
-        string name = system.Name;
-        return name.EndsWith("System", StringComparison.Ordinal)
-            ? name[..^6]
-            : name;
+        if (line.GetComponent<Text>().Value == text)
+            return;
+
+        UiText.Set(line, text);
+        Vector2 size = UiNode.Measure(text, FontSize);
+        if (size.X <= line.GetComponent<Rectangle>().Bounds.Size.X)
+            return;
+
+        line.GetComponent<Rectangle>().Bounds = new Rect2(-size / 2, size);
+        line.Parent.AddTag<LayoutDirty>();
     }
 
-    private readonly record struct SystemRow(string Name, string Last, string Avg, string Updates);
+    private string Name(BaseSystem system)
+    {
+        if (_names.TryGetValue(system, out string? name))
+            return name;
+
+        name = system.Name.EndsWith("System", StringComparison.Ordinal)
+            ? system.Name[..^6]
+            : system.Name;
+        if (name.Length > NameLength)
+            name = name[..NameLength];
+        _names[system] = name;
+        return name;
+    }
 }

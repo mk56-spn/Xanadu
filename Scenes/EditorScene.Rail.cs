@@ -19,7 +19,7 @@ public static partial class EditorScene
         Entity editor,
         EditorShellRects shell)
     {
-        UiNode ui = UiNode.Layer(entities, root, 964, null, UiStage.Full);
+        UiNode ui = UiNode.Layer(entities, root, UiLayers.EditorRail, null, UiStage.Full);
         Vector2 home = shell.Viewport.Position + new Vector2(
             12,
             shell.Viewport.Size.Y - 128);

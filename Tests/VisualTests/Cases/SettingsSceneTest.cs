@@ -26,16 +26,16 @@ public sealed class SettingsSceneTest : SceneTest
             () => Context.Scenes.Current == SceneKind.Settings &&
                   VisualAssert.HasLayer(
                       Context.Entities,
-                      SceneUi.MenuLayer - 1) &&
+                      UiLayers.MenuBackground) &&
                   VisualAssert.HasLayer(
                       Context.Entities,
-                      SceneUi.MenuLayer) &&
+                      UiLayers.Menu) &&
                   VisualAssert.CountUninitialised(
                       Context.Entities,
-                      SceneUi.MenuLayer - 1) == 0 &&
+                      UiLayers.MenuBackground) == 0 &&
                   VisualAssert.CountUninitialised(
                       Context.Entities,
-                      SceneUi.MenuLayer) == 0 &&
+                      UiLayers.Menu) == 0 &&
                   VisualAssert.HasText(Context.Entities, "L1"));
         AddAssert(
             "SETTINGS title exists",
@@ -75,10 +75,10 @@ public sealed class SettingsSceneTest : SceneTest
     {
         Entity background = VisualAssert.LayerAt(
             Context.Entities,
-            SceneUi.MenuLayer - 1);
+            UiLayers.MenuBackground);
         Entity content = VisualAssert.LayerAt(
             Context.Entities,
-            SceneUi.MenuLayer);
+            UiLayers.Menu);
 
         return !background.IsNull &&
                !content.IsNull &&
@@ -90,7 +90,7 @@ public sealed class SettingsSceneTest : SceneTest
     {
         foreach (Entity button in Context.Entities.Query<KeybindButton>().ToEntityList())
         {
-            if (button.GetComponent<Drawable>().ZIndex != SceneUi.MenuLayer)
+            if (button.GetComponent<Drawable>().ZIndex != UiLayers.Menu)
                 return false;
         }
 
@@ -105,7 +105,7 @@ public sealed class SettingsSceneTest : SceneTest
     {
         Entity content = VisualAssert.LayerAt(
             Context.Entities,
-            SceneUi.MenuLayer);
+            UiLayers.Menu);
 
         if (content.IsNull)
             return false;

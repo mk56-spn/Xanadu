@@ -5,6 +5,8 @@ using Friflo.Engine.ECS.Systems;
 using Godot;
 using NUnit.Framework;
 using Xanadu.Ecs;
+using Xanadu.Editor;
+using Xanadu.Editor.Commands;
 using Xanadu.Editor.Recovery;
 using Xanadu.Levels;
 using Xanadu.Settings;
@@ -152,6 +154,42 @@ public sealed class EditorAutosaveSystemTests
         Pass(30);
 
         Assert.That(_recovery.Read(LevelPath)!.Level.Notes[0].TimeMs, Is.EqualTo(900));
+    }
+
+    [Test]
+    public void ASaveCommandClearsTheAutosaveInTheSameUpdate()
+    {
+        // This case needs the editor's command system and the autosave system
+        // in one root, so it owns a fresh store and editor.
+        var store = new EntityStore();
+        Entity editor = store.CreateEntity(
+            new LevelInfo("Mine", ""),
+            new LevelFile(LevelPath),
+            new Playfield(1000, 1000),
+            new Playhead(0, 120, 0, false),
+            new EditorUiRequest(),
+            new EditorMetronome(false),
+            new NoteSelection(default),
+            LevelGroups.Create());
+        var commands = new EditorCommandBus();
+        var root = new SystemRoot(store);
+        root.Add(new EditorCommandSystem(store, commands, new EditorHistory(store)));
+        root.Add(new EditorAutosaveSystem(
+            store,
+            _recovery,
+            () => _now,
+            intervalSeconds: 10));
+
+        root.Update(new UpdateTick(0.1f, 0));
+        LevelDocument edited = LevelDocumentMapper.Capture(store, editor);
+        edited.Notes.Add(new NoteDocument { TimeMs = 900, X = 5, Y = 5 });
+        _recovery.Write(LevelPath, edited, _now);
+
+        commands.Enqueue(EditorCommand.SetLevelFile(LevelPath));
+        root.Update(new UpdateTick(0.1f, 0));
+
+        Assert.That(editor.GetComponent<LevelFile>().Path, Is.EqualTo(LevelPath));
+        Assert.That(_recovery.Read(LevelPath), Is.Null);
     }
 
     [Test]

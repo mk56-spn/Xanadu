@@ -52,6 +52,8 @@ public enum ToolActionKind
     NextArt,
     LayerDownKey,
     LayerUpKey,
+    MoveLayerForward,
+    MoveLayerBack,
     ToggleArtVisible,
     ToggleMesh,
     PickMeshBones,

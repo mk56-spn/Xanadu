@@ -28,7 +28,7 @@ public static class OffsetWizardScene
         IVisualRidFactory? visuals = null)
     {
         UiStage stage = UiStage.Full;
-        UiNode ui = UiNode.Layer(entities, root, SceneUi.MenuLayer, visuals, stage);
+        UiNode ui = UiNode.Layer(entities, root, UiLayers.Menu, visuals, stage);
 
         ui.Rect(new Color(0.01f, 0.02f, 0.04f, 0.82f)).Cover().Below().Input();
 

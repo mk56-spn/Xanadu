@@ -30,6 +30,4 @@ public static class UiTheme
     public const float DropdownOptionSpacing = 2f;
     public const float TreeRowHeight = 26f;
     public const float TreeIndent = 16f;
-    public const int FocusLayer = 995;
-    public const int TooltipLayer = 996;
 }

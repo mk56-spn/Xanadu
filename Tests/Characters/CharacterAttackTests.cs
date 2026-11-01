@@ -22,6 +22,9 @@ public sealed class CharacterAttackTests : EcsSystemTest
         package.Clips.Add(new XafClip { Id = CharacterAttackSystem.LowClip, Duration = 0.2f });
         package.Clips.Add(new XafClip { Id = CharacterAttackSystem.MidClip, Duration = 0.2f });
         package.Clips.Add(new XafClip { Id = CharacterAttackSystem.HighClip, Duration = 0.2f });
+        package.Clips.Add(new XafClip { Id = CharacterAttackSystem.AirLowClip, Duration = 0.2f });
+        package.Clips.Add(new XafClip { Id = CharacterAttackSystem.AirMidClip, Duration = 0.2f });
+        package.Clips.Add(new XafClip { Id = CharacterAttackSystem.AirHighClip, Duration = 0.2f });
 
         var runtime = new AnimatorRuntime(package);
         runtime.Play("idle", 0f);
@@ -61,6 +64,35 @@ public sealed class CharacterAttackTests : EcsSystemTest
         CharacterAttackSystem.Trigger(player, noteScreenY: 100, playerScreenY: 100);
 
         Assert.That(player.GetComponent<CharacterAttack>().ClipId, Is.EqualTo(CharacterAttackSystem.MidClip));
+    }
+
+    [TestCase(CharacterMotionState.Jumping)]
+    [TestCase(CharacterMotionState.Falling)]
+    public void AnAirborneRigPlaysTheAirKicks(CharacterMotionState state)
+    {
+        Entity player = Rigged();
+        player.AddComponent(new CharacterMotion { State = state });
+
+        CharacterAttackSystem.Trigger(player, noteScreenY: 0, playerScreenY: 100);
+        Assert.That(player.GetComponent<CharacterAttack>().ClipId, Is.EqualTo(CharacterAttackSystem.AirHighClip));
+
+        CharacterAttackSystem.Trigger(player, noteScreenY: 100, playerScreenY: 100);
+        Assert.That(player.GetComponent<CharacterAttack>().ClipId, Is.EqualTo(CharacterAttackSystem.AirMidClip));
+
+        CharacterAttackSystem.Trigger(player, noteScreenY: 200, playerScreenY: 100);
+        Assert.That(player.GetComponent<CharacterAttack>().ClipId, Is.EqualTo(CharacterAttackSystem.AirLowClip));
+    }
+
+    [TestCase(CharacterMotionState.Grounded)]
+    [TestCase(CharacterMotionState.Landing)]
+    public void ARigOnTheGroundPlaysTheGroundKicks(CharacterMotionState state)
+    {
+        Entity player = Rigged();
+        player.AddComponent(new CharacterMotion { State = state });
+
+        CharacterAttackSystem.Trigger(player, noteScreenY: 0, playerScreenY: 100);
+
+        Assert.That(player.GetComponent<CharacterAttack>().ClipId, Is.EqualTo(CharacterAttackSystem.HighClip));
     }
 
     [Test]

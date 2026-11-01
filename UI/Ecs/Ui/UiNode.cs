@@ -9,7 +9,7 @@ namespace Xanadu.Ecs;
 /// that adds something returns the node it added, so a tree is built by naming
 /// each parent once and calling on it:
 /// <code>
-/// UiNode page = UiNode.Layer(store, root, 960).Page(screen);
+/// UiNode page = UiNode.Layer(store, root, UiLayers.EditorChrome).Page(screen);
 /// UiNode header = page.Row().Height(80);
 /// UiNode left = header.Edge(UiEdge.Left).Gap(12);
 /// left.Text("LEVEL EDITOR", 24).TextColor(Palette.Accent);

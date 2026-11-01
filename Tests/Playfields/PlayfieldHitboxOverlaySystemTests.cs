@@ -59,10 +59,10 @@ public sealed class PlayfieldHitboxOverlaySystemTests : EcsSystemTest
             Does.Contain(new Rect2(385, 350, 30, 100)));
         Assert.That(
             _canvas.Rects.ConvertAll(rect => rect.Color),
-            Does.Contain(PlayfieldRenderer.BlockHitboxColor));
+            Does.Contain(DebugPalette.BlockHitbox));
         Assert.That(
             _canvas.Rects.ConvertAll(rect => rect.Color),
-            Does.Contain(PlayfieldRenderer.PlayerHitboxColor));
+            Does.Contain(DebugPalette.PlayerHitbox));
     }
 
     [Test]

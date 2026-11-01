@@ -38,7 +38,7 @@ public static class SongTimingScene
         IVisualRidFactory? visuals = null)
     {
         UiStage stage = UiStage.Full;
-        UiNode ui = UiNode.Layer(entities, root, SceneUi.MenuLayer, visuals, stage);
+        UiNode ui = UiNode.Layer(entities, root, UiLayers.Menu, visuals, stage);
 
         ui.Rect(SceneUi.BackgroundColor).Cover().Below();
         ui.Text("SONG TIMING", UiType.Title, SceneUi.AccentColor)

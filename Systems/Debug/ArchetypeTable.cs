@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 using Friflo.Engine.ECS;
+using Xanadu.Ecs;
 
 namespace Xanadu.Systems.Debug;
 
@@ -150,6 +151,9 @@ public sealed class ArchetypeTable
             {
                 continue;
             }
+
+            if (archetype.Tags.Has<DebugUi>())
+                continue;
 
             if (!_byArchetype.TryGetValue(archetype, out ArchetypeRow? row))
             {

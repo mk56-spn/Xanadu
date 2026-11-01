@@ -135,16 +135,6 @@ public partial class Main : Control
 
 		switch (keycode)
 			{
-				case Key.Left:
-					if (_systems?.Scenes.TryStepCarousel(-1) == true)
-						GetViewport().SetInputAsHandled();
-					break;
-
-				case Key.Right:
-					if (_systems?.Scenes.TryStepCarousel(1) == true)
-						GetViewport().SetInputAsHandled();
-					break;
-
 				case Key.Bracketleft:
 					if (_systems?.Scenes.CyclePreviewStart(-1) == true)
 						GetViewport().SetInputAsHandled();

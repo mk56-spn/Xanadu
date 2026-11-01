@@ -73,7 +73,7 @@ public sealed class ContactRigAssetTests
             Is.EqualTo(new[]
             {
                 "idle", "jumping", "landing", "death", "attack_low", "attack_mid",
-                "attack_high",
+                "attack_high", "attack_air_low", "attack_air_mid", "attack_air_high",
             }));
     }
 

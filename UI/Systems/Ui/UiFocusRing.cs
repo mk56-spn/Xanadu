@@ -14,7 +14,7 @@ public sealed class UiFocusRing
 
     public UiFocusRing(EntityStore entities, IVisualRidFactory visuals)
     {
-        UiBuilder ui = UiBuilder.Begin(entities, visuals).Layer(UiTheme.FocusLayer);
+        UiBuilder ui = UiBuilder.Begin(entities, visuals).Layer(UiLayers.Focus);
         for (int i = 0; i < _edges.Length; i++)
         {
             Entity edge = ui.RectEntity(

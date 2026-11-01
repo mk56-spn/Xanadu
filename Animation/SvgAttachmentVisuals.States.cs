@@ -29,8 +29,12 @@ public sealed partial class SvgAttachmentVisuals
             bool shown = !state.Hidden && art == visual.Art;
             RenderingServer.CanvasItemSetVisible(visual.Item, shown);
             visual.Shown = shown;
-            RenderingServer.CanvasItemSetZIndex(visual.Item,
-                Math.Clamp(state.LayerOf(attachment), XafAttachment.MinLayer, XafAttachment.MaxLayer));
+            int layer = state.LayerOf(attachment);
+            if (visual.Layer != layer)
+            {
+                SetLayer(visual.Item, layer, 0);
+                visual.Layer = layer;
+            }
             if (!shown || attachment.Mesh is not { } mesh)
                 continue;
 

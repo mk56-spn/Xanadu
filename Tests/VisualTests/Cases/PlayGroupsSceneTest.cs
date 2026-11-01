@@ -21,7 +21,7 @@ public sealed class PlayGroupsSceneTest : SceneTest
         AddStep("open a play scene with groups", OpenPlay);
         AddUntilStep(
             "wait for the play scene",
-            () => VisualAssert.IsSceneReady(Context, SceneKind.Play, SceneUi.PlayHudLayer) &&
+            () => VisualAssert.IsSceneReady(Context, SceneKind.Play, UiLayers.PlayHud) &&
                   Context.Entities.Query<Note>().Count == 3);
         AddAssert("the grouped start point offsets the spawn", SpawnIsOffset);
 

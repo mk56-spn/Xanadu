@@ -133,22 +133,12 @@ public static partial class SongSelectScene
         state.LevelLabel.AddTag<Dirty>();
     }
 
-    /// <summary>Gives the full-screen background the gold notes shader, when assets are available.</summary>
-    private static void ApplyBackgroundShader(Entity background, bool loadAssets)
-    {
-        if (NoteMaterial(loadAssets, aspect: 1920f / 1080f, zoom: 1f) is { } material)
-        {
-            background.AddComponent(new UiMaterial(material));
-            background.AddComponent(new SpectrumEnergy());
-        }
-    }
-
     /// <summary>
     /// The notes shader as a material: a colour for the notes and the two ends
     /// of the gradient behind them, with its cells kept square for a surface of
     /// the given aspect. Null when assets are not available.
     /// </summary>
-    private static ShaderMaterial? NoteMaterial(
+    internal static ShaderMaterial? NoteMaterial(
         bool loadAssets,
         float aspect,
         float zoom,

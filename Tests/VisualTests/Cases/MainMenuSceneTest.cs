@@ -23,7 +23,7 @@ public sealed class MainMenuSceneTest : SceneTest
         AddStep("open main menu", () => Context.Scenes.Start(SceneKind.Main));
         AddUntilStep(
             "wait for main menu",
-            () => VisualAssert.IsSceneReady(Context, SceneKind.Main, SceneUi.MenuLayer) &&
+            () => VisualAssert.IsSceneReady(Context, SceneKind.Main, UiLayers.Menu) &&
                   VisualAssert.HasText(Context.Entities, "XANADU"));
         AddAssert(
             "XANADU title exists",
@@ -41,6 +41,6 @@ public sealed class MainMenuSceneTest : SceneTest
             "menu layer is initialized",
             () => VisualAssert.CountUninitialised(
                 Context.Entities,
-                SceneUi.MenuLayer) == 0);
+                UiLayers.Menu) == 0);
     }
 }

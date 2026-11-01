@@ -46,6 +46,56 @@ public sealed class NoteReachTests
     }
 
     [Test]
+    public void ContactReachesTheEdgeOfTheNoteCircle()
+    {
+        Assert.That(
+            NoteReach.Contains(
+                new Vector2(500, 500),
+                View(1f),
+                new Vector2(635, 500),
+                CharacterKind.Contact),
+            Is.True);
+        Assert.That(
+            NoteReach.Contains(
+                new Vector2(500, 500),
+                View(1f),
+                new Vector2(637, 500),
+                CharacterKind.Contact),
+            Is.False);
+    }
+
+    [Test]
+    public void ContactEdgeReachScalesWithThePlayfield()
+    {
+        Assert.That(
+            NoteReach.Contains(
+                new Vector2(500, 500),
+                View(0.5f),
+                new Vector2(567, 500),
+                CharacterKind.Contact),
+            Is.True);
+        Assert.That(
+            NoteReach.Contains(
+                new Vector2(500, 500),
+                View(0.5f),
+                new Vector2(569, 500),
+                CharacterKind.Contact),
+            Is.False);
+    }
+
+    [Test]
+    public void OtherCharactersStillHaveToReachTheCenter()
+    {
+        Assert.That(
+            NoteReach.Contains(
+                new Vector2(500, 500),
+                View(1f),
+                new Vector2(601, 500),
+                CharacterKind.Armed),
+            Is.False);
+    }
+
+    [Test]
     public void ReachIsFarWiderThanThePlayerBox()
     {
         Assert.That(NoteReach.Radius, Is.GreaterThan(Player.DefaultWidth * 2));

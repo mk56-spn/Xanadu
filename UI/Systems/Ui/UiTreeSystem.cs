@@ -67,16 +67,27 @@ public sealed class UiTreeSystem : QuerySystem<UiTree>
     {
         foreach (Entity tree in Query.ToEntityList())
         {
-            UiTree state = tree.GetComponent<UiTree>();
-            foreach (Entity node in UiTreeControl.Nodes(tree))
-            {
-                Entity body = UiTreeControl.Body(node);
-                if (!body.IsNull)
-                    SetArrow(UiTreeControl.Disclosure(node), UiLayout.IsHidden(body) ? Collapsed : Expanded);
+            Present(tree, tree.GetComponent<UiTree>());
+        }
+    }
 
-                string id = node.GetComponent<UiTreeNode>().Id;
-                Highlight(UiTreeControl.Label(node), state.Selected == id || state.MultiSelected.Contains(id));
+    /// <summary>Walks the tree directly: this runs every frame for every row.</summary>
+    private static void Present(Entity holder, in UiTree state)
+    {
+        foreach (Entity node in holder.ChildEntities)
+        {
+            if (!node.HasComponent<UiTreeNode>())
+                continue;
+
+            Entity body = UiTreeControl.Body(node);
+            if (!body.IsNull)
+            {
+                SetArrow(UiTreeControl.Disclosure(node), UiLayout.IsHidden(body) ? Collapsed : Expanded);
+                Present(body, state);
             }
+
+            string id = node.GetComponent<UiTreeNode>().Id;
+            Highlight(UiTreeControl.Label(node), state.Selected == id || state.MultiSelected.Contains(id));
         }
     }
 

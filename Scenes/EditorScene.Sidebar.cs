@@ -90,7 +90,7 @@ public static partial class EditorScene
             panel,
             inner,
             EditorDropdownKind.Snap,
-            new[] { "1/4 beat", "1/8 beat", "1/16 beat" },
+            new[] { "1/2 beat", "1/4 beat", "1/8 beat" },
             selected: 0);
         Playhead playhead = editor.GetComponent<Playhead>();
         SetDropdownSelected(snap, playhead.SnapDivision switch
@@ -190,7 +190,7 @@ public static partial class EditorScene
         Entity editor,
         EditorShellRects shell)
     {
-        UiNode ui = UiNode.Layer(entities, root, 941, null, UiStage.Full);
+        UiNode ui = UiNode.Layer(entities, root, UiLayers.EditorSidebar, null, UiStage.Full);
         Vector2 home = new(
             shell.RightPanel.Position.X - 125,
             shell.RightPanel.Position.Y + 265);

@@ -175,6 +175,27 @@ public sealed class EditorChromeLayoutTests : EcsSystemTest
         Store.Query<EditorSidebarLayout>().ToEntityList()[0]
             .GetComponent<EditorSidebarLayout>().CharacterButton;
 
+    [Test]
+    public void TheSnapDropdownOffersHalfBeatAndFinerFractions()
+    {
+        Entity snap = Store.Query<EditorLeftMenu>().ToEntityList()[0]
+            .GetComponent<EditorLeftMenu>().SnapButton;
+
+        var options = new System.Collections.Generic.List<(int Value, string Label)>();
+        foreach (EntityLink<DropdownOption> link in snap.GetIncomingLinks<DropdownOption>())
+        {
+            Entity option = link.Entity;
+            options.Add((
+                option.GetComponent<DropdownOption>().Value,
+                option.GetComponent<Text>().Value));
+        }
+        options.Sort((left, right) => left.Value.CompareTo(right.Value));
+
+        Assert.That(
+            options.ConvertAll(option => option.Label),
+            Is.EqualTo(new[] { "1/2 beat", "1/4 beat", "1/8 beat" }));
+    }
+
     private Entity Cell(int index)
     {
         foreach (Entity entity in Store.Query<EditorGroupCell>().ToEntityList())

@@ -19,6 +19,9 @@ public sealed class CharacterAttackSystem : QuerySystem<CharacterRig, CharacterA
     public const string LowClip = "attack_low";
     public const string MidClip = "attack_mid";
     public const string HighClip = "attack_high";
+    public const string AirLowClip = "attack_air_low";
+    public const string AirMidClip = "attack_air_mid";
+    public const string AirHighClip = "attack_air_high";
 
     /// <summary>
     /// How far, in screen pixels, a note has to sit above or below the
@@ -57,7 +60,7 @@ public sealed class CharacterAttackSystem : QuerySystem<CharacterRig, CharacterA
         if (!entity.TryGetComponent(out CharacterRig rig))
             return;
 
-        string clipId = ClipFor(noteScreenY - playerScreenY);
+        string clipId = ClipFor(noteScreenY - playerScreenY, Airborne(entity));
 
         if (!entity.HasComponent<CharacterAttack>())
             entity.AddComponent(new CharacterAttack());
@@ -72,10 +75,15 @@ public sealed class CharacterAttackSystem : QuerySystem<CharacterRig, CharacterA
     }
 
     /// <summary>Up is negative: a note above the player (smaller Y) kicks high, below kicks low.</summary>
-    private static string ClipFor(float dy) =>
-        dy <= -HeightBand ? HighClip :
-        dy >= HeightBand ? LowClip :
-        MidClip;
+    private static string ClipFor(float dy, bool airborne) =>
+        dy <= -HeightBand ? airborne ? AirHighClip : HighClip :
+        dy >= HeightBand ? airborne ? AirLowClip : LowClip :
+        airborne ? AirMidClip : MidClip;
+
+    /// <summary>A rig that has not settled into a motion state yet counts as grounded.</summary>
+    private static bool Airborne(Entity entity) =>
+        entity.TryGetComponent(out CharacterMotion motion) &&
+        motion.State is CharacterMotionState.Jumping or CharacterMotionState.Falling;
 
     private static float ClipLength(AnimatorRuntime runtime, string clipId) =>
         runtime.Package.Clips.Find(clip => clip.Id == clipId)?.Duration ?? 0f;

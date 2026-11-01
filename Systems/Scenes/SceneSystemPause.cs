@@ -27,7 +27,7 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
     private void BuildPause()
     {
         UiNode ui = UiNode.Layer(
-            _entities, default, SceneUi.PauseLayer, _visuals, UiStage.Full);
+            _entities, default, UiLayers.Pause, _visuals, UiStage.Full);
 
         UiNode root = ui.Column()
             .Box(UiStage.Full.Bounds)

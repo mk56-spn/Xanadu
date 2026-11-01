@@ -46,7 +46,7 @@ public sealed class EditorHeaderFluentTests : EcsSystemTest
     /// <summary>The same header the editor builds, without the parameter soup.</summary>
     private void BuildHeader(Entity parent)
     {
-        UiNode header = UiNode.Layer(Store, parent, 960)
+        UiNode header = UiNode.Layer(Store, parent, UiLayers.EditorChrome)
             .Page()
             .Row()
             .Size(Screen.X, EditorShellMetrics.HeaderHeight);

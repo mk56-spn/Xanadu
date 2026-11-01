@@ -26,7 +26,7 @@ public sealed class SongSelectSceneTest : SceneTest
             () => VisualAssert.IsSceneReady(
                 Context,
                 SceneKind.SongSelect,
-                SceneUi.MenuLayer) &&
+                UiLayers.Menu) &&
                 VisualAssert.HasText(Context.Entities, "SONG SELECT"));
         AddAssert(
             "SONG SELECT title exists",
@@ -35,7 +35,7 @@ public sealed class SongSelectSceneTest : SceneTest
             "song select layer is initialized",
             () => VisualAssert.CountUninitialised(
                 Context.Entities,
-                SceneUi.MenuLayer) == 0);
+                UiLayers.Menu) == 0);
         AddAssert(
             "level list has nine rows",
             () => Context.Entities.Query<SongSelectTile>().Count == 9);

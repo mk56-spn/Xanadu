@@ -106,6 +106,7 @@ public sealed class PlayerMovementSystem : QuerySystem<Player, Position, Playfie
                         screen,
                         view,
                         judgedTime,
+                        character,
                         out Entity noteEntity,
                         out Note movement))
                 {
@@ -192,6 +193,7 @@ public sealed class PlayerMovementSystem : QuerySystem<Player, Position, Playfie
         Vector2 playerScreen,
         PlayfieldView view,
         long judgedTime,
+        CharacterKind? character,
         out Entity resultEntity,
         out Note result)
     {
@@ -212,7 +214,7 @@ public sealed class PlayerMovementSystem : QuerySystem<Player, Position, Playfie
             }
 
             Vector2 noteScreen = view.PlayfieldToScreen(note.Position);
-            if (!NoteReach.Contains(playerScreen, view, noteScreen))
+            if (!NoteReach.Contains(playerScreen, view, noteScreen, character))
                 continue;
 
             long error = Math.Abs(note.TimeMs - judgedTime);
@@ -310,7 +312,7 @@ public sealed class PlayerMovementSystem : QuerySystem<Player, Position, Playfie
                     facesLeft,
                     noteScreen,
                     view.Scale)
-                : NoteReach.Contains(playerScreen, view, noteScreen);
+                : NoteReach.Contains(playerScreen, view, noteScreen, character);
             if (inRange)
                 return true;
         }

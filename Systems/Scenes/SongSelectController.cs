@@ -21,6 +21,7 @@ public sealed class SongSelectController : ISceneController
     }
 
     public SceneKind Kind => SceneKind.SongSelect;
+    public SceneBackgroundKind Background => SceneBackgroundKind.Menu;
 
     public LevelEntry? SelectedEntry =>
         _stateEntity.IsNull || _catalog.Count == 0

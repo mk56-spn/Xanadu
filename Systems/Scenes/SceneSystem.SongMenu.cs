@@ -39,7 +39,7 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
     private void BuildSongMenu()
     {
         UiNode ui = UiNode.Layer(
-            _entities, default, SceneUi.PauseLayer, _visuals, UiStage.Full);
+            _entities, default, UiLayers.SongMenu, _visuals, UiStage.Full);
 
         UiNode menu = ui.Column()
             .Size(SongMenuWidth, SongMenuHeight)

@@ -44,11 +44,11 @@ public static class SettingsScene
         // The backdrop and the card's fill sit a layer below the content so the
         // content can never lose sibling draw order against them.
         UiNode backdrop = UiNode.Layer(
-            entities, root, SceneUi.MenuLayer - 1, visuals, stage);
+            entities, root, UiLayers.MenuBackground, visuals, stage);
         backdrop.Rect(SceneUi.BackgroundColor).Cover().Below();
         backdrop.Rect(SceneUi.PanelColor).Box(card);
 
-        UiNode ui = UiNode.Layer(entities, root, SceneUi.MenuLayer, visuals, stage);
+        UiNode ui = UiNode.Layer(entities, root, UiLayers.Menu, visuals, stage);
         ui.Text(LocalizedText.Get(SettingsStrings.Title), UiType.Title, SceneUi.AccentColor)
             .At(new Vector2(stage.Center.X, TitleY));
 

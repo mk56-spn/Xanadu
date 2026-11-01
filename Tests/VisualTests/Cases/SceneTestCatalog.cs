@@ -33,6 +33,7 @@ public static class SceneTestCatalog
         new ResultsSceneTest(),
         new RestartSceneTest(),
         new EditorDropdownSceneTest(),
+        new EditorPreviewSaveSceneTest(),
         new EditorDirectionWheelSceneTest(),
         new CharacterNotesSceneTest(),
         new SplitlineSceneTest(),

@@ -31,6 +31,7 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
     private Entity _pausePanel;
     private Entity _transitionPanel;
     private Entity _sceneRoot;
+    private Entity _background;
     private readonly IPointerInputSource? _pointer;
     private LevelEntry? _pendingPlayEntry;
     private StartPoint? _pendingStart;
@@ -39,6 +40,7 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
     private PlayResults? _pendingResults;
     private TransitionPhase _transitionPhase;
     private bool _restartRequested;
+    private bool _fadeSceneOnly;
     private float _transitionAlpha;
     private readonly bool _transitionsEnabled;
     private readonly SceneControllerRegistry _controllers;
@@ -302,14 +304,8 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
             return;
         }
 
-        if (SceneChanged(ref state))
-        {
-            BeginFadeOut();
-            return;
-        }
-
-        if (StepScene(ref state))
-            BeginFadeOut();
+        if (SceneChanged(ref state) || StepScene(ref state))
+            BeginSwitch(ref state);
     }
 
     /// <summary>Restarts the most recent level from its beginning.</summary>

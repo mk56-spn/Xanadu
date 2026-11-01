@@ -16,10 +16,6 @@ public static partial class AnimatorLayout
     public const int SvgZ = 3;
     public const int PreviewZ = 4;
     public const int TimelineZ = 5;
-    public const int MenuLayer = 6;
-
-    /// <summary>Above every panel and menu, so a hover label is never clipped by one.</summary>
-    public const int TooltipLayer = 7;
 
     // The frame comes from the shared editor shell, so the header and footer
     // sit where they do in every tool; the panels run flush to the screen edge.
@@ -86,7 +82,7 @@ public static partial class AnimatorLayout
         EditorShellRects shell = EditorShell.Compute(
             screen, new EditorShellOptions(EditorFooterHeight.Animator));
         float mainHeight = shell.ToolStrip.Size.Y;
-        UiBuilder ui = UiBuilder.Begin(store, visuals).Layer(0);
+        UiBuilder ui = UiBuilder.Begin(store, visuals).Layer(UiLayers.Base);
         ui.RectEntity(screen / 2, screen, UiTheme.Background);
 
         ui.Container(screen / 2, screen, StackDirection.Vertical,
@@ -104,7 +100,7 @@ public static partial class AnimatorLayout
         ui.End();
 
         // One floating layer holds every menu and the history panel.
-        UiBuilder menu = UiBuilder.Begin(store, visuals).Layer(MenuLayer);
+        UiBuilder menu = UiBuilder.Begin(store, visuals).Layer(UiLayers.AnimatorMenu);
         refs.Ui.MenuLayer = menu.Current;
         refs.Ui.ScreenSize = screen;
 

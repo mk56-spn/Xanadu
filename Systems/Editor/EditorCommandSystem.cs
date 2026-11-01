@@ -223,7 +223,11 @@ public sealed partial class EditorCommandSystem :
 
             case EditorCommandType.SetLevelFile:
                 SetLevelFile(editor, command.Text ?? "");
-                CommandBuffer.AddTag<EditorSaved>(editor.Id);
+                // Directly after the query, so the autosave system later in
+                // this group sees the save and clears its recovery file. The
+                // shared command buffer would only apply it next frame, after
+                // a preview may already have switched the scene.
+                _afterQuery.Add(() => editor.AddTag<EditorSaved>());
                 break;
         }
     }

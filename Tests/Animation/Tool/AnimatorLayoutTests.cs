@@ -54,7 +54,9 @@ public sealed class AnimatorLayoutTests : AnimatorToolTest
         Assert.That(pose.Position.X, Is.EqualTo(shell.RightTabs.Position.X).Within(0.5f));
         Assert.That(edit.Position.X, Is.EqualTo(pose.End.X).Within(0.5f));
         Assert.That(flow.Position.X, Is.EqualTo(edit.End.X).Within(0.5f));
-        Assert.That(flow.End.X, Is.EqualTo(shell.RightTabs.End.X).Within(0.5f));
+        Rect2 layers = AnimatorGeometry.PanelArea(TabButton(AnimatorLayout.LayersTab));
+        Assert.That(layers.Position.X, Is.EqualTo(flow.End.X).Within(0.5f));
+        Assert.That(layers.End.X, Is.EqualTo(shell.RightTabs.End.X).Within(0.5f));
     }
 
     [Test]

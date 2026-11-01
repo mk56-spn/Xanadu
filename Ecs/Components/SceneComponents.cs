@@ -31,6 +31,25 @@ public struct SceneState(SceneKind scene) : IComponent
     public SceneKind SongTimingBack = SceneKind.Editor;
 }
 
+/// <summary>
+/// The background a scene stands on. Scenes naming the same kind share one: it
+/// survives the switch between them instead of being rebuilt.
+/// </summary>
+public enum SceneBackgroundKind
+{
+    /// <summary>The scene draws its own background, if it has one.</summary>
+    None,
+
+    /// <summary>The notes shader behind profiles, main menu and song select.</summary>
+    Menu,
+}
+
+/// <summary>Marks the layer holding a background that outlives the scene root.</summary>
+public struct SceneBackground(SceneBackgroundKind kind) : IComponent
+{
+    public SceneBackgroundKind Kind = kind;
+}
+
 /// <summary>Marks the root entity that owns a scene's entity subtree.</summary>
 public struct SceneRoot(SceneKind scene) : IComponent
 {

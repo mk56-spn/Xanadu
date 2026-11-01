@@ -216,6 +216,28 @@ public sealed class UiTreeOverlaySystemTests : EcsSystemTest
     }
 
     [Test]
+    public void TheHeaderCarriesTheLegendForTheBoxes()
+    {
+        Panel();
+        Open();
+
+        string[] words = Store.Query<Text>().Entities.Select(entity => entity.GetComponent<Text>().Value).ToArray();
+        Assert.That(words, Does.Contain("BUTTONS").And.Contain("CONTAINERS").And.Contain("PINS").And.Contain("SELECTED"));
+    }
+
+    [Test]
+    public void OtherDebugPanelsAreNotListed()
+    {
+        Entity debug = Panel();
+        debug.AddTag<DebugUi>();
+        Entity shown = Panel();
+        Open();
+
+        Assert.That(Row(debug).IsNull, Is.True);
+        Assert.That(Row(shown).IsNull, Is.False);
+    }
+
+    [Test]
     public void RowsTakeInputFromThePanelEvenOnRecycledIds()
     {
         var pointer = new ScriptedPointer();

@@ -47,6 +47,7 @@ public sealed class EditorDropdownSystemTests
         root.Update(new UpdateTick(1f / 60f, 0));
 
         Assert.That(button.GetComponent<Dropdown>().Open, Is.True);
+        Assert.That(button.GetComponent<Text>().Value, Is.EqualTo("SNAP  1/2"));
         Assert.That(
             UiLayout.IsHidden(list), Is.False);
         Assert.That(
@@ -65,12 +66,35 @@ public sealed class EditorDropdownSystemTests
 
         Assert.That(button.GetComponent<Dropdown>().Selected, Is.EqualTo(2));
         Assert.That(button.GetComponent<Dropdown>().Open, Is.False);
+        Assert.That(button.GetComponent<Text>().Value, Is.EqualTo("SNAP  1/8"));
         Assert.That(
             UiLayout.IsHidden(list),
             Is.True);
         Assert.That(commands.TryDequeue(out EditorCommand command), Is.True);
         Assert.That(command.Type, Is.EqualTo(EditorCommandType.SetSnap));
         Assert.That(command.IntValue, Is.EqualTo(16));
+    }
+
+    [TestCase(4, "SNAP  1/2")]
+    [TestCase(8, "SNAP  1/4")]
+    [TestCase(16, "SNAP  1/8")]
+    public void TheSnapButtonShowsTheChosenFraction(int division, string label)
+    {
+        var store = new EntityStore();
+        store.CreateEntity(
+            new Playhead(0, 120, 0, false, snapDivision: division),
+            new EditorNoteTarget(KeybindAction.M));
+
+        Entity button = store.CreateEntity(
+            new Text(""),
+            new Dropdown(default, 0),
+            new EditorDropdownControl(EditorDropdownKind.Snap));
+
+        var root = new SystemRoot(store);
+        root.Add(new EditorDropdownSystem(store, new EditorCommandBus()));
+        root.Update(new UpdateTick(1f / 60f, 0));
+
+        Assert.That(button.GetComponent<Text>().Value, Is.EqualTo(label));
     }
 
     [Test]

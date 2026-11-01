@@ -7,7 +7,7 @@ namespace Xanadu.Ecs;
 /// Keeps the UI tree's derived state in step with the native tree. Parents hear
 /// about children coming and going, and <see cref="UiHidden"/> becomes the native
 /// <see cref="Disabled"/> tag across the subtree, which every query already skips.
-/// Handlers run on structural changes, which never happen inside a query loop.
+/// <see cref="DebugUi"/> is inherited the same way. Handlers run on structural changes, which never happen inside a query loop.
 /// </summary>
 public static class UiTreeEvents
 {
@@ -42,8 +42,13 @@ public static class UiTreeEvents
     {
         MarkLayoutDirty(changed.Entity);
 
-        if (changed.Action == ChildEntitiesChangedAction.Add)
-            Sync(changed.Store.GetEntityById(changed.ChildId));
+        if (changed.Action != ChildEntitiesChangedAction.Add)
+            return;
+
+        Entity child = changed.Store.GetEntityById(changed.ChildId);
+        if (changed.Entity.Tags.Has<DebugUi>())
+            child.AddTag<DebugUi>();
+        Sync(child);
     }
 
     /// <summary>A node is enabled unless it, or an ancestor, is hidden.</summary>

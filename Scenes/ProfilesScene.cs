@@ -38,9 +38,8 @@ public static class ProfilesScene
         IVisualRidFactory? visuals = null)
     {
         UiStage stage = UiStage.Full;
-        UiNode ui = UiNode.Layer(entities, root, SceneUi.MenuLayer, visuals, stage);
+        UiNode ui = UiNode.Layer(entities, root, UiLayers.Menu, visuals, stage);
 
-        ui.Rect(SceneUi.BackgroundColor).Cover().Below();
         ui.Text("WHO'S PLAYING?", UiType.Title, SceneUi.AccentColor)
             .At(new Vector2(stage.Center.X, TitleY));
         ui.Text(

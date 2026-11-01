@@ -2,27 +2,12 @@ using Friflo.Engine.ECS;
 using Godot;
 using Xanadu.Ecs;
 using Xanadu.Systems.Canvas;
-using Xanadu.Theme;
 using Position = Xanadu.Ecs.Position;
 
 namespace Xanadu.Systems.Playfields;
 
 public static partial class PlayfieldRenderer
 {
-    /// <summary>The player's box while hitboxes are shown (F10).</summary>
-    public static readonly Color PlayerHitboxColor = Palette.Success;
-
-    /// <summary>A block's box while hitboxes are shown (F10).</summary>
-    public static readonly Color BlockHitboxColor = Palette.Rose;
-
-    /// <summary>The sphere notes are checked against while hitboxes are shown (F10).</summary>
-    public static readonly Color NoteReachColor = Palette.Accent;
-
-    /// <summary>Armed's weapon hitbox while hitboxes are shown (F10).</summary>
-    public static readonly Color WeaponHitboxColor = Palette.Info;
-
-    private static readonly Color HitboxFill = new(1f, 1f, 1f, 0.1f);
-
     /// <summary>
     /// Outlines what collision and input actually use: the player's box, every
     /// block's box, and the sphere notes are checked against. The box stays
@@ -47,7 +32,7 @@ public static partial class PlayfieldRenderer
             var screen = new Rect2(
                 view.PlayfieldToScreen(block.Position),
                 block.Size * view.Scale);
-            DrawHitbox(canvas, rid, screen, BlockHitboxColor);
+            DrawHitbox(canvas, rid, screen, DebugPalette.BlockHitbox);
         }
 
         foreach (Entity entity in entities.Query<Player, Position>().ToEntityList())
@@ -55,12 +40,12 @@ public static partial class PlayfieldRenderer
             Player player = entity.GetComponent<Player>();
             Vector2 center = entity.GetComponent<Position>().Value;
             var screen = new Rect2(center - player.Size / 2, player.Size);
-            DrawHitbox(canvas, rid, screen, PlayerHitboxColor);
+            DrawHitbox(canvas, rid, screen, DebugPalette.PlayerHitbox);
             canvas.DrawCircleOutline(
                 rid,
                 center,
                 NoteReach.OnScreen(view.Scale),
-                NoteReachColor,
+                DebugPalette.NoteReach,
                 1.5f);
 
             if (entity.TryGetComponent(out PlayerCharacter character) &&
@@ -97,7 +82,7 @@ public static partial class PlayfieldRenderer
                 new Vector2(facesLeft ? center.X - length : center.X,
                     center.Y - thickness / 2f),
                 new Vector2(length, thickness));
-            DrawHitbox(canvas, rid, bounds, WeaponHitboxColor);
+            DrawHitbox(canvas, rid, bounds, DebugPalette.WeaponHitbox);
             return;
         }
 
@@ -107,8 +92,8 @@ public static partial class PlayfieldRenderer
         float end = start + Mathf.Pi;
         const int segments = 24;
 
-        DrawArc(canvas, rid, center, inner, start, end, segments, WeaponHitboxColor);
-        DrawArc(canvas, rid, center, outer, start, end, segments, WeaponHitboxColor);
+        DrawArc(canvas, rid, center, inner, start, end, segments, DebugPalette.WeaponHitbox);
+        DrawArc(canvas, rid, center, outer, start, end, segments, DebugPalette.WeaponHitbox);
 
         Vector2 innerStart = center + new Vector2(
             Mathf.Cos(start) * inner,
@@ -122,8 +107,8 @@ public static partial class PlayfieldRenderer
         Vector2 outerEnd = center + new Vector2(
             Mathf.Cos(end) * outer,
             Mathf.Sin(end) * outer);
-        canvas.DrawLine(rid, innerStart, outerStart, WeaponHitboxColor, 1.5f);
-        canvas.DrawLine(rid, innerEnd, outerEnd, WeaponHitboxColor, 1.5f);
+        canvas.DrawLine(rid, innerStart, outerStart, DebugPalette.WeaponHitbox, 1.5f);
+        canvas.DrawLine(rid, innerEnd, outerEnd, DebugPalette.WeaponHitbox, 1.5f);
     }
 
     private static void DrawArc(
@@ -154,7 +139,7 @@ public static partial class PlayfieldRenderer
         Rect2 bounds,
         Color color)
     {
-        canvas.DrawRect(rid, bounds, HitboxFill);
+        canvas.DrawRect(rid, bounds, DebugPalette.HitboxFill);
         DrawBorder(canvas, rid, bounds, color, 1.5f);
     }
 }

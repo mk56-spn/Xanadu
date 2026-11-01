@@ -20,6 +20,9 @@ public struct Pressed : ITag { }
 /// <summary>Marks a container whose child layout needs recomputing.</summary>
 public struct LayoutDirty : ITag { }
 
+/// <summary>A layer whose <c>LayerOpacity</c> has not reached its canvas item yet.</summary>
+public struct LayerOpacityDirty : ITag { }
+
 /// <summary>Excludes a child from its container's stack while keeping it alive.</summary>
 public struct LayoutIgnore : ITag { }
 
@@ -29,6 +32,12 @@ public struct LayoutIgnore : ITag { }
 /// <see cref="Disabled"/> tag on the subtree, which takes it out of every query.
 /// </summary>
 public struct UiHidden : ITag { }
+
+/// <summary>
+/// Marks a debug view and everything under it, so that what the debug views report
+/// leaves out the views themselves. Tag the root; children inherit it.
+/// </summary>
+public struct DebugUi : ITag { }
 
 /// <summary>A greyed-out control: still drawn and laid out, but it takes no input or focus.</summary>
 public struct UiDisabled : ITag { }

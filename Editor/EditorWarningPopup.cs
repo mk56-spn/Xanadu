@@ -8,7 +8,6 @@ namespace Xanadu.Editor;
 /// <summary>Builds and requests the editor's ECS warning popup.</summary>
 public static class EditorWarningPopup
 {
-    public const int LayerZIndex = 850;
     public const string NoSongMessage = "Load a song before placing notes.";
 
 
@@ -17,7 +16,7 @@ public static class EditorWarningPopup
     /// <summary>Creates the popup hierarchy hidden below the editor overlay.</summary>
     public static Entity Build(EntityStore entities, IVisualRidFactory? visuals = null)
     {
-        UiNode ui = UiNode.Layer(entities, default, LayerZIndex, visuals, UiStage.Full);
+        UiNode ui = UiNode.Layer(entities, default, UiLayers.EditorWarning, visuals, UiStage.Full);
 
         UiNode panel = ui.Column()
             .Size(PopupSize)
