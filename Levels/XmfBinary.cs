@@ -46,6 +46,9 @@ public static partial class XmfBinary
 
         /// <summary>Optional Form shape references on blocks.</summary>
         BlockExtras = 11,
+
+        /// <summary>Optional item colours, absent when every item is untinted.</summary>
+        SelfModulates = 12,
     }
 
     public static byte[] Write(LevelDocument document)
@@ -70,6 +73,8 @@ public static partial class XmfBinary
             file.Add((uint)ChunkId.NoteExtras, WriteNoteExtras(document.Notes));
         if (HasBlockExtras(document.Blocks))
             file.Add((uint)ChunkId.BlockExtras, WriteBlockExtras(document.Blocks));
+        if (HasSelfModulates(document))
+            file.Add((uint)ChunkId.SelfModulates, WriteSelfModulates(document));
         return file.ToArray();
     }
 
@@ -108,6 +113,11 @@ public static partial class XmfBinary
         document.Spikes = file.TryGet((uint)ChunkId.Spikes, out Chunk spikes)
             ? ReadSpikes(spikes)
             : new List<SpikeDocument>();
+        if (file.TryGet((uint)ChunkId.SelfModulates, out Chunk selfModulates))
+        {
+            using BinaryReader reader = selfModulates.OpenReader();
+            ReadSelfModulates(reader, document);
+        }
         return document;
     }
 

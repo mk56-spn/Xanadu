@@ -103,6 +103,27 @@ public static class XafExtrasBinary
         return stream.ToArray();
     }
 
+    /// <summary>Added in minor revision 10: one RGBA8 colour per attachment, in order.</summary>
+    public static byte[] WriteModulates(List<XafAttachment> attachments)
+    {
+        using var stream = new MemoryStream();
+        using var writer = new BinaryWriter(stream, Encoding.UTF8, leaveOpen: true);
+        writer.Write((uint)attachments.Count);
+        foreach (XafAttachment attachment in attachments)
+            writer.Write(attachment.SelfModulate.ToRgba32());
+        writer.Flush();
+        return stream.ToArray();
+    }
+
+    public static void ReadModulates(Chunk chunk, List<XafAttachment> attachments)
+    {
+        using BinaryReader reader = chunk.OpenReader();
+        if (reader.ReadUInt32() != attachments.Count)
+            throw new XafFormatException("XAF attachment colours do not match the attachments.");
+        foreach (XafAttachment attachment in attachments)
+            attachment.SelfModulate = new Color(reader.ReadUInt32());
+    }
+
     public static void ReadAttachments(Chunk chunk, StringTable strings, List<XafAttachment> attachments)
     {
         using BinaryReader reader = chunk.OpenReader();

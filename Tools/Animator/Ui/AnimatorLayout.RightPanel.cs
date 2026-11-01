@@ -134,7 +134,9 @@ public static partial class AnimatorLayout
             switch (i)
             {
                 case PoseTab:
-                    BuildScrolling(menu, shell.RightBody.Size, BuildPoseBody);
+                    Entity modulate = default;
+                    BuildScrolling(menu, shell.RightBody.Size, rows => modulate = BuildPoseBody(rows));
+                    refs.Ui.ModulateField = modulate;
                     break;
                 case EffectTab:
                     BuildEffectBody(menu, ref refs);
@@ -179,7 +181,7 @@ public static partial class AnimatorLayout
     }
 
     /// <summary>Moving the selected bones, then keying them and passing poses between frames.</summary>
-    private static void BuildPoseBody(UiBuilder menu)
+    private static Entity BuildPoseBody(UiBuilder menu)
     {
         menu.Collapsible("TRANSFORM", ButtonWidth);
         Row(menu, ("ROT -", ToolActionKind.RotateLeft), ("ROT +", ToolActionKind.RotateRight));
@@ -190,6 +192,11 @@ public static partial class AnimatorLayout
 
         // The selected SVG: what it shows, on which layer, and whether it bends.
         menu.Collapsible("ART", ButtonWidth);
+        Entity modulate = UiNode.Wrap(menu.Current, menu.Visuals).ColorField(
+            "COLOUR",
+            ButtonWidth,
+            "Self modulate of the selected SVG: its art is multiplied by this. Type #rrggbb or #rrggbbaa; leave blank for white.")
+            .Entity;
         SmallRow(menu, ("+ ART", ToolActionKind.AddArt), ("DROP ART", ToolActionKind.DropArt));
         SmallRow(menu, ("ART <", ToolActionKind.PreviousArt), ("ART >", ToolActionKind.NextArt));
         SmallRow(menu, ("LAYER -", ToolActionKind.LayerDownKey), ("LAYER +", ToolActionKind.LayerUpKey));
@@ -205,6 +212,7 @@ public static partial class AnimatorLayout
         SmallRow(menu, ("COPY KEYS", ToolActionKind.CopyKeys), ("PASTE KEYS", ToolActionKind.PasteKeys));
         SmallRow(menu, ("+ EVENT", ToolActionKind.AddEvent));
         menu.EndCollapsible();
+        return modulate;
     }
 
     /// <summary>

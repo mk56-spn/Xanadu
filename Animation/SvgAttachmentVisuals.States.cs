@@ -25,6 +25,7 @@ public sealed partial class SvgAttachmentVisuals
             XafAttachmentState state = visual.Index < pose.AttachmentStates.Length
                 ? pose.AttachmentStates[visual.Index]
                 : default;
+            RenderingServer.CanvasItemSetSelfModulate(visual.Item, attachment.SelfModulate);
             int art = state.Art >= 0 && state.Art < attachment.ArtCount ? state.Art : 0;
             bool shown = !state.Hidden && art == visual.Art;
             RenderingServer.CanvasItemSetVisible(visual.Item, shown);

@@ -188,7 +188,13 @@ public struct GroupColor(Color mix, float coverage) : IComponent
         return new Color(blended.R, blended.G, blended.B, alpha);
     }
 
-    /// <summary>The colour to draw an entity in: its own, or faded by its groups when it has any.</summary>
-    public static Color For(Entity entity, Color basis) =>
-        entity.TryGetComponent(out GroupColor group) ? group.Apply(basis) : basis;
+    /// <summary>
+    /// The colour to draw an entity in: its own, multiplied by its self modulate,
+    /// then faded by its groups when it has any, so a finished fade overrides both.
+    /// </summary>
+    public static Color For(Entity entity, Color basis)
+    {
+        Color own = SelfModulate.For(entity, basis);
+        return entity.TryGetComponent(out GroupColor group) ? group.Apply(own) : own;
+    }
 }

@@ -31,6 +31,7 @@ public static class XafPackageCopy
                 BoneId = attachment.BoneId,
                 Transform = attachment.Transform,
                 ZOrder = attachment.ZOrder,
+                SelfModulate = attachment.SelfModulate,
                 Alternates = attachment.Alternates.ConvertAll(art => new XafArt { SvgPath = art.SvgPath, Group = art.Group }),
                 Mesh = attachment.Mesh is { } mesh
                     ? new XafMesh { Detail = mesh.Detail, Blend = mesh.Blend, Bones = new List<string>(mesh.Bones) }
@@ -170,7 +171,7 @@ public static class XafPackageCopy
 
     private static bool AttachmentEqual(XafAttachment a, XafAttachment b) =>
         a.SvgPath == b.SvgPath && a.Group == b.Group && a.BoneId == b.BoneId &&
-        a.Transform == b.Transform && a.ZOrder == b.ZOrder &&
+        a.Transform == b.Transform && a.ZOrder == b.ZOrder && a.SelfModulate == b.SelfModulate &&
         ListEqual(a.Alternates, b.Alternates, (x, y) => x.SvgPath == y.SvgPath && x.Group == y.Group) &&
         MeshEqual(a.Mesh, b.Mesh);
 

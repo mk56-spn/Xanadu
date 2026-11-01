@@ -405,12 +405,12 @@ public sealed partial class EditorCommandSystem :
             if (entity.HasComponent<Note>())
             {
                 Note note = entity.GetComponent<Note>();
-                _clipboard.Add(new ClipboardItem(note.TimeMs, note, null, null, MaskOf(entity), ItemShader.Of(entity)));
+                _clipboard.Add(new ClipboardItem(note.TimeMs, note, null, null, MaskOf(entity), ItemShader.Of(entity), SelfModulate.Packed(entity)));
             }
             else if (entity.HasComponent<Mine>())
             {
                 Mine mine = entity.GetComponent<Mine>();
-                _clipboard.Add(new ClipboardItem(mine.TimeMs, null, mine, null, MaskOf(entity), ItemShader.Of(entity)));
+                _clipboard.Add(new ClipboardItem(mine.TimeMs, null, mine, null, MaskOf(entity), ItemShader.Of(entity), SelfModulate.Packed(entity)));
             }
             else if (entity.HasComponent<StartPoint>())
             {
@@ -444,6 +444,7 @@ public sealed partial class EditorCommandSystem :
                 note.TimeMs = time;
                 Entity pasted = EditorItems.Create(_entities, note, item.Shader);
                 Subscribe(pasted, item.Groups);
+                SelfModulate.Put(pasted, item.Modulate);
                 created.Add(pasted);
             }
             else if (item.Mine is { } mine)
@@ -451,6 +452,7 @@ public sealed partial class EditorCommandSystem :
                 mine.TimeMs = time;
                 Entity pasted = EditorItems.Create(_entities, mine, item.Shader);
                 Subscribe(pasted, item.Groups);
+                SelfModulate.Put(pasted, item.Modulate);
                 created.Add(pasted);
             }
             else if (item.StartPoint is { } start)
@@ -544,7 +546,8 @@ public sealed partial class EditorCommandSystem :
         Mine? Mine,
         StartPoint? StartPoint,
         uint Groups,
-        int Shader = 0);
+        int Shader = 0,
+        uint Modulate = SelfModulate.White);
 
     private static uint MaskOf(Entity entity) =>
         entity.TryGetComponent(out ItemGroups groups) ? groups.Mask : 0u;

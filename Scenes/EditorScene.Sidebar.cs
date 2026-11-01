@@ -63,6 +63,11 @@ public static partial class EditorScene
             EditorDropdownKind.Character,
             new[] { "CONTACT", "ARMED", "SPLITLINE", "FORM" },
             selected: 0);
+        UiNode modulate = panel.ColorField(
+            "COLOUR",
+            inner,
+            "Self modulate of the selection: its colour is multiplied by this. Type #rrggbb or #rrggbbaa; leave blank for white. A group's colour fade overrides it.");
+        editor.AddComponent(new EditorSelfModulateField(modulate.Entity));
         BuildGroupGrid(panel, editor, inner);
 
         editor.AddComponent(new EditorSidebar(shell.RightPanel));

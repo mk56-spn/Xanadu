@@ -38,6 +38,7 @@ public static class SceneTestCatalog
         new CharacterNotesSceneTest(),
         new SplitlineSceneTest(),
         new EditorGroupsSceneTest(),
+        new EditorSelfModulateSceneTest(),
         new EditorFocusSceneTest(),
         new EditorViewSceneTest(),
         new PlayGroupsSceneTest(),

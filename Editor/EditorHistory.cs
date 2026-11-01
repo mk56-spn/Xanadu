@@ -54,7 +54,8 @@ public sealed class EditorHistory
                 note.ChannelSide,
                 note.HoldMs,
                 note.ShapeId,
-                note.ShapePiece));
+                note.ShapePiece,
+                SelfModulate.Packed(entity)));
         }
 
         notes.Sort(static (a, b) =>
@@ -104,7 +105,8 @@ public sealed class EditorHistory
                 mine.FadeInMs,
                 mine.FadeOutMs,
                 MaskOf(entity),
-                ItemShader.Of(entity)));
+                ItemShader.Of(entity),
+                SelfModulate.Packed(entity)));
         }
 
         mines.Sort(static (a, b) =>
@@ -147,7 +149,8 @@ public sealed class EditorHistory
                 MaskOf(entity),
                 ItemShader.Of(entity),
                 block.ShapeId,
-                block.ShapePiece));
+                block.ShapePiece,
+                SelfModulate.Packed(entity)));
         }
 
         blocks.Sort(static (a, b) =>
@@ -163,7 +166,8 @@ public sealed class EditorHistory
                 spike.Position,
                 spike.Size,
                 MaskOf(entity),
-                ItemShader.Of(entity)));
+                ItemShader.Of(entity),
+                SelfModulate.Packed(entity)));
         }
 
         spikes.Sort(static (a, b) =>
@@ -268,6 +272,7 @@ public sealed class EditorHistory
                 note.ShapeId,
                 note.ShapePiece), note.Shader);
             Subscribe(created, note.Groups);
+            SelfModulate.Put(created, note.Modulate);
         }
 
         foreach (MineSnapshot mine in snapshot.Mines)
@@ -278,6 +283,7 @@ public sealed class EditorHistory
                 mine.FadeInMs,
                 mine.FadeOutMs), mine.Shader);
             Subscribe(created, mine.Groups);
+            SelfModulate.Put(created, mine.Modulate);
         }
 
         foreach (StartPointSnapshot start in snapshot.StartPoints)
@@ -302,12 +308,14 @@ public sealed class EditorHistory
             if (block.ShapeId > 0)
                 created.AddTag<ConstructionHidden>();
             Subscribe(created, block.Groups);
+            SelfModulate.Put(created, block.Modulate);
         }
 
         foreach (SpikeSnapshot spike in snapshot.Spikes)
         {
             Entity created = EditorItems.Create(_entities, new Spike(spike.Position, spike.Size), spike.Shader);
             Subscribe(created, spike.Groups);
+            SelfModulate.Put(created, spike.Modulate);
         }
     }
 }
@@ -337,14 +345,16 @@ public readonly record struct BlockSnapshot(
     uint Groups = 0,
     int Shader = 0,
     int ShapeId = 0,
-    int ShapePiece = 0);
+    int ShapePiece = 0,
+    uint Modulate = SelfModulate.White);
 
 /// <summary>Stable serializable spike snapshot used by undo/redo.</summary>
 public readonly record struct SpikeSnapshot(
     Vector2 Position,
     Vector2 Size,
     uint Groups = 0,
-    int Shader = 0);
+    int Shader = 0,
+    uint Modulate = SelfModulate.White);
 
 /// <summary>Stable serializable mine snapshot used by undo/redo.</summary>
 public readonly record struct MineSnapshot(
@@ -353,7 +363,8 @@ public readonly record struct MineSnapshot(
     long FadeInMs,
     long FadeOutMs,
     uint Groups = 0,
-    int Shader = 0);
+    int Shader = 0,
+    uint Modulate = SelfModulate.White);
 
 /// <summary>Stable serializable note snapshot used by undo/redo.</summary>
 public readonly record struct NoteSnapshot(
@@ -374,4 +385,5 @@ public readonly record struct NoteSnapshot(
     ChannelSide ChannelSide = ChannelSide.Left,
     long HoldMs = 0,
     int ShapeId = 0,
-    int ShapePiece = 0);
+    int ShapePiece = 0,
+    uint Modulate = SelfModulate.White);
