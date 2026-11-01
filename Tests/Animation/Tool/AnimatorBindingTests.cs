@@ -62,6 +62,9 @@ public sealed class AnimatorBindingTests : AnimatorToolTest
         {
             ToolActionKind.Play,
             ToolActionKind.Stop,
+
+            // Space, from the keys every timeline shares.
+            ToolActionKind.TogglePlay,
             ToolActionKind.Clip,
             ToolActionKind.SelectBone,
             ToolActionKind.SelectAttachment,
@@ -200,6 +203,43 @@ public sealed class AnimatorBindingTests : AnimatorToolTest
         Tap(Key.Space);
         Assert.That(playback.IsPlaying, Is.False);
         Assert.That(Status, Is.EqualTo("STOPPED"));
+    }
+
+    [Test]
+    public void ShiftArrowsSeekASecondAndCtrlArrowsStepOneSnap()
+    {
+        Runtime.Seek(1f);
+
+        Keyboard.Press(Key.Shift);
+        Tap(Key.Right);
+        Keyboard.Release(Key.Shift);
+        Assert.That(Runtime.CurrentTime, Is.EqualTo(2f).Within(0.001f));
+
+        Keyboard.Press(Key.Ctrl);
+        Tap(Key.Left);
+        Keyboard.Release(Key.Ctrl);
+        Assert.That(Runtime.CurrentTime, Is.LessThan(2f).And.GreaterThan(1f));
+    }
+
+    [Test]
+    public void F5TogglesPreviewLikeTab()
+    {
+        Tap(Key.F5);
+
+        Assert.That(Xanadu.Tools.Animator.Commands.AnimatorPreviewModeCommands.IsOn(Session), Is.True);
+    }
+
+    [Test]
+    public void SpaceNeverMovesThePlayheadToTheStart()
+    {
+        AnimatorPlayback playback = Session.GetComponent<AnimatorDocument>().Playback;
+        playback.Stop();
+        Runtime.Seek(1f);
+
+        Tap(Key.Space);
+        Tap(Key.Space);
+
+        Assert.That(Runtime.CurrentTime, Is.GreaterThanOrEqualTo(1f));
     }
 
     [Test]

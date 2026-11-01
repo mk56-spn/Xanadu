@@ -27,6 +27,8 @@ public sealed class AnimatorPreviewDrawSystem(
     private static readonly Color LabelBackdrop = new(Palette.SurfaceDeep, 0.85f);
     private static readonly Color ReparentLabel = Palette.Warning;
     private const float OnionOffset = 0.1f;
+    private static readonly Color TipHandleColor = Palette.Pink;
+    private const float TipHandleRadius = 4.5f;
     private static readonly Color FlowGhost = new(Palette.Accent, 0.3f);
     private static readonly Color EffectOutline = Palette.Rose;
 
@@ -142,6 +144,7 @@ public sealed class AnimatorPreviewDrawSystem(
                 12);
         }
 
+        DrawTipHandles(document.Package, modes, selection, hover, world, placement);
         DrawSnapGuides(session.GetComponent<AnimatorSnapGuides>(), placement, area);
 
         Transform2D[] attachments = XafRig.WorldAttachments(document.Package, pose, world);
@@ -322,6 +325,31 @@ public sealed class AnimatorPreviewDrawSystem(
         kite.CopyTo(closed);
         closed[4] = kite[0];
         canvas.DrawPolyline(target, closed, outline, width);
+    }
+
+    /// <summary>The stem and dot that turn each childless bone; over the labels, so a name never hides one.</summary>
+    private void DrawTipHandles(
+        XafPackage package,
+        AnimatorModes modes,
+        AnimatorSelection selection,
+        AnimatorHover hover,
+        Transform2D[] world,
+        Transform2D placement)
+    {
+        if (!AnimatorTipHandles.Shown(modes))
+            return;
+
+        bool[] childless = AnimatorTipHandles.Childless(package);
+        for (int i = 0; i < childless.Length && i < world.Length; i++)
+        {
+            if (!childless[i])
+                continue;
+
+            Color color = selection.IsBoneSelected(i) ? Colors.White : i == hover.Bone ? SwungOutline : TipHandleColor;
+            Vector2 tip = AnimatorTipHandles.Tip(package, i, world, placement);
+            canvas.DrawLine(target, placement * world[i].Origin, tip, color, 1);
+            canvas.DrawCircle(target, tip, TipHandleRadius, color);
+        }
     }
 
     /// <summary>The lines a dragged joint is snapped to, across the whole preview.</summary>

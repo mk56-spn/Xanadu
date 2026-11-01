@@ -23,7 +23,7 @@ public sealed class AnimatorSystemGroup : SystemGroup
         IAnimatorSvgCatalog svgCatalog,
         IPointerInputSource pointer,
         IWheelSource wheel,
-        IKeyboardState keyboard) : base("Animator")
+        IKeyPressSource keys) : base("Animator")
     {
         Add(new AnimatorClipConfigSystem(pointer));
         Add(new AnimatorActionSystem());
@@ -34,9 +34,10 @@ public sealed class AnimatorSystemGroup : SystemGroup
         Add(new AnimatorBoneMenuSystem(pointer));
         Add(new AnimatorSvgMenuSystem(svgCatalog, visuals, pointer));
         Add(new AnimatorKeyMenuSystem(pointer));
+        Add(new Xanadu.Systems.Groups.TimelineSystemGroup(pointer, wheel));
         Add(new AnimatorPreviewInputSystem(pointer, wheel));
         Add(new AnimatorTimelineInputSystem(pointer, wheel));
-        Add(new AnimatorShortcutSystem(keyboard));
+        Add(new AnimatorShortcutSystem(keys));
         Add(new AnimatorSequenceSystem());
         Add(new AnimatorPlaybackSystem());
         Add(new AnimatorHierarchySystem(visuals, pointer));

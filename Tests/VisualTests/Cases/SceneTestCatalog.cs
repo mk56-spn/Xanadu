@@ -42,6 +42,7 @@ public static class SceneTestCatalog
         new EditorFocusSceneTest(),
         new EditorViewSceneTest(),
         new PlayGroupsSceneTest(),
+        new PlaySkipSceneTest(),
         new LeaveEditorSceneTest(),
         new EditorExitMenuSceneTest(),
         new PauseSceneTest(),

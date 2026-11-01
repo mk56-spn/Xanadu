@@ -134,6 +134,10 @@ public struct SongSelectState(
     public Entity ScoreThumb;
     public Vector2 ScoreThumbSpan;
 
+    /// <summary>The invisible areas that take presses for the scores and level list scrollbars.</summary>
+    public Entity ScoreTrack;
+    public Entity ListTrack;
+
     /// <summary>The level the score rows were last filled for, so a new level starts at the top.</summary>
     public string ScoresFor = "";
 }

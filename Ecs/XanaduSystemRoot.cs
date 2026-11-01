@@ -46,6 +46,10 @@ public sealed class XanaduSystemRoot : SystemRoot, IDisposable
     public SceneSystem Scenes { get; }
 
     public KeybindSettings Keybinds { get; }
+
+    /// <summary>Key presses the host feeds in; <see cref="AppShortcutSystem"/> hands them out.</summary>
+    public KeyPressQueue KeyPresses { get; } = new();
+
     public IKeyboardState Keyboard { get; }
 
     /// <summary>What the playfield reads: the keyboard, or a replay's keys.</summary>
@@ -113,6 +117,7 @@ public sealed class XanaduSystemRoot : SystemRoot, IDisposable
         Xanadu.Systems.Ui.UiBootstrap.AttachInitialization(this, parentCanvas);
         Add(new PhysicsSystemGroup(Physics, entities));
         Add(new Xanadu.Systems.Scenes.SongSelectHoldSystem(Keyboard, Scenes));
+        Add(new Xanadu.Systems.Scenes.SongSelectScrollbarSystem(pointerInput, Scenes));
         Add(new Xanadu.Systems.Scenes.SongSelectScrollSystem());
         Add(new OffsetWizardSystem(
             entities,
@@ -150,7 +155,8 @@ public sealed class XanaduSystemRoot : SystemRoot, IDisposable
             _playfieldSystems.Playfield,
             parentCanvas,
             _metronomeAudio,
-            EditorHistory);
+            EditorHistory,
+            wheel);
         _editorSystems.SetActive(false);
         Add(_editorSystems);
         Add(new InputSystemGroup(
@@ -169,6 +175,7 @@ public sealed class XanaduSystemRoot : SystemRoot, IDisposable
             _editorWheel = new Xanadu.Systems.Editor.EditorWheelSystem(Commands, wheel) { Enabled = false };
             Add(_editorWheel);
         }
+        Add(new AppShortcutSystem(KeyPresses, Keybinds, Scenes));
         _debugSystems = new DebugSystemGroup(
             canvas,
             parentCanvas,

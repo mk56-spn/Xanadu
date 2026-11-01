@@ -34,6 +34,30 @@ public sealed class AnimatorActionTests : AnimatorToolTest
     }
 
     [Test]
+    public void StopWhilePlayingStaysWhereItIs()
+    {
+        Runtime.Seek(1f);
+        Click(Button(ToolActionKind.Play));
+
+        Click(Button(ToolActionKind.Stop));
+
+        Assert.That(Runtime.Paused, Is.True);
+        Assert.That(Runtime.CurrentTime, Is.GreaterThanOrEqualTo(1f));
+    }
+
+    [Test]
+    public void StopWhilePausedReturnsToTheStartAndStaysPaused()
+    {
+        Session.GetComponent<AnimatorDocument>().Playback.Stop();
+        Runtime.Seek(1f);
+
+        Click(Button(ToolActionKind.Stop));
+
+        Assert.That(Runtime.CurrentTime, Is.EqualTo(0f));
+        Assert.That(Runtime.Paused, Is.True);
+    }
+
+    [Test]
     public void HoldingAButtonRunsItsActionOnce()
     {
         Entity key = Button(ToolActionKind.AddBone);

@@ -10,7 +10,9 @@ public struct PlaySession(
     Entity status,
     Entity countdown = default,
     long lastNoteMs = -1,
-    long startTimeMs = 0) : IComponent
+    long startTimeMs = 0,
+    long skipToMs = -1,
+    Entity skipButton = default) : IComponent
 {
     public Entity Status = status;
     public Entity Countdown = countdown;
@@ -28,6 +30,15 @@ public struct PlaySession(
     public float FadeElapsed;
     public float FadeDuration = 1.5f;
     public long StartTimeMs = startTimeMs;
+
+    /// <summary>Where skipping the song's entrance lands, or -1 when nothing follows.</summary>
+    public long SkipToMs = skipToMs;
+
+    public Entity SkipButton = skipButton;
+    public bool Skipped;
+
+    /// <summary>The skip key went down; <c>PlaySkipSystem</c> takes it on its next update.</summary>
+    public bool SkipRequested;
 }
 
 /// <summary>

@@ -189,21 +189,119 @@ public sealed class AnimatorHistoryTests : AnimatorToolTest
         Assert.That(CanUndo, Is.False);
     }
 
-    [Test]
-    public void APoseOnlyDragRecordsNothing()
+    private void DragBone(int bone, params Vector2[] offsets)
     {
-        Vector2 start = BoneScreenPosition(1);
+        Vector2 start = BoneScreenPosition(bone);
         Pointer.Position = start;
         Pointer.Pressed = true;
         Ui.Preview.AddTag<Pressed>();
         Frame();
-        Pointer.Position = start + new Vector2(60, 0);
-        Frame();
+        foreach (Vector2 offset in offsets)
+        {
+            Pointer.Position = start + offset;
+            Frame();
+        }
+
         Pointer.Pressed = false;
         Ui.Preview.RemoveTag<Pressed>();
         Frame();
+    }
+
+    [Test]
+    public void AnUnkeyedBoneDragIsOneUndoStepAndRedoable()
+    {
+        float before = Runtime.Pose.Bones[0].Rotation;
+
+        DragBone(1, new Vector2(20, 0), new Vector2(40, 0), new Vector2(60, 0));
+        float after = Runtime.Pose.Bones[0].Rotation;
+        Assert.That(after, Is.Not.EqualTo(before).Within(0.01f));
+
+        Run(ToolActionKind.Undo);
+        Assert.That(Runtime.Pose.Bones[0].Rotation, Is.EqualTo(before).Within(0.0001f));
+        Assert.That(CanUndo, Is.False);
+
+        Run(ToolActionKind.Redo);
+        Assert.That(Runtime.Pose.Bones[0].Rotation, Is.EqualTo(after).Within(0.0001f));
+    }
+
+    [Test]
+    public void AMovableBoneDragCanBeUndone()
+    {
+        Package.Skeleton.Bones[1].AllowTranslation = true;
+        Vector2 before = Runtime.Pose.Bones[1].Translation;
+
+        DragBone(1, new Vector2(30, 0));
+        Assert.That(Runtime.Pose.Bones[1].Translation, Is.Not.EqualTo(before));
+
+        Run(ToolActionKind.Undo);
+
+        Assert.That(Runtime.Pose.Bones[1].Translation, Is.EqualTo(before));
+    }
+
+    [Test]
+    public void AnIkDragCanBeUndone()
+    {
+        Session.GetComponent<AnimatorModes>().Ik = true;
+        float root = Runtime.Pose.Bones[0].Rotation;
+        float middle = Runtime.Pose.Bones[1].Rotation;
+
+        DragBone(2, new Vector2(40, 20));
+        Assert.That(Runtime.Pose.Bones[0].Rotation, Is.Not.EqualTo(root).Within(0.001f));
+
+        Run(ToolActionKind.Undo);
+
+        Assert.That(Runtime.Pose.Bones[0].Rotation, Is.EqualTo(root).Within(0.0001f));
+        Assert.That(Runtime.Pose.Bones[1].Rotation, Is.EqualTo(middle).Within(0.0001f));
+    }
+
+    [Test]
+    public void ADragWithAutoKeyIsOneStepThatTakesTheKeyAndPoseBack()
+    {
+        Session.GetComponent<AnimatorModes>().AutoKey = true;
+        int channels = Idle.Channels.Count;
+        float before = Runtime.Pose.Bones[0].Rotation;
+
+        DragBone(1, new Vector2(40, 0));
+        Assert.That(Idle.Channels.Count, Is.GreaterThan(channels));
+
+        Run(ToolActionKind.Undo);
+
+        Assert.That(Idle.Channels, Has.Count.EqualTo(channels));
+        Assert.That(Runtime.Pose.Bones[0].Rotation, Is.EqualTo(before).Within(0.0001f));
+        Assert.That(CanUndo, Is.False);
+    }
+
+    [Test]
+    public void ClickingABoneWithoutMovingItRecordsNothing()
+    {
+        DragBone(1);
 
         Assert.That(CanUndo, Is.False);
+    }
+
+    [Test]
+    public void UndoingADragAfterSeekingReturnsToWhereItWasMade()
+    {
+        Runtime.Seek(0.5f);
+        Frame();
+        float before = Runtime.Pose.Bones[0].Rotation;
+        DragBone(1, new Vector2(40, 0));
+
+        Runtime.Seek(1.5f);
+        Run(ToolActionKind.Undo);
+
+        Assert.That(Runtime.CurrentTime, Is.EqualTo(0.5f).Within(0.0001f));
+        Assert.That(Runtime.Pose.Bones[0].Rotation, Is.EqualTo(before).Within(0.0001f));
+    }
+
+    [Test]
+    public void AnUnkeyedDragDoesNotMarkTheFileDirty()
+    {
+        bool dirty = Session.GetComponent<AnimatorFile>().Dirty;
+
+        DragBone(1, new Vector2(40, 0));
+
+        Assert.That(Session.GetComponent<AnimatorFile>().Dirty, Is.EqualTo(dirty));
     }
 
     private static List<float> HeadKeyTimes(XafClip clip) =>

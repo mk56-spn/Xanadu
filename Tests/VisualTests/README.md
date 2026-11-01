@@ -107,6 +107,7 @@ fixed frame count.
 | `editor-groups` | Editor groups |
 | `editor-focus` | Editor focus and tooltips |
 | `play-groups` | Play groups |
+| `play-skip` | Play skip entrance |
 | `leave-editor` | Leave editor |
 
 The runner prints this list when given an unknown slug.

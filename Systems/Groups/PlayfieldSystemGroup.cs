@@ -59,6 +59,7 @@ public sealed class PlayfieldSystemGroup : SystemGroup, IDisposable
 
         Add(new PlayfieldPlaybackSystem(audio));
         Add(new PlaySessionSystem(audio));
+        Add(new PlaySkipSystem());
         Add(new GroupModulationSystem(entities));
         if (replayKeyboard is not null)
         {

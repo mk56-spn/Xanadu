@@ -2,225 +2,96 @@ using System;
 using Godot;
 using Xanadu.Ecs;
 using Xanadu.Systems.Editor;
+using Xanadu.Systems.Timeline;
 using Xanadu.Editor.Commands;
 
 namespace Xanadu.Editor;
 
-/// <summary>Editor overlay keyboard shortcuts and transport actions.</summary>
-public partial class EditorOverlay : CanvasLayer
+/// <summary>Runs the editor's key bindings; <see cref="EditorShortcuts"/> says which key does what.</summary>
+public partial class EditorOverlay : CanvasLayer, IEditorShortcutTarget
 {
-    public override void _UnhandledInput(InputEvent @event)
+    public bool IsOpen => !_closed;
+
+    public EditorShortcutScope ActiveScopes => EditorShortcuts.ActiveScopes(
+        AnyDialogVisible(),
+        IsBindingsHelpVisible(),
+        IsWarningOpen(),
+        !FindFocusedTextField().IsNull,
+        IsGroupTargetEditing(),
+        IsGroupOverlayOpen());
+
+    public void Run(EditorShortcuts.Binding binding)
     {
-        if (_closed)
-            return;
-
-        if (@event is not InputEventKey { Pressed: true, Echo: false } key)
-            return;
-
-        if (AnyDialogVisible())
-            return;
-
-        if (key.Keycode == Key.F5)
+        switch (binding.Action)
         {
-            StartPreview();
-            GetViewport().SetInputAsHandled();
-            return;
-        }
-
-        if (key.Keycode == Key.Home &&
-            GetViewport().GuiGetFocusOwner() is not LineEdit &&
-            _editor.HasComponent<EditorViewNavigation>())
-        {
-            _editor.GetComponent<EditorViewNavigation>().FitRequested = true;
-            GetViewport().SetInputAsHandled();
-            return;
-        }
-
-        if (key.Keycode == Key.F9)
-        {
-            ToggleShaderDialog();
-            GetViewport().SetInputAsHandled();
-            return;
-        }
-
-        if (key.Keycode == Key.F2)
-        {
-            ToggleBindingsHelp();
-            GetViewport().SetInputAsHandled();
-            return;
-        }
-
-        if (IsBindingsHelpVisible() && key.Keycode == Key.Escape)
-        {
-            ToggleBindingsHelp();
-            GetViewport().SetInputAsHandled();
-            return;
-        }
-
-        if (key.CtrlPressed && key.Keycode == Key.S)
-        {
-            SaveCurrent();
-            GetViewport().SetInputAsHandled();
-            return;
-        }
-
-        if (key.CtrlPressed && key.Keycode == Key.Z)
-        {
-            Undo();
-            GetViewport().SetInputAsHandled();
-            return;
-        }
-
-        if (key.CtrlPressed && key.Keycode == Key.Y)
-        {
-            Redo();
-            GetViewport().SetInputAsHandled();
-            return;
-        }
-
-        if (!(GetViewport().GuiGetFocusOwner() is LineEdit) &&
-            key.CtrlPressed && key.Keycode == Key.C)
-        {
-            _commands.Enqueue(EditorCommand.CopySelection());
-            GetViewport().SetInputAsHandled();
-            return;
-        }
-
-        if (!(GetViewport().GuiGetFocusOwner() is LineEdit) &&
-            key.CtrlPressed && key.Keycode == Key.V)
-        {
-            _commands.Enqueue(EditorCommand.PasteSelection());
-            GetViewport().SetInputAsHandled();
-            return;
-        }
-
-        if (IsWarningOpen())
-            return;
-
-        if (IsGroupTargetEditing())
-        {
-            if (key.Keycode == Key.Escape)
-            {
+            case EditorShortcut.Preview:
+                StartPreview();
+                break;
+            case EditorShortcut.ToggleShaders:
+                ToggleShaderDialog();
+                break;
+            case EditorShortcut.ToggleHelp:
+                ToggleBindingsHelp();
+                break;
+            case EditorShortcut.FitView:
+                _editor.GetComponent<EditorViewNavigation>().FitRequested = true;
+                break;
+            case EditorShortcut.Save:
+                SaveCurrent();
+                break;
+            case EditorShortcut.Undo:
+                Undo();
+                break;
+            case EditorShortcut.Redo:
+                Redo();
+                break;
+            case EditorShortcut.Copy:
+                _commands.Enqueue(EditorCommand.CopySelection());
+                break;
+            case EditorShortcut.Paste:
+                _commands.Enqueue(EditorCommand.PasteSelection());
+                break;
+            case EditorShortcut.CloseTarget:
                 CloseGroupTarget();
-                GetViewport().SetInputAsHandled();
-                return;
-            }
-
-            if (key.Keycode == Key.T)
-            {
+                break;
+            case EditorShortcut.ReopenTargetedGroup:
                 ReopenTargetedGroup();
-                GetViewport().SetInputAsHandled();
-                return;
-            }
-        }
-
-        if (GetViewport().GuiGetFocusOwner() is LineEdit)
-            return;
-
-        // The group overlay is modal: Escape closes it and nothing else reaches the editor.
-        if (IsGroupOverlayOpen())
-        {
-            if (key.Keycode == Key.Escape)
-            {
+                break;
+            case EditorShortcut.CloseGroupLayer:
                 if (IsGroupPaletteOpen())
                     CloseGroupPalette();
                 else
                     CloseGroupOverlay();
-            }
-            else if (key.Keycode == Key.Space)
-            {
-                _commands.Enqueue(EditorCommand.TogglePlayback());
-            }
-
-            GetViewport().SetInputAsHandled();
-            return;
-        }
-
-        if (EditorPlacementKeybinds.TryGet(
-                key.Keycode,
-                out EditorPlacementMode placement))
-        {
-            SetPlacementMode(placement);
-            GetViewport().SetInputAsHandled();
-            return;
-        }
-
-        if (key.Keycode == Key.Escape)
-        {
-            _onBack?.Invoke();
-            GetViewport().SetInputAsHandled();
-            return;
-        }
-
-        if (key.Keycode is Key.Enter or Key.KpEnter)
-        {
-            _onForward?.Invoke();
-            GetViewport().SetInputAsHandled();
-            return;
-        }
-
-        if (key.ShiftPressed &&
-            key.Keycode is Key.Left or Key.Right)
-        {
-            ref Playhead playhead = ref _editor.GetComponent<Playhead>();
-            long delta = key.Keycode == Key.Left ? -1_000 : 1_000;
-            _commands.Enqueue(EditorCommand.Seek(
-                Math.Clamp(
-                    playhead.TimeMs + delta,
-                    0,
-                    Math.Max(0, playhead.DurationMs))));
-            GetViewport().SetInputAsHandled();
-            return;
-        }
-
-        switch (key.Keycode)
-        {
-            case Key.T:
+                break;
+            case EditorShortcut.Timeline:
+                if (!_editor.IsNull && _editor.TryGetComponent(out TimelineHost timeline))
+                    TimelineShortcuts.Run(timeline.Host, binding.Timeline);
+                break;
+            case EditorShortcut.Place:
+                SetPlacementMode(binding.Placement);
+                break;
+            case EditorShortcut.Back:
+                _onBack?.Invoke();
+                break;
+            case EditorShortcut.Forward:
+                _onForward?.Invoke();
+                break;
+            case EditorShortcut.TapTempo:
                 TapTempo();
-                GetViewport().SetInputAsHandled();
                 break;
-            case Key.Space:
-                TogglePlayback();
-                GetViewport().SetInputAsHandled();
-                break;
-            case Key.Home:
-                StopPlayback();
-                GetViewport().SetInputAsHandled();
-                break;
-            case Key.L:
+            case EditorShortcut.OpenSong:
                 OpenSongDialog();
-                GetViewport().SetInputAsHandled();
                 break;
-            case Key.Delete:
-            case Key.Backspace:
+            case EditorShortcut.Delete:
                 DeleteSelectedNote();
-                GetViewport().SetInputAsHandled();
                 break;
-            case Key.Left:
+            case EditorShortcut.MoveLeft:
                 _commands.Enqueue(EditorCommand.MoveSelection(-1));
-                GetViewport().SetInputAsHandled();
                 break;
-            case Key.Right:
+            case EditorShortcut.MoveRight:
                 _commands.Enqueue(EditorCommand.MoveSelection(1));
-                GetViewport().SetInputAsHandled();
                 break;
         }
-    }
-
-    private void TogglePlayback()
-    {
-        if (_editor.IsNull)
-            return;
-
-        _commands.Enqueue(EditorCommand.TogglePlayback());
-    }
-
-    private void StopPlayback()
-    {
-        if (_editor.IsNull)
-            return;
-
-        _commands.Enqueue(EditorCommand.StopPlayback());
     }
 
     private void DeleteSelectedNote()

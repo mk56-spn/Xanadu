@@ -176,6 +176,94 @@ public sealed class AnimatorKeyBoxTests : AnimatorToolTest
         Assert.That(Selected, Has.Count.EqualTo(2));
     }
 
+    private static XafTrack Extra(int i) => new(XafChannelTarget.Bone, $"extra-{i}");
+
+    /// <summary>Enough keyed rows to scroll, with a key at 1s on each.</summary>
+    private void ManyRows()
+    {
+        for (int i = 0; i < 40; i++)
+        {
+            XafRigAuthoring.AddBone(Package, 0, Extra(i).Id, Vector2.Zero);
+            XafAuthoring.SetBoneProperty(Package, Idle, Extra(i).Id, XafChannelProperty.Rotation, 1f, 1f);
+        }
+    }
+
+    private void WheelDown()
+    {
+        Pointer.Wheel = -1;
+        Frame();
+    }
+
+    [Test]
+    public void ScrollingMidDragKeepsTheRowsAlreadyCoveredAndAddsTheNewOnes()
+    {
+        ManyRows();
+        AnimatorTimelineModel model = Model();
+        float x = model.XForSeconds(1f);
+        Vector2 from = new(x - 20, model.RowRect(0).Position.Y + 2);
+        Press(from);
+        MoveTo(new Vector2(x + 20, model.RowRect(model.VisibleRows - 1).GetCenter().Y));
+        int before = Selected.Count;
+        Assert.That(Selected, Does.Contain(Ref(HeadTrack, 1f)));
+
+        for (int i = 0; i < 5; i++)
+            WheelDown();
+
+        Assert.That(Model().FirstRow, Is.EqualTo(5));
+        Assert.That(Selected, Does.Contain(Ref(HeadTrack, 1f)), "the rows at the top stay selected");
+        Assert.That(Selected, Has.Count.EqualTo(before + 5));
+    }
+
+    [Test]
+    public void TheBoxShowsScrolledAndCutOffAtTheRows()
+    {
+        ManyRows();
+        AnimatorTimelineModel model = Model();
+        float x = model.XForSeconds(1f);
+        Press(new Vector2(x - 20, model.RowRect(0).Position.Y + 2));
+        MoveTo(new Vector2(x + 20, model.RowRect(3).GetCenter().Y));
+        for (int i = 0; i < 2; i++)
+            WheelDown();
+
+        model = Model();
+        Rect2 shown = model.BoxOnScreen(Session.GetComponent<UiMarqueeBox>().Bounds)!.Value;
+
+        Assert.That(shown.Position.Y, Is.EqualTo(model.Rows.Position.Y));
+        Assert.That(shown.End.Y, Is.EqualTo(model.RowRect(3).GetCenter().Y).Within(0.01f));
+    }
+
+    [Test]
+    public void ABoxScrolledCompletelyOutOfSightDrawsNothing()
+    {
+        ManyRows();
+        AnimatorTimelineModel model = Model();
+        Rect2 topRow = model.RowRect(0);
+        Session.GetComponent<AnimatorTracks>().FirstRow = 10;
+
+        Assert.That(Model().BoxOnScreen(topRow), Is.Null);
+    }
+
+    [Test]
+    public void ScrollingBackShrinksTheBoxAgain()
+    {
+        ManyRows();
+        AnimatorTimelineModel model = Model();
+        float x = model.XForSeconds(1f);
+        Press(new Vector2(x - 20, model.RowRect(0).Position.Y + 2));
+        MoveTo(new Vector2(x + 20, model.RowRect(1).GetCenter().Y));
+        int before = Selected.Count;
+        WheelDown();
+        WheelDown();
+        Assert.That(Selected.Count, Is.GreaterThan(before));
+
+        Pointer.Wheel = 1;
+        Frame();
+        Pointer.Wheel = 1;
+        Frame();
+
+        Assert.That(Selected, Has.Count.EqualTo(before));
+    }
+
     [Test]
     public void TheBoxIsPublishedWhileDraggingAndClearedOnRelease()
     {

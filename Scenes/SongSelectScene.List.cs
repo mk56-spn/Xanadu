@@ -54,10 +54,21 @@ public static partial class SongSelectScene
     private const float TrackBottom = 738.57f;
     private const float TrackX = 40.991f;
     private const float MinThumb = 40;
+    private const float ListBarLeft = 12.202f;
+    private const float ListBarRight = 69.781f;
+
+    /// <summary>The list's scrollbar; seven levels show at once.</summary>
+    public static VerticalSlider ListSlider(in SongSelectState state) =>
+        new(TrackTop, TrackBottom, 7f / Mathf.Max(state.Catalog.Count, 1), MinThumb);
+
+    /// <summary>How far down the list is scrolled, from 0 to 1.</summary>
+    public static float ListValue(in SongSelectState state) =>
+        state.Catalog.Count > 1 ? state.Scroll / (state.Catalog.Count - 1) : 0;
 
     private readonly record struct ListViews(
         List<Entity> Tiles,
         Entity Thumb,
+        Entity Track,
         Entity EmptyTitle,
         Entity EmptyHint);
 
@@ -120,7 +131,7 @@ public static partial class SongSelectScene
             4,
             closed: false);
 
-        BuildScrollbar(ui, out Entity thumb);
+        BuildScrollbar(ui, out Entity thumb, out Entity track);
         Entity emptyTitle = EmptyMessage(
             ui,
             new Vector2(399.198f, 516),
@@ -140,6 +151,7 @@ public static partial class SongSelectScene
         return new ListViews(
             tiles,
             thumb,
+            track,
             emptyTitle,
             emptyHint);
     }
@@ -159,7 +171,7 @@ public static partial class SongSelectScene
             .With(new TextStyle(fontSize, color))
             .Raised();
 
-    private static void BuildScrollbar(UiNode parent, out Entity thumb)
+    private static void BuildScrollbar(UiNode parent, out Entity thumb, out Entity track)
     {
         parent.Shape(
             RoundedRect(12.202f, 319.569f, 69.781f, 764.748f, 14.489f),
@@ -179,6 +191,15 @@ public static partial class SongSelectScene
             .With(new ShapeGlow(new Color(Gold, 0.6f), radius: 10, intensity: 1.5f))
             .Raised();
         thumb = marker;
+
+        // Invisible, as wide as the backdrop: what the pointer actually presses.
+        track = parent.Rect(
+                Transparent,
+                "",
+                new Vector2(ListBarRight - ListBarLeft, TrackBottom - TrackTop))
+            .At(new Vector2((ListBarLeft + ListBarRight) / 2, (TrackTop + TrackBottom) / 2))
+            .Input()
+            .Raised();
     }
 
     private static readonly Color ListBackdropTrack = new(0, 0, 0, 0.7f);
@@ -277,19 +298,12 @@ public static partial class SongSelectScene
             SetGlowColor(TileSong(state, row), Fade(new Color(Gold, 0.6f), alpha));
         }
 
-        float length = Mathf.Clamp(
-            (TrackBottom - TrackTop) * 7 / Mathf.Max(catalog.Count, 1),
-            MinThumb,
-            TrackBottom - TrackTop);
-        float travel = TrackBottom - TrackTop - length;
-        float t = catalog.Count > 1
-            ? Mathf.Clamp(state.Scroll / (catalog.Count - 1), 0, 1)
-            : 0;
-        float start = TrackTop + travel * t;
+        VerticalSlider slider = ListSlider(state);
+        float start = slider.ThumbTop(ListValue(state));
         // An empty list has nothing to scroll, so the thumb collapses to a point.
         Vector2[] span = catalog.Count == 0
             ? [new(TrackX, TrackTop)]
-            : [new(TrackX, start), new(TrackX, start + length)];
+            : [new(TrackX, start), new(TrackX, start + slider.ThumbLength)];
         SetPoints(state.Thumb, span);
     }
 

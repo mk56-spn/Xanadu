@@ -213,6 +213,7 @@ public sealed class SceneControllerRegistry
             c.Start,
             c.Replay,
             c.RecordReplay);
+        public bool TryForward(SceneSystem system) => system.RequestPlaySkip();
         public SceneKind BackTarget => SceneKind.SongSelect;
         public bool PausesOnBack => true;
     }

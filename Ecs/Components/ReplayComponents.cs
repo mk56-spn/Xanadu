@@ -11,10 +11,14 @@ public struct ReplayRecorder : IComponent
     public List<ReplayEvent> Events;
     public bool[] Down;
 
+    /// <summary>The song time the entrance was skipped at, or -1.</summary>
+    public long SkipFromMs;
+
     public static ReplayRecorder Create() => new()
     {
         Events = new List<ReplayEvent>(),
         Down = new bool[KeybindSettings.Actions.Length],
+        SkipFromMs = -1,
     };
 }
 
