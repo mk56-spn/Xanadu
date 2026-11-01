@@ -18,6 +18,7 @@ public partial class EditorOverlay
     private readonly EditorCommandBus _commands;
     private readonly IBlockingPointerInputSource? _pointer;
     private readonly Action? _onBack;
+    private string _saveProblem = "";
     private readonly Action? _onForward;
     private readonly Action<LevelDocument, string, long>? _onPreview;
     private readonly TapTempo _tapTempo = new();

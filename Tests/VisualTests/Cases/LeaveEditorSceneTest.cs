@@ -31,7 +31,11 @@ public sealed class LeaveEditorSceneTest : SceneTest
                   VisualAssert.HasText(Context.Entities, "LEVEL EDITOR"));
         AddStep("create editor overlay", CreateOverlay);
         AddStep("wire editor save", () =>
-            Context.Scenes.SaveEditor = () => _saved = true);
+            Context.Scenes.SaveEditor = () =>
+            {
+                _saved = true;
+                return null;
+            });
         AddWaitStep("overlay settles", 2);
         AddStep("request leave", () => Context.Scenes.TryBack());
         AddUntilStep("leave confirmation is visible", ConfirmationIsVisible);

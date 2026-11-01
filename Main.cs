@@ -242,7 +242,7 @@ public partial class Main : Control
 						new SongStore().Find(document.SongId)),
 					playheadMs));
 			AddChild(_editorOverlay);
-			_systems.Scenes.SaveEditor = () => _editorOverlay?.SaveCurrent() ?? false;
+			_systems.Scenes.SaveEditor = () => _editorOverlay?.SaveForLeaving() ?? "the editor is closed";
 			return;
 		}
 

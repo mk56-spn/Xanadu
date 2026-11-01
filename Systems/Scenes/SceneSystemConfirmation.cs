@@ -79,10 +79,23 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
 
         if (!confirmation.Save.IsNull &&
             confirmation.Save.Tags.Has<Pressed>() &&
-            SaveEditor?.Invoke() == true)
+            SaveEditor is { } save)
         {
-            confirmation.Target = SceneKind.SongSelect;
-            Confirm(ref state);
+            // A level that cannot be saved stays open, so the dialog has to say
+            // why: the editor's status line is not where anyone is looking.
+            string? problem = save();
+            if (problem is null)
+            {
+                confirmation.Target = SceneKind.SongSelect;
+                Confirm(ref state);
+            }
+            else
+            {
+                SceneUi.SetText(
+                    confirmation.Message,
+                    $"Can't save: {problem}. YES leaves without saving.");
+            }
+
             return true;
         }
 

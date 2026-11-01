@@ -28,9 +28,10 @@ public partial class EditorOverlay : CanvasLayer
         if (issues.Count == 0)
             return true;
 
-        SetStatus(issues.Count == 1
+        _saveProblem = issues.Count == 1
             ? issues[0]
-            : $"{issues[0]} (+{issues.Count - 1} more)");
+            : $"{issues[0]} (+{issues.Count - 1} more)";
+        SetStatus(_saveProblem);
 
         return false;
     }

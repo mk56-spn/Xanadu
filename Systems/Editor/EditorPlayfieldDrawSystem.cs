@@ -104,9 +104,13 @@ public sealed partial class EditorPlayfieldDrawSystem :
 
         Rect2 area = EditorViewport.Area(view.ScreenSize);
         Rect2 field = PlayfieldRenderer.FieldRect(view, playfield);
-        PlayfieldRenderer.DrawOuterGrid(_canvas, _editor, playfield, field, area);
+        bool grid = ViewportGrid.IsVisible(_entities);
+        if (grid)
+            PlayfieldRenderer.DrawOuterGrid(_canvas, _editor, playfield, field, area);
         PlayfieldRenderer.DrawField(_canvas, _editor, field, 1, background);
-        PlayfieldRenderer.DrawGrid(_canvas, _editor, playfield, field, area);
+        if (grid)
+            PlayfieldRenderer.DrawGrid(_canvas, _editor, playfield, field, area);
+        PlayfieldRenderer.DrawFieldLabels(_canvas, _editor, playfield, field);
         PlayfieldRenderer.DrawBlocks(_canvas, _editor, _entities, view, selection.Note);
         PlayfieldRenderer.DrawSpikes(_canvas, _editor, _entities, view, selection.Note);
         PlayfieldRenderer.DrawNotes(

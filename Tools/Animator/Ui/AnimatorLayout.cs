@@ -165,6 +165,10 @@ public static partial class AnimatorLayout
         refs.Ui.ClipList = ui.Current;
         ui.End();
 
+        ViewportGrid.Attach(ui.Button(
+            ViewportGrid.Label,
+            new Vector2(ViewportGrid.ToggleWidth, HeaderControl)));
+
         // As wide as its list, so opening the menu does not widen the header slot.
         refs.FileButton = ui.Button("FILE ▾", new Vector2(FileMenuWidth, HeaderControl));
         refs.FileButton.AddComponent(new UiTooltip("Save, load, or start a new skeleton or clip"));
