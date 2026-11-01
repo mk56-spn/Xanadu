@@ -19,8 +19,7 @@ public partial class AnimatorTool : Control
 
     private EntityStore _store = null!;
     private SystemRoot _root = null!;
-    private AnimatorPointer _pointer = null!;
-    private UiSystemGroup _ui = null!;
+    private GodotPointerInputSource _pointer = null!;
     private SvgAttachmentVisuals _attachments = null!;
     private Entity _session;
     private bool _fitted;
@@ -61,7 +60,7 @@ public partial class AnimatorTool : Control
         _store = new EntityStore();
         _store.OnEntityDelete += FreeVisual;
         _root = new SystemRoot(_store);
-        _pointer = new AnimatorPointer();
+        _pointer = new GodotPointerInputSource(this);
         var canvas = new GodotRectCanvas();
 
         _grid = CreateCanvas(AnimatorLayout.GridZ);
@@ -71,13 +70,13 @@ public partial class AnimatorTool : Control
         _attachments = new SvgAttachmentVisuals(_svgCanvas, containLayers: true);
 
         UiTextBridge.Attach(this, _store);
-        _ui = new UiSystemGroup(
+        _root.Add(new UiSystemGroup(
             _store,
             GetCanvasItem(),
             canvas,
             _pointer,
-            tooltips: false);
-        _root.Add(_ui);
+            tooltips: false,
+            wheel: _pointer));
         _root.Add(new AnimatorSystemGroup(
             canvas,
             _grid,
@@ -248,45 +247,7 @@ public partial class AnimatorTool : Control
         GetTree().Quit(error == Error.Ok ? 0 : 1);
     }
 
-    public override void _Input(InputEvent @event)
-    {
-        if (@event is InputEventMouseMotion motion)
-        {
-            _pointer.Position = motion.Position;
-            _pointer.Shift = motion.ShiftPressed;
-        }
-        else if (@event is InputEventMouseButton { ButtonIndex: MouseButton.Left } button)
-        {
-            _pointer.Position = button.Position;
-            _pointer.Pressed = button.Pressed;
-            _pointer.Shift = button.ShiftPressed;
-            if (button.Pressed)
-                _pointer.ClickPending = true;
-        }
-        else if (@event is InputEventMouseButton { ButtonIndex: MouseButton.Right } right)
-        {
-            _pointer.Position = right.Position;
-            _pointer.Secondary = right.Pressed;
-            if (right.Pressed)
-                _pointer.SecondaryPending = true;
-        }
-        else if (@event is InputEventMouseButton { ButtonIndex: MouseButton.Middle } middle)
-        {
-            _pointer.Position = middle.Position;
-            _pointer.Middle = middle.Pressed;
-        }
-        else if (@event is InputEventMouseButton
-                 {
-                     Pressed: true,
-                     ButtonIndex: MouseButton.WheelUp or MouseButton.WheelDown,
-                 } scroll)
-        {
-            _ui.Scroll.Request(scroll.Position, scroll.ButtonIndex == MouseButton.WheelUp ? -1 : 1);
-            _pointer.Position = scroll.Position;
-            _pointer.Control = scroll.CtrlPressed || scroll.MetaPressed;
-            _pointer.Wheel += scroll.ButtonIndex == MouseButton.WheelUp ? 1 : -1;
-        }
-    }
+    public override void _Input(InputEvent @event) => _pointer.Feed(@event);
 
     public override void _ExitTree()
     {

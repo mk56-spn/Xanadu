@@ -122,18 +122,10 @@ public partial class VisualTestMain : Control
         UpdateDetail();
     }
 
+    public override void _Input(InputEvent @event) => _sidebar?.Feed(@event);
+
     public override void _UnhandledInput(InputEvent @event)
     {
-        if (@event is InputEventMouseButton
-            {
-                Pressed: true,
-                ButtonIndex: MouseButton.Left,
-            })
-        {
-            _sidebar?.LatchPress();
-            return;
-        }
-
         if (@event is not InputEventKey { Pressed: true, Echo: false } key)
             return;
 

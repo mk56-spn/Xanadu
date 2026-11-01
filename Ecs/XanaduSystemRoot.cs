@@ -28,6 +28,7 @@ public sealed class XanaduSystemRoot : SystemRoot, IDisposable
     private readonly SceneDirector _sceneDirector;
     private readonly PlayfieldSystemGroup _playfieldSystems;
     private readonly EditorSystemGroup _editorSystems;
+    private readonly Xanadu.Systems.Editor.EditorWheelSystem? _editorWheel;
     private readonly AudioSystemGroup _audioSystems;
     private readonly DebugSystemGroup _debugSystems;
     private readonly EntityStore _entities;
@@ -35,7 +36,6 @@ public sealed class XanaduSystemRoot : SystemRoot, IDisposable
     private readonly MiniaudioTrackAudio _playfieldAudio = new();
     private readonly MiniaudioTrackAudio _metronomeAudio = new();
     private readonly MiniaudioTrackAudio _previewAudio = new();
-    private readonly ScrollSystem _scroll = new();
 
     public Box2DPhysicsWorld Physics { get; } = new();
 
@@ -70,7 +70,8 @@ public sealed class XanaduSystemRoot : SystemRoot, IDisposable
         KeybindSettings? keybinds = null,
         bool transitions = true,
         IKeyboardState? keyboard = null,
-        HudLayoutSettings? hudLayout = null) : base(entities, "Xanadu")
+        HudLayoutSettings? hudLayout = null,
+        IWheelSource? wheel = null) : base(entities, "Xanadu")
     {
         var canvas = new GodotRectCanvas();
         _entities = entities;
@@ -158,10 +159,16 @@ public sealed class XanaduSystemRoot : SystemRoot, IDisposable
             Scenes,
             Keybinds,
             Display,
-            _scroll,
+            new ScrollSystem(pointerInput, wheel),
             Keyboard,
             new GodotVisualRidFactory(),
             viewportSize));
+        if (wheel is not null)
+        {
+            // After the input group, so it only sees what the UI did not scroll with.
+            _editorWheel = new Xanadu.Systems.Editor.EditorWheelSystem(Commands, wheel) { Enabled = false };
+            Add(_editorWheel);
+        }
         _debugSystems = new DebugSystemGroup(
             canvas,
             parentCanvas,
@@ -180,8 +187,12 @@ public sealed class XanaduSystemRoot : SystemRoot, IDisposable
         SetMonitorPerf(true);
     }
 
-    private void OnSceneChanged(SceneKind scene) =>
+    private void OnSceneChanged(SceneKind scene)
+    {
         _editorSystems.SetActive(scene == SceneKind.Editor);
+        if (_editorWheel is not null)
+            _editorWheel.Enabled = scene == SceneKind.Editor;
+    }
 
     private void OnEntityDelete(EntityDelete entityDelete)
     {
@@ -252,10 +263,6 @@ public sealed class XanaduSystemRoot : SystemRoot, IDisposable
             start.Groups = groups.Mask;
         return start;
     }
-
-    /// <summary>Queues a wheel scroll at a viewport position.</summary>
-    public void Scroll(Vector2 position, int direction) =>
-        _scroll.Request(position, direction);
 
     public void Dispose()
     {

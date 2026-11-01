@@ -2,31 +2,60 @@ using Godot;
 
 namespace Xanadu.Systems.Input;
 
-/// <summary>Reads pointer state from the Godot Control that hosts the UI.</summary>
-public sealed class GodotPointerInputSource(Control host) : IBlockingPointerInputSource
+/// <summary>
+/// The pointer and wheel for every host. The host forwards each event from its
+/// <c>_Input</c> to <see cref="Feed"/> and calls <see cref="EndFrame"/> once its
+/// systems have run. Position and held buttons come from Godot's live state.
+/// </summary>
+public sealed class GodotPointerInputSource(Control host) : IBlockingPointerInputSource, IWheelSource
 {
-    private bool _latchedPress;
+    private readonly PointerLatch _latch = new();
 
     /// <summary>Blocks pointer input while a modal editor dialog is open.</summary>
-    public bool Blocked { get; set; }
+    public bool Blocked => _latch.Blocked;
 
-    public void SetBlocked(bool blocked) => Blocked = blocked;
+    public void SetBlocked(bool blocked) => _latch.Blocked = blocked;
 
-    /// <summary>Latches a click so a press/release between frames cannot be lost.</summary>
-    public void LatchPress() => _latchedPress = true;
+    public int Notches => _latch.Notches;
 
-    public PointerInput Read()
+    public bool Control => _latch.Control;
+
+    public bool Shift => _latch.Shift;
+
+    public int TakeWheel() => _latch.TakeWheel();
+
+    public void EndFrame() => _latch.EndFrame();
+
+    /// <summary>Records the presses and wheel notches a poll could miss between frames.</summary>
+    public void Feed(InputEvent @event)
     {
-        Vector2 position = host.GetLocalMousePosition();
-        bool physical = Godot.Input.IsMouseButtonPressed(MouseButton.Left);
-        bool pressed = !Blocked && (physical || _latchedPress);
+        if (@event is not InputEventMouseButton { Pressed: true } button)
+            return;
 
-        _latchedPress = false;
-        return new PointerInput(
-            position,
-            pressed,
-            Godot.Input.IsKeyPressed(Key.Shift),
-            Godot.Input.IsMouseButtonPressed(MouseButton.Right),
-            Godot.Input.IsMouseButtonPressed(MouseButton.Middle));
+        switch (button.ButtonIndex)
+        {
+            case MouseButton.Left:
+                _latch.LatchPrimary();
+                break;
+            case MouseButton.Right:
+                _latch.LatchSecondary();
+                break;
+            case MouseButton.Middle:
+                _latch.LatchMiddle();
+                break;
+            case MouseButton.WheelUp:
+                _latch.AddWheel(1, button.CtrlPressed || button.MetaPressed, button.ShiftPressed);
+                break;
+            case MouseButton.WheelDown:
+                _latch.AddWheel(-1, button.CtrlPressed || button.MetaPressed, button.ShiftPressed);
+                break;
+        }
     }
+
+    public PointerInput Read() => _latch.Sample(
+        host.GetLocalMousePosition(),
+        Godot.Input.IsMouseButtonPressed(MouseButton.Left),
+        Godot.Input.IsMouseButtonPressed(MouseButton.Right),
+        Godot.Input.IsMouseButtonPressed(MouseButton.Middle),
+        Godot.Input.IsKeyPressed(Key.Shift));
 }

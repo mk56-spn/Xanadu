@@ -16,7 +16,7 @@ namespace Xanadu.Tools.Animator.Systems;
 /// </summary>
 public sealed class AnimatorPreviewInputSystem(
     IPointerInputSource pointer,
-    IAnimatorWheel? wheel = null) : QuerySystem<AnimatorDocument, AnimatorUi>
+    IWheelSource? wheel = null) : QuerySystem<AnimatorDocument, AnimatorUi>
 {
     private bool _panelHeld;
     private bool _middleHeld;

@@ -3,6 +3,7 @@ using Friflo.Engine.ECS.Systems;
 using Godot;
 using NUnit.Framework;
 using Xanadu.Ecs;
+using Xanadu.Systems.Input;
 using Xanadu.Systems.Ui;
 using Position = Xanadu.Ecs.Position;
 
@@ -24,11 +25,11 @@ public sealed class ScrollSystemTests
             new ScrollView());
         viewport.AddChild(content);
 
-        var scroll = new ScrollSystem();
+        var pointer = new Pointer();
         var root = new SystemRoot(store);
-        root.Add(scroll);
+        root.Add(new ScrollSystem(pointer, pointer));
 
-        scroll.Request(new Vector2(500, 300), 1);
+        pointer.Notches = -1;
         root.Update(new UpdateTick(1f / 60f, 0));
 
         Assert.That(viewport.GetComponent<ScrollView>().Offset,
@@ -36,8 +37,7 @@ public sealed class ScrollSystemTests
         Assert.That(content.GetComponent<Position>().Value.Y,
             Is.EqualTo(352));
 
-        for (int i = 0; i < 30; i++)
-            scroll.Request(new Vector2(500, 300), 1);
+        pointer.Notches = -30;
         root.Update(new UpdateTick(1f / 60f, 0));
 
         Assert.That(viewport.GetComponent<ScrollView>().Offset,
@@ -54,15 +54,64 @@ public sealed class ScrollSystemTests
         Entity first = Viewport(store, firstZ);
         Entity second = Viewport(store, secondZ);
 
-        var scroll = new ScrollSystem();
+        var pointer = new Pointer();
         var root = new SystemRoot(store);
-        root.Add(scroll);
+        root.Add(new ScrollSystem(pointer, pointer));
 
-        scroll.Request(new Vector2(500, 300), 1);
+        pointer.Notches = -1;
         root.Update(new UpdateTick(1f / 60f, 0));
 
         Assert.That(first.GetComponent<ScrollView>().Offset, Is.EqualTo(firstZ > secondZ ? 48 : 0));
         Assert.That(second.GetComponent<ScrollView>().Offset, Is.EqualTo(secondZ > firstZ ? 48 : 0));
+    }
+
+    [Test]
+    public void AViewportUnderThePointerTakesTheWheel()
+    {
+        var store = new EntityStore();
+        Viewport(store, 1);
+        var pointer = new Pointer { Notches = -1 };
+        var root = new SystemRoot(store);
+        root.Add(new ScrollSystem(pointer, pointer));
+
+        root.Update(new UpdateTick(1f / 60f, 0));
+
+        Assert.That(pointer.Notches, Is.Zero);
+    }
+
+    [Test]
+    public void WithNoViewportUnderThePointerTheWheelIsLeftForTheHost()
+    {
+        var store = new EntityStore();
+        Entity viewport = Viewport(store, 1);
+        var pointer = new Pointer { Notches = -1, Position = new Vector2(1500, 900) };
+        var root = new SystemRoot(store);
+        root.Add(new ScrollSystem(pointer, pointer));
+
+        root.Update(new UpdateTick(1f / 60f, 0));
+
+        Assert.That(pointer.Notches, Is.EqualTo(-1));
+        Assert.That(viewport.GetComponent<ScrollView>().Offset, Is.Zero);
+    }
+
+    private sealed class Pointer : IPointerInputSource, IWheelSource
+    {
+        public Vector2 Position = new(500, 300);
+
+        public int Notches { get; set; }
+
+        public bool Control => false;
+
+        public bool Shift => false;
+
+        public PointerInput Read() => new(Position, false);
+
+        public int TakeWheel()
+        {
+            int notches = Notches;
+            Notches = 0;
+            return notches;
+        }
     }
 
     private static Entity Viewport(EntityStore store, int layerZ)

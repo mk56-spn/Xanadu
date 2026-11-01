@@ -1,25 +1,25 @@
-using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Godot;
 using Xanadu.Ecs;
+using Xanadu.Systems.Input;
 using Position = Xanadu.Ecs.Position;
 
 namespace Xanadu.Systems.Ui;
 
-/// <summary>Scrolls the ECS viewport under the mouse wheel.</summary>
-public sealed class ScrollSystem : QuerySystem<ScrollView, Rectangle, Position>
+/// <summary>
+/// Scrolls the ECS viewport under the pointer. It takes the wheel only when there
+/// is one, leaving the notches for the host's own wheel behaviour otherwise.
+/// </summary>
+public sealed class ScrollSystem(
+    IPointerInputSource? pointerSource = null,
+    IWheelSource? wheel = null) : QuerySystem<ScrollView, Rectangle, Position>
 {
-    private readonly Queue<(Vector2 Position, int Direction)> _requests = new();
-
-    public void Request(Vector2 position, int direction) =>
-        _requests.Enqueue((position, direction));
-
     protected override void OnUpdate()
     {
-        while (_requests.Count > 0)
+        if (pointerSource is not null && wheel is { Notches: not 0 })
         {
-            (Vector2 pointer, int direction) = _requests.Dequeue();
+            Vector2 pointer = pointerSource.Read().Position;
             Entity target = default;
             foreach (Entity entity in Query.ToEntityList())
             {
@@ -37,7 +37,7 @@ public sealed class ScrollSystem : QuerySystem<ScrollView, Rectangle, Position>
             }
 
             if (!target.IsNull)
-                target.GetComponent<ScrollView>().Offset += direction * 48f;
+                target.GetComponent<ScrollView>().Offset -= wheel.TakeWheel() * 48f;
         }
 
         CommandBuffer buffer = CommandBuffer;

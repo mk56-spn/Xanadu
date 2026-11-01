@@ -21,15 +21,15 @@ public sealed class UiSystemGroup : SystemGroup
         IVisualRidFactory? visuals = null,
         Vector2 screen = default,
         bool focus = true,
-        bool tooltips = true) : base("Ui")
+        bool tooltips = true,
+        IWheelSource? wheel = null) : base("Ui")
     {
-        Scroll = new ScrollSystem();
         Add(new InitializationSystemGroup(parentCanvas));
         Add(new PresentationSystemGroup(canvas));
         Add(new UiInteractionSystemGroup(
             entities,
             pointer,
-            Scroll,
+            new ScrollSystem(pointer, wheel),
             keyboard,
             visuals,
             screen,
@@ -41,6 +41,4 @@ public sealed class UiSystemGroup : SystemGroup
             parentCanvas,
             debugToggle);
     }
-
-    public ScrollSystem Scroll { get; }
 }

@@ -44,7 +44,8 @@ public partial class Main : Control
 			_sceneDirector,
 			// Design space, not the window: the project stretches the whole
 			// surface, so every scene lays out at 1920x1080 and scales as one.
-			UiStage.Design1080);
+			UiStage.Design1080,
+			wheel: _pointer);
 
 		_systems.Scenes.AddSongRequested = ShowAddSongDialog;
 		_systems.Scenes.Start(SceneKind.Profiles);
@@ -85,6 +86,8 @@ public partial class Main : Control
 
 	public override void _Input(InputEvent @event)
 	{
+		_pointer?.Feed(@event);
+
 		if (@event is InputEventKey { Pressed: true, Echo: false } key &&
 			(key.Keycode == Key.F12 || key.PhysicalKeycode == Key.F12))
 		{
@@ -95,28 +98,6 @@ public partial class Main : Control
 
 	public override void _UnhandledInput(InputEvent @event)
 	{
-		if (@event is InputEventMouseButton
-			{
-				ButtonIndex: MouseButton.Left,
-				Pressed: true,
-			})
-		{
-			_pointer?.LatchPress();
-		}
-
-		if (@event is InputEventMouseButton
-			{
-				Pressed: true,
-				ButtonIndex: MouseButton.WheelUp or MouseButton.WheelDown,
-			} wheel && _editorOverlay is null)
-		{
-			_systems?.Scroll(
-				GetViewport().GetMousePosition(),
-				wheel.ButtonIndex == MouseButton.WheelUp ? -1 : 1);
-			GetViewport().SetInputAsHandled();
-			return;
-		}
-
 		if (@event is not InputEventKey { Pressed: true, Echo: false } key)
 			return;
 
@@ -248,6 +229,7 @@ public partial class Main : Control
 	{
 		float time = (float)Time.GetTicksMsec() / 1000f;
 		_systems?.Update(new UpdateTick((float)delta, time));
+		_pointer?.EndFrame();
 
 		if (TryCaptureShot())
 			return;
