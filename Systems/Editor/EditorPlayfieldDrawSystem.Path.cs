@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using Godot;
 using Xanadu.Ecs;
+using Xanadu.Systems.Canvas;
 using Xanadu.Systems.Playfields;
 using Xanadu.Theme;
 
@@ -69,8 +70,8 @@ public sealed partial class EditorPlayfieldDrawSystem
         if (PathPositionAt(samples, playhead.TimeMs) is Vector2 now)
         {
             Vector2 center = view.PlayfieldToScreen(now);
-            PlayfieldRenderer.DrawBorder(
-                _canvas, _editor, new Rect2(center - size / 2, size), Palette.Success, 2);
+            _canvas.DrawBorder(
+                _editor, new Rect2(center - size / 2, size), Palette.Success, 2);
         }
     }
 

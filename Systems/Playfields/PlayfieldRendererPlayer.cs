@@ -35,7 +35,7 @@ public static partial class PlayfieldRenderer
                 size);
 
             canvas.DrawRect(rid, bounds, PlayerColor);
-            DrawBorder(canvas, rid, bounds, QueueColor, 2);
+            canvas.DrawBorder(rid, bounds, QueueColor, 2);
             return;
         }
     }

@@ -56,8 +56,7 @@ public static partial class PlayfieldRenderer
             laneColor.G,
             laneColor.B,
             0.08f));
-        DrawBorder(
-            canvas,
+        canvas.DrawBorder(
             rid,
             lane,
             new Color(laneColor.R, laneColor.G, laneColor.B, 0.35f),

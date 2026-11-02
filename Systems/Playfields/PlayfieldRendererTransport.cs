@@ -15,7 +15,7 @@ public static partial class PlayfieldRenderer
         float barY = field.End.Y + 10;
         var bar = new Rect2(field.Position.X, barY, field.Size.X, 8);
         canvas.DrawRect(rid, bar, PlayfieldBackground);
-        DrawBorder(canvas, rid, bar, BorderColor, 1);
+        canvas.DrawBorder(rid, bar, BorderColor, 1);
 
         if (playhead.DurationMs <= 0)
             return;

@@ -73,7 +73,7 @@ public static partial class PlayfieldRenderer
         Rect2 field = FieldRect(view, playfield);
         canvas.SelectShader(fieldShader);
         canvas.DrawRect(rid, field, background ?? PlayfieldBackground);
-        DrawBorder(canvas, rid, field, BorderColor, 2);
+        canvas.DrawBorder(rid, field, BorderColor, 2);
         canvas.SelectShader(0);
 
         DrawBlocks(canvas, rid, entities, view);
@@ -100,7 +100,7 @@ public static partial class PlayfieldRenderer
         Color? background = null)
     {
         canvas.DrawRect(rid, field, background ?? PlayfieldBackground);
-        DrawBorder(canvas, rid, field, BorderColor, borderWidth);
+        canvas.DrawBorder(rid, field, BorderColor, borderWidth);
     }
 
     /// <summary>Thinnest a drawn grid cell gets on screen; past that every second line is dropped.</summary>
@@ -178,25 +178,6 @@ public static partial class PlayfieldRenderer
         while (cell.X > 0 && cell.X < MinGridCell)
             cell *= 2;
         return cell;
-    }
-
-    public static void DrawBorder(
-        IRectCanvas canvas,
-        Rid rid,
-        Rect2 bounds,
-        Color color,
-        float width)
-    {
-        canvas.DrawRect(rid,
-            new Rect2(bounds.Position, new Vector2(bounds.Size.X, width)), color);
-        canvas.DrawRect(rid,
-            new Rect2(new Vector2(bounds.Position.X, bounds.End.Y - width),
-                new Vector2(bounds.Size.X, width)), color);
-        canvas.DrawRect(rid,
-            new Rect2(bounds.Position, new Vector2(width, bounds.Size.Y)), color);
-        canvas.DrawRect(rid,
-            new Rect2(new Vector2(bounds.End.X - width, bounds.Position.Y),
-                new Vector2(width, bounds.Size.Y)), color);
     }
 
     private static void DrawLeftText(

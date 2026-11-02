@@ -1,6 +1,7 @@
 using Friflo.Engine.ECS;
 using Godot;
 using Xanadu.Ecs;
+using Xanadu.Systems.Canvas;
 using Xanadu.Systems.Playfields;
 using Xanadu.Theme;
 
@@ -119,7 +120,7 @@ public sealed partial class EditorPlayfieldDrawSystem
                 _editor,
                 bounds,
                 new Color(0.08f, 0.02f, 0.02f, fade * 0.18f));
-            PlayfieldRenderer.DrawBorder(_canvas, _editor, bounds, color, 2);
+            _canvas.DrawBorder(_editor, bounds, color, 2);
         }
     }
 
@@ -157,7 +158,7 @@ public sealed partial class EditorPlayfieldDrawSystem
                 view.PlayfieldToScreen(block.Position + offset),
                 block.Size * view.Scale);
 
-            PlayfieldRenderer.DrawBorder(_canvas, _editor, screen, edge, 2);
+            _canvas.DrawBorder(_editor, screen, edge, 2);
             _canvas.DrawRect(
                 _editor,
                 screen.Grow(-2),

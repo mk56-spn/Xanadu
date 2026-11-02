@@ -160,6 +160,6 @@ public static partial class PlayfieldRenderer
         Color color)
     {
         canvas.DrawRect(rid, bounds, DebugPalette.HitboxFill);
-        DrawBorder(canvas, rid, bounds, color, 1.5f);
+        canvas.DrawBorder(rid, bounds, color, 1.5f);
     }
 }

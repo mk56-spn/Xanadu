@@ -424,11 +424,11 @@ public sealed class XifEditorSystem : QuerySystem<XifEditor>
     private static void SyncLabels(ref XifEditor editor, Xif item)
     {
         XifPrimitive? selected = Selected(editor, item);
-        SetText(editor.Parts.Title, editor.Host.Title.ToUpperInvariant());
-        SetText(editor.Parts.PrimitiveLabel, selected is null
+        UiText.Set(editor.Parts.Title, editor.Host.Title.ToUpperInvariant());
+        UiText.Set(editor.Parts.PrimitiveLabel, selected is null
             ? "NO PRIMITIVES"
             : $"{selected.Kind.ToUpperInvariant()} {editor.Primitive + 1}/{item.Primitives.Count}");
-        SetText(editor.Parts.PointLabel, selected is { Points.Count: > 0 }
+        UiText.Set(editor.Parts.PointLabel, selected is { Points.Count: > 0 }
             ? $"PT {editor.Point + 1}/{selected.Points.Count}  {selected.Points[editor.Point].X:0.#}, {selected.Points[editor.Point].Y:0.#}"
             : "");
 
@@ -438,8 +438,8 @@ public sealed class XifEditorSystem : QuerySystem<XifEditor>
             int index = ShaderIndex(editor.Host.Shaders, selected.Shader);
             shader = index >= 0 ? editor.Host.Shaders[index].Label : selected.Shader.IsNone ? "NONE" : "NOT ALLOWED HERE";
         }
-        SetText(editor.Parts.Shader, shader);
-        SetText(editor.Parts.Status, editor.Status ?? "");
+        UiText.Set(editor.Parts.Shader, shader);
+        UiText.Set(editor.Parts.Status, editor.Status ?? "");
     }
 
     // --------------------------------------------------------------- helpers
@@ -469,24 +469,11 @@ public sealed class XifEditorSystem : QuerySystem<XifEditor>
         entity.AddTag<Dirty>();
     }
 
-    private static void SetText(Entity entity, string value)
-    {
-        if (entity.IsNull || !entity.HasComponent<Text>())
-            return;
-
-        ref Text text = ref entity.GetComponent<Text>();
-        if (text.Value == value)
-            return;
-
-        text.Value = value;
-        entity.AddTag<Dirty>();
-    }
-
     private static void SetField(Entity entity, string value)
     {
         ref TextField field = ref entity.GetComponent<TextField>();
         if (field.Value != value)
             field.Value = value;
-        SetText(entity, value);
+        UiText.Set(entity, value);
     }
 }
