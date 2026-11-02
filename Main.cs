@@ -1,3 +1,4 @@
+using System.Linq;
 using System;
 using System.IO;
 using Friflo.Engine.ECS;
@@ -49,8 +50,12 @@ public partial class Main : Control
 			wheel: _pointer);
 
 		_systems.Scenes.AddSongRequested = ShowAddSongDialog;
-		_systems.Scenes.Start(SceneKind.Profiles);
+		_systems.Scenes.Start(StartScene());
 	}
+
+	/// <summary>Reads <c>--editor</c> so the launcher can skip straight to the editor.</summary>
+	private static SceneKind StartScene() =>
+		OS.GetCmdlineUserArgs().Contains("--editor") ? SceneKind.Editor : SceneKind.Profiles;
 
 	/// <summary>Opens the only Godot picker left: choosing an audio file to import.</summary>
 	private void ShowAddSongDialog()
