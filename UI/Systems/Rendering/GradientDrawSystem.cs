@@ -6,11 +6,9 @@ using Xanadu.Systems.Canvas;
 
 namespace Xanadu.Systems.Rendering;
 
-/// <summary>Draws dirty linear-gradient rectangles in thirty-two bands.</summary>
+/// <summary>Draws dirty linear-gradient rectangles as one smooth ramp.</summary>
 public sealed class GradientDrawSystem : QuerySystem<Rectangle, Drawable, VisualRid, LinearGradient>
 {
-    private const int Bands = 32;
-
     private readonly IRectCanvas _canvas;
 
     public GradientDrawSystem(IRectCanvas canvas)
@@ -30,33 +28,7 @@ public sealed class GradientDrawSystem : QuerySystem<Rectangle, Drawable, Visual
 
             _canvas.Clear(visual.Value);
 
-            for (int i = 0; i < Bands; i++)
-            {
-                float t = i / (float)(Bands - 1);
-                Color color = gradient.Start.Lerp(gradient.End, t);
-                Rect2 band;
-
-                if (gradient.Horizontal)
-                {
-                    float width = rect.Bounds.Size.X / Bands;
-                    band = new Rect2(
-                        rect.Bounds.Position.X + width * i,
-                        rect.Bounds.Position.Y,
-                        width + 1,
-                        rect.Bounds.Size.Y);
-                }
-                else
-                {
-                    float height = rect.Bounds.Size.Y / Bands;
-                    band = new Rect2(
-                        rect.Bounds.Position.X,
-                        rect.Bounds.Position.Y + height * i,
-                        rect.Bounds.Size.X,
-                        height + 1);
-                }
-
-                _canvas.DrawRect(visual.Value, band, color);
-            }
+            _canvas.DrawGradientRect(visual.Value, rect.Bounds, gradient.Start, gradient.End, gradient.Horizontal);
 
             buffer.RemoveTag<Dirty>(entity.Id);
         });

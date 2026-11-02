@@ -79,6 +79,18 @@ public sealed class GodotRectCanvas : IRectCanvas
     public void DrawLine(Rid canvas, Vector2 from, Vector2 to, Color color, float width) =>
         RenderingServer.CanvasItemAddLine(canvas, from, to, color, width, true);
 
+    public void DrawGradientRect(Rid canvas, Rect2 bounds, Color start, Color end, bool horizontal)
+    {
+        Vector2 topRight = new(bounds.End.X, bounds.Position.Y);
+        Vector2 bottomLeft = new(bounds.Position.X, bounds.End.Y);
+        RenderingServer.CanvasItemAddPolygon(
+            canvas,
+            new[] { bounds.Position, topRight, bounds.End, bottomLeft },
+            horizontal
+                ? new[] { start, end, end, start }
+                : new[] { start, start, end, end });
+    }
+
     public void DrawPolygon(Rid canvas, ReadOnlySpan<Vector2> points, Color color)
     {
         if (points.Length < 3)

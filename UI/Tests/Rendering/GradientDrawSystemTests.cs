@@ -13,7 +13,7 @@ namespace Xanadu.Tests.UI.Rendering;
 public sealed class GradientDrawSystemTests
 {
     [Test]
-    public void DrawsGradientBandsFromStartToEnd()
+    public void DrawsOneSmoothRampFromStartToEnd()
     {
         var store = new EntityStore();
         store.CreateEntity(
@@ -29,25 +29,22 @@ public sealed class GradientDrawSystemTests
 
         root.Update(new UpdateTick(1f / 60f, 0));
 
-        Assert.That(canvas.Rects, Has.Count.EqualTo(32));
-        Assert.That(canvas.Colors[0], Is.EqualTo(Colors.Black));
-        Assert.That(canvas.Colors[^1], Is.EqualTo(Colors.White));
+        Assert.That(canvas.Ramps, Has.Count.EqualTo(1), "bands would overlap and blend twice when see-through");
+        Assert.That(canvas.Ramps[0], Is.EqualTo((new Rect2(-100, -25, 200, 50), Colors.Black, Colors.White, true)));
     }
 
     private sealed class RecordingCanvas : IRectCanvas
     {
-        public List<Rect2> Rects { get; } = new();
-        public List<Color> Colors { get; } = new();
+        public List<(Rect2 Bounds, Color Start, Color End, bool Horizontal)> Ramps { get; } = new();
+
+        public void DrawGradientRect(Rid canvas, Rect2 bounds, Color start, Color end, bool horizontal) =>
+            Ramps.Add((bounds, start, end, horizontal));
 
         public void SetVisible(Rid canvas, bool visible) { }
         public void SetTransform(Rid canvas, Transform2D transform) { }
         public void Clear(Rid canvas) { }
 
-        public void DrawRect(Rid canvas, Rect2 bounds, Color color)
-        {
-            Rects.Add(bounds);
-            Colors.Add(color);
-        }
+        public void DrawRect(Rid canvas, Rect2 bounds, Color color) { }
 
         public void DrawLine(Rid canvas, Vector2 from, Vector2 to, Color color, float width) { }
         public void DrawText(Rid canvas, Rect2 bounds, string text, Color color) { }

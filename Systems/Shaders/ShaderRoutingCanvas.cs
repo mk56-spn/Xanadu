@@ -112,6 +112,9 @@ public sealed class ShaderRoutingCanvas(IRectCanvas inner, Rid root, IShaderCanv
     public void DrawCircle(Rid canvas, Vector2 center, float radius, Color color) =>
         inner.DrawCircle(Route(canvas), center, radius, color);
 
+    public void DrawGradientRect(Rid canvas, Rect2 bounds, Color start, Color end, bool horizontal) =>
+        inner.DrawGradientRect(Route(canvas), bounds, start, end, horizontal);
+
     public void DrawPolygon(Rid canvas, ReadOnlySpan<Vector2> points, Color color) =>
         inner.DrawPolygon(Route(canvas), points, color);
 
