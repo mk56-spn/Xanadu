@@ -19,7 +19,7 @@ public sealed class EditorReturnState
     private bool _hasTimeline;
     private TimelineView _timeline;
     private EditorPlacementMode _mode;
-    private EditorSpikeBrush _brush;
+    private EditorPlacementBrush _brush;
     private readonly List<ItemKey> _selection = new();
 
     public static EditorReturnState? Capture(EntityStore entities)
@@ -36,7 +36,7 @@ public sealed class EditorReturnState
             _mode = editor.TryGetComponent(out EditorPlacementModeState mode)
                 ? mode.Mode
                 : EditorPlacementMode.Notes,
-            _brush = editor.TryGetComponent(out EditorSpikeBrush brush) ? brush : default,
+            _brush = editor.TryGetComponent(out EditorPlacementBrush brush) ? brush : default,
         };
 
         if (editor.TryGetComponent(out NoteSelection selection))
@@ -58,8 +58,8 @@ public sealed class EditorReturnState
             editor.GetComponent<TimelineView>() = _timeline;
         if (editor.HasComponent<EditorPlacementModeState>())
             editor.GetComponent<EditorPlacementModeState>().Mode = _mode;
-        if (editor.HasComponent<EditorSpikeBrush>())
-            editor.GetComponent<EditorSpikeBrush>() = _brush;
+        if (editor.HasComponent<EditorPlacementBrush>())
+            editor.GetComponent<EditorPlacementBrush>() = _brush;
 
         if (_selection.Count == 0 || !editor.HasComponent<NoteSelection>())
             return;

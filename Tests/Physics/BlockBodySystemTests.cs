@@ -55,6 +55,27 @@ public sealed class BlockBodySystemTests
     }
 
     [Test]
+    public void PlayBlocksCarryTheirOneWaySideToTheBody()
+    {
+        var store = new EntityStore();
+        CreateView(store, PlayfieldKind.Play, Vector2.Zero, 1f);
+        Entity block = store.CreateEntity(new Block(
+            new Vector2(100, 100),
+            new Vector2(200, 100),
+            oneWay: BlockOneWay.Left));
+
+        using var physics = new Box2DPhysicsWorld();
+        var root = new SystemRoot(store);
+        root.Add(new BlockBodySystem(physics, store));
+        root.Update(new UpdateTick(1f / 60f, 0));
+
+        object data = block.GetComponent<PhysicsBody>().Body.FixtureList[0].UserData;
+        Assert.That(data, Is.EqualTo(new OneWaySurface(
+            BlockOneWay.Left,
+            new System.Numerics.Vector2(1f, 0.5f))));
+    }
+
+    [Test]
     public void PlayBlocksOnlyGetOneBody()
     {
         var store = new EntityStore();

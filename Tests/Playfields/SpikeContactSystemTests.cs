@@ -60,7 +60,7 @@ public sealed class SpikeContactSystemTests : EcsSystemTest
         Entity safe = CreatePlayfield(new Vector2(415, 485));
         safe.GetComponent<Player>().Size = new Vector2(10, 10);
         Store.CreateEntity(
-            new Spike(new Vector2(400, 400), new Vector2(100, 100), 2));
+            new Spike(new Vector2(400, 400), new Vector2(100, 100), 180f));
         Root.Add(new SpikeContactSystem(Store));
 
         Frame();

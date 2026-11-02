@@ -2,6 +2,7 @@ using System;
 using Box2DSharp.Collision.Shapes;
 using Box2DSharp.Dynamics;
 using Godot;
+using Xanadu.Ecs;
 using NVector2 = System.Numerics.Vector2;
 
 namespace Xanadu.Systems.Physics;
@@ -35,6 +36,7 @@ public sealed class Box2DPhysicsWorld : IDisposable
     public Box2DPhysicsWorld()
     {
         _world = new World(new NVector2(0f, DefaultGravity));
+        _world.SetContactListener(new OneWayContacts());
     }
 
     public World World => _world;
@@ -71,6 +73,7 @@ public sealed class Box2DPhysicsWorld : IDisposable
             Density = mass / MathF.Max(0.0001f, width * height),
             Friction = friction,
             Restitution = 0f,
+            UserData = new OneWayMover(new NVector2(width / 2, height / 2)),
         };
 
         body.CreateFixture(fixtureDef);
@@ -80,7 +83,8 @@ public sealed class Box2DPhysicsWorld : IDisposable
     public Body CreateStaticBox(
         Vector2 centerPixels,
         Vector2 sizePixels,
-        float friction = 0.5f)
+        float friction = 0.5f,
+        BlockOneWay oneWay = BlockOneWay.Off)
     {
         var bodyDef = new BodyDef
         {
@@ -102,6 +106,11 @@ public sealed class Box2DPhysicsWorld : IDisposable
             Density = 0f,
             Friction = friction,
             Restitution = 0f,
+            UserData = oneWay == BlockOneWay.Off
+                ? null
+                : new OneWaySurface(
+                    oneWay,
+                    new NVector2(sizePixels.X / PixelsPerMeter / 2, sizePixels.Y / PixelsPerMeter / 2)),
         };
 
         body.CreateFixture(fixtureDef);

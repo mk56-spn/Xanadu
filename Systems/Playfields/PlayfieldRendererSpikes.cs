@@ -3,18 +3,18 @@ using Friflo.Engine.ECS;
 using Godot;
 using Xanadu.Ecs;
 using Xanadu.Systems.Canvas;
-using Xanadu.Theme;
 
 namespace Xanadu.Systems.Playfields;
 
 /// <summary>Draws spike tiles in both editor and play modes.</summary>
 public static partial class PlayfieldRenderer
 {
-    public static readonly Color SpikeColor = Palette.DangerBright;
+    /// <summary>Spikes have no colour of their own: white shows exactly what their self modulate says.</summary>
+    public static readonly Color SpikeColor = Colors.White;
 
     /// <summary>
-    /// Draws every spike as one big triangle filling its tile, tip at the middle
-    /// of the edge it points at. The selected one, if any, takes the accent colour.
+    /// Draws every spike as one big triangle filling its box, turned around the
+    /// box's centre. The selected one, if any, takes the accent colour.
     /// </summary>
     public static void DrawSpikes(
         IRectCanvas canvas,

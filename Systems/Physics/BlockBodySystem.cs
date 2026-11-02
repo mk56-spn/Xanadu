@@ -60,7 +60,8 @@ public sealed class BlockBodySystem : QuerySystem<Block>
 
             Body body = _physics.CreateStaticBox(
                 view.PlayfieldToScreen(block.Center),
-                block.Size * view.Scale);
+                block.Size * view.Scale,
+                oneWay: block.OneWay);
             buffer.AddComponent(entity.Id, new PhysicsBody(body));
         });
     }

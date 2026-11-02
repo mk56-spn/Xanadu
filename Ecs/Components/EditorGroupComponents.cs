@@ -86,6 +86,8 @@ public enum EditorGroupPart
     Close,
     MemberText,
     AddSelected,
+    InteriorLink,
+    OutlineLink,
     RemoveSelected,
     SelectMembers,
     SnapToggle,

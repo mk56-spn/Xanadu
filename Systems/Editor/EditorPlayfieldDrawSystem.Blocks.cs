@@ -6,24 +6,23 @@ using Xanadu.Systems.Playfields;
 
 namespace Xanadu.Systems.Editor;
 
-/// <summary>Resize handles for the selected block.</summary>
+/// <summary>Resize handles for the selected block or spike.</summary>
 public sealed partial class EditorPlayfieldDrawSystem
 {
     /// <summary>
-    /// Draws one nub at the middle of each side of the primary selected block.
-    /// They are the grips the pointer grabs to resize it.
+    /// Draws one nub at the middle of each side of the primary selected block or
+    /// spike. They are the grips the pointer grabs to resize it.
     /// </summary>
-    private void DrawBlockHandles(PlayfieldView view, NoteSelection selection)
+    private void DrawGridHandles(PlayfieldView view, NoteSelection selection)
     {
         Entity primary = selection.Note;
-        if (!EditorItems.IsItem(primary) || !primary.HasComponent<Block>())
+        if (!EditorItems.IsItem(primary) || !GridPlacement.TryGet(primary, out Rect2 bounds, out float degrees))
             return;
 
-        Block block = primary.GetComponent<Block>();
-        foreach (BlockHandle handle in BlockEditing.Sides)
+        foreach (GridHandle handle in GridPlacement.Sides)
         {
-            Rect2 nub = BlockEditing.ScreenRect(block, handle, view);
-            _canvas.DrawRect(_editor, nub, PlayfieldRenderer.BlockEdge);
+            Rect2 nub = GridPlacement.HandleScreenRect(bounds, handle, degrees, view);
+            _canvas.DrawRect(_editor, nub, PlayfieldRenderer.HandleEdge);
             _canvas.DrawRect(_editor, nub.Grow(-2), PlayfieldRenderer.BlockSelectedEdge);
         }
     }

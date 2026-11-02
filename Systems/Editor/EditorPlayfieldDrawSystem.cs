@@ -149,7 +149,7 @@ public sealed partial class EditorPlayfieldDrawSystem :
         DrawSelectionOutlines(view, selection);
         if (groupState.TargetEdit)
             DrawGroupTarget(view, playfield, groups, groupState, selection);
-        DrawBlockHandles(view, selection);
+        DrawGridHandles(view, selection);
         DrawRotationHandle(view, selection);
 
         // The chrome goes over the field, so a panned or zoomed field stays out of it.

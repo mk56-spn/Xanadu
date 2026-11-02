@@ -239,6 +239,9 @@ public sealed class CharacterMotionSystem : QuerySystem<CharacterRig, Player, Po
         foreach (Entity blockEntity in entity.Store.Query<Block>().ToEntityList())
         {
             Block block = blockEntity.GetComponent<Block>();
+            if (block.OneWay is not (BlockOneWay.Off or BlockOneWay.Up))
+                continue;
+
             Vector2 topLeft = view.PlayfieldToScreen(block.Position);
             Vector2 bottomRight = view.PlayfieldToScreen(block.End);
             bool overlapsX = x + size.X / 2 > topLeft.X && x - size.X / 2 < bottomRight.X;

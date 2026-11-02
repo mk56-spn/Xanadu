@@ -6,7 +6,7 @@ using Xanadu.Systems.Playfields;
 
 namespace Xanadu.Systems.Editor;
 
-/// <summary>The rotate handle above a multi-selection.</summary>
+/// <summary>The rotate handle above a selection that can turn.</summary>
 public sealed partial class EditorPlayfieldDrawSystem
 {
     private void DrawRotationHandle(PlayfieldView view, NoteSelection selection)
@@ -36,6 +36,6 @@ public sealed partial class EditorPlayfieldDrawSystem
         _canvas.DrawCircle(_editor, pivot, 3, accent);
         _canvas.DrawCircle(_editor, handle, SelectionRotation.HandleRadius, accent);
         _canvas.DrawCircleOutline(
-            _editor, handle, SelectionRotation.HandleRadius, PlayfieldRenderer.BlockEdge, 2);
+            _editor, handle, SelectionRotation.HandleRadius, PlayfieldRenderer.HandleEdge, 2);
     }
 }

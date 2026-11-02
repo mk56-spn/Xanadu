@@ -198,3 +198,19 @@ public struct GroupColor(Color mix, float coverage) : IComponent
         return entity.TryGetComponent(out GroupColor group) ? group.Apply(own) : own;
     }
 }
+
+/// <summary>
+/// The fade reaching a block's outline, kept apart from <see cref="GroupColor"/>,
+/// which reaches its interior, so each can follow different groups.
+/// </summary>
+public struct GroupOutlineColor(Color mix, float coverage) : IComponent
+{
+    public Color Mix = mix;
+    public float Coverage = coverage;
+
+    /// <summary>The colour to draw a block's outline in.</summary>
+    public static Color For(Entity entity, Block block) =>
+        entity.TryGetComponent(out GroupOutlineColor group)
+            ? new GroupColor(group.Mix, group.Coverage).Apply(block.OutlineColor)
+            : block.OutlineColor;
+}

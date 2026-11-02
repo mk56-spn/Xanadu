@@ -48,6 +48,8 @@ public static class SceneTestCatalog
         new SplitlineSceneTest(),
         new EditorGroupsSceneTest(),
         new EditorSelfModulateSceneTest(),
+        new EditorOneWayBlocksSceneTest(),
+        new EditorBlockStylesSceneTest(),
         new EditorSelectionRotationSceneTest(),
         new EditorFocusSceneTest(),
         new EditorViewSceneTest(),

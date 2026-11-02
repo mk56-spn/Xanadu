@@ -24,7 +24,7 @@ public sealed class SpikeShapeSceneTest : SceneTest
                     Y = 200,
                     Width = 100,
                     Height = 100,
-                    QuarterTurns = column,
+                    RotationDegrees = (column) * 90f,
                 });
             }
 

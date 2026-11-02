@@ -2,8 +2,8 @@ using System;
 using Friflo.Engine.ECS;
 using Godot;
 using Xanadu.Ecs;
-using Xanadu.Systems.Canvas;
 using Xanadu.Editor;
+using Xanadu.Systems.Canvas;
 using Xanadu.Systems.Playfields;
 using Xanadu.Theme;
 
@@ -24,20 +24,22 @@ public sealed partial class EditorPlayfieldDrawSystem
         }
 
         Vector2 pointer = view.ScreenToPlayfield(ghost.Screen);
+        float degrees = editor.TryGetComponent(out EditorPlacementBrush brush) ? brush.Degrees : 0f;
+        bool snap = ViewportSnap.IsOn(_entities);
         switch (mode.Mode)
         {
             case EditorPlacementMode.Blocks:
-                Vector2 size = BlockGrid.DefaultSize(playfield);
-                Vector2 corner = BlockGrid.PlaceAt(pointer, size, playfield, BlockSnap.IsOn(_entities));
+                Vector2 size = GridPlacement.NewBlockSize(playfield, degrees);
+                Vector2 corner = GridPlacement.Place(pointer, size, playfield, snap);
                 var block = new Rect2(view.PlayfieldToScreen(corner), size * view.Scale);
                 _canvas.DrawRect(_editor, block, Faint(PlayfieldRenderer.BlockFill));
-                _canvas.DrawBorder(_editor, block, Faint(PlayfieldRenderer.BlockEdge), 1.5f);
+                _canvas.DrawBorder(_editor, block, Faint(Block.DefaultOutlineColor), Block.DefaultOutlineWidth * view.Scale);
                 break;
 
             case EditorPlacementMode.Spikes:
-                int turns = editor.TryGetComponent(out EditorSpikeBrush brush) ? brush.QuarterTurns : 0;
+                Vector2 tile = GridPlacement.NewSpikeSize(playfield);
                 SpikeTriangle triangle = SpikeRules.ScreenTriangle(
-                    SpikeRules.TileAt(pointer, playfield, turns),
+                    new Spike(GridPlacement.Place(pointer, tile, playfield, snap), tile, degrees),
                     view);
                 Span<Vector2> points = [triangle.Tip, triangle.BaseLeft, triangle.BaseRight];
                 _canvas.DrawPolygon(_editor, points, Faint(PlayfieldRenderer.SpikeColor));

@@ -21,7 +21,7 @@ public sealed class EditorPlacementGhostSceneTest : SceneTest
         {
             Entity editor = Context.Entities.Query<EditorPlacementGhost>().ToEntityList()[0];
             editor.GetComponent<EditorPlacementModeState>().Mode = EditorPlacementMode.Spikes;
-            editor.GetComponent<EditorSpikeBrush>().QuarterTurns = 1;
+            editor.GetComponent<EditorPlacementBrush>().Degrees = 90f;
             Context.Pointer.Position = new Vector2(760, 460);
         });
         AddUntilStep("the ghost shows", () =>

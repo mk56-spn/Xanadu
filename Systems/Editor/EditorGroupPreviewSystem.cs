@@ -1,3 +1,4 @@
+using System;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Godot;
@@ -92,6 +93,7 @@ public sealed class EditorGroupPreviewSystem :
             : 0u;
 
         DrawBlocks(view, levelGroups.Groups, seconds, solo);
+        DrawSpikes(view, levelGroups.Groups, seconds, solo);
         DrawNotes(view, levelGroups.Groups, seconds, solo, playhead);
         DrawMines(view, levelGroups.Groups, seconds, solo, playhead);
         DrawStarts(view, levelGroups.Groups, seconds, solo);
@@ -124,10 +126,10 @@ public sealed class EditorGroupPreviewSystem :
                 ? Vector2.Zero
                 : GroupModulation.Offset(groups, mask, seconds);
             Color edge = inSolo
-                ? Tint(groups, mask, seconds, SelfModulate.For(entity, PlayfieldRenderer.BlockEdge))
-                : SelfModulate.For(entity, PlayfieldRenderer.BlockEdge);
+                ? Tint(groups, mask & block.OutlineGroups, seconds, block.OutlineColor)
+                : block.OutlineColor;
             Color fill = inSolo
-                ? Tint(groups, mask, seconds, SelfModulate.For(entity, PlayfieldRenderer.BlockFill))
+                ? Tint(groups, mask & block.FillGroups, seconds, SelfModulate.For(entity, PlayfieldRenderer.BlockFill))
                 : SelfModulate.For(entity, PlayfieldRenderer.BlockFill);
             float alpha = inSolo ? 1f : 0.28f;
             edge.A *= alpha;
@@ -136,10 +138,35 @@ public sealed class EditorGroupPreviewSystem :
             var screen = new Rect2(
                 view.PlayfieldToScreen(block.Position + offset),
                 block.Size * view.Scale);
-            _canvas.DrawRect(_preview, screen, edge);
-            Rect2 inner = screen.Grow(-1);
-            if (inner.Size.X > 0 && inner.Size.Y > 0)
-                _canvas.DrawRect(_preview, inner, fill);
+            PlayfieldRenderer.DrawBlockBody(_canvas, _preview, screen, block.OutlineWidth * view.Scale, fill, edge, block.OneWay);
+        }
+    }
+
+    private void DrawSpikes(
+        PlayfieldView view,
+        GroupDefinition[] groups,
+        float seconds,
+        uint solo)
+    {
+        Span<Vector2> points = stackalloc Vector2[3];
+        foreach (Entity entity in _entities.Query<Spike>().ToEntityList())
+        {
+            Spike spike = entity.GetComponent<Spike>();
+            if (spike.Size.X <= 0 || spike.Size.Y <= 0)
+                continue;
+
+            MaskOf(entity, solo, out uint mask, out bool inSolo);
+            if (mask != 0)
+                spike.Position += GroupModulation.Offset(groups, mask, seconds);
+            Color own = SelfModulate.For(entity, PlayfieldRenderer.SpikeColor);
+            Color color = inSolo ? Tint(groups, mask, seconds, own) : own;
+            color.A *= inSolo ? 1f : 0.28f;
+
+            SpikeTriangle triangle = SpikeRules.ScreenTriangle(spike, view);
+            points[0] = triangle.Tip;
+            points[1] = triangle.BaseLeft;
+            points[2] = triangle.BaseRight;
+            _canvas.DrawPolygon(_preview, points, color);
         }
     }
 

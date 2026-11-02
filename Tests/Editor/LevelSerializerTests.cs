@@ -91,29 +91,59 @@ public sealed class LevelSerializerTests
     }
 
     [Test]
+    public void BlockOutlinesAndColourLinksRoundTrip()
+    {
+        var variant = new XmfVariant();
+        variant.Blocks.Add(new BlockDocument
+        {
+            Width = 50,
+            Height = 50,
+            OutlineWidth = 0f,
+            OutlineColor = 0x11223344,
+            FillGroups = 0b01,
+            OutlineGroups = 0b10,
+            OneWay = 2,
+            ShapeId = 3,
+            ShapePiece = 1,
+        });
+        var source = new XmfMapset();
+        source.Variants.Add(variant);
+
+        BlockDocument block = XmfBinary.ReadMapset(XmfBinary.WriteMapset(source)).Variants[0].Blocks[0];
+
+        Assert.That(block.OutlineWidth, Is.Zero);
+        Assert.That(block.OutlineColor, Is.EqualTo(0x11223344u));
+        Assert.That(block.FillGroups, Is.EqualTo(0b01u));
+        Assert.That(block.OutlineGroups, Is.EqualTo(0b10u));
+        Assert.That(block.OneWay, Is.EqualTo(2));
+        Assert.That(block.ShapeId, Is.EqualTo(3));
+        Assert.That(block.ShapePiece, Is.EqualTo(1));
+    }
+
+    [Test]
     public void SpikeRotationsRoundTrip()
     {
         var source = new LevelDocument();
         source.Spikes.Add(new SpikeDocument { X = 0, Y = 0, Width = 50, Height = 50 });
-        source.Spikes.Add(new SpikeDocument { X = 50, Y = 0, Width = 50, Height = 50, QuarterTurns = 3 });
+        source.Spikes.Add(new SpikeDocument { X = 50, Y = 0, Width = 50, Height = 50, RotationDegrees = 37.5f });
 
         LevelDocument result = LevelSerializer.Deserialize(LevelSerializer.Serialize(source));
 
-        Assert.That(result.Spikes[0].QuarterTurns, Is.Zero);
-        Assert.That(result.Spikes[1].QuarterTurns, Is.EqualTo(3));
+        Assert.That(result.Spikes[0].RotationDegrees, Is.Zero);
+        Assert.That(result.Spikes[1].RotationDegrees, Is.EqualTo(37.5f));
     }
 
     [Test]
     public void SpikeRotationsRoundTripInAMapset()
     {
         var variant = new XmfVariant();
-        variant.Spikes.Add(new SpikeDocument { Width = 50, Height = 50, QuarterTurns = 2 });
+        variant.Spikes.Add(new SpikeDocument { Width = 50, Height = 50, RotationDegrees = 180f });
         var source = new XmfMapset();
         source.Variants.Add(variant);
 
         XmfMapset result = XmfBinary.ReadMapset(LevelSerializer.SerializeMapset(source));
 
-        Assert.That(result.Variants[0].Spikes[0].QuarterTurns, Is.EqualTo(2));
+        Assert.That(result.Variants[0].Spikes[0].RotationDegrees, Is.EqualTo(180f));
     }
 
     [Test]

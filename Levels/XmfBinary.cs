@@ -17,7 +17,7 @@ public sealed class XmfFormatException(string message) : Exception(message);
 /// </summary>
 public static partial class XmfBinary
 {
-    public const ushort MajorVersion = 1;
+    public const ushort MajorVersion = 2;
     public const ushort MinorVersion = 0;
 
     /// <summary>The extension level files are saved with, including the dot.</summary>
@@ -38,20 +38,13 @@ public static partial class XmfBinary
         Groups = 7,
         Shaders = 8,
 
-        /// <summary>Optional, so files written before spikes existed still load.</summary>
         Spikes = 9,
 
         /// <summary>Optional pair index and momentum data, absent in older maps.</summary>
         NoteExtras = 10,
 
-        /// <summary>Optional Form shape references on blocks.</summary>
-        BlockExtras = 11,
-
         /// <summary>Optional item colours, absent when every item is untinted.</summary>
         SelfModulates = 12,
-
-        /// <summary>Optional spike rotations, absent when every spike points up.</summary>
-        SpikeExtras = 13,
     }
 
     public static byte[] Write(LevelDocument document)
@@ -68,18 +61,11 @@ public static partial class XmfBinary
         file.Add((uint)ChunkId.StartPoints, WriteStartPoints(document.StartPoints, strings));
         file.Add((uint)ChunkId.Groups, WriteGroups(document.Groups, strings));
         file.Add((uint)ChunkId.Shaders, WriteShaders(document.Shaders, strings));
-        // Omitted when empty so a level without spikes is byte-identical to one
-        // written before spikes existed.
-        if (document.Spikes.Count > 0)
-            file.Add((uint)ChunkId.Spikes, WriteSpikes(document.Spikes));
+        file.Add((uint)ChunkId.Spikes, WriteSpikes(document.Spikes));
         if (HasNoteExtras(document.Notes))
             file.Add((uint)ChunkId.NoteExtras, WriteNoteExtras(document.Notes));
-        if (HasBlockExtras(document.Blocks))
-            file.Add((uint)ChunkId.BlockExtras, WriteBlockExtras(document.Blocks));
         if (HasSelfModulates(document))
             file.Add((uint)ChunkId.SelfModulates, WriteSelfModulates(document));
-        if (HasSpikeExtras(document.Spikes))
-            file.Add((uint)ChunkId.SpikeExtras, WriteSpikeExtras(document.Spikes));
         return file.ToArray();
     }
 
@@ -108,18 +94,12 @@ public static partial class XmfBinary
             ReadNoteExtras(noteExtras, document.Notes);
         document.Mines = ReadMines(file.Get((uint)ChunkId.Mines, Format));
         document.Blocks = ReadBlocks(file.Get((uint)ChunkId.Blocks, Format));
-        if (file.TryGet((uint)ChunkId.BlockExtras, out Chunk blockExtras))
-            ReadBlockExtras(blockExtras, document.Blocks);
         document.StartPoints = ReadStartPoints(
             file.Get((uint)ChunkId.StartPoints, Format),
             strings);
         document.Groups = ReadGroups(file.Get((uint)ChunkId.Groups, Format), strings);
         document.Shaders = ReadShaders(file.Get((uint)ChunkId.Shaders, Format), strings);
-        document.Spikes = file.TryGet((uint)ChunkId.Spikes, out Chunk spikes)
-            ? ReadSpikes(spikes)
-            : new List<SpikeDocument>();
-        if (file.TryGet((uint)ChunkId.SpikeExtras, out Chunk spikeExtras))
-            ReadSpikeExtras(spikeExtras, document.Spikes);
+        document.Spikes = ReadSpikes(file.Get((uint)ChunkId.Spikes, Format));
         if (file.TryGet((uint)ChunkId.SelfModulates, out Chunk selfModulates))
         {
             using BinaryReader reader = selfModulates.OpenReader();

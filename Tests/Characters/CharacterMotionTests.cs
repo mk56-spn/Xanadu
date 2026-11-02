@@ -250,6 +250,19 @@ public sealed class CharacterMotionTests : EcsSystemTest
     }
 
     [Test]
+    public void OnlyAOneWayBlockThatCollidesOnTopCanBeStoodOn()
+    {
+        Store.CreateEntity(new Block(new Vector2(350, 300), new Vector2(100, 50), oneWay: BlockOneWay.Down));
+        Entity player = Player(250);
+        Frame(2);
+        Assert.That(State(player), Is.EqualTo(CharacterMotionState.Falling));
+
+        Store.CreateEntity(new Block(new Vector2(350, 300), new Vector2(100, 50), oneWay: BlockOneWay.Up));
+        Frame();
+        Assert.That(State(player), Is.EqualTo(CharacterMotionState.Landing));
+    }
+
+    [Test]
     public void HoveringBesideOrAboveABlockIsNotGrounded()
     {
         // Same height as the block's top, but the player at x = 400 is clear of it.

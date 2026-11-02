@@ -129,11 +129,13 @@ public static class LevelSerializer
         {
             block.Groups ??= new();
             block.Shader = validShader(block.Shader);
+            block.OneWay = block.OneWay is >= 0 and <= (int)Xanadu.Ecs.BlockOneWay.Left ? block.OneWay : 0;
+            block.OutlineWidth = Math.Clamp(block.OutlineWidth, 0f, Xanadu.Ecs.Block.MaxOutlineWidth);
         }
         foreach (SpikeDocument spike in chart.Spikes)
         {
             spike.Groups ??= new();
-            spike.QuarterTurns = ((spike.QuarterTurns % 4) + 4) % 4;
+            spike.RotationDegrees = Xanadu.Systems.Playfields.SpikeRules.NormalizeDegrees(spike.RotationDegrees);
             spike.Shader = validShader(spike.Shader);
         }
 

@@ -6,7 +6,7 @@ using Xanadu.Editor;
 
 namespace Xanadu.Systems.Editor;
 
-/// <summary>Dragging the handle above a multi-selection turns it around its centre.</summary>
+/// <summary>Dragging the handle above a selection turns it around its centre.</summary>
 public sealed partial class EditorNoteInputSystem
 {
     private readonly List<RotationStart> _rotationStarts = new();
@@ -68,7 +68,7 @@ public sealed partial class EditorNoteInputSystem
 
         rotation.Angle = angle;
         _rotationMoved = true;
-        bool snap = BlockSnap.IsOn(_entities);
+        bool snap = ViewportSnap.IsOn(_entities);
         foreach (RotationStart start in _rotationStarts)
         {
             if (EditorItems.IsItem(start.Entity))

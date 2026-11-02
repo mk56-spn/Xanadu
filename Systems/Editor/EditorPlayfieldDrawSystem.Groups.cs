@@ -144,25 +144,26 @@ public sealed partial class EditorPlayfieldDrawSystem
                 continue;
 
             Vector2 offset = GroupModulation.Offset(groups.Groups, mask, seconds);
-            bool tinted = GroupModulation.TryColor(
-                groups.Groups, mask, seconds, out Color mix, out float coverage);
-            if (offset == Vector2.Zero && !tinted)
+            bool edgeTinted = GroupModulation.TryColor(
+                groups.Groups, mask & block.OutlineGroups, seconds, out Color edgeMix, out float edgeCoverage);
+            bool fillTinted = GroupModulation.TryColor(
+                groups.Groups, mask & block.FillGroups, seconds, out Color fillMix, out float fillCoverage);
+            if (offset == Vector2.Zero && !edgeTinted && !fillTinted)
                 continue;
 
-            Color edge = tinted
-                ? new GroupColor(mix, coverage).Apply(SelfModulate.For(entity, PlayfieldRenderer.BlockEdge))
-                : SelfModulate.For(entity, PlayfieldRenderer.BlockEdge);
-            float groupAlpha = edge.A;
-            edge.A = 0.7f * groupAlpha;
+            Color edge = edgeTinted
+                ? new GroupColor(edgeMix, edgeCoverage).Apply(block.OutlineColor)
+                : block.OutlineColor;
+            Color fill = SelfModulate.For(entity, PlayfieldRenderer.BlockFill);
+            if (fillTinted)
+                fill = new GroupColor(fillMix, fillCoverage).Apply(fill);
+            edge.A *= 0.7f;
+            fill.A *= fillTinted ? 0.5f : 0.16f;
             var screen = new Rect2(
                 view.PlayfieldToScreen(block.Position + offset),
                 block.Size * view.Scale);
 
-            _canvas.DrawBorder(_editor, screen, edge, 2);
-            _canvas.DrawRect(
-                _editor,
-                screen.Grow(-2),
-                new Color(SelfModulate.For(entity, PlayfieldRenderer.BlockFill), 0.16f));
+            PlayfieldRenderer.DrawBlockBody(_canvas, _editor, screen, block.OutlineWidth * view.Scale, fill, edge);
         }
     }
 

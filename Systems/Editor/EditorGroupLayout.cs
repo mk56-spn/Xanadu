@@ -107,6 +107,8 @@ public static class EditorGroupLayout
             EditorGroupPart.AddSelected => new Rect2(Pad + 200, 58, 130, 28),
             EditorGroupPart.RemoveSelected => new Rect2(Pad + 338, 58, 150, 28),
             EditorGroupPart.SelectMembers => new Rect2(Pad + 496, 58, 140, 28),
+            EditorGroupPart.InteriorLink => new Rect2(Pad + 644, 58, 130, 28),
+            EditorGroupPart.OutlineLink => new Rect2(Pad + 782, 58, 130, 28),
             EditorGroupPart.AddMove => new Rect2(Pad, 100, 100, 28),
             EditorGroupPart.AddColor => new Rect2(Pad + 108, 100, 100, 28),
             EditorGroupPart.SnapToggle => new Rect2(Pad + 216, 100, 110, 28),

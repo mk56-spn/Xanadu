@@ -237,6 +237,13 @@ public static partial class XmfBinary
             writer.Write(block.Y);
             writer.Write(block.Width);
             writer.Write(block.Height);
+            writer.Write(block.ShapeId);
+            writer.Write(block.ShapePiece);
+            writer.Write((byte)block.OneWay);
+            writer.Write(block.OutlineWidth);
+            writer.Write(block.OutlineColor);
+            writer.Write(block.FillGroups);
+            writer.Write(block.OutlineGroups);
         }
         writer.Flush();
         return stream.ToArray();
@@ -249,7 +256,7 @@ public static partial class XmfBinary
         var blocks = new List<BlockDocument>((int)count);
         for (uint i = 0; i < count; i++)
         {
-            blocks.Add(new BlockDocument
+            var block = new BlockDocument
             {
                 Groups = ReadGroups(reader),
                 Shader = reader.ReadInt32(),
@@ -257,7 +264,19 @@ public static partial class XmfBinary
                 Y = reader.ReadSingle(),
                 Width = reader.ReadSingle(),
                 Height = reader.ReadSingle(),
-            });
+                ShapeId = reader.ReadInt32(),
+                ShapePiece = reader.ReadInt32(),
+                OneWay = reader.ReadByte(),
+                OutlineWidth = reader.ReadSingle(),
+                OutlineColor = reader.ReadUInt32(),
+                FillGroups = reader.ReadUInt32(),
+                OutlineGroups = reader.ReadUInt32(),
+            };
+            if (block.ShapeId < 0 || block.ShapePiece < 0)
+                throw new FormatException("XMF block has a negative Form shape reference.");
+            if (block.OneWay > (int)Xanadu.Ecs.BlockOneWay.Left)
+                throw new FormatException("XMF block has an unknown one-way side.");
+            blocks.Add(block);
         }
         return blocks;
     }
@@ -310,81 +329,6 @@ public static partial class XmfBinary
             assign(i, reader.ReadUInt32());
     }
 
-    internal static bool HasBlockExtras(List<BlockDocument> blocks) => blocks.Exists(
-        block => block.ShapeId != 0 || block.ShapePiece != 0);
-
-    internal static byte[] WriteBlockExtras(List<BlockDocument> blocks)
-    {
-        using var stream = new MemoryStream();
-        using var writer = new BinaryWriter(stream, Encoding.UTF8, leaveOpen: true);
-        writer.Write((uint)blocks.Count);
-        foreach (BlockDocument block in blocks)
-        {
-            writer.Write(block.ShapeId);
-            writer.Write(block.ShapePiece);
-        }
-        writer.Flush();
-        return stream.ToArray();
-    }
-
-    internal static void ReadBlockExtras(Chunk chunk, List<BlockDocument> blocks)
-    {
-        using BinaryReader reader = chunk.OpenReader();
-        uint count = ReadCount(reader, MaxItems, "block extra");
-        if (count != blocks.Count)
-            throw new FormatException("XMF block extras do not match the block count.");
-
-        for (int i = 0; i < blocks.Count; i++)
-        {
-            int shapeId = reader.ReadInt32();
-            int shapePiece = reader.ReadInt32();
-            if (shapeId < 0 || shapePiece < 0)
-                throw new FormatException("XMF block has a negative Form shape reference.");
-            blocks[i].ShapeId = shapeId;
-            blocks[i].ShapePiece = shapePiece;
-        }
-    }
-
-    internal static bool HasSpikeExtras(List<SpikeDocument> spikes) =>
-        spikes.Exists(spike => spike.QuarterTurns != 0);
-
-    internal static byte[] WriteSpikeExtras(List<SpikeDocument> spikes)
-    {
-        using var stream = new MemoryStream();
-        using var writer = new BinaryWriter(stream, Encoding.UTF8, leaveOpen: true);
-        WriteSpikeTurns(writer, spikes);
-        writer.Flush();
-        return stream.ToArray();
-    }
-
-    internal static void ReadSpikeExtras(Chunk chunk, List<SpikeDocument> spikes)
-    {
-        using BinaryReader reader = chunk.OpenReader();
-        ReadSpikeTurns(reader, spikes);
-    }
-
-    private static void WriteSpikeTurns(BinaryWriter writer, List<SpikeDocument> spikes)
-    {
-        writer.Write((uint)spikes.Count);
-        foreach (SpikeDocument spike in spikes)
-            writer.Write((byte)spike.QuarterTurns);
-    }
-
-    private static void ReadSpikeTurns(BinaryReader reader, List<SpikeDocument> spikes)
-    {
-        uint count = ReadCount(reader, MaxItems, "spike extra");
-        if (count != spikes.Count)
-            throw new FormatException("XMF spike extras do not match the spike count.");
-
-        foreach (SpikeDocument spike in spikes)
-        {
-            byte turns = reader.ReadByte();
-            if (turns > 3)
-                throw new FormatException("XMF spike has an invalid rotation.");
-            spike.QuarterTurns = turns;
-        }
-    }
-
     private static byte[] WriteSpikes(List<SpikeDocument> spikes)
     {
         using var stream = new MemoryStream();
@@ -398,6 +342,7 @@ public static partial class XmfBinary
             writer.Write(spike.Y);
             writer.Write(spike.Width);
             writer.Write(spike.Height);
+            writer.Write(spike.RotationDegrees);
         }
         writer.Flush();
         return stream.ToArray();
@@ -418,6 +363,7 @@ public static partial class XmfBinary
                 Y = reader.ReadSingle(),
                 Width = reader.ReadSingle(),
                 Height = reader.ReadSingle(),
+                RotationDegrees = reader.ReadSingle(),
             });
         }
         return spikes;

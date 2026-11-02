@@ -112,10 +112,10 @@ public struct EditorPlacementGhost : IComponent
     public Vector2 Screen;
 }
 
-/// <summary>The way newly painted spikes point, in clockwise quarter turns from up.</summary>
-public struct EditorSpikeBrush(int quarterTurns = 0) : IComponent
+/// <summary>The turn given to newly placed blocks and spikes, in degrees clockwise from up.</summary>
+public struct EditorPlacementBrush(float degrees = 0f) : IComponent
 {
-    public int QuarterTurns = quarterTurns;
+    public float Degrees = degrees;
 }
 
 public struct EditorDashDirectionState(DashDirection direction) : IComponent

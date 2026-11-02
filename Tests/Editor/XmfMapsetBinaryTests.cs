@@ -54,6 +54,7 @@ public sealed class XmfMapsetBinaryTests
         hard.Notes.Add(new NoteDocument { TimeMs = 150, X = 5, Y = 6 });
         hard.Blocks.Add(new BlockDocument
         {
+            OneWay = (int)Xanadu.Ecs.BlockOneWay.Up,
             X = 10,
             Y = 20,
             Width = 100,
@@ -93,6 +94,7 @@ public sealed class XmfMapsetBinaryTests
         Assert.That(readHard.Blocks, Has.Count.EqualTo(1));
         Assert.That(readHard.Blocks[0].ShapeId, Is.EqualTo(9));
         Assert.That(readHard.Blocks[0].ShapePiece, Is.EqualTo(1));
+        Assert.That(readHard.Blocks[0].OneWay, Is.EqualTo((int)Xanadu.Ecs.BlockOneWay.Up));
     }
 
     [Test]

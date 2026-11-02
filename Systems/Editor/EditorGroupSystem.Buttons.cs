@@ -60,6 +60,10 @@ public sealed partial class EditorGroupSystem
             Edit(() => SetMembership(editor, open, add: false));
         if (JustPressed(Piece(EditorGroupPart.SelectMembers)))
             SelectMembers(editor, open);
+        if (JustPressed(Piece(EditorGroupPart.InteriorLink)))
+            Edit(() => ToggleColorLink(editor, open, outline: false));
+        if (JustPressed(Piece(EditorGroupPart.OutlineLink)))
+            Edit(() => ToggleColorLink(editor, open, outline: true));
 
         if (state.PaletteOpen)
             HandlePalette(ref state, group);
@@ -147,6 +151,54 @@ public sealed partial class EditorGroupSystem
             }
         }
     }
+
+    /// <summary>
+    /// Hooks the group's colour up to, or off, the interior or the outline of the
+    /// selected blocks in it. They all follow the first one, so a mixed selection
+    /// ends up matching.
+    /// </summary>
+    private static void ToggleColorLink(Entity editor, int group, bool outline)
+    {
+        uint bit = ItemGroups.Bit(group);
+        bool? linked = null;
+        foreach (Entity item in editor.GetComponent<NoteSelection>().AllNotes)
+        {
+            if (!IsBlockIn(item, group))
+                continue;
+
+            ref Block block = ref item.GetComponent<Block>();
+            ref uint links = ref outline ? ref block.OutlineGroups : ref block.FillGroups;
+            linked ??= (links & bit) == 0;
+            links = linked.Value ? links | bit : links & ~bit;
+        }
+    }
+
+    /// <summary>The label and tint of a colour link button, from the first selected block in the group.</summary>
+    private void ShowColorLink(Entity editor, int group, bool outline, CommandBuffer buffer)
+    {
+        Entity button = Piece(outline ? EditorGroupPart.OutlineLink : EditorGroupPart.InteriorLink);
+        string name = outline ? "OUTLINE" : "INTERIOR";
+        foreach (Entity item in editor.GetComponent<NoteSelection>().AllNotes)
+        {
+            if (!IsBlockIn(item, group))
+                continue;
+
+            Block block = item.GetComponent<Block>();
+            bool on = ((outline ? block.OutlineGroups : block.FillGroups) & ItemGroups.Bit(group)) != 0;
+            UiText.Set(button, $"{name} {(on ? "ON" : "OFF")}", buffer);
+            Tint(button, on ? CellUsed : SceneColors.Muted, buffer);
+            return;
+        }
+
+        UiText.Set(button, name, buffer);
+        Tint(button, SceneColors.Muted, buffer);
+    }
+
+    private static bool IsBlockIn(Entity item, int group) =>
+        !item.IsNull &&
+        item.HasComponent<Block>() &&
+        item.TryGetComponent(out ItemGroups member) &&
+        member.Has(group);
 
     /// <summary>Applies a palette swatch or alpha step to the selected colour effect.</summary>
     private void HandlePalette(ref EditorGroupState state, GroupDefinition group)

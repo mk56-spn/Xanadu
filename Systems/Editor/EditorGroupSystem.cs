@@ -239,7 +239,11 @@ public sealed partial class EditorGroupSystem : QuerySystem<EditorGroupState>
         _history.Record(before, _history.Capture());
     }
 
-    /// <summary>Puts the selected notes, mines, blocks and start points into the group, or takes them out.</summary>
+    /// <summary>
+    /// Puts the selected notes, mines, blocks, spikes and start points into the
+    /// group, or takes them out. A block joining a group follows its colour with
+    /// both its interior and its outline until told otherwise.
+    /// </summary>
     private static void SetMembership(Entity editor, int group, bool add)
     {
         uint bit = ItemGroups.Bit(group);
@@ -248,6 +252,7 @@ public sealed partial class EditorGroupSystem : QuerySystem<EditorGroupState>
             if (item.IsNull || !(item.HasComponent<Note>() ||
                                  item.HasComponent<Mine>() ||
                                  item.HasComponent<Block>() ||
+                                 item.HasComponent<Spike>() ||
                                  item.HasComponent<StartPoint>()))
             {
                 continue;
@@ -257,6 +262,13 @@ public sealed partial class EditorGroupSystem : QuerySystem<EditorGroupState>
             uint next = add ? mask | bit : mask & ~bit;
             if (next == mask)
                 continue;
+
+            if (add && item.HasComponent<Block>())
+            {
+                ref Block block = ref item.GetComponent<Block>();
+                block.FillGroups |= bit;
+                block.OutlineGroups |= bit;
+            }
 
             if (next == 0)
                 item.RemoveComponent<ItemGroups>();

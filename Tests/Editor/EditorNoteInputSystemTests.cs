@@ -653,7 +653,8 @@ public sealed class EditorNoteInputSystemTests
 
         Assert.That(
             spike.GetComponent<Spike>().Position,
-            Is.EqualTo(new Vector2(400, 600)));
+            Is.EqualTo(new Vector2(450, 650)),
+            "spikes snap to the nearest line, as blocks do");
     }
 
     [Test]
@@ -1004,6 +1005,62 @@ public sealed class EditorNoteInputSystemTests
         Assert.That(_history.CanUndo, Is.True);
     }
 
+    [TestCase(EditorPlacementMode.Blocks, TestName = "Dragging paints a run of blocks as one undo step")]
+    [TestCase(EditorPlacementMode.Spikes, TestName = "Dragging paints a run of spikes as one undo step")]
+    public void DraggingPaintsARunWithNoOverlaps(EditorPlacementMode mode)
+    {
+        Entity editor = EditorEntity();
+        editor.AddComponent(new EditorPlacementModeState(mode));
+
+        Drag(new Vector2(300, 300), new Vector2(700, 300));
+        int painted = _store.Query<Block>().Count + _store.Query<Spike>().Count;
+
+        Assert.That(painted, Is.EqualTo(2), "the start and the end of one drag step, with none on top of each other");
+        Assert.That(editor.GetComponent<NoteSelection>().Note.IsNull, Is.False, "the newest is selected");
+    }
+
+    [TestCase(EditorPlacementMode.Blocks)]
+    [TestCase(EditorPlacementMode.Spikes)]
+    public void PaintingOnASpotTakenByItsOwnKindSelectsInsteadOfStacking(EditorPlacementMode mode)
+    {
+        EditorEntity().AddComponent(new EditorPlacementModeState(mode));
+
+        Drag(new Vector2(300, 300), new Vector2(300, 300));
+        Drag(new Vector2(300, 300), new Vector2(300, 300));
+
+        Assert.That(_store.Query<Block>().Count + _store.Query<Spike>().Count, Is.EqualTo(1));
+    }
+
+    [Test]
+    public void ASpikeResizesByItsHandlesLikeABlock()
+    {
+        Entity editor = EditorEntity();
+        Entity spike = EditorItems.Create(_store, new Spike(new Vector2(400, 500), new Vector2(100, 100)));
+        editor.GetComponent<NoteSelection>().Note = spike;
+
+        Drag(new Vector2(500, 550), new Vector2(600, 550));
+
+        Assert.That(spike.GetComponent<Spike>().Size, Is.EqualTo(new Vector2(200, 100)));
+    }
+
+    [Test]
+    public void TheHandleTurnsASpikeToAnyAngleButABlockOnlyInQuarters()
+    {
+        Entity editor = EditorEntity();
+        Entity spike = EditorItems.Create(_store, new Spike(new Vector2(400, 400), new Vector2(100, 100)));
+        editor.GetComponent<NoteSelection>().Note = spike;
+        var playfield = editor.GetComponent<Playfield>();
+        SelectionRotation.Apply(SelectionRotation.Capture(spike), new Vector2(450, 450), Mathf.DegToRad(30f), playfield, snap: true);
+        Assert.That(spike.GetComponent<Spike>().RotationDegrees, Is.EqualTo(30f).Within(0.01f));
+        Assert.That(spike.GetComponent<Spike>().Position, Is.EqualTo(new Vector2(400, 400)));
+
+        Entity block = EditorItems.Create(_store, new Block(new Vector2(600, 600), new Vector2(100, 50)));
+        SelectionRotation.Apply(SelectionRotation.Capture(block), block.GetComponent<Block>().Center, Mathf.DegToRad(30f), playfield, snap: true);
+        Assert.That(block.GetComponent<Block>().Size, Is.EqualTo(new Vector2(100, 50)), "30 degrees is nearest no turn at all");
+        SelectionRotation.Apply(SelectionRotation.Capture(block), block.GetComponent<Block>().Center, Mathf.DegToRad(70f), playfield, snap: true);
+        Assert.That(block.GetComponent<Block>().Size, Is.EqualTo(new Vector2(50, 100)), "70 degrees is nearest a quarter");
+    }
+
     [Test]
     public void ClickingABlockSelectsIt()
     {
@@ -1036,7 +1093,7 @@ public sealed class EditorNoteInputSystemTests
     {
         Entity editor = _store.Query<PlayfieldView>().ToEntityList()[0];
         editor.AddComponent(new EditorPlacementModeState(EditorPlacementMode.Blocks));
-        BlockSnap.Attach(_store.CreateEntity());
+        ViewportSnap.Attach(_store.CreateEntity(), "");
         foreach (Entity toggle in _store.Query<Toggle>().Entities)
             toggle.GetComponent<Toggle>().Value = false;
 
@@ -1086,7 +1143,7 @@ public sealed class EditorNoteInputSystemTests
         Entity note = _store.CreateEntity(new Note(1_000, new Vector2(600, 525)));
         editor.GetComponent<NoteSelection>().SetMany(new[] { block, note });
 
-        BlockSnap.Attach(_store.CreateEntity());
+        ViewportSnap.Attach(_store.CreateEntity(), "");
         foreach (Entity toggle in _store.Query<Toggle>().Entities)
             toggle.GetComponent<Toggle>().Value = false;
 
@@ -1192,7 +1249,7 @@ public sealed class EditorNoteInputSystemTests
 
         Assert.That(
             block.GetComponent<Block>().Size.X,
-            Is.EqualTo(BlockGrid.Cell(new Playfield(1000, 1000)).X));
+            Is.EqualTo(GridPlacement.Cell(new Playfield(1000, 1000)).X));
     }
 
     [Test]
