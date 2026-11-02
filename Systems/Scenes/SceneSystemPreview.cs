@@ -3,6 +3,7 @@ using System.Linq;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Xanadu.Ecs;
+using Xanadu.Editor;
 using Xanadu.Levels;
 using SceneState = Xanadu.Ecs.SceneState;
 
@@ -14,6 +15,8 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
     private List<StartPoint> _previewStarts = new();
     private int _previewIndex;
     private long _previewReturnTimeMs;
+    private PlayerPath? _previewPath;
+    private EditorReturnState? _previewReturn;
 
     /// <summary>True while the play scene was launched from the editor.</summary>
     public bool IsEditorPreview => _previewEntry is not null;
@@ -25,10 +28,13 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
     /// Launches the real play scene for the editor's in-memory level, beginning
     /// at the start point at or before <paramref name="playheadMs"/>.
     /// </summary>
-    public bool StartEditorPreview(LevelEntry entry, long playheadMs)
+    /// <param name="fromPlayhead">Begins exactly at the playhead rather than at a start point.</param>
+    public bool StartEditorPreview(LevelEntry entry, long playheadMs, bool fromPlayhead = false)
     {
         if (_stateEntity.IsNull || IsTransitioning())
             return false;
+
+        _previewReturn = EditorReturnState.Capture(_entities);
 
         List<StartPoint> starts = (entry.Document.StartPoints ?? new())
             .Select(point => new StartPoint(
@@ -41,6 +47,13 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
             .OrderBy(point => point.TimeMs)
             .ToList();
 
+        if (fromPlayhead)
+        {
+            StartPoint here = EditorReturnState.StartAtPlayhead(_entities, entry.Document, starts, playheadMs);
+            starts.Add(here);
+            starts = starts.OrderBy(point => point.TimeMs).ToList();
+        }
+
         _previewEntry = entry;
         _previewStarts = starts;
         _previewReturnTimeMs = playheadMs;
@@ -50,6 +63,8 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
             if (starts[i].TimeMs <= playheadMs)
                 _previewIndex = i;
         }
+        // The stable sort keeps the playhead's own start after any at the same time,
+        // so the search above lands on it.
 
         QueuePreviewPlay();
         return true;
@@ -102,8 +117,39 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
         if (next == SceneKind.Play || next == SceneKind.Editor)
             return;
 
+        _previewPath = null;
+        _previewReturn = null;
         _previewEntry = null;
         _previewStarts = new();
+    }
+
+    /// <summary>Keeps the path of the preview that is ending, before its entities go.</summary>
+    private void CapturePreviewPath()
+    {
+        if (_previewEntry is null)
+            return;
+
+        foreach (Entity entity in _entities.Query<PlayerPathRecorder>().ToEntityList())
+        {
+            List<PlayerPathSample> samples = entity.GetComponent<PlayerPathRecorder>().Samples;
+            if (samples.Count == 0 ||
+                !entity.TryGetComponent(out Player player) ||
+                !entity.TryGetComponent(out PlayfieldView view))
+            {
+                continue;
+            }
+
+            _previewPath = new PlayerPath(samples, player.Size / view.Scale);
+        }
+    }
+
+    private void StartPreviewPathRecording(SceneKind next)
+    {
+        if (next != SceneKind.Play || _previewEntry is null)
+            return;
+
+        foreach (Entity entity in _entities.Query<PlaySession>().ToEntityList())
+            entity.AddComponent(new PlayerPathRecorder());
     }
 
     private void RestorePreviewPlayhead(SceneKind next)
@@ -121,8 +167,14 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
             ref Playhead playhead = ref entity.GetComponent<Playhead>();
             playhead.TimeMs = _previewReturnTimeMs;
             playhead.SeekRequestMs = _previewReturnTimeMs;
+            if (_previewPath is PlayerPath path)
+                entity.AddComponent(path);
+            _previewReturn?.Restore(_entities, entity);
         }
 
+        _previewReturn = null;
+
+        _previewPath = null;
         _previewEntry = null;
         _previewStarts = new();
     }

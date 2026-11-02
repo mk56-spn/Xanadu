@@ -10,14 +10,14 @@ using Xanadu.Theme;
 namespace Xanadu.Systems.Shaders;
 
 /// <summary>
-/// F8 opens a panel with a slider for every channel of every uniform on the
-/// shaders in use. Edits apply live; SAVE, or closing the panel, writes them
-/// to the shader parameter file, which is applied again on the next launch.
+/// F8 opens a panel with a slider for every channel of every uniform of one
+/// material in use, and PREV and NEXT step between materials. Each material is
+/// tuned alone, even when others share its shader. It is a debugging aid: edits
+/// apply live and nothing is saved.
 /// </summary>
 public sealed class ShaderTunerSystem(
     EntityStore entities,
     IKeyboardState keyboard,
-    ShaderParamStore store,
     Key key = Key.F8) : QuerySystem<UiSlider, ShaderParam>
 {
     private const float PanelCenterX = 1640;
@@ -32,26 +32,27 @@ public sealed class ShaderTunerSystem(
     private static readonly Vector2 ButtonSize = new(120, 34);
     private static readonly Color Clear = new(0, 0, 0, 0);
 
-    private const string SquareShader = "res://Assets/Shaders/Ui/color_sv.gdshader";
-    private const string HueShader = "res://Assets/Shaders/Ui/color_hue.gdshader";
+    internal const string SquareShader = "res://Assets/Shaders/Ui/color_sv.gdshader";
+    internal const string HueShader = "res://Assets/Shaders/Ui/color_hue.gdshader";
     private const string UiShaders = "res://Assets/Shaders/Ui/";
 
 
     private readonly List<ShaderTarget> _targets = new();
+
+    // What the sliders last held, so only what they change reaches a material:
+    // other systems drive some of these uniforms, such as a tint or the spectrum.
+    private readonly Dictionary<string, float[]> _applied = new();
+    private int _index;
     private Entity _layer;
-    private Entity _footer;
     private readonly OverlayLatch _latch = new(new KeyboardToggleSource(keyboard, key));
 
-    /// <param name="Slot">
-    /// Set for a level's own shader: its tuned values live in the level, so
-    /// they are written there as they change and saved with the level.
-    /// </param>
+    /// <param name="Material">The one material this target tunes.</param>
+    /// <param name="Uniforms">Its tunable uniforms.</param>
+    /// <param name="Title">The panel's heading for it.</param>
     private sealed record ShaderTarget(
-        string Shader,
-        List<ShaderMaterial> Materials,
+        ShaderMaterial Material,
         List<ShaderUniform> Uniforms,
-        ShaderSlot? Slot = null,
-        string? Title = null);
+        string Title);
 
     public bool IsOpen => !_layer.IsNull;
 
@@ -80,6 +81,15 @@ public sealed class ShaderTunerSystem(
         if (_targets.Count == 0)
             return;
 
+        _index = 0;
+        Build();
+    }
+
+    private void Build()
+    {
+        _applied.Clear();
+        ShaderTarget target = _targets[_index];
+
         UiBuilder ui = UiBuilder.Begin(entities).Layer(UiLayers.ShaderTuner);
         _layer = ui.Current;
         _layer.AddTag<DebugUi>();
@@ -97,24 +107,33 @@ public sealed class ShaderTunerSystem(
             anchorTop: true,
             main: StackMainAlignment.Start);
 
-        foreach (ShaderTarget target in _targets)
+        if (_targets.Count > 1)
         {
-            Label(ui, Inner, target.Title ?? target.Shader.Split('/')[^1], UiType.Label, DebugPalette.Title);
+            ui.Container(
+                Vector2.Zero,
+                new Vector2(Inner, ButtonSize.Y),
+                StackDirection.Horizontal,
+                spacing: UiMetrics.Space.Md,
+                color: Clear);
+            AddButton(ui, "PREV", ShaderTunerAction.Previous);
+            AddButton(ui, "NEXT", ShaderTunerAction.Next);
+            ui.End();
+        }
 
-            ShaderMaterial material = target.Materials[0];
-            foreach (ShaderUniform uniform in target.Uniforms)
+        Label(ui, Inner, $"{_index + 1}/{_targets.Count}  {target.Title}", UiType.Label, DebugPalette.Title);
+
+        foreach (ShaderUniform uniform in target.Uniforms)
+        {
+            float[] values = ShaderUniforms.Read(target.Material, uniform);
+            float[] defaults = ShaderUniforms.Default(target.Material.Shader, uniform);
+            if (uniform.Kind == UniformKind.Color)
             {
-                float[] values = ShaderUniforms.Read(material, uniform);
-                float[] defaults = ShaderUniforms.Default(material.Shader, uniform);
-                if (uniform.Kind == UniformKind.Color)
-                {
-                    AddColorPicker(ui, target.Shader, uniform, values, defaults);
-                    continue;
-                }
-
-                for (int channel = 0; channel < uniform.Channels; channel++)
-                    AddRow(ui, target.Shader, uniform, channel, values[channel], defaults[channel]);
+                AddColorPicker(ui, uniform, values, defaults);
+                continue;
             }
+
+            for (int channel = 0; channel < uniform.Channels; channel++)
+                AddRow(ui, uniform, channel, values[channel], defaults[channel]);
         }
 
         ui.Container(
@@ -123,10 +142,8 @@ public sealed class ShaderTunerSystem(
             StackDirection.Horizontal,
             spacing: UiMetrics.Space.Md,
             color: Clear);
-        AddButton(ui, "SAVE", ShaderTunerAction.Save);
         AddButton(ui, "RESET", ShaderTunerAction.Reset);
         ui.End();
-        _footer = Label(ui, Inner, store.Path, UiType.Caption, DebugPalette.TextDim);
         ui.End();
     }
 
@@ -147,17 +164,19 @@ public sealed class ShaderTunerSystem(
             if (path.StartsWith(UiShaders, StringComparison.Ordinal))
                 continue;
 
-            ShaderTarget? target = _targets.Find(existing => existing.Shader == path);
-            if (target is null)
-            {
-                target = new ShaderTarget(path, new(), ShaderUniforms.Describe(shader));
-                if (target.Uniforms.Count == 0)
-                    continue;
+            // Entities can share a material, and then they are one thing to tune.
+            if (_targets.Exists(existing => existing.Material == material))
+                continue;
 
-                _targets.Add(target);
-            }
+            List<ShaderUniform> uniforms = ShaderUniforms.Describe(shader);
+            if (uniforms.Count == 0)
+                continue;
 
-            target.Materials.Add(material);
+            string title = path.Split('/')[^1];
+            if (material.HasMeta(ShaderMaterials.InstanceMeta))
+                title += ": " + material.GetMeta(ShaderMaterials.InstanceMeta).AsString();
+
+            _targets.Add(new ShaderTarget(material, uniforms, title));
         }
 
         CollectLevelShaders();
@@ -179,10 +198,8 @@ public sealed class ShaderTunerSystem(
 
                 string name = slot.Name.Length > 0 ? slot.Name : "unnamed";
                 _targets.Add(new ShaderTarget(
-                    $"level:{i + 1}",
-                    [material],
+                    material,
                     uniforms,
-                    slot,
                     $"Level shader {i + 1}: {name}"));
             }
         }
@@ -190,7 +207,6 @@ public sealed class ShaderTunerSystem(
 
     private void AddRow(
         UiBuilder ui,
-        string shader,
         ShaderUniform uniform,
         int channel,
         float value,
@@ -227,12 +243,11 @@ public sealed class ShaderTunerSystem(
             uniform.ChannelName(channel) + "  ",
             uniform.Kind == UniformKind.Int ? "0" : "0.###",
             defaultValue));
-        track.AddComponent(new ShaderParam(shader, uniform.Name, channel, defaultValue));
+        track.AddComponent(new ShaderParam(uniform.Name, channel, defaultValue));
     }
 
     private static void AddColorPicker(
         UiBuilder ui,
-        string shader,
         ShaderUniform uniform,
         float[] value,
         float[] defaults)
@@ -252,7 +267,6 @@ public sealed class ShaderTunerSystem(
         ui.End();
 
         parts[0].AddComponent(new ShaderColorParam(
-            shader,
             uniform.Name,
             new Color(defaults[0], defaults[1], defaults[2], defaults[3])));
     }
@@ -273,19 +287,16 @@ public sealed class ShaderTunerSystem(
     private static Entity Label(UiBuilder ui, float width, string text, int fontSize, Color color) =>
         ui.Text(text, new Vector2(width, fontSize * 1.5f), fontSize, color, TextAlign.Left);
 
-    /// <summary>Current slider values, grouped as one array per uniform.</summary>
-    private Dictionary<(string, string), float[]> GatherValues()
+    /// <summary>Current slider values, as one array per uniform of the target on screen.</summary>
+    private Dictionary<string, float[]> GatherValues(ShaderTarget target)
     {
-        var values = new Dictionary<(string, string), float[]>();
-        foreach (ShaderTarget target in _targets)
-        {
-            foreach (ShaderUniform uniform in target.Uniforms)
-                values[(target.Shader, uniform.Name)] = new float[uniform.Channels];
-        }
+        var values = new Dictionary<string, float[]>();
+        foreach (ShaderUniform uniform in target.Uniforms)
+            values[uniform.Name] = new float[uniform.Channels];
 
         Query.ForEachEntity((ref slider, ref param, _) =>
         {
-            if (values.TryGetValue((param.Shader, param.Uniform), out float[]? channels) &&
+            if (values.TryGetValue(param.Uniform, out float[]? channels) &&
                 param.Channel < channels.Length)
             {
                 channels[param.Channel] = slider.Value;
@@ -295,7 +306,7 @@ public sealed class ShaderTunerSystem(
         foreach (Entity picker in entities.Query<UiColorPicker, ShaderColorParam>().ToEntityList())
         {
             ShaderColorParam param = picker.GetComponent<ShaderColorParam>();
-            if (!values.TryGetValue((param.Shader, param.Uniform), out float[]? channels))
+            if (!values.TryGetValue(param.Uniform, out float[]? channels))
                 continue;
 
             Color color = picker.GetComponent<UiColorPicker>().Color;
@@ -308,25 +319,27 @@ public sealed class ShaderTunerSystem(
         return values;
     }
 
-    /// <summary>Pushes each slider's value onto every material using its shader.</summary>
+    /// <summary>Pushes whatever the sliders changed onto the material on screen.</summary>
     private void ApplySliders()
     {
-        var values = GatherValues();
+        ShaderTarget target = _targets[_index];
+        var values = GatherValues(target);
 
-        foreach (ShaderTarget target in _targets)
+        foreach (ShaderUniform uniform in target.Uniforms)
         {
-            foreach (ShaderUniform uniform in target.Uniforms)
+            float[] channels = values[uniform.Name];
+            if (!_applied.TryGetValue(uniform.Name, out float[]? applied))
             {
-                float[] channels = values[(target.Shader, uniform.Name)];
-                foreach (ShaderMaterial material in target.Materials)
-                {
-                    if (GodotObject.IsInstanceValid(material))
-                        ShaderUniforms.Write(material, uniform, channels);
-                }
-
-                if (target.Slot is { } slot)
-                    slot.Params[uniform.Name] = (float[])channels.Clone();
+                _applied[uniform.Name] = channels;
+                continue;
             }
+
+            if (applied.AsSpan().SequenceEqual(channels))
+                continue;
+
+            _applied[uniform.Name] = channels;
+            if (GodotObject.IsInstanceValid(target.Material))
+                ShaderUniforms.Write(target.Material, uniform, channels);
         }
     }
 
@@ -339,10 +352,35 @@ public sealed class ShaderTunerSystem(
                      .ToEntityList())
         {
             button.RemoveTag<Pressed>();
-            if (button.GetComponent<ShaderTunerButton>().Action == ShaderTunerAction.Save)
-                Save();
-            else
-                ResetSliders();
+            switch (button.GetComponent<ShaderTunerButton>().Action)
+            {
+                case ShaderTunerAction.Reset:
+                    ResetSliders();
+                    break;
+                case ShaderTunerAction.Previous:
+                    Step(-1);
+                    return;
+                case ShaderTunerAction.Next:
+                    Step(1);
+                    return;
+            }
+        }
+    }
+
+    /// <summary>Moves to the next material still alive, rebuilding the panel for it.</summary>
+    private void Step(int direction)
+    {
+        ApplySliders();
+        for (int i = 1; i <= _targets.Count; i++)
+        {
+            int next = Mathf.PosMod(_index + direction * i, _targets.Count);
+            if (!GodotObject.IsInstanceValid(_targets[next].Material))
+                continue;
+
+            _index = next;
+            UiLayout.DeleteSubtree(_layer);
+            Build();
+            return;
         }
     }
 
@@ -357,41 +395,8 @@ public sealed class ShaderTunerSystem(
             picker.GetComponent<UiColorPicker>().Color = picker.GetComponent<ShaderColorParam>().Default;
     }
 
-    private void Save()
-    {
-        var values = GatherValues();
-
-        // A level's own shaders were already written into the level as they changed.
-        foreach (((string shader, string uniform), float[] channels) in values)
-        {
-            if (!_targets.Exists(target => target.Shader == shader && target.Slot is not null))
-                store.Set(shader, uniform, channels);
-        }
-
-        try
-        {
-            store.Save();
-            SceneText(_footer, "saved: " + store.Path);
-        }
-        catch (Exception exception)
-        {
-            GD.PushError($"Could not save shader parameters: {exception.Message}");
-            SceneText(_footer, "save failed: " + exception.Message);
-        }
-    }
-
-    private static void SceneText(Entity entity, string text)
-    {
-        if (entity.IsNull || !entity.HasComponent<Text>())
-            return;
-
-        entity.GetComponent<Text>().Value = text;
-        entity.AddTag<Dirty>();
-    }
-
     private void Close()
     {
-        Save();
         UiLayout.DeleteSubtree(_layer);
         _layer = default;
         _targets.Clear();

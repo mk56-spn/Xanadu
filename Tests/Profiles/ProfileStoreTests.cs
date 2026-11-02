@@ -45,6 +45,25 @@ public sealed class ProfileStoreTests
 
 
     [Test]
+    public void RenameKeepsNamesUniqueBoundedAndNotBlank()
+    {
+        var store = new ProfileStore(persist: false);
+        store.Create("Alice");
+        UserProfile bob = store.Create("Bob");
+
+        Assert.That(store.Rename(bob.Id, "  "), Is.False);
+        Assert.That(bob.Name, Is.EqualTo("Bob"));
+
+        Assert.That(store.Rename(bob.Id, "alice"), Is.True);
+        Assert.That(bob.Name, Is.EqualTo("alice 2"));
+
+        store.Rename(bob.Id, new string('x', 40));
+        Assert.That(bob.Name, Has.Length.EqualTo(ProfileStore.MaxNameLength));
+
+        Assert.That(store.Rename(bob.Id, bob.Name), Is.False);
+    }
+
+    [Test]
     public void AllScoresHandlesOverflowSizedLists()
     {
         var store = new ProfileStore(persist: false);

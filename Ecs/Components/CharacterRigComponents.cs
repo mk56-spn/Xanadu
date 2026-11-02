@@ -56,6 +56,12 @@ public enum CharacterMotionState
 /// <summary>A rigged player's motion state and what it is derived from.</summary>
 public struct CharacterMotion : IComponent
 {
+    /// <summary>Whether the player was rising last frame.</summary>
+    public bool WasRising;
+
+    /// <summary>The upward speed last frame, in pixels per second.</summary>
+    public float LastRiseSpeed;
+
     public CharacterMotionState State;
 
     /// <summary>Seconds since <see cref="State"/> was entered.</summary>

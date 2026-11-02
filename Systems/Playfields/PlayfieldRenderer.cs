@@ -25,8 +25,6 @@ public static partial class PlayfieldRenderer
     public static readonly Color QueueColor = Palette.Info;
     public static readonly Color CharacterSwitchColor = Palette.Lime;
     public static readonly Color PairColor = Palette.TextBright;
-    public static readonly Color DashColor = Palette.Info;
-    public static readonly Color MomentumColor = Palette.Rose;
     public static readonly Color ContactBarrierColor = Palette.Violet;
     public static readonly Color WeaponSwitchColor = Palette.Success;
     public static readonly Color ChannelColor = Palette.Selected;

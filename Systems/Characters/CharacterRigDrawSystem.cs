@@ -59,7 +59,9 @@ public sealed class CharacterRigDrawSystem(Func<IAttachmentVisuals> createVisual
             }
 
             Vector2 size = entity.GetComponent<Player>().Size;
-            Vector2 center = entity.GetComponent<Position>().Value;
+            Vector2 center = PlayerSmoothing.DrawnPosition(entity);
+            if (entity.TryGetComponent(out PlayCamera camera))
+                center += camera.Subpixel;
             bool faceLeft = entity.TryGetComponent(out CharacterFacing facing) && facing.Left;
             Transform2D placement = Placement(instance.RigBounds, center + new Vector2(0, size.Y / 2), size.Y, faceLeft);
             instance.Visuals.Apply(attachments, placement);

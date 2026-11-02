@@ -446,6 +446,70 @@ public sealed class EditorPlayfieldDrawSystemTests
         Assert.That(canvas.Texts, Does.Not.Contain("outro"));
     }
 
+    [TestCase(true)]
+    [TestCase(false)]
+    public void ThePathToggleShowsOrHidesThePreviewPath(bool visible)
+    {
+        var (store, field, canvas, root) = StartPointScene();
+        field.AddComponent(new PlayerPath(
+            new List<PlayerPathSample>
+            {
+                new(new Vector2(100, 100), 0, false),
+                new(new Vector2(200, 100), 100, false),
+            },
+            new Vector2(30, 200)));
+        Entity button = store.CreateEntity();
+        PlayerPathSwitch.Attach(button);
+        button.GetComponent<Toggle>().Value = visible;
+
+        root.Update(new UpdateTick(1f / 60f, 0));
+
+        Assert.That(
+            canvas.Lines.Exists(line => line.Color.G > line.Color.R && line.Color.G > line.Color.B && line.Color.A > 0.7f),
+            Is.EqualTo(visible));
+    }
+
+    [Test]
+    public void ASelectedNoteKeepsItsOutlineAfterItFadesOut()
+    {
+        var (store, field, canvas, root) = StartPointScene();
+        Entity note = store.CreateEntity(new Note(0, new Vector2(100, 100)));
+        field.GetComponent<NoteSelection>() = new NoteSelection(note);
+
+        root.Update(new UpdateTick(1f / 60f, 0));
+
+        Assert.That(
+            canvas.Lines.Exists(line => line.Color == PlayfieldRenderer.SelectedNoteColor),
+            Is.True);
+    }
+
+    [Test]
+    public void ASelectedMineKeepsItsOutlineAfterItFadesOut()
+    {
+        var (store, field, canvas, root) = StartPointScene();
+        Entity mine = store.CreateEntity(new Mine(0, new Vector2(100, 100)));
+        field.GetComponent<NoteSelection>() = new NoteSelection(mine);
+
+        root.Update(new UpdateTick(1f / 60f, 0));
+
+        Assert.That(
+            canvas.Lines.Exists(line => line.Color == PlayfieldRenderer.SelectedNoteColor),
+            Is.True);
+    }
+
+    [Test]
+    public void AnUnselectedNoteHasNoOutlineOnceItFadesOut()
+    {
+        var (store, _, canvas, root) = StartPointScene();
+        store.CreateEntity(new Note(0, new Vector2(100, 100)));
+
+        root.Update(new UpdateTick(1f / 60f, 0));
+
+        Assert.That(
+            canvas.Lines.Exists(line => line.Color == PlayfieldRenderer.SelectedNoteColor),
+            Is.False);
+    }
+
     [Test]
     public void TheSelectedStartPointIsHighlightedOnTheTimeline()
     {

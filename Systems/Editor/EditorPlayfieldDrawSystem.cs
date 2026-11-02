@@ -29,6 +29,8 @@ public sealed partial class EditorPlayfieldDrawSystem :
     private readonly GodotShaderCanvasItems _shaderItems = new();
     private readonly EntityStore _entities;
     private readonly Rid _editor;
+    private PlayerPath? _path;
+    private Entity _drawnEditor;
 
     public EditorPlayfieldDrawSystem(EntityStore entities, IRectCanvas canvas, Rid editor)
     {
@@ -61,6 +63,8 @@ public sealed partial class EditorPlayfieldDrawSystem :
             Color? background = entity.TryGetComponent(out LevelInfo info)
                 ? info.Background
                 : null;
+            _path = entity.TryGetComponent(out PlayerPath path) ? path : null;
+            _drawnEditor = entity;
             DrawEditor(
                     view,
                     playfield,
@@ -113,6 +117,8 @@ public sealed partial class EditorPlayfieldDrawSystem :
         PlayfieldRenderer.DrawFieldLabels(_canvas, _editor, playfield, field);
         PlayfieldRenderer.DrawBlocks(_canvas, _editor, _entities, view, selection.Note);
         PlayfieldRenderer.DrawSpikes(_canvas, _editor, _entities, view, selection.Note);
+        if (_path is PlayerPath playerPath && PlayerPathSwitch.IsVisible(_entities))
+            DrawPlayerPath(view, playhead, playerPath, playfield.Width);
         PlayfieldRenderer.DrawNotes(
             _canvas,
             _editor,
@@ -137,12 +143,14 @@ public sealed partial class EditorPlayfieldDrawSystem :
             playhead);
         DrawStartPoints(view, selection);
         DrawDashDestinations(view, playhead);
+        DrawPlacementGhost(_drawnEditor, view, playfield, playhead);
         if (groupState.Preview)
             DrawGroupPreview(view, playhead, groups, groupState);
-        DrawSelectionOutlines(view, playhead, selection);
+        DrawSelectionOutlines(view, selection);
         if (groupState.TargetEdit)
             DrawGroupTarget(view, playfield, groups, groupState, selection);
         DrawBlockHandles(view, selection);
+        DrawRotationHandle(view, selection);
 
         // The chrome goes over the field, so a panned or zoomed field stays out of it.
         DrawMasks(view, area);
@@ -242,10 +250,11 @@ public sealed partial class EditorPlayfieldDrawSystem :
         }
     }
 
-    private void DrawSelectionOutlines(
-        PlayfieldView view,
-        Playhead playhead,
-        NoteSelection selection)
+    /// <summary>
+    /// Outlines the selection whatever the playhead's time, so an item stays
+    /// marked after scrolling past the point where its body fades out.
+    /// </summary>
+    private void DrawSelectionOutlines(PlayfieldView view, NoteSelection selection)
     {
         float size = PlayfieldRenderer.NoteSize * view.Scale;
 
@@ -255,9 +264,6 @@ public sealed partial class EditorPlayfieldDrawSystem :
                 continue;
 
             Note note = entity.GetComponent<Note>();
-            if (NoteFade.Alpha(note, playhead.TimeMs) <= 0)
-                continue;
-
             Vector2 center = view.PlayfieldToScreen(note.Position);
             _canvas.DrawCircleOutline(
                 _editor,
@@ -274,9 +280,6 @@ public sealed partial class EditorPlayfieldDrawSystem :
                 continue;
 
             Mine mine = entity.GetComponent<Mine>();
-            if (MineFade.Alpha(mine, playhead.TimeMs) <= 0)
-                continue;
-
             Vector2 center = view.PlayfieldToScreen(mine.Position);
             _canvas.DrawCircleOutline(
                 _editor,

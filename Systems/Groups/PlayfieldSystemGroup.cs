@@ -89,6 +89,8 @@ public sealed class PlayfieldSystemGroup : SystemGroup, IDisposable
             _hudOverlay.Rid));
         Add(new ContactCounterSystem());
         Add(new WeaponHudSystem());
+        Add(new PlayerSmoothingSystem());
+        Add(new PlayerPathRecordSystem());
         Add(new PlayCameraSystem());
         Add(new PlayScoreSystem());
         Add(new ComboHudSystem());

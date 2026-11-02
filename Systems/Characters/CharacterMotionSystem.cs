@@ -1,9 +1,11 @@
+using System;
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Xanadu.Animation;
 using Godot;
 using Xanadu.Ecs;
+using Xanadu.Systems.Physics;
 using Position = Xanadu.Ecs.Position;
 
 namespace Xanadu.Systems.Characters;
@@ -27,6 +29,12 @@ public sealed class CharacterMotionSystem : QuerySystem<CharacterRig, Player, Po
 
     /// <summary>Upward movement in one frame, in pixels, that counts as a jump.</summary>
     public const float RiseThreshold = 1f;
+
+    /// <summary>
+    /// Upward speed, in pixels per second, that counts as a jump. Physics runs
+    /// faster than frames, so a slow rise moves too little per frame to judge by distance.
+    /// </summary>
+    public const float RiseSpeed = 60f;
 
     /// <summary>Slack in pixels when testing whether the player rests on the floor.</summary>
     private const float FloorTolerance = 0.5f;
@@ -74,12 +82,15 @@ public sealed class CharacterMotionSystem : QuerySystem<CharacterRig, Player, Po
             ref CharacterMotion motion = ref entity.GetComponent<CharacterMotion>();
             AnimatorRuntime runtime = entity.GetComponent<CharacterRig>().Runtime;
             motion.StateTime += delta;
-            bool rising = Simulated(entity) && y < motion.LastY - RiseThreshold;
+            bool rising = Rising(entity, y, motion.LastY);
+            bool freshRise = rising && FreshRise(entity, y, motion, delta);
+            motion.WasRising = rising;
+            motion.LastRiseSpeed = UpwardSpeed(entity);
             motion.LastY = y;
 
             CharacterMotionState next = Next(motion, rising, OnFloor(entity, y), runtime);
             // A second jump while still jumping replays the jump from the start.
-            bool rejump = rising && motion.State == CharacterMotionState.Jumping;
+            bool rejump = freshRise && motion.State == CharacterMotionState.Jumping;
             if (next == motion.State && !rejump)
                 continue;
 
@@ -175,6 +186,29 @@ public sealed class CharacterMotionSystem : QuerySystem<CharacterRig, Player, Po
         else
             runtime.Transition(clip);
     }
+
+    /// <summary>Whether the player went up this frame: moved up by a dash or a teleport, or is travelling up.</summary>
+    private static bool Rising(Entity entity, float y, float lastY) =>
+        Simulated(entity) && (y < lastY - RiseThreshold || UpwardSpeed(entity) > RiseSpeed);
+
+    /// <summary>
+    /// Whether this rise is a new jump rather than the one already under way:
+    /// the player was not rising, gained speed that gravity could not have given
+    /// it, or moved further up than its speed explains, as a dash does.
+    /// </summary>
+    private static bool FreshRise(Entity entity, float y, in CharacterMotion motion, float delta)
+    {
+        float speed = UpwardSpeed(entity);
+        float travelled = Math.Max(speed, 0f) * delta * 2f;
+        return !motion.WasRising ||
+               speed > motion.LastRiseSpeed + 1f ||
+               y < motion.LastY - RiseThreshold - travelled;
+    }
+
+    private static float UpwardSpeed(Entity entity) =>
+        entity.TryGetComponent(out PhysicsBody body)
+            ? -body.Body.LinearVelocity.Y * Box2DPhysicsWorld.PixelsPerMeter
+            : 0f;
 
     /// <summary>Before play starts the player has no body and just stands where it was placed.</summary>
     private static bool Simulated(Entity entity) => entity.HasComponent<PhysicsBody>();

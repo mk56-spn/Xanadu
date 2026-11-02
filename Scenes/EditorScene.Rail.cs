@@ -20,15 +20,15 @@ public static partial class EditorScene
         EditorShellRects shell)
     {
         UiNode ui = UiNode.Layer(entities, root, UiLayers.EditorRail, null, UiStage.Full);
-        Vector2 home = shell.Viewport.Position + new Vector2(
-            12,
-            shell.Viewport.Size.Y - 128);
-        UiNode panel = ui.Column()
-            .At(home)
-            .Size(376, 116)
+        UiNode viewport = ui.Column().Box(shell.Viewport);
+        UiNode panel = viewport.Column()
+            .Width(376)
+            .AutoHeight()
             .Fill(SceneUi.PanelColor)
             .Pad(7)
-            .Gap(4);
+            .Gap(4)
+            .Input()
+            .Anchor(UiEdge.BottomLeft);
 
         panel.Text("RAIL LAYER", 12, SceneUi.DimTextColor, TextAlign.Left)
             .Size(362, 16);

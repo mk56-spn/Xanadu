@@ -90,6 +90,7 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
         }
 
         ClearPreviewIfLeaving(next);
+        CapturePreviewPath();
         DestroyScene();
 
         _sceneRoot = _entities.CreateEntity(new SceneRoot(next));
@@ -129,6 +130,7 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
 
         state.Current = next;
         state.Pending = next;
+        StartPreviewPathRecording(next);
         RestorePreviewPlayhead(next);
         _director.Apply(next);
     }

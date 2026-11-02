@@ -1,0 +1,100 @@
+using Friflo.Engine.ECS;
+using Godot;
+using Xanadu.Ecs;
+using Xanadu.Settings;
+using Xanadu.Systems.Playfields;
+
+namespace Xanadu.Systems.Editor;
+
+/// <summary>
+/// The note the current tool places, from the editor's tool state. Placing and
+/// the ghost under the pointer share it, so the ghost always tells the truth.
+/// </summary>
+public static class EditorPlacementNote
+{
+    /// <summary>True for a Form step with no shape chosen, which cannot be placed.</summary>
+    public static bool NeedsShape(Entity editor) =>
+        editor.TryGetComponent(out EditorPlacementModeState mode) &&
+        mode.Mode == EditorPlacementMode.FormStep &&
+        (!editor.TryGetComponent(out EditorShapeState shape) || shape.ShapeId == 0);
+
+    public static Note Build(Entity editor, long time, Vector2 position)
+    {
+        KeybindAction target = editor.HasComponent<EditorNoteTarget>()
+            ? editor.GetComponent<EditorNoteTarget>().Target
+            : KeybindAction.M;
+        CharacterKind character = editor.HasComponent<EditorCharacterTarget>()
+            ? editor.GetComponent<EditorCharacterTarget>().Target
+            : CharacterKind.Contact;
+        EditorPlacementMode mode = editor.HasComponent<EditorPlacementModeState>()
+            ? editor.GetComponent<EditorPlacementModeState>().Mode
+            : EditorPlacementMode.Notes;
+        DashDirection direction = editor.HasComponent<EditorDashDirectionState>()
+            ? editor.GetComponent<EditorDashDirectionState>().Direction
+            : DashDirection.Up;
+        DashStrength strength = editor.HasComponent<EditorDashStrengthState>()
+            ? editor.GetComponent<EditorDashStrengthState>().Strength
+            : DashStrength.Single;
+        bool isPair = mode == EditorPlacementMode.Pair;
+        bool isContact = mode == EditorPlacementMode.Contact;
+        bool isChannel = mode == EditorPlacementMode.Channel;
+        bool isFormStep = mode == EditorPlacementMode.FormStep;
+        EditorShapeState shape = editor.HasComponent<EditorShapeState>()
+            ? editor.GetComponent<EditorShapeState>()
+            : new EditorShapeState(0);
+        KeybindAction channelTarget = target == KeybindAction.M
+            ? KeybindAction.L1
+            : target;
+        EditorContactCostState costs = editor.HasComponent<EditorContactCostState>()
+            ? editor.GetComponent<EditorContactCostState>()
+            : new EditorContactCostState(1, 1);
+
+        return new Note(
+            time,
+            position,
+            target: mode == EditorPlacementMode.CharacterSwitch ||
+                    mode == EditorPlacementMode.WeaponSwitch ||
+                    isPair ||
+                    isContact
+                ? KeybindAction.M
+                : isChannel || isFormStep
+                    ? channelTarget
+                    : target,
+            kind: mode switch
+            {
+                EditorPlacementMode.Pair => NoteKind.Pair,
+                EditorPlacementMode.Dash => NoteKind.Dash,
+                EditorPlacementMode.Momentum => NoteKind.Momentum,
+                EditorPlacementMode.Contact => NoteKind.Contact,
+                EditorPlacementMode.CharacterSwitch => NoteKind.CharacterSwitch,
+                EditorPlacementMode.WeaponSwitch => NoteKind.WeaponSwitch,
+                EditorPlacementMode.Channel => NoteKind.Channel,
+                EditorPlacementMode.FormStep => NoteKind.ConstructionStep,
+                _ => NoteKind.Hit,
+            },
+            dashDirection: direction,
+            contactRequired: isContact ? 0 : 1,
+            character: character,
+            dashStrength: strength,
+            pairIndex: NoteRules.PairIndexFor(target),
+            momentum: MomentumFor(strength),
+            contactLeft: isContact ? costs.Left : 0,
+            contactRight: isContact ? costs.Right : 0,
+            channelSide: isChannel
+                ? NoteRules.SideOf(channelTarget)
+                : ChannelSide.Left,
+            shapeId: isFormStep ? shape.ShapeId : 0,
+            shapePiece: 0);
+    }
+
+    /// <summary>
+    /// The three movement strength buttons pick a dash distance and a momentum
+    /// push, so a mapper gets a consistent 1×/2×/3× language.
+    /// </summary>
+    private static float MomentumFor(DashStrength strength) => strength switch
+    {
+        DashStrength.Double => 900f,
+        DashStrength.Triple => 1200f,
+        _ => 600f,
+    };
+}

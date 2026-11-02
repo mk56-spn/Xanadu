@@ -33,10 +33,7 @@ public sealed class EditorDirectionWheelSystemTests : EcsSystemTest
         _editor = Store.CreateEntity(
             new EditorPlacementModeState(EditorPlacementMode.Notes),
             new EditorDashDirectionState(DashDirection.UpRight),
-            new EditorDirectionWheel(
-                _wheel,
-                _label,
-                new Vector2(400, 300)));
+            new EditorDirectionWheel(_wheel, _label));
 
         Root.Add(new EditorDirectionWheelSystem());
     }
@@ -58,10 +55,8 @@ public sealed class EditorDirectionWheelSystemTests : EcsSystemTest
 
         Frame();
 
-        Assert.That(_wheel.GetComponent<Position>().Value,
-            Is.EqualTo(new Vector2(400, 300)));
-        Assert.That(_label.GetComponent<Position>().Value,
-            Is.EqualTo(new Vector2(400, 300 - 90 - 16)));
+        Assert.That(UiLayout.IsHidden(_wheel), Is.False);
+        Assert.That(UiLayout.IsHidden(_label), Is.False);
         Assert.That(_wheel.GetComponent<UiWheel>().Selected,
             Is.EqualTo(1));
     }

@@ -13,10 +13,20 @@ namespace Xanadu.Systems.Physics;
 public sealed class Box2DPhysicsWorld : IDisposable
 {
     public const float PixelsPerMeter = 100f;
-    public const float FixedTimeStep = 1f / 60f;
+    public const float FixedTimeStep = 1f / 240f;
 
     /// <summary>The fixed downward pull, in metres per second squared.</summary>
-    public const float DefaultGravity = 15f;
+    public const float DefaultGravity = 22.2f;
+
+    /// <summary>The gravity momentum values are authored against, in metres per second squared.</summary>
+    public const float MomentumReferenceGravity = 15f;
+
+    /// <summary>
+    /// Scales a launch speed so it reaches the height and distance it reached at
+    /// <see cref="MomentumReferenceGravity"/>, only faster: height is v²/2g, so
+    /// speed has to grow with the square root of gravity.
+    /// </summary>
+    public static float MomentumScale => MathF.Sqrt(DefaultGravity / MomentumReferenceGravity);
 
     private readonly World _world;
     private float _accumulator;
@@ -103,6 +113,13 @@ public sealed class Box2DPhysicsWorld : IDisposable
         if (!_disposed && body is not null)
             _world.DestroyBody(body);
     }
+
+    /// <summary>How far the clock is through the next fixed step, from 0 to 1.</summary>
+    public float StepProgress => _accumulator / FixedTimeStep;
+
+    /// <summary>Whether <see cref="Step"/> with this delta would advance the world.</summary>
+    public bool WillStep(float delta) =>
+        !_disposed && _accumulator + MathF.Min(delta, 0.25f) >= FixedTimeStep;
 
     public void Step(float delta)
     {

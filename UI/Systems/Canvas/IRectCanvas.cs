@@ -48,6 +48,20 @@ public interface IRectCanvas
             DrawLine(canvas, points[i - 1], points[i], color, width);
     }
 
+    /// <summary>Draws many one-pixel rectangle outlines of one colour, as one batch where the canvas can.</summary>
+    void DrawRectOutlines(Rid canvas, ReadOnlySpan<Rect2> rects, Color color)
+    {
+        foreach (Rect2 rect in rects)
+        {
+            Vector2 topRight = new(rect.End.X, rect.Position.Y);
+            Vector2 bottomLeft = new(rect.Position.X, rect.End.Y);
+            DrawLine(canvas, rect.Position, topRight, color, 1);
+            DrawLine(canvas, topRight, rect.End, color, 1);
+            DrawLine(canvas, rect.End, bottomLeft, color, 1);
+            DrawLine(canvas, bottomLeft, rect.Position, color, 1);
+        }
+    }
+
     /// <summary>Draws an outlined circle as one connected polyline.</summary>
     void DrawCircleOutline(
         Rid canvas,

@@ -70,6 +70,12 @@ public struct ErrorBar(
     public float MaxOffsetMs = maxOffsetMs;
 }
 
+/// <summary>The EARLY / LATE label shown under the judgement on the hit note.</summary>
+public struct TimingIndicator(Entity text) : IComponent
+{
+    public Entity Text = text;
+}
+
 /// <summary>
 /// The big combo counter: the number and the word under it, and how far
 /// through its animations it is. It swells and flashes on every hit, harder

@@ -39,8 +39,11 @@ public sealed class EditorDirectionWheelSceneTest : SceneTest
             () => PlaceMode() == EditorPlacementMode.Dash &&
                   !UiLayout.IsHidden(Wheel()));
         AddAssert(
-            "the note key bar hides for any-key dash notes",
-            () => UiLayout.IsHidden(NoteBar()));
+            "the note elements box stays up for dash notes",
+            () => !UiLayout.IsHidden(NoteBar()));
+        AddAssert(
+            "the wheel sits inside the note elements box",
+            () => Area(NoteBar()).Encloses(Area(Wheel())));
         AddAssert(
             "current direction selected",
             () => Wheel().GetComponent<UiWheel>().Selected ==
@@ -67,9 +70,10 @@ public sealed class EditorDirectionWheelSceneTest : SceneTest
         AddWaitStep("hold NOTES", 2);
         AddStep("release NOTES", () => Context.Pointer.Release());
         AddUntilStep(
-            "wheel hides again",
+            "wheel hides again while the swatches stay",
             () => PlaceMode() == EditorPlacementMode.Notes &&
-                  UiLayout.IsHidden(Wheel()));
+                  UiLayout.IsHidden(Wheel()) &&
+                  !UiLayout.IsHidden(NoteBar()));
 
         AddStep("create editor overlay", CreateOverlay);
         AddWaitStep("overlay settles", 2);
@@ -97,6 +101,13 @@ public sealed class EditorDirectionWheelSceneTest : SceneTest
     }
 
     private void Press(Key key) => Context.Systems.KeyPresses.Press(new KeyChord(key));
+
+    private static Rect2 Area(Entity entity)
+    {
+        Rect2 bounds = entity.GetComponent<Rectangle>().Bounds;
+        Vector2 center = UiTransform.WorldPosition(entity, entity.GetComponent<Position>().Value);
+        return new Rect2(center + bounds.Position, bounds.Size);
+    }
 
     private Entity Wheel() =>
         Context.Entities.Query<UiWheel>().WithDisabled().ToEntityList()[0];

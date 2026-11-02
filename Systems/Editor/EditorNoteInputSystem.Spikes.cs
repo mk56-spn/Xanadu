@@ -28,12 +28,13 @@ public sealed partial class EditorNoteInputSystem
     /// Adds the tile under the pointer unless that cell already holds one, so
     /// dragging across cells paints a run of spikes.
     /// </summary>
-    private void PaintSpikeAt(Vector2 position, Playfield playfield)
+    private void PaintSpikeAt(Vector2 position, Playfield playfield, Entity editor)
     {
         if (!IsInside(position, playfield))
             return;
 
-        Spike spike = SpikeRules.TileAt(position, playfield);
+        int turns = editor.TryGetComponent(out EditorSpikeBrush brush) ? brush.QuarterTurns : 0;
+        Spike spike = SpikeRules.TileAt(position, playfield, turns);
         foreach (Entity entity in _entities.Query<Spike>().ToEntityList())
         {
             if (entity.GetComponent<Spike>().Bounds.Intersects(spike.Bounds))

@@ -7,7 +7,7 @@ using Position = Xanadu.Ecs.Position;
 namespace Xanadu.Systems.Playfields;
 
 /// <summary>
-/// Kills the player the moment their damage box touches a spike tile. Spikes
+/// Kills the player the moment their damage box touches a spike's hitbox. Spikes
 /// are permanent geometry, so there is no timing window: contact is death, and
 /// <see cref="PlaySession.Died"/> lets the session system end the run as a
 /// failure. Mines keep their own accuracy-penalty handling.
@@ -44,10 +44,10 @@ public sealed class SpikeContactSystem : QuerySystem<Player, Position, Playfield
 
             foreach (Entity entity in _entities.Query<Spike>().ToEntityList())
             {
-                Rect2 bounds = SpikeRules.ScreenBounds(
+                SpikeTriangle hitbox = SpikeRules.ScreenHitbox(
                     entity.GetComponent<Spike>(),
                     view);
-                if (playerRect.Intersects(bounds))
+                if (hitbox.Overlaps(playerRect))
                 {
                     session.Died = true;
                     return;

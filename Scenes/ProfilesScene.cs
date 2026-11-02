@@ -21,7 +21,10 @@ public static class ProfilesScene
     /// <summary>Centre of the first profile row.</summary>
     private const float FirstRowY = 246;
 
-    private const float RowWidth = 440;
+    private const float RowWidth = 640;
+    private const float ArtSize = 54;
+    private const float EditWidth = 110;
+    private const float ArtZoom = 4.5f;
     private const float RowHeight = 54;
     private const float CreateWidth = 360;
 
@@ -48,11 +51,11 @@ public static class ProfilesScene
                 SceneUi.DimTextColor)
             .At(new Vector2(stage.Center.X, SubtitleY));
 
-        UiNode list = ProfileList(ui, profiles, out float listBottom);
+        UiNode list = ProfileList(ui, profiles, visuals is GodotVisualRidFactory, out float listBottom);
 
         float createY = Mathf.Min(
             stage.Height - CreateBottomInset,
-            listBottom + CreateGap);
+            listBottom + CreateGap + RowHeight / 2);
 
         if (profiles.Profiles.Count == 0)
         {
@@ -85,7 +88,7 @@ public static class ProfilesScene
     /// One column of profile rows, sized to the profiles that exist. Returns the
     /// column node and, through <paramref name="bottom"/>, where it ends.
     /// </summary>
-    private static UiNode ProfileList(UiNode ui, ProfileStore profiles, out float bottom)
+    private static UiNode ProfileList(UiNode ui, ProfileStore profiles, bool loadAssets, out float bottom)
     {
         int count = profiles.Profiles.Count;
         float height = count * RowHeight + Mathf.Max(0, count - 1) * UiMetrics.Space.Lg;
@@ -100,12 +103,30 @@ public static class ProfilesScene
         foreach (UserProfile profile in profiles.Profiles)
         {
             bool active = profile.Id == profiles.ActiveProfileId;
-            list.Button(
+            UiNode row = list.Row()
+                .Size(RowWidth, RowHeight)
+                .Gap(UiMetrics.Space.Lg)
+                .Main(StackMainAlignment.Start);
+
+            SongSelectScene.TiltedArt(
+                row,
+                Vector2.Zero,
+                ArtSize,
+                ProfileArt.Material(loadAssets, ProfileArt.Tint(profile), ProfileArt.Instance(profile), ArtZoom));
+
+            row.Button(
                     $"{(active ? "▶  " : "")}{profile.Name}",
                     UiType.Label,
                     active ? SceneUi.ButtonColor : SceneUi.MutedButtonColor)
-                .Size(RowWidth, RowHeight)
+                .Size(RowWidth - ArtSize - EditWidth - UiMetrics.Space.Lg * 2, RowHeight)
                 .With(new ProfileSelect(profile.Id));
+
+            row.Button(
+                    LocalizedText.Get(ProfilesStrings.Edit),
+                    UiType.Small,
+                    SceneUi.MutedButtonColor)
+                .Size(EditWidth, RowHeight)
+                .With(new ProfileEditAction(profile.Id));
         }
 
         bottom = count == 0 ? FirstRowY - RowHeight / 2 : FirstRowY - RowHeight / 2 + height;

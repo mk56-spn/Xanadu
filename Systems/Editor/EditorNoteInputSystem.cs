@@ -70,17 +70,19 @@ public sealed partial class EditorNoteInputSystem : QuerySystem<Note>
 
         if (IsGroupTargetEditing())
         {
-            _wasPressed = pressed;
+            UpdateGhost(input.Position, pressed);
+        _wasPressed = pressed;
             return;
         }
 
         if (pressed && !_wasPressed)
             OnPress(input.Position, input.Shift);
         else if (pressed)
-            OnHold(input.Position);
+            OnHold(input.Position, input.Shift);
         else if (_wasPressed)
             OnRelease();
 
+        UpdateGhost(input.Position, pressed);
         _wasPressed = pressed;
     }
 
@@ -152,36 +154,20 @@ public sealed partial class EditorNoteInputSystem : QuerySystem<Note>
         if (IsOverNoteBar(screenPosition) || IsOverPanel(screenPosition))
             return;
 
-        if (editor.HasComponent<EditorDirectionWheel>())
-        {
-            EditorDirectionWheel wheel =
-                editor.GetComponent<EditorDirectionWheel>();
-            if (!wheel.Wheel.IsNull &&
-                UiWheelGeometry.Contains(wheel.Wheel, screenPosition))
-            {
-                return;
-            }
-        }
-
         Vector2 playfieldPosition = view.ScreenToPlayfield(screenPosition);
 
         // Handles hang over the field's edge, so they get the press before the
         // inside test would turn an edge drag away.
-        if (TryBeginResize(screenPosition, editor, view))
+        if (TryBeginRotation(screenPosition, editor, view) ||
+            TryBeginResize(screenPosition, editor, view))
+        {
             return;
+        }
 
         if (!IsInside(playfieldPosition, playfield))
             return;
 
-        Entity hit = FindNoteAt(playfieldPosition, playhead.TimeMs);
-        if (hit.IsNull)
-            hit = FindMineAt(playfieldPosition, playhead.TimeMs);
-        if (hit.IsNull)
-            hit = FindStartAt(playfieldPosition);
-        if (hit.IsNull)
-            hit = FindSpikeAt(playfieldPosition);
-        if (hit.IsNull)
-            hit = FindBlockAt(playfieldPosition);
+        Entity hit = FindItemAt(playfieldPosition, playhead.TimeMs);
 
         ref NoteSelection selection = ref editor.GetComponent<NoteSelection>();
 
@@ -192,7 +178,7 @@ public sealed partial class EditorNoteInputSystem : QuerySystem<Note>
             _paintingSpikes = true;
             _spikeStrokeAdded = false;
             _spikeBefore = _history.Capture();
-            PaintSpikeAt(playfieldPosition, playfield);
+            PaintSpikeAt(playfieldPosition, playfield, editor);
             return;
         }
 
@@ -249,7 +235,7 @@ public sealed partial class EditorNoteInputSystem : QuerySystem<Note>
             _box.Arm(screenPosition);
     }
 
-    private void OnHold(Vector2 screenPosition)
+    private void OnHold(Vector2 screenPosition, bool shift)
     {
         Entity editor = FindEditor();
         if (editor.IsNull ||
@@ -263,6 +249,12 @@ public sealed partial class EditorNoteInputSystem : QuerySystem<Note>
         PlayfieldView view = editor.GetComponent<PlayfieldView>();
         Playfield playfield = editor.GetComponent<Playfield>();
         ref Playhead playhead = ref editor.GetComponent<Playhead>();
+
+        if (_rotating)
+        {
+            UpdateRotation(screenPosition, shift, editor, view, playfield);
+            return;
+        }
 
         if (!_resizeEntity.IsNull)
         {
@@ -299,7 +291,7 @@ public sealed partial class EditorNoteInputSystem : QuerySystem<Note>
 
         if (_paintingSpikes)
         {
-            PaintSpikeAt(view.ScreenToPlayfield(screenPosition), playfield);
+            PaintSpikeAt(view.ScreenToPlayfield(screenPosition), playfield, editor);
             return;
         }
 
@@ -324,7 +316,7 @@ public sealed partial class EditorNoteInputSystem : QuerySystem<Note>
             if (_dragStartBlocks.TryGetValue(id, out Block block))
             {
                 entity.GetComponent<Block>() =
-                    BlockEditing.Move(block, delta, playfield);
+                    BlockEditing.Move(block, delta, playfield, BlockSnap.IsOn(_entities));
                 continue;
             }
 
@@ -353,6 +345,12 @@ public sealed partial class EditorNoteInputSystem : QuerySystem<Note>
                 _history.Record(_spikeBefore, _history.Capture());
             _spikeStrokeAdded = false;
             _spikeBefore = default;
+            return;
+        }
+
+        if (_rotating)
+        {
+            EndRotation(editor);
             return;
         }
 
@@ -474,82 +472,17 @@ public sealed partial class EditorNoteInputSystem : QuerySystem<Note>
 
         EditorSnapshot before = _history.Capture();
         long time = EditorTiming.Snap(playhead.TimeMs, playhead);
-        KeybindAction target = editor.HasComponent<EditorNoteTarget>()
-            ? editor.GetComponent<EditorNoteTarget>().Target
-            : KeybindAction.M;
-        CharacterKind character = editor.HasComponent<EditorCharacterTarget>()
-            ? editor.GetComponent<EditorCharacterTarget>().Target
-            : CharacterKind.Contact;
-        EditorPlacementMode mode = editor.HasComponent<EditorPlacementModeState>()
-            ? editor.GetComponent<EditorPlacementModeState>().Mode
-            : EditorPlacementMode.Notes;
-        DashDirection direction = editor.HasComponent<EditorDashDirectionState>()
-            ? editor.GetComponent<EditorDashDirectionState>().Direction
-            : DashDirection.Up;
-        DashStrength strength = editor.HasComponent<EditorDashStrengthState>()
-            ? editor.GetComponent<EditorDashStrengthState>().Strength
-            : DashStrength.Single;
-        bool isMovement = mode is
-            EditorPlacementMode.Dash or
-            EditorPlacementMode.Momentum;
-        bool isPair = mode == EditorPlacementMode.Pair;
-        bool isContact = mode == EditorPlacementMode.Contact;
-        bool isChannel = mode == EditorPlacementMode.Channel;
-        bool isFormStep = mode == EditorPlacementMode.FormStep;
-        EditorShapeState shape = editor.HasComponent<EditorShapeState>()
-            ? editor.GetComponent<EditorShapeState>()
-            : new EditorShapeState(0);
-        if (isFormStep && shape.ShapeId == 0)
+        if (EditorPlacementNote.NeedsShape(editor))
             return;
 
-        KeybindAction channelTarget = target == KeybindAction.M
-            ? KeybindAction.L1
-            : target;
-        int shapePiece = isFormStep ? NextShapePiece(shape.ShapeId) : 0;
-        EditorContactCostState costs = editor.HasComponent<EditorContactCostState>()
-            ? editor.GetComponent<EditorContactCostState>()
-            : new EditorContactCostState(1, 1);
-        Entity created = EditorItems.Create(_entities, new Note(
-            time,
-            playfieldPosition,
-            target: mode == EditorPlacementMode.CharacterSwitch ||
-                    mode == EditorPlacementMode.WeaponSwitch ||
-                    isMovement ||
-                    isPair ||
-                    isContact
-                ? KeybindAction.M
-                : isChannel
-                    ? channelTarget
-                    : isFormStep
-                        ? channelTarget
-                        : target,
-            kind: mode switch
-            {
-                EditorPlacementMode.Pair => NoteKind.Pair,
-                EditorPlacementMode.Dash => NoteKind.Dash,
-                EditorPlacementMode.Momentum => NoteKind.Momentum,
-                EditorPlacementMode.Contact => NoteKind.Contact,
-                EditorPlacementMode.CharacterSwitch => NoteKind.CharacterSwitch,
-                EditorPlacementMode.WeaponSwitch => NoteKind.WeaponSwitch,
-                EditorPlacementMode.Channel => NoteKind.Channel,
-                EditorPlacementMode.FormStep => NoteKind.ConstructionStep,
-                _ => NoteKind.Hit,
-            },
-            dashDirection: direction,
-            contactRequired: isContact ? 0 : 1,
-            character: character,
-            dashStrength: strength,
-            pairIndex: NoteRules.PairIndexFor(target),
-            momentum: MomentumFor(strength),
-            contactLeft: isContact ? costs.Left : 0,
-            contactRight: isContact ? costs.Right : 0,
-            channelSide: isChannel
-                ? NoteRules.SideOf(channelTarget)
-                : ChannelSide.Left,
-            shapeId: isFormStep ? shape.ShapeId : 0,
-            shapePiece: shapePiece));
+        Note note = EditorPlacementNote.Build(editor, time, playfieldPosition);
+        bool isFormStep = note.Kind == NoteKind.ConstructionStep;
         if (isFormStep)
-            ReindexConstructionSteps(shape.ShapeId);
+            note.ShapePiece = NextShapePiece(note.ShapeId);
+
+        Entity created = EditorItems.Create(_entities, note);
+        if (isFormStep)
+            ReindexConstructionSteps(note.ShapeId);
         _history.Record(before, _history.Capture());
         editor.GetComponent<NoteSelection>().Note = created;
     }
@@ -592,17 +525,6 @@ public sealed partial class EditorNoteInputSystem : QuerySystem<Note>
             note.ShapePiece = i;
         }
     }
-
-    /// <summary>
-    /// The editor's three movement strength buttons pick a dash distance and a
-    /// momentum push, so a mapper gets a consistent 1×/2×/3× language.
-    /// </summary>
-    private static float MomentumFor(DashStrength strength) => strength switch
-    {
-        DashStrength.Double => 900f,
-        DashStrength.Triple => 1200f,
-        _ => 600f,
-    };
 
     private List<Entity> FindNotesIn(Rect2 screenBounds, long playheadMs)
     {

@@ -52,7 +52,7 @@ public sealed partial class EditorNoteInputSystem
         return true;
     }
 
-    /// <summary>Drags one side of the block being resized, snapped to the grid.</summary>
+    /// <summary>Drags one side of the block being resized.</summary>
     private void UpdateResize(
         Vector2 screenPosition,
         PlayfieldView view,
@@ -65,10 +65,11 @@ public sealed partial class EditorNoteInputSystem
             _resizeStart,
             _resizeHandle,
             view.ScreenToPlayfield(screenPosition),
-            playfield);
+            playfield,
+            BlockSnap.IsOn(_entities));
     }
 
-    /// <summary>Drops a default-sized block on the grid and selects it, so its handles show.</summary>
+    /// <summary>Drops a default-sized block at the pointer and selects it, so its handles show.</summary>
     private void PlaceBlock(Entity editor, Vector2 screenPosition)
     {
         PlayfieldView view = editor.GetComponent<PlayfieldView>();
@@ -78,7 +79,7 @@ public sealed partial class EditorNoteInputSystem
             return;
 
         Vector2 size = BlockGrid.DefaultSize(playfield);
-        Vector2 position = BlockGrid.PlaceAt(pointer, size, playfield);
+        Vector2 position = BlockGrid.PlaceAt(pointer, size, playfield, BlockSnap.IsOn(_entities));
 
         EditorSnapshot before = _history.Capture();
         Entity created = EditorItems.Create(_entities, new Block(position, size));

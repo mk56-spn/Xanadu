@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+using Friflo.Engine.ECS;
 using Godot;
 using Xanadu.Theme;
 
@@ -21,5 +23,27 @@ public readonly partial struct UiNode
             .With(new TextField(""))
             .With(new UiColorField(swatch.Entity))
             .Tooltip(tooltip);
+    }
+
+    /// <summary>
+    /// A colour picker with no alpha bar, its square centred on <paramref name="center"/>;
+    /// returns the square, which carries <see cref="UiColorPicker"/>. It places its own
+    /// parts, so it sits outside any stack.
+    /// </summary>
+    public UiNode OpaqueColorPicker(
+        Vector2 center,
+        Color initial,
+        Material? squareMaterial = null,
+        Material? hueMaterial = null)
+    {
+        UiBuilder builder = BeginChildren();
+        List<Entity> parts = builder.ColorPicker(center, initial, squareMaterial, hueMaterial);
+        foreach (Entity part in parts)
+            part.AddTag<LayoutIgnore>();
+
+        UiColorPicker picker = parts[0].GetComponent<UiColorPicker>();
+        UiLayout.SetHidden(picker.Alpha, true);
+        UiLayout.SetHidden(picker.AlphaCursor, true);
+        return Leaf(parts[0]);
     }
 }

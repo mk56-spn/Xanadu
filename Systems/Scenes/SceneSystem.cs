@@ -110,9 +110,8 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
     public KeybindSettings Keybinds => _keybinds;
     public DisplaySettings Display => _display;
 
-    /// <summary>Saves the active editor before confirming a leave, when available.</summary>
-    /// <summary>Saves the open level: null when it saved, otherwise why it could not.</summary>
-    public Func<string?>? SaveEditor { get; set; }
+    /// <summary>Saves the open level before confirming a leave, when available.</summary>
+    public Func<EditorSaveOutcome>? SaveEditor { get; set; }
 
     /// <summary>Opens the host's file picker; the host owns the dialog.</summary>
     public Action? AddSongRequested { get; set; }

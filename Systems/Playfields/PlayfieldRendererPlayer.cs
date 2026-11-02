@@ -26,7 +26,9 @@ public static partial class PlayfieldRenderer
                 return;
 
             Player player = entity.GetComponent<Player>();
-            Vector2 center = entity.GetComponent<Position>().Value;
+            Vector2 center = PlayerSmoothing.DrawnPosition(entity);
+            if (entity.TryGetComponent(out PlayCamera camera))
+                center += camera.Subpixel;
             Vector2 size = player.Size;
             var bounds = new Rect2(
                 center - size / 2,

@@ -14,6 +14,9 @@ public sealed class UserProfile
 {
     public string Id { get; set; } = Guid.NewGuid().ToString("N");
     public string Name { get; set; } = "Player";
+
+    /// <summary>The colour of the notes in this player's art, as a hex string.</summary>
+    public string NoteTint { get; set; } = ProfileStore.DefaultNoteTint;
     public DateTime CreatedUtc { get; set; } = DateTime.UtcNow;
     public Dictionary<string, ScoreRecord> Scores { get; set; } = new();
 }
@@ -33,6 +36,11 @@ public sealed class ScoreRecord
 /// <summary>Persists local profiles, the active selection, and best scores.</summary>
 public sealed class ProfileStore
 {
+    public const string DefaultNoteTint = "#80bfff";
+
+    /// <summary>The longest name a profile keeps; the song select banner fits no more.</summary>
+    public const int MaxNameLength = 20;
+
     private const string DefaultPath = "user://profiles.json";
     private readonly PersistedFile<ProfileData> _file;
 
@@ -56,10 +64,44 @@ public sealed class ProfileStore
         string baseName = string.IsNullOrWhiteSpace(name)
             ? $"Player {Profiles.Count + 1}"
             : name.Trim();
+
+        var profile = new UserProfile
+        {
+            Name = UniqueName(baseName, null),
+        };
+        Profiles.Add(profile);
+        ActiveProfileId = profile.Id;
+        Save();
+        return profile;
+    }
+
+    /// <summary>Renames a profile, keeping names unique. A blank name changes nothing.</summary>
+    public bool Rename(string id, string name)
+    {
+        UserProfile? profile = Profiles.FirstOrDefault(candidate => candidate.Id == id);
+        if (profile is null || string.IsNullOrWhiteSpace(name))
+            return false;
+
+        string trimmed = name.Trim();
+        if (trimmed.Length > MaxNameLength)
+            trimmed = trimmed[..MaxNameLength].TrimEnd();
+
+        string unique = UniqueName(trimmed, profile);
+        if (unique == profile.Name)
+            return false;
+
+        profile.Name = unique;
+        Save();
+        return true;
+    }
+
+    private string UniqueName(string baseName, UserProfile? except)
+    {
         string candidate = baseName;
         int suffix = 2;
 
         while (Profiles.Any(profile =>
+                   profile != except &&
                    string.Equals(
                        profile.Name,
                        candidate,
@@ -68,14 +110,7 @@ public sealed class ProfileStore
             candidate = $"{baseName} {suffix++}";
         }
 
-        var profile = new UserProfile
-        {
-            Name = candidate,
-        };
-        Profiles.Add(profile);
-        ActiveProfileId = profile.Id;
-        Save();
-        return profile;
+        return candidate;
     }
 
     public bool Select(string id)
@@ -145,7 +180,10 @@ public sealed class ProfileStore
 
         Profiles = data.Profiles ?? new List<UserProfile>();
         foreach (UserProfile profile in Profiles)
+        {
             profile.Scores ??= new Dictionary<string, ScoreRecord>();
+            profile.NoteTint ??= DefaultNoteTint;
+        }
 
         ActiveProfileId = Profiles.Any(profile => profile.Id == data.ActiveProfileId)
             ? data.ActiveProfileId

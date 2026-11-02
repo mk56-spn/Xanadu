@@ -23,6 +23,16 @@ public sealed class NoteLaneColorTests
     }
 
     [Test]
+    public void MovementNotesTakeTheColorOfTheirKey([Values(NoteKind.Dash, NoteKind.Momentum)] NoteKind kind)
+    {
+        var note = new Note(1_000, new Vector2(500, 500), target: KeybindAction.R2, kind: kind);
+
+        Assert.That(
+            PlayfieldRenderer.ColorFor(note),
+            Is.EqualTo(PlayfieldRenderer.ColorFor(KeybindAction.R2)));
+    }
+
+    [Test]
     public void EveryTargetHasItsOwnColor()
     {
         var colors = new System.Collections.Generic.HashSet<Color>();

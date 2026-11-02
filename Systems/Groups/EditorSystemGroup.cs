@@ -51,6 +51,7 @@ public sealed class EditorSystemGroup : SystemGroup, IDisposable
         Add(new EditorRailLayerSystem(entities, history));
         Add(new EditorShapeSystem(entities, history));
         Add(new EditorNoteTypeBarSystem(entities, commands));
+        Add(new EditorToolSectionSystem(entities));
         Add(new EditorDirectionWheelSystem());
         Add(new EditorButtonSystem(entities, commands));
         Add(new EditorMetadataSystem(entities, commands));

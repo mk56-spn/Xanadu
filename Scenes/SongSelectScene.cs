@@ -43,7 +43,7 @@ public static partial class SongSelectScene
         ScoreViews scores = BuildScores(ui, loadAssets);
 
         ListViews list = BuildList(ui, loadAssets);
-        PreviewViews preview = BuildPreview(ui, loadAssets);
+        PreviewViews preview = BuildPreview(ui, profiles, loadAssets);
 
         InfoViews info = BuildInfo(ui, loadAssets);
         ActionViews actions = BuildActions(ui);

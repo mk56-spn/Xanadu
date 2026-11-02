@@ -77,32 +77,35 @@ public static class BlockEditing
         return false;
     }
 
-    /// <summary>Moves a block by a drag delta with both edges kept on the grid.</summary>
-    public static Block Move(Block start, Vector2 delta, Playfield playfield)
+    /// <summary>Moves a block by a drag delta, keeping both edges on the grid when snapping.</summary>
+    public static Block Move(Block start, Vector2 delta, Playfield playfield, bool snap = true)
     {
-        Vector2 cell = BlockGrid.Cell(playfield);
+        Vector2 moved = start.Position + delta;
         return new Block(
             BlockGrid.Clamp(
-                BlockGrid.Snap(start.Position + delta, cell),
+                snap ? BlockGrid.Snap(moved, BlockGrid.Cell(playfield)) : moved,
                 start.Size,
                 playfield),
-            start.Size);
+            start.Size,
+            start.ShapeId,
+            start.ShapePiece);
     }
 
     /// <summary>
     /// Block after dragging one side to a playfield point. The opposite edge
-    /// stays put, the dragged edge snaps to the grid, and the block never gets
-    /// smaller than one cell or leaves the field.
+    /// stays put, the dragged edge snaps to the grid when snapping, and the
+    /// block never gets smaller than one cell or leaves the field.
     /// </summary>
     public static Block Resize(
         Block start,
         BlockHandle handle,
         Vector2 pointer,
-        Playfield playfield)
+        Playfield playfield,
+        bool snap = true)
     {
         Vector2 cell = BlockGrid.Cell(playfield);
         Vector2 min = MinSize(playfield);
-        Vector2 point = BlockGrid.Snap(pointer, cell);
+        Vector2 point = snap ? BlockGrid.Snap(pointer, cell) : pointer;
         Vector2 position = start.Position;
         Vector2 size = start.Size;
 
@@ -145,6 +148,6 @@ public static class BlockEditing
             }
         }
 
-        return new Block(position, size);
+        return new Block(position, size, start.ShapeId, start.ShapePiece);
     }
 }

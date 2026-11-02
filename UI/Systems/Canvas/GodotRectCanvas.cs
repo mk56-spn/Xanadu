@@ -90,6 +90,31 @@ public sealed class GodotRectCanvas : IRectCanvas
         RenderingServer.CanvasItemAddPolygon(canvas, vertices, colors);
     }
 
+    public void DrawRectOutlines(Rid canvas, ReadOnlySpan<Rect2> rects, Color color)
+    {
+        if (rects.IsEmpty)
+            return;
+
+        var points = new Vector2[rects.Length * 8];
+        int next = 0;
+        foreach (Rect2 rect in rects)
+        {
+            Vector2 topRight = new(rect.End.X, rect.Position.Y);
+            Vector2 bottomLeft = new(rect.Position.X, rect.End.Y);
+            points[next++] = rect.Position;
+            points[next++] = topRight;
+            points[next++] = topRight;
+            points[next++] = rect.End;
+            points[next++] = rect.End;
+            points[next++] = bottomLeft;
+            points[next++] = bottomLeft;
+            points[next++] = rect.Position;
+        }
+
+        // A negative width is the renderer's plain one-pixel line, its cheapest kind.
+        RenderingServer.CanvasItemAddMultiline(canvas, points, new[] { color }, -1f);
+    }
+
     public void DrawPolyline(
         Rid canvas,
         ReadOnlySpan<Vector2> points,

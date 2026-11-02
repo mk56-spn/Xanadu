@@ -1,3 +1,4 @@
+using System;
 using Friflo.Engine.ECS;
 using Godot;
 using Xanadu.Ecs;
@@ -10,7 +11,7 @@ public static partial class PlayfieldRenderer
 {
     /// <summary>
     /// Outlines what collision and input actually use: the player's box, every
-    /// block's box, and the sphere notes are checked against. The box stays
+    /// block's box, every spike's triangle, and the sphere notes are checked against. The box stays
     /// what damage is measured with; notes are reach-checked against the
     /// sphere. The character art is drawn over the playfield, so this needs its
     /// own canvas above the characters to stay visible.
@@ -33,6 +34,13 @@ public static partial class PlayfieldRenderer
                 view.PlayfieldToScreen(block.Position),
                 block.Size * view.Scale);
             DrawHitbox(canvas, rid, screen, DebugPalette.BlockHitbox);
+        }
+
+        foreach (Entity entity in entities.Query<Spike>().ToEntityList())
+        {
+            Spike spike = entity.GetComponent<Spike>();
+            if (spike.Size.X > 0 && spike.Size.Y > 0)
+                DrawSpikeHitbox(canvas, rid, SpikeRules.ScreenHitbox(spike, view));
         }
 
         foreach (Entity entity in entities.Query<Player, Position>().ToEntityList())
@@ -64,6 +72,18 @@ public static partial class PlayfieldRenderer
                     view.Scale);
             }
         }
+    }
+
+    private static void DrawSpikeHitbox(
+        IRectCanvas canvas,
+        Rid rid,
+        SpikeTriangle hitbox)
+    {
+        Span<Vector2> points = [hitbox.Tip, hitbox.BaseLeft, hitbox.BaseRight];
+        canvas.DrawPolygon(rid, points, DebugPalette.HitboxFill);
+        canvas.DrawLine(rid, hitbox.Tip, hitbox.BaseLeft, DebugPalette.SpikeHitbox, 1.5f);
+        canvas.DrawLine(rid, hitbox.BaseLeft, hitbox.BaseRight, DebugPalette.SpikeHitbox, 1.5f);
+        canvas.DrawLine(rid, hitbox.BaseRight, hitbox.Tip, DebugPalette.SpikeHitbox, 1.5f);
     }
 
     private static void DrawWeaponHitbox(

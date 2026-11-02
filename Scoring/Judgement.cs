@@ -17,6 +17,14 @@ public enum Judgement
     Contact,
 }
 
+/// <summary>Which side of the note a hit landed on.</summary>
+public enum HitTiming
+{
+    None,
+    Early,
+    Late,
+}
+
 /// <summary>Judgement windows, accuracy weights, and rank thresholds.</summary>
 public static class ScoreRules
 {
@@ -83,6 +91,25 @@ public static class ScoreRules
         if (error <= JudgementDeviation(Judgement.Terrible))
             return Judgement.Terrible;
         return Judgement.Miss;
+    }
+
+    /// <summary>
+    /// Early or late for a timed hit, from an offset that is positive when the
+    /// hit came before the note. FLAWLESS+ has nothing to correct, and misses,
+    /// mines and contact barriers carry no hit offset.
+    /// </summary>
+    public static HitTiming TimingFor(Judgement judgement, long offsetMs)
+    {
+        if (judgement is not (Judgement.Flawless
+            or Judgement.Clean
+            or Judgement.Fair
+            or Judgement.Deficient
+            or Judgement.Terrible))
+        {
+            return HitTiming.None;
+        }
+
+        return offsetMs > 0 ? HitTiming.Early : HitTiming.Late;
     }
 
     public static string RankFor(double accuracy)

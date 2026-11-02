@@ -63,7 +63,7 @@ public sealed class PlayCameraSystem : QuerySystem<PlayCamera, Player, Position,
         float delta = Tick.deltaTime;
         Query.ForEachEntity((ref camera, ref player, ref position, ref view, ref playfield, entity) =>
         {
-            Vector2 target = Target(camera, position.Value, view, playfield);
+            Vector2 target = Target(camera, PlayerSmoothing.DrawnPosition(entity), view, playfield);
             bool jumped = (target - camera.Offset).Length() > camera.Viewport.Size.Length() / 3;
             camera.Offset = !camera.Placed || jumped
                 ? target

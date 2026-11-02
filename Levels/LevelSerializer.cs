@@ -133,6 +133,7 @@ public static class LevelSerializer
         foreach (SpikeDocument spike in chart.Spikes)
         {
             spike.Groups ??= new();
+            spike.QuarterTurns = ((spike.QuarterTurns % 4) + 4) % 4;
             spike.Shader = validShader(spike.Shader);
         }
 

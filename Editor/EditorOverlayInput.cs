@@ -27,6 +27,9 @@ public partial class EditorOverlay : CanvasLayer, IEditorShortcutTarget
             case EditorShortcut.Preview:
                 StartPreview();
                 break;
+            case EditorShortcut.PreviewHere:
+                StartPreview(fromPlayhead: true);
+                break;
             case EditorShortcut.ToggleShaders:
                 ToggleShaderDialog();
                 break;
@@ -84,6 +87,15 @@ public partial class EditorOverlay : CanvasLayer, IEditorShortcutTarget
                 break;
             case EditorShortcut.Delete:
                 DeleteSelectedNote();
+                break;
+            case EditorShortcut.RotateSelection:
+                _commands.Enqueue(EditorCommand.RotateSelection());
+                break;
+            case EditorShortcut.FlipHorizontal:
+                _commands.Enqueue(EditorCommand.FlipSelection(horizontal: true));
+                break;
+            case EditorShortcut.FlipVertical:
+                _commands.Enqueue(EditorCommand.FlipSelection(horizontal: false));
                 break;
             case EditorShortcut.MoveLeft:
                 _commands.Enqueue(EditorCommand.MoveSelection(-1));

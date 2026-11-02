@@ -25,6 +25,7 @@ public partial class Main : Control
 	private SceneDirector? _sceneDirector;
 	private EditorOverlay? _editorOverlay;
 	private FileDialog? _addSongDialog;
+	private Xanadu.Systems.Ui.UiTextBridge? _textBridge;
 
 	public override void _Ready()
 	{
@@ -152,6 +153,7 @@ public partial class Main : Control
 	private void OnSceneChanged(SceneKind scene)
 	{
 		_systems?.Commands.Clear();
+		SyncTextBridge(scene);
 
 		if (scene == SceneKind.Editor)
 		{
@@ -171,9 +173,16 @@ public partial class Main : Control
 						path,
 						document,
 						new SongStore().Find(document.SongId)),
-					playheadMs));
+					playheadMs),
+				onPreviewHere: (document, path, playheadMs) => _systems?.Scenes.StartEditorPreview(
+					new LevelEntry(
+						path,
+						document,
+						new SongStore().Find(document.SongId)),
+					playheadMs,
+					fromPlayhead: true));
 			AddChild(_editorOverlay);
-			_systems.Scenes.SaveEditor = () => _editorOverlay?.SaveForLeaving() ?? "the editor is closed";
+			_systems.Scenes.SaveEditor = () => EditorOverlay.SaveForLeaving(_editorOverlay);
 			return;
 		}
 
@@ -183,6 +192,19 @@ public partial class Main : Control
 			_editorOverlay = null;
 		}
 
+	}
+
+	/// <summary>The editor overlay has its own text input; two would fight over focus, so this one lives only with its screen.</summary>
+	private void SyncTextBridge(SceneKind scene)
+	{
+		if (scene == SceneKind.ProfileEdit)
+		{
+			_textBridge ??= Xanadu.Systems.Ui.UiTextBridge.Attach(this, Entities);
+			return;
+		}
+
+		_textBridge?.QueueFree();
+		_textBridge = null;
 	}
 
 	public override void _Process(double delta)

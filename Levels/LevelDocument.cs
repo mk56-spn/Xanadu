@@ -156,6 +156,9 @@ public sealed class SpikeDocument
     public float Width { get; set; }
 
     public float Height { get; set; }
+
+    /// <summary>Which edge the tip points at: 0 up, then clockwise, 1 right, 2 down, 3 left.</summary>
+    public int QuarterTurns { get; set; }
 }
 
 /// <summary>Serializable practice start state.</summary>

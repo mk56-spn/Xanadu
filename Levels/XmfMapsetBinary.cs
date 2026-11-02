@@ -37,6 +37,9 @@ public static partial class XmfBinary
 
         /// <summary>Optional item colours, absent when every item is untinted.</summary>
         SelfModulates = 7,
+
+        /// <summary>Optional spike rotations, absent when every spike points up.</summary>
+        SpikeExtras = 8,
     }
 
     public static void SaveMapset(string path, XmfMapset mapset)
@@ -67,6 +70,8 @@ public static partial class XmfBinary
             file.Add((uint)MapsetChunkId.BlockExtras, WriteVariantBlockExtras(mapset.Variants));
         if (mapset.Variants.Exists(HasSelfModulates))
             file.Add((uint)MapsetChunkId.SelfModulates, WriteVariantSelfModulates(mapset.Variants));
+        if (mapset.Variants.Exists(variant => HasSpikeExtras(variant.Spikes)))
+            file.Add((uint)MapsetChunkId.SpikeExtras, WriteVariantSpikeExtras(mapset.Variants));
         return file.ToArray();
     }
 
@@ -98,6 +103,8 @@ public static partial class XmfBinary
             ReadVariantBlockExtras(blockExtras, mapset.Variants);
         if (file.TryGet((uint)MapsetChunkId.SelfModulates, out Chunk selfModulates))
             ReadVariantSelfModulates(selfModulates, mapset.Variants);
+        if (file.TryGet((uint)MapsetChunkId.SpikeExtras, out Chunk spikeExtras))
+            ReadVariantSpikeExtras(spikeExtras, mapset.Variants);
         return mapset;
     }
 
@@ -367,6 +374,28 @@ public static partial class XmfBinary
                 variant.Blocks[i].ShapePiece = shapePiece;
             }
         }
+    }
+
+    private static byte[] WriteVariantSpikeExtras(List<XmfVariant> variants)
+    {
+        using var stream = new MemoryStream();
+        using var writer = new BinaryWriter(stream, Encoding.UTF8, leaveOpen: true);
+        writer.Write((uint)variants.Count);
+        foreach (XmfVariant variant in variants)
+            WriteSpikeTurns(writer, variant.Spikes);
+        writer.Flush();
+        return stream.ToArray();
+    }
+
+    private static void ReadVariantSpikeExtras(Chunk chunk, List<XmfVariant> variants)
+    {
+        using BinaryReader reader = chunk.OpenReader();
+        uint variantCount = ReadCount(reader, MaxItems, "variant spike extra");
+        if (variantCount != variants.Count)
+            throw new FormatException("XMF variant spike extras do not match the variant count.");
+
+        foreach (XmfVariant variant in variants)
+            ReadSpikeTurns(reader, variant.Spikes);
     }
 
     private static void WriteBlob(BinaryWriter writer, byte[] blob)

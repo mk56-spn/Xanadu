@@ -24,8 +24,8 @@
     <PackageReference Include="Box2DSharp" Version="0.6.0" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="Core/Xanadu.Core.csproj" PrivateAssets="all" />
-    <ProjectReference Include="UI/Xanadu.Ui.csproj" PrivateAssets="all" />
+    <ProjectReference Include="Core/Xanadu.Core.csproj" />
+    <ProjectReference Include="UI/Xanadu.Ui.csproj" />
     <Content Include="agents.md" />
   </ItemGroup>
   <!--

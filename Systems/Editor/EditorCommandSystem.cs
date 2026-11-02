@@ -20,6 +20,7 @@ public sealed partial class EditorCommandSystem :
     private readonly EditorCommandBus _commands;
     private readonly EditorHistory _history;
     private readonly List<ClipboardItem> _clipboard = new();
+    private int _pasteCount;
 
     /// <summary>Edits that change existing entities, which cannot happen while the query runs.</summary>
     private readonly List<Action> _afterQuery = new();
@@ -147,6 +148,14 @@ public sealed partial class EditorCommandSystem :
                 DeleteSelection(editor);
                 break;
 
+            case EditorCommandType.RotateSelection:
+                RotateSelection(editor);
+                break;
+
+            case EditorCommandType.FlipSelection:
+                FlipSelection(editor, command.IntValue != 0);
+                break;
+
             case EditorCommandType.CopySelection:
                 CopySelection(editor);
                 break;
@@ -167,14 +176,21 @@ public sealed partial class EditorCommandSystem :
                 ZoomTimeline(command.IntValue, editor);
                 break;
 
+            // Restoring a snapshot makes structural changes, so it waits for the query.
             case EditorCommandType.Undo:
-                if (_history.Undo())
-                    ClearSelection(editor);
+                _afterQuery.Add(() =>
+                {
+                    if (_history.Undo())
+                        ClearSelection(editor);
+                });
                 break;
 
             case EditorCommandType.Redo:
-                if (_history.Redo())
-                    ClearSelection(editor);
+                _afterQuery.Add(() =>
+                {
+                    if (_history.Redo())
+                        ClearSelection(editor);
+                });
                 break;
 
             case EditorCommandType.ApplyLevel:
@@ -365,6 +381,7 @@ public sealed partial class EditorCommandSystem :
             return;
 
         _clipboard.Clear();
+        _pasteCount = 0;
         foreach (Entity entity in editor.GetComponent<NoteSelection>().AllNotes)
         {
             if (!EditorItems.IsItem(entity))
@@ -385,6 +402,14 @@ public sealed partial class EditorCommandSystem :
                 StartPoint start = entity.GetComponent<StartPoint>();
                 _clipboard.Add(new ClipboardItem(start.TimeMs, null, null, start, MaskOf(entity)));
             }
+            else if (entity.HasComponent<Block>())
+            {
+                _clipboard.Add(new ClipboardItem(0, null, null, null, MaskOf(entity), ItemShader.Of(entity), SelfModulate.Packed(entity), Block: entity.GetComponent<Block>()));
+            }
+            else if (entity.HasComponent<Spike>())
+            {
+                _clipboard.Add(new ClipboardItem(0, null, null, null, MaskOf(entity), ItemShader.Of(entity), SelfModulate.Packed(entity), Spike: entity.GetComponent<Spike>()));
+            }
         }
     }
 
@@ -393,16 +418,28 @@ public sealed partial class EditorCommandSystem :
         if (_clipboard.Count == 0 || !editor.HasComponent<NoteSelection>())
             return;
 
-        long anchor = _clipboard.Min(item => item.TimeMs);
+        // Geometry is not timed, so only timed items set the time anchor.
+        long anchor = _clipboard.Exists(item => !item.IsGeometry)
+            ? _clipboard.Where(item => !item.IsGeometry).Min(item => item.TimeMs)
+            : 0;
         long target = Math.Max(0, playhead.TimeMs);
         long maxTime = playhead.DurationMs > 0
             ? playhead.DurationMs
             : long.MaxValue;
         EditorSnapshot before = _history.Capture();
         var created = new List<Entity>();
+        _pasteCount++;
 
         foreach (ClipboardItem item in _clipboard)
         {
+            if (item.IsGeometry)
+            {
+                Entity geometry = PasteGeometry(item, editor);
+                if (!geometry.IsNull)
+                    created.Add(geometry);
+                continue;
+            }
+
             long time = Math.Clamp(
                 target + (item.TimeMs - anchor),
                 0,
@@ -515,7 +552,12 @@ public sealed partial class EditorCommandSystem :
         StartPoint? StartPoint,
         uint Groups,
         int Shader = 0,
-        uint Modulate = SelfModulate.White);
+        uint Modulate = SelfModulate.White,
+        Block? Block = null,
+        Spike? Spike = null)
+    {
+        public bool IsGeometry => Block is not null || Spike is not null;
+    }
 
     private static uint MaskOf(Entity entity) =>
         entity.TryGetComponent(out ItemGroups groups) ? groups.Mask : 0u;

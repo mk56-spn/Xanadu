@@ -12,8 +12,16 @@ namespace Xanadu.Systems.Playfields;
 /// <summary>Wraps the player laterally and caps the arena top and bottom.</summary>
 public sealed class PlayerArenaSystem : QuerySystem<Player, PhysicsBody, Position, PlayfieldView, Playfield>
 {
+    /// <summary>
+    /// How much the floor grips the player. The floor is a limit rather than a
+    /// Box2D body, so it has to apply its own friction; this is what the player's
+    /// 0.15 and a block's 0.5 mix to, so both grounds feel alike.
+    /// </summary>
+    public const float GroundFriction = 0.27f;
+
     protected override void OnUpdate()
     {
+        float delta = Tick.deltaTime;
         CommandBuffer buffer = CommandBuffer;
 
         Query.ForEachEntity((ref player, ref body, ref position, ref view, ref playfield, entity) =>
@@ -41,16 +49,24 @@ public sealed class PlayerArenaSystem : QuerySystem<Player, PhysicsBody, Positio
                 Box2DPhysicsWorld.ToPhysics(screen),
                 body.Body.GetAngle());
 
-            if (screen.Y >= fieldTopLeft.Y + fieldSize.Y - half.Y - 0.5f ||
-                screen.Y <= fieldTopLeft.Y + half.Y + 0.5f)
+            bool onFloor = screen.Y >= fieldTopLeft.Y + fieldSize.Y - half.Y - 0.5f;
+            if (onFloor || screen.Y <= fieldTopLeft.Y + half.Y + 0.5f)
             {
+                float speed = body.Body.LinearVelocity.X;
                 body.Body.SetLinearVelocity(new NVector2(
-                    body.Body.LinearVelocity.X,
+                    onFloor ? AfterFriction(speed, delta) : speed,
                     0f));
             }
 
             position.Value = screen;
             buffer.AddTag<Moved>(entity.Id);
         });
+    }
+
+    /// <summary>Sideways speed, in metres per second, after sliding on the floor; it stops rather than reverses.</summary>
+    public static float AfterFriction(float speed, float delta)
+    {
+        float loss = GroundFriction * Box2DPhysicsWorld.DefaultGravity * delta;
+        return Math.Abs(speed) <= loss ? 0f : speed - Math.Sign(speed) * loss;
     }
 }

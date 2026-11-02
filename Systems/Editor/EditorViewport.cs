@@ -26,14 +26,12 @@ public static class EditorViewport
     /// <summary>One Ctrl+wheel notch zooms by this factor.</summary>
     public const float WheelStep = 1.15f;
 
-    /// <summary>The screen area between the header and the transport row the field is shown in.</summary>
+    /// <summary>The screen area between the header and the footer the field is shown in.</summary>
     public static Rect2 Area(Vector2 screen)
     {
         float top = EditorLayout.HeaderHeight + EditorLayout.Margin;
         float bottom = screen.Y -
                        EditorLayout.FooterHeight -
-                       EditorLayout.TransportHeight -
-                       EditorLayout.Gap -
                        EditorShellMetrics.StatusLineHeight -
                        EditorLayout.Margin;
         return new Rect2(

@@ -3,6 +3,7 @@ using Friflo.Engine.ECS.Systems;
 using Godot;
 using NUnit.Framework;
 using Xanadu.Ecs;
+using Xanadu.Systems.Editor;
 using Xanadu.Scenes;
 using Xanadu.Systems.Layout;
 using Xanadu.Tests.Support;
@@ -102,6 +103,30 @@ public sealed class EditorChromeLayoutTests : EcsSystemTest
 
         Assert.That(middle, Is.EqualTo(Screen.X / 2).Within(1f));
         Assert.That(play.Position.Y, Is.GreaterThanOrEqualTo(_shell.Footer.Position.Y - 1f));
+    }
+
+    [Test]
+    public void TheClockSitsInTheFooterLeftOfACentredTimeline()
+    {
+        var view = new PlayfieldView(Vector2.Zero, 1f, Screen);
+        Rect2 ruler = EditorLayout.RulerRect(view);
+        Rect2 clock = Area(ByText("00:00.000 / 00:00.000").Parent);
+
+        Assert.That(clock.End.X, Is.LessThanOrEqualTo(ruler.Position.X));
+        Assert.That(clock.GetCenter().Y, Is.EqualTo(ruler.GetCenter().Y).Within(1f));
+        Assert.That(ruler.Size.Y, Is.EqualTo(EditorLayout.TimelineHeight));
+    }
+
+    [Test]
+    public void TheFooterPanelStartsAtTheTransportWithNoGap()
+    {
+        var view = new PlayfieldView(Vector2.Zero, 1f, Screen);
+        Rect2 footer = EditorLayout.FooterRect(view);
+
+        Assert.That(footer.Position.Y, Is.EqualTo(_shell.Footer.Position.Y).Within(0.5f));
+        Assert.That(EditorLayout.TransportRect(view).Position.Y, Is.EqualTo(footer.Position.Y));
+        Assert.That(EditorLayout.AnalysisRect(view).Position.Y,
+            Is.GreaterThanOrEqualTo(EditorLayout.TransportRect(view).End.Y));
     }
 
     private Entity ByText(string text)
@@ -227,8 +252,8 @@ public sealed class EditorChromeLayoutTests : EcsSystemTest
         Rect2 time = Area(ByText("00:00.000 / 00:00.000").Parent);
         Rect2 notes = Area(ByText("0 notes"));
 
-        Assert.That(time.Position.X, Is.EqualTo(15f).Within(0.5f));
-        Assert.That(notes.End.X, Is.EqualTo(Screen.X - 15f).Within(0.5f));
+        Assert.That(time.Position.X, Is.EqualTo(EditorLayout.Margin).Within(0.5f));
+        Assert.That(notes.End.X, Is.EqualTo(Screen.X - EditorLayout.Margin).Within(0.5f));
         Assert.That(time.Position.Y, Is.GreaterThanOrEqualTo(_shell.Footer.Position.Y - 1f));
     }
 

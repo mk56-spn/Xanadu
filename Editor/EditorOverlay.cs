@@ -21,6 +21,7 @@ public partial class EditorOverlay
     private string _saveProblem = "";
     private readonly Action? _onForward;
     private readonly Action<LevelDocument, string, long>? _onPreview;
+    private readonly Action<LevelDocument, string, long>? _onPreviewHere;
     private readonly TapTempo _tapTempo = new();
 
     private ConfirmationDialog _songPicker = null!;
@@ -45,7 +46,8 @@ public partial class EditorOverlay
         Action? onBack = null,
         Action? onForward = null,
         Action<LevelDocument, string, long>? onPreview = null,
-        bool openSongDialog = true)
+        bool openSongDialog = true,
+        Action<LevelDocument, string, long>? onPreviewHere = null)
     {
         _entities = entities;
         _commands = commands;
@@ -53,6 +55,7 @@ public partial class EditorOverlay
         _onBack = onBack;
         _onForward = onForward;
         _onPreview = onPreview;
+        _onPreviewHere = onPreviewHere;
         _openSongDialog = openSongDialog;
         Layer = 100;
     }
