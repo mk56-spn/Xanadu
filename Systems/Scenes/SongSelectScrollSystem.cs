@@ -6,7 +6,7 @@ using Xanadu.Scenes;
 
 namespace Xanadu.Systems.Scenes;
 
-/// <summary>Eases the song-select list toward the selected level each frame.</summary>
+/// <summary>Eases the song-select list toward the selected level each frame, unless the pointer is dragging it.</summary>
 public sealed class SongSelectScrollSystem : QuerySystem<SongSelectState>
 {
     private readonly List<Entity> _lists = new();
@@ -22,7 +22,8 @@ public sealed class SongSelectScrollSystem : QuerySystem<SongSelectState>
         foreach (Entity list in _lists)
         {
             ref SongSelectState state = ref list.GetComponent<SongSelectState>();
-            SongSelectScene.AdvanceScroll(ref state, delta);
+            if (!list.Tags.Has<SongSelectDragging>())
+                SongSelectScene.AdvanceScroll(ref state, delta);
             SongSelectScene.RefreshScoreThumb(ref state);
         }
     }

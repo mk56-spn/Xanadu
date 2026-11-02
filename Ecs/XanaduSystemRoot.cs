@@ -118,6 +118,7 @@ public sealed class XanaduSystemRoot : SystemRoot, IDisposable
         Add(new PhysicsSystemGroup(Physics, entities));
         Add(new Xanadu.Systems.Scenes.SongSelectHoldSystem(Keyboard, Scenes));
         Add(new Xanadu.Systems.Scenes.SongSelectScrollbarSystem(pointerInput, Scenes));
+        Add(new Xanadu.Systems.Scenes.SongSelectDragSystem(pointerInput, Scenes));
         Add(new Xanadu.Systems.Scenes.SongSelectScrollSystem());
         Add(new Xanadu.Systems.Scenes.ProfileEditSystem(Profiles));
         Add(new OffsetWizardSystem(
