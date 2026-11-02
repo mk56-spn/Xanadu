@@ -96,11 +96,12 @@ public sealed class PlayfieldPlaybackSystem : QuerySystem<LevelInfo, Playhead>
 
     private void Load(LevelInfo level, ref Playhead playhead)
     {
+        // A seek asked for before the audio loaded still stands: returning from a
+        // preview puts the playhead back before this first load of the new editor.
         _loadedRevision = playhead.AudioRevision;
         playhead.Playing = false;
         playhead.TimeMs = 0;
         playhead.DurationMs = 0;
-        playhead.SeekRequestMs = -1;
 
         if (string.IsNullOrEmpty(level.AudioPath))
         {

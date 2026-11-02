@@ -53,7 +53,7 @@ public sealed class PlayfieldDrawSystem :
                 Rect2 frame = PlayfieldRenderer.FieldRect(view, playfield);
                 if (entity.TryGetComponent(out PlayCamera camera))
                 {
-                    shift = camera.Shift.Round();
+                    shift = camera.LayerShift;
                     frame = frame.Intersection(camera.Visible);
                 }
 

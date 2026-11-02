@@ -1,3 +1,4 @@
+using System;
 using Godot;
 using Xanadu.Levels;
 using Xanadu.Ecs;
@@ -42,6 +43,10 @@ public partial class EditorOverlay : CanvasLayer
                 StartPreview();
                 break;
 
+            case EditorButtonKind.PreviewHere:
+                StartPreview(fromPlayhead: true);
+                break;
+
             case EditorButtonKind.BackgroundColor:
                 OpenBackgroundDialog();
                 break;
@@ -68,10 +73,11 @@ public partial class EditorOverlay : CanvasLayer
         SetStatus($"Tap BPM {value}");
     }
 
-    /// <summary>Opens the real play scene on the current level, from a start point.</summary>
-    private void StartPreview()
+    /// <summary>Opens the real play scene on the current level, from a start point or the playhead.</summary>
+    private void StartPreview(bool fromPlayhead = false)
     {
-        if (_editor.IsNull || _onPreview is null)
+        Action<LevelDocument, string, long>? launch = fromPlayhead ? _onPreviewHere : _onPreview;
+        if (_editor.IsNull || launch is null)
             return;
 
         // Preview rebuilds the editor from its in-memory level when it returns.
@@ -82,6 +88,6 @@ public partial class EditorOverlay : CanvasLayer
 
         LevelDocument document = LevelDocumentMapper.Capture(_entities, _editor);
         long playheadMs = _editor.GetComponent<Playhead>().TimeMs;
-        _onPreview(document, path, playheadMs);
+        launch(document, path, playheadMs);
     }
 }

@@ -144,9 +144,10 @@ public static partial class SongSelectScene
         float zoom,
         Color? notes = null,
         Color? top = null,
-        Color? bottom = null)
+        Color? bottom = null,
+        string? instance = null)
     {
-        if (!loadAssets || ShaderMaterials.Load(BackgroundShader) is not { } material)
+        if (!loadAssets || ShaderMaterials.Load(BackgroundShader, instance) is not { } material)
             return null;
 
         material.SetShaderParameter("notes", NoteAtlas.Get());

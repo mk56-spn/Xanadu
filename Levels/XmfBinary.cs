@@ -49,6 +49,9 @@ public static partial class XmfBinary
 
         /// <summary>Optional item colours, absent when every item is untinted.</summary>
         SelfModulates = 12,
+
+        /// <summary>Optional spike rotations, absent when every spike points up.</summary>
+        SpikeExtras = 13,
     }
 
     public static byte[] Write(LevelDocument document)
@@ -75,6 +78,8 @@ public static partial class XmfBinary
             file.Add((uint)ChunkId.BlockExtras, WriteBlockExtras(document.Blocks));
         if (HasSelfModulates(document))
             file.Add((uint)ChunkId.SelfModulates, WriteSelfModulates(document));
+        if (HasSpikeExtras(document.Spikes))
+            file.Add((uint)ChunkId.SpikeExtras, WriteSpikeExtras(document.Spikes));
         return file.ToArray();
     }
 
@@ -113,6 +118,8 @@ public static partial class XmfBinary
         document.Spikes = file.TryGet((uint)ChunkId.Spikes, out Chunk spikes)
             ? ReadSpikes(spikes)
             : new List<SpikeDocument>();
+        if (file.TryGet((uint)ChunkId.SpikeExtras, out Chunk spikeExtras))
+            ReadSpikeExtras(spikeExtras, document.Spikes);
         if (file.TryGet((uint)ChunkId.SelfModulates, out Chunk selfModulates))
         {
             using BinaryReader reader = selfModulates.OpenReader();

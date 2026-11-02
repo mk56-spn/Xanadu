@@ -37,6 +37,166 @@ public sealed class EditorCommandSystemTests : EcsSystemTest
             LevelGroups.Create());
     }
 
+    private Entity CreateSelected<T>(T item) where T : struct, IComponent
+    {
+        Entity entity = EditorItems.Create(Store, item);
+        _editor.GetComponent<NoteSelection>().Note = entity;
+        return entity;
+    }
+
+    [Test]
+    public void RotatingTurnsASpikeInPlaceAsOneUndoStep()
+    {
+        _editor.AddComponent(new EditorSpikeBrush());
+        Entity spike = CreateSelected(new Spike(new Godot.Vector2(100, 100), new Godot.Vector2(50, 50)));
+
+        _commands.Enqueue(EditorCommand.RotateSelection());
+        Frame();
+
+        Assert.That(spike.GetComponent<Spike>().QuarterTurns, Is.EqualTo(1));
+        Assert.That(spike.GetComponent<Spike>().Position, Is.EqualTo(new Godot.Vector2(100, 100)));
+        Assert.That(_editor.GetComponent<EditorSpikeBrush>().QuarterTurns, Is.EqualTo(1));
+
+        _commands.Enqueue(EditorCommand.Undo());
+        Frame();
+
+        Assert.That(
+            Store.Query<Spike>().ToEntityList()[0].GetComponent<Spike>().QuarterTurns,
+            Is.Zero);
+    }
+
+    [Test]
+    public void RotatingTurnsTheBrushWhenPlacingWithNoSelection()
+    {
+        _editor.AddComponent(new EditorSpikeBrush());
+        _editor.AddComponent(new EditorPlacementModeState(EditorPlacementMode.Spikes));
+
+        _commands.Enqueue(EditorCommand.RotateSelection());
+        Frame();
+
+        Assert.That(_editor.GetComponent<EditorSpikeBrush>().QuarterTurns, Is.EqualTo(1));
+    }
+
+    [Test]
+    public void RotatingTurnsASingleDashNotesDirection()
+    {
+        Entity note = CreateSelected(new Note(
+            0,
+            new Godot.Vector2(300, 300),
+            kind: NoteKind.Dash,
+            dashDirection: DashDirection.Up));
+
+        _commands.Enqueue(EditorCommand.RotateSelection());
+        Frame();
+
+        Assert.That(note.GetComponent<Note>().DashDirection, Is.EqualTo(DashDirection.Right));
+        Assert.That(note.GetComponent<Note>().Position, Is.EqualTo(new Godot.Vector2(300, 300)));
+    }
+
+    [Test]
+    public void FlippingMirrorsTheSelectionAcrossItsCentre()
+    {
+        Entity left = EditorItems.Create(Store, new Note(
+            0,
+            new Godot.Vector2(200, 300),
+            kind: NoteKind.Dash,
+            dashDirection: DashDirection.UpRight));
+        Entity right = EditorItems.Create(Store, new Spike(
+            new Godot.Vector2(350, 300),
+            new Godot.Vector2(50, 50),
+            1));
+        _editor.GetComponent<NoteSelection>().SetMany(new[] { left, right });
+
+        _commands.Enqueue(EditorCommand.FlipSelection(horizontal: true));
+        Frame();
+
+        Assert.That(left.GetComponent<Note>().Position.X, Is.EqualTo(400));
+        Assert.That(left.GetComponent<Note>().DashDirection, Is.EqualTo(DashDirection.UpLeft));
+        Assert.That(right.GetComponent<Spike>().Position.X, Is.EqualTo(200));
+        Assert.That(right.GetComponent<Spike>().QuarterTurns, Is.EqualTo(3));
+    }
+
+    [TestCase(0, true, 0, TestName = "An upward spike keeps pointing up in a left-right flip")]
+    [TestCase(0, false, 2, TestName = "An upward spike points down in an up-down flip")]
+    [TestCase(1, true, 3, TestName = "A rightward spike points left in a left-right flip")]
+    [TestCase(1, false, 1, TestName = "A rightward spike keeps pointing right in an up-down flip")]
+    public void FlippingASpikeTurnsItTheRightWay(int turns, bool horizontal, int expected)
+    {
+        Assert.That(SelectionRotation.FlippedSpikeTurns(turns, horizontal), Is.EqualTo(expected));
+    }
+
+    [TestCase(DashDirection.Right, true, DashDirection.Left)]
+    [TestCase(DashDirection.Up, true, DashDirection.Up)]
+    [TestCase(DashDirection.DownRight, true, DashDirection.DownLeft)]
+    [TestCase(DashDirection.Up, false, DashDirection.Down)]
+    [TestCase(DashDirection.Right, false, DashDirection.Right)]
+    [TestCase(DashDirection.UpLeft, false, DashDirection.DownLeft)]
+    public void FlippingADirectionMirrorsIt(DashDirection from, bool horizontal, DashDirection to)
+    {
+        Assert.That(SelectionRotation.FlippedDirection(from, horizontal), Is.EqualTo(to));
+    }
+
+    [Test]
+    public void CopyAndPasteCarriesBlocksAndSpikesOneCellAlong()
+    {
+        Entity block = EditorItems.Create(Store, new Block(
+            new Godot.Vector2(100, 100),
+            new Godot.Vector2(100, 50),
+            shapeId: 3,
+            shapePiece: 2));
+        Entity spike = EditorItems.Create(Store, new Spike(
+            new Godot.Vector2(300, 300),
+            new Godot.Vector2(50, 50),
+            2));
+        _editor.GetComponent<NoteSelection>().SetMany(new[] { block, spike });
+
+        _commands.Enqueue(EditorCommand.CopySelection());
+        _commands.Enqueue(EditorCommand.PasteSelection());
+        Frame();
+
+        Assert.That(Store.Query<Block>().Count, Is.EqualTo(2));
+        Assert.That(Store.Query<Spike>().Count, Is.EqualTo(2));
+        var selected = _editor.GetComponent<NoteSelection>().AllNotes;
+        Entity pastedBlock = selected.First(item => item.HasComponent<Block>());
+        Entity pastedSpike = selected.First(item => item.HasComponent<Spike>());
+        Assert.That(pastedBlock.GetComponent<Block>().Position, Is.EqualTo(new Godot.Vector2(150, 150)));
+        Assert.That(pastedBlock.GetComponent<Block>().ShapeId, Is.Zero, "a copy does not join the Form shape");
+        Assert.That(pastedSpike.GetComponent<Spike>().Position, Is.EqualTo(new Godot.Vector2(350, 350)));
+        Assert.That(pastedSpike.GetComponent<Spike>().QuarterTurns, Is.EqualTo(2));
+
+        _commands.Enqueue(EditorCommand.PasteSelection());
+        Frame();
+
+        Assert.That(
+            Store.Query<Spike>().ToEntityList().Select(item => item.GetComponent<Spike>().Position),
+            Does.Contain(new Godot.Vector2(400, 400)),
+            "pasting again steps further instead of stacking");
+
+        _commands.Enqueue(EditorCommand.Undo());
+        _commands.Enqueue(EditorCommand.Undo());
+        Frame();
+
+        Assert.That(Store.Query<Spike>().Count, Is.EqualTo(1));
+    }
+
+    [Test]
+    public void PastingGeometryWithNotesLeavesTheNoteTimingAlone()
+    {
+        Entity note = EditorItems.Create(Store, new Note(5_000, new Godot.Vector2(100, 100)));
+        Entity block = EditorItems.Create(Store, new Block(new Godot.Vector2(100, 100), new Godot.Vector2(50, 50)));
+        _editor.GetComponent<NoteSelection>().SetMany(new[] { note, block });
+        _editor.GetComponent<Playhead>().TimeMs = 8_000;
+        _editor.GetComponent<Playhead>().DurationMs = 10_000;
+
+        _commands.Enqueue(EditorCommand.CopySelection());
+        _commands.Enqueue(EditorCommand.PasteSelection());
+        Frame();
+
+        Assert.That(
+            Store.Query<Note>().ToEntityList().Select(item => item.GetComponent<Note>().TimeMs),
+            Does.Contain(8_000L));
+    }
+
     [Test]
     public void AppliesMetadataAndClampsTiming()
     {

@@ -345,6 +345,46 @@ public static partial class XmfBinary
         }
     }
 
+    internal static bool HasSpikeExtras(List<SpikeDocument> spikes) =>
+        spikes.Exists(spike => spike.QuarterTurns != 0);
+
+    internal static byte[] WriteSpikeExtras(List<SpikeDocument> spikes)
+    {
+        using var stream = new MemoryStream();
+        using var writer = new BinaryWriter(stream, Encoding.UTF8, leaveOpen: true);
+        WriteSpikeTurns(writer, spikes);
+        writer.Flush();
+        return stream.ToArray();
+    }
+
+    internal static void ReadSpikeExtras(Chunk chunk, List<SpikeDocument> spikes)
+    {
+        using BinaryReader reader = chunk.OpenReader();
+        ReadSpikeTurns(reader, spikes);
+    }
+
+    private static void WriteSpikeTurns(BinaryWriter writer, List<SpikeDocument> spikes)
+    {
+        writer.Write((uint)spikes.Count);
+        foreach (SpikeDocument spike in spikes)
+            writer.Write((byte)spike.QuarterTurns);
+    }
+
+    private static void ReadSpikeTurns(BinaryReader reader, List<SpikeDocument> spikes)
+    {
+        uint count = ReadCount(reader, MaxItems, "spike extra");
+        if (count != spikes.Count)
+            throw new FormatException("XMF spike extras do not match the spike count.");
+
+        foreach (SpikeDocument spike in spikes)
+        {
+            byte turns = reader.ReadByte();
+            if (turns > 3)
+                throw new FormatException("XMF spike has an invalid rotation.");
+            spike.QuarterTurns = turns;
+        }
+    }
+
     private static byte[] WriteSpikes(List<SpikeDocument> spikes)
     {
         using var stream = new MemoryStream();

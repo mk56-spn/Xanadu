@@ -17,7 +17,25 @@ public sealed class PhysicsStepSystem : QuerySystem<Character, PhysicsBody, Mome
 
     protected override void OnUpdate()
     {
-        _physics.Step(Tick.deltaTime);
+        float delta = Tick.deltaTime;
+        bool stepping = _physics.WillStep(delta);
+        ArchetypeQuery<PhysicsBody, PlayerSmoothing> smoothed =
+            Query.Store.Query<PhysicsBody, PlayerSmoothing>();
+        if (stepping)
+        {
+            smoothed.ForEachEntity((ref body, ref smoothing, _) =>
+                smoothing.Previous = Box2DPhysicsWorld.ToScreen(body.Body.GetPosition()));
+        }
+
+        _physics.Step(delta);
+        float progress = _physics.StepProgress;
+        smoothed.ForEachEntity((ref body, ref smoothing, _) =>
+        {
+            if (stepping)
+                smoothing.Stepped = Box2DPhysicsWorld.ToScreen(body.Body.GetPosition());
+            smoothing.Alpha = progress;
+        });
+
         CommandBuffer buffer = CommandBuffer;
 
         Query.ForEachEntity((ref _, ref body, ref momentum, entity) =>

@@ -269,7 +269,7 @@ public sealed class SceneSystemTests
     }
 
     [Test]
-    public void ProfilesSceneCreatesAProfileAndContinues()
+    public void ProfilesSceneCreatesAProfileAndOpensItsEditor()
     {
         _scenes.Start(SceneKind.Profiles);
         Frame();
@@ -281,8 +281,9 @@ public sealed class SceneSystemTests
         _store.Query<ProfileCreate>().ToEntityList()[0].AddTag<Pressed>();
         Frame();
 
-        Assert.That(_director.Current, Is.EqualTo(SceneKind.Main));
+        Assert.That(_director.Current, Is.EqualTo(SceneKind.ProfileEdit));
         Assert.That(_profiles.ActiveProfile, Is.Not.Null);
+        Assert.That(_store.Query<ProfileEditView>().Count, Is.EqualTo(1));
     }
 
     [Test]
@@ -597,7 +598,7 @@ public sealed class SceneSystemTests
         // to come out smaller than 200 px too, in the same proportion.
         Assert.That(scale, Is.LessThan(1f));
         Assert.That(size, Is.EqualTo(Player.DefaultSize * scale));
-        Assert.That(size.Y / size.X, Is.EqualTo(200f / 30f).Within(0.0001f));
+        Assert.That(size.Y / size.X, Is.EqualTo(Player.DefaultHeight / Player.DefaultWidth).Within(0.0001f));
     }
 
     [Test]

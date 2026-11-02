@@ -140,12 +140,12 @@ public sealed class EditorDropdownSystemTests
 
     [TestCase(EditorPlacementMode.Notes, true)]
     [TestCase(EditorPlacementMode.Pair, true)]
-    [TestCase(EditorPlacementMode.Dash, false)]
-    [TestCase(EditorPlacementMode.Momentum, false)]
+    [TestCase(EditorPlacementMode.Dash, true)]
+    [TestCase(EditorPlacementMode.Momentum, true)]
     [TestCase(EditorPlacementMode.Mines, false)]
     [TestCase(EditorPlacementMode.Start, false)]
     [TestCase(EditorPlacementMode.CharacterSwitch, false)]
-    public void TheNoteKeyBarShowsForTheKindsThatCarryAKey(EditorPlacementMode mode, bool shown)
+    public void TheNoteKeyBarShowsForNotesAndMovementNotes(EditorPlacementMode mode, bool shown)
     {
         var store = new EntityStore();
         store.CreateEntity(

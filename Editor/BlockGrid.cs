@@ -33,9 +33,12 @@ public static class BlockGrid
         return new Vector2(cell.X * 2, cell.Y);
     }
 
-    /// <summary>Top-left of a block dropped at the pointer, snapped and kept in the field.</summary>
-    public static Vector2 PlaceAt(Vector2 pointer, Vector2 size, Playfield playfield) =>
-        Clamp(Snap(pointer - size / 2, Cell(playfield)), size, playfield);
+    /// <summary>Top-left of a block centred on the pointer, kept in the field and snapped unless asked not to.</summary>
+    public static Vector2 PlaceAt(Vector2 pointer, Vector2 size, Playfield playfield, bool snap = true)
+    {
+        Vector2 position = pointer - size / 2;
+        return Clamp(snap ? Snap(position, Cell(playfield)) : position, size, playfield);
+    }
 
     /// <summary>Keeps a block fully inside the field without breaking grid alignment.</summary>
     public static Vector2 Clamp(Vector2 position, Vector2 size, Playfield playfield) => new(

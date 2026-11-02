@@ -115,6 +115,7 @@ public sealed class EditorButtonSystem : QuerySystem<EditorButton>
                 break;
 
             case EditorButtonKind.Preview:
+            case EditorButtonKind.PreviewHere:
             case EditorButtonKind.ToggleMetadata:
             case EditorButtonKind.Save:
             case EditorButtonKind.SaveAs:

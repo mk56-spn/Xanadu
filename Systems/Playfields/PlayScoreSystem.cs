@@ -4,6 +4,7 @@ using Godot;
 using Friflo.Engine.ECS.Systems;
 using Xanadu.Ecs;
 using Xanadu.Scoring;
+using Xanadu.Strings;
 using Xanadu.Theme;
 using Position = Xanadu.Ecs.Position;
 
@@ -12,6 +13,9 @@ namespace Xanadu.Systems.Playfields;
 /// <summary>Projects score, accuracy, rank, judgement, and combo into the play HUD.</summary>
 public sealed class PlayScoreSystem : QuerySystem<ScoreState, Playhead>
 {
+    /// <summary>How far under the judgement's centre the EARLY / LATE label sits.</summary>
+    public const float TimingIndicatorGap = 30f;
+
     public static Color ColorFor(Judgement judgement) => judgement switch
     {
         Judgement.FlawlessP => Palette.Accent,
@@ -66,6 +70,9 @@ public sealed class PlayScoreSystem : QuerySystem<ScoreState, Playhead>
             if (entity.HasComponent<ErrorBar>())
                 UpdateErrorBar(entity, score, showJudgement, buffer);
 
+            if (entity.TryGetComponent(out TimingIndicator timing))
+                UpdateTimingIndicator(entity, timing, score, showJudgement, buffer);
+
             if (entity.HasComponent<JudgementCounter>())
             {
                 JudgementCounter counter =
@@ -94,12 +101,51 @@ public sealed class PlayScoreSystem : QuerySystem<ScoreState, Playhead>
                 // sits on it; it is not a HUD element that can be moved away.
                 ref Position position =
                     ref score.JudgementText.GetComponent<Position>();
-                position.Value = entity.TryGetComponent(out PlayCamera camera)
-                    ? score.JudgementPosition - camera.Shift
-                    : score.JudgementPosition;
+                position.Value = JudgementScreenPosition(entity, score);
                 buffer.AddTag<Moved>(score.JudgementText.Id);
             }
         });
+    }
+
+    private static Vector2 JudgementScreenPosition(Entity entity, ScoreState score) =>
+        entity.TryGetComponent(out PlayCamera camera)
+            ? score.JudgementPosition - camera.Shift
+            : score.JudgementPosition;
+
+    private static void UpdateTimingIndicator(
+        Entity entity,
+        TimingIndicator indicator,
+        ScoreState score,
+        bool visible,
+        CommandBuffer buffer)
+    {
+        HitTiming timing = visible
+            ? ScoreRules.TimingFor(score.LastJudgement, score.LastOffsetMs)
+            : HitTiming.None;
+
+        UiLayout.SetHidden(indicator.Text, buffer, timing == HitTiming.None);
+        if (timing == HitTiming.None)
+            return;
+
+        UiText.Set(
+            indicator.Text,
+            LocalizedText.Get(timing == HitTiming.Early
+                ? PlayStrings.Early
+                : PlayStrings.Late),
+            buffer);
+
+        ref TextStyle style = ref indicator.Text.GetComponent<TextStyle>();
+        Color color = timing == HitTiming.Early ? Palette.Info : Palette.Warning;
+        if (style.Color != color)
+        {
+            style.Color = color;
+            buffer.AddTag<Dirty>(indicator.Text.Id);
+        }
+
+        ref Position position = ref indicator.Text.GetComponent<Position>();
+        position.Value = JudgementScreenPosition(entity, score) +
+                         new Vector2(0, TimingIndicatorGap);
+        buffer.AddTag<Moved>(indicator.Text.Id);
     }
 
     private static void UpdateErrorBar(

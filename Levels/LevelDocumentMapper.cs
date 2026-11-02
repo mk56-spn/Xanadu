@@ -139,6 +139,7 @@ public static class LevelDocumentMapper
                 Y = spike.Position.Y,
                 Width = spike.Size.X,
                 Height = spike.Size.Y,
+                QuarterTurns = spike.QuarterTurns,
                 SelfModulate = SelfModulate.Packed(entity),
                 Groups = GroupsOf(entity),
                 Shader = ItemShader.Of(entity),
@@ -247,7 +248,8 @@ public static class LevelDocumentMapper
         {
             Entity created = EditorItems.Create(entities, new Spike(
                 new Vector2(spike.X, spike.Y),
-                new Vector2(spike.Width, spike.Height)), spike.Shader);
+                new Vector2(spike.Width, spike.Height),
+                spike.QuarterTurns), spike.Shader);
             Subscribe(created, spike.Groups);
             SelfModulate.Put(created, spike.SelfModulate);
         }

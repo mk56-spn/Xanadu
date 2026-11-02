@@ -428,8 +428,6 @@ public static partial class PlayfieldRenderer
         {
             NoteKind.CharacterSwitch => CharacterSwitchColor,
             NoteKind.Pair => PairColor,
-            NoteKind.Dash => DashColor,
-            NoteKind.Momentum => MomentumColor,
             NoteKind.Contact => ContactBarrierColor,
             NoteKind.WeaponSwitch => WeaponSwitchColor,
             NoteKind.Channel => ChannelColor,

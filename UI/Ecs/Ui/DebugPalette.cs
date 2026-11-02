@@ -42,6 +42,7 @@ public static class DebugPalette
     // Playfield hitboxes.
     public static readonly Color PlayerHitbox = Palette.Success;
     public static readonly Color BlockHitbox = Palette.Rose;
+    public static readonly Color SpikeHitbox = Palette.Warning;
     public static readonly Color NoteReach = Palette.Accent;
     public static readonly Color WeaponHitbox = Palette.Info;
     public static readonly Color HitboxFill = new(1f, 1f, 1f, 0.1f);

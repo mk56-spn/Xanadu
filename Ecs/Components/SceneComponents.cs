@@ -18,6 +18,7 @@ public enum SceneKind
     OffsetWizard,
     Settings,
     SongTiming,
+    ProfileEdit,
 }
 
 /// <summary>Persistent game scene state and the next requested scene.</summary>
@@ -70,6 +71,23 @@ public struct ProfileSelect(string profileId) : IComponent
 
 /// <summary>Creates a new local profile and continues to the main menu.</summary>
 public struct ProfileCreate : IComponent;
+
+/// <summary>Makes a profile the active one and opens the screen that edits it.</summary>
+public struct ProfileEditAction(string profileId) : IComponent
+{
+    public string ProfileId = profileId;
+}
+
+/// <summary>The controls of the profile edit screen and the art they tint.</summary>
+public struct ProfileEditView(Entity name, Entity picker, Entity art) : IComponent
+{
+    public Entity Name = name;
+    public Entity Picker = picker;
+    public Entity Art = art;
+
+    /// <summary>The name text last handed to the profile, so only real edits rename it.</summary>
+    public string Typed = "";
+}
 
 /// <summary>Opens the editor with the currently selected song-select level.</summary>
 public struct EditLevelAction : IComponent;

@@ -1,21 +1,17 @@
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
-using Godot;
 using Xanadu.Ecs;
 using Xanadu.Editor;
-using Position = Xanadu.Ecs.Position;
 
 namespace Xanadu.Systems.Editor;
 
 /// <summary>
 /// Specialises the generic wheel for dash directions: selects the wedge from
 /// <see cref="EditorDashDirectionState"/>, reflects user selections back into
-/// that state, and moves the floating wheel off-screen outside MOVE mode.
+/// that state, and hides the wheel and its label outside the movement modes.
 /// </summary>
 public sealed class EditorDirectionWheelSystem : QuerySystem<EditorDirectionWheel>
 {
-    private const float LabelGap = 16f;
-
     protected override void OnUpdate()
     {
         CommandBuffer buffer = CommandBuffer;
@@ -43,11 +39,6 @@ public sealed class EditorDirectionWheelSystem : QuerySystem<EditorDirectionWhee
                 EditorPlacementMode.Dash or
                 EditorPlacementMode.Momentum;
 
-            float radius = link.Wheel.HasComponent<Rectangle>()
-                ? link.Wheel.GetComponent<Rectangle>().Bounds.Size.X / 2
-                : 0;
-            Move(link.Wheel, link.Home, buffer);
-            Move(link.Label, link.Home + new Vector2(0, -radius - LabelGap), buffer);
             UiLayout.SetHidden(link.Wheel, buffer, !visible);
             UiLayout.SetHidden(link.Label, buffer, !visible);
 
@@ -61,18 +52,5 @@ public sealed class EditorDirectionWheelSystem : QuerySystem<EditorDirectionWhee
                     raiseChanged: false);
             }
         }
-    }
-
-    private static void Move(Entity entity, Vector2 target, CommandBuffer buffer)
-    {
-        if (entity.IsNull || !entity.HasComponent<Position>())
-            return;
-
-        ref Position position = ref entity.GetComponent<Position>();
-        if (position.Value == target)
-            return;
-
-        position.Value = target;
-        buffer.AddTag<Moved>(entity.Id);
     }
 }

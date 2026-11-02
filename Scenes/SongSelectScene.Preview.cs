@@ -3,6 +3,7 @@ using Friflo.Engine.ECS;
 using Godot;
 using Xanadu.Ecs;
 using Xanadu.Levels;
+using Xanadu.Profiles;
 using Xanadu.Strings;
 using Xanadu.Systems.Shaders;
 
@@ -12,7 +13,7 @@ namespace Xanadu.Scenes;
 public static partial class SongSelectScene
 {
     private const int ChipCount = 3;
-    private static readonly float PreviewTilt = Mathf.DegToRad(6);
+    internal static readonly float PreviewTilt = Mathf.DegToRad(6);
     private static readonly Color PanelBlack = new(0, 0, 0, 0.7f);
 
     // Pushed left, as far as the list panel's slanted edge allows, to leave a
@@ -53,7 +54,7 @@ public static partial class SongSelectScene
 
     private readonly record struct PreviewViews(List<Entity> Chips, Entity Art);
 
-    private static PreviewViews BuildPreview(UiNode ui, bool loadAssets)
+    private static PreviewViews BuildPreview(UiNode ui, ProfileStore profiles, bool loadAssets)
     {
         Entity backing = ui.Shape(Box(new Vector2(530, 530)), PanelBlack)
             .At(FrameCenter)
@@ -72,12 +73,13 @@ public static partial class SongSelectScene
                 zoom: 2.2f,
                 notes: new Color(0.45f, 0.95f, 0.6f),
                 top: new Color(0.04f, 0.17f, 0.1f),
-                bottom: new Color(0.07f, 0.36f, 0.19f)),
+                bottom: new Color(0.07f, 0.36f, 0.19f),
+                instance: "level art"),
             takesInput: true);
         levelArt.On(SceneActionId.Play)
             .Tooltip(LocalizedText.Get(SongSelectStrings.Play));
 
-        // Holds the shader for now; the player's own art goes here later.
+        // The player's art: the notes shader in their own tint.
         Entity playerBacking = ui.Shape(
                 Box(new Vector2(PlayerFrameBacking, PlayerFrameBacking)),
                 PanelBlack)
@@ -89,13 +91,10 @@ public static partial class SongSelectScene
             ui,
             PlayerFrameCenter,
             PlayerFrameArt,
-            NoteMaterial(
+            ProfileArt.Material(
                 loadAssets,
-                aspect: 1,
-                zoom: 4.5f,
-                notes: new Color(0.5f, 0.75f, 1f),
-                top: new Color(0.04f, 0.08f, 0.2f),
-                bottom: new Color(0.08f, 0.2f, 0.45f)));
+                ProfileArt.Tint(profiles.ActiveProfile),
+                ProfileArt.Instance(profiles.ActiveProfile)));
 
         // The chip bar is a skewed container; its right end runs off screen.
         const float barLeft = 1459.085f;
@@ -128,7 +127,7 @@ public static partial class SongSelectScene
     /// A black square rotated by the preview tilt, carrying a notes shader when
     /// there is one. It is a rect, not a polygon, so the shader gets real UVs.
     /// </summary>
-    private static UiNode TiltedArt(
+    internal static UiNode TiltedArt(
         UiNode parent,
         Vector2 center,
         float size,

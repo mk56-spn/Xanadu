@@ -58,9 +58,10 @@ public sealed class UiColorPickerSystem(IPointerInputSource pointer) : QuerySyst
 
     private void Grab(Entity entity, Vector2 world, Vector2 point)
     {
+        bool hasAlpha = !entity.GetComponent<UiColorPicker>().Alpha.Tags.Has<UiHidden>();
         _region = ColorPickerLayout.Square(world).HasPoint(point) ? Region.Square
             : ColorPickerLayout.HueBar(world).HasPoint(point) ? Region.Hue
-            : ColorPickerLayout.AlphaBar(world).HasPoint(point) ? Region.Alpha
+            : hasAlpha && ColorPickerLayout.AlphaBar(world).HasPoint(point) ? Region.Alpha
             : Region.None;
         if (_region != Region.None)
             _dragged = entity;

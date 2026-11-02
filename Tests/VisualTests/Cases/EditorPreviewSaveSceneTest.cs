@@ -9,13 +9,15 @@ using Xanadu.Levels;
 using Xanadu.Scenes;
 using Xanadu.Settings;
 using Xanadu.Systems.Playfields;
+using Xanadu.Systems.Scenes;
 using Position = Xanadu.Ecs.Position;
 
 namespace Xanadu.Tests.VisualTests;
 
 /// <summary>
 /// Regression: entering preview saves the level first, so the editor rebuilt on
-/// return does not offer the autosave back as an unsaved recovery.
+/// return does not offer the autosave back as an unsaved recovery. Leaving that
+/// editor through SAVE &amp; LEAVE must then save and go, not report it as closed.
 /// </summary>
 public sealed class EditorPreviewSaveSceneTest : SceneTest
 {
@@ -68,7 +70,68 @@ public sealed class EditorPreviewSaveSceneTest : SceneTest
         AddAssert(
             "no recovery is offered",
             () => Context.Entities.Query<EditorRecoveryOffer>().Count == 0);
+        AddAssert(
+            "with no overlay, saving says the editor is closed",
+            () => EditorOverlay.SaveForLeaving(null).Problem == "the editor is closed");
+
+        AddStep("open the returned editor's overlay", () =>
+        {
+            CreateOverlay();
+            Context.Scenes.SaveEditor = () => EditorOverlay.SaveForLeaving(_overlay);
+        });
+        AddWaitStep("overlay settles again", 2);
+        AddStep("request leave", () => Context.Scenes.TryBack());
+        AddUntilStep("leave confirmation is visible", ConfirmationVisible);
+
+        AddStep("make the save refuse", () => Context.Scenes.SaveEditor =
+            () => EditorSaveOutcome.Failed("test refusal"));
+        ClickSaveAndLeave();
+        AddUntilStep(
+            "a refused save says why",
+            () => VisualAssert.HasText(
+                Context.Entities,
+                "Can't save: test refusal. YES leaves without saving."));
+        AddAssert("a refused save stays in the editor", () => Context.Scenes.Current == SceneKind.Editor);
+
+        AddStep("let the real save run", () =>
+            Context.Scenes.SaveEditor = () => EditorOverlay.SaveForLeaving(_overlay));
+        AddStep("remove the file so the save has to rewrite it", () => File.Delete(_savedPath));
+        ClickSaveAndLeave();
+        AddUntilStep(
+            "saving leaves for song select",
+            () => Context.Scenes.Current == SceneKind.SongSelect);
+        AddAssert("the level was written again", () => File.Exists(_savedPath));
+        AddAssert(
+            "no save problem was reported",
+            () => !VisualAssert.HasText(Context.Entities, "Can't save: the editor is closed. YES leaves without saving."));
         AddStep("clean up", Cleanup);
+    }
+
+    private void ClickSaveAndLeave()
+    {
+        AddStep("click SAVE & LEAVE", () =>
+        {
+            foreach (Entity entity in Context.Entities.Query<SceneConfirmation>().ToEntityList())
+            {
+                Entity save = entity.GetComponent<SceneConfirmation>().Save;
+                Context.Pointer.Click(UiTransform.WorldPosition(
+                    save,
+                    save.GetComponent<Position>().Value));
+                return;
+            }
+
+            throw new SceneTestAssertionException("SAVE & LEAVE button missing");
+        });
+        AddWaitStep("hold save", 2);
+        AddStep("release save", () => Context.Pointer.Release());
+    }
+
+    private bool ConfirmationVisible()
+    {
+        foreach (Entity entity in Context.Entities.Query<SceneConfirmation>().ToEntityList())
+            return !UiLayout.IsHidden(entity);
+
+        return false;
     }
 
     private void StageLevel()

@@ -41,6 +41,7 @@ public sealed class PlayerBodySystem : QuerySystem<Player, Position>
                 CharacterFriction);
 
             buffer.AddComponent(entity.Id, new PhysicsBody(body));
+            buffer.AddComponent(entity.Id, new PlayerSmoothing(position.Value));
         });
     }
 }

@@ -167,7 +167,8 @@ public sealed class EditorHistory
                 spike.Size,
                 MaskOf(entity),
                 ItemShader.Of(entity),
-                SelfModulate.Packed(entity)));
+                SelfModulate.Packed(entity),
+                spike.QuarterTurns));
         }
 
         spikes.Sort(static (a, b) =>
@@ -313,7 +314,7 @@ public sealed class EditorHistory
 
         foreach (SpikeSnapshot spike in snapshot.Spikes)
         {
-            Entity created = EditorItems.Create(_entities, new Spike(spike.Position, spike.Size), spike.Shader);
+            Entity created = EditorItems.Create(_entities, new Spike(spike.Position, spike.Size, spike.QuarterTurns), spike.Shader);
             Subscribe(created, spike.Groups);
             SelfModulate.Put(created, spike.Modulate);
         }
@@ -354,7 +355,8 @@ public readonly record struct SpikeSnapshot(
     Vector2 Size,
     uint Groups = 0,
     int Shader = 0,
-    uint Modulate = SelfModulate.White);
+    uint Modulate = SelfModulate.White,
+    int QuarterTurns = 0);
 
 /// <summary>Stable serializable mine snapshot used by undo/redo.</summary>
 public readonly record struct MineSnapshot(

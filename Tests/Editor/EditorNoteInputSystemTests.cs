@@ -453,6 +453,7 @@ public sealed class EditorNoteInputSystemTests
             new EditorDashDirectionState(DashDirection.UpRight));
         editor.AddComponent(
             new EditorDashStrengthState(DashStrength.Double));
+        editor.AddComponent(new EditorNoteTarget(KeybindAction.R2));
 
         _pointer.Current = new PointerInput(new Vector2(300, 400), true);
         _root.Update(new UpdateTick(1f / 60f, 0));
@@ -463,6 +464,8 @@ public sealed class EditorNoteInputSystemTests
         Assert.That(notes, Has.Count.EqualTo(1));
         Assert.That(notes[0].GetComponent<Note>().Kind,
             Is.EqualTo(NoteKind.Dash));
+        Assert.That(notes[0].GetComponent<Note>().Target,
+            Is.EqualTo(KeybindAction.R2));
         Assert.That(notes[0].GetComponent<Note>().DashDirection,
             Is.EqualTo(DashDirection.UpRight));
         Assert.That(notes[0].GetComponent<Note>().DashStrength,
@@ -529,6 +532,38 @@ public sealed class EditorNoteInputSystemTests
         Assert.That(_history.Undo(), Is.True);
 
         Assert.That(_store.Query<Mine>().Count, Is.Zero);
+    }
+
+    [Test]
+    public void TheGhostFollowsThePointerOverEmptyField()
+    {
+        Entity editor = _store.Query<PlayfieldView>().ToEntityList()[0];
+        editor.AddComponent(new EditorPlacementGhost());
+        editor.AddComponent(new EditorPlacementModeState(EditorPlacementMode.Spikes));
+
+        _pointer.Current = new PointerInput(new Vector2(500, 500), false);
+        _root.Update(new UpdateTick(1f / 60f, 0));
+
+        EditorPlacementGhost ghost = editor.GetComponent<EditorPlacementGhost>();
+        Assert.That(ghost.Visible, Is.True);
+        Assert.That(ghost.Screen, Is.EqualTo(new Vector2(500, 500)));
+    }
+
+    [Test]
+    public void TheGhostHidesWhereAClickWouldNotPlace()
+    {
+        Entity editor = _store.Query<PlayfieldView>().ToEntityList()[0];
+        editor.AddComponent(new EditorPlacementGhost());
+        editor.AddComponent(new EditorPlacementModeState(EditorPlacementMode.Spikes));
+        _store.CreateEntity(new Spike(new Vector2(400, 400), new Vector2(100, 100)));
+
+        _pointer.Current = new PointerInput(new Vector2(450, 450), false);
+        _root.Update(new UpdateTick(1f / 60f, 0));
+        Assert.That(editor.GetComponent<EditorPlacementGhost>().Visible, Is.False, "over an item");
+
+        _pointer.Current = new PointerInput(new Vector2(700, 700), true);
+        _root.Update(new UpdateTick(1f / 60f, 0));
+        Assert.That(editor.GetComponent<EditorPlacementGhost>().Visible, Is.False, "while pressed");
     }
 
     [Test]
@@ -995,6 +1030,101 @@ public sealed class EditorNoteInputSystemTests
             block.GetComponent<Block>().Position,
             Is.EqualTo(new Vector2(450, 550)));
     }
+
+    [Test]
+    public void WithSnapOffBlocksPlaceMoveAndResizeFreely()
+    {
+        Entity editor = _store.Query<PlayfieldView>().ToEntityList()[0];
+        editor.AddComponent(new EditorPlacementModeState(EditorPlacementMode.Blocks));
+        BlockSnap.Attach(_store.CreateEntity());
+        foreach (Entity toggle in _store.Query<Toggle>().Entities)
+            toggle.GetComponent<Toggle>().Value = false;
+
+        Drag(new Vector2(513, 527), new Vector2(513, 527));
+        Entity block = editor.GetComponent<NoteSelection>().Note;
+        Block placed = block.GetComponent<Block>();
+        Assert.That(placed.Center, Is.EqualTo(new Vector2(513, 527)));
+
+        Drag(placed.Center, placed.Center + new Vector2(7, 3));
+        Assert.That(block.GetComponent<Block>().Center, Is.EqualTo(new Vector2(520, 530)));
+
+        Block moved = block.GetComponent<Block>();
+        Drag(new Vector2(moved.End.X, moved.Center.Y), new Vector2(moved.End.X + 11, moved.Center.Y));
+        Assert.That(block.GetComponent<Block>().Size.X, Is.EqualTo(moved.Size.X + 11));
+    }
+
+    [Test]
+    public void DraggingTheHandleTurnsTheSelectionAroundItsCentre()
+    {
+        Entity editor = _store.Query<PlayfieldView>().ToEntityList()[0];
+        Entity left = _store.CreateEntity(new Note(1_000, new Vector2(400, 500)));
+        Entity right = _store.CreateEntity(new Note(1_000, new Vector2(600, 500)));
+        Entity dash = _store.CreateEntity(new Note(
+            1_000, new Vector2(500, 500), kind: NoteKind.Dash, dashDirection: DashDirection.Up));
+        editor.GetComponent<NoteSelection>().SetMany(new[] { left, right, dash });
+
+        // The notes share a line, so the handle sits straight above the centre.
+        Vector2 pivot = new(500, 500);
+        Vector2 handle = pivot + new Vector2(0, -SelectionRotation.HandleGap);
+        Drag(handle, pivot + new Vector2(SelectionRotation.HandleGap, 0));
+
+        AssertNear(left.GetComponent<Note>().Position, new Vector2(500, 400));
+        AssertNear(right.GetComponent<Note>().Position, new Vector2(500, 600));
+        Assert.That(dash.GetComponent<Note>().DashDirection, Is.EqualTo(DashDirection.Right));
+        Assert.That(editor.HasComponent<EditorSelectionRotation>(), Is.False);
+
+        _history.Undo();
+        Note restored = _store.Query<Note>().ToEntityList()[0].GetComponent<Note>();
+        Assert.That(restored.Position.Y, Is.EqualTo(500));
+    }
+
+    [Test]
+    public void AQuarterTurnSwapsABlocksSidesAboutTheSharedCentre()
+    {
+        Entity editor = _store.Query<PlayfieldView>().ToEntityList()[0];
+        Entity block = _store.CreateEntity(new Block(new Vector2(300, 500), new Vector2(100, 50)));
+        Entity note = _store.CreateEntity(new Note(1_000, new Vector2(600, 525)));
+        editor.GetComponent<NoteSelection>().SetMany(new[] { block, note });
+
+        BlockSnap.Attach(_store.CreateEntity());
+        foreach (Entity toggle in _store.Query<Toggle>().Entities)
+            toggle.GetComponent<Toggle>().Value = false;
+
+        // The box runs from the block's corner to the note: 300-600 by 500-550.
+        Vector2 pivot = new(450, 525);
+        Vector2 handle = new(450, 500 - SelectionRotation.HandleGap);
+        Drag(handle, pivot + new Vector2(50, 0));
+
+        Block turned = block.GetComponent<Block>();
+        Assert.That(turned.Size, Is.EqualTo(new Vector2(50, 100)));
+        AssertNear(turned.Center, new Vector2(450, 425));
+    }
+
+    [Test]
+    public void ASingleSelectionHasNoRotateHandle()
+    {
+        Entity editor = _store.Query<PlayfieldView>().ToEntityList()[0];
+        Entity note = _store.CreateEntity(new Note(1_000, new Vector2(500, 500)));
+        editor.GetComponent<NoteSelection>().Note = note;
+
+        Assert.That(
+            SelectionRotation.TryGetBounds(editor.GetComponent<NoteSelection>().AllNotes, out _),
+            Is.False);
+    }
+
+    [Test]
+    public void TheHandleDropsBelowASelectionAtTheTopOfTheView()
+    {
+        var view = new PlayfieldView(Vector2.Zero, 1f, new Vector2(1920, 1080));
+        var bounds = new Rect2(new Vector2(400, 0), new Vector2(200, 100));
+
+        Vector2 handle = SelectionRotation.HandlePoint(bounds, view);
+
+        Assert.That(handle, Is.EqualTo(new Vector2(500, 100 + SelectionRotation.HandleGap)));
+    }
+
+    private static void AssertNear(Vector2 actual, Vector2 expected) =>
+        Assert.That(actual.DistanceTo(expected), Is.LessThan(0.01f), $"{actual} vs {expected}");
 
     [Test]
     public void DraggingABlockBeyondTheFieldStopsAtTheEdge()

@@ -157,6 +157,7 @@ public sealed class PlayerMovementSystemTests
         _store.CreateEntity(new Note(
             0,
             new Vector2(500, 500),
+            target: KeybindAction.L3,
             kind: NoteKind.Dash,
             dashDirection: DashDirection.Left));
 
@@ -167,19 +168,20 @@ public sealed class PlayerMovementSystemTests
     }
 
     [Test]
-    public void AnyKeyClaimsADashNoteWithNoKeyOfItsOwn()
+    public void TheWrongKeyLeavesADashNoteAlone([Values(NoteKind.Dash, NoteKind.Momentum)] NoteKind kind)
     {
-        _store.CreateEntity(new Note(
+        Entity note = _store.CreateEntity(new Note(
             0,
             new Vector2(500, 500),
             target: KeybindAction.M,
-            kind: NoteKind.Dash,
+            kind: kind,
             dashDirection: DashDirection.Left));
 
         _keyboard.Press(Key.F);
         _root.Update(new UpdateTick(1f / 60f, 0));
 
-        Assert.That(_player.GetComponent<Position>().Value.X, Is.EqualTo(350));
+        Assert.That(note.IsNull, Is.False);
+        Assert.That(_player.GetComponent<Position>().Value.X, Is.EqualTo(500));
     }
 
     [Test]
@@ -188,6 +190,7 @@ public sealed class PlayerMovementSystemTests
         Entity note = _store.CreateEntity(new Note(
             0,
             new Vector2(500, 500),
+            target: KeybindAction.L3,
             kind: NoteKind.Momentum,
             dashDirection: DashDirection.Right,
             momentum: 600f));
@@ -214,7 +217,7 @@ public sealed class PlayerMovementSystemTests
         System.Numerics.Vector2 impulse =
             PlayerMovementSystem.MomentumImpulse(note, mass: 1f);
 
-        Assert.That(impulse.X, Is.EqualTo(6f).Within(0.0001f));
+        Assert.That(impulse.X, Is.EqualTo(6f * Box2DPhysicsWorld.MomentumScale).Within(0.0001f));
         Assert.That(impulse.Y, Is.EqualTo(0f).Within(0.0001f));
     }
 

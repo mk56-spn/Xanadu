@@ -11,7 +11,7 @@ namespace Xanadu.Systems.Editor;
 
 /// <summary>
 /// The note-key bar: a row of colour swatches that shows while placing notes
-/// or dash notes, the two kinds that carry a key. Pressing one picks the key
+/// and movement notes. Pressing one picks the key
 /// new notes get; the picked swatch stays bright and the rest dim.
 /// </summary>
 public sealed class EditorNoteTypeBarSystem : QuerySystem<EditorNoteSwatch>
@@ -73,11 +73,13 @@ public sealed class EditorNoteTypeBarSystem : QuerySystem<EditorNoteSwatch>
     }
 
     /// <summary>
-    /// Normal notes carry a specific key and pair notes take their number from
-    /// the selected key; dash and momentum notes are any-key and hide the bar.
+    /// Normal, dash and momentum notes carry a specific key and pair notes take
+    /// their number from the selected key.
     /// </summary>
     public static bool ShowsFor(EditorPlacementMode mode) =>
         mode is EditorPlacementMode.Notes or
+            EditorPlacementMode.Dash or
+            EditorPlacementMode.Momentum or
             EditorPlacementMode.Pair or
             EditorPlacementMode.Channel or
             EditorPlacementMode.FormStep;

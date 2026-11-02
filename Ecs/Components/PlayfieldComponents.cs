@@ -96,6 +96,12 @@ public struct PlayCamera(Rect2 viewport) : IComponent
     /// <summary>Everything the playfield layer is moved by: subtract it from a layout position to get the screen.</summary>
     public readonly Vector2 Shift => Offset + KickOffset;
 
+    /// <summary>The whole-pixel shift the layer is actually moved by, so the field stays crisp.</summary>
+    public readonly Vector2 LayerShift => Shift.Round();
+
+    /// <summary>Added to something smoothly moving on the layer, it undoes the rounding of <see cref="LayerShift"/>.</summary>
+    public readonly Vector2 Subpixel => LayerShift - Shift;
+
     /// <summary>The part of the layout on screen.</summary>
     public readonly Rect2 Visible => new(Viewport.Position + Offset, Viewport.Size);
 }
@@ -235,12 +241,15 @@ public struct Mine(
 /// A spike tile in playfield coordinates. It is permanent geometry, never
 /// timed: touching it kills the player on contact.
 /// </summary>
-public struct Spike(Vector2 position, Vector2 size) : IComponent
+public struct Spike(Vector2 position, Vector2 size, int quarterTurns = 0) : IComponent
 {
     /// <summary>Top-left corner, so both edges can sit on grid lines.</summary>
     public Vector2 Position = position;
 
     public Vector2 Size = size;
+
+    /// <summary>Which edge the tip points at: 0 up, then clockwise, 1 right, 2 down, 3 left.</summary>
+    public int QuarterTurns = quarterTurns;
 
     public readonly Vector2 Center => Position + Size / 2;
 

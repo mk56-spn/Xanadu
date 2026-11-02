@@ -34,7 +34,7 @@ public sealed class LeaveEditorSceneTest : SceneTest
             Context.Scenes.SaveEditor = () =>
             {
                 _saved = true;
-                return null;
+                return Xanadu.Systems.Scenes.EditorSaveOutcome.Success;
             });
         AddWaitStep("overlay settles", 2);
         AddStep("request leave", () => Context.Scenes.TryBack());

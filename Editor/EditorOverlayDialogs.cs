@@ -123,8 +123,18 @@ public partial class EditorOverlay : CanvasLayer
 
     public bool SaveCurrent() => SaveCurrent(out _);
 
-    /// <summary>Saves on the way out: null when saved, otherwise why it could not.</summary>
-    public string? SaveForLeaving() => SaveCurrent() ? null : _saveProblem;
+    /// <summary>Saves on the way out through whichever overlay is open, if one is.</summary>
+    public static Xanadu.Systems.Scenes.EditorSaveOutcome SaveForLeaving(EditorOverlay? overlay) =>
+        overlay?.SaveForLeaving() ??
+        Xanadu.Systems.Scenes.EditorSaveOutcome.Failed("the editor is closed");
+
+    private Xanadu.Systems.Scenes.EditorSaveOutcome SaveForLeaving()
+    {
+        _saveProblem = "";
+        return SaveCurrent()
+            ? Xanadu.Systems.Scenes.EditorSaveOutcome.Success
+            : Xanadu.Systems.Scenes.EditorSaveOutcome.Failed(_saveProblem);
+    }
 
     /// <summary>
     /// Saves the level to its current path, or to a fresh unnamed one, and
@@ -133,7 +143,18 @@ public partial class EditorOverlay : CanvasLayer
     private bool SaveCurrent(out string path)
     {
         path = "";
-        if (_editor.IsNull || !ValidateCurrent())
+
+        // A rebuilt scene replaces the entity this overlay was opened on.
+        if (_editor.IsNull)
+            _editor = FindEditor();
+
+        if (_editor.IsNull)
+        {
+            _saveProblem = "no level is open";
+            return false;
+        }
+
+        if (!ValidateCurrent())
             return false;
 
         try

@@ -12,4 +12,6 @@ public static class PlayStrings
     public static readonly LString Deficient = new("play.judgement.deficient", "DEFICIENT");
     public static readonly LString Terrible = new("play.judgement.terrible", "TERRIBLE");
     public static readonly LString Miss = new("play.judgement.miss", "MISS");
+    public static readonly LString Early = new("play.timing.early", "EARLY");
+    public static readonly LString Late = new("play.timing.late", "LATE");
 }

@@ -119,6 +119,7 @@ public sealed class XanaduSystemRoot : SystemRoot, IDisposable
         Add(new Xanadu.Systems.Scenes.SongSelectHoldSystem(Keyboard, Scenes));
         Add(new Xanadu.Systems.Scenes.SongSelectScrollbarSystem(pointerInput, Scenes));
         Add(new Xanadu.Systems.Scenes.SongSelectScrollSystem());
+        Add(new Xanadu.Systems.Scenes.ProfileEditSystem(Profiles));
         Add(new OffsetWizardSystem(
             entities,
             new MiniaudioTrackAudio(),
@@ -187,8 +188,7 @@ public sealed class XanaduSystemRoot : SystemRoot, IDisposable
         Add(_debugSystems);
         Add(new Xanadu.Systems.Shaders.ShaderTunerSystem(
             entities,
-            Keyboard,
-            Xanadu.Systems.Shaders.ShaderParamStore.Default));
+            Keyboard));
         Add(Toasts);
 
         SetMonitorPerf(true);

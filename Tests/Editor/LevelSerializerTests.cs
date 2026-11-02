@@ -91,6 +91,32 @@ public sealed class LevelSerializerTests
     }
 
     [Test]
+    public void SpikeRotationsRoundTrip()
+    {
+        var source = new LevelDocument();
+        source.Spikes.Add(new SpikeDocument { X = 0, Y = 0, Width = 50, Height = 50 });
+        source.Spikes.Add(new SpikeDocument { X = 50, Y = 0, Width = 50, Height = 50, QuarterTurns = 3 });
+
+        LevelDocument result = LevelSerializer.Deserialize(LevelSerializer.Serialize(source));
+
+        Assert.That(result.Spikes[0].QuarterTurns, Is.Zero);
+        Assert.That(result.Spikes[1].QuarterTurns, Is.EqualTo(3));
+    }
+
+    [Test]
+    public void SpikeRotationsRoundTripInAMapset()
+    {
+        var variant = new XmfVariant();
+        variant.Spikes.Add(new SpikeDocument { Width = 50, Height = 50, QuarterTurns = 2 });
+        var source = new XmfMapset();
+        source.Variants.Add(variant);
+
+        XmfMapset result = XmfBinary.ReadMapset(LevelSerializer.SerializeMapset(source));
+
+        Assert.That(result.Variants[0].Spikes[0].QuarterTurns, Is.EqualTo(2));
+    }
+
+    [Test]
     public void SpikesRoundTrip()
     {
         var source = new LevelDocument();

@@ -99,6 +99,25 @@ public struct EditorPlacementModeState(EditorPlacementMode mode) : IComponent
     public EditorPlacementMode Mode = mode;
 }
 
+/// <summary>A part of the left panel that only shows for the tools that use it.</summary>
+public struct EditorToolSection(EditorPlacementMode[] modes) : IComponent
+{
+    public EditorPlacementMode[] Modes = modes;
+}
+
+/// <summary>Where the pointer would place the current tool's item this frame, if anywhere.</summary>
+public struct EditorPlacementGhost : IComponent
+{
+    public bool Visible;
+    public Vector2 Screen;
+}
+
+/// <summary>The way newly painted spikes point, in clockwise quarter turns from up.</summary>
+public struct EditorSpikeBrush(int quarterTurns = 0) : IComponent
+{
+    public int QuarterTurns = quarterTurns;
+}
+
 public struct EditorDashDirectionState(DashDirection direction) : IComponent
 {
     public DashDirection Direction = direction;
@@ -214,6 +233,7 @@ public enum EditorButtonKind
     Play,
     Stop,
     Preview,
+    PreviewHere,
     Metronome,
     ZoomIn,
     ZoomOut,
@@ -351,12 +371,11 @@ public struct EditorLeftMenu(
 /// owns presentation and pointer handling; this adapter only maps wedge indices
 /// to <see cref="DashDirection"/> and owns the floating widget's visibility.
 /// </summary>
-public struct EditorDirectionWheel(Entity wheel, Entity label, Vector2 home)
+public struct EditorDirectionWheel(Entity wheel, Entity label)
     : IComponent
 {
     public Entity Wheel = wheel;
     public Entity Label = label;
-    public Vector2 Home = home;
 }
 
 /// <summary>F2 editor-binding reference overlay.</summary>
@@ -411,4 +430,56 @@ public struct EditorViewNavigation(Vector2 fieldSize) : IComponent
 
     /// <summary>Where the pointer was last frame while panning, or null when not panning.</summary>
     public Vector2? PanFrom;
+}
+
+/// <summary>Where the player's hitbox was at one moment of an editor preview, in field units.</summary>
+/// <param name="Position">The hitbox's centre.</param>
+/// <param name="TimeMs">The song time.</param>
+/// <param name="Jump">Whether it got here instantly, by a dash or a wrap, rather than by moving.</param>
+public readonly record struct PlayerPathSample(Vector2 Position, long TimeMs, bool Jump);
+
+/// <summary>Records the player's hitbox during an editor preview, for the editor to show afterwards.</summary>
+public struct PlayerPathRecorder() : IComponent
+{
+    public List<PlayerPathSample> Samples = new();
+}
+
+/// <summary>The path the player's hitbox took in the last preview, shown over the editor's field.</summary>
+public struct PlayerPath(List<PlayerPathSample> samples, Vector2 hitboxSize) : IComponent
+{
+    public List<PlayerPathSample> Samples = samples;
+
+    /// <summary>The hitbox's size in field units.</summary>
+    public Vector2 HitboxSize = hitboxSize;
+}
+
+/// <summary>Marks the header button that shows or hides the preview's path.</summary>
+public struct PlayerPathToggle : ITag;
+
+/// <summary>
+/// The switch for the preview's path. The header button's <see cref="Toggle"/>
+/// is the state; it starts on, so coming back from a preview always shows the
+/// path just made.
+/// </summary>
+public static class PlayerPathSwitch
+{
+    public const string Label = "PATH";
+    public const float ToggleWidth = 64f;
+
+    public static Entity Attach(Entity button)
+    {
+        button.AddComponent(new Toggle(Label, Label, true));
+        button.AddTag<PlayerPathToggle>();
+        button.AddComponent(new UiTooltip("Show or hide the player's path from the last preview"));
+        return button;
+    }
+
+    /// <summary>Whether to draw the path; an editor with no button draws it.</summary>
+    public static bool IsVisible(EntityStore store)
+    {
+        foreach (Entity toggle in store.Query<Toggle>().AllTags(Tags.Get<PlayerPathToggle>()).Entities)
+            return toggle.GetComponent<Toggle>().Value;
+
+        return true;
+    }
 }

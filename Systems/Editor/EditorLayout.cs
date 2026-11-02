@@ -10,15 +10,22 @@ public static class EditorLayout
 {
     public const float Margin = 16;
 
-    /// <summary>The shell's header; the transport row, a gap and the footer proper fill the shell's footer height.</summary>
+    /// <summary>The shell's header. The footer is one panel: the transport row, then the timeline row.</summary>
     public const float HeaderHeight = EditorShellMetrics.HeaderHeight;
+    public const float FooterHeight = EditorFooterHeight.Level;
     public const float TransportHeight = 42;
-    public const float Gap = 10;
-    public const float FooterHeight = EditorFooterHeight.Level - TransportHeight - Gap;
 
-    public const float TimelineHeight = 64;
-    public const float TimelineWidthRatio = 0.66f;
-    public const float MaxTimelineWidth = 1200;
+    public const float TimelineHeight = 96;
+
+    /// <summary>The clock left of the timeline.</summary>
+    public const float TimeWidth = 248;
+    public const float TimeHeight = 36;
+
+    /// <summary>Clear space under the timeline.</summary>
+    public const float TimelineBottomPad = 10;
+
+    /// <summary>The lens and the two zoom buttons right of the timeline.</summary>
+    public const float ZoomWidth = 106;
 
     public static Rect2 HeaderRect(PlayfieldView view) =>
         new(0, 0, view.ScreenSize.X, HeaderHeight);
@@ -33,28 +40,25 @@ public static class EditorLayout
     public static Rect2 TransportRect(PlayfieldView view) =>
         new(
             0,
-            view.ScreenSize.Y - FooterHeight - Gap - TransportHeight,
+            view.ScreenSize.Y - FooterHeight,
             view.ScreenSize.X,
             TransportHeight);
 
-    /// <summary>Timeline centered inside the footer.</summary>
+    /// <summary>The timeline fills the footer's width between the clock and the zoom controls.</summary>
     public static Rect2 RulerRect(PlayfieldView view)
     {
-        Rect2 footer = FooterRect(view);
-        float width = Mathf.Min(
-            view.ScreenSize.X * TimelineWidthRatio,
-            MaxTimelineWidth);
-
+        float left = Margin + TimeWidth + Margin;
+        float right = view.ScreenSize.X - Margin - ZoomWidth;
         return new Rect2(
-            (view.ScreenSize.X - width) / 2,
-            footer.Position.Y + (FooterHeight - TimelineHeight) / 2,
-            width,
+            left,
+            view.ScreenSize.Y - TimelineBottomPad - TimelineHeight,
+            Mathf.Max(1, right - left),
             TimelineHeight);
     }
 
     public const float AnalysisHeight = 18;
 
-    /// <summary>The density strip, in the gap between the transport and the timeline.</summary>
+    /// <summary>The density strip, between the transport and the timeline.</summary>
     public static Rect2 AnalysisRect(PlayfieldView view)
     {
         Rect2 ruler = RulerRect(view);
@@ -69,10 +73,7 @@ public static class EditorLayout
     public static Vector2 ZoomLensCenter(PlayfieldView view)
     {
         Rect2 ruler = RulerRect(view);
-        Rect2 footer = FooterRect(view);
-        return new Vector2(
-            ruler.End.X + 24,
-            footer.Position.Y + FooterHeight / 2);
+        return new Vector2(ruler.End.X + 24, ruler.GetCenter().Y);
     }
 
     /// <summary>Visible time window for a timeline zoom level, following the playhead.</summary>

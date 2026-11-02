@@ -205,6 +205,15 @@ public static class PlayScene
             SceneUi.AccentColor,
             new Color(0, 0, 0, 0));
 
+        Entity timingText = ui.HudText(new Vector2(screen.X / 2, screen.Y / 2 - 90),
+            new Vector2(520, 22),
+            "",
+            UiType.Small,
+            Palette.Info,
+            new Color(0, 0, 0, 0))
+            .Hidden();
+        playfieldEntity.AddComponent(new TimingIndicator(timingText));
+
         BuildErrorBar(ui, playfieldEntity, screen, hud);
 
         Entity leftStack = ui.HudText(new Vector2(screen.X / 2 - 80, 92),
@@ -450,14 +459,14 @@ public static class PlayScene
 
         members.Add(ui.HudText(new Vector2(centerX - innerWidth / 2, y + 28),
             new Vector2(100, 20),
-            "EARLY",
+            LocalizedText.Get(PlayStrings.Early),
             12,
             SceneUi.DimTextColor,
             new Color(0, 0, 0, 0)));
 
         members.Add(ui.HudText(new Vector2(centerX + innerWidth / 2, y + 28),
             new Vector2(100, 20),
-            "LATE",
+            LocalizedText.Get(PlayStrings.Late),
             12,
             SceneUi.DimTextColor,
             new Color(0, 0, 0, 0)));

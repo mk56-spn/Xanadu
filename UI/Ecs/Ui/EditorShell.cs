@@ -52,10 +52,10 @@ public static class EditorFooterHeight
     public const float Animator = 216f;
 
     /// <summary>
-    /// The level editor's transport row, density strip and ruler: the playfield
+    /// The level editor's transport row, density strip and timeline: the playfield
     /// above is the main work area, so the footer takes only what they need.
     /// </summary>
-    public const float Level = 140f;
+    public const float Level = 168f;
 }
 
 /// <summary>

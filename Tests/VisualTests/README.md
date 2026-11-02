@@ -96,6 +96,10 @@ fixed frame count.
 | `play` | Play HUD and field |
 | `rainbow-note-shader` | Note with the common rainbow shader |
 | `movement-judgement` | Movement judgement |
+| `timing-indicator` | Early and late indicator |
+| `spike-shape` | Spike shape |
+| `editor-play-from-here` | Editor play from here |
+| `editor-placement-ghost` | Editor placement ghost |
 | `results` | Results |
 | `restart` | Retry |
 | `editor-dropdowns` | Editor dropdowns |

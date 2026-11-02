@@ -44,6 +44,47 @@ public sealed class CharacterMotionTests : EcsSystemTest
         return player;
     }
 
+    [Test]
+    public void ASlowRiseIsAJumpEvenWhenAFrameMovesLessThanAPixel()
+    {
+        Entity player = Player(Floor - 150);
+        Root.Update(new UpdateTick(1f / 240f, 0));
+        player.GetComponent<PhysicsBody>().Body.SetLinearVelocity(new System.Numerics.Vector2(0, -1f));
+        MoveTo(player, Floor - 150.4f);
+
+        Root.Update(new UpdateTick(1f / 240f, 0));
+
+        Assert.That(State(player), Is.EqualTo(CharacterMotionState.Jumping));
+    }
+
+    [Test]
+    public void ALongRiseLetsTheJumpClipPlayAndANewImpulseRestartsIt()
+    {
+        Entity player = Player(Floor - 150);
+        var body = player.GetComponent<PhysicsBody>().Body;
+        Root.Update(new UpdateTick(1f / 240f, 0));
+
+        float y = Floor - 150;
+        for (int i = 0; i < 20; i++)
+        {
+            // Gravity slowly eats the rise, as it does in play.
+            body.SetLinearVelocity(new System.Numerics.Vector2(0, -3f + i * 0.01f));
+            MoveTo(player, y -= 1.2f);
+            Root.Update(new UpdateTick(1f / 240f, 0));
+        }
+
+        Assert.That(
+            player.GetComponent<CharacterMotion>().StateTime,
+            Is.GreaterThan(15f / 240f),
+            "the clip is not sent back to its start every frame");
+
+        body.SetLinearVelocity(new System.Numerics.Vector2(0, -6f));
+        MoveTo(player, y -= 2.5f);
+        Root.Update(new UpdateTick(1f / 240f, 0));
+
+        Assert.That(player.GetComponent<CharacterMotion>().StateTime, Is.Zero);
+    }
+
     private static void MoveTo(Entity player, float y) =>
         player.GetComponent<Position>().Value = new Vector2(400, y);
 

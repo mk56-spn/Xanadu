@@ -12,6 +12,7 @@ namespace Xanadu.Systems.Editor;
 public enum EditorShortcut
 {
     Preview,
+    PreviewHere,
     ToggleShaders,
     ToggleHelp,
     FitView,
@@ -30,6 +31,9 @@ public enum EditorShortcut
     TapTempo,
     OpenSong,
     Delete,
+    RotateSelection,
+    FlipHorizontal,
+    FlipVertical,
     MoveLeft,
     MoveRight,
 }
@@ -120,6 +124,7 @@ public static class EditorShortcuts
         var bindings = new List<Binding>
         {
             new(new KeyChord(Key.F5), EditorShortcut.Preview, always),
+            new(new KeyChord(Key.F5, Shift: true), EditorShortcut.PreviewHere, always),
             new(new KeyChord(Key.F9), EditorShortcut.ToggleShaders, always),
             new(new KeyChord(Key.F2), EditorShortcut.ToggleHelp, always),
             new(new KeyChord(Key.F), EditorShortcut.FitView, notTyping),
@@ -142,6 +147,9 @@ public static class EditorShortcuts
             new(new KeyChord(Key.KpEnter), EditorShortcut.Forward, field),
             new(new KeyChord(Key.T), EditorShortcut.TapTempo, field),
             new(new KeyChord(Key.L), EditorShortcut.OpenSong, field),
+            new(new KeyChord(Key.R), EditorShortcut.RotateSelection, field),
+            new(new KeyChord(Key.H), EditorShortcut.FlipHorizontal, field),
+            new(new KeyChord(Key.V), EditorShortcut.FlipVertical, field),
             new(new KeyChord(Key.Delete), EditorShortcut.Delete, field),
             new(new KeyChord(Key.Backspace), EditorShortcut.Delete, field),
             new(new KeyChord(Key.Left), EditorShortcut.MoveLeft, field),

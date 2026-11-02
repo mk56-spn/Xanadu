@@ -57,7 +57,7 @@ public struct Player(Vector2 size) : IComponent
     /// </summary>
     public const float DefaultHeight = 200;
 
-    public const float DefaultWidth = 30;
+    public const float DefaultWidth = 40;
 
     public static readonly Vector2 DefaultSize = new(DefaultWidth, DefaultHeight);
 

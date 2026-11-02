@@ -83,8 +83,8 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
         {
             // A level that cannot be saved stays open, so the dialog has to say
             // why: the editor's status line is not where anyone is looking.
-            string? problem = save();
-            if (problem is null)
+            EditorSaveOutcome outcome = save();
+            if (outcome.Saved)
             {
                 confirmation.Target = SceneKind.SongSelect;
                 Confirm(ref state);
@@ -93,7 +93,7 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
             {
                 SceneUi.SetText(
                     confirmation.Message,
-                    $"Can't save: {problem}. YES leaves without saving.");
+                    $"Can't save: {outcome.Problem}. YES leaves without saving.");
             }
 
             return true;

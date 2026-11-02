@@ -103,6 +103,7 @@ public sealed class PlayerMovementSystem : QuerySystem<Player, Position, Playfie
                 }
 
                 if (!TryFindMovementNote(
+                        action,
                         screen,
                         view,
                         judgedTime,
@@ -183,13 +184,15 @@ public sealed class PlayerMovementSystem : QuerySystem<Player, Position, Playfie
     public static NVector2 MomentumImpulse(Note note, float mass)
     {
         Vector2 direction = DashDirectionVector(note.DashDirection);
-        float velocityChange = note.Momentum / Box2DPhysicsWorld.PixelsPerMeter;
+        float velocityChange = note.Momentum / Box2DPhysicsWorld.PixelsPerMeter *
+                               Box2DPhysicsWorld.MomentumScale;
         return new NVector2(
             direction.X * velocityChange * mass,
             direction.Y * velocityChange * mass);
     }
 
     private bool TryFindMovementNote(
+        KeybindAction action,
         Vector2 playerScreen,
         PlayfieldView view,
         long judgedTime,
@@ -206,6 +209,7 @@ public sealed class PlayerMovementSystem : QuerySystem<Player, Position, Playfie
         {
             Note note = entity.GetComponent<Note>();
             if (!NoteRules.IsMovement(note.Kind) ||
+                !NoteRules.Matches(note, action) ||
                 entity.Tags.Has<NoteMissed>() ||
                 Math.Abs(note.TimeMs - judgedTime) > ActiveWindowMs ||
                 NoteFade.Alpha(note, judgedTime) <= 0)

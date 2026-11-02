@@ -4,9 +4,9 @@ using Xanadu.Settings;
 namespace Xanadu.Systems.Playfields;
 
 /// <summary>
-/// How a press matches a note. Normal keynotes and the old keyed contact notes
-/// match their own key; pair notes match only the number, so either side works.
-/// Dash and momentum notes are claimed by any key and are handled separately.
+/// How a press matches a note. Normal keynotes, dash and momentum notes and the
+/// old keyed contact notes match their own key; pair notes match only the
+/// number, so either side works. Dash and momentum notes are resolved separately.
 /// </summary>
 public static class NoteRules
 {
@@ -39,7 +39,7 @@ public static class NoteRules
         _ => true,
     };
 
-    /// <summary>Kinds that move the player and can be claimed by any key.</summary>
+    /// <summary>Kinds that move the player when their key is pressed.</summary>
     public static bool IsMovement(NoteKind kind) => kind is
         NoteKind.Dash or
         NoteKind.Momentum;

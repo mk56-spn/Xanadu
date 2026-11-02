@@ -58,4 +58,68 @@ public sealed class PlayErrorBarTests : EcsSystemTest
 
         Assert.That(marker.GetComponent<FillColor>().Value.A, Is.Zero);
     }
+
+    [TestCase(27, "EARLY")]
+    [TestCase(-27, "LATE")]
+    public void TimingIndicatorNamesTheSideOfTheNote(long offsetMs, string label)
+    {
+        Entity text = TimingText();
+        ref ScoreState score = ref TimingPlayfield(text);
+        score.LastJudgement = Judgement.Clean;
+        score.LastOffsetMs = offsetMs;
+        score.JudgementPosition = new Vector2(400, 200);
+
+        Frame();
+
+        Assert.That(text.Tags.Has<UiHidden>(), Is.False);
+        Assert.That(text.GetComponent<Text>().Value, Is.EqualTo(label));
+        Assert.That(text.GetComponent<Position>().Value,
+            Is.EqualTo(new Vector2(400, 200 + PlayScoreSystem.TimingIndicatorGap)));
+    }
+
+    [TestCase(Judgement.FlawlessP)]
+    [TestCase(Judgement.Miss)]
+    [TestCase(Judgement.Mine)]
+    [TestCase(Judgement.Contact)]
+    public void TimingIndicatorHidesWithoutAnOffsetToCorrect(Judgement judgement)
+    {
+        Entity text = TimingText();
+        ref ScoreState score = ref TimingPlayfield(text);
+        score.LastJudgement = judgement;
+        score.LastOffsetMs = 5;
+
+        Frame();
+
+        Assert.That(text.Tags.Has<UiHidden>(), Is.True);
+    }
+
+    [Test]
+    public void TimingIndicatorHidesWhenTheJudgementExpires()
+    {
+        Entity text = TimingText();
+        ref ScoreState score = ref TimingPlayfield(text);
+        score.LastJudgement = Judgement.Clean;
+        score.LastOffsetMs = 27;
+        score.JudgementTimeMs = -701;
+
+        Frame();
+
+        Assert.That(text.Tags.Has<UiHidden>(), Is.True);
+    }
+
+    private Entity TimingText() => Store.CreateEntity(
+        new Text(""),
+        new TextStyle(14, Colors.White),
+        new Position(Vector2.Zero));
+
+    private ref ScoreState TimingPlayfield(Entity text)
+    {
+        Entity playfield = Store.CreateEntity(
+            new ScoreState(default, default, default, default, 1),
+            new Playhead(0, 120, 0, false),
+            new TimingIndicator(text));
+        ref ScoreState score = ref playfield.GetComponent<ScoreState>();
+        score.HasJudgement = true;
+        return ref score;
+    }
 }

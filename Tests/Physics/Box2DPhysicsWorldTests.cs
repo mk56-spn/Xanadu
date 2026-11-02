@@ -1,3 +1,4 @@
+using System;
 using System.Linq;
 using Box2DSharp.Collision.Shapes;
 using Box2DSharp.Dynamics;
@@ -36,12 +37,72 @@ public sealed class Box2DPhysicsWorldTests
     }
 
     [Test]
-    public void GravityIsLockedAtFifteen()
+    public void ABodyRestingOnABlockHoldsStillAtTheFixedStep()
+    {
+        using var physics = new Box2DPhysicsWorld();
+        physics.CreateStaticBox(new Vector2(640, 680), new Vector2(1200, 40));
+        Body body = physics.CreateDynamicBox(new Vector2(640, 600), new Vector2(30, 100));
+
+        for (int i = 0; i < 480; i++)
+            physics.Step(Box2DPhysicsWorld.FixedTimeStep);
+
+        float settled = body.GetPosition().Y;
+        for (int i = 0; i < 480; i++)
+        {
+            physics.Step(Box2DPhysicsWorld.FixedTimeStep);
+            Assert.That(
+                MathF.Abs(body.GetPosition().Y - settled) * Box2DPhysicsWorld.PixelsPerMeter,
+                Is.LessThan(0.1f));
+            Assert.That(
+                MathF.Abs(body.LinearVelocity.Y) * Box2DPhysicsWorld.PixelsPerMeter,
+                Is.LessThan(5f));
+        }
+    }
+
+    [Test]
+    public void AMomentumLaunchReachesItsAuthoredHeightSooner()
+    {
+        using var physics = new Box2DPhysicsWorld();
+        Body body = physics.CreateDynamicBox(new Vector2(640, 2000), new Vector2(30, 100));
+        var note = new Xanadu.Ecs.Note(0, Vector2.Zero)
+        {
+            Kind = Xanadu.Ecs.NoteKind.Momentum,
+            DashDirection = Xanadu.Ecs.DashDirection.Up,
+            Momentum = 600f,
+        };
+        body.ApplyLinearImpulseToCenter(
+            Xanadu.Systems.Playfields.PlayerMovementSystem.MomentumImpulse(note, body.Mass),
+            true);
+
+        float start = body.GetPosition().Y;
+        float peak = start;
+        int peakStep = 0;
+        for (int i = 1; i <= 480; i++)
+        {
+            physics.Step(Box2DPhysicsWorld.FixedTimeStep);
+            if (body.GetPosition().Y < peak)
+            {
+                peak = body.GetPosition().Y;
+                peakStep = i;
+            }
+        }
+
+        float height = (start - peak) * Box2DPhysicsWorld.PixelsPerMeter;
+        float seconds = peakStep * Box2DPhysicsWorld.FixedTimeStep;
+        TestContext.Out.WriteLine($"peak {height} px in {seconds} s");
+
+        // 600 px/s against the reference gravity of 15 peaks at 120 px in 0.4 s.
+        Assert.That(height, Is.EqualTo(120f).Within(3f));
+        Assert.That(seconds, Is.LessThan(0.4f));
+    }
+
+    [Test]
+    public void GravityIsLockedAtItsTunedValue()
     {
         using var physics = new Box2DPhysicsWorld();
 
-        Assert.That(Box2DPhysicsWorld.DefaultGravity, Is.EqualTo(15f).Within(0.01f));
-        Assert.That(physics.Gravity, Is.EqualTo(15f).Within(0.01f));
+        Assert.That(Box2DPhysicsWorld.DefaultGravity, Is.EqualTo(22.2f).Within(0.01f));
+        Assert.That(physics.Gravity, Is.EqualTo(22.2f).Within(0.01f));
     }
 
     [Test]

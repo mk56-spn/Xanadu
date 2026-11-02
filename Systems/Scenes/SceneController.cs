@@ -71,6 +71,7 @@ public sealed class SceneControllerRegistry
         registry.Register(new SongTimingController());
         registry.Register(new MainMenuController());
         registry.Register(new ProfilesController());
+        registry.Register(new ProfileEditController());
         registry.Register(new SongSelectController(system));
         registry.Register(new EditorController());
         registry.Register(new PlayController());
@@ -187,9 +188,35 @@ public sealed class SceneControllerRegistry
                          .ToEntityList())
             {
                 system.Profiles.Create();
-                state.Pending = SceneKind.Main;
+                state.Pending = SceneKind.ProfileEdit;
                 return;
             }
+
+            foreach (Entity entity in system.Entities
+                         .Query<ProfileEditAction>()
+                         .WithDisabled()
+                         .AllTags(Tags.Get<Pressed>())
+                         .ToEntityList())
+            {
+                if (system.Profiles.Select(entity.GetComponent<ProfileEditAction>().ProfileId))
+                    state.Pending = SceneKind.ProfileEdit;
+                return;
+            }
+        }
+    }
+
+    private sealed class ProfileEditController : ISceneController
+    {
+        public SceneKind Kind => SceneKind.ProfileEdit;
+        public SceneBackgroundKind Background => SceneBackgroundKind.Menu;
+        public SceneKind BackTarget => SceneKind.Profiles;
+
+        public void Build(SceneBuildContext c)
+        {
+            if (c.Profiles.ActiveProfile is { } profile)
+                ProfileEditScene.Build(c.Entities, c.Root, profile, c.Visuals);
+            else
+                c.StateEntity.GetComponent<SceneState>().Pending = SceneKind.Profiles;
         }
     }
 

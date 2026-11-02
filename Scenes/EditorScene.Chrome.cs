@@ -23,8 +23,6 @@ public static partial class EditorScene
     private const float HeaderControl = EditorShellMetrics.HeaderControlHeight;
     private const float HeaderPad = (EditorShellMetrics.HeaderHeight - HeaderControl) / 2;
 
-    /// <summary>The transport's time and note count sit in from the footer's edges.</summary>
-    private const float FooterPad = 15f;
     private const string IconDir = "res://Assets/Icons/";
     private static readonly Color Clear = new(0, 0, 0, 0);
 
@@ -72,7 +70,6 @@ public static partial class EditorScene
         HeaderMenu(lists, header.Menu,
             ("EXIT", SceneActionId.Exit));
 
-        BuildDirectionWheelOverlay(entities, root, editor, shell);
     }
 
     private readonly record struct Header(
@@ -138,6 +135,18 @@ public static partial class EditorScene
                 UiTheme.FontSize,
                 SceneUi.MutedButtonColor)
             .Size(ViewportGrid.ToggleWidth, HeaderControl)
+            .Entity);
+        PlayerPathSwitch.Attach(right.Button(
+                PlayerPathSwitch.Label,
+                UiTheme.FontSize,
+                SceneUi.MutedButtonColor)
+            .Size(PlayerPathSwitch.ToggleWidth, HeaderControl)
+            .Entity);
+        BlockSnap.Attach(right.Button(
+                BlockSnap.Label,
+                UiTheme.FontSize,
+                SceneUi.MutedButtonColor)
+            .Size(BlockSnap.ToggleWidth, HeaderControl)
             .Entity);
         Entity file = right.Button(
                 "FILE ▾",
@@ -208,6 +217,7 @@ public static partial class EditorScene
             .Size(shell.Viewport.Size.X, shell.ToolStrip.Size.Y);
 
         BuildLeftPanel(column, editor);
+        BuildNoteElements(column, editor);
 
         UiNode line = column.Row()
             .Size(shell.StatusLine.Size)
@@ -226,9 +236,8 @@ public static partial class EditorScene
     }
 
     /// <summary>
-    /// Transport in the middle of the row, the time at its left edge and the
-    /// note count at its right, then the room systems draw the density strip
-    /// and the ruler in.
+    /// One panel: the transport centred on its row with the note count at the
+    /// right, then the clock beside the room systems draw the timeline in.
     /// </summary>
     private static Footer BuildFooter(UiNode ui, Vector2 screen)
     {
@@ -246,11 +255,12 @@ public static partial class EditorScene
             EditorButtonKind.Play,
             EditorButtonKind.Stop,
             EditorButtonKind.Preview,
+            EditorButtonKind.PreviewHere,
             EditorButtonKind.Metronome,
         };
-        float[] widths = { 64, 64, 108, 108 };
-        string[] labels = { "▶", "■", "Preview", "Click Off" };
-        string?[] icons = { "play", "stop", null, null };
+        float[] widths = { 64, 64, 108, 124, 108 };
+        string[] labels = { "▶", "■", "Preview", "Play from here", "Click Off" };
+        string?[] icons = { "play", "stop", null, null, null };
         for (int i = 0; i < kinds.Length; i++)
         {
             var size = new Vector2(widths[i], 38);
@@ -272,39 +282,39 @@ public static partial class EditorScene
             }
         }
 
-        UiNode timeGroup = transport.Row()
+        Entity notes = transport.Row()
             .Height(EditorLayout.TransportHeight)
-            .Pad(FooterPad)
-            .Anchor(new Vector2(0, 0.5f));
+            .Pad(EditorLayout.Margin)
+            .Anchor(new Vector2(1, 0.5f))
+            .Text("0 notes", 13, SceneUi.DimTextColor, TextAlign.Right)
+            .Size(240, 16)
+            .Entity;
+
+        // The clock sits left of the timeline; systems draw the density strip,
+        // the timeline and the zoom lens in the rest of this row.
+        float timelineRow = EditorFooterHeight.Level - EditorLayout.TransportHeight;
+        UiNode timelineSpace = footer.Row()
+            .Size(screen.X, timelineRow)
+            .Main(StackMainAlignment.Start);
+        timelineSpace.Rect(Clear, size: new Vector2(EditorLayout.Margin, timelineRow));
+        UiNode clockColumn = timelineSpace.Column()
+            .Size(EditorLayout.TimeWidth, timelineRow)
+            .Main(StackMainAlignment.Start);
+        clockColumn.Rect(Clear, size: new Vector2(
+            EditorLayout.TimeWidth,
+            timelineRow - EditorLayout.TimelineBottomPad -
+            (EditorLayout.TimelineHeight + EditorLayout.TimeHeight) / 2));
         Entity time = HudText(
-            timeGroup.Row()
-                .Size(300, 36)
+            clockColumn.Row()
+                .Size(EditorLayout.TimeWidth, EditorLayout.TimeHeight)
                 .Fill(Palette.SurfaceInset)
-                .Border(Palette.BorderStrong, 1),
+                .Border(Palette.BorderStrong, 1)
+                .Main(StackMainAlignment.Center),
             Vector2.Zero,
-            new Vector2(292, 30),
+            new Vector2(EditorLayout.TimeWidth - 16, EditorLayout.TimeHeight - 6),
             "00:00.000 / 00:00.000",
-            20,
+            UiType.Body,
             Palette.TextMuted);
-
-        UiNode notesGroup = transport.Row()
-            .Height(EditorLayout.TransportHeight)
-            .Pad(FooterPad)
-            .Anchor(new Vector2(1, 0.5f));
-        Entity notes = HudText(
-            notesGroup,
-            Vector2.Zero,
-            new Vector2(240, 16),
-            "0 notes",
-            13,
-            SceneUi.DimTextColor);
-
-        // Systems draw the density strip and the ruler into this room.
-        footer.Rect(
-            Clear,
-            size: new Vector2(
-                screen.X,
-                EditorFooterHeight.Level - EditorLayout.TransportHeight));
 
         return new Footer(time, notes);
     }

@@ -17,7 +17,7 @@ public static class SceneBackgrounds
 
         Entity fill = ui.Rect(SceneUi.BackgroundColor).Cover().Below().Entity;
         bool loadAssets = visuals is GodotVisualRidFactory;
-        if (SongSelectScene.NoteMaterial(loadAssets, aspect: 1920f / 1080f, zoom: 1f) is { } material)
+        if (SongSelectScene.NoteMaterial(loadAssets, aspect: 1920f / 1080f, zoom: 1f, instance: "background") is { } material)
         {
             fill.AddComponent(new UiMaterial(material));
             fill.AddComponent(new SpectrumEnergy());
