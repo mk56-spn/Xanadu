@@ -160,6 +160,9 @@ public struct SongSelectState(
     public string ScoresFor = "";
 }
 
+/// <summary>Marks a song-select list the pointer is dragging, so its scroll stops easing.</summary>
+public struct SongSelectDragging : ITag { }
+
 /// <summary>A clickable level slot in the song-select grid.</summary>
 public struct SongSelectTile(int index) : IComponent
 {

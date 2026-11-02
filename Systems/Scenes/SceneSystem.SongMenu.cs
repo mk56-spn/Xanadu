@@ -171,6 +171,11 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
         return false;
     }
 
+    /// <summary>Whether a dialog is up that the carousel's rows must not react underneath.</summary>
+    public bool IsLevelDialogOpen =>
+        IsConfirmationVisible() ||
+        (!_deleteLevelPanel.IsNull && !UiLayout.IsHidden(_deleteLevelPanel));
+
     private static bool IsPressed(Entity entity) =>
         !entity.IsNull && entity.Tags.Has<Pressed>();
 

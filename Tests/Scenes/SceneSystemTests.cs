@@ -18,7 +18,7 @@ using Xanadu.Tests.Support;
 namespace Xanadu.Tests.Scenes;
 
 [TestFixture]
-public sealed class SceneSystemTests
+public sealed partial class SceneSystemTests
 {
     private EntityStore _store = null!;
     private SceneDirector _director = null!;
@@ -245,6 +245,7 @@ public sealed class SceneSystemTests
     [Test]
     public void SongSelectTileClickSelectsThatLevel()
     {
+        _root.Add(new SongSelectDragSystem(new FakePointerInput(), _scenes));
         _scenes.Start(SceneKind.SongSelect);
         Frame();
 
@@ -253,6 +254,8 @@ public sealed class SceneSystemTests
             .ToEntityList()
             .First(entity => entity.GetComponent<SongSelectTile>().Index == 1);
         tile.AddTag<Pressed>();
+        Frame();
+        tile.RemoveTag<Pressed>();
         Frame();
 
         Entity root = _store.Query<SceneRoot>().ToEntityList()[0];

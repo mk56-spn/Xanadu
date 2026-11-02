@@ -78,38 +78,6 @@ public sealed class SongSelectController : ISceneController
         context.Root.AddComponent(view);
     }
 
-    public void HandleActions(SceneSystem system, ref SceneState state)
-    {
-        foreach (Entity entity in system.Entities
-                     .Query<SongSelectTile>()
-                     .WithDisabled()
-                     .AllTags(Tags.Get<Pressed>())
-                     .ToEntityList())
-        {
-            SongSelectTile tile = entity.GetComponent<SongSelectTile>();
-            if (tile.Index < 0 || tile.Index >= _catalog.Count)
-                continue;
-
-            state.SelectedIndex = tile.Index;
-            state.SelectedLevelPath = _catalog[tile.Index].Path;
-            foreach (Entity root in system.Entities
-                         .Query<SongSelectState>()
-                         .ToEntityList())
-            {
-                ref SongSelectState view = ref root.GetComponent<SongSelectState>();
-                SongSelectScene.Refresh(
-                    ref view,
-                    _catalog,
-                    tile.Index,
-                    _system.Profiles);
-                break;
-            }
-
-            entity.RemoveTag<Pressed>();
-            return;
-        }
-    }
-
     public bool TryStep(int direction)
     {
         if (_stateEntity.IsNull)

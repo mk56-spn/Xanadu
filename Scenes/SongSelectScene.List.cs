@@ -261,6 +261,16 @@ public static partial class SongSelectScene
         return true;
     }
 
+    /// <summary>How many levels a drag between two heights moves the list; pulling up moves it forward.</summary>
+    public static float LevelsDragged(float fromY, float toY) => (fromY - toY) / RowPitch;
+
+    /// <summary>Puts the list at a scroll directly, kept within the catalog, and re-lays the rows.</summary>
+    public static void SetScroll(ref SongSelectState state, float scroll)
+    {
+        state.Scroll = Mathf.Clamp(scroll, 0, Mathf.Max(state.Catalog.Count - 1, 0));
+        RefreshList(ref state);
+    }
+
     /// <summary>
     /// Lays out every row for the current scroll. Row r shows the level
     /// r - 4 places from floor(scroll) and sits at a fractional slot, so a
