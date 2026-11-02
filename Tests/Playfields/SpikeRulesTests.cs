@@ -11,45 +11,6 @@ public sealed class SpikeRulesTests
     private static readonly Playfield Field = new(1000, 1000);
 
     [Test]
-    public void ATileIsOneGridCell()
-    {
-        Spike spike = SpikeRules.TileAt(new Vector2(350, 640), Field);
-
-        Assert.That(spike.Size, Is.EqualTo(new Vector2(50, 50)));
-        Assert.That(spike.Position, Is.EqualTo(new Vector2(350, 600)));
-        Assert.That(spike.Bounds, Is.EqualTo(new Rect2(350, 600, 50, 50)));
-    }
-
-    [Test]
-    public void TilesAreKeptInsideTheField()
-    {
-        Spike spike = SpikeRules.TileAt(new Vector2(1000, 1000), Field);
-
-        Assert.That(spike.Position, Is.EqualTo(new Vector2(950, 950)));
-    }
-
-    [Test]
-    public void MovingATileSnapsItToTheGrid()
-    {
-        var spike = new Spike(new Vector2(300, 600), new Vector2(100, 100));
-
-        Spike moved = SpikeRules.Move(spike, new Vector2(140, 25), Field);
-
-        Assert.That(moved.Position, Is.EqualTo(new Vector2(400, 600)));
-        Assert.That(moved.Size, Is.EqualTo(new Vector2(100, 100)));
-    }
-
-    [Test]
-    public void MovingATileOffTheFieldClampsIt()
-    {
-        var spike = new Spike(Vector2.Zero, new Vector2(100, 100));
-
-        Spike moved = SpikeRules.Move(spike, new Vector2(-400, -400), Field);
-
-        Assert.That(moved.Position, Is.EqualTo(Vector2.Zero));
-    }
-
-    [Test]
     public void ScreenBoundsFollowTheView()
     {
         var view = new PlayfieldView(
@@ -76,25 +37,38 @@ public sealed class SpikeRulesTests
         Assert.That(triangle.BaseRight, Is.EqualTo(new Vector2(300, 400)));
     }
 
-    [TestCase(1, 300, 350, TestName = "A quarter turn points right")]
-    [TestCase(2, 250, 400, TestName = "A half turn points down")]
-    [TestCase(3, 200, 350, TestName = "Three quarters point left")]
-    public void TurningMovesTheTipToThatEdge(int turns, float tipX, float tipY)
+    [TestCase(90f, 300, 350, TestName = "A quarter turn points right")]
+    [TestCase(180f, 250, 400, TestName = "A half turn points down")]
+    [TestCase(270f, 200, 350, TestName = "Three quarters point left")]
+    public void TurningMovesTheTipToThatEdge(float degrees, float tipX, float tipY)
     {
         var view = new PlayfieldView(Vector2.Zero, 1f, new Vector2(1000, 1000));
-        var spike = new Spike(new Vector2(200, 300), new Vector2(100, 100), turns);
+        var spike = new Spike(new Vector2(200, 300), new Vector2(100, 100), degrees);
 
         SpikeTriangle triangle = SpikeRules.ScreenTriangle(spike, view);
 
-        Assert.That(triangle.Tip, Is.EqualTo(new Vector2(tipX, tipY)));
+        Assert.That(triangle.Tip.IsEqualApprox(new Vector2(tipX, tipY)), Is.True);
     }
 
     [Test]
-    public void MovingATileKeepsItsTurn()
+    public void ASpikeTakesAnyAngle()
     {
-        var spike = new Spike(new Vector2(300, 600), new Vector2(100, 100), 2);
+        var view = new PlayfieldView(Vector2.Zero, 1f, new Vector2(1000, 1000));
+        var spike = new Spike(new Vector2(200, 300), new Vector2(100, 100), 45f);
 
-        Assert.That(SpikeRules.Move(spike, new Vector2(100, 0), Field).QuarterTurns, Is.EqualTo(2));
+        SpikeTriangle triangle = SpikeRules.ScreenTriangle(spike, view);
+
+        float reach = 50f * Mathf.Sqrt2 / 2f;
+        Assert.That(triangle.Tip.IsEqualApprox(new Vector2(250 + reach, 350 - reach)), Is.True);
+    }
+
+    [Test]
+    public void ATurnedSpikeIsPickedByItsTurnedBox()
+    {
+        var spike = new Spike(new Vector2(200, 300), new Vector2(100, 20), 90f);
+
+        Assert.That(spike.Contains(new Vector2(250, 270)), Is.True, "stands upright now");
+        Assert.That(spike.Contains(new Vector2(205, 310)), Is.False, "was inside before the turn");
     }
 
     [Test]

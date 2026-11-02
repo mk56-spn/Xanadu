@@ -68,7 +68,19 @@ public sealed class GroupModulationSystem : QuerySystem<ItemGroups>
             return;
         }
 
-        GroupModulation.TryColor(groups, mask, seconds, out Color mix, out float coverage);
+        // A block's interior and outline each follow only the groups linked to them.
+        bool isBlock = entity.TryGetComponent(out Block linked);
+        uint colorMask = isBlock ? mask & linked.FillGroups : mask;
+        if (isBlock)
+        {
+            GroupModulation.TryColor(groups, mask & linked.OutlineGroups, seconds, out Color edgeMix, out float edgeCoverage);
+            if (entity.HasComponent<GroupOutlineColor>())
+                entity.GetComponent<GroupOutlineColor>() = new GroupOutlineColor(edgeMix, edgeCoverage);
+            else
+                entity.AddComponent(new GroupOutlineColor(edgeMix, edgeCoverage));
+        }
+
+        GroupModulation.TryColor(groups, colorMask, seconds, out Color mix, out float coverage);
         if (entity.HasComponent<GroupColor>())
             entity.GetComponent<GroupColor>() = new GroupColor(mix, coverage);
         else

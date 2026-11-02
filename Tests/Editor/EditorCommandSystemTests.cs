@@ -47,34 +47,80 @@ public sealed class EditorCommandSystemTests : EcsSystemTest
     [Test]
     public void RotatingTurnsASpikeInPlaceAsOneUndoStep()
     {
-        _editor.AddComponent(new EditorSpikeBrush());
+        _editor.AddComponent(new EditorPlacementBrush());
         Entity spike = CreateSelected(new Spike(new Godot.Vector2(100, 100), new Godot.Vector2(50, 50)));
 
         _commands.Enqueue(EditorCommand.RotateSelection());
         Frame();
 
-        Assert.That(spike.GetComponent<Spike>().QuarterTurns, Is.EqualTo(1));
+        Assert.That(spike.GetComponent<Spike>().RotationDegrees, Is.EqualTo(90f));
         Assert.That(spike.GetComponent<Spike>().Position, Is.EqualTo(new Godot.Vector2(100, 100)));
-        Assert.That(_editor.GetComponent<EditorSpikeBrush>().QuarterTurns, Is.EqualTo(1));
+        Assert.That(_editor.GetComponent<EditorPlacementBrush>().Degrees, Is.EqualTo(90f));
 
         _commands.Enqueue(EditorCommand.Undo());
         Frame();
 
         Assert.That(
-            Store.Query<Spike>().ToEntityList()[0].GetComponent<Spike>().QuarterTurns,
+            Store.Query<Spike>().ToEntityList()[0].GetComponent<Spike>().RotationDegrees,
             Is.Zero);
+    }
+
+    [Test]
+    public void OneWayCyclesThroughEverySideAndUndoesInOneStep()
+    {
+        Entity block = CreateSelected(new Block(new Godot.Vector2(100, 100), new Godot.Vector2(50, 50)));
+
+        foreach (BlockOneWay expected in new[]
+                 {
+                     BlockOneWay.Up, BlockOneWay.Right, BlockOneWay.Down, BlockOneWay.Left, BlockOneWay.Off,
+                 })
+        {
+            _commands.Enqueue(EditorCommand.CycleOneWay());
+            Frame();
+            Assert.That(block.GetComponent<Block>().OneWay, Is.EqualTo(expected));
+        }
+
+        _commands.Enqueue(EditorCommand.CycleOneWay());
+        Frame();
+        _commands.Enqueue(EditorCommand.Undo());
+        Frame();
+
+        Assert.That(
+            Store.Query<Block>().ToEntityList()[0].GetComponent<Block>().OneWay,
+            Is.EqualTo(BlockOneWay.Off));
+    }
+
+    [Test]
+    public void RotatingAndFlippingTurnAOneWaySide()
+    {
+        Entity block = CreateSelected(new Block(
+            new Godot.Vector2(100, 100),
+            new Godot.Vector2(50, 50),
+            oneWay: BlockOneWay.Up));
+
+        _commands.Enqueue(EditorCommand.RotateSelection());
+        Frame();
+        Assert.That(block.GetComponent<Block>().OneWay, Is.EqualTo(BlockOneWay.Right));
+
+        _commands.Enqueue(EditorCommand.FlipSelection(horizontal: true));
+        Frame();
+        Assert.That(block.GetComponent<Block>().OneWay, Is.EqualTo(BlockOneWay.Left));
+
+        _commands.Enqueue(EditorCommand.FlipSelection(horizontal: false));
+        Frame();
+        Assert.That(block.GetComponent<Block>().OneWay, Is.EqualTo(BlockOneWay.Left));
     }
 
     [Test]
     public void RotatingTurnsTheBrushWhenPlacingWithNoSelection()
     {
-        _editor.AddComponent(new EditorSpikeBrush());
+        _editor.AddComponent(new EditorPlacementBrush());
         _editor.AddComponent(new EditorPlacementModeState(EditorPlacementMode.Spikes));
 
         _commands.Enqueue(EditorCommand.RotateSelection());
         Frame();
 
-        Assert.That(_editor.GetComponent<EditorSpikeBrush>().QuarterTurns, Is.EqualTo(1));
+        Assert.That(_editor.GetComponent<EditorPlacementBrush>().Degrees, Is.EqualTo(90f));
     }
 
     [Test]
@@ -104,7 +150,7 @@ public sealed class EditorCommandSystemTests : EcsSystemTest
         Entity right = EditorItems.Create(Store, new Spike(
             new Godot.Vector2(350, 300),
             new Godot.Vector2(50, 50),
-            1));
+            90f));
         _editor.GetComponent<NoteSelection>().SetMany(new[] { left, right });
 
         _commands.Enqueue(EditorCommand.FlipSelection(horizontal: true));
@@ -113,16 +159,30 @@ public sealed class EditorCommandSystemTests : EcsSystemTest
         Assert.That(left.GetComponent<Note>().Position.X, Is.EqualTo(400));
         Assert.That(left.GetComponent<Note>().DashDirection, Is.EqualTo(DashDirection.UpLeft));
         Assert.That(right.GetComponent<Spike>().Position.X, Is.EqualTo(200));
-        Assert.That(right.GetComponent<Spike>().QuarterTurns, Is.EqualTo(3));
+        Assert.That(right.GetComponent<Spike>().RotationDegrees, Is.EqualTo(270f));
     }
 
-    [TestCase(0, true, 0, TestName = "An upward spike keeps pointing up in a left-right flip")]
-    [TestCase(0, false, 2, TestName = "An upward spike points down in an up-down flip")]
-    [TestCase(1, true, 3, TestName = "A rightward spike points left in a left-right flip")]
-    [TestCase(1, false, 1, TestName = "A rightward spike keeps pointing right in an up-down flip")]
-    public void FlippingASpikeTurnsItTheRightWay(int turns, bool horizontal, int expected)
+    [TestCase(0f, true, 0f, TestName = "An upward spike keeps pointing up in a left-right flip")]
+    [TestCase(0f, false, 180f, TestName = "An upward spike points down in an up-down flip")]
+    [TestCase(90f, true, 270f, TestName = "A rightward spike points left in a left-right flip")]
+    [TestCase(90f, false, 90f, TestName = "A rightward spike keeps pointing right in an up-down flip")]
+    [TestCase(30f, true, 330f, TestName = "A slanted spike mirrors in a left-right flip")]
+    [TestCase(30f, false, 150f, TestName = "A slanted spike mirrors in an up-down flip")]
+    public void FlippingASpikeTurnsItTheRightWay(float degrees, bool horizontal, float expected)
     {
-        Assert.That(SelectionRotation.FlippedSpikeTurns(turns, horizontal), Is.EqualTo(expected));
+        Assert.That(SelectionRotation.FlippedSpikeDegrees(degrees, horizontal), Is.EqualTo(expected));
+    }
+
+    [Test]
+    public void RotatingTurnsTheBrushForTheBlockToolToo()
+    {
+        _editor.AddComponent(new EditorPlacementBrush());
+        _editor.AddComponent(new EditorPlacementModeState(EditorPlacementMode.Blocks));
+
+        _commands.Enqueue(EditorCommand.RotateSelection());
+        Frame();
+
+        Assert.That(_editor.GetComponent<EditorPlacementBrush>().Degrees, Is.EqualTo(90f));
     }
 
     [TestCase(DashDirection.Right, true, DashDirection.Left)]
@@ -147,7 +207,7 @@ public sealed class EditorCommandSystemTests : EcsSystemTest
         Entity spike = EditorItems.Create(Store, new Spike(
             new Godot.Vector2(300, 300),
             new Godot.Vector2(50, 50),
-            2));
+            180f));
         _editor.GetComponent<NoteSelection>().SetMany(new[] { block, spike });
 
         _commands.Enqueue(EditorCommand.CopySelection());
@@ -162,7 +222,7 @@ public sealed class EditorCommandSystemTests : EcsSystemTest
         Assert.That(pastedBlock.GetComponent<Block>().Position, Is.EqualTo(new Godot.Vector2(150, 150)));
         Assert.That(pastedBlock.GetComponent<Block>().ShapeId, Is.Zero, "a copy does not join the Form shape");
         Assert.That(pastedSpike.GetComponent<Spike>().Position, Is.EqualTo(new Godot.Vector2(350, 350)));
-        Assert.That(pastedSpike.GetComponent<Spike>().QuarterTurns, Is.EqualTo(2));
+        Assert.That(pastedSpike.GetComponent<Spike>().RotationDegrees, Is.EqualTo(180f));
 
         _commands.Enqueue(EditorCommand.PasteSelection());
         Frame();

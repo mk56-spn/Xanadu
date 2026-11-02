@@ -36,20 +36,19 @@ public sealed partial class EditorNoteInputSystem : QuerySystem<Note>
     private Entity _draggedEntity;
     private readonly UiDragController _drag = new();
     private readonly Dictionary<int, Vector2> _dragStartPositions = new();
-    private readonly Dictionary<int, Block> _dragStartBlocks = new();
-    private readonly Dictionary<int, Spike> _dragStartSpikes = new();
     private EditorSnapshot _dragBefore;
     private readonly NoteBox _box;
 
-    // A paint stroke laying spike tiles; the whole stroke is one undo step.
-    private bool _paintingSpikes;
-    private bool _spikeStrokeAdded;
-    private EditorSnapshot _spikeBefore;
+    // A paint stroke laying blocks or spikes; the whole stroke is one undo step.
+    private bool _painting;
+    private bool _paintAdded;
+    private EditorSnapshot _paintBefore;
 
-    // A resize drag started on one of the primary block's side handles.
+    // A resize drag started on one of the primary block's or spike's side handles.
     private Entity _resizeEntity;
-    private BlockHandle _resizeHandle;
-    private Block _resizeStart;
+    private GridHandle _resizeHandle;
+    private Rect2 _resizeStart;
+    private float _resizeDegrees;
     private EditorSnapshot _resizeBefore;
 
     public EditorNoteInputSystem(
@@ -171,14 +170,14 @@ public sealed partial class EditorNoteInputSystem : QuerySystem<Note>
 
         ref NoteSelection selection = ref editor.GetComponent<NoteSelection>();
 
-        // An empty cell in spike mode starts a paint stroke instead of arming a
-        // placement, so dragging lays a run of tiles.
-        if (hit.IsNull && IsSpikeMode(editor))
+        // An empty spot with a block or spike tool starts a paint stroke instead
+        // of arming a placement, so dragging lays a run. Shift still box-selects.
+        if (hit.IsNull && !shift && IsGridMode(editor))
         {
-            _paintingSpikes = true;
-            _spikeStrokeAdded = false;
-            _spikeBefore = _history.Capture();
-            PaintSpikeAt(playfieldPosition, playfield, editor);
+            _painting = true;
+            _paintAdded = false;
+            _paintBefore = _history.Capture();
+            PaintAt(playfieldPosition, playfield, editor);
             return;
         }
 
@@ -193,8 +192,6 @@ public sealed partial class EditorNoteInputSystem : QuerySystem<Note>
             _draggedEntity = hit;
             _drag.Begin(hit, playfieldPosition);
             _dragStartPositions.Clear();
-            _dragStartBlocks.Clear();
-            _dragStartSpikes.Clear();
             _dragBefore = _history.Capture();
 
             if (!selection.Contains(hit))
@@ -205,11 +202,9 @@ public sealed partial class EditorNoteInputSystem : QuerySystem<Note>
                 if (EditorItems.IsItem(selected) &&
                     EditorItemPosition.TryGet(selected, out Vector2 selectedPosition))
                 {
-                    _dragStartPositions[selected.Id] = selectedPosition;
-                    if (selected.HasComponent<Block>())
-                        _dragStartBlocks[selected.Id] = selected.GetComponent<Block>();
-                    if (selected.HasComponent<Spike>())
-                        _dragStartSpikes[selected.Id] = selected.GetComponent<Spike>();
+                    // Blocks and spikes are dragged by their corner, which is what snaps.
+                    _dragStartPositions[selected.Id] =
+                        GridPlacement.TryGet(selected, out Rect2 box, out _) ? box.Position : selectedPosition;
                 }
             }
 
@@ -289,9 +284,9 @@ public sealed partial class EditorNoteInputSystem : QuerySystem<Note>
         if (_box.Drag(editor, screenPosition))
             return;
 
-        if (_paintingSpikes)
+        if (_painting)
         {
-            PaintSpikeAt(view.ScreenToPlayfield(screenPosition), playfield, editor);
+            PaintAt(view.ScreenToPlayfield(screenPosition), playfield, editor);
             return;
         }
 
@@ -313,17 +308,11 @@ public sealed partial class EditorNoteInputSystem : QuerySystem<Note>
             if (!EditorItems.IsItem(entity))
                 continue;
 
-            if (_dragStartBlocks.TryGetValue(id, out Block block))
+            if (GridPlacement.TryGet(entity, out Rect2 box, out _))
             {
-                entity.GetComponent<Block>() =
-                    BlockEditing.Move(block, delta, playfield, BlockSnap.IsOn(_entities));
-                continue;
-            }
-
-            if (_dragStartSpikes.TryGetValue(id, out Spike spike))
-            {
-                entity.GetComponent<Spike>() =
-                    SpikeRules.Move(spike, delta, playfield);
+                GridPlacement.SetBounds(entity, new Rect2(
+                    GridPlacement.Move(start, box.Size, delta, playfield, ViewportSnap.IsOn(_entities)),
+                    box.Size));
                 continue;
             }
 
@@ -338,13 +327,13 @@ public sealed partial class EditorNoteInputSystem : QuerySystem<Note>
     {
         Entity editor = FindEditor();
 
-        if (_paintingSpikes)
+        if (_painting)
         {
-            _paintingSpikes = false;
-            if (_spikeStrokeAdded && !editor.IsNull)
-                _history.Record(_spikeBefore, _history.Capture());
-            _spikeStrokeAdded = false;
-            _spikeBefore = default;
+            _painting = false;
+            if (_paintAdded && !editor.IsNull)
+                _history.Record(_paintBefore, _history.Capture());
+            _paintAdded = false;
+            _paintBefore = default;
             return;
         }
 
@@ -403,14 +392,6 @@ public sealed partial class EditorNoteInputSystem : QuerySystem<Note>
 
     private void CreatePlacementAt(Entity editor, Vector2 screenPosition)
     {
-        if (editor.HasComponent<EditorPlacementModeState>() &&
-            editor.GetComponent<EditorPlacementModeState>().Mode ==
-            EditorPlacementMode.Blocks)
-        {
-            PlaceBlock(editor, screenPosition);
-            return;
-        }
-
         if (editor.HasComponent<EditorPlacementModeState>() &&
             editor.GetComponent<EditorPlacementModeState>().Mode ==
             EditorPlacementMode.Start)
@@ -912,8 +893,6 @@ public sealed partial class EditorNoteInputSystem : QuerySystem<Note>
         _dragBefore = default;
         _drag.End();
         _dragStartPositions.Clear();
-        _dragStartBlocks.Clear();
-        _dragStartSpikes.Clear();
     }
 
     private bool IsGroupOverlayOpen()

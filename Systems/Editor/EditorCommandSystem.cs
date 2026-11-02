@@ -156,6 +156,10 @@ public sealed partial class EditorCommandSystem :
                 FlipSelection(editor, command.IntValue != 0);
                 break;
 
+            case EditorCommandType.CycleOneWay:
+                CycleOneWay(editor);
+                break;
+
             case EditorCommandType.CopySelection:
                 CopySelection(editor);
                 break;

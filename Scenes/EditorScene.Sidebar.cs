@@ -66,8 +66,9 @@ public static partial class EditorScene
         UiNode modulate = panel.ColorField(
             "COLOUR",
             inner,
-            "Self modulate of the selection: its colour is multiplied by this. Type #rrggbb or #rrggbbaa; leave blank for white. A group's colour fade overrides it.");
+            "Self modulate of the selection: its colour is multiplied by this, and on a block this is the interior. Type #rrggbb or #rrggbbaa; leave blank for white. A group's colour fade overrides it.");
         editor.AddComponent(new EditorSelfModulateField(modulate.Entity));
+        BuildBlockOutline(panel, editor, inner);
         BuildGroupGrid(panel, editor, inner);
 
         editor.AddComponent(new EditorSidebar(shell.RightPanel));
@@ -75,6 +76,36 @@ public static partial class EditorScene
             panel.Entity,
             characterLabel,
             character));
+    }
+
+    /// <summary>The selected blocks' outline: its width, where 0 is none, and its own colour.</summary>
+    private static void BuildBlockOutline(UiNode panel, Entity editor, float inner)
+    {
+        const float height = 28;
+        UiNode section = panel.Column()
+            .Width(inner)
+            .AutoHeight()
+            .Gap(UiTheme.ContainerSpacing)
+            .Main(StackMainAlignment.Start)
+            .Hidden();
+
+        UiNode row = section.Row().Size(inner, height).Gap(UiTheme.ContainerSpacing).Main(StackMainAlignment.Start);
+        Entity width = row.Text("OUTLINE", UiTheme.SmallFontSize, SceneUi.DimTextColor, TextAlign.Left)
+            .Size(inner - (height + UiTheme.ContainerSpacing) * 2, height);
+        row.Button("-", 13, SceneUi.MutedButtonColor)
+            .Size(height, height)
+            .With(new EditorOutlineStepButton(-1))
+            .Tooltip("Thinner outline; at 0 the block has none");
+        row.Button("+", 13, SceneUi.MutedButtonColor)
+            .Size(height, height)
+            .With(new EditorOutlineStepButton(1))
+            .Tooltip("Thicker outline");
+
+        UiNode color = section.ColorField(
+            "OUTLINE",
+            inner,
+            "The colour of the selected blocks' outline. A group's colour fade overrides it.");
+        editor.AddComponent(new EditorBlockOutlinePanel(section.Entity, width, color.Entity));
     }
 
     /// <summary>The current tool's settings, docked to the viewport's top-left corner.</summary>

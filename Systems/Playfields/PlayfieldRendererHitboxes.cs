@@ -34,6 +34,8 @@ public static partial class PlayfieldRenderer
                 view.PlayfieldToScreen(block.Position),
                 block.Size * view.Scale);
             DrawHitbox(canvas, rid, screen, DebugPalette.BlockHitbox);
+            if (block.OneWay != BlockOneWay.Off)
+                canvas.DrawRect(rid, OneWayEdge(screen, block.OneWay), DebugPalette.BlockHitbox);
         }
 
         foreach (Entity entity in entities.Query<Spike>().ToEntityList())

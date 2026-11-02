@@ -118,6 +118,11 @@ public static class LevelDocumentMapper
                 Height = block.Size.Y,
                 ShapeId = block.ShapeId,
                 ShapePiece = block.ShapePiece,
+                OneWay = (int)block.OneWay,
+                OutlineWidth = block.OutlineWidth,
+                OutlineColor = block.OutlineColor.ToRgba32(),
+                FillGroups = block.FillGroups,
+                OutlineGroups = block.OutlineGroups,
                 SelfModulate = SelfModulate.Packed(entity),
                 Groups = GroupsOf(entity),
                 Shader = ItemShader.Of(entity),
@@ -139,7 +144,7 @@ public static class LevelDocumentMapper
                 Y = spike.Position.Y,
                 Width = spike.Size.X,
                 Height = spike.Size.Y,
-                QuarterTurns = spike.QuarterTurns,
+                RotationDegrees = spike.RotationDegrees,
                 SelfModulate = SelfModulate.Packed(entity),
                 Groups = GroupsOf(entity),
                 Shader = ItemShader.Of(entity),
@@ -234,7 +239,12 @@ public static class LevelDocumentMapper
                 new Vector2(block.X, block.Y),
                 new Vector2(block.Width, block.Height),
                 block.ShapeId,
-                block.ShapePiece), block.Shader);
+                block.ShapePiece,
+                (BlockOneWay)block.OneWay,
+                block.OutlineWidth,
+                new Color(block.OutlineColor),
+                block.FillGroups,
+                block.OutlineGroups), block.Shader);
             if (block.ShapeId > 0)
                 created.AddTag<ConstructionHidden>();
             Subscribe(created, block.Groups);
@@ -249,7 +259,7 @@ public static class LevelDocumentMapper
             Entity created = EditorItems.Create(entities, new Spike(
                 new Vector2(spike.X, spike.Y),
                 new Vector2(spike.Width, spike.Height),
-                spike.QuarterTurns), spike.Shader);
+                spike.RotationDegrees), spike.Shader);
             Subscribe(created, spike.Groups);
             SelfModulate.Put(created, spike.SelfModulate);
         }

@@ -69,7 +69,7 @@ public sealed class PlayfieldDrawSystemTests
             new Playhead(1_000, 120, 0, true, durationMs: 5_000),
             new PlayfieldMode(PlayfieldKind.Play));
         store.CreateEntity(
-            new Block(new Vector2(100, 200), new Vector2(200, 100)));
+            new Block(new Vector2(100, 200), new Vector2(200, 100), outlineWidth: 0f));
 
         var canvas = new RecordingCanvas();
         var root = new SystemRoot(store);

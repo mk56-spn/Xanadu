@@ -135,6 +135,21 @@ public sealed class BlockDocument
 
     /// <summary>The order this block is revealed in its shape.</summary>
     public int ShapePiece { get; set; }
+
+    /// <summary>The only side that collides, as a <see cref="Xanadu.Ecs.BlockOneWay"/>; 0 is solid all round.</summary>
+    public int OneWay { get; set; }
+
+    /// <summary>Outline thickness in playfield units; 0 is no outline.</summary>
+    public float OutlineWidth { get; set; } = Xanadu.Ecs.Block.DefaultOutlineWidth;
+
+    /// <summary>The outline's colour, as RGBA8.</summary>
+    public uint OutlineColor { get; set; } = Xanadu.Ecs.Block.DefaultOutlineColor.ToRgba32();
+
+    /// <summary>The groups whose colour fades reach the interior.</summary>
+    public uint FillGroups { get; set; } = Xanadu.Ecs.Block.AllGroups;
+
+    /// <summary>The groups whose colour fades reach the outline.</summary>
+    public uint OutlineGroups { get; set; } = Xanadu.Ecs.Block.AllGroups;
 }
 
 /// <summary>Serializable spike tile data: a hazard that kills on contact.</summary>
@@ -157,8 +172,8 @@ public sealed class SpikeDocument
 
     public float Height { get; set; }
 
-    /// <summary>Which edge the tip points at: 0 up, then clockwise, 1 right, 2 down, 3 left.</summary>
-    public int QuarterTurns { get; set; }
+    /// <summary>Where the tip points, in degrees clockwise from up.</summary>
+    public float RotationDegrees { get; set; }
 }
 
 /// <summary>Serializable practice start state.</summary>

@@ -97,6 +97,9 @@ public partial class EditorOverlay : CanvasLayer, IEditorShortcutTarget
             case EditorShortcut.FlipVertical:
                 _commands.Enqueue(EditorCommand.FlipSelection(horizontal: false));
                 break;
+            case EditorShortcut.CycleOneWay:
+                _commands.Enqueue(EditorCommand.CycleOneWay());
+                break;
             case EditorShortcut.MoveLeft:
                 _commands.Enqueue(EditorCommand.MoveSelection(-1));
                 break;

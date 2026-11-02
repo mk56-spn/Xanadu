@@ -150,7 +150,12 @@ public sealed class EditorHistory
                 ItemShader.Of(entity),
                 block.ShapeId,
                 block.ShapePiece,
-                SelfModulate.Packed(entity)));
+                SelfModulate.Packed(entity),
+                block.OneWay,
+                block.OutlineWidth,
+                block.OutlineColor.ToRgba32(),
+                block.FillGroups,
+                block.OutlineGroups));
         }
 
         blocks.Sort(static (a, b) =>
@@ -168,7 +173,7 @@ public sealed class EditorHistory
                 MaskOf(entity),
                 ItemShader.Of(entity),
                 SelfModulate.Packed(entity),
-                spike.QuarterTurns));
+                spike.RotationDegrees));
         }
 
         spikes.Sort(static (a, b) =>
@@ -305,7 +310,12 @@ public sealed class EditorHistory
                 block.Position,
                 block.Size,
                 block.ShapeId,
-                block.ShapePiece), block.Shader);
+                block.ShapePiece,
+                block.OneWay,
+                block.OutlineWidth,
+                new Color(block.OutlineColor),
+                block.FillGroups,
+                block.OutlineGroups), block.Shader);
             if (block.ShapeId > 0)
                 created.AddTag<ConstructionHidden>();
             Subscribe(created, block.Groups);
@@ -314,7 +324,7 @@ public sealed class EditorHistory
 
         foreach (SpikeSnapshot spike in snapshot.Spikes)
         {
-            Entity created = EditorItems.Create(_entities, new Spike(spike.Position, spike.Size, spike.QuarterTurns), spike.Shader);
+            Entity created = EditorItems.Create(_entities, new Spike(spike.Position, spike.Size, spike.RotationDegrees), spike.Shader);
             Subscribe(created, spike.Groups);
             SelfModulate.Put(created, spike.Modulate);
         }
@@ -347,7 +357,12 @@ public readonly record struct BlockSnapshot(
     int Shader = 0,
     int ShapeId = 0,
     int ShapePiece = 0,
-    uint Modulate = SelfModulate.White);
+    uint Modulate = SelfModulate.White,
+    BlockOneWay OneWay = BlockOneWay.Off,
+    float OutlineWidth = Block.DefaultOutlineWidth,
+    uint OutlineColor = 0,
+    uint FillGroups = Block.AllGroups,
+    uint OutlineGroups = Block.AllGroups);
 
 /// <summary>Stable serializable spike snapshot used by undo/redo.</summary>
 public readonly record struct SpikeSnapshot(
@@ -356,7 +371,7 @@ public readonly record struct SpikeSnapshot(
     uint Groups = 0,
     int Shader = 0,
     uint Modulate = SelfModulate.White,
-    int QuarterTurns = 0);
+    float RotationDegrees = 0f);
 
 /// <summary>Stable serializable mine snapshot used by undo/redo.</summary>
 public readonly record struct MineSnapshot(

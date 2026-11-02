@@ -349,13 +349,38 @@ public sealed class EditorPlayfieldDrawSystemTests
         Assert.That(
             canvas.RectCalls.Exists(call =>
                 call.Color == PlayfieldRenderer.BlockSelectedEdge &&
-                call.Bounds.IsEqualApprox(expected)),
+                call.Bounds.Position.IsEqualApprox(expected.Position) &&
+                Mathf.IsEqualApprox(call.Bounds.Size.X, expected.Size.X)),
             Is.True);
         Assert.That(
             canvas.RectCalls.FindAll(call =>
-                call.Color == PlayfieldRenderer.BlockEdge &&
+                call.Color == PlayfieldRenderer.HandleEdge &&
                 call.Bounds.Size == new Vector2(10, 10)),
             Has.Count.EqualTo(4));
+    }
+
+    [Test]
+    public void ABlockWithNoOutlineIsAllInterior()
+    {
+        var canvas = new RecordingCanvas();
+        var screen = new Rect2(10, 10, 100, 50);
+
+        PlayfieldRenderer.DrawBlockBody(canvas, default, screen, 0f, Colors.White, Colors.Red);
+
+        Assert.That(canvas.RectCalls, Has.Count.EqualTo(1));
+        Assert.That(canvas.RectCalls[0].Bounds, Is.EqualTo(screen));
+        Assert.That(canvas.RectCalls[0].Color, Is.EqualTo(Colors.White));
+    }
+
+    [Test]
+    public void AnOutlineTakesItsWidthOffTheInterior()
+    {
+        var canvas = new RecordingCanvas();
+        var screen = new Rect2(10, 10, 100, 50);
+
+        PlayfieldRenderer.DrawBlockBody(canvas, default, screen, 4f, Colors.White, Colors.Red);
+
+        Assert.That(canvas.RectCalls.Exists(call => call.Bounds == screen.Grow(-4f) && call.Color == Colors.White), Is.True);
     }
 
     [Test]

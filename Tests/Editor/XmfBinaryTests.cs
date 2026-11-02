@@ -121,6 +121,7 @@ public sealed class XmfBinaryTests
             Height = 80,
             ShapeId = 8,
             ShapePiece = 1,
+            OneWay = (int)Xanadu.Ecs.BlockOneWay.Left,
         });
         source.StartPoints.Add(new StartPointDocument
         {
@@ -219,6 +220,7 @@ public sealed class XmfBinaryTests
         Assert.That(block.Height, Is.EqualTo(80));
         Assert.That(block.ShapeId, Is.EqualTo(8));
         Assert.That(block.ShapePiece, Is.EqualTo(1));
+        Assert.That(block.OneWay, Is.EqualTo((int)Xanadu.Ecs.BlockOneWay.Left));
 
         StartPointDocument start = map.StartPoints[0];
         Assert.That(start.Name, Is.EqualTo("Chorus"));

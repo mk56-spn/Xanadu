@@ -142,12 +142,13 @@ public static partial class EditorScene
                 SceneUi.MutedButtonColor)
             .Size(PlayerPathSwitch.ToggleWidth, HeaderControl)
             .Entity);
-        BlockSnap.Attach(right.Button(
-                BlockSnap.Label,
+        ViewportSnap.Attach(right.Button(
+                ViewportSnap.Label,
                 UiTheme.FontSize,
                 SceneUi.MutedButtonColor)
-            .Size(BlockSnap.ToggleWidth, HeaderControl)
-            .Entity);
+            .Size(ViewportSnap.ToggleWidth, HeaderControl)
+            .Entity,
+            "Snap blocks to the grid");
         Entity file = right.Button(
                 "FILE ▾",
                 UiTheme.FontSize,

@@ -46,6 +46,8 @@ public sealed partial class EditorGroupSystem
         }
 
         UiText.Set(Piece(EditorGroupPart.MemberText), mine > 0 ? $"{members} ITEMS  ({mine} SELECTED)" : $"{members} ITEMS", buffer);
+        ShowColorLink(editor, state.Open, outline: false, buffer);
+        ShowColorLink(editor, state.Open, outline: true, buffer);
         UiText.Set(Piece(EditorGroupPart.SnapToggle), state.Snap ? "SNAP ON" : "SNAP OFF", buffer);
         Tint(Piece(EditorGroupPart.SnapToggle), state.Snap ? CellUsed : SceneColors.Muted, buffer);
         UiText.Set(Piece(EditorGroupPart.PlayToggle), playhead.Playing ? "PAUSE" : "PLAY", buffer);
@@ -65,7 +67,8 @@ public sealed partial class EditorGroupSystem
     {
         EditorGroupPart.Dialog, EditorGroupPart.Title, EditorGroupPart.NameField, EditorGroupPart.Close,
         EditorGroupPart.MemberText, EditorGroupPart.AddSelected, EditorGroupPart.RemoveSelected,
-        EditorGroupPart.SelectMembers, EditorGroupPart.SnapToggle, EditorGroupPart.AddMove,
+        EditorGroupPart.SelectMembers, EditorGroupPart.InteriorLink, EditorGroupPart.OutlineLink,
+        EditorGroupPart.SnapToggle, EditorGroupPart.AddMove,
         EditorGroupPart.AddColor, EditorGroupPart.SoloToggle, EditorGroupPart.PlayToggle,
         EditorGroupPart.ScrollLeft, EditorGroupPart.ScrollRight, EditorGroupPart.ZoomOut,
         EditorGroupPart.ZoomIn, EditorGroupPart.Hint, EditorGroupPart.PreviewPanel,

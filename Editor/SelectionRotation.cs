@@ -29,13 +29,14 @@ public readonly record struct RotationStart(
     DashDirection Direction,
     Vector2 Facing,
     Vector2 Momentum,
-    int SpikeTurns = 0);
+    float SpikeDegrees = 0f,
+    BlockOneWay OneWay = BlockOneWay.Off);
 
 /// <summary>
 /// Turns a group of playfield items around their shared centre. Blocks and
-/// spike tiles sit on the field's axes, so their centres orbit and they stay
-/// square to it, swapping width and height at each odd quarter turn. A spike's
-/// tip follows to the nearest quarter turn.
+/// spikes follow the same <see cref="GridPlacement"/> rules, except that a block
+/// is a physics box that has to stay square to the field: it only turns in 90
+/// degree steps, swapping width and height. A spike takes any angle.
 /// </summary>
 public static class SelectionRotation
 {
@@ -53,13 +54,15 @@ public static class SelectionRotation
     private const int DirectionCount = 8;
 
     /// <summary>
-    /// The box around every item in the selection. False unless at least two
-    /// items are in it, since one item has nothing to turn around.
+    /// The box around every item in the selection. False unless there is something
+    /// to turn: two items, or one block or spike turning on the spot. One note
+    /// only has a position, so it has nothing to turn around.
     /// </summary>
     public static bool TryGetBounds(IReadOnlyList<Entity> selection, out Rect2 bounds)
     {
         bounds = default;
         int count = 0;
+        bool turnsOnTheSpot = false;
         foreach (Entity entity in selection)
         {
             if (!EditorItems.IsItem(entity) ||
@@ -71,9 +74,10 @@ public static class SelectionRotation
             Rect2 item = new(center - SizeOf(entity) / 2, SizeOf(entity));
             bounds = count == 0 ? item : bounds.Merge(item);
             count++;
+            turnsOnTheSpot = entity.HasComponent<Block>() || entity.HasComponent<Spike>();
         }
 
-        return count >= 2;
+        return count >= 2 || (count == 1 && turnsOnTheSpot);
     }
 
     /// <summary>The box around every item in the selection, even a single one. False when it holds none.</summary>
@@ -133,10 +137,13 @@ public static class SelectionRotation
             momentum = new Vector2(start.Momentum.X, start.Momentum.Y);
         }
 
-        int spikeTurns = entity.HasComponent<Spike>()
-            ? entity.GetComponent<Spike>().QuarterTurns
-            : 0;
-        return new RotationStart(entity, center, SizeOf(entity), direction, facing, momentum, spikeTurns);
+        float spikeDegrees = entity.HasComponent<Spike>()
+            ? entity.GetComponent<Spike>().RotationDegrees
+            : 0f;
+        BlockOneWay oneWay = entity.HasComponent<Block>()
+            ? entity.GetComponent<Block>().OneWay
+            : BlockOneWay.Off;
+        return new RotationStart(entity, center, SizeOf(entity), direction, facing, momentum, spikeDegrees, oneWay);
     }
 
     /// <summary>Puts one item where the rotation takes it, kept inside the field.</summary>
@@ -145,7 +152,7 @@ public static class SelectionRotation
         Vector2 pivot,
         float angle,
         Playfield playfield,
-        bool snapBlocks)
+        bool snap)
     {
         Entity entity = start.Entity;
         Vector2 center = pivot + (start.Center - pivot).Rotated(angle);
@@ -153,26 +160,18 @@ public static class SelectionRotation
         if (entity.HasComponent<Block>())
         {
             Vector2 size = TurnedSize(start.Size, angle);
-            Vector2 position = center - size / 2;
-            if (snapBlocks)
-                position = BlockGrid.Snap(position, BlockGrid.Cell(playfield));
-
             ref Block block = ref entity.GetComponent<Block>();
             block.Size = size;
-            block.Position = BlockGrid.Clamp(position, size, playfield);
+            block.Position = GridPlacement.Settle(center - size / 2, size, playfield, snap);
+            block.OneWay = TurnedOneWay(start.OneWay, QuartersIn(angle));
             return;
         }
 
         if (entity.HasComponent<Spike>())
         {
-            Vector2 size = TurnedSize(start.Size, angle);
             ref Spike spike = ref entity.GetComponent<Spike>();
-            spike.Size = size;
-            spike.QuarterTurns = SpikeRules.NormalizeTurns(start.SpikeTurns + QuartersIn(angle));
-            spike.Position = SpikeRules.Clamp(
-                PlayfieldGrid.Snap(center - size / 2, playfield),
-                size,
-                playfield);
+            spike.RotationDegrees = SpikeRules.NormalizeDegrees(start.SpikeDegrees + Mathf.RadToDeg(angle));
+            spike.Position = GridPlacement.Settle(center - start.Size / 2, start.Size, playfield, snap);
             return;
         }
 
@@ -204,7 +203,7 @@ public static class SelectionRotation
         Vector2 pivot,
         bool horizontal,
         Playfield playfield,
-        bool snapBlocks)
+        bool snap)
     {
         Entity entity = start.Entity;
         Vector2 center = horizontal
@@ -213,21 +212,17 @@ public static class SelectionRotation
 
         if (entity.HasComponent<Block>())
         {
-            Vector2 position = center - start.Size / 2;
-            if (snapBlocks)
-                position = BlockGrid.Snap(position, BlockGrid.Cell(playfield));
-            entity.GetComponent<Block>().Position = BlockGrid.Clamp(position, start.Size, playfield);
+            ref Block block = ref entity.GetComponent<Block>();
+            block.Position = GridPlacement.Settle(center - start.Size / 2, start.Size, playfield, snap);
+            block.OneWay = FlippedOneWay(start.OneWay, horizontal);
             return;
         }
 
         if (entity.HasComponent<Spike>())
         {
             ref Spike spike = ref entity.GetComponent<Spike>();
-            spike.QuarterTurns = FlippedSpikeTurns(start.SpikeTurns, horizontal);
-            spike.Position = SpikeRules.Clamp(
-                PlayfieldGrid.Snap(center - start.Size / 2, playfield),
-                start.Size,
-                playfield);
+            spike.RotationDegrees = FlippedSpikeDegrees(start.SpikeDegrees, horizontal);
+            spike.Position = GridPlacement.Settle(center - start.Size / 2, start.Size, playfield, snap);
             return;
         }
 
@@ -255,13 +250,23 @@ public static class SelectionRotation
     public static DashDirection FlippedDirection(DashDirection direction, bool horizontal) =>
         (DashDirection)Mathf.PosMod((horizontal ? 0 : DirectionCount / 2) - (int)direction, DirectionCount);
 
-    /// <summary>A spike pointing along the mirror's axis turns round; one across it stays.</summary>
-    public static int FlippedSpikeTurns(int quarterTurns, bool horizontal)
-    {
-        int turns = SpikeRules.NormalizeTurns(quarterTurns);
-        bool pointsSideways = turns % 2 == 1;
-        return pointsSideways == horizontal ? SpikeRules.NormalizeTurns(turns + 2) : turns;
-    }
+    /// <summary>A block's one-way side turns with it, a quarter at a time.</summary>
+    public static BlockOneWay TurnedOneWay(BlockOneWay side, int quarterTurns) =>
+        side == BlockOneWay.Off
+            ? BlockOneWay.Off
+            : (BlockOneWay)(Mathf.PosMod((int)side - 1 + quarterTurns, 4) + 1);
+
+    /// <summary>The side a one-way block collides on after mirroring: along the mirror's axis it swaps.</summary>
+    public static BlockOneWay FlippedOneWay(BlockOneWay side, bool horizontal) =>
+        side == BlockOneWay.Off
+            ? BlockOneWay.Off
+            : (((int)side - 1) % 2 == 1) == horizontal
+                ? (BlockOneWay)(Mathf.PosMod((int)side + 1, 4) + 1)
+                : side;
+
+    /// <summary>The way a spike points after mirroring.</summary>
+    public static float FlippedSpikeDegrees(float degrees, bool horizontal) =>
+        SpikeRules.NormalizeDegrees(horizontal ? -degrees : 180f - degrees);
 
     /// <summary>The nearest of the eight dash directions after turning; they run clockwise from Up.</summary>
     public static DashDirection TurnedDirection(DashDirection direction, float angle)

@@ -170,6 +170,18 @@ public static partial class EditorScene
         Piece(GroupButton(ui, "ADD SELECTED", SceneUi.ButtonColor, 130, 28), EditorGroupPart.AddSelected, 0, Place(EditorGroupPart.AddSelected, 0, dialog));
         Piece(GroupButton(ui, "REMOVE SELECTED", SceneUi.MutedButtonColor, 150, 28), EditorGroupPart.RemoveSelected, 0, Place(EditorGroupPart.RemoveSelected, 0, dialog));
         Piece(GroupButton(ui, "SELECT MEMBERS", SceneUi.MutedButtonColor, 140, 28), EditorGroupPart.SelectMembers, 0, Place(EditorGroupPart.SelectMembers, 0, dialog));
+        Piece(
+            GroupButton(ui, "INTERIOR", SceneUi.MutedButtonColor, 130, 28)
+                .Tooltip("Whether this group's colour reaches the interior of the selected blocks in it"),
+            EditorGroupPart.InteriorLink,
+            0,
+            Place(EditorGroupPart.InteriorLink, 0, dialog));
+        Piece(
+            GroupButton(ui, "OUTLINE", SceneUi.MutedButtonColor, 130, 28)
+                .Tooltip("Whether this group's colour reaches the outline of the selected blocks in it"),
+            EditorGroupPart.OutlineLink,
+            0,
+            Place(EditorGroupPart.OutlineLink, 0, dialog));
         Piece(GroupButton(ui, "+ MOVE", SceneUi.ButtonColor, 100, 28), EditorGroupPart.AddMove, 0, Place(EditorGroupPart.AddMove, 0, dialog));
         Piece(GroupButton(ui, "+ COLOR", SceneUi.ButtonColor, 100, 28), EditorGroupPart.AddColor, 0, Place(EditorGroupPart.AddColor, 0, dialog));
         Piece(GroupButton(ui, "SNAP", SceneUi.ButtonColor, 110, 28), EditorGroupPart.SnapToggle, 0, Place(EditorGroupPart.SnapToggle, 0, dialog));

@@ -169,6 +169,48 @@ public sealed class GroupModulationSystemTests : EcsSystemTest
     }
 
     [Test]
+    public void ABlocksInteriorAndOutlineFollowTheirOwnGroups()
+    {
+        _groups.Groups[0].Effects.Add(GroupEffect.Colour(0f, 1f, Colors.Red));
+        _groups.Groups[1].Effects.Add(GroupEffect.Colour(0f, 1f, Colors.Green));
+        Entity block = Member(
+            Store,
+            new Block(
+                new Vector2(100, 100),
+                new Vector2(100, 50),
+                fillGroups: ItemGroups.Bit(0),
+                outlineGroups: ItemGroups.Bit(1)),
+            0,
+            1);
+
+        At(5000);
+        Frame();
+
+        Assert.That(GroupColor.For(block, Colors.White).R, Is.EqualTo(1f).Within(0.01f));
+        Assert.That(GroupColor.For(block, Colors.White).G, Is.EqualTo(0f).Within(0.01f));
+        Color outline = GroupOutlineColor.For(block, block.GetComponent<Block>());
+        Assert.That(outline.G, Is.EqualTo(1f).Within(0.01f));
+        Assert.That(outline.R, Is.EqualTo(0f).Within(0.01f));
+    }
+
+    [Test]
+    public void AnUnlinkedSideOfABlockKeepsItsOwnColour()
+    {
+        _groups.Groups[0].Effects.Add(GroupEffect.Colour(0f, 1f, Colors.Red));
+        Color own = new("#102030");
+        Entity block = Member(
+            Store,
+            new Block(new Vector2(100, 100), new Vector2(100, 50), outlineColor: own, outlineGroups: 0),
+            0);
+
+        At(5000);
+        Frame();
+
+        Assert.That(GroupOutlineColor.For(block, block.GetComponent<Block>()), Is.EqualTo(own));
+        Assert.That(GroupColor.For(block, Colors.White).G, Is.EqualTo(0f).Within(0.01f), "the interior still fades");
+    }
+
+    [Test]
     public void ALaterColourWinsOverAnEarlierOneForAnItemInBothGroups()
     {
         _groups.Groups[0].Effects.Add(GroupEffect.Colour(1f, 1.1f, Colors.Red));

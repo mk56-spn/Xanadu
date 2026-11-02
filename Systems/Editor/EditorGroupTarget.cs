@@ -60,6 +60,12 @@ public static class EditorGroupTarget
             return true;
         }
 
+        if (entity.HasComponent<Spike>())
+        {
+            position = entity.GetComponent<Spike>().Center;
+            return true;
+        }
+
         if (entity.HasComponent<StartPoint>())
         {
             position = entity.GetComponent<StartPoint>().Position;

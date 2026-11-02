@@ -24,6 +24,7 @@ public enum EditorCommandType
     DeleteSelection,
     RotateSelection,
     FlipSelection,
+    CycleOneWay,
     CopySelection,
     PasteSelection,
     SetTarget,
@@ -99,6 +100,9 @@ public readonly record struct EditorCommand(
 
     public static EditorCommand FlipSelection(bool horizontal) =>
         new(EditorCommandType.FlipSelection, IntValue: horizontal ? 1 : 0);
+
+    public static EditorCommand CycleOneWay() =>
+        new(EditorCommandType.CycleOneWay);
 
     public static EditorCommand CopySelection() =>
         new(EditorCommandType.CopySelection);

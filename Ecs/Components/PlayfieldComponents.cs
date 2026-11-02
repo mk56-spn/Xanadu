@@ -1,5 +1,6 @@
 using Friflo.Engine.ECS;
 using Godot;
+using Xanadu.Theme;
 using Xanadu.Settings;
 
 namespace Xanadu.Ecs;
@@ -241,19 +242,37 @@ public struct Mine(
 /// A spike tile in playfield coordinates. It is permanent geometry, never
 /// timed: touching it kills the player on contact.
 /// </summary>
-public struct Spike(Vector2 position, Vector2 size, int quarterTurns = 0) : IComponent
+public struct Spike(Vector2 position, Vector2 size, float rotationDegrees = 0f) : IComponent
 {
     /// <summary>Top-left corner, so both edges can sit on grid lines.</summary>
     public Vector2 Position = position;
 
     public Vector2 Size = size;
 
-    /// <summary>Which edge the tip points at: 0 up, then clockwise, 1 right, 2 down, 3 left.</summary>
-    public int QuarterTurns = quarterTurns;
+    /// <summary>Where the tip points, in degrees clockwise from up. Any angle: a spike is not a physics body.</summary>
+    public float RotationDegrees = rotationDegrees;
 
     public readonly Vector2 Center => Position + Size / 2;
 
     public readonly Rect2 Bounds => new(Position, Size);
+
+    /// <summary>Whether a playfield point is inside the spike's turned box.</summary>
+    public readonly bool Contains(Vector2 point) =>
+        Bounds.HasPoint(Center + (point - Center).Rotated(-Mathf.DegToRad(RotationDegrees)));
+}
+
+/// <summary>
+/// The one side of a block the player collides with; every other side lets it
+/// through. Up is the usual platform: land on it, jump up through it. The
+/// directions run clockwise from Up, the same order as spike turns.
+/// </summary>
+public enum BlockOneWay
+{
+    Off,
+    Up,
+    Right,
+    Down,
+    Left,
 }
 
 /// <summary>
@@ -264,8 +283,21 @@ public struct Block(
     Vector2 position,
     Vector2 size,
     int shapeId = 0,
-    int shapePiece = 0) : IComponent
+    int shapePiece = 0,
+    BlockOneWay oneWay = BlockOneWay.Off,
+    float outlineWidth = Block.DefaultOutlineWidth,
+    Color? outlineColor = null,
+    uint fillGroups = Block.AllGroups,
+    uint outlineGroups = Block.AllGroups) : IComponent
 {
+    public const float DefaultOutlineWidth = 3f;
+    public const float MaxOutlineWidth = 32f;
+
+    /// <summary>A colour link mask that follows every group the block is in.</summary>
+    public const uint AllGroups = uint.MaxValue;
+
+    public static readonly Color DefaultOutlineColor = Palette.BorderStrong;
+
     /// <summary>Top-left corner, so both edges can sit on grid lines.</summary>
     public Vector2 Position = position;
 
@@ -276,6 +308,21 @@ public struct Block(
 
     /// <summary>The order this block is revealed in its shape.</summary>
     public int ShapePiece = shapePiece;
+
+    /// <summary>The only side that collides, or Off for a block solid all round.</summary>
+    public BlockOneWay OneWay = oneWay;
+
+    /// <summary>Outline thickness in playfield units, drawn inside the block; 0 is no outline.</summary>
+    public float OutlineWidth = outlineWidth;
+
+    /// <summary>The outline's own colour. The interior's is the block's <see cref="SelfModulate"/>.</summary>
+    public Color OutlineColor = outlineColor ?? DefaultOutlineColor;
+
+    /// <summary>The groups whose colour fades reach the interior; only groups the block is in count.</summary>
+    public uint FillGroups = fillGroups;
+
+    /// <summary>The groups whose colour fades reach the outline; only groups the block is in count.</summary>
+    public uint OutlineGroups = outlineGroups;
 
     public readonly Vector2 Center => Position + Size / 2;
 

@@ -17,7 +17,7 @@ public sealed class EditorReturnStateTests : EcsSystemTest
         new PlayfieldView(Vector2.Zero, 1f, new Vector2(1000, 1000)),
         new NoteSelection(default),
         new EditorPlacementModeState(EditorPlacementMode.Notes),
-        new EditorSpikeBrush());
+        new EditorPlacementBrush());
 
     [Test]
     public void RestoresTheViewToolAndSelectionOnARebuiltEditor()
@@ -25,7 +25,7 @@ public sealed class EditorReturnStateTests : EcsSystemTest
         Entity editor = CreateEditor();
         editor.GetComponent<PlayfieldView>() = new PlayfieldView(new Vector2(40, 50), 1.5f, new Vector2(1000, 1000));
         editor.GetComponent<EditorPlacementModeState>().Mode = EditorPlacementMode.Spikes;
-        editor.GetComponent<EditorSpikeBrush>().QuarterTurns = 2;
+        editor.GetComponent<EditorPlacementBrush>().Degrees = 180f;
         Entity spike = EditorItems.Create(Store, new Spike(new Vector2(100, 100), new Vector2(50, 50)));
         EditorItems.Create(Store, new Spike(new Vector2(300, 100), new Vector2(50, 50)));
         editor.GetComponent<NoteSelection>().Note = spike;
@@ -44,7 +44,7 @@ public sealed class EditorReturnStateTests : EcsSystemTest
         Assert.That(rebuilt.GetComponent<PlayfieldView>().Scale, Is.EqualTo(1.5f));
         Assert.That(rebuilt.GetComponent<PlayfieldView>().ScreenOrigin, Is.EqualTo(new Vector2(40, 50)));
         Assert.That(rebuilt.GetComponent<EditorPlacementModeState>().Mode, Is.EqualTo(EditorPlacementMode.Spikes));
-        Assert.That(rebuilt.GetComponent<EditorSpikeBrush>().QuarterTurns, Is.EqualTo(2));
+        Assert.That(rebuilt.GetComponent<EditorPlacementBrush>().Degrees, Is.EqualTo(180f));
         Assert.That(rebuilt.GetComponent<NoteSelection>().AllNotes, Is.EquivalentTo(new[] { again }));
     }
 
