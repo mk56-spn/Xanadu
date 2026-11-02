@@ -187,19 +187,4 @@ public static class XafClothLayout
         }
         return triangles.ToArray();
     }
-
-    /// <summary>The sheet's outline: down one side, along the hem, up the other side and across the top.</summary>
-    public static int[] Outline(int columns, int rows)
-    {
-        var outline = new List<int>();
-        for (int row = 0; row < rows; row++)
-            outline.Add(row * columns);
-        for (int column = 1; column < columns; column++)
-            outline.Add((rows - 1) * columns + column);
-        for (int row = rows - 2; row >= 0; row--)
-            outline.Add(row * columns + columns - 1);
-        for (int column = columns - 2; column >= 0; column--)
-            outline.Add(column);
-        return outline.ToArray();
-    }
 }

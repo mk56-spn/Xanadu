@@ -5,6 +5,7 @@ using Godot;
 using Xanadu.Animation;
 using Xanadu.Ecs;
 using Xanadu.Timeline;
+using Xanadu.Tools.Animator.Commands;
 
 namespace Xanadu.Tools.Animator;
 
@@ -105,8 +106,8 @@ public sealed class AnimatorTimelineModel
         XafTrack? selected = SelectedTrack(session, document.Package);
         IReadOnlySet<XafTrack> expanded =
             session.GetComponent<AnimatorTracks>().Expanded ?? EmptyExpanded;
-        List<AnimatorTrackRow> tracks = AnimatorTrackRows.Build(
-            document.Package, clip, selected, expanded);
+        List<AnimatorTrackRow> tracks = AnimatorTrackRows.Overrides(clip);
+        tracks.AddRange(AnimatorTrackRows.Build(document.Package, clip, selected, expanded));
         return new AnimatorTimelineModel(
             panel,
             clip,
@@ -224,7 +225,7 @@ public sealed class AnimatorTimelineModel
             return false;
 
         AnimatorTrackRow row = Tracks[FirstRow + screenRow];
-        return !row.IsChannel &&
+        return !row.IsChannel && !row.IsOverride &&
                point.X >= Labels.Position.X &&
                point.X <= Labels.Position.X + 16f &&
                AnimatorTrackRows.HasChannels(Clip, row.Track);
@@ -252,6 +253,40 @@ public sealed class AnimatorTimelineModel
             found = true;
         }
         return found;
+    }
+
+    /// <summary>How near, in pixels, a press must be to an end of an override's bar to take that end.</summary>
+    public const float OverrideGripRadius = 6f;
+
+    /// <summary>The override whose bar is under the point, and whether the press took an end or its body.</summary>
+    public bool TryPickOverride(Vector2 point, out XafLimbTarget? picked, out AnimatorOverrideGrab grab)
+    {
+        picked = null;
+        grab = AnimatorOverrideGrab.Body;
+        int row = ScreenRowAt(point);
+        if (row < 0 || !Rows.HasPoint(point) || !TrackAt(row).IsOverride)
+            return false;
+
+        string bone = TrackAt(row).Id;
+        foreach (XafLimbTarget target in Clip.Targets)
+        {
+            if (target.BoneId != bone)
+                continue;
+
+            float left = XForSeconds(target.From);
+            float right = XForSeconds(target.To);
+            if (point.X < left - OverrideGripRadius || point.X > right + OverrideGripRadius)
+                continue;
+
+            float toLeft = Math.Abs(point.X - left);
+            float toRight = Math.Abs(point.X - right);
+            picked = target;
+            grab = Math.Min(toLeft, toRight) > OverrideGripRadius
+                ? AnimatorOverrideGrab.Body
+                : toLeft <= toRight ? AnimatorOverrideGrab.Start : AnimatorOverrideGrab.End;
+            return true;
+        }
+        return false;
     }
 
     /// <summary>

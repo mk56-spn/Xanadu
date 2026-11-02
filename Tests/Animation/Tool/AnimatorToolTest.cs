@@ -241,6 +241,13 @@ public abstract class AnimatorToolTest : EcsSystemTest
         public bool FailSave;
         public string? LoadedPath;
         public string? SavedPath;
+        public string? OpenedPath;
+
+        public bool OpenInSystem(string path)
+        {
+            OpenedPath = path;
+            return true;
+        }
 
         public XafPackage? Load(string path)
         {
@@ -261,6 +268,9 @@ public abstract class AnimatorToolTest : EcsSystemTest
     protected sealed class FakeAnimatorSvgCatalog : IAnimatorSvgCatalog
     {
         public readonly Dictionary<string, string[]> GroupsByFile = new();
+        public readonly Dictionary<string, long> Stamps = new();
+
+        public long Stamp(string svgPath) => Stamps.TryGetValue(svgPath, out long stamp) ? stamp : 0L;
 
         public IReadOnlyList<string> Files()
         {

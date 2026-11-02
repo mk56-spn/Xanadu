@@ -184,33 +184,43 @@ public static partial class AnimatorLayout
     private static Entity BuildPoseBody(UiBuilder menu)
     {
         menu.Collapsible("TRANSFORM", ButtonWidth);
-        Row(menu, ("ROT -", ToolActionKind.RotateLeft), ("ROT +", ToolActionKind.RotateRight));
-        Row(menu, ("SCALE -", ToolActionKind.ScaleDown), ("SCALE +", ToolActionKind.ScaleUp));
-        Row(menu, ("MIRROR", ToolActionKind.MirrorPose), ("MOVE", ToolActionKind.ToggleMovable));
-        Row(menu, ("LOCK BEND", ToolActionKind.LockBend));
+        Subhead(menu, "ADJUST");
+        Stepper(menu, "ROTATE", ToolActionKind.RotateLeft, ToolActionKind.RotateRight);
+        Stepper(menu, "SCALE", ToolActionKind.ScaleDown, ToolActionKind.ScaleUp);
+        SmallRow(menu, ("MIRROR", ToolActionKind.MirrorPose));
+        Subhead(menu, "CONSTRAINTS");
+        SmallRow(menu, ("MOVE", ToolActionKind.ToggleMovable), ("LOCK BEND", ToolActionKind.LockBend));
         menu.EndCollapsible();
 
         // The selected SVG: what it shows, on which layer, and whether it bends.
         menu.Collapsible("ART", ButtonWidth);
+        Subhead(menu, "SOURCE");
+        SmallRow(menu, ("+ ART", ToolActionKind.AddArt), ("DROP ART", ToolActionKind.DropArt));
+        Stepper(menu, "ART", ToolActionKind.PreviousArt, ToolActionKind.NextArt, "<", ">");
+        SmallRow(menu, ("OPEN FILE", ToolActionKind.OpenArtFile));
+        Subhead(menu, "DISPLAY");
         Entity modulate = UiNode.Wrap(menu.Current, menu.Visuals).ColorField(
             "COLOUR",
             ButtonWidth,
             "Self modulate of the selected SVG: its art is multiplied by this. Type #rrggbb or #rrggbbaa; leave blank for white.")
             .Entity;
-        SmallRow(menu, ("+ ART", ToolActionKind.AddArt), ("DROP ART", ToolActionKind.DropArt));
-        SmallRow(menu, ("ART <", ToolActionKind.PreviousArt), ("ART >", ToolActionKind.NextArt));
-        SmallRow(menu, ("LAYER -", ToolActionKind.LayerDownKey), ("LAYER +", ToolActionKind.LayerUpKey));
+        Stepper(menu, "LAYER", ToolActionKind.LayerDownKey, ToolActionKind.LayerUpKey);
         SmallRow(menu, ("SHOW / HIDE", ToolActionKind.ToggleArtVisible));
+        Subhead(menu, "MESH");
         SmallRow(menu, ("MESH", ToolActionKind.ToggleMesh), ("BONES", ToolActionKind.PickMeshBones));
-        SmallRow(menu, ("DETAIL -", ToolActionKind.MeshDetailDown), ("DETAIL +", ToolActionKind.MeshDetailUp));
-        SmallRow(menu, ("BLEND -", ToolActionKind.MeshBlendDown), ("BLEND +", ToolActionKind.MeshBlendUp));
+        Stepper(menu, "DETAIL", ToolActionKind.MeshDetailDown, ToolActionKind.MeshDetailUp);
+        Stepper(menu, "BLEND", ToolActionKind.MeshBlendDown, ToolActionKind.MeshBlendUp);
         menu.EndCollapsible();
 
+        BuildTargetSection(menu);
+
         menu.Collapsible("KEYS", ButtonWidth);
+        Subhead(menu, "KEY");
         SmallRow(menu, ("KEY BONE", ToolActionKind.KeyBone), ("KEY POSE", ToolActionKind.KeyPose));
+        SmallRow(menu, ("+ EVENT", ToolActionKind.AddEvent));
+        Subhead(menu, "CLIPBOARD");
         SmallRow(menu, ("COPY POSE", ToolActionKind.CopyPose), ("PASTE POSE", ToolActionKind.PastePose));
         SmallRow(menu, ("COPY KEYS", ToolActionKind.CopyKeys), ("PASTE KEYS", ToolActionKind.PasteKeys));
-        SmallRow(menu, ("+ EVENT", ToolActionKind.AddEvent));
         menu.EndCollapsible();
         return modulate;
     }
@@ -226,7 +236,7 @@ public static partial class AnimatorLayout
 
         menu.Collapsible("KEY AT PLAYHEAD", ButtonWidth);
         SmallRow(menu, ("SHOW / HIDE", ToolActionKind.ToggleEffectVisible));
-        SmallRow(menu, ("FADE -", ToolActionKind.EffectOpacityDown), ("FADE +", ToolActionKind.EffectOpacityUp));
+        Stepper(menu, "FADE", ToolActionKind.EffectOpacityDown, ToolActionKind.EffectOpacityUp);
         menu.EndCollapsible();
 
         menu.Text("Shape and fill: XIF panel, left of inspector",

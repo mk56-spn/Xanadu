@@ -26,6 +26,10 @@ public sealed class AnimatorTimelineDrawSystem(IRectCanvas canvas, Rid target)
     private static readonly Color Dim = Palette.TextDim;
     private static readonly Color Text = Palette.Text;
     private static readonly Color KeyColor = Palette.Info;
+    private static readonly Color DrivenBand = new(Palette.Warning, 0.16f);
+    private XafPackage? _package;
+    private XafLimbTarget? _selectedOverride;
+    private static readonly Color EaseLineQuiet = new(Palette.TextDim, 0.45f);
     private static readonly Color Playhead = Palette.Accent;
     private static readonly Color LoopBand = new("#2dd4bf", 0.18f);
     private static readonly Color LoopLine = new("#2dd4bf");
@@ -52,6 +56,8 @@ public sealed class AnimatorTimelineDrawSystem(IRectCanvas canvas, Rid target)
 
         WriteCaption(session, model, document.Runtime);
         DrawRuler(model);
+        _package = document.Package;
+        _selectedOverride = AnimatorTargetCommands.Selected(session);
         DrawRows(model, selection, selected, document.Package);
         DrawLoop(model);
         DrawPlayhead(model, document.Runtime.CurrentTime);
@@ -187,13 +193,13 @@ public sealed class AnimatorTimelineDrawSystem(IRectCanvas canvas, Rid target)
             }
             else
             {
-                label = track.Target switch
+                label = track.IsOverride ? $"{track.Id}  (override)" : track.Target switch
                 {
                     XafChannelTarget.Attachment => $"{track.Id}  (svg)",
                     XafChannelTarget.Effect => $"{track.Id}  (fx)",
                     _ => track.Id,
                 };
-                bool hasChannels = AnimatorTrackRows.HasChannels(model.Clip, track.Track);
+                bool hasChannels = !track.IsOverride && AnimatorTrackRows.HasChannels(model.Clip, track.Track);
                 if (hasChannels)
                 {
                     label = (model.IsExpanded(track.Track) ? "▾ " : "▸ ") + label;
@@ -215,6 +221,7 @@ public sealed class AnimatorTimelineDrawSystem(IRectCanvas canvas, Rid target)
 
         // Over the stripes, under the keys.
         DrawGridLines(model);
+        AnimatorOverrideBars.Draw(canvas, target, model, _selectedOverride);
         for (int screenRow = 0; screenRow < model.LastRow - model.FirstRow; screenRow++)
             DrawKeys(model, selection, model.Tracks[model.FirstRow + screenRow], model.RowRect(screenRow));
     }
@@ -250,6 +257,11 @@ public sealed class AnimatorTimelineDrawSystem(IRectCanvas canvas, Rid target)
         AnimatorTrackRow track,
         Rect2 row)
     {
+        if (track.IsOverride)
+            return;
+
+        DrawDrivenSpans(model, track, row);
+        DrawEaseLines(model, track, row);
         foreach (float time in AnimatorTrackRows.KeyTimes(model.Clip, track))
         {
             if (!model.IsVisible(time))
@@ -266,6 +278,62 @@ public sealed class AnimatorTimelineDrawSystem(IRectCanvas canvas, Rid target)
                 ease ?? XafEasePreset.Linear);
         }
     }
+
+    /// <summary>A band over the time a target owns this row's keys, so edits that will not stick can be seen coming.</summary>
+    private void DrawDrivenSpans(AnimatorTimelineModel model, AnimatorTrackRow track, Rect2 row)
+    {
+        if (track.Target != XafChannelTarget.Bone)
+            return;
+
+        XafPackage package = _package!;
+        int bone = XafRig.FindBone(package, track.Id);
+        foreach (XafLimbTarget limb in model.Clip.Targets)
+        {
+            if (!XafTargets.IsValid(package, limb) ||
+                !XafTargets.Channels(package, limb).Exists(channel => channel.Bone == bone &&
+                    (track.Property is null || track.Property == channel.Property)))
+            {
+                continue;
+            }
+
+            float left = Math.Max(model.XForSeconds(limb.From), model.Ruler.Position.X);
+            float right = Math.Min(model.XForSeconds(limb.To), model.Ruler.End.X);
+            if (right > left)
+                canvas.DrawRect(target, new Rect2(left, row.Position.Y + 1f, right - left, row.Size.Y - 2f), DrivenBand);
+        }
+    }
+
+    /// <summary>The shape of each span between the row's keys, under the markers.</summary>
+    private void DrawEaseLines(AnimatorTimelineModel model, AnimatorTrackRow track, Rect2 row)
+    {
+        var keys = AnimatorTrackRows.KeyTimes(model.Clip, track);
+        float left = model.Ruler.Position.X;
+        float right = model.Ruler.End.X;
+        for (int i = 0; i + 1 < keys.Count; i++)
+        {
+            float fromX = model.XForSeconds(keys[i]);
+            float toX = model.XForSeconds(keys[i + 1]);
+            if (toX < left || fromX > right)
+                continue;
+
+            XafEaseSegment segment = XafEasing.ReadSegment(model.Clip, track.Target, track.Id, track.Property, keys[i]);
+            Color color = EaseColor(segment);
+            Vector2[] line = AnimatorEaseLine.Points(segment, fromX, toX, left, right, row);
+            if (line.Length >= 2)
+                canvas.DrawPolyline(target, line, color, 2f);
+        }
+    }
+
+    /// <summary>A long span flattens any curve a row's height allows, so each easing also has its own colour.</summary>
+    private static Color EaseColor(XafEaseSegment segment) => segment.Preset switch
+    {
+        XafEasePreset.Step => Palette.Warning,
+        XafEasePreset.Linear => Palette.Info,
+        XafEasePreset.Ease => Palette.Lime,
+        XafEasePreset.EaseIn => Palette.Pink,
+        XafEasePreset.EaseOut => Palette.Violet,
+        _ => EaseLineQuiet,
+    };
 
     /// <summary>Whether a track belongs to any selected bone, attachment or effect, not just the primary.</summary>
     private static bool IsSelectedTrack(

@@ -28,6 +28,7 @@ public static class XafBinary
 		Events = 9,
 		AttachmentExtras = 10,
 		AttachmentModulates = 11,
+		Targets = 12,
 	}
 
 	public static void Save(string path, XafPackage package)
@@ -72,6 +73,8 @@ public static class XafBinary
 		}
 		if (minor >= 10)
 			file.Add((uint)ChunkId.AttachmentModulates, XafExtrasBinary.WriteModulates(package.Attachments));
+		if (minor >= 11)
+			file.Add((uint)ChunkId.Targets, XafTargetsBinary.Write(package.Clips, strings));
 		return file.ToArray();
 	}
 
@@ -119,6 +122,8 @@ public static class XafBinary
 		}
 		if (file.Minor >= 10)
 			XafExtrasBinary.ReadModulates(file.Get((uint)ChunkId.AttachmentModulates, Format), package.Attachments);
+		if (file.Minor >= 11)
+			XafTargetsBinary.Read(file.Get((uint)ChunkId.Targets, Format), strings, package.Clips);
 		XafValidation.ThrowIfInvalid(package);
 		return package;
 	}
@@ -160,6 +165,7 @@ public static class XafBinary
 		}
 		XafClothBinary.Index(package.Cloths, table);
 		XafExtrasBinary.Index(package, table);
+		XafTargetsBinary.Index(package, table);
 	}
 
 	private static byte[] WriteSkeleton(

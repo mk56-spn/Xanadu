@@ -46,9 +46,9 @@ public static partial class AnimatorLayout
 
         menu.Container(Vector2.Zero, new Vector2(ButtonWidth, FlowControlHeight), spacing: 6, color: Clear);
         var step = new Vector2(FlowStepWidth, FlowControlHeight);
-        FlowButton(menu, "-", ToolActionKind.TransitionFadeDown, step);
         refs.Ui.FlowFade = menu.Text("", new Vector2(ButtonWidth - FlowStepWidth * 2 - 12, FlowControlHeight),
-            UiTheme.FontSize, UiTheme.Text);
+            UiTheme.SmallFontSize, UiTheme.Text, TextAlign.Left);
+        FlowButton(menu, "-", ToolActionKind.TransitionFadeDown, step);
         FlowButton(menu, "+", ToolActionKind.TransitionFadeUp, step);
         menu.End();
 

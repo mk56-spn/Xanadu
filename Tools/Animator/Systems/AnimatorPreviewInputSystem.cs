@@ -64,7 +64,7 @@ public sealed class AnimatorPreviewInputSystem(
         }
         else if (drag.Kind is AnimatorDragKind.Bone or AnimatorDragKind.Attachment
                      or AnimatorDragKind.Swing or AnimatorDragKind.Ik or AnimatorDragKind.Rotate ||
-                 AnimatorChainHandles.IsChainDrag(drag.Kind))
+                 AnimatorChainHandles.IsChainDrag(drag.Kind) || AnimatorTargetCommands.IsDrag(drag.Kind))
         {
             if (input.Pressed)
                 Drag(session, input.Position, area, input.Shift);
@@ -212,6 +212,10 @@ public sealed class AnimatorPreviewInputSystem(
             AnimatorClothCommands.Click(session, pointer, placement, world);
             return;
         }
+
+        // So are the selected target's handles.
+        if (!modes.Rest && AnimatorTargetCommands.TryBegin(session, pointer, placement, world))
+            return;
 
         // The selected chain's root and collider are handles that win over the bones under them.
         if (AnimatorChainHandles.TryBegin(session, pointer, placement, world))
@@ -383,6 +387,8 @@ public sealed class AnimatorPreviewInputSystem(
                 AnimatorSnap.Joints(document.Package, world, grandparent, keepRoot: true),
                 radius,
                 out guides);
+            if (GridOn(session))
+                target = AnimatorSnap.ToGrid(target, guides);
         }
 
         Vector2[] solved = XafFabrik.Solve(new[] { root, elbow, end }, target, bendPositive);
@@ -393,20 +399,8 @@ public sealed class AnimatorPreviewInputSystem(
     }
 
     /// <summary>Turns a bone about its origin so its child joint points at a skeleton-space target.</summary>
-    private static void Aim(XafPackage package, XafPose pose, int bone, int child, Vector2 target)
-    {
-        Transform2D[] world = XafRig.WorldBones(package, pose);
-        Vector2 toTarget = target - world[bone].Origin;
-        Vector2 toChild = world[child].Origin - world[bone].Origin;
-        if (toTarget.LengthSquared() < 0.0001f || toChild.LengthSquared() < 0.0001f)
-            return;
-
-        float delta = Mathf.Wrap(toTarget.Angle() - toChild.Angle(), -Mathf.Pi, Mathf.Pi);
-        // A mirrored bone turns local rotation the opposite way on screen.
-        if (world[bone].Determinant() < 0f)
-            delta = -delta;
-        pose.Bones[bone].Rotation += delta;
-    }
+    public static void Aim(XafPackage package, XafPose pose, int bone, int child, Vector2 target) =>
+        XafTargets.Aim(package, pose, bone, child, target);
 
     private static void Swing(Entity session, Vector2 pointer, Transform2D placement, bool free)
     {
@@ -473,8 +467,12 @@ public sealed class AnimatorPreviewInputSystem(
         Vector2 snapped = AnimatorSnap.Align(
             document.Package, world, bone, wanted, radius, out AnimatorSnapGuides found);
         guides = found;
+        if (GridOn(session))
+            snapped = AnimatorSnap.ToGrid(snapped, found);
         return drag.ParentWorld.AffineInverse() * snapped;
     }
+
+    private static bool GridOn(Entity session) => ViewportSnap.IsOn(session.Store);
 
     private static void Drag(Entity session, Vector2 pointer, Rect2 area, bool shift)
     {
@@ -485,6 +483,12 @@ public sealed class AnimatorPreviewInputSystem(
         if (AnimatorChainHandles.IsChainDrag(drag.Kind))
         {
             AnimatorChainHandles.Drag(session, pointer, placement);
+            return;
+        }
+
+        if (AnimatorTargetCommands.IsDrag(drag.Kind))
+        {
+            AnimatorTargetCommands.Drag(session, pointer, placement, shift);
             return;
         }
 
@@ -532,6 +536,9 @@ public sealed class AnimatorPreviewInputSystem(
         }
         else if (drag.Kind == AnimatorDragKind.Attachment && selection.Attachment >= 0)
         {
+            if (!shift && GridOn(session))
+                value = drag.ParentWorld.AffineInverse() * AnimatorSnap.ToGrid(drag.ParentWorld * value, default);
+
             if (rest)
             {
                 XafAttachment attachment = document.Package.Attachments[selection.Attachment];
@@ -554,7 +561,8 @@ public sealed class AnimatorPreviewInputSystem(
         AnimatorDrag drag = session.GetComponent<AnimatorDrag>();
         session.GetComponent<AnimatorDrag>() = new AnimatorDrag();
         AnimatorModes modes = session.GetComponent<AnimatorModes>();
-        bool keys = !AnimatorChainHandles.IsChainDrag(drag.Kind) && drag.Kind != AnimatorDragKind.None && !modes.Rest;
+        bool keys = !AnimatorChainHandles.IsChainDrag(drag.Kind) && !AnimatorTargetCommands.IsDrag(drag.Kind) &&
+                    drag.Kind != AnimatorDragKind.None && !modes.Rest;
 
         // The drag and any key it leaves are one undo step.
         AnimatorHistoryCommands.EndGesture(session, keys ? () => KeyDrag(session, drag, modes) : null);

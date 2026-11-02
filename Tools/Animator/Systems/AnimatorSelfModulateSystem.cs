@@ -8,13 +8,13 @@ namespace Xanadu.Tools.Animator.Systems;
 
 /// <summary>
 /// Sets the selected attachment's self modulate from the POSE tab's colour
-/// field, as one undo step. A typed colour goes to what was selected when typing
-/// began, since clicking another attachment is what ends typing.
+/// field and picker, as one undo step. A colour goes to what was selected when typing
+/// or dragging began, since clicking another attachment is what ends typing.
 /// </summary>
 public sealed class AnimatorSelfModulateSystem : QuerySystem<AnimatorDocument, AnimatorUi, AnimatorSelection>
 {
     private int _target = -1;
-    private bool _wasFocused;
+    private bool _wasEditing;
 
     protected override void OnUpdate()
     {
@@ -30,10 +30,10 @@ public sealed class AnimatorSelfModulateSystem : QuerySystem<AnimatorDocument, A
 
         var attachments = session.GetComponent<AnimatorDocument>().Package.Attachments;
         int selected = session.GetComponent<AnimatorSelection>().Attachment;
-        bool focused = field.Tags.Has<TextFieldFocused>();
-        if (focused && !_wasFocused)
+        bool editing = UiColorField.IsEditing(field);
+        if (editing && !_wasEditing)
             _target = selected;
-        _wasFocused = focused;
+        _wasEditing = editing;
 
         if (UiColorField.TakeCommit(field, out Color color))
         {

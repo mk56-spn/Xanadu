@@ -44,7 +44,7 @@ public sealed class AnimatorClothInspectorSystem : QuerySystem<AnimatorDocument,
 
         XafCloth? cloth = index >= 0 ? session.GetComponent<AnimatorDocument>().Package.Cloths[index] : null;
         AnimatorClothPick picking = session.GetComponent<AnimatorCloths>().Picking;
-        SetText(ui.ClothTitle, cloth is null ? "NO CLOTH" : cloth.Id.ToUpperInvariant() + "  CLOTH");
+        UiText.Set(ui.ClothTitle, cloth is null ? "NO CLOTH" : cloth.Id.ToUpperInvariant() + "  CLOTH");
         SetButton(ui.ClothBoneButton, cloth?.BoneId ?? "", picking == AnimatorClothPick.Bone, "CLICK A BONE");
         SetButton(ui.ClothPinsButton, cloth is null ? "" : $"{cloth.Pins.Count} PINNED · {cloth.Tethers.Count} TIED",
             picking == AnimatorClothPick.Pins, "CLICK POINTS · HERE TO STOP");
@@ -115,23 +115,10 @@ public sealed class AnimatorClothInspectorSystem : QuerySystem<AnimatorDocument,
 
     private static string Number(float value) => value.ToString("0.###", CultureInfo.InvariantCulture);
 
-    private static void SetText(Entity entity, string value)
-    {
-        if (entity.IsNull || !entity.HasComponent<Text>())
-            return;
-
-        ref Text text = ref entity.GetComponent<Text>();
-        if (text.Value == value)
-            return;
-
-        text.Value = value;
-        entity.AddTag<Dirty>();
-    }
-
     /// <summary>Writes a button's value, or its prompt while its clicks are awaited, and lights it then.</summary>
     private static void SetButton(Entity button, string value, bool picking, string prompt)
     {
-        SetText(button, picking ? prompt : value);
+        UiText.Set(button, picking ? prompt : value);
         if (button.IsNull || !button.HasComponent<ButtonVisual>())
             return;
 

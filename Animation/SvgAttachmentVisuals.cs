@@ -31,6 +31,9 @@ public sealed partial class SvgAttachmentVisuals(Rid canvas, bool containLayers 
     private const int ChainOrder = 20_000;
     private const int EffectOrder = 30_000;
 
+    /// <summary>Pixels per unit art is rasterised at; the preview zooms well past one.</summary>
+    private const float ArtScale = 4f;
+
     public void Reload(XafPackage package)
     {
         Release();
@@ -171,7 +174,6 @@ public sealed partial class SvgAttachmentVisuals(Rid canvas, bool containLayers 
                 visual.Columns = cloth.Columns;
                 visual.Rows = cloth.Rows;
                 visual.Triangles = XafClothLayout.Triangles(cloth.Columns, cloth.Rows);
-                visual.Outline = XafClothLayout.Outline(cloth.Columns, cloth.Rows);
             }
 
             var colors = new Color[placed.Length];
@@ -184,11 +186,6 @@ public sealed partial class SvgAttachmentVisuals(Rid canvas, bool containLayers 
             }
 
             RenderingServer.CanvasItemAddTriangleArray(visual.Item, visual.Triangles, placed, colors);
-            var outline = new Vector2[visual.Outline.Length];
-            for (int i = 0; i < outline.Length; i++)
-                outline[i] = placed[visual.Outline[i]];
-            RenderingServer.CanvasItemAddPolyline(
-                visual.Item, outline, new[] { cloth.Fill.Darkened(0.45f) }, 1.5f, true);
         }
     }
 
@@ -277,8 +274,8 @@ public sealed partial class SvgAttachmentVisuals(Rid canvas, bool containLayers 
     }
 
     /// <summary>
-    /// Rasterises one group of an SVG file at one pixel per unit. A missing or
-    /// malformed file is skipped, since it must not stop rig editing.
+    /// Rasterises one group of an SVG file. A missing or malformed file is
+    /// skipped, since it must not stop rig editing.
     /// </summary>
     private static bool TryRaster(string svgPath, string group, out ImageTexture? texture, out Vector2 size)
     {
@@ -291,19 +288,38 @@ public sealed partial class SvgAttachmentVisuals(Rid canvas, bool containLayers 
         try
         {
             string svg = XafSvgDocument.IsolateGroup(System.IO.File.ReadAllText(path), group);
-            var image = new Image();
-            Error error = image.LoadSvgFromString(svg, 1f);
-            if (error != Error.Ok)
-                throw new InvalidOperationException(error.ToString());
-
-            texture = ImageTexture.CreateFromImage(image);
-            size = image.GetSize();
+            texture = Raster(svg, out size);
             return true;
         }
         catch (Exception)
         {
             return false;
         }
+    }
+
+    /// <summary>
+    /// SVG to texture at <see cref="ArtScale"/> pixels per unit, with mipmaps, so
+    /// art stays sharp zoomed in and clean scaled down. The size is in units.
+    /// </summary>
+    private static ImageTexture Raster(string svg, out Vector2 size)
+    {
+        var image = new Image();
+        Error error = image.LoadSvgFromString(svg, ArtScale);
+        if (error != Error.Ok)
+            throw new InvalidOperationException(error.ToString());
+
+        size = (Vector2)image.GetSize() / ArtScale;
+        image.GenerateMipmaps();
+        return ImageTexture.CreateFromImage(image);
+    }
+
+    private Rid CreateArtItem()
+    {
+        Rid item = RenderingServer.CanvasItemCreate();
+        RenderingServer.CanvasItemSetParent(item, canvas);
+        RenderingServer.CanvasItemSetDefaultTextureFilter(
+            item, RenderingServer.CanvasItemTextureFilter.LinearWithMipmaps);
+        return item;
     }
 
     private void SetLayer(Rid item, int layer, int order)
@@ -321,8 +337,7 @@ public sealed partial class SvgAttachmentVisuals(Rid canvas, bool containLayers 
 
     private Rid CreateItem(ImageTexture texture, Vector2 size, int layer, int order = 0)
     {
-        Rid item = RenderingServer.CanvasItemCreate();
-        RenderingServer.CanvasItemSetParent(item, canvas);
+        Rid item = CreateArtItem();
         SetLayer(item, layer, order);
         RenderingServer.CanvasItemAddTextureRect(item, new Rect2(-size / 2, size), texture.GetRid());
         return item;
@@ -357,7 +372,6 @@ public sealed partial class SvgAttachmentVisuals(Rid canvas, bool containLayers 
         public int Columns { get; set; }
         public int Rows { get; set; }
         public int[] Triangles { get; set; } = Array.Empty<int>();
-        public int[] Outline { get; set; } = Array.Empty<int>();
     }
 
     private sealed record ChainVisual(int Index, ImageTexture Texture, Vector2 Size, int Layer)

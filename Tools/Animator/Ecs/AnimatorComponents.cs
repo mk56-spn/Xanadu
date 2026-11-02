@@ -55,6 +55,9 @@ public enum ToolActionKind
     MoveLayerForward,
     MoveLayerBack,
     ToggleArtVisible,
+
+    /// <summary>Asks the system to open the SVG file the selected attachment is showing.</summary>
+    OpenArtFile,
     ToggleMesh,
     PickMeshBones,
     MeshDetailDown,
@@ -186,6 +189,12 @@ public enum ToolActionKind
 
     /// <summary>Keys the selected effect's opacity one step higher at the playhead.</summary>
     EffectOpacityUp,
+
+    /// <summary>A limb target command; the argument is its verb, see <see cref="Commands.AnimatorTargetCommands"/>.</summary>
+    LimbTarget,
+
+    /// <summary>Holds the selected foot or hand at its spot on the rig, or releases and keys it.</summary>
+    PlantBone,
 
     /// <summary>Enters preview mode, or leaves it: the editing panels give way to the viewport.</summary>
     TogglePreviewMode,
@@ -473,6 +482,18 @@ public enum AnimatorDragKind
 
     /// <summary>Turns a childless bone about its own joint by the handle on its stem.</summary>
     Rotate,
+
+    /// <summary>Moves or resizes an override's bar on the timeline.</summary>
+    OverrideSpan,
+
+    /// <summary>Moves the selected limb target, or an ellipse's centre.</summary>
+    TargetCenter,
+
+    /// <summary>Sizes and tilts the selected ellipse by the handle on its long side.</summary>
+    TargetRadiusX,
+
+    /// <summary>Sizes the selected ellipse across.</summary>
+    TargetRadiusY,
 
     /// <summary>Drags the scrollbar beside the track rows.</summary>
     RowScroll,

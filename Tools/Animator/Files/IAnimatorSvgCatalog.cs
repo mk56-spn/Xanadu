@@ -13,4 +13,7 @@ public interface IAnimatorSvgCatalog
 
     /// <summary>The attachable groups of one SVG file; empty when it cannot be read.</summary>
     IReadOnlyList<string> Groups(string svgPath);
+
+    /// <summary>When the file was last written, for noticing saves; 0 when it is missing.</summary>
+    long Stamp(string svgPath) => 0L;
 }

@@ -9,4 +9,7 @@ public interface IAnimatorFiles
     XafPackage? Load(string path);
 
     void Save(string path, XafPackage package);
+
+    /// <summary>Asks the system to open the file in its own app; false when it could not.</summary>
+    bool OpenInSystem(string path);
 }

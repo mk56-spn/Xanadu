@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using Godot;
 using Xanadu.Animation;
+using Xanadu.Ecs;
 
 namespace Xanadu.Tools.Animator.Commands;
 
@@ -43,6 +44,16 @@ public static class AnimatorSnap
         }
 
         return joints;
+    }
+
+    /// <summary>
+    /// A rig-space point on the drawn grid, except on any axis already lined up
+    /// with a joint: that's the more specific thing to have aimed for.
+    /// </summary>
+    public static Vector2 ToGrid(Vector2 wanted, in AnimatorSnapGuides guides)
+    {
+        Vector2 snapped = ViewportSnap.Snap(wanted, new Vector2(Systems.AnimatorGridDrawSystem.Cell, Systems.AnimatorGridDrawSystem.Cell));
+        return new Vector2(guides.HasX ? wanted.X : snapped.X, guides.HasY ? wanted.Y : snapped.Y);
     }
 
     /// <summary>Snaps a free point's X and Y, each to the nearest joint within the radius.</summary>

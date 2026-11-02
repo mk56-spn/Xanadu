@@ -32,6 +32,9 @@ public sealed class AnimatorTimelineInputSystem(
     private AnimatorTrackRow _pendingTrack;
     private float _pendingTime;
 
+    /// <summary>The override whose bar is being dragged.</summary>
+    private AnimatorOverrideDrag? _overrideDrag;
+
     protected override void OnUpdate()
     {
         foreach (Entity session in Query.ToEntityList())
@@ -72,7 +75,7 @@ public sealed class AnimatorTimelineInputSystem(
         }
         else if (drag.Kind is AnimatorDragKind.RowScroll or AnimatorDragKind.Event or AnimatorDragKind.Key or AnimatorDragKind.Scrub or
                  AnimatorDragKind.KeyBox or AnimatorDragKind.LoopStart or
-                 AnimatorDragKind.LoopEnd)
+                 AnimatorDragKind.LoopEnd or AnimatorDragKind.OverrideSpan)
         {
             if (!input.Pressed)
                 End(session, ref drag, input.Position);
@@ -141,6 +144,14 @@ public sealed class AnimatorTimelineInputSystem(
                 ToggleExpanded(session, rowAt);
             else
                 AnimatorKeyCommands.SelectTrack(session, rowAt);
+            return;
+        }
+
+        if (model.TryPickOverride(point, out XafLimbTarget? overriding, out AnimatorOverrideGrab grab))
+        {
+            Freeze(session, model);
+            _overrideDrag = AnimatorOverrideCommands.Begin(session, overriding!, grab, (float)model.SecondsAtX(point.X));
+            session.GetComponent<AnimatorDrag>().StartPointer = point;
             return;
         }
 
@@ -291,6 +302,18 @@ public sealed class AnimatorTimelineInputSystem(
             return;
         }
 
+        if (kind == AnimatorDragKind.OverrideSpan)
+        {
+            // A press that has not moved is only a pick, so it does not snap the span to the grid.
+            if (_overrideDrag is { } dragged &&
+                input.Position.DistanceTo(session.GetComponent<AnimatorDrag>().StartPointer) >= 3f)
+            {
+                AnimatorOverrideCommands.Drag(session, model.Clip, dragged, model.SecondsAtX(input.Position.X),
+                    seconds => model.Snap(seconds, input.Shift));
+            }
+            return;
+        }
+
         if (kind == AnimatorDragKind.Event)
         {
             // A press that has not moved is only a pick, so it does not snap the event to the grid.
@@ -367,6 +390,12 @@ public sealed class AnimatorTimelineInputSystem(
         if (drag.Kind == AnimatorDragKind.Event)
             AnimatorHistoryCommands.EndGesture(session);
 
+        if (drag.Kind == AnimatorDragKind.OverrideSpan && _overrideDrag is { } dragged &&
+            AnimatorSession.CurrentClip(session.GetComponent<AnimatorDocument>()) is { } overridden)
+        {
+            AnimatorOverrideCommands.End(session, overridden, dragged);
+        }
+
         if (drag.Kind is AnimatorDragKind.LoopStart or AnimatorDragKind.LoopEnd)
         {
             XafClip? clip = AnimatorSession.CurrentClip(
@@ -387,6 +416,7 @@ public sealed class AnimatorTimelineInputSystem(
 
         _pendingToggle = false;
         _keyDrag = null;
+        _overrideDrag = null;
         session.GetComponent<TimelineView>().Scrubbing = false;
         drag = new AnimatorDrag();
     }

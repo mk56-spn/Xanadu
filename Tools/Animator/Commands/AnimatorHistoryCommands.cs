@@ -36,6 +36,7 @@ public static class AnimatorHistoryCommands
             history.Depth--;
         }
 
+        AnimatorTargetCommands.AfterEdit(session, before.Package);
         history.History.Record(before, Snapshot(session));
         AnimatorFileCommands.RefreshDirty(session);
     }
@@ -65,6 +66,7 @@ public static class AnimatorHistoryCommands
             history.Depth--;
         }
 
+        AnimatorTargetCommands.AfterEdit(session, before.Package);
         history.History.Record(before, Snapshot(session));
         AnimatorFileCommands.RefreshDirty(session);
     }

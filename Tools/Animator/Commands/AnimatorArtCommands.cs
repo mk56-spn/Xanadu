@@ -25,6 +25,25 @@ public static class AnimatorArtCommands
         menu.Anchor = AnimatorLayout.ChainPickerAnchor(session.GetComponent<AnimatorUi>().ScreenSize);
     }
 
+    /// <summary>Asks the system to open the SVG file of the art showing at the playhead.</summary>
+    public static void OpenFile(Entity session)
+    {
+        int index = Selected(session);
+        if (index < 0)
+        {
+            AnimatorSession.SetStatus(session, "SELECT AN SVG FIRST");
+            return;
+        }
+
+        AnimatorDocument document = session.GetComponent<AnimatorDocument>();
+        XafAttachment attachment = document.Package.Attachments[index];
+        int art = Showing(session, index).Art;
+        string path = attachment.Art(art >= 0 && art < attachment.ArtCount ? art : 0).SvgPath;
+        AnimatorSession.SetStatus(session, document.Files.OpenInSystem(path)
+            ? $"OPENED {System.IO.Path.GetFileName(path)}"
+            : "COULD NOT OPEN THE SVG");
+    }
+
     public static void AddArt(Entity session, AnimatorSvgChoice choice)
     {
         ref AnimatorSvgMenu menu = ref session.GetComponent<AnimatorSvgMenu>();

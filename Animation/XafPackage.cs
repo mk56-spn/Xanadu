@@ -9,7 +9,7 @@ namespace Xanadu.Animation;
 public sealed class XafPackage
 {
     public const ushort MajorVersion = 1;
-    public const ushort MinorVersion = 10;
+    public const ushort MinorVersion = 11;
 
     public ushort Major = MajorVersion;
     public ushort Minor = MinorVersion;
@@ -187,6 +187,9 @@ public sealed class XafClip
 
     /// <summary>Named moments the game is told about as playback passes them; see <see cref="XafEvent"/>.</summary>
     public List<XafEvent> Events = new();
+
+    /// <summary>Paths limb ends follow, baked into this clip's channels; see <see cref="XafLimbTarget"/>.</summary>
+    public List<XafLimbTarget> Targets = new();
 }
 
 public enum XafChannelTarget

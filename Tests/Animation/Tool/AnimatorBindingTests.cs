@@ -88,7 +88,11 @@ public sealed class AnimatorBindingTests : AnimatorToolTest
             ToolActionKind.SelectTransition,
             ToolActionKind.TransitionCurve,
             ToolActionKind.AddArt,
+            ToolActionKind.OpenArtFile,
             ToolActionKind.PickMeshBones,
+
+            // Shaping a target is all buttons and handles.
+            ToolActionKind.LimbTarget,
         };
 
         var bound = new HashSet<ToolActionKind>();

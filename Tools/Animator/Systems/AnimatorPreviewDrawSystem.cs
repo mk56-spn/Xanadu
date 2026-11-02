@@ -27,6 +27,8 @@ public sealed class AnimatorPreviewDrawSystem(
     private static readonly Color LabelBackdrop = new(Palette.SurfaceDeep, 0.85f);
     private static readonly Color ReparentLabel = Palette.Warning;
     private const float OnionOffset = 0.1f;
+    private const int TargetPathPoints = 64;
+    private static readonly Color TargetColor = Palette.Warning;
     private static readonly Color TipHandleColor = Palette.Pink;
     private const float TipHandleRadius = 4.5f;
     private static readonly Color FlowGhost = new(Palette.Accent, 0.3f);
@@ -145,6 +147,8 @@ public sealed class AnimatorPreviewDrawSystem(
         }
 
         DrawTipHandles(document.Package, modes, selection, hover, world, placement);
+        DrawPlants(session, placement);
+        DrawTarget(session, document, world, placement);
         DrawSnapGuides(session.GetComponent<AnimatorSnapGuides>(), placement, area);
 
         Transform2D[] attachments = XafRig.WorldAttachments(document.Package, pose, world);
@@ -349,6 +353,49 @@ public sealed class AnimatorPreviewDrawSystem(
             Vector2 tip = AnimatorTipHandles.Tip(package, i, world, placement);
             canvas.DrawLine(target, placement * world[i].Origin, tip, color, 1);
             canvas.DrawCircle(target, tip, TipHandleRadius, color);
+        }
+    }
+
+    /// <summary>The selected bone's target: its path round the anchor as it is now, where it is at this moment, and its handles.</summary>
+    private void DrawTarget(Entity session, in AnimatorDocument document, Transform2D[] world, Transform2D placement)
+    {
+        if (AnimatorPreviewModeCommands.IsOn(session) || session.GetComponent<AnimatorModes>().Rest ||
+            AnimatorTargetCommands.Selected(session) is not { } limb || !XafTargets.IsValid(document.Package, limb))
+        {
+            return;
+        }
+
+        Transform2D toScreen = placement * AnimatorTargetCommands.AnchorWorld(document.Package, limb, world);
+        Vector2 center = toScreen * limb.Center;
+        canvas.DrawRect(target, new Rect2(center - new Vector2(5f, 5f), new Vector2(10f, 10f)), TargetColor);
+        if (limb.Shape != XafTargetShape.Ellipse)
+            return;
+
+        // Red where the limb cannot reach: the baked motion goes flat there.
+        Transform2D anchor = AnimatorTargetCommands.AnchorWorld(document.Package, limb, world);
+        int bone = XafRig.FindBone(document.Package, limb.BoneId);
+        Vector2 previous = limb.OnEllipse(limb.StartAngle);
+        for (int i = 1; i <= TargetPathPoints; i++)
+        {
+            Vector2 next = limb.OnEllipse(limb.StartAngle + limb.Sweep * i / TargetPathPoints);
+            bool reached = XafTargets.CanReach(document.Package, world, bone, anchor * next);
+            canvas.DrawLine(target, toScreen * previous, toScreen * next, reached ? TargetColor : Palette.Rose, 2);
+            previous = next;
+        }
+        canvas.DrawCircle(target, toScreen * AnimatorTargetCommands.RadiusXHandle(limb), 6f, TargetColor);
+        canvas.DrawCircle(target, toScreen * AnimatorTargetCommands.RadiusYHandle(limb), 6f, TargetColor);
+        canvas.DrawCircle(target, toScreen * limb.LocalAt(document.Runtime.CurrentTime), 4f, Colors.White);
+    }
+
+    /// <summary>A marker on each planted spot: green while held, red when the limb cannot reach it.</summary>
+    private void DrawPlants(Entity session, Transform2D placement)
+    {
+        foreach (AnimatorPlant plant in session.GetComponent<AnimatorPlants>().Held)
+        {
+            Vector2 at = placement * plant.At;
+            Color color = plant.OutOfReach ? Palette.Rose : Palette.Lime;
+            canvas.DrawCircleOutline(target, at, 11f, color, 2f);
+            canvas.DrawLine(target, at + new Vector2(-15f, 0f), at + new Vector2(15f, 0f), color, 2);
         }
     }
 

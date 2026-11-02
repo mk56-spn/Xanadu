@@ -38,7 +38,7 @@ public sealed class AnimatorEventInspectorSystem : QuerySystem<AnimatorDocument,
                           new Vector2(AnimatorTimelineModel.LabelWidth + 24f, -AnimatorLayout.EventInspectorSize.Y - 8f);
         AnimatorMenuPlacement.Place(ui.EventInspector, topLeft + AnimatorLayout.EventInspectorSize / 2, shown: shown);
 
-        SetText(ui.EventTitle, selected is null ? "EVENT" : $"EVENT IN {clip!.Id.ToUpperInvariant()}");
+        UiText.Set(ui.EventTitle, selected is null ? "EVENT" : $"EVENT IN {clip!.Id.ToUpperInvariant()}");
         _nameWasFocused = Sync(ui.EventName, _nameWasFocused, selected?.Name ?? "",
             typed => AnimatorEventCommands.Rename(session, typed));
         _timeWasFocused = Sync(ui.EventTime, _timeWasFocused,
@@ -65,18 +65,5 @@ public sealed class AnimatorEventInspectorSystem : QuerySystem<AnimatorDocument,
         if (!focused)
             text.Value = value;
         return focused;
-    }
-
-    private static void SetText(Entity entity, string value)
-    {
-        if (entity.IsNull || !entity.HasComponent<Text>())
-            return;
-
-        ref Text text = ref entity.GetComponent<Text>();
-        if (text.Value == value)
-            return;
-
-        text.Value = value;
-        entity.AddTag<Dirty>();
     }
 }
