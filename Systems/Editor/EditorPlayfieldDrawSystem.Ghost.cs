@@ -2,6 +2,7 @@ using System;
 using Friflo.Engine.ECS;
 using Godot;
 using Xanadu.Ecs;
+using Xanadu.Systems.Canvas;
 using Xanadu.Editor;
 using Xanadu.Systems.Playfields;
 using Xanadu.Theme;
@@ -30,7 +31,7 @@ public sealed partial class EditorPlayfieldDrawSystem
                 Vector2 corner = BlockGrid.PlaceAt(pointer, size, playfield, BlockSnap.IsOn(_entities));
                 var block = new Rect2(view.PlayfieldToScreen(corner), size * view.Scale);
                 _canvas.DrawRect(_editor, block, Faint(PlayfieldRenderer.BlockFill));
-                PlayfieldRenderer.DrawBorder(_canvas, _editor, block, Faint(PlayfieldRenderer.BlockEdge), 1.5f);
+                _canvas.DrawBorder(_editor, block, Faint(PlayfieldRenderer.BlockEdge), 1.5f);
                 break;
 
             case EditorPlacementMode.Spikes:

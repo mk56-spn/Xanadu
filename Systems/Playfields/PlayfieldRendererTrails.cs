@@ -74,8 +74,7 @@ public static partial class PlayfieldRenderer
                 rid,
                 badge,
                 new Color(color.R, color.G, color.B, alpha * 0.8f));
-            DrawBorder(
-                canvas,
+            canvas.DrawBorder(
                 rid,
                 badge,
                 new Color(1, 1, 1, alpha * 0.8f),
@@ -134,8 +133,7 @@ public static partial class PlayfieldRenderer
             rid,
             trailBox,
             new Color(0.02f, 0.03f, 0.06f, 0.45f));
-        DrawBorder(
-            canvas,
+        canvas.DrawBorder(
             rid,
             trailBox,
             new Color(0.35f, 0.45f, 0.58f, 0.8f),
@@ -189,8 +187,7 @@ public static partial class PlayfieldRenderer
                 rid,
                 segmentBounds,
                 new Color(color.R, color.G, color.B, alpha * 0.35f));
-            DrawBorder(
-                canvas,
+            canvas.DrawBorder(
                 rid,
                 segmentBounds,
                 new Color(1f, 1f, 1f, alpha * 0.35f),
@@ -228,7 +225,7 @@ public static partial class PlayfieldRenderer
                 : new Color(0.03f, 0.04f, 0.08f, 0.82f);
 
             canvas.DrawRect(rid, keyBounds, fill);
-            DrawBorder(canvas, rid, keyBounds, color, 1);
+            canvas.DrawBorder(rid, keyBounds, color, 1);
             canvas.DrawTextStyled(
                 rid,
                 keyBounds,

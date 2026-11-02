@@ -387,9 +387,8 @@ public static partial class PlayfieldRenderer
                 rid,
                 bounds,
                 new Color(0.08f, 0.02f, 0.02f, alpha * 0.9f));
-            DrawBorder(canvas, rid, bounds, color, 2);
-            DrawBorder(
-                canvas,
+            canvas.DrawBorder(rid, bounds, color, 2);
+            canvas.DrawBorder(
                 rid,
                 new Rect2(
                     bounds.Position + new Vector2(3, 3),

@@ -570,8 +570,7 @@ public sealed partial class EditorPlayfieldDrawSystem :
     {
         Rect2 ruler = EditorLayout.RulerRect(view);
         _canvas.DrawRect(_editor, ruler, Palette.SurfaceDeep);
-        PlayfieldRenderer.DrawBorder(
-            _canvas,
+        _canvas.DrawBorder(
             _editor,
             ruler,
             PlayfieldRenderer.BorderColor,
@@ -662,8 +661,7 @@ public sealed partial class EditorPlayfieldDrawSystem :
 
             if (selection.Contains(entity))
             {
-                PlayfieldRenderer.DrawBorder(
-                    _canvas,
+                _canvas.DrawBorder(
                     _editor,
                     new Rect2(
                         bounds.Position - new Vector2(1.5f, 1.5f),

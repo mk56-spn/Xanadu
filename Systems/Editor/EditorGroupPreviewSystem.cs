@@ -83,7 +83,7 @@ public sealed class EditorGroupPreviewSystem :
             field,
             field.Size / 10,
             field.Position + field.Size / 2);
-        PlayfieldRenderer.DrawBorder(_canvas, _preview, field, PlayfieldRenderer.BorderColor, 1);
+        _canvas.DrawBorder(_preview, field, PlayfieldRenderer.BorderColor, 1);
 
         var view = new PlayfieldView(fieldOrigin, scale, area.Size);
         float seconds = playhead.TimeMs / 1000f;
@@ -208,7 +208,7 @@ public sealed class EditorGroupPreviewSystem :
                 center - new Vector2(size / 2f, size / 2f),
                 new Vector2(size, size));
             _canvas.DrawRect(_preview, bounds, new Color(0.08f, 0.02f, 0.02f, color.A * 0.8f));
-            PlayfieldRenderer.DrawBorder(_canvas, _preview, bounds, color, 1);
+            _canvas.DrawBorder(_preview, bounds, color, 1);
         }
     }
 

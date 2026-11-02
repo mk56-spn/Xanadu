@@ -4,6 +4,7 @@ using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Godot;
 using Xanadu.Ecs;
+using Xanadu.Timeline;
 using Position = Xanadu.Ecs.Position;
 
 namespace Xanadu.Systems.Editor;
@@ -34,17 +35,11 @@ public sealed class EditorHudSystem : QuerySystem<EditorHud, LevelInfo, Playhead
                 buffer);
             UiText.Set(hud.Status, hud.StatusText, buffer);
             UiText.Set(hud.Time,
-                $"{FormatMs(playhead.TimeMs)} / {FormatMs(playhead.DurationMs)}",
+                $"{TimeFormat.Clock(playhead.TimeMs)} / {TimeFormat.Clock(playhead.DurationMs)}",
                 buffer);
             UiText.Set(hud.Notes,
                 $"{_entities.Query<Note>().Count} notes",
                 buffer);
         });
-    }
-
-    private static string FormatMs(long milliseconds)
-    {
-        long value = Math.Max(0, milliseconds);
-        return $"{value / 60000:00}:{value / 1000 % 60:00}.{value % 1000:000}";
     }
 }

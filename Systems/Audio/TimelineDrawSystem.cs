@@ -5,6 +5,7 @@ using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Godot;
 using Xanadu.Ecs;
+using Xanadu.Timeline;
 using Xanadu.Systems.Canvas;
 using Xanadu.Levels;
 
@@ -122,7 +123,7 @@ public sealed class TimelineDrawSystem : QuerySystem<TrackProgress>
     {
         var panel = new Rect2(PanelX, PanelY, PanelWidth, PanelHeight);
         _canvas.DrawRect(_timeline, panel, PanelColor);
-        DrawBorder(panel, PanelBorder, 1);
+        _canvas.DrawBorder(_timeline, panel, PanelBorder, 1);
 
         float x = PanelX + 30;
         float y = PanelY + 24;
@@ -139,8 +140,8 @@ public sealed class TimelineDrawSystem : QuerySystem<TrackProgress>
         y += 22;
 
         DrawText(
-            $"Timer {FormatMs(progress.NowMs)} / {FormatMs(progress.DurationMs)}    " +
-            $"Audio {FormatMs(progress.AudioMs)}    Drift {progress.NowMs - progress.AudioMs:+0;-0;0} ms",
+            $"Timer {TimeFormat.Clock(progress.NowMs)} / {TimeFormat.Clock(progress.DurationMs)}    " +
+            $"Audio {TimeFormat.Clock(progress.AudioMs)}    Drift {progress.NowMs - progress.AudioMs:+0;-0;0} ms",
             x,
             y,
             TextColor);
@@ -167,7 +168,8 @@ public sealed class TimelineDrawSystem : QuerySystem<TrackProgress>
             new Rect2(BarX, BarY, BarWidth * normalized, BarHeight),
             BarFill);
 
-        DrawBorder(
+        _canvas.DrawBorder(
+            _timeline,
             new Rect2(BarX, BarY, BarWidth, BarHeight),
             PanelBorder,
             1);
@@ -189,7 +191,7 @@ public sealed class TimelineDrawSystem : QuerySystem<TrackProgress>
     {
         var graph = new Rect2(BarX, GraphTop, BarWidth, GraphBottom - GraphTop);
         _canvas.DrawRect(_timeline, graph, BarBackground);
-        DrawBorder(graph, PanelBorder, 1);
+        _canvas.DrawBorder(_timeline, graph, PanelBorder, 1);
 
         float centerY = (GraphTop + GraphBottom) / 2;
         float halfHeight = (GraphBottom - GraphTop) / 2 - 8;
@@ -327,26 +329,6 @@ public sealed class TimelineDrawSystem : QuerySystem<TrackProgress>
             new Rect2(x, y, PanelWidth - 60, 20),
             text,
             color);
-
-    private void DrawBorder(Rect2 bounds, Color color, float width)
-    {
-        _canvas.DrawRect(_timeline,
-            new Rect2(bounds.Position, new Vector2(bounds.Size.X, width)), color);
-        _canvas.DrawRect(_timeline,
-            new Rect2(new Vector2(bounds.Position.X, bounds.End.Y - width),
-                new Vector2(bounds.Size.X, width)), color);
-        _canvas.DrawRect(_timeline,
-            new Rect2(bounds.Position, new Vector2(width, bounds.Size.Y)), color);
-        _canvas.DrawRect(_timeline,
-            new Rect2(new Vector2(bounds.End.X - width, bounds.Position.Y),
-                new Vector2(width, bounds.Size.Y)), color);
-    }
-
-    private static string FormatMs(long milliseconds)
-    {
-        long value = Math.Max(0, milliseconds);
-        return $"{value / 60000:00}:{value / 1000 % 60:00}.{value % 1000:000}";
-    }
 
     private readonly record struct DriftSample(long TimeMs, long DriftMs, double AverageMs);
 }
