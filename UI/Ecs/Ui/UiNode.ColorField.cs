@@ -7,12 +7,16 @@ namespace Xanadu.Ecs;
 
 public readonly partial struct UiNode
 {
-    /// <summary>A labelled swatch and hex field in one row; returns the field, which carries <see cref="UiColorField"/>.</summary>
+    /// <summary>
+    /// A colour picker over a row of label, swatch and hex field; returns the field,
+    /// which carries <see cref="UiColorField"/>.
+    /// </summary>
     public UiNode ColorField(string label, float width, string tooltip)
     {
         const float height = 28;
         const float gap = 6;
         const float labelWidth = 68;
+        Entity picker = FieldPicker(width);
         UiNode row = Row().Size(width, height).Gap(gap).Main(StackMainAlignment.Start);
         row.Text(label, UiTheme.SmallFontSize, UiTheme.TextDim, TextAlign.Left).Size(labelWidth, height);
         UiNode swatch = row.Rect(Colors.White, size: new Vector2(height, height));
@@ -21,8 +25,33 @@ public readonly partial struct UiNode
             .With(new TextStyle(13, UiTheme.Text))
             .Align(TextAlign.Left)
             .With(new TextField(""))
-            .With(new UiColorField(swatch.Entity))
+            .With(new UiColorField(swatch.Entity) { Picker = picker })
             .Tooltip(tooltip);
+    }
+
+    /// <summary>
+    /// A picker in a slot of its own at the left of a stack. The row below already
+    /// shows the colour and its hex, so the picker's own swatch and hex stay hidden.
+    /// </summary>
+    private Entity FieldPicker(float width)
+    {
+        var slot = new Vector2(width, ColorPickerLayout.Height);
+        UiBuilder builder = BeginChildren();
+        builder.Container(Vector2.Zero, slot, StackDirection.Vertical, color: new Color(0, 0, 0, 0));
+        bool real = builder.Visuals is GodotVisualRidFactory;
+        List<Entity> parts = builder.ColorPicker(
+            (ColorPickerLayout.Size - slot) / 2,
+            Colors.White,
+            real ? ColorPickerMaterials.Square() : null,
+            real ? ColorPickerMaterials.Hue() : null);
+        foreach (Entity part in parts)
+            part.AddTag<LayoutIgnore>();
+        builder.End();
+
+        UiColorPicker picker = parts[0].GetComponent<UiColorPicker>();
+        UiLayout.SetHidden(picker.Swatch, true);
+        UiLayout.SetHidden(picker.Hex, true);
+        return parts[0];
     }
 
     /// <summary>

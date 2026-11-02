@@ -45,6 +45,9 @@ public struct UiColorPicker : IComponent
     public float Value;
     public float AlphaValue;
 
+    /// <summary>The pointer is holding one of its parts; the system that moves it keeps this current.</summary>
+    public bool Dragging;
+
     public Color Color
     {
         readonly get => Color.FromHsv(Hue, Saturation, Value, AlphaValue);

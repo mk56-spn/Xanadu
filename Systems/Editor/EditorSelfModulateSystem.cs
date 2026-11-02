@@ -21,7 +21,7 @@ public struct EditorSelfModulateField(Entity field) : IComponent
 public sealed class EditorSelfModulateSystem(EditorHistory history) : QuerySystem<NoteSelection, EditorSelfModulateField>
 {
     private readonly List<Entity> _targets = new();
-    private bool _wasFocused;
+    private bool _wasEditing;
 
     protected override void OnUpdate()
     {
@@ -36,8 +36,8 @@ public sealed class EditorSelfModulateSystem(EditorHistory history) : QuerySyste
             return;
 
         NoteSelection selection = editor.GetComponent<NoteSelection>();
-        bool focused = field.Tags.Has<TextFieldFocused>();
-        if (focused && !_wasFocused)
+        bool editing = UiColorField.IsEditing(field);
+        if (editing && !_wasEditing)
         {
             _targets.Clear();
             foreach (Entity item in selection.AllNotes)
@@ -46,7 +46,7 @@ public sealed class EditorSelfModulateSystem(EditorHistory history) : QuerySyste
                     _targets.Add(item);
             }
         }
-        _wasFocused = focused;
+        _wasEditing = editing;
 
         if (UiColorField.TakeCommit(field, out Color color))
             Apply(color);

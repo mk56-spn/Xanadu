@@ -32,8 +32,6 @@ public sealed class ShaderTunerSystem(
     private static readonly Vector2 ButtonSize = new(120, 34);
     private static readonly Color Clear = new(0, 0, 0, 0);
 
-    internal const string SquareShader = "res://Assets/Shaders/Ui/color_sv.gdshader";
-    internal const string HueShader = "res://Assets/Shaders/Ui/color_hue.gdshader";
     private const string UiShaders = "res://Assets/Shaders/Ui/";
 
 
@@ -260,8 +258,8 @@ public sealed class ShaderTunerSystem(
         List<Entity> parts = ui.ColorPicker(
             (ColorPickerLayout.Size - slot) / 2,
             new Color(value[0], value[1], value[2], value[3]),
-            ShaderMaterials.Load(SquareShader),
-            ShaderMaterials.Load(HueShader));
+            ColorPickerMaterials.Square(),
+            ColorPickerMaterials.Hue());
         foreach (Entity part in parts)
             part.AddTag<LayoutIgnore>();
         ui.End();
