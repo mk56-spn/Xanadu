@@ -64,8 +64,8 @@ public static class ProfileEditScene
         UiNode picker = ui.OpaqueColorPicker(
             PickerCenter,
             tint,
-            loadAssets ? ShaderMaterials.Load(ShaderTunerSystem.SquareShader) : null,
-            loadAssets ? ShaderMaterials.Load(ShaderTunerSystem.HueShader) : null);
+            loadAssets ? ColorPickerMaterials.Square() : null,
+            loadAssets ? ColorPickerMaterials.Hue() : null);
 
         ui.Button(LocalizedText.Get(ProfilesStrings.Done), UiType.Label, SceneUi.ButtonColor)
             .Size(DoneWidth, ControlHeight)

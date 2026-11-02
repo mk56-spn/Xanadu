@@ -95,7 +95,7 @@ public sealed class InputSystem : QuerySystem<Rectangle, Drawable, Position>
     }
 
     /// <summary>True when a clipping ancestor hides the point, e.g. scrolled-out rows.</summary>
-    private static bool IsClippedOut(Entity entity, Vector2 point)
+    public static bool IsClippedOut(Entity entity, Vector2 point)
     {
         for (Entity parent = entity.Parent; !parent.IsNull; parent = parent.Parent)
         {

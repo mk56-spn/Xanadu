@@ -58,9 +58,10 @@ public struct SelfModulate(Color color) : IComponent
 }
 
 /// <summary>
-/// A typed colour with a swatch, carried by its text field. The field keeps
-/// showing <see cref="Value"/> until it loses focus with a different valid
-/// colour; then <see cref="Committed"/> is set for the owning tool to take.
+/// A colour with a swatch, carried by its text field, typed or set with its picker.
+/// It keeps showing <see cref="Value"/> until the field loses focus or the picker is
+/// let go with a different colour; then <see cref="Committed"/> is set for the owning
+/// tool to take, so a whole drag is one edit.
 /// </summary>
 public struct UiColorField(Entity swatch) : IComponent
 {
@@ -69,7 +70,19 @@ public struct UiColorField(Entity swatch) : IComponent
     public bool Committed;
     public bool WasFocused;
 
-    /// <summary>Hands the tool a colour just typed, once.</summary>
+    /// <summary>The square of the picker that sets this field, if it has one.</summary>
+    public Entity Picker;
+    public bool WasDragged;
+
+    /// <summary>Whether a colour is being typed or dragged out, so what the tool has selected now may not be what it is for.</summary>
+    public static bool IsEditing(Entity field)
+    {
+        Entity picker = field.GetComponent<UiColorField>().Picker;
+        return field.Tags.Has<TextFieldFocused>() ||
+               (!picker.IsNull && picker.GetComponent<UiColorPicker>().Dragging);
+    }
+
+    /// <summary>Hands the tool a colour just typed or picked, once.</summary>
     public static bool TakeCommit(Entity field, out Color color)
     {
         ref UiColorField state = ref field.GetComponent<UiColorField>();

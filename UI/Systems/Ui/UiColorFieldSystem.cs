@@ -5,7 +5,7 @@ using Xanadu.Ecs;
 
 namespace Xanadu.Systems.Ui;
 
-/// <summary>Applies typed colours when a colour field loses focus, and keeps its text and swatch current.</summary>
+/// <summary>Applies typed colours when a colour field loses focus and picked ones when its picker is let go, and keeps its text, swatch and picker current.</summary>
 public sealed class UiColorFieldSystem : QuerySystem<UiColorField, TextField>
 {
     protected override void OnUpdate()
@@ -29,10 +29,30 @@ public sealed class UiColorFieldSystem : QuerySystem<UiColorField, TextField>
         }
         field.WasFocused = focused;
 
-        if (!focused)
-            text.Value = SelfModulate.Format(field.Value);
+        bool dragged = !field.Picker.IsNull && field.Picker.GetComponent<UiColorPicker>().Dragging;
+        if (field.WasDragged && !dragged)
+        {
+            Color picked = field.Picker.GetComponent<UiColorPicker>().Color;
+            if (picked != field.Value)
+            {
+                field.Value = picked;
+                field.Committed = true;
+            }
+        }
+        field.WasDragged = dragged;
 
-        Color shown = focused && valid ? typed : field.Value;
+        Color shown = dragged ? field.Picker.GetComponent<UiColorPicker>().Color
+            : focused && valid ? typed
+            : field.Value;
+        if (!focused)
+            text.Value = SelfModulate.Format(shown);
+        if (!dragged && !field.Picker.IsNull)
+        {
+            ref UiColorPicker picker = ref field.Picker.GetComponent<UiColorPicker>();
+            if (!picker.Color.IsEqualApprox(shown))
+                picker.Color = shown;
+        }
+
         ref FillColor fill = ref field.Swatch.GetComponent<FillColor>();
         if (fill.Value != shown)
         {

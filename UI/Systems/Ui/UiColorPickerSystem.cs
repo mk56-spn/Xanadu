@@ -46,10 +46,12 @@ public sealed class UiColorPickerSystem(IPointerInputSource pointer) : QuerySyst
             Vector2 local = entity.GetComponent<Position>().Value;
             Vector2 world = UiTransform.WorldPosition(entity, local);
 
-            if (pressStarted && _dragged.IsNull)
+            // A picker scrolled out of its panel must not take presses meant for what is there now.
+            if (pressStarted && _dragged.IsNull && !InputSystem.IsClippedOut(entity, input.Position))
                 Grab(entity, world, input.Position);
 
-            if (_dragged == entity)
+            picker.Dragging = _dragged == entity;
+            if (picker.Dragging)
                 Drag(ref picker, world, input.Position);
 
             Refresh(entity, ref picker, local);
