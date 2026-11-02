@@ -19,6 +19,12 @@ public enum XafEasePreset
 }
 
 /// <summary>
+/// The span between two keys: whether anything changes across it, and the one
+/// easing it all uses, or null when nothing changes or its channels disagree.
+/// </summary>
+public readonly record struct XafEaseSegment(bool Moves, XafEasePreset? Preset);
+
+/// <summary>
 /// Applies and reads <see cref="XafEasePreset"/> on a pose key (every channel
 /// of a target at one time). Curves are cubic Hermite segments, so a preset is
 /// a mode plus the two tangents that bound the segment; bezier handles can be
@@ -112,6 +118,53 @@ public static class XafEasing
         }
 
         return null;
+    }
+
+    /// <summary>How far through its change a preset is, 0 to 1, at a share of the way between two keys.</summary>
+    public static float Progress(XafEasePreset preset, float t) => preset switch
+    {
+        XafEasePreset.Step => t >= 1f ? 1f : 0f,
+        XafEasePreset.Linear => t,
+        XafEasePreset.EaseIn => t * t,
+        XafEasePreset.EaseOut => t * (2f - t),
+        _ => t * t * (3f - 2f * t),
+    };
+
+    /// <summary>
+    /// How a track, or one channel of it, gets from one key time to the next. A
+    /// channel with no key at <paramref name="from"/> counts by the key it is still
+    /// leaving, as that is what it is doing across the span.
+    /// </summary>
+    public static XafEaseSegment ReadSegment(
+        XafClip clip,
+        XafChannelTarget target,
+        string targetId,
+        XafChannelProperty? property,
+        float from)
+    {
+        XafEasePreset? preset = null;
+        bool mixed = false;
+        foreach (XafChannel channel in clip.Channels)
+        {
+            if (channel.Target != target || channel.TargetId != targetId ||
+                (property is { } only && channel.Property != only))
+            {
+                continue;
+            }
+
+            int index = channel.Keyframes.FindLastIndex(key => key.Time <= from + XafTracks.TimeTolerance);
+            if (index < 0 || index + 1 >= channel.Keyframes.Count ||
+                channel.Keyframes[index].Value == channel.Keyframes[index + 1].Value)
+            {
+                continue;
+            }
+
+            XafEasePreset leaving = Classify(channel, index);
+            mixed |= preset is { } seen && seen != leaving;
+            preset = leaving;
+        }
+
+        return new XafEaseSegment(preset is not null, mixed ? null : preset);
     }
 
     private static XafChannel? FindChannel(

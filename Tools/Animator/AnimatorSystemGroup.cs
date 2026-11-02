@@ -40,6 +40,8 @@ public sealed class AnimatorSystemGroup : SystemGroup
         Add(new AnimatorShortcutSystem(keys));
         Add(new AnimatorSequenceSystem());
         Add(new AnimatorPlaybackSystem());
+        Add(new AnimatorPlantSystem());
+        Add(new AnimatorTargetPanelSystem());
         Add(new AnimatorHierarchySystem(visuals, pointer));
         Add(new AnimatorRigPanelSystem());
         Add(new AnimatorLayerPanelSystem(visuals));
@@ -57,6 +59,7 @@ public sealed class AnimatorSystemGroup : SystemGroup
         Add(new AnimatorTooltipSystem(pointer));
         Add(new AnimatorGridDrawSystem(canvas, gridCanvas));
         Add(new AnimatorChainSimulationSystem());
+        Add(new AnimatorSvgWatchSystem(svgCatalog));
         Add(new AnimatorPreviewDrawSystem(canvas, previewCanvas, attachments));
         Add(new AnimatorTimelineDrawSystem(canvas, timelineCanvas));
     }

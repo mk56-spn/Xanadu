@@ -140,6 +140,7 @@ public static class XafPackageCopy
             LoopStart = clip.LoopStart,
             LoopEnd = clip.LoopEnd,
             Events = clip.Events.ConvertAll(item => new XafEvent { Time = item.Time, Name = item.Name }),
+            Targets = clip.Targets.ConvertAll(target => target with { }),
         };
         foreach (XafChannel channel in clip.Channels)
         {
@@ -192,7 +193,8 @@ public static class XafPackageCopy
         a.Id == b.Id && a.Duration == b.Duration && a.Loop == b.Loop &&
         a.LoopStart == b.LoopStart && a.LoopEnd == b.LoopEnd &&
         ListEqual(a.Channels, b.Channels, ChannelEqual) &&
-        ListEqual(a.Events, b.Events, (x, y) => x.Time == y.Time && x.Name == y.Name);
+        ListEqual(a.Events, b.Events, (x, y) => x.Time == y.Time && x.Name == y.Name) &&
+        ListEqual(a.Targets, b.Targets, (x, y) => x == y);
 
     private static bool ClothEqual(XafCloth a, XafCloth b) =>
         a.Id == b.Id && a.BoneId == b.BoneId && a.Offset == b.Offset &&

@@ -103,7 +103,7 @@ public sealed class AnimatorNewClipDialogSystem(IPointerInputSource pointer)
         SetField(ui.NewClipName, name);
         SetField(ui.NewClipLength,
             length.ToString("0.00", CultureInfo.InvariantCulture));
-        SetText(ui.NewClipError, "");
+        UiText.Set(ui.NewClipError, "");
         _lastDuplicate = duplicate;
     }
 
@@ -146,18 +146,5 @@ public sealed class AnimatorNewClipDialogSystem(IPointerInputSource pointer)
 
         text.Value = value;
         field.AddTag<Dirty>();
-    }
-
-    private static void SetText(Entity label, string value)
-    {
-        if (label.IsNull || !label.HasComponent<Text>())
-            return;
-
-        ref Text text = ref label.GetComponent<Text>();
-        if (text.Value == value)
-            return;
-
-        text.Value = value;
-        label.AddTag<Dirty>();
     }
 }

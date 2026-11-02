@@ -40,6 +40,7 @@ public static class AnimatorBindings
 
         // Pose and rig edits.
         new(new ToolAction(ToolActionKind.KeyBone), Key.K),
+        new(new ToolAction(ToolActionKind.PlantBone), Key.Y),
         new(new ToolAction(ToolActionKind.KeyPose), Key.K, Shift: true),
         new(new ToolAction(ToolActionKind.CopyPose), Key.C, Ctrl: true),
         new(new ToolAction(ToolActionKind.PastePose), Key.V, Ctrl: true),

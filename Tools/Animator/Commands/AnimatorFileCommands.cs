@@ -43,6 +43,8 @@ public static class AnimatorFileCommands
             return;
         }
 
+        // The file must never hold keys older than the targets beside them.
+        XafTargets.BakeAll(document.Package);
         try
         {
             document.Files.Save(path, document.Package);

@@ -27,4 +27,7 @@ public sealed class GodotAnimatorFiles : IAnimatorFiles
 
     public void Save(string path, XafPackage package) =>
         XafBinary.Save(ProjectSettings.GlobalizePath(path), package);
+
+    public bool OpenInSystem(string path) =>
+        OS.ShellOpen(ProjectSettings.GlobalizePath(path)) == Error.Ok;
 }

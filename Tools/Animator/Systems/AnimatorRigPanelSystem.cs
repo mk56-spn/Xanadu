@@ -29,7 +29,7 @@ public sealed class AnimatorRigPanelSystem : QuerySystem<AnimatorDocument, Anima
             UiCollapsibleControl.SetTitle(ui.ClothSection, Counted("CLOTH", package.Cloths.Count));
 
             int effect = Commands.AnimatorEffectCommands.Selected(session);
-            SetText(ui.EffectCaption, effect >= 0
+            UiText.Set(ui.EffectCaption, effect >= 0
                 ? $"{package.Effects[effect].Id.ToUpperInvariant()}  on {package.Effects[effect].BoneId}"
                 : "NO EFFECT SELECTED");
             Follow(ui.Tabs, effect);
@@ -52,18 +52,5 @@ public sealed class AnimatorRigPanelSystem : QuerySystem<AnimatorDocument, Anima
             tabs.Selected = AnimatorLayout.EffectTab;
         else if (dropped && tabs.Selected == AnimatorLayout.EffectTab)
             tabs.Selected = AnimatorLayout.PoseTab;
-    }
-
-    private static void SetText(Entity label, string value)
-    {
-        if (label.IsNull || !label.HasComponent<Text>())
-            return;
-
-        ref Text text = ref label.GetComponent<Text>();
-        if (text.Value == value)
-            return;
-
-        text.Value = value;
-        label.AddTag<Dirty>();
     }
 }

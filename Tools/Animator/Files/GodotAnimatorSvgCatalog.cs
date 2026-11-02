@@ -42,6 +42,12 @@ public sealed class GodotAnimatorSvgCatalog : IAnimatorSvgCatalog
         return files;
     }
 
+    public long Stamp(string svgPath)
+    {
+        string path = ProjectSettings.GlobalizePath(svgPath);
+        return File.Exists(path) ? File.GetLastWriteTimeUtc(path).Ticks : 0L;
+    }
+
     public IReadOnlyList<string> Groups(string svgPath)
     {
         try

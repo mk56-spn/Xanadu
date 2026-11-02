@@ -30,6 +30,8 @@ public static class AnimatorTooltips
         ToolActionKind.RotateRight => "Turn selected bones +0.25 rad (E)",
         ToolActionKind.ScaleDown => "Scale selected bones down by 0.1 ([)",
         ToolActionKind.ScaleUp => "Scale selected bones up by 0.1 (])",
+        ToolActionKind.LimbTarget => AnimatorLayout.TargetTooltip(argument),
+        ToolActionKind.PlantBone => AnimatorLayout.TargetTooltip("pin"),
         ToolActionKind.KeyBone => "Key selected bones at the playhead (K)",
         ToolActionKind.KeyPose => "Key every bone's pose (Shift+K)",
         ToolActionKind.CopyPose => "Copy the whole pose (Ctrl+C)",
@@ -41,6 +43,7 @@ public static class AnimatorTooltips
         ToolActionKind.NextArt => "Key the selected SVG's next art at the playhead; it switches exactly there (Shift+])",
         ToolActionKind.LayerDownKey => "Key the selected SVG one layer further back from the playhead on, to pass behind the body (Shift+,)",
         ToolActionKind.LayerUpKey => "Key the selected SVG one layer further forward from the playhead on (Shift+.)",
+        ToolActionKind.OpenArtFile => "Open the selected SVG's file in your system's app for SVGs",
         ToolActionKind.ToggleArtVisible => "Key the selected SVG hidden from the playhead on, or shown again (Shift+U)",
         ToolActionKind.ToggleMesh =>
             "Draw the selected SVG as a mesh that bends with its bone and the ones below, so joints have no hard seam; again for rigid (Shift+G)",

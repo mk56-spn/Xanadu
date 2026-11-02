@@ -89,20 +89,7 @@ public sealed class AnimatorInfoPanelSystem(IPointerInputSource pointer)
             i++;
             int column = 0;
             foreach (Entity cell in row.ChildEntities)
-                SetText(cell, column++ == 0 ? label : value);
+                UiText.Set(cell, column++ == 0 ? label : value);
         }
-    }
-
-    private static void SetText(Entity cell, string value)
-    {
-        if (!cell.HasComponent<Text>())
-            return;
-
-        ref Text text = ref cell.GetComponent<Text>();
-        if (text.Value == value)
-            return;
-
-        text.Value = value;
-        cell.AddTag<Dirty>();
     }
 }

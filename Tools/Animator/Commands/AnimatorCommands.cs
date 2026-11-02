@@ -53,6 +53,9 @@ public static class AnimatorCommands
             case ToolActionKind.LayerUpKey:
                 AnimatorArtCommands.StepLayer(session, 1);
                 break;
+            case ToolActionKind.OpenArtFile:
+                AnimatorArtCommands.OpenFile(session);
+                break;
             case ToolActionKind.ToggleArtVisible:
                 AnimatorArtCommands.ToggleVisible(session);
                 break;
@@ -199,6 +202,12 @@ public static class AnimatorCommands
                 break;
             case ToolActionKind.SelectAttachment:
                 SelectAttachment(session, action.Argument);
+                break;
+            case ToolActionKind.LimbTarget:
+                AnimatorTargetCommands.Run(session, action.Argument);
+                break;
+            case ToolActionKind.PlantBone:
+                AnimatorPlantCommands.Toggle(session);
                 break;
             case ToolActionKind.KeyBone:
                 AnimatorEditing.KeySelected(session);

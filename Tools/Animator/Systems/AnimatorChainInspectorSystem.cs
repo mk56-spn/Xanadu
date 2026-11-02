@@ -72,7 +72,7 @@ public sealed class AnimatorChainInspectorSystem : QuerySystem<AnimatorDocument,
         // The transform inspector has nothing to show for a chain or a cloth, so it gives up its spot.
         AnimatorMenuPlacement.Place(ui.Inspector, AnimatorLayout.InspectorCenter(ui.ScreenSize), shown: !(shown || AnimatorClothCommands.Selected(session) >= 0));
 
-        SetText(ui.ChainTitle, chain is null ? "NO CHAIN" : chain.Id + "  CHAIN");
+        UiText.Set(ui.ChainTitle, chain is null ? "NO CHAIN" : chain.Id + "  CHAIN");
         AnimatorChainPick picking = session.GetComponent<AnimatorChains>().Picking;
         SetButton(ui.ChainArtButton, chain is null ? "" : ArtLabel(chain), UiTheme.Button);
         SetButton(ui.ChainBoneButton, chain?.BoneId ?? "",
@@ -142,23 +142,10 @@ public sealed class AnimatorChainInspectorSystem : QuerySystem<AnimatorDocument,
 
     private static string Number(float value) => value.ToString("0.###", CultureInfo.InvariantCulture);
 
-    private static void SetText(Entity entity, string value)
-    {
-        if (entity.IsNull || !entity.HasComponent<Text>())
-            return;
-
-        ref Text text = ref entity.GetComponent<Text>();
-        if (text.Value == value)
-            return;
-
-        text.Value = value;
-        entity.AddTag<Dirty>();
-    }
-
     /// <summary>Writes a button's current value, or a prompt while it waits for a click, and lights it then.</summary>
     private static void SetButton(Entity button, string value, Color color, string? prompt = null)
     {
-        SetText(button, prompt ?? value);
+        UiText.Set(button, prompt ?? value);
         if (button.IsNull || !button.HasComponent<ButtonVisual>())
             return;
 

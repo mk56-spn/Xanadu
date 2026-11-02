@@ -60,7 +60,7 @@ public sealed class AnimatorPreviewModeSystem : QuerySystem<AnimatorPreviewMode,
         Paint(ui.Header, on ? AnimatorLayout.PreviewChrome : UiTheme.Panel);
         Paint(ui.StatusLine, on ? AnimatorLayout.PreviewChrome : UiTheme.Panel);
         Paint(ui.Preview, on ? AnimatorLayout.PreviewBackdrop : Palette.SurfaceDeep);
-        Label(ui.PreviewButton, on ? "EXIT PREVIEW" : "PREVIEW");
+        UiText.Set(ui.PreviewButton, on ? "EXIT PREVIEW" : "PREVIEW");
         Tint(ui.PreviewButton, on ? AnimatorLayout.PreviewButton : UiTheme.Button);
 
         // Only the art: the bone kites and handles are for editing.
@@ -86,7 +86,7 @@ public sealed class AnimatorPreviewModeSystem : QuerySystem<AnimatorPreviewMode,
             ? "NO CLIP"
             : $"{clip.Id.ToUpperInvariant()}   {document.Runtime.CurrentTime:0.00} / {clip.Duration:0.00} s" +
               (slow ? "   ·   QUARTER SPEED" : "");
-        Label(ui.PreviewCaption, caption);
+        UiText.Set(ui.PreviewCaption, caption);
 
         if (ui.PreviewBar.IsNull)
             return;
@@ -152,18 +152,5 @@ public sealed class AnimatorPreviewModeSystem : QuerySystem<AnimatorPreviewMode,
         visual.Normal = color;
         visual.Hover = color.Lerp(Colors.White, 0.16f);
         button.AddTag<Dirty>();
-    }
-
-    private static void Label(Entity entity, string value)
-    {
-        if (entity.IsNull || !entity.HasComponent<Text>())
-            return;
-
-        ref Text text = ref entity.GetComponent<Text>();
-        if (text.Value == value)
-            return;
-
-        text.Value = value;
-        entity.AddTag<Dirty>();
     }
 }

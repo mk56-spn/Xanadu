@@ -7,10 +7,10 @@ namespace Xanadu.Tools.Animator;
 /// One row of the keyframe dope sheet: a target's merged key set, or, when the
 /// target is expanded, one of its channels.
 /// </summary>
-public readonly record struct AnimatorTrackRow(XafTrack Track, XafChannelProperty? Property)
+public readonly record struct AnimatorTrackRow(XafTrack Track, XafChannelProperty? Property, bool IsOverride = false)
 {
     public AnimatorTrackRow(XafTrack track)
-        : this(track, null)
+        : this(track, null, false)
     {
     }
 
@@ -74,6 +74,19 @@ public static class AnimatorTrackRows
         return rows;
     }
 
+    /// <summary>A row per bone with overrides, pins and ellipses, in the order they were added; they hold bars, not keys.</summary>
+    public static List<AnimatorTrackRow> Overrides(XafClip clip)
+    {
+        var rows = new List<AnimatorTrackRow>();
+        foreach (XafLimbTarget target in clip.Targets)
+        {
+            var row = new AnimatorTrackRow(new XafTrack(XafChannelTarget.Bone, target.BoneId), null, true);
+            if (!rows.Contains(row))
+                rows.Add(row);
+        }
+        return rows;
+    }
+
     /// <summary>The channels that have any key for a target, in a stable order.</summary>
     public static List<XafChannelProperty> Channels(XafClip clip, XafTrack track)
     {
@@ -101,6 +114,9 @@ public static class AnimatorTrackRows
     /// <summary>Key times of one row: a channel's own keys, or every channel's for a set row.</summary>
     public static List<float> KeyTimes(XafClip clip, AnimatorTrackRow row)
     {
+        if (row.IsOverride)
+            return new List<float>();
+
         if (row.Property is not { } property)
             return XafTracks.KeyTimes(clip, row.Track);
 

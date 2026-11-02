@@ -59,6 +59,7 @@ public static class AnimatorSession
         session.AddComponent(AnimatorEventSelection.None);
         session.AddComponent(new AnimatorMeshPick());
         session.AddComponent(new UiMarqueeBox());
+        session.AddComponent(new AnimatorPlants { Held = new List<AnimatorPlant>() });
         session.AddComponent(new AnimatorHistory
         {
             History = AnimatorHistoryCommands.CreateHistory(session),
@@ -93,6 +94,7 @@ public static class AnimatorSession
         session.GetComponent<AnimatorSvgMenu>() = new AnimatorSvgMenu { Choices = new() };
         session.GetComponent<AnimatorEventSelection>() = AnimatorEventSelection.None;
         session.GetComponent<AnimatorMeshPick>() = new AnimatorMeshPick();
+        session.GetComponent<AnimatorPlants>().Held.Clear();
         AnimatorHistoryCommands.Clear(session);
     }
 

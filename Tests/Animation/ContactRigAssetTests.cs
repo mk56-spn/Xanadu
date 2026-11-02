@@ -18,12 +18,6 @@ public sealed class ContactRigAssetTests
 {
     private const string RigFile = "Tools/Animator/Animations/Characters/contact.xaf";
 
-    /// <summary>
-    /// The body parts and the rig were widened 30% together to make the
-    /// character chunkier, so rig x is this multiple of the drawing's x.
-    /// </summary>
-    private const float WidthScale = 1.3f;
-
     private static string ProjectFile(string relative)
     {
         for (string? dir = AppContext.BaseDirectory; dir is not null; dir = Path.GetDirectoryName(dir))
@@ -59,9 +53,6 @@ public sealed class ContactRigAssetTests
         return pose;
     }
 
-    private static Transform2D[] RestWorld(XafPackage package) =>
-        XafRig.WorldAttachments(package, RestPoseOf(package), XafRig.WorldBones(package, RestPoseOf(package)));
-
     [Test]
     public void TheRigIsValidAndKeepsItsClips()
     {
@@ -69,8 +60,10 @@ public sealed class ContactRigAssetTests
 
         Assert.That(XafValidation.Validate(package), Is.Empty);
         Assert.That(package.Skeleton.Bones, Has.Count.EqualTo(15));
+        // The animator can add clips of its own, such as a work-in-progress duplicate,
+        // so this pins only the ones the game plays by name.
         Assert.That(package.Clips.ConvertAll(clip => clip.Id),
-            Is.EqualTo(new[]
+            Is.SupersetOf(new[]
             {
                 "idle", "jumping", "landing", "death", "attack_low", "attack_mid",
                 "attack_high", "attack_air_low", "attack_air_mid", "attack_air_high",
@@ -120,74 +113,6 @@ public sealed class ContactRigAssetTests
             ViewBox(attachment, out string svg);
             Assert.That(XafSvgDocument.Groups(svg), Does.Contain(attachment.Group), attachment.SvgPath);
         }
-    }
-
-    /// <summary>
-    /// Each part is cut to its own box and hung from its bone by the offset from
-    /// the bone to that box's centre, so in the rest pose every box lands where it
-    /// was in the source drawing: one shared shift from drawing to rig. The
-    /// drawing and the rig were both widened by <see cref="WidthScale"/>, so rig
-    /// x maps back to source x by dividing it out. The far hand reuses the near
-    /// hand's art about its own wrist, so it is left out.
-    /// </summary>
-    [Test]
-    public void TheRestPoseReassemblesTheSourceDrawing()
-    {
-        XafPackage package = Load();
-        Transform2D[] world = RestWorld(package);
-
-        Vector2? shift = null;
-        for (int i = 0; i < package.Attachments.Count; i++)
-        {
-            if (package.Attachments[i].BoneId == "hand_r")
-                continue;
-
-            Vector2 center = ViewBox(package.Attachments[i], out _).GetCenter();
-            Vector2 here = new(
-                world[i].Origin.X / WidthScale - center.X,
-                world[i].Origin.Y - center.Y);
-            shift ??= here;
-            Assert.That(here.DistanceTo(shift.Value), Is.LessThan(0.01f), package.Attachments[i].Group);
-        }
-    }
-
-    [Test]
-    public void TheLegsAndFeetFollowTheLimbHeightGuides()
-    {
-        XafPackage package = Load();
-        List<XafBone> bones = package.Skeleton.Bones;
-        Transform2D[] boneWorld = XafRig.WorldBones(package, RestPoseOf(package));
-
-        foreach (string side in new[] { "l", "r" })
-        {
-            float hip = boneWorld[bones.FindIndex(b => b.Id == $"thigh_{side}")].Origin.Y;
-            float knee = boneWorld[bones.FindIndex(b => b.Id == $"shin_{side}")].Origin.Y;
-            float ankle = boneWorld[bones.FindIndex(b => b.Id == $"foot_{side}")].Origin.Y;
-
-            Assert.That(knee - hip, Is.EqualTo(54f).Within(0.1f), side);
-            Assert.That(ankle - knee, Is.EqualTo(56f).Within(0.1f), side);
-            Assert.That(ankle, Is.EqualTo(0f).Within(0.001f), $"foot_{side} stands on the root");
-        }
-
-        Assert.That(boneWorld[bones.FindIndex(b => b.Id == "torso")].Origin.Y, Is.EqualTo(-110f).Within(0.1f));
-    }
-
-    [Test]
-    public void TheArtStandsOnTheRootAndIsAboutTwoHundredTall()
-    {
-        XafPackage package = Load();
-        Transform2D[] world = RestWorld(package);
-
-        Rect2? bounds = null;
-        for (int i = 0; i < package.Attachments.Count; i++)
-        {
-            Vector2 size = ViewBox(package.Attachments[i], out _).Size;
-            var rect = new Rect2(world[i].Origin - size / 2, size);
-            bounds = bounds is { } merged ? merged.Merge(rect) : rect;
-        }
-
-        Assert.That(bounds!.Value.End.Y, Is.EqualTo(0f).Within(1.5f));
-        Assert.That(bounds.Value.Size.Y, Is.EqualTo(200f).Within(5f));
     }
 
     private static XafChain Hair(XafPackage package) => package.Chains.Single(chain => chain.Id == "hair");

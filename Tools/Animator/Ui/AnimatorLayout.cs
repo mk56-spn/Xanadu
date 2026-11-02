@@ -53,7 +53,7 @@ public static partial class AnimatorLayout
     // Header slots; together they must fit in the header, which is one
     // screen wide less its padding. The window is 1600 wide.
     private const float TitleWidth = EditorShellMetrics.NameWidth;
-    private const float StatusWidth = 200f;
+    private const float StatusWidth = 640f;
     private const float DirtyWidth = 80f;
     private const float StatusButtonWidth = 44f;
     private const float ClipLabelWidth = 48f;
@@ -164,6 +164,13 @@ public static partial class AnimatorLayout
         ViewportGrid.Attach(ui.Button(
             ViewportGrid.Label,
             new Vector2(ViewportGrid.ToggleWidth, HeaderControl)));
+
+        // Off to start: a whole cell is coarse for posing, so this is for when placing to the grid is the point.
+        ViewportSnap.Attach(ui.Button(
+            ViewportSnap.Label,
+            new Vector2(ViewportSnap.ToggleWidth, HeaderControl)),
+            "Snap dragged joints, art and IK targets to the grid; hold Shift while dragging to stay free",
+            on: false);
 
         // As wide as its list, so opening the menu does not widen the header slot.
         refs.FileButton = ui.Button("FILE ▾", new Vector2(FileMenuWidth, HeaderControl));

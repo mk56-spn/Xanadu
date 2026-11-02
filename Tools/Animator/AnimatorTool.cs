@@ -56,6 +56,12 @@ public partial class AnimatorTool : Control
     private string? _cloth;
     private string? _svg;
 
+    /// <summary>Set by <c>--plant=bone,bone</c>: plant those bones on opening.</summary>
+    private string? _plant;
+
+    /// <summary>Set by <c>--orbit=bone,bone</c>: send those bones round an ellipse on opening, unsaved.</summary>
+    private string? _orbit;
+
     public override void _Ready()
     {
         _store = new EntityStore();
@@ -133,6 +139,22 @@ public partial class AnimatorTool : Control
             ShowPaths(_paths);
         if (_frames == 2 && _openLayers)
             _store.Query<UiTabs>().ToEntityList()[0].GetComponent<UiTabs>().Selected = AnimatorLayout.LayersTab;
+        if (_frames == 2 && _plant is not null)
+        {
+            foreach (string bone in _plant.Split(','))
+            {
+                AnimatorCommands.Run(_session, new ToolAction(ToolActionKind.SelectBone, bone));
+                AnimatorCommands.Run(_session, new ToolAction(ToolActionKind.PlantBone));
+            }
+        }
+        if (_frames == 2 && _orbit is not null)
+        {
+            foreach (string bone in _orbit.Split(','))
+            {
+                AnimatorCommands.Run(_session, new ToolAction(ToolActionKind.SelectBone, bone));
+                AnimatorCommands.Run(_session, new ToolAction(ToolActionKind.LimbTarget, "orbit"));
+            }
+        }
         if (_frames == 2 && _startInPreview)
             AnimatorCommands.Run(_session, new ToolAction(ToolActionKind.TogglePreviewMode));
         bool due = _shotSeconds >= 0f ? _elapsed >= _shotSeconds : _frames == _shotAt;
@@ -174,6 +196,10 @@ public partial class AnimatorTool : Control
                 _streak = argument["--streak=".Length..];
             else if (argument == "--layers")
                 _openLayers = true;
+            else if (argument.StartsWith("--plant=", StringComparison.Ordinal))
+                _plant = argument["--plant=".Length..];
+            else if (argument.StartsWith("--orbit=", StringComparison.Ordinal))
+                _orbit = argument["--orbit=".Length..];
             else if (argument == "--preview")
                 _startInPreview = true;
             else if (argument.StartsWith("--paths=", StringComparison.Ordinal))

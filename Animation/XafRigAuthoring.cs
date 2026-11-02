@@ -108,6 +108,17 @@ public static class XafRigAuthoring
         XafBone renamed = package.Skeleton.Bones[index];
         string old = renamed.Id;
         renamed.Id = id;
+        foreach (XafClip clip in package.Clips)
+        {
+            foreach (XafLimbTarget target in clip.Targets)
+            {
+                if (target.BoneId == old)
+                    target.BoneId = id;
+                if (target.AnchorId == old)
+                    target.AnchorId = id;
+            }
+        }
+
         foreach (XafAttachment attachment in package.Attachments)
         {
             if (attachment.BoneId == old)

@@ -106,12 +106,12 @@ public sealed class AnimatorFlowSystem(IVisualRidFactory visuals) : QuerySystem<
                 bool usedByGame = game.Contains((from, to));
                 if (action.Kind == ToolActionKind.AllowTransition)
                 {
-                    SetText(button, rule is not null ? "ON" : open ? "ANY" : "OFF");
+                    UiText.Set(button, rule is not null ? "ON" : open ? "ANY" : "OFF");
                     Paint(button, rule is not null ? Allowed : usedByGame && !open ? Missing : UiTheme.Button);
                 }
                 else if (action.Kind == ToolActionKind.SelectTransition)
                 {
-                    SetText(button, Label(to, rule, usedByGame));
+                    UiText.Set(button, Label(to, rule, usedByGame));
                     Paint(button, to == target ? Lit : UiTheme.Button);
                 }
             }
@@ -149,26 +149,26 @@ public sealed class AnimatorFlowSystem(IVisualRidFactory visuals) : QuerySystem<
         string title = $"FROM {from.ToUpperInvariant()}";
         if (missing > 0)
             title += $"  •  {missing} GAME MISSING";
-        SetText(ui.FlowTitle, title);
+        UiText.Set(ui.FlowTitle, title);
 
         XafClip? target = AnimatorFlowCommands.Target(session);
         XafTransition? rule = AnimatorFlowCommands.Rule(session);
         if (target is null)
         {
-            SetText(ui.FlowRule, XafTransitions.IsOpen(package)
+            UiText.Set(ui.FlowRule, XafTransitions.IsOpen(package)
                 ? "NO RULES: ANY CLIP CAN FOLLOW ANY. PICK ONE"
                 : "PICK A CLIP TO EDIT ITS FADE");
-            SetText(ui.FlowFade, "");
-            SetText(ui.FlowGap, "");
+            UiText.Set(ui.FlowFade, "FADE");
+            UiText.Set(ui.FlowGap, "");
         }
         else
         {
             string pair = AnimatorFlowCommands.Pair(from, target.Id);
-            SetText(ui.FlowRule, rule is not null
+            UiText.Set(ui.FlowRule, rule is not null
                 ? pair
                 : XafTransitions.IsOpen(package) ? $"{pair} (OPEN TABLE)" : $"{pair} NOT ALLOWED");
             (float fade, XafFadeCurve curve) = XafTransitions.Blend(package, from, target.Id);
-            SetText(ui.FlowFade, rule is not null
+            UiText.Set(ui.FlowFade, rule is not null
                 ? $"{fade:0.00} s  {AnimatorFlowCommands.CurveName(curve)}"
                 : $"{fade:0.00} s DEFAULT");
             SyncGap(session, ui.FlowGap, fade, curve);
@@ -206,13 +206,13 @@ public sealed class AnimatorFlowSystem(IVisualRidFactory visuals) : QuerySystem<
     {
         if (AnimatorFlowCommands.Gap(session) is not { } gap)
         {
-            SetText(label, "");
+            UiText.Set(label, "");
             return;
         }
 
         (string rating, Color color) = Rate(gap.Distance, fade, curve);
         string bone = gap.BoneId.Length > 0 ? $" AT {gap.BoneId.ToUpperInvariant()}" : "";
-        SetText(label, $"GAP {gap.Distance:0} PX{bone}: {rating}");
+        UiText.Set(label, $"GAP {gap.Distance:0} PX{bone}: {rating}");
         if (label.HasComponent<TextStyle>() && label.GetComponent<TextStyle>().Color != color)
         {
             label.GetComponent<TextStyle>().Color = color;
@@ -264,18 +264,5 @@ public sealed class AnimatorFlowSystem(IVisualRidFactory visuals) : QuerySystem<
 
         visual.Normal = color;
         visual.Hover = color.Lerp(Colors.White, 0.16f);
-    }
-
-    private static void SetText(Entity label, string value)
-    {
-        if (label.IsNull || !label.HasComponent<Text>())
-            return;
-
-        ref Text text = ref label.GetComponent<Text>();
-        if (text.Value == value)
-            return;
-
-        text.Value = value;
-        label.AddTag<Dirty>();
     }
 }
