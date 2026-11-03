@@ -11,10 +11,10 @@ public sealed class DebugPaletteTests
 {
     private static readonly string[] Views =
     {
-        "Systems/Debug/DebugPressedOverlaySystem.cs",
-        "Systems/Debug/DebugTable.cs",
-        "Systems/Debug/FpsCounterSystem.cs",
-        "Systems/Debug/DebugPressedOverlaySystem.Archetypes.cs",
+        "UI/Systems/Debug/DebugPressedOverlaySystem.cs",
+        "UI/Systems/Debug/DebugTable.cs",
+        "UI/Systems/Debug/FpsCounterSystem.cs",
+        "UI/Systems/Debug/DebugPressedOverlaySystem.Archetypes.cs",
         "Systems/Playfields/PlayfieldRendererHitboxes.cs",
         "Systems/Playfields/PlayfieldHitboxOverlaySystem.cs",
         "Systems/Shaders/ShaderTunerSystem.cs",
