@@ -390,6 +390,16 @@ public static class PlayScene
                 start?.TimeMs ?? 0),
             skipButton));
 
+        Entity mapOffset = ui.HudText(
+            new Vector2(screen.X / 2, 124),
+            new Vector2(620, 28),
+            "",
+            UiType.Body,
+            SceneUi.AccentColor,
+            Palette.Background)
+            .Hidden();
+        playfieldEntity.AddComponent(new PlayOffset(document.Id, mapOffset));
+
         if (replay is not null)
             playfieldEntity.AddComponent(new ReplayPlayer(replay));
         else if (record)

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using Xanadu.Animation;
+using Xanadu.Ecs;
 using Xanadu.Systems.Characters;
 
 namespace Xanadu.Tools.Animator.Commands;
@@ -60,7 +61,7 @@ public static class AnimatorFlowCommands
 
     /// <summary>The hand-overs the game's motion system can ask this rig for.</summary>
     public static List<(string From, string To)> GameTransitions(XafPackage package) =>
-        CharacterMotionSystem.Transitions(package);
+        CharacterMotionSystem.Transitions(package).ConvertAll(pair => (pair.From.Id(), pair.To.Id()));
 
     public static void Select(Entity session, string target)
     {

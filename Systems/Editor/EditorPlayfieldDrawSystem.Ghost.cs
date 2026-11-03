@@ -41,8 +41,13 @@ public sealed partial class EditorPlayfieldDrawSystem
                 SpikeTriangle triangle = SpikeRules.ScreenTriangle(
                     new Spike(GridPlacement.Place(pointer, tile, playfield, snap), tile, degrees),
                     view);
-                Span<Vector2> points = [triangle.Tip, triangle.BaseLeft, triangle.BaseRight];
-                _canvas.DrawPolygon(_editor, points, Faint(PlayfieldRenderer.SpikeColor));
+                PlayfieldRenderer.DrawSpikeBody(
+                    _canvas,
+                    _editor,
+                    triangle,
+                    Block.DefaultOutlineWidth * view.Scale,
+                    Faint(PlayfieldRenderer.SpikeColor),
+                    Faint(Block.DefaultOutlineColor));
                 break;
 
             case EditorPlacementMode.Mines:
@@ -64,6 +69,17 @@ public sealed partial class EditorPlayfieldDrawSystem
 
             default:
                 Note note = EditorPlacementNote.Build(editor, playhead.TimeMs, pointer);
+                if (note.Kind == NoteKind.Dash)
+                {
+                    PlayfieldRenderer.DrawDashLink(
+                        _canvas,
+                        _editor,
+                        note,
+                        view,
+                        PlayfieldRenderer.NoteSize * view.Scale / 2f,
+                        Faint(PlayfieldRenderer.ColorFor(note)));
+                }
+
                 PlayfieldRenderer.DrawNoteBody(
                     _canvas,
                     _editor,

@@ -43,15 +43,21 @@ public sealed class EditorWaveformSceneTest : SceneTest
             () =>
             {
                 Entity editor = Context.Entities.Query<LevelInfo>().ToEntityList()[0];
-                WaveformPreview preview = editor.GetComponent<WaveformPreview>();
-                return preview.Left.Length > 0 &&
-                       preview.DurationMs > 0 &&
+                return editor.GetComponent<WaveformPreview>().Data is { DurationMs: > 0 } &&
                        editor.GetComponent<Playhead>().DurationMs > 0;
             });
 
+        AddStep("place notes, one time stacked three deep", () =>
+        {
+            foreach (long time in new long[] { 1_000, 2_000, 3_000, 4_000 })
+                Context.Entities.CreateEntity(new Note(time, new Vector2(300, 300)));
+            for (int i = 0; i < 2; i++)
+                Context.Entities.CreateEntity(new Note(3_000, new Vector2(400 + i * 100, 300)));
+        });
+
         AddAssert(
-            "waveform has peaks",
+            "waveform has levels",
             () => Context.Entities.Query<WaveformPreview>().ToEntityList()[0]
-                .GetComponent<WaveformPreview>().Left.Length > 0);
+                .GetComponent<WaveformPreview>().Data!.Steps > 0);
     }
 }

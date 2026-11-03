@@ -14,6 +14,9 @@ public sealed unsafe class MiniaudioTrackAudio : ITrackAudio
     private bool _soundInitialized;
     private bool _disposed;
 
+    /// <summary>The sound the decoder plays before this song's real start; every time we expose has it taken off.</summary>
+    private double _leadInSeconds;
+
     public bool Play(string audioPath, float volume) =>
         Load(audioPath, volume) && Resume();
 
@@ -50,6 +53,8 @@ public sealed unsafe class MiniaudioTrackAudio : ITrackAudio
         }
 
         _soundInitialized = true;
+        _leadInSeconds = Mp3LeadIn.Seconds(path);
+        ma.sound_seek_to_second(_sound, (float)_leadInSeconds);
         ma.sound_set_volume(_sound, volume);
         return true;
     }
@@ -76,7 +81,7 @@ public sealed unsafe class MiniaudioTrackAudio : ITrackAudio
     public void Seek(float seconds)
     {
         if (_soundInitialized)
-            ma.sound_seek_to_second(_sound, MathF.Max(0, seconds));
+            ma.sound_seek_to_second(_sound, MathF.Max(0, seconds) + (float)_leadInSeconds);
     }
 
     public void SetVolume(float volume)
@@ -107,7 +112,7 @@ public sealed unsafe class MiniaudioTrackAudio : ITrackAudio
 
             float cursor;
             return ma.sound_get_cursor_in_seconds(_sound, &cursor) == ma_result.MA_SUCCESS
-                ? cursor
+                ? MathF.Max(0f, cursor - (float)_leadInSeconds)
                 : 0f;
         }
     }
@@ -121,7 +126,7 @@ public sealed unsafe class MiniaudioTrackAudio : ITrackAudio
 
             float length;
             return ma.sound_get_length_in_seconds(_sound, &length) == ma_result.MA_SUCCESS
-                ? length
+                ? MathF.Max(0f, length - (float)_leadInSeconds)
                 : 0f;
         }
     }

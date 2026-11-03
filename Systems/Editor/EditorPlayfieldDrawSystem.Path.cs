@@ -19,13 +19,18 @@ public sealed partial class EditorPlayfieldDrawSystem
     private static readonly Color PathJump = new(Palette.Success, 0.35f);
     private static readonly Color PathBox = new(Palette.Success, 0.14f);
 
+    /// <summary>The hitbox's outline on the frame a note was hit.</summary>
+    public static readonly Color PathHit = Palette.Accent;
+
     private readonly List<Vector2> _pathPoints = new();
     private readonly List<Rect2> _pathBoxes = new();
+    private readonly List<Rect2> _pathHits = new();
 
     /// <summary>
     /// Draws the hitbox's outline all along the path, dense enough to read as the
     /// space it swept, its centre as a line, and its outline at the playhead, so a
-    /// note can be placed for that moment. Outlines off the field area are skipped.
+    /// note can be placed for that moment. The frames a note was hit stand out in
+    /// their own colour. Outlines off the field area are skipped.
     /// </summary>
     private void DrawPlayerPath(PlayfieldView view, Playhead playhead, PlayerPath path, float fieldWidth)
     {
@@ -38,6 +43,7 @@ public sealed partial class EditorPlayfieldDrawSystem
         Vector2? lastBox = null;
         _pathPoints.Clear();
         _pathBoxes.Clear();
+        _pathHits.Clear();
         for (int i = 0; i < samples.Count; i++)
         {
             PlayerPathSample sample = samples[i];
@@ -53,6 +59,13 @@ public sealed partial class EditorPlayfieldDrawSystem
             }
 
             _pathPoints.Add(screen);
+            if (sample.Hit)
+            {
+                var hitBox = new Rect2(screen - size / 2, size);
+                if (hitBox.Intersects(area))
+                    _pathHits.Add(hitBox);
+            }
+
             if (lastBox is not Vector2 boxAt ||
                 sample.Position.DistanceTo(boxAt) >= PathBoxSpacing)
             {
@@ -66,6 +79,8 @@ public sealed partial class EditorPlayfieldDrawSystem
         _canvas.DrawRectOutlines(
             _editor, CollectionsMarshal.AsSpan(_pathBoxes), PathBox);
         FlushPathLine();
+        foreach (Rect2 hitBox in _pathHits)
+            _canvas.DrawBorder(_editor, hitBox, PathHit, 2);
 
         if (PathPositionAt(samples, playhead.TimeMs) is Vector2 now)
         {

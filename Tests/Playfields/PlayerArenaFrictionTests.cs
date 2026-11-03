@@ -52,6 +52,56 @@ public sealed class PlayerArenaFrictionTests
             _root.Update(new UpdateTick(delta, 0));
     }
 
+    [Test]
+    public void AnUpwardLaunchLeavesTheFloor()
+    {
+        Body body = Player(Floor, 0f);
+        body.SetLinearVelocity(new NVector2(3f, -10f));
+
+        Run(1, 1f / 60f);
+
+        Assert.That(body.LinearVelocity.Y, Is.EqualTo(-10f));
+        Assert.That(body.LinearVelocity.X, Is.EqualTo(3f));
+
+        for (int i = 0; i < 10; i++)
+        {
+            _physics.Step(1f / 60f);
+            Run(1, 1f / 60f);
+        }
+
+        Assert.That(
+            Box2DPhysicsWorld.ToScreen(body.GetPosition()).Y,
+            Is.LessThan(Floor - 50f));
+    }
+
+    [Test]
+    public void TheFloorStopsAFall()
+    {
+        Body body = Player(Floor, 0f);
+        body.SetLinearVelocity(new NVector2(0f, 10f));
+
+        Run(1, 1f / 60f);
+
+        Assert.That(body.LinearVelocity.Y, Is.Zero);
+    }
+
+    [Test]
+    public void TheCeilingStopsARiseButLetsADownwardPushThrough()
+    {
+        Body body = Player(50f, 0f);
+        body.SetLinearVelocity(new NVector2(0f, -10f));
+
+        Run(1, 1f / 60f);
+
+        Assert.That(body.LinearVelocity.Y, Is.Zero);
+
+        body.SetLinearVelocity(new NVector2(0f, 10f));
+
+        Run(1, 1f / 60f);
+
+        Assert.That(body.LinearVelocity.Y, Is.EqualTo(10f));
+    }
+
     [TestCase(30, 1f / 60f)]
     [TestCase(120, 1f / 240f)]
     public void TheFloorSlowsASlideTheSameAtAnyFrameRate(int frames, float delta)

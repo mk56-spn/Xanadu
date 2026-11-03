@@ -7,5 +7,5 @@ namespace Xanadu.Systems.Particles;
 public interface IParticleEmitter
 {
     /// <summary>Sets off one burst of <paramref name="kind"/> at a screen position, its colours multiplied by <paramref name="tint"/>.</summary>
-    void Burst(Vector2 position, ParticleKind kind, Color tint);
+    void Burst(Vector2 position, ParticleKind kind, Color tint, Vector2 area = default);
 }

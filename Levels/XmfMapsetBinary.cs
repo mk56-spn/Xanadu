@@ -34,6 +34,9 @@ public static partial class XmfBinary
 
         /// <summary>Optional item colours, absent when every item is untinted.</summary>
         SelfModulates = 7,
+
+        /// <summary>Each variant's spike outlines, absent in mapsets from before spikes had them.</summary>
+        SpikeOutlines = 8,
     }
 
     public static void SaveMapset(string path, XmfMapset mapset)
@@ -62,6 +65,7 @@ public static partial class XmfBinary
             file.Add((uint)MapsetChunkId.NoteExtras, WriteVariantNoteExtras(mapset.Variants));
         if (mapset.Variants.Exists(HasSelfModulates))
             file.Add((uint)MapsetChunkId.SelfModulates, WriteVariantSelfModulates(mapset.Variants));
+        file.Add((uint)MapsetChunkId.SpikeOutlines, WriteVariantSpikeOutlines(mapset.Variants));
         return file.ToArray();
     }
 
@@ -91,7 +95,30 @@ public static partial class XmfBinary
             ReadVariantNoteExtras(noteExtras, mapset.Variants);
         if (file.TryGet((uint)MapsetChunkId.SelfModulates, out Chunk selfModulates))
             ReadVariantSelfModulates(selfModulates, mapset.Variants);
+        if (file.TryGet((uint)MapsetChunkId.SpikeOutlines, out Chunk spikeOutlines))
+            ReadVariantSpikeOutlines(spikeOutlines, mapset.Variants);
         return mapset;
+    }
+
+    private static byte[] WriteVariantSpikeOutlines(List<XmfVariant> variants)
+    {
+        using var stream = new MemoryStream();
+        using var writer = new BinaryWriter(stream, Encoding.UTF8, leaveOpen: true);
+        writer.Write((uint)variants.Count);
+        foreach (XmfVariant variant in variants)
+            writer.Write(WriteSpikeOutlines(variant.Spikes));
+        writer.Flush();
+        return stream.ToArray();
+    }
+
+    private static void ReadVariantSpikeOutlines(Chunk chunk, List<XmfVariant> variants)
+    {
+        using BinaryReader reader = chunk.OpenReader();
+        uint count = ReadCount(reader, MaxItems, "variant spike outline");
+        if (count != variants.Count)
+            throw new FormatException("XMF variant spike outlines do not match the variant count.");
+        foreach (XmfVariant variant in variants)
+            ReadSpikeOutlines(reader, variant.Spikes);
     }
 
     private static void IndexMapsetStrings(XmfMapset mapset, StringTable strings)

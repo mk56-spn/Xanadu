@@ -45,6 +45,9 @@ public static partial class XmfBinary
 
         /// <summary>Optional item colours, absent when every item is untinted.</summary>
         SelfModulates = 12,
+
+        /// <summary>Spike outlines, absent in maps from before spikes had them.</summary>
+        SpikeOutlines = 13,
     }
 
     public static byte[] Write(LevelDocument document)
@@ -66,6 +69,7 @@ public static partial class XmfBinary
             file.Add((uint)ChunkId.NoteExtras, WriteNoteExtras(document.Notes));
         if (HasSelfModulates(document))
             file.Add((uint)ChunkId.SelfModulates, WriteSelfModulates(document));
+        file.Add((uint)ChunkId.SpikeOutlines, WriteSpikeOutlines(document.Spikes));
         return file.ToArray();
     }
 
@@ -104,6 +108,11 @@ public static partial class XmfBinary
         {
             using BinaryReader reader = selfModulates.OpenReader();
             ReadSelfModulates(reader, document);
+        }
+        if (file.TryGet((uint)ChunkId.SpikeOutlines, out Chunk spikeOutlines))
+        {
+            using BinaryReader reader = spikeOutlines.OpenReader();
+            ReadSpikeOutlines(reader, document.Spikes);
         }
         return document;
     }

@@ -24,7 +24,8 @@ public sealed partial class EditorNoteInputSystem
             IsWarningOpen() ||
             IsGroupOverlayOpen() ||
             IsSceneConfirmationOpen() ||
-            EditorPlacementNote.NeedsShape(editor))
+            EditorPlacementNote.NeedsShape(editor) ||
+            HasPickedSelection(editor))
         {
             return false;
         }

@@ -15,15 +15,15 @@ public struct EditorBlockOutlinePanel(Entity section, Entity width, Entity color
     public Entity Color = color;
 }
 
-/// <summary>A button that thickens or thins the selected blocks' outline by whole units.</summary>
+/// <summary>A button that thickens or thins the selected blocks' and spikes' outline by whole units.</summary>
 public struct EditorOutlineStepButton(int delta) : IComponent
 {
     public int Delta = delta;
 }
 
 /// <summary>
-/// Sets the outline of the selected blocks from the sidebar, each change one undo
-/// step, and shows the controls only while a block is selected. As with the self
+/// Sets the outline of the selected blocks and spikes from the sidebar, each change
+/// one undo step, and shows the controls only while one of them is selected. As with the self
 /// modulate field, a typed colour goes to what was selected when typing began.
 /// </summary>
 public sealed class EditorBlockOutlineSystem(EditorHistory history) : QuerySystem<NoteSelection, EditorBlockOutlinePanel>
@@ -42,7 +42,7 @@ public sealed class EditorBlockOutlineSystem(EditorHistory history) : QuerySyste
     {
         EditorBlockOutlinePanel panel = editor.GetComponent<EditorBlockOutlinePanel>();
         NoteSelection selection = editor.GetComponent<NoteSelection>();
-        Entity first = FirstBlock(selection);
+        Entity first = FirstOutlined(selection);
         bool editing = UiColorField.IsEditing(panel.Color);
         UiLayout.SetHidden(panel.Section, first.IsNull && !editing);
 
@@ -66,19 +66,19 @@ public sealed class EditorBlockOutlineSystem(EditorHistory history) : QuerySyste
         if (first.IsNull)
             return;
 
-        Block shown = first.GetComponent<Block>();
-        UiColorField.Show(panel.Color, shown.OutlineColor);
+        (float shownWidth, Color shownColor) = OutlineOf(first);
+        UiColorField.Show(panel.Color, shownColor);
         UiText.Set(
             panel.Width,
-            shown.OutlineWidth > 0f ? $"OUTLINE {shown.OutlineWidth:0}" : "OUTLINE NONE",
+            shownWidth > 0f ? $"OUTLINE {shownWidth:0}" : "OUTLINE NONE",
             CommandBuffer);
     }
 
-    private static Entity FirstBlock(NoteSelection selection)
+    private static Entity FirstOutlined(NoteSelection selection)
     {
         foreach (Entity item in selection.AllNotes)
         {
-            if (IsBlock(item))
+            if (IsOutlined(item))
                 return item;
         }
 
@@ -90,20 +90,20 @@ public sealed class EditorBlockOutlineSystem(EditorHistory history) : QuerySyste
         _targets.Clear();
         foreach (Entity item in selection.AllNotes)
         {
-            if (IsBlock(item))
+            if (IsOutlined(item))
                 _targets.Add(item);
         }
     }
 
     private void ApplyColor(Color color)
     {
-        _targets.RemoveAll(item => !IsBlock(item));
+        _targets.RemoveAll(item => !IsOutlined(item));
         if (_targets.Count == 0)
             return;
 
         EditorSnapshot before = history.Capture();
         foreach (Entity item in _targets)
-            item.GetComponent<Block>().OutlineColor = color;
+            SetColor(item, color);
         history.Record(before, history.Capture());
     }
 
@@ -114,18 +114,44 @@ public sealed class EditorBlockOutlineSystem(EditorHistory history) : QuerySyste
             return;
 
         float width = Mathf.Clamp(
-            first.GetComponent<Block>().OutlineWidth + delta,
+            OutlineOf(first).Width + delta,
             0f,
             Block.MaxOutlineWidth);
         EditorSnapshot before = history.Capture();
         foreach (Entity item in selection.AllNotes)
         {
-            if (IsBlock(item))
-                item.GetComponent<Block>().OutlineWidth = width;
+            if (IsOutlined(item))
+                SetWidth(item, width);
         }
 
         history.Record(before, history.Capture());
     }
 
-    private static bool IsBlock(Entity item) => !item.IsNull && item.HasComponent<Block>();
+    /// <summary>Blocks and spikes carry an outline.</summary>
+    private static bool IsOutlined(Entity item) =>
+        !item.IsNull && (item.HasComponent<Block>() || item.HasComponent<Spike>());
+
+    private static (float Width, Color Color) OutlineOf(Entity item)
+    {
+        if (item.TryGetComponent(out Block block))
+            return (block.OutlineWidth, block.OutlineColor);
+        Spike spike = item.GetComponent<Spike>();
+        return (spike.OutlineWidth, spike.OutlineColor);
+    }
+
+    private static void SetWidth(Entity item, float width)
+    {
+        if (item.HasComponent<Block>())
+            item.GetComponent<Block>().OutlineWidth = width;
+        else
+            item.GetComponent<Spike>().OutlineWidth = width;
+    }
+
+    private static void SetColor(Entity item, Color color)
+    {
+        if (item.HasComponent<Block>())
+            item.GetComponent<Block>().OutlineColor = color;
+        else
+            item.GetComponent<Spike>().OutlineColor = color;
+    }
 }

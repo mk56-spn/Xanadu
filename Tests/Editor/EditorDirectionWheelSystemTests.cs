@@ -2,6 +2,8 @@ using Friflo.Engine.ECS;
 using Godot;
 using NUnit.Framework;
 using Xanadu.Ecs;
+using Xanadu.Settings;
+using Xanadu.Systems.Playfields;
 using Xanadu.Tests.Support;
 using Xanadu.Systems.Editor;
 using Position = Xanadu.Ecs.Position;
@@ -59,6 +61,27 @@ public sealed class EditorDirectionWheelSystemTests : EcsSystemTest
         Assert.That(UiLayout.IsHidden(_label), Is.False);
         Assert.That(_wheel.GetComponent<UiWheel>().Selected,
             Is.EqualTo(1));
+    }
+
+    [Test]
+    public void TheWheelTakesTheColourOfTheNoteBeingPlaced()
+    {
+        _editor.GetComponent<EditorPlacementModeState>().Mode = EditorPlacementMode.Dash;
+        _editor.AddComponent(new EditorNoteTarget(KeybindAction.L3));
+        Root.Update(new UpdateTick(1f / 60f, 0));
+
+        Color color = PlayfieldRenderer.ColorFor(KeybindAction.L3);
+        UiWheel wheel = _wheel.GetComponent<UiWheel>();
+        Assert.That(wheel.SelectedColor, Is.EqualTo(color));
+        Assert.That(wheel.Colors![0], Is.EqualTo(EditorNoteTypeBarSystem.Dimmed(color)));
+        Assert.That(_wheel.Tags.Has<Dirty>(), Is.True);
+
+        _editor.GetComponent<EditorNoteTarget>().Target = KeybindAction.R1;
+        Root.Update(new UpdateTick(1f / 60f, 0));
+
+        Assert.That(
+            _wheel.GetComponent<UiWheel>().SelectedColor,
+            Is.EqualTo(PlayfieldRenderer.ColorFor(KeybindAction.R1)));
     }
 
     [Test]

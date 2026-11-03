@@ -84,6 +84,9 @@ public sealed class EditorNoteTypeBarSystem : QuerySystem<EditorNoteSwatch>
             EditorPlacementMode.Channel or
             EditorPlacementMode.FormStep;
 
+    /// <summary>The unselected variant of a note colour.</summary>
+    public static Color Dimmed(Color color) => color.Lerp(DimTo, Dimming);
+
     private static void Shade(
         Entity swatch,
         KeybindAction action,
@@ -94,7 +97,7 @@ public sealed class EditorNoteTypeBarSystem : QuerySystem<EditorNoteSwatch>
             return;
 
         Color color = PlayfieldRenderer.ColorFor(action);
-        Color normal = selected ? color : color.Lerp(DimTo, Dimming);
+        Color normal = selected ? color : Dimmed(color);
         ref ButtonVisual visual = ref swatch.GetComponent<ButtonVisual>();
         if (visual.Normal == normal)
             return;

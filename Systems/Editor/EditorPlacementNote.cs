@@ -1,6 +1,7 @@
 using Friflo.Engine.ECS;
 using Godot;
 using Xanadu.Ecs;
+using Xanadu.Systems.Physics;
 using Xanadu.Settings;
 using Xanadu.Systems.Playfields;
 
@@ -94,7 +95,7 @@ public static class EditorPlacementNote
     private static float MomentumFor(DashStrength strength) => strength switch
     {
         DashStrength.Double => 900f,
-        DashStrength.Triple => 1200f,
+        DashStrength.Triple => Box2DPhysicsWorld.MaxMomentum,
         _ => 600f,
     };
 }

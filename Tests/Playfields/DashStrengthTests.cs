@@ -11,21 +11,19 @@ public sealed class DashStrengthTests
     [TestCase(DashStrength.Single, 1, "")]
     [TestCase(DashStrength.Double, 2, "×2")]
     [TestCase(DashStrength.Triple, 3, "×3")]
-    public void StrengthLevelAndBadgeMatchTheMultiplier(
+    public void StrengthLevelAndBadgeFollowTheStrength(
         DashStrength strength,
         int level,
         string badge)
     {
         Assert.That(PlayfieldRenderer.DashStrengthLevel(strength), Is.EqualTo(level));
         Assert.That(PlayfieldRenderer.DashStrengthLabel(strength), Is.EqualTo(badge));
-        Assert.That(PlayerMovementSystem.DashStrengthMultiplier(strength),
-            Is.EqualTo(level));
     }
 
-    [TestCase(DashStrength.Single, 150f)]
-    [TestCase(DashStrength.Double, 300f)]
-    [TestCase(DashStrength.Triple, 450f)]
-    public void DashTargetMovesOneTwoOrThreeLengths(
+    [TestCase(DashStrength.Single, 250f)]
+    [TestCase(DashStrength.Double, 375f)]
+    [TestCase(DashStrength.Triple, 500f)]
+    public void DashTargetMovesTheDistanceForItsStrength(
         DashStrength strength,
         float expectedX)
     {

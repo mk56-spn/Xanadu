@@ -545,7 +545,9 @@ public partial class VisualTestMain : Control
         if (_shotPath is null || _shotFrames < 0)
             return false;
 
-        if (++_shotFrames < 60)
+        // A test that runs past the first 60 frames is shot the moment it finishes.
+        bool running = _pendingStartIndex >= 0 || (_runner.Test is not null && _runner.Result is null);
+        if (++_shotFrames < 60 || running)
             return false;
 
         _shotFrames = -1;

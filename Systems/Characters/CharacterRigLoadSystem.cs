@@ -13,8 +13,6 @@ namespace Xanadu.Systems.Characters;
 public sealed class CharacterRigLoadSystem(ICharacterRigFiles files)
     : QuerySystem<PlayerCharacter, PlayfieldMode>
 {
-    public const string IdleClip = "idle";
-
     protected override void OnUpdate()
     {
         foreach (Entity entity in Query.ToEntityList())
@@ -45,7 +43,7 @@ public sealed class CharacterRigLoadSystem(ICharacterRigFiles files)
             }
 
             var runtime = new AnimatorRuntime(package);
-            if (!runtime.Play(IdleClip, 0f) && package.Clips.Count > 0)
+            if (!runtime.Play(ContactClip.Idle.Id(), 0f) && package.Clips.Count > 0)
                 runtime.Play(package.Clips[0].Id, 0f);
             entity.AddComponent(new CharacterRig(runtime));
         }

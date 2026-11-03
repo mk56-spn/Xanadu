@@ -32,7 +32,7 @@ public sealed class CharacterMotionTests : EcsSystemTest
     {
         XafPackage package = Package(falling);
         var runtime = new AnimatorRuntime(package);
-        runtime.Play("idle", 0f);
+        runtime.Play(ContactClip.Idle.Id(), 0f);
         Entity player = Store.CreateEntity(
             new Player(new Vector2(30, 100)),
             new Position(new Vector2(400, y)),
@@ -92,10 +92,10 @@ public sealed class CharacterMotionTests : EcsSystemTest
         player.GetComponent<CharacterMotion>().State;
 
     /// <summary>The clip playing, or the one being faded to.</summary>
-    private static string Clip(Entity player)
+    private static ContactClip? Clip(Entity player)
     {
         AnimatorRuntime runtime = player.GetComponent<CharacterRig>().Runtime;
-        return runtime.IsCrossfading ? runtime.NextClip : runtime.CurrentClip;
+        return ContactClips.FromId(runtime.IsCrossfading ? runtime.NextClip : runtime.CurrentClip);
     }
 
     [Test]
@@ -105,7 +105,7 @@ public sealed class CharacterMotionTests : EcsSystemTest
         Frame(3);
 
         Assert.That(State(player), Is.EqualTo(CharacterMotionState.Grounded));
-        Assert.That(Clip(player), Is.EqualTo("idle"));
+        Assert.That(Clip(player), Is.EqualTo(ContactClip.Idle));
     }
 
     [Test]
@@ -117,7 +117,7 @@ public sealed class CharacterMotionTests : EcsSystemTest
         Frame();
 
         Assert.That(State(player), Is.EqualTo(CharacterMotionState.Jumping));
-        Assert.That(Clip(player), Is.EqualTo("jumping"));
+        Assert.That(Clip(player), Is.EqualTo(ContactClip.Jumping));
     }
 
     [Test]
@@ -137,7 +137,7 @@ public sealed class CharacterMotionTests : EcsSystemTest
         }
 
         Assert.That(State(player), Is.EqualTo(CharacterMotionState.Falling));
-        Assert.That(Clip(player), Is.EqualTo("falling"));
+        Assert.That(Clip(player), Is.EqualTo(ContactClip.Falling));
     }
 
     [Test]
@@ -147,7 +147,7 @@ public sealed class CharacterMotionTests : EcsSystemTest
         Frame(2);
 
         Assert.That(State(player), Is.EqualTo(CharacterMotionState.Falling));
-        Assert.That(Clip(player), Is.EqualTo("jumping"));
+        Assert.That(Clip(player), Is.EqualTo(ContactClip.Jumping));
     }
 
     private System.Collections.Generic.List<ParticleBurst> Bursts()
@@ -205,13 +205,13 @@ public sealed class CharacterMotionTests : EcsSystemTest
         Frame();
 
         Assert.That(State(player), Is.EqualTo(CharacterMotionState.Landing));
-        Assert.That(Clip(player), Is.EqualTo("landing"));
+        Assert.That(Clip(player), Is.EqualTo(ContactClip.Landing));
 
         // The landing clip is 0.25 s long.
         Frame(30);
 
         Assert.That(State(player), Is.EqualTo(CharacterMotionState.Grounded));
-        Assert.That(Clip(player), Is.EqualTo("idle"));
+        Assert.That(Clip(player), Is.EqualTo(ContactClip.Idle));
     }
 
     [Test]
@@ -246,7 +246,7 @@ public sealed class CharacterMotionTests : EcsSystemTest
         Frame(30);
 
         Assert.That(State(player), Is.EqualTo(CharacterMotionState.Grounded));
-        Assert.That(Clip(player), Is.EqualTo("idle"));
+        Assert.That(Clip(player), Is.EqualTo(ContactClip.Idle));
     }
 
     [Test]
@@ -285,7 +285,7 @@ public sealed class CharacterMotionTests : EcsSystemTest
         Frame(3);
 
         Assert.That(State(player), Is.EqualTo(CharacterMotionState.Grounded));
-        Assert.That(Clip(player), Is.EqualTo("idle"));
+        Assert.That(Clip(player), Is.EqualTo(ContactClip.Idle));
     }
 
     [Test]
@@ -293,15 +293,18 @@ public sealed class CharacterMotionTests : EcsSystemTest
     {
         Assert.That(CharacterMotionSystem.Transitions(Package(falling: true)), Is.EquivalentTo(new[]
         {
-            ("idle", "jumping"), ("landing", "jumping"), ("falling", "jumping"),
-            ("jumping", "falling"), ("idle", "falling"), ("landing", "falling"),
-            ("jumping", "landing"), ("falling", "landing"), ("landing", "idle"),
+            (ContactClip.Idle, ContactClip.Jumping), (ContactClip.Landing, ContactClip.Jumping), (ContactClip.Falling, ContactClip.Jumping),
+            (ContactClip.Jumping, ContactClip.Falling), (ContactClip.Idle, ContactClip.Falling), (ContactClip.Landing, ContactClip.Falling),
+            (ContactClip.Jumping, ContactClip.Landing), (ContactClip.Falling, ContactClip.Landing), (ContactClip.Landing, ContactClip.Idle),
+            (ContactClip.Sliding, ContactClip.Jumping), (ContactClip.Sliding, ContactClip.Falling), (ContactClip.Landing, ContactClip.Sliding),
+            (ContactClip.Idle, ContactClip.Sliding), (ContactClip.Sliding, ContactClip.Idle),
         }));
 
         // Without a falling clip the jump pose is kept, so jump-to-fall is no hand-over at all.
         Assert.That(CharacterMotionSystem.Transitions(Package(falling: false)), Is.EquivalentTo(new[]
         {
-            ("idle", "jumping"), ("landing", "jumping"), ("jumping", "landing"), ("landing", "idle"),
+            (ContactClip.Idle, ContactClip.Jumping), (ContactClip.Landing, ContactClip.Jumping), (ContactClip.Jumping, ContactClip.Landing), (ContactClip.Landing, ContactClip.Idle),
+            (ContactClip.Sliding, ContactClip.Jumping), (ContactClip.Landing, ContactClip.Sliding), (ContactClip.Idle, ContactClip.Sliding), (ContactClip.Sliding, ContactClip.Idle),
         }));
     }
 
@@ -310,14 +313,14 @@ public sealed class CharacterMotionTests : EcsSystemTest
     {
         Entity player = Player(Floor);
         XafPackage package = player.GetComponent<CharacterRig>().Runtime.Package;
-        XafTransitions.Allow(package, "jumping", "landing");
+        XafTransitions.Allow(package, ContactClip.Jumping.Id(), ContactClip.Landing.Id());
         Frame();
 
         MoveTo(player, Floor - 50);
         Frame();
 
         Assert.That(State(player), Is.EqualTo(CharacterMotionState.Jumping));
-        Assert.That(Clip(player), Is.EqualTo("idle"));
+        Assert.That(Clip(player), Is.EqualTo(ContactClip.Idle));
     }
 
     [Test]
@@ -325,25 +328,118 @@ public sealed class CharacterMotionTests : EcsSystemTest
     {
         Entity player = Player(Floor);
         AnimatorRuntime runtime = player.GetComponent<CharacterRig>().Runtime;
-        XafTransitions.Allow(runtime.Package, "idle", "jumping").Fade = 0.4f;
+        XafTransitions.Allow(runtime.Package, ContactClip.Idle.Id(), ContactClip.Jumping.Id()).Fade = 0.4f;
         Frame();
 
         MoveTo(player, Floor - 50);
         Frame();
 
-        Assert.That(Clip(player), Is.EqualTo("jumping"));
+        Assert.That(Clip(player), Is.EqualTo(ContactClip.Jumping));
         Assert.That(runtime.FadeDuration, Is.EqualTo(0.4f));
+    }
+
+    private static void Slide(Entity player, float pixelsPerSecond) =>
+        player.GetComponent<PhysicsBody>().Body.SetLinearVelocity(
+            new System.Numerics.Vector2(pixelsPerSecond / Box2DPhysicsWorld.PixelsPerMeter, 0f));
+
+    [TestCase(CharacterMotionSystem.SlideStartSpeed)]
+    [TestCase(-CharacterMotionSystem.SlideStartSpeed)]
+    public void MovingSidewaysOnTheFloorPlaysTheSlideClipInEitherDirection(float speed)
+    {
+        Entity player = Player(Floor);
+        Frame();
+        Slide(player, speed);
+        Frame();
+
+        Assert.That(State(player), Is.EqualTo(CharacterMotionState.Sliding));
+        Assert.That(Clip(player), Is.EqualTo(ContactClip.Sliding));
+    }
+
+    [Test]
+    public void ASlideLastsUntilTheSpeedFallsBelowTheLowerStopSpeed()
+    {
+        Entity player = Player(Floor);
+        Frame();
+        Slide(player, CharacterMotionSystem.SlideStartSpeed - 1f);
+        Frame();
+        Assert.That(State(player), Is.EqualTo(CharacterMotionState.Grounded), "too slow to start");
+
+        Slide(player, CharacterMotionSystem.SlideStartSpeed);
+        Frame();
+        Slide(player, CharacterMotionSystem.SlideStopSpeed);
+        Frame();
+        Assert.That(State(player), Is.EqualTo(CharacterMotionState.Sliding), "fast enough to keep going");
+
+        Slide(player, CharacterMotionSystem.SlideStopSpeed - 1f);
+        Frame();
+        Assert.That(State(player), Is.EqualTo(CharacterMotionState.Grounded));
+        Assert.That(Clip(player), Is.EqualTo(ContactClip.Idle));
+    }
+
+    [Test]
+    public void TouchingDownWithSpeedLandsFirstAndThenSlides()
+    {
+        Entity player = Player(Floor - 200);
+        Frame(2);
+        Slide(player, 300f);
+        MoveTo(player, Floor);
+        Frame();
+        Assert.That(State(player), Is.EqualTo(CharacterMotionState.Landing));
+
+        // The landing clip is 0.25 s long.
+        Frame(30);
+
+        Assert.That(State(player), Is.EqualTo(CharacterMotionState.Sliding));
+    }
+
+    [Test]
+    public void MovingSidewaysInTheAirIsNotASlide()
+    {
+        Entity player = Player(Floor - 200);
+        Frame();
+        Slide(player, 300f);
+        Frame(2);
+
+        Assert.That(State(player), Is.EqualTo(CharacterMotionState.Falling));
+    }
+
+    [Test]
+    public void RisingEndsASlide()
+    {
+        Entity player = Player(Floor);
+        Frame();
+        Slide(player, 300f);
+        Frame();
+
+        MoveTo(player, Floor - 150);
+        Frame();
+
+        Assert.That(State(player), Is.EqualTo(CharacterMotionState.Jumping));
+    }
+
+    [Test]
+    public void ARigWithoutASlideClipStaysIdleWhileSliding()
+    {
+        Entity player = Player(Floor);
+        player.GetComponent<CharacterRig>().Runtime.Package.Clips.RemoveAll(clip => clip.Id == ContactClip.Sliding.Id());
+        Frame();
+        Slide(player, 300f);
+        Frame();
+
+        Assert.That(State(player), Is.EqualTo(CharacterMotionState.Sliding));
+        Assert.That(Clip(player), Is.EqualTo(ContactClip.Idle));
     }
 
     private static XafPackage Package(bool falling)
     {
         var package = new XafPackage();
         package.Skeleton.Bones.Add(new XafBone { Id = "root", Parent = -1, Rest = Transform2D.Identity });
-        package.Clips.Add(new XafClip { Id = "idle", Duration = 2f, Loop = true, LoopEnd = 2f });
-        package.Clips.Add(new XafClip { Id = "jumping", Duration = 0.5f });
-        package.Clips.Add(new XafClip { Id = "landing", Duration = 0.25f });
+        package.Clips.Add(new XafClip { Id = ContactClip.Idle.Id(), Duration = 2f, Loop = true, LoopEnd = 2f });
+        package.Clips.Add(new XafClip { Id = ContactClip.Jumping.Id(), Duration = 0.5f });
+        package.Clips.Add(new XafClip { Id = ContactClip.Landing.Id(), Duration = 0.25f });
+        package.Clips.Add(new XafClip { Id = ContactClip.Sliding.Id(), Duration = 0.4f, Loop = true, LoopEnd = 0.4f });
         if (falling)
-            package.Clips.Add(new XafClip { Id = "falling", Duration = 1f, Loop = true, LoopEnd = 1f });
+            package.Clips.Add(new XafClip { Id = ContactClip.Falling.Id(), Duration = 1f, Loop = true, LoopEnd = 1f });
         return package;
     }
 }

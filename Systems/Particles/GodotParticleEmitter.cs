@@ -19,31 +19,38 @@ public sealed class GodotParticleEmitter : IParticleEmitter, IDisposable
     private const float TextureSize = 16f;
 
     private readonly Rid _parent;
-    private readonly ImageTexture _texture;
+    private readonly ImageTexture _softDot;
+    private readonly ImageTexture _solidSquare;
     private readonly Rid _quad;
+    private readonly ParticleProcessMaterial[] _materials;
     private readonly Pool[] _pools;
     private readonly Resource[] _keepAlive;
 
     public GodotParticleEmitter(Rid parentCanvas)
     {
         _parent = parentCanvas;
-        _texture = SoftDot();
+        _softDot = SoftDot();
+        _solidSquare = SolidSquare();
         _quad = Quad();
 
         ParticleProcessMaterial landing = LandingMaterial();
         ParticleProcessMaterial dash = DashMaterial();
         ParticleProcessMaterial hit = HitMaterial();
-        _keepAlive = new Resource[] { _texture, landing, dash, hit };
+        _keepAlive = new Resource[] { _softDot, _solidSquare, landing, dash, hit };
+        _materials = new[] { landing, dash, hit };
         _pools = new[]
         {
-            new Pool(Build(landing, amount: 14, lifetime: 0.55f)),
-            new Pool(Build(dash, amount: 18, lifetime: 0.45f)),
-            new Pool(Build(hit, amount: 28, lifetime: 0.4f)),
+            new Pool(Build(landing, _softDot, amount: 14, lifetime: 0.55f)),
+            new Pool(Build(dash, _solidSquare, amount: 38, lifetime: 0.8f)),
+            new Pool(Build(hit, _solidSquare, amount: 22, lifetime: 0.4f)),
         };
     }
 
-    public void Burst(Vector2 position, ParticleKind kind, Color tint)
+    public void Burst(Vector2 position, ParticleKind kind, Color tint, Vector2 area = default)
     {
+        // Only where particles start: bursts already in flight keep their places.
+        _materials[(int)kind].EmissionBoxExtents = new Vector3(area.X / 2, area.Y / 2, 0);
+
         Pool pool = _pools[(int)kind];
         Emitter emitter = pool.Emitters[pool.Next];
         pool.Next = (pool.Next + 1) % pool.Emitters.Length;
@@ -71,7 +78,7 @@ public sealed class GodotParticleEmitter : IParticleEmitter, IDisposable
             resource.Dispose();
     }
 
-    private Emitter[] Build(ParticleProcessMaterial material, int amount, float lifetime)
+    private Emitter[] Build(ParticleProcessMaterial material, ImageTexture texture, int amount, float lifetime)
     {
         var emitters = new Emitter[PoolSize];
         for (int i = 0; i < emitters.Length; i++)
@@ -100,7 +107,7 @@ public sealed class GodotParticleEmitter : IParticleEmitter, IDisposable
 
             Rid item = RenderingServer.CanvasItemCreate();
             RenderingServer.CanvasItemSetParent(item, _parent);
-            RenderingServer.CanvasItemAddParticles(item, particles, _texture.GetRid());
+            RenderingServer.CanvasItemAddParticles(item, particles, texture.GetRid());
             emitters[i] = new Emitter(particles, item);
         }
 
@@ -123,29 +130,37 @@ public sealed class GodotParticleEmitter : IParticleEmitter, IDisposable
         ColorRamp = FadeOut(new Color(0.86f, 0.9f, 1f, 0.85f)),
     };
 
-    /// <summary>Spray: bursts out in every direction and slows to a stop.</summary>
+    /// <summary>
+    /// Spray: solid squares at any angle burst out in every direction from the
+    /// box, then fall and shrink away; white, so the burst's tint gives them the note's colour.
+    /// </summary>
     private static ParticleProcessMaterial DashMaterial() => new()
     {
         ParticleFlagDisableZ = true,
+        EmissionShape = ParticleProcessMaterial.EmissionShapeEnum.Box,
         Direction = new Vector3(0, -1, 0),
         Spread = 180f,
-        InitialVelocityMin = 140f,
-        InitialVelocityMax = 340f,
-        Gravity = Vector3.Zero,
-        DampingMin = 160f,
-        DampingMax = 320f,
-        ScaleMin = 0.6f,
-        ScaleMax = 1.4f,
-        ColorRamp = FadeOut(new Color(0.45f, 0.85f, 1f, 0.95f)),
+        InitialVelocityMin = 180f,
+        InitialVelocityMax = 460f,
+        Gravity = new Vector3(0, 1100, 0),
+        DampingMin = 40f,
+        DampingMax = 90f,
+        ScaleMin = 1.2f,
+        ScaleMax = 2.8f,
+        ScaleCurve = Shrink(),
+        AngleMin = 0f,
+        AngleMax = 360f,
+        Color = Colors.White,
     };
 
     /// <summary>
-    /// Sparks: a fast, bright ring thrown out in every direction that brakes
-    /// hard and shrinks away; white, so the burst's tint gives it the note's colour.
+    /// Sparks: fast, solid squares at any angle thrown out from the box in every direction that
+    /// brake hard and shrink away; white, so the burst's tint gives them the note's colour.
     /// </summary>
     private static ParticleProcessMaterial HitMaterial() => new()
     {
         ParticleFlagDisableZ = true,
+        EmissionShape = ParticleProcessMaterial.EmissionShapeEnum.Box,
         Direction = new Vector3(0, -1, 0),
         Spread = 180f,
         InitialVelocityMin = 260f,
@@ -156,7 +171,9 @@ public sealed class GodotParticleEmitter : IParticleEmitter, IDisposable
         ScaleMin = 0.9f,
         ScaleMax = 2f,
         ScaleCurve = Shrink(),
-        ColorRamp = FadeOut(new Color(1.6f, 1.6f, 1.6f, 1f)),
+        AngleMin = 0f,
+        AngleMax = 360f,
+        Color = Colors.White,
     };
 
     /// <summary>Full size at birth, nothing at death.</summary>
@@ -192,6 +209,18 @@ public sealed class GodotParticleEmitter : IParticleEmitter, IDisposable
             }
         }
 
+        return ImageTexture.CreateFromImage(image);
+    }
+
+    /// <summary>A white square with a crisp edge, drawn large so it stays crisp when scaled up and turned.</summary>
+    private static ImageTexture SolidSquare()
+    {
+        const int size = 64;
+        const int inset = 4;
+        Image image = Image.CreateEmpty(size, size, false, Image.Format.Rgba8);
+        image.Fill(Colors.Transparent);
+        // The quad turns with the particle; the clear rim keeps the turned edge from looking jagged.
+        image.FillRect(new Rect2I(inset, inset, size - inset * 2, size - inset * 2), Colors.White);
         return ImageTexture.CreateFromImage(image);
     }
 

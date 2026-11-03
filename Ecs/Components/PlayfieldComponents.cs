@@ -242,7 +242,12 @@ public struct Mine(
 /// A spike tile in playfield coordinates. It is permanent geometry, never
 /// timed: touching it kills the player on contact.
 /// </summary>
-public struct Spike(Vector2 position, Vector2 size, float rotationDegrees = 0f) : IComponent
+public struct Spike(
+    Vector2 position,
+    Vector2 size,
+    float rotationDegrees = 0f,
+    float outlineWidth = Block.DefaultOutlineWidth,
+    Color? outlineColor = null) : IComponent
 {
     /// <summary>Top-left corner, so both edges can sit on grid lines.</summary>
     public Vector2 Position = position;
@@ -251,6 +256,12 @@ public struct Spike(Vector2 position, Vector2 size, float rotationDegrees = 0f) 
 
     /// <summary>Where the tip points, in degrees clockwise from up. Any angle: a spike is not a physics body.</summary>
     public float RotationDegrees = rotationDegrees;
+
+    /// <summary>Outline thickness in playfield units, drawn inside the triangle; 0 is no outline.</summary>
+    public float OutlineWidth = outlineWidth;
+
+    /// <summary>The outline's own colour, as with a block's. The interior's is the spike's <see cref="SelfModulate"/>.</summary>
+    public Color OutlineColor = outlineColor ?? Block.DefaultOutlineColor;
 
     public readonly Vector2 Center => Position + Size / 2;
 
@@ -296,7 +307,8 @@ public struct Block(
     /// <summary>A colour link mask that follows every group the block is in.</summary>
     public const uint AllGroups = uint.MaxValue;
 
-    public static readonly Color DefaultOutlineColor = Palette.BorderStrong;
+    /// <summary>A slightly darker white than the default white body, shared with spikes.</summary>
+    public static readonly Color DefaultOutlineColor = new(0.84f, 0.84f, 0.86f);
 
     /// <summary>Top-left corner, so both edges can sit on grid lines.</summary>
     public Vector2 Position = position;

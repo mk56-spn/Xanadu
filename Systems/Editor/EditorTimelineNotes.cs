@@ -17,8 +17,18 @@ public static class EditorTimelineNotes
     private const int MaxStack = 7;
     private const float Gap = 1f;
 
-    /// <summary>The side of a note square at a timeline zoom.</summary>
-    public static float SquareSize(float zoom) => Math.Clamp(6f + zoom * 0.0625f, 6f, 8f);
+    /// <summary>Extra room either side of a square that still grabs it; the stack gap keeps it vertically.</summary>
+    private const float HitSlopX = 4f;
+
+    /// <summary>
+    /// The side of a note square at a timeline zoom. Large enough to grab
+    /// without aiming; a full stack of seven still fits the 96px strip.
+    /// </summary>
+    public static float SquareSize(float zoom) => Math.Clamp(10f + zoom * 0.0625f, 10f, 12f);
+
+    /// <summary>The area that picks a note's square: the square, widened so a near miss still lands.</summary>
+    public static Rect2 HitBounds(Rect2 square) =>
+        square.GrowIndividual(HitSlopX, Gap / 2, HitSlopX, Gap / 2);
 
     /// <summary>The square of every note in the visible window, in screen space.</summary>
     public static List<(Entity Note, Rect2 Bounds)> Slots(

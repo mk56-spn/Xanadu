@@ -15,14 +15,17 @@ namespace Xanadu.Systems.Characters;
 /// and plays the matching clip. The only ground is the arena floor, and dashes
 /// teleport, so the state comes from where the player is and how it moved:
 /// moving up is a jump, airborne otherwise is a fall, and touching the floor
-/// plays the landing clip once before going back to idle.
+/// plays the landing clip once before going back to idle. On the ground, moving
+/// sideways is a slide, since momentum is the only thing that carries the player
+/// along the floor.
 /// </summary>
 public sealed class CharacterMotionSystem : QuerySystem<CharacterRig, Player, Position>
 {
-    public const string IdleClip = CharacterRigLoadSystem.IdleClip;
-    public const string JumpClip = "jumping";
-    public const string FallClip = "falling";
-    public const string LandClip = "landing";
+    /// <summary>Sideways speed, in pixels per second, at which a player on the ground starts sliding.</summary>
+    public const float SlideStartSpeed = 60f;
+
+    /// <summary>Sideways speed, in pixels per second, below which a slide ends; lower than the start so it cannot flicker.</summary>
+    public const float SlideStopSpeed = 30f;
 
     /// <summary>A dash is instant, so a jump is held this long before it can turn into a fall.</summary>
     public const float JumpHoldSeconds = 0.3f;
@@ -45,7 +48,8 @@ public sealed class CharacterMotionSystem : QuerySystem<CharacterRig, Player, Po
     /// <summary>
     /// Every change of state <see cref="Next"/> can make. Rising always jumps,
     /// leaving the floor falls, touching it lands (or goes straight to the
-    /// ground without a landing clip), and a landing ends on the ground.
+    /// ground without a landing clip), a landing ends on the ground, and the
+    /// ground and a slide turn into each other with sideways speed.
     /// </summary>
     private static readonly (CharacterMotionState From, CharacterMotionState To)[] StateChanges =
     {
@@ -60,6 +64,13 @@ public sealed class CharacterMotionSystem : QuerySystem<CharacterRig, Player, Po
         (CharacterMotionState.Jumping, CharacterMotionState.Grounded),
         (CharacterMotionState.Falling, CharacterMotionState.Grounded),
         (CharacterMotionState.Landing, CharacterMotionState.Grounded),
+        (CharacterMotionState.Sliding, CharacterMotionState.Jumping),
+        (CharacterMotionState.Sliding, CharacterMotionState.Falling),
+        (CharacterMotionState.Jumping, CharacterMotionState.Sliding),
+        (CharacterMotionState.Falling, CharacterMotionState.Sliding),
+        (CharacterMotionState.Landing, CharacterMotionState.Sliding),
+        (CharacterMotionState.Grounded, CharacterMotionState.Sliding),
+        (CharacterMotionState.Sliding, CharacterMotionState.Grounded),
     };
 
     protected override void OnUpdate()
@@ -88,7 +99,7 @@ public sealed class CharacterMotionSystem : QuerySystem<CharacterRig, Player, Po
             motion.LastRiseSpeed = UpwardSpeed(entity);
             motion.LastY = y;
 
-            CharacterMotionState next = Next(motion, rising, OnFloor(entity, y), runtime);
+            CharacterMotionState next = Next(motion, rising, OnFloor(entity, y), SidewaysSpeed(entity), runtime);
             // A second jump while still jumping replays the jump from the start.
             bool rejump = freshRise && motion.State == CharacterMotionState.Jumping;
             if (next == motion.State && !rejump)
@@ -113,11 +124,12 @@ public sealed class CharacterMotionSystem : QuerySystem<CharacterRig, Player, Po
         from is CharacterMotionState.Jumping or CharacterMotionState.Falling &&
         to is CharacterMotionState.Landing or CharacterMotionState.Grounded;
 
-    /// <summary>The state after this frame, given whether the player rose and whether it is on the floor.</summary>
+    /// <summary>The state after this frame, given whether the player rose, whether it is on the floor and how fast it moves sideways.</summary>
     public static CharacterMotionState Next(
         CharacterMotion motion,
         bool rising,
         bool onFloor,
+        float sidewaysSpeed,
         AnimatorRuntime runtime)
     {
         if (rising)
@@ -128,10 +140,12 @@ public sealed class CharacterMotionSystem : QuerySystem<CharacterRig, Player, Po
             return motion.State switch
             {
                 CharacterMotionState.Jumping or CharacterMotionState.Falling =>
-                    HasClip(runtime, LandClip) ? CharacterMotionState.Landing : CharacterMotionState.Grounded,
-                CharacterMotionState.Landing when motion.StateTime >= ClipLength(runtime, LandClip) =>
-                    CharacterMotionState.Grounded,
-                _ => motion.State,
+                    runtime.Package.Has(ContactClip.Landing) ? CharacterMotionState.Landing : OnGround(sidewaysSpeed, SlideStartSpeed),
+                CharacterMotionState.Landing when motion.StateTime >= runtime.Package.Length(ContactClip.Landing) =>
+                    OnGround(sidewaysSpeed, SlideStartSpeed),
+                CharacterMotionState.Landing => CharacterMotionState.Landing,
+                CharacterMotionState.Sliding => OnGround(sidewaysSpeed, SlideStopSpeed),
+                _ => OnGround(sidewaysSpeed, SlideStartSpeed),
             };
         }
 
@@ -140,19 +154,23 @@ public sealed class CharacterMotionSystem : QuerySystem<CharacterRig, Player, Po
         return CharacterMotionState.Falling;
     }
 
+    private static CharacterMotionState OnGround(float sidewaysSpeed, float slideSpeed) =>
+        sidewaysSpeed >= slideSpeed ? CharacterMotionState.Sliding : CharacterMotionState.Grounded;
+
     /// <summary>
     /// Clip for a state. A rig without a falling clip keeps its jump pose
-    /// while falling, and one without a jump clip stays idle.
+    /// while falling, and one without a jump or slide clip stays idle.
     /// </summary>
-    public static string ClipFor(CharacterMotionState state, AnimatorRuntime runtime) =>
+    public static ContactClip ClipFor(CharacterMotionState state, AnimatorRuntime runtime) =>
         ClipFor(state, runtime.Package);
 
-    public static string ClipFor(CharacterMotionState state, XafPackage package) => state switch
+    public static ContactClip ClipFor(CharacterMotionState state, XafPackage package) => state switch
     {
-        CharacterMotionState.Jumping => First(package, JumpClip, IdleClip),
-        CharacterMotionState.Falling => First(package, FallClip, JumpClip, IdleClip),
-        CharacterMotionState.Landing => First(package, LandClip, IdleClip),
-        _ => IdleClip,
+        CharacterMotionState.Jumping => First(package, ContactClip.Jumping, ContactClip.Idle),
+        CharacterMotionState.Falling => First(package, ContactClip.Falling, ContactClip.Jumping, ContactClip.Idle),
+        CharacterMotionState.Landing => First(package, ContactClip.Landing, ContactClip.Idle),
+        CharacterMotionState.Sliding => First(package, ContactClip.Sliding, ContactClip.Idle),
+        _ => ContactClip.Idle,
     };
 
     /// <summary>
@@ -160,18 +178,22 @@ public sealed class CharacterMotionSystem : QuerySystem<CharacterRig, Player, Po
     /// has. The package's transition table decides whether each one happens
     /// and how it blends; one it does not allow leaves the old clip playing.
     /// </summary>
-    public static List<(string From, string To)> Transitions(XafPackage package)
+    public static List<(ContactClip From, ContactClip To)> Transitions(XafPackage package)
     {
-        bool landing = HasClip(package, LandClip);
-        var pairs = new List<(string, string)>();
+        bool landing = package.Has(ContactClip.Landing);
+        var pairs = new List<(ContactClip, ContactClip)>();
         foreach ((CharacterMotionState from, CharacterMotionState to) in StateChanges)
         {
             // With a landing clip, touching down always lands first.
-            if (landing && to == CharacterMotionState.Grounded && from != CharacterMotionState.Landing)
+            if (landing &&
+                from is CharacterMotionState.Jumping or CharacterMotionState.Falling &&
+                to is CharacterMotionState.Grounded or CharacterMotionState.Sliding)
+            {
                 continue;
+            }
 
-            string a = ClipFor(from, package);
-            string b = ClipFor(to, package);
+            ContactClip a = ClipFor(from, package);
+            ContactClip b = ClipFor(to, package);
             if (a != b && !pairs.Contains((a, b)))
                 pairs.Add((a, b));
         }
@@ -180,7 +202,7 @@ public sealed class CharacterMotionSystem : QuerySystem<CharacterRig, Player, Po
 
     private static void Play(AnimatorRuntime runtime, CharacterMotionState state, bool restart)
     {
-        string clip = ClipFor(state, runtime);
+        string clip = ClipFor(state, runtime).Id();
         if (restart && runtime.CurrentClip == clip)
             runtime.Restart();
         else
@@ -208,6 +230,11 @@ public sealed class CharacterMotionSystem : QuerySystem<CharacterRig, Player, Po
     private static float UpwardSpeed(Entity entity) =>
         entity.TryGetComponent(out PhysicsBody body)
             ? -body.Body.LinearVelocity.Y * Box2DPhysicsWorld.PixelsPerMeter
+            : 0f;
+
+    private static float SidewaysSpeed(Entity entity) =>
+        entity.TryGetComponent(out PhysicsBody body)
+            ? Math.Abs(body.Body.LinearVelocity.X) * Box2DPhysicsWorld.PixelsPerMeter
             : 0f;
 
     /// <summary>Before play starts the player has no body and just stands where it was placed.</summary>
@@ -252,21 +279,13 @@ public sealed class CharacterMotionSystem : QuerySystem<CharacterRig, Player, Po
         return false;
     }
 
-    private static string First(XafPackage package, params string[] clips)
+    private static ContactClip First(XafPackage package, params ContactClip[] clips)
     {
-        foreach (string clip in clips)
+        foreach (ContactClip clip in clips)
         {
-            if (HasClip(package, clip))
+            if (package.Has(clip))
                 return clip;
         }
         return clips[^1];
     }
-
-    private static bool HasClip(AnimatorRuntime runtime, string id) => HasClip(runtime.Package, id);
-
-    private static bool HasClip(XafPackage package, string id) =>
-        package.Clips.Exists(clip => clip.Id == id);
-
-    private static float ClipLength(AnimatorRuntime runtime, string id) =>
-        runtime.Package.Clips.Find(clip => clip.Id == id)?.Duration ?? 0f;
 }

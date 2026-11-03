@@ -6,6 +6,7 @@ using System.Linq;
 using Godot;
 using NUnit.Framework;
 using Xanadu.Animation;
+using Xanadu.Ecs;
 
 namespace Xanadu.Tests.Animation;
 
@@ -63,11 +64,9 @@ public sealed class ContactRigAssetTests
         // The animator can add clips of its own, such as a work-in-progress duplicate,
         // so this pins only the ones the game plays by name.
         Assert.That(package.Clips.ConvertAll(clip => clip.Id),
-            Is.SupersetOf(new[]
-            {
-                "idle", "jumping", "landing", "death", "attack_low", "attack_mid",
-                "attack_high", "attack_air_low", "attack_air_mid", "attack_air_high",
-            }));
+            Is.SupersetOf(Array.ConvertAll(
+                Array.FindAll(ContactClips.All, clip => clip != ContactClip.Falling),
+                clip => clip.Id())));
     }
 
     /// <summary>
@@ -79,8 +78,8 @@ public sealed class ContactRigAssetTests
     {
         XafPackage package = Load();
 
-        foreach ((string from, string to) in Xanadu.Systems.Characters.CharacterMotionSystem.Transitions(package))
-            Assert.That(XafTransitions.Allows(package, from, to), Is.True, $"{from} to {to}");
+        foreach ((ContactClip from, ContactClip to) in Xanadu.Systems.Characters.CharacterMotionSystem.Transitions(package))
+            Assert.That(XafTransitions.Allows(package, from.Id(), to.Id()), Is.True, $"{from} to {to}");
     }
 
     /// <summary>
@@ -142,22 +141,23 @@ public sealed class ContactRigAssetTests
     /// The hair settled at the rest pose, then carried through the clips the way the
     /// game plays them: one into the next with a short crossfade, at 60 Hz.
     /// </summary>
-    private static IEnumerable<(XafChainSimulation Simulation, Transform2D[] World, string Clip)> HairThroughEveryClip(
+    private static IEnumerable<(XafChainSimulation Simulation, Transform2D[] World, ContactClip Clip)> HairThroughEveryClip(
         XafPackage package)
     {
         var runtime = new AnimatorRuntime(package);
-        runtime.Play("idle", 0f);
+        runtime.Play(ContactClip.Idle.Id(), 0f);
         var simulation = new XafChainSimulation();
         Transform2D[] rest = XafRig.WorldBones(package, runtime.Pose);
         for (int i = 0; i < 180; i++)
             simulation.Update(package, rest, 1f / 60f);
 
-        foreach ((string clip, float seconds) in new[]
+        foreach ((ContactClip clip, float seconds) in new[]
                  {
-                     ("idle", 1.5f), ("jumping", 1.2f), ("landing", 0.3f), ("idle", 1f), ("jumping", 0.6f), ("death", 2f),
+                     (ContactClip.Idle, 1.5f), (ContactClip.Jumping, 1.2f), (ContactClip.Landing, 0.3f),
+                     (ContactClip.Sliding, 1f), (ContactClip.Idle, 1f), (ContactClip.Jumping, 0.6f), (ContactClip.Death, 2f),
                  })
         {
-            runtime.Play(clip, 0.1f);
+            runtime.Play(clip.Id(), 0.1f);
             for (int frame = 0; frame < (int)(seconds * 60); frame++)
             {
                 runtime.Update(1f / 60f);
@@ -175,7 +175,7 @@ public sealed class ContactRigAssetTests
         XafChain hair = Hair(package);
 
         int frames = 0;
-        foreach ((XafChainSimulation simulation, Transform2D[] world, string clip) in HairThroughEveryClip(package))
+        foreach ((XafChainSimulation simulation, Transform2D[] world, ContactClip clip) in HairThroughEveryClip(package))
         {
             frames++;
             Vector2 shoulder = XafChainSimulation.Collider(package, hair, world)!.Value;
@@ -191,6 +191,30 @@ public sealed class ContactRigAssetTests
         }
 
         Assert.That(frames, Is.GreaterThan(200));
+    }
+
+    /// <summary>The ground under the feet, in rig space, so the slide stays on the floor the idle stands on.</summary>
+    private static float LowestFootY(XafPackage package, ContactClip clip, float time)
+    {
+        var runtime = new AnimatorRuntime(package);
+        runtime.Play(clip.Id(), 0f);
+        runtime.Update(time);
+        Transform2D[] world = XafRig.WorldBones(package, runtime.Pose);
+        return Math.Max(
+            world[XafRig.FindBone(package, "foot_l")].Origin.Y,
+            world[XafRig.FindBone(package, "foot_r")].Origin.Y);
+    }
+
+    [Test]
+    public void TheSlideLoopsAndKeepsItsFeetOnTheGroundTheIdleStandsOn()
+    {
+        XafPackage package = Load();
+        XafClip slide = package.Clips.Single(clip => clip.Id == ContactClip.Sliding.Id());
+
+        Assert.That(slide.Loop, Is.True);
+        float ground = LowestFootY(package, ContactClip.Idle, 0f);
+        for (float time = 0f; time < slide.Duration; time += 0.02f)
+            Assert.That(LowestFootY(package, ContactClip.Sliding, time), Is.EqualTo(ground).Within(3f), $"at {time}");
     }
 
     [Test]

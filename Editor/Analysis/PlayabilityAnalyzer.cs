@@ -47,7 +47,7 @@ public readonly record struct PlayabilityGeometry(
 
 /// <summary>
 /// Finds notes the player can never be touching. The player only moves by
-/// dashing, which teleports them to the dash target of a movement note, and
+/// dashing, which teleports them a set distance from where they are, and
 /// otherwise just falls. So after each dash the player sits at one x (the
 /// field wraps sideways) and can only be at or below the height gravity gives
 /// them. A note outside that is unreachable no matter how well it is played.
@@ -102,8 +102,9 @@ public static class PlayabilityAnalyzer
                 : Math.Max(0, note.TimeMs - geometry.WindowMs - dashedAt) / 1000f;
             float highest = Math.Min(
                 floor,
-                player.Y + 0.5f * geometry.GravityPixelsPerSecondSquared * earliest * earliest);
+                player.Y + FallDistance(geometry.GravityPixelsPerSecondSquared, earliest));
 
+            bool reachable = false;
             if (sideways >= reach)
             {
                 issues.Add(new PlayabilityIssue(
@@ -120,14 +121,22 @@ public static class PlayabilityAnalyzer
                     PlayabilityProblem.TooHigh,
                     (highest - (screen.Y + reach)) / geometry.Scale));
             }
+            else
+            {
+                reachable = true;
+            }
 
             if (note.Kind != NoteKind.Dash)
                 continue;
 
             // Assume the dash happens, even for an unreachable note, so one
-            // bad note does not flag everything after it.
+            // bad note does not flag everything after it. That dash leaves from
+            // the note, since the player was never there to leave from anywhere.
+            Vector2 origin = reachable
+                ? (new Vector2(player.X, highest) - geometry.Origin) / geometry.Scale
+                : note.Position;
             Vector2 target = PlayerMovementSystem.DashTarget(
-                note.Position, note.Direction, note.Strength);
+                origin, note.Direction, note.Strength);
             Vector2 landed = ToScreen(target, geometry);
             player = new Vector2(
                 Wrap(landed.X, geometry),
@@ -136,6 +145,14 @@ public static class PlayabilityAnalyzer
         }
 
         return issues;
+    }
+
+    /// <summary>How far, in pixels, a player falls from rest in this time, stopping at the terminal speed.</summary>
+    public static float FallDistance(float gravity, float seconds)
+    {
+        float terminal = Box2DPhysicsWorld.MaxSpeed * Box2DPhysicsWorld.PixelsPerMeter;
+        float accelerating = Math.Min(seconds, terminal / gravity);
+        return 0.5f * gravity * accelerating * accelerating + terminal * (seconds - accelerating);
     }
 
     private static Vector2 ToScreen(Vector2 position, PlayabilityGeometry geometry) =>

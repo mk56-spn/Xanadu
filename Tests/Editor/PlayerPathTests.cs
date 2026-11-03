@@ -51,6 +51,23 @@ public sealed class PlayerPathTests
     private List<PlayerPathSample> Samples => _player.GetComponent<PlayerPathRecorder>().Samples;
 
     [Test]
+    public void TheFrameANoteIsHitIsMarkedEvenWithoutMoving()
+    {
+        _player.AddComponent(new ScoreState());
+        Frame(0, new Vector2(110, 120));
+
+        _player.GetComponent<ScoreState>().NotesHit = 1;
+        Frame(10, new Vector2(110, 120));
+        Frame(20, new Vector2(150, 120), speed: 100f);
+
+        Assert.That(Samples, Has.Count.EqualTo(3));
+        Assert.That(Samples[0].Hit, Is.False);
+        Assert.That(Samples[1].Hit, Is.True);
+        Assert.That(Samples[1].TimeMs, Is.EqualTo(10));
+        Assert.That(Samples[2].Hit, Is.False);
+    }
+
+    [Test]
     public void SamplesAreInFieldUnits()
     {
         Frame(0, new Vector2(110, 120));

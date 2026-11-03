@@ -172,6 +172,15 @@ public sealed class ShaderRoutingCanvas(IRectCanvas inner, Rid root, IShaderCanv
         bool bold) =>
         inner.DrawTextWeighted(Route(canvas), bounds, text, color, fontSize, align, bold);
 
+    public void DrawTextMono(
+        Rid canvas,
+        Rect2 bounds,
+        string text,
+        Color color,
+        int fontSize,
+        TextAlign align) =>
+        inner.DrawTextMono(Route(canvas), bounds, text, color, fontSize, align);
+
     public void DrawTextGlow(
         Rid canvas,
         Rect2 bounds,

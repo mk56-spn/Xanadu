@@ -162,6 +162,19 @@ public static class Palette
     /// <summary>Rose. Block hitboxes and animator attachment previews.</summary>
     public static readonly Color Rose = new("#fb7185");
 
+    // The waveform is one slate-blue ramp, darkest for the bass and lightest for
+    // the highs: it reads as backdrop, so the notes, ticks and markers drawn
+    // over it keep their colours to themselves.
+
+    /// <summary>The bass of a song on the editor's timeline.</summary>
+    public static readonly Color WaveLow = new("#1c2c47");
+
+    /// <summary>The middle of a song on the editor's timeline.</summary>
+    public static readonly Color WaveMid = new("#2c4266");
+
+    /// <summary>The highs of a song on the editor's timeline.</summary>
+    public static readonly Color WaveHigh = new("#4a6288");
+
     /// <summary><paramref name="color"/> with its alpha replaced.</summary>
     public static Color WithAlpha(Color color, float alpha) =>
         new(color.R, color.G, color.B, alpha);

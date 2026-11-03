@@ -37,23 +37,28 @@ public sealed class PlayerPathRecordSystem
                 return;
             }
 
+            // A hit always gets a sample, however little the player has moved.
+            int notesHit = entity.TryGetComponent(out ScoreState score) ? score.NotesHit : 0;
+            bool hit = notesHit > recorder.NotesHit;
+            recorder.NotesHit = notesHit;
+
             List<PlayerPathSample> samples = recorder.Samples;
             Vector2 at = view.ScreenToPlayfield(position.Value);
             if (samples.Count == 0)
             {
-                samples.Add(new PlayerPathSample(at, playhead.TimeMs, false));
+                samples.Add(new PlayerPathSample(at, playhead.TimeMs, false, hit));
                 return;
             }
 
             PlayerPathSample last = samples[^1];
             float moved = (at - last.Position).Length();
-            if (moved < MinMove && playhead.TimeMs - last.TimeMs < MaxGapMs)
+            if (!hit && moved < MinMove && playhead.TimeMs - last.TimeMs < MaxGapMs)
                 return;
 
             float speed = body.Body.LinearVelocity.Length() * Box2DPhysicsWorld.PixelsPerMeter;
             float elapsed = System.Math.Max(delta, (playhead.TimeMs - last.TimeMs) / 1000f);
             bool jump = moved * view.Scale > speed * elapsed * 2f + JumpSlack;
-            samples.Add(new PlayerPathSample(at, playhead.TimeMs, jump));
+            samples.Add(new PlayerPathSample(at, playhead.TimeMs, jump, hit));
         });
     }
 }

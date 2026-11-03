@@ -88,7 +88,7 @@ public sealed partial class PlayNoteInputSystem : QuerySystem<Note>
         ref Playhead playhead = ref playfield.GetComponent<Playhead>();
         ref ScoreState score = ref playfield.GetComponent<ScoreState>();
         ref PlayfieldView view = ref playfield.GetComponent<PlayfieldView>();
-        long judgedTime = playhead.TimeMs - _offsets.OffsetMs;
+        long judgedTime = playhead.TimeMs - PlayOffset.TotalMs(playfield, _offsets);
         long window = (long)ScoreRules.JudgementDeviation(Judgement.Miss);
         Entity hit = default;
         Note hitNote = default;
@@ -162,7 +162,7 @@ public sealed partial class PlayNoteInputSystem : QuerySystem<Note>
         ref PlayfieldView view = ref playfield.GetComponent<PlayfieldView>();
         Player player = playfield.GetComponent<Player>();
         Vector2 playerScreen = playfield.GetComponent<Position>().Value;
-        long judgedTime = playhead.TimeMs - _offsets.OffsetMs;
+        long judgedTime = playhead.TimeMs - PlayOffset.TotalMs(playfield, _offsets);
 
         var playerRect = new Rect2(
             playerScreen - player.Size / 2,
@@ -215,7 +215,7 @@ public sealed partial class PlayNoteInputSystem : QuerySystem<Note>
         if (playhead.DurationMs > 0 && playhead.TimeMs >= playhead.DurationMs)
             return;
 
-        long judgedTime = playhead.TimeMs - _offsets.OffsetMs;
+        long judgedTime = playhead.TimeMs - PlayOffset.TotalMs(playfield, _offsets);
         long missWindow = (long)ScoreRules.JudgementDeviation(Judgement.Miss);
         CharacterKind? character = playfield.TryGetComponent(
             out PlayerCharacter playerCharacter)
@@ -459,7 +459,8 @@ public sealed partial class PlayNoteInputSystem : QuerySystem<Note>
             entity.RemoveTag<ConstructionHidden>();
             _entities.CreateEntity(new ParticleBurst(
                 view.PlayfieldToScreen(block.Center),
-                ParticleKind.Dash));
+                ParticleKind.Dash,
+                PlayfieldRenderer.ColorFor(note)));
             break;
         }
 
@@ -497,7 +498,7 @@ public sealed partial class PlayNoteInputSystem : QuerySystem<Note>
     {
         ref Playhead playhead = ref playfield.GetComponent<Playhead>();
         ref ScoreState score = ref playfield.GetComponent<ScoreState>();
-        long judgedTime = playhead.TimeMs - _offsets.OffsetMs;
+        long judgedTime = playhead.TimeMs - PlayOffset.TotalMs(playfield, _offsets);
 
         if (playhead.DurationMs > 0 && playhead.TimeMs >= playhead.DurationMs)
             return;

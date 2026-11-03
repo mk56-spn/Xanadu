@@ -1,27 +1,25 @@
 using System;
-using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Godot;
 using Xanadu.Ecs;
+using Xanadu.Scenes;
 using Xanadu.Settings;
 using Xanadu.Systems.Audio;
 using Xanadu.Systems.Input;
+using Position = Xanadu.Ecs.Position;
 
 namespace Xanadu.Systems.Scenes;
 
 /// <summary>
-/// Drives the offset calibration wizard: plays the click track, records taps
-/// against the nearest beat, averages them and writes the global offset.
+/// Drives the offset calibration screen: plays the click track, takes taps with the
+/// clock play judges with, plots each as it would score under the saved offset, and
+/// applies the measured offset when asked.
 /// </summary>
 public sealed class OffsetWizardSystem : QuerySystem<OffsetWizard>
 {
-    public const string TrackPath = "res://Audio/offset-calibration.mp3";
-
-    private const double LeadInSeconds = 1.0;
-    private const double BeatIntervalSeconds = 0.5;
-    private const int BeatCount = 8;
-    private const double HitToleranceSeconds = 0.25;
+    /// <summary>Spread above which a run is too unsteady to rely on, in milliseconds.</summary>
+    public const double ShakySpreadMs = 30d;
 
     private readonly ITrackAudio _audio;
     private readonly OffsetSettings _settings;
@@ -30,6 +28,7 @@ public sealed class OffsetWizardSystem : QuerySystem<OffsetWizard>
     private bool _wasSpace;
     private bool _wasEscape;
     private bool _sawPlayback;
+    private bool _clickTrackOn;
 
     public OffsetWizardSystem(
         EntityStore entities,
@@ -46,7 +45,16 @@ public sealed class OffsetWizardSystem : QuerySystem<OffsetWizard>
 
     protected override void OnUpdate()
     {
-        foreach (Entity entity in Query.ToEntityList())
+        var wizards = Query.ToEntityList();
+
+        // Leaving by any route, BACK included, must not leave the clicks playing.
+        if (wizards.Count == 0 && _clickTrackOn)
+        {
+            _audio.Stop();
+            _clickTrackOn = false;
+        }
+
+        foreach (Entity entity in wizards)
         {
             ref OffsetWizard wizard = ref entity.GetComponent<OffsetWizard>();
             Handle(ref wizard);
@@ -58,10 +66,9 @@ public sealed class OffsetWizardSystem : QuerySystem<OffsetWizard>
         if (!wizard.Initialized)
         {
             wizard.Initialized = true;
-            UiText.Set(
-                wizard.StatusLabel,
-                "Press START, then tap SPACE on every click.");
-            UpdateOffsetLabel(ref wizard);
+            UiText.Set(wizard.StatusLabel, "Press SPACE or START when you are ready.");
+            UiLayout.SetDisabled(wizard.Apply, true);
+            ShowOffset(ref wizard);
         }
 
         if (_keyboard is not null)
@@ -71,32 +78,22 @@ public sealed class OffsetWizardSystem : QuerySystem<OffsetWizard>
             if (space && !_wasSpace)
                 TapOrStart(ref wizard);
             if (escape && !_wasEscape)
-            {
-                _audio.Stop();
                 _onBack?.Invoke();
-            }
 
             _wasSpace = space;
             _wasEscape = escape;
         }
 
-        if (IsPressed(wizard.Start) && !wizard.Listening)
-        {
+        if (TakePress(wizard.Start))
             Start(ref wizard);
-            wizard.Start.RemoveTag<Pressed>();
-        }
-
-        if (IsPressed(wizard.Reset))
-        {
-            Reset(ref wizard);
-            wizard.Reset.RemoveTag<Pressed>();
-        }
-
-        if (IsPressed(wizard.Save))
-        {
-            Save(ref wizard);
-            wizard.Save.RemoveTag<Pressed>();
-        }
+        if (TakePress(wizard.Apply))
+            Apply(ref wizard);
+        if (TakePress(wizard.Reset))
+            SetOffset(ref wizard, 0);
+        if (TakePress(wizard.NudgeDown))
+            SetOffset(ref wizard, _settings.OffsetMs - 1);
+        if (TakePress(wizard.NudgeUp))
+            SetOffset(ref wizard, _settings.OffsetMs + 1);
 
         if (!wizard.Listening)
             return;
@@ -104,6 +101,8 @@ public sealed class OffsetWizardSystem : QuerySystem<OffsetWizard>
         if (_audio.IsPlaying)
         {
             _sawPlayback = true;
+            if (wizard.Run.TapCount == 0 && OffsetCalibration.InCountIn(_audio.PositionSeconds))
+                UiText.Set(wizard.StatusLabel, "Count in... find the beat.");
         }
         else if (_sawPlayback)
         {
@@ -119,102 +118,121 @@ public sealed class OffsetWizardSystem : QuerySystem<OffsetWizard>
             return;
         }
 
-        double position = _audio.PositionSeconds;
-        double relative = (position - LeadInSeconds) / BeatIntervalSeconds;
-        int beat = (int)Math.Round(relative);
-        double beatPosition = LeadInSeconds + beat * BeatIntervalSeconds;
-
-        if (beat < 0 ||
-            beat >= BeatCount ||
-            Math.Abs(position - beatPosition) > HitToleranceSeconds)
-        {
+        if (!wizard.Run.Tap(_audio.PositionSeconds))
             return;
-        }
 
-        wizard.Samples.Add((position - beatPosition) * 1000.0);
-        wizard.Average = Average(wizard.Samples);
+        Plot(ref wizard);
         UiText.Set(
             wizard.StatusLabel,
-            $"{wizard.Samples.Count} / {BeatCount} clicks   ·   " +
-            $"average {wizard.Average:+0;-0;0} ms");
-
-        if (wizard.Samples.Count >= BeatCount)
+            $"{wizard.Run.TapCount} / {OffsetCalibration.MeasuredBeats} taps");
+        if (wizard.Run.IsComplete)
             Finish(ref wizard);
     }
 
     private void Start(ref OffsetWizard wizard)
     {
-        if (!_audio.Play(TrackPath, 1f))
+        if (wizard.Listening)
+            return;
+
+        if (!_audio.Play(OffsetCalibration.TrackPath, 1f))
         {
-            UiText.Set(wizard.StatusLabel, "Calibration track is missing.");
+            UiText.Set(wizard.StatusLabel, "Click track is missing.");
             return;
         }
 
-        wizard.Samples.Clear();
-        wizard.Average = 0;
+        wizard.Run = new OffsetCalibration();
         wizard.Listening = true;
         _sawPlayback = false;
-        UiText.Set(wizard.StatusLabel, "Listening...");
+        _clickTrackOn = true;
+        UiLayout.SetDisabled(wizard.Apply, true);
+        Plot(ref wizard);
+        UiText.Set(wizard.StatusLabel, "Count in... find the beat.");
     }
 
     private void Finish(ref OffsetWizard wizard)
     {
-        if (!wizard.Listening && wizard.Samples.Count == 0)
-            return;
-
         wizard.Listening = false;
         _audio.Stop();
+        _clickTrackOn = false;
 
-        if (wizard.Samples.Count == 0)
+        OffsetMeasurement? measured = wizard.Run.Measure();
+        if (measured is not { } result || result.Used < OffsetCalibration.MinimumTaps)
         {
-            UiText.Set(wizard.StatusLabel, "No clicks detected. Try again.");
+            int used = measured?.Used ?? 0;
+            UiText.Set(
+                wizard.StatusLabel,
+                $"Only {used} steady taps, {OffsetCalibration.MinimumTaps} needed. Press SPACE to try again.");
             return;
         }
 
-        wizard.Average = Average(wizard.Samples);
+        UiLayout.SetDisabled(wizard.Apply, false);
+        string steadiness = result.SpreadMs > ShakySpreadMs
+            ? "Unsteady, so try again if you can"
+            : "Steady";
+        string strays = result.Rejected > 0 ? $", {result.Rejected} stray left out" : "";
         UiText.Set(
             wizard.StatusLabel,
-            $"Average {wizard.Average:+0;-0;0} ms   ·   " +
-            "Press SAVE to use this offset.");
+            $"{steadiness}: {result.Used} taps{strays}, good to about {result.UncertaintyMs:0.0} ms. " +
+            "APPLY it, or run again to check.");
     }
 
-    private void Save(ref OffsetWizard wizard)
+    private void Apply(ref OffsetWizard wizard)
     {
-        if (wizard.Samples.Count == 0)
+        if (wizard.Run.Measure() is not { } result || result.Used < OffsetCalibration.MinimumTaps)
             return;
 
-        _settings.Set((long)Math.Round(wizard.Average));
-        UpdateOffsetLabel(ref wizard);
-        UiText.Set(
-            wizard.StatusLabel,
-            $"Saved global offset {_settings.OffsetMs:+0;-0;0} ms.");
+        SetOffset(ref wizard, (long)Math.Round(result.OffsetMs));
+        UiText.Set(wizard.StatusLabel, "Applied. Run again: your taps should now sit on the white line.");
     }
 
-    private void Reset(ref OffsetWizard wizard)
+    private void SetOffset(ref OffsetWizard wizard, long offsetMs)
     {
-        _settings.Reset();
-        _audio.Stop();
-        wizard.Samples.Clear();
-        wizard.Average = 0;
-        wizard.Listening = false;
-        UpdateOffsetLabel(ref wizard);
-        UiText.Set(wizard.StatusLabel, "Global offset reset to 0 ms.");
+        _settings.Set(offsetMs);
+        ShowOffset(ref wizard);
+        Plot(ref wizard);
     }
 
-    private void UpdateOffsetLabel(ref OffsetWizard wizard) =>
-        UiText.Set(
-            wizard.OffsetLabel,
-            $"GLOBAL OFFSET   {_settings.OffsetMs:+0;-0;0} ms");
+    private void ShowOffset(ref OffsetWizard wizard) =>
+        UiText.Set(wizard.OffsetLabel, $"GLOBAL OFFSET   {_settings.OffsetMs:+0;-0;0} ms");
 
-    private static double Average(List<double> samples)
+    /// <summary>Puts every tap where it would score under the saved offset, and the result above them.</summary>
+    private void Plot(ref OffsetWizard wizard)
     {
-        double total = 0;
-        foreach (double sample in samples)
-            total += sample;
+        int mark = 0;
+        foreach (double tap in wizard.Run.Taps)
+            Place(wizard.TapMarks[mark++], tap);
+        for (; mark < wizard.TapMarks.Length; mark++)
+            UiLayout.SetHidden(wizard.TapMarks[mark], true);
 
-        return total / samples.Count;
+        if (wizard.Run.Measure() is { } result)
+        {
+            Place(wizard.ResultMark, result.OffsetMs);
+            UiText.Set(wizard.ResultLabel, $"{result.OffsetMs:+0;-0;0} ms");
+        }
+        else
+        {
+            UiLayout.SetHidden(wizard.ResultMark, true);
+            UiText.Set(wizard.ResultLabel, "");
+        }
     }
 
-    private static bool IsPressed(Entity entity) =>
-        !entity.IsNull && entity.Tags.Has<Pressed>();
+    private void Place(Entity mark, double offsetMs)
+    {
+        float error = Math.Clamp(
+            (float)(offsetMs - _settings.OffsetMs),
+            -OffsetWizardScene.PlotHalfRangeMs,
+            OffsetWizardScene.PlotHalfRangeMs);
+        mark.GetComponent<Position>().Value = new Vector2(error * OffsetWizardScene.PlotPixelsPerMs, 0f);
+        mark.AddTag<Moved>();
+        UiLayout.SetHidden(mark, false);
+    }
+
+    private static bool TakePress(Entity button)
+    {
+        if (button.IsNull || !button.Tags.Has<Pressed>())
+            return false;
+
+        button.RemoveTag<Pressed>();
+        return true;
+    }
 }

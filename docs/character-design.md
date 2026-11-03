@@ -120,9 +120,11 @@ otherwise hit a note.
 - **Any key claims it** (the six side keys; whether M also counts is open).
 - Authored per note:
   - one of eight directions;
-  - one of three distances.
-- Effect: teleport to **note centre + direction × distance**. The destination is
-  anchored to the note, not to the player's position.
+  - one of three distances: 250, 375 or 500 playfield units.
+- Effect: teleport to **player position + direction × distance**. The destination
+  is relative to the player, not anchored to the note.
+- Clears vertical velocity, whichever way she was moving. Horizontal velocity is
+  kept.
 - Passes through blocks.
 - Grants **no invulnerability**.
 - Hazards at the destination resolve normally; whether the path is checked is
@@ -144,7 +146,10 @@ otherwise hit a note.
   decay.
 - Normal collision applies; no invulnerability.
 - Missing the press means no impulse and a missed note.
-- Does **not** clear downward momentum — only the spear does that.
+- Speed against the note's direction is zeroed first, per axis, including a fall
+  under an upward note. Speed along it stacks and speed across it is kept.
+- The strongest momentum note sets the speed limit: the player can't go faster
+  than it sideways or falling, however many are stacked. Rising isn't capped.
 - Judged like a note.
 - Adds nothing to Contact stacks.
 

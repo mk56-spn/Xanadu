@@ -64,7 +64,8 @@ public sealed partial class SceneSystem
                     results.TerribleCount,
                     results.MissCount),
                 entity.GetComponent<ReplayRecorder>().Events.ToArray(),
-                entity.GetComponent<ReplayRecorder>().SkipFromMs);
+                entity.GetComponent<ReplayRecorder>().SkipFromMs,
+                entity.GetComponent<ReplayRecorder>().Offsets.ToArray());
 
             try
             {

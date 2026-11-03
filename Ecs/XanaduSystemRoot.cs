@@ -59,6 +59,8 @@ public sealed class XanaduSystemRoot : SystemRoot, IDisposable
 
     public OffsetSettings Offsets { get; }
 
+    public MapOffsetSettings MapOffsets { get; }
+
     public DisplaySettings Display { get; }
 
     public HudLayoutSettings Hud { get; }
@@ -90,6 +92,7 @@ public sealed class XanaduSystemRoot : SystemRoot, IDisposable
             viewportSize,
             new GodotVisualRidFactory());
         Offsets = new OffsetSettings();
+        MapOffsets = new MapOffsetSettings();
         Display = new DisplaySettings();
         Hud = hudLayout ?? new HudLayoutSettings();
         Profiles = new ProfileStore();
@@ -147,7 +150,8 @@ public sealed class XanaduSystemRoot : SystemRoot, IDisposable
             Hud,
             new GodotCharacterRigFiles(),
             PlayKeyboard,
-            new GodotOverlayToggleSource(Key.F10));
+            new GodotOverlayToggleSource(Key.F10),
+            MapOffsets);
         Add(_playfieldSystems);
         _editorSystems = new EditorSystemGroup(
             entities,

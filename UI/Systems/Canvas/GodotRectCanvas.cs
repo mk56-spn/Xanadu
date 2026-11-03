@@ -10,8 +10,22 @@ public sealed class GodotRectCanvas : IRectCanvas
     private const int FontSize = 16;
     private const string BoldFontPath = "res://Assets/Fonts/SourceSans3-Variable.ttf";
     private const int BoldWeight = 700;
+    private const string MonoFontPath = "res://Assets/Fonts/JetBrainsMono-Regular.ttf";
 
     private static Font? _boldFont;
+    private static Font? _monoFont;
+
+    /// <summary>JetBrains Mono, or the fallback font if the file cannot be loaded.</summary>
+    private static Font MonoFont => _monoFont ??= LoadMonoFont();
+
+    private static Font LoadMonoFont()
+    {
+        if (ResourceLoader.Exists(MonoFontPath) && GD.Load<FontFile>(MonoFontPath) is { } file)
+            return file;
+
+        GD.PushError($"Mono font '{MonoFontPath}' not found; using the default font.");
+        return ThemeDB.FallbackFont;
+    }
 
     /// <summary>
     /// Source Sans 3 at weight 700, or the fallback font if the file cannot
@@ -251,6 +265,27 @@ public sealed class GodotRectCanvas : IRectCanvas
                 _ => HorizontalAlignment.Center,
             },
             bold ? BoldFont : ThemeDB.FallbackFont);
+
+    public void DrawTextMono(
+        Rid canvas,
+        Rect2 bounds,
+        string text,
+        Color color,
+        int fontSize,
+        TextAlign align) =>
+        DrawTextAligned(
+            canvas,
+            bounds,
+            text,
+            color,
+            fontSize,
+            align switch
+            {
+                TextAlign.Left => HorizontalAlignment.Left,
+                TextAlign.Right => HorizontalAlignment.Right,
+                _ => HorizontalAlignment.Center,
+            },
+            MonoFont);
 
     public void DrawTextGlow(
         Rid canvas,

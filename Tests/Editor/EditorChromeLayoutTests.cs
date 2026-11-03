@@ -95,6 +95,33 @@ public sealed class EditorChromeLayoutTests : EcsSystemTest
     }
 
     [Test]
+    public void EachKeyedToolShowsItsKeyInsideItsButton()
+    {
+        foreach (Entity entity in Store.Query<EditorPlacementButton>().ToEntityList())
+        {
+            EditorPlacementMode mode = entity.GetComponent<EditorPlacementButton>().Mode;
+            string key = Xanadu.Editor.EditorPlacementKeybinds.LabelFor(mode);
+            Assert.That(entity.GetComponent<UiTooltip>().Text, Does.EndWith(key.Length > 0 ? $"({key})" : ""));
+            if (key.Length == 0)
+                continue;
+
+            Entity label = default;
+            foreach (Entity sibling in entity.ChildEntities)
+            {
+                if (sibling.TryGetComponent(out Text text) && text.Value == key)
+                    label = sibling;
+            }
+
+            Assert.That(label.IsNull, Is.False, $"{mode} has no key label");
+            Rect2 button = Area(entity);
+            Rect2 area = Area(label);
+            Assert.That(button.Encloses(area), Is.True, $"{mode}: {area} is outside {button}");
+            Assert.That(area.GetCenter().X, Is.GreaterThan(button.GetCenter().X), $"{mode}: the key sits right");
+            Assert.That(area.GetCenter().Y, Is.GreaterThan(button.GetCenter().Y), $"{mode}: the key sits low");
+        }
+    }
+
+    [Test]
     public void TheTransportIsCentredAndThePlayfieldAreaClearsTheStatusLine()
     {
         Rect2 play = Area(Button(EditorButtonKind.Play));

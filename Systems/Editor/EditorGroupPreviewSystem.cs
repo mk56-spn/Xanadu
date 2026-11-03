@@ -148,7 +148,6 @@ public sealed class EditorGroupPreviewSystem :
         float seconds,
         uint solo)
     {
-        Span<Vector2> points = stackalloc Vector2[3];
         foreach (Entity entity in _entities.Query<Spike>().ToEntityList())
         {
             Spike spike = entity.GetComponent<Spike>();
@@ -162,11 +161,15 @@ public sealed class EditorGroupPreviewSystem :
             Color color = inSolo ? Tint(groups, mask, seconds, own) : own;
             color.A *= inSolo ? 1f : 0.28f;
 
-            SpikeTriangle triangle = SpikeRules.ScreenTriangle(spike, view);
-            points[0] = triangle.Tip;
-            points[1] = triangle.BaseLeft;
-            points[2] = triangle.BaseRight;
-            _canvas.DrawPolygon(_preview, points, color);
+            Color edge = inSolo ? Tint(groups, mask, seconds, spike.OutlineColor) : spike.OutlineColor;
+            edge.A *= inSolo ? 1f : 0.28f;
+            PlayfieldRenderer.DrawSpikeBody(
+                _canvas,
+                _preview,
+                SpikeRules.ScreenTriangle(spike, view),
+                spike.OutlineWidth * view.Scale,
+                color,
+                edge);
         }
     }
 

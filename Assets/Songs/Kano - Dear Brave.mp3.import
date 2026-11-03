@@ -1,0 +1,19 @@
+[remap]
+
+importer="mp3"
+type="AudioStreamMP3"
+uid="uid://bj3vemghuglj2"
+path="res://.godot/imported/Kano - Dear Brave.mp3-2bddedefb43b0cd7bf41cf8e1f6bd7e5.mp3str"
+
+[deps]
+
+source_file="res://Assets/Songs/Kano - Dear Brave.mp3"
+dest_files=["res://.godot/imported/Kano - Dear Brave.mp3-2bddedefb43b0cd7bf41cf8e1f6bd7e5.mp3str"]
+
+[params]
+
+loop=false
+loop_offset=0
+bpm=0
+beat_count=0
+bar_beats=4

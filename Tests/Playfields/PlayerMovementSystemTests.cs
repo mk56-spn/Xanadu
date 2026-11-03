@@ -1,3 +1,4 @@
+using System.Linq;
 using System.Collections.Generic;
 using Box2DSharp.Dynamics;
 using Friflo.Engine.ECS;
@@ -53,7 +54,7 @@ public sealed class PlayerMovementSystemTests
     public void TearDown() => _physics.Dispose();
 
     [Test]
-    public void DashesLeftToTheMovementNoteAnchor()
+    public void DashesLeftFromThePlayer()
     {
         _root.Update(new UpdateTick(1f / 60f, 0));
         Assert.That(_player.GetComponent<Position>().Value.X, Is.EqualTo(500));
@@ -67,11 +68,11 @@ public sealed class PlayerMovementSystemTests
         _keyboard.Press(Key.F);
         _root.Update(new UpdateTick(1f / 60f, 0));
 
-        Assert.That(_player.GetComponent<Position>().Value.X, Is.EqualTo(350));
+        Assert.That(_player.GetComponent<Position>().Value.X, Is.EqualTo(250));
         Assert.That(movement.IsNull, Is.True);
         Entity trail = _store.Query<DashTrail>().ToEntityList()[0];
         Assert.That(trail.GetComponent<DashTrail>().From.X, Is.EqualTo(500));
-        Assert.That(trail.GetComponent<DashTrail>().To.X, Is.EqualTo(350));
+        Assert.That(trail.GetComponent<DashTrail>().To.X, Is.EqualTo(250));
     }
 
     [Test]
@@ -87,16 +88,19 @@ public sealed class PlayerMovementSystemTests
         _keyboard.Press(Key.F);
         _root.Update(new UpdateTick(1f / 60f, 0));
 
-        Entity burst = _store.Query<ParticleBurst>().ToEntityList()[0];
+        // The note's own sparks pop where it stood; the spray is the one on the body.
+        Entity burst = _store.Query<ParticleBurst>().ToEntityList()
+            .Single(entity => entity.GetComponent<ParticleBurst>().Kind == ParticleKind.Dash);
+        Assert.That(burst.GetComponent<ParticleBurst>().Area, Is.EqualTo(_player.GetComponent<Player>().Size));
         Assert.That(burst.GetComponent<ParticleBurst>().Kind, Is.EqualTo(ParticleKind.Dash));
         Assert.That(burst.GetComponent<ParticleBurst>().Position, Is.EqualTo(_player.GetComponent<Position>().Value));
     }
 
     [Test]
-    public void DashesFromTheNoteCenterInsteadOfThePlayerPosition()
+    public void DashesFromThePlayerPositionInsteadOfTheNoteCenter()
     {
         ref Position position = ref _player.GetComponent<Position>();
-        position.Value = new Vector2(950, 500);
+        position.Value = new Vector2(940, 480);
         _player.GetComponent<PhysicsBody>().Body.SetTransform(
             Box2DPhysicsWorld.ToPhysics(position.Value),
             0f);
@@ -110,7 +114,8 @@ public sealed class PlayerMovementSystemTests
         _keyboard.Press(Key.F);
         _root.Update(new UpdateTick(1f / 60f, 0));
 
-        Assert.That(position.Value.X, Is.EqualTo(800));
+        Assert.That(position.Value.X, Is.EqualTo(690).Within(0.01f));
+        Assert.That(position.Value.Y, Is.EqualTo(480).Within(0.01f));
     }
 
     [Test]
@@ -150,6 +155,26 @@ public sealed class PlayerMovementSystemTests
         Assert.That(_player.GetComponent<Position>().Value.X, Is.EqualTo(500));
     }
 
+    [TestCase(12f)]
+    [TestCase(-12f)]
+    public void ADashClearsVerticalVelocityAndKeepsHorizontal(float vertical)
+    {
+        Box2DSharp.Dynamics.Body body = _player.GetComponent<PhysicsBody>().Body;
+        body.SetLinearVelocity(new System.Numerics.Vector2(4f, vertical));
+        _store.CreateEntity(new Note(
+            0,
+            new Vector2(500, 500),
+            target: KeybindAction.L3,
+            kind: NoteKind.Dash,
+            dashDirection: DashDirection.Up));
+
+        _keyboard.Press(Key.F);
+        _root.Update(new UpdateTick(1f / 60f, 0));
+
+        Assert.That(body.LinearVelocity.Y, Is.Zero);
+        Assert.That(body.LinearVelocity.X, Is.EqualTo(4f));
+    }
+
     [Test]
     public void AKeyThatCannotHitTheNoteStillDashes()
     {
@@ -164,7 +189,7 @@ public sealed class PlayerMovementSystemTests
         _keyboard.Press(Key.F);
         _root.Update(new UpdateTick(1f / 60f, 0));
 
-        Assert.That(_player.GetComponent<Position>().Value.X, Is.EqualTo(350));
+        Assert.That(_player.GetComponent<Position>().Value.X, Is.EqualTo(250));
     }
 
     [Test]
@@ -204,6 +229,44 @@ public sealed class PlayerMovementSystemTests
             Is.GreaterThan(0f));
     }
 
+    [TestCase(-8f, 0f, DashDirection.Right, 1f, 0f)]
+    [TestCase(8f, 0f, DashDirection.Right, 9f, 0f)]
+    [TestCase(-8f, 5f, DashDirection.Right, 1f, 5f)]
+    [TestCase(3f, 12f, DashDirection.Up, 3f, -1f)]
+    public void AMomentumNoteZeroesOpposingSpeedThenPushes(
+        float startX,
+        float startY,
+        DashDirection direction,
+        float expectedX,
+        float expectedY)
+    {
+        Box2DSharp.Dynamics.Body body = _player.GetComponent<PhysicsBody>().Body;
+        body.SetLinearVelocity(new System.Numerics.Vector2(startX, startY));
+        _store.CreateEntity(new Note(
+            0,
+            new Vector2(500, 500),
+            target: KeybindAction.L3,
+            kind: NoteKind.Momentum,
+            dashDirection: direction,
+            momentum: 100f / Box2DPhysicsWorld.MomentumScale));
+
+        _keyboard.Press(Key.F);
+        _root.Update(new UpdateTick(1f / 60f, 0));
+
+        Assert.That(body.LinearVelocity.X, Is.EqualTo(expectedX).Within(0.001f));
+        Assert.That(body.LinearVelocity.Y, Is.EqualTo(expectedY).Within(0.001f));
+    }
+
+    [Test]
+    public void ADiagonalMomentumNoteZeroesEachOpposingAxis()
+    {
+        Assert.That(
+            PlayerMovementSystem.WithoutOpposingSpeed(
+                new System.Numerics.Vector2(-8f, 12f),
+                new Vector2(1f, -1f).Normalized()),
+            Is.EqualTo(System.Numerics.Vector2.Zero));
+    }
+
     [Test]
     public void MomentumImpulseScalesWithTheAuthoredMagnitude()
     {
@@ -221,9 +284,9 @@ public sealed class PlayerMovementSystemTests
         Assert.That(impulse.Y, Is.EqualTo(0f).Within(0.0001f));
     }
 
-    [TestCase(DashStrength.Single, 350f)]
-    [TestCase(DashStrength.Double, 200f)]
-    [TestCase(DashStrength.Triple, 50f)]
+    [TestCase(DashStrength.Single, 250f)]
+    [TestCase(DashStrength.Double, 125f)]
+    [TestCase(DashStrength.Triple, 0f)]
     public void DashStrengthSetsTheDistanceTravelled(
         DashStrength strength,
         float expectedX)

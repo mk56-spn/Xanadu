@@ -684,6 +684,79 @@ public sealed class EditorNoteInputSystemTests
     }
 
     [Test]
+    public void ClickingEmptySpaceDeselectsInsteadOfPlacing()
+    {
+        _store.CreateEntity(new Note(1_000, new Vector2(100, 200)));
+        Entity editor = _store.Query<PlayfieldView>().ToEntityList()[0];
+
+        Click(new Vector2(100, 200));
+        Assert.That(editor.GetComponent<NoteSelection>().AllNotes, Has.Count.EqualTo(1));
+
+        Click(new Vector2(500, 500));
+
+        Assert.That(editor.GetComponent<NoteSelection>().AllNotes, Is.Empty);
+        Assert.That(_store.Query<Note>().Count, Is.EqualTo(1));
+
+        Click(new Vector2(500, 500));
+
+        Assert.That(_store.Query<Note>().Count, Is.EqualTo(2));
+    }
+
+    [Test]
+    public void ANoteThatWasJustPlacedDoesNotStopTheNextPlacement()
+    {
+        Click(new Vector2(100, 200));
+        Click(new Vector2(500, 500));
+        Click(new Vector2(700, 300));
+
+        Assert.That(_store.Query<Note>().Count, Is.EqualTo(3));
+    }
+
+    [Test]
+    public void ReselectingAPlacedNoteMakesTheNextEmptyClickDeselect()
+    {
+        Click(new Vector2(100, 200));
+        Click(new Vector2(100, 200));
+        Click(new Vector2(500, 500));
+
+        Entity editor = _store.Query<PlayfieldView>().ToEntityList()[0];
+        Assert.That(editor.GetComponent<NoteSelection>().AllNotes, Is.Empty);
+        Assert.That(_store.Query<Note>().Count, Is.EqualTo(1));
+    }
+
+    [Test]
+    public void ClickingEmptySpaceWithABlockToolDeselectsInsteadOfPainting()
+    {
+        Entity block = _store.CreateEntity(new Block(new Vector2(100, 200), new Vector2(120, 120)));
+        Entity editor = _store.Query<PlayfieldView>().ToEntityList()[0];
+        editor.AddComponent(new EditorPlacementModeState(EditorPlacementMode.Blocks));
+        editor.GetComponent<NoteSelection>().Note = block;
+
+        Click(new Vector2(600, 600));
+
+        Assert.That(editor.GetComponent<NoteSelection>().AllNotes, Is.Empty);
+        Assert.That(_store.Query<Block>().Count, Is.EqualTo(1));
+
+        Click(new Vector2(600, 600));
+
+        Assert.That(_store.Query<Block>().Count, Is.EqualTo(2));
+    }
+
+    [Test]
+    public void TheGhostHidesWhileAClickWouldDeselect()
+    {
+        Entity note = _store.CreateEntity(new Note(1_000, new Vector2(100, 200)));
+        Entity editor = _store.Query<PlayfieldView>().ToEntityList()[0];
+        editor.AddComponent(new EditorPlacementGhost());
+        editor.GetComponent<NoteSelection>().Note = note;
+
+        _pointer.Current = new PointerInput(new Vector2(500, 500), false);
+        _root.Update(new UpdateTick(1f / 60f, 0));
+
+        Assert.That(editor.GetComponent<EditorPlacementGhost>().Visible, Is.False);
+    }
+
+    [Test]
     public void ClickingExistingNoteSelectsWithoutAdding()
     {
         _pointer.Current = new PointerInput(new Vector2(100, 200), true);

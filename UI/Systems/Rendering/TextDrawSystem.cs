@@ -39,7 +39,17 @@ public sealed class TextDrawSystem : QuerySystem<Text, Rectangle, Drawable, Visu
                     ? entity.GetComponent<TextAlignment>().Align
                     : TextAlign.Center;
 
-                if (entity.HasComponent<TextGlow>())
+                if (entity.Tags.Has<TextMono>())
+                {
+                    _canvas.DrawTextMono(
+                        visual.Value,
+                        rect.Bounds,
+                        text.Value,
+                        style.Color,
+                        style.FontSize,
+                        align);
+                }
+                else if (entity.HasComponent<TextGlow>())
                 {
                     _canvas.DrawTextGlow(
                         visual.Value,

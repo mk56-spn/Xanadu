@@ -13,7 +13,7 @@ namespace Xanadu.Tests.Audio;
 public sealed class WaveformPreviewSystemTests
 {
     [Test]
-    public void LoadsPeaksAndFillsTheEditorDuration()
+    public void LoadsLevelsAndFillsTheEditorDuration()
     {
         string path = WriteWav();
         try
@@ -22,16 +22,16 @@ public sealed class WaveformPreviewSystemTests
             Entity editor = store.CreateEntity(
                 new LevelInfo("Wave", path),
                 new Playhead(0, 120, 0, false),
-                new WaveformPreview("", Array.Empty<float>(), Array.Empty<float>(), 0));
+                new WaveformPreview(""));
             var root = new SystemRoot(store);
             root.Add(new WaveformPreviewSystem());
 
             root.Update(new UpdateTick(1f / 60f, 0));
 
             WaveformPreview preview = editor.GetComponent<WaveformPreview>();
-            Assert.That(preview.Left, Is.Not.Empty);
-            Assert.That(preview.DurationMs, Is.EqualTo(2));
-            Assert.That(editor.GetComponent<Playhead>().DurationMs, Is.EqualTo(2));
+            Assert.That(preview.Data, Is.Not.Null);
+            Assert.That(preview.Data!.DurationMs, Is.EqualTo(100).Within(5));
+            Assert.That(editor.GetComponent<Playhead>().DurationMs, Is.EqualTo(preview.Data.DurationMs));
         }
         finally
         {
@@ -48,7 +48,7 @@ public sealed class WaveformPreviewSystemTests
         using var stream = new MemoryStream();
         using var writer = new BinaryWriter(stream);
         writer.Write(Encoding.ASCII.GetBytes("RIFF"));
-        writer.Write(40);
+        writer.Write(236);
         writer.Write(Encoding.ASCII.GetBytes("WAVE"));
         writer.Write(Encoding.ASCII.GetBytes("fmt "));
         writer.Write(16);
@@ -59,9 +59,9 @@ public sealed class WaveformPreviewSystemTests
         writer.Write((short)2);
         writer.Write((short)16);
         writer.Write(Encoding.ASCII.GetBytes("data"));
-        writer.Write(4);
-        writer.Write((short)1_000);
-        writer.Write((short)1_000);
+        writer.Write(200);
+        for (int i = 0; i < 100; i++)
+            writer.Write((short)1_000);
         File.WriteAllBytes(path, stream.ToArray());
         return path;
     }

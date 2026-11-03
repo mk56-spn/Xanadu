@@ -60,7 +60,8 @@ leaves the window open. `--visual-test=all` keeps going past failures.
 neither the compositor nor the window to be visible or focused. It does need a
 real render pass: do not combine it with `--headless`, which cannot render.
 
-Each capture happens once, after 60 frames, then the process exits 0 (or 1 if
+Each capture happens once, after 60 frames or as soon as a longer test
+finishes, then the process exits 0 (or 1 if
 the PNG could not be written). On Wayland this is the only dependable way to
 capture the harness — desktop tools see the session, not the game's surface.
 Write the file under the repo; `user://` is read-only in the sandbox.

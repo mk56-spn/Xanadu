@@ -42,11 +42,7 @@ public static partial class EditorScene
 
         editor.AddComponent(new EditorViewNavigation(new Vector2(field.Width, field.Height)));
         editor.AddComponent(new UiMarqueeBox());
-        editor.AddComponent(new WaveformPreview(
-            "",
-            System.Array.Empty<float>(),
-            System.Array.Empty<float>(),
-            0));
+        editor.AddComponent(new WaveformPreview(""));
         editor.AddComponent(new EditorNoteTarget(KeybindAction.M));
         editor.AddComponent(new EditorCharacterTarget(CharacterKind.Contact));
         editor.AddComponent(new EditorPlacementModeState(EditorPlacementMode.Notes));

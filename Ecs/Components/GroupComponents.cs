@@ -213,4 +213,8 @@ public struct GroupOutlineColor(Color mix, float coverage) : IComponent
         entity.TryGetComponent(out GroupOutlineColor group)
             ? new GroupColor(group.Mix, group.Coverage).Apply(block.OutlineColor)
             : block.OutlineColor;
+
+    /// <summary>The colour to draw a spike's outline in: it follows the same groups as its interior.</summary>
+    public static Color For(Entity entity, Spike spike) =>
+        entity.TryGetComponent(out GroupColor group) ? group.Apply(spike.OutlineColor) : spike.OutlineColor;
 }

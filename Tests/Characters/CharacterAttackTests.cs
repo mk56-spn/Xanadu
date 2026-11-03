@@ -18,16 +18,16 @@ public sealed class CharacterAttackTests : EcsSystemTest
     {
         var package = new XafPackage();
         package.Skeleton.Bones.Add(new XafBone { Id = "root", Parent = -1, Rest = Transform2D.Identity });
-        package.Clips.Add(new XafClip { Id = "idle", Duration = 2f, Loop = true, LoopEnd = 2f });
-        package.Clips.Add(new XafClip { Id = CharacterAttackSystem.LowClip, Duration = 0.2f });
-        package.Clips.Add(new XafClip { Id = CharacterAttackSystem.MidClip, Duration = 0.2f });
-        package.Clips.Add(new XafClip { Id = CharacterAttackSystem.HighClip, Duration = 0.2f });
-        package.Clips.Add(new XafClip { Id = CharacterAttackSystem.AirLowClip, Duration = 0.2f });
-        package.Clips.Add(new XafClip { Id = CharacterAttackSystem.AirMidClip, Duration = 0.2f });
-        package.Clips.Add(new XafClip { Id = CharacterAttackSystem.AirHighClip, Duration = 0.2f });
+        package.Clips.Add(new XafClip { Id = ContactClip.Idle.Id(), Duration = 2f, Loop = true, LoopEnd = 2f });
+        package.Clips.Add(new XafClip { Id = ContactClip.AttackLow.Id(), Duration = 0.2f });
+        package.Clips.Add(new XafClip { Id = ContactClip.AttackMid.Id(), Duration = 0.2f });
+        package.Clips.Add(new XafClip { Id = ContactClip.AttackHigh.Id(), Duration = 0.2f });
+        package.Clips.Add(new XafClip { Id = ContactClip.AttackAirLow.Id(), Duration = 0.2f });
+        package.Clips.Add(new XafClip { Id = ContactClip.AttackAirMid.Id(), Duration = 0.2f });
+        package.Clips.Add(new XafClip { Id = ContactClip.AttackAirHigh.Id(), Duration = 0.2f });
 
         var runtime = new AnimatorRuntime(package);
-        runtime.Play("idle", 0f);
+        runtime.Play(ContactClip.Idle.Id(), 0f);
         return Store.CreateEntity(new CharacterRig(runtime));
     }
 
@@ -41,9 +41,9 @@ public sealed class CharacterAttackTests : EcsSystemTest
 
         CharacterAttackSystem.Trigger(player, noteScreenY: 0, playerScreenY: 100);
 
-        Assert.That(player.GetComponent<CharacterAttack>().ClipId, Is.EqualTo(CharacterAttackSystem.HighClip));
+        Assert.That(player.GetComponent<CharacterAttack>().Clip, Is.EqualTo(ContactClip.AttackHigh));
         Assert.That(RuntimeOf(player).Additives.Count, Is.EqualTo(1));
-        Assert.That(RuntimeOf(player).Additives[0].Clip.Id, Is.EqualTo(CharacterAttackSystem.HighClip));
+        Assert.That(RuntimeOf(player).Additives[0].Clip.Id, Is.EqualTo(ContactClip.AttackHigh.Id()));
     }
 
     [Test]
@@ -53,7 +53,7 @@ public sealed class CharacterAttackTests : EcsSystemTest
 
         CharacterAttackSystem.Trigger(player, noteScreenY: 200, playerScreenY: 100);
 
-        Assert.That(player.GetComponent<CharacterAttack>().ClipId, Is.EqualTo(CharacterAttackSystem.LowClip));
+        Assert.That(player.GetComponent<CharacterAttack>().Clip, Is.EqualTo(ContactClip.AttackLow));
     }
 
     [Test]
@@ -63,7 +63,7 @@ public sealed class CharacterAttackTests : EcsSystemTest
 
         CharacterAttackSystem.Trigger(player, noteScreenY: 100, playerScreenY: 100);
 
-        Assert.That(player.GetComponent<CharacterAttack>().ClipId, Is.EqualTo(CharacterAttackSystem.MidClip));
+        Assert.That(player.GetComponent<CharacterAttack>().Clip, Is.EqualTo(ContactClip.AttackMid));
     }
 
     [TestCase(CharacterMotionState.Jumping)]
@@ -74,17 +74,18 @@ public sealed class CharacterAttackTests : EcsSystemTest
         player.AddComponent(new CharacterMotion { State = state });
 
         CharacterAttackSystem.Trigger(player, noteScreenY: 0, playerScreenY: 100);
-        Assert.That(player.GetComponent<CharacterAttack>().ClipId, Is.EqualTo(CharacterAttackSystem.AirHighClip));
+        Assert.That(player.GetComponent<CharacterAttack>().Clip, Is.EqualTo(ContactClip.AttackAirHigh));
 
         CharacterAttackSystem.Trigger(player, noteScreenY: 100, playerScreenY: 100);
-        Assert.That(player.GetComponent<CharacterAttack>().ClipId, Is.EqualTo(CharacterAttackSystem.AirMidClip));
+        Assert.That(player.GetComponent<CharacterAttack>().Clip, Is.EqualTo(ContactClip.AttackAirMid));
 
         CharacterAttackSystem.Trigger(player, noteScreenY: 200, playerScreenY: 100);
-        Assert.That(player.GetComponent<CharacterAttack>().ClipId, Is.EqualTo(CharacterAttackSystem.AirLowClip));
+        Assert.That(player.GetComponent<CharacterAttack>().Clip, Is.EqualTo(ContactClip.AttackAirLow));
     }
 
     [TestCase(CharacterMotionState.Grounded)]
     [TestCase(CharacterMotionState.Landing)]
+    [TestCase(CharacterMotionState.Sliding)]
     public void ARigOnTheGroundPlaysTheGroundKicks(CharacterMotionState state)
     {
         Entity player = Rigged();
@@ -92,7 +93,7 @@ public sealed class CharacterAttackTests : EcsSystemTest
 
         CharacterAttackSystem.Trigger(player, noteScreenY: 0, playerScreenY: 100);
 
-        Assert.That(player.GetComponent<CharacterAttack>().ClipId, Is.EqualTo(CharacterAttackSystem.HighClip));
+        Assert.That(player.GetComponent<CharacterAttack>().Clip, Is.EqualTo(ContactClip.AttackHigh));
     }
 
     [Test]
@@ -103,7 +104,7 @@ public sealed class CharacterAttackTests : EcsSystemTest
         CharacterAttackSystem.Trigger(player, noteScreenY: 0, playerScreenY: 100);
         CharacterAttackSystem.Trigger(player, noteScreenY: 200, playerScreenY: 100);
 
-        Assert.That(player.GetComponent<CharacterAttack>().ClipId, Is.EqualTo(CharacterAttackSystem.LowClip));
+        Assert.That(player.GetComponent<CharacterAttack>().Clip, Is.EqualTo(ContactClip.AttackLow));
         Assert.That(RuntimeOf(player).Additives.Count, Is.EqualTo(1));
     }
 
@@ -115,7 +116,7 @@ public sealed class CharacterAttackTests : EcsSystemTest
 
         Frame(frames: 20); // 20 / 60s > the 0.2s clip duration.
 
-        Assert.That(player.GetComponent<CharacterAttack>().ClipId, Is.Empty);
+        Assert.That(player.GetComponent<CharacterAttack>().Clip, Is.Null);
         Assert.That(RuntimeOf(player).Additives, Is.Empty);
     }
 

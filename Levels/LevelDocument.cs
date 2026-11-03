@@ -174,6 +174,12 @@ public sealed class SpikeDocument
 
     /// <summary>Where the tip points, in degrees clockwise from up.</summary>
     public float RotationDegrees { get; set; }
+
+    /// <summary>Outline thickness in playfield units; 0 is no outline.</summary>
+    public float OutlineWidth { get; set; } = Xanadu.Ecs.Block.DefaultOutlineWidth;
+
+    /// <summary>The outline's colour, as RGBA8.</summary>
+    public uint OutlineColor { get; set; } = Xanadu.Ecs.Block.DefaultOutlineColor.ToRgba32();
 }
 
 /// <summary>Serializable practice start state.</summary>

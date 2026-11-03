@@ -13,6 +13,7 @@ public sealed class PhysicsSystemGroup : SystemGroup
         Add(new BlockBodySystem(physics, entities));
         Add(new PlayerBodySystem(physics));
         Add(new CharacterMomentumSystem());
+        Add(new PlayerSpeedCapSystem());
         Add(new PhysicsStepSystem(physics));
     }
 }

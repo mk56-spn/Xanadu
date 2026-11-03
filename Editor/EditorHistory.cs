@@ -173,7 +173,9 @@ public sealed class EditorHistory
                 MaskOf(entity),
                 ItemShader.Of(entity),
                 SelfModulate.Packed(entity),
-                spike.RotationDegrees));
+                spike.RotationDegrees,
+                spike.OutlineWidth,
+                spike.OutlineColor.ToRgba32()));
         }
 
         spikes.Sort(static (a, b) =>
@@ -324,7 +326,13 @@ public sealed class EditorHistory
 
         foreach (SpikeSnapshot spike in snapshot.Spikes)
         {
-            Entity created = EditorItems.Create(_entities, new Spike(spike.Position, spike.Size, spike.RotationDegrees), spike.Shader);
+            Entity created = EditorItems.Create(_entities, new Spike(
+                    spike.Position,
+                    spike.Size,
+                    spike.RotationDegrees,
+                    spike.OutlineWidth,
+                    new Color(spike.OutlineColor)),
+                spike.Shader);
             Subscribe(created, spike.Groups);
             SelfModulate.Put(created, spike.Modulate);
         }
@@ -371,7 +379,9 @@ public readonly record struct SpikeSnapshot(
     uint Groups = 0,
     int Shader = 0,
     uint Modulate = SelfModulate.White,
-    float RotationDegrees = 0f);
+    float RotationDegrees = 0f,
+    float OutlineWidth = Block.DefaultOutlineWidth,
+    uint OutlineColor = 0);
 
 /// <summary>Stable serializable mine snapshot used by undo/redo.</summary>
 public readonly record struct MineSnapshot(

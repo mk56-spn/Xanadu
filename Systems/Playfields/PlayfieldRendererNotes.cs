@@ -59,6 +59,8 @@ public static partial class PlayfieldRenderer
                     2);
             }
 
+            if (note.Kind == NoteKind.Dash)
+                DrawDashLink(canvas, rid, note, view, radius, color);
             DrawNoteBody(canvas, rid, note, center, radius, color);
 
             if (!selectedNote.IsNull && selectedNote.Id == entity.Id)
@@ -101,55 +103,11 @@ public static partial class PlayfieldRenderer
     {
         if (note.Kind == NoteKind.Dash)
         {
-            int strength = DashStrengthLevel(note.DashStrength);
-            canvas.DrawCircleOutline(rid, center, radius, color, 1 + strength);
-            canvas.DrawTextStyled(
-                rid,
-                new Rect2(
-                    center - new Vector2(radius, radius),
-                    new Vector2(radius * 2, radius * 2)),
-                DashArrow(note.DashDirection),
-                color,
-                Math.Max(10, (int)(radius * 1.1f)));
-
-            if (strength > 1)
-            {
-                Vector2 badgeCenter = center + new Vector2(radius * 0.55f, radius * 0.55f);
-                canvas.DrawCircle(rid, badgeCenter, radius * 0.34f,
-                    new Color(0f, 0f, 0f, color.A * 0.55f));
-                canvas.DrawTextStyled(
-                    rid,
-                    new Rect2(
-                        badgeCenter - new Vector2(radius * 0.45f, radius * 0.45f),
-                        new Vector2(radius * 0.9f, radius * 0.9f)),
-                    DashStrengthLabel(note.DashStrength),
-                    color,
-                    Math.Max(8, (int)(radius * 0.55f)));
-            }
+            DrawDashShape(canvas, rid, center, radius, color);
         }
         else if (note.Kind == NoteKind.Momentum)
         {
-            canvas.DrawCircleOutline(rid, center, radius, color, 2);
-            canvas.DrawTextStyled(
-                rid,
-                new Rect2(
-                    center - new Vector2(radius, radius),
-                    new Vector2(radius * 2, radius * 2)),
-                DashArrow(note.DashDirection),
-                color,
-                Math.Max(10, (int)(radius * 1.1f)));
-
-            Vector2 badgeCenter = center + new Vector2(radius * 0.52f, radius * 0.52f);
-            canvas.DrawCircle(rid, badgeCenter, radius * 0.32f,
-                new Color(0f, 0f, 0f, color.A * 0.55f));
-            canvas.DrawTextStyled(
-                rid,
-                new Rect2(
-                    badgeCenter - new Vector2(radius * 0.4f, radius * 0.4f),
-                    new Vector2(radius * 0.8f, radius * 0.8f)),
-                "M",
-                color,
-                Math.Max(8, (int)(radius * 0.5f)));
+            DrawMomentumShape(canvas, rid, note, center, radius, color);
         }
         else if (note.Kind == NoteKind.Pair)
         {
@@ -286,7 +244,7 @@ public static partial class PlayfieldRenderer
         }
         else
         {
-            canvas.DrawCircle(rid, center, radius, color);
+            DrawHitShape(canvas, rid, center, radius, color);
         }
     }
 
@@ -328,19 +286,6 @@ public static partial class PlayfieldRenderer
     /// <summary>Radius of the approach ring at a 0..1 approach amount.</summary>
     public static float ApproachRadius(float noteRadius, float approach) =>
         noteRadius * (1f + Math.Clamp(approach, 0f, 1f) * 8f);
-
-    public static string DashArrow(DashDirection direction) =>
-        direction switch
-        {
-            DashDirection.Up => "↑",
-            DashDirection.UpRight => "↗",
-            DashDirection.Right => "→",
-            DashDirection.DownRight => "↘",
-            DashDirection.Down => "↓",
-            DashDirection.DownLeft => "↙",
-            DashDirection.Left => "←",
-            _ => "↖",
-        };
 
     /// <summary>One, two or three dash lengths.</summary>
     public static int DashStrengthLevel(DashStrength strength) =>

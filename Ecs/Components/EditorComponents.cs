@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using Godot;
 using Xanadu.Settings;
+using Xanadu.Systems.Audio;
 using Xanadu.Systems.Ui;
 
 namespace Xanadu.Ecs;
@@ -202,17 +203,11 @@ public struct EditorPlacementButton(EditorPlacementMode mode) : IComponent
     public EditorPlacementMode Mode = mode;
 }
 
-/// <summary>Cached waveform peaks for the editor timeline preview.</summary>
-public struct WaveformPreview(
-    string path,
-    float[] left,
-    float[] right,
-    long durationMs) : IComponent
+/// <summary>The song's loudness by frequency band, for the editor timeline; null without a song.</summary>
+public struct WaveformPreview(string path, WaveformData? data = null) : IComponent
 {
     public string Path = path;
-    public float[] Left = left;
-    public float[] Right = right;
-    public long DurationMs = durationMs;
+    public WaveformData? Data = data;
 }
 
 /// <summary>Screen-space region occupied by the editor's side controls.</summary>
@@ -436,12 +431,16 @@ public struct EditorViewNavigation(Vector2 fieldSize) : IComponent
 /// <param name="Position">The hitbox's centre.</param>
 /// <param name="TimeMs">The song time.</param>
 /// <param name="Jump">Whether it got here instantly, by a dash or a wrap, rather than by moving.</param>
-public readonly record struct PlayerPathSample(Vector2 Position, long TimeMs, bool Jump);
+/// <param name="Hit">Whether a note was hit on this frame.</param>
+public readonly record struct PlayerPathSample(Vector2 Position, long TimeMs, bool Jump, bool Hit = false);
 
 /// <summary>Records the player's hitbox during an editor preview, for the editor to show afterwards.</summary>
 public struct PlayerPathRecorder() : IComponent
 {
     public List<PlayerPathSample> Samples = new();
+
+    /// <summary>The score's hit count at the last look, to spot the frame a note is hit.</summary>
+    public int NotesHit;
 }
 
 /// <summary>The path the player's hitbox took in the last preview, shown over the editor's field.</summary>

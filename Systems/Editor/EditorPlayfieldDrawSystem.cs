@@ -18,9 +18,13 @@ namespace Xanadu.Systems.Editor;
 public sealed partial class EditorPlayfieldDrawSystem :
     QuerySystem<PlayfieldView, Playfield, Playhead, NoteSelection>
 {
-    public static readonly Color MainSnapColor = Colors.White;
-    public static readonly Color HalfSnapColor = Palette.Danger;
-    public static readonly Color QuarterSnapColor = Palette.PrimarySoft;
+    // Softened so the grid guides the eye without outshouting the notes on it.
+    public static readonly Color MainSnapColor = Palette.WithAlpha(Colors.White, 0.6f);
+    public static readonly Color HalfSnapColor = Palette.WithAlpha(Palette.Danger, 0.55f);
+    public static readonly Color QuarterSnapColor = Palette.WithAlpha(Palette.PrimarySoft, 0.55f);
+
+    /// <summary>The least room in pixels between two drawn beat ticks.</summary>
+    private const float MinBeatSpacing = 16f;
 
     private static readonly Color EditorBackground = Palette.Stage;
     private static readonly Color PanelBackground = Palette.Surface;
@@ -142,7 +146,6 @@ public sealed partial class EditorPlayfieldDrawSystem :
             view,
             playhead);
         DrawStartPoints(view, selection);
-        DrawDashDestinations(view, playhead);
         DrawPlacementGhost(_drawnEditor, view, playfield, playhead);
         if (groupState.Preview)
             DrawGroupPreview(view, playhead, groups, groupState);
@@ -157,57 +160,6 @@ public sealed partial class EditorPlayfieldDrawSystem :
         DrawChrome(view);
         DrawRuler(view, playhead, selection, timeline, preview);
         DrawSelectionBox(selectionBox);
-    }
-
-    private void DrawDashDestinations(
-        PlayfieldView view,
-        Playhead playhead)
-    {
-        float size = PlayfieldRenderer.NoteSize * view.Scale;
-
-        foreach (Entity entity in _entities.Query<Note>().ToEntityList())
-        {
-            Note note = entity.GetComponent<Note>();
-            if (note.Kind is not (NoteKind.Dash or NoteKind.Momentum) ||
-                NoteFade.Alpha(note, playhead.TimeMs) <= 0)
-            {
-                continue;
-            }
-
-            bool dash = note.Kind == NoteKind.Dash;
-            Vector2 from = view.PlayfieldToScreen(note.Position);
-            Vector2 target = dash
-                ? PlayerMovementSystem.DashTarget(
-                    note.Position,
-                    note.DashDirection,
-                    note.DashStrength)
-                : note.Position +
-                  PlayerMovementSystem.DashDirectionVector(note.DashDirection) * 60f;
-            Vector2 to = view.PlayfieldToScreen(target);
-            Color color = PlayfieldRenderer.ColorFor(note);
-            color.A = 0.55f;
-
-            _canvas.DrawLine(_editor, from, to, color, 2);
-            if (!dash)
-                continue;
-
-            _canvas.DrawCircleOutline(
-                _editor,
-                to,
-                size / 2,
-                color,
-                2);
-            string arrow = PlayfieldRenderer.DashArrow(note.DashDirection);
-            string strength = PlayfieldRenderer.DashStrengthLabel(note.DashStrength);
-            _canvas.DrawTextStyled(
-                _editor,
-                new Rect2(
-                    to - new Vector2(size / 2, size / 2),
-                    new Vector2(size, size)),
-                strength.Length == 0 ? arrow : $"{arrow} {strength}",
-                color,
-                Mathf.Max(9, (int)(size * (strength.Length == 0 ? 0.7f : 0.55f))));
-        }
     }
 
     private void DrawStartPoints(PlayfieldView view, NoteSelection selection)
@@ -322,97 +274,6 @@ public sealed partial class EditorPlayfieldDrawSystem :
         DrawZoomLens(view);
     }
 
-    private void DrawBpmMarker(
-        Rect2 ruler,
-        Playhead playhead,
-        long windowStart,
-        long windowEnd)
-    {
-        if (playhead.OffsetMs < windowStart ||
-            playhead.OffsetMs > windowEnd)
-        {
-            return;
-        }
-
-        float x = XForTime(
-            ruler,
-            windowStart,
-            windowEnd,
-            playhead.OffsetMs);
-        _canvas.DrawRect(
-            _editor,
-            new Rect2(x, ruler.Position.Y, 2, ruler.Size.Y),
-            PlayfieldRenderer.SelectedNoteColor);
-
-        string label = $"{playhead.Bpm} BPM";
-        float labelX = Mathf.Clamp(
-            x + 4,
-            ruler.Position.X + 2,
-            ruler.End.X - 20);
-        var labelBounds = new Rect2(
-            labelX,
-            ruler.Position.Y + 2,
-            18,
-            Mathf.Max(ruler.Size.Y - 4, label.Length * 11));
-        _canvas.DrawRect(
-            _editor,
-            labelBounds,
-            new Color(0.04f, 0.06f, 0.1f, 0.85f));
-        _canvas.DrawTextVertical(
-            _editor,
-            labelBounds,
-            label,
-            PlayfieldRenderer.SelectedNoteColor,
-            11);
-    }
-
-    /// <summary>
-    /// Each start point as a full-height line on the ruler with its name
-    /// tagged to the left, so it does not cover a BPM label at the same time.
-    /// </summary>
-    private void DrawStartMarkers(
-        Rect2 ruler,
-        NoteSelection selection,
-        long windowStart,
-        long windowEnd)
-    {
-        foreach (Entity entity in _entities.Query<StartPoint>().ToEntityList())
-        {
-            StartPoint start = entity.GetComponent<StartPoint>();
-            if (start.TimeMs < windowStart || start.TimeMs > windowEnd)
-                continue;
-
-            Color color = selection.Contains(entity)
-                ? Colors.White
-                : PlayfieldRenderer.StartPointColor;
-            float x = XForTime(ruler, windowStart, windowEnd, start.TimeMs);
-            _canvas.DrawRect(
-                _editor,
-                new Rect2(x - 1, ruler.Position.Y, 2, ruler.Size.Y),
-                color);
-
-            string label = StartLabel(start);
-            float labelX = Mathf.Clamp(
-                x - 20,
-                ruler.Position.X + 2,
-                ruler.End.X - 20);
-            var labelBounds = new Rect2(
-                labelX,
-                ruler.Position.Y + 2,
-                18,
-                Mathf.Min(ruler.Size.Y - 4, label.Length * 11));
-            _canvas.DrawRect(
-                _editor,
-                labelBounds,
-                new Color(0.04f, 0.06f, 0.1f, 0.85f));
-            _canvas.DrawTextVertical(_editor, labelBounds, label, color, 11);
-        }
-    }
-
-    /// <summary>The start point's name, or "START" when it has none.</summary>
-    public static string StartLabel(StartPoint start) =>
-        string.IsNullOrWhiteSpace(start.Name) ? "START" : start.Name;
-
     private void DrawBeatBands(
         Rect2 ruler,
         Playhead playhead,
@@ -452,75 +313,6 @@ public sealed partial class EditorPlayfieldDrawSystem :
                     ruler.Size.Y - 2),
                 new Color(1f, 1f, 1f, accent ? 0.028f : 0.012f));
         }
-    }
-
-    private void DrawWaveform(
-        Rect2 ruler,
-        WaveformPreview preview,
-        long windowStart,
-        long windowEnd)
-    {
-        if (preview.Left is null ||
-            preview.Right is null ||
-            preview.Left.Length == 0 ||
-            preview.Right.Length == 0 ||
-            preview.DurationMs <= 0)
-        {
-            return;
-        }
-
-        float centerY = ruler.Position.Y + ruler.Size.Y / 2;
-        float maxHeight = (ruler.Size.Y - 12f) / 2f;
-        int columns = Math.Min(480, Math.Max(32, (int)ruler.Size.X));
-        float columnWidth = ruler.Size.X / columns;
-        var color = new Color(0.35f, 0.68f, 0.98f, 0.16f);
-
-        for (int i = 0; i < columns; i++)
-        {
-            long sampleStart = windowStart +
-                (long)((windowEnd - windowStart) * i / (double)columns);
-            long sampleEnd = windowStart +
-                (long)((windowEnd - windowStart) * (i + 1) / (double)columns);
-            int first = Math.Clamp(
-                (int)(sampleStart * preview.Left.Length / preview.DurationMs),
-                0,
-                preview.Left.Length - 1);
-            int last = Math.Clamp(
-                (int)(sampleEnd * preview.Left.Length / preview.DurationMs),
-                0,
-                preview.Left.Length - 1);
-            if (last < first)
-                last = first;
-
-            float left = 0f;
-            float right = 0f;
-            int stride = Math.Max(1, (last - first + 1) / 16);
-            for (int sample = first; sample <= last; sample += stride)
-            {
-                left = Math.Max(left, preview.Left[sample]);
-                right = Math.Max(
-                    right,
-                    preview.Right[Math.Min(sample, preview.Right.Length - 1)]);
-            }
-
-            float top = centerY - left * maxHeight;
-            float bottom = centerY + right * maxHeight;
-            _canvas.DrawRect(
-                _editor,
-                new Rect2(
-                    ruler.Position.X + i * columnWidth,
-                    top,
-                    Math.Max(1f, columnWidth),
-                    Math.Max(1f, bottom - top)),
-                color);
-        }
-
-        _canvas.DrawLine(
-            _editor,
-            new Vector2(ruler.Position.X, centerY),
-            new Vector2(ruler.End.X, centerY),
-            new Color(color.R, color.G, color.B, 0.22f),
-            1);
     }
 
     private void DrawZoomLens(PlayfieldView view)
@@ -592,8 +384,8 @@ public sealed partial class EditorPlayfieldDrawSystem :
 
         DrawAnalysis(playhead, EditorLayout.AnalysisRect(view), windowStart, windowEnd);
         DrawBeatBands(ruler, playhead, windowStart, windowEnd);
-        DrawBpmMarker(ruler, playhead, windowStart, windowEnd);
         DrawWaveform(ruler, preview, windowStart, windowEnd);
+        DrawBpmMarker(ruler, playhead, windowStart, windowEnd);
         DrawStartMarkers(ruler, selection, windowStart, windowEnd);
         int subdivisions = Math.Max(1, playhead.SnapDivision);
         double tickMs = TimingGrid.TickMs(playhead.Bpm, subdivisions);
@@ -604,6 +396,12 @@ public sealed partial class EditorPlayfieldDrawSystem :
         int skip = 1;
         while (pixelsPerTick / skip < 3f)
             skip *= 2;
+
+        // Zoomed out, the ticks must thin out by importance or they become a solid wall.
+        float pixelsPerBeat = pixelsPerTick * subdivisions;
+        int beatSkip = 1;
+        while (pixelsPerBeat * beatSkip < MinBeatSpacing)
+            beatSkip *= 2;
 
         int firstTick = TimingGrid.FirstTick(
             windowStart, playhead.OffsetMs, tickMs);
@@ -621,7 +419,7 @@ public sealed partial class EditorPlayfieldDrawSystem :
             bool quarter = sub * 4 == subdivisions ||
                            sub * 4 == subdivisions * 3;
 
-            if (!main && !half && !quarter && sub % skip != 0)
+            if (main ? FloorDiv(tick, subdivisions) % beatSkip != 0 : !ShowsTick(half, quarter, sub, skip, pixelsPerBeat))
                 continue;
 
             double tickTime = TimingGrid.TickTime(
@@ -692,6 +490,15 @@ public sealed partial class EditorPlayfieldDrawSystem :
                 10f),
             Colors.White);
     }
+
+    private static int FloorDiv(int value, int divisor) =>
+        (int)Math.Floor(value / (double)divisor);
+
+    /// <summary>Whether a tick between beats has room to be drawn at this zoom.</summary>
+    private static bool ShowsTick(bool half, bool quarter, int sub, int skip, float pixelsPerBeat) =>
+        half ? pixelsPerBeat >= MinBeatSpacing * 2f :
+        quarter ? pixelsPerBeat >= MinBeatSpacing * 4f :
+        pixelsPerBeat >= MinBeatSpacing * 4f && sub % skip == 0;
 
     private static float XForTime(
         Rect2 ruler,

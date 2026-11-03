@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Godot;
+using Xanadu.Ecs;
 
 namespace Xanadu.Animation;
 
@@ -16,11 +17,11 @@ public static class XafRigAuthoring
             Parent = -1,
             Rest = Transform2D.Identity,
         });
-        foreach (string id in new[] { "idle", "jumping", "landing", "death" })
+        foreach (ContactClip clip in new[] { ContactClip.Idle, ContactClip.Jumping, ContactClip.Landing, ContactClip.Death })
         {
             package.Clips.Add(new XafClip
             {
-                Id = id,
+                Id = clip.Id(),
                 Duration = 2f,
             });
         }

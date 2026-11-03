@@ -21,7 +21,7 @@ public sealed class SongCatalogTests
         SongDocument[] songs =
             JsonFileStore.Load<SongDocument[]>(catalogPath)!;
 
-        Assert.That(songs, Has.Length.EqualTo(3));
+        Assert.That(songs, Has.Length.EqualTo(4));
 
         SongDocument mortal = Song(songs, "Mortal Coil");
         Assert.That(mortal.Artist, Is.EqualTo("Helblinde"));
@@ -37,6 +37,11 @@ public sealed class SongCatalogTests
         Assert.That(unconquered.Artist, Is.EqualTo("Helblinde"));
         Assert.That(unconquered.Bpm, Is.EqualTo(140));
         Assert.That(unconquered.OffsetMs, Is.EqualTo(-11));
+
+        SongDocument dearBrave = Song(songs, "Dear Brave");
+        Assert.That(dearBrave.Artist, Is.EqualTo("Kano"));
+        Assert.That(dearBrave.Bpm, Is.EqualTo(188));
+        Assert.That(dearBrave.OffsetMs, Is.EqualTo(2154));
 
         foreach (SongDocument song in songs)
         {

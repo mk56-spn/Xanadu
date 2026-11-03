@@ -8,6 +8,7 @@ using Xanadu.Editor;
 using Xanadu.Systems.Editor;
 using Xanadu.Strings;
 using Xanadu.Systems.Playfields;
+using Xanadu.Theme;
 
 namespace Xanadu.Scenes;
 
@@ -31,11 +32,29 @@ public static partial class EditorScene
         var size = new Vector2(
             EditorShellMetrics.ToolButton,
             EditorShellMetrics.ToolButton);
-        foreach ((EditorPlacementMode mode, string icon) in ToolIcons)
+        foreach ((EditorPlacementMode mode, string icon, string name) in ToolIcons)
         {
-            strip.Button(icon, 26, SceneUi.MutedButtonColor)
+            string key = EditorPlacementKeybinds.LabelFor(mode);
+
+            // The button is a container so it can hold its key in a corner beside the icon.
+            UiNode button = strip.Column()
                 .Size(size)
+                .Fill(SceneUi.MutedButtonColor)
+                .Input()
+                .Main(StackMainAlignment.Center)
+                .Cross(StackCrossAlignment.Center)
+                .With(ButtonVisual.Create(SceneUi.MutedButtonColor))
+                .Tooltip(key.Length > 0 ? $"{name} ({key})" : name)
                 .With(new EditorPlacementButton(mode));
+            button.Text(icon, 26, UiTheme.Text, TextAlign.Center).Size(size);
+
+            // The key in the corner, so the shortcut is learnt by looking at the tool.
+            if (key.Length > 0)
+            {
+                button.Text(key, UiType.Caption, SceneUi.DimTextColor, TextAlign.Center, bold: true)
+                    .Size(18, 16)
+                    .Anchor(new Vector2(1, 1));
+            }
         }
     }
 
@@ -95,7 +114,7 @@ public static partial class EditorScene
         row.Button("-", 13, SceneUi.MutedButtonColor)
             .Size(height, height)
             .With(new EditorOutlineStepButton(-1))
-            .Tooltip("Thinner outline; at 0 the block has none");
+            .Tooltip("Thinner outline; at 0 there is none");
         row.Button("+", 13, SceneUi.MutedButtonColor)
             .Size(height, height)
             .With(new EditorOutlineStepButton(1))
@@ -104,7 +123,7 @@ public static partial class EditorScene
         UiNode color = section.ColorField(
             "OUTLINE",
             inner,
-            "The colour of the selected blocks' outline. A group's colour fade overrides it.");
+            "The colour of the selected blocks' and spikes' outline. A group's colour fade overrides it.");
         editor.AddComponent(new EditorBlockOutlinePanel(section.Entity, width, color.Entity));
     }
 
@@ -227,22 +246,22 @@ public static partial class EditorScene
         parent.Text(text, fontSize, SceneUi.DimTextColor, TextAlign.Center)
             .Size(width, fontSize + 10);
 
-    /// <summary>Icons for the placement tools, in bar order; two letters where no symbol fits.</summary>
-    private static readonly (EditorPlacementMode Mode, string Icon)[] ToolIcons =
+    /// <summary>Icons and hover names for the placement tools, in bar order; a letter where no symbol fits.</summary>
+    private static readonly (EditorPlacementMode Mode, string Icon, string Name)[] ToolIcons =
     {
-        (EditorPlacementMode.Notes, "🎵"),
-        (EditorPlacementMode.Pair, "P"),
-        (EditorPlacementMode.Dash, "➜"),
-        (EditorPlacementMode.Momentum, "M"),
-        (EditorPlacementMode.Mines, "✹"),
-        (EditorPlacementMode.Start, "⚑"),
-        (EditorPlacementMode.Contact, "◎"),
-        (EditorPlacementMode.CharacterSwitch, "⇄"),
-        (EditorPlacementMode.WeaponSwitch, "W"),
-        (EditorPlacementMode.Channel, "◑"),
-        (EditorPlacementMode.FormStep, "F"),
-        (EditorPlacementMode.Blocks, "■"),
-        (EditorPlacementMode.Spikes, "▲"),
+        (EditorPlacementMode.Notes, "🎵", "Normal notes"),
+        (EditorPlacementMode.Pair, "P", "Pair notes"),
+        (EditorPlacementMode.Dash, "➜", "Dash notes"),
+        (EditorPlacementMode.Momentum, "M", "Momentum notes"),
+        (EditorPlacementMode.Mines, "✹", "Mines"),
+        (EditorPlacementMode.Start, "⚑", "Start points"),
+        (EditorPlacementMode.Contact, "◎", "Contact notes"),
+        (EditorPlacementMode.CharacterSwitch, "⇄", "Character switches"),
+        (EditorPlacementMode.WeaponSwitch, "W", "Weapon switches"),
+        (EditorPlacementMode.Channel, "◑", "Channel starts"),
+        (EditorPlacementMode.FormStep, "F", "Form steps"),
+        (EditorPlacementMode.Blocks, "■", "Blocks"),
+        (EditorPlacementMode.Spikes, "▲", "Spikes"),
     };
 
     /// <summary>
