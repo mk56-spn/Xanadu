@@ -122,6 +122,21 @@ public readonly partial struct UiNode
         return Touch(layout: false);
     }
 
+    /// <summary>
+    /// Draws the node's text in the monospaced face and refits its width to
+    /// it, since the proportional estimate is wrong for code and punctuation.
+    /// </summary>
+    public UiNode Mono()
+    {
+        if (IsNull)
+            return this;
+
+        _entity.AddTag<TextMono>();
+        if (_entity.TryGetComponent(out Text text) && _entity.TryGetComponent(out TextStyle style))
+            Width(MeasureMono(text.Value, style.FontSize).X);
+        return Touch(layout: false);
+    }
+
     /// <summary>Horizontal alignment of the node's text.</summary>
     public UiNode Align(TextAlign align) => With(new TextAlignment(align));
 

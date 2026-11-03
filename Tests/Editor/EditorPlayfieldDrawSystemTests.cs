@@ -5,6 +5,8 @@ using Friflo.Engine.ECS.Systems;
 using Godot;
 using NUnit.Framework;
 using Xanadu.Ecs;
+using Xanadu.Theme;
+using Xanadu.Systems.Audio;
 using Xanadu.Systems.Canvas;
 using Xanadu.Systems.Editor;
 using Xanadu.Systems.Playfields;
@@ -36,6 +38,70 @@ public sealed class EditorPlayfieldDrawSystemTests
 
         Assert.That(canvas.Lines.Count, Is.GreaterThan(10));
         Assert.That(canvas.Rects, Does.Contain(EditorLayout.RulerRect(view)));
+    }
+
+    private static (RecordingCanvas Canvas, Rect2 Ruler) DrawTimeline(long durationMs, float zoom, WaveformData? data)
+    {
+        var view = new PlayfieldView(new Vector2(30, 30), 0.6f, new Vector2(1920, 1080));
+        var store = new EntityStore();
+        store.CreateEntity(
+            new LevelInfo("Wave", ""),
+            new Playfield(1000, 1000),
+            new Playhead(0, 120, 0, false, durationMs: durationMs),
+            new TimelineView(zoom),
+            new WaveformPreview("", data),
+            view,
+            new NoteSelection(default));
+
+        var canvas = new RecordingCanvas();
+        var root = new SystemRoot(store);
+        root.Add(new EditorPlayfieldDrawSystem(store, canvas, default));
+        root.Update(new UpdateTick(1f / 60f, 0));
+        return (canvas, EditorLayout.RulerRect(view));
+    }
+
+    [Test]
+    public void ALongSongZoomedOutDrawsBeatTicksWithRoomBetweenThem()
+    {
+        (RecordingCanvas canvas, Rect2 ruler) = DrawTimeline(600_000, 1f, null);
+
+        // The playhead sits on the first tick at time zero, so that spot is left out.
+        var ticks = canvas.Lines.FindAll(line =>
+            line.From.X == line.To.X && line.To.Y == ruler.End.Y && line.From.X > ruler.Position.X);
+        ticks.Sort((a, b) => a.From.X.CompareTo(b.From.X));
+        Assert.That(ticks, Is.Not.Empty);
+        for (int i = 1; i < ticks.Count; i++)
+            Assert.That(ticks[i].From.X - ticks[i - 1].From.X, Is.GreaterThanOrEqualTo(15f));
+    }
+
+    [Test]
+    public void EachBandOfTheSongIsDrawnCentredInsideTheRuler()
+    {
+        var data = new WaveformData(
+            new[] { 1f, 1f }, new[] { 1f, 1f }, new[] { 1f, 1f }, durationMs: 4_000);
+
+        (RecordingCanvas canvas, Rect2 ruler) = DrawTimeline(4_000, 1f, data);
+
+        foreach (Color band in new[] { Palette.WaveLow, Palette.WaveMid, Palette.WaveHigh })
+        {
+            var columns = canvas.RectCalls.FindAll(call => call.Color == band);
+            Assert.That(columns, Is.Not.Empty);
+            foreach (RecordingCanvas.RectCall column in columns)
+            {
+                Assert.That(ruler.Encloses(column.Bounds), Is.True);
+                Assert.That(column.Bounds.GetCenter().Y, Is.EqualTo(ruler.GetCenter().Y).Within(0.01f));
+            }
+        }
+    }
+
+    [Test]
+    public void SilenceDrawsNoBands()
+    {
+        var data = new WaveformData(new float[2], new float[2], new float[2], durationMs: 4_000);
+
+        (RecordingCanvas canvas, _) = DrawTimeline(4_000, 1f, data);
+
+        Assert.That(canvas.RectCalls.Exists(call => call.Color == Palette.WaveLow), Is.False);
     }
 
     [Test]
@@ -139,7 +205,7 @@ public sealed class EditorPlayfieldDrawSystemTests
         root.Update(new UpdateTick(1f / 60f, 0));
 
         var squares = canvas.Rects
-            .Where(rect => rect.Size == new Vector2(8, 8))
+            .Where(rect => rect.Size == Vector2.One * EditorTimelineNotes.SquareSize(32f))
             .ToList();
         Assert.That(squares, Has.Count.EqualTo(2));
         Assert.That(squares[0].Position.X, Is.EqualTo(squares[1].Position.X));
@@ -147,7 +213,7 @@ public sealed class EditorPlayfieldDrawSystemTests
     }
 
     [Test]
-    public void MovementNotesDrawTheirDashDestination()
+    public void DashNotesDrawTheirLanding()
     {
         var view = new PlayfieldView(
             Vector2.Zero,
@@ -172,10 +238,14 @@ public sealed class EditorPlayfieldDrawSystemTests
 
         root.Update(new UpdateTick(1f / 60f, 0));
 
+        // The exit is a half-strength ring one dash to the right.
+        Vector2 exit = new(350, 100);
+        float radius = PlayfieldRenderer.NoteSize / 2;
         Assert.That(
             canvas.Lines.Any(line =>
-                line.From == new Vector2(100, 100) &&
-                line.To == new Vector2(250, 100)),
+                Mathf.Abs(line.From.DistanceTo(exit) - radius) < 0.5f &&
+                Mathf.Abs(line.To.DistanceTo(exit) - radius) < 0.5f &&
+                Mathf.IsEqualApprox(line.Color.A, PlayfieldRenderer.DashLinkAlpha)),
             Is.True);
     }
 
@@ -236,7 +306,7 @@ public sealed class EditorPlayfieldDrawSystemTests
         root.Update(new UpdateTick(1f / 60f, 0));
 
         var squares = canvas.Rects
-            .Where(rect => rect.Size == new Vector2(8, 8))
+            .Where(rect => rect.Size == Vector2.One * EditorTimelineNotes.SquareSize(32f))
             .ToList();
         Assert.That(squares, Has.Count.EqualTo(7));
         Assert.That(squares.Select(rect => rect.Position.X).Distinct().Count(),
@@ -494,6 +564,28 @@ public sealed class EditorPlayfieldDrawSystemTests
             Is.EqualTo(visible));
     }
 
+    [TestCase(true)]
+    [TestCase(false)]
+    public void TheFrameANoteWasHitIsOutlinedInItsOwnColour(bool hit)
+    {
+        var (store, field, canvas, root) = StartPointScene();
+        field.AddComponent(new PlayerPath(
+            new List<PlayerPathSample>
+            {
+                new(new Vector2(100, 100), 0, false),
+                new(new Vector2(200, 100), 100, false, hit),
+            },
+            new Vector2(30, 200)));
+        Entity button = store.CreateEntity();
+        PlayerPathSwitch.Attach(button);
+
+        root.Update(new UpdateTick(1f / 60f, 0));
+
+        Assert.That(
+            canvas.RectCalls.Exists(call => call.Color == EditorPlayfieldDrawSystem.PathHit),
+            Is.EqualTo(hit));
+    }
+
     [Test]
     public void ASelectedNoteKeepsItsOutlineAfterItFadesOut()
     {
@@ -592,6 +684,16 @@ public sealed class EditorPlayfieldDrawSystemTests
             Texts.Add(text);
 
         public void DrawTextRight(Rid canvas, Rect2 bounds, string text, Color color) { }
+
+        public void DrawTextWeighted(
+            Rid canvas,
+            Rect2 bounds,
+            string text,
+            Color color,
+            int fontSize,
+            TextAlign align,
+            bool bold) =>
+            Texts.Add(text);
 
         public readonly record struct RectCall(
             Rect2 Bounds,

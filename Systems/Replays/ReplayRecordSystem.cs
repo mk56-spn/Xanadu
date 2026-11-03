@@ -12,15 +12,24 @@ namespace Xanadu.Systems.Replays;
 /// systems will judge it against. Nothing is recorded during the countdown,
 /// while paused, or after the song has ended.
 /// </summary>
-public sealed class ReplayRecordSystem(KeybindSettings keybinds, IKeyboardState keyboard)
+public sealed class ReplayRecordSystem(
+    KeybindSettings keybinds,
+    IKeyboardState keyboard,
+    OffsetSettings? offsets = null)
     : QuerySystem<ReplayRecorder, Playhead, PlaySession>
 {
+    private readonly OffsetSettings _offsets = offsets ?? new OffsetSettings(persist: false);
+
     protected override void OnUpdate()
     {
         Query.ForEachEntity((ref recorder, ref playhead, ref session, entity) =>
         {
             if (!session.Started || session.Finished || entity.Tags.Has<PlayPaused>())
                 return;
+
+            int total = (int)PlayOffset.TotalMs(entity, _offsets);
+            if (recorder.Offsets.Count == 0 || recorder.Offsets[^1].TotalMs != total)
+                recorder.Offsets.Add(new ReplayOffset((int)playhead.TimeMs, total));
 
             for (int i = 0; i < KeybindSettings.Actions.Length; i++)
             {

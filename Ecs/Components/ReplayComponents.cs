@@ -14,11 +14,14 @@ public struct ReplayRecorder : IComponent
     /// <summary>The song time the entrance was skipped at, or -1.</summary>
     public long SkipFromMs;
 
+    public List<ReplayOffset> Offsets;
+
     public static ReplayRecorder Create() => new()
     {
         Events = new List<ReplayEvent>(),
         Down = new bool[KeybindSettings.Actions.Length],
         SkipFromMs = -1,
+        Offsets = new List<ReplayOffset>(),
     };
 }
 
@@ -27,6 +30,7 @@ public struct ReplayPlayer(Replay replay) : IComponent
 {
     public Replay Replay = replay;
     public int Cursor;
+    public int OffsetCursor;
     public long LastTimeMs = long.MinValue;
     public bool[] Down = new bool[KeybindSettings.Actions.Length];
 }

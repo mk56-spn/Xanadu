@@ -212,6 +212,12 @@ public struct UiOverlay : ITag;
 /// <summary>Marks an element inside a floating overlay, above the overlay's backing.</summary>
 public struct UiOverlayItem : ITag;
 
+/// <summary>
+/// Draws the entity's text in the monospaced face (JetBrains Mono), for code
+/// and tabular figures. Glow, outline and bold do not apply to it.
+/// </summary>
+public struct TextMono : ITag;
+
 /// <summary>Marks a slider fill so it draws above its track.</summary>
 public struct UiSliderFill : ITag;
 

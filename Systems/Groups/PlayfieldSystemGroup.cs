@@ -40,7 +40,8 @@ public sealed class PlayfieldSystemGroup : SystemGroup, IDisposable
         HudLayoutSettings? hudLayout = null,
         ICharacterRigFiles? rigFiles = null,
         ReplayKeyboard? replayKeyboard = null,
-        IOverlayToggleSource? hitboxToggle = null) : base("Playfield")
+        IOverlayToggleSource? hitboxToggle = null,
+        MapOffsetSettings? mapOffsets = null) : base("Playfield")
     {
         _playfield = new CanvasItemHandle(parentCanvas, 800);
 
@@ -61,10 +62,13 @@ public sealed class PlayfieldSystemGroup : SystemGroup, IDisposable
         Add(new PlaySessionSystem(audio));
         Add(new PlaySkipSystem());
         Add(new GroupModulationSystem(entities));
+        if (mapOffsets is not null)
+            Add(new MapOffsetSystem(replayKeyboard?.Real ?? keyboard, mapOffsets, offsets));
+
         if (replayKeyboard is not null)
         {
             // Before anything that reads the keys, so a replayed press is seen this frame.
-            Add(new ReplayRecordSystem(keybinds, replayKeyboard.Real));
+            Add(new ReplayRecordSystem(keybinds, replayKeyboard.Real, offsets));
             Add(new ReplayPlaybackSystem(keybinds, replayKeyboard));
         }
 
@@ -79,6 +83,7 @@ public sealed class PlayfieldSystemGroup : SystemGroup, IDisposable
         Add(new SplitlineBallsSystem());
         Add(new HitTrailSystem());
         Add(new NotePopSystem());
+        Add(new DashLinkFadeSystem());
         Add(new DashTrailSystem());
         Add(new ParticleBurstSystem(_particles));
         Add(new HudLayoutSystem(

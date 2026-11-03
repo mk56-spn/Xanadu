@@ -20,7 +20,9 @@ namespace Xanadu.Systems.Playfields;
 /// </summary>
 public sealed class PlayerMovementSystem : QuerySystem<Player, Position, PlayfieldView, PhysicsBody, Playhead>
 {
-    public const float DashPixels = 150f;
+    public const float SingleDashDistance = 250f;
+    public const float DoubleDashDistance = 375f;
+    public const float TripleDashDistance = 500f;
     private const float ActiveWindowMs = 150f;
 
     private readonly EntityStore _entities;
@@ -68,7 +70,7 @@ public sealed class PlayerMovementSystem : QuerySystem<Player, Position, Playfie
                 return;
 
             Vector2 screen = Box2DPhysicsWorld.ToScreen(body.Body.GetPosition());
-            long judgedTime = playhead.TimeMs - _offsets.OffsetMs;
+            long judgedTime = playhead.TimeMs - PlayOffset.TotalMs(entity, _offsets);
             CharacterKind? character = entity.TryGetComponent(
                 out PlayerCharacter playerCharacter)
                 ? playerCharacter.Kind
@@ -114,18 +116,20 @@ public sealed class PlayerMovementSystem : QuerySystem<Player, Position, Playfie
                     continue;
                 }
 
+                Color spray = GroupColor.For(noteEntity, PlayfieldRenderer.ColorFor(movement));
                 if (movement.Kind == NoteKind.Dash)
                 {
-                    ApplyDash(ref body, ref position, movement, view);
+                    HitEffects.SpawnDash(_entities, noteEntity, movement, view);
+                    ApplyDash(ref body, ref position, screen, movement, view);
                     _entities.CreateEntity(new DashTrail(screen, position.Value));
-                    _entities.CreateEntity(new ParticleBurst(position.Value, ParticleKind.Dash));
+                    _entities.CreateEntity(new ParticleBurst(position.Value, ParticleKind.Dash, spray, player.Size));
                 }
                 else
                 {
                     ApplyMomentum(ref body, movement);
                     Vector2 push = screen + DashDirectionVector(movement.DashDirection) * 60f;
                     _entities.CreateEntity(new DashTrail(screen, push));
-                    _entities.CreateEntity(new ParticleBurst(screen, ParticleKind.Dash));
+                    _entities.CreateEntity(new ParticleBurst(screen, ParticleKind.Dash, spray, player.Size));
                 }
 
                 float horizontal = DashDirectionVector(movement.DashDirection).X;
@@ -157,17 +161,19 @@ public sealed class PlayerMovementSystem : QuerySystem<Player, Position, Playfie
     private static void ApplyDash(
         ref PhysicsBody body,
         ref Position position,
+        Vector2 playerScreen,
         Note movement,
         PlayfieldView view)
     {
         Vector2 target = DashTarget(
-            movement.Position,
+            view.ScreenToPlayfield(playerScreen),
             movement.DashDirection,
             movement.DashStrength);
         Vector2 targetScreen = view.PlayfieldToScreen(target);
         body.Body.SetTransform(
             Box2DPhysicsWorld.ToPhysics(targetScreen),
             body.Body.GetAngle());
+        body.Body.SetLinearVelocity(new NVector2(body.Body.LinearVelocity.X, 0f));
         position.Value = targetScreen;
     }
 
@@ -175,10 +181,23 @@ public sealed class PlayerMovementSystem : QuerySystem<Player, Position, Playfie
         ref PhysicsBody body,
         Note movement)
     {
+        body.Body.SetLinearVelocity(WithoutOpposingSpeed(
+            body.Body.LinearVelocity,
+            DashDirectionVector(movement.DashDirection)));
         body.Body.ApplyLinearImpulseToCenter(
             MomentumImpulse(movement, body.Body.Mass),
             true);
     }
+
+    /// <summary>
+    /// Zeroes speed on each axis that runs against <paramref name="direction"/>, so a
+    /// change of direction goes straight to the note's speed. Speed along it stacks,
+    /// and speed across it is kept.
+    /// </summary>
+    public static NVector2 WithoutOpposingSpeed(NVector2 velocity, Vector2 direction) =>
+        new(
+            velocity.X * direction.X < 0f ? 0f : velocity.X,
+            velocity.Y * direction.Y < 0f ? 0f : velocity.Y);
 
     /// <summary>The impulse a momentum note applies to a body of <paramref name="mass"/> kg.</summary>
     public static NVector2 MomentumImpulse(Note note, float mass)
@@ -238,20 +257,21 @@ public sealed class PlayerMovementSystem : QuerySystem<Player, Position, Playfie
         return !resultEntity.IsNull;
     }
 
+    /// <summary>Where a dash from <paramref name="origin"/> lands, in playfield space.</summary>
     public static Vector2 DashTarget(
-        Vector2 notePosition,
+        Vector2 origin,
         DashDirection direction,
         DashStrength strength = DashStrength.Single) =>
-        notePosition +
-        DashDirectionVector(direction) * DashPixels * DashStrengthMultiplier(strength);
+        origin +
+        DashDirectionVector(direction) * DashDistance(strength);
 
-    /// <summary>One, two or three dash lengths.</summary>
-    public static int DashStrengthMultiplier(DashStrength strength) =>
+    /// <summary>How far a dash of this strength travels, in playfield units.</summary>
+    public static float DashDistance(DashStrength strength) =>
         strength switch
         {
-            DashStrength.Double => 2,
-            DashStrength.Triple => 3,
-            _ => 1,
+            DashStrength.Double => DoubleDashDistance,
+            DashStrength.Triple => TripleDashDistance,
+            _ => SingleDashDistance,
         };
 
     public static Vector2 DashDirectionVector(DashDirection direction) =>

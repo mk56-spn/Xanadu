@@ -49,12 +49,16 @@ public sealed class PlayerArenaSystem : QuerySystem<Player, PhysicsBody, Positio
                 Box2DPhysicsWorld.ToPhysics(screen),
                 body.Body.GetAngle());
 
-            bool onFloor = screen.Y >= fieldTopLeft.Y + fieldSize.Y - half.Y - 0.5f;
-            if (onFloor || screen.Y <= fieldTopLeft.Y + half.Y + 0.5f)
+            // Only motion into a limit stops there, so a launch can leave it.
+            NVector2 velocity = body.Body.LinearVelocity;
+            bool onFloor = screen.Y >= fieldTopLeft.Y + fieldSize.Y - half.Y - 0.5f &&
+                           velocity.Y >= 0f;
+            bool onCeiling = screen.Y <= fieldTopLeft.Y + half.Y + 0.5f &&
+                             velocity.Y <= 0f;
+            if (onFloor || onCeiling)
             {
-                float speed = body.Body.LinearVelocity.X;
                 body.Body.SetLinearVelocity(new NVector2(
-                    onFloor ? AfterFriction(speed, delta) : speed,
+                    onFloor ? AfterFriction(velocity.X, delta) : velocity.X,
                     0f));
             }
 

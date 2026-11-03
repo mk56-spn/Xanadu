@@ -145,6 +145,8 @@ public static class LevelDocumentMapper
                 Width = spike.Size.X,
                 Height = spike.Size.Y,
                 RotationDegrees = spike.RotationDegrees,
+                OutlineWidth = spike.OutlineWidth,
+                OutlineColor = spike.OutlineColor.ToRgba32(),
                 SelfModulate = SelfModulate.Packed(entity),
                 Groups = GroupsOf(entity),
                 Shader = ItemShader.Of(entity),
@@ -259,7 +261,9 @@ public static class LevelDocumentMapper
             Entity created = EditorItems.Create(entities, new Spike(
                 new Vector2(spike.X, spike.Y),
                 new Vector2(spike.Width, spike.Height),
-                spike.RotationDegrees), spike.Shader);
+                spike.RotationDegrees,
+                spike.OutlineWidth,
+                new Color(spike.OutlineColor)), spike.Shader);
             Subscribe(created, spike.Groups);
             SelfModulate.Put(created, spike.SelfModulate);
         }

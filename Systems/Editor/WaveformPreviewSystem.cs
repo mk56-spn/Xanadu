@@ -1,4 +1,3 @@
-using System;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Xanadu.Ecs;
@@ -17,14 +16,11 @@ public sealed class WaveformPreviewSystem : QuerySystem<LevelInfo, Playhead, Wav
                 return;
 
             preview.Path = level.AudioPath;
-            WaveformData? data = WaveformLoader.Load(level.AudioPath);
-            preview.Left = data?.Left ?? Array.Empty<float>();
-            preview.Right = data?.Right ?? Array.Empty<float>();
-            preview.DurationMs = data?.DurationMs ?? 0;
+            preview.Data = WaveformLoader.Load(level.AudioPath);
 
-            if (playhead.DurationMs <= 0 && preview.DurationMs > 0)
+            if (playhead.DurationMs <= 0 && preview.Data is { DurationMs: > 0 } data)
             {
-                playhead.DurationMs = preview.DurationMs;
+                playhead.DurationMs = data.DurationMs;
                 playhead.SeekRequestMs = 0;
             }
         });

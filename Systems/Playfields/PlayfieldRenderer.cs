@@ -81,6 +81,7 @@ public static partial class PlayfieldRenderer
         DrawNotes(canvas, rid, entities, view, playfield, playhead, default);
         DrawRails(canvas, rid, entities, view, playfield, playhead, previewBoth: false);
         DrawNotePops(canvas, rid, entities);
+        DrawDashLinkFades(canvas, rid, entities);
         DrawMines(canvas, rid, entities, view, playhead);
         DrawDashTrails(canvas, rid, entities);
         canvas.SelectShader(playerShader);

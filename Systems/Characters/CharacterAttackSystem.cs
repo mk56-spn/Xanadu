@@ -16,13 +16,6 @@ namespace Xanadu.Systems.Characters;
 /// </summary>
 public sealed class CharacterAttackSystem : QuerySystem<CharacterRig, CharacterAttack>
 {
-    public const string LowClip = "attack_low";
-    public const string MidClip = "attack_mid";
-    public const string HighClip = "attack_high";
-    public const string AirLowClip = "attack_air_low";
-    public const string AirMidClip = "attack_air_mid";
-    public const string AirHighClip = "attack_air_high";
-
     /// <summary>
     /// How far, in screen pixels, a note has to sit above or below the
     /// player before it counts as high or low rather than level with them.
@@ -37,15 +30,15 @@ public sealed class CharacterAttackSystem : QuerySystem<CharacterRig, CharacterA
         foreach (Entity entity in Query.ToEntityList())
         {
             ref CharacterAttack attack = ref entity.GetComponent<CharacterAttack>();
-            if (string.IsNullOrEmpty(attack.ClipId))
+            if (attack.Clip is not { } clip)
                 continue;
 
             attack.StateTime += delta;
             AnimatorRuntime runtime = entity.GetComponent<CharacterRig>().Runtime;
-            if (attack.StateTime >= ClipLength(runtime, attack.ClipId))
+            if (attack.StateTime >= runtime.Package.Length(clip))
             {
-                runtime.RemoveLayer(attack.ClipId);
-                attack.ClipId = "";
+                runtime.RemoveLayer(clip.Id());
+                attack.Clip = null;
             }
         }
     }
@@ -60,31 +53,28 @@ public sealed class CharacterAttackSystem : QuerySystem<CharacterRig, CharacterA
         if (!entity.TryGetComponent(out CharacterRig rig))
             return;
 
-        string clipId = ClipFor(noteScreenY - playerScreenY, Airborne(entity));
+        ContactClip clip = ClipFor(noteScreenY - playerScreenY, Airborne(entity));
 
         if (!entity.HasComponent<CharacterAttack>())
             entity.AddComponent(new CharacterAttack());
 
         ref CharacterAttack attack = ref entity.GetComponent<CharacterAttack>();
-        if (!string.IsNullOrEmpty(attack.ClipId))
-            rig.Runtime.RemoveLayer(attack.ClipId);
+        if (attack.Clip is { } previous)
+            rig.Runtime.RemoveLayer(previous.Id());
 
-        rig.Runtime.AddLayer(clipId, 1f);
-        attack.ClipId = clipId;
+        rig.Runtime.AddLayer(clip.Id(), 1f);
+        attack.Clip = clip;
         attack.StateTime = 0f;
     }
 
     /// <summary>Up is negative: a note above the player (smaller Y) kicks high, below kicks low.</summary>
-    private static string ClipFor(float dy, bool airborne) =>
-        dy <= -HeightBand ? airborne ? AirHighClip : HighClip :
-        dy >= HeightBand ? airborne ? AirLowClip : LowClip :
-        airborne ? AirMidClip : MidClip;
+    private static ContactClip ClipFor(float dy, bool airborne) =>
+        dy <= -HeightBand ? airborne ? ContactClip.AttackAirHigh : ContactClip.AttackHigh :
+        dy >= HeightBand ? airborne ? ContactClip.AttackAirLow : ContactClip.AttackLow :
+        airborne ? ContactClip.AttackAirMid : ContactClip.AttackMid;
 
     /// <summary>A rig that has not settled into a motion state yet counts as grounded.</summary>
     private static bool Airborne(Entity entity) =>
         entity.TryGetComponent(out CharacterMotion motion) &&
         motion.State is CharacterMotionState.Jumping or CharacterMotionState.Falling;
-
-    private static float ClipLength(AnimatorRuntime runtime, string clipId) =>
-        runtime.Package.Clips.Find(clip => clip.Id == clipId)?.Duration ?? 0f;
 }

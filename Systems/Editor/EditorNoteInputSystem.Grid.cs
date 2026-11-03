@@ -119,6 +119,7 @@ public sealed partial class EditorNoteInputSystem
 
         _paintAdded = true;
         editor.GetComponent<NoteSelection>().Note = created;
+        _placed = created;
     }
 
     private static bool IsGridMode(Entity editor) =>

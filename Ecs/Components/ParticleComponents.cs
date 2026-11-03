@@ -9,10 +9,10 @@ public enum ParticleKind
     /// <summary>Dust kicked up where the player lands.</summary>
     Landing,
 
-    /// <summary>A spray where a dash ends.</summary>
+    /// <summary>Solid squares sprayed off the body where a dash or push goes off, in the note's colour.</summary>
     Dash,
 
-    /// <summary>Sparks flying off a note that was hit, in the note's colour.</summary>
+    /// <summary>Solid squares thrown off when a note is hit, in the note's colour.</summary>
     Hit,
 }
 
@@ -20,11 +20,18 @@ public enum ParticleKind
 /// A request for one burst of particles at a screen position. Gameplay systems
 /// create it; <c>ParticleBurstSystem</c> hands it to the emitter and removes it.
 /// </summary>
-public struct ParticleBurst(Vector2 position, ParticleKind kind, Color? tint = null) : IComponent
+public struct ParticleBurst(
+    Vector2 position,
+    ParticleKind kind,
+    Color? tint = null,
+    Vector2 area = default) : IComponent
 {
     public Vector2 Position = position;
     public ParticleKind Kind = kind;
 
     /// <summary>Multiplies the burst's own colours; white leaves them as they are.</summary>
     public Color Tint = tint ?? Colors.White;
+
+    /// <summary>The box around the position particles start in, such as the player's body; zero is a point.</summary>
+    public Vector2 Area = area;
 }

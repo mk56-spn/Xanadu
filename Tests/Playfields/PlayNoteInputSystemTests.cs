@@ -99,10 +99,10 @@ public sealed class PlayNoteInputSystemTests
 
         Frame();
 
-        Assert.That(playfield.GetComponent<CharacterAttack>().ClipId, Is.EqualTo(CharacterAttackSystem.HighClip));
+        Assert.That(playfield.GetComponent<CharacterAttack>().Clip, Is.EqualTo(ContactClip.AttackHigh));
         Assert.That(
             playfield.GetComponent<CharacterRig>().Runtime.Additives[0].Clip.Id,
-            Is.EqualTo(CharacterAttackSystem.HighClip));
+            Is.EqualTo(ContactClip.AttackHigh.Id()));
     }
 
     [Test]
@@ -118,8 +118,8 @@ public sealed class PlayNoteInputSystemTests
 
         Assert.That(playfield.GetComponent<CharacterFacing>().Left, Is.True);
         Assert.That(
-            playfield.GetComponent<CharacterAttack>().ClipId,
-            Is.EqualTo(CharacterAttackSystem.MidClip));
+            playfield.GetComponent<CharacterAttack>().Clip,
+            Is.EqualTo(ContactClip.AttackMid));
     }
 
     [Test]
@@ -154,15 +154,15 @@ public sealed class PlayNoteInputSystemTests
     {
         var package = new XafPackage();
         package.Skeleton.Bones.Add(new XafBone { Id = "root", Parent = -1, Rest = Transform2D.Identity });
-        package.Clips.Add(new XafClip { Id = "idle", Duration = 1f, Loop = true, LoopEnd = 1f });
-        package.Clips.Add(new XafClip { Id = CharacterAttackSystem.LowClip, Duration = 0.2f });
-        package.Clips.Add(new XafClip { Id = CharacterAttackSystem.MidClip, Duration = 0.2f });
-        package.Clips.Add(new XafClip { Id = CharacterAttackSystem.HighClip, Duration = 0.2f });
-        package.Clips.Add(new XafClip { Id = CharacterAttackSystem.AirLowClip, Duration = 0.2f });
-        package.Clips.Add(new XafClip { Id = CharacterAttackSystem.AirMidClip, Duration = 0.2f });
-        package.Clips.Add(new XafClip { Id = CharacterAttackSystem.AirHighClip, Duration = 0.2f });
+        package.Clips.Add(new XafClip { Id = ContactClip.Idle.Id(), Duration = 1f, Loop = true, LoopEnd = 1f });
+        package.Clips.Add(new XafClip { Id = ContactClip.AttackLow.Id(), Duration = 0.2f });
+        package.Clips.Add(new XafClip { Id = ContactClip.AttackMid.Id(), Duration = 0.2f });
+        package.Clips.Add(new XafClip { Id = ContactClip.AttackHigh.Id(), Duration = 0.2f });
+        package.Clips.Add(new XafClip { Id = ContactClip.AttackAirLow.Id(), Duration = 0.2f });
+        package.Clips.Add(new XafClip { Id = ContactClip.AttackAirMid.Id(), Duration = 0.2f });
+        package.Clips.Add(new XafClip { Id = ContactClip.AttackAirHigh.Id(), Duration = 0.2f });
         var runtime = new AnimatorRuntime(package);
-        runtime.Play("idle", 0f);
+        runtime.Play(ContactClip.Idle.Id(), 0f);
         return runtime;
     }
 

@@ -54,6 +54,40 @@ public sealed class WheelDrawSystemTests : EcsSystemTest
     }
 
     [Test]
+    public void TheGapBetweenWedgesKeepsItsWidthTowardsTheCentre()
+    {
+        Entity wheel = AddWheel(selected: 2);
+        wheel.GetComponent<UiWheel>().Gap = 0.1f;
+        wheel.GetComponent<UiWheel>().StartAngle = 0f;
+
+        Frame();
+
+        // Wedge 0 points along +X, so its lower boundary is the line at -step/2.
+        Vector2[] points = _canvas.Polygons[0].Points;
+        float boundary = -Mathf.Tau / 8 / 2;
+        Vector2 normal = new(-Mathf.Sin(boundary), Mathf.Cos(boundary));
+        Assert.That(
+            points[0].Dot(normal),
+            Is.EqualTo(points[1].Dot(normal)).Within(0.001f));
+        Assert.That(points[0].Dot(normal), Is.GreaterThan(0f));
+    }
+
+    [Test]
+    public void AWheelCanSetItsOwnSelectedAndRimColours()
+    {
+        Entity wheel = AddWheel(selected: 2);
+        wheel.GetComponent<UiWheel>().SelectedColor = Palette.Pink;
+        wheel.GetComponent<UiWheel>().RimColor = Palette.Violet;
+        wheel.GetComponent<UiWheel>().Colors = [Palette.Cyan];
+
+        Frame();
+
+        Assert.That(_canvas.Polygons[2].Color, Is.EqualTo(Palette.Pink));
+        Assert.That(_canvas.Polygons[0].Color, Is.EqualTo(Palette.Cyan));
+        Assert.That(_canvas.Texts[8].Color, Is.EqualTo(Palette.Pink));
+    }
+
+    [Test]
     public void SelectedLabelIsDarkAndUnselectedLabelsAreLight()
     {
         AddWheel(selected: 2);

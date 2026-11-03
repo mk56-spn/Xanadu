@@ -28,6 +28,7 @@ public sealed class ReplayPlaybackSystem(KeybindSettings keybinds, ReplayKeyboar
                 return;
 
             Advance(ref player, playhead.TimeMs);
+            ApplyOffset(ref player, playhead.TimeMs, entity);
         });
 
         if (!replaying)
@@ -51,12 +52,26 @@ public sealed class ReplayPlaybackSystem(KeybindSettings keybinds, ReplayKeyboar
         keyboard.Replay(_held);
     }
 
+    /// <summary>Judges with the offset the play had at this point, whatever the settings are now.</summary>
+    private static void ApplyOffset(ref ReplayPlayer player, long timeMs, Entity entity)
+    {
+        IReadOnlyList<ReplayOffset>? offsets = player.Replay.Offsets;
+        if (offsets is null || offsets.Count == 0 || !entity.HasComponent<PlayOffset>())
+            return;
+
+        while (player.OffsetCursor + 1 < offsets.Count && offsets[player.OffsetCursor + 1].TimeMs <= timeMs)
+            player.OffsetCursor++;
+
+        entity.GetComponent<PlayOffset>().ReplayTotalMs = offsets[player.OffsetCursor].TotalMs;
+    }
+
     private static void Advance(ref ReplayPlayer player, long timeMs)
     {
         // A seek backwards, such as a retry on the same entity, replays from the start.
         if (timeMs < player.LastTimeMs)
         {
             player.Cursor = 0;
+            player.OffsetCursor = 0;
             System.Array.Clear(player.Down);
         }
 

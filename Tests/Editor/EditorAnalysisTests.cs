@@ -79,6 +79,19 @@ public sealed class EditorAnalysisTests
     }
 
     [Test]
+    public void ADashLeavesFromThePlayerRatherThanTheNote()
+    {
+        // The note sits right of the player, so an upward dash keeps the player's x.
+        AnalysedNote[] chart =
+        [
+            Dash(1000, 540, 895, DashDirection.Up),
+            Hit(1400, 420, 880),
+        ];
+
+        Assert.That(PlayabilityAnalyzer.Analyze(chart, Field), Is.Empty);
+    }
+
+    [Test]
     public void AfterADashTheNextNoteStillHasToBeWithinReachOfTheLandingSpot()
     {
         AnalysedNote[] chart =
@@ -111,8 +124,8 @@ public sealed class EditorAnalysisTests
         AnalysedNote[] chart =
         [
             Dash(1000, 100, 895, DashDirection.Right),
-            Hit(1600, 250, 880),
-            Hit(1800, 250, 880),
+            Hit(1600, 350, 880),
+            Hit(1800, 350, 880),
         ];
 
         List<PlayabilityIssue> issues = PlayabilityAnalyzer.Analyze(chart, Field);

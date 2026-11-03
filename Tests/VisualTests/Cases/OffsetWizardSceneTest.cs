@@ -24,14 +24,14 @@ public sealed class OffsetWizardSceneTest : SceneTest
         AddAssert(
             "wizard actions exist",
             () => VisualAssert.HasText(Context.Entities, "START") &&
-                  VisualAssert.HasText(Context.Entities, "SAVE") &&
+                  VisualAssert.HasText(Context.Entities, "APPLY") &&
                   VisualAssert.HasText(Context.Entities, "BACK") &&
-                  VisualAssert.HasText(Context.Entities, "RESET OFFSET"));
+                  VisualAssert.HasText(Context.Entities, "RESET"));
         AddAssert(
             "wizard instructions are shown",
             () => VisualAssert.HasText(
                 Context.Entities,
-                "Listen to the eight clicks and tap SPACE exactly with each one."));
+                "Tap SPACE with the clicks, by ear, for 36 clicks. Look away if it helps."));
         AddAssert(
             "wizard layer is initialized",
             () => VisualAssert.CountUninitialised(

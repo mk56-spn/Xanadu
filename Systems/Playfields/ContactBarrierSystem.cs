@@ -47,7 +47,7 @@ public sealed class ContactBarrierSystem : QuerySystem<Player, Position, Playfie
                 character.Kind == CharacterKind.Contact &&
                 entity.HasComponent<ContactCounters>();
             Vector2 playerScreen = position.Value;
-            long judgedTime = playhead.TimeMs - _offsets.OffsetMs;
+            long judgedTime = playhead.TimeMs - PlayOffset.TotalMs(entity, _offsets);
 
             foreach (Entity noteEntity in _entities.Query<Note>().ToEntityList())
             {

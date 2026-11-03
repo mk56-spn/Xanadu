@@ -10,23 +10,26 @@ namespace Xanadu.Tests.Audio;
 public sealed class WaveformLoaderTests
 {
     [Test]
-    public void DecodesPcmWavIntoNormalizedPeaks()
+    public void DecodesAFileAndKeepsItsDuration()
     {
-        string path = WriteWav(short.MinValue, short.MaxValue);
+        string path = WriteWav(new short[100]);
         try
         {
-            WaveformData? data = WaveformLoader.Load(path, 4);
+            WaveformData? data = WaveformLoader.Load(path);
 
             Assert.That(data, Is.Not.Null);
-            Assert.That(data!.Left, Has.Length.EqualTo(2));
-            Assert.That(data.DurationMs, Is.EqualTo(2));
-            Assert.That(data.Left, Has.Some.GreaterThan(0.5f));
+            Assert.That(data!.Steps, Is.GreaterThan(0));
+            Assert.That(data.DurationMs, Is.EqualTo(100).Within(5));
         }
         finally
         {
             File.Delete(path);
         }
     }
+
+    [Test]
+    public void AMissingFileGivesNothing() =>
+        Assert.That(WaveformLoader.Load("/no/such/song.mp3"), Is.Null);
 
     private static string WriteWav(params short[] samples)
     {

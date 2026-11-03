@@ -9,9 +9,9 @@ namespace Xanadu.Systems.Rendering;
 
 /// <summary>
 /// Paints dirty <see cref="UiWheel"/> entities as a ring of wedge buttons with
-/// an inner hub and one label per wedge. Unselected wedges are blue; the
-/// selected wedge is yellow and reaches the outer rim. Hovering only lightens
-/// a wedge.
+/// an inner hub and one label per wedge. Unselected wedges are blue and the
+/// selected wedge is yellow unless the wheel sets its own colours; the selected
+/// wedge reaches the outer rim. Hovering only lightens a wedge.
 /// </summary>
 public sealed class WheelDrawSystem : QuerySystem<UiWheel, Rectangle, Drawable, VisualRid>
 {
@@ -54,13 +54,15 @@ public sealed class WheelDrawSystem : QuerySystem<UiWheel, Rectangle, Drawable, 
 
         float step = Mathf.Tau / wheel.Labels.Length;
         float hub = radius * Mathf.Clamp(wheel.HubRadius, 0.08f, 0.6f);
+        Color selectedColor = wheel.SelectedColor ?? Selected;
+        Color rim = wheel.RimColor ?? Rim;
 
         for (int i = 0; i < wheel.Labels.Length; i++)
         {
             bool selected = i == wheel.Selected;
             bool hovered = i == wheel.Hover;
             Color color = selected
-                ? Selected.Lerp(Colors.White, hovered ? 0.12f : 0f)
+                ? selectedColor.Lerp(Colors.White, hovered ? 0.12f : 0f)
                 : WedgeColor(wheel, i).Lerp(
                     Colors.White,
                     hovered ? 0.16f : 0f);
@@ -72,15 +74,15 @@ public sealed class WheelDrawSystem : QuerySystem<UiWheel, Rectangle, Drawable, 
                 step,
                 i,
                 wheel.StartAngle,
-                wheel.Gap,
+                GapWidth(wheel, radius),
                 color);
 
             DrawWedgeLabel(canvas, wheel, radius, step, i, selected);
         }
 
-        _canvas.DrawCircleOutline(canvas, Vector2.Zero, radius, Rim, 2f, 64);
+        _canvas.DrawCircleOutline(canvas, Vector2.Zero, radius, rim, 2f, 64);
         _canvas.DrawCircle(canvas, Vector2.Zero, hub, Hub);
-        _canvas.DrawCircleOutline(canvas, Vector2.Zero, hub, Rim, 2f, 48);
+        _canvas.DrawCircleOutline(canvas, Vector2.Zero, hub, rim, 2f, 48);
         DrawHubLabel(canvas, wheel, hub);
     }
 
@@ -90,15 +92,21 @@ public sealed class WheelDrawSystem : QuerySystem<UiWheel, Rectangle, Drawable, 
         float step,
         int index,
         float startAngle,
-        float gap,
+        float gapWidth,
         Color color)
     {
         float center = startAngle + index * step;
-        float half = Mathf.Max(0.02f, step / 2 - gap / 2);
+        Vector2 axis = new(Mathf.Cos(center), Mathf.Sin(center));
+        float edgeOffset = gapWidth / 2;
+
+        // The sides run parallel to the wedge boundaries so the gap keeps its
+        // width all the way in, which moves the tip out from the wheel centre.
+        float tip = edgeOffset > 0 ? edgeOffset / Mathf.Sin(step / 2) : 0;
+        float half = Mathf.Max(0.02f, step / 2 - Mathf.Asin(Mathf.Min(1, edgeOffset / radius)));
         int segments = Mathf.Max(3, SegmentsPerWedge);
 
         var points = new Vector2[segments + 2];
-        points[0] = Vector2.Zero;
+        points[0] = axis * tip;
         for (int i = 0; i <= segments; i++)
         {
             float angle = center - half + (half * 2) * i / segments;
@@ -158,8 +166,12 @@ public sealed class WheelDrawSystem : QuerySystem<UiWheel, Rectangle, Drawable, 
         var bounds = new Rect2(
             new Vector2(-hub, -hub * 0.5f),
             new Vector2(hub * 2, hub));
-        _canvas.DrawTextStyled(canvas, bounds, label, HubLabel, fontSize);
+        _canvas.DrawTextStyled(canvas, bounds, label, wheel.SelectedColor ?? HubLabel, fontSize);
     }
+
+    /// <summary>The gap, set as an angle, as a width in pixels; it matches that angle at the rim.</summary>
+    private static float GapWidth(UiWheel wheel, float radius) =>
+        wheel.Labels.Length > 1 ? wheel.Gap * radius : 0;
 
     private static Color WedgeColor(UiWheel wheel, int index)
     {

@@ -51,6 +51,9 @@ public enum CharacterMotionState
 
     /// <summary>Just touched down; plays the landing clip once, then goes back to grounded.</summary>
     Landing,
+
+    /// <summary>On the ground but still carried sideways by momentum.</summary>
+    Sliding,
 }
 
 /// <summary>A rigged player's motion state and what it is derived from.</summary>
@@ -78,9 +81,9 @@ public struct CharacterMotion : IComponent
 /// </summary>
 public struct CharacterAttack : IComponent
 {
-    /// <summary>The attack clip currently layered on, or "" when none is active.</summary>
-    public string ClipId;
+    /// <summary>The attack clip currently layered on, or null when none is active.</summary>
+    public ContactClip? Clip;
 
-    /// <summary>Seconds since <see cref="ClipId"/> started.</summary>
+    /// <summary>Seconds since <see cref="Clip"/> started.</summary>
     public float StateTime;
 }

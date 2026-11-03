@@ -1,3 +1,5 @@
+using System;
+
 namespace Xanadu.Ecs;
 
 /// <summary>
@@ -18,6 +20,16 @@ public static class UiTextMetrics
 
         return em * fontSize * (bold ? 1.06f : 1f) * 0.93f;
     }
+
+    /// <summary>
+    /// Width in pixels of <paramref name="text"/> in the monospaced face: every
+    /// glyph is 0.6em, rounded up to a whole pixel the way the renderer lays it out.
+    /// </summary>
+    public static float MonoWidth(string text, float fontSize) =>
+        text.Length * MathF.Ceiling(MonoAdvance * fontSize);
+
+    /// <summary>JetBrains Mono's advance: 600 units of a 1000-unit em, for every glyph.</summary>
+    private const float MonoAdvance = 0.6f;
 
     /// <summary>The advance of one character, in ems.</summary>
     private static float Advance(char c) => c switch

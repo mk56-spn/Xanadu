@@ -29,6 +29,15 @@ public sealed class Box2DPhysicsWorld : IDisposable
     /// </summary>
     public static float MomentumScale => MathF.Sqrt(DefaultGravity / MomentumReferenceGravity);
 
+    /// <summary>The largest momentum a note can be authored with, the triple strength.</summary>
+    public const float MaxMomentum = 1200f;
+
+    /// <summary>
+    /// The speed the strongest momentum note gives, in metres per second. The
+    /// player can never go faster than this sideways or when falling.
+    /// </summary>
+    public static float MaxSpeed => MaxMomentum / PixelsPerMeter * MomentumScale;
+
     private readonly World _world;
     private float _accumulator;
     private bool _disposed;

@@ -178,6 +178,30 @@ public struct NotePop(
     public float Lifetime = lifetime;
 }
 
+/// <summary>
+/// What is left of a dash note once it is hit: its connector and exit, which
+/// fade out after the note has popped. The connector goes first and the exit
+/// lingers a little longer. Screen space, like <see cref="NotePop"/>.
+/// </summary>
+public struct DashLinkFade(
+    Vector2 from,
+    Vector2 to,
+    Color color,
+    float radius) : IComponent
+{
+    /// <summary>How long the connector takes to fade.</summary>
+    public const float ConnectorLifetime = 0.28f;
+
+    /// <summary>How long the exit takes to flash and fade; a touch longer than the connector.</summary>
+    public const float ExitLifetime = 0.4f;
+
+    public Vector2 From = from;
+    public Vector2 To = to;
+    public Color Color = color;
+    public float Radius = radius;
+    public float Age;
+}
+
 /// <summary>A short-lived line from a dash start to its landing point.</summary>
 public struct DashTrail(
     Vector2 from,

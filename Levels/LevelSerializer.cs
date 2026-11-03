@@ -136,6 +136,7 @@ public static class LevelSerializer
         {
             spike.Groups ??= new();
             spike.RotationDegrees = Xanadu.Systems.Playfields.SpikeRules.NormalizeDegrees(spike.RotationDegrees);
+            spike.OutlineWidth = Math.Clamp(spike.OutlineWidth, 0f, Xanadu.Ecs.Block.MaxOutlineWidth);
             spike.Shader = validShader(spike.Shader);
         }
 

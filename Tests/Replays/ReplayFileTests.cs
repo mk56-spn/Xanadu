@@ -91,6 +91,26 @@ public sealed class ReplayFileTests
     }
 
     [Test]
+    public void OffsetsSurviveTheRoundTrip()
+    {
+        Replay read = RoundTrip(Sample() with { Offsets = new[] { new ReplayOffset(0, 12), new ReplayOffset(900, -3) } });
+
+        Assert.That(read.Offsets, Is.EqualTo(new[] { new ReplayOffset(0, 12), new ReplayOffset(900, -3) }));
+    }
+
+    [Test]
+    public void VersionTwoReplayHasNoOffsets()
+    {
+        byte[] bytes = Bytes(Sample() with { Offsets = null });
+        bytes[3] = 2;
+        Array.Resize(ref bytes, bytes.Length - sizeof(int));
+
+        Replay read = ReplayFile.Read(new MemoryStream(bytes));
+
+        Assert.That(read.Offsets, Is.Null);
+    }
+
+    [Test]
     public void UnknownVersionIsRejected()
     {
         byte[] bytes = Bytes(Sample());

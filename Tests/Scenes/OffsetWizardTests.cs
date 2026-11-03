@@ -11,15 +11,13 @@ using Xanadu.Systems.Input;
 using Xanadu.Systems.Layout;
 using Xanadu.Systems.Scenes;
 using Xanadu.Tests.Support;
+using Position = Xanadu.Ecs.Position;
 
 namespace Xanadu.Tests.Scenes;
 
 /// <summary>The offset wizard's run: track playback, tap averaging, save and reset.</summary>
 public sealed class OffsetWizardTests
 {
-    private const double BeatInterval = 0.5;
-    private const double LeadIn = 1.0;
-
     private FakeAudio _audio = new();
     private FakeKeyboard _keyboard = new();
     private EntityStore _store = null!;
@@ -51,12 +49,24 @@ public sealed class OffsetWizardTests
     [TearDown]
     public void TearDown() => UiBuilder.DefaultVisuals = null;
 
-    [Test]
-    public void TheWizardStartsWithInstructionsAndTheGlobalOffset()
+    private static double ClickAt(int beat) =>
+        OffsetCalibration.FirstClickSeconds + beat * OffsetCalibration.BeatSeconds;
+
+    /// <summary>A whole run with every counted tap this many milliseconds after its click.</summary>
+    private void TapThrough(double lateMs, int taps = OffsetCalibration.MeasuredBeats)
     {
-        Assert.That(Status(), Is.EqualTo(
-            "Press START, then tap SPACE on every click."));
+        for (int i = 0; i < taps; i++)
+            Tap(ClickAt(OffsetCalibration.CountInBeats + i) + lateMs / 1000d);
+    }
+
+    private static float MarkX(Entity mark) => mark.GetComponent<Position>().Value.X;
+
+    [Test]
+    public void TheScreenOpensWithItsInstructionAndTheSavedOffset()
+    {
+        Assert.That(Status(), Is.EqualTo("Press SPACE or START when you are ready."));
         Assert.That(Offset(), Is.EqualTo("GLOBAL OFFSET   0 ms"));
+        Assert.That(Wizard().Apply.Tags.Has<UiDisabled>(), Is.True, "nothing to apply yet");
     }
 
     [Test]
@@ -64,55 +74,108 @@ public sealed class OffsetWizardTests
     {
         Press(Wizard().Start);
 
-        Assert.That(_audio.PlayedPath, Is.EqualTo(OffsetWizardSystem.TrackPath));
-        Assert.That(_audio.Calls, Is.EqualTo(new[] { true }), "play calls");
-        Assert.That(Status(), Is.EqualTo("Listening..."));
+        Assert.That(_audio.PlayedPath, Is.EqualTo(OffsetCalibration.TrackPath));
         Assert.That(Wizard().Listening, Is.True);
     }
 
     [Test]
-    public void ABeatTapIsRecordedAgainstTheNearestClick()
+    public void SpaceStartsARunToo()
     {
-        Press(Wizard().Start);
+        Tap(0);
 
-        Tap(LeadIn + BeatInterval);
-        Assert.That(Status(), Does.Contain("1 / 8 clicks"));
-
-        Tap(LeadIn + BeatInterval * 2 + 0.02);
-        Assert.That(Status(), Does.Contain("2 / 8 clicks"));
-        Assert.That(Status(), Does.Contain("average +10 ms"));
+        Assert.That(_audio.PlayedPath, Is.EqualTo(OffsetCalibration.TrackPath));
+        Assert.That(Wizard().Run.TapCount, Is.Zero, "the press that starts it is not a tap");
     }
 
     [Test]
-    public void EightClicksFinishTheRunAndSaveWritesTheAverage()
+    public void AFullRunFinishesItselfAndMeasures()
     {
         Press(Wizard().Start);
-
-        for (int beat = 0; beat < 8; beat++)
-            Tap(LeadIn + beat * BeatInterval + 0.02);
+        TapThrough(30d);
 
         Assert.That(Wizard().Listening, Is.False);
-        Assert.That(Status(), Does.StartWith("Average +20 ms"));
-        Assert.That(Status(), Does.Contain("Press SAVE"));
-
-        Press(Wizard().Save);
-
-        Assert.That(_settings.OffsetMs, Is.EqualTo(20));
-        Assert.That(Status(), Is.EqualTo("Saved global offset +20 ms."));
-        Assert.That(Offset(), Is.EqualTo("GLOBAL OFFSET   +20 ms"));
+        Assert.That(Text(Wizard().ResultLabel), Is.EqualTo("+50 ms"), "30 late plus the 20 charts have baked in");
+        Assert.That(Status(), Does.StartWith("Steady: 32 taps"));
+        Assert.That(Wizard().Apply.Tags.Has<UiDisabled>(), Is.False);
+        Assert.That(_settings.OffsetMs, Is.Zero, "not saved until asked");
     }
 
     [Test]
-    public void ResetClearsTheOffset()
+    public void ApplyingSavesTheOffsetAndMovesTheTapsOntoTheCentre()
     {
-        _settings.Set(120);
+        Press(Wizard().Start);
+        TapThrough(30d);
+        float before = MarkX(Wizard().TapMarks[0]);
+        Assert.That(before, Is.EqualTo(50f * OffsetWizardScene.PlotPixelsPerMs).Within(0.5f));
+
+        Press(Wizard().Apply);
+
+        Assert.That(_settings.OffsetMs, Is.EqualTo(50));
+        Assert.That(Offset(), Is.EqualTo("GLOBAL OFFSET   +50 ms"));
+        Assert.That(MarkX(Wizard().TapMarks[0]), Is.Zero.Within(0.5f));
+    }
+
+    [Test]
+    public void TooFewTapsCannotBeApplied()
+    {
+        Press(Wizard().Start);
+        TapThrough(30d, taps: OffsetCalibration.MinimumTaps - 1);
+        _audio.Stop();
         Frame();
+
+        Assert.That(Wizard().Listening, Is.False);
+        Assert.That(Status(), Does.StartWith("Only 15 steady taps"));
+        Assert.That(Wizard().Apply.Tags.Has<UiDisabled>(), Is.True);
+
+        Press(Wizard().Apply);
+        Assert.That(_settings.OffsetMs, Is.Zero);
+    }
+
+    [Test]
+    public void AnUnsteadyRunSaysSo()
+    {
+        Press(Wizard().Start);
+        for (int i = 0; i < OffsetCalibration.MeasuredBeats; i++)
+            Tap(ClickAt(OffsetCalibration.CountInBeats + i) + (i % 2 == 0 ? -0.045d : 0.045d));
+
+        Assert.That(Status(), Does.StartWith("Unsteady"));
+    }
+
+    [Test]
+    public void TheStepperNudgesTheOffsetOneMillisecondAtATime()
+    {
+        Press(Wizard().NudgeUp);
+        Press(Wizard().NudgeUp);
+        Press(Wizard().NudgeDown);
+
+        Assert.That(_settings.OffsetMs, Is.EqualTo(1));
+        Assert.That(Offset(), Is.EqualTo("GLOBAL OFFSET   +1 ms"));
+    }
+
+    [Test]
+    public void ResetClearsTheOffsetAndKeepsTheResultOnScreen()
+    {
+        Press(Wizard().Start);
+        TapThrough(30d);
+        Press(Wizard().Apply);
 
         Press(Wizard().Reset);
 
         Assert.That(_settings.OffsetMs, Is.Zero);
-        Assert.That(Status(), Is.EqualTo("Global offset reset to 0 ms."));
-        Assert.That(Offset(), Is.EqualTo("GLOBAL OFFSET   0 ms"));
+        Assert.That(Text(Wizard().ResultLabel), Is.EqualTo("+50 ms"));
+    }
+
+    [Test]
+    public void RunningAgainClearsTheOldTaps()
+    {
+        Press(Wizard().Start);
+        TapThrough(30d);
+
+        Press(Wizard().Start);
+
+        Assert.That(Wizard().Run.TapCount, Is.Zero);
+        Assert.That(Text(Wizard().ResultLabel), Is.Empty);
+        Assert.That(Wizard().Apply.Tags.Has<UiDisabled>(), Is.True);
     }
 
     [Test]
@@ -122,8 +185,21 @@ public sealed class OffsetWizardTests
 
         Press(Wizard().Start);
 
-        Assert.That(Status(), Is.EqualTo("Calibration track is missing."));
+        Assert.That(Status(), Is.EqualTo("Click track is missing."));
         Assert.That(Wizard().Listening, Is.False);
+    }
+
+    [Test]
+    public void LeavingTheScreenStopsTheClicks()
+    {
+        Press(Wizard().Start);
+        Assert.That(_audio.IsPlaying, Is.True);
+
+        foreach (Entity entity in _store.Query<OffsetWizard>().ToEntityList())
+            entity.DeleteEntity();
+        Frame();
+
+        Assert.That(_audio.IsPlaying, Is.False);
     }
 
     private void Tap(double position)

@@ -15,7 +15,7 @@ public sealed class ParticleBurstSystemTests : EcsSystemTest
     {
         public List<(Vector2 Position, ParticleKind Kind)> Bursts { get; } = new();
 
-        public void Burst(Vector2 position, ParticleKind kind, Color tint) => Bursts.Add((position, kind));
+        public void Burst(Vector2 position, ParticleKind kind, Color tint, Vector2 area = default) => Bursts.Add((position, kind));
     }
 
     private FakeEmitter _emitter = null!;
@@ -24,6 +24,23 @@ public sealed class ParticleBurstSystemTests : EcsSystemTest
     {
         _emitter = new FakeEmitter();
         Root.Add(new ParticleBurstSystem(_emitter));
+    }
+
+    [Test]
+    public void HitSparksComeFromThePlayersBodyAndThePopStaysOnTheNote()
+    {
+        Entity playfield = Store.CreateEntity(
+            new Player(new Vector2(40, 200)),
+            new Xanadu.Ecs.Position(new Vector2(300, 400)));
+
+        Xanadu.Systems.Playfields.HitEffects.Spawn(
+            Store, playfield, new Note(0, Vector2.Zero), new Vector2(10, 20), Colors.Red, 30f);
+
+        ParticleBurst burst = Store.Query<ParticleBurst>().ToEntityList()[0].GetComponent<ParticleBurst>();
+        Assert.That(burst.Position, Is.EqualTo(new Vector2(300, 400)));
+        Assert.That(burst.Area, Is.EqualTo(new Vector2(40, 200)));
+        Assert.That(burst.Tint, Is.EqualTo(Colors.Red));
+        Assert.That(Store.Query<NotePop>().ToEntityList()[0].GetComponent<NotePop>().Position, Is.EqualTo(new Vector2(10, 20)));
     }
 
     [Test]

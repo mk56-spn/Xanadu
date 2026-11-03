@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using Xanadu.Animation;
+using Xanadu.Ecs;
 
 namespace Xanadu.Tools.Animator.Commands;
 
@@ -30,18 +31,20 @@ public static class AnimatorSequenceCommands
     public static List<AnimatorSequenceStep> GameSteps(XafPackage package)
     {
         var steps = new List<AnimatorSequenceStep>();
-        if (Has(package, "jumping"))
-            Add(steps, "jumping", JumpSeconds);
+        if (package.Has(ContactClip.Jumping))
+            Add(steps, ContactClip.Jumping.Id(), JumpSeconds);
 
         // A rig without a falling clip keeps its jump pose while falling.
-        string? fall = Has(package, "falling") ? "falling" : Has(package, "jumping") ? "jumping" : null;
-        if (fall is not null)
-            Add(steps, fall, FallSeconds);
+        ContactClip? fall = package.Has(ContactClip.Falling) ? ContactClip.Falling
+            : package.Has(ContactClip.Jumping) ? ContactClip.Jumping
+            : null;
+        if (fall is { } falling)
+            Add(steps, falling.Id(), FallSeconds);
 
-        if (Has(package, "landing"))
-            Add(steps, "landing", FullSeconds(package, "landing"));
-        if (Has(package, "idle"))
-            Add(steps, "idle", IdleSeconds);
+        if (package.Has(ContactClip.Landing))
+            Add(steps, ContactClip.Landing.Id(), FullSeconds(package, ContactClip.Landing.Id()));
+        if (package.Has(ContactClip.Idle))
+            Add(steps, ContactClip.Idle.Id(), IdleSeconds);
         return steps;
     }
 
@@ -213,7 +216,4 @@ public static class AnimatorSequenceCommands
             return MinSeconds;
         return Math.Max(MinSeconds, clip.Loop ? clip.LoopEnd - clip.LoopStart : clip.Duration);
     }
-
-    private static bool Has(XafPackage package, string id) =>
-        package.Clips.Exists(clip => clip.Id == id);
 }

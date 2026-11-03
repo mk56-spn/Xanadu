@@ -179,6 +179,19 @@ public interface IRectCanvas
     }
 
     /// <summary>
+    /// Draws text in the monospaced face. Canvases without one draw it in the
+    /// regular face.
+    /// </summary>
+    void DrawTextMono(
+        Rid canvas,
+        Rect2 bounds,
+        string text,
+        Color color,
+        int fontSize,
+        TextAlign align) =>
+        DrawTextWeighted(canvas, bounds, text, color, fontSize, align, bold: false);
+
+    /// <summary>
     /// Draws text with a glow behind it. Canvases that cannot blur draw the
     /// text without the glow.
     /// </summary>

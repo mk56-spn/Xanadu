@@ -18,13 +18,19 @@ public struct UiWheel : IComponent
     public string[] Labels;
     public Color[]? Colors;
 
+    /// <summary>Selected wedge and hub label colour; defaults to yellow.</summary>
+    public Color? SelectedColor;
+
+    /// <summary>Outline colour of the rim and hub; defaults to dark blue.</summary>
+    public Color? RimColor;
+
     /// <summary>Centre hole radius as a fraction of the wheel radius.</summary>
     public float HubRadius;
 
     /// <summary>Angle of the first wedge's centre; defaults to straight up.</summary>
     public float StartAngle;
 
-    /// <summary>Angular gap between neighbouring wedges, in radians.</summary>
+    /// <summary>Gap between neighbouring wedges, as its angle at the rim in radians. Its width stays the same towards the hub.</summary>
     public float Gap;
 }
 

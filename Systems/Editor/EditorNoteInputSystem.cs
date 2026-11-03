@@ -24,6 +24,12 @@ public sealed partial class EditorNoteInputSystem : QuerySystem<Note>
     private readonly EditorHistory _history;
 
     private bool _wasPressed;
+
+    /// <summary>
+    /// The item a placement just selected. It stays selected for editing, but
+    /// the next click on empty space places again rather than deselecting it.
+    /// </summary>
+    private Entity _placed;
     private bool _scrubbing;
     private long _scrubWindowStart;
     private long _scrubWindowEnd;
@@ -111,6 +117,7 @@ public sealed partial class EditorNoteInputSystem : QuerySystem<Note>
                 screenPosition, bar, playhead, editor);
             if (!timelineHit.IsNull)
             {
+                _placed = default;
                 ref NoteSelection timelineSelection =
                     ref editor.GetComponent<NoteSelection>();
                 if (shift)
@@ -171,8 +178,9 @@ public sealed partial class EditorNoteInputSystem : QuerySystem<Note>
         ref NoteSelection selection = ref editor.GetComponent<NoteSelection>();
 
         // An empty spot with a block or spike tool starts a paint stroke instead
-        // of arming a placement, so dragging lays a run. Shift still box-selects.
-        if (hit.IsNull && !shift && IsGridMode(editor))
+        // of arming a placement, so dragging lays a run. Shift still box-selects,
+        // and a selection has to be cleared before anything new goes down.
+        if (hit.IsNull && !shift && IsGridMode(editor) && !HasPickedSelection(editor))
         {
             _painting = true;
             _paintAdded = false;
@@ -183,6 +191,7 @@ public sealed partial class EditorNoteInputSystem : QuerySystem<Note>
 
         if (!hit.IsNull)
         {
+            _placed = default;
             if (shift)
             {
                 selection.Toggle(hit);
@@ -221,8 +230,8 @@ public sealed partial class EditorNoteInputSystem : QuerySystem<Note>
             return;
         }
 
-        // Shift-dragging adds to the selection; a plain press may place a note
-        // when released without dragging, or box-select when dragged.
+        // Shift-dragging adds to the selection; a plain press may place a note or
+        // clear the selection when released without dragging, or box-select when dragged.
         _box.OnTimeline = false;
         if (shift)
             _box.BeginAdditive(screenPosition, selection.AllNotes);
@@ -377,8 +386,18 @@ public sealed partial class EditorNoteInputSystem : QuerySystem<Note>
 
         if (end == MarqueeEnd.Click)
         {
-            if (!editor.IsNull)
-                CreatePlacementAt(editor, _box.Start);
+            if (editor.IsNull)
+                return;
+
+            if (HasPickedSelection(editor))
+            {
+                editor.GetComponent<NoteSelection>().Clear();
+                _placed = default;
+                return;
+            }
+
+            CreatePlacementAt(editor, _box.Start);
+            _placed = editor.GetComponent<NoteSelection>().Note;
             return;
         }
 
@@ -388,6 +407,16 @@ public sealed partial class EditorNoteInputSystem : QuerySystem<Note>
         EditorSnapshot after = _history.Capture();
         _history.Record(_dragBefore, after);
         CancelDrag();
+    }
+
+    /// <summary>Whether anything is selected other than the item a placement just selected.</summary>
+    private bool HasPickedSelection(Entity editor)
+    {
+        if (!editor.TryGetComponent(out NoteSelection selection))
+            return false;
+
+        IReadOnlyList<Entity> notes = selection.AllNotes;
+        return notes.Count > 1 || (notes.Count == 1 && notes[0] != _placed);
     }
 
     private void CreatePlacementAt(Entity editor, Vector2 screenPosition)
@@ -748,7 +777,7 @@ public sealed partial class EditorNoteInputSystem : QuerySystem<Note>
 
         foreach ((Entity note, Rect2 bounds) in TimelineSlots(editor, ruler, playhead))
         {
-            if (bounds.HasPoint(screenPosition))
+            if (EditorTimelineNotes.HitBounds(bounds).HasPoint(screenPosition))
                 return note;
         }
 

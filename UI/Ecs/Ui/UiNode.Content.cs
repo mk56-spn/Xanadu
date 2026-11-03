@@ -201,6 +201,12 @@ public readonly partial struct UiNode
         return new UiDropdownNode(_surface!, control);
     }
 
+    /// <summary>The box a monospaced label wants. The advance is exact, so it needs no slack.</summary>
+    public static Vector2 MeasureMono(string value, int fontSize) =>
+        new(
+            UiTextMetrics.MonoWidth(value, fontSize) + TextInset * 2,
+            fontSize * TextLineHeight);
+
     /// <summary>The box a label of this text and size wants, insets included.</summary>
     public static Vector2 Measure(string value, int fontSize) =>
         new(

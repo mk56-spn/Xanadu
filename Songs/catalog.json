@@ -31,5 +31,16 @@
     "Bpm": 140,
     "OffsetMs": -11,
     "ContentHash": "e8de13fcb2a90225abdc233137b74917e563da8840cf1add674f8971bb62f7b7"
+  },
+  {
+    "Version": 1,
+    "Id": "fb7e17f4efaa48deb6b74d673de24ddb",
+    "Slug": "dear-brave-fb7e17f4",
+    "Title": "Dear Brave",
+    "Artist": "Kano",
+    "AudioPath": "res://Assets/Songs/Kano - Dear Brave.mp3",
+    "Bpm": 188,
+    "OffsetMs": 2154,
+    "ContentHash": "e2423f44e2d90815d371e4d737f13f829d52cce0ee3fa2388e3f5fc872b3af53"
   }
 ]

@@ -60,7 +60,8 @@ public static class AudioDecoder
                 }
             }
 
-            return total == 0 ? null : samples[..(int)total];
+            int start = (int)Math.Min(total, (ulong)(Mp3LeadIn.Seconds(path) * sampleRate));
+            return total == 0 ? null : samples[start..(int)total];
         }
         catch (Exception)
         {
