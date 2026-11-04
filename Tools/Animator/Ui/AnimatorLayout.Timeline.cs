@@ -34,11 +34,7 @@ public static partial class AnimatorLayout
         EdgeGroup(ui, new Vector2(1, 0.5f), h, TimelineGroupGap, 0);
         ui.Container(Vector2.Zero, new Vector2(4, h), spacing: TimelineButtonGap,
             color: Clear, autoWidth: true);
-        InterpolationButton(ui, "STEP", XafEasePreset.Step, 44);
-        InterpolationButton(ui, "LINEAR", XafEasePreset.Linear, 56);
-        InterpolationButton(ui, "EASE", XafEasePreset.Ease, 48);
-        InterpolationButton(ui, "IN", XafEasePreset.EaseIn, 34);
-        InterpolationButton(ui, "OUT", XafEasePreset.EaseOut, 40);
+        refs.Ui.EasingButton = EasingButton(ui);
         ui.End();
         refs.Ui.ClipName = ClipNameField(ui);
 

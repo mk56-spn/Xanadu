@@ -162,7 +162,16 @@ public sealed class AnimatorRuntime
         Pose = XafSampler.Sample(Package, _current, _currentTime);
     }
 
-    public void AddLayer(string clipId, float weight)
+    /// <summary>
+    /// Layers a clip over whatever plays, or sets the weight of one already
+    /// layered (its time and blend kept). A new layer starts at
+    /// <paramref name="startTime"/> into its clip.
+    /// </summary>
+    public void AddLayer(
+        string clipId,
+        float weight,
+        XafLayerBlend blend = XafLayerBlend.Additive,
+        float startTime = 0f)
     {
         if (!_clips.TryGetValue(clipId, out XafClip? clip))
             return;
@@ -171,15 +180,24 @@ public sealed class AnimatorRuntime
         {
             if (_additives[i].Clip.Id == clipId)
             {
-                _additives[i] = new AdditiveLayer(
-                    clip,
-                    weight,
-                    _additives[i].Time);
+                _additives[i] = _additives[i] with { Weight = weight };
                 return;
             }
         }
 
-        _additives.Add(new AdditiveLayer(clip, weight, 0f));
+        _additives.Add(new AdditiveLayer(clip, weight, Math.Max(0f, startTime), blend));
+    }
+
+    /// <summary>The layer playing this clip, if one is.</summary>
+    public AdditiveLayer? Layer(string clipId)
+    {
+        foreach (AdditiveLayer layer in _additives)
+        {
+            if (layer.Clip.Id == clipId)
+                return layer;
+        }
+
+        return null;
     }
 
     public void RemoveLayer(string clipId) =>
@@ -229,6 +247,13 @@ public sealed class AnimatorRuntime
 
         foreach (AdditiveLayer layer in _additives)
         {
+            if (layer.Blend == XafLayerBlend.Override)
+            {
+                XafPose over = XafSampler.SampleOver(Package, layer.Clip, layer.Time, basePose);
+                basePose = XafBlend.Crossfade(basePose, over, layer.Weight);
+                continue;
+            }
+
             XafPose additivePose = XafSampler.Sample(
                 Package,
                 layer.Clip,
@@ -306,5 +331,6 @@ public sealed class AnimatorRuntime
     public readonly record struct AdditiveLayer(
         XafClip Clip,
         float Weight,
-        float Time);
+        float Time,
+        XafLayerBlend Blend = XafLayerBlend.Additive);
 }

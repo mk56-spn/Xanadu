@@ -217,10 +217,11 @@ public abstract class AnimatorToolTest : EcsSystemTest
         public bool Secondary;
         public bool Middle;
         public bool Shift;
+        public bool Ctrl;
         public int Wheel;
         public bool Control { get; set; }
 
-        public PointerInput Read() => new(Position, Pressed, Shift, Secondary, Middle);
+        public PointerInput Read() => new(Position, Pressed, Shift, Secondary, Middle, Ctrl);
 
         public int Notches => Wheel;
 

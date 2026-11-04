@@ -84,6 +84,8 @@ public static class AnimatorSequenceCommands
             return;
         }
 
+        // One preview at a time: the attacks give way, back on what was being edited.
+        AnimatorAttackCycleCommands.Finish(session);
         AnimatorRuntime runtime = session.GetComponent<AnimatorDocument>().Runtime;
         AnimatorSequence running = session.GetComponent<AnimatorSequence>();
 

@@ -18,10 +18,6 @@ public sealed class TriangleBench
     private static int _cellIndex = StartIndex("--cell=", Cells, 2);
     private static int _layerIndex = StartIndex("--layers=", Array.ConvertAll(LayerSteps, l => (float)l), 0);
 
-    /// <summary>Indexes line up with <see cref="Viewport.Msaa"/>: Disabled, 2X, 4X, 8X.</summary>
-    private static readonly string[] MsaaNames = ["OFF", "2X", "4X", "8X"];
-    private static int _msaa = StartIndex("--msaa=", [0, 2, 4, 8], 0);
-
     /// <summary>Set by <c>--print-stats</c>: every report also goes to the console.</summary>
     private static readonly bool PrintStats = Array.Exists(OS.GetCmdlineUserArgs(), a => a == "--print-stats");
 
@@ -31,8 +27,6 @@ public sealed class TriangleBench
     private UiNode _cellLabel;
     private UiNode _layerLabel;
     private UiNode _stats;
-    private UiDropdownNode _msaaDropdown;
-    private int _msaaSeen;
     private Entity _minus;
     private Entity _plus;
     private Entity _fewer;
@@ -53,23 +47,17 @@ public sealed class TriangleBench
     /// <summary>How many times the field is drawn over itself, to lift its cost above frame noise.</summary>
     public static int Layers => LayerSteps[_layerIndex];
 
-    /// <summary>2D MSAA for the whole viewport, shared by both tabs.</summary>
-    public static Viewport.Msaa Msaa => (Viewport.Msaa)_msaa;
-
     /// <summary>Panel height the controls take, so the source listing can leave room.</summary>
     public static float Height =>
-        UiTheme.ButtonHeight * 3 + UiNode.Measure("A", UiType.Small).Y * 2 + UiTheme.ContainerSpacing * 5;
+        UiTheme.ButtonHeight * 2 + UiNode.Measure("A", UiType.Small).Y * 2 + UiTheme.ContainerSpacing * 4;
 
     public void BuildPanel(UiNode panel)
     {
         _cellLabel = Stepper(panel, CellText(), out _minus, out _plus);
         _layerLabel = Stepper(panel, LayerText(), out _fewer, out _more);
-        _msaaDropdown = panel.Dropdown(MsaaText(), MsaaNames, _msaa,
-            size: new Vector2(220 + UiMetrics.Space.Sm * 2 + UiMetrics.Control.Md * 2, UiTheme.ButtonHeight));
-        _msaaSeen = _msaa;
 
         _stats = panel.Text("measuring...", UiType.Small, Palette.Accent).Width(StatsWidth);
-        panel.Text("Whole-frame times. MSAA is viewport-wide: it stays on in every tab.", UiType.Small, Palette.TextDim)
+        panel.Text("Whole-frame times. MSAA and the other engine settings are under SETTINGS.", UiType.Small, Palette.TextDim)
             .Width(StatsWidth);
     }
 
@@ -86,26 +74,6 @@ public sealed class TriangleBench
             _layerIndex = Math.Min(LayerSteps.Length - 1, _layerIndex + 1);
         _cellLabel.SetText(CellText());
         _layerLabel.SetText(LayerText());
-        SyncMsaa();
-    }
-
-    /// <summary>
-    /// A pick in this dropdown becomes the shared setting; a pick made in the
-    /// other tab is copied in, so the two never disagree.
-    /// </summary>
-    private void SyncMsaa()
-    {
-        Entity button = _msaaDropdown.Control.Button;
-        if (button.IsNull || !button.HasComponent<Dropdown>())
-            return;
-
-        ref Dropdown dropdown = ref button.GetComponent<Dropdown>();
-        if (dropdown.Selected != _msaaSeen)
-            _msaa = dropdown.Selected;
-        else
-            dropdown.Selected = _msaa;
-        _msaaSeen = _msaa;
-        _msaaDropdown.Button.SetText(MsaaText());
     }
 
     /// <summary>Folds in this frame's measured times and shows the average every half second.</summary>
@@ -121,7 +89,7 @@ public sealed class TriangleBench
         string line = $"GPU {_gpu / _frames:0.000} ms   CPU {_cpu / _frames:0.000} ms   {triangles * Layers:N0} TRIANGLES";
         _stats.SetText(line);
         if (PrintStats)
-            GD.Print($"[tris] cell {Cell:0} layers {Layers} msaa {MsaaNames[_msaa]}  {line}");
+            GD.Print($"[tris] cell {Cell:0} layers {Layers} msaa {((SceneTree)Engine.GetMainLoop()).Root.Msaa2D}  {line}");
         _gpu = _cpu = 0;
         _frames = 0;
         _elapsed = 0;
@@ -138,8 +106,6 @@ public sealed class TriangleBench
     private static string CellText() => $"CELL {Cell:0} PX";
 
     private static string LayerText() => $"LAYERS {Layers}";
-
-    private static string MsaaText() => $"MSAA  {MsaaNames[_msaa]}";
 
     /// <summary>A label, then - and + buttons.</summary>
     internal static UiNode Stepper(UiNode panel, string label, out Entity minus, out Entity plus)

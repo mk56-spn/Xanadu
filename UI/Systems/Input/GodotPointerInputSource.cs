@@ -57,5 +57,6 @@ public sealed class GodotPointerInputSource(Control host) : IBlockingPointerInpu
         Godot.Input.IsMouseButtonPressed(MouseButton.Left),
         Godot.Input.IsMouseButtonPressed(MouseButton.Right),
         Godot.Input.IsMouseButtonPressed(MouseButton.Middle),
-        Godot.Input.IsKeyPressed(Key.Shift));
+        Godot.Input.IsKeyPressed(Key.Shift),
+        Godot.Input.IsKeyPressed(Key.Ctrl) || Godot.Input.IsKeyPressed(Key.Meta));
 }

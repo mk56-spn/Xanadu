@@ -22,6 +22,9 @@ public enum ToolActionKind
     Undo,
     Redo,
     Interpolate,
+
+    /// <summary>Opens or closes the EASING window, where every curve can be picked; no argument.</summary>
+    ToggleEasingWindow,
     /// <summary>Duplicates the current clip directly; the NEW CLIP dialog can also copy it.</summary>
     DuplicateClip,
     DeleteClip,
@@ -147,6 +150,21 @@ public enum ToolActionKind
 
     /// <summary>Plays every clip in the file into the next.</summary>
     SequenceAll,
+
+    /// <summary>Starts or stops cycling the attack clips, each layered over the clip the game plays under it.</summary>
+    CycleAttacks,
+
+    /// <summary>Slows the attack preview's metronome by one step.</summary>
+    MetronomeSlower,
+
+    /// <summary>Speeds the attack preview's metronome up by one step.</summary>
+    MetronomeFaster,
+
+    /// <summary>Fires an attack on more of the metronome's beats.</summary>
+    AttackMoreOften,
+
+    /// <summary>Fires an attack on fewer of the metronome's beats.</summary>
+    AttackLessOften,
 
     /// <summary>Allows or forbids the current clip fading into the clip the argument names, and selects it.</summary>
     AllowTransition,
@@ -610,6 +628,24 @@ public struct AnimatorNewClipDialog : IComponent
 {
     public bool Open;
 }
+
+/// <summary>
+/// The EASING tool window. It stays open while keys are picked on the
+/// timeline, so it has no dimmer and a click outside leaves it be.
+/// </summary>
+public struct AnimatorEasingWindow : IComponent
+{
+    public bool Open;
+
+    /// <summary>Seconds the preview has run, which moves its dots.</summary>
+    public float Clock;
+
+    /// <summary>The curve the preview last drew, so it is redrawn only on a change.</summary>
+    public XafEasePreset? Shown;
+}
+
+/// <summary>Marks a curve thumbnail in the EASING window.</summary>
+public struct AnimatorEasingCell : ITag;
 
 /// <summary>The file info popup, centred over a dimmer; a click outside it closes it.</summary>
 public struct AnimatorInfoPanel : IComponent

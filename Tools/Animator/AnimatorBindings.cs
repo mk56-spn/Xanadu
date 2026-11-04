@@ -20,6 +20,7 @@ public static class AnimatorBindings
         // Playback and files.
         new(new ToolAction(ToolActionKind.SequenceGame), Key.P),
         new(new ToolAction(ToolActionKind.SequenceAll), Key.P, Shift: true),
+        new(new ToolAction(ToolActionKind.CycleAttacks), Key.A, Shift: true),
         new(new ToolAction(ToolActionKind.PreviewTransition), Key.P, Ctrl: true),
         new(new ToolAction(ToolActionKind.ToggleFlowLoop), Key.P, Ctrl: true, Shift: true),
         new(new ToolAction(ToolActionKind.ToggleSlow), Key.Comma),
@@ -113,6 +114,7 @@ public static class AnimatorBindings
         new(new ToolAction(ToolActionKind.ToggleLoop), Key.L),
 
         // Easing presets, in the order the timeline's buttons list them.
+        new(new ToolAction(ToolActionKind.ToggleEasingWindow), Key.E, Ctrl: true),
         new(new ToolAction(ToolActionKind.Interpolate, nameof(XafEasePreset.Step)), Key.Key1),
         new(new ToolAction(ToolActionKind.Interpolate, nameof(XafEasePreset.Linear)), Key.Key2),
         new(new ToolAction(ToolActionKind.Interpolate, nameof(XafEasePreset.Ease)), Key.Key3),

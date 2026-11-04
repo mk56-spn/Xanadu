@@ -57,7 +57,7 @@ public static class XafBinary
 		file.Add((uint)ChunkId.Strings, strings.Write());
 		file.Add((uint)ChunkId.Skeleton, WriteSkeleton(package.Skeleton, strings, minor));
 		file.Add((uint)ChunkId.Attachments, WriteAttachments(package.Attachments, strings));
-		file.Add((uint)ChunkId.Clips, WriteClips(package.Clips, strings));
+		file.Add((uint)ChunkId.Clips, WriteClips(package.Clips, strings, minor));
 		if (minor >= 2)
 			file.Add((uint)ChunkId.Chains, WriteChains(package.Chains, strings, minor));
 		if (minor >= 4)
@@ -105,7 +105,7 @@ public static class XafBinary
 			Minor = file.Minor,
 			Skeleton = ReadSkeleton(skeletonChunk, strings, file.Minor),
 			Attachments = ReadAttachments(attachmentsChunk, strings),
-			Clips = ReadClips(clipsChunk, strings),
+			Clips = ReadClips(clipsChunk, strings, file.Minor),
 		};
 		if (file.Minor >= 2)
 			package.Chains = ReadChains(file.Get((uint)ChunkId.Chains, Format), strings, file.Minor);
@@ -410,7 +410,7 @@ public static class XafBinary
 		return transitions;
 	}
 
-	private static byte[] WriteClips(List<XafClip> clips, StringTable strings)
+	private static byte[] WriteClips(List<XafClip> clips, StringTable strings, ushort minor)
 	{
 		using var stream = new MemoryStream();
 		using var writer = new BinaryWriter(stream, Encoding.UTF8, leaveOpen: true);
@@ -434,7 +434,9 @@ public static class XafBinary
 				{
 					writer.Write(key.Time);
 					writer.Write(key.Value);
-					writer.Write((byte)key.Interpolation);
+					// Named curves arrived in minor 12; older files ease them the plain way.
+					bool named = key.Interpolation > XafInterpolation.CubicBezier;
+					writer.Write((byte)(named && minor < 12 ? XafInterpolation.CubicBezier : key.Interpolation));
 					writer.Write(key.TangentIn);
 					writer.Write(key.TangentOut);
 				}
@@ -446,7 +448,8 @@ public static class XafBinary
 
 	private static List<XafClip> ReadClips(
 		Chunk chunk,
-		StringTable strings)
+		StringTable strings,
+		ushort minor)
 	{
 		using BinaryReader reader = chunk.OpenReader();
 		uint count = reader.ReadUInt32();
@@ -482,16 +485,20 @@ public static class XafBinary
 				if (keyCount > 1_000_000)
 					throw new XafFormatException("XAF keyframe table is too large.");
 
+				int maxInterpolation = minor >= 12 ? XafEasing.MaxInterpolation : (int)XafInterpolation.CubicBezier;
 				for (uint k = 0; k < keyCount; k++)
 				{
-					channel.Keyframes.Add(new XafKeyframe
+					var key = new XafKeyframe
 					{
 						Time = reader.ReadSingle(),
 						Value = reader.ReadSingle(),
 						Interpolation = (XafInterpolation)reader.ReadByte(),
 						TangentIn = reader.ReadSingle(),
 						TangentOut = reader.ReadSingle(),
-					});
+					};
+					if ((int)key.Interpolation > maxInterpolation)
+						throw new XafFormatException($"XAF key has unknown interpolation {(int)key.Interpolation}.");
+					channel.Keyframes.Add(key);
 				}
 				clip.Channels.Add(channel);
 			}

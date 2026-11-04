@@ -52,9 +52,6 @@ public abstract partial class TriangleStage : Node2D
             return;
 
         _bench.Poll();
-        Viewport viewport = GetViewport();
-        if (viewport.Msaa2D != TriangleBench.Msaa)
-            viewport.Msaa2D = TriangleBench.Msaa;
         float cell = TriangleBench.Cell;
         if (cell != _built)
         {

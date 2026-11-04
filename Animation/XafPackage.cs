@@ -9,7 +9,7 @@ namespace Xanadu.Animation;
 public sealed class XafPackage
 {
     public const ushort MajorVersion = 1;
-    public const ushort MinorVersion = 11;
+    public const ushort MinorVersion = 12;
 
     public ushort Major = MajorVersion;
     public ushort Minor = MinorVersion;
@@ -226,11 +226,42 @@ public enum XafChannelProperty
     Layer,
 }
 
+/// <summary>
+/// How a key's value travels to the next key. Past <see cref="CubicBezier"/>
+/// each value names a fixed easing curve (minor 12 on); its tangents are unused.
+/// Quad in and out have no names of their own: the cubic form with tangents
+/// draws them exactly.
+/// </summary>
 public enum XafInterpolation
 {
     Step,
     Linear,
     CubicBezier,
+    SineIn,
+    SineOut,
+    SineInOut,
+    QuadInOut,
+    CubicIn,
+    CubicOut,
+    CubicInOut,
+    QuartIn,
+    QuartOut,
+    QuartInOut,
+    ExpoIn,
+    ExpoOut,
+    ExpoInOut,
+    CircIn,
+    CircOut,
+    CircInOut,
+    BackIn,
+    BackOut,
+    BackInOut,
+    ElasticIn,
+    ElasticOut,
+    ElasticInOut,
+    BounceIn,
+    BounceOut,
+    BounceInOut,
 }
 
 public sealed class XafChannel

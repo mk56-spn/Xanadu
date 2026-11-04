@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using Friflo.Engine.ECS;
 using Godot;
 using Xanadu.Ecs;
@@ -8,9 +9,13 @@ using Xanadu.Theme;
 namespace Xanadu.Lab.Experiments.Rts;
 
 /// <summary>
-/// Five factions of ten unit types fighting forever over rocky ground,
-/// entirely in DrawableTexture2D state. Row 0 of the state is a control row
-/// of faction totals and objectives; flow fields route armies to them.
+/// Five factions of eleven unit types fighting over rocky ground, entirely in
+/// DrawableTexture2D state. Each spawner raises certain types, and a faction
+/// fields more units the more spawners it holds. Armies start knowing only
+/// their own base: they scout sectors and find spawners as they go. Row 0 of
+/// the state is a control row of faction totals, spawners, every squad's goal
+/// and its formation leader; each goal has a flow field, settled once at
+/// startup, that routes squads to it.
 /// </summary>
 public sealed class RtsExperiment : ILabExperiment
 {
@@ -18,7 +23,7 @@ public sealed class RtsExperiment : ILabExperiment
     private const float StatsWidth = 580;
 
     /// <summary>Whole rows of 64, and a multiple of five so the factions are even.</summary>
-    private static readonly int[] Counts = [1280, 2560, 5120, 10240, 20480, 40960];
+    private static readonly int[] Counts = [1280, 2560, 5120, 10240, 20480, 40960, 81920, 102400];
     private static int _countIndex = TriangleBench.StartIndex("--units=", Array.ConvertAll(Counts, c => (float)c), 3);
 
     /// <summary><c>--scan=all</c> starts with the brute-force scan.</summary>
@@ -26,6 +31,8 @@ public sealed class RtsExperiment : ILabExperiment
 
     private UiNode _countLabel;
     private UiNode _stats;
+    private UiNode _gpuPasses;
+    private UiNode _gpuTotal;
     private UiNode _scanLabel;
     private Entity _fewer;
     private Entity _more;
@@ -40,15 +47,15 @@ public sealed class RtsExperiment : ILabExperiment
     [
         "Scout rifle heavy sniper artillery medic",
         "berserker guardian assassin commander.",
-        "40 spawners to conquer; row 0 holds their",
-        "owners and each squad's objective.",
-        "GRID: sort by cell, scan only nearby cells.",
+        "40 spawners; each core's shape is what it raises:",
+        "hexagon base, square factory, triangle firebase,",
+        "diamond barracks, circle command. 12 squads each.",
     ];
 
     public string? SourcePath => Folder + "rts_step.gdshader";
 
     public float ControlsHeight =>
-        UiTheme.ButtonHeight * 2 + UiNode.Measure("A", UiType.Small).Y * 4 + UiTheme.ContainerSpacing * 6;
+        UiTheme.ButtonHeight * 2 + UiNode.Measure("A", UiType.Small).Y * 6 + UiTheme.ContainerSpacing * 8;
 
     /// <summary>Units across all factions.</summary>
     public static int Count => Counts[_countIndex];
@@ -66,7 +73,9 @@ public sealed class RtsExperiment : ILabExperiment
         GD.Load<Shader>(Folder + "rts_terrain.gdshader"),
         GD.Load<Shader>(Folder + "rts_nav.gdshader"),
         GD.Load<Shader>(Folder + "rts_ground.gdshader"),
-        GD.Load<Shader>(Folder + "rts_tally.gdshader"));
+        GD.Load<Shader>(Folder + "rts_tally.gdshader"),
+        GD.Load<Shader>(Folder + "rts_fire_keys.gdshader"),
+        GD.Load<Shader>(Folder + "rts_intel.gdshader"));
 
     public void BuildPanel(UiNode panel)
     {
@@ -75,6 +84,8 @@ public sealed class RtsExperiment : ILabExperiment
         _scanLabel = scanRow.Text(ScanText(), UiType.Label, Palette.Text).Width(220);
         _scan = scanRow.Button("SWITCH", UiType.Label).Size(UiMetrics.Control.Md * 2 + UiMetrics.Space.Sm, UiMetrics.Control.Md);
         _stats = panel.Text("", UiType.Small, Palette.Accent).Width(StatsWidth);
+        _gpuPasses = panel.Text("GPU ms/frame: waiting for timestamps", UiType.Small, Palette.Accent).Width(StatsWidth);
+        _gpuTotal = panel.Text("", UiType.Small, Palette.Accent).Width(StatsWidth);
         panel.Text("Bars: units alive, kills, share of spawners", UiType.Small, Palette.TextDim)
             .Width(StatsWidth);
         panel.Text("against the leader. Diamonds mark army centres.", UiType.Small, Palette.TextDim)
@@ -96,6 +107,12 @@ public sealed class RtsExperiment : ILabExperiment
     }
 
     internal void Show(string line) => _stats.SetText(line);
+
+    internal void ShowGpu(string passes, string total)
+    {
+        _gpuPasses.SetText(passes);
+        _gpuTotal.SetText(total);
+    }
 
     private static string CountText() => $"UNITS {Count:N0}";
 
@@ -131,15 +148,26 @@ public partial class RtsStage : Node2D
     /// <summary>Nav cell size; must match NAV_CELL in rts_rules.gdshaderinc.</summary>
     private const float NavCell = 96;
 
-    /// <summary>Flow-field tiles (two squads' objectives per faction, then home), in rows of five; must match rts_rules.</summary>
-    private const int NavColumns = 5;
-    private const int NavRows = 3;
+    /// <summary>Flow-field tiles, one per goal (40 spawners, 24 sector waypoints), in rows of eight; must match NAV_COLUMNS and GOALS in rts_rules.</summary>
+    private const int NavColumns = 8;
+    private const int NavRows = 8;
+
+    /// <summary>One intel texel per goal; must cover GOALS in rts_rules.</summary>
+    private const int Goals = 64;
+    private const int Sectors = 24;
 
     /// <summary>
-    /// Relaxation passes a step: how many cells a change in a goal spreads per
-    /// step. Even, so the latest field always ends up back in the same texture.
+    /// Relaxation passes a step while the fields settle: each spreads them one
+    /// cell. Even, so the latest field always ends up back in the same texture.
     /// </summary>
-    private const int NavPasses = 4;
+    private const int NavPasses = 32;
+
+    /// <summary>
+    /// Passes after which the fields have settled: more than the longest way
+    /// round the rocks, in cells. Goals and rock never move, so relaxation
+    /// stops there; until then, units head straight for goals not yet reached.
+    /// </summary>
+    private const int NavSettlePasses = 1536;
 
     /// <summary>The simulation's fixed step; drawing blends between steps.</summary>
     private const float StepSeconds = 1f / 30f;
@@ -151,16 +179,28 @@ public partial class RtsStage : Node2D
 
     private static readonly bool CheckGrid = Array.Exists(OS.GetCmdlineUserArgs(), a => a == "--check-grid");
 
+    /// <summary><c>--check-howitzers</c>: every ten seconds, print each faction's living howitzers, shells in the air, sniper shots this step, and spawners known and sectors scouted.</summary>
+    private static readonly bool CheckHowitzers = Array.Exists(OS.GetCmdlineUserArgs(), a => a == "--check-howitzers");
+
+    /// <summary>Howitzers per faction and one rank in how many; must match rts_rules.</summary>
+    private const int Howitzers = 16;
+    private const int HowitzerEvery = 64;
+
     private readonly Rect2 _area;
     private readonly Rect2 _world;
     private readonly RtsExperiment _experiment = null!;
     private readonly ShaderMaterial _step = null!;
     private readonly ShaderMaterial _keysMaterial = null!;
     private readonly ShaderMaterial _sortMaterial = null!;
+    private readonly ShaderMaterial _fireKeysMaterial = null!;
+    private readonly ShaderMaterial _intelMaterial = null!;
+    private readonly DrawableTexture2D[] _intel = new DrawableTexture2D[2];
+    private int _intelFront;
     private readonly ShaderMaterial _cellsMaterial = null!;
     private readonly ShaderMaterial _unitsMaterial = null!;
     private readonly ShaderMaterial _hudMaterial = null!;
     private readonly ShaderMaterial _terrainMaterial = null!;
+    private readonly ShaderMaterial _maskMaterial = null!;
     private readonly ShaderMaterial _navMaterial = null!;
     private readonly ShaderMaterial _groundMaterial = null!;
     private readonly ShaderMaterial _tallyMaterial = null!;
@@ -173,9 +213,13 @@ public partial class RtsStage : Node2D
     private readonly DrawableTexture2D[][] _state = [new DrawableTexture2D[2], new DrawableTexture2D[2], new DrawableTexture2D[2]];
     private readonly DrawableTexture2D[] _keys = new DrawableTexture2D[2];
     private DrawableTexture2D _grid = null!;
+    private readonly DrawableTexture2D[] _fire = new DrawableTexture2D[2];
+    private Rect2I _fireRect;
+    private int _fireSlots;
     private readonly DrawableTexture2D[] _nav = new DrawableTexture2D[2];
     private readonly Rect2I _navRect;
     private int _navFront;
+    private int _navPassesRun;
     private int _front;
     private int _count;
     private int _slots;
@@ -183,7 +227,17 @@ public partial class RtsStage : Node2D
     private Rect2I _keysRect;
     private Rect2I _gridRect;
     private int _checkFrames;
+    private int _howitzerSteps;
     private float _time;
+    private readonly GpuPassTimer _gpu = new("rts:");
+    private double _drawMs;
+    private int _drawFrames;
+    private double _reportElapsed;
+
+    /// <summary>Seconds of frames averaged into each GPU report.</summary>
+    private const double ReportSeconds = 1;
+
+    private static readonly bool PrintStats = Array.Exists(OS.GetCmdlineUserArgs(), a => a == "--print-stats");
 
     private int _followFrames;
     private bool _dragging;
@@ -192,7 +246,7 @@ public partial class RtsStage : Node2D
     public RtsStage() { }
 
     public RtsStage(Rect2 area, RtsExperiment experiment, Shader step, Shader units, Shader hud,
-        Shader keys, Shader sort, Shader cells, Shader terrain, Shader nav, Shader ground, Shader tally)
+        Shader keys, Shader sort, Shader cells, Shader terrain, Shader nav, Shader ground, Shader tally, Shader fireKeys, Shader intel)
     {
         _area = area;
         _world = new Rect2(Vector2.Zero, area.Size * WorldScale);
@@ -203,10 +257,17 @@ public partial class RtsStage : Node2D
         _keysMaterial = new ShaderMaterial { Shader = keys };
         _keysMaterial.SetShaderParameter("bounds", bounds);
         _sortMaterial = new ShaderMaterial { Shader = sort };
+        _fireKeysMaterial = new ShaderMaterial { Shader = fireKeys };
+        _intelMaterial = new ShaderMaterial { Shader = intel };
+        _intelMaterial.SetShaderParameter("bounds", bounds);
+        _fireKeysMaterial.SetShaderParameter("bounds", bounds);
         _cellsMaterial = new ShaderMaterial { Shader = cells };
         _cells = Mathf.CeilToInt(_world.Size.X / Cell) * Mathf.CeilToInt(_world.Size.Y / Cell);
         _terrainMaterial = new ShaderMaterial { Shader = terrain };
         _terrainMaterial.SetShaderParameter("bounds", bounds);
+        _maskMaterial = new ShaderMaterial { Shader = terrain };
+        _maskMaterial.SetShaderParameter("bounds", bounds);
+        _maskMaterial.SetShaderParameter("masking", true);
         _tallyMaterial = new ShaderMaterial { Shader = tally };
         _navMaterial = new ShaderMaterial { Shader = nav };
         _navMaterial.SetShaderParameter("bounds", bounds);
@@ -259,6 +320,9 @@ public partial class RtsStage : Node2D
 
     public override void _Draw() => DrawRect(_area, Colors.White);
 
+    public override void _Ready() =>
+        RenderingServer.ViewportSetMeasureRenderTime(GetViewport().GetViewportRid(), true);
+
     public override void _Process(double delta)
     {
         if (_experiment is null || !IsVisibleInTree())
@@ -276,6 +340,8 @@ public partial class RtsStage : Node2D
             Simulate(StepSeconds);
             _accumulator -= StepSeconds;
         }
+        _gpu.Collect();
+        ReportGpu(delta);
         if (Follow > 0 && ++_followFrames % 15 == 0)
             JumpTo(Follow - 1);
 
@@ -373,15 +439,20 @@ public partial class RtsStage : Node2D
     private void Simulate(float dt)
     {
         _time += dt;
+        _gpu.Begin();
         _step.SetShaderParameter("dt", dt);
         _step.SetShaderParameter("time", _time);
         _step.SetShaderParameter("use_grid", RtsExperiment.Grid);
 
         Relax();
+        _gpu.Mark("nav");
         if (RtsExperiment.Grid)
             BuildGrid();
         _step.SetShaderParameter("nav_field", _nav[_navFront]);
+        BuildFireList(dt);
+        Gather();
         _tally.BlitRectMulti(_tallyRect, [_state[0][_front], _state[1][_front], _state[2][_front]], [], null, 0, _tallyMaterial);
+        _gpu.Mark("tally");
 
         int back = 1 - _front;
         _state[0][back].BlitRectMulti(
@@ -389,21 +460,95 @@ public partial class RtsStage : Node2D
             [_state[0][_front], _state[1][_front], _state[2][_front], _grid],
             [_state[1][back], _state[2][back]],
             null, 0, _step);
+        _gpu.Mark("step");
         _front = back;
 
         if (CheckGrid && RtsExperiment.Grid && ++_checkFrames == 300)
             Check();
+        if (CheckHowitzers && ++_howitzerSteps % 300 == 0)
+            CheckGuns();
     }
 
-    /// <summary>A few relaxation passes of every flow field toward this frame's goals.</summary>
+    /// <summary>
+    /// Shows each simulation pass's GPU time, slowest first, beside the
+    /// window's whole canvas draw: averages per frame over <see cref="ReportSeconds"/>.
+    /// The canvas time covers the ground, units and scoreboard, and the lab's own panel.
+    /// </summary>
+    private void ReportGpu(double delta)
+    {
+        _drawMs += RenderingServer.ViewportGetMeasuredRenderTimeGpu(GetViewport().GetViewportRid());
+        _drawFrames++;
+        _reportElapsed += delta;
+        if (_reportElapsed < ReportSeconds)
+            return;
+
+        var passes = _gpu.Report();
+        double draw = _drawMs / _drawFrames;
+        _drawMs = 0;
+        _drawFrames = 0;
+        _reportElapsed = 0;
+        if (passes.Length == 0)
+            return;
+
+        double sim = passes.Sum(p => p.Ms);
+        string ranked = string.Join("  ", passes.OrderByDescending(p => p.Ms).Select(p => $"{p.Pass.ToUpperInvariant()} {p.Ms:0.00}"));
+        string line = $"GPU ms/frame  {ranked}";
+        string total = $"SIM {sim:0.00}   DRAW {draw:0.00} (whole window)   TOTAL {sim + draw:0.00}";
+        _experiment.ShowGpu(line, total);
+        if (PrintStats)
+            GD.Print($"[rts-gpu] {_count} units  {line}  |  {total}");
+    }
+
+    /// <summary>A few relaxation passes of every flow field, until they have settled.</summary>
     private void Relax()
     {
+        if (_navPassesRun >= NavSettlePasses)
+            return;
         for (int i = 0; i < NavPasses; i++)
         {
             int back = 1 - _navFront;
-            _nav[back].BlitRectMulti(_navRect, [_nav[_navFront], _state[1][_front], _state[2][_front]], [], null, 0, _navMaterial);
+            _nav[back].BlitRect(_navRect, _nav[_navFront], null, 0, _navMaterial);
             _navFront = back;
         }
+        _navPassesRun += NavPasses;
+    }
+
+    /// <summary>
+    /// What each faction has found, from the front state and the grid built
+    /// from it. Ping-pongs, since knowledge carries over.
+    /// </summary>
+    private void Gather()
+    {
+        _intelMaterial.SetShaderParameter("use_grid", RtsExperiment.Grid);
+        int back = 1 - _intelFront;
+        _intel[back].BlitRectMulti(new Rect2I(0, 0, Goals, 1),
+            [_intel[_intelFront], _state[0][_front], _state[1][_front], _grid], [], null, 0, _intelMaterial);
+        _intelFront = back;
+        _step.SetShaderParameter("intel", _intel[_intelFront]);
+        _gpu.Mark("intel");
+    }
+
+    /// <summary>
+    /// Every sniper firing this step, as (victim, sniper), sorted by victim with
+    /// the grid's bitonic sort; the step looks its own up. A sniper's victim is
+    /// past the step's scan, so its shot can't be gathered the usual way.
+    /// </summary>
+    private void BuildFireList(float dt)
+    {
+        _fireKeysMaterial.SetShaderParameter("dt", dt);
+        _fireKeysMaterial.SetShaderParameter("nav_field", _nav[_navFront]);
+        _fire[0].BlitRectMulti(_fireRect, [_state[0][_front], _state[1][_front]], [], null, 0, _fireKeysMaterial);
+        int source = 0;
+        for (int k = 2; k <= _fireSlots; k <<= 1)
+        {
+            for (int j = k >> 1; j > 0; j >>= 1)
+            {
+                _fire[1 - source].BlitRect(_fireRect, _fire[source], new Color(k, j, 0, 0), 0, _sortMaterial);
+                source = 1 - source;
+            }
+        }
+        _step.SetShaderParameter("fire_list", _fire[source]);
+        _gpu.Mark("snipers");
     }
 
     /// <summary>
@@ -413,6 +558,7 @@ public partial class RtsStage : Node2D
     private void BuildGrid()
     {
         _keys[0].BlitRectMulti(_keysRect, [_state[0][_front], _state[1][_front]], [], null, 0, _keysMaterial);
+        _gpu.Mark("keys");
         int source = 0;
         for (int k = 2; k <= _slots; k <<= 1)
         {
@@ -423,7 +569,72 @@ public partial class RtsStage : Node2D
                 source = 1 - source;
             }
         }
+        _gpu.Mark("sort");
         _grid.BlitRect(_gridRect, _keys[source], null, 0, _cellsMaterial);
+        _gpu.Mark("cells");
+    }
+
+    /// <summary>Reads the front state back and prints, per faction, howitzers alive and shells in the air.</summary>
+    private void CheckGuns()
+    {
+        Image unit = _state[1][_front].GetImage();
+        Image fx = _state[2][_front].GetImage();
+        var line = new System.Text.StringBuilder($"[rts-guns] {_time:0}s");
+        for (int f = 0; f < Factions; f++)
+        {
+            int alive = 0, flying = 0;
+            for (int k = 0; k < Howitzers; k++)
+            {
+                int id = ((k + 1) * HowitzerEvery - 1) * Factions + f;
+                if (id >= _count)
+                    break;
+                int x = id % Width, y = id / Width + 1;
+                Color u = unit.GetPixel(x, y);
+                if (u.A <= 0 && u.R > 0)
+                    alive++;
+                if (fx.GetPixel(x, y).A > 0)
+                    flying++;
+            }
+            line.Append($"  f{f} {alive} up {flying} firing");
+        }
+        // The fire list as the step read it: the sorted half of the last build.
+        int shots = 0;
+        Image fire = (_fireSlots > 0 ? FireSorted() : null)?.GetImage()!;
+        for (int i = 0; fire is not null && i < _fireSlots; i++)
+        {
+            if (fire.GetPixel(i % Width, i / Width).R < 1e8f)
+                shots++;
+        }
+        line.Append($"  | {shots} sniper shots");
+
+        // What each faction has found: spawners known, sectors scouted.
+        Image intel = _intel[_intelFront].GetImage();
+        line.Append("  | known/scouted");
+        for (int f = 0; f < Factions; f++)
+        {
+            int known = 0, scouted = 0;
+            for (int g = 0; g < Goals; g++)
+            {
+                if ((((int)(intel.GetPixel(g, 0).R + 0.5f) >> f) & 1) == 0)
+                    continue;
+                if (g < Goals - Sectors)
+                    known++;
+                else
+                    scouted++;
+            }
+            line.Append($" f{f} {known}/{scouted}");
+        }
+        GD.Print(line.ToString());
+    }
+
+    /// <summary>The fire texture holding the sorted list after <see cref="BuildFireList"/>.</summary>
+    private DrawableTexture2D FireSorted()
+    {
+        int passes = 0;
+        for (int k = 2; k <= _fireSlots; k <<= 1)
+            for (int j = k >> 1; j > 0; j >>= 1)
+                passes++;
+        return _fire[passes % 2];
     }
 
     /// <summary>Reads the grid back once and checks it against a CPU sort of the same state.</summary>
@@ -487,7 +698,19 @@ public partial class RtsStage : Node2D
         for (int i = 0; i < 2; i++)
             _keys[i] = Cleared(_keysRect);
         _grid = Cleared(_gridRect);
+
+        // One slot per sniper (one rank in twenty), padded to a power of two for the sort.
+        _fireSlots = Math.Max(Width, (int)System.Numerics.BitOperations.RoundUpToPowerOf2((uint)(count / 20 + Factions)));
+        _fireRect = new Rect2I(0, 0, Width, _fireSlots / Width);
+        for (int i = 0; i < 2; i++)
+            _fire[i] = Cleared(_fireRect);
+        _step.SetShaderParameter("fire_slots", _fireSlots);
         _step.SetShaderParameter("sorted_rows", _slots / Width);
+        _intelMaterial.SetShaderParameter("sorted_rows", _slots / Width);
+        // A new battle starts knowing nothing.
+        for (int i = 0; i < 2; i++)
+            _intel[i] = Cleared(new Rect2I(0, 0, Goals, 1));
+        _intelFront = 0;
         foreach (DrawableTexture2D[] pair in _state)
         {
             for (int i = 0; i < 2; i++)
@@ -499,22 +722,24 @@ public partial class RtsStage : Node2D
         _tally = Cleared(_tallyRect);
         _step.SetShaderParameter("faction_tally", _tally);
 
-        // Rocks once, into both nav textures; the fields then fill in over the first frames.
+        // Rocks once, then their neighbour masks into the front nav texture; the
+        // first relaxation copies both to the back, and the fields fill in over
+        // the first frames. Half float: distances need nothing finer.
         if (_nav[0] is null)
         {
             for (int i = 0; i < 2; i++)
-                _nav[i] = Cleared(_navRect);
-            _nav[0].BlitRect(_navRect, _nav[1], null, 0, _terrainMaterial);
+                _nav[i] = Cleared(_navRect, DrawableTexture2D.DrawableFormat.Rgbah);
             _nav[1].BlitRect(_navRect, _nav[0], null, 0, _terrainMaterial);
+            _nav[0].BlitRect(_navRect, _nav[1], null, 0, _maskMaterial);
             _groundMaterial.SetShaderParameter("nav_smooth", _nav[0]);
         }
         _units.SetGeometry(UnitGeometry(count));
     }
 
-    private static DrawableTexture2D Cleared(Rect2I rect)
+    private static DrawableTexture2D Cleared(Rect2I rect, DrawableTexture2D.DrawableFormat format = DrawableTexture2D.DrawableFormat.Rgbaf)
     {
         var texture = new DrawableTexture2D();
-        texture.Setup(rect.Size.X, rect.Size.Y, DrawableTexture2D.DrawableFormat.Rgbaf, new Color(0, 0, 0, 0));
+        texture.Setup(rect.Size.X, rect.Size.Y, format, new Color(0, 0, 0, 0));
         return texture;
     }
 

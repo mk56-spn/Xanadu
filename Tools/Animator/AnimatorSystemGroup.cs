@@ -23,7 +23,8 @@ public sealed class AnimatorSystemGroup : SystemGroup
         IAnimatorSvgCatalog svgCatalog,
         IPointerInputSource pointer,
         IWheelSource wheel,
-        IKeyPressSource keys) : base("Animator")
+        IKeyPressSource keys,
+        IAnimatorClick? click = null) : base("Animator")
     {
         Add(new AnimatorClipConfigSystem(pointer));
         Add(new AnimatorActionSystem());
@@ -39,6 +40,7 @@ public sealed class AnimatorSystemGroup : SystemGroup
         Add(new AnimatorTimelineInputSystem(pointer, wheel));
         Add(new AnimatorShortcutSystem(keys));
         Add(new AnimatorSequenceSystem());
+        Add(new AnimatorAttackCycleSystem(click));
         Add(new AnimatorPlaybackSystem());
         Add(new AnimatorPlantSystem());
         Add(new AnimatorTargetPanelSystem());
@@ -47,6 +49,7 @@ public sealed class AnimatorSystemGroup : SystemGroup
         Add(new AnimatorLayerPanelSystem(visuals));
         Add(new AnimatorFlowSystem(visuals));
         Add(new AnimatorPreviewModeSystem());
+        Add(new AnimatorEasingWindowSystem());
         Add(new AnimatorClipHeaderSystem());
         Add(new AnimatorInspectorSystem());
         Add(new AnimatorChainInspectorSystem());

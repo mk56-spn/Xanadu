@@ -7,8 +7,9 @@ using Xanadu.Systems.Playfields;
 namespace Xanadu.Systems.Characters;
 
 /// <summary>
-/// Plays one of three attack poses on a note hit, layered additively over
-/// whatever a rigged player's base animation is doing. Which one plays
+/// Plays one of three attack poses on a note hit, layered over whatever a
+/// rigged player's base animation is doing (see <see cref="XafStrike"/>: from
+/// the contact frame, replacing the bones the attack poses, fading back out). Which one plays
 /// depends on the note's height relative to the player: one above the
 /// player's own height kicks high, one below kicks low, and one close to it
 /// kicks at the middle. Three rather than one so repeated hits don't look
@@ -35,7 +36,8 @@ public sealed class CharacterAttackSystem : QuerySystem<CharacterRig, CharacterA
 
             attack.StateTime += delta;
             AnimatorRuntime runtime = entity.GetComponent<CharacterRig>().Runtime;
-            if (attack.StateTime >= runtime.Package.Length(clip))
+            if (runtime.Package.Clips.Find(entry => entry.Id == clip.Id()) is not { } authored ||
+                !XafStrike.Step(runtime, authored))
             {
                 runtime.RemoveLayer(clip.Id());
                 attack.Clip = null;
@@ -62,7 +64,8 @@ public sealed class CharacterAttackSystem : QuerySystem<CharacterRig, CharacterA
         if (attack.Clip is { } previous)
             rig.Runtime.RemoveLayer(previous.Id());
 
-        rig.Runtime.AddLayer(clip.Id(), 1f);
+        if (rig.Runtime.Package.Clips.Find(entry => entry.Id == clip.Id()) is { } authored)
+            XafStrike.Start(rig.Runtime, authored);
         attack.Clip = clip;
         attack.StateTime = 0f;
     }

@@ -90,6 +90,21 @@ public static class AnimatorCommands
             case ToolActionKind.SequenceAll:
                 AnimatorSequenceCommands.StartAll(session);
                 break;
+            case ToolActionKind.CycleAttacks:
+                AnimatorAttackCycleCommands.Toggle(session);
+                break;
+            case ToolActionKind.MetronomeSlower:
+                AnimatorAttackCycleCommands.StepBpm(session, -1);
+                break;
+            case ToolActionKind.MetronomeFaster:
+                AnimatorAttackCycleCommands.StepBpm(session, 1);
+                break;
+            case ToolActionKind.AttackMoreOften:
+                AnimatorAttackCycleCommands.StepEvery(session, -1);
+                break;
+            case ToolActionKind.AttackLessOften:
+                AnimatorAttackCycleCommands.StepEvery(session, 1);
+                break;
             case ToolActionKind.AllowTransition:
                 AnimatorFlowCommands.Toggle(session, action.Argument);
                 break;
@@ -162,6 +177,10 @@ public static class AnimatorCommands
                 break;
             case ToolActionKind.CloseNewClip:
                 AnimatorNewClipDialogCommands.Close(session);
+                break;
+            case ToolActionKind.ToggleEasingWindow:
+                ref AnimatorEasingWindow easing = ref session.GetComponent<AnimatorEasingWindow>();
+                easing.Open = !easing.Open;
                 break;
             case ToolActionKind.OpenInfo:
                 session.GetComponent<AnimatorInfoPanel>().Open = true;
@@ -437,8 +456,11 @@ public static class AnimatorCommands
     private static void Stop(Entity session)
     {
         AnimatorDocument document = session.GetComponent<AnimatorDocument>();
-        bool alreadyStopped = !document.Playback.IsPlaying && !session.GetComponent<AnimatorSequence>().Active;
+        bool alreadyStopped = !document.Playback.IsPlaying &&
+                              !session.GetComponent<AnimatorSequence>().Active &&
+                              !session.GetComponent<AnimatorAttackCycle>().Active;
         AnimatorSequenceCommands.Finish(session);
+        AnimatorAttackCycleCommands.Finish(session);
         document.Playback.Stop();
         if (alreadyStopped)
             document.Runtime.Seek(0f);

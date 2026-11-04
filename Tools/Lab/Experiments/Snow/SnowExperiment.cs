@@ -19,8 +19,10 @@ public sealed class SnowExperiment : ILabExperiment
     [
         "World xyz rides in VERTEX.xy + UV.x; vertex()",
         "projects it through a pinhole camera.",
-        "No depth buffer: C# sorts the index list far",
-        "to near each frame and culls back faces.",
+        "No depth buffer: ~430 chunks (trees, tiles) sort",
+        "far to near in 2 blits: each counts what is",
+        "farther (its rank), then each rank finds its chunk.",
+        "Vertices binary-search that for their triangle.",
         "Light is baked into COLOR; fog and dither on GPU.",
         "Flakes wrap around the camera, GPU only.",
         "Mouse turns the view; drawn at 1/4 resolution.",
@@ -31,24 +33,25 @@ public sealed class SnowExperiment : ILabExperiment
     public Node2D CreateStage(Rect2 area) => new SnowStage(area);
 }
 
-/// <summary>Owns the low-res viewport, the camera and the per-frame sort.</summary>
+/// <summary>Owns the low-res viewport, the camera and the GPU sort.</summary>
 public partial class SnowStage : Node2D
 {
     private const int PixelScale = 4;
     private const float OrbitRadius = 16f;
-    private const float Near = 0.25f;
 
     private static readonly StringName CamPos = "cam_pos", CamRight = "cam_right", CamUp = "cam_up",
         CamFwd = "cam_fwd", ScreenCenter = "screen_center", Focal = "focal", SunDir = "sun_dir";
 
     private readonly Rect2 _area;
     private readonly SubViewport _viewport = null!;
-    private readonly ShaderMaterial[] _materials = [];
-    private readonly SnowMesh _mesh = null!;
-    private readonly SnowLayer _scene = null!;
+    private readonly ShaderMaterial[] _cameraMaterials = [];
+    private readonly ShaderMaterial _rankMaterial = null!;
+    private readonly ShaderMaterial _orderMaterial = null!;
+    private readonly ImageTexture _chunks = null!;
+    private readonly DrawableTexture2D _ranks = null!;
+    private readonly DrawableTexture2D _order = null!;
+    private readonly Rect2I _chunkRect;
     private readonly Vector2 _size;
-    private float[] _keys = [];
-    private int[] _order = [];
     private float _time;
 
     public SnowStage() { }
@@ -66,18 +69,25 @@ public partial class SnowStage : Node2D
         };
         AddChild(_viewport);
 
+        SnowMesh mesh = SnowWorld.Build();
+        _chunks = mesh.Chunks;
+        _chunkRect = new Rect2I(0, 0, SnowMesh.Width, (mesh.ChunkCount + SnowMesh.Width - 1) / SnowMesh.Width);
+        _ranks = Drawable(_chunkRect);
+        _order = Drawable(_chunkRect);
+
         var sky = LoadMaterial("snow_sky");
         var scene = LoadMaterial("snow_scene");
         var flakes = LoadMaterial("snow_flakes");
-        _materials = [sky, scene, flakes];
-
-        _mesh = SnowWorld.Build();
-        _keys = new float[_mesh.Triangles];
-        _order = new int[_mesh.Triangles];
+        _rankMaterial = LoadMaterial("snow_rank");
+        _orderMaterial = LoadMaterial("snow_order");
+        _cameraMaterials = [sky, scene, flakes, _rankMaterial];
+        foreach (ShaderMaterial m in (ReadOnlySpan<ShaderMaterial>)[scene, _rankMaterial, _orderMaterial])
+            m.SetShaderParameter("chunks", mesh.ChunkCount);
+        scene.SetShaderParameter("geometry", mesh.Geometry);
+        scene.SetShaderParameter("order", _order);
 
         _viewport.AddChild(new SnowSky(_size) { Material = sky });
-        _scene = new SnowLayer { Material = scene };
-        _viewport.AddChild(_scene);
+        _viewport.AddChild(new SnowLayer(mesh.Triangles) { Material = scene });
         _viewport.AddChild(SnowFlakes.Build(flakes));
 
         AddChild(new Sprite2D
@@ -94,6 +104,13 @@ public partial class SnowStage : Node2D
     public static void NeverCull(Node2D item) =>
         RenderingServer.CanvasItemSetCustomRect(item.GetCanvasItem(), true, new Rect2(-1e5f, -1e5f, 2e5f, 2e5f));
 
+    private static DrawableTexture2D Drawable(Rect2I rect)
+    {
+        var texture = new DrawableTexture2D();
+        texture.Setup(rect.Size.X, rect.Size.Y, DrawableTexture2D.DrawableFormat.Rgbaf, new Color(0, 0, 0, 0));
+        return texture;
+    }
+
     private static ShaderMaterial LoadMaterial(string name) =>
         new() { Shader = GD.Load<Shader>(SnowExperiment.Folder + name + ".gdshader") };
 
@@ -107,7 +124,7 @@ public partial class SnowStage : Node2D
         _time += (float)delta;
         (Vector3 eye, Basis view) = Camera();
         float focal = _size.X / 2 / Mathf.Tan(Mathf.DegToRad(36));
-        foreach (ShaderMaterial m in _materials)
+        foreach (ShaderMaterial m in _cameraMaterials)
         {
             m.SetShaderParameter(CamPos, eye);
             m.SetShaderParameter(CamRight, view.X);
@@ -117,9 +134,18 @@ public partial class SnowStage : Node2D
             m.SetShaderParameter(Focal, focal);
             m.SetShaderParameter(SunDir, SnowWorld.Sun);
         }
-        _scene.Indices = Sort(eye, view.Z);
-        _scene.Mesh = _mesh;
-        _scene.QueueRedraw();
+        Sort();
+    }
+
+    /// <summary>
+    /// Two blits put the chunks in painter's order for this camera: every chunk
+    /// counts the chunks farther than it (its rank), then every rank finds its chunk.
+    /// The scene reads the result straight from <see cref="_order"/>.
+    /// </summary>
+    private void Sort()
+    {
+        _ranks.BlitRectMulti(_chunkRect, [_chunks], [], null, 0, _rankMaterial);
+        _order.BlitRectMulti(_chunkRect, [_ranks, _chunks], [], null, 0, _orderMaterial);
     }
 
     /// <summary>A slow orbit round the pond; the mouse turns the head on top of it.</summary>
@@ -142,51 +168,30 @@ public partial class SnowStage : Node2D
         return (eye, new Basis(right, up, forward));
     }
 
-    /// <summary>Drops faces turned away or crossing the near plane, then orders the rest far to near.</summary>
-    private int[] Sort(Vector3 eye, Vector3 forward)
-    {
-        int count = 0;
-        for (int t = 0; t < _mesh.Triangles; t++)
-        {
-            Vector3 centre = _mesh.Centres[t];
-            if (_mesh.Normals[t].Dot(eye - centre) <= 0)
-                continue;
-            int v = t * 3;
-            if ((_mesh.Corners[v] - eye).Dot(forward) < Near
-                || (_mesh.Corners[v + 1] - eye).Dot(forward) < Near
-                || (_mesh.Corners[v + 2] - eye).Dot(forward) < Near)
-                continue;
-            _keys[count] = -((centre - eye).Dot(forward) + _mesh.Bias[t]);
-            _order[count] = t;
-            count++;
-        }
-        Array.Sort(_keys, _order, 0, count);
-
-        var indices = new int[count * 3];
-        for (int i = 0; i < count; i++)
-        {
-            int v = _order[i] * 3;
-            indices[i * 3] = v;
-            indices[i * 3 + 1] = v + 1;
-            indices[i * 3 + 2] = v + 2;
-        }
-        return indices;
-    }
-
-    /// <summary>The terrain, trees, cabin and snowman: whatever indices the stage sorted last.</summary>
+    /// <summary>Three vertices per draw position, drawn once; the scene shader works out which triangle each position holds.</summary>
     public partial class SnowLayer : Node2D
     {
-        public SnowMesh? Mesh;
-        public int[] Indices = [];
+        private readonly int[] _indices = [];
+        private readonly Vector2[] _uvs = [];
+        private static readonly Color[] White = [Colors.White];
+
+        public SnowLayer() { }
+
+        public SnowLayer(int triangles)
+        {
+            _indices = new int[triangles * 3];
+            _uvs = new Vector2[triangles * 3];
+            for (int v = 0; v < _indices.Length; v++)
+            {
+                _indices[v] = v;
+                _uvs[v] = new Vector2(v / 3, v % 3);
+            }
+        }
 
         public override void _Ready() => NeverCull(this);
 
-        public override void _Draw()
-        {
-            if (Mesh is null || Indices.Length == 0)
-                return;
-            RenderingServer.CanvasItemAddTriangleArray(GetCanvasItem(), Indices, Mesh.Points, Mesh.Colors, Mesh.Uvs);
-        }
+        public override void _Draw() =>
+            RenderingServer.CanvasItemAddTriangleArray(GetCanvasItem(), _indices, _uvs, White, _uvs);
     }
 
     /// <summary>A full-viewport rect for the sky shader.</summary>
@@ -202,44 +207,49 @@ public partial class SnowStage : Node2D
     }
 }
 
-/// <summary>Flat-shaded triangles with unshared corners, packed the way the scene shader reads them.</summary>
+/// <summary>The scene's triangles and chunks as float textures, laid out the way snow_slots.gdshaderinc reads them.</summary>
 public sealed class SnowMesh
 {
+    /// <summary>Texels per row; WIDTH in snow_slots.gdshaderinc.</summary>
+    public const int Width = 256;
+
     public int Triangles;
-    public Vector3[] Corners = [];
-    public Vector3[] Centres = [];
-    public Vector3[] Normals = [];
-    public float[] Bias = [];
-    public Vector2[] Points = [];
-    public Vector2[] Uvs = [];
-    public Color[] Colors = [];
+    public int ChunkCount;
+    public ImageTexture Geometry = null!;
+    public ImageTexture Chunks = null!;
 }
 
-/// <summary>Collects triangles, lights each one once and packs the arrays.</summary>
+/// <summary>Collects triangles, lights each one once and packs them into the geometry texture.</summary>
 public sealed class SnowBuilder
 {
     private static readonly Color Ambient = new(0.42f, 0.50f, 0.72f);
     private static readonly Color SunLight = new(1.0f, 0.86f, 0.70f);
 
     private readonly List<Vector3> _corners = [];
-    private readonly List<Vector3> _normals = [];
     private readonly List<Color> _colors = [];
-    private readonly List<float> _bias = [];
+    private readonly List<(int First, float Bias)> _chunks = [];
     private readonly Random _random = new(7);
 
-    public float Bias;
+    /// <summary>
+    /// Starts a chunk: the unit the GPU sorts. Its triangles draw in the order they
+    /// are added, so add what sits behind or below first. <paramref name="bias"/>
+    /// sorts it that much farther than its centre.
+    /// </summary>
+    public void BeginChunk(float bias = 0) => _chunks.Add((_colors.Count, bias));
 
     /// <summary>Adds a lit triangle; <paramref name="outward"/> picks which side is its front.</summary>
     public void Tri(Vector3 a, Vector3 b, Vector3 c, Color albedo, Vector3 outward, bool emissive = false)
     {
         Vector3 n = (b - a).Cross(c - a).Normalized();
+        // Wind every triangle the same way, so the GPU finds its front from the corners alone.
         if (n.Dot(outward) < 0)
+        {
+            (b, c) = (c, b);
             n = -n;
+        }
         _corners.Add(a);
         _corners.Add(b);
         _corners.Add(c);
-        _normals.Add(n);
-        _bias.Add(Bias);
         _colors.Add(emissive ? albedo : Shade(albedo, n));
     }
 
@@ -259,33 +269,67 @@ public sealed class SnowBuilder
         return new Color(albedo.R * light.R * grain, albedo.G * light.G * grain, albedo.B * light.B * grain);
     }
 
+    /// <summary>
+    /// Four RGBA float texels per triangle: three corners, then its colour. Two per
+    /// chunk: its bounding-box centre with its bias, then its first triangle and count.
+    /// </summary>
     public SnowMesh Pack()
     {
-        int triangles = _normals.Count;
-        var mesh = new SnowMesh
-        {
-            Triangles = triangles,
-            Corners = _corners.ToArray(),
-            Normals = _normals.ToArray(),
-            Bias = _bias.ToArray(),
-            Centres = new Vector3[triangles],
-            Points = new Vector2[triangles * 3],
-            Uvs = new Vector2[triangles * 3],
-            Colors = new Color[triangles * 3],
-        };
+        int triangles = _colors.Count;
+        var geometry = new float[Texels(triangles * 4) * 4];
         for (int t = 0; t < triangles; t++)
         {
-            int v = t * 3;
-            mesh.Centres[t] = (_corners[v] + _corners[v + 1] + _corners[v + 2]) / 3;
+            int at = t * 16;
             for (int k = 0; k < 3; k++)
             {
-                Vector3 p = _corners[v + k];
-                mesh.Points[v + k] = new Vector2(p.X, p.Z);
-                mesh.Uvs[v + k] = new Vector2(p.Y, 0);
-                mesh.Colors[v + k] = _colors[t];
+                Vector3 p = _corners[t * 3 + k];
+                geometry[at + k * 4] = p.X;
+                geometry[at + k * 4 + 1] = p.Y;
+                geometry[at + k * 4 + 2] = p.Z;
             }
+            Color c = _colors[t];
+            geometry[at + 12] = c.R;
+            geometry[at + 13] = c.G;
+            geometry[at + 14] = c.B;
+            geometry[at + 15] = 1;
         }
-        return mesh;
+
+        var chunks = new float[Texels(_chunks.Count * 2) * 4];
+        for (int i = 0; i < _chunks.Count; i++)
+        {
+            (int first, float bias) = _chunks[i];
+            int end = i + 1 < _chunks.Count ? _chunks[i + 1].First : triangles;
+            var bounds = new Aabb(_corners[first * 3], Vector3.Zero);
+            for (int v = first * 3; v < end * 3; v++)
+                bounds = bounds.Expand(_corners[v]);
+            Vector3 centre = bounds.GetCenter();
+            int at = i * 8;
+            chunks[at] = centre.X;
+            chunks[at + 1] = centre.Y;
+            chunks[at + 2] = centre.Z;
+            chunks[at + 3] = bias;
+            chunks[at + 4] = first;
+            chunks[at + 5] = end - first;
+        }
+
+        return new SnowMesh
+        {
+            Triangles = triangles,
+            ChunkCount = _chunks.Count,
+            Geometry = Texture(geometry),
+            Chunks = Texture(chunks),
+        };
+    }
+
+    /// <summary>Whole rows of the shared width.</summary>
+    private static int Texels(int count) => (count + SnowMesh.Width - 1) / SnowMesh.Width * SnowMesh.Width;
+
+    private static ImageTexture Texture(float[] data)
+    {
+        var bytes = new byte[data.Length * sizeof(float)];
+        Buffer.BlockCopy(data, 0, bytes, 0, bytes.Length);
+        int rows = data.Length / 4 / SnowMesh.Width;
+        return ImageTexture.CreateFromImage(Image.CreateFromData(SnowMesh.Width, rows, false, Image.Format.Rgbaf, bytes));
     }
 }
 
@@ -343,30 +387,38 @@ public static class SnowWorld
         return b.Pack();
     }
 
+    /// <summary>Tiles of 4x4 cells, one chunk each.</summary>
     private static void Terrain(SnowBuilder b)
     {
-        b.Bias = GroundBias;
-        for (int z = -Half; z < Half; z++)
-        for (int x = -Half; x < Half; x++)
+        const int Tile = 4;
+        for (int tz = -Half; tz < Half; tz += Tile)
+        for (int tx = -Half; tx < Half; tx += Tile)
         {
-            Vector3 p00 = Corner(x, z), p10 = Corner(x + 1, z), p01 = Corner(x, z + 1), p11 = Corner(x + 1, z + 1);
-            // Alternate the diagonal so the facets do not all lean one way.
-            if (((x + z) & 1) == 0)
+            b.BeginChunk(GroundBias);
+            for (int z = tz; z < tz + Tile; z++)
+            for (int x = tx; x < tx + Tile; x++)
             {
-                Ground(b, p00, p10, p11);
-                Ground(b, p00, p11, p01);
-            }
-            else
-            {
-                Ground(b, p00, p10, p01);
-                Ground(b, p10, p11, p01);
+                Vector3 p00 = Corner(x, z), p10 = Corner(x + 1, z), p01 = Corner(x, z + 1), p11 = Corner(x + 1, z + 1);
+                // Alternate the diagonal so the facets do not all lean one way.
+                if (((x + z) & 1) == 0)
+                {
+                    Ground(b, p00, p10, p11);
+                    Ground(b, p00, p11, p01);
+                }
+                else
+                {
+                    Ground(b, p00, p10, p01);
+                    Ground(b, p10, p11, p01);
+                }
             }
         }
-        b.Bias = 0;
     }
 
-    /// <summary>Terrain sorts this much farther than it is, so things standing on it win ties.</summary>
-    private const float GroundBias = 1.2f;
+    /// <summary>
+    /// Tiles sort this much farther than their centre, so whatever stands anywhere on
+    /// a tile draws after it: a little over the tile's half diagonal.
+    /// </summary>
+    private const float GroundBias = 3.2f;
 
     private static Vector3 Corner(int x, int z) => new(x, Height(x, z), z);
 
@@ -392,6 +444,7 @@ public static class SnowWorld
             Vector3 peak = Ring(angle + ((float)random.NextDouble() - 0.5f) * width * 0.6f, radius, height);
             Vector3 outward = -new Vector3(Mathf.Cos(angle), -0.3f, Mathf.Sin(angle));
             Color tone = i % 3 == 0 ? Rock : Snow;
+            b.BeginChunk();
             b.Tri(left, front, peak, tone, outward + (left - right) * 0.01f);
             b.Tri(front, right, peak, tone, outward + (right - left) * 0.01f);
         }
@@ -418,6 +471,8 @@ public static class SnowWorld
     private static void Pine(SnowBuilder b, Vector3 foot, float scale, float spin)
     {
         const int Sides = 7;
+        b.BeginChunk();
+        // Trunk, then tiers bottom up: each covers the one below.
         Prism(b, foot, 0.18f * scale, 0.7f * scale, 5, Bark, spin);
         for (int tier = 0; tier < 3; tier++)
         {
@@ -462,6 +517,8 @@ public static class SnowWorld
         Vector3 Dir(float x, float y, float z) => basis * new Vector3(x, y, z);
 
         float w = W / 2, d = D / 2;
+        // Walls, then the roof over them, then what sits on the walls and roof.
+        b.BeginChunk();
         b.Quad(P(-w, 0, d), P(w, 0, d), P(w, Wall, d), P(-w, Wall, d), Wood, Dir(0, 0, 1));
         b.Quad(P(w, 0, -d), P(-w, 0, -d), P(-w, Wall, -d), P(w, Wall, -d), Wood, Dir(0, 0, -1));
         b.Quad(P(w, 0, d), P(w, 0, -d), P(w, Wall, -d), P(w, Wall, d), Wood, Dir(1, 0, 0));
@@ -484,6 +541,8 @@ public static class SnowWorld
     private static void Snowman(SnowBuilder b, Vector2 at)
     {
         var foot = new Vector3(at.X, Height(at.X, at.Y) - 0.15f, at.Y);
+        // Balls bottom up, then the face on the head.
+        b.BeginChunk();
         float y = 0;
         Vector3 head = default;
         foreach (float r in (ReadOnlySpan<float>)[0.75f, 0.55f, 0.38f])

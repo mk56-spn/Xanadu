@@ -42,6 +42,15 @@ public partial class AnimatorTool : Control
     /// <summary>Set by <c>--flow=from&gt;to</c>: open the FLOW tab on that hand-over and preview it.</summary>
     private string? _flow;
 
+    /// <summary>Set by <c>--attacks</c>: start cycling the attacks on opening.</summary>
+    private bool _attacks;
+
+    /// <summary>Set by <c>--easing</c>: open the EASING window on opening.</summary>
+    private bool _easing;
+
+    /// <summary>Set by <c>--clip=name@seconds</c>: open that clip paused at that time.</summary>
+    private string? _clip;
+
     /// <summary>Set by <c>--streak=bone</c>: hang a streak off that bone and hold the playhead where it shows.</summary>
     private string? _streak;
 
@@ -62,10 +71,12 @@ public partial class AnimatorTool : Control
     /// <summary>Set by <c>--orbit=bone,bone</c>: send those bones round an ellipse on opening, unsaved.</summary>
     private string? _orbit;
 
+    private VisualRidRelease _visuals = null!;
+
     public override void _Ready()
     {
         _store = new EntityStore();
-        _store.OnEntityDelete += FreeVisual;
+        _visuals = new VisualRidRelease(_store);
         _root = new SystemRoot(_store);
         _pointer = new GodotPointerInputSource(this);
         var canvas = new GodotRectCanvas();
@@ -94,7 +105,8 @@ public partial class AnimatorTool : Control
             new GodotAnimatorSvgCatalog(),
             _pointer,
             _pointer,
-            _keys));
+            _keys,
+            new GodotAnimatorClick(this)));
 
         var files = new GodotAnimatorFiles();
         _session = AnimatorSession.Create(
@@ -124,6 +136,12 @@ public partial class AnimatorTool : Control
             _elapsed += (float)delta;
         if (_frames == 2 && _flow is not null)
             StartFlow(_flow);
+        if (_frames == 2 && _clip is not null)
+            OpenClipAt(_clip);
+        if (_frames == 2 && _easing)
+            AnimatorCommands.Run(_session, new ToolAction(ToolActionKind.ToggleEasingWindow));
+        if (_frames == 2 && _attacks)
+            AnimatorCommands.Run(_session, new ToolAction(ToolActionKind.CycleAttacks));
         if (_frames == 2 && _streak is not null)
             AddStreak(_streak);
         if (_frames == 2 && _dress is not null)
@@ -169,7 +187,7 @@ public partial class AnimatorTool : Control
     /// Reads the capture flags, so an agent can check the tool without a
     /// desktop capture: <c>--shot=path</c>, <c>--shot-frames=n</c> or
     /// <c>--shot-seconds=s</c> (counted from the flow preview's start), and
-    /// <c>--flow=from&gt;to</c>, <c>--streak=bone</c>, <c>--layers</c>, <c>--preview</c> and
+    /// <c>--flow=from&gt;to</c>, <c>--streak=bone</c>, <c>--layers</c>, <c>--preview</c>, <c>--attacks</c>, <c>--easing</c>, <c>--clip=name@seconds</c> and
     /// <c>--paths=bone,bone</c> (motion paths on, those bones selected; empty for none),
     /// with <c>@clip</c> after the bones to open that clip paused at its middle,
     /// <c>--dress=bone</c> (adds a dress hanging from that bone and selects it)
@@ -200,6 +218,12 @@ public partial class AnimatorTool : Control
                 _plant = argument["--plant=".Length..];
             else if (argument.StartsWith("--orbit=", StringComparison.Ordinal))
                 _orbit = argument["--orbit=".Length..];
+            else if (argument.StartsWith("--clip=", StringComparison.Ordinal))
+                _clip = argument["--clip=".Length..];
+            else if (argument == "--easing")
+                _easing = true;
+            else if (argument == "--attacks")
+                _attacks = true;
             else if (argument == "--preview")
                 _startInPreview = true;
             else if (argument.StartsWith("--paths=", StringComparison.Ordinal))
@@ -224,6 +248,17 @@ public partial class AnimatorTool : Control
         AnimatorCommands.Run(_session, new ToolAction(ToolActionKind.Clip, clips[0]));
         AnimatorCommands.Run(_session, new ToolAction(ToolActionKind.SelectTransition, clips[1]));
         AnimatorCommands.Run(_session, new ToolAction(ToolActionKind.PreviewTransition));
+    }
+
+    private void OpenClipAt(string spec)
+    {
+        string[] parts = spec.Split('@');
+        AnimatorCommands.Run(_session, new ToolAction(ToolActionKind.Clip, parts[0]));
+        AnimatorRuntime runtime = _session.GetComponent<AnimatorDocument>().Runtime;
+        runtime.SetPaused(true);
+        if (parts.Length == 2 && float.TryParse(parts[1], System.Globalization.NumberStyles.Float,
+                System.Globalization.CultureInfo.InvariantCulture, out float time))
+            runtime.Seek(time);
     }
 
     private void ShowPaths(string bones)
@@ -281,9 +316,7 @@ public partial class AnimatorTool : Control
     public override void _ExitTree()
     {
         _attachments.Release();
-        _store.OnEntityDelete -= FreeVisual;
-        foreach (Entity entity in _store.Query<VisualRid>().ToEntityList())
-            RenderingServer.FreeRid(entity.GetComponent<VisualRid>().Value);
+        _visuals.Dispose();
         foreach (Rid canvas in new[] { _grid, _preview, _svgCanvas, _timelineCanvas })
             RenderingServer.FreeRid(canvas);
     }
@@ -294,11 +327,5 @@ public partial class AnimatorTool : Control
         RenderingServer.CanvasItemSetParent(canvas, GetCanvasItem());
         RenderingServer.CanvasItemSetZIndex(canvas, zIndex);
         return canvas;
-    }
-
-    private static void FreeVisual(EntityDelete deleted)
-    {
-        if (deleted.Entity.TryGetComponent(out VisualRid visual))
-            RenderingServer.FreeRid(visual.Value);
     }
 }
