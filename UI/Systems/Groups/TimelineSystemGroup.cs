@@ -15,5 +15,6 @@ public sealed class TimelineSystemGroup : SystemGroup
     public TimelineSystemGroup(IPointerInputSource pointer, IWheelSource wheel) : base("Timeline")
     {
         Add(new TimelineWheelSystem(pointer, wheel));
+        Add(new TimelinePinSystem());
     }
 }

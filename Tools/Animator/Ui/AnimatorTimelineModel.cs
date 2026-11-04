@@ -99,9 +99,7 @@ public sealed class AnimatorTimelineModel
         TimelineView view = session.GetComponent<TimelineView>();
         long durationMs = (long)Math.Round(clip.Duration * 1000.0);
         long timeMs = (long)Math.Round(document.Runtime.CurrentTime * 1000.0);
-        TimeWindow window = view.Scrubbing
-            ? new TimeWindow(view.ScrubStartMs, view.ScrubEndMs)
-            : TimeWindow.Following(timeMs, durationMs, view.Zoom);
+        TimeWindow window = TimeWindow.Of(view, timeMs, durationMs);
 
         XafTrack? selected = SelectedTrack(session, document.Package);
         IReadOnlySet<XafTrack> expanded =
