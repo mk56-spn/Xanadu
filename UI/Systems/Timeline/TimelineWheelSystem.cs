@@ -1,3 +1,4 @@
+using System;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Godot;
@@ -9,7 +10,9 @@ namespace Xanadu.Systems.Timeline;
 
 /// <summary>
 /// Zooms a timeline: the wheel with Ctrl anywhere over it, or alone over a ruler
-/// the tool offers for it. Every other notch stays for the tool's own wheel.
+/// the tool offers for it. The zoom is about the pointer: the time under it stays
+/// under it, by pinning the window until the playhead moves out of it. Every
+/// other notch stays for the tool's own wheel.
 /// </summary>
 public sealed class TimelineWheelSystem(IPointerInputSource pointer, IWheelSource wheel)
     : QuerySystem<TimelineHost, TimelineView>
@@ -30,9 +33,26 @@ public sealed class TimelineWheelSystem(IPointerInputSource pointer, IWheelSourc
             }
 
             ref TimelineView view = ref entity.GetComponent<TimelineView>();
-            view.Zoom = TimelineZoom.Step(view.Zoom, wheel.TakeWheel());
-            view.AutoZoomed = true;
+            ZoomAbout(ref view, host, ruler.Size.X > 0 ? ruler : panel, position.X, wheel.TakeWheel());
             return;
         }
+    }
+
+    /// <summary>
+    /// Steps the zoom by <paramref name="notches"/>, keeping the time under
+    /// <paramref name="x"/> still; <paramref name="axis"/> is where time runs.
+    /// </summary>
+    public static void ZoomAbout(ref TimelineView view, ITimelineHost host, Rect2 axis, float x, int notches)
+    {
+        long duration = (long)Math.Round(host.DurationMs);
+        long now = (long)Math.Round(host.NowMs);
+        TimeWindow before = TimeWindow.Of(view, now, duration);
+        float zoom = TimelineZoom.Step(view.Zoom, notches);
+
+        view.PinStartMs = before.StartKeeping(axis, x, duration, zoom);
+        view.PinNowMs = now;
+        view.Pinned = true;
+        view.Zoom = zoom;
+        view.AutoZoomed = true;
     }
 }
