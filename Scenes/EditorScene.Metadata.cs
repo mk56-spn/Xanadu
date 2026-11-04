@@ -16,7 +16,7 @@ namespace Xanadu.Scenes;
 public static partial class EditorScene
 {
     private const float MetadataPanelWidth = 380;
-    private const float MetadataPanelHeight = 370;
+    private const float MetadataPanelHeight = 478;
     private const float StartPanelHeight = 220;
 
     private static void BuildEditorUi(
@@ -79,7 +79,34 @@ public static partial class EditorScene
             true);
 
         AddMetadataLabel(panelNode, LocalizedText.Get(EditorStrings.Background));
-        AddBackgroundRow(panelNode);
+        AddColorRow(
+            panelNode,
+            PlayfieldRenderer.PlayfieldBackground,
+            EditorButtonKind.BackgroundColor,
+            EditorButtonKind.ResetBackgroundColor,
+            "Choose the map's background colour",
+            swatch => swatch.With(new EditorBackgroundSwatch()),
+            hex => hex.AddComponent(new EditorBackgroundHex()));
+
+        AddMetadataLabel(panelNode, LocalizedText.Get(EditorStrings.Outside));
+        AddColorRow(
+            panelNode,
+            PlayfieldRenderer.PlayBackground,
+            EditorButtonKind.OutsideColor,
+            EditorButtonKind.ResetOutsideColor,
+            "Choose the colour around the playfield",
+            swatch => swatch.With(new EditorOutsideSwatch()),
+            hex => hex.AddComponent(new EditorOutsideHex()));
+
+        AddMetadataLabel(panelNode, LocalizedText.Get(EditorStrings.Frame));
+        AddColorRow(
+            panelNode,
+            PlayfieldRenderer.FrameColor,
+            EditorButtonKind.FrameColor,
+            EditorButtonKind.ResetFrameColor,
+            "Choose the colour of the playfield's frame and border line",
+            swatch => swatch.With(new EditorFrameSwatch()),
+            hex => hex.AddComponent(new EditorFrameHex()));
 
         editor.AddComponent(new EditorMetadataPanel(panel, home));
 
@@ -140,6 +167,7 @@ public static partial class EditorScene
             $"{EditorPlacementKeybinds.LabelFor(EditorPlacementMode.FormStep),-23}Place Form steps",
             $"{EditorPlacementKeybinds.LabelFor(EditorPlacementMode.Blocks),-23}Place blocks (drag to paint)",
             $"{EditorPlacementKeybinds.LabelFor(EditorPlacementMode.Spikes),-23}Place spikes (drag to paint)",
+            $"{EditorPlacementKeybinds.LabelFor(EditorPlacementMode.Text),-23}Place text (edit it in the sidebar)",
             "R                      Rotate selection a quarter turn",
             "H / V                  Flip selection across / up and down",
             "O                      Make selected blocks one-way",
@@ -213,18 +241,24 @@ public static partial class EditorScene
             .With(new EditorField(kind));
 
     /// <summary>
-    /// The map's background colour: a live swatch, its stored hex value, and
-    /// the buttons that open the picker or return the map to the theme default.
+    /// One of the map's colours: a live swatch, its stored hex value, and the
+    /// buttons that open the picker or return it to the theme default. The
+    /// marks let the metadata system find the swatch and hex it keeps current.
     /// </summary>
-    private static void AddBackgroundRow(UiNode parent)
+    private static void AddColorRow(
+        UiNode parent,
+        Color initial,
+        EditorButtonKind edit,
+        EditorButtonKind reset,
+        string tooltip,
+        System.Func<UiNode, UiNode> markSwatch,
+        System.Action<Entity> markHex)
     {
         UiNode row = parent.Row().Size(340, 28).Gap(6);
 
-        row.Rect(PlayfieldRenderer.PlayfieldBackground, size: new Vector2(44, 28))
-            .Input()
-            .With(new EditorBackgroundSwatch())
-            .With(new EditorButton(EditorButtonKind.BackgroundColor))
-            .Tooltip("Choose the map's background colour");
+        markSwatch(row.Rect(initial, size: new Vector2(44, 28)).Input())
+            .With(new EditorButton(edit))
+            .Tooltip(tooltip);
 
         Entity hex = HudText(
             row,
@@ -233,15 +267,15 @@ public static partial class EditorScene
             "DEFAULT",
             13,
             SceneUi.DimTextColor);
-        hex.AddComponent(new EditorBackgroundHex());
+        markHex(hex);
 
         row.Button("EDIT", 12, SceneUi.MutedButtonColor)
             .Size(80, 28)
-            .With(new EditorButton(EditorButtonKind.BackgroundColor));
+            .With(new EditorButton(edit));
 
         row.Button("RESET", 12, SceneUi.MutedButtonColor)
             .Size(76, 28)
-            .With(new EditorButton(EditorButtonKind.ResetBackgroundColor))
+            .With(new EditorButton(reset))
             .Tooltip("Use the theme's stage colour");
     }
 }

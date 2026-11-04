@@ -41,6 +41,8 @@ public enum EditorCommandType
     SetPlayerShader,
     SetFieldShader,
     SetBackgroundColor,
+    SetOutsideColor,
+    SetFrameColor,
 }
 
 /// <summary>Data-only editor command.</summary>
@@ -156,4 +158,12 @@ public readonly record struct EditorCommand(
     /// <summary>Sets the playfield background; null returns it to the theme default.</summary>
     public static EditorCommand SetBackgroundColor(Color? color) =>
         new(EditorCommandType.SetBackgroundColor, ColorValue: color);
+
+    /// <summary>Sets the colour around the playfield; null returns it to the theme default.</summary>
+    public static EditorCommand SetOutsideColor(Color? color) =>
+        new(EditorCommandType.SetOutsideColor, ColorValue: color);
+
+    /// <summary>Sets the playfield's frame and border line; null returns them to the theme default.</summary>
+    public static EditorCommand SetFrameColor(Color? color) =>
+        new(EditorCommandType.SetFrameColor, ColorValue: color);
 }

@@ -37,6 +37,8 @@ public sealed class XmfMapsetBinaryTests
             Name = "Hard",
             FieldShader = 1,
             BackgroundColor = "#20406080",
+            OutsideColor = "#102030",
+            FrameColor = "#405060",
         };
         hard.Notes.Add(new NoteDocument
         {
@@ -75,12 +77,15 @@ public sealed class XmfMapsetBinaryTests
         Assert.That(readEasy.Name, Is.EqualTo("Easy"));
         Assert.That(readEasy.PlayerShader, Is.EqualTo(1));
         Assert.That(readEasy.BackgroundColor, Is.Empty);
+        Assert.That(readEasy.OutsideColor, Is.Empty);
         Assert.That(readEasy.Notes.Single().TimeMs, Is.EqualTo(100));
         Assert.That(readEasy.Notes.Single().DashStrength, Is.EqualTo(DashStrength.Single));
 
         XmfVariant readHard = read.Variants.Single(v => v.Id == "hard");
         Assert.That(readHard.FieldShader, Is.EqualTo(1));
         Assert.That(readHard.BackgroundColor, Is.EqualTo("#20406080"));
+        Assert.That(readHard.OutsideColor, Is.EqualTo("#102030"));
+        Assert.That(readHard.FrameColor, Is.EqualTo("#405060"));
         Assert.That(readHard.Notes, Has.Count.EqualTo(2));
         Assert.That(readHard.Notes[0].DashStrength, Is.EqualTo(DashStrength.Double));
         Assert.That(readHard.Notes[0].PairIndex, Is.EqualTo(PairIndex.Three));
@@ -130,7 +135,7 @@ public sealed class XmfMapsetBinaryTests
 
             byte[] payload = chunk.ToArray();
             if (id == 4)
-                payload = TrimVariantBackgrounds(payload);
+                payload = TrimVariantColours(payload, trailingIndexes: 3);
             file.Add(id, payload);
         }
 
@@ -139,8 +144,49 @@ public sealed class XmfMapsetBinaryTests
         Assert.That(old.Variants.Single().BackgroundColor, Is.Empty);
     }
 
-    /// <summary>Rebuilds a variants chunk as it was before each blob carried a background index.</summary>
-    private static byte[] TrimVariantBackgrounds(byte[] payload)
+    [Test]
+    public void MapsetVariantsWrittenBeforeOutsideColoursExistedKeepTheirBackground()
+    {
+        var mapset = new XmfMapset { Id = "mapset-old", Slug = "old-mapset", SongId = "song-1" };
+        mapset.Variants.Add(new XmfVariant
+        {
+            Id = "old",
+            Name = "Old",
+            BackgroundColor = "#204060",
+            OutsideColor = "#102030",
+            FrameColor = "#405060",
+        });
+
+        byte[] current = XmfBinary.WriteMapset(mapset);
+        ChunkReader reader = ChunkReader.Open(
+            current,
+            "XMF2"u8.ToArray(),
+            XmfBinary.MapsetMajorVersion,
+            "XMF2");
+        var file = new ChunkWriter(
+            "XMF2"u8.ToArray(),
+            XmfBinary.MapsetMajorVersion,
+            0);
+        for (uint id = 1; id <= 4; id++)
+        {
+            if (!reader.TryGet(id, out Chunk chunk))
+                continue;
+
+            byte[] payload = chunk.ToArray();
+            if (id == 4)
+                payload = TrimVariantColours(payload, trailingIndexes: 2);
+            file.Add(id, payload);
+        }
+
+        XmfVariant old = XmfBinary.ReadMapset(file.ToArray()).Variants.Single();
+
+        Assert.That(old.BackgroundColor, Is.EqualTo("#204060"));
+        Assert.That(old.OutsideColor, Is.Empty);
+        Assert.That(old.FrameColor, Is.Empty);
+    }
+
+    /// <summary>Rebuilds a variants chunk with each blob's last colour indexes cut off, as older versions wrote it.</summary>
+    private static byte[] TrimVariantColours(byte[] payload, int trailingIndexes)
     {
         using var input = new MemoryStream(payload, writable: false);
         using var reader = new BinaryReader(input);
@@ -152,8 +198,9 @@ public sealed class XmfMapsetBinaryTests
         {
             uint length = reader.ReadUInt32();
             byte[] blob = reader.ReadBytes((int)length);
-            writer.Write(length - sizeof(uint));
-            writer.Write(blob, 0, blob.Length - sizeof(uint));
+            int cut = sizeof(uint) * trailingIndexes;
+            writer.Write(length - (uint)cut);
+            writer.Write(blob, 0, blob.Length - cut);
         }
 
         writer.Flush();

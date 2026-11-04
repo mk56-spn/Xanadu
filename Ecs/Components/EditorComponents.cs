@@ -93,6 +93,7 @@ public enum EditorPlacementMode
     WeaponSwitch,
     Channel,
     FormStep,
+    Text,
 }
 
 public struct EditorPlacementModeState(EditorPlacementMode mode) : IComponent
@@ -241,6 +242,10 @@ public enum EditorButtonKind
     Redo,
     BackgroundColor,
     ResetBackgroundColor,
+    OutsideColor,
+    ResetOutsideColor,
+    FrameColor,
+    ResetFrameColor,
 }
 
 /// <summary>An ECS editor toolbar button.</summary>
@@ -311,17 +316,31 @@ public struct EditorBackgroundSwatch : IComponent;
 /// <summary>The text beside the background swatch: the stored colour or DEFAULT.</summary>
 public struct EditorBackgroundHex : IComponent;
 
+/// <summary>The metadata panel's live swatch of the colour around the playfield.</summary>
+public struct EditorOutsideSwatch : IComponent;
+
+/// <summary>The text beside the outside swatch: the stored colour or DEFAULT.</summary>
+public struct EditorOutsideHex : IComponent;
+
+/// <summary>The metadata panel's live swatch of the playfield's frame colour.</summary>
+public struct EditorFrameSwatch : IComponent;
+
+/// <summary>The text beside the frame swatch: the stored colour or DEFAULT.</summary>
+public struct EditorFrameHex : IComponent;
+
 /// <summary>ECS editor HUD text entities updated from editor state.</summary>
 public struct EditorHud(
     Entity level,
     Entity song,
-    Entity status,
+    ShellStatusLabels status,
     Entity time,
     Entity notes) : IComponent
 {
     public Entity Level = level;
     public Entity Song = song;
-    public Entity Status = status;
+
+    /// <summary>The header's status message and unsaved flag, shared with the animator.</summary>
+    public ShellStatusLabels Status = status;
     public Entity Time = time;
     public Entity Notes = notes;
     public string StatusText = "";

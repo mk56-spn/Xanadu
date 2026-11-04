@@ -28,6 +28,21 @@ public static class PlayfieldGrid
         playfield.Width / (float)DivisionsFor(playfield.Width),
         playfield.Height / (float)DivisionsFor(playfield.Height));
 
+    /// <summary>
+    /// The grid crossing nearest <paramref name="point"/>, inside the field: where
+    /// a point item such as a note lands with snapping on.
+    /// </summary>
+    public static Vector2 NearestCrossing(Vector2 point, Playfield playfield)
+    {
+        Vector2 cell = Cell(playfield);
+        if (cell.X <= 0 || cell.Y <= 0)
+            return point;
+
+        return new Vector2(
+            Math.Clamp(Mathf.Round(point.X / cell.X) * cell.X, 0, playfield.Width),
+            Math.Clamp(Mathf.Round(point.Y / cell.Y) * cell.Y, 0, playfield.Height));
+    }
+
     /// <summary>The top-left of the cell containing <paramref name="point"/>.</summary>
     public static Vector2 Snap(Vector2 point, Playfield playfield)
     {

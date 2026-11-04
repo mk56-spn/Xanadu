@@ -47,10 +47,16 @@ public sealed class EditorGroupPreviewSystem :
             Vector2 dialog = EditorGroupLayout.DialogSize(screen);
             Vector2 origin = (screen - dialog) / 2;
             Rect2 area = Offset(EditorGroupLayout.PreviewArea(dialog), origin);
-            Color? background = entity.TryGetComponent(out LevelInfo info)
-                ? info.Background
-                : null;
-            DrawPreview(area, state, levelGroups, playfield, playhead, background);
+            Color? background = null;
+            Color? outside = null;
+            Color? frame = null;
+            if (entity.TryGetComponent(out LevelInfo info))
+            {
+                background = info.Background;
+                outside = info.Outside;
+                frame = info.Frame;
+            }
+            DrawPreview(area, state, levelGroups, playfield, playhead, background, outside, frame);
             DrawCurve(state, levelGroups, dialog, origin);
             if (state.PaletteOpen)
                 DrawPaletteFrame(dialog, origin);
@@ -63,10 +69,12 @@ public sealed class EditorGroupPreviewSystem :
         LevelGroups levelGroups,
         Playfield playfield,
         Playhead playhead,
-        Color? background)
+        Color? background,
+        Color? outside,
+        Color? frame)
     {
         _canvas.DrawRect(_preview, area.Grow(2), Palette.Muted);
-        _canvas.DrawRect(_preview, area, PlayfieldRenderer.PlayfieldBackground);
+        _canvas.DrawRect(_preview, area, outside ?? PlayfieldRenderer.PlayfieldBackground);
 
         float scale = Mathf.Min(
             area.Size.X / Mathf.Max(1, playfield.Width),
@@ -84,7 +92,7 @@ public sealed class EditorGroupPreviewSystem :
             field,
             field.Size / 10,
             field.Position + field.Size / 2);
-        _canvas.DrawBorder(_preview, field, PlayfieldRenderer.BorderColor, 1);
+        _canvas.DrawBorder(_preview, field, frame ?? PlayfieldRenderer.BorderColor, 1);
 
         var view = new PlayfieldView(fieldOrigin, scale, area.Size);
         float seconds = playhead.TimeMs / 1000f;

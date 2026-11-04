@@ -128,6 +128,12 @@ public static class EditorItemPosition
             return true;
         }
 
+        if (entity.HasComponent<LevelText>())
+        {
+            position = entity.GetComponent<LevelText>().Position;
+            return true;
+        }
+
         position = default;
         return false;
     }
@@ -163,6 +169,12 @@ public static class EditorItemPosition
         {
             ref Spike spike = ref entity.GetComponent<Spike>();
             spike.Position = position - spike.Size / 2;
+            return true;
+        }
+
+        if (entity.HasComponent<LevelText>())
+        {
+            entity.GetComponent<LevelText>().Position = position;
             return true;
         }
 

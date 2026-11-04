@@ -122,6 +122,7 @@ public sealed class EditorRailLayerSystem : QuerySystem<EditorRailButton>
             channelSide: NoteRules.SideOf(action),
             holdMs: holdMs));
         _history.Record(before, _history.Capture());
+        EditorAutoAdvance.AfterPlacing(_entities, editor, time);
     }
 
     private void PlaceEnd(ChannelSide side, Entity editor)
@@ -135,6 +136,7 @@ public sealed class EditorRailLayerSystem : QuerySystem<EditorRailButton>
             kind: NoteKind.ChannelEnd,
             channelSide: side));
         _history.Record(before, _history.Capture());
+        EditorAutoAdvance.AfterPlacing(_entities, editor, time);
     }
 
     private static long NextHold(long current)

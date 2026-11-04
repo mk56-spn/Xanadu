@@ -26,6 +26,8 @@ public sealed class EditorPlacementKeybindsTests
     [TestCase(Key.Kp8, EditorPlacementMode.Channel)]
     [TestCase(Key.Key9, EditorPlacementMode.FormStep)]
     [TestCase(Key.Kp9, EditorPlacementMode.FormStep)]
+    [TestCase(Key.Key0, EditorPlacementMode.Text)]
+    [TestCase(Key.Kp0, EditorPlacementMode.Text)]
     public void MapsDefaultPlacementKeys(
         Key key,
         EditorPlacementMode expected)

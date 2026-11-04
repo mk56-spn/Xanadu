@@ -32,6 +32,7 @@ public sealed class EditorHistory
         var starts = new List<StartPointSnapshot>();
         var blocks = new List<BlockSnapshot>();
         var spikes = new List<SpikeSnapshot>();
+        var texts = new List<TextSnapshot>();
 
         foreach (Entity entity in _entities.Query<Note>().ToEntityList())
         {
@@ -184,13 +185,35 @@ public sealed class EditorHistory
             return x != 0 ? x : a.Position.Y.CompareTo(b.Position.Y);
         });
 
+        foreach (Entity entity in _entities.Query<LevelText>().ToEntityList())
+        {
+            LevelText text = entity.GetComponent<LevelText>();
+            texts.Add(new TextSnapshot(
+                text.Position,
+                text.Text ?? "",
+                text.Size,
+                MaskOf(entity),
+                ItemShader.Of(entity),
+                SelfModulate.Packed(entity)));
+        }
+
+        texts.Sort(static (a, b) =>
+        {
+            int x = a.Position.X.CompareTo(b.Position.X);
+            if (x != 0)
+                return x;
+            int y = a.Position.Y.CompareTo(b.Position.Y);
+            return y != 0 ? y : string.CompareOrdinal(a.Text, b.Text);
+        });
+
         return new EditorSnapshot(
             notes,
             mines,
             starts,
             blocks,
             spikes,
-            CaptureGroups());
+            CaptureGroups(),
+            texts);
     }
 
     private static uint MaskOf(Entity entity) =>
@@ -225,6 +248,7 @@ public sealed class EditorHistory
         before.StartPoints.SequenceEqual(after.StartPoints) &&
         before.Blocks.SequenceEqual(after.Blocks) &&
         before.Spikes.SequenceEqual(after.Spikes) &&
+        (before.Texts ?? new()).SequenceEqual(after.Texts ?? new()) &&
         SameGroups(before.Groups, after.Groups);
 
     private static bool SameGroups(GroupDefinition[]? a, GroupDefinition[]? b)
@@ -249,6 +273,9 @@ public sealed class EditorHistory
             entity.DeleteEntity();
 
         foreach (Entity entity in _entities.Query<Spike>().ToEntityList())
+            entity.DeleteEntity();
+
+        foreach (Entity entity in _entities.Query<LevelText>().ToEntityList())
             entity.DeleteEntity();
 
         if (snapshot.Groups is not null)
@@ -336,6 +363,13 @@ public sealed class EditorHistory
             Subscribe(created, spike.Groups);
             SelfModulate.Put(created, spike.Modulate);
         }
+
+        foreach (TextSnapshot text in snapshot.Texts ?? new())
+        {
+            Entity created = EditorItems.Create(_entities, new LevelText(text.Position, text.Text, text.Size), text.Shader);
+            Subscribe(created, text.Groups);
+            SelfModulate.Put(created, text.Modulate);
+        }
     }
 }
 
@@ -346,7 +380,17 @@ public readonly record struct EditorSnapshot(
     List<StartPointSnapshot> StartPoints,
     List<BlockSnapshot> Blocks,
     List<SpikeSnapshot> Spikes,
-    GroupDefinition[]? Groups = null);
+    GroupDefinition[]? Groups = null,
+    List<TextSnapshot>? Texts = null);
+
+/// <summary>Stable serializable level-text snapshot used by undo/redo.</summary>
+public readonly record struct TextSnapshot(
+    Vector2 Position,
+    string Text,
+    float Size,
+    uint Groups = 0,
+    int Shader = 0,
+    uint Modulate = SelfModulate.White);
 
 /// <summary>Stable serializable start-point snapshot used by undo/redo.</summary>
 public readonly record struct StartPointSnapshot(

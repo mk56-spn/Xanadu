@@ -195,6 +195,9 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
         foreach (Entity spike in _entities.Query<Spike>().ToEntityList())
             spike.DeleteEntity();
 
+        foreach (Entity text in _entities.Query<LevelText>().ToEntityList())
+            text.DeleteEntity();
+
         foreach (Entity trail in _entities.Query<HitTrail>().ToEntityList())
             trail.DeleteEntity();
 

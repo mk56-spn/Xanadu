@@ -64,9 +64,15 @@ public sealed partial class EditorPlayfieldDrawSystem :
             _analysis = entity.HasComponent<EditorAnalysis>()
                 ? entity.GetComponent<EditorAnalysis>()
                 : default;
-            Color? background = entity.TryGetComponent(out LevelInfo info)
-                ? info.Background
-                : null;
+            Color? background = null;
+            Color? outside = null;
+            Color? frame = null;
+            if (entity.TryGetComponent(out LevelInfo info))
+            {
+                background = info.Background;
+                outside = info.Outside;
+                frame = info.Frame;
+            }
             _path = entity.TryGetComponent(out PlayerPath path) ? path : null;
             _drawnEditor = entity;
             DrawEditor(
@@ -89,7 +95,9 @@ public sealed partial class EditorPlayfieldDrawSystem :
                     entity.HasComponent<EditorGroupState>()
                         ? entity.GetComponent<EditorGroupState>()
                         : EditorGroupState.Closed,
-                    background);
+                    background,
+                    outside,
+                    frame);
         });
     }
 
@@ -103,7 +111,9 @@ public sealed partial class EditorPlayfieldDrawSystem :
         UiMarqueeBox selectionBox,
         LevelGroups groups,
         EditorGroupState groupState,
-        Color? background)
+        Color? background,
+        Color? outside,
+        Color? frame)
     {
         _canvas.DrawRect(
             _editor,
@@ -112,15 +122,21 @@ public sealed partial class EditorPlayfieldDrawSystem :
 
         Rect2 area = EditorViewport.Area(view.ScreenSize);
         Rect2 field = PlayfieldRenderer.FieldRect(view, playfield);
+        if (outside is { } around)
+            _canvas.DrawRect(_editor, area, around);
         bool grid = ViewportGrid.IsVisible(_entities);
         if (grid)
             PlayfieldRenderer.DrawOuterGrid(_canvas, _editor, playfield, field, area);
-        PlayfieldRenderer.DrawField(_canvas, _editor, field, 1, background);
+        PlayfieldRenderer.DrawFieldFrame(_canvas, _editor, field, view.Scale, frame);
+        PlayfieldRenderer.DrawField(_canvas, _editor, field, 1, background, frame);
         if (grid)
             PlayfieldRenderer.DrawGrid(_canvas, _editor, playfield, field, area);
         PlayfieldRenderer.DrawFieldLabels(_canvas, _editor, playfield, field);
-        PlayfieldRenderer.DrawBlocks(_canvas, _editor, _entities, view, selection.Note);
-        PlayfieldRenderer.DrawSpikes(_canvas, _editor, _entities, view, selection.Note);
+        // Every selected block and spike gets the accent edge, not just the primary one.
+        Func<Entity, bool> isSelected = selection.Contains;
+        PlayfieldRenderer.DrawBlocks(_canvas, _editor, _entities, view, isSelected);
+        PlayfieldRenderer.DrawSpikes(_canvas, _editor, _entities, view, isSelected);
+        PlayfieldRenderer.DrawTexts(_canvas, _editor, _entities, view, isSelected);
         if (_path is PlayerPath playerPath && PlayerPathSwitch.IsVisible(_entities))
             DrawPlayerPath(view, playhead, playerPath, playfield.Width);
         PlayfieldRenderer.DrawNotes(
@@ -378,9 +394,7 @@ public sealed partial class EditorPlayfieldDrawSystem :
             return;
         }
 
-        (long windowStart, long windowEnd) = timeline.Scrubbing
-            ? (timeline.ScrubStartMs, timeline.ScrubEndMs)
-            : EditorLayout.TimelineWindow(playhead, timeline.Zoom);
+        (long windowStart, long windowEnd) = EditorLayout.TimelineWindow(playhead, timeline);
 
         DrawAnalysis(playhead, EditorLayout.AnalysisRect(view), windowStart, windowEnd);
         DrawBeatBands(ruler, playhead, windowStart, windowEnd);

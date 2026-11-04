@@ -19,10 +19,18 @@ public interface IChartItems
 
     List<SpikeDocument> Spikes { get; set; }
 
+    List<TextDocument> Texts { get; set; }
+
     List<GroupDocument> Groups { get; set; }
 
     /// <summary>The playfield background as #rrggbb or #rrggbbaa, or "" for the theme default.</summary>
     string BackgroundColor { get; set; }
+
+    /// <summary>The colour around the playfield as #rrggbb or #rrggbbaa, or "" for the theme default.</summary>
+    string OutsideColor { get; set; }
+
+    /// <summary>The playfield's frame and border line as #rrggbb or #rrggbbaa, or "" for the theme default.</summary>
+    string FrameColor { get; set; }
 
     /// <summary>The shader slot, from the owning shader pool, the player is drawn with, or 0.</summary>
     int PlayerShader { get; set; }

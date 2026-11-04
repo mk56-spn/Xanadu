@@ -132,11 +132,11 @@ public static partial class PlayfieldRenderer
         canvas.DrawRect(
             rid,
             trailBox,
-            new Color(0.02f, 0.03f, 0.06f, 0.45f));
+            new Color(0f, 0f, 0f, 0.3f));
         canvas.DrawBorder(
             rid,
             trailBox,
-            new Color(0.35f, 0.45f, 0.58f, 0.8f),
+            new Color(Xanadu.Theme.Palette.Gold, 0.8f),
             1);
 
         // Released trails rise out of their keycaps as time advances.

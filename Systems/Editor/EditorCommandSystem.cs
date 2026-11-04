@@ -241,6 +241,14 @@ public sealed partial class EditorCommandSystem :
                 level.Background = command.ColorValue;
                 break;
 
+            case EditorCommandType.SetOutsideColor:
+                level.Outside = command.ColorValue;
+                break;
+
+            case EditorCommandType.SetFrameColor:
+                level.Frame = command.ColorValue;
+                break;
+
             case EditorCommandType.SetLevelFile:
                 SetLevelFile(editor, command.Text ?? "");
                 // Directly after the query, so the autosave system later in
@@ -368,6 +376,8 @@ public sealed partial class EditorCommandSystem :
         ref TimelineView timeline = ref editor.GetComponent<TimelineView>();
         timeline.Zoom = TimelineZoom.Step(timeline.Zoom, direction);
         timeline.AutoZoomed = true;
+        // The buttons zoom about the playhead, so any pointer pin lets go.
+        timeline.Pinned = false;
     }
 
     private void SetTarget(int value, Entity editor)
@@ -414,6 +424,10 @@ public sealed partial class EditorCommandSystem :
             {
                 _clipboard.Add(new ClipboardItem(0, null, null, null, MaskOf(entity), ItemShader.Of(entity), SelfModulate.Packed(entity), Spike: entity.GetComponent<Spike>()));
             }
+            else if (entity.HasComponent<LevelText>())
+            {
+                _clipboard.Add(new ClipboardItem(0, null, null, null, MaskOf(entity), ItemShader.Of(entity), SelfModulate.Packed(entity), Text: entity.GetComponent<LevelText>()));
+            }
         }
     }
 
@@ -426,7 +440,9 @@ public sealed partial class EditorCommandSystem :
         long anchor = _clipboard.Exists(item => !item.IsGeometry)
             ? _clipboard.Where(item => !item.IsGeometry).Min(item => item.TimeMs)
             : 0;
-        long target = Math.Max(0, playhead.TimeMs);
+        // The paste lands on the snap nearest the playhead, so a copy made on the
+        // beat stays on the beat; the items keep their spacing from each other.
+        long target = EditorTiming.Snap(Math.Max(0, playhead.TimeMs), playhead);
         long maxTime = playhead.DurationMs > 0
             ? playhead.DurationMs
             : long.MaxValue;
@@ -558,9 +574,11 @@ public sealed partial class EditorCommandSystem :
         int Shader = 0,
         uint Modulate = SelfModulate.White,
         Block? Block = null,
-        Spike? Spike = null)
+        Spike? Spike = null,
+        LevelText? Text = null)
     {
-        public bool IsGeometry => Block is not null || Spike is not null;
+        /// <summary>Untimed items: pasted a grid cell along rather than at the playhead.</summary>
+        public bool IsGeometry => Block is not null || Spike is not null || Text is not null;
     }
 
     private static uint MaskOf(Entity entity) =>

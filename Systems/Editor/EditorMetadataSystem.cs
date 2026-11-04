@@ -180,11 +180,34 @@ public sealed class EditorMetadataSystem : QuerySystem<EditorMetadataPanel>
         }
     }
 
-    /// <summary>Mirrors the level's background colour onto the metadata swatch and its hex label.</summary>
+    /// <summary>Mirrors the level's background and outside colours onto their metadata swatches and hex labels.</summary>
     private void UpdateBackgroundColorControl(LevelInfo level)
     {
-        Color color = level.Background ?? LevelBackground.Default;
-        foreach (Entity entity in _entities.Query<EditorBackgroundSwatch, FillColor>().WithDisabled().ToEntityList())
+        ShowColor(
+            level.Background,
+            LevelBackground.Default,
+            _entities.Query<EditorBackgroundSwatch, FillColor>().WithDisabled().ToEntityList(),
+            _entities.Query<EditorBackgroundHex, Text>().WithDisabled().ToEntityList());
+        ShowColor(
+            level.Outside,
+            LevelBackground.OutsideDefault,
+            _entities.Query<EditorOutsideSwatch, FillColor>().WithDisabled().ToEntityList(),
+            _entities.Query<EditorOutsideHex, Text>().WithDisabled().ToEntityList());
+        ShowColor(
+            level.Frame,
+            LevelBackground.FrameDefault,
+            _entities.Query<EditorFrameSwatch, FillColor>().WithDisabled().ToEntityList(),
+            _entities.Query<EditorFrameHex, Text>().WithDisabled().ToEntityList());
+    }
+
+    private void ShowColor(
+        Color? stored,
+        Color fallback,
+        System.Collections.Generic.IEnumerable<Entity> swatches,
+        System.Collections.Generic.IEnumerable<Entity> hexes)
+    {
+        Color color = stored ?? fallback;
+        foreach (Entity entity in swatches)
         {
             ref FillColor fill = ref entity.GetComponent<FillColor>();
             if (fill.Value == color)
@@ -194,10 +217,10 @@ public sealed class EditorMetadataSystem : QuerySystem<EditorMetadataPanel>
             CommandBuffer.AddTag<Dirty>(entity.Id);
         }
 
-        string label = level.Background is { } background
-            ? LevelBackground.Format(background)
+        string label = stored is { } value
+            ? LevelBackground.Format(value)
             : "DEFAULT";
-        foreach (Entity entity in _entities.Query<EditorBackgroundHex, Text>().WithDisabled().ToEntityList())
+        foreach (Entity entity in hexes)
         {
             ref Text text = ref entity.GetComponent<Text>();
             if (text.Value == label)

@@ -1,3 +1,4 @@
+using System;
 using Friflo.Engine.ECS;
 using Godot;
 using Xanadu.Ecs;
@@ -69,16 +70,16 @@ public static partial class PlayfieldRenderer
     }
 
     /// <summary>
-    /// Draws every block as a filled slab inside its outline. The selected one,
-    /// if any, gets an accent edge even with no outline of its own; the editor
-    /// draws its resize handles on top.
+    /// Draws every block as a filled slab inside its outline. Every selected one
+    /// gets an accent edge even with no outline of its own; the editor draws the
+    /// primary one's resize handles on top.
     /// </summary>
     public static void DrawBlocks(
         IRectCanvas canvas,
         Rid rid,
         EntityStore entities,
         PlayfieldView view,
-        Entity selected = default)
+        Func<Entity, bool>? isSelected = null)
     {
         bool playing = false;
         foreach (Entity playfield in entities.Query<PlayfieldMode>().ToEntityList())
@@ -115,7 +116,7 @@ public static partial class PlayfieldRenderer
             DrawBlockBody(canvas, rid, screen, block.OutlineWidth * view.Scale, fill, outline, block.OneWay);
 
             Color edge = outline;
-            if (entity == selected)
+            if (isSelected?.Invoke(entity) == true)
             {
                 edge = BlockSelectedEdge;
                 canvas.DrawBorder(rid, screen, edge, SelectedEdgeThickness);

@@ -66,6 +66,12 @@ public static class EditorGroupTarget
             return true;
         }
 
+        if (entity.HasComponent<LevelText>())
+        {
+            position = entity.GetComponent<LevelText>().Position;
+            return true;
+        }
+
         if (entity.HasComponent<StartPoint>())
         {
             position = entity.GetComponent<StartPoint>().Position;

@@ -33,7 +33,7 @@ public sealed class EditorHudSystem : QuerySystem<EditorHud, LevelInfo, Playhead
                     ? "No song loaded"
                     : Path.GetFileName(level.AudioPath)),
                 buffer);
-            UiText.Set(hud.Status, hud.StatusText, buffer);
+            ShellStatus.Show(hud.Status, hud.StatusText, buffer);
             UiText.Set(hud.Time,
                 $"{TimeFormat.Clock(playhead.TimeMs)} / {TimeFormat.Clock(playhead.DurationMs)}",
                 buffer);

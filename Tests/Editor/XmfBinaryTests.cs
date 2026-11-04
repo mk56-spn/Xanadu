@@ -64,6 +64,8 @@ public sealed class XmfBinaryTests
             PlayfieldWidth = 900,
             PlayfieldHeight = 800,
             BackgroundColor = "#204060",
+            OutsideColor = "#10203080",
+            FrameColor = "#405060",
             PlayerShader = 2,
             FieldShader = 1,
         };
@@ -176,6 +178,8 @@ public sealed class XmfBinaryTests
         Assert.That(map.PlayfieldWidth, Is.EqualTo(900));
         Assert.That(map.PlayfieldHeight, Is.EqualTo(800));
         Assert.That(map.BackgroundColor, Is.EqualTo("#204060"));
+        Assert.That(map.OutsideColor, Is.EqualTo("#10203080"));
+        Assert.That(map.FrameColor, Is.EqualTo("#405060"));
         Assert.That(map.PlayerShader, Is.EqualTo(2));
         Assert.That(map.FieldShader, Is.EqualTo(1));
 
@@ -248,10 +252,47 @@ public sealed class XmfBinaryTests
     [Test]
     public void MapsWrittenBeforeBackgroundsExistedStillLoad()
     {
-        byte[] current = XmfBinary.Write(new LevelDocument { Name = "Old" });
+        // Every trailing colour index cut off, as in a map saved before maps carried a background.
+        LevelDocument map = XmfBinary.Read(WithMetaTrimmed(Coloured(), trailingIndexes: 3));
 
-        // Rebuild the file with the trailing background index cut off the meta
-        // chunk, as it is in a map saved before maps carried a background.
+        Assert.That(map.Name, Is.EqualTo("Old"));
+        Assert.That(map.BackgroundColor, Is.Empty);
+        Assert.That(map.OutsideColor, Is.Empty);
+        Assert.That(map.FrameColor, Is.Empty);
+    }
+
+    [Test]
+    public void MapsWrittenBeforeOutsideColoursExistedKeepTheirBackground()
+    {
+        LevelDocument map = XmfBinary.Read(WithMetaTrimmed(Coloured(), trailingIndexes: 2));
+
+        Assert.That(map.BackgroundColor, Is.EqualTo("#204060"));
+        Assert.That(map.OutsideColor, Is.Empty);
+        Assert.That(map.FrameColor, Is.Empty);
+    }
+
+    [Test]
+    public void MapsWrittenBeforeFrameColoursExistedKeepTheirOtherColours()
+    {
+        LevelDocument map = XmfBinary.Read(WithMetaTrimmed(Coloured(), trailingIndexes: 1));
+
+        Assert.That(map.BackgroundColor, Is.EqualTo("#204060"));
+        Assert.That(map.OutsideColor, Is.EqualTo("#102030"));
+        Assert.That(map.FrameColor, Is.Empty);
+    }
+
+    private static LevelDocument Coloured() => new()
+    {
+        Name = "Old",
+        BackgroundColor = "#204060",
+        OutsideColor = "#102030",
+        FrameColor = "#405060",
+    };
+
+    /// <summary>The map rewritten with its meta chunk's last string indexes cut off, as older versions wrote it.</summary>
+    private static byte[] WithMetaTrimmed(LevelDocument document, int trailingIndexes)
+    {
+        byte[] current = XmfBinary.Write(document);
         ChunkReader reader = ChunkReader.Open(
             current,
             "XMF1"u8.ToArray(),
@@ -268,14 +309,11 @@ public sealed class XmfBinaryTests
 
             byte[] payload = chunk.ToArray();
             if (id == 2)
-                payload = payload[..^sizeof(uint)];
+                payload = payload[..^(sizeof(uint) * trailingIndexes)];
             file.Add(id, payload);
         }
 
-        LevelDocument map = XmfBinary.Read(file.ToArray());
-
-        Assert.That(map.Name, Is.EqualTo("Old"));
-        Assert.That(map.BackgroundColor, Is.Empty);
+        return file.ToArray();
     }
 
     [Test]

@@ -53,6 +53,7 @@ public static class SceneTestCatalog
         new EditorSelfModulateSceneTest(),
         new EditorOneWayBlocksSceneTest(),
         new EditorBlockStylesSceneTest(),
+        new EditorTextSceneTest(),
         new EditorSelectionRotationSceneTest(),
         new EditorFocusSceneTest(),
         new EditorViewSceneTest(),

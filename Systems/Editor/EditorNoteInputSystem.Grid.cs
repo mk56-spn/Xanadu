@@ -25,6 +25,19 @@ public sealed partial class EditorNoteInputSystem
         return result;
     }
 
+    /// <summary>Topmost level text under a playfield point, or null.</summary>
+    private Entity FindTextAt(Vector2 position)
+    {
+        Entity result = default;
+        foreach (Entity entity in _entities.Query<LevelText>().ToEntityList())
+        {
+            if (entity.GetComponent<LevelText>().Bounds.HasPoint(position))
+                result = entity;
+        }
+
+        return result;
+    }
+
     /// <summary>Topmost spike under a playfield point, or null.</summary>
     private Entity FindSpikeAt(Vector2 position)
     {

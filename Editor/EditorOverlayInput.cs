@@ -136,6 +136,7 @@ public partial class EditorOverlay : CanvasLayer, IEditorShortcutTarget
             EditorPlacementMode.WeaponSwitch => "Place weapon switch",
             EditorPlacementMode.Channel => "Place channel start",
             EditorPlacementMode.FormStep => "Place Form step",
+            EditorPlacementMode.Text => "Place text",
             _ => "Placement mode",
         });
     }

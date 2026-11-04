@@ -18,6 +18,7 @@ public static class EditorPlacementKeybinds
     public static readonly Key WeaponSwitch = Key.Key7;
     public static readonly Key Channel = Key.Key8;
     public static readonly Key FormStep = Key.Key9;
+    public static readonly Key Text = Key.Key0;
 
     public static bool TryGet(Key key, out EditorPlacementMode mode)
     {
@@ -75,6 +76,12 @@ public static class EditorPlacementKeybinds
             return true;
         }
 
+        if (key == Text || key == Key.Kp0)
+        {
+            mode = EditorPlacementMode.Text;
+            return true;
+        }
+
         mode = EditorPlacementMode.Notes;
         return false;
     }
@@ -91,6 +98,7 @@ public static class EditorPlacementKeybinds
         EditorPlacementMode.WeaponSwitch => "7",
         EditorPlacementMode.Channel => "8",
         EditorPlacementMode.FormStep => "9",
+        EditorPlacementMode.Text => "0",
         _ => "",
     };
 }

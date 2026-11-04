@@ -42,11 +42,15 @@ public sealed class LevelDocumentMapperTests
         sourceStore.CreateEntity(
             new Spike(new Vector2(400, 800), new Vector2(100, 100)));
         source.GetComponent<LevelInfo>().Background = new Color("#204060");
+        source.GetComponent<LevelInfo>().Outside = new Color("#102030");
+        source.GetComponent<LevelInfo>().Frame = new Color("#405060");
 
         LevelDocument document = LevelDocumentMapper.Capture(sourceStore, source);
 
         Assert.That(document.Name, Is.EqualTo("Mapped"));
         Assert.That(document.BackgroundColor, Is.EqualTo("#204060"));
+        Assert.That(document.OutsideColor, Is.EqualTo("#102030"));
+        Assert.That(document.FrameColor, Is.EqualTo("#405060"));
         Assert.That(document.SnapDivision, Is.EqualTo(16));
         Assert.That(document.Notes, Has.Count.EqualTo(2));
         Assert.That(document.Notes[0].Target, Is.EqualTo(KeybindAction.L1));
@@ -94,6 +98,12 @@ public sealed class LevelDocumentMapperTests
         Assert.That(
             target.GetComponent<LevelInfo>().Background,
             Is.EqualTo(new Color("#204060")));
+        Assert.That(
+            target.GetComponent<LevelInfo>().Outside,
+            Is.EqualTo(new Color("#102030")));
+        Assert.That(
+            target.GetComponent<LevelInfo>().Frame,
+            Is.EqualTo(new Color("#405060")));
         Assert.That(target.GetComponent<Playfield>().Width, Is.EqualTo(1000));
         Assert.That(target.GetComponent<Playhead>().Bpm, Is.EqualTo(120));
         Assert.That(target.GetComponent<Playhead>().SnapDivision, Is.EqualTo(16));
