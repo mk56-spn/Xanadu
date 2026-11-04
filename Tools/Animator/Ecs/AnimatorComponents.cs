@@ -47,6 +47,19 @@ public enum ToolActionKind
     SelectAttachment,
     ToggleMovable,
     LockBend,
+
+    /// <summary>Moves the selected joints away from the viewer, out of the screen's plane.</summary>
+    DepthAway,
+
+    /// <summary>Moves the selected joints toward the viewer.</summary>
+    DepthToward,
+
+    /// <summary>Limits the selected bones' turn from rest, or frees them.</summary>
+    ToggleLimit,
+    LimitMinDown,
+    LimitMinUp,
+    LimitMaxDown,
+    LimitMaxUp,
     AddEvent,
     DeleteEvent,
     AddArt,

@@ -334,5 +334,14 @@ public static class XafAuthoring
             XafChannelProperty.ScaleX, time, transform.Scale.X);
         SetBoneProperty(package, clip, bone.Id,
             XafChannelProperty.ScaleY, time, transform.Scale.Y);
+
+        // Depth only once a joint has some, or the clip already moves it, so
+        // keying a pose does not litter every bone with a flat depth channel.
+        if (transform.Depth != 0f || clip.Channels.Exists(channel =>
+                channel.Target == XafChannelTarget.Bone && channel.TargetId == bone.Id &&
+                channel.Property == XafChannelProperty.Depth))
+        {
+            SetBoneProperty(package, clip, bone.Id, XafChannelProperty.Depth, time, transform.Depth);
+        }
     }
 }

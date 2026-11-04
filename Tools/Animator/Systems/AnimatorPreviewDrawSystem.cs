@@ -38,6 +38,9 @@ public sealed class AnimatorPreviewDrawSystem(
 
     /// <summary>How far, in rig units, a joint has to sit off its rest spot before the ring shows.</summary>
     private const float JointOffsetMinimum = 0.5f;
+    private static readonly Color LimitColor = new(Palette.Warning, 0.8f);
+    private const float LimitRadius = 34f;
+    private const int LimitSegments = 24;
 
     private readonly AnimatorFlowOverlay _flow = new(canvas, target);
     private readonly AnimatorMotionPathOverlay _paths = new(canvas, target);
@@ -122,7 +125,10 @@ public sealed class AnimatorPreviewDrawSystem(
         }
 
         if (modes.Handles && !modes.Rest)
+        {
             DrawJointOffsets(document.Package, pose, world, placement);
+            DrawLimits(document.Package, selection, world, placement);
+        }
 
         AnimatorHover hover = session.GetComponent<AnimatorHover>();
         int reparenting = session.GetComponent<AnimatorBoneMenu>().Reparenting;
@@ -190,6 +196,46 @@ public sealed class AnimatorPreviewDrawSystem(
             Palette.Text,
             14);
         _flow.Draw(session, area);
+    }
+
+    /// <summary>
+    /// A selected bone with an angle limit shows the turn it is allowed: a fan
+    /// round its joint from the low end to the high, set against its parent,
+    /// so it moves with the pose.
+    /// </summary>
+    private void DrawLimits(XafPackage package, AnimatorSelection selection, Transform2D[] world, Transform2D placement)
+    {
+        for (int i = 0; i < world.Length; i++)
+        {
+            XafBone bone = package.Skeleton.Bones[i];
+            if (!bone.Limited || !selection.IsBoneSelected(i))
+                continue;
+
+            Transform2D frame = bone.Parent >= 0 ? world[bone.Parent] : Transform2D.Identity;
+            Vector2 joint = placement * world[i].Origin;
+
+            // The bone points at its first child: up a spine, down a leg. A bone
+            // with no child is drawn down its local Y, as limbs are built.
+            int child = package.Skeleton.Bones.FindIndex(candidate => candidate.Parent == i);
+            Vector2 pointing = child >= 0 && package.Skeleton.Bones[child].Rest.Origin.LengthSquared() > 1e-4f
+                ? package.Skeleton.Bones[child].Rest.Origin.Normalized()
+                : Vector2.Down;
+            Vector2 Edge(float turn)
+            {
+                Vector2 along = frame.BasisXform(pointing.Rotated(bone.Rest.Rotation + turn));
+                return joint + placement.BasisXform(along).Normalized() * LimitRadius;
+            }
+
+            Vector2 previous = Edge(bone.LimitMin);
+            canvas.DrawLine(target, joint, previous, LimitColor, 2f);
+            for (int s = 1; s <= LimitSegments; s++)
+            {
+                Vector2 next = Edge(Mathf.Lerp(bone.LimitMin, bone.LimitMax, s / (float)LimitSegments));
+                canvas.DrawLine(target, previous, next, LimitColor, 2f);
+                previous = next;
+            }
+            canvas.DrawLine(target, joint, previous, LimitColor, 2f);
+        }
     }
 
     /// <summary>

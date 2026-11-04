@@ -58,6 +58,16 @@ public static class AnimatorTooltips
         ToolActionKind.DeleteEvent => "Delete the selected event (Ctrl+Shift+E)",
         ToolActionKind.LockBend =>
             "Lock the selected knee or elbow to bend only the way it bends now, or free it again (Shift+J)",
+        ToolActionKind.DepthAway =>
+            "Move the selected joints away from you, out of the screen's plane: the bones either side of each foreshorten (Ctrl+Shift+,)",
+        ToolActionKind.DepthToward =>
+            "Bring the selected joints toward you, out of the screen's plane: the bones either side of each foreshorten (Ctrl+Shift+.)",
+        ToolActionKind.ToggleLimit =>
+            "Keep the selected bones from turning more than 45 degrees either way from rest while you pose, or free them (Shift+L). Clips still play as keyed",
+        ToolActionKind.LimitMinDown => "Let the selected bones turn further the negative way (Ctrl+;)",
+        ToolActionKind.LimitMinUp => "Let the selected bones turn less far the negative way (Ctrl+')",
+        ToolActionKind.LimitMaxDown => "Let the selected bones turn less far the positive way (Ctrl+Shift+;)",
+        ToolActionKind.LimitMaxUp => "Let the selected bones turn further the positive way (Ctrl+Shift+')",
         ToolActionKind.ToggleMovable => "Let the bone translate or lock its length (T). Ctrl+drag any joint to offset it off its rest spot, which turns this on for you",
         ToolActionKind.AddBone => "Add a child bone to the selected bone (B)",
         ToolActionKind.DeleteBone => "Delete the selected bone and its keys (Shift+Delete)",

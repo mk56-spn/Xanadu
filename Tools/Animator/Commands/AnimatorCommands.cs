@@ -252,6 +252,27 @@ public static class AnimatorCommands
             case ToolActionKind.LockBend:
                 AnimatorEditing.LockBend(session);
                 break;
+            case ToolActionKind.DepthAway:
+                AnimatorEditing.NudgeDepth(session, -AnimatorEditing.DepthStep);
+                break;
+            case ToolActionKind.DepthToward:
+                AnimatorEditing.NudgeDepth(session, AnimatorEditing.DepthStep);
+                break;
+            case ToolActionKind.ToggleLimit:
+                AnimatorEditing.ToggleLimit(session);
+                break;
+            case ToolActionKind.LimitMinDown:
+                AnimatorEditing.StepLimit(session, max: false, -1);
+                break;
+            case ToolActionKind.LimitMinUp:
+                AnimatorEditing.StepLimit(session, max: false, 1);
+                break;
+            case ToolActionKind.LimitMaxDown:
+                AnimatorEditing.StepLimit(session, max: true, -1);
+                break;
+            case ToolActionKind.LimitMaxUp:
+                AnimatorEditing.StepLimit(session, max: true, 1);
+                break;
             case ToolActionKind.ToggleMovable:
                 AnimatorEditing.ToggleMovable(session);
                 break;

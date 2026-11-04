@@ -1,3 +1,4 @@
+using System;
 using Godot;
 
 namespace Xanadu.Animation;
@@ -12,6 +13,12 @@ public static class XafRig
         {
             XafBone bone = package.Skeleton.Bones[i];
             Transform2D local = pose.Bones[i].ToTransform();
+            if (bone.Parent >= 0)
+            {
+                // The segment from the parent's joint to this one, seen from the
+                // front: shorter the further apart the two joints are in depth.
+                local.Origin *= Projection(local.Origin.Length(), pose.Bones[bone.Parent].Depth, pose.Bones[i].Depth);
+            }
             world[i] = bone.Parent < 0
                 ? local
                 : world[bone.Parent] * local;
@@ -32,7 +39,7 @@ public static class XafRig
             Transform2D local = pose.Attachments[i].ToTransform();
             world[i] = bone < 0
                 ? local
-                : worldBones[bone] * local;
+                : worldBones[bone] * Foreshorten(package, pose, bone) * local;
         }
         return world;
     }
@@ -51,9 +58,52 @@ public static class XafRig
             Transform2D local = i < pose.Effects.Length
                 ? pose.Effects[i].Transform.ToTransform()
                 : effect.Transform;
-            world[i] = bone < 0 ? local : worldBones[bone] * local;
+            world[i] = bone < 0 ? local : worldBones[bone] * Foreshorten(package, pose, bone) * local;
         }
         return world;
+    }
+
+    /// <summary>The least share of its length a segment keeps, however steeply it points into the screen.</summary>
+    public const float MinProjection = 0.05f;
+
+    /// <summary>
+    /// How much of a segment <paramref name="length"/> long shows on screen
+    /// when its ends sit at depths <paramref name="from"/> and <paramref name="to"/>:
+    /// the third side of the right triangle its length and their depth gap make.
+    /// </summary>
+    public static float Projection(float length, float from, float to)
+    {
+        float gap = to - from;
+        if (gap == 0f || length < 1e-4f)
+            return 1f;
+        float shown = MathF.Sqrt(MathF.Max(length * length - gap * gap, 0f)) / length;
+        return MathF.Max(shown, MinProjection);
+    }
+
+    /// <summary>
+    /// The squash a bone's own art gets from depth: along its segment to its
+    /// first child, by as much as that segment is foreshortened, and not across
+    /// it, since a limb's width does not change as it turns into the screen.
+    /// A bone with no child has no segment and keeps its shape.
+    /// </summary>
+    public static Transform2D Foreshorten(XafPackage package, XafPose pose, int bone)
+    {
+        int child = package.Skeleton.Bones.FindIndex(candidate => candidate.Parent == bone);
+        if (child < 0 || bone >= pose.Bones.Length || child >= pose.Bones.Length)
+            return Transform2D.Identity;
+
+        Vector2 along = pose.Bones[child].Translation;
+        float share = Projection(along.Length(), pose.Bones[bone].Depth, pose.Bones[child].Depth);
+        if (share >= 1f)
+            return Transform2D.Identity;
+
+        // A scale by the share along the segment's direction, and none across it.
+        Vector2 axis = along.Normalized();
+        float squash = share - 1f;
+        return new Transform2D(
+            new Vector2(1f + squash * axis.X * axis.X, squash * axis.X * axis.Y),
+            new Vector2(squash * axis.X * axis.Y, 1f + squash * axis.Y * axis.Y),
+            Vector2.Zero);
     }
 
     /// <summary>World transforms of every bone in the rest pose.</summary>

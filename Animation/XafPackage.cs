@@ -9,7 +9,7 @@ namespace Xanadu.Animation;
 public sealed class XafPackage
 {
     public const ushort MajorVersion = 1;
-    public const ushort MinorVersion = 12;
+    public const ushort MinorVersion = 13;
 
     public ushort Major = MajorVersion;
     public ushort Minor = MinorVersion;
@@ -69,6 +69,19 @@ public sealed class XafBone
     /// elbow: 0 bends freely, 1 or -1 only that way (see <see cref="XafJointLocks"/>).
     /// </summary>
     public int Bend;
+
+    /// <summary>
+    /// Whether posing keeps this bone's turn inside <see cref="LimitMin"/> to
+    /// <see cref="LimitMax"/> (see <see cref="XafJointLocks"/>), so a long
+    /// chain such as the spine cannot be bent into a shape a body can't make.
+    /// </summary>
+    public bool Limited;
+
+    /// <summary>The least the bone may turn from its rest angle, in radians, while <see cref="Limited"/>.</summary>
+    public float LimitMin = -XafJointLocks.DefaultLimit;
+
+    /// <summary>The most the bone may turn from its rest angle, in radians, while <see cref="Limited"/>.</summary>
+    public float LimitMax = XafJointLocks.DefaultLimit;
 
     public bool CanTranslate => Parent < 0 || AllowTranslation;
 }
@@ -224,6 +237,13 @@ public enum XafChannelProperty
 
     /// <summary>An attachment's draw layer from the key on, in place of its own; held.</summary>
     Layer,
+
+    /// <summary>
+    /// How far a bone's joint sits out of the screen's plane, in rig units;
+    /// the segments either side of it foreshorten to match. Only bones have
+    /// it (see <see cref="XafTransform.Depth"/>).
+    /// </summary>
+    Depth,
 }
 
 /// <summary>

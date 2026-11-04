@@ -31,6 +31,12 @@ public static class XafValidation
                 rootCount++;
             if (bone.Bend is < -1 or > 1)
                 issues.Add($"Bone '{bone.Id}' has an invalid bend lock.");
+            if (!float.IsFinite(bone.LimitMin) || !float.IsFinite(bone.LimitMax) ||
+                bone.LimitMin > bone.LimitMax ||
+                bone.LimitMin < -MathF.PI || bone.LimitMax > MathF.PI)
+            {
+                issues.Add($"Bone '{bone.Id}' has an invalid angle limit.");
+            }
         }
 
         if (rootCount != 1)
@@ -151,6 +157,7 @@ public static class XafValidation
                 }
                 if ((channel.Target == XafChannelTarget.Bone &&
                      channel.Property is XafChannelProperty.Opacity or XafChannelProperty.Visible) ||
+                    (channel.Target != XafChannelTarget.Bone && channel.Property == XafChannelProperty.Depth) ||
                     (channel.Target == XafChannelTarget.Attachment && channel.Property == XafChannelProperty.Opacity))
                 {
                     issues.Add($"Clip '{clip.Id}' keys {channel.Property} on '{channel.TargetId}', which it does not have.");
