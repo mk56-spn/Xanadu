@@ -44,9 +44,15 @@ public sealed class PlayfieldDrawSystem :
                 _shaderItems.MaterialOf = slot => LevelShaderMaterials.MaterialOf(shaders, slot);
                 _shaderItems.CommonMaterialOf = CommonShaderMaterials.MaterialOf;
 
-                Color? background = entity.TryGetComponent(out LevelInfo info)
-                    ? info.Background
-                    : null;
+                Color? background = null;
+                Color? outside = null;
+                Color? frameColor = null;
+                if (entity.TryGetComponent(out LevelInfo info))
+                {
+                    background = info.Background;
+                    outside = info.Outside;
+                    frameColor = info.Frame;
+                }
 
                 // The camera scrolls the whole layer, characters and particles
                 // included; what stays put on screen is drawn inside what it shows.
@@ -68,7 +74,9 @@ public sealed class PlayfieldDrawSystem :
                     shaders.PlayerSlot,
                     background,
                     shift,
-                    frame);
+                    frame,
+                    outside,
+                    frameColor);
             }
         });
 

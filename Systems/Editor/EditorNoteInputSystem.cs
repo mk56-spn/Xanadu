@@ -328,6 +328,9 @@ public sealed partial class EditorNoteInputSystem : QuerySystem<Note>
             Vector2 target = new(
                 Math.Clamp(start.X + delta.X, 0, playfield.Width),
                 Math.Clamp(start.Y + delta.Y, 0, playfield.Height));
+            // Notes follow the snap button like blocks do, landing on grid crossings.
+            if (entity.HasComponent<Note>() && ViewportSnap.IsOn(_entities))
+                target = PlayfieldGrid.NearestCrossing(target, playfield);
             EditorItemPosition.Set(entity, target);
         }
     }
@@ -445,6 +448,22 @@ public sealed partial class EditorNoteInputSystem : QuerySystem<Note>
 
         if (editor.HasComponent<EditorPlacementModeState>() &&
             editor.GetComponent<EditorPlacementModeState>().Mode ==
+            EditorPlacementMode.Text)
+        {
+            PlayfieldView textView = editor.GetComponent<PlayfieldView>();
+            Vector2 textPosition = textView.ScreenToPlayfield(screenPosition);
+            if (!IsInside(textPosition, editor.GetComponent<Playfield>()))
+                return;
+
+            EditorSnapshot textBefore = _history.Capture();
+            Entity text = EditorItems.Create(_entities, new LevelText(textPosition, LevelText.Placeholder));
+            _history.Record(textBefore, _history.Capture());
+            editor.GetComponent<NoteSelection>().Note = text;
+            return;
+        }
+
+        if (editor.HasComponent<EditorPlacementModeState>() &&
+            editor.GetComponent<EditorPlacementModeState>().Mode ==
             EditorPlacementMode.Mines)
         {
             PlayfieldView view = editor.GetComponent<PlayfieldView>();
@@ -485,6 +504,8 @@ public sealed partial class EditorNoteInputSystem : QuerySystem<Note>
         if (EditorPlacementNote.NeedsShape(editor))
             return;
 
+        if (ViewportSnap.IsOn(_entities))
+            playfieldPosition = PlayfieldGrid.NearestCrossing(playfieldPosition, playfield);
         Note note = EditorPlacementNote.Build(editor, time, playfieldPosition);
         bool isFormStep = note.Kind == NoteKind.ConstructionStep;
         if (isFormStep)
@@ -495,6 +516,7 @@ public sealed partial class EditorNoteInputSystem : QuerySystem<Note>
             ReindexConstructionSteps(note.ShapeId);
         _history.Record(before, _history.Capture());
         editor.GetComponent<NoteSelection>().Note = created;
+        EditorAutoAdvance.AfterPlacing(_entities, editor, time);
     }
 
     private int NextShapePiece(int shapeId)
@@ -592,6 +614,12 @@ public sealed partial class EditorNoteInputSystem : QuerySystem<Note>
                 selected.Add(entity);
         }
 
+        foreach (Entity entity in _entities.Query<LevelText>().ToEntityList())
+        {
+            if (screenBounds.Intersects(PlayfieldRenderer.TextScreenBounds(entity.GetComponent<LevelText>(), view)))
+                selected.Add(entity);
+        }
+
         foreach (Entity entity in _entities.Query<Spike>().ToEntityList())
         {
             Spike spike = entity.GetComponent<Spike>();
@@ -625,11 +653,8 @@ public sealed partial class EditorNoteInputSystem : QuerySystem<Note>
         Entity editor,
         Entity primary)
     {
-        float zoom = editor.HasComponent<TimelineView>()
-            ? editor.GetComponent<TimelineView>().Zoom
-            : 1f;
         (_scrubWindowStart, _scrubWindowEnd) =
-            EditorLayout.TimelineWindow(playhead, zoom);
+            EditorLayout.TimelineWindow(playhead, TimelineOf(editor));
         _timelineDragging = true;
         _timelineDragMoved = false;
         _timelineDrag.Begin(primary, screenPosition);
@@ -705,11 +730,8 @@ public sealed partial class EditorNoteInputSystem : QuerySystem<Note>
         if (playhead.DurationMs <= 0)
             return;
 
-        float zoom = editor.HasComponent<TimelineView>()
-            ? editor.GetComponent<TimelineView>().Zoom
-            : 1f;
         (_scrubWindowStart, _scrubWindowEnd) =
-            EditorLayout.TimelineWindow(playhead, zoom);
+            EditorLayout.TimelineWindow(playhead, TimelineOf(editor));
         _scrubbing = true;
         SetScrubWindow(editor, true);
         Scrub(screenPosition, bar, ref playhead, editor);
@@ -789,12 +811,14 @@ public sealed partial class EditorNoteInputSystem : QuerySystem<Note>
         Rect2 ruler,
         Playhead playhead)
     {
-        float zoom = editor.HasComponent<TimelineView>()
-            ? editor.GetComponent<TimelineView>().Zoom
-            : 1f;
-        (long start, long end) = EditorLayout.TimelineWindow(playhead, zoom);
-        return EditorTimelineNotes.Slots(_entities, ruler, start, end, zoom);
+        TimelineView view = TimelineOf(editor);
+        (long start, long end) = EditorLayout.TimelineWindow(playhead, view);
+        return EditorTimelineNotes.Slots(_entities, ruler, start, end, view.Zoom);
     }
+
+    /// <summary>The editor's timeline view, or a whole-song one when it has none.</summary>
+    private static TimelineView TimelineOf(Entity editor) =>
+        editor.HasComponent<TimelineView>() ? editor.GetComponent<TimelineView>() : new TimelineView(1f);
 
     /// <summary>Drag-to-select for the playfield and for the timeline strip; they differ only in what a box covers.</summary>
     private sealed class NoteBox(EditorNoteInputSystem system) : UiBoxSelector<Entity>

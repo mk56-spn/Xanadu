@@ -15,6 +15,10 @@ namespace Xanadu.Tests.VisualTests;
 
 public sealed class EditorMetadataSceneTest : SceneTest
 {
+    // The real editor runs with its overlay, which also reads UI requests; without
+    // it here, the overlay swallowing LEVEL INFO's toggle went unnoticed.
+    private EditorOverlay? _overlay;
+
     public override string Name => "Editor metadata";
     public override string Slug => "editor-metadata";
 
@@ -25,6 +29,18 @@ public sealed class EditorMetadataSceneTest : SceneTest
             "wait for editor",
             () => Context.Scenes.Current == SceneKind.Editor &&
                   VisualAssert.HasText(Context.Entities, "SNAP"));
+        AddStep("create editor overlay", () =>
+        {
+            _overlay = new EditorOverlay(
+                Context.Entities,
+                Context.Systems.Commands,
+                Context.Pointer,
+                () => Context.Scenes.TryBack(),
+                () => Context.Scenes.TryForward(),
+                openSongDialog: false);
+            Context.Host.AddChild(_overlay);
+        });
+        AddWaitStep("overlay settles", 2);
 
         AddStep("open song menu", () =>
             Context.Pointer.Click(Center(ByText("SONG ▾"))));
@@ -70,6 +86,38 @@ public sealed class EditorMetadataSceneTest : SceneTest
             () => Context.Entities.Query<EditorBackgroundHex, Text>()
                 .ToEntityList()
                 .Any(hex => hex.GetComponent<Text>().Value == "#204060"));
+
+        AddStep("set the colour outside the playfield", () =>
+            Context.Systems.Commands.Enqueue(
+                Xanadu.Editor.Commands.EditorCommand.SetOutsideColor(
+                    new Color("#3a1030"))));
+        AddUntilStep(
+            "outside colour reaches the level",
+            () => Context.Entities.Query<LevelInfo>().ToEntityList()
+                .Any(level => level.GetComponent<LevelInfo>().Outside ==
+                    new Color("#3a1030")));
+        AddAssert(
+            "outside swatch and hex match",
+            () => Context.Entities.Query<EditorOutsideSwatch, FillColor>().ToEntityList()
+                      .Any(swatch => swatch.GetComponent<FillColor>().Value == new Color("#3a1030")) &&
+                  Context.Entities.Query<EditorOutsideHex, Text>().ToEntityList()
+                      .Any(hex => hex.GetComponent<Text>().Value == "#3a1030"));
+
+        AddStep("set the playfield's frame colour", () =>
+            Context.Systems.Commands.Enqueue(
+                Xanadu.Editor.Commands.EditorCommand.SetFrameColor(
+                    new Color("#e0a020"))));
+        AddUntilStep(
+            "frame colour reaches the level",
+            () => Context.Entities.Query<LevelInfo>().ToEntityList()
+                .Any(level => level.GetComponent<LevelInfo>().Frame ==
+                    new Color("#e0a020")));
+        AddAssert(
+            "frame swatch and hex match",
+            () => Context.Entities.Query<EditorFrameSwatch, FillColor>().ToEntityList()
+                      .Any(swatch => swatch.GetComponent<FillColor>().Value == new Color("#e0a020")) &&
+                  Context.Entities.Query<EditorFrameHex, Text>().ToEntityList()
+                      .Any(hex => hex.GetComponent<Text>().Value == "#e0a020"));
 
         AddStep("click level name field", () =>
         {
@@ -168,6 +216,11 @@ public sealed class EditorMetadataSceneTest : SceneTest
             () => Context.Entities.Query<TextField>()
                 .AllTags(Tags.Get<TextFieldFocused>())
                 .Count == 1);
+        AddStep("close editor overlay", () =>
+        {
+            _overlay?.Close();
+            _overlay = null;
+        });
     }
 
     private Entity ByText(string value) =>

@@ -97,6 +97,8 @@ public static class LevelSerializer
         chart.Blocks.RemoveAll(block => block is null);
         chart.Spikes ??= new();
         chart.Spikes.RemoveAll(spike => spike is null);
+        chart.Texts ??= new();
+        chart.Texts.RemoveAll(text => text is null);
         chart.Groups ??= new();
         chart.Groups.RemoveAll(group => group is null || group.Id is < 0 or >= GroupLimits.Count);
 
@@ -140,7 +142,17 @@ public static class LevelSerializer
             spike.Shader = validShader(spike.Shader);
         }
 
+        foreach (TextDocument text in chart.Texts)
+        {
+            text.Groups ??= new();
+            text.Text ??= "";
+            text.Size = Math.Clamp(text.Size, Xanadu.Ecs.LevelText.MinSize, Xanadu.Ecs.LevelText.MaxSize);
+            text.Shader = validShader(text.Shader);
+        }
+
         chart.BackgroundColor = LevelBackground.Normalize(chart.BackgroundColor);
+        chart.OutsideColor = LevelBackground.Normalize(chart.OutsideColor);
+        chart.FrameColor = LevelBackground.Normalize(chart.FrameColor);
         chart.PlayerShader = validShader(chart.PlayerShader);
         chart.FieldShader = validShader(chart.FieldShader);
     }

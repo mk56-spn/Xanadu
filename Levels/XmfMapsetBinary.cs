@@ -37,6 +37,9 @@ public static partial class XmfBinary
 
         /// <summary>Each variant's spike outlines, absent in mapsets from before spikes had them.</summary>
         SpikeOutlines = 8,
+
+        /// <summary>Each variant's text, absent when no variant has any.</summary>
+        Texts = 9,
     }
 
     public static void SaveMapset(string path, XmfMapset mapset)
@@ -66,6 +69,8 @@ public static partial class XmfBinary
         if (mapset.Variants.Exists(HasSelfModulates))
             file.Add((uint)MapsetChunkId.SelfModulates, WriteVariantSelfModulates(mapset.Variants));
         file.Add((uint)MapsetChunkId.SpikeOutlines, WriteVariantSpikeOutlines(mapset.Variants));
+        if (mapset.Variants.Exists(HasTexts))
+            file.Add((uint)MapsetChunkId.Texts, WriteVariantTexts(mapset.Variants));
         return file.ToArray();
     }
 
@@ -97,7 +102,30 @@ public static partial class XmfBinary
             ReadVariantSelfModulates(selfModulates, mapset.Variants);
         if (file.TryGet((uint)MapsetChunkId.SpikeOutlines, out Chunk spikeOutlines))
             ReadVariantSpikeOutlines(spikeOutlines, mapset.Variants);
+        if (file.TryGet((uint)MapsetChunkId.Texts, out Chunk texts))
+            ReadVariantTexts(texts, mapset.Variants);
         return mapset;
+    }
+
+    private static byte[] WriteVariantTexts(List<XmfVariant> variants)
+    {
+        using var stream = new MemoryStream();
+        using var writer = new BinaryWriter(stream, Encoding.UTF8, leaveOpen: true);
+        writer.Write((uint)variants.Count);
+        foreach (XmfVariant variant in variants)
+            WriteTexts(writer, variant.Texts);
+        writer.Flush();
+        return stream.ToArray();
+    }
+
+    private static void ReadVariantTexts(Chunk chunk, List<XmfVariant> variants)
+    {
+        using BinaryReader reader = chunk.OpenReader();
+        uint count = ReadCount(reader, MaxItems, "variant text");
+        if (count != variants.Count)
+            throw new FormatException("XMF variant texts do not match the variant count.");
+        foreach (XmfVariant variant in variants)
+            variant.Texts = ReadTexts(reader);
     }
 
     private static byte[] WriteVariantSpikeOutlines(List<XmfVariant> variants)
@@ -143,6 +171,8 @@ public static partial class XmfBinary
         strings.Add(variant.Slug);
         strings.Add(variant.Name);
         strings.Add(variant.BackgroundColor);
+        strings.Add(variant.OutsideColor);
+        strings.Add(variant.FrameColor);
         foreach (NoteDocument note in variant.Notes)
             IndexItemStrings(note.Item, strings);
         foreach (StartPointDocument start in variant.StartPoints)
@@ -221,6 +251,9 @@ public static partial class XmfBinary
         // The background comes last so a variant written before backgrounds
         // existed still reads; older readers ignore the trailing index.
         strings.WriteIndex(writer, variant.BackgroundColor);
+        // The outside and frame colours came later still, and trail the same way.
+        strings.WriteIndex(writer, variant.OutsideColor);
+        strings.WriteIndex(writer, variant.FrameColor);
         writer.Flush();
         return stream.ToArray();
     }
@@ -249,6 +282,10 @@ public static partial class XmfBinary
         variant.Spikes = ReadSpikes(ReadBlobChunk(reader));
         if (stream.Length - stream.Position >= sizeof(uint))
             variant.BackgroundColor = strings.ReadIndex(reader);
+        if (stream.Length - stream.Position >= sizeof(uint))
+            variant.OutsideColor = strings.ReadIndex(reader);
+        if (stream.Length - stream.Position >= sizeof(uint))
+            variant.FrameColor = strings.ReadIndex(reader);
 
         return variant;
     }

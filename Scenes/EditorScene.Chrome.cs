@@ -44,7 +44,7 @@ public static partial class EditorScene
             .Size(screen.X, shell.ToolStrip.Size.Y)
             .Main(StackMainAlignment.Start);
         BuildToolStrip(middle, shell);
-        Entity status = BuildViewportColumn(middle, editor, shell);
+        BuildViewportColumn(middle, editor, shell);
         BuildSidebar(middle, editor, shell);
         BuildRailLayer(entities, root, editor, shell);
 
@@ -53,7 +53,7 @@ public static partial class EditorScene
         editor.AddComponent(new EditorHud(
             header.Level,
             header.Song,
-            status,
+            header.Status,
             footer.Time,
             footer.Notes));
 
@@ -75,6 +75,7 @@ public static partial class EditorScene
     private readonly record struct Header(
         Entity Level,
         Entity Song,
+        ShellStatusLabels Status,
         Entity File,
         Entity SongMenu,
         Entity Menu);
@@ -129,6 +130,9 @@ public static partial class EditorScene
             UiType.Small,
             Palette.TextMuted);
 
+        // The last action's message and the unsaved flag, shared with the animator's header.
+        ShellStatusLabels status = ShellStatus.Add(left, HeaderControl, StatusMessageWidth);
+
         UiNode right = EdgeGroup(header, new Vector2(1, 0.5f));
         ViewportGrid.Attach(right.Button(
                 ViewportGrid.Label,
@@ -142,13 +146,19 @@ public static partial class EditorScene
                 SceneUi.MutedButtonColor)
             .Size(PlayerPathSwitch.ToggleWidth, HeaderControl)
             .Entity);
+        EditorAutoAdvance.Attach(right.Button(
+                EditorAutoAdvance.Label,
+                UiTheme.FontSize,
+                SceneUi.MutedButtonColor)
+            .Size(EditorAutoAdvance.ToggleWidth, HeaderControl)
+            .Entity);
         ViewportSnap.Attach(right.Button(
                 ViewportSnap.Label,
                 UiTheme.FontSize,
                 SceneUi.MutedButtonColor)
             .Size(ViewportSnap.ToggleWidth, HeaderControl)
             .Entity,
-            "Snap blocks to the grid");
+            "Snap blocks, spikes and notes to the grid");
         Entity file = right.Button(
                 "FILE ▾",
                 UiTheme.FontSize,
@@ -168,10 +178,13 @@ public static partial class EditorScene
             .Size(EditorShellMetrics.SettingsWidth, HeaderControl)
             .Entity;
 
-        return new Header(level, song, file, songMenu, menu);
+        return new Header(level, song, status, file, songMenu, menu);
     }
 
     private const float HeaderInfoWidth = 420;
+
+    /// <summary>What the header can spare for the status message between its two halves.</summary>
+    private const float StatusMessageWidth = 200;
     private const float HeaderLevelWidth = 160;
 
     /// <summary>
@@ -209,7 +222,7 @@ public static partial class EditorScene
     /// The space between the strip and the sidebar. The playfield is drawn
     /// here by systems; this column holds the panels docked to its corners.
     /// </summary>
-    private static Entity BuildViewportColumn(
+    private static void BuildViewportColumn(
         UiNode ui,
         Entity editor,
         EditorShellRects shell)
@@ -220,20 +233,15 @@ public static partial class EditorScene
         BuildLeftPanel(column, editor);
         BuildNoteElements(column, editor);
 
-        UiNode line = column.Row()
+        column.Row()
             .Size(shell.StatusLine.Size)
             .Fill(SceneUi.PanelColor)
             .Pad(4)
             .Main(StackMainAlignment.Start)
             .Anchor(new Vector2(0, 1));
 
-        return HudText(
-            line,
-            Vector2.Zero,
-            new Vector2(shell.StatusLine.Size.X - 8, shell.StatusLine.Size.Y - 8),
-            "Space play   Home/End jump   Delete note   ←/→ nudge   Ctrl+Z/Y undo   T tap tempo   Target: select a note",
-            12,
-            SceneUi.DimTextColor);
+        // The status message lives in the header, as in the animator; this line
+        // keeps the shell's layout and sits under the field's mask.
     }
 
     /// <summary>

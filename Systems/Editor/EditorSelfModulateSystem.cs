@@ -77,5 +77,6 @@ public sealed class EditorSelfModulateSystem(EditorHistory history) : QuerySyste
     private static bool Tintable(Entity item) =>
         !item.IsNull &&
         (item.HasComponent<Note>() || item.HasComponent<Mine>() ||
-         item.HasComponent<Block>() || item.HasComponent<Spike>());
+         item.HasComponent<Block>() || item.HasComponent<Spike>() ||
+         item.HasComponent<LevelText>());
 }

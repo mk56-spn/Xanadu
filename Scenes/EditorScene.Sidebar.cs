@@ -88,6 +88,7 @@ public static partial class EditorScene
             "Self modulate of the selection: its colour is multiplied by this, and on a block this is the interior. Type #rrggbb or #rrggbbaa; leave blank for white. A group's colour fade overrides it.");
         editor.AddComponent(new EditorSelfModulateField(modulate.Entity));
         BuildBlockOutline(panel, editor, inner);
+        BuildTextPanel(panel, editor, inner);
         BuildGroupGrid(panel, editor, inner);
 
         editor.AddComponent(new EditorSidebar(shell.RightPanel));
@@ -125,6 +126,42 @@ public static partial class EditorScene
             inner,
             "The colour of the selected blocks' and spikes' outline. A group's colour fade overrides it.");
         editor.AddComponent(new EditorBlockOutlinePanel(section.Entity, width, color.Entity));
+    }
+
+    /// <summary>The selected texts' words and size; hidden until a text is selected.</summary>
+    private static void BuildTextPanel(UiNode panel, Entity editor, float inner)
+    {
+        const float height = 28;
+        UiNode section = panel.Column()
+            .Width(inner)
+            .AutoHeight()
+            .Gap(UiTheme.ContainerSpacing)
+            .Main(StackMainAlignment.Start)
+            .Hidden();
+
+        section.Text("TEXT", UiTheme.SmallFontSize, SceneUi.DimTextColor, TextAlign.Left)
+            .Size(inner, 18);
+        Entity field = section.Rect(Palette.SurfaceInset, LevelText.Placeholder, new Vector2(inner, height))
+            .Input()
+            .With(new TextStyle(13, UiTheme.Text))
+            .Align(TextAlign.Left)
+            .With(new TextField(LevelText.Placeholder))
+            .Tooltip("The selected text's words; click anywhere else to finish")
+            .Entity;
+
+        UiNode row = section.Row().Size(inner, height).Gap(UiTheme.ContainerSpacing).Main(StackMainAlignment.Start);
+        Entity size = row.Text("SIZE", UiTheme.SmallFontSize, SceneUi.DimTextColor, TextAlign.Left)
+            .Size(inner - (height + UiTheme.ContainerSpacing) * 2, height);
+        row.Button("-", 13, SceneUi.MutedButtonColor)
+            .Size(height, height)
+            .With(new EditorTextSizeButton(-1))
+            .Tooltip("Smaller text");
+        row.Button("+", 13, SceneUi.MutedButtonColor)
+            .Size(height, height)
+            .With(new EditorTextSizeButton(1))
+            .Tooltip("Bigger text");
+
+        editor.AddComponent(new EditorTextPanel(section.Entity, field, size));
     }
 
     /// <summary>The current tool's settings, docked to the viewport's top-left corner.</summary>
@@ -262,6 +299,7 @@ public static partial class EditorScene
         (EditorPlacementMode.FormStep, "F", "Form steps"),
         (EditorPlacementMode.Blocks, "■", "Blocks"),
         (EditorPlacementMode.Spikes, "▲", "Spikes"),
+        (EditorPlacementMode.Text, "T", "Text"),
     };
 
     /// <summary>

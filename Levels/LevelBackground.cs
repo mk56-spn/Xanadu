@@ -14,6 +14,12 @@ public static class LevelBackground
     /// <summary>The colour a playfield uses when its map does not set one.</summary>
     public static Color Default => Palette.Stage;
 
+    /// <summary>The colour around a playfield when its map does not set one.</summary>
+    public static Color OutsideDefault => Palette.Stage;
+
+    /// <summary>The playfield frame's colour when its map does not set one.</summary>
+    public static Color FrameDefault => Palette.SurfaceAlt;
+
     /// <summary>Reads a stored colour, rejecting anything that is not a hex colour.</summary>
     public static bool TryParse(string? value, out Color color)
     {

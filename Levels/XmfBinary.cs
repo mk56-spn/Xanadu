@@ -48,6 +48,9 @@ public static partial class XmfBinary
 
         /// <summary>Spike outlines, absent in maps from before spikes had them.</summary>
         SpikeOutlines = 13,
+
+        /// <summary>Text written into the level, absent when it has none.</summary>
+        Texts = 14,
     }
 
     public static byte[] Write(LevelDocument document)
@@ -70,6 +73,8 @@ public static partial class XmfBinary
         if (HasSelfModulates(document))
             file.Add((uint)ChunkId.SelfModulates, WriteSelfModulates(document));
         file.Add((uint)ChunkId.SpikeOutlines, WriteSpikeOutlines(document.Spikes));
+        if (HasTexts(document))
+            file.Add((uint)ChunkId.Texts, WriteTexts(document.Texts));
         return file.ToArray();
     }
 
@@ -114,6 +119,8 @@ public static partial class XmfBinary
             using BinaryReader reader = spikeOutlines.OpenReader();
             ReadSpikeOutlines(reader, document.Spikes);
         }
+        if (file.TryGet((uint)ChunkId.Texts, out Chunk texts))
+            document.Texts = ReadTexts(texts);
         return document;
     }
 
@@ -125,6 +132,8 @@ public static partial class XmfBinary
         strings.Add(document.SongId);
         strings.Add(document.Name);
         strings.Add(document.BackgroundColor);
+        strings.Add(document.OutsideColor);
+        strings.Add(document.FrameColor);
         foreach (NoteDocument note in document.Notes)
             IndexItemStrings(note.Item, strings);
         foreach (StartPointDocument start in document.StartPoints)
@@ -161,6 +170,9 @@ public static partial class XmfBinary
         // Appended after the original fields so maps written before backgrounds
         // existed still read, and older readers simply ignore the extra index.
         strings.WriteIndex(writer, document.BackgroundColor);
+        // The outside and frame colours came later still, and trail the same way.
+        strings.WriteIndex(writer, document.OutsideColor);
+        strings.WriteIndex(writer, document.FrameColor);
         writer.Flush();
         return stream.ToArray();
     }
@@ -184,6 +196,10 @@ public static partial class XmfBinary
 
         if (reader.BaseStream.Length - reader.BaseStream.Position >= sizeof(uint))
             document.BackgroundColor = strings.ReadIndex(reader);
+        if (reader.BaseStream.Length - reader.BaseStream.Position >= sizeof(uint))
+            document.OutsideColor = strings.ReadIndex(reader);
+        if (reader.BaseStream.Length - reader.BaseStream.Position >= sizeof(uint))
+            document.FrameColor = strings.ReadIndex(reader);
 
         return document;
     }

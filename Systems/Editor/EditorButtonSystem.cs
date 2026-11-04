@@ -123,6 +123,10 @@ public sealed class EditorButtonSystem : QuerySystem<EditorButton>
             case EditorButtonKind.LoadSong:
             case EditorButtonKind.BackgroundColor:
             case EditorButtonKind.ResetBackgroundColor:
+            case EditorButtonKind.OutsideColor:
+            case EditorButtonKind.ResetOutsideColor:
+            case EditorButtonKind.FrameColor:
+            case EditorButtonKind.ResetFrameColor:
                 Request(kind, editor);
                 break;
         }

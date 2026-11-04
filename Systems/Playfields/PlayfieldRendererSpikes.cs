@@ -14,14 +14,14 @@ public static partial class PlayfieldRenderer
 
     /// <summary>
     /// Draws every spike as one big triangle filling its box, turned around the
-    /// box's centre, inside its outline. The selected one, if any, gets an accent edge.
+    /// box's centre, inside its outline. Every selected one gets an accent edge.
     /// </summary>
     public static void DrawSpikes(
         IRectCanvas canvas,
         Rid rid,
         EntityStore entities,
         PlayfieldView view,
-        Entity selected = default)
+        Func<Entity, bool>? isSelected = null)
     {
         foreach (Entity entity in entities.Query<Spike>().ToEntityList())
         {
@@ -39,8 +39,8 @@ public static partial class PlayfieldRenderer
                 GroupColor.For(entity, SpikeColor),
                 GroupOutlineColor.For(entity, spike));
 
-            // Like a block, the selected one keeps its own look and gains an accent edge.
-            if (entity == selected)
+            // Like a block, a selected one keeps its own look and gains an accent edge.
+            if (isSelected?.Invoke(entity) == true)
             {
                 Span<Vector2> edge = [triangle.Tip, triangle.BaseLeft, triangle.BaseRight, triangle.Tip];
                 canvas.DrawPolyline(rid, edge, BlockSelectedEdge, SelectedEdgeThickness);

@@ -16,7 +16,10 @@ public partial class EditorOverlay : CanvasLayer
 
         ref EditorUiRequest request = ref _editor.GetComponent<EditorUiRequest>();
         EditorButtonKind kind = request.Kind;
-        if (kind == EditorButtonKind.None)
+
+        // Only take the requests handled here: others, such as LEVEL INFO's
+        // toggle, belong to an ECS system that may not have run yet this frame.
+        if (!Handles(kind))
             return;
 
         request.Kind = EditorButtonKind.None;
@@ -48,14 +51,45 @@ public partial class EditorOverlay : CanvasLayer
                 break;
 
             case EditorButtonKind.BackgroundColor:
-                OpenBackgroundDialog();
+                OpenBackgroundDialog(MapColor.Background);
                 break;
 
             case EditorButtonKind.ResetBackgroundColor:
                 _commands.Enqueue(EditorCommand.SetBackgroundColor(null));
                 break;
+
+            case EditorButtonKind.OutsideColor:
+                OpenBackgroundDialog(MapColor.Outside);
+                break;
+
+            case EditorButtonKind.ResetOutsideColor:
+                _commands.Enqueue(EditorCommand.SetOutsideColor(null));
+                break;
+
+            case EditorButtonKind.FrameColor:
+                OpenBackgroundDialog(MapColor.Frame);
+                break;
+
+            case EditorButtonKind.ResetFrameColor:
+                _commands.Enqueue(EditorCommand.SetFrameColor(null));
+                break;
         }
     }
+
+    /// <summary>The request kinds the overlay acts on and clears.</summary>
+    private static bool Handles(EditorButtonKind kind) =>
+        kind is EditorButtonKind.Save
+            or EditorButtonKind.SaveAs
+            or EditorButtonKind.LoadLevel
+            or EditorButtonKind.LoadSong
+            or EditorButtonKind.Preview
+            or EditorButtonKind.PreviewHere
+            or EditorButtonKind.BackgroundColor
+            or EditorButtonKind.ResetBackgroundColor
+            or EditorButtonKind.OutsideColor
+            or EditorButtonKind.ResetOutsideColor
+            or EditorButtonKind.FrameColor
+            or EditorButtonKind.ResetFrameColor;
 
     private void TapTempo()
     {

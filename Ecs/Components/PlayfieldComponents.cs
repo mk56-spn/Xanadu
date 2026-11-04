@@ -26,6 +26,12 @@ public struct LevelInfo(
 
     /// <summary>The playfield background, or null when the level uses the theme default.</summary>
     public Color? Background = null;
+
+    /// <summary>The colour around the playfield, or null when the level uses the theme default.</summary>
+    public Color? Outside = null;
+
+    /// <summary>The playfield's frame and border line, or null when the level uses the theme default.</summary>
+    public Color? Frame = null;
 }
 
 /// <summary>Logical playfield dimensions.</summary>
@@ -236,6 +242,42 @@ public struct Mine(
     public Vector2 Position = position;
     public long FadeInMs = fadeInMs;
     public long FadeOutMs = fadeOutMs;
+}
+
+/// <summary>
+/// Text written into a level: a centred label on the playfield. It has no
+/// timing of its own; groups fade and move it like any other item.
+/// </summary>
+public struct LevelText(Vector2 position, string text, float size = LevelText.DefaultSize) : IComponent
+{
+    public const float DefaultSize = 64f;
+    public const float MinSize = 16f;
+    public const float MaxSize = 512f;
+
+    /// <summary>The text placed with the text tool, until it is retyped.</summary>
+    public const string Placeholder = "TEXT";
+
+    /// <summary>The centre of the text, in playfield units.</summary>
+    public Vector2 Position = position;
+
+    public string Text = text;
+
+    /// <summary>The height of a line, in playfield units.</summary>
+    public float Size = size;
+
+    /// <summary>
+    /// The box the text roughly fills, in playfield units: wide enough for its
+    /// characters at an average glyph width, so it can be picked and outlined.
+    /// </summary>
+    public readonly Rect2 Bounds
+    {
+        get
+        {
+            int length = string.IsNullOrEmpty(Text) ? 1 : Text.Length;
+            var size = new Vector2(Size * 0.66f * length, Size * 1.25f);
+            return new Rect2(Position - size / 2, size);
+        }
+    }
 }
 
 /// <summary>

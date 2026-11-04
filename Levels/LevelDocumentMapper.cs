@@ -25,6 +25,12 @@ public static class LevelDocumentMapper
             BackgroundColor = level.Background is { } background
                 ? LevelBackground.Format(background)
                 : "",
+            OutsideColor = level.Outside is { } outside
+                ? LevelBackground.Format(outside)
+                : "",
+            FrameColor = level.Frame is { } frame
+                ? LevelBackground.Format(frame)
+                : "",
             Notes = new List<NoteDocument>(),
             Mines = new List<MineDocument>(),
             StartPoints = new List<StartPointDocument>(),
@@ -159,6 +165,27 @@ public static class LevelDocumentMapper
             return x != 0 ? x : a.Y.CompareTo(b.Y);
         });
 
+        foreach (Entity entity in entities.Query<LevelText>().ToEntityList())
+        {
+            LevelText text = entity.GetComponent<LevelText>();
+            document.Texts.Add(new TextDocument
+            {
+                X = text.Position.X,
+                Y = text.Position.Y,
+                Size = text.Size,
+                Text = text.Text ?? "",
+                SelfModulate = SelfModulate.Packed(entity),
+                Groups = GroupsOf(entity),
+                Shader = ItemShader.Of(entity),
+            });
+        }
+
+        document.Texts.Sort((a, b) =>
+        {
+            int x = a.X.CompareTo(b.X);
+            return x != 0 ? x : a.Y.CompareTo(b.Y);
+        });
+
         return document;
     }
 
@@ -169,6 +196,7 @@ public static class LevelDocumentMapper
         document.StartPoints ??= new List<StartPointDocument>();
         document.Blocks ??= new List<BlockDocument>();
         document.Spikes ??= new List<SpikeDocument>();
+        document.Texts ??= new List<TextDocument>();
         document.Groups ??= new List<GroupDocument>();
 
         foreach (Entity entity in entities.Query<Note>().ToEntityList())
@@ -268,6 +296,19 @@ public static class LevelDocumentMapper
             SelfModulate.Put(created, spike.SelfModulate);
         }
 
+        foreach (Entity entity in entities.Query<LevelText>().ToEntityList())
+            entity.DeleteEntity();
+
+        foreach (TextDocument text in document.Texts)
+        {
+            Entity created = EditorItems.Create(entities, new LevelText(
+                new Vector2(text.X, text.Y),
+                text.Text ?? "",
+                text.Size), text.Shader);
+            Subscribe(created, text.Groups);
+            SelfModulate.Put(created, text.SelfModulate);
+        }
+
         SongDocument? song = string.IsNullOrWhiteSpace(document.SongId)
             ? null
             : new SongStore().Find(document.SongId);
@@ -284,6 +325,16 @@ public static class LevelDocumentMapper
             document.BackgroundColor,
             out Color background)
             ? background
+            : null;
+        level.Outside = LevelBackground.TryParse(
+            document.OutsideColor,
+            out Color outside)
+            ? outside
+            : null;
+        level.Frame = LevelBackground.TryParse(
+            document.FrameColor,
+            out Color frame)
+            ? frame
             : null;
 
         ref Playfield playfield = ref editor.GetComponent<Playfield>();

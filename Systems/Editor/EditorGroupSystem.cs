@@ -253,6 +253,7 @@ public sealed partial class EditorGroupSystem : QuerySystem<EditorGroupState>
                                  item.HasComponent<Mine>() ||
                                  item.HasComponent<Block>() ||
                                  item.HasComponent<Spike>() ||
+                                 item.HasComponent<LevelText>() ||
                                  item.HasComponent<StartPoint>()))
             {
                 continue;

@@ -83,7 +83,7 @@ public sealed class EditorChromeLayoutTests : EcsSystemTest
             tools.Add(Area(entity));
         tools.Sort((a, b) => a.Position.Y.CompareTo(b.Position.Y));
 
-        Assert.That(tools, Has.Count.EqualTo(13));
+        Assert.That(tools, Has.Count.EqualTo(14));
         Assert.That(tools[0].Position.X, Is.EqualTo(4f).Within(0.5f));
         Assert.That(tools[0].Position.Y, Is.GreaterThanOrEqualTo(EditorShellMetrics.HeaderHeight));
         for (int i = 1; i < tools.Count; i++)
@@ -259,18 +259,26 @@ public sealed class EditorChromeLayoutTests : EcsSystemTest
     }
 
     [Test]
-    public void TheLeftPanelDocksToTheViewportCornerAndTheStatusLineToItsBottom()
+    public void TheLeftPanelDocksToTheViewportCorner()
     {
         Rect2 left = Area(Store.Query<EditorLeftMenu>().ToEntityList()[0]
             .GetComponent<EditorLeftMenu>().Panel);
-        Rect2 hint = Area(ByText(
-            "Space play   Home/End jump   Delete note   ←/→ nudge   Ctrl+Z/Y undo   T tap tempo   Target: select a note").Parent);
 
         Assert.That(left.Position.X, Is.EqualTo(_shell.Viewport.Position.X).Within(0.5f));
         Assert.That(left.Position.Y, Is.EqualTo(_shell.Viewport.Position.Y).Within(0.5f));
-        Assert.That(hint.Position.X, Is.EqualTo(_shell.StatusLine.Position.X).Within(0.5f));
-        Assert.That(hint.End.Y, Is.EqualTo(_shell.StatusLine.End.Y).Within(0.5f));
-        Assert.That(hint.Size.X, Is.EqualTo(_shell.StatusLine.Size.X).Within(0.5f));
+    }
+
+    [Test]
+    public void TheStatusSitsInTheHeaderClearOfTheRightHandControls()
+    {
+        ShellStatusLabels labels = Store.Query<EditorHud>().ToEntityList()[0].GetComponent<EditorHud>().Status;
+        Rect2 message = Area(labels.Message);
+        Rect2 flag = Area(labels.Flag);
+        Rect2 grid = Area(ByText(ViewportGrid.Label));
+
+        Assert.That(_shell.Header.Encloses(message), Is.True);
+        Assert.That(_shell.Header.Encloses(flag), Is.True);
+        Assert.That(message.End.X, Is.LessThanOrEqualTo(grid.Position.X));
     }
 
     [Test]

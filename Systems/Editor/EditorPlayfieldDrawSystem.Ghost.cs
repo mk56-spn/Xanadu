@@ -58,6 +58,16 @@ public sealed partial class EditorPlayfieldDrawSystem
                     Faint(Palette.DangerBright));
                 break;
 
+            case EditorPlacementMode.Text:
+                var text = new LevelText(pointer, LevelText.Placeholder);
+                _canvas.DrawTextStyled(
+                    _editor,
+                    PlayfieldRenderer.DrawArea(PlayfieldRenderer.TextScreenBounds(text, view)),
+                    text.Text,
+                    Faint(PlayfieldRenderer.TextColor),
+                    Math.Max(1, (int)MathF.Round(text.Size * view.Scale)));
+                break;
+
             case EditorPlacementMode.Start:
                 _canvas.DrawCircleOutline(
                     _editor,
@@ -68,7 +78,8 @@ public sealed partial class EditorPlayfieldDrawSystem
                 break;
 
             default:
-                Note note = EditorPlacementNote.Build(editor, playhead.TimeMs, pointer);
+                Vector2 notePoint = snap ? PlayfieldGrid.NearestCrossing(pointer, playfield) : pointer;
+                Note note = EditorPlacementNote.Build(editor, playhead.TimeMs, notePoint);
                 if (note.Kind == NoteKind.Dash)
                 {
                     PlayfieldRenderer.DrawDashLink(
@@ -84,7 +95,7 @@ public sealed partial class EditorPlayfieldDrawSystem
                     _canvas,
                     _editor,
                     note,
-                    ghost.Screen,
+                    view.PlayfieldToScreen(notePoint),
                     PlayfieldRenderer.NoteSize * view.Scale / 2f,
                     Faint(PlayfieldRenderer.ColorFor(note)));
                 break;

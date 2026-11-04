@@ -65,19 +65,23 @@ public static partial class PlayfieldRenderer
         int playerShader = 0,
         Color? background = null,
         Vector2 camera = default,
-        Rect2? frame = null)
+        Rect2? frame = null,
+        Color? outside = null,
+        Color? frameColor = null)
     {
         // Under a camera the layer is scrolled by it, so the backdrop follows to keep the screen covered.
-        canvas.DrawRect(rid, new Rect2(camera, view.ScreenSize), PlayBackground);
+        canvas.DrawRect(rid, new Rect2(camera, view.ScreenSize), outside ?? PlayBackground);
 
         Rect2 field = FieldRect(view, playfield);
+        DrawFieldFrame(canvas, rid, field, view.Scale, frameColor);
         canvas.SelectShader(fieldShader);
         canvas.DrawRect(rid, field, background ?? PlayfieldBackground);
-        canvas.DrawBorder(rid, field, BorderColor, 2);
+        canvas.DrawBorder(rid, field, frameColor ?? BorderColor, 2);
         canvas.SelectShader(0);
 
         DrawBlocks(canvas, rid, entities, view);
         DrawSpikes(canvas, rid, entities, view);
+        DrawTexts(canvas, rid, entities, view);
         DrawNotes(canvas, rid, entities, view, playfield, playhead, default);
         DrawRails(canvas, rid, entities, view, playfield, playhead, previewBoth: false);
         DrawNotePops(canvas, rid, entities);
@@ -93,15 +97,40 @@ public static partial class PlayfieldRenderer
         DrawTransport(canvas, rid, frame ?? field, playhead);
     }
 
+    /// <summary>The frame's width in playfield units; the view scales it, within <see cref="FrameMinPixels"/> and <see cref="FrameMaxPixels"/>.</summary>
+    public const float FrameWidth = 12f;
+
+    public const float FrameMinPixels = 3f;
+
+    public const float FrameMaxPixels = 12f;
+
+    public static readonly Color FrameColor = Palette.SurfaceAlt;
+
+    /// <summary>The frame's width on screen for a playfield drawn at <paramref name="scale"/>.</summary>
+    public static float FramePixels(float scale) =>
+        Math.Clamp(FrameWidth * scale, FrameMinPixels, FrameMaxPixels);
+
+    /// <summary>
+    /// A small frame just outside the field, so its edge reads against whatever
+    /// colour surrounds it, in the level's frame colour if it sets one. The field
+    /// and its border line are drawn over its inner edge.
+    /// </summary>
+    public static void DrawFieldFrame(IRectCanvas canvas, Rid rid, Rect2 field, float scale, Color? color = null)
+    {
+        float width = FramePixels(scale);
+        canvas.DrawBorder(rid, field.Grow(width), color ?? FrameColor, width);
+    }
+
     public static void DrawField(
         IRectCanvas canvas,
         Rid rid,
         Rect2 field,
         float borderWidth = 1,
-        Color? background = null)
+        Color? background = null,
+        Color? border = null)
     {
         canvas.DrawRect(rid, field, background ?? PlayfieldBackground);
-        canvas.DrawBorder(rid, field, BorderColor, borderWidth);
+        canvas.DrawBorder(rid, field, border ?? BorderColor, borderWidth);
     }
 
     /// <summary>Thinnest a drawn grid cell gets on screen; past that every second line is dropped.</summary>

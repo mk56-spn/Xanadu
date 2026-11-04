@@ -23,6 +23,12 @@ public sealed class XmfVariant : IChartItems
     /// <summary>The playfield background as #rrggbb or #rrggbbaa, or "" for the theme default.</summary>
     public string BackgroundColor { get; set; } = "";
 
+    /// <summary>The colour around the playfield as #rrggbb or #rrggbbaa, or "" for the theme default.</summary>
+    public string OutsideColor { get; set; } = "";
+
+    /// <summary>The playfield's frame and border line as #rrggbb or #rrggbbaa, or "" for the theme default.</summary>
+    public string FrameColor { get; set; } = "";
+
     public List<NoteDocument> Notes { get; set; } = new();
 
     public List<MineDocument> Mines { get; set; } = new();
@@ -33,6 +39,9 @@ public sealed class XmfVariant : IChartItems
 
     /// <summary>Spike tiles: permanent hazards that kill on contact.</summary>
     public List<SpikeDocument> Spikes { get; set; } = new();
+
+    /// <summary>Text written into the level.</summary>
+    public List<TextDocument> Texts { get; set; } = new();
 
     /// <summary>The groups that have a name or effects; the rest are empty slots.</summary>
     public List<GroupDocument> Groups { get; set; } = new();

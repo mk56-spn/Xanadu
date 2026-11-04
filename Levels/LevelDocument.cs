@@ -34,6 +34,12 @@ public sealed class LevelDocument : IChartItems
     /// <summary>The playfield background as #rrggbb or #rrggbbaa, or "" for the theme default.</summary>
     public string BackgroundColor { get; set; } = "";
 
+    /// <summary>The colour around the playfield as #rrggbb or #rrggbbaa, or "" for the theme default.</summary>
+    public string OutsideColor { get; set; } = "";
+
+    /// <summary>The playfield's frame and border line as #rrggbb or #rrggbbaa, or "" for the theme default.</summary>
+    public string FrameColor { get; set; } = "";
+
     public List<NoteDocument> Notes { get; set; } = new();
 
     public List<MineDocument> Mines { get; set; } = new();
@@ -44,6 +50,9 @@ public sealed class LevelDocument : IChartItems
 
     /// <summary>Spike tiles: permanent hazards that kill on contact.</summary>
     public List<SpikeDocument> Spikes { get; set; } = new();
+
+    /// <summary>Text written into the level.</summary>
+    public List<TextDocument> Texts { get; set; } = new();
 
     /// <summary>The groups that have a name or effects; the rest are empty slots.</summary>
     public List<GroupDocument> Groups { get; set; } = new();
@@ -180,6 +189,29 @@ public sealed class SpikeDocument
 
     /// <summary>The outline's colour, as RGBA8.</summary>
     public uint OutlineColor { get; set; } = Xanadu.Ecs.Block.DefaultOutlineColor.ToRgba32();
+}
+
+/// <summary>Text written into a level: a centred label on the playfield.</summary>
+public sealed class TextDocument
+{
+    /// <summary>The colour its drawing is multiplied by, as RGBA8; white changes nothing.</summary>
+    public uint SelfModulate { get; set; } = Xanadu.Ecs.SelfModulate.White;
+
+    /// <summary>The groups this text belongs to.</summary>
+    public List<int> Groups { get; set; } = new();
+
+    /// <summary>The shader slot it is drawn with, or 0 for none.</summary>
+    public int Shader { get; set; }
+
+    /// <summary>The centre of the text, in playfield units.</summary>
+    public float X { get; set; }
+
+    public float Y { get; set; }
+
+    /// <summary>The height of a line, in playfield units.</summary>
+    public float Size { get; set; } = Xanadu.Ecs.LevelText.DefaultSize;
+
+    public string Text { get; set; } = "";
 }
 
 /// <summary>Serializable practice start state.</summary>

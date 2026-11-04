@@ -240,6 +240,29 @@ public sealed class EditorCommandSystemTests : EcsSystemTest
     }
 
     [Test]
+    public void PastingLandsOnTheSnapNearestThePlayheadAndKeepsTheSpacing()
+    {
+        Entity first = EditorItems.Create(Store, new Note(5_000, new Godot.Vector2(100, 100)));
+        Entity second = EditorItems.Create(Store, new Note(5_250, new Godot.Vector2(200, 100)));
+        _editor.GetComponent<NoteSelection>().SetMany(new[] { first, second });
+        ref Playhead playhead = ref _editor.GetComponent<Playhead>();
+        playhead.DurationMs = 20_000;
+        playhead.TimeMs = 8_130;
+        long expected = EditorTiming.Snap(8_130, playhead);
+        Assert.That(expected, Is.Not.EqualTo(8_130), "the playhead sits off the grid");
+
+        _commands.Enqueue(EditorCommand.CopySelection());
+        _commands.Enqueue(EditorCommand.PasteSelection());
+        Frame();
+
+        var pasted = _editor.GetComponent<NoteSelection>().AllNotes
+            .Select(item => item.GetComponent<Note>().TimeMs)
+            .OrderBy(time => time)
+            .ToArray();
+        Assert.That(pasted, Is.EqualTo(new[] { expected, expected + 250 }));
+    }
+
+    [Test]
     public void PastingGeometryWithNotesLeavesTheNoteTimingAlone()
     {
         Entity note = EditorItems.Create(Store, new Note(5_000, new Godot.Vector2(100, 100)));

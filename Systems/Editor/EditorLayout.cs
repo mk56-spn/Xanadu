@@ -76,6 +76,13 @@ public static class EditorLayout
         return new Vector2(ruler.End.X + 24, ruler.GetCenter().Y);
     }
 
+    /// <summary>The timeline's visible window: held while scrubbing, pinned by a wheel zoom, or following the playhead.</summary>
+    public static (long Start, long End) TimelineWindow(Playhead playhead, TimelineView view)
+    {
+        TimeWindow window = TimeWindow.Of(view, playhead.TimeMs, playhead.DurationMs);
+        return (window.Start, window.End);
+    }
+
     /// <summary>Visible time window for a timeline zoom level, following the playhead.</summary>
     public static (long Start, long End) TimelineWindow(
         Playhead playhead,

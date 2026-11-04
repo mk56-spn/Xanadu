@@ -70,6 +70,8 @@ public sealed class LevelStoreTests
             {
                 Name = "Store Test",
                 BackgroundColor = "#204060",
+                OutsideColor = "#102030",
+                FrameColor = "#405060",
             };
             document.Notes.Add(new NoteDocument
             {
@@ -84,6 +86,8 @@ public sealed class LevelStoreTests
             Assert.That(File.Exists(path), Is.True);
             Assert.That(loaded.Name, Is.EqualTo("Store Test"));
             Assert.That(loaded.BackgroundColor, Is.EqualTo("#204060"));
+            Assert.That(loaded.OutsideColor, Is.EqualTo("#102030"));
+            Assert.That(loaded.FrameColor, Is.EqualTo("#405060"));
             Assert.That(loaded.Notes, Has.Count.EqualTo(1));
             Assert.That(loaded.Notes[0].TimeMs, Is.EqualTo(500));
         }

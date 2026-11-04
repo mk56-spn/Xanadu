@@ -145,6 +145,11 @@ public sealed partial class EditorCommandSystem
 
             pasted = EditorItems.Create(_entities, block, item.Shader);
         }
+        else if (item.Text is { } text)
+        {
+            text.Position += offset;
+            pasted = EditorItems.Create(_entities, text, item.Shader);
+        }
         else
         {
             Spike spike = item.Spike!.Value;

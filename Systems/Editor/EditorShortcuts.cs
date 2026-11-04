@@ -161,9 +161,9 @@ public static class EditorShortcuts
         foreach ((KeyChord chord, TimelineCommand command) in TimelineShortcuts.All)
             bindings.Add(new Binding(chord, EditorShortcut.Timeline, field, Timeline: command));
 
-        for (Key key = Key.Key1; key <= Key.Key9; key++)
+        for (Key key = Key.Key0; key <= Key.Key9; key++)
             AddPlacement(bindings, key);
-        for (Key key = Key.Kp1; key <= Key.Kp9; key++)
+        for (Key key = Key.Kp0; key <= Key.Kp9; key++)
             AddPlacement(bindings, key);
 
         return bindings;
