@@ -5,7 +5,7 @@
 //
 // The body is a small quad turned to the unit's heading; the fragment shader
 // draws the unit in it as a signed distance field: anti-aliased silhouette
-// per type, outline, bevel light, drop shadow, a detail mark, a health arc,
+// per type, an outline in its squad's colour, bevel light, drop shadow, a detail mark, a health arc,
 // a muzzle flash and the commander's buff glow. Only the quad's few pixels pay.
 shader_type canvas_item;
 
@@ -31,7 +31,7 @@ const vec2 STRIP[6] = vec2[](
 const float EXTENT = 1.75;
 const vec2 SHADOW = vec2(0.28, 0.38);   // world-aligned, in body radii
 const vec2 LIGHT_FROM = vec2(-0.6, -0.8);    // screen direction the light comes from
-const float BEAM_WIDTH[10] = float[](1.0, 1.5, 3.0, 1.0, 4.0, 2.0, 2.0, 2.0, 1.5, 2.0);
+const float BEAM_WIDTH[TYPES] = float[](1.0, 1.5, 3.0, 1.0, 4.0, 2.0, 2.0, 2.0, 1.5, 2.0, 8.0);
 const float BEAM_GLOW = 2.5;            // the strip is this much wider than the core
 
 // Zoomed far out, units and tracers grow so they never drop below these, in screen px.
@@ -39,6 +39,25 @@ const float MIN_BODY_PX = 2.5;
 const float MIN_BEAM_PX = 1.0;
 // Details and the health arc only from this many screen px per body radius.
 const float DETAIL_PX = 5.0;
+// The squad outline from this many, a little before the details.
+const float OUTLINE_PX = 3.0;
+
+// Outline colours: squad q of every army wears SQUAD_COLORS[q], so squads read
+// apart within an army. Fill is the faction; these sit away from the faction
+// hues where they can, and differ in lightness where they can't.
+const vec3 SQUAD_COLORS[SQUADS] = vec3[](
+	vec3(1.00, 1.00, 1.00),   // white
+	vec3(0.08, 0.08, 0.10),   // black
+	vec3(0.20, 0.95, 0.95),   // cyan
+	vec3(1.00, 0.30, 0.85),   // magenta
+	vec3(1.00, 0.55, 0.10),   // orange
+	vec3(0.60, 1.00, 0.20),   // lime
+	vec3(1.00, 0.70, 0.75),   // pink
+	vec3(0.05, 0.45, 0.45),   // teal
+	vec3(0.50, 0.30, 0.12),   // brown
+	vec3(0.15, 0.20, 0.55),   // navy
+	vec3(0.55, 0.55, 0.15),   // olive
+	vec3(0.75, 0.65, 1.00));  // lavender
 
 varying vec2 local;                 // body: body radii, unit's frame. beam: strip coordinates
 varying vec2 upright;               // body: the same offset, world-aligned
@@ -47,6 +66,7 @@ varying flat int v_type;
 varying flat vec4 v_color;          // rgb tint, a overall alpha
 varying flat vec4 v_info;           // x hp share, y muzzle flash, z 1 buffed, w screen px per body radius
 varying flat vec2 v_shadow;         // shadow offset in the unit's frame
+varying flat vec3 v_outline;        // the squad's colour, or a dark edge for a wreck
 
 // Farther than this in one step is a respawn, not movement: don't blend it.
 const float TELEPORT = 200.0;
@@ -78,6 +98,7 @@ void vertex() {
 	v_type = type;
 	VERTEX = m.xy;
 	v_color = vec4(0.0);
+	v_outline = alive ? SQUAD_COLORS[squad_of(id)] : vec3(0.1);
 
 	if (part == 0) {
 		float share = clamp(u.x / HP[type], 0.0, 1.0);
@@ -115,6 +136,7 @@ void vertex() {
 			VERTEX = m.xy + to * local.x + side * local.y;
 			vec3 color = type == MEDIC ? vec3(0.4, 1.0, 0.55)
 				: type == ARTILLERY ? vec3(1.0, 0.6, 0.2)
+				: type == HOWITZER ? vec3(1.0, 0.35, 0.15)
 				: mix(tint, vec3(1.0), 0.5);
 			v_color = vec4(color, left);
 		}
@@ -177,6 +199,9 @@ float silhouette(int type, vec2 p) {
 	if (type == ARTILLERY)
 		return min(min(sd_box(p - vec2(-0.25, 0.0), vec2(0.6, 0.62), 0.22), sd_segment(p, vec2(0.0), vec2(1.45, 0.0), 0.15)),
 				   min(sd_circle(p - vec2(-0.25, 0.78), 0.26), sd_circle(p - vec2(-0.25, -0.78), 0.26)));
+	if (type == HOWITZER)   // long barrel over a wide carriage, trails behind
+		return min(min(sd_box(p - vec2(-0.2, 0.0), vec2(0.5, 0.7), 0.15), sd_segment(p, vec2(-0.1, 0.0), vec2(1.6, 0.0), 0.17)),
+				   min(sd_segment(p, vec2(-0.5, 0.35), vec2(-1.3, 0.75), 0.1), sd_segment(p, vec2(-0.5, -0.35), vec2(-1.3, -0.75), 0.1)));
 	if (type == MEDIC)
 		return sd_circle(p, 0.85);
 	if (type == BERSERKER)
@@ -246,8 +271,8 @@ void fragment() {
 			vec3 mark_color = v_type == MEDIC ? vec3(1.0) : mix(body, vec3(0.05), 0.55);
 			body = mix(body, mark_color, 1.0 - smoothstep(-aa, aa, mark));
 		}
-		float outline_width = detailed ? max(0.07, aa) : 0.0;
-		body = mix(body, v_color.rgb * 0.3, smoothstep(-outline_width - aa, -outline_width + aa, d));
+		float outline_width = px >= OUTLINE_PX ? max(0.16, aa) : 0.0;
+		body = mix(body, v_outline, smoothstep(-outline_width - aa, -outline_width + aa, d));
 		color = over(color, body, 1.0 - smoothstep(-aa, aa, d));
 
 		// Muzzle flash just past the nose.

@@ -50,6 +50,9 @@ public static partial class AnimatorLayout
         EdgeGroup(ui, new Vector2(1, 0.5f), PreviewBarHeight, TimelineButtonGap, pad);
         PreviewAction(ui, "GAME", ToolActionKind.SequenceGame, 64);
         PreviewAction(ui, "ALL CLIPS", ToolActionKind.SequenceAll, 90);
+        PreviewAction(ui, "ATTACKS", ToolActionKind.CycleAttacks, 76);
+        refs.Ui.MetronomeBpm = PreviewStepper(ui, 62, ToolActionKind.MetronomeSlower, ToolActionKind.MetronomeFaster);
+        refs.Ui.MetronomeEvery = PreviewStepper(ui, 74, ToolActionKind.AttackMoreOften, ToolActionKind.AttackLessOften);
         PreviewAction(ui, "FLOW", ToolActionKind.PreviewTransition, 64);
         PreviewAction(ui, "LOOP", ToolActionKind.ToggleLoop, 64);
         PreviewAction(ui, "SLOW", ToolActionKind.ToggleSlow, 64);
@@ -58,6 +61,15 @@ public static partial class AnimatorLayout
         PreviewAction(ui, "EDIT  (ESC)", ToolActionKind.ExitPreviewMode, 110);
         ui.End();
         ui.End();
+    }
+
+    /// <summary>A value as text, then its - and + buttons; returns the text, which the preview system fills.</summary>
+    private static Entity PreviewStepper(UiBuilder ui, float width, ToolActionKind down, ToolActionKind up)
+    {
+        Entity label = ui.Text("", new Vector2(width, PreviewControl), UiTheme.SmallFontSize, UiTheme.Text);
+        PreviewAction(ui, "-", down, PreviewControl);
+        PreviewAction(ui, "+", up, PreviewControl);
+        return label;
     }
 
     private static Entity PreviewAction(UiBuilder ui, string label, ToolActionKind kind, float width, string argument = "")

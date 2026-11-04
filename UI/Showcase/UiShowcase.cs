@@ -17,10 +17,12 @@ public partial class UiShowcase : Control
     private EntityStore _store = null!;
     private SystemRoot _root = null!;
     private GodotPointerInputSource _pointer = null!;
+    private VisualRidRelease _visuals = null!;
 
     public override void _Ready()
     {
         _store = new EntityStore();
+        _visuals = new VisualRidRelease(_store);
         _root = new SystemRoot(_store);
         _pointer = new GodotPointerInputSource(this);
         var canvas = new GodotRectCanvas();
@@ -45,6 +47,8 @@ public partial class UiShowcase : Control
     }
 
     public override void _Input(InputEvent @event) => _pointer.Feed(@event);
+
+    public override void _ExitTree() => _visuals.Dispose();
 
     private void Build()
     {

@@ -7,7 +7,8 @@
 // x its first slot, y one past its last.
 
 const float CELL = 160.0;
-const int REACH = 2;            // cells scanned each way: REACH * CELL covers SIGHT, every RANGE and artillery splash
+const int REACH = 2;            // cells scanned each way: REACH * CELL covers SIGHT, every short RANGE and artillery splash
+const int SNIPER_REACH = 4;     // a sniper's own scan, to pick targets at its RANGE; its shots go through the fire list
 const float NO_CELL = 1e9;
 
 ivec2 grid_size(vec4 field) {

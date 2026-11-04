@@ -104,8 +104,31 @@ public static class XafSampler
         XafPackage package,
         XafClip clip,
         float time,
-        bool additive = false)
+        bool additive = false) =>
+        Sample(package, clip, time, additive, null);
+
+    /// <summary>
+    /// Samples a clip over another pose: what the clip keys replaces it, and
+    /// everything the clip leaves alone keeps the pose's value. An attack
+    /// layered this way moves only the bones it was posed with.
+    /// </summary>
+    public static XafPose SampleOver(XafPackage package, XafClip clip, float time, XafPose under) =>
+        Sample(package, clip, time, false, under);
+
+    private static XafPose Sample(
+        XafPackage package,
+        XafClip clip,
+        float time,
+        bool additive,
+        XafPose? under)
     {
+        if (under is not null)
+        {
+            XafPose over = under.Clone();
+            Apply(package, clip, time, over);
+            return over;
+        }
+
         var pose = new XafPose(
             package.Skeleton.Bones.Count,
             package.Attachments.Count,
@@ -130,6 +153,13 @@ public static class XafSampler
                 : XafTransform.From(package.Attachments[i].Transform);
         }
 
+        Apply(package, clip, time, pose);
+        return pose;
+    }
+
+    /// <summary>Writes every channel of the clip at the time into the pose.</summary>
+    private static void Apply(XafPackage package, XafClip clip, float time, XafPose pose)
+    {
         if (clip.Loop)
         {
             float length = Math.Max(0.0001f, clip.LoopEnd - clip.LoopStart);
@@ -179,8 +209,6 @@ public static class XafSampler
                     Apply(ref pose.Attachments[attachment], channel.Property, value);
             }
         }
-
-        return pose;
     }
 
     public static float SampleChannel(XafChannel channel, float time)
@@ -214,7 +242,10 @@ public static class XafSampler
                     next.TangentIn,
                     t,
                     span),
-                _ => Mathf.Lerp(previous.Value, next.Value, t),
+                XafInterpolation.Linear => Mathf.Lerp(previous.Value, next.Value, t),
+                _ => XafEasing.Shape(previous.Interpolation) is var (family, direction)
+                    ? Mathf.Lerp(previous.Value, next.Value, XafCurves.Evaluate(family, direction, t))
+                    : Mathf.Lerp(previous.Value, next.Value, t),
             };
         }
 

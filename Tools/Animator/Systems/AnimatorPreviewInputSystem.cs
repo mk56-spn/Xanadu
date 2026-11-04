@@ -60,7 +60,7 @@ public sealed class AnimatorPreviewInputSystem(
         ref AnimatorDrag drag = ref session.GetComponent<AnimatorDrag>();
         if (begin)
         {
-            Begin(session, input.Position, area, input.Shift);
+            Begin(session, input.Position, area, input.Shift, input.Ctrl);
         }
         else if (drag.Kind is AnimatorDragKind.Bone or AnimatorDragKind.Attachment
                      or AnimatorDragKind.Swing or AnimatorDragKind.Ik or AnimatorDragKind.Rotate ||
@@ -159,7 +159,7 @@ public sealed class AnimatorPreviewInputSystem(
         session.GetComponent<AnimatorMeshPick>().Active ||
         session.GetComponent<AnimatorCloths>().Picking != AnimatorClothPick.None;
 
-    private static void Begin(Entity session, Vector2 pointer, Rect2 area, bool shift)
+    private static void Begin(Entity session, Vector2 pointer, Rect2 area, bool shift, bool ctrl = false)
     {
         if (!area.HasPoint(pointer))
             return;
@@ -244,6 +244,14 @@ public sealed class AnimatorPreviewInputSystem(
                 }
             }
 
+            // Ctrl slides the joint itself off its rest spot: a shrug, a jab's
+            // reach, hips swaying in a walk.
+            if (bone >= 0 && ctrl && !modes.Rest && package.Skeleton.Bones[bone].Parent >= 0)
+            {
+                BeginOffset(session, pointer, bone, pose, world);
+                return;
+            }
+
             if (bone >= 0 && modes.Ik && !modes.Rest && Chain(package, bone, out _, out _))
                 BeginIk(session, pointer, bone);
             else if (bone >= 0)
@@ -282,6 +290,35 @@ public sealed class AnimatorPreviewInputSystem(
         AnimatorSession.SetStatus(
             session,
             count > 1 ? $"{id} ADDED • {count} BONES SELECTED" : $"SELECTED {id}");
+    }
+
+    /// <summary>
+    /// Starts sliding a joint off its rest spot. A fixed-length bone is made
+    /// movable first, inside the same undo step, so the offset can be keyed.
+    /// </summary>
+    private static void BeginOffset(Entity session, Vector2 pointer, int bone, XafPose pose, Transform2D[] world)
+    {
+        ref AnimatorDocument document = ref session.GetComponent<AnimatorDocument>();
+        ref AnimatorSelection selection = ref session.GetComponent<AnimatorSelection>();
+        XafBone rig = document.Package.Skeleton.Bones[bone];
+        document.Runtime.SetPaused(true);
+        selection.Attachment = -1;
+        selection.Effect = -1;
+        AnimatorHistoryCommands.BeginGesture(session);
+
+        bool unlocked = !rig.AllowTranslation;
+        rig.AllowTranslation = true;
+        selection.SelectOnlyBone(bone);
+        session.GetComponent<AnimatorDrag>() = new AnimatorDrag
+        {
+            Kind = AnimatorDragKind.Bone,
+            StartPointer = pointer,
+            StartValue = pose.Bones[bone].Translation,
+            ParentWorld = world[rig.Parent],
+        };
+        AnimatorSession.SetStatus(session, unlocked
+            ? $"OFFSETTING {rig.Id}: ITS JOINT NOW SLIDES (MOVE ON)"
+            : $"OFFSETTING {rig.Id}");
     }
 
     /// <summary>

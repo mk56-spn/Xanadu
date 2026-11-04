@@ -35,7 +35,7 @@ public sealed class AnimatorInterpolationTests : AnimatorToolTest
         Button(ToolActionKind.Interpolate, preset.ToString());
 
     [Test]
-    public void TheHeaderHasAButtonForEveryPreset()
+    public void TheEasingWindowHasACellForEveryPreset()
     {
         foreach (XafEasePreset preset in System.Enum.GetValues<XafEasePreset>())
             Assert.That(PresetButton(preset).IsNull, Is.False);
@@ -98,12 +98,12 @@ public sealed class AnimatorInterpolationTests : AnimatorToolTest
         Assert.That(PresetButton(XafEasePreset.EaseOut).GetComponent<ButtonVisual>().Normal,
             Is.EqualTo(Palette.Selected));
         Assert.That(PresetButton(XafEasePreset.Step).GetComponent<ButtonVisual>().Normal,
-            Is.EqualTo(UiTheme.Button));
+            Is.EqualTo(AnimatorLayout.EasingCell));
 
         Session.GetComponent<AnimatorSelection>().HasKey = false;
         Frame();
         Assert.That(PresetButton(XafEasePreset.EaseOut).GetComponent<ButtonVisual>().Normal,
-            Is.EqualTo(UiTheme.Button));
+            Is.EqualTo(AnimatorLayout.EasingCell));
     }
 
     [Test]

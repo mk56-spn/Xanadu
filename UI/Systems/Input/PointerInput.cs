@@ -8,4 +8,5 @@ public readonly record struct PointerInput(
     bool Pressed,
     bool Shift = false,
     bool SecondaryPressed = false,
-    bool Middle = false);
+    bool Middle = false,
+    bool Ctrl = false);

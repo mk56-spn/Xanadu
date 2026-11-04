@@ -1,7 +1,8 @@
 // The ground under the battle: open field, rock from the nav texture's
 // obstacle channel (filtered, so the blocky cells read as soft outcrops), and
 // every spawner: its capture ring in its owner's colour (grey if neutral), a
-// core, and an arc in the colour of whoever is taking it. One rect over the field.
+// core shaped by what it raises, and an arc in the colour of whoever is taking
+// it. One rect over the field.
 shader_type canvas_item;
 
 uniform sampler2D nav_smooth : filter_linear;
@@ -20,6 +21,21 @@ const float MIN_CORE_PX = 6.0;
 const float MIN_LINE_PX = 1.5;
 
 varying vec2 world;
+
+// The core's outline for a site, as a signed distance: negative inside.
+// Base hexagon, factory square, firebase triangle, barracks diamond, command circle.
+float core_shape(int site, vec2 offset, float size) {
+	vec2 q = abs(offset);
+	if (site == SITE_FACTORY)
+		return max(q.x, q.y) - size * 0.8;
+	if (site == SITE_FIREBASE)
+		return max(q.x * 0.866 + offset.y * 0.5, -offset.y) - size * 0.55;
+	if (site == SITE_BARRACKS)
+		return (q.x + q.y) * 0.7071 - size * 0.85;
+	if (site == SITE_COMMAND)
+		return length(offset) - size * 0.9;
+	return max(q.x * 0.866 + q.y * 0.5, q.y) - size;
+}
 
 void vertex() {
 	world = VERTEX;
@@ -50,9 +66,8 @@ void fragment() {
 		float ring = 1.0 - smoothstep(0.0, line, abs(d - CAPTURE_RADIUS));
 		color = mix(color, tint, zone * 0.08 + ring * 0.45);
 
-		// The core: a hexagon, bright for owned, hollow for neutral.
-		vec2 q = abs(offset);
-		float hex = max(q.x * 0.866 + q.y * 0.5, q.y) - core_size;
+		// The core: shaped by its site, bright for owned, hollow for neutral.
+		float hex = core_shape(site_of(s), offset, core_size);
 		float core = 1.0 - smoothstep(-px, 0.0, hex);
 		float edge = 1.0 - smoothstep(0.0, max(6.0, px), abs(hex + max(6.0, px)));
 		color = mix(color, tint, owner < FACTIONS ? core * 0.85 : edge * 0.8);

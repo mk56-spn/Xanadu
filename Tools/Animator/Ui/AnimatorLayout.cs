@@ -119,6 +119,7 @@ public static partial class AnimatorLayout
         BuildEventInspector(menu, ref refs);
         BuildNewClipDialog(menu, screen, ref refs);
         BuildInfoPanel(menu, screen, ref refs);
+        BuildEasingWindow(menu, ref refs);
         refs.Ui.XifEditor = XifEditorPanel.Build(
             UiNode.Wrap(refs.Ui.MenuLayer, visuals),
             XifEditorCenter(screen),
@@ -275,11 +276,6 @@ public static partial class AnimatorLayout
         field.AddComponent(new TextStyle(12, UiTheme.Text));
         field.AddComponent(new TextAlignment(TextAlign.Left));
         return field;
-    }
-
-    private static void InterpolationButton(UiBuilder ui, string label, XafEasePreset preset, float width)
-    {
-        HeaderButton(ui, label, ToolActionKind.Interpolate, width, preset.ToString());
     }
 
     private static Entity HeaderButton(

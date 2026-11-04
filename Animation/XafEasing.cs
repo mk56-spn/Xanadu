@@ -16,6 +16,33 @@ public enum XafEasePreset
 
     /// <summary>Full speed at the start, slow end.</summary>
     EaseOut,
+
+    // Named curves, stored as the <see cref="XafInterpolation"/> of the same name.
+    SineIn,
+    SineOut,
+    SineInOut,
+    QuadInOut,
+    CubicIn,
+    CubicOut,
+    CubicInOut,
+    QuartIn,
+    QuartOut,
+    QuartInOut,
+    ExpoIn,
+    ExpoOut,
+    ExpoInOut,
+    CircIn,
+    CircOut,
+    CircInOut,
+    BackIn,
+    BackOut,
+    BackInOut,
+    ElasticIn,
+    ElasticOut,
+    ElasticInOut,
+    BounceIn,
+    BounceOut,
+    BounceInOut,
 }
 
 /// <summary>
@@ -120,15 +147,76 @@ public static class XafEasing
         return null;
     }
 
-    /// <summary>How far through its change a preset is, 0 to 1, at a share of the way between two keys.</summary>
+    /// <summary>
+    /// How far through its change a preset is at a share of the way between
+    /// two keys: 0 to 1, except back and elastic, which overshoot.
+    /// </summary>
     public static float Progress(XafEasePreset preset, float t) => preset switch
     {
         XafEasePreset.Step => t >= 1f ? 1f : 0f,
         XafEasePreset.Linear => t,
         XafEasePreset.EaseIn => t * t,
         XafEasePreset.EaseOut => t * (2f - t),
-        _ => t * t * (3f - 2f * t),
+        XafEasePreset.Ease => t * t * (3f - 2f * t),
+        _ => Shape(preset) is var (family, direction) ? XafCurves.Evaluate(family, direction, t) : t,
     };
+
+    /// <summary>The family and direction a preset draws, or null for step, linear and the plain ease.</summary>
+    public static (XafCurveFamily Family, XafCurveDirection Direction)? Shape(XafEasePreset preset) => preset switch
+    {
+        XafEasePreset.EaseIn => (XafCurveFamily.Quad, XafCurveDirection.In),
+        XafEasePreset.EaseOut => (XafCurveFamily.Quad, XafCurveDirection.Out),
+        _ => ParseShape(preset.ToString()),
+    };
+
+    /// <summary>The family and direction of a named-curve interpolation, or null for step, linear and cubic.</summary>
+    public static (XafCurveFamily Family, XafCurveDirection Direction)? Shape(XafInterpolation interpolation) =>
+        (uint)interpolation < (uint)Shapes.Length ? Shapes[(int)interpolation] : null;
+
+    /// <summary>Every interpolation's shape, by value, so sampling never parses a name.</summary>
+    private static readonly (XafCurveFamily, XafCurveDirection)?[] Shapes = BuildShapes();
+
+    private static (XafCurveFamily, XafCurveDirection)?[] BuildShapes()
+    {
+        XafInterpolation[] values = Enum.GetValues<XafInterpolation>();
+        var shapes = new (XafCurveFamily, XafCurveDirection)?[values.Length];
+        foreach (XafInterpolation value in values)
+            shapes[(int)value] = ParseShape(value.ToString());
+        return shapes;
+    }
+
+    /// <summary>The highest interpolation value a file may hold.</summary>
+    public static int MaxInterpolation => Shapes.Length - 1;
+
+    /// <summary>The preset drawing this family in this direction.</summary>
+    public static XafEasePreset Preset(XafCurveFamily family, XafCurveDirection direction) =>
+        (family, direction) switch
+        {
+            (XafCurveFamily.Quad, XafCurveDirection.In) => XafEasePreset.EaseIn,
+            (XafCurveFamily.Quad, XafCurveDirection.Out) => XafEasePreset.EaseOut,
+            _ => Enum.Parse<XafEasePreset>($"{family}{direction}"),
+        };
+
+    /// <summary>The stored interpolation of a named-curve preset, or null for the ones drawn with tangents.</summary>
+    public static XafInterpolation? NamedCurve(XafEasePreset preset) =>
+        preset > XafEasePreset.EaseOut && Enum.TryParse(preset.ToString(), out XafInterpolation curve)
+            ? curve
+            : null;
+
+    private static (XafCurveFamily, XafCurveDirection)? ParseShape(string name)
+    {
+        foreach (XafCurveDirection direction in new[] { XafCurveDirection.InOut, XafCurveDirection.Out, XafCurveDirection.In })
+        {
+            string suffix = direction.ToString();
+            if (name.Length > suffix.Length && name.EndsWith(suffix, StringComparison.Ordinal) &&
+                Enum.TryParse(name[..^suffix.Length], out XafCurveFamily family))
+            {
+                return (family, direction);
+            }
+        }
+
+        return null;
+    }
 
     /// <summary>
     /// How a track, or one channel of it, gets from one key time to the next. A
@@ -184,7 +272,7 @@ public static class XafEasing
         {
             XafEasePreset.Step => XafInterpolation.Step,
             XafEasePreset.Linear => XafInterpolation.Linear,
-            _ => XafInterpolation.CubicBezier,
+            _ => NamedCurve(preset) ?? XafInterpolation.CubicBezier,
         };
 
         key.TangentOut = 0f;
@@ -193,6 +281,9 @@ public static class XafEasing
 
         XafKeyframe next = channel.Keyframes[index + 1];
         next.TangentIn = 0f;
+        if (key.Interpolation != XafInterpolation.CubicBezier)
+            return;
+
         float span = next.Time - key.Time;
         float slope = span > 0f ? (next.Value - key.Value) / span : 0f;
         if (preset == XafEasePreset.EaseIn)
@@ -208,6 +299,11 @@ public static class XafEasing
             return XafEasePreset.Step;
         if (key.Interpolation == XafInterpolation.Linear)
             return XafEasePreset.Linear;
+        if (key.Interpolation != XafInterpolation.CubicBezier &&
+            Enum.TryParse(key.Interpolation.ToString(), out XafEasePreset named))
+        {
+            return named;
+        }
         if (index + 1 >= channel.Keyframes.Count)
             return XafEasePreset.Ease;
 

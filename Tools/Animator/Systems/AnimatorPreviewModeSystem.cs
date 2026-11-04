@@ -86,19 +86,36 @@ public sealed class AnimatorPreviewModeSystem : QuerySystem<AnimatorPreviewMode,
             ? "NO CLIP"
             : $"{clip.Id.ToUpperInvariant()}   {document.Runtime.CurrentTime:0.00} / {clip.Duration:0.00} s" +
               (slow ? "   ·   QUARTER SPEED" : "");
+        AnimatorMetronome metronome = session.GetComponent<AnimatorMetronome>();
+        AnimatorAttackCycle cycle = session.GetComponent<AnimatorAttackCycle>();
+        if (cycle.Active)
+            caption += "   ·   " + BeatDots(cycle.Beat, metronome.Every);
         UiText.Set(ui.PreviewCaption, caption);
+        UiText.Set(ui.MetronomeBpm, $"{metronome.Bpm} BPM");
+        UiText.Set(ui.MetronomeEvery, metronome.Every == 1 ? "EVERY BEAT" : $"EVERY {metronome.Every}");
 
         if (ui.PreviewBar.IsNull)
             return;
 
+        bool attacks = session.GetComponent<AnimatorAttackCycle>().Active;
         foreach (Entity group in ui.PreviewBar.ChildEntities)
         {
             foreach (Entity button in group.ChildEntities)
-                PaintToggle(button, clip?.Loop ?? false, slow, session.GetComponent<AnimatorModes>().MotionPaths);
+                PaintToggle(button, clip?.Loop ?? false, slow, session.GetComponent<AnimatorModes>().MotionPaths, attacks);
         }
     }
 
-    private static void PaintToggle(Entity button, bool loop, bool slow, bool paths)
+    /// <summary>One dot a beat between attacks, the current one filled: ● ○ for an attack every two beats.</summary>
+    private static string BeatDots(int beat, int every)
+    {
+        every = System.Math.Max(1, every);
+        var dots = new System.Text.StringBuilder();
+        for (int i = 0; i < every; i++)
+            dots.Append(i == beat % every ? "● " : "○ ");
+        return dots.ToString().TrimEnd();
+    }
+
+    private static void PaintToggle(Entity button, bool loop, bool slow, bool paths, bool attacks)
     {
         if (!button.TryGetComponent(out ToolAction action))
             return;
@@ -108,6 +125,7 @@ public sealed class AnimatorPreviewModeSystem : QuerySystem<AnimatorPreviewMode,
             ToolActionKind.ToggleLoop => loop,
             ToolActionKind.ToggleSlow => slow,
             ToolActionKind.ToggleMode => paths,
+            ToolActionKind.CycleAttacks => attacks,
             _ => null,
         };
         if (lit is { } on)

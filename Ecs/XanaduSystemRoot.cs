@@ -31,6 +31,7 @@ public sealed class XanaduSystemRoot : SystemRoot, IDisposable
     private readonly Xanadu.Systems.Editor.EditorWheelSystem? _editorWheel;
     private readonly AudioSystemGroup _audioSystems;
     private readonly DebugSystemGroup _debugSystems;
+    private readonly VisualRidRelease _visuals;
     private readonly EntityStore _entities;
     private readonly MiniaudioTrackAudio _trackAudio = new();
     private readonly MiniaudioTrackAudio _playfieldAudio = new();
@@ -82,6 +83,7 @@ public sealed class XanaduSystemRoot : SystemRoot, IDisposable
         var canvas = new GodotRectCanvas();
         _entities = entities;
         entities.OnEntityDelete += OnEntityDelete;
+        _visuals = new VisualRidRelease(entities);
         EditorHistory = new EditorHistory(entities);
         Commands = new EditorCommandBus();
         Keybinds = keybinds ?? new KeybindSettings();
@@ -208,9 +210,6 @@ public sealed class XanaduSystemRoot : SystemRoot, IDisposable
 
     private void OnEntityDelete(EntityDelete entityDelete)
     {
-        if (entityDelete.Entity.TryGetComponent<VisualRid>(out VisualRid visual))
-            RenderingServer.FreeRid(visual.Value);
-
         if (entityDelete.Entity.TryGetComponent<PhysicsBody>(out PhysicsBody body))
             Physics.DestroyBody(body.Body);
     }
@@ -280,6 +279,7 @@ public sealed class XanaduSystemRoot : SystemRoot, IDisposable
     {
         _sceneDirector.Changed -= OnSceneChanged;
         _entities.OnEntityDelete -= OnEntityDelete;
+        _visuals.Dispose();
         _trackAudio.Dispose();
         _playfieldAudio.Dispose();
         _metronomeAudio.Dispose();

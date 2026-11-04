@@ -114,6 +114,35 @@ public sealed class AnimatorPreviewInputTests : AnimatorToolTest
     }
 
     [Test]
+    public void CtrlDraggingAFixedJointSlidesItOffItsRestSpot()
+    {
+        Vector2 start = BoneScreenPosition(2);
+        Pointer.Ctrl = true;
+        PressAt(start);
+
+        MoveTo(start + new Vector2(20, -3));
+
+        Assert.That(Package.Skeleton.Bones[2].AllowTranslation, Is.True);
+        Assert.That(Session.GetComponent<AnimatorSelection>().Bone, Is.EqualTo(2));
+        Assert.That(Session.GetComponent<AnimatorDrag>().Kind, Is.EqualTo(AnimatorDragKind.Bone));
+        Assert.That(Runtime.Pose.Bones[2].Translation,
+            Is.EqualTo(new Vector2(20, -73)).Using<Vector2>(Close));
+    }
+
+    [Test]
+    public void CtrlOnTheRootIsAnOrdinaryDrag()
+    {
+        Vector2 start = BoneScreenPosition(0);
+        Pointer.Ctrl = true;
+        PressAt(start);
+
+        MoveTo(start + new Vector2(10, 5));
+
+        Assert.That(Runtime.Pose.Bones[0].Translation,
+            Is.EqualTo(new Vector2(10, 5)).Using<Vector2>(Close));
+    }
+
+    [Test]
     public void DraggingAMovableBoneTranslatesIt()
     {
         Package.Skeleton.Bones[1].AllowTranslation = true;

@@ -195,7 +195,7 @@ public sealed class AnimatorLayoutTests : AnimatorToolTest
     {
         Rect2 stop = AnimatorGeometry.PanelArea(Button(ToolActionKind.Stop));
         Rect2 caption = AnimatorGeometry.PanelArea(Ui.TimelineCaption);
-        Rect2 interpolation = AnimatorGeometry.PanelArea(Button(ToolActionKind.Interpolate, nameof(XafEasePreset.Step)));
+        Rect2 interpolation = AnimatorGeometry.PanelArea(Ui.EasingButton);
 
         Assert.That(caption.Position.X, Is.GreaterThan(stop.End.X));
         Assert.That(caption.End.X, Is.LessThan(interpolation.Position.X));

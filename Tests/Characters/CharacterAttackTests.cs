@@ -11,8 +11,13 @@ namespace Xanadu.Tests.Characters;
 [TestFixture]
 public sealed class CharacterAttackTests : EcsSystemTest
 {
-    protected override void OnEcsSetUp() =>
+    protected override void OnEcsSetUp()
+    {
         Root.Add(new CharacterAttackSystem());
+
+        // Layer time moves with the rig's runtime, as in the game.
+        Root.Add(new CharacterRigAnimateSystem());
+    }
 
     private Entity Rigged()
     {

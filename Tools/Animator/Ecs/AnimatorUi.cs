@@ -98,6 +98,27 @@ public struct AnimatorUi : IComponent
     public Entity NewClipBackdrop;
     public Entity NewClipDialog;
 
+    /// <summary>The preview bar's metronome readouts: the tempo, and how often an attack fires.</summary>
+    public Entity MetronomeBpm;
+    public Entity MetronomeEvery;
+
+    /// <summary>The EASING header button and its tool window.</summary>
+    public Entity EasingButton;
+    public Entity EasingWindow;
+
+    /// <summary>The preview's box, and what is drawn over it: guides, curve, value rail and the two dots.</summary>
+    public Entity EasingPreviewBox;
+    public Entity EasingGuides;
+    public Entity EasingCurve;
+    public Entity EasingRail;
+    public Entity EasingDot;
+    public Entity EasingRailDot;
+
+    /// <summary>The previewed curve's name and description, and what clicking does.</summary>
+    public Entity EasingName;
+    public Entity EasingDescription;
+    public Entity EasingHint;
+
     /// <summary>The file info popup, its dimmer, and the readout under the path field.</summary>
     public Entity InfoBackdrop;
     public Entity InfoPanel;

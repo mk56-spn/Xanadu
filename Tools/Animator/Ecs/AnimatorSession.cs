@@ -46,11 +46,14 @@ public static class AnimatorSession
         session.AddComponent(new AnimatorClipLength());
         session.AddComponent(new AnimatorNewClipDialog());
         session.AddComponent(new AnimatorInfoPanel());
+        session.AddComponent(new AnimatorEasingWindow());
         session.AddComponent(new AnimatorSvgMenu { Choices = new() });
         session.AddComponent(AnimatorHover.None);
         session.AddComponent(AnimatorPreviewView.Default);
         session.AddComponent(new AnimatorKeyClipboard());
         session.AddComponent(new AnimatorSequence());
+        session.AddComponent(new AnimatorAttackCycle());
+        session.AddComponent(AnimatorMetronome.Default);
         session.AddComponent(new AnimatorFlow { Target = "" });
         session.AddComponent(new AnimatorSnapGuides());
         session.AddComponent(new AnimatorChains { Simulation = new XafChainSimulation() });

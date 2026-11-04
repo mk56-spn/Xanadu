@@ -51,13 +51,15 @@ public sealed class PointerLatch : IWheelSource
         bool primary,
         bool secondary,
         bool middle,
-        bool shift) =>
+        bool shift,
+        bool ctrl = false) =>
         new(
             position,
             !Blocked && (primary || _primary),
             shift,
             !Blocked && (secondary || _secondary),
-            !Blocked && (middle || _middle));
+            !Blocked && (middle || _middle),
+            ctrl);
 
     public void EndFrame()
     {

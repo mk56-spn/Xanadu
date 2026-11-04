@@ -37,9 +37,13 @@ public partial class LabHost : Control
     private EntityStore _store = null!;
     private SystemRoot _root = null!;
     private GodotPointerInputSource _pointer = null!;
+    private VisualRidRelease _visuals = null!;
+    private LabSettings _settings = null!;
     private DebugSystemGroup _debug = null!;
     private ILabExperiment[] _experiments = [];
-    private Node2D[] _stages = [];
+    /// <summary>The open tab's stage; the others do not exist, so nothing of theirs runs or holds GPU memory.</summary>
+    private Node2D? _stage;
+    private Rect2 _area;
     private Entity _strip;
     private int _shown = -1;
 
@@ -54,6 +58,7 @@ public partial class LabHost : Control
     {
         RenderingServer.SetDefaultClearColor(Palette.Background);
         _store = new EntityStore();
+        _visuals = new VisualRidRelease(_store);
         _root = new SystemRoot(_store);
         _pointer = new GodotPointerInputSource(this);
         _root.Add(new UiSystemGroup(
@@ -86,6 +91,7 @@ public partial class LabHost : Control
         RenderingServer.GlobalShaderParameterSet(MouseUniform, Mouse);
         _root.Update(new UpdateTick((float)delta, (float)Time.GetTicksMsec() / 1000f));
         _pointer.EndFrame();
+        _settings.Poll();
         ShowSelected();
 
         if (_shotPath is not null && ++_frames == _shotFrame)
@@ -97,7 +103,11 @@ public partial class LabHost : Control
 
     public override void _Input(InputEvent @event) => _pointer.Feed(@event);
 
-    public override void _ExitTree() => _debug.Dispose();
+    public override void _ExitTree()
+    {
+        _debug.Dispose();
+        _visuals.Dispose();
+    }
 
     private void Build()
     {
@@ -108,15 +118,15 @@ public partial class LabHost : Control
         float bodyTop = Margin * 2 + UiMetrics.Control.Lg;
         var body = new Rect2(Margin, bodyTop, PanelWidth, stage.Height - bodyTop - Margin);
         float stageLeft = body.End.X + Margin;
-        var area = new Rect2(stageLeft, bodyTop, stage.Width - stageLeft - Margin, body.Size.Y);
+        var area = _area = new Rect2(stageLeft, bodyTop, stage.Width - stageLeft - Margin, body.Size.Y);
 
         UiNode strip = ui.Row().Gap(UiMetrics.Space.Sm).AnchorLeft().At(new Vector2(Margin, tabsY));
         _strip = strip;
         var buttons = new Entity[_experiments.Length];
         var bodies = new Entity[_experiments.Length];
-        _stages = new Node2D[_experiments.Length];
-        // Tabs shrink once there are too many to fit the strip at full width.
-        int tabs = _experiments.Length;
+        // Tabs shrink once there are too many to fit the strip at full width; the
+        // settings button at the end takes a tab's width.
+        int tabs = _experiments.Length + 1;
         float tabWidth = Math.Min(TabWidth, (stage.Width - Margin * 2 - UiMetrics.Space.Sm * (tabs - 1)) / tabs);
 
         ui.Rect(Palette.SurfaceDeep).Box(area).Border(Palette.BorderStrong);
@@ -135,15 +145,12 @@ public partial class LabHost : Control
             if (experiment.SourcePath is { } source)
                 LabSourceView.Build(panel, source, SourceSize(experiment, body.Size));
             bodies[i] = panel;
-
-            Node2D stageNode = experiment.CreateStage(area);
-            stageNode.ZIndex = StageZ;
-            stageNode.Visible = false;
-            AddChild(stageNode);
-            _stages[i] = stageNode;
         }
 
         _strip.AddComponent(new UiTabs(buttons, bodies, body.GetCenter()));
+
+        UiNode settings = strip.Button("SETTINGS", UiType.Label).Size(tabWidth, UiMetrics.Control.Lg);
+        _settings = new LabSettings(_store, GetViewport(), body, settings);
     }
 
     /// <summary>The listing fills what the title and notes leave of the panel.</summary>
@@ -158,15 +165,20 @@ public partial class LabHost : Control
         return new Vector2(body.X - UiTheme.ContainerPadding * 2, body.Y - used);
     }
 
-    /// <summary>The tab strip owns the selection; the Godot stages follow it.</summary>
+    /// <summary>
+    /// The tab strip owns the selection; the stage follows it. Leaving a tab frees its
+    /// stage and opening one builds it fresh, so experiments start clean every time.
+    /// </summary>
     private void ShowSelected()
     {
         int selected = _strip.GetComponent<UiTabs>().Selected;
         if (selected == _shown)
             return;
 
-        for (int i = 0; i < _stages.Length; i++)
-            _stages[i].Visible = i == selected;
+        _stage?.QueueFree();
+        _stage = _experiments[selected].CreateStage(_area);
+        _stage.ZIndex = StageZ;
+        AddChild(_stage);
         _shown = selected;
     }
 

@@ -65,6 +65,12 @@ public sealed class AnimatorBindingTests : AnimatorToolTest
 
             // Space, from the keys every timeline shares.
             ToolActionKind.TogglePlay,
+
+            // The attack metronome's steppers, on the preview bar.
+            ToolActionKind.MetronomeSlower,
+            ToolActionKind.MetronomeFaster,
+            ToolActionKind.AttackMoreOften,
+            ToolActionKind.AttackLessOften,
             ToolActionKind.Clip,
             ToolActionKind.SelectBone,
             ToolActionKind.SelectAttachment,

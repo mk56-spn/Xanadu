@@ -1,4 +1,5 @@
 using Friflo.Engine.ECS;
+using Xanadu.Animation;
 using Xanadu.Ecs;
 
 namespace Xanadu.Tools.Animator;
@@ -57,7 +58,7 @@ public static class AnimatorTooltips
         ToolActionKind.DeleteEvent => "Delete the selected event (Ctrl+Shift+E)",
         ToolActionKind.LockBend =>
             "Lock the selected knee or elbow to bend only the way it bends now, or free it again (Shift+J)",
-        ToolActionKind.ToggleMovable => "Let the bone translate or lock its length (T)",
+        ToolActionKind.ToggleMovable => "Let the bone translate or lock its length (T). Ctrl+drag any joint to offset it off its rest spot, which turns this on for you",
         ToolActionKind.AddBone => "Add a child bone to the selected bone (B)",
         ToolActionKind.DeleteBone => "Delete the selected bone and its keys (Shift+Delete)",
         ToolActionKind.RenameBone => "Rename this bone (F2)",
@@ -100,6 +101,11 @@ public static class AnimatorTooltips
         ToolActionKind.PasteKeys => "Paste copied keys at the playhead (Ctrl+Shift+V)",
         ToolActionKind.SequenceGame => "Preview jump, fall, land and idle playing into each other, as in the game (P)",
         ToolActionKind.SequenceAll => "Preview every clip in the file playing into the next (Shift+P)",
+        ToolActionKind.MetronomeSlower => "Slow the attack metronome by 5 BPM",
+        ToolActionKind.MetronomeFaster => "Speed the attack metronome up by 5 BPM",
+        ToolActionKind.AttackMoreOften => "Fire an attack on more of the beats",
+        ToolActionKind.AttackLessOften => "Fire an attack on fewer of the beats, leaving room for the follow-through",
+        ToolActionKind.CycleAttacks => "Fire the attacks in turn on a metronome click, each from its contact frame over idle or the fall, as a note hit plays it in the game (Shift+A)",
         ToolActionKind.AllowTransition => $"Allow or forbid this clip fading into {argument.ToUpperInvariant()}",
         ToolActionKind.SelectTransition => $"Edit and preview the fade into {argument.ToUpperInvariant()}",
         ToolActionKind.TransitionFadeDown => "Shorten the fade by 0.05 s (Shift+-)",
@@ -124,15 +130,10 @@ public static class AnimatorTooltips
         ToolActionKind.SelectAttachment => "Select this SVG attachment",
         ToolActionKind.MoveLayerForward => "Draw this art in front of the one above it (Ctrl+Shift+])",
         ToolActionKind.MoveLayerBack => "Draw this art behind the one below it (Ctrl+Shift+[)",
-        ToolActionKind.Interpolate => argument switch
-        {
-            "Step" => "Hold the value until the next key (1)",
-            "Linear" => "Move at a constant speed (2)",
-            "Ease" => "Ease in and out of the next key (3)",
-            "EaseIn" => "Start slow, end at full speed (4)",
-            "EaseOut" => "Start at full speed, end slow (5)",
-            _ => "Set how the selected keys interpolate",
-        },
+        ToolActionKind.Interpolate => System.Enum.TryParse(argument, out XafEasePreset preset)
+            ? $"{AnimatorEasingNames.Label(preset)}: {AnimatorEasingNames.Describe(preset)}{AnimatorEasingNames.Shortcut(preset)}"
+            : "Set how the selected keys interpolate",
+        ToolActionKind.ToggleEasingWindow => "Choose how the selected keys ease into the next ones, from every curve (Ctrl+E)",
         ToolActionKind.ToggleMode => argument switch
         {
             nameof(AnimatorMode.AutoKey) => "Key every edit automatically (A)",

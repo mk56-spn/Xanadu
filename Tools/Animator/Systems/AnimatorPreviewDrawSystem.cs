@@ -33,6 +33,11 @@ public sealed class AnimatorPreviewDrawSystem(
     private const float TipHandleRadius = 4.5f;
     private static readonly Color FlowGhost = new(Palette.Accent, 0.3f);
     private static readonly Color EffectOutline = Palette.Rose;
+    private static readonly Color JointOffsetColor = Palette.Pink;
+    private const float JointOffsetRing = 5f;
+
+    /// <summary>How far, in rig units, a joint has to sit off its rest spot before the ring shows.</summary>
+    private const float JointOffsetMinimum = 0.5f;
 
     private readonly AnimatorFlowOverlay _flow = new(canvas, target);
     private readonly AnimatorMotionPathOverlay _paths = new(canvas, target);
@@ -116,6 +121,9 @@ public sealed class AnimatorPreviewDrawSystem(
                 2f);
         }
 
+        if (modes.Handles && !modes.Rest)
+            DrawJointOffsets(document.Package, pose, world, placement);
+
         AnimatorHover hover = session.GetComponent<AnimatorHover>();
         int reparenting = session.GetComponent<AnimatorBoneMenu>().Reparenting;
         var labels = new System.Collections.Generic.List<Rect2>();
@@ -182,6 +190,28 @@ public sealed class AnimatorPreviewDrawSystem(
             Palette.Text,
             14);
         _flow.Draw(session, area);
+    }
+
+    /// <summary>
+    /// A joint slid off its rest spot shows where it belongs: a hollow ring
+    /// at the rest spot on its parent, tethered to where the joint is now.
+    /// </summary>
+    private void DrawJointOffsets(XafPackage package, XafPose pose, Transform2D[] world, Transform2D placement)
+    {
+        for (int i = 0; i < world.Length; i++)
+        {
+            XafBone bone = package.Skeleton.Bones[i];
+            if (bone.Parent < 0 || !bone.AllowTranslation ||
+                pose.Bones[i].Translation.DistanceTo(bone.Rest.Origin) < JointOffsetMinimum)
+            {
+                continue;
+            }
+
+            Vector2 rest = placement * (world[bone.Parent] * bone.Rest.Origin);
+            Vector2 now = placement * world[i].Origin;
+            canvas.DrawLine(target, rest, now, JointOffsetColor, 1.5f);
+            canvas.DrawCircleOutline(target, rest, JointOffsetRing, JointOffsetColor, 1.5f, 16);
+        }
     }
 
     /// <summary>

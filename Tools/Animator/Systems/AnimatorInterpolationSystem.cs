@@ -7,7 +7,7 @@ using Xanadu.Theme;
 
 namespace Xanadu.Tools.Animator.Systems;
 
-/// <summary>Highlights the interpolation preset buttons that match the selected key set.</summary>
+/// <summary>Lights the EASING window's curve that the selected key set uses.</summary>
 public sealed class AnimatorInterpolationSystem : QuerySystem<ToolAction, ButtonVisual>
 {
     private static readonly Color Active = Palette.Selected;
@@ -19,14 +19,15 @@ public sealed class AnimatorInterpolationSystem : QuerySystem<ToolAction, Button
             return;
 
         XafEasePreset? current = CurrentPreset(session);
-        foreach (Entity button in Query.ToEntityList())
+        // Hidden cells too, so the window opens already lit.
+        foreach (Entity button in Query.Store.Query<ToolAction, ButtonVisual>().WithDisabled().ToEntityList())
         {
             ToolAction action = button.GetComponent<ToolAction>();
             if (action.Kind != ToolActionKind.Interpolate)
                 continue;
 
             bool on = current is { } preset && action.Argument == preset.ToString();
-            Color target = on ? Active : UiTheme.Button;
+            Color target = on ? Active : AnimatorLayout.EasingCell;
             ref ButtonVisual visual = ref button.GetComponent<ButtonVisual>();
             if (visual.Normal == target)
                 continue;
@@ -36,7 +37,8 @@ public sealed class AnimatorInterpolationSystem : QuerySystem<ToolAction, Button
         }
     }
 
-    private static XafEasePreset? CurrentPreset(Entity session)
+    /// <summary>The selected key set's curve, or null when no key is selected.</summary>
+    public static XafEasePreset? CurrentPreset(Entity session)
     {
         AnimatorSelection selection = session.GetComponent<AnimatorSelection>();
         XafClip? clip = AnimatorSession.CurrentClip(session.GetComponent<AnimatorDocument>());

@@ -15,6 +15,9 @@ public static class UiLayers
     public const int AnimatorMenu = 6;
     public const int AnimatorTooltip = 7;
 
+    // Lab: a tool of its own. The engine settings panel covers the experiment's panel.
+    public const int LabSettings = 8;
+
     // Menu scenes. The shared background and the settings backdrop never coexist.
     public const int MenuBackground = 99;
     public const int Menu = 100;

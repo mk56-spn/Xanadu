@@ -19,7 +19,7 @@ public static class AnimatorEaseLine
     /// <summary>Narrower than this a curve is unreadable, as in a baked run of keys.</summary>
     public const float MinCurveWidth = 12f;
 
-    private const int Steps = 16;
+    private const int Steps = 32;
 
     /// <param name="left">Where the visible timeline starts; nothing is drawn past it.</param>
     /// <param name="right">Where the visible timeline ends.</param>
@@ -50,7 +50,9 @@ public static class AnimatorEaseLine
         {
             float t = step / (float)Steps;
             float rise = XafEasing.Progress(preset, t);
-            Add(line, new Vector2(Mathf.Lerp(fromX, toX, t), Mathf.Lerp(bottom, top, rise)), left, right);
+            // Back and elastic overshoot; the row's edges hold them in.
+            float y = Mathf.Clamp(Mathf.Lerp(bottom, top, rise), row.Position.Y, row.End.Y);
+            Add(line, new Vector2(Mathf.Lerp(fromX, toX, t), y), left, right);
         }
         return line.ToArray();
     }
