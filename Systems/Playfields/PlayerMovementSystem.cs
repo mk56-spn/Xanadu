@@ -181,34 +181,37 @@ public sealed class PlayerMovementSystem : QuerySystem<Player, Position, Playfie
         ref PhysicsBody body,
         Note movement)
     {
-        body.Body.SetLinearVelocity(WithoutOpposingSpeed(
-            body.Body.LinearVelocity,
-            DashDirectionVector(movement.DashDirection)));
-        body.Body.ApplyLinearImpulseToCenter(
-            MomentumImpulse(movement, body.Body.Mass),
-            true);
+        body.Body.SetLinearVelocity(MomentumVelocity(body.Body.LinearVelocity, movement));
     }
 
     /// <summary>
-    /// Zeroes speed on each axis that runs against <paramref name="direction"/>, so a
-    /// change of direction goes straight to the note's speed. Speed along it stacks,
-    /// and speed across it is kept.
+    /// The velocity after a momentum note. On each axis the note pushes along, the
+    /// speed becomes the note's own, unless the body already moves faster that way:
+    /// notes never stack, so two weak notes give no more than one, and a strong run
+    /// is not slowed by a weak note. Speed against the note is dropped, so a change
+    /// of direction goes straight to the note's speed, and speed across it is kept.
     /// </summary>
-    public static NVector2 WithoutOpposingSpeed(NVector2 velocity, Vector2 direction) =>
-        new(
-            velocity.X * direction.X < 0f ? 0f : velocity.X,
-            velocity.Y * direction.Y < 0f ? 0f : velocity.Y);
-
-    /// <summary>The impulse a momentum note applies to a body of <paramref name="mass"/> kg.</summary>
-    public static NVector2 MomentumImpulse(Note note, float mass)
+    public static NVector2 MomentumVelocity(NVector2 velocity, Note note)
     {
         Vector2 direction = DashDirectionVector(note.DashDirection);
-        float velocityChange = note.Momentum / Box2DPhysicsWorld.PixelsPerMeter *
-                               Box2DPhysicsWorld.MomentumScale;
+        float speed = MomentumSpeed(note);
         return new NVector2(
-            direction.X * velocityChange * mass,
-            direction.Y * velocityChange * mass);
+            Along(velocity.X, direction.X * speed),
+            Along(velocity.Y, direction.Y * speed));
     }
+
+    /// <summary>One axis of <see cref="MomentumVelocity"/>: the note's speed, or the current one if it is already faster the same way.</summary>
+    private static float Along(float current, float pushed)
+    {
+        if (pushed == 0f)
+            return current;
+        bool sameWay = current * pushed > 0f;
+        return sameWay && Math.Abs(current) >= Math.Abs(pushed) ? current : pushed;
+    }
+
+    /// <summary>The speed, in metres per second, a momentum note gives.</summary>
+    public static float MomentumSpeed(Note note) =>
+        note.Momentum / Box2DPhysicsWorld.PixelsPerMeter * Box2DPhysicsWorld.MomentumScale;
 
     private bool TryFindMovementNote(
         KeybindAction action,

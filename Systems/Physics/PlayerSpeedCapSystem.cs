@@ -7,7 +7,7 @@ namespace Xanadu.Systems.Physics;
 
 /// <summary>
 /// Holds the player to <see cref="Box2DPhysicsWorld.MaxSpeed"/> sideways and
-/// falling, so momentum cannot stack past one full note and falls reach a
+/// falling, so nothing carries it past the strongest momentum note and falls reach a
 /// terminal speed. Rising speed is not capped.
 /// </summary>
 public sealed class PlayerSpeedCapSystem : QuerySystem<Player, PhysicsBody>

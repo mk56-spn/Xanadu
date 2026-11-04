@@ -63,7 +63,7 @@ public sealed class CharacterRigDrawSystem(Func<IAttachmentVisuals> createVisual
             if (entity.TryGetComponent(out PlayCamera camera))
                 center += camera.Subpixel;
             bool faceLeft = entity.TryGetComponent(out CharacterFacing facing) && facing.Left;
-            Transform2D placement = Placement(instance.RigBounds, center + new Vector2(0, size.Y / 2), size.Y, faceLeft);
+            Transform2D placement = Placement(instance.RigBounds, center + new Vector2(0, size.Y / 2), Player.ArtHeight(size.Y), faceLeft);
             instance.Visuals.Apply(attachments, placement);
             instance.Visuals.ApplyStates(package, runtime.Pose, bones, attachments, placement);
             instance.Chains.Update(package, bones, Tick.deltaTime);

@@ -27,7 +27,7 @@ public sealed class PlayerSpeedCapTests
             momentum: Box2DPhysicsWorld.MaxMomentum);
 
         Assert.That(
-            PlayerMovementSystem.MomentumImpulse(note, mass: 1f).X,
+            PlayerMovementSystem.MomentumSpeed(note),
             Is.EqualTo(Max).Within(0.0001f));
     }
 

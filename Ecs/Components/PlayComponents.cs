@@ -50,19 +50,28 @@ public struct Player(Vector2 size) : IComponent
     public Vector2 Size = size;
 
     /// <summary>
-    /// Contact.xaf's art is 209 px tall at rest and the rig is drawn scaled to
-    /// the player's height, so this height makes it a little smaller than
-    /// authored. It is in playfield units; the playfield's scale turns it into
-    /// screen pixels.
+    /// The box's height in playfield units; the playfield's scale turns it into
+    /// screen pixels. It is shorter than the art so its top meets the top of the
+    /// character's head rather than the top of the rig's bounds.
     /// </summary>
-    public const float DefaultHeight = 200;
+    public const float DefaultHeight = 180;
 
-    public const float DefaultWidth = 40;
+    /// <summary>
+    /// How tall the character art is drawn, in playfield units. Contact.xaf's
+    /// art is 209 px tall at rest, so this makes it a little smaller than
+    /// authored. The art's feet sit on the bottom of the box.
+    /// </summary>
+    public const float DefaultArtHeight = 200;
+
+    public const float DefaultWidth = 60;
 
     public static readonly Vector2 DefaultSize = new(DefaultWidth, DefaultHeight);
 
     /// <summary>The box's size on screen for a playfield drawn at <paramref name="scale"/>.</summary>
     public static Vector2 ScaledSize(float scale) => DefaultSize * scale;
+
+    /// <summary>How tall the art is drawn for a box <paramref name="boxHeight"/> tall, in the same units.</summary>
+    public static float ArtHeight(float boxHeight) => boxHeight * (DefaultArtHeight / DefaultHeight);
 }
 
 /// <summary>HUD rows for per-judgement counters.</summary>

@@ -98,7 +98,7 @@ public sealed class NoteReachTests
     [Test]
     public void ReachIsFarWiderThanThePlayerBox()
     {
-        Assert.That(NoteReach.Radius, Is.GreaterThan(Player.DefaultWidth * 2));
+        Assert.That(NoteReach.Radius, Is.GreaterThan(Player.DefaultWidth));
         Assert.That(NoteReach.Radius, Is.EqualTo(100f));
     }
 

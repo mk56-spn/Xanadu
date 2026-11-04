@@ -70,9 +70,8 @@ public sealed class Box2DPhysicsWorldTests
             DashDirection = Xanadu.Ecs.DashDirection.Up,
             Momentum = 600f,
         };
-        body.ApplyLinearImpulseToCenter(
-            Xanadu.Systems.Playfields.PlayerMovementSystem.MomentumImpulse(note, body.Mass),
-            true);
+        body.SetLinearVelocity(
+            Xanadu.Systems.Playfields.PlayerMovementSystem.MomentumVelocity(body.LinearVelocity, note));
 
         float start = body.GetPosition().Y;
         float peak = start;
