@@ -25,6 +25,7 @@ public static class AnimatorKeyEditCommands
         XafChannelProperty.Rotation,
         XafChannelProperty.ScaleX,
         XafChannelProperty.ScaleY,
+        XafChannelProperty.Depth,
     };
 
     /// <summary>
@@ -165,6 +166,7 @@ public static class AnimatorKeyEditCommands
         XafChannelProperty.Rotation => transform.Rotation,
         XafChannelProperty.ScaleX => transform.Scale.X,
         XafChannelProperty.ScaleY => transform.Scale.Y,
+        XafChannelProperty.Depth => transform.Depth,
         _ => 0f,
     };
 }

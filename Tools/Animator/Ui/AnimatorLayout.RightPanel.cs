@@ -187,9 +187,13 @@ public static partial class AnimatorLayout
         Subhead(menu, "ADJUST");
         Stepper(menu, "ROTATE", ToolActionKind.RotateLeft, ToolActionKind.RotateRight);
         Stepper(menu, "SCALE", ToolActionKind.ScaleDown, ToolActionKind.ScaleUp);
+        Stepper(menu, "DEPTH", ToolActionKind.DepthAway, ToolActionKind.DepthToward);
         SmallRow(menu, ("MIRROR", ToolActionKind.MirrorPose));
         Subhead(menu, "CONSTRAINTS");
         SmallRow(menu, ("MOVE", ToolActionKind.ToggleMovable), ("LOCK BEND", ToolActionKind.LockBend));
+        SmallRow(menu, ("LIMIT ANGLE", ToolActionKind.ToggleLimit));
+        Stepper(menu, "MIN \u00b0", ToolActionKind.LimitMinDown, ToolActionKind.LimitMinUp);
+        Stepper(menu, "MAX \u00b0", ToolActionKind.LimitMaxDown, ToolActionKind.LimitMaxUp);
         menu.EndCollapsible();
 
         // The selected SVG: what it shows, on which layer, and whether it bends.

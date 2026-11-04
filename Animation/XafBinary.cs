@@ -186,6 +186,12 @@ public static class XafBinary
 				writer.Write(bone.AllowTranslation);
 			if (minor >= 8)
 				writer.Write((sbyte)bone.Bend);
+			if (minor >= 13)
+			{
+				writer.Write(bone.Limited);
+				writer.Write(bone.LimitMin);
+				writer.Write(bone.LimitMax);
+			}
 		}
 		writer.Flush();
 		return stream.ToArray();
@@ -208,7 +214,7 @@ public static class XafBinary
 			int parent = reader.ReadInt32();
 			if (parent < -1 || parent >= count || parent == i)
 				throw new XafFormatException($"Invalid parent for bone '{id}'.");
-			skeleton.Bones.Add(new XafBone
+			var bone = new XafBone
 			{
 				Id = id,
 				Parent = parent,
@@ -216,7 +222,14 @@ public static class XafBinary
 				ZOrder = reader.ReadInt32(),
 				AllowTranslation = minor >= 1 && reader.ReadBoolean(),
 				Bend = minor >= 8 ? reader.ReadSByte() : 0,
-			});
+			};
+			if (minor >= 13)
+			{
+				bone.Limited = reader.ReadBoolean();
+				bone.LimitMin = reader.ReadSingle();
+				bone.LimitMax = reader.ReadSingle();
+			}
+			skeleton.Bones.Add(bone);
 		}
 		return skeleton;
 	}

@@ -19,6 +19,9 @@ public static class XafPackageCopy
                 ZOrder = bone.ZOrder,
                 AllowTranslation = bone.AllowTranslation,
                 Bend = bone.Bend,
+                Limited = bone.Limited,
+                LimitMin = bone.LimitMin,
+                LimitMax = bone.LimitMax,
             });
         }
 
@@ -168,7 +171,8 @@ public static class XafPackageCopy
 
     private static bool BoneEqual(XafBone a, XafBone b) =>
         a.Id == b.Id && a.Parent == b.Parent && a.Rest == b.Rest &&
-        a.ZOrder == b.ZOrder && a.AllowTranslation == b.AllowTranslation && a.Bend == b.Bend;
+        a.ZOrder == b.ZOrder && a.AllowTranslation == b.AllowTranslation && a.Bend == b.Bend &&
+        a.Limited == b.Limited && a.LimitMin == b.LimitMin && a.LimitMax == b.LimitMax;
 
     private static bool AttachmentEqual(XafAttachment a, XafAttachment b) =>
         a.SvgPath == b.SvgPath && a.Group == b.Group && a.BoneId == b.BoneId &&

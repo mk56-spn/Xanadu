@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using Godot;
@@ -109,6 +110,45 @@ public static class AnimatorEditing
             AnimatorSession.SetStatus(session, $"KEYED {bones.Length} BONES");
         });
 
+    /// <summary>How far, in rig units, a DEPTH step moves a joint toward or away from the viewer.</summary>
+    public const float DepthStep = 5f;
+
+    /// <summary>
+    /// Moves the selected joints toward (positive) or away from the viewer
+    /// and keys them. Depth is posed, never part of the rest pose, which lies
+    /// in the screen's plane.
+    /// </summary>
+    public static void NudgeDepth(Entity session, float depth) =>
+        AnimatorHistoryCommands.Edit(session, () => NudgeDepthCore(session, depth));
+
+    private static void NudgeDepthCore(Entity session, float depth)
+    {
+        ref AnimatorDocument document = ref session.GetComponent<AnimatorDocument>();
+        if (session.GetComponent<AnimatorModes>().Rest)
+        {
+            AnimatorSession.SetStatus(session, "THE REST POSE LIES FLAT: POSE DEPTH IN A CLIP");
+            return;
+        }
+
+        List<int> bones = session.GetComponent<AnimatorSelection>().Bones();
+        if (bones.Count == 0)
+        {
+            AnimatorSession.SetStatus(session, "SELECT A JOINT FIRST");
+            return;
+        }
+
+        document.Runtime.SetPaused(true);
+        string status = "";
+        foreach (int bone in bones)
+        {
+            if (bone >= document.Runtime.Pose.Bones.Length)
+                continue;
+            document.Runtime.Pose.Bones[bone].Depth += depth;
+            status = $"{document.Package.Skeleton.Bones[bone].Id} DEPTH {document.Runtime.Pose.Bones[bone].Depth:0}";
+        }
+        AnimatorSession.SetStatus(session, status + KeyEdit(session));
+    }
+
     /// <summary>Rotates and scales the selection in the pose, or in the rest pose.</summary>
     public static void Nudge(Entity session, float rotation, float scale) =>
         AnimatorHistoryCommands.Edit(session, () => NudgeCore(session, rotation, scale));
@@ -195,6 +235,72 @@ public static class AnimatorEditing
         }
         AnimatorSession.SetStatus(session, status);
     }
+
+    /// <summary>How far a MIN or MAX step moves an angle limit.</summary>
+    public const float LimitStep = MathF.PI / 36f;
+
+    /// <summary>
+    /// Limits the selected bones' turn from rest to 45 degrees either way,
+    /// widened to take in the turn each has now so nothing jumps, or frees
+    /// limited ones.
+    /// </summary>
+    public static void ToggleLimit(Entity session) =>
+        AnimatorHistoryCommands.Edit(session, () => ToggleLimitCore(session));
+
+    private static void ToggleLimitCore(Entity session)
+    {
+        ref AnimatorDocument document = ref session.GetComponent<AnimatorDocument>();
+        XafPackage package = document.Package;
+        string status = "SELECT A BONE FIRST";
+        foreach (int index in session.GetComponent<AnimatorSelection>().Bones())
+        {
+            if (index < 0 || index >= package.Skeleton.Bones.Count)
+                continue;
+
+            XafBone bone = package.Skeleton.Bones[index];
+            bone.Limited = !bone.Limited;
+            if (bone.Limited)
+            {
+                float turn = index < document.Runtime.Pose.Bones.Length
+                    ? XafJointLocks.Turn(package, document.Runtime.Pose, index)
+                    : 0f;
+                bone.LimitMin = MathF.Min(-XafJointLocks.DefaultLimit, turn);
+                bone.LimitMax = MathF.Max(XafJointLocks.DefaultLimit, turn);
+            }
+            status = bone.Limited ? LimitStatus(bone) : $"{bone.Id} TURNS FREELY";
+        }
+        AnimatorSession.SetStatus(session, status);
+    }
+
+    /// <summary>
+    /// Moves the low (or, with <paramref name="max"/>, the high) end of the
+    /// selected limited bones' range by a step; the ends never cross.
+    /// </summary>
+    public static void StepLimit(Entity session, bool max, int direction) =>
+        AnimatorHistoryCommands.Edit(session, () => StepLimitCore(session, max, direction));
+
+    private static void StepLimitCore(Entity session, bool max, int direction)
+    {
+        XafPackage package = session.GetComponent<AnimatorDocument>().Package;
+        string status = "LIMIT A BONE FIRST";
+        foreach (int index in session.GetComponent<AnimatorSelection>().Bones())
+        {
+            if (index < 0 || index >= package.Skeleton.Bones.Count || !package.Skeleton.Bones[index].Limited)
+                continue;
+
+            XafBone bone = package.Skeleton.Bones[index];
+            float step = LimitStep * direction;
+            if (max)
+                bone.LimitMax = Math.Clamp(bone.LimitMax + step, bone.LimitMin, MathF.PI);
+            else
+                bone.LimitMin = Math.Clamp(bone.LimitMin + step, -MathF.PI, bone.LimitMax);
+            status = LimitStatus(bone);
+        }
+        AnimatorSession.SetStatus(session, status);
+    }
+
+    private static string LimitStatus(XafBone bone) =>
+        $"{bone.Id} TURNS {Mathf.RadToDeg(bone.LimitMin):0}\u00b0 TO {Mathf.RadToDeg(bone.LimitMax):0}\u00b0";
 
     /// <summary>Lets the selected bone translate, or locks it back to its rest length.</summary>
     public static void ToggleMovable(Entity session) =>

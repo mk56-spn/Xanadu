@@ -122,4 +122,64 @@ public sealed class XafBoneLengthTests
         Assert.That(loaded.Skeleton.Bones[1].Rest.Origin, Is.EqualTo(new Vector2(0, -50)));
         Assert.That(loaded.Clips[0].Channels, Has.Count.EqualTo(3));
     }
+
+    /// <summary>
+    /// A leg hanging straight down, hip at the origin: a 50 long thigh, a 50
+    /// long shin and a foot, each with its own art.
+    /// </summary>
+    private static XafPackage Leg()
+    {
+        var package = new XafPackage();
+        package.Skeleton.Bones.Add(new XafBone { Id = "thigh", Parent = -1 });
+        package.Skeleton.Bones.Add(new XafBone { Id = "shin", Parent = 0, Rest = new Transform2D(0f, new Vector2(0, 50)) });
+        package.Skeleton.Bones.Add(new XafBone { Id = "foot", Parent = 1, Rest = new Transform2D(0f, new Vector2(0, 50)) });
+        foreach (string id in new[] { "thigh", "shin", "foot" })
+            package.Attachments.Add(new XafAttachment { Group = id, BoneId = id });
+        return package;
+    }
+
+    [Test]
+    public void AKneeBroughtOutOfThePlaneForeshortensTheThighAndTheShinAlike()
+    {
+        XafPackage package = Leg();
+        var clip = new XafClip { Id = "chamber", Duration = 1f };
+        AddKey(clip, "shin", XafChannelProperty.Depth, 30f);
+        package.Clips.Add(clip);
+
+        XafPose pose = XafSampler.Sample(package, clip, 0f);
+        Transform2D[] bones = XafRig.WorldBones(package, pose);
+        Transform2D[] art = XafRig.WorldAttachments(package, pose, bones);
+
+        // Each 50 long segment spans a depth gap of 30, so 40 of it shows.
+        Assert.That(bones[0].Origin, Is.EqualTo(Vector2.Zero), "the hip stays put");
+        Assert.That(bones[1].Origin.Y, Is.EqualTo(40f).Within(1e-3f), "the knee rises");
+        Assert.That(bones[2].Origin.Y, Is.EqualTo(80f).Within(1e-3f), "the ankle rises with both");
+        Assert.That(art[0].Scale.Y, Is.EqualTo(0.8f).Within(1e-4f), "the thigh's art squashes along it");
+        Assert.That(art[1].Scale.Y, Is.EqualTo(0.8f).Within(1e-4f), "and so does the shin's");
+        Assert.That(art[0].Scale.X, Is.EqualTo(1f).Within(1e-4f), "neither gets narrower");
+        Assert.That(art[2].Scale, Is.EqualTo(Vector2.One), "the foot, in the plane at both ends, keeps its shape");
+    }
+
+    [Test]
+    public void ASegmentSquashesAlongItsOwnDirectionWhicheverWayItPoints()
+    {
+        XafPackage package = Leg();
+        package.Skeleton.Bones[1].Rest = new Transform2D(0f, new Vector2(50, 0));
+        var clip = new XafClip { Id = "chamber", Duration = 1f };
+        AddKey(clip, "shin", XafChannelProperty.Depth, 30f);
+        package.Clips.Add(clip);
+
+        XafPose pose = XafSampler.Sample(package, clip, 0f);
+        Transform2D squash = XafRig.Foreshorten(package, pose, 0);
+
+        Assert.That(squash * new Vector2(10, 0), Is.EqualTo(new Vector2(8, 0)));
+        Assert.That(squash * new Vector2(0, 10), Is.EqualTo(new Vector2(0, 10)));
+    }
+
+    [Test]
+    public void AJointCannotSinkFurtherThanItsSegmentIsLong()
+    {
+        Assert.That(XafRig.Projection(50f, 0f, 80f), Is.EqualTo(XafRig.MinProjection));
+        Assert.That(XafRig.Projection(50f, 10f, 10f), Is.EqualTo(1f));
+    }
 }

@@ -79,6 +79,16 @@ public struct XafTransform
     public float Rotation;
     public Vector2 Scale;
 
+    /// <summary>
+    /// How far this bone's joint (its origin) sits out of the screen's plane,
+    /// in rig units, toward the viewer or away: 0, the default, is in the
+    /// plane. It belongs to the joint, not the bone, and is not inherited: a
+    /// knee brought toward the viewer leaves the hip and the ankle in the
+    /// plane, so the thigh and the shin either side of it both foreshorten
+    /// (see <see cref="XafRig.Projection"/>).
+    /// </summary>
+    public float Depth;
+
     public static XafTransform Identity => new()
     {
         Translation = Vector2.Zero,
@@ -355,6 +365,9 @@ public static class XafSampler
             case XafChannelProperty.ScaleY:
                 transform.Scale.Y = value;
                 break;
+            case XafChannelProperty.Depth:
+                transform.Depth = value;
+                break;
         }
     }
 }
@@ -428,6 +441,7 @@ public static class XafBlend
         Translation = from.Translation.Lerp(to.Translation, weight),
         Rotation = Mathf.LerpAngle(from.Rotation, to.Rotation, weight),
         Scale = from.Scale.Lerp(to.Scale, weight),
+        Depth = Mathf.Lerp(from.Depth, to.Depth, weight),
     };
 
     public static XafTransform Add(
@@ -440,5 +454,6 @@ public static class XafBlend
         Rotation = baseTransform.Rotation + additive.Rotation * weight,
         Scale = baseTransform.Scale *
                 Vector2.One.Lerp(additive.Scale, weight),
+        Depth = baseTransform.Depth + additive.Depth * weight,
     };
 }
