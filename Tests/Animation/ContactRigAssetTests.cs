@@ -60,7 +60,7 @@ public sealed class ContactRigAssetTests
         XafPackage package = Load();
 
         Assert.That(XafValidation.Validate(package), Is.Empty);
-        Assert.That(package.Skeleton.Bones, Has.Count.EqualTo(15));
+        Assert.That(package.Skeleton.Bones, Has.Count.EqualTo(17));
         // The animator can add clips of its own, such as a work-in-progress duplicate,
         // so this pins only the ones the game plays by name.
         Assert.That(package.Clips.ConvertAll(clip => clip.Id),
