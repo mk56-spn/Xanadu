@@ -31,6 +31,7 @@ public sealed class UiInteractionSystemGroup : SystemGroup
         Add(new UiTreeSystem());
         Add(new UiCollapsibleSystem());
         Add(new TextFieldFocusSystem());
+        Add(new TextFieldDoubleClickSystem());
         Add(new TextFieldSystem());
         Add(new DisabledTextFieldSystem());
         Add(scroll);

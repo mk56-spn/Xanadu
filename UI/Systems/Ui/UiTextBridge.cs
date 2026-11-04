@@ -40,7 +40,19 @@ public sealed partial class UiTextBridge : LineEdit
     {
         Entity focused = FindFocused();
         if (focused.Id == _field.Id && !focused.IsNull)
+        {
+            // Something other than typing changed the value, such as a double
+            // click clearing it: follow it, or the next key would bring the old text back.
+            string current = focused.GetComponent<TextField>().Value;
+            if (current != Text)
+            {
+                _syncing = true;
+                Text = current;
+                CaretColumn = current.Length;
+                _syncing = false;
+            }
             return;
+        }
 
         _field = focused;
         if (focused.IsNull)
