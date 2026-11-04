@@ -230,10 +230,12 @@ public sealed class PlayerMovementSystemTests
     }
 
     [TestCase(-8f, 0f, DashDirection.Right, 1f, 0f)]
-    [TestCase(8f, 0f, DashDirection.Right, 9f, 0f)]
+    [TestCase(0.5f, 0f, DashDirection.Right, 1f, 0f)]
+    [TestCase(8f, 0f, DashDirection.Right, 8f, 0f)]
     [TestCase(-8f, 5f, DashDirection.Right, 1f, 5f)]
     [TestCase(3f, 12f, DashDirection.Up, 3f, -1f)]
-    public void AMomentumNoteZeroesOpposingSpeedThenPushes(
+    [TestCase(3f, -4f, DashDirection.Up, 3f, -4f)]
+    public void AMomentumNoteSetsItsSpeedWithoutStacking(
         float startX,
         float startY,
         DashDirection direction,
@@ -258,17 +260,42 @@ public sealed class PlayerMovementSystemTests
     }
 
     [Test]
-    public void ADiagonalMomentumNoteZeroesEachOpposingAxis()
+    public void ADiagonalMomentumNoteSetsEachAxisItPushesAlong()
     {
-        Assert.That(
-            PlayerMovementSystem.WithoutOpposingSpeed(
-                new System.Numerics.Vector2(-8f, 12f),
-                new Vector2(1f, -1f).Normalized()),
-            Is.EqualTo(System.Numerics.Vector2.Zero));
+        var note = new Note(
+            0,
+            Vector2.Zero,
+            kind: NoteKind.Momentum,
+            dashDirection: DashDirection.UpRight,
+            momentum: 100f / Box2DPhysicsWorld.MomentumScale);
+        float axis = new Vector2(1f, -1f).Normalized().X;
+
+        System.Numerics.Vector2 velocity = PlayerMovementSystem.MomentumVelocity(
+            new System.Numerics.Vector2(-8f, 12f),
+            note);
+
+        Assert.That(velocity.X, Is.EqualTo(axis).Within(0.0001f));
+        Assert.That(velocity.Y, Is.EqualTo(-axis).Within(0.0001f));
     }
 
     [Test]
-    public void MomentumImpulseScalesWithTheAuthoredMagnitude()
+    public void TwoWeakMomentumNotesGiveNoMoreSpeedThanOne()
+    {
+        var note = new Note(
+            0,
+            Vector2.Zero,
+            kind: NoteKind.Momentum,
+            dashDirection: DashDirection.Right,
+            momentum: 200f);
+
+        System.Numerics.Vector2 once = PlayerMovementSystem.MomentumVelocity(System.Numerics.Vector2.Zero, note);
+        System.Numerics.Vector2 twice = PlayerMovementSystem.MomentumVelocity(once, note);
+
+        Assert.That(twice, Is.EqualTo(once));
+    }
+
+    [Test]
+    public void MomentumSpeedScalesWithTheAuthoredMagnitude()
     {
         var note = new Note(
             0,
@@ -277,11 +304,9 @@ public sealed class PlayerMovementSystemTests
             dashDirection: DashDirection.Right,
             momentum: 600f);
 
-        System.Numerics.Vector2 impulse =
-            PlayerMovementSystem.MomentumImpulse(note, mass: 1f);
-
-        Assert.That(impulse.X, Is.EqualTo(6f * Box2DPhysicsWorld.MomentumScale).Within(0.0001f));
-        Assert.That(impulse.Y, Is.EqualTo(0f).Within(0.0001f));
+        Assert.That(
+            PlayerMovementSystem.MomentumSpeed(note),
+            Is.EqualTo(6f * Box2DPhysicsWorld.MomentumScale).Within(0.0001f));
     }
 
     [TestCase(DashStrength.Single, 250f)]

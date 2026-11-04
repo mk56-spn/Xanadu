@@ -93,9 +93,10 @@ public sealed class CharacterRigTests : EcsSystemTest
         FakeVisuals visuals = _visuals[0];
         Assert.That(visuals.ChainFrames, Is.EqualTo(10));
         Assert.That(visuals.ChainPoints, Is.EqualTo(7));
-        // The same rig-to-canvas placement the attachments use, so hair scales and stands with the body.
+        // The same rig-to-canvas placement the attachments use, so hair scales and stands with the body;
+        // the art is drawn at its own height, a little taller than the box.
         Assert.That(visuals.ChainPlacement.X.Length(), Is.GreaterThan(0f));
-        Assert.That(visuals.ChainPlacement.X.Length(), Is.EqualTo(100f / 200f).Within(0.0001f));
+        Assert.That(visuals.ChainPlacement.X.Length(), Is.EqualTo(Xanadu.Ecs.Player.ArtHeight(100f) / 200f).Within(0.0001f));
     }
 
     [Test]
