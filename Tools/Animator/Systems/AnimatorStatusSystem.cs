@@ -12,17 +12,10 @@ public sealed class AnimatorStatusSystem : QuerySystem<AnimatorStatus, AnimatorU
         CommandBuffer buffer = CommandBuffer;
         foreach (Entity session in Query.ToEntityList())
         {
-            Entity label = session.GetComponent<AnimatorUi>().Status;
-            string message = session.GetComponent<AnimatorStatus>().Message ?? "";
-            if (label.IsNull || !label.HasComponent<Text>())
-                continue;
-
-            ref Text text = ref label.GetComponent<Text>();
-            if (text.Value == message)
-                continue;
-
-            text.Value = message;
-            buffer.AddTag<Dirty>(label.Id);
+            ShellStatus.Show(
+                session.GetComponent<AnimatorUi>().StatusLabels,
+                session.GetComponent<AnimatorStatus>().Message,
+                buffer);
         }
     }
 }

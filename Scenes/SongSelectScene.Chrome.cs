@@ -9,8 +9,8 @@ namespace Xanadu.Scenes;
 public static partial class SongSelectScene
 {
     // The one accent: gold, as in the player name and the background notes.
-    private static readonly Color Gold = new("#f5c542");
-    private static readonly Color GoldLight = new("#fff3c4");
+    private static readonly Color Gold = SceneUi.GoldColor;
+    private static readonly Color GoldLight = SceneUi.GoldLightColor;
     private static readonly Color ListBackdrop = new(0.031f, 0.031f, 0.031f, 0.7f);
 
     private const int VisualizerBars = 48;

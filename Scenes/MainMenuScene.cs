@@ -31,18 +31,27 @@ public static class MainMenuScene
         IVisualRidFactory? visuals = null)
     {
         UiStage stage = UiStage.Full;
-        UiNode ui = UiNode.Layer(entities, root, UiLayers.Menu, visuals, stage);
+        UiNode ui = UiNode.Layer(entities, root, UiLayers.Menu, visuals, stage)
+            .Theme(UiThemes.Menu);
 
         ui.Text(
                 LocalizedText.Get(MainMenuStrings.Title),
-                UiType.Display,
-                SceneUi.AccentColor)
+                UiType.Display)
+            .AccentText()
             .At(new Vector2(stage.Center.X, TitleY));
         ui.Text(
                 LocalizedText.Get(MainMenuStrings.Subtitle),
-                UiType.Label,
-                SceneUi.DimTextColor)
+                UiType.Label)
+            .DimText()
             .At(new Vector2(stage.Center.X, SubtitleY));
+
+        // A dark panel behind the buttons, so they read over the moving notes.
+        float menuHeight = PlayHeight + MenuHeight * 2 + LastHeight * 2 + UiMetrics.Space.Md * 4;
+        ui.Rect(
+                default,
+                size: new Vector2(MenuWidth, menuHeight) + Vector2.One * SceneUi.BackingPad * 2)
+            .Backing()
+            .At(new Vector2(stage.Center.X, MenuCenterY));
 
         UiNode menu = ui.Column()
             .Width(MenuWidth)
@@ -51,43 +60,43 @@ public static class MainMenuScene
 
         menu.Button(
                 LocalizedText.Get(MainMenuStrings.Play),
-                UiType.Section,
-                SceneUi.ButtonColor)
+                UiType.Section)
+            .Primary()
             .Size(MenuWidth, PlayHeight)
             .On(SceneKind.SongSelect);
 
         menu.Button(
                 LocalizedText.Get(MainMenuStrings.Editor),
-                UiType.Label,
-                SceneUi.MutedButtonColor)
+                UiType.Label)
+            .Secondary()
             .Size(MenuWidth, MenuHeight)
             .On(SceneKind.Editor);
 
         menu.Button(
                 LocalizedText.Get(MainMenuStrings.Settings),
-                UiType.Label,
-                SceneUi.MutedButtonColor)
+                UiType.Label)
+            .Secondary()
             .Size(MenuWidth, MenuHeight)
             .On(SceneKind.Settings);
 
         menu.Button(
                 LocalizedText.Get(MainMenuStrings.OffsetWizard),
-                UiType.Small,
-                SceneUi.MutedButtonColor)
+                UiType.Small)
+            .Secondary()
             .Size(MenuWidth, LastHeight)
             .On(SceneKind.OffsetWizard);
 
         menu.Button(
                 LocalizedText.Get(MainMenuStrings.Profiles),
-                UiType.Small,
-                SceneUi.MutedButtonColor)
+                UiType.Small)
+            .Secondary()
             .Size(MenuWidth, LastHeight)
             .On(SceneKind.Profiles);
 
         ui.Text(
                 LocalizedText.Get(MainMenuStrings.Footer),
-                UiType.Small,
-                SceneUi.DimTextColor)
+                UiType.Small)
+            .DimText()
             .At(new Vector2(stage.Center.X, stage.Height - FooterInset));
     }
 }

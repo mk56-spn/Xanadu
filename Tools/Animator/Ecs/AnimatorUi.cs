@@ -1,12 +1,17 @@
 using Friflo.Engine.ECS;
 using Godot;
+using Xanadu.Ecs;
 
 namespace Xanadu.Tools.Animator;
 
 /// <summary>UI entities the animator systems read or write.</summary>
 public struct AnimatorUi : IComponent
 {
+    /// <summary>The header's status message; part of <see cref="StatusLabels"/>.</summary>
     public Entity Status;
+
+    /// <summary>The header's status message and unsaved flag, built the same way as the level editor's.</summary>
+    public ShellStatusLabels StatusLabels;
 
     /// <summary>The selected attachment's self modulate.</summary>
     public Entity ModulateField;
