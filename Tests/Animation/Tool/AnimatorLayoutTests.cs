@@ -29,15 +29,15 @@ public sealed class AnimatorLayoutTests : AnimatorToolTest
     }
 
     [Test]
-    public void StatusAndDirtyFlagSitOnTheStatusLineUnderThePreview()
+    public void StatusAndDirtyFlagSitInTheHeaderAfterUndoAndRedo()
     {
-        Rect2 line = Shell().StatusLine;
+        Rect2 header = Shell().Header;
         Rect2 status = AnimatorGeometry.PanelArea(Ui.Status);
         Rect2 dirty = AnimatorGeometry.PanelArea(Ui.DirtyLabel);
 
-        Assert.That(line.Encloses(status), Is.True);
-        Assert.That(line.Encloses(dirty), Is.True);
-        Assert.That(dirty.Position.X, Is.GreaterThan(status.Position.X));
+        Assert.That(header.Encloses(status), Is.True);
+        Assert.That(header.Encloses(dirty), Is.True);
+        Assert.That(status.Position.X, Is.GreaterThan(dirty.Position.X));
     }
 
     [Test]

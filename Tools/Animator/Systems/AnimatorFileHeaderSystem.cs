@@ -19,7 +19,7 @@ public sealed class AnimatorFileHeaderSystem : QuerySystem<AnimatorFile, Animato
         {
             AnimatorUi ui = session.GetComponent<AnimatorUi>();
             SyncPath(session, ui.PathField);
-            SyncDirty(session, ui.DirtyLabel);
+            ShellStatus.ShowUnsaved(ui.StatusLabels, session.GetComponent<AnimatorFile>().Dirty);
         }
     }
 
@@ -39,17 +39,4 @@ public sealed class AnimatorFileHeaderSystem : QuerySystem<AnimatorFile, Animato
         _wasEditing = editing;
     }
 
-    private static void SyncDirty(Entity session, Entity label)
-    {
-        if (label.IsNull || !label.HasComponent<Text>())
-            return;
-
-        string value = session.GetComponent<AnimatorFile>().Dirty ? "● UNSAVED" : "";
-        ref Text text = ref label.GetComponent<Text>();
-        if (text.Value == value)
-            return;
-
-        text.Value = value;
-        label.AddTag<Dirty>();
-    }
 }

@@ -91,6 +91,12 @@ public static class Palette
     /// <summary>Amber. Selection, playheads, animator bone strokes, and the top judgement.</summary>
     public static readonly Color Accent = new("#facc15");
 
+    /// <summary>Song select's gold: the one accent of the menus and the play HUD.</summary>
+    public static readonly Color Gold = new("#f5c542");
+
+    /// <summary>The cream the gold fades to, as in song select's player card.</summary>
+    public static readonly Color GoldLight = new("#fff3c4");
+
     /// <summary>Sky blue. The input queue, group badges, and animator bone fills.</summary>
     public static readonly Color Info = new("#38bdf8");
 

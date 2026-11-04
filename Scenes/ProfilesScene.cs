@@ -41,35 +41,47 @@ public static class ProfilesScene
         IVisualRidFactory? visuals = null)
     {
         UiStage stage = UiStage.Full;
-        UiNode ui = UiNode.Layer(entities, root, UiLayers.Menu, visuals, stage);
+        UiNode ui = UiNode.Layer(entities, root, UiLayers.Menu, visuals, stage)
+            .Theme(UiThemes.Menu);
 
-        ui.Text("WHO'S PLAYING?", UiType.Title, SceneUi.AccentColor)
+        ui.Text("WHO'S PLAYING?", UiType.Title)
+            .AccentText()
             .At(new Vector2(stage.Center.X, TitleY));
         ui.Text(
                 "Pick a profile to load its saved scores.",
-                UiType.Label,
-                SceneUi.DimTextColor)
+                UiType.Label)
+            .DimText()
             .At(new Vector2(stage.Center.X, SubtitleY));
 
-        UiNode list = ProfileList(ui, profiles, visuals is GodotVisualRidFactory, out float listBottom);
-
+        float listBottom = ListBottom(profiles.Profiles.Count);
         float createY = Mathf.Min(
             stage.Height - CreateBottomInset,
             listBottom + CreateGap + RowHeight / 2);
+
+        // A dark panel behind the rows and the create button, so they read over the moving notes.
+        float top = FirstRowY - RowHeight / 2 - SceneUi.BackingPad;
+        float bottom = createY + RowHeight / 2 + SceneUi.BackingPad;
+        ui.Rect(
+                default,
+                size: new Vector2(RowWidth + SceneUi.BackingPad * 2, bottom - top))
+            .Backing()
+            .At(new Vector2(stage.Center.X, (top + bottom) / 2));
+
+        ProfileList(ui, profiles, visuals is GodotVisualRidFactory);
 
         if (profiles.Profiles.Count == 0)
         {
             ui.Text(
                     "No profiles yet. Create one to start playing.",
-                    UiType.Label,
-                    SceneUi.DimTextColor)
+                    UiType.Label)
+                .DimText()
                 .At(new Vector2(stage.Center.X, createY + EmptyHintOffset));
         }
 
         ui.Button(
                 LocalizedText.Get(ProfilesStrings.NewProfile),
-                UiType.Label,
-                SceneUi.ButtonColor)
+                UiType.Label)
+            .Primary()
             .Size(CreateWidth, RowHeight)
             .At(new Vector2(stage.Center.X, createY))
             .With(new ProfileCreate());
@@ -78,20 +90,24 @@ public static class ProfilesScene
         {
             ui.Text(
                     $"CURRENT PROFILE  ·  {current.Name}",
-                    UiType.Small,
-                    SceneUi.DimTextColor)
+                    UiType.Small)
+                .DimText()
                 .At(new Vector2(stage.Center.X, stage.Height - FooterInset));
         }
     }
 
-    /// <summary>
-    /// One column of profile rows, sized to the profiles that exist. Returns the
-    /// column node and, through <paramref name="bottom"/>, where it ends.
-    /// </summary>
-    private static UiNode ProfileList(UiNode ui, ProfileStore profiles, bool loadAssets, out float bottom)
+    private static float ListHeight(int count) =>
+        count * RowHeight + Mathf.Max(0, count - 1) * UiMetrics.Space.Lg;
+
+    /// <summary>Where the profile rows end; the first row's top when there are none.</summary>
+    private static float ListBottom(int count) =>
+        FirstRowY - RowHeight / 2 + ListHeight(count);
+
+    /// <summary>One column of profile rows, sized to the profiles that exist.</summary>
+    private static UiNode ProfileList(UiNode ui, ProfileStore profiles, bool loadAssets)
     {
         int count = profiles.Profiles.Count;
-        float height = count * RowHeight + Mathf.Max(0, count - 1) * UiMetrics.Space.Lg;
+        float height = ListHeight(count);
 
         UiNode list = ui.Column()
             .Width(RowWidth)
@@ -114,22 +130,24 @@ public static class ProfilesScene
                 ArtSize,
                 ProfileArt.Material(loadAssets, ProfileArt.Tint(profile), ProfileArt.Instance(profile), ArtZoom));
 
-            row.Button(
+            UiNode select = row.Button(
                     $"{(active ? "▶  " : "")}{profile.Name}",
-                    UiType.Label,
-                    active ? SceneUi.ButtonColor : SceneUi.MutedButtonColor)
+                    UiType.Label)
                 .Size(RowWidth - ArtSize - EditWidth - UiMetrics.Space.Lg * 2, RowHeight)
                 .With(new ProfileSelect(profile.Id));
+            if (active)
+                select.Primary();
+            else
+                select.Secondary();
 
             row.Button(
                     LocalizedText.Get(ProfilesStrings.Edit),
-                    UiType.Small,
-                    SceneUi.MutedButtonColor)
+                    UiType.Small)
+                .Secondary()
                 .Size(EditWidth, RowHeight)
                 .With(new ProfileEditAction(profile.Id));
         }
 
-        bottom = count == 0 ? FirstRowY - RowHeight / 2 : FirstRowY - RowHeight / 2 + height;
         return list;
     }
 }

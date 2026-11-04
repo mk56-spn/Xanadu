@@ -51,10 +51,10 @@ public static partial class AnimatorLayout
     private const float NewClipLabelWidth = 70f;
 
     // Header slots; together they must fit in the header, which is one
-    // screen wide less its padding. The window is 1600 wide.
+    // screen wide less its padding. The window opens 1920 wide.
     private const float TitleWidth = EditorShellMetrics.NameWidth;
-    private const float StatusWidth = 640f;
-    private const float DirtyWidth = 80f;
+    /// <summary>The header's room for the status message, between undo and redo and the preview button.</summary>
+    private const float StatusWidth = 360f;
     private const float StatusButtonWidth = 44f;
     private const float ClipLabelWidth = 48f;
     private const float PreviewButtonWidth = 110f;
@@ -146,6 +146,11 @@ public static partial class AnimatorLayout
         var history = new Vector2(HistoryButton, HistoryButton);
         IconAction(ui, "UN", "undo", ToolActionKind.Undo, history);
         IconAction(ui, "RE", "redo", ToolActionKind.Redo, history);
+
+        // The last action's message and the unsaved flag, shared with the level editor's header.
+        refs.Ui.StatusLabels = ShellStatus.Add(UiNode.Wrap(ui.Current, ui.Visuals), HeaderControl, StatusWidth);
+        refs.Ui.Status = refs.Ui.StatusLabels.Message;
+        refs.Ui.DirtyLabel = refs.Ui.StatusLabels.Flag;
         ui.End();
 
         EdgeGroup(ui, new Vector2(1, 0.5f), TopHeight, EditorShellMetrics.HeaderGap,
@@ -226,10 +231,6 @@ public static partial class AnimatorLayout
         ui.Container(Vector2.Zero, line, spacing: 12, color: UiTheme.Panel,
             padding: 4, main: StackMainAlignment.Start);
         refs.Ui.StatusLine = ui.Current;
-        refs.Ui.Status = ui.Text("", new Vector2(StatusWidth, line.Y - 8), UiTheme.FontSize,
-            Palette.Lime, TextAlign.Left);
-        refs.Ui.DirtyLabel = ui.Text("", new Vector2(DirtyWidth, line.Y - 8), UiTheme.SmallFontSize,
-            UiTheme.Accent, TextAlign.Left);
 
         // Framing belongs to the viewport, so it sits on the viewport's own line.
         EdgeGroup(ui, new Vector2(1, 0.5f), line.Y, 4, 2);

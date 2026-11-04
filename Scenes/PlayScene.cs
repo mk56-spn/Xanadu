@@ -115,15 +115,17 @@ public static class PlayScene
         }
 
         UiNode ui = UiNode.Layer(
-            entities, root, UiLayers.PlayHud, visuals, UiStage.Full);
+            entities, root, UiLayers.PlayHud, visuals, UiStage.Full)
+            .Theme(UiThemes.Hud);
+        UiThemeRoles theme = ui.Roles;
         HudLayout hud = new();
 
         ui.HudButton(
                 new Vector2(95, 44),
                 new Vector2(150, 44),
                 LocalizedText.Get(PlayStrings.Pause),
-                UiType.Label,
-                SceneUi.MutedButtonColor)
+                UiType.Label)
+            .Secondary()
             .On(SceneActionId.Pause);
 
         // Under PAUSE, clear of the field; PlaySkipSystem shows it while the entrance can be skipped.
@@ -131,8 +133,8 @@ public static class PlayScene
                 new Vector2(95, 100),
                 new Vector2(150, 44),
                 LocalizedText.Get(PlayStrings.Skip),
-                UiType.Label,
-                SceneUi.ButtonColor)
+                UiType.Label)
+            .Primary()
             .Hidden()
             .Entity;
 
@@ -141,7 +143,7 @@ public static class PlayScene
             string.IsNullOrWhiteSpace(document.Name) ? "UNTITLED" : document.Name,
             20,
             SceneUi.TextColor,
-            SceneUi.PanelColor);
+            theme.Backing);
 
         string artist = string.IsNullOrWhiteSpace(song?.Artist)
             ? "Unknown artist"
@@ -155,7 +157,7 @@ public static class PlayScene
             $"{artist}   ·   {difficulty}",
             14,
             SceneUi.DimTextColor,
-            SceneUi.PanelColor);
+            theme.Backing);
 
         hud.Add(
             "song_info",
@@ -178,6 +180,8 @@ public static class PlayScene
 
         // The combo: a big number over a small caption, animated by ComboHudSystem.
         var comboCenter = new Vector2(screen.X - 150, screen.Y - 126);
+        var comboArea = new Rect2(comboCenter.X - 130, comboCenter.Y - 42, 260, 104);
+        Entity comboBacking = ui.HudBacking(comboArea);
         Entity comboText = ui.HudText(comboCenter,
             new Vector2(260, 84),
             "0",
@@ -202,20 +206,22 @@ public static class PlayScene
             new Vector2(520, 44),
             "",
             28,
-            SceneUi.AccentColor,
+            theme.Accent,
             new Color(0, 0, 0, 0));
 
         Entity timingText = ui.HudText(new Vector2(screen.X / 2, screen.Y / 2 - 90),
             new Vector2(520, 22),
             "",
             UiType.Small,
-            Palette.Info,
+            theme.Accent,
             new Color(0, 0, 0, 0))
             .Hidden();
         playfieldEntity.AddComponent(new TimingIndicator(timingText));
 
         BuildErrorBar(ui, playfieldEntity, screen, hud);
 
+        var contactArea = new Rect2(screen.X / 2 - 160, 80, 320, 26);
+        Entity contactBacking = ui.HudBacking(contactArea);
         Entity leftStack = ui.HudText(new Vector2(screen.X / 2 - 80, 92),
             new Vector2(150, 22),
             "L 0",
@@ -232,8 +238,8 @@ public static class PlayScene
         hud.Add(
             "contact_counters",
             new Vector2(screen.X / 2, 92),
-            new Rect2(screen.X / 2 - 160, 80, 320, 26),
-            new[] { leftStack, rightStack });
+            contactArea,
+            new[] { contactBacking, leftStack, rightStack });
         playfieldEntity.AddComponent(new ContactCounterHud(leftStack, rightStack));
 
         Entity weaponText = ui.HudText(
@@ -265,7 +271,8 @@ public static class PlayScene
         hud.Add(
             "combo",
             comboCenter + new Vector2(0, 10),
-            new Rect2(comboCenter.X - 130, comboCenter.Y - 42, 260, 104),
+            comboArea,
+            comboBacking,
             comboText,
             comboCaption);
         hud.Add(
@@ -275,7 +282,8 @@ public static class PlayScene
             status);
 
         float counterX = screen.X - 150;
-        var counterMembers = new List<Entity>();
+        var countsArea = new Rect2(screen.X - 280, 178, 280, 220);
+        var counterMembers = new List<Entity> { ui.HudBacking(countsArea) };
         counterMembers.Add(ui.HudText(new Vector2(counterX, 190),
             new Vector2(260, 22),
             LocalizedText.Get(PlayStrings.Judgements),
@@ -329,14 +337,14 @@ public static class PlayScene
         hud.Add(
             "judgement_counts",
             new Vector2(screen.X - 130, 285),
-            new Rect2(screen.X - 280, 178, 280, 220),
+            countsArea,
             counterMembers.ToArray());
 
         Entity countdown = ui.HudText(new Vector2(screen.X / 2, screen.Y / 2),
             new Vector2(700, 180),
             "",
             120,
-            SceneUi.AccentColor,
+            theme.Accent,
             new Color(0, 0, 0, 0));
 
         hud.Add(
@@ -395,8 +403,8 @@ public static class PlayScene
             new Vector2(620, 28),
             "",
             UiType.Body,
-            SceneUi.AccentColor,
-            Palette.Background)
+            theme.Accent,
+            theme.Backing)
             .Hidden();
         playfieldEntity.AddComponent(new PlayOffset(document.Id, mapOffset));
 
@@ -427,7 +435,7 @@ public static class PlayScene
         members.Add(ui.HudRect(
             new Vector2(centerX, y),
             new Vector2(fullWidth + 24, 38),
-            Palette.Background));
+            default).Backing());
 
         (Judgement Judgement, double Inner, double Outer)[] bands =
         {

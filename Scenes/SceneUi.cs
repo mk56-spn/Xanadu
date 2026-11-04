@@ -20,5 +20,12 @@ public static class SceneUi
     public static readonly Color TextColor = Palette.Text;
     public static readonly Color DimTextColor = Palette.TextDim;
 
+    /// <summary>The menus' one accent, from song select; new UI should ask its theme (<see cref="UiThemes.Menu"/>) instead.</summary>
+    public static readonly Color GoldColor = UiThemes.Menu.Accent;
+    public static readonly Color GoldLightColor = Palette.GoldLight;
+
+    /// <summary>Space a backing leaves around what it sits behind.</summary>
+    public const float BackingPad = 20f;
+
     public static void SetText(Entity entity, string text) => UiText.Set(entity, text);
 }
