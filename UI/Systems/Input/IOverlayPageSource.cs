@@ -15,4 +15,7 @@ public interface IOverlayPageSource
 
     /// <summary>Cycles the list sort order. Unused by overlays without sort modes.</summary>
     bool SortTogglePressed() => false;
+
+    /// <summary>Writes the list out to a file. Unused by overlays without a dump.</summary>
+    bool DumpPressed() => false;
 }

@@ -34,12 +34,12 @@ public static partial class PlayfieldRenderer
             {
                 canvas.SelectShader(ItemShader.Of(entity));
                 int fontSize = Math.Max(1, (int)MathF.Round(text.Size * view.Scale));
-                canvas.DrawTextStyled(rid, DrawArea(bounds), text.Text, GroupColor.For(entity, TextColor), fontSize);
+                canvas.DrawTextTurned(rid, DrawArea(bounds), text.RotationDegrees, text.Text, GroupColor.For(entity, TextColor), fontSize);
                 canvas.SelectShader(0);
             }
 
             if (selected)
-                canvas.DrawBorder(rid, bounds, BlockSelectedEdge, SelectedEdgeThickness);
+                DrawTurnedBorder(canvas, rid, text.Bounds, text.RotationDegrees, view);
         }
     }
 
@@ -50,10 +50,17 @@ public static partial class PlayfieldRenderer
     /// </summary>
     public static Rect2 DrawArea(Rect2 bounds) => bounds.GrowIndividual(bounds.Size.X, 0, bounds.Size.X, 0);
 
-    /// <summary>The box a level text roughly fills, on screen.</summary>
+    /// <summary>The box a level text roughly fills before it is turned, on screen.</summary>
     public static Rect2 TextScreenBounds(LevelText text, PlayfieldView view)
     {
         Rect2 bounds = text.Bounds;
+        return new Rect2(view.PlayfieldToScreen(bounds.Position), bounds.Size * view.Scale);
+    }
+
+    /// <summary>The upright box around a level text as it is turned, on screen, for box selection.</summary>
+    public static Rect2 TextScreenHull(LevelText text, PlayfieldView view)
+    {
+        Rect2 bounds = TurnedBox.Hull(text.Bounds, text.RotationDegrees);
         return new Rect2(view.PlayfieldToScreen(bounds.Position), bounds.Size * view.Scale);
     }
 }

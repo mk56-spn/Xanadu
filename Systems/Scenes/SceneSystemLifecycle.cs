@@ -201,6 +201,9 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
         foreach (Entity grass in _entities.Query<GrassPatch>().ToEntityList())
             grass.DeleteEntity();
 
+        foreach (Entity polygon in _entities.Query<LevelPolygon>().ToEntityList())
+            polygon.DeleteEntity();
+
         foreach (Entity trail in _entities.Query<HitTrail>().ToEntityList())
             trail.DeleteEntity();
 

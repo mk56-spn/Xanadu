@@ -46,6 +46,13 @@ public sealed partial class EditorPlayfieldDrawSystem :
         _editor = editor;
     }
 
+    /// <summary>
+    /// Erases what the editor last drew. Shaded draws live in child canvas items of
+    /// the shared playfield, which nothing else clears, so leaving them alone lets
+    /// the last frame's timeline stay on top of the next scene.
+    /// </summary>
+    public void Clear() => _canvas.Clear(_editor);
+
     protected override void OnUpdate()
     {
         _canvas.Clear(_editor);
@@ -138,6 +145,7 @@ public sealed partial class EditorPlayfieldDrawSystem :
         PlayfieldRenderer.DrawFieldLabels(_canvas, _editor, playfield, field);
         // Every selected block and spike gets the accent edge, not just the primary one.
         Func<Entity, bool> isSelected = selection.Contains;
+        PlayfieldRenderer.DrawPolygons(_canvas, _editor, _entities, view, isSelected);
         PlayfieldRenderer.DrawBlocks(_canvas, _editor, _entities, view, isSelected);
         PlayfieldRenderer.DrawSpikes(_canvas, _editor, _entities, view, isSelected);
         PlayfieldRenderer.DrawGrass(_canvas, _editor, _entities, view, _seconds, isSelected);

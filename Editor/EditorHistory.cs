@@ -34,6 +34,7 @@ public sealed class EditorHistory
         var spikes = new List<SpikeSnapshot>();
         var texts = new List<TextSnapshot>();
         var grass = new List<GrassSnapshot>();
+        var polygons = new List<PolygonSnapshot>();
 
         foreach (Entity entity in _entities.Query<Note>().ToEntityList())
         {
@@ -195,7 +196,8 @@ public sealed class EditorHistory
                 text.Size,
                 MaskOf(entity),
                 ItemShader.Of(entity),
-                SelfModulate.Packed(entity)));
+                SelfModulate.Packed(entity),
+                text.RotationDegrees));
         }
 
         texts.Sort(static (a, b) =>
@@ -225,6 +227,24 @@ public sealed class EditorHistory
             return y != 0 ? y : a.Patch.Seed.CompareTo(b.Patch.Seed);
         });
 
+        foreach (Entity entity in _entities.Query<LevelPolygon>().ToEntityList())
+        {
+            LevelPolygon polygon = entity.GetComponent<LevelPolygon>();
+            polygons.Add(new PolygonSnapshot(
+                polygon.Position,
+                polygon.RotationDegrees,
+                Xanadu.Items.XifCopy.Clone(polygon.Item ?? new Xanadu.Items.Xif()),
+                MaskOf(entity),
+                ItemShader.Of(entity),
+                SelfModulate.Packed(entity)));
+        }
+
+        polygons.Sort(static (a, b) =>
+        {
+            int x = a.Position.X.CompareTo(b.Position.X);
+            return x != 0 ? x : a.Position.Y.CompareTo(b.Position.Y);
+        });
+
         return new EditorSnapshot(
             notes,
             mines,
@@ -233,7 +253,8 @@ public sealed class EditorHistory
             spikes,
             CaptureGroups(),
             texts,
-            grass);
+            grass,
+            polygons);
     }
 
     private static uint MaskOf(Entity entity) =>
@@ -270,7 +291,28 @@ public sealed class EditorHistory
         before.Spikes.SequenceEqual(after.Spikes) &&
         (before.Texts ?? new()).SequenceEqual(after.Texts ?? new()) &&
         (before.Grass ?? new()).SequenceEqual(after.Grass ?? new()) &&
+        SamePolygons(before.Polygons, after.Polygons) &&
         SameGroups(before.Groups, after.Groups);
+
+    /// <summary>Polygon snapshots hold items by reference, so they compare by content.</summary>
+    private static bool SamePolygons(List<PolygonSnapshot>? a, List<PolygonSnapshot>? b)
+    {
+        a ??= new();
+        b ??= new();
+        if (a.Count != b.Count)
+            return false;
+
+        for (int i = 0; i < a.Count; i++)
+        {
+            if (a[i] with { Item = null! } != b[i] with { Item = null! } ||
+                !Xanadu.Items.XifCopy.AreEqual(a[i].Item, b[i].Item))
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
 
     private static bool SameGroups(GroupDefinition[]? a, GroupDefinition[]? b)
     {
@@ -300,6 +342,9 @@ public sealed class EditorHistory
             entity.DeleteEntity();
 
         foreach (Entity entity in _entities.Query<GrassPatch>().ToEntityList())
+            entity.DeleteEntity();
+
+        foreach (Entity entity in _entities.Query<LevelPolygon>().ToEntityList())
             entity.DeleteEntity();
 
         if (snapshot.Groups is not null)
@@ -390,7 +435,7 @@ public sealed class EditorHistory
 
         foreach (TextSnapshot text in snapshot.Texts ?? new())
         {
-            Entity created = EditorItems.Create(_entities, new LevelText(text.Position, text.Text, text.Size), text.Shader);
+            Entity created = EditorItems.Create(_entities, new LevelText(text.Position, text.Text, text.Size, text.Rotation), text.Shader);
             Subscribe(created, text.Groups);
             SelfModulate.Put(created, text.Modulate);
         }
@@ -400,6 +445,17 @@ public sealed class EditorHistory
             Entity created = EditorItems.Create(_entities, patch.Patch, patch.Shader);
             Subscribe(created, patch.Groups);
             SelfModulate.Put(created, patch.Modulate);
+        }
+
+        // Each undo hands out its own copy, so later edits never reach the history.
+        foreach (PolygonSnapshot polygon in snapshot.Polygons ?? new())
+        {
+            Entity created = EditorItems.Create(_entities, new LevelPolygon(
+                polygon.Position,
+                Xanadu.Items.XifCopy.Clone(polygon.Item),
+                polygon.Rotation), polygon.Shader);
+            Subscribe(created, polygon.Groups);
+            SelfModulate.Put(created, polygon.Modulate);
         }
     }
 }
@@ -413,7 +469,17 @@ public readonly record struct EditorSnapshot(
     List<SpikeSnapshot> Spikes,
     GroupDefinition[]? Groups = null,
     List<TextSnapshot>? Texts = null,
-    List<GrassSnapshot>? Grass = null);
+    List<GrassSnapshot>? Grass = null,
+    List<PolygonSnapshot>? Polygons = null);
+
+/// <summary>Stable polygon-item snapshot used by undo/redo; it owns a copy of the item.</summary>
+public readonly record struct PolygonSnapshot(
+    Vector2 Position,
+    float Rotation,
+    Xanadu.Items.Xif Item,
+    uint Groups = 0,
+    int Shader = 0,
+    uint Modulate = SelfModulate.White);
 
 /// <summary>Stable grass-patch snapshot used by undo/redo.</summary>
 public readonly record struct GrassSnapshot(
@@ -429,7 +495,8 @@ public readonly record struct TextSnapshot(
     float Size,
     uint Groups = 0,
     int Shader = 0,
-    uint Modulate = SelfModulate.White);
+    uint Modulate = SelfModulate.White,
+    float Rotation = 0f);
 
 /// <summary>Stable serializable start-point snapshot used by undo/redo.</summary>
 public readonly record struct StartPointSnapshot(

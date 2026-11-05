@@ -122,6 +122,9 @@ public sealed class ShaderRoutingCanvas(IRectCanvas inner, Rid root, IShaderCanv
     public void DrawTriangles(Rid canvas, ReadOnlySpan<Vector2> points, ReadOnlySpan<Color> colors) =>
         inner.DrawTriangles(Route(canvas), points, colors);
 
+    public void DrawTriangles(Rid canvas, ReadOnlySpan<Vector2> points, ReadOnlySpan<Color> colors, ReadOnlySpan<Vector2> uvs) =>
+        inner.DrawTriangles(Route(canvas), points, colors, uvs);
+
     public void DrawRectOutlines(Rid canvas, ReadOnlySpan<Rect2> rects, Color color) =>
         inner.DrawRectOutlines(Route(canvas), rects, color);
 
@@ -156,6 +159,9 @@ public sealed class ShaderRoutingCanvas(IRectCanvas inner, Rid root, IShaderCanv
 
     public void DrawTextRight(Rid canvas, Rect2 bounds, string text, Color color) =>
         inner.DrawTextRight(Route(canvas), bounds, text, color);
+
+    public void DrawTextTurned(Rid canvas, Rect2 bounds, float degrees, string text, Color color, int fontSize) =>
+        inner.DrawTextTurned(Route(canvas), bounds, degrees, text, color, fontSize);
 
     public void DrawTextVertical(Rid canvas, Rect2 bounds, string text, Color color, int fontSize) =>
         inner.DrawTextVertical(Route(canvas), bounds, text, color, fontSize);

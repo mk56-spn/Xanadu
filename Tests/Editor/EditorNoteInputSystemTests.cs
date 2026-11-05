@@ -1046,14 +1046,34 @@ public sealed class EditorNoteInputSystemTests
         Assert.That(blocks, Has.Count.EqualTo(1));
         Assert.That(
             blocks[0].GetComponent<Block>().Position,
-            Is.EqualTo(new Vector2(450, 500)));
+            Is.EqualTo(new Vector2(500, 500)));
         Assert.That(
             blocks[0].GetComponent<Block>().Size,
-            Is.EqualTo(new Vector2(100, 50)));
+            Is.EqualTo(new Vector2(50, 50)),
+            "a new block is one cell square");
         Assert.That(
             editor.GetComponent<NoteSelection>().Note.Id,
             Is.EqualTo(blocks[0].Id));
         Assert.That(_history.CanUndo, Is.True);
+    }
+
+    [TestCase(BlockBrushSize.Quarter, 520f, 25f, 500f)]
+    [TestCase(BlockBrushSize.Platform, 520f, 100f, 450f)]
+    public void TheBlockBrushPlacesItsSize(
+        BlockBrushSize size,
+        float pointerX,
+        float width,
+        float expectedX)
+    {
+        Entity editor = EditorEntity();
+        editor.AddComponent(
+            new EditorPlacement { Mode = EditorPlacementMode.Blocks, BlockSize = size });
+
+        Click(new Vector2(pointerX, 520));
+
+        Block block = _store.Query<Block>().ToEntityList()[0].GetComponent<Block>();
+        Assert.That(block.Size.X, Is.EqualTo(width));
+        Assert.That(block.Position.X, Is.EqualTo(expectedX));
     }
 
     [TestCase(EditorPlacementMode.Blocks, TestName = "Dragging paints a run of blocks as one undo step")]
@@ -1157,8 +1177,8 @@ public sealed class EditorNoteInputSystemTests
         Assert.That(block.GetComponent<Block>().Center, Is.EqualTo(new Vector2(520, 530)));
 
         Block moved = block.GetComponent<Block>();
-        Drag(new Vector2(moved.End.X, moved.Center.Y), new Vector2(moved.End.X + 11, moved.Center.Y));
-        Assert.That(block.GetComponent<Block>().Size.X, Is.EqualTo(moved.Size.X + 11));
+        Drag(new Vector2(moved.End.X, moved.Center.Y), new Vector2(moved.End.X + 61, moved.Center.Y));
+        Assert.That(block.GetComponent<Block>().Size.X, Is.EqualTo(moved.Size.X + 61));
     }
 
     [Test]

@@ -25,6 +25,7 @@ public sealed class EditorReturnStateTests : EcsSystemTest
         editor.GetComponent<PlayfieldView>() = new PlayfieldView(new Vector2(40, 50), 1.5f, new Vector2(1000, 1000));
         editor.GetComponent<EditorPlacement>().Mode = EditorPlacementMode.Spikes;
         editor.GetComponent<EditorPlacement>().Degrees = 180f;
+        editor.GetComponent<EditorPlacement>().BlockSize = BlockBrushSize.Platform;
         Entity spike = EditorItems.Create(Store, new Spike(new Vector2(100, 100), new Vector2(50, 50)));
         EditorItems.Create(Store, new Spike(new Vector2(300, 100), new Vector2(50, 50)));
         editor.GetComponent<NoteSelection>().Note = spike;
@@ -44,6 +45,9 @@ public sealed class EditorReturnStateTests : EcsSystemTest
         Assert.That(rebuilt.GetComponent<PlayfieldView>().ScreenOrigin, Is.EqualTo(new Vector2(40, 50)));
         Assert.That(rebuilt.GetComponent<EditorPlacement>().Mode, Is.EqualTo(EditorPlacementMode.Spikes));
         Assert.That(rebuilt.GetComponent<EditorPlacement>().Degrees, Is.EqualTo(180f));
+        Assert.That(
+            rebuilt.GetComponent<EditorPlacement>().BlockSize,
+            Is.EqualTo(BlockBrushSize.Platform));
         Assert.That(rebuilt.GetComponent<NoteSelection>().AllNotes, Is.EquivalentTo(new[] { again }));
     }
 

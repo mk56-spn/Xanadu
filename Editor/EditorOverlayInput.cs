@@ -18,7 +18,11 @@ public partial class EditorOverlay : CanvasLayer, IEditorShortcutTarget
         IsWarningOpen(),
         !FindFocusedTextField().IsNull,
         IsGroupTargetEditing(),
-        IsGroupOverlayOpen());
+        IsGroupOverlayOpen(),
+        IsDraftingPolygon());
+
+    private bool IsDraftingPolygon() =>
+        !_editor.IsNull && _editor.TryGetComponent(out EditorPolygonDraft draft) && draft.Active;
 
     public void Run(EditorShortcuts.Binding binding)
     {
@@ -75,6 +79,12 @@ public partial class EditorOverlay : CanvasLayer, IEditorShortcutTarget
                 break;
             case EditorShortcut.Place:
                 SetPlacementMode(binding.Placement);
+                break;
+            case EditorShortcut.FinishPolygon:
+                _editor.GetComponent<EditorPolygonDraft>().FinishRequested = true;
+                break;
+            case EditorShortcut.CancelPolygon:
+                _editor.GetComponent<EditorPolygonDraft>().CancelRequested = true;
                 break;
             case EditorShortcut.Back:
                 _onBack?.Invoke();
@@ -141,6 +151,7 @@ public partial class EditorOverlay : CanvasLayer, IEditorShortcutTarget
             EditorPlacementMode.FormStep => "Place Form step",
             EditorPlacementMode.Text => "Place text",
             EditorPlacementMode.Grass => "Place grass",
+            EditorPlacementMode.Polygon => "Draw a polygon: click its points, then the first again",
             _ => "Placement mode",
         });
     }

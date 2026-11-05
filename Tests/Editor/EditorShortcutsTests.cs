@@ -31,10 +31,10 @@ public sealed class EditorShortcutsTests
     {
         EditorShortcutScope dialog = Scopes(dialog: true);
 
-        Assert.That(Action(new KeyChord(Key.F5), dialog), Is.Null);
+        Assert.That(Action(new KeyChord(DebugKeys.Preview), dialog), Is.Null);
         Assert.That(Action(new KeyChord(Key.Delete), dialog), Is.Null);
         Assert.That(Action(new KeyChord(Key.Escape), dialog), Is.EqualTo(EditorShortcut.CloseDialog));
-        Assert.That(Action(new KeyChord(Key.F9), dialog), Is.EqualTo(EditorShortcut.ToggleShaders));
+        Assert.That(Action(new KeyChord(DebugKeys.EditorShaders), dialog), Is.EqualTo(EditorShortcut.ToggleShaders));
     }
 
     [Test]

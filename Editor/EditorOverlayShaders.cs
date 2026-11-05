@@ -9,9 +9,9 @@ using Xanadu.Systems.Editor;
 namespace Xanadu.Editor;
 
 /// <summary>
-/// F9: the level's custom shaders. The slots are an ECS dialog
+/// F10: the level's custom shaders. The slots are an ECS dialog
 /// (<see cref="EditorDialogKind.Shaders"/>); this side only owns the native file
-/// dialog its IMPORT button asks for. Uniform values are tuned with the F8 panel.
+/// dialog its IMPORT button asks for. Uniform values are tuned with the F2 panel.
 /// </summary>
 public partial class EditorOverlay : CanvasLayer
 {

@@ -149,6 +149,13 @@ public sealed partial class EditorCommandSystem
             text.Position += offset;
             pasted = EditorItems.Create(_entities, text, item.Shader);
         }
+        else if (item.Polygon is { } polygon)
+        {
+            // Every paste gets its own copy of the shape, so editing one leaves the others.
+            polygon.Position += offset;
+            polygon.Item = Xanadu.Items.XifCopy.Clone(polygon.Item);
+            pasted = EditorItems.Create(_entities, polygon, item.Shader);
+        }
         else if (item.Grass is { } grass)
         {
             // A fresh seed, so the copy is the same kind of grass but not the same blades.

@@ -95,7 +95,7 @@ public partial class Main : Control
 		_pointer?.Feed(@event);
 
 		if (@event is InputEventKey { Pressed: true, Echo: false } key &&
-			(key.Keycode == Key.F12 || key.PhysicalKeycode == Key.F12))
+			(key.Keycode == DebugKeys.Screenshot || key.PhysicalKeycode == DebugKeys.Screenshot))
 		{
 			CaptureScreenshot();
 			GetViewport().SetInputAsHandled();

@@ -101,6 +101,8 @@ fixed frame count.
 | `spike-shape` | Spike shape |
 | `editor-play-from-here` | Editor play from here |
 | `editor-placement-ghost` | Editor placement ghost |
+| `editor-block-sizes` | Block tool sizes: quarter, cell, platform |
+| `editor-help` | Editor key list scrolls inside its panel |
 | `results` | Results |
 | `restart` | Retry |
 | `editor-dropdowns` | Editor dropdowns |

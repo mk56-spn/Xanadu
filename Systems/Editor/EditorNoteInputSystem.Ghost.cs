@@ -20,12 +20,15 @@ public sealed partial class EditorNoteInputSystem
 
     private bool WouldPlaceAt(Vector2 screenPosition, Entity editor)
     {
+        // The polygon tool lays points over items and selections alike.
+        bool polygon = editor.HasComponent<EditorPlacement>() &&
+                       editor.GetComponent<EditorPlacement>().Mode == EditorPlacementMode.Polygon;
         if (IsGroupTargetEditing() ||
             IsWarningOpen() ||
             IsGroupOverlayOpen() ||
             IsSceneConfirmationOpen() ||
             EditorPlacementNote.NeedsShape(editor) ||
-            HasPickedSelection(editor))
+            (!polygon && HasPickedSelection(editor)))
         {
             return false;
         }
@@ -46,7 +49,7 @@ public sealed partial class EditorNoteInputSystem
 
         return !IsOverNoteBar(screenPosition) &&
                !IsOverPanel(screenPosition) &&
-               FindItemAt(position, editor.GetComponent<Playhead>().TimeMs).IsNull;
+               (polygon || FindItemAt(position, editor.GetComponent<Playhead>().TimeMs).IsNull);
     }
 
     /// <summary>The item a press at this point would pick, or null.</summary>
@@ -65,6 +68,8 @@ public sealed partial class EditorNoteInputSystem
             hit = FindSpikeAt(position);
         if (hit.IsNull)
             hit = FindBlockAt(position);
+        if (hit.IsNull)
+            hit = FindPolygonAt(position);
         return hit;
     }
 }

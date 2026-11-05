@@ -32,9 +32,12 @@ public static class UiLayers
     public const int EditorStartPoints = 961;
     public const int EditorMetadata = 962;
 
-    /// <summary>The tool groups' flyouts, beside the tool strip and over the tool settings.</summary>
-    public const int EditorToolFlyout = 963;
-    public const int EditorRail = 964;
+    /// <summary>The XIF editor for the selected polygon, beside the tool strip.</summary>
+    public const int EditorXif = 963;
+
+    /// <summary>The tool groups' flyouts, beside the tool strip and over the tool settings and the XIF editor.</summary>
+    public const int EditorToolFlyout = 964;
+    public const int EditorRail = 965;
     public const int EditorLists = 970;
     public const int EditorHelp = 970;
     public const int EditorGroupsScrim = 975;

@@ -6,7 +6,7 @@ using Position = Xanadu.Ecs.Position;
 
 namespace Xanadu.Editor;
 
-/// <summary>F2 editor-binding reference overlay toggle.</summary>
+/// <summary>F9 editor-binding reference overlay toggle.</summary>
 public partial class EditorOverlay : CanvasLayer
 {
 

@@ -28,7 +28,7 @@ public sealed class HudLayoutSystem(
 
     protected override void OnUpdate()
     {
-        bool editPressed = keyboard.IsPressed(Key.F7);
+        bool editPressed = keyboard.IsPressed(DebugKeys.HudLayout);
         if (editPressed && !_wasEditPressed)
         {
             Query.ForEachEntity((ref layout, ref _, _) =>

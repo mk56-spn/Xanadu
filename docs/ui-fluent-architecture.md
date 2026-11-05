@@ -345,7 +345,7 @@ Cleanup finished: `SceneUi`'s construction helpers (`Background`, `Panel`,
 `Layer`) are gone, as are the `AddEditorButton` recipes (now three-line helpers
 over `UiNode.Button`) and every temporary `Wrap`/bridge.
 
-One `UiBuilder` caller remains on purpose: the F8 shader tuner
+One `UiBuilder` caller remains on purpose: the F2 shader tuner
 (`Systems/Shaders/ShaderTunerSystem.cs`) is a debug overlay, not a scene.
 
 ---

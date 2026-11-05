@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
+using System.IO;
 using System.Text;
 using Friflo.Engine.ECS;
 using Xanadu.Ecs;
@@ -117,6 +119,7 @@ public sealed class ArchetypeTable
     private readonly Dictionary<Archetype, ArchetypeRow> _byArchetype = new();
     private ArchetypeRow? _selected;
     private long _nextSampleMs;
+    private int _active;
     private int _page;
 
     public ArchetypeSortOrder Sort { get; set; } = ArchetypeSortOrder.Creation;
@@ -128,6 +131,12 @@ public sealed class ArchetypeTable
     public IReadOnlyList<ArchetypeRow> Rows => _view;
 
     public int Count => _rows.Count;
+
+    /// <summary>Rows that still hold entities: the archetypes fragmentation really costs now.</summary>
+    public int ActiveCount => _active;
+
+    /// <summary>Rows whose entities have all moved away or been deleted, so only their reserve remains.</summary>
+    public int InactiveCount => _rows.Count - _active;
 
     public int Page => _page;
 
@@ -180,10 +189,43 @@ public sealed class ArchetypeTable
             _nextSampleMs = nowMs + SampleMs;
         }
 
+        _active = 0;
+        foreach (ArchetypeRow row in _rows)
+        {
+            if (row.Count > 0)
+                _active++;
+        }
+
         if (added || sampled || _view.Count != _rows.Count)
             SortView();
 
         ClampPage();
+    }
+
+    /// <summary>
+    /// Writes every row, empty ones included, to a plain text file: one archetype
+    /// a line, in creation order, with its full signature untruncated.
+    /// </summary>
+    public void Dump(string path)
+    {
+        var text = new StringBuilder();
+        text.AppendLine(
+            $"# Xanadu archetypes: {Count} total, {ActiveCount} active, {InactiveCount} inactive");
+        text.AppendLine("#  #\tn\tcap\tuse\tbytes/entity\tKB reserved\tactive\tcomponents\ttags");
+        foreach (ArchetypeRow row in _rows)
+        {
+            text.Append(row.Order).Append('\t');
+            text.Append(row.Count).Append('\t');
+            text.Append(row.Capacity).Append('\t');
+            text.Append((row.Used * 100f).ToString("0", CultureInfo.InvariantCulture)).Append('%').Append('\t');
+            text.Append(row.BytesPerEntity).Append('\t');
+            text.Append((row.ReservedBytes / 1024f).ToString("0.0", CultureInfo.InvariantCulture)).Append('\t');
+            text.Append(row.Count > 0 ? "yes" : "no").Append('\t');
+            text.Append(row.Components).Append('\t');
+            text.AppendLine(row.Tags);
+        }
+
+        File.WriteAllText(path, text.ToString());
     }
 
     public void MovePage(int delta) =>

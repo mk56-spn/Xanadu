@@ -29,7 +29,7 @@ public sealed class DebugSystemGroup : SystemGroup, IDisposable
             systems,
             fps,
             paging));
-        Add(new FpsCounterSystem(new GodotOverlayToggleSource(Key.F1), store, fps));
+        Add(new FpsCounterSystem(new GodotOverlayToggleSource(DebugKeys.FrameRate), store, fps));
         _uiOverlay = Xanadu.Systems.Ui.UiDebugOverlayGroup.Attach(
             this,
             canvas,

@@ -43,6 +43,7 @@ public static class EditorToolGroups
         }),
         new("Text", new EditorTool[] { new(EditorPlacementMode.Text, "T", "Text") }),
         new("Grass", new EditorTool[] { new(EditorPlacementMode.Grass, "🌿", "Grass") }),
+        new("Polygons", new EditorTool[] { new(EditorPlacementMode.Polygon, "⬟", "Polygons: click the points, then the first again or Enter; Esc drops it") }),
     };
 
     /// <summary>The icon the strip shows for a group: its current tool's when that is in it, else its first tool's.</summary>

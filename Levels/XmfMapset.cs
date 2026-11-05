@@ -46,6 +46,9 @@ public sealed class XmfVariant : IChartItems
     /// <summary>Grass patches: swaying blades with no collision.</summary>
     public List<GrassDocument> Grass { get; set; } = new();
 
+    /// <summary>Filled shapes with no collision.</summary>
+    public List<PolygonDocument> Polygons { get; set; } = new();
+
     /// <summary>The groups that have a name or effects; the rest are empty slots.</summary>
     public List<GroupDocument> Groups { get; set; } = new();
 

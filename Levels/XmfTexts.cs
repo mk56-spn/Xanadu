@@ -7,7 +7,8 @@ namespace Xanadu.Levels;
 
 /// <summary>
 /// Text placed in a level, in an optional chunk of its own: maps without text
-/// leave it out, and readers that predate it skip it.
+/// leave it out, and readers that predate it skip it. Each text's turn came
+/// later, and trails the chunk as one list, so older files read as upright.
 /// </summary>
 public static partial class XmfBinary
 {
@@ -21,6 +22,7 @@ public static partial class XmfBinary
         using var stream = new MemoryStream();
         using var writer = new BinaryWriter(stream, Encoding.UTF8, leaveOpen: true);
         WriteTexts(writer, texts);
+        WriteTextRotations(writer, texts);
         writer.Flush();
         return stream.ToArray();
     }
@@ -43,7 +45,24 @@ public static partial class XmfBinary
     internal static List<TextDocument> ReadTexts(Chunk chunk)
     {
         using BinaryReader reader = chunk.OpenReader();
-        return ReadTexts(reader);
+        List<TextDocument> texts = ReadTexts(reader);
+        ReadTextRotations(reader, texts);
+        return texts;
+    }
+
+    internal static void WriteTextRotations(BinaryWriter writer, List<TextDocument> texts)
+    {
+        foreach (TextDocument text in texts)
+            writer.Write(text.Rotation);
+    }
+
+    /// <summary>Reads the trailing turns when the chunk has them; texts from older files stay upright.</summary>
+    internal static void ReadTextRotations(BinaryReader reader, List<TextDocument> texts)
+    {
+        if (reader.BaseStream.Length - reader.BaseStream.Position < (long)texts.Count * sizeof(float))
+            return;
+        foreach (TextDocument text in texts)
+            text.Rotation = reader.ReadSingle();
     }
 
     internal static List<TextDocument> ReadTexts(BinaryReader reader)

@@ -7,7 +7,8 @@ namespace Xanadu.Levels;
 
 /// <summary>
 /// Grass patches, in an optional chunk of their own: maps without grass leave
-/// it out, and readers that predate it skip it.
+/// it out, and readers that predate it skip it. Each patch's turn came later,
+/// and trails the chunk as one list, so older files read as upright.
 /// </summary>
 public static partial class XmfBinary
 {
@@ -18,6 +19,7 @@ public static partial class XmfBinary
         using var stream = new MemoryStream();
         using var writer = new BinaryWriter(stream, Encoding.UTF8, leaveOpen: true);
         WriteGrass(writer, grass);
+        WriteGrassRotations(writer, grass);
         writer.Flush();
         return stream.ToArray();
     }
@@ -45,7 +47,23 @@ public static partial class XmfBinary
     internal static List<GrassDocument> ReadGrass(Chunk chunk)
     {
         using BinaryReader reader = chunk.OpenReader();
-        return ReadGrass(reader);
+        List<GrassDocument> grass = ReadGrass(reader);
+        ReadGrassRotations(reader, grass);
+        return grass;
+    }
+
+    internal static void WriteGrassRotations(BinaryWriter writer, List<GrassDocument> grass)
+    {
+        foreach (GrassDocument patch in grass)
+            writer.Write(patch.Rotation);
+    }
+
+    internal static void ReadGrassRotations(BinaryReader reader, List<GrassDocument> grass)
+    {
+        if (reader.BaseStream.Length - reader.BaseStream.Position < (long)grass.Count * sizeof(float))
+            return;
+        foreach (GrassDocument patch in grass)
+            patch.Rotation = reader.ReadSingle();
     }
 
     internal static List<GrassDocument> ReadGrass(BinaryReader reader)
@@ -80,6 +98,8 @@ public static partial class XmfBinary
         writer.Write((uint)variants.Count);
         foreach (XmfVariant variant in variants)
             WriteGrass(writer, variant.Grass);
+        foreach (XmfVariant variant in variants)
+            WriteGrassRotations(writer, variant.Grass);
         writer.Flush();
         return stream.ToArray();
     }
@@ -92,5 +112,7 @@ public static partial class XmfBinary
             throw new System.FormatException("XMF variant grass does not match the variant count.");
         foreach (XmfVariant variant in variants)
             variant.Grass = ReadGrass(reader);
+        foreach (XmfVariant variant in variants)
+            ReadGrassRotations(reader, variant.Grass);
     }
 }

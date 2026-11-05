@@ -12,6 +12,7 @@ public sealed class EditorToolSectionSystemTests : EcsSystemTest
     private Entity _editor;
     private Entity _panel;
     private Entity _snap;
+    private Entity _blockSize;
     private Entity _strength;
     private Entity _cost;
     private Entity _shape;
@@ -20,6 +21,7 @@ public sealed class EditorToolSectionSystemTests : EcsSystemTest
     {
         _panel = Store.CreateEntity();
         _snap = Store.CreateEntity(new EditorToolSection(EditorToolSections.Snap));
+        _blockSize = Store.CreateEntity(new EditorToolSection(EditorToolSections.BlockSize));
         _strength = Store.CreateEntity(new EditorToolSection(EditorToolSections.MoveStrength));
         _cost = Store.CreateEntity(new EditorToolSection(EditorToolSections.ContactCost));
         _shape = Store.CreateEntity(new EditorToolSection(EditorToolSections.FormShape));
@@ -37,9 +39,23 @@ public sealed class EditorToolSectionSystemTests : EcsSystemTest
         Frame();
 
         Assert.That(Hidden(_snap), Is.False);
+        Assert.That(Hidden(_blockSize), Is.True);
         Assert.That(Hidden(_strength), Is.True);
         Assert.That(Hidden(_cost), Is.True);
         Assert.That(Hidden(_shape), Is.True);
+    }
+
+    [Test]
+    public void BlocksShowTheirSizeAndShape()
+    {
+        _editor.GetComponent<EditorPlacement>().Mode = EditorPlacementMode.Blocks;
+
+        Frame();
+
+        Assert.That(Hidden(_blockSize), Is.False);
+        Assert.That(Hidden(_shape), Is.False);
+        Assert.That(Hidden(_snap), Is.True);
+        Assert.That(Hidden(_panel), Is.False);
     }
 
     [TestCase(EditorPlacementMode.Dash, false, true, true)]

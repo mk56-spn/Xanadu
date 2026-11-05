@@ -255,6 +255,7 @@ public sealed partial class EditorGroupSystem : QuerySystem<EditorGroupState>
                                  item.HasComponent<Spike>() ||
                                  item.HasComponent<LevelText>() ||
                                  item.HasComponent<GrassPatch>() ||
+                                 item.HasComponent<LevelPolygon>() ||
                                  item.HasComponent<StartPoint>()))
             {
                 continue;

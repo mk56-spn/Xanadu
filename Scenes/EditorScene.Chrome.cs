@@ -49,6 +49,7 @@ public static partial class EditorScene
         BuildViewportColumn(middle, editor, shell);
         BuildSidebar(middle, editor, shell);
         BuildRailLayer(entities, root, editor, shell);
+        BuildXifPanel(entities, root, shell);
 
         Footer footer = BuildFooter(page, screen);
 
@@ -160,7 +161,8 @@ public static partial class EditorScene
                 SceneUi.MutedButtonColor)
             .Size(ViewportSnap.ToggleWidth, HeaderControl)
             .Entity,
-            "Snap blocks, spikes and notes to the grid");
+            "Snap items to the grid. Off by default: items go exactly where they are put",
+            on: false);
         Entity file = right.Button(
                 "FILE ▾",
                 UiTheme.FontSize,

@@ -43,6 +43,13 @@ public interface IRectCanvas
     /// </summary>
     void DrawTriangles(Rid canvas, ReadOnlySpan<Vector2> points, ReadOnlySpan<Color> colors) { }
 
+    /// <summary>
+    /// The same, with a UV per point for the shader drawing them to read;
+    /// canvases without shaders draw the triangles as they would without.
+    /// </summary>
+    void DrawTriangles(Rid canvas, ReadOnlySpan<Vector2> points, ReadOnlySpan<Color> colors, ReadOnlySpan<Vector2> uvs) =>
+        DrawTriangles(canvas, points, colors);
+
     /// <summary>Fills a rectangle with a smooth ramp between two colours, along its width or its height.</summary>
     void DrawGradientRect(Rid canvas, Rect2 bounds, Color start, Color end, bool horizontal) { }
 
@@ -112,6 +119,14 @@ public interface IRectCanvas
     void DrawTextLeft(Rid canvas, Rect2 bounds, string text, Color color);
 
     void DrawTextRight(Rid canvas, Rect2 bounds, string text, Color color);
+
+    /// <summary>
+    /// Draws text centred in <paramref name="bounds"/>, the whole box turned
+    /// about its centre by <paramref name="degrees"/> clockwise. Canvases that
+    /// cannot turn text draw it upright.
+    /// </summary>
+    void DrawTextTurned(Rid canvas, Rect2 bounds, float degrees, string text, Color color, int fontSize) =>
+        DrawTextStyled(canvas, bounds, text, color, fontSize);
 
     /// <summary>Draws vertically oriented text.</summary>
     void DrawTextVertical(

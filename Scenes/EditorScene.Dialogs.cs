@@ -8,7 +8,7 @@ namespace Xanadu.Scenes;
 
 /// <summary>
 /// The editor's modal dialogs, built hidden with the scene: the song picker, the
-/// offer to recover unsaved edits, the F9 shader slots and the map colour picker.
+/// offer to recover unsaved edits, the F10 shader slots and the map colour picker.
 /// <c>EditorDialogSystem</c> opens, fills and runs them.
 /// </summary>
 public static partial class EditorScene

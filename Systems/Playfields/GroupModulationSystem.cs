@@ -63,6 +63,11 @@ public sealed class GroupModulationSystem : QuerySystem<ItemGroups>
             Vector2 basePosition = BaseOf(entity, entity.GetComponent<LevelText>().Position);
             entity.GetComponent<LevelText>().Position = basePosition + GroupModulation.Offset(groups, mask, seconds);
         }
+        else if (entity.HasComponent<LevelPolygon>())
+        {
+            Vector2 basePosition = BaseOf(entity, entity.GetComponent<LevelPolygon>().Position);
+            entity.GetComponent<LevelPolygon>().Position = basePosition + GroupModulation.Offset(groups, mask, seconds);
+        }
         else if (entity.HasComponent<GrassPatch>())
         {
             Vector2 basePosition = BaseOf(entity, entity.GetComponent<GrassPatch>().Position);

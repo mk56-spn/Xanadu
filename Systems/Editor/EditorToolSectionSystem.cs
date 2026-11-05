@@ -29,6 +29,11 @@ public static class EditorToolSections
         EditorPlacementMode.Momentum,
     };
 
+    public static readonly EditorPlacementMode[] BlockSize =
+    {
+        EditorPlacementMode.Blocks,
+    };
+
     public static readonly EditorPlacementMode[] ContactCost =
     {
         EditorPlacementMode.Contact,

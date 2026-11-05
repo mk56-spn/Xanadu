@@ -93,5 +93,6 @@ public sealed class EditorSelfModulateSystem(EditorHistory history) : QuerySyste
         !item.IsNull &&
         (item.HasComponent<Note>() || item.HasComponent<Mine>() ||
          item.HasComponent<Block>() || item.HasComponent<Spike>() ||
-         item.HasComponent<LevelText>() || item.HasComponent<GrassPatch>());
+         item.HasComponent<LevelText>() || item.HasComponent<GrassPatch>() ||
+         item.HasComponent<LevelPolygon>());
 }

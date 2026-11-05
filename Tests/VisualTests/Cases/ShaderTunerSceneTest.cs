@@ -3,13 +3,14 @@ using System.Linq;
 using Friflo.Engine.ECS;
 using Godot;
 using Xanadu.Ecs;
+using Xanadu.Systems.Input;
 using Xanadu.Systems.Shaders;
 
 namespace Xanadu.Tests.VisualTests;
 
 /// <summary>
 /// Three materials sharing one shader, as song select's note art does. Tuning
-/// one in the F8 panel must leave the others alone, and opening the panel must
+/// one in the F2 panel must leave the others alone, and opening the panel must
 /// change nothing. Needs real materials, which a headless NUnit run does not
 /// have; the shader is built here because this project does not ship the game's.
 /// </summary>
@@ -85,8 +86,8 @@ public sealed class ShaderTunerSceneTest : SceneTest
 
     private void Toggle(string name)
     {
-        AddStep(name + ": press F8", () => Context.Keyboard.Press(Key.F8));
-        AddStep(name + ": release F8", () => Context.Keyboard.Release(Key.F8));
+        AddStep(name + ": press F2", () => Context.Keyboard.Press(DebugKeys.ShaderTuner));
+        AddStep(name + ": release F2", () => Context.Keyboard.Release(DebugKeys.ShaderTuner));
     }
 
     private void Remember() => _before = _owners
