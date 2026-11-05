@@ -57,14 +57,14 @@ public sealed class EditorMetadataSceneTest : SceneTest
         AddStep("release level info", () => Context.Pointer.Release());
         AddUntilStep(
             "wait for metadata panel",
-            () => !UiLayout.IsHidden(Context.Entities.Query<EditorMetadataPanel>().ToEntityList()[0].GetComponent<EditorMetadataPanel>().Panel));
+            () => !UiLayout.IsHidden(EditorPanel.Find(Context.Entities, EditorPanelKind.Metadata)));
         AddAssert(
             "metadata fields exist",
             () => Context.Entities.Query<EditorField>().WithDisabled().Count == 8);
         AddAssert(
             "start property panel is separate",
-            () => Context.Entities.Query<EditorStartPanel>().Count == 1 &&
-                  !!UiLayout.IsHidden(Context.Entities.Query<EditorStartPanel>().ToEntityList()[0].GetComponent<EditorStartPanel>().Panel));
+            () => EditorPanel.Find(Context.Entities, EditorPanelKind.Start) is { IsNull: false } start &&
+                  UiLayout.IsHidden(start));
 
         AddStep("set map background", () =>
             Context.Systems.Commands.Enqueue(
@@ -77,15 +77,13 @@ public sealed class EditorMetadataSceneTest : SceneTest
                     new Color("#204060")));
         AddAssert(
             "background swatch matches",
-            () => Context.Entities.Query<EditorBackgroundSwatch, FillColor>()
-                .ToEntityList()
+            () => ColorRows(EditorColorTarget.Background, hex: false)
                 .Any(swatch =>
                     swatch.GetComponent<FillColor>().Value ==
                     new Color("#204060")));
         AddAssert(
             "background hex label matches",
-            () => Context.Entities.Query<EditorBackgroundHex, Text>()
-                .ToEntityList()
+            () => ColorRows(EditorColorTarget.Background, hex: true)
                 .Any(hex => hex.GetComponent<Text>().Value == "#204060"));
 
         AddStep("set the colour outside the playfield", () =>
@@ -99,9 +97,9 @@ public sealed class EditorMetadataSceneTest : SceneTest
                     new Color("#3a1030")));
         AddAssert(
             "outside swatch and hex match",
-            () => Context.Entities.Query<EditorOutsideSwatch, FillColor>().ToEntityList()
+            () => ColorRows(EditorColorTarget.Outside, hex: false)
                       .Any(swatch => swatch.GetComponent<FillColor>().Value == new Color("#3a1030")) &&
-                  Context.Entities.Query<EditorOutsideHex, Text>().ToEntityList()
+                  ColorRows(EditorColorTarget.Outside, hex: true)
                       .Any(hex => hex.GetComponent<Text>().Value == "#3a1030"));
 
         AddStep("set the playfield's frame colour", () =>
@@ -115,9 +113,9 @@ public sealed class EditorMetadataSceneTest : SceneTest
                     new Color("#e0a020")));
         AddAssert(
             "frame swatch and hex match",
-            () => Context.Entities.Query<EditorFrameSwatch, FillColor>().ToEntityList()
+            () => ColorRows(EditorColorTarget.Frame, hex: false)
                       .Any(swatch => swatch.GetComponent<FillColor>().Value == new Color("#e0a020")) &&
-                  Context.Entities.Query<EditorFrameHex, Text>().ToEntityList()
+                  ColorRows(EditorColorTarget.Frame, hex: true)
                       .Any(hex => hex.GetComponent<Text>().Value == "#e0a020"));
 
         AddStep("click level name field", () =>
@@ -190,7 +188,7 @@ public sealed class EditorMetadataSceneTest : SceneTest
         });
         AddUntilStep(
             "wait for start panel",
-            () => !UiLayout.IsHidden(Context.Entities.Query<EditorStartPanel>().ToEntityList()[0].GetComponent<EditorStartPanel>().Panel));
+            () => !UiLayout.IsHidden(EditorPanel.Find(Context.Entities, EditorPanelKind.Start)));
 
         AddStep("click start time field", () =>
         {
@@ -232,4 +230,11 @@ public sealed class EditorMetadataSceneTest : SceneTest
         UiTransform.WorldPosition(
             entity,
             entity.GetComponent<Position>().Value);
+
+    private System.Collections.Generic.List<Entity> ColorRows(EditorColorTarget target, bool hex) =>
+        Context.Entities.Query<EditorColorRow>().ToEntityList()
+            .Where(entity =>
+                entity.GetComponent<EditorColorRow>().Target == target &&
+                entity.GetComponent<EditorColorRow>().Hex == hex)
+            .ToList();
 }

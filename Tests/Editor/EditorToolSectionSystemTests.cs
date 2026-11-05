@@ -24,7 +24,7 @@ public sealed class EditorToolSectionSystemTests : EcsSystemTest
         _cost = Store.CreateEntity(new EditorToolSection(EditorToolSections.ContactCost));
         _shape = Store.CreateEntity(new EditorToolSection(EditorToolSections.FormShape));
         _editor = Store.CreateEntity(
-            new EditorPlacementModeState(EditorPlacementMode.Notes),
+            new EditorPlacement { Mode = EditorPlacementMode.Notes },
             new EditorLeftMenu(_panel, default, default));
         Root.Add(new EditorToolSectionSystem(Store));
     }
@@ -52,7 +52,7 @@ public sealed class EditorToolSectionSystemTests : EcsSystemTest
         bool costHidden,
         bool shapeHidden)
     {
-        _editor.GetComponent<EditorPlacementModeState>().Mode = mode;
+        _editor.GetComponent<EditorPlacement>().Mode = mode;
 
         Frame();
 
@@ -64,11 +64,11 @@ public sealed class EditorToolSectionSystemTests : EcsSystemTest
     [Test]
     public void SpikesHideTheWholePanelAndItComesBack()
     {
-        _editor.GetComponent<EditorPlacementModeState>().Mode = EditorPlacementMode.Spikes;
+        _editor.GetComponent<EditorPlacement>().Mode = EditorPlacementMode.Spikes;
         Frame();
         Assert.That(Hidden(_panel), Is.True);
 
-        _editor.GetComponent<EditorPlacementModeState>().Mode = EditorPlacementMode.Notes;
+        _editor.GetComponent<EditorPlacement>().Mode = EditorPlacementMode.Notes;
         Frame();
         Assert.That(Hidden(_panel), Is.False);
         Assert.That(Hidden(_snap), Is.False);

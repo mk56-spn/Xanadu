@@ -12,21 +12,18 @@ public partial class EditorOverlay : CanvasLayer
 
     private void ToggleBindingsHelp()
     {
-        if (_editor.IsNull || !_editor.HasComponent<EditorBindingsHelp>())
-            return;
-
-        EditorBindingsHelp help = _editor.GetComponent<EditorBindingsHelp>();
-        Entity panel = help.Panel;
+        Entity panel = BindingsHelpPanel();
         if (panel.IsNull || !panel.HasComponent<Position>())
             return;
 
-        panel.GetComponent<Position>().Value = help.Home;
+        panel.GetComponent<Position>().Value = panel.GetComponent<EditorPanel>().Home;
         panel.AddTag<Moved>();
         UiLayout.SetHidden(panel, !UiLayout.IsHidden(panel));
     }
 
     private bool IsBindingsHelpVisible() =>
-        !_editor.IsNull &&
-        _editor.HasComponent<EditorBindingsHelp>() &&
-        !UiLayout.IsHidden(_editor.GetComponent<EditorBindingsHelp>().Panel);
+        BindingsHelpPanel() is { IsNull: false } panel && !UiLayout.IsHidden(panel);
+
+    private Entity BindingsHelpPanel() =>
+        _editor.IsNull ? default : EditorPanel.Find(_editor.Store, EditorPanelKind.Bindings);
 }

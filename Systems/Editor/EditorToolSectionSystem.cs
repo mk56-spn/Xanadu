@@ -61,7 +61,7 @@ public sealed class EditorToolSectionSystem : QuerySystem<EditorToolSection>
     {
         Entity editor = default;
         foreach (Entity candidate in _entities
-                     .Query<EditorPlacementModeState, EditorLeftMenu>()
+                     .Query<EditorPlacement, EditorLeftMenu>()
                      .ToEntityList())
         {
             editor = candidate;
@@ -71,7 +71,7 @@ public sealed class EditorToolSectionSystem : QuerySystem<EditorToolSection>
         if (editor.IsNull)
             return;
 
-        EditorPlacementMode mode = editor.GetComponent<EditorPlacementModeState>().Mode;
+        EditorPlacementMode mode = editor.GetComponent<EditorPlacement>().Mode;
         CommandBuffer buffer = CommandBuffer;
         bool any = false;
         Query.ForEachEntity((ref section, entity) =>

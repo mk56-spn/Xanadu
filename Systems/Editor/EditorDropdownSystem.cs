@@ -27,15 +27,15 @@ public sealed class EditorDropdownSystem : QuerySystem<Dropdown>
     protected override void OnUpdate()
     {
         Playhead playhead = default;
-        EditorCharacterTarget characterTarget = default;
+        CharacterKind character = default;
         foreach (Entity editor in _entities
                      .Query<Playhead>()
                      .ToEntityList())
         {
             playhead = editor.GetComponent<Playhead>();
-            characterTarget = editor.HasComponent<EditorCharacterTarget>()
-                ? editor.GetComponent<EditorCharacterTarget>()
-                : new EditorCharacterTarget(CharacterKind.Contact);
+            character = editor.HasComponent<EditorPlacement>()
+                ? editor.GetComponent<EditorPlacement>().Character
+                : CharacterKind.Contact;
             break;
         }
 
@@ -57,7 +57,7 @@ public sealed class EditorDropdownSystem : QuerySystem<Dropdown>
             }
             else
             {
-                dropdown.Selected = Expected(kind, playhead, characterTarget);
+                dropdown.Selected = Expected(kind, playhead, character);
             }
 
             SetDisplay(entity, ref dropdown, kind, buffer);
@@ -73,10 +73,10 @@ public sealed class EditorDropdownSystem : QuerySystem<Dropdown>
         else if (kind == EditorDropdownKind.Character)
         {
             foreach (Entity editor in _entities
-                         .Query<EditorCharacterTarget>()
+                         .Query<EditorPlacement>()
                          .ToEntityList())
             {
-                editor.GetComponent<EditorCharacterTarget>().Target =
+                editor.GetComponent<EditorPlacement>().Character =
                     (CharacterKind)Math.Clamp(
                         value,
                         0,
@@ -90,10 +90,10 @@ public sealed class EditorDropdownSystem : QuerySystem<Dropdown>
     private static int Expected(
         EditorDropdownKind kind,
         Playhead playhead,
-        EditorCharacterTarget characterTarget) => kind switch
+        CharacterKind character) => kind switch
     {
         EditorDropdownKind.Snap => SnapIndex(playhead.SnapDivision),
-        _ => (int)characterTarget.Target,
+        _ => (int)character,
     };
 
     private static void SetDisplay(

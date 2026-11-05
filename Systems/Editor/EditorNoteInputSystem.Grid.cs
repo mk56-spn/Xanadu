@@ -108,7 +108,7 @@ public sealed partial class EditorNoteInputSystem
         if (!IsInside(pointer, playfield))
             return;
 
-        float degrees = editor.TryGetComponent(out EditorPlacementBrush brush) ? brush.Degrees : 0f;
+        float degrees = editor.TryGetComponent(out EditorPlacement brush) ? brush.Degrees : 0f;
         bool snap = ViewportSnap.IsOn(_entities);
         Entity created;
         if (IsMode(editor, EditorPlacementMode.Spikes))
@@ -139,5 +139,5 @@ public sealed partial class EditorNoteInputSystem
         IsMode(editor, EditorPlacementMode.Blocks) || IsMode(editor, EditorPlacementMode.Spikes);
 
     private static bool IsMode(Entity editor, EditorPlacementMode mode) =>
-        editor.TryGetComponent(out EditorPlacementModeState state) && state.Mode == mode;
+        editor.TryGetComponent(out EditorPlacement placement) && placement.Mode == mode;
 }

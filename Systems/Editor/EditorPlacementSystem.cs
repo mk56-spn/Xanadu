@@ -7,7 +7,7 @@ using Xanadu.Theme;
 namespace Xanadu.Systems.Editor;
 
 /// <summary>Exclusive note/mine/movement placement mode buttons.</summary>
-public sealed class EditorPlacementSystem : QuerySystem<EditorPlacementModeState>
+public sealed class EditorPlacementSystem : QuerySystem<EditorPlacement>
 {
     private static readonly Color Selected = Palette.Primary;
     private static readonly Color Normal = Palette.Muted;
@@ -22,7 +22,7 @@ public sealed class EditorPlacementSystem : QuerySystem<EditorPlacementModeState
     {
         Entity editor = default;
         foreach (Entity candidate in _entities
-                     .Query<EditorPlacementModeState>()
+                     .Query<EditorPlacement>()
                      .ToEntityList())
         {
             editor = candidate;
@@ -32,15 +32,15 @@ public sealed class EditorPlacementSystem : QuerySystem<EditorPlacementModeState
         if (editor.IsNull)
             return;
 
-        ref EditorPlacementModeState mode =
-            ref editor.GetComponent<EditorPlacementModeState>();
+        ref EditorPlacement placement = ref editor.GetComponent<EditorPlacement>();
         CommandBuffer buffer = CommandBuffer;
 
-        foreach (Entity entity in _entities.Query<EditorPlacementButton>().WithDisabled().ToEntityList())
+        foreach (Entity entity in EditorButton.All(_entities, EditorButtonKind.Place))
         {
+            var mode = (EditorPlacementMode)entity.GetComponent<EditorButton>().Arg;
             if (entity.Tags.Has<Pressed>())
-                mode.Mode = entity.GetComponent<EditorPlacementButton>().Mode;
-            SetColor(entity, entity.GetComponent<EditorPlacementButton>().Mode == mode.Mode, buffer);
+                placement.Mode = mode;
+            SetColor(entity, mode == placement.Mode, buffer);
         }
     }
 

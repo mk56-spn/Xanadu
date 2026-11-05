@@ -86,8 +86,7 @@ public static partial class EditorScene
             EditorButtonKind.BackgroundColor,
             EditorButtonKind.ResetBackgroundColor,
             "Choose the map's background colour",
-            swatch => swatch.With(new EditorBackgroundSwatch()),
-            hex => hex.AddComponent(new EditorBackgroundHex()));
+            EditorColorTarget.Background);
 
         AddMetadataLabel(panelNode, LocalizedText.Get(EditorStrings.Outside));
         AddColorRow(
@@ -96,8 +95,7 @@ public static partial class EditorScene
             EditorButtonKind.OutsideColor,
             EditorButtonKind.ResetOutsideColor,
             "Choose the colour around the playfield",
-            swatch => swatch.With(new EditorOutsideSwatch()),
-            hex => hex.AddComponent(new EditorOutsideHex()));
+            EditorColorTarget.Outside);
 
         AddMetadataLabel(panelNode, LocalizedText.Get(EditorStrings.Frame));
         AddColorRow(
@@ -106,10 +104,9 @@ public static partial class EditorScene
             EditorButtonKind.FrameColor,
             EditorButtonKind.ResetFrameColor,
             "Choose the colour of the playfield's frame and border line",
-            swatch => swatch.With(new EditorFrameSwatch()),
-            hex => hex.AddComponent(new EditorFrameHex()));
+            EditorColorTarget.Frame);
 
-        editor.AddComponent(new EditorMetadataPanel(panel, home));
+        panel.AddComponent(new EditorPanel(EditorPanelKind.Metadata, home));
 
         UiNode startUi = UiNode.Layer(entities, root, UiLayers.EditorStartPoints, null, UiStage.Full);
         Vector2 startHome = new(
@@ -135,7 +132,7 @@ public static partial class EditorScene
         AddMetadataField(startNode, "", EditorFieldKind.StartMomentumX, true);
         AddMetadataLabel(startNode, LocalizedText.Get(EditorStrings.StartMomentumY));
         AddMetadataField(startNode, "", EditorFieldKind.StartMomentumY, true);
-        editor.AddComponent(new EditorStartPanel(startPanel, startHome));
+        startPanel.AddComponent(new EditorPanel(EditorPanelKind.Start, startHome));
 
         UiNode helpUi = UiNode.Layer(entities, root, UiLayers.EditorHelp, null, UiStage.Full);
         UiNode helpNode = helpUi.Column()
@@ -198,8 +195,8 @@ public static partial class EditorScene
                     : SceneUi.TextColor);
         }
 
-        editor.AddComponent(new EditorBindingsHelp(
-            helpPanel,
+        helpPanel.AddComponent(new EditorPanel(
+            EditorPanelKind.Bindings,
             new Vector2(screen.X / 2, screen.Y / 2)));
 
         // Keep the fields alive through the editor component so systems can
@@ -252,12 +249,12 @@ public static partial class EditorScene
         EditorButtonKind edit,
         EditorButtonKind reset,
         string tooltip,
-        System.Func<UiNode, UiNode> markSwatch,
-        System.Action<Entity> markHex)
+        EditorColorTarget target)
     {
         UiNode row = parent.Row().Size(340, 28).Gap(6);
 
-        markSwatch(row.Rect(initial, size: new Vector2(44, 28)).Input())
+        row.Rect(initial, size: new Vector2(44, 28)).Input()
+            .With(new EditorColorRow(target, hex: false))
             .With(new EditorButton(edit))
             .Tooltip(tooltip);
 
@@ -268,7 +265,7 @@ public static partial class EditorScene
             "DEFAULT",
             13,
             SceneUi.DimTextColor);
-        markHex(hex);
+        hex.AddComponent(new EditorColorRow(target, hex: true));
 
         row.Button("EDIT", 12, SceneUi.MutedButtonColor)
             .Size(80, 28)

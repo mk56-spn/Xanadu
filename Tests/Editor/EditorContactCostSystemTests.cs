@@ -13,10 +13,8 @@ public sealed class EditorContactCostSystemTests : EcsSystemTest
     [Test]
     public void ButtonsChangeTheLeftAndRightCostAndTheReadout()
     {
-        Entity readout = Store.CreateEntity(new Text("L1  R1"));
-        Entity editor = Store.CreateEntity(
-            new EditorContactCostState(1, 1),
-            new EditorContactCostReadout(readout));
+        Entity readout = Store.CreateEntity(new Text("L1  R1"), new EditorReadout(EditorReadoutKind.ContactCost));
+        Entity editor = Store.CreateEntity(new EditorPlacement { ContactLeft = 1, ContactRight = 1 });
         Entity leftPlus = Button(left: true, delta: 1);
         Entity rightMinus = Button(left: false, delta: -1);
 
@@ -24,21 +22,19 @@ public sealed class EditorContactCostSystemTests : EcsSystemTest
         Frame();
 
         Click(leftPlus);
-        Assert.That(editor.GetComponent<EditorContactCostState>().Left, Is.EqualTo(2));
+        Assert.That(editor.GetComponent<EditorPlacement>().ContactLeft, Is.EqualTo(2));
         Assert.That(readout.GetComponent<Text>().Value, Is.EqualTo("L2  R1"));
 
         Click(rightMinus);
-        Assert.That(editor.GetComponent<EditorContactCostState>().Right, Is.Zero);
+        Assert.That(editor.GetComponent<EditorPlacement>().ContactRight, Is.Zero);
         Assert.That(readout.GetComponent<Text>().Value, Is.EqualTo("L2  R0"));
     }
 
     [Test]
     public void CostsAreClampedToTheAuthoringRange()
     {
-        Entity readout = Store.CreateEntity(new Text("L1  R1"));
-        Entity editor = Store.CreateEntity(
-            new EditorContactCostState(1, 1),
-            new EditorContactCostReadout(readout));
+        Entity readout = Store.CreateEntity(new Text("L1  R1"), new EditorReadout(EditorReadoutKind.ContactCost));
+        Entity editor = Store.CreateEntity(new EditorPlacement { ContactLeft = 1, ContactRight = 1 });
         Entity leftMinus = Button(left: true, delta: -1);
         Entity rightPlus = Button(left: false, delta: 1);
 
@@ -46,17 +42,17 @@ public sealed class EditorContactCostSystemTests : EcsSystemTest
         Frame();
 
         Click(leftMinus);
-        Assert.That(editor.GetComponent<EditorContactCostState>().Left, Is.Zero);
+        Assert.That(editor.GetComponent<EditorPlacement>().ContactLeft, Is.Zero);
 
         Click(rightPlus);
         Click(rightPlus);
         Click(rightPlus);
-        Assert.That(editor.GetComponent<EditorContactCostState>().Right,
+        Assert.That(editor.GetComponent<EditorPlacement>().ContactRight,
             Is.EqualTo(3));
     }
 
     private Entity Button(bool left, int delta) =>
-        Store.CreateEntity(new EditorContactCostButton(left, delta));
+        Store.CreateEntity(new EditorButton(left ? EditorButtonKind.ContactLeft : EditorButtonKind.ContactRight, delta));
 
     private void Click(Entity button)
     {

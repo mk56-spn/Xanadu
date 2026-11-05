@@ -57,9 +57,9 @@ public sealed class EditorTextSceneTest : SceneTest
 
     private Entity SizeButton(int delta)
     {
-        foreach (Entity button in Context.Entities.Query<EditorTextSizeButton>().ToEntityList())
+        foreach (Entity button in EditorButton.All(Context.Entities, EditorButtonKind.TextSize))
         {
-            if (button.GetComponent<EditorTextSizeButton>().Delta == delta)
+            if (button.GetComponent<EditorButton>().Arg == delta)
                 return button;
         }
 

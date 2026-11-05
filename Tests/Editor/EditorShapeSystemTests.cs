@@ -16,19 +16,17 @@ public sealed class EditorShapeSystemTests : EcsSystemTest
     [Test]
     public void AttachTurnsTheSelectedBlocksIntoAnOrderedShape()
     {
-        Entity readout = Store.CreateEntity(new Text("NO SHAPE"));
+        Entity readout = Store.CreateEntity(new Text("NO SHAPE"), new EditorReadout(EditorReadoutKind.Shape));
         Entity editor = Store.CreateEntity(
             new Playhead(1_000, 120, 0, false),
             new NoteSelection(default),
-            new EditorShapeState(0),
-            new EditorShapeReadout(readout),
-            new EditorNoteTarget(KeybindAction.L2));
+            new EditorPlacement { Note = KeybindAction.L2 });
         Entity first = Store.CreateEntity(
             new Block(new Vector2(100, 200), new Vector2(80, 40)));
         Entity second = Store.CreateEntity(
             new Block(new Vector2(300, 200), new Vector2(80, 40)));
         editor.GetComponent<NoteSelection>().SetMany(new[] { first, second });
-        Entity button = Store.CreateEntity(new EditorShapeAttachButton());
+        Entity button = Store.CreateEntity(new EditorButton(EditorButtonKind.ShapeAttach));
         var history = new EditorHistory(Store);
 
         Root.Add(new EditorShapeSystem(Store, history));
@@ -51,7 +49,7 @@ public sealed class EditorShapeSystemTests : EcsSystemTest
         Assert.That(marker.Kind, Is.EqualTo(NoteKind.Construction));
         Assert.That(marker.ShapeId, Is.EqualTo(1));
         Assert.That(marker.Target, Is.EqualTo(KeybindAction.L2));
-        Assert.That(editor.GetComponent<EditorShapeState>().ShapeId,
+        Assert.That(editor.GetComponent<EditorPlacement>().ShapeId,
             Is.EqualTo(1));
         Assert.That(readout.GetComponent<Text>().Value, Is.EqualTo("SHAPE 1"));
         Assert.That(history.CanUndo, Is.True);

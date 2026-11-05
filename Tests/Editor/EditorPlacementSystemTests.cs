@@ -13,25 +13,25 @@ public sealed class EditorPlacementSystemTests : EcsSystemTest
     public void PlacementModesAreExclusive()
     {
         Entity editor = Store.CreateEntity(
-            new EditorPlacementModeState(EditorPlacementMode.Notes));
+            new EditorPlacement { Mode = EditorPlacementMode.Notes });
         Entity mineButton = Store.CreateEntity(
-            new EditorPlacementButton(EditorPlacementMode.Mines));
+            EditorButton.Place(EditorPlacementMode.Mines));
         Entity moveButton = Store.CreateEntity(
-            new EditorPlacementButton(EditorPlacementMode.Dash));
+            EditorButton.Place(EditorPlacementMode.Dash));
 
         Root.Add(new EditorPlacementSystem(Store));
 
         mineButton.AddTag<Pressed>();
         Frame();
         Assert.That(
-            editor.GetComponent<EditorPlacementModeState>().Mode,
+            editor.GetComponent<EditorPlacement>().Mode,
             Is.EqualTo(EditorPlacementMode.Mines));
 
         mineButton.RemoveTag<Pressed>();
         moveButton.AddTag<Pressed>();
         Frame();
         Assert.That(
-            editor.GetComponent<EditorPlacementModeState>().Mode,
+            editor.GetComponent<EditorPlacement>().Mode,
             Is.EqualTo(EditorPlacementMode.Dash));
     }
 }

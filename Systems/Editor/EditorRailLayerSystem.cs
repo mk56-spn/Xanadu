@@ -15,7 +15,7 @@ namespace Xanadu.Systems.Editor;
 /// at the playhead with the selected side key and hold length; channel end
 /// markers are placed the same way.
 /// </summary>
-public sealed class EditorRailLayerSystem : QuerySystem<EditorRailButton>
+public sealed class EditorRailLayerSystem : QuerySystem<EditorButton>
 {
     private static readonly long[] Holds = { 0, 250, 500, 1_000, 2_000 };
 
@@ -36,7 +36,7 @@ public sealed class EditorRailLayerSystem : QuerySystem<EditorRailButton>
     {
         Entity editor = default;
         foreach (Entity candidate in _entities
-                     .Query<EditorRailHoldState, EditorRailHoldReadout>()
+                     .Query<EditorPlacement>()
                      .ToEntityList())
         {
             editor = candidate;
@@ -46,56 +46,35 @@ public sealed class EditorRailLayerSystem : QuerySystem<EditorRailButton>
         if (editor.IsNull)
             return;
 
-        EditorRailHoldState state = editor.GetComponent<EditorRailHoldState>();
-
         foreach (Entity entity in Query.ToEntityList())
         {
+            EditorButton button = entity.GetComponent<EditorButton>();
+            if (button.Kind is not (EditorButtonKind.RailTap or EditorButtonKind.ChannelEnd or EditorButtonKind.RailHold))
+                continue;
             if (!PressedNow(entity))
                 continue;
 
-            PlaceRail(
-                entity.GetComponent<EditorRailButton>().Action,
-                editor,
-                state.HoldMs);
-        }
-
-        foreach (Entity entity in _entities
-                     .Query<EditorChannelEndButton>()
-                     .WithDisabled()
-                     .ToEntityList())
-        {
-            if (!PressedNow(entity))
-                continue;
-
-            PlaceEnd(
-                entity.GetComponent<EditorChannelEndButton>().Side,
-                editor);
-        }
-
-        foreach (Entity entity in _entities
-                     .Query<EditorRailHoldButton>()
-                     .WithDisabled()
-                     .ToEntityList())
-        {
-            if (!PressedNow(entity))
-                continue;
-
-            state.HoldMs = NextHold(state.HoldMs);
-            editor.GetComponent<EditorRailHoldState>() = state;
-        }
-
-        Entity readout = editor.GetComponent<EditorRailHoldReadout>().Text;
-        if (!readout.IsNull && readout.HasComponent<Text>())
-        {
-            string value = state.HoldMs == 0 ? "TAP" : $"HOLD {state.HoldMs}";
-            ref Text text = ref readout.GetComponent<Text>();
-            if (text.Value != value)
+            ref EditorPlacement state = ref editor.GetComponent<EditorPlacement>();
+            switch (button.Kind)
             {
-                text.Value = value;
-                CommandBuffer buffer = CommandBuffer;
-                buffer.AddTag<Dirty>(readout.Id);
+                case EditorButtonKind.RailTap:
+                    PlaceRail((KeybindAction)button.Arg, editor, state.RailHoldMs);
+                    break;
+                case EditorButtonKind.ChannelEnd:
+                    PlaceEnd((ChannelSide)button.Arg, editor);
+                    break;
+                case EditorButtonKind.RailHold:
+                    state.RailHoldMs = NextHold(state.RailHoldMs);
+                    break;
             }
         }
+
+        long holdMs = editor.GetComponent<EditorPlacement>().RailHoldMs;
+        EditorReadout.Show(
+            _entities,
+            EditorReadoutKind.RailHold,
+            holdMs == 0 ? "TAP" : $"HOLD {holdMs}",
+            CommandBuffer);
     }
 
     private bool PressedNow(Entity entity)

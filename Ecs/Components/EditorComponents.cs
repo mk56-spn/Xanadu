@@ -4,6 +4,7 @@ using Godot;
 using Xanadu.Settings;
 using Xanadu.Systems.Audio;
 using Xanadu.Systems.Ui;
+using Xanadu.Ui.Ecs.Ui;
 
 namespace Xanadu.Ecs;
 
@@ -65,18 +66,6 @@ public struct LevelFile(string path) : IComponent
     public string Path = path;
 }
 
-/// <summary>The editor's currently selected note type for new notes.</summary>
-public struct EditorNoteTarget(KeybindAction target) : IComponent
-{
-    public KeybindAction Target = target;
-}
-
-/// <summary>Character selected for newly placed character-switch notes.</summary>
-public struct EditorCharacterTarget(CharacterKind target) : IComponent
-{
-    public CharacterKind Target = target;
-}
-
 /// <summary>What clicking the field places: a note kind, or another playfield item.</summary>
 public enum EditorPlacementMode
 {
@@ -96,9 +85,37 @@ public enum EditorPlacementMode
     Text,
 }
 
-public struct EditorPlacementModeState(EditorPlacementMode mode) : IComponent
+/// <summary>
+/// The editor's placement brush: what clicking the field places, and everything
+/// a newly placed item gets.
+/// </summary>
+public struct EditorPlacement() : IComponent
 {
-    public EditorPlacementMode Mode = mode;
+    public EditorPlacementMode Mode = EditorPlacementMode.Notes;
+
+    /// <summary>The note type new notes get.</summary>
+    public KeybindAction Note = KeybindAction.M;
+
+    /// <summary>The character new character-switch notes switch to.</summary>
+    public CharacterKind Character = CharacterKind.Contact;
+
+    /// <summary>The turn given to new blocks and spikes, in degrees clockwise from up.</summary>
+    public float Degrees;
+
+    public DashDirection Direction = DashDirection.UpRight;
+
+    /// <summary>The dash strength new movement notes get.</summary>
+    public DashStrength Strength = DashStrength.Single;
+
+    /// <summary>The left and right charge new contact barriers ask for.</summary>
+    public int ContactLeft = 1;
+    public int ContactRight = 1;
+
+    /// <summary>The hold length new rail notes get, in milliseconds.</summary>
+    public long RailHoldMs;
+
+    /// <summary>The Form construction shape new steps are authored into, or 0 for none.</summary>
+    public int ShapeId;
 }
 
 /// <summary>A part of the left panel that only shows for the tools that use it.</summary>
@@ -112,96 +129,6 @@ public struct EditorPlacementGhost : IComponent
 {
     public bool Visible;
     public Vector2 Screen;
-}
-
-/// <summary>The turn given to newly placed blocks and spikes, in degrees clockwise from up.</summary>
-public struct EditorPlacementBrush(float degrees = 0f) : IComponent
-{
-    public float Degrees = degrees;
-}
-
-public struct EditorDashDirectionState(DashDirection direction) : IComponent
-{
-    public DashDirection Direction = direction;
-}
-
-/// <summary>The dash strength newly placed movement notes get.</summary>
-public struct EditorDashStrengthState(DashStrength strength) : IComponent
-{
-    public DashStrength Strength = strength;
-}
-
-/// <summary>The left and right charge newly placed contact barriers ask for.</summary>
-public struct EditorContactCostState(int left, int right) : IComponent
-{
-    public int Left = left;
-    public int Right = right;
-}
-
-/// <summary>One of the editor's four contact-cost buttons.</summary>
-public struct EditorContactCostButton(bool left, int delta) : IComponent
-{
-    public bool Left = left;
-    public int Delta = delta;
-}
-
-/// <summary>The text entity that shows the current contact cost.</summary>
-public struct EditorContactCostReadout(Entity text) : IComponent
-{
-    public Entity Text = text;
-}
-
-/// <summary>The hold length newly placed rail notes get, in milliseconds.</summary>
-public struct EditorRailHoldState(long holdMs) : IComponent
-{
-    public long HoldMs = holdMs;
-}
-
-/// <summary>The text entity that shows the current rail hold length.</summary>
-public struct EditorRailHoldReadout(Entity text) : IComponent
-{
-    public Entity Text = text;
-}
-
-/// <summary>A rail-layer button that places a tap on a side key at the playhead.</summary>
-public struct EditorRailButton(KeybindAction action) : IComponent
-{
-    public KeybindAction Action = action;
-}
-
-/// <summary>Cycles the hold length used by new rail notes.</summary>
-public struct EditorRailHoldButton : IComponent;
-
-/// <summary>A rail-layer button that places a channel end marker at the playhead.</summary>
-public struct EditorChannelEndButton(ChannelSide side) : IComponent
-{
-    public ChannelSide Side = side;
-}
-
-/// <summary>The Form construction shape new steps are authored into, or 0 for none.</summary>
-public struct EditorShapeState(int shapeId) : IComponent
-{
-    public int ShapeId = shapeId;
-}
-
-/// <summary>Attaches the selected blocks to a new Form shape at the playhead.</summary>
-public struct EditorShapeAttachButton : IComponent;
-
-/// <summary>The text entity that shows the active Form shape id.</summary>
-public struct EditorShapeReadout(Entity text) : IComponent
-{
-    public Entity Text = text;
-}
-
-/// <summary>One of the editor's 1×, 2× and 3× dash strength buttons.</summary>
-public struct EditorDashStrengthButton(DashStrength strength) : IComponent
-{
-    public DashStrength Strength = strength;
-}
-
-public struct EditorPlacementButton(EditorPlacementMode mode) : IComponent
-{
-    public EditorPlacementMode Mode = mode;
 }
 
 /// <summary>The song's loudness by frequency band, for the editor timeline; null without a song.</summary>
@@ -246,12 +173,138 @@ public enum EditorButtonKind
     ResetOutsideColor,
     FrameColor,
     ResetFrameColor,
+
+    // Sidebar buttons; their argument is given beside each.
+    /// <summary>Picks the placement tool; the argument is an <see cref="EditorPlacementMode"/>.</summary>
+    Place,
+    /// <summary>A note-type bar swatch; the argument is the <see cref="KeybindAction"/> new notes get.</summary>
+    NoteType,
+    /// <summary>Picks the strength new movement notes get; the argument is a <see cref="DashStrength"/>.</summary>
+    DashStrength,
+    /// <summary>Steps the left contact cost; the argument is the step.</summary>
+    ContactLeft,
+    /// <summary>Steps the right contact cost; the argument is the step.</summary>
+    ContactRight,
+    /// <summary>Places a rail note at the playhead; the argument is its side <see cref="KeybindAction"/>.</summary>
+    RailTap,
+    /// <summary>Cycles the hold length new rail notes get.</summary>
+    RailHold,
+    /// <summary>Places a channel end at the playhead; the argument is its <see cref="ChannelSide"/>.</summary>
+    ChannelEnd,
+    /// <summary>Attaches the selected blocks to a new Form shape at the playhead.</summary>
+    ShapeAttach,
+    /// <summary>Makes the selected texts bigger or smaller; the argument is the step.</summary>
+    TextSize,
+    /// <summary>Thickens or thins the selected outlines; the argument is the step in whole units.</summary>
+    OutlineStep,
 }
 
-/// <summary>An ECS editor toolbar button.</summary>
-public struct EditorButton(EditorButtonKind kind) : IComponent
+/// <summary>An ECS editor button: what it does, and the value it does it with.</summary>
+public struct EditorButton(EditorButtonKind kind, int arg = 0) : IComponent
 {
     public EditorButtonKind Kind = kind;
+
+    /// <summary>The kind's value, such as a placement mode, note key or step; see <see cref="EditorButtonKind"/>.</summary>
+    public int Arg = arg;
+
+    public static EditorButton Place(EditorPlacementMode mode) => new(EditorButtonKind.Place, (int)mode);
+
+    public static EditorButton NoteType(KeybindAction action) => new(EditorButtonKind.NoteType, (int)action);
+
+    public static EditorButton Strength(DashStrength strength) => new(EditorButtonKind.DashStrength, (int)strength);
+
+    public static EditorButton RailTap(KeybindAction action) => new(EditorButtonKind.RailTap, (int)action);
+
+    public static EditorButton ChannelEnd(ChannelSide side) => new(EditorButtonKind.ChannelEnd, (int)side);
+
+    /// <summary>The editor buttons of one kind, hidden ones included.</summary>
+    public static List<Entity> All(EntityStore store, EditorButtonKind kind)
+    {
+        var found = new List<Entity>();
+        foreach (Entity entity in store.Query<EditorButton>().WithDisabled().ToEntityList())
+        {
+            if (entity.GetComponent<EditorButton>().Kind == kind)
+                found.Add(entity);
+        }
+
+        return found;
+    }
+}
+
+public enum EditorReadoutKind
+{
+    ContactCost,
+    RailHold,
+    Shape,
+}
+
+/// <summary>A text that shows one of the placement brush's values.</summary>
+public struct EditorReadout(EditorReadoutKind kind) : IComponent
+{
+    public EditorReadoutKind Kind = kind;
+
+    /// <summary>Sets every readout of a kind to a value, marking the ones that changed.</summary>
+    public static void Show(EntityStore store, EditorReadoutKind kind, string value, CommandBuffer buffer)
+    {
+        foreach (Entity entity in store.Query<EditorReadout, Text>().WithDisabled().ToEntityList())
+        {
+            if (entity.GetComponent<EditorReadout>().Kind != kind)
+                continue;
+
+            ref Text text = ref entity.GetComponent<Text>();
+            if (text.Value == value)
+                continue;
+
+            text.Value = value;
+            buffer.AddTag<Dirty>(entity.Id);
+        }
+    }
+}
+
+public enum EditorColorTarget
+{
+    Background,
+    Outside,
+    Frame,
+}
+
+/// <summary>
+/// Part of a metadata colour row: the swatch that shows, and opens, one of the
+/// map's colours, or the text beside it with the stored colour or DEFAULT.
+/// </summary>
+public struct EditorColorRow(EditorColorTarget target, bool hex) : IComponent
+{
+    public EditorColorTarget Target = target;
+    public bool Hex = hex;
+}
+
+public enum EditorPanelKind
+{
+    /// <summary>The level metadata panel; it starts hidden.</summary>
+    Metadata,
+    /// <summary>The start-point property panel below the metadata.</summary>
+    Start,
+    /// <summary>The F2 editor-binding reference overlay.</summary>
+    Bindings,
+}
+
+/// <summary>A floating editor panel, on the panel itself, with the place it opens at.</summary>
+public struct EditorPanel(EditorPanelKind kind, Vector2 home) : IComponent
+{
+    public EditorPanelKind Kind = kind;
+    public Vector2 Home = home;
+
+    /// <summary>The panel of a kind, or null when there is none.</summary>
+    public static Entity Find(EntityStore store, EditorPanelKind kind)
+    {
+        foreach (Entity entity in store.Query<EditorPanel>().WithDisabled().ToEntityList())
+        {
+            if (entity.GetComponent<EditorPanel>().Kind == kind)
+                return entity;
+        }
+
+        return default;
+    }
 }
 
 /// <summary>A native editor panel/dialog request raised by an ECS button.</summary>
@@ -303,31 +356,6 @@ public struct EditorField(EditorFieldKind kind) : IComponent
     public EditorFieldKind Kind = kind;
 }
 
-/// <summary>Editor metadata panel and its home position; the panel starts hidden.</summary>
-public struct EditorMetadataPanel(Entity panel, Vector2 home) : IComponent
-{
-    public Entity Panel = panel;
-    public Vector2 Home = home;
-}
-
-/// <summary>The swatch that shows, and opens, the map's background colour.</summary>
-public struct EditorBackgroundSwatch : IComponent;
-
-/// <summary>The text beside the background swatch: the stored colour or DEFAULT.</summary>
-public struct EditorBackgroundHex : IComponent;
-
-/// <summary>The metadata panel's live swatch of the colour around the playfield.</summary>
-public struct EditorOutsideSwatch : IComponent;
-
-/// <summary>The text beside the outside swatch: the stored colour or DEFAULT.</summary>
-public struct EditorOutsideHex : IComponent;
-
-/// <summary>The metadata panel's live swatch of the playfield's frame colour.</summary>
-public struct EditorFrameSwatch : IComponent;
-
-/// <summary>The text beside the frame swatch: the stored colour or DEFAULT.</summary>
-public struct EditorFrameHex : IComponent;
-
 /// <summary>ECS editor HUD text entities updated from editor state.</summary>
 public struct EditorHud(
     Entity level,
@@ -355,12 +383,6 @@ public struct EditorSidebarLayout(
     public Entity Panel = panel;
     public Entity CharacterLabel = characterLabel;
     public Entity CharacterButton = characterButton;
-}
-
-/// <summary>A colour swatch in the note-type bar; pressing it sets the type new notes get.</summary>
-public struct EditorNoteSwatch(KeybindAction action) : IComponent
-{
-    public KeybindAction Action = action;
 }
 
 /// <summary>
@@ -392,13 +414,6 @@ public struct EditorDirectionWheel(Entity wheel, Entity label)
     public Entity Label = label;
 }
 
-/// <summary>F2 editor-binding reference overlay.</summary>
-public struct EditorBindingsHelp(Entity panel, Vector2 home) : IComponent
-{
-    public Entity Panel = panel;
-    public Vector2 Home = home;
-}
-
 /// <summary>Saved practice start state: time, position, momentum, and facing.</summary>
 public struct StartPoint(
     string name,
@@ -416,13 +431,6 @@ public struct StartPoint(
 
     /// <summary>Groups this start point belongs to, copied so a play launch can offset the spawn.</summary>
     public uint Groups = groups;
-}
-
-/// <summary>Separate start-point property panel shown below level metadata.</summary>
-public struct EditorStartPanel(Entity panel, Vector2 home) : IComponent
-{
-    public Entity Panel = panel;
-    public Vector2 Home = home;
 }
 
 /// <summary>

@@ -77,9 +77,9 @@ public sealed class EditorBlockStylesSceneTest : SceneTest
 
     private Entity StepButton(int delta)
     {
-        foreach (Entity button in Context.Entities.Query<EditorOutlineStepButton>().ToEntityList())
+        foreach (Entity button in EditorButton.All(Context.Entities, EditorButtonKind.OutlineStep))
         {
-            if (button.GetComponent<EditorOutlineStepButton>().Delta == delta)
+            if (button.GetComponent<EditorButton>().Arg == delta)
                 return button;
         }
 

@@ -171,36 +171,27 @@ public sealed class SceneControllerRegistry
         public void HandleActions(SceneSystem system, ref SceneState state)
         {
             foreach (Entity entity in system.Entities
-                         .Query<ProfileSelect>()
+                         .Query<SceneAction>()
                          .WithDisabled()
                          .AllTags(Tags.Get<Pressed>())
                          .ToEntityList())
             {
-                if (system.Profiles.Select(entity.GetComponent<ProfileSelect>().ProfileId))
-                    state.Pending = SceneKind.Main;
-                return;
-            }
-
-            foreach (Entity entity in system.Entities
-                         .Query<ProfileCreate>()
-                         .WithDisabled()
-                         .AllTags(Tags.Get<Pressed>())
-                         .ToEntityList())
-            {
-                system.Profiles.Create();
-                state.Pending = SceneKind.ProfileEdit;
-                return;
-            }
-
-            foreach (Entity entity in system.Entities
-                         .Query<ProfileEditAction>()
-                         .WithDisabled()
-                         .AllTags(Tags.Get<Pressed>())
-                         .ToEntityList())
-            {
-                if (system.Profiles.Select(entity.GetComponent<ProfileEditAction>().ProfileId))
-                    state.Pending = SceneKind.ProfileEdit;
-                return;
+                SceneAction action = entity.GetComponent<SceneAction>();
+                switch (action.Kind)
+                {
+                    case SceneActionKind.SelectProfile:
+                        if (system.Profiles.Select(action.ProfileId))
+                            state.Pending = SceneKind.Main;
+                        return;
+                    case SceneActionKind.CreateProfile:
+                        system.Profiles.Create();
+                        state.Pending = SceneKind.ProfileEdit;
+                        return;
+                    case SceneActionKind.EditProfile:
+                        if (system.Profiles.Select(action.ProfileId))
+                            state.Pending = SceneKind.ProfileEdit;
+                        return;
+                }
             }
         }
     }

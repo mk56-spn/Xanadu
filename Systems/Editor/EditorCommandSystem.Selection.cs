@@ -19,12 +19,11 @@ public sealed partial class EditorCommandSystem
     {
         if (!TryCaptureSelection(editor, out List<RotationStart> starts, out Vector2 pivot))
         {
-            bool placing = editor.TryGetComponent(out EditorPlacementModeState mode) &&
-                           mode.Mode is EditorPlacementMode.Spikes or EditorPlacementMode.Blocks;
-            if (placing && editor.HasComponent<EditorPlacementBrush>())
+            if (editor.HasComponent<EditorPlacement>())
             {
-                ref EditorPlacementBrush brush = ref editor.GetComponent<EditorPlacementBrush>();
-                brush.Degrees = SpikeRules.NormalizeDegrees(brush.Degrees + 90f);
+                ref EditorPlacement brush = ref editor.GetComponent<EditorPlacement>();
+                if (brush.Mode is EditorPlacementMode.Spikes or EditorPlacementMode.Blocks)
+                    brush.Degrees = SpikeRules.NormalizeDegrees(brush.Degrees + 90f);
             }
 
             return;
@@ -109,14 +108,14 @@ public sealed partial class EditorCommandSystem
 
     private static void SyncSpikeBrush(Entity editor, List<RotationStart> starts)
     {
-        if (!editor.HasComponent<EditorPlacementBrush>())
+        if (!editor.HasComponent<EditorPlacement>())
             return;
 
         foreach (RotationStart start in starts)
         {
             if (start.Entity.HasComponent<Spike>())
             {
-                editor.GetComponent<EditorPlacementBrush>().Degrees =
+                editor.GetComponent<EditorPlacement>().Degrees =
                     start.Entity.GetComponent<Spike>().RotationDegrees;
                 return;
             }

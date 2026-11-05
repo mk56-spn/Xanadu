@@ -14,7 +14,7 @@ namespace Xanadu.Systems.Editor;
 /// and movement notes. Pressing one picks the key
 /// new notes get; the picked swatch stays bright and the rest dim.
 /// </summary>
-public sealed class EditorNoteTypeBarSystem : QuerySystem<EditorNoteSwatch>
+public sealed class EditorNoteTypeBarSystem : QuerySystem<EditorButton>
 {
     private static readonly Color DimTo = new(0.08f, 0.1f, 0.16f);
     private const float Dimming = 0.6f;
@@ -36,7 +36,7 @@ public sealed class EditorNoteTypeBarSystem : QuerySystem<EditorNoteSwatch>
     {
         Entity editor = default;
         foreach (Entity candidate in _entities
-                     .Query<EditorPlacementModeState, EditorNoteTarget>()
+                     .Query<EditorPlacement>()
                      .ToEntityList())
         {
             editor = candidate;
@@ -46,15 +46,19 @@ public sealed class EditorNoteTypeBarSystem : QuerySystem<EditorNoteSwatch>
         if (editor.IsNull)
             return;
 
-        bool visible = ShowsFor(editor.GetComponent<EditorPlacementModeState>().Mode);
-        KeybindAction target = editor.GetComponent<EditorNoteTarget>().Target;
+        bool visible = ShowsFor(editor.GetComponent<EditorPlacement>().Mode);
+        KeybindAction target = editor.GetComponent<EditorPlacement>().Note;
         CommandBuffer buffer = CommandBuffer;
 
         foreach (Entity panel in _entities.Query<EditorNoteBarPanel>().WithDisabled().ToEntityList())
             SetShown(panel, visible, buffer);
 
-        Query.ForEachEntity((ref swatch, entity) =>
+        Query.ForEachEntity((ref button, entity) =>
         {
+            if (button.Kind != EditorButtonKind.NoteType)
+                return;
+
+            var action = (KeybindAction)button.Arg;
             bool pressed = visible && entity.Tags.Has<Pressed>();
             bool wasPressed = _held.Contains(entity.Id);
             if (pressed)
@@ -64,11 +68,11 @@ public sealed class EditorNoteTypeBarSystem : QuerySystem<EditorNoteSwatch>
 
             if (pressed && !wasPressed)
             {
-                _commands.Enqueue(EditorCommand.SetTarget(swatch.Action));
-                target = swatch.Action;
+                _commands.Enqueue(EditorCommand.SetTarget(action));
+                target = action;
             }
 
-            Shade(entity, swatch.Action, swatch.Action == target, buffer);
+            Shade(entity, action, action == target, buffer);
         });
     }
 

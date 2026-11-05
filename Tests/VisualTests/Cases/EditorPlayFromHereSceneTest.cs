@@ -31,7 +31,7 @@ public sealed class EditorPlayFromHereSceneTest : SceneTest
         AddStep("set the tool, zoom and selection", () =>
         {
             Entity editor = Editor();
-            editor.GetComponent<EditorPlacementModeState>().Mode = EditorPlacementMode.Spikes;
+            editor.GetComponent<EditorPlacement>().Mode = EditorPlacementMode.Spikes;
             ref PlayfieldView view = ref editor.GetComponent<PlayfieldView>();
             view.Scale *= 0.8f;
             _scale = view.Scale;
@@ -69,7 +69,7 @@ public sealed class EditorPlayFromHereSceneTest : SceneTest
         AddAssert("the playhead stayed", () => Editor().GetComponent<Playhead>().TimeMs == HereMs);
         AddAssert("the zoom stayed", () => Editor().GetComponent<PlayfieldView>().Scale == _scale);
         AddAssert("the tool stayed", () =>
-            Editor().GetComponent<EditorPlacementModeState>().Mode == EditorPlacementMode.Spikes);
+            Editor().GetComponent<EditorPlacement>().Mode == EditorPlacementMode.Spikes);
         AddAssert("the selection stayed", () =>
             Editor().GetComponent<NoteSelection>().AllNotes.Count == 1 &&
             Editor().GetComponent<NoteSelection>().AllNotes[0].HasComponent<Spike>());

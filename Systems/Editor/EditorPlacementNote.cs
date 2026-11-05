@@ -15,40 +15,27 @@ public static class EditorPlacementNote
 {
     /// <summary>True for a Form step with no shape chosen, which cannot be placed.</summary>
     public static bool NeedsShape(Entity editor) =>
-        editor.TryGetComponent(out EditorPlacementModeState mode) &&
-        mode.Mode == EditorPlacementMode.FormStep &&
-        (!editor.TryGetComponent(out EditorShapeState shape) || shape.ShapeId == 0);
+        editor.TryGetComponent(out EditorPlacement placement) &&
+        placement.Mode == EditorPlacementMode.FormStep &&
+        placement.ShapeId == 0;
 
     public static Note Build(Entity editor, long time, Vector2 position)
     {
-        KeybindAction target = editor.HasComponent<EditorNoteTarget>()
-            ? editor.GetComponent<EditorNoteTarget>().Target
-            : KeybindAction.M;
-        CharacterKind character = editor.HasComponent<EditorCharacterTarget>()
-            ? editor.GetComponent<EditorCharacterTarget>().Target
-            : CharacterKind.Contact;
-        EditorPlacementMode mode = editor.HasComponent<EditorPlacementModeState>()
-            ? editor.GetComponent<EditorPlacementModeState>().Mode
-            : EditorPlacementMode.Notes;
-        DashDirection direction = editor.HasComponent<EditorDashDirectionState>()
-            ? editor.GetComponent<EditorDashDirectionState>().Direction
-            : DashDirection.Up;
-        DashStrength strength = editor.HasComponent<EditorDashStrengthState>()
-            ? editor.GetComponent<EditorDashStrengthState>().Strength
-            : DashStrength.Single;
+        EditorPlacement placement = editor.TryGetComponent(out EditorPlacement found)
+            ? found
+            : new EditorPlacement { Direction = DashDirection.Up };
+        KeybindAction target = placement.Note;
+        CharacterKind character = placement.Character;
+        EditorPlacementMode mode = placement.Mode;
+        DashDirection direction = placement.Direction;
+        DashStrength strength = placement.Strength;
         bool isPair = mode == EditorPlacementMode.Pair;
         bool isContact = mode == EditorPlacementMode.Contact;
         bool isChannel = mode == EditorPlacementMode.Channel;
         bool isFormStep = mode == EditorPlacementMode.FormStep;
-        EditorShapeState shape = editor.HasComponent<EditorShapeState>()
-            ? editor.GetComponent<EditorShapeState>()
-            : new EditorShapeState(0);
         KeybindAction channelTarget = target == KeybindAction.M
             ? KeybindAction.L1
             : target;
-        EditorContactCostState costs = editor.HasComponent<EditorContactCostState>()
-            ? editor.GetComponent<EditorContactCostState>()
-            : new EditorContactCostState(1, 1);
 
         return new Note(
             time,
@@ -79,12 +66,12 @@ public static class EditorPlacementNote
             dashStrength: strength,
             pairIndex: NoteRules.PairIndexFor(target),
             momentum: MomentumFor(strength),
-            contactLeft: isContact ? costs.Left : 0,
-            contactRight: isContact ? costs.Right : 0,
+            contactLeft: isContact ? placement.ContactLeft : 0,
+            contactRight: isContact ? placement.ContactRight : 0,
             channelSide: isChannel
                 ? NoteRules.SideOf(channelTarget)
                 : ChannelSide.Left,
-            shapeId: isFormStep ? shape.ShapeId : 0,
+            shapeId: isFormStep ? placement.ShapeId : 0,
             shapePiece: 0);
     }
 

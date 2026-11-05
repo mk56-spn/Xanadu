@@ -80,7 +80,7 @@ public sealed class EditorChromeLayoutTests : EcsSystemTest
     public void ThePlacementToolsFlowDownTheStripFlushToTheLeftEdge()
     {
         var tools = new System.Collections.Generic.List<Rect2>();
-        foreach (Entity entity in Store.Query<EditorPlacementButton>().ToEntityList())
+        foreach (Entity entity in EditorButton.All(Store, EditorButtonKind.Place))
             tools.Add(Area(entity));
         tools.Sort((a, b) => a.Position.Y.CompareTo(b.Position.Y));
 
@@ -98,9 +98,9 @@ public sealed class EditorChromeLayoutTests : EcsSystemTest
     [Test]
     public void EachKeyedToolShowsItsKeyInsideItsButton()
     {
-        foreach (Entity entity in Store.Query<EditorPlacementButton>().ToEntityList())
+        foreach (Entity entity in EditorButton.All(Store, EditorButtonKind.Place))
         {
-            EditorPlacementMode mode = entity.GetComponent<EditorPlacementButton>().Mode;
+            var mode = (EditorPlacementMode)entity.GetComponent<EditorButton>().Arg;
             string key = Xanadu.Editor.EditorPlacementKeybinds.LabelFor(mode);
             Assert.That(entity.GetComponent<UiTooltip>().Text, Does.EndWith(key.Length > 0 ? $"({key})" : ""));
             if (key.Length == 0)

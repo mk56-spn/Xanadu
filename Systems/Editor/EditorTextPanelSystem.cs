@@ -15,12 +15,6 @@ public struct EditorTextPanel(Entity section, Entity field, Entity size) : IComp
     public Entity Size = size;
 }
 
-/// <summary>A button that makes the selected texts bigger or smaller by a step.</summary>
-public struct EditorTextSizeButton(int delta) : IComponent
-{
-    public int Delta = delta;
-}
-
 /// <summary>
 /// Edits the selected level texts from the sidebar, and shows the controls only
 /// while one is selected. Typing changes the texts as it goes; the whole edit
@@ -59,14 +53,14 @@ public sealed class EditorTextPanelSystem(EditorHistory history) : QuerySystem<N
             EndTyping();
         _wasEditing = editing;
 
-        foreach (Entity button in editor.Store.Query<EditorTextSizeButton>().WithDisabled().ToEntityList())
+        foreach (Entity button in EditorButton.All(editor.Store, EditorButtonKind.TextSize))
         {
             bool pressed = button.Tags.Has<Pressed>();
             bool was = !_held.Add(button.Id);
             if (!pressed)
                 _held.Remove(button.Id);
             if (pressed && !was)
-                StepSize(selection, first, button.GetComponent<EditorTextSizeButton>().Delta);
+                StepSize(selection, first, button.GetComponent<EditorButton>().Arg);
         }
 
         if (first.IsNull)

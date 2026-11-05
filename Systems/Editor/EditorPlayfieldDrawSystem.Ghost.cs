@@ -18,15 +18,15 @@ public sealed partial class EditorPlayfieldDrawSystem
     {
         if (!editor.TryGetComponent(out EditorPlacementGhost ghost) ||
             !ghost.Visible ||
-            !editor.TryGetComponent(out EditorPlacementModeState mode))
+            !editor.TryGetComponent(out EditorPlacement placement))
         {
             return;
         }
 
         Vector2 pointer = view.ScreenToPlayfield(ghost.Screen);
-        float degrees = editor.TryGetComponent(out EditorPlacementBrush brush) ? brush.Degrees : 0f;
+        float degrees = placement.Degrees;
         bool snap = ViewportSnap.IsOn(_entities);
-        switch (mode.Mode)
+        switch (placement.Mode)
         {
             case EditorPlacementMode.Blocks:
                 Vector2 size = GridPlacement.NewBlockSize(playfield, degrees);

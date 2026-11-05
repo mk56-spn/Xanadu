@@ -14,7 +14,7 @@ public sealed class EditorDashStrengthSystemTests : EcsSystemTest
     public void StrengthButtonsAreExclusiveAndTintTheSelection()
     {
         Entity editor = Store.CreateEntity(
-            new EditorDashStrengthState(DashStrength.Single));
+            new EditorPlacement { Strength = DashStrength.Single });
         Entity single = Button(DashStrength.Single);
         Entity twice = Button(DashStrength.Double);
         Entity triple = Button(DashStrength.Triple);
@@ -29,7 +29,7 @@ public sealed class EditorDashStrengthSystemTests : EcsSystemTest
         Frame();
 
         Assert.That(
-            editor.GetComponent<EditorDashStrengthState>().Strength,
+            editor.GetComponent<EditorPlacement>().Strength,
             Is.EqualTo(DashStrength.Triple));
         Assert.That(triple.GetComponent<ButtonVisual>().Normal,
             Is.EqualTo(Palette.Primary));
@@ -40,7 +40,7 @@ public sealed class EditorDashStrengthSystemTests : EcsSystemTest
     private Entity Button(DashStrength strength)
     {
         Entity button = Store.CreateEntity(
-            new EditorDashStrengthButton(strength),
+            EditorButton.Strength(strength),
             ButtonVisual.Create(Palette.Muted));
         return button;
     }

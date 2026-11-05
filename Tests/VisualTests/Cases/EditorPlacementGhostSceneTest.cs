@@ -20,8 +20,8 @@ public sealed class EditorPlacementGhostSceneTest : SceneTest
         AddStep("pick spikes, pointing right", () =>
         {
             Entity editor = Context.Entities.Query<EditorPlacementGhost>().ToEntityList()[0];
-            editor.GetComponent<EditorPlacementModeState>().Mode = EditorPlacementMode.Spikes;
-            editor.GetComponent<EditorPlacementBrush>().Degrees = 90f;
+            editor.GetComponent<EditorPlacement>().Mode = EditorPlacementMode.Spikes;
+            editor.GetComponent<EditorPlacement>().Degrees = 90f;
             Context.Pointer.Position = new Vector2(760, 460);
         });
         AddUntilStep("the ghost shows", () =>
