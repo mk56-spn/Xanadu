@@ -198,13 +198,7 @@ public sealed partial class EditorPlayfieldDrawSystem
             Vector2 ghost = view.PlayfieldToScreen(start.Position + offset);
 
             DrawTether(center, ghost, 1f);
-            _canvas.DrawCircleOutline(_editor, ghost, 13, color, 2);
-            _canvas.DrawTextStyled(
-                _editor,
-                new Rect2(ghost - new Vector2(10, 10), new Vector2(20, 20)),
-                "S",
-                color,
-                12);
+            PlayfieldRenderer.DrawStartPointBody(_canvas, _editor, ghost, PlayfieldRenderer.StartPointRadius(view), color);
         }
     }
 

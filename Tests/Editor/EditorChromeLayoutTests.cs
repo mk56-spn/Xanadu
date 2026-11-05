@@ -79,13 +79,25 @@ public sealed class EditorChromeLayoutTests : EcsSystemTest
     [Test]
     public void ThePlacementToolsFlowDownTheStripFlushToTheLeftEdge()
     {
+        // The strip holds the lone tools and the group buttons; grouped tools sit in flyouts.
         var tools = new System.Collections.Generic.List<Rect2>();
-        foreach (Entity entity in EditorButton.All(Store, EditorButtonKind.Place))
-            tools.Add(Area(entity));
+        foreach (Entity entity in Store.Query<EditorButton>().ToEntityList())
+        {
+            EditorButton button = entity.GetComponent<EditorButton>();
+            bool inStrip = button.Kind == EditorButtonKind.ToolGroup ||
+                           (button.Kind == EditorButtonKind.Place &&
+                            Area(entity).Position.X < EditorShellMetrics.ToolStripWidth);
+            if (inStrip)
+                tools.Add(Area(entity));
+        }
         tools.Sort((a, b) => a.Position.Y.CompareTo(b.Position.Y));
 
-        Assert.That(tools, Has.Count.EqualTo(14));
-        Assert.That(tools[0].Position.X, Is.EqualTo(4f).Within(0.5f));
+        Assert.That(tools, Has.Count.EqualTo(EditorToolGroups.All.Length));
+        // Centred in the strip; with more tools than fit at full size they shrink.
+        Assert.That(
+            tools[0].Position.X,
+            Is.EqualTo((EditorShellMetrics.ToolStripWidth - tools[0].Size.X) / 2).Within(0.5f));
+        Assert.That(tools[^1].End.Y, Is.LessThanOrEqualTo(Area(SidebarPanel()).End.Y + 0.5f), "the last tool stays above the footer");
         Assert.That(tools[0].Position.Y, Is.GreaterThanOrEqualTo(EditorShellMetrics.HeaderHeight));
         for (int i = 1; i < tools.Count; i++)
         {
@@ -96,8 +108,39 @@ public sealed class EditorChromeLayoutTests : EcsSystemTest
     }
 
     [Test]
+    public void EveryToolHasExactlyOneButton()
+    {
+        var modes = new System.Collections.Generic.List<EditorPlacementMode>();
+        foreach (Entity entity in EditorButton.All(Store, EditorButtonKind.Place))
+            modes.Add((EditorPlacementMode)entity.GetComponent<EditorButton>().Arg);
+
+        Assert.That(modes, Is.Unique);
+        Assert.That(modes, Is.EquivalentTo(System.Enum.GetValues<EditorPlacementMode>()));
+    }
+
+    [Test]
+    public void AGroupsFlyoutOpensBesideItsButton()
+    {
+        foreach (Entity entity in Store.Query<EditorToolGroup>().ToEntityList())
+        {
+            EditorToolGroup group = entity.GetComponent<EditorToolGroup>();
+            Assert.That(UiLayout.IsHidden(group.Flyout), Is.True, "closed at first");
+
+            Rect2 button = Area(entity);
+            Rect2 flyout = Area(group.Flyout);
+            Assert.That(flyout.Position.X, Is.GreaterThanOrEqualTo(EditorShellMetrics.ToolStripWidth), "right of the strip");
+            Assert.That(flyout.GetCenter().Y, Is.EqualTo(button.GetCenter().Y).Within(1f), "level with its button");
+        }
+    }
+
+    [Test]
     public void EachKeyedToolShowsItsKeyInsideItsButton()
     {
+        // Grouped tools are laid out once their flyout opens.
+        foreach (Entity group in Store.Query<EditorToolGroup>().ToEntityList())
+            UiLayout.SetHidden(group.GetComponent<EditorToolGroup>().Flyout, false);
+        Frame(3);
+
         foreach (Entity entity in EditorButton.All(Store, EditorButtonKind.Place))
         {
             var mode = (EditorPlacementMode)entity.GetComponent<EditorButton>().Arg;

@@ -2,6 +2,7 @@ using Friflo.Engine.ECS;
 using Godot;
 using Xanadu.Systems.Input;
 using Xanadu.Ecs;
+using Xanadu.Systems.Editor;
 using Xanadu.Editor;
 using Xanadu.Scenes;
 using Xanadu.Ui.Ecs.Ui;
@@ -32,6 +33,10 @@ public sealed class EditorDirectionWheelSceneTest : SceneTest
             "wheel starts hidden outside movement modes",
             () => UiLayout.IsHidden(Wheel()));
 
+        AddStep("open the notes group", () => ClickGroupOf(EditorPlacementMode.Dash));
+        AddWaitStep("hold the notes group", 2);
+        AddStep("release the notes group", () => Context.Pointer.Release());
+        AddUntilStep("the notes flyout opens", () => GroupIsOpen(EditorPlacementMode.Dash));
         AddStep("click DASH placement", () => ClickPlacement(EditorPlacementMode.Dash));
         AddWaitStep("hold DASH", 2);
         AddStep("release DASH", () => Context.Pointer.Release());
@@ -67,6 +72,10 @@ public sealed class EditorDirectionWheelSceneTest : SceneTest
                   Wheel().GetComponent<UiWheel>().Selected ==
                   DashDirectionWheel.IndexOf(DashDirection.Left));
 
+        AddStep("open the notes group", () => ClickGroupOf(EditorPlacementMode.Notes));
+        AddWaitStep("hold the notes group", 2);
+        AddStep("release the notes group", () => Context.Pointer.Release());
+        AddUntilStep("the notes flyout opens", () => GroupIsOpen(EditorPlacementMode.Notes));
         AddStep("click NOTES placement", () => ClickPlacement(EditorPlacementMode.Notes));
         AddWaitStep("hold NOTES", 2);
         AddStep("release NOTES", () => Context.Pointer.Release());
@@ -138,5 +147,29 @@ public sealed class EditorDirectionWheelSceneTest : SceneTest
                 entity.GetComponent<Position>().Value));
             return;
         }
+    }
+    /// <summary>Presses the strip button of the group holding <paramref name="mode"/>, to open its flyout.</summary>
+    private void ClickGroupOf(EditorPlacementMode mode)
+    {
+        foreach (Entity entity in Context.Entities.Query<EditorToolGroup>().ToEntityList())
+        {
+            if (!EditorToolGroups.Holds(EditorToolGroups.All[entity.GetComponent<EditorToolGroup>().Index], mode))
+                continue;
+
+            Context.Pointer.Click(UiTransform.WorldPosition(entity, entity.GetComponent<Position>().Value));
+            return;
+        }
+    }
+
+    private bool GroupIsOpen(EditorPlacementMode mode)
+    {
+        foreach (Entity entity in Context.Entities.Query<EditorToolGroup>().ToEntityList())
+        {
+            EditorToolGroup group = entity.GetComponent<EditorToolGroup>();
+            if (EditorToolGroups.Holds(EditorToolGroups.All[group.Index], mode))
+                return group.Open && !UiLayout.IsHidden(group.Flyout);
+        }
+
+        return false;
     }
 }

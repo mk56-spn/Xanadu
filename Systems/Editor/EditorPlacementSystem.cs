@@ -44,7 +44,8 @@ public sealed class EditorPlacementSystem : QuerySystem<EditorPlacement>
         }
     }
 
-    private static void SetColor(Entity entity, bool selected, CommandBuffer buffer)
+    /// <summary>Lights a tool button while it is on, and mutes it otherwise.</summary>
+    internal static void SetColor(Entity entity, bool selected, CommandBuffer buffer)
     {
         if (!entity.HasComponent<ButtonVisual>())
             return;

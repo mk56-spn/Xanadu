@@ -19,44 +19,100 @@ public static partial class EditorScene
     private const float PanelPadding = UiTheme.ContainerPadding;
     private const float LeftPanelWidth = 210;
 
-    /// <summary>The placement tools run down the shell's tool strip at the left edge.</summary>
-    private static void BuildToolStrip(UiNode ui, EditorShellRects shell)
+    /// <summary>
+    /// The tool strip at the left edge: one button per entry of
+    /// <see cref="EditorToolGroups.All"/>. A lone tool is picked straight from
+    /// it; a group opens a flyout of its tools beside the strip, on a layer of
+    /// its own so it covers the tool settings.
+    /// </summary>
+    private static void BuildToolStrip(UiNode ui, UiNode flyouts, EditorShellRects shell)
     {
+        float pad = (EditorShellMetrics.ToolStripWidth - EditorShellMetrics.ToolButton) / 2;
+        float gap = EditorShellMetrics.ToolGap;
         UiNode strip = ui.Column()
             .Size(shell.ToolStrip.Size)
-            .Gap(EditorShellMetrics.ToolGap)
+            .Gap(gap)
             .Fill(SceneUi.PanelColor)
-            .Pad((EditorShellMetrics.ToolStripWidth - EditorShellMetrics.ToolButton) / 2)
+            .Pad(pad)
             .Input()
             .Main(StackMainAlignment.Start);
 
-        var size = new Vector2(
-            EditorShellMetrics.ToolButton,
-            EditorShellMetrics.ToolButton);
-        foreach ((EditorPlacementMode mode, string icon, string name) in ToolIcons)
+        // The buttons shrink when there are more of them than fit the strip at full size.
+        int count = EditorToolGroups.All.Length;
+        float fits = (shell.ToolStrip.Size.Y - pad * 2 + gap) / count - gap;
+        float side = Mathf.Min(EditorShellMetrics.ToolButton, Mathf.Floor(fits));
+        var size = new Vector2(side, side);
+
+        for (int index = 0; index < count; index++)
         {
-            string key = EditorPlacementKeybinds.LabelFor(mode);
-
-            // The button is a container so it can hold its key in a corner beside the icon.
-            UiNode button = strip.Column()
-                .Size(size)
-                .Fill(SceneUi.MutedButtonColor)
-                .Input()
-                .Main(StackMainAlignment.Center)
-                .Cross(StackCrossAlignment.Center)
-                .With(ButtonVisual.Create(SceneUi.MutedButtonColor))
-                .Tooltip(key.Length > 0 ? $"{name} ({key})" : name)
-                .With(EditorButton.Place(mode));
-            button.Text(icon, 26, UiTheme.Text, TextAlign.Center).Size(size);
-
-            // The key in the corner, so the shortcut is learnt by looking at the tool.
-            if (key.Length > 0)
+            EditorToolGroupInfo group = EditorToolGroups.All[index];
+            if (!group.IsGroup)
             {
-                button.Text(key, UiType.Caption, SceneUi.DimTextColor, TextAlign.Center, bold: true)
-                    .Size(18, 16)
-                    .Anchor(new Vector2(1, 1));
+                EditorTool tool = group.Tools[0];
+                ToolButton(strip, size, tool.Icon, ToolTooltip(tool), EditorPlacementKeybinds.LabelFor(tool.Mode), EditorButton.Place(tool.Mode));
+                continue;
             }
+
+            // The flyout lines up with its button, just right of the strip.
+            float top = shell.ToolStrip.Position.Y + pad + index * (side + gap);
+            var flyoutBox = new Rect2(
+                shell.ToolStrip.End.X + gap,
+                top - pad,
+                group.Tools.Length * (side + gap) - gap + pad * 2,
+                side + pad * 2);
+            UiNode flyout = flyouts.Row()
+                .Box(flyoutBox)
+                .Gap(gap)
+                .Pad(pad)
+                .Fill(SceneUi.PanelColor)
+                .Input()
+                .Main(StackMainAlignment.Start)
+                .Hidden();
+            foreach (EditorTool tool in group.Tools)
+                ToolButton(flyout, size, tool.Icon, ToolTooltip(tool), EditorPlacementKeybinds.LabelFor(tool.Mode), EditorButton.Place(tool.Mode));
+
+            // The corner mark says the button opens more tools.
+            (UiNode button, Entity icon) = ToolButton(strip, size, group.Tools[0].Icon, group.Name, "◢", new EditorButton(EditorButtonKind.ToolGroup, index));
+            button.With(new EditorToolGroup(index, flyout.Entity, icon));
         }
+    }
+
+    private static string ToolTooltip(EditorTool tool)
+    {
+        string key = EditorPlacementKeybinds.LabelFor(tool.Mode);
+        return key.Length > 0 ? $"{tool.Name} ({key})" : tool.Name;
+    }
+
+    /// <summary>A square tool button: its icon, and a small mark in the corner, such as its key.</summary>
+    private static (UiNode Button, Entity Icon) ToolButton(
+        UiNode parent,
+        Vector2 size,
+        string icon,
+        string tooltip,
+        string corner,
+        EditorButton action)
+    {
+        // The button is a container so it can hold its mark in a corner beside the icon.
+        UiNode button = parent.Column()
+            .Size(size)
+            .Fill(SceneUi.MutedButtonColor)
+            .Input()
+            .Main(StackMainAlignment.Center)
+            .Cross(StackCrossAlignment.Center)
+            .With(ButtonVisual.Create(SceneUi.MutedButtonColor))
+            .Tooltip(tooltip)
+            .With(action);
+        Entity iconText = button.Text(icon, 26, UiTheme.Text, TextAlign.Center).Size(size).Entity;
+
+        // The key in the corner, so the shortcut is learnt by looking at the tool.
+        if (corner.Length > 0)
+        {
+            button.Text(corner, UiType.Caption, SceneUi.DimTextColor, TextAlign.Center, bold: true)
+                .Size(18, 16)
+                .Anchor(new Vector2(1, 1));
+        }
+
+        return (button, iconText);
     }
 
     /// <summary>
@@ -165,6 +221,55 @@ public static partial class EditorScene
         editor.AddComponent(new EditorTextPanel(section.Entity, field, size));
     }
 
+    /// <summary>
+    /// The grass tool's section of the left panel: the selected grass's
+    /// settings, or the brush's when none is selected. One stepper row per
+    /// setting, then the colour.
+    /// </summary>
+    private static void BuildGrassPanel(UiNode panel, Entity editor, float inner)
+    {
+        const float height = 28;
+        UiNode section = ToolSection(panel, inner, EditorToolSections.Grass);
+        SidebarLabel(section, "GRASS", inner, 12);
+
+        GrassSetting[] settings = System.Enum.GetValues<GrassSetting>();
+        var readouts = new Entity[settings.Length];
+        foreach (GrassSetting setting in settings)
+        {
+            (string less, string more) = GrassTooltips(setting);
+            UiNode row = section.Row().Size(inner, height).Gap(UiTheme.ContainerSpacing).Main(StackMainAlignment.Start);
+            readouts[(int)setting] = row.Text(
+                    EditorGrassPanelSystem.Label(setting, new GrassPatch()),
+                    UiTheme.SmallFontSize,
+                    SceneUi.DimTextColor,
+                    TextAlign.Left)
+                .Size(inner - (height + UiTheme.ContainerSpacing) * 2, height);
+            row.Button("-", 13, SceneUi.MutedButtonColor)
+                .Size(height, height)
+                .With(new EditorButton(EditorButtonKind.GrassStep, EditorGrassPanelSystem.StepArg(setting, -1)))
+                .Tooltip(less);
+            row.Button("+", 13, SceneUi.MutedButtonColor)
+                .Size(height, height)
+                .With(new EditorButton(EditorButtonKind.GrassStep, EditorGrassPanelSystem.StepArg(setting, 1)))
+                .Tooltip(more);
+        }
+
+        UiNode color = section.ColorField(
+            "BLADES",
+            inner,
+            "The grass's colour; each blade strays from it by the variation. Self modulate multiplies it, and a group's colour fade overrides it.");
+        editor.AddComponent(new EditorGrassPanel(section.Entity, readouts, color.Entity));
+    }
+
+    private static (string Less, string More) GrassTooltips(GrassSetting setting) => setting switch
+    {
+        GrassSetting.Width => ("Narrower patch", "Wider patch"),
+        GrassSetting.Length => ("Shorter blades", "Longer blades"),
+        GrassSetting.Density => ("Fewer blades", "More blades"),
+        GrassSetting.Sway => ("Less sway; at 0 the blades stand still", "More sway"),
+        _ => ("Blades closer to the grass colour", "Blades stray further from the grass colour"),
+    };
+
     /// <summary>The current tool's settings, docked to the viewport's top-left corner.</summary>
     private static void BuildLeftPanel(UiNode ui, Entity editor)
     {
@@ -216,6 +321,8 @@ public static partial class EditorScene
                     _ => "One dash length; one momentum push",
                 });
         }
+
+        BuildGrassPanel(panel, editor, inner);
 
         UiNode costSection = ToolSection(panel, inner, EditorToolSections.ContactCost);
         SidebarLabel(costSection, "CONTACT COST", inner, 12);
@@ -282,25 +389,6 @@ public static partial class EditorScene
         parent.Text(text, fontSize, SceneUi.DimTextColor, TextAlign.Center)
             .Size(width, fontSize + 10);
 
-    /// <summary>Icons and hover names for the placement tools, in bar order; a letter where no symbol fits.</summary>
-    private static readonly (EditorPlacementMode Mode, string Icon, string Name)[] ToolIcons =
-    {
-        (EditorPlacementMode.Notes, "🎵", "Normal notes"),
-        (EditorPlacementMode.Pair, "P", "Pair notes"),
-        (EditorPlacementMode.Dash, "➜", "Dash notes"),
-        (EditorPlacementMode.Momentum, "M", "Momentum notes"),
-        (EditorPlacementMode.Mines, "✹", "Mines"),
-        (EditorPlacementMode.Start, "⚑", "Start points"),
-        (EditorPlacementMode.Contact, "◎", "Contact notes"),
-        (EditorPlacementMode.CharacterSwitch, "⇄", "Character switches"),
-        (EditorPlacementMode.WeaponSwitch, "W", "Weapon switches"),
-        (EditorPlacementMode.Channel, "◑", "Channel starts"),
-        (EditorPlacementMode.FormStep, "F", "Form steps"),
-        (EditorPlacementMode.Blocks, "■", "Blocks"),
-        (EditorPlacementMode.Spikes, "▲", "Spikes"),
-        (EditorPlacementMode.Text, "T", "Text"),
-    };
-
     /// <summary>
     /// The floating "note elements" box at the viewport's top-right corner: the
     /// keys new notes get, and under them the direction wheel for the kinds that
@@ -357,7 +445,7 @@ public static partial class EditorScene
         string[] labels,
         int selected)
     {
-        UiNode button = parent.Button("", 13, SceneUi.ButtonColor).Size(width, 34);
+        UiNode button = parent.Button("", 13, SceneUi.EditorButtonColor).Size(width, 34);
         parent.DropdownList(
             button.Entity,
             labels,
