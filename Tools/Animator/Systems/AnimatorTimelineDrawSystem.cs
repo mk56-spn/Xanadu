@@ -30,6 +30,7 @@ public sealed class AnimatorTimelineDrawSystem(IRectCanvas canvas, Rid target)
     private XafPackage? _package;
     private XafLimbTarget? _selectedOverride;
     private static readonly Color EaseLineQuiet = new(Palette.TextDim, 0.45f);
+    private static readonly Color EaseReverse = Palette.Danger;
     private static readonly Color Playhead = Palette.Accent;
     private static readonly Color LoopBand = new("#2dd4bf", 0.18f);
     private static readonly Color LoopLine = new("#2dd4bf");
@@ -261,7 +262,7 @@ public sealed class AnimatorTimelineDrawSystem(IRectCanvas canvas, Rid target)
             return;
 
         DrawDrivenSpans(model, track, row);
-        DrawEaseLines(model, track, row);
+        DrawEaseBands(model, track, row);
         foreach (float time in AnimatorTrackRows.KeyTimes(model.Clip, track))
         {
             if (!model.IsVisible(time))
@@ -303,8 +304,8 @@ public sealed class AnimatorTimelineDrawSystem(IRectCanvas canvas, Rid target)
         }
     }
 
-    /// <summary>The shape of each span between the row's keys, under the markers.</summary>
-    private void DrawEaseLines(AnimatorTimelineModel model, AnimatorTrackRow track, Rect2 row)
+    /// <summary>The speed band of each span between the row's keys, under the markers.</summary>
+    private void DrawEaseBands(AnimatorTimelineModel model, AnimatorTrackRow track, Rect2 row)
     {
         var keys = AnimatorTrackRows.KeyTimes(model.Clip, track);
         float left = model.Ruler.Position.X;
@@ -318,21 +319,25 @@ public sealed class AnimatorTimelineDrawSystem(IRectCanvas canvas, Rid target)
 
             XafEaseSegment segment = XafEasing.ReadSegment(model.Clip, track.Target, track.Id, track.Property, keys[i]);
             Color color = EaseColor(segment);
-            Vector2[] line = AnimatorEaseLine.Points(segment, fromX, toX, left, right, row);
-            if (line.Length >= 2)
-                canvas.DrawPolyline(target, line, color, 2f);
+            foreach (AnimatorEaseBandPiece piece in AnimatorEaseBand.Pieces(segment, fromX, toX, left, right, row))
+                canvas.DrawPolygon(target, piece.Polygon, piece.Reverse ? EaseReverse : color);
         }
     }
 
-    /// <summary>A long span flattens any curve a row's height allows, so each easing also has its own colour.</summary>
+    /// <summary>Each easing's colour; named curves take the colour of their direction.</summary>
     private static Color EaseColor(XafEaseSegment segment) => segment.Preset switch
     {
+        null => EaseLineQuiet,
         XafEasePreset.Step => Palette.Warning,
         XafEasePreset.Linear => Palette.Info,
         XafEasePreset.Ease => Palette.Lime,
-        XafEasePreset.EaseIn => Palette.Pink,
-        XafEasePreset.EaseOut => Palette.Violet,
-        _ => EaseLineQuiet,
+        { } preset => XafEasing.Shape(preset)?.Direction switch
+        {
+            XafCurveDirection.In => Palette.Pink,
+            XafCurveDirection.Out => Palette.Violet,
+            XafCurveDirection.InOut => Palette.Lime,
+            _ => EaseLineQuiet,
+        },
     };
 
     /// <summary>Whether a track belongs to any selected bone, attachment or effect, not just the primary.</summary>
