@@ -2,6 +2,7 @@ using System;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Godot;
+using Xanadu.Timeline;
 using Xanadu.Animation;
 using Xanadu.Ecs;
 using Xanadu.Levels;
@@ -320,7 +321,7 @@ public sealed class AnimatorTimelineDrawSystem(IRectCanvas canvas, Rid target)
 
             XafEaseSegment segment = XafEasing.ReadSegment(model.Clip, track.Target, track.Id, track.Property, keys[i]);
             Color color = EaseColor(segment);
-            foreach (AnimatorEaseBandPiece piece in AnimatorEaseBand.Pieces(segment, fromX, toX, left, right, row))
+            foreach (EaseBandPiece piece in AnimatorEaseBand.Pieces(segment, fromX, toX, left, right, row))
                 canvas.DrawPolygon(target, piece.Polygon, piece.Reverse ? EaseReverse : color);
         }
     }

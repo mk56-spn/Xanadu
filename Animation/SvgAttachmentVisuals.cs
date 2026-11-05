@@ -24,13 +24,10 @@ public sealed partial class SvgAttachmentVisuals(Rid canvas, bool containLayers 
     private readonly List<EffectVisual> _effects = new();
     private readonly List<ClothVisual> _cloths = new();
 
-    // Godot sorts the items of one layer by draw index. Attachments keep the
-    // default of zero, so the body layers as it always has; cloth, chains and
-    // effects come after them, so a dress on the legs' layer covers the legs
-    // and stays under the next layer up.
-    private const int ClothOrder = 10_000;
-    private const int ChainOrder = 20_000;
-    private const int EffectOrder = 30_000;
+    // Godot sorts the items of one layer by draw index. AnimatorDrawOrder owns
+    // those indices: attachments in list order, then cloth, chains and effects,
+    // so a dress on the legs' layer covers the legs and stays under the next
+    // layer up (docs/render-architecture.md step 12).
 
     /// <summary>Pixels per unit art is rasterised at; the preview zooms well past one.</summary>
     private const float ArtScale = 4f;
@@ -49,7 +46,7 @@ public sealed partial class SvgAttachmentVisuals(Rid canvas, bool containLayers 
 
                 // Higher layers draw in front; equal layers keep the attachment order.
                 // Only the attachment's own art shows until a pose says otherwise.
-                Rid item = CreateItem(texture!, size, attachment.ZOrder);
+                Rid item = CreateItem(texture!, size, attachment.ZOrder, AnimatorDrawOrder.Attachment(i));
                 RenderingServer.CanvasItemSetVisible(item, art == 0);
                 _visuals.Add(new Visual(i, art, item, texture!, new Rect2(-size / 2, size)));
             }
@@ -67,7 +64,7 @@ public sealed partial class SvgAttachmentVisuals(Rid canvas, bool containLayers 
             XafCloth cloth = package.Cloths[i];
             Rid item = RenderingServer.CanvasItemCreate();
             RenderingServer.CanvasItemSetParent(item, canvas);
-            SetLayer(item, cloth.ZOrder, ClothOrder + i);
+            SetLayer(item, cloth.ZOrder, AnimatorDrawOrder.Cloth(i));
             _cloths.Add(new ClothVisual(i, item));
         }
 
@@ -84,10 +81,14 @@ public sealed partial class SvgAttachmentVisuals(Rid canvas, bool containLayers 
         {
             XafEffect effect = package.Effects[i];
             int layer = DrawOrder.ClampLayer(effect.ZOrder);
-            foreach (XifPrimitive primitive in effect.Item.Primitives)
+            for (int primitive = 0; primitive < effect.Item.Primitives.Count; primitive++)
             {
-                if (primitive.IsPolygon && TryPolygon(primitive, effect.Item, layer) is { } visual)
+                XifPrimitive item = effect.Item.Primitives[primitive];
+                if (item.IsPolygon &&
+                    TryPolygon(item, effect.Item, layer, AnimatorDrawOrder.Effect(i, primitive)) is { } visual)
+                {
                     _effects.Add(visual with { Index = i });
+                }
             }
         }
     }
@@ -138,7 +139,11 @@ public sealed partial class SvgAttachmentVisuals(Rid canvas, bool containLayers 
             // Segments can be added or removed while editing, so the pieces follow the points.
             while (visual.Items.Count < segments)
             {
-                Rid piece = CreateItem(visual.Texture, visual.Size, visual.Layer, ChainOrder + visual.Items.Count);
+                Rid piece = CreateItem(
+                    visual.Texture,
+                    visual.Size,
+                    visual.Layer,
+                    AnimatorDrawOrder.Chain(visual.Index, visual.Items.Count));
                 visual.Items.Add(piece);
             }
             while (visual.Items.Count > segments)
@@ -165,7 +170,11 @@ public sealed partial class SvgAttachmentVisuals(Rid canvas, bool containLayers 
             visual.Items.RemoveAt(visual.Items.Count - 1);
         }
         if (visual.Items.Count == 0)
-            visual.Items.Add(CreateItem(visual.Texture, visual.Size, visual.Layer, ChainOrder + visual.Index));
+            visual.Items.Add(CreateItem(
+                visual.Texture,
+                visual.Size,
+                visual.Layer,
+                AnimatorDrawOrder.Chain(visual.Index, 0)));
 
         Rid item = visual.Items[0];
         RenderingServer.CanvasItemClear(item);
@@ -266,7 +275,7 @@ public sealed partial class SvgAttachmentVisuals(Rid canvas, bool containLayers 
     /// texture, and drawn with its shader, or the item's, when one is common.
     /// An outline that cannot be triangulated is skipped rather than drawn wrong.
     /// </summary>
-    private EffectVisual? TryPolygon(XifPrimitive primitive, Xif item, int layer)
+    private EffectVisual? TryPolygon(XifPrimitive primitive, Xif item, int layer, int order)
     {
         Vector2[] points = primitive.Points.ToArray();
         int[] triangles = points.Length >= 3 ? Geometry2D.TriangulatePolygon(points) : Array.Empty<int>();
@@ -292,7 +301,7 @@ public sealed partial class SvgAttachmentVisuals(Rid canvas, bool containLayers 
 
         Rid canvasItem = RenderingServer.CanvasItemCreate();
         RenderingServer.CanvasItemSetParent(canvasItem, canvas);
-        SetLayer(canvasItem, layer, EffectOrder + _effects.Count);
+        SetLayer(canvasItem, layer, order);
         RenderingServer.CanvasItemSetVisible(canvasItem, false);
         RenderingServer.CanvasItemAddTriangleArray(canvasItem, triangles, points, colors, uvs,
             texture: texture?.GetRid() ?? default);
