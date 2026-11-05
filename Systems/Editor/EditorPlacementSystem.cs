@@ -1,16 +1,12 @@
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
-using Godot;
 using Xanadu.Ecs;
-using Xanadu.Theme;
 
 namespace Xanadu.Systems.Editor;
 
 /// <summary>Exclusive note/mine/movement placement mode buttons.</summary>
 public sealed class EditorPlacementSystem : QuerySystem<EditorPlacement>
 {
-    private static readonly Color Selected = Palette.Primary;
-    private static readonly Color Normal = Palette.Muted;
     private readonly EntityStore _entities;
 
     public EditorPlacementSystem(EntityStore entities)
@@ -20,44 +16,20 @@ public sealed class EditorPlacementSystem : QuerySystem<EditorPlacement>
 
     protected override void OnUpdate()
     {
-        Entity editor = default;
-        foreach (Entity candidate in _entities
-                     .Query<EditorPlacement>()
-                     .ToEntityList())
-        {
-            editor = candidate;
-            break;
-        }
-
+        Entity editor = EditorSceneQuery.First<EditorPlacement>(_entities);
         if (editor.IsNull)
             return;
 
-        ref EditorPlacement placement = ref editor.GetComponent<EditorPlacement>();
-        CommandBuffer buffer = CommandBuffer;
-
-        foreach (Entity entity in EditorButton.All(_entities, EditorButtonKind.Place))
-        {
-            var mode = (EditorPlacementMode)entity.GetComponent<EditorButton>().Arg;
-            if (entity.Tags.Has<Pressed>())
-                placement.Mode = mode;
-            SetColor(entity, mode == placement.Mode, buffer);
-        }
-    }
-
-    /// <summary>Lights a tool button while it is on, and mutes it otherwise.</summary>
-    internal static void SetColor(Entity entity, bool selected, CommandBuffer buffer)
-    {
-        if (!entity.HasComponent<ButtonVisual>())
-            return;
-
-        ref ButtonVisual visual = ref entity.GetComponent<ButtonVisual>();
-        Color normal = selected ? Selected : Normal;
-        if (visual.Normal == normal)
-            return;
-
-        visual.Normal = normal;
-        visual.Hover = normal.Lerp(Colors.White, 0.16f);
-        visual.Flash = Colors.White;
-        buffer.AddTag<Dirty>(entity.Id);
+        EditorButtons.Exclusive(
+            editor,
+            _entities,
+            CommandBuffer,
+            EditorButtonKind.Place,
+            placement => (int)placement.Mode,
+            (placement, arg) =>
+            {
+                placement.Mode = (EditorPlacementMode)arg;
+                return placement;
+            });
     }
 }

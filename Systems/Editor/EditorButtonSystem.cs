@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Xanadu.Ecs;
@@ -14,7 +13,7 @@ public sealed class EditorButtonSystem : QuerySystem<EditorButton>
 {
     private readonly EntityStore _entities;
     private readonly EditorCommandBus _commands;
-    private readonly HashSet<int> _held = new();
+    private readonly ButtonPress _presses = new();
 
     public EditorButtonSystem(EntityStore entities, EditorCommandBus commands)
     {
@@ -27,14 +26,7 @@ public sealed class EditorButtonSystem : QuerySystem<EditorButton>
 
     protected override void OnUpdate()
     {
-        Entity editor = default;
-        foreach (Entity candidate in _entities
-                     .Query<Playhead, EditorMetronome, EditorUiRequest>()
-                     .ToEntityList())
-        {
-            editor = candidate;
-            break;
-        }
+        Entity editor = EditorSceneQuery.First<Playhead, EditorMetronome, EditorUiRequest>(_entities);
 
         if (editor.IsNull)
             return;
@@ -44,18 +36,8 @@ public sealed class EditorButtonSystem : QuerySystem<EditorButton>
 
         Query.ForEachEntity((ref button, entity) =>
         {
-            bool pressed = entity.Tags.Has<Pressed>();
-            bool wasPressed = _held.Contains(entity.Id);
-
-            if (pressed)
-                _held.Add(entity.Id);
-            else
-                _held.Remove(entity.Id);
-
-            if (!pressed || wasPressed)
-                return;
-
-            Apply(button.Kind, editor);
+            if (_presses.Started(entity))
+                Apply(button.Kind, editor);
         });
     }
 

@@ -50,11 +50,7 @@ public static partial class XmfBinary
 
     public static void SaveMapset(string path, XmfMapset mapset)
     {
-        byte[] data = WriteMapset(mapset);
-        string? directory = Path.GetDirectoryName(path);
-        if (!string.IsNullOrEmpty(directory))
-            Directory.CreateDirectory(directory);
-        File.WriteAllBytes(path, data);
+        BinaryFile.Save(path, WriteMapset(mapset));
     }
 
     public static XmfMapset LoadMapset(string path) =>
@@ -68,11 +64,11 @@ public static partial class XmfBinary
         var file = new ChunkWriter(MapsetMagic, MapsetMajorVersion, MapsetMinorVersion);
         file.Add((uint)MapsetChunkId.Strings, strings.Write());
         file.Add((uint)MapsetChunkId.Meta, WriteMapsetMeta(mapset, strings));
-        file.Add((uint)MapsetChunkId.Shaders, WriteShaders(mapset.Shaders, strings));
+        file.Add((uint)MapsetChunkId.Shaders, XmfChromeChunks.WriteShaders(mapset.Shaders, strings));
         file.Add((uint)MapsetChunkId.Variants, WriteVariants(mapset.Variants, strings));
-        if (mapset.Variants.Exists(variant => HasNoteExtras(variant.Notes)))
+        if (mapset.Variants.Exists(variant => XmfNoteChunks.HasNoteExtras(variant.Notes)))
             file.Add((uint)MapsetChunkId.NoteExtras, WriteVariantNoteExtras(mapset.Variants));
-        if (mapset.Variants.Exists(HasSelfModulates))
+        if (mapset.Variants.Exists(XmfItemColors.HasSelfModulates))
             file.Add((uint)MapsetChunkId.SelfModulates, WriteVariantSelfModulates(mapset.Variants));
         file.Add((uint)MapsetChunkId.SpikeOutlines, WriteVariantSpikeOutlines(mapset.Variants));
         if (mapset.Variants.Exists(HasTexts))
@@ -84,17 +80,7 @@ public static partial class XmfBinary
         return file.ToArray();
     }
 
-    public static XmfMapset ReadMapset(byte[] data)
-    {
-        try
-        {
-            return ReadMapsetData(data);
-        }
-        catch (Exception exception) when (exception is FormatException or IOException)
-        {
-            throw new XmfFormatException(exception.Message);
-        }
-    }
+    public static XmfMapset ReadMapset(byte[] data) => XmfBinary.Guard(() => ReadMapsetData(data));
 
     private static XmfMapset ReadMapsetData(byte[] data)
     {
@@ -104,7 +90,7 @@ public static partial class XmfBinary
             MapsetFormat);
 
         XmfMapset mapset = ReadMapsetMeta(file.Get((uint)MapsetChunkId.Meta, MapsetFormat), strings);
-        mapset.Shaders = ReadShaders(file.Get((uint)MapsetChunkId.Shaders, MapsetFormat), strings);
+        mapset.Shaders = XmfChromeChunks.ReadShaders(file.Get((uint)MapsetChunkId.Shaders, MapsetFormat), strings);
         mapset.Variants = ReadVariants(file.Get((uint)MapsetChunkId.Variants, MapsetFormat), strings);
         if (file.TryGet((uint)MapsetChunkId.NoteExtras, out Chunk noteExtras))
             ReadVariantNoteExtras(noteExtras, mapset.Variants);
@@ -137,7 +123,7 @@ public static partial class XmfBinary
     private static void ReadVariantTexts(Chunk chunk, List<XmfVariant> variants)
     {
         using BinaryReader reader = chunk.OpenReader();
-        uint count = ReadCount(reader, MaxItems, "variant text");
+        uint count = ReadCount(reader, XmfItemIO.MaxItems, "variant text");
         if (count != variants.Count)
             throw new FormatException("XMF variant texts do not match the variant count.");
         foreach (XmfVariant variant in variants)
@@ -160,7 +146,7 @@ public static partial class XmfBinary
     private static void ReadVariantSpikeOutlines(Chunk chunk, List<XmfVariant> variants)
     {
         using BinaryReader reader = chunk.OpenReader();
-        uint count = ReadCount(reader, MaxItems, "variant spike outline");
+        uint count = ReadCount(reader, XmfItemIO.MaxItems, "variant spike outline");
         if (count != variants.Count)
             throw new FormatException("XMF variant spike outlines do not match the variant count.");
         foreach (XmfVariant variant in variants)
@@ -192,9 +178,9 @@ public static partial class XmfBinary
         strings.Add(variant.OutsideColor);
         strings.Add(variant.FrameColor);
         foreach (NoteDocument note in variant.Notes)
-            IndexItemStrings(note.Item, strings);
+            XmfItemIO.IndexItemStrings(note.Item, strings);
         foreach (PolygonDocument polygon in variant.Polygons)
-            IndexItemStrings(polygon.Item, strings);
+            XmfItemIO.IndexItemStrings(polygon.Item, strings);
         foreach (StartPointDocument start in variant.StartPoints)
             strings.Add(start.Name);
         foreach (GroupDocument group in variant.Groups)
@@ -243,7 +229,7 @@ public static partial class XmfBinary
     private static List<XmfVariant> ReadVariants(Chunk chunk, StringTable strings)
     {
         using BinaryReader reader = chunk.OpenReader();
-        uint count = ReadCount(reader, MaxItems, "variant");
+        uint count = ReadCount(reader, XmfItemIO.MaxItems, "variant");
         var variants = new List<XmfVariant>((int)count);
         for (uint i = 0; i < count; i++)
             variants.Add(ReadVariant(ReadBlob(reader), strings));
@@ -262,12 +248,12 @@ public static partial class XmfBinary
         writer.Write(variant.PlayfieldHeight);
         writer.Write(variant.PlayerShader);
         writer.Write(variant.FieldShader);
-        WriteBlob(writer, WriteNotes(variant.Notes, strings));
-        WriteBlob(writer, WriteMines(variant.Mines));
-        WriteBlob(writer, WriteBlocks(variant.Blocks));
-        WriteBlob(writer, WriteStartPoints(variant.StartPoints, strings));
-        WriteBlob(writer, WriteGroups(variant.Groups, strings));
-        WriteBlob(writer, WriteSpikes(variant.Spikes));
+        WriteBlob(writer, XmfNoteChunks.WriteNotes(variant.Notes, strings));
+        WriteBlob(writer, XmfBodyChunks.WriteMines(variant.Mines));
+        WriteBlob(writer, XmfBodyChunks.WriteBlocks(variant.Blocks));
+        WriteBlob(writer, XmfChromeChunks.WriteStartPoints(variant.StartPoints, strings));
+        WriteBlob(writer, XmfChromeChunks.WriteGroupDefinitions(variant.Groups, strings));
+        WriteBlob(writer, XmfBodyChunks.WriteSpikes(variant.Spikes));
         // The background comes last so a variant written before backgrounds
         // existed still reads; older readers ignore the trailing index.
         strings.WriteIndex(writer, variant.BackgroundColor);
@@ -294,12 +280,12 @@ public static partial class XmfBinary
             FieldShader = reader.ReadInt32(),
         };
 
-        variant.Notes = ReadNotes(ReadBlobChunk(reader), strings);
-        variant.Mines = ReadMines(ReadBlobChunk(reader));
-        variant.Blocks = ReadBlocks(ReadBlobChunk(reader));
-        variant.StartPoints = ReadStartPoints(ReadBlobChunk(reader), strings);
-        variant.Groups = ReadGroups(ReadBlobChunk(reader), strings);
-        variant.Spikes = ReadSpikes(ReadBlobChunk(reader));
+        variant.Notes = XmfNoteChunks.ReadNotes(ReadBlobChunk(reader), strings);
+        variant.Mines = XmfBodyChunks.ReadMines(ReadBlobChunk(reader));
+        variant.Blocks = XmfBodyChunks.ReadBlocks(ReadBlobChunk(reader));
+        variant.StartPoints = XmfChromeChunks.ReadStartPoints(ReadBlobChunk(reader), strings);
+        variant.Groups = XmfChromeChunks.ReadGroupDefinitions(ReadBlobChunk(reader), strings);
+        variant.Spikes = XmfBodyChunks.ReadSpikes(ReadBlobChunk(reader));
         if (stream.Length - stream.Position >= sizeof(uint))
             variant.BackgroundColor = strings.ReadIndex(reader);
         if (stream.Length - stream.Position >= sizeof(uint))
@@ -339,13 +325,13 @@ public static partial class XmfBinary
         List<XmfVariant> variants)
     {
         using BinaryReader reader = chunk.OpenReader();
-        uint variantCount = ReadCount(reader, MaxItems, "variant note extra");
+        uint variantCount = ReadCount(reader, XmfItemIO.MaxItems, "variant note extra");
         if (variantCount != variants.Count)
             throw new FormatException("XMF variant note extras do not match the variant count.");
 
         foreach (XmfVariant variant in variants)
         {
-            uint noteCount = ReadCount(reader, MaxItems, "note extra");
+            uint noteCount = ReadCount(reader, XmfItemIO.MaxItems, "note extra");
             if (noteCount != variant.Notes.Count)
                 throw new FormatException("XMF note extras do not match the note count.");
 
@@ -386,7 +372,7 @@ public static partial class XmfBinary
         using var writer = new BinaryWriter(stream, Encoding.UTF8, leaveOpen: true);
         writer.Write((uint)variants.Count);
         foreach (XmfVariant variant in variants)
-            WriteSelfModulates(writer, variant);
+            XmfItemColors.WriteSelfModulates(writer, variant);
         writer.Flush();
         return stream.ToArray();
     }
@@ -394,11 +380,11 @@ public static partial class XmfBinary
     private static void ReadVariantSelfModulates(Chunk chunk, List<XmfVariant> variants)
     {
         using BinaryReader reader = chunk.OpenReader();
-        uint count = ReadCount(reader, MaxItems, "variant self modulate");
+        uint count = ReadCount(reader, XmfItemIO.MaxItems, "variant self modulate");
         if (count != variants.Count)
             throw new FormatException("XMF variant self modulates do not match the variant count.");
         foreach (XmfVariant variant in variants)
-            ReadSelfModulates(reader, variant);
+            XmfItemColors.ReadSelfModulates(reader, variant);
     }
 
     private static void WriteBlob(BinaryWriter writer, byte[] blob)

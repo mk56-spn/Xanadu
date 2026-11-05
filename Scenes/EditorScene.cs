@@ -12,7 +12,7 @@ using Xanadu.Systems.Playfields;
 namespace Xanadu.Scenes;
 
 /// <summary>Creates the initial editor state and a playfield centered between the header and footer.</summary>
-public static partial class EditorScene
+public static class EditorScene
 {
     private const int FieldSize = LevelDocument.DefaultFieldSize;
 
@@ -63,11 +63,11 @@ public static partial class EditorScene
 
         if (parent is { } menuRoot)
         {
-            BuildEditorUi(entities, editor, menuRoot, viewportSize);
+            EditorSceneMetadata.BuildEditorUi(entities, editor, menuRoot, viewportSize);
 
-            BuildEditorChrome(entities, menuRoot, editor, viewportSize);
-            BuildToolbar(entities, menuRoot, editor, viewportSize);
-            BuildDialogs(entities, menuRoot, editor, viewportSize);
+            EditorSceneChrome.BuildEditorChrome(entities, menuRoot, editor, viewportSize);
+            EditorSceneChrome.BuildToolbar(entities, menuRoot, editor, viewportSize);
+            EditorSceneDialogs.BuildDialogs(entities, menuRoot, editor, viewportSize);
         }
 
         if (entry is not null)

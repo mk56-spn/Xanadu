@@ -28,7 +28,7 @@ public static partial class XmfBinary
 
     internal static void ReadSpikeOutlines(BinaryReader reader, List<SpikeDocument> spikes)
     {
-        uint count = ReadCount(reader, MaxItems, "spike outline");
+        uint count = ReadCount(reader, XmfItemIO.MaxItems, "spike outline");
         if (count != spikes.Count)
             throw new FormatException("XMF spike outlines do not match their spikes.");
         foreach (SpikeDocument spike in spikes)

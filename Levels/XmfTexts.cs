@@ -67,7 +67,7 @@ public static partial class XmfBinary
 
     internal static List<TextDocument> ReadTexts(BinaryReader reader)
     {
-        uint count = ReadCount(reader, MaxItems, "text");
+        uint count = ReadCount(reader, XmfItemIO.MaxItems, "text");
         var texts = new List<TextDocument>((int)count);
         for (uint i = 0; i < count; i++)
         {

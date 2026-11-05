@@ -5,6 +5,13 @@ using Xanadu.Settings;
 
 namespace Xanadu.Ecs;
 
+/// <summary>A trail whose life runs out and that is then removed, age by age.</summary>
+public interface IAgingTrail
+{
+    float Age { get; set; }
+    float Lifetime { get; }
+}
+
 /// <summary>Play-session progress and its status text entity.</summary>
 public struct PlaySession(
     Entity status,
@@ -158,13 +165,21 @@ public struct HitTrail(
     Vector2 position,
     Color color,
     string label,
-    float lifetime = 0.55f) : IComponent
+    float lifetime = 0.55f) : IComponent, IAgingTrail
 {
     public Vector2 Position = position;
     public Color Color = color;
     public string Label = label;
     public float Age;
     public float Lifetime = lifetime;
+
+    float IAgingTrail.Age
+    {
+        readonly get => Age;
+        set => Age = value;
+    }
+
+    float IAgingTrail.Lifetime => Lifetime;
 }
 
 /// <summary>
@@ -248,12 +263,20 @@ public struct HitGhostRigged : ITag;
 public struct DashTrail(
     Vector2 from,
     Vector2 to,
-    float lifetime = 0.35f) : IComponent
+    float lifetime = 0.35f) : IComponent, IAgingTrail
 {
     public Vector2 From = from;
     public Vector2 To = to;
     public float Age;
     public float Lifetime = lifetime;
+
+    float IAgingTrail.Age
+    {
+        readonly get => Age;
+        set => Age = value;
+    }
+
+    float IAgingTrail.Lifetime => Lifetime;
 }
 
 /// <summary>Playable character families. Modules add behavior to the player.</summary>

@@ -28,8 +28,7 @@ public sealed class AnimatorSvgMenuSystem(
     protected override void OnUpdate()
     {
         PointerInput input = pointer.Read();
-        bool primary = input.Pressed && !_primaryHeld;
-        _primaryHeld = input.Pressed;
+        bool primary = AnimatorPointerEdge.Primary(ref _primaryHeld, input);
 
         foreach (Entity session in Query.ToEntityList())
             Update(session, primary, input.Position);

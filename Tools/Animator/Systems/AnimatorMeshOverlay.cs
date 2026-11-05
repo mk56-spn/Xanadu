@@ -76,7 +76,7 @@ public sealed class AnimatorMeshOverlay(IRectCanvas canvas, Rid target)
 
         if (!session.GetComponent<AnimatorMeshPick>().Active)
             return;
-        foreach (int bone in XafSkin.Influences(package, package.Attachments[index]))
+        foreach (int bone in XafSkinWeights.Influences(package, package.Attachments[index]))
         {
             if (bone < world.Length)
                 canvas.DrawCircleOutline(target, placement * world[bone].Origin, 11f, Bending, 2f, 24);

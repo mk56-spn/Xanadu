@@ -11,7 +11,7 @@ public sealed class DashTrailSystemTests : EcsSystemTest
 {
     protected override void OnEcsSetUp()
     {
-        Root.Add(new DashTrailSystem());
+        Root.Add(new TrailAgeSystem<DashTrail>());
     }
 
     [Test]

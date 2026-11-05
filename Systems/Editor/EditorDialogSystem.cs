@@ -48,7 +48,7 @@ public sealed class EditorDialogSystem : QuerySystem<EditorDialog>
     private static readonly Color RowIdle = Palette.SurfaceRaised;
     private static readonly Color RowPicked = Palette.Primary;
 
-    private readonly HashSet<int> _held = new();
+    private readonly ButtonPress _presses = new();
 
     protected override void OnUpdate()
     {
@@ -91,14 +91,7 @@ public sealed class EditorDialogSystem : QuerySystem<EditorDialog>
         return default;
     }
 
-    private bool PressedNow(Entity entity)
-    {
-        bool pressed = entity.Tags.Has<Pressed>();
-        bool was = !_held.Add(entity.Id);
-        if (!pressed)
-            _held.Remove(entity.Id);
-        return pressed && !was;
-    }
+    private bool PressedNow(Entity entity) => _presses.Started(entity);
 
     private void OfferRecovery(Entity editor)
     {
@@ -380,7 +373,7 @@ public sealed class EditorDialogSystem : QuerySystem<EditorDialog>
         for (int i = rows.Count; i < labels.Count; i++)
         {
             rows.Add(content.Button("", 13, RowIdle)
-                .Size(width, EditorScene.DialogListRowHeight)
+                .Size(width, EditorSceneDialogs.DialogListRowHeight)
                 .Align(TextAlign.Left)
                 .With(new EditorDialogButton(action, i + first))
                 .Entity);

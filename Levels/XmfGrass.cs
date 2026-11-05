@@ -68,7 +68,7 @@ public static partial class XmfBinary
 
     internal static List<GrassDocument> ReadGrass(BinaryReader reader)
     {
-        uint count = ReadCount(reader, MaxItems, "grass");
+        uint count = ReadCount(reader, XmfItemIO.MaxItems, "grass");
         var grass = new List<GrassDocument>((int)count);
         for (uint i = 0; i < count; i++)
         {
@@ -107,7 +107,7 @@ public static partial class XmfBinary
     private static void ReadVariantGrass(Chunk chunk, List<XmfVariant> variants)
     {
         using BinaryReader reader = chunk.OpenReader();
-        uint count = ReadCount(reader, MaxItems, "variant grass");
+        uint count = ReadCount(reader, XmfItemIO.MaxItems, "variant grass");
         if (count != variants.Count)
             throw new System.FormatException("XMF variant grass does not match the variant count.");
         foreach (XmfVariant variant in variants)

@@ -11,7 +11,7 @@ namespace Xanadu.Scenes;
 /// offer to recover unsaved edits, the F10 shader slots and the map colour picker.
 /// <c>EditorDialogSystem</c> opens, fills and runs them.
 /// </summary>
-public static partial class EditorScene
+public static class EditorSceneDialogs
 {
     public const float DialogListRowHeight = 30;
     private const float DialogPad = 16;

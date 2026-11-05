@@ -43,9 +43,9 @@ public sealed class XafAttachmentAuthoringTests
         Assert.That(XafAttachmentAuthoring.ToggleMeshBone(package, 0, 1), Is.False, "the own bone always bends it");
         XafAttachmentAuthoring.ToggleMeshBone(package, 0, 2);
         Assert.That(arm.Mesh!.Bones, Is.EqualTo(new[] { "arm" }), "the forearm is out; the arm stays");
-        Assert.That(XafSkin.Influences(package, arm), Is.EqualTo(new[] { 1 }));
+        Assert.That(XafSkinWeights.Influences(package, arm), Is.EqualTo(new[] { 1 }));
 
         XafAttachmentAuthoring.ToggleMeshBone(package, 0, 0);
-        Assert.That(XafSkin.Influences(package, arm), Is.EqualTo(new[] { 1, 0 }));
+        Assert.That(XafSkinWeights.Influences(package, arm), Is.EqualTo(new[] { 1, 0 }));
     }
 }

@@ -119,16 +119,16 @@ public sealed class PlayerPathTests
     [TestCase(99)]
     [TestCase(301)]
     public void NoPositionOutsideTheRecording(long time) =>
-        Assert.That(EditorPlayfieldDrawSystem.PathPositionAt(Path, time), Is.Null);
+        Assert.That(EditorPathDrawer.PositionAt(Path, time), Is.Null);
 
     [Test]
     public void ThePositionEasesBetweenSamples() =>
-        Assert.That(EditorPlayfieldDrawSystem.PathPositionAt(Path, 150), Is.EqualTo(new Vector2(5, 0)));
+        Assert.That(EditorPathDrawer.PositionAt(Path, 150), Is.EqualTo(new Vector2(5, 0)));
 
     [Test]
     public void AJumpHoldsUntilItHappens()
     {
-        Assert.That(EditorPlayfieldDrawSystem.PathPositionAt(Path, 299), Is.EqualTo(new Vector2(10, 0)));
-        Assert.That(EditorPlayfieldDrawSystem.PathPositionAt(Path, 300), Is.EqualTo(new Vector2(500, 0)));
+        Assert.That(EditorPathDrawer.PositionAt(Path, 299), Is.EqualTo(new Vector2(10, 0)));
+        Assert.That(EditorPathDrawer.PositionAt(Path, 300), Is.EqualTo(new Vector2(500, 0)));
     }
 }

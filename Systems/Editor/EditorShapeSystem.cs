@@ -17,7 +17,7 @@ public sealed class EditorShapeSystem : QuerySystem<EditorButton>
 {
     private readonly EntityStore _entities;
     private readonly EditorHistory _history;
-    private readonly HashSet<int> _held = new();
+    private readonly ButtonPress _presses = new();
 
     public EditorShapeSystem(EntityStore entities, EditorHistory history)
     {
@@ -30,14 +30,7 @@ public sealed class EditorShapeSystem : QuerySystem<EditorButton>
 
     protected override void OnUpdate()
     {
-        Entity editor = default;
-        foreach (Entity candidate in _entities
-                     .Query<EditorPlacement>()
-                     .ToEntityList())
-        {
-            editor = candidate;
-            break;
-        }
+        Entity editor = EditorSceneQuery.First<EditorPlacement>(_entities);
 
         if (editor.IsNull)
             return;
@@ -49,14 +42,7 @@ public sealed class EditorShapeSystem : QuerySystem<EditorButton>
             if (button.GetComponent<EditorButton>().Kind != EditorButtonKind.ShapeAttach)
                 continue;
 
-            bool pressed = button.Tags.Has<Pressed>();
-            bool was = _held.Contains(button.Id);
-            if (pressed)
-                _held.Add(button.Id);
-            else
-                _held.Remove(button.Id);
-
-            if (pressed && !was)
+            if (_presses.Started(button))
                 shapeId = Attach(editor, shapeId);
         }
 

@@ -13,8 +13,8 @@ public sealed class UiDropdownSystem : QuerySystem<Dropdown>
 {
 
     private readonly EntityStore _entities;
-    private readonly HashSet<int> _heldButtons = new();
-    private readonly HashSet<int> _heldOptions = new();
+    private readonly ButtonPress _buttonPresses = new();
+    private readonly ButtonPress _optionPresses = new();
 
     public UiDropdownSystem(EntityStore entities)
     {
@@ -43,15 +43,7 @@ public sealed class UiDropdownSystem : QuerySystem<Dropdown>
         foreach (Entity entity in Query.ToEntityList())
         {
             ref Dropdown dropdown = ref entity.GetComponent<Dropdown>();
-            bool pressed = entity.Tags.Has<Pressed>();
-            bool held = _heldButtons.Contains(entity.Id);
-
-            if (pressed)
-                _heldButtons.Add(entity.Id);
-            else
-                _heldButtons.Remove(entity.Id);
-
-            if (pressed && !held)
+            if (_buttonPresses.Started(entity))
             {
                 bool open = !dropdown.Open;
                 if (open && dropdown.CloseOthers)
@@ -84,13 +76,7 @@ public sealed class UiDropdownSystem : QuerySystem<Dropdown>
                      .WithDisabled()
                      .ToEntityList())
         {
-            bool pressed = entity.Tags.Has<Pressed>();
-            bool held = _heldOptions.Contains(entity.Id);
-            if (pressed)
-                _heldOptions.Add(entity.Id);
-            else
-                _heldOptions.Remove(entity.Id);
-            if (!pressed || held)
+            if (!_optionPresses.Started(entity))
                 continue;
 
             DropdownOption option = entity.GetComponent<DropdownOption>();

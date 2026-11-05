@@ -39,7 +39,7 @@ public sealed class XifEditorSystem : QuerySystem<XifEditor>
     private static readonly Color Handle = Palette.Accent;
     private static readonly Color SelectedHandle = Colors.White;
 
-    private readonly HashSet<int> _held = new();
+    private readonly ButtonPress _presses = new();
     private bool _wasPressed;
 
     protected override void OnUpdate()
@@ -100,11 +100,8 @@ public sealed class XifEditorSystem : QuerySystem<XifEditor>
             if (action.Editor.Id != panel.Id)
                 continue;
 
-            bool pressed = button.Tags.Has<Pressed>();
-            if (pressed && _held.Add(button.Id))
+            if (_presses.Started(button))
                 requests.Add(action.Kind);
-            else if (!pressed)
-                _held.Remove(button.Id);
         }
 
         foreach (XifEditorActionKind kind in requests)

@@ -59,10 +59,10 @@ public static class XafSkinAuthoring
         Transform2D placed = XafRig.WorldAttachments(package, rest, bones)[attachmentIndex];
         Transform2D artToRig = placed * new Transform2D(0f, -artSize / 2);
 
-        List<int> influences = XafSkin.Influences(package, attachment);
+        List<int> influences = XafSkinWeights.Influences(package, attachment);
         var segments = new List<(Vector2, Vector2)>();
         foreach (int bone in influences)
-            segments.Add(XafSkin.Segment(package, bones, bone));
+            segments.Add(XafSkinBones.Segment(package, bones, bone));
 
         var points = new Vector2[skin.Points.Length];
         for (int i = 0; i < points.Length; i++)
@@ -177,7 +177,7 @@ public static class XafSkinAuthoring
         Transform2D restAttachment = XafRig.WorldAttachments(package, rest, restBones)[attachmentIndex];
         Transform2D[] bones = XafRig.WorldBones(package, pose);
         Transform2D placed = XafRig.WorldAttachments(package, pose, bones)[attachmentIndex];
-        List<int> influences = XafSkin.Influences(package, attachment);
+        List<int> influences = XafSkinWeights.Influences(package, attachment);
         if (influences.Count == 0)
             return Array.Empty<Vector2>();
 
@@ -187,7 +187,7 @@ public static class XafSkinAuthoring
         var squash = new Transform2D[bones.Length];
         for (int i = 0; i < squash.Length; i++)
             squash[i] = XafRig.Foreshorten(package, pose, i);
-        return XafSkin.Deform(influences, WeightsOver(package, skin, influences), restPoints, restBones, bones,
+        return XafSkinDeform.Deform(influences, WeightsOver(package, skin, influences), restPoints, restBones, bones,
             restAttachment, placed, squash);
     }
 

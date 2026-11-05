@@ -23,7 +23,7 @@ public struct EditorBlockOutlinePanel(Entity section, Entity width, Entity color
 public sealed class EditorBlockOutlineSystem(EditorHistory history) : QuerySystem<NoteSelection, EditorBlockOutlinePanel>
 {
     private readonly List<Entity> _targets = new();
-    private readonly HashSet<int> _held = new();
+    private readonly ButtonPress _presses = new();
     private EditorSnapshot? _before;
     private bool _wasEditing;
 
@@ -37,13 +37,13 @@ public sealed class EditorBlockOutlineSystem(EditorHistory history) : QuerySyste
     {
         EditorBlockOutlinePanel panel = editor.GetComponent<EditorBlockOutlinePanel>();
         NoteSelection selection = editor.GetComponent<NoteSelection>();
-        Entity first = FirstOutlined(selection);
+        Entity first = EditorSelectionScan.First(selection, IsOutlined);
         bool editing = UiColorField.IsEditing(panel.Color);
         UiLayout.SetHidden(panel.Section, first.IsNull && !editing);
 
         if (editing && !_wasEditing)
         {
-            CollectTargets(selection);
+            EditorSelectionScan.Collect(selection, _targets, IsOutlined);
             _before = history.Capture();
         }
         _wasEditing = editing;
@@ -58,11 +58,7 @@ public sealed class EditorBlockOutlineSystem(EditorHistory history) : QuerySyste
 
         foreach (Entity button in EditorButton.All(editor.Store, EditorButtonKind.OutlineStep))
         {
-            bool pressed = button.Tags.Has<Pressed>();
-            bool was = !_held.Add(button.Id);
-            if (!pressed)
-                _held.Remove(button.Id);
-            if (pressed && !was)
+            if (_presses.Started(button))
                 Step(selection, first, button.GetComponent<EditorButton>().Arg);
         }
 
@@ -77,26 +73,7 @@ public sealed class EditorBlockOutlineSystem(EditorHistory history) : QuerySyste
             CommandBuffer);
     }
 
-    private static Entity FirstOutlined(NoteSelection selection)
-    {
-        foreach (Entity item in selection.AllNotes)
-        {
-            if (IsOutlined(item))
-                return item;
-        }
 
-        return default;
-    }
-
-    private void CollectTargets(NoteSelection selection)
-    {
-        _targets.Clear();
-        foreach (Entity item in selection.AllNotes)
-        {
-            if (IsOutlined(item))
-                _targets.Add(item);
-        }
-    }
 
     private void ApplyColor(Color color)
     {

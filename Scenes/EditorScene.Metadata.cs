@@ -14,13 +14,13 @@ using Xanadu.Ui.Ecs.Ui;
 namespace Xanadu.Scenes;
 
 /// <summary>Creates the initial editor state and a playfield centered between the header and footer.</summary>
-public static partial class EditorScene
+public static class EditorSceneMetadata
 {
     private const float MetadataPanelWidth = 380;
     private const float MetadataPanelHeight = 478;
     private const float StartPanelHeight = 220;
 
-    private static void BuildEditorUi(
+    internal static void BuildEditorUi(
         EntityStore entities,
         Entity editor,
         Entity root,
@@ -29,7 +29,7 @@ public static partial class EditorScene
         Playhead playhead = editor.GetComponent<Playhead>();
         LevelInfo level = editor.GetComponent<LevelInfo>();
 
-        BuildGroupOverlay(entities, root, screen);
+        EditorSceneGroups.BuildGroupOverlay(entities, root, screen);
 
         // Popups sit above the chrome (960) and below the header menus (970).
         UiNode panelUi = UiNode.Layer(entities, root, UiLayers.EditorMetadata, null, UiStage.Full);
@@ -119,7 +119,7 @@ public static partial class EditorScene
             .Fill(SceneUi.PanelColor)
             .Input();
         Entity startPanel = startNode.Entity;
-        HudText(
+        EditorSceneUi.HudText(
             startNode,
             Vector2.Zero,
             new Vector2(340, 20),
@@ -143,7 +143,7 @@ public static partial class EditorScene
             .Pad(12)
             .Input();
         Entity helpPanel = helpNode.Entity;
-        HudText(
+        EditorSceneUi.HudText(
             helpNode,
             Vector2.Zero,
             new Vector2(536, 24),
@@ -202,7 +202,7 @@ public static partial class EditorScene
             "F9                     Toggle this list",
         };
         foreach (string binding in bindings)
-            HudText(bindingList, Vector2.Zero, new Vector2(520, 24), binding, 14, SceneUi.TextColor);
+            EditorSceneUi.HudText(bindingList, Vector2.Zero, new Vector2(520, 24), binding, 14, SceneUi.TextColor);
 
         helpPanel.AddComponent(new EditorPanel(
             EditorPanelKind.Bindings,
@@ -213,21 +213,10 @@ public static partial class EditorScene
         _ = (nameField, artistField, difficultyField, bpmField, offsetField);
     }
 
-    private static Entity HudText(
-        UiNode parent,
-        Vector2 center,
-        Vector2 size,
-        string text,
-        int fontSize,
-        Color color) =>
-        parent.Text(text, fontSize, color, TextAlign.Left)
-            .Size(size)
-            .At(center);
-
     private static void AddMetadataLabel(
         UiNode parent,
         string text) =>
-        HudText(
+        EditorSceneUi.HudText(
             parent,
             Vector2.Zero,
             new Vector2(340, 16),
@@ -267,7 +256,7 @@ public static partial class EditorScene
             .With(new EditorButton(edit))
             .Tooltip(tooltip);
 
-        Entity hex = HudText(
+        Entity hex = EditorSceneUi.HudText(
             row,
             Vector2.Zero,
             new Vector2(120, 28),

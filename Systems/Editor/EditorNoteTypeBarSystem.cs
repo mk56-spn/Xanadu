@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Godot;
@@ -21,7 +20,7 @@ public sealed class EditorNoteTypeBarSystem : QuerySystem<EditorButton>
 
     private readonly EntityStore _entities;
     private readonly EditorCommandBus _commands;
-    private readonly HashSet<int> _held = new();
+    private readonly ButtonPress _presses = new();
 
     public EditorNoteTypeBarSystem(EntityStore entities, EditorCommandBus commands)
     {
@@ -34,14 +33,7 @@ public sealed class EditorNoteTypeBarSystem : QuerySystem<EditorButton>
 
     protected override void OnUpdate()
     {
-        Entity editor = default;
-        foreach (Entity candidate in _entities
-                     .Query<EditorPlacement>()
-                     .ToEntityList())
-        {
-            editor = candidate;
-            break;
-        }
+        Entity editor = EditorSceneQuery.First<EditorPlacement>(_entities);
 
         if (editor.IsNull)
             return;
@@ -59,14 +51,7 @@ public sealed class EditorNoteTypeBarSystem : QuerySystem<EditorButton>
                 return;
 
             var action = (KeybindAction)button.Arg;
-            bool pressed = visible && entity.Tags.Has<Pressed>();
-            bool wasPressed = _held.Contains(entity.Id);
-            if (pressed)
-                _held.Add(entity.Id);
-            else
-                _held.Remove(entity.Id);
-
-            if (pressed && !wasPressed)
+            if (_presses.Started(entity, visible && entity.Tags.Has<Pressed>()))
             {
                 _commands.Enqueue(EditorCommand.SetTarget(action));
                 target = action;

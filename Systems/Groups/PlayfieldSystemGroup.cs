@@ -3,6 +3,7 @@ using Friflo.Engine.ECS.Systems;
 using System;
 using Godot;
 using Xanadu.Animation;
+using Xanadu.Ecs;
 using Xanadu.Systems.Audio;
 using Xanadu.Systems.Canvas;
 using Xanadu.Systems.Characters;
@@ -86,10 +87,10 @@ public sealed class PlayfieldSystemGroup : SystemGroup, IDisposable
         Add(new ContactBarrierSystem(entities, offsets));
         Add(new SplitlineSystem());
         Add(new SplitlineBallsSystem());
-        Add(new HitTrailSystem());
+        Add(new TrailAgeSystem<HitTrail>());
         Add(new NotePopSystem());
         Add(new DashLinkFadeSystem());
-        Add(new DashTrailSystem());
+        Add(new TrailAgeSystem<DashTrail>());
         Add(new HitGhostSystem());
         Add(new ParticleBurstSystem(_particles));
         Add(new HudLayoutSystem(
