@@ -47,7 +47,8 @@ public partial class Main : Control
 			// Design space, not the window: the project stretches the whole
 			// surface, so every scene lays out at 1920x1080 and scales as one.
 			UiStage.Design1080,
-			wheel: _pointer);
+			wheel: _pointer,
+			passHost: this);
 
 		_systems.Scenes.AddSongRequested = ShowAddSongDialog;
 		_systems.Scenes.Start(StartScene());
