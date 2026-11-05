@@ -36,13 +36,18 @@ public partial class EditorOverlay : CanvasLayer
         return false;
     }
 
+    /// <summary>Whether a dialog has the keyboard: a native file dialog or an ECS one.</summary>
     private bool AnyDialogVisible() =>
-        (_songPicker?.Visible ?? false) ||
+        NativeDialogVisible() || EditorDialogs.AnyOpen(_entities);
+
+    /// <summary>
+    /// Whether a native file dialog is up. It is a window of its own, so the
+    /// pointer is held off the ECS UI while it is; an ECS dialog needs the pointer.
+    /// </summary>
+    private bool NativeDialogVisible() =>
         (_saveAsDialog?.Visible ?? false) ||
         (_loadDialog?.Visible ?? false) ||
-        IsRecoveryDialogVisible() ||
-        IsBackgroundDialogVisible() ||
-        IsShaderDialogVisible();
+        (_shaderFileDialog?.Visible ?? false);
 
     /// <summary>Whether a group's overlay screen is up, which takes over the keyboard and the pointer.</summary>
     private bool IsGroupOverlayOpen()

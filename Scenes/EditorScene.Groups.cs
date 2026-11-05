@@ -156,7 +156,7 @@ public static partial class EditorScene
             0,
             Place(EditorGroupPart.NameField, 0, dialog));
         Piece(
-            GroupButton(ui, "DONE", SceneUi.ButtonColor, 100, 30),
+            GroupButton(ui, "DONE", SceneUi.EditorButtonColor, 100, 30),
             EditorGroupPart.Close,
             0,
             Place(EditorGroupPart.Close, 0, dialog));
@@ -168,7 +168,7 @@ public static partial class EditorScene
             EditorGroupPart.MemberText,
             0,
             Place(EditorGroupPart.MemberText, 0, dialog));
-        Piece(GroupButton(ui, "ADD SELECTED", SceneUi.ButtonColor, 130, 28), EditorGroupPart.AddSelected, 0, Place(EditorGroupPart.AddSelected, 0, dialog));
+        Piece(GroupButton(ui, "ADD SELECTED", SceneUi.EditorButtonColor, 130, 28), EditorGroupPart.AddSelected, 0, Place(EditorGroupPart.AddSelected, 0, dialog));
         Piece(GroupButton(ui, "REMOVE SELECTED", SceneUi.MutedButtonColor, 150, 28), EditorGroupPart.RemoveSelected, 0, Place(EditorGroupPart.RemoveSelected, 0, dialog));
         Piece(GroupButton(ui, "SELECT MEMBERS", SceneUi.MutedButtonColor, 140, 28), EditorGroupPart.SelectMembers, 0, Place(EditorGroupPart.SelectMembers, 0, dialog));
         Piece(
@@ -183,9 +183,9 @@ public static partial class EditorScene
             EditorGroupPart.OutlineLink,
             0,
             Place(EditorGroupPart.OutlineLink, 0, dialog));
-        Piece(GroupButton(ui, "+ MOVE", SceneUi.ButtonColor, 100, 28), EditorGroupPart.AddMove, 0, Place(EditorGroupPart.AddMove, 0, dialog));
-        Piece(GroupButton(ui, "+ COLOR", SceneUi.ButtonColor, 100, 28), EditorGroupPart.AddColor, 0, Place(EditorGroupPart.AddColor, 0, dialog));
-        Piece(GroupButton(ui, "SNAP", SceneUi.ButtonColor, 110, 28), EditorGroupPart.SnapToggle, 0, Place(EditorGroupPart.SnapToggle, 0, dialog));
+        Piece(GroupButton(ui, "+ MOVE", SceneUi.EditorButtonColor, 100, 28), EditorGroupPart.AddMove, 0, Place(EditorGroupPart.AddMove, 0, dialog));
+        Piece(GroupButton(ui, "+ COLOR", SceneUi.EditorButtonColor, 100, 28), EditorGroupPart.AddColor, 0, Place(EditorGroupPart.AddColor, 0, dialog));
+        Piece(GroupButton(ui, "SNAP", SceneUi.EditorButtonColor, 110, 28), EditorGroupPart.SnapToggle, 0, Place(EditorGroupPart.SnapToggle, 0, dialog));
         Piece(
             GroupButton(ui, "SOLO", SceneUi.MutedButtonColor, 88, 28)
                 .Tooltip("Preview only this group"),
@@ -193,7 +193,7 @@ public static partial class EditorScene
             0,
             Place(EditorGroupPart.SoloToggle, 0, dialog));
         Piece(
-            GroupButton(ui, "PLAY", SceneUi.ButtonColor, 70, 28)
+            GroupButton(ui, "PLAY", SceneUi.EditorButtonColor, 70, 28)
                 .Tooltip("Play or pause the live preview"),
             EditorGroupPart.PlayToggle,
             0,

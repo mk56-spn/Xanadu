@@ -12,10 +12,8 @@ public partial class EditorOverlay : CanvasLayer
         if (_closed || _editor.IsNull)
             return;
 
-        ProcessRecoveryOffer();
-        ProcessShaderDialog(delta);
         ProcessUiRequest();
         SyncTextFieldBridge();
-        _pointer?.SetBlocked(AnyDialogVisible() || IsBindingsHelpVisible());
+        _pointer?.SetBlocked(NativeDialogVisible() || IsBindingsHelpVisible());
     }
 }

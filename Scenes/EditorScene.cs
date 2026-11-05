@@ -66,6 +66,7 @@ public static partial class EditorScene
 
             BuildEditorChrome(entities, menuRoot, editor, viewportSize);
             BuildToolbar(entities, menuRoot, editor, viewportSize);
+            BuildDialogs(entities, menuRoot, editor, viewportSize);
         }
 
         if (entry is not null)

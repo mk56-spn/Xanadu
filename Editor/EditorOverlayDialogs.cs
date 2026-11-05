@@ -8,7 +8,7 @@ using Xanadu.Editor.Commands;
 
 namespace Xanadu.Editor;
 
-/// <summary>Editor overlay native file dialogs and save/load actions.</summary>
+/// <summary>Editor overlay native file dialogs and save/load actions; the song picker is an ECS dialog.</summary>
 public partial class EditorOverlay : CanvasLayer
 {
     private void BuildSaveDialogs()
@@ -41,85 +41,7 @@ public partial class EditorOverlay : CanvasLayer
         AddChild(_loadDialog);
     }
 
-    private void BuildSongDialog()
-    {
-        _songPicker = new ConfirmationDialog
-        {
-            Title = "Choose a song",
-            OkButtonText = "SELECT",
-        };
-        var box = new VBoxContainer();
-        _songPicker.AddChild(box);
-        _songEmpty = new Label
-        {
-            Text = "NO SONGS",
-            HorizontalAlignment = HorizontalAlignment.Center,
-            Visible = false,
-        };
-        box.AddChild(_songEmpty);
-        _songList = new ItemList
-        {
-            CustomMinimumSize = new Vector2(620, 360),
-            SelectMode = ItemList.SelectModeEnum.Single,
-        };
-        _songList.ItemSelected += OnSongHighlighted;
-        box.AddChild(_songList);
-        _songInfo = new Label { Text = "" };
-        box.AddChild(_songInfo);
-        _songPicker.Confirmed += OnSongChoiceConfirmed;
-        AddChild(_songPicker);
-
-    }
-
-    private void OpenSongDialog()
-    {
-        if (_songPicker.Visible)
-            return;
-
-        RefreshSongList();
-        _songPicker.PopupCentered(new Vector2I(700, 540));
-    }
-
-    private void RefreshSongList()
-    {
-        _songs.Clear();
-        var store = new SongStore();
-        _songs.AddRange(store.LoadAll().Where(song => store.AudioExists(song)));
-        _songList.Clear();
-        foreach (SongDocument song in _songs)
-        {
-            string artist = string.IsNullOrWhiteSpace(song.Artist) ? "Unknown artist" : song.Artist;
-            _songList.AddItem($"{song.Title}   ·   {artist}");
-        }
-
-        bool empty = _songs.Count == 0;
-        _songEmpty.Visible = empty;
-        _songList.Visible = !empty;
-        _songInfo.Text = empty
-            ? "No songs in the library. Import one first."
-            : "Select a song, then choose SELECT.";
-        _songPicker.GetOkButton().Disabled = empty;
-        if (!empty)
-            _songList.Select(0);
-    }
-
-    private void OnSongHighlighted(long index)
-    {
-        if (index < 0 || index >= _songs.Count)
-            return;
-        SongDocument song = _songs[(int)index];
-        _songInfo.Text = $"{song.Bpm} BPM   ·   offset {song.OffsetMs} ms   ·   {song.Slug}";
-    }
-
-    private void OnSongChoiceConfirmed()
-    {
-        int index = _songList.GetSelectedItems().Length > 0
-            ? _songList.GetSelectedItems()[0]
-            : -1;
-        if (index < 0 || index >= _songs.Count || _editor.IsNull)
-            return;
-        _commands.Enqueue(EditorCommand.LoadSongById(_songs[index].Id));
-    }
+    private void OpenSongDialog() => EditorDialogs.Open(_entities, EditorDialogKind.Song);
 
     public bool SaveCurrent() => SaveCurrent(out _);
 
