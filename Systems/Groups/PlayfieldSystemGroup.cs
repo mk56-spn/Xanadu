@@ -22,6 +22,7 @@ namespace Xanadu.Systems.Groups;
 public sealed class PlayfieldSystemGroup : SystemGroup, IDisposable
 {
     private readonly CanvasItemHandle _playfield;
+    private readonly CanvasItemHandle _ghosts;
     private readonly CanvasItemHandle _characters;
     private readonly CanvasItemHandle _particleCanvas;
     private readonly CanvasItemHandle _hitboxes;
@@ -44,6 +45,10 @@ public sealed class PlayfieldSystemGroup : SystemGroup, IDisposable
         MapOffsetSettings? mapOffsets = null) : base("Playfield")
     {
         _playfield = new CanvasItemHandle(parentCanvas, 800);
+
+        // The fading copies a character leaves on a hit: before the characters,
+        // so the live art always draws over them.
+        _ghosts = new CanvasItemHandle(_playfield.Rid, 0);
 
         // Character rig art: a child of the playfield, so it draws over the field.
         _characters = new CanvasItemHandle(_playfield.Rid, 0);
@@ -85,6 +90,7 @@ public sealed class PlayfieldSystemGroup : SystemGroup, IDisposable
         Add(new NotePopSystem());
         Add(new DashLinkFadeSystem());
         Add(new DashTrailSystem());
+        Add(new HitGhostSystem());
         Add(new ParticleBurstSystem(_particles));
         Add(new HudLayoutSystem(
             canvas,
@@ -106,7 +112,10 @@ public sealed class PlayfieldSystemGroup : SystemGroup, IDisposable
             Add(new CharacterAttackSystem());
             Add(new CharacterRigAnimateSystem());
             Add(new CharacterRigDrawSystem(
-                () => new SvgAttachmentVisuals(_characters.Rid)));
+                () => new SvgAttachmentVisuals(_characters.Rid),
+                new CharacterRigGhosts(
+                    _ghosts.Rid,
+                    root => new SvgAttachmentVisuals(root, containLayers: true))));
         }
 
         Add(new PlayfieldDrawSystem(entities, canvas, _playfield.Rid));
@@ -131,6 +140,7 @@ public sealed class PlayfieldSystemGroup : SystemGroup, IDisposable
         _hitboxes.Dispose();
         _particleCanvas.Dispose();
         _characters.Dispose();
+        _ghosts.Dispose();
         _playfield.Dispose();
         _hudOverlay.Dispose();
     }

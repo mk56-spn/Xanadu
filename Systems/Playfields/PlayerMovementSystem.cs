@@ -116,6 +116,8 @@ public sealed class PlayerMovementSystem : QuerySystem<Player, Position, Playfie
                     continue;
                 }
 
+                // Before the note moves the player, so the copy stays where it hit.
+                HitGhostSystem.Spawn(_entities, entity);
                 Color spray = GroupColor.For(noteEntity, PlayfieldRenderer.ColorFor(movement));
                 if (movement.Kind == NoteKind.Dash)
                 {

@@ -110,7 +110,10 @@ public sealed partial class PlayNoteInputSystem
         FaceHit(playfield, hitPosition.X, playerScreen.X);
 
         if (triggerAttack)
+        {
+            HitGhostSystem.Spawn(_entities, playfield);
             CharacterAttackSystem.Trigger(playfield, hitPosition.Y, playerScreen.Y);
+        }
 
         HitEffects.Spawn(_entities, playfield, note, hitPosition, hitColor, hitRadius);
         return true;

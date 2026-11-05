@@ -40,5 +40,27 @@ public static partial class PlayfieldRenderer
         }
     }
 
+    /// <summary>
+    /// The see-through boxes a player without rig art leaves when it hits a
+    /// note; the rig draw system draws the rest as copies of the art.
+    /// </summary>
+    public static void DrawHitGhosts(IRectCanvas canvas, Rid rid, EntityStore entities)
+    {
+        foreach (Entity entity in entities.Query<HitGhost>().ToEntityList())
+        {
+            if (entity.Tags.Has<HitGhostRigged>())
+                continue;
+
+            HitGhost ghost = entity.GetComponent<HitGhost>();
+            float alpha = ghost.Alpha;
+            if (alpha <= 0f)
+                continue;
+
+            var bounds = new Rect2(ghost.Center - ghost.Size / 2, ghost.Size);
+            canvas.DrawRect(rid, bounds, PlayerColor with { A = PlayerColor.A * alpha });
+            canvas.DrawBorder(rid, bounds, QueueColor with { A = QueueColor.A * alpha }, 2);
+        }
+    }
+
 
 }
