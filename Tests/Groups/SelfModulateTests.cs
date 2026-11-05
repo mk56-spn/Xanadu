@@ -123,6 +123,38 @@ public sealed class SelfModulateTests : EcsSystemTest
     }
 
     [Test]
+    public void DraggingThePickerColoursTheSelectionLiveAndUndoesInOneStep()
+    {
+        (Entity field, _, Entity note, EditorHistory history) = EditorWithField();
+        Entity picker = Store.CreateEntity(new UiColorPicker { Color = Colors.White });
+        field.GetComponent<UiColorField>().Picker = picker;
+        Frame();
+
+        void Drag(Color color)
+        {
+            ref UiColorPicker state = ref picker.GetComponent<UiColorPicker>();
+            state.Dragging = true;
+            state.Color = color;
+            Frame();
+        }
+
+        Drag(Colors.Red);
+        Assert.That(SelfModulate.Of(note).IsEqualApprox(Colors.Red), Is.True, "coloured before the drag ends");
+        Drag(Colors.Blue);
+        Assert.That(SelfModulate.Of(note).IsEqualApprox(Colors.Blue), Is.True);
+
+        picker.GetComponent<UiColorPicker>().Dragging = false;
+        Frame();
+        Frame();
+        Assert.That(SelfModulate.Of(note).IsEqualApprox(Colors.Blue), Is.True);
+
+        Assert.That(history.Undo(), Is.True);
+        foreach (Entity restored in Store.Query<Note>().ToEntityList())
+            Assert.That(SelfModulate.Of(restored), Is.EqualTo(Colors.White), "one step back to before the drag");
+        Assert.That(history.CanUndo, Is.False);
+    }
+
+    [Test]
     public void AnInvalidColourChangesNothing()
     {
         (Entity field, _, Entity note, _) = EditorWithField();

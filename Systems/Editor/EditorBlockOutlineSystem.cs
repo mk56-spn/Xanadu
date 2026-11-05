@@ -24,6 +24,7 @@ public sealed class EditorBlockOutlineSystem(EditorHistory history) : QuerySyste
 {
     private readonly List<Entity> _targets = new();
     private readonly HashSet<int> _held = new();
+    private EditorSnapshot? _before;
     private bool _wasEditing;
 
     protected override void OnUpdate()
@@ -41,11 +42,19 @@ public sealed class EditorBlockOutlineSystem(EditorHistory history) : QuerySyste
         UiLayout.SetHidden(panel.Section, first.IsNull && !editing);
 
         if (editing && !_wasEditing)
+        {
             CollectTargets(selection);
+            _before = history.Capture();
+        }
         _wasEditing = editing;
 
+        // A dragged picker colours the outlines as it moves; the drag is one undo step.
+        if (UiColorField.TakeLive(panel.Color, out Color live))
+            PutColor(live);
         if (UiColorField.TakeCommit(panel.Color, out Color color))
             ApplyColor(color);
+        if (!editing)
+            _before = null;
 
         foreach (Entity button in EditorButton.All(editor.Store, EditorButtonKind.OutlineStep))
         {
@@ -95,10 +104,16 @@ public sealed class EditorBlockOutlineSystem(EditorHistory history) : QuerySyste
         if (_targets.Count == 0)
             return;
 
-        EditorSnapshot before = history.Capture();
+        EditorSnapshot before = _before ?? history.Capture();
+        PutColor(color);
+        history.Record(before, history.Capture());
+    }
+
+    private void PutColor(Color color)
+    {
+        _targets.RemoveAll(item => !IsOutlined(item));
         foreach (Entity item in _targets)
             SetColor(item, color);
-        history.Record(before, history.Capture());
     }
 
     /// <summary>They all take the first one's width plus the step, so a mixed selection ends up matching.</summary>

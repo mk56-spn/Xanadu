@@ -72,6 +72,26 @@ public sealed class UiColorFieldPickerTests
     }
 
     [Test]
+    public void DraggingHandsOutTheColourLiveAndStillCommitsWhenLetGo()
+    {
+        Frame(Square, pressed: true);
+        Assert.That(UiColorField.TakeLive(_field, out Color first), Is.True);
+        Assert.That(UiColorField.TakeLive(_field, out _), Is.False, "only when it changes");
+
+        Frame(Square + new Vector2(30, 0), pressed: true);
+        Assert.That(UiColorField.TakeLive(_field, out Color moved), Is.True);
+        Assert.That(moved, Is.Not.EqualTo(first));
+
+        // The tool shows the live colour on its targets, and reports it back while dragging.
+        UiColorField.Show(_field, moved);
+        Frame(Square + new Vector2(30, 0), pressed: false);
+
+        Assert.That(UiColorField.TakeLive(_field, out _), Is.False);
+        Assert.That(UiColorField.TakeCommit(_field, out Color committed), Is.True, "the drag still commits");
+        Assert.That(committed, Is.EqualTo(moved));
+    }
+
+    [Test]
     public void AClickThatChangesNothingCommitsNothing()
     {
         // Top right of the square at hue 0 is pure red, which is what the field holds.

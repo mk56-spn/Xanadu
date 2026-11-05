@@ -74,6 +74,10 @@ public struct UiColorField(Entity swatch) : IComponent
     public Entity Picker;
     public bool WasDragged;
 
+    /// <summary>The colour last handed out by <see cref="TakeLive"/> in this drag, while <see cref="Live"/> is set.</summary>
+    public Color LiveColor;
+    public bool Live;
+
     /// <summary>Whether a colour is being typed or dragged out, so what the tool has selected now may not be what it is for.</summary>
     public static bool IsEditing(Entity field)
     {
@@ -94,11 +98,46 @@ public struct UiColorField(Entity swatch) : IComponent
         return true;
     }
 
-    /// <summary>Shows the selection's colour, unless the user is typing or a typed one is still in flight.</summary>
+    /// <summary>
+    /// Hands the tool the picker's colour while it is being dragged, each time
+    /// it changes, so the tool can show it on its targets before the drag ends.
+    /// The drag still ends in one <see cref="TakeCommit"/>, which is where the
+    /// tool records the change; what it applies live it should not record.
+    /// </summary>
+    public static bool TakeLive(Entity field, out Color color)
+    {
+        ref UiColorField state = ref field.GetComponent<UiColorField>();
+        color = default;
+        if (state.Picker.IsNull || !state.Picker.GetComponent<UiColorPicker>().Dragging)
+        {
+            state.Live = false;
+            return false;
+        }
+
+        Color picked = state.Picker.GetComponent<UiColorPicker>().Color;
+        if (state.Live && state.LiveColor == picked)
+            return false;
+
+        state.Live = true;
+        state.LiveColor = picked;
+        color = picked;
+        return true;
+    }
+
+    /// <summary>
+    /// Shows the selection's colour, unless the user is typing, dragging the
+    /// picker, or a typed or picked one is still in flight. During a drag the
+    /// selection already wears the live colour, and taking it as the field's
+    /// value would leave nothing to commit when the drag ends.
+    /// </summary>
     public static void Show(Entity field, Color color)
     {
         ref UiColorField state = ref field.GetComponent<UiColorField>();
-        if (!state.Committed && !state.WasFocused && !field.Tags.Has<TextFieldFocused>())
+        bool dragging = !state.Picker.IsNull && state.Picker.GetComponent<UiColorPicker>().Dragging;
+        if (!state.Committed && !state.WasFocused && !state.WasDragged && !dragging &&
+            !field.Tags.Has<TextFieldFocused>())
+        {
             state.Value = color;
+        }
     }
 }
