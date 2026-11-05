@@ -33,6 +33,7 @@ public sealed class EditorHistory
         var blocks = new List<BlockSnapshot>();
         var spikes = new List<SpikeSnapshot>();
         var texts = new List<TextSnapshot>();
+        var grass = new List<GrassSnapshot>();
 
         foreach (Entity entity in _entities.Query<Note>().ToEntityList())
         {
@@ -206,6 +207,24 @@ public sealed class EditorHistory
             return y != 0 ? y : string.CompareOrdinal(a.Text, b.Text);
         });
 
+        foreach (Entity entity in _entities.Query<GrassPatch>().ToEntityList())
+        {
+            grass.Add(new GrassSnapshot(
+                entity.GetComponent<GrassPatch>(),
+                MaskOf(entity),
+                ItemShader.Of(entity),
+                SelfModulate.Packed(entity)));
+        }
+
+        grass.Sort(static (a, b) =>
+        {
+            int x = a.Patch.Position.X.CompareTo(b.Patch.Position.X);
+            if (x != 0)
+                return x;
+            int y = a.Patch.Position.Y.CompareTo(b.Patch.Position.Y);
+            return y != 0 ? y : a.Patch.Seed.CompareTo(b.Patch.Seed);
+        });
+
         return new EditorSnapshot(
             notes,
             mines,
@@ -213,7 +232,8 @@ public sealed class EditorHistory
             blocks,
             spikes,
             CaptureGroups(),
-            texts);
+            texts,
+            grass);
     }
 
     private static uint MaskOf(Entity entity) =>
@@ -249,6 +269,7 @@ public sealed class EditorHistory
         before.Blocks.SequenceEqual(after.Blocks) &&
         before.Spikes.SequenceEqual(after.Spikes) &&
         (before.Texts ?? new()).SequenceEqual(after.Texts ?? new()) &&
+        (before.Grass ?? new()).SequenceEqual(after.Grass ?? new()) &&
         SameGroups(before.Groups, after.Groups);
 
     private static bool SameGroups(GroupDefinition[]? a, GroupDefinition[]? b)
@@ -276,6 +297,9 @@ public sealed class EditorHistory
             entity.DeleteEntity();
 
         foreach (Entity entity in _entities.Query<LevelText>().ToEntityList())
+            entity.DeleteEntity();
+
+        foreach (Entity entity in _entities.Query<GrassPatch>().ToEntityList())
             entity.DeleteEntity();
 
         if (snapshot.Groups is not null)
@@ -370,6 +394,13 @@ public sealed class EditorHistory
             Subscribe(created, text.Groups);
             SelfModulate.Put(created, text.Modulate);
         }
+
+        foreach (GrassSnapshot patch in snapshot.Grass ?? new())
+        {
+            Entity created = EditorItems.Create(_entities, patch.Patch, patch.Shader);
+            Subscribe(created, patch.Groups);
+            SelfModulate.Put(created, patch.Modulate);
+        }
     }
 }
 
@@ -381,7 +412,15 @@ public readonly record struct EditorSnapshot(
     List<BlockSnapshot> Blocks,
     List<SpikeSnapshot> Spikes,
     GroupDefinition[]? Groups = null,
-    List<TextSnapshot>? Texts = null);
+    List<TextSnapshot>? Texts = null,
+    List<GrassSnapshot>? Grass = null);
+
+/// <summary>Stable grass-patch snapshot used by undo/redo.</summary>
+public readonly record struct GrassSnapshot(
+    GrassPatch Patch,
+    uint Groups = 0,
+    int Shader = 0,
+    uint Modulate = SelfModulate.White);
 
 /// <summary>Stable serializable level-text snapshot used by undo/redo.</summary>
 public readonly record struct TextSnapshot(

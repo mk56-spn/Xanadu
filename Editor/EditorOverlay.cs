@@ -11,7 +11,10 @@ using Xanadu.Systems.Input;
 
 namespace Xanadu.Editor;
 
-/// <summary>Native file dialogs and text-input bridge for the ECS editor UI.</summary>
+/// <summary>
+/// Native file dialogs and the text-input bridge for the ECS editor UI. Every
+/// other dialog is an ECS one (<see cref="EditorDialogs"/>).
+/// </summary>
 public partial class EditorOverlay
 {
     private readonly EntityStore _entities;
@@ -24,11 +27,6 @@ public partial class EditorOverlay
     private readonly Action<LevelDocument, string, long>? _onPreviewHere;
     private readonly TapTempo _tapTempo = new();
 
-    private ConfirmationDialog _songPicker = null!;
-    private ItemList _songList = null!;
-    private Label _songInfo = null!;
-    private Label _songEmpty = null!;
-    private readonly List<SongDocument> _songs = new();
     private FileDialog _saveAsDialog = null!;
     private FileDialog _loadDialog = null!;
     private LineEdit _textInput = null!;
@@ -69,11 +67,8 @@ public partial class EditorOverlay
                 new EditorTimelineHost(_editor, _commands, SetStatus)));
 
         CreateTextFieldBridge();
-        BuildSongDialog();
         BuildSaveDialogs();
-        BuildRecoveryDialog();
-        BuildShaderDialog();
-        BuildBackgroundDialog();
+        BuildShaderImportDialog();
 
         if (_openSongDialog &&
             _editor.HasComponent<LevelInfo>() &&

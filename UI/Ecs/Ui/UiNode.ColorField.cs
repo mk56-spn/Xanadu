@@ -56,6 +56,26 @@ public readonly partial struct UiNode
     }
 
     /// <summary>
+    /// A full colour picker, alpha bar, swatch and hex included, its square centred
+    /// on <paramref name="center"/>; returns the square, which carries
+    /// <see cref="UiColorPicker"/>. It places its own parts, so it sits outside any stack.
+    /// </summary>
+    public UiNode ColorPicker(Vector2 center, Color initial)
+    {
+        UiBuilder builder = BeginChildren();
+        bool real = builder.Visuals is GodotVisualRidFactory;
+        List<Entity> parts = builder.ColorPicker(
+            center,
+            initial,
+            real ? ColorPickerMaterials.Square() : null,
+            real ? ColorPickerMaterials.Hue() : null);
+        foreach (Entity part in parts)
+            part.AddTag<LayoutIgnore>();
+
+        return Leaf(parts[0]);
+    }
+
+    /// <summary>
     /// A colour picker with no alpha bar, its square centred on <paramref name="center"/>;
     /// returns the square, which carries <see cref="UiColorPicker"/>. It places its own
     /// parts, so it sits outside any stack.

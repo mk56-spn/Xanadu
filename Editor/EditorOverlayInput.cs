@@ -33,6 +33,9 @@ public partial class EditorOverlay : CanvasLayer, IEditorShortcutTarget
             case EditorShortcut.ToggleShaders:
                 ToggleShaderDialog();
                 break;
+            case EditorShortcut.CloseDialog:
+                EditorDialogs.Dismiss(_entities);
+                break;
             case EditorShortcut.ToggleHelp:
                 ToggleBindingsHelp();
                 break;
@@ -137,6 +140,7 @@ public partial class EditorOverlay : CanvasLayer, IEditorShortcutTarget
             EditorPlacementMode.Channel => "Place channel start",
             EditorPlacementMode.FormStep => "Place Form step",
             EditorPlacementMode.Text => "Place text",
+            EditorPlacementMode.Grass => "Place grass",
             _ => "Placement mode",
         });
     }

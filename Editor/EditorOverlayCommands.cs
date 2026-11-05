@@ -51,7 +51,7 @@ public partial class EditorOverlay : CanvasLayer
                 break;
 
             case EditorButtonKind.BackgroundColor:
-                OpenBackgroundDialog(MapColor.Background);
+                EditorDialogs.Open(_entities, EditorDialogKind.MapColor, (int)EditorColorTarget.Background);
                 break;
 
             case EditorButtonKind.ResetBackgroundColor:
@@ -59,7 +59,7 @@ public partial class EditorOverlay : CanvasLayer
                 break;
 
             case EditorButtonKind.OutsideColor:
-                OpenBackgroundDialog(MapColor.Outside);
+                EditorDialogs.Open(_entities, EditorDialogKind.MapColor, (int)EditorColorTarget.Outside);
                 break;
 
             case EditorButtonKind.ResetOutsideColor:
@@ -67,11 +67,15 @@ public partial class EditorOverlay : CanvasLayer
                 break;
 
             case EditorButtonKind.FrameColor:
-                OpenBackgroundDialog(MapColor.Frame);
+                EditorDialogs.Open(_entities, EditorDialogKind.MapColor, (int)EditorColorTarget.Frame);
                 break;
 
             case EditorButtonKind.ResetFrameColor:
                 _commands.Enqueue(EditorCommand.SetFrameColor(null));
+                break;
+
+            case EditorButtonKind.ImportShader:
+                OpenShaderImport();
                 break;
         }
     }
@@ -89,7 +93,8 @@ public partial class EditorOverlay : CanvasLayer
             or EditorButtonKind.OutsideColor
             or EditorButtonKind.ResetOutsideColor
             or EditorButtonKind.FrameColor
-            or EditorButtonKind.ResetFrameColor;
+            or EditorButtonKind.ResetFrameColor
+            or EditorButtonKind.ImportShader;
 
     private void TapTempo()
     {

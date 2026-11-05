@@ -27,8 +27,15 @@ public sealed class EditorShortcutsTests
         EditorShortcuts.Find(chord, scopes)?.Action;
 
     [Test]
-    public void ADialogStopsEveryShortcut() =>
-        Assert.That(Action(new KeyChord(Key.F5), Scopes(dialog: true)), Is.Null);
+    public void ADialogStopsEveryShortcutButTheOnesThatCloseIt()
+    {
+        EditorShortcutScope dialog = Scopes(dialog: true);
+
+        Assert.That(Action(new KeyChord(Key.F5), dialog), Is.Null);
+        Assert.That(Action(new KeyChord(Key.Delete), dialog), Is.Null);
+        Assert.That(Action(new KeyChord(Key.Escape), dialog), Is.EqualTo(EditorShortcut.CloseDialog));
+        Assert.That(Action(new KeyChord(Key.F9), dialog), Is.EqualTo(EditorShortcut.ToggleShaders));
+    }
 
     [Test]
     public void TypingKeepsSaveButNotEditing()

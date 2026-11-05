@@ -14,6 +14,7 @@ public enum EditorShortcut
     Preview,
     PreviewHere,
     ToggleShaders,
+    CloseDialog,
     ToggleHelp,
     FitView,
     Save,
@@ -62,6 +63,9 @@ public enum EditorShortcutScope
 
     /// <summary>Working on the playfield with nothing in the way.</summary>
     Field = 32,
+
+    /// <summary>An editor dialog is up; it is modal, so only the keys that close it work.</summary>
+    Dialog = 64,
 }
 
 /// <summary>Every key binding in the level editor; the first live match wins.</summary>
@@ -86,7 +90,7 @@ public static class EditorShortcuts
         bool groupOverlay)
     {
         if (dialog)
-            return EditorShortcutScope.None;
+            return EditorShortcutScope.Dialog;
 
         EditorShortcutScope scopes = EditorShortcutScope.Always;
         if (help)
@@ -126,7 +130,8 @@ public static class EditorShortcuts
         {
             new(new KeyChord(Key.F5), EditorShortcut.Preview, always),
             new(new KeyChord(Key.F5, Shift: true), EditorShortcut.PreviewHere, always),
-            new(new KeyChord(Key.F9), EditorShortcut.ToggleShaders, always),
+            new(new KeyChord(Key.F9), EditorShortcut.ToggleShaders, always | EditorShortcutScope.Dialog),
+            new(new KeyChord(Key.Escape), EditorShortcut.CloseDialog, EditorShortcutScope.Dialog),
             new(new KeyChord(Key.F2), EditorShortcut.ToggleHelp, always),
             new(new KeyChord(Key.F), EditorShortcut.FitView, notTyping),
             new(new KeyChord(Key.Escape), EditorShortcut.ToggleHelp, EditorShortcutScope.Help),
