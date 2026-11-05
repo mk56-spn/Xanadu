@@ -35,7 +35,7 @@ public static partial class XmfBinary
             writer.Write(polygon.Y);
             writer.Write(polygon.Rotation);
             writer.Write(polygon.SelfModulate);
-            WriteItem(writer, polygon.Item, strings);
+            XmfItemIO.WriteItem(writer, polygon.Item, strings);
             XifBinary.WriteGeometry(writer, polygon.Item);
         }
     }
@@ -48,7 +48,7 @@ public static partial class XmfBinary
 
     internal static List<PolygonDocument> ReadPolygons(BinaryReader reader, StringTable strings)
     {
-        uint count = ReadCount(reader, MaxItems, "polygon");
+        uint count = ReadCount(reader, XmfItemIO.MaxItems, "polygon");
         var polygons = new List<PolygonDocument>((int)count);
         for (uint i = 0; i < count; i++)
         {
@@ -60,7 +60,7 @@ public static partial class XmfBinary
                 Y = reader.ReadSingle(),
                 Rotation = reader.ReadSingle(),
                 SelfModulate = reader.ReadUInt32(),
-                Item = ReadItem(reader, strings),
+                Item = XmfItemIO.ReadItem(reader, strings),
             };
             XifBinary.ReadGeometry(reader, polygon.Item);
             polygons.Add(polygon);
@@ -82,7 +82,7 @@ public static partial class XmfBinary
     private static void ReadVariantPolygons(Chunk chunk, List<XmfVariant> variants, StringTable strings)
     {
         using BinaryReader reader = chunk.OpenReader();
-        uint count = ReadCount(reader, MaxItems, "variant polygon");
+        uint count = ReadCount(reader, XmfItemIO.MaxItems, "variant polygon");
         if (count != variants.Count)
             throw new System.FormatException("XMF variant polygons do not match the variant count.");
         foreach (XmfVariant variant in variants)

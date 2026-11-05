@@ -1,0 +1,85 @@
+using System.Collections.Generic;
+using Friflo.Engine.ECS;
+using Godot;
+using Xanadu.Settings;
+using Xanadu.Systems.Audio;
+using Xanadu.Systems.Ui;
+using Xanadu.Ui.Ecs.Ui;
+
+namespace Xanadu.Ecs;
+
+public enum EditorFieldKind
+{
+    LevelName,
+    Artist,
+    Difficulty,
+    Bpm,
+    Offset,
+    StartTime,
+    StartMomentumX,
+    StartMomentumY,
+}
+
+/// <summary>Binds an ECS text field to an editor metadata property.</summary>
+public struct EditorField(EditorFieldKind kind) : IComponent
+{
+    public EditorFieldKind Kind = kind;
+}
+
+/// <summary>ECS editor HUD text entities updated from editor state.</summary>
+public struct EditorHud(
+    Entity level,
+    Entity song,
+    ShellStatusLabels status,
+    Entity time,
+    Entity notes) : IComponent
+{
+    public Entity Level = level;
+    public Entity Song = song;
+
+    /// <summary>The header's status message and unsaved flag, shared with the animator.</summary>
+    public ShellStatusLabels Status = status;
+    public Entity Time = time;
+    public Entity Notes = notes;
+    public string StatusText = "";
+}
+
+/// <summary>Entities in the editor sidebar that flow around open dropdowns.</summary>
+public struct EditorSidebarLayout(
+    Entity panel,
+    Entity characterLabel,
+    Entity characterButton) : IComponent
+{
+    public Entity Panel = panel;
+    public Entity CharacterLabel = characterLabel;
+    public Entity CharacterButton = characterButton;
+}
+
+/// <summary>
+/// The note-key bar inside the left panel. It shows while placing notes or dash
+/// notes, the two kinds that carry a key, and leaves the layout otherwise.
+/// </summary>
+public struct EditorNoteBarPanel : IComponent;
+
+/// <summary>Left-side menu for snap and level file actions.</summary>
+public struct EditorLeftMenu(
+    Entity panel,
+    Entity snapLabel,
+    Entity snapButton) : IComponent
+{
+    public Entity Panel = panel;
+    public Entity SnapLabel = snapLabel;
+    public Entity SnapButton = snapButton;
+}
+
+/// <summary>
+/// Binds the generic Xanadu.UI wheel to the editor's dash direction. The wheel
+/// owns presentation and pointer handling; this adapter only maps wedge indices
+/// to <see cref="DashDirection"/> and owns the floating widget's visibility.
+/// </summary>
+public struct EditorDirectionWheel(Entity wheel, Entity label)
+    : IComponent
+{
+    public Entity Wheel = wheel;
+    public Entity Label = label;
+}

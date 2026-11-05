@@ -16,7 +16,7 @@ public sealed class HitTrailSystemTests : EcsSystemTest
     {
         Entity trail = Store.CreateEntity(
             new HitTrail(Vector2.Zero, Colors.Cyan, "S", lifetime: 0.1f));
-        Root.Add(new HitTrailSystem());
+        Root.Add(new TrailAgeSystem<HitTrail>());
 
         Frame(1, 0.05f);
         Assert.That(trail.GetComponent<HitTrail>().Age, Is.EqualTo(0.05f).Within(0.001f));

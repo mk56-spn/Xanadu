@@ -14,7 +14,7 @@ using Xanadu.Ui.Ecs.Ui;
 namespace Xanadu.Scenes;
 
 /// <summary>Creates the initial editor state and a playfield centered between the header and footer.</summary>
-public static partial class EditorScene
+public static class EditorSceneSidebar
 {
     private const float PanelPadding = UiTheme.ContainerPadding;
     private const float LeftPanelWidth = 210;
@@ -25,7 +25,7 @@ public static partial class EditorScene
     /// it; a group opens a flyout of its tools beside the strip, on a layer of
     /// its own so it covers the tool settings.
     /// </summary>
-    private static void BuildToolStrip(UiNode ui, UiNode flyouts, EditorShellRects shell)
+    internal static void BuildToolStrip(UiNode ui, UiNode flyouts, EditorShellRects shell)
     {
         float pad = (EditorShellMetrics.ToolStripWidth - EditorShellMetrics.ToolButton) / 2;
         float gap = EditorShellMetrics.ToolGap;
@@ -81,7 +81,7 @@ public static partial class EditorScene
     /// The shared XIF editor for the selected polygon, on a layer of its own just
     /// right of the tool strip, below the header. It hides while no polygon is selected.
     /// </summary>
-    private static void BuildXifPanel(EntityStore entities, Entity root, EditorShellRects shell)
+    internal static void BuildXifPanel(EntityStore entities, Entity root, EditorShellRects shell)
     {
         UiNode layer = UiNode.Layer(entities, root, UiLayers.EditorXif, null, UiStage.Full);
         var home = new Vector2(
@@ -133,7 +133,7 @@ public static partial class EditorScene
     /// the middle row. Its controls flow top to bottom, so an open dropdown
     /// pushes the groups down by itself.
     /// </summary>
-    private static void BuildSidebar(UiNode ui, Entity editor, EditorShellRects shell)
+    internal static void BuildSidebar(UiNode ui, Entity editor, EditorShellRects shell)
     {
         float inner = shell.RightPanel.Size.X - PanelPadding * 2;
         UiNode panel = ui.Column()
@@ -145,8 +145,8 @@ public static partial class EditorScene
             .Main(StackMainAlignment.Start)
             .Anchor(new Vector2(1, 0));
 
-        Entity characterLabel = SidebarLabel(panel, "CHARACTER", inner, 14);
-        Entity character = BuildDropdown(
+        Entity characterLabel = EditorSceneUi.SidebarLabel(panel, "CHARACTER", inner, 14);
+        Entity character = EditorSceneUi.BuildDropdown(
             panel,
             inner,
             EditorDropdownKind.Character,
@@ -159,7 +159,7 @@ public static partial class EditorScene
         editor.AddComponent(new EditorSelfModulateField(modulate.Entity));
         BuildBlockOutline(panel, editor, inner);
         BuildTextPanel(panel, editor, inner);
-        BuildGroupGrid(panel, editor, inner);
+        EditorSceneGroups.BuildGroupGrid(panel, editor, inner);
 
         editor.AddComponent(new EditorSidebar(shell.RightPanel));
         editor.AddComponent(new EditorSidebarLayout(
@@ -242,8 +242,8 @@ public static partial class EditorScene
     private static void BuildGrassPanel(UiNode panel, Entity editor, float inner)
     {
         const float height = 28;
-        UiNode section = ToolSection(panel, inner, EditorToolSections.Grass);
-        SidebarLabel(section, "GRASS", inner, 12);
+        UiNode section = EditorSceneUi.ToolSection(panel, inner, EditorToolSections.Grass);
+        EditorSceneUi.SidebarLabel(section, "GRASS", inner, 12);
 
         GrassSetting[] settings = System.Enum.GetValues<GrassSetting>();
         var readouts = new Entity[settings.Length];
@@ -277,8 +277,8 @@ public static partial class EditorScene
     /// <summary>The block tool's sizes, side by side: the quarter block, a cell, and the platform.</summary>
     private static void BuildBlockSize(UiNode panel, float inner)
     {
-        UiNode section = ToolSection(panel, inner, EditorToolSections.BlockSize);
-        SidebarLabel(section, "BLOCK SIZE", inner, 12);
+        UiNode section = EditorSceneUi.ToolSection(panel, inner, EditorToolSections.BlockSize);
+        EditorSceneUi.SidebarLabel(section, "BLOCK SIZE", inner, 12);
 
         const float sizeGap = 6;
         float sizeWidth = (inner - sizeGap * 2) / 3;
@@ -314,7 +314,7 @@ public static partial class EditorScene
     };
 
     /// <summary>The current tool's settings, docked to the viewport's top-left corner.</summary>
-    private static void BuildLeftPanel(UiNode ui, Entity editor)
+    internal static void BuildLeftPanel(UiNode ui, Entity editor)
     {
         float inner = LeftPanelWidth - PanelPadding * 2;
         UiNode panel = ui.Column()
@@ -327,16 +327,16 @@ public static partial class EditorScene
             .Main(StackMainAlignment.Start)
             .Anchor(Vector2.Zero);
 
-        UiNode snapSection = ToolSection(panel, inner, EditorToolSections.Snap);
-        Entity snapLabel = SidebarLabel(snapSection, LocalizedText.Get(EditorStrings.Snap), inner, 14);
-        Entity snap = BuildDropdown(
+        UiNode snapSection = EditorSceneUi.ToolSection(panel, inner, EditorToolSections.Snap);
+        Entity snapLabel = EditorSceneUi.SidebarLabel(snapSection, LocalizedText.Get(EditorStrings.Snap), inner, 14);
+        Entity snap = EditorSceneUi.BuildDropdown(
             snapSection,
             inner,
             EditorDropdownKind.Snap,
             new[] { "1/2 beat", "1/4 beat", "1/8 beat" },
             selected: 0);
         Playhead playhead = editor.GetComponent<Playhead>();
-        SetDropdownSelected(snap, playhead.SnapDivision switch
+        EditorSceneUi.SetDropdownSelected(snap, playhead.SnapDivision switch
         {
             8 => 1,
             16 => 2,
@@ -345,8 +345,8 @@ public static partial class EditorScene
 
         BuildBlockSize(panel, inner);
 
-        UiNode strengthSection = ToolSection(panel, inner, EditorToolSections.MoveStrength);
-        SidebarLabel(strengthSection, "MOVE STRENGTH", inner, 12);
+        UiNode strengthSection = EditorSceneUi.ToolSection(panel, inner, EditorToolSections.MoveStrength);
+        EditorSceneUi.SidebarLabel(strengthSection, "MOVE STRENGTH", inner, 12);
         const float strengthGap = 6;
         float strengthWidth = (inner - strengthGap * 2) / 3;
         UiNode strengths = strengthSection.Row().Size(inner, 28).Gap(strengthGap);
@@ -369,8 +369,8 @@ public static partial class EditorScene
 
         BuildGrassPanel(panel, editor, inner);
 
-        UiNode costSection = ToolSection(panel, inner, EditorToolSections.ContactCost);
-        SidebarLabel(costSection, "CONTACT COST", inner, 12);
+        UiNode costSection = EditorSceneUi.ToolSection(panel, inner, EditorToolSections.ContactCost);
+        EditorSceneUi.SidebarLabel(costSection, "CONTACT COST", inner, 12);
         const float costGap = 6;
         float costWidth = (inner - costGap * 3) / 4;
         UiNode costs = costSection.Row().Size(inner, 28).Gap(costGap);
@@ -398,8 +398,8 @@ public static partial class EditorScene
             .Size(inner, 18)
             .With(new EditorReadout(EditorReadoutKind.ContactCost));
 
-        UiNode shapeSection = ToolSection(panel, inner, EditorToolSections.FormShape);
-        SidebarLabel(shapeSection, "FORM SHAPE", inner, 12);
+        UiNode shapeSection = EditorSceneUi.ToolSection(panel, inner, EditorToolSections.FormShape);
+        EditorSceneUi.SidebarLabel(shapeSection, "FORM SHAPE", inner, 12);
         shapeSection.Button(
                 "ATTACH SELECTED BLOCKS",
                 10,
@@ -418,29 +418,7 @@ public static partial class EditorScene
         editor.AddComponent(new EditorLeftMenu(panel.Entity, snapLabel, snap));
     }
 
-    private static UiNode ToolSection(UiNode panel, float width, EditorPlacementMode[] modes) =>
-        panel.Column()
-            .Width(width)
-            .AutoHeight()
-            .Gap(UiTheme.ContainerSpacing)
-            .Main(StackMainAlignment.Start)
-            .With(new EditorToolSection(modes));
-
-    private static Entity SidebarLabel(
-        UiNode parent,
-        string text,
-        float width,
-        int fontSize) =>
-        parent.Text(text, fontSize, SceneUi.DimTextColor, TextAlign.Center)
-            .Size(width, fontSize + 10);
-
-    /// <summary>
-    /// The floating "note elements" box at the viewport's top-right corner: the
-    /// keys new notes get, and under them the direction wheel for the kinds that
-    /// have a direction. The box shrinks around whatever is showing, and
-    /// <see cref="EditorNoteTypeBarSystem"/> hides it for items with no key.
-    /// </summary>
-    private static void BuildNoteElements(UiNode ui, Entity editor)
+    internal static void BuildNoteElements(UiNode ui, Entity editor)
     {
         const float swatchSize = 24;
         const float swatchGap = 5;
@@ -458,7 +436,7 @@ public static partial class EditorScene
             .Anchor(new Vector2(1, 0))
             .With(new EditorNoteBarPanel());
 
-        SidebarLabel(box, "NOTE ELEMENTS", inner, 12);
+        EditorSceneUi.SidebarLabel(box, "NOTE ELEMENTS", inner, 12);
         UiNode swatches = box.Row().Size(inner, swatchSize).Gap(swatchGap);
         foreach (KeybindAction action in KeybindSettings.Actions)
         {
@@ -469,7 +447,7 @@ public static partial class EditorScene
                 .With(EditorButton.NoteType(action));
         }
 
-        Entity label = SidebarLabel(box, "MOVE DIRECTION", inner, 12);
+        Entity label = EditorSceneUi.SidebarLabel(box, "MOVE DIRECTION", inner, 12);
         UiWheelControl wheel = box.Wheel(
             Vector2.Zero,
             wheelRadius,
@@ -481,31 +459,5 @@ public static partial class EditorScene
         // A wheel opts out of its container by default; this one flows, so the box fits it.
         UiLayout.SetIgnored(wheel.Wheel, false);
         editor.AddComponent(new EditorDirectionWheel(wheel.Wheel, label));
-    }
-
-    private static Entity BuildDropdown(
-        UiNode parent,
-        float width,
-        EditorDropdownKind kind,
-        string[] labels,
-        int selected)
-    {
-        UiNode button = parent.Button("", 13, SceneUi.EditorButtonColor).Size(width, 34);
-        parent.DropdownList(
-            button.Entity,
-            labels,
-            selected,
-            optionColor: _ => SceneUi.MutedButtonColor);
-        return button.With(new EditorDropdownControl(kind)).Entity;
-    }
-
-    private static void SetDropdownSelected(Entity button, int selected)
-    {
-        if (button.IsNull || !button.HasComponent<Dropdown>())
-            return;
-
-        ref Dropdown dropdown = ref button.GetComponent<Dropdown>();
-        dropdown.Selected = selected;
-        dropdown.Open = false;
     }
 }

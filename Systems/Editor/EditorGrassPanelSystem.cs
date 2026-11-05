@@ -27,7 +27,7 @@ public sealed class EditorGrassPanelSystem(EditorHistory history)
     : QuerySystem<NoteSelection, EditorGrassPanel, EditorPlacement>
 {
     private readonly List<Entity> _targets = new();
-    private readonly HashSet<int> _held = new();
+    private readonly ButtonPress _presses = new();
     private EditorSnapshot? _before;
     private bool _wasEditing;
 
@@ -41,12 +41,12 @@ public sealed class EditorGrassPanelSystem(EditorHistory history)
     {
         EditorGrassPanel panel = editor.GetComponent<EditorGrassPanel>();
         NoteSelection selection = editor.GetComponent<NoteSelection>();
-        Entity first = FirstGrass(selection);
+        Entity first = EditorSelectionScan.First(selection, IsGrass);
         bool editing = UiColorField.IsEditing(panel.Color);
 
         if (editing && !_wasEditing)
         {
-            CollectTargets(selection);
+            EditorSelectionScan.Collect(selection, _targets, IsGrass);
             _before = history.Capture();
         }
         _wasEditing = editing;
@@ -61,11 +61,7 @@ public sealed class EditorGrassPanelSystem(EditorHistory history)
 
         foreach (Entity button in EditorButton.All(editor.Store, EditorButtonKind.GrassStep))
         {
-            bool pressed = button.Tags.Has<Pressed>();
-            bool was = !_held.Add(button.Id);
-            if (!pressed)
-                _held.Remove(button.Id);
-            if (pressed && !was)
+            if (_presses.Started(button))
                 Step(editor, selection, first, button.GetComponent<EditorButton>().Arg);
         }
 
@@ -90,28 +86,9 @@ public sealed class EditorGrassPanelSystem(EditorHistory history)
     /// <summary>The argument a step button carries: the setting plus one, negative for less.</summary>
     public static int StepArg(GrassSetting setting, int sign) => ((int)setting + 1) * sign;
 
-    private static Entity FirstGrass(NoteSelection selection)
-    {
-        foreach (Entity item in selection.AllNotes)
-        {
-            if (IsGrass(item))
-                return item;
-        }
-
-        return default;
-    }
 
     private static bool IsGrass(Entity item) => !item.IsNull && item.HasComponent<GrassPatch>();
 
-    private void CollectTargets(NoteSelection selection)
-    {
-        _targets.Clear();
-        foreach (Entity item in selection.AllNotes)
-        {
-            if (IsGrass(item))
-                _targets.Add(item);
-        }
-    }
 
     private void ApplyColor(Entity editor, Color color)
     {

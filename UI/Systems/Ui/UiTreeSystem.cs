@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Godot;
@@ -16,7 +15,7 @@ public sealed class UiTreeSystem : QuerySystem<UiTree>
     private const string Expanded = "▾";
     private const string Collapsed = "▸";
 
-    private readonly HashSet<int> _held = new();
+    private readonly ButtonPress _presses = new();
 
     protected override void OnUpdate()
     {
@@ -53,16 +52,7 @@ public sealed class UiTreeSystem : QuerySystem<UiTree>
         Query.Store.Query().WithDisabled().AllTags(Tags.Get<T>()).ToEntityList();
 
     /// <summary>True on the first frame an entity is pressed.</summary>
-    private bool PressedNow(Entity entity)
-    {
-        bool pressed = entity.Tags.Has<Pressed>();
-        bool wasHeld = _held.Contains(entity.Id);
-        if (pressed)
-            _held.Add(entity.Id);
-        else
-            _held.Remove(entity.Id);
-        return pressed && !wasHeld;
-    }
+    private bool PressedNow(Entity entity) => _presses.Started(entity);
 
     private void Present()
     {

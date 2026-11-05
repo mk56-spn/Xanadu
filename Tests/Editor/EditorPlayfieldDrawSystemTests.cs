@@ -174,13 +174,13 @@ public sealed class EditorPlayfieldDrawSystemTests
         root.Update(new UpdateTick(1f / 60f, 0));
 
         Assert.That(
-            canvas.Lines.Any(line => line.Color == EditorPlayfieldDrawSystem.MainSnapColor),
+            canvas.Lines.Any(line => line.Color == EditorTimelineDrawer.MainSnapColor),
             Is.True);
         Assert.That(
-            canvas.Lines.Any(line => line.Color == EditorPlayfieldDrawSystem.HalfSnapColor),
+            canvas.Lines.Any(line => line.Color == EditorTimelineDrawer.HalfSnapColor),
             Is.True);
         Assert.That(
-            canvas.Lines.Any(line => line.Color == EditorPlayfieldDrawSystem.QuarterSnapColor),
+            canvas.Lines.Any(line => line.Color == EditorTimelineDrawer.QuarterSnapColor),
             Is.True);
     }
 
@@ -583,7 +583,7 @@ public sealed class EditorPlayfieldDrawSystemTests
         root.Update(new UpdateTick(1f / 60f, 0));
 
         Assert.That(
-            canvas.RectCalls.Exists(call => call.Color == EditorPlayfieldDrawSystem.PathHit),
+            canvas.RectCalls.Exists(call => call.Color == EditorPathDrawer.HitColor),
             Is.EqualTo(hit));
     }
 

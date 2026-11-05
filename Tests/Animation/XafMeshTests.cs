@@ -38,10 +38,10 @@ public sealed class XafMeshTests
         XafPose rest = XafClothLayout.RestPose(package);
         Transform2D[] bones = XafRig.WorldBones(package, rest);
         Transform2D attachment = XafRig.WorldAttachments(package, rest, bones)[0];
-        (Vector2[] grid, _) = XafSkin.Grid(package.Attachments[0].Mesh!, new Rect2(-8, -30, 16, 60));
+        (Vector2[] grid, _) = XafSkinGrid.Grid(package.Attachments[0].Mesh!, new Rect2(-8, -30, 16, 60));
         Vector2[] points = grid.Select(point => attachment * point).ToArray();
-        List<int> influences = XafSkin.Influences(package, package.Attachments[0]);
-        return (points, influences, XafSkin.Weights(package, influences, points, bones, 10f), bones, attachment);
+        List<int> influences = XafSkinWeights.Influences(package, package.Attachments[0]);
+        return (points, influences, XafSkinWeights.Weights(package, influences, points, bones, 10f), bones, attachment);
     }
 
     [Test]
@@ -65,7 +65,7 @@ public sealed class XafMeshTests
     {
         XafPackage package = Leg();
         var bind = Bind(package);
-        Vector2[] still = XafSkin.Deform(bind.Influences, bind.Weights, bind.Points, bind.RestBones, bind.RestBones,
+        Vector2[] still = XafSkinDeform.Deform(bind.Influences, bind.Weights, bind.Points, bind.RestBones, bind.RestBones,
             bind.RestAttachment, bind.RestAttachment);
         for (int i = 0; i < still.Length; i++)
             Assert.That(still[i].DistanceTo(bind.Points[i]), Is.LessThan(1e-3f));
@@ -74,7 +74,7 @@ public sealed class XafMeshTests
         pose.Bones[Shin].Rotation = 1.2f;
         Transform2D[] bones = XafRig.WorldBones(package, pose);
         Transform2D attachment = XafRig.WorldAttachments(package, pose, bones)[0];
-        Vector2[] bent = XafSkin.Deform(bind.Influences, bind.Weights, bind.Points, bind.RestBones, bones,
+        Vector2[] bent = XafSkinDeform.Deform(bind.Influences, bind.Weights, bind.Points, bind.RestBones, bones,
             bind.RestAttachment, attachment);
 
         Assert.That(bent[0].DistanceTo(bind.Points[0]), Is.LessThan(1e-3f), "the hip end stays");

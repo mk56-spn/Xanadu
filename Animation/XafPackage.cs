@@ -86,7 +86,7 @@ public sealed class XafBone
     /// <summary>
     /// Where a bone with no children ends, in its own space; zero for none. A
     /// skin needs it to know which way such a bone runs: a foot points at its
-    /// toes, not on down the shin (see <see cref="XafSkin.Segment"/>).
+    /// toes, not on down the shin (see <see cref="XafSkinBones.Segment"/>).
     /// </summary>
     public Vector2 Tip;
 

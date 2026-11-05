@@ -8,18 +8,18 @@ using Xanadu.Ui.Ecs.Ui;
 namespace Xanadu.Scenes;
 
 /// <summary>The groups grid in the editor's sidebar and the overlay screen a group opens.</summary>
-public static partial class EditorScene
+public static class EditorSceneGroups
 {
     /// <summary>Room the grid takes in the sidebar: its label, four rows of cells and a margin.</summary>
     public const float GroupGridHeight = EditorGroupLayout.GridHeight;
 
     /// <summary>The groups label, a grid of the group cells and the preview toggle, flowing in the sidebar.</summary>
-    private static void BuildGroupGrid(UiNode ui, Entity editor, float width)
+    internal static void BuildGroupGrid(UiNode ui, Entity editor, float width)
     {
         const float cell = 40f;
         const float gap = 6f;
 
-        Entity label = SidebarLabel(ui, "GROUPS", width, 14);
+        Entity label = EditorSceneUi.SidebarLabel(ui, "GROUPS", width, 14);
 
         var cells = new Entity[GroupLimits.Count];
         UiNode grid = ui.Grid(
@@ -55,7 +55,7 @@ public static partial class EditorScene
     /// starts off-screen; <c>EditorGroupSystem</c> places the pieces while a
     /// group is open.
     /// </summary>
-    private static void BuildGroupOverlay(EntityStore entities, Entity root, Vector2 screen)
+    internal static void BuildGroupOverlay(EntityStore entities, Entity root, Vector2 screen)
     {
         Vector2 dialog = EditorGroupLayout.DialogSize(screen);
         Color panel = Palette.SurfaceDeep;

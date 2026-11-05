@@ -35,7 +35,7 @@ public sealed partial class EditorGroupSystem : QuerySystem<EditorGroupState>
     private readonly EditorHistory _history;
     private readonly IPointerInputSource _pointer;
     private readonly EditorCommandBus _commands;
-    private readonly HashSet<int> _held = new();
+    private readonly ButtonPress _presses = new();
     private readonly HashSet<int> _focused = new();
     private bool _pointerHeld;
     private EditorSnapshot _dragBefore;
@@ -124,19 +124,8 @@ public sealed partial class EditorGroupSystem : QuerySystem<EditorGroupState>
     private Entity Piece(EditorGroupPart part, int row = 0) =>
         _pieces.TryGetValue((part, row), out Entity entity) ? entity : default;
 
-    private bool JustPressed(Entity entity)
-    {
-        if (entity.IsNull)
-            return false;
-
-        bool pressed = entity.Tags.Has<Pressed>();
-        bool was = _held.Contains(entity.Id);
-        if (pressed)
-            _held.Add(entity.Id);
-        else
-            _held.Remove(entity.Id);
-        return pressed && !was;
-    }
+    private bool JustPressed(Entity entity) =>
+        !entity.IsNull && _presses.Started(entity);
 
     // -------------------------------------------------------------------- grid
 

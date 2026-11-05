@@ -67,17 +67,17 @@ public static partial class XmfBinary
         var file = new ChunkWriter(Magic, MajorVersion, MinorVersion);
         file.Add((uint)ChunkId.Strings, strings.Write());
         file.Add((uint)ChunkId.Meta, WriteMeta(document, strings));
-        file.Add((uint)ChunkId.Notes, WriteNotes(document.Notes, strings));
-        file.Add((uint)ChunkId.Mines, WriteMines(document.Mines));
-        file.Add((uint)ChunkId.Blocks, WriteBlocks(document.Blocks));
-        file.Add((uint)ChunkId.StartPoints, WriteStartPoints(document.StartPoints, strings));
-        file.Add((uint)ChunkId.Groups, WriteGroups(document.Groups, strings));
-        file.Add((uint)ChunkId.Shaders, WriteShaders(document.Shaders, strings));
-        file.Add((uint)ChunkId.Spikes, WriteSpikes(document.Spikes));
-        if (HasNoteExtras(document.Notes))
-            file.Add((uint)ChunkId.NoteExtras, WriteNoteExtras(document.Notes));
-        if (HasSelfModulates(document))
-            file.Add((uint)ChunkId.SelfModulates, WriteSelfModulates(document));
+        file.Add((uint)ChunkId.Notes, XmfNoteChunks.WriteNotes(document.Notes, strings));
+        file.Add((uint)ChunkId.Mines, XmfBodyChunks.WriteMines(document.Mines));
+        file.Add((uint)ChunkId.Blocks, XmfBodyChunks.WriteBlocks(document.Blocks));
+        file.Add((uint)ChunkId.StartPoints, XmfChromeChunks.WriteStartPoints(document.StartPoints, strings));
+        file.Add((uint)ChunkId.Groups, XmfChromeChunks.WriteGroupDefinitions(document.Groups, strings));
+        file.Add((uint)ChunkId.Shaders, XmfChromeChunks.WriteShaders(document.Shaders, strings));
+        file.Add((uint)ChunkId.Spikes, XmfBodyChunks.WriteSpikes(document.Spikes));
+        if (XmfNoteChunks.HasNoteExtras(document.Notes))
+            file.Add((uint)ChunkId.NoteExtras, XmfNoteChunks.WriteNoteExtras(document.Notes));
+        if (XmfItemColors.HasSelfModulates(document))
+            file.Add((uint)ChunkId.SelfModulates, XmfItemColors.WriteSelfModulates(document));
         file.Add((uint)ChunkId.SpikeOutlines, WriteSpikeOutlines(document.Spikes));
         if (HasTexts(document))
             file.Add((uint)ChunkId.Texts, WriteTexts(document.Texts));
@@ -88,11 +88,14 @@ public static partial class XmfBinary
         return file.ToArray();
     }
 
-    public static LevelDocument Read(byte[] data)
+    public static LevelDocument Read(byte[] data) => Guard(() => ReadMap(data));
+
+    /// <summary>Runs a read and reports whatever went wrong as a format error, for both level and mapset files.</summary>
+    internal static T Guard<T>(Func<T> read)
     {
         try
         {
-            return ReadMap(data);
+            return read();
         }
         catch (Exception exception) when (exception is FormatException or IOException)
         {
@@ -108,21 +111,21 @@ public static partial class XmfBinary
             Format);
 
         LevelDocument document = ReadMeta(file.Get((uint)ChunkId.Meta, Format), strings);
-        document.Notes = ReadNotes(file.Get((uint)ChunkId.Notes, Format), strings);
+        document.Notes = XmfNoteChunks.ReadNotes(file.Get((uint)ChunkId.Notes, Format), strings);
         if (file.TryGet((uint)ChunkId.NoteExtras, out Chunk noteExtras))
-            ReadNoteExtras(noteExtras, document.Notes);
-        document.Mines = ReadMines(file.Get((uint)ChunkId.Mines, Format));
-        document.Blocks = ReadBlocks(file.Get((uint)ChunkId.Blocks, Format));
-        document.StartPoints = ReadStartPoints(
+            XmfNoteChunks.ReadNoteExtras(noteExtras, document.Notes);
+        document.Mines = XmfBodyChunks.ReadMines(file.Get((uint)ChunkId.Mines, Format));
+        document.Blocks = XmfBodyChunks.ReadBlocks(file.Get((uint)ChunkId.Blocks, Format));
+        document.StartPoints = XmfChromeChunks.ReadStartPoints(
             file.Get((uint)ChunkId.StartPoints, Format),
             strings);
-        document.Groups = ReadGroups(file.Get((uint)ChunkId.Groups, Format), strings);
-        document.Shaders = ReadShaders(file.Get((uint)ChunkId.Shaders, Format), strings);
-        document.Spikes = ReadSpikes(file.Get((uint)ChunkId.Spikes, Format));
+        document.Groups = XmfChromeChunks.ReadGroupDefinitions(file.Get((uint)ChunkId.Groups, Format), strings);
+        document.Shaders = XmfChromeChunks.ReadShaders(file.Get((uint)ChunkId.Shaders, Format), strings);
+        document.Spikes = XmfBodyChunks.ReadSpikes(file.Get((uint)ChunkId.Spikes, Format));
         if (file.TryGet((uint)ChunkId.SelfModulates, out Chunk selfModulates))
         {
             using BinaryReader reader = selfModulates.OpenReader();
-            ReadSelfModulates(reader, document);
+            XmfItemColors.ReadSelfModulates(reader, document);
         }
         if (file.TryGet((uint)ChunkId.SpikeOutlines, out Chunk spikeOutlines))
         {
@@ -142,7 +145,7 @@ public static partial class XmfBinary
     private static void IndexStrings(LevelDocument document, StringTable strings)
     {
         foreach (PolygonDocument polygon in document.Polygons)
-            IndexItemStrings(polygon.Item, strings);
+            XmfItemIO.IndexItemStrings(polygon.Item, strings);
         strings.Add(document.Id);
         strings.Add(document.Slug);
         strings.Add(document.SongId);
@@ -151,7 +154,7 @@ public static partial class XmfBinary
         strings.Add(document.OutsideColor);
         strings.Add(document.FrameColor);
         foreach (NoteDocument note in document.Notes)
-            IndexItemStrings(note.Item, strings);
+            XmfItemIO.IndexItemStrings(note.Item, strings);
         foreach (StartPointDocument start in document.StartPoints)
             strings.Add(start.Name);
         foreach (GroupDocument group in document.Groups)
@@ -220,14 +223,14 @@ public static partial class XmfBinary
         return document;
     }
 
-    private static void WriteGroups(BinaryWriter writer, List<int> groups)
+    internal static void WriteGroups(BinaryWriter writer, List<int> groups)
     {
         writer.Write((uint)groups.Count);
         foreach (int group in groups)
             writer.Write(group);
     }
 
-    private static List<int> ReadGroups(BinaryReader reader)
+    internal static List<int> ReadGroups(BinaryReader reader)
     {
         uint count = ReadCount(reader, GroupLimits.Count, "group membership");
         var groups = new List<int>((int)count);
@@ -241,7 +244,7 @@ public static partial class XmfBinary
         return groups;
     }
 
-    private static uint ReadCount(BinaryReader reader, uint max, string what)
+    internal static uint ReadCount(BinaryReader reader, uint max, string what)
     {
         uint count = reader.ReadUInt32();
         if (count > max)
@@ -249,7 +252,7 @@ public static partial class XmfBinary
         return count;
     }
 
-    private static T ReadEnum<T>(BinaryReader reader) where T : struct, Enum
+    internal static T ReadEnum<T>(BinaryReader reader) where T : struct, Enum
     {
         byte value = reader.ReadByte();
         T result = (T)Enum.ToObject(typeof(T), value);

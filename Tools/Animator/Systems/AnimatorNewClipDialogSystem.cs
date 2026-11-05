@@ -23,8 +23,7 @@ public sealed class AnimatorNewClipDialogSystem(IPointerInputSource pointer)
     protected override void OnUpdate()
     {
         PointerInput input = pointer.Read();
-        bool primary = input.Pressed && !_primaryHeld;
-        _primaryHeld = input.Pressed;
+        bool primary = AnimatorPointerEdge.Primary(ref _primaryHeld, input);
 
         foreach (Entity session in Query.ToEntityList())
             Update(session, primary, input.Position);
@@ -81,8 +80,8 @@ public sealed class AnimatorNewClipDialogSystem(IPointerInputSource pointer)
     {
         AnimatorMenuPlacement.Hide(ui.NewClipBackdrop);
         AnimatorMenuPlacement.Hide(ui.NewClipDialog);
-        ClearFocus(ui.NewClipName);
-        ClearFocus(ui.NewClipLength);
+        AnimatorTextFocus.Clear(ui.NewClipName);
+        AnimatorTextFocus.Clear(ui.NewClipLength);
     }
 
     /// <summary>Fills the fields with the defaults for the duplicate toggle's current value.</summary>
@@ -129,11 +128,6 @@ public sealed class AnimatorNewClipDialogSystem(IPointerInputSource pointer)
         field.AddTag<TextFieldFocused>();
     }
 
-    private static void ClearFocus(Entity field)
-    {
-        if (!field.IsNull && field.Tags.Has<TextFieldFocused>())
-            field.RemoveTag<TextFieldFocused>();
-    }
 
     private static void SetField(Entity field, string value)
     {

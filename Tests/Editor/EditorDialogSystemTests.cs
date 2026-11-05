@@ -26,7 +26,7 @@ public sealed class EditorDialogSystemTests : EcsSystemTest
         _editor = Store.CreateEntity(
             new LevelInfo("Test", "") { Background = new Color("#204060") },
             new EditorHud());
-        EditorScene.BuildDialogs(Store, default, _editor, new Vector2(1280, 720), new FakeVisualRidFactory());
+        EditorSceneDialogs.BuildDialogs(Store, default, _editor, new Vector2(1280, 720), new FakeVisualRidFactory());
         _recoveryFolder = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "xanadu-dialog-tests-" + Guid.NewGuid().ToString("N"));
         Root.Add(new EditorDialogSystem(Store, _commands, new FakeVisualRidFactory(), new LevelRecoveryStore(_recoveryFolder)));
     }

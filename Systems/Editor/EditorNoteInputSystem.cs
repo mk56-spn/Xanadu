@@ -15,14 +15,15 @@ using Position = Xanadu.Ecs.Position;
 namespace Xanadu.Systems.Editor;
 
 /// <summary>Adds, selects, drags, and scrubs notes in playfield coordinates.</summary>
-public sealed partial class EditorNoteInputSystem : QuerySystem<Note>
+public sealed class EditorNoteInputSystem : QuerySystem<Note>
 {
-    private const float NoteHitRadius = PlayfieldRenderer.NoteSize / 2;
-    private const float MineHitRadius = PlayfieldRenderer.MineSize / 2;
-
     private readonly EntityStore _entities;
     private readonly IPointerInputSource _pointer;
     private readonly EditorHistory _history;
+    private readonly EditorSceneQuery _scene;
+    private readonly EditorItemPicker _picker;
+    private readonly EditorHoverProbe _hover;
+    private readonly EditorPolygonTool _polygonTool;
 
     private bool _wasPressed;
 
@@ -31,32 +32,16 @@ public sealed partial class EditorNoteInputSystem : QuerySystem<Note>
     /// the next click on empty space places again rather than deselecting it.
     /// </summary>
     private Entity _placed;
-    private bool _scrubbing;
-    private long _scrubWindowStart;
-    private long _scrubWindowEnd;
-    private bool _timelineDragging;
-    private bool _timelineDragMoved;
-    private readonly UiDragController _timelineDrag = new();
-    private Entity _timelinePrimary;
-    private EditorSnapshot _timelineBefore;
-    private readonly Dictionary<int, long> _timelineStartTimes = new();
+    private readonly EditorTimelineTool _timeline;
+    private readonly EditorPlacementCreator _creator;
     private Entity _draggedEntity;
     private readonly UiDragController _drag = new();
     private readonly Dictionary<int, Vector2> _dragStartPositions = new();
     private EditorSnapshot _dragBefore;
     private readonly NoteBox _box;
-
-    // A paint stroke laying blocks or spikes; the whole stroke is one undo step.
-    private bool _painting;
-    private bool _paintAdded;
-    private EditorSnapshot _paintBefore;
-
-    // A resize drag started on one of the primary block's or spike's side handles.
-    private Entity _resizeEntity;
-    private GridHandle _resizeHandle;
-    private Rect2 _resizeStart;
-    private float _resizeDegrees;
-    private EditorSnapshot _resizeBefore;
+    private readonly EditorPaintTool _paint;
+    private readonly EditorResizeTool _resize;
+    private readonly EditorRotationTool _rotation;
 
     public EditorNoteInputSystem(
         EntityStore entities,
@@ -66,6 +51,15 @@ public sealed partial class EditorNoteInputSystem : QuerySystem<Note>
         _entities = entities;
         _pointer = pointer;
         _history = history;
+        _scene = new EditorSceneQuery(entities);
+        _picker = new EditorItemPicker(_scene);
+        _hover = new EditorHoverProbe(_scene, _picker);
+        _polygonTool = new EditorPolygonTool(_scene, _picker, history);
+        _paint = new EditorPaintTool(_scene, history);
+        _resize = new EditorResizeTool(_scene, history);
+        _rotation = new EditorRotationTool(_scene, history);
+        _timeline = new EditorTimelineTool(_scene, history);
+        _creator = new EditorPlacementCreator(_scene, history);
         _box = new NoteBox(this);
     }
 
@@ -73,12 +67,14 @@ public sealed partial class EditorNoteInputSystem : QuerySystem<Note>
     {
         PointerInput input = _pointer.Read();
         bool pressed = input.Pressed;
-        UpdatePolygonDraft(FindEditor());
+        Entity editor = _scene.Editor();
+        bool picked = HasPickedSelection(editor);
+        _polygonTool.Update(editor);
 
-        if (IsGroupTargetEditing())
+        if (_scene.IsGroupTargetEditing())
         {
-            UpdateGhost(input.Position, pressed);
-        _wasPressed = pressed;
+            _hover.Update(input.Position, pressed, picked);
+            _wasPressed = pressed;
             return;
         }
 
@@ -89,17 +85,17 @@ public sealed partial class EditorNoteInputSystem : QuerySystem<Note>
         else if (_wasPressed)
             OnRelease();
 
-        UpdateGhost(input.Position, pressed);
+        _hover.Update(input.Position, pressed, picked);
         _wasPressed = pressed;
     }
 
     private void OnPress(Vector2 screenPosition, bool shift)
     {
-        Entity editor = FindEditor();
+        Entity editor = _scene.Editor();
         if (editor.IsNull ||
-            IsWarningOpen() ||
-            IsGroupOverlayOpen() ||
-            IsSceneConfirmationOpen())
+            _scene.IsWarningOpen() ||
+            _scene.IsGroupOverlayOpen() ||
+            _scene.IsSceneConfirmationOpen())
         {
             return;
         }
@@ -109,14 +105,12 @@ public sealed partial class EditorNoteInputSystem : QuerySystem<Note>
         ref Playhead playhead = ref editor.GetComponent<Playhead>();
 
         _box.Cancel(editor);
-        _timelineDragging = false;
-        _resizeEntity = default;
+        _resize.Cancel();
 
         Rect2 bar = EditorLayout.RulerRect(view);
         if (bar.HasPoint(screenPosition))
         {
-            Entity timelineHit = FindTimelineNoteAt(
-                screenPosition, bar, playhead, editor);
+            Entity timelineHit = _timeline.FindNoteAt(screenPosition, bar, playhead, editor);
             if (!timelineHit.IsNull)
             {
                 _placed = default;
@@ -130,7 +124,7 @@ public sealed partial class EditorNoteInputSystem : QuerySystem<Note>
                 {
                     if (!timelineSelection.Contains(timelineHit))
                         timelineSelection.Note = timelineHit;
-                    BeginTimelineDrag(
+                    _timeline.BeginDrag(
                         screenPosition, bar, ref playhead, editor, timelineHit);
                 }
 
@@ -149,7 +143,7 @@ public sealed partial class EditorNoteInputSystem : QuerySystem<Note>
                 return;
             }
 
-            BeginScrub(screenPosition, bar, ref playhead, editor);
+            _timeline.BeginScrub(screenPosition, bar, ref playhead, editor);
             return;
         }
 
@@ -159,39 +153,38 @@ public sealed partial class EditorNoteInputSystem : QuerySystem<Note>
             return;
         }
 
-        if (IsOverNoteBar(screenPosition) || IsOverPanel(screenPosition))
+        if (_scene.IsOverNoteBar(screenPosition) || _scene.IsOverPanel(screenPosition))
             return;
 
         Vector2 playfieldPosition = view.ScreenToPlayfield(screenPosition);
 
         // The polygon tool takes every press on the field, even over items, so outlines can cross them.
-        if (TryDraftPolygon(editor, screenPosition, view, playfield))
+        if (_polygonTool.TryDraft(editor, screenPosition, view, playfield))
             return;
 
         // Handles hang over the field's edge, so they get the press before the
         // inside test would turn an edge drag away.
-        if (TryBeginRotation(screenPosition, editor, view) ||
-            TryBeginResize(screenPosition, editor, view))
+        if (_rotation.TryBegin(screenPosition, editor, view) || _resize.TryBegin(screenPosition, editor, view))
         {
+            CancelDrag();
             return;
         }
 
-        if (!IsInside(playfieldPosition, playfield))
+        if (!EditorItemPicker.IsInside(playfieldPosition, playfield))
             return;
 
-        Entity hit = FindItemAt(playfieldPosition, playhead.TimeMs);
+        Entity hit = _picker.FindItemAt(playfieldPosition, playhead.TimeMs);
 
         ref NoteSelection selection = ref editor.GetComponent<NoteSelection>();
 
         // An empty spot with a block or spike tool starts a paint stroke instead
         // of arming a placement, so dragging lays a run. Shift still box-selects,
         // and a selection has to be cleared before anything new goes down.
-        if (hit.IsNull && !shift && IsGridMode(editor) && !HasPickedSelection(editor))
+        if (hit.IsNull && !shift && EditorPaintTool.IsGridMode(editor) && !HasPickedSelection(editor))
         {
-            _painting = true;
-            _paintAdded = false;
-            _paintBefore = _history.Capture();
-            PaintAt(playfieldPosition, playfield, editor);
+            Entity painted = _paint.Begin(editor, playfieldPosition, playfield);
+            if (!painted.IsNull)
+                _placed = painted;
             return;
         }
 
@@ -247,11 +240,11 @@ public sealed partial class EditorNoteInputSystem : QuerySystem<Note>
 
     private void OnHold(Vector2 screenPosition, bool shift)
     {
-        Entity editor = FindEditor();
+        Entity editor = _scene.Editor();
         if (editor.IsNull ||
-            IsWarningOpen() ||
-            IsGroupOverlayOpen() ||
-            IsSceneConfirmationOpen())
+            _scene.IsWarningOpen() ||
+            _scene.IsGroupOverlayOpen() ||
+            _scene.IsSceneConfirmationOpen())
         {
             return;
         }
@@ -260,21 +253,32 @@ public sealed partial class EditorNoteInputSystem : QuerySystem<Note>
         Playfield playfield = editor.GetComponent<Playfield>();
         ref Playhead playhead = ref editor.GetComponent<Playhead>();
 
-        if (_rotating)
+        if (_rotation.Active)
         {
-            UpdateRotation(screenPosition, shift, editor, view, playfield);
+            _rotation.Update(screenPosition, shift, editor, view, playfield);
             return;
         }
 
-        if (!_resizeEntity.IsNull)
+        if (_resize.Active)
         {
-            UpdateResize(screenPosition, view, playfield);
+            _resize.Update(screenPosition, view, playfield);
             return;
         }
 
-        if (_scrubbing)
+        if (_timeline.Scrubbing)
         {
-            Scrub(
+            _timeline.Scrub(
+                screenPosition,
+                EditorLayout.RulerRect(view),
+                ref playhead,
+                editor,
+                Tick.deltaTime);
+            return;
+        }
+
+        if (_timeline.Dragging)
+        {
+            _timeline.Drag(
                 screenPosition,
                 EditorLayout.RulerRect(view),
                 ref playhead,
@@ -282,26 +286,14 @@ public sealed partial class EditorNoteInputSystem : QuerySystem<Note>
             return;
         }
 
-        if (_timelineDragging)
-        {
-            if (_timelineDrag.Update(screenPosition))
-            {
-                DragTimeline(
-                    screenPosition,
-                    EditorLayout.RulerRect(view),
-                    ref playhead,
-                    editor);
-            }
-
-            return;
-        }
-
         if (_box.Drag(editor, screenPosition))
             return;
 
-        if (_painting)
+        if (_paint.Active)
         {
-            PaintAt(view.ScreenToPlayfield(screenPosition), playfield, editor);
+            Entity painted = _paint.Paint(editor, view.ScreenToPlayfield(screenPosition), playfield);
+            if (!painted.IsNull)
+                _placed = painted;
             return;
         }
 
@@ -343,51 +335,28 @@ public sealed partial class EditorNoteInputSystem : QuerySystem<Note>
 
     private void OnRelease()
     {
-        Entity editor = FindEditor();
+        Entity editor = _scene.Editor();
 
-        if (_painting)
+        if (_paint.Active)
         {
-            _painting = false;
-            if (_paintAdded && !editor.IsNull)
-                _history.Record(_paintBefore, _history.Capture());
-            _paintAdded = false;
-            _paintBefore = default;
+            _paint.End(editor);
             return;
         }
 
-        if (_rotating)
+        if (_rotation.Active)
         {
-            EndRotation(editor);
+            _rotation.End(editor);
             return;
         }
 
-        if (!_resizeEntity.IsNull)
+        if (_resize.Active)
         {
-            _history.Record(_resizeBefore, _history.Capture());
-            _resizeEntity = default;
+            _resize.End();
             return;
         }
 
-        if (_timelineDragging)
-        {
-            _timelineDragging = false;
-            _timelineDrag.End();
-            if (!editor.IsNull)
-                SetScrubWindow(editor, false);
-            if (_timelineDragMoved && !editor.IsNull)
-                _history.Record(_timelineBefore, _history.Capture());
-            _timelineStartTimes.Clear();
-            _timelinePrimary = default;
+        if (_timeline.End(editor))
             return;
-        }
-
-        if (_scrubbing)
-        {
-            _scrubbing = false;
-            if (!editor.IsNull)
-                SetScrubWindow(editor, false);
-            return;
-        }
 
         MarqueeEnd end = _box.End(editor);
         if (end == MarqueeEnd.Box)
@@ -405,7 +374,7 @@ public sealed partial class EditorNoteInputSystem : QuerySystem<Note>
                 return;
             }
 
-            CreatePlacementAt(editor, _box.Start);
+            _creator.Create(editor, _box.Start);
             _placed = editor.GetComponent<NoteSelection>().Note;
             return;
         }
@@ -428,438 +397,6 @@ public sealed partial class EditorNoteInputSystem : QuerySystem<Note>
         return notes.Count > 1 || (notes.Count == 1 && notes[0] != _placed);
     }
 
-    private void CreatePlacementAt(Entity editor, Vector2 screenPosition)
-    {
-        if (editor.HasComponent<EditorPlacement>() &&
-            editor.GetComponent<EditorPlacement>().Mode ==
-            EditorPlacementMode.Start)
-        {
-            PlayfieldView startView = editor.GetComponent<PlayfieldView>();
-            Playfield startField = editor.GetComponent<Playfield>();
-            Vector2 startPosition = startView.ScreenToPlayfield(screenPosition);
-            if (!IsInside(startPosition, startField))
-                return;
-
-            Playhead startPlayhead = editor.GetComponent<Playhead>();
-            EditorSnapshot startBefore = _history.Capture();
-            EditorItems.Create(_entities, new StartPoint(
-                "",
-                EditorTiming.Snap(startPlayhead.TimeMs, startPlayhead),
-                startPosition,
-                System.Numerics.Vector2.Zero,
-                new Vector2(0, -1)));
-            _history.Record(startBefore, _history.Capture());
-            return;
-        }
-
-        if (editor.HasComponent<EditorPlacement>() &&
-            editor.GetComponent<EditorPlacement>().Mode ==
-            EditorPlacementMode.Text)
-        {
-            PlayfieldView textView = editor.GetComponent<PlayfieldView>();
-            Vector2 textPosition = textView.ScreenToPlayfield(screenPosition);
-            if (!IsInside(textPosition, editor.GetComponent<Playfield>()))
-                return;
-
-            EditorSnapshot textBefore = _history.Capture();
-            Entity text = EditorItems.Create(_entities, new LevelText(textPosition, LevelText.Placeholder));
-            _history.Record(textBefore, _history.Capture());
-            editor.GetComponent<NoteSelection>().Note = text;
-            return;
-        }
-
-        if (editor.HasComponent<EditorPlacement>() &&
-            editor.GetComponent<EditorPlacement>().Mode ==
-            EditorPlacementMode.Grass)
-        {
-            PlayfieldView grassView = editor.GetComponent<PlayfieldView>();
-            Vector2 grassPosition = grassView.ScreenToPlayfield(screenPosition);
-            if (!IsInside(grassPosition, editor.GetComponent<Playfield>()))
-                return;
-
-            // The click is where the blades stand; with snap on, the base sits on a grid line.
-            if (ViewportSnap.IsOn(_entities))
-                grassPosition = PlayfieldGrid.NearestCrossing(grassPosition, editor.GetComponent<Playfield>());
-            GrassPatch patch = editor.GetComponent<EditorPlacement>().Grass;
-            patch.Position = grassPosition;
-            patch.Seed = GrassPatch.NewSeed();
-            EditorSnapshot grassBefore = _history.Capture();
-            Entity grass = EditorItems.Create(_entities, patch);
-            _history.Record(grassBefore, _history.Capture());
-            editor.GetComponent<NoteSelection>().Note = grass;
-            return;
-        }
-
-        if (editor.HasComponent<EditorPlacement>() &&
-            editor.GetComponent<EditorPlacement>().Mode ==
-            EditorPlacementMode.Mines)
-        {
-            PlayfieldView view = editor.GetComponent<PlayfieldView>();
-            Playfield playfield = editor.GetComponent<Playfield>();
-            Vector2 position = view.ScreenToPlayfield(screenPosition);
-            if (!IsInside(position, playfield))
-                return;
-
-            Playhead playhead = editor.GetComponent<Playhead>();
-            EditorSnapshot before = _history.Capture();
-            EditorItems.Create(_entities, new Mine(
-                EditorTiming.Snap(playhead.TimeMs, playhead),
-                position));
-            _history.Record(before, _history.Capture());
-            return;
-        }
-
-        CreateNoteAt(editor, screenPosition);
-    }
-
-    private void CreateNoteAt(Entity editor, Vector2 screenPosition)
-    {
-        PlayfieldView view = editor.GetComponent<PlayfieldView>();
-        Playfield playfield = editor.GetComponent<Playfield>();
-        Playhead playhead = editor.GetComponent<Playhead>();
-        Vector2 playfieldPosition = view.ScreenToPlayfield(screenPosition);
-        if (!IsInside(playfieldPosition, playfield))
-            return;
-
-        if (string.IsNullOrEmpty(editor.GetComponent<LevelInfo>().AudioPath))
-        {
-            EditorWarningPopup.Request(editor, EditorWarningPopup.NoSongMessage);
-            return;
-        }
-
-        EditorSnapshot before = _history.Capture();
-        long time = EditorTiming.Snap(playhead.TimeMs, playhead);
-        if (EditorPlacementNote.NeedsShape(editor))
-            return;
-
-        if (ViewportSnap.IsOn(_entities))
-            playfieldPosition = PlayfieldGrid.NearestCrossing(playfieldPosition, playfield);
-        Note note = EditorPlacementNote.Build(editor, time, playfieldPosition);
-        bool isFormStep = note.Kind == NoteKind.ConstructionStep;
-        if (isFormStep)
-            note.ShapePiece = NextShapePiece(note.ShapeId);
-
-        Entity created = EditorItems.Create(_entities, note);
-        if (isFormStep)
-            ReindexConstructionSteps(note.ShapeId);
-        _history.Record(before, _history.Capture());
-        editor.GetComponent<NoteSelection>().Note = created;
-        EditorAutoAdvance.AfterPlacing(_entities, editor, time);
-    }
-
-    private int NextShapePiece(int shapeId)
-    {
-        int count = 0;
-        foreach (Entity entity in _entities.Query<Note>().ToEntityList())
-        {
-            Note note = entity.GetComponent<Note>();
-            if (note.Kind == NoteKind.ConstructionStep &&
-                note.ShapeId == shapeId)
-            {
-                count++;
-            }
-        }
-
-        return count;
-    }
-
-    private void ReindexConstructionSteps(int shapeId)
-    {
-        var steps = new List<Entity>();
-        foreach (Entity entity in _entities.Query<Note>().ToEntityList())
-        {
-            Note note = entity.GetComponent<Note>();
-            if (note.Kind == NoteKind.ConstructionStep &&
-                note.ShapeId == shapeId)
-            {
-                steps.Add(entity);
-            }
-        }
-
-        steps.Sort((a, b) =>
-            a.GetComponent<Note>().TimeMs.CompareTo(
-                b.GetComponent<Note>().TimeMs));
-        for (int i = 0; i < steps.Count; i++)
-        {
-            ref Note note = ref steps[i].GetComponent<Note>();
-            note.ShapePiece = i;
-        }
-    }
-
-    private List<Entity> FindNotesIn(Rect2 screenBounds, long playheadMs)
-    {
-        var selected = new List<Entity>();
-        Entity editor = FindEditor();
-        if (editor.IsNull)
-            return selected;
-
-        PlayfieldView view = editor.GetComponent<PlayfieldView>();
-        Playfield playfield = editor.GetComponent<Playfield>();
-        float noteSize = PlayfieldRenderer.NoteSize * view.Scale;
-
-        foreach (Entity entity in _entities.Query<Note>().ToEntityList())
-        {
-            Note note = entity.GetComponent<Note>();
-            if (NoteRules.IsRail(note.Kind) ||
-                NoteRules.IsChannelEnd(note.Kind) ||
-                NoteFade.Alpha(note, playheadMs) <= 0.05f ||
-                !IsInside(note.Position, playfield))
-            {
-                continue;
-            }
-
-            Vector2 center = view.PlayfieldToScreen(note.Position);
-            var noteBounds = new Rect2(
-                center - new Vector2(noteSize / 2, noteSize / 2),
-                new Vector2(noteSize, noteSize));
-            if (screenBounds.Intersects(noteBounds))
-                selected.Add(entity);
-        }
-
-        float mineSize = PlayfieldRenderer.MineSize * view.Scale;
-        foreach (Entity entity in _entities.Query<Mine>().ToEntityList())
-        {
-            Mine mine = entity.GetComponent<Mine>();
-            if (MineFade.Alpha(mine, playheadMs) <= 0.05f ||
-                !IsInside(mine.Position, playfield))
-            {
-                continue;
-            }
-
-            Vector2 center = view.PlayfieldToScreen(mine.Position);
-            var mineBounds = new Rect2(
-                center - new Vector2(mineSize / 2, mineSize / 2),
-                new Vector2(mineSize, mineSize));
-            if (screenBounds.Intersects(mineBounds))
-                selected.Add(entity);
-        }
-
-        foreach (Entity entity in _entities.Query<StartPoint>().ToEntityList())
-        {
-            StartPoint start = entity.GetComponent<StartPoint>();
-            Vector2 center = view.PlayfieldToScreen(start.Position);
-            if (screenBounds.HasPoint(center))
-                selected.Add(entity);
-        }
-
-        foreach (Entity entity in _entities.Query<LevelText>().ToEntityList())
-        {
-            if (screenBounds.Intersects(PlayfieldRenderer.TextScreenHull(entity.GetComponent<LevelText>(), view)))
-                selected.Add(entity);
-        }
-
-        foreach (Entity entity in _entities.Query<GrassPatch>().ToEntityList())
-        {
-            if (screenBounds.Intersects(PlayfieldRenderer.GrassScreenBounds(entity.GetComponent<GrassPatch>(), view)))
-                selected.Add(entity);
-        }
-
-        foreach (Entity entity in _entities.Query<LevelPolygon>().ToEntityList())
-        {
-            if (screenBounds.Intersects(PlayfieldRenderer.PolygonScreenBounds(entity.GetComponent<LevelPolygon>(), view)))
-                selected.Add(entity);
-        }
-
-        foreach (Entity entity in _entities.Query<Spike>().ToEntityList())
-        {
-            Spike spike = entity.GetComponent<Spike>();
-            var spikeBounds = new Rect2(
-                view.PlayfieldToScreen(spike.Position),
-                spike.Size * view.Scale);
-            if (screenBounds.Intersects(spikeBounds))
-                selected.Add(entity);
-        }
-
-        foreach (Entity entity in _entities.Query<Block>().ToEntityList())
-        {
-            Block block = entity.GetComponent<Block>();
-            var blockBounds = new Rect2(
-                view.PlayfieldToScreen(block.Position),
-                block.Size * view.Scale);
-            if (screenBounds.Intersects(blockBounds))
-                selected.Add(entity);
-        }
-
-        return selected;
-    }
-
-    private const float ScrubDeadZone = 0.55f;
-    private const float ScrubPanRate = 0.45f;
-
-    private void BeginTimelineDrag(
-        Vector2 screenPosition,
-        Rect2 bar,
-        ref Playhead playhead,
-        Entity editor,
-        Entity primary)
-    {
-        (_scrubWindowStart, _scrubWindowEnd) =
-            EditorLayout.TimelineWindow(playhead, TimelineOf(editor));
-        _timelineDragging = true;
-        _timelineDragMoved = false;
-        _timelineDrag.Begin(primary, screenPosition);
-        _timelinePrimary = primary;
-        _timelineBefore = _history.Capture();
-        _timelineStartTimes.Clear();
-
-        if (editor.HasComponent<NoteSelection>())
-        {
-            foreach (Entity selected in editor.GetComponent<NoteSelection>().AllNotes)
-            {
-                if (EditorItems.IsItem(selected) &&
-                    EditorItemTiming.TryGet(selected, out long timeMs))
-                {
-                    _timelineStartTimes[selected.Id] = timeMs;
-                }
-            }
-        }
-
-        SetScrubWindow(editor, true);
-    }
-
-    private void DragTimeline(
-        Vector2 screenPosition,
-        Rect2 bar,
-        ref Playhead playhead,
-        Entity editor)
-    {
-        long span = Math.Max(1, _scrubWindowEnd - _scrubWindowStart);
-        float delta = _timelineDrag.Delta.X /
-                      Math.Max(1f, bar.Size.X) * span;
-        long maxTime = playhead.DurationMs > 0
-            ? playhead.DurationMs
-            : long.MaxValue;
-        bool moved = false;
-
-        foreach ((int id, long startTime) in _timelineStartTimes)
-        {
-            Entity entity = _entities.GetEntityById(id);
-            if (entity.IsNull)
-                continue;
-
-            long target = EditorTiming.Snap(
-                startTime + (long)Math.Round(delta),
-                playhead);
-            target = Math.Clamp(target, 0, maxTime);
-            if (target == startTime)
-                continue;
-
-            EditorItemTiming.Set(entity, target);
-            moved = true;
-        }
-
-        if (moved)
-        {
-            _timelineDragMoved = true;
-            if (!_timelinePrimary.IsNull &&
-                EditorItemTiming.TryGet(_timelinePrimary, out long primaryTime))
-            {
-                playhead.SeekRequestMs = primaryTime;
-            }
-        }
-
-        SetScrubWindow(editor, true);
-    }
-
-    private void BeginScrub(
-        Vector2 screenPosition,
-        Rect2 bar,
-        ref Playhead playhead,
-        Entity editor)
-    {
-        if (playhead.DurationMs <= 0)
-            return;
-
-        (_scrubWindowStart, _scrubWindowEnd) =
-            EditorLayout.TimelineWindow(playhead, TimelineOf(editor));
-        _scrubbing = true;
-        SetScrubWindow(editor, true);
-        Scrub(screenPosition, bar, ref playhead, editor);
-    }
-
-    private void Scrub(
-        Vector2 screenPosition,
-        Rect2 bar,
-        ref Playhead playhead,
-        Entity editor)
-    {
-        if (!_scrubbing || playhead.DurationMs <= 0)
-            return;
-
-        long span = Math.Max(1, _scrubWindowEnd - _scrubWindowStart);
-        float center = bar.Position.X + bar.Size.X / 2;
-        float normalized = (screenPosition.X - center) / (bar.Size.X / 2);
-        float overshoot = Math.Max(
-            0,
-            Math.Abs(normalized) - ScrubDeadZone) / (1 - ScrubDeadZone);
-
-        if (overshoot > 0)
-        {
-            float direction = Math.Sign(normalized);
-            long shift = (long)(span * ScrubPanRate * overshoot * overshoot *
-                                Tick.deltaTime * direction);
-            long maxStart = Math.Max(0, playhead.DurationMs - span);
-            _scrubWindowStart = Math.Clamp(
-                _scrubWindowStart + shift, 0, maxStart);
-            _scrubWindowEnd = _scrubWindowStart + span;
-            SetScrubWindow(editor, true);
-        }
-
-        float t = Math.Clamp(
-            (screenPosition.X - bar.Position.X) / bar.Size.X,
-            0f,
-            1f);
-        long raw = _scrubWindowStart +
-                   (long)((_scrubWindowEnd - _scrubWindowStart) * t);
-        playhead.SeekRequestMs = Math.Clamp(
-            raw,
-            0,
-            Math.Max(0, playhead.DurationMs));
-    }
-
-    private void SetScrubWindow(Entity editor, bool active)
-    {
-        if (!editor.HasComponent<TimelineView>())
-            return;
-
-        ref TimelineView timeline = ref editor.GetComponent<TimelineView>();
-        timeline.Scrubbing = active;
-        timeline.ScrubStartMs = _scrubWindowStart;
-        timeline.ScrubEndMs = _scrubWindowEnd;
-    }
-
-    private Entity FindTimelineNoteAt(
-        Vector2 screenPosition,
-        Rect2 ruler,
-        Playhead playhead,
-        Entity editor)
-    {
-        if (playhead.DurationMs <= 0)
-            return default;
-
-        foreach ((Entity note, Rect2 bounds) in TimelineSlots(editor, ruler, playhead))
-        {
-            if (EditorTimelineNotes.HitBounds(bounds).HasPoint(screenPosition))
-                return note;
-        }
-
-        return default;
-    }
-
-    private List<(Entity Note, Rect2 Bounds)> TimelineSlots(
-        Entity editor,
-        Rect2 ruler,
-        Playhead playhead)
-    {
-        TimelineView view = TimelineOf(editor);
-        (long start, long end) = EditorLayout.TimelineWindow(playhead, view);
-        return EditorTimelineNotes.Slots(_entities, ruler, start, end, view.Zoom);
-    }
-
-    /// <summary>The editor's timeline view, or a whole-song one when it has none.</summary>
-    private static TimelineView TimelineOf(Entity editor) =>
-        editor.HasComponent<TimelineView>() ? editor.GetComponent<TimelineView>() : new TimelineView(1f);
-
     /// <summary>Drag-to-select for the playfield and for the timeline strip; they differ only in what a box covers.</summary>
     private sealed class NoteBox(EditorNoteInputSystem system) : UiBoxSelector<Entity>
     {
@@ -870,11 +407,11 @@ public sealed partial class EditorNoteInputSystem : QuerySystem<Note>
         {
             Playhead playhead = owner.GetComponent<Playhead>();
             if (!OnTimeline)
-                return system.FindNotesIn(bounds, playhead.TimeMs);
+                return system._picker.FindNotesIn(bounds, playhead.TimeMs);
 
             var hits = new List<Entity>();
             Rect2 ruler = EditorLayout.RulerRect(owner.GetComponent<PlayfieldView>());
-            foreach ((Entity note, Rect2 slot) in system.TimelineSlots(owner, ruler, playhead))
+            foreach ((Entity note, Rect2 slot) in system._timeline.Slots(owner, ruler, playhead))
             {
                 if (bounds.Intersects(slot))
                     hits.Add(note);
@@ -887,100 +424,6 @@ public sealed partial class EditorNoteInputSystem : QuerySystem<Note>
             owner.GetComponent<NoteSelection>().SetMany(selection);
     }
 
-    /// <summary>The note-type bar floats over the playfield on small windows; presses on it are not placements.</summary>
-    /// <summary>
-    /// Whether the press lands on a panel or control that takes input. The
-    /// field runs on under the editor's panels once it is bigger than the
-    /// screen, so a press on a panel must not also place a note beneath it.
-    /// </summary>
-    private bool IsOverPanel(Vector2 screenPosition)
-    {
-        foreach (Entity entity in _entities
-                     .Query<Position, Rectangle>()
-                     .AllTags(Tags.Get<TakesInput>())
-                     .ToEntityList())
-        {
-            Vector2 local = entity.GetComponent<Position>().Value;
-            Rect2 bounds = entity.GetComponent<Rectangle>().Bounds;
-            Vector2 center = UiTransform.WorldPosition(entity, local);
-            if (new Rect2(center + bounds.Position, bounds.Size).HasPoint(screenPosition))
-                return true;
-        }
-
-        return false;
-    }
-
-    private bool IsOverNoteBar(Vector2 screenPosition)
-    {
-        foreach (Entity panel in _entities
-                     .Query<EditorNoteBarPanel, Position, Rectangle>()
-                     .ToEntityList())
-        {
-            Vector2 center = panel.GetComponent<Position>().Value;
-            Rect2 local = panel.GetComponent<Rectangle>().Bounds;
-            if (new Rect2(center + local.Position, local.Size).HasPoint(screenPosition))
-            {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    private Entity FindNoteAt(Vector2 position, long playheadMs)
-    {
-        Entity result = default;
-
-        foreach (Entity entity in _entities.Query<Note>().ToEntityList())
-        {
-            Note note = entity.GetComponent<Note>();
-            if (NoteFade.Alpha(note, playheadMs) <= 0)
-                continue;
-
-            if (MathF.Abs(note.Position.X - position.X) <= NoteHitRadius &&
-                MathF.Abs(note.Position.Y - position.Y) <= NoteHitRadius)
-            {
-                result = entity;
-            }
-        }
-
-        return result;
-    }
-
-    private Entity FindMineAt(Vector2 position, long playheadMs)
-    {
-        Entity result = default;
-
-        foreach (Entity entity in _entities.Query<Mine>().ToEntityList())
-        {
-            Mine mine = entity.GetComponent<Mine>();
-            if (MineFade.Alpha(mine, playheadMs) <= 0)
-                continue;
-
-            if (MathF.Abs(mine.Position.X - position.X) <= MineHitRadius &&
-                MathF.Abs(mine.Position.Y - position.Y) <= MineHitRadius)
-            {
-                result = entity;
-            }
-        }
-
-        return result;
-    }
-
-    private Entity FindStartAt(Vector2 position)
-    {
-        Entity result = default;
-        foreach (Entity entity in _entities.Query<StartPoint>().ToEntityList())
-        {
-            StartPoint startPoint = entity.GetComponent<StartPoint>();
-            // Picked like a note, since it is drawn the size of one.
-            if (startPoint.Position.DistanceTo(position) <= NoteHitRadius)
-                result = entity;
-        }
-
-        return result;
-    }
-
     private void CancelDrag()
     {
         _draggedEntity = default;
@@ -989,49 +432,4 @@ public sealed partial class EditorNoteInputSystem : QuerySystem<Note>
         _dragStartPositions.Clear();
     }
 
-    private bool IsGroupOverlayOpen()
-    {
-        foreach (Entity entity in _entities.Query<EditorGroupState>().ToEntityList())
-        {
-            if (entity.GetComponent<EditorGroupState>().Open >= 0)
-                return true;
-        }
-
-        return false;
-    }
-
-    private bool IsGroupTargetEditing()
-    {
-        foreach (Entity entity in _entities.Query<EditorGroupState>().ToEntityList())
-        {
-            if (entity.GetComponent<EditorGroupState>().TargetEdit)
-                return true;
-        }
-
-        return false;
-    }
-
-    private bool IsWarningOpen()
-    {
-        return _entities.Query<WarningPopup>().Count > 0;
-    }
-
-    private bool IsSceneConfirmationOpen()
-    {
-        return _entities.Query<SceneConfirmation>().Count > 0;
-    }
-
-    private Entity FindEditor()
-    {
-        foreach (Entity entity in _entities.Query<PlayfieldView, Playfield, Playhead, NoteSelection>().ToEntityList())
-            return entity;
-
-        return default;
-    }
-
-    private static bool IsInside(Vector2 position, Playfield playfield) =>
-        position.X >= 0 &&
-        position.Y >= 0 &&
-        position.X <= playfield.Width &&
-        position.Y <= playfield.Height;
 }

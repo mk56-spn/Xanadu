@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Xanadu.Ecs;
@@ -93,7 +92,7 @@ public struct EditorToolGroup(int index, Entity flyout, Entity icon) : IComponen
 public sealed class EditorToolGroupSystem : QuerySystem<EditorToolGroup>
 {
     private readonly EntityStore _entities;
-    private readonly HashSet<int> _held = new();
+    private readonly ButtonPress _presses = new();
     private EditorPlacementMode? _lastMode;
 
     public EditorToolGroupSystem(EntityStore entities)
@@ -103,12 +102,7 @@ public sealed class EditorToolGroupSystem : QuerySystem<EditorToolGroup>
 
     protected override void OnUpdate()
     {
-        Entity editor = default;
-        foreach (Entity candidate in _entities.Query<EditorPlacement>().ToEntityList())
-        {
-            editor = candidate;
-            break;
-        }
+        Entity editor = EditorSceneQuery.First<EditorPlacement>(_entities);
 
         if (editor.IsNull)
             return;
@@ -121,11 +115,7 @@ public sealed class EditorToolGroupSystem : QuerySystem<EditorToolGroup>
 
         foreach (Entity entity in groups)
         {
-            bool pressed = entity.Tags.Has<Pressed>();
-            bool was = !_held.Add(entity.Id);
-            if (!pressed)
-                _held.Remove(entity.Id);
-            if (!pressed || was)
+            if (!_presses.Started(entity))
                 continue;
 
             bool open = !entity.GetComponent<EditorToolGroup>().Open;
@@ -142,7 +132,7 @@ public sealed class EditorToolGroupSystem : QuerySystem<EditorToolGroup>
 
             EditorToolGroupInfo info = EditorToolGroups.All[group.Index];
             UiLayout.SetHidden(group.Flyout, buffer, !group.Open);
-            EditorPlacementSystem.SetColor(entity, EditorToolGroups.Holds(info, mode), buffer);
+            EditorButtons.Tint(entity, EditorToolGroups.Holds(info, mode), buffer);
             UiText.Set(group.Icon, EditorToolGroups.IconFor(info, mode), buffer);
         }
     }

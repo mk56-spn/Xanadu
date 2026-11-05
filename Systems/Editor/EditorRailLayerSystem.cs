@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Godot;
@@ -21,7 +20,7 @@ public sealed class EditorRailLayerSystem : QuerySystem<EditorButton>
 
     private readonly EntityStore _entities;
     private readonly EditorHistory _history;
-    private readonly HashSet<int> _held = new();
+    private readonly ButtonPress _presses = new();
 
     public EditorRailLayerSystem(EntityStore entities, EditorHistory history)
     {
@@ -34,14 +33,7 @@ public sealed class EditorRailLayerSystem : QuerySystem<EditorButton>
 
     protected override void OnUpdate()
     {
-        Entity editor = default;
-        foreach (Entity candidate in _entities
-                     .Query<EditorPlacement>()
-                     .ToEntityList())
-        {
-            editor = candidate;
-            break;
-        }
+        Entity editor = EditorSceneQuery.First<EditorPlacement>(_entities);
 
         if (editor.IsNull)
             return;
@@ -77,16 +69,7 @@ public sealed class EditorRailLayerSystem : QuerySystem<EditorButton>
             CommandBuffer);
     }
 
-    private bool PressedNow(Entity entity)
-    {
-        bool pressed = entity.Tags.Has<Pressed>();
-        bool was = _held.Contains(entity.Id);
-        if (pressed)
-            _held.Add(entity.Id);
-        else
-            _held.Remove(entity.Id);
-        return pressed && !was;
-    }
+    private bool PressedNow(Entity entity) => _presses.Started(entity);
 
     private void PlaceRail(KeybindAction action, Entity editor, long holdMs)
     {

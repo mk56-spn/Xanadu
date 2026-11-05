@@ -1,9 +1,7 @@
 using System;
-using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Xanadu.Ecs;
-using Xanadu.Ui.Ecs.Ui;
 
 namespace Xanadu.Systems.Editor;
 
@@ -16,7 +14,7 @@ public sealed class EditorContactCostSystem : QuerySystem<EditorButton>
     private const int MaxCost = 3;
 
     private readonly EntityStore _entities;
-    private readonly HashSet<int> _held = new();
+    private readonly ButtonPress _presses = new();
 
     public EditorContactCostSystem(EntityStore entities)
     {
@@ -28,14 +26,7 @@ public sealed class EditorContactCostSystem : QuerySystem<EditorButton>
 
     protected override void OnUpdate()
     {
-        Entity editor = default;
-        foreach (Entity candidate in _entities
-                     .Query<EditorPlacement>()
-                     .ToEntityList())
-        {
-            editor = candidate;
-            break;
-        }
+        Entity editor = EditorSceneQuery.First<EditorPlacement>(_entities);
 
         if (editor.IsNull)
             return;
@@ -48,14 +39,7 @@ public sealed class EditorContactCostSystem : QuerySystem<EditorButton>
             if (button.Kind is not (EditorButtonKind.ContactLeft or EditorButtonKind.ContactRight))
                 continue;
 
-            bool pressed = entity.Tags.Has<Pressed>();
-            bool wasPressed = _held.Contains(entity.Id);
-            if (pressed)
-                _held.Add(entity.Id);
-            else
-                _held.Remove(entity.Id);
-
-            if (!pressed || wasPressed)
+            if (!_presses.Started(entity))
                 continue;
 
             if (button.Kind == EditorButtonKind.ContactLeft)

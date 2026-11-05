@@ -27,7 +27,7 @@ public sealed class EditorTextPanelSystem(EditorHistory history) : QuerySystem<N
     public const float SizeStep = 8f;
 
     private readonly List<Entity> _targets = new();
-    private readonly HashSet<int> _held = new();
+    private readonly ButtonPress _presses = new();
     private EditorSnapshot? _before;
     private bool _wasEditing;
 
@@ -55,11 +55,7 @@ public sealed class EditorTextPanelSystem(EditorHistory history) : QuerySystem<N
 
         foreach (Entity button in EditorButton.All(editor.Store, EditorButtonKind.TextSize))
         {
-            bool pressed = button.Tags.Has<Pressed>();
-            bool was = !_held.Add(button.Id);
-            if (!pressed)
-                _held.Remove(button.Id);
-            if (pressed && !was)
+            if (_presses.Started(button))
                 StepSize(selection, first, button.GetComponent<EditorButton>().Arg);
         }
 

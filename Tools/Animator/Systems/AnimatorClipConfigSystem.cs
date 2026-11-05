@@ -24,8 +24,7 @@ public sealed class AnimatorClipConfigSystem(IPointerInputSource pointer)
     protected override void OnUpdate()
     {
         PointerInput input = pointer.Read();
-        bool primary = input.Pressed && !_primaryHeld;
-        _primaryHeld = input.Pressed;
+        bool primary = AnimatorPointerEdge.Primary(ref _primaryHeld, input);
 
         foreach (Entity session in Query.ToEntityList())
             Update(session, primary, input.Position);
@@ -82,7 +81,7 @@ public sealed class AnimatorClipConfigSystem(IPointerInputSource pointer)
     private void Hide(AnimatorUi ui)
     {
         AnimatorMenuPlacement.Hide(ui.ClipLengthPanel);
-        ClearFocus(ui.ClipLengthField);
+        AnimatorTextFocus.Clear(ui.ClipLengthField);
         _wasEditing = false;
     }
 
@@ -127,9 +126,4 @@ public sealed class AnimatorClipConfigSystem(IPointerInputSource pointer)
         AnimatorClipCommands.SetDuration(session, seconds);
     }
 
-    private static void ClearFocus(Entity field)
-    {
-        if (!field.IsNull && field.Tags.Has<TextFieldFocused>())
-            field.RemoveTag<TextFieldFocused>();
-    }
 }

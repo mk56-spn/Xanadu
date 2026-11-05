@@ -8,7 +8,7 @@ namespace Xanadu.Animation;
 /// instead of folding links over; relaxing only from the anchor end made fast
 /// head movement whip the hair.
 /// </summary>
-public sealed class XafVerletChain
+public sealed class XafVerletChain : XafFixedBody
 {
     private readonly Vector2[] _previous;
     private readonly float _segmentLength;
@@ -47,7 +47,7 @@ public sealed class XafVerletChain
     public Vector2 ColliderCenter { get; set; }
     public float ColliderRadius { get; set; }
 
-    public void Step(float delta)
+    public override void Step(float delta)
     {
         if (delta <= 0f)
             return;
@@ -117,15 +117,6 @@ public sealed class XafVerletChain
         }
     }
 
-    public void StepFixed(float delta, float fixedStep = 1f / 60f)
-    {
-        if (fixedStep <= 0f)
-            return;
-
-        int steps = Mathf.Max(1, Mathf.RoundToInt(delta / fixedStep));
-        for (int i = 0; i < steps; i++)
-            Step(fixedStep);
-    }
 
     public void Reset(Vector2 anchor)
     {
@@ -137,7 +128,7 @@ public sealed class XafVerletChain
 }
 
 /// <summary>Single pendulum-like attachment that swings from a bone.</summary>
-public sealed class XafPendulum
+public sealed class XafPendulum : XafFixedBody
 {
     private Vector2 _previous;
 
@@ -155,7 +146,7 @@ public sealed class XafPendulum
     public Vector2 Gravity { get; set; } = new(0, 900);
     public float Damping { get; set; } = 0.97f;
 
-    public void Step(float delta)
+    public override void Step(float delta)
     {
         if (delta <= 0f)
             return;
@@ -170,13 +161,4 @@ public sealed class XafPendulum
             Position = Anchor + direction / distance * Length;
     }
 
-    public void StepFixed(float delta, float fixedStep = 1f / 60f)
-    {
-        if (fixedStep <= 0f)
-            return;
-
-        int steps = Mathf.Max(1, Mathf.RoundToInt(delta / fixedStep));
-        for (int i = 0; i < steps; i++)
-            Step(fixedStep);
-    }
 }

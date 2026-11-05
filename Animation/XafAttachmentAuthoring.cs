@@ -120,7 +120,7 @@ public static class XafAttachmentAuthoring
         // bone out leaves the own bone alone rather than the automatic choice.
         if (mesh.Bones.Count == 0)
         {
-            foreach (int automatic in XafSkin.Influences(package, attachment))
+            foreach (int automatic in XafSkinWeights.Influences(package, attachment))
                 mesh.Bones.Add(package.Skeleton.Bones[automatic].Id);
         }
 

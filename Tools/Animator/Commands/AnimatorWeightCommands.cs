@@ -75,7 +75,7 @@ public static class AnimatorWeightCommands
 
         paint.Active = true;
         paint.Attachment = index;
-        paint.Bone = XafSkin.Influences(package, package.Attachments[index]) is { Count: > 0 } bones ? bones[0] : -1;
+        paint.Bone = XafSkinWeights.Influences(package, package.Attachments[index]) is { Count: > 0 } bones ? bones[0] : -1;
         AnimatorSession.SetStatus(session, $"PAINTING {BoneName(package, paint.Bone)} · CLICK A JOINT FOR ANOTHER BONE · CTRL-DRAG TAKES AWAY");
     }
 

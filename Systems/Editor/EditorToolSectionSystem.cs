@@ -69,14 +69,7 @@ public sealed class EditorToolSectionSystem : QuerySystem<EditorToolSection>
 
     protected override void OnUpdate()
     {
-        Entity editor = default;
-        foreach (Entity candidate in _entities
-                     .Query<EditorPlacement, EditorLeftMenu>()
-                     .ToEntityList())
-        {
-            editor = candidate;
-            break;
-        }
+        Entity editor = EditorSceneQuery.First<EditorPlacement, EditorLeftMenu>(_entities);
 
         if (editor.IsNull)
             return;

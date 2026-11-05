@@ -19,7 +19,7 @@ namespace Xanadu.Scenes;
 /// Groups that hug an edge are anchored to their parent; everything else
 /// flows, so nothing here positions a control by hand.
 /// </summary>
-public static partial class EditorScene
+public static class EditorSceneChrome
 {
     private const float HeaderControl = EditorShellMetrics.HeaderControlHeight;
     private const float HeaderPad = (EditorShellMetrics.HeaderHeight - HeaderControl) / 2;
@@ -27,7 +27,7 @@ public static partial class EditorScene
     private const string IconDir = "res://Assets/Icons/";
     private static readonly Color Clear = new(0, 0, 0, 0);
 
-    private static void BuildEditorChrome(
+    internal static void BuildEditorChrome(
         EntityStore entities,
         Entity root,
         Entity editor,
@@ -45,11 +45,11 @@ public static partial class EditorScene
             .Size(screen.X, shell.ToolStrip.Size.Y)
             .Main(StackMainAlignment.Start);
         UiNode flyouts = UiNode.Layer(entities, root, UiLayers.EditorToolFlyout, null, UiStage.Full);
-        BuildToolStrip(middle, flyouts, shell);
+        EditorSceneSidebar.BuildToolStrip(middle, flyouts, shell);
         BuildViewportColumn(middle, editor, shell);
-        BuildSidebar(middle, editor, shell);
-        BuildRailLayer(entities, root, editor, shell);
-        BuildXifPanel(entities, root, shell);
+        EditorSceneSidebar.BuildSidebar(middle, editor, shell);
+        EditorSceneRail.BuildRailLayer(entities, root, editor, shell);
+        EditorSceneSidebar.BuildXifPanel(entities, root, shell);
 
         Footer footer = BuildFooter(page, screen);
 
@@ -118,14 +118,14 @@ public static partial class EditorScene
             .Size(HeaderInfoWidth, HeaderControl)
             .Gap(EditorShellMetrics.HeaderGap)
             .Main(StackMainAlignment.Start);
-        Entity level = HudText(
+        Entity level = EditorSceneUi.HudText(
             info,
             Vector2.Zero,
             new Vector2(HeaderLevelWidth, HeaderControl),
             "Untitled",
             UiType.Label,
             SceneUi.AccentColor);
-        Entity song = HudText(
+        Entity song = EditorSceneUi.HudText(
             info,
             Vector2.Zero,
             new Vector2(HeaderInfoWidth - HeaderLevelWidth - EditorShellMetrics.HeaderGap, HeaderControl),
@@ -234,8 +234,8 @@ public static partial class EditorScene
         UiNode column = ui.Column()
             .Size(shell.Viewport.Size.X, shell.ToolStrip.Size.Y);
 
-        BuildLeftPanel(column, editor);
-        BuildNoteElements(column, editor);
+        EditorSceneSidebar.BuildLeftPanel(column, editor);
+        EditorSceneSidebar.BuildNoteElements(column, editor);
 
         column.Row()
             .Size(shell.StatusLine.Size)
@@ -317,7 +317,7 @@ public static partial class EditorScene
             EditorLayout.TimeWidth,
             timelineRow - EditorLayout.TimelineBottomPad -
             (EditorLayout.TimelineHeight + EditorLayout.TimeHeight) / 2));
-        Entity time = HudText(
+        Entity time = EditorSceneUi.HudText(
             clockColumn.Row()
                 .Size(EditorLayout.TimeWidth, EditorLayout.TimeHeight)
                 .Fill(Palette.SurfaceInset)
@@ -332,7 +332,7 @@ public static partial class EditorScene
         return new Footer(time, notes);
     }
 
-    private static void BuildToolbar(
+    internal static void BuildToolbar(
         EntityStore entities,
         Entity root,
         Entity editor,

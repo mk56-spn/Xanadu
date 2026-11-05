@@ -7,14 +7,14 @@ using Xanadu.Ui.Ecs.Ui;
 
 namespace Xanadu.Scenes;
 
-public static partial class EditorScene
+public static class EditorSceneRail
 {
     /// <summary>
     /// The separate Splitline rail layer: taps and holds for the six side keys
     /// are placed at the playhead, and channel end markers are placed the same
     /// way. Channel starts are ordinary Channel notes on the playfield.
     /// </summary>
-    private static void BuildRailLayer(
+    internal static void BuildRailLayer(
         EntityStore entities,
         Entity root,
         Entity editor,

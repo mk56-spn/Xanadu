@@ -25,14 +25,7 @@ public sealed class EditorMetadataSystem : QuerySystem<LevelInfo, Playhead>
 
     protected override void OnUpdate()
     {
-        Entity editor = default;
-        foreach (Entity candidate in _entities
-                     .Query<LevelInfo, Playhead>()
-                     .ToEntityList())
-        {
-            editor = candidate;
-            break;
-        }
+        Entity editor = EditorSceneQuery.First<LevelInfo, Playhead>(_entities);
 
         Entity panel = EditorPanel.Find(_entities, EditorPanelKind.Metadata);
         if (editor.IsNull || panel.IsNull)

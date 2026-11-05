@@ -63,15 +63,15 @@ public sealed partial class SvgAttachmentVisuals
 
         if (visual.Mesh is not { } cache || cache.Detail != mesh.Detail || cache.Skin is not null)
         {
-            (Vector2[] grid, Vector2[] uvs) = XafSkin.Grid(mesh, visual.Bounds);
-            (int columns, int rows) = XafSkin.Points(mesh, visual.Bounds.Size);
+            (Vector2[] grid, Vector2[] uvs) = XafSkinGrid.Grid(mesh, visual.Bounds);
+            (int columns, int rows) = XafSkinGrid.Points(mesh, visual.Bounds.Size);
             bool[]? covered = Coverage(mesh, visual);
-            cache = new MeshCache(mesh.Detail, grid, uvs, XafSkin.Triangles(mesh, visual.Bounds.Size, covered),
+            cache = new MeshCache(mesh.Detail, grid, uvs, XafSkinGrid.Triangles(mesh, visual.Bounds.Size, covered),
                 columns, rows, covered);
             visual.Mesh = cache;
         }
 
-        List<int> influences = XafSkin.Influences(package, attachment);
+        List<int> influences = XafSkinWeights.Influences(package, attachment);
         if (influences.Count == 0)
             return;
 
@@ -85,8 +85,8 @@ public sealed partial class SvgAttachmentVisuals
                 restPoints[i] = restAttachment * cache.Grid[i];
             cache.RestPoints = restPoints;
             cache.Weights = cache.Covered is { } covered
-                ? XafSkin.Weights(package, influences, restPoints, restBones, mesh.Blend, cache.Columns, cache.Rows, covered)
-                : XafSkin.Weights(package, influences, restPoints, restBones, mesh.Blend);
+                ? XafSkinWeights.Weights(package, influences, restPoints, restBones, mesh.Blend, cache.Columns, cache.Rows, covered)
+                : XafSkinWeights.Weights(package, influences, restPoints, restBones, mesh.Blend);
             cache.Key = key;
         }
 
@@ -94,7 +94,7 @@ public sealed partial class SvgAttachmentVisuals
         for (int i = 0; i < squash.Length; i++)
             squash[i] = XafRig.Foreshorten(package, pose, i);
 
-        Vector2[] bent = XafSkin.Deform(influences, cache.Weights, cache.RestPoints, restBones, bones,
+        Vector2[] bent = XafSkinDeform.Deform(influences, cache.Weights, cache.RestPoints, restBones, bones,
             restAttachment, placed, squash);
         for (int i = 0; i < bent.Length; i++)
             bent[i] = placement * bent[i];
@@ -117,7 +117,7 @@ public sealed partial class SvgAttachmentVisuals
         Visual visual, Transform2D[] bones, Transform2D placed, Transform2D[] restBones,
         Transform2D restAttachment, Transform2D placement)
     {
-        List<int> influences = XafSkin.Influences(package, attachment);
+        List<int> influences = XafSkinWeights.Influences(package, attachment);
         if (influences.Count == 0)
             return;
 
@@ -147,7 +147,7 @@ public sealed partial class SvgAttachmentVisuals
         for (int i = 0; i < squash.Length; i++)
             squash[i] = XafRig.Foreshorten(package, pose, i);
 
-        Vector2[] bent = XafSkin.Deform(influences, cache.Weights!, cache.RestPoints, restBones, bones,
+        Vector2[] bent = XafSkinDeform.Deform(influences, cache.Weights!, cache.RestPoints, restBones, bones,
             restAttachment, placed, squash);
         for (int i = 0; i < bent.Length; i++)
             bent[i] = placement * bent[i];
@@ -171,7 +171,7 @@ public sealed partial class SvgAttachmentVisuals
             image.Decompress();
 
         Vector2I size = image.GetSize();
-        return XafSkin.Covered(mesh, visual.Bounds.Size, uv => image.GetPixel(
+        return XafSkinGrid.Covered(mesh, visual.Bounds.Size, uv => image.GetPixel(
             Math.Clamp((int)(uv.X * (size.X - 1)), 0, size.X - 1),
             Math.Clamp((int)(uv.Y * (size.Y - 1)), 0, size.Y - 1)).A);
     }
