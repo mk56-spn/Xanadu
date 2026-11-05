@@ -248,7 +248,7 @@ public sealed class EditorChromeLayoutTests : EcsSystemTest
         Rect2 last = Area(Cell(GroupLimits.Count - 1));
 
         Assert.That(second.Position.Y, Is.EqualTo(first.Position.Y).Within(0.5f));
-        Assert.That(second.Position.X - first.End.X, Is.EqualTo(6f).Within(0.5f));
+        Assert.That(second.Position.X - first.End.X, Is.EqualTo(Xanadu.Systems.Editor.EditorGroupLayout.CellGap).Within(0.5f));
         Assert.That(fifth.Position.X, Is.EqualTo(first.Position.X).Within(0.5f));
         Assert.That(fifth.Position.Y, Is.GreaterThan(first.End.Y));
         Assert.That(last.Position.X, Is.EqualTo(Area(Cell(GroupLimits.Columns - 1)).Position.X).Within(0.5f));
@@ -318,11 +318,12 @@ public sealed class EditorChromeLayoutTests : EcsSystemTest
         ShellStatusLabels labels = Store.Query<EditorHud>().ToEntityList()[0].GetComponent<EditorHud>().Status;
         Rect2 message = Area(labels.Message);
         Rect2 flag = Area(labels.Flag);
-        Rect2 grid = Area(ByText(ViewportGrid.Label));
+        // The grid, snap, advance and path toggles moved to the bar over the view; FILE now leads the right side.
+        Rect2 file = Area(ByText("FILE ▾"));
 
         Assert.That(_shell.Header.Encloses(message), Is.True);
         Assert.That(_shell.Header.Encloses(flag), Is.True);
-        Assert.That(message.End.X, Is.LessThanOrEqualTo(grid.Position.X));
+        Assert.That(message.End.X, Is.LessThanOrEqualTo(file.Position.X));
     }
 
     [Test]

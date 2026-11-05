@@ -3,7 +3,9 @@ using Friflo.Engine.ECS.Systems;
 using Godot;
 using NUnit.Framework;
 using Xanadu.Ecs;
+using Xanadu.Editor;
 using Xanadu.Editor.Commands;
+using Xanadu.Rendering;
 using Xanadu.Settings;
 using Xanadu.Systems.Editor;
 using Xanadu.Systems.Ui;
@@ -41,7 +43,7 @@ public sealed class EditorDropdownSystemTests
             new DropdownOption(button, 2));
 
         var root = new SystemRoot(store);
-        root.Add(new EditorDropdownSystem(store, commands));
+        root.Add(new EditorDropdownSystem(store, commands, new EditorHistory(store)));
         root.Add(new UiDropdownSystem(store));
 
         button.AddTag<Pressed>();
@@ -76,6 +78,58 @@ public sealed class EditorDropdownSystemTests
         Assert.That(command.IntValue, Is.EqualTo(16));
     }
 
+    [Test]
+    public void TheBlendDropdownSetsTheSelectionAndUndoesAsOneStep()
+    {
+        var store = new EntityStore();
+        var history = new EditorHistory(store);
+        Entity editor = store.CreateEntity(
+            new Playhead(0, 120, 0, false),
+            new NoteSelection(default));
+        Entity note = EditorItems.Create(store, new Note(0, Vector2.Zero));
+        editor.GetComponent<NoteSelection>().SetMany(new[] { note });
+
+        Entity list = store.CreateEntity(
+            new Position(Vector2.Zero),
+            new Rectangle(new Rect2(-95, -70, 190, 140)));
+
+        Entity button = store.CreateEntity(
+            new Position(new Vector2(800, 200)),
+            new Rectangle(new Rect2(-95, -17, 190, 34)),
+            new Text(""),
+            new Dropdown(list, 0),
+            new EditorDropdownControl(EditorDropdownKind.Blend));
+
+        Entity option = store.CreateEntity(
+            new Position(Vector2.Zero),
+            new Rectangle(new Rect2(-92, -14, 184, 28)),
+            new DropdownOption(button, (int)BlendMode.Add));
+
+        var root = new SystemRoot(store);
+        root.Add(new EditorDropdownSystem(store, new EditorCommandBus(), history));
+        root.Add(new UiDropdownSystem(store));
+
+        button.AddTag<Pressed>();
+        root.Update(new UpdateTick(1f / 60f, 0));
+        Assert.That(button.GetComponent<Text>().Value, Is.EqualTo("BLEND  MIX  ▾"));
+
+        button.RemoveTag<Pressed>();
+        root.Update(new UpdateTick(1f / 60f, 0));
+
+        option.AddTag<Pressed>();
+        root.Update(new UpdateTick(1f / 60f, 0));
+        root.Update(new UpdateTick(1f / 60f, 0));
+
+        Assert.That(ItemBlend.Of(note), Is.EqualTo(BlendMode.Add));
+        Assert.That(button.GetComponent<Text>().Value, Is.EqualTo("BLEND  ADD  ▾"));
+        Assert.That(history.CanUndo, Is.True);
+
+        history.Undo();
+        Assert.That(
+            ItemBlend.Of(store.Query<Note>().ToEntityList()[0]),
+            Is.EqualTo(BlendMode.Mix));
+    }
+
     [TestCase(4, "SNAP  1/2")]
     [TestCase(8, "SNAP  1/4")]
     [TestCase(16, "SNAP  1/8")]
@@ -92,7 +146,7 @@ public sealed class EditorDropdownSystemTests
             new EditorDropdownControl(EditorDropdownKind.Snap));
 
         var root = new SystemRoot(store);
-        root.Add(new EditorDropdownSystem(store, new EditorCommandBus()));
+        root.Add(new EditorDropdownSystem(store, new EditorCommandBus(), new EditorHistory(store)));
         root.Update(new UpdateTick(1f / 60f, 0));
 
         Assert.That(button.GetComponent<Text>().Value, Is.EqualTo(label));

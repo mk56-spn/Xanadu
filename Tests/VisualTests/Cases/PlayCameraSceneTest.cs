@@ -64,6 +64,7 @@ public sealed class PlayCameraSceneTest : SceneTest
             HitEffects.Spawn(
                 Context.Entities,
                 playfield,
+                entity,
                 note,
                 view.PlayfieldToScreen(note.Position),
                 PlayfieldRenderer.ColorFor(note),

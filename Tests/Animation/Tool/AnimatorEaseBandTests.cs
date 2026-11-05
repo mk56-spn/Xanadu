@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using Godot;
+using Xanadu.Timeline;
 using NUnit.Framework;
 using Xanadu.Animation;
 using Xanadu.Tools.Animator;
@@ -13,13 +14,13 @@ public sealed class AnimatorEaseBandTests
     private const float Middle = 110f;
     private const float MaxHalf = 6f;
 
-    private static List<AnimatorEaseBandPiece> Band(XafEasePreset preset, float from = 100f, float to = 200f) =>
+    private static List<EaseBandPiece> Band(XafEasePreset preset, float from = 100f, float to = 200f) =>
         AnimatorEaseBand.Pieces(new XafEaseSegment(true, preset), from, to, 0f, 1000f, Row);
 
     /// <summary>Half the band's thickness at an x, read off the top edge of the piece covering it.</summary>
-    private static float HalfAt(List<AnimatorEaseBandPiece> band, float x)
+    private static float HalfAt(List<EaseBandPiece> band, float x)
     {
-        foreach (AnimatorEaseBandPiece piece in band)
+        foreach (EaseBandPiece piece in band)
         {
             Vector2[] top = piece.Polygon.Take(piece.Polygon.Length / 2).ToArray();
             for (int i = 0; i + 1 < top.Length; i++)
@@ -65,7 +66,7 @@ public sealed class AnimatorEaseBandTests
     public void TheBandNeverThinsPastAHairlineNorSpillsOutOfTheRow()
     {
         foreach (XafEasePreset preset in System.Enum.GetValues<XafEasePreset>())
-        foreach (AnimatorEaseBandPiece piece in Band(preset))
+        foreach (EaseBandPiece piece in Band(preset))
         foreach (Vector2 point in piece.Polygon)
             Assert.That(point.Y, Is.InRange(Row.Position.Y, Row.End.Y), preset.ToString());
     }

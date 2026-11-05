@@ -43,38 +43,41 @@ public sealed class GroupModulationSystemTests : EcsSystemTest
         return entity;
     }
 
+    private static Vector2 Offset(Entity entity) => GroupOffset.Of(entity);
+
     [Test]
-    public void ANoteInAGroupIsMovedByItsMoveAtTheirTime()
+    public void ANoteInAGroupIsShownMovedByItsMoveAtTheirTime()
     {
         _groups.Groups[0].Effects.Add(GroupEffect.Move(0.4f, 0.6f, new Vector2(100, 0)));
         Entity note = Member(Store, new Note(5000, new Vector2(300, 400)), 0);
 
         At(300);
         Frame();
-        Assert.That(note.GetComponent<Note>().Position, Is.EqualTo(new Vector2(300, 400)));
+        Assert.That(Offset(note), Is.EqualTo(Vector2.Zero));
 
         At(500);
         Frame();
-        Assert.That(note.GetComponent<Note>().Position.X, Is.EqualTo(350f).Within(0.01f));
+        Assert.That(Offset(note).X, Is.EqualTo(50f).Within(0.01f));
 
         At(900);
         Frame();
-        Assert.That(note.GetComponent<Note>().Position, Is.EqualTo(new Vector2(400, 400)));
+        Assert.That(Offset(note), Is.EqualTo(new Vector2(100, 0)));
+        Assert.That(GroupOffset.Shown(note, note.GetComponent<Note>().Position), Is.EqualTo(new Vector2(400, 400)));
     }
 
     [Test]
-    public void SeekingBackPutsAnItemBackWhereItStarted()
+    public void TheItemsOwnPositionIsNeverWritten()
     {
         _groups.Groups[0].Effects.Add(GroupEffect.Move(0f, 1f, new Vector2(100, 0)));
         Entity note = Member(Store, new Note(5000, new Vector2(300, 400)), 0);
 
         At(2000);
         Frame();
-        Assert.That(note.GetComponent<Note>().Position.X, Is.EqualTo(400f).Within(0.01f));
+        Assert.That(note.GetComponent<Note>().Position, Is.EqualTo(new Vector2(300, 400)));
 
         At(0);
         Frame();
-        Assert.That(note.GetComponent<Note>().Position, Is.EqualTo(new Vector2(300, 400)));
+        Assert.That(Offset(note), Is.EqualTo(Vector2.Zero));
     }
 
     [Test]
@@ -88,29 +91,16 @@ public sealed class GroupModulationSystemTests : EcsSystemTest
         At(1000);
         Frame();
 
-        Assert.That(both.GetComponent<Note>().Position, Is.EqualTo(new Vector2(400, 370)));
-        Assert.That(one.GetComponent<Note>().Position, Is.EqualTo(new Vector2(400, 400)));
+        Assert.That(Offset(both), Is.EqualTo(new Vector2(100, -30)));
+        Assert.That(Offset(one), Is.EqualTo(new Vector2(100, 0)));
     }
 
     [Test]
-    public void MinesAndBlocksMoveToo()
+    public void MinesBlocksAndStartPointsMoveToo()
     {
         _groups.Groups[1].Effects.Add(GroupEffect.Move(0f, 1f, new Vector2(10, 20)));
         Entity mine = Member(Store, new Mine(5000, new Vector2(100, 100)), 1);
         Entity block = Member(Store, new Block(new Vector2(200, 300), new Vector2(50, 50)), 1);
-
-        At(1000);
-        Frame();
-
-        Assert.That(mine.GetComponent<Mine>().Position, Is.EqualTo(new Vector2(110, 120)));
-        Assert.That(block.GetComponent<Block>().Position, Is.EqualTo(new Vector2(210, 320)));
-        Assert.That(block.GetComponent<Block>().Size, Is.EqualTo(new Vector2(50, 50)));
-    }
-
-    [Test]
-    public void StartPointsMoveWithTheirGroupsToo()
-    {
-        _groups.Groups[1].Effects.Add(GroupEffect.Move(0f, 1f, new Vector2(10, 20)));
         Entity start = Member(Store, new StartPoint(
             "Intro",
             5000,
@@ -121,7 +111,10 @@ public sealed class GroupModulationSystemTests : EcsSystemTest
         At(1000);
         Frame();
 
-        Assert.That(start.GetComponent<StartPoint>().Position, Is.EqualTo(new Vector2(110, 120)));
+        Assert.That(Offset(mine), Is.EqualTo(new Vector2(10, 20)));
+        Assert.That(Offset(block), Is.EqualTo(new Vector2(10, 20)));
+        Assert.That(Offset(start), Is.EqualTo(new Vector2(10, 20)));
+        Assert.That(block.GetComponent<Block>().Position, Is.EqualTo(new Vector2(200, 300)));
     }
 
     [Test]
@@ -134,22 +127,61 @@ public sealed class GroupModulationSystemTests : EcsSystemTest
         At(1000);
         Frame();
 
-        Assert.That(loose.GetComponent<Note>().Position, Is.EqualTo(new Vector2(300, 400)));
-        Assert.That(unrelated.GetComponent<Note>().Position, Is.EqualTo(new Vector2(1, 2)));
+        Assert.That(loose.HasComponent<GroupOffset>(), Is.False);
+        Assert.That(Offset(unrelated), Is.EqualTo(Vector2.Zero));
     }
 
     [Test]
-    public void TheEditorDoesNotMoveItsItems()
+    public void AnItemThatLeavesItsGroupsGoesBackToHowItWasPlaced()
+    {
+        _groups.Groups[0].Effects.Add(GroupEffect.Move(0f, 1f, new Vector2(100, 0)));
+        _groups.Groups[0].Effects.Add(GroupEffect.Colour(0f, 1f, Colors.Red));
+        Entity note = Member(Store, new Note(5000, new Vector2(300, 400)), 0);
+
+        At(1000);
+        Frame();
+        Assert.That(note.HasComponent<GroupOffset>(), Is.True);
+
+        note.GetComponent<ItemGroups>().Mask = 0;
+        Frame();
+
+        Assert.That(note.HasComponent<GroupOffset>(), Is.False);
+        Assert.That(note.HasComponent<GroupColor>(), Is.False);
+    }
+
+    [Test]
+    public void TheEditorShowsItsGroupsLive()
     {
         _level.GetComponent<PlayfieldMode>().Kind = PlayfieldKind.Editor;
         _groups.Groups[0].Effects.Add(GroupEffect.Move(0f, 1f, new Vector2(100, 0)));
+        _groups.Groups[0].Effects.Add(GroupEffect.Colour(0f, 1f, Colors.Red));
         Entity note = Member(Store, new Note(5000, new Vector2(300, 400)), 0);
 
         At(1000);
         Frame();
 
-        Assert.That(note.GetComponent<Note>().Position, Is.EqualTo(new Vector2(300, 400)));
-        Assert.That(note.HasComponent<GroupColor>(), Is.False);
+        Assert.That(Offset(note), Is.EqualTo(new Vector2(100, 0)));
+        Assert.That(note.GetComponent<GroupColor>().Coverage, Is.EqualTo(1f).Within(0.001f));
+        Assert.That(note.GetComponent<Note>().Position, Is.EqualTo(new Vector2(300, 400)), "the document keeps the placed position");
+    }
+
+    [Test]
+    public void ASoloedGroupIsTheOnlyOneTheEditorApplies()
+    {
+        EditorGroupState state = EditorGroupState.Closed;
+        state.SoloGroup = 1;
+        _level.AddComponent(state);
+        _level.GetComponent<PlayfieldMode>().Kind = PlayfieldKind.Editor;
+        _groups.Groups[0].Effects.Add(GroupEffect.Move(0f, 1f, new Vector2(100, 0)));
+        _groups.Groups[1].Effects.Add(GroupEffect.Move(0f, 1f, new Vector2(0, 30)));
+        Entity note = Member(Store, new Note(5000, new Vector2(300, 400)), 0, 1);
+        Entity other = Member(Store, new Note(5000, new Vector2(300, 400)), 0);
+
+        At(1000);
+        Frame();
+
+        Assert.That(Offset(note), Is.EqualTo(new Vector2(0, 30)));
+        Assert.That(other.HasComponent<GroupOffset>(), Is.False);
     }
 
     [Test]

@@ -26,7 +26,7 @@ public sealed class PlayfieldShaderRoutingTests
         store.CreateEntity(new Note(1000, new Vector2(500, 100)), new ItemShader(5));
         var canvas = new LogCanvas();
 
-        PlayfieldRenderer.DrawNotes(canvas, default, store, View, Field, Head, default);
+        DrawItems(canvas, store);
 
         // Each note selects its slot before any of its drawing; none leaks into the next.
         List<int> slotsAtDraw = canvas.SlotAtEachDraw;
@@ -48,7 +48,7 @@ public sealed class PlayfieldShaderRoutingTests
         store.CreateEntity(new Note(1000, new Vector2(300, 100)));
         var canvas = new LogCanvas();
 
-        PlayfieldRenderer.DrawNotes(canvas, default, store, View, Field, Head, default);
+        DrawItems(canvas, store);
 
         Assert.That(canvas.CommonSelections, Does.Contain(CommonShaders.Paths[0]));
         Assert.That(canvas.CommonAtEachDraw, Does.Contain(CommonShaders.Paths[0]));
@@ -64,13 +64,63 @@ public sealed class PlayfieldShaderRoutingTests
         store.CreateEntity(new Block(new Vector2(200, 200), new Vector2(50, 50)), new ItemShader(4));
         var canvas = new LogCanvas();
 
-        PlayfieldRenderer.DrawMines(canvas, default, store, View, Head);
-        PlayfieldRenderer.DrawBlocks(canvas, default, store, View);
+        DrawItems(canvas, store);
 
         Assert.That(canvas.SlotAtEachDraw, Does.Contain(3));
         Assert.That(canvas.SlotAtEachDraw, Does.Contain(4));
         Assert.That(canvas.Selections[^1], Is.EqualTo(0));
     }
+
+    [Test]
+    public void AnItemCanTakeItsShaderFromOneOfItsGroups()
+    {
+        var store = new EntityStore();
+        store.CreateEntity(
+            new Block(new Vector2(200, 200), new Vector2(50, 50)),
+            new ItemGroups(ItemGroups.Bit(0)),
+            new ItemShaderSource(0));
+        LevelGroups groups = LevelGroups.Create();
+        groups.Groups[0].Shader = 3;
+        groups.Groups[0].ShaderKeys.Add(new ShaderKey(
+            "tint", 0f, new Vector4(0.25f, 0.5f, 0.75f, 1f), 4, GroupEase.Linear));
+        var canvas = new LogCanvas();
+
+        DrawItems(canvas, store, groups.Groups);
+
+        Assert.That(canvas.Selections, Does.Contain(3));
+        Assert.That(canvas.Sources, Does.Contain(0));
+        Assert.That(
+            canvas.Values,
+            Does.Contain(("tint", new Vector4(0.25f, 0.5f, 0.75f, 1f), 4)));
+    }
+
+    [Test]
+    public void AnItemWhoseGroupIsNotInItsMaskKeepsItsOwnShader()
+    {
+        var store = new EntityStore();
+        store.CreateEntity(
+            new Block(new Vector2(200, 200), new Vector2(50, 50)),
+            new ItemGroups(ItemGroups.Bit(1)),
+            new ItemShader(4),
+            new ItemShaderSource(0));
+        LevelGroups groups = LevelGroups.Create();
+        groups.Groups[0].Shader = 3;
+        var canvas = new LogCanvas();
+
+        DrawItems(canvas, store, groups.Groups);
+
+        Assert.That(canvas.Sources, Is.All.EqualTo(-1));
+        Assert.That(canvas.Selections, Does.Contain(4));
+        Assert.That(canvas.Values, Is.Empty);
+    }
+
+    private static void DrawItems(IRectCanvas canvas, EntityStore store, GroupDefinition[]? groups = null) =>
+        PlayfieldRenderer.DrawLayers(
+            canvas,
+            default,
+            store,
+            new PlayfieldItemFrame(View, Field, Head, 0f, Editor: false, Groups: groups),
+            drawWedge: null);
 
     private sealed class LogCanvas : IRectCanvas
     {
@@ -81,17 +131,29 @@ public sealed class PlayfieldShaderRoutingTests
         public List<int> SlotAtEachDraw { get; } = new();
         public List<string> CommonSelections { get; } = new();
         public List<string> CommonAtEachDraw { get; } = new();
+        public List<Xanadu.Rendering.BlendMode> Blends { get; } = new();
+        public List<int> Sources { get; } = new();
+        public List<(string Param, Vector4 Value, int Size)> Values { get; } = new();
 
-        public void SelectShader(int slot)
+        public void SetShaderValue(string param, Vector4 value, int size) =>
+            Values.Add((param, value, size));
+
+        public void SelectShader(
+            int slot,
+            Xanadu.Rendering.BlendMode blend = Xanadu.Rendering.BlendMode.Mix,
+            int sourceGroup = -1)
         {
             _slot = slot;
             Selections.Add(slot);
+            Blends.Add(blend);
+            Sources.Add(sourceGroup);
         }
 
-        public void SelectCommonShader(string path)
+        public void SelectCommonShader(string path, Xanadu.Rendering.BlendMode blend = Xanadu.Rendering.BlendMode.Mix)
         {
             _commonPath = path;
             CommonSelections.Add(path);
+            Blends.Add(blend);
         }
 
         public void SetVisible(Rid canvas, bool visible) { }
