@@ -43,6 +43,8 @@ public struct ItemLayer(int layer, int z) : IComponent, IEquatable<ItemLayer>
             return Grass;
         if (kind == typeof(LevelText))
             return Texts;
+        // A screen-read region starts on the editor's current layer instead;
+        // see EditorPlacementCreator. This is only its fallback.
         return Gameplay;
     }
 
@@ -136,4 +138,35 @@ public struct ItemLayer(int layer, int z) : IComponent, IEquatable<ItemLayer>
     public static bool operator ==(ItemLayer a, ItemLayer b) => a.Equals(b);
 
     public static bool operator !=(ItemLayer a, ItemLayer b) => !a.Equals(b);
+}
+
+/// <summary>
+/// Where an effect left by an item (a note pop, a dash link fade, a hit or
+/// dash trail) draws: on its source's layer, just above the source
+/// (docs/render-architecture.md D18a). Taken when the effect is made, since
+/// the source is usually gone the moment after. Not an <see cref="ItemLayer"/>,
+/// so effects never count as placed items.
+/// </summary>
+public readonly struct EffectLayer(int layer, int z) : IComponent
+{
+    public readonly int Layer = layer;
+    public readonly int Z = z;
+
+    /// <summary>The layer and z of the item an effect comes from.</summary>
+    public static EffectLayer From(Entity source)
+    {
+        if (source.IsNull)
+            return Loose;
+        ItemLayer layer = ItemLayer.Of(source);
+        return new EffectLayer(layer.Layer, layer.Z);
+    }
+
+    /// <summary>
+    /// An effect made without a source: in front of everything on the gameplay
+    /// layer, where notes are by default.
+    /// </summary>
+    public static readonly EffectLayer Loose = new(ItemLayer.Gameplay, int.MaxValue);
+
+    public static EffectLayer Of(Entity effect) =>
+        effect.TryGetComponent(out EffectLayer layer) ? layer : Loose;
 }

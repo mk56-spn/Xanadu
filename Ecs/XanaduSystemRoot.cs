@@ -58,6 +58,9 @@ public sealed class XanaduSystemRoot : SystemRoot, IDisposable
 
     public ToastSystem Toasts { get; }
 
+    private readonly Xanadu.Systems.Shaders.GodotPassSurfaces? _playPassSurfaces;
+    private readonly Xanadu.Systems.Shaders.GodotPassSurfaces? _editorPassSurfaces;
+
     public OffsetSettings Offsets { get; }
 
     public MapOffsetSettings MapOffsets { get; }
@@ -78,9 +81,12 @@ public sealed class XanaduSystemRoot : SystemRoot, IDisposable
         bool transitions = true,
         IKeyboardState? keyboard = null,
         HudLayoutSettings? hudLayout = null,
-        IWheelSource? wheel = null) : base(entities, "Xanadu")
+        IWheelSource? wheel = null,
+        Node? passHost = null) : base(entities, "Xanadu")
     {
         var canvas = new GodotRectCanvas();
+        _playPassSurfaces = passHost is null ? null : new Xanadu.Systems.Shaders.GodotPassSurfaces(passHost);
+        _editorPassSurfaces = passHost is null ? null : new Xanadu.Systems.Shaders.GodotPassSurfaces(passHost);
         _entities = entities;
         entities.OnEntityDelete += OnEntityDelete;
         _visuals = new VisualRidRelease(entities);
@@ -140,6 +146,17 @@ public sealed class XanaduSystemRoot : SystemRoot, IDisposable
             canvas,
             parentCanvas);
         Add(_audioSystems);
+
+        // A screen-read region's rect is in canvas coordinates; Godot's back
+        // buffer wants render-target pixels, so scale through the viewport's
+        // stretch transform (docs/render-architecture.md step 0, panel E).
+        CanvasItem? canvasHost = passHost as CanvasItem;
+        Func<Rect2, Rect2>? toPixels = canvasHost is null
+            ? null
+            : rect => canvasHost.GetViewport() is { } viewport
+                ? viewport.GetFinalTransform() * rect
+                : rect;
+
         _playfieldSystems = new PlayfieldSystemGroup(
             entities,
             canvas,
@@ -153,7 +170,9 @@ public sealed class XanaduSystemRoot : SystemRoot, IDisposable
             new GodotCharacterRigFiles(),
             PlayKeyboard,
             new GodotOverlayToggleSource(DebugKeys.Hitboxes),
-            MapOffsets);
+            MapOffsets,
+            _playPassSurfaces,
+            toPixels);
         Add(_playfieldSystems);
         _editorSystems = new EditorSystemGroup(
             entities,
@@ -164,7 +183,9 @@ public sealed class XanaduSystemRoot : SystemRoot, IDisposable
             parentCanvas,
             _metronomeAudio,
             EditorHistory,
-            wheel);
+            wheel,
+            _editorPassSurfaces,
+            toPixels);
         _editorSystems.SetActive(false);
         Add(_editorSystems);
         Add(new InputSystemGroup(
@@ -288,6 +309,8 @@ public sealed class XanaduSystemRoot : SystemRoot, IDisposable
         _debugSystems.Dispose();
         _editorSystems.Dispose();
         _playfieldSystems.Dispose();
+        _playPassSurfaces?.Dispose();
+        _editorPassSurfaces?.Dispose();
         _audioSystems.Dispose();
     }
 }

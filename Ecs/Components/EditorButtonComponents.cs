@@ -67,6 +67,12 @@ public enum EditorButtonKind
     /// argument is the <see cref="GrassSetting"/> plus one, negative for less.
     /// </summary>
     GrassStep,
+    /// <summary>Moves the selection one layer back or forward; the argument is the step.</summary>
+    LayerStep,
+    /// <summary>Lowers or raises the selection's z; the argument is the step.</summary>
+    ZStep,
+    /// <summary>Steps where the selection's shader comes from; the argument is the step.</summary>
+    ShaderSourceStep,
 }
 
 /// <summary>An ECS editor button: what it does, and the value it does it with.</summary>

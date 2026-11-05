@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using Godot;
+using Xanadu.Rendering;
 
 namespace Xanadu.Ecs;
 
@@ -23,6 +24,9 @@ public sealed class ShaderSlot
     /// <summary>The compiled shader, built when first drawn and rebuilt if the source changes.</summary>
     public ShaderMaterial? Material;
     public string? CompiledSource;
+
+    /// <summary>One compiled material per blend mode, made the first time it is drawn (D17).</summary>
+    public readonly Dictionary<BlendMode, ShaderMaterial> BlendVariants = new();
 
     public ShaderSlot Clone() => new()
     {
@@ -73,4 +77,31 @@ public struct ItemCommonShader(string path) : IComponent
     /// <summary>The common shader path an entity is drawn with, or "" when it has none.</summary>
     public static string Of(Entity entity) =>
         entity.TryGetComponent(out ItemCommonShader shader) ? shader.Path : "";
+}
+
+/// <summary>
+/// Where an item's shader comes from (docs/render-architecture.md D11): its own
+/// static shader, or one group's item-shader track. The group must be in the
+/// item's mask; when it isn't, or its track has no shader, the item falls back
+/// to its own shader. Every editor item carries one from creation.
+/// </summary>
+public struct ItemShaderSource(int group) : IComponent
+{
+    /// <summary>The item's own shader.</summary>
+    public const int Own = -1;
+
+    public int Group = group;
+
+    /// <summary>The group an item follows, or <see cref="Own"/>.</summary>
+    public static int Of(Entity entity) =>
+        entity.TryGetComponent(out ItemShaderSource source) ? source.Group : Own;
+
+    /// <summary>Sets the source, adding the component if the item has none.</summary>
+    public static void Put(Entity entity, int group)
+    {
+        if (entity.HasComponent<ItemShaderSource>())
+            entity.GetComponent<ItemShaderSource>().Group = group;
+        else
+            entity.AddComponent(new ItemShaderSource(group));
+    }
 }

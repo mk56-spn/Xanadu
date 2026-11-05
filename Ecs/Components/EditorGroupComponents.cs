@@ -8,12 +8,23 @@ public struct EditorGroupCell(int index) : IComponent
     public int Index = index;
 }
 
-/// <summary>Where the groups grid sits in the sidebar, so its cells can follow the open dropdown above it.</summary>
-public struct EditorGroupGrid(Entity label, Entity[] cells, Entity preview) : IComponent
+/// <summary>
+/// The group bar pinned at the top centre of the editor view: which group it
+/// points at (a label, then − and +) and EDIT, which opens that group's panel.
+/// </summary>
+public struct EditorGroupBar(Entity label, Entity previous, Entity next, Entity edit) : IComponent
+{
+    public Entity Label = label;
+    public Entity Previous = previous;
+    public Entity Next = next;
+    public Entity Edit = edit;
+}
+
+/// <summary>The groups grid in the sidebar: each cell puts the selection into its group, or takes it out.</summary>
+public struct EditorGroupGrid(Entity label, Entity[] cells) : IComponent
 {
     public Entity Label = label;
     public Entity[] Cells = cells;
-    public Entity Preview = preview;
 }
 
 /// <summary>What the group overlay is showing, on the editor entity.</summary>
@@ -22,15 +33,15 @@ public struct EditorGroupState : IComponent
     /// <summary>The group being edited, or -1 while the overlay is closed.</summary>
     public int Open;
 
+    /// <summary>The group the top bar points at; EDIT opens it, and stepping switches an open panel to it.</summary>
+    public int BarGroup;
+
     /// <summary>Times typed or dragged in the overlay snap to the beat grid.</summary>
     public bool Snap;
 
     /// <summary>The first second the overlay's timeline shows, and how many it spans.</summary>
     public float ViewStart;
     public float ViewSpan;
-
-    /// <summary>Whether the editor draws ghosts of where the groups put their members.</summary>
-    public bool Preview;
 
     /// <summary>The group and effect the overlay's selection bar acts on.</summary>
     public int SelectedGroup;
@@ -39,7 +50,7 @@ public struct EditorGroupState : IComponent
     /// <summary>While set, the selected move effect's offset is dragged on the playfield.</summary>
     public bool TargetEdit;
 
-    /// <summary>The group soloed in the editor preview, or -1 for all groups.</summary>
+    /// <summary>The group soloed in the editor: the only one applied to the live items, or -1 for all groups.</summary>
     public int SoloGroup;
 
     /// <summary>Whether the colour palette is showing over the overlay.</summary>
@@ -48,11 +59,26 @@ public struct EditorGroupState : IComponent
     /// <summary>The effect row being dragged on the timeline, or -1.</summary>
     public int DragRow;
 
+    /// <summary>The instance uniform, and the component of it, the shader track edits.</summary>
+    public int ShaderParam;
+    public int ShaderChannel;
+
+    /// <summary>Whether the shader row edits the item-shader track or the buffer track.</summary>
+    public bool BufferTrack;
+
     /// <summary>What a drag moves: the whole effect, or just its start or end.</summary>
     public EditorGroupDragMode DragMode;
 
     /// <summary>Seconds from the effect's start to where the pointer grabbed it, for a whole-effect drag.</summary>
     public float DragGrab;
+
+    /// <summary>
+    /// Whether the group panel is open on this editor. The panel is see-through
+    /// and docked over the top of the view, so the panels that float there hide
+    /// while it is open.
+    /// </summary>
+    public static bool IsOpen(Entity editor) =>
+        !editor.IsNull && editor.TryGetComponent(out EditorGroupState state) && state.Open >= 0;
 
     public static EditorGroupState Closed => new()
     {
@@ -110,9 +136,26 @@ public enum EditorGroupPart
     SelectionNudgeRight,
     SelectionPick,
 
-    /// <summary>The live preview panel and its playhead marker.</summary>
-    PreviewPanel,
+    /// <summary>The timeline's playhead marker.</summary>
     PlayheadLine,
+
+    /// <summary>Whether the group's members draw into one buffer (D12).</summary>
+    BufferToggle,
+
+    /// <summary>The group's item-shader track row: what it is and its controls.</summary>
+    ShaderText,
+    ShaderSlot,
+    ShaderParam,
+    ShaderChannel,
+    ShaderDown,
+    ShaderValue,
+    ShaderUp,
+    ShaderClear,
+    BufferTrack,
+    BufferTint,
+    BufferAlphaDown,
+    BufferAlphaUp,
+    BufferBlend,
 
     /// <summary>The colour palette popover.</summary>
     PalettePanel,
@@ -130,8 +173,6 @@ public enum EditorGroupPart
     RowB,
     RowEase,
     RowDelete,
-    RowTrack,
-    RowBar,
 
     /// <summary>Pooled pieces of the timeline's ruler.</summary>
     TickLine,
@@ -143,4 +184,34 @@ public struct EditorGroupPiece(EditorGroupPart part, int row = 0) : IComponent
 {
     public EditorGroupPart Part = part;
     public int Row = row;
+}
+
+/// <summary>Marks the view bar button that shows or hides the group tags on items.</summary>
+public struct GroupTagsToggle : ITag;
+
+/// <summary>
+/// The switch for the group tags drawn beside items (<c>EditorGroupTagsDrawer</c>).
+/// The bar button's <see cref="Toggle"/> is the state, and it
+/// starts off: tags only show while it's on.
+/// </summary>
+public static class GroupTagsSwitch
+{
+    public const string Label = "TAGS";
+
+    public static Entity Attach(Entity button)
+    {
+        button.AddComponent(new Toggle(Label, Label, false));
+        button.AddTag<GroupTagsToggle>();
+        button.AddComponent(new UiTooltip("Show each item's groups beside it, as G1, G2 …"));
+        return button;
+    }
+
+    /// <summary>Whether to draw the tags; an editor with no button draws none.</summary>
+    public static bool IsOn(EntityStore store)
+    {
+        foreach (Entity toggle in store.Query<Toggle>().AllTags(Tags.Get<GroupTagsToggle>()).Entities)
+            return toggle.GetComponent<Toggle>().Value;
+
+        return false;
+    }
 }

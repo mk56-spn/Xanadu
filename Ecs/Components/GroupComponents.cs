@@ -67,22 +67,67 @@ public readonly record struct GroupEffect(
     }
 }
 
-/// <summary>One group slot: a name and its timed effects.</summary>
+/// <summary>One group slot: a name, its timed effects and its item-shader track.</summary>
 public sealed class GroupDefinition
 {
     public string Name = "";
     public List<GroupEffect> Effects = new();
 
-    public bool IsEmpty => Name.Length == 0 && Effects.Count == 0;
+    /// <summary>The shader slot its item-shader track draws with, or 0 for none
+    /// (docs/render-architecture.md D11).</summary>
+    public int Shader;
+
+    /// <summary>The track's keyed instance-uniform values, in any order.</summary>
+    public List<ShaderKey> ShaderKeys = new();
+
+    /// <summary>Whether the group has a shader (a slot or keys on its track).</summary>
+    public bool HasShader => Shader != 0 || ShaderKeys.Count > 0;
+
+    /// <summary>Whether its members draw into one buffer first (D12). A lock: never switched off by itself.</summary>
+    public bool Buffered;
+
+    /// <summary>The buffer's tint, multiplied into the members' image.</summary>
+    public Color BufferTint = Colors.White;
+
+    /// <summary>The buffer's alpha, multiplied with the tint's.</summary>
+    public float BufferAlpha = 1f;
+
+    /// <summary>The shader slot the buffer is drawn with, or 0 for none.</summary>
+    public int BufferShader;
+
+    /// <summary>The buffer shader's keyed instance values, its own separate track (D14).</summary>
+    public List<ShaderKey> BufferKeys = new();
+
+    /// <summary>How the buffer blends into its layer; static, like an item's blend (D17).</summary>
+    public Xanadu.Rendering.BlendMode BufferBlend = Xanadu.Rendering.BlendMode.Mix;
+
+    public bool IsEmpty => Name.Length == 0 && Effects.Count == 0 && !HasShader && !Buffered;
 
     public GroupDefinition Clone() => new()
     {
         Name = Name,
         Effects = new List<GroupEffect>(Effects),
+        Shader = Shader,
+        ShaderKeys = new List<ShaderKey>(ShaderKeys),
+        Buffered = Buffered,
+        BufferTint = BufferTint,
+        BufferAlpha = BufferAlpha,
+        BufferShader = BufferShader,
+        BufferKeys = new List<ShaderKey>(BufferKeys),
+        BufferBlend = BufferBlend,
     };
 
     public bool SameAs(GroupDefinition other) =>
-        Name == other.Name && Effects.SequenceEqual(other.Effects);
+        Name == other.Name &&
+        Effects.SequenceEqual(other.Effects) &&
+        Shader == other.Shader &&
+        ShaderKeys.SequenceEqual(other.ShaderKeys) &&
+        Buffered == other.Buffered &&
+        BufferTint == other.BufferTint &&
+        BufferAlpha.Equals(other.BufferAlpha) &&
+        BufferShader == other.BufferShader &&
+        BufferKeys.SequenceEqual(other.BufferKeys) &&
+        BufferBlend == other.BufferBlend;
 }
 
 /// <summary>The level's groups, on the editor or play entity that owns the level.</summary>
@@ -162,30 +207,58 @@ public struct ItemGroups(uint mask) : IComponent
     }
 }
 
-/// <summary>Where an item sits without its groups' moves, kept while a play scene moves it.</summary>
-public struct GroupBase(Vector2 position) : IComponent
+/// <summary>
+/// How far the item's groups have moved it at the playhead. It is applied when
+/// the item is drawn, hit or picked, and never written into the item's own
+/// position, so the placed position stays what the level, undo and saving hold
+/// (docs/render-architecture.md step 3a). Worked out each frame by
+/// <c>GroupModulationSystem</c>; an item no group moves has none.
+/// </summary>
+public struct GroupOffset(Vector2 offset) : IComponent
 {
-    public Vector2 Position = position;
+    public Vector2 Offset = offset;
+
+    /// <summary>The item's offset, or zero.</summary>
+    public static Vector2 Of(Entity entity) =>
+        !entity.IsNull && entity.TryGetComponent(out GroupOffset moved) ? moved.Offset : Vector2.Zero;
+
+    /// <summary>Where a placed playfield point of the item is shown at the playhead.</summary>
+    public static Vector2 Shown(Entity entity, Vector2 placed) => placed + Of(entity);
+
+    /// <summary>A view that draws the item's placed geometry where it is shown.</summary>
+    public static PlayfieldView View(Entity entity, PlayfieldView view)
+    {
+        Vector2 offset = Of(entity);
+        if (offset == Vector2.Zero)
+            return view;
+        view.ScreenOrigin += offset * view.Scale;
+        return view;
+    }
 }
 
 /// <summary>
 /// The colour a group fades an item towards: <see cref="Mix"/> at <see cref="Coverage"/>
 /// of the way from the item's own colour. Drawing blends the item's colour into it.
+/// <see cref="Alpha"/> is the separate, multiplied product of every group's own
+/// alpha (docs/render-architecture.md D6), so a colour in one group never brings
+/// back an item another group has faded out.
 /// </summary>
-public struct GroupColor(Color mix, float coverage) : IComponent
+public struct GroupColor(Color mix, float coverage, float alpha = 1f) : IComponent
 {
     public Color Mix = mix;
     public float Coverage = coverage;
+    public float Alpha = alpha;
 
-    /// <summary>The item's colour with the groups' fade applied; its own transparency is kept.</summary>
+    /// <summary>The item's colour with the groups' fades applied; its own transparency is kept.</summary>
     public readonly Color Apply(Color basis)
     {
-        if (Coverage <= 0f)
+        if (Coverage <= 0f && Alpha >= 1f)
             return basis;
 
-        float alpha = basis.A * Mathf.Lerp(1f, Mix.A, Coverage);
-        Color blended = new Color(basis.R, basis.G, basis.B).Lerp(new Color(Mix.R, Mix.G, Mix.B), Coverage);
-        return new Color(blended.R, blended.G, blended.B, alpha);
+        Color blended = Coverage > 0f
+            ? new Color(basis.R, basis.G, basis.B).Lerp(new Color(Mix.R, Mix.G, Mix.B), Coverage)
+            : basis;
+        return new Color(blended.R, blended.G, blended.B, basis.A * Alpha);
     }
 
     /// <summary>
@@ -203,15 +276,16 @@ public struct GroupColor(Color mix, float coverage) : IComponent
 /// The fade reaching a block's outline, kept apart from <see cref="GroupColor"/>,
 /// which reaches its interior, so each can follow different groups.
 /// </summary>
-public struct GroupOutlineColor(Color mix, float coverage) : IComponent
+public struct GroupOutlineColor(Color mix, float coverage, float alpha = 1f) : IComponent
 {
     public Color Mix = mix;
     public float Coverage = coverage;
+    public float Alpha = alpha;
 
     /// <summary>The colour to draw a block's outline in.</summary>
     public static Color For(Entity entity, Block block) =>
         entity.TryGetComponent(out GroupOutlineColor group)
-            ? new GroupColor(group.Mix, group.Coverage).Apply(block.OutlineColor)
+            ? new GroupColor(group.Mix, group.Coverage, group.Alpha).Apply(block.OutlineColor)
             : block.OutlineColor;
 
     /// <summary>The colour to draw a spike's outline in: it follows the same groups as its interior.</summary>
