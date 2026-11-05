@@ -25,7 +25,12 @@ public interface IChartItems
 
     List<PolygonDocument> Polygons { get; set; }
 
+    List<ScreenReadDocument> ScreenReads { get; set; }
+
     List<GroupDocument> Groups { get; set; }
+
+    /// <summary>The layer table: the layers that have a name or a pass.</summary>
+    List<LayerDocument> Layers { get; set; }
 
     /// <summary>The playfield background as #rrggbb or #rrggbbaa, or "" for the theme default.</summary>
     string BackgroundColor { get; set; }

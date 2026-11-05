@@ -23,6 +23,8 @@ public static partial class LevelDocumentMapper
                 Groups = GroupsOf(entity),
                 Layer = ItemLayer.Of(entity).Layer,
                 Z = ItemLayer.Of(entity).Z,
+                Blend = ItemBlend.Of(entity),
+                ShaderSource = ItemShaderSource.Of(entity),
                 Shader = ItemShader.Of(entity),
             });
         }
@@ -47,6 +49,8 @@ public static partial class LevelDocumentMapper
                 polygon.Rotation), polygon.Shader);
             Subscribe(created, polygon.Groups);
             ItemLayer.Put(created, new ItemLayer(polygon.Layer, polygon.Z));
+            ItemBlend.Put(created, polygon.Blend);
+            ItemShaderSource.Put(created, polygon.ShaderSource);
             SelfModulate.Put(created, polygon.SelfModulate);
         }
     }

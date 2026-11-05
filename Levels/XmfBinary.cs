@@ -18,7 +18,7 @@ public sealed class XmfFormatException(string message) : Exception(message);
 public static partial class XmfBinary
 {
     public const ushort MajorVersion = 2;
-    public const ushort MinorVersion = 1;
+    public const ushort MinorVersion = 6;
 
     /// <summary>The extension level files are saved with, including the dot.</summary>
     public const string Extension = ".xmf";
@@ -60,6 +60,24 @@ public static partial class XmfBinary
 
         /// <summary>Each item's layer and z, absent when every item is on its kind's default layer at z 0.</summary>
         ItemLayers = 17,
+
+        /// <summary>The layer table: names and passes, absent when every layer is plain.</summary>
+        LayerTable = 18,
+
+        /// <summary>Each item's blend mode, absent when every item is on mix.</summary>
+        ItemBlends = 19,
+
+        /// <summary>Groups' item-shader tracks, absent when no group has one.</summary>
+        GroupShaders = 20,
+
+        /// <summary>Each item's shader source, absent when every item uses its own shader.</summary>
+        ItemShaderSources = 21,
+
+        /// <summary>Buffered groups and their buffer settings, absent when none is buffered.</summary>
+        GroupBuffers = 22,
+
+        /// <summary>Screen-read regions, absent when the level has none.</summary>
+        ScreenReads = 23,
     }
 
     public static byte[] Write(LevelDocument document)
@@ -90,6 +108,18 @@ public static partial class XmfBinary
             file.Add((uint)ChunkId.Polygons, WritePolygons(document.Polygons, strings));
         if (XmfItemLayers.HasLayers(document))
             file.Add((uint)ChunkId.ItemLayers, XmfItemLayers.Write(document));
+        if (XmfLayerTable.HasLayers(document))
+            file.Add((uint)ChunkId.LayerTable, XmfLayerTable.Write(document));
+        if (XmfItemBlends.HasBlends(document))
+            file.Add((uint)ChunkId.ItemBlends, XmfItemBlends.Write(document));
+        if (XmfGroupShaders.HasTracks(document))
+            file.Add((uint)ChunkId.GroupShaders, XmfGroupShaders.Write(document));
+        if (XmfItemShaderSources.HasSources(document))
+            file.Add((uint)ChunkId.ItemShaderSources, XmfItemShaderSources.Write(document));
+        if (XmfGroupBuffers.HasBuffers(document))
+            file.Add((uint)ChunkId.GroupBuffers, XmfGroupBuffers.Write(document));
+        if (HasScreenReads(document))
+            file.Add((uint)ChunkId.ScreenReads, WriteScreenReads(document.ScreenReads));
         return file.ToArray();
     }
 
@@ -143,10 +173,39 @@ public static partial class XmfBinary
             document.Grass = ReadGrass(grass);
         if (file.TryGet((uint)ChunkId.Polygons, out Chunk polygons))
             document.Polygons = ReadPolygons(polygons, strings);
+        // Before the item layers: that chunk lists each kind's items in the
+        // same order, so every list has to exist by then.
+        if (file.TryGet((uint)ChunkId.ScreenReads, out Chunk screenReads))
+            document.ScreenReads = ReadScreenReads(screenReads);
         if (file.TryGet((uint)ChunkId.ItemLayers, out Chunk layers))
         {
             using BinaryReader reader = layers.OpenReader();
             XmfItemLayers.Read(reader, document);
+        }
+        if (file.TryGet((uint)ChunkId.LayerTable, out Chunk table))
+        {
+            using BinaryReader reader = table.OpenReader();
+            XmfLayerTable.Read(reader, document);
+        }
+        if (file.TryGet((uint)ChunkId.ItemBlends, out Chunk blends))
+        {
+            using BinaryReader reader = blends.OpenReader();
+            XmfItemBlends.Read(reader, document);
+        }
+        if (file.TryGet((uint)ChunkId.GroupShaders, out Chunk groupShaders))
+        {
+            using BinaryReader reader = groupShaders.OpenReader();
+            XmfGroupShaders.Read(reader, document);
+        }
+        if (file.TryGet((uint)ChunkId.ItemShaderSources, out Chunk sources))
+        {
+            using BinaryReader reader = sources.OpenReader();
+            XmfItemShaderSources.Read(reader, document);
+        }
+        if (file.TryGet((uint)ChunkId.GroupBuffers, out Chunk buffers))
+        {
+            using BinaryReader reader = buffers.OpenReader();
+            XmfGroupBuffers.Read(reader, document);
         }
         return document;
     }

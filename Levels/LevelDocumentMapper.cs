@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using Godot;
@@ -36,6 +37,7 @@ public static partial class LevelDocumentMapper
             StartPoints = new List<StartPointDocument>(),
             Blocks = new List<BlockDocument>(),
             Groups = CaptureGroups(editor),
+            Layers = CaptureLayers(editor),
         };
 
         CaptureShaders(editor, document);
@@ -72,6 +74,8 @@ public static partial class LevelDocumentMapper
                 Groups = GroupsOf(entity),
                 Layer = ItemLayer.Of(entity).Layer,
                 Z = ItemLayer.Of(entity).Z,
+                Blend = ItemBlend.Of(entity),
+                ShaderSource = ItemShaderSource.Of(entity),
                 Item = Xif.FromEcs(ItemShader.Of(entity), ItemCommonShader.Of(entity)),
             });
         }
@@ -92,6 +96,8 @@ public static partial class LevelDocumentMapper
                 Groups = GroupsOf(entity),
                 Layer = ItemLayer.Of(entity).Layer,
                 Z = ItemLayer.Of(entity).Z,
+                Blend = ItemBlend.Of(entity),
+                ShaderSource = ItemShaderSource.Of(entity),
                 Shader = ItemShader.Of(entity),
             });
         }
@@ -114,6 +120,8 @@ public static partial class LevelDocumentMapper
                 Groups = GroupsOf(entity),
                 Layer = ItemLayer.Of(entity).Layer,
                 Z = ItemLayer.Of(entity).Z,
+                Blend = ItemBlend.Of(entity),
+                ShaderSource = ItemShaderSource.Of(entity),
             });
         }
 
@@ -139,6 +147,8 @@ public static partial class LevelDocumentMapper
                 Groups = GroupsOf(entity),
                 Layer = ItemLayer.Of(entity).Layer,
                 Z = ItemLayer.Of(entity).Z,
+                Blend = ItemBlend.Of(entity),
+                ShaderSource = ItemShaderSource.Of(entity),
                 Shader = ItemShader.Of(entity),
             });
         }
@@ -165,6 +175,8 @@ public static partial class LevelDocumentMapper
                 Groups = GroupsOf(entity),
                 Layer = ItemLayer.Of(entity).Layer,
                 Z = ItemLayer.Of(entity).Z,
+                Blend = ItemBlend.Of(entity),
+                ShaderSource = ItemShaderSource.Of(entity),
                 Shader = ItemShader.Of(entity),
             });
         }
@@ -189,6 +201,8 @@ public static partial class LevelDocumentMapper
                 Groups = GroupsOf(entity),
                 Layer = ItemLayer.Of(entity).Layer,
                 Z = ItemLayer.Of(entity).Z,
+                Blend = ItemBlend.Of(entity),
+                ShaderSource = ItemShaderSource.Of(entity),
                 Shader = ItemShader.Of(entity),
             });
         }
@@ -201,6 +215,27 @@ public static partial class LevelDocumentMapper
 
         CaptureGrass(entities, document);
         CapturePolygons(entities, document);
+
+        foreach (Entity entity in entities.Query<ScreenReadRegion>().ToEntityList())
+        {
+            ScreenReadRegion region = entity.GetComponent<ScreenReadRegion>();
+            ItemLayer layer = ItemLayer.Of(entity);
+            document.ScreenReads.Add(new ScreenReadDocument
+            {
+                X = region.Position.X,
+                Y = region.Position.Y,
+                Width = region.Size.X,
+                Height = region.Size.Y,
+                Layer = layer.Layer,
+                Z = layer.Z,
+            });
+        }
+
+        document.ScreenReads.Sort((a, b) =>
+        {
+            int x = a.X.CompareTo(b.X);
+            return x != 0 ? x : a.Y.CompareTo(b.Y);
+        });
         return document;
     }
 
@@ -214,6 +249,7 @@ public static partial class LevelDocumentMapper
         document.Texts ??= new List<TextDocument>();
         document.Grass ??= new List<GrassDocument>();
         document.Polygons ??= new List<PolygonDocument>();
+        document.ScreenReads ??= new List<ScreenReadDocument>();
         document.Groups ??= new List<GroupDocument>();
 
         foreach (Entity entity in entities.Query<Note>().ToEntityList())
@@ -223,6 +259,7 @@ public static partial class LevelDocumentMapper
             entity.DeleteEntity();
 
         ApplyGroups(editor, document.Groups);
+        ApplyLayers(editor, document.Layers);
         ApplyShaders(editor, document);
 
         foreach (NoteDocument note in document.Notes)
@@ -246,6 +283,8 @@ public static partial class LevelDocumentMapper
                 note.ShapePiece), note.Item?.PrimaryShader ?? 0, note.Item?.PrimaryCommonShader ?? "");
             Subscribe(created, note.Groups);
             ItemLayer.Put(created, new ItemLayer(note.Layer, note.Z));
+            ItemBlend.Put(created, note.Blend);
+            ItemShaderSource.Put(created, note.ShaderSource);
             SelfModulate.Put(created, note.SelfModulate);
         }
 
@@ -266,6 +305,8 @@ public static partial class LevelDocumentMapper
                 groups));
             Subscribe(created, groups);
             ItemLayer.Put(created, new ItemLayer(start.Layer, start.Z));
+            ItemBlend.Put(created, start.Blend);
+            ItemShaderSource.Put(created, start.ShaderSource);
         }
 
         foreach (MineDocument mine in document.Mines)
@@ -277,6 +318,8 @@ public static partial class LevelDocumentMapper
                 mine.FadeOutMs), mine.Shader);
             Subscribe(created, mine.Groups);
             ItemLayer.Put(created, new ItemLayer(mine.Layer, mine.Z));
+            ItemBlend.Put(created, mine.Blend);
+            ItemShaderSource.Put(created, mine.ShaderSource);
             SelfModulate.Put(created, mine.SelfModulate);
         }
 
@@ -299,6 +342,8 @@ public static partial class LevelDocumentMapper
                 created.AddTag<ConstructionHidden>();
             Subscribe(created, block.Groups);
             ItemLayer.Put(created, new ItemLayer(block.Layer, block.Z));
+            ItemBlend.Put(created, block.Blend);
+            ItemShaderSource.Put(created, block.ShaderSource);
             SelfModulate.Put(created, block.SelfModulate);
         }
 
@@ -315,6 +360,8 @@ public static partial class LevelDocumentMapper
                 new Color(spike.OutlineColor)), spike.Shader);
             Subscribe(created, spike.Groups);
             ItemLayer.Put(created, new ItemLayer(spike.Layer, spike.Z));
+            ItemBlend.Put(created, spike.Blend);
+            ItemShaderSource.Put(created, spike.ShaderSource);
             SelfModulate.Put(created, spike.SelfModulate);
         }
 
@@ -330,11 +377,24 @@ public static partial class LevelDocumentMapper
                 text.Rotation), text.Shader);
             Subscribe(created, text.Groups);
             ItemLayer.Put(created, new ItemLayer(text.Layer, text.Z));
+            ItemBlend.Put(created, text.Blend);
+            ItemShaderSource.Put(created, text.ShaderSource);
             SelfModulate.Put(created, text.SelfModulate);
         }
 
         ApplyGrass(entities, document);
         ApplyPolygons(entities, document);
+
+        foreach (Entity entity in entities.Query<ScreenReadRegion>().ToEntityList())
+            entity.DeleteEntity();
+
+        foreach (ScreenReadDocument region in document.ScreenReads)
+        {
+            Entity created = EditorItems.Create(entities, new ScreenReadRegion(
+                new Vector2(region.X, region.Y),
+                new Vector2(region.Width, region.Height)));
+            ItemLayer.Put(created, new ItemLayer(region.Layer, region.Z));
+        }
 
         SongDocument? song = string.IsNullOrWhiteSpace(document.SongId)
             ? null
@@ -463,7 +523,20 @@ public static partial class LevelDocumentMapper
             if (group.IsEmpty)
                 continue;
 
-            var document = new GroupDocument { Id = i, Name = group.Name };
+            var document = new GroupDocument
+            {
+                Id = i,
+                Name = group.Name,
+                Shader = group.Shader,
+                Buffered = group.Buffered,
+                BufferTint = group.BufferTint.ToHtml(),
+                BufferAlpha = group.BufferAlpha,
+                BufferShader = group.BufferShader,
+                BufferBlend = group.BufferBlend,
+            };
+            document.ShaderKeys.AddRange(CaptureKeys(group.ShaderKeys));
+            document.BufferKeys.AddRange(CaptureKeys(group.BufferKeys));
+
             foreach (GroupEffect effect in group.Effects)
             {
                 document.Effects.Add(new GroupEffectDocument
@@ -485,6 +558,42 @@ public static partial class LevelDocumentMapper
         return result;
     }
 
+    /// <summary>A shader track as documents: the value clipped to the vec4 a key holds.</summary>
+    private static List<ShaderKeyDocument> CaptureKeys(List<ShaderKey> keys)
+    {
+        var documents = new List<ShaderKeyDocument>();
+        foreach (ShaderKey key in keys)
+        {
+            documents.Add(new ShaderKeyDocument
+            {
+                Param = key.Param,
+                Time = key.Time,
+                Value = new[] { key.Value.X, key.Value.Y, key.Value.Z, key.Value.W }
+                    .AsSpan(0, Math.Clamp(key.Size, 0, ShaderKey.MaxSize))
+                    .ToArray(),
+                Ease = key.Ease,
+            });
+        }
+
+        return documents;
+    }
+
+    /// <summary>Document keys back onto a track.</summary>
+    private static void ApplyKeys(List<ShaderKeyDocument>? documents, List<ShaderKey> keys)
+    {
+        foreach (ShaderKeyDocument key in documents ?? new List<ShaderKeyDocument>())
+        {
+            float[] value = key.Value ?? [];
+            int size = Math.Clamp(value.Length, 0, ShaderKey.MaxSize);
+            var vector = new Vector4(
+                size > 0 ? value[0] : 0f,
+                size > 1 ? value[1] : 0f,
+                size > 2 ? value[2] : 0f,
+                size > 3 ? value[3] : 0f);
+            keys.Add(new ShaderKey(key.Param ?? "", key.Time, vector, size, key.Ease));
+        }
+    }
+
     /// <summary>Puts the document's groups on the level's entity, every other slot empty.</summary>
     private static void ApplyGroups(Entity editor, List<GroupDocument> documents)
     {
@@ -496,6 +605,15 @@ public static partial class LevelDocumentMapper
 
             GroupDefinition group = levelGroups.Groups[document.Id];
             group.Name = document.Name ?? "";
+            group.Shader = document.Shader;
+            group.Buffered = document.Buffered;
+            group.BufferTint = new Color(document.BufferTint ?? "#ffffffff");
+            group.BufferAlpha = document.BufferAlpha;
+            group.BufferShader = document.BufferShader;
+            group.BufferBlend = document.BufferBlend;
+            ApplyKeys(document.ShaderKeys, group.ShaderKeys);
+            ApplyKeys(document.BufferKeys, group.BufferKeys);
+
             foreach (GroupEffectDocument effect in document.Effects ?? new List<GroupEffectDocument>())
             {
                 group.Effects.Add(new GroupEffect(
