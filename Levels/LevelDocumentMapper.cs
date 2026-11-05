@@ -70,6 +70,8 @@ public static partial class LevelDocumentMapper
                 ShapePiece = note.ShapePiece,
                 SelfModulate = SelfModulate.Packed(entity),
                 Groups = GroupsOf(entity),
+                Layer = ItemLayer.Of(entity).Layer,
+                Z = ItemLayer.Of(entity).Z,
                 Item = Xif.FromEcs(ItemShader.Of(entity), ItemCommonShader.Of(entity)),
             });
         }
@@ -88,6 +90,8 @@ public static partial class LevelDocumentMapper
                 FadeOutMs = mine.FadeOutMs,
                 SelfModulate = SelfModulate.Packed(entity),
                 Groups = GroupsOf(entity),
+                Layer = ItemLayer.Of(entity).Layer,
+                Z = ItemLayer.Of(entity).Z,
                 Shader = ItemShader.Of(entity),
             });
         }
@@ -108,6 +112,8 @@ public static partial class LevelDocumentMapper
                 DirectionX = start.Direction.X,
                 DirectionY = start.Direction.Y,
                 Groups = GroupsOf(entity),
+                Layer = ItemLayer.Of(entity).Layer,
+                Z = ItemLayer.Of(entity).Z,
             });
         }
 
@@ -131,6 +137,8 @@ public static partial class LevelDocumentMapper
                 OutlineGroups = block.OutlineGroups,
                 SelfModulate = SelfModulate.Packed(entity),
                 Groups = GroupsOf(entity),
+                Layer = ItemLayer.Of(entity).Layer,
+                Z = ItemLayer.Of(entity).Z,
                 Shader = ItemShader.Of(entity),
             });
         }
@@ -155,6 +163,8 @@ public static partial class LevelDocumentMapper
                 OutlineColor = spike.OutlineColor.ToRgba32(),
                 SelfModulate = SelfModulate.Packed(entity),
                 Groups = GroupsOf(entity),
+                Layer = ItemLayer.Of(entity).Layer,
+                Z = ItemLayer.Of(entity).Z,
                 Shader = ItemShader.Of(entity),
             });
         }
@@ -177,6 +187,8 @@ public static partial class LevelDocumentMapper
                 Rotation = text.RotationDegrees,
                 SelfModulate = SelfModulate.Packed(entity),
                 Groups = GroupsOf(entity),
+                Layer = ItemLayer.Of(entity).Layer,
+                Z = ItemLayer.Of(entity).Z,
                 Shader = ItemShader.Of(entity),
             });
         }
@@ -233,6 +245,7 @@ public static partial class LevelDocumentMapper
                 note.ShapeId,
                 note.ShapePiece), note.Item?.PrimaryShader ?? 0, note.Item?.PrimaryCommonShader ?? "");
             Subscribe(created, note.Groups);
+            ItemLayer.Put(created, new ItemLayer(note.Layer, note.Z));
             SelfModulate.Put(created, note.SelfModulate);
         }
 
@@ -252,6 +265,7 @@ public static partial class LevelDocumentMapper
                 new Vector2(start.DirectionX, start.DirectionY),
                 groups));
             Subscribe(created, groups);
+            ItemLayer.Put(created, new ItemLayer(start.Layer, start.Z));
         }
 
         foreach (MineDocument mine in document.Mines)
@@ -262,6 +276,7 @@ public static partial class LevelDocumentMapper
                 mine.FadeInMs,
                 mine.FadeOutMs), mine.Shader);
             Subscribe(created, mine.Groups);
+            ItemLayer.Put(created, new ItemLayer(mine.Layer, mine.Z));
             SelfModulate.Put(created, mine.SelfModulate);
         }
 
@@ -283,6 +298,7 @@ public static partial class LevelDocumentMapper
             if (block.ShapeId > 0)
                 created.AddTag<ConstructionHidden>();
             Subscribe(created, block.Groups);
+            ItemLayer.Put(created, new ItemLayer(block.Layer, block.Z));
             SelfModulate.Put(created, block.SelfModulate);
         }
 
@@ -298,6 +314,7 @@ public static partial class LevelDocumentMapper
                 spike.OutlineWidth,
                 new Color(spike.OutlineColor)), spike.Shader);
             Subscribe(created, spike.Groups);
+            ItemLayer.Put(created, new ItemLayer(spike.Layer, spike.Z));
             SelfModulate.Put(created, spike.SelfModulate);
         }
 
@@ -312,6 +329,7 @@ public static partial class LevelDocumentMapper
                 text.Size,
                 text.Rotation), text.Shader);
             Subscribe(created, text.Groups);
+            ItemLayer.Put(created, new ItemLayer(text.Layer, text.Z));
             SelfModulate.Put(created, text.SelfModulate);
         }
 

@@ -16,7 +16,7 @@ namespace Xanadu.Levels;
 public static partial class XmfBinary
 {
     public const ushort MapsetMajorVersion = 2;
-    public const ushort MapsetMinorVersion = 0;
+    public const ushort MapsetMinorVersion = 1;
 
     private const string MapsetFormat = "XMF2";
 
@@ -46,6 +46,9 @@ public static partial class XmfBinary
 
         /// <summary>Each variant's filled shapes, absent when no variant has any.</summary>
         Polygons = 11,
+
+        /// <summary>Each variant's item layers, absent when every item is on its default layer at z 0.</summary>
+        ItemLayers = 12,
     }
 
     public static void SaveMapset(string path, XmfMapset mapset)
@@ -77,6 +80,8 @@ public static partial class XmfBinary
             file.Add((uint)MapsetChunkId.Grass, WriteVariantGrass(mapset.Variants));
         if (mapset.Variants.Exists(HasPolygons))
             file.Add((uint)MapsetChunkId.Polygons, WriteVariantPolygons(mapset.Variants, strings));
+        if (mapset.Variants.Exists(XmfItemLayers.HasLayers))
+            file.Add((uint)MapsetChunkId.ItemLayers, WriteVariantLayers(mapset.Variants));
         return file.ToArray();
     }
 
@@ -104,6 +109,8 @@ public static partial class XmfBinary
             ReadVariantGrass(grass, mapset.Variants);
         if (file.TryGet((uint)MapsetChunkId.Polygons, out Chunk polygons))
             ReadVariantPolygons(polygons, mapset.Variants, strings);
+        if (file.TryGet((uint)MapsetChunkId.ItemLayers, out Chunk layers))
+            ReadVariantLayers(layers, mapset.Variants);
         return mapset;
     }
 
@@ -385,6 +392,27 @@ public static partial class XmfBinary
             throw new FormatException("XMF variant self modulates do not match the variant count.");
         foreach (XmfVariant variant in variants)
             XmfItemColors.ReadSelfModulates(reader, variant);
+    }
+
+    private static byte[] WriteVariantLayers(List<XmfVariant> variants)
+    {
+        using var stream = new MemoryStream();
+        using var writer = new BinaryWriter(stream, Encoding.UTF8, leaveOpen: true);
+        writer.Write((uint)variants.Count);
+        foreach (XmfVariant variant in variants)
+            XmfItemLayers.Write(writer, variant);
+        writer.Flush();
+        return stream.ToArray();
+    }
+
+    private static void ReadVariantLayers(Chunk chunk, List<XmfVariant> variants)
+    {
+        using BinaryReader reader = chunk.OpenReader();
+        uint count = ReadCount(reader, XmfItemIO.MaxItems, "variant item layer");
+        if (count != variants.Count)
+            throw new FormatException("XMF variant item layers do not match the variant count.");
+        foreach (XmfVariant variant in variants)
+            XmfItemLayers.Read(reader, variant);
     }
 
     private static void WriteBlob(BinaryWriter writer, byte[] blob)

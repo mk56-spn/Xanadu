@@ -28,6 +28,7 @@ public static partial class LevelDocumentMapper
         {
             Entity created = EditorItems.Create(entities, ToPatch(grass), grass.Shader);
             Subscribe(created, grass.Groups);
+            ItemLayer.Put(created, new ItemLayer(grass.Layer, grass.Z));
             SelfModulate.Put(created, grass.SelfModulate);
         }
     }
@@ -46,6 +47,8 @@ public static partial class LevelDocumentMapper
         Rotation = patch.RotationDegrees,
         SelfModulate = SelfModulate.Packed(entity),
         Groups = GroupsOf(entity),
+        Layer = ItemLayer.Of(entity).Layer,
+        Z = ItemLayer.Of(entity).Z,
         Shader = ItemShader.Of(entity),
     };
 

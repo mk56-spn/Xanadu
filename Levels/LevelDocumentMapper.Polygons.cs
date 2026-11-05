@@ -21,6 +21,8 @@ public static partial class LevelDocumentMapper
                 Item = XifCopy.Clone(polygon.Item ?? new Xif()),
                 SelfModulate = SelfModulate.Packed(entity),
                 Groups = GroupsOf(entity),
+                Layer = ItemLayer.Of(entity).Layer,
+                Z = ItemLayer.Of(entity).Z,
                 Shader = ItemShader.Of(entity),
             });
         }
@@ -44,6 +46,7 @@ public static partial class LevelDocumentMapper
                 XifCopy.Clone(polygon.Item ?? new Xif()),
                 polygon.Rotation), polygon.Shader);
             Subscribe(created, polygon.Groups);
+            ItemLayer.Put(created, new ItemLayer(polygon.Layer, polygon.Z));
             SelfModulate.Put(created, polygon.SelfModulate);
         }
     }

@@ -52,7 +52,7 @@ public sealed class EditorPaintTool(EditorSceneQuery scene, EditorHistory histor
             if (!GridPlacement.IsSpikeSpaceFree(entities, box))
                 return default;
 
-            created = EditorItems.Create(entities, new Spike(box.Position, box.Size, degrees));
+            created = EditorItems.Place(entities, new Spike(box.Position, box.Size, degrees));
         }
         else
         {
@@ -61,7 +61,7 @@ public sealed class EditorPaintTool(EditorSceneQuery scene, EditorHistory histor
             if (!GridPlacement.IsBlockSpaceFree(entities, box))
                 return default;
 
-            created = EditorItems.Create(entities, new Block(box.Position, box.Size));
+            created = EditorItems.Place(entities, new Block(box.Position, box.Size));
         }
 
         _added = true;

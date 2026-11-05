@@ -28,7 +28,7 @@ public sealed class EditorPlacementCreator(EditorSceneQuery scene, EditorHistory
 
             Playhead startPlayhead = editor.GetComponent<Playhead>();
             EditorSnapshot startBefore = history.Capture();
-            EditorItems.Create(scene.Store, new StartPoint(
+            EditorItems.Place(scene.Store, new StartPoint(
                 "",
                 EditorTiming.Snap(startPlayhead.TimeMs, startPlayhead),
                 startPosition,
@@ -48,7 +48,7 @@ public sealed class EditorPlacementCreator(EditorSceneQuery scene, EditorHistory
                 return;
 
             EditorSnapshot textBefore = history.Capture();
-            Entity text = EditorItems.Create(scene.Store, new LevelText(textPosition, LevelText.Placeholder));
+            Entity text = EditorItems.Place(scene.Store, new LevelText(textPosition, LevelText.Placeholder));
             history.Record(textBefore, history.Capture());
             editor.GetComponent<NoteSelection>().Note = text;
             return;
@@ -70,7 +70,7 @@ public sealed class EditorPlacementCreator(EditorSceneQuery scene, EditorHistory
             patch.Position = grassPosition;
             patch.Seed = GrassPatch.NewSeed();
             EditorSnapshot grassBefore = history.Capture();
-            Entity grass = EditorItems.Create(scene.Store, patch);
+            Entity grass = EditorItems.Place(scene.Store, patch);
             history.Record(grassBefore, history.Capture());
             editor.GetComponent<NoteSelection>().Note = grass;
             return;
@@ -88,7 +88,7 @@ public sealed class EditorPlacementCreator(EditorSceneQuery scene, EditorHistory
 
             Playhead playhead = editor.GetComponent<Playhead>();
             EditorSnapshot before = history.Capture();
-            EditorItems.Create(scene.Store, new Mine(
+            EditorItems.Place(scene.Store, new Mine(
                 EditorTiming.Snap(playhead.TimeMs, playhead),
                 position));
             history.Record(before, history.Capture());
@@ -125,7 +125,7 @@ public sealed class EditorPlacementCreator(EditorSceneQuery scene, EditorHistory
         if (isFormStep)
             note.ShapePiece = NextShapePiece(note.ShapeId);
 
-        Entity created = EditorItems.Create(scene.Store, note);
+        Entity created = EditorItems.Place(scene.Store, note);
         if (isFormStep)
             ReindexConstructionSteps(note.ShapeId);
         history.Record(before, history.Capture());

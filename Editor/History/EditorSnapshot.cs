@@ -25,14 +25,16 @@ public readonly record struct PolygonSnapshot(
     Xanadu.Items.Xif Item,
     uint Groups = 0,
     int Shader = 0,
-    uint Modulate = SelfModulate.White);
+    uint Modulate = SelfModulate.White,
+    ItemLayer Layer = default);
 
 /// <summary>Stable grass-patch snapshot used by undo/redo.</summary>
 public readonly record struct GrassSnapshot(
     GrassPatch Patch,
     uint Groups = 0,
     int Shader = 0,
-    uint Modulate = SelfModulate.White);
+    uint Modulate = SelfModulate.White,
+    ItemLayer Layer = default);
 
 /// <summary>Stable serializable level-text snapshot used by undo/redo.</summary>
 public readonly record struct TextSnapshot(
@@ -42,7 +44,8 @@ public readonly record struct TextSnapshot(
     uint Groups = 0,
     int Shader = 0,
     uint Modulate = SelfModulate.White,
-    float Rotation = 0f);
+    float Rotation = 0f,
+    ItemLayer Layer = default);
 
 /// <summary>Stable serializable start-point snapshot used by undo/redo.</summary>
 public readonly record struct StartPointSnapshot(
@@ -51,7 +54,8 @@ public readonly record struct StartPointSnapshot(
     Vector2 Position,
     System.Numerics.Vector2 Momentum,
     Vector2 Direction,
-    uint Groups = 0);
+    uint Groups = 0,
+    ItemLayer Layer = default);
 
 /// <summary>Stable serializable block snapshot used by undo/redo.</summary>
 public readonly record struct BlockSnapshot(
@@ -66,7 +70,8 @@ public readonly record struct BlockSnapshot(
     float OutlineWidth = Block.DefaultOutlineWidth,
     uint OutlineColor = 0,
     uint FillGroups = Block.AllGroups,
-    uint OutlineGroups = Block.AllGroups);
+    uint OutlineGroups = Block.AllGroups,
+    ItemLayer Layer = default);
 
 /// <summary>Stable serializable spike snapshot used by undo/redo.</summary>
 public readonly record struct SpikeSnapshot(
@@ -77,7 +82,8 @@ public readonly record struct SpikeSnapshot(
     uint Modulate = SelfModulate.White,
     float RotationDegrees = 0f,
     float OutlineWidth = Block.DefaultOutlineWidth,
-    uint OutlineColor = 0);
+    uint OutlineColor = 0,
+    ItemLayer Layer = default);
 
 /// <summary>Stable serializable mine snapshot used by undo/redo.</summary>
 public readonly record struct MineSnapshot(
@@ -87,7 +93,8 @@ public readonly record struct MineSnapshot(
     long FadeOutMs,
     uint Groups = 0,
     int Shader = 0,
-    uint Modulate = SelfModulate.White);
+    uint Modulate = SelfModulate.White,
+    ItemLayer Layer = default);
 
 /// <summary>Stable serializable note snapshot used by undo/redo.</summary>
 public readonly record struct NoteSnapshot(
@@ -109,4 +116,5 @@ public readonly record struct NoteSnapshot(
     long HoldMs = 0,
     int ShapeId = 0,
     int ShapePiece = 0,
-    uint Modulate = SelfModulate.White);
+    uint Modulate = SelfModulate.White,
+    ItemLayer Layer = default);

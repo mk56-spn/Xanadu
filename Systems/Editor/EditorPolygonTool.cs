@@ -76,7 +76,7 @@ public sealed class EditorPolygonTool(
         if (draft.Points.Count >= 3)
         {
             EditorSnapshot before = history.Capture();
-            Entity created = EditorItems.Create(
+            Entity created = EditorItems.Place(
                 scene.Store,
                 LevelPolygon.FromOutline(draft.Points, PlayfieldRenderer.PolygonFill));
             history.Record(before, history.Capture());
