@@ -29,6 +29,7 @@ public static class XafBinary
 		AttachmentExtras = 10,
 		AttachmentModulates = 11,
 		Targets = 12,
+		Skins = 13,
 	}
 
 	public static void Save(string path, XafPackage package)
@@ -75,6 +76,8 @@ public static class XafBinary
 			file.Add((uint)ChunkId.AttachmentModulates, XafExtrasBinary.WriteModulates(package.Attachments));
 		if (minor >= 11)
 			file.Add((uint)ChunkId.Targets, XafTargetsBinary.Write(package.Clips, strings));
+		if (minor >= 15)
+			file.Add((uint)ChunkId.Skins, XafSkinBinary.Write(package.Attachments, strings));
 		return file.ToArray();
 	}
 
@@ -124,6 +127,8 @@ public static class XafBinary
 			XafExtrasBinary.ReadModulates(file.Get((uint)ChunkId.AttachmentModulates, Format), package.Attachments);
 		if (file.Minor >= 11)
 			XafTargetsBinary.Read(file.Get((uint)ChunkId.Targets, Format), strings, package.Clips);
+		if (file.Minor >= 15)
+			XafSkinBinary.Read(file.Get((uint)ChunkId.Skins, Format), strings, package.Attachments);
 		XafValidation.ThrowIfInvalid(package);
 		return package;
 	}
@@ -166,6 +171,7 @@ public static class XafBinary
 		XafClothBinary.Index(package.Cloths, table);
 		XafExtrasBinary.Index(package, table);
 		XafTargetsBinary.Index(package, table);
+		XafSkinBinary.Index(package, table);
 	}
 
 	private static byte[] WriteSkeleton(
@@ -191,6 +197,11 @@ public static class XafBinary
 				writer.Write(bone.Limited);
 				writer.Write(bone.LimitMin);
 				writer.Write(bone.LimitMax);
+			}
+			if (minor >= 14)
+			{
+				writer.Write(bone.Tip.X);
+				writer.Write(bone.Tip.Y);
 			}
 		}
 		writer.Flush();
@@ -229,6 +240,8 @@ public static class XafBinary
 				bone.LimitMin = reader.ReadSingle();
 				bone.LimitMax = reader.ReadSingle();
 			}
+			if (minor >= 14)
+				bone.Tip = new Vector2(reader.ReadSingle(), reader.ReadSingle());
 			skeleton.Bones.Add(bone);
 		}
 		return skeleton;
@@ -303,6 +316,12 @@ public static class XafBinary
 			writer.Write(chain.CollideOffset.X);
 			writer.Write(chain.CollideOffset.Y);
 			writer.Write(chain.CollideRadius);
+			if (minor >= 16)
+			{
+				writer.Write(chain.Sheet);
+				writer.Write(chain.Layer.HasValue);
+				writer.Write(chain.Layer ?? 0);
+			}
 		}
 		writer.Flush();
 		return stream.ToArray();
@@ -337,6 +356,13 @@ public static class XafBinary
 				chain.CollideBoneId = strings.ReadIndex(reader);
 				chain.CollideOffset = new Vector2(reader.ReadSingle(), reader.ReadSingle());
 				chain.CollideRadius = reader.ReadSingle();
+			}
+			if (minor >= 16)
+			{
+				chain.Sheet = reader.ReadBoolean();
+				bool layered = reader.ReadBoolean();
+				int layer = reader.ReadInt32();
+				chain.Layer = layered ? layer : null;
 			}
 			chains.Add(chain);
 		}

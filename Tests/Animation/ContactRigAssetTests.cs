@@ -116,25 +116,39 @@ public sealed class ContactRigAssetTests
 
     private static XafChain Hair(XafPackage package) => package.Chains.Single(chain => chain.Id == "hair");
 
+    /// <summary>The hair's strands: every chain on the head named for hair.</summary>
+    private static List<XafChain> Strands(XafPackage package) =>
+        package.Chains.FindAll(chain => chain.Id.StartsWith("hair", StringComparison.Ordinal));
+
     [Test]
-    public void TheHairHangsFromTheHeadAsGoldenRhombiAndRestsOnTheNearShoulder()
+    public void TheHairIsSeveralSheetStrandsTuckedUnderTheHeadWithAFringeOverIt()
     {
         XafPackage package = Load();
-        XafChain hair = Hair(package);
+        List<XafChain> strands = Strands(package);
+        int head = package.Attachments.Single(attachment => attachment.Group == "head").ZOrder;
 
-        Assert.That(hair.BoneId, Is.EqualTo("head"));
-        Assert.That(hair.HasArt, Is.True);
-        Assert.That(hair.CollideBoneId, Is.EqualTo("upper_arm_l"));
-        Assert.That(hair.CollideRadius, Is.GreaterThan(0f));
-        Assert.That(hair.Lean, Is.GreaterThan(0f), "leans the way the character faces, so it falls over the front");
+        Assert.That(strands, Has.Count.GreaterThanOrEqualTo(4));
+        foreach (XafChain strand in strands)
+        {
+            Assert.That(strand.BoneId, Is.EqualTo("head"), strand.Id);
+            Assert.That(strand.Sheet, Is.True, $"{strand.Id} is one sheet, not a string of pieces");
+            Assert.That(strand.HasArt, Is.True, strand.Id);
+            Assert.That(strand.CollideBoneId, Is.EqualTo("upper_arm_l"), strand.Id);
+            Assert.That(strand.CollideRadius, Is.GreaterThan(0f), strand.Id);
+            Assert.That(strand.Lean, Is.GreaterThan(0f), $"{strand.Id} leans the way the character faces, so it falls over the front");
 
-        string svg = File.ReadAllText(ProjectFile("Tools/Animator/" + hair.SvgPath["res://".Length..]));
-        Assert.That(XafSvgDocument.Groups(svg), Does.Contain(hair.Group));
-        // One flat, light gold fill on a single rhombus: no outline and no second tone.
-        Assert.That(svg, Does.Contain("fill=\"#f5d76e\""));
-        Assert.That(svg, Does.Not.Contain("stroke"));
-        Assert.That(System.Text.RegularExpressions.Regex.Matches(svg, "<path").Count, Is.EqualTo(1));
-        Assert.That(XafChainArt.Layer(package), Is.GreaterThan(package.Attachments.Max(a => a.ZOrder)));
+            string svg = File.ReadAllText(ProjectFile("Tools/Animator/" + strand.SvgPath["res://".Length..]));
+            Assert.That(XafSvgDocument.Groups(svg), Does.Contain(strand.Group));
+            // One flat, light gold shape: no outline and no second tone.
+            Assert.That(svg, Does.Contain("fill=\"#f5d76e\""));
+            Assert.That(svg, Does.Not.Contain("stroke"));
+            Assert.That(System.Text.RegularExpressions.Regex.Matches(svg, "<path").Count, Is.EqualTo(1));
+        }
+
+        // The strands from the back of the head tuck under it; the fringe lies over the forehead.
+        Assert.That(Hair(package).Layer, Is.LessThan(head));
+        XafChain fringe = strands.Single(strand => strand.Id == "hair_fringe");
+        Assert.That(XafChainArt.LayerOf(package, fringe), Is.GreaterThan(head));
     }
 
     /// <summary>
@@ -172,21 +186,28 @@ public sealed class ContactRigAssetTests
     public void TheHairNeverEntersTheShoulderOrStretchesInAnyFrameOfAnyClip()
     {
         XafPackage package = Load();
-        XafChain hair = Hair(package);
 
         int frames = 0;
         foreach ((XafChainSimulation simulation, Transform2D[] world, ContactClip clip) in HairThroughEveryClip(package))
         {
             frames++;
-            Vector2 shoulder = XafChainSimulation.Collider(package, hair, world)!.Value;
-            var points = simulation.Points(0);
-            for (int i = 1; i < points.Count; i++)
+            for (int strand = 0; strand < package.Chains.Count; strand++)
             {
-                // These are the drawn points, blended between steps and carried with the head, so
-                // they may dip a fraction of a pixel (0.4 at worst) into a collider the physics keeps out.
-                Assert.That(points[i].DistanceTo(shoulder), Is.GreaterThanOrEqualTo(hair.CollideRadius - 0.6f), $"{clip} point {i}");
-                // The worst a link stretches is the first one as the death clip starts, about 0.9.
-                Assert.That(points[i].DistanceTo(points[i - 1]), Is.EqualTo(hair.SegmentLength).Within(1f), $"{clip} link {i}");
+                XafChain chain = package.Chains[strand];
+                if (!chain.HasCollider)
+                    continue;
+                Vector2 shoulder = XafChainSimulation.Collider(package, chain, world)!.Value;
+                var points = simulation.Points(strand);
+                for (int i = 1; i < points.Count; i++)
+                {
+                    // These are the drawn points, blended between steps and carried with the head;
+                    // drawing puts back any that land in the collider, so only rounding is allowed.
+                    Assert.That(points[i].DistanceTo(shoulder), Is.GreaterThanOrEqualTo(chain.CollideRadius - 0.6f),
+                        $"{chain.Id} {clip} point {i}");
+                    // Drawing keeps every link its length, however fast the head turns.
+                    Assert.That(points[i].DistanceTo(points[i - 1]), Is.EqualTo(chain.SegmentLength).Within(1f),
+                        $"{chain.Id} {clip} link {i}");
+                }
             }
         }
 
@@ -228,7 +249,7 @@ public sealed class ContactRigAssetTests
             simulation.Update(package, world, 1f / 60f);
 
         Vector2 shoulder = XafChainSimulation.Collider(package, hair, world)!.Value;
-        var points = simulation.Points(0);
+        var points = simulation.Points(package.Chains.IndexOf(hair));
         Assert.That(points[0].DistanceTo(XafChainSimulation.Anchor(package, hair, world)!.Value), Is.LessThan(0.001f));
         foreach (Vector2 point in points)
         {

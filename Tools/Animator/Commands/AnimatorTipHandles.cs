@@ -7,8 +7,8 @@ namespace Xanadu.Tools.Animator.Commands;
 /// <summary>
 /// The rotation handle on each bone with no children. Any other bone turns by
 /// dragging a child's joint, but a childless one has nothing to grab, so it gets
-/// a short stem with a dot on the end. The stem turns with the bone and continues
-/// the limb while the bone's rotation is zero.
+/// a short stem with a dot on the end. The stem turns with the bone and points
+/// along its tip, if it has one, or continues the limb while its rotation is zero.
 /// </summary>
 public static class AnimatorTipHandles
 {
@@ -44,7 +44,9 @@ public static class AnimatorTipHandles
     /// <summary>Screen position of the dot on a bone's stem.</summary>
     public static Vector2 Tip(XafPackage package, int bone, Transform2D[] world, Transform2D placement)
     {
-        Vector2 limb = package.Skeleton.Bones[bone].Rest.Origin;
+        // Along the bone's own tip when it has one, else on down the limb.
+        XafBone owner = package.Skeleton.Bones[bone];
+        Vector2 limb = owner.Tip.LengthSquared() > 0.0001f ? owner.Tip : owner.Rest.Origin;
         Vector2 local = limb.LengthSquared() > 0.0001f ? limb : Vector2.Right;
         Vector2 direction = placement.BasisXform(world[bone].BasisXform(local));
         if (direction.LengthSquared() < 0.0001f)

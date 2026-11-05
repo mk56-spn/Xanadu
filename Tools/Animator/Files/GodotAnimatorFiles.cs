@@ -30,4 +30,17 @@ public sealed class GodotAnimatorFiles : IAnimatorFiles
 
     public bool OpenInSystem(string path) =>
         OS.ShellOpen(ProjectSettings.GlobalizePath(path)) == Error.Ok;
+
+    public string? ReadText(string path)
+    {
+        string full = ProjectSettings.GlobalizePath(path);
+        try
+        {
+            return System.IO.File.Exists(full) ? System.IO.File.ReadAllText(full) : null;
+        }
+        catch (Exception exception) when (exception is System.IO.IOException or UnauthorizedAccessException)
+        {
+            return null;
+        }
+    }
 }

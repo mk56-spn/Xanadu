@@ -46,32 +46,56 @@ public sealed partial class SvgAttachmentVisuals
                 restBones = XafRig.WorldBones(package, rest);
                 restAttachments = XafRig.WorldAttachments(package, rest, restBones);
             }
-            DrawMesh(package, attachment, mesh, visual, bones, attachments[visual.Index],
+            DrawMesh(package, pose, attachment, mesh, visual, bones, attachments[visual.Index],
                 restBones, restAttachments[visual.Index], placement);
         }
     }
 
-    private static void DrawMesh(XafPackage package, XafAttachment attachment, XafMesh mesh, Visual visual,
-        Transform2D[] bones, Transform2D placed, Transform2D[] restBones, Transform2D restAttachment,
-        Transform2D placement)
+    private static void DrawMesh(XafPackage package, XafPose pose, XafAttachment attachment, XafMesh mesh,
+        Visual visual, Transform2D[] bones, Transform2D placed, Transform2D[] restBones,
+        Transform2D restAttachment, Transform2D placement)
     {
-        if (visual.Mesh is not { } cache || cache.Detail != mesh.Detail)
+        if (mesh.Skin is { Triangles.Length: > 0 } skin)
         {
-            (Vector2[] grid, Vector2[] uvs) = XafSkin.Grid(mesh, visual.Bounds);
-            cache = new MeshCache(mesh.Detail, grid, uvs, XafSkin.Triangles(mesh, visual.Bounds.Size));
-            visual.Mesh = cache;
+            DrawSkin(package, pose, attachment, skin, visual, bones, placed, restBones, restAttachment, placement);
+            return;
         }
 
-        var restPoints = new Vector2[cache.Grid.Length];
-        for (int i = 0; i < restPoints.Length; i++)
-            restPoints[i] = restAttachment * cache.Grid[i];
+        if (visual.Mesh is not { } cache || cache.Detail != mesh.Detail || cache.Skin is not null)
+        {
+            (Vector2[] grid, Vector2[] uvs) = XafSkin.Grid(mesh, visual.Bounds);
+            (int columns, int rows) = XafSkin.Points(mesh, visual.Bounds.Size);
+            bool[]? covered = Coverage(mesh, visual);
+            cache = new MeshCache(mesh.Detail, grid, uvs, XafSkin.Triangles(mesh, visual.Bounds.Size, covered),
+                columns, rows, covered);
+            visual.Mesh = cache;
+        }
 
         List<int> influences = XafSkin.Influences(package, attachment);
         if (influences.Count == 0)
             return;
 
-        float[][] weights = XafSkin.Weights(package, influences, restPoints, restBones, mesh.Blend);
-        Vector2[] bent = XafSkin.Deform(influences, weights, restPoints, restBones, bones, restAttachment, placed);
+        // Weights depend only on the rest pose, so they are worked out again
+        // only when it, the bones or the blend change, not every frame.
+        var key = new WeightKey(restAttachment, mesh.Blend, influences.ConvertAll(bone => (bone, restBones[bone])));
+        if (cache.Weights is null || cache.Key is null || !cache.Key.Matches(key))
+        {
+            var restPoints = new Vector2[cache.Grid.Length];
+            for (int i = 0; i < restPoints.Length; i++)
+                restPoints[i] = restAttachment * cache.Grid[i];
+            cache.RestPoints = restPoints;
+            cache.Weights = cache.Covered is { } covered
+                ? XafSkin.Weights(package, influences, restPoints, restBones, mesh.Blend, cache.Columns, cache.Rows, covered)
+                : XafSkin.Weights(package, influences, restPoints, restBones, mesh.Blend);
+            cache.Key = key;
+        }
+
+        var squash = new Transform2D[bones.Length];
+        for (int i = 0; i < squash.Length; i++)
+            squash[i] = XafRig.Foreshorten(package, pose, i);
+
+        Vector2[] bent = XafSkin.Deform(influences, cache.Weights, cache.RestPoints, restBones, bones,
+            restAttachment, placed, squash);
         for (int i = 0; i < bent.Length; i++)
             bent[i] = placement * bent[i];
 
@@ -82,6 +106,74 @@ public sealed partial class SvgAttachmentVisuals
         RenderingServer.CanvasItemClear(visual.Item);
         RenderingServer.CanvasItemAddTriangleArray(visual.Item, cache.Triangles, bent, colors, cache.Uvs,
             texture: visual.Texture.GetRid());
+    }
+
+    /// <summary>
+    /// Draws a stored skin: its own traced points and triangles, bent by its
+    /// stored weights. Its points are in art space, from the raster's top left,
+    /// so each is its texture spot over the art's size.
+    /// </summary>
+    private static void DrawSkin(XafPackage package, XafPose pose, XafAttachment attachment, XafSkinMesh skin,
+        Visual visual, Transform2D[] bones, Transform2D placed, Transform2D[] restBones,
+        Transform2D restAttachment, Transform2D placement)
+    {
+        List<int> influences = XafSkin.Influences(package, attachment);
+        if (influences.Count == 0)
+            return;
+
+        var key = new WeightKey(restAttachment, skin.Version, influences.ConvertAll(bone => (bone, restBones[bone])));
+        if (visual.Mesh is not { } cache || cache.Skin != skin || cache.Key is null || !cache.Key.Matches(key))
+        {
+            var local = new Vector2[skin.Points.Length];
+            var uvs = new Vector2[skin.Points.Length];
+            var restPoints = new Vector2[skin.Points.Length];
+            for (int i = 0; i < local.Length; i++)
+            {
+                local[i] = visual.Bounds.Position + skin.Points[i];
+                uvs[i] = skin.Points[i] / visual.Bounds.Size;
+                restPoints[i] = restAttachment * local[i];
+            }
+            cache = new MeshCache(-1, local, uvs, skin.Triangles, 0, 0, null)
+            {
+                Skin = skin,
+                RestPoints = restPoints,
+                Weights = XafSkinAuthoring.WeightsOver(package, skin, influences),
+                Key = key,
+            };
+            visual.Mesh = cache;
+        }
+
+        var squash = new Transform2D[bones.Length];
+        for (int i = 0; i < squash.Length; i++)
+            squash[i] = XafRig.Foreshorten(package, pose, i);
+
+        Vector2[] bent = XafSkin.Deform(influences, cache.Weights!, cache.RestPoints, restBones, bones,
+            restAttachment, placed, squash);
+        for (int i = 0; i < bent.Length; i++)
+            bent[i] = placement * bent[i];
+
+        var colors = new Color[bent.Length];
+        Array.Fill(colors, Colors.White);
+        cache.Drawn = bent;
+        RenderingServer.CanvasItemSetTransform(visual.Item, Transform2D.Identity);
+        RenderingServer.CanvasItemClear(visual.Item);
+        RenderingServer.CanvasItemAddTriangleArray(visual.Item, cache.Triangles, bent, colors, cache.Uvs,
+            texture: visual.Texture.GetRid());
+    }
+
+    /// <summary>Which grid cells the art covers, read from its raster's opacity; null when it cannot be read.</summary>
+    private static bool[]? Coverage(XafMesh mesh, Visual visual)
+    {
+        Image? image = visual.Texture.GetImage();
+        if (image is null || image.IsEmpty())
+            return null;
+        if (image.IsCompressed())
+            image.Decompress();
+
+        Vector2I size = image.GetSize();
+        return XafSkin.Covered(mesh, visual.Bounds.Size, uv => image.GetPixel(
+            Math.Clamp((int)(uv.X * (size.X - 1)), 0, size.X - 1),
+            Math.Clamp((int)(uv.Y * (size.Y - 1)), 0, size.Y - 1)).A);
     }
 
     public bool TryMesh(int attachment, out Vector2[] points, out int[] triangles)
@@ -101,8 +193,26 @@ public sealed partial class SvgAttachmentVisuals
     }
 
     /// <summary>A meshed visual's grid in the attachment's own space, built once per detail, and where it was last drawn.</summary>
-    private sealed record MeshCache(int Detail, Vector2[] Grid, Vector2[] Uvs, int[] Triangles)
+    private sealed record MeshCache(int Detail, Vector2[] Grid, Vector2[] Uvs, int[] Triangles, int Columns, int Rows,
+        bool[]? Covered)
     {
         public Vector2[] Drawn { get; set; } = Array.Empty<Vector2>();
+
+        public Vector2[] RestPoints { get; set; } = Array.Empty<Vector2>();
+
+        public float[][]? Weights { get; set; }
+
+        public WeightKey? Key { get; set; }
+
+        /// <summary>The stored skin this was built from, or null for the grid.</summary>
+        public XafSkinMesh? Skin { get; set; }
+    }
+
+    /// <summary>What a mesh's weights were worked out from: they hold while it does.</summary>
+    private sealed record WeightKey(Transform2D RestAttachment, float Blend, List<(int Bone, Transform2D Pose)> Bones)
+    {
+        public bool Matches(WeightKey other) =>
+            RestAttachment == other.RestAttachment && Blend == other.Blend &&
+            Bones.Count == other.Bones.Count && Bones.SequenceEqual(other.Bones);
     }
 }

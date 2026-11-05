@@ -27,6 +27,14 @@ public static class AnimatorCommands
         if (action.Kind != ToolActionKind.PickMeshBones)
             session.GetComponent<AnimatorMeshPick>().Active = false;
 
+        // Painting weights stays on through its own buttons, undo and choosing a bone.
+        if (action.Kind is not (ToolActionKind.PaintWeights or ToolActionKind.AutoWeights or
+            ToolActionKind.BrushSmaller or ToolActionKind.BrushLarger or ToolActionKind.BrushWeaker or
+            ToolActionKind.BrushStronger or ToolActionKind.Undo or ToolActionKind.Redo or ToolActionKind.SelectBone))
+        {
+            session.GetComponent<AnimatorWeightPaint>().Active = false;
+        }
+
         switch (action.Kind)
         {
             case ToolActionKind.AddArt:
@@ -64,6 +72,24 @@ public static class AnimatorCommands
                 break;
             case ToolActionKind.PickMeshBones:
                 AnimatorArtCommands.TogglePickBones(session);
+                break;
+            case ToolActionKind.AutoWeights:
+                AnimatorWeightCommands.AutoWeights(session);
+                break;
+            case ToolActionKind.PaintWeights:
+                AnimatorWeightCommands.TogglePaint(session);
+                break;
+            case ToolActionKind.BrushSmaller:
+                AnimatorWeightCommands.StepRadius(session, -1);
+                break;
+            case ToolActionKind.BrushLarger:
+                AnimatorWeightCommands.StepRadius(session, 1);
+                break;
+            case ToolActionKind.BrushWeaker:
+                AnimatorWeightCommands.StepStrength(session, -1);
+                break;
+            case ToolActionKind.BrushStronger:
+                AnimatorWeightCommands.StepStrength(session, 1);
                 break;
             case ToolActionKind.MeshDetailDown:
                 AnimatorArtCommands.StepDetail(session, -1);
@@ -306,6 +332,9 @@ public static class AnimatorCommands
             case ToolActionKind.SelectChain:
                 if (int.TryParse(action.Argument, out int chain))
                     AnimatorChainCommands.Select(session, chain);
+                break;
+            case ToolActionKind.ToggleChainSheet:
+                AnimatorChainCommands.ToggleSheet(session);
                 break;
             case ToolActionKind.DeleteChain:
                 AnimatorChainCommands.Delete(session);

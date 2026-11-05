@@ -215,6 +215,10 @@ public static partial class AnimatorLayout
         SmallRow(menu, ("MESH", ToolActionKind.ToggleMesh), ("BONES", ToolActionKind.PickMeshBones));
         Stepper(menu, "DETAIL", ToolActionKind.MeshDetailDown, ToolActionKind.MeshDetailUp);
         Stepper(menu, "BLEND", ToolActionKind.MeshBlendDown, ToolActionKind.MeshBlendUp);
+        Subhead(menu, "WEIGHTS");
+        SmallRow(menu, ("AUTO WEIGHTS", ToolActionKind.AutoWeights), ("PAINT", ToolActionKind.PaintWeights));
+        Stepper(menu, "BRUSH SIZE", ToolActionKind.BrushSmaller, ToolActionKind.BrushLarger);
+        Stepper(menu, "STRENGTH", ToolActionKind.BrushWeaker, ToolActionKind.BrushStronger);
         menu.EndCollapsible();
 
         BuildTargetSection(menu);
