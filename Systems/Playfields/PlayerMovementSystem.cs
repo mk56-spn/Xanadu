@@ -125,14 +125,16 @@ public sealed class PlayerMovementSystem : QuerySystem<Player, Position, Playfie
                     ApplyDash(ref body, ref position, screen, movement, view);
                     // The path is told by a streak of particles, not a line.
                     _entities.CreateEntity(ParticleBurst.Streak(screen, position.Value, player.Size.X * 0.6f, spray));
-                    _entities.CreateEntity(new ParticleBurst(position.Value, ParticleKind.Dash, spray, player.Size));
+                    _entities.CreateEntity(new ParticleBurst(
+                        position.Value, ParticleKind.Dash, spray, player.Size, heading: position.Value - screen));
                 }
                 else
                 {
                     ApplyMomentum(ref body, movement);
                     Vector2 push = screen + DashDirectionVector(movement.DashDirection) * 60f;
                     _entities.CreateEntity(new DashTrail(screen, push));
-                    _entities.CreateEntity(new ParticleBurst(screen, ParticleKind.Dash, spray, player.Size));
+                    _entities.CreateEntity(new ParticleBurst(
+                        screen, ParticleKind.Dash, spray, player.Size, heading: push - screen));
                 }
 
                 float horizontal = DashDirectionVector(movement.DashDirection).X;

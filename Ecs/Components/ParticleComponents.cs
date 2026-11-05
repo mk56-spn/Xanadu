@@ -9,14 +9,14 @@ public enum ParticleKind
     /// <summary>Dust kicked up where the player lands.</summary>
     Landing,
 
-    /// <summary>Solid squares sprayed off the body where a dash or push goes off, in the note's colour.</summary>
+    /// <summary>Note glyphs sprayed off the body where a dash or push goes off, in the note's colour.</summary>
     Dash,
 
-    /// <summary>Solid squares thrown off when a note is hit, in the note's colour.</summary>
+    /// <summary>Note glyphs thrown off when a note is hit, in the note's colour.</summary>
     Hit,
 
     /// <summary>
-    /// A streak of squares left along a dash's path, from where the player
+    /// A streak of note glyphs left along a dash's path, from where the player
     /// vanished to where it appeared, that drift back the way it came and fade.
     /// </summary>
     DashStreak,
@@ -31,7 +31,8 @@ public struct ParticleBurst(
     ParticleKind kind,
     Color? tint = null,
     Vector2 area = default,
-    float angle = 0f) : IComponent
+    float angle = 0f,
+    Vector2 heading = default) : IComponent
 {
     public Vector2 Position = position;
     public ParticleKind Kind = kind;
@@ -44,6 +45,12 @@ public struct ParticleBurst(
 
     /// <summary>How far the burst, its box and its directions are turned, in radians.</summary>
     public float Angle = angle;
+
+    /// <summary>
+    /// The way the hit that set the burst off travels, on screen: the particles
+    /// are thrown in a cone that way. Zero keeps the kind's own directions.
+    /// </summary>
+    public Vector2 Heading = heading;
 
     /// <summary>
     /// A <see cref="ParticleKind.DashStreak"/> along the path from

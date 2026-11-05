@@ -44,11 +44,65 @@ public static class GodotGlyphBlitter
         Vector2 pen)
     {
         TextServer ts = TextServerManager.GetPrimaryInterface();
+        var atlases = new System.Collections.Generic.Dictionary<(Rid, int), ImageTexture>();
+        foreach (Glyph glyph in Shape(text, fontSize, face, pen))
+        {
+            int textureIndex = (int)ts.FontGetGlyphTextureIdx(glyph.Font, glyph.Key, glyph.Index);
+            if (textureIndex < 0)
+                continue;
+
+            if (!atlases.TryGetValue((glyph.Font, textureIndex), out ImageTexture? atlas))
+            {
+                atlas = ImageTexture.CreateFromImage(
+                    ts.FontGetTextureImage(glyph.Font, glyph.Key, textureIndex));
+                atlases.Add((glyph.Font, textureIndex), atlas);
+                keepAlive.Add(atlas);
+            }
+
+            Rect2 uv = ts.FontGetGlyphUVRect(glyph.Font, glyph.Key, glyph.Index);
+            Vector2 atlasSize = atlas.GetSize();
+            var dest = new Rect2I(
+                new Vector2I(Mathf.RoundToInt(glyph.Ink.Position.X), Mathf.RoundToInt(glyph.Ink.Position.Y)),
+                new Vector2I(Mathf.RoundToInt(glyph.Ink.Size.X), Mathf.RoundToInt(glyph.Ink.Size.Y)));
+
+            target.BlitRect(
+                dest,
+                atlas,
+                new Color(
+                    uv.Position.X / atlasSize.X,
+                    uv.Position.Y / atlasSize.Y,
+                    uv.Size.X / atlasSize.X,
+                    uv.Size.Y / atlasSize.Y),
+                0,
+                Material);
+        }
+    }
+
+    /// <summary>
+    /// The box the drawn glyphs of <paramref name="text"/> cover, relative to a
+    /// pen at the origin on the baseline; empty when nothing would be drawn.
+    /// </summary>
+    public static Rect2 InkBounds(string text, int fontSize, Font face)
+    {
+        Rect2? bounds = null;
+        foreach (Glyph glyph in Shape(text, fontSize, face, Vector2.Zero))
+            bounds = bounds is { } sofar ? sofar.Merge(glyph.Ink) : glyph.Ink;
+
+        return bounds ?? new Rect2();
+    }
+
+    /// <summary>One drawn glyph: its font, size key, index and the box it covers on the target.</summary>
+    private readonly record struct Glyph(Rid Font, Vector2I Key, long Index, Rect2 Ink);
+
+    /// <summary>Shapes the text and renders each glyph that draws something into its font's atlas.</summary>
+    private static List<Glyph> Shape(string text, int fontSize, Font face, Vector2 pen)
+    {
+        TextServer ts = TextServerManager.GetPrimaryInterface();
         Rid shaped = ts.CreateShapedText();
         ts.ShapedTextAddString(shaped, text, face.GetRids(), fontSize);
         ts.ShapedTextShape(shaped);
 
-        var atlases = new System.Collections.Generic.Dictionary<(Rid, int), ImageTexture>();
+        var glyphs = new List<Glyph>();
         foreach (Dictionary glyph in ts.ShapedTextGetGlyphs(shaped))
         {
             long index = glyph["index"].AsInt64();
@@ -65,38 +119,11 @@ public static class GodotGlyphBlitter
             if (glyphSize.X <= 0 || glyphSize.Y <= 0)
                 continue;
 
-            int textureIndex = (int)ts.FontGetGlyphTextureIdx(font, fontKey, index);
-            if (textureIndex < 0)
-                continue;
-
-            if (!atlases.TryGetValue((font, textureIndex), out ImageTexture? atlas))
-            {
-                atlas = ImageTexture.CreateFromImage(
-                    ts.FontGetTextureImage(font, fontKey, textureIndex));
-                atlases.Add((font, textureIndex), atlas);
-                keepAlive.Add(atlas);
-            }
-
-            Rect2 uv = ts.FontGetGlyphUVRect(font, fontKey, index);
-            Vector2 atlasSize = atlas.GetSize();
             Vector2 topLeft = at + ts.FontGetGlyphOffset(font, fontKey, index);
-            var dest = new Rect2I(
-                new Vector2I(Mathf.RoundToInt(topLeft.X), Mathf.RoundToInt(topLeft.Y)),
-                new Vector2I(Mathf.RoundToInt(glyphSize.X), Mathf.RoundToInt(glyphSize.Y)));
-
-            target.BlitRect(
-                dest,
-                atlas,
-                new Color(
-                    uv.Position.X / atlasSize.X,
-                    uv.Position.Y / atlasSize.Y,
-                    uv.Size.X / atlasSize.X,
-                    uv.Size.Y / atlasSize.Y),
-                0,
-                Material);
+            glyphs.Add(new Glyph(font, fontKey, index, new Rect2(topLeft, glyphSize)));
         }
 
         ts.FreeRid(shaped);
+        return glyphs;
     }
-
 }

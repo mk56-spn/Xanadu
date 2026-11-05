@@ -151,7 +151,7 @@ public static partial class SongSelectScene
         if (!loadAssets || ShaderMaterials.Load(BackgroundShader, instance) is not { } material)
             return null;
 
-        material.SetShaderParameter("notes", NoteAtlas.Get());
+        material.SetShaderParameter("notes", NoteAtlas.Background.Texture);
         material.SetShaderParameter("glyph_count", NoteAtlas.Glyphs.Length);
         material.SetShaderParameter("aspect", aspect);
         material.SetShaderParameter("zoom", zoom);

@@ -14,8 +14,19 @@ public sealed class ParticleBurstSystemTests : EcsSystemTest
     private sealed class FakeEmitter : IParticleEmitter
     {
         public List<(Vector2 Position, ParticleKind Kind)> Bursts { get; } = new();
+        public List<Vector2> Headings { get; } = new();
 
-        public void Burst(Vector2 position, ParticleKind kind, Color tint, Vector2 area = default, float angle = 0f) => Bursts.Add((position, kind));
+        public void Burst(
+            Vector2 position,
+            ParticleKind kind,
+            Color tint,
+            Vector2 area = default,
+            float angle = 0f,
+            Vector2 heading = default)
+        {
+            Bursts.Add((position, kind));
+            Headings.Add(heading);
+        }
     }
 
     private FakeEmitter _emitter = null!;
@@ -40,6 +51,7 @@ public sealed class ParticleBurstSystemTests : EcsSystemTest
         Assert.That(burst.Position, Is.EqualTo(new Vector2(300, 400)));
         Assert.That(burst.Area, Is.EqualTo(new Vector2(40, 200)));
         Assert.That(burst.Tint, Is.EqualTo(Colors.Red));
+        Assert.That(burst.Heading, Is.EqualTo(new Vector2(290, 380)), "thrown from the note through the player");
         Assert.That(Store.Query<NotePop>().ToEntityList()[0].GetComponent<NotePop>().Position, Is.EqualTo(new Vector2(10, 20)));
     }
 
@@ -52,6 +64,16 @@ public sealed class ParticleBurstSystemTests : EcsSystemTest
 
         Assert.That(_emitter.Bursts, Is.EqualTo(new[] { (new Vector2(10, 20), ParticleKind.Landing) }));
         Assert.That(Store.Query<ParticleBurst>().Count, Is.EqualTo(0));
+    }
+
+    [Test]
+    public void TheHeadingReachesTheEmitter()
+    {
+        Store.CreateEntity(new ParticleBurst(new Vector2(10, 20), ParticleKind.Hit, heading: new Vector2(0, -1)));
+
+        Frame();
+
+        Assert.That(_emitter.Headings, Is.EqualTo(new[] { new Vector2(0, -1) }));
     }
 
     [Test]
