@@ -13,34 +13,30 @@ public static partial class PlayfieldRenderer
     public static readonly Color TextColor = Colors.White;
 
     /// <summary>
-    /// Draws every level text centred on its position, at its size scaled by the
+    /// Draws one level text centred on its position, at its size scaled by the
     /// view. Empty text draws nothing unless it is selected, so a cleared label
     /// can still be found; a selected one gets an accent box.
     /// </summary>
-    public static void DrawTexts(
+    public static void DrawLevelText(
         IRectCanvas canvas,
         Rid rid,
-        EntityStore entities,
+        Entity entity,
         PlayfieldView view,
-        Func<Entity, bool>? isSelected = null)
+        bool selected)
     {
-        foreach (Entity entity in entities.Query<LevelText>().ToEntityList())
+        LevelText text = entity.GetComponent<LevelText>();
+        Rect2 bounds = TextScreenBounds(text, view);
+
+        if (!string.IsNullOrEmpty(text.Text))
         {
-            LevelText text = entity.GetComponent<LevelText>();
-            Rect2 bounds = TextScreenBounds(text, view);
-            bool selected = isSelected?.Invoke(entity) == true;
-
-            if (!string.IsNullOrEmpty(text.Text))
-            {
-                canvas.SelectShader(ItemShader.Of(entity));
-                int fontSize = Math.Max(1, (int)MathF.Round(text.Size * view.Scale));
-                canvas.DrawTextTurned(rid, DrawArea(bounds), text.RotationDegrees, text.Text, GroupColor.For(entity, TextColor), fontSize);
-                canvas.SelectShader(0);
-            }
-
-            if (selected)
-                DrawTurnedBorder(canvas, rid, text.Bounds, text.RotationDegrees, view);
+            SelectItemShader(canvas, entity);
+            int fontSize = Math.Max(1, (int)MathF.Round(text.Size * view.Scale));
+            canvas.DrawTextTurned(rid, DrawArea(bounds), text.RotationDegrees, text.Text, GroupColor.For(entity, TextColor), fontSize);
+            canvas.SelectShader(0);
         }
+
+        if (selected)
+            DrawTurnedBorder(canvas, rid, text.Bounds, text.RotationDegrees, view);
     }
 
     /// <summary>

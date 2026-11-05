@@ -1,9 +1,11 @@
 using System;
+using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using Godot;
 using Xanadu.Ecs;
 using Xanadu.Settings;
 using Xanadu.Systems.Canvas;
+using Xanadu.Systems.Shaders;
 using Xanadu.Theme;
 using Position = Xanadu.Ecs.Position;
 
@@ -68,7 +70,10 @@ public static partial class PlayfieldRenderer
         Rect2? frame = null,
         Color? outside = null,
         Color? frameColor = null,
-        float seconds = 0f)
+        float seconds = 0f,
+        GroupDefinition[]? groups = null,
+        IReadOnlyDictionary<int, LevelLayer>? layers = null,
+        IPassSurfaces? passes = null)
     {
         // Under a camera the layer is scrolled by it, so the backdrop follows to keep the screen covered.
         canvas.DrawRect(rid, new Rect2(camera, view.ScreenSize), outside ?? PlayBackground);
@@ -80,23 +85,27 @@ public static partial class PlayfieldRenderer
         canvas.DrawBorder(rid, field, frameColor ?? BorderColor, 2);
         canvas.SelectShader(0);
 
-        DrawPolygons(canvas, rid, entities, view);
-        DrawBlocks(canvas, rid, entities, view);
-        DrawSpikes(canvas, rid, entities, view);
-        DrawGrass(canvas, rid, entities, view, seconds);
-        DrawTexts(canvas, rid, entities, view);
-        DrawNotes(canvas, rid, entities, view, playfield, playhead, default);
-        DrawRails(canvas, rid, entities, view, playfield, playhead, previewBoth: false);
-        DrawNotePops(canvas, rid, entities);
-        DrawDashLinkFades(canvas, rid, entities);
-        DrawMines(canvas, rid, entities, view, playhead);
-        DrawDashTrails(canvas, rid, entities);
-        canvas.SelectShader(playerShader);
-        DrawHitGhosts(canvas, rid, entities);
-        DrawPlayer(canvas, rid, entities, view);
-        DrawSplitlineBalls(canvas, rid, entities, view);
-        canvas.SelectShader(0);
-        DrawHitTrails(canvas, rid, entities);
+        // The player wedge holds the player and what it leaves, under the player shader.
+        DrawLayers(
+            canvas,
+            rid,
+            entities,
+            new PlayfieldItemFrame(
+                view,
+                playfield,
+                playhead,
+                seconds,
+                Editor: false,
+                Groups: groups,
+                Layers: layers,
+                Passes: passes),
+            () =>
+            {
+                canvas.SelectShader(playerShader);
+                DrawHitGhosts(canvas, rid, entities);
+                DrawPlayer(canvas, rid, entities, view);
+                DrawSplitlineBalls(canvas, rid, entities, view);
+            });
         DrawKeyTrail(canvas, rid, entities, frame ?? field, playhead, camera.X);
         DrawTransport(canvas, rid, frame ?? field, playhead);
     }

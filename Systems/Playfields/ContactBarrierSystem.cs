@@ -74,7 +74,7 @@ public sealed class ContactBarrierSystem : QuerySystem<Player, Position, Playfie
                     continue;
                 }
 
-                Vector2 noteScreen = view.PlayfieldToScreen(note.Position);
+                Vector2 noteScreen = view.PlayfieldToScreen(GroupOffset.Shown(noteEntity, note.Position));
                 if (!NoteReach.Contains(playerScreen, view, noteScreen, CharacterKind.Contact))
                     continue;
 
@@ -88,10 +88,12 @@ public sealed class ContactBarrierSystem : QuerySystem<Player, Position, Playfie
                     PlayScoring.FailContact(ref score, noteScreen, playhead.TimeMs);
                 }
 
-                _entities.CreateEntity(new HitTrail(
-                    noteScreen,
-                    paid ? PlayfieldRenderer.ColorFor(note) : Palette.DangerBright,
-                    paid ? "PASS" : "BREAK"));
+                _entities.CreateEntity(
+                    new HitTrail(
+                        noteScreen,
+                        paid ? PlayfieldRenderer.ColorFor(note) : Palette.DangerBright,
+                        paid ? "PASS" : "BREAK"),
+                    EffectLayer.From(noteEntity));
                 buffer.DeleteEntity(noteEntity.Id);
             }
         });

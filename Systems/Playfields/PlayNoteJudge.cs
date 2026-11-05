@@ -71,11 +71,13 @@ public sealed class PlayNoteJudge(PlayNoteContext context, PlayNoteHits hits)
         score.JudgementTimeMs = playhead.TimeMs;
         PlayScoring.Apply(ref score, hitNote.TimeMs - judgedTime);
 
-        context.Entities.CreateEntity(new HitTrail(
-            position,
-            PlayfieldRenderer.ColorFor(hitNote),
-            KeybindSettings.KeyLabel(context.Keybinds.Get(action))));
-        HitEffects.Spawn(context.Entities, playfield, hitNote, position, color, radius);
+        context.Entities.CreateEntity(
+            new HitTrail(
+                position,
+                PlayfieldRenderer.ColorFor(hitNote),
+                KeybindSettings.KeyLabel(context.Keybinds.Get(action))),
+            EffectLayer.From(hit));
+        HitEffects.Spawn(context.Entities, playfield, hit, hitNote, position, color, radius);
 
         if (hitNote.HoldMs > 0)
         {
@@ -116,7 +118,7 @@ public sealed class PlayNoteJudge(PlayNoteContext context, PlayNoteHits hits)
             if (MineFade.Alpha(mine, playhead.TimeMs) <= 0)
                 continue;
 
-            Vector2 mineScreen = view.PlayfieldToScreen(mine.Position);
+            Vector2 mineScreen = view.PlayfieldToScreen(GroupOffset.Shown(entity, mine.Position));
             var mineRect = new Rect2(
                 mineScreen - new Vector2(mineSize / 2, mineSize / 2),
                 new Vector2(mineSize, mineSize));
@@ -131,10 +133,12 @@ public sealed class PlayNoteJudge(PlayNoteContext context, PlayNoteHits hits)
             score.JudgementPosition = mineScreen;
             score.JudgementTimeMs = playhead.TimeMs;
 
-            context.Entities.CreateEntity(new HitTrail(
-                mineScreen,
-                Palette.DangerBright,
-                KeybindSettings.KeyLabel(context.Keybinds.Get(action))));
+            context.Entities.CreateEntity(
+                new HitTrail(
+                    mineScreen,
+                    Palette.DangerBright,
+                    KeybindSettings.KeyLabel(context.Keybinds.Get(action))),
+                EffectLayer.From(entity));
             entity.DeleteEntity();
             return true;
         }
@@ -192,7 +196,7 @@ public sealed class PlayNoteJudge(PlayNoteContext context, PlayNoteHits hits)
             if (NoteFade.Alpha(note, judgedTime) <= 0)
                 continue;
 
-            Vector2 noteScreen = view.PlayfieldToScreen(note.Position);
+            Vector2 noteScreen = view.PlayfieldToScreen(GroupOffset.Shown(entity, note.Position));
             bool inRange = armed && (note.Kind is NoteKind.Hit or NoteKind.Pair)
                 ? WeaponHitRules.Contains(
                     weapon.Kind,

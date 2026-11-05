@@ -1,3 +1,4 @@
+using System;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Godot;
@@ -15,15 +16,22 @@ public sealed class PlayfieldDrawSystem :
     private readonly ShaderRoutingCanvas _canvas;
     private readonly GodotShaderCanvasItems _shaderItems = new();
     private readonly Rid _playfield;
+    private readonly IPassSurfaces? _passes;
 
     /// <summary>The clock grass sways by; it keeps running through pauses.</summary>
     private float _seconds;
 
-    public PlayfieldDrawSystem(EntityStore entities, IRectCanvas canvas, Rid playfield)
+    public PlayfieldDrawSystem(
+        EntityStore entities,
+        IRectCanvas canvas,
+        Rid playfield,
+        IPassSurfaces? passes = null,
+        Func<Rect2, Rect2>? toPixels = null)
     {
         _entities = entities;
-        _canvas = new ShaderRoutingCanvas(canvas, playfield, _shaderItems);
+        _canvas = new ShaderRoutingCanvas(canvas, playfield, _shaderItems, toPixels);
         _playfield = playfield;
+        _passes = passes;
     }
 
     protected override void OnUpdate()
@@ -45,8 +53,8 @@ public sealed class PlayfieldDrawSystem :
                     ? found
                     : LevelShaders.Create();
                 LevelShaderMaterials.Ensure(shaders);
-                _shaderItems.MaterialOf = slot => LevelShaderMaterials.MaterialOf(shaders, slot);
-                _shaderItems.CommonMaterialOf = CommonShaderMaterials.MaterialOf;
+                _shaderItems.MaterialOf = (slot, blend) => LevelShaderMaterials.MaterialOf(shaders, slot, blend);
+                _shaderItems.CommonMaterialOf = (path, blend) => CommonShaderMaterials.MaterialOf(path, blend);
 
                 Color? background = null;
                 Color? outside = null;
@@ -81,7 +89,10 @@ public sealed class PlayfieldDrawSystem :
                     frame,
                     outside,
                     frameColor,
-                    _seconds);
+                    _seconds,
+                    entity.TryGetComponent(out LevelGroups groups) ? groups.Groups : null,
+                    entity.TryGetComponent(out LevelLayers layers) ? layers.Layers : null,
+                    _passes);
             }
         });
 

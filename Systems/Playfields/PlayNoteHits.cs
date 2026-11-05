@@ -53,7 +53,7 @@ public sealed class PlayNoteHits(PlayNoteContext context, PlayNoteActions action
                 continue;
             }
 
-            Vector2 noteScreen = view.PlayfieldToScreen(note.Position);
+            Vector2 noteScreen = view.PlayfieldToScreen(GroupOffset.Shown(entity, note.Position));
             if (!WeaponHitRules.Contains(
                     weapon,
                     playerScreen,
@@ -99,16 +99,18 @@ public sealed class PlayNoteHits(PlayNoteContext context, PlayNoteActions action
         long playheadTimeMs,
         bool triggerAttack)
     {
-        Vector2 hitPosition = view.PlayfieldToScreen(note.Position);
+        Vector2 hitPosition = view.PlayfieldToScreen(GroupOffset.Shown(noteEntity, note.Position));
         Color hitColor = GroupColor.For(noteEntity, PlayfieldRenderer.ColorFor(note));
         float hitRadius = PlayfieldRenderer.NoteSize * view.Scale / 2f;
         score.JudgementPosition = hitPosition;
         score.JudgementTimeMs = playheadTimeMs;
 
-        context.Entities.CreateEntity(new HitTrail(
-            hitPosition,
-            PlayfieldRenderer.ColorFor(note),
-            KeybindSettings.KeyLabel(context.Keybinds.Get(action))));
+        context.Entities.CreateEntity(
+            new HitTrail(
+                hitPosition,
+                PlayfieldRenderer.ColorFor(note),
+                KeybindSettings.KeyLabel(context.Keybinds.Get(action))),
+            EffectLayer.From(noteEntity));
 
         if (!actions.Hit(ref score, noteEntity, offsetMs, playfield, action))
             return false;
@@ -121,7 +123,7 @@ public sealed class PlayNoteHits(PlayNoteContext context, PlayNoteActions action
             CharacterAttackSystem.Trigger(playfield, hitPosition.Y, playerScreen.Y);
         }
 
-        HitEffects.Spawn(context.Entities, playfield, note, hitPosition, hitColor, hitRadius);
+        HitEffects.Spawn(context.Entities, playfield, noteEntity, note, hitPosition, hitColor, hitRadius);
         return true;
     }
 

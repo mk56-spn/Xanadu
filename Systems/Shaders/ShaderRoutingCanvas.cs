@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using Godot;
 using Xanadu.Ecs;
+using Xanadu.Rendering;
 using Xanadu.Systems.Canvas;
 using Xanadu.Ui.Ecs.Ui;
 
@@ -15,9 +16,33 @@ public interface IShaderCanvasItems
     /// <summary>
     /// Gives an item the material of a shader slot, or of a common shader by
     /// path when one is given (it takes priority over the slot), or none when
-    /// both are empty.
+    /// both are empty, with the blend mode asked for.
     /// </summary>
-    void SetMaterial(Rid item, int slot, string commonPath);
+    void SetMaterial(Rid item, int slot, string commonPath, BlendMode blend);
+
+    /// <summary>Sets one instance uniform on a run item.</summary>
+    void SetInstanceUniform(Rid item, string param, Vector4 value, int size) { }
+
+    /// <summary>Makes a run item copy the whole screen to the back buffer before it draws.</summary>
+    void CopyScreen(Rid item) { }
+
+    /// <summary>Makes an item copy the given render-target rect into the back buffer before it draws.</summary>
+    void CopyRectangle(Rid item, Rect2 pixelRect) { }
+
+    /// <summary>Stops an item copying the back buffer at all.</summary>
+    void DisableCopy(Rid item) { }
+
+    /// <summary>Puts an item under another canvas item.</summary>
+    void Reparent(Rid item, Rid parent) { }
+
+    /// <summary>Makes an item render its children as one grouped image (a CanvasGroup).</summary>
+    void SetCanvasGroup(Rid item) { }
+
+    /// <summary>Multiplies what an item draws by a colour.</summary>
+    void SetModulate(Rid item, Color color) { }
+
+    /// <summary>Where an item stacks among its siblings: higher draws in front.</summary>
+    void SetDrawIndex(Rid item, int index) { }
 }
 
 /// <summary>
@@ -30,33 +55,176 @@ public interface IShaderCanvasItems
 /// <remarks>
 /// Once any shaded run exists, later unshaded draws also move to child items,
 /// since the parent item itself always draws underneath its children.
+/// <para>
+/// Draw layers (<see cref="BeginLayer"/>) each get a container item under the
+/// root, kept from frame to frame, and their runs are children of that
+/// container. The root's children (its runs and the containers) are stacked
+/// by draw index in the order this frame used them, so a layer made late still
+/// draws where it was begun (docs/render-architecture.md §5.1).
+/// </para>
 /// </remarks>
-public sealed class ShaderRoutingCanvas(IRectCanvas inner, Rid root, IShaderCanvasItems items) : IRectCanvas
+public sealed class ShaderRoutingCanvas(IRectCanvas inner, Rid root, IShaderCanvasItems items, Func<Rect2, Rect2>? toPixels = null) : IRectCanvas
 {
-    private readonly List<Rid> _pool = new();
-    private int _used;
+    /// <summary>Turns a canvas rect into render-target pixels; identity when no viewport is known.</summary>
+    private readonly Func<Rect2, Rect2> _toPixels = toPixels ?? (static rect => rect);
+    private readonly Surface _root = new(root, root, external: false);
+    private readonly Dictionary<int, Surface> _layers = new();
+    private Surface _current = null!;
     private int _slot;
     private string _commonPath = "";
-    private int _runSlot = -1;
-    private string _runCommonPath = "";
-    private Rid _run;
-    private bool _hasRun;
-    private bool _shadedSeen;
+    private BlendMode _blend = BlendMode.Mix;
+    private int _source = -1;
+    private readonly List<(string Param, Vector4 Value, int Size)> _values = new();
+    private bool _copyScreen;
+    private readonly List<(string Param, Vector4 Value, int Size)> _bufferValues = new();
+    private Surface? _buffer;
+    private Surface? _bufferHost;
 
-    /// <summary>How many child items this frame's draws needed.</summary>
-    public int ItemsUsed => _used;
+    /// <summary>Bumped on every selection or value change, so a run knows to re-apply.</summary>
+    private int _stamp;
 
-    public void SelectShader(int slot)
+    /// <summary>The next draw index among the root's children this frame.</summary>
+    private int _order;
+
+    /// <summary>How many run items this frame's draws needed, in the root and every layer.</summary>
+    public int ItemsUsed
+    {
+        get
+        {
+            int used = _root.Used;
+            foreach (Surface layer in _layers.Values)
+                used += layer.Used;
+            return used;
+        }
+    }
+
+    /// <summary>The container item of a layer begun at least once, for tests and tools.</summary>
+    public bool TryGetLayerItem(int layer, out Rid item)
+    {
+        bool found = _layers.TryGetValue(layer, out Surface? surface);
+        item = found ? surface!.Item : default;
+        return found;
+    }
+
+    public void SelectShader(int slot, BlendMode blend = BlendMode.Mix, int sourceGroup = -1)
     {
         _slot = slot;
         _commonPath = "";
+        _blend = blend;
+        _source = sourceGroup;
+        _values.Clear();
+        _stamp++;
     }
 
-    public void SelectCommonShader(string path)
+    public void SelectCommonShader(string path, BlendMode blend = BlendMode.Mix)
     {
         _commonPath = path ?? "";
         _slot = 0;
+        _blend = blend;
+        _source = -1;
+        _values.Clear();
+        _stamp++;
     }
+
+    public void SetShaderValue(string param, Vector4 value, int size)
+    {
+        if (_buffer is not null)
+            _bufferValues.Add((param, value, size));
+        else
+            _values.Add((param, value, size));
+        _stamp++;
+    }
+
+    public void CopyScreen()
+    {
+        _copyScreen = true;
+        _stamp++;
+    }
+
+    public void CopyScreen(Rect2 bounds)
+    {
+        _current ??= _root;
+        Surface host = _current;
+        int index = host.CopiesUsed++;
+
+        if (index == host.Copies.Count)
+            host.Copies.Add(new Surface(items.CreateItem(host.Item), host.Item, external: false));
+
+        Surface copy = host.Copies[index];
+        copy.Clear(inner, clearItem: true);
+
+        // A self-contained layer draws into its own viewport, where a full copy
+        // of that viewport's buffer is both simplest and always in range.
+        items.CopyRectangle(copy.Item, host.External ? new Rect2() : _toPixels(bounds));
+
+        // What follows must go into a new run made after this item, or it would
+        // draw below the copy and read the stale image instead.
+        host.ChildrenSeen = true;
+        host.HasRun = false;
+    }
+
+    public void BeginBuffer(int shader, BlendMode blend, Color tint, float alpha)
+    {
+        _current ??= _root;
+        Surface host = _current;
+        int index = host.GroupUsed++;
+        if (index == host.Groups.Count)
+        {
+            Surface made = new(items.CreateItem(host.Item), host.Item, external: false, group: true);
+            items.SetCanvasGroup(made.Item);
+            host.Groups.Add(made);
+        }
+
+        Surface group = host.Groups[index];
+        group.Clear(inner, clearItem: true);
+        items.SetMaterial(group.Item, shader, "", blend);
+        items.SetModulate(group.Item, new Color(tint.R, tint.G, tint.B, tint.A * alpha));
+        _values.Clear();
+        _bufferValues.Clear();
+        _stamp++;
+        _buffer = group;
+        _bufferHost = host;
+        _current = group;
+    }
+
+    public void EndBuffer()
+    {
+        if (_buffer is null)
+            return;
+
+        Surface group = _buffer;
+        _buffer = null;
+        _current = _bufferHost ?? _root;
+        _bufferHost = null;
+        foreach ((string param, Vector4 value, int size) in _bufferValues)
+            items.SetInstanceUniform(group.Item, param, value, size);
+        _bufferValues.Clear();
+    }
+
+    public void BeginLayer(int layer, Rid? target = null)
+    {
+        // A self-contained layer draws straight into its own viewport's canvas
+        // item; every other layer gets a container item under the root.
+        bool external = target is not null;
+        if (!_layers.TryGetValue(layer, out Surface? surface) || surface.External != external)
+        {
+            surface = external
+                ? new Surface(target!.Value, target!.Value, external: true)
+                : new Surface(items.CreateItem(root), root, external: false);
+            _layers[layer] = surface;
+        }
+
+        if (!surface.External)
+            items.SetDrawIndex(surface.Item, _order++);
+
+        // What the root draws from here on must stack over this layer, so it
+        // can neither go into the root item itself nor into an earlier run.
+        _root.ChildrenSeen = true;
+        _root.HasRun = false;
+        _current = surface;
+    }
+
+    public void EndLayers() => _current = _root;
 
     public void Clear(Rid canvas)
     {
@@ -64,16 +232,37 @@ public sealed class ShaderRoutingCanvas(IRectCanvas inner, Rid root, IShaderCanv
         if (canvas != root)
             return;
 
-        foreach (Rid item in _pool)
-            inner.Clear(item);
+        _root.Clear(inner, clearItem: false);
+        foreach (Surface layer in _layers.Values)
+            layer.Clear(inner, clearItem: true);
 
-        _used = 0;
+        // A copy item not used this frame must stop copying, or last frame's
+        // boundary would fire again at the wrong place in the order.
+        ResetCopies(_root);
+        foreach (Surface layer in _layers.Values)
+            ResetCopies(layer);
+
+        _current = _root;
+        _order = 0;
         _slot = 0;
         _commonPath = "";
-        _runSlot = -1;
-        _runCommonPath = "";
-        _hasRun = false;
-        _shadedSeen = false;
+        _blend = BlendMode.Mix;
+        _source = -1;
+        _values.Clear();
+        _copyScreen = false;
+        _buffer = null;
+        _bufferHost = null;
+        _bufferValues.Clear();
+    }
+
+    /// <summary>Stops every copy item under a surface from copying this frame.</summary>
+    private void ResetCopies(Surface surface)
+    {
+        foreach (Surface copy in surface.Copies)
+            items.DisableCopy(copy.Item);
+        surface.CopiesUsed = 0;
+        foreach (Surface group in surface.Groups)
+            ResetCopies(group);
     }
 
     /// <summary>The item a draw aimed at <paramref name="canvas"/> should land in.</summary>
@@ -82,22 +271,107 @@ public sealed class ShaderRoutingCanvas(IRectCanvas inner, Rid root, IShaderCanv
         if (canvas != root)
             return canvas;
 
-        if (!_shadedSeen && _slot == 0 && _commonPath.Length == 0)
-            return root;
+        _current ??= _root;
+        Surface surface = _current;
+        if (!surface.Group &&
+            !surface.ChildrenSeen &&
+            _slot == 0 &&
+            _commonPath.Length == 0 &&
+            _blend == BlendMode.Mix)
+        {
+            return surface.Item;
+        }
 
-        if (_hasRun && _runSlot == _slot && _runCommonPath == _commonPath)
-            return _run;
+        if (surface.HasRun &&
+            surface.RunSlot == _slot &&
+            surface.RunCommonPath == _commonPath &&
+            surface.RunBlend == _blend &&
+            surface.RunSource == _source)
+        {
+            ApplyValues(surface);
+            return surface.Run;
+        }
 
-        if (_used == _pool.Count)
-            _pool.Add(items.CreateItem(root));
+        if (surface.Used == surface.Pool.Count)
+            surface.Pool.Add(items.CreateItem(surface.Item));
 
-        _run = _pool[_used++];
-        _runSlot = _slot;
-        _runCommonPath = _commonPath;
-        _hasRun = true;
-        _shadedSeen = true;
-        items.SetMaterial(_run, _slot, _commonPath);
-        return _run;
+        surface.Run = surface.Pool[surface.Used++];
+        surface.RunSlot = _slot;
+        surface.RunCommonPath = _commonPath;
+        surface.RunBlend = _blend;
+        surface.RunSource = _source;
+        surface.HasRun = true;
+        surface.ChildrenSeen = true;
+        items.SetMaterial(surface.Run, _slot, _commonPath, _blend);
+        surface.AppliedStamp = -1;
+        if (surface == _root)
+            items.SetDrawIndex(surface.Run, _order++);
+        ApplyValues(surface);
+        return surface.Run;
+    }
+
+    /// <summary>Writes the instance values set since the run was last picked.</summary>
+    private void ApplyValues(Surface surface)
+    {
+        if (surface.AppliedStamp == _stamp)
+            return;
+
+        surface.AppliedStamp = _stamp;
+        if (surface.Run != surface.Item)
+        {
+            foreach ((string param, Vector4 value, int size) in _values)
+                items.SetInstanceUniform(surface.Run, param, value, size);
+            if (_copyScreen)
+                items.CopyScreen(surface.Run);
+        }
+
+        _copyScreen = false;
+    }
+
+    /// <summary>One item draws are routed into, the root or a layer's container, with its runs.</summary>
+    private sealed class Surface(Rid item, Rid parent, bool external, bool group = false)
+    {
+        public readonly Rid Item = item;
+        public Rid Parent = parent;
+        public readonly bool External = external;
+        public readonly bool Group = group;
+        public readonly List<Surface> Groups = new();
+        public int GroupUsed;
+        public readonly List<Surface> Copies = new();
+        public int CopiesUsed;
+        public readonly List<Rid> Pool = new();
+        public int Used;
+        public int RunSlot = -1;
+        public string RunCommonPath = "";
+        public BlendMode RunBlend = BlendMode.Mix;
+        public int RunSource = -1;
+        public Rid Run;
+        public int AppliedStamp = -1;
+        public bool HasRun;
+
+        /// <summary>Once the item has children, plain draws go to children too, or they would sink under them.</summary>
+        public bool ChildrenSeen;
+
+        public void Clear(IRectCanvas canvas, bool clearItem)
+        {
+            if (clearItem)
+                canvas.Clear(Item);
+            foreach (Rid run in Pool)
+                canvas.Clear(run);
+
+            foreach (Surface group in Groups)
+                group.Clear(canvas, clearItem: true);
+            GroupUsed = 0;
+            CopiesUsed = 0;
+            Used = 0;
+            RunSlot = -1;
+            RunCommonPath = "";
+            RunBlend = BlendMode.Mix;
+            RunSource = -1;
+            AppliedStamp = -1;
+            HasRun = false;
+            ChildrenSeen = false;
+        }
     }
 
     public void SetVisible(Rid canvas, bool visible) => inner.SetVisible(canvas, visible);
@@ -227,11 +501,14 @@ public sealed class ShaderRoutingCanvas(IRectCanvas inner, Rid root, IShaderCanv
 /// <summary>Shader canvas items backed by the rendering server.</summary>
 public sealed class GodotShaderCanvasItems : IShaderCanvasItems
 {
-    /// <summary>Looks up the material of a slot; set each frame from the level being drawn.</summary>
-    public Func<int, Rid> MaterialOf { get; set; } = static _ => default;
+    /// <summary>Looks up the material of a slot and blend; set each frame from the level being drawn.</summary>
+    public Func<int, BlendMode, Rid> MaterialOf { get; set; } = static (_, _) => default;
 
-    /// <summary>Looks up a common shader's material by resource path.</summary>
-    public Func<string, Rid> CommonMaterialOf { get; set; } = static _ => default;
+    /// <summary>Looks up a common shader's material by resource path and blend.</summary>
+    public Func<string, BlendMode, Rid> CommonMaterialOf { get; set; } = static (_, _) => default;
+
+    /// <summary>Looks up the material plain (unshaded) draws use for a blend mode.</summary>
+    public Func<BlendMode, Rid> PlainMaterialOf { get; set; } = PlainBlendMaterials.MaterialOf;
 
     public Rid CreateItem(Rid parent)
     {
@@ -240,11 +517,54 @@ public sealed class GodotShaderCanvasItems : IShaderCanvasItems
         return item;
     }
 
-    public void SetMaterial(Rid item, int slot, string commonPath)
+    public void SetMaterial(Rid item, int slot, string commonPath, BlendMode blend)
     {
         Rid material = commonPath.Length > 0
-            ? CommonMaterialOf(commonPath)
-            : slot == 0 ? default : MaterialOf(slot);
+            ? CommonMaterialOf(commonPath, blend)
+            : slot != 0 ? MaterialOf(slot, blend)
+            : blend != BlendMode.Mix ? PlainMaterialOf(blend)
+            : default;
         RenderingServer.CanvasItemSetMaterial(item, material);
     }
+
+    public void CopyScreen(Rid item) =>
+        RenderingServer.CanvasItemSetCopyToBackbuffer(item, true, new Rect2());
+
+    public void CopyRectangle(Rid item, Rect2 pixelRect) =>
+        RenderingServer.CanvasItemSetCopyToBackbuffer(item, true, pixelRect);
+
+    public void DisableCopy(Rid item) =>
+        RenderingServer.CanvasItemSetCopyToBackbuffer(item, false, new Rect2());
+
+    // The C# defaults of CanvasItemSetCanvasGroupMode are not the CanvasGroup
+    // node's (clear margin 5, fit empty false, fit margin 0): with fit_empty
+    // off the cull never makes the group's own draw command, so the group's
+    // self modulate is ignored and a faded buffer renders fully opaque. Pass
+    // the node's values explicitly.
+    public void SetCanvasGroup(Rid item) =>
+        RenderingServer.CanvasItemSetCanvasGroupMode(
+            item,
+            RenderingServer.CanvasGroupMode.Transparent,
+            clearMargin: 10f,
+            fitEmpty: true,
+            fitMargin: 10f,
+            blurMipmaps: false);
+
+    public void SetModulate(Rid item, Color color) => RenderingServer.CanvasItemSetSelfModulate(item, color);
+
+    public void Reparent(Rid item, Rid parent) => RenderingServer.CanvasItemSetParent(item, parent);
+
+    public void SetInstanceUniform(Rid item, string param, Vector4 value, int size)
+    {
+        Variant variant = size switch
+        {
+            1 => value.X,
+            2 => new Vector2(value.X, value.Y),
+            3 => new Vector3(value.X, value.Y, value.Z),
+            _ => value,
+        };
+        RenderingServer.CanvasItemSetInstanceShaderParameter(item, param, variant);
+    }
+
+    public void SetDrawIndex(Rid item, int index) => RenderingServer.CanvasItemSetDrawIndex(item, index);
 }

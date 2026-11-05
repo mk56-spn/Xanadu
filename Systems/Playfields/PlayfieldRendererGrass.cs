@@ -14,35 +14,32 @@ public static partial class PlayfieldRenderer
     private static readonly List<Color> GrassColors = new();
 
     /// <summary>
-    /// Draws every grass patch, each in one batch of triangles, swaying with
+    /// Draws one grass patch in one batch of triangles, swaying with
     /// <paramref name="seconds"/>. A selected patch gets an accent box.
     /// </summary>
     public static void DrawGrass(
         IRectCanvas canvas,
         Rid rid,
-        EntityStore entities,
+        Entity entity,
         PlayfieldView view,
         float seconds,
-        Func<Entity, bool>? isSelected = null)
+        bool selected)
     {
-        foreach (Entity entity in entities.Query<GrassPatch>().ToEntityList())
-        {
-            GrassPatch patch = entity.GetComponent<GrassPatch>();
-            canvas.SelectShader(ItemShader.Of(entity));
-            // Self modulate and group fades reach every blade the same way.
-            DrawGrassPatch(
-                canvas,
-                rid,
-                patch,
-                view,
-                seconds,
-                SelfModulate.For(entity, Colors.White),
-                entity.TryGetComponent(out GroupColor group) ? group : null);
-            canvas.SelectShader(0);
+        GrassPatch patch = entity.GetComponent<GrassPatch>();
+        SelectItemShader(canvas, entity);
+        // Self modulate and group fades reach every blade the same way.
+        DrawGrassPatch(
+            canvas,
+            rid,
+            patch,
+            view,
+            seconds,
+            SelfModulate.For(entity, Colors.White),
+            entity.TryGetComponent(out GroupColor group) ? group : null);
+        canvas.SelectShader(0);
 
-            if (isSelected?.Invoke(entity) == true)
-                DrawTurnedBorder(canvas, rid, patch.Bounds, patch.RotationDegrees, view);
-        }
+        if (selected)
+            DrawTurnedBorder(canvas, rid, patch.Bounds, patch.RotationDegrees, view);
     }
 
     /// <summary>One patch's blades, multiplied by <paramref name="modulate"/>, then faded by <paramref name="group"/>.</summary>

@@ -31,7 +31,7 @@ public static partial class PlayfieldRenderer
             // A static body is built from the block's centre and scaled size,
             // which is the same rect as its top-left corner and size.
             var screen = new Rect2(
-                view.PlayfieldToScreen(block.Position),
+                view.PlayfieldToScreen(GroupOffset.Shown(entity, block.Position)),
                 block.Size * view.Scale);
             DrawHitbox(canvas, rid, screen, DebugPalette.BlockHitbox);
             if (block.OneWay != BlockOneWay.Off)
@@ -42,7 +42,7 @@ public static partial class PlayfieldRenderer
         {
             Spike spike = entity.GetComponent<Spike>();
             if (spike.Size.X > 0 && spike.Size.Y > 0)
-                DrawSpikeHitbox(canvas, rid, SpikeRules.ScreenHitbox(spike, view));
+                DrawSpikeHitbox(canvas, rid, SpikeRules.ScreenHitbox(spike, GroupOffset.View(entity, view)));
         }
 
         foreach (Entity entity in entities.Query<Player, Position>().ToEntityList())

@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using Godot;
+using Xanadu.Rendering;
 
 namespace Xanadu.Systems.Shaders;
 
@@ -18,16 +19,19 @@ public static class CommonShaderMaterials
 {
     private static readonly Dictionary<string, ShaderMaterial> Cache = new();
 
-    public static Rid MaterialOf(string path)
+    /// <summary>
+    /// The material of a common shader, with a blend. Mix is the shader's own
+    /// material; every other mode is one variant, compiled the first time it is
+    /// drawn (docs/render-architecture.md D17).
+    /// </summary>
+    public static Rid MaterialOf(string path, BlendMode blend = BlendMode.Mix)
     {
-        if (!Cache.TryGetValue(path, out ShaderMaterial? material))
+        string key = blend == BlendMode.Mix ? path : $"{path}#{blend}";
+        if (!Cache.TryGetValue(key, out ShaderMaterial? material))
         {
-            // The game's own effect shaders are written in code, not loaded from a file.
-            material = path == GlowRingShader.Path
-                ? new ShaderMaterial { Shader = new Shader { Code = GlowRingShader.Code } }
-                : ShaderMaterials.Load(path);
+            material = Build(path, blend);
             if (material is not null)
-                Cache[path] = material;
+                Cache[key] = material;
         }
 
         return material?.GetRid() ?? default;
@@ -40,4 +44,25 @@ public static class CommonShaderMaterials
     /// </summary>
     public static bool IsLive(string path) =>
         Cache.TryGetValue(path, out ShaderMaterial? material) && GodotObject.IsInstanceValid(material);
+
+    private static ShaderMaterial? Build(string path, BlendMode blend)
+    {
+        // The game's own effect shaders are written in code, not loaded from a file.
+        bool inline = path == GlowRingShader.Path;
+        if (inline)
+        {
+            string code = blend == BlendMode.Mix
+                ? GlowRingShader.Code
+                : ShaderBlendVariants.Inject(GlowRingShader.Code, blend);
+            return new ShaderMaterial { Shader = new Shader { Code = code } };
+        }
+
+        if (blend == BlendMode.Mix)
+            return ShaderMaterials.Load(path);
+
+        if (GD.Load<Shader>(path) is not { } baseShader)
+            return null;
+        string source = ShaderBlendVariants.Inject(baseShader.Code, blend);
+        return new ShaderMaterial { Shader = new Shader { Code = source } };
+    }
 }

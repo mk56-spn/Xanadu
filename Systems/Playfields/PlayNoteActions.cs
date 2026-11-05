@@ -166,7 +166,7 @@ public sealed class PlayNoteActions(PlayNoteContext context)
 
             entity.RemoveTag<ConstructionHidden>();
             context.Entities.CreateEntity(new ParticleBurst(
-                view.PlayfieldToScreen(block.Center),
+                view.PlayfieldToScreen(GroupOffset.Shown(entity, block.Center)),
                 ParticleKind.Dash,
                 PlayfieldRenderer.ColorFor(note)));
             break;

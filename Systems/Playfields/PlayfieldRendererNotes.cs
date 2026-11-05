@@ -12,77 +12,62 @@ namespace Xanadu.Systems.Playfields;
 
 public static partial class PlayfieldRenderer
 {
-    public static void DrawNotes(
+    /// <summary>
+    /// Draws one note (not a rail note) with its approach ring, dash link,
+    /// selection ring and group badge, under its own shader. Its glow is drawn
+    /// apart, by <see cref="DrawNoteGlow"/>, under the notes around it.
+    /// </summary>
+    public static void DrawNote(
         IRectCanvas canvas,
         Rid rid,
-        EntityStore entities,
+        Entity entity,
         PlayfieldView view,
-        Playfield playfield,
         Playhead playhead,
         Entity selectedNote)
     {
         float size = NoteSize * view.Scale;
-        DrawNoteGuides(canvas, rid, entities, view, playhead, size / 2);
-        DrawNoteGlows(canvas, rid, entities, view, playhead, size / 2);
+        Note note = entity.GetComponent<Note>();
+        if (NoteRules.IsRail(note.Kind) || NoteRules.IsChannelEnd(note.Kind))
+            return;
 
-        foreach (Entity entity in entities.Query<Note>().ToEntityList())
+        float alpha = NoteFade.Alpha(note, playhead.TimeMs);
+        if (alpha <= 0)
+            return;
+
+        Vector2 center = view.PlayfieldToScreen(note.Position);
+        float radius = size / 2;
+        Color laneColor = GroupColor.For(entity, ColorFor(note));
+        Color color = entity.Tags.Has<NoteMissed>()
+            ? new Color(0.4f, 0.4f, 0.5f, alpha * laneColor.A * 0.45f)
+            : new Color(laneColor.R, laneColor.G, laneColor.B, alpha * laneColor.A);
+
+        float approach = NoteFade.Approach(note.TimeMs, playhead.TimeMs);
+        float approachRadius = approach >= 0 ? ApproachRadius(radius, approach) : 0f;
+        var ring = ApproachColor(laneColor, alpha);
+
+        SelectItemShader(canvas, entity);
+
+        if (approach >= 0)
+            canvas.DrawCircleOutline(rid, center, approachRadius, ring, 2);
+
+        if (note.Kind == NoteKind.Dash)
+            DrawDashLink(canvas, rid, note, view, radius, color);
+        DrawNoteBody(canvas, rid, note, center, radius, color);
+
+        if (!selectedNote.IsNull && selectedNote.Id == entity.Id)
         {
-            Note note = entity.GetComponent<Note>();
-            if (NoteRules.IsRail(note.Kind) || NoteRules.IsChannelEnd(note.Kind))
-                continue;
-
-            float alpha = NoteFade.Alpha(note, playhead.TimeMs);
-            if (alpha <= 0)
-                continue;
-
-            Vector2 center = view.PlayfieldToScreen(note.Position);
-            float radius = size / 2;
-            Color laneColor = GroupColor.For(entity, ColorFor(note));
-            Color color = entity.Tags.Has<NoteMissed>()
-                ? new Color(0.4f, 0.4f, 0.5f, alpha * laneColor.A * 0.45f)
-                : new Color(laneColor.R, laneColor.G, laneColor.B, alpha * laneColor.A);
-
-            float approach = NoteFade.Approach(note.TimeMs, playhead.TimeMs);
-            float approachRadius = approach >= 0 ? ApproachRadius(radius, approach) : 0f;
-            var ring = ApproachColor(laneColor, alpha);
-
-            string commonShader = ItemCommonShader.Of(entity);
-            if (commonShader.Length > 0)
-                canvas.SelectCommonShader(commonShader);
-            else
-                canvas.SelectShader(ItemShader.Of(entity));
-
-            if (approach >= 0)
-                canvas.DrawCircleOutline(rid, center, approachRadius, ring, 2);
-
-            if (note.Kind == NoteKind.Dash)
-                DrawDashLink(canvas, rid, note, view, radius, color);
-            DrawNoteBody(canvas, rid, note, center, radius, color);
-
-            if (!selectedNote.IsNull && selectedNote.Id == entity.Id)
-            {
-                canvas.DrawCircleOutline(
-                    rid,
-                    center,
-                    radius + 1.5f,
-                    new Color(
-                        SelectedNoteColor.R,
-                        SelectedNoteColor.G,
-                        SelectedNoteColor.B,
-                        color.A),
-                    2);
-            }
-
-            if (entity.TryGetComponent(out ItemGroups groups) && groups.Mask != 0)
-            {
-                DrawGroupBadge(
-                    canvas,
-                    rid,
-                    center + new Vector2(radius * 0.78f, -radius * 0.78f),
-                    groups.Mask,
-                    color.A);
-            }
+            canvas.DrawCircleOutline(
+                rid,
+                center,
+                radius + 1.5f,
+                new Color(
+                    SelectedNoteColor.R,
+                    SelectedNoteColor.G,
+                    SelectedNoteColor.B,
+                    color.A),
+                2);
         }
+
 
         canvas.SelectCommonShader("");
         canvas.SelectShader(0);
@@ -91,42 +76,38 @@ public static partial class PlayfieldRenderer
     private static Color ApproachColor(Color lane, float alpha) => new(lane.R, lane.G, lane.B, alpha * lane.A * 0.75f);
 
     /// <summary>
-    /// Every live note's glow and its approach ring's, in one pass before any
-    /// note is drawn: one run of the glow shader, under all the notes, which
-    /// is where added light belongs. Missed notes do not glow.
+    /// One live note's glow and its approach ring's. The layered draw gives
+    /// every stretch of notes their glows before any of their bodies: one run
+    /// of the glow shader, under those notes, which is where added light
+    /// belongs. Missed notes do not glow. It leaves the common shader selected.
     /// </summary>
-    private static void DrawNoteGlows(
+    public static void DrawNoteGlow(
         IRectCanvas canvas,
         Rid rid,
-        EntityStore entities,
+        Entity entity,
         PlayfieldView view,
-        Playhead playhead,
-        float radius)
+        Playhead playhead)
     {
-        foreach (Entity entity in entities.Query<Note>().ToEntityList())
+        float radius = NoteSize * view.Scale / 2;
+        Note note = entity.GetComponent<Note>();
+        if (NoteRules.IsRail(note.Kind) || NoteRules.IsChannelEnd(note.Kind) || entity.Tags.Has<NoteMissed>())
+            return;
+
+        float alpha = NoteFade.Alpha(note, playhead.TimeMs);
+        if (alpha <= 0)
+            return;
+
+        Vector2 center = view.PlayfieldToScreen(note.Position);
+        Color lane = GroupColor.For(entity, ColorFor(note));
+        float approach = NoteFade.Approach(note.TimeMs, playhead.TimeMs);
+        if (approach >= 0)
         {
-            Note note = entity.GetComponent<Note>();
-            if (NoteRules.IsRail(note.Kind) || NoteRules.IsChannelEnd(note.Kind) || entity.Tags.Has<NoteMissed>())
-                continue;
-
-            float alpha = NoteFade.Alpha(note, playhead.TimeMs);
-            if (alpha <= 0)
-                continue;
-
-            Vector2 center = view.PlayfieldToScreen(note.Position);
-            Color lane = GroupColor.For(entity, ColorFor(note));
-            float approach = NoteFade.Approach(note.TimeMs, playhead.TimeMs);
-            if (approach >= 0)
-            {
-                DrawGlow(canvas, rid, center, ApproachRadius(radius, approach), ApproachColor(lane, alpha),
-                    radius * ApproachGlowSpread, ApproachGlowStrength);
-            }
-
-            DrawGlow(canvas, rid, center, radius, new Color(lane.R, lane.G, lane.B, alpha * lane.A),
-                radius * NoteGlowSpread, NoteGlowStrength);
+            DrawGlow(canvas, rid, center, ApproachRadius(radius, approach), ApproachColor(lane, alpha),
+                radius * ApproachGlowSpread, ApproachGlowStrength);
         }
 
-        canvas.SelectCommonShader("");
+        DrawGlow(canvas, rid, center, radius, new Color(lane.R, lane.G, lane.B, alpha * lane.A),
+            radius * NoteGlowSpread, NoteGlowStrength);
     }
 
     /// <summary>How far a note's glow reaches from its outline, as a share of its radius.</summary>
@@ -359,14 +340,14 @@ public static partial class PlayfieldRenderer
     }
 
     /// <summary>Guide lines in hit order, under the notes; simultaneous notes meet at a hub dot.</summary>
-    private static void DrawNoteGuides(
+    public static void DrawNoteGuides(
         IRectCanvas canvas,
         Rid rid,
         EntityStore entities,
         PlayfieldView view,
-        Playhead playhead,
-        float radius)
+        Playhead playhead)
     {
+        float radius = NoteSize * view.Scale / 2;
         var points = new List<NoteGuides.Point>();
         foreach (Entity entity in entities.Query<Note>().ToEntityList())
         {
@@ -376,7 +357,7 @@ public static partial class PlayfieldRenderer
 
             float alpha = NoteFade.Alpha(note, playhead.TimeMs);
             if (alpha > 0)
-                points.Add(new NoteGuides.Point(note.TimeMs, view.PlayfieldToScreen(note.Position), alpha));
+                points.Add(new NoteGuides.Point(note.TimeMs, view.PlayfieldToScreen(GroupOffset.Shown(entity, note.Position)), alpha));
         }
 
         if (points.Count < 2)
@@ -415,64 +396,52 @@ public static partial class PlayfieldRenderer
             _ => "",
         };
 
-    public static void DrawMines(
+    /// <summary>Draws one mine while it shows, under its own shader.</summary>
+    public static void DrawMine(
         IRectCanvas canvas,
         Rid rid,
-        EntityStore entities,
+        Entity entity,
         PlayfieldView view,
         Playhead playhead)
     {
         float size = MineSize * view.Scale;
+        Mine mine = entity.GetComponent<Mine>();
+        float alpha = MineFade.Alpha(mine, playhead.TimeMs);
+        if (alpha <= 0)
+            return;
 
-        foreach (Entity entity in entities.Query<Mine>().ToEntityList())
-        {
-            Mine mine = entity.GetComponent<Mine>();
-            float alpha = MineFade.Alpha(mine, playhead.TimeMs);
-            if (alpha <= 0)
-                continue;
+        SelectItemShader(canvas, entity);
+        Vector2 center = view.PlayfieldToScreen(mine.Position);
+        var bounds = new Rect2(
+            center - new Vector2(size / 2, size / 2),
+            new Vector2(size, size));
+        Color color = GroupColor.For(entity, new Color(1f, 0.22f, 0.16f, alpha));
 
-            canvas.SelectShader(ItemShader.Of(entity));
-            Vector2 center = view.PlayfieldToScreen(mine.Position);
-            var bounds = new Rect2(
-                center - new Vector2(size / 2, size / 2),
-                new Vector2(size, size));
-            Color color = GroupColor.For(entity, new Color(1f, 0.22f, 0.16f, alpha));
+        canvas.DrawRect(
+            rid,
+            bounds,
+            new Color(0.08f, 0.02f, 0.02f, alpha * 0.9f));
+        canvas.DrawBorder(rid, bounds, color, 2);
+        canvas.DrawBorder(
+            rid,
+            new Rect2(
+                bounds.Position + new Vector2(3, 3),
+                bounds.Size - new Vector2(6, 6)),
+            new Color(1f, 0.55f, 0.2f, alpha),
+            1);
+        canvas.DrawLine(
+            rid,
+            bounds.Position + new Vector2(5, 5),
+            bounds.End - new Vector2(5, 5),
+            color,
+            2);
+        canvas.DrawLine(
+            rid,
+            new Vector2(bounds.End.X - 5, bounds.Position.Y + 5),
+            new Vector2(bounds.Position.X + 5, bounds.End.Y - 5),
+            color,
+            2);
 
-            canvas.DrawRect(
-                rid,
-                bounds,
-                new Color(0.08f, 0.02f, 0.02f, alpha * 0.9f));
-            canvas.DrawBorder(rid, bounds, color, 2);
-            canvas.DrawBorder(
-                rid,
-                new Rect2(
-                    bounds.Position + new Vector2(3, 3),
-                    bounds.Size - new Vector2(6, 6)),
-                new Color(1f, 0.55f, 0.2f, alpha),
-                1);
-            canvas.DrawLine(
-                rid,
-                bounds.Position + new Vector2(5, 5),
-                bounds.End - new Vector2(5, 5),
-                color,
-                2);
-            canvas.DrawLine(
-                rid,
-                new Vector2(bounds.End.X - 5, bounds.Position.Y + 5),
-                new Vector2(bounds.Position.X + 5, bounds.End.Y - 5),
-                color,
-                2);
-
-            if (entity.TryGetComponent(out ItemGroups groups) && groups.Mask != 0)
-            {
-                DrawGroupBadge(
-                    canvas,
-                    rid,
-                    center + new Vector2(size * 0.55f, -size * 0.55f),
-                    groups.Mask,
-                    color.A);
-            }
-        }
 
         canvas.SelectShader(0);
     }
