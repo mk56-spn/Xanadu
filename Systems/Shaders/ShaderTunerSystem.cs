@@ -11,7 +11,7 @@ using Xanadu.Ui.Ecs.Ui;
 namespace Xanadu.Systems.Shaders;
 
 /// <summary>
-/// F8 opens a panel with a slider for every channel of every uniform of one
+/// F2 opens a panel with a slider for every channel of every uniform of one
 /// material in use, and PREV and NEXT step between materials. Each material is
 /// tuned alone, even when others share its shader. It is a debugging aid: edits
 /// apply live and nothing is saved.
@@ -19,7 +19,7 @@ namespace Xanadu.Systems.Shaders;
 public sealed class ShaderTunerSystem(
     EntityStore entities,
     IKeyboardState keyboard,
-    Key key = Key.F8) : QuerySystem<UiSlider, ShaderParam>
+    Key key = DebugKeys.ShaderTuner) : QuerySystem<UiSlider, ShaderParam>
 {
     private const float PanelCenterX = 1640;
     private const float PanelWidth = 520;

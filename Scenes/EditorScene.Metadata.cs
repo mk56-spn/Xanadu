@@ -136,15 +136,32 @@ public static partial class EditorScene
 
         UiNode helpUi = UiNode.Layer(entities, root, UiLayers.EditorHelp, null, UiStage.Full);
         UiNode helpNode = helpUi.Column()
-            .Size(560, 520)
+            .Size(560, 560)
             .Hidden()
-            .Gap(4)
+            .Gap(6)
             .Fill(Palette.SurfaceInset)
+            .Pad(12)
             .Input();
         Entity helpPanel = helpNode.Entity;
+        HudText(
+            helpNode,
+            Vector2.Zero,
+            new Vector2(536, 24),
+            "EDITOR BINDINGS   (F9)",
+            14,
+            SceneUi.AccentColor);
+
+        // The list outgrew the panel as tools were added; it scrolls now.
+        helpNode.Scroll(new Vector2(536, 500), 0, out UiNode bindingList)
+            .Fill(Palette.SurfaceInset);
+        bindingList.IgnoreLayout()
+            .AutoHeight()
+            .Gap(2)
+            .Main(StackMainAlignment.Start)
+            .Cross(StackCrossAlignment.Start);
+
         string[] bindings =
         {
-            "EDITOR BINDINGS   (F2)",
             "SPACE                  Play / pause",
             "HOME / END             Go to start / end",
             "UP / DOWN              Previous / next note",
@@ -167,6 +184,7 @@ public static partial class EditorScene
             $"{EditorPlacementKeybinds.LabelFor(EditorPlacementMode.Spikes),-23}Place spikes (drag to paint)",
             $"{EditorPlacementKeybinds.LabelFor(EditorPlacementMode.Text),-23}Place text (edit it in the sidebar)",
             $"{"GRASS TOOL",-23}Place grass (tune it in the sidebar)",
+            $"{"POLYGON TOOL",-23}Click points; first point or ENTER closes, ESC drops",
             "R                      Rotate selection a quarter turn",
             "H / V                  Flip selection across / up and down",
             "O                      Make selected blocks one-way",
@@ -178,23 +196,13 @@ public static partial class EditorScene
             "ENTER                  Forward",
             "F5                     Play from selected start",
             "SHIFT+F5               Play from the playhead",
-            "F8                     Tune shader uniforms",
-            "F9                     Level shaders",
-            "F10                    Toggle hitboxes",
-            "F2                     Toggle this list",
+            "F2                     Tune shader uniforms",
+            "F10                    Level shaders",
+            "F6                     Toggle hitboxes",
+            "F9                     Toggle this list",
         };
         foreach (string binding in bindings)
-        {
-            HudText(
-                helpNode,
-                Vector2.Zero,
-                new Vector2(520, 24),
-                binding,
-                14,
-                binding.StartsWith("EDITOR")
-                    ? SceneUi.AccentColor
-                    : SceneUi.TextColor);
-        }
+            HudText(bindingList, Vector2.Zero, new Vector2(520, 24), binding, 14, SceneUi.TextColor);
 
         helpPanel.AddComponent(new EditorPanel(
             EditorPanelKind.Bindings,

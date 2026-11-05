@@ -44,7 +44,7 @@ public sealed class EditorDialogSystem : QuerySystem<EditorDialog>
     }
 
     private const float ShaderRefresh = 0.2f;
-    private const string ShaderHint = "Tune a shader's uniforms with F8 while it is on screen; they save with the level.";
+    private const string ShaderHint = "Tune a shader's uniforms with F2 while it is on screen; they save with the level.";
     private static readonly Color RowIdle = Palette.SurfaceRaised;
     private static readonly Color RowPicked = Palette.Primary;
 

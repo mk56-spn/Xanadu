@@ -5,7 +5,7 @@ namespace Xanadu.Ecs;
 
 /// <summary>
 /// Every colour the debug views use, wherever they live: the F3 stats, the F4 bounds
-/// and tree, the F8 shader tuner, the F10 hitboxes and the F1 frame rate. Add a colour here, not in a view.
+/// and tree, the F2 shader tuner, the F6 hitboxes and the F1 frame rate. Add a colour here, not in a view.
 /// </summary>
 public static class DebugPalette
 {

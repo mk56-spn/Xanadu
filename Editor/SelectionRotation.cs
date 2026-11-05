@@ -29,14 +29,16 @@ public readonly record struct RotationStart(
     DashDirection Direction,
     Vector2 Facing,
     Vector2 Momentum,
-    float SpikeDegrees = 0f,
-    BlockOneWay OneWay = BlockOneWay.Off);
+    float Degrees = 0f,
+    BlockOneWay OneWay = BlockOneWay.Off,
+    Xanadu.Items.Xif? Shape = null);
 
 /// <summary>
-/// Turns a group of playfield items around their shared centre. Blocks and
-/// spikes follow the same <see cref="GridPlacement"/> rules, except that a block
-/// is a physics box that has to stay square to the field: it only turns in 90
-/// degree steps, swapping width and height. A spike takes any angle.
+/// Turns a group of playfield items around their shared centre. Anything with
+/// a shape turns freely, to any angle: spikes, text, grass and polygons. The
+/// exception is the block, a physics box that has to stay square to the field:
+/// it only turns in 90 degree steps, swapping width and height. Notes and start
+/// points only have a position, so they orbit, with their directions turned.
 /// </summary>
 public static class SelectionRotation
 {
@@ -65,16 +67,12 @@ public static class SelectionRotation
         bool turnsOnTheSpot = false;
         foreach (Entity entity in selection)
         {
-            if (!EditorItems.IsItem(entity) ||
-                !EditorItemPosition.TryGet(entity, out Vector2 center))
-            {
+            if (!TryGetBox(entity, out Rect2 item))
                 continue;
-            }
 
-            Rect2 item = new(center - SizeOf(entity) / 2, SizeOf(entity));
             bounds = count == 0 ? item : bounds.Merge(item);
             count++;
-            turnsOnTheSpot = entity.HasComponent<Block>() || entity.HasComponent<Spike>();
+            turnsOnTheSpot = TurnsOnTheSpot(entity);
         }
 
         return count >= 2 || (count == 1 && turnsOnTheSpot);
@@ -87,13 +85,9 @@ public static class SelectionRotation
         bool any = false;
         foreach (Entity entity in selection)
         {
-            if (!EditorItems.IsItem(entity) ||
-                !EditorItemPosition.TryGet(entity, out Vector2 center))
-            {
+            if (!TryGetBox(entity, out Rect2 item))
                 continue;
-            }
 
-            Rect2 item = new(center - SizeOf(entity) / 2, SizeOf(entity));
             bounds = any ? bounds.Merge(item) : item;
             any = true;
         }
@@ -122,9 +116,43 @@ public static class SelectionRotation
         return stepped ? Mathf.Snapped(angle, Step) : angle;
     }
 
+    /// <summary>Items with a shape of their own, which a single one of turns on the spot.</summary>
+    public static bool TurnsOnTheSpot(Entity entity) =>
+        entity.HasComponent<Block>() || entity.HasComponent<Spike>() || entity.HasComponent<LevelText>() ||
+        entity.HasComponent<GrassPatch>() || entity.HasComponent<LevelPolygon>();
+
+    /// <summary>The upright box an item covers as it is turned; a point for notes and start points.</summary>
+    public static bool TryGetBox(Entity entity, out Rect2 box)
+    {
+        box = default;
+        if (!EditorItems.IsItem(entity))
+            return false;
+
+        if (entity.TryGetComponent(out Block block))
+            box = block.Bounds;
+        else if (entity.TryGetComponent(out Spike spike))
+            box = TurnedBox.Hull(spike.Bounds, spike.RotationDegrees);
+        else if (entity.TryGetComponent(out LevelText text))
+            box = TurnedBox.Hull(text.Bounds, text.RotationDegrees);
+        else if (entity.TryGetComponent(out GrassPatch grass))
+            box = TurnedBox.Hull(grass.Bounds, grass.RotationDegrees);
+        else if (entity.TryGetComponent(out LevelPolygon polygon))
+            box = polygon.Bounds;
+        else if (EditorItemPosition.TryGet(entity, out Vector2 point))
+            box = new Rect2(point, Vector2.Zero);
+        else
+            return false;
+
+        return true;
+    }
+
     public static RotationStart Capture(Entity entity)
     {
         EditorItemPosition.TryGet(entity, out Vector2 center);
+
+        // Grass turns about the middle of its box, not the foot of its blades.
+        if (entity.TryGetComponent(out GrassPatch grass))
+            center = grass.Bounds.GetCenter();
         DashDirection direction = entity.HasComponent<Note>()
             ? entity.GetComponent<Note>().DashDirection
             : default;
@@ -137,13 +165,18 @@ public static class SelectionRotation
             momentum = new Vector2(start.Momentum.X, start.Momentum.Y);
         }
 
-        float spikeDegrees = entity.HasComponent<Spike>()
-            ? entity.GetComponent<Spike>().RotationDegrees
+        float degrees = entity.TryGetComponent(out Spike spike) ? spike.RotationDegrees
+            : entity.TryGetComponent(out LevelText text) ? text.RotationDegrees
+            : entity.TryGetComponent(out GrassPatch turned) ? turned.RotationDegrees
+            : entity.TryGetComponent(out LevelPolygon polygon) ? polygon.RotationDegrees
             : 0f;
+        Xanadu.Items.Xif? shape = entity.TryGetComponent(out LevelPolygon shaped) && shaped.Item is not null
+            ? Xanadu.Items.XifCopy.Clone(shaped.Item)
+            : null;
         BlockOneWay oneWay = entity.HasComponent<Block>()
             ? entity.GetComponent<Block>().OneWay
             : BlockOneWay.Off;
-        return new RotationStart(entity, center, SizeOf(entity), direction, facing, momentum, spikeDegrees, oneWay);
+        return new RotationStart(entity, center, SizeOf(entity), direction, facing, momentum, degrees, oneWay, shape);
     }
 
     /// <summary>Puts one item where the rotation takes it, kept inside the field.</summary>
@@ -170,10 +203,13 @@ public static class SelectionRotation
         if (entity.HasComponent<Spike>())
         {
             ref Spike spike = ref entity.GetComponent<Spike>();
-            spike.RotationDegrees = SpikeRules.NormalizeDegrees(start.SpikeDegrees + Mathf.RadToDeg(angle));
+            spike.RotationDegrees = SpikeRules.NormalizeDegrees(start.Degrees + Mathf.RadToDeg(angle));
             spike.Position = GridPlacement.Settle(center - start.Size / 2, start.Size, playfield, snap);
             return;
         }
+
+        if (TryTurnFreely(start, InField(center, playfield), TurnedBox.Normalize(start.Degrees + Mathf.RadToDeg(angle))))
+            return;
 
         EditorItemPosition.Set(entity, new Vector2(
             Mathf.Clamp(center.X, 0, playfield.Width),
@@ -221,10 +257,31 @@ public static class SelectionRotation
         if (entity.HasComponent<Spike>())
         {
             ref Spike spike = ref entity.GetComponent<Spike>();
-            spike.RotationDegrees = FlippedSpikeDegrees(start.SpikeDegrees, horizontal);
+            spike.RotationDegrees = FlippedSpikeDegrees(start.Degrees, horizontal);
             spike.Position = GridPlacement.Settle(center - start.Size / 2, start.Size, playfield, snap);
             return;
         }
+
+        // A polygon mirrors its outline about its origin and turns the other way, which is an exact mirror.
+        if (entity.HasComponent<LevelPolygon>() && start.Shape is { } shape)
+        {
+            ref LevelPolygon polygon = ref entity.GetComponent<LevelPolygon>();
+            Xanadu.Items.Xif mirrored = Xanadu.Items.XifCopy.Clone(shape);
+            Vector2 axis = horizontal ? new Vector2(-1, 1) : new Vector2(1, -1);
+            foreach (Xanadu.Items.XifPrimitive primitive in mirrored.Primitives)
+            {
+                for (int i = 0; i < primitive.Points.Count; i++)
+                    primitive.Points[i] *= axis;
+            }
+
+            polygon.Item = mirrored;
+            polygon.RotationDegrees = TurnedBox.Normalize(-start.Degrees);
+            polygon.Position = InField(center, playfield);
+            return;
+        }
+
+        if (TryTurnFreely(start, InField(center, playfield), TurnedBox.Flipped(start.Degrees, horizontal)))
+            return;
 
         EditorItemPosition.Set(entity, new Vector2(
             Mathf.Clamp(center.X, 0, playfield.Width),
@@ -245,6 +302,44 @@ public static class SelectionRotation
             point.Momentum = new System.Numerics.Vector2(momentum.X, momentum.Y);
         }
     }
+
+    /// <summary>
+    /// Puts a freely turning item, text, grass or a polygon, with its centre at
+    /// <paramref name="center"/> and turned to <paramref name="degrees"/>. False for any other item.
+    /// </summary>
+    private static bool TryTurnFreely(in RotationStart start, Vector2 center, float degrees)
+    {
+        Entity entity = start.Entity;
+        if (entity.HasComponent<LevelText>())
+        {
+            ref LevelText text = ref entity.GetComponent<LevelText>();
+            text.Position = center;
+            text.RotationDegrees = degrees;
+            return true;
+        }
+
+        if (entity.HasComponent<GrassPatch>())
+        {
+            ref GrassPatch grass = ref entity.GetComponent<GrassPatch>();
+            grass.Position = center + new Vector2(0, grass.Length / 2);
+            grass.RotationDegrees = degrees;
+            return true;
+        }
+
+        if (entity.HasComponent<LevelPolygon>())
+        {
+            ref LevelPolygon polygon = ref entity.GetComponent<LevelPolygon>();
+            polygon.Position = center;
+            polygon.RotationDegrees = degrees;
+            return true;
+        }
+
+        return false;
+    }
+
+    private static Vector2 InField(Vector2 point, Playfield playfield) => new(
+        Mathf.Clamp(point.X, 0, playfield.Width),
+        Mathf.Clamp(point.Y, 0, playfield.Height));
 
     /// <summary>The eight directions run clockwise from Up, so mirroring reflects the index.</summary>
     public static DashDirection FlippedDirection(DashDirection direction, bool horizontal) =>
@@ -287,9 +382,14 @@ public static class SelectionRotation
     {
         if (entity.HasComponent<Block>())
             return entity.GetComponent<Block>().Size;
-
-        return entity.HasComponent<Spike>()
-            ? entity.GetComponent<Spike>().Size
+        if (entity.HasComponent<Spike>())
+            return entity.GetComponent<Spike>().Size;
+        if (entity.HasComponent<LevelText>())
+            return entity.GetComponent<LevelText>().Bounds.Size;
+        if (entity.HasComponent<GrassPatch>())
+            return entity.GetComponent<GrassPatch>().Bounds.Size;
+        return entity.HasComponent<LevelPolygon>()
+            ? entity.GetComponent<LevelPolygon>().LocalSize
             : Vector2.Zero;
     }
 }

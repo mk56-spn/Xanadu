@@ -23,6 +23,8 @@ public interface IChartItems
 
     List<GrassDocument> Grass { get; set; }
 
+    List<PolygonDocument> Polygons { get; set; }
+
     List<GroupDocument> Groups { get; set; }
 
     /// <summary>The playfield background as #rrggbb or #rrggbbaa, or "" for the theme default.</summary>

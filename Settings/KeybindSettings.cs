@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using Godot;
 using Xanadu.Ecs.Storage;
+using Xanadu.Systems.Input;
 
 namespace Xanadu.Settings;
 
@@ -56,7 +57,10 @@ public sealed class KeybindSettings
 
     public void CancelCapture() => Capturing = null;
 
-    /// <summary>Consumes a key while capturing. Escape cancels.</summary>
+    /// <summary>
+    /// Consumes a key while capturing. Escape cancels; the function keys are
+    /// kept for the debug bands, so binding one leaves the capture open.
+    /// </summary>
     public bool TryCapture(Key key)
     {
         if (Capturing is not { } action)
@@ -68,7 +72,7 @@ public sealed class KeybindSettings
             return true;
         }
 
-        if (IsModifier(key))
+        if (IsModifier(key) || DebugKeys.IsReserved(key))
             return true;
 
         Key oldKey = Get(action);

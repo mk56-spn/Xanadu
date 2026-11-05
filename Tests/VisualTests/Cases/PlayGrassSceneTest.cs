@@ -7,7 +7,8 @@ namespace Xanadu.Tests.VisualTests;
 
 /// <summary>
 /// Grass in a play scene, loaded from the level document: a meadow along the
-/// floor in two colours and a tuft on a block, swaying behind the player.
+/// floor in two colours and a tuft on a block, swaying behind the player, with
+/// a polygon rock behind the meadow.
 /// </summary>
 public sealed class PlayGrassSceneTest : SceneTest
 {
@@ -20,7 +21,8 @@ public sealed class PlayGrassSceneTest : SceneTest
         AddUntilStep(
             "wait for the play scene",
             () => VisualAssert.IsSceneReady(Context, SceneKind.Play, UiLayers.PlayHud) &&
-                  Context.Entities.Query<GrassPatch>().Count == 3);
+                  Context.Entities.Query<GrassPatch>().Count == 3 &&
+                  Context.Entities.Query<LevelPolygon>().Count == 1);
         AddAssert("the patches keep their settings", () =>
         {
             foreach (var entity in Context.Entities.Query<GrassPatch>().ToEntityList())
@@ -52,6 +54,10 @@ public sealed class PlayGrassSceneTest : SceneTest
         {
             X = 770, Y = 700, Width = 260, Length = 40, Density = 60, Sway = 25, Seed = 13,
         });
+        var rock = new Xanadu.Items.Xif();
+        Xanadu.Items.XifEditing.AddPolygon(rock, new() { new(-120, 40), new(-60, -50), new(70, -40), new(130, 40) });
+        rock.Primitives[0].Fill = new Color("#5b6478");
+        document.Polygons.Add(new PolygonDocument { X = 300, Y = 960, Rotation = 0f, Item = rock });
         Context.Scenes.StartPlay(new LevelEntry("memory://play-grass", document, song));
     }
 }

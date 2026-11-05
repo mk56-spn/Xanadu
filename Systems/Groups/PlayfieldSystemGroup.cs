@@ -17,7 +17,7 @@ namespace Xanadu.Systems.Groups;
 /// <summary>
 /// Shared playback and playfield rendering for editor and play scenes. Owns the
 /// playfield's layer tree: the field itself, the character art drawn over it,
-/// particle bursts, the F10 hitbox outlines, and the HUD edit overlay.
+/// particle bursts, the F6 hitbox outlines, and the HUD edit overlay.
 /// </summary>
 public sealed class PlayfieldSystemGroup : SystemGroup, IDisposable
 {
@@ -57,7 +57,7 @@ public sealed class PlayfieldSystemGroup : SystemGroup, IDisposable
         _particleCanvas = new CanvasItemHandle(_playfield.Rid, 0);
         _particles = new GodotParticleEmitter(_particleCanvas.Rid);
 
-        // The F10 hitbox outlines: after the art, so the rig cannot hide them,
+        // The F6 hitbox outlines: after the art, so the rig cannot hide them,
         // but still inside the playfield's layer so the HUD stays on top.
         _hitboxes = new CanvasItemHandle(_playfield.Rid, 0, visible: false);
 

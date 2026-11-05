@@ -20,6 +20,7 @@ public sealed class EditorReturnState
     private TimelineView _timeline;
     private EditorPlacementMode _mode;
     private float _degrees;
+    private BlockBrushSize _blockSize;
     private readonly List<ItemKey> _selection = new();
 
     public static EditorReturnState? Capture(EntityStore entities)
@@ -37,6 +38,7 @@ public sealed class EditorReturnState
                 ? placement.Mode
                 : EditorPlacementMode.Notes,
             _degrees = placement.Degrees,
+            _blockSize = placement.BlockSize,
         };
 
         if (editor.TryGetComponent(out NoteSelection selection))
@@ -61,6 +63,7 @@ public sealed class EditorReturnState
             ref EditorPlacement placement = ref editor.GetComponent<EditorPlacement>();
             placement.Mode = _mode;
             placement.Degrees = _degrees;
+            placement.BlockSize = _blockSize;
         }
 
         if (_selection.Count == 0 || !editor.HasComponent<NoteSelection>())

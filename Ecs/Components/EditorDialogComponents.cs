@@ -12,7 +12,7 @@ public enum EditorDialogKind
     /// <summary>Offers to restore autosaved edits found when a level opened.</summary>
     Recovery,
 
-    /// <summary>F9: the level's custom shader slots.</summary>
+    /// <summary>F10: the level's custom shader slots.</summary>
     Shaders,
 
     /// <summary>One of the map's colours; the argument is an <see cref="EditorColorTarget"/>.</summary>

@@ -152,7 +152,7 @@ public sealed class XanaduSystemRoot : SystemRoot, IDisposable
             Hud,
             new GodotCharacterRigFiles(),
             PlayKeyboard,
-            new GodotOverlayToggleSource(Key.F10),
+            new GodotOverlayToggleSource(DebugKeys.Hitboxes),
             MapOffsets);
         Add(_playfieldSystems);
         _editorSystems = new EditorSystemGroup(
@@ -187,7 +187,7 @@ public sealed class XanaduSystemRoot : SystemRoot, IDisposable
         _debugSystems = new DebugSystemGroup(
             canvas,
             parentCanvas,
-            new GodotOverlayToggleSource(Key.F3),
+            new GodotOverlayToggleSource(DebugKeys.Ecs),
             entities,
             this,
             new GodotFpsSource(),

@@ -80,6 +80,7 @@ public static partial class PlayfieldRenderer
         canvas.DrawBorder(rid, field, frameColor ?? BorderColor, 2);
         canvas.SelectShader(0);
 
+        DrawPolygons(canvas, rid, entities, view);
         DrawBlocks(canvas, rid, entities, view);
         DrawSpikes(canvas, rid, entities, view);
         DrawGrass(canvas, rid, entities, view, seconds);

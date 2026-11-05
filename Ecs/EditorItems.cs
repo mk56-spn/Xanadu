@@ -140,6 +140,12 @@ public static class EditorItemPosition
             return true;
         }
 
+        if (entity.HasComponent<LevelPolygon>())
+        {
+            position = entity.GetComponent<LevelPolygon>().Position;
+            return true;
+        }
+
         position = default;
         return false;
     }
@@ -187,6 +193,12 @@ public static class EditorItemPosition
         if (entity.HasComponent<GrassPatch>())
         {
             entity.GetComponent<GrassPatch>().Position = position;
+            return true;
+        }
+
+        if (entity.HasComponent<LevelPolygon>())
+        {
+            entity.GetComponent<LevelPolygon>().Position = position;
             return true;
         }
 

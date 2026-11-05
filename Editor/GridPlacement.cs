@@ -16,9 +16,10 @@ public enum GridHandle
 }
 
 /// <summary>
-/// The one set of rules blocks and spikes are placed, moved and resized by. Both
-/// sit on the grid the editor draws, unless snapping is off, and stay inside the
-/// field. They differ only in how they turn: see <see cref="SelectionRotation"/>.
+/// The one set of rules boxed items are placed, moved and resized by: blocks,
+/// spikes and grass. They sit on the grid the editor draws when snapping is on,
+/// and stay inside the field. They differ only in how they turn: see
+/// <see cref="SelectionRotation"/>.
 /// </summary>
 public static class GridPlacement
 {
@@ -38,11 +39,25 @@ public static class GridPlacement
 
     public static Vector2 Cell(Playfield playfield) => PlayfieldGrid.Cell(playfield);
 
-    /// <summary>A new block is two cells by one, a small platform, turned with the brush.</summary>
-    public static Vector2 NewBlockSize(Playfield playfield, float degrees = 0f)
+    /// <summary>The block a brush lays down, in cells, before the brush's turn.</summary>
+    public static Vector2 BlockCells(BlockBrushSize brush) => brush switch
+    {
+        BlockBrushSize.Quarter => new Vector2(0.5f, 0.5f),
+        BlockBrushSize.Platform => new Vector2(2f, 1f),
+        _ => Vector2.One,
+    };
+
+    /// <summary>A new block fills its brush's cells, turned with the brush.</summary>
+    public static Vector2 NewBlockSize(
+        Playfield playfield,
+        float degrees = 0f,
+        BlockBrushSize brush = BlockBrushSize.Cell)
     {
         Vector2 cell = Cell(playfield);
-        return SelectionRotation.TurnedSize(new Vector2(cell.X * 2, cell.Y), Mathf.DegToRad(degrees));
+        Vector2 cells = BlockCells(brush);
+        return SelectionRotation.TurnedSize(
+            new Vector2(cell.X * cells.X, cell.Y * cells.Y),
+            Mathf.DegToRad(degrees));
     }
 
     /// <summary>A new spike fills one cell; the brush turns it, not its box.</summary>
@@ -58,7 +73,19 @@ public static class GridPlacement
 
     /// <summary>Snaps a top-left corner when asked and keeps the item in the field.</summary>
     public static Vector2 Settle(Vector2 position, Vector2 size, Playfield playfield, bool snap = true) =>
-        Clamp(snap ? ViewportSnap.Snap(position, Cell(playfield)) : position, size, playfield);
+        Clamp(snap ? ViewportSnap.Snap(position, SnapStep(size, playfield)) : position, size, playfield);
+
+    /// <summary>
+    /// The grid an item snaps to: the field's cells, or its own size where that is
+    /// finer, so a block smaller than a cell lands on its own edges and quarters tile.
+    /// </summary>
+    public static Vector2 SnapStep(Vector2 size, Playfield playfield)
+    {
+        Vector2 cell = Cell(playfield);
+        return new Vector2(
+            size.X > 0f && size.X < cell.X ? size.X : cell.X,
+            size.Y > 0f && size.Y < cell.Y ? size.Y : cell.Y);
+    }
 
     /// <summary>Keeps an item fully inside the field without breaking grid alignment.</summary>
     public static Vector2 Clamp(Vector2 position, Vector2 size, Playfield playfield) => new(
@@ -182,10 +209,17 @@ public static class GridPlacement
         _ => GridHandle.None,
     };
 
-    /// <summary>A block's or spike's box and turn; false for any other entity.</summary>
+    /// <summary>A block's, spike's or grass patch's box and turn; false for any other entity.</summary>
     public static bool TryGet(Entity entity, out Rect2 bounds, out float degrees)
     {
         degrees = 0f;
+        if (entity.TryGetComponent(out GrassPatch grass))
+        {
+            bounds = grass.Bounds;
+            degrees = grass.RotationDegrees;
+            return true;
+        }
+
         if (entity.TryGetComponent(out Block block))
         {
             bounds = block.Bounds;
@@ -203,10 +237,12 @@ public static class GridPlacement
         return false;
     }
 
-    /// <summary>Gives a block or spike a new box, leaving the rest of it alone.</summary>
+    /// <summary>Gives a block, spike or grass patch a new box, leaving the rest of it alone.</summary>
     public static void SetBounds(Entity entity, Rect2 bounds)
     {
-        if (entity.HasComponent<Block>())
+        if (entity.HasComponent<GrassPatch>())
+            entity.GetComponent<GrassPatch>().SetBounds(bounds);
+        else if (entity.HasComponent<Block>())
         {
             ref Block block = ref entity.GetComponent<Block>();
             block.Position = bounds.Position;

@@ -79,6 +79,17 @@ public sealed class KeybindSettingsTests
     }
 
     [Test]
+    public void FunctionKeysStayWithTheDebugViews()
+    {
+        var settings = new KeybindSettings(_path);
+        settings.BeginCapture(KeybindAction.L1);
+
+        Assert.That(settings.TryCapture(Key.F6), Is.True, "the press is consumed");
+        Assert.That(settings.Capturing, Is.EqualTo(KeybindAction.L1), "but the capture stays open");
+        Assert.That(settings.Get(KeybindAction.L1), Is.EqualTo(Key.S));
+    }
+
+    [Test]
     public void ModifierKeysDoNotEndCapture()
     {
         var settings = new KeybindSettings(_path);

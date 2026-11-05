@@ -16,6 +16,7 @@ public sealed partial class EditorPlayfieldDrawSystem
 
     private void DrawPlacementGhost(Entity editor, PlayfieldView view, Playfield playfield, Playhead playhead)
     {
+        DrawPolygonDraft(editor, view);
         if (!editor.TryGetComponent(out EditorPlacementGhost ghost) ||
             !ghost.Visible ||
             !editor.TryGetComponent(out EditorPlacement placement))
@@ -29,7 +30,7 @@ public sealed partial class EditorPlayfieldDrawSystem
         switch (placement.Mode)
         {
             case EditorPlacementMode.Blocks:
-                Vector2 size = GridPlacement.NewBlockSize(playfield, degrees);
+                Vector2 size = GridPlacement.NewBlockSize(playfield, degrees, placement.BlockSize);
                 Vector2 corner = GridPlacement.Place(pointer, size, playfield, snap);
                 var block = new Rect2(view.PlayfieldToScreen(corner), size * view.Scale);
                 _canvas.DrawRect(_editor, block, Faint(PlayfieldRenderer.BlockFill));
@@ -75,6 +76,10 @@ public sealed partial class EditorPlayfieldDrawSystem
                 PlayfieldRenderer.DrawGrassPatch(_canvas, _editor, grass, view, _seconds);
                 break;
 
+            case EditorPlacementMode.Polygon:
+                _canvas.DrawCircle(_editor, ghost.Screen, 3f, Faint(PlayfieldRenderer.PolygonFill));
+                break;
+
             case EditorPlacementMode.Start:
                 PlayfieldRenderer.DrawStartPointBody(
                     _canvas,
@@ -107,6 +112,43 @@ public sealed partial class EditorPlayfieldDrawSystem
                     Faint(PlayfieldRenderer.ColorFor(note)));
                 break;
         }
+    }
+
+    /// <summary>
+    /// The outline the polygon tool is laying: its edges, a faint edge on to
+    /// the pointer, and a ring on the first point that lights up once a click
+    /// there would close it.
+    /// </summary>
+    private void DrawPolygonDraft(Entity editor, PlayfieldView view)
+    {
+        if (!editor.TryGetComponent(out EditorPolygonDraft draft) || !draft.Active)
+            return;
+
+        var points = new Vector2[draft.Points.Count];
+        for (int i = 0; i < points.Length; i++)
+            points[i] = view.PlayfieldToScreen(draft.Points[i]);
+
+        if (points.Length >= 3)
+            _canvas.DrawPolygon(_editor, points, Faint(Faint(PlayfieldRenderer.PolygonFill)));
+        if (points.Length >= 2)
+            _canvas.DrawPolyline(_editor, points, PlayfieldRenderer.PolygonFill, 2f);
+
+        bool closable = false;
+        if (editor.TryGetComponent(out EditorPlacementGhost ghost) && ghost.Visible)
+        {
+            _canvas.DrawLine(_editor, points[^1], ghost.Screen, Faint(PlayfieldRenderer.PolygonFill), 2f);
+            closable = points.Length >= 3 &&
+                       points[0].DistanceTo(ghost.Screen) <= EditorNoteInputSystem.PolygonCloseRadius;
+        }
+
+        foreach (Vector2 point in points)
+            _canvas.DrawCircle(_editor, point, 3f, PlayfieldRenderer.PolygonFill);
+        _canvas.DrawCircleOutline(
+            _editor,
+            points[0],
+            EditorNoteInputSystem.PolygonCloseRadius,
+            closable ? Palette.Accent : Faint(PlayfieldRenderer.PolygonFill),
+            2f);
     }
 
     private static Color Faint(Color color) => new(color.R, color.G, color.B, color.A * GhostAlpha);

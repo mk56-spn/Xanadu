@@ -71,7 +71,7 @@ public partial class LabHost : Control
         _debug = new DebugSystemGroup(
             new GodotRectCanvas(),
             GetCanvasItem(),
-            new GodotOverlayToggleSource(Key.F3),
+            new GodotOverlayToggleSource(DebugKeys.Ecs),
             _store,
             _root,
             new GodotFpsSource(),

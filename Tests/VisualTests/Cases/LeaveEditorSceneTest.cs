@@ -36,6 +36,13 @@ public sealed class LeaveEditorSceneTest : SceneTest
                 _saved = true;
                 return Xanadu.Systems.Scenes.EditorSaveOutcome.Success;
             });
+        // A shaded draw sends the editor's later chrome, timeline included, into
+        // child canvas items; leaving the editor must clear those too.
+        AddStep("place a shaded block", () =>
+            EditorItems.Create(
+                Context.Entities,
+                new Block(new Vector2(400, 400), new Vector2(100, 50)),
+                shaderSlot: 1));
         AddWaitStep("overlay settles", 2);
         AddStep("request leave", () => Context.Scenes.TryBack());
         AddUntilStep("leave confirmation is visible", ConfirmationIsVisible);

@@ -2,8 +2,8 @@ using Godot;
 
 namespace Xanadu.Systems.Input;
 
-/// <summary>Toggles the debug overlay with F3.</summary>
-public sealed class GodotOverlayToggleSource(Key key = Key.F3) : IOverlayToggleSource
+/// <summary>Toggles a debug overlay with the key it is given; F3 by default.</summary>
+public sealed class GodotOverlayToggleSource(Key key = DebugKeys.Ecs) : IOverlayToggleSource
 {
     public bool IsTogglePressed() => Godot.Input.IsKeyPressed(key);
 }

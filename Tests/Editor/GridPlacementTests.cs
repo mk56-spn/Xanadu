@@ -22,9 +22,34 @@ public sealed class GridPlacementTests
     [Test]
     public void NewItemsAreTheirGridSizes()
     {
-        Assert.That(GridPlacement.NewBlockSize(Field), Is.EqualTo(new Vector2(100, 50)));
-        Assert.That(GridPlacement.NewBlockSize(Field, 90f), Is.EqualTo(new Vector2(50, 100)));
+        Assert.That(GridPlacement.NewBlockSize(Field), Is.EqualTo(new Vector2(50, 50)));
+        Assert.That(GridPlacement.NewBlockSize(Field, 90f), Is.EqualTo(new Vector2(50, 50)));
+        Assert.That(
+            GridPlacement.NewBlockSize(Field, 0f, BlockBrushSize.Quarter),
+            Is.EqualTo(new Vector2(25, 25)));
+        Assert.That(
+            GridPlacement.NewBlockSize(Field, 0f, BlockBrushSize.Platform),
+            Is.EqualTo(new Vector2(100, 50)));
+        Assert.That(
+            GridPlacement.NewBlockSize(Field, 90f, BlockBrushSize.Platform),
+            Is.EqualTo(new Vector2(50, 100)));
         Assert.That(GridPlacement.NewSpikeSize(Field), Is.EqualTo(new Vector2(50, 50)));
+    }
+
+    [Test]
+    public void AQuarterBlockSnapsToItsOwnSizeSoQuartersTile()
+    {
+        var quarter = new Vector2(25, 25);
+        Assert.That(
+            GridPlacement.Place(new Vector2(520, 520), quarter, Field),
+            Is.EqualTo(new Vector2(500, 500)));
+        Assert.That(
+            GridPlacement.Place(new Vector2(545, 545), quarter, Field),
+            Is.EqualTo(new Vector2(525, 525)));
+        Assert.That(
+            GridPlacement.Place(new Vector2(560, 560), new Vector2(50, 50), Field),
+            Is.EqualTo(new Vector2(550, 550)),
+            "a cell-sized item still lands on cell lines");
     }
 
     [Test]

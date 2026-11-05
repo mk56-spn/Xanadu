@@ -15,8 +15,9 @@ public enum GrassSetting
 
 /// <summary>
 /// A strip of grass in a level: blades stand along a base line and grow up
-/// from it, swaying. It has no timing and no collision; groups fade and move
-/// it like any other item.
+/// from it, swaying. Its box is the one blocks and spikes have, turned about
+/// its centre like a spike's, so it is moved, resized and turned the same way.
+/// It has no timing and no collision; groups fade and move it like any other item.
 /// </summary>
 public struct GrassPatch() : IComponent
 {
@@ -71,6 +72,9 @@ public struct GrassPatch() : IComponent
     /// </summary>
     public uint Seed;
 
+    /// <summary>How far the patch is turned about the centre of its box, clockwise, in degrees.</summary>
+    public float RotationDegrees;
+
     public GrassPatch(Vector2 position, uint seed) : this()
     {
         Position = position;
@@ -83,8 +87,16 @@ public struct GrassPatch() : IComponent
     /// <summary>How many blades the patch draws.</summary>
     public readonly int BladeCount => Mathf.Clamp(Mathf.RoundToInt(Width * Density / 100f), 1, MaxBlades);
 
-    /// <summary>The box the blades fill when they stand straight, in playfield units.</summary>
+    /// <summary>The box the blades fill when they stand straight, before it is turned, in playfield units.</summary>
     public readonly Rect2 Bounds => new(Position.X - Width / 2, Position.Y - Length, Width, Length);
+
+    /// <summary>Gives the patch a new unturned box: its width is the box's, its blades as long as it is tall.</summary>
+    public void SetBounds(Rect2 box)
+    {
+        Width = Mathf.Clamp(box.Size.X, MinWidth, MaxWidth);
+        Length = Mathf.Clamp(box.Size.Y, MinLength, MaxLength);
+        Position = new Vector2(box.GetCenter().X, box.End.Y);
+    }
 
     /// <summary>One setting's value.</summary>
     public readonly float Get(GrassSetting setting) => setting switch
@@ -115,6 +127,7 @@ public struct GrassPatch() : IComponent
         GrassPatch patch = this;
         foreach (GrassSetting setting in System.Enum.GetValues<GrassSetting>())
             patch.Set(setting, float.IsFinite(Get(setting)) ? Get(setting) : 0f);
+        patch.RotationDegrees = TurnedBox.Normalize(patch.RotationDegrees);
         return patch;
     }
 

@@ -54,6 +54,9 @@ public static partial class XmfBinary
 
         /// <summary>Grass patches, absent when the level has none.</summary>
         Grass = 15,
+
+        /// <summary>Filled shapes, absent when the level has none.</summary>
+        Polygons = 16,
     }
 
     public static byte[] Write(LevelDocument document)
@@ -80,6 +83,8 @@ public static partial class XmfBinary
             file.Add((uint)ChunkId.Texts, WriteTexts(document.Texts));
         if (HasGrass(document))
             file.Add((uint)ChunkId.Grass, WriteGrass(document.Grass));
+        if (HasPolygons(document))
+            file.Add((uint)ChunkId.Polygons, WritePolygons(document.Polygons, strings));
         return file.ToArray();
     }
 
@@ -128,12 +133,16 @@ public static partial class XmfBinary
             document.Texts = ReadTexts(texts);
         if (file.TryGet((uint)ChunkId.Grass, out Chunk grass))
             document.Grass = ReadGrass(grass);
+        if (file.TryGet((uint)ChunkId.Polygons, out Chunk polygons))
+            document.Polygons = ReadPolygons(polygons, strings);
         return document;
     }
 
     /// <summary>Every string a chunk stores is indexed from this table.</summary>
     private static void IndexStrings(LevelDocument document, StringTable strings)
     {
+        foreach (PolygonDocument polygon in document.Polygons)
+            IndexItemStrings(polygon.Item, strings);
         strings.Add(document.Id);
         strings.Add(document.Slug);
         strings.Add(document.SongId);

@@ -16,6 +16,7 @@ namespace Xanadu.Systems.Groups;
 public sealed class EditorSystemGroup : SystemGroup, IDisposable
 {
     private readonly CanvasItemHandle _groupPreview;
+    private readonly EditorPlayfieldDrawSystem _draw;
 
     public EditorSystemGroup(
         EntityStore entities,
@@ -49,7 +50,10 @@ public sealed class EditorSystemGroup : SystemGroup, IDisposable
         Add(new EditorGrassPanelSystem(history));
         Add(new EditorGroupPreviewSystem(entities, canvas, _groupPreview.Rid));
         Add(new EditorPlacementSystem(entities));
+        Add(new EditorBlockSizeSystem(entities));
         Add(new EditorToolGroupSystem(entities));
+        Add(new EditorXifHostSystem(history));
+        Add(new Xanadu.Systems.Ui.XifEditorSystem(pointerInput));
         Add(new EditorDashStrengthSystem(entities));
         Add(new EditorContactCostSystem(entities));
         Add(new EditorRailLayerSystem(entities, history));
@@ -62,16 +66,19 @@ public sealed class EditorSystemGroup : SystemGroup, IDisposable
         Add(new EditorHudSystem(entities));
         Add(new WaveformPreviewSystem());
         Add(new EditorAnalysisSystem(entities));
-        Add(new EditorPlayfieldDrawSystem(entities, canvas, playfieldCanvas));
+        _draw = new EditorPlayfieldDrawSystem(entities, canvas, playfieldCanvas);
+        Add(_draw);
         Add(new WarningPopupSystem(entities));
         Add(new EditorDialogSystem(entities, commands));
     }
 
-    /// <summary>Enables the editor systems and shows or hides its preview layer.</summary>
+    /// <summary>Enables the editor systems, and erases the editor's last frame when leaving it.</summary>
     public void SetActive(bool active)
     {
         Enabled = active;
         _groupPreview.SetVisible(active);
+        if (!active)
+            _draw.Clear();
     }
 
     public void Dispose() => _groupPreview.Dispose();

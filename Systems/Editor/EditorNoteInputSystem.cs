@@ -73,6 +73,7 @@ public sealed partial class EditorNoteInputSystem : QuerySystem<Note>
     {
         PointerInput input = _pointer.Read();
         bool pressed = input.Pressed;
+        UpdatePolygonDraft(FindEditor());
 
         if (IsGroupTargetEditing())
         {
@@ -162,6 +163,10 @@ public sealed partial class EditorNoteInputSystem : QuerySystem<Note>
             return;
 
         Vector2 playfieldPosition = view.ScreenToPlayfield(screenPosition);
+
+        // The polygon tool takes every press on the field, even over items, so outlines can cross them.
+        if (TryDraftPolygon(editor, screenPosition, view, playfield))
+            return;
 
         // Handles hang over the field's edge, so they get the press before the
         // inside test would turn an edge drag away.
@@ -639,13 +644,19 @@ public sealed partial class EditorNoteInputSystem : QuerySystem<Note>
 
         foreach (Entity entity in _entities.Query<LevelText>().ToEntityList())
         {
-            if (screenBounds.Intersects(PlayfieldRenderer.TextScreenBounds(entity.GetComponent<LevelText>(), view)))
+            if (screenBounds.Intersects(PlayfieldRenderer.TextScreenHull(entity.GetComponent<LevelText>(), view)))
                 selected.Add(entity);
         }
 
         foreach (Entity entity in _entities.Query<GrassPatch>().ToEntityList())
         {
             if (screenBounds.Intersects(PlayfieldRenderer.GrassScreenBounds(entity.GetComponent<GrassPatch>(), view)))
+                selected.Add(entity);
+        }
+
+        foreach (Entity entity in _entities.Query<LevelPolygon>().ToEntityList())
+        {
+            if (screenBounds.Intersects(PlayfieldRenderer.PolygonScreenBounds(entity.GetComponent<LevelPolygon>(), view)))
                 selected.Add(entity);
         }
 

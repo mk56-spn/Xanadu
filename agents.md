@@ -57,7 +57,7 @@ Working examples of the slice this project uses: `docs/ecs/README.md`.
 UI is ECS entities — `Rectangle`, `Text`, `TextStyle`, `ButtonVisual`,
 `TakesInput`, `Toggle`, … — built with `UiNode` and rendered by the `Xanadu.Ui`
 systems. `UiBuilder` is the low-level factory behind it; the only direct caller
-left is the F8 shader tuner (a debug overlay).
+left is the F2 shader tuner (a debug overlay).
 
 **Never build UI out of Godot Control widgets.** This includes `Button`,
 `Label`, `LineEdit`, `TextEdit`, `Panel`, `ColorRect`, `TextureRect`,
@@ -92,8 +92,9 @@ them any more.
 
 ### Debug views
 
-Every debug view (F1, F3, F4, F8, F10) takes its colours from `DebugPalette` in the UI
+Every debug view (F1–F4 engine, F6 gameplay, F9–F10 editor) takes its colours from `DebugPalette` in the UI
 module, wherever the view lives. Add a missing colour there, never in the view.
+The keys themselves live in one place, `DebugKeys`; see its comment for the bands.
 
 ### Hard coding
 

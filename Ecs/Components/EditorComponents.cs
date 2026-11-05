@@ -84,6 +84,20 @@ public enum EditorPlacementMode
     FormStep,
     Text,
     Grass,
+    Polygon,
+}
+
+/// <summary>The block the block tool lays down, as fractions of a grid cell.</summary>
+public enum BlockBrushSize
+{
+    /// <summary>One cell square: the default.</summary>
+    Cell,
+
+    /// <summary>Half a cell each way, a quarter of a cell's area.</summary>
+    Quarter,
+
+    /// <summary>Two cells wide and one high: a small platform.</summary>
+    Platform,
 }
 
 /// <summary>
@@ -93,6 +107,9 @@ public enum EditorPlacementMode
 public struct EditorPlacement() : IComponent
 {
     public EditorPlacementMode Mode = EditorPlacementMode.Notes;
+
+    /// <summary>The size of the block the block tool places.</summary>
+    public BlockBrushSize BlockSize = BlockBrushSize.Cell;
 
     /// <summary>The note type new notes get.</summary>
     public KeybindAction Note = KeybindAction.M;
@@ -187,6 +204,8 @@ public enum EditorButtonKind
     // Sidebar buttons; their argument is given beside each.
     /// <summary>Picks the placement tool; the argument is an <see cref="EditorPlacementMode"/>.</summary>
     Place,
+    /// <summary>Picks the size of new blocks; the argument is a <see cref="BlockBrushSize"/>.</summary>
+    BlockSize,
     /// <summary>Opens or closes a tool group's flyout; the argument is its place in the tool strip.</summary>
     ToolGroup,
     /// <summary>A note-type bar swatch; the argument is the <see cref="KeybindAction"/> new notes get.</summary>
@@ -301,7 +320,7 @@ public enum EditorPanelKind
     Metadata,
     /// <summary>The start-point property panel below the metadata.</summary>
     Start,
-    /// <summary>The F2 editor-binding reference overlay.</summary>
+    /// <summary>The F9 editor-binding reference overlay.</summary>
     Bindings,
 }
 

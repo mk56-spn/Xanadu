@@ -174,6 +174,7 @@ public static partial class LevelDocumentMapper
                 Y = text.Position.Y,
                 Size = text.Size,
                 Text = text.Text ?? "",
+                Rotation = text.RotationDegrees,
                 SelfModulate = SelfModulate.Packed(entity),
                 Groups = GroupsOf(entity),
                 Shader = ItemShader.Of(entity),
@@ -187,6 +188,7 @@ public static partial class LevelDocumentMapper
         });
 
         CaptureGrass(entities, document);
+        CapturePolygons(entities, document);
         return document;
     }
 
@@ -199,6 +201,7 @@ public static partial class LevelDocumentMapper
         document.Spikes ??= new List<SpikeDocument>();
         document.Texts ??= new List<TextDocument>();
         document.Grass ??= new List<GrassDocument>();
+        document.Polygons ??= new List<PolygonDocument>();
         document.Groups ??= new List<GroupDocument>();
 
         foreach (Entity entity in entities.Query<Note>().ToEntityList())
@@ -306,12 +309,14 @@ public static partial class LevelDocumentMapper
             Entity created = EditorItems.Create(entities, new LevelText(
                 new Vector2(text.X, text.Y),
                 text.Text ?? "",
-                text.Size), text.Shader);
+                text.Size,
+                text.Rotation), text.Shader);
             Subscribe(created, text.Groups);
             SelfModulate.Put(created, text.SelfModulate);
         }
 
         ApplyGrass(entities, document);
+        ApplyPolygons(entities, document);
 
         SongDocument? song = string.IsNullOrWhiteSpace(document.SongId)
             ? null

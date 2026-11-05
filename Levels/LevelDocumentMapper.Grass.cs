@@ -43,6 +43,7 @@ public static partial class LevelDocumentMapper
         Color = patch.Color.ToRgba32(),
         Variation = patch.Variation,
         Seed = patch.Seed,
+        Rotation = patch.RotationDegrees,
         SelfModulate = SelfModulate.Packed(entity),
         Groups = GroupsOf(entity),
         Shader = ItemShader.Of(entity),
@@ -57,5 +58,6 @@ public static partial class LevelDocumentMapper
         Sway = grass.Sway,
         Color = new Color(grass.Color),
         Variation = grass.Variation,
+        RotationDegrees = grass.Rotation,
     }.Clamped();
 }

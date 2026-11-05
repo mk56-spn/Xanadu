@@ -31,7 +31,8 @@ public sealed partial class EditorNoteInputSystem
         Entity result = default;
         foreach (Entity entity in _entities.Query<LevelText>().ToEntityList())
         {
-            if (entity.GetComponent<LevelText>().Bounds.HasPoint(position))
+            LevelText text = entity.GetComponent<LevelText>();
+            if (TurnedBox.Contains(text.Bounds, text.RotationDegrees, position))
                 result = entity;
         }
 
@@ -44,7 +45,21 @@ public sealed partial class EditorNoteInputSystem
         Entity result = default;
         foreach (Entity entity in _entities.Query<GrassPatch>().ToEntityList())
         {
-            if (entity.GetComponent<GrassPatch>().Bounds.HasPoint(position))
+            GrassPatch grass = entity.GetComponent<GrassPatch>();
+            if (TurnedBox.Contains(grass.Bounds, grass.RotationDegrees, position))
+                result = entity;
+        }
+
+        return result;
+    }
+
+    /// <summary>Topmost polygon item with a point inside one of its outlines, or null.</summary>
+    private Entity FindPolygonAt(Vector2 position)
+    {
+        Entity result = default;
+        foreach (Entity entity in _entities.Query<LevelPolygon>().ToEntityList())
+        {
+            if (entity.GetComponent<LevelPolygon>().Contains(position))
                 result = entity;
         }
 
@@ -122,6 +137,7 @@ public sealed partial class EditorNoteInputSystem
             return;
 
         float degrees = editor.TryGetComponent(out EditorPlacement brush) ? brush.Degrees : 0f;
+        BlockBrushSize blockSize = brush.BlockSize;
         bool snap = ViewportSnap.IsOn(_entities);
         Entity created;
         if (IsMode(editor, EditorPlacementMode.Spikes))
@@ -135,7 +151,7 @@ public sealed partial class EditorNoteInputSystem
         }
         else
         {
-            Vector2 size = GridPlacement.NewBlockSize(playfield, degrees);
+            Vector2 size = GridPlacement.NewBlockSize(playfield, degrees, blockSize);
             var box = new Rect2(GridPlacement.Place(pointer, size, playfield, snap), size);
             if (!GridPlacement.IsBlockSpaceFree(_entities, box))
                 return;

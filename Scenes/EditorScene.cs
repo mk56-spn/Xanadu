@@ -44,6 +44,7 @@ public static partial class EditorScene
         editor.AddComponent(new UiMarqueeBox());
         editor.AddComponent(new WaveformPreview(""));
         editor.AddComponent(new EditorPlacement());
+        editor.AddComponent(new EditorPolygonDraft());
         editor.AddComponent(new EditorPlacementGhost());
         editor.AddComponent(new EditorUiRequest());
         editor.AddComponent(LevelGroups.Create());

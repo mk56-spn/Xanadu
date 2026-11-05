@@ -17,7 +17,12 @@ public sealed partial class DebugPressedOverlaySystem
     private const float TagsWidth = 166;
     private const float DetailWidth = 620;
 
+    /// <summary>Where END writes the archetype list: beside the project, so it is easy to open.</summary>
+    private const string DumpPath = "res://archetypes.txt";
+
     private static readonly Color Unselected = new(0, 0, 0, 0);
+
+    private bool _dumpHeld;
 
     private void BuildArchetypePanel(UiNode panel)
     {
@@ -46,7 +51,9 @@ public sealed partial class DebugPressedOverlaySystem
         int start = _archetypes.Page * _archetypes.PageSize;
         int visible = Math.Clamp(rows.Count - start, 0, _archetypes.PageSize);
 
-        SetLine(_archetypeTitle, $"ARCHETYPES {_archetypes.Count}");
+        SetLine(
+            _archetypeTitle,
+            $"ARCHETYPES {_archetypes.Count}   ACTIVE {_archetypes.ActiveCount}   INACTIVE {_archetypes.InactiveCount}");
         _archetypeTable.SetRowCount(visible);
         for (int i = 0; i < visible; i++)
         {
@@ -63,9 +70,10 @@ public sealed partial class DebugPressedOverlaySystem
             _archetypeTable.Set(i, 7, row.Tags);
         }
 
-        UiLayout.SetHidden(_pageLine, pageCount <= 1);
-        if (pageCount > 1)
-            SetLine(_pageLine, $"PAGE {_archetypes.Page + 1}/{pageCount}   PGUP/PGDN  UP/DOWN  HOME SORT");
+        string hint = $"HOME SORT   END DUMP → {DumpPath}";
+        SetLine(_pageLine, pageCount > 1
+            ? $"PAGE {_archetypes.Page + 1}/{pageCount}   PGUP/PGDN  UP/DOWN  {hint}"
+            : hint);
 
         RefreshDetail(selected);
     }
@@ -114,6 +122,7 @@ public sealed partial class DebugPressedOverlaySystem
         bool selectUp = _paging.SelectionUpPressed();
         bool selectDown = _paging.SelectionDownPressed();
         bool sort = _paging.SortTogglePressed();
+        bool dump = _paging.DumpPressed();
 
         if (pageUp && !_pageUpHeld)
             _archetypes.MovePage(-1);
@@ -125,12 +134,30 @@ public sealed partial class DebugPressedOverlaySystem
             _archetypes.MoveSelection(1);
         if (sort && !_sortHeld)
             _archetypes.CycleSort();
+        if (dump && !_dumpHeld)
+            WriteDump();
 
         _pageUpHeld = pageUp;
         _pageDownHeld = pageDown;
         _selectUpHeld = selectUp;
         _selectDownHeld = selectDown;
         _sortHeld = sort;
+        _dumpHeld = dump;
+    }
+
+    /// <summary>Writes every archetype, active or not, to <see cref="DumpPath"/> for reading outside the overlay.</summary>
+    private void WriteDump()
+    {
+        string path = ProjectSettings.GlobalizePath(DumpPath);
+        try
+        {
+            _archetypes.Dump(path);
+            GD.Print($"Archetypes written to {path}");
+        }
+        catch (Exception exception)
+        {
+            GD.PushWarning($"Could not write {path}: {exception.Message}");
+        }
     }
 
     private static string FormatDelta(int delta) => delta switch

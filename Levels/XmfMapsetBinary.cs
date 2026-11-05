@@ -43,6 +43,9 @@ public static partial class XmfBinary
 
         /// <summary>Each variant's grass, absent when no variant has any.</summary>
         Grass = 10,
+
+        /// <summary>Each variant's filled shapes, absent when no variant has any.</summary>
+        Polygons = 11,
     }
 
     public static void SaveMapset(string path, XmfMapset mapset)
@@ -76,6 +79,8 @@ public static partial class XmfBinary
             file.Add((uint)MapsetChunkId.Texts, WriteVariantTexts(mapset.Variants));
         if (mapset.Variants.Exists(HasGrass))
             file.Add((uint)MapsetChunkId.Grass, WriteVariantGrass(mapset.Variants));
+        if (mapset.Variants.Exists(HasPolygons))
+            file.Add((uint)MapsetChunkId.Polygons, WriteVariantPolygons(mapset.Variants, strings));
         return file.ToArray();
     }
 
@@ -111,6 +116,8 @@ public static partial class XmfBinary
             ReadVariantTexts(texts, mapset.Variants);
         if (file.TryGet((uint)MapsetChunkId.Grass, out Chunk grass))
             ReadVariantGrass(grass, mapset.Variants);
+        if (file.TryGet((uint)MapsetChunkId.Polygons, out Chunk polygons))
+            ReadVariantPolygons(polygons, mapset.Variants, strings);
         return mapset;
     }
 
@@ -121,6 +128,8 @@ public static partial class XmfBinary
         writer.Write((uint)variants.Count);
         foreach (XmfVariant variant in variants)
             WriteTexts(writer, variant.Texts);
+        foreach (XmfVariant variant in variants)
+            WriteTextRotations(writer, variant.Texts);
         writer.Flush();
         return stream.ToArray();
     }
@@ -133,6 +142,8 @@ public static partial class XmfBinary
             throw new FormatException("XMF variant texts do not match the variant count.");
         foreach (XmfVariant variant in variants)
             variant.Texts = ReadTexts(reader);
+        foreach (XmfVariant variant in variants)
+            ReadTextRotations(reader, variant.Texts);
     }
 
     private static byte[] WriteVariantSpikeOutlines(List<XmfVariant> variants)
@@ -182,6 +193,8 @@ public static partial class XmfBinary
         strings.Add(variant.FrameColor);
         foreach (NoteDocument note in variant.Notes)
             IndexItemStrings(note.Item, strings);
+        foreach (PolygonDocument polygon in variant.Polygons)
+            IndexItemStrings(polygon.Item, strings);
         foreach (StartPointDocument start in variant.StartPoints)
             strings.Add(start.Name);
         foreach (GroupDocument group in variant.Groups)

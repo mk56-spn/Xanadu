@@ -57,6 +57,9 @@ public sealed class LevelDocument : IChartItems
     /// <summary>Grass patches: swaying blades with no collision.</summary>
     public List<GrassDocument> Grass { get; set; } = new();
 
+    /// <summary>Filled shapes with no collision.</summary>
+    public List<PolygonDocument> Polygons { get; set; } = new();
+
     /// <summary>The groups that have a name or effects; the rest are empty slots.</summary>
     public List<GroupDocument> Groups { get; set; } = new();
 
@@ -229,6 +232,33 @@ public sealed class GrassDocument
 
     /// <summary>Picks where each blade stands and how it looks.</summary>
     public uint Seed { get; set; }
+
+    /// <summary>How far the patch is turned about the centre of its box, clockwise, in degrees.</summary>
+    public float Rotation { get; set; }
+}
+
+/// <summary>A filled shape: an item of polygons around an origin, turned about it.</summary>
+public sealed class PolygonDocument
+{
+    /// <summary>The colour its drawing is multiplied by, as RGBA8; white changes nothing.</summary>
+    public uint SelfModulate { get; set; } = Xanadu.Ecs.SelfModulate.White;
+
+    /// <summary>The groups this shape belongs to.</summary>
+    public List<int> Groups { get; set; } = new();
+
+    /// <summary>The shader slot it is drawn with where a polygon names none, or 0.</summary>
+    public int Shader { get; set; }
+
+    /// <summary>The item's origin, in playfield units.</summary>
+    public float X { get; set; }
+
+    public float Y { get; set; }
+
+    /// <summary>How far the shape is turned about its origin, clockwise, in degrees.</summary>
+    public float Rotation { get; set; }
+
+    /// <summary>The polygons, their outlines in the item's own space.</summary>
+    public Xif Item { get; set; } = new();
 }
 
 /// <summary>Text written into a level: a centred label on the playfield.</summary>
@@ -252,6 +282,9 @@ public sealed class TextDocument
     public float Size { get; set; } = Xanadu.Ecs.LevelText.DefaultSize;
 
     public string Text { get; set; } = "";
+
+    /// <summary>How far the text is turned about its centre, clockwise, in degrees.</summary>
+    public float Rotation { get; set; }
 }
 
 /// <summary>Serializable practice start state.</summary>

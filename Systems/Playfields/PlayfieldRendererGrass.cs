@@ -41,7 +41,7 @@ public static partial class PlayfieldRenderer
             canvas.SelectShader(0);
 
             if (isSelected?.Invoke(entity) == true)
-                canvas.DrawBorder(rid, GrassScreenBounds(patch, view), BlockSelectedEdge, SelectedEdgeThickness);
+                DrawTurnedBorder(canvas, rid, patch.Bounds, patch.RotationDegrees, view);
         }
     }
 
@@ -73,11 +73,22 @@ public static partial class PlayfieldRenderer
             System.Runtime.InteropServices.CollectionsMarshal.AsSpan(GrassColors));
     }
 
-    /// <summary>The box a grass patch fills standing straight, on screen.</summary>
+    /// <summary>The upright box around a grass patch's turned box, on screen.</summary>
     public static Rect2 GrassScreenBounds(GrassPatch patch, PlayfieldView view)
     {
-        Rect2 bounds = patch.Bounds;
+        Rect2 bounds = TurnedBox.Hull(patch.Bounds, patch.RotationDegrees);
         return new Rect2(view.PlayfieldToScreen(bounds.Position), bounds.Size * view.Scale);
+    }
+
+    /// <summary>Outlines a turned box on screen, for a selected item that is not upright.</summary>
+    public static void DrawTurnedBorder(IRectCanvas canvas, Rid rid, Rect2 box, float degrees, PlayfieldView view)
+    {
+        Vector2[] corners = TurnedBox.Corners(box, degrees);
+        var screen = new Vector2[corners.Length + 1];
+        for (int i = 0; i < corners.Length; i++)
+            screen[i] = view.PlayfieldToScreen(corners[i]);
+        screen[^1] = screen[0];
+        canvas.DrawPolyline(rid, screen, BlockSelectedEdge, SelectedEdgeThickness);
     }
 }
 
@@ -105,6 +116,20 @@ public static class GrassBlades
     private const float BaseShade = 0.55f;
 
     public static void Build(GrassPatch patch, float seconds, List<Vector2> points, List<Color> colors)
+    {
+        int first = points.Count;
+        BuildUpright(patch, seconds, points, colors);
+        if (patch.RotationDegrees == 0f)
+            return;
+
+        // The patch turns about the centre of its box, as a spike does.
+        Vector2 center = patch.Bounds.GetCenter();
+        float angle = Mathf.DegToRad(patch.RotationDegrees);
+        for (int i = first; i < points.Count; i++)
+            points[i] = center + (points[i] - center).Rotated(angle);
+    }
+
+    private static void BuildUpright(GrassPatch patch, float seconds, List<Vector2> points, List<Color> colors)
     {
         int count = patch.BladeCount;
         float left = patch.Position.X - patch.Width / 2;

@@ -38,6 +38,12 @@ public enum EditorShortcut
     CycleOneWay,
     MoveLeft,
     MoveRight,
+
+    /// <summary>Closes the outline the polygon tool is laying into a shape.</summary>
+    FinishPolygon,
+
+    /// <summary>Drops the outline the polygon tool is laying.</summary>
+    CancelPolygon,
 }
 
 /// <summary>When a binding can fire. <see cref="EditorShortcuts.ActiveScopes"/> says which are live.</summary>
@@ -52,7 +58,7 @@ public enum EditorShortcutScope
     /// <summary>Unless a dialog is up or a text field is in use.</summary>
     NotTyping = 2,
 
-    /// <summary>The F2 binding list is open.</summary>
+    /// <summary>The F9 binding list is open.</summary>
     Help = 4,
 
     /// <summary>An effect's move target is being dragged on the playfield.</summary>
@@ -66,6 +72,9 @@ public enum EditorShortcutScope
 
     /// <summary>An editor dialog is up; it is modal, so only the keys that close it work.</summary>
     Dialog = 64,
+
+    /// <summary>The polygon tool is laying an outline, which Enter and Esc finish before they do anything else.</summary>
+    PolygonDraft = 128,
 }
 
 /// <summary>Every key binding in the level editor; the first live match wins.</summary>
@@ -87,7 +96,8 @@ public static class EditorShortcuts
         bool warning,
         bool typing,
         bool targetEdit,
-        bool groupOverlay)
+        bool groupOverlay,
+        bool polygonDraft = false)
     {
         if (dialog)
             return EditorShortcutScope.Dialog;
@@ -104,7 +114,10 @@ public static class EditorShortcuts
         if (typing)
             return scopes;
 
-        return scopes | (groupOverlay ? EditorShortcutScope.GroupOverlay : EditorShortcutScope.Field);
+        if (groupOverlay)
+            return scopes | EditorShortcutScope.GroupOverlay;
+        scopes |= EditorShortcutScope.Field;
+        return polygonDraft ? scopes | EditorShortcutScope.PolygonDraft : scopes;
     }
 
     public static Binding? Find(KeyChord chord, EditorShortcutScope scopes)
@@ -128,11 +141,11 @@ public static class EditorShortcuts
 
         var bindings = new List<Binding>
         {
-            new(new KeyChord(Key.F5), EditorShortcut.Preview, always),
-            new(new KeyChord(Key.F5, Shift: true), EditorShortcut.PreviewHere, always),
-            new(new KeyChord(Key.F9), EditorShortcut.ToggleShaders, always | EditorShortcutScope.Dialog),
+            new(new KeyChord(DebugKeys.Preview), EditorShortcut.Preview, always),
+            new(new KeyChord(DebugKeys.Preview, Shift: true), EditorShortcut.PreviewHere, always),
+            new(new KeyChord(DebugKeys.EditorShaders), EditorShortcut.ToggleShaders, always | EditorShortcutScope.Dialog),
             new(new KeyChord(Key.Escape), EditorShortcut.CloseDialog, EditorShortcutScope.Dialog),
-            new(new KeyChord(Key.F2), EditorShortcut.ToggleHelp, always),
+            new(new KeyChord(DebugKeys.EditorHelp), EditorShortcut.ToggleHelp, always),
             new(new KeyChord(Key.F), EditorShortcut.FitView, notTyping),
             new(new KeyChord(Key.Escape), EditorShortcut.ToggleHelp, EditorShortcutScope.Help),
             new(new KeyChord(Key.S, Ctrl: true), EditorShortcut.Save, always),
@@ -147,6 +160,10 @@ public static class EditorShortcuts
 
             new(new KeyChord(Key.Escape), EditorShortcut.CloseGroupLayer, group),
             new(new KeyChord(Key.Space), EditorShortcut.Timeline, group, Timeline: TimelineCommand.TogglePlay),
+
+            new(new KeyChord(Key.Escape), EditorShortcut.CancelPolygon, EditorShortcutScope.PolygonDraft),
+            new(new KeyChord(Key.Enter), EditorShortcut.FinishPolygon, EditorShortcutScope.PolygonDraft),
+            new(new KeyChord(Key.KpEnter), EditorShortcut.FinishPolygon, EditorShortcutScope.PolygonDraft),
 
             new(new KeyChord(Key.Escape), EditorShortcut.Back, field),
             new(new KeyChord(Key.Enter), EditorShortcut.Forward, field),

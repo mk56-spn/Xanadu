@@ -22,7 +22,10 @@ public static class CommonShaderMaterials
     {
         if (!Cache.TryGetValue(path, out ShaderMaterial? material))
         {
-            material = ShaderMaterials.Load(path);
+            // The game's own effect shaders are written in code, not loaded from a file.
+            material = path == GlowRingShader.Path
+                ? new ShaderMaterial { Shader = new Shader { Code = GlowRingShader.Code } }
+                : ShaderMaterials.Load(path);
             if (material is not null)
                 Cache[path] = material;
         }

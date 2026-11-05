@@ -245,10 +245,11 @@ public struct Mine(
 }
 
 /// <summary>
-/// Text written into a level: a centred label on the playfield. It has no
-/// timing of its own; groups fade and move it like any other item.
+/// Text written into a level: a centred label on the playfield, turned about
+/// its centre. It has no timing of its own; groups fade and move it like any
+/// other item.
 /// </summary>
-public struct LevelText(Vector2 position, string text, float size = LevelText.DefaultSize) : IComponent
+public struct LevelText(Vector2 position, string text, float size = LevelText.DefaultSize, float rotationDegrees = 0f) : IComponent
 {
     public const float DefaultSize = 64f;
     public const float MinSize = 16f;
@@ -265,8 +266,11 @@ public struct LevelText(Vector2 position, string text, float size = LevelText.De
     /// <summary>The height of a line, in playfield units.</summary>
     public float Size = size;
 
+    /// <summary>How far the text is turned about its centre, clockwise, in degrees.</summary>
+    public float RotationDegrees = rotationDegrees;
+
     /// <summary>
-    /// The box the text roughly fills, in playfield units: wide enough for its
+    /// The box the text roughly fills before it is turned, in playfield units: wide enough for its
     /// characters at an average glyph width, so it can be picked and outlined.
     /// </summary>
     public readonly Rect2 Bounds

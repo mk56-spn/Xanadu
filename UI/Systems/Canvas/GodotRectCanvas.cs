@@ -130,6 +130,19 @@ public sealed class GodotRectCanvas : IRectCanvas
             canvas, indices, points[..count].ToArray(), colors[..count].ToArray());
     }
 
+    public void DrawTriangles(Rid canvas, ReadOnlySpan<Vector2> points, ReadOnlySpan<Color> colors, ReadOnlySpan<Vector2> uvs)
+    {
+        int count = points.Length - points.Length % 3;
+        if (count < 3 || colors.Length < count || uvs.Length < count)
+            return;
+
+        var indices = new int[count];
+        for (int i = 0; i < count; i++)
+            indices[i] = i;
+        RenderingServer.CanvasItemAddTriangleArray(
+            canvas, indices, points[..count].ToArray(), colors[..count].ToArray(), uvs[..count].ToArray());
+    }
+
     public void DrawRectOutlines(Rid canvas, ReadOnlySpan<Rect2> rects, Color color)
     {
         if (rects.IsEmpty)
@@ -202,6 +215,21 @@ public sealed class GodotRectCanvas : IRectCanvas
         Color color,
         int fontSize) =>
         DrawTextAligned(canvas, bounds, text, color, fontSize, HorizontalAlignment.Right);
+
+    public void DrawTextTurned(Rid canvas, Rect2 bounds, float degrees, string text, Color color, int fontSize)
+    {
+        if (degrees == 0f)
+        {
+            DrawTextStyled(canvas, bounds, text, color, fontSize);
+            return;
+        }
+
+        // A transform command turns what follows on this item, so the text keeps its place in the draw order.
+        Vector2 center = bounds.GetCenter();
+        RenderingServer.CanvasItemAddSetTransform(canvas, new Transform2D(Mathf.DegToRad(degrees), center));
+        DrawTextStyled(canvas, new Rect2(bounds.Position - center, bounds.Size), text, color, fontSize);
+        RenderingServer.CanvasItemAddSetTransform(canvas, Transform2D.Identity);
+    }
 
     /// <summary>
     /// Rotated child items for vertical text, one per label drawn since the

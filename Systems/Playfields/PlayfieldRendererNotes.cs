@@ -23,6 +23,7 @@ public static partial class PlayfieldRenderer
     {
         float size = NoteSize * view.Scale;
         DrawNoteGuides(canvas, rid, entities, view, playhead, size / 2);
+        DrawNoteGlows(canvas, rid, entities, view, playhead, size / 2);
 
         foreach (Entity entity in entities.Query<Note>().ToEntityList())
         {
@@ -34,11 +35,6 @@ public static partial class PlayfieldRenderer
             if (alpha <= 0)
                 continue;
 
-            string commonShader = ItemCommonShader.Of(entity);
-            if (commonShader.Length > 0)
-                canvas.SelectCommonShader(commonShader);
-            else
-                canvas.SelectShader(ItemShader.Of(entity));
             Vector2 center = view.PlayfieldToScreen(note.Position);
             float radius = size / 2;
             Color laneColor = GroupColor.For(entity, ColorFor(note));
@@ -47,17 +43,17 @@ public static partial class PlayfieldRenderer
                 : new Color(laneColor.R, laneColor.G, laneColor.B, alpha * laneColor.A);
 
             float approach = NoteFade.Approach(note.TimeMs, playhead.TimeMs);
+            float approachRadius = approach >= 0 ? ApproachRadius(radius, approach) : 0f;
+            var ring = ApproachColor(laneColor, alpha);
+
+            string commonShader = ItemCommonShader.Of(entity);
+            if (commonShader.Length > 0)
+                canvas.SelectCommonShader(commonShader);
+            else
+                canvas.SelectShader(ItemShader.Of(entity));
+
             if (approach >= 0)
-            {
-                float approachRadius =
-                    ApproachRadius(radius, approach);
-                canvas.DrawCircleOutline(
-                    rid,
-                    center,
-                    approachRadius,
-                    new Color(laneColor.R, laneColor.G, laneColor.B, alpha * laneColor.A * 0.75f),
-                    2);
-            }
+                canvas.DrawCircleOutline(rid, center, approachRadius, ring, 2);
 
             if (note.Kind == NoteKind.Dash)
                 DrawDashLink(canvas, rid, note, view, radius, color);
@@ -90,6 +86,120 @@ public static partial class PlayfieldRenderer
 
         canvas.SelectCommonShader("");
         canvas.SelectShader(0);
+    }
+
+    private static Color ApproachColor(Color lane, float alpha) => new(lane.R, lane.G, lane.B, alpha * lane.A * 0.75f);
+
+    /// <summary>
+    /// Every live note's glow and its approach ring's, in one pass before any
+    /// note is drawn: one run of the glow shader, under all the notes, which
+    /// is where added light belongs. Missed notes do not glow.
+    /// </summary>
+    private static void DrawNoteGlows(
+        IRectCanvas canvas,
+        Rid rid,
+        EntityStore entities,
+        PlayfieldView view,
+        Playhead playhead,
+        float radius)
+    {
+        foreach (Entity entity in entities.Query<Note>().ToEntityList())
+        {
+            Note note = entity.GetComponent<Note>();
+            if (NoteRules.IsRail(note.Kind) || NoteRules.IsChannelEnd(note.Kind) || entity.Tags.Has<NoteMissed>())
+                continue;
+
+            float alpha = NoteFade.Alpha(note, playhead.TimeMs);
+            if (alpha <= 0)
+                continue;
+
+            Vector2 center = view.PlayfieldToScreen(note.Position);
+            Color lane = GroupColor.For(entity, ColorFor(note));
+            float approach = NoteFade.Approach(note.TimeMs, playhead.TimeMs);
+            if (approach >= 0)
+            {
+                DrawGlow(canvas, rid, center, ApproachRadius(radius, approach), ApproachColor(lane, alpha),
+                    radius * ApproachGlowSpread, ApproachGlowStrength);
+            }
+
+            DrawGlow(canvas, rid, center, radius, new Color(lane.R, lane.G, lane.B, alpha * lane.A),
+                radius * NoteGlowSpread, NoteGlowStrength);
+        }
+
+        canvas.SelectCommonShader("");
+    }
+
+    /// <summary>How far a note's glow reaches from its outline, as a share of its radius.</summary>
+    private const float NoteGlowSpread = 0.45f;
+
+    /// <summary>The approach ring is a thin line, so its glow stays closer to it.</summary>
+    private const float ApproachGlowSpread = 0.3f;
+
+    /// <summary>How bright a glow is on its line, as a share of the colour's alpha; it falls away from there.</summary>
+    private const float NoteGlowStrength = 0.45f;
+
+    private const float ApproachGlowStrength = 0.4f;
+
+    /// <summary>Segments in a glow ring; enough that its edges stay round at any size a note is drawn.</summary>
+    private const int GlowSegments = 64;
+
+    private static readonly Vector2[] GlowPoints = new Vector2[GlowSegments * 6];
+    private static readonly Color[] GlowColors = new Color[GlowSegments * 6];
+    private static readonly Vector2[] GlowUvs = new Vector2[GlowSegments * 6];
+
+    /// <summary>
+    /// A soft glow around a circle, drawn by <see cref="Shaders.GlowRingShader"/>:
+    /// a ring from <paramref name="spread"/> inside the circle to as far outside,
+    /// whose shader lights each pixel by its distance from the circle. It
+    /// leaves the common shader selected; the caller selects what it draws next.
+    /// </summary>
+    public static void DrawGlow(
+        IRectCanvas canvas,
+        Rid rid,
+        Vector2 center,
+        float radius,
+        Color color,
+        float spread,
+        float strength)
+    {
+        if (spread <= 0f || color.A <= 0f || strength <= 0f)
+            return;
+
+        float inner = MathF.Max(0f, radius - spread);
+        float outer = radius + spread;
+        var tint = new Color(color.R, color.G, color.B, color.A * strength);
+
+        // UV.x is -1 on the inside edge and 1 on the outside; for a ring whose
+        // inside reaches the centre, it starts where the inside edge really is.
+        float insideUv = (inner - radius) / spread;
+        int v = 0;
+        for (int i = 0; i < GlowSegments; i++)
+        {
+            float a0 = Mathf.Tau * i / GlowSegments;
+            float a1 = Mathf.Tau * (i + 1) / GlowSegments;
+            var d0 = new Vector2(MathF.Cos(a0), MathF.Sin(a0));
+            var d1 = new Vector2(MathF.Cos(a1), MathF.Sin(a1));
+            Vector2 in0 = center + d0 * inner, out0 = center + d0 * outer;
+            Vector2 in1 = center + d1 * inner, out1 = center + d1 * outer;
+
+            GlowVertex(ref v, in0, insideUv, tint);
+            GlowVertex(ref v, out0, 1f, tint);
+            GlowVertex(ref v, out1, 1f, tint);
+            GlowVertex(ref v, in0, insideUv, tint);
+            GlowVertex(ref v, out1, 1f, tint);
+            GlowVertex(ref v, in1, insideUv, tint);
+        }
+
+        canvas.SelectCommonShader(Shaders.GlowRingShader.Path);
+        canvas.DrawTriangles(rid, GlowPoints, GlowColors, GlowUvs);
+    }
+
+    private static void GlowVertex(ref int index, Vector2 point, float uv, Color color)
+    {
+        GlowPoints[index] = point;
+        GlowUvs[index] = new Vector2(uv, 0f);
+        GlowColors[index] = color;
+        index++;
     }
 
     /// <summary>Draws just a note's body at a position, shared by play and the editor's group preview.</summary>

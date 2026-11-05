@@ -78,6 +78,12 @@ public static class EditorGroupTarget
             return true;
         }
 
+        if (entity.HasComponent<LevelPolygon>())
+        {
+            position = entity.GetComponent<LevelPolygon>().Position;
+            return true;
+        }
+
         if (entity.HasComponent<StartPoint>())
         {
             position = entity.GetComponent<StartPoint>().Position;

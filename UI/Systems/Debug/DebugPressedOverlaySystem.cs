@@ -177,7 +177,7 @@ public sealed partial class DebugPressedOverlaySystem : QuerySystem<Rectangle, P
             $"alloc {totalMemory / 1024f,5:0.0} KB");
         SetSummary(1,
             $"Entities {_store.Count - _debug.Count,5}   capacity {_store.Capacity,5}   " +
-            $"archetypes {_archetypes.Count,3}");
+            $"archetypes {_archetypes.ActiveCount,3} active / {_archetypes.Count,3}");
         SetSummary(2,
             $"Dirty {_dirty.Count,3}   Moved {_moved.Count,3}   Input {_input.Count,3}   " +
             $"Pressed {_pressed.Count,2}   LayoutDirty {_layoutDirty.Count,2}");

@@ -86,7 +86,7 @@ public static class EditorPlacementKeybinds
         return false;
     }
 
-    /// <summary>Label shown in the F2 editor-binding list.</summary>
+    /// <summary>Label shown in the F9 editor-binding list.</summary>
     public static string LabelFor(EditorPlacementMode mode) => mode switch
     {
         EditorPlacementMode.Notes => "1",

@@ -77,6 +77,19 @@ public static partial class EditorScene
         }
     }
 
+    /// <summary>
+    /// The shared XIF editor for the selected polygon, on a layer of its own just
+    /// right of the tool strip, below the header. It hides while no polygon is selected.
+    /// </summary>
+    private static void BuildXifPanel(EntityStore entities, Entity root, EditorShellRects shell)
+    {
+        UiNode layer = UiNode.Layer(entities, root, UiLayers.EditorXif, null, UiStage.Full);
+        var home = new Vector2(
+            shell.ToolStrip.End.X + EditorShellMetrics.ToolGap * 2 + XifEditorPanel.Width / 2,
+            shell.ToolStrip.Position.Y + EditorShellMetrics.ToolGap * 2 + XifEditorPanel.Height / 2);
+        XifEditorPanel.Build(layer, home, new EditorXifHost(entities));
+    }
+
     private static string ToolTooltip(EditorTool tool)
     {
         string key = EditorPlacementKeybinds.LabelFor(tool.Mode);
@@ -261,6 +274,36 @@ public static partial class EditorScene
         editor.AddComponent(new EditorGrassPanel(section.Entity, readouts, color.Entity));
     }
 
+    /// <summary>The block tool's sizes, side by side: the quarter block, a cell, and the platform.</summary>
+    private static void BuildBlockSize(UiNode panel, float inner)
+    {
+        UiNode section = ToolSection(panel, inner, EditorToolSections.BlockSize);
+        SidebarLabel(section, "BLOCK SIZE", inner, 12);
+
+        const float sizeGap = 6;
+        float sizeWidth = (inner - sizeGap * 2) / 3;
+        UiNode sizes = section.Row().Size(inner, 28).Gap(sizeGap);
+        foreach (BlockBrushSize size in new[] { BlockBrushSize.Quarter, BlockBrushSize.Cell, BlockBrushSize.Platform })
+        {
+            sizes.Button(BlockSizeLabel(size), 12, SceneUi.MutedButtonColor)
+                .Size(sizeWidth, 28)
+                .With(new EditorButton(EditorButtonKind.BlockSize, (int)size))
+                .Tooltip(size switch
+                {
+                    BlockBrushSize.Quarter => "A quarter block: half a cell wide and half a cell high",
+                    BlockBrushSize.Platform => "A platform: two cells wide and one high",
+                    _ => "A block one cell square; the default",
+                });
+        }
+    }
+
+    private static string BlockSizeLabel(BlockBrushSize size) => size switch
+    {
+        BlockBrushSize.Quarter => "½×½",
+        BlockBrushSize.Platform => "2×1",
+        _ => "1×1",
+    };
+
     private static (string Less, string More) GrassTooltips(GrassSetting setting) => setting switch
     {
         GrassSetting.Width => ("Narrower patch", "Wider patch"),
@@ -299,6 +342,8 @@ public static partial class EditorScene
             16 => 2,
             _ => 0,
         });
+
+        BuildBlockSize(panel, inner);
 
         UiNode strengthSection = ToolSection(panel, inner, EditorToolSections.MoveStrength);
         SidebarLabel(strengthSection, "MOVE STRENGTH", inner, 12);

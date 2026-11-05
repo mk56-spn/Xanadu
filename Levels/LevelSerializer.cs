@@ -101,6 +101,8 @@ public static class LevelSerializer
         chart.Texts.RemoveAll(text => text is null);
         chart.Grass ??= new();
         chart.Grass.RemoveAll(grass => grass is null);
+        chart.Polygons ??= new();
+        chart.Polygons.RemoveAll(polygon => polygon is null);
         chart.Groups ??= new();
         chart.Groups.RemoveAll(group => group is null || group.Id is < 0 or >= GroupLimits.Count);
 
@@ -156,7 +158,24 @@ public static class LevelSerializer
         {
             grass.Groups ??= new();
             grass.Shader = validShader(grass.Shader);
+            grass.Rotation = Xanadu.Ecs.TurnedBox.Normalize(grass.Rotation);
         }
+
+        foreach (TextDocument text in chart.Texts)
+            text.Rotation = Xanadu.Ecs.TurnedBox.Normalize(text.Rotation);
+
+        // A shape keeps only polygons it can draw; one left with none is dropped.
+        foreach (PolygonDocument polygon in chart.Polygons)
+        {
+            polygon.Groups ??= new();
+            polygon.Shader = validShader(polygon.Shader);
+            polygon.Rotation = Xanadu.Ecs.TurnedBox.Normalize(polygon.Rotation);
+            polygon.Item ??= new();
+            NormalizeItem(polygon.Item, validShader);
+            polygon.Item.Primitives.RemoveAll(primitive =>
+                primitive is null || !primitive.IsPolygon || primitive.Points is not { Count: >= XifEditing.MinPolygonPoints });
+        }
+        chart.Polygons.RemoveAll(polygon => polygon.Item.Primitives.Count == 0);
 
         chart.BackgroundColor = LevelBackground.Normalize(chart.BackgroundColor);
         chart.OutsideColor = LevelBackground.Normalize(chart.OutsideColor);
