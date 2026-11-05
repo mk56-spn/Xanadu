@@ -1,6 +1,7 @@
 using Godot;
 using System;
 using System.Collections.Generic;
+using Xanadu.Layering;
 
 namespace Xanadu.Animation;
 
@@ -44,7 +45,7 @@ public static class XafValidation
 
         foreach (XafChain chain in package.Chains)
         {
-            if (chain.Layer is < XafAttachment.MinLayer or > XafAttachment.MaxLayer)
+            if (chain.Layer is < DrawOrder.MinLayer or > DrawOrder.MaxLayer)
                 issues.Add($"Chain '{chain.Id}' has a layer out of range.");
         }
 
@@ -128,7 +129,7 @@ public static class XafValidation
                 issues.Add($"Duplicate effect id '{effect.Id}'.");
             if (!boneIds.Contains(effect.BoneId))
                 issues.Add($"Effect '{effect.Id}' references missing bone '{effect.BoneId}'.");
-            if (effect.ZOrder < XafAttachment.MinLayer || effect.ZOrder > XafAttachment.MaxLayer)
+            if (effect.ZOrder < DrawOrder.MinLayer || effect.ZOrder > DrawOrder.MaxLayer)
                 issues.Add($"Effect '{effect.Id}' has a layer out of range.");
             XafEffects.Validate(effect, issues);
         }

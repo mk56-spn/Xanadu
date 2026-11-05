@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using Godot;
 using Xanadu.Items;
+using Xanadu.Layering;
 using Xanadu.Levels;
 
 namespace Xanadu.Animation;
@@ -63,7 +64,7 @@ public static class XafEffects
             Id = UniqueId(package, baseId),
             BoneId = boneId,
             Item = item,
-            ZOrder = Mathf.Min(top, XafAttachment.MaxLayer),
+            ZOrder = Mathf.Min(top, DrawOrder.MaxLayer),
         });
         return package.Effects.Count - 1;
     }

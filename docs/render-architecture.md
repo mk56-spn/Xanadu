@@ -220,7 +220,7 @@ are wanted.
   `CommonShaderMaterials`, `ShaderRoutingCanvas`, `GodotShaderCanvasItems`.
 - The animator: `SvgAttachmentVisuals.SetLayer` uses
   `CanvasItemSetZIndex`/`CanvasItemSetDrawIndex`, or the banded
-  `ArtDrawOrder.Of` when layers are contained. If characters become buffered
+  `DrawOrder.Banded` (was `ArtDrawOrder.Of`) when layers are contained. If characters become buffered
   (step 12), the contained/banded path is the one to keep, because z_index
   escapes CanvasGroups.
 
@@ -258,7 +258,7 @@ Today the animator has this (and the editor has none of it):
   `MaxLayer = 4096` (`Animation/XafPackage.cs`), with list order as the
   tiebreak.
 - `ArtDrawOrder.Of(layer, order)` (`Animation/ArtDrawOrder.cs`): the banded
-  draw index.
+  draw index. (Replaced in step 1 by `DrawOrder.Banded`.)
 - `AnimatorLayerCommands.Rows` / `Move` (`Tools/Animator/Commands/AnimatorLayerCommands.cs`):
   the front-first row list, and moving forward/back (swap layers with a
   neighbour on another layer, step past one on the same layer).
@@ -314,7 +314,7 @@ window, i.e. under `canvas_items` stretch like the game):
 | G | Blend variants by injecting `render_mode` | **Works** for `blend_mix`, `blend_add`, `blend_mul`. |
 | H | 2D instance uniforms | **Works.** Three items sharing one `ShaderMaterial` each show their own `instance uniform` set via `RenderingServer.CanvasItemSetInstanceShaderParameter`. |
 
-### Step 1: Shared ordering core  ☐
+### Step 1: Shared ordering core  ☑
 - Add `DrawOrder` and the shared layer limits (±200, Q5); move `ArtDrawOrder`
   and the animator's ±4096 onto them.
 - Pull the row list and move forward/back out of `AnimatorLayerCommands` into
@@ -322,6 +322,27 @@ window, i.e. under `canvas_items` stretch like the game):
 - Tests: the existing `AnimatorLayerPanelTests` stay green; new unit tests for
   the shared ordering (sort, swap across layers, step within a layer, ends of
   the list).
+
+**Done 2026-11-05.** `Core/Layering/` (namespace `Xanadu.Layering`):
+- `DrawSlot(Layer, Z, Index)`: compares back to front by layer, then z, then
+  list index.
+- `DrawOrder`: `MinLayer`/`MaxLayer` = ±200, `ClampLayer`, and `Banded(layer,
+  order)`, which replaces `ArtDrawOrder.Of`. `XafAttachment.MinLayer`/`MaxLayer`
+  are gone; every animator clamp uses `DrawOrder.ClampLayer`.
+- `DrawStack`: `SortFrontFirst`, `Neighbour`, and `TryMove` with two rules.
+  `Layers` is the animator's existing behaviour (step a layer past a same-layer
+  neighbour, swap layers with one on another layer). `ZInLayer` is for levels:
+  swap z with a same-layer neighbour, or step past it when tied, and **never
+  cross into another layer**. Changing layer is a deliberate edit in the
+  inspector, not a nudge.
+- The animator's `AnimatorLayerRow.Slot` is (layer, cloth ? 1 : 0, index), so
+  cloth still draws over attachments on one layer. `AnimatorLayerCommands`
+  sorts and moves through `DrawStack`, and only sets a layer that actually
+  changed (setting a keyed layer adds a key).
+- Tests: `Tests/Layering/DrawOrderTests.cs` (moved from `ArtDrawOrderTests`),
+  `Tests/Layering/DrawStackTests.cs`. The Layering and Animation suites pass
+  apart from 7 `AnimatorDrawTests` (bone kites), which fail the same way on
+  the commit before this step.
 
 ### Step 2: Layer and z on every level item  ☐
 - Add `Layer` and `Z` to every item component (`Ecs/Components/PlayfieldComponents.cs`,

@@ -1,4 +1,5 @@
 using System;
+using Xanadu.Layering;
 
 namespace Xanadu.Animation;
 
@@ -62,7 +63,7 @@ public static class XafAttachmentAuthoring
     {
         if (Valid(package, index))
             Key(package, clip, index, XafChannelProperty.Layer, time,
-                Math.Clamp(layer, XafAttachment.MinLayer, XafAttachment.MaxLayer));
+                DrawOrder.ClampLayer(layer));
     }
 
     public static void KeyVisible(XafPackage package, XafClip clip, int index, float time, bool visible)

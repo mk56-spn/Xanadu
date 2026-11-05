@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using Xanadu.Animation;
+using Xanadu.Layering;
 
 namespace Xanadu.Tools.Animator.Commands;
 
@@ -9,6 +10,9 @@ public readonly record struct AnimatorLayerRow(bool IsCloth, int Index, int Laye
 {
     /// <summary>Names the row in a <see cref="ToolAction"/>'s argument.</summary>
     public string Argument => (IsCloth ? "c" : "a") + Index;
+
+    /// <summary>Where the row draws. On one layer, cloth draws over attachments.</summary>
+    public DrawSlot Slot => new(Layer, IsCloth ? 1 : 0, Index);
 }
 
 /// <summary>The layer stack: all the art in draw order, and moving it through that order.</summary>
@@ -32,13 +36,7 @@ public static class AnimatorLayerCommands
         for (int i = 0; i < package.Cloths.Count; i++)
             rows.Add(new AnimatorLayerRow(true, i, package.Cloths[i].ZOrder, package.Cloths[i].Id));
 
-        rows.Sort(static (a, b) =>
-        {
-            int layer = b.Layer.CompareTo(a.Layer);
-            if (layer != 0)
-                return layer;
-            return a.IsCloth != b.IsCloth ? (a.IsCloth ? -1 : 1) : b.Index.CompareTo(a.Index);
-        });
+        DrawStack.SortFrontFirst(rows, static row => row.Slot);
         return rows;
     }
 
@@ -53,21 +51,20 @@ public static class AnimatorLayerCommands
             List<AnimatorLayerRow> rows = Rows(session);
             string target = argument.Length > 0 ? argument : SelectedArgument(session);
             int at = rows.FindIndex(row => row.Argument == target);
-            int next = at - direction;
-            if (at < 0 || next < 0 || next >= rows.Count)
+            int next = DrawStack.Neighbour(at, direction, rows.Count);
+            if (next < 0)
                 return;
 
             AnimatorLayerRow row = rows[at];
             AnimatorLayerRow neighbour = rows[next];
-            if (neighbour.Layer == row.Layer)
-            {
-                SetLayer(session, row, row.Layer + direction);
-            }
-            else
-            {
-                SetLayer(session, neighbour, row.Layer);
-                SetLayer(session, row, neighbour.Layer);
-            }
+            if (!DrawStack.TryMove(row.Slot, neighbour.Slot, direction, DrawStackRule.Layers,
+                    out DrawSlot movedRow, out DrawSlot movedNeighbour))
+                return;
+
+            // Only what changed is set: setting a keyed layer keys it again.
+            if (movedNeighbour.Layer != neighbour.Layer)
+                SetLayer(session, neighbour, movedNeighbour.Layer);
+            SetLayer(session, row, movedRow.Layer);
 
             AnimatorSession.RigChanged(session);
             ref AnimatorSelection selection = ref session.GetComponent<AnimatorSelection>();
@@ -89,7 +86,7 @@ public static class AnimatorLayerCommands
     /// <summary>A layer keyed in the open clip is keyed again, as its base layer would not show.</summary>
     private static void SetLayer(Entity session, in AnimatorLayerRow row, int layer)
     {
-        layer = System.Math.Clamp(layer, XafAttachment.MinLayer, XafAttachment.MaxLayer);
+        layer = DrawOrder.ClampLayer(layer);
         AnimatorDocument document = session.GetComponent<AnimatorDocument>();
         XafPackage package = document.Package;
         if (row.IsCloth)

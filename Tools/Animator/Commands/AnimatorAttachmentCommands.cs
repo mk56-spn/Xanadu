@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using Godot;
 using Xanadu.Animation;
+using Xanadu.Layering;
 
 namespace Xanadu.Tools.Animator.Commands;
 
@@ -97,7 +98,7 @@ public static class AnimatorAttachmentCommands
             }
 
             XafPackage package = session.GetComponent<AnimatorDocument>().Package;
-            int clamped = System.Math.Clamp(layer, XafAttachment.MinLayer, XafAttachment.MaxLayer);
+            int clamped = DrawOrder.ClampLayer(layer);
             foreach (int index in targets)
                 package.Attachments[index].ZOrder = clamped;
 

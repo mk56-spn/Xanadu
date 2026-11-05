@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using Godot;
 using Xanadu.Items;
+using Xanadu.Layering;
 
 namespace Xanadu.Animation;
 
@@ -96,10 +97,6 @@ public sealed class XafBone
 /// <summary>Rigid SVG group attached to a bone.</summary>
 public sealed class XafAttachment
 {
-    /// <summary>The range of draw layers, which is what a canvas item's z index allows.</summary>
-    public const int MinLayer = -4096;
-    public const int MaxLayer = 4096;
-
     public string SvgPath = "";
 
     /// <summary>The SVG group drawn, and the attachment's id: clips key it by this name.</summary>

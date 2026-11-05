@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using Godot;
+using Xanadu.Layering;
 
 namespace Xanadu.Animation;
 
@@ -26,12 +27,12 @@ public static class XafChainArt
         foreach (XafAttachment attachment in package.Attachments)
             highest = Mathf.Max(highest, attachment.ZOrder);
 
-        return Mathf.Clamp(highest + 1, XafAttachment.MinLayer, XafAttachment.MaxLayer);
+        return DrawOrder.ClampLayer(highest + 1);
     }
 
     /// <summary>A chain's own layer if it has one, else just above the body.</summary>
     public static int LayerOf(XafPackage package, XafChain chain) =>
-        chain.Layer is { } layer ? Mathf.Clamp(layer, XafAttachment.MinLayer, XafAttachment.MaxLayer) : Layer(package);
+        chain.Layer is { } layer ? DrawOrder.ClampLayer(layer) : Layer(package);
 
     /// <summary>The width of the piece on one segment, tapering from the root to the tip.</summary>
     public static float WidthAt(float width, int segment, int segments) =>

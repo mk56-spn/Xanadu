@@ -1,5 +1,6 @@
 using System;
 using Godot;
+using Xanadu.Layering;
 
 namespace Xanadu.Animation;
 
@@ -55,7 +56,7 @@ public static class XafChainAuthoring
 
     /// <summary>Sets the chain's own draw layer; it no longer simply draws above the body.</summary>
     public static bool SetLayer(XafPackage package, int index, int layer) =>
-        Edit(package, index, chain => chain.Layer = Math.Clamp(layer, XafAttachment.MinLayer, XafAttachment.MaxLayer));
+        Edit(package, index, chain => chain.Layer = DrawOrder.ClampLayer(layer));
 
     public static bool SetLean(XafPackage package, int index, float lean) =>
         Edit(package, index, chain => chain.Lean = lean);
