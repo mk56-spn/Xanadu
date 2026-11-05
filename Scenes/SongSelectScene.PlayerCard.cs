@@ -4,6 +4,7 @@ using Xanadu.Ecs;
 using Xanadu.Profiles;
 using Xanadu.Strings;
 using Xanadu.Systems.Shaders;
+using Xanadu.Ui.Ecs.Ui;
 
 namespace Xanadu.Scenes;
 

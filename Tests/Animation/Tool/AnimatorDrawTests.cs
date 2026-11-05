@@ -9,6 +9,7 @@ using Xanadu.Systems.Canvas;
 using Xanadu.Tools.Animator;
 using Xanadu.Tools.Animator.Commands;
 using Xanadu.Tools.Animator.Systems;
+using Xanadu.Ui.Ecs.Ui;
 
 namespace Xanadu.Tests.Animation.Tool;
 

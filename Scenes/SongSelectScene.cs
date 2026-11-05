@@ -6,6 +6,7 @@ using Xanadu.Strings;
 using Xanadu.Levels;
 using Xanadu.Profiles;
 using Xanadu.Theme;
+using Xanadu.Ui.Ecs.Ui;
 
 namespace Xanadu.Scenes;
 

@@ -9,6 +9,7 @@ using Xanadu.Systems.Editor;
 using Xanadu.Strings;
 using Xanadu.Systems.Playfields;
 using Xanadu.Theme;
+using Xanadu.Ui.Ecs.Ui;
 
 namespace Xanadu.Scenes;
 

@@ -8,6 +8,7 @@ using Xanadu.Ecs;
 using Xanadu.Systems.Input;
 using Xanadu.Tools.Animator.Commands;
 using Xanadu.Theme;
+using Xanadu.Ui.Ecs.Ui;
 
 namespace Xanadu.Tools.Animator.Systems;
 

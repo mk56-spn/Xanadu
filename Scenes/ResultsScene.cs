@@ -4,6 +4,7 @@ using Xanadu.Ecs;
 using Xanadu.Scoring;
 using Xanadu.Strings;
 using Xanadu.Theme;
+using Xanadu.Ui.Ecs.Ui;
 
 namespace Xanadu.Scenes;
 

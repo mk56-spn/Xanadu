@@ -4,6 +4,7 @@ using Xanadu.Ecs;
 using Xanadu.Systems.Canvas;
 using Xanadu.Systems.Playfields;
 using Xanadu.Theme;
+using Xanadu.Ui.Ecs.Ui;
 
 namespace Xanadu.Systems.Editor;
 

@@ -4,6 +4,7 @@ using Godot;
 using Xanadu.Ecs;
 using Xanadu.Scenes;
 using Xanadu.Systems.Editor;
+using Xanadu.Ui.Ecs.Ui;
 using Position = Xanadu.Ecs.Position;
 
 namespace Xanadu.Tests.VisualTests;

@@ -1,6 +1,7 @@
 using Friflo.Engine.ECS;
 using Godot;
 using Xanadu.Ecs;
+using Xanadu.Ui.Ecs.Ui;
 using Position = Xanadu.Ecs.Position;
 
 namespace Xanadu.Scenes;

@@ -3,6 +3,7 @@ using Friflo.Engine.ECS;
 using Godot;
 using Xanadu.Ecs;
 using Xanadu.Systems.Physics;
+using Xanadu.Ui.Ecs.Ui;
 using NVector2 = System.Numerics.Vector2;
 using Position = Xanadu.Ecs.Position;
 

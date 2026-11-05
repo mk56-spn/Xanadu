@@ -10,6 +10,7 @@ using Xanadu.Settings;
 using Xanadu.Systems.Input;
 using Xanadu.Systems.Playfields;
 using Xanadu.Systems.Replays;
+using Xanadu.Ui.Ecs.Ui;
 
 namespace Xanadu.Tests.Playfields;
 

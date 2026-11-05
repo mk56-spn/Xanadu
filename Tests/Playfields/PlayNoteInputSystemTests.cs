@@ -14,6 +14,7 @@ using Xanadu.Systems.Playfields;
 using Position = Xanadu.Ecs.Position;
 using NVector2 = System.Numerics.Vector2;
 using Xanadu.Tests.Support;
+using Xanadu.Ui.Ecs.Ui;
 
 namespace Xanadu.Tests.Playfields;
 

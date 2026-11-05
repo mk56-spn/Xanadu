@@ -5,6 +5,7 @@ using Godot;
 using Xanadu.Animation;
 using Xanadu.Ecs;
 using Xanadu.Tools.Animator.Commands;
+using Xanadu.Ui.Ecs.Ui;
 
 namespace Xanadu.Tools.Animator.Systems;
 

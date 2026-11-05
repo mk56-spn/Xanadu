@@ -13,6 +13,7 @@ using Xanadu.Replays;
 using Xanadu.Settings;
 using Xanadu.Systems.Scenes;
 using Xanadu.Tests.Support;
+using Xanadu.Ui.Ecs.Ui;
 using SceneState = Xanadu.Ecs.SceneState;
 
 namespace Xanadu.Tests.Replays;

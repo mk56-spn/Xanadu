@@ -10,6 +10,7 @@ using Xanadu.Levels;
 using Xanadu.Scenes;
 using Xanadu.Settings;
 using Xanadu.Systems.Playfields;
+using Xanadu.Ui.Ecs.Ui;
 
 namespace Xanadu.Tests.VisualTests;
 

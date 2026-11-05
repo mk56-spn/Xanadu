@@ -6,6 +6,7 @@ using Xanadu.Ecs;
 using Xanadu.Editor;
 using Xanadu.Settings;
 using Xanadu.Systems.Playfields;
+using Xanadu.Ui.Ecs.Ui;
 
 namespace Xanadu.Systems.Editor;
 

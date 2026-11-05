@@ -6,6 +6,7 @@ using Xanadu.Ecs;
 using Xanadu.Scoring;
 using Xanadu.Systems.Playfields;
 using Xanadu.Tests.Support;
+using Xanadu.Ui.Ecs.Ui;
 
 namespace Xanadu.Tests.Playfields;
 

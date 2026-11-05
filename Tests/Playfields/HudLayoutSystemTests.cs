@@ -8,6 +8,7 @@ using Xanadu.Systems.Canvas;
 using Xanadu.Systems.Input;
 using Xanadu.Systems.Playfields;
 using Xanadu.Tests.Support;
+using Xanadu.Ui.Ecs.Ui;
 using Position = Xanadu.Ecs.Position;
 
 namespace Xanadu.Tests.Playfields;

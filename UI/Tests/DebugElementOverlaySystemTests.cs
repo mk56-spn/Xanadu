@@ -7,6 +7,7 @@ using Xanadu.Ecs;
 using Xanadu.Systems.Canvas;
 using Xanadu.Systems.Ui;
 using Xanadu.Systems.Input;
+using Xanadu.Ui.Ecs.Ui;
 using Xanadu.Ui.Systems.Ui;
 using Position = Xanadu.Ecs.Position;
 

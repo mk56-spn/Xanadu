@@ -5,6 +5,7 @@ using Godot;
 using Xanadu.Ecs;
 using Xanadu.Editor;
 using Xanadu.Settings;
+using Xanadu.Ui.Ecs.Ui;
 
 namespace Xanadu.Systems.Editor;
 

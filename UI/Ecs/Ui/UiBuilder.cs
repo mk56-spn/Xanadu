@@ -4,7 +4,8 @@ using Friflo.Engine.ECS;
 using Godot;
 using Xanadu.Ecs;
 using Xanadu.Theme;
-using LayerComponent = Xanadu.Ecs.Layer;
+using Xanadu.Ui.Ecs.Ui;
+using LayerComponent = Xanadu.Ui.Ecs.Ui.Layer;
 using Position = Xanadu.Ecs.Position;
 
 namespace Xanadu.Ecs;

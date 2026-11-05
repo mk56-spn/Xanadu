@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Xanadu.Ecs;
+using Xanadu.Ui.Ecs.Ui;
 
 namespace Xanadu.Systems.Editor;
 

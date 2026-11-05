@@ -7,6 +7,7 @@ using Xanadu.Strings;
 using Xanadu.Systems.Playfields;
 using Xanadu.Systems.Scenes;
 using Xanadu.Theme;
+using Xanadu.Ui.Ecs.Ui;
 
 namespace Xanadu.Scenes;
 
