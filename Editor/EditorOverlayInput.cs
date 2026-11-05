@@ -119,6 +119,12 @@ public partial class EditorOverlay : CanvasLayer, IEditorShortcutTarget
             case EditorShortcut.MoveRight:
                 _commands.Enqueue(EditorCommand.MoveSelection(1));
                 break;
+            case EditorShortcut.MoveForward:
+                _commands.Enqueue(EditorCommand.MoveInLayer(1));
+                break;
+            case EditorShortcut.MoveBack:
+                _commands.Enqueue(EditorCommand.MoveInLayer(-1));
+                break;
         }
     }
 

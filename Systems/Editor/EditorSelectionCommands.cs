@@ -267,39 +267,43 @@ public sealed class EditorSelectionCommands(EditorCommandContext context)
             if (entity.HasComponent<Note>())
             {
                 Note note = entity.GetComponent<Note>();
-                _clipboard.Add(new EditorClipboardItem(note.TimeMs, note, null, null, MaskOf(entity), ItemShader.Of(entity), SelfModulate.Packed(entity), Layer: ItemLayer.Of(entity)));
+                _clipboard.Add(new EditorClipboardItem(note.TimeMs, note, null, null, MaskOf(entity), ItemShader.Of(entity), SelfModulate.Packed(entity), Layer: ItemLayer.Of(entity), Blend: ItemBlend.Of(entity), ShaderSource: ItemShaderSource.Of(entity)));
             }
             else if (entity.HasComponent<Mine>())
             {
                 Mine mine = entity.GetComponent<Mine>();
-                _clipboard.Add(new EditorClipboardItem(mine.TimeMs, null, mine, null, MaskOf(entity), ItemShader.Of(entity), SelfModulate.Packed(entity), Layer: ItemLayer.Of(entity)));
+                _clipboard.Add(new EditorClipboardItem(mine.TimeMs, null, mine, null, MaskOf(entity), ItemShader.Of(entity), SelfModulate.Packed(entity), Layer: ItemLayer.Of(entity), Blend: ItemBlend.Of(entity), ShaderSource: ItemShaderSource.Of(entity)));
             }
             else if (entity.HasComponent<StartPoint>())
             {
                 StartPoint start = entity.GetComponent<StartPoint>();
-                _clipboard.Add(new EditorClipboardItem(start.TimeMs, null, null, start, MaskOf(entity), Layer: ItemLayer.Of(entity)));
+                _clipboard.Add(new EditorClipboardItem(start.TimeMs, null, null, start, MaskOf(entity), Layer: ItemLayer.Of(entity), Blend: ItemBlend.Of(entity), ShaderSource: ItemShaderSource.Of(entity)));
             }
             else if (entity.HasComponent<Block>())
             {
-                _clipboard.Add(new EditorClipboardItem(0, null, null, null, MaskOf(entity), ItemShader.Of(entity), SelfModulate.Packed(entity), Block: entity.GetComponent<Block>(), Layer: ItemLayer.Of(entity)));
+                _clipboard.Add(new EditorClipboardItem(0, null, null, null, MaskOf(entity), ItemShader.Of(entity), SelfModulate.Packed(entity), Block: entity.GetComponent<Block>(), Layer: ItemLayer.Of(entity), Blend: ItemBlend.Of(entity), ShaderSource: ItemShaderSource.Of(entity)));
             }
             else if (entity.HasComponent<Spike>())
             {
-                _clipboard.Add(new EditorClipboardItem(0, null, null, null, MaskOf(entity), ItemShader.Of(entity), SelfModulate.Packed(entity), Spike: entity.GetComponent<Spike>(), Layer: ItemLayer.Of(entity)));
+                _clipboard.Add(new EditorClipboardItem(0, null, null, null, MaskOf(entity), ItemShader.Of(entity), SelfModulate.Packed(entity), Spike: entity.GetComponent<Spike>(), Layer: ItemLayer.Of(entity), Blend: ItemBlend.Of(entity), ShaderSource: ItemShaderSource.Of(entity)));
             }
             else if (entity.HasComponent<LevelText>())
             {
-                _clipboard.Add(new EditorClipboardItem(0, null, null, null, MaskOf(entity), ItemShader.Of(entity), SelfModulate.Packed(entity), Text: entity.GetComponent<LevelText>(), Layer: ItemLayer.Of(entity)));
+                _clipboard.Add(new EditorClipboardItem(0, null, null, null, MaskOf(entity), ItemShader.Of(entity), SelfModulate.Packed(entity), Text: entity.GetComponent<LevelText>(), Layer: ItemLayer.Of(entity), Blend: ItemBlend.Of(entity), ShaderSource: ItemShaderSource.Of(entity)));
             }
             else if (entity.HasComponent<LevelPolygon>())
             {
                 LevelPolygon polygon = entity.GetComponent<LevelPolygon>();
                 polygon.Item = Xanadu.Items.XifCopy.Clone(polygon.Item ?? new Xanadu.Items.Xif());
-                _clipboard.Add(new EditorClipboardItem(0, null, null, null, MaskOf(entity), ItemShader.Of(entity), SelfModulate.Packed(entity), Polygon: polygon, Layer: ItemLayer.Of(entity)));
+                _clipboard.Add(new EditorClipboardItem(0, null, null, null, MaskOf(entity), ItemShader.Of(entity), SelfModulate.Packed(entity), Polygon: polygon, Layer: ItemLayer.Of(entity), Blend: ItemBlend.Of(entity), ShaderSource: ItemShaderSource.Of(entity)));
             }
             else if (entity.HasComponent<GrassPatch>())
             {
-                _clipboard.Add(new EditorClipboardItem(0, null, null, null, MaskOf(entity), ItemShader.Of(entity), SelfModulate.Packed(entity), Grass: entity.GetComponent<GrassPatch>(), Layer: ItemLayer.Of(entity)));
+                _clipboard.Add(new EditorClipboardItem(0, null, null, null, MaskOf(entity), ItemShader.Of(entity), SelfModulate.Packed(entity), Grass: entity.GetComponent<GrassPatch>(), Layer: ItemLayer.Of(entity), Blend: ItemBlend.Of(entity), ShaderSource: ItemShaderSource.Of(entity)));
+            }
+            else if (entity.HasComponent<ScreenReadRegion>())
+            {
+                _clipboard.Add(new EditorClipboardItem(0, null, null, null, 0, Layer: ItemLayer.Of(entity), Region: entity.GetComponent<ScreenReadRegion>()));
             }
         }
     }
@@ -346,6 +350,8 @@ public sealed class EditorSelectionCommands(EditorCommandContext context)
                 Subscribe(pasted, item.Groups, buffer);
                 SelfModulate.Put(pasted, item.Modulate);
                 ItemLayer.Put(pasted, item.Layer);
+                ItemBlend.Put(pasted, item.Blend);
+                ItemShaderSource.Put(pasted, item.ShaderSource);
                 created.Add(pasted);
             }
             else if (item.Mine is { } mine)
@@ -355,6 +361,8 @@ public sealed class EditorSelectionCommands(EditorCommandContext context)
                 Subscribe(pasted, item.Groups, buffer);
                 SelfModulate.Put(pasted, item.Modulate);
                 ItemLayer.Put(pasted, item.Layer);
+                ItemBlend.Put(pasted, item.Blend);
+                ItemShaderSource.Put(pasted, item.ShaderSource);
                 created.Add(pasted);
             }
             else if (item.StartPoint is { } start)
@@ -364,6 +372,8 @@ public sealed class EditorSelectionCommands(EditorCommandContext context)
                 Entity pasted = EditorItems.Create(context.Entities, start);
                 Subscribe(pasted, item.Groups, buffer);
                 ItemLayer.Put(pasted, item.Layer);
+                ItemBlend.Put(pasted, item.Blend);
+                ItemShaderSource.Put(pasted, item.ShaderSource);
                 created.Add(pasted);
             }
         }
@@ -445,6 +455,11 @@ public sealed class EditorSelectionCommands(EditorCommandContext context)
             grass.Seed = GrassPatch.NewSeed();
             pasted = EditorItems.Create(context.Entities, grass, item.Shader);
         }
+        else if (item.Region is { } region)
+        {
+            region.Position = GridPlacement.Clamp(region.Position + offset, region.Size, playfield);
+            pasted = EditorItems.Create(context.Entities, region);
+        }
         else
         {
             Spike spike = item.Spike!.Value;
@@ -458,6 +473,8 @@ public sealed class EditorSelectionCommands(EditorCommandContext context)
         Subscribe(pasted, item.Groups, buffer);
         SelfModulate.Put(pasted, item.Modulate);
         ItemLayer.Put(pasted, item.Layer);
+                ItemBlend.Put(pasted, item.Blend);
+                ItemShaderSource.Put(pasted, item.ShaderSource);
         return pasted;
     }
 

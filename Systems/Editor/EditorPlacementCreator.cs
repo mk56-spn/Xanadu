@@ -56,6 +56,36 @@ public sealed class EditorPlacementCreator(EditorSceneQuery scene, EditorHistory
 
         if (editor.HasComponent<EditorPlacement>() &&
             editor.GetComponent<EditorPlacement>().Mode ==
+            EditorPlacementMode.ScreenRead)
+        {
+            PlayfieldView regionView = editor.GetComponent<PlayfieldView>();
+            Playfield regionField = editor.GetComponent<Playfield>();
+            Vector2 centre = regionView.ScreenToPlayfield(screenPosition);
+            if (!EditorItemPicker.IsInside(centre, regionField))
+                return;
+
+            ScreenReadRegion region = ScreenReadRegion.Centred(centre);
+            region.Position = GridPlacement.Settle(
+                region.Position,
+                region.Size,
+                regionField,
+                ViewportSnap.IsOn(scene.Store));
+
+            // A region starts where the user is working: the editor's current
+            // layer, in front of what is already there (step 2's default table).
+            EditorLayers layers = EditorLayers.Of(editor);
+            int on = layers.Current == 0 ? ItemLayer.Gameplay : layers.Current;
+            EditorSnapshot regionBefore = history.Capture();
+            Entity created = EditorItems.Create(scene.Store, region);
+            ItemLayer.Put(created, new ItemLayer(on, 0));
+            ItemLayer.OnTop(scene.Store, created);
+            history.Record(regionBefore, history.Capture());
+            editor.GetComponent<NoteSelection>().Note = created;
+            return;
+        }
+
+        if (editor.HasComponent<EditorPlacement>() &&
+            editor.GetComponent<EditorPlacement>().Mode ==
             EditorPlacementMode.Grass)
         {
             PlayfieldView grassView = editor.GetComponent<PlayfieldView>();

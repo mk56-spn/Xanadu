@@ -11,7 +11,8 @@ namespace Xanadu.Systems.Editor;
 /// Picks the playfield item under a point and the items inside a box, in the
 /// order the editor treats them: notes, mines, start points, texts, grass,
 /// spikes, blocks, polygons. Spikes and text sit over blocks; polygons sit
-/// under everything.
+/// under everything. Items are found where they're shown at the playhead, with
+/// their groups' moves applied. Items on hidden or locked layers can't be picked.
 /// </summary>
 public sealed class EditorItemPicker(EditorSceneQuery scene)
 {
@@ -38,15 +39,21 @@ public sealed class EditorItemPicker(EditorSceneQuery scene)
             hit = FindBlockAt(position);
         if (hit.IsNull)
             hit = FindPolygonAt(position);
+        if (hit.IsNull)
+            hit = FindRegionAt(position);
         return hit;
     }
 
     public Entity FindBlockAt(Vector2 position)
     {
+        EditorLayers layers = Layers();
         Entity result = default;
         foreach (Entity entity in _entities.Query<Block>().ToEntityList())
         {
-            if (entity.GetComponent<Block>().Bounds.HasPoint(position))
+            if (!layers.Picks(ItemLayer.Of(entity).Layer))
+                continue;
+
+            if (entity.GetComponent<Block>().Bounds.HasPoint(Placed(entity, position)))
                 result = entity;
         }
 
@@ -55,11 +62,15 @@ public sealed class EditorItemPicker(EditorSceneQuery scene)
 
     public Entity FindTextAt(Vector2 position)
     {
+        EditorLayers layers = Layers();
         Entity result = default;
         foreach (Entity entity in _entities.Query<LevelText>().ToEntityList())
         {
+            if (!layers.Picks(ItemLayer.Of(entity).Layer))
+                continue;
+
             LevelText text = entity.GetComponent<LevelText>();
-            if (TurnedBox.Contains(text.Bounds, text.RotationDegrees, position))
+            if (TurnedBox.Contains(text.Bounds, text.RotationDegrees, Placed(entity, position)))
                 result = entity;
         }
 
@@ -68,11 +79,15 @@ public sealed class EditorItemPicker(EditorSceneQuery scene)
 
     public Entity FindGrassAt(Vector2 position)
     {
+        EditorLayers layers = Layers();
         Entity result = default;
         foreach (Entity entity in _entities.Query<GrassPatch>().ToEntityList())
         {
+            if (!layers.Picks(ItemLayer.Of(entity).Layer))
+                continue;
+
             GrassPatch grass = entity.GetComponent<GrassPatch>();
-            if (TurnedBox.Contains(grass.Bounds, grass.RotationDegrees, position))
+            if (TurnedBox.Contains(grass.Bounds, grass.RotationDegrees, Placed(entity, position)))
                 result = entity;
         }
 
@@ -81,10 +96,34 @@ public sealed class EditorItemPicker(EditorSceneQuery scene)
 
     public Entity FindPolygonAt(Vector2 position)
     {
+        EditorLayers layers = Layers();
         Entity result = default;
         foreach (Entity entity in _entities.Query<LevelPolygon>().ToEntityList())
         {
-            if (entity.GetComponent<LevelPolygon>().Contains(position))
+            if (!layers.Picks(ItemLayer.Of(entity).Layer))
+                continue;
+
+            if (entity.GetComponent<LevelPolygon>().Contains(Placed(entity, position)))
+                result = entity;
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    /// The screen-read region under a point. Regions sit under every other item
+    /// when picking, since they are large rects meant to enclose things.
+    /// </summary>
+    public Entity FindRegionAt(Vector2 position)
+    {
+        EditorLayers layers = Layers();
+        Entity result = default;
+        foreach (Entity entity in _entities.Query<ScreenReadRegion>().ToEntityList())
+        {
+            if (!layers.Picks(ItemLayer.Of(entity).Layer))
+                continue;
+
+            if (entity.GetComponent<ScreenReadRegion>().Contains(Placed(entity, position)))
                 result = entity;
         }
 
@@ -93,10 +132,14 @@ public sealed class EditorItemPicker(EditorSceneQuery scene)
 
     public Entity FindSpikeAt(Vector2 position)
     {
+        EditorLayers layers = Layers();
         Entity result = default;
         foreach (Entity entity in _entities.Query<Spike>().ToEntityList())
         {
-            if (entity.GetComponent<Spike>().Contains(position))
+            if (!layers.Picks(ItemLayer.Of(entity).Layer))
+                continue;
+
+            if (entity.GetComponent<Spike>().Contains(Placed(entity, position)))
                 result = entity;
         }
 
@@ -105,15 +148,19 @@ public sealed class EditorItemPicker(EditorSceneQuery scene)
 
     public Entity FindNoteAt(Vector2 position, long playheadMs)
     {
+        EditorLayers layers = Layers();
         Entity result = default;
 
         foreach (Entity entity in _entities.Query<Note>().ToEntityList())
         {
+            if (!layers.Picks(ItemLayer.Of(entity).Layer))
+                continue;
+
             Note note = entity.GetComponent<Note>();
             if (NoteFade.Alpha(note, playheadMs) <= 0)
                 continue;
 
-            if (Within(position, note.Position, NoteHitRadius))
+            if (Within(Placed(entity, position), note.Position, NoteHitRadius))
             {
                 result = entity;
             }
@@ -124,15 +171,19 @@ public sealed class EditorItemPicker(EditorSceneQuery scene)
 
     public Entity FindMineAt(Vector2 position, long playheadMs)
     {
+        EditorLayers layers = Layers();
         Entity result = default;
 
         foreach (Entity entity in _entities.Query<Mine>().ToEntityList())
         {
+            if (!layers.Picks(ItemLayer.Of(entity).Layer))
+                continue;
+
             Mine mine = entity.GetComponent<Mine>();
             if (MineFade.Alpha(mine, playheadMs) <= 0)
                 continue;
 
-            if (Within(position, mine.Position, MineHitRadius))
+            if (Within(Placed(entity, position), mine.Position, MineHitRadius))
             {
                 result = entity;
             }
@@ -143,12 +194,16 @@ public sealed class EditorItemPicker(EditorSceneQuery scene)
 
     public Entity FindStartAt(Vector2 position)
     {
+        EditorLayers layers = Layers();
         Entity result = default;
         foreach (Entity entity in _entities.Query<StartPoint>().ToEntityList())
         {
+            if (!layers.Picks(ItemLayer.Of(entity).Layer))
+                continue;
+
             StartPoint startPoint = entity.GetComponent<StartPoint>();
             // Picked like a note, since it is drawn the size of one.
-            if (startPoint.Position.DistanceTo(position) <= NoteHitRadius)
+            if (startPoint.Position.DistanceTo(Placed(entity, position)) <= NoteHitRadius)
                 result = entity;
         }
 
@@ -163,12 +218,17 @@ public sealed class EditorItemPicker(EditorSceneQuery scene)
         if (editor.IsNull)
             return selected;
 
+        EditorLayers layers = EditorLayers.Of(editor);
+
         PlayfieldView view = editor.GetComponent<PlayfieldView>();
         Playfield playfield = editor.GetComponent<Playfield>();
         float noteSize = PlayfieldRenderer.NoteSize * view.Scale;
 
         foreach (Entity entity in _entities.Query<Note>().ToEntityList())
         {
+            if (!layers.Picks(ItemLayer.Of(entity).Layer))
+                continue;
+
             Note note = entity.GetComponent<Note>();
             if (NoteRules.IsRail(note.Kind) ||
                 NoteRules.IsChannelEnd(note.Kind) ||
@@ -178,7 +238,7 @@ public sealed class EditorItemPicker(EditorSceneQuery scene)
                 continue;
             }
 
-            Vector2 center = view.PlayfieldToScreen(note.Position);
+            Vector2 center = view.PlayfieldToScreen(GroupOffset.Shown(entity, note.Position));
             var noteBounds = new Rect2(
                 center - new Vector2(noteSize / 2, noteSize / 2),
                 new Vector2(noteSize, noteSize));
@@ -189,6 +249,9 @@ public sealed class EditorItemPicker(EditorSceneQuery scene)
         float mineSize = PlayfieldRenderer.MineSize * view.Scale;
         foreach (Entity entity in _entities.Query<Mine>().ToEntityList())
         {
+            if (!layers.Picks(ItemLayer.Of(entity).Layer))
+                continue;
+
             Mine mine = entity.GetComponent<Mine>();
             if (MineFade.Alpha(mine, playheadMs) <= 0.05f ||
                 !IsInside(mine.Position, playfield))
@@ -196,7 +259,7 @@ public sealed class EditorItemPicker(EditorSceneQuery scene)
                 continue;
             }
 
-            Vector2 center = view.PlayfieldToScreen(mine.Position);
+            Vector2 center = view.PlayfieldToScreen(GroupOffset.Shown(entity, mine.Position));
             var mineBounds = new Rect2(
                 center - new Vector2(mineSize / 2, mineSize / 2),
                 new Vector2(mineSize, mineSize));
@@ -206,35 +269,50 @@ public sealed class EditorItemPicker(EditorSceneQuery scene)
 
         foreach (Entity entity in _entities.Query<StartPoint>().ToEntityList())
         {
+            if (!layers.Picks(ItemLayer.Of(entity).Layer))
+                continue;
+
             StartPoint start = entity.GetComponent<StartPoint>();
-            Vector2 center = view.PlayfieldToScreen(start.Position);
+            Vector2 center = view.PlayfieldToScreen(GroupOffset.Shown(entity, start.Position));
             if (screenBounds.HasPoint(center))
                 selected.Add(entity);
         }
 
         foreach (Entity entity in _entities.Query<LevelText>().ToEntityList())
         {
-            if (screenBounds.Intersects(PlayfieldRenderer.TextScreenHull(entity.GetComponent<LevelText>(), view)))
+            if (!layers.Picks(ItemLayer.Of(entity).Layer))
+                continue;
+
+            if (screenBounds.Intersects(PlayfieldRenderer.TextScreenHull(entity.GetComponent<LevelText>(), GroupOffset.View(entity, view))))
                 selected.Add(entity);
         }
 
         foreach (Entity entity in _entities.Query<GrassPatch>().ToEntityList())
         {
-            if (screenBounds.Intersects(PlayfieldRenderer.GrassScreenBounds(entity.GetComponent<GrassPatch>(), view)))
+            if (!layers.Picks(ItemLayer.Of(entity).Layer))
+                continue;
+
+            if (screenBounds.Intersects(PlayfieldRenderer.GrassScreenBounds(entity.GetComponent<GrassPatch>(), GroupOffset.View(entity, view))))
                 selected.Add(entity);
         }
 
         foreach (Entity entity in _entities.Query<LevelPolygon>().ToEntityList())
         {
-            if (screenBounds.Intersects(PlayfieldRenderer.PolygonScreenBounds(entity.GetComponent<LevelPolygon>(), view)))
+            if (!layers.Picks(ItemLayer.Of(entity).Layer))
+                continue;
+
+            if (screenBounds.Intersects(PlayfieldRenderer.PolygonScreenBounds(entity.GetComponent<LevelPolygon>(), GroupOffset.View(entity, view))))
                 selected.Add(entity);
         }
 
         foreach (Entity entity in _entities.Query<Spike>().ToEntityList())
         {
+            if (!layers.Picks(ItemLayer.Of(entity).Layer))
+                continue;
+
             Spike spike = entity.GetComponent<Spike>();
             var spikeBounds = new Rect2(
-                view.PlayfieldToScreen(spike.Position),
+                view.PlayfieldToScreen(GroupOffset.Shown(entity, spike.Position)),
                 spike.Size * view.Scale);
             if (screenBounds.Intersects(spikeBounds))
                 selected.Add(entity);
@@ -242,16 +320,35 @@ public sealed class EditorItemPicker(EditorSceneQuery scene)
 
         foreach (Entity entity in _entities.Query<Block>().ToEntityList())
         {
+            if (!layers.Picks(ItemLayer.Of(entity).Layer))
+                continue;
+
             Block block = entity.GetComponent<Block>();
             var blockBounds = new Rect2(
-                view.PlayfieldToScreen(block.Position),
+                view.PlayfieldToScreen(GroupOffset.Shown(entity, block.Position)),
                 block.Size * view.Scale);
             if (screenBounds.Intersects(blockBounds))
                 selected.Add(entity);
         }
 
+        foreach (Entity entity in _entities.Query<ScreenReadRegion>().ToEntityList())
+        {
+            if (!layers.Picks(ItemLayer.Of(entity).Layer))
+                continue;
+
+            ScreenReadRegion region = entity.GetComponent<ScreenReadRegion>();
+            var regionBounds = new Rect2(
+                view.PlayfieldToScreen(GroupOffset.Shown(entity, region.Position)),
+                region.Size * view.Scale);
+            if (screenBounds.Intersects(regionBounds))
+                selected.Add(entity);
+        }
+
         return selected;
     }
+
+    /// <summary>The editor's layers: items on hidden or locked ones can't be picked.</summary>
+    private EditorLayers Layers() => EditorLayers.Of(scene.Editor());
 
     /// <summary>True when a playfield point is inside the field.</summary>
     public static bool IsInside(Vector2 position, Playfield playfield) =>
@@ -259,6 +356,12 @@ public sealed class EditorItemPicker(EditorSceneQuery scene)
         position.Y >= 0 &&
         position.X <= playfield.Width &&
         position.Y <= playfield.Height;
+
+    /// <summary>
+    /// A picked point moved into the item's placed frame: items are picked where
+    /// their groups show them at the playhead (docs/render-architecture.md step 3a).
+    /// </summary>
+    private static Vector2 Placed(Entity entity, Vector2 shown) => shown - GroupOffset.Of(entity);
 
     /// <summary>Whether a point lies within a radius in both axes of an item's centre.</summary>
     private static bool Within(Vector2 point, Vector2 target, float radius) =>

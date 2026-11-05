@@ -47,6 +47,22 @@ public sealed partial class EditorGroupSystem
             Select(state.Open, group.Effects.Count - 1, ref state);
         }
 
+        if (JustPressed(Piece(EditorGroupPart.BufferToggle)))
+        {
+            if (group.Buffered)
+            {
+                Edit(() => group.Buffered = false);
+            }
+            else if (editor.TryGetComponent(out LevelGroups all))
+            {
+                string? problem = GroupBufferRules.Problem(editor.Store, all.Groups, state.Open);
+                if (problem is null)
+                    Edit(() => group.Buffered = true);
+                else
+                    CommandBuffer.AddComponent(editor.Id, new WarningRequest(problem));
+            }
+        }
+
         if (JustPressed(Piece(EditorGroupPart.AddColor)) && group.Effects.Count < EditorGroupLayout.MaxRows)
         {
             Edit(() => group.Effects.Add(GroupEffect.Colour(now, now + 0.5f, DefaultTint)));
@@ -55,15 +71,17 @@ public sealed partial class EditorGroupSystem
 
         int open = state.Open;
         if (JustPressed(Piece(EditorGroupPart.AddSelected)))
-            Edit(() => SetMembership(editor, open, add: true));
+            Membership(editor, open, add: true);
         if (JustPressed(Piece(EditorGroupPart.RemoveSelected)))
-            Edit(() => SetMembership(editor, open, add: false));
+            Membership(editor, open, add: false);
         if (JustPressed(Piece(EditorGroupPart.SelectMembers)))
             SelectMembers(editor, open);
         if (JustPressed(Piece(EditorGroupPart.InteriorLink)))
             Edit(() => ToggleColorLink(editor, open, outline: false));
         if (JustPressed(Piece(EditorGroupPart.OutlineLink)))
             Edit(() => ToggleColorLink(editor, open, outline: true));
+
+        HandleShaderTrack(editor, ref state, group, playhead);
 
         if (state.PaletteOpen)
             HandlePalette(ref state, group);
@@ -112,7 +130,6 @@ public sealed partial class EditorGroupSystem
             if (selected && effect.Kind == GroupEffectKind.Move)
             {
                 state.TargetEdit = true;
-                state.Preview = true;
                 state.Open = -1;
                 state.PaletteOpen = false;
                 state.DragRow = -1;
@@ -186,12 +203,12 @@ public sealed partial class EditorGroupSystem
             Block block = item.GetComponent<Block>();
             bool on = ((outline ? block.OutlineGroups : block.FillGroups) & ItemGroups.Bit(group)) != 0;
             UiText.Set(button, $"{name} {(on ? "ON" : "OFF")}", buffer);
-            Tint(button, on ? CellUsed : SceneColors.Muted, buffer);
+            Tint(button, on ? ToggleOn : ActionIdle, buffer);
             return;
         }
 
         UiText.Set(button, name, buffer);
-        Tint(button, SceneColors.Muted, buffer);
+        Tint(button, Unavailable, buffer);
     }
 
     private static bool IsBlockIn(Entity item, int group) =>

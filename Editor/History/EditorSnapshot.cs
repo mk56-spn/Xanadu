@@ -16,7 +16,9 @@ public readonly record struct EditorSnapshot(
     GroupDefinition[]? Groups = null,
     List<TextSnapshot>? Texts = null,
     List<GrassSnapshot>? Grass = null,
-    List<PolygonSnapshot>? Polygons = null);
+    List<PolygonSnapshot>? Polygons = null,
+    LevelLayers? Layers = null,
+    List<ScreenReadSnapshot>? ScreenReads = null);
 
 /// <summary>Stable polygon-item snapshot used by undo/redo; it owns a copy of the item.</summary>
 public readonly record struct PolygonSnapshot(
@@ -26,6 +28,14 @@ public readonly record struct PolygonSnapshot(
     uint Groups = 0,
     int Shader = 0,
     uint Modulate = SelfModulate.White,
+    ItemLayer Layer = default,
+    Xanadu.Rendering.BlendMode Blend = Xanadu.Rendering.BlendMode.Mix,
+    int ShaderSource = -1);
+
+/// <summary>Stable screen-read-region snapshot used by undo/redo.</summary>
+public readonly record struct ScreenReadSnapshot(
+    Vector2 Position,
+    Vector2 Size,
     ItemLayer Layer = default);
 
 /// <summary>Stable grass-patch snapshot used by undo/redo.</summary>
@@ -34,7 +44,9 @@ public readonly record struct GrassSnapshot(
     uint Groups = 0,
     int Shader = 0,
     uint Modulate = SelfModulate.White,
-    ItemLayer Layer = default);
+    ItemLayer Layer = default,
+    Xanadu.Rendering.BlendMode Blend = Xanadu.Rendering.BlendMode.Mix,
+    int ShaderSource = -1);
 
 /// <summary>Stable serializable level-text snapshot used by undo/redo.</summary>
 public readonly record struct TextSnapshot(
@@ -45,7 +57,9 @@ public readonly record struct TextSnapshot(
     int Shader = 0,
     uint Modulate = SelfModulate.White,
     float Rotation = 0f,
-    ItemLayer Layer = default);
+    ItemLayer Layer = default,
+    Xanadu.Rendering.BlendMode Blend = Xanadu.Rendering.BlendMode.Mix,
+    int ShaderSource = -1);
 
 /// <summary>Stable serializable start-point snapshot used by undo/redo.</summary>
 public readonly record struct StartPointSnapshot(
@@ -55,7 +69,9 @@ public readonly record struct StartPointSnapshot(
     System.Numerics.Vector2 Momentum,
     Vector2 Direction,
     uint Groups = 0,
-    ItemLayer Layer = default);
+    ItemLayer Layer = default,
+    Xanadu.Rendering.BlendMode Blend = Xanadu.Rendering.BlendMode.Mix,
+    int ShaderSource = -1);
 
 /// <summary>Stable serializable block snapshot used by undo/redo.</summary>
 public readonly record struct BlockSnapshot(
@@ -71,7 +87,9 @@ public readonly record struct BlockSnapshot(
     uint OutlineColor = 0,
     uint FillGroups = Block.AllGroups,
     uint OutlineGroups = Block.AllGroups,
-    ItemLayer Layer = default);
+    ItemLayer Layer = default,
+    Xanadu.Rendering.BlendMode Blend = Xanadu.Rendering.BlendMode.Mix,
+    int ShaderSource = -1);
 
 /// <summary>Stable serializable spike snapshot used by undo/redo.</summary>
 public readonly record struct SpikeSnapshot(
@@ -83,7 +101,9 @@ public readonly record struct SpikeSnapshot(
     float RotationDegrees = 0f,
     float OutlineWidth = Block.DefaultOutlineWidth,
     uint OutlineColor = 0,
-    ItemLayer Layer = default);
+    ItemLayer Layer = default,
+    Xanadu.Rendering.BlendMode Blend = Xanadu.Rendering.BlendMode.Mix,
+    int ShaderSource = -1);
 
 /// <summary>Stable serializable mine snapshot used by undo/redo.</summary>
 public readonly record struct MineSnapshot(
@@ -94,7 +114,9 @@ public readonly record struct MineSnapshot(
     uint Groups = 0,
     int Shader = 0,
     uint Modulate = SelfModulate.White,
-    ItemLayer Layer = default);
+    ItemLayer Layer = default,
+    Xanadu.Rendering.BlendMode Blend = Xanadu.Rendering.BlendMode.Mix,
+    int ShaderSource = -1);
 
 /// <summary>Stable serializable note snapshot used by undo/redo.</summary>
 public readonly record struct NoteSnapshot(
@@ -117,4 +139,6 @@ public readonly record struct NoteSnapshot(
     int ShapeId = 0,
     int ShapePiece = 0,
     uint Modulate = SelfModulate.White,
-    ItemLayer Layer = default);
+    ItemLayer Layer = default,
+    Xanadu.Rendering.BlendMode Blend = Xanadu.Rendering.BlendMode.Mix,
+    int ShaderSource = -1);

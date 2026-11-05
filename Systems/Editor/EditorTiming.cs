@@ -12,8 +12,12 @@ public static class EditorTiming
         return beatMs * 4.0 / Math.Max(1, playhead.SnapDivision);
     }
 
+    /// <summary>The nearest beat-grid time, or the time itself while music snap is off.</summary>
     public static long Snap(long rawMs, Playhead playhead)
     {
+        if (playhead.SnapOff)
+            return Math.Max(0, rawMs);
+
         double step = StepMs(playhead);
         double relative = rawMs - playhead.OffsetMs;
         double snapped = Math.Round(relative / step) * step + playhead.OffsetMs;

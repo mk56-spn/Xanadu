@@ -15,7 +15,8 @@ using Position = Xanadu.Ecs.Position;
 namespace Xanadu.Systems.Editor;
 
 /// <summary>
-/// The editor's groups: the sidebar grid that opens a group, and the overlay
+/// The editor's groups: the sidebar grid that puts the selection into groups,
+/// the bar at the top of the view that opens one, and the overlay
 /// screen where its members and timed effects are set. Effects are rows in a
 /// table and bars on a timeline that snaps to the beat grid; every change is
 /// one undo step.
@@ -24,10 +25,11 @@ public sealed partial class EditorGroupSystem : QuerySystem<EditorGroupState>
 {
     private static readonly Color MoveColor = Palette.Info;
     private static readonly Color DefaultTint = Palette.Danger;
-    private static readonly Color CellEmpty = SceneColors.Muted;
-    private static readonly Color CellUsed = Palette.PrimaryDeep;
-    private static readonly Color CellSelected = Palette.Accent;
-    private static readonly Color CellOpen = Palette.Cyan;
+
+    /// <summary>The overlay's buttons: muted blue at rest, bright blue only while on, slate when off or unusable.</summary>
+    private static readonly Color ActionIdle = Palette.PrimaryMuted;
+    private static readonly Color ToggleOn = Palette.Primary;
+    private static readonly Color Unavailable = SceneColors.Muted;
 
     private const float EdgeGrab = 7f;
 
@@ -66,8 +68,8 @@ public sealed partial class EditorGroupSystem : QuerySystem<EditorGroupState>
         Vector2 screen = editor.GetComponent<PlayfieldView>().ScreenSize;
         CollectPieces();
 
-        HashSet<int> selectedGroups = GroupsOfSelection(editor);
-        UpdateGrid(editor, state, levelGroups, selectedGroups, buffer);
+        UpdateGrid(editor, levelGroups, buffer);
+        UpdateBar(editor, ref state, levelGroups, buffer);
 
         if (state.Open < 0 || state.Open >= levelGroups.Groups.Length)
         {
@@ -80,7 +82,7 @@ public sealed partial class EditorGroupSystem : QuerySystem<EditorGroupState>
 
         GroupDefinition group = levelGroups.Groups[state.Open];
         Vector2 dialog = EditorGroupLayout.DialogSize(screen);
-        Vector2 origin = (screen - dialog) / 2;
+        Vector2 origin = EditorGroupLayout.Origin(screen);
 
         HandleButtons(editor, ref state, group, playhead);
         if (state.Open < 0)
@@ -129,30 +131,13 @@ public sealed partial class EditorGroupSystem : QuerySystem<EditorGroupState>
 
     // -------------------------------------------------------------------- grid
 
-    /// <summary>The groups the selected items belong to, so their cells can be marked.</summary>
-    private static HashSet<int> GroupsOfSelection(Entity editor)
-    {
-        var groups = new HashSet<int>();
-        if (!editor.HasComponent<NoteSelection>())
-            return groups;
-
-        foreach (Entity item in editor.GetComponent<NoteSelection>().AllNotes)
-        {
-            if (item.IsNull || !item.TryGetComponent(out ItemGroups mask))
-                continue;
-            foreach (int group in ItemGroups.ToList(mask.Mask))
-                groups.Add(group);
-        }
-
-        return groups;
-    }
-
-    private void UpdateGrid(
-        Entity editor,
-        EditorGroupState state,
-        LevelGroups levelGroups,
-        HashSet<int> selectedGroups,
-        CommandBuffer buffer)
+    /// <summary>
+    /// The sidebar grid assigns groups directly: a cell puts every selected item
+    /// into its group, or takes them all out when they're all in it already.
+    /// A cell is bright blue when the whole selection is in it, teal when part
+    /// of it is, muted blue when the level uses the group and slate when empty.
+    /// </summary>
+    private void UpdateGrid(Entity editor, LevelGroups levelGroups, CommandBuffer buffer)
     {
         if (!editor.HasComponent<EditorGroupGrid>())
             return;
@@ -164,32 +149,86 @@ public sealed partial class EditorGroupSystem : QuerySystem<EditorGroupState>
                 continue;
 
             int index = cell.GetComponent<EditorGroupCell>().Index;
-            if (JustPressed(cell))
+            (int inGroup, int groupable) = Coverage(editor, index);
+            if (JustPressed(cell) && groupable > 0)
             {
-                state = Reopen(editor, index);
-                editor.GetComponent<EditorGroupState>() = state;
+                bool add = inGroup < groupable;
+                Membership(editor, index, add);
+                inGroup = add ? groupable : 0;
             }
 
-            Color color = index == state.Open ? CellOpen
-                : selectedGroups.Contains(index) ? CellSelected
-                : !levelGroups.Groups[index].IsEmpty ? CellUsed
-                : CellEmpty;
+            Color color = groupable > 0 && inGroup == groupable ? ToggleOn
+                : inGroup > 0 ? Palette.Selected
+                : !levelGroups.Groups[index].IsEmpty ? ActionIdle
+                : Unavailable;
             Tint(cell, color, buffer);
         }
-
-        if (JustPressed(grid.Preview))
-        {
-            state.Preview = !state.Preview;
-            editor.GetComponent<EditorGroupState>() = state;
-        }
-
-        UiText.Set(grid.Preview, state.Preview ? "PREVIEW ON" : "PREVIEW OFF", buffer);
-        Tint(grid.Preview, state.Preview ? CellUsed : CellEmpty, buffer);
     }
 
-    private static EditorGroupState Reopen(Entity editor, int index)
+    /// <summary>How many selected items can join a group, and how many of them are in it.</summary>
+    private static (int InGroup, int Groupable) Coverage(Entity editor, int group)
     {
-        EditorGroupState state = editor.GetComponent<EditorGroupState>();
+        int inGroup = 0;
+        int groupable = 0;
+        foreach (Entity item in editor.GetComponent<NoteSelection>().AllNotes)
+        {
+            if (!IsGroupable(item))
+                continue;
+            groupable++;
+            if (item.TryGetComponent(out ItemGroups mask) && mask.Has(group))
+                inGroup++;
+        }
+
+        return (inGroup, groupable);
+    }
+
+    /// <summary>
+    /// The bar at the top centre of the view: − and + step the group it points
+    /// at (switching an open panel along with it) and EDIT opens or closes that
+    /// group's panel, lit while it's open.
+    /// </summary>
+    private void UpdateBar(Entity editor, ref EditorGroupState state, LevelGroups levelGroups, CommandBuffer buffer)
+    {
+        if (!editor.HasComponent<EditorGroupBar>())
+            return;
+
+        EditorGroupBar bar = editor.GetComponent<EditorGroupBar>();
+        if (state.Open >= 0)
+            state.BarGroup = state.Open;
+
+        int step = (JustPressed(bar.Previous) ? -1 : 0) + (JustPressed(bar.Next) ? 1 : 0);
+        if (step != 0)
+        {
+            state.BarGroup = Math.Clamp(state.BarGroup + step, 0, GroupLimits.Count - 1);
+            if (state.Open >= 0)
+                state = Reopen(state, state.BarGroup);
+        }
+
+        if (JustPressed(bar.Edit))
+        {
+            if (state.Open >= 0)
+            {
+                state.Open = -1;
+                state.PaletteOpen = false;
+                state.DragRow = -1;
+            }
+            else
+            {
+                state = Reopen(state, state.BarGroup);
+            }
+        }
+
+        string name = levelGroups.Groups[state.BarGroup].Name;
+        if (name.Length > 10)
+            name = name[..10];
+        UiText.Set(bar.Label, name.Length > 0 ? $"GROUP {state.BarGroup + 1} · {name}" : $"GROUP {state.BarGroup + 1}", buffer);
+        Tint(bar.Previous, state.BarGroup > 0 ? ActionIdle : Unavailable, buffer);
+        Tint(bar.Next, state.BarGroup < GroupLimits.Count - 1 ? ActionIdle : Unavailable, buffer);
+        Tint(bar.Edit, state.Open >= 0 ? ToggleOn : ActionIdle, buffer);
+    }
+
+    private static EditorGroupState Reopen(EditorGroupState state, int index)
+    {
         if (state.SelectedGroup != index)
         {
             state.SelectedGroup = index;
@@ -228,6 +267,38 @@ public sealed partial class EditorGroupSystem : QuerySystem<EditorGroupState>
         _history.Record(before, _history.Capture());
     }
 
+    /// <summary>Whether an item can be in groups: every placed kind is.</summary>
+    private static bool IsGroupable(Entity item) =>
+        !item.IsNull && (item.HasComponent<Note>() ||
+                         item.HasComponent<Mine>() ||
+                         item.HasComponent<Block>() ||
+                         item.HasComponent<Spike>() ||
+                         item.HasComponent<LevelText>() ||
+                         item.HasComponent<GrassPatch>() ||
+                         item.HasComponent<LevelPolygon>() ||
+                         item.HasComponent<StartPoint>());
+
+    /// <summary>
+    /// Adds or removes the selection as one undo step, refusing an add that
+    /// would break a locked buffer with the reason as a warning (D16a).
+    /// </summary>
+    private void Membership(Entity editor, int group, bool add)
+    {
+        string? refused = add
+            ? EditorBufferGuard.AddingToGroup(
+                editor.Store,
+                editor.GetComponent<NoteSelection>().AllNotes,
+                group)
+            : null;
+        if (refused is { } problem)
+        {
+            CommandBuffer.AddComponent(editor.Id, new WarningRequest(problem));
+            return;
+        }
+
+        Edit(() => SetMembership(editor, group, add));
+    }
+
     /// <summary>
     /// Puts the selected notes, mines, blocks, spikes and start points into the
     /// group, or takes them out. A block joining a group follows its colour with
@@ -238,17 +309,8 @@ public sealed partial class EditorGroupSystem : QuerySystem<EditorGroupState>
         uint bit = ItemGroups.Bit(group);
         foreach (Entity item in new List<Entity>(editor.GetComponent<NoteSelection>().AllNotes))
         {
-            if (item.IsNull || !(item.HasComponent<Note>() ||
-                                 item.HasComponent<Mine>() ||
-                                 item.HasComponent<Block>() ||
-                                 item.HasComponent<Spike>() ||
-                                 item.HasComponent<LevelText>() ||
-                                 item.HasComponent<GrassPatch>() ||
-                                 item.HasComponent<LevelPolygon>() ||
-                                 item.HasComponent<StartPoint>()))
-            {
+            if (!IsGroupable(item))
                 continue;
-            }
 
             uint mask = item.TryGetComponent(out ItemGroups current) ? current.Mask : 0u;
             uint next = add ? mask | bit : mask & ~bit;

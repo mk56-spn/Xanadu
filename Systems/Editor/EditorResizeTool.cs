@@ -26,6 +26,8 @@ public sealed class EditorResizeTool(EditorSceneQuery scene, EditorHistory histo
             return false;
 
         Entity primary = editor.GetComponent<NoteSelection>().Note;
+        // The handles sit on the item where its groups show it; the bounds stay placed.
+        view = GroupOffset.View(primary, view);
         if (!EditorItems.IsItem(primary) ||
             !GridPlacement.TryGet(primary, out Rect2 bounds, out float degrees) ||
             !GridPlacement.TryPickHandle(bounds, degrees, view, screenPosition, out GridHandle handle))
@@ -50,7 +52,7 @@ public sealed class EditorResizeTool(EditorSceneQuery scene, EditorHistory histo
         GridPlacement.SetBounds(_entity, GridPlacement.Resize(
             _start,
             _handle,
-            view.ScreenToPlayfield(screenPosition),
+            GroupOffset.View(_entity, view).ScreenToPlayfield(screenPosition),
             playfield,
             ViewportSnap.IsOn(scene.Store),
             _degrees));

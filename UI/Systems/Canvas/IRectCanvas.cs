@@ -1,6 +1,7 @@
 using System;
 using Godot;
 using Xanadu.Ecs;
+using Xanadu.Rendering;
 using Xanadu.Ui.Ecs.Ui;
 
 namespace Xanadu.Systems.Canvas;
@@ -10,15 +11,63 @@ public interface IRectCanvas
 {
     /// <summary>
     /// Routes the draws that follow through a custom shader slot, 1-based, or
-    /// none for 0. Canvases with no shaders ignore it.
+    /// none for 0, and with a blend mode. Canvases with no shaders ignore it.
+    /// The blend lasts until the next selection, like the shader.
+    /// <paramref name="sourceGroup"/> is the group whose item-shader track the
+    /// draws follow, or -1 for none; runs keep separate from other sources.
+    /// Selecting also clears the instance values set since the last selection.
     /// </summary>
-    void SelectShader(int slot) { }
+    void SelectShader(int slot, BlendMode blend = BlendMode.Mix, int sourceGroup = -1) { }
+
+    /// <summary>
+    /// Sets an instance uniform for the draws that follow, on the run they go
+    /// into (docs/render-architecture.md §5.3). Values are written when the run
+    /// is picked; canvases with no shaders ignore it.
+    /// </summary>
+    void SetShaderValue(string param, Vector4 value, int size) { }
 
     /// <summary>
     /// Routes the draws that follow through a common shader, by resource
-    /// path, or none for an empty path. Canvases with no shaders ignore it.
+    /// path, or none for an empty path, and with a blend mode. Canvases with
+    /// no shaders ignore it.
     /// </summary>
-    void SelectCommonShader(string path) { }
+    void SelectCommonShader(string path, BlendMode blend = BlendMode.Mix) { }
+
+    /// <summary>
+    /// Routes the draws that follow into draw layer <paramref name="layer"/>'s
+    /// own container, which stacks over everything drawn before it. Layers are
+    /// begun back to front, each once per frame. Canvases with no layers ignore it.
+    /// <paramref name="target"/> is the canvas item to put the container under,
+    /// for a self-contained layer's own viewport; null is the canvas itself.
+    /// </summary>
+    void BeginLayer(int layer, Rid? target = null) { }
+
+    /// <summary>
+    /// Makes the next shaded run copy the whole screen to the back buffer just
+    /// before it draws, so a screen-reading pass sees everything drawn so far
+    /// (docs/render-architecture.md D9/D10). Canvases with no shaders ignore it.
+    /// </summary>
+    void CopyScreen() { }
+
+    /// <summary>
+    /// Refreshes the back buffer for one rect now, where the draw order reaches
+    /// it: a screen-read region (docs/render-architecture.md step 11, D10). The
+    /// rect is in the canvas's own coordinates; canvases with no shaders ignore it.
+    /// </summary>
+    void CopyScreen(Rect2 bounds) { }
+
+    /// <summary>
+    /// Starts a buffered group (D12): the draws that follow go into one image,
+    /// composited when it ends with the buffer's tint, alpha, shader and blend.
+    /// Canvases with no buffers ignore it.
+    /// </summary>
+    void BeginBuffer(int shader, BlendMode blend, Color tint, float alpha) { }
+
+    /// <summary>Ends the buffered group and composites it into its layer.</summary>
+    void EndBuffer() { }
+
+    /// <summary>Routes the draws that follow back to the canvas itself, over every layer.</summary>
+    void EndLayers() { }
 
     void SetVisible(Rid canvas, bool visible);
 

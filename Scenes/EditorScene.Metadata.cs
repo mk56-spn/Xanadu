@@ -30,6 +30,7 @@ public static class EditorSceneMetadata
         LevelInfo level = editor.GetComponent<LevelInfo>();
 
         EditorSceneGroups.BuildGroupOverlay(entities, root, screen);
+        EditorSceneGroups.BuildGroupBar(entities, root, editor, screen);
 
         // Popups sit above the chrome (960) and below the header menus (970).
         UiNode panelUi = UiNode.Layer(entities, root, UiLayers.EditorMetadata, null, UiStage.Full);

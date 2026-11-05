@@ -15,26 +15,72 @@ public static class EditorGroupLayout
     /// <summary>Effects shown at once; a group can hold more, but only these rows are editable.</summary>
     public const int MaxRows = 8;
 
-    /// <summary>Room the groups grid takes in the sidebar: its label, four rows of cells, the preview toggle and a margin.</summary>
-    public const float GridHeight = 20f + 4 * 40f + 6f + 40f;
+    /// <summary>The sidebar grid's cells and the gap between them.</summary>
+    public const float CellWidth = 32f;
+    public const float CellHeight = 28f;
+    public const float CellGap = 3f;
 
-    /// <summary>How far below the grid's top the preview toggle sits, from centre to centre.</summary>
-    public const float PreviewTop = 191f;
+    /// <summary>Room the groups grid takes in the sidebar: its label, four rows of cells and a margin.</summary>
+    public const float GridHeight = 20f + 4 * (CellHeight + CellGap) + 6f;
+
+    /// <summary>The group bar pinned at the top centre of the view, and the gap under it.</summary>
+    public static readonly Vector2 BarSize = new(650f, 36f);
+    private const float BarGap = 6f;
 
     public const float RowHeight = 30f;
-    public const float Pad = 20f;
+    public const float Pad = 12f;
     public const int TickSlots = 96;
     public const int LabelSlots = 9;
 
-    private const float SelectionTop = 134f;
-    private const float RowsTop = 202f;
-    private const float TableWidth = 500f;
-    private const float PreviewMin = 96f;
-    private const float PreviewMax = 200f;
+    /// <summary>How opaque the panel's backing is: the field shows through it.</summary>
+    public const float BackingAlpha = 0.1f;
 
-    public static Vector2 DialogSize(Vector2 screen) => new(
-        Math.Min(1120f, screen.X - 48f),
-        Math.Min(720f, screen.Y - 24f));
+    /// <summary>
+    /// The three toolbar rows: the group itself, its effects and the timeline's
+    /// controls, then its item-shader track.
+    /// </summary>
+    private const float GroupBarTop = 8f;
+    private const float EffectBarTop = 44f;
+    private const float ShaderBarTop = 80f;
+    private const float BarHeight = 28f;
+    private const float RowsTop = 142f;
+    private const float TableWidth = 500f;
+    private const float Gap = 6f;
+    private const float SectionGap = 16f;
+
+    /// <summary>
+    /// Where the panel sits: docked to the top of the editor viewport, between
+    /// the tool strip and the right panel, so the field stays in view under it
+    /// and the groups play live there.
+    /// </summary>
+    public static Rect2 PanelArea(Vector2 screen) => new(
+        EditorShellMetrics.ToolStripWidth,
+        BarArea(screen).End.Y + BarGap,
+        ViewWidth(screen),
+        RowsTop + MaxRows * RowHeight + 30f);
+
+    /// <summary>
+    /// The group bar: pinned at the top centre of the view, between the tool
+    /// strip and the right panel. The panel docks under it.
+    /// </summary>
+    public static Rect2 BarArea(Vector2 screen)
+    {
+        float left = EditorShellMetrics.ToolStripWidth;
+        float centre = left + ViewWidth(screen) / 2f;
+        return new Rect2(
+            centre - BarSize.X / 2f,
+            EditorShellMetrics.HeaderHeight + BarGap,
+            BarSize.X,
+            BarSize.Y);
+    }
+
+    private static float ViewWidth(Vector2 screen) =>
+        Math.Max(640f, screen.X - EditorShellMetrics.ToolStripWidth - EditorShellMetrics.RightPanelWidth);
+
+    public static Vector2 DialogSize(Vector2 screen) => PanelArea(screen).Size;
+
+    /// <summary>The panel's top-left corner on screen; every piece is placed from it.</summary>
+    public static Vector2 Origin(Vector2 screen) => PanelArea(screen).Position;
 
     /// <summary>The area the timeline's rows share, to the right of the table.</summary>
     public static Rect2 Timeline(Vector2 dialog) => new(
@@ -47,41 +93,147 @@ public static class EditorGroupLayout
     public static Rect2 Ruler(Vector2 dialog)
     {
         Rect2 timeline = Timeline(dialog);
-        return new Rect2(timeline.Position.X, RowsTop - 34f, timeline.Size.X, 30f);
+        return new Rect2(timeline.Position.X, RowsTop - 26f, timeline.Size.X, 24f);
     }
 
-    public static Rect2 RowTrack(Vector2 dialog, int row)
-    {
-        Rect2 timeline = Timeline(dialog);
-        return new Rect2(timeline.Position.X, RowsTop + row * RowHeight + 2f, timeline.Size.X, RowHeight - 4f);
-    }
+    /// <summary>The explanatory line under the rows.</summary>
+    public static Rect2 HintArea(Vector2 dialog) =>
+        new(Pad, RowsTop + MaxRows * RowHeight + 6f, dialog.X - 2 * Pad, 20f);
 
-    /// <summary>The square live preview at the bottom-left of the dialog.</summary>
-    public static Rect2 PreviewArea(Vector2 dialog)
-    {
-        float rowsBottom = RowsTop + MaxRows * RowHeight;
-        float size = Math.Clamp(dialog.Y - rowsBottom - 64f, PreviewMin, PreviewMax);
-        return new Rect2(Pad, dialog.Y - size - Pad, size, size);
-    }
-
-    /// <summary>The explanatory line to the right of the live preview.</summary>
-    public static Rect2 HintArea(Vector2 dialog)
-    {
-        Rect2 preview = PreviewArea(dialog);
-        return new Rect2(
-            preview.End.X + 12,
-            preview.Position.Y,
-            Math.Max(80f, dialog.X - preview.End.X - Pad - 12),
-            44f);
-    }
-
-    /// <summary>The small easing-curve display on the selection bar.</summary>
+    /// <summary>The small easing-curve display at the end of the selected effect's tools.</summary>
     public static Rect2 CurveArea(Vector2 dialog) =>
-        new(Pad + 530f, SelectionTop, 44f, 28f);
+        new(After(EditorGroupPart.SelectionPick, dialog) + 8f, EffectBarTop, 44f, BarHeight);
 
-    /// <summary>The colour palette popover, centred over the dialog.</summary>
+    /// <summary>The colour palette popover, centred over the panel.</summary>
     public static Rect2 PalettePanel(Vector2 dialog) =>
         new((dialog.X - 330f) / 2f, (dialog.Y - 190f) / 2f, 330f, 190f);
+
+    /// <summary>
+    /// The toolbar pieces in reading order, as (part, width, gap before it).
+    /// Left runs start at the left edge, right runs end at the right edge.
+    /// </summary>
+    private static readonly (EditorGroupPart Part, float Width, float Before)[] GroupBarLeft =
+    {
+        (EditorGroupPart.Title, 92f, 0f),
+        (EditorGroupPart.NameField, 200f, Gap),
+        (EditorGroupPart.MemberText, 150f, SectionGap),
+        (EditorGroupPart.AddSelected, 110f, Gap),
+        (EditorGroupPart.RemoveSelected, 110f, Gap),
+        (EditorGroupPart.SelectMembers, 80f, Gap),
+        (EditorGroupPart.InteriorLink, 110f, SectionGap),
+        (EditorGroupPart.OutlineLink, 110f, Gap),
+    };
+
+    private static readonly (EditorGroupPart Part, float Width, float Before)[] GroupBarRight =
+    {
+        (EditorGroupPart.SoloToggle, 84f, 0f),
+        (EditorGroupPart.Close, 84f, Gap),
+    };
+
+    private static readonly (EditorGroupPart Part, float Width, float Before)[] EffectBarLeft =
+    {
+        (EditorGroupPart.AddMove, 84f, 0f),
+        (EditorGroupPart.AddColor, 84f, Gap),
+        (EditorGroupPart.BufferToggle, 84f, Gap),
+        (EditorGroupPart.SelectionText, 150f, SectionGap),
+        (EditorGroupPart.SelectionTarget, 70f, Gap),
+        (EditorGroupPart.SelectionDuplicate, 52f, Gap),
+        (EditorGroupPart.SelectionMute, 70f, Gap),
+        (EditorGroupPart.SelectionNudgeLeft, 30f, Gap),
+        (EditorGroupPart.SelectionNudgeRight, 30f, 4f),
+        (EditorGroupPart.SelectionPick, 54f, Gap),
+    };
+
+    private static readonly (EditorGroupPart Part, float Width, float Before)[] ShaderBarLeft =
+    {
+        (EditorGroupPart.ShaderText, 170f, 0f),
+        (EditorGroupPart.ShaderSlot, 64f, Gap),
+        (EditorGroupPart.ShaderParam, 110f, Gap),
+        (EditorGroupPart.ShaderChannel, 56f, Gap),
+        (EditorGroupPart.ShaderDown, 30f, 8f),
+        (EditorGroupPart.ShaderValue, 130f, 4f),
+        (EditorGroupPart.ShaderUp, 30f, 4f),
+        (EditorGroupPart.ShaderClear, 56f, SectionGap),
+        (EditorGroupPart.BufferTrack, 96f, SectionGap),
+        (EditorGroupPart.BufferTint, 96f, Gap),
+        (EditorGroupPart.BufferAlphaDown, 40f, Gap),
+        (EditorGroupPart.BufferAlphaUp, 40f, 4f),
+        (EditorGroupPart.BufferBlend, 96f, Gap),
+    };
+
+    private static readonly (EditorGroupPart Part, float Width, float Before)[] EffectBarRight =
+    {
+        (EditorGroupPart.PlayToggle, 76f, 0f),
+        (EditorGroupPart.SnapToggle, 96f, Gap),
+        (EditorGroupPart.ScrollLeft, 32f, SectionGap),
+        (EditorGroupPart.ScrollRight, 32f, 4f),
+        (EditorGroupPart.ZoomOut, 32f, 12f),
+        (EditorGroupPart.ZoomIn, 32f, 4f),
+    };
+
+    private static float After(EditorGroupPart part, Vector2 dialog)
+    {
+        Rect2 rect = Place(part, 0, dialog);
+        return rect.End.X;
+    }
+
+    /// <summary>A piece's rectangle in one of the toolbar runs, or false when it isn't in a toolbar.</summary>
+    private static bool TryToolbar(EditorGroupPart part, Vector2 dialog, out Rect2 rect)
+    {
+        return TryRun(GroupBarLeft, part, GroupBarTop, Pad, false, dialog, out rect) ||
+               TryRun(GroupBarRight, part, GroupBarTop, dialog.X - Pad, true, dialog, out rect) ||
+               TryRun(EffectBarLeft, part, EffectBarTop, Pad, false, dialog, out rect) ||
+               TryRun(EffectBarRight, part, EffectBarTop, dialog.X - Pad, true, dialog, out rect) ||
+               TryRun(ShaderBarLeft, part, ShaderBarTop, Pad, false, dialog, out rect);
+    }
+
+    private static bool TryRun(
+        (EditorGroupPart Part, float Width, float Before)[] run,
+        EditorGroupPart part,
+        float top,
+        float edge,
+        bool fromRight,
+        Vector2 dialog,
+        out Rect2 rect)
+    {
+        float total = 0f;
+        foreach (var piece in run)
+            total += piece.Before + piece.Width;
+
+        float x = fromRight ? edge - total : edge;
+        foreach (var piece in run)
+        {
+            x += piece.Before;
+            if (piece.Part == part)
+            {
+                rect = new Rect2(x, top, piece.Width, BarHeight);
+                return true;
+            }
+
+            x += piece.Width;
+        }
+
+        rect = default;
+        return false;
+    }
+
+    /// <summary>
+    /// Where an effect sits on the timeline, on screen: from its start pin to
+    /// its end pin across its row. An instant effect still gets a sliver to grab.
+    /// <paramref name="timeline"/> is the timeline in screen space.
+    /// </summary>
+    public static Rect2 BarRect(GroupEffect effect, int row, float viewStart, float viewSpan, Rect2 timeline)
+    {
+        float left = XForTime(timeline, viewStart, viewSpan, effect.Start);
+        float right = XForTime(timeline, viewStart, viewSpan, effect.End);
+        float width = Math.Max(8f, right - left);
+        float top = timeline.Position.Y + row * RowHeight + 4f;
+        return new Rect2(left, top, width, RowHeight - 8f);
+    }
+
+    /// <summary>One effect row of the timeline, on screen, for drawing its band.</summary>
+    public static Rect2 RowRect(int row, Rect2 timeline) =>
+        new(timeline.Position.X, timeline.Position.Y + row * RowHeight, timeline.Size.X, RowHeight);
 
     public static float XForTime(Rect2 timeline, float viewStart, float viewSpan, float seconds) =>
         timeline.Position.X + (seconds - viewStart) / viewSpan * timeline.Size.X;
@@ -92,41 +244,16 @@ public static class EditorGroupLayout
     /// <summary>The rectangle of a piece, relative to the dialog's top-left.</summary>
     public static Rect2 Place(EditorGroupPart part, int row, Vector2 dialog)
     {
-        float right = dialog.X - Pad;
+        if (TryToolbar(part, dialog, out Rect2 tool))
+            return tool;
+
         float rowTop = RowsTop + row * RowHeight + 2f;
-        Rect2 preview = PreviewArea(dialog);
         Rect2 palette = PalettePanel(dialog);
         return part switch
         {
             EditorGroupPart.Scrim => new Rect2(Vector2.Zero, dialog),
             EditorGroupPart.Dialog => new Rect2(Vector2.Zero, dialog),
-            EditorGroupPart.Title => new Rect2(Pad, 14, 190, 30),
-            EditorGroupPart.NameField => new Rect2(Pad + 200, 14, 280, 30),
-            EditorGroupPart.Close => new Rect2(right - 100, 14, 100, 30),
-            EditorGroupPart.MemberText => new Rect2(Pad, 58, 190, 28),
-            EditorGroupPart.AddSelected => new Rect2(Pad + 200, 58, 130, 28),
-            EditorGroupPart.RemoveSelected => new Rect2(Pad + 338, 58, 150, 28),
-            EditorGroupPart.SelectMembers => new Rect2(Pad + 496, 58, 140, 28),
-            EditorGroupPart.InteriorLink => new Rect2(Pad + 644, 58, 130, 28),
-            EditorGroupPart.OutlineLink => new Rect2(Pad + 782, 58, 130, 28),
-            EditorGroupPart.AddMove => new Rect2(Pad, 100, 100, 28),
-            EditorGroupPart.AddColor => new Rect2(Pad + 108, 100, 100, 28),
-            EditorGroupPart.SnapToggle => new Rect2(Pad + 216, 100, 110, 28),
-            EditorGroupPart.SoloToggle => new Rect2(Pad + 334, 100, 88, 28),
-            EditorGroupPart.PlayToggle => new Rect2(Pad + 430, 100, 70, 28),
-            EditorGroupPart.ScrollLeft => new Rect2(right - 4 * 40 - 3 * 4, 100, 40, 28),
-            EditorGroupPart.ScrollRight => new Rect2(right - 3 * 40 - 2 * 4, 100, 40, 28),
-            EditorGroupPart.ZoomOut => new Rect2(right - 2 * 40 - 4, 100, 40, 28),
-            EditorGroupPart.ZoomIn => new Rect2(right - 40, 100, 40, 28),
-            EditorGroupPart.SelectionText => new Rect2(Pad, SelectionTop, 170, 28),
-            EditorGroupPart.SelectionTarget => new Rect2(Pad + 176, SelectionTop, 70, 28),
-            EditorGroupPart.SelectionDuplicate => new Rect2(Pad + 252, SelectionTop, 60, 28),
-            EditorGroupPart.SelectionMute => new Rect2(Pad + 318, SelectionTop, 70, 28),
-            EditorGroupPart.SelectionNudgeLeft => new Rect2(Pad + 394, SelectionTop, 32, 28),
-            EditorGroupPart.SelectionNudgeRight => new Rect2(Pad + 430, SelectionTop, 32, 28),
-            EditorGroupPart.SelectionPick => new Rect2(Pad + 468, SelectionTop, 54, 28),
             EditorGroupPart.Hint => HintArea(dialog),
-            EditorGroupPart.PreviewPanel => preview,
             EditorGroupPart.PlayheadLine => new Rect2(0, RowsTop, 2, MaxRows * RowHeight),
             EditorGroupPart.PalettePanel => palette,
             EditorGroupPart.PaletteTitle => new Rect2(palette.Position.X + 16, palette.Position.Y + 8, 120, 24),
@@ -141,15 +268,14 @@ public static class EditorGroupLayout
                 palette.Position.Y + 146,
                 68,
                 26),
-            EditorGroupPart.RowIndex => new Rect2(Pad, rowTop, 24, 28),
-            EditorGroupPart.RowKind => new Rect2(Pad + 30, rowTop, 64, 28),
-            EditorGroupPart.RowStart => new Rect2(Pad + 100, rowTop, 64, 28),
-            EditorGroupPart.RowEnd => new Rect2(Pad + 170, rowTop, 64, 28),
-            EditorGroupPart.RowA => new Rect2(Pad + 240, rowTop, 64, 28),
-            EditorGroupPart.RowB => new Rect2(Pad + 310, rowTop, 64, 28),
-            EditorGroupPart.RowEase => new Rect2(Pad + 380, rowTop, 74, 28),
-            EditorGroupPart.RowDelete => new Rect2(Pad + 460, rowTop, 30, 28),
-            EditorGroupPart.RowTrack => RowTrack(dialog, row),
+            EditorGroupPart.RowIndex => new Rect2(Pad, rowTop, 24, 26),
+            EditorGroupPart.RowKind => new Rect2(Pad + 30, rowTop, 64, 26),
+            EditorGroupPart.RowStart => new Rect2(Pad + 100, rowTop, 64, 26),
+            EditorGroupPart.RowEnd => new Rect2(Pad + 170, rowTop, 64, 26),
+            EditorGroupPart.RowA => new Rect2(Pad + 240, rowTop, 64, 26),
+            EditorGroupPart.RowB => new Rect2(Pad + 310, rowTop, 64, 26),
+            EditorGroupPart.RowEase => new Rect2(Pad + 380, rowTop, 74, 26),
+            EditorGroupPart.RowDelete => new Rect2(Pad + 460, rowTop, 30, 26),
             _ => default,
         };
     }

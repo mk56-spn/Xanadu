@@ -38,7 +38,10 @@ public sealed class EditorNoteTypeBarSystem : QuerySystem<EditorButton>
         if (editor.IsNull)
             return;
 
-        bool visible = ShowsFor(editor.GetComponent<EditorPlacement>().Mode);
+        // The open group and layers panels sit over where this bar floats.
+        bool visible = ShowsFor(editor.GetComponent<EditorPlacement>().Mode) &&
+            !EditorGroupState.IsOpen(editor) &&
+            !EditorLayers.Of(editor).Open;
         KeybindAction target = editor.GetComponent<EditorPlacement>().Note;
         CommandBuffer buffer = CommandBuffer;
 

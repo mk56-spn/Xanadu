@@ -25,6 +25,7 @@ public enum EditorCommandType
     RotateSelection,
     FlipSelection,
     CycleOneWay,
+    MoveInLayer,
     CopySelection,
     PasteSelection,
     SetTarget,
@@ -105,6 +106,10 @@ public readonly record struct EditorCommand(
 
     public static EditorCommand CycleOneWay() =>
         new(EditorCommandType.CycleOneWay);
+
+    /// <summary>Moves the selection one place forward (+1) or back (-1) through its layer.</summary>
+    public static EditorCommand MoveInLayer(int direction) =>
+        new(EditorCommandType.MoveInLayer, IntValue: direction);
 
     public static EditorCommand CopySelection() =>
         new(EditorCommandType.CopySelection);

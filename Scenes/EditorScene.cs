@@ -49,6 +49,8 @@ public static class EditorScene
         editor.AddComponent(new EditorUiRequest());
         editor.AddComponent(LevelGroups.Create());
         editor.AddComponent(EditorGroupState.Closed);
+        editor.AddComponent(EditorLayers.Create());
+        editor.AddComponent(LevelLayers.Create());
         editor.AddComponent(EditorAnalysis.Create());
         editor.AddComponent(LevelShaders.Create());
 

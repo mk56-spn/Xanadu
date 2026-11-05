@@ -10,7 +10,7 @@ namespace Xanadu.Systems.Editor;
 
 /// <summary>
 /// Single ECS writer for editor intents from the Godot UI. It owns the command
-/// queue and the deferred edits; the level, selection and shader handlers own
+/// queue and the deferred edits; the level, selection, shader and layer handlers own
 /// what each command does.
 /// </summary>
 public sealed class EditorCommandSystem :
@@ -21,6 +21,7 @@ public sealed class EditorCommandSystem :
     private readonly EditorLevelCommands _levels;
     private readonly EditorSelectionCommands _selection;
     private readonly EditorShaderCommands _shaders;
+    private readonly EditorLayerCommands _layers;
 
     public EditorCommandSystem(
         EntityStore entities,
@@ -32,6 +33,7 @@ public sealed class EditorCommandSystem :
         _levels = new EditorLevelCommands(_context);
         _selection = new EditorSelectionCommands(_context);
         _shaders = new EditorShaderCommands(_context);
+        _layers = new EditorLayerCommands(_context);
     }
 
     protected override void OnUpdate()
@@ -70,7 +72,8 @@ public sealed class EditorCommandSystem :
 
         if (_levels.TryApply(command, editor, CommandBuffer) ||
             _selection.TryApply(command, editor, CommandBuffer) ||
-            _shaders.TryApply(command, editor))
+            _shaders.TryApply(command, editor) ||
+            _layers.TryApply(command, editor))
         {
             return;
         }

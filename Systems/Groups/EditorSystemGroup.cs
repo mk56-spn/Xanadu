@@ -15,7 +15,7 @@ namespace Xanadu.Systems.Groups;
 /// <summary>Editor-only systems, enabled while the Editor scene is active.</summary>
 public sealed class EditorSystemGroup : SystemGroup, IDisposable
 {
-    private readonly CanvasItemHandle _groupPreview;
+    private readonly CanvasItemHandle _groupOverlay;
     private readonly EditorPlayfieldDrawSystem _draw;
 
     public EditorSystemGroup(
@@ -27,11 +27,13 @@ public sealed class EditorSystemGroup : SystemGroup, IDisposable
         Rid parentCanvas,
         ITrackAudio metronomeAudio,
         EditorHistory history,
-        IWheelSource? wheel = null) : base("Editor")
+        IWheelSource? wheel = null,
+        Xanadu.Systems.Shaders.IPassSurfaces? passes = null,
+        Func<Rect2, Rect2>? toPixels = null) : base("Editor")
     {
-        // The group overlay's live preview draws above the dialog but below the
-        // debug overlay; only the editor scene shows it.
-        _groupPreview = new CanvasItemHandle(parentCanvas, 985, visible: false);
+        // The group panel's drawn timeline sits over its controls and under the
+        // bar's drop-downs; only the editor scene shows it.
+        _groupOverlay = new CanvasItemHandle(parentCanvas, Xanadu.Ecs.UiLayers.EditorGroupsCanvas, visible: false);
 
         Add(new EditorCommandSystem(entities, commands, history));
         Add(new EditorTimelineSystem());
@@ -42,13 +44,16 @@ public sealed class EditorSystemGroup : SystemGroup, IDisposable
         Add(new EditorViewSystem(pointerInput));
         Add(new EditorGroupTargetSystem(entities, pointerInput, history));
         Add(new EditorNoteInputSystem(entities, pointerInput, history));
-        Add(new EditorDropdownSystem(entities, commands));
+        Add(new EditorDropdownSystem(entities, commands, history));
         Add(new EditorGroupSystem(entities, history, pointerInput, commands));
+        Add(new EditorViewBarSystem(pointerInput, commands));
         Add(new EditorSelfModulateSystem(history));
         Add(new EditorBlockOutlineSystem(history));
         Add(new EditorTextPanelSystem(history));
         Add(new EditorGrassPanelSystem(history));
-        Add(new EditorGroupPreviewSystem(entities, canvas, _groupPreview.Rid));
+        Add(new EditorLayerInspectorSystem(history));
+        Add(new EditorLayersPanelSystem(history));
+        Add(new EditorGroupOverlayDrawSystem(canvas, _groupOverlay.Rid));
         Add(new EditorPlacementSystem(entities));
         Add(new EditorBlockSizeSystem(entities));
         Add(new EditorToolGroupSystem(entities));
@@ -66,7 +71,7 @@ public sealed class EditorSystemGroup : SystemGroup, IDisposable
         Add(new EditorHudSystem(entities));
         Add(new WaveformPreviewSystem());
         Add(new EditorAnalysisSystem(entities));
-        _draw = new EditorPlayfieldDrawSystem(entities, canvas, playfieldCanvas);
+        _draw = new EditorPlayfieldDrawSystem(entities, canvas, playfieldCanvas, passes, toPixels);
         Add(_draw);
         Add(new WarningPopupSystem(entities));
         Add(new EditorDialogSystem(entities, commands));
@@ -76,10 +81,13 @@ public sealed class EditorSystemGroup : SystemGroup, IDisposable
     public void SetActive(bool active)
     {
         Enabled = active;
-        _groupPreview.SetVisible(active);
+        _groupOverlay.SetVisible(active);
         if (!active)
+        {
             _draw.Clear();
+            _draw.ReleasePasses();
+        }
     }
 
-    public void Dispose() => _groupPreview.Dispose();
+    public void Dispose() => _groupOverlay.Dispose();
 }

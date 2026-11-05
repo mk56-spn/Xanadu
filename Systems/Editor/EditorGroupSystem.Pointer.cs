@@ -126,15 +126,8 @@ public sealed partial class EditorGroupSystem
             Math.Max(0, (long)Math.Round(seconds * 1000.0))));
     }
 
-    /// <summary>Where an effect's bar is, in screen pixels; an instant effect still gets a sliver to grab.</summary>
-    private static Rect2 BarRect(GroupEffect effect, int row, EditorGroupState state, Rect2 timeline)
-    {
-        float left = EditorGroupLayout.XForTime(timeline, state.ViewStart, state.ViewSpan, effect.Start);
-        float right = EditorGroupLayout.XForTime(timeline, state.ViewStart, state.ViewSpan, effect.End);
-        float width = Math.Max(8f, right - left);
-        float top = timeline.Position.Y + row * EditorGroupLayout.RowHeight + 6f;
-        return new Rect2(left, top, width, EditorGroupLayout.RowHeight - 12f);
-    }
+    private static Rect2 BarRect(GroupEffect effect, int row, EditorGroupState state, Rect2 timeline) =>
+        EditorGroupLayout.BarRect(effect, row, state.ViewStart, state.ViewSpan, timeline);
 
     private static Rect2 Offset(Rect2 rect, Vector2 by) => new(rect.Position + by, rect.Size);
 }

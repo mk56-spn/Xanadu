@@ -87,6 +87,20 @@ public sealed class EditorGhostDrawer(EditorDrawSurface surface)
                 surface.Canvas.DrawCircle(surface.Target, ghost.Screen, 3f, Faint(PlayfieldRenderer.PolygonFill));
                 break;
 
+            case EditorPlacementMode.ScreenRead:
+                ScreenReadRegion region = ScreenReadRegion.Centred(pointer);
+                region.Position = GridPlacement.Settle(region.Position, region.Size, playfield, snap);
+                var readRect = new Rect2(
+                    view.PlayfieldToScreen(region.Position),
+                    region.Size * view.Scale);
+                surface.Canvas.DrawBorder(surface.Target, readRect, Faint(Palette.Info), 2f);
+                surface.Canvas.DrawTextLeft(
+                    surface.Target,
+                    readRect.Grow(-6),
+                    "SCREEN READ",
+                    Faint(Palette.Info));
+                break;
+
             case EditorPlacementMode.Start:
                 PlayfieldRenderer.DrawStartPointBody(
                     surface.Canvas,

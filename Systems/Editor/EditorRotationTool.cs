@@ -26,6 +26,9 @@ public sealed class EditorRotationTool(EditorSceneQuery scene, EditorHistory his
         if (!SelectionRotation.TryGetBounds(selection, out Rect2 bounds))
             return false;
 
+        // The handle is shown with the primary item's group move; the pivot stays placed.
+        view = GroupOffset.View(editor.GetComponent<NoteSelection>().Note, view);
+
         Vector2 handle = SelectionRotation.HandlePoint(bounds, view);
         if (handle.DistanceTo(screenPosition) > SelectionRotation.HandleHitRadius)
             return false;
@@ -55,6 +58,7 @@ public sealed class EditorRotationTool(EditorSceneQuery scene, EditorHistory his
         Playfield playfield)
     {
         ref EditorSelectionRotation rotation = ref editor.GetComponent<EditorSelectionRotation>();
+        view = GroupOffset.View(editor.GetComponent<NoteSelection>().Note, view);
         float angle = SelectionRotation.AngleBetween(
             view.PlayfieldToScreen(rotation.Pivot),
             _grab,

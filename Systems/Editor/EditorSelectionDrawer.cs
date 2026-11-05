@@ -24,7 +24,7 @@ public sealed class EditorSelectionDrawer(EditorDrawSurface surface)
                 continue;
 
             Note note = entity.GetComponent<Note>();
-            Vector2 center = view.PlayfieldToScreen(note.Position);
+            Vector2 center = view.PlayfieldToScreen(GroupOffset.Shown(entity, note.Position));
             surface.Canvas.DrawCircleOutline(
                 surface.Target,
                 center,
@@ -40,13 +40,37 @@ public sealed class EditorSelectionDrawer(EditorDrawSurface surface)
                 continue;
 
             Mine mine = entity.GetComponent<Mine>();
-            Vector2 center = view.PlayfieldToScreen(mine.Position);
+            Vector2 center = view.PlayfieldToScreen(GroupOffset.Shown(entity, mine.Position));
             surface.Canvas.DrawCircleOutline(
                 surface.Target,
                 center,
                 mineSize / 2 + 1.5f,
                 PlayfieldRenderer.SelectedNoteColor,
                 2);
+        }
+    }
+
+    /// <summary>
+    /// Outlines every screen-read region over the items, marked brighter when
+    /// selected. Regions are authoring boundaries: they draw no body in play,
+    /// and the editor draws them here, after the item pass, so their outline
+    /// never becomes part of a later screen read.
+    /// </summary>
+    public void DrawRegions(PlayfieldView view, NoteSelection selection)
+    {
+        foreach (Entity entity in surface.Entities.Query<ScreenReadRegion>().ToEntityList())
+        {
+            ScreenReadRegion region = entity.GetComponent<ScreenReadRegion>();
+            PlayfieldView shown = GroupOffset.View(entity, view);
+            var rect = new Rect2(
+                shown.PlayfieldToScreen(region.Position),
+                region.Size * shown.Scale);
+            bool selected = selection.Contains(entity);
+            Color color = selected
+                ? PlayfieldRenderer.BlockSelectedEdge
+                : PlayfieldRenderer.PolygonFill;
+            surface.Canvas.DrawBorder(surface.Target, rect, color, selected ? 2.5f : 1.5f);
+            surface.Canvas.DrawTextLeft(surface.Target, rect.Grow(-4), "SCREEN READ", color);
         }
     }
 
@@ -69,6 +93,8 @@ public sealed class EditorSelectionDrawer(EditorDrawSurface surface)
         if (!EditorItems.IsItem(primary) || !GridPlacement.TryGet(primary, out Rect2 bounds, out float degrees))
             return;
 
+        view = GroupOffset.View(primary, view);
+
         foreach (GridHandle handle in GridPlacement.Sides)
         {
             Rect2 nub = GridPlacement.HandleScreenRect(bounds, handle, degrees, view);
@@ -79,6 +105,8 @@ public sealed class EditorSelectionDrawer(EditorDrawSurface surface)
 
     private void DrawRotationHandle(PlayfieldView view, NoteSelection selection)
     {
+        // Shown with the primary item's group move, as the rotation tool picks it.
+        view = GroupOffset.View(selection.Note, view);
         Vector2 pivot;
         Vector2 handle;
         EntityList rotating = surface.Entities.Query<EditorSelectionRotation>().ToEntityList();
