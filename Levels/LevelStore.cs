@@ -151,6 +151,7 @@ public static class LevelStore
         Grass = document.Grass,
         Polygons = document.Polygons,
         Groups = document.Groups,
+        Layers = document.Layers,
         PlayerShader = document.PlayerShader,
         FieldShader = document.FieldShader,
     };
@@ -178,6 +179,7 @@ public static class LevelStore
         Grass = variant.Grass,
         Polygons = variant.Polygons,
         Groups = variant.Groups,
+        Layers = variant.Layers,
         Shaders = mapset.Shaders,
         PlayerShader = variant.PlayerShader,
         FieldShader = variant.FieldShader,

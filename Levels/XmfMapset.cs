@@ -49,8 +49,14 @@ public sealed class XmfVariant : IChartItems
     /// <summary>Filled shapes with no collision.</summary>
     public List<PolygonDocument> Polygons { get; set; } = new();
 
+    /// <summary>Screen-read regions: rects that refresh the back buffer where the draw order reaches them.</summary>
+    public List<ScreenReadDocument> ScreenReads { get; set; } = new();
+
     /// <summary>The groups that have a name or effects; the rest are empty slots.</summary>
     public List<GroupDocument> Groups { get; set; } = new();
+
+    /// <summary>The variant's layer table: the layers that have a name or a pass.</summary>
+    public List<LayerDocument> Layers { get; set; } = new();
 
     /// <summary>The mapset shader slot the player is drawn with, or 0 for none.</summary>
     public int PlayerShader { get; set; }

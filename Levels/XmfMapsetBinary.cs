@@ -16,7 +16,7 @@ namespace Xanadu.Levels;
 public static partial class XmfBinary
 {
     public const ushort MapsetMajorVersion = 2;
-    public const ushort MapsetMinorVersion = 1;
+    public const ushort MapsetMinorVersion = 6;
 
     private const string MapsetFormat = "XMF2";
 
@@ -49,6 +49,24 @@ public static partial class XmfBinary
 
         /// <summary>Each variant's item layers, absent when every item is on its default layer at z 0.</summary>
         ItemLayers = 12,
+
+        /// <summary>Each variant's layer table, absent when no variant has a layer with settings.</summary>
+        LayerTable = 13,
+
+        /// <summary>Each variant's item blends, absent when every item is on mix.</summary>
+        ItemBlends = 14,
+
+        /// <summary>Each variant's group shader tracks, absent when no group has one.</summary>
+        GroupShaders = 15,
+
+        /// <summary>Each variant's item shader sources, absent when every item uses its own.</summary>
+        ItemShaderSources = 16,
+
+        /// <summary>Each variant's buffered groups, absent when none is buffered.</summary>
+        GroupBuffers = 17,
+
+        /// <summary>Each variant's screen-read regions, absent when none has any.</summary>
+        ScreenReads = 18,
     }
 
     public static void SaveMapset(string path, XmfMapset mapset)
@@ -82,6 +100,18 @@ public static partial class XmfBinary
             file.Add((uint)MapsetChunkId.Polygons, WriteVariantPolygons(mapset.Variants, strings));
         if (mapset.Variants.Exists(XmfItemLayers.HasLayers))
             file.Add((uint)MapsetChunkId.ItemLayers, WriteVariantLayers(mapset.Variants));
+        if (mapset.Variants.Exists(XmfLayerTable.HasLayers))
+            file.Add((uint)MapsetChunkId.LayerTable, WriteVariantLayerTables(mapset.Variants));
+        if (mapset.Variants.Exists(XmfItemBlends.HasBlends))
+            file.Add((uint)MapsetChunkId.ItemBlends, WriteVariantBlends(mapset.Variants));
+        if (mapset.Variants.Exists(XmfGroupShaders.HasTracks))
+            file.Add((uint)MapsetChunkId.GroupShaders, WriteVariantGroupShaders(mapset.Variants));
+        if (mapset.Variants.Exists(XmfItemShaderSources.HasSources))
+            file.Add((uint)MapsetChunkId.ItemShaderSources, WriteVariantShaderSources(mapset.Variants));
+        if (mapset.Variants.Exists(XmfGroupBuffers.HasBuffers))
+            file.Add((uint)MapsetChunkId.GroupBuffers, WriteVariantGroupBuffers(mapset.Variants));
+        if (mapset.Variants.Exists(XmfBinary.HasScreenReads))
+            file.Add((uint)MapsetChunkId.ScreenReads, WriteVariantScreenReads(mapset.Variants));
         return file.ToArray();
     }
 
@@ -109,8 +139,21 @@ public static partial class XmfBinary
             ReadVariantGrass(grass, mapset.Variants);
         if (file.TryGet((uint)MapsetChunkId.Polygons, out Chunk polygons))
             ReadVariantPolygons(polygons, mapset.Variants, strings);
+        // Before the item layers, which list each kind's items in this order.
+        if (file.TryGet((uint)MapsetChunkId.ScreenReads, out Chunk variantScreenReads))
+            ReadVariantScreenReads(variantScreenReads, mapset.Variants);
         if (file.TryGet((uint)MapsetChunkId.ItemLayers, out Chunk layers))
             ReadVariantLayers(layers, mapset.Variants);
+        if (file.TryGet((uint)MapsetChunkId.LayerTable, out Chunk tables))
+            ReadVariantLayerTables(tables, mapset.Variants);
+        if (file.TryGet((uint)MapsetChunkId.ItemBlends, out Chunk blends))
+            ReadVariantBlends(blends, mapset.Variants);
+        if (file.TryGet((uint)MapsetChunkId.GroupShaders, out Chunk groupShaders))
+            ReadVariantGroupShaders(groupShaders, mapset.Variants);
+        if (file.TryGet((uint)MapsetChunkId.ItemShaderSources, out Chunk sources))
+            ReadVariantShaderSources(sources, mapset.Variants);
+        if (file.TryGet((uint)MapsetChunkId.GroupBuffers, out Chunk groupBuffers))
+            ReadVariantGroupBuffers(groupBuffers, mapset.Variants);
         return mapset;
     }
 
@@ -137,6 +180,27 @@ public static partial class XmfBinary
             variant.Texts = ReadTexts(reader);
         foreach (XmfVariant variant in variants)
             ReadTextRotations(reader, variant.Texts);
+    }
+
+    private static byte[] WriteVariantScreenReads(List<XmfVariant> variants)
+    {
+        using var stream = new MemoryStream();
+        using var writer = new BinaryWriter(stream, Encoding.UTF8, leaveOpen: true);
+        writer.Write((uint)variants.Count);
+        foreach (XmfVariant variant in variants)
+            WriteScreenReads(writer, variant.ScreenReads);
+        writer.Flush();
+        return stream.ToArray();
+    }
+
+    private static void ReadVariantScreenReads(Chunk chunk, List<XmfVariant> variants)
+    {
+        using BinaryReader reader = chunk.OpenReader();
+        uint count = ReadCount(reader, XmfItemIO.MaxItems, "variant screen-read region");
+        if (count != variants.Count)
+            throw new FormatException("XMF variant screen reads do not match the variant count.");
+        foreach (XmfVariant variant in variants)
+            variant.ScreenReads = ReadScreenReads(reader);
     }
 
     private static byte[] WriteVariantSpikeOutlines(List<XmfVariant> variants)
@@ -413,6 +477,111 @@ public static partial class XmfBinary
             throw new FormatException("XMF variant item layers do not match the variant count.");
         foreach (XmfVariant variant in variants)
             XmfItemLayers.Read(reader, variant);
+    }
+
+    private static byte[] WriteVariantLayerTables(List<XmfVariant> variants)
+    {
+        using var stream = new MemoryStream();
+        using var writer = new BinaryWriter(stream, Encoding.UTF8, leaveOpen: true);
+        writer.Write((uint)variants.Count);
+        foreach (XmfVariant variant in variants)
+            XmfLayerTable.Write(writer, variant);
+        writer.Flush();
+        return stream.ToArray();
+    }
+
+    private static void ReadVariantLayerTables(Chunk chunk, List<XmfVariant> variants)
+    {
+        using BinaryReader reader = chunk.OpenReader();
+        uint count = ReadCount(reader, XmfItemIO.MaxItems, "variant layer table");
+        if (count != variants.Count)
+            throw new FormatException("XMF variant layer tables do not match the variant count.");
+        foreach (XmfVariant variant in variants)
+            XmfLayerTable.Read(reader, variant);
+    }
+
+    private static byte[] WriteVariantBlends(List<XmfVariant> variants)
+    {
+        using var stream = new MemoryStream();
+        using var writer = new BinaryWriter(stream, Encoding.UTF8, leaveOpen: true);
+        writer.Write((uint)variants.Count);
+        foreach (XmfVariant variant in variants)
+            XmfItemBlends.Write(writer, variant);
+        writer.Flush();
+        return stream.ToArray();
+    }
+
+    private static void ReadVariantBlends(Chunk chunk, List<XmfVariant> variants)
+    {
+        using BinaryReader reader = chunk.OpenReader();
+        uint count = ReadCount(reader, XmfItemIO.MaxItems, "variant item blend");
+        if (count != variants.Count)
+            throw new FormatException("XMF variant item blends do not match the variant count.");
+        foreach (XmfVariant variant in variants)
+            XmfItemBlends.Read(reader, variant);
+    }
+
+    private static byte[] WriteVariantGroupShaders(List<XmfVariant> variants)
+    {
+        using var stream = new MemoryStream();
+        using var writer = new BinaryWriter(stream, Encoding.UTF8, leaveOpen: true);
+        writer.Write((uint)variants.Count);
+        foreach (XmfVariant variant in variants)
+            XmfGroupShaders.Write(writer, variant);
+        writer.Flush();
+        return stream.ToArray();
+    }
+
+    private static void ReadVariantGroupShaders(Chunk chunk, List<XmfVariant> variants)
+    {
+        using BinaryReader reader = chunk.OpenReader();
+        uint count = ReadCount(reader, XmfItemIO.MaxItems, "variant group shader track");
+        if (count != variants.Count)
+            throw new FormatException("XMF variant group shader tracks do not match the variant count.");
+        foreach (XmfVariant variant in variants)
+            XmfGroupShaders.Read(reader, variant);
+    }
+
+    private static byte[] WriteVariantShaderSources(List<XmfVariant> variants)
+    {
+        using var stream = new MemoryStream();
+        using var writer = new BinaryWriter(stream, Encoding.UTF8, leaveOpen: true);
+        writer.Write((uint)variants.Count);
+        foreach (XmfVariant variant in variants)
+            XmfItemShaderSources.Write(writer, variant);
+        writer.Flush();
+        return stream.ToArray();
+    }
+
+    private static void ReadVariantShaderSources(Chunk chunk, List<XmfVariant> variants)
+    {
+        using BinaryReader reader = chunk.OpenReader();
+        uint count = ReadCount(reader, XmfItemIO.MaxItems, "variant item shader source");
+        if (count != variants.Count)
+            throw new FormatException("XMF variant item shader sources do not match the variant count.");
+        foreach (XmfVariant variant in variants)
+            XmfItemShaderSources.Read(reader, variant);
+    }
+
+    private static byte[] WriteVariantGroupBuffers(List<XmfVariant> variants)
+    {
+        using var stream = new MemoryStream();
+        using var writer = new BinaryWriter(stream, Encoding.UTF8, leaveOpen: true);
+        writer.Write((uint)variants.Count);
+        foreach (XmfVariant variant in variants)
+            XmfGroupBuffers.Write(writer, variant);
+        writer.Flush();
+        return stream.ToArray();
+    }
+
+    private static void ReadVariantGroupBuffers(Chunk chunk, List<XmfVariant> variants)
+    {
+        using BinaryReader reader = chunk.OpenReader();
+        uint count = ReadCount(reader, XmfItemIO.MaxItems, "variant group buffer");
+        if (count != variants.Count)
+            throw new FormatException("XMF variant group buffers do not match the variant count.");
+        foreach (XmfVariant variant in variants)
+            XmfGroupBuffers.Read(reader, variant);
     }
 
     private static void WriteBlob(BinaryWriter writer, byte[] blob)

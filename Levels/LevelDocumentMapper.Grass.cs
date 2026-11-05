@@ -29,6 +29,8 @@ public static partial class LevelDocumentMapper
             Entity created = EditorItems.Create(entities, ToPatch(grass), grass.Shader);
             Subscribe(created, grass.Groups);
             ItemLayer.Put(created, new ItemLayer(grass.Layer, grass.Z));
+            ItemBlend.Put(created, grass.Blend);
+            ItemShaderSource.Put(created, grass.ShaderSource);
             SelfModulate.Put(created, grass.SelfModulate);
         }
     }
@@ -49,6 +51,8 @@ public static partial class LevelDocumentMapper
         Groups = GroupsOf(entity),
         Layer = ItemLayer.Of(entity).Layer,
         Z = ItemLayer.Of(entity).Z,
+                Blend = ItemBlend.Of(entity),
+                ShaderSource = ItemShaderSource.Of(entity),
         Shader = ItemShader.Of(entity),
     };
 

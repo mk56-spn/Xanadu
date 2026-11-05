@@ -103,6 +103,8 @@ public static class LevelSerializer
         chart.Grass.RemoveAll(grass => grass is null);
         chart.Polygons ??= new();
         chart.Polygons.RemoveAll(polygon => polygon is null);
+        chart.ScreenReads ??= new();
+        chart.ScreenReads.RemoveAll(region => region is null);
         chart.Groups ??= new();
         chart.Groups.RemoveAll(group => group is null || group.Id is < 0 or >= GroupLimits.Count);
 
@@ -176,6 +178,12 @@ public static class LevelSerializer
                 primitive is null || !primitive.IsPolygon || primitive.Points is not { Count: >= XifEditing.MinPolygonPoints });
         }
         chart.Polygons.RemoveAll(polygon => polygon.Item.Primitives.Count == 0);
+
+        foreach (ScreenReadDocument region in chart.ScreenReads)
+        {
+            region.Width = Math.Max(1f, region.Width);
+            region.Height = Math.Max(1f, region.Height);
+        }
 
         chart.BackgroundColor = LevelBackground.Normalize(chart.BackgroundColor);
         chart.OutsideColor = LevelBackground.Normalize(chart.OutsideColor);
