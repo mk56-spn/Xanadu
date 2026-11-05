@@ -60,6 +60,13 @@ public struct Playhead(
     public long SeekRequestMs = seekRequestMs;
     public int SnapDivision = snapDivision;
     public int AudioRevision = audioRevision;
+
+    /// <summary>
+    /// The editor's music snap is off: placed notes keep the exact time they
+    /// were put at instead of landing on the beat grid. Off by default, so a
+    /// transport made anywhere snaps.
+    /// </summary>
+    public bool SnapOff;
 }
 
 /// <summary>Screen-space layout of the logical playfield.</summary>

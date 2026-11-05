@@ -1,5 +1,6 @@
 using Friflo.Engine.ECS;
 using Godot;
+using Xanadu.Rendering;
 
 namespace Xanadu.Ecs;
 
@@ -11,7 +12,13 @@ public static class EditorItems
 {
     public static Entity Create<T>(EntityStore entities, T component)
         where T : struct, IComponent =>
-        entities.CreateEntity(component, new SelfModulate(Colors.White), DefaultLayer<T>(), Tags.Get<EditorItem>());
+        entities.CreateEntity(
+            component,
+            new SelfModulate(Colors.White),
+            new ItemBlend(BlendMode.Mix),
+            new ItemShaderSource(ItemShaderSource.Own),
+            DefaultLayer<T>(),
+            Tags.Get<EditorItem>());
 
     /// <summary>
     /// Creates an item that already carries its shader. Adding the component
@@ -33,11 +40,11 @@ public static class EditorItems
         bool hasCommon = !string.IsNullOrEmpty(commonShaderPath);
 
         if (hasSlot && hasCommon)
-            return entities.CreateEntity(component, new ItemShader(shaderSlot), new ItemCommonShader(commonShaderPath), new SelfModulate(Colors.White), DefaultLayer<T>(), Tags.Get<EditorItem>());
+            return entities.CreateEntity(component, new ItemShader(shaderSlot), new ItemCommonShader(commonShaderPath), new SelfModulate(Colors.White), new ItemBlend(BlendMode.Mix), new ItemShaderSource(ItemShaderSource.Own), DefaultLayer<T>(), Tags.Get<EditorItem>());
         if (hasSlot)
-            return entities.CreateEntity(component, new ItemShader(shaderSlot), new SelfModulate(Colors.White), DefaultLayer<T>(), Tags.Get<EditorItem>());
+            return entities.CreateEntity(component, new ItemShader(shaderSlot), new SelfModulate(Colors.White), new ItemBlend(BlendMode.Mix), new ItemShaderSource(ItemShaderSource.Own), DefaultLayer<T>(), Tags.Get<EditorItem>());
         if (hasCommon)
-            return entities.CreateEntity(component, new ItemCommonShader(commonShaderPath), new SelfModulate(Colors.White), DefaultLayer<T>(), Tags.Get<EditorItem>());
+            return entities.CreateEntity(component, new ItemCommonShader(commonShaderPath), new SelfModulate(Colors.White), new ItemBlend(BlendMode.Mix), new ItemShaderSource(ItemShaderSource.Own), DefaultLayer<T>(), Tags.Get<EditorItem>());
         return Create(entities, component);
     }
 
@@ -165,6 +172,12 @@ public static class EditorItemPosition
             return true;
         }
 
+        if (entity.HasComponent<ScreenReadRegion>())
+        {
+            position = entity.GetComponent<ScreenReadRegion>().Bounds.GetCenter();
+            return true;
+        }
+
         position = default;
         return false;
     }
@@ -218,6 +231,13 @@ public static class EditorItemPosition
         if (entity.HasComponent<LevelPolygon>())
         {
             entity.GetComponent<LevelPolygon>().Position = position;
+            return true;
+        }
+
+        if (entity.HasComponent<ScreenReadRegion>())
+        {
+            ref ScreenReadRegion region = ref entity.GetComponent<ScreenReadRegion>();
+            region.Position = position - region.Size / 2;
             return true;
         }
 

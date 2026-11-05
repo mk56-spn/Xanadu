@@ -27,6 +27,9 @@ public enum EditorPlacementMode
     Text,
     Grass,
     Polygon,
+
+    /// <summary>A screen-read region: a rect that refreshes the back buffer where it is reached.</summary>
+    ScreenRead,
 }
 
 /// <summary>The block the block tool lays down, as fractions of a grid cell.</summary>

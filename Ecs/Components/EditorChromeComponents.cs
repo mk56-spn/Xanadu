@@ -25,6 +25,9 @@ public enum EditorDropdownKind
 {
     Snap,
     Character,
+
+    /// <summary>The selected items' blend mode, as a list of modes rather than a stepper.</summary>
+    Blend,
 }
 
 
