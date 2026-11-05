@@ -76,7 +76,7 @@ public sealed class EditorRailLayerSystem : QuerySystem<EditorButton>
         Playhead playhead = editor.GetComponent<Playhead>();
         long time = EditorTiming.Snap(playhead.TimeMs, playhead);
         EditorSnapshot before = _history.Capture();
-        EditorItems.Create(_entities, new Note(
+        EditorItems.Place(_entities, new Note(
             time,
             Vector2.Zero,
             target: action,
@@ -93,7 +93,7 @@ public sealed class EditorRailLayerSystem : QuerySystem<EditorButton>
         Playhead playhead = editor.GetComponent<Playhead>();
         long time = EditorTiming.Snap(playhead.TimeMs, playhead);
         EditorSnapshot before = _history.Capture();
-        EditorItems.Create(_entities, new Note(
+        EditorItems.Place(_entities, new Note(
             time,
             Vector2.Zero,
             kind: NoteKind.ChannelEnd,

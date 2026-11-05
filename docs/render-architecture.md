@@ -344,7 +344,7 @@ window, i.e. under `canvas_items` stretch like the game):
   apart from 7 `AnimatorDrawTests` (bone kites), which fail the same way on
   the commit before this step.
 
-### Step 2: Layer and z on every level item  ☐
+### Step 2: Layer and z on every level item  ☑
 - Add `Layer` and `Z` to every item component (`Ecs/Components/PlayfieldComponents.cs`,
   `GrassComponents.cs`, …), their documents (`Levels/LevelDocument.cs`), the
   mappers, and the XMF binary (bump the version, no migration).
@@ -364,6 +364,39 @@ window, i.e. under `canvas_items` stretch like the game):
   z = one above the highest z on that layer, so newer items draw in front.
 - Undo/redo and copy/paste carry them.
 - Tests: round trip through the XMF binary; mapper tests.
+
+**Done 2026-11-05.**
+- Layer and z are one component, `ItemLayer(Layer, Z)`
+  (`Ecs/Components/LayerComponents.cs`), not fields on each kind's struct. It
+  sits beside `ItemGroups` and `ItemShader` and holds the kind defaults
+  (`ItemLayer.Polygons` −3, `Terrain` −2, `Gameplay` −1, `Grass` 1, `Texts` 2).
+- `EditorItems.Create` attaches the kind's default layer at z 0 to every
+  item, so setting one later (`ItemLayer.Put`) never makes a structural change
+  inside an editor command.
+- `EditorItems.Place` = create + `ItemLayer.OnTop` (z one above the highest on
+  that layer). The placing tools use it (placement creator, paint, polygon, form
+  shape, rails). Loading and undo use `Create` and then put the saved layer.
+- **Layer 0 means "the kind's default"** wherever a layer is read (documents,
+  snapshots, `Put`), because there is no layer 0. It's also what a file without
+  layers gives. Layers are clamped to ±200.
+- Documents: the eight item documents implement `ILayeredDocument` (`Layer`, `Z`).
+- XMF: optional chunk `ItemLayers` (17) in maps and (12) in mapsets, written
+  by `Levels/XmfItemLayers.cs`: each kind in its own chunk's order, (layer, z)
+  per item. It's left out when every item is on 0/0. Minor versions are now
+  2.1. Older files still read; their items take their defaults.
+- Undo: every snapshot record has `ItemLayer Layer`, so changing only a layer
+  is an undo step.
+- Copy/paste: `EditorClipboardItem.Layer`. A paste keeps each copy's layer and
+  the copies' order among themselves, and puts them in front of what's on
+  those layers (`ItemLayer.OnTop(store, items)`).
+- Play loads through `LevelDocumentMapper.Apply`, so play items carry layers too.
+- Tests: `Tests/Editor/ItemLayerTests.cs` (defaults, placing on top, paste
+  order, layer 0 and clamping, mapper both ways, map and mapset round trips,
+  no chunk when unused, undo of a layer change, paste through the commands).
+  Full suite: 1229 pass. The only failures are the 7 `AnimatorDrawTests`
+  that were failing before step 1.
+- Not done yet: z ties (e.g. older files where everything is z 0, or different
+  kinds on one layer) need a deterministic tiebreak in step 3's sort.
 
 ### Step 3: Sorted drawing  ☐
 - Replace the fixed kind order in `PlayfieldRenderer.Draw` (polygons → blocks

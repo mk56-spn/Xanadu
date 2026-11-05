@@ -89,7 +89,7 @@ public sealed class EditorShapeSystem : QuerySystem<EditorButton>
         if (target == KeybindAction.M)
             target = KeybindAction.L1;
 
-        EditorItems.Create(_entities, new Note(
+        EditorItems.Place(_entities, new Note(
             EditorTiming.Snap(playhead.TimeMs, playhead),
             center,
             target: target,

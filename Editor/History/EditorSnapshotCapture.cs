@@ -42,7 +42,8 @@ public sealed class EditorSnapshotCapture(EntityStore entities)
                 note.HoldMs,
                 note.ShapeId,
                 note.ShapePiece,
-                SelfModulate.Packed(entity)));
+                SelfModulate.Packed(entity),
+                ItemLayer.Of(entity)));
         }
 
         notes.Sort(static (a, b) =>
@@ -85,7 +86,8 @@ public sealed class EditorSnapshotCapture(EntityStore entities)
                 mine.FadeOutMs,
                 MaskOf(entity),
                 ItemShader.Of(entity),
-                SelfModulate.Packed(entity)));
+                SelfModulate.Packed(entity),
+                ItemLayer.Of(entity)));
         }
 
         mines.Sort(static (a, b) =>
@@ -100,7 +102,8 @@ public sealed class EditorSnapshotCapture(EntityStore entities)
                 start.Position,
                 start.Momentum,
                 start.Direction,
-                MaskOf(entity)));
+                MaskOf(entity),
+                ItemLayer.Of(entity)));
         }
 
         starts.Sort(static (a, b) =>
@@ -121,7 +124,8 @@ public sealed class EditorSnapshotCapture(EntityStore entities)
                 block.OutlineWidth,
                 block.OutlineColor.ToRgba32(),
                 block.FillGroups,
-                block.OutlineGroups));
+                block.OutlineGroups,
+                ItemLayer.Of(entity)));
         }
 
         blocks.Sort(static (a, b) => SnapshotOrder.ByPosition(a.Position, b.Position));
@@ -137,7 +141,8 @@ public sealed class EditorSnapshotCapture(EntityStore entities)
                 SelfModulate.Packed(entity),
                 spike.RotationDegrees,
                 spike.OutlineWidth,
-                spike.OutlineColor.ToRgba32()));
+                spike.OutlineColor.ToRgba32(),
+                ItemLayer.Of(entity)));
         }
 
         spikes.Sort(static (a, b) => SnapshotOrder.ByPosition(a.Position, b.Position));
@@ -152,7 +157,8 @@ public sealed class EditorSnapshotCapture(EntityStore entities)
                 MaskOf(entity),
                 ItemShader.Of(entity),
                 SelfModulate.Packed(entity),
-                text.RotationDegrees));
+                text.RotationDegrees,
+                ItemLayer.Of(entity)));
         }
 
         texts.Sort(static (a, b) =>
@@ -167,7 +173,8 @@ public sealed class EditorSnapshotCapture(EntityStore entities)
                 entity.GetComponent<GrassPatch>(),
                 MaskOf(entity),
                 ItemShader.Of(entity),
-                SelfModulate.Packed(entity)));
+                SelfModulate.Packed(entity),
+                ItemLayer.Of(entity)));
         }
 
         grass.Sort(static (a, b) =>
@@ -185,7 +192,8 @@ public sealed class EditorSnapshotCapture(EntityStore entities)
                 Xanadu.Items.XifCopy.Clone(polygon.Item ?? new Xanadu.Items.Xif()),
                 MaskOf(entity),
                 ItemShader.Of(entity),
-                SelfModulate.Packed(entity)));
+                SelfModulate.Packed(entity),
+                ItemLayer.Of(entity)));
         }
 
         polygons.Sort(static (a, b) => SnapshotOrder.ByPosition(a.Position, b.Position));

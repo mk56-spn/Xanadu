@@ -62,6 +62,7 @@ public sealed class EditorSnapshotRestore(EntityStore entities)
                 note.ShapeId,
                 note.ShapePiece), note.Shader);
             Subscribe(created, note.Groups);
+            ItemLayer.Put(created, note.Layer);
             SelfModulate.Put(created, note.Modulate);
         }
 
@@ -73,6 +74,7 @@ public sealed class EditorSnapshotRestore(EntityStore entities)
                 mine.FadeInMs,
                 mine.FadeOutMs), mine.Shader);
             Subscribe(created, mine.Groups);
+            ItemLayer.Put(created, mine.Layer);
             SelfModulate.Put(created, mine.Modulate);
         }
 
@@ -86,6 +88,7 @@ public sealed class EditorSnapshotRestore(EntityStore entities)
                 start.Direction,
                 start.Groups));
             Subscribe(created, start.Groups);
+            ItemLayer.Put(created, start.Layer);
         }
 
         foreach (BlockSnapshot block in snapshot.Blocks)
@@ -103,6 +106,7 @@ public sealed class EditorSnapshotRestore(EntityStore entities)
             if (block.ShapeId > 0)
                 created.AddTag<ConstructionHidden>();
             Subscribe(created, block.Groups);
+            ItemLayer.Put(created, block.Layer);
             SelfModulate.Put(created, block.Modulate);
         }
 
@@ -116,6 +120,7 @@ public sealed class EditorSnapshotRestore(EntityStore entities)
                     new Color(spike.OutlineColor)),
                 spike.Shader);
             Subscribe(created, spike.Groups);
+            ItemLayer.Put(created, spike.Layer);
             SelfModulate.Put(created, spike.Modulate);
         }
 
@@ -126,6 +131,7 @@ public sealed class EditorSnapshotRestore(EntityStore entities)
                 new LevelText(text.Position, text.Text, text.Size, text.Rotation),
                 text.Shader);
             Subscribe(created, text.Groups);
+            ItemLayer.Put(created, text.Layer);
             SelfModulate.Put(created, text.Modulate);
         }
 
@@ -133,6 +139,7 @@ public sealed class EditorSnapshotRestore(EntityStore entities)
         {
             Entity created = EditorItems.Create(entities, patch.Patch, patch.Shader);
             Subscribe(created, patch.Groups);
+            ItemLayer.Put(created, patch.Layer);
             SelfModulate.Put(created, patch.Modulate);
         }
 
@@ -144,6 +151,7 @@ public sealed class EditorSnapshotRestore(EntityStore entities)
                 Xanadu.Items.XifCopy.Clone(polygon.Item),
                 polygon.Rotation), polygon.Shader);
             Subscribe(created, polygon.Groups);
+            ItemLayer.Put(created, polygon.Layer);
             SelfModulate.Put(created, polygon.Modulate);
         }
     }

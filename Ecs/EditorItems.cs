@@ -3,12 +3,15 @@ using Godot;
 
 namespace Xanadu.Ecs;
 
-/// <summary>Creates entities that participate in editor selection and deletion.</summary>
+/// <summary>
+/// Creates entities that participate in editor selection and deletion. Every
+/// one carries its kind's default <see cref="ItemLayer"/>.
+/// </summary>
 public static class EditorItems
 {
     public static Entity Create<T>(EntityStore entities, T component)
         where T : struct, IComponent =>
-        entities.CreateEntity(component, new SelfModulate(Colors.White), Tags.Get<EditorItem>());
+        entities.CreateEntity(component, new SelfModulate(Colors.White), DefaultLayer<T>(), Tags.Get<EditorItem>());
 
     /// <summary>
     /// Creates an item that already carries its shader. Adding the component
@@ -30,13 +33,29 @@ public static class EditorItems
         bool hasCommon = !string.IsNullOrEmpty(commonShaderPath);
 
         if (hasSlot && hasCommon)
-            return entities.CreateEntity(component, new ItemShader(shaderSlot), new ItemCommonShader(commonShaderPath), new SelfModulate(Colors.White), Tags.Get<EditorItem>());
+            return entities.CreateEntity(component, new ItemShader(shaderSlot), new ItemCommonShader(commonShaderPath), new SelfModulate(Colors.White), DefaultLayer<T>(), Tags.Get<EditorItem>());
         if (hasSlot)
-            return entities.CreateEntity(component, new ItemShader(shaderSlot), new SelfModulate(Colors.White), Tags.Get<EditorItem>());
+            return entities.CreateEntity(component, new ItemShader(shaderSlot), new SelfModulate(Colors.White), DefaultLayer<T>(), Tags.Get<EditorItem>());
         if (hasCommon)
-            return entities.CreateEntity(component, new ItemCommonShader(commonShaderPath), new SelfModulate(Colors.White), Tags.Get<EditorItem>());
+            return entities.CreateEntity(component, new ItemCommonShader(commonShaderPath), new SelfModulate(Colors.White), DefaultLayer<T>(), Tags.Get<EditorItem>());
         return Create(entities, component);
     }
+
+    /// <summary>
+    /// Creates an item a tool has just placed: on its kind's default layer, in
+    /// front of everything already there. Loading and undo use
+    /// <see cref="Create{T}(EntityStore, T)"/> and set the saved layer instead.
+    /// </summary>
+    public static Entity Place<T>(EntityStore entities, T component)
+        where T : struct, IComponent
+    {
+        Entity created = Create(entities, component);
+        ItemLayer.OnTop(entities, created);
+        return created;
+    }
+
+    /// <summary>The kind's default layer at z 0; placing tools then call <see cref="ItemLayer.OnTop(EntityStore, Entity)"/>.</summary>
+    private static ItemLayer DefaultLayer<T>() where T : struct, IComponent => new(ItemLayer.DefaultFor<T>(), 0);
 
     public static bool IsItem(Entity entity) =>
         !entity.IsNull && entity.Tags.Has<EditorItem>();

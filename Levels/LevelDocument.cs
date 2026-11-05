@@ -125,14 +125,30 @@ public sealed class GroupEffectDocument
     public string Tint { get; set; } = "#ffffffff";
 }
 
+/// <summary>Where a placed item draws: its layer and its z inside the layer.</summary>
+public interface ILayeredDocument
+{
+    /// <summary>The layer, −200…−1 behind the player or 1…200 in front; 0 means the kind's default.</summary>
+    int Layer { get; set; }
+
+    /// <summary>The order inside the layer; higher draws in front.</summary>
+    int Z { get; set; }
+}
+
 /// <summary>Serializable collidable block data.</summary>
-public sealed class BlockDocument
+public sealed class BlockDocument : ILayeredDocument
 {
     /// <summary>The colour its drawing is multiplied by, as RGBA8; white changes nothing.</summary>
     public uint SelfModulate { get; set; } = Xanadu.Ecs.SelfModulate.White;
 
     /// <summary>The groups this block belongs to.</summary>
     public List<int> Groups { get; set; } = new();
+
+    /// <inheritdoc/>
+    public int Layer { get; set; }
+
+    /// <inheritdoc/>
+    public int Z { get; set; }
 
     /// <summary>The shader slot it is drawn with, or 0 for none.</summary>
     public int Shader { get; set; }
@@ -168,13 +184,19 @@ public sealed class BlockDocument
 }
 
 /// <summary>Serializable spike tile data: a hazard that kills on contact.</summary>
-public sealed class SpikeDocument
+public sealed class SpikeDocument : ILayeredDocument
 {
     /// <summary>The colour its drawing is multiplied by, as RGBA8; white changes nothing.</summary>
     public uint SelfModulate { get; set; } = Xanadu.Ecs.SelfModulate.White;
 
     /// <summary>The groups this spike belongs to.</summary>
     public List<int> Groups { get; set; } = new();
+
+    /// <inheritdoc/>
+    public int Layer { get; set; }
+
+    /// <inheritdoc/>
+    public int Z { get; set; }
 
     /// <summary>The shader slot it is drawn with, or 0 for none.</summary>
     public int Shader { get; set; }
@@ -198,13 +220,19 @@ public sealed class SpikeDocument
 }
 
 /// <summary>A grass patch: blades standing along a base line, growing up from it.</summary>
-public sealed class GrassDocument
+public sealed class GrassDocument : ILayeredDocument
 {
     /// <summary>The colour its drawing is multiplied by, as RGBA8; white changes nothing.</summary>
     public uint SelfModulate { get; set; } = Xanadu.Ecs.SelfModulate.White;
 
     /// <summary>The groups this patch belongs to.</summary>
     public List<int> Groups { get; set; } = new();
+
+    /// <inheritdoc/>
+    public int Layer { get; set; }
+
+    /// <inheritdoc/>
+    public int Z { get; set; }
 
     /// <summary>The shader slot it is drawn with, or 0 for none.</summary>
     public int Shader { get; set; }
@@ -238,13 +266,19 @@ public sealed class GrassDocument
 }
 
 /// <summary>A filled shape: an item of polygons around an origin, turned about it.</summary>
-public sealed class PolygonDocument
+public sealed class PolygonDocument : ILayeredDocument
 {
     /// <summary>The colour its drawing is multiplied by, as RGBA8; white changes nothing.</summary>
     public uint SelfModulate { get; set; } = Xanadu.Ecs.SelfModulate.White;
 
     /// <summary>The groups this shape belongs to.</summary>
     public List<int> Groups { get; set; } = new();
+
+    /// <inheritdoc/>
+    public int Layer { get; set; }
+
+    /// <inheritdoc/>
+    public int Z { get; set; }
 
     /// <summary>The shader slot it is drawn with where a polygon names none, or 0.</summary>
     public int Shader { get; set; }
@@ -262,13 +296,19 @@ public sealed class PolygonDocument
 }
 
 /// <summary>Text written into a level: a centred label on the playfield.</summary>
-public sealed class TextDocument
+public sealed class TextDocument : ILayeredDocument
 {
     /// <summary>The colour its drawing is multiplied by, as RGBA8; white changes nothing.</summary>
     public uint SelfModulate { get; set; } = Xanadu.Ecs.SelfModulate.White;
 
     /// <summary>The groups this text belongs to.</summary>
     public List<int> Groups { get; set; } = new();
+
+    /// <inheritdoc/>
+    public int Layer { get; set; }
+
+    /// <inheritdoc/>
+    public int Z { get; set; }
 
     /// <summary>The shader slot it is drawn with, or 0 for none.</summary>
     public int Shader { get; set; }
@@ -288,10 +328,16 @@ public sealed class TextDocument
 }
 
 /// <summary>Serializable practice start state.</summary>
-public sealed class StartPointDocument
+public sealed class StartPointDocument : ILayeredDocument
 {
     /// <summary>The groups this start point belongs to.</summary>
     public List<int> Groups { get; set; } = new();
+
+    /// <inheritdoc/>
+    public int Layer { get; set; }
+
+    /// <inheritdoc/>
+    public int Z { get; set; }
 
     public string Name { get; set; } = "";
 
@@ -311,13 +357,19 @@ public sealed class StartPointDocument
 }
 
 /// <summary>Serializable mine hazard data.</summary>
-public sealed class MineDocument
+public sealed class MineDocument : ILayeredDocument
 {
     /// <summary>The colour its drawing is multiplied by, as RGBA8; white changes nothing.</summary>
     public uint SelfModulate { get; set; } = Xanadu.Ecs.SelfModulate.White;
 
     /// <summary>The groups this mine belongs to.</summary>
     public List<int> Groups { get; set; } = new();
+
+    /// <inheritdoc/>
+    public int Layer { get; set; }
+
+    /// <inheritdoc/>
+    public int Z { get; set; }
 
     /// <summary>The shader slot it is drawn with, or 0 for none.</summary>
     public int Shader { get; set; }
@@ -334,13 +386,19 @@ public sealed class MineDocument
 }
 
 /// <summary>Serializable note data.</summary>
-public sealed class NoteDocument
+public sealed class NoteDocument : ILayeredDocument
 {
     /// <summary>The colour its drawing is multiplied by, as RGBA8; white changes nothing.</summary>
     public uint SelfModulate { get; set; } = Xanadu.Ecs.SelfModulate.White;
 
     /// <summary>The groups this note belongs to.</summary>
     public List<int> Groups { get; set; } = new();
+
+    /// <inheritdoc/>
+    public int Layer { get; set; }
+
+    /// <inheritdoc/>
+    public int Z { get; set; }
 
     /// <summary>The self-contained item a note is: the primitives and shaders it uses.</summary>
     public Xif Item { get; set; } = new();

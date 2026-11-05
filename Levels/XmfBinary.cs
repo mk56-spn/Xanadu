@@ -18,7 +18,7 @@ public sealed class XmfFormatException(string message) : Exception(message);
 public static partial class XmfBinary
 {
     public const ushort MajorVersion = 2;
-    public const ushort MinorVersion = 0;
+    public const ushort MinorVersion = 1;
 
     /// <summary>The extension level files are saved with, including the dot.</summary>
     public const string Extension = ".xmf";
@@ -57,6 +57,9 @@ public static partial class XmfBinary
 
         /// <summary>Filled shapes, absent when the level has none.</summary>
         Polygons = 16,
+
+        /// <summary>Each item's layer and z, absent when every item is on its kind's default layer at z 0.</summary>
+        ItemLayers = 17,
     }
 
     public static byte[] Write(LevelDocument document)
@@ -85,6 +88,8 @@ public static partial class XmfBinary
             file.Add((uint)ChunkId.Grass, WriteGrass(document.Grass));
         if (HasPolygons(document))
             file.Add((uint)ChunkId.Polygons, WritePolygons(document.Polygons, strings));
+        if (XmfItemLayers.HasLayers(document))
+            file.Add((uint)ChunkId.ItemLayers, XmfItemLayers.Write(document));
         return file.ToArray();
     }
 
@@ -138,6 +143,11 @@ public static partial class XmfBinary
             document.Grass = ReadGrass(grass);
         if (file.TryGet((uint)ChunkId.Polygons, out Chunk polygons))
             document.Polygons = ReadPolygons(polygons, strings);
+        if (file.TryGet((uint)ChunkId.ItemLayers, out Chunk layers))
+        {
+            using BinaryReader reader = layers.OpenReader();
+            XmfItemLayers.Read(reader, document);
+        }
         return document;
     }
 

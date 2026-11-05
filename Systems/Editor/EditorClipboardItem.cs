@@ -15,7 +15,8 @@ internal readonly record struct EditorClipboardItem(
     Spike? Spike = null,
     LevelText? Text = null,
     GrassPatch? Grass = null,
-    LevelPolygon? Polygon = null)
+    LevelPolygon? Polygon = null,
+    ItemLayer Layer = default)
 {
     /// <summary>Untimed items: pasted a grid cell along rather than at the playhead.</summary>
     public bool IsGeometry => Block is not null || Spike is not null || Text is not null || Grass is not null || Polygon is not null;
