@@ -51,6 +51,9 @@ public static partial class XmfBinary
 
         /// <summary>Text written into the level, absent when it has none.</summary>
         Texts = 14,
+
+        /// <summary>Grass patches, absent when the level has none.</summary>
+        Grass = 15,
     }
 
     public static byte[] Write(LevelDocument document)
@@ -75,6 +78,8 @@ public static partial class XmfBinary
         file.Add((uint)ChunkId.SpikeOutlines, WriteSpikeOutlines(document.Spikes));
         if (HasTexts(document))
             file.Add((uint)ChunkId.Texts, WriteTexts(document.Texts));
+        if (HasGrass(document))
+            file.Add((uint)ChunkId.Grass, WriteGrass(document.Grass));
         return file.ToArray();
     }
 
@@ -121,6 +126,8 @@ public static partial class XmfBinary
         }
         if (file.TryGet((uint)ChunkId.Texts, out Chunk texts))
             document.Texts = ReadTexts(texts);
+        if (file.TryGet((uint)ChunkId.Grass, out Chunk grass))
+            document.Grass = ReadGrass(grass);
         return document;
     }
 

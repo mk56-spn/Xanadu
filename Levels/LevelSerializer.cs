@@ -99,6 +99,8 @@ public static class LevelSerializer
         chart.Spikes.RemoveAll(spike => spike is null);
         chart.Texts ??= new();
         chart.Texts.RemoveAll(text => text is null);
+        chart.Grass ??= new();
+        chart.Grass.RemoveAll(grass => grass is null);
         chart.Groups ??= new();
         chart.Groups.RemoveAll(group => group is null || group.Id is < 0 or >= GroupLimits.Count);
 
@@ -148,6 +150,12 @@ public static class LevelSerializer
             text.Text ??= "";
             text.Size = Math.Clamp(text.Size, Xanadu.Ecs.LevelText.MinSize, Xanadu.Ecs.LevelText.MaxSize);
             text.Shader = validShader(text.Shader);
+        }
+
+        foreach (GrassDocument grass in chart.Grass)
+        {
+            grass.Groups ??= new();
+            grass.Shader = validShader(grass.Shader);
         }
 
         chart.BackgroundColor = LevelBackground.Normalize(chart.BackgroundColor);

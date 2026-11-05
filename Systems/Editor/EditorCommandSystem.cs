@@ -428,6 +428,10 @@ public sealed partial class EditorCommandSystem :
             {
                 _clipboard.Add(new ClipboardItem(0, null, null, null, MaskOf(entity), ItemShader.Of(entity), SelfModulate.Packed(entity), Text: entity.GetComponent<LevelText>()));
             }
+            else if (entity.HasComponent<GrassPatch>())
+            {
+                _clipboard.Add(new ClipboardItem(0, null, null, null, MaskOf(entity), ItemShader.Of(entity), SelfModulate.Packed(entity), Grass: entity.GetComponent<GrassPatch>()));
+            }
         }
     }
 
@@ -575,10 +579,11 @@ public sealed partial class EditorCommandSystem :
         uint Modulate = SelfModulate.White,
         Block? Block = null,
         Spike? Spike = null,
-        LevelText? Text = null)
+        LevelText? Text = null,
+        GrassPatch? Grass = null)
     {
         /// <summary>Untimed items: pasted a grid cell along rather than at the playhead.</summary>
-        public bool IsGeometry => Block is not null || Spike is not null || Text is not null;
+        public bool IsGeometry => Block is not null || Spike is not null || Text is not null || Grass is not null;
     }
 
     private static uint MaskOf(Entity entity) =>

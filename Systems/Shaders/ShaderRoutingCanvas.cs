@@ -119,6 +119,9 @@ public sealed class ShaderRoutingCanvas(IRectCanvas inner, Rid root, IShaderCanv
     public void DrawPolygon(Rid canvas, ReadOnlySpan<Vector2> points, Color color) =>
         inner.DrawPolygon(Route(canvas), points, color);
 
+    public void DrawTriangles(Rid canvas, ReadOnlySpan<Vector2> points, ReadOnlySpan<Color> colors) =>
+        inner.DrawTriangles(Route(canvas), points, colors);
+
     public void DrawRectOutlines(Rid canvas, ReadOnlySpan<Rect2> rects, Color color) =>
         inner.DrawRectOutlines(Route(canvas), rects, color);
 

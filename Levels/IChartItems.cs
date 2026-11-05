@@ -21,6 +21,8 @@ public interface IChartItems
 
     List<TextDocument> Texts { get; set; }
 
+    List<GrassDocument> Grass { get; set; }
+
     List<GroupDocument> Groups { get; set; }
 
     /// <summary>The playfield background as #rrggbb or #rrggbbaa, or "" for the theme default.</summary>

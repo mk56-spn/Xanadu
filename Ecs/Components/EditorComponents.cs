@@ -83,6 +83,7 @@ public enum EditorPlacementMode
     Channel,
     FormStep,
     Text,
+    Grass,
 }
 
 /// <summary>
@@ -116,6 +117,12 @@ public struct EditorPlacement() : IComponent
 
     /// <summary>The Form construction shape new steps are authored into, or 0 for none.</summary>
     public int ShapeId;
+
+    /// <summary>
+    /// The settings new grass patches get; the grass panel keeps it matching
+    /// the patch last stepped, so the next patch looks like it.
+    /// </summary>
+    public GrassPatch Grass = new();
 }
 
 /// <summary>A part of the left panel that only shows for the tools that use it.</summary>
@@ -174,9 +181,14 @@ public enum EditorButtonKind
     FrameColor,
     ResetFrameColor,
 
+    /// <summary>The shader dialog asks the overlay for a file to import into its picked slot.</summary>
+    ImportShader,
+
     // Sidebar buttons; their argument is given beside each.
     /// <summary>Picks the placement tool; the argument is an <see cref="EditorPlacementMode"/>.</summary>
     Place,
+    /// <summary>Opens or closes a tool group's flyout; the argument is its place in the tool strip.</summary>
+    ToolGroup,
     /// <summary>A note-type bar swatch; the argument is the <see cref="KeybindAction"/> new notes get.</summary>
     NoteType,
     /// <summary>Picks the strength new movement notes get; the argument is a <see cref="DashStrength"/>.</summary>
@@ -197,6 +209,11 @@ public enum EditorButtonKind
     TextSize,
     /// <summary>Thickens or thins the selected outlines; the argument is the step in whole units.</summary>
     OutlineStep,
+    /// <summary>
+    /// Steps a setting of the selected grass, or of the grass brush; the
+    /// argument is the <see cref="GrassSetting"/> plus one, negative for less.
+    /// </summary>
+    GrassStep,
 }
 
 /// <summary>An ECS editor button: what it does, and the value it does it with.</summary>

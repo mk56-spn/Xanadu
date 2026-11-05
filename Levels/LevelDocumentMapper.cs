@@ -7,7 +7,7 @@ using Xanadu.Items;
 namespace Xanadu.Levels;
 
 /// <summary>Copies editor ECS state to and from the serializable document.</summary>
-public static class LevelDocumentMapper
+public static partial class LevelDocumentMapper
 {
     public static LevelDocument Capture(EntityStore entities, Entity editor)
     {
@@ -186,6 +186,7 @@ public static class LevelDocumentMapper
             return x != 0 ? x : a.Y.CompareTo(b.Y);
         });
 
+        CaptureGrass(entities, document);
         return document;
     }
 
@@ -197,6 +198,7 @@ public static class LevelDocumentMapper
         document.Blocks ??= new List<BlockDocument>();
         document.Spikes ??= new List<SpikeDocument>();
         document.Texts ??= new List<TextDocument>();
+        document.Grass ??= new List<GrassDocument>();
         document.Groups ??= new List<GroupDocument>();
 
         foreach (Entity entity in entities.Query<Note>().ToEntityList())
@@ -308,6 +310,8 @@ public static class LevelDocumentMapper
             Subscribe(created, text.Groups);
             SelfModulate.Put(created, text.SelfModulate);
         }
+
+        ApplyGrass(entities, document);
 
         SongDocument? song = string.IsNullOrWhiteSpace(document.SongId)
             ? null

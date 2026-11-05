@@ -134,6 +134,12 @@ public static class EditorItemPosition
             return true;
         }
 
+        if (entity.HasComponent<GrassPatch>())
+        {
+            position = entity.GetComponent<GrassPatch>().Position;
+            return true;
+        }
+
         position = default;
         return false;
     }
@@ -175,6 +181,12 @@ public static class EditorItemPosition
         if (entity.HasComponent<LevelText>())
         {
             entity.GetComponent<LevelText>().Position = position;
+            return true;
+        }
+
+        if (entity.HasComponent<GrassPatch>())
+        {
+            entity.GetComponent<GrassPatch>().Position = position;
             return true;
         }
 

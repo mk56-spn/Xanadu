@@ -465,6 +465,28 @@ public sealed partial class EditorNoteInputSystem : QuerySystem<Note>
 
         if (editor.HasComponent<EditorPlacement>() &&
             editor.GetComponent<EditorPlacement>().Mode ==
+            EditorPlacementMode.Grass)
+        {
+            PlayfieldView grassView = editor.GetComponent<PlayfieldView>();
+            Vector2 grassPosition = grassView.ScreenToPlayfield(screenPosition);
+            if (!IsInside(grassPosition, editor.GetComponent<Playfield>()))
+                return;
+
+            // The click is where the blades stand; with snap on, the base sits on a grid line.
+            if (ViewportSnap.IsOn(_entities))
+                grassPosition = PlayfieldGrid.NearestCrossing(grassPosition, editor.GetComponent<Playfield>());
+            GrassPatch patch = editor.GetComponent<EditorPlacement>().Grass;
+            patch.Position = grassPosition;
+            patch.Seed = GrassPatch.NewSeed();
+            EditorSnapshot grassBefore = _history.Capture();
+            Entity grass = EditorItems.Create(_entities, patch);
+            _history.Record(grassBefore, _history.Capture());
+            editor.GetComponent<NoteSelection>().Note = grass;
+            return;
+        }
+
+        if (editor.HasComponent<EditorPlacement>() &&
+            editor.GetComponent<EditorPlacement>().Mode ==
             EditorPlacementMode.Mines)
         {
             PlayfieldView view = editor.GetComponent<PlayfieldView>();
@@ -618,6 +640,12 @@ public sealed partial class EditorNoteInputSystem : QuerySystem<Note>
         foreach (Entity entity in _entities.Query<LevelText>().ToEntityList())
         {
             if (screenBounds.Intersects(PlayfieldRenderer.TextScreenBounds(entity.GetComponent<LevelText>(), view)))
+                selected.Add(entity);
+        }
+
+        foreach (Entity entity in _entities.Query<GrassPatch>().ToEntityList())
+        {
+            if (screenBounds.Intersects(PlayfieldRenderer.GrassScreenBounds(entity.GetComponent<GrassPatch>(), view)))
                 selected.Add(entity);
         }
 
@@ -934,7 +962,8 @@ public sealed partial class EditorNoteInputSystem : QuerySystem<Note>
         foreach (Entity entity in _entities.Query<StartPoint>().ToEntityList())
         {
             StartPoint startPoint = entity.GetComponent<StartPoint>();
-            if (startPoint.Position.DistanceTo(position) <= 14f)
+            // Picked like a note, since it is drawn the size of one.
+            if (startPoint.Position.DistanceTo(position) <= NoteHitRadius)
                 result = entity;
         }
 

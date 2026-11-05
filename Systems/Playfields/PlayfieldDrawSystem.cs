@@ -16,6 +16,9 @@ public sealed class PlayfieldDrawSystem :
     private readonly GodotShaderCanvasItems _shaderItems = new();
     private readonly Rid _playfield;
 
+    /// <summary>The clock grass sways by; it keeps running through pauses.</summary>
+    private float _seconds;
+
     public PlayfieldDrawSystem(EntityStore entities, IRectCanvas canvas, Rid playfield)
     {
         _entities = entities;
@@ -26,6 +29,7 @@ public sealed class PlayfieldDrawSystem :
     protected override void OnUpdate()
     {
         _canvas.Clear(_playfield);
+        _seconds += Tick.deltaTime;
         Vector2 shift = Vector2.Zero;
 
         Query.ForEachEntity((
@@ -76,7 +80,8 @@ public sealed class PlayfieldDrawSystem :
                     shift,
                     frame,
                     outside,
-                    frameColor);
+                    frameColor,
+                    _seconds);
             }
         });
 

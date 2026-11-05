@@ -38,6 +38,19 @@ public sealed partial class EditorNoteInputSystem
         return result;
     }
 
+    /// <summary>Topmost grass patch under a playfield point, or null.</summary>
+    private Entity FindGrassAt(Vector2 position)
+    {
+        Entity result = default;
+        foreach (Entity entity in _entities.Query<GrassPatch>().ToEntityList())
+        {
+            if (entity.GetComponent<GrassPatch>().Bounds.HasPoint(position))
+                result = entity;
+        }
+
+        return result;
+    }
+
     /// <summary>Topmost spike under a playfield point, or null.</summary>
     private Entity FindSpikeAt(Vector2 position)
     {
