@@ -35,7 +35,10 @@ public sealed class AnimatorColourPickerTests : AnimatorToolTest
         Frame();
         square.GetComponent<UiColorPicker>().Color = Colors.Red;
         Frame();
-        Assert.That(Package.Attachments[0].SelfModulate, Is.EqualTo(Colors.White));
+        Assert.That(
+            Package.Attachments[0].SelfModulate,
+            Is.EqualTo(Colors.Red).Using<Color>((a, b) => a.IsEqualApprox(b) ? 0 : 1),
+            "the attachment takes the colour before the drag ends");
 
         square.GetComponent<UiColorPicker>().Dragging = false;
         Frame();
