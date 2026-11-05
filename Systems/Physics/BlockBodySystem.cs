@@ -45,10 +45,10 @@ public sealed class BlockBodySystem : QuerySystem<Block>
             // A block a group moves takes its collision box with it.
             if (entity.HasComponent<PhysicsBody>())
             {
-                if (entity.HasComponent<GroupBase>())
+                if (entity.HasComponent<GroupOffset>())
                 {
                     entity.GetComponent<PhysicsBody>().Body.SetTransform(
-                        Box2DPhysicsWorld.ToPhysics(view.PlayfieldToScreen(block.Center)),
+                        Box2DPhysicsWorld.ToPhysics(view.PlayfieldToScreen(GroupOffset.Shown(entity, block.Center))),
                         0f);
                 }
 
@@ -59,7 +59,7 @@ public sealed class BlockBodySystem : QuerySystem<Block>
                 return;
 
             Body body = _physics.CreateStaticBox(
-                view.PlayfieldToScreen(block.Center),
+                view.PlayfieldToScreen(GroupOffset.Shown(entity, block.Center)),
                 block.Size * view.Scale,
                 oneWay: block.OneWay);
             buffer.AddComponent(entity.Id, new PhysicsBody(body));
