@@ -94,8 +94,14 @@ public static partial class PlayfieldRenderer
         }
     }
 
-    /// <summary>How strongly a dash note's connector and exit show before the dash.</summary>
+    /// <summary>How strongly a dash note's exit shows before the dash.</summary>
     public const float DashLinkAlpha = 0.5f;
+
+    /// <summary>
+    /// How strongly the connector to the exit shows: barely, since the hit's
+    /// streak of particles is what tells the path.
+    /// </summary>
+    public const float DashConnectorAlpha = 0.15f;
 
     /// <summary>A dash note: a hollow ring with four triangles pointing in, where the player vanishes.</summary>
     private static void DrawDashShape(IRectCanvas canvas, Rid rid, Vector2 center, float radius, Color color) =>
@@ -137,8 +143,8 @@ public static partial class PlayfieldRenderer
 
     /// <summary>
     /// Where a dash note sends the player: the exit, joined to the note by a
-    /// jagged connector, both at half strength so the note itself reads as the
-    /// one to hit. Strength and direction need no marks of their own.
+    /// faint jagged connector, the exit at half strength, so the note itself
+    /// reads as the one to hit. Strength and direction need no marks of their own.
     /// </summary>
     public static void DrawDashLink(
         IRectCanvas canvas,
@@ -150,9 +156,8 @@ public static partial class PlayfieldRenderer
     {
         Vector2 from = view.PlayfieldToScreen(note.Position);
         Vector2 to = DashExitScreen(note, view);
-        Color faded = Tinted(color, DashLinkAlpha);
-        DrawDashConnector(canvas, rid, from, to, radius, faded);
-        DrawDashExit(canvas, rid, to, radius, faded);
+        DrawDashConnector(canvas, rid, from, to, radius, Tinted(color, DashConnectorAlpha));
+        DrawDashExit(canvas, rid, to, radius, Tinted(color, DashLinkAlpha));
     }
 
     /// <summary>The jagged connector between a dash note and its exit, kept clear of both rings.</summary>
