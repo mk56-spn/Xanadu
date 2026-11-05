@@ -4,6 +4,7 @@ using System.Globalization;
 using Friflo.Engine.ECS;
 using Godot;
 using Xanadu.Animation;
+using Xanadu.Layering;
 
 namespace Xanadu.Tools.Animator.Commands;
 
@@ -240,7 +241,7 @@ public static class AnimatorClothCommands
                     cloth.Stiffness = Math.Clamp(value, 0f, 1f);
                     break;
                 case Setting.Layer:
-                    cloth.ZOrder = Math.Clamp((int)MathF.Round(value), XafAttachment.MinLayer, XafAttachment.MaxLayer);
+                    cloth.ZOrder = DrawOrder.ClampLayer((int)MathF.Round(value));
                     AnimatorSession.RigChanged(session);
                     break;
                 case Setting.HitSize:

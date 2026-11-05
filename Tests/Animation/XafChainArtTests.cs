@@ -1,6 +1,7 @@
 using Godot;
 using NUnit.Framework;
 using Xanadu.Animation;
+using Xanadu.Layering;
 
 namespace Xanadu.Tests.Animation;
 
@@ -71,8 +72,8 @@ public sealed class XafChainArtTests
         package.Attachments.Add(new XafAttachment { ZOrder = 2 });
         Assert.That(XafChainArt.Layer(package), Is.EqualTo(5));
 
-        package.Attachments.Add(new XafAttachment { ZOrder = XafAttachment.MaxLayer });
-        Assert.That(XafChainArt.Layer(package), Is.EqualTo(XafAttachment.MaxLayer));
+        package.Attachments.Add(new XafAttachment { ZOrder = DrawOrder.MaxLayer });
+        Assert.That(XafChainArt.Layer(package), Is.EqualTo(DrawOrder.MaxLayer));
     }
 
     [Test]

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Godot;
+using Xanadu.Layering;
 
 namespace Xanadu.Animation;
 
@@ -258,7 +259,7 @@ public static class XafClothAuthoring
             if (cloth.Colliders.Exists(collider => collider.BoneId == attachment.BoneId))
                 layer = Math.Max(layer, attachment.ZOrder);
         }
-        return layer == int.MinValue ? cloth.ZOrder : Math.Clamp(layer + 1, XafAttachment.MinLayer, XafAttachment.MaxLayer);
+        return layer == int.MinValue ? cloth.ZOrder : DrawOrder.ClampLayer(layer + 1);
     }
 
     private static bool IsAncestor(XafPackage package, int candidate, int bone)
@@ -328,7 +329,7 @@ public static class XafClothValidation
             }
             if (!(cloth.Damping >= 0f && cloth.Damping <= 1f) || !(cloth.Stiffness >= 0f && cloth.Stiffness <= 1f))
                 issues.Add($"Cloth '{cloth.Id}' has an invalid damping or stiffness.");
-            if (cloth.ZOrder < XafAttachment.MinLayer || cloth.ZOrder > XafAttachment.MaxLayer)
+            if (cloth.ZOrder < DrawOrder.MinLayer || cloth.ZOrder > DrawOrder.MaxLayer)
                 issues.Add($"Cloth '{cloth.Id}' has a layer out of range.");
             foreach (XafClothPin pin in cloth.Pins)
             {

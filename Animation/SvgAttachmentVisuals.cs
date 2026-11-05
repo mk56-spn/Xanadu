@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using Godot;
 using Xanadu.Items;
+using Xanadu.Layering;
 using Xanadu.Systems.Shaders;
 
 namespace Xanadu.Animation;
@@ -82,7 +83,7 @@ public sealed partial class SvgAttachmentVisuals(Rid canvas, bool containLayers 
         for (int i = 0; i < package.Effects.Count; i++)
         {
             XafEffect effect = package.Effects[i];
-            int layer = Math.Clamp(effect.ZOrder, XafAttachment.MinLayer, XafAttachment.MaxLayer);
+            int layer = DrawOrder.ClampLayer(effect.ZOrder);
             foreach (XifPrimitive primitive in effect.Item.Primitives)
             {
                 if (primitive.IsPolygon && TryPolygon(primitive, effect.Item, layer) is { } visual)
@@ -362,10 +363,10 @@ public sealed partial class SvgAttachmentVisuals(Rid canvas, bool containLayers 
 
     private void SetLayer(Rid item, int layer, int order)
     {
-        layer = Math.Clamp(layer, XafAttachment.MinLayer, XafAttachment.MaxLayer);
+        layer = DrawOrder.ClampLayer(layer);
         if (containLayers)
         {
-            RenderingServer.CanvasItemSetDrawIndex(item, ArtDrawOrder.Of(layer, order));
+            RenderingServer.CanvasItemSetDrawIndex(item, DrawOrder.Banded(layer, order));
             return;
         }
 
