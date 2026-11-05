@@ -16,8 +16,6 @@ public struct SongTimingAdjust(SongTimingAdjustKind kind, int delta) : IComponen
 
 public struct SongTimingSave : IComponent;
 
-public struct EditorSongTimingAction : IComponent;
-
 public struct SongTimingView(Entity title, Entity bpm, Entity offset) : IComponent
 {
     public Entity Title = title;

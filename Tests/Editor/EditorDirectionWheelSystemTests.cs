@@ -34,8 +34,7 @@ public sealed class EditorDirectionWheelSystemTests : EcsSystemTest
             });
         _label = Store.CreateEntity(new Position(Vector2.Zero));
         _editor = Store.CreateEntity(
-            new EditorPlacementModeState(EditorPlacementMode.Notes),
-            new EditorDashDirectionState(DashDirection.UpRight),
+            new EditorPlacement { Mode = EditorPlacementMode.Notes, Direction = DashDirection.UpRight },
             new EditorDirectionWheel(_wheel, _label));
 
         Root.Add(new EditorDirectionWheelSystem());
@@ -53,7 +52,7 @@ public sealed class EditorDirectionWheelSystemTests : EcsSystemTest
     [Test]
     public void MovementModeShowsWheelAndReflectsTheCurrentDirection()
     {
-        _editor.GetComponent<EditorPlacementModeState>().Mode =
+        _editor.GetComponent<EditorPlacement>().Mode =
             EditorPlacementMode.Dash;
 
         Frame();
@@ -67,8 +66,9 @@ public sealed class EditorDirectionWheelSystemTests : EcsSystemTest
     [Test]
     public void TheWheelTakesTheColourOfTheNoteBeingPlaced()
     {
-        _editor.GetComponent<EditorPlacementModeState>().Mode = EditorPlacementMode.Dash;
-        _editor.AddComponent(new EditorNoteTarget(KeybindAction.L3));
+        ref EditorPlacement placement = ref _editor.GetComponent<EditorPlacement>();
+        placement.Mode = EditorPlacementMode.Dash;
+        placement.Note = KeybindAction.L3;
         Root.Update(new UpdateTick(1f / 60f, 0));
 
         Color color = PlayfieldRenderer.ColorFor(KeybindAction.L3);
@@ -77,7 +77,7 @@ public sealed class EditorDirectionWheelSystemTests : EcsSystemTest
         Assert.That(wheel.Colors![0], Is.EqualTo(EditorNoteTypeBarSystem.Dimmed(color)));
         Assert.That(_wheel.Tags.Has<Dirty>(), Is.True);
 
-        _editor.GetComponent<EditorNoteTarget>().Target = KeybindAction.R1;
+        _editor.GetComponent<EditorPlacement>().Note = KeybindAction.R1;
         Root.Update(new UpdateTick(1f / 60f, 0));
 
         Assert.That(
@@ -88,7 +88,7 @@ public sealed class EditorDirectionWheelSystemTests : EcsSystemTest
     [Test]
     public void WheelSelectionUpdatesTheDashDirection()
     {
-        _editor.GetComponent<EditorPlacementModeState>().Mode =
+        _editor.GetComponent<EditorPlacement>().Mode =
             EditorPlacementMode.Dash;
         Frame();
         _wheel.AddComponent(new UiWheelChanged(6));
@@ -96,7 +96,7 @@ public sealed class EditorDirectionWheelSystemTests : EcsSystemTest
         Frame();
 
         Assert.That(
-            _editor.GetComponent<EditorDashDirectionState>().Direction,
+            _editor.GetComponent<EditorPlacement>().Direction,
             Is.EqualTo(DashDirection.Left));
         Assert.That(_wheel.GetComponent<UiWheel>().Selected,
             Is.EqualTo(6));
@@ -106,10 +106,10 @@ public sealed class EditorDirectionWheelSystemTests : EcsSystemTest
     [Test]
     public void DirectionChangesSelectTheMatchingWedge()
     {
-        _editor.GetComponent<EditorPlacementModeState>().Mode =
+        _editor.GetComponent<EditorPlacement>().Mode =
             EditorPlacementMode.Dash;
         Frame();
-        _editor.GetComponent<EditorDashDirectionState>().Direction =
+        _editor.GetComponent<EditorPlacement>().Direction =
             DashDirection.DownLeft;
 
         Frame();

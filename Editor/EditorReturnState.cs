@@ -19,7 +19,7 @@ public sealed class EditorReturnState
     private bool _hasTimeline;
     private TimelineView _timeline;
     private EditorPlacementMode _mode;
-    private EditorPlacementBrush _brush;
+    private float _degrees;
     private readonly List<ItemKey> _selection = new();
 
     public static EditorReturnState? Capture(EntityStore entities)
@@ -33,10 +33,10 @@ public sealed class EditorReturnState
             _view = editor.GetComponent<PlayfieldView>(),
             _hasTimeline = editor.TryGetComponent(out TimelineView timeline),
             _timeline = timeline,
-            _mode = editor.TryGetComponent(out EditorPlacementModeState mode)
-                ? mode.Mode
+            _mode = editor.TryGetComponent(out EditorPlacement placement)
+                ? placement.Mode
                 : EditorPlacementMode.Notes,
-            _brush = editor.TryGetComponent(out EditorPlacementBrush brush) ? brush : default,
+            _degrees = placement.Degrees,
         };
 
         if (editor.TryGetComponent(out NoteSelection selection))
@@ -56,10 +56,12 @@ public sealed class EditorReturnState
         editor.GetComponent<PlayfieldView>() = _view;
         if (_hasTimeline && editor.HasComponent<TimelineView>())
             editor.GetComponent<TimelineView>() = _timeline;
-        if (editor.HasComponent<EditorPlacementModeState>())
-            editor.GetComponent<EditorPlacementModeState>().Mode = _mode;
-        if (editor.HasComponent<EditorPlacementBrush>())
-            editor.GetComponent<EditorPlacementBrush>() = _brush;
+        if (editor.HasComponent<EditorPlacement>())
+        {
+            ref EditorPlacement placement = ref editor.GetComponent<EditorPlacement>();
+            placement.Mode = _mode;
+            placement.Degrees = _degrees;
+        }
 
         if (_selection.Count == 0 || !editor.HasComponent<NoteSelection>())
             return;

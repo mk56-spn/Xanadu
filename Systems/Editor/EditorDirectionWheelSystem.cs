@@ -9,7 +9,7 @@ namespace Xanadu.Systems.Editor;
 
 /// <summary>
 /// Specialises the generic wheel for dash directions: selects the wedge from
-/// <see cref="EditorDashDirectionState"/>, reflects user selections back into
+/// <see cref="EditorPlacement.Direction"/>, reflects user selections back into
 /// that state, tints it with the colour of the note being placed, and hides the
 /// wheel and its label outside the movement modes.
 /// </summary>
@@ -25,18 +25,18 @@ public sealed class EditorDirectionWheelSystem : QuerySystem<EditorDirectionWhee
             if (link.Wheel.IsNull || !link.Wheel.HasComponent<UiWheel>())
                 continue;
 
-            if (entity.HasComponent<EditorDashDirectionState>() &&
+            if (entity.HasComponent<EditorPlacement>() &&
                 link.Wheel.HasComponent<UiWheelChanged>())
             {
                 int index = link.Wheel.GetComponent<UiWheelChanged>().Index;
-                entity.GetComponent<EditorDashDirectionState>().Direction =
+                entity.GetComponent<EditorPlacement>().Direction =
                     DashDirectionWheel.At(index);
                 link.Wheel.RemoveComponent<UiWheelChanged>();
             }
 
             EditorPlacementMode mode =
-                entity.HasComponent<EditorPlacementModeState>()
-                    ? entity.GetComponent<EditorPlacementModeState>().Mode
+                entity.HasComponent<EditorPlacement>()
+                    ? entity.GetComponent<EditorPlacement>().Mode
                     : EditorPlacementMode.Notes;
             bool visible = mode is
                 EditorPlacementMode.Dash or
@@ -45,18 +45,18 @@ public sealed class EditorDirectionWheelSystem : QuerySystem<EditorDirectionWhee
             UiLayout.SetHidden(link.Wheel, buffer, !visible);
             UiLayout.SetHidden(link.Label, buffer, !visible);
 
-            if (visible && entity.HasComponent<EditorNoteTarget>())
+            if (visible && entity.HasComponent<EditorPlacement>())
             {
                 Tint(
                     link.Wheel,
-                    PlayfieldRenderer.ColorFor(entity.GetComponent<EditorNoteTarget>().Target),
+                    PlayfieldRenderer.ColorFor(entity.GetComponent<EditorPlacement>().Note),
                     buffer);
             }
 
-            if (visible && entity.HasComponent<EditorDashDirectionState>())
+            if (visible && entity.HasComponent<EditorPlacement>())
             {
                 int expected = DashDirectionWheel.IndexOf(
-                    entity.GetComponent<EditorDashDirectionState>().Direction);
+                    entity.GetComponent<EditorPlacement>().Direction);
                 UiWheelControl.SetSelected(
                     link.Wheel,
                     expected,

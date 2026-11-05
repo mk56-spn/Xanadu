@@ -12,7 +12,7 @@ using Position = Xanadu.Ecs.Position;
 namespace Xanadu.Systems.Editor;
 
 /// <summary>Shows the ECS metadata panel and syncs its text fields to editor state.</summary>
-public sealed class EditorMetadataSystem : QuerySystem<EditorMetadataPanel>
+public sealed class EditorMetadataSystem : QuerySystem<LevelInfo, Playhead>
 {
     private readonly EntityStore _entities;
     private readonly EditorCommandBus _commands;
@@ -27,18 +27,16 @@ public sealed class EditorMetadataSystem : QuerySystem<EditorMetadataPanel>
     {
         Entity editor = default;
         foreach (Entity candidate in _entities
-                     .Query<EditorMetadataPanel, LevelInfo, Playhead>()
+                     .Query<LevelInfo, Playhead>()
                      .ToEntityList())
         {
             editor = candidate;
             break;
         }
 
-        if (editor.IsNull)
+        Entity panel = EditorPanel.Find(_entities, EditorPanelKind.Metadata);
+        if (editor.IsNull || panel.IsNull)
             return;
-
-        ref EditorMetadataPanel panel =
-            ref editor.GetComponent<EditorMetadataPanel>();
 
         if (editor.HasComponent<EditorUiRequest>())
         {
@@ -46,13 +44,12 @@ public sealed class EditorMetadataSystem : QuerySystem<EditorMetadataPanel>
             if (request.Kind == EditorButtonKind.ToggleMetadata)
             {
                 request.Kind = EditorButtonKind.None;
-                if (!panel.Panel.IsNull &&
-                    panel.Panel.HasComponent<Position>())
+                if (panel.HasComponent<Position>())
                 {
-                    panel.Panel.GetComponent<Position>().Value = panel.Home;
+                    panel.GetComponent<Position>().Value = panel.GetComponent<EditorPanel>().Home;
                     CommandBuffer buffer = CommandBuffer;
-                    buffer.AddTag<Moved>(panel.Panel.Id);
-                    UiLayout.SetHidden(panel.Panel, buffer, !UiLayout.IsHidden(panel.Panel));
+                    buffer.AddTag<Moved>(panel.Id);
+                    UiLayout.SetHidden(panel, buffer, !UiLayout.IsHidden(panel));
                 }
             }
         }
@@ -65,11 +62,9 @@ public sealed class EditorMetadataSystem : QuerySystem<EditorMetadataPanel>
             out Entity selectedStartEntity,
             out StartPoint selectedStart);
 
-        if (editor.HasComponent<EditorStartPanel>() &&
-            editor.GetComponent<EditorStartPanel>().Panel is { IsNull: false } startPanelEntity)
+        if (EditorPanel.Find(_entities, EditorPanelKind.Start) is { IsNull: false } startPanelEntity)
         {
-            ref EditorStartPanel startPanel =
-                ref editor.GetComponent<EditorStartPanel>();
+            EditorPanel startPanel = startPanelEntity.GetComponent<EditorPanel>();
             bool visible = hasSelectedStart;
             if (UiLayout.IsHidden(startPanelEntity) == visible)
             {
@@ -184,52 +179,50 @@ public sealed class EditorMetadataSystem : QuerySystem<EditorMetadataPanel>
     /// <summary>Mirrors the level's background and outside colours onto their metadata swatches and hex labels.</summary>
     private void UpdateBackgroundColorControl(LevelInfo level)
     {
-        ShowColor(
-            level.Background,
-            LevelBackground.Default,
-            _entities.Query<EditorBackgroundSwatch, FillColor>().WithDisabled().ToEntityList(),
-            _entities.Query<EditorBackgroundHex, Text>().WithDisabled().ToEntityList());
-        ShowColor(
-            level.Outside,
-            LevelBackground.OutsideDefault,
-            _entities.Query<EditorOutsideSwatch, FillColor>().WithDisabled().ToEntityList(),
-            _entities.Query<EditorOutsideHex, Text>().WithDisabled().ToEntityList());
-        ShowColor(
-            level.Frame,
-            LevelBackground.FrameDefault,
-            _entities.Query<EditorFrameSwatch, FillColor>().WithDisabled().ToEntityList(),
-            _entities.Query<EditorFrameHex, Text>().WithDisabled().ToEntityList());
+        foreach (Entity entity in _entities.Query<EditorColorRow>().WithDisabled().ToEntityList())
+        {
+            EditorColorRow row = entity.GetComponent<EditorColorRow>();
+            (Color? stored, Color fallback) = row.Target switch
+            {
+                EditorColorTarget.Outside => (level.Outside, LevelBackground.OutsideDefault),
+                EditorColorTarget.Frame => (level.Frame, LevelBackground.FrameDefault),
+                _ => (level.Background, LevelBackground.Default),
+            };
+
+            if (row.Hex)
+                ShowHex(entity, stored);
+            else
+                ShowSwatch(entity, stored ?? fallback);
+        }
     }
 
-    private void ShowColor(
-        Color? stored,
-        Color fallback,
-        System.Collections.Generic.IEnumerable<Entity> swatches,
-        System.Collections.Generic.IEnumerable<Entity> hexes)
+    private void ShowSwatch(Entity entity, Color color)
     {
-        Color color = stored ?? fallback;
-        foreach (Entity entity in swatches)
-        {
-            ref FillColor fill = ref entity.GetComponent<FillColor>();
-            if (fill.Value == color)
-                continue;
+        if (!entity.HasComponent<FillColor>())
+            return;
 
-            fill.Value = color;
-            CommandBuffer.AddTag<Dirty>(entity.Id);
-        }
+        ref FillColor fill = ref entity.GetComponent<FillColor>();
+        if (fill.Value == color)
+            return;
 
+        fill.Value = color;
+        CommandBuffer.AddTag<Dirty>(entity.Id);
+    }
+
+    private void ShowHex(Entity entity, Color? stored)
+    {
         string label = stored is { } value
             ? LevelBackground.Format(value)
             : "DEFAULT";
-        foreach (Entity entity in hexes)
-        {
-            ref Text text = ref entity.GetComponent<Text>();
-            if (text.Value == label)
-                continue;
+        if (!entity.HasComponent<Text>())
+            return;
 
-            text.Value = label;
-            CommandBuffer.AddTag<Dirty>(entity.Id);
-        }
+        ref Text text = ref entity.GetComponent<Text>();
+        if (text.Value == label)
+            return;
+
+        text.Value = label;
+        CommandBuffer.AddTag<Dirty>(entity.Id);
     }
 
     private static bool TryGetSelectedStart(

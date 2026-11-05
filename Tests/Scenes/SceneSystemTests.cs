@@ -282,7 +282,7 @@ public sealed partial class SceneSystemTests
         Assert.That(HasText("WHO'S PLAYING?"), Is.True);
         Assert.That(HasText("NEW PROFILE"), Is.True);
 
-        _store.Query<ProfileCreate>().ToEntityList()[0].AddTag<Pressed>();
+        SceneAction.All(_store, SceneActionKind.CreateProfile)[0].AddTag<Pressed>();
         Frame();
 
         Assert.That(_director.Current, Is.EqualTo(SceneKind.ProfileEdit));

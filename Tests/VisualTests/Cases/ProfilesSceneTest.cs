@@ -30,6 +30,6 @@ public sealed class ProfilesSceneTest : SceneTest
             () => VisualAssert.HasText(Context.Entities, "NEW PROFILE"));
         AddAssert(
             "profile selector exists",
-            () => Context.Entities.Query<ProfileCreate>().Count == 1);
+            () => SceneAction.All(Context.Entities, SceneActionKind.CreateProfile).Count == 1);
     }
 }

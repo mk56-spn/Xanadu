@@ -47,7 +47,7 @@ public sealed class EditorCommandSystemTests : EcsSystemTest
     [Test]
     public void RotatingTurnsASpikeInPlaceAsOneUndoStep()
     {
-        _editor.AddComponent(new EditorPlacementBrush());
+        _editor.AddComponent(new EditorPlacement());
         Entity spike = CreateSelected(new Spike(new Godot.Vector2(100, 100), new Godot.Vector2(50, 50)));
 
         _commands.Enqueue(EditorCommand.RotateSelection());
@@ -55,7 +55,7 @@ public sealed class EditorCommandSystemTests : EcsSystemTest
 
         Assert.That(spike.GetComponent<Spike>().RotationDegrees, Is.EqualTo(90f));
         Assert.That(spike.GetComponent<Spike>().Position, Is.EqualTo(new Godot.Vector2(100, 100)));
-        Assert.That(_editor.GetComponent<EditorPlacementBrush>().Degrees, Is.EqualTo(90f));
+        Assert.That(_editor.GetComponent<EditorPlacement>().Degrees, Is.EqualTo(90f));
 
         _commands.Enqueue(EditorCommand.Undo());
         Frame();
@@ -114,13 +114,12 @@ public sealed class EditorCommandSystemTests : EcsSystemTest
     [Test]
     public void RotatingTurnsTheBrushWhenPlacingWithNoSelection()
     {
-        _editor.AddComponent(new EditorPlacementBrush());
-        _editor.AddComponent(new EditorPlacementModeState(EditorPlacementMode.Spikes));
+        _editor.AddComponent(new EditorPlacement { Mode = EditorPlacementMode.Spikes });
 
         _commands.Enqueue(EditorCommand.RotateSelection());
         Frame();
 
-        Assert.That(_editor.GetComponent<EditorPlacementBrush>().Degrees, Is.EqualTo(90f));
+        Assert.That(_editor.GetComponent<EditorPlacement>().Degrees, Is.EqualTo(90f));
     }
 
     [Test]
@@ -176,13 +175,12 @@ public sealed class EditorCommandSystemTests : EcsSystemTest
     [Test]
     public void RotatingTurnsTheBrushForTheBlockToolToo()
     {
-        _editor.AddComponent(new EditorPlacementBrush());
-        _editor.AddComponent(new EditorPlacementModeState(EditorPlacementMode.Blocks));
+        _editor.AddComponent(new EditorPlacement { Mode = EditorPlacementMode.Blocks });
 
         _commands.Enqueue(EditorCommand.RotateSelection());
         Frame();
 
-        Assert.That(_editor.GetComponent<EditorPlacementBrush>().Degrees, Is.EqualTo(90f));
+        Assert.That(_editor.GetComponent<EditorPlacement>().Degrees, Is.EqualTo(90f));
     }
 
     [TestCase(DashDirection.Right, true, DashDirection.Left)]
@@ -492,7 +490,7 @@ public sealed class EditorCommandSystemTests : EcsSystemTest
     [Test]
     public void SetTargetLeavesPlacedNotesAlone()
     {
-        _editor.AddComponent(new EditorNoteTarget(KeybindAction.M));
+        _editor.AddComponent(new EditorPlacement { Note = KeybindAction.M });
         Entity note = Store.CreateEntity(
             new Note(500, new Vector2(10, 20), target: KeybindAction.M));
         _editor.GetComponent<NoteSelection>().Note = note;
@@ -501,7 +499,7 @@ public sealed class EditorCommandSystemTests : EcsSystemTest
         Frame();
 
         Assert.That(
-            _editor.GetComponent<EditorNoteTarget>().Target,
+            _editor.GetComponent<EditorPlacement>().Note,
             Is.EqualTo(KeybindAction.R3));
         Assert.That(
             Store.Query<Note>().ToEntityList()[0].GetComponent<Note>().Target,
@@ -512,14 +510,14 @@ public sealed class EditorCommandSystemTests : EcsSystemTest
     public void SetPlacementModeSwitchesTheEditorMode()
     {
         _editor.AddComponent(
-            new EditorPlacementModeState(EditorPlacementMode.Notes));
+            new EditorPlacement { Mode = EditorPlacementMode.Notes });
 
         _commands.Enqueue(
             EditorCommand.SetPlacementMode(EditorPlacementMode.Dash));
         Frame();
 
         Assert.That(
-            _editor.GetComponent<EditorPlacementModeState>().Mode,
+            _editor.GetComponent<EditorPlacement>().Mode,
             Is.EqualTo(EditorPlacementMode.Dash));
     }
 

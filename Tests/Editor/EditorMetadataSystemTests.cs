@@ -17,19 +17,19 @@ public sealed class EditorMetadataSystemTests
     {
         var store = new EntityStore();
         var commands = new Xanadu.Editor.Commands.EditorCommandBus();
-        Entity panel = store.CreateEntity(
+        store.CreateEntity(
             new Position(Vector2.Zero),
-            new Rectangle(new Rect2(-190, -110, 380, 220)));
+            new Rectangle(new Rect2(-190, -110, 380, 220)),
+            new EditorPanel(EditorPanelKind.Metadata, Vector2.Zero));
         Entity swatch = store.CreateEntity(
             new FillColor(Colors.White),
-            new EditorBackgroundSwatch());
+            new EditorColorRow(EditorColorTarget.Background, hex: false));
         Entity hex = store.CreateEntity(
             new Text("DEFAULT"),
-            new EditorBackgroundHex());
+            new EditorColorRow(EditorColorTarget.Background, hex: true));
         Entity editor = store.CreateEntity(
             new LevelInfo("Level", "") { Background = new Color("#204060") },
-            new Playhead(0, 120, 0, false),
-            new EditorMetadataPanel(panel, Vector2.Zero));
+            new Playhead(0, 120, 0, false));
 
         var root = new SystemRoot(store);
         root.Add(new EditorMetadataSystem(store, commands));
@@ -46,12 +46,14 @@ public sealed class EditorMetadataSystemTests
     {
         var store = new EntityStore();
         var commands = new Xanadu.Editor.Commands.EditorCommandBus();
-        Entity panel = store.CreateEntity(
+        store.CreateEntity(
             new Position(Vector2.Zero),
-            new Rectangle(new Rect2(-190, -110, 380, 220)));
+            new Rectangle(new Rect2(-190, -110, 380, 220)),
+            new EditorPanel(EditorPanelKind.Metadata, Vector2.Zero));
         Entity startPanel = store.CreateEntity(
             new Position(Vector2.Zero),
-            new Rectangle(new Rect2(-190, -110, 380, 220)));
+            new Rectangle(new Rect2(-190, -110, 380, 220)),
+            new EditorPanel(EditorPanelKind.Start, Vector2.Zero));
         Entity start = store.CreateEntity(new StartPoint(
             "Test",
             1_000,
@@ -61,9 +63,7 @@ public sealed class EditorMetadataSystemTests
         Entity editor = store.CreateEntity(
             new LevelInfo("Level", ""),
             new Playhead(0, 120, 0, false),
-            new NoteSelection(start),
-            new EditorMetadataPanel(panel, Vector2.Zero),
-            new EditorStartPanel(startPanel, Vector2.Zero));
+            new NoteSelection(start));
         Entity field = store.CreateEntity(
             new TextField("", true),
             new Text(""),

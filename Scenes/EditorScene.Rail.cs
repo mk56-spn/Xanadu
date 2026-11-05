@@ -47,25 +47,24 @@ public static partial class EditorScene
         {
             keys.Button(label, 10, SceneUi.MutedButtonColor)
                 .Size(56, 24)
-                .With(new EditorRailButton(action))
+                .With(EditorButton.RailTap(action))
                 .Tooltip($"Place a rail note for {label} at the playhead");
         }
 
         UiNode controls = panel.Row().Size(362, 26).Gap(4);
-        Entity holdButton = controls.Button("TAP", 10, SceneUi.MutedButtonColor)
+        controls.Button("TAP", 10, SceneUi.MutedButtonColor)
             .Size(110, 24)
-            .With(new EditorRailHoldButton())
+            .With(new EditorButton(EditorButtonKind.RailHold))
+            .With(new EditorReadout(EditorReadoutKind.RailHold))
             .Tooltip("Cycle the hold length new rail notes get");
         controls.Button("L END", 10, SceneUi.MutedButtonColor)
             .Size(118, 24)
-            .With(new EditorChannelEndButton(ChannelSide.Left))
+            .With(EditorButton.ChannelEnd(ChannelSide.Left))
             .Tooltip("Place a left channel end at the playhead");
         controls.Button("R END", 10, SceneUi.MutedButtonColor)
             .Size(118, 24)
-            .With(new EditorChannelEndButton(ChannelSide.Right))
+            .With(EditorButton.ChannelEnd(ChannelSide.Right))
             .Tooltip("Place a right channel end at the playhead");
 
-        editor.AddComponent(new EditorRailHoldState(0));
-        editor.AddComponent(new EditorRailHoldReadout(holdButton));
     }
 }

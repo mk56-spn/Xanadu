@@ -22,7 +22,7 @@ public sealed class EditorDropdownSystemTests
         var commands = new EditorCommandBus();
         Entity editor = store.CreateEntity(
             new Playhead(0, 120, 0, false),
-            new EditorNoteTarget(KeybindAction.M));
+            new EditorPlacement { Note = KeybindAction.M });
 
         Entity list = store.CreateEntity(
             new Position(Vector2.Zero),
@@ -84,7 +84,7 @@ public sealed class EditorDropdownSystemTests
         var store = new EntityStore();
         store.CreateEntity(
             new Playhead(0, 120, 0, false, snapDivision: division),
-            new EditorNoteTarget(KeybindAction.M));
+            new EditorPlacement { Note = KeybindAction.M });
 
         Entity button = store.CreateEntity(
             new Text(""),
@@ -123,11 +123,10 @@ public sealed class EditorDropdownSystemTests
         var store = new EntityStore();
         var commands = new EditorCommandBus();
         store.CreateEntity(
-            new EditorPlacementModeState(EditorPlacementMode.Notes),
-            new EditorNoteTarget(KeybindAction.M));
+            new EditorPlacement { Mode = EditorPlacementMode.Notes, Note = KeybindAction.M });
         Entity swatch = store.CreateEntity(
             new Position(Vector2.Zero),
-            new EditorNoteSwatch(KeybindAction.R3));
+            EditorButton.NoteType(KeybindAction.R3));
 
         var root = new SystemRoot(store);
         root.Add(new EditorNoteTypeBarSystem(store, commands));
@@ -150,8 +149,7 @@ public sealed class EditorDropdownSystemTests
     {
         var store = new EntityStore();
         store.CreateEntity(
-            new EditorPlacementModeState(mode),
-            new EditorNoteTarget(KeybindAction.M));
+            new EditorPlacement { Mode = mode, Note = KeybindAction.M });
         Entity panel = store.CreateEntity(
             new Position(new Vector2(10, 20)),
             new EditorNoteBarPanel());

@@ -7,7 +7,7 @@ using Xanadu.Theme;
 namespace Xanadu.Systems.Editor;
 
 /// <summary>Exclusive 1×/2×/3× dash strength buttons for newly placed movement notes.</summary>
-public sealed class EditorDashStrengthSystem : QuerySystem<EditorDashStrengthState>
+public sealed class EditorDashStrengthSystem : QuerySystem<EditorPlacement>
 {
     private static readonly Color Selected = Palette.Primary;
     private static readonly Color Normal = Palette.Muted;
@@ -23,7 +23,7 @@ public sealed class EditorDashStrengthSystem : QuerySystem<EditorDashStrengthSta
     {
         Entity editor = default;
         foreach (Entity candidate in _entities
-                     .Query<EditorDashStrengthState>()
+                     .Query<EditorPlacement>()
                      .ToEntityList())
         {
             editor = candidate;
@@ -33,19 +33,16 @@ public sealed class EditorDashStrengthSystem : QuerySystem<EditorDashStrengthSta
         if (editor.IsNull)
             return;
 
-        ref EditorDashStrengthState state =
-            ref editor.GetComponent<EditorDashStrengthState>();
+        ref EditorPlacement state = ref editor.GetComponent<EditorPlacement>();
         CommandBuffer buffer = CommandBuffer;
 
-        foreach (Entity entity in _entities.Query<EditorDashStrengthButton>().WithDisabled().ToEntityList())
+        foreach (Entity entity in EditorButton.All(_entities, EditorButtonKind.DashStrength))
         {
+            var strength = (DashStrength)entity.GetComponent<EditorButton>().Arg;
             if (entity.Tags.Has<Pressed>())
-                state.Strength = entity.GetComponent<EditorDashStrengthButton>().Strength;
+                state.Strength = strength;
 
-            SetColor(
-                entity,
-                entity.GetComponent<EditorDashStrengthButton>().Strength == state.Strength,
-                buffer);
+            SetColor(entity, strength == state.Strength, buffer);
         }
     }
 

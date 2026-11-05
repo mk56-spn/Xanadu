@@ -97,8 +97,8 @@ public sealed class EditorDropdownSceneTest : SceneTest
         AddStep("release swatch", () => Context.Pointer.Release());
         AddUntilStep(
             "note type changed",
-            () => Context.Entities.Query<EditorNoteTarget>().ToEntityList()[0]
-                .GetComponent<EditorNoteTarget>().Target == KeybindAction.R3);
+            () => Context.Entities.Query<EditorPlacement>().ToEntityList()[0]
+                .GetComponent<EditorPlacement>().Note == KeybindAction.R3);
 
         AddStep("click mine tool", () => ClickTool(EditorPlacementMode.Mines));
         AddWaitStep("hold mine tool", 2);
@@ -127,7 +127,7 @@ public sealed class EditorDropdownSceneTest : SceneTest
     private bool NoteSwatchesAreColoured()
     {
         int count = 0;
-        foreach (Entity entity in Context.Entities.Query<EditorNoteSwatch>().ToEntityList())
+        foreach (Entity entity in EditorButton.All(Context.Entities, EditorButtonKind.NoteType))
         {
             count++;
             if (!entity.HasComponent<ButtonVisual>())
@@ -147,9 +147,9 @@ public sealed class EditorDropdownSceneTest : SceneTest
 
     private void ClickSwatch(KeybindAction action)
     {
-        foreach (Entity entity in Context.Entities.Query<EditorNoteSwatch>().ToEntityList())
+        foreach (Entity entity in EditorButton.All(Context.Entities, EditorButtonKind.NoteType))
         {
-            if (entity.GetComponent<EditorNoteSwatch>().Action != action)
+            if ((KeybindAction)entity.GetComponent<EditorButton>().Arg != action)
                 continue;
 
             Context.Pointer.Click(UiTransform.WorldPosition(
@@ -160,9 +160,9 @@ public sealed class EditorDropdownSceneTest : SceneTest
 
     private void ClickTool(EditorPlacementMode mode)
     {
-        foreach (Entity entity in Context.Entities.Query<EditorPlacementButton>().ToEntityList())
+        foreach (Entity entity in EditorButton.All(Context.Entities, EditorButtonKind.Place))
         {
-            if (entity.GetComponent<EditorPlacementButton>().Mode != mode)
+            if ((EditorPlacementMode)entity.GetComponent<EditorButton>().Arg != mode)
                 continue;
 
             Context.Pointer.Click(WorldPosition(entity, entity.GetComponent<Position>().Value));

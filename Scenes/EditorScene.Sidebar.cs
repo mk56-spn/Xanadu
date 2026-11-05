@@ -46,7 +46,7 @@ public static partial class EditorScene
                 .Cross(StackCrossAlignment.Center)
                 .With(ButtonVisual.Create(SceneUi.MutedButtonColor))
                 .Tooltip(key.Length > 0 ? $"{name} ({key})" : name)
-                .With(new EditorPlacementButton(mode));
+                .With(EditorButton.Place(mode));
             button.Text(icon, 26, UiTheme.Text, TextAlign.Center).Size(size);
 
             // The key in the corner, so the shortcut is learnt by looking at the tool.
@@ -115,11 +115,11 @@ public static partial class EditorScene
             .Size(inner - (height + UiTheme.ContainerSpacing) * 2, height);
         row.Button("-", 13, SceneUi.MutedButtonColor)
             .Size(height, height)
-            .With(new EditorOutlineStepButton(-1))
+            .With(new EditorButton(EditorButtonKind.OutlineStep, -1))
             .Tooltip("Thinner outline; at 0 there is none");
         row.Button("+", 13, SceneUi.MutedButtonColor)
             .Size(height, height)
-            .With(new EditorOutlineStepButton(1))
+            .With(new EditorButton(EditorButtonKind.OutlineStep, 1))
             .Tooltip("Thicker outline");
 
         UiNode color = section.ColorField(
@@ -155,11 +155,11 @@ public static partial class EditorScene
             .Size(inner - (height + UiTheme.ContainerSpacing) * 2, height);
         row.Button("-", 13, SceneUi.MutedButtonColor)
             .Size(height, height)
-            .With(new EditorTextSizeButton(-1))
+            .With(new EditorButton(EditorButtonKind.TextSize, -1))
             .Tooltip("Smaller text");
         row.Button("+", 13, SceneUi.MutedButtonColor)
             .Size(height, height)
-            .With(new EditorTextSizeButton(1))
+            .With(new EditorButton(EditorButtonKind.TextSize, 1))
             .Tooltip("Bigger text");
 
         editor.AddComponent(new EditorTextPanel(section.Entity, field, size));
@@ -208,7 +208,7 @@ public static partial class EditorScene
                     12,
                     SceneUi.MutedButtonColor)
                 .Size(strengthWidth, 28)
-                .With(new EditorDashStrengthButton(strength))
+                .With(EditorButton.Strength(strength))
                 .Tooltip(strength switch
                 {
                     DashStrength.Double => "Dashes carry twice as far; momentum notes push twice as hard",
@@ -224,28 +224,27 @@ public static partial class EditorScene
         UiNode costs = costSection.Row().Size(inner, 28).Gap(costGap);
         costs.Button("L−", 12, SceneUi.MutedButtonColor)
             .Size(costWidth, 28)
-            .With(new EditorContactCostButton(left: true, delta: -1))
+            .With(new EditorButton(EditorButtonKind.ContactLeft, -1))
             .Tooltip("Remove one left-side charge from new barriers");
         costs.Button("L+", 12, SceneUi.MutedButtonColor)
             .Size(costWidth, 28)
-            .With(new EditorContactCostButton(left: true, delta: 1))
+            .With(new EditorButton(EditorButtonKind.ContactLeft, 1))
             .Tooltip("Add one left-side charge to new barriers");
         costs.Button("R−", 12, SceneUi.MutedButtonColor)
             .Size(costWidth, 28)
-            .With(new EditorContactCostButton(left: false, delta: -1))
+            .With(new EditorButton(EditorButtonKind.ContactRight, -1))
             .Tooltip("Remove one right-side charge from new barriers");
         costs.Button("R+", 12, SceneUi.MutedButtonColor)
             .Size(costWidth, 28)
-            .With(new EditorContactCostButton(left: false, delta: 1))
+            .With(new EditorButton(EditorButtonKind.ContactRight, 1))
             .Tooltip("Add one right-side charge to new barriers");
-        Entity costReadout = costSection.Text(
+        costSection.Text(
                 "L1  R1",
                 12,
                 SceneUi.DimTextColor,
                 TextAlign.Center)
-            .Size(inner, 18);
-        editor.AddComponent(new EditorContactCostState(1, 1));
-        editor.AddComponent(new EditorContactCostReadout(costReadout));
+            .Size(inner, 18)
+            .With(new EditorReadout(EditorReadoutKind.ContactCost));
 
         UiNode shapeSection = ToolSection(panel, inner, EditorToolSections.FormShape);
         SidebarLabel(shapeSection, "FORM SHAPE", inner, 12);
@@ -254,16 +253,15 @@ public static partial class EditorScene
                 10,
                 SceneUi.MutedButtonColor)
             .Size(inner, 26)
-            .With(new EditorShapeAttachButton())
+            .With(new EditorButton(EditorButtonKind.ShapeAttach))
             .Tooltip("Attach the selected blocks to a new construction shape");
-        Entity shapeReadout = shapeSection.Text(
+        shapeSection.Text(
                 "NO SHAPE",
                 12,
                 SceneUi.DimTextColor,
                 TextAlign.Center)
-            .Size(inner, 18);
-        editor.AddComponent(new EditorShapeState(0));
-        editor.AddComponent(new EditorShapeReadout(shapeReadout));
+            .Size(inner, 18)
+            .With(new EditorReadout(EditorReadoutKind.Shape));
 
         editor.AddComponent(new EditorLeftMenu(panel.Entity, snapLabel, snap));
     }
@@ -335,7 +333,7 @@ public static partial class EditorScene
             swatches.Rect(color, size: new Vector2(swatchSize, swatchSize))
                 .Input()
                 .With(ButtonVisual.Create(color))
-                .With(new EditorNoteSwatch(action));
+                .With(EditorButton.NoteType(action));
         }
 
         Entity label = SidebarLabel(box, "MOVE DIRECTION", inner, 12);

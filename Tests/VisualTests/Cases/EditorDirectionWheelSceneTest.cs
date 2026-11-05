@@ -117,22 +117,20 @@ public sealed class EditorDirectionWheelSceneTest : SceneTest
         Context.Entities.Query<EditorNoteBarPanel>().WithDisabled().ToEntityList()[0];
 
     private EditorPlacementMode PlaceMode() =>
-        Context.Entities.Query<EditorPlacementModeState>()
+        Context.Entities.Query<EditorPlacement>()
             .ToEntityList()[0]
-            .GetComponent<EditorPlacementModeState>().Mode;
+            .GetComponent<EditorPlacement>().Mode;
 
     private DashDirection Direction() =>
-        Context.Entities.Query<EditorDashDirectionState>()
+        Context.Entities.Query<EditorPlacement>()
             .ToEntityList()[0]
-            .GetComponent<EditorDashDirectionState>().Direction;
+            .GetComponent<EditorPlacement>().Direction;
 
     private void ClickPlacement(EditorPlacementMode mode)
     {
-        foreach (Entity entity in Context.Entities
-                     .Query<EditorPlacementButton>()
-                     .ToEntityList())
+        foreach (Entity entity in EditorButton.All(Context.Entities, EditorButtonKind.Place))
         {
-            if (entity.GetComponent<EditorPlacementButton>().Mode != mode)
+            if ((EditorPlacementMode)entity.GetComponent<EditorButton>().Arg != mode)
                 continue;
 
             Context.Pointer.Click(UiTransform.WorldPosition(

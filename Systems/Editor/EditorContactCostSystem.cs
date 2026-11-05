@@ -11,7 +11,7 @@ namespace Xanadu.Systems.Editor;
 /// Edits the left/right charge newly placed contact barriers ask for. The four
 /// buttons are L−, L+, R− and R+; the readout shows the current pair.
 /// </summary>
-public sealed class EditorContactCostSystem : QuerySystem<EditorContactCostButton>
+public sealed class EditorContactCostSystem : QuerySystem<EditorButton>
 {
     private const int MaxCost = 3;
 
@@ -30,7 +30,7 @@ public sealed class EditorContactCostSystem : QuerySystem<EditorContactCostButto
     {
         Entity editor = default;
         foreach (Entity candidate in _entities
-                     .Query<EditorContactCostState, EditorContactCostReadout>()
+                     .Query<EditorPlacement>()
                      .ToEntityList())
         {
             editor = candidate;
@@ -40,13 +40,14 @@ public sealed class EditorContactCostSystem : QuerySystem<EditorContactCostButto
         if (editor.IsNull)
             return;
 
-        EditorContactCostState state =
-            editor.GetComponent<EditorContactCostState>();
+        ref EditorPlacement state = ref editor.GetComponent<EditorPlacement>();
 
         foreach (Entity entity in Query.ToEntityList())
         {
-            EditorContactCostButton button =
-                entity.GetComponent<EditorContactCostButton>();
+            EditorButton button = entity.GetComponent<EditorButton>();
+            if (button.Kind is not (EditorButtonKind.ContactLeft or EditorButtonKind.ContactRight))
+                continue;
+
             bool pressed = entity.Tags.Has<Pressed>();
             bool wasPressed = _held.Contains(entity.Id);
             if (pressed)
@@ -57,25 +58,16 @@ public sealed class EditorContactCostSystem : QuerySystem<EditorContactCostButto
             if (!pressed || wasPressed)
                 continue;
 
-            if (button.Left)
-                state.Left = Math.Clamp(state.Left + button.Delta, 0, MaxCost);
+            if (button.Kind == EditorButtonKind.ContactLeft)
+                state.ContactLeft = Math.Clamp(state.ContactLeft + button.Arg, 0, MaxCost);
             else
-                state.Right = Math.Clamp(state.Right + button.Delta, 0, MaxCost);
+                state.ContactRight = Math.Clamp(state.ContactRight + button.Arg, 0, MaxCost);
         }
 
-        editor.GetComponent<EditorContactCostState>() = state;
-
-        Entity readout = editor.GetComponent<EditorContactCostReadout>().Text;
-        if (readout.IsNull || !readout.HasComponent<Text>())
-            return;
-
-        string value = $"L{state.Left}  R{state.Right}";
-        ref Text text = ref readout.GetComponent<Text>();
-        if (text.Value == value)
-            return;
-
-        text.Value = value;
-        CommandBuffer buffer = CommandBuffer;
-        buffer.AddTag<Dirty>(readout.Id);
+        EditorReadout.Show(
+            _entities,
+            EditorReadoutKind.ContactCost,
+            $"L{state.ContactLeft}  R{state.ContactRight}",
+            CommandBuffer);
     }
 }

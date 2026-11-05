@@ -85,7 +85,7 @@ public static class ProfilesScene
             .Primary()
             .Size(CreateWidth, RowHeight)
             .At(new Vector2(stage.Center.X, createY))
-            .With(new ProfileCreate());
+            .With(SceneAction.CreateProfile());
 
         if (profiles.ActiveProfile is { } current)
         {
@@ -135,7 +135,7 @@ public static class ProfilesScene
                     $"{(active ? "▶  " : "")}{profile.Name}",
                     UiType.Label)
                 .Size(RowWidth - ArtSize - EditWidth - UiMetrics.Space.Lg * 2, RowHeight)
-                .With(new ProfileSelect(profile.Id));
+                .With(SceneAction.SelectProfile(profile.Id));
             if (active)
                 select.Primary();
             else
@@ -146,7 +146,7 @@ public static class ProfilesScene
                     UiType.Small)
                 .Secondary()
                 .Size(EditWidth, RowHeight)
-                .With(new ProfileEditAction(profile.Id));
+                .With(SceneAction.EditProfile(profile.Id));
         }
 
         return list;

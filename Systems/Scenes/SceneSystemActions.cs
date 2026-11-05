@@ -45,8 +45,9 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
                      .AllTags(Tags.Get<Pressed>())
                      .ToEntityList())
         {
-            SceneKind target = entity.GetComponent<SceneAction>().Target;
-            if (target == SceneKind.None)
+            SceneAction action = entity.GetComponent<SceneAction>();
+            SceneKind target = action.Target;
+            if (action.Kind != SceneActionKind.Go || target == SceneKind.None)
                 continue;
 
             if (target == SceneKind.SongTiming)

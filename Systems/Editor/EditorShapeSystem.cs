@@ -13,7 +13,7 @@ namespace Xanadu.Systems.Editor;
 /// Attaches the selected blocks to a new Form shape and drops the construction
 /// marker at the playhead. The blocks stay hidden until their steps are hit.
 /// </summary>
-public sealed class EditorShapeSystem : QuerySystem<EditorShapeAttachButton>
+public sealed class EditorShapeSystem : QuerySystem<EditorButton>
 {
     private readonly EntityStore _entities;
     private readonly EditorHistory _history;
@@ -32,7 +32,7 @@ public sealed class EditorShapeSystem : QuerySystem<EditorShapeAttachButton>
     {
         Entity editor = default;
         foreach (Entity candidate in _entities
-                     .Query<EditorShapeState, EditorShapeReadout>()
+                     .Query<EditorPlacement>()
                      .ToEntityList())
         {
             editor = candidate;
@@ -42,10 +42,13 @@ public sealed class EditorShapeSystem : QuerySystem<EditorShapeAttachButton>
         if (editor.IsNull)
             return;
 
-        EditorShapeState state = editor.GetComponent<EditorShapeState>();
+        int shapeId = editor.GetComponent<EditorPlacement>().ShapeId;
 
         foreach (Entity button in Query.ToEntityList())
         {
+            if (button.GetComponent<EditorButton>().Kind != EditorButtonKind.ShapeAttach)
+                continue;
+
             bool pressed = button.Tags.Has<Pressed>();
             bool was = _held.Contains(button.Id);
             if (pressed)
@@ -54,26 +57,19 @@ public sealed class EditorShapeSystem : QuerySystem<EditorShapeAttachButton>
                 _held.Remove(button.Id);
 
             if (pressed && !was)
-                state = Attach(editor, state);
+                shapeId = Attach(editor, shapeId);
         }
 
-        editor.GetComponent<EditorShapeState>() = state;
-
-        Entity readout = editor.GetComponent<EditorShapeReadout>().Text;
-        if (readout.IsNull || !readout.HasComponent<Text>())
-            return;
-
-        string value = state.ShapeId == 0 ? "NO SHAPE" : $"SHAPE {state.ShapeId}";
-        ref Text text = ref readout.GetComponent<Text>();
-        if (text.Value == value)
-            return;
-
-        text.Value = value;
-        CommandBuffer buffer = CommandBuffer;
-        buffer.AddTag<Dirty>(readout.Id);
+        editor.GetComponent<EditorPlacement>().ShapeId = shapeId;
+        EditorReadout.Show(
+            _entities,
+            EditorReadoutKind.Shape,
+            shapeId == 0 ? "NO SHAPE" : $"SHAPE {shapeId}",
+            CommandBuffer);
     }
 
-    private EditorShapeState Attach(Entity editor, EditorShapeState state)
+    /// <summary>Attaches the selected blocks to a new shape and returns its id, or the current one when nothing is selected.</summary>
+    private int Attach(Entity editor, int current)
     {
         var selected = new List<Entity>();
         NoteSelection selection = editor.GetComponent<NoteSelection>();
@@ -84,7 +80,7 @@ public sealed class EditorShapeSystem : QuerySystem<EditorShapeAttachButton>
         }
 
         if (selected.Count == 0)
-            return state;
+            return current;
 
         int shapeId = NextShapeId();
         Vector2 center = Vector2.Zero;
@@ -101,8 +97,8 @@ public sealed class EditorShapeSystem : QuerySystem<EditorShapeAttachButton>
 
         center /= selected.Count;
         Playhead playhead = editor.GetComponent<Playhead>();
-        KeybindAction target = editor.HasComponent<EditorNoteTarget>()
-            ? editor.GetComponent<EditorNoteTarget>().Target
+        KeybindAction target = editor.HasComponent<EditorPlacement>()
+            ? editor.GetComponent<EditorPlacement>().Note
             : KeybindAction.L1;
         if (target == KeybindAction.M)
             target = KeybindAction.L1;
@@ -115,8 +111,7 @@ public sealed class EditorShapeSystem : QuerySystem<EditorShapeAttachButton>
             shapeId: shapeId));
         _history.Record(before, _history.Capture());
 
-        state.ShapeId = shapeId;
-        return state;
+        return shapeId;
     }
 
     private int NextShapeId()

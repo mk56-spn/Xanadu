@@ -11,11 +11,11 @@ public sealed class ProfileEditSceneTest : SceneTest
     /// <summary>The harness keeps its profiles between runs, so reuse one rather than add one each time.</summary>
     internal static void OpenEditor(Friflo.Engine.ECS.EntityStore entities)
     {
-        var existing = entities.Query<ProfileEditAction>().ToEntityList();
+        var existing = SceneAction.All(entities, SceneActionKind.EditProfile);
         if (existing.Count > 0)
             existing[0].AddTag<Pressed>();
         else
-            entities.Query<ProfileCreate>().ToEntityList()[0].AddTag<Pressed>();
+            SceneAction.All(entities, SceneActionKind.CreateProfile)[0].AddTag<Pressed>();
     }
 
     protected override void SetUpSteps()
@@ -68,7 +68,7 @@ public sealed class ProfileTintSceneTest : SceneTest
         AddUntilStep(
             "the list shows the new name",
             () => Context.Scenes.Current == SceneKind.Profiles &&
-                  Context.Entities.Query<ProfileEditAction>().Count >= 1 &&
+                  SceneAction.All(Context.Entities, SceneActionKind.EditProfile).Count >= 1 &&
                   VisualAssert.HasText(Context.Entities, "▶  Crimson"));
     }
 }

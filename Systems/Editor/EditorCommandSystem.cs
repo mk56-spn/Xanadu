@@ -100,9 +100,9 @@ public sealed partial class EditorCommandSystem :
                 if (Enum.IsDefined(
                         typeof(EditorPlacementMode),
                         command.IntValue) &&
-                    editor.HasComponent<EditorPlacementModeState>())
+                    editor.HasComponent<EditorPlacement>())
                 {
-                    editor.GetComponent<EditorPlacementModeState>().Mode =
+                    editor.GetComponent<EditorPlacement>().Mode =
                         (EditorPlacementMode)command.IntValue;
                 }
 
@@ -385,8 +385,8 @@ public sealed partial class EditorCommandSystem :
         int index = Math.Clamp(value, 0, KeybindSettings.Actions.Length - 1);
         KeybindAction target = KeybindSettings.Actions[index];
 
-        if (editor.HasComponent<EditorNoteTarget>())
-            editor.GetComponent<EditorNoteTarget>().Target = target;
+        if (editor.HasComponent<EditorPlacement>())
+            editor.GetComponent<EditorPlacement>().Note = target;
     }
 
     private void CopySelection(Entity editor)

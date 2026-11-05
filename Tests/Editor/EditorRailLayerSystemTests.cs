@@ -15,14 +15,13 @@ public sealed class EditorRailLayerSystemTests : EcsSystemTest
     [Test]
     public void RailButtonsPlaceTapsWithTheSelectedHoldAndSide()
     {
-        Entity readout = Store.CreateEntity(new Text("TAP"));
+        Entity readout = Store.CreateEntity(new Text("TAP"), new EditorReadout(EditorReadoutKind.RailHold));
         Entity editor = Store.CreateEntity(
             new Playhead(1_000, 120, 0, false),
-            new EditorRailHoldState(0),
-            new EditorRailHoldReadout(readout));
-        Entity left = Button(new EditorRailButton(KeybindAction.L2));
-        Entity hold = Button(new EditorRailHoldButton());
-        Entity end = Button(new EditorChannelEndButton(ChannelSide.Right));
+            new EditorPlacement());
+        Entity left = Store.CreateEntity(EditorButton.RailTap(KeybindAction.L2));
+        Entity hold = Store.CreateEntity(new EditorButton(EditorButtonKind.RailHold));
+        Entity end = Store.CreateEntity(EditorButton.ChannelEnd(ChannelSide.Right));
         var history = new EditorHistory(Store);
 
         Root.Add(new EditorRailLayerSystem(Store, history));
@@ -36,7 +35,7 @@ public sealed class EditorRailLayerSystemTests : EcsSystemTest
         Assert.That(first.HoldMs, Is.Zero);
 
         Click(hold);
-        Assert.That(editor.GetComponent<EditorRailHoldState>().HoldMs,
+        Assert.That(editor.GetComponent<EditorPlacement>().RailHoldMs,
             Is.EqualTo(250));
         Assert.That(readout.GetComponent<Text>().Value,
             Is.EqualTo("HOLD 250"));
@@ -52,9 +51,6 @@ public sealed class EditorRailLayerSystemTests : EcsSystemTest
         Assert.That(endNote.ChannelSide, Is.EqualTo(ChannelSide.Right));
         Assert.That(history.CanUndo, Is.True);
     }
-
-    private Entity Button<T>(T component) where T : struct, IComponent =>
-        Store.CreateEntity(component);
 
     private void Click(Entity button)
     {

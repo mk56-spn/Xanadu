@@ -156,9 +156,7 @@ public sealed class EditorNoteInputSystemTests
     public void ContactModePlacesContactNotes()
     {
         Entity editor = _store.Query<PlayfieldView>().ToEntityList()[0];
-        editor.AddComponent(new EditorPlacementModeState(
-            EditorPlacementMode.Contact));
-        editor.AddComponent(new EditorContactCostState(2, 0));
+        editor.AddComponent(new EditorPlacement { Mode = EditorPlacementMode.Contact, ContactLeft = 2, ContactRight = 0 });
 
         _pointer.Current = new PointerInput(new Vector2(300, 400), true);
         _root.Update(new UpdateTick(1f / 60f, 0));
@@ -176,9 +174,7 @@ public sealed class EditorNoteInputSystemTests
     public void CharacterSwitchModePlacesTheSelectedCharacter()
     {
         Entity editor = _store.Query<PlayfieldView>().ToEntityList()[0];
-        editor.AddComponent(new EditorPlacementModeState(
-            EditorPlacementMode.CharacterSwitch));
-        editor.AddComponent(new EditorCharacterTarget(CharacterKind.Armed));
+        editor.AddComponent(new EditorPlacement { Mode = EditorPlacementMode.CharacterSwitch, Character = CharacterKind.Armed });
 
         _pointer.Current = new PointerInput(new Vector2(300, 400), true);
         _root.Update(new UpdateTick(1f / 60f, 0));
@@ -195,8 +191,7 @@ public sealed class EditorNoteInputSystemTests
     public void WeaponSwitchModePlacesAWeaponSwitchNote()
     {
         Entity editor = _store.Query<PlayfieldView>().ToEntityList()[0];
-        editor.AddComponent(new EditorPlacementModeState(
-            EditorPlacementMode.WeaponSwitch));
+        editor.AddComponent(new EditorPlacement { Mode = EditorPlacementMode.WeaponSwitch });
 
         _pointer.Current = new PointerInput(new Vector2(300, 400), true);
         _root.Update(new UpdateTick(1f / 60f, 0));
@@ -212,9 +207,7 @@ public sealed class EditorNoteInputSystemTests
     public void ChannelModePlacesAChannelStartOnTheSelectedSide()
     {
         Entity editor = _store.Query<PlayfieldView>().ToEntityList()[0];
-        editor.AddComponent(new EditorPlacementModeState(
-            EditorPlacementMode.Channel));
-        editor.AddComponent(new EditorNoteTarget(KeybindAction.R2));
+        editor.AddComponent(new EditorPlacement { Mode = EditorPlacementMode.Channel, Note = KeybindAction.R2 });
 
         _pointer.Current = new PointerInput(new Vector2(300, 400), true);
         _root.Update(new UpdateTick(1f / 60f, 0));
@@ -231,10 +224,7 @@ public sealed class EditorNoteInputSystemTests
     public void FormStepModePlacesAStepForTheActiveShape()
     {
         Entity editor = _store.Query<PlayfieldView>().ToEntityList()[0];
-        editor.AddComponent(new EditorPlacementModeState(
-            EditorPlacementMode.FormStep));
-        editor.AddComponent(new EditorNoteTarget(KeybindAction.R3));
-        editor.AddComponent(new EditorShapeState(7));
+        editor.AddComponent(new EditorPlacement { Mode = EditorPlacementMode.FormStep, Note = KeybindAction.R3, ShapeId = 7 });
 
         _pointer.Current = new PointerInput(new Vector2(300, 400), true);
         _root.Update(new UpdateTick(1f / 60f, 0));
@@ -345,7 +335,7 @@ public sealed class EditorNoteInputSystemTests
     public void NewNotesKeepTheSelectedTarget()
     {
         Entity editor = _store.Query<PlayfieldView>().ToEntityList()[0];
-        editor.AddComponent(new EditorNoteTarget(KeybindAction.R3));
+        editor.AddComponent(new EditorPlacement { Note = KeybindAction.R3 });
 
         _pointer.Current = new PointerInput(new Vector2(100, 200), true);
         _root.Update(new UpdateTick(1f / 60f, 0));
@@ -427,7 +417,7 @@ public sealed class EditorNoteInputSystemTests
     public void MineModePlacesMinesInsteadOfNotes()
     {
         Entity editor = _store.Query<PlayfieldView>().ToEntityList()[0];
-        editor.AddComponent(new EditorPlacementModeState(EditorPlacementMode.Mines));
+        editor.AddComponent(new EditorPlacement { Mode = EditorPlacementMode.Mines });
 
         _pointer.Current = new PointerInput(new Vector2(300, 400), true);
         _root.Update(new UpdateTick(1f / 60f, 0));
@@ -448,13 +438,7 @@ public sealed class EditorNoteInputSystemTests
     public void MovementModePlacesADirectionalMovementNote()
     {
         Entity editor = _store.Query<PlayfieldView>().ToEntityList()[0];
-        editor.AddComponent(
-            new EditorPlacementModeState(EditorPlacementMode.Dash));
-        editor.AddComponent(
-            new EditorDashDirectionState(DashDirection.UpRight));
-        editor.AddComponent(
-            new EditorDashStrengthState(DashStrength.Double));
-        editor.AddComponent(new EditorNoteTarget(KeybindAction.R2));
+        editor.AddComponent(new EditorPlacement { Mode = EditorPlacementMode.Dash, Direction = DashDirection.UpRight, Strength = DashStrength.Double, Note = KeybindAction.R2 });
 
         _pointer.Current = new PointerInput(new Vector2(300, 400), true);
         _root.Update(new UpdateTick(1f / 60f, 0));
@@ -478,9 +462,7 @@ public sealed class EditorNoteInputSystemTests
     public void PairModePlacesTheNumberedPairFromTheSelectedKey()
     {
         Entity editor = _store.Query<PlayfieldView>().ToEntityList()[0];
-        editor.AddComponent(
-            new EditorPlacementModeState(EditorPlacementMode.Pair));
-        editor.AddComponent(new EditorNoteTarget(KeybindAction.R2));
+        editor.AddComponent(new EditorPlacement { Mode = EditorPlacementMode.Pair, Note = KeybindAction.R2 });
 
         _pointer.Current = new PointerInput(new Vector2(300, 400), true);
         _root.Update(new UpdateTick(1f / 60f, 0));
@@ -500,12 +482,7 @@ public sealed class EditorNoteInputSystemTests
     public void MomentumModePlacesTheAuthoredDirectionAndStrength()
     {
         Entity editor = _store.Query<PlayfieldView>().ToEntityList()[0];
-        editor.AddComponent(
-            new EditorPlacementModeState(EditorPlacementMode.Momentum));
-        editor.AddComponent(
-            new EditorDashDirectionState(DashDirection.Left));
-        editor.AddComponent(
-            new EditorDashStrengthState(DashStrength.Double));
+        editor.AddComponent(new EditorPlacement { Mode = EditorPlacementMode.Momentum, Direction = DashDirection.Left, Strength = DashStrength.Double });
 
         _pointer.Current = new PointerInput(new Vector2(300, 400), true);
         _root.Update(new UpdateTick(1f / 60f, 0));
@@ -524,7 +501,7 @@ public sealed class EditorNoteInputSystemTests
     public void UndoRemovesAPlacedMine()
     {
         Entity editor = _store.Query<PlayfieldView>().ToEntityList()[0];
-        editor.AddComponent(new EditorPlacementModeState(EditorPlacementMode.Mines));
+        editor.AddComponent(new EditorPlacement { Mode = EditorPlacementMode.Mines });
 
         _pointer.Current = new PointerInput(new Vector2(300, 400), true);
         _root.Update(new UpdateTick(1f / 60f, 0));
@@ -540,7 +517,7 @@ public sealed class EditorNoteInputSystemTests
     {
         Entity editor = _store.Query<PlayfieldView>().ToEntityList()[0];
         editor.AddComponent(new EditorPlacementGhost());
-        editor.AddComponent(new EditorPlacementModeState(EditorPlacementMode.Spikes));
+        editor.AddComponent(new EditorPlacement { Mode = EditorPlacementMode.Spikes });
 
         _pointer.Current = new PointerInput(new Vector2(500, 500), false);
         _root.Update(new UpdateTick(1f / 60f, 0));
@@ -555,7 +532,7 @@ public sealed class EditorNoteInputSystemTests
     {
         Entity editor = _store.Query<PlayfieldView>().ToEntityList()[0];
         editor.AddComponent(new EditorPlacementGhost());
-        editor.AddComponent(new EditorPlacementModeState(EditorPlacementMode.Spikes));
+        editor.AddComponent(new EditorPlacement { Mode = EditorPlacementMode.Spikes });
         _store.CreateEntity(new Spike(new Vector2(400, 400), new Vector2(100, 100)));
 
         _pointer.Current = new PointerInput(new Vector2(450, 450), false);
@@ -571,7 +548,7 @@ public sealed class EditorNoteInputSystemTests
     public void SpikeModePaintsOneTilePerGridCell()
     {
         Entity editor = _store.Query<PlayfieldView>().ToEntityList()[0];
-        editor.AddComponent(new EditorPlacementModeState(EditorPlacementMode.Spikes));
+        editor.AddComponent(new EditorPlacement { Mode = EditorPlacementMode.Spikes });
 
         _pointer.Current = new PointerInput(new Vector2(350, 640), true);
         _root.Update(new UpdateTick(1f / 60f, 0));
@@ -603,7 +580,7 @@ public sealed class EditorNoteInputSystemTests
     public void SpikePaintingSkipsCellThatAlreadyHasATile()
     {
         Entity editor = _store.Query<PlayfieldView>().ToEntityList()[0];
-        editor.AddComponent(new EditorPlacementModeState(EditorPlacementMode.Spikes));
+        editor.AddComponent(new EditorPlacement { Mode = EditorPlacementMode.Spikes });
         _store.CreateEntity(
             new Spike(new Vector2(400, 600), new Vector2(100, 100)));
 
@@ -621,7 +598,7 @@ public sealed class EditorNoteInputSystemTests
     public void UndoRemovesAWholeSpikeStroke()
     {
         Entity editor = _store.Query<PlayfieldView>().ToEntityList()[0];
-        editor.AddComponent(new EditorPlacementModeState(EditorPlacementMode.Spikes));
+        editor.AddComponent(new EditorPlacement { Mode = EditorPlacementMode.Spikes });
 
         _pointer.Current = new PointerInput(new Vector2(350, 640), true);
         _root.Update(new UpdateTick(1f / 60f, 0));
@@ -730,7 +707,7 @@ public sealed class EditorNoteInputSystemTests
     {
         Entity block = _store.CreateEntity(new Block(new Vector2(100, 200), new Vector2(120, 120)));
         Entity editor = _store.Query<PlayfieldView>().ToEntityList()[0];
-        editor.AddComponent(new EditorPlacementModeState(EditorPlacementMode.Blocks));
+        editor.AddComponent(new EditorPlacement { Mode = EditorPlacementMode.Blocks });
         editor.GetComponent<NoteSelection>().Note = block;
 
         Click(new Vector2(600, 600));
@@ -922,7 +899,7 @@ public sealed class EditorNoteInputSystemTests
     {
         Entity editor = _store.Query<PlayfieldView>().ToEntityList()[0];
         editor.AddComponent(
-            new EditorPlacementModeState(EditorPlacementMode.Mines));
+            new EditorPlacement { Mode = EditorPlacementMode.Mines });
         _store.CreateEntity(new Note(1_000, new Vector2(200, 200)));
         _store.CreateEntity(new Note(1_000, new Vector2(300, 300)));
 
@@ -942,7 +919,7 @@ public sealed class EditorNoteInputSystemTests
     {
         Entity editor = _store.Query<PlayfieldView>().ToEntityList()[0];
         editor.AddComponent(
-            new EditorPlacementModeState(EditorPlacementMode.Dash));
+            new EditorPlacement { Mode = EditorPlacementMode.Dash });
         _store.CreateEntity(new Note(1_000, new Vector2(200, 200)));
         _store.CreateEntity(new Note(1_000, new Vector2(300, 300)));
 
@@ -999,7 +976,7 @@ public sealed class EditorNoteInputSystemTests
     {
         Entity editor = _store.Query<PlayfieldView>().ToEntityList()[0];
         editor.AddComponent(
-            new EditorPlacementModeState(EditorPlacementMode.Start));
+            new EditorPlacement { Mode = EditorPlacementMode.Start });
 
         _pointer.Current = new PointerInput(new Vector2(300, 400), true);
         _root.Update(new UpdateTick(1f / 60f, 0));
@@ -1061,7 +1038,7 @@ public sealed class EditorNoteInputSystemTests
     {
         Entity editor = EditorEntity();
         editor.AddComponent(
-            new EditorPlacementModeState(EditorPlacementMode.Blocks));
+            new EditorPlacement { Mode = EditorPlacementMode.Blocks });
 
         Click(new Vector2(520, 520));
 
@@ -1084,7 +1061,7 @@ public sealed class EditorNoteInputSystemTests
     public void DraggingPaintsARunWithNoOverlaps(EditorPlacementMode mode)
     {
         Entity editor = EditorEntity();
-        editor.AddComponent(new EditorPlacementModeState(mode));
+        editor.AddComponent(new EditorPlacement { Mode = mode });
 
         Drag(new Vector2(300, 300), new Vector2(700, 300));
         int painted = _store.Query<Block>().Count + _store.Query<Spike>().Count;
@@ -1097,7 +1074,7 @@ public sealed class EditorNoteInputSystemTests
     [TestCase(EditorPlacementMode.Spikes)]
     public void PaintingOnASpotTakenByItsOwnKindSelectsInsteadOfStacking(EditorPlacementMode mode)
     {
-        EditorEntity().AddComponent(new EditorPlacementModeState(mode));
+        EditorEntity().AddComponent(new EditorPlacement { Mode = mode });
 
         Drag(new Vector2(300, 300), new Vector2(300, 300));
         Drag(new Vector2(300, 300), new Vector2(300, 300));
@@ -1166,7 +1143,7 @@ public sealed class EditorNoteInputSystemTests
     public void WithSnapOffBlocksPlaceMoveAndResizeFreely()
     {
         Entity editor = _store.Query<PlayfieldView>().ToEntityList()[0];
-        editor.AddComponent(new EditorPlacementModeState(EditorPlacementMode.Blocks));
+        editor.AddComponent(new EditorPlacement { Mode = EditorPlacementMode.Blocks });
         ViewportSnap.Attach(_store.CreateEntity(), "");
         foreach (Entity toggle in _store.Query<Toggle>().Entities)
             toggle.GetComponent<Toggle>().Value = false;

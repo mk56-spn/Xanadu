@@ -15,12 +15,6 @@ public struct EditorBlockOutlinePanel(Entity section, Entity width, Entity color
     public Entity Color = color;
 }
 
-/// <summary>A button that thickens or thins the selected blocks' and spikes' outline by whole units.</summary>
-public struct EditorOutlineStepButton(int delta) : IComponent
-{
-    public int Delta = delta;
-}
-
 /// <summary>
 /// Sets the outline of the selected blocks and spikes from the sidebar, each change
 /// one undo step, and shows the controls only while one of them is selected. As with the self
@@ -53,14 +47,14 @@ public sealed class EditorBlockOutlineSystem(EditorHistory history) : QuerySyste
         if (UiColorField.TakeCommit(panel.Color, out Color color))
             ApplyColor(color);
 
-        foreach (Entity button in editor.Store.Query<EditorOutlineStepButton>().WithDisabled().ToEntityList())
+        foreach (Entity button in EditorButton.All(editor.Store, EditorButtonKind.OutlineStep))
         {
             bool pressed = button.Tags.Has<Pressed>();
             bool was = !_held.Add(button.Id);
             if (!pressed)
                 _held.Remove(button.Id);
             if (pressed && !was)
-                Step(selection, first, button.GetComponent<EditorOutlineStepButton>().Delta);
+                Step(selection, first, button.GetComponent<EditorButton>().Arg);
         }
 
         if (first.IsNull)

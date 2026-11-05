@@ -219,10 +219,10 @@ public sealed partial class EditorNoteInputSystem : QuerySystem<Note>
             }
 
             if (hit.HasComponent<Note>() &&
-                editor.HasComponent<EditorNoteTarget>())
+                editor.HasComponent<EditorPlacement>())
             {
                 Note selected = hit.GetComponent<Note>();
-                editor.GetComponent<EditorNoteTarget>().Target =
+                editor.GetComponent<EditorPlacement>().Note =
                     selected.Kind == NoteKind.Pair
                         ? NoteRules.ActionFor(selected.PairIndex)
                         : selected.Target;
@@ -425,8 +425,8 @@ public sealed partial class EditorNoteInputSystem : QuerySystem<Note>
 
     private void CreatePlacementAt(Entity editor, Vector2 screenPosition)
     {
-        if (editor.HasComponent<EditorPlacementModeState>() &&
-            editor.GetComponent<EditorPlacementModeState>().Mode ==
+        if (editor.HasComponent<EditorPlacement>() &&
+            editor.GetComponent<EditorPlacement>().Mode ==
             EditorPlacementMode.Start)
         {
             PlayfieldView startView = editor.GetComponent<PlayfieldView>();
@@ -447,8 +447,8 @@ public sealed partial class EditorNoteInputSystem : QuerySystem<Note>
             return;
         }
 
-        if (editor.HasComponent<EditorPlacementModeState>() &&
-            editor.GetComponent<EditorPlacementModeState>().Mode ==
+        if (editor.HasComponent<EditorPlacement>() &&
+            editor.GetComponent<EditorPlacement>().Mode ==
             EditorPlacementMode.Text)
         {
             PlayfieldView textView = editor.GetComponent<PlayfieldView>();
@@ -463,8 +463,8 @@ public sealed partial class EditorNoteInputSystem : QuerySystem<Note>
             return;
         }
 
-        if (editor.HasComponent<EditorPlacementModeState>() &&
-            editor.GetComponent<EditorPlacementModeState>().Mode ==
+        if (editor.HasComponent<EditorPlacement>() &&
+            editor.GetComponent<EditorPlacement>().Mode ==
             EditorPlacementMode.Mines)
         {
             PlayfieldView view = editor.GetComponent<PlayfieldView>();

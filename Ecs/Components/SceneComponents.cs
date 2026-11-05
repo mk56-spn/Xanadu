@@ -57,25 +57,51 @@ public struct SceneRoot(SceneKind scene) : IComponent
     public SceneKind Scene = scene;
 }
 
-/// <summary>Requests a scene change when its ECS button is pressed.</summary>
-public struct SceneAction(SceneKind target) : IComponent
+public enum SceneActionKind
 {
-    public SceneKind Target = target;
+    /// <summary>Changes to <see cref="SceneAction.Target"/>.</summary>
+    Go,
+    /// <summary>Selects a local profile and continues to the main menu.</summary>
+    SelectProfile,
+    /// <summary>Creates a new local profile and opens the screen that edits it.</summary>
+    CreateProfile,
+    /// <summary>Makes a profile the active one and opens the screen that edits it.</summary>
+    EditProfile,
 }
 
-/// <summary>Selects a local profile and continues to the main menu.</summary>
-public struct ProfileSelect(string profileId) : IComponent
+/// <summary>What a menu button does when it is pressed.</summary>
+public struct SceneAction : IComponent
 {
-    public string ProfileId = profileId;
-}
+    public SceneActionKind Kind;
 
-/// <summary>Creates a new local profile and continues to the main menu.</summary>
-public struct ProfileCreate : IComponent;
+    /// <summary>The scene a <see cref="SceneActionKind.Go"/> button changes to.</summary>
+    public SceneKind Target;
 
-/// <summary>Makes a profile the active one and opens the screen that edits it.</summary>
-public struct ProfileEditAction(string profileId) : IComponent
-{
-    public string ProfileId = profileId;
+    /// <summary>The profile a profile button acts on.</summary>
+    public string ProfileId;
+
+    public static SceneAction Go(SceneKind target) => new() { Kind = SceneActionKind.Go, Target = target };
+
+    public static SceneAction SelectProfile(string profileId) =>
+        new() { Kind = SceneActionKind.SelectProfile, ProfileId = profileId };
+
+    public static SceneAction CreateProfile() => new() { Kind = SceneActionKind.CreateProfile };
+
+    public static SceneAction EditProfile(string profileId) =>
+        new() { Kind = SceneActionKind.EditProfile, ProfileId = profileId };
+
+    /// <summary>The menu buttons of one kind, hidden ones included.</summary>
+    public static System.Collections.Generic.List<Entity> All(EntityStore store, SceneActionKind kind)
+    {
+        var found = new System.Collections.Generic.List<Entity>();
+        foreach (Entity entity in store.Query<SceneAction>().WithDisabled().ToEntityList())
+        {
+            if (entity.GetComponent<SceneAction>().Kind == kind)
+                found.Add(entity);
+        }
+
+        return found;
+    }
 }
 
 /// <summary>The controls of the profile edit screen and the art they tint.</summary>
@@ -87,15 +113,6 @@ public struct ProfileEditView(Entity name, Entity picker, Entity art) : ICompone
 
     /// <summary>The name text last handed to the profile, so only real edits rename it.</summary>
     public string Typed = "";
-}
-
-/// <summary>Opens the editor with the currently selected song-select level.</summary>
-public struct EditLevelAction : IComponent;
-
-/// <summary>Moves the song-select carousel by one entry.</summary>
-public struct CarouselStep(int direction) : IComponent
-{
-    public int Direction = direction;
 }
 
 /// <summary>Song-select UI state and the text entities it updates.</summary>
