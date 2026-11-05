@@ -12,8 +12,10 @@ namespace Xanadu.Systems.Editor;
 /// <summary>Placing the group overlay's pieces: rows, bars and the beat ruler.</summary>
 public sealed partial class EditorGroupSystem
 {
-    private static readonly Color RowIdle = Palette.SurfaceRaised;
-    private static readonly Color RowSelected = new("#1d2a42");
+    // The timeline is only its white timing lines over the field; the effects
+    // themselves are drawn as ease bands and pins by EditorGroupOverlayDrawSystem.
+    private static readonly Color BeatLine = new(1f, 1f, 1f, 0.35f);
+    private static readonly Color TickLine = new(1f, 1f, 1f, 0.12f);
 
     // ------------------------------------------------------------------ showing
 
@@ -45,13 +47,19 @@ public sealed partial class EditorGroupSystem
                 mine++;
         }
 
-        UiText.Set(Piece(EditorGroupPart.MemberText), mine > 0 ? $"{members} ITEMS  ({mine} SELECTED)" : $"{members} ITEMS", buffer);
+        UiText.Set(Piece(EditorGroupPart.MemberText), mine > 0 ? $"{members} ITEMS · {mine} SEL" : $"{members} ITEMS", buffer);
         ShowColorLink(editor, state.Open, outline: false, buffer);
         ShowColorLink(editor, state.Open, outline: true, buffer);
+        UiText.Set(
+            Piece(EditorGroupPart.BufferToggle),
+            group.Buffered ? "BUF ON" : "BUF OFF",
+            buffer);
+        Tint(Piece(EditorGroupPart.BufferToggle), group.Buffered ? ToggleOn : ActionIdle, buffer);
         UiText.Set(Piece(EditorGroupPart.SnapToggle), state.Snap ? "SNAP ON" : "SNAP OFF", buffer);
-        Tint(Piece(EditorGroupPart.SnapToggle), state.Snap ? CellUsed : SceneColors.Muted, buffer);
+        Tint(Piece(EditorGroupPart.SnapToggle), state.Snap ? ToggleOn : Unavailable, buffer);
         UiText.Set(Piece(EditorGroupPart.PlayToggle), playhead.Playing ? "PAUSE" : "PLAY", buffer);
-        Tint(Piece(EditorGroupPart.PlayToggle), playhead.Playing ? CellOpen : CellUsed, buffer);
+        Tint(Piece(EditorGroupPart.PlayToggle), playhead.Playing ? ToggleOn : ActionIdle, buffer);
+        ShowShaderTrack(editor, state, group, playhead, buffer);
 
         Entity name = Piece(EditorGroupPart.NameField);
         if (!name.IsNull && !name.Tags.Has<TextFieldFocused>())
@@ -69,20 +77,24 @@ public sealed partial class EditorGroupSystem
         EditorGroupPart.MemberText, EditorGroupPart.AddSelected, EditorGroupPart.RemoveSelected,
         EditorGroupPart.SelectMembers, EditorGroupPart.InteriorLink, EditorGroupPart.OutlineLink,
         EditorGroupPart.SnapToggle, EditorGroupPart.AddMove,
-        EditorGroupPart.AddColor, EditorGroupPart.SoloToggle, EditorGroupPart.PlayToggle,
+        EditorGroupPart.AddColor, EditorGroupPart.BufferToggle, EditorGroupPart.SoloToggle, EditorGroupPart.PlayToggle,
         EditorGroupPart.ScrollLeft, EditorGroupPart.ScrollRight, EditorGroupPart.ZoomOut,
-        EditorGroupPart.ZoomIn, EditorGroupPart.Hint, EditorGroupPart.PreviewPanel,
+        EditorGroupPart.ZoomIn, EditorGroupPart.Hint,
         EditorGroupPart.SelectionText, EditorGroupPart.SelectionTarget,
         EditorGroupPart.SelectionDuplicate, EditorGroupPart.SelectionMute,
         EditorGroupPart.SelectionNudgeLeft, EditorGroupPart.SelectionNudgeRight,
         EditorGroupPart.SelectionPick,
+        EditorGroupPart.ShaderText, EditorGroupPart.ShaderSlot, EditorGroupPart.ShaderParam,
+        EditorGroupPart.ShaderChannel, EditorGroupPart.ShaderDown, EditorGroupPart.ShaderValue,
+        EditorGroupPart.ShaderUp, EditorGroupPart.ShaderClear,
+        EditorGroupPart.BufferTrack, EditorGroupPart.BufferTint, EditorGroupPart.BufferAlphaDown,
+        EditorGroupPart.BufferAlphaUp, EditorGroupPart.BufferBlend,
     };
 
     private static readonly EditorGroupPart[] RowParts =
     {
         EditorGroupPart.RowIndex, EditorGroupPart.RowKind, EditorGroupPart.RowStart, EditorGroupPart.RowEnd,
         EditorGroupPart.RowA, EditorGroupPart.RowB, EditorGroupPart.RowEase, EditorGroupPart.RowDelete,
-        EditorGroupPart.RowTrack, EditorGroupPart.RowBar,
     };
 
     private void ShowRows(
@@ -92,7 +104,6 @@ public sealed partial class EditorGroupSystem
         Vector2 origin,
         CommandBuffer buffer)
     {
-        Rect2 timeline = Offset(EditorGroupLayout.Timeline(dialog), origin);
         for (int row = 0; row < EditorGroupLayout.MaxRows; row++)
         {
             if (state.PaletteOpen)
@@ -106,19 +117,13 @@ public sealed partial class EditorGroupSystem
             {
                 foreach (EditorGroupPart part in RowParts)
                     Hide(Piece(part, row), buffer);
-                // An empty row still shows its track so the timeline reads as a grid.
-                Place(Piece(EditorGroupPart.RowTrack, row), EditorGroupLayout.Place(EditorGroupPart.RowTrack, row, dialog), origin, buffer);
                 continue;
             }
 
             GroupEffect effect = group.Effects[row];
             bool isMove = effect.Kind == GroupEffectKind.Move;
-            bool selected = state.SelectedGroup == state.Open && state.SelectedEffect == row;
-            Tint(Piece(EditorGroupPart.RowTrack, row), selected ? RowSelected : RowIdle, buffer);
             foreach (EditorGroupPart part in RowParts)
             {
-                if (part == EditorGroupPart.RowBar)
-                    continue;
                 if (part == EditorGroupPart.RowB && !isMove)
                 {
                     Hide(Piece(part, row), buffer);
@@ -154,37 +159,10 @@ public sealed partial class EditorGroupSystem
                 SetFieldText(a, "#" + effect.Tint.ToHtml(), buffer);
             }
 
-            Rect2 bar = BarRect(effect, row, state, timeline);
-            Color barColor = isMove ? MoveColor : OpaqueTint(effect);
-            if (effect.Muted)
-                barColor = barColor.Darkened(0.55f);
-            else if (selected)
-                barColor = barColor.Lightened(0.18f);
-            ShowBar(Piece(EditorGroupPart.RowBar, row), bar, timeline, barColor, buffer);
         }
     }
 
     private static Color OpaqueTint(GroupEffect effect) => new(effect.Tint.R, effect.Tint.G, effect.Tint.B);
-
-    private void ShowBar(Entity bar, Rect2 rect, Rect2 timeline, Color color, CommandBuffer buffer)
-    {
-        if (bar.IsNull)
-            return;
-
-        // A bar off the visible window is hidden rather than drawn over the table.
-        if (rect.End.X < timeline.Position.X || rect.Position.X > timeline.End.X)
-        {
-            Hide(bar, buffer);
-            return;
-        }
-
-        float left = Math.Max(rect.Position.X, timeline.Position.X);
-        float right = Math.Min(rect.End.X, timeline.End.X);
-        var clipped = new Rect2(left, rect.Position.Y, Math.Max(2f, right - left), rect.Size.Y);
-        Place(bar, new Rect2(Vector2.Zero, clipped.Size), clipped.Position, buffer);
-        Resize(bar, clipped.Size, buffer);
-        Tint(bar, color, buffer);
-    }
 
     /// <summary>Beat-grid tick lines and second labels across the ruler.</summary>
     private void ShowRuler(
@@ -217,7 +195,7 @@ public sealed partial class EditorGroupSystem
             bool beat = tick % Math.Max(1, playhead.SnapDivision) == 0;
             Entity line = Piece(EditorGroupPart.TickLine, slot);
             Place(line, new Rect2(0, 0, 1, EditorGroupLayout.MaxRows * EditorGroupLayout.RowHeight), new Vector2(x, timeline.Position.Y), buffer);
-            Tint(line, beat ? Palette.BorderStrong : Palette.SurfaceAlt, buffer);
+            Tint(line, beat ? BeatLine : TickLine, buffer);
             slot++;
         }
 
@@ -259,7 +237,7 @@ public sealed partial class EditorGroupSystem
             Hide(Piece(EditorGroupPart.TickLabel, label), buffer);
     }
 
-    /// <summary>The bar under the toolbar that acts on the selected effect.</summary>
+    /// <summary>The effect toolbar's tools that act on the selected effect.</summary>
     private void ShowSelection(
         EditorGroupState state,
         GroupDefinition group,
@@ -286,23 +264,23 @@ public sealed partial class EditorGroupSystem
         }
 
         UiText.Set(Piece(EditorGroupPart.SelectionTarget), "TARGET", buffer);
-        Tint(Piece(EditorGroupPart.SelectionTarget), move ? CellUsed : SceneColors.Muted, buffer);
+        Tint(Piece(EditorGroupPart.SelectionTarget), move ? ActionIdle : Unavailable, buffer);
         UiText.Set(Piece(EditorGroupPart.SelectionDuplicate), "DUP", buffer);
         Tint(
             Piece(EditorGroupPart.SelectionDuplicate),
-            selected && group.Effects.Count < EditorGroupLayout.MaxRows ? CellUsed : SceneColors.Muted,
+            selected && group.Effects.Count < EditorGroupLayout.MaxRows ? ActionIdle : Unavailable,
             buffer);
         UiText.Set(Piece(EditorGroupPart.SelectionMute), effect.Muted ? "UNMUTE" : "MUTE", buffer);
         Tint(
             Piece(EditorGroupPart.SelectionMute),
-            selected ? (effect.Muted ? Palette.DangerDeep : CellUsed) : SceneColors.Muted,
+            selected ? (effect.Muted ? Palette.DangerDeep : ActionIdle) : Unavailable,
             buffer);
-        Tint(Piece(EditorGroupPart.SelectionNudgeLeft), selected ? CellUsed : SceneColors.Muted, buffer);
-        Tint(Piece(EditorGroupPart.SelectionNudgeRight), selected ? CellUsed : SceneColors.Muted, buffer);
+        Tint(Piece(EditorGroupPart.SelectionNudgeLeft), selected ? ActionIdle : Unavailable, buffer);
+        Tint(Piece(EditorGroupPart.SelectionNudgeRight), selected ? ActionIdle : Unavailable, buffer);
         UiText.Set(Piece(EditorGroupPart.SelectionPick), "PICK", buffer);
         Tint(
             Piece(EditorGroupPart.SelectionPick),
-            colour ? OpaqueTint(effect).Darkened(0.35f) : SceneColors.Muted,
+            colour ? OpaqueTint(effect).Darkened(0.35f) : Unavailable,
             buffer);
 
         UiLayout.SetDisabled(Piece(EditorGroupPart.SelectionTarget), buffer, !move);
@@ -321,7 +299,7 @@ public sealed partial class EditorGroupSystem
             buffer);
         Tint(
             Piece(EditorGroupPart.SoloToggle),
-            state.SoloGroup == state.Open ? CellUsed : SceneColors.Muted,
+            state.SoloGroup == state.Open ? ToggleOn : ActionIdle,
             buffer);
     }
 
@@ -361,8 +339,8 @@ public sealed partial class EditorGroupSystem
             Tint(
                 alpha,
                 Mathf.IsEqualApprox(effect.Tint.A, EditorGroupPalette.Alphas[i])
-                    ? CellUsed
-                    : SceneColors.Muted,
+                    ? ToggleOn
+                    : ActionIdle,
                 buffer);
         }
     }

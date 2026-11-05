@@ -9,7 +9,8 @@ public struct ViewportSnapToggle : ITag;
 /// <summary>
 /// The snap-to-grid every editor shares, beside <see cref="ViewportGrid"/>: the
 /// switch and the sum. The header button's <see cref="Toggle"/> is the state, so
-/// anything that moves asks here. With no button, things snap.
+/// anything that moves asks here, even while its button sits in a closed menu.
+/// With no button, things snap.
 /// </summary>
 public static class ViewportSnap
 {
@@ -27,7 +28,7 @@ public static class ViewportSnap
 
     public static bool IsOn(EntityStore store)
     {
-        foreach (Entity toggle in store.Query<Toggle>().AllTags(Tags.Get<ViewportSnapToggle>()).Entities)
+        foreach (Entity toggle in store.Query<Toggle>().AllTags(Tags.Get<ViewportSnapToggle>()).WithDisabled().Entities)
             return toggle.GetComponent<Toggle>().Value;
 
         return true;

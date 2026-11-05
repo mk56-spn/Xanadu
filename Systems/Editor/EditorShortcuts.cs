@@ -39,6 +39,12 @@ public enum EditorShortcut
     MoveLeft,
     MoveRight,
 
+    /// <summary>Moves the selection one place forward through its layer.</summary>
+    MoveForward,
+
+    /// <summary>Moves the selection one place back through its layer.</summary>
+    MoveBack,
+
     /// <summary>Closes the outline the polygon tool is laying into a shape.</summary>
     FinishPolygon,
 
@@ -178,6 +184,8 @@ public static class EditorShortcuts
             new(new KeyChord(Key.Backspace), EditorShortcut.Delete, field),
             new(new KeyChord(Key.Left), EditorShortcut.MoveLeft, field),
             new(new KeyChord(Key.Right), EditorShortcut.MoveRight, field),
+            new(new KeyChord(Key.Bracketright, Ctrl: true, Shift: true), EditorShortcut.MoveForward, field),
+            new(new KeyChord(Key.Bracketleft, Ctrl: true, Shift: true), EditorShortcut.MoveBack, field),
         };
 
         foreach ((KeyChord chord, TimelineCommand command) in TimelineShortcuts.All)

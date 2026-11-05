@@ -41,5 +41,5 @@ public static class ViewportGrid
     }
 
     private static QueryEntities Toggles(EntityStore store) =>
-        store.Query<Toggle>().AllTags(Tags.Get<ViewportGridToggle>()).Entities;
+        store.Query<Toggle>().AllTags(Tags.Get<ViewportGridToggle>()).WithDisabled().Entities;
 }

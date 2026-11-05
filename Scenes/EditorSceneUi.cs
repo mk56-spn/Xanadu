@@ -40,9 +40,10 @@ internal static Entity BuildDropdown(
         float width,
         EditorDropdownKind kind,
         string[] labels,
-        int selected)
+        int selected,
+        float height = 34f)
     {
-        UiNode button = parent.Button("", 13, SceneUi.EditorButtonColor).Size(width, 34);
+        UiNode button = parent.Button("", 13, SceneUi.EditorButtonColor).Size(width, height);
         parent.DropdownList(
             button.Entity,
             labels,

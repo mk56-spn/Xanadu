@@ -40,7 +40,11 @@ public static class EditorToolGroups
             new(EditorPlacementMode.Spikes, "▲", "Spikes"),
             new(EditorPlacementMode.Mines, "✹", "Mines"),
         }),
-        new("Text", new EditorTool[] { new(EditorPlacementMode.Text, "T", "Text") }),
+        new("Text and screen reads", new EditorTool[]
+        {
+            new(EditorPlacementMode.Text, "T", "Text"),
+            new(EditorPlacementMode.ScreenRead, "▭", "Screen-read regions: a rect that refreshes the screen read where it is reached"),
+        }),
         new("Grass", new EditorTool[] { new(EditorPlacementMode.Grass, "🌿", "Grass") }),
         new("Polygons", new EditorTool[] { new(EditorPlacementMode.Polygon, "⬟", "Polygons: click the points, then the first again or Enter; Esc drops it") }),
     };

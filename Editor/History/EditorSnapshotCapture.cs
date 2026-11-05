@@ -19,6 +19,7 @@ public sealed class EditorSnapshotCapture(EntityStore entities)
         var texts = new List<TextSnapshot>();
         var grass = new List<GrassSnapshot>();
         var polygons = new List<PolygonSnapshot>();
+        var screenReads = new List<ScreenReadSnapshot>();
 
         foreach (Entity entity in entities.Query<Note>().ToEntityList())
         {
@@ -43,7 +44,9 @@ public sealed class EditorSnapshotCapture(EntityStore entities)
                 note.ShapeId,
                 note.ShapePiece,
                 SelfModulate.Packed(entity),
-                ItemLayer.Of(entity)));
+                ItemLayer.Of(entity),
+                ItemBlend.Of(entity),
+                ItemShaderSource.Of(entity)));
         }
 
         notes.Sort(static (a, b) =>
@@ -87,7 +90,9 @@ public sealed class EditorSnapshotCapture(EntityStore entities)
                 MaskOf(entity),
                 ItemShader.Of(entity),
                 SelfModulate.Packed(entity),
-                ItemLayer.Of(entity)));
+                ItemLayer.Of(entity),
+                ItemBlend.Of(entity),
+                ItemShaderSource.Of(entity)));
         }
 
         mines.Sort(static (a, b) =>
@@ -103,7 +108,9 @@ public sealed class EditorSnapshotCapture(EntityStore entities)
                 start.Momentum,
                 start.Direction,
                 MaskOf(entity),
-                ItemLayer.Of(entity)));
+                ItemLayer.Of(entity),
+                ItemBlend.Of(entity),
+                ItemShaderSource.Of(entity)));
         }
 
         starts.Sort(static (a, b) =>
@@ -125,7 +132,9 @@ public sealed class EditorSnapshotCapture(EntityStore entities)
                 block.OutlineColor.ToRgba32(),
                 block.FillGroups,
                 block.OutlineGroups,
-                ItemLayer.Of(entity)));
+                ItemLayer.Of(entity),
+                ItemBlend.Of(entity),
+                ItemShaderSource.Of(entity)));
         }
 
         blocks.Sort(static (a, b) => SnapshotOrder.ByPosition(a.Position, b.Position));
@@ -142,7 +151,9 @@ public sealed class EditorSnapshotCapture(EntityStore entities)
                 spike.RotationDegrees,
                 spike.OutlineWidth,
                 spike.OutlineColor.ToRgba32(),
-                ItemLayer.Of(entity)));
+                ItemLayer.Of(entity),
+                ItemBlend.Of(entity),
+                ItemShaderSource.Of(entity)));
         }
 
         spikes.Sort(static (a, b) => SnapshotOrder.ByPosition(a.Position, b.Position));
@@ -158,7 +169,9 @@ public sealed class EditorSnapshotCapture(EntityStore entities)
                 ItemShader.Of(entity),
                 SelfModulate.Packed(entity),
                 text.RotationDegrees,
-                ItemLayer.Of(entity)));
+                ItemLayer.Of(entity),
+                ItemBlend.Of(entity),
+                ItemShaderSource.Of(entity)));
         }
 
         texts.Sort(static (a, b) =>
@@ -174,7 +187,9 @@ public sealed class EditorSnapshotCapture(EntityStore entities)
                 MaskOf(entity),
                 ItemShader.Of(entity),
                 SelfModulate.Packed(entity),
-                ItemLayer.Of(entity)));
+                ItemLayer.Of(entity),
+                ItemBlend.Of(entity),
+                ItemShaderSource.Of(entity)));
         }
 
         grass.Sort(static (a, b) =>
@@ -193,10 +208,23 @@ public sealed class EditorSnapshotCapture(EntityStore entities)
                 MaskOf(entity),
                 ItemShader.Of(entity),
                 SelfModulate.Packed(entity),
-                ItemLayer.Of(entity)));
+                ItemLayer.Of(entity),
+                ItemBlend.Of(entity),
+                ItemShaderSource.Of(entity)));
         }
 
         polygons.Sort(static (a, b) => SnapshotOrder.ByPosition(a.Position, b.Position));
+
+        foreach (Entity entity in entities.Query<ScreenReadRegion>().ToEntityList())
+        {
+            ScreenReadRegion region = entity.GetComponent<ScreenReadRegion>();
+            screenReads.Add(new ScreenReadSnapshot(
+                region.Position,
+                region.Size,
+                ItemLayer.Of(entity)));
+        }
+
+        screenReads.Sort(static (a, b) => SnapshotOrder.ByPosition(a.Position, b.Position));
 
         return new EditorSnapshot(
             notes,
@@ -207,11 +235,20 @@ public sealed class EditorSnapshotCapture(EntityStore entities)
             CaptureGroups(),
             texts,
             grass,
-            polygons);
+            polygons,
+            CaptureLayers(),
+            screenReads);
     }
 
     private static uint MaskOf(Entity entity) =>
         entity.TryGetComponent(out ItemGroups groups) ? groups.Mask : 0u;
+
+    private LevelLayers? CaptureLayers()
+    {
+        foreach (Entity entity in entities.Query<LevelLayers>().ToEntityList())
+            return entity.GetComponent<LevelLayers>().Clone();
+        return null;
+    }
 
     private GroupDefinition[]? CaptureGroups()
     {

@@ -7,205 +7,47 @@ using Xanadu.Theme;
 
 namespace Xanadu.Systems.Editor;
 
-/// <summary>The editor's group preview: translucent ghosts where groups will move and tint items.</summary>
+/// <summary>
+/// What the editor draws for groups on top of the live items: a mark on each
+/// item a group has moved at the playhead, and the selected move's target handle.
+/// </summary>
 public sealed class EditorGroupsDrawer(EditorDrawSurface surface)
 {
-    /// <summary>Where the groups would put each member at the playhead, drawn over the editable item.</summary>
-    public void DrawPreview(
-        PlayfieldView view,
-        Playhead playhead,
-        LevelGroups groups,
-        EditorGroupState state)
+    /// <summary>The colour of the moved-item marks.</summary>
+    public static readonly Color MarkColor = Palette.Info;
+
+    /// <summary>Moves shorter than this many playfield pixels aren't marked.</summary>
+    private const float MarkMin = 0.5f;
+
+    /// <summary>
+    /// Every item drawn away from where it was placed gets a faint line back to
+    /// a small ring at its placed position, so it's
+    /// clear the item is shown moved and where edits really land (step 3a).
+    /// </summary>
+    public void DrawMoved(PlayfieldView view)
     {
-        if (groups.Groups is null)
-            return;
-
-        float seconds = playhead.TimeMs / 1000f;
-        DrawPreviewNotes(view, playhead, groups, state, seconds);
-        DrawPreviewMines(view, playhead, groups, state, seconds);
-        DrawPreviewBlocks(view, groups, state, seconds);
-        DrawPreviewStartPoints(view, groups, state, seconds);
-    }
-
-    private void DrawPreviewNotes(
-        PlayfieldView view,
-        Playhead playhead,
-        LevelGroups groups,
-        EditorGroupState state,
-        float seconds)
-    {
-        float radius = PlayfieldRenderer.NoteSize * view.Scale / 2f;
-
-        foreach (Entity entity in surface.Entities.Query<Note>().ToEntityList())
+        Color badge = MarkColor;
+        var line = new Color(badge.R, badge.G, badge.B, 0.35f);
+        var ring = new Color(badge.R, badge.G, badge.B, 0.6f);
+        foreach (var (offsets, chunk) in surface.Entities.Query<GroupOffset>().Chunks)
         {
-            if (!entity.TryGetComponent(out ItemGroups member) ||
-                Effective(state, member.Mask) == 0)
+            System.Span<GroupOffset> span = offsets.Span;
+            for (int i = 0; i < span.Length; i++)
             {
-                continue;
+                Vector2 offset = span[i].Offset;
+                if (offset.LengthSquared() < MarkMin * MarkMin ||
+                    !EditorGroupTarget.TryPosition(chunk.EntityAt(i), out Vector2 placed))
+                {
+                    continue;
+                }
+
+                Vector2 from = view.PlayfieldToScreen(placed);
+                Vector2 to = view.PlayfieldToScreen(placed + offset);
+                surface.Canvas.DrawLine(surface.Target, from, to, line, 1);
+                surface.Canvas.DrawCircleOutline(surface.Target, from, 4f, ring, 1.5f);
             }
-
-            uint mask = Effective(state, member.Mask);
-            Note note = entity.GetComponent<Note>();
-            float fade = NoteFade.Alpha(note, playhead.TimeMs);
-            if (fade <= 0f)
-                continue;
-
-            Vector2 offset = GroupModulation.Offset(groups.Groups, mask, seconds);
-            bool tinted = GroupModulation.TryColor(
-                groups.Groups, mask, seconds, out Color mix, out float coverage);
-            if (offset == Vector2.Zero && !tinted)
-                continue;
-
-            Color color = tinted
-                ? new GroupColor(mix, coverage).Apply(SelfModulate.For(entity, PlayfieldRenderer.ColorFor(note)))
-                : SelfModulate.For(entity, PlayfieldRenderer.ColorFor(note));
-            float groupAlpha = color.A;
-            color.A = fade * 0.55f * groupAlpha;
-            Vector2 baseCenter = view.PlayfieldToScreen(note.Position);
-            Vector2 ghost = view.PlayfieldToScreen(note.Position + offset);
-
-            DrawTether(baseCenter, ghost, fade);
-            PlayfieldRenderer.DrawNoteBody(surface.Canvas, surface.Target, note, ghost, radius, color);
-            surface.Canvas.DrawCircleOutline(
-                surface.Target,
-                ghost,
-                radius + 3f,
-                new Color(color.R, color.G, color.B, fade * 0.28f),
-                1);
         }
     }
-
-    private void DrawPreviewMines(
-        PlayfieldView view,
-        Playhead playhead,
-        LevelGroups groups,
-        EditorGroupState state,
-        float seconds)
-    {
-        float size = PlayfieldRenderer.MineSize * view.Scale;
-
-        foreach (Entity entity in surface.Entities.Query<Mine>().ToEntityList())
-        {
-            if (!entity.TryGetComponent(out ItemGroups member) ||
-                Effective(state, member.Mask) == 0)
-            {
-                continue;
-            }
-
-            uint mask = Effective(state, member.Mask);
-            Mine mine = entity.GetComponent<Mine>();
-            float fade = MineFade.Alpha(mine, playhead.TimeMs);
-            if (fade <= 0f)
-                continue;
-
-            Vector2 offset = GroupModulation.Offset(groups.Groups, mask, seconds);
-            bool tinted = GroupModulation.TryColor(
-                groups.Groups, mask, seconds, out Color mix, out float coverage);
-            if (offset == Vector2.Zero && !tinted)
-                continue;
-
-            Color color = tinted
-                ? new GroupColor(mix, coverage).Apply(SelfModulate.For(entity, new Color(1f, 0.22f, 0.16f)))
-                : SelfModulate.For(entity, new Color(1f, 0.22f, 0.16f));
-            float groupAlpha = color.A;
-            color.A = fade * 0.65f * groupAlpha;
-            Vector2 center = view.PlayfieldToScreen(mine.Position);
-            Vector2 ghost = view.PlayfieldToScreen(mine.Position + offset);
-            var bounds = new Rect2(
-                ghost - new Vector2(size / 2f, size / 2f),
-                new Vector2(size, size));
-
-            DrawTether(center, ghost, fade);
-            surface.Canvas.DrawRect(
-                surface.Target,
-                bounds,
-                new Color(0.08f, 0.02f, 0.02f, fade * 0.18f));
-            surface.Canvas.DrawBorder(surface.Target, bounds, color, 2);
-        }
-    }
-
-    private void DrawPreviewBlocks(
-        PlayfieldView view,
-        LevelGroups groups,
-        EditorGroupState state,
-        float seconds)
-    {
-        foreach (Entity entity in surface.Entities.Query<Block>().ToEntityList())
-        {
-            if (!entity.TryGetComponent(out ItemGroups member) ||
-                Effective(state, member.Mask) == 0)
-            {
-                continue;
-            }
-
-            uint mask = Effective(state, member.Mask);
-            Block block = entity.GetComponent<Block>();
-            if (block.Size.X <= 0 || block.Size.Y <= 0)
-                continue;
-
-            Vector2 offset = GroupModulation.Offset(groups.Groups, mask, seconds);
-            bool edgeTinted = GroupModulation.TryColor(
-                groups.Groups, mask & block.OutlineGroups, seconds, out Color edgeMix, out float edgeCoverage);
-            bool fillTinted = GroupModulation.TryColor(
-                groups.Groups, mask & block.FillGroups, seconds, out Color fillMix, out float fillCoverage);
-            if (offset == Vector2.Zero && !edgeTinted && !fillTinted)
-                continue;
-
-            Color edge = edgeTinted
-                ? new GroupColor(edgeMix, edgeCoverage).Apply(block.OutlineColor)
-                : block.OutlineColor;
-            Color fill = SelfModulate.For(entity, PlayfieldRenderer.BlockFill);
-            if (fillTinted)
-                fill = new GroupColor(fillMix, fillCoverage).Apply(fill);
-            edge.A *= 0.7f;
-            fill.A *= fillTinted ? 0.5f : 0.16f;
-            var screen = new Rect2(
-                view.PlayfieldToScreen(block.Position + offset),
-                block.Size * view.Scale);
-
-            PlayfieldRenderer.DrawBlockBody(surface.Canvas, surface.Target, screen, block.OutlineWidth * view.Scale, fill, edge);
-        }
-    }
-
-    private void DrawPreviewStartPoints(
-        PlayfieldView view,
-        LevelGroups groups,
-        EditorGroupState state,
-        float seconds)
-    {
-        foreach (Entity entity in surface.Entities.Query<StartPoint>().ToEntityList())
-        {
-            if (!entity.TryGetComponent(out ItemGroups member) ||
-                Effective(state, member.Mask) == 0)
-            {
-                continue;
-            }
-
-            uint mask = Effective(state, member.Mask);
-            StartPoint start = entity.GetComponent<StartPoint>();
-            Vector2 offset = GroupModulation.Offset(groups.Groups, mask, seconds);
-            bool tinted = GroupModulation.TryColor(
-                groups.Groups, mask, seconds, out Color mix, out float coverage);
-            if (offset == Vector2.Zero && !tinted)
-                continue;
-
-            Color color = tinted
-                ? new GroupColor(mix, coverage).Apply(PlayfieldRenderer.StartPointColor)
-                : PlayfieldRenderer.StartPointColor;
-            float groupAlpha = color.A;
-            color.A = 0.65f * groupAlpha;
-            Vector2 center = view.PlayfieldToScreen(start.Position);
-            Vector2 ghost = view.PlayfieldToScreen(start.Position + offset);
-
-            DrawTether(center, ghost, 1f);
-            PlayfieldRenderer.DrawStartPointBody(surface.Canvas, surface.Target, ghost, PlayfieldRenderer.StartPointRadius(view), color);
-        }
-    }
-
-    private static uint Effective(EditorGroupState state, uint mask) =>
-        state.SoloGroup is >= 0 and < GroupLimits.Count
-            ? mask & (1u << state.SoloGroup)
-            : mask;
 
     /// <summary>The draggable handle for the selected move's full offset.</summary>
     public void DrawTarget(
@@ -258,18 +100,5 @@ public sealed class EditorGroupsDrawer(EditorDrawSurface surface)
             banner.Grow(-4),
             $"TARGET · G{state.SelectedGroup + 1} · MOVE {state.SelectedEffect + 1} · drag · Esc done · T timing",
             accent);
-    }
-
-    private void DrawTether(Vector2 from, Vector2 to, float alpha)
-    {
-        if (from.DistanceSquaredTo(to) < 4f)
-            return;
-
-        surface.Canvas.DrawLine(
-            surface.Target,
-            from,
-            to,
-            new Color(0.75f, 0.87f, 1f, alpha * 0.18f),
-            1);
     }
 }

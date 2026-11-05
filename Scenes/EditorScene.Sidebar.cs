@@ -159,6 +159,7 @@ public static class EditorSceneSidebar
         editor.AddComponent(new EditorSelfModulateField(modulate.Entity));
         BuildBlockOutline(panel, editor, inner);
         BuildTextPanel(panel, editor, inner);
+        EditorSceneLayers.BuildInspector(panel, editor, inner);
         EditorSceneGroups.BuildGroupGrid(panel, editor, inner);
 
         editor.AddComponent(new EditorSidebar(shell.RightPanel));

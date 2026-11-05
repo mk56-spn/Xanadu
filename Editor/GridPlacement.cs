@@ -209,7 +209,7 @@ public static class GridPlacement
         _ => GridHandle.None,
     };
 
-    /// <summary>A block's, spike's or grass patch's box and turn; false for any other entity.</summary>
+    /// <summary>A block's, spike's, grass patch's or screen-read region's box and turn; false for any other entity.</summary>
     public static bool TryGet(Entity entity, out Rect2 bounds, out float degrees)
     {
         degrees = 0f;
@@ -233,11 +233,17 @@ public static class GridPlacement
             return true;
         }
 
+        if (entity.TryGetComponent(out ScreenReadRegion region))
+        {
+            bounds = region.Bounds;
+            return true;
+        }
+
         bounds = default;
         return false;
     }
 
-    /// <summary>Gives a block, spike or grass patch a new box, leaving the rest of it alone.</summary>
+    /// <summary>Gives a block, spike, grass patch or screen-read region a new box, leaving the rest of it alone.</summary>
     public static void SetBounds(Entity entity, Rect2 bounds)
     {
         if (entity.HasComponent<GrassPatch>())
@@ -253,6 +259,12 @@ public static class GridPlacement
             ref Spike spike = ref entity.GetComponent<Spike>();
             spike.Position = bounds.Position;
             spike.Size = bounds.Size;
+        }
+        else if (entity.HasComponent<ScreenReadRegion>())
+        {
+            ref ScreenReadRegion region = ref entity.GetComponent<ScreenReadRegion>();
+            region.Position = bounds.Position;
+            region.Size = bounds.Size;
         }
     }
 

@@ -84,6 +84,7 @@ public sealed class EditorToolSectionSystem : QuerySystem<EditorToolSection>
             UiLayout.SetHidden(entity, buffer, !shown);
         });
 
-        UiLayout.SetHidden(editor.GetComponent<EditorLeftMenu>().Panel, buffer, !any);
+        // The open group panel sits over where this panel floats.
+        UiLayout.SetHidden(editor.GetComponent<EditorLeftMenu>().Panel, buffer, !any || EditorGroupState.IsOpen(editor));
     }
 }

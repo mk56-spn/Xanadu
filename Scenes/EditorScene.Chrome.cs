@@ -137,32 +137,7 @@ public static class EditorSceneChrome
         ShellStatusLabels status = ShellStatus.Add(left, HeaderControl, StatusMessageWidth);
 
         UiNode right = EdgeGroup(header, new Vector2(1, 0.5f));
-        ViewportGrid.Attach(right.Button(
-                ViewportGrid.Label,
-                UiTheme.FontSize,
-                SceneUi.MutedButtonColor)
-            .Size(ViewportGrid.ToggleWidth, HeaderControl)
-            .Entity);
-        PlayerPathSwitch.Attach(right.Button(
-                PlayerPathSwitch.Label,
-                UiTheme.FontSize,
-                SceneUi.MutedButtonColor)
-            .Size(PlayerPathSwitch.ToggleWidth, HeaderControl)
-            .Entity);
-        EditorAutoAdvance.Attach(right.Button(
-                EditorAutoAdvance.Label,
-                UiTheme.FontSize,
-                SceneUi.MutedButtonColor)
-            .Size(EditorAutoAdvance.ToggleWidth, HeaderControl)
-            .Entity);
-        ViewportSnap.Attach(right.Button(
-                ViewportSnap.Label,
-                UiTheme.FontSize,
-                SceneUi.MutedButtonColor)
-            .Size(ViewportSnap.ToggleWidth, HeaderControl)
-            .Entity,
-            "Snap items to the grid. Off by default: items go exactly where they are put",
-            on: false);
+        // Grid, snap, advance and path live in the group bar at the top of the view.
         Entity file = right.Button(
                 "FILE ▾",
                 UiTheme.FontSize,

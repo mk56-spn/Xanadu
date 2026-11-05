@@ -33,11 +33,23 @@ public sealed class EditorSnapshotRestore(EntityStore entities)
         foreach (Entity entity in entities.Query<LevelPolygon>().ToEntityList())
             entity.DeleteEntity();
 
+        foreach (Entity entity in entities.Query<ScreenReadRegion>().ToEntityList())
+            entity.DeleteEntity();
+
         if (snapshot.Groups is not null)
         {
             foreach (Entity entity in entities.Query<LevelGroups>().ToEntityList())
             {
                 entity.GetComponent<LevelGroups>() = new LevelGroups { Groups = snapshot.Groups }.Clone();
+                break;
+            }
+        }
+
+        if (snapshot.Layers is { } layers)
+        {
+            foreach (Entity entity in entities.Query<LevelLayers>().ToEntityList())
+            {
+                entity.GetComponent<LevelLayers>() = layers.Clone();
                 break;
             }
         }
@@ -63,6 +75,8 @@ public sealed class EditorSnapshotRestore(EntityStore entities)
                 note.ShapePiece), note.Shader);
             Subscribe(created, note.Groups);
             ItemLayer.Put(created, note.Layer);
+            ItemBlend.Put(created, note.Blend);
+            ItemShaderSource.Put(created, note.ShaderSource);
             SelfModulate.Put(created, note.Modulate);
         }
 
@@ -75,6 +89,8 @@ public sealed class EditorSnapshotRestore(EntityStore entities)
                 mine.FadeOutMs), mine.Shader);
             Subscribe(created, mine.Groups);
             ItemLayer.Put(created, mine.Layer);
+            ItemBlend.Put(created, mine.Blend);
+            ItemShaderSource.Put(created, mine.ShaderSource);
             SelfModulate.Put(created, mine.Modulate);
         }
 
@@ -89,6 +105,8 @@ public sealed class EditorSnapshotRestore(EntityStore entities)
                 start.Groups));
             Subscribe(created, start.Groups);
             ItemLayer.Put(created, start.Layer);
+            ItemBlend.Put(created, start.Blend);
+            ItemShaderSource.Put(created, start.ShaderSource);
         }
 
         foreach (BlockSnapshot block in snapshot.Blocks)
@@ -107,6 +125,8 @@ public sealed class EditorSnapshotRestore(EntityStore entities)
                 created.AddTag<ConstructionHidden>();
             Subscribe(created, block.Groups);
             ItemLayer.Put(created, block.Layer);
+            ItemBlend.Put(created, block.Blend);
+            ItemShaderSource.Put(created, block.ShaderSource);
             SelfModulate.Put(created, block.Modulate);
         }
 
@@ -121,6 +141,8 @@ public sealed class EditorSnapshotRestore(EntityStore entities)
                 spike.Shader);
             Subscribe(created, spike.Groups);
             ItemLayer.Put(created, spike.Layer);
+            ItemBlend.Put(created, spike.Blend);
+            ItemShaderSource.Put(created, spike.ShaderSource);
             SelfModulate.Put(created, spike.Modulate);
         }
 
@@ -132,6 +154,8 @@ public sealed class EditorSnapshotRestore(EntityStore entities)
                 text.Shader);
             Subscribe(created, text.Groups);
             ItemLayer.Put(created, text.Layer);
+            ItemBlend.Put(created, text.Blend);
+            ItemShaderSource.Put(created, text.ShaderSource);
             SelfModulate.Put(created, text.Modulate);
         }
 
@@ -140,6 +164,8 @@ public sealed class EditorSnapshotRestore(EntityStore entities)
             Entity created = EditorItems.Create(entities, patch.Patch, patch.Shader);
             Subscribe(created, patch.Groups);
             ItemLayer.Put(created, patch.Layer);
+            ItemBlend.Put(created, patch.Blend);
+            ItemShaderSource.Put(created, patch.ShaderSource);
             SelfModulate.Put(created, patch.Modulate);
         }
 
@@ -152,7 +178,17 @@ public sealed class EditorSnapshotRestore(EntityStore entities)
                 polygon.Rotation), polygon.Shader);
             Subscribe(created, polygon.Groups);
             ItemLayer.Put(created, polygon.Layer);
+            ItemBlend.Put(created, polygon.Blend);
+            ItemShaderSource.Put(created, polygon.ShaderSource);
             SelfModulate.Put(created, polygon.Modulate);
+        }
+
+        foreach (ScreenReadSnapshot region in snapshot.ScreenReads ?? new())
+        {
+            Entity created = EditorItems.Create(
+                entities,
+                new ScreenReadRegion(region.Position, region.Size));
+            ItemLayer.Put(created, region.Layer);
         }
     }
 

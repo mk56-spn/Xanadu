@@ -17,7 +17,16 @@ public static class EditorSnapshotComparison
         (before.Texts ?? new()).SequenceEqual(after.Texts ?? new()) &&
         (before.Grass ?? new()).SequenceEqual(after.Grass ?? new()) &&
         SamePolygons(before.Polygons, after.Polygons) &&
-        SameGroups(before.Groups, after.Groups);
+        (before.ScreenReads ?? new()).SequenceEqual(after.ScreenReads ?? new()) &&
+        SameGroups(before.Groups, after.Groups) &&
+        SameLayers(before.Layers, after.Layers);
+
+    private static bool SameLayers(LevelLayers? a, LevelLayers? b)
+    {
+        if (a is null || b is null)
+            return a is null && b is null;
+        return a.Value.SameAs(b.Value);
+    }
 
     /// <summary>Polygon snapshots hold items by reference, so they compare by content.</summary>
     private static bool SamePolygons(List<PolygonSnapshot>? a, List<PolygonSnapshot>? b)
