@@ -329,6 +329,8 @@ public sealed partial class SvgAttachmentVisuals(Rid canvas, bool containLayers 
     /// <summary>
     /// SVG to texture at <see cref="ArtScale"/> pixels per unit, with mipmaps, so
     /// art stays sharp zoomed in and clean scaled down. The size is in units.
+    /// Colour is bled into the transparent pixels first, or filtering and the
+    /// mipmaps pull their black into the edges (<see cref="ArtAlphaBleed"/>).
     /// </summary>
     private static ImageTexture Raster(string svg, out Vector2 size)
     {
@@ -338,6 +340,13 @@ public sealed partial class SvgAttachmentVisuals(Rid canvas, bool containLayers 
             throw new InvalidOperationException(error.ToString());
 
         size = (Vector2)image.GetSize() / ArtScale;
+        if (image.GetFormat() != Image.Format.Rgba8)
+            image.Convert(Image.Format.Rgba8);
+        int width = image.GetWidth();
+        int height = image.GetHeight();
+        byte[] pixels = image.GetData();
+        ArtAlphaBleed.Apply(pixels, width, height);
+        image.SetData(width, height, false, Image.Format.Rgba8, pixels);
         image.GenerateMipmaps();
         return ImageTexture.CreateFromImage(image);
     }

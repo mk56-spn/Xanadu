@@ -135,7 +135,14 @@ public sealed class ContactRigAssetTests
             Assert.That(strand.HasArt, Is.True, strand.Id);
             Assert.That(strand.CollideBoneId, Is.EqualTo("upper_arm_l"), strand.Id);
             Assert.That(strand.CollideRadius, Is.GreaterThan(0f), strand.Id);
-            Assert.That(strand.Lean, Is.GreaterThan(0f), $"{strand.Id} leans the way the character faces, so it falls over the front");
+
+            // Some strands fall down the back, behind the neck and body; the rest
+            // fall over the front, over the shoulder.
+            int neck = package.Attachments.Single(attachment => attachment.Group == "neck").ZOrder;
+            if (XafChainArt.LayerOf(package, strand) <= neck)
+                Assert.That(strand.Lean, Is.LessThan(0f), $"{strand.Id} draws behind the neck, so it leans back down the back");
+            else
+                Assert.That(strand.Lean, Is.GreaterThan(0f), $"{strand.Id} draws over the neck, so it leans forward over the front");
 
             string svg = File.ReadAllText(ProjectFile("Tools/Animator/" + strand.SvgPath["res://".Length..]));
             Assert.That(XafSvgDocument.Groups(svg), Does.Contain(strand.Group));
@@ -147,6 +154,11 @@ public sealed class ContactRigAssetTests
 
         // The strands from the back of the head tuck under it; the fringe lies over the forehead.
         Assert.That(Hair(package).Layer, Is.LessThan(head));
+        int torso = package.Attachments.Single(attachment => attachment.Group == "torso").ZOrder;
+        Assert.That(strands.Count(strand => XafChainArt.LayerOf(package, strand) < torso), Is.GreaterThanOrEqualTo(2),
+            "some strands hang behind the body");
+        Assert.That(strands.Count(strand => strand.Id != "hair_fringe" && XafChainArt.LayerOf(package, strand) > torso),
+            Is.GreaterThanOrEqualTo(2), "some strands fall over the front");
         XafChain fringe = strands.Single(strand => strand.Id == "hair_fringe");
         Assert.That(XafChainArt.LayerOf(package, fringe), Is.GreaterThan(head));
     }
@@ -260,5 +272,31 @@ public sealed class ContactRigAssetTests
         // It hangs from the back of the head, above the shoulder, and reaches the chest.
         Assert.That(points[0].Y, Is.LessThan(shoulder.Y - hair.CollideRadius));
         Assert.That(points[^1].Y, Is.GreaterThan(shoulder.Y + 30f));
+    }
+
+    [Test]
+    public void AtRestTheStrandsBehindTheNeckHangDownTheBack()
+    {
+        XafPackage package = Load();
+        int neck = package.Attachments.Single(attachment => attachment.Group == "neck").ZOrder;
+        List<XafChain> back = Strands(package).FindAll(strand => XafChainArt.LayerOf(package, strand) <= neck);
+        Transform2D[] world = XafRig.WorldBones(package, RestPoseOf(package));
+        var simulation = new XafChainSimulation();
+        for (int i = 0; i < 600; i++)
+            simulation.Update(package, world, 1f / 60f);
+
+        Assert.That(back, Is.Not.Empty);
+        foreach (XafChain strand in back)
+        {
+            Vector2 shoulder = XafChainSimulation.Collider(package, strand, world)!.Value;
+            var points = simulation.Points(package.Chains.IndexOf(strand));
+            foreach (Vector2 point in points)
+            {
+                if (point.Y >= shoulder.Y)
+                    Assert.That(point.X, Is.LessThan(shoulder.X - strand.CollideRadius / 2f), $"{strand.Id} {point}");
+            }
+
+            Assert.That(points[^1].Y, Is.GreaterThan(shoulder.Y + 30f), $"{strand.Id} reaches down the back");
+        }
     }
 }
