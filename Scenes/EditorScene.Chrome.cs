@@ -44,7 +44,8 @@ public static partial class EditorScene
         UiNode middle = page.Row()
             .Size(screen.X, shell.ToolStrip.Size.Y)
             .Main(StackMainAlignment.Start);
-        BuildToolStrip(middle, shell);
+        UiNode flyouts = UiNode.Layer(entities, root, UiLayers.EditorToolFlyout, null, UiStage.Full);
+        BuildToolStrip(middle, flyouts, shell);
         BuildViewportColumn(middle, editor, shell);
         BuildSidebar(middle, editor, shell);
         BuildRailLayer(entities, root, editor, shell);
@@ -103,11 +104,11 @@ public static partial class EditorScene
             .Size(EditorShellMetrics.NameWidth - 10, HeaderControl);
 
         AddEditorAction(
-            left.IconButton("UN", IconDir + "undo.svg", HeaderControl, SceneUi.ButtonColor)
+            left.IconButton("UN", IconDir + "undo.svg", HeaderControl, SceneUi.EditorButtonColor)
                 .Entity,
             EditorButtonKind.Undo);
         AddEditorAction(
-            left.IconButton("RE", IconDir + "redo.svg", HeaderControl, SceneUi.ButtonColor)
+            left.IconButton("RE", IconDir + "redo.svg", HeaderControl, SceneUi.EditorButtonColor)
                 .Entity,
             EditorButtonKind.Redo);
 
@@ -281,7 +282,7 @@ public static partial class EditorScene
                             labels[i],
                             IconDir + icon + ".svg",
                             size,
-                            SceneUi.ButtonColor,
+                            SceneUi.EditorButtonColor,
                             18)
                         .Entity,
                     kinds[i]);
@@ -368,7 +369,7 @@ public static partial class EditorScene
         int fontSize = 14,
         Vector2? center = null)
     {
-        UiNode button = ui.Button(label, fontSize, SceneUi.ButtonColor).Size(size);
+        UiNode button = ui.Button(label, fontSize, SceneUi.EditorButtonColor).Size(size);
         if (center is { } at)
             button.At(at);
         AddEditorAction(button.Entity, kind);

@@ -46,8 +46,10 @@ public sealed class EditorSystemGroup : SystemGroup, IDisposable
         Add(new EditorSelfModulateSystem(history));
         Add(new EditorBlockOutlineSystem(history));
         Add(new EditorTextPanelSystem(history));
+        Add(new EditorGrassPanelSystem(history));
         Add(new EditorGroupPreviewSystem(entities, canvas, _groupPreview.Rid));
         Add(new EditorPlacementSystem(entities));
+        Add(new EditorToolGroupSystem(entities));
         Add(new EditorDashStrengthSystem(entities));
         Add(new EditorContactCostSystem(entities));
         Add(new EditorRailLayerSystem(entities, history));
@@ -62,6 +64,7 @@ public sealed class EditorSystemGroup : SystemGroup, IDisposable
         Add(new EditorAnalysisSystem(entities));
         Add(new EditorPlayfieldDrawSystem(entities, canvas, playfieldCanvas));
         Add(new WarningPopupSystem(entities));
+        Add(new EditorDialogSystem(entities, commands));
     }
 
     /// <summary>Enables the editor systems and shows or hides its preview layer.</summary>

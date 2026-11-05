@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using Godot;
 using Xanadu.Ecs;
+using Xanadu.Systems.Editor;
 using Position = Xanadu.Ecs.Position;
 using Xanadu.Editor;
 using Xanadu.Levels;
@@ -100,6 +101,10 @@ public sealed class EditorDropdownSceneTest : SceneTest
             () => Context.Entities.Query<EditorPlacement>().ToEntityList()[0]
                 .GetComponent<EditorPlacement>().Note == KeybindAction.R3);
 
+        AddStep("open the spikes and mines group", () => ClickGroupOf(EditorPlacementMode.Mines));
+        AddWaitStep("hold the spikes and mines group", 2);
+        AddStep("release the spikes and mines group", () => Context.Pointer.Release());
+        AddUntilStep("the spikes and mines flyout opens", () => GroupIsOpen(EditorPlacementMode.Mines));
         AddStep("click mine tool", () => ClickTool(EditorPlacementMode.Mines));
         AddWaitStep("hold mine tool", 2);
         AddStep("release mine tool", () => Context.Pointer.Release());
@@ -282,5 +287,29 @@ public sealed class EditorDropdownSceneTest : SceneTest
         }
 
         return world;
+    }
+    /// <summary>Presses the strip button of the group holding <paramref name="mode"/>, to open its flyout.</summary>
+    private void ClickGroupOf(EditorPlacementMode mode)
+    {
+        foreach (Entity entity in Context.Entities.Query<EditorToolGroup>().ToEntityList())
+        {
+            if (!EditorToolGroups.Holds(EditorToolGroups.All[entity.GetComponent<EditorToolGroup>().Index], mode))
+                continue;
+
+            Context.Pointer.Click(UiTransform.WorldPosition(entity, entity.GetComponent<Position>().Value));
+            return;
+        }
+    }
+
+    private bool GroupIsOpen(EditorPlacementMode mode)
+    {
+        foreach (Entity entity in Context.Entities.Query<EditorToolGroup>().ToEntityList())
+        {
+            EditorToolGroup group = entity.GetComponent<EditorToolGroup>();
+            if (EditorToolGroups.Holds(EditorToolGroups.All[group.Index], mode))
+                return group.Open && !UiLayout.IsHidden(group.Flyout);
+        }
+
+        return false;
     }
 }

@@ -31,6 +31,9 @@ public static class UiLayers
     public const int EditorChrome = 960;
     public const int EditorStartPoints = 961;
     public const int EditorMetadata = 962;
+
+    /// <summary>The tool groups' flyouts, beside the tool strip and over the tool settings.</summary>
+    public const int EditorToolFlyout = 963;
     public const int EditorRail = 964;
     public const int EditorLists = 970;
     public const int EditorHelp = 970;
@@ -41,6 +44,9 @@ public static class UiLayers
     public const int EditorGroupsBars = 979;
     public const int EditorGroups = 980;
     public const int EditorGroupsPreview = 981;
+
+    /// <summary>The editor's modal dialogs: the song picker, recovery, shaders and map colours.</summary>
+    public const int EditorDialogs = 985;
 
     // Scene system overlays. These share values with the editor layers above.
     public const int Confirmation = 970;
