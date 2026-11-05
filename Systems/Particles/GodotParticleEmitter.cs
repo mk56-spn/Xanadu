@@ -2,6 +2,8 @@ using System;
 using Godot;
 using Godot.Collections;
 using Xanadu.Ecs;
+using Xanadu.Systems.Canvas;
+using Xanadu.Systems.Shaders;
 
 namespace Xanadu.Systems.Particles;
 
@@ -12,6 +14,10 @@ namespace Xanadu.Systems.Particles;
 /// Each burst is a one-shot particle system restarted at the spot; a small pool
 /// per kind lets bursts overlap without cutting each other off, and each
 /// burst's canvas item is moved to where it goes off.
+/// The kinds a note gives off draw note glyphs out of
+/// <see cref="NoteAtlas.Particles"/>: the canvas item's material treats the
+/// strip as animation frames and each particle starts on a random one, which
+/// it keeps.
 /// </summary>
 public sealed class GodotParticleEmitter : IParticleEmitter, IDisposable
 {
@@ -24,11 +30,21 @@ public sealed class GodotParticleEmitter : IParticleEmitter, IDisposable
     /// <summary>The same for a streak, which is as long as the longest dash.</summary>
     private const float StreakReach = 1400f;
 
+    /// <summary>How far, in degrees, a note glyph may lean from upright.</summary>
+    private const float NoteTilt = 25f;
+
+    /// <summary>Note glyphs carry less ink than a square, so they are drawn this much larger.</summary>
+    private const float GlyphGrow = 1.5f;
+
+    /// <summary>The half-angle, in degrees, of the cone a burst with a heading is thrown in.</summary>
+    private const float HeadedSpread = 55f;
+
     private readonly Rid _parent;
     private readonly ImageTexture _softDot;
-    private readonly ImageTexture _solidSquare;
+    private readonly GlyphAtlas _notes;
+    private readonly CanvasItemMaterial _noteFrames;
     private readonly Rid _quad;
-    private readonly ParticleProcessMaterial[] _materials;
+    private readonly bool[] _upright;
     private readonly Pool[] _pools;
     private readonly Resource[] _keepAlive;
 
@@ -36,32 +52,60 @@ public sealed class GodotParticleEmitter : IParticleEmitter, IDisposable
     {
         _parent = parentCanvas;
         _softDot = SoftDot();
-        _solidSquare = SolidSquare();
+        _notes = NoteAtlas.Particles;
+        _noteFrames = NoteFrames(_notes);
         _quad = Quad();
 
-        ParticleProcessMaterial landing = LandingMaterial();
-        ParticleProcessMaterial dash = DashMaterial();
-        ParticleProcessMaterial hit = HitMaterial();
-        ParticleProcessMaterial streak = StreakMaterial();
-        _keepAlive = new Resource[] { _softDot, _solidSquare, landing, dash, hit, streak };
-        _materials = new[] { landing, dash, hit, streak };
+        _keepAlive = new Resource[] { _softDot, _noteFrames };
+        _upright = new[] { false, true, true, true };
+        Texture2D notes = _notes.Texture;
         _pools = new[]
         {
-            new Pool(Build(landing, _softDot, amount: 14, lifetime: 0.55f)),
-            new Pool(Build(dash, _solidSquare, amount: 38, lifetime: 0.8f)),
-            new Pool(Build(hit, _solidSquare, amount: 22, lifetime: 0.4f)),
-            new Pool(Build(streak, _solidSquare, amount: 70, lifetime: 0.5f, explosiveness: 0.85f, reach: StreakReach)),
+            new Pool(Build(LandingMaterial, _softDot, amount: 14, lifetime: 0.55f)),
+            new Pool(Build(DashMaterial, notes, amount: 38, lifetime: 0.8f, frames: _noteFrames)),
+            new Pool(Build(HitMaterial, notes, amount: 22, lifetime: 0.4f, frames: _noteFrames)),
+            new Pool(Build(StreakMaterial, notes, amount: 70, lifetime: 0.5f, explosiveness: 0.85f, reach: StreakReach, frames: _noteFrames)),
         };
     }
 
-    public void Burst(Vector2 position, ParticleKind kind, Color tint, Vector2 area = default, float angle = 0f)
+    public void Burst(
+        Vector2 position,
+        ParticleKind kind,
+        Color tint,
+        Vector2 area = default,
+        float angle = 0f,
+        Vector2 heading = default)
     {
-        // Only where particles start: bursts already in flight keep their places.
-        _materials[(int)kind].EmissionBoxExtents = new Vector3(area.X / 2, area.Y / 2, 0);
-
         Pool pool = _pools[(int)kind];
         Emitter emitter = pool.Emitters[pool.Next];
         pool.Next = (pool.Next + 1) % pool.Emitters.Length;
+
+        // Each pooled burst has its own material, so bursts set off together
+        // keep their own boxes and headings.
+        ParticleProcessMaterial material = emitter.Material;
+        material.EmissionBoxExtents = new Vector3(area.X / 2, area.Y / 2, 0);
+
+        // A heading narrows the burst to a cone thrown that way; it is given on
+        // screen, and the burst's directions are local to its turned item.
+        if (heading != Vector2.Zero)
+        {
+            Vector2 local = heading.Normalized().Rotated(-angle);
+            material.Direction = new Vector3(local.X, local.Y, 0);
+            material.Spread = HeadedSpread;
+        }
+        else
+        {
+            material.Direction = emitter.Direction;
+            material.Spread = emitter.Spread;
+        }
+
+        // Glyphs lean a little either way of upright, whichever way the burst is turned.
+        if (_upright[(int)kind])
+        {
+            float facing = -Mathf.RadToDeg(angle);
+            material.AngleMin = facing - NoteTilt;
+            material.AngleMax = facing + NoteTilt;
+        }
 
         // The burst is local to its canvas item, which sits where it goes off.
         RenderingServer.CanvasItemSetTransform(emitter.Item, new Transform2D(angle, position));
@@ -78,6 +122,7 @@ public sealed class GodotParticleEmitter : IParticleEmitter, IDisposable
             {
                 RenderingServer.FreeRid(emitter.Item);
                 RenderingServer.FreeRid(emitter.Particles);
+                emitter.Material.Dispose();
             }
         }
 
@@ -87,16 +132,18 @@ public sealed class GodotParticleEmitter : IParticleEmitter, IDisposable
     }
 
     private Emitter[] Build(
-        ParticleProcessMaterial material,
-        ImageTexture texture,
+        Func<ParticleProcessMaterial> makeMaterial,
+        Texture2D texture,
         int amount,
         float lifetime,
         float explosiveness = 1f,
-        float reach = BurstReach)
+        float reach = BurstReach,
+        CanvasItemMaterial? frames = null)
     {
         var emitters = new Emitter[PoolSize];
         for (int i = 0; i < emitters.Length; i++)
         {
+            ParticleProcessMaterial material = makeMaterial();
             Rid particles = RenderingServer.ParticlesCreate();
             RenderingServer.ParticlesSetMode(particles, RenderingServer.ParticlesMode.Mode2D);
             RenderingServer.ParticlesSetDrawPasses(particles, 1);
@@ -122,7 +169,14 @@ public sealed class GodotParticleEmitter : IParticleEmitter, IDisposable
             Rid item = RenderingServer.CanvasItemCreate();
             RenderingServer.CanvasItemSetParent(item, _parent);
             RenderingServer.CanvasItemAddParticles(item, particles, texture.GetRid());
-            emitters[i] = new Emitter(particles, item);
+            if (frames is not null)
+            {
+                RenderingServer.CanvasItemSetMaterial(item, frames.GetRid());
+                RenderingServer.CanvasItemSetDefaultTextureFilter(
+                    item, RenderingServer.CanvasItemTextureFilter.LinearWithMipmaps);
+            }
+
+            emitters[i] = new Emitter(particles, item, material, material.Direction, material.Spread);
         }
 
         return emitters;
@@ -145,7 +199,7 @@ public sealed class GodotParticleEmitter : IParticleEmitter, IDisposable
     };
 
     /// <summary>
-    /// Spray: solid squares at any angle burst out in every direction from the
+    /// Spray: note glyphs burst out in every direction from the
     /// box, then fall and shrink away; white, so the burst's tint gives them the note's colour.
     /// </summary>
     private static ParticleProcessMaterial DashMaterial() => new()
@@ -159,16 +213,17 @@ public sealed class GodotParticleEmitter : IParticleEmitter, IDisposable
         Gravity = new Vector3(0, 1100, 0),
         DampingMin = 40f,
         DampingMax = 90f,
-        ScaleMin = 1.2f,
-        ScaleMax = 2.8f,
+        ScaleMin = 1.2f * GlyphGrow,
+        ScaleMax = 2.8f * GlyphGrow,
         ScaleCurve = Shrink(),
-        AngleMin = 0f,
-        AngleMax = 360f,
+        AngleMin = -NoteTilt,
+        AngleMax = NoteTilt,
+        AnimOffsetMax = 1f,
         Color = Colors.White,
     };
 
     /// <summary>
-    /// Sparks: fast, solid squares at any angle thrown out from the box in every direction that
+    /// Sparks: fast note glyphs thrown out from the box in every direction that
     /// brake hard and shrink away; white, so the burst's tint gives them the note's colour.
     /// </summary>
     private static ParticleProcessMaterial HitMaterial() => new()
@@ -182,16 +237,17 @@ public sealed class GodotParticleEmitter : IParticleEmitter, IDisposable
         Gravity = new Vector3(0, 300, 0),
         DampingMin = 500f,
         DampingMax = 900f,
-        ScaleMin = 0.9f,
-        ScaleMax = 2f,
+        ScaleMin = 0.9f * GlyphGrow,
+        ScaleMax = 2f * GlyphGrow,
         ScaleCurve = Shrink(),
-        AngleMin = 0f,
-        AngleMax = 360f,
+        AngleMin = -NoteTilt,
+        AngleMax = NoteTilt,
+        AnimOffsetMax = 1f,
         Color = Colors.White,
     };
 
     /// <summary>
-    /// A dash's streak: squares at any angle laid along the box, which lies on
+    /// A dash's streak: note glyphs laid along the box, which lies on
     /// the path, drifting back the way the player came and spreading a little
     /// sideways as they brake, shrink and fade; white, so the tint gives them
     /// the note's colour.
@@ -207,11 +263,12 @@ public sealed class GodotParticleEmitter : IParticleEmitter, IDisposable
         Gravity = new Vector3(0, 0, 0),
         DampingMin = 180f,
         DampingMax = 360f,
-        ScaleMin = 0.5f,
-        ScaleMax = 1.5f,
+        ScaleMin = 0.5f * GlyphGrow,
+        ScaleMax = 1.5f * GlyphGrow,
         ScaleCurve = Shrink(),
-        AngleMin = 0f,
-        AngleMax = 360f,
+        AngleMin = -NoteTilt,
+        AngleMax = NoteTilt,
+        AnimOffsetMax = 1f,
         ColorRamp = FadeOut(Colors.White),
     };
 
@@ -251,17 +308,18 @@ public sealed class GodotParticleEmitter : IParticleEmitter, IDisposable
         return ImageTexture.CreateFromImage(image);
     }
 
-    /// <summary>A white square with a crisp edge, drawn large so it stays crisp when scaled up and turned.</summary>
-    private static ImageTexture SolidSquare()
+    /// <summary>
+    /// The canvas item material that draws one cell of the note strip per
+    /// particle: the process material's animation offset, random from 0 to 1,
+    /// picks the cell, and with no animation speed the particle keeps it.
+    /// </summary>
+    private static CanvasItemMaterial NoteFrames(GlyphAtlas atlas) => new()
     {
-        const int size = 64;
-        const int inset = 4;
-        Image image = Image.CreateEmpty(size, size, false, Image.Format.Rgba8);
-        image.Fill(Colors.Transparent);
-        // The quad turns with the particle; the clear rim keeps the turned edge from looking jagged.
-        image.FillRect(new Rect2I(inset, inset, size - inset * 2, size - inset * 2), Colors.White);
-        return ImageTexture.CreateFromImage(image);
-    }
+        ParticlesAnimation = true,
+        ParticlesAnimHFrames = atlas.Count,
+        ParticlesAnimVFrames = 1,
+        ParticlesAnimLoop = false,
+    };
 
     /// <summary>The draw pass: one quad the size of the texture, centred on the particle.</summary>
     private static Rid Quad()
@@ -290,7 +348,13 @@ public sealed class GodotParticleEmitter : IParticleEmitter, IDisposable
         return mesh;
     }
 
-    private readonly record struct Emitter(Rid Particles, Rid Item);
+    /// <summary>One pooled burst; <see cref="Direction"/> and <see cref="Spread"/> are its kind's own, for bursts with no heading.</summary>
+    private readonly record struct Emitter(
+        Rid Particles,
+        Rid Item,
+        ParticleProcessMaterial Material,
+        Vector3 Direction,
+        float Spread);
 
     private sealed class Pool(Emitter[] emitters)
     {
