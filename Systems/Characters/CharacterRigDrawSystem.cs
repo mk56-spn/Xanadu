@@ -14,9 +14,12 @@ namespace Xanadu.Systems.Characters;
 /// art is scaled to the player's height and stands on the box's bottom edge;
 /// visuals of players that are gone or lost their rig are released. The rig's
 /// Verlet chains, such as hair, are simulated in rig space from its animated
-/// bones, so they swing with the animation.
+/// bones, so they swing with the animation. With <paramref name="ghosts"/>, a
+/// character that hits a note also leaves a fading copy of its art behind.
 /// </summary>
-public sealed class CharacterRigDrawSystem(Func<IAttachmentVisuals> createVisuals)
+public sealed class CharacterRigDrawSystem(
+    Func<IAttachmentVisuals> createVisuals,
+    CharacterRigGhosts? ghosts = null)
     : QuerySystem<CharacterRig, Player, Position>
 {
     private readonly Dictionary<int, Instance> _instances = new();
@@ -25,6 +28,7 @@ public sealed class CharacterRigDrawSystem(Func<IAttachmentVisuals> createVisual
     protected override void OnUpdate()
     {
         _seen.Clear();
+        ghosts?.Begin(Query.Store);
         foreach (Entity entity in Query.ToEntityList())
         {
             if (entity.Tags.Has<SplitlineAbsent>())
@@ -71,11 +75,15 @@ public sealed class CharacterRigDrawSystem(Func<IAttachmentVisuals> createVisual
             instance.Cloths.Update(package, bones, Tick.deltaTime);
             instance.Visuals.ApplyCloths(package, instance.Cloths, placement);
             instance.Visuals.ApplyEffects(runtime.Pose, XafRig.WorldEffects(package, runtime.Pose, bones), placement);
+            ghosts?.Capture(
+                entity, package, runtime.Pose, bones, attachments,
+                instance.Chains, instance.Cloths, instance.RigBounds, faceLeft);
             if (!entity.Tags.Has<CharacterRigVisible>())
                 entity.AddTag<CharacterRigVisible>();
         }
 
         ReleaseUnseen();
+        ghosts?.End(Query.Store);
     }
 
     /// <summary>

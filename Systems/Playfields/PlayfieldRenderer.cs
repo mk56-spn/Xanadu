@@ -89,6 +89,7 @@ public static partial class PlayfieldRenderer
         DrawMines(canvas, rid, entities, view, playhead);
         DrawDashTrails(canvas, rid, entities);
         canvas.SelectShader(playerShader);
+        DrawHitGhosts(canvas, rid, entities);
         DrawPlayer(canvas, rid, entities, view);
         DrawSplitlineBalls(canvas, rid, entities, view);
         canvas.SelectShader(0);

@@ -204,6 +204,9 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
         foreach (Entity pop in _entities.Query<NotePop>().ToEntityList())
             pop.DeleteEntity();
 
+        foreach (Entity ghost in _entities.Query<HitGhost>().ToEntityList())
+            ghost.DeleteEntity();
+
         foreach (Entity fade in _entities.Query<DashLinkFade>().ToEntityList())
             fade.DeleteEntity();
 

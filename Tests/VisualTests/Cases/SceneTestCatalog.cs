@@ -47,6 +47,7 @@ public static class SceneTestCatalog
         new CharacterNotesSceneTest(),
         new NoteDesignsSceneTest(),
         new DashPopSceneTest(),
+        new HitGhostSceneTest(),
         new PlayfieldOutlinesSceneTest(),
         new SplitlineSceneTest(),
         new EditorGroupsSceneTest(),

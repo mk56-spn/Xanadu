@@ -211,6 +211,39 @@ public struct DashLinkFade(
     public float Age;
 }
 
+/// <summary>
+/// A see-through copy of the character left where it stood when it hit a note,
+/// fading out over <see cref="Lifetime"/>. Layout space, like the player, so it
+/// stays put while the camera scrolls. The rig draw system poses it from the
+/// character on the frame it appears; a player without a rig leaves its box.
+/// </summary>
+public struct HitGhost(Entity player, Vector2 center, Vector2 size, float lifetime = HitGhost.DefaultLifetime) : IComponent
+{
+    public const float DefaultLifetime = 0.5f;
+
+    /// <summary>How opaque the copy starts.</summary>
+    public const float StartAlpha = 0.4f;
+
+    public Entity Player = player;
+    public Vector2 Center = center;
+    public Vector2 Size = size;
+    public float Age;
+    public float Lifetime = lifetime;
+
+    /// <summary>The copy's opacity now: <see cref="StartAlpha"/>, easing out to nothing.</summary>
+    public readonly float Alpha
+    {
+        get
+        {
+            float left = Lifetime <= 0f ? 0f : Mathf.Clamp(1f - Age / Lifetime, 0f, 1f);
+            return StartAlpha * left * left;
+        }
+    }
+}
+
+/// <summary>The rig draw system has posed this <see cref="HitGhost"/> as the character's art, so no box is drawn for it.</summary>
+public struct HitGhostRigged : ITag;
+
 /// <summary>A short-lived line from a dash start to its landing point.</summary>
 public struct DashTrail(
     Vector2 from,
