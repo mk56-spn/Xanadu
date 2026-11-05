@@ -46,7 +46,7 @@ public sealed class SpikeContactSystem : QuerySystem<Player, Position, Playfield
             {
                 SpikeTriangle hitbox = SpikeRules.ScreenHitbox(
                     entity.GetComponent<Spike>(),
-                    view);
+                    GroupOffset.View(entity, view));
                 if (hitbox.Overlaps(playerRect))
                 {
                     session.Died = true;

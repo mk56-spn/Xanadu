@@ -14,39 +14,43 @@ public static partial class PlayfieldRenderer
     public static readonly Color PolygonFill = new("#7aa2f7");
 
     /// <summary>
-    /// Fills every polygon item, each primitive in its own colour (self
-    /// modulate and group fades applied) and with its own shader, else the
-    /// item's. A selected item gets its outlines traced.
+    /// Fills one polygon item, each primitive in its own colour (self modulate
+    /// and group fades applied) and with its own shader, else the item's. A
+    /// selected item gets its outlines traced.
     /// </summary>
-    public static void DrawPolygons(
+    public static void DrawPolygon(
         IRectCanvas canvas,
         Rid rid,
-        EntityStore entities,
+        Entity entity,
         PlayfieldView view,
-        Func<Entity, bool>? isSelected = null)
+        bool selected)
     {
-        foreach (Entity entity in entities.Query<LevelPolygon>().ToEntityList())
+        LevelPolygon polygon = entity.GetComponent<LevelPolygon>();
+        if (polygon.Item is null)
+            return;
+
+        bool followsGroup = SelectItemShader(canvas, entity);
+        foreach (XifPrimitive primitive in polygon.Item.Primitives)
         {
-            LevelPolygon polygon = entity.GetComponent<LevelPolygon>();
-            if (polygon.Item is null)
+            if (!primitive.IsPolygon || primitive.Points.Count < 3)
                 continue;
 
-            bool selected = isSelected?.Invoke(entity) == true;
-            foreach (XifPrimitive primitive in polygon.Item.Primitives)
+            Vector2[] outline = ScreenOutline(polygon, primitive, view);
+            if (!followsGroup)
+                SelectPrimitiveShader(canvas, primitive, ItemShader.Of(entity), ItemBlend.Of(entity));
+            canvas.DrawPolygon(rid, outline, GroupColor.For(entity, primitive.Fill));
+            if (!followsGroup)
             {
-                if (!primitive.IsPolygon || primitive.Points.Count < 3)
-                    continue;
-
-                Vector2[] outline = ScreenOutline(polygon, primitive, view);
-                SelectPrimitiveShader(canvas, primitive, ItemShader.Of(entity));
-                canvas.DrawPolygon(rid, outline, GroupColor.For(entity, primitive.Fill));
                 canvas.SelectCommonShader("");
                 canvas.SelectShader(0);
-
-                if (selected)
-                    DrawOutline(canvas, rid, outline, BlockSelectedEdge);
             }
+
+            if (selected)
+                DrawOutline(canvas, rid, outline, BlockSelectedEdge);
         }
+
+        if (followsGroup)
+            canvas.SelectShader(0);
     }
 
     /// <summary>A primitive's outline on screen.</summary>
@@ -70,12 +74,16 @@ public static partial class PlayfieldRenderer
         canvas.DrawPolyline(rid, closed, color, SelectedEdgeThickness);
     }
 
-    private static void SelectPrimitiveShader(IRectCanvas canvas, XifPrimitive primitive, int itemSlot)
+    private static void SelectPrimitiveShader(
+        IRectCanvas canvas,
+        XifPrimitive primitive,
+        int itemSlot,
+        Xanadu.Rendering.BlendMode blend)
     {
         if (primitive.Shader.Scope == XifShaderScope.Common && primitive.Shader.Path.Length > 0)
-            canvas.SelectCommonShader(primitive.Shader.Path);
+            canvas.SelectCommonShader(primitive.Shader.Path, blend);
         else
-            canvas.SelectShader(primitive.Shader.IsNone ? itemSlot : primitive.Shader.Slot);
+            canvas.SelectShader(primitive.Shader.IsNone ? itemSlot : primitive.Shader.Slot, blend);
     }
 
     /// <summary>The upright box around a polygon item, on screen.</summary>

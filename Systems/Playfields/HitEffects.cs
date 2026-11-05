@@ -11,10 +11,16 @@ namespace Xanadu.Systems.Playfields;
 /// </summary>
 public static class HitEffects
 {
-    public static void Spawn(EntityStore entities, Entity playfield, Note note, Vector2 position, Color color,
-        float radius)
+    /// <summary>
+    /// A hit note pops where it stood, on its own layer; <paramref name="source"/>
+    /// is the note's entity, or null for a note that is not an item.
+    /// </summary>
+    public static void Spawn(EntityStore entities, Entity playfield, Entity source, Note note, Vector2 position,
+        Color color, float radius)
     {
-        entities.CreateEntity(new NotePop(note, position, color, radius, PlayfieldRenderer.NotePopLifetime));
+        entities.CreateEntity(
+            new NotePop(note, position, color, radius, PlayfieldRenderer.NotePopLifetime),
+            EffectLayer.From(source));
         // The sparks come off the player's body, thrown on the way the hit
         // travels, from the note through the player; the pop stays on the note.
         Vector2 origin = playfield.TryGetComponent(out Xanadu.Ecs.Position body) ? body.Value : position;
@@ -30,12 +36,13 @@ public static class HitEffects
     /// </summary>
     public static void SpawnDash(EntityStore entities, Entity noteEntity, Note note, PlayfieldView view)
     {
-        Vector2 at = view.PlayfieldToScreen(note.Position);
+        Vector2 at = view.PlayfieldToScreen(GroupOffset.Shown(noteEntity, note.Position));
         float radius = PlayfieldRenderer.NoteSize * view.Scale / 2f;
         Color color = GroupColor.For(noteEntity, PlayfieldRenderer.ColorFor(note));
-        entities.CreateEntity(new NotePop(note, at, color, radius, PlayfieldRenderer.NotePopLifetime));
+        EffectLayer layer = EffectLayer.From(noteEntity);
+        entities.CreateEntity(new NotePop(note, at, color, radius, PlayfieldRenderer.NotePopLifetime), layer);
         Vector2 exit = PlayfieldRenderer.DashExitScreen(note, view);
         entities.CreateEntity(new ParticleBurst(at, ParticleKind.Hit, color, heading: exit - at));
-        entities.CreateEntity(new DashLinkFade(at, exit, color, radius));
+        entities.CreateEntity(new DashLinkFade(at, exit, color, radius), layer);
     }
 }

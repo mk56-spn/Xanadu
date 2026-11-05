@@ -13,38 +13,35 @@ public static partial class PlayfieldRenderer
     public static readonly Color SpikeColor = Colors.White;
 
     /// <summary>
-    /// Draws every spike as one big triangle filling its box, turned around the
-    /// box's centre, inside its outline. Every selected one gets an accent edge.
+    /// Draws one spike as one big triangle filling its box, turned around the
+    /// box's centre, inside its outline. A selected one gets an accent edge.
     /// </summary>
-    public static void DrawSpikes(
+    public static void DrawSpike(
         IRectCanvas canvas,
         Rid rid,
-        EntityStore entities,
+        Entity entity,
         PlayfieldView view,
-        Func<Entity, bool>? isSelected = null)
+        bool selected)
     {
-        foreach (Entity entity in entities.Query<Spike>().ToEntityList())
+        Spike spike = entity.GetComponent<Spike>();
+        if (spike.Size.X <= 0 || spike.Size.Y <= 0)
+            return;
+
+        SelectItemShader(canvas, entity);
+        SpikeTriangle triangle = SpikeRules.ScreenTriangle(spike, view);
+        DrawSpikeBody(
+            canvas,
+            rid,
+            triangle,
+            spike.OutlineWidth * view.Scale,
+            GroupColor.For(entity, SpikeColor),
+            GroupOutlineColor.For(entity, spike));
+
+        // Like a block, a selected one keeps its own look and gains an accent edge.
+        if (selected)
         {
-            Spike spike = entity.GetComponent<Spike>();
-            if (spike.Size.X <= 0 || spike.Size.Y <= 0)
-                continue;
-
-            canvas.SelectShader(ItemShader.Of(entity));
-            SpikeTriangle triangle = SpikeRules.ScreenTriangle(spike, view);
-            DrawSpikeBody(
-                canvas,
-                rid,
-                triangle,
-                spike.OutlineWidth * view.Scale,
-                GroupColor.For(entity, SpikeColor),
-                GroupOutlineColor.For(entity, spike));
-
-            // Like a block, a selected one keeps its own look and gains an accent edge.
-            if (isSelected?.Invoke(entity) == true)
-            {
-                Span<Vector2> edge = [triangle.Tip, triangle.BaseLeft, triangle.BaseRight, triangle.Tip];
-                canvas.DrawPolyline(rid, edge, BlockSelectedEdge, SelectedEdgeThickness);
-            }
+            Span<Vector2> edge = [triangle.Tip, triangle.BaseLeft, triangle.BaseRight, triangle.Tip];
+            canvas.DrawPolyline(rid, edge, BlockSelectedEdge, SelectedEdgeThickness);
         }
 
         canvas.SelectShader(0);

@@ -20,46 +20,40 @@ public static partial class PlayfieldRenderer
     private const float FlashShare = 0.35f;
 
     /// <summary>
-    /// Draws each recently hit note where it was: a white flash over the note,
+    /// Draws a recently hit note where it was: a white flash over the note,
     /// the note's own shape swelling and fading out, and a thick shockwave
     /// that races out from its edge and thins as it goes.
     /// </summary>
-    public static void DrawNotePops(
-        IRectCanvas canvas,
-        Rid rid,
-        EntityStore entities)
+    public static void DrawNotePop(IRectCanvas canvas, Rid rid, Entity entity)
     {
-        foreach (Entity entity in entities.Query<NotePop>().ToEntityList())
+        NotePop pop = entity.GetComponent<NotePop>();
+        float t = Math.Clamp(pop.Age / Math.Max(0.01f, pop.Lifetime), 0f, 1f);
+        float alpha = NotePopAlpha(t);
+        var color = new Color(
+            pop.Color.R,
+            pop.Color.G,
+            pop.Color.B,
+            pop.Color.A * alpha);
+        float radius = NotePopRadius(pop.Radius, t);
+
+        DrawNoteBody(canvas, rid, pop.Note, pop.Position, radius, color);
+
+        float swell = PopSwell(t);
+        canvas.DrawCircleOutline(
+            rid,
+            pop.Position,
+            pop.Radius * (1f + RingGrowth * swell),
+            new Color(color.R, color.G, color.B, color.A * 0.8f),
+            Math.Max(1f, 7f * (1f - swell)));
+
+        if (t < FlashShare)
         {
-            NotePop pop = entity.GetComponent<NotePop>();
-            float t = Math.Clamp(pop.Age / Math.Max(0.01f, pop.Lifetime), 0f, 1f);
-            float alpha = NotePopAlpha(t);
-            var color = new Color(
-                pop.Color.R,
-                pop.Color.G,
-                pop.Color.B,
-                pop.Color.A * alpha);
-            float radius = NotePopRadius(pop.Radius, t);
-
-            DrawNoteBody(canvas, rid, pop.Note, pop.Position, radius, color);
-
-            float swell = PopSwell(t);
-            canvas.DrawCircleOutline(
+            float flash = 1f - t / FlashShare;
+            canvas.DrawCircle(
                 rid,
                 pop.Position,
-                pop.Radius * (1f + RingGrowth * swell),
-                new Color(color.R, color.G, color.B, color.A * 0.8f),
-                Math.Max(1f, 7f * (1f - swell)));
-
-            if (t < FlashShare)
-            {
-                float flash = 1f - t / FlashShare;
-                canvas.DrawCircle(
-                    rid,
-                    pop.Position,
-                    pop.Radius * (0.9f + 0.4f * swell),
-                    new Color(1f, 1f, 1f, 0.75f * flash * flash));
-            }
+                pop.Radius * (0.9f + 0.4f * swell),
+                new Color(1f, 1f, 1f, 0.75f * flash * flash));
         }
     }
 

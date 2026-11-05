@@ -132,7 +132,7 @@ public sealed class PlayerMovementSystem : QuerySystem<Player, Position, Playfie
                 {
                     ApplyMomentum(ref body, movement);
                     Vector2 push = screen + DashDirectionVector(movement.DashDirection) * 60f;
-                    _entities.CreateEntity(new DashTrail(screen, push));
+                    _entities.CreateEntity(new DashTrail(screen, push), EffectLayer.From(noteEntity));
                     _entities.CreateEntity(new ParticleBurst(
                         screen, ParticleKind.Dash, spray, player.Size, heading: push - screen));
                 }
@@ -145,12 +145,14 @@ public sealed class PlayerMovementSystem : QuerySystem<Player, Position, Playfie
                 {
                     ref ScoreState score = ref entity.GetComponent<ScoreState>();
                     PlayScoring.Apply(ref score, movement.TimeMs - judgedTime);
-                    score.JudgementPosition = view.PlayfieldToScreen(movement.Position);
+                    score.JudgementPosition = view.PlayfieldToScreen(GroupOffset.Shown(noteEntity, movement.Position));
                     score.JudgementTimeMs = playhead.TimeMs;
-                    _entities.CreateEntity(new HitTrail(
-                        score.JudgementPosition,
-                        PlayfieldRenderer.ColorFor(movement),
-                        KeybindSettings.KeyLabel(_keybinds.Get(action))));
+                    _entities.CreateEntity(
+                        new HitTrail(
+                            score.JudgementPosition,
+                            PlayfieldRenderer.ColorFor(movement),
+                            KeybindSettings.KeyLabel(_keybinds.Get(action))),
+                        EffectLayer.From(noteEntity));
                 }
 
                 buffer.DeleteEntity(noteEntity.Id);
@@ -244,7 +246,7 @@ public sealed class PlayerMovementSystem : QuerySystem<Player, Position, Playfie
                 continue;
             }
 
-            Vector2 noteScreen = view.PlayfieldToScreen(note.Position);
+            Vector2 noteScreen = view.PlayfieldToScreen(GroupOffset.Shown(entity, note.Position));
             if (!NoteReach.Contains(playerScreen, view, noteScreen, character))
                 continue;
 
@@ -336,7 +338,7 @@ public sealed class PlayerMovementSystem : QuerySystem<Player, Position, Playfie
                 continue;
             }
 
-            Vector2 noteScreen = view.PlayfieldToScreen(note.Position);
+            Vector2 noteScreen = view.PlayfieldToScreen(GroupOffset.Shown(entity, note.Position));
             bool inRange = armed && (note.Kind is NoteKind.Hit or NoteKind.Pair)
                 ? WeaponHitRules.Contains(
                     weapon,

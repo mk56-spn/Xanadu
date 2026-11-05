@@ -43,7 +43,9 @@ public sealed class PlayfieldSystemGroup : SystemGroup, IDisposable
         ICharacterRigFiles? rigFiles = null,
         ReplayKeyboard? replayKeyboard = null,
         IOverlayToggleSource? hitboxToggle = null,
-        MapOffsetSettings? mapOffsets = null) : base("Playfield")
+        MapOffsetSettings? mapOffsets = null,
+        Xanadu.Systems.Shaders.IPassSurfaces? passes = null,
+        Func<Rect2, Rect2>? toPixels = null) : base("Playfield")
     {
         _playfield = new CanvasItemHandle(parentCanvas, 800);
 
@@ -119,7 +121,7 @@ public sealed class PlayfieldSystemGroup : SystemGroup, IDisposable
                     root => new SvgAttachmentVisuals(root, containLayers: true))));
         }
 
-        Add(new PlayfieldDrawSystem(entities, canvas, _playfield.Rid));
+        Add(new PlayfieldDrawSystem(entities, canvas, _playfield.Rid, passes, toPixels));
         if (hitboxToggle is not null)
         {
             Add(new PlayfieldHitboxOverlaySystem(

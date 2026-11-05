@@ -53,7 +53,7 @@ public sealed class PlayNoteMisses(PlayNoteContext context)
                     playfield.GetComponent<Playfield>(),
                     note,
                     playhead.TimeMs)
-                : view.PlayfieldToScreen(note.Position);
+                : view.PlayfieldToScreen(GroupOffset.Shown(entity, note.Position));
             score.JudgementTimeMs = playhead.TimeMs;
             PlayScoring.Count(ref score, Judgement.Miss);
         }

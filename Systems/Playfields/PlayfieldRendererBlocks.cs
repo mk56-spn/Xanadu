@@ -69,70 +69,61 @@ public static partial class PlayfieldRenderer
             canvas.DrawRect(rid, OneWayEdge(screen, oneWay), strip);
     }
 
-    /// <summary>
-    /// Draws every block as a filled slab inside its outline. Every selected one
-    /// gets an accent edge even with no outline of its own; the editor draws the
-    /// primary one's resize handles on top.
-    /// </summary>
-    public static void DrawBlocks(
-        IRectCanvas canvas,
-        Rid rid,
-        EntityStore entities,
-        PlayfieldView view,
-        Func<Entity, bool>? isSelected = null)
+    /// <summary>Whether any playfield in the store is playing, where a block a construction hides is gone.</summary>
+    public static bool IsPlaying(EntityStore entities)
     {
-        bool playing = false;
         foreach (Entity playfield in entities.Query<PlayfieldMode>().ToEntityList())
         {
             if (playfield.GetComponent<PlayfieldMode>().Kind == PlayfieldKind.Play)
-            {
-                playing = true;
-                break;
-            }
+                return true;
         }
 
-        foreach (Entity entity in entities.Query<Block>().ToEntityList())
+        return false;
+    }
+
+    /// <summary>
+    /// Draws one block as a filled slab inside its outline. A selected one gets
+    /// an accent edge even with no outline of its own; the editor draws the
+    /// primary one's resize handles on top. A block a construction hides is
+    /// gone while <paramref name="playing"/>, and faint otherwise.
+    /// </summary>
+    public static void DrawBlock(
+        IRectCanvas canvas,
+        Rid rid,
+        Entity entity,
+        PlayfieldView view,
+        bool selected,
+        bool playing)
+    {
+        Block block = entity.GetComponent<Block>();
+        if (block.Size.X <= 0 || block.Size.Y <= 0)
+            return;
+
+        bool hidden = entity.Tags.Has<ConstructionHidden>();
+        if (hidden && playing)
+            return;
+
+        SelectItemShader(canvas, entity);
+        Rect2 screen = new(
+            view.PlayfieldToScreen(block.Position),
+            block.Size * view.Scale);
+        Color outline = GroupOutlineColor.For(entity, block);
+        Color fill = GroupColor.For(entity, BlockFill);
+        if (hidden)
         {
-            Block block = entity.GetComponent<Block>();
-            if (block.Size.X <= 0 || block.Size.Y <= 0)
-                continue;
-
-            bool hidden = entity.Tags.Has<ConstructionHidden>();
-            if (hidden && playing)
-                continue;
-
-            canvas.SelectShader(ItemShader.Of(entity));
-            Rect2 screen = new(
-                view.PlayfieldToScreen(block.Position),
-                block.Size * view.Scale);
-            Color outline = GroupOutlineColor.For(entity, block);
-            Color fill = GroupColor.For(entity, BlockFill);
-            if (hidden)
-            {
-                outline.A *= 0.35f;
-                fill.A *= 0.35f;
-            }
-
-            DrawBlockBody(canvas, rid, screen, block.OutlineWidth * view.Scale, fill, outline, block.OneWay);
-
-            Color edge = outline;
-            if (isSelected?.Invoke(entity) == true)
-            {
-                edge = BlockSelectedEdge;
-                canvas.DrawBorder(rid, screen, edge, SelectedEdgeThickness);
-            }
-
-            if (entity.TryGetComponent(out ItemGroups groups) && groups.Mask != 0)
-            {
-                float inset = Mathf.Min(12f, Mathf.Min(screen.Size.X, screen.Size.Y) / 2f);
-                DrawGroupBadge(
-                    canvas,
-                    rid,
-                    new Vector2(screen.End.X - inset, screen.Position.Y + inset),
-                    groups.Mask,
-                    edge.A);
-            }
+            outline.A *= 0.35f;
+            fill.A *= 0.35f;
         }
+
+        DrawBlockBody(canvas, rid, screen, block.OutlineWidth * view.Scale, fill, outline, block.OneWay);
+
+        Color edge = outline;
+        if (selected)
+        {
+            edge = BlockSelectedEdge;
+            canvas.DrawBorder(rid, screen, edge, SelectedEdgeThickness);
+        }
+
 
         canvas.SelectShader(0);
     }
