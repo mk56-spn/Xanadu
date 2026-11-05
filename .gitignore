@@ -23,3 +23,6 @@ Thumbs.db
 
 # Agent scratch (screenshots, dotnet temp, tool configs)
 .tmp/
+
+# Agent workspaces (worktrees, local settings)
+.claude/
