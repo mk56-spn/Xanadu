@@ -269,8 +269,8 @@ public sealed class CharacterMotionSystem : QuerySystem<CharacterRig, Player, Po
             if (block.OneWay is not (BlockOneWay.Off or BlockOneWay.Up))
                 continue;
 
-            Vector2 topLeft = view.PlayfieldToScreen(block.Position);
-            Vector2 bottomRight = view.PlayfieldToScreen(block.End);
+            Vector2 topLeft = view.PlayfieldToScreen(GroupOffset.Shown(blockEntity, block.Position));
+            Vector2 bottomRight = view.PlayfieldToScreen(GroupOffset.Shown(blockEntity, block.End));
             bool overlapsX = x + size.X / 2 > topLeft.X && x - size.X / 2 < bottomRight.X;
             if (overlapsX && Mathf.Abs(feet - topLeft.Y) <= BlockTolerance)
                 return true;

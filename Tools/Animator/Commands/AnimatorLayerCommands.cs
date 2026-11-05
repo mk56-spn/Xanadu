@@ -12,7 +12,7 @@ public readonly record struct AnimatorLayerRow(bool IsCloth, int Index, int Laye
     public string Argument => (IsCloth ? "c" : "a") + Index;
 
     /// <summary>Where the row draws. On one layer, cloth draws over attachments.</summary>
-    public DrawSlot Slot => new(Layer, IsCloth ? 1 : 0, Index);
+    public DrawSlot Slot => AnimatorDrawOrder.Slot(Layer, IsCloth, Index);
 }
 
 /// <summary>The layer stack: all the art in draw order, and moving it through that order.</summary>
