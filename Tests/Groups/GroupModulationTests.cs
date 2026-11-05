@@ -85,14 +85,15 @@ public sealed class GroupModulationTests
         GroupDefinition[] groups = Slots();
         groups[0].Effects.Add(GroupEffect.Colour(1f, 2f, Colors.Red));
 
-        Assert.That(GroupModulation.TryColor(groups, In(0), 0.5f, out _, out _), Is.False);
+        Assert.That(GroupModulation.TryColor(groups, In(0), 0.5f, out _, out _, out _), Is.False);
 
-        Assert.That(GroupModulation.TryColor(groups, In(0), 1.5f, out Color mid, out float coverage), Is.True);
+        Assert.That(GroupModulation.TryColor(groups, In(0), 1.5f, out Color mid, out float coverage, out float alphaMid), Is.True);
         Assert.That(coverage, Is.EqualTo(0.5f).Within(0.001f));
         Assert.That(mid.R, Is.EqualTo(1f).Within(0.001f));
 
-        Assert.That(GroupModulation.TryColor(groups, In(0), 9f, out Color done, out float full), Is.True);
+        Assert.That(GroupModulation.TryColor(groups, In(0), 9f, out Color done, out float full, out float alphaDone), Is.True);
         Assert.That(full, Is.EqualTo(1f).Within(0.001f));
+        Assert.That(alphaDone, Is.EqualTo(1f).Within(0.001f));
         Assert.That(done, Is.EqualTo(Colors.Red));
     }
 
@@ -103,12 +104,12 @@ public sealed class GroupModulationTests
         groups[0].Effects.Add(GroupEffect.Colour(1f, 1.1f, Colors.Red));
         groups[1].Effects.Add(GroupEffect.Colour(2f, 2.1f, Colors.Blue));
 
-        GroupModulation.TryColor(groups, In(0, 1), 5f, out Color both, out _);
+        GroupModulation.TryColor(groups, In(0, 1), 5f, out Color both, out _, out _);
         Assert.That(both.B, Is.EqualTo(1f).Within(0.001f));
         Assert.That(both.R, Is.EqualTo(0f).Within(0.001f));
 
         // Before the second starts, only the first is showing.
-        GroupModulation.TryColor(groups, In(0, 1), 1.5f, out Color first, out _);
+        GroupModulation.TryColor(groups, In(0, 1), 1.5f, out Color first, out _, out _);
         Assert.That(first.R, Is.EqualTo(1f).Within(0.001f));
     }
 
@@ -120,7 +121,7 @@ public sealed class GroupModulationTests
         groups[0].Effects.Add(GroupEffect.Colour(3f, 3.1f, Colors.Green));
         groups[7].Effects.Add(GroupEffect.Colour(1f, 1.1f, Colors.Red));
 
-        GroupModulation.TryColor(groups, In(0, 7), 10f, out Color mix, out _);
+        GroupModulation.TryColor(groups, In(0, 7), 10f, out Color mix, out _, out _);
 
         Assert.That(mix.G, Is.EqualTo(1f).Within(0.001f));
         Assert.That(mix.R, Is.EqualTo(0f).Within(0.001f));
@@ -133,7 +134,7 @@ public sealed class GroupModulationTests
         groups[0].Effects.Add(GroupEffect.Colour(0f, 0.1f, Colors.Red));
         groups[0].Effects.Add(GroupEffect.Colour(1f, 2f, Colors.Blue));
 
-        GroupModulation.TryColor(groups, In(0), 1.5f, out Color mix, out float coverage);
+        GroupModulation.TryColor(groups, In(0), 1.5f, out Color mix, out float coverage, out _);
 
         Assert.That(coverage, Is.EqualTo(1f).Within(0.001f));
         Assert.That(mix.R, Is.EqualTo(0.5f).Within(0.01f));
@@ -147,7 +148,7 @@ public sealed class GroupModulationTests
         groups[0].Effects.Add(GroupEffect.Colour(0.4f, 0.6f, Colors.Red));
         groups[1].Effects.Add(GroupEffect.Colour(0.8f, 0.9f, Colors.Blue));
 
-        GroupModulation.TryColor(groups, In(0, 1), 0.7f, out Color mix, out float coverage);
+        GroupModulation.TryColor(groups, In(0, 1), 0.7f, out Color mix, out float coverage, out _);
 
         Assert.That(coverage, Is.EqualTo(1f).Within(0.001f));
         Assert.That(mix, Is.EqualTo(Colors.Red));
@@ -159,10 +160,64 @@ public sealed class GroupModulationTests
         GroupDefinition[] groups = Slots();
         groups[0].Effects.Add(GroupEffect.Colour(0f, 1f, new Color(1f, 1f, 1f, 0f)));
 
-        GroupModulation.TryColor(groups, In(0), 1f, out Color mix, out float coverage);
-        Color drawn = new GroupColor(mix, coverage).Apply(new Color(0.2f, 0.4f, 0.6f, 0.8f));
+        GroupModulation.TryColor(groups, In(0), 1f, out Color mix, out float coverage, out float alpha);
+        Color drawn = new GroupColor(mix, coverage, alpha).Apply(new Color(0.2f, 0.4f, 0.6f, 0.8f));
 
         Assert.That(drawn.A, Is.EqualTo(0f).Within(0.001f));
+    }
+
+    [Test]
+    public void AColourInOneGroupCannotUndoAnotherGroupsFadeOut()
+    {
+        GroupDefinition[] groups = Slots();
+        groups[0].Effects.Add(GroupEffect.Colour(0f, 1f, new Color(1f, 1f, 1f, 0f)));
+        groups[1].Effects.Add(GroupEffect.Colour(1.5f, 1.6f, Colors.Red));
+
+        GroupModulation.TryColor(groups, In(0, 1), 5f, out Color mix, out float coverage, out float alpha);
+        Color drawn = new GroupColor(mix, coverage, alpha).Apply(Colors.White);
+
+        Assert.That(drawn.A, Is.EqualTo(0f).Within(0.001f), "the other group's fade out still holds");
+        Assert.That(drawn.R, Is.EqualTo(1f).Within(0.001f), "the later colour still wins the colour");
+    }
+
+    [Test]
+    public void OneGroupFadingOutThenInIsVisibleAgain()
+    {
+        GroupDefinition[] groups = Slots();
+        groups[0].Effects.Add(GroupEffect.Colour(0f, 1f, new Color(1f, 1f, 1f, 0f)));
+        groups[0].Effects.Add(GroupEffect.Colour(1f, 2f, Colors.White));
+
+        GroupModulation.TryColor(groups, In(0), 1f, out _, out _, out float hidden);
+        Assert.That(hidden, Is.EqualTo(0f).Within(0.001f));
+
+        GroupModulation.TryColor(groups, In(0), 1.5f, out _, out _, out float halfway);
+        Assert.That(halfway, Is.EqualTo(0.5f).Within(0.001f));
+
+        GroupModulation.TryColor(groups, In(0), 2f, out _, out _, out float shown);
+        Assert.That(shown, Is.EqualTo(1f).Within(0.001f));
+    }
+
+    [Test]
+    public void TheGroupsAlphasMultiply()
+    {
+        GroupDefinition[] groups = Slots();
+        groups[0].Effects.Add(GroupEffect.Colour(0f, 1f, new Color(1f, 1f, 1f, 0.5f)));
+        groups[1].Effects.Add(GroupEffect.Colour(0f, 1f, new Color(1f, 1f, 1f, 0.5f)));
+
+        GroupModulation.TryColor(groups, In(0, 1), 1f, out Color mix, out float coverage, out float alpha);
+        Color drawn = new GroupColor(mix, coverage, alpha).Apply(new Color(1f, 1f, 1f, 0.8f));
+
+        Assert.That(drawn.A, Is.EqualTo(0.2f).Within(0.001f));
+    }
+
+    [Test]
+    public void AGroupWithNoColourEffectLeavesTheAlphaAlone()
+    {
+        GroupDefinition[] groups = Slots();
+        groups[1].Effects.Add(GroupEffect.Move(0f, 1f, new Vector2(10, 0)));
+
+        GroupModulation.TryColor(groups, In(0, 1), 5f, out _, out _, out float alpha);
+        Assert.That(alpha, Is.EqualTo(1f));
     }
 
     [Test]
@@ -222,7 +277,7 @@ public sealed class GroupModulationTests
         GroupDefinition[] groups = Slots();
         groups[0].Effects.Add(GroupEffect.Colour(0f, 1f, Colors.Red, GroupEase.Out));
 
-        GroupModulation.TryColor(groups, In(0), 0.5f, out _, out float coverage);
+        GroupModulation.TryColor(groups, In(0), 0.5f, out _, out float coverage, out _);
 
         // Ease-out is three quarters of the way through at the halfway point.
         Assert.That(coverage, Is.EqualTo(0.75f).Within(0.001f));
@@ -250,7 +305,7 @@ public sealed class GroupModulationTests
             0f, 1f, Colors.Red, GroupEase.Linear, muted: true));
 
         Assert.That(GroupModulation.Offset(groups, In(0, 1), 10f), Is.EqualTo(Vector2.Zero));
-        Assert.That(GroupModulation.TryColor(groups, In(0, 1), 10f, out _, out _), Is.False);
+        Assert.That(GroupModulation.TryColor(groups, In(0, 1), 10f, out _, out _, out _), Is.False);
     }
 
     [Test]

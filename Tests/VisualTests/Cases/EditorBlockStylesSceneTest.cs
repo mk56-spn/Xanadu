@@ -59,9 +59,9 @@ public sealed class EditorBlockStylesSceneTest : SceneTest
         AddUntilStep("the outline thickened", () => _selected.GetComponent<Block>().OutlineWidth == 29f);
 
         AddStep("put the block in group 1", () => _selected.AddComponent(new ItemGroups(ItemGroups.Bit(0))));
-        AddStep("click group 1", () => Click(Editor().GetComponent<EditorGroupGrid>().Cells[0]));
-        AddWaitStep("hold group 1", 2);
-        AddStep("release group 1", () => Context.Pointer.Release());
+        AddStep("click EDIT on the group bar", () => Click(Editor().GetComponent<EditorGroupBar>().Edit));
+        AddWaitStep("hold EDIT", 2);
+        AddStep("release EDIT", () => Context.Pointer.Release());
         AddUntilStep("the overlay opens", () => Editor().GetComponent<EditorGroupState>().Open == 0);
 
         AddStep("click OUTLINE", () => Click(Piece(EditorGroupPart.OutlineLink)));

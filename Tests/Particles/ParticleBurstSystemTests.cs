@@ -45,7 +45,7 @@ public sealed class ParticleBurstSystemTests : EcsSystemTest
             new Xanadu.Ecs.Position(new Vector2(300, 400)));
 
         Xanadu.Systems.Playfields.HitEffects.Spawn(
-            Store, playfield, new Note(0, Vector2.Zero), new Vector2(10, 20), Colors.Red, 30f);
+            Store, playfield, default, new Note(0, Vector2.Zero), new Vector2(10, 20), Colors.Red, 30f);
 
         ParticleBurst burst = Store.Query<ParticleBurst>().ToEntityList()[0].GetComponent<ParticleBurst>();
         Assert.That(burst.Position, Is.EqualTo(new Vector2(300, 400)));

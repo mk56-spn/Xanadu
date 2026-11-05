@@ -115,7 +115,8 @@ public sealed class PlayGroupsSceneTest : SceneTest
         return notes[index];
     }
 
-    private Vector2 NoteAt(int index) => NoteEntity(index).GetComponent<Note>().Position;
+    /// <summary>Where a note is shown: its placed position plus its groups' moves.</summary>
+    private Vector2 NoteAt(int index) => GroupOffset.Shown(NoteEntity(index), NoteEntity(index).GetComponent<Note>().Position);
 
     private static bool Near(float a, float b) => System.Math.Abs(a - b) < 2f;
 }

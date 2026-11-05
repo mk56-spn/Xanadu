@@ -284,7 +284,8 @@ public partial class VisualTestMain : Control
             _paneSize,
             new KeybindSettings(persist: false),
             transitions: false,
-            keyboard: _keyboard);
+            keyboard: _keyboard,
+            passHost: _testHost);
 
         _context = new VisualTestContext(
             _entities,
