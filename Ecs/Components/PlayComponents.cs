@@ -222,7 +222,7 @@ public struct HitGhost(Entity player, Vector2 center, Vector2 size, float lifeti
     public const float DefaultLifetime = 0.5f;
 
     /// <summary>How opaque the copy starts.</summary>
-    public const float StartAlpha = 0.4f;
+    public const float StartAlpha = 0.55f;
 
     public Entity Player = player;
     public Vector2 Center = center;
