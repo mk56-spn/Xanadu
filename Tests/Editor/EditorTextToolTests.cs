@@ -8,6 +8,7 @@ using Xanadu.Editor;
 using Xanadu.Systems.Editor;
 using Xanadu.Systems.Input;
 using Xanadu.Tests.Support;
+using Xanadu.Ui.Ecs.Ui;
 
 namespace Xanadu.Tests.Editor;
 

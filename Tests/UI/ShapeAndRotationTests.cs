@@ -8,6 +8,7 @@ using Xanadu.Ecs;
 using Xanadu.Systems.Canvas;
 using Xanadu.Systems.Layout;
 using Xanadu.Systems.Rendering;
+using Xanadu.Ui.Ecs.Ui;
 using Position = Xanadu.Ecs.Position;
 
 namespace Xanadu.Tests.UI;

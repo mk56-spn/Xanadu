@@ -11,6 +11,7 @@ using Xanadu.Systems.Canvas;
 using Xanadu.Systems.Editor;
 using Xanadu.Systems.Playfields;
 using Xanadu.Timeline;
+using Xanadu.Ui.Ecs.Ui;
 
 namespace Xanadu.Tests.Editor;
 

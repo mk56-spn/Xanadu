@@ -1,5 +1,6 @@
 using System.Runtime.CompilerServices;
 using Friflo.Engine.ECS;
+using Xanadu.Ui.Ecs.Ui;
 
 namespace Xanadu.Ecs;
 

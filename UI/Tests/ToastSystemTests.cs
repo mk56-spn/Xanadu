@@ -6,6 +6,7 @@ using Xanadu.Ecs;
 using Xanadu.Systems.Ui;
 using Position = Xanadu.Ecs.Position;
 using Xanadu.Tests.Support;
+using Xanadu.Ui.Ecs.Ui;
 
 namespace Xanadu.Tests.UI;
 

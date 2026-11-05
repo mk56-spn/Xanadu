@@ -5,6 +5,7 @@ using Godot;
 using NUnit.Framework;
 using Xanadu.Ecs;
 using Xanadu.Systems.Debug;
+using Xanadu.Ui.Ecs.Ui;
 
 namespace Xanadu.Tests.Debug;
 

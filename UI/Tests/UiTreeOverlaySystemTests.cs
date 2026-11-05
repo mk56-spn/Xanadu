@@ -7,6 +7,7 @@ using Xanadu.Systems.Input;
 using Xanadu.Systems.Layout;
 using Xanadu.Systems.Ui;
 using Xanadu.Tests.Support;
+using Xanadu.Ui.Ecs.Ui;
 using Xanadu.Ui.Systems.Ui;
 using Position = Xanadu.Ecs.Position;
 

@@ -1,5 +1,6 @@
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
+using Xanadu.Ui.Ecs.Ui;
 
 namespace Xanadu.Ecs;
 

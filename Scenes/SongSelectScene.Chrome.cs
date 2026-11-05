@@ -2,6 +2,7 @@ using Friflo.Engine.ECS;
 using Godot;
 using Xanadu.Ecs;
 using Xanadu.Strings;
+using Xanadu.Ui.Ecs.Ui;
 
 namespace Xanadu.Scenes;
 

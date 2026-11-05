@@ -3,6 +3,7 @@ using Godot;
 using Xanadu.Ecs;
 using Xanadu.Scenes;
 using Xanadu.Systems.Editor;
+using Xanadu.Ui.Ecs.Ui;
 
 namespace Xanadu.Tests.VisualTests;
 

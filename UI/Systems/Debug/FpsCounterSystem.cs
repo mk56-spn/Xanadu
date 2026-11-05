@@ -4,6 +4,7 @@ using Godot;
 using Xanadu.Ecs;
 using Xanadu.Systems.Input;
 using Xanadu.Theme;
+using Xanadu.Ui.Ecs.Ui;
 using Position = Xanadu.Ecs.Position;
 
 namespace Xanadu.Systems.Debug;

@@ -5,6 +5,7 @@ using Xanadu.Ecs;
 using Xanadu.Levels;
 using Xanadu.Profiles;
 using Xanadu.Strings;
+using Xanadu.Ui.Ecs.Ui;
 using Position = Xanadu.Ecs.Position;
 
 namespace Xanadu.Scenes;

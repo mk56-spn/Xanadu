@@ -6,6 +6,7 @@ using Godot;
 using Xanadu.Ecs;
 using Xanadu.Systems.Input;
 using Xanadu.Theme;
+using Xanadu.Ui.Ecs.Ui;
 
 namespace Xanadu.Systems.Shaders;
 

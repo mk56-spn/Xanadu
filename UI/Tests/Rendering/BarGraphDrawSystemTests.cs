@@ -7,6 +7,7 @@ using Xanadu.Ecs;
 using Xanadu.Systems.Canvas;
 using Xanadu.Systems.Rendering;
 using Xanadu.Tests.Support;
+using Xanadu.Ui.Ecs.Ui;
 
 namespace Xanadu.Tests.UI.Rendering;
 

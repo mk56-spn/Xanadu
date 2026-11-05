@@ -1,6 +1,7 @@
 using System;
 using Friflo.Engine.ECS;
 using Godot;
+using Xanadu.Ui.Ecs.Ui;
 
 namespace Xanadu.Ecs;
 

@@ -8,6 +8,7 @@ using Xanadu.Levels;
 using Xanadu.Systems.Editor;
 using Xanadu.Systems.Ui;
 using Xanadu.Tests.Support;
+using Xanadu.Ui.Ecs.Ui;
 
 namespace Xanadu.Tests.Groups;
 

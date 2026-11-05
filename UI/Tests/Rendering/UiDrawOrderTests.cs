@@ -2,6 +2,7 @@ using Friflo.Engine.ECS;
 using NUnit.Framework;
 using Xanadu.Ecs;
 using Xanadu.Systems.Rendering;
+using Xanadu.Ui.Ecs.Ui;
 
 namespace Xanadu.Tests.UI.Rendering;
 

@@ -14,6 +14,7 @@ using Xanadu.Profiles;
 using Xanadu.Settings;
 using Xanadu.Systems.Scenes;
 using Xanadu.Tests.Support;
+using Xanadu.Ui.Ecs.Ui;
 
 namespace Xanadu.Tests.Scenes;
 

@@ -5,6 +5,7 @@ using Godot;
 using Xanadu.Ecs;
 using Xanadu.Levels;
 using Xanadu.Strings;
+using Xanadu.Ui.Ecs.Ui;
 using Position = Xanadu.Ecs.Position;
 
 namespace Xanadu.Scenes;

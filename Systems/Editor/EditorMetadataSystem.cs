@@ -6,6 +6,7 @@ using Godot;
 using Xanadu.Ecs;
 using Xanadu.Editor.Commands;
 using Xanadu.Levels;
+using Xanadu.Ui.Ecs.Ui;
 using Position = Xanadu.Ecs.Position;
 
 namespace Xanadu.Systems.Editor;

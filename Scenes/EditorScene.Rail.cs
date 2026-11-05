@@ -3,6 +3,7 @@ using Godot;
 using Xanadu.Ecs;
 using Xanadu.Settings;
 using Xanadu.Systems.Editor;
+using Xanadu.Ui.Ecs.Ui;
 
 namespace Xanadu.Scenes;
 

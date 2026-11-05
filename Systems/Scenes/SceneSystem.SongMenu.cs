@@ -7,6 +7,7 @@ using Xanadu.Levels;
 using Xanadu.Scenes;
 using Xanadu.Systems.Input;
 using Xanadu.Theme;
+using Xanadu.Ui.Ecs.Ui;
 using SceneState = Xanadu.Ecs.SceneState;
 using Position = Xanadu.Ecs.Position;
 

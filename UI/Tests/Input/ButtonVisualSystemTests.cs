@@ -6,6 +6,7 @@ using Xanadu.Ecs;
 using Xanadu.Tests.Support;
 using Xanadu.Systems.Input;
 using Xanadu.Theme;
+using Xanadu.Ui.Ecs.Ui;
 
 namespace Xanadu.Tests.UI.Input;
 

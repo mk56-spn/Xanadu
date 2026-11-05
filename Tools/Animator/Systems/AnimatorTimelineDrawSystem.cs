@@ -8,6 +8,7 @@ using Xanadu.Levels;
 using Xanadu.Systems.Canvas;
 using Xanadu.Theme;
 using Xanadu.Tools.Animator.Commands;
+using Xanadu.Ui.Ecs.Ui;
 
 namespace Xanadu.Tools.Animator.Systems;
 

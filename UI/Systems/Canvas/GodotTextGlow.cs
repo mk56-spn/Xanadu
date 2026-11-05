@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using Godot;
 using Godot.Collections;
 using Xanadu.Ecs;
+using Xanadu.Ui.Ecs.Ui;
 
 namespace Xanadu.Systems.Canvas;
 

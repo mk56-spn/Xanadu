@@ -1,7 +1,8 @@
 using Friflo.Engine.ECS;
 using Godot;
+using Xanadu.Ecs;
 
-namespace Xanadu.Ecs;
+namespace Xanadu.Ui.Ecs.Ui;
 
 /// <summary>Local rectangle centered on the entity canvas item origin.</summary>
 public struct Rectangle(Rect2 bounds) : IComponent

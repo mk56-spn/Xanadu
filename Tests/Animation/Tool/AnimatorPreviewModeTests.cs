@@ -7,6 +7,7 @@ using Xanadu.Systems.Ui;
 using Xanadu.Tools.Animator;
 using Xanadu.Tools.Animator.Commands;
 using Xanadu.Tools.Animator.Systems;
+using Xanadu.Ui.Ecs.Ui;
 using Position = Xanadu.Ecs.Position;
 
 namespace Xanadu.Tests.Animation.Tool;

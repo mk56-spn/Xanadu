@@ -9,6 +9,7 @@ using Xanadu.Profiles;
 using Xanadu.Scenes;
 using Xanadu.Settings;
 using Xanadu.Theme;
+using Xanadu.Ui.Ecs.Ui;
 using SceneState = Xanadu.Ecs.SceneState;
 using Position = Xanadu.Ecs.Position;
 

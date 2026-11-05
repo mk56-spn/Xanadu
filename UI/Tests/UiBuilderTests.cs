@@ -2,9 +2,10 @@ using Friflo.Engine.ECS;
 using Godot;
 using NUnit.Framework;
 using Xanadu.Ecs;
-using LayerComponent = Xanadu.Ecs.Layer;
+using LayerComponent = Xanadu.Ui.Ecs.Ui.Layer;
 using Position = Xanadu.Ecs.Position;
 using Xanadu.Tests.Support;
+using Xanadu.Ui.Ecs.Ui;
 
 namespace Xanadu.Tests.UI;
 

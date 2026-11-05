@@ -5,6 +5,7 @@ using NUnit.Framework;
 using Xanadu.Ecs;
 using Xanadu.Settings;
 using Xanadu.Systems.Input;
+using Xanadu.Ui.Ecs.Ui;
 
 namespace Xanadu.Tests.Settings;
 
