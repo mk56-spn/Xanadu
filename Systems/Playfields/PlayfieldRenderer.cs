@@ -67,7 +67,8 @@ public static partial class PlayfieldRenderer
         Vector2 camera = default,
         Rect2? frame = null,
         Color? outside = null,
-        Color? frameColor = null)
+        Color? frameColor = null,
+        float seconds = 0f)
     {
         // Under a camera the layer is scrolled by it, so the backdrop follows to keep the screen covered.
         canvas.DrawRect(rid, new Rect2(camera, view.ScreenSize), outside ?? PlayBackground);
@@ -81,6 +82,7 @@ public static partial class PlayfieldRenderer
 
         DrawBlocks(canvas, rid, entities, view);
         DrawSpikes(canvas, rid, entities, view);
+        DrawGrass(canvas, rid, entities, view, seconds);
         DrawTexts(canvas, rid, entities, view);
         DrawNotes(canvas, rid, entities, view, playfield, playhead, default);
         DrawRails(canvas, rid, entities, view, playfield, playhead, previewBoth: false);

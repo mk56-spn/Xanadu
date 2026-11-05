@@ -149,6 +149,13 @@ public sealed partial class EditorCommandSystem
             text.Position += offset;
             pasted = EditorItems.Create(_entities, text, item.Shader);
         }
+        else if (item.Grass is { } grass)
+        {
+            // A fresh seed, so the copy is the same kind of grass but not the same blades.
+            grass.Position += offset;
+            grass.Seed = GrassPatch.NewSeed();
+            pasted = EditorItems.Create(_entities, grass, item.Shader);
+        }
         else
         {
             Spike spike = item.Spike!.Value;

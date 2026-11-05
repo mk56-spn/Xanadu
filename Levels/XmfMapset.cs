@@ -43,6 +43,9 @@ public sealed class XmfVariant : IChartItems
     /// <summary>Text written into the level.</summary>
     public List<TextDocument> Texts { get; set; } = new();
 
+    /// <summary>Grass patches: swaying blades with no collision.</summary>
+    public List<GrassDocument> Grass { get; set; } = new();
+
     /// <summary>The groups that have a name or effects; the rest are empty slots.</summary>
     public List<GroupDocument> Groups { get; set; } = new();
 

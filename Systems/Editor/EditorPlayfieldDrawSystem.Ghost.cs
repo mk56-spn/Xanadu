@@ -68,13 +68,20 @@ public sealed partial class EditorPlayfieldDrawSystem
                     Math.Max(1, (int)MathF.Round(text.Size * view.Scale)));
                 break;
 
+            case EditorPlacementMode.Grass:
+                GrassPatch grass = placement.Grass;
+                grass.Position = snap ? PlayfieldGrid.NearestCrossing(pointer, playfield) : pointer;
+                grass.Color = Faint(grass.Color);
+                PlayfieldRenderer.DrawGrassPatch(_canvas, _editor, grass, view, _seconds);
+                break;
+
             case EditorPlacementMode.Start:
-                _canvas.DrawCircleOutline(
+                PlayfieldRenderer.DrawStartPointBody(
+                    _canvas,
                     _editor,
                     ghost.Screen,
-                    PlayfieldRenderer.NoteSize * view.Scale / 2f,
-                    Faint(Palette.Accent),
-                    2f);
+                    PlayfieldRenderer.StartPointRadius(view),
+                    Faint(PlayfieldRenderer.StartPointColor));
                 break;
 
             default:

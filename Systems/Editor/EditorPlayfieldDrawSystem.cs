@@ -36,6 +36,9 @@ public sealed partial class EditorPlayfieldDrawSystem :
     private PlayerPath? _path;
     private Entity _drawnEditor;
 
+    /// <summary>The clock grass sways by; it runs whether or not the song plays.</summary>
+    private float _seconds;
+
     public EditorPlayfieldDrawSystem(EntityStore entities, IRectCanvas canvas, Rid editor)
     {
         _entities = entities;
@@ -46,6 +49,7 @@ public sealed partial class EditorPlayfieldDrawSystem :
     protected override void OnUpdate()
     {
         _canvas.Clear(_editor);
+        _seconds += Tick.deltaTime;
 
         Query.ForEachEntity((
             ref view,
@@ -136,6 +140,7 @@ public sealed partial class EditorPlayfieldDrawSystem :
         Func<Entity, bool> isSelected = selection.Contains;
         PlayfieldRenderer.DrawBlocks(_canvas, _editor, _entities, view, isSelected);
         PlayfieldRenderer.DrawSpikes(_canvas, _editor, _entities, view, isSelected);
+        PlayfieldRenderer.DrawGrass(_canvas, _editor, _entities, view, _seconds, isSelected);
         PlayfieldRenderer.DrawTexts(_canvas, _editor, _entities, view, isSelected);
         if (_path is PlayerPath playerPath && PlayerPathSwitch.IsVisible(_entities))
             DrawPlayerPath(view, playhead, playerPath, playfield.Width);
@@ -184,25 +189,17 @@ public sealed partial class EditorPlayfieldDrawSystem :
         {
             StartPoint start = entity.GetComponent<StartPoint>();
             Vector2 center = view.PlayfieldToScreen(start.Position);
-            _canvas.DrawCircleOutline(
-                _editor,
-                center,
-                13,
-                PlayfieldRenderer.StartPointColor,
-                2);
-            _canvas.DrawTextStyled(
-                _editor,
-                new Rect2(center - new Vector2(10, 10), new Vector2(20, 20)),
-                "S",
-                PlayfieldRenderer.StartPointColor,
-                12);
+            float radius = PlayfieldRenderer.StartPointRadius(view);
+            PlayfieldRenderer.DrawStartPointBody(_canvas, _editor, center, radius, PlayfieldRenderer.StartPointColor);
+
+            // Selected and grouped the way a note is.
             if (selection.Contains(entity))
             {
                 _canvas.DrawCircleOutline(
                     _editor,
                     center,
-                    17,
-                    Colors.White,
+                    radius + 4f,
+                    PlayfieldRenderer.SelectedNoteColor,
                     2);
             }
 
@@ -211,7 +208,7 @@ public sealed partial class EditorPlayfieldDrawSystem :
                 PlayfieldRenderer.DrawGroupBadge(
                     _canvas,
                     _editor,
-                    center + new Vector2(15, -15),
+                    center + new Vector2(radius * 0.78f, -radius * 0.78f),
                     groups.Mask,
                     1f);
             }

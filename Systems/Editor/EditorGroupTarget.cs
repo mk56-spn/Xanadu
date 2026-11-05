@@ -72,6 +72,12 @@ public static class EditorGroupTarget
             return true;
         }
 
+        if (entity.HasComponent<GrassPatch>())
+        {
+            position = entity.GetComponent<GrassPatch>().Position;
+            return true;
+        }
+
         if (entity.HasComponent<StartPoint>())
         {
             position = entity.GetComponent<StartPoint>().Position;

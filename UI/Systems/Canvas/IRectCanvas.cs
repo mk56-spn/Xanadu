@@ -37,6 +37,12 @@ public interface IRectCanvas
     /// <summary>Fills a convex polygon.</summary>
     void DrawPolygon(Rid canvas, ReadOnlySpan<Vector2> points, Color color) { }
 
+    /// <summary>
+    /// Fills a batch of triangles in one draw: every three points are one
+    /// triangle, and each point has its own colour, blended across the face.
+    /// </summary>
+    void DrawTriangles(Rid canvas, ReadOnlySpan<Vector2> points, ReadOnlySpan<Color> colors) { }
+
     /// <summary>Fills a rectangle with a smooth ramp between two colours, along its width or its height.</summary>
     void DrawGradientRect(Rid canvas, Rect2 bounds, Color start, Color end, bool horizontal) { }
 

@@ -117,6 +117,19 @@ public sealed class GodotRectCanvas : IRectCanvas
         RenderingServer.CanvasItemAddPolygon(canvas, vertices, colors);
     }
 
+    public void DrawTriangles(Rid canvas, ReadOnlySpan<Vector2> points, ReadOnlySpan<Color> colors)
+    {
+        int count = points.Length - points.Length % 3;
+        if (count < 3 || colors.Length < count)
+            return;
+
+        var indices = new int[count];
+        for (int i = 0; i < count; i++)
+            indices[i] = i;
+        RenderingServer.CanvasItemAddTriangleArray(
+            canvas, indices, points[..count].ToArray(), colors[..count].ToArray());
+    }
+
     public void DrawRectOutlines(Rid canvas, ReadOnlySpan<Rect2> rects, Color color)
     {
         if (rects.IsEmpty)

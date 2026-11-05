@@ -40,6 +40,9 @@ public static partial class XmfBinary
 
         /// <summary>Each variant's text, absent when no variant has any.</summary>
         Texts = 9,
+
+        /// <summary>Each variant's grass, absent when no variant has any.</summary>
+        Grass = 10,
     }
 
     public static void SaveMapset(string path, XmfMapset mapset)
@@ -71,6 +74,8 @@ public static partial class XmfBinary
         file.Add((uint)MapsetChunkId.SpikeOutlines, WriteVariantSpikeOutlines(mapset.Variants));
         if (mapset.Variants.Exists(HasTexts))
             file.Add((uint)MapsetChunkId.Texts, WriteVariantTexts(mapset.Variants));
+        if (mapset.Variants.Exists(HasGrass))
+            file.Add((uint)MapsetChunkId.Grass, WriteVariantGrass(mapset.Variants));
         return file.ToArray();
     }
 
@@ -104,6 +109,8 @@ public static partial class XmfBinary
             ReadVariantSpikeOutlines(spikeOutlines, mapset.Variants);
         if (file.TryGet((uint)MapsetChunkId.Texts, out Chunk texts))
             ReadVariantTexts(texts, mapset.Variants);
+        if (file.TryGet((uint)MapsetChunkId.Grass, out Chunk grass))
+            ReadVariantGrass(grass, mapset.Variants);
         return mapset;
     }
 

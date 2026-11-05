@@ -54,6 +54,9 @@ public sealed class LevelDocument : IChartItems
     /// <summary>Text written into the level.</summary>
     public List<TextDocument> Texts { get; set; } = new();
 
+    /// <summary>Grass patches: swaying blades with no collision.</summary>
+    public List<GrassDocument> Grass { get; set; } = new();
+
     /// <summary>The groups that have a name or effects; the rest are empty slots.</summary>
     public List<GroupDocument> Groups { get; set; } = new();
 
@@ -189,6 +192,43 @@ public sealed class SpikeDocument
 
     /// <summary>The outline's colour, as RGBA8.</summary>
     public uint OutlineColor { get; set; } = Xanadu.Ecs.Block.DefaultOutlineColor.ToRgba32();
+}
+
+/// <summary>A grass patch: blades standing along a base line, growing up from it.</summary>
+public sealed class GrassDocument
+{
+    /// <summary>The colour its drawing is multiplied by, as RGBA8; white changes nothing.</summary>
+    public uint SelfModulate { get; set; } = Xanadu.Ecs.SelfModulate.White;
+
+    /// <summary>The groups this patch belongs to.</summary>
+    public List<int> Groups { get; set; } = new();
+
+    /// <summary>The shader slot it is drawn with, or 0 for none.</summary>
+    public int Shader { get; set; }
+
+    /// <summary>The middle of the base line, in playfield units.</summary>
+    public float X { get; set; }
+
+    public float Y { get; set; }
+
+    public float Width { get; set; } = Xanadu.Ecs.GrassPatch.DefaultWidth;
+
+    public float Length { get; set; } = Xanadu.Ecs.GrassPatch.DefaultLength;
+
+    /// <summary>Blades per 100 playfield units of width.</summary>
+    public float Density { get; set; } = Xanadu.Ecs.GrassPatch.DefaultDensity;
+
+    /// <summary>How far a blade leans at the most, in degrees.</summary>
+    public float Sway { get; set; } = Xanadu.Ecs.GrassPatch.DefaultSway;
+
+    /// <summary>The blades' colour, as RGBA8.</summary>
+    public uint Color { get; set; } = Xanadu.Ecs.GrassPatch.DefaultColor.ToRgba32();
+
+    /// <summary>How far each blade's colour may stray, 0 to 1.</summary>
+    public float Variation { get; set; } = Xanadu.Ecs.GrassPatch.DefaultVariation;
+
+    /// <summary>Picks where each blade stands and how it looks.</summary>
+    public uint Seed { get; set; }
 }
 
 /// <summary>Text written into a level: a centred label on the playfield.</summary>

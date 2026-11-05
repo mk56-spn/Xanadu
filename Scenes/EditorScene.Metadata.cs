@@ -166,6 +166,7 @@ public static partial class EditorScene
             $"{EditorPlacementKeybinds.LabelFor(EditorPlacementMode.Blocks),-23}Place blocks (drag to paint)",
             $"{EditorPlacementKeybinds.LabelFor(EditorPlacementMode.Spikes),-23}Place spikes (drag to paint)",
             $"{EditorPlacementKeybinds.LabelFor(EditorPlacementMode.Text),-23}Place text (edit it in the sidebar)",
+            $"{"GRASS TOOL",-23}Place grass (tune it in the sidebar)",
             "R                      Rotate selection a quarter turn",
             "H / V                  Flip selection across / up and down",
             "O                      Make selected blocks one-way",

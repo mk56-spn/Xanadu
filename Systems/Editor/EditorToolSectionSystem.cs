@@ -34,6 +34,11 @@ public static class EditorToolSections
         EditorPlacementMode.Contact,
     };
 
+    public static readonly EditorPlacementMode[] Grass =
+    {
+        EditorPlacementMode.Grass,
+    };
+
     public static readonly EditorPlacementMode[] FormShape =
     {
         EditorPlacementMode.Blocks,

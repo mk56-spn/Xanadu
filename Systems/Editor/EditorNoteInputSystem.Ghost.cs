@@ -60,6 +60,8 @@ public sealed partial class EditorNoteInputSystem
         if (hit.IsNull)
             hit = FindTextAt(position);
         if (hit.IsNull)
+            hit = FindGrassAt(position);
+        if (hit.IsNull)
             hit = FindSpikeAt(position);
         if (hit.IsNull)
             hit = FindBlockAt(position);
