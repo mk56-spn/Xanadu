@@ -9,7 +9,9 @@ public static class UiTheme
     public static readonly Color Background = Palette.Background;
     public static readonly Color Panel = Palette.Surface;
     public static readonly Color PanelAlt = Palette.SurfaceAlt;
-    public static readonly Color Button = Palette.Primary;
+    /// <summary>A button at rest; <see cref="ButtonActive"/> is for one that is toggled on.</summary>
+    public static readonly Color Button = Palette.PrimaryMuted;
+    public static readonly Color ButtonActive = Palette.Primary;
     public static readonly Color ButtonMuted = Palette.Muted;
     public static readonly Color DropdownOption = Palette.SurfaceAlt;
     public static readonly Color Text = Palette.Text;

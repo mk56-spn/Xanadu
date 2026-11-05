@@ -106,8 +106,11 @@ public static class Palette
     /// <summary>Cyan. Open cells and the "flawless" judgement.</summary>
     public static readonly Color Cyan = new("#22d3ee");
 
-    /// <summary>Primary action buttons.</summary>
+    /// <summary>The bright blue: a toggle that is on, or the selected one of a set.</summary>
     public static readonly Color Primary = new("#2563eb");
+
+    /// <summary>A muted blue for the tools' buttons at rest, so the bright one only marks what is on.</summary>
+    public static readonly Color PrimaryMuted = new("#2d4269");
 
     /// <summary>A lighter primary for secondary lanes and calm analysis states.</summary>
     public static readonly Color PrimarySoft = new("#3b82f6");

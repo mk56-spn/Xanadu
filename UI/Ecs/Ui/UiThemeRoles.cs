@@ -52,11 +52,11 @@ public static class UiThemes
 {
     private static readonly Color Clear = new(0f, 0f, 0f, 0f);
 
-    /// <summary>The tools' look: blue actions on slate panels.</summary>
+    /// <summary>The tools' look: muted blue actions on slate panels; bright blue is kept for what is toggled on.</summary>
     public static readonly UiThemeRoles Tools = new()
     {
         Name = "Tools",
-        Primary = new UiTone(Palette.Primary, Palette.Text),
+        Primary = new UiTone(Palette.PrimaryMuted, Palette.Text),
         Secondary = new UiTone(Palette.Muted, Palette.Text),
         Quiet = new UiTone(Clear, Palette.TextDim),
         Danger = new UiTone(Palette.Danger, Palette.TextBright),

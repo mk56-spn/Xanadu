@@ -15,6 +15,9 @@ public static class SceneUi
     public static readonly Color PanelColor = Palette.Surface;
     public static readonly Color ButtonColor = Palette.Primary;
     public static readonly Color MutedButtonColor = Palette.Muted;
+
+    /// <summary>The editor's buttons at rest: muted blue, leaving the bright blue for what is toggled on.</summary>
+    public static readonly Color EditorButtonColor = Palette.PrimaryMuted;
     public static readonly Color AccentColor = Palette.Accent;
     public static readonly Color DangerColor = Palette.Danger;
     public static readonly Color TextColor = Palette.Text;
