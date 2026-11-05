@@ -134,10 +134,12 @@ layer container
 ├─ draw runs                 ShaderRoutingCanvas output, issued in (z, list) order
 ├─ buffered group G          child item in CanvasGroup mode, at G's lowest member z
 │   └─ G's member runs       material = buffer shader + buffer tint/alpha, blend via render_mode
-├─ screen-read region        child item with CanvasItemSetCopyToBackbuffer(rect), at its z
+├─ screen-read region        child item with CanvasItemSetCopyToBackbuffer(rect), at its z;
+│                            rect in render-target pixels (step 0, panel E)
 └─ …
 pass == background reader → a sibling item right after the container:
-    CanvasItemSetCopyToBackbuffer(full screen) + a full-screen quad with the pass shader
+    CanvasItemSetCopyToBackbuffer(item, true, new Rect2()) (an empty rect = full copy)
+    + a full-screen quad with the pass shader
     (the copy happens just before it draws, which is the boundary of D9)
 ```
 
@@ -151,10 +153,17 @@ pass == background reader → a sibling item right after the container:
   inside one.
 - **No nesting.** Because self-contained layers are viewports, a buffered
   group is never a CanvasGroup inside another CanvasGroup (§5.6).
-- **spike:** a screen read inside a buffered group's CanvasGroup should read
-  the image from before the group (wanted, and believed to be Godot's default;
-  Q4). Inside a self-contained layer's
+- **Confirmed (step 0):** a screen read inside a buffered group's CanvasGroup
+  reads the image from before the group (Q4). Inside a self-contained layer's
   viewport, `screen_texture` is that viewport's own content so far.
+- **Confirmed (step 0):** `z_index` escapes CanvasGroups, so nothing inside a
+  layer uses it.
+- **Rect copies:** `CanvasItemSetCopyToBackbuffer` takes its rect in
+  **render-target pixels** (`GetViewport().GetFinalTransform() *
+  GetGlobalTransformWithCanvas() * localRect`), not local space, and `BackBufferCopy`'s Rect mode is wrong under
+  stretch for that reason. Screen-read regions compute the pixel rect
+  themselves every frame (it moves with the camera and editor zoom). Don't use
+  the `BackBufferCopy` node.
 
 ### 5.3 Instance uniforms (2D has them now)
 
@@ -235,10 +244,12 @@ layer renders into its **own SubViewport**:
   clear, and an update mode that renders every frame while the layer is
   self-contained. Make it when the pass is turned on and free it when the pass
   is turned off, so a layer without one costs nothing (D7).
-- **spike:** the viewport texture's alpha is premultiplied or straight, so the
-  composite quad blends correctly; the frame the viewport renders is the same
-  one the main canvas shows (no one-frame lag); the editor's zoom and pan are
-  carried into the viewport.
+- **Confirmed (step 0):** the viewport's pixels are **premultiplied**, so the
+  composite (pass shader or plain) uses `render_mode blend_premul_alpha`. No
+  frame of lag. Size the viewport in screen pixels (panel size × screen
+  scale), scale its canvas transform by the screen scale, put the camera / editor
+  zoom and pan on the content, and scale the composite back by 1 / screen scale;
+  it then lines up exactly with the main canvas.
 
 ## 6. Shared core with the animator
 
@@ -275,7 +286,7 @@ screenshot. ECS rules from `agents.md` apply throughout. Data files use the
 versioned binary formats (`Levels/XmfBinary.cs` and friends), never JSON. UI
 uses theme-role variants and stepper rows.
 
-### Step 0: Spike the Godot primitives  ☐
+### Step 0: Spike the Godot primitives  ☑
 Make a throwaway scene or test case that proves each item in §5: a
 CanvasGroup with three overlapping rects fading uniformly, children with mixed
 z inside a group, `CanvasItemSetCopyToBackbuffer` giving a fresh screen read
@@ -286,6 +297,22 @@ a `blend_add` variant of a level shader, an `instance uniform` on a
 and what `screen_texture` reads inside a CanvasGroup (Q4).
 Done when: every assumption in §5 is confirmed or this doc is updated with the
 real approach.
+
+**Done 2026-11-05.** The lab tab `RENDER SPIKE` (`Tools/Lab/Experiments/RenderSpike/`,
+`./run-lab.sh -- --tab=11 --shot=screenshots/render-spike.png`) has one panel
+per assumption. Results (all at 1920×1080 design size drawn into a 1600×900
+window, i.e. under `canvas_items` stretch like the game):
+
+| Panel | Question | Result |
+|---|---|---|
+| A | CanvasGroup fades uniformly | **Yes.** Overlaps measure the same as single boxes (137,80,25 both); plain translucent boxes darken where they overlap. |
+| B | `z_index` inside a CanvasGroup | **Escapes the group.** The z 1 child draws on top at full strength, outside the group's fade. Order inside groups must come from tree order (§5.1 already says so). |
+| C | Screen read inside a buffered group (Q4) | **Sees the image from before the group**, as wanted: wavy stripes, none of the group's own orange member. |
+| D | Full back-buffer copy between members | **Harmless.** The group's buffer survives, and members still read the image from before the group. So a screen-read region inside a buffered group does nothing for its members. |
+| E | Fresh screen read mid-frame | Without a copy, a later screen read is **stale**. A full copy (`BackBufferCopy` Viewport mode, or `CanvasItemSetCopyToBackbuffer(item, true, new Rect2())`) makes it **fresh**. **Rect copies take render-target pixels, not the item's local space** (contrary to the docs): `BackBufferCopy` Rect mode and local or canvas-space rects all came out stale. `GetViewport().GetFinalTransform() * GetGlobalTransformWithCanvas() * localRect` works. |
+| F | Self-contained layer as a SubViewport | **Works.** No frame of lag, and fast zoom/pan stays aligned with outlines drawn in the main canvas when the viewport is sized in screen pixels, its canvas transform is scaled by the screen scale and the composite is scaled back down. The viewport's pixels are **premultiplied**: compositing with a straight-alpha shader darkens them (172 vs 236). With `render_mode blend_premul_alpha` on the pass shader it matches the direct draw exactly. A screen read inside the viewport sees only that layer. A CanvasGroup inside the viewport fades uniformly. |
+| G | Blend variants by injecting `render_mode` | **Works** for `blend_mix`, `blend_add`, `blend_mul`. |
+| H | 2D instance uniforms | **Works.** Three items sharing one `ShaderMaterial` each show their own `instance uniform` set via `RenderingServer.CanvasItemSetInstanceShaderParameter`. |
 
 ### Step 1: Shared ordering core  ☐
 - Add `DrawOrder` and the shared layer limits (±200, Q5); move `ArtDrawOrder`
@@ -465,17 +492,9 @@ real approach.
   firm up.
 - ~~Q3. Breaking a buffered-group rule after the fact.~~ Settled: buffering is
   a lock (D16a).
-- **Q4. Screen reads inside a buffered group.** **Wanted:** every member reads
-  the image from **before the group applies itself**: the layers and items
-  behind the group, never the group's own half-drawn buffer. The user believes
-  this is Godot's default. Step 0 checks it (a screen-reading member over a
-  striped background, plus a screen-read region between two members).
-  - If it holds: nothing to do; write it down here.
-  - If it doesn't: first try making it hold (capture the screen just before
-    the group's slot and give members that capture instead of the group's
-    buffer). If that isn't workable, use the D16a lock: no screen-reading
-    shaders (source has `hint_screen_texture`) or screen-read regions inside
-    a buffered group, with a toast.
+- ~~Q4. Screen reads inside a buffered group.~~ Settled (step 0, panels C and D):
+  members read the image from before the group, as wanted, even with a full
+  back-buffer copy between them. No lock needed.
 - ~~Q5. Layer number range.~~ Settled: **±200**, one shared limit (−200…−1
   and 1…200 in levels, no 0). The animator's `XafAttachment.MinLayer` /
   `MaxLayer` (±4096) move onto the shared limit in step 1; no migration.

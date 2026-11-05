@@ -2,6 +2,7 @@ using Xanadu.Lab.Experiments.Fluid;
 using Xanadu.Lab.Experiments.Particles;
 using Xanadu.Lab.Experiments.Pivot;
 using Xanadu.Lab.Experiments.Radiance;
+using Xanadu.Lab.Experiments.RenderSpike;
 using Xanadu.Lab.Experiments.PixelBorder;
 using Xanadu.Lab.Experiments.Rts;
 using Xanadu.Lab.Experiments.Snow;
@@ -55,5 +56,6 @@ public static class LabExperiments
         new SnowExperiment(),
         new FluidExperiment(),
         new RadianceExperiment(),
+        new RenderSpikeExperiment(),
     ];
 }
