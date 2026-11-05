@@ -117,4 +117,157 @@ public static class XafJointLocks
         middle >= 0 && middle < package.Skeleton.Bones.Count && package.Skeleton.Bones[middle].Bend != 0
             ? package.Skeleton.Bones[middle].Bend < 0
             : null;
+
+    /// <summary>The step, in radians, the fitting search turns a compensating joint by.</summary>
+    private const float FitStep = MathF.PI / 720f;
+
+    /// <summary>
+    /// Brings every key of a clip inside the rig's angle limits while keeping
+    /// what the pose was for: a limb's end stays where it was. A clamped hip
+    /// re-bends its knee to put the ankle back; a clamped knee re-aims its hip
+    /// to; either way the foot keeps its angle in the rig. An end bone, such as
+    /// a foot, is only clamped. Existing keys keep their easing; a key added
+    /// takes the easing of the one before it. Returns how many bone turns
+    /// were changed.
+    /// </summary>
+    public static int FitClip(XafPackage package, XafClip clip)
+    {
+        int changed = 0;
+        var times = new SortedSet<float>();
+        foreach (XafChannel channel in clip.Channels)
+        {
+            if (channel.Target != XafChannelTarget.Bone || channel.Property != XafChannelProperty.Rotation)
+                continue;
+            int bone = XafRig.FindBone(package, channel.TargetId);
+            if (bone >= 0 && package.Skeleton.Bones[bone].Limited)
+            {
+                foreach (XafKeyframe key in channel.Keyframes)
+                    times.Add(key.Time);
+            }
+        }
+
+        foreach (float time in times)
+        {
+            // Parents first, so a hip's fix is in place before its knee is looked at.
+            for (int bone = 0; bone < package.Skeleton.Bones.Count; bone++)
+            {
+                XafBone limited = package.Skeleton.Bones[bone];
+                XafChannel? keyed = RotationChannel(clip, limited.Id);
+                if (!limited.Limited || keyed is null ||
+                    !keyed.Keyframes.Exists(key => MathF.Abs(key.Time - time) <= XafTracks.TimeTolerance))
+                {
+                    continue;
+                }
+
+                XafPose pose = XafSampler.Sample(package, clip, time);
+                float turn = Turn(package, pose, bone);
+                float held = Clamp(limited, turn);
+                if (held == turn)
+                    continue;
+
+                changed += Fit(package, clip, pose, bone, held - turn, time);
+            }
+        }
+        return changed;
+    }
+
+    /// <summary>Turns one bone by <paramref name="by"/> at a time and compensates as <see cref="FitClip"/> says; keys what moved.</summary>
+    private static int Fit(XafPackage package, XafClip clip, XafPose pose, int bone, float by, float time)
+    {
+        List<XafBone> bones = package.Skeleton.Bones;
+        int child = bones.FindIndex(candidate => candidate.Parent == bone);
+        int grandchild = child >= 0 ? bones.FindIndex(candidate => candidate.Parent == child) : -1;
+        int parent = bones[bone].Parent;
+
+        // The limb's end, and the bone whose angle in the rig is kept: what the pose was for.
+        int end = grandchild >= 0 ? grandchild : child;
+        Transform2D[] before = XafRig.WorldBones(package, pose);
+        Vector2 endAt = end >= 0 ? before[end].Origin : Vector2.Zero;
+        float endFacing = end >= 0 ? before[end].Rotation : 0f;
+
+        pose.Bones[bone].Rotation += by;
+        var touched = new List<int> { bone };
+        if (end >= 0)
+        {
+            // A hip re-bends its knee; a knee re-aims its hip. The other joint stays inside its own limits.
+            // Only bones the clip already turns: an attack layered over the base
+            // must not start overriding a bone it never keyed.
+            int adjust = grandchild >= 0 ? child : parent;
+            if (adjust >= 0 && bones[adjust].Parent >= 0 && RotationChannel(clip, bones[adjust].Id) is not null)
+            {
+                BestTurn(package, pose, adjust, end, endAt);
+                touched.Add(adjust);
+            }
+
+            if (RotationChannel(clip, bones[end].Id) is not null)
+            {
+                Transform2D[] after = XafRig.WorldBones(package, pose);
+                float facing = Mathf.Wrap(endFacing - after[end].Rotation, -MathF.PI, MathF.PI);
+                pose.Bones[end].Rotation += after[end].Determinant() < 0f ? -facing : facing;
+                if (bones[end].Limited)
+                {
+                    float endTurn = Turn(package, pose, end);
+                    pose.Bones[end].Rotation += Clamp(bones[end], endTurn) - endTurn;
+                }
+                touched.Add(end);
+            }
+        }
+
+        foreach (int moved in touched)
+            KeyRotation(clip, bones[moved].Id, time, pose.Bones[moved].Rotation);
+        return touched.Count;
+    }
+
+    /// <summary>Turns one bone, within its limits, to bring another's joint as near a spot as it will go.</summary>
+    private static void BestTurn(XafPackage package, XafPose pose, int bone, int end, Vector2 spot)
+    {
+        XafBone owner = package.Skeleton.Bones[bone];
+        float rest = owner.Rest.Rotation;
+        float low = owner.Limited ? rest + owner.LimitMin : pose.Bones[bone].Rotation - MathF.PI;
+        float high = owner.Limited ? rest + owner.LimitMax : pose.Bones[bone].Rotation + MathF.PI;
+
+        float best = pose.Bones[bone].Rotation;
+        float bestDistance = float.MaxValue;
+        for (float rotation = low; rotation <= high + 1e-6f; rotation += FitStep)
+        {
+            pose.Bones[bone].Rotation = rotation;
+            float distance = XafRig.WorldBones(package, pose)[end].Origin.DistanceSquaredTo(spot);
+            if (distance < bestDistance)
+            {
+                bestDistance = distance;
+                best = rotation;
+            }
+        }
+        pose.Bones[bone].Rotation = best;
+    }
+
+    private static XafChannel? RotationChannel(XafClip clip, string bone) =>
+        clip.Channels.Find(channel => channel.Target == XafChannelTarget.Bone && channel.TargetId == bone &&
+                                      channel.Property == XafChannelProperty.Rotation);
+
+    /// <summary>Sets a rotation key's value, keeping its easing; a new key eases as the one before it.</summary>
+    private static void KeyRotation(XafClip clip, string bone, float time, float value)
+    {
+        XafChannel? channel = RotationChannel(clip, bone);
+        if (channel is null)
+        {
+            channel = new XafChannel { Target = XafChannelTarget.Bone, TargetId = bone, Property = XafChannelProperty.Rotation };
+            clip.Channels.Add(channel);
+        }
+
+        XafKeyframe? existing = channel.Keyframes.Find(key => MathF.Abs(key.Time - time) <= XafTracks.TimeTolerance);
+        if (existing is not null)
+        {
+            existing.Value = value;
+            return;
+        }
+
+        int index = channel.Keyframes.FindIndex(key => key.Time > time);
+        XafKeyframe? previous = index < 0 ? channel.Keyframes.LastOrDefault() : index > 0 ? channel.Keyframes[index - 1] : null;
+        var added = new XafKeyframe { Time = time, Value = value, Interpolation = previous?.Interpolation ?? XafInterpolation.Linear };
+        if (index < 0)
+            channel.Keyframes.Add(added);
+        else
+            channel.Keyframes.Insert(index, added);
+    }
 }

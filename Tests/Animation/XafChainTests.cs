@@ -466,4 +466,36 @@ public sealed class XafChainTests
 
         Assert.That(package.Chains[0].CollideRadius, Is.EqualTo(14f));
     }
+
+    [Test]
+    public void ASheetFollowsASmoothCurveThroughTheChainAndRunsItsArtRootToTip()
+    {
+        Vector2[] points = { new(0, 0), new(0, 10), new(10, 20) };
+
+        (Vector2[] vertices, Vector2[] uvs, int[] triangles) = XafChainArt.Sheet(points, 4f);
+
+        int samples = (points.Length - 1) * XafChainArt.SheetSteps + 1;
+        Assert.That(vertices, Has.Length.EqualTo(samples * 2));
+        Assert.That(triangles, Has.Length.EqualTo((samples - 1) * 6));
+        Assert.That((vertices[0] + vertices[1]) / 2f, Is.EqualTo(points[0]), "it starts at the root");
+        Assert.That((vertices[^2] + vertices[^1]) / 2f, Is.EqualTo(points[^1]), "and ends at the tip");
+        Assert.That(vertices[0].DistanceTo(vertices[1]), Is.EqualTo(4f).Within(1e-4f), "as wide as asked");
+        Assert.That(uvs[0], Is.EqualTo(new Vector2(0, 0)));
+        Assert.That(uvs[^1], Is.EqualTo(new Vector2(1, 1)));
+        for (int i = 2; i < uvs.Length; i += 2)
+            Assert.That(uvs[i].Y, Is.GreaterThan(uvs[i - 2].Y), "the art runs on down the strand");
+    }
+
+    [Test]
+    public void SheetsAndTheirLayersAreSavedAndOlderFilesHaveNeither()
+    {
+        XafPackage package = Package();
+        package.Chains.Add(new XafChain { Id = "strand", BoneId = "head", Sheet = true, Layer = 7 });
+
+        XafChain loaded = XafBinary.Read(XafBinary.Write(package)).Chains.Single(chain => chain.Id == "strand");
+        Assert.That((loaded.Sheet, loaded.Layer), Is.EqualTo((true, (int?)7)));
+        XafChain older = XafBinary.Read(XafBinary.Write(package, 15)).Chains.Single(chain => chain.Id == "strand");
+        Assert.That((older.Sheet, older.Layer), Is.EqualTo((false, (int?)null)));
+        Assert.That(XafPackageCopy.AreEqual(package, XafPackageCopy.Clone(package)), Is.True);
+    }
 }

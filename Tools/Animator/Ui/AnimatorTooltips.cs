@@ -62,6 +62,14 @@ public static class AnimatorTooltips
             "Move the selected joints away from you, out of the screen's plane: the bones either side of each foreshorten (Ctrl+Shift+,)",
         ToolActionKind.DepthToward =>
             "Bring the selected joints toward you, out of the screen's plane: the bones either side of each foreshorten (Ctrl+Shift+.)",
+        ToolActionKind.AutoWeights =>
+            "Trace the selected SVG's outline into a skin mesh and weight it to the bones that bend it, by heat diffusion; replaces painted weights (Ctrl+Shift+W)",
+        ToolActionKind.PaintWeights =>
+            "Paint the selected skin's weights: click a joint to choose its bone, drag to add its weight, Ctrl-drag to take it away (Ctrl+W)",
+        ToolActionKind.BrushSmaller => "A smaller weight brush (Ctrl+Shift+-)",
+        ToolActionKind.BrushLarger => "A larger weight brush (Ctrl+Shift+=)",
+        ToolActionKind.BrushWeaker => "Paint weight on more gently (Ctrl+Shift+9)",
+        ToolActionKind.BrushStronger => "Paint weight on harder (Ctrl+Shift+0)",
         ToolActionKind.ToggleLimit =>
             "Keep the selected bones from turning more than 45 degrees either way from rest while you pose, or free them (Shift+L). Clips still play as keyed",
         ToolActionKind.LimitMinDown => "Let the selected bones turn further the negative way (Ctrl+;)",
@@ -96,6 +104,8 @@ public static class AnimatorTooltips
         ToolActionKind.EffectOpacityDown => "Key the selected effect 25% more see-through at the playhead (9)",
         ToolActionKind.EffectOpacityUp => "Key the selected effect 25% more opaque at the playhead (0)",
         ToolActionKind.DeleteChain => "Delete the selected chain (Ctrl+Delete)",
+        ToolActionKind.ToggleChainSheet =>
+            "Draw the chain as one sheet bent along it, its art stretched root to tip, such as a strand of hair; or as a piece per link again (Ctrl+H)",
         ToolActionKind.OpenNewClip => "Open the new clip dialog (Ctrl+Shift+N)",
         ToolActionKind.CreateClip => "Create the clip with this name and length",
         ToolActionKind.CloseNewClip => "Close without creating a clip",

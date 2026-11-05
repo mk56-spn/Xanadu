@@ -54,12 +54,11 @@ public sealed partial class SvgAttachmentVisuals(Rid canvas, bool containLayers 
             }
         }
 
-        int chainLayer = XafChainArt.Layer(package);
         for (int i = 0; i < package.Chains.Count; i++)
         {
             XafChain chain = package.Chains[i];
             if (chain.HasArt && TryRaster(chain.SvgPath, chain.Group, out ImageTexture? texture, out Vector2 size))
-                _chains.Add(new ChainVisual(i, texture!, size, chainLayer));
+                _chains.Add(new ChainVisual(i, texture!, size, XafChainArt.LayerOf(package, chain)));
         }
 
         for (int i = 0; i < package.Cloths.Count; i++)
@@ -128,6 +127,11 @@ public sealed partial class SvgAttachmentVisuals(Rid canvas, bool containLayers 
 
             XafChain chain = package.Chains[visual.Index];
             IReadOnlyList<Vector2> points = simulation.Points(visual.Index);
+            if (chain.Sheet)
+            {
+                DrawSheet(visual, chain, points, placement);
+                continue;
+            }
             int segments = Math.Max(0, points.Count - 1);
 
             // Segments can be added or removed while editing, so the pieces follow the points.
@@ -149,6 +153,31 @@ public sealed partial class SvgAttachmentVisuals(Rid canvas, bool containLayers 
                     placement * XafChainArt.Segment(points[s], points[s + 1], s, segments, chain.Width, visual.Size));
             }
         }
+    }
+
+    /// <summary>A sheet chain: one item, redrawn each frame as the strip along its points.</summary>
+    private void DrawSheet(ChainVisual visual, XafChain chain, IReadOnlyList<Vector2> points, Transform2D placement)
+    {
+        while (visual.Items.Count > 1)
+        {
+            RenderingServer.FreeRid(visual.Items[^1]);
+            visual.Items.RemoveAt(visual.Items.Count - 1);
+        }
+        if (visual.Items.Count == 0)
+            visual.Items.Add(CreateItem(visual.Texture, visual.Size, visual.Layer, ChainOrder + visual.Index));
+
+        Rid item = visual.Items[0];
+        RenderingServer.CanvasItemClear(item);
+        RenderingServer.CanvasItemSetTransform(item, Transform2D.Identity);
+        (Vector2[] vertices, Vector2[] uvs, int[] triangles) = XafChainArt.Sheet(points, chain.Width);
+        if (triangles.Length == 0)
+            return;
+        for (int i = 0; i < vertices.Length; i++)
+            vertices[i] = placement * vertices[i];
+        var colors = new Color[vertices.Length];
+        Array.Fill(colors, Colors.White);
+        RenderingServer.CanvasItemAddTriangleArray(item, triangles, vertices, colors, uvs,
+            texture: visual.Texture.GetRid());
     }
 
     public void ApplyCloths(XafPackage package, XafClothSimulation simulation, Transform2D placement)

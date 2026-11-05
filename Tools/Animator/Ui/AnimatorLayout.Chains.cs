@@ -21,7 +21,7 @@ public static partial class AnimatorLayout
     /// Rows under the title: art, bone, offset, six settings, collider bone,
     /// collider offset, collider radius and delete.
     /// </summary>
-    private const int ChainRows = 13;
+    private const int ChainRows = 15;
 
     public static readonly Vector2 ChainInspectorSize =
         new(ChainInspectorWidth, 8 * 2 + 18 + ChainRows * ChainRow + ChainRows * ChainSpacing);
@@ -50,6 +50,7 @@ public static partial class AnimatorLayout
 
         refs.Ui.ChainArtButton = ChainButton(menu, "ART", ToolActionKind.PickChainArt, inner);
         refs.Ui.ChainBoneButton = ChainButton(menu, "BONE", ToolActionKind.PickChainBone, inner);
+        refs.Ui.ChainSheetButton = ChainButton(menu, "DRAW", ToolActionKind.ToggleChainSheet, inner);
         ChainPair(menu, "OFFSET", inner,
             "Where the chain starts, in its bone's own space; or drag the dot in the preview",
             out refs.Ui.ChainOffsetX, out refs.Ui.ChainOffsetY);
@@ -60,6 +61,8 @@ public static partial class AnimatorLayout
             "Length of each link, in pixels");
         refs.Ui.ChainWidth = ChainField(menu, "WIDTH", inner,
             "Width of the art at the root; it narrows towards the tip");
+        refs.Ui.ChainLayer = ChainField(menu, "LAYER", inner,
+            "Draw layer of the chain's art; empty draws it above the whole body. Hair one below the head tucks under it");
         refs.Ui.ChainGravity = ChainField(menu, "GRAVITY", inner,
             "Downward pull, in pixels per second squared");
         refs.Ui.ChainLean = ChainField(menu, "LEAN", inner,

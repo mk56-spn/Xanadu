@@ -65,6 +65,9 @@ public partial class AnimatorTool : Control
     private string? _cloth;
     private string? _svg;
 
+    /// <summary>Set by <c>--paint=bone</c>: paint the weights of the SVG <c>--svg</c> selects, for that bone.</summary>
+    private string? _paint;
+
     /// <summary>Set by <c>--plant=bone,bone</c>: plant those bones on opening.</summary>
     private string? _plant;
 
@@ -151,6 +154,13 @@ public partial class AnimatorTool : Control
         }
         if (_frames == 2 && _svg is not null)
             AnimatorCommands.Run(_session, new ToolAction(ToolActionKind.SelectAttachment, _svg));
+        if (_frames == 2 && _paint is not null)
+        {
+            AnimatorCommands.Run(_session, new ToolAction(ToolActionKind.PaintWeights));
+            int bone = XafRig.FindBone(_session.GetComponent<AnimatorDocument>().Package, _paint);
+            if (bone >= 0)
+                AnimatorWeightCommands.PickBone(_session, bone);
+        }
         if (_frames == 2 && _cloth is not null)
             AnimatorCommands.Run(_session, new ToolAction(ToolActionKind.SelectCloth, _cloth));
         if (_frames == 2 && _paths is not null)
@@ -232,6 +242,8 @@ public partial class AnimatorTool : Control
                 _dress = argument["--dress=".Length..];
             else if (argument.StartsWith("--svg=", StringComparison.Ordinal))
                 _svg = argument["--svg=".Length..];
+            else if (argument.StartsWith("--paint=", StringComparison.Ordinal))
+                _paint = argument["--paint=".Length..];
             else if (argument.StartsWith("--cloth=", StringComparison.Ordinal))
                 _cloth = argument["--cloth=".Length..];
         }

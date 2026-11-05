@@ -22,6 +22,7 @@ public static class AnimatorChainCommands
         OffsetY,
         ColliderX,
         ColliderY,
+        Layer,
     }
 
     /// <summary>
@@ -47,6 +48,24 @@ public static class AnimatorChainCommands
         AnimatorSession.RigChanged(session);
         AnimatorSession.SetStatus(session, $"ADDED {package.Chains[index].Id}");
     }
+
+    /// <summary>Draws the selected chain as one sheet, or as pieces again, as one undo step.</summary>
+    public static void ToggleSheet(Entity session) =>
+        AnimatorHistoryCommands.Edit(session, () =>
+        {
+            XafPackage package = session.GetComponent<AnimatorDocument>().Package;
+            int index = session.GetComponent<AnimatorSelection>().Chain;
+            if (index < 0 || index >= package.Chains.Count)
+            {
+                AnimatorSession.SetStatus(session, "SELECT A CHAIN FIRST");
+                return;
+            }
+
+            XafChain chain = package.Chains[index];
+            chain.Sheet = !chain.Sheet;
+            AnimatorSession.RigChanged(session);
+            AnimatorSession.SetStatus(session, $"{chain.Id} DRAWS AS {(chain.Sheet ? "ONE SHEET" : "PIECES")}");
+        });
 
     /// <summary>Deletes the selected chain, as one undo step.</summary>
     public static void Delete(Entity session) =>
@@ -105,11 +124,14 @@ public static class AnimatorChainCommands
                 Setting.Segments => XafChainAuthoring.SetSegments(package, index, (int)MathF.Round(value)),
                 Setting.Length => XafChainAuthoring.SetSegmentLength(package, index, value),
                 Setting.Width => XafChainAuthoring.SetWidth(package, index, value),
+                Setting.Layer => XafChainAuthoring.SetLayer(package, index, (int)MathF.Round(value)),
                 Setting.Gravity => XafChainAuthoring.SetGravity(package, index, value),
                 Setting.Lean => XafChainAuthoring.SetLean(package, index, value),
                 Setting.Collide => XafChainAuthoring.SetCollideRadius(package, index, value),
                 _ => XafChainAuthoring.SetDamping(package, index, value),
             };
+            if (changed && setting == Setting.Layer)
+                AnimatorSession.RigChanged(session);
             AnimatorSession.SetStatus(
                 session,
                 changed ? $"{setting.ToString().ToUpperInvariant()} SET" : "SELECT A CHAIN FIRST");

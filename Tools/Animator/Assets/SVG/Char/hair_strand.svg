@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 100" width="20" height="100">
+  <!--
+    One strand of hair, root at the top, drawn as a sheet along a chain: the
+    chain bends it and stretches it root to tip, so only its outline matters.
+    A rounded root, narrowing steadily to a soft point.
+  -->
+  <g id="hair_strand">
+    <path d="M 2 4 C 2 0, 18 0, 18 4 C 18 34, 14 66, 10.6 97 C 10.3 100, 9.7 100, 9.4 97 C 6 66, 2 34, 2 4 Z" fill="#f5d76e"/>
+  </g>
+</svg>

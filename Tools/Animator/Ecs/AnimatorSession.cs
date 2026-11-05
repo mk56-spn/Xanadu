@@ -61,6 +61,7 @@ public static class AnimatorSession
         session.AddComponent(new AnimatorPreviewMode());
         session.AddComponent(AnimatorEventSelection.None);
         session.AddComponent(new AnimatorMeshPick());
+        session.AddComponent(AnimatorWeightPaint.Default);
         session.AddComponent(new UiMarqueeBox());
         session.AddComponent(new AnimatorPlants { Held = new List<AnimatorPlant>() });
         session.AddComponent(new AnimatorHistory

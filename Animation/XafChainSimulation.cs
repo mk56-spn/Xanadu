@@ -150,14 +150,56 @@ public sealed class XafChainSimulation
 
         /// <summary>
         /// Draws the chain between its last two steps, carried along by however far
-        /// the anchor has moved since, so the root sits exactly on its bone and the
-        /// links keep their length however fast the bone goes.
+        /// the anchor has moved since, so the root sits exactly on its bone; then
+        /// keeps every link its length and every point out of the collider.
         /// </summary>
         public void Blend(float amount)
         {
             Vector2 carry = Verlet.Anchor - _previous[0].Lerp(Verlet.Points[0], amount);
             for (int i = 0; i < Render.Length; i++)
                 Render[i] = _previous[i].Lerp(Verlet.Points[i], amount) + carry;
+
+            // The blend carries every point with the anchor, so a link can stretch
+            // while the bone turns fast; drawn from the root out, each point keeps
+            // its link's length from the one before. Carried that way, a point can
+            // also land inside a collider that moved another way since the step,
+            // such as the shoulder under hair as the body lands: the physics keeps
+            // them out, and so does what is drawn, by putting the point where the
+            // collider's edge meets its link's reach from the point before.
+            float radius = Verlet.ColliderRadius;
+            Vector2 centre = Verlet.ColliderCenter;
+            for (int i = 1; i < Render.Length; i++)
+            {
+                Vector2 link = Render[i] - Render[i - 1];
+                if (link.LengthSquared() > 1e-10f)
+                    Render[i] = Render[i - 1] + link.Normalized() * _length;
+                if (radius > 0f && Render[i].DistanceTo(centre) < radius)
+                    Render[i] = OnEdge(centre, radius, Render[i - 1], _length, Render[i]);
+            }
+        }
+
+        /// <summary>
+        /// Where a collider's edge meets a link's reach from the point before it,
+        /// the crossing nearer <paramref name="near"/>; straight out of the collider
+        /// when the two do not meet.
+        /// </summary>
+        private static Vector2 OnEdge(Vector2 centre, float radius, Vector2 previous, float length, Vector2 near)
+        {
+            Vector2 between = previous - centre;
+            float d = between.Length();
+            if (d < 1e-5f || d > radius + length || d < MathF.Abs(radius - length))
+            {
+                Vector2 outward = near - centre;
+                return centre + (outward.LengthSquared() > 1e-10f ? outward.Normalized() : Vector2.Up) * radius;
+            }
+
+            float a = (radius * radius - length * length + d * d) / (2f * d);
+            float h = MathF.Sqrt(MathF.Max(radius * radius - a * a, 0f));
+            Vector2 axis = between / d;
+            Vector2 foot = centre + axis * a;
+            var across = new Vector2(-axis.Y, axis.X) * h;
+            Vector2 first = foot + across, second = foot - across;
+            return first.DistanceSquaredTo(near) <= second.DistanceSquaredTo(near) ? first : second;
         }
 
         public bool Matches(XafChain other) =>

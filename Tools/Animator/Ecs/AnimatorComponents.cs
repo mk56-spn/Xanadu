@@ -48,6 +48,16 @@ public enum ToolActionKind
     ToggleMovable,
     LockBend,
 
+    /// <summary>Traces the selected SVG into a skin mesh and weights it to its bones by heat diffusion.</summary>
+    AutoWeights,
+
+    /// <summary>Starts or stops painting the selected skin's weights in the preview.</summary>
+    PaintWeights,
+    BrushSmaller,
+    BrushLarger,
+    BrushWeaker,
+    BrushStronger,
+
     /// <summary>Moves the selected joints away from the viewer, out of the screen's plane.</summary>
     DepthAway,
 
@@ -130,6 +140,9 @@ public enum ToolActionKind
 
     /// <summary>Deletes the selected chain; no argument.</summary>
     DeleteChain,
+
+    /// <summary>Draws the selected chain as one sheet along it, or as a piece per segment again.</summary>
+    ToggleChainSheet,
 
     /// <summary>Opens the SVG picker to choose the art of the selected chain; no argument.</summary>
     PickChainArt,
@@ -513,6 +526,9 @@ public enum AnimatorDragKind
 
     /// <summary>Turns a childless bone about its own joint by the handle on its stem.</summary>
     Rotate,
+
+    /// <summary>Paints the skin's weights under the brush; Ctrl takes weight away.</summary>
+    PaintWeights,
 
     /// <summary>Moves or resizes an override's bar on the timeline.</summary>
     OverrideSpan,

@@ -56,11 +56,21 @@ public sealed class AnimatorPreviewInputSystem(
         _panelHeld = pressed;
 
         Hover(session, area, input, !input.Pressed && !begin);
+        if (session.GetComponent<AnimatorWeightPaint>().Active && area.HasPoint(input.Position))
+            session.GetComponent<AnimatorWeightPaint>().Pointer = input.Position;
 
         ref AnimatorDrag drag = ref session.GetComponent<AnimatorDrag>();
         if (begin)
         {
             Begin(session, input.Position, area, input.Shift, input.Ctrl);
+        }
+        else if (drag.Kind == AnimatorDragKind.PaintWeights)
+        {
+            if (input.Pressed)
+                AnimatorWeightCommands.Stroke(session, input.Position,
+                    AnimatorGeometry.PreviewPlacement(area, view), input.Ctrl);
+            else
+                End(session);
         }
         else if (drag.Kind is AnimatorDragKind.Bone or AnimatorDragKind.Attachment
                      or AnimatorDragKind.Swing or AnimatorDragKind.Ik or AnimatorDragKind.Rotate ||
@@ -157,6 +167,7 @@ public sealed class AnimatorPreviewInputSystem(
         session.GetComponent<AnimatorBoneMenu>().Reparenting >= 0 ||
         session.GetComponent<AnimatorChains>().Picking != AnimatorChainPick.None ||
         session.GetComponent<AnimatorMeshPick>().Active ||
+        session.GetComponent<AnimatorWeightPaint>().Active ||
         session.GetComponent<AnimatorCloths>().Picking != AnimatorClothPick.None;
 
     private static void Begin(Entity session, Vector2 pointer, Rect2 area, bool shift, bool ctrl = false)
@@ -203,6 +214,25 @@ public sealed class AnimatorPreviewInputSystem(
         if (session.GetComponent<AnimatorMeshPick>().Active)
         {
             AnimatorArtCommands.PickBone(session, AnimatorGeometry.PickBoneOrLabel(world, placement, pointer));
+            return;
+        }
+
+        // Painting weights: a joint chooses the bone to paint; anywhere else starts a stroke.
+        if (session.GetComponent<AnimatorWeightPaint>().Active)
+        {
+            int joint = AnimatorGeometry.PickBoneOrLabel(world, placement, pointer);
+            if (joint >= 0)
+            {
+                AnimatorWeightCommands.PickBone(session, joint);
+                return;
+            }
+            AnimatorHistoryCommands.BeginGesture(session);
+            session.GetComponent<AnimatorDrag>() = new AnimatorDrag
+            {
+                Kind = AnimatorDragKind.PaintWeights,
+                StartPointer = pointer,
+            };
+            AnimatorWeightCommands.Stroke(session, pointer, placement, ctrl);
             return;
         }
 
@@ -599,7 +629,7 @@ public sealed class AnimatorPreviewInputSystem(
         session.GetComponent<AnimatorDrag>() = new AnimatorDrag();
         AnimatorModes modes = session.GetComponent<AnimatorModes>();
         bool keys = !AnimatorChainHandles.IsChainDrag(drag.Kind) && !AnimatorTargetCommands.IsDrag(drag.Kind) &&
-                    drag.Kind != AnimatorDragKind.None && !modes.Rest;
+                    drag.Kind is not (AnimatorDragKind.None or AnimatorDragKind.PaintWeights) && !modes.Rest;
 
         // The drag and any key it leaves are one undo step.
         AnimatorHistoryCommands.EndGesture(session, keys ? () => KeyDrag(session, drag, modes) : null);

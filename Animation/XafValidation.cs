@@ -38,6 +38,14 @@ public static class XafValidation
             {
                 issues.Add($"Bone '{bone.Id}' has an invalid angle limit.");
             }
+            if (!float.IsFinite(bone.Tip.X) || !float.IsFinite(bone.Tip.Y))
+                issues.Add($"Bone '{bone.Id}' has an invalid tip.");
+        }
+
+        foreach (XafChain chain in package.Chains)
+        {
+            if (chain.Layer is < XafAttachment.MinLayer or > XafAttachment.MaxLayer)
+                issues.Add($"Chain '{chain.Id}' has a layer out of range.");
         }
 
         if (rootCount != 1)
@@ -64,6 +72,8 @@ public static class XafValidation
                     if (!boneIds.Contains(bone))
                         issues.Add($"Attachment '{attachment.Group}' bends with missing bone '{bone}'.");
                 }
+                if (mesh.Skin is { } skin && !SkinIsWhole(skin))
+                    issues.Add($"Attachment '{attachment.Group}' has a broken skin mesh.");
             }
             if (string.IsNullOrWhiteSpace(attachment.Group))
                 issues.Add("Attachment has an empty SVG group.");
@@ -199,6 +209,38 @@ public static class XafValidation
         }
 
         return issues;
+    }
+
+    /// <summary>
+    /// Whether a stored skin hangs together: whole triangles over its own
+    /// points, and a finite weight row per point over its bones. A bone it
+    /// names that has since gone only loses its weight when drawn.
+    /// </summary>
+    private static bool SkinIsWhole(XafSkinMesh skin)
+    {
+        if (skin.Triangles.Length % 3 != 0 || skin.Weights.Length != skin.Points.Length)
+            return false;
+        foreach (int index in skin.Triangles)
+        {
+            if (index < 0 || index >= skin.Points.Length)
+                return false;
+        }
+        foreach (Vector2 point in skin.Points)
+        {
+            if (!float.IsFinite(point.X) || !float.IsFinite(point.Y))
+                return false;
+        }
+        foreach (float[] row in skin.Weights)
+        {
+            if (row.Length != skin.Bones.Count)
+                return false;
+            foreach (float weight in row)
+            {
+                if (!float.IsFinite(weight) || weight < 0f)
+                    return false;
+            }
+        }
+        return true;
     }
 
     public static void ThrowIfInvalid(XafPackage package)

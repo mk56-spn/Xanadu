@@ -9,7 +9,7 @@ namespace Xanadu.Animation;
 public sealed class XafPackage
 {
     public const ushort MajorVersion = 1;
-    public const ushort MinorVersion = 13;
+    public const ushort MinorVersion = 16;
 
     public ushort Major = MajorVersion;
     public ushort Minor = MinorVersion;
@@ -82,6 +82,13 @@ public sealed class XafBone
 
     /// <summary>The most the bone may turn from its rest angle, in radians, while <see cref="Limited"/>.</summary>
     public float LimitMax = XafJointLocks.DefaultLimit;
+
+    /// <summary>
+    /// Where a bone with no children ends, in its own space; zero for none. A
+    /// skin needs it to know which way such a bone runs: a foot points at its
+    /// toes, not on down the shin (see <see cref="XafSkin.Segment"/>).
+    /// </summary>
+    public Vector2 Tip;
 
     public bool CanTranslate => Parent < 0 || AllowTranslation;
 }
@@ -169,6 +176,21 @@ public sealed class XafChain
 
     /// <summary>Width of the art at the first segment; it tapers towards the tip.</summary>
     public float Width = 10f;
+
+    /// <summary>
+    /// Draws the chain as one sheet bent along a smooth curve through its
+    /// points, its art stretched root to tip, rather than a piece per segment:
+    /// a strand of hair rather than a string of beads. The art's own outline
+    /// gives the strand its shape, and <see cref="Width"/> its width.
+    /// </summary>
+    public bool Sheet;
+
+    /// <summary>
+    /// The draw layer of the chain's art, or null for just above the whole body
+    /// (see <see cref="XafChainArt.Layer"/>). Hair that should tuck under the
+    /// head but fall over the shoulders sits one below the head.
+    /// </summary>
+    public int? Layer;
 
     /// <summary>
     /// Sideways pull in pixels per second squared, positive towards the way the

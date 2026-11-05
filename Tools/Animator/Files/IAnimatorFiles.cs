@@ -12,4 +12,7 @@ public interface IAnimatorFiles
 
     /// <summary>Asks the system to open the file in its own app; false when it could not.</summary>
     bool OpenInSystem(string path);
+
+    /// <summary>A text file's contents, such as an SVG's; null when it cannot be read.</summary>
+    string? ReadText(string path) => null;
 }

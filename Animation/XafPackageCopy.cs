@@ -22,6 +22,7 @@ public static class XafPackageCopy
                 Limited = bone.Limited,
                 LimitMin = bone.LimitMin,
                 LimitMax = bone.LimitMax,
+                Tip = bone.Tip,
             });
         }
 
@@ -37,7 +38,7 @@ public static class XafPackageCopy
                 SelfModulate = attachment.SelfModulate,
                 Alternates = attachment.Alternates.ConvertAll(art => new XafArt { SvgPath = art.SvgPath, Group = art.Group }),
                 Mesh = attachment.Mesh is { } mesh
-                    ? new XafMesh { Detail = mesh.Detail, Blend = mesh.Blend, Bones = new List<string>(mesh.Bones) }
+                    ? new XafMesh { Detail = mesh.Detail, Blend = mesh.Blend, Bones = new List<string>(mesh.Bones), Skin = mesh.Skin?.Clone() }
                     : null,
             });
         }
@@ -60,6 +61,8 @@ public static class XafPackageCopy
                 CollideBoneId = chain.CollideBoneId,
                 CollideOffset = chain.CollideOffset,
                 CollideRadius = chain.CollideRadius,
+                Sheet = chain.Sheet,
+                Layer = chain.Layer,
             });
         }
 
@@ -172,7 +175,7 @@ public static class XafPackageCopy
     private static bool BoneEqual(XafBone a, XafBone b) =>
         a.Id == b.Id && a.Parent == b.Parent && a.Rest == b.Rest &&
         a.ZOrder == b.ZOrder && a.AllowTranslation == b.AllowTranslation && a.Bend == b.Bend &&
-        a.Limited == b.Limited && a.LimitMin == b.LimitMin && a.LimitMax == b.LimitMax;
+        a.Limited == b.Limited && a.LimitMin == b.LimitMin && a.LimitMax == b.LimitMax && a.Tip == b.Tip;
 
     private static bool AttachmentEqual(XafAttachment a, XafAttachment b) =>
         a.SvgPath == b.SvgPath && a.Group == b.Group && a.BoneId == b.BoneId &&
@@ -183,7 +186,8 @@ public static class XafPackageCopy
     private static bool MeshEqual(XafMesh? a, XafMesh? b) =>
         a is null || b is null
             ? a is null && b is null
-            : a.Detail == b.Detail && a.Blend == b.Blend && ListEqual(a.Bones, b.Bones, (x, y) => x == y);
+            : a.Detail == b.Detail && a.Blend == b.Blend && ListEqual(a.Bones, b.Bones, (x, y) => x == y) &&
+              XafSkinMesh.AreEqual(a.Skin, b.Skin);
 
     private static bool ChainEqual(XafChain a, XafChain b) =>
         a.Id == b.Id && a.BoneId == b.BoneId && a.Offset == b.Offset &&
@@ -191,7 +195,8 @@ public static class XafPackageCopy
         a.Gravity == b.Gravity && a.Damping == b.Damping &&
         a.SvgPath == b.SvgPath && a.Group == b.Group && a.Width == b.Width &&
         a.Lean == b.Lean && a.CollideBoneId == b.CollideBoneId &&
-        a.CollideOffset == b.CollideOffset && a.CollideRadius == b.CollideRadius;
+        a.CollideOffset == b.CollideOffset && a.CollideRadius == b.CollideRadius && a.Sheet == b.Sheet &&
+        a.Layer == b.Layer;
 
     private static bool ClipEqual(XafClip a, XafClip b) =>
         a.Id == b.Id && a.Duration == b.Duration && a.Loop == b.Loop &&

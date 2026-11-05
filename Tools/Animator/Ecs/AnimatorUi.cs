@@ -181,6 +181,9 @@ public struct AnimatorUi : IComponent
     public Entity ChainTitle;
     public Entity ChainArtButton;
     public Entity ChainBoneButton;
+
+    /// <summary>Shows and toggles whether the selected chain draws as one sheet or as pieces.</summary>
+    public Entity ChainSheetButton;
     public Entity ChainOffsetX;
     public Entity ChainOffsetY;
     public Entity ChainColliderButton;
@@ -189,6 +192,9 @@ public struct AnimatorUi : IComponent
     public Entity ChainSegments;
     public Entity ChainLength;
     public Entity ChainWidth;
+
+    /// <summary>The selected chain's own draw layer; empty while it simply draws above the body.</summary>
+    public Entity ChainLayer;
     public Entity ChainGravity;
     public Entity ChainLean;
     public Entity ChainDamping;

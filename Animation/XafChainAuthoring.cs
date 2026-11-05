@@ -53,6 +53,10 @@ public static class XafChainAuthoring
     public static bool SetWidth(XafPackage package, int index, float width) =>
         Edit(package, index, chain => chain.Width = Math.Max(1f, width));
 
+    /// <summary>Sets the chain's own draw layer; it no longer simply draws above the body.</summary>
+    public static bool SetLayer(XafPackage package, int index, int layer) =>
+        Edit(package, index, chain => chain.Layer = Math.Clamp(layer, XafAttachment.MinLayer, XafAttachment.MaxLayer));
+
     public static bool SetLean(XafPackage package, int index, float lean) =>
         Edit(package, index, chain => chain.Lean = lean);
 

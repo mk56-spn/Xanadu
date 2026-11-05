@@ -25,7 +25,7 @@ public sealed class AnimatorChainInspectorSystem : QuerySystem<AnimatorDocument,
     private int _editChain = -1;
 
     /// <summary>The number of typed fields; they are listed in <see cref="FieldsOf"/>.</summary>
-    private const int Fields = 11;
+    private const int Fields = 12;
 
     protected override void OnUpdate()
     {
@@ -46,6 +46,7 @@ public sealed class AnimatorChainInspectorSystem : QuerySystem<AnimatorDocument,
         (ui.ChainColliderX, Setting.ColliderX),
         (ui.ChainColliderY, Setting.ColliderY),
         (ui.ChainCollide, Setting.Collide),
+        (ui.ChainLayer, Setting.Layer),
     ];
 
     private void Update(Entity session)
@@ -75,6 +76,7 @@ public sealed class AnimatorChainInspectorSystem : QuerySystem<AnimatorDocument,
         UiText.Set(ui.ChainTitle, chain is null ? "NO CHAIN" : chain.Id + "  CHAIN");
         AnimatorChainPick picking = session.GetComponent<AnimatorChains>().Picking;
         SetButton(ui.ChainArtButton, chain is null ? "" : ArtLabel(chain), UiTheme.Button);
+        SetButton(ui.ChainSheetButton, chain is null ? "" : chain.Sheet ? "SHEET" : "PIECES", UiTheme.Button);
         SetButton(ui.ChainBoneButton, chain?.BoneId ?? "",
             picking == AnimatorChainPick.Anchor ? PickingColor : UiTheme.Button,
             picking == AnimatorChainPick.Anchor ? "CLICK A BONE" : null);
@@ -124,6 +126,7 @@ public sealed class AnimatorChainInspectorSystem : QuerySystem<AnimatorDocument,
         Setting.Segments => chain.Segments.ToString(CultureInfo.InvariantCulture),
         Setting.Length => Number(chain.SegmentLength),
         Setting.Width => Number(chain.Width),
+        Setting.Layer => chain.Layer?.ToString(CultureInfo.InvariantCulture) ?? "",
         Setting.Gravity => Number(chain.Gravity),
         Setting.Lean => Number(chain.Lean),
         Setting.Collide => Number(chain.CollideRadius),
