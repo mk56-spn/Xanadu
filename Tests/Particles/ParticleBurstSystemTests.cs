@@ -15,7 +15,7 @@ public sealed class ParticleBurstSystemTests : EcsSystemTest
     {
         public List<(Vector2 Position, ParticleKind Kind)> Bursts { get; } = new();
 
-        public void Burst(Vector2 position, ParticleKind kind, Color tint, Vector2 area = default) => Bursts.Add((position, kind));
+        public void Burst(Vector2 position, ParticleKind kind, Color tint, Vector2 area = default, float angle = 0f) => Bursts.Add((position, kind));
     }
 
     private FakeEmitter _emitter = null!;

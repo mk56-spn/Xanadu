@@ -123,7 +123,8 @@ public sealed class PlayerMovementSystem : QuerySystem<Player, Position, Playfie
                 {
                     HitEffects.SpawnDash(_entities, noteEntity, movement, view);
                     ApplyDash(ref body, ref position, screen, movement, view);
-                    _entities.CreateEntity(new DashTrail(screen, position.Value));
+                    // The path is told by a streak of particles, not a line.
+                    _entities.CreateEntity(ParticleBurst.Streak(screen, position.Value, player.Size.X * 0.6f, spray));
                     _entities.CreateEntity(new ParticleBurst(position.Value, ParticleKind.Dash, spray, player.Size));
                 }
                 else

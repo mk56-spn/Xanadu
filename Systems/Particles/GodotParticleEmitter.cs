@@ -18,6 +18,12 @@ public sealed class GodotParticleEmitter : IParticleEmitter, IDisposable
     private const int PoolSize = 10;
     private const float TextureSize = 16f;
 
+    /// <summary>How far from its centre a burst's particles can be drawn; a burst never leaves a screen-sized area.</summary>
+    private const float BurstReach = 300f;
+
+    /// <summary>The same for a streak, which is as long as the longest dash.</summary>
+    private const float StreakReach = 1400f;
+
     private readonly Rid _parent;
     private readonly ImageTexture _softDot;
     private readonly ImageTexture _solidSquare;
@@ -36,17 +42,19 @@ public sealed class GodotParticleEmitter : IParticleEmitter, IDisposable
         ParticleProcessMaterial landing = LandingMaterial();
         ParticleProcessMaterial dash = DashMaterial();
         ParticleProcessMaterial hit = HitMaterial();
-        _keepAlive = new Resource[] { _softDot, _solidSquare, landing, dash, hit };
-        _materials = new[] { landing, dash, hit };
+        ParticleProcessMaterial streak = StreakMaterial();
+        _keepAlive = new Resource[] { _softDot, _solidSquare, landing, dash, hit, streak };
+        _materials = new[] { landing, dash, hit, streak };
         _pools = new[]
         {
             new Pool(Build(landing, _softDot, amount: 14, lifetime: 0.55f)),
             new Pool(Build(dash, _solidSquare, amount: 38, lifetime: 0.8f)),
             new Pool(Build(hit, _solidSquare, amount: 22, lifetime: 0.4f)),
+            new Pool(Build(streak, _solidSquare, amount: 70, lifetime: 0.5f, explosiveness: 0.85f, reach: StreakReach)),
         };
     }
 
-    public void Burst(Vector2 position, ParticleKind kind, Color tint, Vector2 area = default)
+    public void Burst(Vector2 position, ParticleKind kind, Color tint, Vector2 area = default, float angle = 0f)
     {
         // Only where particles start: bursts already in flight keep their places.
         _materials[(int)kind].EmissionBoxExtents = new Vector3(area.X / 2, area.Y / 2, 0);
@@ -56,7 +64,7 @@ public sealed class GodotParticleEmitter : IParticleEmitter, IDisposable
         pool.Next = (pool.Next + 1) % pool.Emitters.Length;
 
         // The burst is local to its canvas item, which sits where it goes off.
-        RenderingServer.CanvasItemSetTransform(emitter.Item, new Transform2D(0f, position));
+        RenderingServer.CanvasItemSetTransform(emitter.Item, new Transform2D(angle, position));
         RenderingServer.CanvasItemSetModulate(emitter.Item, tint);
         RenderingServer.ParticlesRestart(emitter.Particles);
         RenderingServer.ParticlesSetEmitting(emitter.Particles, true);
@@ -78,7 +86,13 @@ public sealed class GodotParticleEmitter : IParticleEmitter, IDisposable
             resource.Dispose();
     }
 
-    private Emitter[] Build(ParticleProcessMaterial material, ImageTexture texture, int amount, float lifetime)
+    private Emitter[] Build(
+        ParticleProcessMaterial material,
+        ImageTexture texture,
+        int amount,
+        float lifetime,
+        float explosiveness = 1f,
+        float reach = BurstReach)
     {
         var emitters = new Emitter[PoolSize];
         for (int i = 0; i < emitters.Length; i++)
@@ -90,17 +104,17 @@ public sealed class GodotParticleEmitter : IParticleEmitter, IDisposable
             RenderingServer.ParticlesSetAmount(particles, amount);
             RenderingServer.ParticlesSetLifetime(particles, lifetime);
             RenderingServer.ParticlesSetOneShot(particles, true);
-            RenderingServer.ParticlesSetExplosivenessRatio(particles, 1f);
+            RenderingServer.ParticlesSetExplosivenessRatio(particles, explosiveness);
             RenderingServer.ParticlesSetRandomnessRatio(particles, 0.4f);
             RenderingServer.ParticlesSetUseLocalCoordinates(particles, true);
             RenderingServer.ParticlesSetFixedFps(particles, 60);
             RenderingServer.ParticlesSetFractionalDelta(particles, true);
             RenderingServer.ParticlesSetProcessMaterial(particles, material.GetRid());
 
-            // The server culls by this box, around the burst; one never leaves a screen-sized area.
+            // The server culls by this box, around the burst.
             RenderingServer.ParticlesSetCustomAabb(
                 particles,
-                new Aabb(new Vector3(-300, -300, -1), new Vector3(600, 600, 2)));
+                new Aabb(new Vector3(-reach, -reach, -1), new Vector3(reach * 2, reach * 2, 2)));
 
             // Not emitting until the first burst: a one-shot system starts out running.
             RenderingServer.ParticlesSetEmitting(particles, false);
@@ -174,6 +188,31 @@ public sealed class GodotParticleEmitter : IParticleEmitter, IDisposable
         AngleMin = 0f,
         AngleMax = 360f,
         Color = Colors.White,
+    };
+
+    /// <summary>
+    /// A dash's streak: squares at any angle laid along the box, which lies on
+    /// the path, drifting back the way the player came and spreading a little
+    /// sideways as they brake, shrink and fade; white, so the tint gives them
+    /// the note's colour.
+    /// </summary>
+    private static ParticleProcessMaterial StreakMaterial() => new()
+    {
+        ParticleFlagDisableZ = true,
+        EmissionShape = ParticleProcessMaterial.EmissionShapeEnum.Box,
+        Direction = new Vector3(-1, 0, 0),
+        Spread = 35f,
+        InitialVelocityMin = 40f,
+        InitialVelocityMax = 220f,
+        Gravity = new Vector3(0, 0, 0),
+        DampingMin = 180f,
+        DampingMax = 360f,
+        ScaleMin = 0.5f,
+        ScaleMax = 1.5f,
+        ScaleCurve = Shrink(),
+        AngleMin = 0f,
+        AngleMax = 360f,
+        ColorRamp = FadeOut(Colors.White),
     };
 
     /// <summary>Full size at birth, nothing at death.</summary>

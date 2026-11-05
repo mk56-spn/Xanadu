@@ -70,9 +70,28 @@ public sealed class PlayerMovementSystemTests
 
         Assert.That(_player.GetComponent<Position>().Value.X, Is.EqualTo(250));
         Assert.That(movement.IsNull, Is.True);
-        Entity trail = _store.Query<DashTrail>().ToEntityList()[0];
-        Assert.That(trail.GetComponent<DashTrail>().From.X, Is.EqualTo(500));
-        Assert.That(trail.GetComponent<DashTrail>().To.X, Is.EqualTo(250));
+        Assert.That(_store.Query<DashTrail>().Count, Is.Zero, "a dash leaves a streak, not a line");
+    }
+
+    [Test]
+    public void ADashLeavesAStreakAlongItsPath()
+    {
+        _root.Update(new UpdateTick(1f / 60f, 0));
+        _store.CreateEntity(new Note(
+            0,
+            new Vector2(500, 500),
+            target: KeybindAction.L3,
+            kind: NoteKind.Dash,
+            dashDirection: DashDirection.Left));
+        _keyboard.Press(Key.F);
+        _root.Update(new UpdateTick(1f / 60f, 0));
+
+        ParticleBurst streak = _store.Query<ParticleBurst>().ToEntityList()
+            .Single(entity => entity.GetComponent<ParticleBurst>().Kind == ParticleKind.DashStreak)
+            .GetComponent<ParticleBurst>();
+        Assert.That(streak.Position.X, Is.EqualTo(375).Within(0.01f), "centred between 500 and 250");
+        Assert.That(streak.Area.X, Is.EqualTo(250).Within(0.01f), "as long as the dash");
+        Assert.That(Mathf.Abs(streak.Angle), Is.EqualTo(Mathf.Pi).Within(0.001f), "lying along a leftward dash");
     }
 
     [Test]

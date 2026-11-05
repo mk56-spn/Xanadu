@@ -12,7 +12,7 @@ public static partial class PlayfieldRenderer
     private const float ExitFlashShare = 0.35f;
 
     /// <summary>
-    /// Draws what is left of each hit dash note: the connector fading from half
+    /// Draws what is left of each hit dash note: the connector fading from its faint
     /// strength, and the exit jumping to full, flashing, then fading just after it.
     /// </summary>
     public static void DrawDashLinkFades(IRectCanvas canvas, Rid rid, EntityStore entities)
@@ -26,7 +26,7 @@ public static partial class PlayfieldRenderer
             {
                 DrawDashConnector(
                     canvas, rid, fade.From, fade.To, fade.Radius,
-                    Tinted(fade.Color, DashLinkAlpha * connector));
+                    Tinted(fade.Color, DashConnectorAlpha * connector));
             }
 
             float t = Math.Clamp(fade.Age / DashLinkFade.ExitLifetime, 0f, 1f);

@@ -12,7 +12,7 @@ public sealed class ParticleBurstSystem(IParticleEmitter emitter) : QuerySystem<
         CommandBuffer buffer = CommandBuffer;
         Query.ForEachEntity((ref burst, entity) =>
         {
-            emitter.Burst(burst.Position, burst.Kind, burst.Tint, burst.Area);
+            emitter.Burst(burst.Position, burst.Kind, burst.Tint, burst.Area, burst.Angle);
             buffer.DeleteEntity(entity.Id);
         });
     }
