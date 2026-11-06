@@ -87,3 +87,12 @@ public struct CharacterAttack : IComponent
     /// <summary>Seconds since <see cref="Clip"/> started.</summary>
     public float StateTime;
 }
+
+/// <summary>
+/// When a rigged player last hit a note, on the playhead. Waiting a beat past
+/// it fades the character to its hands, which keep the beat until the next hit.
+/// </summary>
+public struct CharacterPresence(long lastHitMs) : IComponent
+{
+    public long LastHitMs = lastHitMs;
+}

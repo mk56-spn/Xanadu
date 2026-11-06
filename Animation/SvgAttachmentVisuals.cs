@@ -104,6 +104,7 @@ public sealed partial class SvgAttachmentVisuals(Rid canvas, bool containLayers 
 
             RenderingServer.CanvasItemSetTransform(visual.Item, placement * effects[visual.Index]);
             RenderingServer.CanvasItemSetModulate(visual.Item, new Color(1f, 1f, 1f, alpha));
+            visual.Alpha = alpha;
         }
     }
 
@@ -406,7 +407,11 @@ public sealed partial class SvgAttachmentVisuals(Rid canvas, bool containLayers 
     }
 
     /// <summary>One polygon of an effect; the texture is held so it outlives the canvas item drawing it.</summary>
-    private sealed record EffectVisual(int Index, Rid Item, Texture2D? Texture);
+    private sealed record EffectVisual(int Index, Rid Item, Texture2D? Texture)
+    {
+        /// <summary>The alpha the pose last gave it, which presence keeps when it shades the effect.</summary>
+        public float Alpha { get; set; }
+    }
 
     /// <summary>
     /// One chain's art: the texture shared by its pieces, the layer they all draw
