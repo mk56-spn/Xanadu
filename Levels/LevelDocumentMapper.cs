@@ -228,6 +228,7 @@ public static partial class LevelDocumentMapper
                 Height = region.Size.Y,
                 Layer = layer.Layer,
                 Z = layer.Z,
+                Groups = GroupsOf(entity),
             });
         }
 
@@ -394,6 +395,9 @@ public static partial class LevelDocumentMapper
                 new Vector2(region.X, region.Y),
                 new Vector2(region.Width, region.Height)));
             ItemLayer.Put(created, new ItemLayer(region.Layer, region.Z));
+            uint regionGroups = ItemGroups.FromList(region.Groups);
+            if (regionGroups != 0)
+                created.AddComponent(new ItemGroups(regionGroups));
         }
 
         SongDocument? song = string.IsNullOrWhiteSpace(document.SongId)

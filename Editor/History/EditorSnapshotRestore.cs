@@ -189,6 +189,7 @@ public sealed class EditorSnapshotRestore(EntityStore entities)
                 entities,
                 new ScreenReadRegion(region.Position, region.Size));
             ItemLayer.Put(created, region.Layer);
+            Subscribe(created, region.Groups);
         }
     }
 

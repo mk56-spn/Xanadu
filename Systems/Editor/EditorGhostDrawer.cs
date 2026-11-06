@@ -88,7 +88,7 @@ public sealed class EditorGhostDrawer(EditorDrawSurface surface)
                 break;
 
             case EditorPlacementMode.ScreenRead:
-                ScreenReadRegion region = ScreenReadRegion.Centred(pointer);
+                ScreenReadRegion region = ScreenReadRegion.Centred(pointer, ScreenReadRegion.StartSize(view.ScreenSize / view.Scale));
                 region.Position = GridPlacement.Settle(region.Position, region.Size, playfield, snap);
                 var readRect = new Rect2(
                     view.PlayfieldToScreen(region.Position),

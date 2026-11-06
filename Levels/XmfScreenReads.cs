@@ -25,9 +25,15 @@ public static partial class XmfBinary
         return stream.ToArray();
     }
 
+    /// <summary>
+    /// Set on the count when each region also stores its group mask. Files
+    /// from before regions could join groups don't have it and still read.
+    /// </summary>
+    private const uint ScreenReadsWithGroups = 0x8000_0000u;
+
     internal static void WriteScreenReads(BinaryWriter writer, List<ScreenReadDocument> regions)
     {
-        writer.Write((uint)regions.Count);
+        writer.Write((uint)regions.Count | ScreenReadsWithGroups);
         foreach (ScreenReadDocument region in regions)
         {
             writer.Write(region.X);
@@ -38,6 +44,7 @@ public static partial class XmfBinary
             // which keeps files from before regions readable as they are.
             writer.Write(region.Layer);
             writer.Write(region.Z);
+            writer.Write(Xanadu.Ecs.ItemGroups.FromList(region.Groups));
         }
     }
 
@@ -47,9 +54,14 @@ public static partial class XmfBinary
         return ReadScreenReads(reader);
     }
 
-    internal static List<ScreenReadDocument> ReadScreenReads(BinaryReader reader)
+    /// <summary>Reads the region list from a reader at its start; public so older layouts can be checked.</summary>
+    public static List<ScreenReadDocument> ReadScreenReads(BinaryReader reader)
     {
-        uint count = ReadCount(reader, XmfItemIO.MaxItems, "screen-read region");
+        uint raw = reader.ReadUInt32();
+        bool withGroups = (raw & ScreenReadsWithGroups) != 0;
+        uint count = raw & ~ScreenReadsWithGroups;
+        if (count > XmfItemIO.MaxItems)
+            throw new InvalidDataException($"Too many screen-read regions: {count}.");
         var regions = new List<ScreenReadDocument>((int)count);
         for (uint i = 0; i < count; i++)
         {
@@ -61,6 +73,7 @@ public static partial class XmfBinary
                 Height = reader.ReadSingle(),
                 Layer = reader.ReadInt32(),
                 Z = reader.ReadInt32(),
+                Groups = Xanadu.Ecs.ItemGroups.ToList(withGroups ? reader.ReadUInt32() : 0u),
             });
         }
 
