@@ -116,6 +116,7 @@ public sealed class PlayNoteHits(PlayNoteContext context, PlayNoteActions action
             return false;
 
         FaceHit(playfield, hitPosition.X, playerScreen.X);
+        CharacterPresenceRules.Hit(playfield, playheadTimeMs);
 
         if (triggerAttack)
         {

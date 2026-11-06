@@ -17,8 +17,8 @@ public sealed class PlaySessionSystem : QuerySystem<PlaySession, Playhead>
     private const float CountdownSeconds = 3f;
     private const float GoSeconds = 0.6f;
 
-    /// <summary>How long a death holds before the results screen takes over.</summary>
-    private const float DeathSeconds = 0.6f;
+    /// <summary>How long a death holds before the level restarts from its start.</summary>
+    private const float DeathSeconds = 0.8f;
 
     private readonly ITrackAudio _audio;
 
@@ -139,8 +139,8 @@ public sealed class PlaySessionSystem : QuerySystem<PlaySession, Playhead>
 
     /// <summary>
     /// Ends a run killed by a spike: the music cuts immediately, the status says
-    /// DEAD, and after a short beat the session finishes so the scene can show
-    /// the failed results.
+    /// DEAD, and after a short beat the session finishes so the scene can send
+    /// the player back to the start.
     /// </summary>
     private void UpdateDeath(
         ref PlaySession session,

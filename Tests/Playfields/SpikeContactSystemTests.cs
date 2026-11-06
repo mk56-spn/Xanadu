@@ -1,3 +1,4 @@
+using System.Linq;
 using Friflo.Engine.ECS;
 using Godot;
 using NUnit.Framework;
@@ -23,6 +24,25 @@ public sealed class SpikeContactSystemTests : EcsSystemTest
         Frame();
 
         Assert.That(playfield.GetComponent<PlaySession>().Died, Is.True);
+    }
+
+    [Test]
+    public void TouchingASpikeShattersThePlayerIntoParticles()
+    {
+        Entity playfield = CreatePlayfield(new Vector2(450, 450));
+        Store.CreateEntity(
+            new Spike(new Vector2(400, 400), new Vector2(100, 100)));
+        Root.Add(new SpikeContactSystem(Store));
+
+        Frame();
+        Frame();
+
+        Assert.That(playfield.Tags.Has<PlayerShattered>(), Is.True);
+        Entity[] bursts = Store.Query<ParticleBurst>().ToEntityList().ToArray();
+        Assert.That(bursts, Has.Length.EqualTo(1));
+        ParticleBurst burst = bursts[0].GetComponent<ParticleBurst>();
+        Assert.That(burst.Kind, Is.EqualTo(ParticleKind.Shatter));
+        Assert.That(burst.Position, Is.EqualTo(new Vector2(450, 450)));
     }
 
     [Test]

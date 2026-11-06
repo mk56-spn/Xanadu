@@ -30,6 +30,9 @@ public sealed class GodotParticleEmitter : IParticleEmitter, IDisposable
     /// <summary>The same for a streak, which is as long as the longest dash.</summary>
     private const float StreakReach = 1400f;
 
+    /// <summary>The same for the player bursting apart, which throws glyphs further than a hit.</summary>
+    private const float ShatterReach = 700f;
+
     /// <summary>How far, in degrees, a note glyph may lean from upright.</summary>
     private const float NoteTilt = 25f;
 
@@ -44,6 +47,7 @@ public sealed class GodotParticleEmitter : IParticleEmitter, IDisposable
     private readonly GlyphAtlas _notes;
     private readonly CanvasItemMaterial _noteFrames;
     private readonly Rid _quad;
+    private readonly Rid _stripQuad;
     private readonly bool[] _upright;
     private readonly Pool[] _pools;
     private readonly Resource[] _keepAlive;
@@ -54,10 +58,11 @@ public sealed class GodotParticleEmitter : IParticleEmitter, IDisposable
         _softDot = SoftDot();
         _notes = NoteAtlas.Particles;
         _noteFrames = NoteFrames(_notes);
-        _quad = Quad();
+        _quad = Quad(1);
+        _stripQuad = Quad(_notes.Count);
 
         _keepAlive = new Resource[] { _softDot, _noteFrames };
-        _upright = new[] { false, true, true, true };
+        _upright = new[] { false, true, true, true, true };
         Texture2D notes = _notes.Texture;
         _pools = new[]
         {
@@ -65,6 +70,7 @@ public sealed class GodotParticleEmitter : IParticleEmitter, IDisposable
             new Pool(Build(DashMaterial, notes, amount: 38, lifetime: 0.8f, frames: _noteFrames)),
             new Pool(Build(HitMaterial, notes, amount: 22, lifetime: 0.4f, frames: _noteFrames)),
             new Pool(Build(StreakMaterial, notes, amount: 70, lifetime: 0.5f, explosiveness: 0.85f, reach: StreakReach, frames: _noteFrames)),
+            new Pool(Build(ShatterMaterial, notes, amount: 80, lifetime: 1f, reach: ShatterReach, frames: _noteFrames)),
         };
     }
 
@@ -127,6 +133,7 @@ public sealed class GodotParticleEmitter : IParticleEmitter, IDisposable
         }
 
         RenderingServer.FreeRid(_quad);
+        RenderingServer.FreeRid(_stripQuad);
         foreach (Resource resource in _keepAlive)
             resource.Dispose();
     }
@@ -147,7 +154,7 @@ public sealed class GodotParticleEmitter : IParticleEmitter, IDisposable
             Rid particles = RenderingServer.ParticlesCreate();
             RenderingServer.ParticlesSetMode(particles, RenderingServer.ParticlesMode.Mode2D);
             RenderingServer.ParticlesSetDrawPasses(particles, 1);
-            RenderingServer.ParticlesSetDrawPassMesh(particles, 0, _quad);
+            RenderingServer.ParticlesSetDrawPassMesh(particles, 0, frames is null ? _quad : _stripQuad);
             RenderingServer.ParticlesSetAmount(particles, amount);
             RenderingServer.ParticlesSetLifetime(particles, lifetime);
             RenderingServer.ParticlesSetOneShot(particles, true);
@@ -272,6 +279,31 @@ public sealed class GodotParticleEmitter : IParticleEmitter, IDisposable
         ColorRamp = FadeOut(Colors.White),
     };
 
+    /// <summary>
+    /// The player bursting apart: lots of note glyphs thrown hard out of the
+    /// body's box in every direction, a little upwards, that brake, fall,
+    /// shrink and fade; white, so the tint gives them their colour.
+    /// </summary>
+    private static ParticleProcessMaterial ShatterMaterial() => new()
+    {
+        ParticleFlagDisableZ = true,
+        EmissionShape = ParticleProcessMaterial.EmissionShapeEnum.Box,
+        Direction = new Vector3(0, -1, 0),
+        Spread = 180f,
+        InitialVelocityMin = 220f,
+        InitialVelocityMax = 720f,
+        Gravity = new Vector3(0, 1300, 0),
+        DampingMin = 120f,
+        DampingMax = 280f,
+        ScaleMin = 1.2f * GlyphGrow,
+        ScaleMax = 3f * GlyphGrow,
+        ScaleCurve = Shrink(),
+        AngleMin = -NoteTilt,
+        AngleMax = NoteTilt,
+        AnimOffsetMax = 1f,
+        ColorRamp = FadeOut(Colors.White),
+    };
+
     /// <summary>Full size at birth, nothing at death.</summary>
     private static CurveTexture Shrink()
     {
@@ -321,17 +353,24 @@ public sealed class GodotParticleEmitter : IParticleEmitter, IDisposable
         ParticlesAnimLoop = false,
     };
 
-    /// <summary>The draw pass: one quad the size of the texture, centred on the particle.</summary>
-    private static Rid Quad()
+    /// <summary>
+    /// The draw pass: one quad centred on the particle, <paramref name="frames"/>
+    /// cells wide. A strip of animation frames needs the whole strip's width,
+    /// because <see cref="CanvasItemMaterial"/> divides the vertices by the
+    /// frame counts to bring the quad down to one cell; a square quad would be
+    /// squashed to a sliver of a cell.
+    /// </summary>
+    private static Rid Quad(int frames)
     {
         float half = TextureSize / 2f;
+        float halfWide = half * frames;
         Rid mesh = RenderingServer.MeshCreate();
         var arrays = new Godot.Collections.Array();
         arrays.Resize((int)RenderingServer.ArrayType.Max);
         arrays[(int)RenderingServer.ArrayType.Vertex] = new[]
         {
-            new Vector2(-half, -half), new Vector2(half, -half),
-            new Vector2(half, half), new Vector2(-half, half),
+            new Vector2(-halfWide, -half), new Vector2(halfWide, -half),
+            new Vector2(halfWide, half), new Vector2(-halfWide, half),
         };
         arrays[(int)RenderingServer.ArrayType.TexUV] = new[]
         {

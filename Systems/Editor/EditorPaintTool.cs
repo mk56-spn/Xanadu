@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using Godot;
 using Xanadu.Ecs;
@@ -16,6 +17,9 @@ public sealed class EditorPaintTool(EditorSceneQuery scene, EditorHistory histor
     private bool _added;
     private EditorSnapshot _before;
 
+    /// <summary>What this stroke has laid, so holding still never stacks copies even with collision off.</summary>
+    private readonly HashSet<Rect2> _laid = new();
+
     public bool Active => _painting;
 
     /// <summary>Whether the current tool paints blocks or spikes.</summary>
@@ -27,13 +31,15 @@ public sealed class EditorPaintTool(EditorSceneQuery scene, EditorHistory histor
     {
         _painting = true;
         _added = false;
+        _laid.Clear();
         _before = history.Capture();
         return Paint(editor, pointer, playfield);
     }
 
     /// <summary>
-    /// Lays an item of the current tool under the pointer unless one is already
-    /// there, so dragging paints a run of them. Returns the created item.
+    /// Lays an item of the current tool under the pointer, so dragging paints a
+    /// run of them. A spot this stroke already filled is skipped, and with
+    /// collision on so is any spot one of its kind holds. Returns the created item.
     /// </summary>
     public Entity Paint(Entity editor, Vector2 pointer, Playfield playfield)
     {
@@ -49,7 +55,7 @@ public sealed class EditorPaintTool(EditorSceneQuery scene, EditorHistory histor
         {
             Vector2 size = GridPlacement.NewSpikeSize(playfield);
             var box = new Rect2(GridPlacement.Place(pointer, size, playfield, snap), size);
-            if (!GridPlacement.IsSpikeSpaceFree(entities, box))
+            if (_laid.Contains(box) || !PlacementCollision.SpikeFits(entities, box))
                 return default;
 
             created = EditorItems.Place(entities, new Spike(box.Position, box.Size, degrees));
@@ -58,13 +64,14 @@ public sealed class EditorPaintTool(EditorSceneQuery scene, EditorHistory histor
         {
             Vector2 size = GridPlacement.NewBlockSize(playfield, degrees, blockSize);
             var box = new Rect2(GridPlacement.Place(pointer, size, playfield, snap), size);
-            if (!GridPlacement.IsBlockSpaceFree(entities, box))
+            if (_laid.Contains(box) || !PlacementCollision.BlockFits(entities, box))
                 return default;
 
             created = EditorItems.Place(entities, new Block(box.Position, box.Size));
         }
 
         _added = true;
+        _laid.Add(created.TryGetComponent(out Block laidBlock) ? laidBlock.Bounds : created.GetComponent<Spike>().Bounds);
         editor.GetComponent<NoteSelection>().Note = created;
         return created;
     }
@@ -77,6 +84,7 @@ public sealed class EditorPaintTool(EditorSceneQuery scene, EditorHistory histor
             history.Record(_before, history.Capture());
 
         _added = false;
+        _laid.Clear();
         _before = default;
     }
 

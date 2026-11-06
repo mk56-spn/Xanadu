@@ -49,6 +49,12 @@ public struct PlaySession(
 }
 
 /// <summary>
+/// The player hit a spike and burst apart: neither its art nor its box is
+/// drawn, and its body is out of the simulation until the level restarts.
+/// </summary>
+public struct PlayerShattered : ITag;
+
+/// <summary>
 /// The player character's box. A play scene stores it in screen pixels for the
 /// playfield's view, so the character is drawn at the same scale as the level.
 /// </summary>

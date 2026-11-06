@@ -577,8 +577,9 @@ public sealed class EditorNoteInputSystemTests
     }
 
     [Test]
-    public void SpikePaintingSkipsCellThatAlreadyHasATile()
+    public void WithCollisionOnSpikePaintingSkipsCellThatAlreadyHasATile()
     {
+        Xanadu.Editor.PlacementCollision.Attach(_store.CreateEntity(), on: true);
         Entity editor = _store.Query<PlayfieldView>().ToEntityList()[0];
         editor.AddComponent(new EditorPlacement { Mode = EditorPlacementMode.Spikes });
         _store.CreateEntity(
@@ -592,6 +593,27 @@ public sealed class EditorNoteInputSystemTests
         _root.Update(new UpdateTick(1f / 60f, 0));
 
         Assert.That(_store.Query<Spike>().Count, Is.EqualTo(2));
+    }
+
+    [Test]
+    public void WithCollisionOffSpikesPaintOverOthersButAStrokeNeverStacksItsOwn()
+    {
+        Entity editor = _store.Query<PlayfieldView>().ToEntityList()[0];
+        editor.AddComponent(new EditorPlacement { Mode = EditorPlacementMode.Spikes });
+        _store.CreateEntity(
+            new Spike(new Vector2(400, 600), new Vector2(100, 100)));
+
+        // Starts on an empty cell (a press on a spike picks it), then rests on the existing one.
+        _pointer.Current = new PointerInput(new Vector2(350, 640), true);
+        _root.Update(new UpdateTick(1f / 60f, 0));
+        _pointer.Current = new PointerInput(new Vector2(450, 640), true);
+        _root.Update(new UpdateTick(1f / 60f, 0));
+        _root.Update(new UpdateTick(1f / 60f, 0));
+        _root.Update(new UpdateTick(1f / 60f, 0));
+        _pointer.Current = new PointerInput(new Vector2(450, 640), false);
+        _root.Update(new UpdateTick(1f / 60f, 0));
+
+        Assert.That(_store.Query<Spike>().Count, Is.EqualTo(3));
     }
 
     [Test]
