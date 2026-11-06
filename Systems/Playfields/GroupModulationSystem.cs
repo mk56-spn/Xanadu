@@ -41,6 +41,10 @@ public sealed class GroupModulationSystem : QuerySystem<ItemGroups>
 
             Set(entity, new GroupOffset(GroupModulation.Offset(groups, mask, seconds)), buffer);
 
+            // A buffered group's alpha goes on its buffer, not on each member,
+            // so the members keep only the colour (the renderer fades the image).
+            bool buffered = GroupModulation.BufferedGroup(groups, member.Mask) >= 0;
+
             // A block's interior and outline each follow only the groups linked to them.
             uint colorMask = mask;
             if (entity.TryGetComponent(out Block linked))
@@ -53,7 +57,7 @@ public sealed class GroupModulationSystem : QuerySystem<ItemGroups>
                     out Color edgeMix,
                     out float edgeCoverage,
                     out float edgeAlpha);
-                Set(entity, new GroupOutlineColor(edgeMix, edgeCoverage, edgeAlpha), buffer);
+                Set(entity, new GroupOutlineColor(edgeMix, edgeCoverage, buffered ? 1f : edgeAlpha), buffer);
             }
 
             GroupModulation.TryColor(
@@ -63,7 +67,7 @@ public sealed class GroupModulationSystem : QuerySystem<ItemGroups>
                 out Color mix,
                 out float coverage,
                 out float alpha);
-            Set(entity, new GroupColor(mix, coverage, alpha), buffer);
+            Set(entity, new GroupColor(mix, coverage, buffered ? 1f : alpha), buffer);
         });
     }
 

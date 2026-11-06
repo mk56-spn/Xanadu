@@ -50,7 +50,8 @@ public sealed class LayerPassTests
         LevelLayers table,
         IPassSurfaces? passes,
         FakeItems items,
-        GroupDefinition[]? groups = null) =>
+        GroupDefinition[]? groups = null,
+        System.Action? drawWedge = null) =>
         PlayfieldRenderer.DrawLayers(
             new ShaderRoutingCanvas(canvas, Main, items),
             Main,
@@ -64,7 +65,7 @@ public sealed class LayerPassTests
                 Layers: table.Layers,
                 Passes: passes,
                 Groups: groups),
-            drawWedge: null);
+            drawWedge);
 
     [Test]
     public void ASelfContainedLayerDrawsIntoItsOwnCanvasAndComposites()
@@ -178,6 +179,85 @@ public sealed class LayerPassTests
         Assert.That(items.Modulates.Single().Color.A, Is.EqualTo(0.5f * 0.5f).Within(0.01f));
         Assert.That(items.Materials, Does.Contain((2, BlendMode.Add)));
         Assert.That(items.Values, Does.Contain(("size", new Vector4(4f, 0, 0, 0), 1)));
+    }
+
+    private static GroupDefinition[] BufferedGroupZero()
+    {
+        GroupDefinition[] groups = new GroupDefinition[GroupLimits.Count];
+        for (int i = 0; i < groups.Length; i++)
+            groups[i] = new GroupDefinition();
+        groups[0].Buffered = true;
+        return groups;
+    }
+
+    [Test]
+    public void ABufferedGroupsFadeIsAppliedToTheWholeBuffer()
+    {
+        LevelLayers table = LevelLayers.Create();
+        var store = new EntityStore();
+        store.CreateEntity(
+            new Block(new Vector2(100, 100), new Vector2(50, 50)),
+            new ItemLayer(-2, 0),
+            new ItemGroups(ItemGroups.Bit(0)),
+            new GroupColor(Colors.White, 0f));
+        store.CreateEntity(table);
+        GroupDefinition[] groups = BufferedGroupZero();
+        groups[0].BufferAlpha = 0.8f;
+        groups[0].Effects.Add(GroupEffect.Colour(0f, 0f, new Color(1, 1, 1, 0.5f)));
+        var items = new FakeItems();
+
+        Draw(new PassCanvas(), store, table, null, items, groups);
+
+        Assert.That(items.Modulates.Single().Color.A, Is.EqualTo(0.8f * 0.5f).Within(0.01f), "buffer alpha × the group's fade");
+    }
+
+    [Test]
+    public void ABufferedGroupThatOpensItsLayerDrawsInThatLayerNotThePreviousOnesViewport()
+    {
+        LevelLayers table = SelfContained();
+        var store = new EntityStore();
+        store.CreateEntity(new Note(0, new Vector2(300, 300)), new ItemLayer(-2, 0));
+        store.CreateEntity(new Note(0, new Vector2(100, 100)), new ItemLayer(-1, 0), new ItemGroups(ItemGroups.Bit(0)));
+        store.CreateEntity(table);
+        var surfaces = new FakeSurfaces();
+        var items = new FakeItems();
+
+        Draw(new PassCanvas(), store, table, surfaces, items, BufferedGroupZero());
+
+        Rid grouped = items.Grouped.Single();
+        Rid parent = items.Parents.Single(pair => pair.Item == grouped).Parent;
+        Assert.That(parent, Is.Not.EqualTo(surfaces.Fake.Canvas), "layer -1's buffer is not inside layer -2's self-contained viewport");
+    }
+
+    [Test]
+    public void ABufferedGroupInFrontOfThePlayerDrawsAfterTheWedge()
+    {
+        LevelLayers table = LevelLayers.Create();
+        var store = new EntityStore();
+        store.CreateEntity(new Block(new Vector2(100, 100), new Vector2(50, 50)), new ItemLayer(1, 0), new ItemGroups(ItemGroups.Bit(0)));
+        store.CreateEntity(table);
+        var canvas = new PassCanvas();
+
+        Draw(canvas, store, table, null, new FakeItems(), BufferedGroupZero(), () => canvas.Calls.Add("wedge"));
+
+        Assert.That(canvas.Calls.IndexOf("wedge"), Is.EqualTo(0), "the player wedge draws before the group on layer 1");
+        Assert.That(canvas.Calls, Has.Count.GreaterThan(1), "the group's member still draws");
+    }
+
+    [Test]
+    public void BufferedMembersLeftOnAnotherLayerStillDraw()
+    {
+        LevelLayers table = LevelLayers.Create();
+        var store = new EntityStore();
+        store.CreateEntity(new Note(0, new Vector2(100, 100)), new ItemLayer(-2, 0), new ItemGroups(ItemGroups.Bit(0)));
+        store.CreateEntity(new Note(0, new Vector2(200, 200)), new ItemLayer(1, 0), new ItemGroups(ItemGroups.Bit(0)));
+        store.CreateEntity(table);
+        var canvas = new PassCanvas();
+        var items = new FakeItems();
+
+        Draw(canvas, store, table, null, items, BufferedGroupZero());
+
+        Assert.That(items.Grouped, Has.Count.EqualTo(2), "each layer's slice of the group is its own buffer");
     }
 
     private sealed class FakeItems : IShaderCanvasItems

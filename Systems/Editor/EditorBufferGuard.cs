@@ -17,7 +17,14 @@ public static class EditorBufferGuard
     /// break a buffered group, or null when it is safe. Moving every member of
     /// a group together keeps it on one layer and is allowed.
     /// </summary>
-    public static string? MovingToLayer(EntityStore store, IReadOnlyList<Entity> items, int layer)
+    public static string? MovingToLayer(EntityStore store, IReadOnlyList<Entity> items, int layer) =>
+        Moving(store, items, _ => layer);
+
+    /// <summary>
+    /// Why moving each item to the layer <paramref name="layerFor"/> gives it
+    /// would break a buffered group, or null when it is safe.
+    /// </summary>
+    public static string? Moving(EntityStore store, IReadOnlyList<Entity> items, System.Func<Entity, int> layerFor)
     {
         GroupDefinition[]? groups = Groups(store);
         if (groups is null || NoBuffer(groups))
@@ -29,7 +36,7 @@ public static class EditorBufferGuard
             if (!EditorItems.IsItem(item))
                 continue;
             uint mask = item.TryGetComponent(out ItemGroups current) ? current.Mask : 0u;
-            after[item.Id] = new BufferPreview(layer, mask);
+            after[item.Id] = new BufferPreview(layerFor(item), mask);
         }
 
         return GroupBufferRules.Broken(store, groups, after);

@@ -10,6 +10,32 @@ namespace Xanadu.Ecs;
 public static class GroupModulation
 {
     /// <summary>
+    /// The buffered group an item with this mask draws into, or -1: only an
+    /// item in exactly one group, and that group buffered (D12, D16).
+    /// </summary>
+    public static int BufferedGroup(IReadOnlyList<GroupDefinition> groups, uint mask)
+    {
+        if (mask == 0 || (mask & (mask - 1)) != 0)
+            return -1;
+
+        int group = System.Numerics.BitOperations.TrailingZeroCount(mask);
+        return group < groups.Count && group < GroupLimits.Count && groups[group].Buffered ? group : -1;
+    }
+
+    /// <summary>
+    /// What a buffered group's colour effects multiply its buffer's alpha by at
+    /// a moment: the group's own alpha (D6), taken off its members and put on
+    /// the composite so the group fades as one image (decided 2026-11-06).
+    /// </summary>
+    public static float BufferAlpha(IReadOnlyList<GroupDefinition> groups, int group, float seconds)
+    {
+        if (group < 0 || group >= groups.Count)
+            return 1f;
+        TryColor(groups, 1u << group, seconds, out _, out _, out float alpha);
+        return alpha;
+    }
+
+    /// <summary>
     /// The sum of every move in every group the item is in. A move contributes
     /// its offset in proportion to how far through it the time is, and keeps
     /// the whole offset once it has ended.

@@ -97,6 +97,23 @@ public static class GroupBufferRules
         Problem(store, groups, group) is null;
 
     /// <summary>
+    /// Every buffered group that breaks a rule now, with the rule it breaks.
+    /// The editor's history compares this before and after an edit, so an edit
+    /// that newly breaks a lock is refused whatever command made it.
+    /// </summary>
+    public static Dictionary<int, string> BrokenGroups(EntityStore store, IReadOnlyList<GroupDefinition> groups)
+    {
+        var broken = new Dictionary<int, string>();
+        for (int i = 0; i < groups.Count && i < GroupLimits.Count; i++)
+        {
+            if (groups[i].Buffered && Problem(store, groups, i, null) is { } problem)
+                broken[i] = problem;
+        }
+
+        return broken;
+    }
+
+    /// <summary>
     /// The first buffered group an edit has broken, with the message to show,
     /// or null when every buffered group still holds its rules.
     /// </summary>
