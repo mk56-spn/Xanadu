@@ -19,6 +19,7 @@ public static class GlowRingShader
         void fragment() {
             float distance = clamp(abs(UV.x), 0.0, 1.0);
             float light = 1.0 - distance;
+            light *= 0.5;
             COLOR = vec4(COLOR.rgb, COLOR.a * light * light);
         }
         """;
