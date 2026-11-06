@@ -32,7 +32,7 @@ These were agreed with the user. Don't revisit them without asking.
 | D11 | **Shaders are keyable.** Layer shader settings are keyed on the layer's own track. Item shader settings are keyed through **groups**: a group owns an item-shader track, and each item picks a **shader source**, either *own* (its static shader, fixed settings) or **one** of its groups. It can only be one, because an item draws with a single material. |
 | D12 | **Buffered groups** (optional, per group): the group's members on one layer draw into an offscreen buffer, which is then drawn into the layer as one image. That gives a uniform fade with no darkening where members overlap. |
 | D13 | A buffered group sits at the **lowest z of its members** on that layer. |
-| D14 | Group colour effects are always applied **per item**. A buffered group has its **own, separate** settings applied to the buffer: buffer tint, buffer alpha, buffer shader (with its own keyed settings) and buffer blend mode. The group's item-shader track and its buffer shader are separate settings. |
+| D14 | Group colour effects are applied **per item**, except a buffered group's **alpha**: that goes on the buffer, so the group fades as one image (changed 2026-11-06, the user's call; its members keep only the colour). A buffered group has its **own, separate** settings applied to the buffer: buffer tint, buffer alpha (a static base, multiplied by the group's fade), buffer shader (with its own keyed settings) and buffer blend mode. The group's item-shader track and its buffer shader are separate settings. |
 | D15 | Ban buffering when the group has members on **more than one layer**. The editor refuses and shows a toast saying why. |
 | D16 | Ban buffering when any member is in **more than one group**. The editor refuses and shows a toast saying why. |
 | D16a | **Buffering is a lock.** Ticking it is refused unless the rules hold. While it's ticked, any edit that would break the rules is refused with a toast: moving a member to another layer, adding a member on another layer, giving a member a second group. Buffering never switches itself off; it stays locked until the user unticks it. |
@@ -254,19 +254,18 @@ layer renders into its **own SubViewport**:
 
 ## 6. Shared core with the animator
 
-Today the animator has this (and the editor has none of it):
+Before step 1 the animator had this (and the editor had none of it):
 - `XafAttachment.ZOrder` as the layer, `MinLayer = -4096`,
   `MaxLayer = 4096` (`Animation/XafPackage.cs`), with list order as the
   tiebreak.
-- `ArtDrawOrder.Of(layer, order)` (`Animation/ArtDrawOrder.cs`): the banded
-  draw index. (Replaced in step 1 by `DrawOrder.Banded`.)
+- `ArtDrawOrder.Of(layer, order)`: the banded draw index. Gone since step 1;
+  `DrawOrder.Banded` (`Core/Layering/`) replaced it.
 - `AnimatorLayerCommands.Rows` / `Move` (`Tools/Animator/Commands/AnimatorLayerCommands.cs`):
   the front-first row list, and moving forward/back (swap layers with a
   neighbour on another layer, step past one on the same layer).
 - Per-pose layer keys (`XafPose.LayerOf`). These stay **animator-only** (D4).
 
-The shared core (new, under `Core/` or a `Rendering/` folder, wherever
-fits the existing layout):
+The shared core (built in step 1 under `Core/Layering/`):
 - `DrawOrder`: (layer, z, list index) → sort key, and the banded index. This
   replaces `ArtDrawOrder`.
 - Layer limits (one min/max for both tools).
@@ -634,6 +633,13 @@ window, i.e. under `canvas_items` stretch like the game):
   failing before step 1. Visual test `editor-layers` (`EditorLayersSceneTest`)
   → `screenshots/editor-layers.png`.
 
+**Follow-up 2026-11-06.** LAYER steps each selected item from its own layer
+(`EditorLayerEdits.StepLayers`) and reads LAYER MIXED when the selection spans
+layers. The panel has MOVE ▲ / MOVE ▼ (`MoveLayer`: swap with the neighbour;
+beside the player, hop over it to ±1 and push that side out) and DELETE
+(`DeleteLayer`, empty layers only), each one undo step. Rows show `[BG]` or
+`[SELF]` for a layer with a pass.
+
 ### Step 5: Layer table in the level  ☑
 - `LevelLayer` entries (number, name, pass kind, pass shader slot, keyed pass
   settings) in `LevelDocument` and the XMF binary.
@@ -831,6 +837,29 @@ inspector.
   namespaces separately completes them all, so the crash is a test-host
   problem rather than a failing test.
 
+**Follow-up 2026-11-06 (sources).** Leaving a group puts an item whose
+shader came from it back on its own. The inspector's SHADER stepper offers
+only groups with a shader track and names it (`SHADER G3 BLUR`).
+
+**Follow-up 2026-11-06 (review fixes).**
+- An unkeyed setting holds the shader's declared default
+  (`instance uniform float x = 1.0;` → `InstanceUniform.Default`), not zero,
+  so a first key starts from it (`ShaderKeyTrack.ValueAt(..., unkeyed)`).
+- **Key lane.** The group panel has a lane under the effect rows showing the
+  selected setting's keys as pins with ease bands. A press on a pin selects
+  it and moves the playhead there; dragging retimes it (it never lands on
+  another key, so dragging over one can't delete it). The lane's cells type
+  the key's moment and value (one number per channel, one number for all, or
+  `#hex` for colours), cycle its easing and delete it. Keying with − / + at a
+  key's moment keeps its easing. `EditorGroupSystem.Keys.cs`,
+  `EditorShaderKeyEdits`.
+- **SHD is a list by name** in the group panel and the layers panel
+  (`ShaderSlotChoice`, on `UiLayers.EditorShaderChoice` so it takes presses
+  over the panels). Changing the shader keeps keys of settings the new one
+  still declares (`EditorShaderKeyEdits.KeepFor`). The layers panel's key row
+  is now PARAM · CH · − value + · CLEAR, like the group panel's.
+- Not done: the layers panel's pass track still has no timeline of its own.
+
 ### Step 9: Layer passes  ☑
 - Pass kind on a layer: none / background reader / self-contained (D8).
 - Background reader: a back-buffer refresh after the layer's last item, then a
@@ -895,6 +924,20 @@ and the XMF `LayerTable` chunk.
   with its own keyed settings, and buffer blend (D14). The buffer shader is
   separate from the item-shader track.
 - Buffering is a lock (D16a). Ticking it is refused unless the rules hold:
+  - members on more than one layer → refuse, toast "buffered groups must sit on
+    one layer" (D15)
+  - a member in more than one group → refuse, toast "items in a buffered group
+    can't be in other groups" (D16)
+- While it's ticked, every edit that would break a rule is refused with the
+  same toast: moving a member to another layer, adding a member on another
+  layer, giving a member a second group, pasting or duplicating into a broken
+  state. Check this in one place (a validator the command layer calls) so new
+  commands can't skip it. Buffering never switches itself off.
+- Drawing: a CanvasGroup at the lowest member z on the layer (D13); members draw
+  into it in their own z order; group colour still applies per item (D14).
+- Tests: the ban rules; slot placement. Check: one screenshot of overlapping
+  members fading uniformly next to the same group unbuffered.
+
 **Started 2026-11-05** (data, rules, drawing, the panel's toggle and the
 screenshot landed; settings UI and edit guards still to do):
 - `GroupDefinition` gained `Buffered`, `BufferTint`, `BufferAlpha`,
@@ -942,20 +985,6 @@ screenshot landed; settings UI and edit guards still to do):
   with its own keys, blend) and the edit guards (layer moves, membership,
   paste/duplicate) that refuse edits breaking a locked buffer.
 
-  - members on more than one layer → refuse, toast "buffered groups must sit on
-    one layer" (D15)
-  - a member in more than one group → refuse, toast "items in a buffered group
-    can't be in other groups" (D16)
-- While it's ticked, every edit that would break a rule is refused with the
-  same toast: moving a member to another layer, adding a member on another
-  layer, giving a member a second group, pasting or duplicating into a broken
-  state. Check this in one place (a validator the command layer calls) so new
-  commands can't skip it. Buffering never switches itself off.
-- Drawing: a CanvasGroup at the lowest member z on the layer (D13); members draw
-  into it in their own z order; group colour still applies per item (D14).
-- Tests: the ban rules; slot placement. Check: one screenshot of overlapping
-  members fading uniformly next to the same group unbuffered.
-
 **Done 2026-11-06.** The buffer settings row and the lock's edit guards are in.
 - **Composite tint and alpha.** `CanvasItemSetCanvasGroupMode`'s C# defaults
   are `clearMargin: 5, fitEmpty: false, fitMargin: 0`, not the `CanvasGroup`
@@ -989,6 +1018,33 @@ screenshot landed; settings UI and edit guards still to do):
   group once its block moves down, refuses a second group and a layer move, and
   drives the whole buffer row. Screenshots: `editor-groups` (the buffer row)
   and the refreshed `play-buffered-group`.
+
+**Follow-up 2026-11-06 (second pass).**
+- **Buffered fades (D14 changed).** `GroupModulationSystem` leaves a buffered
+  member's `GroupColor` / `GroupOutlineColor` alpha at 1, and
+  `DrawBufferedGroup` multiplies the buffer alpha by
+  `GroupModulation.BufferAlpha` (the group's own D6 alpha at the playhead), so
+  COLOR fades on a buffered group fade the image, with no darker overlaps.
+  `GroupModulation.BufferedGroup` is the one membership test both use.
+- **The lock in one place.** `EditorHistory.Record` refuses any edit that
+  newly breaks a buffered group (it compares `GroupBufferRules.BrokenGroups`
+  at capture and at record): the level goes back to before, nothing is
+  recorded, and the rule is posted as a `WarningRequest`. A level that was
+  already broken stays editable. `EditorBufferGuard` still refuses up front
+  where a command can ask, so the usual path never rebuilds.
+- **Panel.** The shader row has ITEM SHADER / BUFFER tabs instead of the TRACK
+  toggle; BUFFER needs the group buffered, and the buffer's TINT, alpha and
+  BLEND show only there. TINT opens the swatch palette (no alpha steps; the
+  buffer alpha is its own label − +), BLEND is a list. Values read label then
+  − +. The scrim no longer covers the sidebar, so the groups grid and layer
+  inspector work with the panel open.
+
+**Follow-up 2026-11-06 (review fixes).** A buffered group is drawn after
+its layer has begun and after the player wedge, so a group that opens its
+layer no longer lands in the previous layer (or its pass viewport), and one on
+layer +1 no longer draws behind the player. Each layer's slice of a group is
+its own buffer, so members a file left on another layer still draw instead of
+vanishing.
 
 ### Step 11: Screen-read regions  ☑
 - A new placeable item: a rect with a layer and z. When reached in draw order it
@@ -1040,6 +1096,12 @@ screenshot landed; settings UI and edit guards still to do):
   `editor-screen-read` (the tool places, outlines and resizes a region).
   Screenshots: `screenshots/play-screen-read.png` and
   `screenshots/editor-screen-read.png`.
+
+**Follow-up 2026-11-06.** Regions can join groups (their moves carry the
+copy rect with what it reads under). The region chunk sets the count's top bit
+when each region also stores its group mask, so 2.6 files still read. A new
+region starts at the default size or a third of the view, whichever is
+smaller, so it fits where it's placed.
 
 ### Step 12: Animator on the shared render path  ☑
 - Attachments, cloth, chains and effects are sorted through `DrawOrder`.
