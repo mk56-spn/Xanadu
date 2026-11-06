@@ -53,7 +53,7 @@ public sealed class PlayNoteInputSystem : QuerySystem<Note>
         if (playfield.HasComponent<PlaySession>())
         {
             PlaySession session = playfield.GetComponent<PlaySession>();
-            if (!session.Started || session.Finished)
+            if (!session.Started || session.Finished || session.Died)
                 return;
         }
 

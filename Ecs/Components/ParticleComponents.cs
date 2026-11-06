@@ -20,6 +20,12 @@ public enum ParticleKind
     /// vanished to where it appeared, that drift back the way it came and fade.
     /// </summary>
     DashStreak,
+
+    /// <summary>
+    /// The player bursting apart on a spike: a big spray of note glyphs thrown
+    /// out of the body in every direction, falling, shrinking and fading.
+    /// </summary>
+    Shatter,
 }
 
 /// <summary>

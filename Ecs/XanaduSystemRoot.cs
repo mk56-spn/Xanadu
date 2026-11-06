@@ -125,12 +125,14 @@ public sealed class XanaduSystemRoot : SystemRoot, IDisposable
         _sceneDirector = sceneDirector;
         sceneDirector.Changed += OnSceneChanged;
 
-        Xanadu.Systems.Ui.UiBootstrap.AttachInitialization(this, parentCanvas);
-        Add(new PhysicsSystemGroup(Physics, entities));
+        // The carousel moves and rebinds its rows before layout runs, so a row
+        // whose labels changed width is laid out in the same frame it is drawn.
         Add(new Xanadu.Systems.Scenes.SongSelectHoldSystem(Keyboard, Scenes));
         Add(new Xanadu.Systems.Scenes.SongSelectScrollbarSystem(pointerInput, Scenes));
         Add(new Xanadu.Systems.Scenes.SongSelectDragSystem(pointerInput, Scenes));
         Add(new Xanadu.Systems.Scenes.SongSelectScrollSystem());
+        Xanadu.Systems.Ui.UiBootstrap.AttachInitialization(this, parentCanvas);
+        Add(new PhysicsSystemGroup(Physics, entities));
         Add(new Xanadu.Systems.Scenes.ProfileEditSystem(Profiles));
         Add(new OffsetWizardSystem(
             entities,

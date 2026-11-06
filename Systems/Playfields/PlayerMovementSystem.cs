@@ -11,6 +11,8 @@ using Xanadu.Systems.Physics;
 using NVector2 = System.Numerics.Vector2;
 using Position = Xanadu.Ecs.Position;
 
+using Xanadu.Systems.Characters;
+
 namespace Xanadu.Systems.Playfields;
 
 /// <summary>
@@ -118,6 +120,7 @@ public sealed class PlayerMovementSystem : QuerySystem<Player, Position, Playfie
 
                 // Before the note moves the player, so the copy stays where it hit.
                 HitGhostSystem.Spawn(_entities, entity);
+                CharacterPresenceRules.Hit(entity, playhead.TimeMs);
                 Color spray = GroupColor.For(noteEntity, PlayfieldRenderer.ColorFor(movement));
                 if (movement.Kind == NoteKind.Dash)
                 {
@@ -303,7 +306,7 @@ public sealed class PlayerMovementSystem : QuerySystem<Player, Position, Playfie
             return false;
 
         PlaySession session = entity.GetComponent<PlaySession>();
-        return !session.Started || session.Finished;
+        return !session.Started || session.Finished || session.Died;
     }
 
     /// <summary>

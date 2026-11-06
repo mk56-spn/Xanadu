@@ -9,8 +9,9 @@ namespace Xanadu.Systems.Playfields;
 /// <summary>
 /// Kills the player the moment their damage box touches a spike's hitbox. Spikes
 /// are permanent geometry, so there is no timing window: contact is death, and
-/// <see cref="PlaySession.Died"/> lets the session system end the run as a
-/// failure. Mines keep their own accuracy-penalty handling.
+/// <see cref="PlaySession.Died"/> lets the session system end the run and the
+/// scene system send the player back to the start. On contact the player bursts
+/// into particles and vanishes. Mines keep their own accuracy-penalty handling.
 /// </summary>
 public sealed class SpikeContactSystem : QuerySystem<Player, Position, PlayfieldView, PlaySession>
 {
@@ -50,9 +51,31 @@ public sealed class SpikeContactSystem : QuerySystem<Player, Position, Playfield
                 if (hitbox.Overlaps(playerRect))
                 {
                     session.Died = true;
+                    Shatter(playfield, player.Size);
                     return;
                 }
             }
         }
+    }
+
+    /// <summary>
+    /// The player bursts into particles where it stands and is gone: its body
+    /// leaves the simulation so nothing carries it on while the death plays.
+    /// </summary>
+    private void Shatter(Entity playfield, Vector2 size)
+    {
+        _entities.CreateEntity(new ParticleBurst(
+            PlayerSmoothing.DrawnPosition(playfield),
+            ParticleKind.Shatter,
+            PlayfieldRenderer.PlayerColor,
+            size));
+
+        if (playfield.TryGetComponent(out PhysicsBody body))
+        {
+            body.Body.SetLinearVelocity(System.Numerics.Vector2.Zero);
+            body.Body.IsEnabled = false;
+        }
+
+        CommandBuffer.AddTag<PlayerShattered>(playfield.Id);
     }
 }

@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Linq;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
@@ -192,6 +193,53 @@ public sealed class EditorCommandSystemTests : EcsSystemTest
     public void FlippingADirectionMirrorsIt(DashDirection from, bool horizontal, DashDirection to)
     {
         Assert.That(SelectionRotation.FlippedDirection(from, horizontal), Is.EqualTo(to));
+    }
+
+    /// <summary>A 2x2 cluster of blocks, selected: one cell along, its copy overlaps the originals.</summary>
+    private List<Entity> SelectBlockCluster()
+    {
+        var blocks = new List<Entity>();
+        foreach (var corner in new[] { (100, 100), (150, 100), (100, 150), (150, 150) })
+        {
+            blocks.Add(EditorItems.Create(Store, new Block(
+                new Godot.Vector2(corner.Item1, corner.Item2),
+                new Godot.Vector2(50, 50))));
+        }
+
+        _editor.GetComponent<NoteSelection>().SetMany(blocks);
+        return blocks;
+    }
+
+    [Test]
+    public void PastingSeveralBlocksCopiesThemAsTheyAre()
+    {
+        SelectBlockCluster();
+
+        _commands.Enqueue(EditorCommand.CopySelection());
+        _commands.Enqueue(EditorCommand.PasteSelection());
+        Frame();
+
+        Assert.That(Store.Query<Block>().Count, Is.EqualTo(8));
+        Assert.That(
+            _editor.GetComponent<NoteSelection>().AllNotes.Select(item => item.GetComponent<Block>().Position),
+            Is.EquivalentTo(new[]
+            {
+                new Godot.Vector2(150, 150), new Godot.Vector2(200, 150),
+                new Godot.Vector2(150, 200), new Godot.Vector2(200, 200),
+            }));
+    }
+
+    [Test]
+    public void WithCollisionOnAPasteSkipsBlocksThatWouldOverlap()
+    {
+        PlacementCollision.Attach(Store.CreateEntity(), on: true);
+        SelectBlockCluster();
+
+        _commands.Enqueue(EditorCommand.CopySelection());
+        _commands.Enqueue(EditorCommand.PasteSelection());
+        Frame();
+
+        Assert.That(Store.Query<Block>().Count, Is.EqualTo(7));
     }
 
     [Test]

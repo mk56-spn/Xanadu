@@ -171,7 +171,7 @@ public sealed class PlaySessionSystemTests
         Assert.That(audio.Volume, Is.Zero);
         Assert.That(audio.PauseCount, Is.GreaterThan(0));
 
-        Advance(root, 0.7f);
+        Advance(root, 0.9f);
 
         Assert.That(play.GetComponent<PlaySession>().Finished, Is.True);
         Assert.That(status.GetComponent<Text>().Value, Is.EqualTo("DEAD"));
