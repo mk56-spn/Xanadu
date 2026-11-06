@@ -1,8 +1,10 @@
+using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Godot;
 using Xanadu.Timeline;
 using Xanadu.Ecs;
+using Xanadu.Rendering;
 using Xanadu.Systems.Canvas;
 using Xanadu.Theme;
 
@@ -33,7 +35,7 @@ public sealed class EditorGroupOverlayDrawSystem :
     {
         _canvas.Clear(_overlay);
 
-        Query.ForEachEntity((ref EditorGroupState state, ref LevelGroups levelGroups, ref PlayfieldView view, Entity _) =>
+        Query.ForEachEntity((ref EditorGroupState state, ref LevelGroups levelGroups, ref PlayfieldView view, Entity editor) =>
         {
             if (state.Open < 0 || state.Open >= levelGroups.Groups.Length)
                 return;
@@ -45,7 +47,10 @@ public sealed class EditorGroupOverlayDrawSystem :
             if (state.PaletteOpen)
                 DrawPaletteFrame(dialog, origin);
             else
+            {
                 DrawEffects(state, levelGroups.Groups[state.Open], dialog, origin);
+                DrawKeyLane(editor, state, levelGroups.Groups[state.Open], dialog, origin);
+            }
         });
     }
 
@@ -91,6 +96,46 @@ public sealed class EditorGroupOverlayDrawSystem :
             }
         }
     }
+
+    /// <summary>
+    /// The selected shader setting's keys on the lane under the effects: a pin
+    /// per key, and between neighbours a band whose thickness follows the
+    /// earlier key's easing, the way the effects and the animator draw spans.
+    /// </summary>
+    private void DrawKeyLane(Entity editor, EditorGroupState state, GroupDefinition group, Vector2 dialog, Vector2 origin)
+    {
+        Rect2 area = Offset(EditorGroupLayout.KeyLane(dialog), origin);
+        float middle = area.Position.Y + area.Size.Y / 2f;
+        _canvas.DrawRect(_overlay, new Rect2(area.Position.X, middle, area.Size.X, 1f), LaneLine);
+        if (!EditorGroupSystem.TrySelectedSetting(editor, state, group, out InstanceUniform uniform, out List<ShaderKey> keys))
+            return;
+
+        List<ShaderKey> lane = EditorShaderKeyEdits.Lane(keys, uniform.Name);
+        Color color = Palette.Accent;
+        for (int i = 0; i + 1 < lane.Count; i++)
+        {
+            float fromX = EditorGroupLayout.XForTime(area, state.ViewStart, state.ViewSpan, lane[i].Time);
+            float toX = EditorGroupLayout.XForTime(area, state.ViewStart, state.ViewSpan, lane[i + 1].Time);
+            GroupEase ease = lane[i].Ease;
+            foreach (EaseBandPiece piece in TimelineEaseBand.Pieces(
+                         t => GroupEaseCurves.Apply(ease, t), fromX, toX, area.Position.X, area.End.X, area))
+            {
+                _canvas.DrawPolygon(_overlay, piece.Polygon, new Color(color, 0.45f));
+            }
+        }
+
+        foreach (ShaderKey key in lane)
+        {
+            float x = EditorGroupLayout.XForTime(area, state.ViewStart, state.ViewSpan, key.Time);
+            if (x < area.Position.X - KeyRadius || x > area.End.X + KeyRadius)
+                continue;
+            bool selected = state.SelectedKey >= 0f &&
+                            System.Math.Abs(key.Time - state.SelectedKey) < EditorShaderKeyEdits.SameMoment;
+            DrawPin(new Vector2(x, middle), selected ? KeyRadius + 1 : KeyRadius - 1, selected ? Colors.White : color, key.Ease);
+        }
+    }
+
+    private static readonly Color LaneLine = new(1f, 1f, 1f, 0.18f);
 
     /// <summary>The animator's key marker: a diamond for linear timing, a circle for an eased one.</summary>
     private void DrawPin(Vector2 center, float radius, Color color, GroupEase ease)

@@ -1,6 +1,8 @@
+using System.Linq;
 using Friflo.Engine.ECS;
 using Godot;
 using Xanadu.Ecs;
+using Xanadu.Rendering;
 using Xanadu.Systems.Editor;
 using Xanadu.Theme;
 using Xanadu.Ui.Ecs.Ui;
@@ -102,7 +104,7 @@ public static class EditorSceneGroups
             .Entity;
         EditorSceneLayers.BuildPanel(entities, root, editor, layersButton);
 
-        Entity gridMenu = Menu(layer, 2).Entity;
+        Entity gridMenu = Menu(layer, 3).Entity;
         UiNode gridItems = UiNode.Wrap(gridMenu);
         Entity showGrid = ViewportGrid.Attach(gridItems.Button(ViewportGrid.Label, 12, SceneUi.MutedButtonColor)
             .Size(MenuItemWidth, 28)
@@ -115,6 +117,11 @@ public static class EditorSceneGroups
             "Snap items to the grid. Off by default: items go exactly where they are put",
             on: false);
         Relabel(gridSnap, "GRID SNAP ON", "GRID SNAP OFF");
+        Entity collision = Xanadu.Editor.PlacementCollision.Attach(
+            gridItems.Button(Xanadu.Editor.PlacementCollision.Label, 12, SceneUi.MutedButtonColor)
+                .Size(MenuItemWidth, 28)
+                .Entity);
+        Relabel(collision, "COLLISION ON", "COLLISION OFF");
 
         Entity musicMenu = Menu(layer, 2).Entity;
         UiNode musicItems = UiNode.Wrap(musicMenu);
@@ -198,7 +205,7 @@ public static class EditorSceneGroups
                 ticks.Rect(Palette.SurfaceAlt)
                     .Size(new Vector2(
                         1,
-                        EditorGroupLayout.MaxRows * EditorGroupLayout.RowHeight))
+                        EditorGroupLayout.LinesHeight))
                     .Hidden(),
                 EditorGroupPart.TickLine,
                 slot,
@@ -206,14 +213,14 @@ public static class EditorSceneGroups
                     0,
                     0,
                     1,
-                    EditorGroupLayout.MaxRows * EditorGroupLayout.RowHeight));
+                    EditorGroupLayout.LinesHeight));
         }
 
         Piece(
             ticks.Rect(Colors.White)
                 .Size(new Vector2(
                     2,
-                    EditorGroupLayout.MaxRows * EditorGroupLayout.RowHeight))
+                    EditorGroupLayout.LinesHeight))
                 .Hidden(),
             EditorGroupPart.PlayheadLine,
             0,
@@ -314,15 +321,35 @@ public static class EditorSceneGroups
         Piece(GroupButton(ui, "+", SceneUi.EditorButtonColor, 32, 28).Tooltip("Zoom the timeline in"), EditorGroupPart.ZoomIn, 0, Place(EditorGroupPart.ZoomIn, 0, dialog));
 
         Piece(
+            GroupButton(ui, "ITEM SHADER", SceneUi.MutedButtonColor, 104, 28)
+                .Tooltip("Edit the shader every member draws with, keyed over time"),
+            EditorGroupPart.TrackItem,
+            0,
+            Place(EditorGroupPart.TrackItem, 0, dialog));
+        Piece(
+            GroupButton(ui, "BUFFER", SceneUi.MutedButtonColor, 76, 28)
+                .Tooltip("Edit the buffer the members draw into: its shader, tint, alpha and blend (buffered groups only)"),
+            EditorGroupPart.TrackBuffer,
+            0,
+            Place(EditorGroupPart.TrackBuffer, 0, dialog));
+        Piece(
             ui.Text("", 11, SceneUi.DimTextColor, TextAlign.Left)
-                .Size(210, 28)
+                .Size(70, 28)
                 .Hidden(),
             EditorGroupPart.ShaderText,
             0,
             Place(EditorGroupPart.ShaderText, 0, dialog));
+        // The slot is a choice by name, not a number to cycle through: a list
+        // whose labels EditorGroupSystem keeps in step with the level's shaders.
+        UiNode shaderSlot = GroupButton(ui, "SHD OFF ▾", SceneUi.EditorButtonColor, 150, 28)
+            .Tooltip("The shader this track draws with; keys of settings the new shader also has are kept");
+        UiNode.Layer(entities, root, UiLayers.EditorShaderChoice, null, UiStage.Full).DropdownList(
+            shaderSlot.Entity,
+            ShaderSlotChoice.Labels(null),
+            0,
+            optionColor: _ => SceneUi.MutedButtonColor);
         Piece(
-            GroupButton(ui, "SHD", SceneUi.EditorButtonColor, 64, 28)
-                .Tooltip("The shader slot this group's item-shader track draws with; 0 is off"),
+            shaderSlot,
             EditorGroupPart.ShaderSlot,
             0,
             Place(EditorGroupPart.ShaderSlot, 0, dialog));
@@ -346,7 +373,7 @@ public static class EditorSceneGroups
             Place(EditorGroupPart.ShaderDown, 0, dialog));
         Piece(
             ui.Text("", 11, SceneUi.TextColor, TextAlign.Left)
-                .Size(150, 28)
+                .Size(110, 28)
                 .Hidden(),
             EditorGroupPart.ShaderValue,
             0,
@@ -364,29 +391,39 @@ public static class EditorSceneGroups
             0,
             Place(EditorGroupPart.ShaderClear, 0, dialog));
         Piece(
-            GroupButton(ui, "TRACK", SceneUi.MutedButtonColor, 76, 28)
-                .Tooltip("Which track these controls edit: the group's item shader, or its buffer"),
-            EditorGroupPart.BufferTrack,
-            0,
-            Place(EditorGroupPart.BufferTrack, 0, dialog));
-        Piece(
-            GroupButton(ui, "TINT", SceneUi.MutedButtonColor, 64, 28)
-                .Tooltip("Cycle the buffer's tint"),
+            GroupButton(ui, "TINT", SceneUi.MutedButtonColor, 110, 28)
+                .Tooltip("Pick the buffer's tint from the palette"),
             EditorGroupPart.BufferTint,
             0,
             Place(EditorGroupPart.BufferTint, 0, dialog));
         Piece(
-            GroupButton(ui, "A−", SceneUi.MutedButtonColor, 30, 28).Tooltip("Lower the buffer's alpha"),
+            ui.Text("A 1.0", 11, SceneUi.TextColor, TextAlign.Left)
+                .Size(50, 28)
+                .Hidden(),
+            EditorGroupPart.BufferAlphaText,
+            0,
+            Place(EditorGroupPart.BufferAlphaText, 0, dialog));
+        Piece(
+            GroupButton(ui, "−", SceneUi.MutedButtonColor, 30, 28).Tooltip("Lower the buffer's alpha"),
             EditorGroupPart.BufferAlphaDown,
             0,
             Place(EditorGroupPart.BufferAlphaDown, 0, dialog));
         Piece(
-            GroupButton(ui, "A+", SceneUi.MutedButtonColor, 30, 28).Tooltip("Raise the buffer's alpha"),
+            GroupButton(ui, "+", SceneUi.MutedButtonColor, 30, 28).Tooltip("Raise the buffer's alpha"),
             EditorGroupPart.BufferAlphaUp,
             0,
             Place(EditorGroupPart.BufferAlphaUp, 0, dialog));
+
+        // Blend is a mode, not a number: a list, like the item inspector's.
+        UiNode bufferBlend = GroupButton(ui, "BLEND MIX ▾", SceneUi.MutedButtonColor, 110, 28)
+            .Tooltip("How the buffer blends into its layer");
+        UiNode.Layer(entities, root, UiLayers.EditorShaderChoice, null, UiStage.Full).DropdownList(
+            bufferBlend.Entity,
+            BlendModes.All.Select(BlendModes.Name).ToArray(),
+            0,
+            optionColor: _ => SceneUi.MutedButtonColor);
         Piece(
-            GroupButton(ui, "BLEND", SceneUi.MutedButtonColor, 84, 28).Tooltip("Cycle how the buffer blends into its layer"),
+            bufferBlend,
             EditorGroupPart.BufferBlend,
             0,
             Place(EditorGroupPart.BufferBlend, 0, dialog));
@@ -437,7 +474,7 @@ public static class EditorSceneGroups
 
         Piece(
             ui.Text(
-                    "Drag a bar to retime it, or its ends for START/END. EASE cycles the curve. Pick a row to use the effect tools.",
+                    "Drag a bar to retime it, or its ends for START/END. EASE cycles the curve. Pick a row to use the effect tools. Click a key on the KEYS lane to edit it; drag it to retime.",
                     11,
                     SceneUi.DimTextColor,
                     TextAlign.Left)
@@ -470,6 +507,29 @@ public static class EditorSceneGroups
             Piece(GroupButton(ui, "X", SceneUi.MutedButtonColor, 30, 28), EditorGroupPart.RowDelete, row, Place(EditorGroupPart.RowDelete, row, dialog));
         }
 
+        // The key lane's table cells: the setting, then the selected key's
+        // moment, value, easing and delete, lined up with the effect columns.
+        Piece(
+            ui.Text("KEYS", 12, SceneUi.DimTextColor, TextAlign.Left)
+                .Size(94, 28)
+                .Hidden(),
+            EditorGroupPart.KeyName,
+            0,
+            Place(EditorGroupPart.KeyName, 0, dialog));
+        Piece(GroupField(ui, "", true, 64), EditorGroupPart.KeyTime, 0, Place(EditorGroupPart.KeyTime, 0, dialog));
+        Piece(GroupField(ui, "", false, 204), EditorGroupPart.KeyValue, 0, Place(EditorGroupPart.KeyValue, 0, dialog));
+        Piece(
+            GroupButton(ui, "LIN", SceneUi.MutedButtonColor, 74, 28)
+                .Tooltip("Cycle the easing from this key to the next"),
+            EditorGroupPart.KeyEase,
+            0,
+            Place(EditorGroupPart.KeyEase, 0, dialog));
+        Piece(
+            GroupButton(ui, "X", SceneUi.MutedButtonColor, 30, 28).Tooltip("Delete this key"),
+            EditorGroupPart.KeyDelete,
+            0,
+            Place(EditorGroupPart.KeyDelete, 0, dialog));
+
         UiNode palette = ui;
         Rect2 paletteArea = Place(EditorGroupPart.PalettePanel, 0, dialog);
         Piece(
@@ -482,7 +542,7 @@ public static class EditorSceneGroups
             paletteArea);
         Piece(
             palette.Text("COLOUR", 13, SceneUi.DimTextColor, TextAlign.Left)
-                .Size(90, 24)
+                .Size(120, 24)
                 .Hidden(),
             EditorGroupPart.PaletteTitle,
             0,

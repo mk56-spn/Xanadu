@@ -15,6 +15,7 @@ public sealed partial class EditorGroupSystem
 
     /// <summary>Dragging an effect's bar on the timeline: the whole bar, or one of its ends.</summary>
     private void HandlePointer(
+        Entity editor,
         ref EditorGroupState state,
         GroupDefinition group,
         ref Playhead playhead,
@@ -29,11 +30,15 @@ public sealed partial class EditorGroupSystem
 
         Rect2 timeline = Offset(EditorGroupLayout.Timeline(dialog), origin);
         Rect2 ruler = Offset(EditorGroupLayout.Ruler(dialog), origin);
+        Rect2 lane = Offset(EditorGroupLayout.KeyLane(dialog), origin);
 
         if (press)
         {
+            if (BeginKeyDrag(editor, ref state, group, input.Position, lane))
+                return;
+
             if (!BeginDrag(ref state, group, input.Position, timeline) &&
-                (timeline.HasPoint(input.Position) || ruler.HasPoint(input.Position)))
+                (timeline.HasPoint(input.Position) || ruler.HasPoint(input.Position) || lane.HasPoint(input.Position)))
             {
                 state.DragMode = EditorGroupDragMode.Scrub;
                 state.DragRow = -1;
@@ -41,6 +46,12 @@ public sealed partial class EditorGroupSystem
                 SeekTo(timeline, state, input.Position.X);
                 return;
             }
+        }
+
+        if (state.DragMode == EditorGroupDragMode.Key)
+        {
+            DragKey(editor, ref state, group, input, lane, playhead);
+            return;
         }
 
         if (state.DragMode == EditorGroupDragMode.Scrub)

@@ -112,7 +112,11 @@ public sealed partial class EditorGroupSystem
             Nudge(group, row, effect, step);
 
         if (JustPressed(Piece(EditorGroupPart.SelectionPick)))
-            state.PaletteOpen = selected && effect.Kind == GroupEffectKind.Color && !state.PaletteOpen;
+        {
+            state.PaletteOpen = selected && effect.Kind == GroupEffectKind.Color &&
+                                !(state.PaletteOpen && !state.PaletteForBuffer);
+            state.PaletteForBuffer = false;
+        }
 
         if (JustPressed(Piece(EditorGroupPart.SelectionTarget)))
         {
@@ -220,6 +224,12 @@ public sealed partial class EditorGroupSystem
     /// <summary>Applies a palette swatch or alpha step to the selected colour effect.</summary>
     private void HandlePalette(ref EditorGroupState state, GroupDefinition group)
     {
+        if (state.PaletteForBuffer)
+        {
+            HandleBufferPalette(ref state, group);
+            return;
+        }
+
         if (JustPressed(Piece(EditorGroupPart.PaletteClose)) ||
             !TrySelected(state, group, out int row, out GroupEffect effect) ||
             effect.Kind != GroupEffectKind.Color)
@@ -249,6 +259,29 @@ public sealed partial class EditorGroupSystem
                 effect.Tint,
                 EditorGroupPalette.Alphas[i]);
             Edit(() => group.Effects[row] = effect with { Tint = tinted });
+            return;
+        }
+    }
+
+    /// <summary>The palette while it sets the buffer's tint: a swatch is the colour; alpha has its own − / +.</summary>
+    private void HandleBufferPalette(ref EditorGroupState state, GroupDefinition group)
+    {
+        if (JustPressed(Piece(EditorGroupPart.PaletteClose)) || !state.BufferTrack || !group.Buffered)
+        {
+            state.PaletteOpen = false;
+            state.PaletteForBuffer = false;
+            return;
+        }
+
+        for (int i = 0; i < EditorGroupPalette.Swatches.Length; i++)
+        {
+            if (!JustPressed(Piece(EditorGroupPart.PaletteSwatch, i)))
+                continue;
+
+            Color swatch = EditorGroupPalette.WithAlpha(EditorGroupPalette.Swatches[i], 1f);
+            Edit(() => group.BufferTint = swatch);
+            state.PaletteOpen = false;
+            state.PaletteForBuffer = false;
             return;
         }
     }

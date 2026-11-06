@@ -44,6 +44,12 @@ public static class EditorGroupLayout
     private const float ShaderBarTop = 80f;
     private const float BarHeight = 28f;
     private const float RowsTop = 142f;
+
+    /// <summary>The key lane sits under the last effect row.</summary>
+    private const float LaneTop = RowsTop + MaxRows * RowHeight;
+
+    /// <summary>How tall the timing lines and the playhead run: every effect row and the key lane.</summary>
+    public const float LinesHeight = (MaxRows + 1) * RowHeight;
     private const float TableWidth = 500f;
     private const float Gap = 6f;
     private const float SectionGap = 16f;
@@ -57,7 +63,7 @@ public static class EditorGroupLayout
         EditorShellMetrics.ToolStripWidth,
         BarArea(screen).End.Y + BarGap,
         ViewWidth(screen),
-        RowsTop + MaxRows * RowHeight + 30f);
+        LaneTop + RowHeight + 30f);
 
     /// <summary>
     /// The group bar: pinned at the top centre of the view, between the tool
@@ -98,7 +104,20 @@ public static class EditorGroupLayout
 
     /// <summary>The explanatory line under the rows.</summary>
     public static Rect2 HintArea(Vector2 dialog) =>
-        new(Pad, RowsTop + MaxRows * RowHeight + 6f, dialog.X - 2 * Pad, 20f);
+        new(Pad, LaneTop + RowHeight + 6f, dialog.X - 2 * Pad, 20f);
+
+    /// <summary>
+    /// The key lane: the selected shader setting's keys as pins on the
+    /// timeline's time scale, under the effect rows.
+    /// </summary>
+    public static Rect2 KeyLane(Vector2 dialog)
+    {
+        Rect2 timeline = Timeline(dialog);
+        return new Rect2(timeline.Position.X, LaneTop, timeline.Size.X, RowHeight);
+    }
+
+    /// <summary>How close to a key's pin, in pixels, a press picks it.</summary>
+    public const float KeyGrab = 9f;
 
     /// <summary>The small easing-curve display at the end of the selected effect's tools.</summary>
     public static Rect2 CurveArea(Vector2 dialog) =>
@@ -146,19 +165,21 @@ public static class EditorGroupLayout
 
     private static readonly (EditorGroupPart Part, float Width, float Before)[] ShaderBarLeft =
     {
-        (EditorGroupPart.ShaderText, 170f, 0f),
-        (EditorGroupPart.ShaderSlot, 64f, Gap),
+        (EditorGroupPart.TrackItem, 104f, 0f),
+        (EditorGroupPart.TrackBuffer, 76f, 2f),
+        (EditorGroupPart.ShaderText, 70f, Gap),
+        (EditorGroupPart.ShaderSlot, 150f, Gap),
         (EditorGroupPart.ShaderParam, 110f, Gap),
         (EditorGroupPart.ShaderChannel, 56f, Gap),
-        (EditorGroupPart.ShaderDown, 30f, 8f),
-        (EditorGroupPart.ShaderValue, 130f, 4f),
+        (EditorGroupPart.ShaderValue, 110f, 8f),
+        (EditorGroupPart.ShaderDown, 30f, 4f),
         (EditorGroupPart.ShaderUp, 30f, 4f),
         (EditorGroupPart.ShaderClear, 56f, SectionGap),
-        (EditorGroupPart.BufferTrack, 96f, SectionGap),
-        (EditorGroupPart.BufferTint, 96f, Gap),
-        (EditorGroupPart.BufferAlphaDown, 40f, Gap),
-        (EditorGroupPart.BufferAlphaUp, 40f, 4f),
-        (EditorGroupPart.BufferBlend, 96f, Gap),
+        (EditorGroupPart.BufferTint, 110f, SectionGap),
+        (EditorGroupPart.BufferAlphaText, 50f, Gap),
+        (EditorGroupPart.BufferAlphaDown, 30f, 4f),
+        (EditorGroupPart.BufferAlphaUp, 30f, 4f),
+        (EditorGroupPart.BufferBlend, 110f, Gap),
     };
 
     private static readonly (EditorGroupPart Part, float Width, float Before)[] EffectBarRight =
@@ -254,7 +275,7 @@ public static class EditorGroupLayout
             EditorGroupPart.Scrim => new Rect2(Vector2.Zero, dialog),
             EditorGroupPart.Dialog => new Rect2(Vector2.Zero, dialog),
             EditorGroupPart.Hint => HintArea(dialog),
-            EditorGroupPart.PlayheadLine => new Rect2(0, RowsTop, 2, MaxRows * RowHeight),
+            EditorGroupPart.PlayheadLine => new Rect2(0, RowsTop, 2, LinesHeight),
             EditorGroupPart.PalettePanel => palette,
             EditorGroupPart.PaletteTitle => new Rect2(palette.Position.X + 16, palette.Position.Y + 8, 120, 24),
             EditorGroupPart.PaletteClose => new Rect2(palette.End.X - 38, palette.Position.Y + 8, 30, 24),
@@ -276,6 +297,11 @@ public static class EditorGroupLayout
             EditorGroupPart.RowB => new Rect2(Pad + 310, rowTop, 64, 26),
             EditorGroupPart.RowEase => new Rect2(Pad + 380, rowTop, 74, 26),
             EditorGroupPart.RowDelete => new Rect2(Pad + 460, rowTop, 30, 26),
+            EditorGroupPart.KeyName => new Rect2(Pad, LaneTop + 2f, 94, 26),
+            EditorGroupPart.KeyTime => new Rect2(Pad + 100, LaneTop + 2f, 64, 26),
+            EditorGroupPart.KeyValue => new Rect2(Pad + 170, LaneTop + 2f, 204, 26),
+            EditorGroupPart.KeyEase => new Rect2(Pad + 380, LaneTop + 2f, 74, 26),
+            EditorGroupPart.KeyDelete => new Rect2(Pad + 460, LaneTop + 2f, 30, 26),
             _ => default,
         };
     }
