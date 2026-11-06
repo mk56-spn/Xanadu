@@ -29,7 +29,14 @@ public sealed partial class EditorGroupSystem
         CommandBuffer buffer)
     {
         Vector2 screen = editor.GetComponent<PlayfieldView>().ScreenSize;
-        Place(Piece(EditorGroupPart.Scrim), new Rect2(Vector2.Zero, screen), Vector2.Zero, buffer);
+        // The scrim keeps presses off the field while the panel is open, but not
+        // off the sidebar: the groups grid and the layer inspector stay usable,
+        // so the selection can join groups and change layer mid-edit.
+        Place(
+            Piece(EditorGroupPart.Scrim),
+            new Rect2(Vector2.Zero, new Vector2(screen.X - EditorShellMetrics.RightPanelWidth, screen.Y)),
+            Vector2.Zero,
+            buffer);
         foreach (EditorGroupPart part in Fixed)
         {
             Entity entity = Piece(part);
@@ -59,13 +66,16 @@ public sealed partial class EditorGroupSystem
         Tint(Piece(EditorGroupPart.SnapToggle), state.Snap ? ToggleOn : Unavailable, buffer);
         UiText.Set(Piece(EditorGroupPart.PlayToggle), playhead.Playing ? "PAUSE" : "PLAY", buffer);
         Tint(Piece(EditorGroupPart.PlayToggle), playhead.Playing ? ToggleOn : ActionIdle, buffer);
+        UiLayout.SetDisabled(Piece(EditorGroupPart.ShaderSlot), buffer, state.PaletteOpen);
         ShowShaderTrack(editor, state, group, playhead, buffer);
+        ShowBufferSettings(state, group, dialog, origin, buffer);
 
         Entity name = Piece(EditorGroupPart.NameField);
         if (!name.IsNull && !name.Tags.Has<TextFieldFocused>())
             SetFieldText(name, group.Name, buffer);
 
         ShowRows(state, group, dialog, origin, buffer);
+        ShowKeyLane(editor, state, group, dialog, origin, buffer);
         ShowSelection(state, group, buffer);
         ShowPalette(state, group, dialog, origin, buffer);
         ShowRuler(state, playhead, dialog, origin, buffer);
@@ -87,7 +97,13 @@ public sealed partial class EditorGroupSystem
         EditorGroupPart.ShaderText, EditorGroupPart.ShaderSlot, EditorGroupPart.ShaderParam,
         EditorGroupPart.ShaderChannel, EditorGroupPart.ShaderDown, EditorGroupPart.ShaderValue,
         EditorGroupPart.ShaderUp, EditorGroupPart.ShaderClear,
-        EditorGroupPart.BufferTrack, EditorGroupPart.BufferTint, EditorGroupPart.BufferAlphaDown,
+        EditorGroupPart.TrackItem, EditorGroupPart.TrackBuffer,
+    };
+
+    /// <summary>The buffer's own settings: shown only on the shader row's BUFFER tab.</summary>
+    private static readonly EditorGroupPart[] BufferSettings =
+    {
+        EditorGroupPart.BufferTint, EditorGroupPart.BufferAlphaText, EditorGroupPart.BufferAlphaDown,
         EditorGroupPart.BufferAlphaUp, EditorGroupPart.BufferBlend,
     };
 
@@ -194,7 +210,7 @@ public sealed partial class EditorGroupSystem
             float x = EditorGroupLayout.XForTime(timeline, state.ViewStart, state.ViewSpan, (float)seconds);
             bool beat = tick % Math.Max(1, playhead.SnapDivision) == 0;
             Entity line = Piece(EditorGroupPart.TickLine, slot);
-            Place(line, new Rect2(0, 0, 1, EditorGroupLayout.MaxRows * EditorGroupLayout.RowHeight), new Vector2(x, timeline.Position.Y), buffer);
+            Place(line, new Rect2(0, 0, 1, EditorGroupLayout.LinesHeight), new Vector2(x, timeline.Position.Y), buffer);
             Tint(line, beat ? BeatLine : TickLine, buffer);
             slot++;
         }
@@ -210,7 +226,7 @@ public sealed partial class EditorGroupSystem
                 timeline, state.ViewStart, state.ViewSpan, playheadSeconds);
             Place(
                 Piece(EditorGroupPart.PlayheadLine),
-                new Rect2(0, 0, 2, EditorGroupLayout.MaxRows * EditorGroupLayout.RowHeight),
+                new Rect2(0, 0, 2, EditorGroupLayout.LinesHeight),
                 new Vector2(lineX, timeline.Position.Y),
                 buffer);
             Tint(Piece(EditorGroupPart.PlayheadLine), Colors.White, buffer);
@@ -312,9 +328,11 @@ public sealed partial class EditorGroupSystem
         CommandBuffer buffer)
     {
         GroupEffect effect = default;
-        bool show = state.PaletteOpen &&
-                    TrySelected(state, group, out _, out effect) &&
-                    effect.Kind == GroupEffectKind.Color;
+        bool forBuffer = state.PaletteOpen && state.PaletteForBuffer;
+        bool show = forBuffer ||
+                    (state.PaletteOpen &&
+                     TrySelected(state, group, out _, out effect) &&
+                     effect.Kind == GroupEffectKind.Color);
         if (!show)
         {
             Hide(Piece(EditorGroupPart.PalettePanel), buffer);
@@ -329,12 +347,21 @@ public sealed partial class EditorGroupSystem
 
         Place(Piece(EditorGroupPart.PalettePanel), EditorGroupLayout.Place(EditorGroupPart.PalettePanel, 0, dialog), origin, buffer);
         Place(Piece(EditorGroupPart.PaletteTitle), EditorGroupLayout.Place(EditorGroupPart.PaletteTitle, 0, dialog), origin, buffer);
+        UiText.Set(Piece(EditorGroupPart.PaletteTitle), forBuffer ? "BUFFER TINT" : "COLOUR", buffer);
         Place(Piece(EditorGroupPart.PaletteClose), EditorGroupLayout.Place(EditorGroupPart.PaletteClose, 0, dialog), origin, buffer);
         for (int i = 0; i < EditorGroupPalette.Swatches.Length; i++)
             Place(Piece(EditorGroupPart.PaletteSwatch, i), EditorGroupLayout.Place(EditorGroupPart.PaletteSwatch, i, dialog), origin, buffer);
         for (int i = 0; i < EditorGroupPalette.Alphas.Length; i++)
         {
             Entity alpha = Piece(EditorGroupPart.PaletteAlpha, i);
+
+            // The buffer's alpha is its own setting beside the tint.
+            if (forBuffer)
+            {
+                Hide(alpha, buffer);
+                continue;
+            }
+
             Place(alpha, EditorGroupLayout.Place(EditorGroupPart.PaletteAlpha, i, dialog), origin, buffer);
             Tint(
                 alpha,
@@ -361,5 +388,9 @@ public sealed partial class EditorGroupSystem
     {
         foreach (Entity entity in _pieces.Values)
             Hide(entity, buffer);
+
+        // A disabled dropdown closes, so a list can't float on after the panel shuts.
+        UiLayout.SetDisabled(Piece(EditorGroupPart.ShaderSlot), buffer, true);
+        UiLayout.SetDisabled(Piece(EditorGroupPart.BufferBlend), buffer, true);
     }
 }

@@ -58,6 +58,19 @@ public sealed class GroupShaderTrackTests
     }
 
     [Test]
+    public void AnUnkeyedSettingHoldsTheShadersDefaultAndTheFirstKeyStartsThere()
+    {
+        var uniform = new InstanceUniform("strength", 1, new Vector4(1f, 0, 0, 0));
+        var keys = new List<ShaderKey>();
+
+        Assert.That(ShaderKeyTrack.ValueAt(keys, uniform.Name, 3f, uniform.Default).X, Is.EqualTo(1f));
+
+        EditorShaderKeyEdits.KeyValue(keys, uniform, 0, 0.05f, 3f);
+
+        Assert.That(keys.Single().Value.X, Is.EqualTo(1.05f).Within(0.0001f), "nudged from the default, not from zero");
+    }
+
+    [Test]
     public void AKeyAtTheSameMomentReplacesTheEarlierOne()
     {
         var keys = new List<ShaderKey>
@@ -233,6 +246,21 @@ public sealed class GroupShaderTrackTests
         LevelGroups redone = store.Query<LevelGroups>().ToEntityList().Single().GetComponent<LevelGroups>();
         Assert.That(redone.Groups[2].Shader, Is.EqualTo(1));
         Assert.That(redone.Groups[2].ShaderKeys.Single().Param, Is.EqualTo("speed"));
+    }
+
+    [Test]
+    public void TheSourceSkipsGroupsWithoutAShaderAndResetsWhenTheItemLeavesTheGroup()
+    {
+        var store = new EntityStore();
+        Entity block = EditorItems.Create(store, new Block(Spot, new Vector2(50, 50)));
+        block.AddComponent(new ItemGroups(ItemGroups.FromList(new[] { 1, 4 })));
+        LevelGroups groups = LevelGroups.Create();
+        groups.Groups[4].Shader = 2;
+
+        Assert.That(EditorLayerEdits.StepShaderSource([block], 1, groups.Groups), Is.True);
+        Assert.That(ItemShaderSource.Of(block), Is.EqualTo(4), "group 1 has no shader, so it's skipped");
+        EditorLayerEdits.StepShaderSource([block], 1, groups.Groups);
+        Assert.That(ItemShaderSource.Of(block), Is.EqualTo(ItemShaderSource.Own));
     }
 
     [Test]

@@ -54,6 +54,12 @@ public static class UiLayers
     /// <summary>The layers panel the bar's LAYERS button opens, docked to the view's right edge.</summary>
     public const int EditorLayers = 983;
 
+    /// <summary>
+    /// The SHD lists of the group and layers panels: above both, so an open
+    /// list takes presses before the panel controls it covers.
+    /// </summary>
+    public const int EditorShaderChoice = 984;
+
     /// <summary>The editor's modal dialogs: the song picker, recovery, shaders and map colours.</summary>
     public const int EditorDialogs = 985;
 

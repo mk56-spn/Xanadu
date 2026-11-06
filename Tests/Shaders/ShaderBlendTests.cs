@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
+using Godot;
 using NUnit.Framework;
 using Xanadu.Rendering;
 using Xanadu.Systems.Shaders;
@@ -103,6 +104,28 @@ public sealed class ShaderSourceUniformTests
         Assert.That(uniforms.Select(u => u.Name).ToArray(), Is.EqualTo(new[] { "speed", "tint", "wobble" }));
         Assert.That(uniforms.Select(u => u.Channels), Is.EqualTo(new[] { 1, 4, 2 }));
         Assert.That(uniforms, Does.Not.Contain(new InstanceUniform("tuned", 1)));
+    }
+
+    [Test]
+    public void DeclaredDefaultsAreRead()
+    {
+        const string source = """
+            shader_type canvas_item;
+            instance uniform float strength : hint_range(0.0, 2.0, 0.1) = 1.0;
+            instance uniform vec4 tint : source_color = vec4(1.0, 0.5, 0.25, 1.0);
+            instance uniform vec2 scale = vec2(2.0);
+            instance uniform float plain;
+            instance uniform float odd = sin(1.0) * 2.0;
+            """;
+
+        List<InstanceUniform> uniforms = ShaderSourceUniforms.InstanceUniforms(source);
+
+        Assert.That(uniforms.Select(u => u.Name).ToArray(), Is.EqualTo(new[] { "strength", "tint", "scale", "plain", "odd" }));
+        Assert.That(uniforms[0].Default, Is.EqualTo(new Vector4(1f, 0, 0, 0)));
+        Assert.That(uniforms[1].Default, Is.EqualTo(new Vector4(1f, 0.5f, 0.25f, 1f)));
+        Assert.That(uniforms[2].Default, Is.EqualTo(new Vector4(2f, 2f, 0, 0)), "one value spreads over the vector's channels");
+        Assert.That(uniforms[3].Default, Is.EqualTo(Vector4.Zero));
+        Assert.That(uniforms[4].Default, Is.EqualTo(Vector4.Zero), "an expression isn't evaluated");
     }
 
     [Test]

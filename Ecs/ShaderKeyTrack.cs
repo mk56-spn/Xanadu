@@ -13,10 +13,15 @@ namespace Xanadu.Ecs;
 public static class ShaderKeyTrack
 {
     /// <summary>
-    /// The value of one setting at <paramref name="seconds"/>, or zero when the
+    /// The value of one setting at <paramref name="seconds"/>, or
+    /// <paramref name="unkeyed"/> (the shader's declared default) when the
     /// track has no key for it.
     /// </summary>
-    public static Vector4 ValueAt(IReadOnlyList<ShaderKey> keys, string param, float seconds)
+    public static Vector4 ValueAt(
+        IReadOnlyList<ShaderKey> keys,
+        string param,
+        float seconds,
+        Vector4 unkeyed = default)
     {
         ShaderKey? before = null;
         ShaderKey? after = null;
@@ -37,7 +42,7 @@ public static class ShaderKeyTrack
         }
 
         if (before is null)
-            return after?.Value ?? Vector4.Zero;
+            return after?.Value ?? unkeyed;
         if (after is null)
             return before.Value.Value;
 

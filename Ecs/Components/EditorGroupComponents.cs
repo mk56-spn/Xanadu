@@ -63,14 +63,24 @@ public struct EditorGroupState : IComponent
     public int ShaderParam;
     public int ShaderChannel;
 
-    /// <summary>Whether the shader row edits the item-shader track or the buffer track.</summary>
+    /// <summary>Whether the shader row edits the item-shader track or the buffer track (its BUFFER tab).</summary>
     public bool BufferTrack;
+
+    /// <summary>Whether the open palette sets the buffer's tint rather than the selected colour effect.</summary>
+    public bool PaletteForBuffer;
 
     /// <summary>What a drag moves: the whole effect, or just its start or end.</summary>
     public EditorGroupDragMode DragMode;
 
     /// <summary>Seconds from the effect's start to where the pointer grabbed it, for a whole-effect drag.</summary>
     public float DragGrab;
+
+    /// <summary>
+    /// The moment of the selected key on the key lane (of the selected setting
+    /// on the track being edited), or -1 for none. A key is found by its moment,
+    /// so this follows it through retiming.
+    /// </summary>
+    public float SelectedKey;
 
     /// <summary>
     /// Whether the group panel is open on this editor. The panel is see-through
@@ -90,6 +100,7 @@ public struct EditorGroupState : IComponent
         SelectedEffect = -1,
         SoloGroup = -1,
         DragRow = -1,
+        SelectedKey = -1f,
     };
 }
 
@@ -100,6 +111,9 @@ public enum EditorGroupDragMode
     Start,
     End,
     Scrub,
+
+    /// <summary>Retiming the selected key on the key lane.</summary>
+    Key,
 }
 
 /// <summary>The pieces of the group overlay, so one system can find and place them.</summary>
@@ -151,8 +165,11 @@ public enum EditorGroupPart
     ShaderValue,
     ShaderUp,
     ShaderClear,
-    BufferTrack,
+    /// <summary>The two tabs of the shader row: the group's item shader, or its buffer.</summary>
+    TrackItem,
+    TrackBuffer,
     BufferTint,
+    BufferAlphaText,
     BufferAlphaDown,
     BufferAlphaUp,
     BufferBlend,
@@ -173,6 +190,16 @@ public enum EditorGroupPart
     RowB,
     RowEase,
     RowDelete,
+
+    /// <summary>
+    /// The key lane under the effect rows: the selected setting's name, and the
+    /// selected key's moment, value, easing and delete.
+    /// </summary>
+    KeyName,
+    KeyTime,
+    KeyValue,
+    KeyEase,
+    KeyDelete,
 
     /// <summary>Pooled pieces of the timeline's ruler.</summary>
     TickLine,

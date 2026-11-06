@@ -52,12 +52,15 @@ public sealed class EditorGroupsSceneTest : SceneTest
             _note.TryGetComponent(out ItemGroups g) && g.Has(4) &&
             _start.TryGetComponent(out ItemGroups s) && s.Has(4));
         AddAssert("the grid opened nothing", () => State().Open == -1);
+        AddStep("take the note's shader from group 5", () => ItemShaderSource.Put(_note, 4));
         AddStep("click group 5 again", () => Click(Cell(4)));
         AddWaitStep("hold group 5 again", 2);
         AddStep("release group 5 again", () => Context.Pointer.Release());
         AddUntilStep("the grid took the selection back out", () =>
             !(_note.TryGetComponent(out ItemGroups g) && g.Has(4)) &&
             !(_start.TryGetComponent(out ItemGroups s) && s.Has(4)));
+        AddAssert("leaving the group put the note's shader back to its own", () =>
+            ItemShaderSource.Of(_note) == ItemShaderSource.Own);
 
         for (int i = 0; i < 2; i++)
         {
@@ -259,10 +262,19 @@ public sealed class EditorGroupsSceneTest : SceneTest
                 Source = "shader_type canvas_item;\ninstance uniform vec4 tint;\nvoid fragment() { COLOR = tint; }",
             };
         });
-        AddStep("step the group's shader slot on", () => Click(Piece(EditorGroupPart.ShaderSlot)));
+        AddStep("open the SHD list", () => Click(Piece(EditorGroupPart.ShaderSlot)));
         AddWaitStep("hold SHD", 2);
         AddStep("release SHD", () => Context.Pointer.Release());
-        AddUntilStep("the group's track uses slot 1", () => Group().Shader == 1);
+        AddUntilStep("the list names the shaders", () =>
+            Piece(EditorGroupPart.ShaderSlot).GetComponent<Dropdown>().Open &&
+            VisualAssert.HasText(Context.Entities, "1  TRACK TEST"));
+        AddWaitStep("look at the shader list", 3);
+        AddStep("choose the test shader", () => ClickShaderOption(1));
+        AddWaitStep("hold the option", 2);
+        AddStep("release the option", () => Context.Pointer.Release());
+        AddUntilStep("the group's track uses slot 1", () =>
+            Group().Shader == 1 &&
+            Piece(EditorGroupPart.ShaderSlot).GetComponent<Xanadu.Ui.Ecs.Ui.Text>().Value.StartsWith("SHD 1 TRACK"));
         AddStep("raise the tint at the playhead", () => Click(Piece(EditorGroupPart.ShaderUp)));
         AddWaitStep("hold the shader plus", 2);
         AddStep("release the shader plus", () => Context.Pointer.Release());
@@ -272,6 +284,60 @@ public sealed class EditorGroupsSceneTest : SceneTest
             Group().ShaderKeys[0].Size == 4 &&
             Group().ShaderKeys[0].Value.X > 0f);
         AddWaitStep("look at the shader track", 3);
+
+        AddStep("focus the first effect's start", () => Piece(EditorGroupPart.RowStart, 0).AddTag<TextFieldFocused>());
+        AddStep("type a start", () => Piece(EditorGroupPart.RowStart, 0).GetComponent<TextField>().Value = "1.5");
+        AddStep("leave the start", () => Piece(EditorGroupPart.RowStart, 0).RemoveTag<TextFieldFocused>());
+        AddUntilStep("the typed start is kept", () => Mathf.Abs(Group().Effects[0].Start - 1.5f) < 0.001f);
+
+        // ---------------------------------------------------------------- key lane
+
+        AddStep("click the key on the lane", () => Context.Pointer.Click(LanePin(Group().ShaderKeys[0].Time)));
+        AddWaitStep("hold the key", 2);
+        AddStep("release the key", () => Context.Pointer.Release());
+        AddUntilStep("the key is selected and its cells show", () =>
+            State().SelectedKey >= 0f && Visible(EditorGroupPart.KeyValue) && Visible(EditorGroupPart.KeyEase));
+        AddStep("focus the key's value", () => Piece(EditorGroupPart.KeyValue).AddTag<TextFieldFocused>());
+        AddStep("type an exact value", () =>
+            Piece(EditorGroupPart.KeyValue).GetComponent<TextField>().Value = "0.25 0.5 0.75 1");
+        AddStep("leave the value", () => Piece(EditorGroupPart.KeyValue).RemoveTag<TextFieldFocused>());
+        AddUntilStep("the key takes the typed value", () =>
+            Group().ShaderKeys.Count == 1 && Group().ShaderKeys[0].Value == new Vector4(0.25f, 0.5f, 0.75f, 1f));
+        AddStep("cycle the key's easing", () => Click(Piece(EditorGroupPart.KeyEase)));
+        AddWaitStep("hold EASE", 2);
+        AddStep("release EASE", () => Context.Pointer.Release());
+        AddUntilStep("the key is eased", () => Group().ShaderKeys[0].Ease != GroupEase.Linear);
+
+        float keyFrom = 0f;
+        AddStep("grab the key to drag it", () =>
+        {
+            keyFrom = Group().ShaderKeys[0].Time;
+            Context.Pointer.Click(LanePin(keyFrom));
+        });
+        AddWaitStep("hold the grab", 2);
+        AddStep("drag the key a second earlier", () => Context.Pointer.Position = LanePin(keyFrom - 1f));
+        AddWaitStep("drag", 2);
+        AddStep("let go of the key", () => Context.Pointer.Release());
+        AddUntilStep("the key moved a second earlier", () =>
+            Group().ShaderKeys.Count == 1 &&
+            Mathf.Abs(Group().ShaderKeys[0].Time - (keyFrom - 1f)) < 0.01f &&
+            Mathf.Abs(State().SelectedKey - (keyFrom - 1f)) < 0.01f);
+
+        AddStep("key a second value at the playhead", () => Click(Piece(EditorGroupPart.ShaderUp)));
+        AddWaitStep("hold plus again", 2);
+        AddStep("release plus again", () => Context.Pointer.Release());
+        AddUntilStep("the lane has two keys", () => Group().ShaderKeys.Count == 2);
+        AddWaitStep("look at the key lane", 4);
+
+        AddStep("click the first key again", () => Context.Pointer.Click(LanePin(keyFrom - 1f)));
+        AddWaitStep("hold the first key", 2);
+        AddStep("release the first key", () => Context.Pointer.Release());
+        AddUntilStep("the first key is selected", () => Mathf.Abs(State().SelectedKey - (keyFrom - 1f)) < 0.01f);
+        AddStep("delete the selected key", () => Click(Piece(EditorGroupPart.KeyDelete)));
+        AddWaitStep("hold X", 2);
+        AddStep("release X", () => Context.Pointer.Release());
+        AddUntilStep("only the other key is left", () =>
+            Group().ShaderKeys.Count == 1 && State().SelectedKey < 0f && !Visible(EditorGroupPart.KeyValue));
 
         // ---------------------------------------------------------------- buffer row and lock
 
@@ -294,26 +360,37 @@ public sealed class EditorGroupsSceneTest : SceneTest
 
         AddStep("select only the note", () => Editor().GetComponent<NoteSelection>().SetMany(new[] { _note }));
 
-        AddStep("cycle the buffer tint", () => Click(Piece(EditorGroupPart.BufferTint)));
+        AddAssert("the buffer settings stay hidden on the ITEM SHADER tab", () => !Visible(EditorGroupPart.BufferTint));
+        AddStep("open the BUFFER tab", () => Click(Piece(EditorGroupPart.TrackBuffer)));
+        AddWaitStep("hold BUFFER", 2);
+        AddStep("release BUFFER", () => Context.Pointer.Release());
+        AddUntilStep("the buffer settings show", () => State().BufferTrack && Visible(EditorGroupPart.BufferTint));
+
+        AddStep("open the buffer tint palette", () => Click(Piece(EditorGroupPart.BufferTint)));
         AddWaitStep("hold TINT", 2);
         AddStep("release TINT", () => Context.Pointer.Release());
-        AddUntilStep("the buffer tint changes", () => Group().BufferTint != Colors.White);
+        AddUntilStep("the palette opens for the buffer, without alpha steps", () =>
+            Visible(EditorGroupPart.PaletteSwatch, 3) && !Visible(EditorGroupPart.PaletteAlpha, 0));
+        AddStep("pick a swatch", () => Click(Piece(EditorGroupPart.PaletteSwatch, 3)));
+        AddWaitStep("hold the swatch", 2);
+        AddStep("release the swatch", () => Context.Pointer.Release());
+        AddUntilStep("the buffer tint changes and the palette closes", () =>
+            Group().BufferTint != Colors.White && !State().PaletteOpen);
         AddStep("drop the buffer alpha", () => Click(Piece(EditorGroupPart.BufferAlphaDown)));
         AddWaitStep("hold A-", 2);
         AddStep("release A-", () => Context.Pointer.Release());
         AddUntilStep("the buffer alpha drops", () => Group().BufferAlpha < 0.95f);
-        AddStep("step the buffer blend", () => Click(Piece(EditorGroupPart.BufferBlend)));
+        AddStep("open the buffer blend list", () => Click(Piece(EditorGroupPart.BufferBlend)));
         AddWaitStep("hold BLEND", 2);
         AddStep("release BLEND", () => Context.Pointer.Release());
-        AddUntilStep("the buffer blend changes", () => Group().BufferBlend != BlendMode.Mix);
+        AddUntilStep("the blend list is open", () => Piece(EditorGroupPart.BufferBlend).GetComponent<Dropdown>().Open);
+        AddStep("choose add", () => ClickOption(EditorGroupPart.BufferBlend, System.Array.IndexOf(BlendModes.All, BlendMode.Add)));
+        AddWaitStep("hold the blend option", 2);
+        AddStep("release the blend option", () => Context.Pointer.Release());
+        AddUntilStep("the buffer blends additively", () => Group().BufferBlend == BlendMode.Add);
 
-        // The group overlay's scrim covers the whole view, so the sidebar grid
-        // and the layer inspector are only reachable while it is closed.
-        AddStep("close the panel to reach the sidebar", () => Click(Piece(EditorGroupPart.Close)));
-        AddWaitStep("hold DONE", 2);
-        AddStep("release DONE", () => Context.Pointer.Release());
-        AddUntilStep("the overlay closes again", () => State().Open == -1);
-
+        // The panel's scrim keeps presses off the field but not off the
+        // sidebar, so the groups grid and layer inspector work with it open.
         AddStep("try to give the note a second group", () => Click(Cell(5)));
         AddWaitStep("hold group 6", 2);
         AddStep("release group 6", () => Context.Pointer.Release());
@@ -335,20 +412,20 @@ public sealed class EditorGroupsSceneTest : SceneTest
         AddWaitStep("hold the layer OK", 2);
         AddStep("release the layer OK", () => Context.Pointer.Release());
         AddUntilStep("the layer warning closes", () => !WarningShown());
+        AddAssert("the panel stayed open on group 3 throughout", () => State().Open == 2);
 
-        AddStep("reopen group 3", () => Click(Bar().Edit));
-        AddWaitStep("hold group 3 once more", 2);
-        AddStep("release group 3 once more", () => Context.Pointer.Release());
-        AddUntilStep("the overlay reopens on group 3", () => State().Open == 2);
-
-        AddStep("switch the shader row to the buffer track", () => Click(Piece(EditorGroupPart.BufferTrack)));
-        AddWaitStep("hold TRACK BUF", 2);
-        AddStep("release TRACK BUF", () => Context.Pointer.Release());
+        AddStep("open the BUFFER tab again", () => Click(Piece(EditorGroupPart.TrackBuffer)));
+        AddWaitStep("hold BUFFER again", 2);
+        AddStep("release BUFFER again", () => Context.Pointer.Release());
         AddUntilStep("the row tracks the buffer", () => State().BufferTrack);
 
-        AddStep("give the buffer the test shader", () => Click(Piece(EditorGroupPart.ShaderSlot)));
+        AddStep("open the buffer's SHD list", () => Click(Piece(EditorGroupPart.ShaderSlot)));
         AddWaitStep("hold the buffer SHD", 2);
         AddStep("release the buffer SHD", () => Context.Pointer.Release());
+        AddUntilStep("the buffer's list is open", () => Piece(EditorGroupPart.ShaderSlot).GetComponent<Dropdown>().Open);
+        AddStep("give the buffer the test shader", () => ClickShaderOption(1));
+        AddWaitStep("hold the buffer option", 2);
+        AddStep("release the buffer option", () => Context.Pointer.Release());
         AddUntilStep("the buffer uses slot 1", () => Group().BufferShader == 1);
         AddStep("key a buffer value", () => Click(Piece(EditorGroupPart.ShaderUp)));
         AddWaitStep("hold the buffer plus", 2);
@@ -366,6 +443,12 @@ public sealed class EditorGroupsSceneTest : SceneTest
         AddAssert("the buffered group keeps its settings", () =>
             Group().Buffered && Group().BufferShader == 0 && Group().BufferAlpha < 0.95f);
         AddWaitStep("look at the buffer row", 4);
+
+        AddStep("switch back to the ITEM SHADER tab", () => Click(Piece(EditorGroupPart.TrackItem)));
+        AddWaitStep("hold ITEM SHADER", 2);
+        AddStep("release ITEM SHADER", () => Context.Pointer.Release());
+        AddUntilStep("the lane shows the item track's key", () =>
+            !State().BufferTrack && Group().ShaderKeys.Count == 1);
 
         AddStep("open the grid menu", () => Click(ViewBar().GridButton));
         AddWaitStep("hold the grid button", 2);
@@ -497,6 +580,35 @@ public sealed class EditorGroupsSceneTest : SceneTest
 
     private void Click(Entity entity) =>
         Context.Pointer.Click(UiTransform.WorldPosition(entity, entity.GetComponent<Position>().Value));
+
+    /// <summary>Where a key's pin sits on the key lane, on screen.</summary>
+    private Vector2 LanePin(float seconds)
+    {
+        Vector2 screen = Editor().GetComponent<PlayfieldView>().ScreenSize;
+        Vector2 dialog = EditorGroupLayout.DialogSize(screen);
+        Rect2 lane = EditorGroupLayout.KeyLane(dialog);
+        lane = new Rect2(lane.Position + EditorGroupLayout.Origin(screen), lane.Size);
+        EditorGroupState state = State();
+        return new Vector2(
+            EditorGroupLayout.XForTime(lane, state.ViewStart, state.ViewSpan, seconds),
+            lane.Position.Y + lane.Size.Y / 2f);
+    }
+
+    private void ClickShaderOption(int slot) => ClickOption(EditorGroupPart.ShaderSlot, slot);
+
+    private void ClickOption(EditorGroupPart part, int slot)
+    {
+        Entity button = Piece(part);
+        foreach (Entity option in Context.Entities.Query<DropdownOption>().ToEntityList())
+        {
+            DropdownOption data = option.GetComponent<DropdownOption>();
+            if (data.Owner.Id == button.Id && data.Value == slot)
+            {
+                Click(option);
+                return;
+            }
+        }
+    }
 
     private void Seek(long ms)
     {

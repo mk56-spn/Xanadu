@@ -41,6 +41,7 @@ public sealed partial class EditorGroupSystem : QuerySystem<EditorGroupState>
     private readonly HashSet<int> _focused = new();
     private bool _pointerHeld;
     private EditorSnapshot _dragBefore;
+    private bool _keyDragMoved;
     private Dictionary<(EditorGroupPart, int), Entity> _pieces = new();
 
     public EditorGroupSystem(
@@ -91,9 +92,13 @@ public sealed partial class EditorGroupSystem : QuerySystem<EditorGroupState>
             return;
         }
 
-        HandlePointer(ref state, group, ref playhead, dialog, origin);
-        ShowOverlay(editor, state, group, playhead, dialog, origin, buffer);
+        HandlePointer(editor, ref state, group, ref playhead, dialog, origin);
+
+        // Before showing: a field that just lost focus is refilled from the
+        // data once it shows, so its typed text has to be read first.
         CommitFields(group, state, playhead);
+        CommitKeyFields(editor, ref state, group, playhead);
+        ShowOverlay(editor, state, group, playhead, dialog, origin, buffer);
     }
 
     // ---------------------------------------------------------------- finding
@@ -276,7 +281,8 @@ public sealed partial class EditorGroupSystem : QuerySystem<EditorGroupState>
                          item.HasComponent<LevelText>() ||
                          item.HasComponent<GrassPatch>() ||
                          item.HasComponent<LevelPolygon>() ||
-                         item.HasComponent<StartPoint>());
+                         item.HasComponent<StartPoint>() ||
+                         item.HasComponent<ScreenReadRegion>());
 
     /// <summary>
     /// Adds or removes the selection as one undo step, refusing an add that
@@ -323,6 +329,10 @@ public sealed partial class EditorGroupSystem : QuerySystem<EditorGroupState>
                 block.FillGroups |= bit;
                 block.OutlineGroups |= bit;
             }
+
+            // An item leaving the group its shader came from goes back to its own (step 8).
+            if (!add && ItemShaderSource.Of(item) == group)
+                ItemShaderSource.Put(item, ItemShaderSource.Own);
 
             if (next == 0)
                 item.RemoveComponent<ItemGroups>();
