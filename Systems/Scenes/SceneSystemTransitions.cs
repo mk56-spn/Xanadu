@@ -47,7 +47,11 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
             state.Pending == SceneKind.Play &&
             IsPlayFinished())
         {
-            if (IsEditorPreview)
+            // A spike sends the player back to the start rather than to results;
+            // a watched replay still ends, or it would die on a loop.
+            if (IsPlayDied() && !_watchingReplay && _lastPlayEntry is not null)
+                RetryPlay(ref state);
+            else if (IsEditorPreview)
                 ReturnToEditor(ref state);
             else
                 state.Pending = SceneKind.Results;

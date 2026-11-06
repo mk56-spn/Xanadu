@@ -58,9 +58,13 @@ public static partial class SongSelectScene
     private const float ListBarLeft = 12.202f;
     private const float ListBarRight = 69.781f;
 
-    /// <summary>The list's scrollbar; seven levels show at once.</summary>
+    /// <summary>
+    /// The list's scrollbar. The carousel always scrolls, keeping the selection in
+    /// its slot, so the thumb is one level's share of the track rather than the
+    /// share on screen: any list of two or more levels can be dragged.
+    /// </summary>
     public static VerticalSlider ListSlider(in SongSelectState state) =>
-        new(TrackTop, TrackBottom, 7f / Mathf.Max(state.Catalog.Count, 1), MinThumb);
+        new(TrackTop, TrackBottom, 1f / Mathf.Max(state.Catalog.Count, 1), MinThumb);
 
     /// <summary>How far down the list is scrolled, from 0 to 1.</summary>
     public static float ListValue(in SongSelectState state) =>

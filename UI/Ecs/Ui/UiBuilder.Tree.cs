@@ -19,10 +19,11 @@ public sealed partial class UiBuilder
     public Entity Tree(
         float width,
         float rowHeight = UiTheme.TreeRowHeight,
-        float indent = UiTheme.TreeIndent)
+        float indent = UiTheme.TreeIndent,
+        float[]? cellWidths = null)
     {
         Entity tree = TreeStack(width);
-        tree.AddComponent(UiTree.Create(width, rowHeight, indent));
+        tree.AddComponent(UiTree.Create(width, rowHeight, indent, cellWidths));
         return tree;
     }
 
@@ -119,6 +120,9 @@ public sealed partial class UiBuilder
             !UiTreeControl.Disclosure(node).Tags.Has<UiTreeDisclosure>() == !row.HasChildren)
         {
             UiText.Set(UiTreeControl.Label(node), row.Item.Label);
+            int column = 0;
+            foreach (Entity cell in UiTreeControl.Cells(node))
+                UiText.Set(cell, CellText(row.Item, column++));
             return;
         }
 
@@ -133,6 +137,13 @@ public sealed partial class UiBuilder
     private void TreeRowEntity(in TreeRow row, in UiTree state)
     {
         float indent = row.Depth * state.Indent;
+        float cells = 0;
+        if (state.CellWidths is { } widths)
+        {
+            foreach (float width in widths)
+                cells += width;
+        }
+
         Container(
             Vector2.Zero,
             new Vector2(state.Width, state.RowHeight),
@@ -147,14 +158,22 @@ public sealed partial class UiBuilder
             : RectEntity(Vector2.Zero, new Vector2(DisclosureWidth, state.RowHeight), new Color(0, 0, 0, 0));
         Entity label = Button(
             row.Item.Label,
-            new Vector2(state.Width - indent - DisclosureWidth, state.RowHeight),
+            new Vector2(state.Width - indent - DisclosureWidth - cells, state.RowHeight),
             UiTheme.PanelAlt);
         label.AddComponent(new TextAlignment(TextAlign.Left));
         label.AddTag<UiTreeLabel>();
+        for (int column = 0; column < (state.CellWidths?.Length ?? 0); column++)
+        {
+            Text(CellText(row.Item, column), new Vector2(state.CellWidths![column], state.RowHeight), align: TextAlign.Right)
+                .AddTag<UiTreeCell>();
+        }
         if (row.HasChildren)
             disclosure.AddTag<UiTreeDisclosure>();
         End();
     }
+
+    private static string CellText(in UiTreeItem item, int column) =>
+        item.Cells is { } cells && column < cells.Length ? cells[column] : "";
 
     internal readonly record struct TreeRow(UiTreeItem Item, int Depth, bool HasChildren);
 }

@@ -20,8 +20,7 @@ public sealed partial class DebugPressedOverlaySystem : QuerySystem<Rectangle, P
 {
     /// <summary>Above the F4 boxes, so they do not tint the panels.</summary>
     private const int FontSize = UiType.Body;
-    private const int SummaryLines = 4;
-    private const int NameLength = 26;
+    private const int NameLength = 32;
 
     private static readonly Vector2 TopLeft = new(UiMetrics.Space.Lg, UiMetrics.Space.Lg);
 
@@ -50,8 +49,9 @@ public sealed partial class DebugPressedOverlaySystem : QuerySystem<Rectangle, P
     private bool _sortHeld;
 
     private Entity _layer;
-    private UiNode _summary;
-    private DebugTable _systemTable = null!;
+
+    /// <summary>A closed layer, hidden until the next update deletes it.</summary>
+    private Entity _closing;
     private DebugTable _archetypeTable = null!;
     private Entity _archetypeTitle;
     private Entity _pageLine;
@@ -85,6 +85,7 @@ public sealed partial class DebugPressedOverlaySystem : QuerySystem<Rectangle, P
 
     protected override void OnUpdate()
     {
+        DeleteClosed();
         _latch.Update();
         if (!_latch.Visible)
         {
@@ -97,7 +98,7 @@ public sealed partial class DebugPressedOverlaySystem : QuerySystem<Rectangle, P
 
         _elapsedMs += (long)(Tick.deltaTime * 1000);
         _archetypes.Refresh(_store, _elapsedMs);
-        RefreshMetrics();
+        RefreshMetrics(Tick.deltaTime);
         RefreshArchetypes();
     }
 
@@ -116,28 +117,38 @@ public sealed partial class DebugPressedOverlaySystem : QuerySystem<Rectangle, P
 
         UiNode metrics = Panel(panels);
         metrics.Text("F3 ECS DEBUG", FontSize, DebugPalette.Title);
-        _summary = metrics.Column().Cross(StackCrossAlignment.Start);
-        for (int i = 0; i < SummaryLines; i++)
-            _summary.Text("", FontSize, DebugPalette.Text);
+        BuildSummary(metrics);
 
-        _systemTable = new DebugTable(
-            metrics,
-            new DebugColumn("System", TextAlign.Left),
-            new DebugColumn("last ms", TextAlign.Right),
-            new DebugColumn("avg ms", TextAlign.Right),
-            new DebugColumn("upd", TextAlign.Right));
+        BuildSystemTree(metrics);
+        if (_systems is not null)
+            MonitorNested(_systems);
 
         BuildArchetypePanel(Panel(panels));
     }
 
+    /// <summary>
+    /// Hides the panels now and deletes them next update. Systems earlier this
+    /// frame, such as layout, may have queued changes to them; hidden, they are
+    /// out of every query, so by the next update nothing is queued for them.
+    /// </summary>
     private void Close()
     {
         if (_layer.IsNull)
             return;
 
-        UiLayout.DeleteSubtree(_layer);
+        UiLayout.SetHidden(_layer, true);
+        _closing = _layer;
         _layer = default;
         _detailFor = null;
+    }
+
+    private void DeleteClosed()
+    {
+        if (_closing.IsNull)
+            return;
+
+        UiLayout.DeleteSubtree(_closing);
+        _closing = default;
     }
 
     private static UiNode Panel(UiNode parent) => parent.Column()
@@ -147,45 +158,12 @@ public sealed partial class DebugPressedOverlaySystem : QuerySystem<Rectangle, P
         .Gap(UiMetrics.Space.Sm)
         .Cross(StackCrossAlignment.Start);
 
-    private void RefreshMetrics()
+    private void RefreshMetrics(float delta)
     {
         double fps = _fpsSource?.GetFps() ?? 60;
-        float frameMs = 1000f / Mathf.Max(1f, (float)fps);
-        float totalMs = 0;
-        long totalMemory = 0;
-
-        if (_systems is not null)
-        {
-            _systemTable.SetRowCount(_systems.ChildSystems.Count);
-            int row = 0;
-            foreach (BaseSystem system in _systems.ChildSystems)
-            {
-                SystemPerf perf = system.Perf;
-                totalMs += perf.LastMs;
-                totalMemory += perf.LastMemory;
-
-                _systemTable.Set(row, 0, Name(system));
-                _systemTable.Set(row, 1, perf.LastMs.ToString("0.00", CultureInfo.InvariantCulture));
-                _systemTable.Set(row, 2, perf.LastAvgMs(60).ToString("0.00", CultureInfo.InvariantCulture));
-                _systemTable.Set(row, 3, perf.UpdateCount.ToString(CultureInfo.InvariantCulture));
-                row++;
-            }
-        }
-
-        SetSummary(0,
-            $"FPS {fps,3:0}   frame {frameMs,5:0.0} ms   systems {totalMs,5:0.00} ms   " +
-            $"alloc {totalMemory / 1024f,5:0.0} KB");
-        SetSummary(1,
-            $"Entities {_store.Count - _debug.Count,5}   capacity {_store.Capacity,5}   " +
-            $"archetypes {_archetypes.ActiveCount,3} active / {_archetypes.Count,3}");
-        SetSummary(2,
-            $"Dirty {_dirty.Count,3}   Moved {_moved.Count,3}   Input {_input.Count,3}   " +
-            $"Pressed {_pressed.Count,2}   LayoutDirty {_layoutDirty.Count,2}");
-        SetSummary(3, $"Containers {_containers.Count,4}");
+        float systemsMs = _systems is null ? 0 : RefreshSystems(_systems, delta);
+        RefreshSummary(delta, fps, systemsMs);
     }
-
-    private void SetSummary(int line, string text) =>
-        SetLine(_summary.Entity.ChildEntities[line], text);
 
     /// <summary>Sets a line of text, widening it if it has outgrown its box.</summary>
     private static void SetLine(Entity line, string text)

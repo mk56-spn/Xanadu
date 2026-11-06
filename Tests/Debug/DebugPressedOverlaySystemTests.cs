@@ -49,6 +49,8 @@ public sealed class DebugPressedOverlaySystemTests : EcsSystemTest
         Frame();
         _toggle.Pressed = true;
         Frame();
+        // Closing hides the panels at once and deletes them on the next update.
+        Frame();
 
         Assert.That(Texts(), Does.Not.Contain("F3 ECS DEBUG"));
         Assert.That(DebugEntities.Count, Is.EqualTo(0));
@@ -63,12 +65,56 @@ public sealed class DebugPressedOverlaySystemTests : EcsSystemTest
     }
 
     [Test]
-    public void TheSystemTableListsEverySystemWithItsTimings()
+    public void TheSystemTreeListsEverySystemWithItsTimings()
     {
         Frame();
 
-        Assert.That(Texts(), Does.Contain("last ms").And.Contain("avg ms").And.Contain("upd"));
+        Assert.That(Texts(), Does.Contain("live ms").And.Contain("avg ms").And.Contain("upd"));
         Assert.That(Texts(), Does.Contain("ContainerLayout"));
+    }
+
+    private Entity SystemTree() =>
+        Store.Query<UiTree>().ToEntityList().First();
+
+    private Entity Node(string label) =>
+        UiTreeControl.Nodes(SystemTree()).First(node => UiTreeControl.Label(node).GetComponent<Text>().Value == label);
+
+    [Test]
+    public void GroupsStartClosedAndOneOpenedStaysOpen()
+    {
+        var group = new SystemGroup("Outer");
+        group.Add(new SystemGroup("Inner"));
+        Root.Add(group);
+        Frame();
+
+        Entity outer = Node("Outer");
+        string id = outer.GetComponent<UiTreeNode>().Id;
+        Assert.That(UiTreeControl.IsExpanded(SystemTree(), id), Is.False, "a group starts closed");
+        Assert.That(UiTreeControl.ParentNode(Node("Inner")), Is.EqualTo(outer), "a system sits under its group");
+
+        UiTreeControl.SetExpanded(SystemTree(), id, true);
+        Frame(70);
+
+        Assert.That(UiTreeControl.IsExpanded(SystemTree(), id), Is.True, "refreshing keeps it open");
+    }
+
+    [Test]
+    public void TheLiveColumnHoldsForATenthOfASecondAndTheAverageForASecond()
+    {
+        Frame(2);
+        Entity node = Node("ContainerLayout");
+        string Cell(int column) => UiTreeControl.Cells(node).ElementAt(column).GetComponent<Text>().Value;
+
+        string updates = Cell(2);
+        Frame(3);
+        Assert.That(Cell(2), Is.EqualTo(updates), "the live window has not closed yet");
+
+        Frame(4);
+        Assert.That(Cell(2), Is.Not.EqualTo(updates), "a tenth of a second later it refreshes");
+        Assert.That(Cell(0), Is.Not.EqualTo("-"));
+
+        Frame(60);
+        Assert.That(Cell(1), Is.Not.EqualTo("-"), "after a second the average is in");
     }
 
     [Test]
@@ -83,14 +129,21 @@ public sealed class DebugPressedOverlaySystemTests : EcsSystemTest
         Assert.That(Texts(), Does.Contain("Rectangle"));
     }
 
+    /// <summary>The value under a summary tile's label.</summary>
+    private string StatValue(string label)
+    {
+        Entity caption = Store.Query<Text>().ToEntityList().First(entity => entity.GetComponent<Text>().Value == label);
+        return caption.Parent.ChildEntities[1].GetComponent<Text>().Value;
+    }
+
     [Test]
     public void ThePanelsLeaveThemselvesOutOfWhatTheyReport()
     {
         AddRectangle();
         Frame(2);
 
-        Assert.That(Texts(), Has.Some.Matches("Entities +1 "));
-        Assert.That(Texts(), Has.Some.Matches("Containers +0"));
+        Assert.That(StatValue("entities"), Is.EqualTo("1"));
+        Assert.That(StatValue("containers"), Is.EqualTo("0"));
         Assert.That(Texts(), Has.None.Contains("#DebugUi"));
     }
 

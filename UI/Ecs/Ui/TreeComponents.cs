@@ -7,8 +7,9 @@ namespace Xanadu.Ecs;
 /// <summary>
 /// One node of a tree, given in any order: <see cref="Parent"/> is the id of
 /// another item, or null for a root. Ids must be unique within the tree.
+/// <see cref="Cells"/> fill the tree's right-aligned columns, when it has any.
 /// </summary>
-public readonly record struct UiTreeItem(string Id, string? Parent, string Label);
+public readonly record struct UiTreeItem(string Id, string? Parent, string Label, string[]? Cells = null);
 
 /// <summary>State of a tree control; lives on the tree container entity.</summary>
 public struct UiTree : IComponent
@@ -23,13 +24,17 @@ public struct UiTree : IComponent
     public float RowHeight;
     public float Indent;
 
-    public static UiTree Create(float width, float rowHeight, float indent) => new()
+    /// <summary>Widths of the columns right of every label, or null for none.</summary>
+    public float[]? CellWidths;
+
+    public static UiTree Create(float width, float rowHeight, float indent, float[]? cellWidths = null) => new()
     {
         Selected = "",
         MultiSelected = new HashSet<string>(StringComparer.Ordinal),
         Width = width,
         RowHeight = rowHeight,
         Indent = indent,
+        CellWidths = cellWidths,
     };
 }
 
@@ -48,6 +53,9 @@ public struct UiTreeDisclosure : ITag;
 
 /// <summary>Marks the label button that selects a node.</summary>
 public struct UiTreeLabel : ITag;
+
+/// <summary>Marks a text in one of a tree's columns, right of the label.</summary>
+public struct UiTreeCell : ITag;
 
 /// <summary>Set on the tree entity when the user selects a node; the consumer removes it.</summary>
 public struct UiTreeChanged(string id) : IComponent
