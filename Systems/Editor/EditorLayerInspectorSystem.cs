@@ -8,10 +8,11 @@ namespace Xanadu.Systems.Editor;
 
 /// <summary>
 /// The sidebar's layer and z steppers for the selection, shown while anything
-/// is selected. They read the first selected item. LAYER puts the whole
-/// selection on the layer one back or forward from the first item's, stepping
-/// over the player wedge, in front of what is already there; Z raises or
-/// lowers every selected item's z. Each press is one undo step.
+/// is selected. LAYER moves each selected item one layer back or forward from
+/// its own, stepping over the player wedge, in front of what is already there,
+/// and reads MIXED when the selection spans layers; Z raises or lowers every
+/// selected item's z. SHADER steps the source through own and the item's
+/// groups that have a shader. Each press is one undo step.
 /// </summary>
 public sealed class EditorLayerInspectorSystem(EditorHistory history)
     : QuerySystem<NoteSelection, EditorLayerInspector>
@@ -35,12 +36,15 @@ public sealed class EditorLayerInspectorSystem(EditorHistory history)
         {
             if (_presses.Started(button) && !first.IsNull)
             {
-                int layer = EditorLayerEdits.StepLayer(ItemLayer.Of(first).Layer, button.GetComponent<EditorButton>().Arg);
-                string? problem = EditorBufferGuard.MovingToLayer(editor.Store, selection, layer);
+                int step = button.GetComponent<EditorButton>().Arg;
+                string? problem = EditorBufferGuard.Moving(
+                    editor.Store,
+                    selection,
+                    item => EditorLayerEdits.StepLayer(ItemLayer.Of(item).Layer, step));
                 if (problem is not null)
                     CommandBuffer.AddComponent(editor.Id, new WarningRequest(problem));
                 else
-                    Edit(() => EditorLayerEdits.PutOnLayer(editor.Store, selection, layer));
+                    Edit(() => EditorLayerEdits.StepLayers(editor.Store, selection, step));
             }
         }
 
@@ -53,21 +57,48 @@ public sealed class EditorLayerInspectorSystem(EditorHistory history)
         foreach (Entity button in EditorButton.All(editor.Store, EditorButtonKind.ShaderSourceStep))
         {
             if (_presses.Started(button) && !first.IsNull)
-                Edit(() => EditorLayerEdits.StepShaderSource(selection, button.GetComponent<EditorButton>().Arg));
+                Edit(() => EditorLayerEdits.StepShaderSource(selection, button.GetComponent<EditorButton>().Arg, Groups(editor)));
         }
 
         if (first.IsNull)
             return;
 
         ItemLayer shown = ItemLayer.Of(first);
-        UiText.Set(inspector.Layer, $"LAYER {(shown.Layer > 0 ? "+" : "")}{shown.Layer}", CommandBuffer);
-        UiText.Set(inspector.Z, $"Z {shown.Z}", CommandBuffer);
-        int source = ItemShaderSource.Of(first);
+        int? shared = EditorLayerEdits.SharedLayer(selection);
         UiText.Set(
-            inspector.ShaderSource,
-            source < 0 ? "SHADER OWN" : $"SHADER G{source + 1}",
+            inspector.Layer,
+            shared is { } layer ? $"LAYER {(layer > 0 ? "+" : "")}{layer}" : "LAYER MIXED",
             CommandBuffer);
+        UiText.Set(inspector.Z, $"Z {shown.Z}", CommandBuffer);
+        UiText.Set(inspector.ShaderSource, SourceLabel(editor, first), CommandBuffer);
     }
+
+    /// <summary>
+    /// What the item's shader source reads: OWN, or the group and the name of
+    /// the shader it takes. A source that isn't in effect (the group has no
+    /// shader, or the item left it) reads OWN, because that's what draws.
+    /// </summary>
+    private static string SourceLabel(Entity editor, Entity item)
+    {
+        GroupDefinition[]? groups = Groups(editor);
+        int group = ItemShaderSource.Of(item);
+        uint mask = item.TryGetComponent(out ItemGroups member) ? member.Mask : 0u;
+        if (groups is null ||
+            !GroupModulation.TryItemShader(groups, mask, group, 0f, out int slot, out _))
+        {
+            return "SHADER OWN";
+        }
+
+        string name = editor.TryGetComponent(out LevelShaders shaders) && shaders.Get(slot) is { Name.Length: > 0 } found
+            ? found.Name.ToUpperInvariant()
+            : $"#{slot}";
+        if (name.Length > 10)
+            name = name[..9] + "…";
+        return $"SHADER G{group + 1} {name}";
+    }
+
+    private static GroupDefinition[]? Groups(Entity editor) =>
+        editor.TryGetComponent(out LevelGroups level) ? level.Groups : null;
 
     private void Edit(System.Func<bool> change)
     {
