@@ -66,29 +66,8 @@ public sealed class HitGhostSceneTest : SceneTest
             () => Context.Entities.Query<HitGhost>().ToEntityList()[0].Tags.Has<HitGhostRigged>());
     }
 
-    /// <summary>
-    /// The harness's <c>res://</c> is its own folder, so the game's rig path
-    /// misses; load the same package from the repo instead. The source keeps the
-    /// game's path, so the load system leaves the rig alone.
-    /// </summary>
-    private void DressInRig()
-    {
-        Entity player = Context.Entities.Query<Player, Position>().ToEntityList()[0];
-        if (player.HasComponent<CharacterRig>())
-            return;
-
-        string repo = ProjectSettings.GlobalizePath("res://").TrimEnd('/');
-        string path = System.IO.Path.GetFullPath(
-            System.IO.Path.Combine(repo, "../../Tools/Animator/Animations/Characters/contact.xaf"));
-        XafPackage? package = new GodotCharacterRigFiles().Load(path);
-        if (package is null)
-            return;
-
-        var runtime = new AnimatorRuntime(package);
-        runtime.Play(ContactClip.Idle.Id(), 0f);
-        player.RemoveTag<CharacterRigMissing>();
-        player.AddComponent(new CharacterRig(runtime));
-    }
+    private void DressInRig() =>
+        TestContent.DressInContactRig(Context.Entities.Query<Player, Position>().ToEntityList()[0]);
 
     private void SetPlayheadTime(long timeMs)
     {

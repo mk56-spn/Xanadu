@@ -1,4 +1,5 @@
 using Xanadu.Lab.Experiments.Fluid;
+using Xanadu.Lab.Experiments.Notes;
 using Xanadu.Lab.Experiments.Particles;
 using Xanadu.Lab.Experiments.Pivot;
 using Xanadu.Lab.Experiments.Radiance;
@@ -15,6 +16,10 @@ public static class LabExperiments
 {
     public static ILabExperiment[] All() =>
     [
+        new NoteApproachExperiment(NoteApproachStyle.Ring),
+        new NoteApproachExperiment(NoteApproachStyle.Diva),
+        new NoteApproachExperiment(NoteApproachStyle.DivaLine),
+        new NoteApproachExperiment(NoteApproachStyle.Drop),
         new PixelBorderExperiment(
             "BORDER · MATRIX",
             "res://Experiments/PixelBorder/pixel_border_matrix.gdshader",

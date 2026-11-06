@@ -9,7 +9,7 @@ namespace Xanadu.Tests.VisualTests;
 /// <summary>
 /// Notes and their approach rings in play, with time held still: three notes
 /// at different distances from their beat, so each ring is a different size,
-/// and every note and ring carries its soft glow.
+/// with no glow under either (notes stopped glowing).
 /// </summary>
 public sealed class NoteGlowSceneTest : SceneTest
 {
