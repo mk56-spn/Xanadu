@@ -51,6 +51,15 @@ public interface IAttachmentVisuals
     /// </summary>
     void ApplyEffects(XafPose pose, Transform2D[] effects, Transform2D placement) { }
 
+    /// <summary>
+    /// Multiplies the colour of every part of the rig, attachments, chains,
+    /// cloth and effects, by <paramref name="shade"/> (0 is black), except the
+    /// <paramref name="kept"/> attachments, whose colour is multiplied by their
+    /// own light instead (over 1 brightens). Opacity is left alone. Called last,
+    /// after the effects; a caller that never calls it leaves the rig as posed.
+    /// </summary>
+    void ApplyPresence(float shade, System.ReadOnlySpan<(int Attachment, float Light)> kept) { }
+
     /// <summary>Rebuilds only the effects, after their items were edited; the default rebuilds everything.</summary>
     void ReloadEffects(XafPackage package) => Reload(package);
 
