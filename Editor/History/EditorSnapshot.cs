@@ -36,7 +36,8 @@ public readonly record struct PolygonSnapshot(
 public readonly record struct ScreenReadSnapshot(
     Vector2 Position,
     Vector2 Size,
-    ItemLayer Layer = default);
+    ItemLayer Layer = default,
+    uint Groups = 0);
 
 /// <summary>Stable grass-patch snapshot used by undo/redo.</summary>
 public readonly record struct GrassSnapshot(

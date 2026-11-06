@@ -26,7 +26,18 @@ public struct ScreenReadRegion(Vector2 position, Vector2 size) : IComponent
     public readonly bool Contains(Vector2 point) => Bounds.HasPoint(point);
 
     /// <summary>A default-sized region centred on a playfield point.</summary>
-    public static ScreenReadRegion Centred(Vector2 centre) => new(
-        centre - new Vector2(DefaultWidth, DefaultHeight) / 2f,
-        new Vector2(DefaultWidth, DefaultHeight));
+    public static ScreenReadRegion Centred(Vector2 centre) =>
+        Centred(centre, new Vector2(DefaultWidth, DefaultHeight));
+
+    /// <summary>A region of <paramref name="size"/> centred on a playfield point.</summary>
+    public static ScreenReadRegion Centred(Vector2 centre, Vector2 size) => new(centre - size / 2f, size);
+
+    /// <summary>
+    /// The size a new region starts at: the default, or a third of what the
+    /// view shows when that's smaller, so a fresh region fits in view.
+    /// <paramref name="visible"/> is the view's size in playfield units.
+    /// </summary>
+    public static Vector2 StartSize(Vector2 visible) => new(
+        Mathf.Min(DefaultWidth, Mathf.Round(visible.X / 3f)),
+        Mathf.Min(DefaultHeight, Mathf.Round(visible.Y / 3f)));
 }

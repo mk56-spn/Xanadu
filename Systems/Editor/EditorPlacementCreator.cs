@@ -64,7 +64,9 @@ public sealed class EditorPlacementCreator(EditorSceneQuery scene, EditorHistory
             if (!EditorItemPicker.IsInside(centre, regionField))
                 return;
 
-            ScreenReadRegion region = ScreenReadRegion.Centred(centre);
+            ScreenReadRegion region = ScreenReadRegion.Centred(
+                centre,
+                ScreenReadRegion.StartSize(regionView.ScreenSize / regionView.Scale));
             region.Position = GridPlacement.Settle(
                 region.Position,
                 region.Size,

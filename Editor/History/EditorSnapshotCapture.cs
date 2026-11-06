@@ -221,7 +221,8 @@ public sealed class EditorSnapshotCapture(EntityStore entities)
             screenReads.Add(new ScreenReadSnapshot(
                 region.Position,
                 region.Size,
-                ItemLayer.Of(entity)));
+                ItemLayer.Of(entity),
+                entity.TryGetComponent(out ItemGroups regionGroups) ? regionGroups.Mask : 0u));
         }
 
         screenReads.Sort(static (a, b) => SnapshotOrder.ByPosition(a.Position, b.Position));

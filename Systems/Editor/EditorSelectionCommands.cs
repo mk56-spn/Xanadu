@@ -303,7 +303,7 @@ public sealed class EditorSelectionCommands(EditorCommandContext context)
             }
             else if (entity.HasComponent<ScreenReadRegion>())
             {
-                _clipboard.Add(new EditorClipboardItem(0, null, null, null, 0, Layer: ItemLayer.Of(entity), Region: entity.GetComponent<ScreenReadRegion>()));
+                _clipboard.Add(new EditorClipboardItem(0, null, null, null, MaskOf(entity), Layer: ItemLayer.Of(entity), Region: entity.GetComponent<ScreenReadRegion>()));
             }
         }
     }
@@ -418,7 +418,7 @@ public sealed class EditorSelectionCommands(EditorCommandContext context)
     /// Pastes a block or spike one grid cell further along per paste, since
     /// geometry is not timed and would otherwise land exactly on its original.
     /// A pasted block leaves its Form shape, so a copy never joins a construction.
-    /// Returns null when one of its kind is already there.
+    /// Returns null when collision is on and one of its kind is already there.
     /// </summary>
     private Entity PasteGeometry(in EditorClipboardItem item, Entity editor, CommandBuffer buffer)
     {
@@ -431,7 +431,7 @@ public sealed class EditorSelectionCommands(EditorCommandContext context)
             block.Position = GridPlacement.Clamp(block.Position + offset, block.Size, playfield);
             block.ShapeId = 0;
             block.ShapePiece = 0;
-            if (!GridPlacement.IsBlockSpaceFree(context.Entities, block.Bounds))
+            if (!PlacementCollision.BlockFits(context.Entities, block.Bounds))
                 return default;
 
             pasted = EditorItems.Create(context.Entities, block, item.Shader);
@@ -464,7 +464,7 @@ public sealed class EditorSelectionCommands(EditorCommandContext context)
         {
             Spike spike = item.Spike!.Value;
             spike.Position = GridPlacement.Clamp(spike.Position + offset, spike.Size, playfield);
-            if (!GridPlacement.IsSpikeSpaceFree(context.Entities, spike.Bounds))
+            if (!PlacementCollision.SpikeFits(context.Entities, spike.Bounds))
                 return default;
 
             pasted = EditorItems.Create(context.Entities, spike, item.Shader);

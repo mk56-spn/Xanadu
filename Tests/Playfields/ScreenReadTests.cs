@@ -190,6 +190,57 @@ public sealed class ScreenReadTests
         Assert.That(restored.Position, Is.EqualTo(new Vector2(10, 20)));
     }
 
+    [Test]
+    public void ARegionsGroupsRoundTripAndAnOlderChunkWithoutThemStillReads()
+    {
+        var source = new LevelDocument { Name = "Reads" };
+        source.ScreenReads.Add(new ScreenReadDocument { Width = 300, Height = 200, Layer = -1, Groups = new List<int> { 2, 5 } });
+
+        LevelDocument read = XmfBinary.Read(XmfBinary.Write(source));
+        Assert.That(read.ScreenReads.Single().Groups, Is.EqualTo(new[] { 2, 5 }));
+
+        // The chunk as written before regions could join groups: a plain count, no masks.
+        using var stream = new System.IO.MemoryStream();
+        using (var writer = new System.IO.BinaryWriter(stream, System.Text.Encoding.UTF8, leaveOpen: true))
+        {
+            writer.Write(1u);
+            foreach (float value in new[] { 10f, 20f, 300f, 200f })
+                writer.Write(value);
+            writer.Write(-2);
+            writer.Write(7);
+        }
+
+        stream.Position = 0;
+        using var reader = new System.IO.BinaryReader(stream);
+        ScreenReadDocument old = XmfBinary.ReadScreenReads(reader).Single();
+        Assert.That((old.Width, old.Layer, old.Z), Is.EqualTo((300f, -2, 7)));
+        Assert.That(old.Groups, Is.Empty);
+    }
+
+    [Test]
+    public void ARegionKeepsItsGroupsThroughTheMapperAndUndo()
+    {
+        var store = new EntityStore();
+        Entity region = EditorItems.Create(store, new ScreenReadRegion(new Vector2(10, 20), new Vector2(200, 100)));
+        region.AddComponent(new ItemGroups(ItemGroups.Bit(3)));
+        var history = new EditorHistory(store);
+        EditorSnapshot before = history.Capture();
+
+        region.GetComponent<ScreenReadRegion>().Position = new Vector2(90, 120);
+        history.Record(before, history.Capture());
+        history.Undo();
+
+        Entity restored = store.Query<ScreenReadRegion>().ToEntityList().Single();
+        Assert.That(restored.GetComponent<ItemGroups>().Has(3), Is.True);
+    }
+
+    [Test]
+    public void ANewRegionFitsTheView()
+    {
+        Assert.That(ScreenReadRegion.StartSize(new Vector2(3000, 3000)), Is.EqualTo(new Vector2(600, 400)), "the default when there's room");
+        Assert.That(ScreenReadRegion.StartSize(new Vector2(900, 600)), Is.EqualTo(new Vector2(300, 200)), "a third of a close-up view");
+    }
+
     private static Entity Region(EntityStore store, Vector2 position, Vector2 size, int layer, int z)
     {
         Entity region = EditorItems.Create(store, new ScreenReadRegion(position, size));

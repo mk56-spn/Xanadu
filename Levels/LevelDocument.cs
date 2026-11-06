@@ -452,6 +452,9 @@ public sealed class ScreenReadDocument : ILayeredDocument
     public float Width { get; set; } = Xanadu.Ecs.ScreenReadRegion.DefaultWidth;
 
     public float Height { get; set; } = Xanadu.Ecs.ScreenReadRegion.DefaultHeight;
+
+    /// <summary>The groups the region is in; their moves carry it with what it reads under.</summary>
+    public List<int> Groups { get; set; } = new();
 }
 
 /// <summary>Serializable practice start state.</summary>
