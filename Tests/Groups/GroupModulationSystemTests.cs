@@ -66,6 +66,24 @@ public sealed class GroupModulationSystemTests : EcsSystemTest
     }
 
     [Test]
+    public void ABufferedGroupsMembersKeepTheColourButNotTheFade()
+    {
+        _groups.Groups[0].Effects.Add(GroupEffect.Colour(0f, 1f, new Color(1, 0, 0, 0)));
+        _groups.Groups[1].Effects.Add(GroupEffect.Colour(0f, 1f, new Color(1, 0, 0, 0)));
+        _groups.Groups[0].Buffered = true;
+        Entity buffered = Member(Store, new Note(5000, new Vector2(300, 400)), 0);
+        Entity plain = Member(Store, new Note(5000, new Vector2(300, 400)), 1);
+
+        At(500);
+        Frame();
+
+        Assert.That(buffered.GetComponent<GroupColor>().Alpha, Is.EqualTo(1f), "the buffer carries the fade");
+        Assert.That(buffered.GetComponent<GroupColor>().Coverage, Is.GreaterThan(0f), "the colour still applies per item");
+        Assert.That(plain.GetComponent<GroupColor>().Alpha, Is.LessThan(0.9f));
+        Assert.That(GroupModulation.BufferAlpha(_groups.Groups, 0, 0.5f), Is.EqualTo(plain.GetComponent<GroupColor>().Alpha).Within(0.0001f));
+    }
+
+    [Test]
     public void TheItemsOwnPositionIsNeverWritten()
     {
         _groups.Groups[0].Effects.Add(GroupEffect.Move(0f, 1f, new Vector2(100, 0)));

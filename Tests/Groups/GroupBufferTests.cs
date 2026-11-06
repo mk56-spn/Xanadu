@@ -294,4 +294,55 @@ public sealed class GroupBufferTests
         Assert.That(redone.Groups[3].Buffered, Is.True);
         Assert.That(redone.Groups[3].BufferAlpha, Is.EqualTo(0.5f).Within(0.001f));
     }
+
+    private static EntityStore EditorLevel(out LevelGroups groups, out EditorHistory history, out Entity editor)
+    {
+        var store = new EntityStore();
+        groups = LevelGroups.Create();
+        editor = store.CreateEntity(groups, new NoteSelection(default));
+        history = new EditorHistory(store);
+        return store;
+    }
+
+    private static ItemLayer LayerOfBlock(EntityStore store, Vector2 at) =>
+        store.Query<Block>().ToEntityList().Single(block => block.GetComponent<Block>().Position == at).GetComponent<ItemLayer>();
+
+    [Test]
+    public void TheHistoryRefusesAnyEditThatBreaksALockEvenWithoutTheCommandsCheck()
+    {
+        EntityStore store = EditorLevel(out LevelGroups groups, out EditorHistory history, out Entity editor);
+        Entity first = EditorItems.Create(store, new Block(new Vector2(10, 10), new Vector2(20, 20)));
+        Entity second = EditorItems.Create(store, new Block(new Vector2(50, 10), new Vector2(20, 20)));
+        first.AddComponent(new ItemGroups(ItemGroups.Bit(2)));
+        second.AddComponent(new ItemGroups(ItemGroups.Bit(2)));
+        groups.Groups[2].Buffered = true;
+
+        // A command that forgot to ask EditorBufferGuard first.
+        EditorSnapshot before = history.Capture();
+        EditorLayerEdits.PutOnLayer(store, new[] { first }, 1);
+
+        Assert.That(history.Record(before, history.Capture()), Is.False);
+        Assert.That(history.CanUndo, Is.False, "nothing is recorded");
+        Assert.That(LayerOfBlock(store, new Vector2(10, 10)).Layer, Is.EqualTo(LayerOfBlock(store, new Vector2(50, 10)).Layer), "the move is put back (the restore rebuilds the items)");
+        Assert.That(editor.GetComponent<WarningRequest>().Message, Is.EqualTo(GroupBufferRules.OneLayer));
+    }
+
+    [Test]
+    public void ALevelThatWasAlreadyBrokenCanStillBeEdited()
+    {
+        EntityStore store = EditorLevel(out LevelGroups groups, out EditorHistory history, out Entity editor);
+        Entity first = EditorItems.Create(store, new Block(new Vector2(10, 10), new Vector2(20, 20)));
+        Entity second = EditorItems.Create(store, new Block(new Vector2(50, 10), new Vector2(20, 20)));
+        first.AddComponent(new ItemGroups(ItemGroups.Bit(2)));
+        second.AddComponent(new ItemGroups(ItemGroups.Bit(2)));
+        ItemLayer.Put(second, new ItemLayer(1, 0));
+        groups.Groups[2].Buffered = true;
+
+        EditorSnapshot before = history.Capture();
+        first.GetComponent<Block>().Position = new Vector2(30, 30);
+
+        Assert.That(history.Record(before, history.Capture()), Is.True, "an edit that breaks nothing new is kept");
+        Assert.That(history.CanUndo, Is.True);
+        Assert.That(editor.HasComponent<WarningRequest>(), Is.False);
+    }
 }

@@ -59,7 +59,7 @@ public static partial class PlayfieldRenderer
         // A buffered group's members draw together at its lowest slot instead
         // of in their own places (D12/D13).
         Dictionary<int, int> bufferedGroups = BufferedEntries(frame);
-        var drawnBuffers = new HashSet<int>();
+        var drawnBuffers = new HashSet<(int Group, int Layer)>();
 
         bool wedgeDrawn = false;
         bool inLayer = false;
@@ -71,15 +71,6 @@ public static partial class PlayfieldRenderer
             PlayfieldDrawEntry entry = DrawEntries[i];
             if (frame.ShowsLayer?.Invoke(entry.Layer) == false)
                 continue;
-
-            if (bufferedGroups.TryGetValue(i, out int bufferedGroup))
-            {
-                if (!drawnBuffers.Add(bufferedGroup))
-                    continue;
-                DrawBufferedGroup(canvas, rid, entities, bufferedGroup, i, frame, rails, playing);
-                canvas.SelectShader(0);
-                continue;
-            }
 
             if (!wedgeDrawn && entry.Layer > 0)
             {
@@ -99,8 +90,20 @@ public static partial class PlayfieldRenderer
                 inLayer = true;
             }
 
-            if (entry.Kind == PlayfieldDrawKind.Note && StartsNoteStretch(i))
-                DrawStretchGlows(canvas, rid, i, frame);
+            // After the wedge and the layer have begun, so a group that opens its
+            // layer (or is the first thing in front of the player) still draws
+            // inside that layer. Each layer's slice of a group is its own buffer,
+            // so members a file left on another layer still draw there.
+            if (bufferedGroups.TryGetValue(i, out int bufferedGroup))
+            {
+                if (drawnBuffers.Add((bufferedGroup, entry.Layer)))
+                {
+                    DrawBufferedGroup(canvas, rid, entities, bufferedGroup, i, frame, rails, playing);
+                    canvas.SelectShader(0);
+                }
+
+                continue;
+            }
 
             DrawEntry(canvas, rid, entities, entry, frame, rails, playing);
             canvas.SelectShader(0);
@@ -122,22 +125,18 @@ public static partial class PlayfieldRenderer
         for (int i = 0; i < DrawEntries.Count; i++)
         {
             PlayfieldDrawEntry entry = DrawEntries[i];
+
+            // A region is a boundary, not something that can be drawn into a buffer.
             if (entry.Entity.IsNull ||
-                !entry.Entity.TryGetComponent(out ItemGroups mask) ||
-                ItemGroups.Count(mask.Mask) != 1)
+                entry.Kind == PlayfieldDrawKind.ScreenRead ||
+                !entry.Entity.TryGetComponent(out ItemGroups mask))
             {
                 continue;
             }
 
-            // A region is a boundary, not something that can be drawn into a buffer.
-            if (entry.Kind == PlayfieldDrawKind.ScreenRead)
-                continue;
-
-            int group = System.Numerics.BitOperations.TrailingZeroCount(mask.Mask);
-            if (group >= _groupTracks.Length || !_groupTracks[group].Buffered)
-                continue;
-
-            groupsByEntry[i] = group;
+            int group = GroupModulation.BufferedGroup(_groupTracks, mask.Mask);
+            if (group >= 0)
+                groupsByEntry[i] = group;
         }
 
         return groupsByEntry;
@@ -160,12 +159,18 @@ public static partial class PlayfieldRenderer
     {
         GroupDefinition definition = _groupTracks[group];
         int layer = DrawEntries[first].Layer;
-        bool drawn = false;
+
+        // The group's own fade, which its members no longer carry. A member
+        // without a GroupColor isn't being modulated (the editor soloed
+        // another group), so the fade doesn't apply either.
+        float fade = DrawEntries[first].Entity.HasComponent<GroupColor>()
+            ? GroupModulation.BufferAlpha(_groupTracks, group, frame.Seconds)
+            : 1f;
         canvas.BeginBuffer(
             definition.BufferShader,
             definition.BufferBlend,
             definition.BufferTint,
-            definition.BufferAlpha);
+            definition.BufferAlpha * fade);
         foreach ((string param, Vector4 value, int size) in ShaderKeyTrack.Evaluate(
                      definition.BufferKeys,
                      frame.Seconds))
@@ -173,8 +178,8 @@ public static partial class PlayfieldRenderer
             canvas.SetShaderValue(param, value, size);
         }
 
-        // The members are the run of entries after the first that belong to the
-        // group; effects never join one.
+        // The members are the group's entries on this layer from the first on;
+        // effects never join one.
         for (int i = first; i < DrawEntries.Count; i++)
         {
             PlayfieldDrawEntry entry = DrawEntries[i];
@@ -188,13 +193,10 @@ public static partial class PlayfieldRenderer
             {
                 DrawEntry(canvas, rid, entities, entry, frame, rails, playing);
                 canvas.SelectShader(0);
-                drawn = true;
             }
         }
 
         canvas.EndBuffer();
-        if (!drawn && DrawEntries[first].Entity.IsNull)
-            return;
     }
 
     /// <summary>
@@ -372,32 +374,5 @@ public static partial class PlayfieldRenderer
         ScreenReadRegion region = entity.GetComponent<ScreenReadRegion>();
         Vector2 corner = view.PlayfieldToScreen(GroupOffset.Shown(entity, region.Position));
         canvas.CopyScreen(new Rect2(corner, region.Size * view.Scale));
-    }
-
-    /// <summary>Whether the note at <paramref name="index"/> is the first of a run of notes on one layer.</summary>
-    private static bool StartsNoteStretch(int index)
-    {
-        if (index == 0)
-            return true;
-        PlayfieldDrawEntry previous = DrawEntries[index - 1];
-        return previous.Kind != PlayfieldDrawKind.Note || previous.Layer != DrawEntries[index].Layer;
-    }
-
-    /// <summary>
-    /// The glows of every note in the run starting at <paramref name="first"/>,
-    /// before any of their bodies: one run of the glow shader under them.
-    /// </summary>
-    private static void DrawStretchGlows(IRectCanvas canvas, Rid rid, int first, in PlayfieldItemFrame frame)
-    {
-        int layer = DrawEntries[first].Layer;
-        for (int i = first; i < DrawEntries.Count; i++)
-        {
-            PlayfieldDrawEntry entry = DrawEntries[i];
-            if (entry.Kind != PlayfieldDrawKind.Note || entry.Layer != layer)
-                break;
-            DrawNoteGlow(canvas, rid, entry.Entity, GroupOffset.View(entry.Entity, frame.View), frame.Playhead);
-        }
-
-        canvas.SelectShader(0);
     }
 }
