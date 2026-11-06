@@ -50,7 +50,12 @@ public sealed partial class SceneSystemTests
 
         MovePointer(pointer, start, true);
         MovePointer(pointer, start + new Vector2(0, -10), true);
-        MovePointer(pointer, start + new Vector2(0, -10 - DragRowPitch * 2.25f), true);
+        Vector2 held = start + new Vector2(0, -10 - DragRowPitch * 2.25f);
+        MovePointer(pointer, held, true);
+        Assert.That(Carousel().Scroll, Is.GreaterThan(0f).And.LessThan(2.25f), "the list eases after the pointer");
+
+        for (int i = 0; i < 60; i++)
+            MovePointer(pointer, held, true);
 
         Assert.That(Carousel().Scroll, Is.EqualTo(2.25f).Within(0.001f));
         Assert.That(SelectedLevel(), Is.EqualTo(2));
@@ -65,7 +70,7 @@ public sealed partial class SceneSystemTests
         MovePointer(pointer, start + new Vector2(0, -10), true);
         Vector2 held = start + new Vector2(0, -10 - DragRowPitch * 1.4f);
 
-        for (int i = 0; i < 10; i++)
+        for (int i = 0; i < 60; i++)
             MovePointer(pointer, held, true);
 
         Assert.That(Carousel().Scroll, Is.EqualTo(1.4f).Within(0.001f));
@@ -97,7 +102,8 @@ public sealed partial class SceneSystemTests
         Vector2 start = RowCenter(0);
         MovePointer(pointer, start, true);
         MovePointer(pointer, start + new Vector2(0, distance), true);
-        MovePointer(pointer, start + new Vector2(0, distance * 2), true);
+        for (int i = 0; i < 120; i++)
+            MovePointer(pointer, start + new Vector2(0, distance * 2), true);
 
         Assert.That(SelectedLevel(), Is.EqualTo(selected));
         Assert.That(Carousel().Scroll, Is.EqualTo(selected));

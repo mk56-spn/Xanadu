@@ -424,6 +424,21 @@ public sealed partial class SceneSystemTests
         Assert.That(SelectedLevel(), Is.EqualTo(0));
     }
 
+    [Test]
+    public void AFewLevelsStillDragTheListScrollbar()
+    {
+        AddLevels(4);
+        var pointer = new FakePointerInput();
+        _root.Add(new SongSelectScrollbarSystem(pointer, _scenes));
+        _scenes.Start(SceneKind.SongSelect);
+        Frame();
+        Entity track = _store.Query<SongSelectState>().ToEntityList()[0].GetComponent<SongSelectState>().ListTrack;
+
+        DragBar(pointer, track, 5000);
+
+        Assert.That(SelectedLevel(), Is.EqualTo(3));
+    }
+
     [TestCase(40f, 738f, 19)]
     [TestCase(1870f, 1030f, 0)]
     public void ThePointerReachesTheBarsThroughTheRealInputSystem(float x, float y, int selected)
@@ -464,8 +479,9 @@ public sealed partial class SceneSystemTests
     }
 
     [Test]
-    public void AListThatFitsHasNothingToDrag()
+    public void ASingleLevelHasNothingToDrag()
     {
+        _catalog.RemoveAt(1);
         var pointer = new FakePointerInput();
         _root.Add(new SongSelectScrollbarSystem(pointer, _scenes));
         _scenes.Start(SceneKind.SongSelect);
@@ -734,6 +750,28 @@ public sealed partial class SceneSystemTests
         Assert.That(_director.Current, Is.EqualTo(SceneKind.Play));
         Assert.That(_store.Query<Note>().Count, Is.EqualTo(1));
         Assert.That(HasText("Retry Level"), Is.True);
+    }
+
+    [Test]
+    public void DyingRestartsTheLevelFromItsStart()
+    {
+        var document = new LevelDocument { Name = "Spike Level" };
+        document.Notes.Add(new NoteDocument { TimeMs = 0, X = 200, Y = 300 });
+        _scenes.StartPlay(new LevelEntry("memory://spike", document));
+        Frame();
+
+        ref PlaySession died = ref _store.Query<PlaySession>().ToEntityList()[0]
+            .GetComponent<PlaySession>();
+        died.Died = true;
+        died.Finished = true;
+        Frame();
+
+        Assert.That(_director.Current, Is.EqualTo(SceneKind.Play));
+        PlaySession fresh = _store.Query<PlaySession>().ToEntityList()[0]
+            .GetComponent<PlaySession>();
+        Assert.That(fresh.Died, Is.False);
+        Assert.That(fresh.Finished, Is.False);
+        Assert.That(HasText("Spike Level"), Is.True);
     }
 
     [Test]

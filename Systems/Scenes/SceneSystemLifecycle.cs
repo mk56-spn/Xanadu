@@ -146,6 +146,17 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
         return false;
     }
 
+    private bool IsPlayDied()
+    {
+        foreach (Entity entity in _entities.Query<PlaySession>().ToEntityList())
+        {
+            if (entity.GetComponent<PlaySession>().Died)
+                return true;
+        }
+
+        return false;
+    }
+
     private PlayResults CapturePlayResults()
     {
         foreach (Entity entity in _entities

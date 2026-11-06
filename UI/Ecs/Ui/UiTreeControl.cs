@@ -68,13 +68,33 @@ public static class UiTreeControl
     public static Entity Disclosure(Entity node)
     {
         Entity row = Row(node);
-        return row.ChildEntities[row.ChildCount - 2];
+        return row.ChildEntities[LabelIndex(row) - 1];
     }
 
     public static Entity Label(Entity node)
     {
         Entity row = Row(node);
-        return row.ChildEntities[row.ChildCount - 1];
+        return row.ChildEntities[LabelIndex(row)];
+    }
+
+    /// <summary>A node's column texts, right of its label, in order.</summary>
+    public static IEnumerable<Entity> Cells(Entity node)
+    {
+        Entity row = Row(node);
+        for (int i = LabelIndex(row) + 1; i < row.ChildCount; i++)
+            yield return row.ChildEntities[i];
+    }
+
+    /// <summary>The label is the last child, unless the tree has columns after it.</summary>
+    private static int LabelIndex(Entity row)
+    {
+        for (int i = row.ChildCount - 1; i >= 0; i--)
+        {
+            if (row.ChildEntities[i].Tags.Has<UiTreeLabel>())
+                return i;
+        }
+
+        return row.ChildCount - 1;
     }
 
     /// <summary>The node a row's arrow or label belongs to.</summary>

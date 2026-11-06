@@ -3,7 +3,7 @@ using Xanadu.Levels;
 namespace Xanadu.Tests.VisualTests;
 
 /// <summary>Shared fixtures for visual scenes that need a song and chart.</summary>
-public static class TestContent
+public static partial class TestContent
 {
     public static SongDocument Song(
         string id,
