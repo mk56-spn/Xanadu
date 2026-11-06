@@ -103,6 +103,14 @@ public sealed class EditorLayersPanelSystem(EditorHistory history)
         UiLayout.SetDisabled(panel.Up, layers.Scroll == 0);
         UiLayout.SetDisabled(panel.Down, layers.Scroll + EditorLayersLayout.MaxRows >= rows.Count);
         ShowName(panel.Name, layers, ref table);
+
+        // MOVE stops at the ends; DELETE only takes an empty layer.
+        int currentLayer = layers.Current;
+        int place = rows.FindIndex(row => row.Layer == currentLayer);
+        bool wedge = currentLayer == 0;
+        Usable(panel.MoveForward, !wedge && place > 0, buffer);
+        Usable(panel.MoveBack, !wedge && place >= 0 && place < rows.Count - 1, buffer);
+        Usable(panel.Delete, !wedge && EditorLayerEdits.CountOn(editor.Store, currentLayer) == 0, buffer);
         ShowPass(editor, layers, table, panel, buffer);
     }
 
@@ -146,6 +154,20 @@ public sealed class EditorLayersPanelSystem(EditorHistory history)
                 editor.GetComponent<NoteSelection>().SetMany(EditorLayerEdits.OnLayer(editor.Store, layer));
         }
 
+        bool moveForward = _presses.Started(panel.MoveForward);
+        bool moveBack = _presses.Started(panel.MoveBack);
+        bool delete = _presses.Started(panel.Delete);
+        if (moveForward || moveBack || delete)
+        {
+            // Items, names and passes move together: one undo step.
+            EditorSnapshot before = history.Capture();
+            bool changed = delete
+                ? EditorLayerEdits.DeleteLayer(editor.Store, ref layers, ref table, layers.Current)
+                : EditorLayerEdits.MoveLayer(editor.Store, ref layers, ref table, layers.Current, moveForward);
+            if (changed)
+                history.Record(before, history.Capture());
+        }
+
         bool front = _presses.Started(panel.Front);
         bool back = _presses.Started(panel.Back);
         if (front || back)
@@ -170,13 +192,19 @@ public sealed class EditorLayersPanelSystem(EditorHistory history)
     {
         // Read every button each frame so its press latch re-arms.
         bool kind = _presses.Started(panel.Pass);
-        bool shader = _presses.Started(panel.PassShader);
+        int? shader = null;
+        if (!panel.PassShader.IsNull && panel.PassShader.TryGetComponent(out DropdownChanged chosen))
+        {
+            shader = System.Math.Clamp(chosen.Value, 0, ShaderLimits.Count);
+            CommandBuffer.RemoveComponent<DropdownChanged>(panel.PassShader.Id);
+        }
+
         bool param = _presses.Started(panel.PassParam);
         bool channel = _presses.Started(panel.PassChannel);
         bool down = _presses.Started(panel.PassDown);
         bool up = _presses.Started(panel.PassUp);
         bool clear = _presses.Started(panel.PassClear);
-        if (!kind && !shader && !param && !channel && !down && !up && !clear)
+        if (!kind && shader is null && !param && !channel && !down && !up && !clear)
             return;
 
         int layer = layers.Current;
@@ -191,11 +219,16 @@ public sealed class EditorLayersPanelSystem(EditorHistory history)
             layers.PassChannel = 0;
         }
 
-        if (shader)
+        int current = table.Layers.TryGetValue(layer, out LevelLayer? existing) && existing is not null
+            ? existing.PassShader
+            : 0;
+        if (shader is { } slot && slot != current)
         {
+            // Keys of settings the new shader also declares carry over.
             EditorSnapshot before = history.Capture();
             LevelLayer changed = table.Edit(layer);
-            changed.PassShader = changed.PassShader >= ShaderLimits.Count ? 0 : changed.PassShader + 1;
+            changed.PassShader = slot;
+            EditorShaderKeyEdits.KeepFor(changed.PassKeys, PassParams(editor, slot));
             table.Prune(layer);
             history.Record(before, history.Capture());
             layers.PassParam = 0;
@@ -278,7 +311,11 @@ public sealed class EditorLayersPanelSystem(EditorHistory history)
             wedge ? "PASS -" : $"PASS {PassName(pass)}",
             buffer);
         Tint(panel.Pass, pass != LayerPassKind.None, buffer);
-        UiText.Set(panel.PassShader, slot == 0 ? "SHD -" : $"SHD {slot}", buffer);
+        EditorGroupSystem.ShowShaderChoice(
+            panel.PassShader,
+            editor.TryGetComponent(out LevelShaders shaders) ? shaders : null,
+            slot,
+            buffer);
         Tint(panel.PassShader, slot != 0, buffer);
         UiLayout.SetDisabled(panel.Pass, wedge);
         UiLayout.SetDisabled(panel.PassShader, wedge);
@@ -301,7 +338,7 @@ public sealed class EditorLayersPanelSystem(EditorHistory history)
         InstanceUniform uniform = uniforms[selected];
         int channel = System.Math.Clamp(layers.PassChannel, 0, uniform.Channels - 1);
         float seconds = editor.TryGetComponent(out Playhead playhead) ? playhead.TimeMs / 1000f : 0f;
-        Vector4 value = ShaderKeyTrack.ValueAt(entry?.PassKeys ?? new List<ShaderKey>(), uniform.Name, seconds);
+        Vector4 value = ShaderKeyTrack.ValueAt(entry?.PassKeys ?? new List<ShaderKey>(), uniform.Name, seconds, uniform.Default);
         int keys = entry?.PassKeys.Count(key => key.Param == uniform.Name) ?? 0;
 
         UiText.Set(panel.PassParam, uniform.Name.ToUpperInvariant(), buffer);
@@ -321,11 +358,7 @@ public sealed class EditorLayersPanelSystem(EditorHistory history)
         _ => "NONE",
     };
 
-    private static string Format(Vector4 value, int channels)
-    {
-        float[] parts = { value.X, value.Y, value.Z, value.W };
-        return string.Join(" ", parts.Take(channels).Select(part => part.ToString("0.00")));
-    }
+    private static string Format(Vector4 value, int channels) => EditorShaderKeyEdits.Format(value, channels);
 
     /// <summary>Takes items that can no longer be picked out of the selection.</summary>
     private static void DropUnpickable(Entity editor, in EditorLayers layers)
@@ -375,7 +408,10 @@ public sealed class EditorLayersPanelSystem(EditorHistory history)
 
     private static void Present(EditorLayerRowUi ui, EditorLayerRow row, in EditorLayers layers, in LevelLayers table, CommandBuffer buffer)
     {
-        UiText.Set(ui.Label, Label(row, table.NameOf(row.Layer)), buffer);
+        LayerPassKind rowPass = table.Layers is not null && table.Layers.TryGetValue(row.Layer, out LevelLayer? rowEntry) && rowEntry is not null
+            ? rowEntry.Pass
+            : LayerPassKind.None;
+        UiText.Set(ui.Label, Label(row, table.NameOf(row.Layer), rowPass), buffer);
         Color fill = row.Layer == layers.Current ? Palette.Selected : UiTheme.PanelAlt;
         Paint(ui.Label, fill, buffer);
 
@@ -393,12 +429,14 @@ public sealed class EditorLayersPanelSystem(EditorHistory history)
     }
 
     /// <summary>A row's label: the layer's number, its name, and how many items are on it.</summary>
-    public static string Label(EditorLayerRow row, string name)
+    /// <summary>A row's label: its number, name and item count, and BG or SELF when the layer has a pass.</summary>
+    public static string Label(EditorLayerRow row, string name, LayerPassKind pass = LayerPassKind.None)
     {
         if (row.IsWedge)
             return "      PLAYER (fixed)";
         string number = row.Layer > 0 ? $"+{row.Layer}" : row.Layer.ToString();
-        return name.Length > 0 ? $"{number,4}  {name} · {row.Count}" : $"{number,4}  · {row.Count}";
+        string label = name.Length > 0 ? $"{number,4}  {name} · {row.Count}" : $"{number,4}  · {row.Count}";
+        return pass == LayerPassKind.None ? label : $"{label}  [{PassName(pass)}]";
     }
 
     private static void Place(Entity panel, Entity editor, CommandBuffer buffer)
@@ -426,6 +464,13 @@ public sealed class EditorLayersPanelSystem(EditorHistory history)
     }
 
     /// <summary>Bright blue only while on (the bright-blue-means-on rule).</summary>
+    /// <summary>A plain action button: muted blue while it can act, slate and disabled while it can't.</summary>
+    private static void Usable(Entity button, bool usable, CommandBuffer buffer)
+    {
+        UiLayout.SetDisabled(button, buffer, !usable);
+        Paint(button, usable ? Palette.PrimaryMuted : SceneColors.Muted, buffer);
+    }
+
     private static void Tint(Entity button, bool on, CommandBuffer buffer) =>
         Paint(button, on ? Palette.Primary : Palette.PrimaryMuted, buffer);
 

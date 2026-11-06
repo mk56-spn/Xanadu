@@ -107,6 +107,11 @@ public struct EditorLayersPanel(
     public Entity PassValue = passValue;
     public Entity PassUp = passUp;
     public Entity PassClear = passClear;
+
+    /// <summary>Moving the current layer one place forward or back, and deleting it while it's empty.</summary>
+    public Entity MoveForward;
+    public Entity MoveBack;
+    public Entity Delete;
 }
 
 /// <summary>The sidebar's layer and z steppers and shader-source choice for the selection, on the editor entity.</summary>

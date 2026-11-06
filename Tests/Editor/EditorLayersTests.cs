@@ -60,7 +60,12 @@ public sealed class EditorLayersTests
             _store.CreateEntity(new Text("")),
             _store.CreateEntity(new Text("")),
             _store.CreateEntity(new Text("")),
-            _store.CreateEntity(new Text("")));
+            _store.CreateEntity(new Text("")))
+        {
+            MoveForward = _store.CreateEntity(),
+            MoveBack = _store.CreateEntity(),
+            Delete = _store.CreateEntity(),
+        };
         _editor = _store.CreateEntity(
             new Playfield(1000, 1000),
             new Playhead(0, 120, 0, false),
@@ -130,6 +135,99 @@ public sealed class EditorLayersTests
 
         Press(_panel.Pass);
         Assert.That(Table.Layers.ContainsKey(-2), Is.False, "a plain layer has no table entry");
+    }
+
+    [Test]
+    public void ChoosingAPassShaderKeepsTheKeysItStillDeclaresAndUndoesAsOneStep()
+    {
+        LevelShaders shaders = LevelShaders.Create();
+        shaders.Slots[0] = new ShaderSlot
+        {
+            Name = "Old",
+            Source = "shader_type canvas_item;\ninstance uniform float strength;\ninstance uniform float gone;",
+        };
+        shaders.Slots[1] = new ShaderSlot
+        {
+            Name = "New",
+            Source = "shader_type canvas_item;\ninstance uniform vec2 strength;",
+        };
+        _editor.AddComponent(shaders);
+        LevelLayer entry = Table.Edit(-2);
+        entry.Pass = LayerPassKind.SelfContained;
+        entry.PassShader = 1;
+        entry.PassKeys.Add(new ShaderKey("strength", 1f, new Vector4(0.5f, 0, 0, 0), 1, GroupEase.Linear));
+        entry.PassKeys.Add(new ShaderKey("gone", 1f, new Vector4(2f, 0, 0, 0), 1, GroupEase.Linear));
+        Select(Block(-2, 0));
+        OpenPanel();
+        Press(RowFor(-2).Label);
+
+        _panel.PassShader.AddComponent(new DropdownChanged(2));
+        Frame();
+
+        LevelLayer changed = Table.Layers[-2];
+        Assert.That(changed.PassShader, Is.EqualTo(2));
+        Assert.That(changed.PassKeys.Select(key => (key.Param, key.Size)), Is.EqualTo(new[] { ("strength", 2) }));
+        Assert.That(_panel.PassShader.HasComponent<DropdownChanged>(), Is.False, "the choice is used up");
+
+        _history.Undo();
+        Assert.That(Table.Layers[-2].PassShader, Is.EqualTo(1));
+        Assert.That(Table.Layers[-2].PassKeys, Has.Count.EqualTo(2));
+    }
+
+    [Test]
+    public void MovingALayerSwapsItWithItsNeighbourAndTakesItsNameAndPass()
+    {
+        Entity far = Block(-3, 0);
+        Entity near = Block(-2, 0);
+        Table.Edit(-3).Name = "SKY";
+        Table.Edit(-3).Pass = LayerPassKind.SelfContained;
+        OpenPanel();
+        Press(RowFor(-3).Label);
+
+        Press(_panel.MoveForward);
+
+        Assert.That(Of(far).Layer, Is.EqualTo(-2));
+        Assert.That(Of(near).Layer, Is.EqualTo(-3));
+        Assert.That(Table.NameOf(-2), Is.EqualTo("SKY"));
+        Assert.That(Table.Layers[-2].Pass, Is.EqualTo(LayerPassKind.SelfContained));
+        Assert.That(Layers.Current, Is.EqualTo(-2), "the current row follows the layer");
+
+        Assert.That(_history.Undo(), Is.True, "one undo step");
+        Assert.That(Table.NameOf(-3), Is.EqualTo("SKY"));
+    }
+
+    [Test]
+    public void MovingTheLayerNextToThePlayerHopsOverItAndLeavesTheOtherSideAlone()
+    {
+        Entity back = Block(-1, 0);
+        Entity front = Block(1, 0);
+        OpenPanel();
+        Press(RowFor(-1).Label);
+
+        Press(_panel.MoveForward);
+
+        Assert.That(Of(back).Layer, Is.EqualTo(1), "now just in front of the player");
+        Assert.That(Of(front).Layer, Is.EqualTo(2), "pushed out one, still in front");
+    }
+
+    [Test]
+    public void OnlyAnEmptyLayerCanBeDeleted()
+    {
+        Block(-2, 0);
+        OpenPanel();
+        Press(RowFor(-2).Label);
+        Press(_panel.Front);
+        int added = Layers.Current;
+        Table.Edit(added).Name = "SPARE";
+
+        Press(_panel.Delete);
+
+        Assert.That(EditorLayerEdits.Rows(_store, Layers, Table).Exists(row => row.Layer == added), Is.False);
+        Assert.That(Table.NameOf(added), Is.Empty);
+
+        Press(RowFor(-2).Label);
+        Press(_panel.Delete);
+        Assert.That(EditorLayerEdits.Rows(_store, Layers, Table).Exists(row => row.Layer == -2), Is.True, "a layer with items stays");
     }
 
     [Test]
@@ -267,6 +365,23 @@ public sealed class EditorLayersTests
     }
 
     [Test]
+    public void TheLayerStepperMovesEachItemFromItsOwnLayerAndReadsMixed()
+    {
+        Entity back = Block(-2, 0);
+        Entity front = Block(1, 0);
+        Select(back, front);
+        Frame();
+        Assert.That(_editor.GetComponent<EditorLayerInspector>().Layer.GetComponent<Text>().Value, Is.EqualTo("LAYER MIXED"));
+
+        Press(EditorButtonKind.LayerStep, 1);
+
+        Assert.That(Of(back).Layer, Is.EqualTo(-1), "one forward from -2, not collapsed onto the first item's");
+        Assert.That(Of(front).Layer, Is.EqualTo(2));
+        Assert.That(_history.Undo(), Is.True, "one undo step");
+        Assert.That(_store.Query<Block>().ToEntityList().Select(block => Of(block).Layer).Order(), Is.EqualTo(new[] { -2, 1 }));
+    }
+
+    [Test]
     public void TheLayerStepperRefusesToBreakABufferedGroup()
     {
         LevelGroups groups = LevelGroups.Create();
@@ -391,5 +506,7 @@ public sealed class EditorLayersTests
 
         Assert.That(Layers.Hidden, Is.Empty);
         Assert.That(EditorLayersPanelSystem.Label(new EditorLayerRow(0, 0), ""), Does.Contain("PLAYER"));
+        Assert.That(EditorLayersPanelSystem.Label(new EditorLayerRow(-2, 3), "", LayerPassKind.SelfContained), Does.EndWith("[SELF]"));
+        Assert.That(EditorLayersPanelSystem.Label(new EditorLayerRow(-2, 3), "", LayerPassKind.None), Does.Not.Contain("["));
     }
 }

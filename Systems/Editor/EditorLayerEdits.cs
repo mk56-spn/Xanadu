@@ -120,6 +120,48 @@ public static class EditorLayerEdits
     }
 
     /// <summary>
+    /// Moves each item one layer back or forward from its own layer, stepping
+    /// over the player wedge; items that land on one layer go in front of what
+    /// is there, in their own order. False when nothing moved.
+    /// </summary>
+    public static bool StepLayers(EntityStore store, IReadOnlyList<Entity> items, int step)
+    {
+        var byTarget = new SortedDictionary<int, List<Entity>>();
+        foreach (Entity item in items)
+        {
+            if (!EditorItems.IsItem(item))
+                continue;
+            int target = StepLayer(ItemLayer.Of(item).Layer, step);
+            if (!byTarget.TryGetValue(target, out List<Entity>? list))
+                byTarget[target] = list = new List<Entity>();
+            list.Add(item);
+        }
+
+        bool changed = false;
+        foreach ((int target, List<Entity> moving) in byTarget)
+            changed |= PutOnLayer(store, moving, target);
+        return changed;
+    }
+
+    /// <summary>The layer every item in <paramref name="items"/> shares, or null when they differ (or there are none).</summary>
+    public static int? SharedLayer(IReadOnlyList<Entity> items)
+    {
+        int? shared = null;
+        foreach (Entity item in items)
+        {
+            if (!EditorItems.IsItem(item))
+                continue;
+            int layer = ItemLayer.Of(item).Layer;
+            if (shared is null)
+                shared = layer;
+            else if (shared != layer)
+                return null;
+        }
+
+        return shared;
+    }
+
+    /// <summary>
     /// Puts items on <paramref name="layer"/>, in front of what is already
     /// there and in their own order among themselves. False when every item
     /// was already on it.
@@ -175,10 +217,12 @@ public static class EditorLayerEdits
 
     /// <summary>
     /// Steps where the selection's shader comes from: its own shader, or one of
-    /// the groups it is in, in slot order and wrapping. Items without the group
-    /// are left on their own shader, since a source must be in the mask.
+    /// the groups it is in that has a shader track, in slot order and wrapping.
+    /// Items without the group are left on their own shader, since a source
+    /// must be in the mask. Without <paramref name="groups"/> every group the
+    /// item is in is offered.
     /// </summary>
-    public static bool StepShaderSource(IReadOnlyList<Entity> items, int step)
+    public static bool StepShaderSource(IReadOnlyList<Entity> items, int step, IReadOnlyList<GroupDefinition>? groups = null)
     {
         if (step == 0)
             return false;
@@ -201,7 +245,7 @@ public static class EditorLayerEdits
         {
             for (int group = 0; group < GroupLimits.Count; group++)
             {
-                if (mask.Has(group))
+                if (mask.Has(group) && (groups is null || (group < groups.Count && groups[group].Shader != 0)))
                     options.Add(group);
             }
         }
@@ -343,16 +387,106 @@ public static class EditorLayerEdits
         Math.Sign(layer) == Math.Sign(from) && Math.Abs(layer) >= Math.Abs(from);
 
     /// <summary>Steps every layer from <paramref name="from"/> outwards one further out: items, table entries and the editor's own state.</summary>
-    private static void Shift(EntityStore store, ref EditorLayers layers, ref LevelLayers table, int from, int side)
+    private static void Shift(EntityStore store, ref EditorLayers layers, ref LevelLayers table, int from, int side) =>
+        Remap(store, ref layers, ref table, layer => Outward(layer, from) ? layer + side : layer);
+
+    /// <summary>
+    /// Moves the current layer one place forward or back among the layers in
+    /// use, with its items, its table entry (name and pass) and its editor
+    /// state. Beside another layer on its side of the player the two swap
+    /// numbers; next to the player it hops over it to the first number on the
+    /// other side (making room there), so the layers over there stay put.
+    /// False when it is already at that end or the range is full.
+    /// </summary>
+    public static bool MoveLayer(EntityStore store, ref EditorLayers layers, ref LevelLayers table, int layer, bool forward)
+    {
+        if (layer == 0)
+            return false;
+
+        var used = new List<int>(Used(store, layers, table));
+        used.Add(0);
+        used.Sort();
+        int at = used.IndexOf(layer);
+        int next = at + (forward ? 1 : -1);
+        if (at < 0 || next < 0 || next >= used.Count)
+            return false;
+
+        int neighbour = used[next];
+        if (neighbour != 0)
+        {
+            Remap(store, ref layers, ref table, n => n == layer ? neighbour : n == neighbour ? layer : n);
+            return true;
+        }
+
+        // Over the player: take ±1 on the far side, pushing what's there outwards.
+        int target = forward ? 1 : -1;
+        int furthest = 0;
+        foreach (int other in used)
+        {
+            if (Outward(other, target))
+                furthest = Math.Max(furthest, Math.Abs(other));
+        }
+
+        if (furthest + 1 > DrawOrder.MaxLayer)
+            return false;
+        if (used.Contains(target))
+            Shift(store, ref layers, ref table, target, target);
+        Remap(store, ref layers, ref table, n => n == layer ? target : n);
+        return true;
+    }
+
+    /// <summary>
+    /// Removes an empty layer: its name and pass, and its kept, hidden and
+    /// locked state. The current row moves to the nearest layer left. False
+    /// when it still has items (or is the player's).
+    /// </summary>
+    public static bool DeleteLayer(EntityStore store, ref EditorLayers layers, ref LevelLayers table, int layer)
+    {
+        if (layer == 0 || CountOn(store, layer) > 0)
+            return false;
+
+        layers.Kept?.Remove(layer);
+        layers.Hidden?.Remove(layer);
+        layers.Locked?.Remove(layer);
+        if (layers.Solo == layer)
+            layers.Solo = 0;
+        table.Layers?.Remove(layer);
+
+        int nearest = 0;
+        foreach (int other in Used(store, layers, table))
+        {
+            if (nearest == 0 || Math.Abs(other - layer) < Math.Abs(nearest - layer))
+                nearest = other;
+        }
+
+        layers.Current = nearest == 0 ? ItemLayer.Gameplay : nearest;
+        return true;
+    }
+
+    /// <summary>How many items sit on a layer.</summary>
+    public static int CountOn(EntityStore store, int layer)
+    {
+        int count = 0;
+        foreach (Entity item in Items(store))
+        {
+            if (item.GetComponent<ItemLayer>().Layer == layer)
+                count++;
+        }
+
+        return count;
+    }
+
+    /// <summary>Renumbers layers everywhere they're named: items, the table, and the editor's own state.</summary>
+    private static void Remap(EntityStore store, ref EditorLayers layers, ref LevelLayers table, Func<int, int> Moved)
     {
         foreach (Entity item in Items(store))
         {
             ItemLayer layer = item.GetComponent<ItemLayer>();
-            if (Outward(layer.Layer, from))
-                item.GetComponent<ItemLayer>() = layer with { Layer = layer.Layer + side };
+            int to = Moved(layer.Layer);
+            if (to != layer.Layer)
+                item.GetComponent<ItemLayer>() = layer with { Layer = to };
         }
 
-        int Moved(int layer) => Outward(layer, from) ? layer + side : layer;
         layers.Hidden = ShiftSet(layers.Hidden, Moved);
         layers.Locked = ShiftSet(layers.Locked, Moved);
         layers.Kept = ShiftSet(layers.Kept, Moved);

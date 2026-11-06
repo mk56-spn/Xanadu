@@ -65,6 +65,12 @@ public static class EditorSceneLayers
         Entity up = Toggle(buttons, "▲", height, "Scroll the list up");
         Entity down = Toggle(buttons, "▼", height, "Scroll the list down");
 
+        float third = (inner - RowGap * 2) / 3;
+        UiNode order = panel.Row().Size(inner, height).Gap(RowGap).Main(StackMainAlignment.Start);
+        Entity moveForward = Toggle(order, "MOVE ▲", third, "Move the current layer one place forward, with its items, name and pass");
+        Entity moveBack = Toggle(order, "MOVE ▼", third, "Move the current layer one place back, with its items, name and pass");
+        Entity delete = Toggle(order, "DELETE", third, "Delete the current layer; only an empty layer can go");
+
         UiNode nameRow = panel.Row().Size(inner, height).Gap(RowGap).Main(StackMainAlignment.Start);
         nameRow.Text("NAME", UiTheme.SmallFontSize, SceneUi.DimTextColor, TextAlign.Left).Size(52, height);
         Entity field = nameRow.Rect(Palette.SurfaceInset, "", new Vector2(inner - 52 - RowGap, height))
@@ -75,21 +81,29 @@ public static class EditorSceneLayers
             .Tooltip("The current layer's name; click anywhere else to finish")
             .Entity;
 
+        const float shaderWidth = 150f;
         UiNode passRow = panel.Row().Size(inner, height).Gap(RowGap).Main(StackMainAlignment.Start);
-        Entity pass = Toggle(passRow, "PASS NONE", inner - (60 + 66 + RowGap * 2), "Cycle the current layer's pass: none, a background reader, or self-contained");
-        Entity passShader = Toggle(passRow, "SHD -", 60, "Cycle the shader slot the pass draws with");
-        Entity passClear = Toggle(passRow, "CLEAR", 66, "Remove every key of the selected pass setting");
+        Entity pass = Toggle(passRow, "PASS NONE", inner - shaderWidth - RowGap, "Cycle the current layer's pass: none, a background reader, or self-contained");
+        // The pass shader is a choice by name, the same list as the group panel's.
+        Entity passShader = Toggle(passRow, "SHD OFF ▾", shaderWidth, "The shader the pass draws with; keys of settings the new shader also has are kept");
+        UiNode.Layer(entities, root, UiLayers.EditorShaderChoice, null, UiStage.Full).DropdownList(
+            passShader,
+            ShaderSlotChoice.Labels(null),
+            0,
+            optionColor: _ => SceneUi.MutedButtonColor);
 
+        // Same order as the group panel's shader row: setting, channel, value − +, clear.
         UiNode passKeys = panel.Row().Size(inner, height).Gap(RowGap).Main(StackMainAlignment.Start);
-        Entity passParam = Toggle(passKeys, "PARAM", 88, "Cycle the pass shader's instance uniform to key");
-        Entity passDown = Toggle(passKeys, "−", 24, "Lower the value at the playhead and key it");
+        Entity passParam = Toggle(passKeys, "PARAM", 64, "Cycle the pass shader's instance uniform to key");
+        Entity passChannel = Toggle(passKeys, "CH", 40, "Which component of the uniform the buttons change");
         Entity passValue = passKeys.Text("", UiTheme.SmallFontSize, SceneUi.DimTextColor, TextAlign.Left)
-            .Size(84, height)
+            .Size(inner - (64 + 40 + 24 + 24 + 60 + RowGap * 5), height)
             .Entity;
+        Entity passDown = Toggle(passKeys, "−", 24, "Lower the value at the playhead and key it");
         Entity passUp = Toggle(passKeys, "+", 24, "Raise the value at the playhead and key it");
-        Entity passChannel = Toggle(passKeys, "CH", 44, "Which component of the uniform the buttons change");
+        Entity passClear = Toggle(passKeys, "CLEAR", 60, "Remove every key of the selected pass setting");
 
-        editor.AddComponent(new EditorLayersPanel(
+        var built = new EditorLayersPanel(
             toggle,
             panel.Entity,
             rows,
@@ -105,7 +119,13 @@ public static class EditorSceneLayers
             passDown,
             passValue,
             passUp,
-            passClear));
+            passClear)
+        {
+            MoveForward = moveForward,
+            MoveBack = moveBack,
+            Delete = delete,
+        };
+        editor.AddComponent(built);
     }
 
     /// <summary>
