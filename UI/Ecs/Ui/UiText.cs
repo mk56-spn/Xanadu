@@ -1,10 +1,11 @@
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
+using Godot;
 using Xanadu.Ui.Ecs.Ui;
 
 namespace Xanadu.Ecs;
 
-/// <summary>Writes UI text without dirtying anything that did not change.</summary>
+/// <summary>Writes UI text and colours without dirtying anything that did not change.</summary>
 public static class UiText
 {
     /// <summary>
@@ -22,7 +23,39 @@ public static class UiText
             return;
 
         text.Value = value;
+        Dirty(entity, buffer);
+    }
 
+    /// <summary>Sets <paramref name="entity"/>'s text colour when it has a style and the colour differs.</summary>
+    public static void SetColor(Entity entity, Color color, CommandBuffer? buffer = null)
+    {
+        if (entity.IsNull || !entity.HasComponent<TextStyle>())
+            return;
+
+        ref TextStyle style = ref entity.GetComponent<TextStyle>();
+        if (style.Color == color)
+            return;
+
+        style.Color = color;
+        Dirty(entity, buffer);
+    }
+
+    /// <summary>Sets <paramref name="entity"/>'s fill when it has one and the colour differs.</summary>
+    public static void SetFill(Entity entity, Color color, CommandBuffer? buffer = null)
+    {
+        if (entity.IsNull || !entity.HasComponent<FillColor>())
+            return;
+
+        ref FillColor fill = ref entity.GetComponent<FillColor>();
+        if (fill.Value == color)
+            return;
+
+        fill.Value = color;
+        Dirty(entity, buffer);
+    }
+
+    private static void Dirty(Entity entity, CommandBuffer? buffer)
+    {
         if (buffer is null)
             entity.AddTag<Dirty>();
         else

@@ -125,7 +125,7 @@ public sealed partial class EditorGroupSystem
         bool selected = TrySelected(state, group, out _, out GroupEffect effect);
         Entity title = Piece(EditorGroupPart.CycleTitle);
         UiText.Set(title, !selected ? "CYCLE" : effect.Cycling ? "CYCLE ×" + effect.Cycles : "CYCLE  ONCE", buffer);
-        SetTextColor(title, selected && effect.Cycling ? Theme.Palette.Accent : Theme.Palette.TextDim, buffer);
+        UiText.SetColor(title, selected && effect.Cycling ? Theme.Palette.Accent : Theme.Palette.TextDim, buffer);
 
         Entity count = Piece(EditorGroupPart.CycleCount);
         if (!count.IsNull && !count.Tags.Has<TextFieldFocused>())

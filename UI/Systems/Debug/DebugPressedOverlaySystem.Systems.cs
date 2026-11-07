@@ -215,19 +215,9 @@ public sealed partial class DebugPressedOverlaySystem
             Color color = average >= SlowMs
                 ? DebugPalette.Warning
                 : system is SystemGroup ? DebugPalette.Header : DebugPalette.Text;
-            SetColor(UiTreeControl.Label(node), color);
+            UiText.SetColor(UiTreeControl.Label(node), color);
             foreach (Entity cell in UiTreeControl.Cells(node))
-                SetColor(cell, color);
+                UiText.SetColor(cell, color);
         }
-    }
-
-    private static void SetColor(Entity text, Color color)
-    {
-        ref TextStyle style = ref text.GetComponent<TextStyle>();
-        if (style.Color == color)
-            return;
-
-        style.Color = color;
-        text.AddTag<Dirty>();
     }
 }

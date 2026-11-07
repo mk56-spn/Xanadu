@@ -49,7 +49,7 @@ public sealed class PlayKeyTrailHudSystem : QuerySystem<Playhead, KeyTrail, KeyT
                 KeybindAction action = KeybindSettings.Actions[lane];
                 Color color = PlayfieldRenderer.ColorFor(action);
                 float intensity = Math.Clamp(trail.Get(action), 0f, 1f);
-                SetFill(hud.Keys[lane], intensity > 0f
+                UiText.SetFill(hud.Keys[lane], intensity > 0f
                     ? new Color(color.R, color.G, color.B, 0.18f + intensity * 0.45f)
                     : IdleKeyFill, buffer);
 
@@ -160,16 +160,6 @@ public sealed class PlayKeyTrailHudSystem : QuerySystem<Playhead, KeyTrail, KeyT
             buffer.AddTag<Dirty>(entity.Id);
         }
 
-        SetFill(entity, fill, buffer);
-    }
-
-    private static void SetFill(Entity entity, Color fill, CommandBuffer buffer)
-    {
-        ref FillColor color = ref entity.GetComponent<FillColor>();
-        if (color.Value != fill)
-        {
-            color.Value = fill;
-            buffer.AddTag<Dirty>(entity.Id);
-        }
+        UiText.SetFill(entity, fill, buffer);
     }
 }

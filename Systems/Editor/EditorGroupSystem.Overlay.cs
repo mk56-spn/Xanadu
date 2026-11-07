@@ -269,12 +269,12 @@ public sealed partial class EditorGroupSystem
             if (effect.Muted)
                 text += "  MUTED";
             UiText.Set(label, text, buffer);
-            SetTextColor(label, Palette.Accent, buffer);
+            UiText.SetColor(label, Palette.Accent, buffer);
         }
         else
         {
             UiText.Set(label, "NO EFFECT SELECTED", buffer);
-            SetTextColor(label, Palette.TextDim, buffer);
+            UiText.SetColor(label, Palette.TextDim, buffer);
         }
 
         UiText.Set(Piece(EditorGroupPart.SelectionTarget), "TARGET", buffer);

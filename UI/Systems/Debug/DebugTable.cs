@@ -48,7 +48,7 @@ public sealed class DebugTable
         for (int i = 0; i < columns.Length; i++)
         {
             UiText.Set(header.ChildEntities[i], columns[i].Title);
-            SetColor(header.ChildEntities[i], DebugPalette.Header);
+            UiText.SetColor(header.ChildEntities[i], DebugPalette.Header);
         }
     }
 
@@ -80,7 +80,7 @@ public sealed class DebugTable
     }
 
     public void SetColor(int row, int column, Color color) =>
-        SetColor(Row(row).ChildEntities[column], color);
+        UiText.SetColor(Row(row).ChildEntities[column], color);
 
     /// <summary>Tints a whole row, for the selected one.</summary>
     public void SetRowFill(int row, Color color)
@@ -124,15 +124,5 @@ public sealed class DebugTable
             cell.AddTag<Dirty>();
             row.AddTag<LayoutDirty>();
         }
-    }
-
-    private static void SetColor(Entity cell, Color color)
-    {
-        ref TextStyle style = ref cell.GetComponent<TextStyle>();
-        if (style.Color == color)
-            return;
-
-        style.Color = color;
-        cell.AddTag<Dirty>();
     }
 }

@@ -161,14 +161,14 @@ public sealed partial class EditorGroupSystem
         if (!TrySelectedSetting(editor, state, group, out InstanceUniform uniform, out List<ShaderKey> keys))
         {
             UiText.Set(name, "NO SHADER", buffer);
-            SetTextColor(name, Palette.TextDim, buffer);
+            UiText.SetColor(name, Palette.TextDim, buffer);
             foreach (EditorGroupPart part in KeyCells)
                 Hide(Piece(part), buffer);
             return;
         }
 
         UiText.Set(name, uniform.Name.ToUpperInvariant(), buffer);
-        SetTextColor(name, Palette.Accent, buffer);
+        UiText.SetColor(name, Palette.Accent, buffer);
         if (!HasSelectedKey(state, keys, uniform, out ShaderKey key))
         {
             foreach (EditorGroupPart part in KeyCells)

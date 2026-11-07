@@ -308,8 +308,8 @@ public static partial class SongSelectScene
 
             SetTileColor(state.Tiles[row], Fade(RowColor, alpha * RowOpacity));
             SetBorderColor(state.Tiles[row], Fade(RowBorderColor, alpha * RowOpacity));
-            SetTextColor(TileName(state, row), Fade(Colors.White, alpha));
-            SetTextColor(TileSong(state, row), Fade(Gold, alpha));
+            UiText.SetColor(TileName(state, row), Fade(Colors.White, alpha));
+            UiText.SetColor(TileSong(state, row), Fade(Gold, alpha));
             SetGlowColor(TileSong(state, row), Fade(new Color(Gold, 0.6f), alpha));
         }
 
@@ -386,16 +386,6 @@ public static partial class SongSelectScene
         new(color, color.A * alpha);
 
     private static void Place(Entity entity, Vector2 position) => UiLayout.Move(entity, position);
-
-    private static void SetTextColor(Entity entity, Color color)
-    {
-        ref TextStyle style = ref entity.GetComponent<TextStyle>();
-        if (style.Color == color)
-            return;
-
-        style.Color = color;
-        entity.AddTag<Dirty>();
-    }
 
     private static string MapsetName(LevelEntry? entry) =>
         entry is null

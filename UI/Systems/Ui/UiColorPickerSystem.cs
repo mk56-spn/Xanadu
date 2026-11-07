@@ -115,22 +115,12 @@ public sealed class UiColorPickerSystem(IPointerInputSource pointer) : QuerySyst
             shader.SetShaderParameter("hue", picker.Hue);
         }
 
-        SetFill(picker.Swatch, color);
+        UiText.SetFill(picker.Swatch, color);
         SetAlphaRamp(picker.Alpha, color);
         SetHex(picker.Hex, color.A < 1 ? "#" + color.ToHtml(true) : "#" + color.ToHtml(false));
     }
 
     private static void Place(Entity entity, Vector2 position) => UiLayout.Move(entity, position);
-
-    private static void SetFill(Entity entity, Color color)
-    {
-        ref FillColor fill = ref entity.GetComponent<FillColor>();
-        if (fill.Value == color)
-            return;
-
-        fill.Value = color;
-        entity.AddTag<Dirty>();
-    }
 
     private static void SetAlphaRamp(Entity entity, Color color)
     {
