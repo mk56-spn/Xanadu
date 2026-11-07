@@ -197,11 +197,19 @@ public struct ScrollView : IComponent
 }
 
 
-/// <summary>Anchors a drawable to normalized points on its parent's bounds.</summary>
-public struct UiAnchor(Vector2 anchor, Vector2 pivot) : IComponent
+/// <summary>
+/// Anchors a drawable to normalized points on its parent's bounds.
+/// <see cref="Margin"/> keeps it that far in from each edge it is anchored to:
+/// a corner anchor moves in on both axes, a centred axis does not move.
+/// </summary>
+public struct UiAnchor(Vector2 anchor, Vector2 pivot, float margin = 0) : IComponent
 {
     public Vector2 Anchor = anchor;
     public Vector2 Pivot = pivot;
+    public float Margin = margin;
+
+    /// <summary>The shift the margin gives: inward from a 0 or 1 edge, scaled down to nothing at the centre.</summary>
+    public readonly Vector2 Inset => (Vector2.One - Anchor * 2) * Margin;
 }
 
 /// <summary>Marks a full-screen backdrop that must draw below sibling UI.</summary>

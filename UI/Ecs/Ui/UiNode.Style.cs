@@ -206,19 +206,20 @@ public readonly partial struct UiNode
     /// <summary>
     /// Anchors the node to a point of its parent and takes it out of the
     /// parent's flow. Anchoring and ignoring the layout always travel together,
-    /// so this sets both.
+    /// so this sets both. <paramref name="margin"/> keeps the node that far in
+    /// from the edges it is anchored to.
     /// </summary>
-    public UiNode Anchor(Vector2 anchor, Vector2? pivot = null)
+    public UiNode Anchor(Vector2 anchor, Vector2? pivot = null, float margin = 0)
     {
         if (IsNull)
             return this;
 
-        _entity.AddComponent(new UiAnchor(anchor, pivot ?? anchor));
+        _entity.AddComponent(new UiAnchor(anchor, pivot ?? anchor, margin));
         return IgnoreLayout();
     }
 
-    /// <summary>Anchors the node to an edge or corner of its parent.</summary>
-    public UiNode Anchor(UiEdge edge) => Anchor(edge.Anchor());
+    /// <summary>Anchors the node to an edge or corner of its parent, <paramref name="margin"/> in from it.</summary>
+    public UiNode Anchor(UiEdge edge, float margin = 0) => Anchor(edge.Anchor(), margin: margin);
 
     /// <summary>Includes or excludes the node from its parent's stack.</summary>
     public UiNode IgnoreLayout(bool ignored = true)
