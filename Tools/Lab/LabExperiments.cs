@@ -1,3 +1,4 @@
+using Xanadu.Lab.Experiments.Aero;
 using Xanadu.Lab.Experiments.Fluid;
 using Xanadu.Lab.Experiments.Notes;
 using Xanadu.Lab.Experiments.Particles;
@@ -62,5 +63,6 @@ public static class LabExperiments
         new FluidExperiment(),
         new RadianceExperiment(),
         new RenderSpikeExperiment(),
+        new AeroButtonExperiment(),
     ];
 }
