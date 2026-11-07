@@ -22,11 +22,7 @@ internal sealed class RdLifePainter
     private RenderingDevice? _device;
     private Rid _shader;
     private Rid _sampler;
-    private Rid _vertexBuffer;
-    private Rid _vertexArray;
-    private Rid _target;
-    private Rid _framebuffer;
-    private Rid _pipeline;
+    private RdFullscreenPass? _pass;
 
     public RdLifePainter(int size, Rid stateA, Rid stateB)
     {
@@ -66,45 +62,9 @@ internal sealed class RdLifePainter
         var spirv = new RDShaderSpirV { BytecodeVertex = vertex, BytecodeFragment = fragment };
         _shader = device.ShaderCreateFromSpirV(spirv, "rd_life_paint");
 
-        long vertexFormat = device.VertexFormatCreate(
-            new Godot.Collections.Array<RDVertexAttribute>
-            {
-                new()
-                {
-                    Location = 0,
-                    Format = RenderingDevice.DataFormat.R32G32Sfloat,
-                    Offset = 0,
-                    Stride = 8,
-                },
-            });
-
-        float[] corners = { -1f, -1f, 1f, -1f, 1f, 1f, -1f, -1f, 1f, 1f, -1f, 1f };
-        var bytes = new byte[corners.Length * sizeof(float)];
-        System.Buffer.BlockCopy(corners, 0, bytes, 0, bytes.Length);
-
-        _vertexBuffer = device.VertexBufferCreate((uint)bytes.Length, bytes);
-        _vertexArray = device.VertexArrayCreate(
-            6, vertexFormat, new Godot.Collections.Array<Rid> { _vertexBuffer });
-
-        var textureFormat = new RDTextureFormat
-        {
-            Format = RenderingDevice.DataFormat.R8G8B8A8Unorm,
-            Width = (uint)_size,
-            Height = (uint)_size,
-            UsageBits = RenderingDevice.TextureUsageBits.ColorAttachmentBit |
-                        RenderingDevice.TextureUsageBits.SamplingBit,
-        };
-        _target = device.TextureCreate(textureFormat, new RDTextureView());
-
-        var attachment = new RDAttachmentFormat
-        {
-            Format = textureFormat.Format,
-            Samples = RenderingDevice.TextureSamples.Samples1,
-            UsageFlags = (uint)textureFormat.UsageBits,
-        };
-        long framebufferFormat = device.FramebufferFormatCreate(
-            new Godot.Collections.Array<RDAttachmentFormat> { attachment });
-        _framebuffer = device.FramebufferCreate(new Godot.Collections.Array<Rid> { _target });
+        _pass = RdFullscreenPass.Create(device, _shader, _size, "RdLife");
+        if (_pass is null)
+            return;
 
         // Nearest, so a cell reads as one solid value across its whole square.
         _sampler = device.SamplerCreate(new RDSamplerState
@@ -126,38 +86,18 @@ internal sealed class RdLifePainter
                 new Godot.Collections.Array<RDUniform> { uniform }, _shader, 0);
         }
 
-        var colorBlend = new RDPipelineColorBlendState
-        {
-            Attachments = new Godot.Collections.Array<RDPipelineColorBlendStateAttachment> { new() },
-        };
-        _pipeline = device.RenderPipelineCreate(
-            _shader,
-            framebufferFormat,
-            vertexFormat,
-            RenderingDevice.RenderPrimitive.Triangles,
-            new RDPipelineRasterizationState { CullMode = RenderingDevice.PolygonCullMode.Disabled },
-            new RDPipelineMultisampleState(),
-            new RDPipelineDepthStencilState(),
-            colorBlend);
-
         _device = device;
-        Texture.TextureRdRid = _target;
+        Texture.TextureRdRid = _pass.Target;
     }
 
     private void DrawOnRenderThread(int state)
     {
-        if (_device is null)
+        if (_device is null || _pass is null)
             return;
 
-        long drawList = _device.DrawListBegin(
-            _framebuffer,
-            RenderingDevice.DrawFlags.ClearColor0,
-            new[] { Colors.Black });
-        _device.DrawListBindRenderPipeline(drawList, _pipeline);
+        long drawList = _pass.Begin(_device, Colors.Black);
         _device.DrawListBindUniformSet(drawList, _uniformSets[state], 0);
-        _device.DrawListBindVertexArray(drawList, _vertexArray);
-        _device.DrawListDraw(drawList, false, 1);
-        _device.DrawListEnd();
+        RdFullscreenPass.End(_device, drawList);
     }
 
     private void FreeOnRenderThread()
@@ -173,18 +113,9 @@ internal sealed class RdLifePainter
                 device.FreeRid(uniformSet);
         }
 
-        FreeIfValid(device, _framebuffer);
-        FreeIfValid(device, _target);
-        FreeIfValid(device, _sampler);
-        FreeIfValid(device, _pipeline);
-        FreeIfValid(device, _vertexArray);
-        FreeIfValid(device, _vertexBuffer);
-        FreeIfValid(device, _shader);
-    }
-
-    private static void FreeIfValid(RenderingDevice device, Rid rid)
-    {
-        if (rid.IsValid)
-            device.FreeRid(rid);
+        _pass?.Free(device);
+        _pass = null;
+        RdFullscreenPass.FreeIfValid(device, _sampler);
+        RdFullscreenPass.FreeIfValid(device, _shader);
     }
 }

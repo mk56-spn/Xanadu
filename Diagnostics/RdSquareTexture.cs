@@ -25,11 +25,7 @@ internal sealed class RdSquareTexture
     private bool _animated;
     private RenderingDevice? _device;
     private Rid _shader;
-    private Rid _vertexBuffer;
-    private Rid _vertexArray;
-    private Rid _target;
-    private Rid _framebuffer;
-    private Rid _pipeline;
+    private RdFullscreenPass? _pass;
 
     public RdSquareTexture(int size)
     {
@@ -66,94 +62,20 @@ internal sealed class RdSquareTexture
         }
 
         _shader = device.ShaderCreateFromSpirV(spirv, "rd_square_texture");
-
-        long vertexFormat = device.VertexFormatCreate(
-            new Godot.Collections.Array<RDVertexAttribute>
-            {
-                new()
-                {
-                    Location = 0,
-                    Format = RenderingDevice.DataFormat.R32G32Sfloat,
-                    Offset = 0,
-                    Stride = 8,
-                },
-            });
-
-        float[] corners = { -1f, -1f, 1f, -1f, 1f, 1f, -1f, -1f, 1f, 1f, -1f, 1f };
-        var bytes = new byte[corners.Length * sizeof(float)];
-        System.Buffer.BlockCopy(corners, 0, bytes, 0, bytes.Length);
-
-        _vertexBuffer = device.VertexBufferCreate((uint)bytes.Length, bytes);
-        _vertexArray = device.VertexArrayCreate(
-            6, vertexFormat, new Godot.Collections.Array<Rid> { _vertexBuffer });
-
-        // Unorm, not Srgb: the canvas samples these texels as they are, and an
-        // Srgb target would gamma-encode the colour on write and wash it out.
-        var textureFormat = new RDTextureFormat
-        {
-            Format = RenderingDevice.DataFormat.R8G8B8A8Unorm,
-            Width = (uint)_size,
-            Height = (uint)_size,
-            UsageBits = RenderingDevice.TextureUsageBits.ColorAttachmentBit |
-                        RenderingDevice.TextureUsageBits.SamplingBit,
-        };
-        _target = device.TextureCreate(textureFormat, new RDTextureView());
-
-        var attachment = new RDAttachmentFormat
-        {
-            Format = textureFormat.Format,
-            Samples = RenderingDevice.TextureSamples.Samples1,
-            UsageFlags = (uint)textureFormat.UsageBits,
-        };
-        long framebufferFormat = device.FramebufferFormatCreate(
-            new Godot.Collections.Array<RDAttachmentFormat> { attachment });
-        _framebuffer = device.FramebufferCreate(
-            new Godot.Collections.Array<Rid> { _target });
-        if (!_framebuffer.IsValid)
-        {
-            GD.PushError("RdSquare: framebuffer is invalid.");
+        _pass = RdFullscreenPass.Create(device, _shader, _size, "RdSquare");
+        if (_pass is null)
             return;
-        }
-
-        var rasterization = new RDPipelineRasterizationState
-        {
-            CullMode = RenderingDevice.PolygonCullMode.Disabled,
-        };
-        var depthStencil = new RDPipelineDepthStencilState
-        {
-            EnableDepthTest = false,
-            EnableDepthWrite = false,
-        };
-        var colorBlend = new RDPipelineColorBlendState
-        {
-            Attachments = new Godot.Collections.Array<RDPipelineColorBlendStateAttachment> { new() },
-        };
-
-        _pipeline = device.RenderPipelineCreate(
-            _shader,
-            framebufferFormat,
-            vertexFormat,
-            RenderingDevice.RenderPrimitive.Triangles,
-            rasterization,
-            new RDPipelineMultisampleState(),
-            depthStencil,
-            colorBlend);
 
         _device = device;
-        Texture.TextureRdRid = _target;
+        Texture.TextureRdRid = _pass.Target;
     }
 
     private void DrawOnRenderThread()
     {
-        if (_device is null)
+        if (_device is null || _pass is null)
             return;
 
-        long drawList = _device.DrawListBegin(
-            _framebuffer,
-            RenderingDevice.DrawFlags.ClearColor0,
-            new[] { new Color(0f, 0f, 0f, 0f) });
-        _device.DrawListBindRenderPipeline(drawList, _pipeline);
-        _device.DrawListBindVertexArray(drawList, _vertexArray);
+        long drawList = _pass.Begin(_device, new Color(0f, 0f, 0f, 0f));
         if (_animated)
         {
             var pushConstant = new byte[PushConstantSize];
@@ -161,8 +83,7 @@ internal sealed class RdSquareTexture
             _device.DrawListSetPushConstant(drawList, pushConstant, PushConstantSize);
         }
 
-        _device.DrawListDraw(drawList, false, 1);
-        _device.DrawListEnd();
+        RdFullscreenPass.End(_device, drawList);
     }
 
     private void FreeOnRenderThread()
@@ -172,18 +93,9 @@ internal sealed class RdSquareTexture
             return;
 
         _device = null;
-        FreeIfValid(device, _framebuffer);
-        FreeIfValid(device, _target);
-        FreeIfValid(device, _pipeline);
-        FreeIfValid(device, _vertexArray);
-        FreeIfValid(device, _vertexBuffer);
-        FreeIfValid(device, _shader);
-    }
-
-    private static void FreeIfValid(RenderingDevice device, Rid rid)
-    {
-        if (rid.IsValid)
-            device.FreeRid(rid);
+        _pass?.Free(device);
+        _pass = null;
+        RdFullscreenPass.FreeIfValid(device, _shader);
     }
 
     /// <summary>The compiled RdSquare.slang, or null if it has not been built.</summary>
