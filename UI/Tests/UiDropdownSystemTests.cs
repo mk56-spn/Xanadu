@@ -13,68 +13,46 @@ namespace Xanadu.Tests.UI;
 [TestFixture]
 public sealed class UiDropdownSystemTests
 {
+    private static readonly Vector2 ListSize = new(100, 80);
+
+    private EntityStore _store = null!;
+    private SystemRoot _root = null!;
+    private float _time;
+
+    [SetUp]
+    public void SetUp()
+    {
+        _store = new EntityStore();
+        _root = new SystemRoot(_store);
+        _root.Add(new UiDropdownSystem(_store));
+        _time = 0f;
+    }
+
     [Test]
     public void OpensAndLaysOutOptions()
     {
-        EntityStore store = new();
-        var root = new SystemRoot(store);
-        root.Add(new UiDropdownSystem(store));
+        Entity button = Button(new Vector2(100, 50));
+        Entity list = List();
+        button.AddComponent(new Dropdown(list, 0, ListSize));
+        Entity option = Option(button, 0);
 
-        Entity button = store.CreateEntity(
-            new Position(new Vector2(100, 50)),
-            new Rectangle(new Rect2(-50, -20, 100, 40)));
-        Entity list = store.CreateEntity(
-            new Position(Vector2.Zero),
-            new Rectangle(new Rect2(0, 0, 0, 0)));
-        button.AddComponent(new Dropdown(list, 0, new Vector2(100, 80)));
-
-        Entity option = store.CreateEntity(
-            new Position(Vector2.Zero),
-            new Rectangle(new Rect2(-40, -12, 80, 24)));
-        option.AddComponent(new DropdownOption(button, 0));
-
-        button.AddTag<Pressed>();
-        root.Update(new UpdateTick(1f / 60f, 1f));
+        Press(button);
 
         Assert.That(button.GetComponent<Dropdown>().Open, Is.True);
-        Assert.That(list.GetComponent<Rectangle>().Bounds.Size,
-            Is.EqualTo(new Vector2(100, 80)));
-        Assert.That(option.GetComponent<Position>().Value.Y,
-            Is.GreaterThan(0));
+        Assert.That(list.GetComponent<Rectangle>().Bounds.Size, Is.EqualTo(ListSize));
+        Assert.That(option.GetComponent<Position>().Value.Y, Is.GreaterThan(0));
     }
 
     [Test]
     public void NonExclusiveDropdownsStayOpenTogether()
     {
-        EntityStore store = new();
-        var root = new SystemRoot(store);
-        root.Add(new UiDropdownSystem(store));
+        Entity first = Button(new Vector2(100, 50));
+        first.AddComponent(new Dropdown(List(), 0, closeOthers: false));
+        Entity second = Button(new Vector2(100, 150));
+        second.AddComponent(new Dropdown(List(), 0, closeOthers: false));
 
-        Entity first = store.CreateEntity(
-            new Position(new Vector2(100, 50)),
-            new Rectangle(new Rect2(-50, -20, 100, 40)));
-        first.AddComponent(new Dropdown(
-            store.CreateEntity(
-                new Position(Vector2.Zero),
-                new Rectangle(new Rect2(0, 0, 0, 0))),
-            0,
-            closeOthers: false));
-
-        Entity second = store.CreateEntity(
-            new Position(new Vector2(100, 150)),
-            new Rectangle(new Rect2(-50, -20, 100, 40)));
-        second.AddComponent(new Dropdown(
-            store.CreateEntity(
-                new Position(Vector2.Zero),
-                new Rectangle(new Rect2(0, 0, 0, 0))),
-            0,
-            closeOthers: false));
-
-        first.AddTag<Pressed>();
-        root.Update(new UpdateTick(1f / 60f, 1f));
-        first.RemoveTag<Pressed>();
-        second.AddTag<Pressed>();
-        root.Update(new UpdateTick(1f / 60f, 2f));
+        Press(first);
+        Press(second);
 
         Assert.That(first.GetComponent<Dropdown>().Open, Is.True);
         Assert.That(second.GetComponent<Dropdown>().Open, Is.True);
@@ -83,29 +61,12 @@ public sealed class UiDropdownSystemTests
     [Test]
     public void OptionsLayOutInValueOrder()
     {
-        EntityStore store = new();
-        var root = new SystemRoot(store);
-        root.Add(new UiDropdownSystem(store));
+        Entity button = Button(new Vector2(100, 50));
+        button.AddComponent(new Dropdown(List(), 0, ListSize));
+        Entity third = Option(button, 2);
+        Entity first = Option(button, 0);
 
-        Entity button = store.CreateEntity(
-            new Position(new Vector2(100, 50)),
-            new Rectangle(new Rect2(-50, -20, 100, 40)));
-        Entity list = store.CreateEntity(
-            new Position(Vector2.Zero),
-            new Rectangle(new Rect2(0, 0, 0, 0)));
-        button.AddComponent(new Dropdown(list, 0, new Vector2(100, 80)));
-
-        Entity third = store.CreateEntity(
-            new Position(Vector2.Zero),
-            new Rectangle(new Rect2(-40, -12, 80, 24)));
-        third.AddComponent(new DropdownOption(button, 2));
-        Entity first = store.CreateEntity(
-            new Position(Vector2.Zero),
-            new Rectangle(new Rect2(-40, -12, 80, 24)));
-        first.AddComponent(new DropdownOption(button, 0));
-
-        button.AddTag<Pressed>();
-        root.Update(new UpdateTick(1f / 60f, 1f));
+        Press(button);
 
         Assert.That(first.GetComponent<Position>().Value.Y,
             Is.LessThan(third.GetComponent<Position>().Value.Y));
@@ -114,33 +75,16 @@ public sealed class UiDropdownSystemTests
     [Test]
     public void OpeningOneDropdownClosesTheOther()
     {
-        EntityStore store = new();
-        var root = new SystemRoot(store);
-        root.Add(new UiDropdownSystem(store));
-
-        Entity first = store.CreateEntity(
-            new Position(new Vector2(100, 50)),
-            new Rectangle(new Rect2(-50, -20, 100, 40)));
-        Entity firstList = store.CreateEntity(
-            new Position(Vector2.Zero),
-            new Rectangle(new Rect2(0, 0, 0, 0)));
+        Entity first = Button(new Vector2(100, 50));
+        Entity firstList = List();
         first.AddComponent(new Dropdown(firstList, 0));
+        Entity second = Button(new Vector2(100, 150));
+        second.AddComponent(new Dropdown(List(), 0));
 
-        Entity second = store.CreateEntity(
-            new Position(new Vector2(100, 150)),
-            new Rectangle(new Rect2(-50, -20, 100, 40)));
-        Entity secondList = store.CreateEntity(
-            new Position(Vector2.Zero),
-            new Rectangle(new Rect2(0, 0, 0, 0)));
-        second.AddComponent(new Dropdown(secondList, 0));
-
-        first.AddTag<Pressed>();
-        root.Update(new UpdateTick(1f / 60f, 1f));
-        first.RemoveTag<Pressed>();
+        Press(first);
         Assert.That(first.GetComponent<Dropdown>().Open, Is.True);
 
-        second.AddTag<Pressed>();
-        root.Update(new UpdateTick(1f / 60f, 2f));
+        Press(second);
 
         Assert.That(first.GetComponent<Dropdown>().Open, Is.False);
         Assert.That(UiLayout.IsHidden(firstList), Is.True);
@@ -150,83 +94,74 @@ public sealed class UiDropdownSystemTests
     [Test]
     public void OpenListFollowsTheButtonWhenLayoutMovesIt()
     {
-        EntityStore store = new();
-        var root = new SystemRoot(store);
-        root.Add(new UiDropdownSystem(store));
+        Entity button = Button(new Vector2(100, 50));
+        Entity list = List();
+        button.AddComponent(new Dropdown(list, 0, ListSize));
 
-        Entity button = store.CreateEntity(
-            new Position(new Vector2(100, 50)),
-            new Rectangle(new Rect2(-50, -20, 100, 40)));
-        Entity list = store.CreateEntity(
-            new Position(Vector2.Zero),
-            new Rectangle(new Rect2(0, 0, 0, 0)));
-        button.AddComponent(new Dropdown(list, 0, new Vector2(100, 80)));
-
-        button.AddTag<Pressed>();
-        root.Update(new UpdateTick(1f / 60f, 1f));
-        button.RemoveTag<Pressed>();
+        Press(button);
         float first = list.GetComponent<Position>().Value.Y;
 
         button.GetComponent<Position>().Value = new Vector2(100, 150);
-        root.Update(new UpdateTick(1f / 60f, 2f));
+        Step();
 
-        Assert.That(list.GetComponent<Position>().Value.Y,
-            Is.EqualTo(first + 100f));
+        Assert.That(list.GetComponent<Position>().Value.Y, Is.EqualTo(first + 100f));
     }
 
     [Test]
     public void AccountsForAParentedButtonTransform()
     {
-        EntityStore store = new();
-        var root = new SystemRoot(store);
-        root.Add(new UiDropdownSystem(store));
-
-        Entity parent = store.CreateEntity(
-            new Position(new Vector2(100, 50)));
-        Entity button = store.CreateEntity(
-            new Position(new Vector2(800, 200)),
-            new Rectangle(new Rect2(-50, -20, 100, 40)));
+        Entity parent = _store.CreateEntity(new Position(new Vector2(100, 50)));
+        Entity button = Button(new Vector2(800, 200));
         parent.AddChild(button);
-        Entity list = store.CreateEntity(
-            new Position(Vector2.Zero),
-            new Rectangle(new Rect2(0, 0, 0, 0)));
-        button.AddComponent(new Dropdown(list, 0, new Vector2(100, 80)));
+        Entity list = List();
+        button.AddComponent(new Dropdown(list, 0, ListSize));
 
-        button.AddTag<Pressed>();
-        root.Update(new UpdateTick(1f / 60f, 1f));
+        Press(button);
 
-        Assert.That(list.GetComponent<Position>().Value,
-            Is.EqualTo(new Vector2(900, 314)));
+        Assert.That(list.GetComponent<Position>().Value, Is.EqualTo(new Vector2(900, 314)));
     }
 
     [Test]
     public void SelectingAnOptionClosesTheDropdown()
     {
-        EntityStore store = new();
-        var root = new SystemRoot(store);
-        root.Add(new UiDropdownSystem(store));
+        Entity button = Button(new Vector2(100, 50));
+        button.AddComponent(new Dropdown(List(), 0));
+        Entity option = Option(button, 2);
 
-        Entity button = store.CreateEntity(
-            new Position(new Vector2(100, 50)),
-            new Rectangle(new Rect2(-50, -20, 100, 40)));
-        Entity list = store.CreateEntity(
-            new Position(Vector2.Zero),
-            new Rectangle(new Rect2(0, 0, 0, 0)));
-        button.AddComponent(new Dropdown(list, 0));
-        Entity option = store.CreateEntity(
-            new Position(Vector2.Zero),
-            new Rectangle(new Rect2(-40, -12, 80, 24)));
-        option.AddComponent(new DropdownOption(button, 2));
-
-        button.AddTag<Pressed>();
-        root.Update(new UpdateTick(1f / 60f, 1f));
-        button.RemoveTag<Pressed>();
-
-        option.AddTag<Pressed>();
-        root.Update(new UpdateTick(1f / 60f, 2f));
+        Press(button);
+        Press(option);
 
         Assert.That(button.GetComponent<Dropdown>().Open, Is.False);
         Assert.That(button.GetComponent<Dropdown>().Selected, Is.EqualTo(2));
         Assert.That(UiLayout.IsHidden(option), Is.True);
+    }
+
+    private Entity Button(Vector2 center) =>
+        _store.CreateEntity(new Position(center), new Rectangle(new Rect2(-50, -20, 100, 40)));
+
+    private Entity List() =>
+        _store.CreateEntity(new Position(Vector2.Zero), new Rectangle(new Rect2(0, 0, 0, 0)));
+
+    private Entity Option(Entity button, int value)
+    {
+        Entity option = _store.CreateEntity(
+            new Position(Vector2.Zero),
+            new Rectangle(new Rect2(-40, -12, 80, 24)));
+        option.AddComponent(new DropdownOption(button, value));
+        return option;
+    }
+
+    /// <summary>Holds the press for one update, then lets go.</summary>
+    private void Press(Entity control)
+    {
+        control.AddTag<Pressed>();
+        Step();
+        control.RemoveTag<Pressed>();
+    }
+
+    private void Step()
+    {
+        _time += 1f;
+        _root.Update(new UpdateTick(1f / 60f, _time));
     }
 }
