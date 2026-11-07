@@ -9,13 +9,25 @@ public sealed class CharacterPresenceRulesTests
     private const int Bpm = 120;
 
     [Test]
-    public void StaysWholeForABeatAfterAHit()
+    public void StartsFadingOnTheHitBeat()
     {
-        Assert.That(CharacterPresenceRules.At(400, 4_400, Bpm, 0), Is.EqualTo(CharacterPresenceRules.Look.Present));
+        CharacterPresenceRules.Look look = CharacterPresenceRules.At(125, 4_125, Bpm, 0);
+        Assert.That(look.BodyShade, Is.LessThan(1f), "the fade must not wait a beat after the hit");
     }
 
     [Test]
-    public void FadesToBlackOnceTheFadeIsDone()
+    public void EasesIntoAndOutOfTheFade()
+    {
+        // A quarter and three quarters through the fade; eased, that is 1/16 and 15/16 of the way down.
+        CharacterPresenceRules.Look quarter = CharacterPresenceRules.At(125, 4_125, Bpm, 0);
+        CharacterPresenceRules.Look threeQuarters = CharacterPresenceRules.At(375, 4_375, Bpm, 0);
+        float drop = 1f - CharacterPresenceRules.FadedShade;
+        Assert.That(quarter.BodyShade, Is.EqualTo(1f - drop * 0.0625f).Within(1e-4));
+        Assert.That(threeQuarters.BodyShade, Is.EqualTo(1f - drop * 0.9375f).Within(1e-4));
+    }
+
+    [Test]
+    public void DimsToTheFadedShadeOnceTheFadeIsDone()
     {
         CharacterPresenceRules.Look look = CharacterPresenceRules.At(2_000, 4_250, Bpm, 0);
         Assert.That(look.BodyShade, Is.EqualTo(CharacterPresenceRules.FadedShade).Within(1e-4));

@@ -5,8 +5,8 @@ using Xanadu.Ecs;
 namespace Xanadu.Systems.Characters;
 
 /// <summary>
-/// A character that has not hit a note for a beat fades to black, leaving only
-/// its hands, which flash white in turn on each beat, left then right,
+/// A character dims over the beat after its last hit, leaving only
+/// its hands at full light, which flash white in turn on each beat, left then right,
 /// so the music still has a body while it waits. Any hit brings it straight back.
 /// </summary>
 public static class CharacterPresenceRules
@@ -20,17 +20,17 @@ public static class CharacterPresenceRules
 
     public const string RightHand = "hand_r";
 
-    /// <summary>How many beats after a hit the fade starts.</summary>
-    public const float WaitBeats = 1f;
+    /// <summary>How many beats after a hit the fade starts. Zero starts it on the beat that was hit.</summary>
+    public const float WaitBeats = 0f;
 
-    /// <summary>How many beats the fade takes once it starts.</summary>
-    public const float FadeBeats = 0.5f;
+    /// <summary>How many beats the fade takes once it starts: one, so it is dimmed by the next beat.</summary>
+    public const float FadeBeats = 1f;
 
     /// <summary>
-    /// How bright the body is once faded: 0 is black. It darkens rather than
+    /// How bright the body is once faded: 0 is black, 1 is as posed. It dims rather than
     /// turning see-through, so overlapping parts never show through each other.
     /// </summary>
-    public const float FadedShade = 0f;
+    public const float FadedShade = 0.4f;
 
     /// <summary>How quickly a pulse dies away over its beat; higher is a sharper tap.</summary>
     public const float PulseDecay = 6f;
@@ -59,18 +59,22 @@ public static class CharacterPresenceRules
     /// <paramref name="songMs"/> into a song of <paramref name="bpm"/> whose
     /// first beat is at <paramref name="offsetMs"/>.
     /// </summary>
-    public static Look At(long sinceHitMs, long songMs, int bpm, long offsetMs)
+    public static Look At(long sinceHitMs, long songMs, int bpm, long offsetMs) =>
+        bpm <= 0 ? Look.Present : At(sinceHitMs, songMs, Xanadu.Levels.TempoMap.Single(bpm, offsetMs));
+
+    /// <summary>The same on the song's tempo map: the wait is counted in beats, so it follows BPM changes.</summary>
+    public static Look At(long sinceHitMs, long songMs, Xanadu.Levels.TempoMap tempo)
     {
-        if (bpm <= 0 || sinceHitMs < 0)
+        if (sinceHitMs < 0)
             return Look.Present;
 
-        double beatMs = 60_000.0 / bpm;
-        float fade = Math.Clamp((float)((sinceHitMs / beatMs - WaitBeats) / FadeBeats), 0f, 1f);
+        double waited = tempo.BeatAt(songMs) - tempo.BeatAt(songMs - sinceHitMs);
+        float fade = Math.Clamp((float)((waited - WaitBeats) / FadeBeats), 0f, 1f);
         if (fade <= 0f)
             return Look.Present;
-        fade = fade * fade * (3f - 2f * fade);
+        fade = XafEasing.Progress(XafEasePreset.CubicInOut, fade);
 
-        double beats = (songMs - offsetMs) / beatMs;
+        double beats = tempo.BeatAt(songMs);
         double beat = Math.Floor(beats);
         float pulse = MathF.Exp(-(float)(beats - beat) * PulseDecay) * fade;
         float flash = 1f + (PulseLight - 1f) * pulse;
