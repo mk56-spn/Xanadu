@@ -105,7 +105,7 @@ public static class PlayScene
             playhead.TimeMs = point.TimeMs;
             playhead.SeekRequestMs = point.TimeMs;
             Vector2 spawn = playfieldEntity.TryGetComponent(out LevelGroups levelGroups)
-                ? SpawnPosition(levelGroups, point)
+                ? SpawnPosition(levelGroups, point, playhead.Tempo)
                 : point.Position;
             ref Position playerPosition = ref playfieldEntity.GetComponent<Position>();
             playerPosition.Value = playfieldEntity
@@ -126,6 +126,6 @@ public static class PlayScene
     }
 
     /// <summary>Where the player starts: the start point plus its groups' move at its time.</summary>
-    public static Vector2 SpawnPosition(LevelGroups groups, StartPoint start) =>
-        start.Position + GroupModulation.Offset(groups.Groups, start.Groups, start.TimeMs / 1000f);
+    public static Vector2 SpawnPosition(LevelGroups groups, StartPoint start, Xanadu.Levels.TempoMap? tempo = null) =>
+        start.Position + GroupModulation.Offset(groups.Groups, start.Groups, start.TimeMs / 1000f, tempo);
 }

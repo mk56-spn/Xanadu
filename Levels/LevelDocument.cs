@@ -184,6 +184,13 @@ public sealed class GroupEffectDocument
 
     /// <summary>The target colour as #rrggbbaa, for a colour effect.</summary>
     public string Tint { get; set; } = "#ffffffff";
+
+    /// <summary>How many times it plays (1 = once), a new cycle every <see cref="EveryBeats"/> beats.</summary>
+    public int Cycles { get; set; } = 1;
+
+    public float EveryBeats { get; set; } = 1f;
+
+    public GroupCycle Cycle { get; set; } = GroupCycle.Restart;
 }
 
 /// <summary>Where a placed item draws: its layer and its z inside the layer.</summary>

@@ -98,6 +98,7 @@ public sealed partial class EditorGroupSystem : QuerySystem<EditorGroupState>
         // data once it shows, so its typed text has to be read first.
         CommitFields(group, state, playhead);
         CommitKeyFields(editor, ref state, group, playhead);
+        CommitCycleFields(group, state, playhead);
         ShowOverlay(editor, state, group, playhead, dialog, origin, buffer);
     }
 

@@ -27,11 +27,15 @@ public static class GroupModulation
     /// a moment: the group's own alpha (D6), taken off its members and put on
     /// the composite so the group fades as one image (decided 2026-11-06).
     /// </summary>
-    public static float BufferAlpha(IReadOnlyList<GroupDefinition> groups, int group, float seconds)
+    public static float BufferAlpha(
+        IReadOnlyList<GroupDefinition> groups,
+        int group,
+        float seconds,
+        Xanadu.Levels.TempoMap? tempo = null)
     {
         if (group < 0 || group >= groups.Count)
             return 1f;
-        TryColor(groups, 1u << group, seconds, out _, out _, out float alpha);
+        TryColor(groups, 1u << group, seconds, out _, out _, out float alpha, tempo);
         return alpha;
     }
 
@@ -40,7 +44,11 @@ public static class GroupModulation
     /// its offset in proportion to how far through it the time is, and keeps
     /// the whole offset once it has ended.
     /// </summary>
-    public static Vector2 Offset(IReadOnlyList<GroupDefinition> groups, uint mask, float seconds)
+    public static Vector2 Offset(
+        IReadOnlyList<GroupDefinition> groups,
+        uint mask,
+        float seconds,
+        Xanadu.Levels.TempoMap? tempo = null)
     {
         Vector2 total = Vector2.Zero;
         foreach (GroupDefinition group in Members(groups, mask))
@@ -48,7 +56,7 @@ public static class GroupModulation
             foreach (GroupEffect effect in group.Effects)
             {
                 if (effect.Kind == GroupEffectKind.Move && !effect.Muted)
-                    total += effect.Offset * effect.Progress(seconds);
+                    total += effect.Offset * effect.Amount(seconds, tempo);
             }
         }
 
@@ -75,7 +83,8 @@ public static class GroupModulation
         float seconds,
         out Color mix,
         out float coverage,
-        out float alpha)
+        out float alpha,
+        Xanadu.Levels.TempoMap? tempo = null)
     {
         var started = new List<(GroupEffect Effect, int Group)>();
         for (int i = 0; i < groups.Count && i < GroupLimits.Count; i++)
@@ -97,9 +106,9 @@ public static class GroupModulation
             return false;
 
         // A stable sort, so effects that start together keep their group order.
-        started = Sorted(started);
+        started = Sorted(started, seconds, tempo);
         foreach ((GroupEffect effect, int _) in started)
-            Crossfade(ref mix, ref coverage, effect, seconds);
+            Crossfade(ref mix, ref coverage, effect, seconds, tempo);
 
         // Each group's alpha from its own effects only, then the groups' alphas
         // multiply, so a colour in one group can never undo a fade in another.
@@ -109,7 +118,7 @@ public static class GroupModulation
             groupMix[i] = Colors.White;
 
         foreach ((GroupEffect effect, int group) in started)
-            Crossfade(ref groupMix[group], ref groupCoverage[group], effect, seconds);
+            Crossfade(ref groupMix[group], ref groupCoverage[group], effect, seconds, tempo);
 
         for (int i = 0; i < groups.Count && i < GroupLimits.Count; i++)
         {
@@ -122,9 +131,14 @@ public static class GroupModulation
     }
 
     /// <summary>Fades one effect's tint over what the earlier ones left.</summary>
-    private static void Crossfade(ref Color mix, ref float coverage, GroupEffect effect, float seconds)
+    private static void Crossfade(
+        ref Color mix,
+        ref float coverage,
+        GroupEffect effect,
+        float seconds,
+        Xanadu.Levels.TempoMap? tempo)
     {
-        float p = effect.Progress(seconds);
+        float p = effect.Progress(seconds, tempo);
         float next = coverage + p - coverage * p;
         if (next <= 0f)
             return;
@@ -137,14 +151,18 @@ public static class GroupModulation
         coverage = next;
     }
 
-    private static List<(GroupEffect Effect, int Group)> Sorted(List<(GroupEffect Effect, int Group)> effects)
+    /// <summary>In the order their current cycles began (their starts, without cycles), so the latest wins.</summary>
+    private static List<(GroupEffect Effect, int Group)> Sorted(
+        List<(GroupEffect Effect, int Group)> effects,
+        float seconds,
+        Xanadu.Levels.TempoMap? tempo)
     {
         var indexed = new List<(GroupEffect Effect, int Group, int Order)>();
         for (int i = 0; i < effects.Count; i++)
             indexed.Add((effects[i].Effect, effects[i].Group, i));
         indexed.Sort((a, b) =>
         {
-            int start = a.Effect.Start.CompareTo(b.Effect.Start);
+            int start = a.Effect.CycleStart(seconds, tempo).CompareTo(b.Effect.CycleStart(seconds, tempo));
             return start != 0 ? start : a.Order.CompareTo(b.Order);
         });
         return indexed.ConvertAll(entry => (entry.Effect, entry.Group));

@@ -450,6 +450,35 @@ public sealed class EditorGroupsSceneTest : SceneTest
         AddUntilStep("the lane shows the item track's key", () =>
             !State().BufferTrack && Group().ShaderKeys.Count == 1);
 
+        // ---------------------------------------------------------------- cycles
+
+        AddStep("select the move effect", () => Context.Pointer.Click(Bar(0)));
+        AddWaitStep("hold the move", 2);
+        AddStep("release the move", () => Context.Pointer.Release());
+        AddUntilStep("the move is selected and plays once", () =>
+            State().SelectedEffect == 0 && Group().Effects[0].Cycles == 1 && Visible(EditorGroupPart.CycleCount));
+        AddStep("focus the cycle count", () => Piece(EditorGroupPart.CycleCount).AddTag<TextFieldFocused>());
+        AddStep("type eight cycles", () => Piece(EditorGroupPart.CycleCount).GetComponent<TextField>().Value = "8");
+        AddStep("leave the cycle count", () => Piece(EditorGroupPart.CycleCount).RemoveTag<TextFieldFocused>());
+        AddUntilStep("the move repeats eight times, a beat apart", () =>
+            Group().Effects[0].Cycles == 8 && Group().Effects[0].EveryBeats == 1f);
+        AddStep("space the cycles out", () => Click(Piece(EditorGroupPart.CycleEveryUp)));
+        AddWaitStep("hold spacing +", 2);
+        AddStep("release spacing +", () => Context.Pointer.Release());
+        AddUntilStep("every two beats", () => Group().Effects[0].EveryBeats == 2f);
+        AddStep("open the cycle mode list", () => Click(Piece(EditorGroupPart.CycleMode)));
+        AddWaitStep("hold the mode", 2);
+        AddStep("release the mode", () => Context.Pointer.Release());
+        AddUntilStep("the mode list is open", () => Piece(EditorGroupPart.CycleMode).GetComponent<Dropdown>().Open);
+        AddStep("choose RETURN", () => ClickOption(EditorGroupPart.CycleMode, 1));
+        AddWaitStep("hold RETURN", 2);
+        AddStep("release RETURN", () => Context.Pointer.Release());
+        AddUntilStep("each cycle goes and comes back", () => Group().Effects[0].Cycle == GroupCycle.Return);
+        AddStep("zoom the timeline out to see the repeats", () => Click(Piece(EditorGroupPart.ZoomOut)));
+        AddWaitStep("hold zoom out", 2);
+        AddStep("release zoom out", () => Context.Pointer.Release());
+        AddWaitStep("look at the repeats", 4);
+
         AddStep("open the grid menu", () => Click(ViewBar().GridButton));
         AddWaitStep("hold the grid button", 2);
         AddStep("release the grid button", () => Context.Pointer.Release());

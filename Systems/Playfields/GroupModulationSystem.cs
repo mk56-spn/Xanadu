@@ -2,6 +2,7 @@ using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Godot;
 using Xanadu.Ecs;
+using Xanadu.Levels;
 
 namespace Xanadu.Systems.Playfields;
 
@@ -26,7 +27,7 @@ public sealed class GroupModulationSystem : QuerySystem<ItemGroups>
 
     protected override void OnUpdate()
     {
-        if (!TryFindLevel(out GroupDefinition[] groups, out float seconds, out uint solo))
+        if (!TryFindLevel(out GroupDefinition[] groups, out float seconds, out uint solo, out TempoMap tempo))
             return;
 
         CommandBuffer buffer = CommandBuffer;
@@ -39,7 +40,7 @@ public sealed class GroupModulationSystem : QuerySystem<ItemGroups>
                 return;
             }
 
-            Set(entity, new GroupOffset(GroupModulation.Offset(groups, mask, seconds)), buffer);
+            Set(entity, new GroupOffset(GroupModulation.Offset(groups, mask, seconds, tempo)), buffer);
 
             // A buffered group's alpha goes on its buffer, not on each member,
             // so the members keep only the colour (the renderer fades the image).
@@ -56,7 +57,8 @@ public sealed class GroupModulationSystem : QuerySystem<ItemGroups>
                     seconds,
                     out Color edgeMix,
                     out float edgeCoverage,
-                    out float edgeAlpha);
+                    out float edgeAlpha,
+                    tempo);
                 Set(entity, new GroupOutlineColor(edgeMix, edgeCoverage, buffered ? 1f : edgeAlpha), buffer);
             }
 
@@ -66,7 +68,8 @@ public sealed class GroupModulationSystem : QuerySystem<ItemGroups>
                 seconds,
                 out Color mix,
                 out float coverage,
-                out float alpha);
+                out float alpha,
+                tempo);
             Set(entity, new GroupColor(mix, coverage, buffered ? 1f : alpha), buffer);
         });
     }
@@ -96,8 +99,9 @@ public sealed class GroupModulationSystem : QuerySystem<ItemGroups>
     /// <paramref name="solo"/> is the mask of groups that apply: every group,
     /// or the one soloed in the editor's group overlay.
     /// </summary>
-    private bool TryFindLevel(out GroupDefinition[] groups, out float seconds, out uint solo)
+    private bool TryFindLevel(out GroupDefinition[] groups, out float seconds, out uint solo, out TempoMap tempo)
     {
+        tempo = TempoMap.Default;
         groups = [];
         seconds = 0f;
         solo = uint.MaxValue;
@@ -110,6 +114,7 @@ public sealed class GroupModulationSystem : QuerySystem<ItemGroups>
 
             groups = entity.GetComponent<LevelGroups>().Groups ?? [];
             seconds = entity.GetComponent<Playhead>().TimeMs / 1000f;
+            tempo = entity.GetComponent<Playhead>().Tempo;
             solo = uint.MaxValue;
             if (!play &&
                 entity.TryGetComponent(out EditorGroupState state) &&

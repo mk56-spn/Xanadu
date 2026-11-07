@@ -165,6 +165,16 @@ public enum EditorGroupPart
     ShaderValue,
     ShaderUp,
     ShaderClear,
+    /// <summary>The selected effect's cycle row: repeat count, beats between cycles, and mode.</summary>
+    CycleTitle,
+    CycleCount,
+    CycleCountDown,
+    CycleCountUp,
+    CycleEveryText,
+    CycleEveryDown,
+    CycleEveryUp,
+    CycleMode,
+
     /// <summary>The two tabs of the shader row: the group's item shader, or its buffer.</summary>
     TrackItem,
     TrackBuffer,
