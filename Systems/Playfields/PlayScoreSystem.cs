@@ -19,13 +19,13 @@ public sealed class PlayScoreSystem : QuerySystem<ScoreState, Playhead>
 
     public static Color ColorFor(Judgement judgement) => judgement switch
     {
-        Judgement.FlawlessP => Palette.Accent,
-        Judgement.Flawless => Palette.Cyan,
-        Judgement.Clean => Palette.SuccessBright,
-        Judgement.Fair => Palette.InfoSoft,
-        Judgement.Deficient => Palette.Warning,
-        Judgement.Terrible => Palette.Danger,
-        Judgement.Miss => Palette.TextDim,
+        Judgement.FlawlessP => Colors.MediumPurple.Lightened(0.3f),
+        Judgement.Flawless => Colors.MediumPurple,
+        Judgement.Clean => Colors.Cyan,
+        Judgement.Fair => Colors.GreenYellow,
+        Judgement.Deficient => Colors.Orange,
+        Judgement.Terrible => Colors.DarkOrange.Darkened(0.3f),
+        Judgement.Miss => Colors.DarkRed,
         Judgement.Mine => Palette.DangerBright,
         Judgement.Contact => Palette.Warning,
         _ => Colors.White,

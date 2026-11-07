@@ -45,7 +45,8 @@ public sealed class PlayfieldSystemGroup : SystemGroup, IDisposable
         IOverlayToggleSource? hitboxToggle = null,
         MapOffsetSettings? mapOffsets = null,
         Xanadu.Systems.Shaders.IPassSurfaces? passes = null,
-        Func<Rect2, Rect2>? toPixels = null) : base("Playfield")
+        Func<Rect2, Rect2>? toPixels = null,
+        IOverlayToggleSource? divaToggle = null) : base("Playfield")
     {
         _playfield = new CanvasItemHandle(parentCanvas, 800);
 
@@ -84,6 +85,7 @@ public sealed class PlayfieldSystemGroup : SystemGroup, IDisposable
         Add(new PlayerArenaSystem());
         Add(new SpikeContactSystem(entities));
         Add(new PlayKeyTrailSystem(entities, keybinds, keyboard));
+        Add(new PlayKeyTrailHudSystem(entities));
         Add(new PlayNoteInputSystem(entities, keybinds, keyboard, offsets));
         Add(new RailHoldSystem(keyboard, keybinds));
         Add(new ContactBarrierSystem(entities, offsets));
@@ -121,6 +123,8 @@ public sealed class PlayfieldSystemGroup : SystemGroup, IDisposable
                     root => new SvgAttachmentVisuals(root, containLayers: true))));
         }
 
+        if (divaToggle is not null)
+            Add(new DivaNotesSystem(entities, divaToggle));
         Add(new PlayfieldDrawSystem(entities, canvas, _playfield.Rid, passes, toPixels));
         if (hitboxToggle is not null)
         {

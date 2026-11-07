@@ -15,8 +15,29 @@ namespace Xanadu.Systems.Playfields;
 /// </summary>
 public sealed class PlayCameraSystem : QuerySystem<PlayCamera, Player, Position, PlayfieldView, Playfield>
 {
-    /// <summary>How quickly the view catches up with the player, per second.</summary>
-    public const float Follow = 7f;
+    /// <summary>
+    /// How quickly the view catches up with the player, per second, while the
+    /// player is near the middle of the screen: barely drifting.
+    /// </summary>
+    public const float FollowNear = 0.5f;
+
+    /// <summary>
+    /// How quickly the view catches up once the player reaches the screen's
+    /// edge, per second, so they never run out of view.
+    /// </summary>
+    public const float FollowFar = 9f;
+
+    /// <summary>
+    /// The follow rate for a player <paramref name="away"/> from the centring
+    /// scroll: rises with the square of the distance, measured against half
+    /// the viewport on each axis, so small offsets drift and big ones snap.
+    /// </summary>
+    public static float FollowRate(Vector2 away, Vector2 viewportSize)
+    {
+        Vector2 half = viewportSize / 2;
+        float reach = Math.Min(new Vector2(away.X / Math.Max(half.X, 1f), away.Y / Math.Max(half.Y, 1f)).Length(), 1f);
+        return FollowNear + (FollowFar - FollowNear) * reach * reach;
+    }
 
     /// <summary>How far a full kick knocks the view, in pixels.</summary>
     public const float KickPixels = 7f;
@@ -67,7 +88,7 @@ public sealed class PlayCameraSystem : QuerySystem<PlayCamera, Player, Position,
             bool jumped = (target - camera.Offset).Length() > camera.Viewport.Size.Length() / 3;
             camera.Offset = !camera.Placed || jumped
                 ? target
-                : camera.Offset.Lerp(target, 1f - MathF.Exp(-Follow * delta));
+                : camera.Offset.Lerp(target, 1f - MathF.Exp(-FollowRate(target - camera.Offset, camera.Viewport.Size) * delta));
             camera.Placed = true;
 
             camera.Kick *= MathF.Exp(-KickDecay * delta);

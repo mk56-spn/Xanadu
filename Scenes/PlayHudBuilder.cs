@@ -269,14 +269,14 @@ internal static class PlayHudBuilder
             new Rect2(screen.X / 2 - 350, screen.Y / 2 - 90, 700, 180),
             countdown);
 
-        // Left of the field, or at the screen's left edge when the field fills the width.
-        float trailX = Mathf.Max(origin.X - 220, PlayScene.SideInset + 220);
         float shownBottom = origin.Y + Mathf.Min(fieldHeight, viewport.Size.Y);
-        HudItemLayout keyTrailItem = hud.Add(
+        Vector2 trailCenter = PlayKeyTrailBuilder.DefaultCenter(origin, shownBottom);
+        Vector2 trailSize = PlayKeyTrailBuilder.Size;
+        hud.Add(
             "key_trail",
-            new Vector2(trailX, shownBottom - 140),
-            new Rect2(trailX - 220, shownBottom - 280, 430, 280));
-        keyTrailItem.Handle = entities.CreateEntity();
+            trailCenter,
+            new Rect2(trailCenter - trailSize / 2, trailSize),
+            PlayKeyTrailBuilder.Build(ui, playfield, trailCenter));
 
         playfield.AddComponent(hud);
 
@@ -333,17 +333,24 @@ internal static class PlayHudBuilder
         Vector2 screen,
         HudLayout hud)
     {
-        const float fullWidth = 420;
         const float innerWidth = 360;
+        const float bandHeight = 6;
+        const float barHeight = 20;
+        const float labelWidth = 56;
+        const float labelGap = 12;
+        const float edgePad = 12;
         float centerX = screen.X / 2;
         float y = screen.Y - 94;
         float maxMs = (float)ScoreRules.JudgementDeviation(Judgement.Miss);
         float pixelsPerMs = innerWidth / (maxMs * 2);
+        // EARLY and LATE sit beside the bands, so the strip stays one line tall.
+        float labelOffset = innerWidth / 2 + labelGap + labelWidth / 2;
+        float fullWidth = (labelOffset + labelWidth / 2 + edgePad) * 2;
 
         var members = new List<Entity>();
         members.Add(ui.HudRect(
             new Vector2(centerX, y),
-            new Vector2(fullWidth + 24, 38),
+            new Vector2(fullWidth, barHeight),
             default).Backing());
 
         (Judgement Judgement, double Inner, double Outer)[] bands =
@@ -365,43 +372,45 @@ internal static class PlayHudBuilder
             float offset = (float)((inner + outer) / 2) * pixelsPerMs;
             members.Add(ui.HudRect(
                 new Vector2(centerX - offset, y),
-                new Vector2(width, 14),
+                new Vector2(width, bandHeight),
                 color));
             members.Add(ui.HudRect(
                 new Vector2(centerX + offset, y),
-                new Vector2(width, 14),
+                new Vector2(width, bandHeight),
                 color));
         }
 
         members.Add(ui.HudRect(
             new Vector2(centerX, y),
-            new Vector2(2, 26),
+            new Vector2(2, barHeight - 6),
             Colors.White));
 
         Entity marker = ui.HudRect(
             new Vector2(centerX, y),
-            new Vector2(4, 30),
+            new Vector2(4, barHeight - 2),
             new Color(1, 1, 1, 0)).Entity;
         members.Add(marker);
 
-        members.Add(ui.HudText(new Vector2(centerX - innerWidth / 2, y + 28),
-            new Vector2(100, 20),
-            LocalizedText.Get(PlayStrings.Early),
-            12,
-            SceneUi.DimTextColor,
-            new Color(0, 0, 0, 0)));
+        members.Add(ui.HudText(new Vector2(centerX - labelOffset, y),
+                new Vector2(labelWidth, barHeight),
+                LocalizedText.Get(PlayStrings.Early),
+                12,
+                SceneUi.DimTextColor,
+                new Color(0, 0, 0, 0))
+            .Align(TextAlign.Right));
 
-        members.Add(ui.HudText(new Vector2(centerX + innerWidth / 2, y + 28),
-            new Vector2(100, 20),
-            LocalizedText.Get(PlayStrings.Late),
-            12,
-            SceneUi.DimTextColor,
-            new Color(0, 0, 0, 0)));
+        members.Add(ui.HudText(new Vector2(centerX + labelOffset, y),
+                new Vector2(labelWidth, barHeight),
+                LocalizedText.Get(PlayStrings.Late),
+                12,
+                SceneUi.DimTextColor,
+                new Color(0, 0, 0, 0))
+            .Align(TextAlign.Left));
 
         hud.Add(
             "error_bar",
             new Vector2(centerX, y),
-            new Rect2(centerX - fullWidth / 2 - 12, y - 20, fullWidth + 24, 78),
+            new Rect2(centerX - fullWidth / 2, y - barHeight / 2, fullWidth, barHeight),
             members.ToArray());
 
         playfield.AddComponent(new ErrorBar(

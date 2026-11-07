@@ -10,6 +10,7 @@ using Xanadu.Levels;
 using Xanadu.Scenes;
 using Xanadu.Settings;
 using Xanadu.Systems.Playfields;
+using Xanadu.Ui.Ecs.Ui;
 
 namespace Xanadu.Tests.VisualTests;
 
@@ -66,6 +67,22 @@ public sealed class PlaySceneTest : SceneTest
             "contact counters exist",
             () => Context.Entities.Query<ContactCounterHud>().Count == 1 &&
                   VisualAssert.HasText(Context.Entities, "L 0"));
+        AddAssert(
+            "key trail fills its drag box",
+            KeyTrailMatchesDragBox);
+    }
+
+    /// <summary>The key trail's frame covers exactly the box the HUD editor drags.</summary>
+    private bool KeyTrailMatchesDragBox()
+    {
+        Entity playfield = Context.Entities.Query<HudLayout>().ToEntityList()[0];
+        HudItemLayout item = playfield.GetComponent<HudLayout>().Items.First(item => item.Id == "key_trail");
+        Entity frame = item.Members[0];
+        Rect2 local = frame.GetComponent<Rectangle>().Bounds;
+        var drawn = new Rect2(frame.GetComponent<Position>().Value + local.Position, local.Size);
+        var dragged = new Rect2(item.Bounds.Position + item.Offset, item.Bounds.Size);
+        return drawn.Position.DistanceTo(dragged.Position) < 0.5f &&
+               drawn.Size.DistanceTo(dragged.Size) < 0.5f;
     }
 
     private void OpenPlay()

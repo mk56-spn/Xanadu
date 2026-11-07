@@ -92,7 +92,8 @@ public sealed class PlayfieldDrawSystem :
                     _seconds,
                     entity.TryGetComponent(out LevelGroups groups) ? groups.Groups : null,
                     entity.TryGetComponent(out LevelLayers layers) ? layers.Layers : null,
-                    _passes);
+                    _passes,
+                    entity.Tags.Has<DivaNotes>());
             }
         });
 
