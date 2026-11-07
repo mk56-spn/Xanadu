@@ -50,17 +50,9 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
             if (action.Kind != SceneActionKind.Go || target == SceneKind.None)
                 continue;
 
-            if (target == SceneKind.SongTiming)
-            {
-                foreach (Entity editor in _entities.Query<LevelInfo>().ToEntityList())
-                {
-                    state.SelectedSongId = editor.GetComponent<LevelInfo>().SongId;
-                    break;
-                }
-
-                if (string.IsNullOrWhiteSpace(state.SelectedSongId))
-                    continue;
-            }
+            // Timing needs a song already chosen (song select chooses it).
+            if (target == SceneKind.SongTiming && string.IsNullOrWhiteSpace(state.SelectedSongId))
+                continue;
 
             state.Pending = target;
             return;

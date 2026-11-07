@@ -32,9 +32,7 @@ public sealed class EditorMetronomeSystem : QuerySystem<Playhead, EditorMetronom
                 return;
             }
 
-            double beatMs = 60_000.0 / Math.Max(1, playhead.Bpm);
-            long beat = (long)Math.Floor(
-                (playhead.TimeMs - playhead.OffsetMs) / beatMs);
+            long beat = (long)Math.Floor(playhead.Tempo.BeatAt(playhead.TimeMs));
 
             if (beat == _lastBeat)
                 return;

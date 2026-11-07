@@ -327,13 +327,11 @@ public sealed class EditorCommandSystemTests : EcsSystemTest
     }
 
     [Test]
-    public void AppliesMetadataAndClampsTiming()
+    public void AppliesMetadataAndClampsTheSnap()
     {
         _commands.Enqueue(EditorCommand.SetName("Level"));
         _commands.Enqueue(EditorCommand.SetArtist("Artist"));
         _commands.Enqueue(EditorCommand.SetDifficulty("Hard"));
-        _commands.Enqueue(EditorCommand.SetBpm(0));
-        _commands.Enqueue(EditorCommand.SetOffset(900_000));
         _commands.Enqueue(EditorCommand.SetSnap(7));
 
         Frame();
@@ -343,8 +341,6 @@ public sealed class EditorCommandSystemTests : EcsSystemTest
         Assert.That(level.Name, Is.EqualTo("Level"));
         Assert.That(level.Artist, Is.EqualTo("Artist"));
         Assert.That(level.Difficulty, Is.EqualTo("Hard"));
-        Assert.That(playhead.Bpm, Is.EqualTo(1));
-        Assert.That(playhead.OffsetMs, Is.EqualTo(600_000));
         Assert.That(playhead.SnapDivision, Is.EqualTo(4));
     }
 
@@ -645,7 +641,7 @@ public sealed class EditorCommandSystemTests : EcsSystemTest
         Frame();
 
         Assert.That(_editor.GetComponent<LevelInfo>().Name, Is.EqualTo("Loaded"));
-        Assert.That(_editor.GetComponent<Playhead>().Bpm, Is.EqualTo(120));
+        Assert.That(_editor.GetComponent<Playhead>().Tempo.Points[0].Bpm, Is.EqualTo(120));
         Assert.That(_editor.GetComponent<LevelFile>().Path, Is.EqualTo("/tmp/loaded.xmf"));
         Assert.That(Store.Query<Note>().Count, Is.EqualTo(1));
     }

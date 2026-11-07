@@ -22,7 +22,7 @@ public sealed class EditorTimelineHost(
 
     public double StepMs => EditorTiming.StepMs(Playhead);
 
-    public double StepOriginMs => Playhead.OffsetMs;
+    public double StepOriginMs => EditorTiming.StepOriginMs(Playhead);
 
     public bool Blocked
     {

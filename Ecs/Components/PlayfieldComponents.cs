@@ -41,10 +41,14 @@ public struct Playfield(int width, int height) : IComponent
     public int Height = height;
 }
 
-/// <summary>Editor and play transport state.</summary>
+/// <summary>
+/// Editor and play transport state. <see cref="Tempo"/> is the song's timing
+/// (read-only here: songs are timed globally, on the song timing screen); the
+/// constructor's <c>bpm</c> and <c>offsetMs</c> make a one-tempo map.
+/// </summary>
 public struct Playhead(
     long timeMs,
-    int bpm,
+    double bpm,
     long offsetMs,
     bool playing,
     long durationMs = 0,
@@ -53,8 +57,15 @@ public struct Playhead(
     int audioRevision = 0) : IComponent
 {
     public long TimeMs = timeMs;
-    public int Bpm = bpm;
-    public long OffsetMs = offsetMs;
+    private Xanadu.Levels.TempoMap? _tempo = Xanadu.Levels.TempoMap.Single(bpm, offsetMs);
+
+    /// <summary>The song's tempo map: beat 0, BPM changes and bar lengths.</summary>
+    public Xanadu.Levels.TempoMap Tempo
+    {
+        readonly get => _tempo ?? Xanadu.Levels.TempoMap.Default;
+        set => _tempo = value;
+    }
+
     public bool Playing = playing;
     public long DurationMs = durationMs;
     public long SeekRequestMs = seekRequestMs;
@@ -406,4 +417,29 @@ public enum PlayfieldKind
 public struct PlayfieldMode(PlayfieldKind kind) : IComponent
 {
     public PlayfieldKind Kind = kind;
+}
+
+/// <summary>
+/// On a play playfield: notes approach the DIVA+ way from the notes lab — a
+/// target with a clock hand, the note flying in onto it, and a spark running
+/// the guide line. F8 turns it off for the ring look.
+/// </summary>
+public struct DivaNotes : ITag;
+
+/// <summary>
+/// The DIVA+ guide spark's leg: the last hit moment it leaves from and the
+/// moment it runs to. Hit notes are deleted, so the moment just hit is
+/// remembered here. Positions are playfield units, where the notes were shown.
+/// </summary>
+public struct DivaSpark : IComponent
+{
+    public bool HasFrom;
+    public long FromMs;
+    public Vector2 From;
+    public bool FromChord;
+
+    public bool HasNext;
+    public long NextMs;
+    public Vector2 Next;
+    public bool NextChord;
 }

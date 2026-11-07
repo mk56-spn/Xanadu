@@ -31,7 +31,7 @@ public enum NoteApproachStyle
 public sealed class NoteApproachExperiment : ILabExperiment
 {
     private static readonly int[] ApproachSteps = [600, 900, 1200, 1500, 1800, 2400];
-    private static readonly int[] TempoSteps = [100, 120, 150, 180];
+    private static readonly int[] TempoSteps = [100, 120, 150, 180,300];
 
     private readonly NoteApproachStyle _style;
     private int _approachIndex = TriangleBench.StartIndex("--approach=", Array.ConvertAll(ApproachSteps, s => (float)s), 2);

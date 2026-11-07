@@ -77,7 +77,12 @@ public sealed class EditorTimelineDrawer
         DrawBpmMarker(ruler, playhead, windowStart, windowEnd);
         DrawStartMarkers(ruler, frame.Selection, windowStart, windowEnd);
         int subdivisions = Math.Max(1, playhead.SnapDivision);
-        double tickMs = TimingGrid.TickMs(playhead.Bpm, subdivisions);
+        TempoMap tempo = playhead.Tempo;
+        double firstBeat = tempo.BeatAt(windowStart);
+        double lastBeat = tempo.BeatAt(windowEnd);
+
+        // The window's average tick, for thinning; the ticks themselves follow the tempo map.
+        double tickMs = (windowEnd - windowStart) / Math.Max(1e-6, (lastBeat - firstBeat) * subdivisions);
 
         float pixelsPerTick = ruler.Size.X * (float)tickMs / Math.Max(1f, windowEnd - windowStart);
         int skip = 1;
@@ -90,8 +95,8 @@ public sealed class EditorTimelineDrawer
         while (pixelsPerBeat * beatSkip < MinBeatSpacing)
             beatSkip *= 2;
 
-        int firstTick = TimingGrid.FirstTick(windowStart, playhead.OffsetMs, tickMs);
-        int lastTick = TimingGrid.LastTick(windowEnd, playhead.OffsetMs, tickMs);
+        int firstTick = (int)Math.Floor(firstBeat * subdivisions);
+        int lastTick = (int)Math.Ceiling(lastBeat * subdivisions);
 
         for (int tick = firstTick; tick <= lastTick; tick++)
         {
@@ -111,7 +116,7 @@ public sealed class EditorTimelineDrawer
                 continue;
             }
 
-            double tickTime = TimingGrid.TickTime(tick, playhead.OffsetMs, tickMs);
+            double tickTime = tempo.TimeAt(tick / (double)subdivisions);
             if (tickTime < windowStart - 1 || tickTime > windowEnd + 1)
                 continue;
 
@@ -175,16 +180,15 @@ public sealed class EditorTimelineDrawer
             Colors.White);
     }
 
+    /// <summary>A faint band per beat, brighter on the first beat of each bar (bars from the tempo map).</summary>
     private void DrawBeatBands(Rect2 ruler, Playhead playhead, long windowStart, long windowEnd)
     {
-        double beatMs = 60_000.0 / Math.Max(1, playhead.Bpm);
-        double first = Math.Floor((windowStart - playhead.OffsetMs) / beatMs);
-        double last = Math.Ceiling((windowEnd - playhead.OffsetMs) / beatMs);
-
-        for (int beat = (int)first; beat < last; beat++)
+        TempoMap tempo = playhead.Tempo;
+        double firstBeat = Math.Floor(tempo.BeatAt(windowStart));
+        foreach (TempoTick tick in tempo.Ticks(tempo.TimeAt(firstBeat), windowEnd, 1))
         {
-            double start = playhead.OffsetMs + beat * beatMs;
-            double end = start + beatMs;
+            double start = tick.TimeMs;
+            double end = tempo.TimeAt(tick.Beat + 1);
             if (end < windowStart || start > windowEnd)
                 continue;
 
@@ -198,7 +202,7 @@ public sealed class EditorTimelineDrawer
                 windowStart,
                 windowEnd,
                 (long)Math.Min(end, windowEnd));
-            bool accent = beat % 4 == 0;
+            bool accent = tick.OnBar;
             _surface.Canvas.DrawRect(
                 _surface.Target,
                 new Rect2(x0, ruler.Position.Y + 1, Math.Max(1f, x1 - x0 - 1), ruler.Size.Y - 2),
@@ -206,18 +210,29 @@ public sealed class EditorTimelineDrawer
         }
     }
 
+    /// <summary>
+    /// A marker at the offset and at every BPM change, tagged with the tempo
+    /// (and the bar length when it isn't four). Read-only here: songs are
+    /// timed on the song timing screen.
+    /// </summary>
     private void DrawBpmMarker(Rect2 ruler, Playhead playhead, long windowStart, long windowEnd)
     {
-        if (playhead.OffsetMs < windowStart || playhead.OffsetMs > windowEnd)
-            return;
+        foreach (TempoPoint point in playhead.Tempo.Points)
+        {
+            if (point.TimeMs < windowStart || point.TimeMs > windowEnd)
+                continue;
 
-        float x = EditorTimelineGeometry.XForTime(ruler, windowStart, windowEnd, playhead.OffsetMs);
-        _surface.Canvas.DrawRect(
-            _surface.Target,
-            new Rect2(x, ruler.Position.Y, 2, ruler.Size.Y),
-            PlayfieldRenderer.SelectedNoteColor);
+            float x = EditorTimelineGeometry.XForTime(ruler, windowStart, windowEnd, (long)Math.Round(point.TimeMs));
+            _surface.Canvas.DrawRect(
+                _surface.Target,
+                new Rect2(x, ruler.Position.Y, 2, ruler.Size.Y),
+                PlayfieldRenderer.SelectedNoteColor);
 
-        DrawMarkerTag(ruler, x + 2, $"{playhead.Bpm} BPM", PlayfieldRenderer.SelectedNoteColor, rightOfLine: true);
+            string label = point.BeatsPerBar == 4
+                ? $"{TempoText.Bpm(point.Bpm)} BPM"
+                : $"{TempoText.Bpm(point.Bpm)} BPM {point.BeatsPerBar}/4";
+            DrawMarkerTag(ruler, x + 2, label, PlayfieldRenderer.SelectedNoteColor, rightOfLine: true);
+        }
     }
 
     /// <summary>

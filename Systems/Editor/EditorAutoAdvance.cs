@@ -48,7 +48,9 @@ public static class EditorAutoAdvance
     /// <summary>The snap after <paramref name="placedMs"/>, held inside the song when its length is known.</summary>
     public static long Next(long placedMs, Playhead playhead)
     {
-        long next = EditorTiming.Snap(placedMs + (long)Math.Round(EditorTiming.StepMs(playhead)), playhead);
+        long next = playhead.SnapOff
+            ? placedMs + (long)Math.Round(EditorTiming.StepMs(playhead))
+            : EditorTiming.Step(placedMs, playhead, 1);
         return playhead.DurationMs > 0 ? Math.Min(next, playhead.DurationMs) : next;
     }
 }
