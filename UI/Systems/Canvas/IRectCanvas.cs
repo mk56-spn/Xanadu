@@ -34,6 +34,13 @@ public interface IRectCanvas
     void SelectCommonShader(string path, BlendMode blend = BlendMode.Mix) { }
 
     /// <summary>
+    /// Sends the draws that follow into a run of their own, even when the
+    /// selection matches the current run's, so instance values set for them
+    /// reach only them. Canvases with no shaders ignore it.
+    /// </summary>
+    void NewRun() { }
+
+    /// <summary>
     /// Routes the draws that follow into draw layer <paramref name="layer"/>'s
     /// own container, which stacks over everything drawn before it. Layers are
     /// begun back to front, each once per frame. Canvases with no layers ignore it.

@@ -83,6 +83,12 @@ public sealed class EditorGhostDrawer(EditorDrawSurface surface)
                 PlayfieldRenderer.DrawGrassPatch(surface.Canvas, surface.Target, grass, view, frame.Seconds);
                 break;
 
+            case EditorPlacementMode.Flare:
+                LevelFlare flare = placement.Flare;
+                flare.Position = GridPlacement.PlaceFlare(pointer, flare, playfield, snap);
+                PlayfieldRenderer.DrawFlareLight(surface.Canvas, surface.Target, flare, view, Faint(flare.Color));
+                break;
+
             case EditorPlacementMode.Polygon:
                 surface.Canvas.DrawCircle(surface.Target, ghost.Screen, 3f, Faint(PlayfieldRenderer.PolygonFill));
                 break;

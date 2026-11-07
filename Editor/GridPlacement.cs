@@ -111,6 +111,28 @@ public static class GridPlacement
         Vector2 cell = Cell(playfield);
         return new Vector2(
             size.X > 0f && size.X < cell.X ? size.X : cell.X,
+    /// <summary>
+    /// Snaps a flare's box by its centre, onto the half-cell grid, and keeps
+    /// the centre in the field. Its light may spill past the edges; it is a
+    /// light, not a body, so only its core has to be on the field.
+    /// </summary>
+    public static Vector2 SettleFlare(Vector2 position, Vector2 size, Playfield playfield, bool snap = true)
+    {
+        Vector2 center = position + size / 2;
+        Vector2 half = Cell(playfield) / 2;
+        if (snap && half.X > 0 && half.Y > 0)
+            center = ViewportSnap.Snap(center, half);
+        center = new Vector2(Mathf.Clamp(center.X, 0, playfield.Width), Mathf.Clamp(center.Y, 0, playfield.Height));
+        return center - size / 2;
+    }
+
+    /// <summary>Where a flare's centre goes when placed at <paramref name="pointer"/>.</summary>
+    public static Vector2 PlaceFlare(Vector2 pointer, LevelFlare flare, Playfield playfield, bool snap = true)
+    {
+        var size = new Vector2(flare.Width, flare.Height);
+        return SettleFlare(pointer - size / 2, size, playfield, snap) + size / 2;
+    }
+
             size.Y > 0f && size.Y < cell.Y ? size.Y : cell.Y);
     }
 
@@ -159,8 +181,7 @@ public static class GridPlacement
             }
         }
 
-        handle = GridHandle.None;
-        return false;
+        return handle != GridHandle.None;
     }
 
     /// <summary>
@@ -236,64 +257,16 @@ public static class GridPlacement
         _ => GridHandle.None,
     };
 
-    /// <summary>A block's, spike's, grass patch's or screen-read region's box and turn; false for any other entity.</summary>
+    /// <summary>A boxed item's unturned box and turn (<see cref="ItemKind.TryGetBox"/>); false for the kinds that aren't boxes.</summary>
     public static bool TryGet(Entity entity, out Rect2 bounds, out float degrees)
     {
-        degrees = 0f;
-        if (entity.TryGetComponent(out GrassPatch grass))
-        {
-            bounds = grass.Bounds;
-            degrees = grass.RotationDegrees;
-            return true;
-        }
-
-        if (entity.TryGetComponent(out Block block))
-        {
-            bounds = block.Bounds;
-            return true;
-        }
-
-        if (entity.TryGetComponent(out Spike spike))
-        {
-            bounds = spike.Bounds;
-            degrees = spike.RotationDegrees;
-            return true;
-        }
-
-        if (entity.TryGetComponent(out ScreenReadRegion region))
-        {
-            bounds = region.Bounds;
-            return true;
-        }
-
         bounds = default;
-        return false;
+        degrees = 0f;
+        return ItemKinds.Of(entity)?.TryGetBox(entity, out bounds, out degrees) == true;
     }
 
-    /// <summary>Gives a block, spike, grass patch or screen-read region a new box, leaving the rest of it alone.</summary>
-    public static void SetBounds(Entity entity, Rect2 bounds)
-    {
-        if (entity.HasComponent<GrassPatch>())
-            entity.GetComponent<GrassPatch>().SetBounds(bounds);
-        else if (entity.HasComponent<Block>())
-        {
-            ref Block block = ref entity.GetComponent<Block>();
-            block.Position = bounds.Position;
-            block.Size = bounds.Size;
-        }
-        else if (entity.HasComponent<Spike>())
-        {
-            ref Spike spike = ref entity.GetComponent<Spike>();
-            spike.Position = bounds.Position;
-            spike.Size = bounds.Size;
-        }
-        else if (entity.HasComponent<ScreenReadRegion>())
-        {
-            ref ScreenReadRegion region = ref entity.GetComponent<ScreenReadRegion>();
-            region.Position = bounds.Position;
-            region.Size = bounds.Size;
-        }
-    }
+    /// <summary>Gives a boxed item a new box, leaving the rest of it alone.</summary>
+    public static void SetBounds(Entity entity, Rect2 bounds) => ItemKinds.Of(entity)?.SetBox(entity, bounds);
 
     /// <summary>A box may not overlap another of its own kind; merely touching is fine.</summary>
     public static bool IsBlockSpaceFree(EntityStore entities, Rect2 box)

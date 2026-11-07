@@ -151,6 +151,7 @@ public partial class EditorOverlay : CanvasLayer, IEditorShortcutTarget
             EditorPlacementMode.FormStep => "Place Form step",
             EditorPlacementMode.Text => "Place text",
             EditorPlacementMode.Grass => "Place grass",
+            EditorPlacementMode.Flare => "Place flare",
             EditorPlacementMode.Polygon => "Draw a polygon: click its points, then the first again",
             _ => "Placement mode",
         });

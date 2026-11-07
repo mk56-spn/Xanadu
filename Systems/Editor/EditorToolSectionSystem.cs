@@ -29,6 +29,11 @@ public static class EditorToolSections
         EditorPlacementMode.Grass,
     };
 
+    public static readonly EditorPlacementMode[] Flare =
+    {
+        EditorPlacementMode.Flare,
+    };
+
     public static readonly EditorPlacementMode[] FormShape =
     {
         EditorPlacementMode.Blocks,

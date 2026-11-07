@@ -72,7 +72,7 @@ public static class EditorSceneSidebar
                 ToolButton(flyout, size, tool.Icon, ToolTooltip(tool), EditorPlacementKeybinds.LabelFor(tool.Mode), EditorButton.Place(tool.Mode));
 
             // The corner mark says the button opens more tools.
-            (UiNode button, Entity icon) = ToolButton(strip, size, group.Tools[0].Icon, group.Name, "◢", new EditorButton(EditorButtonKind.ToolGroup, index));
+            (UiNode button, Entity icon) = ToolButton(strip, size, group.Icon ?? group.Tools[0].Icon, group.Name, "◢", new EditorButton(EditorButtonKind.ToolGroup, index));
             button.With(new EditorToolGroup(index, flyout.Entity, icon));
         }
     }
@@ -383,6 +383,7 @@ public static class EditorSceneSidebar
         }
 
         BuildGrassPanel(panel, editor, inner);
+        EditorSceneFlarePanel.Build(panel, editor, inner);
 
         UiNode costSection = EditorSceneUi.ToolSection(panel, inner, EditorToolSections.ContactCost);
         EditorSceneUi.SidebarLabel(costSection, "CONTACT COST", inner, 12);

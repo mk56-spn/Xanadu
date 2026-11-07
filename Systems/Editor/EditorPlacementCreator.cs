@@ -116,6 +116,29 @@ public sealed class EditorPlacementCreator(EditorSceneQuery scene, EditorHistory
 
         if (editor.HasComponent<EditorPlacement>() &&
             editor.GetComponent<EditorPlacement>().Mode ==
+            EditorPlacementMode.Flare)
+        {
+            PlayfieldView flareView = editor.GetComponent<PlayfieldView>();
+            Vector2 flarePosition = flareView.ScreenToPlayfield(screenPosition);
+            if (!EditorItemPicker.IsInside(flarePosition, editor.GetComponent<Playfield>()))
+                return;
+
+            // The click is where the core goes; with snap on, it sits on the half-cell grid.
+            LevelFlare flare = editor.GetComponent<EditorPlacement>().Flare;
+            flare.Position = GridPlacement.PlaceFlare(
+                flarePosition,
+                flare,
+                editor.GetComponent<Playfield>(),
+                ViewportSnap.IsOn(scene.Store));
+            EditorSnapshot flareBefore = history.Capture();
+            Entity placed = EditorItems.Place(scene.Store, flare);
+            history.Record(flareBefore, history.Capture());
+            editor.GetComponent<NoteSelection>().Note = placed;
+            return;
+        }
+
+        if (editor.HasComponent<EditorPlacement>() &&
+            editor.GetComponent<EditorPlacement>().Mode ==
             EditorPlacementMode.Mines)
         {
             PlayfieldView view = editor.GetComponent<PlayfieldView>();

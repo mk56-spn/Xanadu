@@ -51,6 +51,7 @@ public sealed class EditorSystemGroup : SystemGroup, IDisposable
         Add(new EditorBlockOutlineSystem(history));
         Add(new EditorTextPanelSystem(history));
         Add(new EditorGrassPanelSystem(history));
+        Add(new EditorFlarePanelSystem(history));
         Add(new EditorLayerInspectorSystem(history));
         Add(new EditorLayersPanelSystem(history));
         Add(new EditorGroupOverlayDrawSystem(canvas, _groupOverlay.Rid));

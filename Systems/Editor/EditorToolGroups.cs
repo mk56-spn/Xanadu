@@ -8,7 +8,8 @@ namespace Xanadu.Systems.Editor;
 public readonly record struct EditorTool(EditorPlacementMode Mode, string Icon, string Name);
 
 /// <summary>A tool-strip button: one tool, or several that open in a flyout beside it.</summary>
-public readonly record struct EditorToolGroupInfo(string Name, EditorTool[] Tools)
+/// <param name="Icon">The strip button's own icon, whatever tool is out; null shows the current tool's.</param>
+public readonly record struct EditorToolGroupInfo(string Name, EditorTool[] Tools, string? Icon = null)
 {
     public bool IsGroup => Tools.Length > 1;
 }
@@ -45,13 +46,20 @@ public static class EditorToolGroups
             new(EditorPlacementMode.Text, "T", "Text"),
             new(EditorPlacementMode.ScreenRead, "▭", "Screen-read regions: a rect that refreshes the screen read where it is reached"),
         }),
-        new("Grass", new EditorTool[] { new(EditorPlacementMode.Grass, "🌿", "Grass") }),
+        new("Decorations", new EditorTool[]
+        {
+            new(EditorPlacementMode.Grass, "🌿", "Grass"),
+            new(EditorPlacementMode.Flare, "✦", "Flares: a shader-drawn lens flare along one or two axes"),
+        }, Icon: "❖"),
         new("Polygons", new EditorTool[] { new(EditorPlacementMode.Polygon, "⬟", "Polygons: click the points, then the first again or Enter; Esc drops it") }),
     };
 
-    /// <summary>The icon the strip shows for a group: its current tool's when that is in it, else its first tool's.</summary>
+    /// <summary>The icon the strip shows for a group: its own when it has one, else its current tool's when that is in it, else its first tool's.</summary>
     public static string IconFor(EditorToolGroupInfo group, EditorPlacementMode current)
     {
+        if (group.Icon is { } own)
+            return own;
+
         foreach (EditorTool tool in group.Tools)
         {
             if (tool.Mode == current)

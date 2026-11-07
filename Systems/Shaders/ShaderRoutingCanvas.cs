@@ -126,6 +126,13 @@ public sealed class ShaderRoutingCanvas(IRectCanvas inner, Rid root, IShaderCanv
         _stamp++;
     }
 
+    public void NewRun()
+    {
+        _current ??= _root;
+        _current.HasRun = false;
+        _stamp++;
+    }
+
     public void SetShaderValue(string param, Vector4 value, int size)
     {
         if (_buffer is not null)

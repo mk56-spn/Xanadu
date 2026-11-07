@@ -1,0 +1,1 @@
+../../../../Assets/Shaders/flare.gdshader

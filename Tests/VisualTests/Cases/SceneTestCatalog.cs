@@ -67,6 +67,7 @@ public static class SceneTestCatalog
         new EditorBlockSizesSceneTest(),
         new EditorTextSceneTest(),
         new EditorGrassSceneTest(),
+        new EditorFlareSceneTest(),
         new EditorToolGroupsSceneTest(),
         new EditorPolygonSceneTest(),
         new EditorScreenReadSceneTest(),

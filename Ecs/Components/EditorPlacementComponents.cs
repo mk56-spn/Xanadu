@@ -30,6 +30,9 @@ public enum EditorPlacementMode
 
     /// <summary>A screen-read region: a rect that refreshes the back buffer where it is reached.</summary>
     ScreenRead,
+
+    /// <summary>A lens flare, drawn by its own shader.</summary>
+    Flare,
 }
 
 /// <summary>The block the block tool lays down, as fractions of a grid cell.</summary>
@@ -85,6 +88,12 @@ public struct EditorPlacement() : IComponent
     /// the patch last stepped, so the next patch looks like it.
     /// </summary>
     public GrassPatch Grass = new();
+
+    /// <summary>
+    /// The settings new flares get; the flare panel keeps it matching the
+    /// flare last stepped, so the next one looks like it.
+    /// </summary>
+    public LevelFlare Flare = new();
 
     /// <summary>
     /// The self modulate new items get. The colour field sets it when a colour is

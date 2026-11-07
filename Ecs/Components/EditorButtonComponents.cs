@@ -71,6 +71,11 @@ public enum EditorButtonKind
     ZStep,
     /// <summary>Steps where the selection's shader comes from; the argument is the step.</summary>
     ShaderSourceStep,
+    /// <summary>
+    /// Steps a setting of the selected flares, or of the flare brush; the
+    /// argument is the <see cref="FlareSetting"/> plus one, negative for less.
+    /// </summary>
+    FlareStep,
 }
 
 /// <summary>An ECS editor button: what it does, and the value it does it with.</summary>
