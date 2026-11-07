@@ -15,7 +15,7 @@ using Xanadu.Ui.Ecs.Ui;
 
 namespace Xanadu.Tests.VisualTests;
 
-/// <summary>Regression: the ECS snap and note-type dropdowns must be clickable.</summary>
+/// <summary>Regression: the ECS character dropdown and note-type swatches must be clickable.</summary>
 public sealed class EditorDropdownSceneTest : SceneTest
 {
     private float _closedSidebarHeight;
@@ -30,9 +30,8 @@ public sealed class EditorDropdownSceneTest : SceneTest
         AddUntilStep(
             "wait for editor sidebar",
             () => Context.Scenes.Current == SceneKind.Editor &&
-                  VisualAssert.HasText(Context.Entities, "SNAP") &&
                   VisualAssert.HasText(Context.Entities, "CHARACTER") &&
-                  Context.Entities.Query<EditorDropdownControl>().Count == 2);
+                  !FindDropdown(EditorDropdownKind.Character).IsNull);
         AddAssert(
             "note swatches use lane colours",
             NoteSwatchesAreColoured);
@@ -42,53 +41,26 @@ public sealed class EditorDropdownSceneTest : SceneTest
             _closedSidebarTop = SidebarTop();
         });
 
-        AddStep("click snap dropdown", () => ClickDropdown(EditorDropdownKind.Snap));
-        AddWaitStep("hold snap dropdown", 2);
-        AddStep("release snap dropdown", () => Context.Pointer.Release());
-        AddAssert(
-            "snap dropdown opened",
-            () => FindDropdown(EditorDropdownKind.Snap).GetComponent<Dropdown>().Open);
-        AddAssert(
-            "snap does not resize the right sidebar",
-            () => Math.Abs(SidebarHeight() - _closedSidebarHeight) < 0.1f);
+        AddStep("click character dropdown", () => ClickDropdown(EditorDropdownKind.Character));
+        AddWaitStep("hold character dropdown", 2);
+        AddStep("release character dropdown", () => Context.Pointer.Release());
+        AddUntilStep(
+            "character dropdown opened",
+            () => FindDropdown(EditorDropdownKind.Character).GetComponent<Dropdown>().Open);
         AddAssert(
             "sidebar top stays fixed when open",
             () => SidebarTop() == _closedSidebarTop);
-
-        AddStep(
-            "click character while snap is open",
-            () => ClickDropdown(EditorDropdownKind.Character));
-        AddWaitStep("hold character over snap", 2);
-        AddStep("release character over snap", () => Context.Pointer.Release());
-        AddUntilStep(
-            "character replaces snap",
-            () => FindDropdown(EditorDropdownKind.Character)
-                      .GetComponent<Dropdown>().Open &&
-                  !FindDropdown(EditorDropdownKind.Snap)
-                      .GetComponent<Dropdown>().Open);
         AddAssert(
-            "character list is aligned after snap closes",
+            "character list is aligned",
             () => DropdownListIsAligned(EditorDropdownKind.Character));
 
-        AddStep(
-            "reopen snap over character",
-            () => ClickDropdown(EditorDropdownKind.Snap));
-        AddWaitStep("hold snap over character", 2);
-        AddStep("release snap over character", () => Context.Pointer.Release());
+        AddStep("choose splitline", () => ClickDropdownOption(EditorDropdownKind.Character, (int)CharacterKind.SplitLine));
+        AddWaitStep("hold character option", 2);
+        AddStep("release character option", () => Context.Pointer.Release());
         AddUntilStep(
-            "snap replaces character",
-            () => FindDropdown(EditorDropdownKind.Snap)
-                      .GetComponent<Dropdown>().Open &&
-                  !FindDropdown(EditorDropdownKind.Character)
-                      .GetComponent<Dropdown>().Open);
-
-        AddStep("choose 1/16 snap", () => ClickDropdownOption(EditorDropdownKind.Snap, 2));
-        AddWaitStep("hold snap option", 2);
-        AddStep("release snap option", () => Context.Pointer.Release());
-        AddUntilStep(
-            "snap changed",
-            () => Context.Entities.Query<Playhead>().ToEntityList()[0]
-                .GetComponent<Playhead>().SnapDivision == 16);
+            "character changed",
+            () => Context.Entities.Query<EditorPlacement>().ToEntityList()[0]
+                .GetComponent<EditorPlacement>().Character == CharacterKind.SplitLine);
         AddAssert(
             "sidebar collapses when closed",
             () => SidebarHeight() == _closedSidebarHeight);

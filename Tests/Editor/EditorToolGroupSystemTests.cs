@@ -72,13 +72,13 @@ public sealed class EditorToolGroupSystemTests : EcsSystemTest
     }
 
     [Test]
-    public void PickingAToolFromTheFlyoutClosesItAndLightsTheGroup()
+    public void PickingAToolFromTheFlyoutKeepsItOpenAndLightsTheGroup()
     {
         Press(_hazards);
         Press(_mines);
 
         Assert.That(_editor.GetComponent<EditorPlacement>().Mode, Is.EqualTo(EditorPlacementMode.Mines));
-        Assert.That(IsOpen(_hazards), Is.False);
+        Assert.That(IsOpen(_hazards), Is.True);
         Assert.That(
             _hazards.GetComponent<EditorToolGroup>().Icon.GetComponent<Text>().Value,
             Is.EqualTo("✹"),
@@ -86,7 +86,7 @@ public sealed class EditorToolGroupSystemTests : EcsSystemTest
     }
 
     [Test]
-    public void AToolPickedByKeyClosesAnOpenFlyout()
+    public void AToolOutsideTheGroupClosesAnOpenFlyout()
     {
         Press(_notes);
         _editor.GetComponent<EditorPlacement>().Mode = EditorPlacementMode.Spikes;

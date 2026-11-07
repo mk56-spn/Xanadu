@@ -8,21 +8,6 @@ namespace Xanadu.Systems.Editor;
 /// <summary>Which tools use which part of the left panel.</summary>
 public static class EditorToolSections
 {
-    public static readonly EditorPlacementMode[] Snap =
-    {
-        EditorPlacementMode.Notes,
-        EditorPlacementMode.Mines,
-        EditorPlacementMode.Dash,
-        EditorPlacementMode.Start,
-        EditorPlacementMode.Contact,
-        EditorPlacementMode.CharacterSwitch,
-        EditorPlacementMode.Pair,
-        EditorPlacementMode.Momentum,
-        EditorPlacementMode.WeaponSwitch,
-        EditorPlacementMode.Channel,
-        EditorPlacementMode.FormStep,
-    };
-
     public static readonly EditorPlacementMode[] MoveStrength =
     {
         EditorPlacementMode.Dash,

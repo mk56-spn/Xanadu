@@ -78,7 +78,7 @@ public sealed class EditorGhostDrawer(EditorDrawSurface surface)
 
             case EditorPlacementMode.Grass:
                 GrassPatch grass = placement.Grass;
-                grass.Position = snap ? PlayfieldGrid.NearestCrossing(pointer, playfield) : pointer;
+                grass.Position = GridPlacement.PlaceGrass(pointer, grass, playfield, snap);
                 grass.Color = Faint(grass.Color);
                 PlayfieldRenderer.DrawGrassPatch(surface.Canvas, surface.Target, grass, view, frame.Seconds);
                 break;

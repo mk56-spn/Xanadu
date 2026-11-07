@@ -73,6 +73,9 @@ public sealed class EditorRailLayerSystem : QuerySystem<EditorButton>
 
     private void PlaceRail(KeybindAction action, Entity editor, long holdMs)
     {
+        if (EditorItems.WouldOverfill(_entities, editor))
+            return;
+
         Playhead playhead = editor.GetComponent<Playhead>();
         long time = EditorTiming.Snap(playhead.TimeMs, playhead);
         EditorSnapshot before = _history.Capture();
@@ -90,6 +93,9 @@ public sealed class EditorRailLayerSystem : QuerySystem<EditorButton>
 
     private void PlaceEnd(ChannelSide side, Entity editor)
     {
+        if (EditorItems.WouldOverfill(_entities, editor))
+            return;
+
         Playhead playhead = editor.GetComponent<Playhead>();
         long time = EditorTiming.Snap(playhead.TimeMs, playhead);
         EditorSnapshot before = _history.Capture();

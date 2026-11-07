@@ -89,9 +89,10 @@ public struct EditorToolGroup(int index, Entity flyout, Entity icon) : IComponen
 
 /// <summary>
 /// Opens and closes the tool groups' flyouts. A group's button toggles its
-/// flyout and closes any other; picking a tool, from a flyout or a key,
-/// closes them all. The button lights up while one of its tools is the
-/// current one, and shows that tool's icon.
+/// flyout and closes any other. Picking a tool in an open flyout leaves it
+/// open, so its tools can be swapped between; moving to a tool outside the
+/// group, from another button or a key, closes it. The button lights up while
+/// one of its tools is the current one, and shows that tool's icon.
 /// </summary>
 public sealed class EditorToolGroupSystem : QuerySystem<EditorToolGroup>
 {
@@ -131,28 +132,13 @@ public sealed class EditorToolGroupSystem : QuerySystem<EditorToolGroup>
         foreach (Entity entity in groups)
         {
             ref EditorToolGroup group = ref entity.GetComponent<EditorToolGroup>();
-            if (picked || PickedIn(group.Flyout))
+            EditorToolGroupInfo info = EditorToolGroups.All[group.Index];
+            if (picked && !EditorToolGroups.Holds(info, mode))
                 group.Open = false;
 
-            EditorToolGroupInfo info = EditorToolGroups.All[group.Index];
             UiLayout.SetHidden(group.Flyout, buffer, !group.Open);
             EditorButtons.Tint(entity, EditorToolGroups.Holds(info, mode), buffer);
             UiText.Set(group.Icon, EditorToolGroups.IconFor(info, mode), buffer);
         }
-    }
-
-    /// <summary>Whether a tool in the flyout is being pressed, even the current one again.</summary>
-    private static bool PickedIn(Entity flyout)
-    {
-        if (flyout.IsNull)
-            return false;
-
-        foreach (Entity child in flyout.ChildEntities)
-        {
-            if (child.Tags.Has<Pressed>() && child.HasComponent<EditorButton>())
-                return true;
-        }
-
-        return false;
     }
 }

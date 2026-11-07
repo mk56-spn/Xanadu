@@ -76,6 +76,33 @@ public static class GridPlacement
         Clamp(snap ? ViewportSnap.Snap(position, SnapStep(size, playfield)) : position, size, playfield);
 
     /// <summary>
+    /// Snaps a grass patch's box by the edges that meet blocks: its left side
+    /// onto a column line and its base onto a row line, so a patch laid along a
+    /// block's top sits on it and starts at its corner. Its top, the blade tips,
+    /// is left wherever its length puts it.
+    /// </summary>
+    public static Vector2 SettleGrass(Vector2 position, Vector2 size, Playfield playfield, bool snap = true)
+    {
+        Vector2 cell = Cell(playfield);
+        if (snap && cell.X > 0 && cell.Y > 0)
+        {
+            position = new Vector2(
+                Mathf.Round(position.X / cell.X) * cell.X,
+                Mathf.Round((position.Y + size.Y) / cell.Y) * cell.Y - size.Y);
+        }
+
+        return Clamp(position, size, playfield);
+    }
+
+    /// <summary>Where a patch's base goes when placed at <paramref name="pointer"/>, its base's middle.</summary>
+    public static Vector2 PlaceGrass(Vector2 pointer, GrassPatch patch, Playfield playfield, bool snap = true)
+    {
+        var size = new Vector2(patch.Width, patch.Length);
+        Vector2 corner = SettleGrass(pointer - new Vector2(size.X / 2, size.Y), size, playfield, snap);
+        return corner + new Vector2(size.X / 2, size.Y);
+    }
+
+    /// <summary>
     /// The grid an item snaps to: the field's cells, or its own size where that is
     /// finer, so a block smaller than a cell lands on its own edges and quarters tile.
     /// </summary>

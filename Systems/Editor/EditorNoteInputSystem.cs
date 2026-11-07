@@ -317,9 +317,11 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
 
             if (GridPlacement.TryGet(entity, out Rect2 box, out _))
             {
-                GridPlacement.SetBounds(entity, new Rect2(
-                    GridPlacement.Move(start, box.Size, delta, playfield, ViewportSnap.IsOn(_entities)),
-                    box.Size));
+                bool snap = ViewportSnap.IsOn(_entities);
+                Vector2 corner = entity.HasComponent<GrassPatch>()
+                    ? GridPlacement.SettleGrass(start + delta, box.Size, playfield, snap)
+                    : GridPlacement.Move(start, box.Size, delta, playfield, snap);
+                GridPlacement.SetBounds(entity, new Rect2(corner, box.Size));
                 continue;
             }
 

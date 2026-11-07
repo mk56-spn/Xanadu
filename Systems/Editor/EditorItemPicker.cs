@@ -21,10 +21,17 @@ public sealed class EditorItemPicker(EditorSceneQuery scene)
 
     private readonly EntityStore _entities = scene.Store;
 
-    /// <summary>The topmost item a press at this point would pick, or null.</summary>
+    /// <summary>
+    /// The topmost item a press at this point would pick, or null. A selected
+    /// note or mine comes first and is found even when faded out at the
+    /// playhead, since its selection ring still shows: a press inside the ring
+    /// always grabs it.
+    /// </summary>
     public Entity FindItemAt(Vector2 position, long playheadMs)
     {
-        Entity hit = FindNoteAt(position, playheadMs);
+        Entity hit = FindSelectedMarkAt(position);
+        if (hit.IsNull)
+            hit = FindNoteAt(position, playheadMs);
         if (hit.IsNull)
             hit = FindMineAt(position, playheadMs);
         if (hit.IsNull)
@@ -161,6 +168,35 @@ public sealed class EditorItemPicker(EditorSceneQuery scene)
                 continue;
 
             if (Within(Placed(entity, position), note.Position, NoteHitRadius))
+            {
+                result = entity;
+            }
+        }
+
+        return result;
+    }
+
+    /// <summary>The selected note or mine under a point, whatever its fade, or null.</summary>
+    public Entity FindSelectedMarkAt(Vector2 position)
+    {
+        Entity editor = scene.Editor();
+        if (editor.IsNull || !editor.HasComponent<NoteSelection>())
+            return default;
+
+        EditorLayers layers = Layers();
+        Entity result = default;
+        foreach (Entity entity in editor.GetComponent<NoteSelection>().AllNotes)
+        {
+            if (!EditorItems.IsItem(entity) || !layers.Picks(ItemLayer.Of(entity).Layer))
+                continue;
+
+            if (entity.TryGetComponent(out Note note) &&
+                Within(Placed(entity, position), note.Position, NoteHitRadius))
+            {
+                result = entity;
+            }
+            else if (entity.TryGetComponent(out Mine mine) &&
+                     Within(Placed(entity, position), mine.Position, MineHitRadius))
             {
                 result = entity;
             }
