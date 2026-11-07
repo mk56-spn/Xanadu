@@ -17,10 +17,6 @@ namespace Xanadu.Systems.Ui;
 public sealed class UiTooltipSystem : QuerySystem<UiTooltip>
 {
     private const float Height = 26f;
-    private const float CharWidth = 6.2f;
-    private const float HorizontalPadding = 24f;
-    private const float MinWidth = 96f;
-    private const float MaxWidth = 360f;
     private const float OffsetX = 14f;
     private const float OffsetY = 20f;
     private const float HoverDelay = 0.35f;
@@ -46,7 +42,7 @@ public sealed class UiTooltipSystem : QuerySystem<UiTooltip>
         UiBuilder ui = UiBuilder.Begin(entities, visuals).Layer(UiLayers.Tooltip);
         _tooltip = ui.RectEntity(
             Vector2.Zero,
-            new Vector2(MinWidth, Height),
+            UiTooltipPanel.Size("", Height),
             new Color(UiTheme.Tooltip, 0.96f),
             "",
             takesInput: false);
@@ -63,7 +59,7 @@ public sealed class UiTooltipSystem : QuerySystem<UiTooltip>
             return;
 
         PointerInput input = _pointer.Read();
-        Entity hovered = Hovered();
+        Entity hovered = UiTooltipPanel.Hovered(_entities);
 
         if (hovered.IsNull ||
             hovered.Tags.Has<UiDisabled>() ||
@@ -95,26 +91,9 @@ public sealed class UiTooltipSystem : QuerySystem<UiTooltip>
         Show(hovered.GetComponent<UiTooltip>().Text, input.Position);
     }
 
-    private Entity Hovered()
-    {
-        foreach (Entity entity in _entities
-                     .Query<UiTooltip>()
-                     .AllTags(Tags.Get<Hovered>())
-                     .ToEntityList())
-        {
-            return entity;
-        }
-
-        return default;
-    }
-
     private void Show(string text, Vector2 pointer)
     {
-        float width = Mathf.Clamp(
-            HorizontalPadding + text.Length * CharWidth,
-            MinWidth,
-            MaxWidth);
-        Vector2 size = new(width, Height);
+        Vector2 size = UiTooltipPanel.Size(text, Height);
         Vector2 topLeft = pointer + new Vector2(OffsetX, OffsetY);
 
         if (_screen != Vector2.Zero)
@@ -128,20 +107,7 @@ public sealed class UiTooltipSystem : QuerySystem<UiTooltip>
             topLeft.Y = Mathf.Clamp(topLeft.Y, 6f, Math.Max(6f, _screen.Y - size.Y - 6f));
         }
 
-        ref Rectangle rectangle = ref _tooltip.GetComponent<Rectangle>();
-        if (rectangle.Bounds.Size != size)
-        {
-            rectangle.Bounds = new Rect2(-size / 2, size);
-            _tooltip.AddTag<Dirty>();
-        }
-
-        ref Text label = ref _tooltip.GetComponent<Text>();
-        if (label.Value != text)
-        {
-            label.Value = text;
-            _tooltip.AddTag<Dirty>();
-        }
-
+        UiTooltipPanel.SetContent(_tooltip, text, size);
         UiLayout.SetHidden(_tooltip, false);
         ref Position position = ref _tooltip.GetComponent<Position>();
         Vector2 center = topLeft + size / 2f;
@@ -157,13 +123,7 @@ public sealed class UiTooltipSystem : QuerySystem<UiTooltip>
         if (_tooltip.IsNull)
             return;
 
-        ref Text label = ref _tooltip.GetComponent<Text>();
-        if (label.Value.Length > 0)
-        {
-            label.Value = "";
-            _tooltip.AddTag<Dirty>();
-        }
-
+        UiTooltipPanel.Clear(_tooltip);
         UiLayout.SetHidden(_tooltip, true);
     }
 }
