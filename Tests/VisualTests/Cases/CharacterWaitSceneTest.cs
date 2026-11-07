@@ -45,9 +45,9 @@ public sealed class CharacterWaitSceneTest : SceneTest
             foreach (Entity entity in Context.Entities.Query<Playhead>().ToEntityList())
             {
                 ref Playhead playhead = ref entity.GetComponent<Playhead>();
-                long beatMs = 60_000 / playhead.Bpm;
+                long beatMs = (long)Xanadu.Levels.TempoMap.BeatMs(playhead.Tempo.Points[0].Bpm);
                 playhead.Playing = false;
-                playhead.TimeMs = playhead.OffsetMs + beatMs * 8;
+                playhead.TimeMs = (long)playhead.Tempo.TimeAt(8);
                 playhead.SeekRequestMs = -1;
                 Player().GetComponent<CharacterPresence>().LastHitMs = playhead.TimeMs - beatMs * 4;
             }

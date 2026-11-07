@@ -16,8 +16,8 @@ namespace Xanadu.Systems.Characters;
 /// Verlet chains, such as hair, are simulated in rig space from its animated
 /// bones, so they swing with the animation. With <paramref name="ghosts"/>, a
 /// character that hits a note also leaves a fading copy of its art behind.
-/// In play, a character that has waited a beat since its last hit fades to
-/// black but for its hands, which flash white on the beat (<see cref="CharacterPresenceRules"/>).
+/// In play, a character that has waited a beat since its last hit dims,
+/// all but its hands, which flash white on the beat (<see cref="CharacterPresenceRules"/>).
 /// </summary>
 public sealed class CharacterRigDrawSystem(
     Func<IAttachmentVisuals> createVisuals,
@@ -115,7 +115,7 @@ public sealed class CharacterRigDrawSystem(
             // A seek back past the last hit starts the wait again from there.
             if (head.TimeMs < presence.LastHitMs)
                 presence.LastHitMs = head.TimeMs;
-            look = CharacterPresenceRules.At(head.TimeMs - presence.LastHitMs, head.TimeMs, head.Bpm, head.OffsetMs);
+            look = CharacterPresenceRules.At(head.TimeMs - presence.LastHitMs, head.TimeMs, head.Tempo);
         }
 
         int count = 0;
