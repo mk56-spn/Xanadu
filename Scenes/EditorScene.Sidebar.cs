@@ -145,22 +145,28 @@ public static class EditorSceneSidebar
             .Main(StackMainAlignment.Start)
             .Anchor(new Vector2(1, 0));
 
-        Entity characterLabel = EditorSceneUi.SidebarLabel(panel, "CHARACTER", inner, 14);
+        // Each part folds away under its header, so a long column stays short.
+        UiNode characterSection = panel.Collapsible("CHARACTER", inner, out UiNode characterBody);
+        Entity characterLabel = UiCollapsibleControl.HeaderOf(characterSection.Entity);
         Entity character = EditorSceneUi.BuildDropdown(
-            panel,
+            characterBody,
             inner,
             EditorDropdownKind.Character,
             new[] { "CONTACT", "ARMED", "SPLITLINE", "FORM" },
             selected: 0);
-        UiNode modulate = panel.ColorField(
+
+        panel.Collapsible("SELECTION", inner, out UiNode selection);
+        UiNode modulate = selection.ColorField(
             "COLOUR",
             inner,
             "Self modulate of the selection: its colour is multiplied by this, and on a block this is the interior. Type #rrggbb or #rrggbbaa; leave blank for white. A group's colour fade overrides it.");
         editor.AddComponent(new EditorSelfModulateField(modulate.Entity));
-        BuildBlockOutline(panel, editor, inner);
-        BuildTextPanel(panel, editor, inner);
-        EditorSceneLayers.BuildInspector(panel, editor, inner);
-        EditorSceneGroups.BuildGroupGrid(panel, editor, inner);
+        BuildBlockOutline(selection, editor, inner);
+        BuildTextPanel(selection, editor, inner);
+        EditorSceneLayers.BuildInspector(selection, editor, inner);
+
+        UiNode groups = panel.Collapsible("GROUPS", inner, out UiNode groupBody);
+        EditorSceneGroups.BuildGroupGrid(groupBody, editor, inner, UiCollapsibleControl.HeaderOf(groups.Entity));
 
         editor.AddComponent(new EditorSidebar(shell.RightPanel));
         editor.AddComponent(new EditorSidebarLayout(
@@ -180,22 +186,33 @@ public static class EditorSceneSidebar
             .Main(StackMainAlignment.Start)
             .Hidden();
 
+        // Each setting is ruled off from the one before; the rules live in the
+        // section so they hide with it.
+        EditorSceneUi.Separator(section, inner);
+        UiNode color = section.ColorField(
+            "OUTLINE",
+            inner,
+            "The colour of the selected blocks' and spikes' outline. A group's colour fade overrides it.");
+
+        EditorSceneUi.Separator(section, inner);
+
+        // THICKNESS, then − value +, the value bright between its buttons.
+        const float valueWidth = 44;
         UiNode row = section.Row().Size(inner, height).Gap(UiTheme.ContainerSpacing).Main(StackMainAlignment.Start);
-        Entity width = row.Text("OUTLINE", UiTheme.SmallFontSize, SceneUi.DimTextColor, TextAlign.Left)
-            .Size(inner - (height + UiTheme.ContainerSpacing) * 2, height);
+        row.Text("THICKNESS", UiTheme.SmallFontSize, SceneUi.DimTextColor, TextAlign.Left)
+            .Size(inner - height * 2 - valueWidth - UiTheme.ContainerSpacing * 3, height);
         row.Button("-", 13, SceneUi.MutedButtonColor)
             .Size(height, height)
             .With(new EditorButton(EditorButtonKind.OutlineStep, -1))
             .Tooltip("Thinner outline; at 0 there is none");
+        Entity width = row.Text("0", 14, SceneUi.TextColor, TextAlign.Center)
+            .Size(valueWidth, height)
+            .Entity;
         row.Button("+", 13, SceneUi.MutedButtonColor)
             .Size(height, height)
             .With(new EditorButton(EditorButtonKind.OutlineStep, 1))
             .Tooltip("Thicker outline");
 
-        UiNode color = section.ColorField(
-            "OUTLINE",
-            inner,
-            "The colour of the selected blocks' and spikes' outline. A group's colour fade overrides it.");
         editor.AddComponent(new EditorBlockOutlinePanel(section.Entity, width, color.Entity));
     }
 
@@ -210,6 +227,7 @@ public static class EditorSceneSidebar
             .Main(StackMainAlignment.Start)
             .Hidden();
 
+        EditorSceneUi.Separator(section, inner);
         section.Text("TEXT", UiTheme.SmallFontSize, SceneUi.DimTextColor, TextAlign.Left)
             .Size(inner, 18);
         Entity field = section.Rect(Palette.SurfaceInset, LevelText.Placeholder, new Vector2(inner, height))
@@ -220,6 +238,7 @@ public static class EditorSceneSidebar
             .Tooltip("The selected text's words; click anywhere else to finish")
             .Entity;
 
+        EditorSceneUi.Separator(section, inner);
         UiNode row = section.Row().Size(inner, height).Gap(UiTheme.ContainerSpacing).Main(StackMainAlignment.Start);
         Entity size = row.Text("SIZE", UiTheme.SmallFontSize, SceneUi.DimTextColor, TextAlign.Left)
             .Size(inner - (height + UiTheme.ContainerSpacing) * 2, height);
@@ -275,19 +294,28 @@ public static class EditorSceneSidebar
         editor.AddComponent(new EditorGrassPanel(section.Entity, readouts, color.Entity));
     }
 
-    /// <summary>The block tool's sizes, side by side: the quarter block, a cell, and the platform.</summary>
+    /// <summary>
+    /// The block tool's sizes, side by side: the quarter block, a cell, and the
+    /// platform. Each button draws the block it places, to scale with the others.
+    /// </summary>
     private static void BuildBlockSize(UiNode panel, float inner)
     {
         UiNode section = EditorSceneUi.ToolSection(panel, inner, EditorToolSections.BlockSize);
         EditorSceneUi.SidebarLabel(section, "BLOCK SIZE", inner, 12);
 
         const float sizeGap = 6;
+        const float buttonHeight = 32;
         float sizeWidth = (inner - sizeGap * 2) / 3;
-        UiNode sizes = section.Row().Size(inner, 28).Gap(sizeGap);
+        UiNode sizes = section.Row().Size(inner, buttonHeight).Gap(sizeGap);
         foreach (BlockBrushSize size in new[] { BlockBrushSize.Quarter, BlockBrushSize.Cell, BlockBrushSize.Platform })
         {
-            sizes.Button(BlockSizeLabel(size), 12, SceneUi.MutedButtonColor)
-                .Size(sizeWidth, 28)
+            UiNode button = sizes.Row()
+                .Size(sizeWidth, buttonHeight)
+                .Fill(SceneUi.MutedButtonColor)
+                .Input()
+                .Main(StackMainAlignment.Center)
+                .Cross(StackCrossAlignment.Center)
+                .With(ButtonVisual.Create(SceneUi.MutedButtonColor))
                 .With(new EditorButton(EditorButtonKind.BlockSize, (int)size))
                 .Tooltip(size switch
                 {
@@ -295,14 +323,16 @@ public static class EditorSceneSidebar
                     BlockBrushSize.Platform => "A platform: two cells wide and one high",
                     _ => "A block one cell square; the default",
                 });
+            button.Rect(PlayfieldRenderer.BlockFill, size: BlockPreviewSize(size));
         }
     }
 
-    private static string BlockSizeLabel(BlockBrushSize size) => size switch
+    /// <summary>A block's preview in the size buttons: a cell is 14 px, the rest to scale.</summary>
+    private static Vector2 BlockPreviewSize(BlockBrushSize size) => size switch
     {
-        BlockBrushSize.Quarter => "½×½",
-        BlockBrushSize.Platform => "2×1",
-        _ => "1×1",
+        BlockBrushSize.Quarter => new Vector2(7, 7),
+        BlockBrushSize.Platform => new Vector2(28, 14),
+        _ => new Vector2(14, 14),
     };
 
     private static (string Less, string More) GrassTooltips(GrassSetting setting) => setting switch
@@ -327,22 +357,6 @@ public static class EditorSceneSidebar
             .Input()
             .Main(StackMainAlignment.Start)
             .Anchor(Vector2.Zero);
-
-        UiNode snapSection = EditorSceneUi.ToolSection(panel, inner, EditorToolSections.Snap);
-        Entity snapLabel = EditorSceneUi.SidebarLabel(snapSection, LocalizedText.Get(EditorStrings.Snap), inner, 14);
-        Entity snap = EditorSceneUi.BuildDropdown(
-            snapSection,
-            inner,
-            EditorDropdownKind.Snap,
-            new[] { "1/2 beat", "1/4 beat", "1/8 beat" },
-            selected: 0);
-        Playhead playhead = editor.GetComponent<Playhead>();
-        EditorSceneUi.SetDropdownSelected(snap, playhead.SnapDivision switch
-        {
-            8 => 1,
-            16 => 2,
-            _ => 0,
-        });
 
         BuildBlockSize(panel, inner);
 
@@ -416,8 +430,13 @@ public static class EditorSceneSidebar
             .Size(inner, 18)
             .With(new EditorReadout(EditorReadoutKind.Shape));
 
-        editor.AddComponent(new EditorLeftMenu(panel.Entity, snapLabel, snap));
+        editor.AddComponent(new EditorLeftMenu(panel.Entity));
     }
+
+    /// <summary>How far the note elements box sits in from the viewport's top-right corner.</summary>
+    private const float NoteElementsMargin = 10;
+
+    private const float NoteElementsBorder = 2;
 
     internal static void BuildNoteElements(UiNode ui, Entity editor)
     {
@@ -434,7 +453,9 @@ public static class EditorSceneSidebar
             .Pad(PanelPadding)
             .Input()
             .Main(StackMainAlignment.Start)
-            .Anchor(new Vector2(1, 0))
+            // Held off the viewport's corner, outlined in the picked key's colour.
+            .Anchor(new Vector2(1, 0), margin: NoteElementsMargin)
+            .Border(PlayfieldRenderer.ColorFor(KeybindSettings.Actions[0]), NoteElementsBorder)
             .With(new EditorNoteBarPanel());
 
         EditorSceneUi.SidebarLabel(box, "NOTE ELEMENTS", inner, 12);

@@ -18,6 +18,8 @@ public struct EditorSelfModulateField(Entity field) : IComponent
 /// the sidebar's colour field, as one undo step. A typed colour goes to what was
 /// selected when typing began, since clicking another item is what ends typing.
 /// A dragged picker colours them as it moves, and the whole drag is one step.
+/// With nothing tintable selected the colour goes to the placement brush
+/// instead, so new items wear it and the field keeps showing it.
 /// </summary>
 public sealed class EditorSelfModulateSystem(EditorHistory history) : QuerySystem<NoteSelection, EditorSelfModulateField>
 {
@@ -55,11 +57,17 @@ public sealed class EditorSelfModulateSystem(EditorHistory history) : QuerySyste
         if (UiColorField.TakeLive(field, out Color live))
             Put(live);
         if (UiColorField.TakeCommit(field, out Color color))
-            Apply(color);
+        {
+            _targets.RemoveAll(item => item.IsNull);
+            if (_targets.Count == 0)
+                SetBrush(editor, color);
+            else
+                Apply(color);
+        }
         if (!editing)
             _before = null;
 
-        Color shown = Colors.White;
+        Color shown = Brush(editor);
         foreach (Entity item in selection.AllNotes)
         {
             if (!Tintable(item))
@@ -68,6 +76,15 @@ public sealed class EditorSelfModulateSystem(EditorHistory history) : QuerySyste
             break;
         }
         UiColorField.Show(field, shown);
+    }
+
+    private static Color Brush(Entity editor) =>
+        editor.TryGetComponent(out EditorPlacement placement) ? placement.Modulate : Colors.White;
+
+    private static void SetBrush(Entity editor, Color color)
+    {
+        if (editor.HasComponent<EditorPlacement>())
+            editor.GetComponent<EditorPlacement>().Modulate = color;
     }
 
     private void Put(Color color)
@@ -89,10 +106,5 @@ public sealed class EditorSelfModulateSystem(EditorHistory history) : QuerySyste
         history.Record(before, history.Capture());
     }
 
-    private static bool Tintable(Entity item) =>
-        !item.IsNull &&
-        (item.HasComponent<Note>() || item.HasComponent<Mine>() ||
-         item.HasComponent<Block>() || item.HasComponent<Spike>() ||
-         item.HasComponent<LevelText>() || item.HasComponent<GrassPatch>() ||
-         item.HasComponent<LevelPolygon>());
+    private static bool Tintable(Entity item) => EditorItems.IsTintable(item);
 }

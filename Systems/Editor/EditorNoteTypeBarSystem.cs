@@ -5,6 +5,7 @@ using Xanadu.Ecs;
 using Xanadu.Editor.Commands;
 using Xanadu.Settings;
 using Xanadu.Systems.Playfields;
+using Xanadu.Ui.Ecs.Ui;
 
 namespace Xanadu.Systems.Editor;
 
@@ -46,7 +47,10 @@ public sealed class EditorNoteTypeBarSystem : QuerySystem<EditorButton>
         CommandBuffer buffer = CommandBuffer;
 
         foreach (Entity panel in _entities.Query<EditorNoteBarPanel>().WithDisabled().ToEntityList())
+        {
             SetShown(panel, visible, buffer);
+            Outline(panel, PlayfieldRenderer.ColorFor(target), buffer);
+        }
 
         Query.ForEachEntity((ref button, entity) =>
         {
@@ -98,6 +102,20 @@ public sealed class EditorNoteTypeBarSystem : QuerySystem<EditorButton>
         visual.Hover = color.Lerp(Colors.White, 0.16f);
         visual.Flash = Colors.White;
         buffer.AddTag<Dirty>(swatch.Id);
+    }
+
+    /// <summary>The box's outline takes the picked key's colour, so the choice reads at a glance.</summary>
+    private static void Outline(Entity panel, Color color, CommandBuffer buffer)
+    {
+        if (!panel.HasComponent<UiBorder>())
+            return;
+
+        ref UiBorder border = ref panel.GetComponent<UiBorder>();
+        if (border.Color == color)
+            return;
+
+        border.Color = color;
+        buffer.AddTag<Dirty>(panel.Id);
     }
 
     /// <summary>
