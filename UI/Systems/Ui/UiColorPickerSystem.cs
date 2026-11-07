@@ -120,15 +120,7 @@ public sealed class UiColorPickerSystem(IPointerInputSource pointer) : QuerySyst
         SetHex(picker.Hex, color.A < 1 ? "#" + color.ToHtml(true) : "#" + color.ToHtml(false));
     }
 
-    private static void Place(Entity entity, Vector2 position)
-    {
-        ref Position current = ref entity.GetComponent<Position>();
-        if (current.Value == position)
-            return;
-
-        current.Value = position;
-        entity.AddTag<Moved>();
-    }
+    private static void Place(Entity entity, Vector2 position) => UiLayout.Move(entity, position);
 
     private static void SetFill(Entity entity, Color color)
     {

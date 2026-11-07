@@ -385,15 +385,7 @@ public static partial class SongSelectScene
     private static Color Fade(Color color, float alpha) =>
         new(color, color.A * alpha);
 
-    private static void Place(Entity entity, Vector2 position)
-    {
-        ref Position current = ref entity.GetComponent<Position>();
-        if (current.Value == position)
-            return;
-
-        current.Value = position;
-        entity.AddTag<Moved>();
-    }
+    private static void Place(Entity entity, Vector2 position) => UiLayout.Move(entity, position);
 
     private static void SetTextColor(Entity entity, Color color)
     {

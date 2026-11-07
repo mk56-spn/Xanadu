@@ -47,12 +47,7 @@ public static class AnimatorMenuPlacement
             return;
 
         UiLayout.SetHidden(entity, false);
-        ref Position current = ref entity.GetComponent<Position>();
-        if (current.Value == position)
-            return;
-
-        current.Value = position;
-        entity.AddTag<Moved>();
-        entity.AddTag<Dirty>();
+        if (UiLayout.Move(entity, position))
+            entity.AddTag<Dirty>();
     }
 }

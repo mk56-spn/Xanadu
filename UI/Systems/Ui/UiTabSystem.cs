@@ -43,13 +43,8 @@ public sealed class UiTabSystem : QuerySystem<UiTabs>
         if (body.IsNull || !body.HasComponent<Position>())
             return;
 
-        ref Position position = ref body.GetComponent<Position>();
-        if (position.Value == center)
-            return;
-
-        position.Value = center;
-        body.AddTag<Moved>();
-        body.AddTag<Dirty>();
+        if (UiLayout.Move(body, center))
+            body.AddTag<Dirty>();
     }
 
     private static void Tint(Entity button, Color normal)

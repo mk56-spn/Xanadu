@@ -115,15 +115,7 @@ public sealed class UiColorDragSystem : BaseSystem
         UiLayout.SetHidden(_ghost, false);
     }
 
-    private static void Place(Entity entity, Vector2 center)
-    {
-        ref Position position = ref entity.GetComponent<Position>();
-        if (position.Value == center)
-            return;
-
-        position.Value = center;
-        entity.AddTag<Moved>();
-    }
+    private static void Place(Entity entity, Vector2 center) => UiLayout.Move(entity, center);
 
     private void HideGhost()
     {

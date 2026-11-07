@@ -10,6 +10,21 @@ namespace Xanadu.Ecs;
 public static class UiLayout
 {
     /// <summary>
+    /// Puts an entity's centre at <paramref name="position"/> and tags it
+    /// <see cref="Moved"/>, but only when that changes it; true when it moved.
+    /// </summary>
+    public static bool Move(Entity entity, Vector2 position)
+    {
+        ref Position current = ref entity.GetComponent<Position>();
+        if (current.Value == position)
+            return false;
+
+        current.Value = position;
+        entity.AddTag<Moved>();
+        return true;
+    }
+
+    /// <summary>
     /// Shows or hides a node and its subtree: hidden nodes leave every query, the
     /// canvas and their parent's stack. A node hidden on its own stays hidden
     /// when an ancestor is shown again.

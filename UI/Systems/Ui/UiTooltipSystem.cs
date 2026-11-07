@@ -109,13 +109,7 @@ public sealed class UiTooltipSystem : QuerySystem<UiTooltip>
 
         UiTooltipPanel.SetContent(_tooltip, text, size);
         UiLayout.SetHidden(_tooltip, false);
-        ref Position position = ref _tooltip.GetComponent<Position>();
-        Vector2 center = topLeft + size / 2f;
-        if (position.Value != center)
-        {
-            position.Value = center;
-            _tooltip.AddTag<Moved>();
-        }
+        UiLayout.Move(_tooltip, topLeft + size / 2f);
     }
 
     private void Hide()

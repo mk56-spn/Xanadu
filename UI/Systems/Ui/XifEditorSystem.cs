@@ -458,13 +458,8 @@ public sealed class XifEditorSystem : QuerySystem<XifEditor>
         if (entity.IsNull || !entity.HasComponent<Position>())
             return;
 
-        ref Position current = ref entity.GetComponent<Position>();
-        if (current.Value == position)
-            return;
-
-        current.Value = position;
-        entity.AddTag<Moved>();
-        entity.AddTag<Dirty>();
+        if (UiLayout.Move(entity, position))
+            entity.AddTag<Dirty>();
     }
 
     private static void SetField(Entity entity, string value)
