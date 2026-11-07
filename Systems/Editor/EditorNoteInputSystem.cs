@@ -261,7 +261,7 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
 
         if (_resize.Active)
         {
-            _resize.Update(screenPosition, view, playfield);
+            _resize.Update(screenPosition, shift, view, playfield);
             return;
         }
 

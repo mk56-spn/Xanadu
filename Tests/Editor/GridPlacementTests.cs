@@ -117,6 +117,60 @@ public sealed class GridPlacementTests
             Is.EqualTo(new Rect2(left, top, width, height)));
     }
 
+    [TestCase(GridHandle.BottomRight, 688, 744, 400, 500, 300, 250)]
+    [TestCase(GridHandle.TopLeft, 320, 380, 300, 400, 300, 200)]
+    [TestCase(GridHandle.TopRight, 688, 380, 400, 400, 300, 200)]
+    [TestCase(GridHandle.BottomLeft, 320, 744, 300, 500, 300, 250)]
+    public void DraggingACornerResizesBothSidesAndKeepsTheOppositeCorner(
+        GridHandle handle, float x, float y, float left, float top, float width, float height)
+    {
+        Assert.That(
+            GridPlacement.Resize(Platform, handle, new Vector2(x, y), Field),
+            Is.EqualTo(new Rect2(left, top, width, height)));
+    }
+
+    [Test]
+    public void ShiftOnACornerKeepsTheProportions()
+    {
+        // Pulled further right than down: the right side leads, the height follows.
+        Rect2 bigger = GridPlacement.Resize(Platform, GridHandle.BottomRight, new Vector2(800, 620), Field, keepRatio: true);
+        Assert.That(bigger, Is.EqualTo(new Rect2(400, 500, 400, 200)));
+
+        // Pulled up-left, the bottom-right corner stays put.
+        Rect2 fromTopLeft = GridPlacement.Resize(Platform, GridHandle.TopLeft, new Vector2(400, 400), Field, keepRatio: true);
+        Assert.That(fromTopLeft, Is.EqualTo(new Rect2(200, 400, 400, 200)));
+
+        // Never below a cell on its short side.
+        Rect2 smallest = GridPlacement.Resize(Platform, GridHandle.BottomRight, new Vector2(410, 510), Field, keepRatio: true);
+        Assert.That(smallest, Is.EqualTo(new Rect2(400, 500, 100, 50)));
+
+        // Stops where the box meets the field's edge.
+        Rect2 edge = GridPlacement.Resize(Platform, GridHandle.BottomRight, new Vector2(1400, 1400), Field, keepRatio: true);
+        Assert.That(edge, Is.EqualTo(new Rect2(400, 500, 600, 300)));
+    }
+
+    [Test]
+    public void ClickingACornerPicksTheCorner()
+    {
+        Assert.That(
+            GridPlacement.TryPickHandle(Platform, 0f, View, new Vector2(603, 497), out GridHandle handle),
+            Is.True);
+        Assert.That(handle, Is.EqualTo(GridHandle.TopRight));
+    }
+
+    [Test]
+    public void ResizingATurnedItemByACornerKeepsTheOppositeCornerOnTheField()
+    {
+        var start = new Rect2(400, 400, 100, 100);
+        Vector2 keptBefore = GridPlacement.HandleCenter(start, GridHandle.TopLeft, 90f);
+
+        Rect2 resized = GridPlacement.Resize(start, GridHandle.BottomRight, new Vector2(300, 600), Field, snap: false, degrees: 90f);
+
+        Assert.That(resized.Size.X, Is.EqualTo(200).Within(0.01f));
+        Assert.That(resized.Size.Y, Is.EqualTo(200).Within(0.01f));
+        Assert.That(GridPlacement.HandleCenter(resized, GridHandle.TopLeft, 90f).IsEqualApprox(keptBefore), Is.True);
+    }
+
     [Test]
     public void AnItemCannotBeResizedBelowOneCell()
     {

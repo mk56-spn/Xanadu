@@ -5,7 +5,7 @@ using Xanadu.Editor;
 
 namespace Xanadu.Systems.Editor;
 
-/// <summary>Dragging one side handle of the primary selected block or spike.</summary>
+/// <summary>Dragging one side or corner handle of the primary selected boxed item.</summary>
 public sealed class EditorResizeTool(EditorSceneQuery scene, EditorHistory history)
 {
     private Entity _entity;
@@ -43,8 +43,8 @@ public sealed class EditorResizeTool(EditorSceneQuery scene, EditorHistory histo
         return true;
     }
 
-    /// <summary>Drags one side of the item being resized.</summary>
-    public void Update(Vector2 screenPosition, PlayfieldView view, Playfield playfield)
+    /// <summary>Drags one side or corner of the item being resized; <paramref name="keepRatio"/> (shift) holds a corner's proportions.</summary>
+    public void Update(Vector2 screenPosition, bool keepRatio, PlayfieldView view, Playfield playfield)
     {
         if (!EditorItems.IsItem(_entity))
             return;
@@ -55,7 +55,8 @@ public sealed class EditorResizeTool(EditorSceneQuery scene, EditorHistory histo
             GroupOffset.View(_entity, view).ScreenToPlayfield(screenPosition),
             playfield,
             ViewportSnap.IsOn(scene.Store),
-            _degrees));
+            _degrees,
+            keepRatio));
     }
 
     public void End()

@@ -84,8 +84,8 @@ public sealed class EditorSelectionDrawer(EditorDrawSurface surface)
     }
 
     /// <summary>
-    /// Draws one nub at the middle of each side of the primary selected block or
-    /// spike. They are the grips the pointer grabs to resize it.
+    /// Draws one nub at the middle of each side and at each corner of the primary
+    /// selected boxed item. They are the grips the pointer grabs to resize it.
     /// </summary>
     private void DrawGridHandles(PlayfieldView view, NoteSelection selection)
     {
@@ -95,7 +95,7 @@ public sealed class EditorSelectionDrawer(EditorDrawSurface surface)
 
         view = GroupOffset.View(primary, view);
 
-        foreach (GridHandle handle in GridPlacement.Sides)
+        foreach (GridHandle handle in GridPlacement.Handles)
         {
             Rect2 nub = GridPlacement.HandleScreenRect(bounds, handle, degrees, view);
             surface.Canvas.DrawRect(surface.Target, nub, PlayfieldRenderer.HandleEdge);
