@@ -22,17 +22,9 @@ public sealed class ParticleExperiment(string name, string sourcePath, bool draw
     private static int _countIndex = TriangleBench.StartIndex("--count=", Array.ConvertAll(Counts, c => (float)c), 2);
     private static int _substepIndex = TriangleBench.StartIndex("--substeps=", Array.ConvertAll(SubstepSteps, s => (float)s), 3);
 
-    private UiNode _countLabel;
-    private UiNode _substepLabel;
+    private LabStepper _countStepper = null!;
+    private LabStepper _substepStepper = null!;
     private UiNode _stats;
-    private Entity _fewer;
-    private Entity _more;
-    private Entity _lighter;
-    private Entity _heavier;
-    private bool _fewerHeld;
-    private bool _moreHeld;
-    private bool _lighterHeld;
-    private bool _heavierHeld;
 
     public static ParticleExperiment Drawable() => new(
         "PARTICLES · DRAWABLE",
@@ -73,8 +65,8 @@ public sealed class ParticleExperiment(string name, string sourcePath, bool draw
 
     public void BuildPanel(UiNode panel)
     {
-        _countLabel = TriangleBench.Stepper(panel, CountText(), out _fewer, out _more);
-        _substepLabel = TriangleBench.Stepper(panel, SubstepText(), out _lighter, out _heavier);
+        _countStepper = new LabStepper(panel, CountText());
+        _substepStepper = new LabStepper(panel, SubstepText());
         _stats = panel.Text("measuring...", UiType.Small, Palette.Accent).Width(StatsWidth);
         panel.Text("Whole-frame times. Physics: particle_motion.gdshaderinc.", UiType.Small, Palette.TextDim)
             .Width(StatsWidth);
@@ -82,16 +74,10 @@ public sealed class ParticleExperiment(string name, string sourcePath, bool draw
 
     internal void Poll()
     {
-        if (TriangleBench.Pressed(_fewer, ref _fewerHeld))
-            _countIndex = Math.Max(0, _countIndex - 1);
-        if (TriangleBench.Pressed(_more, ref _moreHeld))
-            _countIndex = Math.Min(Counts.Length - 1, _countIndex + 1);
-        if (TriangleBench.Pressed(_lighter, ref _lighterHeld))
-            _substepIndex = Math.Max(0, _substepIndex - 1);
-        if (TriangleBench.Pressed(_heavier, ref _heavierHeld))
-            _substepIndex = Math.Min(SubstepSteps.Length - 1, _substepIndex + 1);
-        _countLabel.SetText(CountText());
-        _substepLabel.SetText(SubstepText());
+        _countIndex = _countStepper.Clamped(_countIndex, Counts.Length);
+        _substepIndex = _substepStepper.Clamped(_substepIndex, SubstepSteps.Length);
+        _countStepper.SetText(CountText());
+        _substepStepper.SetText(SubstepText());
     }
 
     internal void Show(string line) => _stats.SetText(line);

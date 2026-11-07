@@ -39,10 +39,7 @@ public sealed class NoteApproachExperiment : ILabExperiment
     private bool _keys = Array.IndexOf(OS.GetCmdlineUserArgs(), "--keys") >= 0;
     private bool _chords = Array.IndexOf(OS.GetCmdlineUserArgs(), "--no-chords") < 0;
 
-    private UiNode _approachLabel, _tempoLabel, _inputLabel, _chordLabel;
-    private Entity _approachDown, _approachUp, _tempoDown, _tempoUp, _inputDown, _inputUp, _chordDown, _chordUp;
-    private bool _approachDownHeld, _approachUpHeld, _tempoDownHeld, _tempoUpHeld, _inputDownHeld, _inputUpHeld,
-        _chordDownHeld, _chordUpHeld;
+    private LabStepper _approachStepper = null!, _tempoStepper = null!, _inputStepper = null!, _chordStepper = null!;
 
     public NoteApproachExperiment(NoteApproachStyle style) => _style = style;
 
@@ -106,35 +103,29 @@ public sealed class NoteApproachExperiment : ILabExperiment
 
     public void BuildPanel(UiNode panel)
     {
-        _approachLabel = TriangleBench.Stepper(panel, "", out _approachDown, out _approachUp);
-        _tempoLabel = TriangleBench.Stepper(panel, "", out _tempoDown, out _tempoUp);
-        _inputLabel = TriangleBench.Stepper(panel, "", out _inputDown, out _inputUp);
-        _chordLabel = TriangleBench.Stepper(panel, "", out _chordDown, out _chordUp);
+        _approachStepper = new LabStepper(panel);
+        _tempoStepper = new LabStepper(panel);
+        _inputStepper = new LabStepper(panel);
+        _chordStepper = new LabStepper(panel);
         Refresh();
     }
 
     internal void Poll()
     {
-        if (TriangleBench.Pressed(_approachDown, ref _approachDownHeld))
-            _approachIndex = Math.Max(0, _approachIndex - 1);
-        if (TriangleBench.Pressed(_approachUp, ref _approachUpHeld))
-            _approachIndex = Math.Min(ApproachSteps.Length - 1, _approachIndex + 1);
-        if (TriangleBench.Pressed(_tempoDown, ref _tempoDownHeld))
-            _tempoIndex = Math.Max(0, _tempoIndex - 1);
-        if (TriangleBench.Pressed(_tempoUp, ref _tempoUpHeld))
-            _tempoIndex = Math.Min(TempoSteps.Length - 1, _tempoIndex + 1);
-        if (TriangleBench.Pressed(_inputDown, ref _inputDownHeld) | TriangleBench.Pressed(_inputUp, ref _inputUpHeld))
+        _approachIndex = _approachStepper.Clamped(_approachIndex, ApproachSteps.Length);
+        _tempoIndex = _tempoStepper.Clamped(_tempoIndex, TempoSteps.Length);
+        if (_inputStepper.Step() != 0)
             _keys = !_keys;
-        if (TriangleBench.Pressed(_chordDown, ref _chordDownHeld) | TriangleBench.Pressed(_chordUp, ref _chordUpHeld))
+        if (_chordStepper.Step() != 0)
             _chords = !_chords;
         Refresh();
     }
 
     private void Refresh()
     {
-        _approachLabel.SetText($"APPROACH {ApproachMs:0} MS");
-        _tempoLabel.SetText($"TEMPO {TempoSteps[_tempoIndex]} BPM");
-        _inputLabel.SetText(_keys ? "INPUT KEYS" : "INPUT AUTO");
-        _chordLabel.SetText(_chords ? "CHORDS ON" : "CHORDS OFF");
+        _approachStepper.SetText($"APPROACH {ApproachMs:0} MS");
+        _tempoStepper.SetText($"TEMPO {TempoSteps[_tempoIndex]} BPM");
+        _inputStepper.SetText(_keys ? "INPUT KEYS" : "INPUT AUTO");
+        _chordStepper.SetText(_chords ? "CHORDS ON" : "CHORDS OFF");
     }
 }

@@ -29,16 +29,12 @@ public sealed class RtsExperiment : ILabExperiment
     /// <summary><c>--scan=all</c> starts with the brute-force scan.</summary>
     private static bool _grid = !Array.Exists(OS.GetCmdlineUserArgs(), a => a == "--scan=all");
 
-    private UiNode _countLabel;
+    private LabStepper _countStepper = null!;
     private UiNode _stats;
     private UiNode _gpuPasses;
     private UiNode _gpuTotal;
     private UiNode _scanLabel;
-    private Entity _fewer;
-    private Entity _more;
     private Entity _scan;
-    private bool _fewerHeld;
-    private bool _moreHeld;
     private bool _scanHeld;
 
     public string Name => "RTS · DRAWABLE";
@@ -79,7 +75,7 @@ public sealed class RtsExperiment : ILabExperiment
 
     public void BuildPanel(UiNode panel)
     {
-        _countLabel = TriangleBench.Stepper(panel, CountText(), out _fewer, out _more);
+        _countStepper = new LabStepper(panel, CountText());
         UiNode scanRow = panel.Row().Gap(UiMetrics.Space.Sm);
         _scanLabel = scanRow.Text(ScanText(), UiType.Label, Palette.Text).Width(220);
         _scan = scanRow.Button("SWITCH", UiType.Label).Size(UiMetrics.Control.Md * 2 + UiMetrics.Space.Sm, UiMetrics.Control.Md);
@@ -96,13 +92,10 @@ public sealed class RtsExperiment : ILabExperiment
 
     internal void Poll()
     {
-        if (TriangleBench.Pressed(_fewer, ref _fewerHeld))
-            _countIndex = Math.Max(0, _countIndex - 1);
-        if (TriangleBench.Pressed(_more, ref _moreHeld))
-            _countIndex = Math.Min(Counts.Length - 1, _countIndex + 1);
-        if (TriangleBench.Pressed(_scan, ref _scanHeld))
+        _countIndex = _countStepper.Clamped(_countIndex, Counts.Length);
+        if (LabStepper.Pressed(_scan, ref _scanHeld))
             _grid = !_grid;
-        _countLabel.SetText(CountText());
+        _countStepper.SetText(CountText());
         _scanLabel.SetText(ScanText());
     }
 

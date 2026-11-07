@@ -26,9 +26,7 @@ public sealed class FluidExperiment : ILabExperiment
     private static int _vorticityIndex = TriangleBench.StartIndex("--vorticity=", Array.ConvertAll(VorticitySteps, s => (float)s), 2);
     private static int _view = TriangleBench.StartIndex("--view=", [0, 1, 2], 0);
 
-    private UiNode _scaleLabel, _iterationLabel, _vorticityLabel, _viewLabel;
-    private Entity _scaleDown, _scaleUp, _iterDown, _iterUp, _vortDown, _vortUp, _viewDown, _viewUp;
-    private bool _scaleDownHeld, _scaleUpHeld, _iterDownHeld, _iterUpHeld, _vortDownHeld, _vortUpHeld, _viewDownHeld, _viewUpHeld;
+    private LabStepper _scaleStepper = null!, _iterationStepper = null!, _vorticityStepper = null!, _viewStepper = null!;
 
     public string Name => "FLUID · BUFFERS";
 
@@ -58,40 +56,28 @@ public sealed class FluidExperiment : ILabExperiment
 
     public void BuildPanel(UiNode panel)
     {
-        _scaleLabel = TriangleBench.Stepper(panel, "", out _scaleDown, out _scaleUp);
-        _iterationLabel = TriangleBench.Stepper(panel, "", out _iterDown, out _iterUp);
-        _vorticityLabel = TriangleBench.Stepper(panel, "", out _vortDown, out _vortUp);
-        _viewLabel = TriangleBench.Stepper(panel, "", out _viewDown, out _viewUp);
+        _scaleStepper = new LabStepper(panel);
+        _iterationStepper = new LabStepper(panel);
+        _vorticityStepper = new LabStepper(panel);
+        _viewStepper = new LabStepper(panel);
         Refresh();
     }
 
     internal void Poll()
     {
-        if (TriangleBench.Pressed(_scaleDown, ref _scaleDownHeld))
-            _scaleIndex = Math.Max(0, _scaleIndex - 1);
-        if (TriangleBench.Pressed(_scaleUp, ref _scaleUpHeld))
-            _scaleIndex = Math.Min(Scales.Length - 1, _scaleIndex + 1);
-        if (TriangleBench.Pressed(_iterDown, ref _iterDownHeld))
-            _iterationIndex = Math.Max(0, _iterationIndex - 1);
-        if (TriangleBench.Pressed(_iterUp, ref _iterUpHeld))
-            _iterationIndex = Math.Min(IterationSteps.Length - 1, _iterationIndex + 1);
-        if (TriangleBench.Pressed(_vortDown, ref _vortDownHeld))
-            _vorticityIndex = Math.Max(0, _vorticityIndex - 1);
-        if (TriangleBench.Pressed(_vortUp, ref _vortUpHeld))
-            _vorticityIndex = Math.Min(VorticitySteps.Length - 1, _vorticityIndex + 1);
-        if (TriangleBench.Pressed(_viewDown, ref _viewDownHeld))
-            _view = (_view + Views.Length - 1) % Views.Length;
-        if (TriangleBench.Pressed(_viewUp, ref _viewUpHeld))
-            _view = (_view + 1) % Views.Length;
+        _scaleIndex = _scaleStepper.Clamped(_scaleIndex, Scales.Length);
+        _iterationIndex = _iterationStepper.Clamped(_iterationIndex, IterationSteps.Length);
+        _vorticityIndex = _vorticityStepper.Clamped(_vorticityIndex, VorticitySteps.Length);
+        _view = _viewStepper.Wrapped(_view, Views.Length);
         Refresh();
     }
 
     private void Refresh()
     {
-        _scaleLabel.SetText($"CELL {Scale} PX");
-        _iterationLabel.SetText($"PRESSURE × {Iterations}");
-        _vorticityLabel.SetText($"VORTICITY {Vorticity}");
-        _viewLabel.SetText($"VIEW {Views[_view]}");
+        _scaleStepper.SetText($"CELL {Scale} PX");
+        _iterationStepper.SetText($"PRESSURE × {Iterations}");
+        _vorticityStepper.SetText($"VORTICITY {Vorticity}");
+        _viewStepper.SetText($"VIEW {Views[_view]}");
     }
 }
 

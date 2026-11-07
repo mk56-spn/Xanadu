@@ -24,9 +24,7 @@ public sealed class RadianceExperiment : ILabExperiment
     private static int _wanted = TriangleBench.StartIndex("--cascades=", [0, 1, 2, 3, 4, 5, 6, 7, 8], 8);
     private static int _view = TriangleBench.StartIndex("--view=", [0, 1, 2], 0);
 
-    private UiNode _scaleLabel, _cascadeLabel, _viewLabel;
-    private Entity _scaleDown, _scaleUp, _cascadeDown, _cascadeUp, _viewDown, _viewUp;
-    private bool _scaleDownHeld, _scaleUpHeld, _cascadeDownHeld, _cascadeUpHeld, _viewDownHeld, _viewUpHeld;
+    private LabStepper _scaleStepper = null!, _cascadeStepper = null!, _viewStepper = null!;
 
     public string Name => "LIGHT · CASCADES";
 
@@ -60,34 +58,26 @@ public sealed class RadianceExperiment : ILabExperiment
 
     public void BuildPanel(UiNode panel)
     {
-        _scaleLabel = TriangleBench.Stepper(panel, "", out _scaleDown, out _scaleUp);
-        _cascadeLabel = TriangleBench.Stepper(panel, "", out _cascadeDown, out _cascadeUp);
-        _viewLabel = TriangleBench.Stepper(panel, "", out _viewDown, out _viewUp);
+        _scaleStepper = new LabStepper(panel);
+        _cascadeStepper = new LabStepper(panel);
+        _viewStepper = new LabStepper(panel);
         Refresh();
     }
 
     internal void Poll()
     {
-        if (TriangleBench.Pressed(_scaleDown, ref _scaleDownHeld))
-            _scaleIndex = Math.Max(0, _scaleIndex - 1);
-        if (TriangleBench.Pressed(_scaleUp, ref _scaleUpHeld))
-            _scaleIndex = Math.Min(Scales.Length - 1, _scaleIndex + 1);
-        if (TriangleBench.Pressed(_cascadeDown, ref _cascadeDownHeld))
-            _wanted = Math.Max(1, Cascades - 1);
-        if (TriangleBench.Pressed(_cascadeUp, ref _cascadeUpHeld))
-            _wanted = Math.Min(Available, Cascades + 1);
-        if (TriangleBench.Pressed(_viewDown, ref _viewDownHeld))
-            _view = (_view + Views.Length - 1) % Views.Length;
-        if (TriangleBench.Pressed(_viewUp, ref _viewUpHeld))
-            _view = (_view + 1) % Views.Length;
+        _scaleIndex = _scaleStepper.Clamped(_scaleIndex, Scales.Length);
+        if (_cascadeStepper.Step() is var cascade and not 0)
+            _wanted = Math.Clamp(Cascades + cascade, 1, Available);
+        _view = _viewStepper.Wrapped(_view, Views.Length);
         Refresh();
     }
 
     private void Refresh()
     {
-        _scaleLabel.SetText($"CELL {Scale} PX");
-        _cascadeLabel.SetText($"CASCADES {Cascades} / {Available}");
-        _viewLabel.SetText($"VIEW {Views[_view]}");
+        _scaleStepper.SetText($"CELL {Scale} PX");
+        _cascadeStepper.SetText($"CASCADES {Cascades} / {Available}");
+        _viewStepper.SetText($"VIEW {Views[_view]}");
     }
 }
 

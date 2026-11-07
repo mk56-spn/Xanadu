@@ -24,17 +24,9 @@ public sealed class TriangleBench
     private const float ReportSeconds = 0.5f;
     private const float StatsWidth = 580;
 
-    private UiNode _cellLabel;
-    private UiNode _layerLabel;
+    private LabStepper _cellStepper = null!;
+    private LabStepper _layerStepper = null!;
     private UiNode _stats;
-    private Entity _minus;
-    private Entity _plus;
-    private Entity _fewer;
-    private Entity _more;
-    private bool _minusHeld;
-    private bool _plusHeld;
-    private bool _fewerHeld;
-    private bool _moreHeld;
 
     private double _gpu;
     private double _cpu;
@@ -53,8 +45,8 @@ public sealed class TriangleBench
 
     public void BuildPanel(UiNode panel)
     {
-        _cellLabel = Stepper(panel, CellText(), out _minus, out _plus);
-        _layerLabel = Stepper(panel, LayerText(), out _fewer, out _more);
+        _cellStepper = new LabStepper(panel, CellText());
+        _layerStepper = new LabStepper(panel, LayerText());
 
         _stats = panel.Text("measuring...", UiType.Small, Palette.Accent).Width(StatsWidth);
         panel.Text("Whole-frame times. MSAA and the other engine settings are under SETTINGS.", UiType.Small, Palette.TextDim)
@@ -64,16 +56,10 @@ public sealed class TriangleBench
     /// <summary>Steps the density on a fresh press of - or +.</summary>
     public void Poll()
     {
-        if (Pressed(_minus, ref _minusHeld))
-            _cellIndex = Math.Max(0, _cellIndex - 1);
-        if (Pressed(_plus, ref _plusHeld))
-            _cellIndex = Math.Min(Cells.Length - 1, _cellIndex + 1);
-        if (Pressed(_fewer, ref _fewerHeld))
-            _layerIndex = Math.Max(0, _layerIndex - 1);
-        if (Pressed(_more, ref _moreHeld))
-            _layerIndex = Math.Min(LayerSteps.Length - 1, _layerIndex + 1);
-        _cellLabel.SetText(CellText());
-        _layerLabel.SetText(LayerText());
+        _cellIndex = _cellStepper.Clamped(_cellIndex, Cells.Length);
+        _layerIndex = _layerStepper.Clamped(_layerIndex, LayerSteps.Length);
+        _cellStepper.SetText(CellText());
+        _layerStepper.SetText(LayerText());
     }
 
     /// <summary>Folds in this frame's measured times and shows the average every half second.</summary>
@@ -107,16 +93,6 @@ public sealed class TriangleBench
 
     private static string LayerText() => $"LAYERS {Layers}";
 
-    /// <summary>A label, then - and + buttons.</summary>
-    internal static UiNode Stepper(UiNode panel, string label, out Entity minus, out Entity plus)
-    {
-        UiNode row = panel.Row().Gap(UiMetrics.Space.Sm);
-        UiNode text = row.Text(label, UiType.Label, Palette.Text).Width(220);
-        minus = row.Button("-", UiType.Label).Size(UiMetrics.Control.Md, UiMetrics.Control.Md);
-        plus = row.Button("+", UiType.Label).Size(UiMetrics.Control.Md, UiMetrics.Control.Md);
-        return text;
-    }
-
     /// <summary><paramref name="flag"/>N starts on that step, if it is one; otherwise on <paramref name="fallback"/>.</summary>
     internal static int StartIndex(string flag, float[] steps, int fallback)
     {
@@ -128,13 +104,5 @@ public sealed class TriangleBench
                 return index;
         }
         return fallback;
-    }
-
-    internal static bool Pressed(Entity button, ref bool held)
-    {
-        bool down = !button.IsNull && button.Tags.Has<Pressed>();
-        bool fresh = down && !held;
-        held = down;
-        return fresh;
     }
 }
