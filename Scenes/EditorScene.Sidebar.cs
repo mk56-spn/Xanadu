@@ -164,6 +164,7 @@ public static class EditorSceneSidebar
         BuildBlockOutline(selection, editor, inner);
         BuildTextPanel(selection, editor, inner);
         EditorSceneLayers.BuildInspector(selection, editor, inner);
+        EditorSceneAlign.Build(selection, editor, inner);
 
         UiNode groups = panel.Collapsible("GROUPS", inner, out UiNode groupBody);
         EditorSceneGroups.BuildGroupGrid(groupBody, editor, inner, UiCollapsibleControl.HeaderOf(groups.Entity));

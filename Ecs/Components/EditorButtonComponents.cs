@@ -76,6 +76,8 @@ public enum EditorButtonKind
     /// argument is the <see cref="FlareSetting"/> plus one, negative for less.
     /// </summary>
     FlareStep,
+    /// <summary>Lines the selection up; the argument is an <see cref="Xanadu.Editor.AlignEdge"/>.</summary>
+    Align,
 }
 
 /// <summary>An ECS editor button: what it does, and the value it does it with.</summary>
