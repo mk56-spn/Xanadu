@@ -9,20 +9,27 @@ namespace Xanadu.Ecs;
 public readonly partial struct UiNode
 {
     /// <summary>
-    /// A colour picker over a row of label, swatch and hex field; returns the field,
-    /// which carries <see cref="UiColorField"/>.
+    /// A colour setting, top to bottom: its name in the accent colour, the
+    /// picker, then the swatch and hex field. Returns the field, which carries
+    /// <see cref="UiColorField"/>.
     /// </summary>
     public UiNode ColorField(string label, float width, string tooltip)
     {
         const float height = 28;
         const float gap = 6;
-        const float labelWidth = 68;
+        Text(label, UiTheme.SmallFontSize, UiTheme.Accent, TextAlign.Left).Size(width, 18);
         Entity picker = FieldPicker(width);
         UiNode row = Row().Size(width, height).Gap(gap).Main(StackMainAlignment.Start);
-        row.Text(label, UiTheme.SmallFontSize, UiTheme.TextDim, TextAlign.Left).Size(labelWidth, height);
-        UiNode swatch = row.Rect(Colors.White, size: new Vector2(height, height));
-        return row.Rect(Palette.SurfaceInset, "", new Vector2(width - labelWidth - height - gap * 2, height))
+        // The swatch can be dragged onto another colour, and either half of the
+        // field takes one dropped on it.
+        UiNode swatch = row.Rect(Colors.White, size: new Vector2(height, height))
             .Input()
+            .With(new UiColorDrop())
+            .Tooltip("Drag this colour onto another to copy it there");
+        swatch.Entity.AddTag<UiColorSwatch>();
+        return row.Rect(Palette.SurfaceInset, "", new Vector2(width - height - gap, height))
+            .Input()
+            .With(new UiColorDrop())
             .With(new TextStyle(13, UiTheme.Text))
             .Align(TextAlign.Left)
             .With(new TextField(""))

@@ -6,17 +6,20 @@ namespace Xanadu.Ecs;
 /// <summary>Where the parts of a colour picker sit, relative to its saturation square.</summary>
 public static class ColorPickerLayout
 {
-    public static readonly Vector2 Size = new(120, 120);
-    public const float HueWidth = 16;
-    public const float AlphaHeight = 14;
-    public static readonly Vector2 HueOffset = new(Size.X / 2 + 18, 0);
-    public static readonly Vector2 AlphaOffset = new(0, Size.Y / 2 + 16);
+    /// <summary>The square's side; the bars and gaps below are sized to it.</summary>
+    public const float Side = 84;
+
+    public static readonly Vector2 Size = new(Side, Side);
+    public const float HueWidth = 12;
+    public const float AlphaHeight = 10;
+    public static readonly Vector2 HueOffset = new(Size.X / 2 + 14, 0);
+    public static readonly Vector2 AlphaOffset = new(0, Size.Y / 2 + 12);
     public static readonly Vector2 SwatchSize = new(110, 44);
-    public static readonly Vector2 SwatchOffset = new(Size.X / 2 + 18 + HueWidth / 2 + 14 + 55, -Size.Y / 2 + 22);
+    public static readonly Vector2 SwatchOffset = new(Size.X / 2 + 14 + HueWidth / 2 + 14 + 55, -Size.Y / 2 + 22);
     public static readonly Vector2 HexOffset = SwatchOffset + new Vector2(0, 40);
 
     /// <summary>Vertical space a picker needs below its top edge.</summary>
-    public const float Height = 120 + 30;
+    public const float Height = Side + 22;
 
     public static Rect2 Square(Vector2 center) => new(center - Size / 2, Size);
 
