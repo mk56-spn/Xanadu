@@ -23,10 +23,29 @@ public enum GroupEffectKind
     Color,
 }
 
+/// <summary>How a cycling effect plays each repeat (docs: group cycles).</summary>
+public enum GroupCycle
+{
+    /// <summary>Runs start to end each cycle, snapping back at the next: flashes, strobes, ticks.</summary>
+    Restart,
+
+    /// <summary>Goes to its result and back inside each cycle: pulses, bobs, breathing.</summary>
+    Return,
+
+    /// <summary>Each cycle adds to the last (moves pile up; colours act as Restart): staircases, scrolling.</summary>
+    Stack,
+}
+
 /// <summary>
 /// One timed effect of a group. It begins at <see cref="Start"/> and is done at
 /// <see cref="End"/> (both in seconds); it holds its result afterwards. The end
 /// is set by hand, so an effect can finish long before the next one begins.
+/// <para>
+/// With <see cref="Cycles"/> above 1 it repeats, a new cycle every
+/// <see cref="EveryBeats"/> beats on the song's tempo map, each as long in
+/// beats as the first, so repeats stay on the music through BPM changes.
+/// <see cref="Cycle"/> says how each plays and what is held after the last.
+/// </para>
 /// </summary>
 public readonly record struct GroupEffect(
     GroupEffectKind Kind,
@@ -35,8 +54,16 @@ public readonly record struct GroupEffect(
     Vector2 Offset,
     Color Tint,
     GroupEase Ease = GroupEase.Linear,
-    bool Muted = false)
+    bool Muted = false,
+    int Cycles = 1,
+    float EveryBeats = 1f,
+    GroupCycle Cycle = GroupCycle.Restart)
 {
+    /// <summary>The most repeats one effect can have.</summary>
+    public const int MaxCycles = 4096;
+
+    public bool Cycling => Cycles > 1 && EveryBeats > 0f;
+
     public static GroupEffect Move(
         float start,
         float end,
@@ -55,15 +82,64 @@ public readonly record struct GroupEffect(
 
     /// <summary>
     /// How far through the effect a time is, from 0 before it starts to 1 once
-    /// it ends. The easing curve is applied to the fraction of the span.
+    /// it ends. The easing curve is applied to the fraction of the span. A
+    /// cycling effect reads its current cycle (see <see cref="Amount"/>).
     /// </summary>
-    public float Progress(float seconds)
+    public float Progress(float seconds, Xanadu.Levels.TempoMap? tempo = null)
     {
+        if (Cycling && tempo is not null)
+            return CycleAt(seconds, tempo).Progress;
         if (seconds <= Start)
             return seconds >= Start && End <= Start ? 1f : 0f;
         if (End <= Start)
             return 1f;
         return GroupEaseCurves.Apply(Ease, (seconds - Start) / (End - Start));
+    }
+
+    /// <summary>
+    /// How much of the effect applies: <see cref="Progress"/>, plus the whole
+    /// cycles already done for a stacking move.
+    /// </summary>
+    public float Amount(float seconds, Xanadu.Levels.TempoMap? tempo = null)
+    {
+        if (!Cycling || tempo is null)
+            return Progress(seconds, tempo);
+        (int index, float progress, _) = CycleAt(seconds, tempo);
+        return Cycle == GroupCycle.Stack && Kind == GroupEffectKind.Move ? index + progress : progress;
+    }
+
+    /// <summary>When the cycle playing at a time began, in seconds (the start itself without cycles).</summary>
+    public float CycleStart(float seconds, Xanadu.Levels.TempoMap? tempo = null) =>
+        Cycling && tempo is not null ? CycleAt(seconds, tempo).Start : Start;
+
+    /// <summary>When the last cycle ends, in seconds.</summary>
+    public float LastEnd(Xanadu.Levels.TempoMap? tempo = null) =>
+        Cycling && tempo is not null ? CycleSpan(Cycles - 1, tempo).End : End;
+
+    /// <summary>Cycle <paramref name="index"/>'s start and end in seconds (0 is the effect itself).</summary>
+    public (float Start, float End) CycleSpan(int index, Xanadu.Levels.TempoMap tempo)
+    {
+        double first = tempo.BeatAt(Start * 1000.0);
+        double length = tempo.BeatAt(End * 1000.0) - first;
+        double begin = first + index * (double)EveryBeats;
+        return ((float)(tempo.TimeAt(begin) / 1000.0), (float)(tempo.TimeAt(begin + length) / 1000.0));
+    }
+
+    private (int Index, float Progress, float Start) CycleAt(float seconds, Xanadu.Levels.TempoMap tempo)
+    {
+        double first = tempo.BeatAt(Start * 1000.0);
+        double length = tempo.BeatAt(End * 1000.0) - first;
+        double now = tempo.BeatAt(seconds * 1000.0);
+        if (now < first)
+            return (0, 0f, Start);
+
+        int index = (int)Math.Clamp(Math.Floor((now - first) / EveryBeats), 0, Cycles - 1);
+        double begin = first + index * (double)EveryBeats;
+        float fraction = length <= 1e-9 ? 1f : (float)Math.Clamp((now - begin) / length, 0, 1);
+        float shaped = Cycle == GroupCycle.Return
+            ? (fraction < 0.5f ? fraction * 2f : 2f - fraction * 2f)
+            : fraction;
+        return (index, GroupEaseCurves.Apply(Ease, shaped), (float)(tempo.TimeAt(begin) / 1000.0));
     }
 }
 

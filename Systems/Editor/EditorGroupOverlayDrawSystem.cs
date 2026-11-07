@@ -1,9 +1,11 @@
+using System;
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Godot;
 using Xanadu.Timeline;
 using Xanadu.Ecs;
+using Xanadu.Levels;
 using Xanadu.Rendering;
 using Xanadu.Systems.Canvas;
 using Xanadu.Theme;
@@ -48,7 +50,8 @@ public sealed class EditorGroupOverlayDrawSystem :
                 DrawPaletteFrame(dialog, origin);
             else
             {
-                DrawEffects(state, levelGroups.Groups[state.Open], dialog, origin);
+                TempoMap tempo = editor.TryGetComponent(out Playhead playhead) ? playhead.Tempo : TempoMap.Default;
+                DrawEffects(state, levelGroups.Groups[state.Open], dialog, origin, tempo);
                 DrawKeyLane(editor, state, levelGroups.Groups[state.Open], dialog, origin);
             }
         });
@@ -60,7 +63,7 @@ public sealed class EditorGroupOverlayDrawSystem :
     /// start and one at its end (a diamond when linear, a circle when eased).
     /// The pins are the grips that retime it; the band moves it whole.
     /// </summary>
-    private void DrawEffects(EditorGroupState state, GroupDefinition group, Vector2 dialog, Vector2 origin)
+    private void DrawEffects(EditorGroupState state, GroupDefinition group, Vector2 dialog, Vector2 origin, TempoMap tempo)
     {
         Rect2 timeline = Offset(EditorGroupLayout.Timeline(dialog), origin);
         float left = timeline.Position.X;
@@ -79,12 +82,13 @@ public sealed class EditorGroupOverlayDrawSystem :
             float fromX = EditorGroupLayout.XForTime(timeline, state.ViewStart, state.ViewSpan, effect.Start);
             float toX = EditorGroupLayout.XForTime(timeline, state.ViewStart, state.ViewSpan, effect.End);
             GroupEase ease = effect.Ease;
+            Func<float, float> shape = Shape(effect);
             Color band = new(color, selected ? 0.9f : 0.6f);
-            foreach (EaseBandPiece piece in TimelineEaseBand.Pieces(
-                         t => GroupEaseCurves.Apply(ease, t), fromX, toX, left, right, rowRect))
-            {
+            foreach (EaseBandPiece piece in TimelineEaseBand.Pieces(shape, fromX, toX, left, right, rowRect))
                 _canvas.DrawPolygon(_overlay, piece.Polygon, band);
-            }
+
+            if (effect.Cycling)
+                DrawRepeats(state, effect, timeline, rowRect, shape, new Color(color, selected ? 0.4f : 0.25f), tempo);
 
             float middle = rowRect.Position.Y + rowRect.Size.Y / 2f;
             float radius = selected ? KeyRadius + 1 : KeyRadius - 1;
@@ -136,6 +140,49 @@ public sealed class EditorGroupOverlayDrawSystem :
     }
 
     private static readonly Color LaneLine = new(1f, 1f, 1f, 0.18f);
+
+    /// <summary>The band's thickness over one cycle: the easing, or out and back for RETURN.</summary>
+    private static Func<float, float> Shape(GroupEffect effect)
+    {
+        GroupEase ease = effect.Ease;
+        if (effect.Cycling && effect.Cycle == GroupCycle.Return)
+            return t => GroupEaseCurves.Apply(ease, t < 0.5f ? t * 2f : 2f - t * 2f);
+        return t => GroupEaseCurves.Apply(ease, t);
+    }
+
+    /// <summary>
+    /// Each later cycle as a fainter copy of the band, with a tick where it
+    /// starts, so the repeat reads on the timeline. Only the cycles in view are
+    /// drawn.
+    /// </summary>
+    private void DrawRepeats(
+        EditorGroupState state,
+        GroupEffect effect,
+        Rect2 timeline,
+        Rect2 rowRect,
+        Func<float, float> shape,
+        Color ghost,
+        TempoMap tempo)
+    {
+        double first = tempo.BeatAt(effect.Start * 1000.0);
+        double viewFrom = tempo.BeatAt(state.ViewStart * 1000.0);
+        int from = Math.Max(1, (int)Math.Floor((viewFrom - first) / effect.EveryBeats) - 1);
+        for (int k = from; k < effect.Cycles && k < from + 512; k++)
+        {
+            (float start, float end) = effect.CycleSpan(k, tempo);
+            if (start > state.ViewStart + state.ViewSpan)
+                break;
+            if (end < state.ViewStart)
+                continue;
+
+            float fromX = EditorGroupLayout.XForTime(timeline, state.ViewStart, state.ViewSpan, start);
+            float toX = EditorGroupLayout.XForTime(timeline, state.ViewStart, state.ViewSpan, end);
+            foreach (EaseBandPiece piece in TimelineEaseBand.Pieces(shape, fromX, toX, timeline.Position.X, timeline.End.X, rowRect))
+                _canvas.DrawPolygon(_overlay, piece.Polygon, ghost);
+            if (fromX >= timeline.Position.X && fromX <= timeline.End.X)
+                _canvas.DrawRect(_overlay, new Rect2(fromX, rowRect.Position.Y + 6f, 1f, rowRect.Size.Y - 12f), ghost);
+        }
+    }
 
     /// <summary>The animator's key marker: a diamond for linear timing, a circle for an eased one.</summary>
     private void DrawPin(Vector2 center, float radius, Color color, GroupEase ease)

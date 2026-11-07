@@ -105,7 +105,7 @@ public sealed class LevelDocumentMapperTests
             target.GetComponent<LevelInfo>().Frame,
             Is.EqualTo(new Color("#405060")));
         Assert.That(target.GetComponent<Playfield>().Width, Is.EqualTo(1000));
-        Assert.That(target.GetComponent<Playhead>().Bpm, Is.EqualTo(120));
+        Assert.That(target.GetComponent<Playhead>().Tempo.Points[0].Bpm, Is.EqualTo(120));
         Assert.That(target.GetComponent<Playhead>().SnapDivision, Is.EqualTo(16));
         Assert.That(target.GetComponent<Playhead>().AudioRevision, Is.EqualTo(1));
         Assert.That(targetStore.Query<Note>().Count, Is.EqualTo(2));

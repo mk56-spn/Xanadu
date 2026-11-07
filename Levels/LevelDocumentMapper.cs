@@ -433,8 +433,7 @@ public static partial class LevelDocumentMapper
         playfield.Height = document.PlayfieldHeight;
 
         ref Playhead playhead = ref editor.GetComponent<Playhead>();
-        playhead.Bpm = song?.Bpm ?? 120;
-        playhead.OffsetMs = song?.OffsetMs ?? 0;
+        playhead.Tempo = song?.Tempo() ?? TempoMap.Default;
         playhead.SnapDivision = document.SnapDivision;
         playhead.TimeMs = 0;
         playhead.DurationMs = 0;
@@ -553,6 +552,9 @@ public static partial class LevelDocumentMapper
                     X = effect.Offset.X,
                     Y = effect.Offset.Y,
                     Tint = effect.Tint.ToHtml(),
+                    Cycles = effect.Cycles,
+                    EveryBeats = effect.EveryBeats,
+                    Cycle = effect.Cycle,
                 });
             }
 
@@ -627,7 +629,10 @@ public static partial class LevelDocumentMapper
                     new Vector2(effect.X, effect.Y),
                     new Color(effect.Tint ?? "#ffffffff"),
                     effect.Ease,
-                    effect.Muted));
+                    effect.Muted,
+                    Math.Clamp(effect.Cycles, 1, GroupEffect.MaxCycles),
+                    effect.EveryBeats > 0f ? effect.EveryBeats : 1f,
+                    effect.Cycle));
             }
         }
 

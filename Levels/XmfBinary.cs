@@ -18,7 +18,7 @@ public sealed class XmfFormatException(string message) : Exception(message);
 public static partial class XmfBinary
 {
     public const ushort MajorVersion = 2;
-    public const ushort MinorVersion = 6;
+    public const ushort MinorVersion = 7;
 
     /// <summary>The extension level files are saved with, including the dot.</summary>
     public const string Extension = ".xmf";
@@ -78,6 +78,9 @@ public static partial class XmfBinary
 
         /// <summary>Screen-read regions, absent when the level has none.</summary>
         ScreenReads = 23,
+
+        /// <summary>Repeating group effects, absent when nothing cycles.</summary>
+        GroupCycles = 24,
     }
 
     public static byte[] Write(LevelDocument document)
@@ -120,6 +123,8 @@ public static partial class XmfBinary
             file.Add((uint)ChunkId.GroupBuffers, XmfGroupBuffers.Write(document));
         if (HasScreenReads(document))
             file.Add((uint)ChunkId.ScreenReads, WriteScreenReads(document.ScreenReads));
+        if (XmfGroupCycles.HasCycles(document))
+            file.Add((uint)ChunkId.GroupCycles, XmfGroupCycles.Write(document));
         return file.ToArray();
     }
 
@@ -206,6 +211,11 @@ public static partial class XmfBinary
         {
             using BinaryReader reader = buffers.OpenReader();
             XmfGroupBuffers.Read(reader, document);
+        }
+        if (file.TryGet((uint)ChunkId.GroupCycles, out Chunk cycles))
+        {
+            using BinaryReader reader = cycles.OpenReader();
+            XmfGroupCycles.Read(reader, document);
         }
         return document;
     }

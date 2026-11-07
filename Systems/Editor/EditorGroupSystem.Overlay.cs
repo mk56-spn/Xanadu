@@ -77,6 +77,7 @@ public sealed partial class EditorGroupSystem
         ShowRows(state, group, dialog, origin, buffer);
         ShowKeyLane(editor, state, group, dialog, origin, buffer);
         ShowSelection(state, group, buffer);
+        ShowCycle(state, group, dialog, origin, buffer);
         ShowPalette(state, group, dialog, origin, buffer);
         ShowRuler(state, playhead, dialog, origin, buffer);
     }
@@ -190,25 +191,20 @@ public sealed partial class EditorGroupSystem
     {
         Rect2 timeline = Offset(EditorGroupLayout.Timeline(dialog), origin);
         Rect2 ruler = Offset(EditorGroupLayout.Ruler(dialog), origin);
-        double baseTick = TimingGrid.TickMs(playhead.Bpm, playhead.SnapDivision) / 1000.0;
-        double step = EditorGroupLayout.TickSeconds(playhead, state.ViewSpan, timeline.Size.X);
-        int skip = Math.Max(1, (int)Math.Round(step / baseTick));
+        double step = EditorGroupLayout.TickBeats(playhead, state.ViewStart, state.ViewSpan, timeline.Size.X);
         double startMs = state.ViewStart * 1000.0;
         double endMs = (state.ViewStart + state.ViewSpan) * 1000.0;
-        int first = TimingGrid.FirstTick(
-            (long)startMs, playhead.OffsetMs, baseTick * 1000.0);
-        int last = TimingGrid.LastTick((long)endMs, playhead.OffsetMs, baseTick * 1000.0);
-        first -= ((first % skip) + skip) % skip;
 
+        // The song's tempo map gives the lines, so they follow BPM changes.
         int slot = 0;
-        for (int tick = first; tick <= last && slot < EditorGroupLayout.TickSlots; tick += skip)
+        foreach (TempoTick tick in playhead.Tempo.Ticks(startMs, endMs, step))
         {
-            double seconds = TimingGrid.TickTime(tick, playhead.OffsetMs, baseTick * 1000.0) / 1000.0;
-            if (seconds < state.ViewStart - 0.0001 || seconds > state.ViewStart + state.ViewSpan + 0.0001)
-                continue;
+            if (slot >= EditorGroupLayout.TickSlots)
+                break;
 
+            double seconds = tick.TimeMs / 1000.0;
             float x = EditorGroupLayout.XForTime(timeline, state.ViewStart, state.ViewSpan, (float)seconds);
-            bool beat = tick % Math.Max(1, playhead.SnapDivision) == 0;
+            bool beat = tick.OnBeat;
             Entity line = Piece(EditorGroupPart.TickLine, slot);
             Place(line, new Rect2(0, 0, 1, EditorGroupLayout.LinesHeight), new Vector2(x, timeline.Position.Y), buffer);
             Tint(line, beat ? BeatLine : TickLine, buffer);
@@ -268,6 +264,8 @@ public sealed partial class EditorGroupSystem
         {
             string kind = move ? "MOVE" : "COLOR";
             string text = $"{kind} {row + 1}  {effect.Start:0.##}–{effect.End:0.##}";
+            if (effect.Cycling)
+                text += $"  ×{effect.Cycles}";
             if (effect.Muted)
                 text += "  MUTED";
             UiText.Set(label, text, buffer);
@@ -392,5 +390,6 @@ public sealed partial class EditorGroupSystem
         // A disabled dropdown closes, so a list can't float on after the panel shuts.
         UiLayout.SetDisabled(Piece(EditorGroupPart.ShaderSlot), buffer, true);
         UiLayout.SetDisabled(Piece(EditorGroupPart.BufferBlend), buffer, true);
+        UiLayout.SetDisabled(Piece(EditorGroupPart.CycleMode), buffer, true);
     }
 }

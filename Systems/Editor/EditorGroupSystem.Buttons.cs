@@ -82,12 +82,13 @@ public sealed partial class EditorGroupSystem
             Edit(() => ToggleColorLink(editor, open, outline: true));
 
         HandleShaderTrack(editor, ref state, group, playhead);
+        HandleCycle(ref state, group, playhead);
 
         if (state.PaletteOpen)
             HandlePalette(ref state, group);
 
         bool selected = TrySelected(state, group, out int row, out GroupEffect effect);
-        float step = SnapStep(playhead);
+        float step = Math.Max(0.001f, EditorGroupLayout.StepSeconds(effect.End, playhead, 1) - effect.End);
 
         if (JustPressed(Piece(EditorGroupPart.SelectionDuplicate)) && selected &&
             group.Effects.Count < EditorGroupLayout.MaxRows)
@@ -107,9 +108,9 @@ public sealed partial class EditorGroupSystem
             Edit(() => group.Effects[row] = effect with { Muted = !effect.Muted });
 
         if (JustPressed(Piece(EditorGroupPart.SelectionNudgeLeft)) && selected)
-            Nudge(group, row, effect, -step);
+            Nudge(group, row, effect, playhead, -1);
         if (JustPressed(Piece(EditorGroupPart.SelectionNudgeRight)) && selected)
-            Nudge(group, row, effect, step);
+            Nudge(group, row, effect, playhead, 1);
 
         if (JustPressed(Piece(EditorGroupPart.SelectionPick)))
         {
@@ -322,14 +323,13 @@ public sealed partial class EditorGroupSystem
         state.SelectedEffect = row;
     }
 
-    private void Nudge(GroupDefinition group, int row, GroupEffect effect, float delta)
+    /// <summary>Moves an effect one grid step in beat space, so it stays on the beat across tempo changes.</summary>
+    private void Nudge(GroupDefinition group, int row, GroupEffect effect, Playhead playhead, int lines)
     {
-        float start = Math.Max(0f, effect.Start + delta);
-        float end = Math.Max(start, effect.End + delta);
+        float start = EditorGroupLayout.Tidy(EditorGroupLayout.StepSeconds(effect.Start, playhead, lines));
+        float end = Math.Max(start, EditorGroupLayout.Tidy(EditorGroupLayout.StepSeconds(effect.End, playhead, lines)));
         Edit(() => group.Effects[row] = effect with { Start = start, End = end });
     }
 
-    private static float SnapStep(Playhead playhead) =>
-        Math.Max(0.001f, (float)(TimingGrid.TickMs(playhead.Bpm, playhead.SnapDivision) / 1000.0));
 
 }

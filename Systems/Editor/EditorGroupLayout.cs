@@ -41,9 +41,10 @@ public static class EditorGroupLayout
     /// </summary>
     private const float GroupBarTop = 8f;
     private const float EffectBarTop = 44f;
-    private const float ShaderBarTop = 80f;
+    private const float CycleBarTop = 80f;
+    private const float ShaderBarTop = 116f;
     private const float BarHeight = 28f;
-    private const float RowsTop = 142f;
+    private const float RowsTop = 178f;
 
     /// <summary>The key lane sits under the last effect row.</summary>
     private const float LaneTop = RowsTop + MaxRows * RowHeight;
@@ -182,6 +183,19 @@ public static class EditorGroupLayout
         (EditorGroupPart.BufferBlend, 110f, Gap),
     };
 
+    /// <summary>The selected effect's repeat: count, spacing in beats, and how each cycle plays.</summary>
+    private static readonly (EditorGroupPart Part, float Width, float Before)[] CycleBarLeft =
+    {
+        (EditorGroupPart.CycleTitle, 104f, 0f),
+        (EditorGroupPart.CycleCount, 64f, Gap),
+        (EditorGroupPart.CycleCountDown, 30f, 4f),
+        (EditorGroupPart.CycleCountUp, 30f, 4f),
+        (EditorGroupPart.CycleEveryText, 130f, SectionGap),
+        (EditorGroupPart.CycleEveryDown, 30f, 4f),
+        (EditorGroupPart.CycleEveryUp, 30f, 4f),
+        (EditorGroupPart.CycleMode, 130f, SectionGap),
+    };
+
     private static readonly (EditorGroupPart Part, float Width, float Before)[] EffectBarRight =
     {
         (EditorGroupPart.PlayToggle, 76f, 0f),
@@ -205,7 +219,8 @@ public static class EditorGroupLayout
                TryRun(GroupBarRight, part, GroupBarTop, dialog.X - Pad, true, dialog, out rect) ||
                TryRun(EffectBarLeft, part, EffectBarTop, Pad, false, dialog, out rect) ||
                TryRun(EffectBarRight, part, EffectBarTop, dialog.X - Pad, true, dialog, out rect) ||
-               TryRun(ShaderBarLeft, part, ShaderBarTop, Pad, false, dialog, out rect);
+               TryRun(ShaderBarLeft, part, ShaderBarTop, Pad, false, dialog, out rect) ||
+               TryRun(CycleBarLeft, part, CycleBarTop, Pad, false, dialog, out rect);
     }
 
     private static bool TryRun(
@@ -306,24 +321,29 @@ public static class EditorGroupLayout
         };
     }
 
-    /// <summary>The seconds between ticks on the ruler: the beat grid's step, thinned so the ticks stay readable.</summary>
-    public static double TickSeconds(Playhead playhead, float viewSpan, float rulerWidth)
+    /// <summary>The group grid's step in beats: <see cref="Playhead.SnapDivision"/> lines a beat.</summary>
+    public static double StepBeats(Playhead playhead) => 1.0 / Math.Max(1, playhead.SnapDivision);
+
+    /// <summary>
+    /// The beats between ruler ticks over a window: the grid's step, doubled
+    /// until the ticks stay readable (at most one per six pixels).
+    /// </summary>
+    public static double TickBeats(Playhead playhead, float viewStart, float viewSpan, float rulerWidth)
     {
-        double tick = TimingGrid.TickMs(playhead.Bpm, playhead.SnapDivision) / 1000.0;
-        while (tick > 0 && viewSpan / tick * 1.0 > rulerWidth / 6.0)
-            tick *= 2;
-        return tick;
+        double beats = playhead.Tempo.BeatAt((viewStart + viewSpan) * 1000.0) - playhead.Tempo.BeatAt(viewStart * 1000.0);
+        double step = StepBeats(playhead);
+        while (beats / step > rulerWidth / 6.0)
+            step *= 2;
+        return step;
     }
 
     /// <summary>The nearest beat-grid time to <paramref name="seconds"/>, never before 0.</summary>
-    public static float SnapSeconds(float seconds, Playhead playhead)
-    {
-        double tickMs = TimingGrid.TickMs(playhead.Bpm, playhead.SnapDivision);
-        double offset = playhead.OffsetMs;
-        int tick = (int)Math.Round((seconds * 1000.0 - offset) / tickMs);
-        double snappedMs = TimingGrid.TickTime(tick, playhead.OffsetMs, tickMs);
-        return Math.Max(0f, (float)(snappedMs / 1000.0));
-    }
+    public static float SnapSeconds(float seconds, Playhead playhead) =>
+        Math.Max(0f, (float)(playhead.Tempo.Snap(seconds * 1000.0, StepBeats(playhead)) / 1000.0));
+
+    /// <summary>A moment moved by <paramref name="lines"/> grid steps in beat space, so it keeps its place across tempo changes.</summary>
+    public static float StepSeconds(float seconds, Playhead playhead, int lines) =>
+        (float)(playhead.Tempo.TimeAt(playhead.Tempo.BeatAt(seconds * 1000.0) + StepBeats(playhead) * lines) / 1000.0);
 
     /// <summary>Rounds a typed or dragged time to the milliseconds a level can sensibly hold.</summary>
     public static float Tidy(float seconds) => (float)Math.Round(Math.Max(0f, seconds), 3);

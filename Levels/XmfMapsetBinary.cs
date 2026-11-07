@@ -16,7 +16,7 @@ namespace Xanadu.Levels;
 public static partial class XmfBinary
 {
     public const ushort MapsetMajorVersion = 2;
-    public const ushort MapsetMinorVersion = 6;
+    public const ushort MapsetMinorVersion = 7;
 
     private const string MapsetFormat = "XMF2";
 
@@ -67,6 +67,9 @@ public static partial class XmfBinary
 
         /// <summary>Each variant's screen-read regions, absent when none has any.</summary>
         ScreenReads = 18,
+
+        /// <summary>Each variant's repeating group effects, absent when nothing cycles.</summary>
+        GroupCycles = 19,
     }
 
     public static void SaveMapset(string path, XmfMapset mapset)
@@ -112,6 +115,8 @@ public static partial class XmfBinary
             file.Add((uint)MapsetChunkId.GroupBuffers, WriteVariantGroupBuffers(mapset.Variants));
         if (mapset.Variants.Exists(XmfBinary.HasScreenReads))
             file.Add((uint)MapsetChunkId.ScreenReads, WriteVariantScreenReads(mapset.Variants));
+        if (mapset.Variants.Exists(XmfGroupCycles.HasCycles))
+            file.Add((uint)MapsetChunkId.GroupCycles, WriteVariantGroupCycles(mapset.Variants));
         return file.ToArray();
     }
 
@@ -154,6 +159,8 @@ public static partial class XmfBinary
             ReadVariantShaderSources(sources, mapset.Variants);
         if (file.TryGet((uint)MapsetChunkId.GroupBuffers, out Chunk groupBuffers))
             ReadVariantGroupBuffers(groupBuffers, mapset.Variants);
+        if (file.TryGet((uint)MapsetChunkId.GroupCycles, out Chunk groupCycles))
+            ReadVariantGroupCycles(groupCycles, mapset.Variants);
         return mapset;
     }
 
@@ -582,6 +589,27 @@ public static partial class XmfBinary
             throw new FormatException("XMF variant group buffers do not match the variant count.");
         foreach (XmfVariant variant in variants)
             XmfGroupBuffers.Read(reader, variant);
+    }
+
+    private static byte[] WriteVariantGroupCycles(List<XmfVariant> variants)
+    {
+        using var stream = new MemoryStream();
+        using var writer = new BinaryWriter(stream, Encoding.UTF8, leaveOpen: true);
+        writer.Write((uint)variants.Count);
+        foreach (XmfVariant variant in variants)
+            XmfGroupCycles.Write(writer, variant);
+        writer.Flush();
+        return stream.ToArray();
+    }
+
+    private static void ReadVariantGroupCycles(Chunk chunk, List<XmfVariant> variants)
+    {
+        using BinaryReader reader = chunk.OpenReader();
+        uint count = ReadCount(reader, XmfItemIO.MaxItems, "variant group cycle");
+        if (count != variants.Count)
+            throw new FormatException("XMF variant group cycles do not match the variant count.");
+        foreach (XmfVariant variant in variants)
+            XmfGroupCycles.Read(reader, variant);
     }
 
     private static void WriteBlob(BinaryWriter writer, byte[] blob)
