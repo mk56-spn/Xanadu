@@ -211,16 +211,28 @@ public sealed class EditorChromeLayoutTests : EcsSystemTest
     }
 
     [Test]
-    public void TheHeaderDropdownsHugTheRightEdgeAndTheNameHugsTheLeft()
+    public void TheHeaderMenuHugsTheRightEdgeAndTheNameHugsTheLeft()
     {
-        Rect2 file = Area(ByText("FILE ▾"));
         Rect2 menu = Area(ByText("MENU ▾"));
         Rect2 name = Area(ByText("LEVEL EDITOR").Parent);
 
         Assert.That(menu.End.X, Is.EqualTo(Screen.X - HeaderPad).Within(0.5f));
-        Assert.That(file.End.X, Is.LessThan(menu.Position.X));
         Assert.That(name.Position.X, Is.EqualTo(HeaderPad).Within(0.5f));
-        Assert.That(file.Position.Y, Is.EqualTo(menu.Position.Y).Within(0.5f));
+    }
+
+    [Test]
+    public void TheMenuHoldsSaveLevelInfoAndExitOnly()
+    {
+        var labels = new System.Collections.Generic.List<string>();
+        foreach (Entity option in Store.Query<DropdownOption>().ToEntityList())
+        {
+            if (option.GetComponent<DropdownOption>().Owner == ByText("MENU ▾"))
+                labels.Add(option.GetComponent<Text>().Value);
+        }
+
+        Assert.That(labels, Is.EquivalentTo(new[] { "SAVE", "LEVEL INFO", "EXIT" }));
+        Assert.Throws<AssertionException>(() => ByText("FILE ▾"));
+        Assert.Throws<AssertionException>(() => ByText("SONG ▾"));
     }
 
     [Test]
@@ -271,27 +283,6 @@ public sealed class EditorChromeLayoutTests : EcsSystemTest
         Store.Query<EditorSidebarLayout>().ToEntityList()[0]
             .GetComponent<EditorSidebarLayout>().CharacterButton;
 
-    [Test]
-    public void TheSnapDropdownOffersHalfBeatAndFinerFractions()
-    {
-        Entity snap = Store.Query<EditorLeftMenu>().ToEntityList()[0]
-            .GetComponent<EditorLeftMenu>().SnapButton;
-
-        var options = new System.Collections.Generic.List<(int Value, string Label)>();
-        foreach (EntityLink<DropdownOption> link in snap.GetIncomingLinks<DropdownOption>())
-        {
-            Entity option = link.Entity;
-            options.Add((
-                option.GetComponent<DropdownOption>().Value,
-                option.GetComponent<Text>().Value));
-        }
-        options.Sort((left, right) => left.Value.CompareTo(right.Value));
-
-        Assert.That(
-            options.ConvertAll(option => option.Label),
-            Is.EqualTo(new[] { "1/2 beat", "1/4 beat", "1/8 beat" }));
-    }
-
     private Entity Cell(int index)
     {
         foreach (Entity entity in Store.Query<EditorGroupCell>().ToEntityList())
@@ -318,8 +309,8 @@ public sealed class EditorChromeLayoutTests : EcsSystemTest
         ShellStatusLabels labels = Store.Query<EditorHud>().ToEntityList()[0].GetComponent<EditorHud>().Status;
         Rect2 message = Area(labels.Message);
         Rect2 flag = Area(labels.Flag);
-        // The grid, snap, advance and path toggles moved to the bar over the view; FILE now leads the right side.
-        Rect2 file = Area(ByText("FILE ▾"));
+        // MENU is the only control on the header's right.
+        Rect2 file = Area(ByText("MENU ▾"));
 
         Assert.That(_shell.Header.Encloses(message), Is.True);
         Assert.That(_shell.Header.Encloses(flag), Is.True);

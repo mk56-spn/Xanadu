@@ -25,10 +25,7 @@ public partial class EditorOverlay
     private readonly Action? _onForward;
     private readonly Action<LevelDocument, string, long>? _onPreview;
     private readonly Action<LevelDocument, string, long>? _onPreviewHere;
-    private readonly TapTempo _tapTempo = new();
 
-    private FileDialog _saveAsDialog = null!;
-    private FileDialog _loadDialog = null!;
     private LineEdit _textInput = null!;
     private Entity _textFieldEntity;
     private Entity _editor;
@@ -67,7 +64,6 @@ public partial class EditorOverlay
                 new EditorTimelineHost(_editor, _commands, SetStatus)));
 
         CreateTextFieldBridge();
-        BuildSaveDialogs();
         BuildShaderImportDialog();
 
         if (_openSongDialog &&

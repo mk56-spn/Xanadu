@@ -17,7 +17,7 @@ namespace Xanadu.Scenes;
 public static class EditorSceneMetadata
 {
     private const float MetadataPanelWidth = 380;
-    private const float MetadataPanelHeight = 478;
+    private const float MetadataPanelHeight = 400;
     private const float StartPanelHeight = 220;
 
     internal static void BuildEditorUi(
@@ -45,6 +45,21 @@ public static class EditorSceneMetadata
             .Input();
         Entity panel = panelNode.Entity;
 
+        AddMetadataLabel(panelNode, "SONG");
+        UiNode songRow = panelNode.Row().Size(340, 28).Gap(6);
+        EditorSceneUi.HudText(
+                songRow,
+                Vector2.Zero,
+                new Vector2(240, 28),
+                "No song loaded",
+                13,
+                SceneUi.TextColor)
+            .AddComponent(new EditorSongLabel());
+        songRow.Button("CHANGE", 12, SceneUi.MutedButtonColor)
+            .Size(94, 28)
+            .With(new EditorButton(EditorButtonKind.LoadSong))
+            .Tooltip("Pick the song this level is played to");
+
         AddMetadataLabel(panelNode, LocalizedText.Get(EditorStrings.LevelName));
         Entity nameField = AddMetadataField(
             panelNode,
@@ -66,19 +81,7 @@ public static class EditorSceneMetadata
             EditorFieldKind.Difficulty,
             false);
 
-        AddMetadataLabel(panelNode, LocalizedText.Get(EditorStrings.Bpm));
-        Entity bpmField = AddMetadataField(
-            panelNode,
-            playhead.Bpm.ToString(),
-            EditorFieldKind.Bpm,
-            true);
-
-        AddMetadataLabel(panelNode, LocalizedText.Get(EditorStrings.BeatOffset));
-        Entity offsetField = AddMetadataField(
-            panelNode,
-            playhead.OffsetMs.ToString(),
-            EditorFieldKind.Offset,
-            true);
+        // No BPM or offset here: songs are timed globally, on the song timing screen.
 
         AddMetadataLabel(panelNode, LocalizedText.Get(EditorStrings.Background));
         AddColorRow(
@@ -173,7 +176,6 @@ public static class EditorSceneMetadata
             "MOUSE WHEEL            Seek 500 ms",
             "SHIFT + WHEEL          Seek 2 seconds",
             "CTRL + WHEEL           Zoom field, or timeline over it",
-            "T                      Tap tempo",
             $"{EditorPlacementKeybinds.LabelFor(EditorPlacementMode.Notes),-23}Place normal notes",
             $"{EditorPlacementKeybinds.LabelFor(EditorPlacementMode.Pair),-23}Place pair notes",
             $"{EditorPlacementKeybinds.LabelFor(EditorPlacementMode.Dash),-23}Place dash notes",
@@ -191,7 +193,6 @@ public static class EditorSceneMetadata
             "O                      Make selected blocks one-way",
             "DELETE / BACKSPACE     Delete selection",
             "CTRL+Z / CTRL+Y        Undo / redo (or CTRL+SHIFT+Z)",
-            "L                      Load song",
             "CTRL+S                 Save",
             "ESC                    Back",
             "ENTER                  Forward",
@@ -211,7 +212,7 @@ public static class EditorSceneMetadata
 
         // Keep the fields alive through the editor component so systems can
         // discover them without relying on fragile child ordering.
-        _ = (nameField, artistField, difficultyField, bpmField, offsetField);
+        _ = (nameField, artistField, difficultyField);
     }
 
     private static void AddMetadataLabel(
@@ -252,10 +253,13 @@ public static class EditorSceneMetadata
     {
         UiNode row = parent.Row().Size(340, 28).Gap(6);
 
-        row.Rect(initial, size: new Vector2(44, 28)).Input()
+        // The swatch is for dragging: drop it on another colour to copy it, or
+        // drop one here. EDIT beside it opens the picker.
+        UiNode swatch = row.Rect(initial, size: new Vector2(44, 28)).Input()
             .With(new EditorColorRow(target, hex: false))
-            .With(new EditorButton(edit))
-            .Tooltip(tooltip);
+            .With(new UiColorDrop())
+            .Tooltip(tooltip + ". Drag it onto another colour to copy it, or drop one here");
+        swatch.Entity.AddTag<UiColorSwatch>();
 
         Entity hex = EditorSceneUi.HudText(
             row,

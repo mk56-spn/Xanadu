@@ -13,8 +13,6 @@ public enum EditorFieldKind
     LevelName,
     Artist,
     Difficulty,
-    Bpm,
-    Offset,
     StartTime,
     StartMomentumX,
     StartMomentumY,
@@ -61,15 +59,16 @@ public struct EditorSidebarLayout(
 /// </summary>
 public struct EditorNoteBarPanel : IComponent;
 
-/// <summary>Left-side menu for snap and level file actions.</summary>
-public struct EditorLeftMenu(
-    Entity panel,
-    Entity snapLabel,
-    Entity snapButton) : IComponent
+/// <summary>
+/// The level info panel's song name. Changing the song is rare, so the name
+/// and its CHANGE button live there rather than in the header.
+/// </summary>
+public struct EditorSongLabel : IComponent;
+
+/// <summary>The left panel holding the current tool's settings.</summary>
+public struct EditorLeftMenu(Entity panel) : IComponent
 {
     public Entity Panel = panel;
-    public Entity SnapLabel = snapLabel;
-    public Entity SnapButton = snapButton;
 }
 
 /// <summary>

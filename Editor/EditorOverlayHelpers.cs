@@ -45,8 +45,6 @@ public partial class EditorOverlay : CanvasLayer
     /// pointer is held off the ECS UI while it is; an ECS dialog needs the pointer.
     /// </summary>
     private bool NativeDialogVisible() =>
-        (_saveAsDialog?.Visible ?? false) ||
-        (_loadDialog?.Visible ?? false) ||
         (_shaderFileDialog?.Visible ?? false);
 
     /// <summary>Whether a group's overlay screen is up, which takes over the keyboard and the pointer.</summary>

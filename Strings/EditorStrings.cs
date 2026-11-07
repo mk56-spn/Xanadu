@@ -3,7 +3,6 @@ namespace Xanadu.Strings;
 public static class EditorStrings
 {
     public static readonly LString Menu = new("editor.menu", "MENU");
-    public static readonly LString LoadSong = new("editor.load_song", "Load Song (L)");
     public static readonly LString Save = new("editor.save", "Save");
     public static readonly LString Level = new("editor.level", "Level ▾");
     public static readonly LString LevelName = new("editor.level_name", "LEVEL NAME");
@@ -21,8 +20,6 @@ public static class EditorStrings
     public static readonly LString Snap = new("editor.snap", "SNAP");
     public static readonly LString NoteType = new("editor.note_type", "NOTE TYPE");
     public static readonly LString DashDir = new("editor.dash_dir", "DASH DIR");
-    public static readonly LString SaveAs = new("editor.save_as", "SAVE AS");
-    public static readonly LString LoadLevel = new("editor.load_level", "LOAD LEVEL");
     public static readonly LString Note = new("editor.mode.note", "NOTE");
     public static readonly LString Mine = new("editor.mode.mine", "MINE");
     public static readonly LString Move = new("editor.mode.move", "MOVE");
