@@ -39,7 +39,7 @@ public sealed class UiColorPickerSystemTests
     public void SquareSetsSaturationAndValueFromThePointer()
     {
         // A quarter across and a quarter down: 25% saturation, 75% value.
-        Frame(First + new Vector2(-30, -30), pressed: true);
+        Frame(First - ColorPickerLayout.Size / 4, pressed: true);
 
         UiColorPicker picker = _a.GetComponent<UiColorPicker>();
         Assert.That(picker.Saturation, Is.EqualTo(0.25f).Within(0.01f));

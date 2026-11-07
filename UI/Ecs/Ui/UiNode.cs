@@ -212,6 +212,27 @@ public readonly partial struct UiNode
         return new UiNode(_surface!, viewport);
     }
 
+    /// <summary>
+    /// A titled section whose body folds away when its header is pressed; see
+    /// <see cref="UiBuilder.Collapsible"/>. Fill <paramref name="body"/>; the
+    /// returned node is the section, and its header is
+    /// <see cref="UiCollapsibleControl.HeaderOf"/>.
+    /// </summary>
+    public UiNode Collapsible(
+        string title,
+        float width,
+        out UiNode body,
+        bool expanded = true,
+        float spacing = UiTheme.ContainerSpacing)
+    {
+        UiBuilder builder = BeginChildren();
+        builder.Collapsible(title, width, expanded, spacing);
+        Entity bodyEntity = builder.Current;
+        body = new UiNode(_surface!, bodyEntity);
+        builder.EndCollapsible();
+        return new UiNode(_surface!, bodyEntity.Parent);
+    }
+
     // ------------------------------------------------------------- machinery
 
     private UiNode Stack(StackDirection direction)
