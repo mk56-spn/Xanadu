@@ -141,20 +141,13 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
         state.Pending = scene;
     }
 
-    public void OpenSongTiming() => OpenSongTiming("", SceneKind.Editor);
-
+    /// <summary>
+    /// Opens a song's timing screen. Songs are timed globally, from song
+    /// select; the level editor has no way in.
+    /// </summary>
     public void OpenSongTiming(string songId, SceneKind back)
     {
         EnsureState();
-        if (string.IsNullOrWhiteSpace(songId))
-        {
-            foreach (Entity editor in _entities.Query<LevelInfo>().ToEntityList())
-            {
-                songId = editor.GetComponent<LevelInfo>().SongId;
-                break;
-            }
-        }
-
         if (string.IsNullOrWhiteSpace(songId))
             return;
 

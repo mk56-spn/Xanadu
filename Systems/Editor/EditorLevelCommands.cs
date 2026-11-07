@@ -31,14 +31,6 @@ public sealed class EditorLevelCommands(EditorCommandContext context)
                 level.Difficulty = command.Text ?? "";
                 return true;
 
-            case EditorCommandType.SetBpm:
-                playhead.Bpm = Math.Clamp(command.IntValue, 1, 1000);
-                return true;
-
-            case EditorCommandType.SetOffset:
-                playhead.OffsetMs = Math.Clamp(command.LongValue, -600_000, 600_000);
-                return true;
-
             case EditorCommandType.SetSnap:
                 playhead.SnapDivision = NormalizeSnap(command.IntValue);
                 return true;
@@ -136,8 +128,7 @@ public sealed class EditorLevelCommands(EditorCommandContext context)
         level.SongId = song.Id;
         level.AudioPath = songs.ResolveAudioPath(song);
         level.Artist = song.Artist;
-        playhead.Bpm = song.Bpm;
-        playhead.OffsetMs = song.OffsetMs;
+        playhead.Tempo = song.Tempo();
         playhead.TimeMs = 0;
         playhead.DurationMs = 0;
         playhead.Playing = false;
@@ -155,8 +146,7 @@ public sealed class EditorLevelCommands(EditorCommandContext context)
             level.SongId = song.Id;
             level.AudioPath = song.AudioPath;
             level.Artist = song.Artist;
-            playhead.Bpm = song.Bpm;
-            playhead.OffsetMs = song.OffsetMs;
+            playhead.Tempo = song.Tempo();
         }
         catch (Exception)
         {

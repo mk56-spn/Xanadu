@@ -11,8 +11,6 @@ public enum EditorCommandType
     SetName,
     SetArtist,
     SetDifficulty,
-    SetBpm,
-    SetOffset,
     SetSnap,
     SetPlacementMode,
     TogglePlayback,
@@ -64,12 +62,6 @@ public readonly record struct EditorCommand(
 
     public static EditorCommand SetDifficulty(string value) =>
         new(EditorCommandType.SetDifficulty, Text: value);
-
-    public static EditorCommand SetBpm(int value) =>
-        new(EditorCommandType.SetBpm, IntValue: value);
-
-    public static EditorCommand SetOffset(long value) =>
-        new(EditorCommandType.SetOffset, LongValue: value);
 
     public static EditorCommand SetSnap(int value) =>
         new(EditorCommandType.SetSnap, IntValue: value);

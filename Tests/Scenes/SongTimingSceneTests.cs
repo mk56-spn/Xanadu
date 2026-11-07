@@ -132,4 +132,23 @@ public sealed class SongTimingSceneTests
             entity.GetComponent<Position>().Value);
         return new Rect2(center + bounds.Position, bounds.Size);
     }
+
+    [Test]
+    public void TheScreenHasTypedTimingAndABpmChangesList()
+    {
+        Build();
+
+        SongTimingView timing = _store.Query<SongTimingView>().ToEntityList()[0].GetComponent<SongTimingView>();
+        var kinds = _store.Query<SongTimingField>().ToEntityList()
+            .Select(entity => entity.GetComponent<SongTimingField>().Kind)
+            .ToList();
+
+        Assert.That(timing.Rows, Has.Length.EqualTo(SongTimingScene.ChangeRows));
+        Assert.That(kinds, Does.Contain(SongTimingFieldKind.BaseBpm));
+        Assert.That(kinds, Does.Contain(SongTimingFieldKind.Offset));
+        Assert.That(kinds.Count(kind => kind == SongTimingFieldKind.ChangeBpm), Is.EqualTo(SongTimingScene.ChangeRows));
+        Assert.That(
+            _store.Query<SongTempoButton>().ToEntityList().Select(entity => entity.GetComponent<SongTempoButton>().Action),
+            Does.Contain(SongTempoAction.Add));
+    }
 }
