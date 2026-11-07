@@ -27,9 +27,7 @@ public sealed class EditorHoverProbe(EditorSceneQuery scene, EditorItemPicker pi
         bool polygon = editor.HasComponent<EditorPlacement>() &&
                        editor.GetComponent<EditorPlacement>().Mode == EditorPlacementMode.Polygon;
         if (scene.IsGroupTargetEditing() ||
-            scene.IsWarningOpen() ||
-            scene.IsGroupOverlayOpen() ||
-            scene.IsSceneConfirmationOpen() ||
+            scene.IsModalOpen() ||
             EditorPlacementNote.NeedsShape(editor) ||
             (!polygon && hasPickedSelection))
         {

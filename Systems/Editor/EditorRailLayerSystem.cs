@@ -71,15 +71,8 @@ public sealed class EditorRailLayerSystem : QuerySystem<EditorButton>
 
     private bool PressedNow(Entity entity) => _presses.Started(entity);
 
-    private void PlaceRail(KeybindAction action, Entity editor, long holdMs)
-    {
-        if (EditorItems.WouldOverfill(_entities, editor))
-            return;
-
-        Playhead playhead = editor.GetComponent<Playhead>();
-        long time = EditorTiming.Snap(playhead.TimeMs, playhead);
-        EditorSnapshot before = _history.Capture();
-        EditorItems.Place(_entities, new Note(
+    private void PlaceRail(KeybindAction action, Entity editor, long holdMs) =>
+        Place(editor, time => new Note(
             time,
             Vector2.Zero,
             target: action,
@@ -87,11 +80,16 @@ public sealed class EditorRailLayerSystem : QuerySystem<EditorButton>
             pairIndex: NoteRules.PairIndexFor(action),
             channelSide: NoteRules.SideOf(action),
             holdMs: holdMs));
-        _history.Record(before, _history.Capture());
-        EditorAutoAdvance.AfterPlacing(_entities, editor, time);
-    }
 
-    private void PlaceEnd(ChannelSide side, Entity editor)
+    private void PlaceEnd(ChannelSide side, Entity editor) =>
+        Place(editor, time => new Note(
+            time,
+            Vector2.Zero,
+            kind: NoteKind.ChannelEnd,
+            channelSide: side));
+
+    /// <summary>Places the note made for the snapped playhead time as one undo step, then auto-advances.</summary>
+    private void Place(Entity editor, System.Func<long, Note> make)
     {
         if (EditorItems.WouldOverfill(_entities, editor))
             return;
@@ -99,11 +97,7 @@ public sealed class EditorRailLayerSystem : QuerySystem<EditorButton>
         Playhead playhead = editor.GetComponent<Playhead>();
         long time = EditorTiming.Snap(playhead.TimeMs, playhead);
         EditorSnapshot before = _history.Capture();
-        EditorItems.Place(_entities, new Note(
-            time,
-            Vector2.Zero,
-            kind: NoteKind.ChannelEnd,
-            channelSide: side));
+        EditorItems.Place(_entities, make(time));
         _history.Record(before, _history.Capture());
         EditorAutoAdvance.AfterPlacing(_entities, editor, time);
     }

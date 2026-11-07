@@ -92,13 +92,8 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
     private void OnPress(Vector2 screenPosition, bool shift)
     {
         Entity editor = _scene.Editor();
-        if (editor.IsNull ||
-            _scene.IsWarningOpen() ||
-            _scene.IsGroupOverlayOpen() ||
-            _scene.IsSceneConfirmationOpen())
-        {
+        if (editor.IsNull || _scene.IsModalOpen())
             return;
-        }
 
         PlayfieldView view = editor.GetComponent<PlayfieldView>();
         Playfield playfield = editor.GetComponent<Playfield>();
@@ -241,13 +236,8 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
     private void OnHold(Vector2 screenPosition, bool shift)
     {
         Entity editor = _scene.Editor();
-        if (editor.IsNull ||
-            _scene.IsWarningOpen() ||
-            _scene.IsGroupOverlayOpen() ||
-            _scene.IsSceneConfirmationOpen())
-        {
+        if (editor.IsNull || _scene.IsModalOpen())
             return;
-        }
 
         PlayfieldView view = editor.GetComponent<PlayfieldView>();
         Playfield playfield = editor.GetComponent<Playfield>();
