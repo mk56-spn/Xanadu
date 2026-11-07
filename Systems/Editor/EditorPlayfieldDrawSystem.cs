@@ -107,24 +107,12 @@ public sealed class EditorPlayfieldDrawSystem :
                 playfield,
                 playhead,
                 selection,
-                entity.HasComponent<TimelineView>()
-                    ? entity.GetComponent<TimelineView>()
-                    : new TimelineView(1f),
-                entity.HasComponent<WaveformPreview>()
-                    ? entity.GetComponent<WaveformPreview>()
-                    : default,
-                entity.HasComponent<UiMarqueeBox>()
-                    ? entity.GetComponent<UiMarqueeBox>()
-                    : default,
-                entity.HasComponent<LevelGroups>()
-                    ? entity.GetComponent<LevelGroups>()
-                    : default,
-                entity.HasComponent<EditorGroupState>()
-                    ? entity.GetComponent<EditorGroupState>()
-                    : EditorGroupState.Closed,
-                entity.HasComponent<EditorAnalysis>()
-                    ? entity.GetComponent<EditorAnalysis>()
-                    : default,
+                entity.TryGetComponent(out TimelineView timelineView) ? timelineView : new TimelineView(1f),
+                entity.TryGetComponent(out WaveformPreview waveform) ? waveform : default,
+                entity.TryGetComponent(out UiMarqueeBox marquee) ? marquee : default,
+                entity.TryGetComponent(out LevelGroups groups) ? groups : default,
+                entity.TryGetComponent(out EditorGroupState groupState) ? groupState : EditorGroupState.Closed,
+                entity.TryGetComponent(out EditorAnalysis analysis) ? analysis : default,
                 background,
                 outside,
                 frameColor,
