@@ -25,10 +25,12 @@ public struct EditorFlarePanel(Entity section, Entity[] readouts, Entity color) 
 public sealed class EditorFlarePanelSystem(EditorHistory history)
     : QuerySystem<NoteSelection, EditorFlarePanel, EditorPlacement>
 {
-    private readonly List<Entity> _targets = new();
     private readonly ButtonPress _presses = new();
-    private EditorSnapshot? _before;
-    private bool _wasEditing;
+    private readonly EditorColorEdit _color = new(
+        history,
+        IsFlare,
+        (item, color) => item.GetComponent<LevelFlare>().Color = color,
+        (editor, color) => editor.GetComponent<EditorPlacement>().Flare.Color = color);
 
     protected override void OnUpdate()
     {
@@ -41,22 +43,9 @@ public sealed class EditorFlarePanelSystem(EditorHistory history)
         EditorFlarePanel panel = editor.GetComponent<EditorFlarePanel>();
         NoteSelection selection = editor.GetComponent<NoteSelection>();
         Entity first = EditorSelectionScan.First(selection, IsFlare);
-        bool editing = UiColorField.IsEditing(panel.Color);
-
-        if (editing && !_wasEditing)
-        {
-            EditorSelectionScan.Collect(selection, _targets, IsFlare);
-            _before = history.Capture();
-        }
-        _wasEditing = editing;
 
         // A dragged picker colours the flares as it moves; the drag is one undo step.
-        if (UiColorField.TakeLive(panel.Color, out Color live))
-            PutColor(editor, live);
-        if (UiColorField.TakeCommit(panel.Color, out Color color))
-            ApplyColor(editor, color);
-        if (!editing)
-            _before = null;
+        _color.Update(editor, panel.Color, selection);
 
         foreach (Entity button in EditorButton.All(editor.Store, EditorButtonKind.FlareStep))
         {
@@ -91,28 +80,6 @@ public sealed class EditorFlarePanelSystem(EditorHistory history)
     public static int StepArg(FlareSetting setting, int sign) => ((int)setting + 1) * sign;
 
     private static bool IsFlare(Entity item) => !item.IsNull && item.HasComponent<LevelFlare>();
-
-    private void ApplyColor(Entity editor, Color color)
-    {
-        _targets.RemoveAll(item => !IsFlare(item));
-        if (_targets.Count == 0)
-        {
-            PutColor(editor, color);
-            return;
-        }
-
-        EditorSnapshot before = _before ?? history.Capture();
-        PutColor(editor, color);
-        history.Record(before, history.Capture());
-    }
-
-    private void PutColor(Entity editor, Color color)
-    {
-        editor.GetComponent<EditorPlacement>().Flare.Color = color;
-        _targets.RemoveAll(item => !IsFlare(item));
-        foreach (Entity item in _targets)
-            item.GetComponent<LevelFlare>().Color = color;
-    }
 
     /// <summary>
     /// The selected flares all take the first one's value plus the step, so a

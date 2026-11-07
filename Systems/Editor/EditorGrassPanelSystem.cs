@@ -26,10 +26,12 @@ public struct EditorGrassPanel(Entity section, Entity[] readouts, Entity color) 
 public sealed class EditorGrassPanelSystem(EditorHistory history)
     : QuerySystem<NoteSelection, EditorGrassPanel, EditorPlacement>
 {
-    private readonly List<Entity> _targets = new();
     private readonly ButtonPress _presses = new();
-    private EditorSnapshot? _before;
-    private bool _wasEditing;
+    private readonly EditorColorEdit _color = new(
+        history,
+        IsGrass,
+        (item, color) => item.GetComponent<GrassPatch>().Color = color,
+        (editor, color) => editor.GetComponent<EditorPlacement>().Grass.Color = color);
 
     protected override void OnUpdate()
     {
@@ -42,22 +44,9 @@ public sealed class EditorGrassPanelSystem(EditorHistory history)
         EditorGrassPanel panel = editor.GetComponent<EditorGrassPanel>();
         NoteSelection selection = editor.GetComponent<NoteSelection>();
         Entity first = EditorSelectionScan.First(selection, IsGrass);
-        bool editing = UiColorField.IsEditing(panel.Color);
-
-        if (editing && !_wasEditing)
-        {
-            EditorSelectionScan.Collect(selection, _targets, IsGrass);
-            _before = history.Capture();
-        }
-        _wasEditing = editing;
 
         // A dragged picker colours the grass as it moves; the drag is one undo step.
-        if (UiColorField.TakeLive(panel.Color, out Color live))
-            PutColor(editor, live);
-        if (UiColorField.TakeCommit(panel.Color, out Color color))
-            ApplyColor(editor, color);
-        if (!editing)
-            _before = null;
+        _color.Update(editor, panel.Color, selection);
 
         foreach (Entity button in EditorButton.All(editor.Store, EditorButtonKind.GrassStep))
         {
@@ -86,31 +75,7 @@ public sealed class EditorGrassPanelSystem(EditorHistory history)
     /// <summary>The argument a step button carries: the setting plus one, negative for less.</summary>
     public static int StepArg(GrassSetting setting, int sign) => ((int)setting + 1) * sign;
 
-
     private static bool IsGrass(Entity item) => !item.IsNull && item.HasComponent<GrassPatch>();
-
-
-    private void ApplyColor(Entity editor, Color color)
-    {
-        _targets.RemoveAll(item => !IsGrass(item));
-        if (_targets.Count == 0)
-        {
-            PutColor(editor, color);
-            return;
-        }
-
-        EditorSnapshot before = _before ?? history.Capture();
-        PutColor(editor, color);
-        history.Record(before, history.Capture());
-    }
-
-    private void PutColor(Entity editor, Color color)
-    {
-        editor.GetComponent<EditorPlacement>().Grass.Color = color;
-        _targets.RemoveAll(item => !IsGrass(item));
-        foreach (Entity item in _targets)
-            item.GetComponent<GrassPatch>().Color = color;
-    }
 
     /// <summary>
     /// The selected patches all take the first one's value plus the step, so a

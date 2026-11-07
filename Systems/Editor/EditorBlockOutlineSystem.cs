@@ -22,10 +22,8 @@ public struct EditorBlockOutlinePanel(Entity section, Entity width, Entity color
 /// </summary>
 public sealed class EditorBlockOutlineSystem(EditorHistory history) : QuerySystem<NoteSelection, EditorBlockOutlinePanel>
 {
-    private readonly List<Entity> _targets = new();
     private readonly ButtonPress _presses = new();
-    private EditorSnapshot? _before;
-    private bool _wasEditing;
+    private readonly EditorColorEdit _color = new(history, IsOutlined, SetColor);
 
     protected override void OnUpdate()
     {
@@ -38,23 +36,10 @@ public sealed class EditorBlockOutlineSystem(EditorHistory history) : QuerySyste
         EditorBlockOutlinePanel panel = editor.GetComponent<EditorBlockOutlinePanel>();
         NoteSelection selection = editor.GetComponent<NoteSelection>();
         Entity first = EditorSelectionScan.First(selection, IsOutlined);
-        bool editing = UiColorField.IsEditing(panel.Color);
-        UiLayout.SetHidden(panel.Section, first.IsNull && !editing);
-
-        if (editing && !_wasEditing)
-        {
-            EditorSelectionScan.Collect(selection, _targets, IsOutlined);
-            _before = history.Capture();
-        }
-        _wasEditing = editing;
 
         // A dragged picker colours the outlines as it moves; the drag is one undo step.
-        if (UiColorField.TakeLive(panel.Color, out Color live))
-            PutColor(live);
-        if (UiColorField.TakeCommit(panel.Color, out Color color))
-            ApplyColor(color);
-        if (!editing)
-            _before = null;
+        bool editing = _color.Update(editor, panel.Color, selection);
+        UiLayout.SetHidden(panel.Section, first.IsNull && !editing);
 
         foreach (Entity button in EditorButton.All(editor.Store, EditorButtonKind.OutlineStep))
         {
@@ -71,26 +56,6 @@ public sealed class EditorBlockOutlineSystem(EditorHistory history) : QuerySyste
             panel.Width,
             $"{shownWidth:0}",
             CommandBuffer);
-    }
-
-
-
-    private void ApplyColor(Color color)
-    {
-        _targets.RemoveAll(item => !IsOutlined(item));
-        if (_targets.Count == 0)
-            return;
-
-        EditorSnapshot before = _before ?? history.Capture();
-        PutColor(color);
-        history.Record(before, history.Capture());
-    }
-
-    private void PutColor(Color color)
-    {
-        _targets.RemoveAll(item => !IsOutlined(item));
-        foreach (Entity item in _targets)
-            SetColor(item, color);
     }
 
     /// <summary>They all take the first one's width plus the step, so a mixed selection ends up matching.</summary>
