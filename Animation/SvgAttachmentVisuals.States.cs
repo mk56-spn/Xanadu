@@ -90,22 +90,7 @@ public sealed partial class SvgAttachmentVisuals
             cache.Key = key;
         }
 
-        var squash = new Transform2D[bones.Length];
-        for (int i = 0; i < squash.Length; i++)
-            squash[i] = XafRig.Foreshorten(package, pose, i);
-
-        Vector2[] bent = XafSkinDeform.Deform(influences, cache.Weights, cache.RestPoints, restBones, bones,
-            restAttachment, placed, squash);
-        for (int i = 0; i < bent.Length; i++)
-            bent[i] = placement * bent[i];
-
-        var colors = new Color[bent.Length];
-        Array.Fill(colors, Colors.White);
-        cache.Drawn = bent;
-        RenderingServer.CanvasItemSetTransform(visual.Item, Transform2D.Identity);
-        RenderingServer.CanvasItemClear(visual.Item);
-        RenderingServer.CanvasItemAddTriangleArray(visual.Item, cache.Triangles, bent, colors, cache.Uvs,
-            texture: visual.Texture.GetRid());
+        DrawBent(package, pose, influences, cache, visual, bones, placed, restBones, restAttachment, placement);
     }
 
     /// <summary>
@@ -143,6 +128,14 @@ public sealed partial class SvgAttachmentVisuals
             visual.Mesh = cache;
         }
 
+        DrawBent(package, pose, influences, cache, visual, bones, placed, restBones, restAttachment, placement);
+    }
+
+    /// <summary>Bends a mesh's rest points by its weights to the posed bones and draws it, keeping where it went.</summary>
+    private static void DrawBent(XafPackage package, XafPose pose, List<int> influences, MeshCache cache,
+        Visual visual, Transform2D[] bones, Transform2D placed, Transform2D[] restBones,
+        Transform2D restAttachment, Transform2D placement)
+    {
         var squash = new Transform2D[bones.Length];
         for (int i = 0; i < squash.Length; i++)
             squash[i] = XafRig.Foreshorten(package, pose, i);
