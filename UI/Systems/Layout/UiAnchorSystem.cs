@@ -26,7 +26,8 @@ public sealed class UiAnchorSystem : QuerySystem<UiAnchor, Rectangle, Position>
                 parentRect.Bounds.Position +
                 parentRect.Bounds.Size * anchor.Anchor -
                 size * anchor.Pivot +
-                size / 2;
+                size / 2 +
+                anchor.Inset;
 
             if (position.Value == target)
                 return;
