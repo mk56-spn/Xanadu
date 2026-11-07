@@ -72,15 +72,13 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
         if (UiLayout.IsHidden(_confirmationPanel))
             return false;
 
-        if (!confirmation.Yes.IsNull && confirmation.Yes.Tags.Has<Pressed>())
+        if (IsPressed(confirmation.Yes))
         {
             Confirm(ref state);
             return true;
         }
 
-        if (!confirmation.Save.IsNull &&
-            confirmation.Save.Tags.Has<Pressed>() &&
-            SaveEditor is { } save)
+        if (IsPressed(confirmation.Save) && SaveEditor is { } save)
         {
             // A level that cannot be saved stays open, so the dialog has to say
             // why: the editor's status line is not where anyone is looking.
@@ -100,7 +98,7 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
             return true;
         }
 
-        if (!confirmation.No.IsNull && confirmation.No.Tags.Has<Pressed>())
+        if (IsPressed(confirmation.No))
         {
             HideConfirmation();
             return true;

@@ -78,19 +78,19 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
         if (UiLayout.IsHidden(_pausePanel))
             return false;
 
-        if (!pause.Resume.IsNull && pause.Resume.Tags.Has<Pressed>())
+        if (IsPressed(pause.Resume))
         {
             ResumeFromPause();
             return true;
         }
 
-        if (!pause.Retry.IsNull && pause.Retry.Tags.Has<Pressed>())
+        if (IsPressed(pause.Retry))
         {
             RetryPlay(ref state);
             return true;
         }
 
-        if (!pause.Leave.IsNull && pause.Leave.Tags.Has<Pressed>())
+        if (IsPressed(pause.Leave))
         {
             LeavePlay(ref state);
             return true;
