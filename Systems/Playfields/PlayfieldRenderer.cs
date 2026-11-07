@@ -73,7 +73,8 @@ public static partial class PlayfieldRenderer
         float seconds = 0f,
         GroupDefinition[]? groups = null,
         IReadOnlyDictionary<int, LevelLayer>? layers = null,
-        IPassSurfaces? passes = null)
+        IPassSurfaces? passes = null,
+        bool divaNotes = false)
     {
         // Under a camera the layer is scrolled by it, so the backdrop follows to keep the screen covered.
         canvas.DrawRect(rid, new Rect2(camera, view.ScreenSize), outside ?? PlayBackground);
@@ -98,7 +99,8 @@ public static partial class PlayfieldRenderer
                 Editor: false,
                 Groups: groups,
                 Layers: layers,
-                Passes: passes),
+                Passes: passes,
+                DivaNotes: divaNotes),
             () =>
             {
                 canvas.SelectShader(playerShader);
@@ -106,7 +108,6 @@ public static partial class PlayfieldRenderer
                 DrawPlayer(canvas, rid, entities, view);
                 DrawSplitlineBalls(canvas, rid, entities, view);
             });
-        DrawKeyTrail(canvas, rid, entities, frame ?? field, playhead, camera.X);
         DrawTransport(canvas, rid, frame ?? field, playhead);
     }
 

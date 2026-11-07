@@ -174,7 +174,8 @@ public sealed class XanaduSystemRoot : SystemRoot, IDisposable
             new GodotOverlayToggleSource(DebugKeys.Hitboxes),
             MapOffsets,
             _playPassSurfaces,
-            toPixels);
+            toPixels,
+            new GodotOverlayToggleSource(DebugKeys.DivaNotes));
         Add(_playfieldSystems);
         _editorSystems = new EditorSystemGroup(
             entities,

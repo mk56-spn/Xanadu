@@ -14,6 +14,7 @@ namespace Xanadu.Systems.Playfields;
 /// The editor's view: both rail lanes, start points, and selection
 /// (<paramref name="IsSelected"/>, <paramref name="SelectedNote"/>).
 /// </param>
+/// <param name="DivaNotes">Play draws notes the DIVA+ way (<see cref="Xanadu.Ecs.DivaNotes"/>).</param>
 /// <param name="ShowsLayer">Which layers draw; the editor hides some. Every layer draws without it.</param>
 public readonly record struct PlayfieldItemFrame(
     PlayfieldView View,
@@ -26,7 +27,8 @@ public readonly record struct PlayfieldItemFrame(
     Func<int, bool>? ShowsLayer = null,
     GroupDefinition[]? Groups = null,
     IReadOnlyDictionary<int, LevelLayer>? Layers = null,
-    IPassSurfaces? Passes = null);
+    IPassSurfaces? Passes = null,
+    bool DivaNotes = false);
 
 /// <summary>
 /// Draws every placed item and the effects they leave in layer order, with the
@@ -164,7 +166,7 @@ public static partial class PlayfieldRenderer
         // without a GroupColor isn't being modulated (the editor soloed
         // another group), so the fade doesn't apply either.
         float fade = DrawEntries[first].Entity.HasComponent<GroupColor>()
-            ? GroupModulation.BufferAlpha(_groupTracks, group, frame.Seconds)
+            ? GroupModulation.BufferAlpha(_groupTracks, group, frame.Seconds, frame.Playhead.Tempo)
             : 1f;
         canvas.BeginBuffer(
             definition.BufferShader,
@@ -333,10 +335,16 @@ public static partial class PlayfieldRenderer
                 DrawScreenRead(canvas, entity, view);
                 break;
             case PlayfieldDrawKind.NoteGuides:
-                DrawNoteGuides(canvas, rid, entities, view, frame.Playhead);
+                if (frame.DivaNotes)
+                    DrawDivaGuides(canvas, rid, entities, view, frame.Playhead, DivaPulse(frame.Playhead));
+                else
+                    DrawNoteGuides(canvas, rid, entities, view, frame.Playhead);
                 break;
             case PlayfieldDrawKind.Note:
-                DrawNote(canvas, rid, entity, view, frame.Playhead, frame.SelectedNote);
+                if (frame.DivaNotes)
+                    DrawDivaNote(canvas, rid, entity, view, frame.Playhead, DivaPulse(frame.Playhead));
+                else
+                    DrawNote(canvas, rid, entity, view, frame.Playhead, frame.SelectedNote);
                 break;
             case PlayfieldDrawKind.RailNote:
                 // A rail note rides its lane, which groups don't move.

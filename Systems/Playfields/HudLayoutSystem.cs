@@ -156,13 +156,6 @@ public sealed class HudLayoutSystem(
             bar.CenterX = bar.BaseCenterX + item.Offset.X;
             bar.Y = bar.BaseY + item.Offset.Y;
         }
-
-        if (item.Id == "key_trail" && playfield.HasComponent<KeyTrail>())
-        {
-            ref KeyTrail trail = ref playfield.GetComponent<KeyTrail>();
-            trail.Offset = item.Offset;
-            trail.Visible = item.Visible;
-        }
     }
 
     private void HandleEditing(

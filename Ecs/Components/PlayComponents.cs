@@ -112,13 +112,29 @@ public struct KeyTrailLabels(string[] labels) : IComponent
     public string[] Labels = labels;
 }
 
+/// <summary>
+/// The key trail's HUD entities: one keycap per lane, and per lane a pool of
+/// segment rects (an outline and its bright core) laid out in that lane's
+/// history column, whose local space puts 0 at its centre.
+/// </summary>
+public struct KeyTrailHud(
+    Entity[] keys,
+    Entity[] outlines,
+    Entity[] cores,
+    int slotsPerLane,
+    Vector2 historySize) : IComponent
+{
+    public Entity[] Keys = keys;
+    public Entity[] Outlines = outlines;
+    public Entity[] Cores = cores;
+    public int SlotsPerLane = slotsPerLane;
+    public Vector2 HistorySize = historySize;
+}
+
 /// <summary>Transient key-press intensities for the play HUD key trail.</summary>
 public struct KeyTrail : IComponent
 {
     public KeyTrail() { }
-
-    public Vector2 Offset;
-    public bool Visible = true;
 
     public float L1;
     public float L2;
