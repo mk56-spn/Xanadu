@@ -8,39 +8,13 @@ using Xanadu.Editor.Commands;
 
 namespace Xanadu.Editor;
 
-/// <summary>Editor overlay native file dialogs and save/load actions; the song picker is an ECS dialog.</summary>
+/// <summary>
+/// Editor overlay saving. A level only ever saves to its own file in the level
+/// directory: there is no save-as or load, so a player never picks where files
+/// go. The song picker is an ECS dialog.
+/// </summary>
 public partial class EditorOverlay : CanvasLayer
 {
-    private void BuildSaveDialogs()
-    {
-        LevelStore.EnsureDirectory();
-
-        _saveAsDialog = new FileDialog
-        {
-            FileMode = FileDialog.FileModeEnum.SaveFile,
-            Access = FileDialog.AccessEnum.Filesystem,
-            UseNativeDialog = false,
-            Title = "Save level",
-            Filters = ["*" + XmfBinary.Extension + " ; XMF Levels"],
-            CurrentDir = LevelStore.Directory,
-            CurrentFile = "untitled" + XmfBinary.Extension,
-        };
-        _saveAsDialog.FileSelected += OnSaveAsSelected;
-        AddChild(_saveAsDialog);
-
-        _loadDialog = new FileDialog
-        {
-            FileMode = FileDialog.FileModeEnum.OpenFile,
-            Access = FileDialog.AccessEnum.Filesystem,
-            UseNativeDialog = false,
-            Title = "Load level",
-            Filters = ["*" + XmfBinary.Extension + " ; XMF Levels"],
-            CurrentDir = LevelStore.Directory,
-        };
-        _loadDialog.FileSelected += OnLoadSelected;
-        AddChild(_loadDialog);
-    }
-
     private void OpenSongDialog() => EditorDialogs.Open(_entities, EditorDialogKind.Song);
 
     public bool SaveCurrent() => SaveCurrent(out _);
@@ -99,65 +73,4 @@ public partial class EditorOverlay : CanvasLayer
             return false;
         }
     }
-
-    private void OpenSaveAsDialog()
-    {
-        if (_editor.IsNull || !ValidateCurrent())
-            return;
-
-        LevelDocument document = LevelDocumentMapper.Capture(_entities, _editor);
-        string current = CurrentLevelPath();
-        _saveAsDialog.CurrentDir = LevelStore.Directory;
-        _saveAsDialog.CurrentFile = string.IsNullOrEmpty(current)
-            ? Path.GetFileName(LevelStore.DefaultPath(document.Name))
-            : Path.GetFileName(current);
-        _saveAsDialog.PopupCentered(new Vector2I(900, 600));
-    }
-
-    private void OnSaveAsSelected(string path)
-    {
-        if (_editor.IsNull || !ValidateCurrent())
-            return;
-
-        try
-        {
-            LevelDocument document = LevelDocumentMapper.Capture(_entities, _editor);
-            if (!path.EndsWith(XmfBinary.Extension, StringComparison.OrdinalIgnoreCase))
-                path += XmfBinary.Extension;
-
-            LevelStore.Save(document, path);
-            _commands.Enqueue(EditorCommand.SetLevelFile(path));
-            SetStatus($"Saved {Path.GetFileName(path)}");
-        }
-        catch (Exception exception)
-        {
-            SetStatus($"Save failed: {exception.Message}");
-        }
-    }
-
-    private void OpenLoadDialog()
-    {
-        LevelStore.EnsureDirectory();
-        _loadDialog.CurrentDir = LevelStore.Directory;
-        _loadDialog.PopupCentered(new Vector2I(900, 600));
-    }
-
-    private void OnLoadSelected(string path)
-    {
-        if (_editor.IsNull)
-            return;
-
-        try
-        {
-            LevelDocument document = LevelStore.Load(path);
-            _commands.Enqueue(EditorCommand.ApplyLevel(document, path));
-
-            SetStatus($"Loaded {Path.GetFileName(path)}");
-        }
-        catch (Exception exception)
-        {
-            SetStatus($"Load failed: {exception.Message}");
-        }
-    }
-
 }

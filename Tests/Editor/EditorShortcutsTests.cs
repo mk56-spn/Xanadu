@@ -146,11 +146,11 @@ public sealed class EditorShortcutsTests
         store.CreateEntity(new EditorShortcutHost(target));
 
         keys.Press(new KeyChord(Key.Space));
-        keys.Press(new KeyChord(Key.T));
+        keys.Press(new KeyChord(Key.R));
         root.Update(new UpdateTick(1f / 60f, 0));
         root.Update(new UpdateTick(1f / 60f, 0));
 
-        Assert.That(target.Ran, Is.EqualTo(new[] { EditorShortcut.Timeline, EditorShortcut.TapTempo }));
+        Assert.That(target.Ran, Is.EqualTo(new[] { EditorShortcut.Timeline, EditorShortcut.RotateSelection }));
     }
 
     [Test]

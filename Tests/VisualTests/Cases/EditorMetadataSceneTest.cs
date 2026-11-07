@@ -29,7 +29,7 @@ public sealed class EditorMetadataSceneTest : SceneTest
         AddUntilStep(
             "wait for editor",
             () => Context.Scenes.Current == SceneKind.Editor &&
-                  VisualAssert.HasText(Context.Entities, "SNAP"));
+                  VisualAssert.HasText(Context.Entities, "MENU ▾"));
         AddStep("create editor overlay", () =>
         {
             _overlay = new EditorOverlay(
@@ -43,13 +43,13 @@ public sealed class EditorMetadataSceneTest : SceneTest
         });
         AddWaitStep("overlay settles", 2);
 
-        AddStep("open song menu", () =>
-            Context.Pointer.Click(Center(ByText("SONG ▾"))));
-        AddWaitStep("hold song menu", 2);
-        AddStep("release song menu", () => Context.Pointer.Release());
+        AddStep("open the menu", () =>
+            Context.Pointer.Click(Center(ByText("MENU ▾"))));
+        AddWaitStep("hold the menu", 2);
+        AddStep("release the menu", () => Context.Pointer.Release());
         AddUntilStep(
-            "song menu opens",
-            () => ByText("SONG ▾").GetComponent<Dropdown>().Open);
+            "the menu opens",
+            () => ByText("MENU ▾").GetComponent<Dropdown>().Open);
 
         AddStep("click level info", () =>
             Context.Pointer.Click(Center(ByText("LEVEL INFO"))));
@@ -60,7 +60,12 @@ public sealed class EditorMetadataSceneTest : SceneTest
             () => !UiLayout.IsHidden(EditorPanel.Find(Context.Entities, EditorPanelKind.Metadata)));
         AddAssert(
             "metadata fields exist",
-            () => Context.Entities.Query<EditorField>().WithDisabled().Count == 8);
+            () => Context.Entities.Query<EditorField>().WithDisabled().Count == 6);
+        AddAssert(
+            "the song is changed from level info",
+            () => Context.Entities.Query<EditorSongLabel>().Count == 1 &&
+                  Context.Entities.Query<EditorButton>().ToEntityList()
+                      .Any(button => button.GetComponent<EditorButton>().Kind == EditorButtonKind.LoadSong));
         AddAssert(
             "start property panel is separate",
             () => EditorPanel.Find(Context.Entities, EditorPanelKind.Start) is { IsNull: false } start &&
@@ -145,14 +150,14 @@ public sealed class EditorMetadataSceneTest : SceneTest
                 .AllTags(Tags.Get<TextFieldFocused>())
                 .Count == 1);
 
-        AddStep("click beat offset field", () =>
+        AddStep("click artist field", () =>
         {
             foreach (Entity entity in Context.Entities
                          .Query<EditorField>()
                          .ToEntityList())
             {
                 if (entity.GetComponent<EditorField>().Kind !=
-                    EditorFieldKind.Offset)
+                    EditorFieldKind.Artist)
                 {
                     continue;
                 }
@@ -163,16 +168,16 @@ public sealed class EditorMetadataSceneTest : SceneTest
                 return;
             }
         });
-        AddWaitStep("hold beat offset field", 2);
-        AddStep("release beat offset field", () => Context.Pointer.Release());
+        AddWaitStep("hold artist field", 2);
+        AddStep("release artist field", () => Context.Pointer.Release());
         AddUntilStep(
-            "beat offset field focused",
+            "artist field focused",
             () => Context.Entities.Query<TextField>()
                 .AllTags(Tags.Get<TextFieldFocused>())
                 .ToEntityList()
                 .Any(field => field.HasComponent<EditorField>() &&
                     field.GetComponent<EditorField>().Kind ==
-                    EditorFieldKind.Offset));
+                    EditorFieldKind.Artist));
 
         AddStep("create and select a start point", () =>
         {

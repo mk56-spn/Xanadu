@@ -30,14 +30,6 @@ public partial class EditorOverlay : CanvasLayer
                 SaveCurrent();
                 break;
 
-            case EditorButtonKind.SaveAs:
-                OpenSaveAsDialog();
-                break;
-
-            case EditorButtonKind.LoadLevel:
-                OpenLoadDialog();
-                break;
-
             case EditorButtonKind.LoadSong:
                 OpenSongDialog();
                 break;
@@ -83,8 +75,6 @@ public partial class EditorOverlay : CanvasLayer
     /// <summary>The request kinds the overlay acts on and clears.</summary>
     private static bool Handles(EditorButtonKind kind) =>
         kind is EditorButtonKind.Save
-            or EditorButtonKind.SaveAs
-            or EditorButtonKind.LoadLevel
             or EditorButtonKind.LoadSong
             or EditorButtonKind.Preview
             or EditorButtonKind.PreviewHere
@@ -95,22 +85,6 @@ public partial class EditorOverlay : CanvasLayer
             or EditorButtonKind.FrameColor
             or EditorButtonKind.ResetFrameColor
             or EditorButtonKind.ImportShader;
-
-    private void TapTempo()
-    {
-        if (_editor.IsNull)
-            return;
-
-        int? bpm = _tapTempo.Tap((long)Time.GetTicksMsec());
-        if (bpm is not int value)
-        {
-            SetStatus("Tap again for BPM");
-            return;
-        }
-
-        _commands.Enqueue(EditorCommand.SetBpm(value));
-        SetStatus($"Tap BPM {value}");
-    }
 
     /// <summary>Opens the real play scene on the current level, from a start point or the playhead.</summary>
     private void StartPreview(bool fromPlayhead = false)

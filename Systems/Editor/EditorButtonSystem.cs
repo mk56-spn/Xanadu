@@ -101,8 +101,6 @@ public sealed class EditorButtonSystem : QuerySystem<EditorButton>
             case EditorButtonKind.PreviewHere:
             case EditorButtonKind.ToggleMetadata:
             case EditorButtonKind.Save:
-            case EditorButtonKind.SaveAs:
-            case EditorButtonKind.LoadLevel:
             case EditorButtonKind.LoadSong:
             case EditorButtonKind.BackgroundColor:
             case EditorButtonKind.ResetBackgroundColor:

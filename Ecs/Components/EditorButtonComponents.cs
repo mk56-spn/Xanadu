@@ -20,8 +20,6 @@ public enum EditorButtonKind
     ZoomOut,
     ToggleMetadata,
     Save,
-    SaveAs,
-    LoadLevel,
     LoadSong,
     Undo,
     Redo,

@@ -53,34 +53,32 @@ public static class EditorSceneChrome
 
         Footer footer = BuildFooter(page, screen);
 
+        // The song's name shows in LEVEL INFO, beside the button that changes it.
+        Entity songLabel = default;
+        foreach (Entity label in entities.Query<EditorSongLabel>().ToEntityList())
+            songLabel = label;
+
         editor.AddComponent(new EditorHud(
             header.Level,
-            header.Song,
+            songLabel,
             header.Status,
             footer.Time,
             footer.Notes));
 
         // The lists float on their own layer so opening one never moves the header.
         UiNode lists = UiNode.Layer(entities, root, UiLayers.EditorLists, null, UiStage.Full);
-        HeaderMenu(lists, header.File,
-            ("SAVE", EditorButtonKind.Save),
-            ("SAVE AS", EditorButtonKind.SaveAs),
-            ("LOAD LEVEL", EditorButtonKind.LoadLevel));
-        HeaderMenu(lists, header.SongMenu,
-            ("LOAD SONG", EditorButtonKind.LoadSong),
-            ("TIMING", SceneActionId.SongTiming),
-            ("LEVEL INFO", EditorButtonKind.ToggleMetadata));
+        // One menu: the level saves only to its own file, and the song is
+        // changed from LEVEL INFO, so neither needs a header button.
         HeaderMenu(lists, header.Menu,
+            ("SAVE", EditorButtonKind.Save),
+            ("LEVEL INFO", EditorButtonKind.ToggleMetadata),
             ("EXIT", SceneActionId.Exit));
 
     }
 
     private readonly record struct Header(
         Entity Level,
-        Entity Song,
         ShellStatusLabels Status,
-        Entity File,
-        Entity SongMenu,
         Entity Menu);
 
     private readonly record struct Footer(Entity Time, Entity Notes);
@@ -113,43 +111,19 @@ public static class EditorSceneChrome
                 .Entity,
             EditorButtonKind.Redo);
 
-        // Level and song share one line, so the header stays a single control tall.
-        UiNode info = left.Row()
-            .Size(HeaderInfoWidth, HeaderControl)
-            .Gap(EditorShellMetrics.HeaderGap)
-            .Main(StackMainAlignment.Start);
         Entity level = EditorSceneUi.HudText(
-            info,
+            left,
             Vector2.Zero,
             new Vector2(HeaderLevelWidth, HeaderControl),
             "Untitled",
             UiType.Label,
             SceneUi.AccentColor);
-        Entity song = EditorSceneUi.HudText(
-            info,
-            Vector2.Zero,
-            new Vector2(HeaderInfoWidth - HeaderLevelWidth - EditorShellMetrics.HeaderGap, HeaderControl),
-            "Song: No song loaded",
-            UiType.Small,
-            Palette.TextMuted);
 
         // The last action's message and the unsaved flag, shared with the animator's header.
         ShellStatusLabels status = ShellStatus.Add(left, HeaderControl, StatusMessageWidth);
 
         UiNode right = EdgeGroup(header, new Vector2(1, 0.5f));
         // Grid, snap, advance and path live in the group bar at the top of the view.
-        Entity file = right.Button(
-                "FILE ▾",
-                UiTheme.FontSize,
-                SceneUi.MutedButtonColor)
-            .Size(EditorShellMetrics.DropdownWidth, HeaderControl)
-            .Entity;
-        Entity songMenu = right.Button(
-                "SONG ▾",
-                UiTheme.FontSize,
-                SceneUi.MutedButtonColor)
-            .Size(EditorShellMetrics.DropdownWidth, HeaderControl)
-            .Entity;
         Entity menu = right.Button(
                 "MENU ▾",
                 UiTheme.FontSize,
@@ -157,10 +131,8 @@ public static class EditorSceneChrome
             .Size(EditorShellMetrics.SettingsWidth, HeaderControl)
             .Entity;
 
-        return new Header(level, song, status, file, songMenu, menu);
+        return new Header(level, status, menu);
     }
-
-    private const float HeaderInfoWidth = 420;
 
     /// <summary>What the header can spare for the status message between its two halves.</summary>
     private const float StatusMessageWidth = 200;
@@ -359,8 +331,6 @@ public static class EditorSceneChrome
         {
             EditorButtonKind.LoadSong => SceneActionId.LoadSong,
             EditorButtonKind.Save => SceneActionId.Save,
-            EditorButtonKind.SaveAs => SceneActionId.SaveAs,
-            EditorButtonKind.LoadLevel => SceneActionId.LoadLevel,
             EditorButtonKind.ToggleMetadata => SceneActionId.ToggleMetadata,
             _ => null,
         };

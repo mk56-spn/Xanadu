@@ -92,12 +92,6 @@ public partial class EditorOverlay : CanvasLayer, IEditorShortcutTarget
             case EditorShortcut.Forward:
                 _onForward?.Invoke();
                 break;
-            case EditorShortcut.TapTempo:
-                TapTempo();
-                break;
-            case EditorShortcut.OpenSong:
-                OpenSongDialog();
-                break;
             case EditorShortcut.Delete:
                 DeleteSelectedNote();
                 break;
