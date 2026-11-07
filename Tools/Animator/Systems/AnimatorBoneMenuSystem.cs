@@ -27,10 +27,8 @@ public sealed class AnimatorBoneMenuSystem(IPointerInputSource pointer)
     protected override void OnUpdate()
     {
         PointerInput input = pointer.Read();
-        bool primary = input.Pressed && !_primaryHeld;
-        bool secondary = input.SecondaryPressed && !_secondaryHeld;
-        _primaryHeld = input.Pressed;
-        _secondaryHeld = input.SecondaryPressed;
+        bool primary = AnimatorPointerEdge.Primary(ref _primaryHeld, input);
+        bool secondary = AnimatorPointerEdge.Secondary(ref _secondaryHeld, input);
 
         foreach (Entity session in Query.ToEntityList())
         {

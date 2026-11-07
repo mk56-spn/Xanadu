@@ -11,4 +11,11 @@ internal static class AnimatorPointerEdge
         held = input.Pressed;
         return primary;
     }
+
+    public static bool Secondary(ref bool held, PointerInput input)
+    {
+        bool secondary = input.SecondaryPressed && !held;
+        held = input.SecondaryPressed;
+        return secondary;
+    }
 }
