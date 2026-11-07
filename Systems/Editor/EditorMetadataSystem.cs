@@ -90,8 +90,6 @@ public sealed class EditorMetadataSystem : QuerySystem<LevelInfo, Playhead>
                     EditorFieldKind.LevelName => level.Name,
                     EditorFieldKind.Artist => level.Artist,
                     EditorFieldKind.Difficulty => level.Difficulty,
-                    EditorFieldKind.Bpm => playhead.Bpm.ToString(),
-                    EditorFieldKind.Offset => playhead.OffsetMs.ToString(),
                     EditorFieldKind.StartTime => hasStart
                         ? start.TimeMs.ToString()
                         : "",
@@ -121,20 +119,6 @@ public sealed class EditorMetadataSystem : QuerySystem<LevelInfo, Playhead>
                 case EditorFieldKind.Difficulty:
                     if (field.Value != level.Difficulty)
                         _commands.Enqueue(EditorCommand.SetDifficulty(field.Value));
-                    break;
-                case EditorFieldKind.Bpm:
-                    if (int.TryParse(field.Value, out int bpm) &&
-                        bpm != playhead.Bpm)
-                    {
-                        _commands.Enqueue(EditorCommand.SetBpm(bpm));
-                    }
-                    break;
-                case EditorFieldKind.Offset:
-                    if (long.TryParse(field.Value, out long offset) &&
-                        offset != playhead.OffsetMs)
-                    {
-                        _commands.Enqueue(EditorCommand.SetOffset(offset));
-                    }
                     break;
                 case EditorFieldKind.StartTime when hasStart:
                     if (long.TryParse(field.Value, out long startTime))
@@ -183,9 +167,23 @@ public sealed class EditorMetadataSystem : QuerySystem<LevelInfo, Playhead>
             };
 
             if (row.Hex)
+            {
                 ShowHex(entity, stored);
-            else
-                ShowSwatch(entity, stored ?? fallback);
+                continue;
+            }
+
+            // A colour dragged onto the swatch sets the level's, as EDIT would.
+            if (UiColorDrop.Take(entity, out Color dropped))
+            {
+                _commands.Enqueue(row.Target switch
+                {
+                    EditorColorTarget.Outside => EditorCommand.SetOutsideColor(dropped),
+                    EditorColorTarget.Frame => EditorCommand.SetFrameColor(dropped),
+                    _ => EditorCommand.SetBackgroundColor(dropped),
+                });
+            }
+
+            ShowSwatch(entity, stored ?? fallback);
         }
     }
 

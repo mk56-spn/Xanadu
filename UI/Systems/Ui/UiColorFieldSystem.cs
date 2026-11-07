@@ -21,6 +21,18 @@ public sealed class UiColorFieldSystem : QuerySystem<UiColorField, TextField>
         ref UiColorField field = ref entity.GetComponent<UiColorField>();
         ref TextField text = ref entity.GetComponent<TextField>();
         bool focused = entity.Tags.Has<TextFieldFocused>();
+
+        // A colour dragged in from another swatch lands like a picked one.
+        Color? landed = UiColorDrop.Take(entity, out Color onField) ? onField
+            : UiColorDrop.Take(field.Swatch, out Color onSwatch) ? onSwatch
+            : null;
+        if (landed is { } color && color != field.Value)
+        {
+            field.Value = color;
+            field.Committed = true;
+            field.Dropped = true;
+        }
+
         bool valid = SelfModulate.TryParse(text.Value, out Color typed);
 
         if (!focused && field.WasFocused && valid && typed != field.Value)
