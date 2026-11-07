@@ -16,8 +16,8 @@ namespace Xanadu.Systems.Characters;
 /// Verlet chains, such as hair, are simulated in rig space from its animated
 /// bones, so they swing with the animation. With <paramref name="ghosts"/>, a
 /// character that hits a note also leaves a fading copy of its art behind.
-/// In play, a character that has waited a beat since its last hit dims,
-/// all but its hands, which flash white on the beat (<see cref="CharacterPresenceRules"/>).
+/// In play, a character more than a second from every note flashes out and
+/// leaves a rhombus in its place (<see cref="CharacterPresenceRules"/>).
 /// </summary>
 public sealed class CharacterRigDrawSystem(
     Func<IAttachmentVisuals> createVisuals,
@@ -26,13 +26,12 @@ public sealed class CharacterRigDrawSystem(
 {
     private readonly Dictionary<int, Instance> _instances = new();
     private readonly HashSet<int> _seen = new();
-    private readonly (int Attachment, float Light)[] _kept = new (int, float)[2];
 
     protected override void OnUpdate()
     {
         _seen.Clear();
         ghosts?.Begin(Query.Store);
-        Playhead? playhead = PlayPlayhead(Query.Store);
+        bool playing = Query.Store.Query<PlaySession>().Count > 0;
         foreach (Entity entity in Query.ToEntityList())
         {
             if (entity.Tags.Has<SplitlineAbsent>() ||
@@ -57,9 +56,7 @@ public sealed class CharacterRigDrawSystem(
                 IAttachmentVisuals visuals = createVisuals();
                 visuals.Reload(package);
                 instance = new Instance(
-                    runtime, visuals, visuals.Bounds(attachments), new XafChainSimulation(), new XafClothSimulation(),
-                    CharacterPresenceRules.AttachmentOn(package, CharacterPresenceRules.LeftHand),
-                    CharacterPresenceRules.AttachmentOn(package, CharacterPresenceRules.RightHand));
+                    runtime, visuals, visuals.Bounds(attachments), new XafChainSimulation(), new XafClothSimulation());
                 _instances[entity.Id] = instance;
             }
 
@@ -82,7 +79,8 @@ public sealed class CharacterRigDrawSystem(
             instance.Cloths.Update(package, bones, Tick.deltaTime);
             instance.Visuals.ApplyCloths(package, instance.Cloths, placement);
             instance.Visuals.ApplyEffects(runtime.Pose, XafRig.WorldEffects(package, runtime.Pose, bones), placement);
-            ApplyPresence(entity, instance, playhead);
+            CharacterPresenceRules.Look look = playing ? CharacterPresenceRules.For(entity) : CharacterPresenceRules.Look.Present;
+            instance.Visuals.ApplyPresence(look.Light, look.Shown);
             ghosts?.Capture(
                 entity, package, runtime.Pose, bones, attachments,
                 instance.Chains, instance.Cloths, instance.RigBounds, faceLeft);
@@ -92,38 +90,6 @@ public sealed class CharacterRigDrawSystem(
 
         ReleaseUnseen();
         ghosts?.End(Query.Store);
-    }
-
-    /// <summary>The playhead while a song is being played; null in the editor and anywhere else, which keeps characters whole.</summary>
-    private static Playhead? PlayPlayhead(EntityStore store)
-    {
-        if (store.Query<PlaySession>().Count == 0)
-            return null;
-        foreach (Entity entity in store.Query<Playhead>().ToEntityList())
-            return entity.GetComponent<Playhead>();
-        return null;
-    }
-
-    private void ApplyPresence(Entity entity, Instance instance, Playhead? playhead)
-    {
-        CharacterPresenceRules.Look look = CharacterPresenceRules.Look.Present;
-        if (playhead is { } head)
-        {
-            if (!entity.HasComponent<CharacterPresence>())
-                entity.AddComponent(new CharacterPresence(head.TimeMs));
-            ref CharacterPresence presence = ref entity.GetComponent<CharacterPresence>();
-            // A seek back past the last hit starts the wait again from there.
-            if (head.TimeMs < presence.LastHitMs)
-                presence.LastHitMs = head.TimeMs;
-            look = CharacterPresenceRules.At(head.TimeMs - presence.LastHitMs, head.TimeMs, head.Tempo);
-        }
-
-        int count = 0;
-        if (instance.LeftHand >= 0)
-            _kept[count++] = (instance.LeftHand, look.LeftLight);
-        if (instance.RightHand >= 0)
-            _kept[count++] = (instance.RightHand, look.RightLight);
-        instance.Visuals.ApplyPresence(look.BodyShade, _kept.AsSpan(0, count));
     }
 
     /// <summary>
@@ -163,7 +129,5 @@ public sealed class CharacterRigDrawSystem(
         IAttachmentVisuals Visuals,
         Rect2 RigBounds,
         XafChainSimulation Chains,
-        XafClothSimulation Cloths,
-        int LeftHand,
-        int RightHand);
+        XafClothSimulation Cloths);
 }

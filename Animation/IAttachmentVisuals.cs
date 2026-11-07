@@ -53,12 +53,11 @@ public interface IAttachmentVisuals
 
     /// <summary>
     /// Multiplies the colour of every part of the rig, attachments, chains,
-    /// cloth and effects, by <paramref name="shade"/> (0 is black), except the
-    /// <paramref name="kept"/> attachments, whose colour is multiplied by their
-    /// own light instead (over 1 brightens). Opacity is left alone. Called last,
-    /// after the effects; a caller that never calls it leaves the rig as posed.
+    /// cloth and effects, by <paramref name="light"/> (over 1 brightens), or
+    /// hides it all when it is not <paramref name="shown"/>. Called last, after
+    /// the effects; a caller that never calls it leaves the rig as posed.
     /// </summary>
-    void ApplyPresence(float shade, System.ReadOnlySpan<(int Attachment, float Light)> kept) { }
+    void ApplyPresence(float light, bool shown) { }
 
     /// <summary>Rebuilds only the effects, after their items were edited; the default rebuilds everything.</summary>
     void ReloadEffects(XafPackage package) => Reload(package);

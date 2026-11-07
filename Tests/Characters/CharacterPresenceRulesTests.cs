@@ -1,61 +1,77 @@
 using NUnit.Framework;
+using Xanadu.Levels;
 using Xanadu.Systems.Characters;
+using Rules = Xanadu.Systems.Characters.CharacterPresenceRules;
 
 namespace Xanadu.Tests.Characters;
 
 public sealed class CharacterPresenceRulesTests
 {
     // 120 BPM: a beat is 500 ms; the first beat is at 0.
-    private const int Bpm = 120;
+    private static readonly TempoMap Tempo = TempoMap.Single(120, 0);
 
     [Test]
-    public void StartsFadingOnTheHitBeat()
+    public void IsAwayBetweenNotesMoreThanASecondApart()
     {
-        CharacterPresenceRules.Look look = CharacterPresenceRules.At(125, 4_125, Bpm, 0);
-        Assert.That(look.BodyShade, Is.LessThan(1f), "the fade must not wait a beat after the hit");
+        long[] away = Rules.AwayWindows([(2_000, 2_000), (6_000, 6_000)]);
+        Assert.That(away, Is.EqualTo(new[] { long.MinValue, 1_000, 3_000, 5_000, 7_000, long.MaxValue }));
     }
 
     [Test]
-    public void EasesIntoAndOutOfTheFade()
+    public void AHoldKeepsHerUntilItsEnd()
     {
-        // A quarter and three quarters through the fade; eased, that is 1/16 and 15/16 of the way down.
-        CharacterPresenceRules.Look quarter = CharacterPresenceRules.At(125, 4_125, Bpm, 0);
-        CharacterPresenceRules.Look threeQuarters = CharacterPresenceRules.At(375, 4_375, Bpm, 0);
-        float drop = 1f - CharacterPresenceRules.FadedShade;
-        Assert.That(quarter.BodyShade, Is.EqualTo(1f - drop * 0.0625f).Within(1e-4));
-        Assert.That(threeQuarters.BodyShade, Is.EqualTo(1f - drop * 0.9375f).Within(1e-4));
+        long[] away = Rules.AwayWindows([(2_000, 4_000), (8_000, 8_000)]);
+        Assert.That(away[2], Is.EqualTo(5_000));
     }
 
     [Test]
-    public void DimsToTheFadedShadeOnceTheFadeIsDone()
+    public void SkipsAShortRest()
     {
-        CharacterPresenceRules.Look look = CharacterPresenceRules.At(2_000, 4_250, Bpm, 0);
-        Assert.That(look.BodyShade, Is.EqualTo(CharacterPresenceRules.FadedShade).Within(1e-4));
+        long[] away = Rules.AwayWindows([(2_000, 2_000), (4_200, 4_200)]);
+        Assert.That(away, Is.EqualTo(new[] { long.MinValue, 1_000, 5_200, long.MaxValue }));
     }
 
     [Test]
-    public void TheLeftHandTakesEvenBeatsAndTheRightOdd()
+    public void IsOnStageNearANote()
     {
-        CharacterPresenceRules.Look even = CharacterPresenceRules.At(2_000, 4_000, Bpm, 0);
-        Assert.That(even.LeftLight, Is.EqualTo(CharacterPresenceRules.PulseLight).Within(1e-4));
-        Assert.That(even.RightLight, Is.EqualTo(1f));
-
-        CharacterPresenceRules.Look odd = CharacterPresenceRules.At(2_000, 4_500, Bpm, 0);
-        Assert.That(odd.RightLight, Is.EqualTo(CharacterPresenceRules.PulseLight).Within(1e-4));
-        Assert.That(odd.LeftLight, Is.EqualTo(1f));
+        long[] away = Rules.AwayWindows([(2_000, 2_000), (6_000, 6_000)]);
+        Assert.That(Rules.At(2_900, away, Tempo), Is.EqualTo(Rules.Look.Present));
     }
 
     [Test]
-    public void BeatsCountFromTheSongOffset()
+    public void FlashesWhiteOnTheWayOut()
     {
-        // 4 100 ms is beat 8 of a song whose first beat is at 100.
-        CharacterPresenceRules.Look look = CharacterPresenceRules.At(2_000, 4_100, Bpm, 100);
-        Assert.That(look.LeftLight, Is.EqualTo(CharacterPresenceRules.PulseLight).Within(1e-4));
+        long[] away = Rules.AwayWindows([(2_000, 2_000), (6_000, 6_000)]);
+        Rules.Look look = Rules.At(3_000 + Rules.FlashMs - 1, away, Tempo);
+        Assert.That(look.Shown, Is.True);
+        Assert.That(look.Light, Is.EqualTo(Rules.FlashLight).Within(0.05));
     }
 
     [Test]
-    public void ASongWithNoTempoKeepsHerWhole()
+    public void TheRhombusPulsesOnTheBeat()
     {
-        Assert.That(CharacterPresenceRules.At(10_000, 10_000, 0, 0), Is.EqualTo(CharacterPresenceRules.Look.Present));
+        long[] away = Rules.AwayWindows([(2_000, 2_000), (6_000, 6_000)]);
+        Rules.Look onBeat = Rules.At(4_000, away, Tempo);
+        Rules.Look offBeat = Rules.At(4_250, away, Tempo);
+        Assert.That(onBeat.Shown, Is.False);
+        Assert.That(onBeat.Rhombus, Is.EqualTo(1f).Within(1e-4));
+        Assert.That(onBeat.Pulse, Is.EqualTo(1f).Within(1e-4));
+        Assert.That(offBeat.Pulse, Is.LessThan(0.1f));
+    }
+
+    [Test]
+    public void ComesBackASecondBeforeTheNextNote()
+    {
+        long[] away = Rules.AwayWindows([(2_000, 2_000), (6_000, 6_000)]);
+        Assert.That(Rules.At(4_999, away, Tempo).Shown, Is.False);
+        Rules.Look back = Rules.At(5_000, away, Tempo);
+        Assert.That(back.Shown, Is.True);
+        Assert.That(back.Light, Is.EqualTo(Rules.FlashLight).Within(1e-4));
+    }
+
+    [Test]
+    public void NoNotesMeansAlwaysOnStage()
+    {
+        Assert.That(Rules.At(10_000, Rules.AwayWindows([]), Tempo), Is.EqualTo(Rules.Look.Present));
     }
 }

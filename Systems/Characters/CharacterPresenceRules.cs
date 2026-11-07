@@ -1,96 +1,130 @@
 using System;
+using System.Collections.Generic;
 using Xanadu.Animation;
 using Xanadu.Ecs;
 
 namespace Xanadu.Systems.Characters;
 
 /// <summary>
-/// A character dims over the beat after its last hit, leaving only
-/// its hands at full light, which flash white in turn on each beat, left then right,
-/// so the music still has a body while it waits. Any hit brings it straight back.
+/// A character is only on stage near the chart's notes. Once the playhead is more
+/// than <see cref="ReachMs"/> from every note, she flashes white and is gone, and a
+/// rhombus pulsing on the beat holds her place until the next note is that close
+/// again, when it collapses and she flashes back in. It follows the chart, not the
+/// player's hits, so a seek or a miss lands in the same look.
 /// </summary>
 public static class CharacterPresenceRules
 {
-    /// <summary>
-    /// The bones whose attachments are kept when the rest fades: the left hand
-    /// pulses on even beats, the right on odd. Both hands share one art group,
-    /// so they are told apart by bone.
-    /// </summary>
-    public const string LeftHand = "hand_l";
+    /// <summary>How far from the nearest note, before or after, she stays on stage.</summary>
+    public const long ReachMs = 1000;
 
-    public const string RightHand = "hand_r";
+    /// <summary>How long each flash takes: her going white and out, and back in from white.</summary>
+    public const long FlashMs = 110;
 
-    /// <summary>How many beats after a hit the fade starts. Zero starts it on the beat that was hit.</summary>
-    public const float WaitBeats = 0f;
+    /// <summary>How long the rhombus takes to turn in or out; both ease in.</summary>
+    public const long RhombusMs = 220;
 
-    /// <summary>How many beats the fade takes once it starts: one, so it is dimmed by the next beat.</summary>
-    public const float FadeBeats = 1f;
+    /// <summary>Shorter rests than this are skipped, so she never blinks out for a moment.</summary>
+    public const long MinAwayMs = 2 * FlashMs + 2 * RhombusMs + 200;
 
-    /// <summary>
-    /// How bright the body is once faded: 0 is black, 1 is as posed. It dims rather than
-    /// turning see-through, so overlapping parts never show through each other.
-    /// </summary>
-    public const float FadedShade = 0.4f;
+    /// <summary>How much the art's colour is multiplied by at the top of a flash; the art is dark grey, so this is white.</summary>
+    public const float FlashLight = 4f;
 
-    /// <summary>How quickly a pulse dies away over its beat; higher is a sharper tap.</summary>
+    /// <summary>How quickly the rhombus's beat pulse dies away; higher is a sharper tap.</summary>
     public const float PulseDecay = 6f;
 
     /// <summary>
-    /// How much a hand's colour is multiplied by at the top of its pulse. The
-    /// art is a dark grey, so this takes it to white; between pulses it is as posed.
+    /// What a character shows this frame. <paramref name="Shown"/> and its
+    /// <paramref name="Light"/> (1 is as posed) are the art's; <paramref name="Rhombus"/>
+    /// is how open the rhombus is (0 is none) and <paramref name="Pulse"/> its beat, 1 on the beat.
     /// </summary>
-    public const float PulseLight = 4f;
-
-    /// <summary>What a character shows this frame: the body's shade and each hand's light (1 is as posed).</summary>
-    public readonly record struct Look(float BodyShade, float LeftLight, float RightLight)
+    public readonly record struct Look(bool Shown, float Light, float Rhombus, float Pulse)
     {
-        public static readonly Look Present = new(1f, 1f, 1f);
-    }
-
-    /// <summary>Stamps a hit, if the player is a rigged character; called wherever a note is hit.</summary>
-    public static void Hit(Friflo.Engine.ECS.Entity player, long playheadMs)
-    {
-        if (player.HasComponent<CharacterPresence>())
-            player.GetComponent<CharacterPresence>().LastHitMs = playheadMs;
+        public static readonly Look Present = new(true, 1f, 0f, 0f);
     }
 
     /// <summary>
-    /// The look <paramref name="sinceHitMs"/> after the last hit, at
-    /// <paramref name="songMs"/> into a song of <paramref name="bpm"/> whose
-    /// first beat is at <paramref name="offsetMs"/>.
+    /// The stretches she is away for, as (out, in) pairs on the song's clock, from
+    /// each note's span (its time to the end of its hold). Before the first note
+    /// she is away from the start; after the last she does not come back.
     /// </summary>
-    public static Look At(long sinceHitMs, long songMs, int bpm, long offsetMs) =>
-        bpm <= 0 ? Look.Present : At(sinceHitMs, songMs, Xanadu.Levels.TempoMap.Single(bpm, offsetMs));
-
-    /// <summary>The same on the song's tempo map: the wait is counted in beats, so it follows BPM changes.</summary>
-    public static Look At(long sinceHitMs, long songMs, Xanadu.Levels.TempoMap tempo)
+    public static long[] AwayWindows(IEnumerable<(long StartMs, long EndMs)> notes)
     {
-        if (sinceHitMs < 0)
-            return Look.Present;
+        var spans = new List<(long Start, long End)>();
+        foreach ((long start, long end) in notes)
+            spans.Add((start, Math.Max(start, end)));
+        if (spans.Count == 0)
+            return [];
+        spans.Sort((a, b) => a.Start.CompareTo(b.Start));
 
-        double waited = tempo.BeatAt(songMs) - tempo.BeatAt(songMs - sinceHitMs);
-        float fade = Math.Clamp((float)((waited - WaitBeats) / FadeBeats), 0f, 1f);
-        if (fade <= 0f)
-            return Look.Present;
-        fade = XafEasing.Progress(XafEasePreset.CubicInOut, fade);
-
-        double beats = tempo.BeatAt(songMs);
-        double beat = Math.Floor(beats);
-        float pulse = MathF.Exp(-(float)(beats - beat) * PulseDecay) * fade;
-        float flash = 1f + (PulseLight - 1f) * pulse;
-        bool left = ((long)beat & 1) == 0;
-        return new Look(1f + (FadedShade - 1f) * fade, left ? flash : 1f, left ? 1f : flash);
-    }
-
-    /// <summary>The index of the attachment on a bone, or -1 when the rig has none.</summary>
-    public static int AttachmentOn(XafPackage package, string bone)
-    {
-        for (int i = 0; i < package.Attachments.Count; i++)
+        var away = new List<long>();
+        long reachedTo = long.MinValue;
+        foreach ((long start, long end) in spans)
         {
-            if (package.Attachments[i].BoneId == bone)
-                return i;
+            long outMs = reachedTo == long.MinValue ? long.MinValue : reachedTo + ReachMs;
+            long inMs = start - ReachMs;
+            if (outMs == long.MinValue || inMs - outMs >= MinAwayMs)
+            {
+                away.Add(outMs);
+                away.Add(inMs);
+            }
+
+            reachedTo = Math.Max(reachedTo, end);
         }
 
-        return -1;
+        away.Add(reachedTo + ReachMs);
+        away.Add(long.MaxValue);
+        return away.ToArray();
     }
+
+    /// <summary>The look at <paramref name="songMs"/>, with the rhombus pulsing on the beats of <paramref name="tempo"/>.</summary>
+    public static Look At(long songMs, ReadOnlySpan<long> away, Xanadu.Levels.TempoMap tempo)
+    {
+        for (int i = 0; i + 1 < away.Length; i += 2)
+        {
+            long outMs = away[i];
+            long inMs = away[i + 1];
+            if (songMs < outMs)
+                break;
+            if (songMs >= inMs + FlashMs)
+                continue;
+
+            // She comes back from white.
+            if (songMs >= inMs)
+                return Look.Present with { Light = Light(1f - Part(songMs - inMs, FlashMs)) };
+
+            // She goes white, then out.
+            if (outMs != long.MinValue && songMs < outMs + FlashMs)
+                return Look.Present with { Light = Light(Part(songMs - outMs, FlashMs)) };
+
+            float open = 1f;
+            if (outMs != long.MinValue)
+                open = XafEasing.Progress(XafEasePreset.CubicIn, Part(songMs - outMs - FlashMs, RhombusMs));
+            if (inMs != long.MaxValue && songMs > inMs - RhombusMs)
+                open = Math.Min(open, 1f - XafEasing.Progress(XafEasePreset.CubicIn, Part(songMs - (inMs - RhombusMs), RhombusMs)));
+
+            double beats = tempo.BeatAt(songMs);
+            float pulse = MathF.Exp(-(float)(beats - Math.Floor(beats)) * PulseDecay);
+            return new Look(false, 1f, open, pulse);
+        }
+
+        return Look.Present;
+    }
+
+    /// <summary>The look for a player this frame, or <see cref="Look.Present"/> when it has no away windows or no playhead.</summary>
+    public static Look For(Friflo.Engine.ECS.Entity player)
+    {
+        if (!player.TryGetComponent(out CharacterPresence presence) ||
+            !player.TryGetComponent(out Playhead playhead))
+        {
+            return Look.Present;
+        }
+
+        return At(playhead.TimeMs, presence.Away, playhead.Tempo);
+    }
+
+    private static float Light(float part) =>
+        1f + (FlashLight - 1f) * XafEasing.Progress(XafEasePreset.CubicOut, part);
+
+    private static float Part(long elapsedMs, long spanMs) =>
+        Math.Clamp(elapsedMs / (float)spanMs, 0f, 1f);
 }

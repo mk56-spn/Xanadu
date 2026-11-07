@@ -10,6 +10,7 @@ using Xanadu.Levels;
 using Xanadu.Replays;
 using Xanadu.Settings;
 using Xanadu.Scoring;
+using Xanadu.Systems.Characters;
 using Xanadu.Systems.Playfields;
 using Xanadu.Theme;
 using Xanadu.Ui.Ecs.Ui;
@@ -98,6 +99,8 @@ public static class PlayScene
         playfieldEntity.AddComponent(new KeyTrailLabels(keyLabels));
 
         LevelDocumentMapper.Apply(entities, playfieldEntity, document);
+        playfieldEntity.AddComponent(new CharacterPresence(CharacterPresenceRules.AwayWindows(
+            document.Notes.Select(note => (note.TimeMs, note.TimeMs + note.HoldMs)))));
 
         if (start is StartPoint point)
         {

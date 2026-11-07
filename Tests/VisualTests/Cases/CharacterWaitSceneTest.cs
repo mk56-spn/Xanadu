@@ -8,9 +8,8 @@ using Position = Xanadu.Ecs.Position;
 namespace Xanadu.Tests.VisualTests;
 
 /// <summary>
-/// The character has gone beats without a hit: she has faded to black with
-/// only her hands left, and time is held on a beat that is the left hand's,
-/// so it is flashing white while the right is as posed.
+/// The character is seconds from the nearest note: she has flashed out and a
+/// rhombus stands in her place, held on a beat so its pulse is at its peak.
 /// </summary>
 public sealed class CharacterWaitSceneTest : SceneTest
 {
@@ -33,26 +32,19 @@ public sealed class CharacterWaitSceneTest : SceneTest
         AddStep("dress the player in the contact rig",
             () => TestContent.DressInContactRig(Player()));
         AddUntilStep("the rig is on screen", () => Player().Tags.Has<CharacterRigVisible>());
-        AddUntilStep("the rig keeps time", () => Player().HasComponent<CharacterPresence>());
-        AddAssert("the rig has both hands", () =>
-        {
-            Animation.XafPackage package = Player().GetComponent<CharacterRig>().Runtime.Package;
-            return Systems.Characters.CharacterPresenceRules.AttachmentOn(package, Systems.Characters.CharacterPresenceRules.LeftHand) >= 0
-                   && Systems.Characters.CharacterPresenceRules.AttachmentOn(package, Systems.Characters.CharacterPresenceRules.RightHand) >= 0;
-        });
-        AddStep("hold time on a left-hand beat, four beats after a hit", () =>
+        AddAssert("the chart has a rest", () => Player().HasComponent<CharacterPresence>());
+        AddStep("hold time on a beat far from the note", () =>
         {
             foreach (Entity entity in Context.Entities.Query<Playhead>().ToEntityList())
             {
                 ref Playhead playhead = ref entity.GetComponent<Playhead>();
-                long beatMs = (long)Xanadu.Levels.TempoMap.BeatMs(playhead.Tempo.Points[0].Bpm);
                 playhead.Playing = false;
                 playhead.TimeMs = (long)playhead.Tempo.TimeAt(8);
                 playhead.SeekRequestMs = -1;
-                Player().GetComponent<CharacterPresence>().LastHitMs = playhead.TimeMs - beatMs * 4;
             }
         });
         AddWaitStep("settle", 6);
+        AddAssert("she is away", () => !Systems.Characters.CharacterPresenceRules.For(Player()).Shown);
     }
 
     private Entity Player() => Context.Entities.Query<Player, Position>().ToEntityList()[0];

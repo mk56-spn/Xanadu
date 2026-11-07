@@ -1,4 +1,3 @@
-using System;
 using Godot;
 
 namespace Xanadu.Animation;
@@ -6,35 +5,27 @@ namespace Xanadu.Animation;
 public sealed partial class SvgAttachmentVisuals
 {
     /// <summary>
-    /// Shades each canvas item through its modulate, which nothing else on an
+    /// Lights each canvas item through its modulate, which nothing else on an
     /// attachment, chain or cloth uses (their colour is the self modulate), and
-    /// keeps an effect's pose alpha. Only colour changes, never opacity.
+    /// keeps an effect's pose alpha. Opacity only goes to nothing, so overlapping
+    /// parts never show through each other.
     /// </summary>
-    public void ApplyPresence(float shade, ReadOnlySpan<(int Attachment, float Light)> kept)
+    public void ApplyPresence(float light, bool shown)
     {
-        var shaded = new Color(shade, shade, shade);
+        var modulate = new Color(light, light, light, shown ? 1f : 0f);
         foreach (Visual visual in _visuals)
-        {
-            Color modulate = shaded;
-            foreach ((int attachment, float light) in kept)
-            {
-                if (attachment == visual.Index)
-                    modulate = new Color(light, light, light);
-            }
-
             RenderingServer.CanvasItemSetModulate(visual.Item, modulate);
-        }
 
         foreach (ChainVisual chain in _chains)
         {
             foreach (Rid item in chain.Items)
-                RenderingServer.CanvasItemSetModulate(item, shaded);
+                RenderingServer.CanvasItemSetModulate(item, modulate);
         }
 
         foreach (ClothVisual cloth in _cloths)
-            RenderingServer.CanvasItemSetModulate(cloth.Item, shaded);
+            RenderingServer.CanvasItemSetModulate(cloth.Item, modulate);
 
         foreach (EffectVisual effect in _effects)
-            RenderingServer.CanvasItemSetModulate(effect.Item, new Color(shade, shade, shade, effect.Alpha));
+            RenderingServer.CanvasItemSetModulate(effect.Item, modulate with { A = shown ? effect.Alpha : 0f });
     }
 }

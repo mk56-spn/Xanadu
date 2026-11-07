@@ -89,10 +89,11 @@ public struct CharacterAttack : IComponent
 }
 
 /// <summary>
-/// When a rigged player last hit a note, on the playhead. Waiting a beat past
-/// it fades the character to its hands, which keep the beat until the next hit.
+/// The stretches of a played chart where the player is far from every note, as
+/// (out, in) pairs on the song's clock: there the character is gone and a rhombus
+/// pulses in its place (see <c>CharacterPresenceRules</c>).
 /// </summary>
-public struct CharacterPresence(long lastHitMs) : IComponent
+public struct CharacterPresence(long[] away) : IComponent
 {
-    public long LastHitMs = lastHitMs;
+    public long[] Away = away;
 }
