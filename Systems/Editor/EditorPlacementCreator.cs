@@ -16,6 +16,9 @@ public sealed class EditorPlacementCreator(EditorSceneQuery scene, EditorHistory
 {
     public void Create(Entity editor, Vector2 screenPosition)
     {
+        if (EditorItems.WouldOverfill(scene.Store, editor))
+            return;
+
         if (editor.HasComponent<EditorPlacement>() &&
             editor.GetComponent<EditorPlacement>().Mode ==
             EditorPlacementMode.Start)
@@ -95,11 +98,14 @@ public sealed class EditorPlacementCreator(EditorSceneQuery scene, EditorHistory
             if (!EditorItemPicker.IsInside(grassPosition, editor.GetComponent<Playfield>()))
                 return;
 
-            // The click is where the blades stand; with snap on, the base sits on a grid line.
-            if (ViewportSnap.IsOn(scene.Store))
-                grassPosition = PlayfieldGrid.NearestCrossing(grassPosition, editor.GetComponent<Playfield>());
+            // The click is where the blades stand; with snap on, the base and left
+            // side sit on grid lines, the same lines block edges sit on.
             GrassPatch patch = editor.GetComponent<EditorPlacement>().Grass;
-            patch.Position = grassPosition;
+            patch.Position = GridPlacement.PlaceGrass(
+                grassPosition,
+                patch,
+                editor.GetComponent<Playfield>(),
+                ViewportSnap.IsOn(scene.Store));
             patch.Seed = GrassPatch.NewSeed();
             EditorSnapshot grassBefore = history.Capture();
             Entity grass = EditorItems.Place(scene.Store, patch);

@@ -21,7 +21,7 @@ public enum GrassSetting
 /// </summary>
 public struct GrassPatch() : IComponent
 {
-    public const float DefaultWidth = 240f;
+    public const float DefaultWidth = 250f;
     public const float MinWidth = 16f;
     public const float MaxWidth = 4_000f;
 
@@ -134,7 +134,7 @@ public struct GrassPatch() : IComponent
     /// <summary>How much one press of a setting's - or + button changes it.</summary>
     public static float Step(GrassSetting setting) => setting switch
     {
-        GrassSetting.Width => 16f,
+        GrassSetting.Width => 25f,
         GrassSetting.Length => 8f,
         GrassSetting.Density => 5f,
         GrassSetting.Sway => 2f,

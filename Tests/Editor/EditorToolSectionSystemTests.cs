@@ -11,7 +11,6 @@ public sealed class EditorToolSectionSystemTests : EcsSystemTest
 {
     private Entity _editor;
     private Entity _panel;
-    private Entity _snap;
     private Entity _blockSize;
     private Entity _strength;
     private Entity _cost;
@@ -20,25 +19,24 @@ public sealed class EditorToolSectionSystemTests : EcsSystemTest
     protected override void OnEcsSetUp()
     {
         _panel = Store.CreateEntity();
-        _snap = Store.CreateEntity(new EditorToolSection(EditorToolSections.Snap));
         _blockSize = Store.CreateEntity(new EditorToolSection(EditorToolSections.BlockSize));
         _strength = Store.CreateEntity(new EditorToolSection(EditorToolSections.MoveStrength));
         _cost = Store.CreateEntity(new EditorToolSection(EditorToolSections.ContactCost));
         _shape = Store.CreateEntity(new EditorToolSection(EditorToolSections.FormShape));
         _editor = Store.CreateEntity(
             new EditorPlacement { Mode = EditorPlacementMode.Notes },
-            new EditorLeftMenu(_panel, default, default));
+            new EditorLeftMenu(_panel));
         Root.Add(new EditorToolSectionSystem(Store));
     }
 
     private bool Hidden(Entity entity) => entity.Tags.Has<UiHidden>();
 
     [Test]
-    public void NotesOnlyShowSnap()
+    public void NotesShowNoSectionAndHideThePanel()
     {
         Frame();
 
-        Assert.That(Hidden(_snap), Is.False);
+        Assert.That(Hidden(_panel), Is.True);
         Assert.That(Hidden(_blockSize), Is.True);
         Assert.That(Hidden(_strength), Is.True);
         Assert.That(Hidden(_cost), Is.True);
@@ -54,7 +52,6 @@ public sealed class EditorToolSectionSystemTests : EcsSystemTest
 
         Assert.That(Hidden(_blockSize), Is.False);
         Assert.That(Hidden(_shape), Is.False);
-        Assert.That(Hidden(_snap), Is.True);
         Assert.That(Hidden(_panel), Is.False);
     }
 
@@ -84,9 +81,9 @@ public sealed class EditorToolSectionSystemTests : EcsSystemTest
         Frame();
         Assert.That(Hidden(_panel), Is.True);
 
-        _editor.GetComponent<EditorPlacement>().Mode = EditorPlacementMode.Notes;
+        _editor.GetComponent<EditorPlacement>().Mode = EditorPlacementMode.Blocks;
         Frame();
         Assert.That(Hidden(_panel), Is.False);
-        Assert.That(Hidden(_snap), Is.False);
+        Assert.That(Hidden(_blockSize), Is.False);
     }
 }

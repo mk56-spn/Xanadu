@@ -65,7 +65,7 @@ public sealed class EditorShapeSystem : QuerySystem<EditorButton>
                 selected.Add(entity);
         }
 
-        if (selected.Count == 0)
+        if (selected.Count == 0 || EditorItems.WouldOverfill(_entities, editor))
             return current;
 
         int shapeId = NextShapeId();

@@ -73,7 +73,7 @@ public sealed class EditorPolygonTool(
     /// <summary>Turns an outline of three or more points into a selected shape; a shorter one is dropped.</summary>
     private void Finish(Entity editor, ref EditorPolygonDraft draft)
     {
-        if (draft.Points.Count >= 3)
+        if (draft.Points.Count >= 3 && !EditorItems.WouldOverfill(scene.Store, editor))
         {
             EditorSnapshot before = history.Capture();
             Entity created = EditorItems.Place(

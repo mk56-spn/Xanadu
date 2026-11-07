@@ -75,8 +75,11 @@ public sealed class EditorGrassToolTests
     {
         Click(new Vector2(300, 400));
 
+        // Snapped, the patch's left side lands on the nearest column line (200)
+        // and its base on a row line, where block edges sit.
         GrassPatch patch = OnlyGrass.GetComponent<GrassPatch>();
-        Assert.That(patch.Position, Is.EqualTo(new Vector2(300, 400)));
+        Assert.That(patch.Position, Is.EqualTo(new Vector2(325, 400)));
+        Assert.That(patch.Bounds.Position.X, Is.EqualTo(200));
         Assert.That(patch.Width, Is.EqualTo(GrassPatch.DefaultWidth));
         Assert.That(_editor.GetComponent<NoteSelection>().Note, Is.EqualTo(OnlyGrass));
         Assert.That(_store.Query<Note>().Count, Is.Zero);

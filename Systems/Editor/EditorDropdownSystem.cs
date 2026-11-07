@@ -72,7 +72,7 @@ public sealed class EditorDropdownSystem : QuerySystem<Dropdown>
             }
             else
             {
-                dropdown.Selected = Expected(kind, playhead, character, selection);
+                dropdown.Selected = Expected(kind, character, selection);
             }
 
             // A blend list means nothing with nothing selected; disabling it
@@ -86,11 +86,7 @@ public sealed class EditorDropdownSystem : QuerySystem<Dropdown>
 
     private void Commit(EditorDropdownKind kind, int value, NoteSelection selection)
     {
-        if (kind == EditorDropdownKind.Snap)
-        {
-            _commands.Enqueue(EditorCommand.SetSnap(SnapValue(value)));
-        }
-        else if (kind == EditorDropdownKind.Character)
+        if (kind == EditorDropdownKind.Character)
         {
             foreach (Entity editor in _entities
                          .Query<EditorPlacement>()
@@ -136,11 +132,9 @@ public sealed class EditorDropdownSystem : QuerySystem<Dropdown>
 
     private static int Expected(
         EditorDropdownKind kind,
-        Playhead playhead,
         CharacterKind character,
         NoteSelection selection) => kind switch
     {
-        EditorDropdownKind.Snap => SnapIndex(playhead.SnapDivision),
         EditorDropdownKind.Blend => BlendIndex(selection),
         _ => (int)character,
     };
@@ -170,7 +164,6 @@ public sealed class EditorDropdownSystem : QuerySystem<Dropdown>
 
         string label = kind switch
         {
-            EditorDropdownKind.Snap => $"SNAP  {SnapLabel(dropdown.Selected)}",
             EditorDropdownKind.Blend => $"BLEND  {BlendModes.Name(BlendModes.All[Math.Clamp(dropdown.Selected, 0, BlendModes.All.Length - 1)])}  ▾",
             _ => $"CHAR  {CharacterLabel(dropdown.Selected)}",
         };
@@ -193,26 +186,5 @@ public sealed class EditorDropdownSystem : QuerySystem<Dropdown>
         2 => "SPLITLINE",
         3 => "FORM",
         _ => "CONTACT",
-    };
-
-    private static int SnapIndex(int division) => division switch
-    {
-        8 => 1,
-        16 => 2,
-        _ => 0,
-    };
-
-    private static int SnapValue(int index) => index switch
-    {
-        1 => 8,
-        2 => 16,
-        _ => 4,
-    };
-
-    private static string SnapLabel(int index) => index switch
-    {
-        1 => "1/4",
-        2 => "1/8",
-        _ => "1/2",
     };
 }

@@ -202,7 +202,9 @@ public sealed class EditorSelectionCommands(EditorCommandContext context)
             return;
 
         Playhead playhead = editor.GetComponent<Playhead>();
-        double step = EditorTiming.StepMs(playhead);
+        // A step in beats, so items keep their place on the grid across tempo changes.
+        double stepBeats = EditorTiming.StepBeats(playhead) * Math.Sign(direction);
+        Xanadu.Levels.TempoMap tempo = playhead.Tempo;
         long maxTime = playhead.DurationMs > 0
             ? playhead.DurationMs
             : long.MaxValue;
@@ -215,7 +217,7 @@ public sealed class EditorSelectionCommands(EditorCommandContext context)
                 continue;
 
             long moved = Math.Clamp(
-                timeMs + (long)Math.Round(step) * Math.Sign(direction),
+                (long)Math.Round(tempo.TimeAt(tempo.BeatAt(timeMs) + stepBeats)),
                 0,
                 maxTime);
             if (moved == timeMs)
@@ -311,6 +313,10 @@ public sealed class EditorSelectionCommands(EditorCommandContext context)
     private void PasteSelection(Entity editor, CommandBuffer buffer)
     {
         if (_clipboard.Count == 0 || !editor.HasComponent<NoteSelection>())
+            return;
+
+        // A paste that would pass the object cap is refused whole, never cut short.
+        if (EditorItems.WouldOverfill(editor.Store, editor, _clipboard.Count))
             return;
 
         ref Playhead playhead = ref editor.GetComponent<Playhead>();
