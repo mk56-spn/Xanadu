@@ -78,11 +78,20 @@ public struct UiColorField(Entity swatch) : IComponent
     public Color LiveColor;
     public bool Live;
 
+    /// <summary>
+    /// A colour was just dragged in from another swatch. It counts as an edit
+    /// until the tool takes the commit, so the tool picks its targets first,
+    /// as it does for typing or the picker; without that the drop had nothing
+    /// to land on and the field snapped back the next frame.
+    /// </summary>
+    public bool Dropped;
+
     /// <summary>Whether a colour is being typed or dragged out, so what the tool has selected now may not be what it is for.</summary>
     public static bool IsEditing(Entity field)
     {
         Entity picker = field.GetComponent<UiColorField>().Picker;
         return field.Tags.Has<TextFieldFocused>() ||
+               field.GetComponent<UiColorField>().Dropped ||
                (!picker.IsNull && picker.GetComponent<UiColorPicker>().Dragging);
     }
 
@@ -91,6 +100,7 @@ public struct UiColorField(Entity swatch) : IComponent
     {
         ref UiColorField state = ref field.GetComponent<UiColorField>();
         color = state.Value;
+        state.Dropped = false;
         if (!state.Committed)
             return false;
 
