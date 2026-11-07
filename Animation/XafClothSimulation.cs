@@ -23,13 +23,8 @@ public sealed partial class XafClothSimulation
     /// <summary>Constraint passes per step; enough for the default grid to hang without stretching.</summary>
     public const int Iterations = 16;
 
-    /// <summary>Steps a new cloth takes before it is first seen, so it starts hanging and not mid-fall.</summary>
-    private const int SettleSteps = 180;
-
-    private const float MaxCatchUp = 0.25f;
-
     private readonly List<Entry> _entries = new();
-    private float _pending;
+    private XafFixedClock _clock;
 
     /// <summary>The points to draw, row by row from the top edge; empty before the first update or for a bad index.</summary>
     public IReadOnlyList<Vector2> Points(int cloth) =>
@@ -39,16 +34,15 @@ public sealed partial class XafClothSimulation
     public void Reset()
     {
         _entries.Clear();
-        _pending = 0f;
+        _clock.Reset();
     }
 
     public void Update(XafPackage package, Transform2D[] worldBones, float delta)
     {
         Sync(package, worldBones);
-        _pending = Math.Min(_pending + Math.Max(0f, delta), MaxCatchUp);
-        while (_pending >= FixedStep)
+        _clock.Add(delta);
+        while (_clock.TryStep())
         {
-            _pending -= FixedStep;
             foreach (Entry entry in _entries)
             {
                 entry.Remember();
@@ -56,7 +50,7 @@ public sealed partial class XafClothSimulation
             }
         }
 
-        float blend = _pending / FixedStep;
+        float blend = _clock.Blend;
         foreach (Entry entry in _entries)
             entry.Blend(blend);
     }
@@ -86,7 +80,7 @@ public sealed partial class XafClothSimulation
             current.Configure(package, cloth, worldBones);
             if (created)
             {
-                current.Settle(SettleSteps, FixedStep);
+                current.Settle(XafFixedClock.SettleSteps, FixedStep);
                 current.Snap();
             }
         }

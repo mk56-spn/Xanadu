@@ -13,16 +13,10 @@ namespace Xanadu.Animation;
 /// </summary>
 public sealed class XafChainSimulation
 {
-    public const float FixedStep = 1f / 60f;
-
-    /// <summary>Steps a new chain takes before it is first seen, so it starts at rest and not mid-fall.</summary>
-    private const int SettleSteps = 180;
-
-    /// <summary>Longest stretch of time caught up in one update, so a stall does not stall again.</summary>
-    private const float MaxCatchUp = 0.25f;
+    public const float FixedStep = XafFixedClock.Step;
 
     private readonly List<Entry> _entries = new();
-    private float _pending;
+    private XafFixedClock _clock;
 
     /// <summary>
     /// The points of a chain to draw, anchor first; empty before the first update
@@ -39,16 +33,15 @@ public sealed class XafChainSimulation
     public void Reset()
     {
         _entries.Clear();
-        _pending = 0f;
+        _clock.Reset();
     }
 
     public void Update(XafPackage package, Transform2D[] worldBones, float delta)
     {
         Sync(package, worldBones);
-        _pending = Math.Min(_pending + Math.Max(0f, delta), MaxCatchUp);
-        while (_pending >= FixedStep)
+        _clock.Add(delta);
+        while (_clock.TryStep())
         {
-            _pending -= FixedStep;
             foreach (Entry entry in _entries)
             {
                 entry.Remember();
@@ -56,7 +49,7 @@ public sealed class XafChainSimulation
             }
         }
 
-        float blend = _pending / FixedStep;
+        float blend = _clock.Blend;
         foreach (Entry entry in _entries)
             entry.Blend(blend);
     }
@@ -106,7 +99,7 @@ public sealed class XafChainSimulation
 
             if (created)
             {
-                for (int step = 0; step < SettleSteps; step++)
+                for (int step = 0; step < XafFixedClock.SettleSteps; step++)
                     verlet.Step(FixedStep);
                 _entries[i].Snap();
             }
