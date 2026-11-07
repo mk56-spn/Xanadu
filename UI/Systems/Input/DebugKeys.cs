@@ -26,11 +26,14 @@ public static class DebugKeys
     /// <summary>F5: preview what the open tool is editing; Shift is its variant.</summary>
     public const Key Preview = Key.F5;
 
-    /// <summary>F6: gameplay hitboxes. F8 is gameplay's spare slot.</summary>
+    /// <summary>F6: gameplay hitboxes.</summary>
     public const Key Hitboxes = Key.F6;
 
     /// <summary>F7: gameplay HUD layout editing.</summary>
     public const Key HudLayout = Key.F7;
+
+    /// <summary>F8: play's notes the DIVA+ way from the notes lab, or the approach ring.</summary>
+    public const Key DivaNotes = Key.F8;
 
     /// <summary>F9: the editor's binding list. F11 is the editor's spare slot.</summary>
     public const Key EditorHelp = Key.F9;
