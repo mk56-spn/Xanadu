@@ -120,13 +120,7 @@ public static partial class SongSelectScene
             state.LevelPanel.AddTag<LayoutDirty>();
         }
 
-        ref FillColor fill = ref state.LevelPanel.GetComponent<FillColor>();
-        Color panelFill = empty ? Transparent : Dim;
-        if (fill.Value != panelFill)
-        {
-            fill.Value = panelFill;
-            state.LevelPanel.AddTag<Dirty>();
-        }
+        UiText.SetFill(state.LevelPanel, empty ? Transparent : Dim);
 
         Color color = LevelColor(state.Selected + 1);
         state.LevelLabel.GetComponent<TextOutline>().Color = LevelEdge(color);

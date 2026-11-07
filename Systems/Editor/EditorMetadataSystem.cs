@@ -187,18 +187,7 @@ public sealed class EditorMetadataSystem : QuerySystem<LevelInfo, Playhead>
         }
     }
 
-    private void ShowSwatch(Entity entity, Color color)
-    {
-        if (!entity.HasComponent<FillColor>())
-            return;
-
-        ref FillColor fill = ref entity.GetComponent<FillColor>();
-        if (fill.Value == color)
-            return;
-
-        fill.Value = color;
-        CommandBuffer.AddTag<Dirty>(entity.Id);
-    }
+    private void ShowSwatch(Entity entity, Color color) => UiText.SetFill(entity, color, CommandBuffer);
 
     private void ShowHex(Entity entity, Color? stored)
     {

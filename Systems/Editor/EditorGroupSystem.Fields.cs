@@ -180,14 +180,6 @@ public sealed partial class EditorGroupSystem
             return;
         }
 
-        if (entity.HasComponent<FillColor>())
-        {
-            ref FillColor fill = ref entity.GetComponent<FillColor>();
-            if (fill.Value != color)
-            {
-                fill.Value = color;
-                buffer.AddTag<Dirty>(entity.Id);
-            }
-        }
+        UiText.SetFill(entity, color, buffer);
     }
 }

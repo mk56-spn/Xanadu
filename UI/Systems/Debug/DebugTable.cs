@@ -83,16 +83,7 @@ public sealed class DebugTable
         UiText.SetColor(Row(row).ChildEntities[column], color);
 
     /// <summary>Tints a whole row, for the selected one.</summary>
-    public void SetRowFill(int row, Color color)
-    {
-        Entity entity = Row(row);
-        ref FillColor fill = ref entity.GetComponent<FillColor>();
-        if (fill.Value == color)
-            return;
-
-        fill.Value = color;
-        entity.AddTag<Dirty>();
-    }
+    public void SetRowFill(int row, Color color) => UiText.SetFill(Row(row), color);
 
     private static float CellWidth(string text) => UiNode.Measure(text, FontSize).X + CellSlack;
 

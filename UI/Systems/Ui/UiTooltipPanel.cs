@@ -45,23 +45,12 @@ public static class UiTooltipPanel
             tooltip.AddTag<Dirty>();
         }
 
-        SetText(tooltip, text);
+        UiText.Set(tooltip, text);
     }
 
     /// <summary>Empties the panel's text, so a hidden tooltip does not flash the old one when shown.</summary>
     public static void Clear(Entity tooltip)
     {
-        if (tooltip.HasComponent<Text>())
-            SetText(tooltip, "");
-    }
-
-    private static void SetText(Entity tooltip, string text)
-    {
-        ref Text label = ref tooltip.GetComponent<Text>();
-        if (label.Value != text)
-        {
-            label.Value = text;
-            tooltip.AddTag<Dirty>();
-        }
+        UiText.Set(tooltip, "");
     }
 }

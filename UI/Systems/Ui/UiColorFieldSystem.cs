@@ -66,11 +66,6 @@ public sealed class UiColorFieldSystem : QuerySystem<UiColorField, TextField>
                 picker.Color = shown;
         }
 
-        ref FillColor fill = ref field.Swatch.GetComponent<FillColor>();
-        if (fill.Value != shown)
-        {
-            fill.Value = shown;
-            field.Swatch.AddTag<Dirty>();
-        }
+        UiText.SetFill(field.Swatch, shown);
     }
 }

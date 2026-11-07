@@ -72,12 +72,7 @@ public sealed class AnimatorClipHeaderSystem : QuerySystem<AnimatorDocument, Ani
         XafClip? clip = AnimatorSession.CurrentClip(session.GetComponent<AnimatorDocument>());
         bool loop = clip?.Loop ?? false;
         string label = loop ? "LOOP ON" : "LOOP OFF";
-        ref Text text = ref button.GetComponent<Text>();
-        if (text.Value != label)
-        {
-            text.Value = label;
-            button.AddTag<Dirty>();
-        }
+        UiText.Set(button, label);
 
         if (!button.HasComponent<ButtonVisual>())
             return;

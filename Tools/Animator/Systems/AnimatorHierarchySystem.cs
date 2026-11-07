@@ -161,12 +161,7 @@ public sealed class AnimatorHierarchySystem(
             return;
 
         string label = current.ToUpperInvariant();
-        ref Text text = ref button.GetComponent<Text>();
-        if (text.Value != label)
-        {
-            text.Value = label;
-            button.AddTag<Dirty>();
-        }
+        UiText.Set(button, label);
 
         foreach (Entity option in Query.Store.Query<ToolAction, ButtonVisual, DropdownOption>().WithDisabled().ToEntityList())
         {

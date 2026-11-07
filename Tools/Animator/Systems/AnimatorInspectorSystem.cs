@@ -246,20 +246,8 @@ public sealed class AnimatorInspectorSystem : QuerySystem<AnimatorDocument, Anim
             value = "NOTHING SELECTED";
         }
 
-        ref Text text = ref title.GetComponent<Text>();
-        if (text.Value != value)
-        {
-            text.Value = value;
-            title.AddTag<Dirty>();
-        }
-
-        ref TextStyle style = ref title.GetComponent<TextStyle>();
-        Color color = unkeyed ? UnkeyedTitle : NormalTitle;
-        if (style.Color != color)
-        {
-            style.Color = color;
-            title.AddTag<Dirty>();
-        }
+        UiText.Set(title, value);
+        UiText.SetColor(title, unkeyed ? UnkeyedTitle : NormalTitle);
     }
 
     /// <summary>Whether the shown pose differs from what the current clip samples.</summary>

@@ -135,13 +135,7 @@ public sealed class PlayScoreSystem : QuerySystem<ScoreState, Playhead>
                 : PlayStrings.Late),
             buffer);
 
-        ref TextStyle style = ref indicator.Text.GetComponent<TextStyle>();
-        Color color = timing == HitTiming.Early ? Palette.Info : Palette.Warning;
-        if (style.Color != color)
-        {
-            style.Color = color;
-            buffer.AddTag<Dirty>(indicator.Text.Id);
-        }
+        UiText.SetColor(indicator.Text, timing == HitTiming.Early ? Palette.Info : Palette.Warning, buffer);
 
         ref Position position = ref indicator.Text.GetComponent<Position>();
         position.Value = JudgementScreenPosition(entity, score) +
@@ -186,12 +180,7 @@ public sealed class PlayScoreSystem : QuerySystem<ScoreState, Playhead>
             buffer.AddTag<Moved>(bar.Marker.Id);
         }
 
-        ref FillColor fill = ref bar.Marker.GetComponent<FillColor>();
-        if (fill.Value != color)
-        {
-            fill.Value = color;
-            buffer.AddTag<Dirty>(bar.Marker.Id);
-        }
+        UiText.SetFill(bar.Marker, color, buffer);
     }
 
     private static void Count(ref ScoreState score, Judgement judgement) =>
