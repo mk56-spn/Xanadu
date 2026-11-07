@@ -267,7 +267,7 @@ public partial class VisualTestMain : Control
     private void EnsureRoot()
     {
         SongStore.CatalogFilePath ??=
-            ProjectSettings.GlobalizePath("res://Songs/catalog.json");
+            ProjectSettings.GlobalizePath(SongStore.CatalogFile);
         if (_systems is not null || _testHost is null)
             return;
 

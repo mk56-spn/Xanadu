@@ -1,7 +1,6 @@
 using System;
 using System.IO;
 using System.Linq;
-using System.Security.Cryptography;
 using NUnit.Framework;
 using Xanadu.Ecs.Storage;
 using Xanadu.Levels;
@@ -12,7 +11,7 @@ namespace Xanadu.Tests.Editor;
 public sealed class SongCatalogTests
 {
     [Test]
-    public void CatalogContainsEveryBundledSongAndItsMetadata()
+    public void CatalogListsEverySongWithAudioOutsideTheRepo()
     {
         string root = Path.GetFullPath(Path.Combine(
             TestContext.CurrentContext.TestDirectory,
@@ -47,12 +46,9 @@ public sealed class SongCatalogTests
         {
             Assert.That(song.Id, Has.Length.EqualTo(32), song.Title);
             Assert.That(song.Slug, Does.StartWith(SlugRoot(song.Title)), song.Title);
-            Assert.That(song.AudioPath, Does.StartWith("res://Assets/Songs/"), song.Title);
+            Assert.That(song.AudioPath, Does.Not.StartWith("res://"), song.Title);
+            Assert.That(Path.IsPathRooted(song.AudioPath), Is.False, song.Title);
             Assert.That(song.ContentHash, Has.Length.EqualTo(64), song.Title);
-
-            string audio = Path.Combine(root, song.AudioPath["res://".Length..]);
-            Assert.That(File.Exists(audio), Is.True, song.Title);
-            Assert.That(Hash(audio), Is.EqualTo(song.ContentHash), song.Title);
         }
     }
 
@@ -61,10 +57,4 @@ public sealed class SongCatalogTests
 
     private static string SlugRoot(string title) =>
         title.ToLowerInvariant().Replace(' ', '-') + "-";
-
-    private static string Hash(string path)
-    {
-        using FileStream stream = File.OpenRead(path);
-        return Convert.ToHexString(SHA256.HashData(stream)).ToLowerInvariant();
-    }
 }

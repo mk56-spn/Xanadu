@@ -26,3 +26,8 @@ Thumbs.db
 
 # Agent workspaces (worktrees, local settings)
 .claude/
+
+# Music lives in user://songs, never in the repo
+*.mp3
+*.ogg
+*.flac

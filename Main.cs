@@ -33,7 +33,7 @@ public partial class Main : Control
 		LocalizedText.EnableGodot();
 		UiIcons.Loader = UiIcons.FromResources;
 		SongStore.CatalogFilePath =
-			ProjectSettings.GlobalizePath("res://Songs/catalog.json");
+			ProjectSettings.GlobalizePath(SongStore.CatalogFile);
 		SetProcess(true);
 		_pointer = new GodotPointerInputSource(this);
 		_sceneDirector = new SceneDirector();

@@ -12,11 +12,15 @@ using Xanadu.Ecs.Storage;
 namespace Xanadu.Levels;
 
 /// <summary>
-/// Owns the song library. Imported audio is copied into a per-song folder and
-/// duplicate audio is rejected by content hash.
+/// Owns the song library. The catalog is a permanent fixture of the project
+/// (<c>res://Songs/catalog.json</c>); the audio lives outside the codebase in
+/// <c>user://songs</c>, one folder per song id.
 /// </summary>
 public sealed class SongStore
 {
+    public const string LibraryFolder = "user://songs";
+    public const string CatalogFile = "res://Songs/catalog.json";
+
     private static readonly Regex SlugPattern = new(
         "[^a-z0-9]+",
         RegexOptions.Compiled);
@@ -34,61 +38,36 @@ public sealed class SongStore
     }
 
     public string Root => _root ??=
-        ProjectSettings.GlobalizePath("user://songs");
+        ProjectSettings.GlobalizePath(LibraryFolder);
 
-    public string CatalogPath => _catalogPath ?? CatalogFilePath ?? "";
+    public string CatalogPath =>
+        _catalogPath ?? CatalogFilePath ?? Path.Combine(Root, "catalog.json");
 
     public IReadOnlyList<SongDocument> LoadAll()
     {
-        if (!string.IsNullOrEmpty(CatalogPath) && File.Exists(CatalogPath))
-        {
-            try
-            {
-                SongDocument[]? catalog =
-                    JsonFileStore.Load<SongDocument[]>(CatalogPath);
-                if (catalog is not null)
-                {
-                    return catalog
-                        .Where(song => !string.IsNullOrWhiteSpace(song.Id))
-                        .OrderBy(song => song.Title, StringComparer.OrdinalIgnoreCase)
-                        .ToArray();
-                }
-            }
-            catch (Exception)
-            {
-                // Fall back to the per-song store for compatibility.
-            }
-        }
-
-        if (!Directory.Exists(Root))
+        if (!File.Exists(CatalogPath))
             return Array.Empty<SongDocument>();
 
-        var songs = new List<SongDocument>();
-        foreach (string path in Directory.EnumerateFiles(
-                     Root, "song.json", SearchOption.AllDirectories))
+        try
         {
-            try
-            {
-                SongDocument? song = JsonFileStore.Load<SongDocument>(path);
-                if (song is not null && !string.IsNullOrWhiteSpace(song.Id))
-                    songs.Add(song);
-            }
-            catch (Exception)
-            {
-                // A broken song should not take down the library.
-            }
+            SongDocument[]? catalog =
+                JsonFileStore.Load<SongDocument[]>(CatalogPath);
+            if (catalog is null)
+                return Array.Empty<SongDocument>();
+            return catalog
+                .Where(song => !string.IsNullOrWhiteSpace(song.Id))
+                .OrderBy(song => song.Title, StringComparer.OrdinalIgnoreCase)
+                .ToArray();
         }
-
-        songs.Sort(static (a, b) =>
-            string.Compare(a.Title, b.Title, StringComparison.OrdinalIgnoreCase));
-        return songs;
+        catch (Exception)
+        {
+            // A broken catalog should not take down the game.
+            return Array.Empty<SongDocument>();
+        }
     }
 
     public string ResolveAudioPath(SongDocument song)
     {
-        if (song.AudioPath.StartsWith("res://", StringComparison.Ordinal))
-            return ProjectSettings.GlobalizePath(song.AudioPath);
-
         return Path.IsPathRooted(song.AudioPath)
             ? song.AudioPath
             : Path.Combine(Root, song.Id, song.AudioPath);
@@ -162,7 +141,7 @@ public sealed class SongStore
             Slug = slug,
             Title = resolvedTitle,
             Artist = resolvedArtist,
-            AudioPath = audioPath,
+            AudioPath = Path.GetFileName(audioPath),
             Bpm = Math.Clamp(bpm, 1, 1000),
             OffsetMs = offsetMs,
             ContentHash = hash,
@@ -176,28 +155,29 @@ public sealed class SongStore
         if (string.IsNullOrWhiteSpace(song.Id))
             throw new InvalidOperationException("Song is missing its id.");
 
-        if (!string.IsNullOrEmpty(CatalogPath) && File.Exists(CatalogPath))
-        {
-            SongDocument[] songs = LoadAll().ToArray();
-            int index = Array.FindIndex(songs, item => item.Id == song.Id);
-            if (index >= 0)
-                songs[index] = song;
-            else
-                songs = songs.Append(song).ToArray();
-            JsonFileStore.Save(CatalogPath, songs);
-            return;
-        }
-
-        string directory = GetDirectory(song);
-        Directory.CreateDirectory(directory);
-        JsonFileStore.Save(Path.Combine(directory, "song.json"), song);
+        SongDocument[] songs = LoadAll().ToArray();
+        int index = Array.FindIndex(songs, item => item.Id == song.Id);
+        if (index >= 0)
+            songs[index] = song;
+        else
+            songs = songs.Append(song).ToArray();
+        WriteCatalog(songs);
     }
 
     public void Delete(SongDocument song)
     {
+        WriteCatalog(LoadAll().Where(item => item.Id != song.Id).ToArray());
         string directory = GetDirectory(song);
         if (Directory.Exists(directory))
             Directory.Delete(directory, recursive: true);
+    }
+
+    private void WriteCatalog(SongDocument[] songs)
+    {
+        string? directory = Path.GetDirectoryName(CatalogPath);
+        if (!string.IsNullOrEmpty(directory))
+            Directory.CreateDirectory(directory);
+        JsonFileStore.Save(CatalogPath, songs);
     }
 
     private string GetDirectory(SongDocument song) =>

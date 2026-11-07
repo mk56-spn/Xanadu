@@ -40,9 +40,10 @@ public sealed class SongStoreTests
         Assert.That(song.Artist, Is.EqualTo("Artist"));
         Assert.That(song.Bpm, Is.EqualTo(174));
         Assert.That(song.OffsetMs, Is.EqualTo(-35));
-        Assert.That(File.Exists(song.AudioPath), Is.True);
-        Assert.That(song.AudioPath, Does.StartWith(Path.Combine(_root, song.Id)));
-        Assert.That(File.Exists(Path.Combine(_root, song.Id, "song.json")), Is.True);
+        Assert.That(song.AudioPath, Is.EqualTo("audio.wav"));
+        Assert.That(File.Exists(_songs.ResolveAudioPath(song)), Is.True);
+        Assert.That(_songs.ResolveAudioPath(song), Does.StartWith(Path.Combine(_root, song.Id)));
+        Assert.That(File.Exists(Path.Combine(_root, "catalog.json")), Is.True);
     }
 
     [Test]
@@ -71,10 +72,7 @@ public sealed class SongStoreTests
     [Test]
     public void ImportAddsAPermanentCatalogEntry()
     {
-        string catalog = Path.Combine(_root, "catalog.json");
-        Directory.CreateDirectory(_root);
-        File.WriteAllText(catalog, "[]");
-        var store = new SongStore(_root, catalog);
+        var store = new SongStore(_root);
 
         SongDocument song = store.Import(
             CreateAudio("catalog-add.mp3", "catalog-audio"),
@@ -83,6 +81,19 @@ public sealed class SongStoreTests
         Assert.That(File.Exists(Path.Combine(_root, "catalog.json")), Is.True);
         Assert.That(store.Find(song.Id)?.Title, Is.EqualTo("Catalog Song"));
         Assert.That(store.AudioExists(store.Find(song.Id)!), Is.True);
+    }
+
+    [Test]
+    public void DeleteRemovesTheCatalogEntryAndAudio()
+    {
+        SongDocument song = _songs.Import(
+            CreateAudio("delete.wav", "delete-audio"),
+            "Doomed");
+
+        _songs.Delete(song);
+
+        Assert.That(_songs.Find(song.Id), Is.Null);
+        Assert.That(Directory.Exists(Path.Combine(_root, song.Id)), Is.False);
     }
 
     [Test]
