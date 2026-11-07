@@ -49,9 +49,6 @@ public sealed class UiFocusSystem : QuerySystem<Rectangle, Drawable, Position>
         _ring = new UiFocusRing(entities, visuals);
     }
 
-    /// <summary>The control currently holding focus, or a null entity.</summary>
-    public Entity FocusedEntity => _focused;
-
     protected override void OnUpdate()
     {
         CommandBuffer buffer = CommandBuffer;

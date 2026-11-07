@@ -59,11 +59,8 @@ public sealed class AnimatorRuntime
     public float CurrentTime => _currentTime;
     public float CurrentDuration => _current?.Duration ?? 0f;
 
-    /// <summary>Seconds into the clip fading in; 0 when not crossfading.</summary>
-    public float NextTime => _next is null ? 0f : _nextTime;
     public float FadeDuration => _next is null ? 0f : _fadeDuration;
     public float FadeElapsed => _next is null ? 0f : _fadeElapsed;
-    public XafFadeCurve FadeCurve => _fadeCurve;
 
     /// <summary>The fading-in clip's share of the pose, after its curve; 0 when not crossfading.</summary>
     public float FadeWeight => _next is null

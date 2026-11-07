@@ -21,7 +21,6 @@ public static partial class PlayfieldRenderer
     public static readonly Color AxisColor = CanvasGrid.AxisColor;
     public static readonly Color AccentColor = Palette.Accent;
     public static readonly Color DimTextColor = Palette.TextDim;
-    public static readonly Color NoteColor = new(1f, 0.55f, 0.15f);
     public static readonly Color SelectedNoteColor = new(1f, 0.9f, 0.3f);
     public static readonly Color PlayerColor = Palette.Text;
     public static readonly Color QueueColor = Palette.Info;

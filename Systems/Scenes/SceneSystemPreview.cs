@@ -21,9 +21,6 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
     /// <summary>True while the play scene was launched from the editor.</summary>
     public bool IsEditorPreview => _previewEntry is not null;
 
-    /// <summary>Number of start points the editor preview can cycle through.</summary>
-    public int PreviewStartCount => _previewStarts.Count;
-
     /// <summary>
     /// Launches the real play scene for the editor's in-memory level, beginning
     /// at the start point at or before <paramref name="playheadMs"/>.

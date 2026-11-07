@@ -27,8 +27,6 @@ public static partial class AnimatorLayout
     private const float RightPanelWidth = EditorShellMetrics.RightPanelWidth;
     private const float ListWidth = RightPanelWidth - UiTheme.ContainerPadding * 2;
 
-    /// <summary>Label, button row and the spacing between them and the viewport.</summary>
-    private const float LeftFixedHeight = 20f + 30f + UiTheme.ContainerSpacing * 2;
     private const float ButtonWidth = RightPanelWidth - UiTheme.ContainerPadding * 2;
     private const float FileMenuWidth = 180f;
     private const float ConfigMenuWidth = 150f;

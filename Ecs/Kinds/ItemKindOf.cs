@@ -18,8 +18,6 @@ public abstract class ItemKind<T, TDoc> : ItemKind
     where T : struct, IComponent
     where TDoc : ItemDocument, new()
 {
-    public Type Component => typeof(T);
-
     public override bool Has(Entity entity) => !entity.IsNull && entity.HasComponent<T>();
 
     public override EntityList All(EntityStore entities) => entities.Query<T>().ToEntityList();

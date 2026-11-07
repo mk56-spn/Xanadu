@@ -10,8 +10,6 @@ public sealed class TrackTimer
     private long _playStartMicros;
     private bool _running;
 
-    public bool IsRunning => _running;
-
     public long NowMicros => _running ? _nowMicros - _playStartMicros : 0;
 
     public long NowMs => NowMicros / 1000;

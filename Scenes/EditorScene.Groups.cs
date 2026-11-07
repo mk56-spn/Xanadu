@@ -12,9 +12,6 @@ namespace Xanadu.Scenes;
 /// <summary>The groups grid in the editor's sidebar and the overlay screen a group opens.</summary>
 public static class EditorSceneGroups
 {
-    /// <summary>Room the grid takes in the sidebar: its label, four rows of cells and a margin.</summary>
-    public const float GroupGridHeight = EditorGroupLayout.GridHeight;
-
     /// <summary>
     /// The groups label and a compact grid of the group cells, flowing in the
     /// sidebar. A cell puts the selection into that group, or takes it out when

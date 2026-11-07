@@ -13,9 +13,6 @@ namespace Xanadu.Tools.Animator.Commands;
 /// </summary>
 public static class AnimatorSequenceCommands
 {
-    /// <summary>The crossfade of a hand-over that has no rule, as in the game.</summary>
-    public const float FadeSeconds = XafTransitions.DefaultFade;
-
     /// <summary>How long the game holds a jump before it can turn into a fall.</summary>
     public const float JumpSeconds = 0.3f;
 

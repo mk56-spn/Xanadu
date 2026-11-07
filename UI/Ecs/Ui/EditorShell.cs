@@ -34,9 +34,6 @@ public static class EditorShellMetrics
     /// <summary>The editor name box at the header's left.</summary>
     public const float NameWidth = 250f;
 
-    /// <summary>The undo/redo block right of the name.</summary>
-    public const float HistoryWidth = 224f;
-
     /// <summary>Header dropdown buttons, from the right edge: settings, then the two menus.</summary>
     public const float DropdownWidth = 180f;
     public const float SettingsWidth = 110f;
