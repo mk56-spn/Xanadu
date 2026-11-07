@@ -23,6 +23,8 @@ public interface IChartItems
 
     List<GrassDocument> Grass { get; set; }
 
+    List<FlareDocument> Flares { get; set; }
+
     List<PolygonDocument> Polygons { get; set; }
 
     List<ScreenReadDocument> ScreenReads { get; set; }

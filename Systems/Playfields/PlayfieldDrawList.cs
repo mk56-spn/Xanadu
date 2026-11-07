@@ -20,6 +20,7 @@ public enum PlayfieldDrawKind : byte
     Block,
     Spike,
     Grass,
+    Flare,
     Text,
 
     /// <summary>A boundary that refreshes the back buffer where the draw order reaches it.</summary>
@@ -65,16 +66,13 @@ public static class PlayfieldDrawList
         bool railLanes)
     {
         into.Clear();
-        AddItems<LevelPolygon>(entities, into, PlayfieldDrawKind.Polygon);
-        AddItems<Block>(entities, into, PlayfieldDrawKind.Block);
-        AddItems<Spike>(entities, into, PlayfieldDrawKind.Spike);
-        AddItems<GrassPatch>(entities, into, PlayfieldDrawKind.Grass);
-        AddItems<LevelText>(entities, into, PlayfieldDrawKind.Text);
-        AddItems<ScreenReadRegion>(entities, into, PlayfieldDrawKind.ScreenRead);
+        foreach (ItemKind kind in ItemKinds.All)
+        {
+            if (kind.DrawKind != PlayfieldDrawKind.StartPoint || startPoints)
+                kind.AddDrawEntries(entities, into);
+        }
+
         AddNotes(entities, into);
-        AddItems<Mine>(entities, into, PlayfieldDrawKind.Mine);
-        if (startPoints)
-            AddItems<StartPoint>(entities, into, PlayfieldDrawKind.StartPoint);
         AddEffects<NotePop>(entities, into, PlayfieldDrawKind.NotePop);
         AddEffects<DashLinkFade>(entities, into, PlayfieldDrawKind.DashLinkFade);
         AddEffects<DashTrail>(entities, into, PlayfieldDrawKind.DashTrail);
@@ -96,19 +94,6 @@ public static class PlayfieldDrawList
             var lanes = new PlayfieldDrawEntry(layer, int.MinValue, PlayfieldDrawKind.RailLanes, default);
             int at = into.FindIndex(e => e.CompareTo(lanes) > 0);
             into.Insert(at < 0 ? into.Count : at, lanes);
-        }
-    }
-
-    private static void AddItems<T>(EntityStore entities, List<PlayfieldDrawEntry> into, PlayfieldDrawKind kind)
-        where T : struct, IComponent
-    {
-        foreach (var (_, chunk) in entities.Query<T>().Chunks)
-        {
-            foreach (Entity entity in chunk)
-            {
-                ItemLayer layer = ItemLayer.Of(entity);
-                into.Add(new PlayfieldDrawEntry(layer.Layer, layer.Z, kind, entity));
-            }
         }
     }
 

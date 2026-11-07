@@ -45,7 +45,7 @@ public sealed class XmfTextTests
         byte[] data = XmfBinary.Write(new LevelDocument { Name = "Plain" });
         ChunkReader reader = ChunkReader.Open(data, "XMF1"u8.ToArray(), XmfBinary.MajorVersion, "XMF");
 
-        Assert.That(reader.TryGet(14, out _), Is.False);
+        Assert.That(reader.TryGet((uint)XmfChunk.Texts, out _), Is.False);
         Assert.That(XmfBinary.Read(data).Texts, Is.Empty);
     }
 

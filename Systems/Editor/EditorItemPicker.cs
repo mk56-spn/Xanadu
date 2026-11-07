@@ -8,10 +8,8 @@ using Xanadu.Systems.Playfields;
 namespace Xanadu.Systems.Editor;
 
 /// <summary>
-/// Picks the playfield item under a point and the items inside a box, in the
-/// order the editor treats them: notes, mines, start points, texts, grass,
-/// spikes, blocks, polygons. Spikes and text sit over blocks; polygons sit
-/// under everything. Items are found where they're shown at the playhead, with
+/// Picks the playfield item under a point and the items inside a box, asking
+/// each kind in <see cref="ItemKinds.PickOrder"/> whether the point is on it. Items are found where they're shown at the playhead, with
 /// their groups' moves applied. Items on hidden or locked layers can't be picked.
 /// </summary>
 public sealed class EditorItemPicker(EditorSceneQuery scene)
@@ -25,155 +23,30 @@ public sealed class EditorItemPicker(EditorSceneQuery scene)
     /// The topmost item a press at this point would pick, or null. A selected
     /// note or mine comes first and is found even when faded out at the
     /// playhead, since its selection ring still shows: a press inside the ring
-    /// always grabs it.
+    /// always grabs it. Then each kind in <see cref="ItemKinds.PickOrder"/>,
+    /// the last-made hit of a kind being the one on top.
     /// </summary>
     public Entity FindItemAt(Vector2 position, long playheadMs)
     {
         Entity hit = FindSelectedMarkAt(position);
-        if (hit.IsNull)
-            hit = FindNoteAt(position, playheadMs);
-        if (hit.IsNull)
-            hit = FindMineAt(position, playheadMs);
-        if (hit.IsNull)
-            hit = FindStartAt(position);
-        if (hit.IsNull)
-            hit = FindTextAt(position);
-        if (hit.IsNull)
-            hit = FindGrassAt(position);
-        if (hit.IsNull)
-            hit = FindSpikeAt(position);
-        if (hit.IsNull)
-            hit = FindBlockAt(position);
-        if (hit.IsNull)
-            hit = FindPolygonAt(position);
-        if (hit.IsNull)
-            hit = FindRegionAt(position);
-        return hit;
-    }
+        if (!hit.IsNull)
+            return hit;
 
-    public Entity FindBlockAt(Vector2 position)
-    {
         EditorLayers layers = Layers();
-        Entity result = default;
-        foreach (Entity entity in _entities.Query<Block>().ToEntityList())
+        foreach (ItemKind kind in ItemKinds.PickOrder)
         {
-            if (!layers.Picks(ItemLayer.Of(entity).Layer))
-                continue;
-
-            if (entity.GetComponent<Block>().Bounds.HasPoint(Placed(entity, position)))
-                result = entity;
-        }
-
-        return result;
-    }
-
-    public Entity FindTextAt(Vector2 position)
-    {
-        EditorLayers layers = Layers();
-        Entity result = default;
-        foreach (Entity entity in _entities.Query<LevelText>().ToEntityList())
-        {
-            if (!layers.Picks(ItemLayer.Of(entity).Layer))
-                continue;
-
-            LevelText text = entity.GetComponent<LevelText>();
-            if (TurnedBox.Contains(text.Bounds, text.RotationDegrees, Placed(entity, position)))
-                result = entity;
-        }
-
-        return result;
-    }
-
-    public Entity FindGrassAt(Vector2 position)
-    {
-        EditorLayers layers = Layers();
-        Entity result = default;
-        foreach (Entity entity in _entities.Query<GrassPatch>().ToEntityList())
-        {
-            if (!layers.Picks(ItemLayer.Of(entity).Layer))
-                continue;
-
-            GrassPatch grass = entity.GetComponent<GrassPatch>();
-            if (TurnedBox.Contains(grass.Bounds, grass.RotationDegrees, Placed(entity, position)))
-                result = entity;
-        }
-
-        return result;
-    }
-
-    public Entity FindPolygonAt(Vector2 position)
-    {
-        EditorLayers layers = Layers();
-        Entity result = default;
-        foreach (Entity entity in _entities.Query<LevelPolygon>().ToEntityList())
-        {
-            if (!layers.Picks(ItemLayer.Of(entity).Layer))
-                continue;
-
-            if (entity.GetComponent<LevelPolygon>().Contains(Placed(entity, position)))
-                result = entity;
-        }
-
-        return result;
-    }
-
-    /// <summary>
-    /// The screen-read region under a point. Regions sit under every other item
-    /// when picking, since they are large rects meant to enclose things.
-    /// </summary>
-    public Entity FindRegionAt(Vector2 position)
-    {
-        EditorLayers layers = Layers();
-        Entity result = default;
-        foreach (Entity entity in _entities.Query<ScreenReadRegion>().ToEntityList())
-        {
-            if (!layers.Picks(ItemLayer.Of(entity).Layer))
-                continue;
-
-            if (entity.GetComponent<ScreenReadRegion>().Contains(Placed(entity, position)))
-                result = entity;
-        }
-
-        return result;
-    }
-
-    public Entity FindSpikeAt(Vector2 position)
-    {
-        EditorLayers layers = Layers();
-        Entity result = default;
-        foreach (Entity entity in _entities.Query<Spike>().ToEntityList())
-        {
-            if (!layers.Picks(ItemLayer.Of(entity).Layer))
-                continue;
-
-            if (entity.GetComponent<Spike>().Contains(Placed(entity, position)))
-                result = entity;
-        }
-
-        return result;
-    }
-
-    public Entity FindNoteAt(Vector2 position, long playheadMs)
-    {
-        EditorLayers layers = Layers();
-        Entity result = default;
-
-        foreach (Entity entity in _entities.Query<Note>().ToEntityList())
-        {
-            if (!layers.Picks(ItemLayer.Of(entity).Layer))
-                continue;
-
-            Note note = entity.GetComponent<Note>();
-            if (NoteFade.Alpha(note, playheadMs) <= 0)
-                continue;
-
-            if (Within(Placed(entity, position), note.Position, NoteHitRadius))
+            Entity result = default;
+            foreach (Entity entity in kind.All(_entities))
             {
-                result = entity;
+                if (layers.Picks(ItemLayer.Of(entity).Layer) && kind.Hit(entity, Placed(entity, position), playheadMs))
+                    result = entity;
             }
+
+            if (!result.IsNull)
+                return result;
         }
 
-        return result;
+        return default;
     }
 
     /// <summary>The selected note or mine under a point, whatever its fade, or null.</summary>
@@ -205,47 +78,6 @@ public sealed class EditorItemPicker(EditorSceneQuery scene)
         return result;
     }
 
-    public Entity FindMineAt(Vector2 position, long playheadMs)
-    {
-        EditorLayers layers = Layers();
-        Entity result = default;
-
-        foreach (Entity entity in _entities.Query<Mine>().ToEntityList())
-        {
-            if (!layers.Picks(ItemLayer.Of(entity).Layer))
-                continue;
-
-            Mine mine = entity.GetComponent<Mine>();
-            if (MineFade.Alpha(mine, playheadMs) <= 0)
-                continue;
-
-            if (Within(Placed(entity, position), mine.Position, MineHitRadius))
-            {
-                result = entity;
-            }
-        }
-
-        return result;
-    }
-
-    public Entity FindStartAt(Vector2 position)
-    {
-        EditorLayers layers = Layers();
-        Entity result = default;
-        foreach (Entity entity in _entities.Query<StartPoint>().ToEntityList())
-        {
-            if (!layers.Picks(ItemLayer.Of(entity).Layer))
-                continue;
-
-            StartPoint startPoint = entity.GetComponent<StartPoint>();
-            // Picked like a note, since it is drawn the size of one.
-            if (startPoint.Position.DistanceTo(Placed(entity, position)) <= NoteHitRadius)
-                result = entity;
-        }
-
-        return result;
-    }
-
     /// <summary>Every playfield item whose drawn bounds intersect a screen box.</summary>
     public List<Entity> FindNotesIn(Rect2 screenBounds, long playheadMs)
     {
@@ -255,129 +87,15 @@ public sealed class EditorItemPicker(EditorSceneQuery scene)
             return selected;
 
         EditorLayers layers = EditorLayers.Of(editor);
-
         PlayfieldView view = editor.GetComponent<PlayfieldView>();
         Playfield playfield = editor.GetComponent<Playfield>();
-        float noteSize = PlayfieldRenderer.NoteSize * view.Scale;
-
-        foreach (Entity entity in _entities.Query<Note>().ToEntityList())
+        foreach (ItemKind kind in ItemKinds.All)
         {
-            if (!layers.Picks(ItemLayer.Of(entity).Layer))
-                continue;
-
-            Note note = entity.GetComponent<Note>();
-            if (NoteRules.IsRail(note.Kind) ||
-                NoteRules.IsChannelEnd(note.Kind) ||
-                NoteFade.Alpha(note, playheadMs) <= 0.05f ||
-                !IsInside(note.Position, playfield))
+            foreach (Entity entity in kind.All(_entities))
             {
-                continue;
+                if (layers.Picks(ItemLayer.Of(entity).Layer) && kind.InMarquee(entity, screenBounds, view, playfield, playheadMs))
+                    selected.Add(entity);
             }
-
-            Vector2 center = view.PlayfieldToScreen(GroupOffset.Shown(entity, note.Position));
-            var noteBounds = new Rect2(
-                center - new Vector2(noteSize / 2, noteSize / 2),
-                new Vector2(noteSize, noteSize));
-            if (screenBounds.Intersects(noteBounds))
-                selected.Add(entity);
-        }
-
-        float mineSize = PlayfieldRenderer.MineSize * view.Scale;
-        foreach (Entity entity in _entities.Query<Mine>().ToEntityList())
-        {
-            if (!layers.Picks(ItemLayer.Of(entity).Layer))
-                continue;
-
-            Mine mine = entity.GetComponent<Mine>();
-            if (MineFade.Alpha(mine, playheadMs) <= 0.05f ||
-                !IsInside(mine.Position, playfield))
-            {
-                continue;
-            }
-
-            Vector2 center = view.PlayfieldToScreen(GroupOffset.Shown(entity, mine.Position));
-            var mineBounds = new Rect2(
-                center - new Vector2(mineSize / 2, mineSize / 2),
-                new Vector2(mineSize, mineSize));
-            if (screenBounds.Intersects(mineBounds))
-                selected.Add(entity);
-        }
-
-        foreach (Entity entity in _entities.Query<StartPoint>().ToEntityList())
-        {
-            if (!layers.Picks(ItemLayer.Of(entity).Layer))
-                continue;
-
-            StartPoint start = entity.GetComponent<StartPoint>();
-            Vector2 center = view.PlayfieldToScreen(GroupOffset.Shown(entity, start.Position));
-            if (screenBounds.HasPoint(center))
-                selected.Add(entity);
-        }
-
-        foreach (Entity entity in _entities.Query<LevelText>().ToEntityList())
-        {
-            if (!layers.Picks(ItemLayer.Of(entity).Layer))
-                continue;
-
-            if (screenBounds.Intersects(PlayfieldRenderer.TextScreenHull(entity.GetComponent<LevelText>(), GroupOffset.View(entity, view))))
-                selected.Add(entity);
-        }
-
-        foreach (Entity entity in _entities.Query<GrassPatch>().ToEntityList())
-        {
-            if (!layers.Picks(ItemLayer.Of(entity).Layer))
-                continue;
-
-            if (screenBounds.Intersects(PlayfieldRenderer.GrassScreenBounds(entity.GetComponent<GrassPatch>(), GroupOffset.View(entity, view))))
-                selected.Add(entity);
-        }
-
-        foreach (Entity entity in _entities.Query<LevelPolygon>().ToEntityList())
-        {
-            if (!layers.Picks(ItemLayer.Of(entity).Layer))
-                continue;
-
-            if (screenBounds.Intersects(PlayfieldRenderer.PolygonScreenBounds(entity.GetComponent<LevelPolygon>(), GroupOffset.View(entity, view))))
-                selected.Add(entity);
-        }
-
-        foreach (Entity entity in _entities.Query<Spike>().ToEntityList())
-        {
-            if (!layers.Picks(ItemLayer.Of(entity).Layer))
-                continue;
-
-            Spike spike = entity.GetComponent<Spike>();
-            var spikeBounds = new Rect2(
-                view.PlayfieldToScreen(GroupOffset.Shown(entity, spike.Position)),
-                spike.Size * view.Scale);
-            if (screenBounds.Intersects(spikeBounds))
-                selected.Add(entity);
-        }
-
-        foreach (Entity entity in _entities.Query<Block>().ToEntityList())
-        {
-            if (!layers.Picks(ItemLayer.Of(entity).Layer))
-                continue;
-
-            Block block = entity.GetComponent<Block>();
-            var blockBounds = new Rect2(
-                view.PlayfieldToScreen(GroupOffset.Shown(entity, block.Position)),
-                block.Size * view.Scale);
-            if (screenBounds.Intersects(blockBounds))
-                selected.Add(entity);
-        }
-
-        foreach (Entity entity in _entities.Query<ScreenReadRegion>().ToEntityList())
-        {
-            if (!layers.Picks(ItemLayer.Of(entity).Layer))
-                continue;
-
-            ScreenReadRegion region = entity.GetComponent<ScreenReadRegion>();
-            var regionBounds = new Rect2(
-                view.PlayfieldToScreen(GroupOffset.Shown(entity, region.Position)),
-                region.Size * view.Scale);
-            if (screenBounds.Intersects(regionBounds))
-                selected.Add(entity);
         }
 
         return selected;

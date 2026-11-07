@@ -18,7 +18,7 @@ namespace Xanadu.Systems.Editor;
 /// </summary>
 public sealed class EditorSelectionCommands(EditorCommandContext context)
 {
-    private readonly List<EditorClipboardItem> _clipboard = new();
+    private readonly List<ItemCopy> _clipboard = new();
     private int _pasteCount;
 
     public bool TryApply(EditorCommand command, Entity editor, CommandBuffer buffer)
@@ -263,50 +263,8 @@ public sealed class EditorSelectionCommands(EditorCommandContext context)
         _pasteCount = 0;
         foreach (Entity entity in editor.GetComponent<NoteSelection>().AllNotes)
         {
-            if (!EditorItems.IsItem(entity))
-                continue;
-
-            if (entity.HasComponent<Note>())
-            {
-                Note note = entity.GetComponent<Note>();
-                _clipboard.Add(new EditorClipboardItem(note.TimeMs, note, null, null, MaskOf(entity), ItemShader.Of(entity), SelfModulate.Packed(entity), Layer: ItemLayer.Of(entity), Blend: ItemBlend.Of(entity), ShaderSource: ItemShaderSource.Of(entity)));
-            }
-            else if (entity.HasComponent<Mine>())
-            {
-                Mine mine = entity.GetComponent<Mine>();
-                _clipboard.Add(new EditorClipboardItem(mine.TimeMs, null, mine, null, MaskOf(entity), ItemShader.Of(entity), SelfModulate.Packed(entity), Layer: ItemLayer.Of(entity), Blend: ItemBlend.Of(entity), ShaderSource: ItemShaderSource.Of(entity)));
-            }
-            else if (entity.HasComponent<StartPoint>())
-            {
-                StartPoint start = entity.GetComponent<StartPoint>();
-                _clipboard.Add(new EditorClipboardItem(start.TimeMs, null, null, start, MaskOf(entity), Layer: ItemLayer.Of(entity), Blend: ItemBlend.Of(entity), ShaderSource: ItemShaderSource.Of(entity)));
-            }
-            else if (entity.HasComponent<Block>())
-            {
-                _clipboard.Add(new EditorClipboardItem(0, null, null, null, MaskOf(entity), ItemShader.Of(entity), SelfModulate.Packed(entity), Block: entity.GetComponent<Block>(), Layer: ItemLayer.Of(entity), Blend: ItemBlend.Of(entity), ShaderSource: ItemShaderSource.Of(entity)));
-            }
-            else if (entity.HasComponent<Spike>())
-            {
-                _clipboard.Add(new EditorClipboardItem(0, null, null, null, MaskOf(entity), ItemShader.Of(entity), SelfModulate.Packed(entity), Spike: entity.GetComponent<Spike>(), Layer: ItemLayer.Of(entity), Blend: ItemBlend.Of(entity), ShaderSource: ItemShaderSource.Of(entity)));
-            }
-            else if (entity.HasComponent<LevelText>())
-            {
-                _clipboard.Add(new EditorClipboardItem(0, null, null, null, MaskOf(entity), ItemShader.Of(entity), SelfModulate.Packed(entity), Text: entity.GetComponent<LevelText>(), Layer: ItemLayer.Of(entity), Blend: ItemBlend.Of(entity), ShaderSource: ItemShaderSource.Of(entity)));
-            }
-            else if (entity.HasComponent<LevelPolygon>())
-            {
-                LevelPolygon polygon = entity.GetComponent<LevelPolygon>();
-                polygon.Item = Xanadu.Items.XifCopy.Clone(polygon.Item ?? new Xanadu.Items.Xif());
-                _clipboard.Add(new EditorClipboardItem(0, null, null, null, MaskOf(entity), ItemShader.Of(entity), SelfModulate.Packed(entity), Polygon: polygon, Layer: ItemLayer.Of(entity), Blend: ItemBlend.Of(entity), ShaderSource: ItemShaderSource.Of(entity)));
-            }
-            else if (entity.HasComponent<GrassPatch>())
-            {
-                _clipboard.Add(new EditorClipboardItem(0, null, null, null, MaskOf(entity), ItemShader.Of(entity), SelfModulate.Packed(entity), Grass: entity.GetComponent<GrassPatch>(), Layer: ItemLayer.Of(entity), Blend: ItemBlend.Of(entity), ShaderSource: ItemShaderSource.Of(entity)));
-            }
-            else if (entity.HasComponent<ScreenReadRegion>())
-            {
-                _clipboard.Add(new EditorClipboardItem(0, null, null, null, MaskOf(entity), Layer: ItemLayer.Of(entity), Region: entity.GetComponent<ScreenReadRegion>()));
-            }
+            if (EditorItems.IsItem(entity) && ItemKinds.Of(entity) is { } kind)
+                _clipboard.Add(kind.Copy(entity));
         }
     }
 
@@ -322,66 +280,37 @@ public sealed class EditorSelectionCommands(EditorCommandContext context)
         ref Playhead playhead = ref editor.GetComponent<Playhead>();
 
         // Geometry is not timed, so only timed items set the time anchor.
-        long anchor = _clipboard.Exists(item => !item.IsGeometry)
-            ? _clipboard.Where(item => !item.IsGeometry).Min(item => item.TimeMs)
-            : 0;
+        long anchor = long.MaxValue;
+        foreach (ItemCopy item in _clipboard)
+        {
+            if (item.Kind.TimeOf(item.Value) is { } time)
+                anchor = Math.Min(anchor, time);
+        }
+
         // The paste lands on the snap nearest the playhead, so a copy made on the
         // beat stays on the beat; the items keep their spacing from each other.
         long target = EditorTiming.Snap(Math.Max(0, playhead.TimeMs), playhead);
         long maxTime = playhead.DurationMs > 0
             ? playhead.DurationMs
             : long.MaxValue;
+        // Geometry is not timed either, so it goes a grid cell further along per paste
+        // rather than landing exactly on its original.
+        Playfield playfield = editor.GetComponent<Playfield>();
+        Vector2 offset = PlayfieldGrid.Cell(playfield) * (_pasteCount + 1);
         EditorSnapshot before = context.History.Capture();
         var created = new List<Entity>();
         _pasteCount++;
 
-        foreach (EditorClipboardItem item in _clipboard)
+        foreach (ItemCopy item in _clipboard)
         {
-            if (item.IsGeometry)
-            {
-                Entity geometry = PasteGeometry(item, editor, buffer);
-                if (!geometry.IsNull)
-                    created.Add(geometry);
+            long timeMs = item.Kind.TimeOf(item.Value) is { } itemTime
+                ? Math.Clamp(target + (itemTime - anchor), 0, maxTime)
+                : 0;
+            // Null when collision is on and one of its kind is already there.
+            if (item.Kind.Pasted(item.Value, offset, timeMs, playfield, context.Entities) is not { } value)
                 continue;
-            }
 
-            long time = Math.Clamp(
-                target + (item.TimeMs - anchor),
-                0,
-                maxTime);
-            if (item.Note is { } note)
-            {
-                note.TimeMs = time;
-                Entity pasted = EditorItems.Create(context.Entities, note, item.Shader);
-                Subscribe(pasted, item.Groups, buffer);
-                SelfModulate.Put(pasted, item.Modulate);
-                ItemLayer.Put(pasted, item.Layer);
-                ItemBlend.Put(pasted, item.Blend);
-                ItemShaderSource.Put(pasted, item.ShaderSource);
-                created.Add(pasted);
-            }
-            else if (item.Mine is { } mine)
-            {
-                mine.TimeMs = time;
-                Entity pasted = EditorItems.Create(context.Entities, mine, item.Shader);
-                Subscribe(pasted, item.Groups, buffer);
-                SelfModulate.Put(pasted, item.Modulate);
-                ItemLayer.Put(pasted, item.Layer);
-                ItemBlend.Put(pasted, item.Blend);
-                ItemShaderSource.Put(pasted, item.ShaderSource);
-                created.Add(pasted);
-            }
-            else if (item.StartPoint is { } start)
-            {
-                start.TimeMs = time;
-                start.Groups = item.Groups;
-                Entity pasted = EditorItems.Create(context.Entities, start);
-                Subscribe(pasted, item.Groups, buffer);
-                ItemLayer.Put(pasted, item.Layer);
-                ItemBlend.Put(pasted, item.Blend);
-                ItemShaderSource.Put(pasted, item.ShaderSource);
-                created.Add(pasted);
-            }
+            created.Add(item.Kind.Restore(context.Entities, item.WithValue(value), buffer));
         }
 
         if (created.Count == 0)
@@ -420,83 +349,10 @@ public sealed class EditorSelectionCommands(EditorCommandContext context)
         selection.Clear();
     }
 
-    /// <summary>
-    /// Pastes a block or spike one grid cell further along per paste, since
-    /// geometry is not timed and would otherwise land exactly on its original.
-    /// A pasted block leaves its Form shape, so a copy never joins a construction.
-    /// Returns null when collision is on and one of its kind is already there.
-    /// </summary>
-    private Entity PasteGeometry(in EditorClipboardItem item, Entity editor, CommandBuffer buffer)
-    {
-        Playfield playfield = editor.GetComponent<Playfield>();
-        Vector2 offset = PlayfieldGrid.Cell(playfield) * _pasteCount;
-        Entity pasted;
-
-        if (item.Block is { } block)
-        {
-            block.Position = GridPlacement.Clamp(block.Position + offset, block.Size, playfield);
-            block.ShapeId = 0;
-            block.ShapePiece = 0;
-            if (!PlacementCollision.BlockFits(context.Entities, block.Bounds))
-                return default;
-
-            pasted = EditorItems.Create(context.Entities, block, item.Shader);
-        }
-        else if (item.Text is { } text)
-        {
-            text.Position += offset;
-            pasted = EditorItems.Create(context.Entities, text, item.Shader);
-        }
-        else if (item.Polygon is { } polygon)
-        {
-            // Every paste gets its own copy of the shape, so editing one leaves the others.
-            polygon.Position += offset;
-            polygon.Item = Xanadu.Items.XifCopy.Clone(polygon.Item);
-            pasted = EditorItems.Create(context.Entities, polygon, item.Shader);
-        }
-        else if (item.Grass is { } grass)
-        {
-            // A fresh seed, so the copy is the same kind of grass but not the same blades.
-            grass.Position += offset;
-            grass.Seed = GrassPatch.NewSeed();
-            pasted = EditorItems.Create(context.Entities, grass, item.Shader);
-        }
-        else if (item.Region is { } region)
-        {
-            region.Position = GridPlacement.Clamp(region.Position + offset, region.Size, playfield);
-            pasted = EditorItems.Create(context.Entities, region);
-        }
-        else
-        {
-            Spike spike = item.Spike!.Value;
-            spike.Position = GridPlacement.Clamp(spike.Position + offset, spike.Size, playfield);
-            if (!PlacementCollision.SpikeFits(context.Entities, spike.Bounds))
-                return default;
-
-            pasted = EditorItems.Create(context.Entities, spike, item.Shader);
-        }
-
-        Subscribe(pasted, item.Groups, buffer);
-        SelfModulate.Put(pasted, item.Modulate);
-        ItemLayer.Put(pasted, item.Layer);
-                ItemBlend.Put(pasted, item.Blend);
-                ItemShaderSource.Put(pasted, item.ShaderSource);
-        return pasted;
-    }
-
     /// <summary>Drops the selection after a snapshot is restored.</summary>
     public static void ClearSelection(Entity editor)
     {
         if (editor.HasComponent<NoteSelection>())
             editor.GetComponent<NoteSelection>().Clear();
-    }
-
-    private static uint MaskOf(Entity entity) =>
-        entity.TryGetComponent(out ItemGroups groups) ? groups.Mask : 0u;
-
-    private static void Subscribe(Entity item, uint mask, CommandBuffer buffer)
-    {
-        if (mask != 0)
-            buffer.AddComponent(item.Id, new ItemGroups(mask));
     }
 }

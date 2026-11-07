@@ -121,15 +121,12 @@ public sealed class ItemLayerTests
     }
 
     [Test]
-    public void AMapWithEveryItemOnItsDefaultHasNoLayerChunk()
+    public void AnItemOnItsDefaultReadsBackOnLayerZero()
     {
         var source = new LevelDocument { Name = "Plain" };
         source.Blocks.Add(new BlockDocument());
-        byte[] data = XmfBinary.Write(source);
-        ChunkReader reader = ChunkReader.Open(data, "XMF1"u8.ToArray(), XmfBinary.MajorVersion, "XMF");
 
-        Assert.That(reader.TryGet(17, out _), Is.False);
-        Assert.That(XmfBinary.Read(data).Blocks[0].Layer, Is.Zero);
+        Assert.That(XmfBinary.Read(XmfBinary.Write(source)).Blocks[0].Layer, Is.Zero);
     }
 
     [Test]

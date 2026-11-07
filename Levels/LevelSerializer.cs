@@ -101,6 +101,8 @@ public static class LevelSerializer
         chart.Texts.RemoveAll(text => text is null);
         chart.Grass ??= new();
         chart.Grass.RemoveAll(grass => grass is null);
+        chart.Flares ??= new();
+        chart.Flares.RemoveAll(flare => flare is null);
         chart.Polygons ??= new();
         chart.Polygons.RemoveAll(polygon => polygon is null);
         chart.ScreenReads ??= new();
@@ -161,6 +163,13 @@ public static class LevelSerializer
             grass.Groups ??= new();
             grass.Shader = validShader(grass.Shader);
             grass.Rotation = Xanadu.Ecs.TurnedBox.Normalize(grass.Rotation);
+        }
+
+        foreach (FlareDocument flare in chart.Flares)
+        {
+            flare.Groups ??= new();
+            flare.Shader = validShader(flare.Shader);
+            flare.Rotation = Xanadu.Ecs.TurnedBox.Normalize(flare.Rotation);
         }
 
         foreach (TextDocument text in chart.Texts)

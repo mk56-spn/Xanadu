@@ -25,42 +25,23 @@ public struct ItemLayer(int layer, int z) : IComponent, IEquatable<ItemLayer>
     /// <summary>Grass, in front of the blocks it grows on.</summary>
     public const int Grass = 1;
 
+    /// <summary>Flares, light over the player and the grass.</summary>
+    public const int Flares = 1;
+
     /// <summary>Texts, readable over everything.</summary>
     public const int Texts = 2;
 
     public int Layer = layer;
     public int Z = z;
 
-    /// <summary>The layer an item of this kind is placed on.</summary>
-    public static int DefaultFor<T>() where T : struct, IComponent
-    {
-        Type kind = typeof(T);
-        if (kind == typeof(LevelPolygon))
-            return Polygons;
-        if (kind == typeof(Block) || kind == typeof(Spike))
-            return Terrain;
-        if (kind == typeof(GrassPatch))
-            return Grass;
-        if (kind == typeof(LevelText))
-            return Texts;
-        // A screen-read region starts on the editor's current layer instead;
-        // see EditorPlacementCreator. This is only its fallback.
-        return Gameplay;
-    }
+    /// <summary>The layer an item of this kind is placed on (<see cref="ItemKind.DefaultLayer"/>).</summary>
+    /// <remarks>A screen-read region starts on the editor's current layer instead; see EditorPlacementCreator.</remarks>
+    public static int DefaultFor<T>() where T : struct, IComponent =>
+        ItemKinds.For<T>()?.DefaultLayer ?? Gameplay;
 
     /// <summary>The layer an existing item's kind is placed on.</summary>
-    public static int DefaultFor(Entity entity)
-    {
-        if (entity.HasComponent<LevelPolygon>())
-            return Polygons;
-        if (entity.HasComponent<Block>() || entity.HasComponent<Spike>())
-            return Terrain;
-        if (entity.HasComponent<GrassPatch>())
-            return Grass;
-        if (entity.HasComponent<LevelText>())
-            return Texts;
-        return Gameplay;
-    }
+    public static int DefaultFor(Entity entity) =>
+        ItemKinds.Of(entity)?.DefaultLayer ?? Gameplay;
 
     /// <summary>The item's layer and z, or its kind's default layer at z 0.</summary>
     public static ItemLayer Of(Entity entity) =>

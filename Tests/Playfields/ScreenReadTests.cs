@@ -191,30 +191,14 @@ public sealed class ScreenReadTests
     }
 
     [Test]
-    public void ARegionsGroupsRoundTripAndAnOlderChunkWithoutThemStillReads()
+    public void ARegionsGroupsRoundTrip()
     {
         var source = new LevelDocument { Name = "Reads" };
-        source.ScreenReads.Add(new ScreenReadDocument { Width = 300, Height = 200, Layer = -1, Groups = new List<int> { 2, 5 } });
+        source.ScreenReads.Add(new ScreenReadDocument { Width = 300, Height = 200, Layer = -2, Z = 7, Groups = new List<int> { 2, 5 } });
 
-        LevelDocument read = XmfBinary.Read(XmfBinary.Write(source));
-        Assert.That(read.ScreenReads.Single().Groups, Is.EqualTo(new[] { 2, 5 }));
-
-        // The chunk as written before regions could join groups: a plain count, no masks.
-        using var stream = new System.IO.MemoryStream();
-        using (var writer = new System.IO.BinaryWriter(stream, System.Text.Encoding.UTF8, leaveOpen: true))
-        {
-            writer.Write(1u);
-            foreach (float value in new[] { 10f, 20f, 300f, 200f })
-                writer.Write(value);
-            writer.Write(-2);
-            writer.Write(7);
-        }
-
-        stream.Position = 0;
-        using var reader = new System.IO.BinaryReader(stream);
-        ScreenReadDocument old = XmfBinary.ReadScreenReads(reader).Single();
-        Assert.That((old.Width, old.Layer, old.Z), Is.EqualTo((300f, -2, 7)));
-        Assert.That(old.Groups, Is.Empty);
+        ScreenReadDocument read = XmfBinary.Read(XmfBinary.Write(source)).ScreenReads.Single();
+        Assert.That(read.Groups, Is.EqualTo(new[] { 2, 5 }));
+        Assert.That((read.Width, read.Layer, read.Z), Is.EqualTo((300f, -2, 7)));
     }
 
     [Test]

@@ -25,8 +25,8 @@ public sealed class EditorHistory
     private readonly EditorSnapshotRestore _restore;
     private readonly UndoHistory<EditorSnapshot> _history;
 
-    /// <summary>The buffered groups already broken when a snapshot was captured, keyed by its note list (each capture makes a new one).</summary>
-    private readonly ConditionalWeakTable<List<NoteSnapshot>, Dictionary<int, string>> _brokenAt = new();
+    /// <summary>The buffered groups already broken when a snapshot was captured, keyed by its item list (each capture makes a new one).</summary>
+    private readonly ConditionalWeakTable<List<ItemCopy>, Dictionary<int, string>> _brokenAt = new();
 
     public EditorHistory(EntityStore entities)
     {
@@ -45,8 +45,8 @@ public sealed class EditorHistory
     public EditorSnapshot Capture()
     {
         EditorSnapshot snapshot = _capture.Capture();
-        if (snapshot.Notes is not null)
-            _brokenAt.AddOrUpdate(snapshot.Notes, Broken());
+        if (snapshot.Items is not null)
+            _brokenAt.AddOrUpdate(snapshot.Items, Broken());
         return snapshot;
     }
 
@@ -57,7 +57,7 @@ public sealed class EditorHistory
     /// </summary>
     public bool Record(EditorSnapshot before, EditorSnapshot after)
     {
-        if (before.Notes is not null && _brokenAt.TryGetValue(before.Notes, out Dictionary<int, string>? was))
+        if (before.Items is not null && _brokenAt.TryGetValue(before.Items, out Dictionary<int, string>? was))
         {
             foreach ((int group, string problem) in Broken())
             {

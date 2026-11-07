@@ -274,16 +274,7 @@ public sealed partial class EditorGroupSystem : QuerySystem<EditorGroupState>
     }
 
     /// <summary>Whether an item can be in groups: every placed kind is.</summary>
-    private static bool IsGroupable(Entity item) =>
-        !item.IsNull && (item.HasComponent<Note>() ||
-                         item.HasComponent<Mine>() ||
-                         item.HasComponent<Block>() ||
-                         item.HasComponent<Spike>() ||
-                         item.HasComponent<LevelText>() ||
-                         item.HasComponent<GrassPatch>() ||
-                         item.HasComponent<LevelPolygon>() ||
-                         item.HasComponent<StartPoint>() ||
-                         item.HasComponent<ScreenReadRegion>());
+    private static bool IsGroupable(Entity item) => ItemKinds.Of(item) is not null;
 
     /// <summary>
     /// Adds or removes the selection as one undo step, refusing an add that

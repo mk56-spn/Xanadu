@@ -117,42 +117,20 @@ public static class SelectionRotation
     }
 
     /// <summary>Items with a shape of their own, which a single one of turns on the spot.</summary>
-    public static bool TurnsOnTheSpot(Entity entity) =>
-        entity.HasComponent<Block>() || entity.HasComponent<Spike>() || entity.HasComponent<LevelText>() ||
-        entity.HasComponent<GrassPatch>() || entity.HasComponent<LevelPolygon>();
+    public static bool TurnsOnTheSpot(Entity entity) => ItemKinds.Of(entity)?.TurnsOnTheSpot == true;
 
     /// <summary>The upright box an item covers as it is turned; a point for notes and start points.</summary>
     public static bool TryGetBox(Entity entity, out Rect2 box)
     {
-        box = default;
-        if (!EditorItems.IsItem(entity))
-            return false;
-
-        if (entity.TryGetComponent(out Block block))
-            box = block.Bounds;
-        else if (entity.TryGetComponent(out Spike spike))
-            box = TurnedBox.Hull(spike.Bounds, spike.RotationDegrees);
-        else if (entity.TryGetComponent(out LevelText text))
-            box = TurnedBox.Hull(text.Bounds, text.RotationDegrees);
-        else if (entity.TryGetComponent(out GrassPatch grass))
-            box = TurnedBox.Hull(grass.Bounds, grass.RotationDegrees);
-        else if (entity.TryGetComponent(out LevelPolygon polygon))
-            box = polygon.Bounds;
-        else if (EditorItemPosition.TryGet(entity, out Vector2 point))
-            box = new Rect2(point, Vector2.Zero);
-        else
-            return false;
-
-        return true;
+        ItemKind? kind = EditorItems.IsItem(entity) ? ItemKinds.Of(entity) : null;
+        box = kind?.Hull(entity) ?? default;
+        return kind is not null;
     }
 
     public static RotationStart Capture(Entity entity)
     {
-        EditorItemPosition.TryGet(entity, out Vector2 center);
-
-        // Grass turns about the middle of its box, not the foot of its blades.
-        if (entity.TryGetComponent(out GrassPatch grass))
-            center = grass.Bounds.GetCenter();
+        ItemKind? kind = ItemKinds.Of(entity);
+        Vector2 center = kind?.TurnCenter(entity) ?? default;
         DashDirection direction = entity.HasComponent<Note>()
             ? entity.GetComponent<Note>().DashDirection
             : default;
@@ -165,18 +143,14 @@ public static class SelectionRotation
             momentum = new Vector2(start.Momentum.X, start.Momentum.Y);
         }
 
-        float degrees = entity.TryGetComponent(out Spike spike) ? spike.RotationDegrees
-            : entity.TryGetComponent(out LevelText text) ? text.RotationDegrees
-            : entity.TryGetComponent(out GrassPatch turned) ? turned.RotationDegrees
-            : entity.TryGetComponent(out LevelPolygon polygon) ? polygon.RotationDegrees
-            : 0f;
+        float degrees = kind?.Degrees(entity) ?? 0f;
         Xanadu.Items.Xif? shape = entity.TryGetComponent(out LevelPolygon shaped) && shaped.Item is not null
             ? Xanadu.Items.XifCopy.Clone(shaped.Item)
             : null;
         BlockOneWay oneWay = entity.HasComponent<Block>()
             ? entity.GetComponent<Block>().OneWay
             : BlockOneWay.Off;
-        return new RotationStart(entity, center, SizeOf(entity), direction, facing, momentum, degrees, oneWay, shape);
+        return new RotationStart(entity, center, kind?.Size(entity) ?? Vector2.Zero, direction, facing, momentum, degrees, oneWay, shape);
     }
 
     /// <summary>Puts one item where the rotation takes it, kept inside the field.</summary>
@@ -307,35 +281,8 @@ public static class SelectionRotation
     /// Puts a freely turning item, text, grass or a polygon, with its centre at
     /// <paramref name="center"/> and turned to <paramref name="degrees"/>. False for any other item.
     /// </summary>
-    private static bool TryTurnFreely(in RotationStart start, Vector2 center, float degrees)
-    {
-        Entity entity = start.Entity;
-        if (entity.HasComponent<LevelText>())
-        {
-            ref LevelText text = ref entity.GetComponent<LevelText>();
-            text.Position = center;
-            text.RotationDegrees = degrees;
-            return true;
-        }
-
-        if (entity.HasComponent<GrassPatch>())
-        {
-            ref GrassPatch grass = ref entity.GetComponent<GrassPatch>();
-            grass.Position = center + new Vector2(0, grass.Length / 2);
-            grass.RotationDegrees = degrees;
-            return true;
-        }
-
-        if (entity.HasComponent<LevelPolygon>())
-        {
-            ref LevelPolygon polygon = ref entity.GetComponent<LevelPolygon>();
-            polygon.Position = center;
-            polygon.RotationDegrees = degrees;
-            return true;
-        }
-
-        return false;
-    }
+    private static bool TryTurnFreely(in RotationStart start, Vector2 center, float degrees) =>
+        ItemKinds.Of(start.Entity)?.TryTurnFreely(start.Entity, center, degrees) == true;
 
     private static Vector2 InField(Vector2 point, Playfield playfield) => new(
         Mathf.Clamp(point.X, 0, playfield.Width),
@@ -377,19 +324,4 @@ public static class SelectionRotation
     }
 
     private static int QuartersIn(float angle) => (int)MathF.Round(angle / (Mathf.Tau / 4));
-
-    private static Vector2 SizeOf(Entity entity)
-    {
-        if (entity.HasComponent<Block>())
-            return entity.GetComponent<Block>().Size;
-        if (entity.HasComponent<Spike>())
-            return entity.GetComponent<Spike>().Size;
-        if (entity.HasComponent<LevelText>())
-            return entity.GetComponent<LevelText>().Bounds.Size;
-        if (entity.HasComponent<GrassPatch>())
-            return entity.GetComponent<GrassPatch>().Bounds.Size;
-        return entity.HasComponent<LevelPolygon>()
-            ? entity.GetComponent<LevelPolygon>().LocalSize
-            : Vector2.Zero;
-    }
 }

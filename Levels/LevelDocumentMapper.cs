@@ -32,10 +32,6 @@ public static partial class LevelDocumentMapper
             FrameColor = level.Frame is { } frame
                 ? LevelBackground.Format(frame)
                 : "",
-            Notes = new List<NoteDocument>(),
-            Mines = new List<MineDocument>(),
-            StartPoints = new List<StartPointDocument>(),
-            Blocks = new List<BlockDocument>(),
             Groups = CaptureGroups(editor),
             Layers = CaptureLayers(editor),
         };
@@ -48,357 +44,25 @@ public static partial class LevelDocumentMapper
         if (level.Slug.Length > 0)
             document.Slug = level.Slug;
 
-        foreach (Entity entity in entities.Query<Note>().ToEntityList())
-        {
-            Note note = entity.GetComponent<Note>();
-            document.Notes.Add(new NoteDocument
-            {
-                TimeMs = note.TimeMs,
-                X = note.Position.X,
-                Y = note.Position.Y,
-                Target = note.Target,
-                Kind = note.Kind,
-                DashDirection = note.DashDirection,
-                ContactRequired = note.ContactRequired,
-                Character = note.Character,
-                DashStrength = note.DashStrength,
-                PairIndex = note.PairIndex,
-                Momentum = note.Momentum,
-                ContactLeft = note.ContactLeft,
-                ContactRight = note.ContactRight,
-                ChannelSide = note.ChannelSide,
-                HoldMs = note.HoldMs,
-                ShapeId = note.ShapeId,
-                ShapePiece = note.ShapePiece,
-                SelfModulate = SelfModulate.Packed(entity),
-                Groups = GroupsOf(entity),
-                Layer = ItemLayer.Of(entity).Layer,
-                Z = ItemLayer.Of(entity).Z,
-                Blend = ItemBlend.Of(entity),
-                ShaderSource = ItemShaderSource.Of(entity),
-                Item = Xif.FromEcs(ItemShader.Of(entity), ItemCommonShader.Of(entity)),
-            });
-        }
+        foreach (ItemKind kind in ItemKinds.All)
+            kind.CaptureInto(entities, document);
 
-        document.Notes.Sort((a, b) => a.TimeMs.CompareTo(b.TimeMs));
-
-        foreach (Entity entity in entities.Query<Mine>().ToEntityList())
-        {
-            Mine mine = entity.GetComponent<Mine>();
-            document.Mines.Add(new MineDocument
-            {
-                TimeMs = mine.TimeMs,
-                X = mine.Position.X,
-                Y = mine.Position.Y,
-                FadeInMs = mine.FadeInMs,
-                FadeOutMs = mine.FadeOutMs,
-                SelfModulate = SelfModulate.Packed(entity),
-                Groups = GroupsOf(entity),
-                Layer = ItemLayer.Of(entity).Layer,
-                Z = ItemLayer.Of(entity).Z,
-                Blend = ItemBlend.Of(entity),
-                ShaderSource = ItemShaderSource.Of(entity),
-                Shader = ItemShader.Of(entity),
-            });
-        }
-
-        document.Mines.Sort((a, b) => a.TimeMs.CompareTo(b.TimeMs));
-
-        foreach (Entity entity in entities.Query<StartPoint>().ToEntityList())
-        {
-            StartPoint start = entity.GetComponent<StartPoint>();
-            document.StartPoints.Add(new StartPointDocument
-            {
-                Name = start.Name,
-                TimeMs = start.TimeMs,
-                X = start.Position.X,
-                Y = start.Position.Y,
-                MomentumX = start.Momentum.X,
-                MomentumY = start.Momentum.Y,
-                DirectionX = start.Direction.X,
-                DirectionY = start.Direction.Y,
-                Groups = GroupsOf(entity),
-                Layer = ItemLayer.Of(entity).Layer,
-                Z = ItemLayer.Of(entity).Z,
-                Blend = ItemBlend.Of(entity),
-                ShaderSource = ItemShaderSource.Of(entity),
-            });
-        }
-
-        document.StartPoints.Sort((a, b) => a.TimeMs.CompareTo(b.TimeMs));
-
-        foreach (Entity entity in entities.Query<Block>().ToEntityList())
-        {
-            Block block = entity.GetComponent<Block>();
-            document.Blocks.Add(new BlockDocument
-            {
-                X = block.Position.X,
-                Y = block.Position.Y,
-                Width = block.Size.X,
-                Height = block.Size.Y,
-                ShapeId = block.ShapeId,
-                ShapePiece = block.ShapePiece,
-                OneWay = (int)block.OneWay,
-                OutlineWidth = block.OutlineWidth,
-                OutlineColor = block.OutlineColor.ToRgba32(),
-                FillGroups = block.FillGroups,
-                OutlineGroups = block.OutlineGroups,
-                SelfModulate = SelfModulate.Packed(entity),
-                Groups = GroupsOf(entity),
-                Layer = ItemLayer.Of(entity).Layer,
-                Z = ItemLayer.Of(entity).Z,
-                Blend = ItemBlend.Of(entity),
-                ShaderSource = ItemShaderSource.Of(entity),
-                Shader = ItemShader.Of(entity),
-            });
-        }
-
-        document.Blocks.Sort((a, b) =>
-        {
-            int x = a.X.CompareTo(b.X);
-            return x != 0 ? x : a.Y.CompareTo(b.Y);
-        });
-
-        foreach (Entity entity in entities.Query<Spike>().ToEntityList())
-        {
-            Spike spike = entity.GetComponent<Spike>();
-            document.Spikes.Add(new SpikeDocument
-            {
-                X = spike.Position.X,
-                Y = spike.Position.Y,
-                Width = spike.Size.X,
-                Height = spike.Size.Y,
-                RotationDegrees = spike.RotationDegrees,
-                OutlineWidth = spike.OutlineWidth,
-                OutlineColor = spike.OutlineColor.ToRgba32(),
-                SelfModulate = SelfModulate.Packed(entity),
-                Groups = GroupsOf(entity),
-                Layer = ItemLayer.Of(entity).Layer,
-                Z = ItemLayer.Of(entity).Z,
-                Blend = ItemBlend.Of(entity),
-                ShaderSource = ItemShaderSource.Of(entity),
-                Shader = ItemShader.Of(entity),
-            });
-        }
-
-        document.Spikes.Sort((a, b) =>
-        {
-            int x = a.X.CompareTo(b.X);
-            return x != 0 ? x : a.Y.CompareTo(b.Y);
-        });
-
-        foreach (Entity entity in entities.Query<LevelText>().ToEntityList())
-        {
-            LevelText text = entity.GetComponent<LevelText>();
-            document.Texts.Add(new TextDocument
-            {
-                X = text.Position.X,
-                Y = text.Position.Y,
-                Size = text.Size,
-                Text = text.Text ?? "",
-                Rotation = text.RotationDegrees,
-                SelfModulate = SelfModulate.Packed(entity),
-                Groups = GroupsOf(entity),
-                Layer = ItemLayer.Of(entity).Layer,
-                Z = ItemLayer.Of(entity).Z,
-                Blend = ItemBlend.Of(entity),
-                ShaderSource = ItemShaderSource.Of(entity),
-                Shader = ItemShader.Of(entity),
-            });
-        }
-
-        document.Texts.Sort((a, b) =>
-        {
-            int x = a.X.CompareTo(b.X);
-            return x != 0 ? x : a.Y.CompareTo(b.Y);
-        });
-
-        CaptureGrass(entities, document);
-        CapturePolygons(entities, document);
-
-        foreach (Entity entity in entities.Query<ScreenReadRegion>().ToEntityList())
-        {
-            ScreenReadRegion region = entity.GetComponent<ScreenReadRegion>();
-            ItemLayer layer = ItemLayer.Of(entity);
-            document.ScreenReads.Add(new ScreenReadDocument
-            {
-                X = region.Position.X,
-                Y = region.Position.Y,
-                Width = region.Size.X,
-                Height = region.Size.Y,
-                Layer = layer.Layer,
-                Z = layer.Z,
-                Groups = GroupsOf(entity),
-            });
-        }
-
-        document.ScreenReads.Sort((a, b) =>
-        {
-            int x = a.X.CompareTo(b.X);
-            return x != 0 ? x : a.Y.CompareTo(b.Y);
-        });
         return document;
     }
 
     public static void Apply(EntityStore entities, Entity editor, LevelDocument document)
     {
-        document.Notes ??= new List<NoteDocument>();
-        document.Mines ??= new List<MineDocument>();
-        document.StartPoints ??= new List<StartPointDocument>();
-        document.Blocks ??= new List<BlockDocument>();
-        document.Spikes ??= new List<SpikeDocument>();
-        document.Texts ??= new List<TextDocument>();
-        document.Grass ??= new List<GrassDocument>();
-        document.Polygons ??= new List<PolygonDocument>();
-        document.ScreenReads ??= new List<ScreenReadDocument>();
         document.Groups ??= new List<GroupDocument>();
 
-        foreach (Entity entity in entities.Query<Note>().ToEntityList())
-            entity.DeleteEntity();
-
-        foreach (Entity entity in entities.Query<Mine>().ToEntityList())
-            entity.DeleteEntity();
+        foreach (ItemKind kind in ItemKinds.All)
+            kind.DeleteAll(entities);
 
         ApplyGroups(editor, document.Groups);
         ApplyLayers(editor, document.Layers);
         ApplyShaders(editor, document);
 
-        foreach (NoteDocument note in document.Notes)
-        {
-            Entity created = EditorItems.Create(entities, new Note(
-                note.TimeMs,
-                new Vector2(note.X, note.Y),
-                note.Target,
-                note.Kind,
-                note.DashDirection,
-                note.ContactRequired,
-                note.Character,
-                note.DashStrength,
-                note.PairIndex,
-                note.Momentum,
-                note.ContactLeft,
-                note.ContactRight,
-                note.ChannelSide,
-                note.HoldMs,
-                note.ShapeId,
-                note.ShapePiece), note.Item?.PrimaryShader ?? 0, note.Item?.PrimaryCommonShader ?? "");
-            Subscribe(created, note.Groups);
-            ItemLayer.Put(created, new ItemLayer(note.Layer, note.Z));
-            ItemBlend.Put(created, note.Blend);
-            ItemShaderSource.Put(created, note.ShaderSource);
-            SelfModulate.Put(created, note.SelfModulate);
-        }
-
-        foreach (Entity entity in entities.Query<StartPoint>().ToEntityList())
-            entity.DeleteEntity();
-
-        foreach (StartPointDocument start in document.StartPoints)
-        {
-            uint groups = ItemGroups.FromList(start.Groups);
-            Entity created = EditorItems.Create(entities, new StartPoint(
-                start.Name,
-                start.TimeMs,
-                new Vector2(start.X, start.Y),
-                new System.Numerics.Vector2(
-                    start.MomentumX,
-                    start.MomentumY),
-                new Vector2(start.DirectionX, start.DirectionY),
-                groups));
-            Subscribe(created, groups);
-            ItemLayer.Put(created, new ItemLayer(start.Layer, start.Z));
-            ItemBlend.Put(created, start.Blend);
-            ItemShaderSource.Put(created, start.ShaderSource);
-        }
-
-        foreach (MineDocument mine in document.Mines)
-        {
-            Entity created = EditorItems.Create(entities, new Mine(
-                mine.TimeMs,
-                new Vector2(mine.X, mine.Y),
-                mine.FadeInMs,
-                mine.FadeOutMs), mine.Shader);
-            Subscribe(created, mine.Groups);
-            ItemLayer.Put(created, new ItemLayer(mine.Layer, mine.Z));
-            ItemBlend.Put(created, mine.Blend);
-            ItemShaderSource.Put(created, mine.ShaderSource);
-            SelfModulate.Put(created, mine.SelfModulate);
-        }
-
-        foreach (Entity entity in entities.Query<Block>().ToEntityList())
-            entity.DeleteEntity();
-
-        foreach (BlockDocument block in document.Blocks)
-        {
-            Entity created = EditorItems.Create(entities, new Block(
-                new Vector2(block.X, block.Y),
-                new Vector2(block.Width, block.Height),
-                block.ShapeId,
-                block.ShapePiece,
-                (BlockOneWay)block.OneWay,
-                block.OutlineWidth,
-                new Color(block.OutlineColor),
-                block.FillGroups,
-                block.OutlineGroups), block.Shader);
-            if (block.ShapeId > 0)
-                created.AddTag<ConstructionHidden>();
-            Subscribe(created, block.Groups);
-            ItemLayer.Put(created, new ItemLayer(block.Layer, block.Z));
-            ItemBlend.Put(created, block.Blend);
-            ItemShaderSource.Put(created, block.ShaderSource);
-            SelfModulate.Put(created, block.SelfModulate);
-        }
-
-        foreach (Entity entity in entities.Query<Spike>().ToEntityList())
-            entity.DeleteEntity();
-
-        foreach (SpikeDocument spike in document.Spikes)
-        {
-            Entity created = EditorItems.Create(entities, new Spike(
-                new Vector2(spike.X, spike.Y),
-                new Vector2(spike.Width, spike.Height),
-                spike.RotationDegrees,
-                spike.OutlineWidth,
-                new Color(spike.OutlineColor)), spike.Shader);
-            Subscribe(created, spike.Groups);
-            ItemLayer.Put(created, new ItemLayer(spike.Layer, spike.Z));
-            ItemBlend.Put(created, spike.Blend);
-            ItemShaderSource.Put(created, spike.ShaderSource);
-            SelfModulate.Put(created, spike.SelfModulate);
-        }
-
-        foreach (Entity entity in entities.Query<LevelText>().ToEntityList())
-            entity.DeleteEntity();
-
-        foreach (TextDocument text in document.Texts)
-        {
-            Entity created = EditorItems.Create(entities, new LevelText(
-                new Vector2(text.X, text.Y),
-                text.Text ?? "",
-                text.Size,
-                text.Rotation), text.Shader);
-            Subscribe(created, text.Groups);
-            ItemLayer.Put(created, new ItemLayer(text.Layer, text.Z));
-            ItemBlend.Put(created, text.Blend);
-            ItemShaderSource.Put(created, text.ShaderSource);
-            SelfModulate.Put(created, text.SelfModulate);
-        }
-
-        ApplyGrass(entities, document);
-        ApplyPolygons(entities, document);
-
-        foreach (Entity entity in entities.Query<ScreenReadRegion>().ToEntityList())
-            entity.DeleteEntity();
-
-        foreach (ScreenReadDocument region in document.ScreenReads)
-        {
-            Entity created = EditorItems.Create(entities, new ScreenReadRegion(
-                new Vector2(region.X, region.Y),
-                new Vector2(region.Width, region.Height)));
-            ItemLayer.Put(created, new ItemLayer(region.Layer, region.Z));
-            uint regionGroups = ItemGroups.FromList(region.Groups);
-            if (regionGroups != 0)
-                created.AddComponent(new ItemGroups(regionGroups));
-        }
+        foreach (ItemKind kind in ItemKinds.All)
+            kind.ApplyFrom(entities, document);
 
         SongDocument? song = string.IsNullOrWhiteSpace(document.SongId)
             ? null
@@ -496,21 +160,6 @@ public static partial class LevelDocumentMapper
         // so this only runs for a level with shaders on an entity made without one.
         if (document.Shaders is { Count: > 0 })
             editor.AddComponent(shaders);
-    }
-
-    private static List<int> GroupsOf(Entity entity) =>
-        entity.TryGetComponent(out ItemGroups groups) ? ItemGroups.ToList(groups.Mask) : new List<int>();
-
-    /// <summary>Puts a new item into the groups the document lists for it.</summary>
-    private static void Subscribe(Entity item, List<int>? groups)
-    {
-        Subscribe(item, ItemGroups.FromList(groups));
-    }
-
-    private static void Subscribe(Entity item, uint mask)
-    {
-        if (mask != 0)
-            item.AddComponent(new ItemGroups(mask));
     }
 
     /// <summary>The groups with a name or effects, as documents.</summary>

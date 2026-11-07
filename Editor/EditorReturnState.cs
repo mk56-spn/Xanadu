@@ -140,11 +140,7 @@ public sealed class EditorReturnState
         if (!EditorItemPosition.TryGet(item, out Vector2 position))
             return false;
 
-        int kind = item.HasComponent<Note>() ? 0
-            : item.HasComponent<Mine>() ? 1
-            : item.HasComponent<StartPoint>() ? 2
-            : item.HasComponent<Block>() ? 3
-            : 4;
+        int kind = System.Array.IndexOf(ItemKinds.All, ItemKinds.Of(item));
         long time = EditorItemTiming.TryGet(item, out long at) ? at : 0;
         key = new ItemKey(kind, time, position);
         return true;

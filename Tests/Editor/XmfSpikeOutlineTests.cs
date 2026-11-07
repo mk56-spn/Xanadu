@@ -43,26 +43,4 @@ public sealed class XmfSpikeOutlineTests
         Assert.That(read.Variants.Single().Spikes[1].OutlineColor, Is.EqualTo(0x11223344u));
     }
 
-    [Test]
-    public void SpikesSavedBeforeOutlinesExistedGetTheDefault()
-    {
-        LevelDocument level = MapWithSpikes();
-        level.Spikes[1].OutlineWidth = 7f;
-        byte[] current = XmfBinary.Write(level);
-
-        // Rebuild the file without the spike outline chunk, as an older map was saved.
-        ChunkReader reader = ChunkReader.Open(current, "XMF1"u8.ToArray(), XmfBinary.MajorVersion, "XMF");
-        var file = new ChunkWriter("XMF1"u8.ToArray(), XmfBinary.MajorVersion, 0);
-        for (uint id = 1; id <= 12; id++)
-        {
-            if (reader.TryGet(id, out Chunk chunk))
-                file.Add(id, chunk.ToArray());
-        }
-
-        LevelDocument map = XmfBinary.Read(file.ToArray());
-
-        Assert.That(map.Spikes, Has.Count.EqualTo(2));
-        Assert.That(map.Spikes[1].OutlineWidth, Is.EqualTo(Block.DefaultOutlineWidth));
-        Assert.That(map.Spikes[1].OutlineColor, Is.EqualTo(Block.DefaultOutlineColor.ToRgba32()));
-    }
 }

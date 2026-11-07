@@ -131,59 +131,11 @@ public static class LevelStore
     }
 
     /// <summary>The variant a level document's own chart makes.</summary>
-    public static XmfVariant ToVariant(LevelDocument document) => new()
-    {
-        Id = document.Id,
-        Slug = document.Slug,
-        Name = document.Name,
-        SnapDivision = document.SnapDivision,
-        PlayfieldWidth = document.PlayfieldWidth,
-        PlayfieldHeight = document.PlayfieldHeight,
-        BackgroundColor = document.BackgroundColor,
-        OutsideColor = document.OutsideColor,
-        FrameColor = document.FrameColor,
-        Notes = document.Notes,
-        Mines = document.Mines,
-        StartPoints = document.StartPoints,
-        Blocks = document.Blocks,
-        Spikes = document.Spikes,
-        Texts = document.Texts,
-        Grass = document.Grass,
-        Polygons = document.Polygons,
-        Groups = document.Groups,
-        Layers = document.Layers,
-        PlayerShader = document.PlayerShader,
-        FieldShader = document.FieldShader,
-    };
+    public static XmfVariant ToVariant(LevelDocument document) => XmfVariant.From(document);
 
     /// <summary>The level document a variant makes, carrying its mapset's song and shaders.</summary>
-    public static LevelDocument ToLevelDocument(XmfMapset mapset, XmfVariant variant) => new()
-    {
-        Version = mapset.Version,
-        Id = variant.Id,
-        Slug = variant.Slug,
-        SongId = mapset.SongId,
-        Name = variant.Name,
-        SnapDivision = variant.SnapDivision,
-        PlayfieldWidth = variant.PlayfieldWidth,
-        PlayfieldHeight = variant.PlayfieldHeight,
-        BackgroundColor = variant.BackgroundColor,
-        OutsideColor = variant.OutsideColor,
-        FrameColor = variant.FrameColor,
-        Notes = variant.Notes,
-        Mines = variant.Mines,
-        StartPoints = variant.StartPoints,
-        Blocks = variant.Blocks,
-        Spikes = variant.Spikes,
-        Texts = variant.Texts,
-        Grass = variant.Grass,
-        Polygons = variant.Polygons,
-        Groups = variant.Groups,
-        Layers = variant.Layers,
-        Shaders = mapset.Shaders,
-        PlayerShader = variant.PlayerShader,
-        FieldShader = variant.FieldShader,
-    };
+    public static LevelDocument ToLevelDocument(XmfMapset mapset, XmfVariant variant) =>
+        variant.ToDocument(mapset.Version, mapset.SongId, mapset.Shaders);
 
     /// <summary>Loads every valid level from user data and the bundled Levels folder.</summary>
     public static List<LevelEntry> List()

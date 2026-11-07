@@ -311,28 +311,16 @@ public static partial class PlayfieldRenderer
             ? frame.View
             : GroupOffset.View(entity, frame.View);
         bool selected = !entity.IsNull && frame.IsSelected?.Invoke(entity) == true;
+        if (ItemKinds.Drawing(entry.Kind) is { } kind)
+        {
+            kind.Draw(canvas, rid, entity, view, frame, selected, playing);
+            return;
+        }
+
         switch (entry.Kind)
         {
             case PlayfieldDrawKind.RailLanes:
                 DrawRailLanes(canvas, rid, entities, view, frame.Playfield, frame.Playhead, rails);
-                break;
-            case PlayfieldDrawKind.Polygon:
-                DrawPolygon(canvas, rid, entity, view, selected);
-                break;
-            case PlayfieldDrawKind.Block:
-                DrawBlock(canvas, rid, entity, view, selected, playing);
-                break;
-            case PlayfieldDrawKind.Spike:
-                DrawSpike(canvas, rid, entity, view, selected);
-                break;
-            case PlayfieldDrawKind.Grass:
-                DrawGrass(canvas, rid, entity, view, frame.Seconds, selected);
-                break;
-            case PlayfieldDrawKind.Text:
-                DrawLevelText(canvas, rid, entity, view, selected);
-                break;
-            case PlayfieldDrawKind.ScreenRead:
-                DrawScreenRead(canvas, entity, view);
                 break;
             case PlayfieldDrawKind.NoteGuides:
                 if (frame.DivaNotes)
@@ -349,12 +337,6 @@ public static partial class PlayfieldRenderer
             case PlayfieldDrawKind.RailNote:
                 // A rail note rides its lane, which groups don't move.
                 DrawRailNote(canvas, rid, entity, frame.View, frame.Playfield, frame.Playhead, rails);
-                break;
-            case PlayfieldDrawKind.Mine:
-                DrawMine(canvas, rid, entity, view, frame.Playhead);
-                break;
-            case PlayfieldDrawKind.StartPoint:
-                DrawStartPoint(canvas, rid, entity, view, selected);
                 break;
             case PlayfieldDrawKind.NotePop:
                 DrawNotePop(canvas, rid, entity);
@@ -377,7 +359,7 @@ public static partial class PlayfieldRenderer
     /// its outline separately, over every item, so the boundary's own mark can
     /// never feed a later screen read.
     /// </summary>
-    private static void DrawScreenRead(IRectCanvas canvas, Entity entity, PlayfieldView view)
+    internal static void DrawScreenRead(IRectCanvas canvas, Entity entity, PlayfieldView view)
     {
         ScreenReadRegion region = entity.GetComponent<ScreenReadRegion>();
         Vector2 corner = view.PlayfieldToScreen(GroupOffset.Shown(entity, region.Position));

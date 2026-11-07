@@ -1,8 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Text;
-using Xanadu.Ecs;
 using Xanadu.Storage;
 
 namespace Xanadu.Levels;
@@ -10,121 +8,83 @@ namespace Xanadu.Levels;
 /// <summary>An XMF map file that could not be read.</summary>
 public sealed class XmfFormatException(string message) : Exception(message);
 
+/// <summary>The chunks of an XMF map file. Every chunk but the strings and meta is left out when it would be empty.</summary>
+public enum XmfChunk : uint
+{
+    Strings = 1,
+    Meta = 2,
+    Shaders = 3,
+    Groups = 4,
+    Layers = 5,
+
+    Notes = 10,
+    Mines = 11,
+    StartPoints = 12,
+    Blocks = 13,
+    Spikes = 14,
+    Texts = 15,
+    Grass = 16,
+    Flares = 17,
+    Polygons = 18,
+    ScreenReads = 19,
+}
+
 /// <summary>
-/// Binary XMF1 map format: a level split into chunks of notes, mines, blocks,
-/// groups and shaders, interned in a string table. It shares its container —
-/// magic, version, chunk directory and string table — with XAF packages.
+/// Binary XMF map format. It shares its container — magic, version, chunk
+/// directory and string table — with XAF packages. Inside, every list is a
+/// count of length-framed records (<see cref="XmfRecords"/>), and every item
+/// record opens with the same header (groups, shader, shader source, layer, z,
+/// blend, colour), then its kind's own fields. A new item kind is a new chunk;
+/// a new field is appended to its record.
 /// </summary>
 public static partial class XmfBinary
 {
-    public const ushort MajorVersion = 2;
-    public const ushort MinorVersion = 7;
+    public const ushort MajorVersion = 3;
+    public const ushort MinorVersion = 0;
 
     /// <summary>The extension level files are saved with, including the dot.</summary>
     public const string Extension = ".xmf";
+
+    /// <summary>The longest text one item may hold, in characters.</summary>
+    public const int MaxTextLength = 4_096;
 
     private const string Format = "XMF";
 
     private static readonly byte[] Magic = "XMF1"u8.ToArray();
 
-    private enum ChunkId : uint
-    {
-        Strings = 1,
-        Meta = 2,
-        Notes = 3,
-        Mines = 4,
-        Blocks = 5,
-        StartPoints = 6,
-        Groups = 7,
-        Shaders = 8,
-
-        Spikes = 9,
-
-        /// <summary>Optional pair index and momentum data, absent in older maps.</summary>
-        NoteExtras = 10,
-
-        /// <summary>Optional item colours, absent when every item is untinted.</summary>
-        SelfModulates = 12,
-
-        /// <summary>Spike outlines, absent in maps from before spikes had them.</summary>
-        SpikeOutlines = 13,
-
-        /// <summary>Text written into the level, absent when it has none.</summary>
-        Texts = 14,
-
-        /// <summary>Grass patches, absent when the level has none.</summary>
-        Grass = 15,
-
-        /// <summary>Filled shapes, absent when the level has none.</summary>
-        Polygons = 16,
-
-        /// <summary>Each item's layer and z, absent when every item is on its kind's default layer at z 0.</summary>
-        ItemLayers = 17,
-
-        /// <summary>The layer table: names and passes, absent when every layer is plain.</summary>
-        LayerTable = 18,
-
-        /// <summary>Each item's blend mode, absent when every item is on mix.</summary>
-        ItemBlends = 19,
-
-        /// <summary>Groups' item-shader tracks, absent when no group has one.</summary>
-        GroupShaders = 20,
-
-        /// <summary>Each item's shader source, absent when every item uses its own shader.</summary>
-        ItemShaderSources = 21,
-
-        /// <summary>Buffered groups and their buffer settings, absent when none is buffered.</summary>
-        GroupBuffers = 22,
-
-        /// <summary>Screen-read regions, absent when the level has none.</summary>
-        ScreenReads = 23,
-
-        /// <summary>Repeating group effects, absent when nothing cycles.</summary>
-        GroupCycles = 24,
-    }
-
     public static byte[] Write(LevelDocument document)
     {
         var strings = new StringTable(Format);
-        IndexStrings(document, strings);
+        var chunks = new List<(XmfChunk Id, byte[] Data)>
+        {
+            (XmfChunk.Meta, XmfChrome.WriteMeta(document, strings)),
+        };
 
+        void Add<T>(XmfChunk id, List<T>? list, Func<List<T>, byte[]> write)
+        {
+            if (list is { Count: > 0 })
+                chunks.Add((id, write(list)));
+        }
+
+        Add(XmfChunk.Shaders, document.Shaders, list => XmfRecords.WriteList(list, (w, s) => XmfChrome.WriteShader(w, s, strings)));
+        Add(XmfChunk.Groups, document.Groups, list => XmfRecords.WriteList(list, (w, g) => XmfChrome.WriteGroup(w, g, strings)));
+        Add(XmfChunk.Layers, XmfChrome.Ordered(document.Layers), list => XmfRecords.WriteList(list, XmfChrome.WriteLayer));
+        Add(XmfChunk.Notes, document.Notes, list => XmfRecords.WriteItems(list, (w, n) => XmfItems.WriteNote(w, n, strings)));
+        Add(XmfChunk.Mines, document.Mines, list => XmfRecords.WriteItems(list, XmfItems.WriteMine));
+        Add(XmfChunk.StartPoints, document.StartPoints, list => XmfRecords.WriteItems(list, (w, s) => XmfItems.WriteStartPoint(w, s, strings)));
+        Add(XmfChunk.Blocks, document.Blocks, list => XmfRecords.WriteItems(list, XmfItems.WriteBlock));
+        Add(XmfChunk.Spikes, document.Spikes, list => XmfRecords.WriteItems(list, XmfItems.WriteSpike));
+        Add(XmfChunk.Texts, document.Texts, list => XmfRecords.WriteItems(list, XmfItems.WriteText));
+        Add(XmfChunk.Grass, document.Grass, list => XmfRecords.WriteItems(list, XmfItems.WriteGrass));
+        Add(XmfChunk.Flares, document.Flares, list => XmfRecords.WriteItems(list, XmfItems.WriteFlare));
+        Add(XmfChunk.Polygons, document.Polygons, list => XmfRecords.WriteItems(list, (w, p) => XmfItems.WritePolygon(w, p, strings)));
+        Add(XmfChunk.ScreenReads, document.ScreenReads, list => XmfRecords.WriteItems(list, XmfItems.WriteScreenRead));
+
+        // The table is written last, once every chunk has put its strings in it.
         var file = new ChunkWriter(Magic, MajorVersion, MinorVersion);
-        file.Add((uint)ChunkId.Strings, strings.Write());
-        file.Add((uint)ChunkId.Meta, WriteMeta(document, strings));
-        file.Add((uint)ChunkId.Notes, XmfNoteChunks.WriteNotes(document.Notes, strings));
-        file.Add((uint)ChunkId.Mines, XmfBodyChunks.WriteMines(document.Mines));
-        file.Add((uint)ChunkId.Blocks, XmfBodyChunks.WriteBlocks(document.Blocks));
-        file.Add((uint)ChunkId.StartPoints, XmfChromeChunks.WriteStartPoints(document.StartPoints, strings));
-        file.Add((uint)ChunkId.Groups, XmfChromeChunks.WriteGroupDefinitions(document.Groups, strings));
-        file.Add((uint)ChunkId.Shaders, XmfChromeChunks.WriteShaders(document.Shaders, strings));
-        file.Add((uint)ChunkId.Spikes, XmfBodyChunks.WriteSpikes(document.Spikes));
-        if (XmfNoteChunks.HasNoteExtras(document.Notes))
-            file.Add((uint)ChunkId.NoteExtras, XmfNoteChunks.WriteNoteExtras(document.Notes));
-        if (XmfItemColors.HasSelfModulates(document))
-            file.Add((uint)ChunkId.SelfModulates, XmfItemColors.WriteSelfModulates(document));
-        file.Add((uint)ChunkId.SpikeOutlines, WriteSpikeOutlines(document.Spikes));
-        if (HasTexts(document))
-            file.Add((uint)ChunkId.Texts, WriteTexts(document.Texts));
-        if (HasGrass(document))
-            file.Add((uint)ChunkId.Grass, WriteGrass(document.Grass));
-        if (HasPolygons(document))
-            file.Add((uint)ChunkId.Polygons, WritePolygons(document.Polygons, strings));
-        if (XmfItemLayers.HasLayers(document))
-            file.Add((uint)ChunkId.ItemLayers, XmfItemLayers.Write(document));
-        if (XmfLayerTable.HasLayers(document))
-            file.Add((uint)ChunkId.LayerTable, XmfLayerTable.Write(document));
-        if (XmfItemBlends.HasBlends(document))
-            file.Add((uint)ChunkId.ItemBlends, XmfItemBlends.Write(document));
-        if (XmfGroupShaders.HasTracks(document))
-            file.Add((uint)ChunkId.GroupShaders, XmfGroupShaders.Write(document));
-        if (XmfItemShaderSources.HasSources(document))
-            file.Add((uint)ChunkId.ItemShaderSources, XmfItemShaderSources.Write(document));
-        if (XmfGroupBuffers.HasBuffers(document))
-            file.Add((uint)ChunkId.GroupBuffers, XmfGroupBuffers.Write(document));
-        if (HasScreenReads(document))
-            file.Add((uint)ChunkId.ScreenReads, WriteScreenReads(document.ScreenReads));
-        if (XmfGroupCycles.HasCycles(document))
-            file.Add((uint)ChunkId.GroupCycles, XmfGroupCycles.Write(document));
+        file.Add((uint)XmfChunk.Strings, strings.Write());
+        foreach ((XmfChunk id, byte[] data) in chunks)
+            file.Add((uint)id, data);
         return file.ToArray();
     }
 
@@ -146,181 +106,26 @@ public static partial class XmfBinary
     private static LevelDocument ReadMap(byte[] data)
     {
         ChunkReader file = ChunkReader.Open(data, Magic, MajorVersion, Format);
-        StringTable strings = StringTable.Read(
-            file.Get((uint)ChunkId.Strings, Format),
-            Format);
+        StringTable strings = StringTable.Read(file.Get((uint)XmfChunk.Strings, Format), Format);
+        LevelDocument document = XmfChrome.ReadMeta(file.Get((uint)XmfChunk.Meta, Format), strings);
 
-        LevelDocument document = ReadMeta(file.Get((uint)ChunkId.Meta, Format), strings);
-        document.Notes = XmfNoteChunks.ReadNotes(file.Get((uint)ChunkId.Notes, Format), strings);
-        if (file.TryGet((uint)ChunkId.NoteExtras, out Chunk noteExtras))
-            XmfNoteChunks.ReadNoteExtras(noteExtras, document.Notes);
-        document.Mines = XmfBodyChunks.ReadMines(file.Get((uint)ChunkId.Mines, Format));
-        document.Blocks = XmfBodyChunks.ReadBlocks(file.Get((uint)ChunkId.Blocks, Format));
-        document.StartPoints = XmfChromeChunks.ReadStartPoints(
-            file.Get((uint)ChunkId.StartPoints, Format),
-            strings);
-        document.Groups = XmfChromeChunks.ReadGroupDefinitions(file.Get((uint)ChunkId.Groups, Format), strings);
-        document.Shaders = XmfChromeChunks.ReadShaders(file.Get((uint)ChunkId.Shaders, Format), strings);
-        document.Spikes = XmfBodyChunks.ReadSpikes(file.Get((uint)ChunkId.Spikes, Format));
-        if (file.TryGet((uint)ChunkId.SelfModulates, out Chunk selfModulates))
-        {
-            using BinaryReader reader = selfModulates.OpenReader();
-            XmfItemColors.ReadSelfModulates(reader, document);
-        }
-        if (file.TryGet((uint)ChunkId.SpikeOutlines, out Chunk spikeOutlines))
-        {
-            using BinaryReader reader = spikeOutlines.OpenReader();
-            ReadSpikeOutlines(reader, document.Spikes);
-        }
-        if (file.TryGet((uint)ChunkId.Texts, out Chunk texts))
-            document.Texts = ReadTexts(texts);
-        if (file.TryGet((uint)ChunkId.Grass, out Chunk grass))
-            document.Grass = ReadGrass(grass);
-        if (file.TryGet((uint)ChunkId.Polygons, out Chunk polygons))
-            document.Polygons = ReadPolygons(polygons, strings);
-        // Before the item layers: that chunk lists each kind's items in the
-        // same order, so every list has to exist by then.
-        if (file.TryGet((uint)ChunkId.ScreenReads, out Chunk screenReads))
-            document.ScreenReads = ReadScreenReads(screenReads);
-        if (file.TryGet((uint)ChunkId.ItemLayers, out Chunk layers))
-        {
-            using BinaryReader reader = layers.OpenReader();
-            XmfItemLayers.Read(reader, document);
-        }
-        if (file.TryGet((uint)ChunkId.LayerTable, out Chunk table))
-        {
-            using BinaryReader reader = table.OpenReader();
-            XmfLayerTable.Read(reader, document);
-        }
-        if (file.TryGet((uint)ChunkId.ItemBlends, out Chunk blends))
-        {
-            using BinaryReader reader = blends.OpenReader();
-            XmfItemBlends.Read(reader, document);
-        }
-        if (file.TryGet((uint)ChunkId.GroupShaders, out Chunk groupShaders))
-        {
-            using BinaryReader reader = groupShaders.OpenReader();
-            XmfGroupShaders.Read(reader, document);
-        }
-        if (file.TryGet((uint)ChunkId.ItemShaderSources, out Chunk sources))
-        {
-            using BinaryReader reader = sources.OpenReader();
-            XmfItemShaderSources.Read(reader, document);
-        }
-        if (file.TryGet((uint)ChunkId.GroupBuffers, out Chunk buffers))
-        {
-            using BinaryReader reader = buffers.OpenReader();
-            XmfGroupBuffers.Read(reader, document);
-        }
-        if (file.TryGet((uint)ChunkId.GroupCycles, out Chunk cycles))
-        {
-            using BinaryReader reader = cycles.OpenReader();
-            XmfGroupCycles.Read(reader, document);
-        }
+        List<T> List<T>(XmfChunk id, Func<Chunk, List<T>> read) =>
+            file.TryGet((uint)id, out Chunk chunk) ? read(chunk) : new List<T>();
+
+        document.Shaders = List(XmfChunk.Shaders, c => XmfRecords.ReadList(c, Xanadu.Ecs.ShaderLimits.Count, "shader", r => XmfChrome.ReadShader(r, strings)));
+        document.Groups = List(XmfChunk.Groups, c => XmfRecords.ReadList(c, Xanadu.Ecs.GroupLimits.Count, "group", r => XmfChrome.ReadGroup(r, strings)));
+        document.Layers = List(XmfChunk.Layers, c => XmfRecords.ReadList(c, XmfChrome.LayerLimit, "layer", XmfChrome.ReadLayer));
+        document.Notes = List(XmfChunk.Notes, c => XmfRecords.ReadItems<NoteDocument>(c, "note", (r, n) => XmfItems.ReadNote(r, n, strings)));
+        document.Mines = List(XmfChunk.Mines, c => XmfRecords.ReadItems<MineDocument>(c, "mine", XmfItems.ReadMine));
+        document.StartPoints = List(XmfChunk.StartPoints, c => XmfRecords.ReadItems<StartPointDocument>(c, "start point", (r, s) => XmfItems.ReadStartPoint(r, s, strings)));
+        document.Blocks = List(XmfChunk.Blocks, c => XmfRecords.ReadItems<BlockDocument>(c, "block", XmfItems.ReadBlock));
+        document.Spikes = List(XmfChunk.Spikes, c => XmfRecords.ReadItems<SpikeDocument>(c, "spike", XmfItems.ReadSpike));
+        document.Texts = List(XmfChunk.Texts, c => XmfRecords.ReadItems<TextDocument>(c, "text", XmfItems.ReadText));
+        document.Grass = List(XmfChunk.Grass, c => XmfRecords.ReadItems<GrassDocument>(c, "grass", XmfItems.ReadGrass));
+        document.Flares = List(XmfChunk.Flares, c => XmfRecords.ReadItems<FlareDocument>(c, "flare", XmfItems.ReadFlare));
+        document.Polygons = List(XmfChunk.Polygons, c => XmfRecords.ReadItems<PolygonDocument>(c, "polygon", (r, p) => XmfItems.ReadPolygon(r, p, strings)));
+        document.ScreenReads = List(XmfChunk.ScreenReads, c => XmfRecords.ReadItems<ScreenReadDocument>(c, "screen-read region", XmfItems.ReadScreenRead));
         return document;
-    }
-
-    /// <summary>Every string a chunk stores is indexed from this table.</summary>
-    private static void IndexStrings(LevelDocument document, StringTable strings)
-    {
-        foreach (PolygonDocument polygon in document.Polygons)
-            XmfItemIO.IndexItemStrings(polygon.Item, strings);
-        strings.Add(document.Id);
-        strings.Add(document.Slug);
-        strings.Add(document.SongId);
-        strings.Add(document.Name);
-        strings.Add(document.BackgroundColor);
-        strings.Add(document.OutsideColor);
-        strings.Add(document.FrameColor);
-        foreach (NoteDocument note in document.Notes)
-            XmfItemIO.IndexItemStrings(note.Item, strings);
-        foreach (StartPointDocument start in document.StartPoints)
-            strings.Add(start.Name);
-        foreach (GroupDocument group in document.Groups)
-        {
-            strings.Add(group.Name);
-            foreach (GroupEffectDocument effect in group.Effects)
-                strings.Add(effect.Tint);
-        }
-        foreach (ShaderDocument shader in document.Shaders)
-        {
-            strings.Add(shader.Name);
-            strings.Add(shader.Source);
-            foreach (string key in shader.Params.Keys)
-                strings.Add(key);
-        }
-    }
-
-    private static byte[] WriteMeta(LevelDocument document, StringTable strings)
-    {
-        using var stream = new MemoryStream();
-        using var writer = new BinaryWriter(stream, Encoding.UTF8, leaveOpen: true);
-        writer.Write(document.Version);
-        strings.WriteIndex(writer, document.Id);
-        strings.WriteIndex(writer, document.Slug);
-        strings.WriteIndex(writer, document.SongId);
-        strings.WriteIndex(writer, document.Name);
-        writer.Write(document.SnapDivision);
-        writer.Write(document.PlayfieldWidth);
-        writer.Write(document.PlayfieldHeight);
-        writer.Write(document.PlayerShader);
-        writer.Write(document.FieldShader);
-        // Appended after the original fields so maps written before backgrounds
-        // existed still read, and older readers simply ignore the extra index.
-        strings.WriteIndex(writer, document.BackgroundColor);
-        // The outside and frame colours came later still, and trail the same way.
-        strings.WriteIndex(writer, document.OutsideColor);
-        strings.WriteIndex(writer, document.FrameColor);
-        writer.Flush();
-        return stream.ToArray();
-    }
-
-    private static LevelDocument ReadMeta(Chunk chunk, StringTable strings)
-    {
-        using BinaryReader reader = chunk.OpenReader();
-        var document = new LevelDocument
-        {
-            Version = reader.ReadInt32(),
-            Id = strings.ReadIndex(reader),
-            Slug = strings.ReadIndex(reader),
-            SongId = strings.ReadIndex(reader),
-            Name = strings.ReadIndex(reader),
-            SnapDivision = reader.ReadInt32(),
-            PlayfieldWidth = reader.ReadInt32(),
-            PlayfieldHeight = reader.ReadInt32(),
-            PlayerShader = reader.ReadInt32(),
-            FieldShader = reader.ReadInt32(),
-        };
-
-        if (reader.BaseStream.Length - reader.BaseStream.Position >= sizeof(uint))
-            document.BackgroundColor = strings.ReadIndex(reader);
-        if (reader.BaseStream.Length - reader.BaseStream.Position >= sizeof(uint))
-            document.OutsideColor = strings.ReadIndex(reader);
-        if (reader.BaseStream.Length - reader.BaseStream.Position >= sizeof(uint))
-            document.FrameColor = strings.ReadIndex(reader);
-
-        return document;
-    }
-
-    internal static void WriteGroups(BinaryWriter writer, List<int> groups)
-    {
-        writer.Write((uint)groups.Count);
-        foreach (int group in groups)
-            writer.Write(group);
-    }
-
-    internal static List<int> ReadGroups(BinaryReader reader)
-    {
-        uint count = ReadCount(reader, GroupLimits.Count, "group membership");
-        var groups = new List<int>((int)count);
-        for (uint i = 0; i < count; i++)
-        {
-            int group = reader.ReadInt32();
-            if (group is < 0 or >= GroupLimits.Count)
-                throw new FormatException($"XMF group {group} is out of range.");
-            groups.Add(group);
-        }
-        return groups;
     }
 
     internal static uint ReadCount(BinaryReader reader, uint max, string what)
@@ -339,4 +144,7 @@ public static partial class XmfBinary
             throw new FormatException($"XMF {typeof(T).Name} value {value} is out of range.");
         return result;
     }
+
+    internal static string ClipText(string? text) =>
+        text is null ? "" : text.Length > MaxTextLength ? text[..MaxTextLength] : text;
 }

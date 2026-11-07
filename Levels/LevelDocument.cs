@@ -57,6 +57,9 @@ public sealed class LevelDocument : IChartItems
     /// <summary>Grass patches: swaying blades with no collision.</summary>
     public List<GrassDocument> Grass { get; set; } = new();
 
+    /// <summary>Lens flares: shader-drawn light with no collision.</summary>
+    public List<FlareDocument> Flares { get; set; } = new();
+
     /// <summary>Filled shapes with no collision.</summary>
     public List<PolygonDocument> Polygons { get; set; } = new();
 
@@ -193,54 +196,39 @@ public sealed class GroupEffectDocument
     public GroupCycle Cycle { get; set; } = GroupCycle.Restart;
 }
 
-/// <summary>Where a placed item draws: its layer and its z inside the layer.</summary>
-public interface ILayeredDocument
-{
-    /// <summary>The layer, −200…−1 behind the player or 1…200 in front; 0 means the kind's default.</summary>
-    int Layer { get; set; }
-
-    /// <summary>The order inside the layer; higher draws in front.</summary>
-    int Z { get; set; }
-}
-
-/// <summary>Where an item's shader comes from (D11): its own, or one group's track.</summary>
-public interface IShaderSourcedDocument
-{
-    /// <summary>The group slot whose track it follows, or -1 for its own shader.</summary>
-    int ShaderSource { get; set; }
-}
-
-/// <summary>How a placed item blends with what is already on its layer (D17).</summary>
-public interface IBlendedDocument
-{
-    /// <summary>Its canvas blend mode; <see cref="Xanadu.Rendering.BlendMode.Mix"/> is ordinary alpha.</summary>
-    Xanadu.Rendering.BlendMode Blend { get; set; }
-}
-
-/// <summary>Serializable collidable block data.</summary>
-public sealed class BlockDocument : ILayeredDocument, IBlendedDocument, IShaderSourcedDocument
+/// <summary>
+/// What every placed item stores the same way, whatever its kind: its groups,
+/// shader, shader source, layer, z, blend and colour. The file format writes it
+/// once per item as a shared header, so a new kind or a new shared setting is
+/// one change, not one per kind.
+/// </summary>
+public abstract class ItemDocument
 {
     /// <summary>The colour its drawing is multiplied by, as RGBA8; white changes nothing.</summary>
     public uint SelfModulate { get; set; } = Xanadu.Ecs.SelfModulate.White;
 
-    /// <summary>The groups this block belongs to.</summary>
+    /// <summary>The groups the item belongs to.</summary>
     public List<int> Groups { get; set; } = new();
 
-    /// <inheritdoc/>
+    /// <summary>The layer, −200…−1 behind the player or 1…200 in front; 0 means the kind's default.</summary>
     public int Layer { get; set; }
 
-    /// <inheritdoc/>
+    /// <summary>The order inside the layer; higher draws in front.</summary>
     public int Z { get; set; }
 
     /// <summary>How its pixels combine with the layer, docs/render-architecture.md D17.</summary>
     public Xanadu.Rendering.BlendMode Blend { get; set; }
 
-    /// <summary>The group whose item-shader track it follows, or -1 for its own shader.</summary>
+    /// <summary>The group slot whose item-shader track it follows, or -1 for its own shader.</summary>
     public int ShaderSource { get; set; } = -1;
 
-    /// <summary>The shader slot it is drawn with, or 0 for none.</summary>
+    /// <summary>The shader slot it is drawn with, or 0 for none; kinds that draw otherwise ignore it.</summary>
     public int Shader { get; set; }
+}
 
+/// <summary>Serializable collidable block data.</summary>
+public sealed class BlockDocument : ItemDocument
+{
     public float X { get; set; }
 
     public float Y { get; set; }
@@ -272,29 +260,8 @@ public sealed class BlockDocument : ILayeredDocument, IBlendedDocument, IShaderS
 }
 
 /// <summary>Serializable spike tile data: a hazard that kills on contact.</summary>
-public sealed class SpikeDocument : ILayeredDocument, IBlendedDocument, IShaderSourcedDocument
+public sealed class SpikeDocument : ItemDocument
 {
-    /// <summary>The colour its drawing is multiplied by, as RGBA8; white changes nothing.</summary>
-    public uint SelfModulate { get; set; } = Xanadu.Ecs.SelfModulate.White;
-
-    /// <summary>The groups this spike belongs to.</summary>
-    public List<int> Groups { get; set; } = new();
-
-    /// <inheritdoc/>
-    public int Layer { get; set; }
-
-    /// <inheritdoc/>
-    public int Z { get; set; }
-
-    /// <summary>How its pixels combine with the layer, docs/render-architecture.md D17.</summary>
-    public Xanadu.Rendering.BlendMode Blend { get; set; }
-
-    /// <summary>The group whose item-shader track it follows, or -1 for its own shader.</summary>
-    public int ShaderSource { get; set; } = -1;
-
-    /// <summary>The shader slot it is drawn with, or 0 for none.</summary>
-    public int Shader { get; set; }
-
     public float X { get; set; }
 
     public float Y { get; set; }
@@ -314,29 +281,8 @@ public sealed class SpikeDocument : ILayeredDocument, IBlendedDocument, IShaderS
 }
 
 /// <summary>A grass patch: blades standing along a base line, growing up from it.</summary>
-public sealed class GrassDocument : ILayeredDocument, IBlendedDocument, IShaderSourcedDocument
+public sealed class GrassDocument : ItemDocument
 {
-    /// <summary>The colour its drawing is multiplied by, as RGBA8; white changes nothing.</summary>
-    public uint SelfModulate { get; set; } = Xanadu.Ecs.SelfModulate.White;
-
-    /// <summary>The groups this patch belongs to.</summary>
-    public List<int> Groups { get; set; } = new();
-
-    /// <inheritdoc/>
-    public int Layer { get; set; }
-
-    /// <inheritdoc/>
-    public int Z { get; set; }
-
-    /// <summary>How its pixels combine with the layer, docs/render-architecture.md D17.</summary>
-    public Xanadu.Rendering.BlendMode Blend { get; set; }
-
-    /// <summary>The group whose item-shader track it follows, or -1 for its own shader.</summary>
-    public int ShaderSource { get; set; } = -1;
-
-    /// <summary>The shader slot it is drawn with, or 0 for none.</summary>
-    public int Shader { get; set; }
-
     /// <summary>The middle of the base line, in playfield units.</summary>
     public float X { get; set; }
 
@@ -365,30 +311,47 @@ public sealed class GrassDocument : ILayeredDocument, IBlendedDocument, IShaderS
     public float Rotation { get; set; }
 }
 
-/// <summary>A filled shape: an item of polygons around an origin, turned about it.</summary>
-public sealed class PolygonDocument : ILayeredDocument, IBlendedDocument, IShaderSourcedDocument
+/// <summary>A lens flare: a core, a halo and one or two streaks across a turned box, drawn by a shader.</summary>
+public sealed class FlareDocument : ItemDocument
 {
-    /// <summary>The colour its drawing is multiplied by, as RGBA8; white changes nothing.</summary>
-    public uint SelfModulate { get; set; } = Xanadu.Ecs.SelfModulate.White;
+    public FlareDocument() => Blend = Xanadu.Rendering.BlendMode.Add;
 
-    /// <summary>The groups this shape belongs to.</summary>
-    public List<int> Groups { get; set; } = new();
+    /// <summary>The middle of the box, in playfield units.</summary>
+    public float X { get; set; }
 
-    /// <inheritdoc/>
-    public int Layer { get; set; }
+    public float Y { get; set; }
 
-    /// <inheritdoc/>
-    public int Z { get; set; }
+    public float Width { get; set; } = Xanadu.Ecs.LevelFlare.DefaultWidth;
 
-    /// <summary>How its pixels combine with the layer, docs/render-architecture.md D17.</summary>
-    public Xanadu.Rendering.BlendMode Blend { get; set; }
+    public float Height { get; set; } = Xanadu.Ecs.LevelFlare.DefaultHeight;
 
-    /// <summary>The group whose item-shader track it follows, or -1 for its own shader.</summary>
-    public int ShaderSource { get; set; } = -1;
+    /// <summary>1 for a streak along the width, 2 for one along the height as well.</summary>
+    public int Axes { get; set; } = 1;
 
-    /// <summary>The shader slot it is drawn with where a polygon names none, or 0.</summary>
-    public int Shader { get; set; }
+    public float Thickness { get; set; } = Xanadu.Ecs.LevelFlare.DefaultThickness;
 
+    public float Falloff { get; set; } = Xanadu.Ecs.LevelFlare.DefaultFalloff;
+
+    public float Core { get; set; } = Xanadu.Ecs.LevelFlare.DefaultCore;
+
+    public float Halo { get; set; } = Xanadu.Ecs.LevelFlare.DefaultHalo;
+
+    public float Glow { get; set; } = Xanadu.Ecs.LevelFlare.DefaultGlow;
+
+    public float Intensity { get; set; } = Xanadu.Ecs.LevelFlare.DefaultIntensity;
+
+    public float Heat { get; set; } = Xanadu.Ecs.LevelFlare.DefaultHeat;
+
+    /// <summary>The flare's colour, as RGBA8.</summary>
+    public uint Color { get; set; } = Xanadu.Ecs.LevelFlare.DefaultColor.ToRgba32();
+
+    /// <summary>How far the flare is turned about its centre, clockwise, in degrees.</summary>
+    public float Rotation { get; set; }
+}
+
+/// <summary>A filled shape: an item of polygons around an origin, turned about it.</summary>
+public sealed class PolygonDocument : ItemDocument
+{
     /// <summary>The item's origin, in playfield units.</summary>
     public float X { get; set; }
 
@@ -402,29 +365,8 @@ public sealed class PolygonDocument : ILayeredDocument, IBlendedDocument, IShade
 }
 
 /// <summary>Text written into a level: a centred label on the playfield.</summary>
-public sealed class TextDocument : ILayeredDocument, IBlendedDocument, IShaderSourcedDocument
+public sealed class TextDocument : ItemDocument
 {
-    /// <summary>The colour its drawing is multiplied by, as RGBA8; white changes nothing.</summary>
-    public uint SelfModulate { get; set; } = Xanadu.Ecs.SelfModulate.White;
-
-    /// <summary>The groups this text belongs to.</summary>
-    public List<int> Groups { get; set; } = new();
-
-    /// <inheritdoc/>
-    public int Layer { get; set; }
-
-    /// <inheritdoc/>
-    public int Z { get; set; }
-
-    /// <summary>How its pixels combine with the layer, docs/render-architecture.md D17.</summary>
-    public Xanadu.Rendering.BlendMode Blend { get; set; }
-
-    /// <summary>The group whose item-shader track it follows, or -1 for its own shader.</summary>
-    public int ShaderSource { get; set; } = -1;
-
-    /// <summary>The shader slot it is drawn with, or 0 for none.</summary>
-    public int Shader { get; set; }
-
     /// <summary>The centre of the text, in playfield units.</summary>
     public float X { get; set; }
 
@@ -443,14 +385,8 @@ public sealed class TextDocument : ILayeredDocument, IBlendedDocument, IShaderSo
 /// A screen-read region: a rect that refreshes the back buffer when the draw
 /// order reaches it (docs/render-architecture.md step 11).
 /// </summary>
-public sealed class ScreenReadDocument : ILayeredDocument
+public sealed class ScreenReadDocument : ItemDocument
 {
-    /// <inheritdoc/>
-    public int Layer { get; set; }
-
-    /// <inheritdoc/>
-    public int Z { get; set; }
-
     /// <summary>The top-left corner, in playfield units.</summary>
     public float X { get; set; }
 
@@ -459,29 +395,11 @@ public sealed class ScreenReadDocument : ILayeredDocument
     public float Width { get; set; } = Xanadu.Ecs.ScreenReadRegion.DefaultWidth;
 
     public float Height { get; set; } = Xanadu.Ecs.ScreenReadRegion.DefaultHeight;
-
-    /// <summary>The groups the region is in; their moves carry it with what it reads under.</summary>
-    public List<int> Groups { get; set; } = new();
 }
 
 /// <summary>Serializable practice start state.</summary>
-public sealed class StartPointDocument : ILayeredDocument, IBlendedDocument, IShaderSourcedDocument
+public sealed class StartPointDocument : ItemDocument
 {
-    /// <summary>The groups this start point belongs to.</summary>
-    public List<int> Groups { get; set; } = new();
-
-    /// <inheritdoc/>
-    public int Layer { get; set; }
-
-    /// <inheritdoc/>
-    public int Z { get; set; }
-
-    /// <summary>How its pixels combine with the layer, docs/render-architecture.md D17.</summary>
-    public Xanadu.Rendering.BlendMode Blend { get; set; }
-
-    /// <summary>The group whose item-shader track it follows, or -1 for its own shader.</summary>
-    public int ShaderSource { get; set; } = -1;
-
     public string Name { get; set; } = "";
 
     public long TimeMs { get; set; }
@@ -500,29 +418,8 @@ public sealed class StartPointDocument : ILayeredDocument, IBlendedDocument, ISh
 }
 
 /// <summary>Serializable mine hazard data.</summary>
-public sealed class MineDocument : ILayeredDocument, IBlendedDocument, IShaderSourcedDocument
+public sealed class MineDocument : ItemDocument
 {
-    /// <summary>The colour its drawing is multiplied by, as RGBA8; white changes nothing.</summary>
-    public uint SelfModulate { get; set; } = Xanadu.Ecs.SelfModulate.White;
-
-    /// <summary>The groups this mine belongs to.</summary>
-    public List<int> Groups { get; set; } = new();
-
-    /// <inheritdoc/>
-    public int Layer { get; set; }
-
-    /// <inheritdoc/>
-    public int Z { get; set; }
-
-    /// <summary>How its pixels combine with the layer, docs/render-architecture.md D17.</summary>
-    public Xanadu.Rendering.BlendMode Blend { get; set; }
-
-    /// <summary>The group whose item-shader track it follows, or -1 for its own shader.</summary>
-    public int ShaderSource { get; set; } = -1;
-
-    /// <summary>The shader slot it is drawn with, or 0 for none.</summary>
-    public int Shader { get; set; }
-
     public long TimeMs { get; set; }
 
     public float X { get; set; }
@@ -535,26 +432,8 @@ public sealed class MineDocument : ILayeredDocument, IBlendedDocument, IShaderSo
 }
 
 /// <summary>Serializable note data.</summary>
-public sealed class NoteDocument : ILayeredDocument, IBlendedDocument, IShaderSourcedDocument
+public sealed class NoteDocument : ItemDocument
 {
-    /// <summary>The colour its drawing is multiplied by, as RGBA8; white changes nothing.</summary>
-    public uint SelfModulate { get; set; } = Xanadu.Ecs.SelfModulate.White;
-
-    /// <summary>The groups this note belongs to.</summary>
-    public List<int> Groups { get; set; } = new();
-
-    /// <inheritdoc/>
-    public int Layer { get; set; }
-
-    /// <inheritdoc/>
-    public int Z { get; set; }
-
-    /// <summary>How its pixels combine with the layer, docs/render-architecture.md D17.</summary>
-    public Xanadu.Rendering.BlendMode Blend { get; set; }
-
-    /// <summary>The group whose item-shader track it follows, or -1 for its own shader.</summary>
-    public int ShaderSource { get; set; } = -1;
-
     /// <summary>The self-contained item a note is: the primitives and shaders it uses.</summary>
     public Xif Item { get; set; } = new();
 

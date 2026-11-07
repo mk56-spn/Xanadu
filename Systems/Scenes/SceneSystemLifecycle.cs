@@ -194,26 +194,8 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
             _sceneRoot = default;
         }
 
-        foreach (Entity note in _entities.Query<Note>().ToEntityList())
-            note.DeleteEntity();
-
-        foreach (Entity mine in _entities.Query<Mine>().ToEntityList())
-            mine.DeleteEntity();
-
-        foreach (Entity block in _entities.Query<Block>().ToEntityList())
-            block.DeleteEntity();
-
-        foreach (Entity spike in _entities.Query<Spike>().ToEntityList())
-            spike.DeleteEntity();
-
-        foreach (Entity text in _entities.Query<LevelText>().ToEntityList())
-            text.DeleteEntity();
-
-        foreach (Entity grass in _entities.Query<GrassPatch>().ToEntityList())
-            grass.DeleteEntity();
-
-        foreach (Entity polygon in _entities.Query<LevelPolygon>().ToEntityList())
-            polygon.DeleteEntity();
+        foreach (ItemKind kind in ItemKinds.All)
+            kind.DeleteAll(_entities);
 
         foreach (Entity trail in _entities.Query<HitTrail>().ToEntityList())
             trail.DeleteEntity();

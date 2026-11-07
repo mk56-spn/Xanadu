@@ -67,7 +67,7 @@ public sealed class XmfPolygonTests
         byte[] data = XmfBinary.Write(new LevelDocument { Name = "Plain" });
         ChunkReader reader = ChunkReader.Open(data, "XMF1"u8.ToArray(), XmfBinary.MajorVersion, "XMF");
 
-        Assert.That(reader.TryGet(16, out _), Is.False);
+        Assert.That(reader.TryGet((uint)XmfChunk.Polygons, out _), Is.False);
     }
 
     [Test]

@@ -40,59 +40,8 @@ public static class EditorGroupTarget
     }
 
     /// <summary>The playfield position of an item's centre.</summary>
-    public static bool TryPosition(Entity entity, out Vector2 position)
-    {
-        if (entity.HasComponent<Note>())
-        {
-            position = entity.GetComponent<Note>().Position;
-            return true;
-        }
-
-        if (entity.HasComponent<Mine>())
-        {
-            position = entity.GetComponent<Mine>().Position;
-            return true;
-        }
-
-        if (entity.HasComponent<Block>())
-        {
-            position = entity.GetComponent<Block>().Center;
-            return true;
-        }
-
-        if (entity.HasComponent<Spike>())
-        {
-            position = entity.GetComponent<Spike>().Center;
-            return true;
-        }
-
-        if (entity.HasComponent<LevelText>())
-        {
-            position = entity.GetComponent<LevelText>().Position;
-            return true;
-        }
-
-        if (entity.HasComponent<GrassPatch>())
-        {
-            position = entity.GetComponent<GrassPatch>().Position;
-            return true;
-        }
-
-        if (entity.HasComponent<LevelPolygon>())
-        {
-            position = entity.GetComponent<LevelPolygon>().Position;
-            return true;
-        }
-
-        if (entity.HasComponent<StartPoint>())
-        {
-            position = entity.GetComponent<StartPoint>().Position;
-            return true;
-        }
-
-        position = default;
-        return false;
-    }
+    public static bool TryPosition(Entity entity, out Vector2 position) =>
+        EditorItemPosition.TryGet(entity, out position);
 
     public static Rect2 HandleRect(Vector2 center) =>
         new(center - new Vector2(HandleRadius, HandleRadius),

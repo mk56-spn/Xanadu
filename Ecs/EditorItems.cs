@@ -15,10 +15,14 @@ public static class EditorItems
         entities.CreateEntity(
             component,
             new SelfModulate(Colors.White),
-            new ItemBlend(BlendMode.Mix),
+            new ItemBlend(DefaultBlend<T>()),
             new ItemShaderSource(ItemShaderSource.Own),
             DefaultLayer<T>(),
             Tags.Get<EditorItem>());
+
+    /// <summary>The blend an item of this kind starts with (<see cref="ItemKind.DefaultBlend"/>).</summary>
+    public static BlendMode DefaultBlend<T>() where T : struct, IComponent =>
+        ItemKinds.For<T>()?.DefaultBlend ?? BlendMode.Mix;
 
     /// <summary>
     /// Creates an item that already carries its shader. Adding the component
@@ -40,11 +44,11 @@ public static class EditorItems
         bool hasCommon = !string.IsNullOrEmpty(commonShaderPath);
 
         if (hasSlot && hasCommon)
-            return entities.CreateEntity(component, new ItemShader(shaderSlot), new ItemCommonShader(commonShaderPath), new SelfModulate(Colors.White), new ItemBlend(BlendMode.Mix), new ItemShaderSource(ItemShaderSource.Own), DefaultLayer<T>(), Tags.Get<EditorItem>());
+            return entities.CreateEntity(component, new ItemShader(shaderSlot), new ItemCommonShader(commonShaderPath), new SelfModulate(Colors.White), new ItemBlend(DefaultBlend<T>()), new ItemShaderSource(ItemShaderSource.Own), DefaultLayer<T>(), Tags.Get<EditorItem>());
         if (hasSlot)
-            return entities.CreateEntity(component, new ItemShader(shaderSlot), new SelfModulate(Colors.White), new ItemBlend(BlendMode.Mix), new ItemShaderSource(ItemShaderSource.Own), DefaultLayer<T>(), Tags.Get<EditorItem>());
+            return entities.CreateEntity(component, new ItemShader(shaderSlot), new SelfModulate(Colors.White), new ItemBlend(DefaultBlend<T>()), new ItemShaderSource(ItemShaderSource.Own), DefaultLayer<T>(), Tags.Get<EditorItem>());
         if (hasCommon)
-            return entities.CreateEntity(component, new ItemCommonShader(commonShaderPath), new SelfModulate(Colors.White), new ItemBlend(BlendMode.Mix), new ItemShaderSource(ItemShaderSource.Own), DefaultLayer<T>(), Tags.Get<EditorItem>());
+            return entities.CreateEntity(component, new ItemCommonShader(commonShaderPath), new SelfModulate(Colors.White), new ItemBlend(DefaultBlend<T>()), new ItemShaderSource(ItemShaderSource.Own), DefaultLayer<T>(), Tags.Get<EditorItem>());
         return Create(entities, component);
     }
 
@@ -78,12 +82,7 @@ public static class EditorItems
         !entity.IsNull && entity.Tags.Has<EditorItem>();
 
     /// <summary>Whether the colour field's self modulate applies to an item.</summary>
-    public static bool IsTintable(Entity item) =>
-        !item.IsNull &&
-        (item.HasComponent<Note>() || item.HasComponent<Mine>() ||
-         item.HasComponent<Block>() || item.HasComponent<Spike>() ||
-         item.HasComponent<LevelText>() || item.HasComponent<GrassPatch>() ||
-         item.HasComponent<LevelPolygon>());
+    public static bool IsTintable(Entity item) => ItemKinds.Of(item)?.Tintable == true;
 
     /// <summary>
     /// The most objects a level may hold. Placing, painting and pasting stop
@@ -110,179 +109,33 @@ public static class EditorItems
     }
 }
 
-/// <summary>Read/write timing for any editor playfield item.</summary>
+/// <summary>Read/write timing for any editor playfield item; only timed kinds have one.</summary>
 public static class EditorItemTiming
 {
     public static bool TryGet(Entity entity, out long timeMs)
     {
-        if (entity.HasComponent<Note>())
-        {
-            timeMs = entity.GetComponent<Note>().TimeMs;
-            return true;
-        }
-
-        if (entity.HasComponent<Mine>())
-        {
-            timeMs = entity.GetComponent<Mine>().TimeMs;
-            return true;
-        }
-
-        if (entity.HasComponent<StartPoint>())
-        {
-            timeMs = entity.GetComponent<StartPoint>().TimeMs;
-            return true;
-        }
-
-        timeMs = 0;
-        return false;
+        long? time = ItemKinds.Of(entity)?.Time(entity);
+        timeMs = time ?? 0;
+        return time is not null;
     }
 
-    public static bool Set(Entity entity, long timeMs)
-    {
-        if (entity.HasComponent<Note>())
-        {
-            entity.GetComponent<Note>().TimeMs = timeMs;
-            return true;
-        }
-
-        if (entity.HasComponent<Mine>())
-        {
-            entity.GetComponent<Mine>().TimeMs = timeMs;
-            return true;
-        }
-
-        if (entity.HasComponent<StartPoint>())
-        {
-            entity.GetComponent<StartPoint>().TimeMs = timeMs;
-            return true;
-        }
-
-        return false;
-    }
+    public static bool Set(Entity entity, long timeMs) => ItemKinds.Of(entity)?.SetTime(entity, timeMs) == true;
 }
 
-/// <summary>Read/write playfield position for any editor item.</summary>
+/// <summary>Read/write playfield position for any editor item: its kind's <see cref="ItemKind.Position"/>.</summary>
 public static class EditorItemPosition
 {
     public static bool TryGet(Entity entity, out Vector2 position)
     {
-        if (entity.HasComponent<Note>())
-        {
-            position = entity.GetComponent<Note>().Position;
-            return true;
-        }
-
-        if (entity.HasComponent<Mine>())
-        {
-            position = entity.GetComponent<Mine>().Position;
-            return true;
-        }
-
-        if (entity.HasComponent<StartPoint>())
-        {
-            position = entity.GetComponent<StartPoint>().Position;
-            return true;
-        }
-
-        if (entity.HasComponent<Block>())
-        {
-            position = entity.GetComponent<Block>().Center;
-            return true;
-        }
-
-        if (entity.HasComponent<Spike>())
-        {
-            position = entity.GetComponent<Spike>().Center;
-            return true;
-        }
-
-        if (entity.HasComponent<LevelText>())
-        {
-            position = entity.GetComponent<LevelText>().Position;
-            return true;
-        }
-
-        if (entity.HasComponent<GrassPatch>())
-        {
-            position = entity.GetComponent<GrassPatch>().Position;
-            return true;
-        }
-
-        if (entity.HasComponent<LevelPolygon>())
-        {
-            position = entity.GetComponent<LevelPolygon>().Position;
-            return true;
-        }
-
-        if (entity.HasComponent<ScreenReadRegion>())
-        {
-            position = entity.GetComponent<ScreenReadRegion>().Bounds.GetCenter();
-            return true;
-        }
-
-        position = default;
-        return false;
+        ItemKind? kind = ItemKinds.Of(entity);
+        position = kind?.Position(entity) ?? default;
+        return kind is not null;
     }
 
     public static bool Set(Entity entity, Vector2 position)
     {
-        if (entity.HasComponent<Note>())
-        {
-            entity.GetComponent<Note>().Position = position;
-            return true;
-        }
-
-        if (entity.HasComponent<Mine>())
-        {
-            entity.GetComponent<Mine>().Position = position;
-            return true;
-        }
-
-        if (entity.HasComponent<StartPoint>())
-        {
-            entity.GetComponent<StartPoint>().Position = position;
-            return true;
-        }
-
-        if (entity.HasComponent<Block>())
-        {
-            ref Block block = ref entity.GetComponent<Block>();
-            block.Position = position - block.Size / 2;
-            return true;
-        }
-
-        if (entity.HasComponent<Spike>())
-        {
-            ref Spike spike = ref entity.GetComponent<Spike>();
-            spike.Position = position - spike.Size / 2;
-            return true;
-        }
-
-        if (entity.HasComponent<LevelText>())
-        {
-            entity.GetComponent<LevelText>().Position = position;
-            return true;
-        }
-
-        if (entity.HasComponent<GrassPatch>())
-        {
-            entity.GetComponent<GrassPatch>().Position = position;
-            return true;
-        }
-
-        if (entity.HasComponent<LevelPolygon>())
-        {
-            entity.GetComponent<LevelPolygon>().Position = position;
-            return true;
-        }
-
-        if (entity.HasComponent<ScreenReadRegion>())
-        {
-            ref ScreenReadRegion region = ref entity.GetComponent<ScreenReadRegion>();
-            region.Position = position - region.Size / 2;
-            return true;
-        }
-
-        return false;
+        ItemKind? kind = ItemKinds.Of(entity);
+        kind?.SetPosition(entity, position);
+        return kind is not null;
     }
 }

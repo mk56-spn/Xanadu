@@ -46,6 +46,9 @@ public sealed class XmfVariant : IChartItems
     /// <summary>Grass patches: swaying blades with no collision.</summary>
     public List<GrassDocument> Grass { get; set; } = new();
 
+    /// <summary>Lens flares: shader-drawn light with no collision.</summary>
+    public List<FlareDocument> Flares { get; set; } = new();
+
     /// <summary>Filled shapes with no collision.</summary>
     public List<PolygonDocument> Polygons { get; set; } = new();
 
@@ -63,6 +66,65 @@ public sealed class XmfVariant : IChartItems
 
     /// <summary>The mapset shader slot the playfield background is drawn with, or 0 for none.</summary>
     public int FieldShader { get; set; }
+
+    /// <summary>The variant a level document's chart makes; its lists are shared, not copied.</summary>
+    public static XmfVariant From(LevelDocument document) => new()
+    {
+        Id = document.Id,
+        Slug = document.Slug,
+        Name = document.Name,
+        SnapDivision = document.SnapDivision,
+        PlayfieldWidth = document.PlayfieldWidth,
+        PlayfieldHeight = document.PlayfieldHeight,
+        BackgroundColor = document.BackgroundColor,
+        OutsideColor = document.OutsideColor,
+        FrameColor = document.FrameColor,
+        Notes = document.Notes,
+        Mines = document.Mines,
+        StartPoints = document.StartPoints,
+        Blocks = document.Blocks,
+        Spikes = document.Spikes,
+        Texts = document.Texts,
+        Grass = document.Grass,
+        Flares = document.Flares,
+        Polygons = document.Polygons,
+        ScreenReads = document.ScreenReads,
+        Groups = document.Groups,
+        Layers = document.Layers,
+        PlayerShader = document.PlayerShader,
+        FieldShader = document.FieldShader,
+    };
+
+    /// <summary>The level document this variant makes, with a song and shaders from outside it.</summary>
+    public LevelDocument ToDocument(int version, string songId, List<ShaderDocument> shaders) => new()
+    {
+        Version = version,
+        Id = Id,
+        Slug = Slug,
+        SongId = songId,
+        Name = Name,
+        SnapDivision = SnapDivision,
+        PlayfieldWidth = PlayfieldWidth,
+        PlayfieldHeight = PlayfieldHeight,
+        BackgroundColor = BackgroundColor,
+        OutsideColor = OutsideColor,
+        FrameColor = FrameColor,
+        Notes = Notes,
+        Mines = Mines,
+        StartPoints = StartPoints,
+        Blocks = Blocks,
+        Spikes = Spikes,
+        Texts = Texts,
+        Grass = Grass,
+        Flares = Flares,
+        Polygons = Polygons,
+        ScreenReads = ScreenReads,
+        Groups = Groups,
+        Layers = Layers,
+        Shaders = shaders,
+        PlayerShader = PlayerShader,
+        FieldShader = FieldShader,
+    };
 }
 
 /// <summary>

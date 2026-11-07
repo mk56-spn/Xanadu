@@ -63,7 +63,7 @@ public sealed class LevelLayerTableTests
         byte[] data = XmfBinary.Write(new LevelDocument { Name = "Plain" });
         ChunkReader reader = ChunkReader.Open(data, "XMF1"u8.ToArray(), XmfBinary.MajorVersion, "XMF");
 
-        Assert.That(reader.TryGet(18, out _), Is.False);
+        Assert.That(reader.TryGet((uint)XmfChunk.Layers, out _), Is.False);
         Assert.That(XmfBinary.Read(data).Layers, Is.Empty);
     }
 
