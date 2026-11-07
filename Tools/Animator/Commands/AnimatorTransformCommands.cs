@@ -13,120 +13,16 @@ public static class AnimatorTransformCommands
 {
     /// <summary>Sets the selection's rotation exactly, in radians; keyed straight away with auto key.</summary>
     public static void SetRotation(Entity session, float radians) =>
-        AnimatorHistoryCommands.Edit(session, () =>
-        {
-            ref AnimatorDocument document = ref session.GetComponent<AnimatorDocument>();
-            AnimatorSelection selection = session.GetComponent<AnimatorSelection>();
-            AnimatorModes modes = session.GetComponent<AnimatorModes>();
-            document.Runtime.SetPaused(true);
-
-            int changed = 0;
-            if (modes.Rest)
-            {
-                List<int> edited = Bones(session, selection);
-                AnimatorRestPin.Pinned? pinned = AnimatorRestPin.Capture(session, edited);
-                foreach (int index in edited)
-                {
-                    XafBone bone = document.Package.Skeleton.Bones[index];
-                    bone.Rest = new Transform2D(radians, bone.Rest.Scale, 0f, bone.Rest.Origin);
-                    changed++;
-                }
-                AnimatorRestPin.Restore(session, pinned);
-            }
-            else
-            {
-                foreach (int index in Bones(session, selection))
-                {
-                    document.Runtime.Pose.Bones[index].Rotation = radians;
-                    changed++;
-                }
-            }
-
-            if (changed == 0 && selection.Attachment >= 0)
-            {
-                if (modes.Rest)
-                {
-                    XafAttachment attachment = document.Package.Attachments[selection.Attachment];
-                    attachment.Transform = new Transform2D(
-                        radians, attachment.Transform.Scale, 0f, attachment.Transform.Origin);
-                }
-                else
-                {
-                    document.Runtime.Pose.Attachments[selection.Attachment].Rotation = radians;
-                }
-                changed = 1;
-            }
-
-            if (changed == 0 && EditEffect(session, transform => transform with { Rotation = radians }))
-                changed = 1;
-
-            if (changed == 0)
-                return;
-
-            string keyed = modes.Rest ? "" : AnimatorEditing.KeyEdit(session);
-            AnimatorSession.SetStatus(
-                session, (changed == 1 ? "ROTATION SET" : $"ROTATION SET ON {changed} BONES") + keyed);
-        });
+        Set(session, "ROTATION SET", transform => transform with { Rotation = radians });
 
     /// <summary>Sets the selection's scale exactly, in the pose or the rest transform.</summary>
-    public static void SetScale(Entity session, Vector2 scale) =>
-        AnimatorHistoryCommands.Edit(session, () =>
-        {
-            Vector2 clamped = new(
-                Mathf.Clamp(scale.X, 0.01f, 20f),
-                Mathf.Clamp(scale.Y, 0.01f, 20f));
-            ref AnimatorDocument document = ref session.GetComponent<AnimatorDocument>();
-            AnimatorSelection selection = session.GetComponent<AnimatorSelection>();
-            AnimatorModes modes = session.GetComponent<AnimatorModes>();
-            document.Runtime.SetPaused(true);
-
-            int changed = 0;
-            if (modes.Rest)
-            {
-                List<int> edited = Bones(session, selection);
-                AnimatorRestPin.Pinned? pinned = AnimatorRestPin.Capture(session, edited);
-                foreach (int index in edited)
-                {
-                    XafBone bone = document.Package.Skeleton.Bones[index];
-                    bone.Rest = new Transform2D(bone.Rest.Rotation, clamped, 0f, bone.Rest.Origin);
-                    changed++;
-                }
-                AnimatorRestPin.Restore(session, pinned);
-            }
-            else
-            {
-                foreach (int index in Bones(session, selection))
-                {
-                    document.Runtime.Pose.Bones[index].Scale = clamped;
-                    changed++;
-                }
-            }
-
-            if (changed == 0 && selection.Attachment >= 0)
-            {
-                if (modes.Rest)
-                {
-                    XafAttachment attachment = document.Package.Attachments[selection.Attachment];
-                    attachment.Transform = new Transform2D(
-                        attachment.Transform.Rotation, clamped, 0f, attachment.Transform.Origin);
-                }
-                else
-                {
-                    document.Runtime.Pose.Attachments[selection.Attachment].Scale = clamped;
-                }
-                changed = 1;
-            }
-
-            if (changed == 0 && EditEffect(session, transform => transform with { Scale = clamped }))
-                changed = 1;
-
-            if (changed == 0)
-                return;
-
-            string keyed = modes.Rest ? "" : AnimatorEditing.KeyEdit(session);
-            AnimatorSession.SetStatus(
-                session, (changed == 1 ? "SCALE SET" : $"SCALE SET ON {changed} BONES") + keyed);
-        });
+    public static void SetScale(Entity session, Vector2 scale)
+    {
+        Vector2 clamped = new(
+            Mathf.Clamp(scale.X, 0.01f, 20f),
+            Mathf.Clamp(scale.Y, 0.01f, 20f));
+        Set(session, "SCALE SET", transform => transform with { Scale = clamped });
+    }
 
     /// <summary>
     /// Sets the selection's local translation. Fixed-length bones can only be
@@ -134,6 +30,19 @@ public static class AnimatorTransformCommands
     /// why when nothing could move.
     /// </summary>
     public static void SetTranslation(Entity session, Vector2 translation) =>
+        Set(session, "POSITION SET", transform => transform with { Translation = translation }, posesFixed: false);
+
+    /// <summary>
+    /// Applies <paramref name="change"/> to the selected bones, or else the
+    /// selected attachment, or else the selected effect: to the rest transform
+    /// in rest mode and to the pose otherwise. Unless <paramref name="posesFixed"/>,
+    /// fixed-length bones keep their pose and are counted in the status instead.
+    /// </summary>
+    private static void Set(
+        Entity session,
+        string label,
+        System.Func<XafTransform, XafTransform> change,
+        bool posesFixed = true) =>
         AnimatorHistoryCommands.Edit(session, () =>
         {
             ref AnimatorDocument document = ref session.GetComponent<AnimatorDocument>();
@@ -150,8 +59,7 @@ public static class AnimatorTransformCommands
                 foreach (int index in edited)
                 {
                     XafBone bone = document.Package.Skeleton.Bones[index];
-                    bone.Rest = new Transform2D(
-                        bone.Rest.Rotation, bone.Rest.Scale, 0f, translation);
+                    bone.Rest = change(XafTransform.From(bone.Rest)).ToTransform();
                     changed++;
                 }
                 AnimatorRestPin.Restore(session, pinned);
@@ -160,14 +68,14 @@ public static class AnimatorTransformCommands
             {
                 foreach (int index in Bones(session, selection))
                 {
-                    XafBone bone = document.Package.Skeleton.Bones[index];
-                    if (!bone.CanTranslate)
+                    if (!posesFixed && !document.Package.Skeleton.Bones[index].CanTranslate)
                     {
                         fixedBones++;
                         continue;
                     }
 
-                    document.Runtime.Pose.Bones[index].Translation = translation;
+                    ref XafTransform pose = ref document.Runtime.Pose.Bones[index];
+                    pose = change(pose);
                     changed++;
                 }
             }
@@ -177,20 +85,17 @@ public static class AnimatorTransformCommands
                 if (modes.Rest)
                 {
                     XafAttachment attachment = document.Package.Attachments[selection.Attachment];
-                    attachment.Transform = new Transform2D(
-                        attachment.Transform.Rotation,
-                        attachment.Transform.Scale,
-                        0f,
-                        translation);
+                    attachment.Transform = change(XafTransform.From(attachment.Transform)).ToTransform();
                 }
                 else
                 {
-                    document.Runtime.Pose.Attachments[selection.Attachment].Translation = translation;
+                    ref XafTransform pose = ref document.Runtime.Pose.Attachments[selection.Attachment];
+                    pose = change(pose);
                 }
                 changed = 1;
             }
 
-            if (changed == 0 && EditEffect(session, transform => transform with { Translation = translation }))
+            if (changed == 0 && EditEffect(session, change))
                 changed = 1;
 
             if (changed == 0)
@@ -207,10 +112,10 @@ public static class AnimatorTransformCommands
             AnimatorSession.SetStatus(
                 session,
                 (fixedBones > 0
-                    ? $"POSITION SET ({fixedBones} FIXED SKIPPED)"
+                    ? $"{label} ({fixedBones} FIXED SKIPPED)"
                     : changed == 1
-                        ? "POSITION SET"
-                        : $"POSITION SET ON {changed} BONES") + keyed);
+                        ? label
+                        : $"{label} ON {changed} BONES") + keyed);
         });
 
     /// <summary>
