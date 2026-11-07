@@ -142,6 +142,7 @@ public static class EditorSceneLayers
             .Main(StackMainAlignment.Start)
             .Hidden();
 
+        EditorSceneUi.Separator(section, inner);
         Entity layer = Stepper(
             section,
             inner,
@@ -149,6 +150,7 @@ public static class EditorSceneLayers
             EditorButtonKind.LayerStep,
             "Move the selection one layer back, past the player wedge if need be",
             "Move the selection one layer forward, past the player wedge if need be");
+        EditorSceneUi.Separator(section, inner);
         Entity z = Stepper(
             section,
             inner,
@@ -156,6 +158,7 @@ public static class EditorSceneLayers
             EditorButtonKind.ZStep,
             "Lower the selection's z: further back inside its layer",
             "Raise the selection's z: further forward inside its layer");
+        EditorSceneUi.Separator(section, inner);
         // Blend is a mode, not a number: a list, not a pair of arrows.
         EditorSceneUi.BuildDropdown(
             section,
@@ -164,6 +167,7 @@ public static class EditorSceneLayers
             BlendModes.All.Select(BlendModes.Name).ToArray(),
             selected: 0,
             height);
+        EditorSceneUi.Separator(section, inner);
         Entity source = Stepper(
             section,
             inner,

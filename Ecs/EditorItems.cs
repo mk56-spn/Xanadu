@@ -58,6 +58,16 @@ public static class EditorItems
     {
         Entity created = Create(entities, component);
         ItemLayer.OnTop(entities, created);
+
+        // A tool-placed item wears the colour picked while nothing was selected.
+        foreach (Entity editor in entities.Query<EditorPlacement>().ToEntityList())
+        {
+            Color modulate = editor.GetComponent<EditorPlacement>().Modulate;
+            if (modulate != Colors.White && IsTintable(created))
+                SelfModulate.Put(created, modulate);
+            break;
+        }
+
         return created;
     }
 
@@ -66,6 +76,38 @@ public static class EditorItems
 
     public static bool IsItem(Entity entity) =>
         !entity.IsNull && entity.Tags.Has<EditorItem>();
+
+    /// <summary>Whether the colour field's self modulate applies to an item.</summary>
+    public static bool IsTintable(Entity item) =>
+        !item.IsNull &&
+        (item.HasComponent<Note>() || item.HasComponent<Mine>() ||
+         item.HasComponent<Block>() || item.HasComponent<Spike>() ||
+         item.HasComponent<LevelText>() || item.HasComponent<GrassPatch>() ||
+         item.HasComponent<LevelPolygon>());
+
+    /// <summary>
+    /// The most objects a level may hold. Placing, painting and pasting stop
+    /// here, so a level stays playable however it is built; loading and undo
+    /// do not check it.
+    /// </summary>
+    public const int MaxItems = 10_000;
+
+    public static int Count(EntityStore entities) =>
+        entities.Query().AllTags(Tags.Get<EditorItem>()).Count;
+
+    /// <summary>
+    /// Whether adding <paramref name="adding"/> more objects would pass
+    /// <see cref="MaxItems"/>. When it would, the editor's status says so.
+    /// </summary>
+    public static bool WouldOverfill(EntityStore entities, Entity editor, int adding = 1)
+    {
+        if (Count(entities) + adding <= MaxItems)
+            return false;
+
+        if (!editor.IsNull && editor.HasComponent<EditorHud>())
+            editor.GetComponent<EditorHud>().StatusText = $"Level is full: {MaxItems:N0} objects at most";
+        return true;
+    }
 }
 
 /// <summary>Read/write timing for any editor playfield item.</summary>

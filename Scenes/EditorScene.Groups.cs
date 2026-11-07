@@ -20,9 +20,8 @@ public static class EditorSceneGroups
     /// sidebar. A cell puts the selection into that group, or takes it out when
     /// every selected item is already in it; groups are opened from the bar.
     /// </summary>
-    internal static void BuildGroupGrid(UiNode ui, Entity editor, float width)
+    internal static void BuildGroupGrid(UiNode ui, Entity editor, float width, Entity label)
     {
-        Entity label = EditorSceneUi.SidebarLabel(ui, "GROUPS", width, 14);
 
         var cells = new Entity[GroupLimits.Count];
         UiNode grid = ui.Grid(
@@ -319,6 +318,55 @@ public static class EditorSceneGroups
         Piece(GroupButton(ui, ">", SceneUi.EditorButtonColor, 32, 28).Tooltip("Scroll the timeline later"), EditorGroupPart.ScrollRight, 0, Place(EditorGroupPart.ScrollRight, 0, dialog));
         Piece(GroupButton(ui, "-", SceneUi.EditorButtonColor, 32, 28).Tooltip("Zoom the timeline out"), EditorGroupPart.ZoomOut, 0, Place(EditorGroupPart.ZoomOut, 0, dialog));
         Piece(GroupButton(ui, "+", SceneUi.EditorButtonColor, 32, 28).Tooltip("Zoom the timeline in"), EditorGroupPart.ZoomIn, 0, Place(EditorGroupPart.ZoomIn, 0, dialog));
+
+        // The selected effect's repeat: ×count, every N beats, and how each cycle plays.
+        Piece(
+            ui.Text("CYCLE", 12, SceneUi.DimTextColor, TextAlign.Left)
+                .Size(104, 28)
+                .Hidden(),
+            EditorGroupPart.CycleTitle,
+            0,
+            Place(EditorGroupPart.CycleTitle, 0, dialog));
+        Piece(
+            GroupField(ui, "1", true, 64),
+            EditorGroupPart.CycleCount,
+            0,
+            Place(EditorGroupPart.CycleCount, 0, dialog));
+        Piece(
+            GroupButton(ui, "−", SceneUi.MutedButtonColor, 30, 28).Tooltip("One cycle fewer"),
+            EditorGroupPart.CycleCountDown,
+            0,
+            Place(EditorGroupPart.CycleCountDown, 0, dialog));
+        Piece(
+            GroupButton(ui, "+", SceneUi.MutedButtonColor, 30, 28).Tooltip("One cycle more"),
+            EditorGroupPart.CycleCountUp,
+            0,
+            Place(EditorGroupPart.CycleCountUp, 0, dialog));
+        Piece(
+            ui.Text("EVERY 1 BEAT", 11, SceneUi.TextColor, TextAlign.Left)
+                .Size(130, 28)
+                .Hidden(),
+            EditorGroupPart.CycleEveryText,
+            0,
+            Place(EditorGroupPart.CycleEveryText, 0, dialog));
+        Piece(
+            GroupButton(ui, "−", SceneUi.MutedButtonColor, 30, 28).Tooltip("Cycles twice as often"),
+            EditorGroupPart.CycleEveryDown,
+            0,
+            Place(EditorGroupPart.CycleEveryDown, 0, dialog));
+        Piece(
+            GroupButton(ui, "+", SceneUi.MutedButtonColor, 30, 28).Tooltip("Cycles half as often"),
+            EditorGroupPart.CycleEveryUp,
+            0,
+            Place(EditorGroupPart.CycleEveryUp, 0, dialog));
+        UiNode cycleMode = GroupButton(ui, "RESTART ▾", SceneUi.MutedButtonColor, 130, 28)
+            .Tooltip("RESTART snaps back each cycle; RETURN goes and comes back; STACK adds each move to the last");
+        UiNode.Layer(entities, root, UiLayers.EditorShaderChoice, null, UiStage.Full).DropdownList(
+            cycleMode.Entity,
+            new[] { "RESTART", "RETURN", "STACK" },
+            0,
+            optionColor: _ => SceneUi.MutedButtonColor);
+        Piece(cycleMode, EditorGroupPart.CycleMode, 0, Place(EditorGroupPart.CycleMode, 0, dialog));
 
         Piece(
             GroupButton(ui, "ITEM SHADER", SceneUi.MutedButtonColor, 104, 28)

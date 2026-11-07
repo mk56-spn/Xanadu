@@ -85,6 +85,13 @@ public struct EditorPlacement() : IComponent
     /// the patch last stepped, so the next patch looks like it.
     /// </summary>
     public GrassPatch Grass = new();
+
+    /// <summary>
+    /// The self modulate new items get. The colour field sets it when a colour is
+    /// picked or typed with nothing tintable selected, and shows it then, so the
+    /// pick sticks instead of falling back to white.
+    /// </summary>
+    public Color Modulate = Colors.White;
 }
 
 /// <summary>A part of the left panel that only shows for the tools that use it.</summary>

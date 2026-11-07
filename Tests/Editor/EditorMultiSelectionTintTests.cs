@@ -56,6 +56,42 @@ public sealed class EditorMultiSelectionTintTests
         _root.Update(new UpdateTick(1f / 60f, 0));
     }
 
+    /// <summary>
+    /// Regression: a colour dragged onto the field used to show for a frame and
+    /// then snap back, because nothing had picked the items it was for.
+    /// </summary>
+    [Test]
+    public void ADroppedColourTintsTheSelectionAndStays()
+    {
+        ref UiColorDrop drop = ref _field.GetComponent<UiColorDrop>();
+        drop.Pending = true;
+        drop.Color = Colors.Red;
+
+        for (int i = 0; i < 5; i++)
+            Frame(Vector2.Zero, pressed: false);
+
+        Assert.That(SelfModulate.Of(_note), Is.EqualTo(Colors.Red));
+        Assert.That(SelfModulate.Of(_block), Is.EqualTo(Colors.Red));
+        Assert.That(_field.GetComponent<UiColorField>().Value, Is.EqualTo(Colors.Red));
+        Assert.That(_field.GetComponent<TextField>().Value, Is.EqualTo(SelfModulate.Format(Colors.Red)));
+        Assert.That(UiColorField.IsEditing(_field), Is.False, "the drop's edit ends once it is applied");
+    }
+
+    [Test]
+    public void ADroppedColourOnTheSwatchStaysToo()
+    {
+        Entity swatch = _field.GetComponent<UiColorField>().Swatch;
+        ref UiColorDrop drop = ref swatch.GetComponent<UiColorDrop>();
+        drop.Pending = true;
+        drop.Color = Colors.Lime;
+
+        for (int i = 0; i < 5; i++)
+            Frame(Vector2.Zero, pressed: false);
+
+        Assert.That(SelfModulate.Of(_note), Is.EqualTo(Colors.Lime));
+        Assert.That(_field.GetComponent<UiColorField>().Value, Is.EqualTo(Colors.Lime));
+    }
+
     [Test]
     public void ATypedColourTintsTheWholeSelection()
     {

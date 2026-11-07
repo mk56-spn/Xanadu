@@ -69,7 +69,7 @@ public sealed class EditorBlockOutlineSystem(EditorHistory history) : QuerySyste
         UiColorField.Show(panel.Color, shownColor);
         UiText.Set(
             panel.Width,
-            shownWidth > 0f ? $"OUTLINE {shownWidth:0}" : "OUTLINE NONE",
+            $"{shownWidth:0}",
             CommandBuffer);
     }
 

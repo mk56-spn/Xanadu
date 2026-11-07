@@ -20,6 +20,10 @@ internal static UiNode ToolSection(UiNode panel, float width, EditorPlacementMod
             .Main(StackMainAlignment.Start)
             .With(new EditorToolSection(modes));
 
+    /// <summary>A thin rule between two settings in a sidebar column.</summary>
+    internal static void Separator(UiNode parent, float width) =>
+        parent.Rect(Palette.BorderStrong, size: new Vector2(width, 1));
+
 internal static Entity SidebarLabel(
         UiNode parent,
         string text,
