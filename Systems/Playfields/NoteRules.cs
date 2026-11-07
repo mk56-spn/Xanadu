@@ -19,10 +19,6 @@ public static class NoteRules
         NoteKind.Channel or
         NoteKind.Construction or
         NoteKind.ConstructionStep;
-
-    /// <summary>Kinds that resolve as an automatic charge check.</summary>
-    public static bool IsBarrier(NoteKind kind) => kind == NoteKind.Contact;
-
     /// <summary>Rail notes are played on the Splitline rail, not the field.</summary>
     public static bool IsRail(NoteKind kind) => kind == NoteKind.Rail;
 

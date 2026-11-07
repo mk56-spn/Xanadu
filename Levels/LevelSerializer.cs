@@ -35,10 +35,6 @@ public static class LevelSerializer
 
     public static byte[] SerializeMapset(XmfMapset mapset) =>
         XmfBinary.WriteMapset(mapset);
-
-    public static XmfMapset DeserializeMapset(byte[] map) =>
-        NormalizeMapset(XmfBinary.ReadMapset(map));
-
     public static XmfMapset NormalizeMapset(XmfMapset mapset)
     {
         if (mapset.Version <= 0)

@@ -50,16 +50,4 @@ public sealed class UiWheelControl(Entity wheel)
             wheel.AddComponent(new UiWheelChanged(wrapped));
         return true;
     }
-
-    public static string LabelAt(Entity wheel, int index)
-    {
-        if (wheel.IsNull || !wheel.HasComponent<UiWheel>())
-            return "";
-
-        UiWheel data = wheel.GetComponent<UiWheel>();
-        if (data.Labels is not { Length: > 0 })
-            return "";
-
-        return data.Labels[UiWheelGeometry.Wrap(index, data.Labels.Length)];
-    }
 }

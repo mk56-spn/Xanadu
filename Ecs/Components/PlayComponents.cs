@@ -400,9 +400,6 @@ public struct ContactCounters : IComponent
 
     public readonly int Get(Xanadu.Settings.KeybindAction action) =>
         IsLeft(action) ? Left : IsRight(action) ? Right : 0;
-
-    public readonly int GetSide(bool left) => left ? Left : Right;
-
     public void Add(Xanadu.Settings.KeybindAction action, int amount = 1)
     {
         if (IsLeft(action))

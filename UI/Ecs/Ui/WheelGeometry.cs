@@ -110,24 +110,4 @@ public static class UiWheelGeometry
 
         return IndexAt(offset, data.Labels.Length, data.StartAngle);
     }
-
-    /// <summary>Screen position of a wedge's label, between the hub and rim.</summary>
-    public static Vector2 LabelPosition(
-        Entity wheel,
-        int index,
-        float radialFraction = 0.64f)
-    {
-        if (wheel.IsNull || !wheel.HasComponent<UiWheel>())
-            return Vector2.Zero;
-
-        UiWheel data = wheel.GetComponent<UiWheel>();
-        if (data.Labels is not { Length: > 0 })
-            return Center(wheel);
-
-        float step = Mathf.Tau / data.Labels.Length;
-        float angle = data.StartAngle + Wrap(index, data.Labels.Length) * step;
-        return Center(wheel) + new Vector2(
-            Mathf.Cos(angle),
-            Mathf.Sin(angle)) * (Radius(wheel) * radialFraction);
-    }
 }

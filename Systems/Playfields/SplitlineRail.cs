@@ -15,10 +15,6 @@ public static class SplitlineRail
     public const float JudgementLine = 0.80f;
     public const float PixelsPerMs = 0.32f;
     public const float NoteRadius = 15f;
-
-    public static bool IsActive(SplitlineState state, ChannelSide side) =>
-        side == ChannelSide.Left ? state.LeftActive : state.RightActive;
-
     public static Vector2 ScreenPosition(
         PlayfieldView view,
         Playfield playfield,

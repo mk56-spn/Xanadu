@@ -111,11 +111,6 @@ public readonly record struct GroupEffect(
     /// <summary>When the cycle playing at a time began, in seconds (the start itself without cycles).</summary>
     public float CycleStart(float seconds, Xanadu.Levels.TempoMap? tempo = null) =>
         Cycling && tempo is not null ? CycleAt(seconds, tempo).Start : Start;
-
-    /// <summary>When the last cycle ends, in seconds.</summary>
-    public float LastEnd(Xanadu.Levels.TempoMap? tempo = null) =>
-        Cycling && tempo is not null ? CycleSpan(Cycles - 1, tempo).End : End;
-
     /// <summary>Cycle <paramref name="index"/>'s start and end in seconds (0 is the effect itself).</summary>
     public (float Start, float End) CycleSpan(int index, Xanadu.Levels.TempoMap tempo)
     {

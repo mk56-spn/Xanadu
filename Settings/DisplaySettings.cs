@@ -31,9 +31,6 @@ public sealed class DisplaySettings
         Apply();
         Save();
     }
-
-    public void ToggleVSync() => SetVSync(!VSyncEnabled);
-
     public void Load()
     {
         DisplayData? data = _file.Load();

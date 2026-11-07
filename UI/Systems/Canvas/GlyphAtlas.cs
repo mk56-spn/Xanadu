@@ -36,10 +36,6 @@ public sealed class GlyphAtlas(
 
     /// <summary>The strip, built the first time it is asked for.</summary>
     public Texture2D Texture => _texture ??= Build();
-
-    /// <summary>Where cell <paramref name="index"/> lies in the texture, in UV space.</summary>
-    public Rect2 CellUv(int index) => new(index / (float)Count, 0f, 1f / Count, 1f);
-
     private DrawableTexture2D Build()
     {
         var texture = new DrawableTexture2D();

@@ -52,10 +52,6 @@ public struct EditorLayers : IComponent
     /// <summary>The editor's layer state, or one with everything shown when it has none.</summary>
     public static EditorLayers Of(Entity editor) =>
         !editor.IsNull && editor.TryGetComponent(out EditorLayers layers) ? layers : default;
-
-    /// <summary>Whether an item can be picked on the canvas in this editor.</summary>
-    public static bool CanPick(Entity editor, Entity item) =>
-        Of(editor).Picks(ItemLayer.Of(item).Layer);
 }
 
 /// <summary>One row of the layers panel and its buttons.</summary>

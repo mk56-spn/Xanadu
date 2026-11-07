@@ -12,7 +12,7 @@ namespace Xanadu.Scenes;
 /// <summary>The small UI builders every editor panel shares: labels, sections, dropdowns and text.</summary>
 internal static class EditorSceneUi
 {
-internal static UiNode ToolSection(UiNode panel, float width, EditorPlacementMode[] modes) =>
+    internal static UiNode ToolSection(UiNode panel, float width, EditorPlacementMode[] modes) =>
         panel.Column()
             .Width(width)
             .AutoHeight()
@@ -24,7 +24,7 @@ internal static UiNode ToolSection(UiNode panel, float width, EditorPlacementMod
     internal static void Separator(UiNode parent, float width) =>
         parent.Rect(Palette.BorderStrong, size: new Vector2(width, 1));
 
-internal static Entity SidebarLabel(
+    internal static Entity SidebarLabel(
         UiNode parent,
         string text,
         float width,
@@ -39,7 +39,7 @@ internal static Entity SidebarLabel(
     /// <see cref="EditorNoteTypeBarSystem"/> hides it for items with no key.
     /// </summary>
 
-internal static Entity BuildDropdown(
+    internal static Entity BuildDropdown(
         UiNode parent,
         float width,
         EditorDropdownKind kind,
@@ -56,17 +56,7 @@ internal static Entity BuildDropdown(
         return button.With(new EditorDropdownControl(kind)).Entity;
     }
 
-internal static void SetDropdownSelected(Entity button, int selected)
-    {
-        if (button.IsNull || !button.HasComponent<Dropdown>())
-            return;
-
-        ref Dropdown dropdown = ref button.GetComponent<Dropdown>();
-        dropdown.Selected = selected;
-        dropdown.Open = false;
-    }
-
-internal static Entity HudText(
+    internal static Entity HudText(
         UiNode parent,
         Vector2 center,
         Vector2 size,
