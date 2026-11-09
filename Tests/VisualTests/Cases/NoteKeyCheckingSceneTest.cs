@@ -11,8 +11,8 @@ using Position = Xanadu.Ecs.Position;
 namespace Xanadu.Tests.VisualTests;
 
 /// <summary>
-/// Regression: a press only hits a note whose key it matches. Unbound keys and
-/// the wrong bound key must leave every note alone.
+/// Regression: a press only hits a note whose action key it matches. Unbound
+/// keys and the wrong action key must leave every note alone.
 /// </summary>
 public sealed class NoteKeyCheckingSceneTest : SceneTest
 {
@@ -38,7 +38,7 @@ public sealed class NoteKeyCheckingSceneTest : SceneTest
                 TimeMs = 1_000,
                 X = 500,
                 Y = 500,
-                Target = KeybindAction.Action1,
+                Target = KeybindAction.Action3,
                 Kind = NoteKind.Hit,
             });
             Context.Scenes.StartPlay(
@@ -60,17 +60,17 @@ public sealed class NoteKeyCheckingSceneTest : SceneTest
         AddAssert(
             "wrong key hit nothing",
             () => NoteCount() == 2 && NotesHit() == 0);
-        AddStep("press the left key", () => Press(Key.S));
-        AddWaitStep("left key settles", 2);
+        AddStep("press the first action key", () => Press(Key.F));
+        AddWaitStep("first action key settles", 2);
         AddAssert(
-            "left key hit only the left note",
+            "the first action key hit only its note",
             () => NoteCount() == 1 &&
                   NotesHit() == 1 &&
-                  RemainingTarget() == KeybindAction.Action1);
-        AddStep("press the right key", () => Press(Key.J));
-        AddWaitStep("right key settles", 2);
+                  RemainingTarget() == KeybindAction.Action3);
+        AddStep("press the third action key", () => Press(Key.J));
+        AddWaitStep("third action key settles", 2);
         AddAssert(
-            "right key hit the right note",
+            "the third action key hit the other note",
             () => NoteCount() == 0 && NotesHit() == 2);
     }
 

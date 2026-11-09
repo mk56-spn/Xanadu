@@ -37,7 +37,7 @@ public sealed class SettingsSceneTest : SceneTest
                   VisualAssert.CountUninitialised(
                       Context.Entities,
                       UiLayers.Menu) == 0 &&
-                  VisualAssert.HasText(Context.Entities, "L1"));
+                  VisualAssert.HasText(Context.Entities, KeybindSettings.LabelFor(KeybindAction.Left)));
         AddAssert(
             "SETTINGS title exists",
             () => VisualAssert.HasText(Context.Entities, "SETTINGS"));

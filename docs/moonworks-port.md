@@ -14,8 +14,8 @@ under it saying what changed from the plan.
 
 Update this block at the end of every session, including partial progress.
 
-- **Updated:** 2026-11-09 (sixth session)
-- **Done:** steps 0, 1, 3, 4 and 6, most of step 2, and most of step 5. The
+- **Updated:** 2026-11-10 (seventh session)
+- **Done:** steps 0, 1, 3 to 10, and most of step 2 (step 5 for parity). The
   host draws buffered groups, self-contained layer passes, background-reader
   passes and screen-reading shaders (frosted glass) through a multi-pass
   renderer.
@@ -30,10 +30,9 @@ Update this block at the end of every session, including partial progress.
 - **Step 10:** the Animator and the UI Showcase are plain host exes. UI icons
   now load on the host (SVG through `SvgRaster`, now in Core).
 - **Visual tests (step 10):** the harness runs on the host
-  (`dotnet run --project Tests/VisualTests`, `run-visual-tests.sh`); 57 of 61
-  pass. The 4 left failed the same way under Godot before the port (see the
-  step 10 item).
-- **Next:** fix or retire the 3 failing visual tests, then step 11. Still open from earlier steps:
+  (`dotnet run --project Tests/VisualTests`, `run-visual-tests.sh`), and all
+  61 pass.
+- **Next:** step 11 (delete Godot). Still open from earlier steps:
   - step 2: play a level by hand with the keyboard;
   - step 5: done for parity. Per-item data in a storage buffer is deferred,
     and the slot model moved to "Later".
@@ -831,10 +830,9 @@ D7–D17 against the host:
   - stale expectations updated (collapsible headers carry `▾`, group-cell
     tooltip text, three action-key swatches, `0/cap` contact counters, grass
     sits in the Decorations flyout).
-  - **Still failing (pre-port too):** `settings` (waits for an "L1" label),
-    `note-key-checking`, `editor-dropdowns` (toolbar zoom never reaches 32),
-    and `editor-groups` (no tint key after SHD +; its test shader is Godot
-    source).
+  - The last failures were tests left behind by the v2 redesign (action
+    labels, zoom levels, key test targets) and a Godot-source test shader.
+    **All 61 pass** (2026-11-10).
   - The START POINT panel floated over the sidebar's GROUPS grid. Its fields
     now sit in the SELECTION card, shown while a start point is selected.
 

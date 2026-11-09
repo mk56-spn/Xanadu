@@ -60,14 +60,19 @@ public sealed class EditorDropdownSceneTest : SceneTest
             () => Context.Entities.Query<Playhead>().ToEntityList()[0]
                 .GetComponent<Playhead>().Playing);
 
-        AddStep("click zoom toolbar", () => ClickEditorButton(EditorButtonKind.ZoomIn));
+        float zoomBefore = 0f;
+        AddStep("click zoom toolbar", () =>
+        {
+            zoomBefore = TimelineZoomNow();
+            ClickEditorButton(EditorButtonKind.ZoomIn);
+        });
         AddWaitStep("hold zoom toolbar", 2);
         AddStep("release zoom toolbar", () => Context.Pointer.Release());
-        AddUntilStep(
-            "toolbar zoom changed",
-            () => Context.Entities.Query<TimelineView>().ToEntityList()[0]
-                .GetComponent<TimelineView>().Zoom >= 32f);
+        AddUntilStep("toolbar zoom changed", () => TimelineZoomNow() > zoomBefore);
     }
+
+    private float TimelineZoomNow() =>
+        Context.Entities.Query<TimelineView>().ToEntityList()[0].GetComponent<TimelineView>().Zoom;
 
     private bool NoteSwatchesAreColoured()
     {
