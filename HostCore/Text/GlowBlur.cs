@@ -52,6 +52,16 @@ internal static class GlowBlur
             for (int x = 0; x < glyph.Width; x++)
                 mask[(y + pad) * w + x + pad] = glyph.Coverage[y * glyph.Width + x] / 255f;
 
+        return new GlyphBitmap(w, h, glyph.Left - pad, glyph.Top + pad, Blur(mask, w, h, radius, intensity));
+    }
+
+    /// <summary>
+    /// Blurs a coverage <paramref name="mask"/> (0..1, rows top first, with
+    /// <see cref="Padding"/> of clear room around what it covers) in place, and
+    /// returns its alpha scaled by the intensity and clamped, as bytes.
+    /// </summary>
+    public static byte[] Blur(float[] mask, int w, int h, float radius, float intensity)
+    {
         float step = Step(radius);
         var across = new float[w * h];
         Pass(mask, across, w, h, step, 1, 0);
@@ -60,8 +70,7 @@ internal static class GlowBlur
         var coverage = new byte[w * h];
         for (int i = 0; i < coverage.Length; i++)
             coverage[i] = (byte)(Math.Clamp(mask[i] * intensity, 0f, 1f) * 255f + 0.5f);
-
-        return new GlyphBitmap(w, h, glyph.Left - pad, glyph.Top + pad, coverage);
+        return coverage;
     }
 
     /// <summary>One axis, sampling between pixels linearly as the GPU's filter did; outside is clear.</summary>

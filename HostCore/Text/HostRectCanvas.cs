@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Godot;
+using Xanadu.Ecs;
 using Xanadu.Host.Rendering;
 using Xanadu.Systems.Canvas;
 using Xanadu.Ui.Ecs.Ui;
@@ -12,7 +13,8 @@ namespace Xanadu.Host.Text;
 /// outlines and glows from <see cref="HostText"/>. Each string becomes one
 /// textured triangle array per atlas page on the canvas item, in command
 /// order, laid out as <c>GodotRectCanvas</c> lays it out (4 px side padding,
-/// the line centred vertically in its box).
+/// the line centred vertically in its box). Shape glows come from
+/// <see cref="HostShapeGlow"/>.
 /// </summary>
 internal sealed class HostRectCanvas(HostText text) : ServerRectCanvas, IRectCanvas
 {
@@ -20,6 +22,10 @@ internal sealed class HostRectCanvas(HostText text) : ServerRectCanvas, IRectCan
     private const float TextPadding = 4;
 
     private readonly List<HostText.Placed> _placed = new();
+    private HostShapeGlow? _shapeGlow;
+
+    public void DrawShapeGlow(Rid canvas, ReadOnlySpan<Vector2> points, bool closed, bool filled, float strokeWidth, ShapeGlow glow) =>
+        (_shapeGlow ??= new HostShapeGlow(Server)).Draw(canvas, points, closed, filled, strokeWidth, glow);
 
     public override void DrawText(Rid canvas, Rect2 bounds, string text, Color color) =>
         Draw(canvas, bounds, text, color, FontSize, TextAlign.Center, FontKind.Regular);

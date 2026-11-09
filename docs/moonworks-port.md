@@ -35,8 +35,8 @@ Update this block at the end of every session, including partial progress.
   step 10 item).
 - **Next:** fix or retire the 4 failing visual tests, then step 11. Still open from earlier steps:
   - step 2: play a level by hand with the keyboard;
-  - step 5: per-item data in a storage buffer, the vertex slot and chains,
-    and shape glow.
+  - step 5: the vertex slot and chains. Shape glow is done. Per-item data
+    in a storage buffer is deferred (see step 5).
 - **Committed:** everything through step 9.
 - **After cloning:** run `External/fetch-moonlibs.sh` once (the host build fails
   with that message otherwise).
@@ -465,6 +465,14 @@ How it is wired (2026-11-09):
 - [~] `IShaderCanvasItems` for the new renderer: a material per run (now a slot
   set), copy-screen and copy-rectangle.
 - [ ] Per-item data (instance uniforms) in a storage buffer per frame (§3).
+  **Deferred (2026-11-10):** instance values already draw right, one batch per
+  item that has them. Moving them to a storage buffer breaks `xanadu.stage`
+  v1's "values are uniform buffer 1" and every shipped effect, for fewer draw
+  calls only. Revisit if those draws show up as a cost.
+- [x] Shape glow: `HostShapeGlow` (HostCore/Text) rasterises the outline as
+  `GodotShapeGlow`'s mask shader did, blurs it with text's `GlowBlur`, and
+  keeps one texture per shape (relative to its floored corner) while an item
+  draws it. Shot: song select's underline and row frame.
 - [~] Rewrite the game shaders as slot effects: `Assets/Shaders/note_background`,
   `flare`, `wave_background`, plus the UI materials (`UiTextGradient`,
   `ColorPickerMaterials`, `GodotShapeGlow`).
@@ -519,7 +527,6 @@ How the first half landed (2026-11-09):
   - per-item data in a storage buffer (instance values are per batch for now);
   - frosted glass (needs the screen read, step 6);
   - `wave_background` and `preview_plasma` (nothing on the host path uses them yet);
-  - `GodotShapeGlow`;
   - copy-screen and copy-rectangle (step 6).
 
 Level slots, cache and tuner (2026-11-09):
