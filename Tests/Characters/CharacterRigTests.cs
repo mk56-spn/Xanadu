@@ -160,7 +160,7 @@ public sealed class CharacterRigTests : EcsSystemTest
         string root = Path.Combine(Path.GetTempPath(), $"xaf-rebase-{Guid.NewGuid():N}");
         string characters = Path.Combine(root, "Animations", "Characters");
         Directory.CreateDirectory(characters);
-        File.WriteAllText(Path.Combine(root, "project.godot"), "");
+        File.WriteAllText(Path.Combine(root, Xanadu.Storage.GamePaths.RootMarker), "");
         try
         {
             XafPackage package = RigPackage();

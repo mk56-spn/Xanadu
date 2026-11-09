@@ -14,6 +14,12 @@ public static class GamePaths
 {
     private static (string Res, string User)? _roots;
 
+    /// <summary>The file that marks the game folder, the one <c>res://</c> means.</summary>
+    public const string RootMarker = "Xanadu.csproj";
+
+    /// <summary>Whether <paramref name="folder"/> is the game folder.</summary>
+    public static bool IsGameFolder(string folder) => File.Exists(Path.Combine(folder, RootMarker));
+
     /// <summary>Use these folders instead of asking Godot.</summary>
     public static void UseRoots(string res, string user) => _roots = (res, user);
 

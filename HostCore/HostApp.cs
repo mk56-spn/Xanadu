@@ -136,13 +136,13 @@ internal abstract class HostApp : Game
         return display is null || display->refresh_rate < 1 ? 60 : (int)MathF.Round(display->refresh_rate);
     }
 
-    /// <summary>The folder <c>res://</c> means: the one holding the game's <c>project.godot</c>, above the exe.</summary>
+    /// <summary>The folder <c>res://</c> means: the one holding <see cref="GamePaths.RootMarker"/>, above the exe.</summary>
     private static string FindGameFolder()
     {
         for (DirectoryInfo? folder = new(AppContext.BaseDirectory); folder is not null; folder = folder.Parent)
-            if (File.Exists(Path.Combine(folder.FullName, "project.godot")) && Directory.Exists(Path.Combine(folder.FullName, "Assets", "Shaders")))
+            if (GamePaths.IsGameFolder(folder.FullName) && Directory.Exists(Path.Combine(folder.FullName, "Assets", "Shaders")))
                 return folder.FullName;
-        throw new InvalidOperationException("Could not find the game folder (project.godot) above " + AppContext.BaseDirectory);
+        throw new InvalidOperationException($"Could not find the game folder ({GamePaths.RootMarker}) above " + AppContext.BaseDirectory);
     }
 
     /// <summary>A material's values as the compiled effect declares them, for the F2 tuner.</summary>

@@ -15,7 +15,7 @@ public static class XafAssetPaths
     /// <summary>
     /// Rewrites every <c>res://</c> attachment and chain art path to an absolute path under the
     /// project root that contains <paramref name="xafFullPath"/>. Paths are left
-    /// unchanged when no enclosing <c>project.godot</c> is found.
+    /// unchanged when no enclosing game folder is found.
     /// </summary>
     public static void Rebase(XafPackage package, string xafFullPath)
     {
@@ -38,14 +38,14 @@ public static class XafAssetPaths
         }
     }
 
-    /// <summary>Nearest directory at or above the file holding a <c>project.godot</c>.</summary>
+    /// <summary>Nearest directory at or above the file that is a game folder (<see cref="Xanadu.Storage.GamePaths.RootMarker"/>).</summary>
     public static string? ProjectRoot(string fullPath)
     {
         for (string? directory = Path.GetDirectoryName(Path.GetFullPath(fullPath));
              directory is not null;
              directory = Path.GetDirectoryName(directory))
         {
-            if (File.Exists(Path.Combine(directory, "project.godot")))
+            if (Xanadu.Storage.GamePaths.IsGameFolder(directory))
                 return directory;
         }
 
