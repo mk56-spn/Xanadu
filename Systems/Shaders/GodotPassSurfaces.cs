@@ -28,8 +28,8 @@ public interface IPassSurface
     /// <summary>The canvas item the layer's content draws into.</summary>
     Rid Canvas { get; }
 
-    /// <summary>The texture to composite, premultiplied; null when unavailable.</summary>
-    Texture2D? Texture { get; }
+    /// <summary>The texture to composite, premultiplied, as a canvas texture id; default when unavailable.</summary>
+    Rid TextureId { get; }
 
     /// <summary>Resizes to the view; the content stays in the same coordinates.</summary>
     void Resize(Vector2 size);
@@ -86,7 +86,7 @@ public sealed class GodotPassSurfaces(Node host) : IPassSurfaces, IDisposable
 
         public Rid Canvas => _content.GetCanvasItem();
 
-        public Texture2D? Texture => GodotObject.IsInstanceValid(_viewport) ? _viewport.GetTexture() : null;
+        public Rid TextureId => GodotObject.IsInstanceValid(_viewport) ? _viewport.GetTexture().GetRid() : default;
 
         public void Resize(Vector2 size)
         {

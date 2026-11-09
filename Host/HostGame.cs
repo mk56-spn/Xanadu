@@ -102,7 +102,8 @@ internal sealed class HostGame : Game
             director,
             UiStage.Design1080,
             keyboard: _keyboard,
-            wheel: _pointer);
+            wheel: _pointer,
+            passSurfaces: () => new HostPassSurfaces(_canvas, _renderer));
         _textInput = new HostTextInput(_entities, MainWindow);
         _fileDialog = new HostFileDialog(MainWindow);
         _systems.Scenes.AddSongRequested = () => _fileDialog.OpenAudio(AddSong);
@@ -233,14 +234,11 @@ internal sealed class HostGame : Game
         }
 
         _text.Atlas.Flush();
-        _renderer.Prepare(commands);
 
         // Palette comes from the game assemblies, and its Godot Color struct works without the engine.
         Godot.Color background = Palette.Background;
-        RenderPass pass = commands.BeginRenderPass(
-            new ColorTargetInfo(_target, new MwColor(background.R, background.G, background.B, 1f)));
-        _renderer.Draw(commands, pass, (float)(DateTime.UtcNow - _started).TotalSeconds);
-        commands.EndRenderPass(pass);
+        _renderer.Render(commands, _target, new MwColor(background.R, background.G, background.B, 1f),
+            (float)(DateTime.UtcNow - _started).TotalSeconds);
 
         commands.Blit(_target, swapchain, Filter.Linear);
 
@@ -254,7 +252,8 @@ internal sealed class HostGame : Game
 
         if (_options.ShotPath is { } path && _frames == _options.ShotFrame)
         {
-            Console.WriteLine($"Canvas: {_canvas.Count} items, {_renderer.LastBatchCount} draw calls");
+            Console.WriteLine($"Canvas: {_canvas.Count} items, {_renderer.LastBatchCount} draw calls, " +
+                $"{_renderer.LastOffscreenCount} offscreen passes, {_renderer.LastCopyCount} screen copies");
             Screenshot.Save(GraphicsDevice, commands, _target, Width, Height, path);
             Quit();
             return;

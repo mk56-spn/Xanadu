@@ -28,7 +28,7 @@ struct Params
 };
 
 [[vk::binding(1, 3)]] ConstantBuffer<Params> params;
-[[vk::binding(1, 2)]] Sampler2D notes;
+[[vk::binding(2, 2)]] Sampler2D notes;
 
 // How far the halo spreads past the ink, as a share of the note's box. The
 // strip leaves a tenth of a cell clear on each side, so this stays inside it.

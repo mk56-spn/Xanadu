@@ -51,6 +51,9 @@ internal sealed class CanvasTree : ICanvasServer
 
     private CanvasItem? Find(Rid rid) => _items.GetValueOrDefault(rid.Id);
 
+    /// <summary>The item behind an id, for the host's own use (offscreen roots).</summary>
+    public CanvasItem? Item(Rid rid) => Find(rid);
+
     public Rid CreateItem() => ToRid(Make().Id);
 
     public void Free(Rid rid)
@@ -156,9 +159,22 @@ internal sealed class CanvasTree : ICanvasServer
         item.InstanceValues[name] = value;
     }
 
-    // Groups composite as one image in step 6; until then the children draw
-    // straight through and the group's modulate applies to each of them.
-    public void SetCanvasGroup(Rid rid, float clearMargin, bool fitEmpty, float fitMargin) { }
+    /// <summary>
+    /// The item and its children draw into an image of their own, composited
+    /// as one quad with the item's material and modulate (step 6). The margins
+    /// are Godot's; the host always fits the image to what was drawn.
+    /// </summary>
+    public void SetCanvasGroup(Rid rid, float clearMargin, bool fitEmpty, float fitMargin)
+    {
+        if (Find(rid) is { } item)
+            item.Group = true;
+    }
+
+    public void SetCopyScreen(Rid rid, bool copy)
+    {
+        if (Find(rid) is { } item)
+            item.CopyScreen = copy;
+    }
 
     public void Clear(Rid rid)
     {
@@ -292,6 +308,12 @@ internal sealed class CanvasItem(ulong id)
 
     /// <summary>What the item's own draws shade and blend with; null is the plain canvas shader.</summary>
     public CanvasMaterial? Material;
+
+    /// <summary>Draws into an image of its own, composited as one (a CanvasGroup).</summary>
+    public bool Group;
+
+    /// <summary>Refreshes the screen copy just before the item draws.</summary>
+    public bool CopyScreen;
 
     /// <summary>Values for this item only, over the material's; null when none were set.</summary>
     public Dictionary<string, Vector4>? InstanceValues;

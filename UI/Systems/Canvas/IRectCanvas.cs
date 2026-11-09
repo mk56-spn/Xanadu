@@ -76,6 +76,13 @@ public interface IRectCanvas
     /// <summary>Routes the draws that follow back to the canvas itself, over every layer.</summary>
     void EndLayers() { }
 
+    /// <summary>
+    /// A rect on the target in the canvas's own coordinates, for something that
+    /// must cover the screen whatever the canvas is shifted by. Canvases that
+    /// don't move draw on the target as it is.
+    /// </summary>
+    Rect2 ToLocal(Rect2 screen) => screen;
+
     void SetVisible(Rid canvas, bool visible);
 
     void SetTransform(Rid canvas, Transform2D transform);
@@ -86,6 +93,9 @@ public interface IRectCanvas
 
     /// <summary>Draws a texture into a rectangle.</summary>
     void DrawTexture(Rid canvas, Rect2 bounds, Texture2D texture) { }
+
+    /// <summary>Draws a texture, by its canvas texture id, into a rectangle.</summary>
+    void DrawTexture(Rid canvas, Rect2 bounds, Rid texture) { }
 
     /// <summary>Draws a filled circle.</summary>
     void DrawCircle(Rid canvas, Vector2 center, float radius, Color color) { }

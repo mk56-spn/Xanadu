@@ -1,50 +1,86 @@
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Runtime.InteropServices;
-using Xanadu.Rendering;
-using Xanadu.Systems.Canvas;
 using Godot;
 using MoonWorks.Graphics;
+using Xanadu.Rendering;
+using Xanadu.Systems.Canvas;
 using Buffer = MoonWorks.Graphics.Buffer;
 using Color = Godot.Color;
+using MwColor = MoonWorks.Graphics.Color;
 using Rect = MoonWorks.Graphics.Rect;
 using Texture = MoonWorks.Graphics.Texture;
-using Shader = MoonWorks.Graphics.Shader;
 
 namespace Xanadu.Host.Rendering;
 
 /// <summary>
-/// Draws a <see cref="CanvasTree"/>: walks it once a frame in Godot's order,
-/// puts every visible item's triangles into one vertex buffer in pixel space,
-/// and draws them in as few calls as the textures and clip rects allow.
+/// Draws a <see cref="CanvasTree"/> (docs/moonworks-port.md steps 2, 5 and 6):
+/// walks it once a frame in Godot's order, puts every visible item's triangles
+/// into one vertex buffer in pixel space, and draws them in as few calls as the
+/// textures, clip rects and materials allow.
 /// </summary>
+/// <remarks>
+/// A frame is a list of <see cref="Job"/>s, each drawing one root into one
+/// target: every registered offscreen root (a self-contained layer's surface),
+/// every buffered group (an item marked as a canvas group, drawn into an image
+/// of its own and composited back as one quad), then the tree itself into the
+/// frame. A job always comes after the jobs whose images it draws.
+/// <para>
+/// Screen reads: before a draw whose effect samples <c>screenTexture</c>, or
+/// one an item asked to refresh the copy for, the pass is ended, the target is
+/// copied into a mipmapped screen texture, and the pass resumes. A copy is only
+/// made if something was drawn since the last one, so a stale image never shows.
+/// </para>
+/// </remarks>
 internal sealed class CanvasRenderer : IDisposable
 {
+    private const float GroupMargin = 2f;
+
     [StructLayout(LayoutKind.Sequential)]
     private struct ViewUniforms { public float Width, Height, Pad0, Pad1; }
 
     /// <summary>xanadu.stage's <c>Frame</c>: fragment uniform buffer 0.</summary>
     [StructLayout(LayoutKind.Sequential)]
-    private struct FrameUniforms { public float Width, Height, Time, Pad; }
+    private struct FrameUniforms { public float Width, Height, Time, ItemPremultiplied; }
 
-    private readonly record struct Entry(int Z, int Sequence, CanvasItem Item, Transform2D Transform, Color Color, Rect Clip);
+    /// <summary>One item's draws in a job, or (with <see cref="Group"/>) a buffered group's composite.</summary>
+    private readonly record struct Entry(int Z, int Sequence, CanvasItem Item, Transform2D Transform, Color Color, Rect Clip, Job? Group = null);
 
     /// <summary>
     /// One draw call: a run of vertices sharing texture, clip and material. An
     /// item with its own instance values is its own batch (<see cref="Owner"/>).
     /// </summary>
-    private readonly record struct Batch(uint Start, uint Count, ulong Texture, Rect Clip, CanvasMaterial? Material, CanvasItem? Owner);
+    private readonly record struct Batch(
+        uint Start, uint Count, ulong Texture, Rect Clip, CanvasMaterial? Material, CanvasItem? Owner,
+        bool Premultiplied, bool CopyBefore);
+
+    /// <summary>One root drawn into one target.</summary>
+    private sealed class Job(CanvasItem root, Texture target, MwColor clear, bool group)
+    {
+        public readonly CanvasItem Root = root;
+        public readonly Texture Target = target;
+        public readonly MwColor Clear = clear;
+        public readonly bool IsGroup = group;
+        public readonly List<Entry> Entries = new();
+        public int FirstBatch, BatchCount;
+
+        /// <summary>Where the group's content landed on its target, for the composite quad.</summary>
+        public float MinX = float.MaxValue, MinY = float.MaxValue, MaxX = float.MinValue, MaxY = float.MinValue;
+    }
 
     private readonly GraphicsDevice _device;
     private readonly CanvasTree _tree;
     private readonly CanvasPipelines _pipelines;
     private readonly Texture _white;
+    private readonly Texture _screen;
     private readonly Sampler _sampler;
     private readonly uint _width, _height;
 
-    private readonly List<Entry> _entries = new();
+    private readonly List<Job> _jobs = new();
     private readonly List<Batch> _batches = new();
+    private readonly List<(CanvasItem Root, Texture Target)> _offscreen = new();
+    private readonly List<Texture> _groupTargets = new();
+    private int _groupTargetsUsed;
     private CanvasVertex[] _vertices = new CanvasVertex[1 << 16];
     private int _vertexCount;
     private Buffer? _buffer;
@@ -59,6 +95,12 @@ internal sealed class CanvasRenderer : IDisposable
     /// <summary>Draw calls in the last frame, for the debug overlay and the step's sanity check.</summary>
     public int LastBatchCount => _batches.Count;
 
+    /// <summary>Screen copies made in the last frame.</summary>
+    public int LastCopyCount { get; private set; }
+
+    /// <summary>Offscreen passes (layer surfaces and buffered groups) in the last frame.</summary>
+    public int LastOffscreenCount => Math.Max(0, _jobs.Count - 1);
+
     public CanvasRenderer(GraphicsDevice device, CanvasTree tree, TextureFormat format, uint width, uint height)
     {
         _device = device;
@@ -71,15 +113,247 @@ internal sealed class CanvasRenderer : IDisposable
         _white = uploader.CreateTexture2D<uint>("white", [0xFFFFFFFFu], TextureFormat.R8G8B8A8Unorm, TextureUsageFlags.Sampler, 1, 1);
         uploader.UploadAndWait();
         uploader.Dispose();
+
+        uint levels = (uint)Math.Floor(Math.Log2(Math.Max(width, height))) + 1;
+        _screen = Texture.Create2D(device, "screen copy", width, height, format,
+            TextureUsageFlags.Sampler | TextureUsageFlags.ColorTarget, levels);
+
         // Linear with linear mips (MaxLod unclamped), so mipmapped textures such as glyph strips filter smoothly.
         _sampler = Sampler.Create(device, SamplerCreateInfo.LinearClamp);
     }
 
-    /// <summary>Turns the tree into this frame's vertices and batches, and copies them to the GPU.</summary>
-    public void Prepare(CommandBuffer commands)
+    /// <summary>Makes a target the size of the frame, for an offscreen root or a group.</summary>
+    public Texture CreateTarget(string name) =>
+        Texture.Create2D(_device, name, _width, _height, TextureFormat.R8G8B8A8Unorm,
+            TextureUsageFlags.Sampler | TextureUsageFlags.ColorTarget);
+
+    /// <summary>Draws <paramref name="root"/> (an item with no parent) into <paramref name="target"/> each frame, before the tree.</summary>
+    public void AddOffscreen(CanvasItem root, Texture target) => _offscreen.Add((root, target));
+
+    public void RemoveOffscreen(CanvasItem root) => _offscreen.RemoveAll(entry => entry.Root == root);
+
+    /// <summary>Draws the whole frame into <paramref name="target"/>, cleared to <paramref name="clear"/>; <paramref name="time"/> is an effect's TIME.</summary>
+    public void Render(CommandBuffer commands, Texture target, MwColor clear, float time)
     {
-        Collect();
+        _jobs.Clear();
+        _groupTargetsUsed = 0;
+        foreach ((CanvasItem root, Texture offscreen) in _offscreen)
+            CollectJob(root, offscreen, new MwColor(0, 0, 0, 0), group: false, Transform2D.Identity, FullClip);
+        CollectJob(_tree.Root, target, clear, group: false, Transform2D.Identity, FullClip);
+
         Build();
+        Upload(commands);
+
+        LastCopyCount = 0;
+        foreach (Job job in _jobs)
+            Draw(commands, job, time);
+    }
+
+    private Rect FullClip => new() { X = 0, Y = 0, W = (int)_width, H = (int)_height };
+
+    // ---- Collecting -------------------------------------------------------
+
+    private Job CollectJob(CanvasItem root, Texture target, MwColor clear, bool group, Transform2D parent, Rect clip)
+    {
+        var job = new Job(root, target, clear, group);
+        int sequence = 0;
+        if (group)
+        {
+            // The group's own draws go inside its image, plain and unfaded: its
+            // material and modulate belong to the composite.
+            Transform2D transform = parent * root.Transform;
+            if (root.Vertices.Count > 0)
+                job.Entries.Add(new Entry(0, sequence++, root, transform, Colors.White, clip));
+            root.SortChildren();
+            foreach (CanvasItem child in root.Children)
+                Visit(job, child, transform, Colors.White, 0, clip, ref sequence);
+        }
+        else
+            Visit(job, root, parent, Colors.White, 0, clip, ref sequence);
+
+        job.Entries.Sort(static (a, b) => a.Z != b.Z ? a.Z.CompareTo(b.Z) : a.Sequence.CompareTo(b.Sequence));
+
+        // Added after any group jobs its visit made, so their images exist when it draws.
+        _jobs.Add(job);
+        return job;
+    }
+
+    private void Visit(Job job, CanvasItem item, Transform2D parent, Color parentModulate, int parentZ, Rect clip, ref int sequence)
+    {
+        if (!item.Visible)
+            return;
+
+        Transform2D transform = parent * item.Transform;
+        Color modulate = parentModulate * item.Modulate;
+        int z = Math.Clamp(parentZ + item.Z, -4096, 4096);
+        if (item.Clip && item.UseCustomRect)
+            clip = Intersect(clip, Bounds(transform, item.CustomRect));
+
+        if (modulate.A <= 0f || clip.W <= 0 || clip.H <= 0)
+            return;
+
+        if (item.Group)
+        {
+            Job inner = CollectJob(item, NextGroupTarget(), new MwColor(0, 0, 0, 0), group: true, parent, FullClip);
+            job.Entries.Add(new Entry(z, sequence++, item, transform, modulate * item.SelfModulate, clip, inner));
+            return;
+        }
+
+        if (item.Vertices.Count > 0)
+            job.Entries.Add(new Entry(z, sequence++, item, transform, modulate * item.SelfModulate, clip));
+
+        item.SortChildren();
+        foreach (CanvasItem child in item.Children)
+            Visit(job, child, transform, modulate, z, clip, ref sequence);
+    }
+
+    private Texture NextGroupTarget()
+    {
+        if (_groupTargetsUsed == _groupTargets.Count)
+            _groupTargets.Add(CreateTarget("group"));
+        return _groupTargets[_groupTargetsUsed++];
+    }
+
+    // ---- Building vertices ------------------------------------------------
+
+    private void Build()
+    {
+        _batches.Clear();
+        _vertexCount = 0;
+        foreach (Job job in _jobs)
+        {
+            job.FirstBatch = _batches.Count;
+            _jobFirstBatch = job.FirstBatch;
+            foreach (Entry entry in job.Entries)
+            {
+                if (entry.Group is { } group)
+                {
+                    AddComposite(entry, group);
+                    continue;
+                }
+
+                CanvasItem item = entry.Item;
+                bool inGroupRoot = job.IsGroup && item == job.Root;
+                List<(int Start, ulong Texture)> runs = item.Runs;
+                for (int r = 0; r < runs.Count; r++)
+                {
+                    int start = runs[r].Start;
+                    int end = r + 1 < runs.Count ? runs[r + 1].Start : item.Vertices.Count;
+                    AddRun(job, item, start, end, entry, runs[r].Texture, plain: inGroupRoot);
+                }
+            }
+
+            job.BatchCount = _batches.Count - job.FirstBatch;
+        }
+    }
+
+    private void AddRun(Job job, CanvasItem item, int start, int end, in Entry entry, ulong texture, bool plain)
+    {
+        int count = end - start;
+        if (count <= 0)
+            return;
+
+        Reserve(count);
+        Transform2D t = entry.Transform;
+        Color tint = entry.Color;
+        Span<CanvasVertex> source = CollectionsMarshal.AsSpan(item.Vertices).Slice(start, count);
+        Span<CanvasVertex> target = _vertices.AsSpan(_vertexCount, count);
+        for (int i = 0; i < count; i++)
+        {
+            ref readonly CanvasVertex v = ref source[i];
+            float x = t.X.X * v.X + t.Y.X * v.Y + t.Origin.X;
+            float y = t.X.Y * v.X + t.Y.Y * v.Y + t.Origin.Y;
+            target[i] = new CanvasVertex(
+                new Vector2(x, y),
+                new Vector2(v.U, v.V),
+                new Color(v.R * tint.R, v.G * tint.G, v.B * tint.B, v.A * tint.A),
+                new Vector2(v.LX, v.LY));
+            if (job.IsGroup)
+            {
+                job.MinX = MathF.Min(job.MinX, x);
+                job.MinY = MathF.Min(job.MinY, y);
+                job.MaxX = MathF.Max(job.MaxX, x);
+                job.MaxY = MathF.Max(job.MaxY, y);
+            }
+        }
+
+        CanvasMaterial? material = plain ? null : item.Material;
+        CanvasItem? owner = !plain && item.InstanceValues is { Count: > 0 } ? item : null;
+        // Only the item's first run carries its copy request.
+        bool copy = item.CopyScreen && start == 0;
+        AddBatch(new Batch((uint)_vertexCount, (uint)count, texture, entry.Clip, material, owner, false, copy));
+        _vertexCount += count;
+    }
+
+    /// <summary>A buffered group's image laid back where the group sits, over the area its content covered.</summary>
+    private void AddComposite(in Entry entry, Job group)
+    {
+        if (group.MinX > group.MaxX)
+            return;
+
+        float x0 = Math.Clamp(MathF.Floor(group.MinX - GroupMargin), 0, _width);
+        float y0 = Math.Clamp(MathF.Floor(group.MinY - GroupMargin), 0, _height);
+        float x1 = Math.Clamp(MathF.Ceiling(group.MaxX + GroupMargin), 0, _width);
+        float y1 = Math.Clamp(MathF.Ceiling(group.MaxY + GroupMargin), 0, _height);
+        if (x1 <= x0 || y1 <= y0)
+            return;
+
+        ulong textureId = GroupTextureId(group.Target);
+        Reserve(6);
+        Color color = entry.Color;
+        Span<Vector2> corners = [new(x0, y0), new(x1, y0), new(x1, y1), new(x0, y0), new(x1, y1), new(x0, y1)];
+        for (int i = 0; i < 6; i++)
+        {
+            Vector2 p = corners[i];
+            _vertices[_vertexCount + i] = new CanvasVertex(p, new Vector2(p.X / _width, p.Y / _height), color, p);
+        }
+
+        CanvasItem item = entry.Item;
+        CanvasItem? owner = item.InstanceValues is { Count: > 0 } ? item : null;
+        AddBatch(new Batch((uint)_vertexCount, 6, textureId, entry.Clip, item.Material, owner, true, item.CopyScreen));
+        _vertexCount += 6;
+    }
+
+    /// <summary>Group targets get canvas texture ids the first time they are composited.</summary>
+    private readonly Dictionary<Texture, ulong> _groupIds = new();
+
+    private ulong GroupTextureId(Texture target)
+    {
+        if (!_groupIds.TryGetValue(target, out ulong id))
+        {
+            id = _tree.MintRid().Id;
+            _groupIds[target] = id;
+            Textures[id] = target;
+        }
+
+        return id;
+    }
+
+    private void AddBatch(Batch batch)
+    {
+        // Never into the previous job's last batch: jobs draw into different targets.
+        if (!batch.CopyBefore && _batches.Count > _jobFirstBatch && _batches[^1] is { } last &&
+            last.Texture == batch.Texture && SameRect(last.Clip, batch.Clip) &&
+            last.Material == batch.Material && last.Owner == batch.Owner &&
+            last.Premultiplied == batch.Premultiplied &&
+            last.Start + last.Count == batch.Start)
+            _batches[^1] = last with { Count = last.Count + batch.Count };
+        else
+            _batches.Add(batch);
+    }
+
+    private int _jobFirstBatch;
+
+    private void Reserve(int count)
+    {
+        if (_vertexCount + count > _vertices.Length)
+            Array.Resize(ref _vertices, Math.Max(_vertices.Length * 2, _vertexCount + count));
+    }
+
+    // ---- GPU --------------------------------------------------------------
+
+    private void Upload(CommandBuffer commands)
+    {
         if (_vertexCount == 0)
             return;
 
@@ -93,20 +367,38 @@ internal sealed class CanvasRenderer : IDisposable
         commands.EndCopyPass(copy);
     }
 
-    /// <summary>Draws what <see cref="Prepare"/> built into the open pass; <paramref name="time"/> is an effect's TIME.</summary>
-    public void Draw(CommandBuffer commands, RenderPass pass, float time)
+    private void Draw(CommandBuffer commands, Job job, float time)
     {
-        if (_vertexCount == 0)
-            return;
-
-        commands.PushVertexUniformData(new ViewUniforms { Width = _width, Height = _height });
-        commands.PushFragmentUniformData(new FrameUniforms { Width = _width, Height = _height, Time = time }, 0);
-        pass.BindVertexBuffers(_buffer!);
-        GraphicsPipeline? bound = null;
-        Span<TextureSamplerBinding> samplers = stackalloc TextureSamplerBinding[8];
-        foreach (Batch batch in _batches)
+        RenderPass pass = commands.BeginRenderPass(new ColorTargetInfo(job.Target, job.Clear));
+        if (job.BatchCount == 0)
         {
+            commands.EndRenderPass(pass);
+            return;
+        }
+
+        var frame = new FrameUniforms { Width = _width, Height = _height, Time = time };
+        commands.PushVertexUniformData(new ViewUniforms { Width = _width, Height = _height });
+        commands.PushFragmentUniformData(frame, 0);
+        Begin(pass);
+        GraphicsPipeline? bound = null;
+        bool drawnSinceCopy = true;
+        Span<TextureSamplerBinding> samplers = stackalloc TextureSamplerBinding[8];
+        for (int b = job.FirstBatch; b < job.FirstBatch + job.BatchCount; b++)
+        {
+            Batch batch = _batches[b];
             CanvasEffect effect = _pipelines.Effect(batch.Material);
+            string[] names = effect.Compiled.Samplers;
+            bool readsScreen = effect.Compiled.ReadsScreen;
+            if ((batch.CopyBefore || readsScreen) && drawnSinceCopy)
+            {
+                commands.EndRenderPass(pass);
+                CopyScreen(commands, job.Target);
+                pass = commands.BeginRenderPass(new ColorTargetInfo(job.Target, LoadOp.Load));
+                Begin(pass);
+                bound = null;
+                drawnSinceCopy = false;
+            }
+
             GraphicsPipeline pipeline = _pipelines.Pipeline(effect, batch.Material?.Blend ?? BlendMode.Mix);
             if (pipeline != bound)
             {
@@ -114,15 +406,23 @@ internal sealed class CanvasRenderer : IDisposable
                 bound = pipeline;
             }
 
+            float premultiplied = batch.Premultiplied ? 1f : 0f;
+            if (frame.ItemPremultiplied != premultiplied)
+            {
+                frame.ItemPremultiplied = premultiplied;
+                commands.PushFragmentUniformData(frame, 0);
+            }
+
             pass.SetScissor(batch.Clip);
-            string[] names = effect.Compiled.Samplers;
-            int count = Math.Max(1, Math.Min(names.Length, samplers.Length));
+            int count = Math.Clamp(names.Length, 1, samplers.Length);
             samplers[0] = new TextureSamplerBinding(Textures.GetValueOrDefault(batch.Texture) ?? _white, _sampler);
             for (int i = 1; i < count; i++)
             {
-                Texture? texture = names[i] is { } name && batch.Material?.Textures.TryGetValue(name, out Rid id) == true
-                    ? Textures.GetValueOrDefault(id.Id)
-                    : null;
+                Texture? texture = i == 1 && names[i] == "screenTexture"
+                    ? _screen
+                    : names[i] is { } name && batch.Material?.Textures.TryGetValue(name, out Rid id) == true
+                        ? Textures.GetValueOrDefault(id.Id)
+                        : null;
                 samplers[i] = new TextureSamplerBinding(texture ?? _white, _sampler);
             }
 
@@ -130,7 +430,20 @@ internal sealed class CanvasRenderer : IDisposable
             if (effect.Compiled.ParamsSize > 0)
                 PushParams(commands, effect.Compiled, batch.Material, batch.Owner?.InstanceValues);
             pass.DrawPrimitives(batch.Count, 1, batch.Start, 0);
+            drawnSinceCopy = true;
         }
+
+        commands.EndRenderPass(pass);
+    }
+
+    private void Begin(RenderPass pass) => pass.BindVertexBuffers(_buffer!);
+
+    /// <summary>The target as it stands into the screen texture, with mips for blurred reads.</summary>
+    private void CopyScreen(CommandBuffer commands, Texture target)
+    {
+        commands.Blit(target, _screen, Filter.Linear);
+        SDL3.SDL.SDL_GenerateMipmapsForGPUTexture(commands.Handle, _screen.Handle);
+        LastCopyCount++;
     }
 
     /// <summary>Packs an effect's values (its defaults, then the material's, then the item's own) into uniform buffer 1.</summary>
@@ -159,90 +472,6 @@ internal sealed class CanvasRenderer : IDisposable
 
         fixed (byte* data = bytes)
             commands.PushFragmentUniformData(data, (uint)bytes.Length, 1);
-    }
-
-    private Rect FullClip => new() { X = 0, Y = 0, W = (int)_width, H = (int)_height };
-
-    private void Collect()
-    {
-        _entries.Clear();
-        int sequence = 0;
-        Visit(_tree.Root, Transform2D.Identity, Colors.White, 0, FullClip, ref sequence);
-        _entries.Sort(static (a, b) => a.Z != b.Z ? a.Z.CompareTo(b.Z) : a.Sequence.CompareTo(b.Sequence));
-    }
-
-    private void Visit(CanvasItem item, Transform2D parent, Color parentModulate, int parentZ, Rect clip, ref int sequence)
-    {
-        if (!item.Visible)
-            return;
-
-        Transform2D transform = parent * item.Transform;
-        Color modulate = parentModulate * item.Modulate;
-        int z = Math.Clamp(parentZ + item.Z, -4096, 4096);
-        if (item.Clip && item.UseCustomRect)
-            clip = Intersect(clip, Bounds(transform, item.CustomRect));
-
-        if (item.Vertices.Count > 0 && modulate.A > 0f && clip.W > 0 && clip.H > 0)
-            _entries.Add(new Entry(z, sequence++, item, transform, modulate * item.SelfModulate, clip));
-
-        item.SortChildren();
-        foreach (CanvasItem child in item.Children)
-            Visit(child, transform, modulate, z, clip, ref sequence);
-    }
-
-    private void Build()
-    {
-        _batches.Clear();
-        _vertexCount = 0;
-        foreach (Entry entry in _entries)
-        {
-            CanvasItem item = entry.Item;
-            List<(int Start, ulong Texture)> runs = item.Runs;
-            for (int r = 0; r < runs.Count; r++)
-            {
-                int start = runs[r].Start;
-                int end = r + 1 < runs.Count ? runs[r + 1].Start : item.Vertices.Count;
-                AddRun(item, start, end, entry, runs[r].Texture);
-            }
-        }
-    }
-
-    private void AddRun(CanvasItem item, int start, int end, in Entry entry, ulong texture)
-    {
-        int count = end - start;
-        if (count <= 0)
-            return;
-
-        if (_vertexCount + count > _vertices.Length)
-            Array.Resize(ref _vertices, Math.Max(_vertices.Length * 2, _vertexCount + count));
-
-        Transform2D t = entry.Transform;
-        Color tint = entry.Color;
-        Span<CanvasVertex> source = CollectionsMarshal.AsSpan(item.Vertices).Slice(start, count);
-        Span<CanvasVertex> target = _vertices.AsSpan(_vertexCount, count);
-        for (int i = 0; i < count; i++)
-        {
-            ref readonly CanvasVertex v = ref source[i];
-            target[i] = new CanvasVertex(
-                new Vector2(
-                    t.X.X * v.X + t.Y.X * v.Y + t.Origin.X,
-                    t.X.Y * v.X + t.Y.Y * v.Y + t.Origin.Y),
-                new Vector2(v.U, v.V),
-                new Color(v.R * tint.R, v.G * tint.G, v.B * tint.B, v.A * tint.A),
-                new Vector2(v.LX, v.LY));
-        }
-
-        CanvasMaterial? material = item.Material;
-        CanvasItem? owner = item.InstanceValues is { Count: > 0 } ? item : null;
-        if (_batches.Count > 0 && _batches[^1] is { } last &&
-            last.Texture == texture && SameRect(last.Clip, entry.Clip) &&
-            last.Material == material && last.Owner == owner &&
-            last.Start + last.Count == (uint)_vertexCount)
-            _batches[^1] = last with { Count = last.Count + (uint)count };
-        else
-            _batches.Add(new Batch((uint)_vertexCount, (uint)count, texture, entry.Clip, material, owner));
-
-        _vertexCount += count;
     }
 
     private void EnsureCapacity(uint count)
@@ -284,7 +513,10 @@ internal sealed class CanvasRenderer : IDisposable
     {
         _pipelines.Dispose();
         _white.Dispose();
+        _screen.Dispose();
         _sampler.Dispose();
+        foreach (Texture target in _groupTargets)
+            target.Dispose();
         _buffer?.Dispose();
         _transfer?.Dispose();
     }

@@ -36,8 +36,31 @@ internal static class DemoLevel
             });
         }
 
-        document.Blocks.Add(new BlockDocument { X = start + 300f, Y = ground - 260f, Width = 480f, Height = 40f });
-        document.Blocks.Add(new BlockDocument { X = start - 900f, Y = ground - 420f, Width = 300f, Height = 300f });
+        // Step 6's offscreen paths: the long block is on a self-contained layer
+        // whose pass ripples it (slot 3); the square one is in a buffered group
+        // drawn back through an inverting shader (slot 2), at 80%.
+        document.Blocks.Add(new BlockDocument { X = start + 300f, Y = ground - 260f, Width = 480f, Height = 40f, Layer = 5 });
+        document.Blocks.Add(new BlockDocument { X = start - 900f, Y = ground - 420f, Width = 300f, Height = 300f, Groups = [0] });
+        document.Groups.Add(new GroupDocument { Id = 0, Name = "inverted", Buffered = true, BufferShader = 2, BufferAlpha = 0.8f });
+        document.Layers.Add(new LayerDocument { Number = 5, Name = "rippled", Pass = Xanadu.Ecs.LayerPassKind.SelfContained, PassShader = 3 });
+        document.Shaders.Add(new ShaderDocument
+        {
+            Slot = 2,
+            Name = "invert",
+            Source = "float4 shade(ItemInput i) { return float4(1.0 - i.colour.rgb, i.colour.a); }",
+        });
+        document.Shaders.Add(new ShaderDocument
+        {
+            Slot = 3,
+            Name = "ripple",
+            Source = """
+                float4 shade(ItemInput i)
+                {
+                    float2 uv = i.uv + float2(sin(i.uv.y * 120.0 + i.time * 4.0) * 0.004, 0.0);
+                    return sampleItem(uv) * i.vertexColour;
+                }
+                """,
+        });
         // A field shader in slot 1, so the host's level-slot path (wrapper, globals,
         // tuned values) is exercised by the demo: slow bands of the level's own hue.
         document.Shaders.Add(new ShaderDocument

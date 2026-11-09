@@ -414,6 +414,32 @@ public sealed class ShaderRoutingCanvasTests
         }
     }
 
+    [Test]
+    public void ASelfContainedLayersSurfaceMovesWithTheRoot()
+    {
+        Rid surface = TestRid.Make(500);
+        var shift = new Transform2D(0f, new Vector2(-1400, -3700));
+
+        _canvas.SetTransform(Root, shift);
+        _canvas.BeginLayer(5, surface);
+
+        Assert.That(_inner.Transforms[surface], Is.EqualTo(shift), "a surface begun after the shift takes it");
+
+        var moved = new Transform2D(0f, new Vector2(-10, -20));
+        _canvas.SetTransform(Root, moved);
+        Assert.That(_inner.Transforms[surface], Is.EqualTo(moved), "and follows the root when it moves");
+    }
+
+    [Test]
+    public void ToLocalUndoesTheRootsTransform()
+    {
+        _canvas.SetTransform(Root, new Transform2D(0f, new Vector2(-1400, -3700)));
+
+        Rect2 local = _canvas.ToLocal(new Rect2(0, 0, 1920, 1080));
+
+        Assert.That(local, Is.EqualTo(new Rect2(1400, 3700, 1920, 1080)), "the composite covers the screen once the root moves it");
+    }
+
     private sealed class RecordingCanvas : IRectCanvas
     {
         public List<(string Op, Rid Item)> Calls { get; } = new();
@@ -422,7 +448,9 @@ public sealed class ShaderRoutingCanvasTests
 
         public void SetVisible(Rid canvas, bool visible) { }
 
-        public void SetTransform(Rid canvas, Transform2D transform) { }
+        public Dictionary<Rid, Transform2D> Transforms { get; } = new();
+
+        public void SetTransform(Rid canvas, Transform2D transform) => Transforms[canvas] = transform;
 
         public void Clear(Rid canvas) => Calls.Add(("Clear", canvas));
 

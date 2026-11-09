@@ -223,6 +223,8 @@ public sealed class ShaderRoutingCanvas(IRectCanvas inner, Rid root, IShaderCanv
 
         if (!surface.External)
             items.SetDrawIndex(surface.Item, _order++);
+        else
+            inner.SetTransform(surface.Item, _rootTransform);
 
         // What the root draws from here on must stack over this layer, so it
         // can neither go into the root item itself nor into an earlier run.
@@ -383,10 +385,38 @@ public sealed class ShaderRoutingCanvas(IRectCanvas inner, Rid root, IShaderCanv
 
     public void SetVisible(Rid canvas, bool visible) => inner.SetVisible(canvas, visible);
 
-    public void SetTransform(Rid canvas, Transform2D transform) => inner.SetTransform(canvas, transform);
+    /// <summary>
+    /// The root's transform also goes on every self-contained layer's surface,
+    /// whose content would otherwise sit unshifted (by the camera) in a surface
+    /// only a screen in size, and fall off it.
+    /// </summary>
+    public void SetTransform(Rid canvas, Transform2D transform)
+    {
+        inner.SetTransform(canvas, transform);
+        if (canvas != root)
+            return;
+
+        _rootTransform = transform;
+        foreach (Surface layer in _layers.Values)
+            if (layer.External)
+                inner.SetTransform(layer.Item, transform);
+    }
+
+    private Transform2D _rootTransform = Transform2D.Identity;
+
+    /// <summary>A rect on the target in the root's own coordinates, undoing its transform (a pass composite covers the screen).</summary>
+    public Rect2 ToLocal(Rect2 screen)
+    {
+        Transform2D inverse = _rootTransform.AffineInverse();
+        Vector2 a = inverse * screen.Position, b = inverse * screen.End;
+        return new Rect2(a, Vector2.Zero).Expand(b);
+    }
 
     public void DrawRect(Rid canvas, Rect2 bounds, Color color) =>
         inner.DrawRect(Route(canvas), bounds, color);
+
+    public void DrawTexture(Rid canvas, Rect2 bounds, Rid texture) =>
+        inner.DrawTexture(Route(canvas), bounds, texture);
 
     public void DrawTexture(Rid canvas, Rect2 bounds, Texture2D texture) =>
         inner.DrawTexture(Route(canvas), bounds, texture);
@@ -553,6 +583,14 @@ public class ServerShaderCanvasItems : IShaderCanvasItems
 
     public void SetInstanceUniform(Rid item, string param, Vector4 value, int size) =>
         CanvasServer.Current.SetInstanceValue(item, param, value);
+
+    // The host copies the whole target whenever a screen reader needs a fresh
+    // copy (docs/moonworks-port.md step 6), so a region is copied whole.
+    public void CopyScreen(Rid item) => CanvasServer.Current.SetCopyScreen(item, true);
+
+    public void CopyRectangle(Rid item, Rect2 pixelRect) => CanvasServer.Current.SetCopyScreen(item, true);
+
+    public void DisableCopy(Rid item) => CanvasServer.Current.SetCopyScreen(item, false);
 
     // The C# defaults of CanvasItemSetCanvasGroupMode are not the CanvasGroup
     // node's (clear margin 5, fit empty false, fit margin 0): with fit_empty

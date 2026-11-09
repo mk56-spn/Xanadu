@@ -248,12 +248,12 @@ public static partial class PlayfieldRenderer
         if (pass.Pass == LayerPassKind.SelfContained && surface is not null)
         {
             canvas.EndLayers();
-            DrawLayerPass(canvas, rid, frame, pass, surface.Texture, selfContained: true);
+            DrawLayerPass(canvas, rid, frame, pass, surface.TextureId, selfContained: true);
         }
         else if (pass.Pass == LayerPassKind.BackgroundReader)
         {
             canvas.EndLayers();
-            DrawLayerPass(canvas, rid, frame, pass, null, selfContained: false);
+            DrawLayerPass(canvas, rid, frame, pass, default, selfContained: false);
         }
     }
 
@@ -263,13 +263,13 @@ public static partial class PlayfieldRenderer
         Rid rid,
         in PlayfieldItemFrame frame,
         LevelLayer pass,
-        Texture2D? texture,
+        Rid texture,
         bool selfContained)
     {
         if (!selfContained && pass.PassShader == 0)
             return;
 
-        Rect2 screen = new(Vector2.Zero, frame.View.ScreenSize);
+        Rect2 screen = canvas.ToLocal(new Rect2(Vector2.Zero, frame.View.ScreenSize));
         canvas.SelectShader(
             pass.PassShader,
             selfContained ? BlendMode.Premultiplied : BlendMode.Mix);
@@ -279,7 +279,7 @@ public static partial class PlayfieldRenderer
         if (!selfContained)
             canvas.CopyScreen();
 
-        if (texture is not null)
+        if (texture.IsValid)
             canvas.DrawTexture(rid, screen, texture);
         else
             canvas.DrawRect(rid, screen, Colors.White);

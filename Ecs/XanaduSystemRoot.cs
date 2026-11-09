@@ -59,8 +59,8 @@ public sealed class XanaduSystemRoot : SystemRoot, IDisposable
 
     public ToastSystem Toasts { get; }
 
-    private readonly Xanadu.Systems.Shaders.GodotPassSurfaces? _playPassSurfaces;
-    private readonly Xanadu.Systems.Shaders.GodotPassSurfaces? _editorPassSurfaces;
+    private readonly Xanadu.Systems.Shaders.IPassSurfaces? _playPassSurfaces;
+    private readonly Xanadu.Systems.Shaders.IPassSurfaces? _editorPassSurfaces;
 
     public OffsetSettings Offsets { get; }
 
@@ -83,11 +83,13 @@ public sealed class XanaduSystemRoot : SystemRoot, IDisposable
         IKeyboardState? keyboard = null,
         HudLayoutSettings? hudLayout = null,
         IWheelSource? wheel = null,
-        Node? passHost = null) : base(entities, "Xanadu")
+        Node? passHost = null,
+        Func<Xanadu.Systems.Shaders.IPassSurfaces>? passSurfaces = null) : base(entities, "Xanadu")
     {
         IRectCanvas canvas = HostPlatform.NewCanvas();
-        _playPassSurfaces = passHost is null ? null : new Xanadu.Systems.Shaders.GodotPassSurfaces(passHost);
-        _editorPassSurfaces = passHost is null ? null : new Xanadu.Systems.Shaders.GodotPassSurfaces(passHost);
+        // Godot's SubViewports under the scene's node, or the host's own offscreen targets.
+        _playPassSurfaces = passHost is not null ? new Xanadu.Systems.Shaders.GodotPassSurfaces(passHost) : passSurfaces?.Invoke();
+        _editorPassSurfaces = passHost is not null ? new Xanadu.Systems.Shaders.GodotPassSurfaces(passHost) : passSurfaces?.Invoke();
         _entities = entities;
         entities.OnEntityDelete += OnEntityDelete;
         _visuals = new VisualRidRelease(entities);
@@ -315,8 +317,8 @@ public sealed class XanaduSystemRoot : SystemRoot, IDisposable
         _debugSystems.Dispose();
         _editorSystems.Dispose();
         _playfieldSystems.Dispose();
-        _playPassSurfaces?.Dispose();
-        _editorPassSurfaces?.Dispose();
+        (_playPassSurfaces as IDisposable)?.Dispose();
+        (_editorPassSurfaces as IDisposable)?.Dispose();
         _audioSystems.Dispose();
     }
 }

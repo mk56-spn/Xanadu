@@ -27,6 +27,9 @@ public class ServerRectCanvas : IRectCanvas
     public void SetTransform(Rid canvas, Transform2D transform) =>
         Server.SetTransform(canvas, transform);
 
+    public void DrawTexture(Rid canvas, Rect2 bounds, Rid texture) =>
+        Server.AddTextureRect(canvas, bounds, texture);
+
     public void DrawRect(Rid canvas, Rect2 bounds, Color color) =>
         Server.AddRect(canvas, bounds, color);
 

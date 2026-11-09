@@ -5,13 +5,14 @@
 // keep compiling.
 //
 // Bindings follow SDL_GPU's SPIR-V layout: fragment samplers in set 2, fragment
-// uniform buffers in set 3. The host owns sampler 0 (the item's texture) and
-// uniform buffer 0 (the frame); an effect's own textures start at sampler 1 and
-// its values live in uniform buffer 1, a struct named however it likes:
+// uniform buffers in set 3. The host owns samplers 0 (the item's texture) and 1
+// (the screen copy, see sampleScreen) and uniform buffer 0 (the frame); an
+// effect's own textures start at sampler 2 and its values live in uniform
+// buffer 1, a struct named however it likes:
 //
 //     struct Params { [Default(1)] float speed; float4 tint; };
 //     [[vk::binding(1, 3)]] ConstantBuffer<Params> params;
-//     [[vk::binding(1, 2)]] Sampler2D notes;
+//     [[vk::binding(2, 2)]] Sampler2D notes;
 //
 // Values a material doesn't set take the field's [Default(...)], else zero.
 //
@@ -58,10 +59,13 @@ public struct Frame
 {
     public float2 screen;
     public float time;
-    public float pad;
+    /// 1 when the item's texture holds premultiplied colour (a buffered group's
+    /// image); input() and sampleItem() hand effects straight colour either way.
+    public float itemPremultiplied;
 };
 
 [[vk::binding(0, 2)]] public Sampler2D itemTexture;
+[[vk::binding(1, 2)]] public Sampler2D screenTexture;
 [[vk::binding(0, 3)]] public ConstantBuffer<Frame> frame;
 
 /// What a fragment effect sees for its pixel.
@@ -94,7 +98,7 @@ public ItemInput input(ItemVaryings v)
     ItemInput i;
     i.uv = v.uv;
     i.vertexColour = v.colour;
-    i.colour = itemTexture.Sample(v.uv) * v.colour;
+    i.colour = sampleItem(v.uv) * v.colour;
     i.local = v.local;
     i.pixel = v.position.xy;
     i.screenUv = v.position.xy / frame.screen;
@@ -109,5 +113,16 @@ public ItemInput input(ItemVaryings v)
 /// The item's texture at any UV: Godot's TEXTURE.
 public float4 sampleItem(float2 uv)
 {
-    return itemTexture.Sample(uv);
+    float4 texel = itemTexture.Sample(uv);
+    if (frame.itemPremultiplied > 0.5 && texel.a > 0.0)
+        texel.rgb /= texel.a;
+    return texel;
+}
+
+/// What has been drawn on the target so far, at a screen UV (ItemInput.screenUv):
+/// Godot's SCREEN_TEXTURE. The host refreshes the copy before any draw that reads
+/// it if anything was drawn since the last copy. `lod` reads a blurrier mip.
+public float4 sampleScreen(float2 uv, float lod = 0.0)
+{
+    return screenTexture.SampleLevel(uv, lod);
 }

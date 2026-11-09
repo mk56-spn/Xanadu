@@ -29,6 +29,50 @@ internal sealed class CompiledShader(byte[] spirv, string[] samplers, uint unifo
 
     /// <summary>Bytes in the values block, padded to 16; 0 when the effect has none.</summary>
     public int ParamsSize { get; } = paramsSize;
+
+    /// <summary>
+    /// Whether the compiled code really samples the screen copy (fragment
+    /// sampler 1). Reflection lists every declared global, used or not; the
+    /// SPIR-V keeps only what the entry point reaches.
+    /// </summary>
+    public bool ReadsScreen { get; } = SpirvScan.Binds(spirv, set: 2, binding: 1);
+}
+
+/// <summary>Just enough SPIR-V reading to see which resources survived compilation.</summary>
+internal static class SpirvScan
+{
+    private const int OpDecorate = 71, DecorationBinding = 33, DecorationDescriptorSet = 34;
+
+    /// <summary>Whether any variable is decorated with this descriptor set and binding.</summary>
+    public static bool Binds(byte[] code, int set, int binding)
+    {
+        if (code.Length < 20)
+            return false;
+
+        var sets = new Dictionary<uint, uint>();
+        var bindings = new Dictionary<uint, uint>();
+        ReadOnlySpan<uint> words = System.Runtime.InteropServices.MemoryMarshal.Cast<byte, uint>(code);
+        for (int i = 5; i < words.Length;)
+        {
+            int count = (int)(words[i] >> 16), opcode = (int)(words[i] & 0xFFFF);
+            if (count == 0)
+                break;
+            if (opcode == OpDecorate && count >= 4)
+            {
+                if (words[i + 2] == DecorationDescriptorSet)
+                    sets[words[i + 1]] = words[i + 3];
+                else if (words[i + 2] == DecorationBinding)
+                    bindings[words[i + 1]] = words[i + 3];
+            }
+
+            i += count;
+        }
+
+        foreach ((uint id, uint value) in bindings)
+            if (value == binding && sets.TryGetValue(id, out uint s) && s == set)
+                return true;
+        return false;
+    }
 }
 
 /// <summary>

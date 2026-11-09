@@ -15,15 +15,14 @@ under it saying what changed from the plan.
 Update this block at the end of every session, including partial progress.
 
 - **Updated:** 2026-11-09 (third session)
-- **Done:** steps 0, 1, 3 and 4, most of step 2, and most of step 5:
-  - engine-free materials, and Slang effects for screens and the playfield;
-  - level shader slots as Slang effect bodies;
-  - the disk cache, with effects compiled at start and on level load;
-  - the F2 tuner, now reading Slang reflection;
-  - the shipped library (`import xanadu;`).
-- **Next:** what is left of step 5: per-item data in a storage buffer, the
-  vertex slot (with perspective as its first modifier) and fragment chains
-  (once the level format can hold them), and shape glow. Then step 6.
+- **Done:** steps 0, 1, 3, 4 and 6, most of step 2, and most of step 5. The
+  host draws buffered groups, self-contained layer passes, background-reader
+  passes and screen-reading shaders (frosted glass) through a multi-pass
+  renderer.
+- **Next:** step 7 (particles). Still open from earlier steps:
+  - step 2: play a level by hand with the keyboard;
+  - step 5: per-item data in a storage buffer, the vertex slot and chains,
+    and shape glow.
 - **Committed:** everything.
 - **After cloning:** run `External/fetch-moonlibs.sh` once (the host build fails
   with that message otherwise).
@@ -580,14 +579,81 @@ GLSL includes, keeping their function names so old effects carry over:
 - The demo's field shader now draws a rounded frame with `xanadu.sdf`, as a
   check of the library through the slot path.
 
-### Step 6: Groups, buffers and layers (1,000–1,500 lines)
+### Step 6: Groups, buffers and layers ✅
 
-- [ ] Buffered groups (CanvasGroup equivalent): render to a texture, then
+- [x] Buffered groups (CanvasGroup equivalent): render to a texture, then
   composite with tint, alpha, shader and blend.
-- [ ] Screen-read regions (back-buffer copy).
-- [ ] Self-contained layers (`IPassSurfaces`) as offscreen targets.
-- [ ] Re-check the decisions in `docs/render-architecture.md` (D7–D17) against
-  the new implementation.
+- [x] Screen-read regions (back-buffer copy).
+- [x] Self-contained layers (`IPassSurfaces`) as offscreen targets.
+- [x] Re-check the decisions in `docs/render-architecture.md` (D7–D17) against
+  the new implementation (below).
+
+How it landed (2026-11-09):
+
+- **`CanvasRenderer` draws a frame as a list of jobs**, each one root drawn
+  into one target, in order:
+  1. every registered offscreen root (a self-contained layer's surface);
+  2. every buffered group, found while walking the tree, each drawn into a
+     frame-sized texture from a pool;
+  3. the tree itself into the frame.
+
+  Nested groups come before the job that composites them. All vertices go up in
+  one upload, then each job is one render pass. Batches never merge across
+  jobs: their vertices are adjacent in the buffer, and merging them was a bug.
+- **A group's image** is premultiplied. It is composited back in its place as
+  one quad covering the area its content drew into (plus 2 px). The quad uses
+  the group item's material (buffer shader and blend), its self modulate times
+  the inherited modulate (buffer tint × alpha × fade), and its instance values
+  (buffer keys). `Frame.itemPremultiplied` tells `xanadu.stage` to hand effects
+  straight colour, so any slot shader works on a composite as it does on an
+  item. The group item's own draws go inside the image, plain.
+- **Screen reads:** `xanadu.stage` gained `screenTexture` (host sampler 1) and
+  `sampleScreen(uv, lod)`. That moves effect textures to sampler 2 and up;
+  `note_background` was renumbered.
+  - **When the screen is copied:** before a batch whose SPIR-V really samples
+    the screen copy, or whose item called `SetCopyScreen`, the pass ends, the
+    target is blitted into a mipmapped screen texture, mips are generated, and
+    the pass resumes. This happens only if something was drawn since the last
+    copy.
+  - **Why the SPIR-V is scanned:** reflection lists every declared global,
+    used or not. `CompiledShader.ReadsScreen` scans the SPIR-V for a variable
+    bound at set 2, binding 1.
+  - Frosted glass is ported (`Ui/frosted_glass.slang`). Song select makes 7
+    copies a frame.
+- **Self-contained layers:**
+  - `HostPassSurfaces` gives each layer a parentless canvas item, drawn into its
+    own frame-sized texture before the frame. `IPassSurface.Texture` (a Godot
+    `Texture2D`) became `TextureId`, and `IRectCanvas` gained
+    `DrawTexture(Rid, Rect2, Rid)`. `XanaduSystemRoot` takes a pass-surface
+    factory for hosts other than Godot.
+  - **Fixed for both builds:** the camera shift on the playfield root never
+    reached a surface. On a level with a large camera shift the layer's content
+    fell off its screen-sized surface, so it wasn't drawn at all.
+    `ShaderRoutingCanvas` now puts the root's transform on every surface, and
+    the pass quad covers `ToLocal(screen)`, the screen in the root's own
+    coordinates. Two tests cover it.
+- **`--demo`** now has a buffered group (the square block, drawn back through
+  an inverting shader at 80%) and a self-contained layer (the long block,
+  rippled by its pass shader), so both paths show in one shot. The shot line
+  prints the number of offscreen passes and screen copies.
+
+D7–D17 against the host:
+
+- **Unchanged:** D7, D8, D9, D11, D12, D13, D14 and D17 hold as designed:
+  - D8: a layer's surface is a host offscreen target instead of a SubViewport;
+  - D14: buffer keys reach the composite through the group item's instance
+    values;
+  - D17: blend variants are pipelines made on first use.
+- **D10 changed for the better:** without a region, Godot's screen read saw the
+  snapshot from the last boundary. The host refreshes the copy whenever a read
+  would otherwise be stale, so a read is always current. Regions are kept, as
+  forced copies, but are no longer needed for correctness.
+- **Known difference:** a screen read inside a buffered group samples the
+  group's own image so far, not the screen behind it. The row on line ~311 of
+  `docs/render-architecture.md`, "full back-buffer copy between members", read
+  the screen from before the group. That's rare in levels; revisit if a level
+  needs it.
+- **Not checked:** MSAA and depth stay in "Later".
 
 ### Step 7: Particles (600–1,000 lines)
 

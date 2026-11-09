@@ -140,12 +140,12 @@ public sealed class LayerPassTests
             public Rid Canvas { get; } = TestRid.Make(77);
             public int TextureReads { get; private set; }
 
-            public Texture2D? Texture
+            public Rid TextureId
             {
                 get
                 {
                     TextureReads++;
-                    return null;
+                    return default;
                 }
             }
 
@@ -320,7 +320,7 @@ public sealed class LayerPassTests
 
         public void DrawRect(Rid canvas, Rect2 bounds, Color color) => Mark(canvas, "rect");
 
-        public void DrawTexture(Rid canvas, Rect2 bounds, Texture2D texture)
+        public void DrawTexture(Rid canvas, Rect2 bounds, Rid texture)
         {
             Composites++;
             Mark(canvas, "texture");
