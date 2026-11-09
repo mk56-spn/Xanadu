@@ -197,60 +197,12 @@ public sealed class EditorPlacementCreator(EditorSceneQuery scene, EditorHistory
 
         EditorSnapshot before = history.Capture();
         long time = EditorTiming.Snap(playhead.TimeMs, playhead);
-        if (EditorPlacementNote.NeedsShape(editor))
-            return;
-
         if (ViewportSnap.IsOn(scene.Store))
             playfieldPosition = PlayfieldGrid.NearestCrossing(playfieldPosition, playfield);
         Note note = EditorPlacementNote.Build(editor, time, playfieldPosition);
-        bool isFormStep = note.Kind == NoteKind.ConstructionStep;
-        if (isFormStep)
-            note.ShapePiece = NextShapePiece(note.ShapeId);
-
         Entity created = EditorItems.Place(scene.Store, note);
-        if (isFormStep)
-            ReindexConstructionSteps(note.ShapeId);
         history.Record(before, history.Capture());
         editor.GetComponent<NoteSelection>().Note = created;
         EditorAutoAdvance.AfterPlacing(scene.Store, editor, time);
-    }
-
-    private int NextShapePiece(int shapeId)
-    {
-        int count = 0;
-        foreach (Entity entity in scene.Store.Query<Note>().ToEntityList())
-        {
-            Note note = entity.GetComponent<Note>();
-            if (note.Kind == NoteKind.ConstructionStep &&
-                note.ShapeId == shapeId)
-            {
-                count++;
-            }
-        }
-
-        return count;
-    }
-
-    private void ReindexConstructionSteps(int shapeId)
-    {
-        var steps = new List<Entity>();
-        foreach (Entity entity in scene.Store.Query<Note>().ToEntityList())
-        {
-            Note note = entity.GetComponent<Note>();
-            if (note.Kind == NoteKind.ConstructionStep &&
-                note.ShapeId == shapeId)
-            {
-                steps.Add(entity);
-            }
-        }
-
-        steps.Sort((a, b) =>
-            a.GetComponent<Note>().TimeMs.CompareTo(
-                b.GetComponent<Note>().TimeMs));
-        for (int i = 0; i < steps.Count; i++)
-        {
-            ref Note note = ref steps[i].GetComponent<Note>();
-            note.ShapePiece = i;
-        }
     }
 }

@@ -245,7 +245,4 @@ public sealed class SelfModulateTests : EcsSystemTest
     public void RigFilesKeepAttachmentColours() =>
         Assert.That(XafBinary.Read(XafBinary.Write(Package(Colors.Red))).Attachments[0].SelfModulate, Is.EqualTo(Colors.Red));
 
-    [Test]
-    public void OlderRigFilesLoadWhite() =>
-        Assert.That(XafBinary.Read(XafBinary.Write(Package(Colors.Red), 9)).Attachments[0].SelfModulate, Is.EqualTo(Colors.White));
 }

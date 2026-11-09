@@ -84,18 +84,6 @@ public sealed class NoteReachTests
     }
 
     [Test]
-    public void OtherCharactersStillHaveToReachTheCenter()
-    {
-        Assert.That(
-            NoteReach.Contains(
-                new Vector2(500, 500),
-                View(1f),
-                new Vector2(601, 500),
-                CharacterKind.Armed),
-            Is.False);
-    }
-
-    [Test]
     public void ReachIsFarWiderThanThePlayerBox()
     {
         Assert.That(NoteReach.Radius, Is.GreaterThan(Player.DefaultWidth));

@@ -56,25 +56,15 @@ public sealed class BlockItemKind : ItemKind<Block, BlockDocument>
     public override void Draw(IRectCanvas canvas, Rid rid, Entity entity, PlayfieldView view, in PlayfieldItemFrame frame, bool selected, bool playing) =>
         PlayfieldRenderer.DrawBlock(canvas, rid, entity, view, selected, playing);
 
-    /// <summary>A block that belongs to a Form construction starts hidden until its step reveals it.</summary>
-    protected override void Made(Entity created)
-    {
-        if (created.GetComponent<Block>().ShapeId > 0)
-            created.AddTag<ConstructionHidden>();
-    }
-
     protected override int Compare(in Block a, in Block b)
     {
         int order = ByPosition(a.Position, b.Position);
         return order != 0 ? order : ByPosition(a.Size, b.Size);
     }
 
-    /// <summary>A pasted block leaves its Form shape, so a copy never joins a construction.</summary>
     protected override Block? Pasted(Block value, Vector2 offset, long timeMs, Playfield playfield, EntityStore entities)
     {
         value.Position = GridPlacement.Clamp(value.Position + offset, value.Size, playfield);
-        value.ShapeId = 0;
-        value.ShapePiece = 0;
         return PlacementCollision.BlockFits(entities, value.Bounds) ? value : null;
     }
 
@@ -88,8 +78,6 @@ public sealed class BlockItemKind : ItemKind<Block, BlockDocument>
         Y = block.Position.Y,
         Width = block.Size.X,
         Height = block.Size.Y,
-        ShapeId = block.ShapeId,
-        ShapePiece = block.ShapePiece,
         OneWay = (int)block.OneWay,
         OutlineWidth = block.OutlineWidth,
         OutlineColor = block.OutlineColor.ToRgba32(),
@@ -100,8 +88,6 @@ public sealed class BlockItemKind : ItemKind<Block, BlockDocument>
     protected override Block FromDocument(BlockDocument block) => new(
         new Vector2(block.X, block.Y),
         new Vector2(block.Width, block.Height),
-        block.ShapeId,
-        block.ShapePiece,
         (BlockOneWay)block.OneWay,
         block.OutlineWidth,
         new Color(block.OutlineColor),

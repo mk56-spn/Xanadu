@@ -122,19 +122,6 @@ public sealed class CharacterRigTests : EcsSystemTest
     }
 
     [Test]
-    public void SwitchingToACharacterWithoutARigDropsItAndReleasesTheArt()
-    {
-        Entity player = Player();
-        Frame();
-        player.GetComponent<PlayerCharacter>().Kind = CharacterKind.Form;
-        Frame();
-
-        Assert.That(player.HasComponent<CharacterRig>(), Is.False);
-        Assert.That(player.Tags.Has<CharacterRigVisible>(), Is.False);
-        Assert.That(_visuals[0].Released, Is.True);
-    }
-
-    [Test]
     public void DeletingThePlayerReleasesTheArt()
     {
         Entity player = Player();

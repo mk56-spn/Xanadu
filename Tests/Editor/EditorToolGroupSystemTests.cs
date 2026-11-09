@@ -96,13 +96,4 @@ public sealed class EditorToolGroupSystemTests : EcsSystemTest
         Assert.That(_hazards.GetComponent<EditorToolGroup>().Icon.GetComponent<Text>().Value, Is.EqualTo("▲"));
     }
 
-    [Test]
-    public void StartPointsShareAGroupWithCharacterSwitches()
-    {
-        EditorToolGroupInfo group = System.Array.Find(
-            EditorToolGroups.All,
-            g => EditorToolGroups.Holds(g, EditorPlacementMode.Start));
-
-        Assert.That(EditorToolGroups.Holds(group, EditorPlacementMode.CharacterSwitch), Is.True);
-    }
 }

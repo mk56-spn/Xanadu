@@ -58,20 +58,6 @@ public static class PlayScoring
         score.JudgementTimeMs = timeMs;
     }
 
-    /// <summary>A rail hold released before its end.</summary>
-    public static void FailHold(
-        ref ScoreState score,
-        Vector2 position,
-        long timeMs)
-    {
-        score.AccuracyPenalty += ScoreRules.HoldAccuracyPenalty * score.TotalNotes;
-        score.Combo = 0;
-        score.HasJudgement = true;
-        score.LastJudgement = Judgement.Miss;
-        score.JudgementPosition = position;
-        score.JudgementTimeMs = timeMs;
-    }
-
     public static void Count(ref ScoreState score, Judgement judgement)
     {
         switch (judgement)

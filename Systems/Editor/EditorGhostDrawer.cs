@@ -129,17 +129,6 @@ public sealed class EditorGhostDrawer(EditorDrawSurface surface)
             default:
                 Vector2 notePoint = snap ? PlayfieldGrid.NearestCrossing(pointer, playfield) : pointer;
                 Note note = EditorPlacementNote.Build(editor, frame.Playhead.TimeMs, notePoint);
-                if (note.Kind == NoteKind.Dash)
-                {
-                    PlayfieldRenderer.DrawDashLink(
-                        surface.Canvas,
-                        surface.Target,
-                        note,
-                        view,
-                        PlayfieldRenderer.NoteSize * view.Scale / 2f,
-                        Faint(PlayfieldRenderer.ColorFor(note)));
-                }
-
                 PlayfieldRenderer.DrawNoteBody(
                     surface.Canvas,
                     surface.Target,

@@ -86,9 +86,6 @@ public static class PlayScene
         root.AddChild(playfieldEntity);
         playfieldEntity.AddComponent(new PlayerCharacter(CharacterKind.Contact));
         playfieldEntity.AddComponent(new ContactCounters());
-        playfieldEntity.AddComponent(new SplitlineState());
-        playfieldEntity.AddComponent(new SplitlineBalls());
-        playfieldEntity.AddComponent(new ConstructionState());
         playfieldEntity.AddComponent(new KeyTrail());
         string[] keyLabels = new string[KeybindSettings.Actions.Length];
         for (int i = 0; i < keyLabels.Length; i++)

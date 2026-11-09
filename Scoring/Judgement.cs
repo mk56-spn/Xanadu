@@ -35,9 +35,6 @@ public static class ScoreRules
     /// <summary>Accuracy lost when a contact barrier is not fully paid.</summary>
     public const double ContactAccuracyPenalty = 0.02;
 
-    /// <summary>Accuracy lost when a rail hold is released early.</summary>
-    public const double HoldAccuracyPenalty = 0.01;
-
     /// <summary>The max deviation a given judgement type can have.</summary>
     public static double JudgementDeviation(Judgement judgement)
     {

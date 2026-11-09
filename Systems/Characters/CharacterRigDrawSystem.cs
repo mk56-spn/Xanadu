@@ -31,8 +31,7 @@ public sealed class CharacterRigDrawSystem(
         ghosts?.Begin(Query.Store);
         foreach (Entity entity in Query.ToEntityList())
         {
-            if (entity.Tags.Has<SplitlineAbsent>() ||
-                entity.Tags.Has<PlayerShattered>())
+            if (entity.Tags.Has<PlayerShattered>())
             {
                 if (_instances.Remove(entity.Id, out Instance? gone))
                     gone.Visuals.Release();

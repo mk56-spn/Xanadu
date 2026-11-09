@@ -23,7 +23,6 @@ public sealed class PlayerSpeedCapTests
             0,
             Vector2.Zero,
             kind: NoteKind.Momentum,
-            dashDirection: DashDirection.Right,
             momentum: Box2DPhysicsWorld.MaxMomentum);
 
         Assert.That(

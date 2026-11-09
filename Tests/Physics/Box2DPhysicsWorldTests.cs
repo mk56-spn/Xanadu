@@ -67,11 +67,10 @@ public sealed class Box2DPhysicsWorldTests
         var note = new Xanadu.Ecs.Note(0, Vector2.Zero)
         {
             Kind = Xanadu.Ecs.NoteKind.Momentum,
-            DashDirection = Xanadu.Ecs.DashDirection.Up,
             Momentum = 600f,
         };
         body.SetLinearVelocity(
-            Xanadu.Systems.Playfields.PlayerMovementSystem.MomentumVelocity(body.LinearVelocity, note));
+            Xanadu.Systems.Playfields.PlayerMovementSystem.MomentumVelocity(note, Xanadu.Ecs.DashDirection.Up));
 
         float start = body.GetPosition().Y;
         float peak = start;

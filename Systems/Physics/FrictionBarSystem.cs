@@ -38,7 +38,7 @@ public sealed class FrictionBarSystem(Box2DPhysicsWorld physics)
 
         foreach (Entity entity in Query.ToEntityList())
         {
-            if (entity.Tags.Has<PlayPaused>() || entity.Tags.Has<SplitlineAbsent>())
+            if (entity.Tags.Has<PlayPaused>())
                 continue;
 
             Vector2 centre = entity.GetComponent<Position>().Value;

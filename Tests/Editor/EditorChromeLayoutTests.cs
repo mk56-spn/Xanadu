@@ -239,15 +239,11 @@ public sealed class EditorChromeLayoutTests : EcsSystemTest
     public void TheSidebarControlsFlowInsideItInOrder()
     {
         Rect2 panel = Area(SidebarPanel());
-        Entity character = _characterButton();
-        Rect2 dropdown = Area(character);
         Rect2 firstCell = Area(Cell(0));
         Rect2 lastCell = Area(Cell(15));
 
-        Assert.That(panel.Encloses(dropdown), Is.True);
         Assert.That(panel.Encloses(firstCell), Is.True);
         Assert.That(panel.Encloses(lastCell), Is.True);
-        Assert.That(firstCell.Position.Y, Is.GreaterThan(dropdown.End.Y));
         Assert.That(lastCell.Position.Y, Is.GreaterThan(firstCell.Position.Y));
     }
 
@@ -265,23 +261,6 @@ public sealed class EditorChromeLayoutTests : EcsSystemTest
         Assert.That(fifth.Position.Y, Is.GreaterThan(first.End.Y));
         Assert.That(last.Position.X, Is.EqualTo(Area(Cell(GroupLimits.Columns - 1)).Position.X).Within(0.5f));
     }
-
-    [Test]
-    public void AnOpenCharacterDropdownPushesTheGroupsDown()
-    {
-        Entity character = _characterButton();
-        float before = Area(Cell(0)).Position.Y;
-
-        character.GetComponent<Dropdown>().Open = true;
-        character.Parent.AddTag<LayoutDirty>();
-        Frame(2);
-
-        Assert.That(Area(Cell(0)).Position.Y, Is.GreaterThan(before + 20f));
-    }
-
-    private Entity _characterButton() =>
-        Store.Query<EditorSidebarLayout>().ToEntityList()[0]
-            .GetComponent<EditorSidebarLayout>().CharacterButton;
 
     private Entity Cell(int index)
     {
