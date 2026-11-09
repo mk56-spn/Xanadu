@@ -19,16 +19,10 @@ Update this block at the end of every session, including partial progress.
   to `Palette.Background`; `-- --shot=<png>` saves frame 60 and quits.
 - **Next:** step 2 (renderer core and playfield). Slang is proven (step 2's
   first box); start with the composition-root findings under step 2.
-- **Uncommitted:** all port work so far: `External/`, `Host/`, the spike, the
-  `.gitignore`, `Xanadu.csproj` and `Xanadu.Lab.csproj` excludes, `Xanadu.sln`,
-  this doc and the `agents.md` pointer.
+- **Committed:** everything up to here (`f8e4438` port, plus three unrelated
+  commits clearing the earlier backlog). Nothing pending.
 - **After cloning:** run `External/fetch-moonlibs.sh` once (the host build fails
   with that message otherwise).
-- **Also uncommitted, not part of the port:** a lot of earlier unrelated work
-  (timeline and ease changes across `Animation/`, `Systems/Editor/`, `Tests/` …)
-  and the 2026-11-09 test-host crash fix (`FakeShaderCanvasItems` plus the
-  optional `shaderItems` parameter on both playfield draw systems). Don't sweep
-  it into a port commit; ask the user how to split commits.
 - **Notes for whoever picks this up:** see the step 1 and step 2 notes (Slang
   usage, the composition root, `Rid` minting, `Texture2D`).
 
