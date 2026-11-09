@@ -57,18 +57,10 @@ public sealed class EditorMetadataSystem : QuerySystem<LevelInfo, Playhead>
 
         if (EditorPanel.Find(_entities, EditorPanelKind.Start) is { IsNull: false } startPanelEntity)
         {
-            EditorPanel startPanel = startPanelEntity.GetComponent<EditorPanel>();
             bool visible = hasSelectedStart;
+            // It sits in the sidebar's SELECTION card, whose layout places it.
             if (UiLayout.IsHidden(startPanelEntity) == visible)
-            {
-                if (startPanelEntity.HasComponent<Position>())
-                {
-                    startPanelEntity.GetComponent<Position>().Value = startPanel.Home;
-                    CommandBuffer startBuffer = CommandBuffer;
-                    startBuffer.AddTag<Moved>(startPanelEntity.Id);
-                    UiLayout.SetHidden(startPanelEntity, startBuffer, !visible);
-                }
-            }
+                UiLayout.SetHidden(startPanelEntity, CommandBuffer, !visible);
         }
 
         foreach (Entity entity in _entities

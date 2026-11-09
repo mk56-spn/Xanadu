@@ -825,9 +825,10 @@ D7–D17 against the host:
     sits in the Decorations flyout).
   - **Still failing (pre-port too):** `settings` (waits for an "L1" label),
     `note-key-checking`, `editor-dropdowns` (toolbar zoom never reaches 32),
-    and `editor-groups`: a selected start point's START POINT panel draws over
-    the sidebar's GROUPS grid, so the click on group 5 lands on the panel.
-    That last one is a real layout bug, not test drift.
+    and `editor-groups` (no tint key after SHD +; its test shader is Godot
+    source).
+  - The START POINT panel floated over the sidebar's GROUPS grid. Its fields
+    now sit in the SELECTION card, shown while a start point is selected.
 
 Host core and Xanadu Labs (2026-11-09, ahead of step 10 at the user's request):
 

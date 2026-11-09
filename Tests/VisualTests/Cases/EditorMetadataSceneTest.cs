@@ -180,6 +180,16 @@ public sealed class EditorMetadataSceneTest : SceneTest
                     field.GetComponent<EditorField>().Kind ==
                     EditorFieldKind.Artist));
 
+        // The start point's fields sit in the sidebar, under the level info
+        // popup and the colour dialog, so put those away first.
+        AddStep("close level info and the colour dialog", () =>
+        {
+            EditorDialogs.Dismiss(Context.Entities);
+            UiLayout.SetHidden(EditorPanel.Find(Context.Entities, EditorPanelKind.Metadata), true);
+        });
+        AddUntilStep("nothing covers the sidebar", () =>
+            !EditorDialogs.AnyOpen(Context.Entities) &&
+            UiLayout.IsHidden(EditorPanel.Find(Context.Entities, EditorPanelKind.Metadata)));
         AddStep("create and select a start point", () =>
         {
             Entity editor = Context.Entities.Query<PlayfieldView>()

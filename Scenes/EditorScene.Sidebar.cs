@@ -154,6 +154,7 @@ public static class EditorSceneSidebar
         editor.AddComponent(new EditorSelfModulateField(modulate.Entity));
         BuildBlockOutline(selection, editor, inner);
         BuildTextPanel(selection, editor, inner);
+        BuildStartPanel(selection, inner);
         EditorSceneLayers.BuildInspector(selection, editor, inner);
         EditorSceneAlign.Build(selection, editor, inner);
 
@@ -203,6 +204,39 @@ public static class EditorSceneSidebar
             .Tooltip("Thicker outline");
 
         editor.AddComponent(new EditorBlockOutlinePanel(section.Entity, width, color.Entity));
+    }
+
+    /// <summary>
+    /// The selected start point's time and starting momentum; hidden until one
+    /// start point is selected. <see cref="EditorMetadataSystem"/> shows it and
+    /// keeps the fields in step with the start point.
+    /// </summary>
+    private static void BuildStartPanel(UiNode panel, float inner)
+    {
+        UiNode section = panel.Column()
+            .Width(inner)
+            .AutoHeight()
+            .Gap(UiTheme.ContainerSpacing)
+            .Main(StackMainAlignment.Start)
+            .Hidden();
+
+        EditorSceneUi.Separator(section, inner);
+        StartField(section, inner, LocalizedText.Get(EditorStrings.StartTime), EditorFieldKind.StartTime);
+        StartField(section, inner, LocalizedText.Get(EditorStrings.StartMomentumX), EditorFieldKind.StartMomentumX);
+        StartField(section, inner, LocalizedText.Get(EditorStrings.StartMomentumY), EditorFieldKind.StartMomentumY);
+        section.Entity.AddComponent(new EditorPanel(EditorPanelKind.Start, Vector2.Zero));
+    }
+
+    private static void StartField(UiNode section, float inner, string label, EditorFieldKind kind)
+    {
+        section.Text(label, UiTheme.SmallFontSize, SceneUi.DimTextColor, TextAlign.Left)
+            .Size(inner, 18);
+        section.Rect(Palette.SurfaceInset, "", new Vector2(inner, 28))
+            .Input()
+            .With(new TextStyle(13, UiTheme.Text))
+            .Align(TextAlign.Left)
+            .With(new TextField("", true))
+            .With(new EditorField(kind));
     }
 
     /// <summary>The selected texts' words and size; hidden until a text is selected.</summary>

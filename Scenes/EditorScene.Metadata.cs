@@ -18,7 +18,6 @@ public static class EditorSceneMetadata
 {
     private const float MetadataPanelWidth = 380;
     private const float MetadataPanelHeight = 400;
-    private const float StartPanelHeight = 220;
 
     internal static void BuildEditorUi(
         EntityStore entities,
@@ -112,31 +111,6 @@ public static class EditorSceneMetadata
 
         panel.AddComponent(new EditorPanel(EditorPanelKind.Metadata, home));
 
-        UiNode startUi = UiNode.Layer(entities, root, UiLayers.EditorStartPoints, null, UiStage.Full);
-        Vector2 startHome = new(
-            screen.X - 24 - 190,
-            EditorLayout.HeaderHeight + 8 + MetadataPanelHeight + 8 + StartPanelHeight / 2);
-        UiNode startNode = startUi.Column()
-            .Size(MetadataPanelWidth, StartPanelHeight)
-            .Hidden()
-            .Gap(5)
-            .Fill(SceneUi.PanelColor)
-            .Input();
-        Entity startPanel = startNode.Entity;
-        EditorSceneUi.HudText(
-            startNode,
-            Vector2.Zero,
-            new Vector2(340, 20),
-            LocalizedText.Get(EditorStrings.StartPoint),
-            14,
-            SceneUi.AccentColor);
-        AddMetadataLabel(startNode, LocalizedText.Get(EditorStrings.StartTime));
-        AddMetadataField(startNode, "", EditorFieldKind.StartTime, true);
-        AddMetadataLabel(startNode, LocalizedText.Get(EditorStrings.StartMomentumX));
-        AddMetadataField(startNode, "", EditorFieldKind.StartMomentumX, true);
-        AddMetadataLabel(startNode, LocalizedText.Get(EditorStrings.StartMomentumY));
-        AddMetadataField(startNode, "", EditorFieldKind.StartMomentumY, true);
-        startPanel.AddComponent(new EditorPanel(EditorPanelKind.Start, startHome));
 
         UiNode helpUi = UiNode.Layer(entities, root, UiLayers.EditorHelp, null, UiStage.Full);
         UiNode helpNode = helpUi.Column()

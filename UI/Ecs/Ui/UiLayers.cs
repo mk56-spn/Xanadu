@@ -29,7 +29,6 @@ public static class UiLayers
     // Editor, in the order its panels stack.
     public const int EditorSidebar = 941;
     public const int EditorChrome = 960;
-    public const int EditorStartPoints = 961;
     public const int EditorMetadata = 962;
 
     /// <summary>The XIF editor for the selected polygon, beside the tool strip.</summary>
