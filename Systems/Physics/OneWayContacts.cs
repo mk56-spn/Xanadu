@@ -9,8 +9,11 @@ namespace Xanadu.Systems.Physics;
 /// <summary>Marks a block's fixture as colliding on one side only.</summary>
 public sealed record OneWaySurface(BlockOneWay Side, NVector2 HalfSize);
 
-/// <summary>Marks a fixture as a box that one-way blocks can let through.</summary>
-public sealed record OneWayMover(NVector2 HalfSize);
+/// <summary>
+/// Marks a fixture as a box that one-way blocks can let through. The box's
+/// centre sits <paramref name="Offset"/> from its body's position, in metres.
+/// </summary>
+public sealed record OneWayMover(NVector2 HalfSize, NVector2 Offset = default);
 
 /// <summary>
 /// Switches off a contact with a one-way block unless the player is entirely on
@@ -58,6 +61,7 @@ public sealed class OneWayContacts : IContactListener
         NVector2 moverCenter)
     {
         NVector2 gap = surface.HalfSize + mover.HalfSize - new NVector2(SurfaceTolerance);
+        moverCenter += mover.Offset;
         return surface.Side switch
         {
             BlockOneWay.Up => surfaceCenter.Y - moverCenter.Y >= gap.Y,

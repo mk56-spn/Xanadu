@@ -36,7 +36,7 @@ public sealed class EditorWaveformSceneTest : SceneTest
                 .Query<LevelInfo>()
                 .ToEntityList()[0]
                 .GetComponent<LevelInfo>();
-            level.AudioPath = "res://Audio/test-track.wav";
+            level.Song = TestContent.Song("waveform", "Waveform");
         });
         AddUntilStep(
             "wait for waveform",

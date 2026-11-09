@@ -6,6 +6,7 @@ using Friflo.Engine.ECS.Systems;
 using NUnit.Framework;
 using Xanadu.Ecs;
 using Xanadu.Systems.Editor;
+using Xanadu.Tests.Support;
 
 namespace Xanadu.Tests.Audio;
 
@@ -20,7 +21,7 @@ public sealed class WaveformPreviewSystemTests
         {
             var store = new EntityStore();
             Entity editor = store.CreateEntity(
-                new LevelInfo("Wave", path),
+                new LevelInfo("Wave", TestSongs.At(path)),
                 new Playhead(0, 120, 0, false),
                 new WaveformPreview(""));
             var root = new SystemRoot(store);

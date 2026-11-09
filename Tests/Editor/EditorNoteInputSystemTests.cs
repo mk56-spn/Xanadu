@@ -8,6 +8,7 @@ using Xanadu.Systems.Editor;
 using Xanadu.Settings;
 using Xanadu.Systems.Input;
 using Xanadu.Ui.Ecs.Ui;
+using Xanadu.Tests.Support;
 
 namespace Xanadu.Tests.Editor;
 
@@ -29,7 +30,7 @@ public sealed class EditorNoteInputSystemTests
         _root.Add(new EditorNoteInputSystem(_store, _pointer, _history));
 
         _store.CreateEntity(
-            new LevelInfo("Test", "/tmp/test.wav"),
+            new LevelInfo("Test", TestSongs.At("/tmp/test.wav")),
             new Playfield(1000, 1000),
             new Playhead(1_000, 120, 0, false),
             new PlayfieldView(Vector2.Zero, 1f, new Vector2(1000, 1000)),
@@ -300,7 +301,7 @@ public sealed class EditorNoteInputSystemTests
     {
         Entity editor = _store.Query<PlayfieldView>().ToEntityList()[0];
         ref LevelInfo level = ref editor.GetComponent<LevelInfo>();
-        level.AudioPath = "";
+        level.Song = null;
 
         _pointer.Current = new PointerInput(new Vector2(100, 200), true);
         _root.Update(new UpdateTick(1f / 60f, 0));

@@ -133,6 +133,34 @@ public static class GridPlacement
         return SettleFlare(pointer - size / 2, size, playfield, snap) + size / 2;
     }
 
+    /// <summary>A new friction bar is two cells tall, enough to cross a standing player.</summary>
+    public static float NewFrictionBarHeight(Playfield playfield) => Cell(playfield).Y * 2;
+
+    /// <summary>
+    /// Snaps a friction bar's box by its line and its foot: the line onto a
+    /// column line and the bottom onto a row line, where block edges sit, so a
+    /// bar stands on a block's top at its corner or a cell boundary.
+    /// </summary>
+    public static Vector2 SettleFrictionBar(Vector2 position, Vector2 size, Playfield playfield, bool snap = true)
+    {
+        Vector2 cell = Cell(playfield);
+        if (snap && cell.X > 0 && cell.Y > 0)
+        {
+            position = new Vector2(
+                Mathf.Round((position.X + size.X / 2) / cell.X) * cell.X - size.X / 2,
+                Mathf.Round((position.Y + size.Y) / cell.Y) * cell.Y - size.Y);
+        }
+
+        return Clamp(position, size, playfield);
+    }
+
+    /// <summary>Top-left of a new friction bar centred on <paramref name="pointer"/>.</summary>
+    public static Vector2 PlaceFrictionBar(Vector2 pointer, float height, Playfield playfield, bool snap = true)
+    {
+        var size = new Vector2(FrictionBar.Thickness, height);
+        return SettleFrictionBar(pointer - size / 2, size, playfield, snap);
+    }
+
     /// <summary>
     /// The grid an item snaps to: the field's cells, or its own size where that is
     /// finer, so a block smaller than a cell lands on its own edges and quarters tile.

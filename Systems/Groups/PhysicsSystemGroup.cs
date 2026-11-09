@@ -14,6 +14,8 @@ public sealed class PhysicsSystemGroup : SystemGroup
         Add(new PlayerBodySystem(physics));
         Add(new CharacterMomentumSystem());
         Add(new PlayerSpeedCapSystem());
+        Add(new FrictionBarSystem(physics));
         Add(new PhysicsStepSystem(physics));
+        Add(new PlayerTuckSystem());
     }
 }

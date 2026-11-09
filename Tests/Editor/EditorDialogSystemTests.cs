@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using Friflo.Engine.ECS;
 using Godot;
 using NUnit.Framework;
@@ -24,12 +25,21 @@ public sealed class EditorDialogSystemTests : EcsSystemTest
     {
         _commands = new EditorCommandBus();
         _editor = Store.CreateEntity(
-            new LevelInfo("Test", "") { Background = new Color("#204060") },
+            new LevelInfo("Test", TestSongs.At("/tmp/test.wav")) { Background = new Color("#204060") },
             new EditorHud());
         EditorSceneDialogs.BuildDialogs(Store, default, _editor, new Vector2(1280, 720), new FakeVisualRidFactory());
         _recoveryFolder = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "xanadu-dialog-tests-" + Guid.NewGuid().ToString("N"));
-        Root.Add(new EditorDialogSystem(Store, _commands, new FakeVisualRidFactory(), new LevelRecoveryStore(_recoveryFolder)));
+        Root.Add(new EditorDialogSystem(
+            Store,
+            _commands,
+            new FakeVisualRidFactory(),
+            new LevelRecoveryStore(_recoveryFolder),
+            songs: new SongStore(SongFolder)));
     }
+
+    private string SongFolder => System.IO.Path.Combine(_recoveryFolder, "songs");
+
+    private void DropTheSong() => _editor.GetComponent<LevelInfo>().Song = null;
 
     [TearDown]
     public void RemoveRecoveryFolder()
@@ -132,5 +142,66 @@ public sealed class EditorDialogSystemTests : EcsSystemTest
         Assert.That(_commands.TryDequeue(out EditorCommand command), Is.True);
         Assert.That(command.Type, Is.EqualTo(EditorCommandType.AssignShader));
         Assert.That(command.IntValue, Is.EqualTo(3));
+    }
+
+    [Test]
+    public void ALevelWithoutASongHoldsThePickerOpen()
+    {
+        DropTheSong();
+        Frame();
+
+        Assert.That(Shown(EditorDialogKind.Song), Is.True, "the picker opens over the editor");
+        Assert.That(EditorDialogs.IsSongRequired(Store), Is.True);
+        Assert.That(UiLayout.IsHidden(_editor.GetComponent<EditorDialogs>().SongCancel), Is.True, "no CANCEL");
+        Assert.That(UiLayout.IsHidden(Button(EditorDialogAction.Leave)), Is.False, "BACK instead");
+
+        EditorDialogs.Dismiss(Store);
+        Frame();
+        Assert.That(Shown(EditorDialogKind.Song), Is.True, "Escape does not close it");
+    }
+
+    [Test]
+    public void BackFromTheHeldPickerAsksToLeaveTheEditor()
+    {
+        _editor.AddComponent(new EditorUiRequest());
+        DropTheSong();
+        Frame();
+
+        Click(Button(EditorDialogAction.Leave));
+
+        Assert.That(_editor.GetComponent<EditorUiRequest>().Kind, Is.EqualTo(EditorButtonKind.Leave));
+    }
+
+    [Test]
+    public void ALevelWithASongLeavesTheEditorFree()
+    {
+        Frame();
+
+        Assert.That(EditorDialogs.AnyOpen(Store), Is.False);
+        Assert.That(EditorDialogs.IsSongRequired(Store), Is.False);
+    }
+
+    [Test]
+    public void ThePickerListsOnlySongsTheLibraryCanPlay()
+    {
+        System.IO.Directory.CreateDirectory(System.IO.Path.Combine(SongFolder, "here"));
+        System.IO.File.WriteAllText(System.IO.Path.Combine(SongFolder, "here", "audio.mp3"), "audio");
+        System.IO.File.WriteAllText(System.IO.Path.Combine(SongFolder, "catalog.json"), """
+        [
+          { "Id": "here", "Title": "Here", "AudioPath": "audio.mp3" },
+          { "Id": "gone", "Title": "Gone", "AudioPath": "audio.mp3" }
+        ]
+        """);
+        DropTheSong();
+        Frame();
+
+        EditorDialogs dialogs = _editor.GetComponent<EditorDialogs>();
+        Assert.That(dialogs.Songs.Select(song => song.Id), Is.EqualTo(new[] { "here" }));
+
+        Click(Button(EditorDialogAction.UseSong));
+
+        Assert.That(_commands.TryDequeue(out EditorCommand command), Is.True);
+        Assert.That(command.Type, Is.EqualTo(EditorCommandType.LoadSongById));
+        Assert.That(command.Text, Is.EqualTo("here"));
     }
 }

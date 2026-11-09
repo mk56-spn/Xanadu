@@ -32,7 +32,7 @@ public sealed class SongStoreTests
     {
         string source = CreateAudio("copy.wav", "audio-one");
 
-        SongDocument song = _songs.Import(source, "My Song", "Artist", 174, -35);
+        LoadedSong song = _songs.Import(source, "My Song", "Artist", 174, -35);
 
         Assert.That(song.Id, Is.Not.Empty);
         Assert.That(song.Slug, Does.StartWith("my-song-"));
@@ -40,9 +40,10 @@ public sealed class SongStoreTests
         Assert.That(song.Artist, Is.EqualTo("Artist"));
         Assert.That(song.Bpm, Is.EqualTo(174));
         Assert.That(song.OffsetMs, Is.EqualTo(-35));
-        Assert.That(song.AudioPath, Is.EqualTo("audio.wav"));
-        Assert.That(File.Exists(_songs.ResolveAudioPath(song)), Is.True);
-        Assert.That(_songs.ResolveAudioPath(song), Does.StartWith(Path.Combine(_root, song.Id)));
+        Assert.That(song.Info.AudioFileName, Is.EqualTo("audio.wav"));
+        Assert.That(song.AudioFile, Is.EqualTo(Path.Combine(_root, song.Id, "audio.wav")));
+        Assert.That(File.Exists(song.AudioFile), Is.True);
+        Assert.That(_songs.Open(song.Id)?.AudioFile, Is.EqualTo(song.AudioFile));
         Assert.That(File.Exists(Path.Combine(_root, "catalog.json")), Is.True);
     }
 
@@ -61,12 +62,13 @@ public sealed class SongStoreTests
         File.WriteAllText(Path.Combine(_root, "present", "audio.mp3"), "audio");
 
         var store = new SongStore(_root, catalog);
-        SongDocument present = store.Find("present")!;
-        SongDocument missing = store.Find("missing")!;
 
-        Assert.That(store.AudioExists(present), Is.True);
-        Assert.That(store.AudioExists(missing), Is.False);
+        Assert.That(store.Open("present")?.AudioFile, Is.EqualTo(Path.Combine(_root, "present", "audio.mp3")));
+        Assert.That(store.Open("missing"), Is.Null, "no audio, nothing to play");
+        Assert.That(store.Find("missing"), Is.Not.Null, "still in the catalog");
+        Assert.That(store.Open("absent"), Is.Null);
         Assert.That(store.LoadAll(), Has.Count.EqualTo(2));
+        Assert.That(store.Playable(), Has.Count.EqualTo(1));
     }
 
     [Test]
@@ -74,23 +76,23 @@ public sealed class SongStoreTests
     {
         var store = new SongStore(_root);
 
-        SongDocument song = store.Import(
+        LoadedSong song = store.Import(
             CreateAudio("catalog-add.mp3", "catalog-audio"),
             "Catalog Song");
 
         Assert.That(File.Exists(Path.Combine(_root, "catalog.json")), Is.True);
         Assert.That(store.Find(song.Id)?.Title, Is.EqualTo("Catalog Song"));
-        Assert.That(store.AudioExists(store.Find(song.Id)!), Is.True);
+        Assert.That(store.Open(song.Id), Is.Not.Null);
     }
 
     [Test]
     public void DeleteRemovesTheCatalogEntryAndAudio()
     {
-        SongDocument song = _songs.Import(
+        LoadedSong song = _songs.Import(
             CreateAudio("delete.wav", "delete-audio"),
             "Doomed");
 
-        _songs.Delete(song);
+        _songs.Delete(song.Info);
 
         Assert.That(_songs.Find(song.Id), Is.Null);
         Assert.That(Directory.Exists(Path.Combine(_root, song.Id)), Is.False);
@@ -102,8 +104,8 @@ public sealed class SongStoreTests
         string first = CreateAudio("first.wav", "same-audio");
         string second = CreateAudio("second.wav", "same-audio");
 
-        SongDocument a = _songs.Import(first, "First");
-        SongDocument b = _songs.Import(second, "Second");
+        LoadedSong a = _songs.Import(first, "First");
+        LoadedSong b = _songs.Import(second, "Second");
 
         Assert.That(b.Id, Is.Not.EqualTo(a.Id));
     }
@@ -111,7 +113,7 @@ public sealed class SongStoreTests
     [Test]
     public void LoadAllReadsSavedSongs()
     {
-        SongDocument song = _songs.Import(
+        LoadedSong song = _songs.Import(
             CreateAudio("load.wav", "load-audio"),
             "Loadable",
             "Person");
@@ -120,7 +122,7 @@ public sealed class SongStoreTests
 
         Assert.That(loaded.Title, Is.EqualTo("Loadable"));
         Assert.That(loaded.Artist, Is.EqualTo("Person"));
-        Assert.That(loaded.ContentHash, Is.EqualTo(song.ContentHash));
+        Assert.That(loaded.ContentHash, Is.EqualTo(song.Info.ContentHash));
     }
 
     [Test]
@@ -130,7 +132,7 @@ public sealed class SongStoreTests
         Directory.CreateDirectory(_root);
         File.WriteAllBytes(path, BuildId3Mp3("Tagged Title", "Tagged Artist"));
 
-        SongDocument song = _songs.Import(path);
+        LoadedSong song = _songs.Import(path);
 
         Assert.That(song.Title, Is.EqualTo("Tagged Title"));
         Assert.That(song.Artist, Is.EqualTo("Tagged Artist"));

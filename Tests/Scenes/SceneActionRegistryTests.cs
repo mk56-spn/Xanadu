@@ -40,7 +40,7 @@ public sealed class SceneActionRegistryTests
         EditorSceneActions.Register(registry);
         var store = new EntityStore();
         Entity editor = store.CreateEntity(
-            new LevelInfo("Level", ""),
+            new LevelInfo("Level"),
             new EditorUiRequest());
         Entity button = store.CreateEntity(
             new SceneCommand(SceneActionId.ToggleMetadata));

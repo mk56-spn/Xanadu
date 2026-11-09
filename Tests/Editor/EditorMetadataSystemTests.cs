@@ -28,7 +28,7 @@ public sealed class EditorMetadataSystemTests
             new Text("DEFAULT"),
             new EditorColorRow(EditorColorTarget.Background, hex: true));
         Entity editor = store.CreateEntity(
-            new LevelInfo("Level", "") { Background = new Color("#204060") },
+            new LevelInfo("Level") { Background = new Color("#204060") },
             new Playhead(0, 120, 0, false));
 
         var root = new SystemRoot(store);
@@ -61,7 +61,7 @@ public sealed class EditorMetadataSystemTests
             System.Numerics.Vector2.Zero,
             new Vector2(0, -1)));
         Entity editor = store.CreateEntity(
-            new LevelInfo("Level", ""),
+            new LevelInfo("Level"),
             new Playhead(0, 120, 0, false),
             new NoteSelection(start));
         Entity field = store.CreateEntity(

@@ -34,6 +34,18 @@ public sealed class XmfBinaryTests
     }
 
     [Test]
+    public void AFrictionBarKeepsItsPlaceAndHeight()
+    {
+        var source = new LevelDocument();
+        source.FrictionBars.Add(new FrictionBarDocument { X = 114, Y = 300, Height = 180, Layer = 3 });
+
+        LevelDocument loaded = XmfBinary.Read(XmfBinary.Write(source));
+
+        FrictionBarDocument read = loaded.FrictionBars.Single();
+        Assert.That((read.X, read.Y, read.Height, read.Layer), Is.EqualTo((114f, 300f, 180f, 3)));
+    }
+
+    [Test]
     public void ALevelWithoutItemGeometryIsWrittenAsBefore()
     {
         var source = new LevelDocument();
@@ -102,6 +114,8 @@ public sealed class XmfBinaryTests
             HoldMs = 500,
             ShapeId = 8,
             ShapePiece = 2,
+            ExitDirection = DashDirection.UpLeft,
+            ExitMomentum = 700f,
         });
         source.Mines.Add(new MineDocument
         {
@@ -210,6 +224,8 @@ public sealed class XmfBinaryTests
         Assert.That(note.HoldMs, Is.EqualTo(500));
         Assert.That(note.ShapeId, Is.EqualTo(8));
         Assert.That(note.ShapePiece, Is.EqualTo(2));
+        Assert.That(note.ExitDirection, Is.EqualTo(DashDirection.UpLeft));
+        Assert.That(note.ExitMomentum, Is.EqualTo(700f));
 
         MineDocument mine = map.Mines[0];
         Assert.That(mine.Groups, Is.EqualTo(new[] { 2 }));

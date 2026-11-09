@@ -1,16 +1,17 @@
 namespace Xanadu.Levels;
 
-/// <summary>A loaded level and the program-owned song it references.</summary>
+/// <summary>
+/// A loaded level and its song, opened from the library. <see cref="Song"/> is
+/// null when the level names no song, or names one the library cannot play.
+/// </summary>
 public sealed record LevelEntry(
     string Path,
     LevelDocument Document,
-    SongDocument? Song = null,
-    bool? SongAvailable = null)
+    LoadedSong? Song = null)
 {
     public bool HasSong => Song is not null;
-    public bool IsSongAvailable =>
-        Song is not null && (SongAvailable ?? true);
+
+    /// <summary>The level names a song the library cannot play: it is missing or has no audio.</summary>
     public bool IsBlocked =>
-        !string.IsNullOrWhiteSpace(Document.SongId) &&
-        (!HasSong || !IsSongAvailable);
+        !string.IsNullOrWhiteSpace(Document.SongId) && Song is null;
 }

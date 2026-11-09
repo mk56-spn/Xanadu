@@ -31,7 +31,8 @@ public readonly record struct RotationStart(
     Vector2 Momentum,
     float Degrees = 0f,
     BlockOneWay OneWay = BlockOneWay.Off,
-    Xanadu.Items.Xif? Shape = null);
+    Xanadu.Items.Xif? Shape = null,
+    DashDirection ExitDirection = DashDirection.Up);
 
 /// <summary>
 /// Turns a group of playfield items around their shared centre. Anything with
@@ -134,6 +135,9 @@ public static class SelectionRotation
         DashDirection direction = entity.HasComponent<Note>()
             ? entity.GetComponent<Note>().DashDirection
             : default;
+        DashDirection exit = entity.HasComponent<Note>()
+            ? entity.GetComponent<Note>().ExitDirection
+            : default;
         Vector2 facing = default;
         Vector2 momentum = default;
         if (entity.HasComponent<StartPoint>())
@@ -150,7 +154,7 @@ public static class SelectionRotation
         BlockOneWay oneWay = entity.HasComponent<Block>()
             ? entity.GetComponent<Block>().OneWay
             : BlockOneWay.Off;
-        return new RotationStart(entity, center, kind?.Size(entity) ?? Vector2.Zero, direction, facing, momentum, degrees, oneWay, shape);
+        return new RotationStart(entity, center, kind?.Size(entity) ?? Vector2.Zero, direction, facing, momentum, degrees, oneWay, shape, exit);
     }
 
     /// <summary>Puts one item where the rotation takes it, kept inside the field.</summary>
@@ -194,6 +198,8 @@ public static class SelectionRotation
             ref Note note = ref entity.GetComponent<Note>();
             if (note.Kind is NoteKind.Dash or NoteKind.Momentum)
                 note.DashDirection = TurnedDirection(start.Direction, angle);
+            if (note.Kind == NoteKind.Dash)
+                note.ExitDirection = TurnedDirection(start.ExitDirection, angle);
         }
         else if (entity.HasComponent<StartPoint>())
         {
@@ -266,6 +272,8 @@ public static class SelectionRotation
             ref Note note = ref entity.GetComponent<Note>();
             if (note.Kind is NoteKind.Dash or NoteKind.Momentum)
                 note.DashDirection = FlippedDirection(start.Direction, horizontal);
+            if (note.Kind == NoteKind.Dash)
+                note.ExitDirection = FlippedDirection(start.ExitDirection, horizontal);
         }
         else if (entity.HasComponent<StartPoint>())
         {

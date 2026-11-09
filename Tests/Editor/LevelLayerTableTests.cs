@@ -28,7 +28,7 @@ public sealed class LevelLayerTableTests
     };
 
     private static Entity Editor(EntityStore store) => store.CreateEntity(
-        new LevelInfo("Layers", ""),
+        new LevelInfo("Layers"),
         new Playfield(1000, 1000),
         new Playhead(0, 120, 0, false),
         new NoteSelection(default),

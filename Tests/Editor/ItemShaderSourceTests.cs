@@ -119,7 +119,7 @@ public sealed class ItemShaderSourcePasteTests : EcsSystemTest
         _commands = new EditorCommandBus();
         Root.Add(new EditorCommandSystem(Store, _commands, new EditorHistory(Store)));
         _editor = Store.CreateEntity(
-            new LevelInfo("Untitled", ""),
+            new LevelInfo("Untitled"),
             new LevelFile(""),
             new Playfield(1000, 1000),
             new Playhead(0, 120, 0, false),

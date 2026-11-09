@@ -24,7 +24,7 @@ public sealed class LevelTextTests : EcsSystemTest
         _history = new EditorHistory(Store);
         Root.Add(new EditorCommandSystem(Store, _commands, _history));
         _editor = Store.CreateEntity(
-            new LevelInfo("Untitled", ""),
+            new LevelInfo("Untitled"),
             new LevelFile(""),
             new Playfield(1000, 1000),
             new Playhead(0, 120, 0, false),
@@ -48,7 +48,7 @@ public sealed class LevelTextTests : EcsSystemTest
 
         var targetStore = new EntityStore();
         Entity target = targetStore.CreateEntity(
-            new LevelInfo("Target", ""),
+            new LevelInfo("Target"),
             new Playfield(10, 10),
             new Playhead(0, 120, 0, false),
             new NoteSelection(default));

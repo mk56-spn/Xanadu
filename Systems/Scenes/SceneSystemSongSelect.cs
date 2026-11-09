@@ -20,7 +20,7 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
 
         try
         {
-            return new LevelEntry(path, LevelStore.Load(path));
+            return LevelStore.Entry(path, LevelStore.Load(path));
         }
         catch (Exception exception)
         {

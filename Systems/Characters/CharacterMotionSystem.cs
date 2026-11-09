@@ -6,6 +6,7 @@ using Xanadu.Animation;
 using Godot;
 using Xanadu.Ecs;
 using Xanadu.Systems.Physics;
+using Xanadu.Systems.Playfields;
 using Position = Xanadu.Ecs.Position;
 
 namespace Xanadu.Systems.Characters;
@@ -38,12 +39,6 @@ public sealed class CharacterMotionSystem : QuerySystem<CharacterRig, Player, Po
     /// faster than frames, so a slow rise moves too little per frame to judge by distance.
     /// </summary>
     public const float RiseSpeed = 60f;
-
-    /// <summary>Slack in pixels when testing whether the player rests on the floor.</summary>
-    private const float FloorTolerance = 0.5f;
-
-    /// <summary>Slack in pixels for resting on a block, whose contact leaves a small gap.</summary>
-    private const float BlockTolerance = 2f;
 
     /// <summary>
     /// Every change of state <see cref="Next"/> can make. Rising always jumps,
@@ -251,32 +246,8 @@ public sealed class CharacterMotionSystem : QuerySystem<CharacterRig, Player, Po
             return true;
         }
 
-        float floor = view.ScreenOrigin.Y + playfield.Height * view.Scale -
-                      entity.GetComponent<Player>().Size.Y / 2;
-        return y >= floor - FloorTolerance || OnBlock(entity, view, y);
-    }
-
-    /// <summary>Whether the player's feet rest on the top of a block.</summary>
-    private static bool OnBlock(Entity entity, PlayfieldView view, float y)
-    {
-        Vector2 size = entity.GetComponent<Player>().Size;
         float x = entity.GetComponent<Position>().Value.X;
-        float feet = y + size.Y / 2;
-
-        foreach (Entity blockEntity in entity.Store.Query<Block>().ToEntityList())
-        {
-            Block block = blockEntity.GetComponent<Block>();
-            if (block.OneWay is not (BlockOneWay.Off or BlockOneWay.Up))
-                continue;
-
-            Vector2 topLeft = view.PlayfieldToScreen(GroupOffset.Shown(blockEntity, block.Position));
-            Vector2 bottomRight = view.PlayfieldToScreen(GroupOffset.Shown(blockEntity, block.End));
-            bool overlapsX = x + size.X / 2 > topLeft.X && x - size.X / 2 < bottomRight.X;
-            if (overlapsX && Mathf.Abs(feet - topLeft.Y) <= BlockTolerance)
-                return true;
-        }
-
-        return false;
+        return PlayerGround.TryStanding(entity, view, playfield, new Vector2(x, y), out _);
     }
 
     private static ContactClip First(XafPackage package, params ContactClip[] clips)

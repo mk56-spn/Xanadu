@@ -119,6 +119,7 @@ public sealed class LevelRecoveryStore(string directory)
             .ThenBy(n => n.DashStrength).ThenBy(n => n.PairIndex).ThenBy(n => n.Momentum)
             .ThenBy(n => n.ContactLeft).ThenBy(n => n.ContactRight)
             .ThenBy(n => n.ChannelSide).ThenBy(n => n.HoldMs)
+            .ThenBy(n => n.ExitDirection).ThenBy(n => n.ExitMomentum)
             .ToList();
         copy.Mines = copy.Mines
             .OrderBy(m => m.TimeMs).ThenBy(m => m.X).ThenBy(m => m.Y)

@@ -82,11 +82,13 @@ public sealed class PlayfieldSystemGroup : SystemGroup, IDisposable
         }
 
         Add(new PlayerMovementSystem(entities, keybinds, keyboard, offsets));
+        Add(new DashHangSystem());
         Add(new PlayerArenaSystem());
         Add(new SpikeContactSystem(entities));
         Add(new PlayKeyTrailSystem(entities, keybinds, keyboard));
         Add(new PlayKeyTrailHudSystem(entities));
         Add(new PlayNoteInputSystem(entities, keybinds, keyboard, offsets));
+        Add(new GroundStepSystem());
         Add(new RailHoldSystem(keyboard, keybinds));
         Add(new ContactBarrierSystem(entities, offsets));
         Add(new SplitlineSystem());

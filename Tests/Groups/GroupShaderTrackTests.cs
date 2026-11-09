@@ -195,7 +195,7 @@ public sealed class GroupShaderTrackTests
     {
         var store = new EntityStore();
         Entity editor = store.CreateEntity(
-            new LevelInfo("Track", ""),
+            new LevelInfo("Track"),
             new Playfield(1000, 1000),
             new Playhead(0, 120, 0, false),
             new NoteSelection(default),
@@ -213,7 +213,7 @@ public sealed class GroupShaderTrackTests
 
         var target = new EntityStore();
         LevelDocumentMapper.Apply(target, target.CreateEntity(
-            new LevelInfo("", ""),
+            new LevelInfo(""),
             new Playfield(1000, 1000),
             new Playhead(0, 120, 0, false),
             new NoteSelection(default)), document);

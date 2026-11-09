@@ -72,7 +72,9 @@ public static class EditorPlacementNote
                 ? NoteRules.SideOf(channelTarget)
                 : ChannelSide.Left,
             shapeId: isFormStep ? placement.ShapeId : 0,
-            shapePiece: 0);
+            shapePiece: 0,
+            exitDirection: placement.ExitDirection,
+            exitMomentum: mode == EditorPlacementMode.Dash ? placement.ExitMomentum : 0f);
     }
 
     /// <summary>

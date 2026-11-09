@@ -47,7 +47,7 @@ public static partial class SongSelectScene
         PreviewViews preview = BuildPreview(ui, profiles, loadAssets);
 
         InfoViews info = BuildInfo(ui, loadAssets);
-        ActionViews actions = BuildActions(ui);
+        ActionViews actions = BuildActions(ui, loadAssets);
 
         var state = new SongSelectState(
             selected,
@@ -64,7 +64,9 @@ public static partial class SongSelectScene
         state.InfoGenre = info.Genre;
         state.InfoTitle = info.Title;
         state.InfoArtist = info.Artist;
-        state.ActionIcons = actions.Icons;
+        state.ActionIcons = actions.EditIcons;
+        state.Delete = actions.Delete;
+        state.DeleteIcons = actions.DeleteIcons;
         state.LevelLabel = level;
         state.LevelPanel = levelPanel;
         state.ScoreViewport = scores.Viewport;
@@ -98,7 +100,7 @@ public static partial class SongSelectScene
 
         bool blocked = catalog.Count > 0 &&
             catalog[state.Selected].IsBlocked;
-        RefreshActions(ref state, !blocked);
+        RefreshActions(ref state, !blocked, catalog.Count > 0);
     }
 
     /// <summary>

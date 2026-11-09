@@ -4,6 +4,7 @@ using NUnit.Framework;
 using Xanadu.Ecs;
 using Xanadu.Editor;
 using Xanadu.Levels;
+using Xanadu.Tests.Support;
 
 namespace Xanadu.Tests.Groups;
 
@@ -11,7 +12,7 @@ namespace Xanadu.Tests.Groups;
 public sealed class GroupPersistenceTests
 {
     private static Entity Editor(EntityStore store) => store.CreateEntity(
-        new LevelInfo("Groups", "res://song.mp3"),
+        new LevelInfo("Groups", TestSongs.At("res://song.mp3")),
         new Playfield(1000, 1000),
         new Playhead(0, 120, 0, false),
         LevelGroups.Create());
@@ -148,7 +149,7 @@ public sealed class GroupPersistenceTests
     {
         var store = new EntityStore();
         Entity bare = store.CreateEntity(
-            new LevelInfo("x", ""), new Playfield(1000, 1000), new Playhead(0, 120, 0, false));
+            new LevelInfo("x"), new Playfield(1000, 1000), new Playhead(0, 120, 0, false));
 
         LevelDocumentMapper.Apply(store, bare, new LevelDocument());
 

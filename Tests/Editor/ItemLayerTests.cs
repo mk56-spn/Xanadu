@@ -168,7 +168,7 @@ public sealed class ItemLayerTests
     private static int LayerOf(Entity entity) => entity.GetComponent<ItemLayer>().Layer;
 
     private static Entity Editor(EntityStore store) => store.CreateEntity(
-        new LevelInfo("Layers", ""),
+        new LevelInfo("Layers"),
         new Playfield(1000, 1000),
         new Playhead(0, 120, 0, false),
         new NoteSelection(default));
@@ -198,7 +198,7 @@ public sealed class ItemLayerPasteTests : EcsSystemTest
         _commands = new EditorCommandBus();
         Root.Add(new EditorCommandSystem(Store, _commands, new EditorHistory(Store)));
         _editor = Store.CreateEntity(
-            new LevelInfo("Untitled", ""),
+            new LevelInfo("Untitled"),
             new LevelFile(""),
             new Playfield(1000, 1000),
             new Playhead(0, 120, 0, false),

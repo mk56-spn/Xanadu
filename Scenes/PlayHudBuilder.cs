@@ -23,7 +23,7 @@ internal static class PlayHudBuilder
         Entity playfield,
         Vector2 screen,
         LevelDocument document,
-        SongDocument? song,
+        LoadedSong? song,
         Vector2 origin,
         Rect2 viewport,
         float fieldHeight,

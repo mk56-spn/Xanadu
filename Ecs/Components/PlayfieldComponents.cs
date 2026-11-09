@@ -1,4 +1,5 @@
 using Friflo.Engine.ECS;
+using Xanadu.Levels;
 using Godot;
 using Xanadu.Theme;
 using Xanadu.Settings;
@@ -8,7 +9,7 @@ namespace Xanadu.Ecs;
 /// <summary>Level metadata for the editor and play scene.</summary>
 public struct LevelInfo(
     string name,
-    string audioPath,
+    LoadedSong? song = null,
     string artist = "",
     string difficulty = "") : IComponent
 {
@@ -20,7 +21,15 @@ public struct LevelInfo(
     public string Slug = "";
     public string SongId = "";
     public string Name = name;
-    public string AudioPath = audioPath;
+
+    /// <summary>
+    /// The level's song, opened from the library; null until one is chosen, or
+    /// while <see cref="SongId"/> names one the library cannot play.
+    /// </summary>
+    public LoadedSong? Song = song;
+
+    /// <summary>The audio file the level plays, or empty without a song.</summary>
+    public readonly string AudioPath => Song?.AudioFile ?? "";
     public string Artist = artist;
     public string Difficulty = difficulty;
 
@@ -206,7 +215,9 @@ public struct Note(
     ChannelSide channelSide = ChannelSide.Left,
     long holdMs = 0,
     int shapeId = 0,
-    int shapePiece = 0) : IComponent
+    int shapePiece = 0,
+    DashDirection exitDirection = DashDirection.Up,
+    float exitMomentum = 0f) : IComponent
 {
     /// <summary>
     /// A momentum note's push, expressed as the velocity change it imparts in
@@ -247,6 +258,16 @@ public struct Note(
 
     /// <summary>Which attached block a construction step reveals.</summary>
     public int ShapePiece = shapePiece;
+
+    /// <summary>The way a dash note pushes the player once it lands; ignored while <see cref="ExitMomentum"/> is zero.</summary>
+    public DashDirection ExitDirection = exitDirection;
+
+    /// <summary>
+    /// A dash note's push out of the dash, in playfield units per second, set
+    /// the way a momentum note sets speed. Zero for none: the player hangs
+    /// where the dash put it instead. Ignored by other kinds.
+    /// </summary>
+    public float ExitMomentum = exitMomentum;
 }
 
 /// <summary>A mine hazard placed in playfield coordinates.</summary>
@@ -334,6 +355,30 @@ public struct Spike(
     /// <summary>Whether a playfield point is inside the spike's turned box.</summary>
     public readonly bool Contains(Vector2 point) =>
         Bounds.HasPoint(Center + (point - Center).Rotated(-Mathf.DegToRad(RotationDegrees)));
+}
+
+/// <summary>
+/// A friction bar: an upright line in playfield coordinates. The ground has
+/// no friction, so a slide carries on at its speed; crossing a bar turns the
+/// ground's friction on, and the player slows to a stop past it. The next
+/// momentum push turns friction off again.
+/// </summary>
+public struct FrictionBar(Vector2 position, float height) : IComponent
+{
+    /// <summary>How wide the bar is drawn and picked, in playfield units.</summary>
+    public const float Thickness = 12f;
+
+    /// <summary>Top-left corner of its box.</summary>
+    public Vector2 Position = position;
+
+    public float Height = height;
+
+    /// <summary>The line the player crosses.</summary>
+    public readonly float X => Position.X + Thickness / 2;
+
+    public readonly Vector2 Center => Position + new Vector2(Thickness, Height) / 2;
+
+    public readonly Rect2 Bounds => new(Position, new Vector2(Thickness, Height));
 }
 
 /// <summary>

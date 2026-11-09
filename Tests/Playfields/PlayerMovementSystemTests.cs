@@ -115,26 +115,102 @@ public sealed class PlayerMovementSystemTests
         Assert.That(burst.GetComponent<ParticleBurst>().Position, Is.EqualTo(_player.GetComponent<Position>().Value));
     }
 
-    [Test]
-    public void DashesFromThePlayerPositionInsteadOfTheNoteCenter()
+    private ref Position PlaceAt(Vector2 at)
     {
         ref Position position = ref _player.GetComponent<Position>();
-        position.Value = new Vector2(940, 480);
-        _player.GetComponent<PhysicsBody>().Body.SetTransform(
-            Box2DPhysicsWorld.ToPhysics(position.Value),
-            0f);
+        position.Value = at;
+        _player.GetComponent<PhysicsBody>().Body.SetTransform(Box2DPhysicsWorld.ToPhysics(at), 0f);
+        return ref position;
+    }
+
+    private void Dash(Vector2 at, DashDirection direction, long timeMs = 0, DashDirection exit = DashDirection.Up, float exitMomentum = 0f)
+    {
         _store.CreateEntity(new Note(
-            0,
-            new Vector2(950, 500),
+            timeMs,
+            at,
             target: KeybindAction.L3,
             kind: NoteKind.Dash,
-            dashDirection: DashDirection.Left));
-
+            dashDirection: direction,
+            exitDirection: exit,
+            exitMomentum: exitMomentum));
         _keyboard.Press(Key.F);
         _root.Update(new UpdateTick(1f / 60f, 0));
+    }
 
-        Assert.That(position.Value.X, Is.EqualTo(690).Within(0.01f));
-        Assert.That(position.Value.Y, Is.EqualTo(480).Within(0.01f));
+    [Test]
+    public void InTheAirADashIsMeasuredFromTheNote()
+    {
+        ref Position position = ref PlaceAt(new Vector2(940, 480));
+
+        Dash(new Vector2(950, 500), DashDirection.Left);
+
+        Assert.That(position.Value.X, Is.EqualTo(700).Within(0.01f));
+        Assert.That(position.Value.Y, Is.EqualTo(500).Within(0.01f));
+    }
+
+    [Test]
+    public void OnTheFloorADashIsMeasuredFromStandingHeight()
+    {
+        // The note sits below where the player's centre can go; measured from
+        // it, a short dash up would end inside the floor and do nothing.
+        ref Position position = ref PlaceAt(new Vector2(500, 950));
+
+        Dash(new Vector2(510, 990), DashDirection.Up);
+
+        Assert.That(position.Value.X, Is.EqualTo(510).Within(0.01f));
+        Assert.That(position.Value.Y, Is.EqualTo(700).Within(0.01f));
+    }
+
+    [Test]
+    public void OnABlockADashIsMeasuredFromTheBlockTop()
+    {
+        _store.CreateEntity(new Block(new Vector2(400, 800), new Vector2(200, 50)));
+        ref Position position = ref PlaceAt(new Vector2(500, 750));
+
+        Dash(new Vector2(500, 790), DashDirection.Up);
+
+        Assert.That(position.Value.Y, Is.EqualTo(500).Within(0.01f));
+    }
+
+    [Test]
+    public void ALateHitStartsThatFarIntoTheDashesFollowThrough()
+    {
+        _player.GetComponent<Playhead>().TimeMs = 40;
+        _player.GetComponent<PhysicsBody>().Body.SetLinearVelocity(new System.Numerics.Vector2(4f, 0f));
+        ref Position position = ref PlaceAt(new Vector2(500, 500));
+
+        Dash(new Vector2(500, 500), DashDirection.Up);
+
+        // 4 m/s for 40 ms is 16 pixels; the hang means gravity has not had that time.
+        Assert.That(position.Value.X, Is.EqualTo(516).Within(0.01f));
+        Assert.That(position.Value.Y, Is.EqualTo(250).Within(0.01f));
+    }
+
+    [Test]
+    public void ADashWithNoExitHangs()
+    {
+        PlaceAt(new Vector2(500, 500));
+
+        Dash(new Vector2(500, 500), DashDirection.Up);
+
+        Body body = _player.GetComponent<PhysicsBody>().Body;
+        Assert.That(_player.HasComponent<DashHang>(), Is.True);
+        Assert.That(Box2DPhysicsWorld.GravityScale(body), Is.Zero);
+    }
+
+    [Test]
+    public void AnExitPushLaunchesOutOfTheDashInItsOwnDirection()
+    {
+        PlaceAt(new Vector2(500, 500));
+
+        Dash(new Vector2(500, 500), DashDirection.Up, exit: DashDirection.Right, exitMomentum: 600f);
+
+        Body body = _player.GetComponent<PhysicsBody>().Body;
+        float speed = 600f / Box2DPhysicsWorld.PixelsPerMeter * Box2DPhysicsWorld.MomentumScale;
+        Assert.That(body.LinearVelocity.X, Is.EqualTo(speed).Within(0.001f));
+        Assert.That(body.LinearVelocity.Y, Is.Zero);
+        Assert.That(_player.HasComponent<DashHang>(), Is.False);
+        Assert.That(Box2DPhysicsWorld.GravityScale(body), Is.EqualTo(1f));
     }
 
     [Test]

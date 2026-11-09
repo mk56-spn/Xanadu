@@ -13,9 +13,10 @@ namespace Xanadu.Systems.Playfields;
 public sealed class PlayerArenaSystem : QuerySystem<Player, PhysicsBody, Position, PlayfieldView, Playfield>
 {
     /// <summary>
-    /// How much the floor grips the player. The floor is a limit rather than a
-    /// Box2D body, so it has to apply its own friction; this is what the player's
-    /// 0.15 and a block's 0.5 mix to, so both grounds feel alike.
+    /// How much the floor grips the player once a friction bar turns friction on.
+    /// The floor is a limit rather than a Box2D body, so it has to apply its own
+    /// friction; this is what the player's 0.15 and a block's 0.5 mix to, so
+    /// both grounds feel alike.
     /// </summary>
     public const float GroundFriction = 0.27f;
 
@@ -58,7 +59,7 @@ public sealed class PlayerArenaSystem : QuerySystem<Player, PhysicsBody, Positio
             if (onFloor || onCeiling)
             {
                 body.Body.SetLinearVelocity(new NVector2(
-                    onFloor ? AfterFriction(velocity.X, delta) : velocity.X,
+                    onFloor && PlayerFriction.IsOn(entity) ? AfterFriction(velocity.X, delta) : velocity.X,
                     0f));
             }
 

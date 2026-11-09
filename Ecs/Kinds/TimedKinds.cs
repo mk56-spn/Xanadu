@@ -70,6 +70,10 @@ public sealed class NoteItemKind : ItemKind<Note, NoteDocument>
             return order;
         if ((order = a.Kind.CompareTo(b.Kind)) != 0)
             return order;
+        if ((order = a.ExitMomentum.CompareTo(b.ExitMomentum)) != 0)
+            return order;
+        if ((order = a.ExitDirection.CompareTo(b.ExitDirection)) != 0)
+            return order;
         return a.HoldMs.CompareTo(b.HoldMs);
     }
 
@@ -99,6 +103,8 @@ public sealed class NoteItemKind : ItemKind<Note, NoteDocument>
         HoldMs = note.HoldMs,
         ShapeId = note.ShapeId,
         ShapePiece = note.ShapePiece,
+        ExitDirection = note.ExitDirection,
+        ExitMomentum = note.ExitMomentum,
         Item = Xif.FromEcs(ItemShader.Of(entity), ItemCommonShader.Of(entity)),
     };
 
@@ -118,7 +124,9 @@ public sealed class NoteItemKind : ItemKind<Note, NoteDocument>
         note.ChannelSide,
         note.HoldMs,
         note.ShapeId,
-        note.ShapePiece);
+        note.ShapePiece,
+        note.ExitDirection,
+        note.ExitMomentum);
 
     /// <summary>A note's shaders live in its Xif: a map slot, a common shader, or both.</summary>
     protected override Entity CreateFromDocument(EntityStore entities, NoteDocument note) =>

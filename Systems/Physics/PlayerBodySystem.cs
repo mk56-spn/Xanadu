@@ -10,7 +10,8 @@ namespace Xanadu.Systems.Physics;
 public sealed class PlayerBodySystem : QuerySystem<Player, Position>
 {
     private const float CharacterMass = 1f;
-    private const float CharacterFriction = 0.15f;
+    /// <summary>The player's own friction while <see cref="PlayerFriction"/> is on; it is 0 otherwise.</summary>
+    public const float CharacterFriction = 0.15f;
 
     private readonly Box2DPhysicsWorld _physics;
 
@@ -38,7 +39,7 @@ public sealed class PlayerBodySystem : QuerySystem<Player, Position>
                 position.Value,
                 player.Size,
                 CharacterMass,
-                CharacterFriction);
+                PlayerFriction.IsOn(entity) ? CharacterFriction : 0f);
 
             buffer.AddComponent(entity.Id, new PhysicsBody(body));
             buffer.AddComponent(entity.Id, new PlayerSmoothing(position.Value));

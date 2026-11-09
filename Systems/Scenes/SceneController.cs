@@ -90,7 +90,7 @@ public sealed class SceneControllerRegistry
 
         public void Build(SceneBuildContext c)
         {
-            var songs = new SongStore();
+            SongStore songs = SongStore.Shared;
             SongDocument? song = songs.Find(
                 c.StateEntity.GetComponent<SceneState>().SelectedSongId);
             if (song is null)
@@ -110,7 +110,7 @@ public sealed class SceneControllerRegistry
 
         public void HandleActions(SceneSystem system, ref SceneState state)
         {
-            var songs = new SongStore();
+            SongStore songs = SongStore.Shared;
             SongDocument? song = songs.Find(state.SelectedSongId);
             if (song is null)
                 return;

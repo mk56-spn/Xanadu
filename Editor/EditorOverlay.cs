@@ -68,7 +68,7 @@ public partial class EditorOverlay
 
         if (_openSongDialog &&
             _editor.HasComponent<LevelInfo>() &&
-            string.IsNullOrWhiteSpace(_editor.GetComponent<LevelInfo>().AudioPath))
+            _editor.GetComponent<LevelInfo>().Song is null)
         {
             CallDeferred(nameof(OpenSongDialog));
         }

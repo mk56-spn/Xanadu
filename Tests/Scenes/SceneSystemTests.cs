@@ -534,13 +534,11 @@ public sealed partial class SceneSystemTests
         File.WriteAllBytes(second, [0]);
         _catalog[0] = _catalog[0] with
         {
-            Song = new SongDocument { Id = "a", AudioPath = first },
-            SongAvailable = true,
+            Song = TestSongs.At(first, "a"),
         };
         _catalog[1] = _catalog[1] with
         {
-            Song = new SongDocument { Id = "b", AudioPath = second },
-            SongAvailable = true,
+            Song = TestSongs.At(second, "b"),
         };
 
         var audio = new FakeTrackAudio();
@@ -834,9 +832,12 @@ public sealed partial class SceneSystemTests
 
         Assert.That(view.Edit.GetComponent<SceneCommand>().Action, Is.EqualTo(SceneActionId.Edit));
         Assert.That(view.Edit.Tags.Has<TakesInput>(), Is.True);
-        Assert.That(view.Edit.HasComponent<UiDiamond>(), Is.True);
         Assert.That(view.Edit.GetComponent<UiContainer>().Skew, Is.Zero);
         Assert.That(view.ActionIcons, Is.Not.Empty);
+
+        Assert.That(view.Delete.GetComponent<SceneCommand>().Action, Is.EqualTo(SceneActionId.DeleteLevel));
+        Assert.That(view.Delete.Tags.Has<TakesInput>(), Is.True);
+        Assert.That(view.DeleteIcons, Is.Not.Empty);
     }
 
     [Test]
@@ -844,14 +845,15 @@ public sealed partial class SceneSystemTests
     {
         _catalog[0] = _catalog[0] with
         {
-            Song = new SongDocument
-            {
-                Id = "a",
-                Title = "Choo Choo Train",
-                Artist = "Slake",
-                Genre = "J-Revival",
-            },
-            SongAvailable = true,
+            Song = new LoadedSong(
+                new SongDocument
+                {
+                    Id = "a",
+                    Title = "Choo Choo Train",
+                    Artist = "Slake",
+                    Genre = "J-Revival",
+                },
+                "/tmp/choo-choo.wav"),
         };
 
         _scenes.Start(SceneKind.SongSelect);
@@ -870,8 +872,7 @@ public sealed partial class SceneSystemTests
     {
         _catalog[0] = _catalog[0] with
         {
-            Song = new SongDocument { Id = "a", Title = new string('W', 40) },
-            SongAvailable = true,
+            Song = TestSongs.At("/tmp/long.wav", "a", new string('W', 40)),
         };
 
         _scenes.Start(SceneKind.SongSelect);

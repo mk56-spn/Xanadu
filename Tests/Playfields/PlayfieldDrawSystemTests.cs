@@ -39,7 +39,7 @@ public sealed class PlayfieldDrawSystemTests
         var playfield = new Playfield(1000, 1000);
         var store = new EntityStore();
         store.CreateEntity(
-            new LevelInfo("Shaded", "") { Background = new Color("#204060") },
+            new LevelInfo("Shaded") { Background = new Color("#204060") },
             view,
             playfield,
             new Playhead(1_000, 120, 0, true, durationMs: 5_000),

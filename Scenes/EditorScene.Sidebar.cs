@@ -383,6 +383,7 @@ public static class EditorSceneSidebar
                 });
         }
 
+        EditorSceneDashExitPanel.Build(panel, editor, inner);
         BuildGrassPanel(panel, editor, inner);
         EditorSceneFlarePanel.Build(panel, editor, inner);
 

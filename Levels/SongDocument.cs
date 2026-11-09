@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json.Serialization;
 
 namespace Xanadu.Levels;
 
@@ -21,8 +22,13 @@ public sealed class SongDocument
     /// <summary>The song's genre, shown on song select. Empty when unknown.</summary>
     public string Genre { get; set; } = "";
 
-    /// <summary>Absolute path to the copied audio inside the song store.</summary>
-    public string AudioPath { get; set; } = "";
+    /// <summary>
+    /// The audio's file name inside the song's library folder. Only
+    /// <see cref="SongStore"/> turns it into a file: a <see cref="LoadedSong"/> carries the path.
+    /// </summary>
+    [JsonInclude]
+    [JsonPropertyName("AudioPath")]
+    internal string AudioFileName { get; set; } = "";
 
     /// <summary>The tempo from the offset on, until the first change.</summary>
     public double Bpm { get; set; } = 120;

@@ -1,5 +1,6 @@
 using Xanadu.Lab.Experiments.Aero;
 using Xanadu.Lab.Experiments.Fluid;
+using Xanadu.Lab.Experiments.Moves;
 using Xanadu.Lab.Experiments.Notes;
 using Xanadu.Lab.Experiments.Particles;
 using Xanadu.Lab.Experiments.Pivot;
@@ -17,6 +18,7 @@ public static class LabExperiments
 {
     public static ILabExperiment[] All() =>
     [
+        new DirectionMoveExperiment(),
         new NoteApproachExperiment(NoteApproachStyle.Ring),
         new NoteApproachExperiment(NoteApproachStyle.Diva),
         new NoteApproachExperiment(NoteApproachStyle.DivaLine),

@@ -19,6 +19,8 @@ public interface IChartItems
 
     List<SpikeDocument> Spikes { get; set; }
 
+    List<FrictionBarDocument> FrictionBars { get; set; }
+
     List<TextDocument> Texts { get; set; }
 
     List<GrassDocument> Grass { get; set; }

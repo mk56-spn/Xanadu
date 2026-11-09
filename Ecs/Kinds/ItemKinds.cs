@@ -17,6 +17,7 @@ public static class ItemKinds
     public static readonly StartPointItemKind StartPoints = new();
     public static readonly BlockItemKind Blocks = new();
     public static readonly SpikeItemKind Spikes = new();
+    public static readonly FrictionBarItemKind FrictionBars = new();
     public static readonly TextItemKind Texts = new();
     public static readonly GrassItemKind Grass = new();
     public static readonly FlareItemKind Flares = new();
@@ -29,7 +30,7 @@ public static class ItemKinds
     /// </summary>
     public static readonly ItemKind[] All =
     {
-        Notes, Mines, StartPoints, Blocks, Spikes, Texts, Grass, Flares, Polygons, ScreenReads,
+        Notes, Mines, StartPoints, Blocks, Spikes, FrictionBars, Texts, Grass, Flares, Polygons, ScreenReads,
     };
 
     /// <summary>
@@ -39,7 +40,7 @@ public static class ItemKinds
     /// </summary>
     public static readonly ItemKind[] PickOrder =
     {
-        Notes, Mines, StartPoints, Texts, Grass, Flares, Spikes, Blocks, Polygons, ScreenReads,
+        Notes, Mines, StartPoints, Texts, Grass, Flares, FrictionBars, Spikes, Blocks, Polygons, ScreenReads,
     };
 
     private static readonly Dictionary<Type, ItemKind> ByComponent = new()
@@ -49,6 +50,7 @@ public static class ItemKinds
         [typeof(StartPoint)] = StartPoints,
         [typeof(Block)] = Blocks,
         [typeof(Spike)] = Spikes,
+        [typeof(FrictionBar)] = FrictionBars,
         [typeof(LevelText)] = Texts,
         [typeof(GrassPatch)] = Grass,
         [typeof(LevelFlare)] = Flares,

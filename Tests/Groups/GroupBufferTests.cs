@@ -239,7 +239,7 @@ public sealed class GroupBufferTests
     {
         var store = new EntityStore();
         Entity editor = store.CreateEntity(
-            new LevelInfo("Buffered", ""),
+            new LevelInfo("Buffered"),
             new Playfield(1000, 1000),
             new Playhead(0, 120, 0, false),
             new NoteSelection(default),
@@ -258,7 +258,7 @@ public sealed class GroupBufferTests
 
         var target = new EntityStore();
         LevelDocumentMapper.Apply(target, target.CreateEntity(
-            new LevelInfo("", ""),
+            new LevelInfo(""),
             new Playfield(1000, 1000),
             new Playhead(0, 120, 0, false),
             new NoteSelection(default)), document);

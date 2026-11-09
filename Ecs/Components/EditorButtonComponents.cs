@@ -33,6 +33,9 @@ public enum EditorButtonKind
     /// <summary>The shader dialog asks the overlay for a file to import into its picked slot.</summary>
     ImportShader,
 
+    /// <summary>The song picker asks the overlay to leave the editor, as Escape on the field does.</summary>
+    Leave,
+
     // Sidebar buttons; their argument is given beside each.
     /// <summary>Picks the placement tool; the argument is an <see cref="EditorPlacementMode"/>.</summary>
     Place,
@@ -76,6 +79,11 @@ public enum EditorButtonKind
     /// argument is the <see cref="FlareSetting"/> plus one, negative for less.
     /// </summary>
     FlareStep,
+    /// <summary>
+    /// Steps the exit push of the selected dash notes, or of the dash brush;
+    /// the argument is the <see cref="Xanadu.Systems.Editor.DashExitSetting"/> plus one, negative for less.
+    /// </summary>
+    DashExitStep,
     /// <summary>Lines the selection up; the argument is an <see cref="Xanadu.Editor.AlignEdge"/>.</summary>
     Align,
 }

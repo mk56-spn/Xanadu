@@ -47,9 +47,8 @@ public static partial class PlayfieldRenderer
 
         foreach (Entity entity in entities.Query<Player, Position>().ToEntityList())
         {
-            Player player = entity.GetComponent<Player>();
             Vector2 center = entity.GetComponent<Position>().Value;
-            var screen = new Rect2(center - player.Size / 2, player.Size);
+            Rect2 screen = PlayerTuck.Box(entity, center);
             DrawHitbox(canvas, rid, screen, DebugPalette.PlayerHitbox);
             canvas.DrawCircleOutline(
                 rid,

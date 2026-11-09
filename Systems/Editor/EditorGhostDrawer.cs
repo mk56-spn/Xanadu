@@ -58,6 +58,16 @@ public sealed class EditorGhostDrawer(EditorDrawSurface surface)
                     Faint(Block.DefaultOutlineColor));
                 break;
 
+            case EditorPlacementMode.FrictionBar:
+                var ghostBar = new FrictionBar(
+                    GridPlacement.PlaceFrictionBar(pointer, GridPlacement.NewFrictionBarHeight(playfield), playfield, snap),
+                    GridPlacement.NewFrictionBarHeight(playfield));
+                surface.Canvas.DrawRect(
+                    surface.Target,
+                    PlayfieldRenderer.FrictionBarScreenBounds(ghostBar, view),
+                    Faint(PlayfieldRenderer.FrictionBarColor));
+                break;
+
             case EditorPlacementMode.Mines:
                 surface.Canvas.DrawCircle(
                     surface.Target,

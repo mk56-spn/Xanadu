@@ -27,7 +27,7 @@ public sealed class EditorAutoAdvanceTests
         _root = new SystemRoot(_store);
         _root.Add(new EditorNoteInputSystem(_store, _pointer, new EditorHistory(_store)));
         _editor = _store.CreateEntity(
-            new LevelInfo("Test", "/tmp/test.wav"),
+            new LevelInfo("Test", TestSongs.At("/tmp/test.wav")),
             new Playfield(1000, 1000),
             new Playhead(1_000, 120, 0, false),
             new PlayfieldView(Vector2.Zero, 1f, new Vector2(1000, 1000)),

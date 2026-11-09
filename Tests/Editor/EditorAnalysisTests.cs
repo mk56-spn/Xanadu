@@ -79,16 +79,19 @@ public sealed class EditorAnalysisTests
     }
 
     [Test]
-    public void ADashLeavesFromThePlayerRatherThanTheNote()
+    public void ADashLeavesFromTheNoteRatherThanThePlayer()
     {
-        // The note sits right of the player, so an upward dash keeps the player's x.
+        // The note sits right of the player, so an upward dash takes the note's
+        // x, and a hit back at the player's old x is out of reach.
         AnalysedNote[] chart =
         [
             Dash(1000, 540, 895, DashDirection.Up),
             Hit(1400, 420, 880),
         ];
 
-        Assert.That(PlayabilityAnalyzer.Analyze(chart, Field), Is.Empty);
+        Assert.That(
+            PlayabilityAnalyzer.Analyze(chart, Field).Select(issue => issue.Problem),
+            Is.EqualTo(new[] { PlayabilityProblem.TooFarSideways }));
     }
 
     [Test]

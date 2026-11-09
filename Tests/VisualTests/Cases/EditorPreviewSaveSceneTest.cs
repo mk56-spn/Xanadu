@@ -27,6 +27,8 @@ public sealed class EditorPreviewSaveSceneTest : SceneTest
     public override string Name => "Editor preview save";
     public override string Slug => "editor-preview-save";
 
+    private static readonly LoadedSong PreviewSong = TestContent.Song("preview-save-song", "Preview Save");
+
     protected override void SetUpSteps()
     {
         AddStep("open editor", () => Context.Scenes.Start(SceneKind.Editor));
@@ -142,7 +144,8 @@ public sealed class EditorPreviewSaveSceneTest : SceneTest
         Entity editor = Context.Entities.Query<LevelInfo, Playhead>().ToEntityList()[0];
         ref LevelInfo info = ref editor.GetComponent<LevelInfo>();
         info.Name = "Preview Save";
-        info.SongId = "preview-save-song";
+        info.SongId = PreviewSong.Id;
+        info.Song = PreviewSong;
 
         Context.Entities.CreateEntity(new Note(
             0,
@@ -182,7 +185,7 @@ public sealed class EditorPreviewSaveSceneTest : SceneTest
     {
         _savedPath = path;
         Context.Scenes.StartEditorPreview(
-            new LevelEntry(path, document, new SongStore().Find(document.SongId)),
+            new LevelEntry(path, document, PreviewSong),
             playheadMs);
     }
 

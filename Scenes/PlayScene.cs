@@ -38,7 +38,7 @@ public static class PlayScene
         bool record = false)
     {
         LevelDocument document = entry.Document;
-        SongDocument? song = entry.Song;
+        LoadedSong? song = entry.Song;
         Vector2 screen = UiStage.Full.Size;
 
         // A field up to ViewSize units fits the screen whole, as it always did;
@@ -64,7 +64,7 @@ public static class PlayScene
         Vector2 playerSize = Player.ScaledSize(scale);
 
         Entity playfieldEntity = entities.CreateEntity(
-            new LevelInfo(document.Name, song?.AudioPath ?? ""),
+            new LevelInfo(document.Name, song),
             new LevelFile(entry.Path),
             new Playfield(document.PlayfieldWidth, document.PlayfieldHeight),
             new Playhead(
@@ -98,9 +98,7 @@ public static class PlayScene
         }
         playfieldEntity.AddComponent(new KeyTrailLabels(keyLabels));
 
-        LevelDocumentMapper.Apply(entities, playfieldEntity, document);
-        playfieldEntity.AddComponent(new CharacterPresence(CharacterPresenceRules.AwayWindows(
-            document.Notes.Select(note => (note.TimeMs, note.TimeMs + note.HoldMs)))));
+        LevelDocumentMapper.Apply(entities, playfieldEntity, document, song);
 
         if (start is StartPoint point)
         {

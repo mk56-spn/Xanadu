@@ -62,7 +62,7 @@ public sealed class GodotParticleEmitter : IParticleEmitter, IDisposable
         _stripQuad = Quad(_notes.Count);
 
         _keepAlive = new Resource[] { _softDot, _noteFrames };
-        _upright = new[] { false, true, true, true, true };
+        _upright = new[] { false, true, true, true, true, false };
         Texture2D notes = _notes.Texture;
         _pools = new[]
         {
@@ -71,6 +71,7 @@ public sealed class GodotParticleEmitter : IParticleEmitter, IDisposable
             new Pool(Build(HitMaterial, notes, amount: 22, lifetime: 0.4f, frames: _noteFrames)),
             new Pool(Build(StreakMaterial, notes, amount: 70, lifetime: 0.5f, explosiveness: 0.85f, reach: StreakReach, frames: _noteFrames)),
             new Pool(Build(ShatterMaterial, notes, amount: 80, lifetime: 1f, reach: ShatterReach, frames: _noteFrames)),
+            new Pool(Build(EmberMaterial, _softDot, amount: 6, lifetime: 0.9f, explosiveness: 0.5f)),
         };
     }
 
@@ -188,6 +189,23 @@ public sealed class GodotParticleEmitter : IParticleEmitter, IDisposable
 
         return emitters;
     }
+
+    /// <summary>Embers: small dots rising off the bar's whole length, slowing and fading.</summary>
+    private static ParticleProcessMaterial EmberMaterial() => new()
+    {
+        ParticleFlagDisableZ = true,
+        EmissionShape = ParticleProcessMaterial.EmissionShapeEnum.Box,
+        Direction = new Vector3(0, -1, 0),
+        Spread = 30f,
+        InitialVelocityMin = 25f,
+        InitialVelocityMax = 70f,
+        Gravity = new Vector3(0, -30, 0),
+        DampingMin = 10f,
+        DampingMax = 30f,
+        ScaleMin = 0.4f,
+        ScaleMax = 0.9f,
+        ColorRamp = FadeOut(Colors.White),
+    };
 
     /// <summary>Dust: thrown up and out from the feet, then pulled down.</summary>
     private static ParticleProcessMaterial LandingMaterial() => new()

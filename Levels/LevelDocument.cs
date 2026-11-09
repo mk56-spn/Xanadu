@@ -51,6 +51,9 @@ public sealed class LevelDocument : IChartItems
     /// <summary>Spike tiles: permanent hazards that kill on contact.</summary>
     public List<SpikeDocument> Spikes { get; set; } = new();
 
+    /// <summary>Friction bars: crossing one turns the ground's friction on.</summary>
+    public List<FrictionBarDocument> FrictionBars { get; set; } = new();
+
     /// <summary>Text written into the level.</summary>
     public List<TextDocument> Texts { get; set; } = new();
 
@@ -280,6 +283,17 @@ public sealed class SpikeDocument : ItemDocument
     public uint OutlineColor { get; set; } = Xanadu.Ecs.Block.DefaultOutlineColor.ToRgba32();
 }
 
+/// <summary>A friction bar: an upright line that turns ground friction on when crossed.</summary>
+public sealed class FrictionBarDocument : ItemDocument
+{
+    /// <summary>Top-left corner of the bar's box, in playfield units.</summary>
+    public float X { get; set; }
+
+    public float Y { get; set; }
+
+    public float Height { get; set; }
+}
+
 /// <summary>A grass patch: blades standing along a base line, growing up from it.</summary>
 public sealed class GrassDocument : ItemDocument
 {
@@ -479,4 +493,10 @@ public sealed class NoteDocument : ItemDocument
 
     /// <summary>Which attached block a construction step reveals.</summary>
     public int ShapePiece { get; set; }
+
+    /// <summary>The way a dash note pushes the player once it lands.</summary>
+    public DashDirection ExitDirection { get; set; } = DashDirection.Up;
+
+    /// <summary>A dash note's push out of the dash, in playfield units per second; zero for none.</summary>
+    public float ExitMomentum { get; set; }
 }

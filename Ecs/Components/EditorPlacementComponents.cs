@@ -33,6 +33,9 @@ public enum EditorPlacementMode
 
     /// <summary>A lens flare, drawn by its own shader.</summary>
     Flare,
+
+    /// <summary>A friction bar: crossing it turns the ground's friction on.</summary>
+    FrictionBar,
 }
 
 /// <summary>The block the block tool lays down, as fractions of a grid cell.</summary>
@@ -72,6 +75,12 @@ public struct EditorPlacement() : IComponent
 
     /// <summary>The dash strength new movement notes get.</summary>
     public DashStrength Strength = DashStrength.Single;
+
+    /// <summary>The way new dash notes push the player out of the dash.</summary>
+    public DashDirection ExitDirection = DashDirection.Right;
+
+    /// <summary>The push new dash notes give out of the dash; zero for none, so they hang.</summary>
+    public float ExitMomentum;
 
     /// <summary>The left and right charge new contact barriers ask for.</summary>
     public int ContactLeft = 1;

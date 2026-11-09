@@ -8,8 +8,9 @@ namespace Xanadu.Editor;
 
 /// <summary>
 /// How the editor was left when a preview began. Returning rebuilds the editor
-/// from its document, so this puts the view, tool and selection back. Items are
-/// remembered by what they are, since their entities do not survive.
+/// from its document, so this puts the view, tool settings, snap, metronome,
+/// layer toggles and selection back. Items are remembered by what they are,
+/// since their entities do not survive.
 /// </summary>
 public sealed class EditorReturnState
 {
@@ -18,9 +19,14 @@ public sealed class EditorReturnState
     private PlayfieldView _view;
     private bool _hasTimeline;
     private TimelineView _timeline;
-    private EditorPlacementMode _mode;
-    private float _degrees;
-    private BlockBrushSize _blockSize;
+    private bool _hasPlacement;
+    private EditorPlacement _placement;
+    private int _snapDivision;
+    private bool _metronome;
+    private bool _hasLayers;
+    private EditorLayers _layers;
+    private bool _hasGroups;
+    private EditorGroupState _groups;
     private readonly List<ItemKey> _selection = new();
 
     public static EditorReturnState? Capture(EntityStore entities)
@@ -34,11 +40,14 @@ public sealed class EditorReturnState
             _view = editor.GetComponent<PlayfieldView>(),
             _hasTimeline = editor.TryGetComponent(out TimelineView timeline),
             _timeline = timeline,
-            _mode = editor.TryGetComponent(out EditorPlacement placement)
-                ? placement.Mode
-                : EditorPlacementMode.Notes,
-            _degrees = placement.Degrees,
-            _blockSize = placement.BlockSize,
+            _hasPlacement = editor.TryGetComponent(out EditorPlacement placement),
+            _placement = placement,
+            _snapDivision = editor.TryGetComponent(out Playhead playhead) ? playhead.SnapDivision : 0,
+            _metronome = editor.TryGetComponent(out EditorMetronome metronome) && metronome.Enabled,
+            _hasLayers = editor.TryGetComponent(out EditorLayers layers),
+            _layers = layers,
+            _hasGroups = editor.TryGetComponent(out EditorGroupState groups),
+            _groups = groups,
         };
 
         if (editor.TryGetComponent(out NoteSelection selection))
@@ -58,12 +67,22 @@ public sealed class EditorReturnState
         editor.GetComponent<PlayfieldView>() = _view;
         if (_hasTimeline && editor.HasComponent<TimelineView>())
             editor.GetComponent<TimelineView>() = _timeline;
-        if (editor.HasComponent<EditorPlacement>())
+        if (_hasPlacement && editor.HasComponent<EditorPlacement>())
+            editor.GetComponent<EditorPlacement>() = _placement;
+        if (_snapDivision > 0 && editor.HasComponent<Playhead>())
+            editor.GetComponent<Playhead>().SnapDivision = _snapDivision;
+        if (editor.HasComponent<EditorMetronome>())
+            editor.GetComponent<EditorMetronome>().Enabled = _metronome;
+        if (_hasLayers && editor.HasComponent<EditorLayers>())
+            editor.GetComponent<EditorLayers>() = _layers;
+
+        // The group overlay itself stays closed; what it points at and how it snaps carry over.
+        if (_hasGroups && editor.HasComponent<EditorGroupState>())
         {
-            ref EditorPlacement placement = ref editor.GetComponent<EditorPlacement>();
-            placement.Mode = _mode;
-            placement.Degrees = _degrees;
-            placement.BlockSize = _blockSize;
+            ref EditorGroupState groups = ref editor.GetComponent<EditorGroupState>();
+            groups.BarGroup = _groups.BarGroup;
+            groups.SoloGroup = _groups.SoloGroup;
+            groups.Snap = _groups.Snap;
         }
 
         if (_selection.Count == 0 || !editor.HasComponent<NoteSelection>())

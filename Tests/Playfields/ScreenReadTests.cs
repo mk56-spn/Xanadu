@@ -83,7 +83,7 @@ public sealed class ScreenReadTests
         var store = new EntityStore();
         var history = new EditorHistory(store);
         Entity editor = store.CreateEntity(
-            new LevelInfo("", ""),
+            new LevelInfo(""),
             new Playfield(1000, 1000),
             new PlayfieldView(Vector2.Zero, 1f, new Vector2(800, 600)),
             new Playhead(0, 120, 0, false),
@@ -149,7 +149,7 @@ public sealed class ScreenReadTests
     {
         var store = new EntityStore();
         Entity editor = store.CreateEntity(
-            new LevelInfo("Reads", ""),
+            new LevelInfo("Reads"),
             new Playfield(1000, 1000),
             new Playhead(0, 120, 0, false),
             new NoteSelection(default),
@@ -164,7 +164,7 @@ public sealed class ScreenReadTests
 
         var target = new EntityStore();
         LevelDocumentMapper.Apply(target, target.CreateEntity(
-            new LevelInfo("", ""),
+            new LevelInfo(""),
             new Playfield(1000, 1000),
             new Playhead(0, 120, 0, false),
             new NoteSelection(default)), document);

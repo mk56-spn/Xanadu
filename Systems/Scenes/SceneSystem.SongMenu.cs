@@ -208,6 +208,17 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
         UiLayout.SetHidden(_songMenu, true);
     }
 
+    /// <summary>Asks to delete the selected level, as the bin button does.</summary>
+    public bool AskDeleteSelected()
+    {
+        if (SelectedLevel is null)
+            return false;
+
+        HideSongMenu();
+        ShowDeleteLevel();
+        return true;
+    }
+
     private void ShowDeleteLevel()
     {
         if (_deleteLevelPanel.IsNull)

@@ -25,19 +25,23 @@ public sealed class EditorDialogSystem : QuerySystem<EditorDialog>
     private readonly EditorCommandBus commands;
     private readonly IVisualRidFactory? _visuals;
     private readonly LevelRecoveryStore? _recovery;
+    private readonly SongStore? _songs;
 
     /// <param name="visuals">Draws the list rows the dialogs add as they fill; null for the real renderer.</param>
     /// <param name="recovery">Where discarded autosaves are deleted from; null for the user's own.</param>
+    /// <param name="songs">The song library the picker lists; null for the game's own.</param>
     public EditorDialogSystem(
         EntityStore entities,
         EditorCommandBus commands,
         IVisualRidFactory? visuals = null,
-        LevelRecoveryStore? recovery = null)
+        LevelRecoveryStore? recovery = null,
+        SongStore? songs = null)
     {
         this.entities = entities;
         this.commands = commands;
         _visuals = visuals;
         _recovery = recovery;
+        _songs = songs;
 
         // A closed dialog is hidden, and still has to hear that it should open.
         Filter.WithDisabled();
@@ -57,6 +61,7 @@ public sealed class EditorDialogSystem : QuerySystem<EditorDialog>
             return;
 
         OfferRecovery(editor);
+        HoldForSong(editor);
         OpenRequested(editor);
 
         foreach (Entity button in entities.Query<EditorDialogButton>().WithDisabled().ToEntityList())
@@ -154,9 +159,16 @@ public sealed class EditorDialogSystem : QuerySystem<EditorDialog>
             case EditorDialogAction.UseSong:
                 if (dialogs.Song >= 0 && dialogs.Song < dialogs.Songs.Count)
                 {
-                    commands.Enqueue(EditorCommand.LoadSongById(dialogs.Songs[dialogs.Song].Id));
+                    string id = dialogs.Songs[dialogs.Song].Id;
+                    commands.Enqueue(EditorCommand.LoadSongById(id));
+                    _awaitedSong = id;
+                    _awaitFrames = AwaitSongFrames;
                     Close(EditorDialogKind.Song);
                 }
+                break;
+            case EditorDialogAction.Leave:
+                if (editor.HasComponent<EditorUiRequest>())
+                    editor.GetComponent<EditorUiRequest>().Kind = EditorButtonKind.Leave;
                 break;
 
             case EditorDialogAction.Recover:
@@ -207,16 +219,81 @@ public sealed class EditorDialogSystem : QuerySystem<EditorDialog>
 
     // ------------------------------------------------------------------ songs
 
+    /// <summary>Frames a picked song has to land before the picker comes back.</summary>
+    private const int AwaitSongFrames = 10;
+
+    private SongStore Songs => _songs ?? SongStore.Shared;
+    private string _awaitedSong = "";
+    private int _awaitFrames;
+
+    /// <summary>
+    /// A level without a song it can play keeps the song picker up: its scrim
+    /// dims the editor and takes every press, and its way out is BACK, not CANCEL.
+    /// </summary>
+    private void HoldForSong(Entity editor)
+    {
+        LevelInfo level = editor.GetComponent<LevelInfo>();
+
+        // A picked song lands with the commands a frame or so later; until then the
+        // picker would only flash back up.
+        if (_awaitFrames > 0)
+        {
+            if (level.SongId == _awaitedSong)
+                _awaitFrames = 0;
+            else
+                _awaitFrames--;
+        }
+
+        ref EditorDialogs dialogs = ref editor.GetComponent<EditorDialogs>();
+        bool required = level.Song is null && _awaitFrames == 0;
+        if (dialogs.SongRequired != required)
+        {
+            dialogs.SongRequired = required;
+            UiLayout.SetHidden(dialogs.SongCancel, required);
+            UiLayout.SetHidden(dialogs.SongBack, !required);
+        }
+
+        if (!required)
+            return;
+
+        // BACK asks the scene to confirm leaving, on a layer under this one: the
+        // picker steps aside while it asks, and comes back if the leave is cancelled.
+        if (ConfirmationShown())
+        {
+            if (EditorDialogs.IsOpen(entities, EditorDialogKind.Song))
+            {
+                Entity song = EditorDialogs.Find(entities, EditorDialogKind.Song);
+                song.GetComponent<EditorDialog>().OpenRequested = false;
+                UiLayout.SetHidden(song, true);
+            }
+
+            return;
+        }
+
+        if (!EditorDialogs.AnyOpen(entities))
+            EditorDialogs.Open(entities, EditorDialogKind.Song);
+    }
+
+    private bool ConfirmationShown()
+    {
+        foreach (Entity panel in entities.Query<SceneConfirmation>().WithDisabled().ToEntityList())
+        {
+            if (!UiLayout.IsHidden(panel))
+                return true;
+        }
+
+        return false;
+    }
+
     private void FillSongs(Entity editor)
     {
         ref EditorDialogs dialogs = ref editor.GetComponent<EditorDialogs>();
-        var store = new SongStore();
         dialogs.Songs.Clear();
-        dialogs.Songs.AddRange(store.LoadAll().Where(song => store.AudioExists(song)));
+        dialogs.Songs.AddRange(Songs.Playable());
         dialogs.Song = dialogs.Songs.Count > 0 ? 0 : -1;
 
         var labels = new List<string>(dialogs.Songs.Count);
-        foreach (SongDocument song in dialogs.Songs)
+        foreach (LoadedSong song in dialogs.Songs)
         {
             string artist = string.IsNullOrWhiteSpace(song.Artist) ? "Unknown artist" : song.Artist;
             labels.Add($"{song.Title}   ·   {artist}");
@@ -236,7 +313,7 @@ public sealed class EditorDialogSystem : QuerySystem<EditorDialog>
             return;
         }
 
-        SongDocument song = dialogs.Songs[Math.Clamp(dialogs.Song, 0, dialogs.Songs.Count - 1)];
+        LoadedSong song = dialogs.Songs[Math.Clamp(dialogs.Song, 0, dialogs.Songs.Count - 1)];
         UiText.Set(dialogs.SongInfo, $"{song.Bpm} BPM   ·   offset {song.OffsetMs} ms   ·   {song.Slug}");
     }
 

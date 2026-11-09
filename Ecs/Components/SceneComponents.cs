@@ -140,8 +140,12 @@ public struct SongSelectState(
     public Entity Play = play;
     public Entity Edit = edit;
 
-    /// <summary>The icon shapes inside the play and edit buttons: the play triangle first, then the hammer's parts.</summary>
+    /// <summary>The hammer's parts inside the edit button.</summary>
     public List<Entity> ActionIcons = [];
+
+    /// <summary>The button that asks to delete the selected level, and the bin inside it.</summary>
+    public Entity Delete;
+    public List<Entity> DeleteIcons = [];
 
     /// <summary>Shown instead of the rows when there are no levels: why, and the line that opens the editor.</summary>
     public Entity EmptyTitle = emptyTitle;

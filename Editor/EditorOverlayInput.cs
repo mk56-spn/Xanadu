@@ -38,7 +38,11 @@ public partial class EditorOverlay : CanvasLayer, IEditorShortcutTarget
                 ToggleShaderDialog();
                 break;
             case EditorShortcut.CloseDialog:
-                EditorDialogs.Dismiss(_entities);
+                // The song picker can't be closed while the level has no song: Escape leaves instead.
+                if (EditorDialogs.IsSongRequired(_entities) && EditorDialogs.IsOpen(_entities, EditorDialogKind.Song))
+                    _onBack?.Invoke();
+                else
+                    EditorDialogs.Dismiss(_entities);
                 break;
             case EditorShortcut.ToggleHelp:
                 ToggleBindingsHelp();
@@ -152,6 +156,7 @@ public partial class EditorOverlay : CanvasLayer, IEditorShortcutTarget
             EditorPlacementMode.Text => "Place text",
             EditorPlacementMode.Grass => "Place grass",
             EditorPlacementMode.Flare => "Place flare",
+            EditorPlacementMode.FrictionBar => "Place friction bar",
             EditorPlacementMode.Polygon => "Draw a polygon: click its points, then the first again",
             _ => "Placement mode",
         });

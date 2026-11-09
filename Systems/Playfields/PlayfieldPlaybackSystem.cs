@@ -103,13 +103,13 @@ public sealed class PlayfieldPlaybackSystem : QuerySystem<LevelInfo, Playhead>
         playhead.TimeMs = 0;
         playhead.DurationMs = 0;
 
-        if (string.IsNullOrEmpty(level.AudioPath))
+        if (level.Song is not { } song)
         {
             _audio.Stop();
             return;
         }
 
-        if (_audio.Load(level.AudioPath, 0.8f))
+        if (_audio.Load(song.AudioFile, 0.8f))
         {
             playhead.DurationMs = (long)(_audio.LengthSeconds * 1000);
         }

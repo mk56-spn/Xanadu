@@ -137,10 +137,13 @@ public static class LevelStore
     public static LevelDocument ToLevelDocument(XmfMapset mapset, XmfVariant variant) =>
         variant.ToDocument(mapset.Version, mapset.SongId, mapset.Shaders);
 
+    /// <summary>A level with its song opened from the library, ready to play or preview.</summary>
+    public static LevelEntry Entry(string path, LevelDocument document) =>
+        new(path, document, SongStore.Shared.Open(document.SongId));
+
     /// <summary>Loads every valid level from user data and the bundled Levels folder.</summary>
     public static List<LevelEntry> List()
     {
-        var songs = new SongStore();
         var entries = new List<LevelEntry>();
         var seen = new HashSet<string>(StringComparer.Ordinal);
 
@@ -182,13 +185,7 @@ public static class LevelStore
 
                 try
                 {
-                    LevelDocument document = Load(fullPath);
-                    SongDocument? song = songs.Find(document.SongId);
-                    entries.Add(new LevelEntry(
-                        fullPath,
-                        document,
-                        song,
-                        song is not null && songs.AudioExists(song)));
+                    entries.Add(Entry(fullPath, Load(fullPath)));
                 }
                 catch (Exception)
                 {

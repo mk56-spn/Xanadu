@@ -69,6 +69,10 @@ public partial class EditorOverlay : CanvasLayer
             case EditorButtonKind.ImportShader:
                 OpenShaderImport();
                 break;
+
+            case EditorButtonKind.Leave:
+                _onBack?.Invoke();
+                break;
         }
     }
 
@@ -84,7 +88,8 @@ public partial class EditorOverlay : CanvasLayer
             or EditorButtonKind.ResetOutsideColor
             or EditorButtonKind.FrameColor
             or EditorButtonKind.ResetFrameColor
-            or EditorButtonKind.ImportShader;
+            or EditorButtonKind.ImportShader
+            or EditorButtonKind.Leave;
 
     /// <summary>Opens the real play scene on the current level, from a start point or the playhead.</summary>
     private void StartPreview(bool fromPlayhead = false)
@@ -92,6 +97,13 @@ public partial class EditorOverlay : CanvasLayer
         Action<LevelDocument, string, long>? launch = fromPlayhead ? _onPreviewHere : _onPreview;
         if (_editor.IsNull || launch is null)
             return;
+
+        // The play scene runs on the song's clock: without one there is nothing to preview.
+        if (!HasPlayableSong())
+        {
+            SetStatus("Load a song before previewing");
+            return;
+        }
 
         // Preview rebuilds the editor from its in-memory level when it returns.
         // Saving first makes that copy the clean state, so the autosave file is
@@ -103,4 +115,7 @@ public partial class EditorOverlay : CanvasLayer
         long playheadMs = _editor.GetComponent<Playhead>().TimeMs;
         launch(document, path, playheadMs);
     }
+
+    /// <summary>Whether the level has a song opened from the library.</summary>
+    private bool HasPlayableSong() => _editor.GetComponent<LevelInfo>().Song is not null;
 }

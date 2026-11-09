@@ -40,6 +40,7 @@ public static class EditorToolGroups
         {
             new(EditorPlacementMode.Spikes, "▲", "Spikes"),
             new(EditorPlacementMode.Mines, "✹", "Mines"),
+            new(EditorPlacementMode.FrictionBar, "┃", "Friction bars: crossing one turns the ground's friction on, so a slide stops past it"),
         }),
         new("Text and screen reads", new EditorTool[]
         {

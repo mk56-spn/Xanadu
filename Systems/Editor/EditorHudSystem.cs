@@ -28,11 +28,7 @@ public sealed class EditorHudSystem : QuerySystem<EditorHud, LevelInfo, Playhead
             UiText.Set(hud.Level,
                 string.IsNullOrWhiteSpace(level.Name) ? "Untitled" : level.Name,
                 buffer);
-            UiText.Set(hud.Song,
-                string.IsNullOrWhiteSpace(level.AudioPath)
-                    ? "No song loaded"
-                    : Path.GetFileName(level.AudioPath),
-                buffer);
+            UiText.Set(hud.Song, level.Song?.Title ?? "No song loaded", buffer);
             ShellStatus.Show(hud.Status, hud.StatusText, buffer);
             UiText.Set(hud.Time,
                 $"{TimeFormat.Clock(playhead.TimeMs)} / {TimeFormat.Clock(playhead.DurationMs)}",

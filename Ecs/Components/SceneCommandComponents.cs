@@ -23,6 +23,7 @@ public enum SceneActionId
     Back,
     WatchReplay,
     AddSong,
+    DeleteLevel,
 }
 
 /// <summary>Data-only command attached to a button or action entity.</summary>

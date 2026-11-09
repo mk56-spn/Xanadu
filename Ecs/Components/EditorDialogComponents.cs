@@ -41,6 +41,9 @@ public enum EditorDialogAction
     PickSong,
     UseSong,
 
+    /// <summary>Leaves the editor: the song picker's way out while the level has no song.</summary>
+    Leave,
+
     Recover,
     Discard,
 
@@ -69,7 +72,15 @@ public struct EditorDialogs() : IComponent
     public Entity SongList;
     public Entity SongInfo;
     public Entity SongUse;
-    public List<SongDocument> Songs = new();
+    public Entity SongCancel;
+    public Entity SongBack;
+
+    /// <summary>
+    /// The level has no song it can play: the song picker stays up, dimming and
+    /// holding the editor, until one is chosen; its way out leaves the editor.
+    /// </summary>
+    public bool SongRequired;
+    public List<LoadedSong> Songs = new();
     public int Song = -1;
 
     public Entity RecoveryMessage;
@@ -132,17 +143,29 @@ public struct EditorDialogs() : IComponent
     /// <summary>
     /// Closes whichever dialog is open, as Escape or a CLOSE button does. The
     /// recovery offer stays: dropping autosaved edits takes an answer, not a key.
+    /// So does the song picker while the level has no song to play.
     /// </summary>
     public static void Dismiss(EntityStore store)
     {
+        bool songRequired = IsSongRequired(store);
         foreach (Entity entity in store.Query<EditorDialog>().WithDisabled().ToEntityList())
         {
             ref EditorDialog dialog = ref entity.GetComponent<EditorDialog>();
-            if (dialog.Kind == EditorDialogKind.Recovery)
+            if (dialog.Kind == EditorDialogKind.Recovery ||
+                (dialog.Kind == EditorDialogKind.Song && songRequired))
                 continue;
 
             dialog.OpenRequested = false;
             UiLayout.SetHidden(entity, true);
         }
+    }
+
+    /// <summary>Whether the open level still needs a song before anything else can be done.</summary>
+    public static bool IsSongRequired(EntityStore store)
+    {
+        foreach (Entity entity in store.Query<EditorDialogs>().ToEntityList())
+            return entity.GetComponent<EditorDialogs>().SongRequired;
+
+        return false;
     }
 }

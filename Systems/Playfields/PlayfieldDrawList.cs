@@ -19,6 +19,7 @@ public enum PlayfieldDrawKind : byte
     Polygon,
     Block,
     Spike,
+    FrictionBar,
     Grass,
     Flare,
     Text,

@@ -16,8 +16,6 @@ namespace Xanadu.Systems.Characters;
 /// Verlet chains, such as hair, are simulated in rig space from its animated
 /// bones, so they swing with the animation. With <paramref name="ghosts"/>, a
 /// character that hits a note also leaves a fading copy of its art behind.
-/// In play, a character more than a second from every note flashes out and
-/// leaves a rhombus in its place (<see cref="CharacterPresenceRules"/>).
 /// </summary>
 public sealed class CharacterRigDrawSystem(
     Func<IAttachmentVisuals> createVisuals,
@@ -31,7 +29,6 @@ public sealed class CharacterRigDrawSystem(
     {
         _seen.Clear();
         ghosts?.Begin(Query.Store);
-        bool playing = Query.Store.Query<PlaySession>().Count > 0;
         foreach (Entity entity in Query.ToEntityList())
         {
             if (entity.Tags.Has<SplitlineAbsent>() ||
@@ -56,7 +53,7 @@ public sealed class CharacterRigDrawSystem(
                 IAttachmentVisuals visuals = createVisuals();
                 visuals.Reload(package);
                 instance = new Instance(
-                    runtime, visuals, visuals.Bounds(attachments), new XafChainSimulation(), new XafClothSimulation());
+                    runtime, visuals, BodyCentred(visuals.Bounds(attachments), package, bones), new XafChainSimulation(), new XafClothSimulation());
                 _instances[entity.Id] = instance;
             }
 
@@ -72,6 +69,7 @@ public sealed class CharacterRigDrawSystem(
                 center += camera.Subpixel;
             bool faceLeft = entity.TryGetComponent(out CharacterFacing facing) && facing.Left;
             Transform2D placement = Placement(instance.RigBounds, center + new Vector2(0, size.Y / 2), Player.ArtHeight(size.Y), faceLeft);
+            MeasureLift(entity, instance.RigBounds, instance.Visuals.Bounds(attachments), Player.ArtHeight(size.Y));
             instance.Visuals.Apply(attachments, placement);
             instance.Visuals.ApplyStates(package, runtime.Pose, bones, attachments, placement);
             instance.Chains.Update(package, bones, Tick.deltaTime);
@@ -79,8 +77,6 @@ public sealed class CharacterRigDrawSystem(
             instance.Cloths.Update(package, bones, Tick.deltaTime);
             instance.Visuals.ApplyCloths(package, instance.Cloths, placement);
             instance.Visuals.ApplyEffects(runtime.Pose, XafRig.WorldEffects(package, runtime.Pose, bones), placement);
-            CharacterPresenceRules.Look look = playing ? CharacterPresenceRules.For(entity) : CharacterPresenceRules.Look.Present;
-            instance.Visuals.ApplyPresence(look.Light, look.Shown);
             ghosts?.Capture(
                 entity, package, runtime.Pose, bones, attachments,
                 instance.Chains, instance.Cloths, instance.RigBounds, faceLeft);
@@ -90,6 +86,35 @@ public sealed class CharacterRigDrawSystem(
 
         ReleaseUnseen();
         ghosts?.End(Query.Store);
+    }
+
+    /// <summary>
+    /// The art's bounds, slid sideways so their centre is the root bone: hair,
+    /// a weapon or a reaching arm make the bounds lopsided, and the art is
+    /// placed and mirrored about their centre, so without this the body would
+    /// sit off the hitbox and jump across it whenever the character turns.
+    /// </summary>
+    public static Rect2 BodyCentred(Rect2 bounds, XafPackage package, Transform2D[] bones)
+    {
+        int root = package.Skeleton.Bones.FindIndex(bone => bone.Parent < 0);
+        if (root < 0 || root >= bones.Length)
+            return bounds;
+
+        float x = bones[root].Origin.X;
+        return new Rect2(new Vector2(x - bounds.Size.X / 2, bounds.Position.Y), bounds.Size);
+    }
+
+    /// <summary>
+    /// Records how far the pose has lifted the art's feet above where they stand
+    /// at rest, in screen pixels, for the body to fit itself to.
+    /// </summary>
+    private static void MeasureLift(Entity entity, Rect2 rest, Rect2 posed, float height)
+    {
+        float lift = Math.Max(0f, (rest.End.Y - posed.End.Y) * height / rest.Size.Y);
+        if (entity.HasComponent<PlayerTuck>())
+            entity.GetComponent<PlayerTuck>().Lift = lift;
+        else
+            entity.AddComponent(new PlayerTuck { Lift = lift });
     }
 
     /// <summary>

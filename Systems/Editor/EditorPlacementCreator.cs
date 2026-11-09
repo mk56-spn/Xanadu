@@ -139,6 +139,27 @@ public sealed class EditorPlacementCreator(EditorSceneQuery scene, EditorHistory
 
         if (editor.HasComponent<EditorPlacement>() &&
             editor.GetComponent<EditorPlacement>().Mode ==
+            EditorPlacementMode.FrictionBar)
+        {
+            PlayfieldView barView = editor.GetComponent<PlayfieldView>();
+            Playfield barField = editor.GetComponent<Playfield>();
+            Vector2 barPosition = barView.ScreenToPlayfield(screenPosition);
+            if (!EditorItemPicker.IsInside(barPosition, barField))
+                return;
+
+            float height = GridPlacement.NewFrictionBarHeight(barField);
+            var bar = new FrictionBar(
+                GridPlacement.PlaceFrictionBar(barPosition, height, barField, ViewportSnap.IsOn(scene.Store)),
+                height);
+            EditorSnapshot barBefore = history.Capture();
+            Entity placedBar = EditorItems.Place(scene.Store, bar);
+            history.Record(barBefore, history.Capture());
+            editor.GetComponent<NoteSelection>().Note = placedBar;
+            return;
+        }
+
+        if (editor.HasComponent<EditorPlacement>() &&
+            editor.GetComponent<EditorPlacement>().Mode ==
             EditorPlacementMode.Mines)
         {
             PlayfieldView view = editor.GetComponent<PlayfieldView>();
@@ -168,7 +189,7 @@ public sealed class EditorPlacementCreator(EditorSceneQuery scene, EditorHistory
         if (!EditorItemPicker.IsInside(playfieldPosition, playfield))
             return;
 
-        if (string.IsNullOrEmpty(editor.GetComponent<LevelInfo>().AudioPath))
+        if (editor.GetComponent<LevelInfo>().Song is null)
         {
             EditorWarningPopup.Request(editor, EditorWarningPopup.NoSongMessage);
             return;

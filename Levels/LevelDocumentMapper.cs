@@ -50,7 +50,12 @@ public static partial class LevelDocumentMapper
         return document;
     }
 
-    public static void Apply(EntityStore entities, Entity editor, LevelDocument document)
+    /// <summary>Applies a level document, opening its song from the library.</summary>
+    public static void Apply(EntityStore entities, Entity editor, LevelDocument document) =>
+        Apply(entities, editor, document, SongStore.Shared.Open(document.SongId));
+
+    /// <summary>Applies a level document with its song already opened, as a <see cref="LevelEntry"/> carries it.</summary>
+    public static void Apply(EntityStore entities, Entity editor, LevelDocument document, LoadedSong? song)
     {
         document.Groups ??= new List<GroupDocument>();
 
@@ -64,16 +69,13 @@ public static partial class LevelDocumentMapper
         foreach (ItemKind kind in ItemKinds.All)
             kind.ApplyFrom(entities, document);
 
-        SongDocument? song = string.IsNullOrWhiteSpace(document.SongId)
-            ? null
-            : new SongStore().Find(document.SongId);
 
         ref LevelInfo level = ref editor.GetComponent<LevelInfo>();
         level.LevelId = document.Id ?? "";
         level.Slug = document.Slug ?? "";
         level.SongId = document.SongId;
         level.Name = document.Name;
-        level.AudioPath = song?.AudioPath ?? level.AudioPath;
+        level.Song = song;
         level.Artist = song?.Artist ?? "";
         level.Difficulty = document.Name;
         level.Background = LevelBackground.TryParse(

@@ -149,7 +149,7 @@ public sealed class ItemBlendTests
     private static BlendMode BlendOf(Entity entity) => ItemBlend.Of(entity);
 
     private static Entity Editor(EntityStore store) => store.CreateEntity(
-        new LevelInfo("Blends", ""),
+        new LevelInfo("Blends"),
         new Playfield(1000, 1000),
         new Playhead(0, 120, 0, false),
         new NoteSelection(default));
@@ -179,7 +179,7 @@ public sealed class ItemBlendPasteTests : EcsSystemTest
         _commands = new EditorCommandBus();
         Root.Add(new EditorCommandSystem(Store, _commands, new EditorHistory(Store)));
         _editor = Store.CreateEntity(
-            new LevelInfo("Untitled", ""),
+            new LevelInfo("Untitled"),
             new LevelFile(""),
             new Playfield(1000, 1000),
             new Playhead(0, 120, 0, false),

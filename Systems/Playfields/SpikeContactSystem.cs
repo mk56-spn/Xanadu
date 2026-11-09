@@ -38,9 +38,7 @@ public sealed class SpikeContactSystem : QuerySystem<Player, Position, Playfield
 
             Player player = playfield.GetComponent<Player>();
             Vector2 center = playfield.GetComponent<Position>().Value;
-            var playerRect = new Rect2(
-                center - player.Size / 2,
-                player.Size);
+            Rect2 playerRect = PlayerTuck.Box(playfield, center);
             PlayfieldView view = playfield.GetComponent<PlayfieldView>();
 
             foreach (Entity entity in _entities.Query<Spike>().ToEntityList())

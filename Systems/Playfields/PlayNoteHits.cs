@@ -116,6 +116,7 @@ public sealed class PlayNoteHits(PlayNoteContext context, PlayNoteActions action
             return false;
 
         FaceHit(playfield, hitPosition.X, playerScreen.X);
+        GroundStepSystem.OnHit(playfield, note.TimeMs, playheadTimeMs + offsetMs, hitPosition.X, playerScreen.X);
 
         if (triggerAttack)
         {

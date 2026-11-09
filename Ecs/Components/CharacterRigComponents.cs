@@ -88,12 +88,3 @@ public struct CharacterAttack : IComponent
     public float StateTime;
 }
 
-/// <summary>
-/// The stretches of a played chart where the player is far from every note, as
-/// (out, in) pairs on the song's clock: there the character is gone and a rhombus
-/// pulses in its place (see <c>CharacterPresenceRules</c>).
-/// </summary>
-public struct CharacterPresence(long[] away) : IComponent
-{
-    public long[] Away = away;
-}

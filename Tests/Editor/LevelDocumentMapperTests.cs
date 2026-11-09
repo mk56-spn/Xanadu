@@ -4,6 +4,7 @@ using NUnit.Framework;
 using Xanadu.Ecs;
 using Xanadu.Levels;
 using Xanadu.Settings;
+using Xanadu.Tests.Support;
 
 namespace Xanadu.Tests.Editor;
 
@@ -15,7 +16,7 @@ public sealed class LevelDocumentMapperTests
     {
         var sourceStore = new EntityStore();
         Entity source = sourceStore.CreateEntity(
-            new LevelInfo("Mapped", "res://song.mp3", "Artist", "Insane"),
+            new LevelInfo("Mapped", TestSongs.At("res://song.mp3"), "Artist", "Insane"),
             new Playfield(1000, 1000),
             new Playhead(0, 150, 25, false, snapDivision: 16),
             new NoteSelection(default));
@@ -79,7 +80,7 @@ public sealed class LevelDocumentMapperTests
 
         var targetStore = new EntityStore();
         Entity target = targetStore.CreateEntity(
-            new LevelInfo("Old", ""),
+            new LevelInfo("Old"),
             new Playfield(1, 1),
             new Playhead(0, 1, 0, false),
             new NoteSelection(default));
@@ -162,7 +163,7 @@ public sealed class LevelDocumentMapperTests
     {
         var sourceStore = new EntityStore();
         Entity source = sourceStore.CreateEntity(
-            new LevelInfo("Mapped", "res://song.mp3"),
+            new LevelInfo("Mapped", TestSongs.At("res://song.mp3")),
             new Playfield(1000, 1000),
             new Playhead(0, 150, 0, false),
             new NoteSelection(default));
@@ -194,7 +195,7 @@ public sealed class LevelDocumentMapperTests
 
         var targetStore = new EntityStore();
         Entity target = targetStore.CreateEntity(
-            new LevelInfo("Target", ""),
+            new LevelInfo("Target"),
             new Playfield(1000, 1000),
             new Playhead(0, 120, 0, false),
             new NoteSelection(default));

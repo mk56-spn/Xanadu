@@ -27,6 +27,7 @@ public enum XmfChunk : uint
     Flares = 17,
     Polygons = 18,
     ScreenReads = 19,
+    FrictionBars = 20,
 }
 
 /// <summary>
@@ -79,6 +80,7 @@ public static partial class XmfBinary
         Add(XmfChunk.Flares, document.Flares, list => XmfRecords.WriteItems(list, XmfItems.WriteFlare));
         Add(XmfChunk.Polygons, document.Polygons, list => XmfRecords.WriteItems(list, (w, p) => XmfItems.WritePolygon(w, p, strings)));
         Add(XmfChunk.ScreenReads, document.ScreenReads, list => XmfRecords.WriteItems(list, XmfItems.WriteScreenRead));
+        Add(XmfChunk.FrictionBars, document.FrictionBars, list => XmfRecords.WriteItems(list, XmfItems.WriteFrictionBar));
 
         // The table is written last, once every chunk has put its strings in it.
         var file = new ChunkWriter(Magic, MajorVersion, MinorVersion);
@@ -125,6 +127,7 @@ public static partial class XmfBinary
         document.Flares = List(XmfChunk.Flares, c => XmfRecords.ReadItems<FlareDocument>(c, "flare", XmfItems.ReadFlare));
         document.Polygons = List(XmfChunk.Polygons, c => XmfRecords.ReadItems<PolygonDocument>(c, "polygon", (r, p) => XmfItems.ReadPolygon(r, p, strings)));
         document.ScreenReads = List(XmfChunk.ScreenReads, c => XmfRecords.ReadItems<ScreenReadDocument>(c, "screen-read region", XmfItems.ReadScreenRead));
+        document.FrictionBars = List(XmfChunk.FrictionBars, c => XmfRecords.ReadItems<FrictionBarDocument>(c, "friction bar", XmfItems.ReadFrictionBar));
         return document;
     }
 

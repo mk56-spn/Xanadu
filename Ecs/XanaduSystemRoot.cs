@@ -287,7 +287,7 @@ public sealed class XanaduSystemRoot : SystemRoot, IDisposable
         string path = editor.HasComponent<LevelFile>()
             ? editor.GetComponent<LevelFile>().Path
             : "";
-        Scenes.StartPlay(new LevelEntry(path, document), start);
+        Scenes.StartPlay(LevelStore.Entry(path, document), start);
     }
 
     /// <summary>A start point with its group membership copied for the play launch.</summary>

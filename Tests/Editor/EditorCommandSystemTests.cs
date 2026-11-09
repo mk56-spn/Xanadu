@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Friflo.Engine.ECS;
@@ -29,7 +30,7 @@ public sealed class EditorCommandSystemTests : EcsSystemTest
             new EditorHistory(Store)));
 
         _editor = Store.CreateEntity(
-            new LevelInfo("Untitled", ""),
+            new LevelInfo("Untitled"),
             new LevelFile(""),
             new Playfield(1000, 1000),
             new Playhead(0, 120, 0, false),
@@ -609,16 +610,17 @@ public sealed class EditorCommandSystemTests : EcsSystemTest
     }
 
     [Test]
-    public void LoadSongAdoptsFilenameAndBumpsRevision()
+    public void LoadingAFileTheLibraryCannotTakeLeavesTheLevelAlone()
     {
-        _commands.Enqueue(EditorCommand.LoadSong("/tmp/Test Song.mp3"));
+        // Songs only come from the library: a file it cannot import is not played raw.
+        _commands.Enqueue(EditorCommand.LoadSong("/tmp/no-such-song-" + Guid.NewGuid().ToString("N") + ".mp3"));
         Frame();
 
         LevelInfo level = _editor.GetComponent<LevelInfo>();
-        Playhead playhead = _editor.GetComponent<Playhead>();
-        Assert.That(level.AudioPath, Is.EqualTo("/tmp/Test Song.mp3"));
-        Assert.That(level.Name, Is.EqualTo("Test Song"));
-        Assert.That(playhead.AudioRevision, Is.EqualTo(1));
+        Assert.That(level.Song, Is.Null);
+        Assert.That(level.SongId, Is.Empty);
+        Assert.That(level.Name, Is.EqualTo("Untitled"));
+        Assert.That(_editor.GetComponent<Playhead>().AudioRevision, Is.Zero);
     }
 
     [Test]

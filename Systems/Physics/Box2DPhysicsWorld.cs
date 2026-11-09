@@ -1,6 +1,7 @@
 using System;
 using Box2DSharp.Collision.Shapes;
 using Box2DSharp.Dynamics;
+using Box2DSharp.Dynamics.Contacts;
 using Godot;
 using Xanadu.Ecs;
 using NVector2 = System.Numerics.Vector2;
@@ -58,9 +59,6 @@ public sealed class Box2DPhysicsWorld : IDisposable
         float mass = 1f,
         float friction = 0.25f)
     {
-        float width = sizePixels.X / PixelsPerMeter;
-        float height = sizePixels.Y / PixelsPerMeter;
-
         var bodyDef = new BodyDef
         {
             BodyType = BodyType.DynamicBody,
@@ -72,9 +70,51 @@ public sealed class Box2DPhysicsWorld : IDisposable
         };
 
         Body body = _world.CreateBody(bodyDef);
+        AddMoverBox(body, sizePixels, 0f, mass, friction);
+        return body;
+    }
+
+    /// <summary>
+    /// Gives a body made by <see cref="CreateDynamicBox"/> a box whose bottom is
+    /// raised by <paramref name="liftPixels"/>, its top staying where it was. The
+    /// body's position stays the centre of the full <paramref name="sizePixels"/>
+    /// box, and its mass stays the same.
+    /// </summary>
+    public static void RaiseBottom(Body body, Vector2 sizePixels, float liftPixels)
+    {
+        Fixture old = body.FixtureList[0];
+        float mass = body.Mass;
+        float friction = old.Friction;
+        body.DestroyFixture(old);
+        AddMoverBox(body, sizePixels, liftPixels, mass, friction);
+    }
+
+    /// <summary>
+    /// Sets how much a body grips what it touches, including what it touches
+    /// now: Box2D mixes a contact's friction once, when the contact begins.
+    /// </summary>
+    public void SetFriction(Body body, float friction)
+    {
+        Fixture fixture = body.FixtureList[0];
+        if (fixture.Friction == friction)
+            return;
+
+        fixture.Friction = friction;
+        foreach (Contact contact in _world.ContactManager.ContactList)
+        {
+            if (contact.FixtureA == fixture || contact.FixtureB == fixture)
+                contact.ResetFriction();
+        }
+    }
+
+    private static void AddMoverBox(Body body, Vector2 sizePixels, float liftPixels, float mass, float friction)
+    {
+        float width = sizePixels.X / PixelsPerMeter;
+        float height = (sizePixels.Y - liftPixels) / PixelsPerMeter;
+        var offset = new NVector2(0f, -liftPixels / 2 / PixelsPerMeter);
 
         var shape = new PolygonShape();
-        shape.SetAsBox(width / 2, height / 2);
+        shape.SetAsBox(width / 2, height / 2, offset, 0f);
 
         var fixtureDef = new FixtureDef
         {
@@ -82,11 +122,10 @@ public sealed class Box2DPhysicsWorld : IDisposable
             Density = mass / MathF.Max(0.0001f, width * height),
             Friction = friction,
             Restitution = 0f,
-            UserData = new OneWayMover(new NVector2(width / 2, height / 2)),
+            UserData = new OneWayMover(new NVector2(width / 2, height / 2), offset),
         };
 
         body.CreateFixture(fixtureDef);
-        return body;
     }
 
     public Body CreateStaticBox(
@@ -158,6 +197,20 @@ public sealed class Box2DPhysicsWorld : IDisposable
 
     public static Vector2 ToScreen(NVector2 physicsPosition) =>
         new(physicsPosition.X * PixelsPerMeter, physicsPosition.Y * PixelsPerMeter);
+
+    // Box2DSharp keeps a body's gravity scale internal once the body exists.
+    private static readonly System.Reflection.FieldInfo GravityScaleField =
+        typeof(Body).GetField("GravityScale", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic)
+        ?? throw new MissingFieldException(nameof(Body), "GravityScale");
+
+    /// <summary>How much of the world's gravity pulls on <paramref name="body"/>: 1 is all of it, 0 none.</summary>
+    public static float GravityScale(Body body) => (float)GravityScaleField.GetValue(body)!;
+
+    public static void SetGravityScale(Body body, float scale)
+    {
+        if (GravityScale(body) != scale)
+            GravityScaleField.SetValue(body, scale);
+    }
 
     public void Dispose()
     {

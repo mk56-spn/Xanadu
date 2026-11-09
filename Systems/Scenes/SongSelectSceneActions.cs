@@ -13,6 +13,9 @@ public static class SongSelectSceneActions
         registry.Register(SceneKind.SongSelect, SceneActionId.Edit,
             context => context.Scenes.EditSelected());
 
+        registry.Register(SceneKind.SongSelect, SceneActionId.DeleteLevel,
+            context => context.Scenes.AskDeleteSelected());
+
         registry.Register(SceneKind.SongSelect, SceneActionId.Previous,
             context => context.Scenes.StepSongSelect(-1));
 

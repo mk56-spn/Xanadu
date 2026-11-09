@@ -117,13 +117,15 @@ public sealed class PlayerMovementSystem : QuerySystem<Player, Position, Playfie
                     continue;
                 }
 
+                GroundStepSystem.Cancel(entity, buffer);
                 // Before the note moves the player, so the copy stays where it hit.
                 HitGhostSystem.Spawn(_entities, entity);
                 Color spray = GroupColor.For(noteEntity, PlayfieldRenderer.ColorFor(movement));
                 if (movement.Kind == NoteKind.Dash)
                 {
                     HitEffects.SpawnDash(_entities, noteEntity, movement, view);
-                    ApplyDash(ref body, ref position, screen, movement, view);
+                    Vector2 noteScreen = view.PlayfieldToScreen(GroupOffset.Shown(noteEntity, movement.Position));
+                    ApplyDash(entity, ref body, ref position, screen, noteScreen, movement, view, playhead, judgedTime, buffer);
                     // The path is told by a streak of particles, not a line.
                     _entities.CreateEntity(ParticleBurst.Streak(screen, position.Value, player.Size.X * 0.6f, spray));
                     _entities.CreateEntity(new ParticleBurst(
@@ -132,6 +134,8 @@ public sealed class PlayerMovementSystem : QuerySystem<Player, Position, Playfie
                 else
                 {
                     ApplyMomentum(ref body, movement);
+                    PlayerFriction.Release(entity);
+                    DashHangSystem.End(entity, body, buffer);
                     Vector2 push = screen + DashDirectionVector(movement.DashDirection) * 60f;
                     _entities.CreateEntity(new DashTrail(screen, push), EffectLayer.From(noteEntity));
                     _entities.CreateEntity(new ParticleBurst(
@@ -166,23 +170,83 @@ public sealed class PlayerMovementSystem : QuerySystem<Player, Position, Playfie
             entity.AddComponent(new CharacterFacing { Left = left });
     }
 
+    /// <summary>
+    /// Moves the player by the dash and sets what follows it. The dash is
+    /// measured from the note, so chained dashes land on the chart rather than
+    /// on wherever the last hit left the player; on the ground, the floor's or
+    /// block's standing height replaces the note's, or a short dash from a low
+    /// note would end inside the floor. What follows runs from the note's time,
+    /// not the press: a late hit starts that far into it, an early one that far
+    /// before, so timing error never carries into the next note.
+    /// </summary>
     private static void ApplyDash(
+        Entity player,
         ref PhysicsBody body,
         ref Position position,
         Vector2 playerScreen,
+        Vector2 noteScreen,
         Note movement,
-        PlayfieldView view)
+        PlayfieldView view,
+        Playhead playhead,
+        long judgedTime,
+        CommandBuffer buffer)
     {
+        Vector2 origin = DashOrigin(player, view, playerScreen, noteScreen);
         Vector2 target = DashTarget(
-            view.ScreenToPlayfield(playerScreen),
+            view.ScreenToPlayfield(origin),
             movement.DashDirection,
             movement.DashStrength);
-        Vector2 targetScreen = view.PlayfieldToScreen(target);
+
+        NVector2 velocity = new(body.Body.LinearVelocity.X, 0f);
+        bool exits = movement.ExitMomentum > 0f;
+        if (exits)
+        {
+            velocity = Pushed(
+                velocity,
+                DashDirectionVector(movement.ExitDirection),
+                movement.ExitMomentum / Box2DPhysicsWorld.PixelsPerMeter * Box2DPhysicsWorld.MomentumScale);
+        }
+
+        float late = (judgedTime - movement.TimeMs) / 1000f;
+        NVector2 shift = velocity * late;
+        if (exits)
+        {
+            // Without a hang the push is a launch: gravity has had the late time too.
+            float gravity = Box2DPhysicsWorld.DefaultGravity;
+            shift.Y += 0.5f * gravity * late * late;
+            velocity.Y += gravity * late;
+        }
+
+        Vector2 targetScreen = view.PlayfieldToScreen(target) + Box2DPhysicsWorld.ToScreen(shift);
         body.Body.SetTransform(
             Box2DPhysicsWorld.ToPhysics(targetScreen),
             body.Body.GetAngle());
-        body.Body.SetLinearVelocity(new NVector2(body.Body.LinearVelocity.X, 0f));
+        body.Body.SetLinearVelocity(velocity);
         position.Value = targetScreen;
+
+        if (exits)
+            DashHangSystem.End(player, body, buffer);
+        else
+            DashHangSystem.Begin(player, body, buffer, playhead, playhead.TimeMs - (judgedTime - movement.TimeMs), movement.TimeMs);
+    }
+
+    /// <summary>
+    /// Where a dash is measured from, in screen space: the note, except that a
+    /// player standing on the floor or a block dashes from its standing height,
+    /// and the height is held to where the player's centre can be.
+    /// </summary>
+    public static Vector2 DashOrigin(Entity player, PlayfieldView view, Vector2 playerScreen, Vector2 noteScreen)
+    {
+        if (!player.TryGetComponent(out Playfield playfield))
+            return noteScreen;
+
+        float y = PlayerGround.TryStanding(player, view, playfield, playerScreen, out float standing)
+            ? standing
+            : noteScreen.Y;
+        float half = player.GetComponent<Player>().Size.Y / 2;
+        float top = view.ScreenOrigin.Y + half;
+        float floor = view.ScreenOrigin.Y + playfield.Height * view.Scale - half;
+        return new Vector2(noteScreen.X, Math.Clamp(y, top, floor));
     }
 
     private static void ApplyMomentum(
@@ -199,14 +263,13 @@ public sealed class PlayerMovementSystem : QuerySystem<Player, Position, Playfie
     /// is not slowed by a weak note. Speed against the note is dropped, so a change
     /// of direction goes straight to the note's speed, and speed across it is kept.
     /// </summary>
-    public static NVector2 MomentumVelocity(NVector2 velocity, Note note)
-    {
-        Vector2 direction = DashDirectionVector(note.DashDirection);
-        float speed = MomentumSpeed(note);
-        return new NVector2(
-            Along(velocity.X, direction.X * speed),
-            Along(velocity.Y, direction.Y * speed));
-    }
+    public static NVector2 MomentumVelocity(NVector2 velocity, Note note) =>
+        Pushed(velocity, DashDirectionVector(note.DashDirection), MomentumSpeed(note));
+
+    /// <summary><see cref="MomentumVelocity"/> for any push: a direction and a speed in metres per second.</summary>
+    public static NVector2 Pushed(NVector2 velocity, Vector2 direction, float speed) => new(
+        Along(velocity.X, direction.X * speed),
+        Along(velocity.Y, direction.Y * speed));
 
     /// <summary>One axis of <see cref="MomentumVelocity"/>: the note's speed, or the current one if it is already faster the same way.</summary>
     private static float Along(float current, float pushed)

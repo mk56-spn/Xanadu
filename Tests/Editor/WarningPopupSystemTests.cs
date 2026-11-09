@@ -20,7 +20,7 @@ public sealed class WarningPopupSystemTests : EcsSystemTest
     protected override void OnEcsSetUp()
     {
         _editor = Store.CreateEntity(
-            new LevelInfo("Test", ""),
+            new LevelInfo("Test"),
             new Playfield(1000, 1000),
             new PlayfieldView(Vector2.Zero, 1f, new Vector2(1000, 1000)),
             new NoteSelection(default));
@@ -66,7 +66,7 @@ public sealed class WarningPopupSystemTests : EcsSystemTest
         Frame();
 
         ref LevelInfo level = ref _editor.GetComponent<LevelInfo>();
-        level.AudioPath = "/tmp/song.wav";
+        level.Song = TestSongs.At("/tmp/song.wav");
 
         Frame();
 

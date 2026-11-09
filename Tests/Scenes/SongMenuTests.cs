@@ -144,6 +144,6 @@ public sealed class SongMenuTests
         return new LevelEntry(
             path,
             LevelStore.Load(path),
-            new SongDocument { Id = "song-a", Title = name, AudioPath = audioPath });
+            TestSongs.At(audioPath, "song-a", name));
     }
 }

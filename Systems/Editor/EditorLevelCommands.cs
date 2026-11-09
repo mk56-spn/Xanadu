@@ -118,15 +118,41 @@ public sealed class EditorLevelCommands(EditorCommandContext context)
 
     private static void LoadSongById(string id, Entity editor)
     {
+        if (SongStore.Shared.Open(id) is { } song)
+            UseSong(song, editor);
+    }
+
+    /// <summary>Imports an audio file into the library and times the level to it.</summary>
+    private static void LoadSong(string path, Entity editor)
+    {
+        LoadedSong song;
+        try
+        {
+            song = SongStore.Shared.Import(path);
+        }
+        catch (Exception)
+        {
+            // Nothing the library could take: the level keeps the song it had.
+            return;
+        }
+
+        UseSong(song, editor);
+
+        ref LevelInfo level = ref editor.GetComponent<LevelInfo>();
+        if (string.IsNullOrWhiteSpace(level.Name) || level.Name == "Untitled")
+        {
+            string name = Path.GetFileNameWithoutExtension(path);
+            if (!string.IsNullOrEmpty(name))
+                level.Name = name;
+        }
+    }
+
+    private static void UseSong(LoadedSong song, Entity editor)
+    {
         ref LevelInfo level = ref editor.GetComponent<LevelInfo>();
         ref Playhead playhead = ref editor.GetComponent<Playhead>();
-        var songs = new SongStore();
-        SongDocument? song = songs.Find(id);
-        if (song is null)
-            return;
-
         level.SongId = song.Id;
-        level.AudioPath = songs.ResolveAudioPath(song);
+        level.Song = song;
         level.Artist = song.Artist;
         playhead.Tempo = song.Tempo();
         playhead.TimeMs = 0;
@@ -134,37 +160,6 @@ public sealed class EditorLevelCommands(EditorCommandContext context)
         playhead.Playing = false;
         playhead.SeekRequestMs = -1;
         playhead.AudioRevision++;
-    }
-
-    private static void LoadSong(string path, Entity editor)
-    {
-        ref LevelInfo level = ref editor.GetComponent<LevelInfo>();
-        ref Playhead playhead = ref editor.GetComponent<Playhead>();
-        try
-        {
-            SongDocument song = new SongStore().Import(path);
-            level.SongId = song.Id;
-            level.AudioPath = song.AudioPath;
-            level.Artist = song.Artist;
-            playhead.Tempo = song.Tempo();
-        }
-        catch (Exception)
-        {
-            level.AudioPath = path;
-        }
-
-        playhead.TimeMs = 0;
-        playhead.DurationMs = 0;
-        playhead.Playing = false;
-        playhead.SeekRequestMs = -1;
-        playhead.AudioRevision++;
-
-        if (string.IsNullOrWhiteSpace(level.Name) || level.Name == "Untitled")
-        {
-            string name = Path.GetFileNameWithoutExtension(path);
-            if (!string.IsNullOrEmpty(name))
-                level.Name = name;
-        }
     }
 
     private void ApplyLevel(

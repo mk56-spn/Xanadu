@@ -26,7 +26,7 @@ public static class EditorScene
         PlayfieldView view = EditorViewport.Open(viewportSize, field);
 
         Entity editor = entities.CreateEntity(
-            new LevelInfo("Untitled", ""),
+            new LevelInfo("Untitled"),
             new LevelFile(""),
             field,
             new Playhead(
@@ -74,7 +74,7 @@ public static class EditorScene
 
         if (entry is not null)
         {
-            LevelDocumentMapper.Apply(entities, editor, entry.Document);
+            LevelDocumentMapper.Apply(entities, editor, entry.Document, entry.Song);
             if (editor.HasComponent<LevelFile>())
                 editor.GetComponent<LevelFile>().Path = entry.Path;
         }

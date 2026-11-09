@@ -99,7 +99,7 @@ public static class PlayabilityAnalyzer
             // The highest the player can be while the note still counts.
             float earliest = dashedAt == long.MinValue
                 ? 0
-                : Math.Max(0, note.TimeMs - geometry.WindowMs - dashedAt) / 1000f;
+                : Math.Max(0, note.TimeMs - geometry.WindowMs - dashedAt - DashHangSystem.MinHoldMs) / 1000f;
             float highest = Math.Min(
                 floor,
                 player.Y + FallDistance(geometry.GravityPixelsPerSecondSquared, earliest));
@@ -130,10 +130,11 @@ public static class PlayabilityAnalyzer
                 continue;
 
             // Assume the dash happens, even for an unreachable note, so one
-            // bad note does not flag everything after it. That dash leaves from
-            // the note, since the player was never there to leave from anywhere.
-            Vector2 origin = reachable
-                ? (new Vector2(player.X, highest) - geometry.Origin) / geometry.Scale
+            // bad note does not flag everything after it. Dashes leave from the
+            // note, except that a player on the floor dashes from standing height.
+            bool grounded = reachable && highest >= floor - PlayerGround.FloorTolerance;
+            Vector2 origin = grounded
+                ? new Vector2(note.Position.X, (floor - geometry.Origin.Y) / geometry.Scale)
                 : note.Position;
             Vector2 target = PlayerMovementSystem.DashTarget(
                 origin, note.Direction, note.Strength);

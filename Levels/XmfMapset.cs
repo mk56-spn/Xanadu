@@ -41,6 +41,9 @@ public sealed class XmfVariant : IChartItems
     public List<SpikeDocument> Spikes { get; set; } = new();
 
     /// <summary>Text written into the level.</summary>
+    /// <summary>Friction bars: crossing one turns the ground's friction on.</summary>
+    public List<FrictionBarDocument> FrictionBars { get; set; } = new();
+
     public List<TextDocument> Texts { get; set; } = new();
 
     /// <summary>Grass patches: swaying blades with no collision.</summary>
@@ -84,6 +87,7 @@ public sealed class XmfVariant : IChartItems
         StartPoints = document.StartPoints,
         Blocks = document.Blocks,
         Spikes = document.Spikes,
+        FrictionBars = document.FrictionBars,
         Texts = document.Texts,
         Grass = document.Grass,
         Flares = document.Flares,
@@ -114,6 +118,7 @@ public sealed class XmfVariant : IChartItems
         StartPoints = StartPoints,
         Blocks = Blocks,
         Spikes = Spikes,
+        FrictionBars = FrictionBars,
         Texts = Texts,
         Grass = Grass,
         Flares = Flares,

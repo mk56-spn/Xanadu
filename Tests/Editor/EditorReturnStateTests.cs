@@ -52,6 +52,43 @@ public sealed class EditorReturnStateTests : EcsSystemTest
     }
 
     [Test]
+    public void RestoresToolSettingsSnapMetronomeAndLayers()
+    {
+        Entity editor = CreateEditor();
+        editor.AddComponent(new Playhead(0, 120, 0, false) { SnapDivision = 8 });
+        editor.AddComponent(new EditorMetronome(true));
+        editor.AddComponent(EditorLayers.Create());
+        ref EditorPlacement placement = ref editor.GetComponent<EditorPlacement>();
+        placement.Strength = DashStrength.Double;
+        placement.ExitMomentum = 3f;
+        placement.Modulate = Colors.Red;
+        ref EditorLayers layers = ref editor.GetComponent<EditorLayers>();
+        layers.Open = true;
+        layers.Hidden.Add(2);
+        layers.Solo = 3;
+
+        EditorReturnState state = EditorReturnState.Capture(Store)!;
+        editor.DeleteEntity();
+
+        Entity rebuilt = CreateEditor();
+        rebuilt.AddComponent(new Playhead(0, 120, 0, false));
+        rebuilt.AddComponent(new EditorMetronome(false));
+        rebuilt.AddComponent(EditorLayers.Create());
+        state.Restore(Store, rebuilt);
+
+        EditorPlacement restored = rebuilt.GetComponent<EditorPlacement>();
+        Assert.That(restored.Strength, Is.EqualTo(DashStrength.Double));
+        Assert.That(restored.ExitMomentum, Is.EqualTo(3f));
+        Assert.That(restored.Modulate, Is.EqualTo(Colors.Red));
+        Assert.That(rebuilt.GetComponent<Playhead>().SnapDivision, Is.EqualTo(8));
+        Assert.That(rebuilt.GetComponent<EditorMetronome>().Enabled, Is.True);
+        EditorLayers restoredLayers = rebuilt.GetComponent<EditorLayers>();
+        Assert.That(restoredLayers.Open, Is.True);
+        Assert.That(restoredLayers.Hidden, Does.Contain(2));
+        Assert.That(restoredLayers.Solo, Is.EqualTo(3));
+    }
+
+    [Test]
     public void APlayheadStartBeginsAtTheLastStartBeforeIt()
     {
         CreateEditor();

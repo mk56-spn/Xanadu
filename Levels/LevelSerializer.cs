@@ -93,6 +93,8 @@ public static class LevelSerializer
         chart.Blocks.RemoveAll(block => block is null);
         chart.Spikes ??= new();
         chart.Spikes.RemoveAll(spike => spike is null);
+        chart.FrictionBars ??= new();
+        chart.FrictionBars.RemoveAll(bar => bar is null);
         chart.Texts ??= new();
         chart.Texts.RemoveAll(text => text is null);
         chart.Grass ??= new();

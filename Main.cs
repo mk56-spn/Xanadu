@@ -32,8 +32,8 @@ public partial class Main : Control
 	{
 		LocalizedText.EnableGodot();
 		UiIcons.Loader = UiIcons.FromResources;
-		SongStore.CatalogFilePath =
-			ProjectSettings.GlobalizePath(SongStore.CatalogFile);
+		SongStore.Shared = new SongStore(
+			catalogPath: ProjectSettings.GlobalizePath(SongStore.CatalogFile));
 		SetProcess(true);
 		_pointer = new GodotPointerInputSource(this);
 		_sceneDirector = new SceneDirector();
@@ -82,7 +82,7 @@ public partial class Main : Control
 	{
 		try
 		{
-			SongDocument song = new SongStore().Import(path);
+			LoadedSong song = SongStore.Shared.Import(path);
 			_systems?.Scenes.OpenSongTiming(song.Id, SceneKind.SongSelect);
 		}
 		catch (Exception exception)
@@ -175,16 +175,10 @@ public partial class Main : Control
 				() => _systems?.Scenes.TryBack(),
 				() => _systems?.Scenes.TryForward(),
 				(document, path, playheadMs) => _systems?.Scenes.StartEditorPreview(
-					new LevelEntry(
-						path,
-						document,
-						new SongStore().Find(document.SongId)),
+					LevelStore.Entry(path, document),
 					playheadMs),
 				onPreviewHere: (document, path, playheadMs) => _systems?.Scenes.StartEditorPreview(
-					new LevelEntry(
-						path,
-						document,
-						new SongStore().Find(document.SongId)),
+					LevelStore.Entry(path, document),
 					playheadMs,
 					fromPlayhead: true));
 			AddChild(_editorOverlay);

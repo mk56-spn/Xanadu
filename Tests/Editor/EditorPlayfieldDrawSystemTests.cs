@@ -24,7 +24,7 @@ public sealed class EditorPlayfieldDrawSystemTests
         var view = new PlayfieldView(new Vector2(30, 30), 0.6f, new Vector2(1152, 648));
         var store = new EntityStore();
         store.CreateEntity(
-            new LevelInfo("Ruler", ""),
+            new LevelInfo("Ruler"),
             new Playfield(1000, 1000),
             new Playhead(1_000, 120, 0, true, durationMs: 5_000),
             view,
@@ -46,7 +46,7 @@ public sealed class EditorPlayfieldDrawSystemTests
         var view = new PlayfieldView(new Vector2(30, 30), 0.6f, new Vector2(1920, 1080));
         var store = new EntityStore();
         store.CreateEntity(
-            new LevelInfo("Wave", ""),
+            new LevelInfo("Wave"),
             new Playfield(1000, 1000),
             new Playhead(0, 120, 0, false, durationMs: durationMs),
             new TimelineView(zoom),
@@ -111,7 +111,7 @@ public sealed class EditorPlayfieldDrawSystemTests
         var view = new PlayfieldView(new Vector2(30, 30), 0.6f, new Vector2(1152, 648));
         var store = new EntityStore();
         store.CreateEntity(
-            new LevelInfo("Tempo", ""),
+            new LevelInfo("Tempo"),
             new Playfield(1000, 1000),
             new Playhead(0, 140, 500, false, durationMs: 5_000),
             view,
@@ -132,7 +132,7 @@ public sealed class EditorPlayfieldDrawSystemTests
         var view = new PlayfieldView(new Vector2(276, 88), 0.404f, new Vector2(1152, 648));
         var store = new EntityStore();
         store.CreateEntity(
-            new LevelInfo("Zoomed", ""),
+            new LevelInfo("Zoomed"),
             new Playfield(1000, 1000),
             new Playhead(0, 120, 0, false, durationMs: 5_000),
             view,
@@ -161,7 +161,7 @@ public sealed class EditorPlayfieldDrawSystemTests
         var view = new PlayfieldView(new Vector2(30, 30), 0.6f, new Vector2(1152, 648));
         var store = new EntityStore();
         store.CreateEntity(
-            new LevelInfo("Colors", ""),
+            new LevelInfo("Colors"),
             new Playfield(1000, 1000),
             new Playhead(0, 120, 0, false, durationMs: 5_000, snapDivision: 4),
             view,
@@ -190,7 +190,7 @@ public sealed class EditorPlayfieldDrawSystemTests
         var view = new PlayfieldView(new Vector2(30, 30), 0.6f, new Vector2(1152, 648));
         var store = new EntityStore();
         store.CreateEntity(
-            new LevelInfo("Stacked", ""),
+            new LevelInfo("Stacked"),
             new Playfield(1000, 1000),
             new Playhead(1_000, 120, 0, false, durationMs: 5_000),
             view,
@@ -222,7 +222,7 @@ public sealed class EditorPlayfieldDrawSystemTests
             new Vector2(1000, 1000));
         var store = new EntityStore();
         store.CreateEntity(
-            new LevelInfo("Dash", ""),
+            new LevelInfo("Dash"),
             new Playfield(1000, 1000),
             new Playhead(1_000, 120, 0, false, durationMs: 5_000),
             view,
@@ -261,7 +261,7 @@ public sealed class EditorPlayfieldDrawSystemTests
                 new Vector2(100, 100),
                 target: Xanadu.Settings.KeybindAction.R1));
         store.CreateEntity(
-            new LevelInfo("Markers", ""),
+            new LevelInfo("Markers"),
             new Playfield(1000, 1000),
             new Playhead(1_000, 120, 0, false, durationMs: 5_000),
             view,
@@ -291,7 +291,7 @@ public sealed class EditorPlayfieldDrawSystemTests
         var view = new PlayfieldView(new Vector2(30, 30), 0.6f, new Vector2(1152, 648));
         var store = new EntityStore();
         store.CreateEntity(
-            new LevelInfo("Capped", ""),
+            new LevelInfo("Capped"),
             new Playfield(1000, 1000),
             new Playhead(1_000, 120, 0, false, durationMs: 5_000),
             view,
@@ -322,7 +322,7 @@ public sealed class EditorPlayfieldDrawSystemTests
         var view = new PlayfieldView(new Vector2(30, 30), 0.6f, new Vector2(1152, 648));
         var store = new EntityStore();
         Entity editor = store.CreateEntity(
-            new LevelInfo("Selected", ""),
+            new LevelInfo("Selected"),
             new Playfield(1000, 1000),
             new Playhead(1_000, 120, 0, false, durationMs: 5_000),
             view,
@@ -357,7 +357,7 @@ public sealed class EditorPlayfieldDrawSystemTests
         var playfield = new Playfield(1000, 1000);
         var store = new EntityStore();
         store.CreateEntity(
-            new LevelInfo("Test Level", ""),
+            new LevelInfo("Test Level"),
             playfield,
             new Playhead(0, 120, 0, false),
             view,
@@ -383,7 +383,7 @@ public sealed class EditorPlayfieldDrawSystemTests
         var playfield = new Playfield(1000, 1000);
         var store = new EntityStore();
         store.CreateEntity(
-            new LevelInfo("Shaded", "") { Background = new Color("#204060") },
+            new LevelInfo("Shaded") { Background = new Color("#204060") },
             playfield,
             new Playhead(0, 120, 0, false),
             view,
@@ -460,7 +460,7 @@ public sealed class EditorPlayfieldDrawSystemTests
         var view = new PlayfieldView(new Vector2(30, 30), 0.6f, new Vector2(1152, 648));
         var store = new EntityStore();
         store.CreateEntity(
-            new LevelInfo("Live", ""),
+            new LevelInfo("Live"),
             new Playfield(1000, 1000),
             new Playhead(1_000, 120, 0, false, durationMs: 60_000),
             view,
@@ -496,7 +496,7 @@ public sealed class EditorPlayfieldDrawSystemTests
         var view = new PlayfieldView(new Vector2(30, 30), 0.6f, new Vector2(1152, 648));
         var store = new EntityStore();
         Entity field = store.CreateEntity(
-            new LevelInfo("Starts", ""),
+            new LevelInfo("Starts"),
             new Playfield(1000, 1000),
             new Playhead(1_000, 120, 0, false, durationMs: 60_000),
             view,

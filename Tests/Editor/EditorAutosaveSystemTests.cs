@@ -163,7 +163,7 @@ public sealed class EditorAutosaveSystemTests
         // in one root, so it owns a fresh store and editor.
         var store = new EntityStore();
         Entity editor = store.CreateEntity(
-            new LevelInfo("Mine", ""),
+            new LevelInfo("Mine"),
             new LevelFile(LevelPath),
             new Playfield(1000, 1000),
             new Playhead(0, 120, 0, false),
@@ -222,7 +222,7 @@ public sealed class EditorAutosaveSystemTests
     private Entity NewEditor(string path)
     {
         Entity editor = _store.CreateEntity(
-            new LevelInfo("Mine", ""),
+            new LevelInfo("Mine"),
             new LevelFile(path),
             new Playfield(1000, 1000),
             new Playhead(0, 120, 0, false),

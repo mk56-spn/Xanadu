@@ -266,8 +266,8 @@ public partial class VisualTestMain : Control
 
     private void EnsureRoot()
     {
-        SongStore.CatalogFilePath ??=
-            ProjectSettings.GlobalizePath(SongStore.CatalogFile);
+        SongStore.Shared = new SongStore(
+            catalogPath: ProjectSettings.GlobalizePath(SongStore.CatalogFile));
         if (_systems is not null || _testHost is null)
             return;
 

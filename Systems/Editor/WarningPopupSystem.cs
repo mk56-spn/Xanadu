@@ -42,7 +42,7 @@ public sealed class WarningPopupSystem : QuerySystem<WarningPopup>
         {
             if (entity.Enabled)
             {
-                bool songLoaded = !string.IsNullOrEmpty(level.AudioPath);
+                bool songLoaded = level.Song is not null;
                 bool dismissed = !popup.Button.IsNull &&
                                  popup.Button.Tags.Has<Pressed>();
 

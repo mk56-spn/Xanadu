@@ -100,7 +100,10 @@ public static class EditorSceneDialogs
 
         UiNode row = panel.Row().Gap(DialogGap);
         dialogs.SongUse = DialogButton(row, "SELECT", 140, EditorDialogAction.UseSong).Entity;
-        DialogButton(row, "CANCEL", 140, EditorDialogAction.Close, muted: true);
+        dialogs.SongCancel = DialogButton(row, "CANCEL", 140, EditorDialogAction.Close, muted: true).Entity;
+        dialogs.SongBack = DialogButton(row, "BACK", 140, EditorDialogAction.Leave, muted: true)
+            .Hidden()
+            .Entity;
     }
 
     private static void BuildRecoveryDialog(UiNode ui, Vector2 screen, ref EditorDialogs dialogs)

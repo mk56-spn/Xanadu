@@ -40,8 +40,6 @@ public sealed class SongPreviewSystem : QuerySystem<SongSelectState>
     /// <summary>Broad groups average out quieter than single bands, so lift them.</summary>
     private const float EnergyGain = 1.3f;
 
-    private static readonly Xanadu.Levels.SongStore Songs = new();
-
     private readonly EntityStore _entities;
     private readonly ITrackAudio _audio;
     private readonly Dictionary<string, SpectrumData> _cache = new();
@@ -112,12 +110,7 @@ public sealed class SongPreviewSystem : QuerySystem<SongSelectState>
         if (state.Count == 0 || state.Selected < 0 || state.Selected >= state.Catalog.Count)
             return "";
 
-        Xanadu.Levels.LevelEntry entry = state.Catalog[state.Selected];
-        if (!entry.IsSongAvailable)
-            return "";
-
-        string path = Songs.ResolveAudioPath(entry.Song!);
-        return File.Exists(path) ? path : "";
+        return state.Catalog[state.Selected].Song?.AudioFile ?? "";
     }
 
     private void Switch(string path)

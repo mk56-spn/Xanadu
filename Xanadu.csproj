@@ -27,6 +27,7 @@
     <ProjectReference Include="Core/Xanadu.Core.csproj" />
     <ProjectReference Include="UI/Xanadu.Ui.csproj" />
     <Content Include="agents.md" />
+    <InternalsVisibleTo Include="Xanadu.Tests" />
   </ItemGroup>
   <!--
     Rider can build this project through /home/... while the compiler sees source files

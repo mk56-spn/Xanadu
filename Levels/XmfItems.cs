@@ -35,6 +35,8 @@ internal static class XmfItems
         writer.Write(note.HoldMs);
         writer.Write(note.ShapeId);
         writer.Write(note.ShapePiece);
+        writer.Write((byte)note.ExitDirection);
+        writer.Write(note.ExitMomentum);
     }
 
     internal static void ReadNote(BinaryReader reader, NoteDocument note, StringTable strings)
@@ -58,9 +60,16 @@ internal static class XmfItems
         note.HoldMs = reader.ReadInt64();
         note.ShapeId = reader.ReadInt32();
         note.ShapePiece = reader.ReadInt32();
+        if (XmfRecords.More(reader))
+        {
+            note.ExitDirection = XmfBinary.ReadEnum<DashDirection>(reader);
+            note.ExitMomentum = reader.ReadSingle();
+        }
 
         if (!float.IsFinite(note.Momentum) || note.Momentum < 0f)
             throw new FormatException("XMF momentum note has an invalid magnitude.");
+        if (!float.IsFinite(note.ExitMomentum) || note.ExitMomentum < 0f)
+            throw new FormatException("XMF dash note has an invalid exit push.");
         if (note.ContactLeft < 0 || note.ContactRight < 0)
             throw new FormatException("XMF contact barrier has a negative charge cost.");
         if (note.HoldMs < 0)
@@ -165,6 +174,20 @@ internal static class XmfItems
         spike.RotationDegrees = reader.ReadSingle();
         spike.OutlineWidth = reader.ReadSingle();
         spike.OutlineColor = reader.ReadUInt32();
+    }
+
+    internal static void WriteFrictionBar(BinaryWriter writer, FrictionBarDocument bar)
+    {
+        writer.Write(bar.X);
+        writer.Write(bar.Y);
+        writer.Write(bar.Height);
+    }
+
+    internal static void ReadFrictionBar(BinaryReader reader, FrictionBarDocument bar)
+    {
+        bar.X = reader.ReadSingle();
+        bar.Y = reader.ReadSingle();
+        bar.Height = reader.ReadSingle();
     }
 
     internal static void WriteText(BinaryWriter writer, TextDocument text)

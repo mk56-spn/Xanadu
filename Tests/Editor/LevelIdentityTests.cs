@@ -17,7 +17,7 @@ public sealed class LevelIdentityTests
     {
         _store = new EntityStore();
         _editor = _store.CreateEntity(
-            new LevelInfo("Untitled", ""),
+            new LevelInfo("Untitled"),
             new Playfield(1000, 1000),
             new Playhead(0, 120, 0, false),
             LevelGroups.Create());

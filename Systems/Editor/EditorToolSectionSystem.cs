@@ -14,6 +14,11 @@ public static class EditorToolSections
         EditorPlacementMode.Momentum,
     };
 
+    public static readonly EditorPlacementMode[] DashExit =
+    {
+        EditorPlacementMode.Dash,
+    };
+
     public static readonly EditorPlacementMode[] BlockSize =
     {
         EditorPlacementMode.Blocks,

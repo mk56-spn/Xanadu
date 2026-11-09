@@ -26,6 +26,9 @@ public enum ParticleKind
     /// out of the body in every direction, falling, shrinking and fading.
     /// </summary>
     Shatter,
+
+    /// <summary>Embers drifting up off a friction bar; white, so the burst's tint gives them the bar's colour.</summary>
+    Ember,
 }
 
 /// <summary>

@@ -194,3 +194,77 @@ public sealed class SpikeItemKind : ItemKind<Spike, SpikeDocument>
         spike.OutlineWidth,
         new Color(spike.OutlineColor));
 }
+
+/// <summary>Friction bars: upright lines that turn ground friction on when the player crosses one. Only their height changes.</summary>
+public sealed class FrictionBarItemKind : ItemKind<FrictionBar, FrictionBarDocument>
+{
+    public override string Name => "friction bar";
+
+    public override int DefaultLayer => ItemLayer.Terrain;
+
+    public override Vector2 Position(Entity entity) => Get(entity).Center;
+
+    public override void SetPosition(Entity entity, Vector2 position)
+    {
+        ref FrictionBar bar = ref Ref(entity);
+        bar.Position = position - new Vector2(FrictionBar.Thickness, bar.Height) / 2;
+    }
+
+    public override bool TryGetBox(Entity entity, out Rect2 box, out float degrees)
+    {
+        box = Get(entity).Bounds;
+        degrees = 0f;
+        return true;
+    }
+
+    /// <summary>A resize changes only the height; the bar keeps its line and its thickness.</summary>
+    public override void SetBox(Entity entity, Rect2 box)
+    {
+        ref FrictionBar bar = ref Ref(entity);
+        bar.Position = new Vector2(box.GetCenter().X - FrictionBar.Thickness / 2, box.Position.Y);
+        bar.Height = box.Size.Y;
+    }
+
+    public override Vector2 SettleDrag(Vector2 corner, Vector2 size, Playfield playfield, bool snap) =>
+        GridPlacement.SettleFrictionBar(corner, size, playfield, snap);
+
+    public override Rect2 Hull(Entity entity) => Get(entity).Bounds;
+
+    public override Vector2 Size(Entity entity) => Get(entity).Bounds.Size;
+
+    public override bool Hit(Entity entity, Vector2 point, long playheadMs) =>
+        Get(entity).Bounds.Grow(FrictionBar.Thickness).HasPoint(point);
+
+    public override bool InMarquee(Entity entity, Rect2 screen, PlayfieldView view, Playfield playfield, long playheadMs) =>
+        screen.Intersects(PlayfieldRenderer.FrictionBarScreenBounds(Get(entity), GroupOffset.View(entity, view)));
+
+    public override PlayfieldDrawKind? DrawKind => PlayfieldDrawKind.FrictionBar;
+
+    public override void Draw(IRectCanvas canvas, Rid rid, Entity entity, PlayfieldView view, in PlayfieldItemFrame frame, bool selected, bool playing) =>
+        PlayfieldRenderer.DrawFrictionBar(canvas, rid, entity, view, selected);
+
+    protected override int Compare(in FrictionBar a, in FrictionBar b)
+    {
+        int order = ByPosition(a.Position, b.Position);
+        return order != 0 ? order : a.Height.CompareTo(b.Height);
+    }
+
+    protected override FrictionBar? Pasted(FrictionBar value, Vector2 offset, long timeMs, Playfield playfield, EntityStore entities)
+    {
+        value.Position = GridPlacement.Clamp(value.Position + offset, value.Bounds.Size, playfield);
+        return value;
+    }
+
+    protected override List<FrictionBarDocument> List(IChartItems chart) => chart.FrictionBars ??= new();
+
+    protected override int CompareDocuments(FrictionBarDocument a, FrictionBarDocument b) => ByXThenY(a.X, a.Y, b.X, b.Y);
+
+    protected override FrictionBarDocument ToDocument(in FrictionBar bar, Entity entity) => new()
+    {
+        X = bar.Position.X,
+        Y = bar.Position.Y,
+        Height = bar.Height,
+    };
+
+    protected override FrictionBar FromDocument(FrictionBarDocument bar) => new(new Vector2(bar.X, bar.Y), bar.Height);
+}
