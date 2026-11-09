@@ -32,7 +32,7 @@ Update this block at the end of every session, including partial progress.
 - **Visual tests (step 10):** the harness runs on the host
   (`dotnet run --project Tests/VisualTests`, `run-visual-tests.sh`), and all
   61 pass.
-- **Next:** step 11's last parts: copy the math structs into Core and drop `GodotSharp`, then rewrite `agents.md`. Still open from earlier steps:
+- **Next:** rewrite `agents.md` and the memory notes that mention Godot (the last item of step 11). Nothing in the repo builds against Godot any more. Still open from earlier steps:
   - step 2: play a level by hand with the keyboard;
   - step 5: done for parity. Per-item data in a storage buffer is deferred,
     and the slot model moved to "Later".
@@ -888,7 +888,14 @@ Host core and Xanadu Labs (2026-11-09, ahead of step 10 at the user's request):
     `NoKeyboard`, `NoFps`, `ServerRectCanvas`), and `GamePaths` finds the
     game folder itself when no host sets roots. `LocalizedText` returns the
     English fallback (no translations exist yet).
-- [ ] Copy Godot's math structs into Core (P8) and drop `GodotSharp`.
+- [x] Copy Godot's math structs into Core (P8) and drop `GodotSharp`
+  (2026-11-10). `Core/Godot/` holds Godot 4.4-stable's `Vector2/3/4` (and
+  the `I` forms), `Rect2`, `Rect2I`, `Color`, `Colors`, `Transform2D`,
+  `Basis`, `Quaternion`, `Mathf`, `MathfEx` and `Rid` under their own names
+  (MIT; its README lists the small changes), plus `Key`, `KeyModifierMask`,
+  `EulerOrder` and `Side` generated from GodotSharp's metadata. The last
+  engine users (`UiTextBridge`, `KeyPressQueue.Feed`, `XpfMaterials`) and
+  `GodotEngineTrap` are gone.
 - [ ] Rewrite `agents.md` (its "Verification" section is all Godot) and update
   memory notes that mention Godot.
 

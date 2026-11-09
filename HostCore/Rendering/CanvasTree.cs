@@ -36,7 +36,7 @@ internal sealed class CanvasTree : ICanvasServer
     /// <summary>Hands out an id the game sees as a Godot <see cref="Rid"/>; textures share the same id space.</summary>
     public Rid MintRid() => ToRid(_nextId++);
 
-    public static Rid ToRid(ulong id) => Unsafe.As<ulong, Rid>(ref id);
+    public static Rid ToRid(ulong id) => new(id);
 
     public Rid RootRid => ToRid(Root.Id);
 

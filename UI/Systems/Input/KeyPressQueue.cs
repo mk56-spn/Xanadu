@@ -13,24 +13,13 @@ public interface IKeyPressSource
 }
 
 /// <summary>
-/// Key presses fed from a host's <c>_UnhandledInput</c>, so a tap between two
-/// frames is not lost and keys a focused text input uses never become shortcuts.
-/// Key repeat is ignored.
+/// Key presses the host feeds as they happen, so a tap between two frames is
+/// not lost and keys a focused text input uses never become shortcuts. The
+/// host leaves out key repeat.
 /// </summary>
 public sealed class KeyPressQueue : IKeyPressSource
 {
     private readonly Queue<KeyChord> _presses = new();
-
-    public void Feed(InputEvent @event)
-    {
-        if (@event is not InputEventKey { Pressed: true, Echo: false } key)
-            return;
-
-        Press(new KeyChord(
-            key.Keycode != Key.None ? key.Keycode : key.PhysicalKeycode,
-            key.CtrlPressed,
-            key.ShiftPressed));
-    }
 
     public void Press(KeyChord chord) => _presses.Enqueue(chord);
 

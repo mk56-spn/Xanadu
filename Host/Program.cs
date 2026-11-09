@@ -6,7 +6,6 @@ using Xanadu.Host;
 // dotnet run --project Host -- --shot=<path.png>    -> saves frame 60 and quits (--shot-frame=<n> to pick)
 // dotnet run --project Host -- --resolution=1920x1080
 // dotnet run --project Host -- --scene=<name>       -> starts on that screen (a SceneKind name)
-Xanadu.Host.Diagnostics.GodotEngineTrap.Install();
 
 // MoonWorks logs every tick that runs late; with one update per tick that is
 // every slow frame, which buries everything else in the console.

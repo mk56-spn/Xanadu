@@ -102,11 +102,7 @@ public sealed class HeadlessCanvasServer : ICanvasServer
 {
     private ulong _nextId = 1;
 
-    public Rid CreateItem()
-    {
-        ulong id = _nextId++;
-        return System.Runtime.CompilerServices.Unsafe.As<ulong, Rid>(ref id);
-    }
+    public Rid CreateItem() => new(_nextId++);
 
     public void Free(Rid item) { }
     public void SetParent(Rid item, Rid parent) { }
