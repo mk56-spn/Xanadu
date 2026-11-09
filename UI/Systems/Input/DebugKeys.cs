@@ -32,8 +32,8 @@ public static class DebugKeys
     /// <summary>F7: gameplay HUD layout editing.</summary>
     public const Key HudLayout = Key.F7;
 
-    /// <summary>F8: play's notes the DIVA+ way from the notes lab, or the approach ring.</summary>
-    public const Key DivaNotes = Key.F8;
+    /// <summary>F8: ground movement in play: skid (friction fields stop you) or hold the direction key.</summary>
+    public const Key GroundMode = Key.F8;
 
     /// <summary>F9: the editor's binding list. F11 is the editor's spare slot.</summary>
     public const Key EditorHelp = Key.F9;

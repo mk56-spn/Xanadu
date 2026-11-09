@@ -18,7 +18,7 @@ public sealed class DebugKeysTests
         Assert.That(DebugKeys.Preview, Is.EqualTo(Key.F5), "preview is its own cross-tool slot");
 
         Assert.That(
-            new[] { DebugKeys.Hitboxes, DebugKeys.HudLayout, DebugKeys.DivaNotes },
+            new[] { DebugKeys.Hitboxes, DebugKeys.HudLayout, DebugKeys.GroundMode },
             Is.EqualTo(new[] { Key.F6, Key.F7, Key.F8 }),
             "gameplay views start after preview and fill F6-F8");
 

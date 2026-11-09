@@ -46,7 +46,7 @@ public sealed class PlayfieldSystemGroup : SystemGroup, IDisposable
         MapOffsetSettings? mapOffsets = null,
         Xanadu.Systems.Shaders.IPassSurfaces? passes = null,
         Func<Rect2, Rect2>? toPixels = null,
-        IOverlayToggleSource? divaToggle = null) : base("Playfield")
+        IOverlayToggleSource? groundToggle = null) : base("Playfield")
     {
         _playfield = new CanvasItemHandle(parentCanvas, 800);
 
@@ -89,13 +89,10 @@ public sealed class PlayfieldSystemGroup : SystemGroup, IDisposable
         Add(new PlayKeyTrailHudSystem(entities));
         Add(new PlayNoteInputSystem(entities, keybinds, keyboard, offsets));
         Add(new GroundStepSystem());
-        Add(new RailHoldSystem(keyboard, keybinds));
+        Add(new GroundModeSystem(keybinds, keyboard, groundToggle));
         Add(new ContactBarrierSystem(entities, offsets));
-        Add(new SplitlineSystem());
-        Add(new SplitlineBallsSystem());
         Add(new TrailAgeSystem<HitTrail>());
         Add(new NotePopSystem());
-        Add(new DashLinkFadeSystem());
         Add(new TrailAgeSystem<DashTrail>());
         Add(new HitGhostSystem());
         Add(new ParticleBurstSystem(_particles));
@@ -106,7 +103,6 @@ public sealed class PlayfieldSystemGroup : SystemGroup, IDisposable
             hudLayout ?? new HudLayoutSettings(persist: false),
             _hudOverlay.Rid));
         Add(new ContactCounterSystem());
-        Add(new WeaponHudSystem());
         Add(new PlayerSmoothingSystem());
         Add(new PlayerPathRecordSystem());
         Add(new PlayCameraSystem());
@@ -125,8 +121,7 @@ public sealed class PlayfieldSystemGroup : SystemGroup, IDisposable
                     root => new SvgAttachmentVisuals(root, containLayers: true))));
         }
 
-        if (divaToggle is not null)
-            Add(new DivaNotesSystem(entities, divaToggle));
+        Add(new DivaNotesSystem(entities));
         Add(new PlayfieldDrawSystem(entities, canvas, _playfield.Rid, passes, toPixels));
         if (hitboxToggle is not null)
         {

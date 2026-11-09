@@ -44,7 +44,6 @@ public static class DebugPalette
     public static readonly Color BlockHitbox = Palette.Rose;
     public static readonly Color SpikeHitbox = Palette.Warning;
     public static readonly Color NoteReach = Palette.Accent;
-    public static readonly Color WeaponHitbox = Palette.Info;
     public static readonly Color HitboxFill = new(1f, 1f, 1f, 0.1f);
 
     /// <summary>A soft version of a text colour, for the glow behind it.</summary>
