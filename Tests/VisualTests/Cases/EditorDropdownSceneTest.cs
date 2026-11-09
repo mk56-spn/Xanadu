@@ -27,7 +27,8 @@ public sealed class EditorDropdownSceneTest : SceneTest
         AddUntilStep(
             "wait for editor sidebar",
             () => Context.Scenes.Current == SceneKind.Editor &&
-                  VisualAssert.HasText(Context.Entities, "SELECTION"));
+                  VisualAssert.HasText(Context.Entities, UiCollapsibleControl.Header("SELECTION", expanded: true)));
+        AddEditorSong();
         AddAssert(
             "note swatches use action colours",
             NoteSwatchesAreColoured);
@@ -78,7 +79,7 @@ public sealed class EditorDropdownSceneTest : SceneTest
                 return false;
         }
 
-        return count == KeybindSettings.Actions.Length;
+        return count == KeybindSettings.ActionKeys.Length;
     }
 
     private Vector2 NoteBarPosition()

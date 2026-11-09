@@ -31,6 +31,7 @@ public sealed class EditorLayersSceneTest : SceneTest
             "wait for the layers button",
             () => Context.Scenes.Current == SceneKind.Editor &&
                   Context.Entities.Query<EditorLayersPanel>().Count == 1);
+        AddEditorSong();
 
         AddStep("place items on several layers", () =>
         {

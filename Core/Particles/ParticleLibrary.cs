@@ -80,7 +80,7 @@ public static class ParticleLibrary
         string? path = FilePath();
         if (path is null || !File.Exists(path))
         {
-            GD.PushWarning($"No particle library at {path ?? RelativePath}; particles are off.");
+            Xanadu.Diagnostics.GameLog.Warning($"No particle library at {path ?? RelativePath}; particles are off.");
             return new XpfLibrary();
         }
 
@@ -90,7 +90,7 @@ public static class ParticleLibrary
         }
         catch (Exception exception) when (exception is XpfFormatException or IOException or UnauthorizedAccessException)
         {
-            GD.PushError($"Particle library {path} could not be read: {exception.Message}");
+            Xanadu.Diagnostics.GameLog.Error($"Particle library {path} could not be read: {exception.Message}");
             return new XpfLibrary();
         }
     }

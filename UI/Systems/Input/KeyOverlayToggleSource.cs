@@ -3,8 +3,11 @@ using Xanadu.Systems;
 
 namespace Xanadu.Systems.Input;
 
-/// <summary>Toggles a debug overlay with the key it is given; F3 by default.</summary>
-public sealed class KeyOverlayToggleSource(Key key = DebugKeys.Ecs) : IOverlayToggleSource
+/// <summary>
+/// Toggles a debug overlay with the key it is given; F3 by default. It reads
+/// <paramref name="keyboard"/>, or the host's when none is given.
+/// </summary>
+public sealed class KeyOverlayToggleSource(Key key = DebugKeys.Ecs, IKeyboardState? keyboard = null) : IOverlayToggleSource
 {
-    public bool IsTogglePressed() => HostPlatform.Keyboard.IsPressed(key);
+    public bool IsTogglePressed() => (keyboard ?? HostPlatform.Keyboard).IsPressed(key);
 }

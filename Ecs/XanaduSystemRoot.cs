@@ -174,11 +174,11 @@ public sealed class XanaduSystemRoot : SystemRoot, IDisposable
             Hud,
             new DiskCharacterRigFiles(),
             PlayKeyboard,
-            new KeyOverlayToggleSource(DebugKeys.Hitboxes),
+            new KeyOverlayToggleSource(DebugKeys.Hitboxes, Keyboard),
             MapOffsets,
             _playPassSurfaces,
             toPixels,
-            new KeyOverlayToggleSource(DebugKeys.GroundMode));
+            new KeyOverlayToggleSource(DebugKeys.GroundMode, Keyboard));
         Add(_playfieldSystems);
         _editorSystems = new EditorSystemGroup(
             entities,

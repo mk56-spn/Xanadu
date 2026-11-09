@@ -1,28 +1,23 @@
-<Project Sdk="Godot.NET.Sdk/4.8.0-dev.7">
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    The scene-test browser on MoonWorks (docs/moonworks-port.md step 10): a plain exe
+    on HostCore that boots the game's ECS world beside an ECS sidebar. res:// is the
+    game folder; user:// is its own "Xanadu Visual Tests" folder.
+  -->
   <PropertyGroup>
+    <OutputType>Exe</OutputType>
     <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
-    <EnableDynamicLoading>true</EnableDynamicLoading>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <GodotProjectDir>$(MSBuildProjectDirectory)/</GodotProjectDir>
+    <AssemblyName>Xanadu.VisualTests</AssemblyName>
+    <RootNamespace>Xanadu.Tests.VisualTests</RootNamespace>
   </PropertyGroup>
   <ItemGroup>
     <Compile Remove="NUnitIntegrationTests.cs" />
     <Compile Remove="SceneTestRunnerTests.cs" />
+    <ProjectReference Include="../../HostCore/Xanadu.HostCore.csproj" />
+    <ProjectReference Include="../../Host/Xanadu.Host.csproj" />
     <ProjectReference Include="../../Xanadu.csproj" />
-    <ProjectReference Include="../../Core/Xanadu.Core.csproj" ReferenceOutputAssembly="true" />
-    <ProjectReference Include="../../UI/Xanadu.Ui.csproj" ReferenceOutputAssembly="true" />
+    <PackageReference Include="Friflo.Engine.ECS" Version="4.0.0-preview.2" />
   </ItemGroup>
-  <Target Name="CanonicalizeGodotProjectDir" BeforeTargets="GenerateMSBuildEditorConfigFileCore"
-          Condition="$([MSBuild]::IsOSPlatform('Linux'))">
-    <Exec Command="realpath &quot;$(MSBuildProjectDirectory)&quot;"
-          ConsoleToMSBuild="true" StandardOutputImportance="low">
-      <Output TaskParameter="ConsoleOutput" ItemName="_CanonicalGodotProjectDir" />
-    </Exec>
-    <PropertyGroup>
-      <_CanonicalGodotProjectDir>@(_CanonicalGodotProjectDir)</_CanonicalGodotProjectDir>
-      <GodotProjectDir Condition=" '$(_CanonicalGodotProjectDir)' != '' ">$(_CanonicalGodotProjectDir)/</GodotProjectDir>
-      <GodotProjectDirBase64></GodotProjectDirBase64>
-    </PropertyGroup>
-  </Target>
 </Project>

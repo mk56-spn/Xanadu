@@ -36,6 +36,7 @@ public sealed class EditorPreviewSaveSceneTest : SceneTest
             "wait for editor",
             () => Context.Scenes.Current == SceneKind.Editor &&
                   Context.Entities.Query<EditorLeftMenu>().Count > 0);
+        AddEditorSong();
         AddStep("stage a level with a recovery", StageLevel);
         AddAssert(
             "a recovery was staged",
@@ -175,7 +176,7 @@ public sealed class EditorPreviewSaveSceneTest : SceneTest
             () => Context.Scenes.TryForward(),
             SaveAndPreview,
             openSongDialog: false);
-        Context.Host.AddChild(new EditorOverlayNode(_overlay));
+        Context.Overlays.Add(_overlay);
     }
 
     private void SaveAndPreview(LevelDocument document, string path, long playheadMs)

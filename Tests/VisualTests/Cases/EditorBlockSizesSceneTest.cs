@@ -28,6 +28,7 @@ public sealed class EditorBlockSizesSceneTest : SceneTest
             "wait for the sidebar",
             () => Context.Scenes.Current == SceneKind.Editor &&
                   Context.Entities.Query<EditorBlockOutlinePanel>().Count == 1);
+        AddEditorSong();
 
         AddStep("pick the blocks tool", () => ClickTool(EditorPlacementMode.Blocks));
         AddWaitStep("hold the tool", 2);

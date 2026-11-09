@@ -26,6 +26,7 @@ public sealed class EditorToolGroupsSceneTest : SceneTest
             "wait for the tool groups",
             () => Context.Scenes.Current == SceneKind.Editor &&
                   Context.Entities.Query<EditorToolGroup>().Count > 0);
+        AddEditorSong();
 
         AddStep("put a note and a start point side by side", () =>
         {

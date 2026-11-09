@@ -23,6 +23,7 @@ public sealed class EditorBlendChoiceSceneTest : SceneTest
             "wait for the tool groups",
             () => Context.Scenes.Current == SceneKind.Editor &&
                   Context.Entities.Query<EditorToolGroup>().Count > 0);
+        AddEditorSong();
 
         AddStep("place and select a block", () =>
         {

@@ -6,8 +6,8 @@ using NUnit.Framework;
 namespace Xanadu.Tests.VisualTests;
 
 /// <summary>
-/// One NUnit test per Godot scene, so Rider exposes a run arrow beside every
-/// visual test. Each test launches the isolated visual-test project.
+/// One NUnit test per scene test, so Rider exposes a run arrow beside every
+/// visual test. Each test launches the visual-test exe on the MoonWorks host.
 /// </summary>
 [TestFixture]
 [Category("Visual")]
@@ -55,33 +55,28 @@ public sealed class VisualSceneTests
     [Test]
     public void EditorExitMenu() => RunScene("editor-exit-menu");
 
+    /// <summary>
+    /// Runs one scene in the visual-test exe. Each opens a window, so they only
+    /// run when <c>XANADU_VISUAL_TESTS=1</c> is set.
+    /// </summary>
     private static void RunScene(string slug)
     {
-        string godot = Environment.GetEnvironmentVariable("GODOT_BIN") ?? "";
-        if (string.IsNullOrWhiteSpace(godot) || !File.Exists(godot))
+        if (Environment.GetEnvironmentVariable("XANADU_VISUAL_TESTS") != "1")
         {
-            Assert.Ignore(
-                "Set GODOT_BIN to the Godot 4.8 mono executable to run scene tests.");
+            Assert.Ignore("Set XANADU_VISUAL_TESTS=1 to run scene tests (each opens a window).");
             return;
         }
 
-        string root = Path.GetFullPath(Path.Combine(
-            TestContext.CurrentContext.TestDirectory,
-            "../../../../"));
-        string project = Path.Combine(root, "Tests", "VisualTests");
-
+        string harness = Path.Combine(TestContext.CurrentContext.TestDirectory, "Xanadu.VisualTests.dll");
         var start = new ProcessStartInfo
         {
-            FileName = godot,
-            WorkingDirectory = project,
+            FileName = "dotnet",
+            WorkingDirectory = TestContext.CurrentContext.TestDirectory,
             UseShellExecute = false,
             RedirectStandardOutput = true,
             RedirectStandardError = true,
         };
-        start.ArgumentList.Add("--path");
-        start.ArgumentList.Add(project);
-        start.ArgumentList.Add("res://VisualTests.tscn");
-        start.ArgumentList.Add("--");
+        start.ArgumentList.Add(harness);
         start.ArgumentList.Add($"--visual-test={slug}");
         start.ArgumentList.Add("--visual-test-exit");
 
@@ -92,7 +87,7 @@ public sealed class VisualSceneTests
         Assert.That(
             process.WaitForExit(120_000),
             Is.True,
-            $"{slug}: Godot did not exit.");
+            $"{slug}: the harness did not exit.");
         Assert.That(
             process.ExitCode,
             Is.Zero,

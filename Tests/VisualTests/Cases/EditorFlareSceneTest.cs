@@ -27,6 +27,7 @@ public sealed class EditorFlareSceneTest : SceneTest
             "wait for the sidebar",
             () => Context.Scenes.Current == SceneKind.Editor &&
                   Context.Entities.Query<EditorFlarePanel>().Count == 1);
+        AddEditorSong();
 
         AddStep("light the level", () =>
         {

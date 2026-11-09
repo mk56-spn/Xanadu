@@ -25,6 +25,7 @@ public sealed class EditorFocusSceneTest : SceneTest
             "wait for the groups grid",
             () => Context.Scenes.Current == SceneKind.Editor &&
                   Context.Entities.Query<EditorGroupCell>().Count == GroupLimits.Count);
+        AddEditorSong();
 
         AddStep("move the pointer off the UI", () => Context.Pointer.Position = new Vector2(20, 20));
         AddStep("press Tab", () => Context.Keyboard.Press(Key.Tab));
@@ -46,7 +47,7 @@ public sealed class EditorFocusSceneTest : SceneTest
         AddStep("hover group 1", () => Context.Pointer.Position = CellCenter(0));
         AddUntilStep(
             "the group tooltip appears",
-            () => TooltipText() == "Edit group 1",
+            () => TooltipText() == "Put the selection in group 1, or take it out if it's all in already",
             timeoutSeconds: 3);
         AddWaitStep("hold the tooltip", 20);
 

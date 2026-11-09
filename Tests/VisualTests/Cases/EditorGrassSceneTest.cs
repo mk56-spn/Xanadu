@@ -26,6 +26,7 @@ public sealed class EditorGrassSceneTest : SceneTest
             "wait for the sidebar",
             () => Context.Scenes.Current == SceneKind.Editor &&
                   Context.Entities.Query<EditorGrassPanel>().Count == 1);
+        AddEditorSong();
 
         AddStep("grow grass in the level", () =>
         {
@@ -55,6 +56,16 @@ public sealed class EditorGrassSceneTest : SceneTest
             });
             editor.GetComponent<NoteSelection>().Note = _selected;
         });
+        AddStep("open the decorations", () =>
+        {
+            foreach (Entity button in Context.Entities.Query<EditorToolGroup>().ToEntityList())
+            {
+                if (EditorToolGroups.All[button.GetComponent<EditorToolGroup>().Index].Name == "Decorations")
+                    Click(button);
+            }
+        });
+        AddWaitStep("hold the group", 2);
+        AddStep("release the group", () => Context.Pointer.Release());
         AddStep("pick the grass tool", () =>
         {
             foreach (Entity button in EditorButton.All(Context.Entities, EditorButtonKind.Place))

@@ -36,12 +36,12 @@ public sealed class DrawableInitialiseSystem : QuerySystem<Rectangle, Drawable, 
             if (!TryGetOwnLayerCanvas(entity, out Rid layerCanvas) &&
                 !TryGetLayerCanvas(entity.Store, requested, out layerCanvas))
             {
-                GD.PushError(
+                Xanadu.Diagnostics.GameLog.Error(
                     $"Drawable entity {entity.Id} references missing layer {requested}; falling back to layer {DefaultLayer}.");
 
                 if (!TryGetLayerCanvas(entity.Store, DefaultLayer, out layerCanvas))
                 {
-                    GD.PushError(
+                    Xanadu.Diagnostics.GameLog.Error(
                         $"Drawable entity {entity.Id} cannot fall back because layer {DefaultLayer} does not exist.");
                     return;
                 }

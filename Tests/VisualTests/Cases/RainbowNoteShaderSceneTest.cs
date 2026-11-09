@@ -4,23 +4,22 @@ using Godot;
 using Xanadu.Ecs;
 using Xanadu.Items;
 using Xanadu.Levels;
+using Xanadu.Rendering;
 using Xanadu.Scenes;
+using Xanadu.Systems;
+using Xanadu.Systems.Canvas;
 using Xanadu.Systems.Shaders;
 
 namespace Xanadu.Tests.VisualTests;
 
 /// <summary>
 /// A note whose Xif points at the common rainbow shader: proves the shader
-/// actually loads and compiles into a real material inside a running engine,
-/// which a headless NUnit run cannot do (there is no RenderingServer there).
-/// Also proves the cached material survives a GC pass with nothing else
-/// holding a C# reference to it, since a Godot RefCounted whose C# wrapper
-/// is collected becomes unusable even if something still has its Rid.
+/// compiles in the running host (through Slang), which a headless NUnit run
+/// cannot do. The Godot version also waited out GC passes for the material's
+/// RefCounted wrapper; host materials are plain C# objects, so that is gone.
 /// </summary>
 public sealed class RainbowNoteShaderSceneTest : SceneTest
 {
-    private ulong _waitStartMs;
-
     public override string Name => "Note with the common rainbow shader";
     public override string Slug => "rainbow-note-shader";
 
@@ -44,28 +43,9 @@ public sealed class RainbowNoteShaderSceneTest : SceneTest
             });
 
         AddAssert(
-            "the common rainbow shader compiles to a real material",
-            () =>
-            {
-                Rid rid = CommonShaderMaterials.MaterialOf(CommonShaders.Paths[0]);
-                return rid.IsValid && CommonShaderMaterials.IsLive(CommonShaders.Paths[0]);
-            });
-
-        AddStep("note the time", () => _waitStartMs = Time.GetTicksMsec());
-
-        AddUntilStep(
-            "wait 10 seconds, forcing a GC pass each frame",
-            () =>
-            {
-                GC.Collect();
-                GC.WaitForPendingFinalizers();
-                return Time.GetTicksMsec() - _waitStartMs >= 10_000;
-            },
-            timeoutSeconds: 15);
-
-        AddAssert(
-            "the material is still live after the wait, not just a non-zero Rid",
-            () => CommonShaderMaterials.IsLive(CommonShaders.Paths[0]));
+            "the common rainbow shader compiles in the host",
+            () => HostPlatform.DescribeMaterial?.Invoke(
+                new CanvasMaterial(CommonShaders.Paths[0], BlendMode.Mix)) is not null);
     }
 
     private void OpenPlay()

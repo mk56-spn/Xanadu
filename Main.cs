@@ -31,6 +31,9 @@ public partial class Main : Control
 	public override void _Ready()
 	{
 		LocalizedText.EnableGodot();
+		Xanadu.Diagnostics.GameLog.Info = message => GD.Print(message);
+		Xanadu.Diagnostics.GameLog.Warning = message => GD.PushWarning(message);
+		Xanadu.Diagnostics.GameLog.Error = message => GD.PushError(message);
 		UiIcons.Loader = UiIcons.FromResources;
 		SongStore.Shared = new SongStore(
 			catalogPath: Xanadu.Storage.GamePaths.Globalize(SongStore.CatalogFile));

@@ -47,7 +47,7 @@ public sealed unsafe class MiniaudioTrackAudio : ITrackAudio
 
             if (result != ma_result.MA_SUCCESS)
             {
-                GD.PushError($"miniaudio failed to load '{path}': {result}");
+                Xanadu.Diagnostics.GameLog.Error($"miniaudio failed to load '{path}': {result}");
                 return false;
             }
         }
@@ -68,7 +68,7 @@ public sealed unsafe class MiniaudioTrackAudio : ITrackAudio
         if (result == ma_result.MA_SUCCESS)
             return true;
 
-        GD.PushError($"miniaudio failed to resume: {result}");
+        Xanadu.Diagnostics.GameLog.Error($"miniaudio failed to resume: {result}");
         return false;
     }
 
@@ -165,7 +165,7 @@ public sealed unsafe class MiniaudioTrackAudio : ITrackAudio
         ma_result result = ma.engine_init(null, engine);
         if (result != ma_result.MA_SUCCESS)
         {
-            GD.PushError($"miniaudio engine init failed: {result}");
+            Xanadu.Diagnostics.GameLog.Error($"miniaudio engine init failed: {result}");
             NativeMemory.Free(engine);
             return false;
         }

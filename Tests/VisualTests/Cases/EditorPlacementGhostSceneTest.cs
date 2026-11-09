@@ -17,6 +17,7 @@ public sealed class EditorPlacementGhostSceneTest : SceneTest
         AddUntilStep("wait for the editor", () =>
             Context.Scenes.Current == SceneKind.Editor &&
             Context.Entities.Query<EditorPlacementGhost>().Count == 1);
+        AddEditorSong();
         AddStep("pick spikes, pointing right", () =>
         {
             Entity editor = Context.Entities.Query<EditorPlacementGhost>().ToEntityList()[0];

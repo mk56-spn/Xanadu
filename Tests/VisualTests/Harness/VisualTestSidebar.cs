@@ -4,6 +4,7 @@ using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Godot;
 using Xanadu.Ecs;
+using Xanadu.Systems;
 using Xanadu.Systems.Canvas;
 using Xanadu.Systems.Input;
 using Xanadu.Systems.Ui;
@@ -38,8 +39,8 @@ public readonly record struct VisualTestDetailLine(string Text, Color Color);
 /// <summary>
 /// The scene-test browser, built as an ECS UI tree like everything else: a
 /// title, a run-all button, then two scroll views stacked so they cannot overlap,
-/// one with a row per test and one with the current test's steps. The host Control's canvas item is the only Godot UI surface it
-/// touches, and no Godot widget is created.
+/// one with a row per test and one with the current test's steps. It draws
+/// under the host's canvas item with the host's pointer and keyboard.
 /// </summary>
 public sealed class VisualTestSidebar : IDisposable
 {
@@ -69,7 +70,6 @@ public sealed class VisualTestSidebar : IDisposable
     private readonly Dictionary<string, List<string>> _wrapped = new();
     private readonly EntityStore _store = new();
     private readonly SystemRoot _root;
-    private readonly GodotPointerInputSource _pointer;
     private readonly SidebarCommands _commands = new();
 
     private Entity _summary;
@@ -80,23 +80,27 @@ public sealed class VisualTestSidebar : IDisposable
     private int _selected = -1;
     private int _detailFocus = -1;
 
-    public VisualTestSidebar(Control host, IReadOnlyList<SceneTest> tests)
+    public VisualTestSidebar(
+        Rid canvas,
+        IPointerInputSource pointer,
+        IWheelSource wheel,
+        IKeyboardState keyboard,
+        IReadOnlyList<SceneTest> tests)
     {
         _tests = tests;
         _statuses = new VisualTestStatus[tests.Count];
         _rows = new Entity[tests.Count];
         _arrows = new Entity[tests.Count];
 
-        _pointer = new GodotPointerInputSource(host);
         _root = new SystemRoot(_store);
         _root.Add(new UiSystemGroup(
             _store,
-            host.GetCanvasItem(),
-            new GodotRectCanvas(),
-            _pointer,
-            keyboard: new GodotKeyboardState(),
+            canvas,
+            HostPlatform.NewCanvas(),
+            pointer,
+            keyboard: keyboard,
             screen: new Vector2(DesignWidth, DesignHeight),
-            wheel: _pointer));
+            wheel: wheel));
         _root.Add(_commands);
 
         Entity root = _store.CreateEntity();
@@ -122,14 +126,11 @@ public sealed class VisualTestSidebar : IDisposable
     public void Frame(float delta, float time)
     {
         _root.Update(new UpdateTick(delta, time));
-        _pointer.EndFrame();
     }
 
     /// <summary>Takes the next click, if any. Select and Run are per row.</summary>
     public bool TryTake(out VisualTestAction action) => _commands.TryTake(out action);
 
-    /// <summary>Forwards an event, so a click between two frames is not lost.</summary>
-    public void Feed(InputEvent @event) => _pointer.Feed(@event);
 
     /// <summary>Shows the one-line status under the title.</summary>
     public void SetSummary(string text, Color color)

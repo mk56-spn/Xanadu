@@ -66,7 +66,7 @@ public sealed class PlaySceneTest : SceneTest
         AddAssert(
             "contact counters exist",
             () => Context.Entities.Query<ContactCounterHud>().Count == 1 &&
-                  VisualAssert.HasText(Context.Entities, "L 0"));
+                  VisualAssert.HasText(Context.Entities, $"0/{ContactCounters.Cap}"));
         AddAssert(
             "key trail fills its drag box",
             KeyTrailMatchesDragBox);

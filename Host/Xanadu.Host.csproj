@@ -16,4 +16,7 @@
     <ProjectReference Include="../Xanadu.csproj" />
     <PackageReference Include="Friflo.Engine.ECS" Version="4.0.0-preview.2" />
   </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="Xanadu.VisualTests" />
+  </ItemGroup>
 </Project>

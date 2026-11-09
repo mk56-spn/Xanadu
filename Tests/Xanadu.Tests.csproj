@@ -11,6 +11,8 @@
   <ItemGroup>
     <Compile Remove="VisualTests/Harness/**/*.cs" />
     <Compile Remove="VisualTests/Cases/**/*.cs" />
+    <Compile Remove="VisualTests/Program.cs" />
+    <Compile Remove="VisualTests/obj/**;VisualTests/bin/**" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.11.0" />

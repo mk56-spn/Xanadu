@@ -37,9 +37,9 @@ public sealed class CharacterHitboxSceneTest(bool faceLeft) : SceneTest
                 player.AddComponent(new CharacterFacing());
             player.GetComponent<CharacterFacing>().Left = faceLeft;
         });
-        AddStep("press F6", () => Input.ParseInputEvent(new InputEventKey { Keycode = DebugKeys.Hitboxes, Pressed = true }));
+        AddStep("press F6", () => Context.Keyboard.Press(DebugKeys.Hitboxes));
         AddWaitStep("hold", 2);
-        AddStep("release F6", () => Input.ParseInputEvent(new InputEventKey { Keycode = DebugKeys.Hitboxes, Pressed = false }));
+        AddStep("release F6", () => Context.Keyboard.Release(DebugKeys.Hitboxes));
         AddWaitStep("settle on the floor", 60);
     }
 

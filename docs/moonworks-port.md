@@ -14,7 +14,7 @@ under it saying what changed from the plan.
 
 Update this block at the end of every session, including partial progress.
 
-- **Updated:** 2026-11-09 (fifth session)
+- **Updated:** 2026-11-09 (sixth session)
 - **Done:** steps 0, 1, 3, 4 and 6, most of step 2, and most of step 5. The
   host draws buffered groups, self-contained layer passes, background-reader
   passes and screen-reading shaders (frosted glass) through a multi-pass
@@ -29,7 +29,11 @@ Update this block at the end of every session, including partial progress.
   F10 and the shader import picker checked by hand).
 - **Step 10:** the Animator and the UI Showcase are plain host exes. UI icons
   now load on the host (SVG through `SvgRaster`, now in Core).
-- **Next:** the rest of step 10, porting the visual-test harness. Still open from earlier steps:
+- **Visual tests (step 10):** the harness runs on the host
+  (`dotnet run --project Tests/VisualTests`, `run-visual-tests.sh`); 57 of 61
+  pass. The 4 left failed the same way under Godot before the port (see the
+  step 10 item).
+- **Next:** fix or retire the 4 failing visual tests, then step 11. Still open from earlier steps:
   - step 2: play a level by hand with the keyboard;
   - step 5: per-item data in a storage buffer, the vertex slot and chains,
     and shape glow.
@@ -809,8 +813,21 @@ D7–D17 against the host:
   - `SvgRaster` moved from the game assembly to `Core/Rendering` (same
     namespace) with its Svg.Skia packages, so HostCore can use it.
   - `IRectCanvas.DrawTexture(Texture2D)` is gone.
-- [ ] Visual tests: port the harness in `Tests/VisualTests/Harness` to the host's
-  screenshot path.
+- [x] Visual tests: `VisualTestMain` is a `HostApp`; `Program.cs` is the exe,
+  `--visual-test-shot` uses the host's frame read, and the NUnit wrappers
+  launch it. Shared code logs through `Xanadu.Diagnostics.GameLog` (the Godot
+  build routes it to `GD.*` in `Main`). Fixes found on the way:
+  - every test starts with the test user folder's recovery files cleared;
+  - the editor holds its song picker up while the level has no song, so tests
+    that work the editor UI call `AddEditorSong()` once it is up;
+  - stale expectations updated (collapsible headers carry `▾`, group-cell
+    tooltip text, three action-key swatches, `0/cap` contact counters, grass
+    sits in the Decorations flyout).
+  - **Still failing (pre-port too):** `settings` (waits for an "L1" label),
+    `note-key-checking`, `editor-dropdowns` (toolbar zoom never reaches 32),
+    and `editor-groups`: a selected start point's START POINT panel draws over
+    the sidebar's GROUPS grid, so the click on group 5 lands on the panel.
+    That last one is a real layout bug, not test drift.
 
 Host core and Xanadu Labs (2026-11-09, ahead of step 10 at the user's request):
 

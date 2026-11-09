@@ -152,11 +152,11 @@ public sealed partial class DebugPressedOverlaySystem
         try
         {
             _archetypes.Dump(path);
-            GD.Print($"Archetypes written to {path}");
+            Xanadu.Diagnostics.GameLog.Info($"Archetypes written to {path}");
         }
         catch (Exception exception)
         {
-            GD.PushWarning($"Could not write {path}: {exception.Message}");
+            Xanadu.Diagnostics.GameLog.Warning($"Could not write {path}: {exception.Message}");
         }
     }
 

@@ -3,23 +3,28 @@ using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Godot;
+using MoonWorks.Input;
 using Xanadu.Ecs;
+using Xanadu.Host;
+using Xanadu.Host.Rendering;
 using Xanadu.Levels;
 using Xanadu.Editor;
 using Xanadu.Settings;
+using Xanadu.Storage;
+using Xanadu.Systems;
+using Xanadu.Systems.Canvas;
 using Xanadu.Theme;
 
 namespace Xanadu.Tests.VisualTests;
 
 /// <summary>
-/// Interactive visual test suite. The left sidebar — built as ECS UI — lists
-/// every scene test; the right pane hosts the live ECS scene. Run All walks the
-/// suite, marking each test passed or failed without exiting unless
-/// <c>--visual-test-exit</c> is set. No Godot UI widget is created here: the
-/// root <see cref="Control"/> only supplies a canvas item, and the pane is a
-/// <see cref="Node2D"/> whose transform puts the scene beside the sidebar.
+/// Interactive visual test suite on the MoonWorks host. The left sidebar, built
+/// as ECS UI, lists every scene test; the right pane hosts the live ECS scene,
+/// under a canvas item offset by the sidebar's width. Run All walks the suite,
+/// marking each test passed or failed without exiting unless
+/// <c>--visual-test-exit</c> is set.
 /// </summary>
-public partial class VisualTestMain : Control
+internal sealed class VisualTestMain : HostApp
 {
     private readonly List<SceneTest> _tests = new(SceneTestCatalog.All);
     private readonly List<VisualTestStatus> _statuses = new();
@@ -32,7 +37,7 @@ public partial class VisualTestMain : Control
     private ScriptedKeyboardState? _keyboard;
     private VisualTestContext? _context;
 
-    private Node2D? _testHost;
+    private Rid _testHost;
     private VisualTestSidebar? _sidebar;
     private Vector2 _paneSize;
 
@@ -42,21 +47,27 @@ public partial class VisualTestMain : Control
     private bool _autoSingle;
     private bool _exitWhenDone;
     private int _pendingStartIndex = -1;
-    private ulong _pendingStartAtMs;
+    private float _pendingStartAt;
+    private float _now;
     private string? _shotPath;
     private int _shotFrames = -1;
 
-    public override void _Ready()
+    /// <summary>What the process exits with: 0 passed, 1 failed, 2 an unknown test.</summary>
+    public int ExitCode { get; private set; }
+
+    public VisualTestMain(string[] args) : base("Xanadu Visual Tests", WindowOptions(args))
     {
-        SetProcess(true);
+        // Tests write levels, songs and profiles: keep them out of the game's own user folder.
+        GamePaths.UseRoots(GamePaths.Globalize("res://"), GamePaths.GodotUserFolder("Xanadu Visual Tests"));
+
         BuildUi();
-        ParseArguments();
+        ParseArguments(args);
 
         if (_invalidRequest is not null)
         {
-            GD.PrintErr($"Unknown visual test '{_invalidRequest}'.");
+            Console.Error.WriteLine($"Unknown visual test '{_invalidRequest}'.");
             PrintTestList();
-            GetTree().Quit(2);
+            Exit(2);
             return;
         }
 
@@ -79,23 +90,40 @@ public partial class VisualTestMain : Control
         _shotFrames = _shotPath is null ? -1 : 0;
     }
 
+    /// <summary><c>--resolution=WxH</c>, 1600x900 by default; the harness times its own shots.</summary>
+    private static HostWindowOptions WindowOptions(string[] args)
+    {
+        uint width = 1600, height = 900;
+        foreach (string argument in args)
+        {
+            if (!argument.StartsWith("--resolution=", StringComparison.Ordinal))
+                continue;
+            string[] size = argument["--resolution=".Length..].Split('x');
+            width = uint.Parse(size[0]);
+            height = uint.Parse(size[1]);
+        }
+
+        return new HostWindowOptions(width, height, null, 0);
+    }
+
     private string? _invalidRequest;
     private int _requestedIndex = -1;
     private bool _runAllRequested;
 
-    public override void _Process(double delta)
+    protected override void Tick(float delta, float time)
     {
-        float time = (float)Time.GetTicksMsec() / 1000f;
-        _sidebar?.Frame((float)delta, time);
+        _now = time;
+        _sidebar?.Frame(delta, time);
 
         while (_sidebar is not null && _sidebar.TryTake(out VisualTestAction action))
             Handle(action);
 
+        ReadKeys();
+
         if (TryCaptureShot())
             return;
 
-        if (_pendingStartIndex >= 0 &&
-            Time.GetTicksMsec() >= _pendingStartAtMs)
+        if (_pendingStartIndex >= 0 && time >= _pendingStartAt)
         {
             int next = _pendingStartIndex;
             _pendingStartIndex = -1;
@@ -106,7 +134,9 @@ public partial class VisualTestMain : Control
         if (_systems is null || _context is null || _runner.Test is null)
             return;
 
-        _systems.Update(new UpdateTick((float)delta, time));
+        _systems.Update(new UpdateTick(delta, time));
+        foreach (EditorOverlay overlay in _context.Overlays)
+            overlay.Tick();
 
         if (_resultHandled)
             return;
@@ -122,35 +152,29 @@ public partial class VisualTestMain : Control
         UpdateDetail();
     }
 
-    public override void _Input(InputEvent @event) => _sidebar?.Feed(@event);
-
-    public override void _UnhandledInput(InputEvent @event)
+    /// <summary>Esc quits; Left and Right pick a test; R or Enter runs it.</summary>
+    private void ReadKeys()
     {
-        if (@event is not InputEventKey { Pressed: true, Echo: false } key)
-            return;
-
-        switch (key.Keycode)
-        {
-            case Key.Escape:
-                GetTree().Quit();
-                break;
-            case Key.Left:
-                SelectTest(Mathf.Max(0, _index - 1));
-                break;
-            case Key.Right:
-                SelectTest(Mathf.Min(_tests.Count - 1, _index + 1));
-                break;
-            case Key.R:
-            case Key.Enter:
-                if (!_suiteRunning)
-                    RunTest(_index);
-                break;
-        }
+        MoonWorks.Input.Keyboard keys = Inputs.Keyboard;
+        if (keys.IsPressed(KeyCode.Escape))
+            Exit(ExitCode);
+        else if (keys.IsPressed(KeyCode.Left))
+            SelectTest(Math.Max(0, _index - 1));
+        else if (keys.IsPressed(KeyCode.Right))
+            SelectTest(Math.Min(_tests.Count - 1, _index + 1));
+        else if ((keys.IsPressed(KeyCode.R) || keys.IsPressed(KeyCode.Return)) && !_suiteRunning)
+            RunTest(_index);
     }
 
-    public override void _ExitTree()
+    private void Exit(int code)
     {
-        CloseTestOverlays();
+        ExitCode = code;
+        Quit();
+    }
+
+    protected override void Shutdown()
+    {
+        DisposeCurrentRoot();
         _sidebar?.Dispose();
         _sidebar = null;
     }
@@ -161,18 +185,18 @@ public partial class VisualTestMain : Control
             VisualTestSidebar.DesignWidth - VisualTestSidebar.SidebarWidth,
             VisualTestSidebar.DesignHeight);
 
-        _testHost = new Node2D
-        {
-            Name = "TestHost",
-            Position = new Vector2(VisualTestSidebar.SidebarWidth, 0),
-        };
-        AddChild(_testHost);
+        _testHost = CanvasServer.Current.CreateItem();
+        CanvasServer.Current.SetParent(_testHost, Canvas.RootRid);
+        PlaceStage(VisualTestSidebar.SidebarWidth);
 
         for (int i = 0; i < _tests.Count; i++)
             _statuses.Add(VisualTestStatus.Pending);
 
-        _sidebar = new VisualTestSidebar(this, _tests);
+        _sidebar = new VisualTestSidebar(Canvas.RootRid, Pointer, Pointer, Keyboard, _tests);
     }
+
+    private void PlaceStage(float left) =>
+        CanvasServer.Current.SetTransform(_testHost, new Transform2D(0f, new Vector2(left, 0)));
 
     /// <summary>
     /// Drops the sidebar and shows the scene across the whole window, so a shot
@@ -182,23 +206,22 @@ public partial class VisualTestMain : Control
     {
         _sidebar?.Dispose();
         _sidebar = null;
-        if (_testHost is not null)
-            _testHost.Position = Vector2.Zero;
+        PlaceStage(0);
     }
 
-    private void ParseArguments()
+    private void ParseArguments(string[] args)
     {
         string? requested = null;
         bool exit = false;
 
-        foreach (string argument in OS.GetCmdlineUserArgs())
+        foreach (string argument in args)
         {
             if (argument.StartsWith("--visual-test=", StringComparison.Ordinal))
                 requested = argument["--visual-test=".Length..];
             else if (argument == "--visual-test-exit")
                 exit = true;
             else if (argument.StartsWith("--visual-test-shot=", StringComparison.Ordinal))
-                _shotPath = argument["--visual-test-shot=".Length..];
+                _shotPath = System.IO.Path.GetFullPath(argument["--visual-test-shot=".Length..]);
             else if (argument == "--visual-test-full")
                 ShowStageOnly();
         }
@@ -264,11 +287,26 @@ public partial class VisualTestMain : Control
         _director = null;
     }
 
+    /// <summary>
+    /// Drops recovery files an earlier test or run left in the test user folder,
+    /// so no test opens the editor under a "recover unsaved changes" dialog.
+    /// </summary>
+    private static void ClearRecovery()
+    {
+        string directory = Xanadu.Editor.Recovery.LevelRecoveryStore.Default.Directory;
+        if (!System.IO.Directory.Exists(directory))
+            return;
+
+        foreach (string file in System.IO.Directory.GetFiles(directory, "*.recovery.xmf"))
+            System.IO.File.Delete(file);
+    }
+
     private void EnsureRoot()
     {
+        ClearRecovery();
         SongStore.Shared = new SongStore(
-            catalogPath: ProjectSettings.GlobalizePath(SongStore.CatalogFile));
-        if (_systems is not null || _testHost is null)
+            catalogPath: GamePaths.Globalize(SongStore.CatalogFile));
+        if (_systems is not null)
             return;
 
         _entities = new EntityStore();
@@ -278,14 +316,14 @@ public partial class VisualTestMain : Control
 
         _systems = new XanaduSystemRoot(
             _entities,
-            _testHost.GetCanvasItem(),
+            _testHost,
             _pointer,
             _director,
             _paneSize,
             new KeybindSettings(persist: false),
             transitions: false,
             keyboard: _keyboard,
-            passHost: _testHost);
+            passSurfaces: () => new HostPassSurfaces(Canvas, Renderer));
 
         _context = new VisualTestContext(
             _entities,
@@ -402,7 +440,7 @@ public partial class VisualTestMain : Control
             result.Passed ? VisualTestStatus.Passed : VisualTestStatus.Failed);
         UpdateDetail();
 
-        GD.Print(
+        Console.WriteLine(
             $"[scene-test:{test.Slug}] " +
             $"{(result.Passed ? "PASS" : "FAIL")}: {result.Message}");
 
@@ -411,7 +449,7 @@ public partial class VisualTestMain : Control
             if (_index + 1 < _tests.Count)
             {
                 _pendingStartIndex = _index + 1;
-                _pendingStartAtMs = Time.GetTicksMsec() + 150;
+                _pendingStartAt = _now + 0.15f;
                 return;
             }
 
@@ -428,7 +466,7 @@ public partial class VisualTestMain : Control
             if (_exitWhenDone)
             {
                 PrintSummary();
-                GetTree().Quit(result.Passed ? 0 : 1);
+                Exit(result.Passed ? 0 : 1);
             }
         }
     }
@@ -451,7 +489,7 @@ public partial class VisualTestMain : Control
         PrintSummary();
 
         if (_exitWhenDone)
-            GetTree().Quit(clean ? 0 : 1);
+            Exit(clean ? 0 : 1);
     }
 
     private void SetStatus(int index, VisualTestStatus status)
@@ -466,7 +504,7 @@ public partial class VisualTestMain : Control
     private void PrintSummary()
     {
         bool failed = _statuses.Contains(VisualTestStatus.Failed);
-        GD.Print(failed ? "Scene tests failed." : "Scene tests passed.");
+        Console.WriteLine(failed ? "Scene tests failed." : "Scene tests passed.");
     }
 
     private void UpdateDetail()
@@ -523,20 +561,18 @@ public partial class VisualTestMain : Control
 
     private void CloseTestOverlays()
     {
-        if (_testHost is null)
+        if (_context is null)
             return;
 
-        foreach (Node child in _testHost.GetChildren())
-        {
-            if (child is EditorOverlayNode overlay)
-                overlay.Close();
-        }
+        foreach (EditorOverlay overlay in _context.Overlays)
+            overlay.Close();
+        _context.Overlays.Clear();
     }
 
     /// <summary>
-    /// Saves the rendered window to <c>--visual-test-shot=path</c> once it has
-    /// settled, then quits. Reading our own viewport needs neither the
-    /// compositor nor the window being visible.
+    /// Saves the frame to <c>--visual-test-shot=path</c> once it has settled,
+    /// then quits. It reads the host's own frame texture, so it needs neither
+    /// the compositor nor the window being visible.
     /// </summary>
     private bool TryCaptureShot()
     {
@@ -549,22 +585,16 @@ public partial class VisualTestMain : Control
             return false;
 
         _shotFrames = -1;
-        Image image = GetViewport().GetTexture().GetImage();
-        Error error = image.SavePng(_shotPath);
-        if (error == Error.Ok)
-            GD.Print($"Wrote {_shotPath}");
-        else
-            GD.PrintErr($"Could not write {_shotPath}: {error}");
-
-        GetTree().Quit(error == Error.Ok ? 0 : 1);
+        Console.WriteLine($"Wrote {_shotPath}");
+        RequestShot(_shotPath);
         return true;
     }
 
     private void PrintTestList()
     {
-        GD.Print("Available scene tests:");
+        Console.WriteLine("Available scene tests:");
 
         foreach (SceneTest test in _tests)
-            GD.Print($"  {test.Slug}  {test.Name}");
+            Console.WriteLine($"  {test.Slug}  {test.Name}");
     }
 }

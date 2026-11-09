@@ -26,6 +26,7 @@ public sealed class EditorTextSceneTest : SceneTest
             "wait for the sidebar",
             () => Context.Scenes.Current == SceneKind.Editor &&
                   Context.Entities.Query<EditorTextPanel>().Count == 1);
+        AddEditorSong();
 
         AddStep("write text into the level", () =>
         {

@@ -29,6 +29,7 @@ public sealed class LeaveEditorSceneTest : SceneTest
             "wait for editor",
             () => Context.Scenes.Current == SceneKind.Editor &&
                   VisualAssert.HasText(Context.Entities, "LEVEL EDITOR"));
+        AddEditorSong();
         AddStep("create editor overlay", CreateOverlay);
         AddStep("wire editor save", () =>
             Context.Scenes.SaveEditor = () =>
@@ -66,7 +67,7 @@ public sealed class LeaveEditorSceneTest : SceneTest
             () => Context.Scenes.TryForward(),
             openSongDialog: false);
 
-        Context.Host.AddChild(new EditorOverlayNode(_overlay));
+        Context.Overlays.Add(_overlay);
     }
 
     private bool ConfirmationIsVisible()

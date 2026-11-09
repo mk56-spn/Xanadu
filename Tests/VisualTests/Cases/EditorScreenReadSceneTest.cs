@@ -28,6 +28,7 @@ public sealed class EditorScreenReadSceneTest : SceneTest
             "wait for the tool groups",
             () => Context.Scenes.Current == SceneKind.Editor &&
                   Context.Entities.Query<EditorToolGroup>().Count > 0);
+        AddEditorSong();
 
         AddStep("open the text and screen reads group", () => Click(Group(4)));
         AddWaitStep("hold the group", 2);

@@ -24,7 +24,7 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
         }
         catch (Exception exception)
         {
-            GD.PushError($"Failed to load level '{path}': {exception.Message}");
+            Xanadu.Diagnostics.GameLog.Error($"Failed to load level '{path}': {exception.Message}");
             return null;
         }
     }

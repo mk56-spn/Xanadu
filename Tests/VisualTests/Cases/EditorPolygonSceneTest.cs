@@ -29,6 +29,7 @@ public sealed class EditorPolygonSceneTest : SceneTest
             "wait for the tools",
             () => Context.Scenes.Current == SceneKind.Editor &&
                   Context.Entities.Query<EditorToolGroup>().Count > 0);
+        AddEditorSong();
 
         AddStep("put turned text and grass in the level", () =>
         {

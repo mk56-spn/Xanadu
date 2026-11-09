@@ -31,7 +31,8 @@ public sealed class EditorGroupsSceneTest : SceneTest
             "wait for the groups grid",
             () => Context.Scenes.Current == SceneKind.Editor &&
                   Context.Entities.Query<EditorGroupCell>().Count == GroupLimits.Count &&
-                  VisualAssert.HasText(Context.Entities, "GROUPS"));
+                  VisualAssert.HasText(Context.Entities, UiCollapsibleControl.Header("GROUPS", expanded: true)));
+        AddEditorSong();
         AddAssert("the overlay starts closed", () => State().Open == -1);
 
         AddStep("place and select a note and a start point", () =>

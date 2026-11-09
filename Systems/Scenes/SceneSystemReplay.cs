@@ -74,7 +74,7 @@ public sealed partial class SceneSystem
             }
             catch (Exception exception)
             {
-                GD.PushError($"Could not save replay: {exception.Message}");
+                Xanadu.Diagnostics.GameLog.Error($"Could not save replay: {exception.Message}");
             }
 
             return;

@@ -56,6 +56,28 @@ public abstract class SceneTest
         string? extendedDescription = null) =>
         _steps.Add(new AssertTestStep(description, assertion, extendedDescription));
 
+    /// <summary>
+    /// Gives the open editor's level the test track. A level without a song
+    /// holds the song picker up, and its scrim takes every press, so a test that
+    /// works the editor's UI adds this once the editor is up.
+    /// </summary>
+    protected void AddEditorSong()
+    {
+        AddStep("give the level the test track", () =>
+        {
+            foreach (Friflo.Engine.ECS.Entity editor in Context.Entities.Query<Xanadu.Ecs.LevelInfo>().ToEntityList())
+                editor.GetComponent<Xanadu.Ecs.LevelInfo>().Song = TestContent.Song("visual-editor", "Visual Editor");
+        });
+        AddUntilStep("the song picker is down", () =>
+        {
+            if (Xanadu.Ecs.EditorDialogs.IsSongRequired(Context.Entities))
+                return false;
+
+            Xanadu.Ecs.EditorDialogs.Dismiss(Context.Entities);
+            return !Xanadu.Ecs.EditorDialogs.AnyOpen(Context.Entities);
+        });
+    }
+
     protected void AddRepeatStep(string description, Action action, int count)
     {
         for (int i = 0; i < count; i++)

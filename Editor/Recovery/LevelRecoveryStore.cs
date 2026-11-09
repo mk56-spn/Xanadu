@@ -92,7 +92,7 @@ public sealed class LevelRecoveryStore(string directory)
         catch (Exception exception)
             when (exception is IOException or FormatException or XmfFormatException)
         {
-            GD.PushError($"Ignoring unreadable recovery file '{path}': {exception.Message}");
+            Xanadu.Diagnostics.GameLog.Error($"Ignoring unreadable recovery file '{path}': {exception.Message}");
             return null;
         }
     }

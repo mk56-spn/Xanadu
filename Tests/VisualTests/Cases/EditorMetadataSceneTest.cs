@@ -30,6 +30,7 @@ public sealed class EditorMetadataSceneTest : SceneTest
             "wait for editor",
             () => Context.Scenes.Current == SceneKind.Editor &&
                   VisualAssert.HasText(Context.Entities, "MENU ▾"));
+        AddEditorSong();
         AddStep("create editor overlay", () =>
         {
             _overlay = new EditorOverlay(
@@ -39,7 +40,7 @@ public sealed class EditorMetadataSceneTest : SceneTest
                 () => Context.Scenes.TryBack(),
                 () => Context.Scenes.TryForward(),
                 openSongDialog: false);
-            Context.Host.AddChild(new EditorOverlayNode(_overlay));
+            Context.Overlays.Add(_overlay);
         });
         AddWaitStep("overlay settles", 2);
 

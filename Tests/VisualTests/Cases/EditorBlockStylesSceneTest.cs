@@ -27,6 +27,7 @@ public sealed class EditorBlockStylesSceneTest : SceneTest
             "wait for the sidebar",
             () => Context.Scenes.Current == SceneKind.Editor &&
                   Context.Entities.Query<EditorBlockOutlinePanel>().Count == 1);
+        AddEditorSong();
 
         AddStep("place blocks and spikes", () =>
         {

@@ -26,6 +26,7 @@ public sealed class EditorHelpSceneTest : SceneTest
             "wait for the sidebar",
             () => Context.Scenes.Current == SceneKind.Editor &&
                   !EditorPanel.Find(Context.Entities, EditorPanelKind.Bindings).IsNull);
+        AddEditorSong();
 
         AddStep("create the editor overlay", () =>
         {
@@ -36,7 +37,7 @@ public sealed class EditorHelpSceneTest : SceneTest
                 () => Context.Scenes.TryBack(),
                 () => Context.Scenes.TryForward(),
                 openSongDialog: false);
-            Context.Host.AddChild(new EditorOverlayNode(_overlay));
+            Context.Overlays.Add(_overlay);
         });
         AddStep("open the key list", () =>
         {

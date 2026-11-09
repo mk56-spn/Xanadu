@@ -99,7 +99,7 @@ public sealed class MapOffsetSettings
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
         {
-            GD.PushWarning($"Could not save map offsets: {exception.Message}");
+            Xanadu.Diagnostics.GameLog.Warning($"Could not save map offsets: {exception.Message}");
         }
     }
 }
