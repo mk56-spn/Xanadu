@@ -33,11 +33,11 @@ Update this block at the end of every session, including partial progress.
   (`dotnet run --project Tests/VisualTests`, `run-visual-tests.sh`); 57 of 61
   pass. The 4 left failed the same way under Godot before the port (see the
   step 10 item).
-- **Next:** fix or retire the 4 failing visual tests, then step 11. Still open from earlier steps:
+- **Next:** fix or retire the 3 failing visual tests, then step 11. Still open from earlier steps:
   - step 2: play a level by hand with the keyboard;
-  - step 5: the vertex slot and chains. Shape glow is done. Per-item data
-    in a storage buffer is deferred (see step 5).
-- **Committed:** everything through step 9.
+  - step 5: done for parity. Per-item data in a storage buffer is deferred,
+    and the slot model moved to "Later".
+- **Committed:** everything so far.
 - **After cloning:** run `External/fetch-moonlibs.sh` once (the host build fails
   with that message otherwise).
 - **Notes for whoever picks this up:** see the step 1 and step 2 notes (Slang
@@ -459,11 +459,11 @@ How it is wired (2026-11-09):
   `ComputePipelineCreateInfo` automatically, plus a disk cache keyed by source
   hash. (Done; see the notes below.)
 - [x] `xanadu.stage` v1 contract and the host's standard vertex shader (§2a).
-- [ ] Slot model: vertex modifier, fragment chain wrapper generation, blend
-  dropdown, and a pipeline cache keyed by (vertex, chain, blend, state), built
-  at level load.
-- [~] `IShaderCanvasItems` for the new renderer: a material per run (now a slot
-  set), copy-screen and copy-rectangle.
+- Slot model (vertex modifier, fragment chains, blend dropdown): moved to
+  "Later" (2026-11-10). It's new features, not parity.
+- [x] `IShaderCanvasItems` for the new renderer: a material per run (now a slot
+  set), copy-screen and copy-rectangle (the host copies the whole target, so
+  a rectangle copy is a screen copy).
 - [ ] Per-item data (instance uniforms) in a storage buffer per frame (§3).
   **Deferred (2026-11-10):** instance values already draw right, one batch per
   item that has them. Moving them to a storage buffer breaks `xanadu.stage`
@@ -473,9 +473,10 @@ How it is wired (2026-11-09):
   `GodotShapeGlow`'s mask shader did, blurs it with text's `GlowBlur`, and
   keeps one texture per shape (relative to its floored corner) while an item
   draws it. Shot: song select's underline and row frame.
-- [~] Rewrite the game shaders as slot effects: `Assets/Shaders/note_background`,
-  `flare`, `wave_background`, plus the UI materials (`UiTextGradient`,
-  `ColorPickerMaterials`, `GodotShapeGlow`).
+- [x] Rewrite the game shaders as slot effects: `note_background`, `flare`,
+  the rainbow, and the UI materials (`UiTextGradient`, `ColorPickerMaterials`)
+  are Slang; shape glow is `HostShapeGlow`. Nothing uses `wave_background` or
+  `preview_plasma`, so they go with step 11.
 - [x] Level shader slots move to the new model. `ShaderSourceRules` validates
   through Slang compile errors and the contract check. Godot shader source in
   levels is dropped (P3).
@@ -885,6 +886,12 @@ Host core and Xanadu Labs (2026-11-09, ahead of step 10 at the user's request):
 
 ### Later (not part of parity)
 
+No hurry: these come after the port.
+
+- [ ] Shader slot model (§2a, moved from step 5): vertex modifiers (a pick list
+  of in-house variants, rarely player-written), fragment chains (needs the
+  level format to hold more than one effect per slot), the blend dropdown with
+  exotic modes, and a pipeline cache keyed by (vertex, chain, blend, state).
 - [ ] 2D depth buffer: per-item depth, per-pixel sprite depth maps, sampled depth
   (fog, outlines, soft particles).
 - [ ] MSAA (decide how it interacts with depth sampling, §3).
