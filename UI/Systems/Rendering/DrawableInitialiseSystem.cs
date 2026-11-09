@@ -66,7 +66,7 @@ public sealed class DrawableInitialiseSystem : QuerySystem<Rectangle, Drawable, 
                 LocalZIndex(entity));
             CanvasServer.Current.SetTransform(visual.Value, UiTransform.Local(entity, position.Value));
             if (entity.TryGetComponent(out UiMaterial material))
-                RenderingServer.CanvasItemSetMaterial(visual.Value, material.Material.GetRid());
+                CanvasServer.Current.SetMaterial(visual.Value, material.Material);
 
             buffer.RemoveTag<Uninitialised>(entity.Id);
         });

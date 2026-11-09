@@ -1,4 +1,4 @@
-using Godot;
+using Xanadu.Systems.Canvas;
 
 namespace Xanadu.Ecs;
 
@@ -8,27 +8,16 @@ namespace Xanadu.Ecs;
 /// usual cheap blur, and lays the panel's own colour over it. Attach it with
 /// <see cref="UiMaterial"/> to a shape or rect with a translucent fill.
 /// </summary>
+/// <remarks>Needs a screen read; the host draws it plain until step 6.</remarks>
 public static class UiFrostedGlass
 {
-    private const string Code = """
-        shader_type canvas_item;
-        uniform sampler2D screen_texture : hint_screen_texture, filter_linear_mipmap;
-        uniform float lod = 3.0;
-
-        void fragment() {
-            vec3 behind = textureLod(screen_texture, SCREEN_UV, lod).rgb;
-            COLOR = vec4(mix(behind, COLOR.rgb, COLOR.a), 1.0);
-        }
-        """;
-
-    private static Shader? _shader;
+    public const string Shader = "res://Assets/Shaders/Ui/frosted_glass.slang";
 
     /// <summary>Higher <paramref name="lod"/> blurs more: each step halves the resolution.</summary>
-    public static ShaderMaterial Create(float lod = 3f)
+    public static CanvasMaterial Create(float lod = 3f)
     {
-        _shader ??= new Shader { Code = Code };
-        var material = new ShaderMaterial { Shader = _shader };
-        material.SetShaderParameter("lod", lod);
+        var material = new CanvasMaterial(Shader);
+        material.Set("lod", lod);
         return material;
     }
 }

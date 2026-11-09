@@ -30,6 +30,12 @@ public static class HostPlatform
         Godot.DisplayServer.WindowSetVsyncMode(
             enabled ? Godot.DisplayServer.VSyncMode.Enabled : Godot.DisplayServer.VSyncMode.Disabled);
 
+    /// <summary>
+    /// Builds a glyph strip's texture and returns its canvas texture id; null
+    /// under Godot, which builds it from its own fonts (<see cref="GlyphAtlas.Texture"/>).
+    /// </summary>
+    public static System.Func<GlyphAtlas, Godot.Rid>? GlyphStrip { get; set; }
+
     /// <summary>True under the Godot engine, where Godot-only paths (shader materials, particles, fonts) can run.</summary>
     public static bool IsGodot => CanvasServer.Current is GodotCanvasServer;
 

@@ -98,6 +98,50 @@ internal sealed unsafe class HostText : IDisposable
         }
     }
 
+    /// <summary>
+    /// Coverage of <paramref name="text"/> rendered at <paramref name="size"/> in
+    /// a regular face, as one bitmap with its top-left relative to a pen at the
+    /// origin on the baseline: a <c>GlyphAtlas</c> cell's ink.
+    /// </summary>
+    public GlyphBitmap RenderInk(string text, int size)
+    {
+        FontFace face = Face(FontKind.Regular);
+        face.Shape(text, size, _shaped);
+        var pieces = new List<(GlyphBitmap Bitmap, int X, int Y)>();
+        int left = int.MaxValue, top = int.MaxValue, right = int.MinValue, bottom = int.MinValue;
+        foreach (ShapedGlyph shaped in _shaped)
+        {
+            if (shaped.Index == 0)
+                continue;
+
+            GlyphBitmap bitmap = face.Render(shaped.Index, size, 0);
+            if (bitmap.Width == 0 || bitmap.Height == 0)
+                continue;
+
+            int x = (int)MathF.Round(shaped.X) + bitmap.Left, y = (int)MathF.Round(shaped.Y) - bitmap.Top;
+            pieces.Add((bitmap, x, y));
+            left = Math.Min(left, x);
+            top = Math.Min(top, y);
+            right = Math.Max(right, x + bitmap.Width);
+            bottom = Math.Max(bottom, y + bitmap.Height);
+        }
+
+        if (pieces.Count == 0)
+            return new GlyphBitmap(0, 0, 0, 0, []);
+
+        int w = right - left, h = bottom - top;
+        var coverage = new byte[w * h];
+        foreach ((GlyphBitmap bitmap, int x, int y) in pieces)
+            for (int row = 0; row < bitmap.Height; row++)
+                for (int col = 0; col < bitmap.Width; col++)
+                {
+                    ref byte target = ref coverage[(y - top + row) * w + x - left + col];
+                    target = Math.Max(target, bitmap.Coverage[row * bitmap.Width + col]);
+                }
+
+        return new GlyphBitmap(w, h, left, -top, coverage);
+    }
+
     /// <summary>The advance of the whole string, in pixels.</summary>
     public float Width(string text, FontKind kind, int size) => Face(kind).Shape(text, size, _shaped);
 

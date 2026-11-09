@@ -151,7 +151,9 @@ public sealed class ShaderTunerSystem(
         _targets.Clear();
         foreach (Entity entity in entities.Query<UiMaterial>().WithDisabled().ToEntityList())
         {
-            if (entity.GetComponent<UiMaterial>().Material is not ShaderMaterial
+            // UI materials are engine-free now (docs/moonworks-port.md step 5), so
+            // nothing here matches until the tuner reads Slang reflection.
+            if ((object)entity.GetComponent<UiMaterial>().Material is not ShaderMaterial
                 {
                     Shader: { ResourcePath: { Length: > 0 } path } shader,
                 } material)

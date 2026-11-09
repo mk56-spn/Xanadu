@@ -11,7 +11,7 @@ namespace Xanadu.Systems.Playfields;
 public static partial class PlayfieldRenderer
 {
     /// <summary>The shader every flare is drawn with; its settings go in as instance values.</summary>
-    public const string FlareShaderPath = "res://Assets/Shaders/flare.gdshader";
+    public const string FlareShaderPath = "res://Assets/Shaders/flare.slang";
 
     /// <summary>The corners of a flare's box in shader space, clockwise from the top left.</summary>
     private static readonly Vector2[] FlareCorners =

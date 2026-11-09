@@ -1,0 +1,73 @@
+using System.Collections.Generic;
+using Godot;
+using Xanadu.Rendering;
+
+namespace Xanadu.Systems.Canvas;
+
+/// <summary>
+/// What a canvas item draws with when it isn't the plain canvas shader: a
+/// shader (a Slang effect by <c>res://</c> path, docs/moonworks-port.md step 5),
+/// a blend mode, and named values and textures the shader reads. Engine-free,
+/// so scenes build and tune materials without Godot; the host compiles the
+/// shader and packs the values by name (fields of its <c>Params</c> block).
+/// </summary>
+/// <remarks>
+/// Values are kept as <see cref="Vector4"/>; a float uses X, a colour XYZW as
+/// RGBA. A value the material doesn't set keeps the shader's own default.
+/// </remarks>
+public sealed class CanvasMaterial(string shader, BlendMode blend = BlendMode.Mix, string? instance = null)
+{
+    private readonly Dictionary<string, Vector4> _values = new();
+    private readonly Dictionary<string, Rid> _textures = new();
+
+    /// <summary>The effect's path, such as <c>res://Assets/Shaders/note_background.slang</c>; empty for the plain canvas shader.</summary>
+    public string Shader { get; } = shader;
+
+    public BlendMode Blend { get; } = blend;
+
+    /// <summary>A name for this use of the shader (such as "background"), so the tuner can tell uses apart.</summary>
+    public string? Instance { get; } = instance;
+
+    /// <summary>Goes up whenever a value or texture changes.</summary>
+    public int Version { get; private set; }
+
+    public IReadOnlyDictionary<string, Vector4> Values => _values;
+
+    /// <summary>Textures by the name of the sampler that reads them; ids from the canvas server.</summary>
+    public IReadOnlyDictionary<string, Rid> Textures => _textures;
+
+    public void Set(string name, Vector4 value)
+    {
+        if (_values.TryGetValue(name, out Vector4 old) && old == value)
+            return;
+
+        _values[name] = value;
+        Version++;
+    }
+
+    public void Set(string name, float value) => Set(name, new Vector4(value, 0, 0, 0));
+
+    public void Set(string name, int value) => Set(name, new Vector4(value, 0, 0, 0));
+
+    public void Set(string name, Vector2 value) => Set(name, new Vector4(value.X, value.Y, 0, 0));
+
+    public void Set(string name, Vector3 value) => Set(name, new Vector4(value.X, value.Y, value.Z, 0));
+
+    public void Set(string name, Color value) => Set(name, new Vector4(value.R, value.G, value.B, value.A));
+
+    public void SetTexture(string name, Rid texture)
+    {
+        if (_textures.TryGetValue(name, out Rid old) && old == texture)
+            return;
+
+        _textures[name] = texture;
+        Version++;
+    }
+
+    /// <summary>The value set under <paramref name="name"/>, or <paramref name="fallback"/>.</summary>
+    public Vector4 Get(string name, Vector4 fallback = default) =>
+        _values.TryGetValue(name, out Vector4 value) ? value : fallback;
+
+    public float GetFloat(string name, float fallback = 0f) =>
+        _values.TryGetValue(name, out Vector4 value) ? value.X : fallback;
+}

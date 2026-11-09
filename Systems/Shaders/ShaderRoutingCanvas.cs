@@ -506,12 +506,17 @@ public sealed class ShaderRoutingCanvas(IRectCanvas inner, Rid root, IShaderCanv
 }
 
 /// <summary>
-/// Shader canvas items on the <see cref="CanvasServer"/> without shaders: runs
-/// still split into child items in order, but draw plain. The MoonWorks host
-/// uses these until its shader slots land (docs/moonworks-port.md step 5).
+/// Shader canvas items on the <see cref="CanvasServer"/>: each run item gets a
+/// <see cref="CanvasMaterial"/> for its common shader and blend, and instance
+/// values go on the item itself. Level shader slots draw plain until they move
+/// to the slot model (docs/moonworks-port.md step 5); so do screen copies until
+/// step 6.
 /// </summary>
 public class ServerShaderCanvasItems : IShaderCanvasItems
 {
+    // One material per (shader, blend), shared by every run item that uses it.
+    private static readonly Dictionary<(string, BlendMode), CanvasMaterial> Materials = new();
+
     public Rid CreateItem(Rid parent)
     {
         Rid item = CanvasServer.Current.CreateItem();
@@ -519,7 +524,26 @@ public class ServerShaderCanvasItems : IShaderCanvasItems
         return item;
     }
 
-    public virtual void SetMaterial(Rid item, int slot, string commonPath, BlendMode blend) { }
+    public virtual void SetMaterial(Rid item, int slot, string commonPath, BlendMode blend)
+    {
+        string shader = commonPath.Length > 0 ? commonPath : "";
+        if (shader.Length == 0 && blend == BlendMode.Mix)
+        {
+            CanvasServer.Current.SetMaterial(item, null);
+            return;
+        }
+
+        if (!Materials.TryGetValue((shader, blend), out CanvasMaterial? material))
+        {
+            material = new CanvasMaterial(shader, blend);
+            Materials[(shader, blend)] = material;
+        }
+
+        CanvasServer.Current.SetMaterial(item, material);
+    }
+
+    public void SetInstanceUniform(Rid item, string param, Vector4 value, int size) =>
+        CanvasServer.Current.SetInstanceValue(item, param, value);
 
     // The C# defaults of CanvasItemSetCanvasGroupMode are not the CanvasGroup
     // node's (clear margin 5, fit empty false, fit margin 0): with fit_empty

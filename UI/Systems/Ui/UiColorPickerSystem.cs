@@ -109,11 +109,8 @@ public sealed class UiColorPickerSystem(IPointerInputSource pointer) : QuerySyst
             -size.X / 2 + picker.AlphaValue * size.X,
             0));
 
-        if (entity.TryGetComponent(out UiMaterial material) &&
-            material.Material is ShaderMaterial shader)
-        {
-            shader.SetShaderParameter("hue", picker.Hue);
-        }
+        if (entity.TryGetComponent(out UiMaterial material))
+            material.Material.Set("hue", picker.Hue);
 
         UiText.SetFill(picker.Swatch, color);
         SetAlphaRamp(picker.Alpha, color);

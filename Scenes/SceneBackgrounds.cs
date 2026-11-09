@@ -19,11 +19,11 @@ public static class SceneBackgrounds
         ui.Entity.AddComponent(new SceneBackground(kind));
 
         Entity fill = ui.Rect(SceneUi.BackgroundColor).Cover().Below().Entity;
-        bool loadAssets = visuals is GodotVisualRidFactory;
+        bool loadAssets = visuals.LoadsAssets;
         if (SongSelectScene.NoteMaterial(loadAssets, aspect: 1920f / 1080f, zoom: 1f, instance: "background") is { } material)
         {
             // Black behind the notes; their golden halo carries the warmth.
-            material.SetShaderParameter("glow", BackgroundGlow);
+            material.Set("glow", BackgroundGlow);
             fill.AddComponent(new UiMaterial(material));
             fill.AddComponent(new SpectrumEnergy());
         }

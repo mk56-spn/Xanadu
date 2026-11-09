@@ -1,4 +1,5 @@
 using Godot;
+using Xanadu.Systems.Canvas;
 using Xanadu.Ecs;
 using Xanadu.Profiles;
 
@@ -33,18 +34,18 @@ public static class ProfileArt
     public static string Instance(UserProfile? profile) => $"profile {profile?.Id ?? "none"}";
 
     /// <summary>The art's material, or null when assets are not available.</summary>
-    public static ShaderMaterial? Material(bool loadAssets, Color tint, string instance, float zoom = DefaultZoom)
+    public static CanvasMaterial? Material(bool loadAssets, Color tint, string instance, float zoom = DefaultZoom)
     {
         (Color top, Color bottom) = Gradient(tint);
         return SongSelectScene.NoteMaterial(loadAssets, aspect: 1, zoom, tint, top, bottom, instance);
     }
 
     /// <summary>Retints art that is already on screen.</summary>
-    public static void Apply(ShaderMaterial material, Color tint)
+    public static void Apply(CanvasMaterial material, Color tint)
     {
         (Color top, Color bottom) = Gradient(tint);
-        material.SetShaderParameter("note_color", tint);
-        material.SetShaderParameter("top_color", top);
-        material.SetShaderParameter("bottom_color", bottom);
+        material.Set("note_color", tint);
+        material.Set("top_color", top);
+        material.Set("bottom_color", bottom);
     }
 }

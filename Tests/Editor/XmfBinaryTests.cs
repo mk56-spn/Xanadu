@@ -94,7 +94,7 @@ public sealed class XmfBinaryTests
                 Shaders =
                 {
                     XifShaderRef.OfMap(1),
-                    XifShaderRef.OfCommon("res://Assets/Shaders/Items/rainbow.gdshader"),
+                    XifShaderRef.OfCommon("res://Assets/Shaders/Items/rainbow.slang"),
                 },
                 Params = { ["glow"] = new[] { 0.5f } },
             },
@@ -197,7 +197,7 @@ public sealed class XmfBinaryTests
         Assert.That(primitive.Ref, Is.EqualTo("res://lantern.svg"));
         Assert.That(note.Item.PrimaryShader, Is.EqualTo(1));
         XifShaderRef commonShader = note.Item.Shaders.Single(s => s.Scope == XifShaderScope.Common);
-        Assert.That(commonShader.Path, Is.EqualTo("res://Assets/Shaders/Items/rainbow.gdshader"));
+        Assert.That(commonShader.Path, Is.EqualTo("res://Assets/Shaders/Items/rainbow.slang"));
         Assert.That(note.Item.Params["glow"], Is.EqualTo(new[] { 0.5f }));
         Assert.That(note.TimeMs, Is.EqualTo(1_234));
         Assert.That(note.Target, Is.EqualTo(KeybindAction.Action3));

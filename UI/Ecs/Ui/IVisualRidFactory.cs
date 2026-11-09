@@ -6,4 +6,10 @@ namespace Xanadu.Ecs;
 public interface IVisualRidFactory
 {
     Rid CreateCanvasItem();
+
+    /// <summary>
+    /// Whether scenes should load shader materials and textures for what this
+    /// makes. Test factories don't, so scenes build without assets.
+    /// </summary>
+    bool LoadsAssets => false;
 }

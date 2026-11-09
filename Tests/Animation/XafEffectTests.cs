@@ -17,7 +17,7 @@ public sealed class XafEffectTests
         effect.Transform = new Transform2D(0.5f, new Vector2(10, -4));
         effect.ZOrder = 7;
         effect.Item.Primitives[0].Ref = "res://streak.png";
-        effect.Item.Shaders.Add(XifShaderRef.OfCommon("res://Assets/Shaders/Items/rainbow.gdshader"));
+        effect.Item.Shaders.Add(XifShaderRef.OfCommon("res://Assets/Shaders/Items/rainbow.slang"));
 
         XafPackage loaded = XafBinary.Read(XafBinary.Write(package));
 

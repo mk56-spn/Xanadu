@@ -65,11 +65,8 @@ public sealed class ProfileEditSystem(ProfileStore profiles) : QuerySystem<Profi
             return false;
 
         profile.NoteTint = hex;
-        if (view.Art.TryGetComponent(out UiMaterial material) &&
-            material.Material is ShaderMaterial shader)
-        {
-            ProfileArt.Apply(shader, tint);
-        }
+        if (view.Art.TryGetComponent(out UiMaterial material))
+            ProfileArt.Apply(material.Material, tint);
 
         return true;
     }

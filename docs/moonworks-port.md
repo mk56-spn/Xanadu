@@ -15,14 +15,15 @@ under it saying what changed from the plan.
 Update this block at the end of every session, including partial progress.
 
 - **Updated:** 2026-11-09 (third session)
-- **Done:** steps 0, 1, 3 and 4, and most of step 2. Every screen opens in
-  the host with no engine call, and draws with text. Typing, F12 screenshots,
-  vsync and the add-song picker work. What still looks wrong (black or white
-  boxes) is shader materials and buffered groups, which come in steps 5 and 6.
-- **Next:** step 5 (shaders). Still open from step 2: play a level by hand
-  with the keyboard.
-- **Committed:** everything up to step 2. Steps 3 and 4 (`Host/` only, plus this
-  doc) are not committed yet.
+- **Done:** steps 0, 1, 3 and 4, most of step 2, and the first half of step 5.
+  Engine-free materials and Slang effects draw in the host: note backgrounds,
+  profile art, the colour picker, the text gradient, plus rainbow and flare on
+  the playfield.
+- **Next:** the rest of step 5 (see its notes): level shader slots on the slot
+  model, the fragment-chain wrapper, the disk cache, the F2 tuner on Slang
+  reflection, and the shape glow. Then step 6.
+- **Committed:** everything up to step 4 (`ebe9d0b`). Step 5 so far is not
+  committed.
 - **After cloning:** run `External/fetch-moonlibs.sh` once (the host build fails
   with that message otherwise).
 - **Notes for whoever picks this up:** see the step 1 and step 2 notes (Slang
@@ -439,24 +440,73 @@ How it is wired (2026-11-09):
 
 ### Step 5: Shaders: Slang, slots, blend modes, instance data (800–1,200 lines + libraries)
 
-- [ ] Shader compile service: Slang source → SPIR-V via `Slangc.NET`, with
+- [~] Shader compile service: Slang source → SPIR-V via `Slangc.NET`, with
   binding counts from Slang reflection filled into `ShaderCreateInfo` /
   `ComputePipelineCreateInfo` automatically, plus a disk cache keyed by source
-  hash.
-- [ ] `xanadu.stage` v1 contract and the host's standard vertex shader (§2a).
+  hash. (Compile and reflection done; no disk cache yet.)
+- [x] `xanadu.stage` v1 contract and the host's standard vertex shader (§2a).
 - [ ] Slot model: vertex modifier, fragment chain wrapper generation, blend
   dropdown, and a pipeline cache keyed by (vertex, chain, blend, state), built
   at level load.
-- [ ] `IShaderCanvasItems` for the new renderer: a material per run (now a slot
+- [~] `IShaderCanvasItems` for the new renderer: a material per run (now a slot
   set), copy-screen and copy-rectangle.
 - [ ] Per-item data (instance uniforms) in a storage buffer per frame (§3).
-- [ ] Rewrite the game shaders as slot effects: `Assets/Shaders/note_background`,
+- [~] Rewrite the game shaders as slot effects: `Assets/Shaders/note_background`,
   `flare`, `wave_background`, plus the UI materials (`UiTextGradient`,
   `ColorPickerMaterials`, `GodotShapeGlow`).
 - [ ] Level shader slots move to the new model. `ShaderSourceRules` validates
   through Slang compile errors and the contract check. Godot shader source in
   levels is dropped (P3).
 - [ ] First shipped library modules, ported from the legacy library (§2a).
+
+How the first half landed (2026-11-09):
+
+- **Materials are engine-free now.** `CanvasMaterial` (`UI/Systems/Canvas`)
+  holds a shader path, a blend, and named values and textures. `UiMaterial`
+  holds one, scenes call `material.Set(...)` instead of `SetShaderParameter`,
+  and `ICanvasServer` gained `SetMaterial` and `SetInstanceValue`.
+  `IVisualRidFactory.LoadsAssets` replaces `visuals is GodotVisualRidFactory`.
+  The host's factory says yes; test factories say no, as before. Under Godot
+  these materials draw plain (P2: Godot is reference only).
+- **Shipped effects are `.slang` files under `Assets/Shaders`,** each a
+  fragment entry point named `shade`. The shared paths moved: `CommonShaders`'
+  rainbow and the flare are `.slang` now. Old levels that name the
+  `.gdshader` paths lose those shaders (P3).
+- **`xanadu.stage` v1** (`Assets/Shaders/Library/xanadu/stage.slang`) is the
+  contract. It defines `ItemVaryings`, `ItemInput` (uv, Godot's COLOR, vertex
+  colour, local position, screen UV, pixel, time), `input(v)`, `sampleItem`,
+  and the `[Default(...)]` attribute. The host owns sampler 0 (the item's
+  texture) and uniform buffer 0 (the frame). An effect's textures start at
+  sampler 1, and its values are uniform buffer 1. `xanadu.colour` holds
+  `hsvToRgb` and `hueCycle`.
+- **Host:**
+  - `SlangShaders.CompileReflected` runs Slang with `-reflection-json`. From that
+    it fills the `ShaderCreateInfo` counts, the sampler names, and the values'
+    offsets, sizes and `[Default]`s.
+  - `CanvasPipelines` caches one pipeline per (effect, blend), on Godot's five
+    blend modes. An effect that is missing or fails to compile logs once and
+    draws plain.
+  - `CanvasRenderer` breaks batches on material. An item with instance values
+    is a batch of its own. Values pack as the defaults, then the material's,
+    then the item's.
+  - Vertices carry their item-space position (`local`, Godot's VERTEX).
+- **Glyph strips:** `HostPlatform.GlyphStrip` builds a `GlyphAtlas` on the GPU
+  with mipmaps (`Host/Text/GlyphStrips.cs`), and `GlyphAtlas.TextureId` hands it
+  to materials. Source Sans 3 has ♪ and ♫.
+- **Dropped:** `GlowRingShader` (nothing selects it any more) was not ported.
+  The F2 tuner's visual test was deleted: the tuner still reads Godot materials
+  and finds none, so it needs rewriting on Slang reflection.
+- **Not done yet:** `[ ]` items above that aren't ticked, namely:
+  - level shader slots: slots draw plain; `ShaderSourceRules` still takes Godot
+    source;
+  - the fragment-chain wrapper and the vertex slot;
+  - the disk cache and compiling at level load (effects compile on first draw
+    today, which can hitch);
+  - per-item data in a storage buffer (instance values are per batch for now);
+  - frosted glass (needs the screen read, step 6);
+  - `wave_background` and `preview_plasma` (nothing on the host path uses them yet);
+  - `GodotShapeGlow`;
+  - copy-screen and copy-rectangle (step 6).
 
 ### Step 6: Groups, buffers and layers (1,000–1,500 lines)
 

@@ -37,7 +37,7 @@ public static class ProfileEditScene
         IVisualRidFactory? visuals = null)
     {
         UiStage stage = UiStage.Full;
-        bool loadAssets = visuals is GodotVisualRidFactory;
+        bool loadAssets = visuals.LoadsAssets;
         UiNode ui = UiNode.Layer(entities, root, UiLayers.Menu, visuals, stage);
         Color tint = ProfileArt.Tint(profile);
 

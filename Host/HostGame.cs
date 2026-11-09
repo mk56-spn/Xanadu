@@ -63,9 +63,9 @@ internal sealed class HostGame : Game
         _options = options;
         _target = Texture.Create2D(GraphicsDevice, "frame", Width, Height, TargetFormat,
             TextureUsageFlags.ColorTarget | TextureUsageFlags.Sampler);
-        _renderer = new CanvasRenderer(GraphicsDevice, _canvas, TargetFormat, Width, Height);
-
         GamePaths.UseRoots(FindGameFolder(), GamePaths.GodotUserFolder("Xanadu"));
+        SlangShaders.LibraryPath = GamePaths.Globalize("res://Assets/Shaders/Library");
+        _renderer = new CanvasRenderer(GraphicsDevice, _canvas, TargetFormat, Width, Height);
         _text = new HostText(GraphicsDevice, texture =>
         {
             ulong id = _canvas.MintRid().Id;
@@ -79,7 +79,13 @@ internal sealed class HostGame : Game
         {
             Scale = new Godot.Vector2((float)Width / options.WindowWidth, (float)Height / options.WindowHeight),
         };
-        HostPlatform.Use(_canvas, () => new HostRectCanvas(_text), _keyboard, new CanvasServerRidFactory(), _fps);
+        HostPlatform.Use(_canvas, () => new HostRectCanvas(_text), _keyboard, new CanvasServerRidFactory(loadsAssets: true), _fps);
+        HostPlatform.GlyphStrip = atlas =>
+        {
+            Godot.Rid rid = _canvas.MintRid();
+            _renderer.Textures[rid.Id] = GlyphStrips.Build(GraphicsDevice, _text, atlas);
+            return rid;
+        };
         HostPlatform.ApplyVSync = ApplyVSync;
         ApplyVSync(true);
 
@@ -228,7 +234,7 @@ internal sealed class HostGame : Game
         Godot.Color background = Palette.Background;
         RenderPass pass = commands.BeginRenderPass(
             new ColorTargetInfo(_target, new MwColor(background.R, background.G, background.B, 1f)));
-        _renderer.Draw(commands, pass);
+        _renderer.Draw(commands, pass, (float)(DateTime.UtcNow - _started).TotalSeconds);
         commands.EndRenderPass(pass);
 
         commands.Blit(_target, swapchain, Filter.Linear);

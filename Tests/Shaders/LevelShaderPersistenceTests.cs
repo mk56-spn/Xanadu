@@ -153,7 +153,7 @@ public sealed class LevelShaderPersistenceTests
         Assert.That(layer.Ref, Is.EqualTo("res://note-body.svg"));
         Assert.That(layer.Shader.Scope, Is.EqualTo(XifShaderScope.Common));
         Assert.That(layer.Shader.Path, Is.EqualTo(CommonShaders.Paths[0]));
-        Assert.That(layer.Shader.Path, Is.EqualTo("res://Assets/Shaders/Items/rainbow.gdshader"));
+        Assert.That(layer.Shader.Path, Is.EqualTo("res://Assets/Shaders/Items/rainbow.slang"));
     }
 
     [Test]

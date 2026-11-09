@@ -10,7 +10,7 @@ public static class CommonShaders
     /// <summary>Resource paths of the game's common canvas shaders.</summary>
     public static readonly string[] Paths =
     {
-        "res://Assets/Shaders/Items/rainbow.gdshader",
+        "res://Assets/Shaders/Items/rainbow.slang",
     };
 
     public static bool IsKnown(string path) => System.Array.IndexOf(Paths, path) >= 0;

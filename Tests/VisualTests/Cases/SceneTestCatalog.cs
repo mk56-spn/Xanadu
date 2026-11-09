@@ -37,7 +37,6 @@ public static class SceneTestCatalog
         new PlayScreenReadSceneTest(),
         new NoteKeyCheckingSceneTest(),
         new RainbowNoteShaderSceneTest(),
-        new ShaderTunerSceneTest(),
         new MovementJudgementSceneTest(),
         new TimingIndicatorSceneTest(),
         new SpikeShapeSceneTest(),

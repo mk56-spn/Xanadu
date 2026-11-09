@@ -140,6 +140,22 @@ internal sealed class CanvasTree : ICanvasServer
             item.Clip = clip;
     }
 
+    public void SetMaterial(Rid rid, CanvasMaterial? material)
+    {
+        if (Find(rid) is { } item)
+            item.Material = material;
+    }
+
+    /// <summary>One per-item value over the material's (Godot's instance uniforms).</summary>
+    public void SetInstanceValue(Rid rid, string name, Vector4 value)
+    {
+        if (Find(rid) is not { } item)
+            return;
+
+        item.InstanceValues ??= new System.Collections.Generic.Dictionary<string, Vector4>();
+        item.InstanceValues[name] = value;
+    }
+
     // Groups composite as one image in step 6; until then the children draw
     // straight through and the group's modulate applies to each of them.
     public void SetCanvasGroup(Rid rid, float clearMargin, bool fitEmpty, float fitMargin) { }
@@ -274,6 +290,12 @@ internal sealed class CanvasItem(ulong id)
     public Rect2 CustomRect;
     public bool Clip;
 
+    /// <summary>What the item's own draws shade and blend with; null is the plain canvas shader.</summary>
+    public CanvasMaterial? Material;
+
+    /// <summary>Values for this item only, over the material's; null when none were set.</summary>
+    public Dictionary<string, Vector4>? InstanceValues;
+
     /// <summary>Set by <c>AddSetTransform</c>: applied to the commands that follow.</summary>
     public Transform2D CommandTransform = Transform2D.Identity;
 
@@ -314,9 +336,10 @@ internal sealed class CanvasItem(ulong id)
     {
         UseTexture(texture);
         Transform2D t = CommandTransform;
-        Vertices.Add(new CanvasVertex(t * a, uv.A, ca));
-        Vertices.Add(new CanvasVertex(t * b, uv.B, cb));
-        Vertices.Add(new CanvasVertex(t * c, uv.C, cc));
+        Vector2 pa = t * a, pb = t * b, pc = t * c;
+        Vertices.Add(new CanvasVertex(pa, uv.A, ca, pa));
+        Vertices.Add(new CanvasVertex(pb, uv.B, cb, pb));
+        Vertices.Add(new CanvasVertex(pc, uv.C, cc, pc));
     }
 
     public void Quad(Vector2 a, Vector2 b, Vector2 c, Vector2 d, Color color, ulong texture)
@@ -384,19 +407,24 @@ internal sealed class CanvasItem(ulong id)
     }
 }
 
-/// <summary>One vertex as the GPU reads it: pixel position, texture UV and colour.</summary>
+/// <summary>
+/// One vertex as the GPU reads it: pixel position, texture UV, colour, and its
+/// position in the item's own space (an effect's <c>local</c>, Godot's VERTEX).
+/// </summary>
 [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential)]
-internal struct CanvasVertex(Vector2 position, Vector2 uv, Color color) : MoonWorks.Graphics.IVertexType
+internal struct CanvasVertex(Vector2 position, Vector2 uv, Color color, Vector2 local) : MoonWorks.Graphics.IVertexType
 {
     public float X = position.X, Y = position.Y, U = uv.X, V = uv.Y;
     public float R = color.R, G = color.G, B = color.B, A = color.A;
+    public float LX = local.X, LY = local.Y;
 
     public static MoonWorks.Graphics.VertexElementFormat[] Formats { get; } =
     [
         MoonWorks.Graphics.VertexElementFormat.Float2,
         MoonWorks.Graphics.VertexElementFormat.Float2,
         MoonWorks.Graphics.VertexElementFormat.Float4,
+        MoonWorks.Graphics.VertexElementFormat.Float2,
     ];
 
-    public static uint[] Offsets { get; } = [0, 8, 16];
+    public static uint[] Offsets { get; } = [0, 8, 16, 32];
 }

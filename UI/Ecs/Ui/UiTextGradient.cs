@@ -1,4 +1,5 @@
 using Godot;
+using Xanadu.Systems.Canvas;
 
 namespace Xanadu.Ecs;
 
@@ -10,40 +11,19 @@ namespace Xanadu.Ecs;
 /// </summary>
 public static class UiTextGradient
 {
-    private const string Code = """
-        shader_type canvas_item;
-        uniform vec4 color_from : source_color = vec4(1.0);
-        uniform vec4 color_to : source_color = vec4(1.0);
-        uniform vec2 point_from = vec2(0.0);
-        uniform vec2 point_to = vec2(1.0, 0.0);
-        varying vec2 local;
-
-        void vertex() {
-            local = VERTEX;
-        }
-
-        void fragment() {
-            vec2 line = point_to - point_from;
-            float t = clamp(dot(local - point_from, line) / dot(line, line), 0.0, 1.0);
-            vec4 tint = mix(color_from, color_to, t);
-            COLOR = vec4(tint.rgb * COLOR.rgb, tint.a * COLOR.a);
-        }
-        """;
-
-    private static Shader? _shader;
+    public const string Shader = "res://Assets/Shaders/Ui/text_gradient.slang";
 
     /// <summary>
     /// Blends from <paramref name="from"/> at <paramref name="start"/> to
     /// <paramref name="to"/> at <paramref name="end"/>, clamped beyond either end.
     /// </summary>
-    public static ShaderMaterial Create(Color from, Color to, Vector2 start, Vector2 end)
+    public static CanvasMaterial Create(Color from, Color to, Vector2 start, Vector2 end)
     {
-        _shader ??= new Shader { Code = Code };
-        var material = new ShaderMaterial { Shader = _shader };
-        material.SetShaderParameter("color_from", from);
-        material.SetShaderParameter("color_to", to);
-        material.SetShaderParameter("point_from", start);
-        material.SetShaderParameter("point_to", end);
+        var material = new CanvasMaterial(Shader);
+        material.Set("color_from", from);
+        material.Set("color_to", to);
+        material.Set("point_from", start);
+        material.Set("point_to", end);
         return material;
     }
 }

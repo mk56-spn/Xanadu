@@ -39,6 +39,16 @@ public interface ICanvasServer
 
     void SetClip(Rid item, bool clip);
 
+    /// <summary>
+    /// What the item's own draws are shaded and blended with; null for the
+    /// plain canvas shader. Values changed on the material later are picked up
+    /// when the item next draws.
+    /// </summary>
+    void SetMaterial(Rid item, CanvasMaterial? material);
+
+    /// <summary>One value for this item only, over its material's (Godot's instance uniforms).</summary>
+    void SetInstanceValue(Rid item, string name, Vector4 value);
+
     /// <summary>Draws the item's children into one image composited as a whole (a CanvasGroup).</summary>
     void SetCanvasGroup(Rid item, float clearMargin, bool fitEmpty, float fitMargin);
 
@@ -103,6 +113,12 @@ public sealed class GodotCanvasServer : ICanvasServer
     public void SetCustomRect(Rid item, bool use, Rect2 rect) => RenderingServer.CanvasItemSetCustomRect(item, use, rect);
 
     public void SetClip(Rid item, bool clip) => RenderingServer.CanvasItemSetClip(item, clip);
+
+    // Godot is reference only (docs/moonworks-port.md P2): its build draws
+    // engine-free materials plain.
+    public void SetMaterial(Rid item, CanvasMaterial? material) { }
+
+    public void SetInstanceValue(Rid item, string name, Vector4 value) { }
 
     public void SetCanvasGroup(Rid item, float clearMargin, bool fitEmpty, float fitMargin) =>
         RenderingServer.CanvasItemSetCanvasGroupMode(

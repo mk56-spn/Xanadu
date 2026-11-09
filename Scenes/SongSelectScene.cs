@@ -28,7 +28,7 @@ public static partial class SongSelectScene
     {
         UiNode ui = UiNode.Layer(
             entities, root, UiLayers.Menu, visuals, UiStage.Full);
-        bool loadAssets = visuals is GodotVisualRidFactory;
+        bool loadAssets = visuals.LoadsAssets;
 
         BuildChrome(ui, loadAssets);
 

@@ -34,6 +34,20 @@ public sealed class GlyphAtlas(
     /// <summary>The side of one cell, in pixels.</summary>
     public int CellSize { get; } = cellSize;
 
+    /// <summary>How much of a cell the larger side of each glyph fills.</summary>
+    public float Fill { get; } = fill;
+
+    /// <summary>Whether the strip has mipmaps, for drawing it smaller than its cells.</summary>
+    public bool Mipmaps { get; } = mipmaps;
+
+    private Rid? _textureId;
+
+    /// <summary>
+    /// The strip as a canvas texture id, for <see cref="CanvasMaterial.SetTexture"/>:
+    /// built by the host when it builds glyph strips itself, else Godot's texture.
+    /// </summary>
+    public Rid TextureId => _textureId ??= HostPlatform.GlyphStrip is { } build ? build(this) : Texture.GetRid();
+
     /// <summary>The strip, built the first time it is asked for.</summary>
     public Texture2D Texture => _texture ??= Build();
     private DrawableTexture2D Build()

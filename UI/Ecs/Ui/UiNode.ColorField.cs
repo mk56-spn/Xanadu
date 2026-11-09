@@ -46,7 +46,7 @@ public readonly partial struct UiNode
         var slot = new Vector2(width, ColorPickerLayout.Height);
         UiBuilder builder = BeginChildren();
         builder.Container(Vector2.Zero, slot, StackDirection.Vertical, color: new Color(0, 0, 0, 0));
-        bool real = builder.Visuals is GodotVisualRidFactory;
+        bool real = builder.Visuals.LoadsAssets;
         List<Entity> parts = builder.ColorPicker(
             (ColorPickerLayout.Size - slot) / 2,
             Colors.White,
@@ -70,7 +70,7 @@ public readonly partial struct UiNode
     public UiNode ColorPicker(Vector2 center, Color initial)
     {
         UiBuilder builder = BeginChildren();
-        bool real = builder.Visuals is GodotVisualRidFactory;
+        bool real = builder.Visuals.LoadsAssets;
         List<Entity> parts = builder.ColorPicker(
             center,
             initial,
@@ -90,8 +90,8 @@ public readonly partial struct UiNode
     public UiNode OpaqueColorPicker(
         Vector2 center,
         Color initial,
-        Material? squareMaterial = null,
-        Material? hueMaterial = null)
+        Xanadu.Systems.Canvas.CanvasMaterial? squareMaterial = null,
+        Xanadu.Systems.Canvas.CanvasMaterial? hueMaterial = null)
     {
         UiBuilder builder = BeginChildren();
         List<Entity> parts = builder.ColorPicker(center, initial, squareMaterial, hueMaterial);

@@ -132,7 +132,7 @@ public static partial class SongSelectScene
         UiNode parent,
         Vector2 center,
         float size,
-        ShaderMaterial? material,
+        Xanadu.Systems.Canvas.CanvasMaterial? material,
         bool takesInput = false)
     {
         UiNode art = parent.Rect(Colors.Black, size: new Vector2(size, size))

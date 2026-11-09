@@ -203,11 +203,9 @@ public sealed class SongPreviewSystem : QuerySystem<SongSelectState>
         var energy = new Godot.Vector4(_energy[0], _energy[1], _energy[2], _energy[3]);
         foreach (Entity entity in _entities.Query<SpectrumEnergy, UiMaterial>().ToEntityList())
         {
-            if (entity.GetComponent<UiMaterial>().Material is Godot.ShaderMaterial material)
-            {
-                material.SetShaderParameter("energy", energy);
-                material.SetShaderParameter("reactive", _reactive);
-            }
+            Xanadu.Systems.Canvas.CanvasMaterial material = entity.GetComponent<UiMaterial>().Material;
+            material.Set("energy", energy);
+            material.Set("reactive", _reactive);
         }
     }
 }

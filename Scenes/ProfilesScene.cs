@@ -68,7 +68,7 @@ public static class ProfilesScene
             .Backing()
             .At(new Vector2(stage.Center.X, (top + bottom) / 2));
 
-        ProfileList(ui, profiles, visuals is GodotVisualRidFactory);
+        ProfileList(ui, profiles, visuals.LoadsAssets);
 
         if (profiles.Profiles.Count == 0)
         {

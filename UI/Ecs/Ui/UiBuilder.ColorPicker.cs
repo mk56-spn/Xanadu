@@ -16,8 +16,8 @@ public sealed partial class UiBuilder
     public List<Entity> ColorPicker(
         Vector2 center,
         Color initial,
-        Material? squareMaterial = null,
-        Material? hueMaterial = null)
+        Xanadu.Systems.Canvas.CanvasMaterial? squareMaterial = null,
+        Xanadu.Systems.Canvas.CanvasMaterial? hueMaterial = null)
     {
         Entity square = RectEntity(center, ColorPickerLayout.Size, Colors.White);
         if (squareMaterial is not null)

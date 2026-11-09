@@ -3,6 +3,7 @@ using Godot;
 using Xanadu.Ecs;
 using Xanadu.Profiles;
 using Xanadu.Strings;
+using Xanadu.Systems.Canvas;
 using Xanadu.Systems.Shaders;
 using Xanadu.Ui.Ecs.Ui;
 
@@ -11,7 +12,7 @@ namespace Xanadu.Scenes;
 /// <summary>The player banner and the level readout beneath it.</summary>
 public static partial class SongSelectScene
 {
-    private const string BackgroundShader = "res://Assets/Shaders/note_background.gdshader";
+    private const string BackgroundShader = "res://Assets/Shaders/note_background.slang";
 
 
     /// <summary>Builds the banner and the level readout under it, returning the readout's label and panel.</summary>
@@ -133,7 +134,7 @@ public static partial class SongSelectScene
     /// of the gradient behind them, with its cells kept square for a surface of
     /// the given aspect. Null when assets are not available.
     /// </summary>
-    internal static ShaderMaterial? NoteMaterial(
+    internal static CanvasMaterial? NoteMaterial(
         bool loadAssets,
         float aspect,
         float zoom,
@@ -142,21 +143,22 @@ public static partial class SongSelectScene
         Color? bottom = null,
         string? instance = null)
     {
-        if (!loadAssets || ShaderMaterials.Load(BackgroundShader, instance) is not { } material)
+        if (!loadAssets)
             return null;
 
-        material.SetShaderParameter("notes", NoteAtlas.Background.Texture);
-        material.SetShaderParameter("glyph_count", NoteAtlas.Glyphs.Length);
-        material.SetShaderParameter("aspect", aspect);
-        material.SetShaderParameter("zoom", zoom);
+        var material = new CanvasMaterial(BackgroundShader, instance: instance);
+        material.SetTexture("notes", NoteAtlas.Background.TextureId);
+        material.Set("glyph_count", NoteAtlas.Glyphs.Length);
+        material.Set("aspect", aspect);
+        material.Set("zoom", zoom);
         if (notes is { } noteColor)
-            material.SetShaderParameter("note_color", noteColor);
+            material.Set("note_color", noteColor);
 
         if (top is { } topColor)
-            material.SetShaderParameter("top_color", topColor);
+            material.Set("top_color", topColor);
 
         if (bottom is { } bottomColor)
-            material.SetShaderParameter("bottom_color", bottomColor);
+            material.Set("bottom_color", bottomColor);
 
         return material;
     }

@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Runtime.InteropServices;
+using Xanadu.Rendering;
+using Xanadu.Systems.Canvas;
 using Godot;
 using MoonWorks.Graphics;
 using Buffer = MoonWorks.Graphics.Buffer;
@@ -22,13 +24,21 @@ internal sealed class CanvasRenderer : IDisposable
     [StructLayout(LayoutKind.Sequential)]
     private struct ViewUniforms { public float Width, Height, Pad0, Pad1; }
 
+    /// <summary>xanadu.stage's <c>Frame</c>: fragment uniform buffer 0.</summary>
+    [StructLayout(LayoutKind.Sequential)]
+    private struct FrameUniforms { public float Width, Height, Time, Pad; }
+
     private readonly record struct Entry(int Z, int Sequence, CanvasItem Item, Transform2D Transform, Color Color, Rect Clip);
 
-    private readonly record struct Batch(uint Start, uint Count, ulong Texture, Rect Clip);
+    /// <summary>
+    /// One draw call: a run of vertices sharing texture, clip and material. An
+    /// item with its own instance values is its own batch (<see cref="Owner"/>).
+    /// </summary>
+    private readonly record struct Batch(uint Start, uint Count, ulong Texture, Rect Clip, CanvasMaterial? Material, CanvasItem? Owner);
 
     private readonly GraphicsDevice _device;
     private readonly CanvasTree _tree;
-    private readonly GraphicsPipeline _pipeline;
+    private readonly CanvasPipelines _pipelines;
     private readonly Texture _white;
     private readonly Sampler _sampler;
     private readonly uint _width, _height;
@@ -53,49 +63,13 @@ internal sealed class CanvasRenderer : IDisposable
         _tree = tree;
         _width = width;
         _height = height;
-
-        string module = Path.Combine(AppContext.BaseDirectory, "Shaders", "canvas.slang");
-        using Shader vertex = Shader.Create(device, SlangShaders.Compile(module, "item", "vertex"), "main",
-            new ShaderCreateInfo { Format = ShaderFormat.SPIRV, Stage = ShaderStage.Vertex, NumUniformBuffers = 1 });
-        using Shader fragment = Shader.Create(device, SlangShaders.Compile(module, "shade", "fragment"), "main",
-            new ShaderCreateInfo { Format = ShaderFormat.SPIRV, Stage = ShaderStage.Fragment, NumSamplers = 1 });
-
-        _pipeline = GraphicsPipeline.Create(device, new GraphicsPipelineCreateInfo
-        {
-            VertexShader = vertex,
-            FragmentShader = fragment,
-            VertexInputState = VertexInputState.CreateSingleBinding<CanvasVertex>(),
-            PrimitiveType = PrimitiveType.TriangleList,
-            RasterizerState = RasterizerState.CCW_CullNone,
-            MultisampleState = MultisampleState.None,
-            DepthStencilState = DepthStencilState.Disable,
-            TargetInfo = new GraphicsPipelineTargetInfo
-            {
-                ColorTargetDescriptions =
-                [
-                    // Godot's "mix": colour by source alpha, alpha accumulated as coverage.
-                    new ColorTargetDescription
-                    {
-                        Format = format,
-                        BlendState = new ColorTargetBlendState
-                        {
-                            EnableBlend = true,
-                            ColorBlendOp = BlendOp.Add,
-                            AlphaBlendOp = BlendOp.Add,
-                            SrcColorBlendFactor = BlendFactor.SrcAlpha,
-                            DstColorBlendFactor = BlendFactor.OneMinusSrcAlpha,
-                            SrcAlphaBlendFactor = BlendFactor.One,
-                            DstAlphaBlendFactor = BlendFactor.OneMinusSrcAlpha,
-                        },
-                    },
-                ],
-            },
-        });
+        _pipelines = new CanvasPipelines(device, format);
 
         var uploader = new ResourceUploader(device);
         _white = uploader.CreateTexture2D<uint>("white", [0xFFFFFFFFu], TextureFormat.R8G8B8A8Unorm, TextureUsageFlags.Sampler, 1, 1);
         uploader.UploadAndWait();
         uploader.Dispose();
+        // Linear with linear mips (MaxLod unclamped), so mipmapped textures such as glyph strips filter smoothly.
         _sampler = Sampler.Create(device, SamplerCreateInfo.LinearClamp);
     }
 
@@ -117,22 +91,72 @@ internal sealed class CanvasRenderer : IDisposable
         commands.EndCopyPass(copy);
     }
 
-    /// <summary>Draws what <see cref="Prepare"/> built into the open pass.</summary>
-    public void Draw(CommandBuffer commands, RenderPass pass)
+    /// <summary>Draws what <see cref="Prepare"/> built into the open pass; <paramref name="time"/> is an effect's TIME.</summary>
+    public void Draw(CommandBuffer commands, RenderPass pass, float time)
     {
         if (_vertexCount == 0)
             return;
 
         commands.PushVertexUniformData(new ViewUniforms { Width = _width, Height = _height });
-        pass.BindGraphicsPipeline(_pipeline);
+        commands.PushFragmentUniformData(new FrameUniforms { Width = _width, Height = _height, Time = time }, 0);
         pass.BindVertexBuffers(_buffer!);
+        GraphicsPipeline? bound = null;
+        Span<TextureSamplerBinding> samplers = stackalloc TextureSamplerBinding[8];
         foreach (Batch batch in _batches)
         {
-            Texture texture = Textures.GetValueOrDefault(batch.Texture) ?? _white;
+            CanvasEffect effect = _pipelines.Effect(batch.Material?.Shader ?? "");
+            GraphicsPipeline pipeline = _pipelines.Pipeline(effect, batch.Material?.Blend ?? BlendMode.Mix);
+            if (pipeline != bound)
+            {
+                pass.BindGraphicsPipeline(pipeline);
+                bound = pipeline;
+            }
+
             pass.SetScissor(batch.Clip);
-            pass.BindFragmentSamplers(new TextureSamplerBinding(texture, _sampler));
+            string[] names = effect.Compiled.Samplers;
+            int count = Math.Max(1, Math.Min(names.Length, samplers.Length));
+            samplers[0] = new TextureSamplerBinding(Textures.GetValueOrDefault(batch.Texture) ?? _white, _sampler);
+            for (int i = 1; i < count; i++)
+            {
+                Texture? texture = names[i] is { } name && batch.Material?.Textures.TryGetValue(name, out Rid id) == true
+                    ? Textures.GetValueOrDefault(id.Id)
+                    : null;
+                samplers[i] = new TextureSamplerBinding(texture ?? _white, _sampler);
+            }
+
+            pass.BindFragmentSamplers(samplers[..count]);
+            if (effect.Compiled.ParamsSize > 0)
+                PushParams(commands, effect.Compiled, batch.Material, batch.Owner?.InstanceValues);
             pass.DrawPrimitives(batch.Count, 1, batch.Start, 0);
         }
+    }
+
+    /// <summary>Packs an effect's values (its defaults, then the material's, then the item's own) into uniform buffer 1.</summary>
+    private static unsafe void PushParams(CommandBuffer commands, CompiledShader compiled, CanvasMaterial? material, Dictionary<string, Vector4>? instance)
+    {
+        Span<byte> bytes = stackalloc byte[compiled.ParamsSize];
+        bytes.Clear();
+        foreach (ShaderParam param in compiled.Params)
+        {
+            Vector4 value = param.Default;
+            if (material?.Values.TryGetValue(param.Name, out Vector4 set) == true)
+                value = set;
+            if (instance?.TryGetValue(param.Name, out Vector4 own) == true)
+                value = own;
+
+            Span<float> floats = [value.X, value.Y, value.Z, value.W];
+            for (int i = 0; i < Math.Min(4, param.Size / 4); i++)
+            {
+                Span<byte> slot = bytes.Slice(param.Offset + i * 4, 4);
+                if (param.IsInt)
+                    BitConverter.TryWriteBytes(slot, (int)MathF.Round(floats[i]));
+                else
+                    BitConverter.TryWriteBytes(slot, floats[i]);
+            }
+        }
+
+        fixed (byte* data = bytes)
+            commands.PushFragmentUniformData(data, (uint)bytes.Length, 1);
     }
 
     private Rect FullClip => new() { X = 0, Y = 0, W = (int)_width, H = (int)_height };
@@ -202,15 +226,19 @@ internal sealed class CanvasRenderer : IDisposable
                     t.X.X * v.X + t.Y.X * v.Y + t.Origin.X,
                     t.X.Y * v.X + t.Y.Y * v.Y + t.Origin.Y),
                 new Vector2(v.U, v.V),
-                new Color(v.R * tint.R, v.G * tint.G, v.B * tint.B, v.A * tint.A));
+                new Color(v.R * tint.R, v.G * tint.G, v.B * tint.B, v.A * tint.A),
+                new Vector2(v.LX, v.LY));
         }
 
+        CanvasMaterial? material = item.Material;
+        CanvasItem? owner = item.InstanceValues is { Count: > 0 } ? item : null;
         if (_batches.Count > 0 && _batches[^1] is { } last &&
             last.Texture == texture && SameRect(last.Clip, entry.Clip) &&
+            last.Material == material && last.Owner == owner &&
             last.Start + last.Count == (uint)_vertexCount)
             _batches[^1] = last with { Count = last.Count + (uint)count };
         else
-            _batches.Add(new Batch((uint)_vertexCount, (uint)count, texture, entry.Clip));
+            _batches.Add(new Batch((uint)_vertexCount, (uint)count, texture, entry.Clip, material, owner));
 
         _vertexCount += count;
     }
@@ -252,7 +280,7 @@ internal sealed class CanvasRenderer : IDisposable
 
     public void Dispose()
     {
-        _pipeline.Dispose();
+        _pipelines.Dispose();
         _white.Dispose();
         _sampler.Dispose();
         _buffer?.Dispose();
