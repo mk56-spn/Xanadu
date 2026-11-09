@@ -110,19 +110,6 @@ public sealed class XafBoneLengthTests
         Assert.That(loaded.Minor, Is.EqualTo(XafPackage.MinorVersion));
     }
 
-    [Test]
-    public void FilesFromBeforeTheFlagStillLoadAsFixedLength()
-    {
-        XafPackage package = Package(childMovable: true);
-
-        XafPackage loaded = XafBinary.Read(XafBinary.Write(package, minor: 0));
-
-        Assert.That(loaded.Minor, Is.EqualTo(0));
-        Assert.That(loaded.Skeleton.Bones[1].AllowTranslation, Is.False);
-        Assert.That(loaded.Skeleton.Bones[1].Rest.Origin, Is.EqualTo(new Vector2(0, -50)));
-        Assert.That(loaded.Clips[0].Channels, Has.Count.EqualTo(3));
-    }
-
     /// <summary>
     /// A leg hanging straight down, hip at the origin: a 50 long thigh, a 50
     /// long shin and a foot, each with its own art.

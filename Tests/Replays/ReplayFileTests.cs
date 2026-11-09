@@ -48,12 +48,12 @@ public sealed class ReplayFileTests
         {
             Events =
             [
-                new(0, KeybindAction.L1, true),
-                new(0, KeybindAction.R3, true),
-                new(127, KeybindAction.L1, false),
-                new(128, KeybindAction.R3, false),
-                new(16_384, KeybindAction.M, true),
-                new(3_600_000, KeybindAction.M, false),
+                new(0, KeybindAction.Action1, true),
+                new(0, KeybindAction.Action3, true),
+                new(127, KeybindAction.Action1, false),
+                new(128, KeybindAction.Action3, false),
+                new(16_384, KeybindAction.Action2, true),
+                new(3_600_000, KeybindAction.Action2, false),
             ],
         };
 
@@ -81,33 +81,11 @@ public sealed class ReplayFileTests
     }
 
     [Test]
-    public void VersionOneReplayHasNoSkip()
-    {
-        byte[] bytes = Bytes(Sample());
-        bytes[3] = 1;
-        Array.Resize(ref bytes, bytes.Length - sizeof(long));
-
-        Assert.That(ReplayFile.Read(new MemoryStream(bytes)).SkipFromMs, Is.EqualTo(-1));
-    }
-
-    [Test]
     public void OffsetsSurviveTheRoundTrip()
     {
         Replay read = RoundTrip(Sample() with { Offsets = new[] { new ReplayOffset(0, 12), new ReplayOffset(900, -3) } });
 
         Assert.That(read.Offsets, Is.EqualTo(new[] { new ReplayOffset(0, 12), new ReplayOffset(900, -3) }));
-    }
-
-    [Test]
-    public void VersionTwoReplayHasNoOffsets()
-    {
-        byte[] bytes = Bytes(Sample() with { Offsets = null });
-        bytes[3] = 2;
-        Array.Resize(ref bytes, bytes.Length - sizeof(int));
-
-        Replay read = ReplayFile.Read(new MemoryStream(bytes));
-
-        Assert.That(read.Offsets, Is.Null);
     }
 
     [Test]
@@ -172,9 +150,9 @@ public sealed class ReplayFileTests
         120,
         new ReplayResult(987_654, 0.9731, 88, 117, 120, 60, 30, 20, 5, 1, 1, 3),
         [
-            new(1211, KeybindAction.L1, true),
-            new(1290, KeybindAction.L1, false),
-            new(1511, KeybindAction.R2, true),
-            new(1600, KeybindAction.R2, false),
+            new(1211, KeybindAction.Action1, true),
+            new(1290, KeybindAction.Action1, false),
+            new(1511, KeybindAction.Action2, true),
+            new(1600, KeybindAction.Action2, false),
         ]);
 }

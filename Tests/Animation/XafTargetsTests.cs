@@ -215,14 +215,4 @@ public sealed class XafTargetsTests
         Assert.That(package.Clips[0].Targets[0].AnchorId, Is.EqualTo("pelvis"));
     }
 
-    [Test]
-    public void AnOlderFileHasNoTargetsAndStillReads()
-    {
-        XafPackage package = Rig();
-        package.Clips[0].Targets.Add(Orbit("foot", "", Vector2.Zero));
-
-        XafPackage read = XafBinary.Read(XafBinary.Write(package, minor: 10));
-
-        Assert.That(read.Clips[0].Targets, Is.Empty);
-    }
 }

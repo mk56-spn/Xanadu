@@ -46,12 +46,7 @@ public sealed class XmfMapsetBinaryTests
             X = 3,
             Y = 4,
             DashStrength = DashStrength.Double,
-            PairIndex = PairIndex.Three,
             Momentum = 750f,
-            ContactLeft = 1,
-            ContactRight = 2,
-            ChannelSide = ChannelSide.Right,
-            HoldMs = 750,
         });
         hard.Notes.Add(new NoteDocument { TimeMs = 150, X = 5, Y = 6 });
         hard.Blocks.Add(new BlockDocument
@@ -61,8 +56,6 @@ public sealed class XmfMapsetBinaryTests
             Y = 20,
             Width = 100,
             Height = 30,
-            ShapeId = 9,
-            ShapePiece = 1,
         });
         mapset.Variants.Add(hard);
 
@@ -88,17 +81,9 @@ public sealed class XmfMapsetBinaryTests
         Assert.That(readHard.FrameColor, Is.EqualTo("#405060"));
         Assert.That(readHard.Notes, Has.Count.EqualTo(2));
         Assert.That(readHard.Notes[0].DashStrength, Is.EqualTo(DashStrength.Double));
-        Assert.That(readHard.Notes[0].PairIndex, Is.EqualTo(PairIndex.Three));
         Assert.That(readHard.Notes[0].Momentum, Is.EqualTo(750f));
-        Assert.That(readHard.Notes[0].ContactLeft, Is.EqualTo(1));
-        Assert.That(readHard.Notes[0].ContactRight, Is.EqualTo(2));
-        Assert.That(readHard.Notes[0].ChannelSide,
-            Is.EqualTo(ChannelSide.Right));
-        Assert.That(readHard.Notes[0].HoldMs, Is.EqualTo(750));
         Assert.That(readHard.Notes[1].DashStrength, Is.EqualTo(DashStrength.Single));
         Assert.That(readHard.Blocks, Has.Count.EqualTo(1));
-        Assert.That(readHard.Blocks[0].ShapeId, Is.EqualTo(9));
-        Assert.That(readHard.Blocks[0].ShapePiece, Is.EqualTo(1));
         Assert.That(readHard.Blocks[0].OneWay, Is.EqualTo((int)Xanadu.Ecs.BlockOneWay.Up));
     }
 

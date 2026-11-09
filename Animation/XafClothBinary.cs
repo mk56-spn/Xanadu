@@ -31,7 +31,7 @@ public static class XafClothBinary
         }
     }
 
-    public static byte[] Write(List<XafCloth> cloths, StringTable strings, ushort minor)
+    public static byte[] Write(List<XafCloth> cloths, StringTable strings)
     {
         using var stream = new MemoryStream();
         using var writer = new BinaryWriter(stream, Encoding.UTF8, leaveOpen: true);
@@ -72,8 +72,6 @@ public static class XafClothBinary
                 writer.Write(collider.Radius);
             }
 
-            if (minor < 7)
-                continue;
             writer.Write((uint)cloth.Tethers.Count);
             foreach (XafClothTether tether in cloth.Tethers)
             {
@@ -87,7 +85,7 @@ public static class XafClothBinary
         return stream.ToArray();
     }
 
-    public static List<XafCloth> Read(Chunk chunk, StringTable strings, ushort minor)
+    public static List<XafCloth> Read(Chunk chunk, StringTable strings)
     {
         using BinaryReader reader = chunk.OpenReader();
         uint count = reader.ReadUInt32();
@@ -140,21 +138,18 @@ public static class XafClothBinary
                 });
             }
 
-            if (minor >= 7)
+            uint tethers = reader.ReadUInt32();
+            if (tethers > MaxPins)
+                throw new XafFormatException("XAF cloth tether table is too large.");
+            for (uint t = 0; t < tethers; t++)
             {
-                uint tethers = reader.ReadUInt32();
-                if (tethers > MaxPins)
-                    throw new XafFormatException("XAF cloth tether table is too large.");
-                for (uint t = 0; t < tethers; t++)
+                cloth.Tethers.Add(new XafClothTether
                 {
-                    cloth.Tethers.Add(new XafClothTether
-                    {
-                        Column = reader.ReadInt32(),
-                        Row = reader.ReadInt32(),
-                        BoneId = strings.ReadIndex(reader),
-                        Radius = reader.ReadSingle(),
-                    });
-                }
+                    Column = reader.ReadInt32(),
+                    Row = reader.ReadInt32(),
+                    BoneId = strings.ReadIndex(reader),
+                    Radius = reader.ReadSingle(),
+                });
             }
             cloths.Add(cloth);
         }

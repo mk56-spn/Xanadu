@@ -11,7 +11,7 @@ namespace Xanadu.Animation;
 /// <summary>The clip chunk of an XAF file: durations, channels, keyframes, events.</summary>
 internal static class XafClipBinary
 {
-	internal static byte[] WriteClips(List<XafClip> clips, StringTable strings, ushort minor)
+	internal static byte[] WriteClips(List<XafClip> clips, StringTable strings)
 	{
 		using var stream = new MemoryStream();
 		using var writer = new BinaryWriter(stream, Encoding.UTF8, leaveOpen: true);
@@ -35,9 +35,7 @@ internal static class XafClipBinary
 				{
 					writer.Write(key.Time);
 					writer.Write(key.Value);
-					// Named curves arrived in minor 12; older files ease them the plain way.
-					bool named = key.Interpolation > XafInterpolation.CubicBezier;
-					writer.Write((byte)(named && minor < 12 ? XafInterpolation.CubicBezier : key.Interpolation));
+					writer.Write((byte)key.Interpolation);
 					writer.Write(key.TangentIn);
 					writer.Write(key.TangentOut);
 				}
@@ -49,8 +47,7 @@ internal static class XafClipBinary
 
 	internal static List<XafClip> ReadClips(
 		Chunk chunk,
-		StringTable strings,
-		ushort minor)
+		StringTable strings)
 	{
 		using BinaryReader reader = chunk.OpenReader();
 		uint count = reader.ReadUInt32();
@@ -86,7 +83,7 @@ internal static class XafClipBinary
 				if (keyCount > 1_000_000)
 					throw new XafFormatException("XAF keyframe table is too large.");
 
-				int maxInterpolation = minor >= 12 ? XafEasing.MaxInterpolation : (int)XafInterpolation.CubicBezier;
+				int maxInterpolation = XafEasing.MaxInterpolation;
 				for (uint k = 0; k < keyCount; k++)
 				{
 					var key = new XafKeyframe

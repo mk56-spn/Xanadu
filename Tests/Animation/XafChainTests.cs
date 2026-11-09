@@ -61,23 +61,6 @@ public sealed class XafChainTests
     }
 
     [Test]
-    public void ChainsFromBeforeArtAndColliderLoadWithTheDefaultArtAndNoCollider()
-    {
-        XafPackage package = Package();
-        package.Chains.Add(Hair());
-
-        XafPackage loaded = XafBinary.Read(XafBinary.Write(package, minor: 2));
-
-        XafChain chain = loaded.Chains[0];
-        Assert.That(chain.Segments, Is.EqualTo(5));
-        Assert.That(chain.Gravity, Is.EqualTo(700f));
-        Assert.That(chain.SvgPath, Is.EqualTo(XafChain.DefaultSvgPath));
-        Assert.That(chain.Group, Is.EqualTo(XafChain.DefaultGroup));
-        Assert.That(chain.HasCollider, Is.False);
-        Assert.That(chain.Lean, Is.EqualTo(0f));
-    }
-
-    [Test]
     public void ValidationRejectsHalfAnArtReferenceAndABadColliderOrWidth()
     {
         XafPackage package = Package();
@@ -160,19 +143,6 @@ public sealed class XafChainTests
         var points = simulation.Points(0);
         Assert.That(points[^1].X, Is.GreaterThan(points[0].X + 10f));
         Assert.That(points[^1].Y, Is.GreaterThan(points[0].Y + 20f));
-    }
-
-    [Test]
-    public void FilesFromBeforeChainsStillLoadWithNone()
-    {
-        XafPackage package = Package();
-        package.Chains.Add(Hair());
-
-        XafPackage loaded = XafBinary.Read(XafBinary.Write(package, minor: 1));
-
-        Assert.That(loaded.Minor, Is.EqualTo(1));
-        Assert.That(loaded.Chains, Is.Empty);
-        Assert.That(loaded.Skeleton.Bones, Has.Count.EqualTo(2));
     }
 
     [Test]
@@ -487,15 +457,13 @@ public sealed class XafChainTests
     }
 
     [Test]
-    public void SheetsAndTheirLayersAreSavedAndOlderFilesHaveNeither()
+    public void SheetsAndTheirLayersAreSaved()
     {
         XafPackage package = Package();
         package.Chains.Add(new XafChain { Id = "strand", BoneId = "head", Sheet = true, Layer = 7 });
 
         XafChain loaded = XafBinary.Read(XafBinary.Write(package)).Chains.Single(chain => chain.Id == "strand");
         Assert.That((loaded.Sheet, loaded.Layer), Is.EqualTo((true, (int?)7)));
-        XafChain older = XafBinary.Read(XafBinary.Write(package, 15)).Chains.Single(chain => chain.Id == "strand");
-        Assert.That((older.Sheet, older.Layer), Is.EqualTo((false, (int?)null)));
         Assert.That(XafPackageCopy.AreEqual(package, XafPackageCopy.Clone(package)), Is.True);
     }
 }

@@ -83,7 +83,7 @@ public sealed class XafEventTests
     }
 
     [Test]
-    public void EventsAreSavedAndOlderFilesHaveNone()
+    public void EventsAreSaved()
     {
         XafPackage package = Package(out XafClip kick, out _);
         XafEventAuthoring.Add(kick, 0.25f, "hit");
@@ -91,6 +91,5 @@ public sealed class XafEventTests
         XafPackage loaded = XafBinary.Read(XafBinary.Write(package));
         Assert.That(loaded.Clips.Find(clip => clip.Id == "kick")!.Events.Single().Name, Is.EqualTo("hit"));
         Assert.That(XafPackageCopy.AreEqual(package, loaded), Is.True);
-        Assert.That(XafBinary.Read(XafBinary.Write(package, 8)).Clips.All(clip => clip.Events.Count == 0), Is.True);
     }
 }

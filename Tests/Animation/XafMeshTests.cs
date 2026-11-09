@@ -88,7 +88,6 @@ public sealed class XafMeshTests
         package.Attachments[0].Mesh!.Bones.Add("foot");
 
         Assert.That(XafPackageCopy.AreEqual(package, XafBinary.Read(XafBinary.Write(package))), Is.True);
-        Assert.That(XafBinary.Read(XafBinary.Write(package, 8)).Attachments[0].Mesh, Is.Null);
         Assert.That(XafRigAuthoring.DeleteBone(package, 3), Is.False, "the foot bends the mesh");
         XafRigAuthoring.RenameBone(package, 3, "toe");
         Assert.That(package.Attachments[0].Mesh!.Bones, Does.Contain("toe"));

@@ -57,7 +57,6 @@ public sealed class XafAttachmentArtTests
     {
         XafPackage package = Package(out XafClip clip);
         Assert.That(XafPackageCopy.AreEqual(package, XafBinary.Read(XafBinary.Write(package))), Is.True);
-        Assert.That(XafBinary.Read(XafBinary.Write(package, 8)).Attachments[0].Alternates, Is.Empty);
 
         XafAuthoring.SetChannel(clip, XafChannelTarget.Bone, "root", XafChannelProperty.Art, 0f, 1f);
         Assert.That(string.Join(" ", XafValidation.Validate(package)), Does.Contain("which only attachments have"));

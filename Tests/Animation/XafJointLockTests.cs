@@ -67,13 +67,12 @@ public sealed class XafJointLockTests
     }
 
     [Test]
-    public void LocksAreSavedAndOlderFilesHaveNone()
+    public void LocksAreSaved()
     {
         XafPackage package = Leg();
         package.Skeleton.Bones[Shin].Bend = -1;
 
         Assert.That(XafBinary.Read(XafBinary.Write(package)).Skeleton.Bones[Shin].Bend, Is.EqualTo(-1));
-        Assert.That(XafBinary.Read(XafBinary.Write(package, 7)).Skeleton.Bones[Shin].Bend, Is.Zero);
         Assert.That(XafPackageCopy.AreEqual(package, XafPackageCopy.Clone(package)), Is.True);
     }
 
@@ -130,7 +129,7 @@ public sealed class XafJointLockTests
     }
 
     [Test]
-    public void LimitsAreSavedAndOlderFilesHaveNone()
+    public void LimitsAreSaved()
     {
         XafPackage package = Leg();
         XafBone thigh = package.Skeleton.Bones[Thigh];
@@ -140,7 +139,6 @@ public sealed class XafJointLockTests
 
         XafBone loaded = XafBinary.Read(XafBinary.Write(package)).Skeleton.Bones[Thigh];
         Assert.That((loaded.Limited, loaded.LimitMin, loaded.LimitMax), Is.EqualTo((true, -0.25f, 1.5f)));
-        Assert.That(XafBinary.Read(XafBinary.Write(package, 12)).Skeleton.Bones[Thigh].Limited, Is.False);
         Assert.That(XafPackageCopy.AreEqual(package, XafPackageCopy.Clone(package)), Is.True);
     }
 

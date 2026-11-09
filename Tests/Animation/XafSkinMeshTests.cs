@@ -159,13 +159,12 @@ public sealed class XafSkinMeshTests
     }
 
     [Test]
-    public void SkinsAreSavedAndOlderFilesHaveNone()
+    public void SkinsAreSaved()
     {
         XafPackage package = SkinnedStrip();
 
         XafPackage loaded = XafBinary.Read(XafBinary.Write(package));
         Assert.That(XafSkinMesh.AreEqual(loaded.Attachments[0].Mesh!.Skin, package.Attachments[0].Mesh!.Skin), Is.True);
-        Assert.That(XafBinary.Read(XafBinary.Write(package, 14)).Attachments[0].Mesh?.Skin, Is.Null);
         Assert.That(XafPackageCopy.AreEqual(package, XafPackageCopy.Clone(package)), Is.True);
     }
 

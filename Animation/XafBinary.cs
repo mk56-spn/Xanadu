@@ -40,40 +40,26 @@ public static class XafBinary
 	public static XafPackage Load(string path) =>
 		Read(File.ReadAllBytes(path));
 
-	public static byte[] Write(XafPackage package) =>
-		Write(package, XafPackage.MinorVersion);
-
-	/// <summary>Writes an older minor revision; used to test reading old files.</summary>
-	public static byte[] Write(XafPackage package, ushort minor)
+	public static byte[] Write(XafPackage package)
 	{
 		XafValidation.ThrowIfInvalid(package);
 		var strings = new StringTable(Format);
 		IndexStrings(package, strings);
 
-		var file = new ChunkWriter(Magic, XafPackage.MajorVersion, minor);
+		var file = new ChunkWriter(Magic, XafPackage.MajorVersion, XafPackage.MinorVersion);
 		file.Add((uint)ChunkId.Strings, strings.Write());
-		file.Add((uint)ChunkId.Skeleton, XafSkeletonBinary.WriteSkeleton(package.Skeleton, strings, minor));
+		file.Add((uint)ChunkId.Skeleton, XafSkeletonBinary.WriteSkeleton(package.Skeleton, strings));
 		file.Add((uint)ChunkId.Attachments, XafSkeletonBinary.WriteAttachments(package.Attachments, strings));
-		file.Add((uint)ChunkId.Clips, XafClipBinary.WriteClips(package.Clips, strings, minor));
-		if (minor >= 2)
-			file.Add((uint)ChunkId.Chains, XafFlowBinary.WriteChains(package.Chains, strings, minor));
-		if (minor >= 4)
-			file.Add((uint)ChunkId.Transitions, XafFlowBinary.WriteTransitions(package.Transitions, strings));
-		if (minor >= 5)
-			file.Add((uint)ChunkId.Effects, XafFlowBinary.WriteEffects(package.Effects, strings));
-		if (minor >= 6)
-			file.Add((uint)ChunkId.Cloths, XafClothBinary.Write(package.Cloths, strings, minor));
-		if (minor >= 9)
-		{
-			file.Add((uint)ChunkId.Events, XafExtrasBinary.WriteEvents(package.Clips, strings));
-			file.Add((uint)ChunkId.AttachmentExtras, XafExtrasBinary.WriteAttachments(package.Attachments, strings));
-		}
-		if (minor >= 10)
-			file.Add((uint)ChunkId.AttachmentModulates, XafExtrasBinary.WriteModulates(package.Attachments));
-		if (minor >= 11)
-			file.Add((uint)ChunkId.Targets, XafTargetsBinary.Write(package.Clips, strings));
-		if (minor >= 15)
-			file.Add((uint)ChunkId.Skins, XafSkinBinary.Write(package.Attachments, strings));
+		file.Add((uint)ChunkId.Clips, XafClipBinary.WriteClips(package.Clips, strings));
+		file.Add((uint)ChunkId.Chains, XafFlowBinary.WriteChains(package.Chains, strings));
+		file.Add((uint)ChunkId.Transitions, XafFlowBinary.WriteTransitions(package.Transitions, strings));
+		file.Add((uint)ChunkId.Effects, XafFlowBinary.WriteEffects(package.Effects, strings));
+		file.Add((uint)ChunkId.Cloths, XafClothBinary.Write(package.Cloths, strings));
+		file.Add((uint)ChunkId.Events, XafExtrasBinary.WriteEvents(package.Clips, strings));
+		file.Add((uint)ChunkId.AttachmentExtras, XafExtrasBinary.WriteAttachments(package.Attachments, strings));
+		file.Add((uint)ChunkId.AttachmentModulates, XafExtrasBinary.WriteModulates(package.Attachments));
+		file.Add((uint)ChunkId.Targets, XafTargetsBinary.Write(package.Clips, strings));
+		file.Add((uint)ChunkId.Skins, XafSkinBinary.Write(package.Attachments, strings));
 		return file.ToArray();
 	}
 
@@ -102,29 +88,19 @@ public static class XafBinary
 		{
 			Major = XafPackage.MajorVersion,
 			Minor = file.Minor,
-			Skeleton = XafSkeletonBinary.ReadSkeleton(skeletonChunk, strings, file.Minor),
+			Skeleton = XafSkeletonBinary.ReadSkeleton(skeletonChunk, strings),
 			Attachments = XafSkeletonBinary.ReadAttachments(attachmentsChunk, strings),
-			Clips = XafClipBinary.ReadClips(clipsChunk, strings, file.Minor),
+			Clips = XafClipBinary.ReadClips(clipsChunk, strings),
 		};
-		if (file.Minor >= 2)
-			package.Chains = XafFlowBinary.ReadChains(file.Get((uint)ChunkId.Chains, Format), strings, file.Minor);
-		if (file.Minor >= 4)
-			package.Transitions = XafFlowBinary.ReadTransitions(file.Get((uint)ChunkId.Transitions, Format), strings);
-		if (file.Minor >= 5)
-			package.Effects = XafFlowBinary.ReadEffects(file.Get((uint)ChunkId.Effects, Format), strings);
-		if (file.Minor >= 6)
-			package.Cloths = XafClothBinary.Read(file.Get((uint)ChunkId.Cloths, Format), strings, file.Minor);
-		if (file.Minor >= 9)
-		{
-			XafExtrasBinary.ReadEvents(file.Get((uint)ChunkId.Events, Format), strings, package.Clips);
-			XafExtrasBinary.ReadAttachments(file.Get((uint)ChunkId.AttachmentExtras, Format), strings, package.Attachments);
-		}
-		if (file.Minor >= 10)
-			XafExtrasBinary.ReadModulates(file.Get((uint)ChunkId.AttachmentModulates, Format), package.Attachments);
-		if (file.Minor >= 11)
-			XafTargetsBinary.Read(file.Get((uint)ChunkId.Targets, Format), strings, package.Clips);
-		if (file.Minor >= 15)
-			XafSkinBinary.Read(file.Get((uint)ChunkId.Skins, Format), strings, package.Attachments);
+		package.Chains = XafFlowBinary.ReadChains(file.Get((uint)ChunkId.Chains, Format), strings);
+		package.Transitions = XafFlowBinary.ReadTransitions(file.Get((uint)ChunkId.Transitions, Format), strings);
+		package.Effects = XafFlowBinary.ReadEffects(file.Get((uint)ChunkId.Effects, Format), strings);
+		package.Cloths = XafClothBinary.Read(file.Get((uint)ChunkId.Cloths, Format), strings);
+		XafExtrasBinary.ReadEvents(file.Get((uint)ChunkId.Events, Format), strings, package.Clips);
+		XafExtrasBinary.ReadAttachments(file.Get((uint)ChunkId.AttachmentExtras, Format), strings, package.Attachments);
+		XafExtrasBinary.ReadModulates(file.Get((uint)ChunkId.AttachmentModulates, Format), package.Attachments);
+		XafTargetsBinary.Read(file.Get((uint)ChunkId.Targets, Format), strings, package.Clips);
+		XafSkinBinary.Read(file.Get((uint)ChunkId.Skins, Format), strings, package.Attachments);
 		XafValidation.ThrowIfInvalid(package);
 		return package;
 	}

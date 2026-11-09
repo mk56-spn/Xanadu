@@ -103,7 +103,7 @@ public static class XafExtrasBinary
         return stream.ToArray();
     }
 
-    /// <summary>Added in minor revision 10: one RGBA8 colour per attachment, in order.</summary>
+    /// <summary>One RGBA8 colour per attachment, in order.</summary>
     public static byte[] WriteModulates(List<XafAttachment> attachments)
     {
         using var stream = new MemoryStream();

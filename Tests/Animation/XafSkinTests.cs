@@ -125,12 +125,11 @@ public sealed class XafSkinTests
     }
 
     [Test]
-    public void TipsAreSavedAndOlderFilesHaveNone()
+    public void TipsAreSaved()
     {
         var (package, _, _, foot) = Leg();
 
         Assert.That(XafBinary.Read(XafBinary.Write(package)).Skeleton.Bones[foot].Tip, Is.EqualTo(new Vector2(30, 0)));
-        Assert.That(XafBinary.Read(XafBinary.Write(package, 13)).Skeleton.Bones[foot].Tip, Is.EqualTo(Vector2.Zero));
         Assert.That(XafPackageCopy.AreEqual(package, XafPackageCopy.Clone(package)), Is.True);
     }
 

@@ -22,8 +22,8 @@ public enum XmfMapsetChunk : uint
 /// </summary>
 public static partial class XmfBinary
 {
-    public const ushort MapsetMajorVersion = 3;
-    public const ushort MapsetMinorVersion = 0;
+    public const ushort MapsetMajorVersion = 0;
+    public const ushort MapsetMinorVersion = 1;
 
     private const string MapsetFormat = "XMF2";
 

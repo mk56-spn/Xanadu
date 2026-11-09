@@ -8,16 +8,17 @@ namespace Xanadu.Replays;
 
 /// <summary>
 /// The .xrs replay format. Little-endian binary:
-/// <c>"XRS"</c>, a version byte, the header fields, the result, then the
-/// events as a count followed by (time delta, action and down flag) pairs.
-/// Time deltas are LEB128 varints, so a long replay stays small. Version 2 ends
-/// with the song time the entrance was skipped at, or -1; version 1 has none.
-/// Version 3 then adds the offsets, as a count and (song time, total ms) pairs.
+/// <c>"XRS"</c>, a major and a minor version byte, the header fields, the
+/// result, then the events as a count followed by (time delta, action and down
+/// flag) pairs. Time deltas are LEB128 varints, so a long replay stays small.
+/// It ends with the song time the entrance was skipped at, or -1, and the
+/// offsets, as a count and (song time, total ms) pairs.
 /// </summary>
 public static class ReplayFile
 {
     public const string Extension = ".xrs";
-    public const byte Version = 3;
+    public const byte MajorVersion = 0;
+    public const byte MinorVersion = 1;
 
     private const byte DownFlag = 0x80;
     private static readonly byte[] Magic = "XRS"u8.ToArray();
@@ -26,7 +27,8 @@ public static class ReplayFile
     {
         using var writer = new BinaryWriter(stream, Encoding.UTF8, leaveOpen: true);
         writer.Write(Magic);
-        writer.Write(Version);
+        writer.Write(MajorVersion);
+        writer.Write(MinorVersion);
         writer.Write(replay.LevelId);
         writer.Write(replay.LevelName);
         writer.Write(replay.SongId);
@@ -75,9 +77,10 @@ public static class ReplayFile
             if (!reader.ReadBytes(Magic.Length).AsSpan().SequenceEqual(Magic))
                 throw new InvalidDataException("Not an .xrs replay.");
 
-            byte version = reader.ReadByte();
-            if (version is not (1 or 2 or Version))
-                throw new InvalidDataException($"Unsupported replay version {version}.");
+            byte major = reader.ReadByte();
+            reader.ReadByte();
+            if (major != MajorVersion)
+                throw new InvalidDataException($"Unsupported replay major version {major}.");
 
             string levelId = reader.ReadString();
             string levelName = reader.ReadString();
@@ -109,19 +112,15 @@ public static class ReplayFile
                 events[i] = new ReplayEvent(time, (KeybindAction)action, (packed & DownFlag) != 0);
             }
 
-            long skipFromMs = version >= 2 ? reader.ReadInt64() : -1;
+            long skipFromMs = reader.ReadInt64();
 
-            ReplayOffset[]? offsets = null;
-            if (version >= 3)
-            {
-                int offsetCount = reader.ReadInt32();
-                if (offsetCount < 0 || offsetCount > 1_000_000)
-                    throw new InvalidDataException("Implausible offset count.");
+            int offsetCount = reader.ReadInt32();
+            if (offsetCount < 0 || offsetCount > 1_000_000)
+                throw new InvalidDataException("Implausible offset count.");
 
-                offsets = new ReplayOffset[offsetCount];
-                for (int i = 0; i < offsetCount; i++)
-                    offsets[i] = new ReplayOffset(reader.ReadInt32(), reader.ReadInt32());
-            }
+            var offsets = new ReplayOffset[offsetCount];
+            for (int i = 0; i < offsetCount; i++)
+                offsets[i] = new ReplayOffset(reader.ReadInt32(), reader.ReadInt32());
 
             return new Replay(
                 levelId,

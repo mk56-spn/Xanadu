@@ -68,15 +68,6 @@ public sealed class XafTransitionTests
     }
 
     [Test]
-    public void FilesFromBeforeTheTableReadAsOpen()
-    {
-        XafPackage loaded = XafBinary.Read(XafBinary.Write(Package(), 3));
-
-        Assert.That(loaded.Minor, Is.EqualTo(3));
-        Assert.That(XafTransitions.IsOpen(loaded), Is.True);
-    }
-
-    [Test]
     public void ValidationRejectsRulesThatCannotBeFollowed()
     {
         XafPackage package = Package();

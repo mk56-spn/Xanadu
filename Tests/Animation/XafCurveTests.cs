@@ -118,18 +118,6 @@ public sealed class XafCurveTests
     }
 
     [Test]
-    public void AnOlderRevisionGetsThePlainEaseInPlaceOfANamedCurve()
-    {
-        (XafClip clip, _) = TwoKeys();
-        XafEasing.Apply(clip, XafChannelTarget.Bone, "b", 0f, XafEasePreset.ExpoIn);
-
-        XafPackage loaded = XafBinary.Read(XafBinary.Write(Package(clip), 11));
-
-        Assert.That(loaded.Clips[0].Channels[0].Keyframes[0].Interpolation, Is.EqualTo(XafInterpolation.CubicBezier));
-        Assert.That(XafEasing.Read(loaded.Clips[0], XafChannelTarget.Bone, "b", 0f), Is.EqualTo(XafEasePreset.Ease));
-    }
-
-    [Test]
     public void AnUnknownInterpolationIsRefused()
     {
         (XafClip clip, XafChannel channel) = TwoKeys();

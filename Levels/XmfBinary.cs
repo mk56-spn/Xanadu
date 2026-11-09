@@ -40,8 +40,8 @@ public enum XmfChunk : uint
 /// </summary>
 public static partial class XmfBinary
 {
-    public const ushort MajorVersion = 3;
-    public const ushort MinorVersion = 0;
+    public const ushort MajorVersion = 0;
+    public const ushort MinorVersion = 1;
 
     /// <summary>The extension level files are saved with, including the dot.</summary>
     public const string Extension = ".xmf";

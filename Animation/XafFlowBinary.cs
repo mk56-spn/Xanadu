@@ -11,7 +11,7 @@ namespace Xanadu.Animation;
 /// <summary>The chain, effect and transition chunks of an XAF file.</summary>
 internal static class XafFlowBinary
 {
-	internal static byte[] WriteChains(List<XafChain> chains, StringTable strings, ushort minor)
+	internal static byte[] WriteChains(List<XafChain> chains, StringTable strings)
 	{
 		using var stream = new MemoryStream();
 		using var writer = new BinaryWriter(stream, Encoding.UTF8, leaveOpen: true);
@@ -26,9 +26,6 @@ internal static class XafFlowBinary
 			writer.Write(chain.SegmentLength);
 			writer.Write(chain.Gravity);
 			writer.Write(chain.Damping);
-			if (minor < 3)
-				continue;
-
 			strings.WriteIndex(writer, chain.SvgPath);
 			strings.WriteIndex(writer, chain.Group);
 			writer.Write(chain.Width);
@@ -37,18 +34,15 @@ internal static class XafFlowBinary
 			writer.Write(chain.CollideOffset.X);
 			writer.Write(chain.CollideOffset.Y);
 			writer.Write(chain.CollideRadius);
-			if (minor >= 16)
-			{
-				writer.Write(chain.Sheet);
-				writer.Write(chain.Layer.HasValue);
-				writer.Write(chain.Layer ?? 0);
-			}
+			writer.Write(chain.Sheet);
+			writer.Write(chain.Layer.HasValue);
+			writer.Write(chain.Layer ?? 0);
 		}
 		writer.Flush();
 		return stream.ToArray();
 	}
 
-	internal static List<XafChain> ReadChains(Chunk chunk, StringTable strings, ushort minor)
+	internal static List<XafChain> ReadChains(Chunk chunk, StringTable strings)
 	{
 		using BinaryReader reader = chunk.OpenReader();
 		uint count = reader.ReadUInt32();
@@ -68,23 +62,17 @@ internal static class XafFlowBinary
 				Gravity = reader.ReadSingle(),
 				Damping = reader.ReadSingle(),
 			};
-			if (minor >= 3)
-			{
-				chain.SvgPath = strings.ReadIndex(reader);
-				chain.Group = strings.ReadIndex(reader);
-				chain.Width = reader.ReadSingle();
-				chain.Lean = reader.ReadSingle();
-				chain.CollideBoneId = strings.ReadIndex(reader);
-				chain.CollideOffset = new Vector2(reader.ReadSingle(), reader.ReadSingle());
-				chain.CollideRadius = reader.ReadSingle();
-			}
-			if (minor >= 16)
-			{
-				chain.Sheet = reader.ReadBoolean();
-				bool layered = reader.ReadBoolean();
-				int layer = reader.ReadInt32();
-				chain.Layer = layered ? layer : null;
-			}
+			chain.SvgPath = strings.ReadIndex(reader);
+			chain.Group = strings.ReadIndex(reader);
+			chain.Width = reader.ReadSingle();
+			chain.Lean = reader.ReadSingle();
+			chain.CollideBoneId = strings.ReadIndex(reader);
+			chain.CollideOffset = new Vector2(reader.ReadSingle(), reader.ReadSingle());
+			chain.CollideRadius = reader.ReadSingle();
+			chain.Sheet = reader.ReadBoolean();
+			bool layered = reader.ReadBoolean();
+			int layer = reader.ReadInt32();
+			chain.Layer = layered ? layer : null;
 			chains.Add(chain);
 		}
 		return chains;

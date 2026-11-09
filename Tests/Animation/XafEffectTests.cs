@@ -30,18 +30,6 @@ public sealed class XafEffectTests
     }
 
     [Test]
-    public void FilesFromBeforeEffectsReadWithNone()
-    {
-        XafPackage package = Package();
-        package.Effects.Clear();
-        package.Clips[0].Channels.Clear();
-
-        XafPackage loaded = XafBinary.Read(XafBinary.Write(package, 4));
-
-        Assert.That(loaded.Effects, Is.Empty);
-    }
-
-    [Test]
     public void AnEffectIsHiddenUntilAClipShowsItAndHeldBetweenKeys()
     {
         XafPackage package = Package();

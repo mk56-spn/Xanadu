@@ -13,8 +13,7 @@ internal static class XafSkeletonBinary
 {
 	internal static byte[] WriteSkeleton(
 		XafSkeleton skeleton,
-		StringTable strings,
-		ushort minor)
+		StringTable strings)
 	{
 		using var stream = new MemoryStream();
 		using var writer = new BinaryWriter(stream, Encoding.UTF8, leaveOpen: true);
@@ -25,21 +24,13 @@ internal static class XafSkeletonBinary
 			writer.Write(bone.Parent);
 			XafBinaryValues.WriteTransform(writer, bone.Rest);
 			writer.Write(bone.ZOrder);
-			if (minor >= 1)
-				writer.Write(bone.AllowTranslation);
-			if (minor >= 8)
-				writer.Write((sbyte)bone.Bend);
-			if (minor >= 13)
-			{
-				writer.Write(bone.Limited);
-				writer.Write(bone.LimitMin);
-				writer.Write(bone.LimitMax);
-			}
-			if (minor >= 14)
-			{
-				writer.Write(bone.Tip.X);
-				writer.Write(bone.Tip.Y);
-			}
+			writer.Write(bone.AllowTranslation);
+			writer.Write((sbyte)bone.Bend);
+			writer.Write(bone.Limited);
+			writer.Write(bone.LimitMin);
+			writer.Write(bone.LimitMax);
+			writer.Write(bone.Tip.X);
+			writer.Write(bone.Tip.Y);
 		}
 		writer.Flush();
 		return stream.ToArray();
@@ -47,8 +38,7 @@ internal static class XafSkeletonBinary
 
 	internal static XafSkeleton ReadSkeleton(
 		Chunk chunk,
-		StringTable strings,
-		ushort minor)
+		StringTable strings)
 	{
 		using BinaryReader reader = chunk.OpenReader();
 		uint count = reader.ReadUInt32();
@@ -68,17 +58,13 @@ internal static class XafSkeletonBinary
 				Parent = parent,
 				Rest = XafBinaryValues.ReadTransform(reader),
 				ZOrder = reader.ReadInt32(),
-				AllowTranslation = minor >= 1 && reader.ReadBoolean(),
-				Bend = minor >= 8 ? reader.ReadSByte() : 0,
+				AllowTranslation = reader.ReadBoolean(),
+				Bend = reader.ReadSByte(),
+				Limited = reader.ReadBoolean(),
+				LimitMin = reader.ReadSingle(),
+				LimitMax = reader.ReadSingle(),
 			};
-			if (minor >= 13)
-			{
-				bone.Limited = reader.ReadBoolean();
-				bone.LimitMin = reader.ReadSingle();
-				bone.LimitMax = reader.ReadSingle();
-			}
-			if (minor >= 14)
-				bone.Tip = new Vector2(reader.ReadSingle(), reader.ReadSingle());
+			bone.Tip = new Vector2(reader.ReadSingle(), reader.ReadSingle());
 			skeleton.Bones.Add(bone);
 		}
 		return skeleton;

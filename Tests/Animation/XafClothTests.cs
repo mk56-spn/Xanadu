@@ -201,16 +201,6 @@ public sealed class XafClothTests
     }
 
     [Test]
-    public void OlderFilesHaveNoCloths()
-    {
-        XafPackage package = Dressed();
-
-        XafPackage old = XafBinary.Read(XafBinary.Write(package, 5));
-
-        Assert.That(old.Cloths, Is.Empty);
-    }
-
-    [Test]
     public void ABoneADressUsesCannotBeDeleted()
     {
         XafPackage package = Dressed();
@@ -220,18 +210,6 @@ public sealed class XafClothTests
         XafClothAuthoring.ToggleCollider(package, 0, 5);
 
         Assert.That(XafRigAuthoring.DeleteBone(package, 5), Is.False, "the foot is now a collider");
-    }
-
-    [Test]
-    public void ARevisionSixFileKeepsItsClothButNotItsTethers()
-    {
-        XafPackage package = Dressed();
-        XafClothAuthoring.ToggleTether(package, 0, 0, package.Cloths[0].Rows - 1, 4);
-
-        XafPackage old = XafBinary.Read(XafBinary.Write(package, 6));
-
-        Assert.That(old.Cloths, Has.Count.EqualTo(1));
-        Assert.That(old.Cloths[0].Tethers, Is.Empty);
     }
 
     [Test]
