@@ -23,15 +23,13 @@ Update this block at the end of every session, including partial progress.
   library, `HostCore`, and **Xanadu Labs** runs on MoonWorks (`Tools/Labs`)
   with a hot-reloading shader playground as its first tab. See "Host core and
   Xanadu Labs" under step 10.
-- **Step 7 (particles):** bursts done (playfield and Labs "PARTICLES" tab).
-  Streams and trails wait for step 8, which brings rig art (their only user).
-- **Next:** step 8 (SVG and rigs), including the rig's particle streams.
-  Still open from earlier steps:
+- **Steps 7 and 8:** particles (bursts and rig streams) and rig art draw in
+  the host. The Contact rig shows on the playfield.
+- **Next:** step 9 (editor). Still open from earlier steps:
   - step 2: play a level by hand with the keyboard;
   - step 5: per-item data in a storage buffer, the vertex slot and chains,
     and shape glow.
-- **Committed:** everything up to step 6 (`e3de71d`). `HostCore`, the Labs
-  and step 7 are not committed yet.
+- **Committed:** everything through step 8.
 - **After cloning:** run `External/fetch-moonlibs.sh` once (the host build fails
   with that message otherwise).
 - **Notes for whoever picks this up:** see the step 1 and step 2 notes (Slang
@@ -704,9 +702,33 @@ D7–D17 against the host:
 
 ### Step 8: SVG and character rigs (200–400 lines)
 
-- [ ] Replace `Image.LoadSvgFromString` with a library (Svg.Skia or resvg) plus
+- [x] Replace `Image.LoadSvgFromString` with a library (Svg.Skia or resvg) plus
   a texture upload.
-- [ ] `CharacterRigGhosts` and SVG attachment visuals draw through the new canvas.
+  - **Svg.Skia 5.2.3** (plus `SkiaSharp.NativeAssets.Linux` 4.148.0) on the
+    game assembly. `Animation/SvgRaster.cs` renders an SVG at the document's
+    size × scale and hands back straight-alpha RGBA (`RasterImage`). The Godot
+    build uses it too, so both rasterise the same way.
+  - **Texture seam:** `ITextureServer` / `TextureServer.Current` in
+    `UI/Systems/Canvas/TextureServer.cs`. It has `Create` (pixels, with GPU
+    mipmaps), `Load` (a `res://` image, through IRO in the host) and `Free`.
+    The Godot default wraps `ImageTexture`; the host's is
+    `HostCore/Rendering/HostTextures.cs`.
+  - Skin coverage reads the kept `RasterImage`, not `Texture.GetImage()`.
+  - The ear-clipper moved from HostCore to `Core/Rendering/Triangulate.cs`
+    and replaces `Geometry2D.TriangulatePolygon` for effect polygons.
+- [x] `CharacterRigGhosts` and SVG attachment visuals draw through the new canvas.
+  - `CharacterRigDrawSystem` now runs in the host too.
+  - Effect polygon shaders go through `CanvasServer.SetMaterial`. Godot keeps
+    its `RenderingServer` path behind `HostPlatform.IsGodot`, and so does the
+    mipmap texture filter.
+  - **Particle streams:** `IParticleFlow` (`Systems/Particles/ParticleStream.cs`),
+    implemented by Godot's `ParticleInstance` and by the new `ParticleStream`.
+    While on, a `ParticleStream` throws `Amount / Lifetime` particles a second,
+    all born at the emitter in the parent's space (a trail), through
+    `ParticleSpawn.Stream`. Tint applies per particle at birth, not to the
+    whole flow as Godot's modulate did.
+  - Not checked by eye yet: ghosts and effects on a hit, and effect shaders
+    whose path is a `.gdshader` (they would log and draw plain).
 
 ### Step 9: Editor (500–900 lines)
 

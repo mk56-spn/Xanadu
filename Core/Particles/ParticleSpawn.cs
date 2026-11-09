@@ -66,9 +66,43 @@ public static class ParticleSpawn
         Vector2 heading,
         int cells,
         Random random,
+        Span<ParticleSeed> seeds) =>
+        Throw(effect, effect.Amount, staggered: true, position, tint, area, angle, heading, cells, random, seeds);
+
+    /// <summary>
+    /// <paramref name="count"/> particles of a stream, all born now: a flowing
+    /// effect throws <see cref="StreamRate"/> a second, so whoever plays it
+    /// calls this each frame with however many came due.
+    /// </summary>
+    public static int Stream(
+        XpfParticle effect,
+        int count,
+        Vector2 position,
+        Color tint,
+        float angle,
+        int cells,
+        Random random,
+        Span<ParticleSeed> seeds) =>
+        Throw(effect, count, staggered: false, position, tint, default, angle, default, cells, random, seeds);
+
+    /// <summary>Particles a second a flowing effect throws: enough to keep <see cref="XpfParticle.Amount"/> alive.</summary>
+    public static float StreamRate(XpfParticle effect) =>
+        effect.Lifetime > 0f ? effect.Amount / effect.Lifetime : 0f;
+
+    private static int Throw(
+        XpfParticle effect,
+        int count,
+        bool staggered,
+        Vector2 position,
+        Color tint,
+        Vector2 area,
+        float angle,
+        Vector2 heading,
+        int cells,
+        Random random,
         Span<ParticleSeed> seeds)
     {
-        int amount = Math.Clamp(effect.Amount, 0, Math.Min(XpfParticle.MaxAmount, seeds.Length));
+        int amount = Math.Clamp(count, 0, Math.Min(XpfParticle.MaxAmount, seeds.Length));
 
         Vector2 way;
         float spread;
@@ -84,7 +118,7 @@ public static class ParticleSpawn
         }
 
         Vector2 box = effect.Shape == XpfShape.Box ? (area == Vector2.Zero ? effect.BoxSize : area) : Vector2.Zero;
-        float stagger = effect.Lifetime * (1f - Math.Clamp(effect.Explosiveness, 0f, 1f));
+        float stagger = staggered ? effect.Lifetime * (1f - Math.Clamp(effect.Explosiveness, 0f, 1f)) : 0f;
         float facing = effect.Upright ? 0f : angle;
         Color color = effect.Color * tint;
 

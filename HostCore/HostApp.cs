@@ -85,6 +85,7 @@ internal abstract class HostApp : Game
         };
         HostPlatform.Use(Canvas, () => new HostRectCanvas(Text), Keyboard, new CanvasServerRidFactory(loadsAssets: true), Fps);
         HostPlatform.Particles = Renderer.Particles;
+        TextureServer.Use(new HostTextures(GraphicsDevice, Canvas, Renderer));
         HostPlatform.GlyphStrip = atlas =>
         {
             Godot.Rid rid = Canvas.MintRid();

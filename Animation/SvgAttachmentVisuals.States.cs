@@ -152,22 +152,17 @@ public sealed partial class SvgAttachmentVisuals
         CanvasServer.Current.SetTransform(visual.Item, Transform2D.Identity);
         CanvasServer.Current.Clear(visual.Item);
         CanvasServer.Current.AddTriangleArray(visual.Item, cache.Triangles, bent, colors, cache.Uvs,
-            texture: visual.Texture.GetRid());
+            texture: visual.Texture.Id);
     }
 
     /// <summary>Which grid cells the art covers, read from its raster's opacity; null when it cannot be read.</summary>
     private static bool[]? Coverage(XafMesh mesh, Visual visual)
     {
-        Image? image = visual.Texture.GetImage();
-        if (image is null || image.IsEmpty())
+        RasterImage image = visual.Texture.Image;
+        if (image.Width == 0 || image.Height == 0)
             return null;
-        if (image.IsCompressed())
-            image.Decompress();
 
-        Vector2I size = image.GetSize();
-        return XafSkinGrid.Covered(mesh, visual.Bounds.Size, uv => image.GetPixel(
-            Math.Clamp((int)(uv.X * (size.X - 1)), 0, size.X - 1),
-            Math.Clamp((int)(uv.Y * (size.Y - 1)), 0, size.Y - 1)).A);
+        return XafSkinGrid.Covered(mesh, visual.Bounds.Size, uv => image.AlphaAt(uv.X, uv.Y));
     }
 
     public bool TryMesh(int attachment, out Vector2[] points, out int[] triangles)

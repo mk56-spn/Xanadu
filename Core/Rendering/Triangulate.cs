@@ -2,10 +2,10 @@ using System;
 using System.Collections.Generic;
 using Godot;
 
-namespace Xanadu.Host.Rendering;
+namespace Xanadu.Rendering;
 
 /// <summary>Turns a simple polygon, either winding, into triangles by ear clipping.</summary>
-internal static class Triangulate
+public static class Triangulate
 {
     public static int[] Polygon(ReadOnlySpan<Vector2> points)
     {

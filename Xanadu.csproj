@@ -25,6 +25,8 @@
     <PackageReference Include="Friflo.Engine.ECS.Boost" Version="4.0.0-preview.2" />
     <PackageReference Include="Miniaudio-CS" Version="1.0.4" />
     <PackageReference Include="Box2DSharp" Version="0.6.0" />
+    <PackageReference Include="SkiaSharp.NativeAssets.Linux" Version="4.148.0" />
+    <PackageReference Include="Svg.Skia" Version="5.2.3" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="Core/Xanadu.Core.csproj" />
@@ -38,10 +40,8 @@
     ScriptPathAttribute("res://../../../var/home/...") and Godot cannot find Main.
     Resolve the real project path before the generated analyzer config is written.
   -->
-  <Target Name="CanonicalizeGodotProjectDir" BeforeTargets="GenerateMSBuildEditorConfigFileCore"
-          Condition="$([MSBuild]::IsOSPlatform('Linux'))">
-    <Exec Command="realpath &quot;$(MSBuildProjectDirectory)&quot;"
-          ConsoleToMSBuild="true" StandardOutputImportance="low">
+  <Target Name="CanonicalizeGodotProjectDir" BeforeTargets="GenerateMSBuildEditorConfigFileCore" Condition="$([MSBuild]::IsOSPlatform('Linux'))">
+    <Exec Command="realpath &quot;$(MSBuildProjectDirectory)&quot;" ConsoleToMSBuild="true" StandardOutputImportance="low">
       <Output TaskParameter="ConsoleOutput" ItemName="_CanonicalGodotProjectDir" />
     </Exec>
     <PropertyGroup>

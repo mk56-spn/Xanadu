@@ -4,6 +4,8 @@ using Godot;
 using Xanadu.Systems.Canvas;
 using Xanadu.Items;
 using Xanadu.Layering;
+using Xanadu.Rendering;
+using Xanadu.Systems;
 using Xanadu.Systems.Shaders;
 
 namespace Xanadu.Animation;
@@ -42,7 +44,7 @@ public sealed partial class SvgAttachmentVisuals(Rid canvas, bool containLayers 
             for (int art = 0; art < attachment.ArtCount; art++)
             {
                 XafArt source = attachment.Art(art);
-                if (!TryRaster(source.SvgPath, source.Group, out ImageTexture? texture, out Vector2 size))
+                if (!TryRaster(source.SvgPath, source.Group, out ArtTexture? texture, out Vector2 size))
                     continue;
 
                 // Higher layers draw in front; equal layers keep the attachment order.
@@ -56,7 +58,7 @@ public sealed partial class SvgAttachmentVisuals(Rid canvas, bool containLayers 
         for (int i = 0; i < package.Chains.Count; i++)
         {
             XafChain chain = package.Chains[i];
-            if (chain.HasArt && TryRaster(chain.SvgPath, chain.Group, out ImageTexture? texture, out Vector2 size))
+            if (chain.HasArt && TryRaster(chain.SvgPath, chain.Group, out ArtTexture? texture, out Vector2 size))
                 _chains.Add(new ChainVisual(i, texture!, size, XafChainArt.LayerOf(package, chain)));
         }
 
@@ -192,7 +194,7 @@ public sealed partial class SvgAttachmentVisuals(Rid canvas, bool containLayers 
         var colors = new Color[vertices.Length];
         Array.Fill(colors, Colors.White);
         CanvasServer.Current.AddTriangleArray(item, triangles, vertices, colors, uvs,
-            texture: visual.Texture.GetRid());
+            texture: visual.Texture.Id);
     }
 
     public void ApplyCloths(XafPackage package, XafClothSimulation simulation, Transform2D placement)
@@ -286,13 +288,11 @@ public sealed partial class SvgAttachmentVisuals(Rid canvas, bool containLayers 
     private EffectVisual? TryPolygon(XifPrimitive primitive, Xif item, int layer, int order)
     {
         Vector2[] points = primitive.Points.ToArray();
-        int[] triangles = points.Length >= 3 ? Geometry2D.TriangulatePolygon(points) : Array.Empty<int>();
+        int[] triangles = points.Length >= 3 ? Triangulate.Polygon(points) : Array.Empty<int>();
         if (triangles.Length == 0)
             return null;
 
-        Texture2D? texture = primitive.Ref.Length > 0 && ResourceLoader.Exists(primitive.Ref)
-            ? ResourceLoader.Load<Texture2D>(primitive.Ref)
-            : null;
+        Rid texture = primitive.Ref.Length > 0 ? TextureServer.Current.Load(primitive.Ref) : default;
         var bounds = new Rect2(points[0], Vector2.Zero);
         foreach (Vector2 point in points)
             bounds = bounds.Expand(point);
@@ -312,19 +312,25 @@ public sealed partial class SvgAttachmentVisuals(Rid canvas, bool containLayers 
         SetLayer(canvasItem, layer, order);
         CanvasServer.Current.SetVisible(canvasItem, false);
         CanvasServer.Current.AddTriangleArray(canvasItem, triangles, points, colors, uvs,
-            texture: texture?.GetRid() ?? default);
+            texture: texture);
 
         string shader = !primitive.Shader.IsNone ? primitive.Shader.Path : item.PrimaryCommonShader;
-        if (shader.Length > 0 && CommonShaderMaterials.MaterialOf(shader) is { IsValid: true } material)
-            RenderingServer.CanvasItemSetMaterial(canvasItem, material);
-        return new EffectVisual(-1, canvasItem, texture);
+        if (shader.Length > 0)
+        {
+            if (!HostPlatform.IsGodot)
+                CanvasServer.Current.SetMaterial(canvasItem, new CanvasMaterial(shader));
+            else if (CommonShaderMaterials.MaterialOf(shader) is { IsValid: true } material)
+                RenderingServer.CanvasItemSetMaterial(canvasItem, material);
+        }
+
+        return new EffectVisual(-1, canvasItem);
     }
 
     /// <summary>
     /// Rasterises one group of an SVG file. A missing or malformed file is
     /// skipped, since it must not stop rig editing.
     /// </summary>
-    private static bool TryRaster(string svgPath, string group, out ImageTexture? texture, out Vector2 size)
+    private static bool TryRaster(string svgPath, string group, out ArtTexture? texture, out Vector2 size)
     {
         texture = null;
         size = Vector2.Zero;
@@ -350,31 +356,22 @@ public sealed partial class SvgAttachmentVisuals(Rid canvas, bool containLayers 
     /// Colour is bled into the transparent pixels first, or filtering and the
     /// mipmaps pull their black into the edges (<see cref="ArtAlphaBleed"/>).
     /// </summary>
-    private static ImageTexture Raster(string svg, out Vector2 size)
+    private static ArtTexture Raster(string svg, out Vector2 size)
     {
-        var image = new Image();
-        Error error = image.LoadSvgFromString(svg, ArtScale);
-        if (error != Error.Ok)
-            throw new InvalidOperationException(error.ToString());
-
-        size = (Vector2)image.GetSize() / ArtScale;
-        if (image.GetFormat() != Image.Format.Rgba8)
-            image.Convert(Image.Format.Rgba8);
-        int width = image.GetWidth();
-        int height = image.GetHeight();
-        byte[] pixels = image.GetData();
-        ArtAlphaBleed.Apply(pixels, width, height);
-        image.SetData(width, height, false, Image.Format.Rgba8, pixels);
-        image.GenerateMipmaps();
-        return ImageTexture.CreateFromImage(image);
+        RasterImage image = SvgRaster.Render(svg, ArtScale);
+        size = new Vector2(image.Width, image.Height) / ArtScale;
+        ArtAlphaBleed.Apply(image.Pixels, image.Width, image.Height);
+        return new ArtTexture(TextureServer.Current.Create(image.Width, image.Height, image.Pixels, mipmaps: true), image);
     }
 
     private Rid CreateArtItem()
     {
         Rid item = CanvasServer.Current.CreateItem();
         CanvasServer.Current.SetParent(item, canvas);
-        RenderingServer.CanvasItemSetDefaultTextureFilter(
-            item, RenderingServer.CanvasItemTextureFilter.LinearWithMipmaps);
+        // The host always filters with mipmaps; Godot needs telling.
+        if (HostPlatform.IsGodot)
+            RenderingServer.CanvasItemSetDefaultTextureFilter(
+                item, RenderingServer.CanvasItemTextureFilter.LinearWithMipmaps);
         return item;
     }
 
@@ -391,19 +388,25 @@ public sealed partial class SvgAttachmentVisuals(Rid canvas, bool containLayers 
         CanvasServer.Current.SetDrawIndex(item, order);
     }
 
-    private Rid CreateItem(ImageTexture texture, Vector2 size, int layer, int order = 0)
+    private Rid CreateItem(ArtTexture texture, Vector2 size, int layer, int order = 0)
     {
         Rid item = CreateArtItem();
         SetLayer(item, layer, order);
-        RenderingServer.CanvasItemAddTextureRect(item, new Rect2(-size / 2, size), texture.GetRid());
+        CanvasServer.Current.AddTextureRect(item, new Rect2(-size / 2, size), texture.Id);
         return item;
+    }
+
+    /// <summary>A rasterised SVG group: its texture, and its pixels for reading coverage.</summary>
+    private sealed record ArtTexture(Rid Id, RasterImage Image)
+    {
+        public void Dispose() => TextureServer.Current.Free(Id);
     }
 
     /// <summary>
     /// One art option of one attachment; <see cref="Mesh"/> is set once it has been
     /// drawn as a mesh, and <see cref="Layer"/> holds the layer it was last given.
     /// </summary>
-    private sealed record Visual(int Index, int Art, Rid Item, ImageTexture Texture, Rect2 Bounds)
+    private sealed record Visual(int Index, int Art, Rid Item, ArtTexture Texture, Rect2 Bounds)
     {
         public int? Layer { get; set; }
 
@@ -413,8 +416,8 @@ public sealed partial class SvgAttachmentVisuals(Rid canvas, bool containLayers 
         public bool Shown { get; set; } = Art == 0;
     }
 
-    /// <summary>One polygon of an effect; the texture is held so it outlives the canvas item drawing it.</summary>
-    private sealed record EffectVisual(int Index, Rid Item, Texture2D? Texture)
+    /// <summary>One polygon of an effect; its texture is held by the texture server.</summary>
+    private sealed record EffectVisual(int Index, Rid Item)
     {
         /// <summary>The alpha the pose last gave it, which presence keeps when it shades the effect.</summary>
         public float Alpha { get; set; }
@@ -434,7 +437,7 @@ public sealed partial class SvgAttachmentVisuals(Rid canvas, bool containLayers 
         public int[] Triangles { get; set; } = Array.Empty<int>();
     }
 
-    private sealed record ChainVisual(int Index, ImageTexture Texture, Vector2 Size, int Layer)
+    private sealed record ChainVisual(int Index, ArtTexture Texture, Vector2 Size, int Layer)
     {
         public List<Rid> Items { get; } = new();
     }

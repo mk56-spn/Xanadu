@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using Godot;
+using Xanadu.Rendering;
 using Xanadu.Systems.Canvas;
 
 namespace Xanadu.Host.Rendering;

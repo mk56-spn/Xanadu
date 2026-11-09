@@ -128,4 +128,16 @@ public sealed class ParticleSpawnTests
         Assert.That(middle.G, Is.EqualTo(0.75f).Within(1e-5f));
         Assert.That(middle.A, Is.EqualTo(0.75f).Within(1e-5f));
     }
+
+    [Test]
+    public void AStreamThrowsWhatCameDueAllBornNow()
+    {
+        var effect = new XpfParticle { Amount = 30, Lifetime = 1.5f, Explosiveness = 0f };
+        Assert.That(ParticleSpawn.StreamRate(effect), Is.EqualTo(20f));
+
+        int count = ParticleSpawn.Stream(effect, 5, Vector2.Zero, Colors.White, 0f, 1, new Random(1), _seeds);
+        Assert.That(count, Is.EqualTo(5));
+        for (int i = 0; i < count; i++)
+            Assert.That(_seeds[i].Delay, Is.Zero);
+    }
 }

@@ -34,7 +34,9 @@ public sealed partial class SvgAttachmentVisuals
             if (effect.Particle.Length == 0 || ParticleLibrary.Find(effect.Particle) is not { } particle)
                 continue;
 
-            var instance = new ParticleInstance(ParticleKit.Shared, canvas, particle, trail: true);
+            IParticleFlow instance = Xanadu.Systems.HostPlatform.Particles is { } server
+                ? new ParticleStream(server, canvas, particle)
+                : new ParticleInstance(ParticleKit.Shared, canvas, particle, trail: true);
             SetLayer(instance.Item, effect.ZOrder, AnimatorDrawOrder.Effect(i, effect.Item.Primitives.Count));
             _particles.Add(new ParticleEffect(i, instance));
         }
@@ -62,5 +64,5 @@ public sealed partial class SvgAttachmentVisuals
         _particles.Clear();
     }
 
-    private readonly record struct ParticleEffect(int Index, ParticleInstance Instance);
+    private readonly record struct ParticleEffect(int Index, IParticleFlow Instance);
 }

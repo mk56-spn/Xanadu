@@ -116,16 +116,11 @@ public sealed class PlayfieldSystemGroup : SystemGroup, IDisposable
             Add(new CharacterMotionSystem());
             Add(new CharacterAttackSystem());
             Add(new CharacterRigAnimateSystem());
-            // Rig art rasterises SVG through Godot; the host draws the plain player
-            // box until docs/moonworks-port.md step 8 gives it the art.
-            if (HostPlatform.IsGodot)
-            {
-                Add(new CharacterRigDrawSystem(
-                    () => new SvgAttachmentVisuals(_characters.Rid),
-                    new CharacterRigGhosts(
-                        _ghosts.Rid,
-                        root => new SvgAttachmentVisuals(root, containLayers: true) { Particles = false })));
-            }
+            Add(new CharacterRigDrawSystem(
+                () => new SvgAttachmentVisuals(_characters.Rid),
+                new CharacterRigGhosts(
+                    _ghosts.Rid,
+                    root => new SvgAttachmentVisuals(root, containLayers: true) { Particles = false })));
         }
 
         Add(new DivaNotesSystem(entities));

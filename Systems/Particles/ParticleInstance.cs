@@ -11,7 +11,7 @@ namespace Xanadu.Systems.Particles;
 /// item that sits where they go off. It plays an <see cref="XpfParticle"/>
 /// either once (<see cref="Burst"/>) or as a flow (<see cref="Stream"/>).
 /// </summary>
-public sealed class ParticleInstance : IDisposable
+public sealed class ParticleInstance : IParticleFlow
 {
     private readonly ParticleKit _kit;
     private readonly Rid _particles;
