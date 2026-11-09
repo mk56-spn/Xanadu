@@ -21,7 +21,8 @@ public sealed class EditorPlayfieldDrawSystem :
     QuerySystem<PlayfieldView, Playfield, Playhead, NoteSelection>
 {
     private readonly ShaderRoutingCanvas _canvas;
-    private readonly GodotShaderCanvasItems _shaderItems = new();
+    /// <summary>The rendering-server items shaded draws go to; null when tests hand in their own.</summary>
+    private readonly GodotShaderCanvasItems? _shaderItems;
     private readonly EntityStore _entities;
     private readonly Rid _editor;
     private readonly IPassSurfaces? _passes;
@@ -43,10 +44,15 @@ public sealed class EditorPlayfieldDrawSystem :
         IRectCanvas canvas,
         Rid editor,
         IPassSurfaces? passes = null,
-        Func<Rect2, Rect2>? toPixels = null)
+        Func<Rect2, Rect2>? toPixels = null,
+        IShaderCanvasItems? shaderItems = null)
     {
         _entities = entities;
-        _canvas = new ShaderRoutingCanvas(canvas, editor, _shaderItems, toPixels);
+
+        // Tests have no rendering server: calling it outside the engine jumps to a
+        // null native pointer and kills the whole test host, so they pass a fake.
+        _shaderItems = shaderItems is null ? new GodotShaderCanvasItems() : null;
+        _canvas = new ShaderRoutingCanvas(canvas, editor, shaderItems ?? _shaderItems!, toPixels);
         _editor = editor;
         _passes = passes;
 
@@ -84,7 +90,7 @@ public sealed class EditorPlayfieldDrawSystem :
             ref selection,
             entity) =>
         {
-            if (entity.TryGetComponent(out LevelShaders shaders))
+            if (_shaderItems is not null && entity.TryGetComponent(out LevelShaders shaders))
             {
                 LevelShaderMaterials.Ensure(shaders);
                 _shaderItems.MaterialOf = (slot, blend) => LevelShaderMaterials.MaterialOf(shaders, slot, blend);

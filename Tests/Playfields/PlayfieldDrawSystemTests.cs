@@ -6,6 +6,7 @@ using NUnit.Framework;
 using Xanadu.Ecs;
 using Xanadu.Systems.Canvas;
 using Xanadu.Systems.Playfields;
+using Xanadu.Tests.Support.Fakes;
 
 namespace Xanadu.Tests.Playfields;
 
@@ -25,7 +26,7 @@ public sealed class PlayfieldDrawSystemTests
 
         var canvas = new RecordingCanvas();
         var root = new SystemRoot(store);
-        root.Add(new PlayfieldDrawSystem(store, canvas, default));
+        root.Add(new PlayfieldDrawSystem(store, canvas, default, shaderItems: new FakeShaderCanvasItems()));
 
         root.Update(new UpdateTick(1f / 60f, 0));
 
@@ -47,7 +48,7 @@ public sealed class PlayfieldDrawSystemTests
 
         var canvas = new RecordingCanvas();
         var root = new SystemRoot(store);
-        root.Add(new PlayfieldDrawSystem(store, canvas, default));
+        root.Add(new PlayfieldDrawSystem(store, canvas, default, shaderItems: new FakeShaderCanvasItems()));
 
         root.Update(new UpdateTick(1f / 60f, 0));
 
@@ -73,7 +74,7 @@ public sealed class PlayfieldDrawSystemTests
 
         var canvas = new RecordingCanvas();
         var root = new SystemRoot(store);
-        root.Add(new PlayfieldDrawSystem(store, canvas, default));
+        root.Add(new PlayfieldDrawSystem(store, canvas, default, shaderItems: new FakeShaderCanvasItems()));
 
         root.Update(new UpdateTick(1f / 60f, 0));
 
@@ -94,7 +95,7 @@ public sealed class PlayfieldDrawSystemTests
 
         var canvas = new RecordingCanvas();
         var root = new SystemRoot(store);
-        root.Add(new PlayfieldDrawSystem(store, canvas, default));
+        root.Add(new PlayfieldDrawSystem(store, canvas, default, shaderItems: new FakeShaderCanvasItems()));
 
         root.Update(new UpdateTick(1f / 60f, 0));
 
@@ -117,7 +118,7 @@ public sealed class PlayfieldDrawSystemTests
 
         var canvas = new RecordingCanvas();
         var root = new SystemRoot(store);
-        root.Add(new PlayfieldDrawSystem(store, canvas, default));
+        root.Add(new PlayfieldDrawSystem(store, canvas, default, shaderItems: new FakeShaderCanvasItems()));
 
         root.Update(new UpdateTick(1f / 60f, 0));
 
@@ -149,7 +150,7 @@ public sealed class PlayfieldDrawSystemTests
 
         var canvas = new RecordingCanvas();
         var root = new SystemRoot(store);
-        root.Add(new PlayfieldDrawSystem(store, canvas, default));
+        root.Add(new PlayfieldDrawSystem(store, canvas, default, shaderItems: new FakeShaderCanvasItems()));
 
         root.Update(new UpdateTick(1f / 60f, 0));
 

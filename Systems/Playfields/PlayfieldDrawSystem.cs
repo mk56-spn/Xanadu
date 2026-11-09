@@ -14,7 +14,8 @@ public sealed class PlayfieldDrawSystem :
 {
     private readonly EntityStore _entities;
     private readonly ShaderRoutingCanvas _canvas;
-    private readonly GodotShaderCanvasItems _shaderItems = new();
+    /// <summary>The rendering-server items shaded draws go to; null when tests hand in their own.</summary>
+    private readonly GodotShaderCanvasItems? _shaderItems;
     private readonly Rid _playfield;
     private readonly IPassSurfaces? _passes;
 
@@ -26,10 +27,15 @@ public sealed class PlayfieldDrawSystem :
         IRectCanvas canvas,
         Rid playfield,
         IPassSurfaces? passes = null,
-        Func<Rect2, Rect2>? toPixels = null)
+        Func<Rect2, Rect2>? toPixels = null,
+        IShaderCanvasItems? shaderItems = null)
     {
         _entities = entities;
-        _canvas = new ShaderRoutingCanvas(canvas, playfield, _shaderItems, toPixels);
+
+        // Tests have no rendering server: calling it outside the engine jumps to a
+        // null native pointer and kills the whole test host, so they pass a fake.
+        _shaderItems = shaderItems is null ? new GodotShaderCanvasItems() : null;
+        _canvas = new ShaderRoutingCanvas(canvas, playfield, shaderItems ?? _shaderItems!, toPixels);
         _playfield = playfield;
         _passes = passes;
     }
@@ -52,9 +58,12 @@ public sealed class PlayfieldDrawSystem :
                 LevelShaders shaders = entity.TryGetComponent(out LevelShaders found)
                     ? found
                     : LevelShaders.Create();
-                LevelShaderMaterials.Ensure(shaders);
-                _shaderItems.MaterialOf = (slot, blend) => LevelShaderMaterials.MaterialOf(shaders, slot, blend);
-                _shaderItems.CommonMaterialOf = (path, blend) => CommonShaderMaterials.MaterialOf(path, blend);
+                if (_shaderItems is not null)
+                {
+                    LevelShaderMaterials.Ensure(shaders);
+                    _shaderItems.MaterialOf = (slot, blend) => LevelShaderMaterials.MaterialOf(shaders, slot, blend);
+                    _shaderItems.CommonMaterialOf = (path, blend) => CommonShaderMaterials.MaterialOf(path, blend);
+                }
 
                 Color? background = null;
                 Color? outside = null;

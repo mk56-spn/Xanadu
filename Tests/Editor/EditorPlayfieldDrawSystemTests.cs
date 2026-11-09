@@ -10,6 +10,7 @@ using Xanadu.Systems.Audio;
 using Xanadu.Systems.Canvas;
 using Xanadu.Systems.Editor;
 using Xanadu.Systems.Playfields;
+using Xanadu.Tests.Support.Fakes;
 using Xanadu.Timeline;
 using Xanadu.Ui.Ecs.Ui;
 
@@ -33,7 +34,7 @@ public sealed class EditorPlayfieldDrawSystemTests
 
         var canvas = new RecordingCanvas();
         var root = new SystemRoot(store);
-        root.Add(new EditorPlayfieldDrawSystem(store, canvas, default));
+        root.Add(new EditorPlayfieldDrawSystem(store, canvas, default, shaderItems: new FakeShaderCanvasItems()));
 
         root.Update(new UpdateTick(1f / 60f, 0));
 
@@ -56,7 +57,7 @@ public sealed class EditorPlayfieldDrawSystemTests
 
         var canvas = new RecordingCanvas();
         var root = new SystemRoot(store);
-        root.Add(new EditorPlayfieldDrawSystem(store, canvas, default));
+        root.Add(new EditorPlayfieldDrawSystem(store, canvas, default, shaderItems: new FakeShaderCanvasItems()));
         root.Update(new UpdateTick(1f / 60f, 0));
         return (canvas, EditorLayout.RulerRect(view));
     }
@@ -119,7 +120,7 @@ public sealed class EditorPlayfieldDrawSystemTests
 
         var canvas = new RecordingCanvas();
         var root = new SystemRoot(store);
-        root.Add(new EditorPlayfieldDrawSystem(store, canvas, default));
+        root.Add(new EditorPlayfieldDrawSystem(store, canvas, default, shaderItems: new FakeShaderCanvasItems()));
 
         root.Update(new UpdateTick(1f / 60f, 0));
 
@@ -141,7 +142,7 @@ public sealed class EditorPlayfieldDrawSystemTests
 
         var canvas = new RecordingCanvas();
         var root = new SystemRoot(store);
-        root.Add(new EditorPlayfieldDrawSystem(store, canvas, default));
+        root.Add(new EditorPlayfieldDrawSystem(store, canvas, default, shaderItems: new FakeShaderCanvasItems()));
 
         root.Update(new UpdateTick(1f / 60f, 0));
 
@@ -169,7 +170,7 @@ public sealed class EditorPlayfieldDrawSystemTests
 
         var canvas = new RecordingCanvas();
         var root = new SystemRoot(store);
-        root.Add(new EditorPlayfieldDrawSystem(store, canvas, default));
+        root.Add(new EditorPlayfieldDrawSystem(store, canvas, default, shaderItems: new FakeShaderCanvasItems()));
 
         root.Update(new UpdateTick(1f / 60f, 0));
 
@@ -201,7 +202,7 @@ public sealed class EditorPlayfieldDrawSystemTests
 
         var canvas = new RecordingCanvas();
         var root = new SystemRoot(store);
-        root.Add(new EditorPlayfieldDrawSystem(store, canvas, default));
+        root.Add(new EditorPlayfieldDrawSystem(store, canvas, default, shaderItems: new FakeShaderCanvasItems()));
 
         root.Update(new UpdateTick(1f / 60f, 0));
 
@@ -232,7 +233,7 @@ public sealed class EditorPlayfieldDrawSystemTests
 
         var canvas = new RecordingCanvas();
         var root = new SystemRoot(store);
-        root.Add(new EditorPlayfieldDrawSystem(store, canvas, default));
+        root.Add(new EditorPlayfieldDrawSystem(store, canvas, default, shaderItems: new FakeShaderCanvasItems()));
 
         root.Update(new UpdateTick(1f / 60f, 0));
 
@@ -265,7 +266,7 @@ public sealed class EditorPlayfieldDrawSystemTests
 
         var canvas = new RecordingCanvas();
         var root = new SystemRoot(store);
-        root.Add(new EditorPlayfieldDrawSystem(store, canvas, default));
+        root.Add(new EditorPlayfieldDrawSystem(store, canvas, default, shaderItems: new FakeShaderCanvasItems()));
 
         root.Update(new UpdateTick(1f / 60f, 0));
 
@@ -298,7 +299,7 @@ public sealed class EditorPlayfieldDrawSystemTests
 
         var canvas = new RecordingCanvas();
         var root = new SystemRoot(store);
-        root.Add(new EditorPlayfieldDrawSystem(store, canvas, default));
+        root.Add(new EditorPlayfieldDrawSystem(store, canvas, default, shaderItems: new FakeShaderCanvasItems()));
 
         root.Update(new UpdateTick(1f / 60f, 0));
 
@@ -328,7 +329,7 @@ public sealed class EditorPlayfieldDrawSystemTests
 
         var canvas = new RecordingCanvas();
         var root = new SystemRoot(store);
-        root.Add(new EditorPlayfieldDrawSystem(store, canvas, default));
+        root.Add(new EditorPlayfieldDrawSystem(store, canvas, default, shaderItems: new FakeShaderCanvasItems()));
 
         root.Update(new UpdateTick(1f / 60f, 0));
 
@@ -354,7 +355,7 @@ public sealed class EditorPlayfieldDrawSystemTests
 
         var canvas = new RecordingCanvas();
         var root = new SystemRoot(store);
-        root.Add(new EditorPlayfieldDrawSystem(store, canvas, default));
+        root.Add(new EditorPlayfieldDrawSystem(store, canvas, default, shaderItems: new FakeShaderCanvasItems()));
 
         root.Update(new UpdateTick(1f / 60f, 0));
 
@@ -437,7 +438,7 @@ public sealed class EditorPlayfieldDrawSystemTests
 
         var canvas = new RecordingCanvas();
         var root = new SystemRoot(store);
-        root.Add(new EditorPlayfieldDrawSystem(store, canvas, default));
+        root.Add(new EditorPlayfieldDrawSystem(store, canvas, default, shaderItems: new FakeShaderCanvasItems()));
 
         root.Update(new UpdateTick(1f / 60f, 0));
 
@@ -467,7 +468,7 @@ public sealed class EditorPlayfieldDrawSystemTests
             new TimelineView(8f));
         var canvas = new RecordingCanvas();
         var root = new SystemRoot(store);
-        root.Add(new EditorPlayfieldDrawSystem(store, canvas, default));
+        root.Add(new EditorPlayfieldDrawSystem(store, canvas, default, shaderItems: new FakeShaderCanvasItems()));
         return (store, field, canvas, root);
     }
 
