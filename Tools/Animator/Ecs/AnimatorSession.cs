@@ -28,7 +28,7 @@ public static class AnimatorSession
                 Files = files,
             },
             AnimatorSelection.None,
-            new AnimatorModes { Kites = true, Handles = true },
+            new AnimatorModes { Kites = true, Handles = true, AutoKey = true },
             new AnimatorDrag(),
             new AnimatorStatus { Message = "" },
             new AnimatorFile
@@ -78,8 +78,12 @@ public static class AnimatorSession
         return default;
     }
 
-    public static void SetStatus(Entity session, string message) =>
-        session.GetComponent<AnimatorStatus>().Message = message;
+    public static void SetStatus(Entity session, string message)
+    {
+        ref AnimatorStatus status = ref session.GetComponent<AnimatorStatus>();
+        status.Message = message;
+        status.Serial++;
+    }
 
     /// <summary>Swaps in a new package and resets selection and playback to match.</summary>
     public static void Replace(Entity session, XafPackage package)

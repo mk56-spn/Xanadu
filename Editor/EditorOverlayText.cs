@@ -99,7 +99,7 @@ public partial class EditorOverlay : CanvasLayer
             return;
 
         ref EditorHud hud = ref editor.GetComponent<EditorHud>();
-        hud.StatusText = message;
+        hud.SetStatus(message);
     }
 
     private static string FilterNumeric(string value)

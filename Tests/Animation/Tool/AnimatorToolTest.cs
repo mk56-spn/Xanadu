@@ -40,6 +40,9 @@ public abstract class AnimatorToolTest : EcsSystemTest
         Root.Add(new UiAnchorSystem());
         AddSystems();
         Session = AnimatorSession.Create(Store, CreatePackage(), Files, "res://test.xaf");
+        // The tool opens with auto-key on; tests start with it off so a pose edit
+        // keys only where a test asks it to.
+        Session.GetComponent<AnimatorModes>().AutoKey = false;
         Session.AddComponent(AnimatorLayout.Build(
             Store,
             Screen,

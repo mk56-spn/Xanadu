@@ -53,7 +53,6 @@ public static partial class AnimatorLayout
     // screen wide less its padding. The window opens 1920 wide.
     private const float TitleWidth = EditorShellMetrics.NameWidth;
     /// <summary>The header's room for the status message, between undo and redo and the preview button.</summary>
-    private const float StatusWidth = 360f;
     private const float StatusButtonWidth = 44f;
     private const float ClipLabelWidth = 48f;
     private const float PreviewButtonWidth = 110f;
@@ -146,9 +145,8 @@ public static partial class AnimatorLayout
         IconAction(ui, "UN", "undo", ToolActionKind.Undo, history);
         IconAction(ui, "RE", "redo", ToolActionKind.Redo, history);
 
-        // The last action's message and the unsaved flag, shared with the level editor's header.
-        refs.Ui.StatusLabels = ShellStatus.Add(UiNode.Wrap(ui.Current, ui.Visuals), HeaderControl, StatusWidth);
-        refs.Ui.Status = refs.Ui.StatusLabels.Message;
+        // The unsaved flag, shared with the level editor's header; action messages are toasts.
+        refs.Ui.StatusLabels = ShellStatus.Add(UiNode.Wrap(ui.Current, ui.Visuals), HeaderControl);
         refs.Ui.DirtyLabel = refs.Ui.StatusLabels.Flag;
         ui.End();
 

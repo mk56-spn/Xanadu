@@ -1,3 +1,4 @@
+using Friflo.Engine.ECS;
 using Godot;
 using NUnit.Framework;
 using Xanadu.Animation;
@@ -62,6 +63,39 @@ public sealed class AnimatorFileTests : AnimatorToolTest
         Assert.That(Files.SavedPath, Is.EqualTo("res://test.xaf"));
         Assert.That(Files.Saved, Is.SameAs(Package));
         Assert.That(File.Dirty, Is.False);
+        Assert.That(Status, Is.EqualTo("SAVED res://test.xaf"));
+    }
+
+    [Test]
+    public void ANewSessionOpensWithAutoKeyOn()
+    {
+        Entity fresh = AnimatorSession.Create(Store, CreatePackage(), Files, "res://other.xaf");
+
+        Assert.That(fresh.GetComponent<AnimatorModes>().AutoKey, Is.True);
+    }
+
+    [Test]
+    public void SavingWithAPoseNoKeyHoldsSaysSo()
+    {
+        Session.GetComponent<AnimatorSelection>().Bone = 1;
+        Run(ToolActionKind.RotateRight);
+
+        Run(ToolActionKind.Save);
+
+        Assert.That(AnimatorUnkeyed.Count(Session), Is.EqualTo(1));
+        Assert.That(Status, Is.EqualTo("SAVED res://test.xaf · 1 PART POSED BUT NOT KEYED"));
+    }
+
+    [Test]
+    public void KeyingThePoseClearsTheUnkeyedWarning()
+    {
+        Session.GetComponent<AnimatorSelection>().Bone = 1;
+        Run(ToolActionKind.RotateRight);
+        AnimatorEditing.KeySelected(Session);
+
+        Run(ToolActionKind.Save);
+
+        Assert.That(AnimatorUnkeyed.Count(Session), Is.Zero);
         Assert.That(Status, Is.EqualTo("SAVED res://test.xaf"));
     }
 

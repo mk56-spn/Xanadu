@@ -129,6 +129,33 @@ public sealed class AnimatorPoseToolsTests : AnimatorToolTest
     }
 
     [Test]
+    public void TurningIkOnOrOffMidDragSwitchesTheHeldGrabAtOnce()
+    {
+        Pointer.Position = BoneScreenPosition(2);
+        Pointer.Pressed = true;
+        Ui.Preview.AddTag<Pressed>();
+        Frame();
+        AnimatorDragKind plain = Session.GetComponent<AnimatorDrag>().Kind;
+        Assert.That(plain, Is.Not.EqualTo(AnimatorDragKind.Ik));
+
+        Session.GetComponent<AnimatorModes>().Ik = true;
+        Vector2 target = PreviewOrigin() + new Vector2(60, -100);
+        Pointer.Position = target;
+        Frame();
+
+        Assert.That(Session.GetComponent<AnimatorDrag>().Kind, Is.EqualTo(AnimatorDragKind.Ik));
+        Transform2D[] world = XafRig.WorldBones(Package, Runtime.Pose);
+        Assert.That(world[2].Origin.DistanceTo(target - PreviewOrigin()), Is.LessThan(0.01f));
+
+        Session.GetComponent<AnimatorModes>().Ik = false;
+        Frame();
+        Assert.That(Session.GetComponent<AnimatorDrag>().Kind, Is.EqualTo(plain));
+        // Switching back starts from where the IK left the rig, so nothing jumps.
+        world = XafRig.WorldBones(Package, Runtime.Pose);
+        Assert.That(world[2].Origin.DistanceTo(target - PreviewOrigin()), Is.LessThan(0.5f));
+    }
+
+    [Test]
     public void IkDragWithAutoKeyKeysTheBentBones()
     {
         Session.GetComponent<AnimatorModes>().Ik = true;

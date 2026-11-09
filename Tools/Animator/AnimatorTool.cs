@@ -91,6 +91,7 @@ public partial class AnimatorTool : Control
         _attachments = new SvgAttachmentVisuals(_svgCanvas, containLayers: true);
 
         UiTextBridge.Attach(this, _store);
+        var toasts = new ToastSystem(_store, GetViewportRect().Size, new GodotVisualRidFactory());
         _root.Add(new UiSystemGroup(
             _store,
             GetCanvasItem(),
@@ -109,7 +110,9 @@ public partial class AnimatorTool : Control
             _pointer,
             _pointer,
             _keys,
-            new GodotAnimatorClick(this)));
+            new GodotAnimatorClick(this),
+            toasts));
+        _root.Add(toasts);
 
         var files = new GodotAnimatorFiles();
         _session = AnimatorSession.Create(
@@ -128,6 +131,12 @@ public partial class AnimatorTool : Control
         _root.Update(new UpdateTick(
             (float)delta,
             (float)Time.GetTicksMsec() / 1000f));
+
+        if (_session.GetComponent<AnimatorFile>().CloseRequested)
+        {
+            GetTree().Quit();
+            return;
+        }
 
         // Fit once the panels have been laid out, so the rig opens filling the preview.
         if (!_fitted && AnimatorPreviewCommands.Fit(_session))

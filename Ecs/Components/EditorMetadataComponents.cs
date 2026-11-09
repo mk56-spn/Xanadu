@@ -35,11 +35,22 @@ public struct EditorHud(
     public Entity Level = level;
     public Entity Song = song;
 
-    /// <summary>The header's status message and unsaved flag, shared with the animator.</summary>
+    /// <summary>The header's unsaved flag, shared with the animator.</summary>
     public ShellStatusLabels Status = status;
     public Entity Time = time;
     public Entity Notes = notes;
+
+    /// <summary>The last action's message, shown as a toast; set through <see cref="SetStatus"/>.</summary>
     public string StatusText = "";
+
+    /// <summary>Bumped on every message, so the same message twice toasts twice.</summary>
+    public int StatusSerial;
+
+    public void SetStatus(string message)
+    {
+        StatusText = message;
+        StatusSerial++;
+    }
 }
 
 /// <summary>Entities in the editor sidebar that flow around open dropdowns.</summary>

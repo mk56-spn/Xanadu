@@ -118,8 +118,8 @@ public static class EditorSceneChrome
             UiType.Label,
             SceneUi.AccentColor);
 
-        // The last action's message and the unsaved flag, shared with the animator's header.
-        ShellStatusLabels status = ShellStatus.Add(left, HeaderControl, StatusMessageWidth);
+        // The unsaved flag, shared with the animator's header; action messages are toasts.
+        ShellStatusLabels status = ShellStatus.Add(left, HeaderControl);
 
         UiNode right = EdgeGroup(header, new Vector2(1, 0.5f));
         // Grid, snap, advance and path live in the group bar at the top of the view.
@@ -133,8 +133,6 @@ public static class EditorSceneChrome
         return new Header(level, status, menu);
     }
 
-    /// <summary>What the header can spare for the status message between its two halves.</summary>
-    private const float StatusMessageWidth = 200;
     private const float HeaderLevelWidth = 160;
 
     /// <summary>

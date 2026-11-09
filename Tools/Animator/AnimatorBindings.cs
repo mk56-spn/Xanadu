@@ -28,6 +28,7 @@ public static class AnimatorBindings
         new(new ToolAction(ToolActionKind.TogglePreviewMode), Key.F5),
         new(new ToolAction(ToolActionKind.ExitPreviewMode), Key.Escape),
         new(new ToolAction(ToolActionKind.OpenInfo), Key.I, Ctrl: true),
+        new(new ToolAction(ToolActionKind.CloseEditor), Key.Q, Ctrl: true),
         new(new ToolAction(ToolActionKind.TransitionFadeDown), Key.Minus, Shift: true),
         new(new ToolAction(ToolActionKind.TransitionFadeUp), Key.Equal, Shift: true),
         new(new ToolAction(ToolActionKind.Save), Key.S, Ctrl: true),

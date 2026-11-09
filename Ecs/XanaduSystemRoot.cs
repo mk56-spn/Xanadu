@@ -189,7 +189,8 @@ public sealed class XanaduSystemRoot : SystemRoot, IDisposable
             wheel,
             _editorPassSurfaces,
             toPixels,
-            () => Display.EditorAutosave);
+            () => Display.EditorAutosave,
+            Toasts);
         _editorSystems.SetActive(false);
         Add(_editorSystems);
         Add(new InputSystemGroup(

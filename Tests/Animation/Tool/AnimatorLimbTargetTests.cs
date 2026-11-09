@@ -191,6 +191,31 @@ public sealed class AnimatorLimbTargetTests : AnimatorToolTest
     }
 
     [Test]
+    public void AnOverrideTooShortToSeeIsDroppedAndItsKeysAreOrdinary()
+    {
+        XafLimbTarget target = Orbit();
+        // As a file can hold: a sliver far shorter than any span the tool makes.
+        target.From = 0.5f;
+        target.To = 0.5007f;
+
+        AnimatorHistoryCommands.Edit(Session, () =>
+            XafAuthoring.SetChannel(Clip, XafChannelTarget.Bone, "shin", XafChannelProperty.Rotation, 0.5f, 2f));
+
+        Assert.That(Clip.Targets, Is.Empty);
+        Assert.That(Status, Does.Not.Contain("BELONG"));
+        Assert.That(Clip.Channels.Find(c => c.TargetId == "shin")!.Keyframes.Exists(k => k.Value == 2f), Is.True);
+    }
+
+    [Test]
+    public void TheSpanCannotBeSetShorterThanTheShortestOverride()
+    {
+        Orbit();
+        Session.GetComponent<AnimatorDocument>().Runtime.Seek(0.999f);
+        Verb("from");
+        Assert.That(Clip.Targets[0].From, Is.EqualTo(0f));
+    }
+
+    [Test]
     public void AnchorCyclesAndTheStartStaysPut()
     {
         Orbit();

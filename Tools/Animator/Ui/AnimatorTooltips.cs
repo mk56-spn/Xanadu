@@ -24,6 +24,7 @@ public static class AnimatorTooltips
         ToolActionKind.TogglePathWindow => "Motion paths for the whole clip, or one second around the playhead (Shift+N)",
         ToolActionKind.OpenInfo => "The file's path and what it holds (Ctrl+I)",
         ToolActionKind.CloseInfo => "Close the file info",
+        ToolActionKind.CloseEditor => "Quit the animator (Ctrl+Q); with unsaved changes, press again to discard them",
         ToolActionKind.TogglePreviewMode => "Hide the editing panels and watch the clip (Tab)",
         ToolActionKind.ExitPreviewMode => "Back to editing (Esc)",
         ToolActionKind.Redo => "Redo the last undone edit (Ctrl+Y)",

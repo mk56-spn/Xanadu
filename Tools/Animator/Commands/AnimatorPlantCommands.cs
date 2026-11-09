@@ -113,7 +113,7 @@ public static class AnimatorPlantCommands
                 to = Math.Min(to, other.From);
         }
 
-        if (to - now <= XafTracks.TimeTolerance)
+        if (to - now < AnimatorOverrideCommands.MinDuration)
         {
             AnimatorSession.SetStatus(session, "NO TIME LEFT TO PIN · MOVE THE PLAYHEAD BACK");
             return;
@@ -157,7 +157,8 @@ public static class AnimatorPlantCommands
         XafTargets.Apply(document.Package, runtime.Pose, plant, now);
         XafPose live = runtime.Pose.Clone();
         float oldTo = plant.To;
-        bool remove = now - plant.From <= XafTracks.TimeTolerance;
+        // Too short a pin left over would own keys with no bar to show for it.
+        bool remove = now - plant.From < AnimatorOverrideCommands.MinDuration;
         AnimatorHistoryCommands.Edit(session, () =>
         {
             if (remove)

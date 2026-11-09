@@ -17,20 +17,27 @@ namespace Xanadu.Tests.Animation.Tool;
 public sealed class AnimatorDrawTests : AnimatorToolTest
 {
     // NUnit reuses one fixture instance, so the fakes are rebuilt per test.
+    // The preview and the timeline each draw on their own canvas, so a count of
+    // bone shapes never picks up the timeline's ease bands, and the other way round.
     private RecordingCanvas _canvas = null!;
+    private RecordingCanvas _timeline = null!;
     private RecordingVisuals _visuals = null!;
 
     protected override void AddSystems()
     {
         _canvas = new RecordingCanvas();
+        _timeline = new RecordingCanvas();
         _visuals = new RecordingVisuals();
         Root.Add(new AnimatorChainSimulationSystem());
         Root.Add(new AnimatorPreviewDrawSystem(_canvas, default, _visuals));
-        Root.Add(new AnimatorTimelineDrawSystem(_canvas, default));
+        Root.Add(new AnimatorTimelineDrawSystem(_timeline, default));
     }
 
     private int Circles(float radius) =>
         _canvas.LastFrameCircles.FindAll(circle => circle == radius).Count;
+
+    private int TimelineCircles(float radius) =>
+        _timeline.LastFrameCircles.FindAll(circle => circle == radius).Count;
 
     [Test]
     public void LoadsAttachmentVisualsOnceAndOnEachNewPackage()
@@ -248,7 +255,7 @@ public sealed class AnimatorDrawTests : AnimatorToolTest
     public void TimelineDrawsOneDiamondPerKeyTimeAndEnlargesTheSelected()
     {
         Frame();
-        int plain = _canvas.StripCount;
+        int plain = _timeline.StripCount;
 
         ref AnimatorSelection selection = ref Session.GetComponent<AnimatorSelection>();
         selection.HasKey = true;
@@ -259,23 +266,23 @@ public sealed class AnimatorDrawTests : AnimatorToolTest
 
         // Three keys of radius 5 (11 strips each); one grows to radius 7 (15 strips).
         Assert.That(plain, Is.EqualTo(3 * 11));
-        Assert.That(_canvas.StripCount, Is.EqualTo(2 * 11 + 15));
+        Assert.That(_timeline.StripCount, Is.EqualTo(2 * 11 + 15));
     }
 
     [Test]
     public void KeyMarkersShowHowEachKeyEases()
     {
         Frame();
-        int diamonds = _canvas.StripCount;
-        int circles = Circles(5);
+        int diamonds = _timeline.StripCount;
+        int circles = TimelineCircles(5);
 
         XafEasing.Apply(Idle, XafChannelTarget.Bone, "head", 1f, XafEasePreset.Ease);
         XafEasing.Apply(Idle, XafChannelTarget.Bone, "head", 0f, XafEasePreset.Step);
         Frame();
 
         // One diamond became a circle and another a square.
-        Assert.That(_canvas.StripCount, Is.EqualTo(diamonds - 2 * 11));
-        Assert.That(Circles(5), Is.EqualTo(circles + 1));
+        Assert.That(_timeline.StripCount, Is.EqualTo(diamonds - 2 * 11));
+        Assert.That(TimelineCircles(5), Is.EqualTo(circles + 1));
     }
 
     [Test]
@@ -300,8 +307,8 @@ public sealed class AnimatorDrawTests : AnimatorToolTest
         tracks.Expanded.Add(new XafTrack(XafChannelTarget.Bone, "head"));
         Frame();
 
-        Assert.That(_canvas.Texts, Has.Some.StartsWith("▾ head"));
-        Assert.That(_canvas.Texts, Does.Contain("rot"));
+        Assert.That(_timeline.Texts, Has.Some.StartsWith("▾ head"));
+        Assert.That(_timeline.Texts, Does.Contain("rot"));
     }
 
     [Test]
@@ -309,9 +316,8 @@ public sealed class AnimatorDrawTests : AnimatorToolTest
     {
         Frame();
 
-        Assert.That(_canvas.Texts, Does.Contain("head"));
-        Assert.That(_canvas.Texts, Has.Some.StartsWith("idle"));
-        Assert.That(_canvas.Texts, Does.Contain("0.2"));
+        Assert.That(_timeline.Texts, Does.Contain("▸ head"));
+        Assert.That(_timeline.Texts, Does.Contain("0.2"));
     }
 
     [Test]
@@ -322,7 +328,7 @@ public sealed class AnimatorDrawTests : AnimatorToolTest
         Frame();
 
         // At zoom 8 the window is 0.25 s wide: only the key at 0 is inside it.
-        Assert.That(_canvas.StripCount, Is.EqualTo(11));
+        Assert.That(_timeline.StripCount, Is.EqualTo(11));
     }
 
     [Test]
@@ -331,7 +337,7 @@ public sealed class AnimatorDrawTests : AnimatorToolTest
         Idle.Channels.Clear();
         Frame();
 
-        Assert.That(_canvas.Texts, Has.Some.StartsWith("No keys yet"));
+        Assert.That(_timeline.Texts, Has.Some.StartsWith("No keys yet"));
     }
 
     [Test]
@@ -398,8 +404,6 @@ public sealed class AnimatorDrawTests : AnimatorToolTest
 
     private sealed class RecordingCanvas : IRectCanvas
     {
-        private int _clears;
-
         public List<float> LastFrameCircles { get; private set; } = new();
         public List<string> Texts { get; } = new();
 
@@ -414,15 +418,11 @@ public sealed class AnimatorDrawTests : AnimatorToolTest
 
         public void Clear(Rid canvas)
         {
-            // Two canvases are cleared per frame: preview first, timeline second.
-            if (_clears++ % 2 == 0)
-            {
-                LastFrameCircles = new List<float>();
-                Texts.Clear();
-                StripCount = 0;
-                RectSizes.Clear();
-                PolygonColors.Clear();
-            }
+            LastFrameCircles = new List<float>();
+            Texts.Clear();
+            StripCount = 0;
+            RectSizes.Clear();
+            PolygonColors.Clear();
         }
 
         public void DrawCircle(Rid canvas, Vector2 center, float radius, Color color) =>

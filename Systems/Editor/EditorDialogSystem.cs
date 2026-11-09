@@ -490,6 +490,6 @@ public sealed class EditorDialogSystem : QuerySystem<EditorDialog>
     private static void SetStatus(Entity editor, string message)
     {
         if (editor.HasComponent<EditorHud>())
-            editor.GetComponent<EditorHud>().StatusText = message;
+            editor.GetComponent<EditorHud>().SetStatus(message);
     }
 }

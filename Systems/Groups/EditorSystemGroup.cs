@@ -31,7 +31,8 @@ public sealed class EditorSystemGroup : SystemGroup, IDisposable
         IWheelSource? wheel = null,
         Xanadu.Systems.Shaders.IPassSurfaces? passes = null,
         Func<Rect2, Rect2>? toPixels = null,
-        Func<bool>? autosaveToFile = null) : base("Editor")
+        Func<bool>? autosaveToFile = null,
+        Xanadu.Systems.Ui.ToastSystem? toasts = null) : base("Editor")
     {
         // The group panel's drawn timeline sits over its controls and under the
         // bar's drop-downs; only the editor scene shows it.
@@ -71,7 +72,7 @@ public sealed class EditorSystemGroup : SystemGroup, IDisposable
         Add(new EditorToolSectionSystem(entities));
         Add(new EditorButtonSystem(entities, commands));
         Add(new EditorMetadataSystem(entities, commands));
-        Add(new EditorHudSystem(entities));
+        Add(new EditorHudSystem(entities, toasts));
         Add(new WaveformPreviewSystem());
         Add(new EditorAnalysisSystem(entities));
         _draw = new EditorPlayfieldDrawSystem(entities, canvas, playfieldCanvas, passes, toPixels);

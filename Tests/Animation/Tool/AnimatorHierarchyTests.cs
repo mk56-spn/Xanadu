@@ -84,8 +84,8 @@ public sealed class AnimatorHierarchyTests : AnimatorToolTest
         }
 
         Assert.That(ClipLabels(), Has.Count.EqualTo(Package.Clips.Count));
-        // The FILE menu's four entries, the CONFIG menu's three, and one option per clip.
-        Assert.That(Store.Query<DropdownOption>().WithDisabled().Count, Is.EqualTo(4 + 3 + Package.Clips.Count));
+        // The FILE menu's four entries, the CONFIG menu's four, and one option per clip.
+        Assert.That(Store.Query<DropdownOption>().WithDisabled().Count, Is.EqualTo(4 + 4 + Package.Clips.Count));
     }
 
     [Test]

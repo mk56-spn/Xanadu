@@ -14,6 +14,9 @@ public static class AnimatorOverrideBars
     private const float GripWidth = 4f;
     private const int FontSize = 11;
 
+    /// <summary>The narrowest a bar is drawn, so even a very short override shows and can be grabbed.</summary>
+    private const float MinWidth = GripWidth * 2 + 4f;
+
     public static void Draw(IRectCanvas canvas, Rid target, AnimatorTimelineModel model, XafLimbTarget? selected)
     {
         for (int screenRow = 0; screenRow < model.LastRow - model.FirstRow; screenRow++)
@@ -39,8 +42,17 @@ public static class AnimatorOverrideBars
         XafLimbTarget item,
         bool selected)
     {
-        float left = Math.Max(model.XForSeconds(item.From), model.Ruler.Position.X);
-        float right = Math.Min(model.XForSeconds(item.To), model.Ruler.End.X);
+        float left = model.XForSeconds(item.From);
+        float right = model.XForSeconds(item.To);
+        if (right - left < MinWidth)
+        {
+            float middle = (left + right) / 2;
+            left = middle - MinWidth / 2;
+            right = middle + MinWidth / 2;
+        }
+
+        left = Math.Max(left, model.Ruler.Position.X);
+        right = Math.Min(right, model.Ruler.End.X);
         if (right <= left)
             return;
 

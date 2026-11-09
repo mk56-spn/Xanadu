@@ -189,10 +189,14 @@ internal static class AnimatorPreviewDrag
             AnimatorHistoryCommands.Edit(session, () => edited = AnimatorKeyEditCommands.Apply(session));
             if (edited == 0 && modes.AutoKey)
                 AnimatorEditing.KeyBones(session, grandparent, parent);
+            return;
         }
-        else
-        {
-            AnimatorEditing.KeyEdit(session);
-        }
+
+        AnimatorEditing.KeyEdit(session);
+
+        // IK was turned off partway through: the chain it bent before then still needs its keys.
+        if (drag.UsedIk && modes.AutoKey &&
+            AnimatorPreviewChain.TryGet(package, drag.Grabbed, out int bentParent, out int bentGrandparent))
+            AnimatorEditing.KeyBones(session, bentGrandparent, bentParent);
     }
 }

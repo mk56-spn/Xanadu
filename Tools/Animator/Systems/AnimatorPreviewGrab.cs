@@ -125,10 +125,11 @@ internal static class AnimatorPreviewGrab
                 return;
             }
 
-            if (bone >= 0 && modes.Ik && !modes.Rest && AnimatorPreviewChain.TryGet(package, bone, out _, out _))
-                BeginIk(session, pointer, bone);
-            else if (bone >= 0)
-                BeginBone(session, pointer, bone, modes.Rest, pose, world);
+            if (bone >= 0)
+            {
+                AnimatorHistoryCommands.BeginGesture(session);
+                StartJoint(session, pointer, bone, modes, pose, world);
+            }
             return;
         }
 
@@ -194,6 +195,68 @@ internal static class AnimatorPreviewGrab
             : $"OFFSETTING {rig.Id}");
     }
 
+    /// <summary>What a plain grab of this joint does under these modes.</summary>
+    private static AnimatorDragKind JointKind(XafPackage package, int bone, AnimatorModes modes)
+    {
+        if (modes.Ik && !modes.Rest && AnimatorPreviewChain.TryGet(package, bone, out _, out _))
+            return AnimatorDragKind.Ik;
+        return modes.Rest || package.Skeleton.Bones[bone].CanTranslate
+            ? AnimatorDragKind.Bone
+            : AnimatorDragKind.Swing;
+    }
+
+    /// <summary>Starts, or restarts from where things are now, a plain joint grab under the current modes.</summary>
+    private static void StartJoint(
+        Entity session,
+        Vector2 pointer,
+        int bone,
+        AnimatorModes modes,
+        XafPose pose,
+        Transform2D[] world)
+    {
+        bool usedIk = session.GetComponent<AnimatorDrag>().FollowsModes &&
+                      session.GetComponent<AnimatorDrag>().UsedIk;
+        if (JointKind(session.GetComponent<AnimatorDocument>().Package, bone, modes) == AnimatorDragKind.Ik)
+            BeginIk(session, pointer, bone);
+        else
+            BeginBone(session, pointer, bone, modes.Rest, pose, world);
+
+        ref AnimatorDrag drag = ref session.GetComponent<AnimatorDrag>();
+        drag.FollowsModes = true;
+        drag.Grabbed = bone;
+        drag.Rest = modes.Rest;
+        drag.UsedIk = usedIk || drag.Kind == AnimatorDragKind.Ik;
+    }
+
+    /// <summary>
+    /// Keeps a held joint grab in step with the modes: when IK or REST was
+    /// turned on or off since it started, it carries on as the grab those modes
+    /// make, from where the rig is now, inside the same undo step; a PIN change
+    /// starts or stops holding the children still. No second press needed.
+    /// </summary>
+    public static void FollowModes(Entity session, Vector2 pointer, Rect2 area)
+    {
+        AnimatorDrag drag = session.GetComponent<AnimatorDrag>();
+        if (!drag.FollowsModes)
+            return;
+
+        AnimatorDocument document = session.GetComponent<AnimatorDocument>();
+        AnimatorModes modes = session.GetComponent<AnimatorModes>();
+        XafPackage package = document.Package;
+        if (drag.Grabbed < 0 || drag.Grabbed >= package.Skeleton.Bones.Count)
+            return;
+
+        if (JointKind(package, drag.Grabbed, modes) != drag.Kind || drag.Rest != modes.Rest)
+        {
+            XafPose pose = AnimatorGeometry.PreviewPose(document, modes);
+            StartJoint(session, pointer, drag.Grabbed, modes, pose, XafRig.WorldBones(package, pose));
+            return;
+        }
+
+        if (drag.Kind == AnimatorDragKind.Bone && modes.Rest && (drag.Pinned is not null) != AnimatorRestPin.IsOn(session))
+            session.GetComponent<AnimatorDrag>().Pinned = AnimatorRestPin.Capture(session, new[] { drag.Grabbed });
+    }
+
     /// <summary>
     /// Grabbing a joint moves it when the bone may translate (or in rest pose);
     /// otherwise the bone keeps its length and its parent swings instead.
@@ -212,7 +275,6 @@ internal static class AnimatorPreviewGrab
         document.Runtime.SetPaused(true);
         selection.Attachment = -1;
         selection.Effect = -1;
-        AnimatorHistoryCommands.BeginGesture(session);
 
         if (rest || rig.CanTranslate)
         {
@@ -246,7 +308,6 @@ internal static class AnimatorPreviewGrab
         ref AnimatorDocument document = ref session.GetComponent<AnimatorDocument>();
         ref AnimatorSelection selection = ref session.GetComponent<AnimatorSelection>();
         document.Runtime.SetPaused(true);
-        AnimatorHistoryCommands.BeginGesture(session);
         selection.SelectOnlyBone(joint);
         session.GetComponent<AnimatorDrag>() = new AnimatorDrag
         {

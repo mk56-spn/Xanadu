@@ -127,7 +127,7 @@ public sealed class AnimatorTimelineInputSystem(
             return;
         }
 
-        if (model.Ruler.HasPoint(point))
+        if (model.RulerBand.HasPoint(point))
         {
             BeginScrub(session, model, input);
             return;

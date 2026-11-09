@@ -98,10 +98,10 @@ public static class AnimatorTargetCommands
                 case "anchor":
                     NextAnchor(session, target);
                     break;
-                case "from" when now < target.To:
+                case "from" when now <= target.To - AnimatorOverrideCommands.MinDuration:
                     SetSpan(session, target, now, target.To);
                     break;
-                case "to" when now > target.From:
+                case "to" when now >= target.From + AnimatorOverrideCommands.MinDuration:
                     SetSpan(session, target, target.From, now);
                     break;
                 case "detach":
@@ -130,10 +130,21 @@ public static class AnimatorTargetCommands
         if (AnimatorSession.CurrentClip(document) is not { Targets.Count: > 0 } clip)
             return;
 
+        // An override too short to show a bar still owns keys: drop it, leaving them ordinary keys.
+        int slivers = clip.Targets.RemoveAll(IsSliver);
+        if (slivers > 0)
+            AnimatorSession.SetStatus(session, slivers == 1
+                ? "REMOVED AN OVERRIDE TOO SHORT TO SEE · ITS KEYS ARE YOURS"
+                : $"REMOVED {slivers} OVERRIDES TOO SHORT TO SEE · THEIR KEYS ARE YOURS");
+
         if (TouchedOwnedKeys(document.Package, before.Clips.Find(old => old.Id == clip.Id), clip))
             AnimatorSession.SetStatus(session, "THOSE KEYS BELONG TO AN OVERRIDE · DETACH");
         Rebake(session);
     }
+
+    /// <summary>Shorter than an override can be made, so too short to see or grab on the timeline.</summary>
+    public static bool IsSliver(XafLimbTarget target) =>
+        target.To - target.From < AnimatorOverrideCommands.MinDuration - XafTracks.TimeTolerance;
 
     /// <summary>Bakes the open clip and shows the result on the limbs it drives; the rest of the pose is left as posed.</summary>
     public static void Rebake(Entity session)

@@ -59,6 +59,18 @@ public sealed class AnimatorTimelineInputTests : AnimatorToolTest
     }
 
     [Test]
+    public void AKeyAtTheClipsEndCanBeGrabbedFromJustPastIt()
+    {
+        XafAuthoring.SetChannel(Idle, XafChannelTarget.Bone, "head", XafChannelProperty.Rotation, Idle.Duration, 0.3f);
+        Vector2 end = KeyPoint("head", Idle.Duration);
+
+        PressAt(end + new Vector2(AnimatorTimelineModel.KeyHitRadius - 2f, 0f));
+
+        Assert.That(Selection.HasKey, Is.True);
+        Assert.That(Selection.KeyTime, Is.EqualTo(Idle.Duration));
+    }
+
+    [Test]
     public void DraggingAKeySetRetimesEveryChannelAndSnaps()
     {
         XafAuthoring.KeyBoneTransform(Package, Idle, 2, 1f, XafTransform.Identity);

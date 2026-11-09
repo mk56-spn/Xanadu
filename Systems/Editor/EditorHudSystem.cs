@@ -13,10 +13,13 @@ namespace Xanadu.Systems.Editor;
 public sealed class EditorHudSystem : QuerySystem<EditorHud, LevelInfo, Playhead>
 {
     private readonly EntityStore _entities;
+    private readonly Xanadu.Systems.Ui.ToastSystem? _toasts;
+    private int _shownStatus;
 
-    public EditorHudSystem(EntityStore entities)
+    public EditorHudSystem(EntityStore entities, Xanadu.Systems.Ui.ToastSystem? toasts = null)
     {
         _entities = entities;
+        _toasts = toasts;
     }
 
     protected override void OnUpdate()
@@ -29,7 +32,7 @@ public sealed class EditorHudSystem : QuerySystem<EditorHud, LevelInfo, Playhead
                 string.IsNullOrWhiteSpace(level.Name) ? "Untitled" : level.Name,
                 buffer);
             UiText.Set(hud.Song, level.Song?.Title ?? "No song loaded", buffer);
-            ShellStatus.Show(hud.Status, hud.StatusText, buffer);
+            _shownStatus = ShellStatus.Show(_toasts, hud.StatusText, hud.StatusSerial, _shownStatus);
             UiText.Set(hud.Time,
                 $"{TimeFormat.Clock(playhead.TimeMs)} / {TimeFormat.Clock(playhead.DurationMs)}",
                 buffer);

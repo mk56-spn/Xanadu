@@ -224,7 +224,7 @@ public sealed class EditorChromeLayoutTests : EcsSystemTest
     public void TheMenuHoldsSaveLevelInfoAndExitOnly()
     {
         var labels = new System.Collections.Generic.List<string>();
-        foreach (Entity option in Store.Query<DropdownOption>().ToEntityList())
+        foreach (Entity option in Store.Query<DropdownOption>().WithDisabled().ToEntityList())
         {
             if (option.GetComponent<DropdownOption>().Owner == ByText("MENU ▾"))
                 labels.Add(option.GetComponent<Text>().Value);
@@ -283,17 +283,15 @@ public sealed class EditorChromeLayoutTests : EcsSystemTest
     }
 
     [Test]
-    public void TheStatusSitsInTheHeaderClearOfTheRightHandControls()
+    public void TheUnsavedFlagSitsInTheHeaderClearOfTheRightHandControls()
     {
         ShellStatusLabels labels = Store.Query<EditorHud>().ToEntityList()[0].GetComponent<EditorHud>().Status;
-        Rect2 message = Area(labels.Message);
         Rect2 flag = Area(labels.Flag);
         // MENU is the only control on the header's right.
         Rect2 file = Area(ByText("MENU ▾"));
 
-        Assert.That(_shell.Header.Encloses(message), Is.True);
         Assert.That(_shell.Header.Encloses(flag), Is.True);
-        Assert.That(message.End.X, Is.LessThanOrEqualTo(file.Position.X));
+        Assert.That(flag.End.X, Is.LessThanOrEqualTo(file.Position.X));
     }
 
     [Test]

@@ -104,7 +104,7 @@ public static class EditorItems
             return false;
 
         if (!editor.IsNull && editor.HasComponent<EditorHud>())
-            editor.GetComponent<EditorHud>().StatusText = $"Level is full: {MaxItems:N0} objects at most";
+            editor.GetComponent<EditorHud>().SetStatus($"Level is full: {MaxItems:N0} objects at most");
         return true;
     }
 }

@@ -75,7 +75,10 @@ public sealed class AnimatorPreviewInputSystem(
                  AnimatorChainHandles.IsChainDrag(drag.Kind) || AnimatorTargetCommands.IsDrag(drag.Kind))
         {
             if (input.Pressed)
+            {
+                AnimatorPreviewGrab.FollowModes(session, input.Position, area);
                 AnimatorPreviewDrag.Drag(session, input.Position, area, input.Shift);
+            }
             else
                 AnimatorPreviewDrag.End(session);
         }

@@ -1,58 +1,52 @@
 using Friflo.Engine.ECS;
 using Godot;
+using Xanadu.Systems.Ui;
 using Xanadu.Theme;
 using Xanadu.Ui.Ecs.Ui;
 
 namespace Xanadu.Ecs;
 
-/// <summary>The two labels a shell header shows its status with, and how wide the message may run.</summary>
-public readonly record struct ShellStatusLabels(Entity Message, Entity Flag, float MessageWidth);
+/// <summary>The unsaved-changes flag a shell header shows.</summary>
+public readonly record struct ShellStatusLabels(Entity Flag);
 
 /// <summary>
-/// The status every editor shell shows in its header: the last action's
-/// message (undo, redo, saved…) in lime, and an unsaved-changes flag beside it.
-/// The level editor and the animator build and update it through here, so
-/// both read the same.
+/// The status every editor shell shows: an unsaved-changes flag in its header,
+/// and the last action's message (undo, redo, saved…) as a toast, wide enough
+/// to read all of it. The level editor and the animator both go through here,
+/// so both read the same.
 /// </summary>
 public static class ShellStatus
 {
-    public const float MessageWidth = 240f;
     public const float FlagWidth = 96f;
     public const string UnsavedFlag = "● UNSAVED";
 
-    public static readonly Color MessageColor = Palette.Lime;
     public static readonly Color FlagColor = Palette.Accent;
 
-    /// <summary>
-    /// Adds the flag and then the message to a header row, each one control
-    /// tall; the message gets <paramref name="messageWidth"/>, as much as the
-    /// shell's header can spare.
-    /// </summary>
-    public static ShellStatusLabels Add(UiNode row, float height, float messageWidth = MessageWidth)
+    /// <summary>Adds the flag to a header row, one control tall.</summary>
+    public static ShellStatusLabels Add(UiNode row, float height)
     {
         Entity flag = row.Text("", UiTheme.SmallFontSize, FlagColor, TextAlign.Left)
             .Size(FlagWidth, height)
             .Entity;
-        Entity message = row.Text("", UiTheme.FontSize, MessageColor, TextAlign.Left)
-            .Size(messageWidth, height)
-            .Entity;
-        return new ShellStatusLabels(message, flag, messageWidth);
+        return new ShellStatusLabels(flag);
     }
 
-    /// <summary>How a message is shown: in capitals, cut to fit <paramref name="width"/>.</summary>
-    public static string Format(string? message, float width = MessageWidth) =>
-        UiTextFit.Cut((message ?? "").ToUpperInvariant(), UiTheme.FontSize, width);
-
-    public static void Show(ShellStatusLabels labels, string? message, CommandBuffer? buffer = null) =>
-        Set(labels.Message, Format(message, labels.MessageWidth), buffer);
-
-    public static void ShowUnsaved(ShellStatusLabels labels, bool unsaved, CommandBuffer? buffer = null) =>
-        Set(labels.Flag, unsaved ? UnsavedFlag : "", buffer);
-
-    private static void Set(Entity label, string value, CommandBuffer? buffer)
+    /// <summary>
+    /// Toasts the message when its serial has moved on since <paramref name="shown"/>,
+    /// so repeating the same action shows it again; returns the serial now shown.
+    /// </summary>
+    public static int Show(ToastSystem? toasts, string? message, int serial, int shown)
     {
-        if (label.IsNull || !label.HasComponent<Text>())
+        if (serial == shown)
+            return shown;
+        toasts?.ShowStatus((message ?? "").ToUpperInvariant());
+        return serial;
+    }
+
+    public static void ShowUnsaved(ShellStatusLabels labels, bool unsaved, CommandBuffer? buffer = null)
+    {
+        if (labels.Flag.IsNull || !labels.Flag.HasComponent<Text>())
             return;
-        UiText.Set(label, value, buffer);
+        UiText.Set(labels.Flag, unsaved ? UnsavedFlag : "", buffer);
     }
 }

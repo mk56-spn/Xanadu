@@ -372,6 +372,9 @@ public static class AnimatorCommands
             case ToolActionKind.NewSkeleton:
                 AnimatorFileCommands.NewSkeleton(session);
                 break;
+            case ToolActionKind.CloseEditor:
+                AnimatorFileCommands.CloseEditor(session);
+                break;
             case ToolActionKind.FitPreview:
                 AnimatorPreviewCommands.Fit(session);
                 break;

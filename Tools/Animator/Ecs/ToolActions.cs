@@ -247,6 +247,9 @@ public enum ToolActionKind
     /// <summary>Closes the file info popup.</summary>
     CloseInfo,
 
+    /// <summary>Quits the animator; with unsaved changes the first press only warns.</summary>
+    CloseEditor,
+
     /// <summary>Shows motion paths for the whole clip, or only around the playhead.</summary>
     TogglePathWindow,
 }

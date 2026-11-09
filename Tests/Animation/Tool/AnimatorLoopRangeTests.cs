@@ -29,7 +29,7 @@ public sealed class AnimatorLoopRangeTests : AnimatorToolTest
     }
 
     private Vector2 RulerPoint(float seconds) =>
-        new(Model().XForSeconds(seconds), Model().Ruler.Position.Y + 10f);
+        new(Model().XForSeconds(seconds), Model().Ruler.End.Y - 4f);
 
     private void Press(Vector2 position)
     {
@@ -63,6 +63,15 @@ public sealed class AnimatorLoopRangeTests : AnimatorToolTest
         Assert.That(start, Is.True);
         Assert.That(Model().TryPickLoopHandle(RulerPoint(1.5f), out start), Is.True);
         Assert.That(start, Is.False);
+    }
+
+    [Test]
+    public void TheRulerTopScrubsEvenOverALoopEnd()
+    {
+        LoopOn(0.5f, 1.5f);
+        Vector2 top = new(Model().XForSeconds(0.5f), Model().Ruler.Position.Y + 3f);
+
+        Assert.That(Model().TryPickLoopHandle(top, out _), Is.False);
     }
 
     [Test]

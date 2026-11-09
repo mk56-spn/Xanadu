@@ -85,6 +85,21 @@ public struct AnimatorDrag : IComponent
 
     /// <summary>The children a rest drag holds still when PIN is on.</summary>
     public Xanadu.Tools.Animator.Commands.AnimatorRestPin.Pinned? Pinned;
+
+    /// <summary>
+    /// A plain joint grab (a move, swing or IK drag) that switches with the
+    /// modes while held: turning IK, REST or PIN on or off takes effect at once.
+    /// </summary>
+    public bool FollowsModes;
+
+    /// <summary>The joint the press took, for a drag that follows the modes.</summary>
+    public int Grabbed;
+
+    /// <summary>Whether the drag was in the rest pose when it last (re)started.</summary>
+    public bool Rest;
+
+    /// <summary>Some part of the gesture was an IK drag, so the chain it bent is keyed at the end.</summary>
+    public bool UsedIk;
 }
 
 /// <summary>

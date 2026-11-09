@@ -109,7 +109,7 @@ public sealed class AnimatorTimelineDrawSystem(IRectCanvas canvas, Rid target)
     private void DrawRuler(AnimatorTimelineModel model)
     {
         Rect2 ruler = model.Ruler;
-        canvas.DrawRect(target, ruler, RulerBackground);
+        canvas.DrawRect(target, model.RulerBand, RulerBackground);
         if (model.Clip.Loop)
         {
             float startX = model.XForSeconds(model.Clip.LoopStart);
@@ -357,7 +357,10 @@ public sealed class AnimatorTimelineDrawSystem(IRectCanvas canvas, Rid target)
         return selection.Attachment >= 0 && selection.Attachment == attachment;
     }
 
-    /// <summary>Marks the loop range through the rows, with a grab tab at each end.</summary>
+    /// <summary>
+    /// Marks the loop range through the rows, with a grab tab at each end. The tabs
+    /// sit in the ruler's lower half so they never cover the playhead's tab on top.
+    /// </summary>
     private void DrawLoop(AnimatorTimelineModel model)
     {
         if (!model.Clip.Loop)
@@ -369,8 +372,9 @@ public sealed class AnimatorTimelineDrawSystem(IRectCanvas canvas, Rid target)
         float bottom = model.RowsBottom;
         canvas.DrawLine(target, new Vector2(startX, top), new Vector2(startX, bottom), LoopLine, 1);
         canvas.DrawLine(target, new Vector2(endX, top), new Vector2(endX, bottom), LoopLine, 1);
-        canvas.DrawRect(target, new Rect2(startX - 4, top - 2, 8, 12), LoopLine);
-        canvas.DrawRect(target, new Rect2(endX - 4, top - 2, 8, 12), LoopLine);
+        float tabTop = model.Ruler.End.Y - AnimatorTimelineModel.LoopTabHeight;
+        canvas.DrawRect(target, new Rect2(startX - 4, tabTop, 8, AnimatorTimelineModel.LoopTabHeight), LoopLine);
+        canvas.DrawRect(target, new Rect2(endX - 4, tabTop, 8, AnimatorTimelineModel.LoopTabHeight), LoopLine);
     }
 
     /// <summary>

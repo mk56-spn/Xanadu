@@ -58,7 +58,11 @@ public static class AnimatorFileCommands
         }
 
         SetBaseline(session);
-        AnimatorSession.SetStatus(session, $"SAVED {path}");
+        // A pose left unkeyed is not in the file; say so now, while it can still be keyed.
+        int unkeyed = AnimatorUnkeyed.Count(session);
+        AnimatorSession.SetStatus(session, unkeyed == 0
+            ? $"SAVED {path}"
+            : $"SAVED {path} · {AnimatorUnkeyed.Note(unkeyed)}");
     }
 
     public static void Load(Entity session)
@@ -94,6 +98,15 @@ public static class AnimatorFileCommands
         AnimatorPreviewCommands.Reset(session);
         SetBaseline(session);
         AnimatorSession.SetStatus(session, "NEW SKELETON");
+    }
+
+    /// <summary>Asks the tool to quit, once unsaved changes are saved or confirmed lost.</summary>
+    public static void CloseEditor(Entity session)
+    {
+        if (!ConfirmDiscard(session))
+            return;
+
+        session.GetComponent<AnimatorFile>().CloseRequested = true;
     }
 
     /// <summary>Recomputes whether the package differs from the last saved state.</summary>

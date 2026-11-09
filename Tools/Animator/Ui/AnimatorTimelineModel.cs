@@ -27,7 +27,16 @@ public sealed class AnimatorTimelineModel
     public const float RowHeight = 20f;
     public const float KeyRadius = 6f;
     public const float KeyHitRadius = 9f;
+
+    /// <summary>
+    /// Room after the clip's end: time stops this far short of the rows' right
+    /// edge, so a key at the very end can be grabbed from either side.
+    /// </summary>
+    public const float EndMargin = 14f;
     public const float LoopHandleRadius = 8f;
+
+    /// <summary>Height of the loop ends' tabs, drawn at the ruler's bottom edge.</summary>
+    public const float LoopTabHeight = 10f;
 
     /// <summary>The row scrollbar's width; it lives in the panel's right padding, clear of the rows.</summary>
     public const float RowBarWidth = 8f;
@@ -71,7 +80,11 @@ public sealed class AnimatorTimelineModel
     public IReadOnlySet<XafTrack> Expanded { get; }
     public TimeWindow Window { get; }
     public float Zoom { get; }
+    /// <summary>Where time runs: the clip's start to its end. It stops <see cref="EndMargin"/> short of the rows.</summary>
     public Rect2 Ruler { get; }
+
+    /// <summary>The ruler's strip run on to the rows' right edge, as drawn and scrubbed.</summary>
+    public Rect2 RulerBand => new(Ruler.Position, new Vector2(Rows.End.X - Ruler.Position.X, Ruler.Size.Y));
     public Rect2 Rows { get; }
     public Rect2 Labels { get; }
     public int VisibleRows { get; }
@@ -287,10 +300,6 @@ public sealed class AnimatorTimelineModel
         return false;
     }
 
-    /// <summary>
-    /// The loop end a press near its handle in the ruler grabs: true for the
-    /// start, false for the end. Only while the clip loops.
-    /// </summary>
     /// <summary>How near, in pixels, a press on the ruler must be to an event's flag to pick it.</summary>
     public const float EventHitRadius = 6f;
 
@@ -314,10 +323,16 @@ public sealed class AnimatorTimelineModel
         return index >= 0;
     }
 
+    /// <summary>
+    /// The loop end a press near its tab grabs: true for the start, false for the
+    /// end. Only while the clip loops, and only in the ruler's lower half where the
+    /// tabs are, so the upper half always scrubs the playhead even over a loop end.
+    /// </summary>
     public bool TryPickLoopHandle(Vector2 point, out bool start)
     {
         start = false;
-        if (!Clip.Loop || !Ruler.Grow(4f).HasPoint(point))
+        if (!Clip.Loop || !Ruler.Grow(4f).HasPoint(point) ||
+            point.Y < Ruler.End.Y - LoopTabHeight - 2f)
             return false;
 
         float startX = XForSeconds(Clip.LoopStart);
@@ -385,7 +400,7 @@ public sealed class AnimatorTimelineModel
         return new Rect2(
             x,
             panel.Position.Y + Padding + HeaderHeight + 4,
-            Math.Max(1f, panel.End.X - Padding - x),
+            Math.Max(1f, panel.End.X - Padding - x - EndMargin),
             RulerHeight);
     }
 
@@ -396,7 +411,7 @@ public sealed class AnimatorTimelineModel
         return new Rect2(
             ruler.Position.X,
             top,
-            ruler.Size.X,
+            ruler.Size.X + EndMargin,
             Math.Max(RowHeight, panel.End.Y - Padding - top));
     }
 }

@@ -41,6 +41,28 @@ public sealed class ToastSystemTests
     }
 
     [Test]
+    public void AStatusShownFromInsideAQueryLoopAppearsOnTheNextUpdate()
+    {
+        var store = new EntityStore();
+        var root = new SystemRoot(store);
+        var toasts = new ToastSystem(
+            store,
+            new Vector2(1280, 720),
+            new FakeVisualRidFactory());
+        root.Add(toasts);
+
+        // As the editor's HUD system does: showing must not change the store mid-loop.
+        store.CreateEntity(new TextStyle());
+        Assert.DoesNotThrow(() =>
+            store.Query<TextStyle>().ForEachEntity((ref TextStyle _, Entity _) => toasts.ShowStatus("Saved")));
+        root.Update(new UpdateTick(0.05f, 0));
+
+        Entity toast = store.Query<Toast>().ToEntityList()[0];
+        Assert.That(toast.GetComponent<Toast>().Active, Is.True);
+        Assert.That(toast.GetComponent<Text>().Value, Is.EqualTo("Saved"));
+    }
+
+    [Test]
     public void QueuesMessagesWhileOneIsVisible()
     {
         var store = new EntityStore();
@@ -58,7 +80,8 @@ public sealed class ToastSystemTests
             store.Query<Toast>().ToEntityList()[0].GetComponent<Text>().Value,
             Is.EqualTo("First"));
 
-        for (int i = 0; i < 160; i++)
+        // The first is gone after 0.54 s; the second then shows for its own 0.1 s.
+        for (int i = 0; i < 40; i++)
             root.Update(new UpdateTick(1f / 60f, 0));
 
         Assert.That(

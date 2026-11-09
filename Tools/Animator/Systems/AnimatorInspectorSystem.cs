@@ -221,7 +221,7 @@ public sealed class AnimatorInspectorSystem : QuerySystem<AnimatorDocument, Anim
         if (selection.Bone >= 0 && selection.Bone < document.Package.Skeleton.Bones.Count)
         {
             XafBone bone = document.Package.Skeleton.Bones[selection.Bone];
-            unkeyed = !modes.Rest && IsUnkeyed(session, bone.Id, null);
+            unkeyed = AnimatorUnkeyed.IsBone(session, selection.Bone);
             value = bone.Id +
                     (extras > 0 ? $"  +{extras}" : "") +
                     (modes.Rest ? "  REST" : unkeyed ? "  UNKEYED" : "");
@@ -230,7 +230,7 @@ public sealed class AnimatorInspectorSystem : QuerySystem<AnimatorDocument, Anim
                  selection.Attachment < document.Package.Attachments.Count)
         {
             XafAttachment attachment = document.Package.Attachments[selection.Attachment];
-            unkeyed = !modes.Rest && IsUnkeyed(session, null, attachment.Group);
+            unkeyed = AnimatorUnkeyed.IsAttachment(session, selection.Attachment);
             value = attachment.Group + "  SVG" + (modes.Rest ? " REST" : unkeyed ? "  UNKEYED" : "");
         }
         else if (selection.Effect >= 0 && selection.Effect < document.Package.Effects.Count &&
@@ -249,35 +249,4 @@ public sealed class AnimatorInspectorSystem : QuerySystem<AnimatorDocument, Anim
         UiText.Set(title, value);
         UiText.SetColor(title, unkeyed ? UnkeyedTitle : NormalTitle);
     }
-
-    /// <summary>Whether the shown pose differs from what the current clip samples.</summary>
-    private static bool IsUnkeyed(Entity session, string? boneId, string? group)
-    {
-        AnimatorDocument document = session.GetComponent<AnimatorDocument>();
-        XafClip? clip = AnimatorSession.CurrentClip(document);
-        if (clip is null)
-            return false;
-
-        XafPose sampled = XafSampler.Sample(
-            document.Package, clip, document.Runtime.CurrentTime);
-        if (boneId is not null)
-        {
-            int bone = XafRig.FindBone(document.Package, boneId);
-            return bone >= 0 && !Near(
-                document.Runtime.Pose.Bones[bone], sampled.Bones[bone]);
-        }
-
-        for (int i = 0; i < document.Package.Attachments.Count; i++)
-        {
-            if (document.Package.Attachments[i].Group != group)
-                continue;
-            return !Near(document.Runtime.Pose.Attachments[i], sampled.Attachments[i]);
-        }
-        return false;
-    }
-
-    private static bool Near(XafTransform a, XafTransform b) =>
-        a.Translation.DistanceSquaredTo(b.Translation) < 0.0001f &&
-        Mathf.Abs(a.Rotation - b.Rotation) < 0.001f &&
-        a.Scale.DistanceSquaredTo(b.Scale) < 0.0001f;
 }

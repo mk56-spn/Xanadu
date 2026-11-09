@@ -24,7 +24,8 @@ public sealed class AnimatorSystemGroup : SystemGroup
         IPointerInputSource pointer,
         IWheelSource wheel,
         IKeyPressSource keys,
-        IAnimatorClick? click = null) : base("Animator")
+        IAnimatorClick? click = null,
+        ToastSystem? toasts = null) : base("Animator")
     {
         Add(new AnimatorClipConfigSystem(pointer));
         Add(new AnimatorActionSystem());
@@ -58,7 +59,7 @@ public sealed class AnimatorSystemGroup : SystemGroup
         Add(new AnimatorEventInspectorSystem());
         Add(new AnimatorInterpolationSystem());
         Add(new AnimatorFileHeaderSystem());
-        Add(new AnimatorStatusSystem());
+        Add(new AnimatorStatusSystem(toasts));
         Add(new AnimatorTooltipSystem(pointer));
         Add(new AnimatorGridDrawSystem(canvas, gridCanvas));
         Add(new AnimatorChainSimulationSystem());

@@ -34,6 +34,9 @@ public struct AnimatorFile : IComponent
 
     /// <summary>Set after Load or New refused to discard unsaved changes; a repeat confirms.</summary>
     public bool DiscardArmed;
+
+    /// <summary>Set once CLOSE EDITOR is confirmed; the tool quits on its next frame.</summary>
+    public bool CloseRequested;
 }
 
 /// <summary>
@@ -56,6 +59,9 @@ public struct AnimatorClipboard : IComponent
 public struct AnimatorStatus : IComponent
 {
     public string Message;
+
+    /// <summary>Bumped on every message, so the same message twice toasts twice.</summary>
+    public int Serial;
 }
 
 /// <summary>

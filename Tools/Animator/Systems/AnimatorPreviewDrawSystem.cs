@@ -39,6 +39,9 @@ public sealed class AnimatorPreviewDrawSystem(
     /// <summary>How far, in rig units, a joint has to sit off its rest spot before the ring shows.</summary>
     private const float JointOffsetMinimum = 0.5f;
     private static readonly Color LimitColor = new(Palette.Warning, 0.8f);
+
+    /// <summary>Rings bones and art posed but not keyed, the colour the inspector flags them in.</summary>
+    private static readonly Color UnkeyedColor = Palette.Warning;
     private const float LimitRadius = 34f;
     private const int LimitSegments = 24;
 
@@ -130,6 +133,8 @@ public sealed class AnimatorPreviewDrawSystem(
             DrawLimits(document.Package, selection, world, placement);
         }
 
+        (bool[] Bones, bool[] Attachments)? unkeyed = AnimatorUnkeyed.Find(session);
+        int unkeyedCount = 0;
         AnimatorHover hover = session.GetComponent<AnimatorHover>();
         int reparenting = session.GetComponent<AnimatorBoneMenu>().Reparenting;
         var labels = new System.Collections.Generic.List<Rect2>();
@@ -143,6 +148,8 @@ public sealed class AnimatorPreviewDrawSystem(
             float marker = primary ? 8f : selected ? 7f : hovered ? 6f : 5f;
             canvas.DrawCircle(target, point, marker,
                 selected ? Colors.White : hovered ? SwungOutline : BoneColor);
+            if (unkeyed is { } bones && i < bones.Bones.Length && bones.Bones[i])
+                canvas.DrawCircleOutline(target, point, marker + 4f, UnkeyedColor, 2f, 20);
 
             // Labels that would overlap are dropped unless they are the bone the
             // pointer or the selection is on; crowded rigs stay readable unzoomed.
@@ -187,6 +194,29 @@ public sealed class AnimatorPreviewDrawSystem(
                 new Rect2(point - new Vector2(marker / 2, marker / 2),
                     new Vector2(marker, marker)),
                 selected ? Colors.White : hovered ? SwungOutline : AttachmentColor);
+            if (unkeyed is { } art && i < art.Attachments.Length && art.Attachments[i])
+            {
+                float ring = marker + 6f;
+                Rect2 outline = new(point - new Vector2(ring / 2, ring / 2), new Vector2(ring, ring));
+                canvas.DrawRectOutlines(target, [outline], UnkeyedColor);
+            }
+        }
+
+        if (unkeyed is { } parts)
+        {
+            foreach (bool part in parts.Bones)
+                unkeyedCount += part ? 1 : 0;
+            foreach (bool part in parts.Attachments)
+                unkeyedCount += part ? 1 : 0;
+        }
+        if (unkeyedCount > 0)
+        {
+            canvas.DrawTextStyledLeft(
+                target,
+                new Rect2(area.Position + new Vector2(12, 32), new Vector2(300, 20)),
+                AnimatorUnkeyed.Note(unkeyedCount) + (modes.AutoKey ? "" : " · AUTO KEY IS OFF"),
+                UnkeyedColor,
+                14);
         }
 
         canvas.DrawTextStyledLeft(
