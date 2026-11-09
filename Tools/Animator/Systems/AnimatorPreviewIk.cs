@@ -36,11 +36,14 @@ internal static class AnimatorPreviewIk
         {
             // The chain moves, so it only snaps to joints outside it; its root stays a target.
             float radius = AnimatorSnap.Pixels / Mathf.Max(0.0001f, Mathf.Abs(placement.Scale.X));
-            target = AnimatorSnap.AlignPoint(
-                target,
-                AnimatorSnap.Joints(document.Package, world, grandparent, keepRoot: true),
-                radius,
-                out guides);
+            if (session.GetComponent<AnimatorModes>().Align)
+            {
+                target = AnimatorSnap.AlignPoint(
+                    target,
+                    AnimatorSnap.Joints(document.Package, world, grandparent, keepRoot: true),
+                    radius,
+                    out guides);
+            }
             if (AnimatorPreviewGrid.On(session))
                 target = AnimatorSnap.ToGrid(target, guides);
         }

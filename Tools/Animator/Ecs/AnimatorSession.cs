@@ -28,7 +28,7 @@ public static class AnimatorSession
                 Files = files,
             },
             AnimatorSelection.None,
-            new AnimatorModes { Kites = true, Handles = true, AutoKey = true },
+            new AnimatorModes { Kites = true, Handles = true, AutoKey = true, Align = true },
             new AnimatorDrag(),
             new AnimatorStatus { Message = "" },
             new AnimatorFile

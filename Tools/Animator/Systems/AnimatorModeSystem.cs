@@ -67,6 +67,7 @@ public sealed class AnimatorModeSystem : QuerySystem<Toggle, ModeToggle>
                 AnimatorMode.Pin => "PIN CHILDREN",
                 AnimatorMode.Kites => "BONE KITES",
                 AnimatorMode.Handles => "HANDLES",
+                AnimatorMode.Align => "ALIGN TO JOINTS",
                 _ => "ONION",
             };
             AnimatorSession.SetStatus(session, $"{name} {(value ? "ON" : "OFF")}");

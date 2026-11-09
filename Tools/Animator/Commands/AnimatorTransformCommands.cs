@@ -25,6 +25,40 @@ public static class AnimatorTransformCommands
     }
 
     /// <summary>
+    /// Sets the selection's rotation while a slider is dragged: no status and no
+    /// key yet, and no history step of its own; <see cref="FinishDrag"/> does those.
+    /// </summary>
+    public static void DragRotation(Entity session, float radians) =>
+        AnimatorHistoryCommands.DuringGesture(session, () =>
+            Set(session, "", transform => transform with { Rotation = radians }, quiet: true));
+
+    /// <summary>
+    /// Sets the selection's X scale while a slider is dragged, keeping each
+    /// element's Y in proportion so a stretched bone stays stretched.
+    /// </summary>
+    public static void DragScale(Entity session, float scale) =>
+        AnimatorHistoryCommands.DuringGesture(session, () =>
+            Set(session, "", transform => transform with { Scale = Proportional(transform.Scale, scale) }, quiet: true));
+
+    /// <summary>Sets the X scale once, as a slider click or reset does, keeping Y in proportion.</summary>
+    public static void SetScaleProportional(Entity session, float scale) =>
+        Set(session, "SCALE SET", transform => transform with { Scale = Proportional(transform.Scale, scale) });
+
+    /// <summary>Keys and reports a finished slider drag; run inside <see cref="AnimatorHistoryCommands.EndGesture"/>.</summary>
+    public static void FinishDrag(Entity session, string label)
+    {
+        string keyed = session.GetComponent<AnimatorModes>().Rest ? "" : AnimatorEditing.KeyEdit(session);
+        AnimatorSession.SetStatus(session, label + keyed);
+    }
+
+    private static Vector2 Proportional(Vector2 current, float x)
+    {
+        x = Mathf.Clamp(x, 0.01f, 20f);
+        float ratio = Mathf.Abs(current.X) < 0.0001f ? 1f : current.Y / current.X;
+        return new Vector2(x, Mathf.Clamp(x * ratio, 0.01f, 20f));
+    }
+
+    /// <summary>
     /// Sets the selection's local translation. Fixed-length bones can only be
     /// moved after turning MOVABLE on, so those are skipped and the status says
     /// why when nothing could move.
@@ -42,7 +76,8 @@ public static class AnimatorTransformCommands
         Entity session,
         string label,
         System.Func<XafTransform, XafTransform> change,
-        bool posesFixed = true) =>
+        bool posesFixed = true,
+        bool quiet = false) =>
         AnimatorHistoryCommands.Edit(session, () =>
         {
             ref AnimatorDocument document = ref session.GetComponent<AnimatorDocument>();
@@ -97,6 +132,9 @@ public static class AnimatorTransformCommands
 
             if (changed == 0 && EditEffect(session, change))
                 changed = 1;
+
+            if (quiet)
+                return;
 
             if (changed == 0)
             {

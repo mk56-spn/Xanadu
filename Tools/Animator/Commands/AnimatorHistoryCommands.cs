@@ -44,6 +44,24 @@ public static class AnimatorHistoryCommands
     public static void BeginGesture(Entity session) =>
         session.GetComponent<AnimatorHistory>().Gesture = Snapshot(session);
 
+    /// <summary>
+    /// Runs an edit as part of the open gesture: it is not recorded on its own,
+    /// since <see cref="EndGesture"/> records the whole gesture as one step.
+    /// </summary>
+    public static void DuringGesture(Entity session, Action edit)
+    {
+        ref AnimatorHistory history = ref session.GetComponent<AnimatorHistory>();
+        history.Depth++;
+        try
+        {
+            edit();
+        }
+        finally
+        {
+            history.Depth--;
+        }
+    }
+
     /// <summary>Records the drag; edits made by <paramref name="last"/> land in the same step.</summary>
     public static void EndGesture(Entity session, Action? last = null)
     {

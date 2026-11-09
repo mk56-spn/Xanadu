@@ -33,6 +33,12 @@ public sealed class AnimatorInspectorSystem : QuerySystem<AnimatorDocument, Anim
     private static readonly Color UnkeyedTitle = Palette.Warning;
 
     private readonly bool[] _wasFocused = new bool[6];
+
+    /// <summary>What each slider was last set to from the selection: anything else is the user moving it.</summary>
+    private readonly float[] _sliderShown = new float[2];
+
+    /// <summary>Whether each slider is mid-drag, with a gesture open for its one undo step.</summary>
+    private readonly bool[] _sliderDragging = new bool[2];
     private int _editBone = -1;
     private int _editAttachment = -1;
     private int _editEffect = -1;
@@ -57,6 +63,8 @@ public sealed class AnimatorInspectorSystem : QuerySystem<AnimatorDocument, Anim
         Sync(session, ui, ui.InspectScaleX, Field.ScaleX);
         Sync(session, ui, ui.InspectScaleY, Field.ScaleY);
         Sync(session, ui, ui.InspectLayer, Field.Layer);
+        SyncSlider(session, ui.InspectRotationSlider, 0);
+        SyncSlider(session, ui.InspectScaleSlider, 1);
         Title(session, ui.InspectorTitle);
     }
 
@@ -78,6 +86,63 @@ public sealed class AnimatorInspectorSystem : QuerySystem<AnimatorDocument, Anim
             text.Value = Format(session, kind);
 
         _wasFocused[index] = focused;
+    }
+
+    /// <summary>
+    /// Applies a slider the user moved (slot 0 turns, slot 1 scales), then puts it
+    /// back on the selection's value. A drag is one undo step and keys once, on
+    /// release; a click or right-click reset is an ordinary edit.
+    /// </summary>
+    private void SyncSlider(Entity session, Entity track, int slot)
+    {
+        if (track.IsNull || !track.HasComponent<UiSlider>())
+            return;
+
+        ref UiSlider slider = ref track.GetComponent<UiSlider>();
+        bool held = track.Tags.Has<Pressed>();
+        bool moved = !Mathf.IsEqualApprox(slider.Value, _sliderShown[slot]);
+        bool rotation = slot == 0;
+        string label = rotation ? "ROTATION SET" : "SCALE SET";
+
+        if (moved && TryTransform(session, out _))
+        {
+            if (held)
+            {
+                if (!_sliderDragging[slot])
+                {
+                    AnimatorHistoryCommands.BeginGesture(session);
+                    _sliderDragging[slot] = true;
+                }
+
+                if (rotation)
+                    AnimatorTransformCommands.DragRotation(session, Mathf.DegToRad(slider.Value));
+                else
+                    AnimatorTransformCommands.DragScale(session, slider.Value);
+            }
+            else if (rotation)
+            {
+                AnimatorTransformCommands.SetRotation(session, Mathf.DegToRad(slider.Value));
+            }
+            else
+            {
+                AnimatorTransformCommands.SetScaleProportional(session, slider.Value);
+            }
+        }
+
+        if (_sliderDragging[slot] && !held)
+        {
+            _sliderDragging[slot] = false;
+            AnimatorHistoryCommands.EndGesture(session,
+                () => AnimatorTransformCommands.FinishDrag(session, label));
+        }
+
+        float shown = TryTransform(session, out XafTransform transform)
+            ? rotation
+                ? Mathf.RadToDeg(Mathf.AngleDifference(0f, transform.Rotation))
+                : transform.Scale.X
+            : rotation ? 0f : 1f;
+        slider.Value = Mathf.Clamp(shown, slider.Min, slider.Max);
+        _sliderShown[slot] = slider.Value;
     }
 
     private void RememberTarget(Entity session)

@@ -185,7 +185,7 @@ public static partial class AnimatorLayout
 
     /// <summary>Size of the transform inspector, which the chain inspector shares the spot of.</summary>
     private const float InspectorWidth = 236f;
-    private const float InspectorHeight = 222f;
+    private const float InspectorHeight = 222f + 2 * (InspectorSliderRow + 6f);
 
     /// <summary>Top-left of the floating inspectors: the preview's top-right corner.</summary>
     public static Vector2 InspectorTopLeft(Vector2 screen) =>
@@ -349,12 +349,18 @@ public static partial class AnimatorLayout
         menu.Text("ROT °", new Vector2(48, 20), 11, UiTheme.TextDim, TextAlign.Left);
         refs.Ui.InspectRotation = NumericField(menu, new Vector2(72, 22));
         menu.End();
+        refs.Ui.InspectRotationSlider = InspectorSlider(menu, inner,
+            -180f, 180f, 0f,
+            "Drag to turn the selection; right-click puts it back to 0°");
 
         menu.Container(Vector2.Zero, new Vector2(inner, row), spacing: 4, color: Clear);
         menu.Text("SCALE", new Vector2(48, 20), 11, UiTheme.TextDim, TextAlign.Left);
         refs.Ui.InspectScaleX = NumericField(menu, new Vector2(64, 22));
         refs.Ui.InspectScaleY = NumericField(menu, new Vector2(64, 22));
         menu.End();
+        refs.Ui.InspectScaleSlider = InspectorSlider(menu, inner,
+            0.1f, 3f, 1f,
+            "Drag to scale the selection, keeping its stretch; right-click puts it back to 1×");
 
         menu.Container(Vector2.Zero, new Vector2(inner, row), spacing: 4, color: Clear);
         menu.Text("LAYER", new Vector2(48, 20), 11, UiTheme.TextDim, TextAlign.Left);
@@ -367,6 +373,36 @@ public static partial class AnimatorLayout
         reset.AddComponent(new ToolAction(ToolActionKind.ResetTransform));
         AnimatorTooltips.Attach(reset, ToolActionKind.ResetTransform);
         menu.End();
+    }
+
+    private const float InspectorSliderRow = 18f;
+
+    /// <summary>
+    /// A slider under a field, the inspector's full width. It shows no number of
+    /// its own: the field above it does. The inspector system keeps it on the
+    /// selection and applies drags.
+    /// </summary>
+    private static Entity InspectorSlider(
+        UiBuilder menu,
+        float width,
+        float min,
+        float max,
+        float rest,
+        string tooltip)
+    {
+        menu.Container(Vector2.Zero, new Vector2(width, InspectorSliderRow), color: Clear,
+            main: StackMainAlignment.Start);
+        var track = new Vector2(width, 10f);
+        Entity slider = menu.RectEntity(Vector2.Zero, track, Palette.Muted, takesInput: true);
+
+        // The slider system lays its fill over the track.
+        Entity fill = menu.RectEntity(Vector2.Zero, track, Palette.PrimaryMuted, "");
+        fill.AddTag<LayoutIgnore>();
+        menu.End();
+
+        slider.AddComponent(new UiSlider(fill, default, min, max, rest, defaultValue: rest));
+        slider.AddComponent(new UiTooltip(tooltip));
+        return slider;
     }
 
     /// <summary>A text field that only accepts the characters a number needs.</summary>

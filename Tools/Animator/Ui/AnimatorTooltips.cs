@@ -165,6 +165,8 @@ public static class AnimatorTooltips
             nameof(AnimatorMode.Kites) => "Show each bone as a filled kite; off leaves only joints and labels (X)",
             nameof(AnimatorMode.Handles) => "Show joint dots and bone labels; off leaves just the art (J)",
             nameof(AnimatorMode.Ik) => "Drag a joint as a two-bone IK chain (I)",
+            nameof(AnimatorMode.Align) =>
+                "Line dragged joints up with the other joints; hold Shift while dragging to stay free",
             nameof(AnimatorMode.MotionPaths) =>
                 "Show where joints travel: the selected bones, the extremities in preview; red marks sharp turns (N, Shift+N for around the playhead only)",
             _ => "Toggle this editing mode",

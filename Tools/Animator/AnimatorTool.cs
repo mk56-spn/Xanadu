@@ -24,6 +24,13 @@ public partial class AnimatorTool : Control
     private SvgAttachmentVisuals _attachments = null!;
     private Entity _session;
     private bool _fitted;
+    /// <summary>
+    /// Holds the grid, the art and the bone overlay, clipped to the preview, so
+    /// no part of the character ever draws over the panels or their buttons.
+    /// It is never cleared, so its clip stays put while its children redraw.
+    /// </summary>
+    private Rid _stage;
+    private Rect2 _stageClip;
     private Rid _grid;
     private Rid _preview;
     private Rid _svgCanvas;
@@ -74,6 +81,9 @@ public partial class AnimatorTool : Control
     /// <summary>Set by <c>--orbit=bone,bone</c>: send those bones round an ellipse on opening, unsaved.</summary>
     private string? _orbit;
 
+    /// <summary>Set by <c>--zoom=x</c>: the preview's zoom once it has been fitted, to check what spills past its edges.</summary>
+    private float _zoom = -1f;
+
     private VisualRidRelease _visuals = null!;
 
     public override void _Ready()
@@ -84,9 +94,10 @@ public partial class AnimatorTool : Control
         _pointer = new GodotPointerInputSource(this);
         var canvas = new GodotRectCanvas();
 
-        _grid = CreateCanvas(AnimatorLayout.GridZ);
-        _svgCanvas = CreateCanvas(AnimatorLayout.SvgZ);
-        _preview = CreateCanvas(AnimatorLayout.PreviewZ);
+        _stage = CreateCanvas(AnimatorLayout.GridZ);
+        _grid = CreateCanvas(0, _stage);
+        _svgCanvas = CreateCanvas(AnimatorLayout.SvgZ - AnimatorLayout.GridZ, _stage);
+        _preview = CreateCanvas(AnimatorLayout.PreviewZ - AnimatorLayout.GridZ, _stage);
         _timelineCanvas = CreateCanvas(AnimatorLayout.TimelineZ);
         _attachments = new SvgAttachmentVisuals(_svgCanvas, containLayers: true);
 
@@ -138,9 +149,15 @@ public partial class AnimatorTool : Control
             return;
         }
 
+        ClipStage();
+
         // Fit once the panels have been laid out, so the rig opens filling the preview.
         if (!_fitted && AnimatorPreviewCommands.Fit(_session))
+        {
             _fitted = true;
+            if (_zoom > 0f)
+                _session.GetComponent<AnimatorPreviewView>().Zoom = _zoom;
+        }
 
         _pointer.EndFrame();
         _frames++;
@@ -227,6 +244,11 @@ public partial class AnimatorTool : Control
                          System.Globalization.NumberStyles.Float,
                          System.Globalization.CultureInfo.InvariantCulture, out float seconds))
                 _shotSeconds = Math.Max(0f, seconds);
+            else if (argument.StartsWith("--zoom=", StringComparison.Ordinal) &&
+                     float.TryParse(argument["--zoom=".Length..],
+                         System.Globalization.NumberStyles.Float,
+                         System.Globalization.CultureInfo.InvariantCulture, out float zoom))
+                _zoom = zoom;
             else if (argument.StartsWith("--flow=", StringComparison.Ordinal))
                 _flow = argument["--flow=".Length..];
             else if (argument.StartsWith("--streak=", StringComparison.Ordinal))
@@ -338,14 +360,27 @@ public partial class AnimatorTool : Control
     {
         _attachments.Release();
         _visuals.Dispose();
-        foreach (Rid canvas in new[] { _grid, _preview, _svgCanvas, _timelineCanvas })
+        foreach (Rid canvas in new[] { _grid, _preview, _svgCanvas, _timelineCanvas, _stage })
             RenderingServer.FreeRid(canvas);
     }
 
-    private Rid CreateCanvas(int zIndex)
+    /// <summary>Keeps the stage's clip on the preview as the layout moves it (preview mode, resizes).</summary>
+    private void ClipStage()
+    {
+        Rect2 area = AnimatorGeometry.PanelArea(_session.GetComponent<AnimatorUi>().Preview);
+        if (area == _stageClip)
+            return;
+
+        _stageClip = area;
+        RenderingServer.CanvasItemSetCustomRect(_stage, true, area);
+        RenderingServer.CanvasItemSetClip(_stage, true);
+    }
+
+    /// <summary>A canvas under <paramref name="parent"/> (the tool's own item by default); z is relative to it.</summary>
+    private Rid CreateCanvas(int zIndex, Rid parent = default)
     {
         Rid canvas = RenderingServer.CanvasItemCreate();
-        RenderingServer.CanvasItemSetParent(canvas, GetCanvasItem());
+        RenderingServer.CanvasItemSetParent(canvas, parent.IsValid ? parent : GetCanvasItem());
         RenderingServer.CanvasItemSetZIndex(canvas, zIndex);
         return canvas;
     }

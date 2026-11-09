@@ -159,6 +159,83 @@ public sealed class AnimatorInspectorTests : AnimatorToolTest
         Assert.That(XafTracks.KeyTimes(Idle, track), Does.Contain(1f));
     }
 
+    /// <summary>Moves a slider as the slider system would while it is held, one value per frame.</summary>
+    private void DragSlider(Entity slider, params float[] values)
+    {
+        slider.AddTag<Pressed>();
+        foreach (float value in values)
+        {
+            slider.GetComponent<UiSlider>().Value = value;
+            Frame();
+        }
+        slider.RemoveTag<Pressed>();
+        Frame();
+    }
+
+    [Test]
+    public void TheSlidersFollowTheSelection()
+    {
+        Runtime.Pose.Bones[1].Rotation = Mathf.Pi / 4;
+        Runtime.Pose.Bones[1].Scale = new Vector2(2f, 2f);
+        SelectBone(1);
+
+        Assert.That(Ui.InspectRotationSlider.GetComponent<UiSlider>().Value, Is.EqualTo(45f).Within(0.01f));
+        Assert.That(Ui.InspectScaleSlider.GetComponent<UiSlider>().Value, Is.EqualTo(2f).Within(0.001f));
+    }
+
+    [Test]
+    public void DraggingTheRotationSliderTurnsTheBoneAsOneUndoStepKeyedOnRelease()
+    {
+        Session.GetComponent<AnimatorModes>().AutoKey = true;
+        SelectBone(1);
+        Runtime.Seek(1f);
+        var history = Session.GetComponent<AnimatorHistory>().History;
+        var track = new XafTrack(XafChannelTarget.Bone, "torso");
+
+        Ui.InspectRotationSlider.AddTag<Pressed>();
+        Ui.InspectRotationSlider.GetComponent<UiSlider>().Value = 30f;
+        Frame();
+        Assert.That(Runtime.Pose.Bones[1].Rotation, Is.EqualTo(Mathf.DegToRad(30f)).Within(0.0001f));
+        Assert.That(XafTracks.KeyTimes(Idle, track), Does.Not.Contain(1f), "keys only on release");
+
+        Ui.InspectRotationSlider.GetComponent<UiSlider>().Value = 60f;
+        Frame();
+        Ui.InspectRotationSlider.RemoveTag<Pressed>();
+        Frame();
+
+        Assert.That(Runtime.Pose.Bones[1].Rotation, Is.EqualTo(Mathf.DegToRad(60f)).Within(0.0001f));
+        Assert.That(XafTracks.KeyTimes(Idle, track), Does.Contain(1f));
+
+        AnimatorCommands.Run(Session, new ToolAction(ToolActionKind.Undo));
+        Assert.That(Runtime.Pose.Bones[1].Rotation, Is.EqualTo(0f).Within(0.0001f));
+        Assert.That(XafTracks.KeyTimes(Idle, track), Does.Not.Contain(1f));
+        Assert.That(history.CanUndo, Is.False, "the whole drag was one step");
+    }
+
+    [Test]
+    public void TheScaleSliderKeepsAStretchedBoneStretched()
+    {
+        Runtime.Pose.Bones[1].Scale = new Vector2(1f, 2f);
+        SelectBone(1);
+
+        DragSlider(Ui.InspectScaleSlider, 1.5f);
+
+        Assert.That(Runtime.Pose.Bones[1].Scale, Is.EqualTo(new Vector2(1.5f, 3f)).Using<Vector2>(Close));
+    }
+
+    [Test]
+    public void ResettingASliderPutsTheRotationBack()
+    {
+        Runtime.Pose.Bones[1].Rotation = 1f;
+        SelectBone(1);
+
+        // A right-click on the track sets the slider to its default without a drag.
+        Ui.InspectRotationSlider.GetComponent<UiSlider>().Value = 0f;
+        Frame();
+
+        Assert.That(Runtime.Pose.Bones[1].Rotation, Is.EqualTo(0f).Within(0.0001f));
+    }
+
     [Test]
     public void TypingAPositionMovesTheRoot()
     {

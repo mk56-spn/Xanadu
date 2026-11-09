@@ -9,7 +9,11 @@ namespace Xanadu.Tests.Animation.Tool;
 
 public sealed class AnimatorGridSnapTests : AnimatorToolTest
 {
-    protected override void AddSystems() => Root.Add(new AnimatorPreviewInputSystem(Pointer));
+    protected override void AddSystems()
+    {
+        Root.Add(new AnimatorPreviewInputSystem(Pointer));
+        Root.Add(new AnimatorModeSystem());
+    }
 
     private Entity SnapButton
     {
@@ -81,6 +85,50 @@ public sealed class AnimatorGridSnapTests : AnimatorToolTest
 
     private static Vector2 AnimatorSnap_ToGrid(Vector2 wanted, AnimatorSnapGuides guides) =>
         Xanadu.Tools.Animator.Commands.AnimatorSnap.ToGrid(wanted, guides);
+
+    [Test]
+    public void GridSnapAndAlignSitInTheViewBarNotTheHeader()
+    {
+        Rect2 bar = Area(Ui.ViewBar);
+        Rect2 header = Area(Ui.Header);
+        foreach (string label in new[] { "GRID", "SNAP", "ALIGN" })
+        {
+            Rect2 button = Area(ByLabel(label));
+            Assert.That(bar.Encloses(button), Is.True, label);
+            Assert.That(header.Intersects(button), Is.False, label);
+        }
+
+        // Floating over the top centre of the preview.
+        Rect2 preview = Area(Ui.Preview);
+        Assert.That(preview.Encloses(bar), Is.True);
+        Assert.That(bar.GetCenter().X, Is.EqualTo(preview.GetCenter().X).Within(1f));
+    }
+
+    [Test]
+    public void TheAlignToggleIsOnToStartAndDrivesTheMode()
+    {
+        Entity align = ByLabel("ALIGN");
+        Assert.That(Session.GetComponent<AnimatorModes>().Align, Is.True);
+        Assert.That(align.GetComponent<Toggle>().Value, Is.True);
+
+        align.GetComponent<Toggle>().Value = false;
+        Frame();
+
+        Assert.That(Session.GetComponent<AnimatorModes>().Align, Is.False);
+    }
+
+    private Entity ByLabel(string label)
+    {
+        foreach (Entity entity in Store.Query<Toggle>().Entities)
+        {
+            if (entity.GetComponent<Toggle>().OffText == label)
+                return entity;
+        }
+        Assert.Fail($"no {label} toggle");
+        return default;
+    }
+
+    private static Rect2 Area(Entity entity) => AnimatorGeometry.PanelArea(entity);
 
     [Test]
     public void TheGridIsTheOneDrawn() =>

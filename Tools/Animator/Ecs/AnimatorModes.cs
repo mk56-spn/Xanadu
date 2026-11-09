@@ -27,6 +27,9 @@ public enum AnimatorMode
 
     /// <summary>Draws where joints travel over the clip: the selected bones, or the extremities in preview.</summary>
     MotionPaths,
+
+    /// <summary>A dragged joint lines up with the other joints, with guide lines; Shift drags freely.</summary>
+    Align,
 }
 
 /// <summary>Binds a <c>Toggle</c> entity to one animator editing mode.</summary>
@@ -55,6 +58,9 @@ public struct AnimatorModes : IComponent
     /// <summary>Joint dots and bone labels are drawn; on by default.</summary>
     public bool Handles;
 
+    /// <summary>Dragged joints line up with the other joints; on by default.</summary>
+    public bool Align;
+
     /// <summary>Motion paths are drawn.</summary>
     public bool MotionPaths;
 
@@ -72,6 +78,7 @@ public struct AnimatorModes : IComponent
         AnimatorMode.Kites => Kites,
         AnimatorMode.Handles => Handles,
         AnimatorMode.MotionPaths => MotionPaths,
+        AnimatorMode.Align => Align,
         _ => Rest,
     };
 
@@ -97,6 +104,9 @@ public struct AnimatorModes : IComponent
                 break;
             case AnimatorMode.Kites:
                 Kites = value;
+                break;
+            case AnimatorMode.Align:
+                Align = value;
                 break;
             case AnimatorMode.Handles:
                 Handles = value;

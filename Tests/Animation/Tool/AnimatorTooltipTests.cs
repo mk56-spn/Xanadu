@@ -122,14 +122,4 @@ public sealed class AnimatorTooltipTests : AnimatorToolTest
             Assert.That(entity.GetComponent<UiTooltip>().Text, Is.Not.Empty);
         }
     }
-
-    [Test]
-    public void TheAbbreviatedRotationButtonStillExplainsItsShortcut()
-    {
-        Entity rotate = Button(ToolActionKind.RotateLeft);
-
-        Assert.That(
-            rotate.GetComponent<UiTooltip>().Text,
-            Is.EqualTo("Turn selected bones -0.25 rad (Q)"));
-    }
 }

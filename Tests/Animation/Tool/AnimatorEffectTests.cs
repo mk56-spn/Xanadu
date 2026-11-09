@@ -5,6 +5,7 @@ using Xanadu.Ecs;
 using Position = Xanadu.Ecs.Position;
 using Xanadu.Tests.Support;
 using Xanadu.Tools.Animator;
+using Xanadu.Tools.Animator.Commands;
 using Xanadu.Tools.Animator.Systems;
 using Xanadu.Ui.Ecs.Ui;
 
@@ -120,7 +121,7 @@ public sealed class AnimatorEffectTests : AnimatorToolTest
     {
         AddStreakOnTorsoAt(0.5f);
         Runtime.Seek(0.55f);
-        Click(Button(ToolActionKind.RotateRight));
+        AnimatorCommands.Run(Session, new ToolAction(ToolActionKind.RotateRight));
         Click(Button(ToolActionKind.KeyBone));
 
         Assert.That(XafSampler.Sample(Package, Idle, 0.55f).Effects[0].Transform.Rotation,

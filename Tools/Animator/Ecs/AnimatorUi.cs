@@ -14,6 +14,13 @@ public struct AnimatorUi : IComponent
     public Entity ModulateField;
     public Entity Preview;
 
+    /// <summary>The inspector's sliders under its rotation and scale fields.</summary>
+    public Entity InspectRotationSlider;
+    public Entity InspectScaleSlider;
+
+    /// <summary>The bar floating at the top of the preview: grid, snap and align.</summary>
+    public Entity ViewBar;
+
     /// <summary>
     /// The FLOW tab: its title, the list of clips the current one may fade
     /// into, and the readouts of the selected transition.

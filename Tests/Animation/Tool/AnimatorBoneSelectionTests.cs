@@ -111,7 +111,7 @@ public sealed class AnimatorBoneSelectionTests : AnimatorToolTest
         Select(1, 2);
         Runtime.Seek(0f);
 
-        Click(Button(ToolActionKind.RotateRight));
+        AnimatorCommands.Run(Session, new ToolAction(ToolActionKind.RotateRight));
 
         Assert.That(Runtime.Pose.Bones[1].Rotation, Is.EqualTo(AnimatorEditing.RotationStep).Within(0.0001f));
         Assert.That(Runtime.Pose.Bones[2].Rotation, Is.EqualTo(AnimatorEditing.RotationStep).Within(0.0001f));

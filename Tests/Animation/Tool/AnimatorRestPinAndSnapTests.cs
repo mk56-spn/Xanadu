@@ -160,6 +160,18 @@ public sealed class AnimatorRestPinAndSnapTests : AnimatorToolTest
     }
 
     [Test]
+    public void WithAlignOffADraggedJointGoesWhereItIsDraggedWithNoGuides()
+    {
+        RestMode(pin: false);
+        Session.GetComponent<AnimatorModes>().Align = false;
+
+        DragBone(1, new Vector2(5, 0));
+
+        Assert.That(Torso.Rest.Origin.X, Is.EqualTo(5f).Within(0.5f));
+        Assert.That(Session.GetComponent<AnimatorSnapGuides>().HasX, Is.False);
+    }
+
+    [Test]
     public void ADraggedJointSnapsItsYToo()
     {
         // Drag the head (at y -150) down to within range of the torso's -80.

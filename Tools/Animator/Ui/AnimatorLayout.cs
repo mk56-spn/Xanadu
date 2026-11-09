@@ -102,9 +102,10 @@ public static partial class AnimatorLayout
         refs.Ui.MenuLayer = menu.Current;
         refs.Ui.ScreenSize = screen;
 
-        // The inspector is the bottom of the floating layer, so menus opened
-        // over the preview still draw above it.
+        // The inspector and the view bar are the bottom of the floating layer,
+        // so menus opened over the preview still draw above them.
         BuildTabBodies(menu, shell, ref refs);
+        BuildViewBar(menu, shell, ref refs);
         BuildInspector(menu, screen, ref refs);
         BuildFileMenu(menu, refs.FileButton);
         BuildConfigMenu(menu, refs.ConfigButton);
@@ -164,17 +165,6 @@ public static partial class AnimatorLayout
         refs.Ui.ClipList = ui.Current;
         ui.End();
 
-        ViewportGrid.Attach(ui.Button(
-            ViewportGrid.Label,
-            new Vector2(ViewportGrid.ToggleWidth, HeaderControl)));
-
-        // Off to start: a whole cell is coarse for posing, so this is for when placing to the grid is the point.
-        ViewportSnap.Attach(ui.Button(
-            ViewportSnap.Label,
-            new Vector2(ViewportSnap.ToggleWidth, HeaderControl)),
-            "Snap dragged joints, art and IK targets to the grid; hold Shift while dragging to stay free",
-            on: false);
-
         // As wide as its list, so opening the menu does not widen the header slot.
         refs.FileButton = ui.Button("FILE ▾", new Vector2(FileMenuWidth, HeaderControl));
         refs.FileButton.AddComponent(new UiTooltip("Save, load, or start a new skeleton or clip"));
@@ -185,6 +175,53 @@ public static partial class AnimatorLayout
         ui.End();
         ui.End();
     }
+
+    /// <summary>
+    /// The bar floating at the top centre of the preview, as the level editor's
+    /// sits over its view: grid │ snap │ align. GRID shows the grid, SNAP puts
+    /// drags on it (off to start: a whole cell is coarse for posing), ALIGN lines
+    /// dragged joints up with the others. Shift while dragging overrides both.
+    /// </summary>
+    private static void BuildViewBar(UiBuilder menu, EditorShellRects shell, ref Refs refs)
+    {
+        UiNode bar = UiNode.Wrap(menu.Current, menu.Visuals).Row()
+            .Size(ViewBarSize)
+            .Gap(6)
+            .Pad(4)
+            .Solid()
+            .Input()
+            .At(ViewBarCenter(shell));
+        refs.Ui.ViewBar = bar.Entity;
+
+        var toggle = new Vector2(ViewBarToggleWidth, ViewBarControl);
+        ViewportGrid.Attach(bar.Button(ViewportGrid.Label, UiTheme.SmallFontSize).Size(toggle).Entity);
+        ViewBarSeparator(bar);
+        ViewportSnap.Attach(
+            bar.Button(ViewportSnap.Label, UiTheme.SmallFontSize).Size(toggle).Entity,
+            "Snap dragged joints, art and IK targets to the grid; hold Shift while dragging to stay free",
+            on: false);
+        ViewBarSeparator(bar);
+        Entity align = bar.Button(AlignLabel, UiTheme.SmallFontSize).Size(toggle).Entity;
+        align.AddComponent(new Toggle(AlignLabel, AlignLabel, true));
+        align.AddComponent(new ModeToggle(AnimatorMode.Align));
+        AnimatorTooltips.Attach(align, ToolActionKind.ToggleMode, nameof(AnimatorMode.Align));
+    }
+
+    private const string AlignLabel = "ALIGN";
+    private const float ViewBarControl = 28f;
+    private const float ViewBarToggleWidth = 64f;
+    private const float ViewBarTop = 6f;
+
+    /// <summary>Three toggles, two separators, the gaps between them and the padding.</summary>
+    public static readonly Vector2 ViewBarSize = new(3 * ViewBarToggleWidth + 2 * 1f + 4 * 6f + 2 * 4f, 36f);
+
+    /// <summary>Centred over the preview, just under the header.</summary>
+    public static Vector2 ViewBarCenter(EditorShellRects shell) => new(
+        shell.Viewport.Position.X + shell.Viewport.Size.X / 2f,
+        shell.Viewport.Position.Y + ViewBarTop + ViewBarSize.Y / 2f);
+
+    private static void ViewBarSeparator(UiNode bar) =>
+        bar.Rect(Palette.BorderStrong, size: new Vector2(1, 22));
 
     /// <summary>
     /// A row that sizes to its children and docks to one edge of its parent, so

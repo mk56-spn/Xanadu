@@ -168,8 +168,10 @@ internal static class AnimatorPreviewDrag
             document.Package, AnimatorGeometry.PreviewPose(document, modes));
         float radius = AnimatorSnap.Pixels / Mathf.Max(0.0001f, Mathf.Abs(placement.Scale.X));
         Vector2 wanted = drag.ParentWorld * value;
-        Vector2 snapped = AnimatorSnap.Align(
-            document.Package, world, bone, wanted, radius, out AnimatorSnapGuides found);
+        AnimatorSnapGuides found = default;
+        Vector2 snapped = modes.Align
+            ? AnimatorSnap.Align(document.Package, world, bone, wanted, radius, out found)
+            : wanted;
         guides = found;
         if (AnimatorPreviewGrid.On(session))
             snapped = AnimatorSnap.ToGrid(snapped, found);

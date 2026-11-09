@@ -181,13 +181,15 @@ public static partial class AnimatorLayout
         viewport.AddComponent(new ScrollView());
     }
 
-    /// <summary>Moving the selected bones, then keying them and passing poses between frames.</summary>
+    /// <summary>
+    /// Moving the selected bones, then keying them and passing poses between frames.
+    /// Rotation, scale and the art's layer are typed in the inspector over the
+    /// preview (and nudged with keys), so they are not repeated here.
+    /// </summary>
     private static Entity BuildPoseBody(UiBuilder menu)
     {
         menu.Collapsible("TRANSFORM", ButtonWidth);
         Subhead(menu, "ADJUST");
-        Stepper(menu, "ROTATE", ToolActionKind.RotateLeft, ToolActionKind.RotateRight);
-        Stepper(menu, "SCALE", ToolActionKind.ScaleDown, ToolActionKind.ScaleUp);
         Stepper(menu, "DEPTH", ToolActionKind.DepthAway, ToolActionKind.DepthToward);
         SmallRow(menu, ("MIRROR", ToolActionKind.MirrorPose));
         Subhead(menu, "CONSTRAINTS");
@@ -209,7 +211,6 @@ public static partial class AnimatorLayout
             ButtonWidth,
             "Self modulate of the selected SVG: its art is multiplied by this. Type #rrggbb or #rrggbbaa; leave blank for white.")
             .Entity;
-        Stepper(menu, "LAYER", ToolActionKind.LayerDownKey, ToolActionKind.LayerUpKey);
         SmallRow(menu, ("SHOW / HIDE", ToolActionKind.ToggleArtVisible));
         Subhead(menu, "MESH");
         SmallRow(menu, ("MESH", ToolActionKind.ToggleMesh), ("BONES", ToolActionKind.PickMeshBones));
