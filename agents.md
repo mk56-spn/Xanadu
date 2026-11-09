@@ -59,32 +59,14 @@ UI is ECS entities — `Rectangle`, `Text`, `TextStyle`, `ButtonVisual`,
 systems. `UiBuilder` is the low-level factory behind it; the only direct caller
 left is the F2 shader tuner (a debug overlay).
 
-**Never build UI out of Godot Control widgets.** This includes `Button`,
-`Label`, `LineEdit`, `TextEdit`, `Panel`, `ColorRect`, `TextureRect`,
-`VBoxContainer`, `HBoxContainer`, `GridContainer`, `MarginContainer`,
-`ScrollContainer`, `TabContainer`, `ItemList`, `Tree`, `PopupMenu`,
-`OptionButton`, `CheckBox`, `Slider`, `ProgressBar`, `ConfirmationDialog`,
-`AcceptDialog`, `Window` and `FileDialog`. **IMPORTANT**
-
-### The one exception
-
-Opening files: `FileDialog` to pick a file, plus the invisible `LineEdit` that
-`EditorOverlay` uses to receive OS keyboard/clipboard text (Godot has no other
-way to get it). Both live in `Editor/EditorOverlay*`.
-
-The only other Godot widget allowed is the `FileDialog` Main opens to import an
-audio file (`Add song`); it is triggered by an ECS button and owns no layout.
-
-The rest of `EditorOverlay*` — the song picker's `ItemList`/`ConfirmationDialog`,
-the `Label`s — is existing debt, not precedent. Do not add more Godot UI
-anywhere, including test harnesses and tools. The offset wizard, the song-select
-context menu and the add-song button are ECS now; there is no overlay class for
-them any more.
+There is no widget toolkit: every control is ECS UI. Opening and saving files
+is the one thing handed to the OS, through the host's native dialog
+(`HostCore/HostFileDialog.cs`), triggered by an ECS button and owning no layout.
 
 ### Roots and design space
 
-- A scene root may be a `Control` or `Node2D` **only** to supply a canvas
-  item/host for ECS UI. It must not draw, lay out, or take input itself.
+- A scene draws under the canvas item its host gives it; it never owns the
+  window or reads it.
 - Author UI against the **1920x1080 design space, 16:9 only**. Do not read the
   window size in a scene and do not do per-control scale math; the host scales
   the whole surface. Relative layout (containers, anchors) is for different
@@ -140,45 +122,40 @@ A system that paints its own canvas from a panel's rectangle must check
 
 ## Verification
 
-Use the Godot binary to verify visually — never just guess. It is the binary
-inside this directory:
+Verify visually — never just guess. Everything runs on the MoonWorks host, a
+plain `dotnet run`; there is no engine to install. After a fresh clone, run
+`External/fetch-moonlibs.sh` once (the native libraries).
 
-```text
-/home/dhs/Documents/Godot_v4.8-dev7_mono_linux_x86_64/Godot_v4.8-dev7_mono_linux.x86_64
-```
+- **Build:** `dotnet build` on each project touched.
+- **Tests:** `dotnet test Tests/Xanadu.Tests.csproj` and `dotnet test UI/Tests`.
+  `docs/moonworks-port.md` §6 lists the failures that are already known.
 
-### Capturing what Godot drew
+### Screenshots
 
-Capture **from inside Godot** (its viewport texture). Desktop tools capture the
-desktop, not the game: on this Wayland box they take whichever window is on top,
-and the sandbox cannot write their configs.
+Every exe reads its own frame, so a shot needs no focus and no visible window.
 
-**Visual tests.** The harness reads its own viewport, so it needs no focus and
-no visible window; it writes the PNG and exits. Do not combine with
-`--headless` — headless cannot render.
-
-```bash
-GODOT=/home/dhs/Documents/Godot_v4.8-dev7_mono_linux_x86_64/Godot_v4.8-dev7_mono_linux.x86_64
-"$GODOT" --path Tests/VisualTests --fullscreen res://VisualTests.tscn -- \
-  --visual-test=<slug> --visual-test-shot=<path under the repo>
-```
-
-**The game.** `--shot=<path>` saves the window once it settles, then exits.
-`F12` does the same on demand into `screenshots/` (`Main` falls back from
-`user://` to `res://screenshots`). Do not combine either with `--headless`.
+**The game.** `--shot=<path>` saves frame 60 and quits (`--shot-frame=<n>` to
+pick another); `--scene=<name>`, `--demo`, `--play[=<name>]` and `--editor`
+pick where it starts. `F12` saves into `user://screenshots` on demand.
 
 ```bash
-"$GODOT" --path . --resolution 1280x720 -- --shot=<path under the repo>
+./run-game.sh --scene=songselect --shot=<path>
+./run-editor.sh --shot=<path>
 ```
 
-**Desktop capture**, if you really need it: set `XDG_CONFIG_HOME` and
-`XDG_CACHE_HOME` to a directory inside the repo (e.g. `.tmp/config`) or
-`spectacle` fails writing `~/.config/spectacle`, and the Godot window has to be
-the top one.
+**Visual tests.** One test, a shot once it settles, exit code 0 or 1:
 
-In the agent sandbox `user://` is read-only, so replay saves and anything else
-writing there fails. Write screenshots and scratch files under the repo, never
-under `~/.local/share`.
+```bash
+./run-visual-tests.sh --visual-test=<slug> --visual-test-exit
+./run-visual-tests.sh --visual-test=<slug> --visual-test-shot=<path> --visual-test-full
+./run-visual-tests.sh --visual-test=all --visual-test-exit
+```
+
+**Tools.** `run-animator.sh`, `run-showcase.sh` and `run-labs.sh` take
+`--shot=<path>` too; `./run.sh` asks which to start.
+
+Screenshots and scratch files go under `screenshots/` (git-ignored) or the
+scratchpad, never into `Assets/`.
 
 ### When things break
 
@@ -187,8 +164,8 @@ under `~/.local/share`.
 
 ## See also
 
-- `docs/moonworks-port.md` — **in progress:** moving off Godot onto MoonWorks. Read its
-  "Current state" block first; tick steps there as they land.
+- `docs/moonworks-port.md` — how the game moved off Godot onto MoonWorks: the
+  decisions, the renderer, and what is left for later.
 - `Tests/VisualTests/README.md` — the scene-test harness, its step model and flags.
 - `docs/ui-fluent-architecture.md` — the `UiNode` design, the rules the
   migration settled on, and its open questions. This is the house style.

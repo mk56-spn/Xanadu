@@ -15,7 +15,7 @@ under it saying what changed from the plan.
 Update this block at the end of every session, including partial progress.
 
 - **Updated:** 2026-11-10 (seventh session)
-- **Done:** steps 0, 1, 3 to 10, and most of step 2 (step 5 for parity). The
+- **Done:** steps 0, 1 and 3 to 11, and most of step 2 (step 5 for parity). The
   host draws buffered groups, self-contained layer passes, background-reader
   passes and screen-reading shaders (frosted glass) through a multi-pass
   renderer.
@@ -32,15 +32,15 @@ Update this block at the end of every session, including partial progress.
 - **Visual tests (step 10):** the harness runs on the host
   (`dotnet run --project Tests/VisualTests`, `run-visual-tests.sh`), and all
   61 pass.
-- **Next:** rewrite `agents.md` and the memory notes that mention Godot (the last item of step 11). Nothing in the repo builds against Godot any more. Still open from earlier steps:
-  - step 2: play a level by hand with the keyboard;
-  - step 5: done for parity. Per-item data in a storage buffer is deferred,
-    and the slot model moved to "Later".
+- **Step 11 is done (2026-11-10):** Godot is gone. Nothing in the repo
+  builds against it, and its structs live in `Core/Godot/`.
+- **Next:** nothing left for parity apart from playing a level by hand
+  (step 2). Everything else is under "Later", with no hurry.
 - **Committed:** everything so far.
 - **After cloning:** run `External/fetch-moonlibs.sh` once (the host build fails
   with that message otherwise).
 - **Notes for whoever picks this up:** see the step 1 and step 2 notes (Slang
-  usage, the seams, the engine-call trap, what the host skips).
+  usage, the seams, what the host skips).
 
 ---
 
@@ -896,8 +896,9 @@ Host core and Xanadu Labs (2026-11-09, ahead of step 10 at the user's request):
   `EulerOrder` and `Side` generated from GodotSharp's metadata. The last
   engine users (`UiTextBridge`, `KeyPressQueue.Feed`, `XpfMaterials`) and
   `GodotEngineTrap` are gone.
-- [ ] Rewrite `agents.md` (its "Verification" section is all Godot) and update
-  memory notes that mention Godot.
+- [x] Rewrite `agents.md` (its "Verification" section is all Godot) and update
+  memory notes that mention Godot. `agents.md` and `Tests/VisualTests/README.md`
+  describe the host now (2026-11-10).
 
 ### Later (not part of parity)
 
