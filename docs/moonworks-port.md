@@ -19,12 +19,12 @@ Update this block at the end of every session, including partial progress.
   - engine-free materials, and Slang effects for screens and the playfield;
   - level shader slots as Slang effect bodies;
   - the disk cache, with effects compiled at start and on level load;
-  - the F2 tuner, now reading Slang reflection.
+  - the F2 tuner, now reading Slang reflection;
+  - the shipped library (`import xanadu;`).
 - **Next:** what is left of step 5: per-item data in a storage buffer, the
-  vertex slot and fragment chains (once the level format can hold them), the
-  shipped library modules, and shape glow. Then step 6.
-- **Committed:** everything except this doc's latest step 5 notes, which go in
-  with the next commit.
+  vertex slot (with perspective as its first modifier) and fragment chains
+  (once the level format can hold them), and shape glow. Then step 6.
+- **Committed:** everything.
 - **After cloning:** run `External/fetch-moonlibs.sh` once (the host build fails
   with that message otherwise).
 - **Notes for whoever picks this up:** see the step 1 and step 2 notes (Slang
@@ -458,7 +458,7 @@ How it is wired (2026-11-09):
 - [x] Level shader slots move to the new model. `ShaderSourceRules` validates
   through Slang compile errors and the contract check. Godot shader source in
   levels is dropped (P3).
-- [ ] First shipped library modules, ported from the legacy library (§2a).
+- [x] First shipped library modules, ported from the legacy library (§2a).
 
 How the first half landed (2026-11-09):
 
@@ -546,6 +546,39 @@ Level slots, cache and tuner (2026-11-09):
   colour or tint gets a colour picker, standing in for Godot's `source_color`.
   There's no `[Range]` attribute yet; slider ranges are guessed from the value,
   as before.
+
+Shipped library (2026-11-09): `Assets/Shaders/Library`, ported from the legacy
+GLSL includes, keeping their function names so old effects carry over:
+
+| Module | Contents |
+|---|---|
+| `xanadu.math` | `PI`, `TAU`, GLSL-style `mod` (HLSL's `fmod` truncates, which differs for negatives), `rotate`, `rand` |
+| `xanadu.sdf` | circle, cross, ring, box, rounded box, chamfer box, equilateral triangle, parallelogram, hexagram, moon; `opRepPolar`, `opOnion`; `sdfAlpha`, `renderSDF`, `renderSDFWithOutline`, `outerGlowSDF`; `sdShape` by id |
+| `xanadu.easing` | all 31 Penner easings and `getEasing` |
+| `xanadu.colour` | `hsvToRgb`, `hueCycle`, `blendOverAlpha`, and the X11/web colours as `float4` constants |
+| `xanadu.blend` | 12 in-shader blend modes (dodge and burn were named in the legacy include but never written; they are now), `blendMode`, `alphaOver`, `blendOver` |
+| `xanadu.pattern` | line, checker and recursive-checker patterns, `tileUvWithId` |
+| `xanadu.gradient` | `gradientT`: linear, radial, conical, square |
+| `xanadu.curve` | cubic Bézier and its tangent |
+| `xanadu` | re-exports all of the above, plus the stage |
+
+- Rotations were rewritten from GLSL's column-major `mat2(...) * p` by hand.
+- `sdShape`'s rounded box now passes its radii right (`zzww`). The legacy
+  version passed the half size as the radii.
+- **Left behind:**
+  - `curve_node` (unfinished);
+  - the global colours texture with `getColour` and `getSecondaryColour`
+    (and so the `index_2` bug);
+  - `Perspective`, which becomes the first vertex modifier when the vertex
+    slot exists.
+- **`xanadu.stage` v1 gained two fields** (additive, so still v1):
+  `ItemInput.halfSize` and `ItemInput.centred`, the legacy `SIZE` macro's
+  `CANVAS_HALF_SIZE` and `PIXEL_UV`. They are worked out from screen-space
+  derivatives of `uv` against `local`, so they are exact for quads whose uv runs
+  0..1 across them. One difference from the legacy macro: `centred` is y down,
+  where `SIZE`'s corner names were y up.
+- The demo's field shader now draws a rounded frame with `xanadu.sdf`, as a
+  check of the library through the slot path.
 
 ### Step 6: Groups, buffers and layers (1,000–1,500 lines)
 

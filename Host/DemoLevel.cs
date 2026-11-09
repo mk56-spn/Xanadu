@@ -45,16 +45,19 @@ internal static class DemoLevel
             Slot = 1,
             Name = "demo bands",
             Source = """
-                import xanadu.colour;
+                import xanadu;
 
                 [Default(0.25)] uniform float speed;
                 uniform float4 tint;
 
+                // Slow bands of the tint, under a rounded frame inset from the field's edge.
                 float4 shade(ItemInput i)
                 {
-                    float band = 0.5 + 0.5 * sin(i.uv.y * 18.0 - i.time * speed * 6.2832);
+                    float band = 0.5 + 0.5 * sin(i.uv.y * 18.0 - i.time * speed * TAU);
                     float3 colour = lerp(i.colour.rgb, tint.rgb, band * 0.35);
-                    return float4(colour, i.colour.a);
+                    float frame = sdRoundedBox(i.centred, i.halfSize - 40.0, float4(32.0));
+                    float edge = 1.0 - smoothstep(0.0, 2.0, abs(frame) - 3.0);
+                    return float4(lerp(colour, float3(1.0, 0.8, 0.3), edge), i.colour.a);
                 }
                 """,
             Params = { ["tint"] = [0.25f, 0.4f, 0.9f, 1f] },

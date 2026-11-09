@@ -81,6 +81,12 @@ public struct ItemInput
     public float2 pixel;
     /// Seconds since the game started: Godot's TIME.
     public float time;
+    /// Half the drawn shape's size in item units, worked out from how uv
+    /// changes across the pixel (the legacy CANVAS_HALF_SIZE). Exact for rects
+    /// and quads whose uv runs 0..1 across them; meaningless where uv is constant.
+    public float2 halfSize;
+    /// The pixel's position from the shape's centre in item units, y down (the legacy PIXEL_UV).
+    public float2 centred;
 };
 
 public ItemInput input(ItemVaryings v)
@@ -93,6 +99,10 @@ public ItemInput input(ItemVaryings v)
     i.pixel = v.position.xy;
     i.screenUv = v.position.xy / frame.screen;
     i.time = frame.time;
+    float2 span = fwidth(v.uv);
+    i.halfSize = 0.5 * abs(float2(span.x > 1e-6 ? fwidth(v.local.x) / span.x : 0.0,
+                                  span.y > 1e-6 ? fwidth(v.local.y) / span.y : 0.0));
+    i.centred = (v.uv - 0.5) * 2.0 * i.halfSize;
     return i;
 }
 
