@@ -187,6 +187,8 @@ under `~/.local/share`.
 
 ## See also
 
+- `docs/moonworks-port.md` — **in progress:** moving off Godot onto MoonWorks. Read its
+  "Current state" block first; tick steps there as they land.
 - `Tests/VisualTests/README.md` — the scene-test harness, its step model and flags.
 - `docs/ui-fluent-architecture.md` — the `UiNode` design, the rules the
   migration settled on, and its open questions. This is the house style.

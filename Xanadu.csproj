@@ -18,6 +18,8 @@
     <Compile Remove="Core/**/*.cs" />
     <Compile Remove="UI/**/*.cs" />
     <Compile Remove="Tools/**/*.cs" />
+    <Compile Remove="External/**/*.cs" />
+    <Compile Remove="Host/**/*.cs" />
     <PackageReference Include="Friflo.Engine.ECS" Version="4.0.0-preview.2" />
     <PackageReference Include="Friflo.Engine.ECS.Boost" Version="4.0.0-preview.2" />
     <PackageReference Include="Miniaudio-CS" Version="1.0.4" />

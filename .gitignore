@@ -32,3 +32,6 @@ screenshots/
 *.mp3
 *.ogg
 *.flac
+
+# MoonWorks native libraries: fetched by External/fetch-moonlibs.sh
+External/moonlibs/

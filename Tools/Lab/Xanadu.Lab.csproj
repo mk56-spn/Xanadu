@@ -6,6 +6,11 @@
     <GodotProjectDir>$(MSBuildProjectDirectory)/</GodotProjectDir>
   </PropertyGroup>
   <ItemGroup>
+    <!-- A standalone MoonWorks spike with its own csproj; not part of the Godot lab. -->
+    <Compile Remove="MoonWorksParticles/**" />
+    <None Remove="MoonWorksParticles/**" />
+  </ItemGroup>
+  <ItemGroup>
     <ProjectReference Include="../../Core/Xanadu.Core.csproj" />
     <ProjectReference Include="../../UI/Xanadu.Ui.csproj" />
   </ItemGroup>
