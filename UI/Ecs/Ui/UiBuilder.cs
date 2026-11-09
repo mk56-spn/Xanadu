@@ -7,6 +7,7 @@ using Xanadu.Theme;
 using Xanadu.Ui.Ecs.Ui;
 using LayerComponent = Xanadu.Ui.Ecs.Ui.Layer;
 using Position = Xanadu.Ecs.Position;
+using Xanadu.Systems;
 
 namespace Xanadu.Ecs;
 
@@ -45,7 +46,7 @@ public sealed partial class UiBuilder
     public static UiBuilder Begin(EntityStore entities, IVisualRidFactory? visuals = null)
     {
         UiTreeEvents.Ensure(entities);
-        return new UiBuilder(entities, visuals ?? DefaultVisuals ?? new GodotVisualRidFactory());
+        return new UiBuilder(entities, visuals ?? DefaultVisuals ?? HostPlatform.Visuals);
     }
 
     /// <summary>The entity currently receiving children.</summary>

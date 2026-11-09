@@ -28,7 +28,7 @@ public sealed class PlayfieldSystemGroup : SystemGroup, IDisposable
     private readonly CanvasItemHandle _particleCanvas;
     private readonly CanvasItemHandle _hitboxes;
     private readonly CanvasItemHandle _hudOverlay;
-    private readonly GodotParticleEmitter _particles;
+    private readonly IParticleEmitter _particles;
 
     public PlayfieldSystemGroup(
         EntityStore entities,
@@ -59,7 +59,8 @@ public sealed class PlayfieldSystemGroup : SystemGroup, IDisposable
 
         // Particle bursts: after the characters, so they draw over the rig.
         _particleCanvas = new CanvasItemHandle(_playfield.Rid, 0);
-        _particles = new GodotParticleEmitter(_particleCanvas.Rid);
+        // Particles still draw through Godot only; the host gets them in docs/moonworks-port.md step 7.
+        _particles = HostPlatform.IsGodot ? new GodotParticleEmitter(_particleCanvas.Rid) : new SilentParticleEmitter();
 
         // The F6 hitbox outlines: after the art, so the rig cannot hide them,
         // but still inside the playfield's layer so the HUD stays on top.
@@ -114,11 +115,16 @@ public sealed class PlayfieldSystemGroup : SystemGroup, IDisposable
             Add(new CharacterMotionSystem());
             Add(new CharacterAttackSystem());
             Add(new CharacterRigAnimateSystem());
-            Add(new CharacterRigDrawSystem(
-                () => new SvgAttachmentVisuals(_characters.Rid),
-                new CharacterRigGhosts(
-                    _ghosts.Rid,
-                    root => new SvgAttachmentVisuals(root, containLayers: true) { Particles = false })));
+            // Rig art rasterises SVG through Godot; the host draws the plain player
+            // box until docs/moonworks-port.md step 8 gives it the art.
+            if (HostPlatform.IsGodot)
+            {
+                Add(new CharacterRigDrawSystem(
+                    () => new SvgAttachmentVisuals(_characters.Rid),
+                    new CharacterRigGhosts(
+                        _ghosts.Rid,
+                        root => new SvgAttachmentVisuals(root, containLayers: true) { Particles = false })));
+            }
         }
 
         Add(new DivaNotesSystem(entities));
@@ -140,7 +146,7 @@ public sealed class PlayfieldSystemGroup : SystemGroup, IDisposable
     {
         // The emitter and the child layers hold RIDs under the field, so they go
         // before the field itself.
-        _particles.Dispose();
+        (_particles as IDisposable)?.Dispose();
         _hitboxes.Dispose();
         _particleCanvas.Dispose();
         _characters.Dispose();

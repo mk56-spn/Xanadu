@@ -2,6 +2,7 @@ using System;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Godot;
+using Xanadu.Systems;
 using Xanadu.Ecs;
 using Xanadu.Editor.Analysis;
 using Xanadu.Levels;
@@ -51,8 +52,8 @@ public sealed class EditorPlayfieldDrawSystem :
 
         // Tests have no rendering server: calling it outside the engine jumps to a
         // null native pointer and kills the whole test host, so they pass a fake.
-        _shaderItems = shaderItems is null ? new GodotShaderCanvasItems() : null;
-        _canvas = new ShaderRoutingCanvas(canvas, editor, shaderItems ?? _shaderItems!, toPixels);
+        _shaderItems = shaderItems is null && HostPlatform.IsGodot ? new GodotShaderCanvasItems() : null;
+        _canvas = new ShaderRoutingCanvas(canvas, editor, shaderItems ?? _shaderItems ?? new ServerShaderCanvasItems(), toPixels);
         _editor = editor;
         _passes = passes;
 

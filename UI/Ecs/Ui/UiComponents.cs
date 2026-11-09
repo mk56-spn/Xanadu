@@ -1,5 +1,6 @@
 using Friflo.Engine.ECS;
 using Godot;
+using Xanadu.Systems.Canvas;
 using Xanadu.Ecs;
 
 namespace Xanadu.Ui.Ecs.Ui;
@@ -176,12 +177,12 @@ public struct LayerOpacity(float value) : IComponent
     public float Value = value;
 }
 
-/// <summary>RenderingServer canvas item owned by an entity.</summary>
+/// <summary>Canvas item owned by an entity.</summary>
 public struct VisualRid : IComponent
 {
     public Rid Value;
 
-    public VisualRid() => Value = RenderingServer.CanvasItemCreate();
+    public VisualRid() => Value = CanvasServer.Current.CreateItem();
 
     public VisualRid(Rid value) => Value = value;
 }

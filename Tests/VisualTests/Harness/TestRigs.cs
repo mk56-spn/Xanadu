@@ -22,7 +22,7 @@ public static partial class TestContent
         string repo = ProjectSettings.GlobalizePath("res://").TrimEnd('/');
         string path = System.IO.Path.GetFullPath(
             System.IO.Path.Combine(repo, "../../Tools/Animator/Animations/Characters/contact.xaf"));
-        XafPackage? package = new GodotCharacterRigFiles().Load(path);
+        XafPackage? package = new DiskCharacterRigFiles().Load(path);
         if (package is null)
             return;
 

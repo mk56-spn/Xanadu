@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Godot;
+using Xanadu.Systems.Canvas;
 
 namespace Xanadu.Animation;
 
@@ -26,10 +27,10 @@ public sealed partial class SvgAttachmentVisuals
             XafAttachmentState state = visual.Index < pose.AttachmentStates.Length
                 ? pose.AttachmentStates[visual.Index]
                 : default;
-            RenderingServer.CanvasItemSetSelfModulate(visual.Item, attachment.SelfModulate);
+            CanvasServer.Current.SetSelfModulate(visual.Item, attachment.SelfModulate);
             int art = state.Art >= 0 && state.Art < attachment.ArtCount ? state.Art : 0;
             bool shown = !state.Hidden && art == visual.Art;
-            RenderingServer.CanvasItemSetVisible(visual.Item, shown);
+            CanvasServer.Current.SetVisible(visual.Item, shown);
             visual.Shown = shown;
             int layer = state.LayerOf(attachment);
             if (visual.Layer != layer)
@@ -148,9 +149,9 @@ public sealed partial class SvgAttachmentVisuals
         var colors = new Color[bent.Length];
         Array.Fill(colors, Colors.White);
         cache.Drawn = bent;
-        RenderingServer.CanvasItemSetTransform(visual.Item, Transform2D.Identity);
-        RenderingServer.CanvasItemClear(visual.Item);
-        RenderingServer.CanvasItemAddTriangleArray(visual.Item, cache.Triangles, bent, colors, cache.Uvs,
+        CanvasServer.Current.SetTransform(visual.Item, Transform2D.Identity);
+        CanvasServer.Current.Clear(visual.Item);
+        CanvasServer.Current.AddTriangleArray(visual.Item, cache.Triangles, bent, colors, cache.Uvs,
             texture: visual.Texture.GetRid());
     }
 

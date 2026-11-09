@@ -72,8 +72,8 @@ public sealed class RectDrawSystem : QuerySystem<Rectangle, Drawable, VisualRid,
             // clear, as Godot's Control does on each NOTIFICATION_DRAW.
             if (hasContainer && container.Clip)
             {
-                RenderingServer.CanvasItemSetCustomRect(visual.Value, true, rect.Bounds);
-                RenderingServer.CanvasItemSetClip(visual.Value, true);
+                CanvasServer.Current.SetCustomRect(visual.Value, true, rect.Bounds);
+                CanvasServer.Current.SetClip(visual.Value, true);
             }
 
             buffer.RemoveTag<Dirty>(entity.Id);

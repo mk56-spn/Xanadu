@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Godot;
+using Xanadu.Systems.Canvas;
 using Xanadu.Ecs;
 using Xanadu.Ui.Ecs.Ui;
 using Position = Xanadu.Ecs.Position;
@@ -58,12 +59,12 @@ public sealed class DrawableInitialiseSystem : QuerySystem<Rectangle, Drawable, 
                 parentCanvas = parentVisual.Value;
             }
 
-            RenderingServer.CanvasItemSetParent(visual.Value, parentCanvas);
+            CanvasServer.Current.SetParent(visual.Value, parentCanvas);
 
-            RenderingServer.CanvasItemSetZIndex(
+            CanvasServer.Current.SetZIndex(
                 visual.Value,
                 LocalZIndex(entity));
-            RenderingServer.CanvasItemSetTransform(visual.Value, UiTransform.Local(entity, position.Value));
+            CanvasServer.Current.SetTransform(visual.Value, UiTransform.Local(entity, position.Value));
             if (entity.TryGetComponent(out UiMaterial material))
                 RenderingServer.CanvasItemSetMaterial(visual.Value, material.Material.GetRid());
 

@@ -12,12 +12,12 @@ public interface ICharacterRigFiles
     XafPackage? Load(string path);
 }
 
-/// <summary>Reads XAF files from <c>res://</c>, <c>user://</c> or absolute paths.</summary>
-public sealed class GodotCharacterRigFiles : ICharacterRigFiles
+/// <summary>Reads XAF files from <c>res://</c>, <c>user://</c> or absolute paths, through <see cref="Xanadu.Storage.GamePaths"/>.</summary>
+public sealed class DiskCharacterRigFiles : ICharacterRigFiles
 {
     public XafPackage? Load(string path)
     {
-        string full = ProjectSettings.GlobalizePath(path);
+        string full = Xanadu.Storage.GamePaths.Globalize(path);
         if (!System.IO.File.Exists(full))
             return null;
 

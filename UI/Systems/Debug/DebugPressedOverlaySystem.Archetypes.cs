@@ -148,7 +148,7 @@ public sealed partial class DebugPressedOverlaySystem
     /// <summary>Writes every archetype, active or not, to <see cref="DumpPath"/> for reading outside the overlay.</summary>
     private void WriteDump()
     {
-        string path = ProjectSettings.GlobalizePath(DumpPath);
+        string path = Xanadu.Storage.GamePaths.Globalize(DumpPath);
         try
         {
             _archetypes.Dump(path);

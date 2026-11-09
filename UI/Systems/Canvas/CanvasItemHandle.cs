@@ -17,11 +17,11 @@ public sealed class CanvasItemHandle : IDisposable
     /// <param name="visible">Whether the layer starts visible.</param>
     public CanvasItemHandle(Rid parent, int zIndex, bool visible = true)
     {
-        Rid = RenderingServer.CanvasItemCreate();
-        RenderingServer.CanvasItemSetParent(Rid, parent);
-        RenderingServer.CanvasItemSetZIndex(Rid, zIndex);
+        Rid = CanvasServer.Current.CreateItem();
+        CanvasServer.Current.SetParent(Rid, parent);
+        CanvasServer.Current.SetZIndex(Rid, zIndex);
         if (!visible)
-            RenderingServer.CanvasItemSetVisible(Rid, false);
+            CanvasServer.Current.SetVisible(Rid, false);
     }
 
     public Rid Rid { get; }
@@ -29,7 +29,7 @@ public sealed class CanvasItemHandle : IDisposable
     public void SetVisible(bool visible)
     {
         if (!_released)
-            RenderingServer.CanvasItemSetVisible(Rid, visible);
+            CanvasServer.Current.SetVisible(Rid, visible);
     }
 
     public void Dispose()
@@ -38,6 +38,6 @@ public sealed class CanvasItemHandle : IDisposable
             return;
 
         _released = true;
-        RenderingServer.FreeRid(Rid);
+        CanvasServer.Current.Free(Rid);
     }
 }

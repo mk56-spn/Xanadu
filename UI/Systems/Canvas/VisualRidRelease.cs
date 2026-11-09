@@ -26,12 +26,12 @@ public sealed class VisualRidRelease : IDisposable
     {
         _store.OnEntityDelete -= Free;
         foreach (Entity entity in _store.Query<VisualRid>().ToEntityList())
-            RenderingServer.FreeRid(entity.GetComponent<VisualRid>().Value);
+            CanvasServer.Current.Free(entity.GetComponent<VisualRid>().Value);
     }
 
     private static void Free(EntityDelete deleted)
     {
         if (deleted.Entity.TryGetComponent(out VisualRid visual))
-            RenderingServer.FreeRid(visual.Value);
+            CanvasServer.Current.Free(visual.Value);
     }
 }

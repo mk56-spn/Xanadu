@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Godot;
+using Xanadu.Systems.Canvas;
 using Xanadu.Items;
 using Xanadu.Layering;
 using Xanadu.Systems.Shaders;
@@ -47,7 +48,7 @@ public sealed partial class SvgAttachmentVisuals(Rid canvas, bool containLayers 
                 // Higher layers draw in front; equal layers keep the attachment order.
                 // Only the attachment's own art shows until a pose says otherwise.
                 Rid item = CreateItem(texture!, size, attachment.ZOrder, AnimatorDrawOrder.Attachment(i));
-                RenderingServer.CanvasItemSetVisible(item, art == 0);
+                CanvasServer.Current.SetVisible(item, art == 0);
                 _visuals.Add(new Visual(i, art, item, texture!, new Rect2(-size / 2, size)));
             }
         }
@@ -62,8 +63,8 @@ public sealed partial class SvgAttachmentVisuals(Rid canvas, bool containLayers 
         for (int i = 0; i < package.Cloths.Count; i++)
         {
             XafCloth cloth = package.Cloths[i];
-            Rid item = RenderingServer.CanvasItemCreate();
-            RenderingServer.CanvasItemSetParent(item, canvas);
+            Rid item = CanvasServer.Current.CreateItem();
+            CanvasServer.Current.SetParent(item, canvas);
             SetLayer(item, cloth.ZOrder, AnimatorDrawOrder.Cloth(i));
             _cloths.Add(new ClothVisual(i, item));
         }
@@ -74,7 +75,7 @@ public sealed partial class SvgAttachmentVisuals(Rid canvas, bool containLayers 
     public void ReloadEffects(XafPackage package)
     {
         foreach (EffectVisual visual in _effects)
-            RenderingServer.FreeRid(visual.Item);
+            CanvasServer.Current.Free(visual.Item);
         _effects.Clear();
 
         for (int i = 0; i < package.Effects.Count; i++)
@@ -101,12 +102,12 @@ public sealed partial class SvgAttachmentVisuals(Rid canvas, bool containLayers 
         foreach (EffectVisual visual in _effects)
         {
             float alpha = visual.Index < pose.Effects.Length ? pose.Effects[visual.Index].Alpha : 0f;
-            RenderingServer.CanvasItemSetVisible(visual.Item, alpha > 0f && visual.Index < effects.Length);
+            CanvasServer.Current.SetVisible(visual.Item, alpha > 0f && visual.Index < effects.Length);
             if (alpha <= 0f || visual.Index >= effects.Length)
                 continue;
 
-            RenderingServer.CanvasItemSetTransform(visual.Item, placement * effects[visual.Index]);
-            RenderingServer.CanvasItemSetModulate(visual.Item, new Color(1f, 1f, 1f, alpha));
+            CanvasServer.Current.SetTransform(visual.Item, placement * effects[visual.Index]);
+            CanvasServer.Current.SetModulate(visual.Item, new Color(1f, 1f, 1f, alpha));
             visual.Alpha = alpha;
         }
     }
@@ -118,7 +119,7 @@ public sealed partial class SvgAttachmentVisuals(Rid canvas, bool containLayers 
             if (visual.Index >= attachments.Length)
                 continue;
 
-            RenderingServer.CanvasItemSetTransform(
+            CanvasServer.Current.SetTransform(
                 visual.Item,
                 placement * attachments[visual.Index]);
         }
@@ -152,13 +153,13 @@ public sealed partial class SvgAttachmentVisuals(Rid canvas, bool containLayers 
             }
             while (visual.Items.Count > segments)
             {
-                RenderingServer.FreeRid(visual.Items[^1]);
+                CanvasServer.Current.Free(visual.Items[^1]);
                 visual.Items.RemoveAt(visual.Items.Count - 1);
             }
 
             for (int s = 0; s < segments; s++)
             {
-                RenderingServer.CanvasItemSetTransform(
+                CanvasServer.Current.SetTransform(
                     visual.Items[s],
                     placement * XafChainArt.Segment(points[s], points[s + 1], s, segments, chain.Width, visual.Size));
             }
@@ -170,7 +171,7 @@ public sealed partial class SvgAttachmentVisuals(Rid canvas, bool containLayers 
     {
         while (visual.Items.Count > 1)
         {
-            RenderingServer.FreeRid(visual.Items[^1]);
+            CanvasServer.Current.Free(visual.Items[^1]);
             visual.Items.RemoveAt(visual.Items.Count - 1);
         }
         if (visual.Items.Count == 0)
@@ -181,8 +182,8 @@ public sealed partial class SvgAttachmentVisuals(Rid canvas, bool containLayers 
                 AnimatorDrawOrder.Chain(visual.Index, 0)));
 
         Rid item = visual.Items[0];
-        RenderingServer.CanvasItemClear(item);
-        RenderingServer.CanvasItemSetTransform(item, Transform2D.Identity);
+        CanvasServer.Current.Clear(item);
+        CanvasServer.Current.SetTransform(item, Transform2D.Identity);
         (Vector2[] vertices, Vector2[] uvs, int[] triangles) = XafChainArt.Sheet(points, chain.Width);
         if (triangles.Length == 0)
             return;
@@ -190,7 +191,7 @@ public sealed partial class SvgAttachmentVisuals(Rid canvas, bool containLayers 
             vertices[i] = placement * vertices[i];
         var colors = new Color[vertices.Length];
         Array.Fill(colors, Colors.White);
-        RenderingServer.CanvasItemAddTriangleArray(item, triangles, vertices, colors, uvs,
+        CanvasServer.Current.AddTriangleArray(item, triangles, vertices, colors, uvs,
             texture: visual.Texture.GetRid());
     }
 
@@ -198,7 +199,7 @@ public sealed partial class SvgAttachmentVisuals(Rid canvas, bool containLayers 
     {
         foreach (ClothVisual visual in _cloths)
         {
-            RenderingServer.CanvasItemClear(visual.Item);
+            CanvasServer.Current.Clear(visual.Item);
             if (visual.Index >= package.Cloths.Count)
                 continue;
 
@@ -228,7 +229,7 @@ public sealed partial class SvgAttachmentVisuals(Rid canvas, bool containLayers 
                     colors[cloth.Index(column, row)] = shade;
             }
 
-            RenderingServer.CanvasItemAddTriangleArray(visual.Item, visual.Triangles, placed, colors);
+            CanvasServer.Current.AddTriangleArray(visual.Item, visual.Triangles, placed, colors);
         }
     }
 
@@ -251,7 +252,7 @@ public sealed partial class SvgAttachmentVisuals(Rid canvas, bool containLayers 
     {
         foreach (Visual visual in _visuals)
         {
-            RenderingServer.FreeRid(visual.Item);
+            CanvasServer.Current.Free(visual.Item);
             visual.Texture.Dispose();
         }
         _visuals.Clear();
@@ -259,17 +260,17 @@ public sealed partial class SvgAttachmentVisuals(Rid canvas, bool containLayers 
         foreach (ChainVisual chain in _chains)
         {
             foreach (Rid item in chain.Items)
-                RenderingServer.FreeRid(item);
+                CanvasServer.Current.Free(item);
             chain.Texture.Dispose();
         }
         _chains.Clear();
 
         foreach (EffectVisual effect in _effects)
-            RenderingServer.FreeRid(effect.Item);
+            CanvasServer.Current.Free(effect.Item);
         _effects.Clear();
 
         foreach (ClothVisual cloth in _cloths)
-            RenderingServer.FreeRid(cloth.Item);
+            CanvasServer.Current.Free(cloth.Item);
         _cloths.Clear();
 
         ReleaseParticles();
@@ -306,11 +307,11 @@ public sealed partial class SvgAttachmentVisuals(Rid canvas, bool containLayers 
         var colors = new Color[points.Length];
         Array.Fill(colors, primitive.Fill);
 
-        Rid canvasItem = RenderingServer.CanvasItemCreate();
-        RenderingServer.CanvasItemSetParent(canvasItem, canvas);
+        Rid canvasItem = CanvasServer.Current.CreateItem();
+        CanvasServer.Current.SetParent(canvasItem, canvas);
         SetLayer(canvasItem, layer, order);
-        RenderingServer.CanvasItemSetVisible(canvasItem, false);
-        RenderingServer.CanvasItemAddTriangleArray(canvasItem, triangles, points, colors, uvs,
+        CanvasServer.Current.SetVisible(canvasItem, false);
+        CanvasServer.Current.AddTriangleArray(canvasItem, triangles, points, colors, uvs,
             texture: texture?.GetRid() ?? default);
 
         string shader = !primitive.Shader.IsNone ? primitive.Shader.Path : item.PrimaryCommonShader;
@@ -327,7 +328,7 @@ public sealed partial class SvgAttachmentVisuals(Rid canvas, bool containLayers 
     {
         texture = null;
         size = Vector2.Zero;
-        string path = ProjectSettings.GlobalizePath(svgPath);
+        string path = Xanadu.Storage.GamePaths.Globalize(svgPath);
         if (!System.IO.File.Exists(path))
             return false;
 
@@ -370,8 +371,8 @@ public sealed partial class SvgAttachmentVisuals(Rid canvas, bool containLayers 
 
     private Rid CreateArtItem()
     {
-        Rid item = RenderingServer.CanvasItemCreate();
-        RenderingServer.CanvasItemSetParent(item, canvas);
+        Rid item = CanvasServer.Current.CreateItem();
+        CanvasServer.Current.SetParent(item, canvas);
         RenderingServer.CanvasItemSetDefaultTextureFilter(
             item, RenderingServer.CanvasItemTextureFilter.LinearWithMipmaps);
         return item;
@@ -382,12 +383,12 @@ public sealed partial class SvgAttachmentVisuals(Rid canvas, bool containLayers 
         layer = DrawOrder.ClampLayer(layer);
         if (containLayers)
         {
-            RenderingServer.CanvasItemSetDrawIndex(item, DrawOrder.Banded(layer, order));
+            CanvasServer.Current.SetDrawIndex(item, DrawOrder.Banded(layer, order));
             return;
         }
 
-        RenderingServer.CanvasItemSetZIndex(item, layer);
-        RenderingServer.CanvasItemSetDrawIndex(item, order);
+        CanvasServer.Current.SetZIndex(item, layer);
+        CanvasServer.Current.SetDrawIndex(item, order);
     }
 
     private Rid CreateItem(ImageTexture texture, Vector2 size, int layer, int order = 0)

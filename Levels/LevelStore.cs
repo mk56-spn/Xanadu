@@ -18,11 +18,11 @@ public static class LevelStore
 
     private static string ResolveDirectory()
     {
-        string userDirectory = ProjectSettings.GlobalizePath(LevelsFolder);
+        string userDirectory = Xanadu.Storage.GamePaths.Globalize(LevelsFolder);
         if (IsWritable(userDirectory))
             return userDirectory;
 
-        string fallbackDirectory = ProjectSettings.GlobalizePath(FallbackFolder);
+        string fallbackDirectory = Xanadu.Storage.GamePaths.Globalize(FallbackFolder);
         System.IO.Directory.CreateDirectory(fallbackDirectory);
         return fallbackDirectory;
     }
@@ -147,8 +147,8 @@ public static class LevelStore
         var entries = new List<LevelEntry>();
         var seen = new HashSet<string>(StringComparer.Ordinal);
 
-        AddFrom(ProjectSettings.GlobalizePath(LevelsFolder));
-        AddFrom(ProjectSettings.GlobalizePath(FallbackFolder));
+        AddFrom(Xanadu.Storage.GamePaths.Globalize(LevelsFolder));
+        AddFrom(Xanadu.Storage.GamePaths.Globalize(FallbackFolder));
 
         entries.Sort(static (left, right) =>
         {

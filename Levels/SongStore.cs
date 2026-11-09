@@ -51,7 +51,7 @@ public sealed class SongStore
     }
 
     public string Root => _root ??=
-        ProjectSettings.GlobalizePath(LibraryFolder);
+        Xanadu.Storage.GamePaths.Globalize(LibraryFolder);
 
     public string CatalogPath =>
         _catalogPath ?? Path.Combine(Root, "catalog.json");

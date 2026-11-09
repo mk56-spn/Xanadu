@@ -12,6 +12,7 @@ using Xanadu.Scenes;
 using Xanadu.Settings;
 using SceneState = Xanadu.Ecs.SceneState;
 using Position = Xanadu.Ecs.Position;
+using Xanadu.Systems;
 
 namespace Xanadu.Systems.Scenes;
 
@@ -72,7 +73,7 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
         _entities = entities;
         _director = director;
         _screen = screen;
-        _visuals = visuals ?? new GodotVisualRidFactory();
+        _visuals = visuals ?? HostPlatform.Visuals;
         _loadLevels = loadLevels ?? LevelStore.List;
         _keybinds = keybinds ?? new KeybindSettings(persist: false);
         _profiles = profiles ?? new ProfileStore(persist: false);

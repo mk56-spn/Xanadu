@@ -4,6 +4,7 @@ using Godot;
 using Xanadu.Ecs;
 using Xanadu.Systems.Input;
 using Xanadu.Systems.Ui;
+using Xanadu.Systems;
 
 namespace Xanadu.Systems.Ui;
 
@@ -20,8 +21,8 @@ public sealed class UiInteractionSystemGroup : SystemGroup
         bool focus = true,
         bool tooltips = true) : base("UiInteraction")
     {
-        visuals ??= new GodotVisualRidFactory();
-        keyboard ??= new GodotKeyboardState();
+        visuals ??= HostPlatform.Visuals;
+        keyboard ??= HostPlatform.Keyboard;
 
         Add(new InputSystem(pointer));
         if (focus)

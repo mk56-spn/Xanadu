@@ -20,3 +20,9 @@ public interface IParticleEmitter
         float angle = 0f,
         Vector2 heading = default);
 }
+
+/// <summary>Draws nothing: for hosts without particles yet (docs/moonworks-port.md step 7).</summary>
+public sealed class SilentParticleEmitter : IParticleEmitter
+{
+    public void Burst(string particle, Vector2 position, Color tint, Vector2 area = default, float angle = 0f, Vector2 heading = default) { }
+}

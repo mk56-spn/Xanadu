@@ -1,6 +1,7 @@
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Godot;
+using Xanadu.Systems.Canvas;
 using Xanadu.Ecs;
 using Xanadu.Ui.Ecs.Ui;
 
@@ -26,8 +27,8 @@ public sealed class LayerParentSystem : QuerySystem<VisualRid, Layer>
 
         Query.ForEachEntity((ref VisualRid visual, ref Layer layer, Entity entity) =>
         {
-            RenderingServer.CanvasItemSetParent(visual.Value, _parentCanvas);
-            RenderingServer.CanvasItemSetZIndex(visual.Value, layer.ZIndex);
+            CanvasServer.Current.SetParent(visual.Value, _parentCanvas);
+            CanvasServer.Current.SetZIndex(visual.Value, layer.ZIndex);
             buffer.RemoveTag<Uninitialised>(entity.Id);
         });
     }

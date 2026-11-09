@@ -65,6 +65,6 @@ public sealed class PersistedFile<T> where T : class
 
     private string ResolvePath() =>
         _path.StartsWith("user://", StringComparison.Ordinal)
-            ? ProjectSettings.GlobalizePath(_path)
+            ? Xanadu.Storage.GamePaths.Globalize(_path)
             : _path;
 }

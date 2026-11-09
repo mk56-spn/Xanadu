@@ -14,17 +14,20 @@ under it saying what changed from the plan.
 
 Update this block at the end of every session, including partial progress.
 
-- **Updated:** 2026-11-09
-- **Done:** steps 0 and 1. `dotnet run --project Host` opens a window cleared
-  to `Palette.Background`; `-- --shot=<png>` saves frame 60 and quits.
-- **Next:** step 2 (renderer core and playfield). Slang is proven (step 2's
-  first box); start with the composition-root findings under step 2.
-- **Committed:** everything up to here (`f8e4438` port, plus three unrelated
-  commits clearing the earlier backlog). Nothing pending.
+- **Updated:** 2026-11-09 (second session)
+- **Done:** steps 0 and 1, and most of step 2: `dotnet run --project Host -- --demo`
+  plays a level made in memory (notes, guides, misses, pops, blocks, HUD, song
+  clock and audio) through the host's own renderer, in one draw call, with no
+  Godot engine call left on that path.
+- **Next:** the rest of step 2: try keyboard and mouse by hand (wired, not yet
+  played), then the profiles and song-select screens (they need text, so in
+  practice step 3 starts there). See the step 2 notes for what the host still
+  skips.
+- **Committed:** everything up to here, including the step 2 work. Nothing pending.
 - **After cloning:** run `External/fetch-moonlibs.sh` once (the host build fails
   with that message otherwise).
 - **Notes for whoever picks this up:** see the step 1 and step 2 notes (Slang
-  usage, the composition root, `Rid` minting, `Texture2D`).
+  usage, the seams, the engine-call trap, what the host skips).
 
 ---
 
@@ -277,16 +280,64 @@ Findings from mapping the surface (2026-11-09):
   - Auto mode treats a new NuGet package's native code as "code from external".
     Expect to need the user's explicit OK the first time a new native package
     runs.
-- [ ] A retained canvas-item tree implementing what `IRectCanvas` and the visual
+- [x] A retained canvas-item tree implementing what `IRectCanvas` and the visual
   RID factory need: create, free, parent, clear, transform, z-order, draw index,
-  visibility, clip, modulate and self modulate.
-- [ ] The draw commands from §4: rect, line, polyline, multiline, polygon,
-  triangle array, circle, textured rect, nine-patch.
-- [ ] Batching from day one: one dynamic vertex buffer per frame, sorted by
-  pipeline (shader + blend), plus a pipeline cache that builds pipelines at load,
-  never mid-frame.
-- [ ] Keyboard and pointer input through the existing input interfaces.
-- [ ] Play mode draws and plays (no text, shaders or particles yet).
+  visibility, clip, modulate and self modulate (`Host/Rendering/CanvasTree.cs`).
+  It follows Godot's order: an item draws before its children, siblings sort by
+  draw index and then by when they were parented, and z is relative to the
+  parent and sorts the whole tree.
+- [x] The draw commands from §4: rect, line, polyline (mitred), multiline,
+  polygon (ear clipping), triangle array, circle, textured rect. Nine-patch
+  isn't needed: nothing in the game calls it.
+- [~] Batching: one dynamic vertex buffer per frame and one draw per run of the
+  same texture and clip rect. There is only one pipeline so far, so the
+  pipeline cache waits for step 5.
+- [~] Keyboard and pointer input through the existing input interfaces
+  (`Host/Input/`). Wired, but not yet tried by hand.
+- [x] Play mode draws and plays (no text, shaders or particles yet).
+
+How it is wired (2026-11-09):
+
+- **`CanvasServer`** (`UI/Systems/Canvas/CanvasServer.cs`) is the seam: a
+  static `Current` (`ICanvasServer`, Godot's by default) with the subset of
+  `RenderingServer` the game uses. Every shared caller listed in §4 goes
+  through it now (UI rendering systems, `CanvasItemHandle`, `VisualRidRelease`,
+  `VisualRid`, `CharacterRigGhosts`, shader routing, SVG visuals). Godot-only
+  calls are left where they were (materials, back-buffer copies, instance
+  uniforms, particles, texture filters); they belong to steps 5–8.
+- **`ServerRectCanvas`** holds `GodotRectCanvas`'s shapes on top of the
+  server. `GodotRectCanvas` derives from it and adds fonts and glows. The host
+  uses `ServerRectCanvas` as it is, so it draws no text yet.
+- **`HostPlatform`** (`UI/Systems/HostPlatform.cs`) holds what systems fall back
+  on: keyboard, visual factory, FPS source, a canvas factory, vsync, and
+  `IsGodot`. The host calls `HostPlatform.Use(...)` before building
+  `XanaduSystemRoot`. This replaced the composition-root "platform object" plan:
+  defaults were spread over several groups, so one static holder changed fewer
+  signatures. The debug toggles became `KeyOverlayToggleSource` and
+  `KeyOverlayPageSource` and read `HostPlatform.Keyboard`.
+- **`GamePaths`** (`Core/Storage/GamePaths.cs`) is now the only place `res://`
+  and `user://` become real paths (no IO spread). The host points `user://` at
+  Godot's folder (`~/.local/share/godot/app_userdata/Xanadu`), so both builds
+  share profiles, songs and levels.
+- Also swapped: `GodotTrackClock` → `StopwatchTrackClock`, and
+  `GodotCharacterRigFiles` → `DiskCharacterRigFiles` (engine-free now).
+- **What the host skips while `!HostPlatform.IsGodot`:** shader materials
+  (`ServerShaderCanvasItems` keeps runs as plain child items), particles
+  (`SilentParticleEmitter`), rig art (`CharacterRigDrawSystem` isn't added, so
+  the plain player box draws), canvas groups (children draw straight through)
+  and text. Each one returns in its own step.
+- **`Host/Diagnostics/GodotEngineTrap.cs`** fills GodotSharp's native function
+  table with a stub that prints the managed stack and exits with code 70. A
+  leftover engine call now names its caller instead of segfaulting. **Use it to
+  find the next engine call on any new screen.** It relies on GodotSharp
+  internals (`NativeFuncs._unmanagedCallbacks`, 237 entries in 4.8.0-dev.7) and
+  says so when they move.
+- **Rid minting:** `CanvasTree` reinterprets a `ulong` as `Godot.Rid` with
+  `Unsafe.As`. Textures share the id space (`CanvasRenderer.Textures`).
+- **Host flags:** `--demo` (a level made in memory, `Host/DemoLevel.cs`),
+  `--play[=<name or file>]`, `--editor`, plus `--shot`/`--shot-frame`. Only one
+  saved level loads today (`unnamed-1.xmf` is in an older format the loader
+  skips), and it's empty, hence `--demo`.
 
 ### Step 3: Text (800–1,200 lines)
 

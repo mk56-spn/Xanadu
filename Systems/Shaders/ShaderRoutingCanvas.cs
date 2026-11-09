@@ -505,8 +505,39 @@ public sealed class ShaderRoutingCanvas(IRectCanvas inner, Rid root, IShaderCanv
         inner.DrawTextOutline(Route(canvas), bounds, text, color, fontSize, align, bold, size);
 }
 
-/// <summary>Shader canvas items backed by the rendering server.</summary>
-public sealed class GodotShaderCanvasItems : IShaderCanvasItems
+/// <summary>
+/// Shader canvas items on the <see cref="CanvasServer"/> without shaders: runs
+/// still split into child items in order, but draw plain. The MoonWorks host
+/// uses these until its shader slots land (docs/moonworks-port.md step 5).
+/// </summary>
+public class ServerShaderCanvasItems : IShaderCanvasItems
+{
+    public Rid CreateItem(Rid parent)
+    {
+        Rid item = CanvasServer.Current.CreateItem();
+        CanvasServer.Current.SetParent(item, parent);
+        return item;
+    }
+
+    public virtual void SetMaterial(Rid item, int slot, string commonPath, BlendMode blend) { }
+
+    // The C# defaults of CanvasItemSetCanvasGroupMode are not the CanvasGroup
+    // node's (clear margin 5, fit empty false, fit margin 0): with fit_empty
+    // off the cull never makes the group's own draw command, so the group's
+    // self modulate is ignored and a faded buffer renders fully opaque. Pass
+    // the node's values explicitly.
+    public void SetCanvasGroup(Rid item) =>
+        CanvasServer.Current.SetCanvasGroup(item, clearMargin: 10f, fitEmpty: true, fitMargin: 10f);
+
+    public void SetModulate(Rid item, Color color) => CanvasServer.Current.SetSelfModulate(item, color);
+
+    public void Reparent(Rid item, Rid parent) => CanvasServer.Current.SetParent(item, parent);
+
+    public void SetDrawIndex(Rid item, int index) => CanvasServer.Current.SetDrawIndex(item, index);
+}
+
+/// <summary>Shader canvas items with Godot materials, back-buffer copies and instance uniforms.</summary>
+public sealed class GodotShaderCanvasItems : ServerShaderCanvasItems, IShaderCanvasItems
 {
     /// <summary>Looks up the material of a slot and blend; set each frame from the level being drawn.</summary>
     public Func<int, BlendMode, Rid> MaterialOf { get; set; } = static (_, _) => default;
@@ -517,14 +548,7 @@ public sealed class GodotShaderCanvasItems : IShaderCanvasItems
     /// <summary>Looks up the material plain (unshaded) draws use for a blend mode.</summary>
     public Func<BlendMode, Rid> PlainMaterialOf { get; set; } = PlainBlendMaterials.MaterialOf;
 
-    public Rid CreateItem(Rid parent)
-    {
-        Rid item = RenderingServer.CanvasItemCreate();
-        RenderingServer.CanvasItemSetParent(item, parent);
-        return item;
-    }
-
-    public void SetMaterial(Rid item, int slot, string commonPath, BlendMode blend)
+    public override void SetMaterial(Rid item, int slot, string commonPath, BlendMode blend)
     {
         Rid material = commonPath.Length > 0
             ? CommonMaterialOf(commonPath, blend)
@@ -543,24 +567,6 @@ public sealed class GodotShaderCanvasItems : IShaderCanvasItems
     public void DisableCopy(Rid item) =>
         RenderingServer.CanvasItemSetCopyToBackbuffer(item, false, new Rect2());
 
-    // The C# defaults of CanvasItemSetCanvasGroupMode are not the CanvasGroup
-    // node's (clear margin 5, fit empty false, fit margin 0): with fit_empty
-    // off the cull never makes the group's own draw command, so the group's
-    // self modulate is ignored and a faded buffer renders fully opaque. Pass
-    // the node's values explicitly.
-    public void SetCanvasGroup(Rid item) =>
-        RenderingServer.CanvasItemSetCanvasGroupMode(
-            item,
-            RenderingServer.CanvasGroupMode.Transparent,
-            clearMargin: 10f,
-            fitEmpty: true,
-            fitMargin: 10f,
-            blurMipmaps: false);
-
-    public void SetModulate(Rid item, Color color) => RenderingServer.CanvasItemSetSelfModulate(item, color);
-
-    public void Reparent(Rid item, Rid parent) => RenderingServer.CanvasItemSetParent(item, parent);
-
     public void SetInstanceUniform(Rid item, string param, Vector4 value, int size)
     {
         Variant variant = size switch
@@ -572,6 +578,4 @@ public sealed class GodotShaderCanvasItems : IShaderCanvasItems
         };
         RenderingServer.CanvasItemSetInstanceShaderParameter(item, param, variant);
     }
-
-    public void SetDrawIndex(Rid item, int index) => RenderingServer.CanvasItemSetDrawIndex(item, index);
 }

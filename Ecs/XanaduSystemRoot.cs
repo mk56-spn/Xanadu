@@ -17,6 +17,7 @@ using Xanadu.Settings;
 using Xanadu.Levels;
 using Xanadu.Systems.Scenes;
 using Xanadu.Systems.Ui;
+using Xanadu.Systems;
 
 namespace Xanadu.Ecs;
 
@@ -84,7 +85,7 @@ public sealed class XanaduSystemRoot : SystemRoot, IDisposable
         IWheelSource? wheel = null,
         Node? passHost = null) : base(entities, "Xanadu")
     {
-        var canvas = new GodotRectCanvas();
+        IRectCanvas canvas = HostPlatform.NewCanvas();
         _playPassSurfaces = passHost is null ? null : new Xanadu.Systems.Shaders.GodotPassSurfaces(passHost);
         _editorPassSurfaces = passHost is null ? null : new Xanadu.Systems.Shaders.GodotPassSurfaces(passHost);
         _entities = entities;
@@ -93,12 +94,12 @@ public sealed class XanaduSystemRoot : SystemRoot, IDisposable
         EditorHistory = new EditorHistory(entities);
         Commands = new EditorCommandBus();
         Keybinds = keybinds ?? new KeybindSettings();
-        Keyboard = keyboard ?? new GodotKeyboardState();
+        Keyboard = keyboard ?? HostPlatform.Keyboard;
         PlayKeyboard = new Xanadu.Systems.Replays.ReplayKeyboard(Keyboard);
         Toasts = new ToastSystem(
             entities,
             viewportSize,
-            new GodotVisualRidFactory());
+            HostPlatform.Visuals);
         Offsets = new OffsetSettings();
         MapOffsets = new MapOffsetSettings();
         Display = new DisplaySettings();
@@ -144,7 +145,7 @@ public sealed class XanaduSystemRoot : SystemRoot, IDisposable
         Xanadu.Systems.Ui.UiBootstrap.AttachPresentation(this, canvas);
         _audioSystems = new AudioSystemGroup(
             _trackAudio,
-            new GodotTrackClock(),
+            new StopwatchTrackClock(),
             canvas,
             parentCanvas);
         Add(_audioSystems);
@@ -169,13 +170,13 @@ public sealed class XanaduSystemRoot : SystemRoot, IDisposable
             Offsets,
             pointerInput,
             Hud,
-            new GodotCharacterRigFiles(),
+            new DiskCharacterRigFiles(),
             PlayKeyboard,
-            new GodotOverlayToggleSource(DebugKeys.Hitboxes),
+            new KeyOverlayToggleSource(DebugKeys.Hitboxes),
             MapOffsets,
             _playPassSurfaces,
             toPixels,
-            new GodotOverlayToggleSource(DebugKeys.GroundMode));
+            new KeyOverlayToggleSource(DebugKeys.GroundMode));
         Add(_playfieldSystems);
         _editorSystems = new EditorSystemGroup(
             entities,
@@ -201,7 +202,7 @@ public sealed class XanaduSystemRoot : SystemRoot, IDisposable
             Display,
             new ScrollSystem(pointerInput, wheel),
             Keyboard,
-            new GodotVisualRidFactory(),
+            HostPlatform.Visuals,
             viewportSize));
         if (wheel is not null)
         {
@@ -213,11 +214,11 @@ public sealed class XanaduSystemRoot : SystemRoot, IDisposable
         _debugSystems = new DebugSystemGroup(
             canvas,
             parentCanvas,
-            new GodotOverlayToggleSource(DebugKeys.Ecs),
+            new KeyOverlayToggleSource(DebugKeys.Ecs),
             entities,
             this,
-            new GodotFpsSource(),
-            new GodotOverlayPageSource());
+            HostPlatform.Fps,
+            new KeyOverlayPageSource());
         Add(_debugSystems);
         Add(new Xanadu.Systems.Shaders.ShaderTunerSystem(
             entities,

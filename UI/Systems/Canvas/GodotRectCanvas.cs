@@ -5,8 +5,8 @@ using Xanadu.Ui.Ecs.Ui;
 
 namespace Xanadu.Systems.Canvas;
 
-/// <summary>Production canvas operations backed by Godot's RenderingServer.</summary>
-public sealed class GodotRectCanvas : IRectCanvas
+/// <summary>The Godot canvas: <see cref="ServerRectCanvas"/>'s shapes plus text and glows through Godot's fonts.</summary>
+public sealed class GodotRectCanvas : ServerRectCanvas, IRectCanvas
 {
     private const int FontSize = 16;
     private const string BoldFontPath = "res://Assets/Fonts/SourceSans3-Variable.ttf";
@@ -56,15 +56,9 @@ public sealed class GodotRectCanvas : IRectCanvas
     private readonly GodotTextGlow _glow = new();
     private readonly GodotShapeGlow _shapeGlow = new();
 
-    public void SetVisible(Rid canvas, bool visible) =>
-        RenderingServer.CanvasItemSetVisible(canvas, visible);
-
-    public void SetTransform(Rid canvas, Transform2D transform) =>
-        RenderingServer.CanvasItemSetTransform(canvas, transform);
-
-    public void Clear(Rid canvas)
+    public override void Clear(Rid canvas)
     {
-        RenderingServer.CanvasItemClear(canvas);
+        base.Clear(canvas);
         _glow.Clear(canvas);
         _shapeGlow.Clear(canvas);
         if (!_rotated.TryGetValue(canvas, out RotatedPool? pool))
@@ -75,121 +69,13 @@ public sealed class GodotRectCanvas : IRectCanvas
         pool.Used = 0;
     }
 
-    public void DrawRect(Rid canvas, Rect2 bounds, Color color) =>
-        RenderingServer.CanvasItemAddRect(canvas, bounds, color);
-
-    public void DrawCircle(
-        Rid canvas,
-        Vector2 center,
-        float radius,
-        Color color) =>
-        RenderingServer.CanvasItemAddCircle(canvas, center, radius, color, true);
-
     public void DrawTexture(Rid canvas, Rect2 bounds, Texture2D texture) =>
         RenderingServer.CanvasItemAddTextureRect(
             canvas,
             bounds,
             texture.GetRid());
 
-    public void DrawLine(Rid canvas, Vector2 from, Vector2 to, Color color, float width) =>
-        RenderingServer.CanvasItemAddLine(canvas, from, to, color, width, true);
-
-    public void DrawGradientRect(Rid canvas, Rect2 bounds, Color start, Color end, bool horizontal)
-    {
-        Vector2 topRight = new(bounds.End.X, bounds.Position.Y);
-        Vector2 bottomLeft = new(bounds.Position.X, bounds.End.Y);
-        RenderingServer.CanvasItemAddPolygon(
-            canvas,
-            new[] { bounds.Position, topRight, bounds.End, bottomLeft },
-            horizontal
-                ? new[] { start, end, end, start }
-                : new[] { start, start, end, end });
-    }
-
-    public void DrawPolygon(Rid canvas, ReadOnlySpan<Vector2> points, Color color)
-    {
-        if (points.Length < 3)
-            return;
-
-        Vector2[] vertices = points.ToArray();
-        var colors = new Color[vertices.Length];
-        Array.Fill(colors, color);
-        RenderingServer.CanvasItemAddPolygon(canvas, vertices, colors);
-    }
-
-    public void DrawTriangles(Rid canvas, ReadOnlySpan<Vector2> points, ReadOnlySpan<Color> colors)
-    {
-        int count = points.Length - points.Length % 3;
-        if (count < 3 || colors.Length < count)
-            return;
-
-        var indices = new int[count];
-        for (int i = 0; i < count; i++)
-            indices[i] = i;
-        RenderingServer.CanvasItemAddTriangleArray(
-            canvas, indices, points[..count].ToArray(), colors[..count].ToArray());
-    }
-
-    public void DrawTriangles(Rid canvas, ReadOnlySpan<Vector2> points, ReadOnlySpan<Color> colors, ReadOnlySpan<Vector2> uvs)
-    {
-        int count = points.Length - points.Length % 3;
-        if (count < 3 || colors.Length < count || uvs.Length < count)
-            return;
-
-        var indices = new int[count];
-        for (int i = 0; i < count; i++)
-            indices[i] = i;
-        RenderingServer.CanvasItemAddTriangleArray(
-            canvas, indices, points[..count].ToArray(), colors[..count].ToArray(), uvs[..count].ToArray());
-    }
-
-    public void DrawRectOutlines(Rid canvas, ReadOnlySpan<Rect2> rects, Color color)
-    {
-        if (rects.IsEmpty)
-            return;
-
-        var points = new Vector2[rects.Length * 8];
-        int next = 0;
-        foreach (Rect2 rect in rects)
-        {
-            Vector2 topRight = new(rect.End.X, rect.Position.Y);
-            Vector2 bottomLeft = new(rect.Position.X, rect.End.Y);
-            points[next++] = rect.Position;
-            points[next++] = topRight;
-            points[next++] = topRight;
-            points[next++] = rect.End;
-            points[next++] = rect.End;
-            points[next++] = bottomLeft;
-            points[next++] = bottomLeft;
-            points[next++] = rect.Position;
-        }
-
-        // A negative width is the renderer's plain one-pixel line, its cheapest kind.
-        RenderingServer.CanvasItemAddMultiline(canvas, points, new[] { color }, -1f);
-    }
-
-    public void DrawPolyline(
-        Rid canvas,
-        ReadOnlySpan<Vector2> points,
-        Color color,
-        float width,
-        bool antialiased = true)
-    {
-        if (points.Length < 2)
-            return;
-
-        Vector2[] vertices = points.ToArray();
-        var colors = new Color[vertices.Length];
-        Array.Fill(colors, color);
-        RenderingServer.CanvasItemAddPolyline(
-            canvas,
-            vertices,
-            colors,
-            width,
-            antialiased);
-    }
-
-    public void DrawText(Rid canvas, Rect2 bounds, string text, Color color) =>
+    public override void DrawText(Rid canvas, Rect2 bounds, string text, Color color) =>
         DrawTextAligned(canvas, bounds, text, color, FontSize, HorizontalAlignment.Center);
 
     public void DrawTextStyled(
@@ -388,10 +274,10 @@ public sealed class GodotRectCanvas : IRectCanvas
             bold ? BoldFont : ThemeDB.FallbackFont,
             size);
 
-    public void DrawTextLeft(Rid canvas, Rect2 bounds, string text, Color color) =>
+    public override void DrawTextLeft(Rid canvas, Rect2 bounds, string text, Color color) =>
         DrawTextAligned(canvas, bounds, text, color, FontSize, HorizontalAlignment.Left);
 
-    public void DrawTextRight(Rid canvas, Rect2 bounds, string text, Color color) =>
+    public override void DrawTextRight(Rid canvas, Rect2 bounds, string text, Color color) =>
         DrawTextAligned(canvas, bounds, text, color, FontSize, HorizontalAlignment.Right);
 
     internal static void DrawTextAligned(

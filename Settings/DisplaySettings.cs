@@ -64,10 +64,7 @@ public sealed class DisplaySettings
 
         try
         {
-            DisplayServer.WindowSetVsyncMode(
-                VSyncEnabled
-                    ? DisplayServer.VSyncMode.Enabled
-                    : DisplayServer.VSyncMode.Disabled);
+            Xanadu.Systems.HostPlatform.ApplyVSync(VSyncEnabled);
         }
         catch (Exception)
         {

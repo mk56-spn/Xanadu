@@ -33,7 +33,7 @@ public partial class Main : Control
 		LocalizedText.EnableGodot();
 		UiIcons.Loader = UiIcons.FromResources;
 		SongStore.Shared = new SongStore(
-			catalogPath: ProjectSettings.GlobalizePath(SongStore.CatalogFile));
+			catalogPath: Xanadu.Storage.GamePaths.Globalize(SongStore.CatalogFile));
 		SetProcess(true);
 		_pointer = new GodotPointerInputSource(this);
 		_sceneDirector = new SceneDirector();
@@ -122,8 +122,8 @@ public partial class Main : Control
 				.AsString();
 			string[] candidates =
 			{
-				ProjectSettings.GlobalizePath("user://screenshots"),
-				ProjectSettings.GlobalizePath("res://screenshots"),
+				Xanadu.Storage.GamePaths.Globalize("user://screenshots"),
+				Xanadu.Storage.GamePaths.Globalize("res://screenshots"),
 			};
 
 			foreach (string directory in candidates)

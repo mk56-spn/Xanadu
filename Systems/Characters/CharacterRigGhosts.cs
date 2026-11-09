@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using Godot;
+using Xanadu.Systems.Canvas;
 using Xanadu.Animation;
 using Xanadu.Ecs;
 
@@ -74,7 +75,7 @@ public sealed class CharacterRigGhosts(Rid layer, Func<Rid, IAttachmentVisuals> 
             copy.Visuals.ApplyEffects(pose, XafRig.WorldEffects(package, pose, bones), placement);
             copy.Order = _captures++;
             SetAlpha(copy, ghost.Alpha);
-            RenderingServer.CanvasItemSetVisible(copy.Root, true);
+            CanvasServer.Current.SetVisible(copy.Root, true);
             _live[entity.Id] = copy;
             entity.AddTag<HitGhostRigged>();
         }
@@ -103,7 +104,7 @@ public sealed class CharacterRigGhosts(Rid layer, Func<Rid, IAttachmentVisuals> 
         {
             Copy copy = _live[id];
             _live.Remove(id);
-            RenderingServer.CanvasItemSetVisible(copy.Root, false);
+            CanvasServer.Current.SetVisible(copy.Root, false);
             _free.Add(copy);
         }
     }
@@ -116,14 +117,9 @@ public sealed class CharacterRigGhosts(Rid layer, Func<Rid, IAttachmentVisuals> 
 
         if (copy is null)
         {
-            Rid root = RenderingServer.CanvasItemCreate();
-            RenderingServer.CanvasItemSetParent(root, layer);
-            RenderingServer.CanvasItemSetCanvasGroupMode(
-                root,
-                RenderingServer.CanvasGroupMode.Transparent,
-                GroupMargin,
-                fitEmpty: false,
-                GroupMargin);
+            Rid root = CanvasServer.Current.CreateItem();
+            CanvasServer.Current.SetParent(root, layer);
+            CanvasServer.Current.SetCanvasGroup(root, GroupMargin, fitEmpty: false, GroupMargin);
             copy = new Copy(root, createVisuals(root));
         }
 
@@ -172,7 +168,7 @@ public sealed class CharacterRigGhosts(Rid layer, Func<Rid, IAttachmentVisuals> 
     }
 
     private static void SetAlpha(Copy copy, float alpha) =>
-        RenderingServer.CanvasItemSetModulate(copy.Root, new Color(1f, 1f, 1f, alpha));
+        CanvasServer.Current.SetModulate(copy.Root, new Color(1f, 1f, 1f, alpha));
 
     private sealed class Copy(Rid root, IAttachmentVisuals visuals)
     {

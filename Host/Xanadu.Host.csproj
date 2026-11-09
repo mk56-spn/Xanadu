@@ -16,6 +16,11 @@
     <ProjectReference Include="../Xanadu.csproj" />
     <ProjectReference Include="../Core/Xanadu.Core.csproj" />
     <ProjectReference Include="../UI/Xanadu.Ui.csproj" />
+    <PackageReference Include="Slangc.NET" Version="2026.21.0" />
+    <PackageReference Include="Friflo.Engine.ECS" Version="4.0.0-preview.2" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Shaders/*" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
   <!-- Native libraries from External/fetch-moonlibs.sh, loaded from next to the exe. -->
   <ItemGroup Condition="$([MSBuild]::IsOSPlatform('Linux'))">

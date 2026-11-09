@@ -31,7 +31,7 @@ public sealed unsafe class MiniaudioTrackAudio : ITrackAudio
             _sound = (ma_sound*)NativeMemory.Alloc((nuint)sizeof(ma_sound));
 
         string path = audioPath.StartsWith("res://", StringComparison.Ordinal)
-            ? ProjectSettings.GlobalizePath(audioPath)
+            ? Xanadu.Storage.GamePaths.Globalize(audioPath)
             : audioPath;
 
         byte[] pathBytes = Encoding.UTF8.GetBytes(path);

@@ -71,11 +71,11 @@ public partial class LabHost : Control
         _debug = new DebugSystemGroup(
             new GodotRectCanvas(),
             GetCanvasItem(),
-            new GodotOverlayToggleSource(DebugKeys.Ecs),
+            new KeyOverlayToggleSource(DebugKeys.Ecs),
             _store,
             _root,
             new GodotFpsSource(),
-            new GodotOverlayPageSource());
+            new KeyOverlayPageSource());
         _root.Add(_debug);
 
         _experiments = LabExperiments.All();

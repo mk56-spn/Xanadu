@@ -36,7 +36,7 @@ public sealed class UiDebugOverlayGroup : SystemGroup, IDisposable
         int zIndex = 1001) : base("UiDebugOverlay")
     {
         _overlay = new CanvasItemHandle(parentCanvas, zIndex, visible: false);
-        toggle ??= new GodotOverlayToggleSource(DebugKeys.UiTree);
+        toggle ??= new KeyOverlayToggleSource(DebugKeys.UiTree);
 
         Add(new DebugElementOverlaySystem(canvas, _overlay.Rid, toggle));
         Add(new UiTreeOverlaySystem(toggle));

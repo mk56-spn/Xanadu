@@ -1,6 +1,7 @@
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Godot;
+using Xanadu.Systems.Canvas;
 using Xanadu.Ecs;
 using Xanadu.Ui.Ecs.Ui;
 
@@ -23,7 +24,7 @@ public sealed class LayerOpacitySystem : QuerySystem<VisualRid, LayerOpacity>
 
         Query.ForEachEntity((ref VisualRid visual, ref LayerOpacity opacity, Entity entity) =>
         {
-            RenderingServer.CanvasItemSetModulate(
+            CanvasServer.Current.SetModulate(
                 visual.Value,
                 new Color(1f, 1f, 1f, opacity.Value));
             buffer.RemoveTag<LayerOpacityDirty>(entity.Id);
