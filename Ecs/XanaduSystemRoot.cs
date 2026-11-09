@@ -109,7 +109,7 @@ public sealed class XanaduSystemRoot : SystemRoot, IDisposable
         // Settings build; first-time component registration during scene
         // construction leaves the new layer's structural tags stuck.
         Entity keybindWarmup = entities.CreateEntity(
-            new KeybindButton(KeybindAction.L1));
+            new KeybindButton(KeybindAction.Left));
         keybindWarmup.DeleteEntity();
 
         Scenes = new SceneSystem(
@@ -175,7 +175,7 @@ public sealed class XanaduSystemRoot : SystemRoot, IDisposable
             MapOffsets,
             _playPassSurfaces,
             toPixels,
-            new GodotOverlayToggleSource(DebugKeys.DivaNotes));
+            new GodotOverlayToggleSource(DebugKeys.GroundMode));
         Add(_playfieldSystems);
         _editorSystems = new EditorSystemGroup(
             entities,
@@ -188,7 +188,8 @@ public sealed class XanaduSystemRoot : SystemRoot, IDisposable
             EditorHistory,
             wheel,
             _editorPassSurfaces,
-            toPixels);
+            toPixels,
+            () => Display.EditorAutosave);
         _editorSystems.SetActive(false);
         Add(_editorSystems);
         Add(new InputSystemGroup(

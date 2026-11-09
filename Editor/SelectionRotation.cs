@@ -26,20 +26,18 @@ public readonly record struct RotationStart(
     Entity Entity,
     Vector2 Center,
     Vector2 Size,
-    DashDirection Direction,
     Vector2 Facing,
     Vector2 Momentum,
     float Degrees = 0f,
     BlockOneWay OneWay = BlockOneWay.Off,
-    Xanadu.Items.Xif? Shape = null,
-    DashDirection ExitDirection = DashDirection.Up);
+    Xanadu.Items.Xif? Shape = null);
 
 /// <summary>
 /// Turns a group of playfield items around their shared centre. Anything with
 /// a shape turns freely, to any angle: spikes, text, grass and polygons. The
 /// exception is the block, a physics box that has to stay square to the field:
 /// it only turns in 90 degree steps, swapping width and height. Notes and start
-/// points only have a position, so they orbit, with their directions turned.
+/// points only have a position, so they orbit; start points turn their facing.
 /// </summary>
 public static class SelectionRotation
 {
@@ -53,8 +51,6 @@ public static class SelectionRotation
 
     /// <summary>Shift holds the angle to multiples of this.</summary>
     public static readonly float Step = Mathf.DegToRad(15f);
-
-    private const int DirectionCount = 8;
 
     /// <summary>
     /// The box around every item in the selection. False unless there is something
@@ -132,12 +128,6 @@ public static class SelectionRotation
     {
         ItemKind? kind = ItemKinds.Of(entity);
         Vector2 center = kind?.TurnCenter(entity) ?? default;
-        DashDirection direction = entity.HasComponent<Note>()
-            ? entity.GetComponent<Note>().DashDirection
-            : default;
-        DashDirection exit = entity.HasComponent<Note>()
-            ? entity.GetComponent<Note>().ExitDirection
-            : default;
         Vector2 facing = default;
         Vector2 momentum = default;
         if (entity.HasComponent<StartPoint>())
@@ -154,7 +144,7 @@ public static class SelectionRotation
         BlockOneWay oneWay = entity.HasComponent<Block>()
             ? entity.GetComponent<Block>().OneWay
             : BlockOneWay.Off;
-        return new RotationStart(entity, center, kind?.Size(entity) ?? Vector2.Zero, direction, facing, momentum, degrees, oneWay, shape, exit);
+        return new RotationStart(entity, center, kind?.Size(entity) ?? Vector2.Zero, facing, momentum, degrees, oneWay, shape);
     }
 
     /// <summary>Puts one item where the rotation takes it, kept inside the field.</summary>
@@ -193,15 +183,7 @@ public static class SelectionRotation
             Mathf.Clamp(center.X, 0, playfield.Width),
             Mathf.Clamp(center.Y, 0, playfield.Height)));
 
-        if (entity.HasComponent<Note>())
-        {
-            ref Note note = ref entity.GetComponent<Note>();
-            if (note.Kind is NoteKind.Dash or NoteKind.Momentum)
-                note.DashDirection = TurnedDirection(start.Direction, angle);
-            if (note.Kind == NoteKind.Dash)
-                note.ExitDirection = TurnedDirection(start.ExitDirection, angle);
-        }
-        else if (entity.HasComponent<StartPoint>())
+        if (entity.HasComponent<StartPoint>())
         {
             ref StartPoint point = ref entity.GetComponent<StartPoint>();
             point.Direction = start.Facing.Rotated(angle);
@@ -267,15 +249,7 @@ public static class SelectionRotation
             Mathf.Clamp(center.X, 0, playfield.Width),
             Mathf.Clamp(center.Y, 0, playfield.Height)));
 
-        if (entity.HasComponent<Note>())
-        {
-            ref Note note = ref entity.GetComponent<Note>();
-            if (note.Kind is NoteKind.Dash or NoteKind.Momentum)
-                note.DashDirection = FlippedDirection(start.Direction, horizontal);
-            if (note.Kind == NoteKind.Dash)
-                note.ExitDirection = FlippedDirection(start.ExitDirection, horizontal);
-        }
-        else if (entity.HasComponent<StartPoint>())
+        if (entity.HasComponent<StartPoint>())
         {
             ref StartPoint point = ref entity.GetComponent<StartPoint>();
             Vector2 axis = horizontal ? new Vector2(-1, 1) : new Vector2(1, -1);
@@ -296,10 +270,6 @@ public static class SelectionRotation
         Mathf.Clamp(point.X, 0, playfield.Width),
         Mathf.Clamp(point.Y, 0, playfield.Height));
 
-    /// <summary>The eight directions run clockwise from Up, so mirroring reflects the index.</summary>
-    public static DashDirection FlippedDirection(DashDirection direction, bool horizontal) =>
-        (DashDirection)Mathf.PosMod((horizontal ? 0 : DirectionCount / 2) - (int)direction, DirectionCount);
-
     /// <summary>A block's one-way side turns with it, a quarter at a time.</summary>
     public static BlockOneWay TurnedOneWay(BlockOneWay side, int quarterTurns) =>
         side == BlockOneWay.Off
@@ -317,13 +287,6 @@ public static class SelectionRotation
     /// <summary>The way a spike points after mirroring.</summary>
     public static float FlippedSpikeDegrees(float degrees, bool horizontal) =>
         SpikeRules.NormalizeDegrees(horizontal ? -degrees : 180f - degrees);
-
-    /// <summary>The nearest of the eight dash directions after turning; they run clockwise from Up.</summary>
-    public static DashDirection TurnedDirection(DashDirection direction, float angle)
-    {
-        int steps = (int)MathF.Round(angle / (Mathf.Tau / DirectionCount));
-        return (DashDirection)Mathf.PosMod((int)direction + steps, DirectionCount);
-    }
 
     /// <summary>Width and height swap once the nearest quarter turn is an odd one.</summary>
     public static Vector2 TurnedSize(Vector2 size, float angle)

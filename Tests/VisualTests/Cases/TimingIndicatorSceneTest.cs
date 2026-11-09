@@ -50,7 +50,7 @@ public sealed class TimingIndicatorSceneTest : SceneTest
             AlignNotesWithPlayer();
         });
         AddStep($"press for {label}", () => Context.Keyboard.Press(
-            Context.Systems.Keybinds.Get(KeybindAction.L3)));
+            Context.Systems.Keybinds.Get(KeybindAction.Right)));
         AddUntilStep($"shows {label}", () =>
         {
             Entity playfield = Context.Entities.Query<ScoreState>().ToEntityList()[0];
@@ -60,7 +60,7 @@ public sealed class TimingIndicatorSceneTest : SceneTest
                    text.Enabled;
         });
         AddStep($"release after {label}", () => Context.Keyboard.Release(
-            Context.Systems.Keybinds.Get(KeybindAction.L3)));
+            Context.Systems.Keybinds.Get(KeybindAction.Right)));
     }
 
     private static NoteDocument DashNote(long timeMs) => new()
@@ -68,9 +68,8 @@ public sealed class TimingIndicatorSceneTest : SceneTest
         TimeMs = timeMs,
         X = 500,
         Y = 1000,
-        Target = KeybindAction.L3,
+        Target = KeybindAction.Action3,
         Kind = NoteKind.Dash,
-        DashDirection = DashDirection.Right,
     };
 
     private void AlignNotesWithPlayer()

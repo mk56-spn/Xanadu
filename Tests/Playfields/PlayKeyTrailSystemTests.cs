@@ -30,13 +30,13 @@ public sealed class PlayKeyTrailSystemTests : EcsSystemTest
         Frame();
 
         Assert.That(
-            playfield.GetComponent<KeyTrail>().Get(KeybindAction.L3),
+            playfield.GetComponent<KeyTrail>().Get(KeybindAction.Action3),
             Is.EqualTo(1f));
 
         keyboard.Release(Key.F);
         Frame(10);
 
-        float value = playfield.GetComponent<KeyTrail>().Get(KeybindAction.L3);
+        float value = playfield.GetComponent<KeyTrail>().Get(KeybindAction.Action3);
         Assert.That(value, Is.GreaterThan(0f));
         Assert.That(value, Is.LessThan(1f));
     }
@@ -84,7 +84,7 @@ public sealed class PlayKeyTrailSystemTests : EcsSystemTest
         Frame();
 
         Assert.That(
-            playfield.GetComponent<KeyTrail>().Get(KeybindAction.L3),
+            playfield.GetComponent<KeyTrail>().Get(KeybindAction.Action3),
             Is.Zero);
     }
 

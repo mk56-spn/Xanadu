@@ -60,7 +60,7 @@ public sealed class EditorReturnStateTests : EcsSystemTest
         editor.AddComponent(EditorLayers.Create());
         ref EditorPlacement placement = ref editor.GetComponent<EditorPlacement>();
         placement.Strength = DashStrength.Double;
-        placement.ExitMomentum = 3f;
+        placement.Diagonal = true;
         placement.Modulate = Colors.Red;
         ref EditorLayers layers = ref editor.GetComponent<EditorLayers>();
         layers.Open = true;
@@ -78,7 +78,7 @@ public sealed class EditorReturnStateTests : EcsSystemTest
 
         EditorPlacement restored = rebuilt.GetComponent<EditorPlacement>();
         Assert.That(restored.Strength, Is.EqualTo(DashStrength.Double));
-        Assert.That(restored.ExitMomentum, Is.EqualTo(3f));
+        Assert.That(restored.Diagonal, Is.True);
         Assert.That(restored.Modulate, Is.EqualTo(Colors.Red));
         Assert.That(rebuilt.GetComponent<Playhead>().SnapDivision, Is.EqualTo(8));
         Assert.That(rebuilt.GetComponent<EditorMetronome>().Enabled, Is.True);

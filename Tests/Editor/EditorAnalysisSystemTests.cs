@@ -73,7 +73,7 @@ public sealed class EditorAnalysisSystemTests
     }
 
     private Entity AddNote(long time, float x, float y) => _store.CreateEntity(
-        new Note(time, new Vector2(x, y), Xanadu.Settings.KeybindAction.M, NoteKind.Hit, DashDirection.Up, 0, CharacterKind.Contact));
+        new Note(time, new Vector2(x, y), Xanadu.Settings.KeybindAction.Action2, NoteKind.Hit));
 
     private void Frame() => _root.Update(new UpdateTick(1f / 60f, 0));
 }

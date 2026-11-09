@@ -142,21 +142,17 @@ public partial class EditorOverlay : CanvasLayer, IEditorShortcutTarget
         _commands.Enqueue(EditorCommand.SetPlacementMode(mode));
         SetStatus(mode switch
         {
-            EditorPlacementMode.Notes => "Place normal",
-            EditorPlacementMode.Pair => "Place pair",
+            EditorPlacementMode.Notes => "Place action note",
+            EditorPlacementMode.Neutral => "Place neutral note",
             EditorPlacementMode.Dash => "Place dash",
             EditorPlacementMode.Momentum => "Place momentum",
             EditorPlacementMode.Blocks => "Place blocks",
             EditorPlacementMode.Spikes => "Place spikes",
-            EditorPlacementMode.Contact => "Place contact",
-            EditorPlacementMode.CharacterSwitch => "Place character switch",
-            EditorPlacementMode.WeaponSwitch => "Place weapon switch",
-            EditorPlacementMode.Channel => "Place channel start",
-            EditorPlacementMode.FormStep => "Place Form step",
+            EditorPlacementMode.Contact => "Place contact barrier",
             EditorPlacementMode.Text => "Place text",
             EditorPlacementMode.Grass => "Place grass",
             EditorPlacementMode.Flare => "Place flare",
-            EditorPlacementMode.FrictionBar => "Place friction bar",
+            EditorPlacementMode.FrictionBar => "Place friction field",
             EditorPlacementMode.Polygon => "Draw a polygon: click its points, then the first again",
             _ => "Placement mode",
         });

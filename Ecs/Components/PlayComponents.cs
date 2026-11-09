@@ -136,39 +136,16 @@ public struct KeyTrail : IComponent
 {
     public KeyTrail() { }
 
-    public float L1;
-    public float L2;
-    public float L3;
-    public float M;
-    public float R1;
-    public float R2;
-    public float R3;
+    /// <summary>One intensity per key, in <see cref="Xanadu.Settings.KeybindAction"/> order.</summary>
+    private float[]? _values;
 
     public readonly float Get(Xanadu.Settings.KeybindAction action) =>
-        action switch
-        {
-            Xanadu.Settings.KeybindAction.L1 => L1,
-            Xanadu.Settings.KeybindAction.L2 => L2,
-            Xanadu.Settings.KeybindAction.L3 => L3,
-            Xanadu.Settings.KeybindAction.M => M,
-            Xanadu.Settings.KeybindAction.R1 => R1,
-            Xanadu.Settings.KeybindAction.R2 => R2,
-            Xanadu.Settings.KeybindAction.R3 => R3,
-            _ => 0f,
-        };
+        _values is null ? 0f : _values[(int)action];
 
     public void Set(Xanadu.Settings.KeybindAction action, float value)
     {
-        switch (action)
-        {
-            case Xanadu.Settings.KeybindAction.L1: L1 = value; break;
-            case Xanadu.Settings.KeybindAction.L2: L2 = value; break;
-            case Xanadu.Settings.KeybindAction.L3: L3 = value; break;
-            case Xanadu.Settings.KeybindAction.M: M = value; break;
-            case Xanadu.Settings.KeybindAction.R1: R1 = value; break;
-            case Xanadu.Settings.KeybindAction.R2: R2 = value; break;
-            case Xanadu.Settings.KeybindAction.R3: R3 = value; break;
-        }
+        _values ??= new float[Xanadu.Settings.KeybindSettings.Actions.Length];
+        _values[(int)action] = value;
     }
 }
 
@@ -225,30 +202,6 @@ public struct NotePop(
 }
 
 /// <summary>
-/// What is left of a dash note once it is hit: its connector and exit, which
-/// fade out after the note has popped. The connector goes first and the exit
-/// lingers a little longer. Screen space, like <see cref="NotePop"/>.
-/// </summary>
-public struct DashLinkFade(
-    Vector2 from,
-    Vector2 to,
-    Color color,
-    float radius) : IComponent
-{
-    /// <summary>How long the connector takes to fade.</summary>
-    public const float ConnectorLifetime = 0.28f;
-
-    /// <summary>How long the exit takes to flash and fade; a touch longer than the connector.</summary>
-    public const float ExitLifetime = 0.4f;
-
-    public Vector2 From = from;
-    public Vector2 To = to;
-    public Color Color = color;
-    public float Radius = radius;
-    public float Age;
-}
-
-/// <summary>
 /// A see-through copy of the character left where it stood when it hit a note,
 /// fading out over <see cref="Lifetime"/>. Layout space, like the player, so it
 /// stays put while the camera scrolls. The rig draw system poses it from the
@@ -301,13 +254,10 @@ public struct DashTrail(
     float IAgingTrail.Lifetime => Lifetime;
 }
 
-/// <summary>Playable character families. Modules add behavior to the player.</summary>
+/// <summary>Playable character families. v2 has Contact only; more come later.</summary>
 public enum CharacterKind
 {
     Contact,
-    Armed,
-    SplitLine,
-    Form,
 }
 
 /// <summary>Identifies which character rules are active for the player.</summary>
@@ -316,156 +266,82 @@ public struct PlayerCharacter(CharacterKind kind) : IComponent
     public CharacterKind Kind = kind;
 }
 
-/// <summary>The two weapons Armed carries.</summary>
-public enum WeaponKind
-{
-    Spear,
-    Axe,
-}
-
-/// <summary>Armed's currently equipped weapon; left-side switches pick the spear, right-side the axe.</summary>
-public struct ArmedWeapon(WeaponKind kind) : IComponent
-{
-    public WeaponKind Kind = kind;
-}
-
-/// <summary>The play HUD label that shows Armed's current weapon.</summary>
-public struct WeaponHud(Entity label) : IComponent
-{
-    public Entity Label = label;
-}
-
-/// <summary>Which Splitline channels are absorbing, and when they end.</summary>
-public struct SplitlineState : IComponent
-{
-    public bool LeftActive;
-    public bool RightActive;
-    public long LeftEndMs;
-    public long RightEndMs;
-
-    /// <summary>True while both channels are absorbed and the character is off the field.</summary>
-    public bool Absent;
-
-    /// <summary>Where the character was when the second channel took it.</summary>
-    public Vector2 ReturnPosition;
-}
-
-/// <summary>The character is absent because both Splitline channels absorbed it.</summary>
-public struct SplitlineAbsent : ITag;
-
-/// <summary>The two trailing Splitline balls; visual only.</summary>
-public struct SplitlineBalls : IComponent
-{
-    public Vector2 Left;
-    public Vector2 Right;
-}
-
-/// <summary>A rail hold that is currently being held down.</summary>
-public struct RailHold(
-    KeybindAction action,
-    ChannelSide side,
-    PairIndex index,
-    long startMs,
-    long endMs,
-    Entity playfield) : IComponent
-{
-    public KeybindAction Action = action;
-    public ChannelSide Side = side;
-    public PairIndex Index = index;
-    public long StartMs = startMs;
-    public long EndMs = endMs;
-    public Entity Playfield = playfield;
-}
-
-/// <summary>A form-shape block that has not been built yet: invisible and non-solid.</summary>
-public struct ConstructionHidden : ITag;
-
-/// <summary>Form's active construction shape and how much of it is built.</summary>
-public struct ConstructionState : IComponent
-{
-    public int ShapeId;
-    public int BuiltPieces;
-    public int TotalPieces;
-    public bool Active;
-}
-
 /// <summary>
-/// The two side pools Contact spends on barriers. A left hit feeds the left
-/// pool and a right hit the right pool, whatever the key number.
+/// Contact's three bars, one per action key. A neutral note hit with an action
+/// key loads that key's bar; barriers spend them. Bars never decay and hold at
+/// most <see cref="Cap"/> each.
 /// </summary>
 public struct ContactCounters : IComponent
 {
-    public int Left;
-    public int Right;
+    public const int Cap = 5;
+    public const int Bars = 3;
 
-    public readonly int Get(Xanadu.Settings.KeybindAction action) =>
-        IsLeft(action) ? Left : IsRight(action) ? Right : 0;
-    public void Add(Xanadu.Settings.KeybindAction action, int amount = 1)
+    public int First;
+    public int Second;
+    public int Third;
+
+    /// <summary>The bar for 0, 1 or 2.</summary>
+    public int this[int bar]
     {
-        if (IsLeft(action))
-            Left += amount;
-        else if (IsRight(action))
-            Right += amount;
+        readonly get => bar switch { 0 => First, 1 => Second, _ => Third };
+        set
+        {
+            if (bar == 0) First = value;
+            else if (bar == 1) Second = value;
+            else Third = value;
+        }
     }
 
-    public void AddSide(bool left, int amount = 1)
+    /// <summary>The bar an action key loads, or -1 for a direction key.</summary>
+    public static int BarOf(Xanadu.Settings.KeybindAction action) => action switch
     {
-        if (left)
-            Left += amount;
-        else
-            Right += amount;
+        Xanadu.Settings.KeybindAction.Action1 => 0,
+        Xanadu.Settings.KeybindAction.Action2 => 1,
+        Xanadu.Settings.KeybindAction.Action3 => 2,
+        _ => -1,
+    };
+
+    /// <summary>Loads the action key's bar by one, up to the cap.</summary>
+    public void Add(Xanadu.Settings.KeybindAction action)
+    {
+        int bar = BarOf(action);
+        if (bar >= 0)
+            this[bar] = Math.Min(Cap, this[bar] + 1);
     }
 
     /// <summary>
-    /// Spends the two costs, draining whatever is available even when the
-    /// check fails. Returns whether both costs were fully paid.
+    /// Pays a barrier: when every bar holds its cost, spends them all and
+    /// returns true; when any is short, spends nothing.
     /// </summary>
-    public bool Consume(int left, int right)
+    public bool Consume(BarCosts costs)
     {
-        int paidLeft = Math.Min(Left, Math.Max(0, left));
-        int paidRight = Math.Min(Right, Math.Max(0, right));
-        Left -= paidLeft;
-        Right -= paidRight;
-        return paidLeft == left && paidRight == right;
-    }
-
-    public bool Consume(Xanadu.Settings.KeybindAction action, int amount)
-    {
-        int index = IsLeft(action) ? 0 : IsRight(action) ? 1 : -1;
-        if (index < 0)
-            return false;
-
-        int available = index == 0 ? Left : Right;
-        if (available < amount)
+        for (int bar = 0; bar < Bars; bar++)
         {
-            if (index == 0)
-                Left -= available;
-            else
-                Right -= available;
-            return false;
+            if (this[bar] < costs[bar])
+                return false;
         }
 
-        if (index == 0)
-            Left -= amount;
-        else
-            Right -= amount;
+        for (int bar = 0; bar < Bars; bar++)
+            this[bar] -= costs[bar];
         return true;
     }
-
-    private static bool IsLeft(Xanadu.Settings.KeybindAction action) => action is
-        Xanadu.Settings.KeybindAction.L1 or
-        Xanadu.Settings.KeybindAction.L2 or
-        Xanadu.Settings.KeybindAction.L3;
-
-    private static bool IsRight(Xanadu.Settings.KeybindAction action) => action is
-        Xanadu.Settings.KeybindAction.R1 or
-        Xanadu.Settings.KeybindAction.R2 or
-        Xanadu.Settings.KeybindAction.R3;
 }
 
-/// <summary>HUD labels for the left and right Contact stacks.</summary>
-public struct ContactCounterHud(Entity left, Entity right) : IComponent
+/// <summary>HUD labels for Contact's three bars, one per action key.</summary>
+public struct ContactCounterHud(Entity first, Entity second, Entity third) : IComponent
 {
-    public Entity Left = left;
-    public Entity Right = right;
+    public Entity First = first;
+    public Entity Second = second;
+    public Entity Third = third;
+
+    public readonly Entity this[int bar] => bar switch { 0 => First, 1 => Second, _ => Third };
+}
+
+/// <summary>
+/// The direction key the player last hit a directional note with. In the
+/// hold-to-move ground mode, holding it keeps the player moving on the ground.
+/// </summary>
+public struct MoveKey(Xanadu.Settings.KeybindAction key) : IComponent
+{
+    public Xanadu.Settings.KeybindAction Key = key;
 }

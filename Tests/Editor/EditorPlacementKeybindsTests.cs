@@ -10,8 +10,8 @@ public sealed class EditorPlacementKeybindsTests
 {
     [TestCase(Key.Key1, EditorPlacementMode.Notes)]
     [TestCase(Key.Kp1, EditorPlacementMode.Notes)]
-    [TestCase(Key.Key2, EditorPlacementMode.Pair)]
-    [TestCase(Key.Kp2, EditorPlacementMode.Pair)]
+    [TestCase(Key.Key2, EditorPlacementMode.Neutral)]
+    [TestCase(Key.Kp2, EditorPlacementMode.Neutral)]
     [TestCase(Key.Key3, EditorPlacementMode.Dash)]
     [TestCase(Key.Kp3, EditorPlacementMode.Dash)]
     [TestCase(Key.Key4, EditorPlacementMode.Momentum)]
@@ -20,12 +20,12 @@ public sealed class EditorPlacementKeybindsTests
     [TestCase(Key.Kp5, EditorPlacementMode.Blocks)]
     [TestCase(Key.Key6, EditorPlacementMode.Spikes)]
     [TestCase(Key.Kp6, EditorPlacementMode.Spikes)]
-    [TestCase(Key.Key7, EditorPlacementMode.WeaponSwitch)]
-    [TestCase(Key.Kp7, EditorPlacementMode.WeaponSwitch)]
-    [TestCase(Key.Key8, EditorPlacementMode.Channel)]
-    [TestCase(Key.Kp8, EditorPlacementMode.Channel)]
-    [TestCase(Key.Key9, EditorPlacementMode.FormStep)]
-    [TestCase(Key.Kp9, EditorPlacementMode.FormStep)]
+    [TestCase(Key.Key7, EditorPlacementMode.Contact)]
+    [TestCase(Key.Kp7, EditorPlacementMode.Contact)]
+    [TestCase(Key.Key8, EditorPlacementMode.Mines)]
+    [TestCase(Key.Kp8, EditorPlacementMode.Mines)]
+    [TestCase(Key.Key9, EditorPlacementMode.FrictionBar)]
+    [TestCase(Key.Kp9, EditorPlacementMode.FrictionBar)]
     [TestCase(Key.Key0, EditorPlacementMode.Text)]
     [TestCase(Key.Kp0, EditorPlacementMode.Text)]
     public void MapsDefaultPlacementKeys(
@@ -53,7 +53,7 @@ public sealed class EditorPlacementKeybindsTests
             EditorPlacementKeybinds.LabelFor(EditorPlacementMode.Notes),
             Is.EqualTo("1"));
         Assert.That(
-            EditorPlacementKeybinds.LabelFor(EditorPlacementMode.Pair),
+            EditorPlacementKeybinds.LabelFor(EditorPlacementMode.Neutral),
             Is.EqualTo("2"));
         Assert.That(
             EditorPlacementKeybinds.LabelFor(EditorPlacementMode.Dash),
@@ -68,13 +68,13 @@ public sealed class EditorPlacementKeybindsTests
             EditorPlacementKeybinds.LabelFor(EditorPlacementMode.Spikes),
             Is.EqualTo("6"));
         Assert.That(
-            EditorPlacementKeybinds.LabelFor(EditorPlacementMode.WeaponSwitch),
+            EditorPlacementKeybinds.LabelFor(EditorPlacementMode.Contact),
             Is.EqualTo("7"));
         Assert.That(
-            EditorPlacementKeybinds.LabelFor(EditorPlacementMode.Channel),
+            EditorPlacementKeybinds.LabelFor(EditorPlacementMode.Mines),
             Is.EqualTo("8"));
         Assert.That(
-            EditorPlacementKeybinds.LabelFor(EditorPlacementMode.FormStep),
+            EditorPlacementKeybinds.LabelFor(EditorPlacementMode.FrictionBar),
             Is.EqualTo("9"));
     }
 }

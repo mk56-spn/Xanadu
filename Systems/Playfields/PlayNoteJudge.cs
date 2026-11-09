@@ -15,85 +15,11 @@ using NVector2 = System.Numerics.Vector2;
 namespace Xanadu.Systems.Playfields;
 
 /// <summary>
-/// Picks the note a key press should judge: the nearest matching note in the
-/// window, a rail tap while a side is absorbed, or a mine the player touched.
+/// Picks what an action key press should judge: the nearest matching action
+/// note in reach and in the window, or a mine the player touched.
 /// </summary>
 public sealed class PlayNoteJudge(PlayNoteContext context, PlayNoteHits hits)
 {
-    public bool RailHit(KeybindAction action, Entity playfield)
-    {
-        ref Playhead playhead = ref playfield.GetComponent<Playhead>();
-        ref ScoreState score = ref playfield.GetComponent<ScoreState>();
-        ref PlayfieldView view = ref playfield.GetComponent<PlayfieldView>();
-        long judgedTime = playhead.TimeMs - PlayOffset.TotalMs(playfield, context.Offsets);
-        long window = (long)ScoreRules.JudgementDeviation(Judgement.Miss);
-        Entity hit = default;
-        Note hitNote = default;
-        long bestError = long.MaxValue;
-
-        foreach (Entity entity in context.Entities.Query<Note>().ToEntityList())
-        {
-            if (entity.Tags.Has<NoteMissed>())
-                continue;
-
-            Note note = entity.GetComponent<Note>();
-            if (!NoteRules.IsRail(note.Kind) ||
-                note.ChannelSide != NoteRules.SideOf(action) ||
-                note.PairIndex != NoteRules.PairIndexFor(action))
-            {
-                continue;
-            }
-
-            long error = Math.Abs(note.TimeMs - judgedTime);
-            if (error > window || NoteFade.Alpha(note, judgedTime) <= 0)
-                continue;
-
-            if (error >= bestError)
-                continue;
-
-            bestError = error;
-            hit = entity;
-            hitNote = note;
-        }
-
-        if (hit.IsNull)
-            return false;
-
-        Vector2 position = SplitlineRail.ScreenPosition(
-            view,
-            playfield.GetComponent<Playfield>(),
-            hitNote,
-            playhead.TimeMs);
-        float radius = SplitlineRail.NoteRadius * view.Scale;
-        Color color = GroupColor.For(hit, PlayfieldRenderer.ColorFor(hitNote));
-
-        score.JudgementPosition = position;
-        score.JudgementTimeMs = playhead.TimeMs;
-        PlayScoring.Apply(ref score, hitNote.TimeMs - judgedTime);
-
-        context.Entities.CreateEntity(
-            new HitTrail(
-                position,
-                PlayfieldRenderer.ColorFor(hitNote),
-                KeybindSettings.KeyLabel(context.Keybinds.Get(action))),
-            EffectLayer.From(hit));
-        HitEffects.Spawn(context.Entities, playfield, hit, hitNote, position, color, radius);
-
-        if (hitNote.HoldMs > 0)
-        {
-            context.Entities.CreateEntity(new RailHold(
-                action,
-                hitNote.ChannelSide,
-                hitNote.PairIndex,
-                hitNote.TimeMs,
-                hitNote.TimeMs + hitNote.HoldMs,
-                playfield));
-        }
-
-        hit.DeleteEntity();
-        return true;
-    }
-
     public bool Mine(KeybindAction action, Entity playfield)
     {
         ref Playhead playhead = ref playfield.GetComponent<Playhead>();
@@ -162,12 +88,6 @@ public sealed class PlayNoteJudge(PlayNoteContext context, PlayNoteHits hits)
             out PlayerCharacter playerCharacter)
             ? playerCharacter.Kind
             : null;
-        bool armed = character == CharacterKind.Armed;
-        ArmedWeapon weapon = playfield.TryGetComponent(out ArmedWeapon equipped)
-            ? equipped
-            : new ArmedWeapon(WeaponKind.Spear);
-        bool facesLeft = playfield.TryGetComponent(out CharacterFacing facing) &&
-                         facing.Left;
 
         Entity hit = default;
         Note hitNote = default;
@@ -180,35 +100,19 @@ public sealed class PlayNoteJudge(PlayNoteContext context, PlayNoteHits hits)
                 continue;
 
             Note note = entity.GetComponent<Note>();
-            if (!NoteRules.IsKeyed(note.Kind) ||
-                !NoteRules.ActiveFor(note.Kind, character) ||
-                !NoteRules.Matches(note, action) ||
-                !PlayNoteActions.CanFormStep(playfield, note))
-            {
+            if (!NoteRules.IsAction(note.Kind) || !NoteRules.Matches(note, action))
                 continue;
-            }
 
             long offset = note.TimeMs - judgedTime;
             long error = Math.Abs(offset);
-            if (error > missWindow)
+            if (error > missWindow || error >= bestError)
                 continue;
 
             if (NoteFade.Alpha(note, judgedTime) <= 0)
                 continue;
 
             Vector2 noteScreen = view.PlayfieldToScreen(GroupOffset.Shown(entity, note.Position));
-            bool inRange = armed && (note.Kind is NoteKind.Hit or NoteKind.Pair)
-                ? WeaponHitRules.Contains(
-                    weapon.Kind,
-                    playerScreen,
-                    facesLeft,
-                    noteScreen,
-                    view.Scale)
-                : NoteReach.Contains(playerScreen, view, noteScreen, character);
-            if (!inRange)
-                continue;
-
-            if (error >= bestError)
+            if (!NoteReach.Contains(playerScreen, view, noteScreen, character))
                 continue;
 
             bestError = error;
@@ -220,23 +124,6 @@ public sealed class PlayNoteJudge(PlayNoteContext context, PlayNoteHits hits)
         if (hit.IsNull)
             return;
 
-        if (armed && (hitNote.Kind is NoteKind.Hit or NoteKind.Pair))
-        {
-            hits.Swing(
-                action,
-                hit,
-                hitNote,
-                playfield,
-                ref score,
-                view,
-                playerScreen,
-                judgedTime,
-                playhead.TimeMs,
-                weapon.Kind,
-                facesLeft);
-            return;
-        }
-
         hits.Note(
             action,
             hit,
@@ -246,7 +133,6 @@ public sealed class PlayNoteJudge(PlayNoteContext context, PlayNoteHits hits)
             ref score,
             view,
             playerScreen,
-            playhead.TimeMs,
-            triggerAttack: true);
+            playhead.TimeMs);
     }
 }

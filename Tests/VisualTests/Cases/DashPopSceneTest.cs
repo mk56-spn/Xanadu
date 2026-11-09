@@ -29,13 +29,13 @@ public sealed class DashPopSceneTest : SceneTest
             LevelDocument document = TestContent.Level("Dash Pop Test", song);
             document.Notes.Add(new NoteDocument
             {
-                TimeMs = 1_000, X = 500, Y = 1000, Target = KeybindAction.L3,
-                Kind = NoteKind.Dash, DashDirection = DashDirection.UpRight,
+                TimeMs = 1_000, X = 500, Y = 1000, Target = KeybindAction.Action3,
+                Kind = NoteKind.Dash,
             });
             document.Notes.Add(new NoteDocument
             {
-                TimeMs = 1_300, X = 500, Y = 1000, Target = KeybindAction.L3,
-                Kind = NoteKind.Dash, DashDirection = DashDirection.Right,
+                TimeMs = 1_300, X = 500, Y = 1000, Target = KeybindAction.Action3,
+                Kind = NoteKind.Dash,
                 DashStrength = DashStrength.Double,
             });
             Context.Scenes.StartPlay(new LevelEntry("memory://dash-pop", document, song));
@@ -58,14 +58,14 @@ public sealed class DashPopSceneTest : SceneTest
             }
         });
         AddStep("freeze time", () => SetPlayheadTime(1_000));
-        AddStep("hit the dash", () =>
-            Context.Keyboard.Press(Context.Systems.Keybinds.Get(KeybindAction.L3)));
+        AddStep("hit the dash up", () =>
+            Context.Keyboard.Press(Context.Systems.Keybinds.Get(KeybindAction.Up)));
         AddUntilStep("the dash pops", () => Context.Entities.Query<NotePop>().Count > 0);
         AddUntilStep(
-            "the connector and exit are fading",
-            () => Context.Entities.Query<DashLinkFade>().Count == 1 &&
-                  Context.Entities.Query<DashLinkFade>().ToEntityList()[0]
-                      .GetComponent<DashLinkFade>().Age >= ShotAge);
+            "the pop has aged",
+            () => Context.Entities.Query<NotePop>().Count > 0 &&
+                  Context.Entities.Query<NotePop>().ToEntityList()[0]
+                      .GetComponent<NotePop>().Age >= ShotAge);
         AddAssert("the second dash is still waiting", () => Context.Entities.Query<Note>().Count == 1);
     }
 

@@ -172,12 +172,12 @@ public sealed class EditorShortcutsTests
         var (root, keys, store, keybinds) = App();
         var target = new FakeTarget();
         store.CreateEntity(new EditorShortcutHost(target));
-        keybinds.BeginCapture(KeybindAction.L1);
+        keybinds.BeginCapture(KeybindAction.Action1);
 
         keys.Press(new KeyChord(Key.Space));
         root.Update(new UpdateTick(1f / 60f, 0));
 
         Assert.That(target.Ran, Is.Empty);
-        Assert.That(keybinds.Get(KeybindAction.L1), Is.EqualTo(Key.Space));
+        Assert.That(keybinds.Get(KeybindAction.Action1), Is.EqualTo(Key.Space));
     }
 }

@@ -150,11 +150,8 @@ public sealed class EditorPreviewSaveSceneTest : SceneTest
         Context.Entities.CreateEntity(new Note(
             0,
             new Vector2(500, 500),
-            KeybindAction.M,
-            NoteKind.Hit,
-            DashDirection.Up,
-            1,
-            CharacterKind.Contact));
+            KeybindAction.Action2,
+            NoteKind.Hit));
 
         // An autosave the preview has to clean up: without saving first, the
         // editor rebuilt on return would offer these extra edits back.

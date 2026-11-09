@@ -54,37 +54,63 @@ public sealed class PlayerMovementSystemTests
     public void TearDown() => _physics.Dispose();
 
     [Test]
-    public void DashesLeftFromThePlayer()
+    public void TheDirectionKeyPicksTheWay()
     {
         _root.Update(new UpdateTick(1f / 60f, 0));
         Assert.That(_player.GetComponent<Position>().Value.X, Is.EqualTo(500));
 
-        Entity movement = _store.CreateEntity(new Note(
-            0,
-            new Vector2(500, 500),
-            target: KeybindAction.L3,
-            kind: NoteKind.Dash,
-            dashDirection: DashDirection.Left));
-        _keyboard.Press(Key.F);
-        _root.Update(new UpdateTick(1f / 60f, 0));
+        Entity movement = _store.CreateEntity(new Note(0, new Vector2(500, 500), kind: NoteKind.Dash));
+        Press(KeybindAction.Left);
 
         Assert.That(_player.GetComponent<Position>().Value.X, Is.EqualTo(250));
         Assert.That(movement.IsNull, Is.True);
         Assert.That(_store.Query<DashTrail>().Count, Is.Zero, "a dash leaves a streak, not a line");
     }
 
+    [TestCase(KeybindAction.Up, 0f, -1f)]
+    [TestCase(KeybindAction.Right, 1f, 0f)]
+    [TestCase(KeybindAction.Down, 0f, 1f)]
+    [TestCase(KeybindAction.Left, -1f, 0f)]
+    public void EachDirectionKeySendsItsOwnWay(KeybindAction key, float x, float y)
+    {
+        PlaceAt(new Vector2(500, 500));
+        _store.CreateEntity(new Note(0, new Vector2(500, 500), kind: NoteKind.Dash));
+        Press(key);
+
+        Vector2 moved = _player.GetComponent<Position>().Value - new Vector2(500, 500);
+        Assert.That(moved.X, Is.EqualTo(x * PlayerMovementSystem.SingleDashDistance).Within(0.01f));
+        Assert.That(moved.Y, Is.EqualTo(y * PlayerMovementSystem.SingleDashDistance).Within(0.01f));
+    }
+
+    [TestCase(KeybindAction.Up, DashDirection.UpRight)]
+    [TestCase(KeybindAction.Right, DashDirection.DownRight)]
+    [TestCase(KeybindAction.Down, DashDirection.DownLeft)]
+    [TestCase(KeybindAction.Left, DashDirection.UpLeft)]
+    public void ARhombusTurnsThePressedWayClockwise(KeybindAction key, DashDirection expected)
+    {
+        var note = new Note(0, Vector2.Zero, kind: NoteKind.Dash, diagonal: true);
+        Assert.That(NoteRules.Heading(note, key), Is.EqualTo(expected));
+    }
+
+    [Test]
+    public void ARhombusDashGoesDiagonally()
+    {
+        PlaceAt(new Vector2(500, 500));
+        _store.CreateEntity(new Note(0, new Vector2(500, 500), kind: NoteKind.Dash, diagonal: true));
+        Press(KeybindAction.Up);
+
+        float step = PlayerMovementSystem.SingleDashDistance / Mathf.Sqrt(2f);
+        Vector2 position = _player.GetComponent<Position>().Value;
+        Assert.That(position.X, Is.EqualTo(500 + step).Within(0.01f));
+        Assert.That(position.Y, Is.EqualTo(500 - step).Within(0.01f));
+    }
+
     [Test]
     public void ADashLeavesAStreakAlongItsPath()
     {
         _root.Update(new UpdateTick(1f / 60f, 0));
-        _store.CreateEntity(new Note(
-            0,
-            new Vector2(500, 500),
-            target: KeybindAction.L3,
-            kind: NoteKind.Dash,
-            dashDirection: DashDirection.Left));
-        _keyboard.Press(Key.F);
-        _root.Update(new UpdateTick(1f / 60f, 0));
+        _store.CreateEntity(new Note(0, new Vector2(500, 500), kind: NoteKind.Dash));
+        Press(KeybindAction.Left);
 
         ParticleBurst streak = _store.Query<ParticleBurst>().ToEntityList()
             .Single(entity => entity.GetComponent<ParticleBurst>().Kind == ParticleKind.DashStreak)
@@ -98,21 +124,23 @@ public sealed class PlayerMovementSystemTests
     public void ADashSetsOffASprayWhereItEnds()
     {
         _root.Update(new UpdateTick(1f / 60f, 0));
-        _store.CreateEntity(new Note(
-            0,
-            new Vector2(500, 500),
-            target: KeybindAction.L3,
-            kind: NoteKind.Dash,
-            dashDirection: DashDirection.Left));
-        _keyboard.Press(Key.F);
-        _root.Update(new UpdateTick(1f / 60f, 0));
+        _store.CreateEntity(new Note(0, new Vector2(500, 500), kind: NoteKind.Dash));
+        Press(KeybindAction.Left);
 
         // The note's own sparks pop where it stood; the spray is the one on the body.
         Entity burst = _store.Query<ParticleBurst>().ToEntityList()
             .Single(entity => entity.GetComponent<ParticleBurst>().Kind == ParticleKind.Dash);
         Assert.That(burst.GetComponent<ParticleBurst>().Area, Is.EqualTo(_player.GetComponent<Player>().Size));
-        Assert.That(burst.GetComponent<ParticleBurst>().Kind, Is.EqualTo(ParticleKind.Dash));
         Assert.That(burst.GetComponent<ParticleBurst>().Position, Is.EqualTo(_player.GetComponent<Position>().Value));
+    }
+
+    [Test]
+    public void TheKeyUsedIsRememberedForHoldToMove()
+    {
+        _store.CreateEntity(new Note(0, new Vector2(500, 500), kind: NoteKind.Momentum));
+        Press(KeybindAction.Right);
+
+        Assert.That(_player.GetComponent<MoveKey>().Key, Is.EqualTo(KeybindAction.Right));
     }
 
     private ref Position PlaceAt(Vector2 at)
@@ -123,29 +151,27 @@ public sealed class PlayerMovementSystemTests
         return ref position;
     }
 
-    private void Dash(Vector2 at, DashDirection direction, long timeMs = 0, DashDirection exit = DashDirection.Up, float exitMomentum = 0f)
+    private void Press(KeybindAction key)
     {
-        _store.CreateEntity(new Note(
-            timeMs,
-            at,
-            target: KeybindAction.L3,
-            kind: NoteKind.Dash,
-            dashDirection: direction,
-            exitDirection: exit,
-            exitMomentum: exitMomentum));
-        _keyboard.Press(Key.F);
+        _keyboard.Press(KeybindSettings.DefaultFor(key));
         _root.Update(new UpdateTick(1f / 60f, 0));
+    }
+
+    private void Dash(Vector2 at, KeybindAction key, long timeMs = 0)
+    {
+        _store.CreateEntity(new Note(timeMs, at, kind: NoteKind.Dash));
+        Press(key);
     }
 
     [Test]
     public void InTheAirADashIsMeasuredFromTheNote()
     {
-        ref Position position = ref PlaceAt(new Vector2(940, 480));
+        PlaceAt(new Vector2(940, 480));
 
-        Dash(new Vector2(950, 500), DashDirection.Left);
+        Dash(new Vector2(950, 500), KeybindAction.Left);
 
-        Assert.That(position.Value.X, Is.EqualTo(700).Within(0.01f));
-        Assert.That(position.Value.Y, Is.EqualTo(500).Within(0.01f));
+        Assert.That(_player.GetComponent<Position>().Value.X, Is.EqualTo(700).Within(0.01f));
+        Assert.That(_player.GetComponent<Position>().Value.Y, Is.EqualTo(500).Within(0.01f));
     }
 
     [Test]
@@ -153,23 +179,23 @@ public sealed class PlayerMovementSystemTests
     {
         // The note sits below where the player's centre can go; measured from
         // it, a short dash up would end inside the floor and do nothing.
-        ref Position position = ref PlaceAt(new Vector2(500, 950));
+        PlaceAt(new Vector2(500, 950));
 
-        Dash(new Vector2(510, 990), DashDirection.Up);
+        Dash(new Vector2(510, 990), KeybindAction.Up);
 
-        Assert.That(position.Value.X, Is.EqualTo(510).Within(0.01f));
-        Assert.That(position.Value.Y, Is.EqualTo(700).Within(0.01f));
+        Assert.That(_player.GetComponent<Position>().Value.X, Is.EqualTo(510).Within(0.01f));
+        Assert.That(_player.GetComponent<Position>().Value.Y, Is.EqualTo(700).Within(0.01f));
     }
 
     [Test]
     public void OnABlockADashIsMeasuredFromTheBlockTop()
     {
         _store.CreateEntity(new Block(new Vector2(400, 800), new Vector2(200, 50)));
-        ref Position position = ref PlaceAt(new Vector2(500, 750));
+        PlaceAt(new Vector2(500, 750));
 
-        Dash(new Vector2(500, 790), DashDirection.Up);
+        Dash(new Vector2(500, 790), KeybindAction.Up);
 
-        Assert.That(position.Value.Y, Is.EqualTo(500).Within(0.01f));
+        Assert.That(_player.GetComponent<Position>().Value.Y, Is.EqualTo(500).Within(0.01f));
     }
 
     [Test]
@@ -177,21 +203,21 @@ public sealed class PlayerMovementSystemTests
     {
         _player.GetComponent<Playhead>().TimeMs = 40;
         _player.GetComponent<PhysicsBody>().Body.SetLinearVelocity(new System.Numerics.Vector2(4f, 0f));
-        ref Position position = ref PlaceAt(new Vector2(500, 500));
+        PlaceAt(new Vector2(500, 500));
 
-        Dash(new Vector2(500, 500), DashDirection.Up);
+        Dash(new Vector2(500, 500), KeybindAction.Up);
 
         // 4 m/s for 40 ms is 16 pixels; the hang means gravity has not had that time.
-        Assert.That(position.Value.X, Is.EqualTo(516).Within(0.01f));
-        Assert.That(position.Value.Y, Is.EqualTo(250).Within(0.01f));
+        Assert.That(_player.GetComponent<Position>().Value.X, Is.EqualTo(516).Within(0.01f));
+        Assert.That(_player.GetComponent<Position>().Value.Y, Is.EqualTo(250).Within(0.01f));
     }
 
     [Test]
-    public void ADashWithNoExitHangs()
+    public void ADashHangsSoThePlayerDoesNotDropLikeARock()
     {
         PlaceAt(new Vector2(500, 500));
 
-        Dash(new Vector2(500, 500), DashDirection.Up);
+        Dash(new Vector2(500, 500), KeybindAction.Up);
 
         Body body = _player.GetComponent<PhysicsBody>().Body;
         Assert.That(_player.HasComponent<DashHang>(), Is.True);
@@ -199,205 +225,112 @@ public sealed class PlayerMovementSystemTests
     }
 
     [Test]
-    public void AnExitPushLaunchesOutOfTheDashInItsOwnDirection()
-    {
-        PlaceAt(new Vector2(500, 500));
-
-        Dash(new Vector2(500, 500), DashDirection.Up, exit: DashDirection.Right, exitMomentum: 600f);
-
-        Body body = _player.GetComponent<PhysicsBody>().Body;
-        float speed = 600f / Box2DPhysicsWorld.PixelsPerMeter * Box2DPhysicsWorld.MomentumScale;
-        Assert.That(body.LinearVelocity.X, Is.EqualTo(speed).Within(0.001f));
-        Assert.That(body.LinearVelocity.Y, Is.Zero);
-        Assert.That(_player.HasComponent<DashHang>(), Is.False);
-        Assert.That(Box2DPhysicsWorld.GravityScale(body), Is.EqualTo(1f));
-    }
-
-    [Test]
     public void TopIsCapped()
     {
-        ref Position position = ref _player.GetComponent<Position>();
-        position.Value = new Vector2(500, 50);
-        _player.GetComponent<PhysicsBody>().Body.SetTransform(
-            Box2DPhysicsWorld.ToPhysics(position.Value),
-            0f);
-        _store.CreateEntity(new Note(
-            0,
-            new Vector2(500, 50),
-            target: KeybindAction.M,
-            kind: NoteKind.Dash,
-            dashDirection: DashDirection.Up));
+        PlaceAt(new Vector2(500, 50));
 
-        _keyboard.Press(Key.Space);
-        _root.Update(new UpdateTick(1f / 60f, 0));
+        Dash(new Vector2(500, 50), KeybindAction.Up);
 
-        Assert.That(position.Value.Y, Is.EqualTo(50));
+        Assert.That(_player.GetComponent<Position>().Value.Y, Is.EqualTo(50));
     }
 
     [Test]
-    public void AKeyThatCanHitATrueNoteDoesNotDash()
+    public void AnActionKeyDoesNotMove()
     {
-        _store.CreateEntity(new Note(0, new Vector2(500, 500)));
-        _store.CreateEntity(new Note(
-            0,
-            new Vector2(500, 500),
-            kind: NoteKind.Dash,
-            dashDirection: DashDirection.Left));
-
-        _keyboard.Press(Key.Space);
-        _root.Update(new UpdateTick(1f / 60f, 0));
-
-        Assert.That(_player.GetComponent<Position>().Value.X, Is.EqualTo(500));
-    }
-
-    [TestCase(12f)]
-    [TestCase(-12f)]
-    public void ADashClearsVerticalVelocityAndKeepsHorizontal(float vertical)
-    {
-        Box2DSharp.Dynamics.Body body = _player.GetComponent<PhysicsBody>().Body;
-        body.SetLinearVelocity(new System.Numerics.Vector2(4f, vertical));
-        _store.CreateEntity(new Note(
-            0,
-            new Vector2(500, 500),
-            target: KeybindAction.L3,
-            kind: NoteKind.Dash,
-            dashDirection: DashDirection.Up));
-
-        _keyboard.Press(Key.F);
-        _root.Update(new UpdateTick(1f / 60f, 0));
-
-        Assert.That(body.LinearVelocity.Y, Is.Zero);
-        Assert.That(body.LinearVelocity.X, Is.EqualTo(4f));
-    }
-
-    [Test]
-    public void AKeyThatCannotHitTheNoteStillDashes()
-    {
-        _store.CreateEntity(new Note(0, new Vector2(500, 500)));
-        _store.CreateEntity(new Note(
-            0,
-            new Vector2(500, 500),
-            target: KeybindAction.L3,
-            kind: NoteKind.Dash,
-            dashDirection: DashDirection.Left));
-
-        _keyboard.Press(Key.F);
-        _root.Update(new UpdateTick(1f / 60f, 0));
-
-        Assert.That(_player.GetComponent<Position>().Value.X, Is.EqualTo(250));
-    }
-
-    [Test]
-    public void TheWrongKeyLeavesADashNoteAlone([Values(NoteKind.Dash, NoteKind.Momentum)] NoteKind kind)
-    {
-        Entity note = _store.CreateEntity(new Note(
-            0,
-            new Vector2(500, 500),
-            target: KeybindAction.M,
-            kind: kind,
-            dashDirection: DashDirection.Left));
-
-        _keyboard.Press(Key.F);
-        _root.Update(new UpdateTick(1f / 60f, 0));
+        Entity note = _store.CreateEntity(new Note(0, new Vector2(500, 500), kind: NoteKind.Dash));
+        Press(KeybindAction.Action2);
 
         Assert.That(note.IsNull, Is.False);
         Assert.That(_player.GetComponent<Position>().Value.X, Is.EqualTo(500));
     }
 
     [Test]
-    public void AMomentumNotePushesTheBodyInItsDirection()
+    public void ADirectionKeyDashesEvenOverAnActionNote()
     {
-        Entity note = _store.CreateEntity(new Note(
-            0,
-            new Vector2(500, 500),
-            target: KeybindAction.L3,
-            kind: NoteKind.Momentum,
-            dashDirection: DashDirection.Right,
-            momentum: 600f));
+        _store.CreateEntity(new Note(0, new Vector2(500, 500), kind: NoteKind.Neutral));
+        Dash(new Vector2(500, 500), KeybindAction.Left);
 
-        _keyboard.Press(Key.F);
-        _root.Update(new UpdateTick(1f / 60f, 0));
-
-        Assert.That(note.IsNull, Is.True);
-        Assert.That(
-            _player.GetComponent<PhysicsBody>().Body.LinearVelocity.X,
-            Is.GreaterThan(0f));
+        Assert.That(_player.GetComponent<Position>().Value.X, Is.EqualTo(250));
     }
 
-    [TestCase(-8f, 0f, DashDirection.Right, 1f, 0f)]
-    [TestCase(0.5f, 0f, DashDirection.Right, 1f, 0f)]
-    [TestCase(8f, 0f, DashDirection.Right, 8f, 0f)]
-    [TestCase(-8f, 5f, DashDirection.Right, 1f, 5f)]
-    [TestCase(3f, 12f, DashDirection.Up, 3f, -1f)]
-    [TestCase(3f, -4f, DashDirection.Up, 3f, -4f)]
-    public void AMomentumNoteSetsItsSpeedWithoutStacking(
+    [TestCase(12f)]
+    [TestCase(-12f)]
+    public void ADashClearsVerticalVelocityAndKeepsHorizontal(float vertical)
+    {
+        Body body = _player.GetComponent<PhysicsBody>().Body;
+        body.SetLinearVelocity(new System.Numerics.Vector2(4f, vertical));
+
+        Dash(new Vector2(500, 500), KeybindAction.Up);
+
+        Assert.That(body.LinearVelocity.Y, Is.Zero);
+        Assert.That(body.LinearVelocity.X, Is.EqualTo(4f));
+    }
+
+    [Test]
+    public void AMomentumNotePushesTheWayPressed()
+    {
+        Entity note = _store.CreateEntity(new Note(0, new Vector2(500, 500), kind: NoteKind.Momentum, momentum: 600f));
+        Press(KeybindAction.Right);
+
+        Assert.That(note.IsNull, Is.True);
+        Assert.That(_player.GetComponent<PhysicsBody>().Body.LinearVelocity.X, Is.GreaterThan(0f));
+    }
+
+    [TestCase(-8f, 0f, KeybindAction.Right, 1f, 0f)]
+    [TestCase(8f, 0f, KeybindAction.Right, 1f, 0f)]
+    [TestCase(-8f, 5f, KeybindAction.Right, 1f, 0f)]
+    [TestCase(3f, 12f, KeybindAction.Up, 0f, -1f)]
+    public void AMomentumNoteImposesItsSpeedOnBothAxes(
         float startX,
         float startY,
-        DashDirection direction,
+        KeybindAction key,
         float expectedX,
         float expectedY)
     {
-        Box2DSharp.Dynamics.Body body = _player.GetComponent<PhysicsBody>().Body;
+        Body body = _player.GetComponent<PhysicsBody>().Body;
         body.SetLinearVelocity(new System.Numerics.Vector2(startX, startY));
         _store.CreateEntity(new Note(
             0,
             new Vector2(500, 500),
-            target: KeybindAction.L3,
             kind: NoteKind.Momentum,
-            dashDirection: direction,
             momentum: 100f / Box2DPhysicsWorld.MomentumScale));
-
-        _keyboard.Press(Key.F);
-        _root.Update(new UpdateTick(1f / 60f, 0));
+        Press(key);
 
         Assert.That(body.LinearVelocity.X, Is.EqualTo(expectedX).Within(0.001f));
         Assert.That(body.LinearVelocity.Y, Is.EqualTo(expectedY).Within(0.001f));
     }
 
     [Test]
-    public void ADiagonalMomentumNoteSetsEachAxisItPushesAlong()
+    public void ADiagonalMomentumNoteSetsBothAxes()
     {
-        var note = new Note(
-            0,
-            Vector2.Zero,
-            kind: NoteKind.Momentum,
-            dashDirection: DashDirection.UpRight,
-            momentum: 100f / Box2DPhysicsWorld.MomentumScale);
+        var note = new Note(0, Vector2.Zero, kind: NoteKind.Momentum, momentum: 100f / Box2DPhysicsWorld.MomentumScale);
         float axis = new Vector2(1f, -1f).Normalized().X;
 
-        System.Numerics.Vector2 velocity = PlayerMovementSystem.MomentumVelocity(
-            new System.Numerics.Vector2(-8f, 12f),
-            note);
+        System.Numerics.Vector2 velocity = PlayerMovementSystem.MomentumVelocity(note, DashDirection.UpRight);
 
         Assert.That(velocity.X, Is.EqualTo(axis).Within(0.0001f));
         Assert.That(velocity.Y, Is.EqualTo(-axis).Within(0.0001f));
     }
 
     [Test]
-    public void TwoWeakMomentumNotesGiveNoMoreSpeedThanOne()
+    public void MomentumNotesDoNotStack()
     {
-        var note = new Note(
-            0,
-            Vector2.Zero,
-            kind: NoteKind.Momentum,
-            dashDirection: DashDirection.Right,
-            momentum: 200f);
+        _store.CreateEntity(new Note(0, new Vector2(500, 500), kind: NoteKind.Momentum, momentum: 200f));
+        Press(KeybindAction.Right);
+        System.Numerics.Vector2 once = _player.GetComponent<PhysicsBody>().Body.LinearVelocity;
 
-        System.Numerics.Vector2 once = PlayerMovementSystem.MomentumVelocity(System.Numerics.Vector2.Zero, note);
-        System.Numerics.Vector2 twice = PlayerMovementSystem.MomentumVelocity(once, note);
+        _keyboard.Release(KeybindSettings.DefaultFor(KeybindAction.Right));
+        _root.Update(new UpdateTick(1f / 60f, 0));
+        _store.CreateEntity(new Note(0, new Vector2(500, 500), kind: NoteKind.Momentum, momentum: 200f));
+        Press(KeybindAction.Right);
 
-        Assert.That(twice, Is.EqualTo(once));
+        Assert.That(_player.GetComponent<PhysicsBody>().Body.LinearVelocity.X, Is.EqualTo(once.X).Within(0.001f));
     }
 
     [Test]
     public void MomentumSpeedScalesWithTheAuthoredMagnitude()
     {
-        var note = new Note(
-            0,
-            Vector2.Zero,
-            kind: NoteKind.Momentum,
-            dashDirection: DashDirection.Right,
-            momentum: 600f);
+        var note = new Note(0, Vector2.Zero, kind: NoteKind.Momentum, momentum: 600f);
 
         Assert.That(
             PlayerMovementSystem.MomentumSpeed(note),
@@ -412,16 +345,8 @@ public sealed class PlayerMovementSystemTests
         float expectedX)
     {
         _root.Update(new UpdateTick(1f / 60f, 0));
-        _store.CreateEntity(new Note(
-            0,
-            new Vector2(500, 500),
-            target: KeybindAction.L3,
-            kind: NoteKind.Dash,
-            dashDirection: DashDirection.Left,
-            dashStrength: strength));
-
-        _keyboard.Press(Key.F);
-        _root.Update(new UpdateTick(1f / 60f, 0));
+        _store.CreateEntity(new Note(0, new Vector2(500, 500), kind: NoteKind.Dash, dashStrength: strength));
+        Press(KeybindAction.Left);
 
         Assert.That(_player.GetComponent<Position>().Value.X, Is.EqualTo(expectedX));
     }

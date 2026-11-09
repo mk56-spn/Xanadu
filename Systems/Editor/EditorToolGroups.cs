@@ -21,26 +21,19 @@ public static class EditorToolGroups
     {
         new("Notes", new EditorTool[]
         {
-            new(EditorPlacementMode.Notes, "🎵", "Normal notes"),
-            new(EditorPlacementMode.Pair, "P", "Pair notes"),
-            new(EditorPlacementMode.Dash, "➜", "Dash notes"),
-            new(EditorPlacementMode.Momentum, "M", "Momentum notes"),
-            new(EditorPlacementMode.Contact, "◎", "Contact notes"),
-            new(EditorPlacementMode.WeaponSwitch, "W", "Weapon switches"),
-            new(EditorPlacementMode.Channel, "◑", "Channel starts"),
-            new(EditorPlacementMode.FormStep, "F", "Form steps"),
+            new(EditorPlacementMode.Notes, "🎵", "Action notes: one colour per action key"),
+            new(EditorPlacementMode.Neutral, "○", "Neutral notes: any action key; under Contact, the key loads its bar"),
+            new(EditorPlacementMode.Dash, "➜", "Dash notes: the player picks the way"),
+            new(EditorPlacementMode.Momentum, "M", "Momentum notes: the player picks the way"),
+            new(EditorPlacementMode.Contact, "◎", "Contact barriers"),
         }),
-        new("Characters and start points", new EditorTool[]
-        {
-            new(EditorPlacementMode.CharacterSwitch, "⇄", "Character switches"),
-            new(EditorPlacementMode.Start, "⚑", "Start points"),
-        }),
+        new("Start points", new EditorTool[] { new(EditorPlacementMode.Start, "⚑", "Start points") }),
         new("Blocks", new EditorTool[] { new(EditorPlacementMode.Blocks, "■", "Blocks") }),
         new("Spikes and mines", new EditorTool[]
         {
             new(EditorPlacementMode.Spikes, "▲", "Spikes"),
             new(EditorPlacementMode.Mines, "✹", "Mines"),
-            new(EditorPlacementMode.FrictionBar, "┃", "Friction bars: crossing one turns the ground's friction on, so a slide stops past it"),
+            new(EditorPlacementMode.FrictionBar, "┃", "Friction fields: crossing one turns the ground's friction on, so a slide stops past it"),
         }),
         new("Text and screen reads", new EditorTool[]
         {

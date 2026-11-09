@@ -11,19 +11,17 @@ namespace Xanadu.Ecs;
 /// <summary>What clicking the field places: a note kind, or another playfield item.</summary>
 public enum EditorPlacementMode
 {
+    /// <summary>A coloured action note; its key is <see cref="EditorPlacement.Note"/>.</summary>
     Notes,
+    /// <summary>A neutral action note: no colour, any action key.</summary>
+    Neutral,
     Mines,
     Dash,
+    Momentum,
     Start,
     Contact,
-    CharacterSwitch,
     Blocks,
     Spikes,
-    Pair,
-    Momentum,
-    WeaponSwitch,
-    Channel,
-    FormStep,
     Text,
     Grass,
     Polygon,
@@ -34,7 +32,7 @@ public enum EditorPlacementMode
     /// <summary>A lens flare, drawn by its own shader.</summary>
     Flare,
 
-    /// <summary>A friction bar: crossing it turns the ground's friction on.</summary>
+    /// <summary>A friction field: crossing it turns the ground's friction on.</summary>
     FrictionBar,
 }
 
@@ -62,35 +60,20 @@ public struct EditorPlacement() : IComponent
     /// <summary>The size of the block the block tool places.</summary>
     public BlockBrushSize BlockSize = BlockBrushSize.Cell;
 
-    /// <summary>The note type new notes get.</summary>
-    public KeybindAction Note = KeybindAction.M;
-
-    /// <summary>The character new character-switch notes switch to.</summary>
-    public CharacterKind Character = CharacterKind.Contact;
+    /// <summary>The action key new coloured notes get.</summary>
+    public KeybindAction Note = KeybindAction.Action1;
 
     /// <summary>The turn given to new blocks and spikes, in degrees clockwise from up.</summary>
     public float Degrees;
 
-    public DashDirection Direction = DashDirection.UpRight;
-
-    /// <summary>The dash strength new movement notes get.</summary>
+    /// <summary>The dash strength new dash notes get.</summary>
     public DashStrength Strength = DashStrength.Single;
 
-    /// <summary>The way new dash notes push the player out of the dash.</summary>
-    public DashDirection ExitDirection = DashDirection.Right;
+    /// <summary>Whether new directional notes are rhombuses, turning the pressed way 45° clockwise.</summary>
+    public bool Diagonal;
 
-    /// <summary>The push new dash notes give out of the dash; zero for none, so they hang.</summary>
-    public float ExitMomentum;
-
-    /// <summary>The left and right charge new contact barriers ask for.</summary>
-    public int ContactLeft = 1;
-    public int ContactRight = 1;
-
-    /// <summary>The hold length new rail notes get, in milliseconds.</summary>
-    public long RailHoldMs;
-
-    /// <summary>The Form construction shape new steps are authored into, or 0 for none.</summary>
-    public int ShapeId;
+    /// <summary>What new contact barriers ask of each bar.</summary>
+    public BarCosts Costs = new(1, 0, 0);
 
     /// <summary>
     /// The settings new grass patches get; the grass panel keeps it matching

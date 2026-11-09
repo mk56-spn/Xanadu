@@ -22,10 +22,10 @@ public sealed class PlayfieldDrawListTests
     private static Entity Note(EntityStore store, int layer, int z, NoteKind kind = NoteKind.Hit) =>
         store.CreateEntity(new Note(1000, new Vector2(50, 50), kind: kind), new ItemLayer(layer, z));
 
-    private static List<PlayfieldDrawEntry> Gather(EntityStore store, bool startPoints = false, bool railLanes = false)
+    private static List<PlayfieldDrawEntry> Gather(EntityStore store, bool startPoints = false)
     {
         var list = new List<PlayfieldDrawEntry>();
-        PlayfieldDrawList.Gather(store, list, startPoints, railLanes);
+        PlayfieldDrawList.Gather(store, list, startPoints);
         return list;
     }
 
@@ -94,39 +94,9 @@ public sealed class PlayfieldDrawListTests
     }
 
     [Test]
-    public void RailLanesGoAtTheBackOfTheBackmostRailNotesLayer()
+    public void StartPointsDrawOnlyInTheEditor()
     {
         var store = new EntityStore();
-        Block(store, -2, 0);
-        Block(store, 2, -50);
-        Note(store, 5, 0, NoteKind.Rail);
-        Note(store, 2, 7, NoteKind.Rail);
-
-        List<PlayfieldDrawEntry> list = Gather(store, railLanes: true);
-        int lanes = list.FindIndex(e => e.Kind == PlayfieldDrawKind.RailLanes);
-
-        Assert.That(list[lanes].Layer, Is.EqualTo(2));
-        Assert.That(list[lanes + 1].Layer, Is.EqualTo(2), "under everything else on that layer");
-        Assert.That(list[lanes - 1].Layer, Is.EqualTo(-2));
-    }
-
-    [Test]
-    public void RailLanesWithoutRailNotesSitOnTheGameplayLayer()
-    {
-        var store = new EntityStore();
-
-        PlayfieldDrawEntry lanes = Gather(store, railLanes: true).Single();
-
-        Assert.That(lanes.Kind, Is.EqualTo(PlayfieldDrawKind.RailLanes));
-        Assert.That(lanes.Layer, Is.EqualTo(ItemLayer.Gameplay));
-        Assert.That(Gather(store), Is.Empty, "no lanes when neither shows");
-    }
-
-    [Test]
-    public void ChannelEndsDrawNothingAndStartPointsOnlyInTheEditor()
-    {
-        var store = new EntityStore();
-        Note(store, -1, 0, NoteKind.ChannelEnd);
         store.CreateEntity(new StartPoint("start", 0, Vector2.Zero, default, default, 0), new ItemLayer(-1, 0));
 
         Assert.That(Gather(store), Is.Empty);

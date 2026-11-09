@@ -32,20 +32,7 @@ public sealed class EditorDropdownSystem : QuerySystem<Dropdown>
 
     protected override void OnUpdate()
     {
-        Playhead playhead = default;
-        CharacterKind character = default;
         NoteSelection selection = default;
-        foreach (Entity editor in _entities
-                     .Query<Playhead>()
-                     .ToEntityList())
-        {
-            playhead = editor.GetComponent<Playhead>();
-            character = editor.HasComponent<EditorPlacement>()
-                ? editor.GetComponent<EditorPlacement>().Character
-                : CharacterKind.Contact;
-            break;
-        }
-
         foreach (Entity editor in _entities
                      .Query<NoteSelection>()
                      .ToEntityList())
@@ -72,7 +59,7 @@ public sealed class EditorDropdownSystem : QuerySystem<Dropdown>
             }
             else
             {
-                dropdown.Selected = Expected(kind, character, selection);
+                dropdown.Selected = Expected(kind, selection);
             }
 
             // A blend list means nothing with nothing selected; disabling it
@@ -86,21 +73,7 @@ public sealed class EditorDropdownSystem : QuerySystem<Dropdown>
 
     private void Commit(EditorDropdownKind kind, int value, NoteSelection selection)
     {
-        if (kind == EditorDropdownKind.Character)
-        {
-            foreach (Entity editor in _entities
-                         .Query<EditorPlacement>()
-                         .ToEntityList())
-            {
-                editor.GetComponent<EditorPlacement>().Character =
-                    (CharacterKind)Math.Clamp(
-                        value,
-                        0,
-                        Enum.GetValues<CharacterKind>().Length - 1);
-                break;
-            }
-        }
-        else if (kind == EditorDropdownKind.Blend)
+        if (kind == EditorDropdownKind.Blend)
         {
             var items = new List<Entity>();
             foreach (Entity item in selection.AllNotes)
@@ -132,11 +105,9 @@ public sealed class EditorDropdownSystem : QuerySystem<Dropdown>
 
     private static int Expected(
         EditorDropdownKind kind,
-        CharacterKind character,
         NoteSelection selection) => kind switch
     {
-        EditorDropdownKind.Blend => BlendIndex(selection),
-        _ => (int)character,
+        _ => BlendIndex(selection),
     };
 
     private static int BlendIndex(NoteSelection selection)
@@ -164,8 +135,7 @@ public sealed class EditorDropdownSystem : QuerySystem<Dropdown>
 
         string label = kind switch
         {
-            EditorDropdownKind.Blend => $"BLEND  {BlendModes.Name(BlendModes.All[Math.Clamp(dropdown.Selected, 0, BlendModes.All.Length - 1)])}  ▾",
-            _ => $"CHAR  {CharacterLabel(dropdown.Selected)}",
+            _ => $"BLEND  {BlendModes.Name(BlendModes.All[Math.Clamp(dropdown.Selected, 0, BlendModes.All.Length - 1)])}  ▾",
         };
 
         ref Text text = ref button.GetComponent<Text>();
@@ -179,12 +149,4 @@ public sealed class EditorDropdownSystem : QuerySystem<Dropdown>
         if (changed)
             buffer.AddTag<Dirty>(button.Id);
     }
-
-    private static string CharacterLabel(int index) => index switch
-    {
-        1 => "ARMED",
-        2 => "SPLITLINE",
-        3 => "FORM",
-        _ => "CONTACT",
-    };
 }

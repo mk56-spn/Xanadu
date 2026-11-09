@@ -214,43 +214,6 @@ public sealed class EditorPlayfieldDrawSystemTests
     }
 
     [Test]
-    public void DashNotesDrawTheirLanding()
-    {
-        var view = new PlayfieldView(
-            Vector2.Zero,
-            1f,
-            new Vector2(1000, 1000));
-        var store = new EntityStore();
-        store.CreateEntity(
-            new LevelInfo("Dash"),
-            new Playfield(1000, 1000),
-            new Playhead(1_000, 120, 0, false, durationMs: 5_000),
-            view,
-            new NoteSelection(default));
-        store.CreateEntity(new Note(
-            1_000,
-            new Vector2(100, 100),
-            kind: NoteKind.Dash,
-            dashDirection: DashDirection.Right));
-
-        var canvas = new RecordingCanvas();
-        var root = new SystemRoot(store);
-        root.Add(new EditorPlayfieldDrawSystem(store, canvas, default));
-
-        root.Update(new UpdateTick(1f / 60f, 0));
-
-        // The exit is a half-strength ring one dash to the right.
-        Vector2 exit = new(350, 100);
-        float radius = PlayfieldRenderer.NoteSize / 2;
-        Assert.That(
-            canvas.Lines.Any(line =>
-                Mathf.Abs(line.From.DistanceTo(exit) - radius) < 0.5f &&
-                Mathf.Abs(line.To.DistanceTo(exit) - radius) < 0.5f &&
-                Mathf.IsEqualApprox(line.Color.A, PlayfieldRenderer.DashLinkAlpha)),
-            Is.True);
-    }
-
-    [Test]
     public void TimelineMarkersUseLaneColorWithASelectionOutline()
     {
         var view = new PlayfieldView(new Vector2(30, 30), 0.6f, new Vector2(1152, 648));
@@ -259,7 +222,7 @@ public sealed class EditorPlayfieldDrawSystemTests
             new Note(
                 1_000,
                 new Vector2(100, 100),
-                target: Xanadu.Settings.KeybindAction.R1));
+                target: Xanadu.Settings.KeybindAction.Action1));
         store.CreateEntity(
             new LevelInfo("Markers"),
             new Playfield(1000, 1000),
@@ -274,7 +237,7 @@ public sealed class EditorPlayfieldDrawSystemTests
         root.Update(new UpdateTick(1f / 60f, 0));
 
         Color lane = PlayfieldRenderer.ColorFor(
-            Xanadu.Settings.KeybindAction.R1);
+            Xanadu.Settings.KeybindAction.Action1);
         Assert.That(
             canvas.RectCalls.Any(call => call.Color == lane),
             Is.True);

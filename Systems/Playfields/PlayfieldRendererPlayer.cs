@@ -20,8 +20,7 @@ public static partial class PlayfieldRenderer
     {
         foreach (Entity entity in entities.Query<Player, Position>().ToEntityList())
         {
-            if (entity.Tags.Has<SplitlineAbsent>() ||
-                entity.Tags.Has<PlayerShattered>())
+            if (entity.Tags.Has<PlayerShattered>())
             {
                 return;
             }

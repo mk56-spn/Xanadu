@@ -7,9 +7,10 @@ using Xanadu.Theme;
 namespace Xanadu.Systems.Playfields;
 
 /// <summary>
-/// The hit, momentum and dash note shapes from the note designs. They are
-/// authored on a 36-unit radius and scaled to the note: the lane colour fills
-/// the ring, white is the line work and the core is dark.
+/// The action, momentum and dash note shapes from the note designs. They are
+/// authored on a 36-unit radius and scaled to the note: the note colour fills
+/// the frame, white is the line work and the core is dark. Directional notes
+/// show their strength as pips, never a way; a diagonal one is a rhombus.
 /// </summary>
 public static partial class PlayfieldRenderer
 {
@@ -18,28 +19,6 @@ public static partial class PlayfieldRenderer
 
     /// <summary>The radius the note designs are drawn at.</summary>
     private const float DesignRadius = 36f;
-
-    // The momentum arrow is drawn pointing up-left; it is turned to the note's direction.
-    private static readonly Vector2[] MomentumArrow =
-    [
-        new(-48f, -48f),
-        new(-9.816f, -48f),
-        new(-25.373f, -38.101f),
-        new(-23.437f, -35.042f),
-        new(-29.0f, -29.0f),
-        new(-35.042f, -23.437f),
-        new(-38.101f, -25.373f),
-        new(-48f, -9.816f),
-    ];
-
-    // Each chevron behind the arrow is one more step of strength.
-    private static readonly Vector2[][] MomentumChevrons =
-    [
-        [new(-54.5f, -18.5f), new(-54.5f, -54.5f), new(-18.5f, -54.5f)],
-        [new(-63.5f, -27.5f), new(-63.5f, -63.5f), new(-27.5f, -63.5f)],
-    ];
-
-    private static readonly float UpLeftAngle = new Vector2(-1, -1).Angle();
 
     /// <summary>A keynote: a filled ring around a dark core.</summary>
     private static void DrawHitShape(IRectCanvas canvas, Rid rid, Vector2 center, float radius, Color color)
@@ -50,12 +29,52 @@ public static partial class PlayfieldRenderer
         canvas.DrawCircleOutline(rid, center, 20f * k, Tinted(NoteEdgeColor, color.A), 5f * k);
     }
 
-    /// <summary>A momentum note: the ring around a dark hexagon, with an arrow and one chevron per extra strength step.</summary>
+    /// <summary>A neutral action note: a hollow ring around a dark core, so it reads as having no colour of its own.</summary>
+    private static void DrawNeutralShape(IRectCanvas canvas, Rid rid, Vector2 center, float radius, Color color)
+    {
+        float k = radius / DesignRadius;
+        canvas.DrawCircleOutline(rid, center, radius - 2f * k, color, 6f * k);
+        canvas.DrawCircle(rid, center, 20f * k, Tinted(NoteCoreColor, color.A));
+        canvas.DrawCircleOutline(rid, center, 20f * k, color, 4f * k);
+    }
+
+    /// <summary>
+    /// A Contact barrier: a ring with one row of pips per bar it asks of, each
+    /// in its bar's colour, one pip per point of cost.
+    /// </summary>
+    private static void DrawBarrierShape(IRectCanvas canvas, Rid rid, Note note, Vector2 center, float radius, Color color)
+    {
+        float k = radius / DesignRadius;
+        canvas.DrawCircle(rid, center, radius, Tinted(NoteCoreColor, color.A));
+        canvas.DrawCircleOutline(rid, center, radius, color, 5f * k);
+
+        int rows = note.Costs.UsedBars;
+        float rowGap = 14f * k;
+        float y = -(rows - 1) * rowGap / 2;
+        for (int bar = 0; bar < ContactCounters.Bars; bar++)
+        {
+            int cost = note.Costs[bar];
+            if (cost <= 0)
+                continue;
+
+            Color pip = Tinted(BarColor(bar), color.A);
+            float gap = 11f * k;
+            float start = -(cost - 1) * gap / 2;
+            for (int i = 0; i < cost; i++)
+                canvas.DrawCircle(rid, center + new Vector2(start + i * gap, y), 4.5f * k, pip);
+            y += rowGap;
+        }
+    }
+
+    /// <summary>
+    /// A momentum note: the frame around a dark hexagon, with one pip per step
+    /// of strength. It shows no way: the player picks it.
+    /// </summary>
     private static void DrawMomentumShape(IRectCanvas canvas, Rid rid, Note note, Vector2 center, float radius, Color color)
     {
         float k = radius / DesignRadius;
         Color edge = Tinted(NoteEdgeColor, color.A);
-        DrawRing(canvas, rid, center, radius, color, k);
+        DrawFrame(canvas, rid, center, radius, color, k, note.Diagonal);
 
         Span<Vector2> hexagon = stackalloc Vector2[7];
         for (int i = 0; i < 6; i++)
@@ -66,139 +85,70 @@ public static partial class PlayfieldRenderer
         hexagon[6] = hexagon[0];
         canvas.DrawPolygon(rid, hexagon[..6], Tinted(NoteCoreColor, color.A));
         canvas.DrawPolyline(rid, hexagon, edge, 4f * k);
-
-        float turn = PlayerMovementSystem.DashDirectionVector(note.DashDirection).Angle() - UpLeftAngle;
-        Span<Vector2> arrow = stackalloc Vector2[MomentumArrow.Length + 1];
-        for (int i = 0; i < MomentumArrow.Length; i++)
-            arrow[i] = center + MomentumArrow[i].Rotated(turn) * k;
-        arrow[^1] = arrow[0];
-
-        // The arrow bends round the ring, so fill it as a fan from its tip.
-        Span<Vector2> triangle = stackalloc Vector2[3];
-        for (int i = 1; i < MomentumArrow.Length - 1; i++)
-        {
-            triangle[0] = arrow[0];
-            triangle[1] = arrow[i];
-            triangle[2] = arrow[i + 1];
-            canvas.DrawPolygon(rid, triangle, color);
-        }
-        canvas.DrawPolyline(rid, arrow, edge, 3f * k);
-
-        int chevrons = Math.Min(MomentumLevel(note.Momentum) - 1, MomentumChevrons.Length);
-        Span<Vector2> chevron = stackalloc Vector2[3];
-        for (int c = 0; c < chevrons; c++)
-        {
-            for (int i = 0; i < 3; i++)
-                chevron[i] = center + MomentumChevrons[c][i].Rotated(turn) * k;
-            canvas.DrawPolyline(rid, chevron, edge, 5f * k);
-        }
+        DrawPips(canvas, rid, center, k, MomentumLevel(note.Momentum), edge);
     }
 
-    /// <summary>How strongly a dash note's exit shows before the dash.</summary>
-    public const float DashLinkAlpha = 0.5f;
-
     /// <summary>
-    /// How strongly the connector to the exit shows: barely, since the hit's
-    /// streak of particles is what tells the path.
+    /// A dash note: a hollow frame with four triangles pointing in, where the
+    /// player vanishes, and one pip per dash length.
     /// </summary>
-    public const float DashConnectorAlpha = 0.15f;
-
-    /// <summary>A dash note: a hollow ring with four triangles pointing in, where the player vanishes.</summary>
-    private static void DrawDashShape(IRectCanvas canvas, Rid rid, Vector2 center, float radius, Color color) =>
-        DrawDashPoint(canvas, rid, center, radius, color, inward: true);
-
-    /// <summary>A dash's exit: the same ring with the triangles pointing out, where the player appears.</summary>
-    public static void DrawDashExit(IRectCanvas canvas, Rid rid, Vector2 center, float radius, Color color) =>
-        DrawDashPoint(canvas, rid, center, radius, color, inward: false);
-
-    private static void DrawDashPoint(
-        IRectCanvas canvas,
-        Rid rid,
-        Vector2 center,
-        float radius,
-        Color color,
-        bool inward)
+    private static void DrawDashShape(IRectCanvas canvas, Rid rid, Note note, Vector2 center, float radius, Color color)
     {
         float k = radius / DesignRadius;
-        canvas.DrawCircleOutline(rid, center, radius, color, 4f * k);
+        if (note.Diagonal)
+            canvas.DrawPolyline(rid, Rhombus(center, radius), color, 4f * k);
+        else
+            canvas.DrawCircleOutline(rid, center, radius, color, 4f * k);
 
         // Drawn for the left triangle and turned for the other three.
-        float tip = inward ? -9f : -22f;
-        float baseX = inward ? -18f : -13f;
         Span<Vector2> triangle = stackalloc Vector2[3];
         for (int i = 0; i < 4; i++)
         {
             float turn = i * Mathf.Pi / 2;
-            triangle[0] = center + new Vector2(tip, 0f).Rotated(turn) * k;
-            triangle[1] = center + new Vector2(baseX, -9f).Rotated(turn) * k;
-            triangle[2] = center + new Vector2(baseX, 9f).Rotated(turn) * k;
+            triangle[0] = center + new Vector2(-9f, 0f).Rotated(turn) * k;
+            triangle[1] = center + new Vector2(-18f, -9f).Rotated(turn) * k;
+            triangle[2] = center + new Vector2(-18f, 9f).Rotated(turn) * k;
             canvas.DrawPolygon(rid, triangle, color);
         }
+
+        DrawPips(canvas, rid, center + new Vector2(0f, 20f * k), k, (int)note.DashStrength + 1, color);
     }
 
-    /// <summary>Where a dash note's exit is drawn, in screen space.</summary>
-    public static Vector2 DashExitScreen(Note note, PlayfieldView view) =>
-        view.PlayfieldToScreen(
-            PlayerMovementSystem.DashTarget(note.Position, note.DashDirection, note.DashStrength));
-
-    /// <summary>
-    /// Where a dash note sends the player: the exit, joined to the note by a
-    /// faint jagged connector, the exit at half strength, so the note itself
-    /// reads as the one to hit. Strength and direction need no marks of their own.
-    /// </summary>
-    public static void DrawDashLink(
-        IRectCanvas canvas,
-        Rid rid,
-        Note note,
-        PlayfieldView view,
-        float radius,
-        Color color)
+    /// <summary>A row of small dots, one per step of strength, centred under <paramref name="center"/>.</summary>
+    private static void DrawPips(IRectCanvas canvas, Rid rid, Vector2 center, float k, int count, Color color)
     {
-        Vector2 from = view.PlayfieldToScreen(note.Position);
-        Vector2 to = DashExitScreen(note, view);
-        DrawDashConnector(canvas, rid, from, to, radius, Tinted(color, DashConnectorAlpha));
-        DrawDashExit(canvas, rid, to, radius, Tinted(color, DashLinkAlpha));
+        float gap = 9f * k;
+        float start = -(count - 1) * gap / 2;
+        for (int i = 0; i < count; i++)
+            canvas.DrawCircle(rid, center + new Vector2(start + i * gap, 9f * k), 3f * k, color);
     }
 
-    /// <summary>The jagged connector between a dash note and its exit, kept clear of both rings.</summary>
-    public static void DrawDashConnector(
-        IRectCanvas canvas,
-        Rid rid,
-        Vector2 from,
-        Vector2 to,
-        float radius,
-        Color color)
+    /// <summary>The four corners of a rhombus note's frame, closed, with its points up, right, down and left.</summary>
+    private static Vector2[] Rhombus(Vector2 center, float radius)
     {
-        float k = radius / DesignRadius;
-        float gap = radius + 6f * k;
-        Vector2 along = to - from;
-        float length = along.Length();
-        if (length <= gap * 2)
-            return;
-
-        Vector2 direction = along / length;
-        Vector2 side = new(-direction.Y, direction.X);
-        Vector2 start = from + direction * gap;
-        Vector2 end = to - direction * gap;
-        float jag = 9f * k;
-        Span<Vector2> bolt =
+        float r = radius * 1.15f;
+        return
         [
-            start,
-            start.Lerp(end, 0.33f) + side * jag,
-            start.Lerp(end, 0.72f) - side * jag,
-            end,
+            center + new Vector2(0, -r),
+            center + new Vector2(r, 0),
+            center + new Vector2(0, r),
+            center + new Vector2(-r, 0),
+            center + new Vector2(0, -r),
         ];
-        canvas.DrawPolyline(rid, bolt, color, 5f * k);
+    }
 
-        // A short stroke beside each leg, on the outside of its bend.
-        for (int i = 0; i < 3; i++)
+    /// <summary>The filled frame a solid note sits in: a ring, or a rhombus for a diagonal note.</summary>
+    private static void DrawFrame(IRectCanvas canvas, Rid rid, Vector2 center, float radius, Color color, float k, bool diagonal)
+    {
+        if (!diagonal)
         {
-            Vector2 a = bolt[i];
-            Vector2 b = bolt[i + 1];
-            Vector2 leg = (b - a).Normalized();
-            Vector2 outside = new Vector2(-leg.Y, leg.X) * (i % 2 == 0 ? 1f : -1f) * 10f * k;
-            canvas.DrawLine(rid, a.Lerp(b, 0.3f) + outside, a.Lerp(b, 0.7f) + outside, color, 4f * k);
+            DrawRing(canvas, rid, center, radius, color, k);
+            return;
         }
+
+        Vector2[] corners = Rhombus(center, radius);
+        canvas.DrawPolygon(rid, corners.AsSpan(0, 4), color);
+        canvas.DrawPolyline(rid, corners, Tinted(NoteEdgeColor, color.A), 4f * k);
     }
 
     /// <summary>The filled ring every solid note sits in.</summary>

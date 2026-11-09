@@ -141,44 +141,22 @@ public struct PlayCamera(Rect2 viewport) : IComponent
 }
 
 /// <summary>
-/// What a note does. The numeric values are serialized, so kinds are appended
-/// rather than reordered; <c>Dash</c> keeps the old <c>Movement</c> value so
-/// existing maps still load.
+/// What a note does. Action notes are hit with F, Space or J: a coloured
+/// <see cref="Hit"/> note with its own key, a <see cref="Neutral"/> note with any.
+/// Directional notes (<see cref="Dash"/>, <see cref="Momentum"/>) are hit with a
+/// direction key and carry only their strength; the player picks the way.
+/// A <see cref="Contact"/> barrier is a check, not a press.
 /// </summary>
 public enum NoteKind
 {
     Hit,
+    Neutral,
     Dash,
-    Contact,
-    CharacterSwitch,
-    Pair,
     Momentum,
-    WeaponSwitch,
-    Channel,
-    Rail,
-    ChannelEnd,
-    Construction,
-    ConstructionStep,
+    Contact,
 }
 
-/// <summary>The two Splitline channels, and the side a rail layer belongs to.</summary>
-public enum ChannelSide
-{
-    Left,
-    Right,
-}
-
-/// <summary>
-/// Which pair a pair note belongs to. L and R of the same number share it, so
-/// the note is side-agnostic; only the number is compared.
-/// </summary>
-public enum PairIndex
-{
-    One = 1,
-    Two = 2,
-    Three = 3,
-}
-
+/// <summary>The eight ways a directional note can send the player, clockwise from up.</summary>
 public enum DashDirection
 {
     Up,
@@ -191,7 +169,7 @@ public enum DashDirection
     UpLeft,
 }
 
-/// <summary>How far a movement note carries the player: one, two or three dash lengths.</summary>
+/// <summary>How far a dash note carries the player: one, two or three dash lengths.</summary>
 public enum DashStrength
 {
     Single,
@@ -199,75 +177,88 @@ public enum DashStrength
     Triple,
 }
 
+/// <summary>
+/// What a Contact barrier asks of each bar, one bar per action key. A barrier
+/// asks at most <see cref="MaxCost"/> of a bar and of at most
+/// <see cref="MaxBars"/> bars.
+/// </summary>
+public struct BarCosts(int first = 0, int second = 0, int third = 0)
+{
+    public const int MaxCost = 4;
+    public const int MaxBars = 2;
+
+    public int First = first;
+    public int Second = second;
+    public int Third = third;
+
+    /// <summary>The cost for bar 0, 1 or 2.</summary>
+    public int this[int bar]
+    {
+        readonly get => bar switch { 0 => First, 1 => Second, _ => Third };
+        set
+        {
+            if (bar == 0) First = value;
+            else if (bar == 1) Second = value;
+            else Third = value;
+        }
+    }
+
+    /// <summary>How many bars this barrier asks anything of.</summary>
+    public readonly int UsedBars => (First > 0 ? 1 : 0) + (Second > 0 ? 1 : 0) + (Third > 0 ? 1 : 0);
+
+    /// <summary>
+    /// Sets one bar's cost inside the limits: no more than <see cref="MaxCost"/>,
+    /// and a new bar only while fewer than <see cref="MaxBars"/> are in use.
+    /// </summary>
+    public readonly BarCosts With(int bar, int cost)
+    {
+        BarCosts next = this;
+        cost = System.Math.Clamp(cost, 0, MaxCost);
+        if (cost > 0 && this[bar] == 0 && UsedBars >= MaxBars)
+            return this;
+        next[bar] = cost;
+        return next;
+    }
+}
+
 public struct Note(
     long timeMs,
     Vector2 position,
-    KeybindAction target = KeybindAction.M,
+    KeybindAction target = KeybindAction.Action1,
     NoteKind kind = NoteKind.Hit,
-    DashDirection dashDirection = DashDirection.Up,
-    int contactRequired = 1,
-    CharacterKind character = CharacterKind.Contact,
     DashStrength dashStrength = DashStrength.Single,
-    PairIndex pairIndex = PairIndex.One,
-    float momentum = 600f,
-    int contactLeft = 0,
-    int contactRight = 0,
-    ChannelSide channelSide = ChannelSide.Left,
-    long holdMs = 0,
-    int shapeId = 0,
-    int shapePiece = 0,
-    DashDirection exitDirection = DashDirection.Up,
-    float exitMomentum = 0f) : IComponent
+    float momentum = Note.DefaultMomentum,
+    bool diagonal = false,
+    BarCosts costs = default) : IComponent
 {
     /// <summary>
-    /// A momentum note's push, expressed as the velocity change it imparts in
-    /// playfield units per second. The tuning default is a single dash-length
-    /// shove; charts can author any value.
+    /// A momentum note's speed, in playfield units per second. The tuning
+    /// default is a single dash-length shove; charts can author any value.
     /// </summary>
     public const float DefaultMomentum = 600f;
 
     public long TimeMs = timeMs;
     public Vector2 Position = position;
+
+    /// <summary>The action key a coloured <see cref="NoteKind.Hit"/> note asks for; ignored by other kinds.</summary>
     public KeybindAction Target = target;
+
     public NoteKind Kind = kind;
-    public DashDirection DashDirection = dashDirection;
-    public int ContactRequired = contactRequired;
-    public CharacterKind Character = character;
+
+    /// <summary>A dash note's distance; ignored by other kinds.</summary>
     public DashStrength DashStrength = dashStrength;
 
-    /// <summary>The pair a pair note belongs to; ignored by every other kind.</summary>
-    public PairIndex PairIndex = pairIndex;
-
-    /// <summary>A momentum note's push in playfield units per second; ignored by other kinds.</summary>
+    /// <summary>A momentum note's speed in playfield units per second; ignored by other kinds.</summary>
     public float Momentum = momentum;
 
-    /// <summary>The left-side charge a contact barrier spends.</summary>
-    public int ContactLeft = contactLeft;
-
-    /// <summary>The right-side charge a contact barrier spends.</summary>
-    public int ContactRight = contactRight;
-
-    /// <summary>The side a channel start, channel end or rail note belongs to.</summary>
-    public ChannelSide ChannelSide = channelSide;
-
-    /// <summary>How long a rail hold lasts; zero for a tap.</summary>
-    public long HoldMs = holdMs;
-
-    /// <summary>The Form construction shape a construction/step note belongs to.</summary>
-    public int ShapeId = shapeId;
-
-    /// <summary>Which attached block a construction step reveals.</summary>
-    public int ShapePiece = shapePiece;
-
-    /// <summary>The way a dash note pushes the player once it lands; ignored while <see cref="ExitMomentum"/> is zero.</summary>
-    public DashDirection ExitDirection = exitDirection;
-
     /// <summary>
-    /// A dash note's push out of the dash, in playfield units per second, set
-    /// the way a momentum note sets speed. Zero for none: the player hangs
-    /// where the dash put it instead. Ignored by other kinds.
+    /// A directional note drawn as a rhombus: it turns the pressed direction 45°
+    /// clockwise, so up becomes up-right. Ignored by other kinds.
     /// </summary>
-    public float ExitMomentum = exitMomentum;
+    public bool Diagonal = diagonal;
+
+    /// <summary>What a Contact barrier asks of each bar; ignored by other kinds.</summary>
+    public BarCosts Costs = costs;
 }
 
 /// <summary>A mine hazard placed in playfield coordinates.</summary>
@@ -402,8 +393,6 @@ public enum BlockOneWay
 public struct Block(
     Vector2 position,
     Vector2 size,
-    int shapeId = 0,
-    int shapePiece = 0,
     BlockOneWay oneWay = BlockOneWay.Off,
     float outlineWidth = Block.DefaultOutlineWidth,
     Color? outlineColor = null,
@@ -423,12 +412,6 @@ public struct Block(
     public Vector2 Position = position;
 
     public Vector2 Size = size;
-
-    /// <summary>The Form construction shape this block belongs to, or 0 for permanent geometry.</summary>
-    public int ShapeId = shapeId;
-
-    /// <summary>The order this block is revealed in its shape.</summary>
-    public int ShapePiece = shapePiece;
 
     /// <summary>The only side that collides, or Off for a block solid all round.</summary>
     public BlockOneWay OneWay = oneWay;
@@ -467,9 +450,23 @@ public struct PlayfieldMode(PlayfieldKind kind) : IComponent
 /// <summary>
 /// On a play playfield: notes approach the DIVA+ way from the notes lab — a
 /// target with a clock hand, the note flying in onto it, and a spark running
-/// the guide line. F8 turns it off for the ring look.
+/// the guide line. Always on in play.
 /// </summary>
 public struct DivaNotes : ITag;
+
+/// <summary>
+/// On a play playfield: the hold-to-move ground mode. On the ground the player
+/// keeps moving only while holding the direction key of the last directional
+/// note it hit (<see cref="MoveKey"/>); let go and it stops. Without it the
+/// player skids, and only friction fields stop it. F8 switches.
+/// </summary>
+public struct GroundHold : ITag;
+
+/// <summary>The play HUD label that names the ground mode.</summary>
+public struct GroundModeHud(Entity label) : IComponent
+{
+    public Entity Label = label;
+}
 
 /// <summary>
 /// The DIVA+ guide spark's leg: the last hit moment it leaves from and the

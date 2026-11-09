@@ -7,37 +7,24 @@ using Xanadu.Systems.Input;
 namespace Xanadu.Systems.Playfields;
 
 /// <summary>
-/// F8: the DIVA+ note look in play, on by default (<see cref="DivaNotes"/>).
-/// While it is on, remembers the moment just hit, so the guide spark knows
-/// where to leave from once its notes are deleted (<see cref="DivaSpark"/>).
+/// The DIVA+ note look, always on in play (<see cref="DivaNotes"/>). Remembers
+/// the moment just hit, so the guide spark knows where to leave from once its
+/// notes are deleted (<see cref="DivaSpark"/>).
 /// </summary>
-public sealed class DivaNotesSystem(EntityStore entities, IOverlayToggleSource toggle) : QuerySystem<PlayfieldMode>
+public sealed class DivaNotesSystem(EntityStore entities) : QuerySystem<PlayfieldMode>
 {
-    private readonly OverlayLatch _latch = new(toggle);
-
     protected override void OnUpdate()
     {
-        _latch.Update();
-        // The latch starts closed; closed is DIVA+, so F8 brings the ring back.
-        bool diva = !_latch.Visible;
         CommandBuffer buffer = CommandBuffer;
-        PlayfieldRenderer.DivaMoment? next = diva ? PlayfieldRenderer.EarliestDivaMoment(entities) : null;
+        PlayfieldRenderer.DivaMoment? next = PlayfieldRenderer.EarliestDivaMoment(entities);
 
         Query.ForEachEntity((ref PlayfieldMode mode, Entity entity) =>
         {
             if (mode.Kind != PlayfieldKind.Play)
                 return;
 
-            if (entity.Tags.Has<DivaNotes>() != diva)
-            {
-                if (diva)
-                    buffer.AddTag<DivaNotes>(entity.Id);
-                else
-                    buffer.RemoveTag<DivaNotes>(entity.Id);
-            }
-
-            if (!diva)
-                return;
+            if (!entity.Tags.Has<DivaNotes>())
+                buffer.AddTag<DivaNotes>(entity.Id);
 
             if (entity.HasComponent<DivaSpark>())
                 Track(ref entity.GetComponent<DivaSpark>(), next);

@@ -18,9 +18,6 @@ namespace Xanadu.Tests.VisualTests;
 /// <summary>Regression: the ECS character dropdown and note-type swatches must be clickable.</summary>
 public sealed class EditorDropdownSceneTest : SceneTest
 {
-    private float _closedSidebarHeight;
-    private float _closedSidebarTop;
-
     public override string Name => "Editor dropdowns";
     public override string Slug => "editor-dropdowns";
 
@@ -30,48 +27,18 @@ public sealed class EditorDropdownSceneTest : SceneTest
         AddUntilStep(
             "wait for editor sidebar",
             () => Context.Scenes.Current == SceneKind.Editor &&
-                  VisualAssert.HasText(Context.Entities, "CHARACTER") &&
-                  !FindDropdown(EditorDropdownKind.Character).IsNull);
+                  VisualAssert.HasText(Context.Entities, "SELECTION"));
         AddAssert(
-            "note swatches use lane colours",
+            "note swatches use action colours",
             NoteSwatchesAreColoured);
-        AddStep("record closed sidebar", () =>
-        {
-            _closedSidebarHeight = SidebarHeight();
-            _closedSidebarTop = SidebarTop();
-        });
 
-        AddStep("click character dropdown", () => ClickDropdown(EditorDropdownKind.Character));
-        AddWaitStep("hold character dropdown", 2);
-        AddStep("release character dropdown", () => Context.Pointer.Release());
-        AddUntilStep(
-            "character dropdown opened",
-            () => FindDropdown(EditorDropdownKind.Character).GetComponent<Dropdown>().Open);
-        AddAssert(
-            "sidebar top stays fixed when open",
-            () => SidebarTop() == _closedSidebarTop);
-        AddAssert(
-            "character list is aligned",
-            () => DropdownListIsAligned(EditorDropdownKind.Character));
-
-        AddStep("choose splitline", () => ClickDropdownOption(EditorDropdownKind.Character, (int)CharacterKind.SplitLine));
-        AddWaitStep("hold character option", 2);
-        AddStep("release character option", () => Context.Pointer.Release());
-        AddUntilStep(
-            "character changed",
-            () => Context.Entities.Query<EditorPlacement>().ToEntityList()[0]
-                .GetComponent<EditorPlacement>().Character == CharacterKind.SplitLine);
-        AddAssert(
-            "sidebar collapses when closed",
-            () => SidebarHeight() == _closedSidebarHeight);
-
-        AddStep("click R3 swatch", () => ClickSwatch(KeybindAction.R3));
+        AddStep("click action 3 swatch", () => ClickSwatch(KeybindAction.Action3));
         AddWaitStep("hold swatch", 2);
         AddStep("release swatch", () => Context.Pointer.Release());
         AddUntilStep(
             "note type changed",
             () => Context.Entities.Query<EditorPlacement>().ToEntityList()[0]
-                .GetComponent<EditorPlacement>().Note == KeybindAction.R3);
+                .GetComponent<EditorPlacement>().Note == KeybindAction.Action3);
 
         AddStep("open the spikes and mines group", () => ClickGroupOf(EditorPlacementMode.Mines));
         AddWaitStep("hold the spikes and mines group", 2);
@@ -147,51 +114,6 @@ public sealed class EditorDropdownSceneTest : SceneTest
         }
     }
 
-    private bool DropdownListIsAligned(EditorDropdownKind kind)
-    {
-        Entity button = FindDropdown(kind);
-        Dropdown dropdown = button.GetComponent<Dropdown>();
-        if (!dropdown.Open || dropdown.List.IsNull)
-            return false;
-
-        Vector2 buttonPosition = WorldPosition(button, button.GetComponent<Position>().Value);
-        float buttonHeight = button.GetComponent<Rectangle>().Bounds.Size.Y;
-        Vector2 expected = buttonPosition + new Vector2(
-            0,
-            buttonHeight / 2 + dropdown.ListSize.Y / 2 + 4);
-        Vector2 list = WorldPosition(dropdown.List, dropdown.List.GetComponent<Position>().Value);
-        return list.DistanceTo(expected) < 0.5f;
-    }
-
-    private float SidebarHeight()
-    {
-        Entity panel = SidebarPanel();
-        return panel.IsNull
-            ? 0
-            : panel.GetComponent<Rectangle>().Bounds.Size.Y;
-    }
-
-    private float SidebarTop()
-    {
-        Entity panel = SidebarPanel();
-        return panel.IsNull
-            ? 0
-            : WorldPosition(panel, panel.GetComponent<Position>().Value).Y +
-              panel.GetComponent<Rectangle>().Bounds.Position.Y;
-    }
-
-    private Entity SidebarPanel()
-    {
-        foreach (Entity editor in Context.Entities
-                     .Query<EditorSidebarLayout>()
-                     .ToEntityList())
-        {
-            return editor.GetComponent<EditorSidebarLayout>().Panel;
-        }
-
-        return default;
-    }
-
     private void ClickEditorButton(EditorButtonKind kind)
     {
         foreach (Entity entity in Context.Entities.Query<EditorButton>().ToEntityList())
@@ -204,45 +126,6 @@ public sealed class EditorDropdownSceneTest : SceneTest
                 entity.GetComponent<Position>().Value));
             return;
         }
-    }
-
-    private void ClickDropdown(EditorDropdownKind kind)
-    {
-        Entity button = FindDropdown(kind);
-        Context.Pointer.Click(WorldPosition(button, button.GetComponent<Position>().Value));
-    }
-
-    private void ClickDropdownOption(EditorDropdownKind kind, int value)
-    {
-        Entity button = FindDropdown(kind);
-        foreach (Entity option in Context.Entities
-                     .Query<DropdownOption>()
-                     .ToEntityList())
-        {
-            DropdownOption data = option.GetComponent<DropdownOption>();
-            if (data.Owner.Id != button.Id || data.Value != value)
-                continue;
-
-            Context.Pointer.Click(WorldPosition(
-                option,
-                option.GetComponent<Position>().Value));
-            return;
-        }
-    }
-
-    private Entity FindDropdown(EditorDropdownKind kind)
-    {
-        foreach (Entity entity in Context.Entities
-                     .Query<EditorDropdownControl>()
-                     .ToEntityList())
-        {
-            if (entity.GetComponent<EditorDropdownControl>().Kind != kind)
-                continue;
-
-            return entity;
-        }
-
-        return default;
     }
 
     private static Vector2 WorldPosition(Entity entity, Vector2 local)

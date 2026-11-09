@@ -15,8 +15,7 @@ public sealed class HitGhostSystem : QuerySystem<HitGhost>
     public static void Spawn(EntityStore entities, Entity player)
     {
         if (!player.TryGetComponent(out Player box) ||
-            !player.HasComponent<Position>() ||
-            player.Tags.Has<SplitlineAbsent>())
+            !player.HasComponent<Position>())
         {
             return;
         }

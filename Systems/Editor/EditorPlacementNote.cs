@@ -13,68 +13,30 @@ namespace Xanadu.Systems.Editor;
 /// </summary>
 public static class EditorPlacementNote
 {
-    /// <summary>True for a Form step with no shape chosen, which cannot be placed.</summary>
-    public static bool NeedsShape(Entity editor) =>
-        editor.TryGetComponent(out EditorPlacement placement) &&
-        placement.Mode == EditorPlacementMode.FormStep &&
-        placement.ShapeId == 0;
-
     public static Note Build(Entity editor, long time, Vector2 position)
     {
         EditorPlacement placement = editor.TryGetComponent(out EditorPlacement found)
             ? found
-            : new EditorPlacement { Direction = DashDirection.Up };
-        KeybindAction target = placement.Note;
-        CharacterKind character = placement.Character;
+            : new EditorPlacement();
         EditorPlacementMode mode = placement.Mode;
-        DashDirection direction = placement.Direction;
-        DashStrength strength = placement.Strength;
-        bool isPair = mode == EditorPlacementMode.Pair;
-        bool isContact = mode == EditorPlacementMode.Contact;
-        bool isChannel = mode == EditorPlacementMode.Channel;
-        bool isFormStep = mode == EditorPlacementMode.FormStep;
-        KeybindAction channelTarget = target == KeybindAction.M
-            ? KeybindAction.L1
-            : target;
+        bool directional = mode is EditorPlacementMode.Dash or EditorPlacementMode.Momentum;
 
         return new Note(
             time,
             position,
-            target: mode == EditorPlacementMode.CharacterSwitch ||
-                    mode == EditorPlacementMode.WeaponSwitch ||
-                    isPair ||
-                    isContact
-                ? KeybindAction.M
-                : isChannel || isFormStep
-                    ? channelTarget
-                    : target,
+            target: placement.Note,
             kind: mode switch
             {
-                EditorPlacementMode.Pair => NoteKind.Pair,
+                EditorPlacementMode.Neutral => NoteKind.Neutral,
                 EditorPlacementMode.Dash => NoteKind.Dash,
                 EditorPlacementMode.Momentum => NoteKind.Momentum,
                 EditorPlacementMode.Contact => NoteKind.Contact,
-                EditorPlacementMode.CharacterSwitch => NoteKind.CharacterSwitch,
-                EditorPlacementMode.WeaponSwitch => NoteKind.WeaponSwitch,
-                EditorPlacementMode.Channel => NoteKind.Channel,
-                EditorPlacementMode.FormStep => NoteKind.ConstructionStep,
                 _ => NoteKind.Hit,
             },
-            dashDirection: direction,
-            contactRequired: isContact ? 0 : 1,
-            character: character,
-            dashStrength: strength,
-            pairIndex: NoteRules.PairIndexFor(target),
-            momentum: MomentumFor(strength),
-            contactLeft: isContact ? placement.ContactLeft : 0,
-            contactRight: isContact ? placement.ContactRight : 0,
-            channelSide: isChannel
-                ? NoteRules.SideOf(channelTarget)
-                : ChannelSide.Left,
-            shapeId: isFormStep ? placement.ShapeId : 0,
-            shapePiece: 0,
-            exitDirection: placement.ExitDirection,
-            exitMomentum: mode == EditorPlacementMode.Dash ? placement.ExitMomentum : 0f);
+            dashStrength: placement.Strength,
+            momentum: MomentumFor(placement.Strength),
+            diagonal: directional && placement.Diagonal,
+            costs: mode == EditorPlacementMode.Contact ? placement.Costs : default);
     }
 
     /// <summary>

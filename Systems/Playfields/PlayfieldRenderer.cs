@@ -24,28 +24,21 @@ public static partial class PlayfieldRenderer
     public static readonly Color SelectedNoteColor = new(1f, 0.9f, 0.3f);
     public static readonly Color PlayerColor = Palette.Text;
     public static readonly Color QueueColor = Palette.Info;
-    public static readonly Color CharacterSwitchColor = Palette.Lime;
-    public static readonly Color PairColor = Palette.TextBright;
-    public static readonly Color ContactBarrierColor = Palette.Violet;
-    public static readonly Color WeaponSwitchColor = Palette.Success;
-    public static readonly Color ChannelColor = Palette.Selected;
-    public static readonly Color RailColor = Palette.InfoSoft;
-    public static readonly Color ConstructionColor = Palette.Primary;
-    public static readonly Color ConstructionStepColor = Palette.Accent;
+    public static readonly Color ContactBarrierColor = Palette.TextBright;
+    public static readonly Color NeutralColor = Palette.TextBright;
+    public static readonly Color DashColor = Palette.Cyan;
+    public static readonly Color MomentumColor = Palette.Violet;
     public static readonly Color GuideColor = Palette.Text;
     public static readonly Color StartPointColor = Palette.SuccessBright;
 
     public const float MineSize = 18;
 
-    private static readonly Color[] LaneColors =
+    /// <summary>The three action colours, one per action key; they only need to be told apart at a glance.</summary>
+    private static readonly Color[] ActionColors =
     {
-        Palette.Cyan,
-        Palette.PrimarySoft,
-        Palette.Violet,
-        Palette.Accent,
-        Palette.Warning,
-        Palette.Danger,
         Palette.Pink,
+        Palette.Accent,
+        Palette.Lime,
     };
 
     public const float NoteSize = 72;
@@ -105,7 +98,6 @@ public static partial class PlayfieldRenderer
                 canvas.SelectShader(playerShader);
                 DrawHitGhosts(canvas, rid, entities);
                 DrawPlayer(canvas, rid, entities, view);
-                DrawSplitlineBalls(canvas, rid, entities, view);
             });
         DrawTransport(canvas, rid, frame ?? field, playhead);
     }

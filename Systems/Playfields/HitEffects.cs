@@ -31,18 +31,16 @@ public static class HitEffects
 
     /// <summary>
     /// A hit dash note pops out with sparks where it stood, thrown the way it
-    /// sends the player, and leaves its
-    /// connector and exit behind to fade, the exit last.
+    /// sends the player.
     /// </summary>
-    public static void SpawnDash(EntityStore entities, Entity noteEntity, Note note, PlayfieldView view)
+    public static void SpawnDash(EntityStore entities, Entity noteEntity, Note note, PlayfieldView view, DashDirection heading)
     {
         Vector2 at = view.PlayfieldToScreen(GroupOffset.Shown(noteEntity, note.Position));
         float radius = PlayfieldRenderer.NoteSize * view.Scale / 2f;
         Color color = GroupColor.For(noteEntity, PlayfieldRenderer.ColorFor(note));
         EffectLayer layer = EffectLayer.From(noteEntity);
         entities.CreateEntity(new NotePop(note, at, color, radius, PlayfieldRenderer.NotePopLifetime), layer);
-        Vector2 exit = PlayfieldRenderer.DashExitScreen(note, view);
-        entities.CreateEntity(new ParticleBurst(at, ParticleKind.Hit, color, heading: exit - at));
-        entities.CreateEntity(new DashLinkFade(at, exit, color, radius), layer);
+        Vector2 way = PlayerMovementSystem.DashDirectionVector(heading);
+        entities.CreateEntity(new ParticleBurst(at, ParticleKind.Hit, color, heading: way));
     }
 }

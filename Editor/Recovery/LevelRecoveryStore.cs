@@ -19,7 +19,8 @@ public sealed class LevelRecoveryStore(string directory)
     public const string UserFolder = "user://recovery";
 
     private const string Format = "XMR";
-    private const ushort MajorVersion = 1;
+    private const ushort MajorVersion = 0;
+    private const ushort MinorVersion = 1;
 
     private static readonly byte[] Magic = "XMR1"u8.ToArray();
 
@@ -58,7 +59,7 @@ public sealed class LevelRecoveryStore(string directory)
             meta = stream.ToArray();
         }
 
-        var file = new ChunkWriter(Magic, MajorVersion, 0);
+        var file = new ChunkWriter(Magic, MajorVersion, MinorVersion);
         file.Add((uint)ChunkId.Meta, meta);
         file.Add((uint)ChunkId.Map, XmfBinary.Write(level));
         File.WriteAllBytes(PathFor(levelPath), file.ToArray());
@@ -115,11 +116,9 @@ public sealed class LevelRecoveryStore(string directory)
         copy.Slug = "";
         copy.Notes = copy.Notes
             .OrderBy(n => n.TimeMs).ThenBy(n => n.X).ThenBy(n => n.Y)
-            .ThenBy(n => n.Kind).ThenBy(n => n.Target).ThenBy(n => n.DashDirection)
-            .ThenBy(n => n.DashStrength).ThenBy(n => n.PairIndex).ThenBy(n => n.Momentum)
-            .ThenBy(n => n.ContactLeft).ThenBy(n => n.ContactRight)
-            .ThenBy(n => n.ChannelSide).ThenBy(n => n.HoldMs)
-            .ThenBy(n => n.ExitDirection).ThenBy(n => n.ExitMomentum)
+            .ThenBy(n => n.Kind).ThenBy(n => n.Target)
+            .ThenBy(n => n.DashStrength).ThenBy(n => n.Momentum).ThenBy(n => n.Diagonal)
+            .ThenBy(n => n.CostFirst).ThenBy(n => n.CostSecond).ThenBy(n => n.CostThird)
             .ToList();
         copy.Mines = copy.Mines
             .OrderBy(m => m.TimeMs).ThenBy(m => m.X).ThenBy(m => m.Y)

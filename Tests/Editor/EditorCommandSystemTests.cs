@@ -125,29 +125,12 @@ public sealed class EditorCommandSystemTests : EcsSystemTest
     }
 
     [Test]
-    public void RotatingTurnsASingleDashNotesDirection()
-    {
-        Entity note = CreateSelected(new Note(
-            0,
-            new Godot.Vector2(300, 300),
-            kind: NoteKind.Dash,
-            dashDirection: DashDirection.Up));
-
-        _commands.Enqueue(EditorCommand.RotateSelection());
-        Frame();
-
-        Assert.That(note.GetComponent<Note>().DashDirection, Is.EqualTo(DashDirection.Right));
-        Assert.That(note.GetComponent<Note>().Position, Is.EqualTo(new Godot.Vector2(300, 300)));
-    }
-
-    [Test]
     public void FlippingMirrorsTheSelectionAcrossItsCentre()
     {
         Entity left = EditorItems.Create(Store, new Note(
             0,
             new Godot.Vector2(200, 300),
-            kind: NoteKind.Dash,
-            dashDirection: DashDirection.UpRight));
+            kind: NoteKind.Dash));
         Entity right = EditorItems.Create(Store, new Spike(
             new Godot.Vector2(350, 300),
             new Godot.Vector2(50, 50),
@@ -158,7 +141,6 @@ public sealed class EditorCommandSystemTests : EcsSystemTest
         Frame();
 
         Assert.That(left.GetComponent<Note>().Position.X, Is.EqualTo(400));
-        Assert.That(left.GetComponent<Note>().DashDirection, Is.EqualTo(DashDirection.UpLeft));
         Assert.That(right.GetComponent<Spike>().Position.X, Is.EqualTo(200));
         Assert.That(right.GetComponent<Spike>().RotationDegrees, Is.EqualTo(270f));
     }
@@ -183,17 +165,6 @@ public sealed class EditorCommandSystemTests : EcsSystemTest
         Frame();
 
         Assert.That(_editor.GetComponent<EditorPlacement>().Degrees, Is.EqualTo(90f));
-    }
-
-    [TestCase(DashDirection.Right, true, DashDirection.Left)]
-    [TestCase(DashDirection.Up, true, DashDirection.Up)]
-    [TestCase(DashDirection.DownRight, true, DashDirection.DownLeft)]
-    [TestCase(DashDirection.Up, false, DashDirection.Down)]
-    [TestCase(DashDirection.Right, false, DashDirection.Right)]
-    [TestCase(DashDirection.UpLeft, false, DashDirection.DownLeft)]
-    public void FlippingADirectionMirrorsIt(DashDirection from, bool horizontal, DashDirection to)
-    {
-        Assert.That(SelectionRotation.FlippedDirection(from, horizontal), Is.EqualTo(to));
     }
 
     /// <summary>A 2x2 cluster of blocks, selected: one cell along, its copy overlaps the originals.</summary>
@@ -248,9 +219,7 @@ public sealed class EditorCommandSystemTests : EcsSystemTest
     {
         Entity block = EditorItems.Create(Store, new Block(
             new Godot.Vector2(100, 100),
-            new Godot.Vector2(100, 50),
-            shapeId: 3,
-            shapePiece: 2));
+            new Godot.Vector2(100, 50)));
         Entity spike = EditorItems.Create(Store, new Spike(
             new Godot.Vector2(300, 300),
             new Godot.Vector2(50, 50),
@@ -267,7 +236,6 @@ public sealed class EditorCommandSystemTests : EcsSystemTest
         Entity pastedBlock = selected.First(item => item.HasComponent<Block>());
         Entity pastedSpike = selected.First(item => item.HasComponent<Spike>());
         Assert.That(pastedBlock.GetComponent<Block>().Position, Is.EqualTo(new Godot.Vector2(150, 150)));
-        Assert.That(pastedBlock.GetComponent<Block>().ShapeId, Is.Zero, "a copy does not join the Form shape");
         Assert.That(pastedSpike.GetComponent<Spike>().Position, Is.EqualTo(new Godot.Vector2(350, 350)));
         Assert.That(pastedSpike.GetComponent<Spike>().RotationDegrees, Is.EqualTo(180f));
 
@@ -535,20 +503,20 @@ public sealed class EditorCommandSystemTests : EcsSystemTest
     [Test]
     public void SetTargetLeavesPlacedNotesAlone()
     {
-        _editor.AddComponent(new EditorPlacement { Note = KeybindAction.M });
+        _editor.AddComponent(new EditorPlacement { Note = KeybindAction.Action2 });
         Entity note = Store.CreateEntity(
-            new Note(500, new Vector2(10, 20), target: KeybindAction.M));
+            new Note(500, new Vector2(10, 20), target: KeybindAction.Action2));
         _editor.GetComponent<NoteSelection>().Note = note;
 
-        _commands.Enqueue(EditorCommand.SetTarget(KeybindAction.R3));
+        _commands.Enqueue(EditorCommand.SetTarget(KeybindAction.Action3));
         Frame();
 
         Assert.That(
             _editor.GetComponent<EditorPlacement>().Note,
-            Is.EqualTo(KeybindAction.R3));
+            Is.EqualTo(KeybindAction.Action3));
         Assert.That(
             Store.Query<Note>().ToEntityList()[0].GetComponent<Note>().Target,
-            Is.EqualTo(KeybindAction.M));
+            Is.EqualTo(KeybindAction.Action2));
     }
 
     [Test]

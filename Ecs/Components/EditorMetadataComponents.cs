@@ -43,14 +43,9 @@ public struct EditorHud(
 }
 
 /// <summary>Entities in the editor sidebar that flow around open dropdowns.</summary>
-public struct EditorSidebarLayout(
-    Entity panel,
-    Entity characterLabel,
-    Entity characterButton) : IComponent
+public struct EditorSidebarLayout(Entity panel) : IComponent
 {
     public Entity Panel = panel;
-    public Entity CharacterLabel = characterLabel;
-    public Entity CharacterButton = characterButton;
 }
 
 /// <summary>

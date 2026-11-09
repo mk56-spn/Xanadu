@@ -22,12 +22,12 @@ public sealed class KeybindUiSystemTests
 
         Entity button = store.CreateEntity(
             new Text(""),
-            new KeybindButton(KeybindAction.L1));
+            new KeybindButton(KeybindAction.Action1));
 
         root.Update(new UpdateTick(1f / 60f, 0));
         Assert.That(button.GetComponent<Text>().Value, Is.EqualTo("S"));
 
-        keybinds.BeginCapture(KeybindAction.L1);
+        keybinds.BeginCapture(KeybindAction.Action1);
         root.Update(new UpdateTick(1f / 60f, 0));
         Assert.That(
             button.GetComponent<Text>().Value,

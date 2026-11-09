@@ -215,10 +215,8 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
                 editor.HasComponent<EditorPlacement>())
             {
                 Note selected = hit.GetComponent<Note>();
-                editor.GetComponent<EditorPlacement>().Note =
-                    selected.Kind == NoteKind.Pair
-                        ? NoteRules.ActionFor(selected.PairIndex)
-                        : selected.Target;
+                if (selected.Kind == NoteKind.Hit)
+                    editor.GetComponent<EditorPlacement>().Note = selected.Target;
             }
 
             return;

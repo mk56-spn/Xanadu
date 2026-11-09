@@ -14,8 +14,6 @@ namespace Xanadu.Systems.Playfields;
 /// </summary>
 public enum PlayfieldDrawKind : byte
 {
-    /// <summary>Both Splitline rail lanes with their holds, at the back of the backmost rail note's layer.</summary>
-    RailLanes,
     Polygon,
     Block,
     Spike,
@@ -30,11 +28,9 @@ public enum PlayfieldDrawKind : byte
     /// <summary>The guide lines between notes in hit order, just under the backmost note.</summary>
     NoteGuides,
     Note,
-    RailNote,
     Mine,
     StartPoint,
     NotePop,
-    DashLinkFade,
     DashTrail,
     HitTrail,
 }
@@ -59,12 +55,10 @@ public readonly record struct PlayfieldDrawEntry(int Layer, int Z, PlayfieldDraw
 public static class PlayfieldDrawList
 {
     /// <param name="startPoints">Whether start points draw; only the editor shows them.</param>
-    /// <param name="railLanes">Whether the Splitline rail lanes draw at all this frame.</param>
     public static void Gather(
         EntityStore entities,
         List<PlayfieldDrawEntry> into,
-        bool startPoints,
-        bool railLanes)
+        bool startPoints)
     {
         into.Clear();
         foreach (ItemKind kind in ItemKinds.All)
@@ -75,30 +69,20 @@ public static class PlayfieldDrawList
 
         AddNotes(entities, into);
         AddEffects<NotePop>(entities, into, PlayfieldDrawKind.NotePop);
-        AddEffects<DashLinkFade>(entities, into, PlayfieldDrawKind.DashLinkFade);
         AddEffects<DashTrail>(entities, into, PlayfieldDrawKind.DashTrail);
         AddEffects<HitTrail>(entities, into, PlayfieldDrawKind.HitTrail);
         into.Sort();
 
-        // The two entries that stand for several things go under the backmost of them.
+        // The guides stand for every note, so they go under the backmost one.
         int firstNote = into.FindIndex(e => e.Kind == PlayfieldDrawKind.Note);
         if (firstNote >= 0)
         {
             PlayfieldDrawEntry note = into[firstNote];
             into.Insert(firstNote, note with { Kind = PlayfieldDrawKind.NoteGuides, Entity = default });
         }
-
-        if (railLanes)
-        {
-            int firstRail = into.FindIndex(e => e.Kind == PlayfieldDrawKind.RailNote);
-            int layer = firstRail >= 0 ? into[firstRail].Layer : ItemLayer.Gameplay;
-            var lanes = new PlayfieldDrawEntry(layer, int.MinValue, PlayfieldDrawKind.RailLanes, default);
-            int at = into.FindIndex(e => e.CompareTo(lanes) > 0);
-            into.Insert(at < 0 ? into.Count : at, lanes);
-        }
     }
 
-    /// <summary>Notes, and rail notes apart from them; channel ends are chart data and draw nothing.</summary>
+    /// <summary>Every note, on its own layer.</summary>
     private static void AddNotes(EntityStore entities, List<PlayfieldDrawEntry> into)
     {
         foreach (var (notes, chunk) in entities.Query<Note>().Chunks)
@@ -106,14 +90,9 @@ public static class PlayfieldDrawList
             Span<Note> span = notes.Span;
             for (int i = 0; i < span.Length; i++)
             {
-                NoteKind kind = span[i].Kind;
-                if (NoteRules.IsChannelEnd(kind))
-                    continue;
-
                 Entity entity = chunk.EntityAt(i);
                 ItemLayer layer = ItemLayer.Of(entity);
-                PlayfieldDrawKind drawKind = NoteRules.IsRail(kind) ? PlayfieldDrawKind.RailNote : PlayfieldDrawKind.Note;
-                into.Add(new PlayfieldDrawEntry(layer.Layer, layer.Z, drawKind, entity));
+                into.Add(new PlayfieldDrawEntry(layer.Layer, layer.Z, PlayfieldDrawKind.Note, entity));
             }
         }
     }

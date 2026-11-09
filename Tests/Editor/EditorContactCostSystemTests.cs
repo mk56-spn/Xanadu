@@ -11,48 +11,68 @@ namespace Xanadu.Tests.Editor;
 public sealed class EditorContactCostSystemTests : EcsSystemTest
 {
     [Test]
-    public void ButtonsChangeTheLeftAndRightCostAndTheReadout()
+    public void ButtonsStepABarsCostAndItsReadout()
     {
-        Entity readout = Store.CreateEntity(new Text("L1  R1"), new EditorReadout(EditorReadoutKind.ContactCost));
-        Entity editor = Store.CreateEntity(new EditorPlacement { ContactLeft = 1, ContactRight = 1 });
-        Entity leftPlus = Button(left: true, delta: 1);
-        Entity rightMinus = Button(left: false, delta: -1);
+        Entity readout = Store.CreateEntity(new Text(""), new EditorReadout(EditorReadoutKind.ContactSecond));
+        Entity editor = Store.CreateEntity(new EditorPlacement { Costs = new BarCosts(1, 0, 0) });
+        Entity secondPlus = Store.CreateEntity(EditorButton.ContactCost(1, 1));
+        Entity firstMinus = Store.CreateEntity(EditorButton.ContactCost(0, -1));
 
         Root.Add(new EditorContactCostSystem(Store));
         Frame();
 
-        Click(leftPlus);
-        Assert.That(editor.GetComponent<EditorPlacement>().ContactLeft, Is.EqualTo(2));
-        Assert.That(readout.GetComponent<Text>().Value, Is.EqualTo("L2  R1"));
+        Click(secondPlus);
+        Assert.That(editor.GetComponent<EditorPlacement>().Costs, Is.EqualTo(new BarCosts(1, 1, 0)));
+        Assert.That(readout.GetComponent<Text>().Value, Is.EqualTo("BAR 2: 1"));
 
-        Click(rightMinus);
-        Assert.That(editor.GetComponent<EditorPlacement>().ContactRight, Is.Zero);
-        Assert.That(readout.GetComponent<Text>().Value, Is.EqualTo("L2  R0"));
+        Click(firstMinus);
+        Assert.That(editor.GetComponent<EditorPlacement>().Costs, Is.EqualTo(new BarCosts(0, 1, 0)));
     }
 
     [Test]
-    public void CostsAreClampedToTheAuthoringRange()
+    public void ABarAsksAtMostFour()
     {
-        Entity readout = Store.CreateEntity(new Text("L1  R1"), new EditorReadout(EditorReadoutKind.ContactCost));
-        Entity editor = Store.CreateEntity(new EditorPlacement { ContactLeft = 1, ContactRight = 1 });
-        Entity leftMinus = Button(left: true, delta: -1);
-        Entity rightPlus = Button(left: false, delta: 1);
+        Entity editor = Store.CreateEntity(new EditorPlacement { Costs = new BarCosts(3, 0, 0) });
+        Entity firstPlus = Store.CreateEntity(EditorButton.ContactCost(0, 1));
 
         Root.Add(new EditorContactCostSystem(Store));
         Frame();
 
-        Click(leftMinus);
-        Assert.That(editor.GetComponent<EditorPlacement>().ContactLeft, Is.Zero);
-
-        Click(rightPlus);
-        Click(rightPlus);
-        Click(rightPlus);
-        Assert.That(editor.GetComponent<EditorPlacement>().ContactRight,
-            Is.EqualTo(3));
+        Click(firstPlus);
+        Click(firstPlus);
+        Assert.That(editor.GetComponent<EditorPlacement>().Costs.First, Is.EqualTo(BarCosts.MaxCost));
     }
 
-    private Entity Button(bool left, int delta) =>
-        Store.CreateEntity(new EditorButton(left ? EditorButtonKind.ContactLeft : EditorButtonKind.ContactRight, delta));
+    [Test]
+    public void ABarrierAsksOfAtMostTwoBars()
+    {
+        Entity editor = Store.CreateEntity(new EditorPlacement { Costs = new BarCosts(1, 1, 0) });
+        Entity thirdPlus = Store.CreateEntity(EditorButton.ContactCost(2, 1));
+
+        Root.Add(new EditorContactCostSystem(Store));
+        Frame();
+
+        Click(thirdPlus);
+        Assert.That(editor.GetComponent<EditorPlacement>().Costs, Is.EqualTo(new BarCosts(1, 1, 0)));
+    }
+
+    [Test]
+    public void TheRhombusButtonTurnsDiagonalOnAndOff()
+    {
+        Entity readout = Store.CreateEntity(new Text(""), new EditorReadout(EditorReadoutKind.Diagonal));
+        Entity editor = Store.CreateEntity(new EditorPlacement());
+        Entity toggle = Store.CreateEntity(new EditorButton(EditorButtonKind.Diagonal));
+
+        Root.Add(new EditorContactCostSystem(Store));
+        Frame();
+
+        Click(toggle);
+        Assert.That(editor.GetComponent<EditorPlacement>().Diagonal, Is.True);
+        Assert.That(readout.GetComponent<Text>().Value, Is.EqualTo("RHOMBUS: ON"));
+
+        Click(toggle);
+        Assert.That(editor.GetComponent<EditorPlacement>().Diagonal, Is.False);
+    }
 
     private void Click(Entity button)
     {

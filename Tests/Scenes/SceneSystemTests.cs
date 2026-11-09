@@ -1082,7 +1082,7 @@ public sealed partial class SceneSystemTests
         Assert.That(play.GetComponent<PlaySession>().SkipRequested, Is.True);
 
         play.GetComponent<PlaySession>().SkipRequested = false;
-        _scenes.Keybinds.BeginCapture(KeybindAction.M);
+        _scenes.Keybinds.BeginCapture(KeybindAction.Action2);
         _scenes.Keybinds.TryCapture(Godot.Key.Enter);
         _scenes.TryForward();
         Assert.That(play.GetComponent<PlaySession>().SkipRequested, Is.False);
@@ -1361,9 +1361,9 @@ public sealed partial class SceneSystemTests
         row.AddTag<Pressed>();
         Frame();
 
-        Assert.That(_keybinds.Capturing, Is.EqualTo(KeybindAction.L1));
+        Assert.That(_keybinds.Capturing, Is.EqualTo(KeybindAction.Left));
         Assert.That(_keybinds.TryCapture(Key.A), Is.True);
-        Assert.That(_keybinds.Get(KeybindAction.L1), Is.EqualTo(Key.A));
+        Assert.That(_keybinds.Get(KeybindAction.Left), Is.EqualTo(Key.A));
     }
 
     [Test]

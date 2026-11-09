@@ -29,27 +29,22 @@ public sealed class NoteDesignsSceneTest : SceneTest
                 view = entity.GetComponent<PlayfieldView>();
             Vector2 At(float x, float y) => view.ScreenToPlayfield(new Vector2(x, y));
 
-            Context.Entities.CreateEntity(new Note(0, At(500, 150), target: KeybindAction.M));
-            Context.Entities.CreateEntity(new Note(0, At(650, 150), target: KeybindAction.L1));
+            Context.Entities.CreateEntity(new Note(0, At(500, 150), target: KeybindAction.Action1));
+            Context.Entities.CreateEntity(new Note(0, At(650, 150), target: KeybindAction.Action2));
+            Context.Entities.CreateEntity(new Note(0, At(800, 150), target: KeybindAction.Action3));
+            Context.Entities.CreateEntity(new Note(0, At(950, 150), kind: NoteKind.Neutral));
 
-            Context.Entities.CreateEntity(new Note(
-                0, At(500, 370), kind: NoteKind.Momentum,
-                dashDirection: DashDirection.UpLeft, momentum: 1200f));
-            Context.Entities.CreateEntity(new Note(
-                0, At(700, 370), kind: NoteKind.Momentum,
-                dashDirection: DashDirection.Right, momentum: 900f));
-            Context.Entities.CreateEntity(new Note(
-                0, At(900, 370), kind: NoteKind.Momentum,
-                dashDirection: DashDirection.Down, momentum: 600f));
+            Context.Entities.CreateEntity(new Note(0, At(500, 370), kind: NoteKind.Momentum, momentum: 600f));
+            Context.Entities.CreateEntity(new Note(0, At(700, 370), kind: NoteKind.Momentum, momentum: 1200f));
+            Context.Entities.CreateEntity(new Note(0, At(900, 370), kind: NoteKind.Momentum, momentum: 900f, diagonal: true));
 
-            Context.Entities.CreateEntity(new Note(
-                0, At(500, 600), kind: NoteKind.Dash,
-                dashDirection: DashDirection.Right, dashStrength: DashStrength.Single));
-            Context.Entities.CreateEntity(new Note(
-                0, At(900, 750), kind: NoteKind.Dash,
-                dashDirection: DashDirection.UpRight, dashStrength: DashStrength.Triple));
+            Context.Entities.CreateEntity(new Note(0, At(500, 600), kind: NoteKind.Dash, dashStrength: DashStrength.Single));
+            Context.Entities.CreateEntity(new Note(0, At(700, 600), kind: NoteKind.Dash, dashStrength: DashStrength.Triple));
+            Context.Entities.CreateEntity(new Note(0, At(900, 600), kind: NoteKind.Dash, dashStrength: DashStrength.Double, diagonal: true));
+
+            Context.Entities.CreateEntity(new Note(0, At(700, 800), kind: NoteKind.Contact, costs: new BarCosts(2, 0, 4)));
         });
-        AddUntilStep("all seven notes exist", () => Context.Entities.Query<Note>().Count == 7);
+        AddUntilStep("all eleven notes exist", () => Context.Entities.Query<Note>().Count == 11);
         AddWaitStep("let the notes settle", 4);
     }
 }

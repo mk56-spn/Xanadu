@@ -340,7 +340,7 @@ public static class EditorLayerEdits
     public static List<Entity> FrontFirst(EntityStore store)
     {
         var entries = new List<PlayfieldDrawEntry>();
-        PlayfieldDrawList.Gather(store, entries, startPoints: true, railLanes: false);
+        PlayfieldDrawList.Gather(store, entries, startPoints: true);
         var items = new List<Entity>(entries.Count);
         for (int i = entries.Count - 1; i >= 0; i--)
         {

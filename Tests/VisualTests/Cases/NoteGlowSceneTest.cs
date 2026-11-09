@@ -22,9 +22,9 @@ public sealed class NoteGlowSceneTest : SceneTest
         {
             var song = TestContent.Song("visual-note-glow", "Note Glow");
             LevelDocument document = TestContent.Level("Note Glow Test", song);
-            document.Notes.Add(new NoteDocument { TimeMs = 2_100, X = 250, Y = 350, Target = KeybindAction.L3 });
-            document.Notes.Add(new NoteDocument { TimeMs = 2_400, X = 520, Y = 300, Target = KeybindAction.M });
-            document.Notes.Add(new NoteDocument { TimeMs = 2_700, X = 760, Y = 420, Target = KeybindAction.R2 });
+            document.Notes.Add(new NoteDocument { TimeMs = 2_100, X = 250, Y = 350, Target = KeybindAction.Action3 });
+            document.Notes.Add(new NoteDocument { TimeMs = 2_400, X = 520, Y = 300, Target = KeybindAction.Action2 });
+            document.Notes.Add(new NoteDocument { TimeMs = 2_700, X = 760, Y = 420, Target = KeybindAction.Action2 });
             Context.Scenes.StartPlay(new LevelEntry("memory://note-glow", document, song));
         });
         AddUntilStep(

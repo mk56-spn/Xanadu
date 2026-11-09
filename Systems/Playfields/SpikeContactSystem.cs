@@ -26,8 +26,7 @@ public sealed class SpikeContactSystem : QuerySystem<Player, Position, Playfield
     {
         foreach (Entity playfield in Query.ToEntityList())
         {
-            if (playfield.Tags.Has<PlayPaused>() ||
-                playfield.Tags.Has<SplitlineAbsent>())
+            if (playfield.Tags.Has<PlayPaused>())
             {
                 return;
             }

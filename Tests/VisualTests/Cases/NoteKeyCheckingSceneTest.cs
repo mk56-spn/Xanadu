@@ -30,7 +30,7 @@ public sealed class NoteKeyCheckingSceneTest : SceneTest
                 TimeMs = 1_000,
                 X = 500,
                 Y = 500,
-                Target = KeybindAction.L1,
+                Target = KeybindAction.Action1,
                 Kind = NoteKind.Hit,
             });
             document.Notes.Add(new NoteDocument
@@ -38,7 +38,7 @@ public sealed class NoteKeyCheckingSceneTest : SceneTest
                 TimeMs = 1_000,
                 X = 500,
                 Y = 500,
-                Target = KeybindAction.R1,
+                Target = KeybindAction.Action1,
                 Kind = NoteKind.Hit,
             });
             Context.Scenes.StartPlay(
@@ -66,7 +66,7 @@ public sealed class NoteKeyCheckingSceneTest : SceneTest
             "left key hit only the left note",
             () => NoteCount() == 1 &&
                   NotesHit() == 1 &&
-                  RemainingTarget() == KeybindAction.R1);
+                  RemainingTarget() == KeybindAction.Action1);
         AddStep("press the right key", () => Press(Key.J));
         AddWaitStep("right key settles", 2);
         AddAssert(

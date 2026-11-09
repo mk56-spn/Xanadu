@@ -146,15 +146,6 @@ public static class EditorSceneSidebar
             .Anchor(new Vector2(1, 0));
 
         // Each part folds away under its header, so a long column stays short.
-        UiNode characterSection = panel.Collapsible("CHARACTER", inner, out UiNode characterBody);
-        Entity characterLabel = UiCollapsibleControl.HeaderOf(characterSection.Entity);
-        Entity character = EditorSceneUi.BuildDropdown(
-            characterBody,
-            inner,
-            EditorDropdownKind.Character,
-            new[] { "CONTACT", "ARMED", "SPLITLINE", "FORM" },
-            selected: 0);
-
         panel.Collapsible("SELECTION", inner, out UiNode selection);
         UiNode modulate = selection.ColorField(
             "COLOUR",
@@ -170,10 +161,7 @@ public static class EditorSceneSidebar
         EditorSceneGroups.BuildGroupGrid(groupBody, editor, inner, UiCollapsibleControl.HeaderOf(groups.Entity));
 
         editor.AddComponent(new EditorSidebar(shell.RightPanel));
-        editor.AddComponent(new EditorSidebarLayout(
-            panel.Entity,
-            characterLabel,
-            character));
+        editor.AddComponent(new EditorSidebarLayout(panel.Entity));
     }
 
     /// <summary>The selected blocks' outline: its width, where 0 is none, and its own colour.</summary>
@@ -383,55 +371,41 @@ public static class EditorSceneSidebar
                 });
         }
 
-        EditorSceneDashExitPanel.Build(panel, editor, inner);
+        UiNode diagonalSection = EditorSceneUi.ToolSection(panel, inner, EditorToolSections.Diagonal);
+        EditorSceneUi.SidebarLabel(diagonalSection, "DIAGONAL", inner, 12);
+        UiNode diagonalRow = diagonalSection.Row().Size(inner, 28).Gap(6);
+        diagonalRow.Text("RHOMBUS: OFF", 12, SceneUi.DimTextColor, TextAlign.Left)
+            .Size(inner - 86, 28)
+            .With(new EditorReadout(EditorReadoutKind.Diagonal));
+        diagonalRow.Button("TOGGLE", 12, SceneUi.MutedButtonColor)
+            .Size(80, 28)
+            .With(new EditorButton(EditorButtonKind.Diagonal))
+            .Tooltip("A rhombus note turns the pressed way 45° clockwise: up becomes up-right");
+
         BuildGrassPanel(panel, editor, inner);
         EditorSceneFlarePanel.Build(panel, editor, inner);
 
+        // One stepper row per bar, in its action key's colour: at most 4 a bar,
+        // and at most two bars a barrier.
         UiNode costSection = EditorSceneUi.ToolSection(panel, inner, EditorToolSections.ContactCost);
         EditorSceneUi.SidebarLabel(costSection, "CONTACT COST", inner, 12);
-        const float costGap = 6;
-        float costWidth = (inner - costGap * 3) / 4;
-        UiNode costs = costSection.Row().Size(inner, 28).Gap(costGap);
-        costs.Button("L−", 12, SceneUi.MutedButtonColor)
-            .Size(costWidth, 28)
-            .With(new EditorButton(EditorButtonKind.ContactLeft, -1))
-            .Tooltip("Remove one left-side charge from new barriers");
-        costs.Button("L+", 12, SceneUi.MutedButtonColor)
-            .Size(costWidth, 28)
-            .With(new EditorButton(EditorButtonKind.ContactLeft, 1))
-            .Tooltip("Add one left-side charge to new barriers");
-        costs.Button("R−", 12, SceneUi.MutedButtonColor)
-            .Size(costWidth, 28)
-            .With(new EditorButton(EditorButtonKind.ContactRight, -1))
-            .Tooltip("Remove one right-side charge from new barriers");
-        costs.Button("R+", 12, SceneUi.MutedButtonColor)
-            .Size(costWidth, 28)
-            .With(new EditorButton(EditorButtonKind.ContactRight, 1))
-            .Tooltip("Add one right-side charge to new barriers");
-        costSection.Text(
-                "L1  R1",
-                12,
-                SceneUi.DimTextColor,
-                TextAlign.Center)
-            .Size(inner, 18)
-            .With(new EditorReadout(EditorReadoutKind.ContactCost));
-
-        UiNode shapeSection = EditorSceneUi.ToolSection(panel, inner, EditorToolSections.FormShape);
-        EditorSceneUi.SidebarLabel(shapeSection, "FORM SHAPE", inner, 12);
-        shapeSection.Button(
-                "ATTACH SELECTED BLOCKS",
-                10,
-                SceneUi.MutedButtonColor)
-            .Size(inner, 26)
-            .With(new EditorButton(EditorButtonKind.ShapeAttach))
-            .Tooltip("Attach the selected blocks to a new construction shape");
-        shapeSection.Text(
-                "NO SHAPE",
-                12,
-                SceneUi.DimTextColor,
-                TextAlign.Center)
-            .Size(inner, 18)
-            .With(new EditorReadout(EditorReadoutKind.Shape));
+        EditorReadoutKind[] readouts = { EditorReadoutKind.ContactFirst, EditorReadoutKind.ContactSecond, EditorReadoutKind.ContactThird };
+        const float stepWidth = 36;
+        for (int bar = 0; bar < ContactCounters.Bars; bar++)
+        {
+            UiNode row = costSection.Row().Size(inner, 28).Gap(6);
+            row.Text($"BAR {bar + 1}: 0", 12, PlayfieldRenderer.BarColor(bar), TextAlign.Left)
+                .Size(inner - stepWidth * 2 - 12, 28)
+                .With(new EditorReadout(readouts[bar]));
+            row.Button("−", 12, SceneUi.MutedButtonColor)
+                .Size(stepWidth, 28)
+                .With(EditorButton.ContactCost(bar, -1))
+                .Tooltip("Ask one less of this bar");
+            row.Button("+", 12, SceneUi.MutedButtonColor)
+                .Size(stepWidth, 28)
+                .With(EditorButton.ContactCost(bar, 1))
+                .Tooltip("Ask one more of this bar (at most 4, and two bars a barrier)");
+        }
 
         editor.AddComponent(new EditorLeftMenu(panel.Entity));
     }
@@ -443,10 +417,9 @@ public static class EditorSceneSidebar
 
     internal static void BuildNoteElements(UiNode ui, Entity editor)
     {
-        const float swatchSize = 24;
-        const float swatchGap = 5;
-        const float wheelRadius = 92;
-        float inner = KeybindSettings.Actions.Length * (swatchSize + swatchGap) - swatchGap;
+        const float swatchSize = 36;
+        const float swatchGap = 8;
+        float inner = KeybindSettings.ActionKeys.Length * (swatchSize + swatchGap) - swatchGap;
 
         UiNode box = ui.Column()
             .Width(inner + PanelPadding * 2)
@@ -458,12 +431,12 @@ public static class EditorSceneSidebar
             .Main(StackMainAlignment.Start)
             // Held off the viewport's corner, outlined in the picked key's colour.
             .Anchor(new Vector2(1, 0), margin: NoteElementsMargin)
-            .Border(PlayfieldRenderer.ColorFor(KeybindSettings.Actions[0]), NoteElementsBorder)
+            .Border(PlayfieldRenderer.ColorFor(KeybindSettings.ActionKeys[0]), NoteElementsBorder)
             .With(new EditorNoteBarPanel());
 
-        EditorSceneUi.SidebarLabel(box, "NOTE ELEMENTS", inner, 12);
+        EditorSceneUi.SidebarLabel(box, "ACTION KEY", inner, 12);
         UiNode swatches = box.Row().Size(inner, swatchSize).Gap(swatchGap);
-        foreach (KeybindAction action in KeybindSettings.Actions)
+        foreach (KeybindAction action in KeybindSettings.ActionKeys)
         {
             Color color = PlayfieldRenderer.ColorFor(action);
             swatches.Rect(color, size: new Vector2(swatchSize, swatchSize))
@@ -471,18 +444,5 @@ public static class EditorSceneSidebar
                 .With(ButtonVisual.Create(color))
                 .With(EditorButton.NoteType(action));
         }
-
-        Entity label = EditorSceneUi.SidebarLabel(box, "MOVE DIRECTION", inner, 12);
-        UiWheelControl wheel = box.Wheel(
-            Vector2.Zero,
-            wheelRadius,
-            DashDirectionWheel.Labels,
-            selected: DashDirectionWheel.IndexOf(DashDirection.Up),
-            hubRadius: 0.30f,
-            gap: 0.045f);
-
-        // A wheel opts out of its container by default; this one flows, so the box fits it.
-        UiLayout.SetIgnored(wheel.Wheel, false);
-        editor.AddComponent(new EditorDirectionWheel(wheel.Wheel, label));
     }
 }

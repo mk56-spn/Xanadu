@@ -33,9 +33,8 @@ public sealed class MovementJudgementSceneTest : SceneTest
                 TimeMs = 1_000,
                 X = 500,
                 Y = 1000,
-                Target = KeybindAction.L3,
+                Target = KeybindAction.Action3,
                 Kind = NoteKind.Dash,
-                DashDirection = DashDirection.Right,
             });
             Context.Scenes.StartPlay(
                 new LevelEntry("memory://movement-judgement", document, song));
@@ -67,14 +66,14 @@ public sealed class MovementJudgementSceneTest : SceneTest
         AddStep("hit movement note", () =>
         {
             Context.Keyboard.Press(
-                Context.Systems.Keybinds.Get(KeybindAction.L3));
+                Context.Systems.Keybinds.Get(KeybindAction.Right));
         });
         AddUntilStep(
             "movement note consumed",
             () => Context.Entities.Query<Note>().Count == 0);
         AddUntilStep(
-            "dash connector is fading",
-            () => Context.Entities.Query<DashLinkFade>().Count > 0);
+            "dash note pops",
+            () => Context.Entities.Query<NotePop>().Count > 0);
         AddUntilStep(
             "movement judgement shown",
             () => Context.Entities.Query<ScoreState>().Count > 0 &&

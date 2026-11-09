@@ -6,16 +6,19 @@ using Xanadu.Systems.Input;
 
 namespace Xanadu.Settings;
 
-/// <summary>The seven playfield key bindings.</summary>
+/// <summary>
+/// The seven playfield keys: four directions that steer directional notes and
+/// three action keys that hit action notes.
+/// </summary>
 public enum KeybindAction
 {
-    L1,
-    L2,
-    L3,
-    M,
-    R1,
-    R2,
-    R3,
+    Left,
+    Right,
+    Up,
+    Down,
+    Action1,
+    Action2,
+    Action3,
 }
 
 /// <summary>Persisted key bindings with capture, conflict swapping, and defaults.</summary>
@@ -23,14 +26,26 @@ public sealed class KeybindSettings
 {
     public static readonly KeybindAction[] Actions =
     {
-        KeybindAction.L1,
-        KeybindAction.L2,
-        KeybindAction.L3,
-        KeybindAction.M,
-        KeybindAction.R1,
-        KeybindAction.R2,
-        KeybindAction.R3,
+        KeybindAction.Left,
+        KeybindAction.Right,
+        KeybindAction.Up,
+        KeybindAction.Down,
+        KeybindAction.Action1,
+        KeybindAction.Action2,
+        KeybindAction.Action3,
     };
+
+    /// <summary>The three action keys, in bar order.</summary>
+    public static readonly KeybindAction[] ActionKeys =
+    {
+        KeybindAction.Action1,
+        KeybindAction.Action2,
+        KeybindAction.Action3,
+    };
+
+    /// <summary>Whether the key steers rather than hits.</summary>
+    public static bool IsDirection(KeybindAction action) => action is
+        KeybindAction.Left or KeybindAction.Right or KeybindAction.Up or KeybindAction.Down;
 
     private const string DefaultPath = "user://keybinds.json";
 
@@ -98,25 +113,25 @@ public sealed class KeybindSettings
 
     public static Key DefaultFor(KeybindAction action) => action switch
     {
-        KeybindAction.L1 => Key.S,
-        KeybindAction.L2 => Key.D,
-        KeybindAction.L3 => Key.F,
-        KeybindAction.M => Key.Space,
-        KeybindAction.R1 => Key.J,
-        KeybindAction.R2 => Key.K,
-        KeybindAction.R3 => Key.L,
+        KeybindAction.Left => Key.S,
+        KeybindAction.Right => Key.D,
+        KeybindAction.Up => Key.K,
+        KeybindAction.Down => Key.L,
+        KeybindAction.Action1 => Key.F,
+        KeybindAction.Action2 => Key.Space,
+        KeybindAction.Action3 => Key.J,
         _ => Key.None,
     };
 
     public static string LabelFor(KeybindAction action) => action switch
     {
-        KeybindAction.L1 => "L1",
-        KeybindAction.L2 => "L2",
-        KeybindAction.L3 => "L3",
-        KeybindAction.M => "M",
-        KeybindAction.R1 => "R1",
-        KeybindAction.R2 => "R2",
-        KeybindAction.R3 => "R3",
+        KeybindAction.Left => "LEFT",
+        KeybindAction.Right => "RIGHT",
+        KeybindAction.Up => "UP",
+        KeybindAction.Down => "DOWN",
+        KeybindAction.Action1 => "ACTION 1",
+        KeybindAction.Action2 => "ACTION 2",
+        KeybindAction.Action3 => "ACTION 3",
         _ => "",
     };
 

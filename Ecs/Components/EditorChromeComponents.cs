@@ -23,8 +23,6 @@ public struct EditorSidebar(Rect2 bounds) : IComponent
 
 public enum EditorDropdownKind
 {
-    Character,
-
     /// <summary>The selected items' blend mode, as a list of modes rather than a stepper.</summary>
     Blend,
 }

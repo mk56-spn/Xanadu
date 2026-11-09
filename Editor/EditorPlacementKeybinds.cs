@@ -4,82 +4,34 @@ using Xanadu.Ecs;
 namespace Xanadu.Editor;
 
 /// <summary>
-/// Keyboard shortcuts that choose the editor placement mode. Number keys keep
-/// the mapping extensible as more note kinds get shortcuts.
+/// Keyboard shortcuts that choose the editor placement mode: the number keys,
+/// on the main row or the keypad, in tool order.
 /// </summary>
 public static class EditorPlacementKeybinds
 {
-    public static readonly Key Normal = Key.Key1;
-    public static readonly Key Pair = Key.Key2;
-    public static readonly Key Dash = Key.Key3;
-    public static readonly Key Momentum = Key.Key4;
-    public static readonly Key Block = Key.Key5;
-    public static readonly Key Spike = Key.Key6;
-    public static readonly Key WeaponSwitch = Key.Key7;
-    public static readonly Key Channel = Key.Key8;
-    public static readonly Key FormStep = Key.Key9;
-    public static readonly Key Text = Key.Key0;
+    private static readonly (Key Main, Key Pad, EditorPlacementMode Mode)[] Bindings =
+    {
+        (Key.Key1, Key.Kp1, EditorPlacementMode.Notes),
+        (Key.Key2, Key.Kp2, EditorPlacementMode.Neutral),
+        (Key.Key3, Key.Kp3, EditorPlacementMode.Dash),
+        (Key.Key4, Key.Kp4, EditorPlacementMode.Momentum),
+        (Key.Key5, Key.Kp5, EditorPlacementMode.Blocks),
+        (Key.Key6, Key.Kp6, EditorPlacementMode.Spikes),
+        (Key.Key7, Key.Kp7, EditorPlacementMode.Contact),
+        (Key.Key8, Key.Kp8, EditorPlacementMode.Mines),
+        (Key.Key9, Key.Kp9, EditorPlacementMode.FrictionBar),
+        (Key.Key0, Key.Kp0, EditorPlacementMode.Text),
+    };
 
     public static bool TryGet(Key key, out EditorPlacementMode mode)
     {
-        if (key == Normal || key == Key.Kp1)
+        foreach ((Key main, Key pad, EditorPlacementMode bound) in Bindings)
         {
-            mode = EditorPlacementMode.Notes;
-            return true;
-        }
-
-        if (key == Pair || key == Key.Kp2)
-        {
-            mode = EditorPlacementMode.Pair;
-            return true;
-        }
-
-        if (key == Dash || key == Key.Kp3)
-        {
-            mode = EditorPlacementMode.Dash;
-            return true;
-        }
-
-        if (key == Momentum || key == Key.Kp4)
-        {
-            mode = EditorPlacementMode.Momentum;
-            return true;
-        }
-
-        if (key == Block || key == Key.Kp5)
-        {
-            mode = EditorPlacementMode.Blocks;
-            return true;
-        }
-
-        if (key == Spike || key == Key.Kp6)
-        {
-            mode = EditorPlacementMode.Spikes;
-            return true;
-        }
-
-        if (key == WeaponSwitch || key == Key.Kp7)
-        {
-            mode = EditorPlacementMode.WeaponSwitch;
-            return true;
-        }
-
-        if (key == Channel || key == Key.Kp8)
-        {
-            mode = EditorPlacementMode.Channel;
-            return true;
-        }
-
-        if (key == FormStep || key == Key.Kp9)
-        {
-            mode = EditorPlacementMode.FormStep;
-            return true;
-        }
-
-        if (key == Text || key == Key.Kp0)
-        {
-            mode = EditorPlacementMode.Text;
-            return true;
+            if (key == main || key == pad)
+            {
+                mode = bound;
+                return true;
+            }
         }
 
         mode = EditorPlacementMode.Notes;
@@ -87,18 +39,14 @@ public static class EditorPlacementKeybinds
     }
 
     /// <summary>Label shown in the F9 editor-binding list.</summary>
-    public static string LabelFor(EditorPlacementMode mode) => mode switch
+    public static string LabelFor(EditorPlacementMode mode)
     {
-        EditorPlacementMode.Notes => "1",
-        EditorPlacementMode.Pair => "2",
-        EditorPlacementMode.Dash => "3",
-        EditorPlacementMode.Momentum => "4",
-        EditorPlacementMode.Blocks => "5",
-        EditorPlacementMode.Spikes => "6",
-        EditorPlacementMode.WeaponSwitch => "7",
-        EditorPlacementMode.Channel => "8",
-        EditorPlacementMode.FormStep => "9",
-        EditorPlacementMode.Text => "0",
-        _ => "",
-    };
+        foreach ((Key main, _, EditorPlacementMode bound) in Bindings)
+        {
+            if (bound == mode)
+                return main == Key.Key0 ? "0" : ((int)main - (int)Key.Key0).ToString();
+        }
+
+        return "";
+    }
 }

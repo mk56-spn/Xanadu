@@ -100,22 +100,13 @@ public sealed class XmfBinaryTests
             TimeMs = 1_234,
             X = 10,
             Y = 20,
-            Target = KeybindAction.R3,
+            Target = KeybindAction.Action3,
             Kind = NoteKind.Contact,
-            DashDirection = DashDirection.DownLeft,
-            ContactRequired = 4,
-            Character = CharacterKind.Form,
             DashStrength = DashStrength.Triple,
-            PairIndex = PairIndex.Two,
             Momentum = 900f,
-            ContactLeft = 2,
-            ContactRight = 1,
-            ChannelSide = ChannelSide.Right,
-            HoldMs = 500,
-            ShapeId = 8,
-            ShapePiece = 2,
-            ExitDirection = DashDirection.UpLeft,
-            ExitMomentum = 700f,
+            Diagonal = true,
+            CostFirst = 2,
+            CostThird = 4,
         });
         source.Mines.Add(new MineDocument
         {
@@ -135,8 +126,6 @@ public sealed class XmfBinaryTests
             Y = 6,
             Width = 700,
             Height = 80,
-            ShapeId = 8,
-            ShapePiece = 1,
             OneWay = (int)Xanadu.Ecs.BlockOneWay.Left,
         });
         source.StartPoints.Add(new StartPointDocument
@@ -210,22 +199,12 @@ public sealed class XmfBinaryTests
         Assert.That(commonShader.Path, Is.EqualTo("res://Assets/Shaders/Items/rainbow.gdshader"));
         Assert.That(note.Item.Params["glow"], Is.EqualTo(new[] { 0.5f }));
         Assert.That(note.TimeMs, Is.EqualTo(1_234));
-        Assert.That(note.Target, Is.EqualTo(KeybindAction.R3));
+        Assert.That(note.Target, Is.EqualTo(KeybindAction.Action3));
         Assert.That(note.Kind, Is.EqualTo(NoteKind.Contact));
-        Assert.That(note.DashDirection, Is.EqualTo(DashDirection.DownLeft));
-        Assert.That(note.ContactRequired, Is.EqualTo(4));
-        Assert.That(note.Character, Is.EqualTo(CharacterKind.Form));
         Assert.That(note.DashStrength, Is.EqualTo(DashStrength.Triple));
-        Assert.That(note.PairIndex, Is.EqualTo(PairIndex.Two));
         Assert.That(note.Momentum, Is.EqualTo(900f));
-        Assert.That(note.ContactLeft, Is.EqualTo(2));
-        Assert.That(note.ContactRight, Is.EqualTo(1));
-        Assert.That(note.ChannelSide, Is.EqualTo(ChannelSide.Right));
-        Assert.That(note.HoldMs, Is.EqualTo(500));
-        Assert.That(note.ShapeId, Is.EqualTo(8));
-        Assert.That(note.ShapePiece, Is.EqualTo(2));
-        Assert.That(note.ExitDirection, Is.EqualTo(DashDirection.UpLeft));
-        Assert.That(note.ExitMomentum, Is.EqualTo(700f));
+        Assert.That(note.Diagonal, Is.True);
+        Assert.That((note.CostFirst, note.CostSecond, note.CostThird), Is.EqualTo((2, 0, 4)));
 
         MineDocument mine = map.Mines[0];
         Assert.That(mine.Groups, Is.EqualTo(new[] { 2 }));
@@ -238,8 +217,6 @@ public sealed class XmfBinaryTests
         Assert.That(block.Groups, Is.EqualTo(new[] { 4 }));
         Assert.That(block.Width, Is.EqualTo(700));
         Assert.That(block.Height, Is.EqualTo(80));
-        Assert.That(block.ShapeId, Is.EqualTo(8));
-        Assert.That(block.ShapePiece, Is.EqualTo(1));
         Assert.That(block.OneWay, Is.EqualTo((int)Xanadu.Ecs.BlockOneWay.Left));
 
         StartPointDocument start = map.StartPoints[0];

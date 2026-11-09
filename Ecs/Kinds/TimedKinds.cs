@@ -40,9 +40,7 @@ public sealed class NoteItemKind : ItemKind<Note, NoteDocument>
     public override bool InMarquee(Entity entity, Rect2 screen, PlayfieldView view, Playfield playfield, long playheadMs)
     {
         Note note = Get(entity);
-        if (NoteRules.IsRail(note.Kind) ||
-            NoteRules.IsChannelEnd(note.Kind) ||
-            NoteFade.Alpha(note, playheadMs) <= 0.05f ||
+        if (NoteFade.Alpha(note, playheadMs) <= 0.05f ||
             !EditorItemPicker.IsInside(note.Position, playfield))
         {
             return false;
@@ -56,25 +54,22 @@ public sealed class NoteItemKind : ItemKind<Note, NoteDocument>
         int order = ByTimeThenPosition(a.TimeMs, a.Position, b.TimeMs, b.Position);
         if (order != 0)
             return order;
-        if ((order = a.DashStrength.CompareTo(b.DashStrength)) != 0)
+        if ((order = a.Kind.CompareTo(b.Kind)) != 0)
             return order;
-        if ((order = a.PairIndex.CompareTo(b.PairIndex)) != 0)
+        if ((order = a.Target.CompareTo(b.Target)) != 0)
+            return order;
+        if ((order = a.DashStrength.CompareTo(b.DashStrength)) != 0)
             return order;
         if ((order = a.Momentum.CompareTo(b.Momentum)) != 0)
             return order;
-        if ((order = a.ContactLeft.CompareTo(b.ContactLeft)) != 0)
+        if ((order = a.Diagonal.CompareTo(b.Diagonal)) != 0)
             return order;
-        if ((order = a.ContactRight.CompareTo(b.ContactRight)) != 0)
-            return order;
-        if ((order = a.ChannelSide.CompareTo(b.ChannelSide)) != 0)
-            return order;
-        if ((order = a.Kind.CompareTo(b.Kind)) != 0)
-            return order;
-        if ((order = a.ExitMomentum.CompareTo(b.ExitMomentum)) != 0)
-            return order;
-        if ((order = a.ExitDirection.CompareTo(b.ExitDirection)) != 0)
-            return order;
-        return a.HoldMs.CompareTo(b.HoldMs);
+        for (int bar = 0; bar < ContactCounters.Bars; bar++)
+        {
+            if ((order = a.Costs[bar].CompareTo(b.Costs[bar])) != 0)
+                return order;
+        }
+        return 0;
     }
 
     protected override Note? Pasted(Note value, Vector2 offset, long timeMs, Playfield playfield, EntityStore entities) =>
@@ -91,20 +86,12 @@ public sealed class NoteItemKind : ItemKind<Note, NoteDocument>
         Y = note.Position.Y,
         Target = note.Target,
         Kind = note.Kind,
-        DashDirection = note.DashDirection,
-        ContactRequired = note.ContactRequired,
-        Character = note.Character,
         DashStrength = note.DashStrength,
-        PairIndex = note.PairIndex,
         Momentum = note.Momentum,
-        ContactLeft = note.ContactLeft,
-        ContactRight = note.ContactRight,
-        ChannelSide = note.ChannelSide,
-        HoldMs = note.HoldMs,
-        ShapeId = note.ShapeId,
-        ShapePiece = note.ShapePiece,
-        ExitDirection = note.ExitDirection,
-        ExitMomentum = note.ExitMomentum,
+        Diagonal = note.Diagonal,
+        CostFirst = note.Costs.First,
+        CostSecond = note.Costs.Second,
+        CostThird = note.Costs.Third,
         Item = Xif.FromEcs(ItemShader.Of(entity), ItemCommonShader.Of(entity)),
     };
 
@@ -113,20 +100,10 @@ public sealed class NoteItemKind : ItemKind<Note, NoteDocument>
         new Vector2(note.X, note.Y),
         note.Target,
         note.Kind,
-        note.DashDirection,
-        note.ContactRequired,
-        note.Character,
         note.DashStrength,
-        note.PairIndex,
         note.Momentum,
-        note.ContactLeft,
-        note.ContactRight,
-        note.ChannelSide,
-        note.HoldMs,
-        note.ShapeId,
-        note.ShapePiece,
-        note.ExitDirection,
-        note.ExitMomentum);
+        note.Diagonal,
+        new BarCosts(note.CostFirst, note.CostSecond, note.CostThird));
 
     /// <summary>A note's shaders live in its Xif: a map slot, a common shader, or both.</summary>
     protected override Entity CreateFromDocument(EntityStore entities, NoteDocument note) =>

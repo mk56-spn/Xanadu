@@ -10,8 +10,9 @@ using Position = Xanadu.Ecs.Position;
 namespace Xanadu.Systems.Playfields;
 
 /// <summary>
-/// Routes a key press to the note it should judge: a rail tap while a side is
-/// absorbed, a mine the player touched, or a note in reach and in the window.
+/// Routes a key press to what it should judge: a mine the player touched, or,
+/// for an action key, an action note in reach and in the window. Direction keys
+/// are left to <see cref="PlayerMovementSystem"/>.
 /// The judging itself lives in <see cref="PlayNoteJudge"/>, with the hit
 /// effects in <see cref="PlayNoteHits"/> and the run changes in
 /// <see cref="PlayNoteActions"/>; missed notes are left to
@@ -40,7 +41,7 @@ public sealed class PlayNoteInputSystem : QuerySystem<Note>
             entities,
             keybinds,
             offsets ?? new OffsetSettings(persist: false));
-        _judge = new PlayNoteJudge(context, new PlayNoteHits(context, new PlayNoteActions(context)));
+        _judge = new PlayNoteJudge(context, new PlayNoteHits(context, new PlayNoteActions()));
         _misses = new PlayNoteMisses(context);
     }
 
@@ -57,26 +58,17 @@ public sealed class PlayNoteInputSystem : QuerySystem<Note>
                 return;
         }
 
-        SplitlineState splitline = playfield.TryGetComponent(out SplitlineState state)
-            ? state
-            : default;
-
         foreach (KeybindAction action in KeybindSettings.Actions)
         {
             Key key = _keybinds.Get(action);
             if (!_presses.Started(key, _keyboard.IsPressed(key)))
                 continue;
 
-            bool absorbed = splitline.LeftActive && NoteRules.IsLeft(action) ||
-                            splitline.RightActive && NoteRules.IsRight(action);
-            if (absorbed)
-            {
-                _judge.RailHit(action, playfield);
+            // Direction keys steer: their notes are resolved by the movement system.
+            if (_judge.Mine(action, playfield) || KeybindSettings.IsDirection(action))
                 continue;
-            }
 
-            if (!_judge.Mine(action, playfield))
-                _judge.Note(action, playfield);
+            _judge.Note(action, playfield);
         }
 
         _misses.Mark(playfield);

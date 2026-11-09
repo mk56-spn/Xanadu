@@ -23,20 +23,12 @@ internal static class XmfItems
         writer.Write(note.Y);
         writer.Write((byte)note.Target);
         writer.Write((byte)note.Kind);
-        writer.Write((byte)note.DashDirection);
-        writer.Write(note.ContactRequired);
-        writer.Write((byte)note.Character);
         writer.Write((byte)note.DashStrength);
-        writer.Write((byte)note.PairIndex);
         writer.Write(note.Momentum);
-        writer.Write(note.ContactLeft);
-        writer.Write(note.ContactRight);
-        writer.Write((byte)note.ChannelSide);
-        writer.Write(note.HoldMs);
-        writer.Write(note.ShapeId);
-        writer.Write(note.ShapePiece);
-        writer.Write((byte)note.ExitDirection);
-        writer.Write(note.ExitMomentum);
+        writer.Write(note.Diagonal);
+        writer.Write((byte)note.CostFirst);
+        writer.Write((byte)note.CostSecond);
+        writer.Write((byte)note.CostThird);
     }
 
     internal static void ReadNote(BinaryReader reader, NoteDocument note, StringTable strings)
@@ -48,34 +40,17 @@ internal static class XmfItems
         note.Y = reader.ReadSingle();
         note.Target = XmfBinary.ReadEnum<KeybindAction>(reader);
         note.Kind = XmfBinary.ReadEnum<NoteKind>(reader);
-        note.DashDirection = XmfBinary.ReadEnum<DashDirection>(reader);
-        note.ContactRequired = reader.ReadInt32();
-        note.Character = XmfBinary.ReadEnum<CharacterKind>(reader);
         note.DashStrength = XmfBinary.ReadEnum<DashStrength>(reader);
-        note.PairIndex = XmfBinary.ReadEnum<PairIndex>(reader);
         note.Momentum = reader.ReadSingle();
-        note.ContactLeft = reader.ReadInt32();
-        note.ContactRight = reader.ReadInt32();
-        note.ChannelSide = XmfBinary.ReadEnum<ChannelSide>(reader);
-        note.HoldMs = reader.ReadInt64();
-        note.ShapeId = reader.ReadInt32();
-        note.ShapePiece = reader.ReadInt32();
-        if (XmfRecords.More(reader))
-        {
-            note.ExitDirection = XmfBinary.ReadEnum<DashDirection>(reader);
-            note.ExitMomentum = reader.ReadSingle();
-        }
+        note.Diagonal = reader.ReadBoolean();
+        note.CostFirst = reader.ReadByte();
+        note.CostSecond = reader.ReadByte();
+        note.CostThird = reader.ReadByte();
 
         if (!float.IsFinite(note.Momentum) || note.Momentum < 0f)
             throw new FormatException("XMF momentum note has an invalid magnitude.");
-        if (!float.IsFinite(note.ExitMomentum) || note.ExitMomentum < 0f)
-            throw new FormatException("XMF dash note has an invalid exit push.");
-        if (note.ContactLeft < 0 || note.ContactRight < 0)
-            throw new FormatException("XMF contact barrier has a negative charge cost.");
-        if (note.HoldMs < 0)
-            throw new FormatException("XMF rail hold has a negative length.");
-        if (note.ShapeId < 0 || note.ShapePiece < 0)
-            throw new FormatException("XMF construction note has a negative shape reference.");
+        if (note.CostFirst > BarCosts.MaxCost || note.CostSecond > BarCosts.MaxCost || note.CostThird > BarCosts.MaxCost)
+            throw new FormatException("XMF contact barrier asks more of a bar than it can.");
     }
 
     internal static void WriteMine(BinaryWriter writer, MineDocument mine)
@@ -126,8 +101,6 @@ internal static class XmfItems
         writer.Write(block.Y);
         writer.Write(block.Width);
         writer.Write(block.Height);
-        writer.Write(block.ShapeId);
-        writer.Write(block.ShapePiece);
         writer.Write((byte)block.OneWay);
         writer.Write(block.OutlineWidth);
         writer.Write(block.OutlineColor);
@@ -141,15 +114,11 @@ internal static class XmfItems
         block.Y = reader.ReadSingle();
         block.Width = reader.ReadSingle();
         block.Height = reader.ReadSingle();
-        block.ShapeId = reader.ReadInt32();
-        block.ShapePiece = reader.ReadInt32();
         block.OneWay = reader.ReadByte();
         block.OutlineWidth = reader.ReadSingle();
         block.OutlineColor = reader.ReadUInt32();
         block.FillGroups = reader.ReadUInt32();
         block.OutlineGroups = reader.ReadUInt32();
-        if (block.ShapeId < 0 || block.ShapePiece < 0)
-            throw new FormatException("XMF block has a negative Form shape reference.");
         if (block.OneWay > (int)BlockOneWay.Left)
             throw new FormatException("XMF block has an unknown one-way side.");
     }

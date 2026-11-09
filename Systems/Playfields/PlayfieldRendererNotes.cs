@@ -26,9 +26,6 @@ public static partial class PlayfieldRenderer
     {
         float size = NoteSize * view.Scale;
         Note note = entity.GetComponent<Note>();
-        if (NoteRules.IsRail(note.Kind) || NoteRules.IsChannelEnd(note.Kind))
-            return;
-
         float alpha = NoteFade.Alpha(note, playhead.TimeMs);
         if (alpha <= 0)
             return;
@@ -49,8 +46,6 @@ public static partial class PlayfieldRenderer
         if (approach >= 0)
             canvas.DrawCircleOutline(rid, center, approachRadius, ring, 2);
 
-        if (note.Kind == NoteKind.Dash)
-            DrawDashLink(canvas, rid, note, view, radius, color);
         DrawNoteBody(canvas, rid, note, center, radius, color);
 
         if (!selectedNote.IsNull && selectedNote.Id == entity.Id)
@@ -83,150 +78,23 @@ public static partial class PlayfieldRenderer
         float radius,
         Color color)
     {
-        if (note.Kind == NoteKind.Dash)
+        switch (note.Kind)
         {
-            DrawDashShape(canvas, rid, center, radius, color);
-        }
-        else if (note.Kind == NoteKind.Momentum)
-        {
-            DrawMomentumShape(canvas, rid, note, center, radius, color);
-        }
-        else if (note.Kind == NoteKind.Pair)
-        {
-            canvas.DrawCircleOutline(rid, center, radius, color, 2);
-            canvas.DrawTextStyled(
-                rid,
-                new Rect2(
-                    center - new Vector2(radius, radius),
-                    new Vector2(radius * 2, radius * 2)),
-                ((int)note.PairIndex).ToString(),
-                color,
-                Math.Max(12, (int)(radius * 1.1f)));
-
-            // Two side ticks: the number is what matters, not which hand.
-            float tickX = radius * 0.78f;
-            float tickY = radius * 0.34f;
-            canvas.DrawLine(
-                rid,
-                center + new Vector2(-tickX, -tickY),
-                center + new Vector2(-tickX, tickY),
-                color,
-                2);
-            canvas.DrawLine(
-                rid,
-                center + new Vector2(tickX, -tickY),
-                center + new Vector2(tickX, tickY),
-                color,
-                2);
-        }
-        else if (note.Kind == NoteKind.Contact)
-        {
-            (int left, int right) = ContactRules.Costs(note);
-            canvas.DrawCircleOutline(rid, center, radius, color, 3);
-            canvas.DrawTextStyled(
-                rid,
-                new Rect2(
-                    center - new Vector2(radius, radius * 0.55f),
-                    new Vector2(radius * 2, radius * 1.1f)),
-                "C",
-                color,
-                Math.Max(12, (int)(radius * 0.9f)));
-
-            if (left > 0 || right > 0)
-            {
-                canvas.DrawTextStyled(
-                    rid,
-                    new Rect2(
-                        center + new Vector2(-radius, radius * 0.28f),
-                        new Vector2(radius * 2, radius * 0.5f)),
-                    $"L{left} R{right}",
-                    color,
-                    Math.Max(8, (int)(radius * 0.4f)));
-            }
-        }
-        else if (note.Kind == NoteKind.WeaponSwitch)
-        {
-            canvas.DrawCircleOutline(rid, center, radius, color, 3);
-            canvas.DrawTextStyled(
-                rid,
-                new Rect2(
-                    center - new Vector2(radius, radius),
-                    new Vector2(radius * 2, radius * 2)),
-                "W",
-                color,
-                Math.Max(12, (int)(radius * 1.1f)));
-        }
-        else if (note.Kind == NoteKind.Channel)
-        {
-            canvas.DrawCircleOutline(rid, center, radius, color, 3);
-            canvas.DrawTextStyled(
-                rid,
-                new Rect2(
-                    center - new Vector2(radius, radius),
-                    new Vector2(radius * 2, radius * 2)),
-                NoteRules.IsLeft(note.Target) ? "L" : "R",
-                color,
-                Math.Max(12, (int)(radius * 1.0f)));
-        }
-        else if (note.Kind == NoteKind.Rail)
-        {
-            canvas.DrawCircleOutline(rid, center, radius, color, 2);
-            canvas.DrawTextStyled(
-                rid,
-                new Rect2(
-                    center - new Vector2(radius, radius),
-                    new Vector2(radius * 2, radius * 2)),
-                ((int)note.PairIndex).ToString(),
-                color,
-                Math.Max(10, (int)(radius * 0.9f)));
-        }
-        else if (note.Kind == NoteKind.ChannelEnd)
-        {
-            // Chart data only; the rail preview draws the end.
-        }
-        else if (note.Kind == NoteKind.Construction)
-        {
-            canvas.DrawCircleOutline(rid, center, radius, color, 3);
-            canvas.DrawTextStyled(
-                rid,
-                new Rect2(
-                    center - new Vector2(radius, radius),
-                    new Vector2(radius * 2, radius * 2)),
-                "F",
-                color,
-                Math.Max(12, (int)(radius * 1.0f)));
-        }
-        else if (note.Kind == NoteKind.ConstructionStep)
-        {
-            canvas.DrawCircleOutline(rid, center, radius, color, 2);
-            canvas.DrawTextStyled(
-                rid,
-                new Rect2(
-                    center - new Vector2(radius, radius),
-                    new Vector2(radius * 2, radius * 2)),
-                note.ShapePiece.ToString(),
-                color,
-                Math.Max(10, (int)(radius * 0.9f)));
-        }
-        else if (note.Kind == NoteKind.CharacterSwitch)
-        {
-            canvas.DrawCircleOutline(rid, center, radius, color, 3);
-            canvas.DrawTextStyled(
-                rid,
-                new Rect2(
-                    center - new Vector2(radius, radius),
-                    new Vector2(radius * 2, radius * 2)),
-                note.Character.ToString()[..1],
-                new Color(
-                    CharacterSwitchColor.R,
-                    CharacterSwitchColor.G,
-                    CharacterSwitchColor.B,
-                    CharacterSwitchColor.A * color.A),
-                Math.Max(12, (int)(radius * 1.1f)));
-        }
-        else
-        {
-            DrawHitShape(canvas, rid, center, radius, color);
+            case NoteKind.Dash:
+                DrawDashShape(canvas, rid, note, center, radius, color);
+                break;
+            case NoteKind.Momentum:
+                DrawMomentumShape(canvas, rid, note, center, radius, color);
+                break;
+            case NoteKind.Contact:
+                DrawBarrierShape(canvas, rid, note, center, radius, color);
+                break;
+            case NoteKind.Neutral:
+                DrawNeutralShape(canvas, rid, center, radius, color);
+                break;
+            default:
+                DrawHitShape(canvas, rid, center, radius, color);
+                break;
         }
     }
 
@@ -243,9 +111,6 @@ public static partial class PlayfieldRenderer
         foreach (Entity entity in entities.Query<Note>().ToEntityList())
         {
             Note note = entity.GetComponent<Note>();
-            if (NoteRules.IsRail(note.Kind) || NoteRules.IsChannelEnd(note.Kind))
-                continue;
-
             float alpha = NoteFade.Alpha(note, playhead.TimeMs);
             if (alpha > 0)
                 points.Add(new NoteGuides.Point(note.TimeMs, view.PlayfieldToScreen(GroupOffset.Shown(entity, note.Position)), alpha));
@@ -340,18 +205,20 @@ public static partial class PlayfieldRenderer
     public static Color ColorFor(Note note) =>
         note.Kind switch
         {
-            NoteKind.CharacterSwitch => CharacterSwitchColor,
-            NoteKind.Pair => PairColor,
             NoteKind.Contact => ContactBarrierColor,
-            NoteKind.WeaponSwitch => WeaponSwitchColor,
-            NoteKind.Channel => ChannelColor,
-            NoteKind.Rail => RailColor,
-            NoteKind.ChannelEnd => Palette.TextDim,
-            NoteKind.Construction => ConstructionColor,
-            NoteKind.ConstructionStep => ConstructionStepColor,
+            NoteKind.Neutral => NeutralColor,
+            NoteKind.Dash => DashColor,
+            NoteKind.Momentum => MomentumColor,
             _ => ColorFor(note.Target),
         };
 
-    public static Color ColorFor(KeybindAction action) =>
-        LaneColors[(int)action % LaneColors.Length];
+    /// <summary>The colour of an action key's notes and Contact bar; direction keys get the neutral colour.</summary>
+    public static Color ColorFor(KeybindAction action)
+    {
+        int bar = ContactCounters.BarOf(action);
+        return bar >= 0 ? ActionColors[bar] : NeutralColor;
+    }
+
+    /// <summary>The colour of Contact bar 0, 1 or 2: its action key's.</summary>
+    public static Color BarColor(int bar) => ActionColors[bar];
 }

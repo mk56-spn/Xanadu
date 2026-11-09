@@ -14,7 +14,7 @@ using Xanadu.Ui.Ecs.Ui;
 
 namespace Xanadu.Scenes;
 
-/// <summary>The play HUD: score, combo, accuracy, judgement counts, contact and weapon readouts.</summary>
+/// <summary>The play HUD: score, combo, accuracy, judgement counts and Contact's three bars.</summary>
 internal static class PlayHudBuilder
 {
     public static void Build(
@@ -138,39 +138,40 @@ internal static class PlayHudBuilder
 
         var contactArea = new Rect2(screen.X / 2 - 160, 80, 320, 26);
         Entity contactBacking = ui.HudBacking(contactArea);
-        Entity leftStack = ui.HudText(new Vector2(screen.X / 2 - 80, 92),
-            new Vector2(150, 22),
-            "L 0",
-            13,
-            SceneUi.DimTextColor,
-            new Color(0, 0, 0, 0));
-        Entity rightStack = ui.HudText(new Vector2(screen.X / 2 + 80, 92),
-            new Vector2(150, 22),
-            "R 0",
-            13,
-            SceneUi.DimTextColor,
-            new Color(0, 0, 0, 0));
+        // One label per Contact bar, in its action key's colour, so a bar reads
+        // as the notes that fill it.
+        var bars = new Entity[ContactCounters.Bars];
+        for (int bar = 0; bar < bars.Length; bar++)
+        {
+            bars[bar] = ui.HudText(new Vector2(screen.X / 2 + (bar - 1) * 100, 92),
+                new Vector2(90, 22),
+                $"0/{ContactCounters.Cap}",
+                13,
+                PlayfieldRenderer.BarColor(bar),
+                new Color(0, 0, 0, 0));
+        }
 
         hud.Add(
             "contact_counters",
             new Vector2(screen.X / 2, 92),
             contactArea,
-            new[] { contactBacking, leftStack, rightStack });
-        playfield.AddComponent(new ContactCounterHud(leftStack, rightStack));
+            new[] { contactBacking, bars[0], bars[1], bars[2] });
+        playfield.AddComponent(new ContactCounterHud(bars[0], bars[1], bars[2]));
 
-        Entity weaponText = ui.HudText(
+        // Which ground mode is on while both are tested; F8 switches.
+        Entity groundText = ui.HudText(
             new Vector2(screen.X - 150, 96),
             new Vector2(220, 22),
-            "",
-            14,
+            "GROUND: SKID  (F8)",
+            13,
             SceneUi.DimTextColor,
             new Color(0, 0, 0, 0));
         hud.Add(
-            "weapon",
+            "ground_mode",
             new Vector2(screen.X - 150, 96),
             new Rect2(screen.X - 260, 84, 220, 24),
-            weaponText);
-        playfield.AddComponent(new WeaponHud(weaponText));
+            groundText);
+        playfield.AddComponent(new GroundModeHud(groundText));
 
         hud.Add(
             "accuracy",
@@ -295,8 +296,7 @@ internal static class PlayHudBuilder
                 comboText,
                 accuracyText,
                 judgementText,
-                document.Notes.Count(note =>
-                    note.Kind is not (NoteKind.Contact or NoteKind.ChannelEnd))));
+                document.Notes.Count(note => NoteRules.IsScored(note.Kind))));
         long lastNote = document.Notes.Count > 0
             ? document.Notes.Max(note => note.TimeMs)
             : -1;

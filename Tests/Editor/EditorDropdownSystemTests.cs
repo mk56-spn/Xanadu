@@ -18,67 +18,6 @@ namespace Xanadu.Tests.Editor;
 public sealed class EditorDropdownSystemTests
 {
     [Test]
-    public void OpensAndSelectsACharacter()
-    {
-        var store = new EntityStore();
-        var commands = new EditorCommandBus();
-        Entity editor = store.CreateEntity(
-            new Playhead(0, 120, 0, false),
-            new EditorPlacement { Note = KeybindAction.M });
-
-        Entity list = store.CreateEntity(
-            new Position(Vector2.Zero),
-            new Rectangle(new Rect2(-95, -48, 190, 96)));
-
-        Entity button = store.CreateEntity(
-            new Position(new Vector2(800, 200)),
-            new Rectangle(new Rect2(-95, -17, 190, 34)),
-            new Text(""),
-            new Dropdown(list, 0),
-            new EditorDropdownControl(EditorDropdownKind.Character));
-
-        Entity option = store.CreateEntity(
-            new Position(new Vector2(0, 0)),
-            new Rectangle(new Rect2(-92, -14, 184, 28)),
-            new DropdownOption(button, 2));
-
-        var root = new SystemRoot(store);
-        root.Add(new EditorDropdownSystem(store, commands, new EditorHistory(store)));
-        root.Add(new UiDropdownSystem(store));
-
-        button.AddTag<Pressed>();
-        root.Update(new UpdateTick(1f / 60f, 0));
-
-        Assert.That(button.GetComponent<Dropdown>().Open, Is.True);
-        Assert.That(button.GetComponent<Text>().Value, Is.EqualTo("CHAR  CONTACT"));
-        Assert.That(
-            UiLayout.IsHidden(list), Is.False);
-        Assert.That(
-            option.GetComponent<Position>().Value,
-            Is.EqualTo(new Vector2(800, 237)));
-        Assert.That(
-            list.GetComponent<Rectangle>().Bounds.Size,
-            Is.EqualTo(new Vector2(190, 96)));
-
-        button.RemoveTag<Pressed>();
-        root.Update(new UpdateTick(1f / 60f, 0));
-
-        option.AddTag<Pressed>();
-        root.Update(new UpdateTick(1f / 60f, 0));
-        root.Update(new UpdateTick(1f / 60f, 0));
-
-        Assert.That(button.GetComponent<Dropdown>().Selected, Is.EqualTo(2));
-        Assert.That(button.GetComponent<Dropdown>().Open, Is.False);
-        Assert.That(button.GetComponent<Text>().Value, Is.EqualTo("CHAR  SPLITLINE"));
-        Assert.That(
-            UiLayout.IsHidden(list),
-            Is.True);
-        Assert.That(
-            editor.GetComponent<EditorPlacement>().Character,
-            Is.EqualTo(CharacterKind.SplitLine));
-    }
-
-    [Test]
     public void TheBlendDropdownSetsTheSelectionAndUndoesAsOneStep()
     {
         var store = new EntityStore();
@@ -155,10 +94,10 @@ public sealed class EditorDropdownSystemTests
         var store = new EntityStore();
         var commands = new EditorCommandBus();
         store.CreateEntity(
-            new EditorPlacement { Mode = EditorPlacementMode.Notes, Note = KeybindAction.M });
+            new EditorPlacement { Mode = EditorPlacementMode.Notes, Note = KeybindAction.Action2 });
         Entity swatch = store.CreateEntity(
             new Position(Vector2.Zero),
-            EditorButton.NoteType(KeybindAction.R3));
+            EditorButton.NoteType(KeybindAction.Action3));
 
         var root = new SystemRoot(store);
         root.Add(new EditorNoteTypeBarSystem(store, commands));
@@ -167,21 +106,20 @@ public sealed class EditorDropdownSystemTests
         root.Update(new UpdateTick(1f / 60f, 0));
         Assert.That(commands.TryDequeue(out EditorCommand command), Is.True);
         Assert.That(command.Type, Is.EqualTo(EditorCommandType.SetTarget));
-        Assert.That(command.IntValue, Is.EqualTo((int)KeybindAction.R3));
+        Assert.That(command.IntValue, Is.EqualTo((int)KeybindAction.Action3));
     }
 
     [TestCase(EditorPlacementMode.Notes, true)]
-    [TestCase(EditorPlacementMode.Pair, true)]
-    [TestCase(EditorPlacementMode.Dash, true)]
-    [TestCase(EditorPlacementMode.Momentum, true)]
+    [TestCase(EditorPlacementMode.Neutral, false)]
+    [TestCase(EditorPlacementMode.Dash, false)]
+    [TestCase(EditorPlacementMode.Momentum, false)]
     [TestCase(EditorPlacementMode.Mines, false)]
     [TestCase(EditorPlacementMode.Start, false)]
-    [TestCase(EditorPlacementMode.CharacterSwitch, false)]
-    public void TheNoteKeyBarShowsForNotesAndMovementNotes(EditorPlacementMode mode, bool shown)
+    public void TheNoteKeyBarShowsOnlyForColouredNotes(EditorPlacementMode mode, bool shown)
     {
         var store = new EntityStore();
         store.CreateEntity(
-            new EditorPlacement { Mode = mode, Note = KeybindAction.M });
+            new EditorPlacement { Mode = mode, Note = KeybindAction.Action2 });
         Entity panel = store.CreateEntity(
             new Position(new Vector2(10, 20)),
             new EditorNoteBarPanel());

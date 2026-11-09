@@ -23,14 +23,14 @@ public sealed class LevelDocumentMapperTests
         sourceStore.CreateEntity(new Note(
             500,
             new Vector2(100, 200),
-            target: KeybindAction.L1));
+            target: KeybindAction.Action1));
         sourceStore.CreateEntity(new Note(
             1_000,
             new Vector2(300, 400),
-            target: KeybindAction.R3,
+            target: KeybindAction.Action3,
             kind: NoteKind.Dash,
-            dashDirection: DashDirection.DownLeft,
-            dashStrength: DashStrength.Triple));
+            dashStrength: DashStrength.Triple,
+            diagonal: true));
         sourceStore.CreateEntity(new Mine(900, new Vector2(450, 550)));
         sourceStore.CreateEntity(new StartPoint(
             "Chorus",
@@ -54,12 +54,10 @@ public sealed class LevelDocumentMapperTests
         Assert.That(document.FrameColor, Is.EqualTo("#405060"));
         Assert.That(document.SnapDivision, Is.EqualTo(16));
         Assert.That(document.Notes, Has.Count.EqualTo(2));
-        Assert.That(document.Notes[0].Target, Is.EqualTo(KeybindAction.L1));
-        Assert.That(document.Notes[1].Target, Is.EqualTo(KeybindAction.R3));
+        Assert.That(document.Notes[0].Target, Is.EqualTo(KeybindAction.Action1));
+        Assert.That(document.Notes[1].Target, Is.EqualTo(KeybindAction.Action3));
         Assert.That(document.Notes[1].Kind, Is.EqualTo(NoteKind.Dash));
-        Assert.That(
-            document.Notes[1].DashDirection,
-            Is.EqualTo(DashDirection.DownLeft));
+        Assert.That(document.Notes[1].Diagonal, Is.True);
         Assert.That(document.Notes[1].DashStrength, Is.EqualTo(DashStrength.Triple));
         Assert.That(document.Mines, Has.Count.EqualTo(1));
         Assert.That(document.Mines[0].TimeMs, Is.EqualTo(900));
@@ -112,10 +110,10 @@ public sealed class LevelDocumentMapperTests
         Assert.That(targetStore.Query<Note>().Count, Is.EqualTo(2));
         Assert.That(
             targetStore.Query<Note>().ToEntityList()[0].GetComponent<Note>().Target,
-            Is.EqualTo(KeybindAction.L1));
+            Is.EqualTo(KeybindAction.Action1));
         Assert.That(
             targetStore.Query<Note>().ToEntityList()[1].GetComponent<Note>().Target,
-            Is.EqualTo(KeybindAction.R3));
+            Is.EqualTo(KeybindAction.Action3));
         Assert.That(targetStore.Query<Mine>().Count, Is.EqualTo(1));
         Assert.That(targetStore.Query<StartPoint>().Count, Is.EqualTo(1));
         Assert.That(
@@ -170,28 +168,22 @@ public sealed class LevelDocumentMapperTests
         sourceStore.CreateEntity(new Note(
             500,
             new Vector2(100, 200),
-            kind: NoteKind.Pair,
-            pairIndex: PairIndex.Three));
+            kind: NoteKind.Neutral));
         sourceStore.CreateEntity(new Note(
             900,
             new Vector2(300, 400),
             kind: NoteKind.Momentum,
-            dashDirection: DashDirection.UpLeft,
-            momentum: 900f));
+            momentum: 900f,
+            diagonal: true));
         sourceStore.CreateEntity(new Note(
             1_200,
             new Vector2(500, 600),
             kind: NoteKind.Contact,
-            contactRequired: 0,
-            contactLeft: 2,
-            contactRight: 1));
+            costs: new BarCosts(2, 0, 1)));
 
         LevelDocument document = LevelDocumentMapper.Capture(sourceStore, source);
 
-        Assert.That(document.Notes[0].PairIndex, Is.EqualTo(PairIndex.Three));
         Assert.That(document.Notes[1].Momentum, Is.EqualTo(900f));
-        Assert.That(document.Notes[2].ContactLeft, Is.EqualTo(2));
-        Assert.That(document.Notes[2].ContactRight, Is.EqualTo(1));
 
         var targetStore = new EntityStore();
         Entity target = targetStore.CreateEntity(
@@ -202,13 +194,10 @@ public sealed class LevelDocumentMapperTests
         LevelDocumentMapper.Apply(targetStore, target, document);
 
         var notes = targetStore.Query<Note>().ToEntityList();
-        Assert.That(notes[0].GetComponent<Note>().PairIndex,
-            Is.EqualTo(PairIndex.Three));
+        Assert.That(notes[0].GetComponent<Note>().Kind, Is.EqualTo(NoteKind.Neutral));
         Assert.That(notes[1].GetComponent<Note>().Momentum, Is.EqualTo(900f));
-        Assert.That(notes[2].GetComponent<Note>().ContactLeft, Is.EqualTo(2));
-        Assert.That(notes[2].GetComponent<Note>().ContactRight, Is.EqualTo(1));
-        Assert.That(notes[1].GetComponent<Note>().DashDirection,
-            Is.EqualTo(DashDirection.UpLeft));
+        Assert.That(notes[1].GetComponent<Note>().Diagonal, Is.True);
+        Assert.That(notes[2].GetComponent<Note>().Costs, Is.EqualTo(new BarCosts(2, 0, 1)));
     }
 
     [Test]

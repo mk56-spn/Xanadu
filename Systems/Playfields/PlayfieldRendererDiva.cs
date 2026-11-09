@@ -13,7 +13,7 @@ namespace Xanadu.Systems.Playfields;
 /// a target pops in on the spot with a clock hand coming round to twelve on
 /// the beat, the note flies in onto it on a dying wave, trailing its colour,
 /// and a spark runs the guide line from the moment just hit to the next.
-/// Play only, while the playfield has <see cref="DivaNotes"/>; F8 swaps back.
+/// Play only, while the playfield has <see cref="DivaNotes"/>.
 /// </summary>
 public static partial class PlayfieldRenderer
 {
@@ -102,7 +102,7 @@ public static partial class PlayfieldRenderer
     }
 
     private static bool IsDivaNote(Entity entity, Note note) =>
-        !NoteRules.IsRail(note.Kind) && !NoteRules.IsChannelEnd(note.Kind) && !entity.Tags.Has<NoteMissed>();
+        !entity.Tags.Has<NoteMissed>();
 
     /// <summary>
     /// One note the DIVA+ way. Once its beat has passed it sits on its spot and
@@ -117,8 +117,6 @@ public static partial class PlayfieldRenderer
         float pulse)
     {
         Note note = entity.GetComponent<Note>();
-        if (NoteRules.IsRail(note.Kind) || NoteRules.IsChannelEnd(note.Kind))
-            return;
 
         long remaining = note.TimeMs - playhead.TimeMs;
         if (remaining > DivaApproachMs)
@@ -153,9 +151,6 @@ public static partial class PlayfieldRenderer
             Tinted(NoteEdgeColor, 0.9f * open * lane.A), 4f * k);
         canvas.DrawCircle(rid, center, 4f * k * pop, Tinted(NoteEdgeColor, open * lane.A));
 
-        if (note.Kind == NoteKind.Dash)
-            DrawDashLink(canvas, rid, note, view, radius, Tinted(lane, open));
-
         (Vector2 from, float wave) = DivaFlight(note.TimeMs);
         float distance = DivaFlyDistance * view.Scale;
         wave *= view.Scale;
@@ -183,8 +178,6 @@ public static partial class PlayfieldRenderer
             : Tinted(lane, alpha);
 
         SelectItemShader(canvas, entity);
-        if (note.Kind == NoteKind.Dash)
-            DrawDashLink(canvas, rid, note, view, radius, color);
         DrawNoteBody(canvas, rid, note, center, radius, color);
         canvas.SelectCommonShader("");
         canvas.SelectShader(0);

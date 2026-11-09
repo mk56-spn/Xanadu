@@ -21,7 +21,7 @@ public sealed class CharacterHitboxSceneTest(bool faceLeft) : SceneTest
         {
             var song = TestContent.Song("visual-character-hitbox", "Character Hitbox");
             LevelDocument document = TestContent.Level("Character Hitbox Test", song);
-            document.Notes.Add(new NoteDocument { TimeMs = 20_000, X = 500, Y = 300, Target = KeybindAction.L3 });
+            document.Notes.Add(new NoteDocument { TimeMs = 20_000, X = 500, Y = 300, Target = KeybindAction.Action3 });
             Context.Scenes.StartPlay(new LevelEntry("memory://character-hitbox", document, song));
         });
         AddUntilStep(

@@ -87,8 +87,9 @@ public static class PlayabilityAnalyzer
             floor);
         long dashedAt = long.MinValue;
 
-        foreach (AnalysedNote note in ordered)
+        for (int index = 0; index < ordered.Count; index++)
         {
+            AnalysedNote note = ordered[index];
             Vector2 screen = ToScreen(note.Position, geometry);
             // Notes are checked against a sphere around the player, not its box.
             float reach = NoteReach.OnScreen(geometry.Scale);
@@ -136,8 +137,9 @@ public static class PlayabilityAnalyzer
             Vector2 origin = grounded
                 ? new Vector2(note.Position.X, (floor - geometry.Origin.Y) / geometry.Scale)
                 : note.Position;
-            Vector2 target = PlayerMovementSystem.DashTarget(
-                origin, note.Direction, note.Strength);
+            // The note carries no way: assume the player takes the one that
+            // lands nearest the next note, as reading the level would.
+            Vector2 target = BestDash(origin, note, index + 1 < ordered.Count ? ordered[index + 1].Position : origin);
             Vector2 landed = ToScreen(target, geometry);
             player = new Vector2(
                 Wrap(landed.X, geometry),
@@ -146,6 +148,25 @@ public static class PlayabilityAnalyzer
         }
 
         return issues;
+    }
+
+    /// <summary>Where the dash lands that a player reading ahead would take: the one nearest <paramref name="next"/>.</summary>
+    private static Vector2 BestDash(Vector2 origin, AnalysedNote note, Vector2 next)
+    {
+        Vector2 best = origin;
+        float bestDistance = float.MaxValue;
+        for (int way = note.Diagonal ? 1 : 0; way < 8; way += 2)
+        {
+            Vector2 landed = PlayerMovementSystem.DashTarget(origin, (DashDirection)way, note.Strength);
+            float distance = landed.DistanceSquaredTo(next);
+            if (distance < bestDistance)
+            {
+                bestDistance = distance;
+                best = landed;
+            }
+        }
+
+        return best;
     }
 
     /// <summary>How far, in pixels, a player falls from rest in this time, stopping at the terminal speed.</summary>

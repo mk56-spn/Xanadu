@@ -1,4 +1,3 @@
-using System;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Xanadu.Ecs;
@@ -6,12 +5,18 @@ using Xanadu.Ecs;
 namespace Xanadu.Systems.Editor;
 
 /// <summary>
-/// Edits the left/right charge newly placed contact barriers ask for. The four
-/// buttons are L−, L+, R− and R+; the readout shows the current pair.
+/// Edits the brush for new contact barriers and directional notes: each bar's
+/// cost steps with its − and + buttons, inside the barrier limits
+/// (<see cref="BarCosts.With"/>), and the rhombus button turns diagonal on and off.
 /// </summary>
 public sealed class EditorContactCostSystem : QuerySystem<EditorButton>
 {
-    private const int MaxCost = 3;
+    private static readonly EditorReadoutKind[] BarReadouts =
+    {
+        EditorReadoutKind.ContactFirst,
+        EditorReadoutKind.ContactSecond,
+        EditorReadoutKind.ContactThird,
+    };
 
     private readonly EntityStore _entities;
     private readonly ButtonPress _presses = new();
@@ -36,22 +41,25 @@ public sealed class EditorContactCostSystem : QuerySystem<EditorButton>
         foreach (Entity entity in Query.ToEntityList())
         {
             EditorButton button = entity.GetComponent<EditorButton>();
-            if (button.Kind is not (EditorButtonKind.ContactLeft or EditorButtonKind.ContactRight))
+            if (button.Kind is not (EditorButtonKind.ContactCost or EditorButtonKind.Diagonal))
                 continue;
 
             if (!_presses.Started(entity))
                 continue;
 
-            if (button.Kind == EditorButtonKind.ContactLeft)
-                state.ContactLeft = Math.Clamp(state.ContactLeft + button.Arg, 0, MaxCost);
-            else
-                state.ContactRight = Math.Clamp(state.ContactRight + button.Arg, 0, MaxCost);
+            if (button.Kind == EditorButtonKind.Diagonal)
+            {
+                state.Diagonal = !state.Diagonal;
+                continue;
+            }
+
+            int bar = System.Math.Abs(button.Arg) - 1;
+            int step = System.Math.Sign(button.Arg);
+            state.Costs = state.Costs.With(bar, state.Costs[bar] + step);
         }
 
-        EditorReadout.Show(
-            _entities,
-            EditorReadoutKind.ContactCost,
-            $"L{state.ContactLeft}  R{state.ContactRight}",
-            CommandBuffer);
+        for (int bar = 0; bar < BarReadouts.Length; bar++)
+            EditorReadout.Show(_entities, BarReadouts[bar], $"BAR {bar + 1}: {state.Costs[bar]}", CommandBuffer);
+        EditorReadout.Show(_entities, EditorReadoutKind.Diagonal, state.Diagonal ? "RHOMBUS: ON" : "RHOMBUS: OFF", CommandBuffer);
     }
 }

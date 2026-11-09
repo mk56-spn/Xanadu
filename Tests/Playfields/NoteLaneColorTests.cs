@@ -15,31 +15,34 @@ public sealed class NoteLaneColorTests
         var note = new Note(
             1_000,
             new Vector2(500, 500),
-            target: KeybindAction.R2);
+            target: KeybindAction.Action2);
 
         Assert.That(
             PlayfieldRenderer.ColorFor(note.Target),
-            Is.EqualTo(PlayfieldRenderer.ColorFor(KeybindAction.R2)));
+            Is.EqualTo(PlayfieldRenderer.ColorFor(KeybindAction.Action2)));
     }
 
     [Test]
-    public void MovementNotesTakeTheColorOfTheirKey([Values(NoteKind.Dash, NoteKind.Momentum)] NoteKind kind)
+    public void NoteKindsCanBeToldApart()
     {
-        var note = new Note(1_000, new Vector2(500, 500), target: KeybindAction.R2, kind: kind);
+        var colors = new System.Collections.Generic.HashSet<Color>();
+        foreach (KeybindAction action in KeybindSettings.ActionKeys)
+            colors.Add(PlayfieldRenderer.ColorFor(new Note(0, Vector2.Zero, target: action)));
+        colors.Add(PlayfieldRenderer.ColorFor(new Note(0, Vector2.Zero, kind: NoteKind.Neutral)));
+        colors.Add(PlayfieldRenderer.ColorFor(new Note(0, Vector2.Zero, kind: NoteKind.Dash)));
+        colors.Add(PlayfieldRenderer.ColorFor(new Note(0, Vector2.Zero, kind: NoteKind.Momentum)));
 
-        Assert.That(
-            PlayfieldRenderer.ColorFor(note),
-            Is.EqualTo(PlayfieldRenderer.ColorFor(KeybindAction.R2)));
+        Assert.That(colors.Count, Is.EqualTo(6));
     }
 
     [Test]
-    public void EveryTargetHasItsOwnColor()
+    public void EachActionKeyHasItsOwnColor()
     {
         var colors = new System.Collections.Generic.HashSet<Color>();
 
-        foreach (KeybindAction action in KeybindSettings.Actions)
+        foreach (KeybindAction action in KeybindSettings.ActionKeys)
             colors.Add(PlayfieldRenderer.ColorFor(action));
 
-        Assert.That(colors.Count, Is.EqualTo(KeybindSettings.Actions.Length));
+        Assert.That(colors.Count, Is.EqualTo(KeybindSettings.ActionKeys.Length));
     }
 }

@@ -21,10 +21,11 @@ public sealed class EditorAnalysisTests
         150f);
 
     private static AnalysedNote Hit(long time, float x, float y) =>
-        new(time, new Vector2(x, y), NoteKind.Hit, DashDirection.Up);
+        new(time, new Vector2(x, y), NoteKind.Hit);
 
-    private static AnalysedNote Dash(long time, float x, float y, DashDirection direction) =>
-        new(time, new Vector2(x, y), NoteKind.Dash, direction);
+    /// <summary>A dash note; it carries no way, so the analyser takes the one landing nearest the next note.</summary>
+    private static AnalysedNote Dash(long time, float x, float y) =>
+        new(time, new Vector2(x, y), NoteKind.Dash);
 
     private static List<PlayabilityIssue> Analyze(Vector2? start = null, params AnalysedNote[] notes) =>
         PlayabilityAnalyzer.Analyze(notes, Field, start);
@@ -71,7 +72,7 @@ public sealed class EditorAnalysisTests
         // Dash up from the floor, then hit something above the original floor spot.
         AnalysedNote[] chart =
         [
-            Dash(1000, 500, 895, DashDirection.Up),
+            Dash(1000, 500, 895),
             Hit(1400, 500, 700),
         ];
 
@@ -81,11 +82,11 @@ public sealed class EditorAnalysisTests
     [Test]
     public void ADashLeavesFromTheNoteRatherThanThePlayer()
     {
-        // The note sits right of the player, so an upward dash takes the note's
-        // x, and a hit back at the player's old x is out of reach.
+        // The note sits right of the player, so every dash leaves from the
+        // note's x; even the nearest landing, 250 left, misses the next hit.
         AnalysedNote[] chart =
         [
-            Dash(1000, 540, 895, DashDirection.Up),
+            Dash(1000, 540, 895),
             Hit(1400, 420, 880),
         ];
 
@@ -99,7 +100,7 @@ public sealed class EditorAnalysisTests
     {
         AnalysedNote[] chart =
         [
-            Dash(1000, 500, 895, DashDirection.Up),
+            Dash(1000, 500, 895),
             Hit(1400, 500, 500),
         ];
 
@@ -114,7 +115,7 @@ public sealed class EditorAnalysisTests
         // The same height is reachable if the player has had time to drop.
         AnalysedNote[] chart =
         [
-            Dash(1000, 500, 895, DashDirection.Up),
+            Dash(1000, 500, 895),
             Hit(3000, 500, 900),
         ];
 
@@ -126,7 +127,7 @@ public sealed class EditorAnalysisTests
     {
         AnalysedNote[] chart =
         [
-            Dash(1000, 100, 895, DashDirection.Right),
+            Dash(1000, 100, 895),
             Hit(1600, 350, 880),
             Hit(1800, 350, 880),
         ];
@@ -142,7 +143,7 @@ public sealed class EditorAnalysisTests
     {
         AnalysedNote[] chart =
         [
-            Dash(1000, 500, 895, DashDirection.Right),
+            Dash(1000, 500, 895),
             Hit(1000, 500, 900),
         ];
 

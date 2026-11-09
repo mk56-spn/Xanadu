@@ -36,6 +36,9 @@ public enum EditorButtonKind
     /// <summary>The song picker asks the overlay to leave the editor, as Escape on the field does.</summary>
     Leave,
 
+    /// <summary>The autosave asks the overlay to save the level to its file without a word.</summary>
+    QuietSave,
+
     // Sidebar buttons; their argument is given beside each.
     /// <summary>Picks the placement tool; the argument is an <see cref="EditorPlacementMode"/>.</summary>
     Place,
@@ -47,18 +50,13 @@ public enum EditorButtonKind
     NoteType,
     /// <summary>Picks the strength new movement notes get; the argument is a <see cref="DashStrength"/>.</summary>
     DashStrength,
-    /// <summary>Steps the left contact cost; the argument is the step.</summary>
-    ContactLeft,
-    /// <summary>Steps the right contact cost; the argument is the step.</summary>
-    ContactRight,
-    /// <summary>Places a rail note at the playhead; the argument is its side <see cref="KeybindAction"/>.</summary>
-    RailTap,
-    /// <summary>Cycles the hold length new rail notes get.</summary>
-    RailHold,
-    /// <summary>Places a channel end at the playhead; the argument is its <see cref="ChannelSide"/>.</summary>
-    ChannelEnd,
-    /// <summary>Attaches the selected blocks to a new Form shape at the playhead.</summary>
-    ShapeAttach,
+    /// <summary>
+    /// Steps one bar of the contact cost; the argument is the bar plus one,
+    /// negative for less.
+    /// </summary>
+    ContactCost,
+    /// <summary>Turns the rhombus (45° clockwise) on or off for new directional notes.</summary>
+    Diagonal,
     /// <summary>Makes the selected texts bigger or smaller; the argument is the step.</summary>
     TextSize,
     /// <summary>Thickens or thins the selected outlines; the argument is the step in whole units.</summary>
@@ -79,11 +77,6 @@ public enum EditorButtonKind
     /// argument is the <see cref="FlareSetting"/> plus one, negative for less.
     /// </summary>
     FlareStep,
-    /// <summary>
-    /// Steps the exit push of the selected dash notes, or of the dash brush;
-    /// the argument is the <see cref="Xanadu.Systems.Editor.DashExitSetting"/> plus one, negative for less.
-    /// </summary>
-    DashExitStep,
     /// <summary>Lines the selection up; the argument is an <see cref="Xanadu.Editor.AlignEdge"/>.</summary>
     Align,
 }
@@ -102,9 +95,8 @@ public struct EditorButton(EditorButtonKind kind, int arg = 0) : IComponent
 
     public static EditorButton Strength(DashStrength strength) => new(EditorButtonKind.DashStrength, (int)strength);
 
-    public static EditorButton RailTap(KeybindAction action) => new(EditorButtonKind.RailTap, (int)action);
-
-    public static EditorButton ChannelEnd(ChannelSide side) => new(EditorButtonKind.ChannelEnd, (int)side);
+    /// <summary>Steps <paramref name="bar"/>'s contact cost by <paramref name="step"/> (+1 or -1).</summary>
+    public static EditorButton ContactCost(int bar, int step) => new(EditorButtonKind.ContactCost, (bar + 1) * step);
 
     /// <summary>The editor buttons of one kind, hidden ones included.</summary>
     public static List<Entity> All(EntityStore store, EditorButtonKind kind)
@@ -122,9 +114,12 @@ public struct EditorButton(EditorButtonKind kind, int arg = 0) : IComponent
 
 public enum EditorReadoutKind
 {
-    ContactCost,
-    RailHold,
-    Shape,
+    /// <summary>The first, second and third bar's cost for new barriers.</summary>
+    ContactFirst,
+    ContactSecond,
+    ContactThird,
+    /// <summary>Whether new directional notes are rhombuses.</summary>
+    Diagonal,
 }
 
 /// <summary>A text that shows one of the placement brush's values.</summary>

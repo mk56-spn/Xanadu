@@ -32,9 +32,8 @@ public sealed class PlayNoteMisses(PlayNoteContext context)
                 continue;
 
             Note note = entity.GetComponent<Note>();
-            // Contact barriers and channel-end markers are chart checks, not
-            // scored notes.
-            if (note.Kind is NoteKind.Contact or NoteKind.ChannelEnd)
+            // Contact barriers are chart checks, not scored notes.
+            if (!NoteRules.IsScored(note.Kind))
                 continue;
 
             long missWindow =
@@ -47,13 +46,7 @@ public sealed class PlayNoteMisses(PlayNoteContext context)
             score.HasJudgement = true;
             score.LastJudgement = Judgement.Miss;
             PlayfieldView view = playfield.GetComponent<PlayfieldView>();
-            score.JudgementPosition = NoteRules.IsRail(note.Kind)
-                ? SplitlineRail.ScreenPosition(
-                    view,
-                    playfield.GetComponent<Playfield>(),
-                    note,
-                    playhead.TimeMs)
-                : view.PlayfieldToScreen(GroupOffset.Shown(entity, note.Position));
+            score.JudgementPosition = view.PlayfieldToScreen(GroupOffset.Shown(entity, note.Position));
             score.JudgementTimeMs = playhead.TimeMs;
             PlayScoring.Count(ref score, Judgement.Miss);
         }

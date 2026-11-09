@@ -240,12 +240,6 @@ public sealed class BlockDocument : ItemDocument
 
     public float Height { get; set; }
 
-    /// <summary>The Form construction shape this block belongs to, or 0 for permanent geometry.</summary>
-    public int ShapeId { get; set; }
-
-    /// <summary>The order this block is revealed in its shape.</summary>
-    public int ShapePiece { get; set; }
-
     /// <summary>The only side that collides, as a <see cref="Xanadu.Ecs.BlockOneWay"/>; 0 is solid all round.</summary>
     public int OneWay { get; set; }
 
@@ -457,46 +451,24 @@ public sealed class NoteDocument : ItemDocument
 
     public float Y { get; set; }
 
-    public KeybindAction Target { get; set; } = KeybindAction.M;
+    /// <summary>The action key a coloured note asks for; ignored by other kinds.</summary>
+    public KeybindAction Target { get; set; } = KeybindAction.Action1;
 
     public NoteKind Kind { get; set; } = NoteKind.Hit;
-
-    public DashDirection DashDirection { get; set; } = DashDirection.Up;
-
-    public int ContactRequired { get; set; } = 1;
-
-    public CharacterKind Character { get; set; } = CharacterKind.Contact;
 
     /// <summary>One, two or three dash lengths for a dash note.</summary>
     public DashStrength DashStrength { get; set; } = DashStrength.Single;
 
-    /// <summary>The pair a pair note belongs to; ignored by every other kind.</summary>
-    public PairIndex PairIndex { get; set; } = PairIndex.One;
-
-    /// <summary>A momentum note's push in playfield units per second; ignored by other kinds.</summary>
+    /// <summary>A momentum note's speed in playfield units per second; ignored by other kinds.</summary>
     public float Momentum { get; set; } = Note.DefaultMomentum;
 
-    /// <summary>The left-side charge a contact barrier spends.</summary>
-    public int ContactLeft { get; set; }
+    /// <summary>A rhombus directional note: turns the pressed way 45° clockwise.</summary>
+    public bool Diagonal { get; set; }
 
-    /// <summary>The right-side charge a contact barrier spends.</summary>
-    public int ContactRight { get; set; }
+    /// <summary>What a Contact barrier asks of each of the three bars.</summary>
+    public int CostFirst { get; set; }
 
-    /// <summary>The Splitline side a channel/rail note belongs to.</summary>
-    public ChannelSide ChannelSide { get; set; } = ChannelSide.Left;
+    public int CostSecond { get; set; }
 
-    /// <summary>How long a rail hold lasts; zero for a tap.</summary>
-    public long HoldMs { get; set; }
-
-    /// <summary>The Form construction shape a construction/step note belongs to.</summary>
-    public int ShapeId { get; set; }
-
-    /// <summary>Which attached block a construction step reveals.</summary>
-    public int ShapePiece { get; set; }
-
-    /// <summary>The way a dash note pushes the player once it lands.</summary>
-    public DashDirection ExitDirection { get; set; } = DashDirection.Up;
-
-    /// <summary>A dash note's push out of the dash, in playfield units per second; zero for none.</summary>
-    public float ExitMomentum { get; set; }
+    public int CostThird { get; set; }
 }

@@ -35,9 +35,7 @@ public sealed class ContactBarrierSystem : QuerySystem<Player, Position, Playfie
 
         Query.ForEachEntity((ref player, ref position, ref view, ref playhead, entity) =>
         {
-            if (entity.Tags.Has<PlayPaused>() ||
-                entity.Tags.Has<SplitlineAbsent>() ||
-                IsWaiting(entity))
+            if (entity.Tags.Has<PlayPaused>() || IsWaiting(entity))
             {
                 return;
             }
@@ -78,9 +76,8 @@ public sealed class ContactBarrierSystem : QuerySystem<Player, Position, Playfie
                 if (!NoteReach.Contains(playerScreen, view, noteScreen, CharacterKind.Contact))
                     continue;
 
-                (int left, int right) = ContactRules.Costs(note);
                 ref ContactCounters counters = ref entity.GetComponent<ContactCounters>();
-                bool paid = counters.Consume(left, right);
+                bool paid = counters.Consume(note.Costs);
 
                 if (!paid && entity.HasComponent<ScoreState>())
                 {

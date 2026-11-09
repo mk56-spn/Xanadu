@@ -14,9 +14,11 @@ public static class EditorToolSections
         EditorPlacementMode.Momentum,
     };
 
-    public static readonly EditorPlacementMode[] DashExit =
+    /// <summary>Directional notes can be rhombuses.</summary>
+    public static readonly EditorPlacementMode[] Diagonal =
     {
         EditorPlacementMode.Dash,
+        EditorPlacementMode.Momentum,
     };
 
     public static readonly EditorPlacementMode[] BlockSize =
@@ -37,12 +39,6 @@ public static class EditorToolSections
     public static readonly EditorPlacementMode[] Flare =
     {
         EditorPlacementMode.Flare,
-    };
-
-    public static readonly EditorPlacementMode[] FormShape =
-    {
-        EditorPlacementMode.Blocks,
-        EditorPlacementMode.FormStep,
     };
 }
 

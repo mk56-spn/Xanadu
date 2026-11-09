@@ -5,7 +5,7 @@ using Xanadu.Ui.Ecs.Ui;
 
 namespace Xanadu.Systems.Playfields;
 
-/// <summary>Projects the left and right Contact stacks into the HUD.</summary>
+/// <summary>Projects Contact's three bars into the HUD, each as how full it is.</summary>
 public sealed class ContactCounterSystem : QuerySystem<ContactCounters, ContactCounterHud>
 {
     protected override void OnUpdate()
@@ -14,8 +14,8 @@ public sealed class ContactCounterSystem : QuerySystem<ContactCounters, ContactC
 
         Query.ForEachEntity((ref counters, ref hud, _) =>
         {
-            Set(hud.Left, $"L {counters.Left}", buffer);
-            Set(hud.Right, $"R {counters.Right}", buffer);
+            for (int bar = 0; bar < ContactCounters.Bars; bar++)
+                Set(hud[bar], $"{counters[bar]}/{ContactCounters.Cap}", buffer);
         });
     }
 

@@ -54,8 +54,7 @@ public static partial class PlayfieldRenderer
     {
         // Items that follow a group's shader track read it while they draw.
         SetGroupTracks(frame.Groups, frame.Seconds);
-        (bool Left, bool Right) rails = RailsShown(entities, previewBoth: frame.Editor);
-        PlayfieldDrawList.Gather(entities, DrawEntries, startPoints: frame.Editor, railLanes: rails.Left || rails.Right);
+        PlayfieldDrawList.Gather(entities, DrawEntries, startPoints: frame.Editor);
         bool playing = IsPlaying(entities);
 
         // A buffered group's members draw together at its lowest slot instead
@@ -100,14 +99,14 @@ public static partial class PlayfieldRenderer
             {
                 if (drawnBuffers.Add((bufferedGroup, entry.Layer)))
                 {
-                    DrawBufferedGroup(canvas, rid, entities, bufferedGroup, i, frame, rails, playing);
+                    DrawBufferedGroup(canvas, rid, entities, bufferedGroup, i, frame, playing);
                     canvas.SelectShader(0);
                 }
 
                 continue;
             }
 
-            DrawEntry(canvas, rid, entities, entry, frame, rails, playing);
+            DrawEntry(canvas, rid, entities, entry, frame, playing);
             canvas.SelectShader(0);
         }
 
@@ -156,7 +155,6 @@ public static partial class PlayfieldRenderer
         int group,
         int first,
         in PlayfieldItemFrame frame,
-        (bool Left, bool Right) rails,
         bool playing)
     {
         GroupDefinition definition = _groupTracks[group];
@@ -193,7 +191,7 @@ public static partial class PlayfieldRenderer
                 entry.Layer == layer &&
                 frame.ShowsLayer?.Invoke(entry.Layer) != false)
             {
-                DrawEntry(canvas, rid, entities, entry, frame, rails, playing);
+                DrawEntry(canvas, rid, entities, entry, frame, playing);
                 canvas.SelectShader(0);
             }
         }
@@ -302,7 +300,6 @@ public static partial class PlayfieldRenderer
         EntityStore entities,
         PlayfieldDrawEntry entry,
         in PlayfieldItemFrame frame,
-        (bool Left, bool Right) rails,
         bool playing)
     {
         Entity entity = entry.Entity;
@@ -319,9 +316,6 @@ public static partial class PlayfieldRenderer
 
         switch (entry.Kind)
         {
-            case PlayfieldDrawKind.RailLanes:
-                DrawRailLanes(canvas, rid, entities, view, frame.Playfield, frame.Playhead, rails);
-                break;
             case PlayfieldDrawKind.NoteGuides:
                 if (frame.DivaNotes)
                     DrawDivaGuides(canvas, rid, entities, view, frame.Playhead, DivaPulse(frame.Playhead));
@@ -334,15 +328,8 @@ public static partial class PlayfieldRenderer
                 else
                     DrawNote(canvas, rid, entity, view, frame.Playhead, frame.SelectedNote);
                 break;
-            case PlayfieldDrawKind.RailNote:
-                // A rail note rides its lane, which groups don't move.
-                DrawRailNote(canvas, rid, entity, frame.View, frame.Playfield, frame.Playhead, rails);
-                break;
             case PlayfieldDrawKind.NotePop:
                 DrawNotePop(canvas, rid, entity);
-                break;
-            case PlayfieldDrawKind.DashLinkFade:
-                DrawDashLinkFade(canvas, rid, entity);
                 break;
             case PlayfieldDrawKind.DashTrail:
                 DrawDashTrail(canvas, rid, entity);

@@ -37,7 +37,7 @@ public sealed class ReplaySystemTests
     public void RecordsPressesAndReleasesAtThePlayheadTime()
     {
         Entity play = Play(recorder: true);
-        Key l1 = _keybinds.Get(KeybindAction.L1);
+        Key l1 = _keybinds.Get(KeybindAction.Action1);
 
         Frame(play, 1000);
         _real.Press(l1);
@@ -50,8 +50,8 @@ public sealed class ReplaySystemTests
             play.GetComponent<ReplayRecorder>().Events,
             Is.EqualTo(new[]
             {
-                new ReplayEvent(1016, KeybindAction.L1, true),
-                new ReplayEvent(1048, KeybindAction.L1, false),
+                new ReplayEvent(1016, KeybindAction.Action1, true),
+                new ReplayEvent(1048, KeybindAction.Action1, false),
             }));
     }
 
@@ -59,7 +59,7 @@ public sealed class ReplaySystemTests
     public void DoesNotRecordBeforeStartWhilePausedOrAfterFinish()
     {
         Entity play = Play(recorder: true, started: false);
-        _real.Press(_keybinds.Get(KeybindAction.R1));
+        _real.Press(_keybinds.Get(KeybindAction.Action1));
 
         Frame(play, 0);
         Assert.That(play.GetComponent<ReplayRecorder>().Events, Is.Empty);
@@ -80,22 +80,22 @@ public sealed class ReplaySystemTests
     {
         Entity play = Play(recorder: true);
 
-        _real.Press(_keybinds.Get(KeybindAction.L1));
-        _real.Press(_keybinds.Get(KeybindAction.R3));
+        _real.Press(_keybinds.Get(KeybindAction.Action1));
+        _real.Press(_keybinds.Get(KeybindAction.Action3));
         Frame(play, 500);
 
         Assert.That(
             play.GetComponent<ReplayRecorder>().Events.Select(e => e.Action),
-            Is.EquivalentTo(new[] { KeybindAction.L1, KeybindAction.R3 }));
+            Is.EquivalentTo(new[] { KeybindAction.Action1, KeybindAction.Action3 }));
     }
 
     [Test]
     public void PlaybackPressesKeysAsTheSongReachesEachEvent()
     {
         Entity play = Play(replay: Script(
-            new ReplayEvent(1000, KeybindAction.L1, true),
-            new ReplayEvent(1100, KeybindAction.L1, false)));
-        Key l1 = _keybinds.Get(KeybindAction.L1);
+            new ReplayEvent(1000, KeybindAction.Action1, true),
+            new ReplayEvent(1100, KeybindAction.Action1, false)));
+        Key l1 = _keybinds.Get(KeybindAction.Action1);
 
         Frame(play, 999);
         Assert.That(_keyboard.IsPressed(l1), Is.False);
@@ -114,7 +114,7 @@ public sealed class ReplaySystemTests
     public void ReplayIgnoresTheRealKeyboardAndRestoresItAfterwards()
     {
         Entity play = Play(replay: Script());
-        Key l1 = _keybinds.Get(KeybindAction.L1);
+        Key l1 = _keybinds.Get(KeybindAction.Action1);
 
         _real.Press(l1);
         Frame(play, 50);
@@ -128,8 +128,8 @@ public sealed class ReplaySystemTests
     [Test]
     public void PlaybackHonoursKeybindsChangedSinceRecording()
     {
-        Entity play = Play(replay: Script(new ReplayEvent(10, KeybindAction.L1, true)));
-        _keybinds.BeginCapture(KeybindAction.L1);
+        Entity play = Play(replay: Script(new ReplayEvent(10, KeybindAction.Action1, true)));
+        _keybinds.BeginCapture(KeybindAction.Action1);
         Assert.That(_keybinds.TryCapture(Key.Q), Is.True);
 
         Frame(play, 20);
@@ -141,9 +141,9 @@ public sealed class ReplaySystemTests
     public void SeekingBackwardsReplaysFromTheStart()
     {
         Entity play = Play(replay: Script(
-            new ReplayEvent(100, KeybindAction.L1, true),
-            new ReplayEvent(200, KeybindAction.L1, false)));
-        Key l1 = _keybinds.Get(KeybindAction.L1);
+            new ReplayEvent(100, KeybindAction.Action1, true),
+            new ReplayEvent(200, KeybindAction.Action1, false)));
+        Key l1 = _keybinds.Get(KeybindAction.Action1);
 
         Frame(play, 150);
         Frame(play, 250);
@@ -156,8 +156,8 @@ public sealed class ReplaySystemTests
     [Test]
     public void PausedPlaybackHoldsTheKeysWhereTheyWere()
     {
-        Entity play = Play(replay: Script(new ReplayEvent(100, KeybindAction.L1, true)));
-        Key l1 = _keybinds.Get(KeybindAction.L1);
+        Entity play = Play(replay: Script(new ReplayEvent(100, KeybindAction.Action1, true)));
+        Key l1 = _keybinds.Get(KeybindAction.Action1);
 
         Frame(play, 150);
         play.AddTag<PlayPaused>();
@@ -172,12 +172,12 @@ public sealed class ReplaySystemTests
         Entity recording = Play(recorder: true);
         var pattern = new (long Time, KeybindAction Action, bool Down)[]
         {
-            (1000, KeybindAction.L2, true),
-            (1064, KeybindAction.L2, false),
-            (1500, KeybindAction.M, true),
-            (1500, KeybindAction.R1, true),
-            (1580, KeybindAction.M, false),
-            (1700, KeybindAction.R1, false),
+            (1000, KeybindAction.Action2, true),
+            (1064, KeybindAction.Action2, false),
+            (1500, KeybindAction.Action2, true),
+            (1500, KeybindAction.Action1, true),
+            (1580, KeybindAction.Action2, false),
+            (1700, KeybindAction.Action1, false),
         };
 
         for (long time = 900; time <= 1800; time += 4)

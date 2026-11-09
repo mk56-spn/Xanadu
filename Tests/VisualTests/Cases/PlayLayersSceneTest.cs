@@ -30,7 +30,7 @@ public sealed class PlayLayersSceneTest : SceneTest
             document.Blocks.Add(Block(160, 300, 160, 160, "#3d7bff", layer: -1, z: -5));
             document.Notes.Add(new NoteDocument
             {
-                TimeMs = 2_100, X = 300, Y = 380, Target = KeybindAction.M, Layer = -1, Z = 0,
+                TimeMs = 2_100, X = 300, Y = 380, Target = KeybindAction.Action2, Layer = -1, Z = 0,
             });
             document.Blocks.Add(Block(330, 340, 120, 160, "#3ccf6a", layer: -1, z: 5));
             document.Texts.Add(new TextDocument

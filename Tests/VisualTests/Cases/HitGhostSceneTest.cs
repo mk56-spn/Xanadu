@@ -30,8 +30,8 @@ public sealed class HitGhostSceneTest : SceneTest
             LevelDocument document = TestContent.Level("Hit Ghost Test", song);
             document.Notes.Add(new NoteDocument
             {
-                TimeMs = 1_000, X = 500, Y = 1000, Target = KeybindAction.L3,
-                Kind = NoteKind.Dash, DashDirection = DashDirection.UpRight,
+                TimeMs = 1_000, X = 500, Y = 1000, Target = KeybindAction.Action3,
+                Kind = NoteKind.Dash, Diagonal = true,
             });
             Context.Scenes.StartPlay(new LevelEntry("memory://hit-ghost", document, song));
         });
@@ -55,7 +55,7 @@ public sealed class HitGhostSceneTest : SceneTest
         });
         AddStep("freeze time", () => SetPlayheadTime(1_000));
         AddStep("hit the dash", () =>
-            Context.Keyboard.Press(Context.Systems.Keybinds.Get(KeybindAction.L3)));
+            Context.Keyboard.Press(Context.Systems.Keybinds.Get(KeybindAction.Up)));
         AddUntilStep("a copy is left behind", () => Context.Entities.Query<HitGhost>().Count == 1);
         AddUntilStep(
             "the copy is fading",

@@ -22,7 +22,7 @@ public sealed class EditorToolSectionSystemTests : EcsSystemTest
         _blockSize = Store.CreateEntity(new EditorToolSection(EditorToolSections.BlockSize));
         _strength = Store.CreateEntity(new EditorToolSection(EditorToolSections.MoveStrength));
         _cost = Store.CreateEntity(new EditorToolSection(EditorToolSections.ContactCost));
-        _shape = Store.CreateEntity(new EditorToolSection(EditorToolSections.FormShape));
+        _shape = Store.CreateEntity(new EditorToolSection(EditorToolSections.Diagonal));
         _editor = Store.CreateEntity(
             new EditorPlacement { Mode = EditorPlacementMode.Notes },
             new EditorLeftMenu(_panel));
@@ -55,15 +55,14 @@ public sealed class EditorToolSectionSystemTests : EcsSystemTest
         Assert.That(Hidden(_panel), Is.False);
     }
 
-    [TestCase(EditorPlacementMode.Dash, false, true, true)]
-    [TestCase(EditorPlacementMode.Momentum, false, true, true)]
+    [TestCase(EditorPlacementMode.Dash, false, true, false)]
+    [TestCase(EditorPlacementMode.Momentum, false, true, false)]
     [TestCase(EditorPlacementMode.Contact, true, false, true)]
-    [TestCase(EditorPlacementMode.FormStep, true, true, false)]
     public void EachToolShowsItsOwnSection(
         EditorPlacementMode mode,
         bool strengthHidden,
         bool costHidden,
-        bool shapeHidden)
+        bool diagonalHidden)
     {
         _editor.GetComponent<EditorPlacement>().Mode = mode;
 
@@ -71,7 +70,7 @@ public sealed class EditorToolSectionSystemTests : EcsSystemTest
 
         Assert.That(Hidden(_strength), Is.EqualTo(strengthHidden));
         Assert.That(Hidden(_cost), Is.EqualTo(costHidden));
-        Assert.That(Hidden(_shape), Is.EqualTo(shapeHidden));
+        Assert.That(Hidden(_shape), Is.EqualTo(diagonalHidden));
     }
 
     [Test]

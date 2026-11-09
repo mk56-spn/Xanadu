@@ -103,8 +103,6 @@ public sealed class LevelSerializerTests
             FillGroups = 0b01,
             OutlineGroups = 0b10,
             OneWay = 2,
-            ShapeId = 3,
-            ShapePiece = 1,
         });
         var source = new XmfMapset();
         source.Variants.Add(variant);
@@ -116,8 +114,6 @@ public sealed class LevelSerializerTests
         Assert.That(block.FillGroups, Is.EqualTo(0b01u));
         Assert.That(block.OutlineGroups, Is.EqualTo(0b10u));
         Assert.That(block.OneWay, Is.EqualTo(2));
-        Assert.That(block.ShapeId, Is.EqualTo(3));
-        Assert.That(block.ShapePiece, Is.EqualTo(1));
     }
 
     [Test]
@@ -197,9 +193,8 @@ public sealed class LevelSerializerTests
             TimeMs = 1_250,
             X = 250,
             Y = 400,
-            Target = KeybindAction.R2,
+            Target = KeybindAction.Action2,
             Kind = NoteKind.Dash,
-            DashDirection = DashDirection.UpRight,
         });
         source.Mines.Add(new MineDocument
         {
@@ -220,11 +215,8 @@ public sealed class LevelSerializerTests
         Assert.That(result.Notes[0].TimeMs, Is.EqualTo(1_250));
         Assert.That(result.Notes[0].X, Is.EqualTo(250));
         Assert.That(result.Notes[0].Y, Is.EqualTo(400));
-        Assert.That(result.Notes[0].Target, Is.EqualTo(KeybindAction.R2));
+        Assert.That(result.Notes[0].Target, Is.EqualTo(KeybindAction.Action2));
         Assert.That(result.Notes[0].Kind, Is.EqualTo(NoteKind.Dash));
-        Assert.That(
-            result.Notes[0].DashDirection,
-            Is.EqualTo(DashDirection.UpRight));
         Assert.That(result.Mines, Has.Count.EqualTo(1));
         Assert.That(result.Mines[0].TimeMs, Is.EqualTo(1_500));
         Assert.That(result.Mines[0].X, Is.EqualTo(500));

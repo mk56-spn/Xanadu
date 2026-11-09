@@ -69,7 +69,7 @@ public static partial class PlayfieldRenderer
             canvas.DrawRect(rid, OneWayEdge(screen, oneWay), strip);
     }
 
-    /// <summary>Whether any playfield in the store is playing, where a block a construction hides is gone.</summary>
+    /// <summary>Whether any playfield in the store is playing rather than being edited.</summary>
     public static bool IsPlaying(EntityStore entities)
     {
         foreach (Entity playfield in entities.Query<PlayfieldMode>().ToEntityList())
@@ -84,8 +84,7 @@ public static partial class PlayfieldRenderer
     /// <summary>
     /// Draws one block as a filled slab inside its outline. A selected one gets
     /// an accent edge even with no outline of its own; the editor draws the
-    /// primary one's resize handles on top. A block a construction hides is
-    /// gone while <paramref name="playing"/>, and faint otherwise.
+    /// primary one's resize handles on top.
     /// </summary>
     public static void DrawBlock(
         IRectCanvas canvas,
@@ -99,22 +98,12 @@ public static partial class PlayfieldRenderer
         if (block.Size.X <= 0 || block.Size.Y <= 0)
             return;
 
-        bool hidden = entity.Tags.Has<ConstructionHidden>();
-        if (hidden && playing)
-            return;
-
         SelectItemShader(canvas, entity);
         Rect2 screen = new(
             view.PlayfieldToScreen(block.Position),
             block.Size * view.Scale);
         Color outline = GroupOutlineColor.For(entity, block);
         Color fill = GroupColor.For(entity, BlockFill);
-        if (hidden)
-        {
-            outline.A *= 0.35f;
-            fill.A *= 0.35f;
-        }
-
         DrawBlockBody(canvas, rid, screen, block.OutlineWidth * view.Scale, fill, outline, block.OneWay);
 
         Color edge = outline;

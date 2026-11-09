@@ -69,16 +69,10 @@ public sealed class EditorNoteTypeBarSystem : QuerySystem<EditorButton>
     }
 
     /// <summary>
-    /// Normal, dash and momentum notes carry a specific key and pair notes take
-    /// their number from the selected key.
+    /// Only coloured action notes carry a key: the bar picks which of the three.
     /// </summary>
     public static bool ShowsFor(EditorPlacementMode mode) =>
-        mode is EditorPlacementMode.Notes or
-            EditorPlacementMode.Dash or
-            EditorPlacementMode.Momentum or
-            EditorPlacementMode.Pair or
-            EditorPlacementMode.Channel or
-            EditorPlacementMode.FormStep;
+        mode is EditorPlacementMode.Notes;
 
     /// <summary>The unselected variant of a note colour.</summary>
     public static Color Dimmed(Color color) => color.Lerp(DimTo, Dimming);

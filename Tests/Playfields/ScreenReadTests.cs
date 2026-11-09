@@ -36,7 +36,7 @@ public sealed class ScreenReadTests
         ItemLayer.Put(front, new ItemLayer(-1, 9));
 
         var entries = new List<PlayfieldDrawEntry>();
-        PlayfieldDrawList.Gather(store, entries, startPoints: false, railLanes: false);
+        PlayfieldDrawList.Gather(store, entries, startPoints: false);
 
         int atBack = entries.FindIndex(entry => entry.Entity.Id == back.Id);
         int atRegion = entries.FindIndex(entry => entry.Entity.Id == region.Id);
