@@ -18,8 +18,9 @@ obj/
 .DS_Store
 Thumbs.db
 
-# Local scratch screenshots
+# Screenshots are never committed or pushed: local scratch only
 .shots/
+screenshots/
 
 # Agent scratch (screenshots, dotnet temp, tool configs)
 .tmp/
