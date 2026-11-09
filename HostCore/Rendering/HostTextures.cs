@@ -38,7 +38,20 @@ internal sealed class HostTextures(GraphicsDevice device, CanvasTree tree, Canva
 
         Rid rid = default;
         string file = GamePaths.Globalize(path);
-        if (File.Exists(file))
+        if (File.Exists(file) && file.EndsWith(".svg", StringComparison.OrdinalIgnoreCase))
+        {
+            // At the document's own size, as Godot's SVG import (scale 1) made it.
+            try
+            {
+                Xanadu.Animation.RasterImage image = Xanadu.Animation.SvgRaster.Render(File.ReadAllText(file), 1f);
+                rid = Create(image.Width, image.Height, image.Pixels, mipmaps: true);
+            }
+            catch (Exception exception) when (exception is InvalidOperationException or IOException)
+            {
+                Console.Error.WriteLine($"SVG {path}: {exception.Message}");
+            }
+        }
+        else if (File.Exists(file))
         {
             byte* data = ImageUtils.GetPixelDataFromBytes(File.ReadAllBytes(file), out uint width, out uint height, out uint size);
             if (data is not null)

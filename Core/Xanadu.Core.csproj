@@ -8,5 +8,8 @@
   <ItemGroup>
     <PackageReference Include="Friflo.Engine.ECS" Version="4.0.0-preview.2" />
     <PackageReference Include="Friflo.Engine.ECS.Boost" Version="4.0.0-preview.2" />
+    <!-- SVG rasterising without the engine (SvgRaster): rig art in the game, icons in the host. -->
+    <PackageReference Include="SkiaSharp.NativeAssets.Linux" Version="4.148.0" />
+    <PackageReference Include="Svg.Skia" Version="5.2.3" />
   </ItemGroup>
 </Project>

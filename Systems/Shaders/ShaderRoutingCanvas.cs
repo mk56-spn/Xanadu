@@ -418,9 +418,6 @@ public sealed class ShaderRoutingCanvas(IRectCanvas inner, Rid root, IShaderCanv
     public void DrawTexture(Rid canvas, Rect2 bounds, Rid texture) =>
         inner.DrawTexture(Route(canvas), bounds, texture);
 
-    public void DrawTexture(Rid canvas, Rect2 bounds, Texture2D texture) =>
-        inner.DrawTexture(Route(canvas), bounds, texture);
-
     public void DrawCircle(Rid canvas, Vector2 center, float radius, Color color) =>
         inner.DrawCircle(Route(canvas), center, radius, color);
 

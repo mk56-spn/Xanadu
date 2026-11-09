@@ -76,7 +76,7 @@ public static class AnimatorDefaultPackage
         int zOrder) =>
         package.Attachments.Add(new XafAttachment
         {
-            SvgPath = $"res://Assets/SVG/{file}.svg",
+            SvgPath = $"{AnimatorPaths.Svg}/{file}.svg",
             Group = group,
             BoneId = bone,
             Transform = new Transform2D(0f, offset),

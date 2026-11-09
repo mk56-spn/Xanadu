@@ -344,7 +344,7 @@ public sealed partial class UiBuilder
     public Entity ImageEntity(
         Vector2 position,
         Vector2 size,
-        Texture2D texture)
+        Rid texture)
     {
         RequireLayer();
 

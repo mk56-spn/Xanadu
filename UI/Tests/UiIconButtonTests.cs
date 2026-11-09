@@ -19,14 +19,14 @@ public sealed class UiIconButtonTests
         UiIcons.Loader = path =>
         {
             _requested = path;
-            return null;
+            return default;
         };
     }
 
     [TearDown]
     public void TearDown()
     {
-        UiIcons.Loader = _ => null;
+        UiIcons.Loader = _ => default;
     }
 
     [Test]

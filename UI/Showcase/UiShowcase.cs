@@ -3,6 +3,8 @@ using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Godot;
 using Xanadu.Ecs;
+using Xanadu.Host;
+using Xanadu.Systems;
 using Xanadu.Systems.Canvas;
 using Xanadu.Systems.Input;
 using Xanadu.Systems.Ui;
@@ -12,49 +14,60 @@ using Position = Xanadu.Ecs.Position;
 
 namespace Xanadu.Ui.Showcase;
 
-/// <summary>Standalone demo of the generic Xanadu.Ui feature set.</summary>
-public partial class UiShowcase : Control
+/// <summary>Standalone demo of the generic Xanadu.Ui feature set, on the MoonWorks host.</summary>
+internal sealed class UiShowcase : HostApp
 {
-    private EntityStore _store = null!;
-    private SystemRoot _root = null!;
-    private GodotPointerInputSource _pointer = null!;
-    private VisualRidRelease _visuals = null!;
+    private readonly SystemRoot _root;
+    private readonly VisualRidRelease _visuals;
 
-    public override void _Ready()
+    public UiShowcase(string[] args) : base("Xanadu UI Showcase", WindowOptions(args))
     {
-        _store = new EntityStore();
-        _visuals = new VisualRidRelease(_store);
-        _root = new SystemRoot(_store);
-        _pointer = new GodotPointerInputSource(this);
-        var canvas = new GodotRectCanvas();
-
+        _visuals = new VisualRidRelease(Entities);
+        _root = new SystemRoot(Entities);
         _root.Add(new UiSystemGroup(
-            _store,
-            GetCanvasItem(),
-            canvas,
-            _pointer,
-            screen: GetViewportRect().Size,
-            wheel: _pointer));
+            Entities,
+            Canvas.RootRid,
+            HostPlatform.NewCanvas(),
+            Pointer,
+            screen: new Vector2(Width, Height),
+            keyboard: Keyboard,
+            wheel: Pointer));
 
         Build();
-        SetProcess(true);
     }
 
-    public override void _Process(double delta)
+    /// <summary><c>--resolution=WxH</c> (default 1600x900), <c>--shot=png</c> and <c>--shot-frame=n</c>.</summary>
+    private static HostWindowOptions WindowOptions(string[] args)
     {
-        float time = (float)Time.GetTicksMsec() / 1000f;
-        _root.Update(new UpdateTick((float)delta, time));
-        _pointer.EndFrame();
+        uint width = 1600, height = 900;
+        string? shot = null;
+        int frame = 60;
+        foreach (string arg in args)
+        {
+            if (arg.StartsWith("--shot=", StringComparison.Ordinal))
+                shot = System.IO.Path.GetFullPath(arg["--shot=".Length..]);
+            else if (arg.StartsWith("--shot-frame=", StringComparison.Ordinal))
+                frame = int.Parse(arg["--shot-frame=".Length..]);
+            else if (arg.StartsWith("--resolution=", StringComparison.Ordinal))
+            {
+                string[] size = arg["--resolution=".Length..].Split('x');
+                width = uint.Parse(size[0]);
+                height = uint.Parse(size[1]);
+            }
+        }
+
+        return new HostWindowOptions(width, height, shot, frame);
     }
 
-    public override void _Input(InputEvent @event) => _pointer.Feed(@event);
+    protected override void Tick(float delta, float time) =>
+        _root.Update(new UpdateTick(delta, time));
 
-    public override void _ExitTree() => _visuals.Dispose();
+    protected override void Shutdown() => _visuals.Dispose();
 
     private void Build()
     {
-        Vector2 screen = GetViewportRect().Size;
-        UiBuilder ui = UiBuilder.Begin(_store).Layer(UiLayers.Base);
+        var screen = new Vector2(Width, Height);
+        UiBuilder ui = UiBuilder.Begin(Entities).Layer(UiLayers.Base);
 
         ui.RectEntity(screen / 2, screen, Palette.Background);
         ui.RectEntity(new Vector2(120, 60), new Vector2(900, 64),

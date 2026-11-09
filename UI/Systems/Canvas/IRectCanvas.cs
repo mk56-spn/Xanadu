@@ -91,9 +91,6 @@ public interface IRectCanvas
 
     void DrawRect(Rid canvas, Rect2 bounds, Color color);
 
-    /// <summary>Draws a texture into a rectangle.</summary>
-    void DrawTexture(Rid canvas, Rect2 bounds, Texture2D texture) { }
-
     /// <summary>Draws a texture, by its canvas texture id, into a rectangle.</summary>
     void DrawTexture(Rid canvas, Rect2 bounds, Rid texture) { }
 

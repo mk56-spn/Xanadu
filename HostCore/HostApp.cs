@@ -43,6 +43,7 @@ internal abstract class HostApp : Game
     private DateTime _lastUpdate = DateTime.UtcNow;
     private int _frames;
     private bool _screenshotRequested;
+    private string? _requestedShot;
 
     protected Texture Target { get; }
     protected CanvasTree Canvas { get; } = new();
@@ -86,6 +87,7 @@ internal abstract class HostApp : Game
         HostPlatform.Use(Canvas, () => new HostRectCanvas(Text), Keyboard, new CanvasServerRidFactory(loadsAssets: true), Fps);
         HostPlatform.Particles = Renderer.Particles;
         TextureServer.Use(new HostTextures(GraphicsDevice, Canvas, Renderer));
+        UiIcons.Loader = UiIcons.FromResources;
         HostPlatform.GlyphStrip = atlas =>
         {
             Godot.Rid rid = Canvas.MintRid();
@@ -98,6 +100,9 @@ internal abstract class HostApp : Game
         ApplyVSync(true);
         TextInput = new HostTextInput(Entities, MainWindow);
     }
+
+    /// <summary>Saves the next frame to <paramref name="path"/> and quits, for an exe that times its own shot.</summary>
+    protected void RequestShot(string path) => _requestedShot = path;
 
     /// <summary>Runs the exe's own systems once a frame, with real seconds since the last frame.</summary>
     protected abstract void Tick(float delta, float time);
@@ -196,7 +201,8 @@ internal abstract class HostApp : Game
             return;
         }
 
-        if (_window.ShotPath is { } path && _frames == _window.ShotFrame)
+        string? shot = _requestedShot ?? (_frames == _window.ShotFrame ? _window.ShotPath : null);
+        if (shot is { } path)
         {
             Console.WriteLine($"Canvas: {Canvas.Count} items, {Renderer.LastBatchCount} draw calls, " +
                 $"{Renderer.LastOffscreenCount} offscreen passes, {Renderer.LastCopyCount} screen copies");

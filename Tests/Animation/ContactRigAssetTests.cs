@@ -36,7 +36,7 @@ public sealed class ContactRigAssetTests
     /// <summary>The part's own rectangle (its viewBox), which is what the attachment is centred on.</summary>
     private static Rect2 ViewBox(XafAttachment attachment, out string svg)
     {
-        svg = File.ReadAllText(ProjectFile("Tools/Animator/" + attachment.SvgPath["res://".Length..]));
+        svg = File.ReadAllText(ProjectFile(attachment.SvgPath["res://".Length..]));
         int start = svg.IndexOf("viewBox=\"", StringComparison.Ordinal) + "viewBox=\"".Length;
         float[] v = Array.ConvertAll(
             svg[start..svg.IndexOf('"', start)].Split(' '),
@@ -144,7 +144,7 @@ public sealed class ContactRigAssetTests
             else
                 Assert.That(strand.Lean, Is.GreaterThan(0f), $"{strand.Id} draws over the neck, so it leans forward over the front");
 
-            string svg = File.ReadAllText(ProjectFile("Tools/Animator/" + strand.SvgPath["res://".Length..]));
+            string svg = File.ReadAllText(ProjectFile(strand.SvgPath["res://".Length..]));
             Assert.That(XafSvgDocument.Groups(svg), Does.Contain(strand.Group));
             // One flat, light gold shape: no outline and no second tone.
             Assert.That(svg, Does.Contain("fill=\"#f5d76e\""));

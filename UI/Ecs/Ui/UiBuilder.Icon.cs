@@ -12,18 +12,23 @@ namespace Xanadu.Ecs;
 public static class UiIcons
 {
     /// <summary>
-    /// Loads nothing until a running tool installs <see cref="FromResources"/>:
-    /// the engine's resource loader takes the process down when there is no engine,
-    /// which is the case in unit tests.
+    /// Loads nothing until a running host installs <see cref="FromResources"/>:
+    /// unit tests have no texture server to load into.
     /// </summary>
-    public static Func<string, Texture2D?> Loader { get; set; } = _ => null;
+    public static Func<string, Rid> Loader { get; set; } = _ => default;
 
-    public static Texture2D? Load(string? path) =>
-        string.IsNullOrEmpty(path) ? null : Loader(path);
+    /// <summary>The icon's texture id; an invalid one when there is no icon.</summary>
+    public static Rid Load(string? path) =>
+        string.IsNullOrEmpty(path) ? default : Loader(path);
 
-    /// <summary>The engine's loader; a missing file gives no icon rather than an error.</summary>
-    public static Texture2D? FromResources(string path) =>
-        ResourceLoader.Exists(path) ? ResourceLoader.Load<Texture2D>(path) : null;
+    /// <summary>
+    /// The running host's textures (<see cref="Xanadu.Systems.Canvas.TextureServer"/>);
+    /// a missing file gives no icon rather than an error.
+    /// </summary>
+    public static Rid FromResources(string path) =>
+        System.IO.File.Exists(Xanadu.Storage.GamePaths.Globalize(path))
+            ? Xanadu.Systems.Canvas.TextureServer.Current.Load(path)
+            : default;
 }
 
 public sealed partial class UiBuilder
@@ -45,11 +50,11 @@ public sealed partial class UiBuilder
         int fontSize = UiTheme.FontSize)
     {
         Color normal = color ?? UiTheme.Button;
-        Texture2D? texture = UiIcons.Load(iconPath);
+        Rid texture = UiIcons.Load(iconPath);
 
         Container(Vector2.Zero, size, color: normal, takesInput: true);
         Entity button = Current;
-        if (texture is null)
+        if (!texture.IsValid)
         {
             button.AddComponent(new Text(fallback));
             button.AddComponent(new TextStyle(fontSize, UiTheme.Text));

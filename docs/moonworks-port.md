@@ -27,7 +27,9 @@ Update this block at the end of every session, including partial progress.
   the host. The Contact rig shows on the playfield.
 - **Step 9:** the editor runs in the host (song pick, placing, saving, F9,
   F10 and the shader import picker checked by hand).
-- **Next:** step 10 (tools as plain exes). Still open from earlier steps:
+- **Step 10:** the Animator and the UI Showcase are plain host exes. UI icons
+  now load on the host (SVG through `SvgRaster`, now in Core).
+- **Next:** the rest of step 10, porting the visual-test harness. Still open from earlier steps:
   - step 2: play a level by hand with the keyboard;
   - step 5: per-item data in a storage buffer, the vertex slot and chains,
     and shape glow.
@@ -769,10 +771,44 @@ D7–D17 against the host:
 
 ### Step 10: Tools as plain exes
 
-- [ ] Animator: `Tools/Animator` becomes a `Microsoft.NET.Sdk` exe on the
+- [x] Animator: `Tools/Animator` becomes a `Microsoft.NET.Sdk` exe on the
   host's renderer. Delete its `project.godot`, `.godot/` and the `realpath`
   hack. Its assets resolve through the one IO owner (memory: no IO spread).
-- [ ] UI Showcase: the same.
+  - **One root:** `res://` is the game folder in the animator too.
+    - The animator's content is under `res://Tools/Animator/...`
+      (`Files/AnimatorPaths.cs`).
+    - `contact.xaf`'s 18 art paths were rewritten once from
+      `res://Assets/SVG/...` to `res://Tools/Animator/Assets/SVG/...`. So a
+      package means the same files in the animator and in the game.
+    - `XafAssetPaths.Rebase` now finds the game's own `project.godot` and still
+      lands on the same files.
+    - `ContactRigAssetTests` no longer prefix `Tools/Animator/`.
+  - **Shell:** `AnimatorTool` derives from `HostApp`, and `Program.cs` starts
+    it. Every set-up flag still works: `--shot`, `--shot-frames`,
+    `--shot-seconds` (through the new `HostApp.RequestShot`), `--flow`,
+    `--clip` and the rest. `--resolution=WxH` defaults to 1600x900.
+  - **Adapters:**
+    - `GodotAnimatorFiles` → `AnimatorFiles` (`GamePaths`; OPEN FILE uses
+      `SDL_OpenURL`).
+    - `GodotAnimatorSvgCatalog` → `AnimatorSvgCatalog`.
+    - The XIF host's `CanLoad` checks the file.
+    - The metronome is `MiniaudioAnimatorClick`: the ticks are written once
+      to `user://animator/*.wav` and played through miniaudio, as the game
+      plays songs.
+  - `run-animator.sh` is now `dotnet run --project Tools/Animator`.
+  - Shots: `screenshots/step10-animator.png`, `step10-attacks.png` and
+    `step10-game-rig.png` (Contact still draws in the game).
+- [x] UI Showcase: the same. `UiShowcase` derives from `HostApp`, and
+  `run-showcase.sh` is now `dotnet run`. Shot: `screenshots/step10-showcase.png`.
+- **Icons on the host** (found while porting the animator; the editor's UN/RE
+  showed letters too):
+  - `UiImage` and `UiNode.Image` carry a texture id from `TextureServer`, not
+    a `Texture2D`. `UiIcons.Loader` returns an id, and `UiIcons.FromResources`
+    loads through `TextureServer` in both builds.
+  - `HostTextures.Load` rasterises `.svg` at scale 1, as Godot's import did.
+  - `SvgRaster` moved from the game assembly to `Core/Rendering` (same
+    namespace) with its Svg.Skia packages, so HostCore can use it.
+  - `IRectCanvas.DrawTexture(Texture2D)` is gone.
 - [ ] Visual tests: port the harness in `Tests/VisualTests/Harness` to the host's
   screenshot path.
 

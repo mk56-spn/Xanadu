@@ -69,11 +69,8 @@ public sealed class GodotRectCanvas : ServerRectCanvas, IRectCanvas
         pool.Used = 0;
     }
 
-    public void DrawTexture(Rid canvas, Rect2 bounds, Texture2D texture) =>
-        RenderingServer.CanvasItemAddTextureRect(
-            canvas,
-            bounds,
-            texture.GetRid());
+    public void DrawTexture(Rid canvas, Rect2 bounds, Rid texture) =>
+        RenderingServer.CanvasItemAddTextureRect(canvas, bounds, texture);
 
     public override void DrawText(Rid canvas, Rect2 bounds, string text, Color color) =>
         DrawTextAligned(canvas, bounds, text, color, FontSize, HorizontalAlignment.Center);

@@ -1,25 +1,22 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using Godot;
 using Xanadu.Animation;
+using Xanadu.Storage;
 
 namespace Xanadu.Tools.Animator.Files;
 
 /// <summary>
-/// Lists the SVG files under <c>res://Assets</c> and reads their group ids from
-/// disk. The animator's own project is the root, so paths are stored as
-/// <c>res://</c> and resolve again when the package is loaded elsewhere.
+/// Lists the SVG files under <see cref="AnimatorPaths.Assets"/> and reads their
+/// group ids from disk. Paths are stored as <c>res://</c> (the game folder), so
+/// they resolve the same in the animator and the game.
 /// </summary>
-public sealed class GodotAnimatorSvgCatalog : IAnimatorSvgCatalog
+public sealed class AnimatorSvgCatalog : IAnimatorSvgCatalog
 {
-    /// <summary>Folder swept for art, relative to the project.</summary>
-    public const string AssetsFolder = "res://Assets";
-
     public IReadOnlyList<string> Files()
     {
         var files = new List<string>();
-        string folder = ProjectSettings.GlobalizePath(AssetsFolder);
+        string folder = GamePaths.Globalize(AnimatorPaths.Assets);
         if (!Directory.Exists(folder))
             return files;
 
@@ -30,7 +27,7 @@ public sealed class GodotAnimatorSvgCatalog : IAnimatorSvgCatalog
                          "*.svg",
                          SearchOption.AllDirectories))
             {
-                files.Add(ProjectSettings.LocalizePath(file));
+                files.Add(Localize(file));
             }
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
@@ -44,7 +41,7 @@ public sealed class GodotAnimatorSvgCatalog : IAnimatorSvgCatalog
 
     public long Stamp(string svgPath)
     {
-        string path = ProjectSettings.GlobalizePath(svgPath);
+        string path = GamePaths.Globalize(svgPath);
         return File.Exists(path) ? File.GetLastWriteTimeUtc(path).Ticks : 0L;
     }
 
@@ -53,7 +50,7 @@ public sealed class GodotAnimatorSvgCatalog : IAnimatorSvgCatalog
         try
         {
             return XafSvgDocument.Groups(
-                File.ReadAllText(ProjectSettings.GlobalizePath(svgPath)));
+                File.ReadAllText(GamePaths.Globalize(svgPath)));
         }
         catch (Exception exception) when (exception is XafFormatException or
                                               IOException or
@@ -62,4 +59,8 @@ public sealed class GodotAnimatorSvgCatalog : IAnimatorSvgCatalog
             return Array.Empty<string>();
         }
     }
+
+    /// <summary>A file under the game folder as a <c>res://</c> path.</summary>
+    private static string Localize(string file) =>
+        "res://" + Path.GetRelativePath(GamePaths.Globalize("res://"), file).Replace('\\', '/');
 }

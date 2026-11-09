@@ -4,6 +4,8 @@ using Friflo.Engine.ECS.Systems;
 using Godot;
 using Xanadu.Animation;
 using Xanadu.Ecs;
+using Xanadu.Host;
+using Xanadu.Systems;
 using Xanadu.Systems.Canvas;
 using Xanadu.Systems.Input;
 using Xanadu.Systems.Ui;
@@ -12,31 +14,33 @@ using Xanadu.Tools.Animator.Files;
 
 namespace Xanadu.Tools.Animator;
 
-/// <summary>Standalone XAF skeleton/animation authoring tool: hosts the ECS and feeds it input.</summary>
-public partial class AnimatorTool : Control
+/// <summary>
+/// The XAF skeleton and animation tool on the MoonWorks host
+/// (docs/moonworks-port.md step 10): builds the animator's ECS world on
+/// <see cref="HostApp"/>'s canvas and feeds it input.
+/// </summary>
+internal sealed class AnimatorTool : HostApp
 {
-    private const string DefaultPath = "res://Animations/Characters/contact.xaf";
+    private const string DefaultPath = AnimatorPaths.DefaultPackage;
 
-    private EntityStore _store = null!;
-    private SystemRoot _root = null!;
-    private GodotPointerInputSource _pointer = null!;
+    private readonly SystemRoot _root;
     private readonly KeyPressQueue _keys = new();
-    private SvgAttachmentVisuals _attachments = null!;
-    private Entity _session;
+    private readonly SvgAttachmentVisuals _attachments;
+    private readonly Entity _session;
     private bool _fitted;
     /// <summary>
     /// Holds the grid, the art and the bone overlay, clipped to the preview, so
     /// no part of the character ever draws over the panels or their buttons.
     /// It is never cleared, so its clip stays put while its children redraw.
     /// </summary>
-    private Rid _stage;
+    private readonly Rid _stage;
     private Rect2 _stageClip;
-    private Rid _grid;
-    private Rid _preview;
-    private Rid _svgCanvas;
-    private Rid _timelineCanvas;
+    private readonly Rid _grid;
+    private readonly Rid _preview;
+    private readonly Rid _svgCanvas;
+    private readonly Rid _timelineCanvas;
 
-    /// <summary>Set by <c>--shot=path</c>: capture the window there after <see cref="_shotAt"/> frames, then quit.</summary>
+    /// <summary>Set by <c>--shot=path</c>: capture the frame there after <see cref="_shotAt"/> frames, then quit.</summary>
     private string? _shotPath;
     private bool _openLayers;
     private int _shotAt = 60;
@@ -84,15 +88,14 @@ public partial class AnimatorTool : Control
     /// <summary>Set by <c>--zoom=x</c>: the preview's zoom once it has been fitted, to check what spills past its edges.</summary>
     private float _zoom = -1f;
 
-    private VisualRidRelease _visuals = null!;
+    private readonly VisualRidRelease _visuals;
+    private readonly MiniaudioAnimatorClick _click = new();
 
-    public override void _Ready()
+    public AnimatorTool(string[] args) : base("Xanadu Animator", WindowOptions(args))
     {
-        _store = new EntityStore();
-        _visuals = new VisualRidRelease(_store);
-        _root = new SystemRoot(_store);
-        _pointer = new GodotPointerInputSource(this);
-        var canvas = new GodotRectCanvas();
+        _visuals = new VisualRidRelease(Entities);
+        _root = new SystemRoot(Entities);
+        IRectCanvas canvas = HostPlatform.NewCanvas();
 
         _stage = CreateCanvas(AnimatorLayout.GridZ);
         _grid = CreateCanvas(0, _stage);
@@ -101,51 +104,66 @@ public partial class AnimatorTool : Control
         _timelineCanvas = CreateCanvas(AnimatorLayout.TimelineZ);
         _attachments = new SvgAttachmentVisuals(_svgCanvas, containLayers: true);
 
-        UiTextBridge.Attach(this, _store);
-        var toasts = new ToastSystem(_store, GetViewportRect().Size, new GodotVisualRidFactory());
+        var screen = new Vector2(Width, Height);
+        var toasts = new ToastSystem(Entities, screen, HostPlatform.Visuals);
         _root.Add(new UiSystemGroup(
-            _store,
-            GetCanvasItem(),
+            Entities,
+            Canvas.RootRid,
             canvas,
-            _pointer,
+            Pointer,
             tooltips: false,
-            wheel: _pointer));
+            keyboard: Keyboard,
+            wheel: Pointer));
         _root.Add(new AnimatorSystemGroup(
             canvas,
             _grid,
             _preview,
             _timelineCanvas,
             _attachments,
-            new GodotVisualRidFactory(),
-            new GodotAnimatorSvgCatalog(),
-            _pointer,
-            _pointer,
+            HostPlatform.Visuals,
+            new AnimatorSvgCatalog(),
+            Pointer,
+            Pointer,
             _keys,
-            new GodotAnimatorClick(this),
+            _click,
             toasts));
         _root.Add(toasts);
 
-        var files = new GodotAnimatorFiles();
+        var files = new AnimatorFiles();
         _session = AnimatorSession.Create(
-            _store,
+            Entities,
             AnimatorFileCommands.LoadOrDefault(files, DefaultPath),
             files,
             DefaultPath);
-        UiIcons.Loader = UiIcons.FromResources;
-        _session.AddComponent(AnimatorLayout.Build(_store, GetViewportRect().Size));
-        ReadArguments();
-        SetProcess(true);
+        _session.AddComponent(AnimatorLayout.Build(Entities, screen));
+        ReadArguments(args);
     }
 
-    public override void _Process(double delta)
+    /// <summary>The window size from <c>--resolution=WxH</c>; the animator times its own shots.</summary>
+    private static HostWindowOptions WindowOptions(string[] args)
     {
-        _root.Update(new UpdateTick(
-            (float)delta,
-            (float)Time.GetTicksMsec() / 1000f));
+        uint width = 1600, height = 900;
+        foreach (string argument in args)
+        {
+            if (!argument.StartsWith("--resolution=", StringComparison.Ordinal))
+                continue;
+            string[] size = argument["--resolution=".Length..].Split('x');
+            width = uint.Parse(size[0]);
+            height = uint.Parse(size[1]);
+        }
+
+        return new HostWindowOptions(width, height, null, 0);
+    }
+
+    protected override void Tick(float delta, float time)
+    {
+        Keyboard.FeedPresses(Inputs.Keyboard, _keys, key =>
+            key != DebugKeys.Screenshot && (!TextInput.Active || key == Key.Escape));
+        _root.Update(new UpdateTick(delta, time));
 
         if (_session.GetComponent<AnimatorFile>().CloseRequested)
         {
-            GetTree().Quit();
+            Quit();
             return;
         }
 
@@ -159,10 +177,9 @@ public partial class AnimatorTool : Control
                 _session.GetComponent<AnimatorPreviewView>().Zoom = _zoom;
         }
 
-        _pointer.EndFrame();
         _frames++;
         if (_frames > 2)
-            _elapsed += (float)delta;
+            _elapsed += delta;
         if (_frames == 2 && _flow is not null)
             StartFlow(_flow);
         if (_frames == 2 && _clip is not null)
@@ -192,7 +209,7 @@ public partial class AnimatorTool : Control
         if (_frames == 2 && _paths is not null)
             ShowPaths(_paths);
         if (_frames == 2 && _openLayers)
-            _store.Query<UiTabs>().ToEntityList()[0].GetComponent<UiTabs>().Selected = AnimatorLayout.LayersTab;
+            Entities.Query<UiTabs>().ToEntityList()[0].GetComponent<UiTabs>().Selected = AnimatorLayout.LayersTab;
         if (_frames == 2 && _plant is not null)
         {
             foreach (string bone in _plant.Split(','))
@@ -214,7 +231,7 @@ public partial class AnimatorTool : Control
         bool due = _shotSeconds >= 0f ? _elapsed >= _shotSeconds : _frames == _shotAt;
         if (_shotPath is not null && due)
         {
-            CaptureShot(_shotPath);
+            RequestShot(_shotPath);
             _shotPath = null;
         }
     }
@@ -230,12 +247,12 @@ public partial class AnimatorTool : Control
     /// <c>--cloth=index</c> (selects an existing cloth, so its overlay shows) and
     /// <c>--svg=index</c> (selects an attachment, so its mesh outline shows).
     /// </summary>
-    private void ReadArguments()
+    private void ReadArguments(string[] args)
     {
-        foreach (string argument in OS.GetCmdlineUserArgs())
+        foreach (string argument in args)
         {
             if (argument.StartsWith("--shot=", StringComparison.Ordinal))
-                _shotPath = argument["--shot=".Length..];
+                _shotPath = System.IO.Path.GetFullPath(argument["--shot=".Length..]);
             else if (argument.StartsWith("--shot-frames=", StringComparison.Ordinal) &&
                      int.TryParse(argument["--shot-frames=".Length..], out int frames))
                 _shotAt = Math.Max(2, frames);
@@ -286,7 +303,7 @@ public partial class AnimatorTool : Control
         if (clips.Length != 2)
             return;
 
-        foreach (Entity strip in _store.Query<UiTabs>().ToEntityList())
+        foreach (Entity strip in Entities.Query<UiTabs>().ToEntityList())
             strip.GetComponent<UiTabs>().Selected = 2;
         AnimatorCommands.Run(_session, new ToolAction(ToolActionKind.Clip, clips[0]));
         AnimatorCommands.Run(_session, new ToolAction(ToolActionKind.SelectTransition, clips[1]));
@@ -341,27 +358,13 @@ public partial class AnimatorTool : Control
         _session.GetComponent<AnimatorDocument>().Runtime.Seek(0.05f);
     }
 
-    private void CaptureShot(string path)
-    {
-        Image image = GetViewport().GetTexture().GetImage();
-        Error error = image.SavePng(path);
-        if (error == Error.Ok)
-            GD.Print($"Wrote {path}");
-        else
-            GD.PrintErr($"Could not write {path}: {error}");
-        GetTree().Quit(error == Error.Ok ? 0 : 1);
-    }
-
-    public override void _Input(InputEvent @event) => _pointer.Feed(@event);
-
-    public override void _UnhandledInput(InputEvent @event) => _keys.Feed(@event);
-
-    public override void _ExitTree()
+    protected override void Shutdown()
     {
         _attachments.Release();
         _visuals.Dispose();
         foreach (Rid canvas in new[] { _grid, _preview, _svgCanvas, _timelineCanvas, _stage })
-            RenderingServer.FreeRid(canvas);
+            CanvasServer.Current.Free(canvas);
+        _click.Dispose();
     }
 
     /// <summary>Keeps the stage's clip on the preview as the layout moves it (preview mode, resizes).</summary>
@@ -372,16 +375,16 @@ public partial class AnimatorTool : Control
             return;
 
         _stageClip = area;
-        RenderingServer.CanvasItemSetCustomRect(_stage, true, area);
-        RenderingServer.CanvasItemSetClip(_stage, true);
+        CanvasServer.Current.SetCustomRect(_stage, true, area);
+        CanvasServer.Current.SetClip(_stage, true);
     }
 
     /// <summary>A canvas under <paramref name="parent"/> (the tool's own item by default); z is relative to it.</summary>
     private Rid CreateCanvas(int zIndex, Rid parent = default)
     {
-        Rid canvas = RenderingServer.CanvasItemCreate();
-        RenderingServer.CanvasItemSetParent(canvas, parent.IsValid ? parent : GetCanvasItem());
-        RenderingServer.CanvasItemSetZIndex(canvas, zIndex);
+        Rid canvas = CanvasServer.Current.CreateItem();
+        CanvasServer.Current.SetParent(canvas, parent.IsValid ? parent : Canvas.RootRid);
+        CanvasServer.Current.SetZIndex(canvas, zIndex);
         return canvas;
     }
 }
