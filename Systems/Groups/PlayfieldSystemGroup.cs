@@ -59,8 +59,9 @@ public sealed class PlayfieldSystemGroup : SystemGroup, IDisposable
 
         // Particle bursts: after the characters, so they draw over the rig.
         _particleCanvas = new CanvasItemHandle(_playfield.Rid, 0);
-        // Particles still draw through Godot only; the host gets them in docs/moonworks-port.md step 7.
-        _particles = HostPlatform.IsGodot ? new GodotParticleEmitter(_particleCanvas.Rid) : new SilentParticleEmitter();
+        _particles = HostPlatform.IsGodot ? new GodotParticleEmitter(_particleCanvas.Rid)
+            : HostPlatform.Particles is { } server ? new CanvasParticleEmitter(_particleCanvas.Rid, server)
+            : new SilentParticleEmitter();
 
         // The F6 hitbox outlines: after the art, so the rig cannot hide them,
         // but still inside the playfield's layer so the HUD stays on top.

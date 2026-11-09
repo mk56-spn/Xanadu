@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using MoonWorks.Graphics;
 using Xanadu.Rendering;
 using Xanadu.Storage;
@@ -122,6 +123,27 @@ internal sealed class CanvasPipelines : IDisposable
         return new CanvasEffect(shader, compiled);
     }
 
+    /// <summary>
+    /// Drops a level-code material's effect and its pipelines, for code that won't
+    /// be drawn again (a live-edited shader's old version). SDL releases them once
+    /// the GPU is done with them.
+    /// </summary>
+    public void Forget(Xanadu.Systems.Canvas.CanvasMaterial material)
+    {
+        if (material.Source is not { } source || !_effects.Remove("source:" + source, out CanvasEffect? effect) || effect is null)
+            return;
+
+        foreach (((CanvasEffect Effect, BlendMode Blend) key, GraphicsPipeline pipeline) in _pipelines.ToArray())
+        {
+            if (key.Effect != effect)
+                continue;
+            pipeline.Dispose();
+            _pipelines.Remove(key);
+        }
+
+        effect.Dispose();
+    }
+
     /// <summary>Compiles a material's effect and its pipeline now, so its first draw doesn't stall.</summary>
     public void Warm(Xanadu.Systems.Canvas.CanvasMaterial material) =>
         Pipeline(Effect(material), material.Blend);
@@ -169,7 +191,7 @@ internal sealed class CanvasPipelines : IDisposable
     }
 
     /// <summary>Godot's canvas blend modes, as fixed-function state.</summary>
-    private static ColorTargetBlendState Blend(BlendMode blend) => blend switch
+    internal static ColorTargetBlendState Blend(BlendMode blend) => blend switch
     {
         BlendMode.Add => State(BlendOp.Add, BlendFactor.SrcAlpha, BlendFactor.One, BlendFactor.SrcAlpha, BlendFactor.One),
         BlendMode.Sub => State(BlendOp.ReverseSubtract, BlendFactor.SrcAlpha, BlendFactor.One, BlendFactor.SrcAlpha, BlendFactor.One),

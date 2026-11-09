@@ -1,0 +1,39 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    What every MoonWorks exe shares (docs/moonworks-port.md): the window and frame
+    loop (HostApp), the canvas tree and renderer, Slang shaders, text, input and
+    native dialogs. The game (Host) and the tools (Tools/Labs, …) build on it.
+    It knows the UI and Core assemblies, never the game's.
+  -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <AssemblyName>Xanadu.HostCore</AssemblyName>
+    <RootNamespace>Xanadu.Host</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="Xanadu.Host" />
+    <InternalsVisibleTo Include="Xanadu.Labs" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="../External/MoonWorks/MoonWorks.csproj" />
+    <ProjectReference Include="../Core/Xanadu.Core.csproj" />
+    <ProjectReference Include="../UI/Xanadu.Ui.csproj" />
+    <PackageReference Include="FreeTypeSharp" Version="3.1.0" />
+    <PackageReference Include="HarfBuzzSharp" Version="14.4.0" />
+    <PackageReference Include="HarfBuzzSharp.NativeAssets.Linux" Version="14.4.0" />
+    <PackageReference Include="Slangc.NET" Version="2026.21.0" />
+    <PackageReference Include="Friflo.Engine.ECS" Version="4.0.0-preview.2" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Shaders/*" CopyToOutputDirectory="PreserveNewest" LinkBase="Shaders" />
+  </ItemGroup>
+  <!-- Native libraries from External/fetch-moonlibs.sh, copied next to every exe that references this. -->
+  <ItemGroup Condition="$([MSBuild]::IsOSPlatform('Linux'))">
+    <None Include="../External/moonlibs/lib64/*" CopyToOutputDirectory="PreserveNewest" Visible="false" />
+  </ItemGroup>
+  <Target Name="CheckMoonlibs" BeforeTargets="Build" Condition="$([MSBuild]::IsOSPlatform('Linux')) And !Exists('../External/moonlibs/lib64/libSDL3.so.0')">
+    <Error Text="MoonWorks native libraries are missing: run External/fetch-moonlibs.sh" />
+  </Target>
+</Project>

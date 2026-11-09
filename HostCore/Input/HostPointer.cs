@@ -17,6 +17,9 @@ internal sealed class HostPointer(Mouse mouse, IKeyboardState keyboard) : IBlock
 
     public bool Blocked => _latch.Blocked;
 
+    /// <summary>Where the pointer is in design pixels, without touching the press latch.</summary>
+    public Vector2 Position => new(mouse.X * Scale.X, mouse.Y * Scale.Y);
+
     public void SetBlocked(bool blocked) => _latch.Blocked = blocked;
 
     public int Notches => _latch.Notches;

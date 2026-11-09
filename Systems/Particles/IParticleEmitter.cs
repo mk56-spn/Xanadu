@@ -2,7 +2,7 @@ using Godot;
 
 namespace Xanadu.Systems.Particles;
 
-/// <summary>Plays one-off particle bursts; the Godot implementation is the only one that draws.</summary>
+/// <summary>Plays one-off particle bursts.</summary>
 public interface IParticleEmitter
 {
     /// <summary>
@@ -21,7 +21,7 @@ public interface IParticleEmitter
         Vector2 heading = default);
 }
 
-/// <summary>Draws nothing: for hosts without particles yet (docs/moonworks-port.md step 7).</summary>
+/// <summary>Draws nothing: for tests and hosts without particles.</summary>
 public sealed class SilentParticleEmitter : IParticleEmitter
 {
     public void Burst(string particle, Vector2 position, Color tint, Vector2 area = default, float angle = 0f, Vector2 heading = default) { }

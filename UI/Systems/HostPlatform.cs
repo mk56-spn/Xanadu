@@ -42,6 +42,9 @@ public static class HostPlatform
     /// </summary>
     public static System.Func<CanvasMaterial, System.Collections.Generic.IReadOnlyList<MaterialParam>?>? DescribeMaterial { get; set; }
 
+    /// <summary>The host's particles (docs/moonworks-port.md step 7); null under Godot, which runs its own, and in tests.</summary>
+    public static Xanadu.Particles.IParticleServer? Particles { get; set; }
+
     /// <summary>True under the Godot engine, where Godot-only paths (shader materials, particles, fonts) can run.</summary>
     public static bool IsGodot => CanvasServer.Current is GodotCanvasServer;
 

@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <!--
-    The game on MoonWorks (docs/moonworks-port.md). A plain .NET exe: it references
-    the game assemblies the same way the tests do and never starts Godot.
+    The game on MoonWorks (docs/moonworks-port.md). A plain .NET exe on HostCore: it
+    references the game assemblies the same way the tests do and never starts Godot.
   -->
   <PropertyGroup>
     <OutputType>Exe</OutputType>
@@ -12,24 +12,8 @@
     <RootNamespace>Xanadu.Host</RootNamespace>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="FreeTypeSharp" Version="3.1.0" />
-    <PackageReference Include="HarfBuzzSharp" Version="14.4.0" />
-    <PackageReference Include="HarfBuzzSharp.NativeAssets.Linux" Version="14.4.0" />
-    <ProjectReference Include="../External/MoonWorks/MoonWorks.csproj" />
+    <ProjectReference Include="../HostCore/Xanadu.HostCore.csproj" />
     <ProjectReference Include="../Xanadu.csproj" />
-    <ProjectReference Include="../Core/Xanadu.Core.csproj" />
-    <ProjectReference Include="../UI/Xanadu.Ui.csproj" />
-    <PackageReference Include="Slangc.NET" Version="2026.21.0" />
     <PackageReference Include="Friflo.Engine.ECS" Version="4.0.0-preview.2" />
   </ItemGroup>
-  <ItemGroup>
-    <None Include="Shaders/*" CopyToOutputDirectory="PreserveNewest" />
-  </ItemGroup>
-  <!-- Native libraries from External/fetch-moonlibs.sh, loaded from next to the exe. -->
-  <ItemGroup Condition="$([MSBuild]::IsOSPlatform('Linux'))">
-    <None Include="../External/moonlibs/lib64/*" CopyToOutputDirectory="PreserveNewest" Visible="false" />
-  </ItemGroup>
-  <Target Name="CheckMoonlibs" BeforeTargets="Build" Condition="$([MSBuild]::IsOSPlatform('Linux')) And !Exists('../External/moonlibs/lib64/libSDL3.so.0')">
-    <Error Text="MoonWorks native libraries are missing: run External/fetch-moonlibs.sh" />
-  </Target>
 </Project>

@@ -62,6 +62,8 @@ internal sealed class CanvasTree : ICanvasServer
             return;
 
         Detach(item);
+        item.Particles?.Dispose();
+        item.Particles = null;
         foreach (CanvasItem child in item.Children)
             child.Parent = null;
         item.Children.Clear();
@@ -322,6 +324,9 @@ internal sealed class CanvasItem(ulong id)
     public Transform2D CommandTransform = Transform2D.Identity;
 
     public readonly List<CanvasVertex> Vertices = new();
+
+    /// <summary>GPU particles drawn after the item's own draws; made by the first burst into it.</summary>
+    public ParticleField? Particles;
 
     /// <summary>Where each texture's vertices start; a new run begins whenever the texture changes.</summary>
     public readonly List<(int Start, ulong Texture)> Runs = new();

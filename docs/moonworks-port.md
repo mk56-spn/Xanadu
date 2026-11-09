@@ -14,16 +14,24 @@ under it saying what changed from the plan.
 
 Update this block at the end of every session, including partial progress.
 
-- **Updated:** 2026-11-09 (third session)
+- **Updated:** 2026-11-09 (fourth session)
 - **Done:** steps 0, 1, 3, 4 and 6, most of step 2, and most of step 5. The
   host draws buffered groups, self-contained layer passes, background-reader
   passes and screen-reading shaders (frosted glass) through a multi-pass
   renderer.
-- **Next:** step 7 (particles). Still open from earlier steps:
+- **Also done (asked for by the user):** the shared host code is now its own
+  library, `HostCore`, and **Xanadu Labs** runs on MoonWorks (`Tools/Labs`)
+  with a hot-reloading shader playground as its first tab. See "Host core and
+  Xanadu Labs" under step 10.
+- **Step 7 (particles):** bursts done (playfield and Labs "PARTICLES" tab).
+  Streams and trails wait for step 8, which brings rig art (their only user).
+- **Next:** step 8 (SVG and rigs), including the rig's particle streams.
+  Still open from earlier steps:
   - step 2: play a level by hand with the keyboard;
   - step 5: per-item data in a storage buffer, the vertex slot and chains,
     and shape glow.
-- **Committed:** everything.
+- **Committed:** everything up to step 6 (`e3de71d`). `HostCore`, the Labs
+  and step 7 are not committed yet.
 - **After cloning:** run `External/fetch-moonlibs.sh` once (the host build fails
   with that message otherwise).
 - **Notes for whoever picks this up:** see the step 1 and step 2 notes (Slang
@@ -657,8 +665,42 @@ D7–D17 against the host:
 
 ### Step 7: Particles (600–1,000 lines)
 
-- [ ] A compute-based `IParticleEmitter` matching today's features: bursts,
+- [x] A compute-based `IParticleEmitter` matching today's features: bursts,
   one-shots, curves and gradients. Start from the spike.
+  - **Spawn maths is shared and tested:** `Core/Particles/ParticleSpawn.cs`
+    turns an `XpfParticle` into `ParticleSeed`s the way Godot's process material
+    threw them. It covers explosiveness as birth delays, randomness as shorter
+    lifetimes, the spread cone, heading, box, upright angle and the note cell.
+    It also samples the scale curve (eased like Godot's flat-tangent curve)
+    and the colour ramp (linear). See `Tests/Particles/ParticleSpawnTests.cs`.
+  - **The seam:** `IParticleServer.Emit(item, effect, seeds, strip, cells)` in
+    Core and `HostPlatform.Particles`. `CanvasParticleEmitter` (game assembly)
+    replaces `SilentParticleEmitter` on the playfield when a server exists.
+  - **Host:** `HostCore/Rendering/CanvasParticles.cs` and
+    `HostCore/Shaders/particles.slang`.
+    - A canvas item gets a `ParticleField` on its first burst: a ring of 8,192
+      slots in a storage buffer. A full ring cuts off the oldest particles, as
+      Godot's pool of ten cut off the oldest burst.
+    - Each frame, written slots are uploaded and each live field gets one
+      compute dispatch.
+    - The renderer draws a field as one instanced draw (6 vertices × capacity)
+      right after its item's own draws. It is moved by the item's transform
+      and faded by its modulate, so z, groups and layer passes order it like
+      any item.
+    - A field stops stepping and drawing once its last particle has died.
+    - Per-effect gravity, ramp and scale curve live in one table of 32
+      samples each. The table is dropped when the library changes.
+    - Blend is mix. The soft dot is drawn analytically; note glyphs sample
+      the strip.
+  - **Not ported yet:** streams and trails (`ParticleInstance.Stream`,
+    `trail: true`). Their only user is rig art (`SvgAttachmentVisuals.Particles`),
+    which comes with step 8. A stream there is repeated small `Emit`s from
+    shared code. A trail is seeds in the parent's space, which is already how
+    fields work.
+  - A buffered group's composite bounds ignore particles, so particles inside
+    a canvas group could be cropped. Nothing does that today.
+  - Labs: a "PARTICLES" tab bursts every library effect once a second
+    (`dotnet run --project Tools/Labs -- --tab=1`).
 
 ### Step 8: SVG and character rigs (200–400 lines)
 
@@ -682,6 +724,44 @@ D7–D17 against the host:
 - [ ] UI Showcase: the same.
 - [ ] Visual tests: port the harness in `Tests/VisualTests/Harness` to the host's
   screenshot path.
+
+Host core and Xanadu Labs (2026-11-09, ahead of step 10 at the user's request):
+
+- **`HostCore/Xanadu.HostCore.csproj`** is a library holding what every
+  MoonWorks exe shares:
+  - the canvas tree and renderer, Slang shaders and their cache, text, input,
+    the file dialog, screenshots and the engine trap;
+  - **`HostApp`**, an abstract `Game` that owns the window, the 1920×1080
+    target, the fonts, keyboard, pointer and text input, `HostPlatform`
+    wiring, vsync, F12 and `--shot`. An exe derives from it, builds its ECS
+    world on `Canvas`, and runs it in `Tick`.
+
+  It references UI and Core but not the game assembly, copies the moonlibs and
+  `Shaders/canvas.slang` to every exe that uses it, and opens its internals to
+  `Xanadu.Host` and `Xanadu.Labs`. `Host` is now just `HostGame` (the game's
+  world, the add-song dialog, level shader warm-up), `HostPassSurfaces`,
+  `DemoLevel` and its options.
+- **`Tools/Labs/Xanadu.Labs.csproj`** (`dotnet run --project Tools/Labs`)
+  is the Godot lab's shell rebuilt on `HostApp`: tabs, an ECS side panel per
+  experiment, and a stage to the right. Experiments implement `ILabExperiment`
+  and draw onto canvas items. It needs UI and Core only. The Godot lab in
+  `Tools/Lab` stays as reference (P2), and its experiments get rebuilt here
+  when they're wanted.
+- **Shader playground** (the first tab):
+  - **What it watches:** `Tools/Labs/Playground/playground.slang`
+    (git-ignored, made from `playground.template.slang` the first time), or
+    `--shader=<file>`.
+  - **What a save does:** the lab checks the file five times a second.
+    When it changes, the lab compiles it off the frame and swaps it in. The
+    previous version's effect and pipelines are then released with
+    `CanvasPipelines.Forget`.
+  - **On an error:** Slang's message shows left-aligned in mono in the panel
+    (carets line up), and the last good version stays on the stage.
+  - **The format** is a level shader slot (uniforms plus `float4 shade(ItemInput i)`),
+    so anything made here pastes into a level. The lab sets
+    `uniform float2 mouse` (0..1 on the stage) and `uniform float2 resolution`.
+  - There's no F2 tuner in the lab yet: it lives in the game assembly.
+- `HostPointer.Position` reads the pointer without touching the press latch.
 
 ### Step 11: Delete Godot
 

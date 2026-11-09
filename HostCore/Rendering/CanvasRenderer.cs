@@ -52,7 +52,7 @@ internal sealed class CanvasRenderer : IDisposable
     /// </summary>
     private readonly record struct Batch(
         uint Start, uint Count, ulong Texture, Rect Clip, CanvasMaterial? Material, CanvasItem? Owner,
-        bool Premultiplied, bool CopyBefore);
+        bool Premultiplied, bool CopyBefore, ParticleField? Particles = null, Transform2D Transform = default, Color Color = default);
 
     /// <summary>One root drawn into one target.</summary>
     private sealed class Job(CanvasItem root, Texture target, MwColor clear, bool group)
@@ -92,6 +92,11 @@ internal sealed class CanvasRenderer : IDisposable
 
     public CanvasPipelines Pipelines => _pipelines;
 
+    /// <summary>The GPU particles items draw (step 7); the host hands it to the game as its particle server.</summary>
+    public CanvasParticles Particles { get; }
+
+    private float _lastTime = float.NaN;
+
     /// <summary>Draw calls in the last frame, for the debug overlay and the step's sanity check.</summary>
     public int LastBatchCount => _batches.Count;
 
@@ -108,6 +113,7 @@ internal sealed class CanvasRenderer : IDisposable
         _width = width;
         _height = height;
         _pipelines = new CanvasPipelines(device, format);
+        Particles = new CanvasParticles(device, tree, format);
 
         var uploader = new ResourceUploader(device);
         _white = uploader.CreateTexture2D<uint>("white", [0xFFFFFFFFu], TextureFormat.R8G8B8A8Unorm, TextureUsageFlags.Sampler, 1, 1);
@@ -143,6 +149,11 @@ internal sealed class CanvasRenderer : IDisposable
 
         Build();
         Upload(commands);
+
+        // The particles move by the frame's time, before any pass draws them.
+        float dt = float.IsNaN(_lastTime) ? 0f : Math.Clamp(time - _lastTime, 0f, 0.1f);
+        _lastTime = time;
+        Particles.Step(commands, dt);
 
         LastCopyCount = 0;
         foreach (Job job in _jobs)
@@ -199,7 +210,7 @@ internal sealed class CanvasRenderer : IDisposable
             return;
         }
 
-        if (item.Vertices.Count > 0)
+        if (item.Vertices.Count > 0 || item.Particles is { Live: true })
             job.Entries.Add(new Entry(z, sequence++, item, transform, modulate * item.SelfModulate, clip));
 
         item.SortChildren();
@@ -241,6 +252,11 @@ internal sealed class CanvasRenderer : IDisposable
                     int end = r + 1 < runs.Count ? runs[r + 1].Start : item.Vertices.Count;
                     AddRun(job, item, start, end, entry, runs[r].Texture, plain: inGroupRoot);
                 }
+
+                // Particles draw after the item's own draws, as Godot drew an item's particles command.
+                if (item.Particles is { Live: true } particles)
+                    _batches.Add(new Batch((uint)_vertexCount, 0, particles.Strip, entry.Clip, null, null, false, false,
+                        particles, entry.Transform, entry.Color));
             }
 
             job.BatchCount = _batches.Count - job.FirstBatch;
@@ -336,6 +352,7 @@ internal sealed class CanvasRenderer : IDisposable
             last.Texture == batch.Texture && SameRect(last.Clip, batch.Clip) &&
             last.Material == batch.Material && last.Owner == batch.Owner &&
             last.Premultiplied == batch.Premultiplied &&
+            last.Particles is null && batch.Particles is null &&
             last.Start + last.Count == batch.Start)
             _batches[^1] = last with { Count = last.Count + batch.Count };
         else
@@ -386,6 +403,18 @@ internal sealed class CanvasRenderer : IDisposable
         for (int b = job.FirstBatch; b < job.FirstBatch + job.BatchCount; b++)
         {
             Batch batch = _batches[b];
+            if (batch.Particles is { } field)
+            {
+                pass.SetScissor(batch.Clip);
+                Particles.Draw(commands, pass, field, batch.Transform, batch.Color, _width, _height,
+                    Textures.GetValueOrDefault(batch.Texture) ?? _white, _sampler);
+                commands.PushVertexUniformData(new ViewUniforms { Width = _width, Height = _height });
+                Begin(pass);
+                bound = null;
+                drawnSinceCopy = true;
+                continue;
+            }
+
             CanvasEffect effect = _pipelines.Effect(batch.Material);
             string[] names = effect.Compiled.Samplers;
             bool readsScreen = effect.Compiled.ReadsScreen;
@@ -436,7 +465,11 @@ internal sealed class CanvasRenderer : IDisposable
         commands.EndRenderPass(pass);
     }
 
-    private void Begin(RenderPass pass) => pass.BindVertexBuffers(_buffer!);
+    private void Begin(RenderPass pass)
+    {
+        if (_buffer is not null)
+            pass.BindVertexBuffers(_buffer);
+    }
 
     /// <summary>The target as it stands into the screen texture, with mips for blurred reads.</summary>
     private void CopyScreen(CommandBuffer commands, Texture target)
@@ -512,6 +545,7 @@ internal sealed class CanvasRenderer : IDisposable
     public void Dispose()
     {
         _pipelines.Dispose();
+        Particles.Dispose();
         _white.Dispose();
         _screen.Dispose();
         _sampler.Dispose();

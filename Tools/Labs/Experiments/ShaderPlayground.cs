@@ -1,0 +1,211 @@
+using System;
+using System.Diagnostics;
+using System.IO;
+using System.Threading.Tasks;
+using Friflo.Engine.ECS;
+using Godot;
+using Xanadu.Ecs;
+using Xanadu.Host.Rendering;
+using Xanadu.Storage;
+using Xanadu.Systems.Canvas;
+using Xanadu.Theme;
+using Xanadu.Ui.Ecs.Ui;
+
+namespace Xanadu.Labs.Experiments;
+
+/// <summary>
+/// A Slang effect on a full stage, recompiled every time its file is saved.
+/// The file is written exactly like a level's shader slot (uniforms plus
+/// <c>float4 shade(ItemInput i)</c>, <c>import xanadu;</c> for the library), so
+/// anything made here pastes straight into a level. A broken save keeps the
+/// last good version on screen and shows Slang's errors in the panel.
+/// </summary>
+internal sealed class ShaderPlayground(string? path) : ILabExperiment
+{
+    private const string WorkingCopy = "res://Tools/Labs/Playground/playground.slang";
+    private const string Template = "res://Tools/Labs/Playground/playground.template.slang";
+    private const int ErrorLines = 18;
+    private const int ErrorColumns = 80;
+
+    /// <summary>The panel's inside width, so error lines can sit left-aligned in boxes of a fixed size.</summary>
+    private const float ErrorWidth = 590;
+
+    private Entity _status;
+    private readonly Entity[] _errors = new Entity[ErrorLines];
+
+    public string Name => "SHADER PLAYGROUND";
+
+    public string[] Notes =>
+    [
+        "Edit the file below in any editor: every save",
+        "recompiles and redraws. It is a level shader slot:",
+        "uniforms and float4 shade(ItemInput i); import xanadu.",
+        "Set for you: uniform float2 mouse (0..1 on the stage),",
+        "uniform float2 resolution (stage pixels).",
+    ];
+
+    /// <summary>The watched file: <c>--shader</c>, or the lab's own working copy, made from the template the first time.</summary>
+    private string File
+    {
+        get
+        {
+            if (path is not null)
+                return path;
+
+            string copy = GamePaths.Globalize(WorkingCopy);
+            if (!System.IO.File.Exists(copy))
+                System.IO.File.Copy(GamePaths.Globalize(Template), copy);
+            return copy;
+        }
+    }
+
+    public void BuildPanel(UiNode panel)
+    {
+        panel.Text(File, UiType.Small, Palette.TextDim);
+        _status = panel.Text("waiting for the first compile…", UiType.Small, Palette.TextMuted);
+        // Slang's errors point at columns with carets, so they read left-aligned in a monospaced face.
+        UiNode column = panel.Column().Cross(StackCrossAlignment.Start).Width(ErrorWidth);
+        for (int i = 0; i < ErrorLines; i++)
+            _errors[i] = column.Text("", UiType.Caption, Palette.DangerBright, TextAlign.Left).Mono().Width(ErrorWidth);
+    }
+
+    public ILabStage CreateStage(LabContext context, Rid parent, Rect2 area) => new Stage(this, context, parent, area);
+
+    private void ShowStatus(string text, Color colour)
+    {
+        UiText.Set(_status, text);
+        UiText.SetColor(_status, colour);
+    }
+
+    private void ShowErrors(string message)
+    {
+        string[] lines = message.ReplaceLineEndings("\n").Split('\n');
+        for (int i = 0; i < ErrorLines; i++)
+        {
+            string line = i < lines.Length ? lines[i].Replace("\t", "    ") : "";
+            UiText.Set(_errors[i], line.Length > ErrorColumns ? line[..(ErrorColumns - 1)] + "…" : line);
+        }
+    }
+
+    private sealed class Stage : ILabStage
+    {
+        private const float PollSeconds = 0.2f;
+
+        private readonly ShaderPlayground _owner;
+        private readonly LabContext _context;
+        private readonly Rid _item;
+        private readonly Rect2 _area;
+        private readonly string _file;
+        private CanvasMaterial? _material;
+        private DateTime _seen;
+        private float _sincePoll = PollSeconds;
+        private Task<(string Source, string? Error, long Ms)>? _compiling;
+
+        public Stage(ShaderPlayground owner, LabContext context, Rid item, Rect2 area)
+        {
+            _owner = owner;
+            _context = context;
+            _item = item;
+            _area = area;
+            _file = owner.File;
+            CanvasServer.Current.AddRect(item, area, Colors.White);
+        }
+
+        public void Update(in LabFrame frame)
+        {
+            Finish();
+
+            _sincePoll += frame.Delta;
+            if (_sincePoll >= PollSeconds && _compiling is null)
+            {
+                _sincePoll = 0;
+                Poll();
+            }
+
+            if (_material is null)
+                return;
+
+            Vector2 mouse = (frame.Mouse - _area.Position) / _area.Size;
+            _material.Set("mouse", new Vector2(Mathf.Clamp(mouse.X, 0, 1), Mathf.Clamp(mouse.Y, 0, 1)));
+            _material.Set("resolution", _area.Size);
+        }
+
+        /// <summary>Starts a compile when the file's write time moves; editors that save by renaming still bump it.</summary>
+        private void Poll()
+        {
+            DateTime written;
+            try
+            {
+                written = System.IO.File.GetLastWriteTimeUtc(_file);
+            }
+            catch (IOException)
+            {
+                return;
+            }
+
+            if (written == _seen)
+                return;
+
+            string source;
+            try
+            {
+                source = System.IO.File.ReadAllText(_file);
+            }
+            catch (IOException)
+            {
+                // Mid-save; the next poll gets it.
+                return;
+            }
+
+            _seen = written;
+            _owner.ShowStatus("compiling…", Palette.TextMuted);
+            // Off the frame, so the window keeps drawing the last good version meanwhile.
+            _compiling = Task.Run(() =>
+            {
+                var clock = Stopwatch.StartNew();
+                try
+                {
+                    SlangShaders.CompileEffectBody(Name, source);
+                    return (source, (string?)null, clock.ElapsedMilliseconds);
+                }
+                catch (Exception exception)
+                {
+                    return (source, exception.Message, clock.ElapsedMilliseconds);
+                }
+            });
+        }
+
+        private const string Name = "playground";
+
+        private void Finish()
+        {
+            if (_compiling is not { IsCompleted: true } done)
+                return;
+
+            _compiling = null;
+            (string source, string? error, long ms) = done.Result;
+            if (error is not null)
+            {
+                _owner.ShowStatus($"error at {DateTime.Now:HH:mm:ss}: still showing the last version that compiled", Palette.Danger);
+                _owner.ShowErrors(error);
+                return;
+            }
+
+            // The renderer compiles it again for itself, from the disk cache this compile just filled.
+            CanvasMaterial previous = _material!;
+            _material = CanvasMaterial.FromSource(Name, source);
+            CanvasServer.Current.SetMaterial(_item, _material);
+            if (previous is not null)
+                _context.Pipelines.Forget(previous);
+
+            _owner.ShowStatus($"compiled at {DateTime.Now:HH:mm:ss} in {ms} ms", Palette.Success);
+            _owner.ShowErrors("");
+        }
+
+        public void Dispose()
+        {
+            if (_material is not null)
+                _context.Pipelines.Forget(_material);
+        }
+    }
+}

@@ -35,3 +35,6 @@ screenshots/
 
 # MoonWorks native libraries: fetched by External/fetch-moonlibs.sh
 External/moonlibs/
+
+# Xanadu Labs: the shader playground's working copy is yours to scribble on
+Tools/Labs/Playground/playground.slang
