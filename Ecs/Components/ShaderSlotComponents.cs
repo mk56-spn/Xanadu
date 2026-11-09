@@ -21,13 +21,6 @@ public sealed class ShaderSlot
     public string Source = "";
     public Dictionary<string, float[]> Params = new();
 
-    /// <summary>The compiled shader, built when first drawn and rebuilt if the source changes.</summary>
-    public ShaderMaterial? Material;
-    public string? CompiledSource;
-
-    /// <summary>One compiled material per blend mode, made the first time it is drawn (D17).</summary>
-    public readonly Dictionary<BlendMode, ShaderMaterial> BlendVariants = new();
-
     /// <summary>
     /// The engine-free materials for this slot, one per blend mode used, made
     /// from <see cref="MaterialSource"/> (docs/moonworks-port.md step 5).

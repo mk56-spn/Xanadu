@@ -19,9 +19,7 @@ public static partial class TestContent
         if (player.HasComponent<CharacterRig>())
             return;
 
-        string repo = ProjectSettings.GlobalizePath("res://").TrimEnd('/');
-        string path = System.IO.Path.GetFullPath(
-            System.IO.Path.Combine(repo, "../../Tools/Animator/Animations/Characters/contact.xaf"));
+        string path = Xanadu.Storage.GamePaths.Globalize("res://Tools/Animator/Animations/Characters/contact.xaf");
         XafPackage? package = new DiskCharacterRigFiles().Load(path);
         if (package is null)
             return;

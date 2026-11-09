@@ -23,7 +23,6 @@ public sealed class EditorPlayfieldDrawSystem :
 {
     private readonly ShaderRoutingCanvas _canvas;
     /// <summary>The rendering-server items shaded draws go to; null when tests hand in their own.</summary>
-    private readonly GodotShaderCanvasItems? _shaderItems;
 
     /// <summary>The engine-free shader items, when this draws on a host other than Godot.</summary>
     private readonly ServerShaderCanvasItems? _serverItems;
@@ -55,8 +54,7 @@ public sealed class EditorPlayfieldDrawSystem :
 
         // Tests have no rendering server: calling it outside the engine jumps to a
         // null native pointer and kills the whole test host, so they pass a fake.
-        _shaderItems = shaderItems is null && HostPlatform.IsGodot ? new GodotShaderCanvasItems() : null;
-        _canvas = new ShaderRoutingCanvas(canvas, editor, shaderItems ?? _shaderItems ?? (_serverItems = new ServerShaderCanvasItems()), toPixels);
+        _canvas = new ShaderRoutingCanvas(canvas, editor, shaderItems ?? (_serverItems = new ServerShaderCanvasItems()), toPixels);
         _editor = editor;
         _passes = passes;
 
@@ -96,13 +94,6 @@ public sealed class EditorPlayfieldDrawSystem :
         {
             if (_serverItems is not null && entity.TryGetComponent(out LevelShaders levelShaders))
                 _serverItems.SlotMaterialOf = (slot, blend) => LevelSlotMaterials.MaterialOf(levelShaders, slot, blend);
-
-            if (_shaderItems is not null && entity.TryGetComponent(out LevelShaders shaders))
-            {
-                LevelShaderMaterials.Ensure(shaders);
-                _shaderItems.MaterialOf = (slot, blend) => LevelShaderMaterials.MaterialOf(shaders, slot, blend);
-                _shaderItems.CommonMaterialOf = (path, blend) => CommonShaderMaterials.MaterialOf(path, blend);
-            }
 
             Color? background = null;
             Color? outside = null;

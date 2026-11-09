@@ -19,11 +19,8 @@ public sealed class GlyphAtlas(
     IReadOnlyList<string> glyphs,
     int cellSize = 256,
     float fill = 0.8f,
-    bool mipmaps = false,
-    Font? font = null)
+    bool mipmaps = false)
 {
-    private readonly List<ImageTexture> _keepAlive = new();
-    private DrawableTexture2D? _texture;
 
     /// <summary>The glyphs, in cell order; cell <c>i</c> holds <c>Glyphs[i]</c>.</summary>
     public IReadOnlyList<string> Glyphs { get; } = glyphs;
@@ -43,42 +40,8 @@ public sealed class GlyphAtlas(
     private Rid? _textureId;
 
     /// <summary>
-    /// The strip as a canvas texture id, for <see cref="CanvasMaterial.SetTexture"/>:
-    /// built by the host when it builds glyph strips itself, else Godot's texture.
+    /// The strip as a canvas texture id, for <see cref="CanvasMaterial.SetTexture"/>,
+    /// built once by the host; the default id where nothing draws (tests).
     /// </summary>
-    public Rid TextureId => _textureId ??= HostPlatform.GlyphStrip is { } build ? build(this) : Texture.GetRid();
-
-    /// <summary>The strip, built the first time it is asked for.</summary>
-    public Texture2D Texture => _texture ??= Build();
-    private DrawableTexture2D Build()
-    {
-        var texture = new DrawableTexture2D();
-        texture.Setup(
-            CellSize * Count,
-            CellSize,
-            DrawableTexture2D.DrawableFormat.Rgba8,
-            new Color(0, 0, 0, 0),
-            mipmaps);
-
-        Font face = font ?? ThemeDB.FallbackFont;
-        float room = CellSize * fill;
-        for (int i = 0; i < Count; i++)
-        {
-            // Measured at the cell size, then scaled so the larger side fills the room.
-            Rect2 measured = GodotGlyphBlitter.InkBounds(Glyphs[i], CellSize, face);
-            if (measured.Size.X <= 0 || measured.Size.Y <= 0)
-                continue;
-
-            float scale = room / Mathf.Max(measured.Size.X, measured.Size.Y);
-            int fontSize = Mathf.Max(1, Mathf.FloorToInt(CellSize * scale));
-            Rect2 ink = GodotGlyphBlitter.InkBounds(Glyphs[i], fontSize, face);
-            Vector2 centre = new(CellSize * (i + 0.5f), CellSize * 0.5f);
-            GodotGlyphBlitter.Blit(texture, _keepAlive, Glyphs[i], fontSize, face, centre - ink.GetCenter());
-        }
-
-        if (mipmaps)
-            texture.GenerateMipmaps();
-
-        return texture;
-    }
+    public Rid TextureId => _textureId ??= HostPlatform.GlyphStrip is { } build ? build(this) : default;
 }

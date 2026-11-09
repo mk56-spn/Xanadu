@@ -59,8 +59,8 @@ public sealed class PlayfieldSystemGroup : SystemGroup, IDisposable
 
         // Particle bursts: after the characters, so they draw over the rig.
         _particleCanvas = new CanvasItemHandle(_playfield.Rid, 0);
-        _particles = HostPlatform.IsGodot ? new GodotParticleEmitter(_particleCanvas.Rid)
-            : HostPlatform.Particles is { } server ? new CanvasParticleEmitter(_particleCanvas.Rid, server)
+        _particles = HostPlatform.Particles is { } server
+            ? new CanvasParticleEmitter(_particleCanvas.Rid, server)
             : new SilentParticleEmitter();
 
         // The F6 hitbox outlines: after the art, so the rig cannot hide them,

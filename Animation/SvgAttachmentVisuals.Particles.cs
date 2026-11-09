@@ -31,12 +31,12 @@ public sealed partial class SvgAttachmentVisuals
         for (int i = 0; i < package.Effects.Count; i++)
         {
             XafEffect effect = package.Effects[i];
-            if (effect.Particle.Length == 0 || ParticleLibrary.Find(effect.Particle) is not { } particle)
+            // Without the host's particles (tests) rig effects have nothing to stream into.
+            if (effect.Particle.Length == 0 || ParticleLibrary.Find(effect.Particle) is not { } particle ||
+                Xanadu.Systems.HostPlatform.Particles is not { } server)
                 continue;
 
-            IParticleFlow instance = Xanadu.Systems.HostPlatform.Particles is { } server
-                ? new ParticleStream(server, canvas, particle)
-                : new ParticleInstance(ParticleKit.Shared, canvas, particle, trail: true);
+            IParticleFlow instance = new ParticleStream(server, canvas, particle);
             SetLayer(instance.Item, effect.ZOrder, AnimatorDrawOrder.Effect(i, effect.Item.Primitives.Count));
             _particles.Add(new ParticleEffect(i, instance));
         }

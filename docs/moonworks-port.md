@@ -32,7 +32,7 @@ Update this block at the end of every session, including partial progress.
 - **Visual tests (step 10):** the harness runs on the host
   (`dotnet run --project Tests/VisualTests`, `run-visual-tests.sh`), and all
   61 pass.
-- **Next:** step 11 (delete Godot). Still open from earlier steps:
+- **Next:** step 11's last parts: copy the math structs into Core and drop `GodotSharp`, then rewrite `agents.md`. Still open from earlier steps:
   - step 2: play a level by hand with the keyboard;
   - step 5: done for parity. Per-item data in a storage buffer is deferred,
     and the slot model moved to "Later".
@@ -876,8 +876,18 @@ Host core and Xanadu Labs (2026-11-09, ahead of step 10 at the user's request):
 
 ### Step 11: Delete Godot
 
-- [ ] Remove every `project.godot`, `.godot/`, `*.tscn`, `*.uid`, `*.import`,
-  `Godot.NET.Sdk` reference and the `run-*.sh` Godot launchers.
+- [x] Remove every `project.godot`, `.godot/`, `*.tscn`, `*.uid`, `*.import`,
+  `Godot.NET.Sdk` reference and the `run-*.sh` Godot launchers (2026-11-10).
+  - Part 1: the files, the Godot lab and spike, `Diagnostics/`. The game
+    folder is marked by `Xanadu.csproj` (`GamePaths.RootMarker`).
+    `run-game.sh` and `run-editor.sh` run the host; `run-labs.sh` is new.
+  - Part 2: Core, UI and the game are `Microsoft.NET.Sdk` with a `GodotSharp`
+    package reference for the structs. `Main.cs`, every `Godot*` adapter, the
+    Godot material and particle paths and `HostPlatform.IsGodot` are gone.
+    Defaults are headless (`HeadlessCanvasServer`, `HeadlessTextureServer`,
+    `NoKeyboard`, `NoFps`, `ServerRectCanvas`), and `GamePaths` finds the
+    game folder itself when no host sets roots. `LocalizedText` returns the
+    English fallback (no translations exist yet).
 - [ ] Copy Godot's math structs into Core (P8) and drop `GodotSharp`.
 - [ ] Rewrite `agents.md` (its "Verification" section is all Godot) and update
   memory notes that mention Godot.

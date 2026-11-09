@@ -3,10 +3,8 @@ using System;
 namespace Xanadu.Diagnostics;
 
 /// <summary>
-/// Where shared code reports what went wrong, without touching an engine: the
-/// MoonWorks host and tests write to the console (stderr for problems), and the
-/// Godot build routes these to <c>GD.Print</c> / <c>GD.PushWarning</c> /
-/// <c>GD.PushError</c> in <c>Main</c> (docs/moonworks-port.md step 10).
+/// Where shared code reports what went wrong: the console by default
+/// (stderr for problems). A host may route these elsewhere.
 /// </summary>
 public static class GameLog
 {

@@ -316,12 +316,7 @@ public sealed partial class SvgAttachmentVisuals(Rid canvas, bool containLayers 
 
         string shader = !primitive.Shader.IsNone ? primitive.Shader.Path : item.PrimaryCommonShader;
         if (shader.Length > 0)
-        {
-            if (!HostPlatform.IsGodot)
-                CanvasServer.Current.SetMaterial(canvasItem, new CanvasMaterial(shader));
-            else if (CommonShaderMaterials.MaterialOf(shader) is { IsValid: true } material)
-                RenderingServer.CanvasItemSetMaterial(canvasItem, material);
-        }
+            CanvasServer.Current.SetMaterial(canvasItem, new CanvasMaterial(shader));
 
         return new EffectVisual(-1, canvasItem);
     }
@@ -368,10 +363,6 @@ public sealed partial class SvgAttachmentVisuals(Rid canvas, bool containLayers 
     {
         Rid item = CanvasServer.Current.CreateItem();
         CanvasServer.Current.SetParent(item, canvas);
-        // The host always filters with mipmaps; Godot needs telling.
-        if (HostPlatform.IsGodot)
-            RenderingServer.CanvasItemSetDefaultTextureFilter(
-                item, RenderingServer.CanvasItemTextureFilter.LinearWithMipmaps);
         return item;
     }
 

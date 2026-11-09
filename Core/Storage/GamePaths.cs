@@ -1,14 +1,13 @@
 using System;
 using System.IO;
-using ProjectSettings = Godot.ProjectSettings;
 
 namespace Xanadu.Storage;
 
 /// <summary>
 /// The one place <c>res://</c> and <c>user://</c> paths become real ones.
-/// Godot resolves them itself; the MoonWorks host has no engine, so it sets
-/// <see cref="Roots"/> to the game folder and the same user folder Godot uses
-/// (docs/moonworks-port.md step 2). Plain paths come back unchanged.
+/// <c>res://</c> is the game folder and <c>user://</c> the folder Godot used to
+/// keep, so old saves stay put. Hosts set them with <see cref="UseRoots"/>;
+/// otherwise they are found on first use. Plain paths come back unchanged.
 /// </summary>
 public static class GamePaths
 {
@@ -16,6 +15,24 @@ public static class GamePaths
 
     /// <summary>The file that marks the game folder, the one <c>res://</c> means.</summary>
     public const string RootMarker = "Xanadu.csproj";
+
+    /// <summary>
+    /// The game folder above the running exe (or the working directory), for
+    /// when no host has set <see cref="UseRoots"/>, such as tests.
+    /// </summary>
+    private static string FindGameFolder()
+    {
+        foreach (string start in new[] { AppContext.BaseDirectory, Directory.GetCurrentDirectory() })
+        {
+            for (DirectoryInfo? folder = new(start); folder is not null; folder = folder.Parent)
+            {
+                if (IsGameFolder(folder.FullName))
+                    return folder.FullName;
+            }
+        }
+
+        return Directory.GetCurrentDirectory();
+    }
 
     /// <summary>Whether <paramref name="folder"/> is the game folder.</summary>
     public static bool IsGameFolder(string folder) => File.Exists(Path.Combine(folder, RootMarker));
@@ -35,8 +52,7 @@ public static class GamePaths
 
     public static string Globalize(string path)
     {
-        if (_roots is not { } roots)
-            return ProjectSettings.GlobalizePath(path);
+        (string Res, string User) roots = _roots ??= (FindGameFolder(), GodotUserFolder("Xanadu"));
 
         if (path.StartsWith("res://", StringComparison.Ordinal))
             return Path.Combine(roots.Res, path["res://".Length..]);

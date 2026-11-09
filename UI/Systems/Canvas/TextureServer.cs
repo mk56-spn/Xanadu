@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using Godot;
 
 namespace Xanadu.Systems.Canvas;
@@ -23,42 +22,20 @@ public interface ITextureServer
     void Free(Rid texture);
 }
 
-/// <summary>The running host's <see cref="ITextureServer"/>: Godot's until the MoonWorks host calls <see cref="Use"/>.</summary>
+/// <summary>The running host's <see cref="ITextureServer"/>; one that keeps nothing until a host calls <see cref="Use"/>.</summary>
 public static class TextureServer
 {
-    public static ITextureServer Current { get; private set; } = new GodotTextureServer();
+    public static ITextureServer Current { get; private set; } = new HeadlessTextureServer();
 
     public static void Use(ITextureServer server) => Current = server ?? throw new ArgumentNullException(nameof(server));
 }
 
-/// <summary>Textures as Godot resources, held here so the GC can't free them under a canvas item.</summary>
-public sealed class GodotTextureServer : ITextureServer
+/// <summary>Makes no textures: every id is the default one, which draws as plain colour.</summary>
+public sealed class HeadlessTextureServer : ITextureServer
 {
-    private readonly Dictionary<Rid, Texture2D> _held = new();
+    public Rid Create(int width, int height, byte[] pixels, bool mipmaps) => default;
 
-    public Rid Create(int width, int height, byte[] pixels, bool mipmaps)
-    {
-        Image image = Image.CreateFromData(width, height, false, Image.Format.Rgba8, pixels);
-        if (mipmaps)
-            image.GenerateMipmaps();
-        ImageTexture texture = ImageTexture.CreateFromImage(image);
-        _held[texture.GetRid()] = texture;
-        return texture.GetRid();
-    }
+    public Rid Load(string path) => default;
 
-    public Rid Load(string path)
-    {
-        if (path.Length == 0 || !ResourceLoader.Exists(path))
-            return default;
-
-        Texture2D texture = ResourceLoader.Load<Texture2D>(path);
-        _held[texture.GetRid()] = texture;
-        return texture.GetRid();
-    }
-
-    public void Free(Rid texture)
-    {
-        if (_held.Remove(texture, out Texture2D? held))
-            held.Dispose();
-    }
+    public void Free(Rid texture) { }
 }

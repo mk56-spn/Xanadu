@@ -83,13 +83,12 @@ public sealed class XanaduSystemRoot : SystemRoot, IDisposable
         IKeyboardState? keyboard = null,
         HudLayoutSettings? hudLayout = null,
         IWheelSource? wheel = null,
-        Node? passHost = null,
         Func<Xanadu.Systems.Shaders.IPassSurfaces>? passSurfaces = null) : base(entities, "Xanadu")
     {
         IRectCanvas canvas = HostPlatform.NewCanvas();
-        // Godot's SubViewports under the scene's node, or the host's own offscreen targets.
-        _playPassSurfaces = passHost is not null ? new Xanadu.Systems.Shaders.GodotPassSurfaces(passHost) : passSurfaces?.Invoke();
-        _editorPassSurfaces = passHost is not null ? new Xanadu.Systems.Shaders.GodotPassSurfaces(passHost) : passSurfaces?.Invoke();
+        // The host's offscreen targets for self-contained layers; none in tests.
+        _playPassSurfaces = passSurfaces?.Invoke();
+        _editorPassSurfaces = passSurfaces?.Invoke();
         _entities = entities;
         entities.OnEntityDelete += OnEntityDelete;
         _visuals = new VisualRidRelease(entities);
@@ -152,15 +151,8 @@ public sealed class XanaduSystemRoot : SystemRoot, IDisposable
             parentCanvas);
         Add(_audioSystems);
 
-        // A screen-read region's rect is in canvas coordinates; Godot's back
-        // buffer wants render-target pixels, so scale through the viewport's
-        // stretch transform (docs/render-architecture.md step 0, panel E).
-        CanvasItem? canvasHost = passHost as CanvasItem;
-        Func<Rect2, Rect2>? toPixels = canvasHost is null
-            ? null
-            : rect => canvasHost.GetViewport() is { } viewport
-                ? viewport.GetFinalTransform() * rect
-                : rect;
+        // The host copies the whole target for screen reads, so region rects stay in canvas coordinates.
+        Func<Rect2, Rect2>? toPixels = null;
 
         _playfieldSystems = new PlayfieldSystemGroup(
             entities,
