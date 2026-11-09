@@ -5,6 +5,12 @@ using Xanadu.Rendering;
 namespace Xanadu.Systems.Canvas;
 
 /// <summary>
+/// One value a material's shader reads, as the host's compiler reports it:
+/// its name, how many channels, whether it is an integer, and its default.
+/// </summary>
+public readonly record struct MaterialParam(string Name, int Channels, bool IsInt, Vector4 Default);
+
+/// <summary>
 /// What a canvas item draws with when it isn't the plain canvas shader: a
 /// shader (a Slang effect by <c>res://</c> path, docs/moonworks-port.md step 5),
 /// a blend mode, and named values and textures the shader reads. Engine-free,
@@ -20,8 +26,23 @@ public sealed class CanvasMaterial(string shader, BlendMode blend = BlendMode.Mi
     private readonly Dictionary<string, Vector4> _values = new();
     private readonly Dictionary<string, Rid> _textures = new();
 
-    /// <summary>The effect's path, such as <c>res://Assets/Shaders/note_background.slang</c>; empty for the plain canvas shader.</summary>
+    /// <summary>
+    /// The effect's path, such as <c>res://Assets/Shaders/note_background.slang</c>;
+    /// empty for the plain canvas shader. For an effect made from <see cref="Source"/>,
+    /// the name it is cached and reported by.
+    /// </summary>
     public string Shader { get; } = shader;
+
+    /// <summary>
+    /// A level shader's own code (an effect body: uniforms and
+    /// <c>float4 shade(ItemInput i)</c>), which the host wraps into an entry
+    /// point; null for a shipped effect at <see cref="Shader"/>.
+    /// </summary>
+    public string? Source { get; private init; }
+
+    /// <summary>A material for a level shader's code; <paramref name="name"/> names it in errors and caches.</summary>
+    public static CanvasMaterial FromSource(string name, string source, BlendMode blend = BlendMode.Mix) =>
+        new(name, blend) { Source = source };
 
     public BlendMode Blend { get; } = blend;
 

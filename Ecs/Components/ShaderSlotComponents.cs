@@ -28,6 +28,15 @@ public sealed class ShaderSlot
     /// <summary>One compiled material per blend mode, made the first time it is drawn (D17).</summary>
     public readonly Dictionary<BlendMode, ShaderMaterial> BlendVariants = new();
 
+    /// <summary>
+    /// The engine-free materials for this slot, one per blend mode used, made
+    /// from <see cref="MaterialSource"/> (docs/moonworks-port.md step 5).
+    /// </summary>
+    public readonly Dictionary<BlendMode, Xanadu.Systems.Canvas.CanvasMaterial> Materials = new();
+
+    /// <summary>The source <see cref="Materials"/> were made from; they are dropped when it changes.</summary>
+    public string? MaterialSource;
+
     public ShaderSlot Clone() => new()
     {
         Name = Name,

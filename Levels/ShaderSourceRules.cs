@@ -3,12 +3,20 @@ using Xanadu.Ecs;
 
 namespace Xanadu.Levels;
 
-/// <summary>What shader source a level may carry. Levels come from other people, so it is checked on load.</summary>
+/// <summary>
+/// The cheap checks a level's shader source must pass before it is kept: a Slang
+/// fragment effect against <c>xanadu.stage</c> (docs/moonworks-port.md §2a) that
+/// defines <c>float4 shade(ItemInput i)</c>. Whether it really compiles is only
+/// known when the host builds it; a broken one draws plain and logs Slang's error.
+/// </summary>
 public static partial class ShaderSourceRules
 {
-    // Comments and blank space may come first; the first statement must declare a canvas shader.
-    [GeneratedRegex(@"\A(?:\s|//[^\n]*(?:\n|\z)|/\*.*?\*/)*shader_type\s+canvas_item\s*;", RegexOptions.Singleline)]
-    private static partial Regex CanvasItemHeader();
+    // The effect's entry: comments may sit anywhere before it.
+    [GeneratedRegex(@"\bfloat4\s+shade\s*\(\s*ItemInput\b")]
+    private static partial Regex ShadeFunction();
+
+    [GeneratedRegex(@"\bshader_type\s+\w+\s*;")]
+    private static partial Regex GodotHeader();
 
     /// <summary>Whether the source is something a level can use; <paramref name="problem"/> says why not.</summary>
     public static bool IsAcceptable(string? source, out string problem)
@@ -25,9 +33,15 @@ public static partial class ShaderSourceRules
             return false;
         }
 
-        if (!CanvasItemHeader().IsMatch(source))
+        if (GodotHeader().IsMatch(source))
         {
-            problem = "Only canvas shaders are supported: start with \"shader_type canvas_item;\".";
+            problem = "Godot shaders are no longer supported: write a Slang effect with \"float4 shade(ItemInput i)\".";
+            return false;
+        }
+
+        if (!ShadeFunction().IsMatch(source))
+        {
+            problem = "A shader must define \"float4 shade(ItemInput i)\".";
             return false;
         }
 

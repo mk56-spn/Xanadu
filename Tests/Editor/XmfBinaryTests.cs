@@ -164,7 +164,7 @@ public sealed class XmfBinaryTests
         {
             Slot = 1,
             Name = "Glow",
-            Source = "shader_type canvas_item;\nvoid fragment() {}",
+            Source = "uniform float4 tint;\nfloat4 shade(ItemInput i) { return i.colour * tint; }",
             Params =
             {
                 ["tint"] = new[] { 1f, 0.5f, 0f, 1f },
@@ -239,7 +239,7 @@ public sealed class XmfBinaryTests
         ShaderDocument shader = map.Shaders[0];
         Assert.That(shader.Slot, Is.EqualTo(1));
         Assert.That(shader.Name, Is.EqualTo("Glow"));
-        Assert.That(shader.Source, Does.Contain("shader_type canvas_item"));
+        Assert.That(shader.Source, Does.Contain("float4 shade(ItemInput i)"));
         Assert.That(shader.Params["tint"], Is.EqualTo(new[] { 1f, 0.5f, 0f, 1f }));
     }
 

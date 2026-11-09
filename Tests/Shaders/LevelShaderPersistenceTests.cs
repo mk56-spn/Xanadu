@@ -12,7 +12,7 @@ namespace Xanadu.Tests.Shaders;
 [TestFixture]
 public sealed class LevelShaderPersistenceTests
 {
-    private const string Glow = "shader_type canvas_item;\nuniform float speed = 1.0;\nvoid fragment() { COLOR = vec4(1.0); }";
+    private const string Glow = "[Default(1)] uniform float speed;\nfloat4 shade(ItemInput i) { return float4(1.0); }";
 
     private EntityStore _store = null!;
     private Entity _editor;
@@ -172,16 +172,16 @@ public sealed class LevelShaderPersistenceTests
         Assert.That(saved.Notes.Single().Item.PrimaryCommonShader, Is.EqualTo(CommonShaders.Paths[0]));
     }
 
-    [TestCase("shader_type canvas_item;\nvoid fragment(){}", true)]
-    [TestCase("// my glow\n/* block */\nshader_type canvas_item ;\nvoid fragment(){}", true)]
-    [TestCase("  \n\nshader_type   canvas_item;", true)]
-    [TestCase("shader_type spatial;", false)]
-    [TestCase("shader_type particles;", false)]
-    [TestCase("void fragment(){}", false)]
+    [TestCase("float4 shade(ItemInput i) { return i.colour; }", true)]
+    [TestCase("// my glow\n/* block */\nuniform float speed;\nfloat4 shade( ItemInput i ) { return i.colour * speed; }", true)]
+    [TestCase("import xanadu.colour;\nfloat4  shade(ItemInput input) { return input.colour; }", true)]
+    [TestCase("shader_type canvas_item;\nvoid fragment(){}", false)]
+    [TestCase("shader_type canvas_item;\nfloat4 shade(ItemInput i) { return i.colour; }", false)]
+    [TestCase("float4 colourise(ItemInput i) { return i.colour; }", false)]
+    [TestCase("float3 shade(ItemInput i) { return 1; }", false)]
     [TestCase("", false)]
     [TestCase("   ", false)]
-    [TestCase("uniform float x;\nshader_type canvas_item;", false)]
-    public void OnlyCanvasShadersAreAcceptable(string source, bool expected)
+    public void OnlySlangEffectsWithAShadeFunctionAreAcceptable(string source, bool expected)
     {
         Assert.That(ShaderSourceRules.IsAcceptable(source, out string problem), Is.EqualTo(expected));
         Assert.That(problem.Length == 0, Is.EqualTo(expected));
@@ -190,7 +190,7 @@ public sealed class LevelShaderPersistenceTests
     [Test]
     public void OversizedSourceIsRefused()
     {
-        string huge = "shader_type canvas_item;\n" + new string('/', ShaderLimits.MaxSourceChars);
+        string huge = "float4 shade(ItemInput i) { return i.colour; }\n" + new string('/', ShaderLimits.MaxSourceChars);
 
         Assert.That(ShaderSourceRules.IsAcceptable(huge, out _), Is.False);
     }

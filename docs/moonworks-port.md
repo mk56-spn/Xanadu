@@ -15,15 +15,16 @@ under it saying what changed from the plan.
 Update this block at the end of every session, including partial progress.
 
 - **Updated:** 2026-11-09 (third session)
-- **Done:** steps 0, 1, 3 and 4, most of step 2, and the first half of step 5.
-  Engine-free materials and Slang effects draw in the host: note backgrounds,
-  profile art, the colour picker, the text gradient, plus rainbow and flare on
-  the playfield.
-- **Next:** the rest of step 5 (see its notes): level shader slots on the slot
-  model, the fragment-chain wrapper, the disk cache, the F2 tuner on Slang
-  reflection, and the shape glow. Then step 6.
-- **Committed:** everything up to step 4 (`ebe9d0b`). Step 5 so far is not
-  committed.
+- **Done:** steps 0, 1, 3 and 4, most of step 2, and most of step 5:
+  - engine-free materials, and Slang effects for screens and the playfield;
+  - level shader slots as Slang effect bodies;
+  - the disk cache, with effects compiled at start and on level load;
+  - the F2 tuner, now reading Slang reflection.
+- **Next:** what is left of step 5: per-item data in a storage buffer, the
+  vertex slot and fragment chains (once the level format can hold them), the
+  shipped library modules, and shape glow. Then step 6.
+- **Committed:** everything except this doc's latest step 5 notes, which go in
+  with the next commit.
 - **After cloning:** run `External/fetch-moonlibs.sh` once (the host build fails
   with that message otherwise).
 - **Notes for whoever picks this up:** see the step 1 and step 2 notes (Slang
@@ -440,10 +441,10 @@ How it is wired (2026-11-09):
 
 ### Step 5: Shaders: Slang, slots, blend modes, instance data (800–1,200 lines + libraries)
 
-- [~] Shader compile service: Slang source → SPIR-V via `Slangc.NET`, with
+- [x] Shader compile service: Slang source → SPIR-V via `Slangc.NET`, with
   binding counts from Slang reflection filled into `ShaderCreateInfo` /
   `ComputePipelineCreateInfo` automatically, plus a disk cache keyed by source
-  hash. (Compile and reflection done; no disk cache yet.)
+  hash. (Done; see the notes below.)
 - [x] `xanadu.stage` v1 contract and the host's standard vertex shader (§2a).
 - [ ] Slot model: vertex modifier, fragment chain wrapper generation, blend
   dropdown, and a pipeline cache keyed by (vertex, chain, blend, state), built
@@ -454,7 +455,7 @@ How it is wired (2026-11-09):
 - [~] Rewrite the game shaders as slot effects: `Assets/Shaders/note_background`,
   `flare`, `wave_background`, plus the UI materials (`UiTextGradient`,
   `ColorPickerMaterials`, `GodotShapeGlow`).
-- [ ] Level shader slots move to the new model. `ShaderSourceRules` validates
+- [x] Level shader slots move to the new model. `ShaderSourceRules` validates
   through Slang compile errors and the contract check. Godot shader source in
   levels is dropped (P3).
 - [ ] First shipped library modules, ported from the legacy library (§2a).
@@ -507,6 +508,44 @@ How the first half landed (2026-11-09):
   - `wave_background` and `preview_plasma` (nothing on the host path uses them yet);
   - `GodotShapeGlow`;
   - copy-screen and copy-rectangle (step 6).
+
+Level slots, cache and tuner (2026-11-09):
+
+- **A level shader slot holds an effect body** in Slang:
+  - global `uniform`s, tagged `[Instance]` when a group's item-shader track
+    may key them, with `[Default(...)]`s;
+  - `float4 shade(ItemInput i)`.
+
+  `SlangShaders.Wrap` puts it in `namespace effect0`, hoists its `import`
+  lines, and adds `import xanadu.stage` and the entry point `xanaduFragment`.
+  `#line` keeps Slang's errors on the author's own lines under "slot N (name)".
+  `-fvk-bind-globals 1 3` makes the globals uniform buffer 1, and reflection
+  lists them one by one. A chain would add one namespace per effect; the level
+  format holds one effect per slot, so the chain waits for the format.
+- **`ShaderSourceRules`** now refuses Godot source with a message saying so,
+  and wants `float4 shade(ItemInput ...)`. Whether the effect compiles is only
+  known when the host builds it; if not, it logs and draws plain. Old levels'
+  Godot slot shaders are dropped on load (P3). **`ShaderSourceUniforms`**
+  reads the `[Instance]` uniforms (the group-keyable settings). Defaults are
+  taken as written, with missing channels zero, the same as Slang's reflection.
+- **`LevelSlotMaterials`** makes one `CanvasMaterial.FromSource` per slot and
+  blend, with the slot's tuned values set once, as Godot did.
+  `ServerShaderCanvasItems.SlotMaterialOf` is set each frame by the play and
+  editor draw systems. The host caches effects by their source text.
+- **The demo level has a field shader in slot 1** (slow blue bands), so
+  `--demo` covers the slot path.
+- **Disk cache:** `user://shader_cache_slang/`, holding SPIR-V and
+  reflection JSON. The key hashes the source, the entry and flags, every
+  library module, and the Slangc.NET version.
+  - **At start**, every shipped effect is compiled with mix (`WarmShipped`).
+  - **When a level appears**, each of its slots is compiled (`WarmLevelShaders`
+    in `HostGame`).
+  - Blend variants are only pipeline state, so they are still made on first use.
+- **F2 tuner:** it uses `CanvasMaterial`. `HostPlatform.DescribeMaterial`
+  hands it the compiled effect's values. A four-channel value whose name says
+  colour or tint gets a colour picker, standing in for Godot's `source_color`.
+  There's no `[Range]` attribute yet; slider ranges are guessed from the value,
+  as before.
 
 ### Step 6: Groups, buffers and layers (1,000–1,500 lines)
 

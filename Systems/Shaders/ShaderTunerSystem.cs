@@ -49,7 +49,7 @@ public sealed class ShaderTunerSystem(
     /// <param name="Uniforms">Its tunable uniforms.</param>
     /// <param name="Title">The panel's heading for it.</param>
     private sealed record ShaderTarget(
-        ShaderMaterial Material,
+        Xanadu.Systems.Canvas.CanvasMaterial Material,
         List<ShaderUniform> Uniforms,
         string Title);
 
@@ -124,7 +124,7 @@ public sealed class ShaderTunerSystem(
         foreach (ShaderUniform uniform in target.Uniforms)
         {
             float[] values = ShaderUniforms.Read(target.Material, uniform);
-            float[] defaults = ShaderUniforms.Default(target.Material.Shader, uniform);
+            float[] defaults = ShaderUniforms.Default(target.Material, uniform);
             if (uniform.Kind == UniformKind.Color)
             {
                 AddColorPicker(ui, uniform, values, defaults);
@@ -151,15 +151,10 @@ public sealed class ShaderTunerSystem(
         _targets.Clear();
         foreach (Entity entity in entities.Query<UiMaterial>().WithDisabled().ToEntityList())
         {
-            // UI materials are engine-free now (docs/moonworks-port.md step 5), so
-            // nothing here matches until the tuner reads Slang reflection.
-            if ((object)entity.GetComponent<UiMaterial>().Material is not ShaderMaterial
-                {
-                    Shader: { ResourcePath: { Length: > 0 } path } shader,
-                } material)
-            {
+            Xanadu.Systems.Canvas.CanvasMaterial material = entity.GetComponent<UiMaterial>().Material;
+            string path = material.Shader;
+            if (path.Length == 0 || material.Source is not null)
                 continue;
-            }
 
             // The tuner's own colour pickers are drawn with shaders too.
             if (path.StartsWith(UiShaders, StringComparison.Ordinal))
@@ -169,13 +164,13 @@ public sealed class ShaderTunerSystem(
             if (_targets.Exists(existing => existing.Material == material))
                 continue;
 
-            List<ShaderUniform> uniforms = ShaderUniforms.Describe(shader);
+            List<ShaderUniform> uniforms = ShaderUniforms.Describe(material);
             if (uniforms.Count == 0)
                 continue;
 
             string title = path.Split('/')[^1];
-            if (material.HasMeta(ShaderMaterials.InstanceMeta))
-                title += ": " + material.GetMeta(ShaderMaterials.InstanceMeta).AsString();
+            if (material.Instance is { } instance)
+                title += ": " + instance;
 
             _targets.Add(new ShaderTarget(material, uniforms, title));
         }
@@ -190,10 +185,11 @@ public sealed class ShaderTunerSystem(
             LevelShaders shaders = entity.GetComponent<LevelShaders>();
             for (int i = 0; i < shaders.Slots.Length; i++)
             {
-                if (shaders.Slots[i] is not { Material: { Shader: { } shader } material } slot)
+                if (shaders.Slots[i] is not { } slot ||
+                    LevelSlotMaterials.MaterialOf(shaders, i + 1) is not { } material)
                     continue;
 
-                List<ShaderUniform> uniforms = ShaderUniforms.Describe(shader);
+                List<ShaderUniform> uniforms = ShaderUniforms.Describe(material);
                 if (uniforms.Count == 0)
                     continue;
 
@@ -339,8 +335,7 @@ public sealed class ShaderTunerSystem(
                 continue;
 
             _applied[uniform.Name] = channels;
-            if (GodotObject.IsInstanceValid(target.Material))
-                ShaderUniforms.Write(target.Material, uniform, channels);
+            ShaderUniforms.Write(target.Material, uniform, channels);
         }
     }
 
@@ -375,9 +370,6 @@ public sealed class ShaderTunerSystem(
         for (int i = 1; i <= _targets.Count; i++)
         {
             int next = Mathf.PosMod(_index + direction * i, _targets.Count);
-            if (!GodotObject.IsInstanceValid(_targets[next].Material))
-                continue;
-
             _index = next;
             UiLayout.DeleteSubtree(_layer);
             Build();

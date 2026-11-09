@@ -36,6 +36,12 @@ public static class HostPlatform
     /// </summary>
     public static System.Func<GlyphAtlas, Godot.Rid>? GlyphStrip { get; set; }
 
+    /// <summary>
+    /// The values a material's shader declares, from the host's compiler; null
+    /// when the shader can't be built or no host describes materials (Godot, tests).
+    /// </summary>
+    public static System.Func<CanvasMaterial, System.Collections.Generic.IReadOnlyList<MaterialParam>?>? DescribeMaterial { get; set; }
+
     /// <summary>True under the Godot engine, where Godot-only paths (shader materials, particles, fonts) can run.</summary>
     public static bool IsGodot => CanvasServer.Current is GodotCanvasServer;
 

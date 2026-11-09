@@ -145,12 +145,12 @@ public sealed class EditorLayersTests
         shaders.Slots[0] = new ShaderSlot
         {
             Name = "Old",
-            Source = "shader_type canvas_item;\ninstance uniform float strength;\ninstance uniform float gone;",
+            Source = "[Instance] uniform float strength;\n[Instance] uniform float gone;\nfloat4 shade(ItemInput i) { return i.colour; }",
         };
         shaders.Slots[1] = new ShaderSlot
         {
             Name = "New",
-            Source = "shader_type canvas_item;\ninstance uniform vec2 strength;",
+            Source = "[Instance] uniform float2 strength;\nfloat4 shade(ItemInput i) { return i.colour; }",
         };
         _editor.AddComponent(shaders);
         LevelLayer entry = Table.Edit(-2);

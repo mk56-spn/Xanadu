@@ -93,7 +93,7 @@ public sealed class EditorShaderKeyEditsTests
     public void TheSlotChoiceNamesEverySlot()
     {
         LevelShaders shaders = LevelShaders.Create();
-        shaders.Slots[0] = new ShaderSlot { Name = "Blur", Source = "shader_type canvas_item;" };
+        shaders.Slots[0] = new ShaderSlot { Name = "Blur", Source = "float4 shade(ItemInput i) { return i.colour; }" };
 
         string[] labels = ShaderSlotChoice.Labels(shaders);
 

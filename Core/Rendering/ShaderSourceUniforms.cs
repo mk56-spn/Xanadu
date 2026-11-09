@@ -6,29 +6,39 @@ using Godot;
 namespace Xanadu.Rendering;
 
 /// <summary>
-/// One keyable shader setting: an <c>instance uniform</c> the shader declares,
-/// with the value its declaration gives it (zero when it gives none). An
-/// unkeyed setting holds <paramref name="Default"/>, so a first key starts there.
+/// One keyable shader setting: a global <c>uniform</c> the effect tags
+/// <c>[Instance]</c>, with the value its <c>[Default(...)]</c> gives it (zero
+/// when it gives none). An unkeyed setting holds <paramref name="Default"/>, so
+/// a first key starts there.
 /// </summary>
 public readonly record struct InstanceUniform(string Name, int Channels, Vector4 Default = default);
 
 /// <summary>
-/// Reads the <c>instance uniform</c> declarations out of a canvas shader's
-/// source (docs/render-architecture.md §5.3, step 8). Those are the settings a
-/// group's item-shader track can key; a plain <c>uniform</c> stays a tuned
-/// constant.
+/// Reads the keyable settings out of a level shader's Slang source
+/// (docs/render-architecture.md §5.3, step 8; docs/moonworks-port.md step 5):
+/// global uniforms tagged <c>[Instance]</c>, such as
+/// <c>[Instance] [Default(0.5)] uniform float strength;</c>. Those are what a
+/// group's item-shader track can key; an untagged <c>uniform</c> stays a tuned
+/// constant. Defaults are taken as written, missing channels zero, as the host
+/// reads them from Slang's reflection.
 /// </summary>
 public static partial class ShaderSourceUniforms
 {
     [GeneratedRegex(
-        @"\binstance\s+uniform\s+(?:(?:highp|mediump|lowp)\s+)?(float|int|vec2|vec3|vec4)\s+([A-Za-z_][A-Za-z0-9_]*)\s*(?::[^=;]*)?(?:=\s*([^;]+?)\s*)?;",
+        @"((?:\[\s*\w+\s*(?:\((?:[^()]|\([^()]*\))*\))?\s*\]\s*)+)uniform\s+(float|int|uint|float2|float3|float4)\s+([A-Za-z_][A-Za-z0-9_]*)\s*;",
         RegexOptions.Singleline)]
     private static partial Regex Declared();
+
+    [GeneratedRegex(@"\[\s*Instance\s*\]")]
+    private static partial Regex InstanceTag();
+
+    [GeneratedRegex(@"\[\s*Default\s*\(((?:[^()]|\([^()]*\))*)\)\s*\]")]
+    private static partial Regex DefaultTag();
 
     [GeneratedRegex(@"//[^\n]*|/\*.*?\*/", RegexOptions.Singleline)]
     private static partial Regex Comments();
 
-    /// <summary>The instance uniforms a source declares, in declaration order.</summary>
+    /// <summary>The keyable settings a source declares, in declaration order.</summary>
     public static List<InstanceUniform> InstanceUniforms(string? source)
     {
         var uniforms = new List<InstanceUniform>();
@@ -37,34 +47,27 @@ public static partial class ShaderSourceUniforms
 
         foreach (Match match in Declared().Matches(Comments().Replace(source, "")))
         {
-            string name = match.Groups[2].Value;
+            string attributes = match.Groups[1].Value;
+            if (!InstanceTag().IsMatch(attributes))
+                continue;
+
+            string name = match.Groups[3].Value;
             if (uniforms.Exists(uniform => uniform.Name == name))
                 continue;
-            int channels = Channels(match.Groups[1].Value);
-            uniforms.Add(new InstanceUniform(name, channels, Default(match.Groups[3].Value, channels)));
+
+            Match fallback = DefaultTag().Match(attributes);
+            uniforms.Add(new InstanceUniform(
+                name,
+                Channels(match.Groups[2].Value),
+                fallback.Success ? Default(fallback.Groups[1].Value) : Vector4.Zero));
         }
 
         return uniforms;
     }
 
-    /// <summary>
-    /// The declared value: a number, or <c>vecN(...)</c> with one value (spread
-    /// over every channel) or one per channel. Anything else reads as zero.
-    /// </summary>
-    private static Vector4 Default(string text, int channels)
+    /// <summary>Up to four comma-separated numbers; anything that isn't a number reads as zero.</summary>
+    private static Vector4 Default(string text)
     {
-        text = text.Trim();
-        if (text.Length == 0)
-            return Vector4.Zero;
-
-        int open = text.IndexOf('(');
-        if (open >= 0)
-        {
-            if (!text.EndsWith(')'))
-                return Vector4.Zero;
-            text = text[(open + 1)..^1];
-        }
-
         string[] parts = text.Split(',');
         float[] values = new float[4];
         for (int i = 0; i < parts.Length && i < 4; i++)
@@ -73,20 +76,14 @@ public static partial class ShaderSourceUniforms
                 return Vector4.Zero;
         }
 
-        if (parts.Length == 1)
-        {
-            for (int i = 1; i < channels; i++)
-                values[i] = values[0];
-        }
-
         return new Vector4(values[0], values[1], values[2], values[3]);
     }
 
     private static int Channels(string type) => type switch
     {
-        "vec2" => 2,
-        "vec3" => 3,
-        "vec4" => 4,
+        "float2" => 2,
+        "float3" => 3,
+        "float4" => 4,
         _ => 1,
     };
 }

@@ -17,6 +17,9 @@ public sealed class PlayfieldDrawSystem :
     private readonly ShaderRoutingCanvas _canvas;
     /// <summary>The rendering-server items shaded draws go to; null when tests hand in their own.</summary>
     private readonly GodotShaderCanvasItems? _shaderItems;
+
+    /// <summary>The engine-free shader items, when this draws on a host other than Godot.</summary>
+    private readonly ServerShaderCanvasItems? _serverItems;
     private readonly Rid _playfield;
     private readonly IPassSurfaces? _passes;
 
@@ -36,7 +39,7 @@ public sealed class PlayfieldDrawSystem :
         // Tests have no rendering server: calling it outside the engine jumps to a
         // null native pointer and kills the whole test host, so they pass a fake.
         _shaderItems = shaderItems is null && HostPlatform.IsGodot ? new GodotShaderCanvasItems() : null;
-        _canvas = new ShaderRoutingCanvas(canvas, playfield, shaderItems ?? _shaderItems ?? new ServerShaderCanvasItems(), toPixels);
+        _canvas = new ShaderRoutingCanvas(canvas, playfield, shaderItems ?? _shaderItems ?? (_serverItems = new ServerShaderCanvasItems()), toPixels);
         _playfield = playfield;
         _passes = passes;
     }
@@ -59,6 +62,9 @@ public sealed class PlayfieldDrawSystem :
                 LevelShaders shaders = entity.TryGetComponent(out LevelShaders found)
                     ? found
                     : LevelShaders.Create();
+                if (_serverItems is not null)
+                    _serverItems.SlotMaterialOf = (slot, blend) => LevelSlotMaterials.MaterialOf(shaders, slot, blend);
+
                 if (_shaderItems is not null)
                 {
                     LevelShaderMaterials.Ensure(shaders);

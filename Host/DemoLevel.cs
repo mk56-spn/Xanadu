@@ -38,6 +38,28 @@ internal static class DemoLevel
 
         document.Blocks.Add(new BlockDocument { X = start + 300f, Y = ground - 260f, Width = 480f, Height = 40f });
         document.Blocks.Add(new BlockDocument { X = start - 900f, Y = ground - 420f, Width = 300f, Height = 300f });
+        // A field shader in slot 1, so the host's level-slot path (wrapper, globals,
+        // tuned values) is exercised by the demo: slow bands of the level's own hue.
+        document.Shaders.Add(new ShaderDocument
+        {
+            Slot = 1,
+            Name = "demo bands",
+            Source = """
+                import xanadu.colour;
+
+                [Default(0.25)] uniform float speed;
+                uniform float4 tint;
+
+                float4 shade(ItemInput i)
+                {
+                    float band = 0.5 + 0.5 * sin(i.uv.y * 18.0 - i.time * speed * 6.2832);
+                    float3 colour = lerp(i.colour.rgb, tint.rgb, band * 0.35);
+                    return float4(colour, i.colour.a);
+                }
+                """,
+            Params = { ["tint"] = [0.25f, 0.4f, 0.9f, 1f] },
+        });
+        document.FieldShader = 1;
         return LevelStore.Entry("", document);
     }
 }

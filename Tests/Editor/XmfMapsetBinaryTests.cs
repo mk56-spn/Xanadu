@@ -24,7 +24,7 @@ public sealed class XmfMapsetBinaryTests
         {
             Slot = 1,
             Name = "Glow",
-            Source = "shader_type canvas_item;\nvoid fragment() {}",
+            Source = "float4 shade(ItemInput i) { return i.colour; }",
         });
 
         var easy = new XmfVariant { Id = "easy", Name = "Easy", PlayerShader = 1 };
@@ -94,7 +94,7 @@ public sealed class XmfMapsetBinaryTests
         mapset.Shaders.Add(new ShaderDocument
         {
             Slot = 1,
-            Source = "shader_type canvas_item;\nvoid fragment() {}",
+            Source = "float4 shade(ItemInput i) { return i.colour; }",
         });
 
         var variant = new XmfVariant { PlayerShader = 1, FieldShader = 99 };

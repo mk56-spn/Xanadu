@@ -50,6 +50,31 @@ internal sealed class CanvasPipelines : IDisposable
     /// <summary>The plain canvas fragment: vertex colour times the item's texture.</summary>
     public CanvasEffect Plain => _plain;
 
+    /// <summary>A material's effect: its level shader code when it has some, else its shipped effect.</summary>
+    public CanvasEffect Effect(Xanadu.Systems.Canvas.CanvasMaterial? material)
+    {
+        if (material?.Source is not { } source)
+            return Effect(material?.Shader ?? "");
+
+        // Keyed by the code, not the name: two slots may share a name, and an edit makes a new effect.
+        string key = "source:" + source;
+        if (!_effects.TryGetValue(key, out CanvasEffect? effect))
+        {
+            try
+            {
+                effect = Make(SlangShaders.CompileEffectBody(material.Shader, source));
+            }
+            catch (Exception exception)
+            {
+                Console.Error.WriteLine($"Shader {material.Shader} failed to compile; drawing plain.\n{exception.Message}");
+            }
+
+            _effects[key] = effect;
+        }
+
+        return effect ?? _plain;
+    }
+
     /// <summary>The effect at a <c>res://</c> path (entry point <c>shade</c>), or the plain one if it can't be built.</summary>
     public CanvasEffect Effect(string path)
     {
@@ -95,6 +120,29 @@ internal sealed class CanvasPipelines : IDisposable
             NumUniformBuffers = compiled.UniformBuffers,
         });
         return new CanvasEffect(shader, compiled);
+    }
+
+    /// <summary>Compiles a material's effect and its pipeline now, so its first draw doesn't stall.</summary>
+    public void Warm(Xanadu.Systems.Canvas.CanvasMaterial material) =>
+        Pipeline(Effect(material), material.Blend);
+
+    /// <summary>
+    /// Compiles every shipped effect (each <c>.slang</c> under <c>Assets/Shaders</c>
+    /// outside the library) with mix; called once at start, so screens and the
+    /// playfield never compile one mid-song.
+    /// </summary>
+    public void WarmShipped()
+    {
+        string root = GamePaths.Globalize("res://Assets/Shaders");
+        string library = Path.Combine(root, "Library");
+        foreach (string file in Directory.EnumerateFiles(root, "*.slang", SearchOption.AllDirectories))
+        {
+            if (file.StartsWith(library, StringComparison.Ordinal))
+                continue;
+
+            string path = "res://Assets/Shaders/" + Path.GetRelativePath(root, file).Replace('\\', '/');
+            Pipeline(Effect(path), BlendMode.Mix);
+        }
     }
 
     public GraphicsPipeline Pipeline(CanvasEffect effect, BlendMode blend)

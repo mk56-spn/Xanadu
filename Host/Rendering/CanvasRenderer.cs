@@ -54,6 +54,8 @@ internal sealed class CanvasRenderer : IDisposable
     /// <summary>Textures the game can draw by id, minted from the tree so they never clash with items.</summary>
     public Dictionary<ulong, Texture> Textures { get; } = new();
 
+    public CanvasPipelines Pipelines => _pipelines;
+
     /// <summary>Draw calls in the last frame, for the debug overlay and the step's sanity check.</summary>
     public int LastBatchCount => _batches.Count;
 
@@ -104,7 +106,7 @@ internal sealed class CanvasRenderer : IDisposable
         Span<TextureSamplerBinding> samplers = stackalloc TextureSamplerBinding[8];
         foreach (Batch batch in _batches)
         {
-            CanvasEffect effect = _pipelines.Effect(batch.Material?.Shader ?? "");
+            CanvasEffect effect = _pipelines.Effect(batch.Material);
             GraphicsPipeline pipeline = _pipelines.Pipeline(effect, batch.Material?.Blend ?? BlendMode.Mix);
             if (pipeline != bound)
             {

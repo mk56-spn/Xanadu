@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Collections.Generic;
 using System.Linq;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
@@ -65,6 +66,7 @@ internal sealed class HostGame : Game
             TextureUsageFlags.ColorTarget | TextureUsageFlags.Sampler);
         GamePaths.UseRoots(FindGameFolder(), GamePaths.GodotUserFolder("Xanadu"));
         SlangShaders.LibraryPath = GamePaths.Globalize("res://Assets/Shaders/Library");
+        SlangShaders.CacheFolder = GamePaths.Globalize("user://shader_cache_slang");
         _renderer = new CanvasRenderer(GraphicsDevice, _canvas, TargetFormat, Width, Height);
         _text = new HostText(GraphicsDevice, texture =>
         {
@@ -86,6 +88,8 @@ internal sealed class HostGame : Game
             _renderer.Textures[rid.Id] = GlyphStrips.Build(GraphicsDevice, _text, atlas);
             return rid;
         };
+        _renderer.Pipelines.WarmShipped();
+        HostPlatform.DescribeMaterial = DescribeMaterial;
         HostPlatform.ApplyVSync = ApplyVSync;
         ApplyVSync(true);
 
@@ -213,6 +217,7 @@ internal sealed class HostGame : Game
         _pointer.Poll();
         float time = (float)(now - _started).TotalSeconds;
         _systems.Update(new UpdateTick(delta, time));
+        WarmLevelShaders();
         _pointer.EndFrame();
     }
 
@@ -256,6 +261,38 @@ internal sealed class HostGame : Game
         }
 
         GraphicsDevice.Submit(commands);
+    }
+
+    /// <summary>A material's values as the compiled effect declares them, for the F2 tuner.</summary>
+    private IReadOnlyList<MaterialParam>? DescribeMaterial(CanvasMaterial material)
+    {
+        CanvasEffect effect = _renderer.Pipelines.Effect(material);
+        if (effect == _renderer.Pipelines.Plain)
+            return null;
+
+        return effect.Compiled.Params
+            .Select(param => new MaterialParam(param.Name, Math.Clamp(param.Size / 4, 1, 4), param.IsInt, param.Default))
+            .ToList();
+    }
+
+    private readonly HashSet<ShaderSlot?[]> _warmedSlots = new(ReferenceEqualityComparer.Instance);
+
+    /// <summary>
+    /// Compiles a level's shader slots the frame its shaders appear (a level
+    /// loaded for play or editing), rather than when each is first drawn.
+    /// </summary>
+    private void WarmLevelShaders()
+    {
+        foreach (Entity entity in _entities.Query<LevelShaders>().ToEntityList())
+        {
+            LevelShaders shaders = entity.GetComponent<LevelShaders>();
+            if (shaders.Slots is null || !_warmedSlots.Add(shaders.Slots))
+                continue;
+
+            for (int slot = 1; slot <= ShaderLimits.Count; slot++)
+                if (Xanadu.Systems.Shaders.LevelSlotMaterials.MaterialOf(shaders, slot) is { } material)
+                    _renderer.Pipelines.Warm(material);
+        }
     }
 
     /// <summary>F12, as in the Godot build: a PNG in <c>user://screenshots</c> and a toast.</summary>

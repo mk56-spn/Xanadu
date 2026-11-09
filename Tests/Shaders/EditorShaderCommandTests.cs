@@ -13,7 +13,7 @@ namespace Xanadu.Tests.Shaders;
 [TestFixture]
 public sealed class EditorShaderCommandTests : EcsSystemTest
 {
-    private const string Source = "shader_type canvas_item;\nvoid fragment() { COLOR = vec4(1.0); }";
+    private const string Source = "float4 shade(ItemInput i) { return float4(1.0); }";
 
     private EditorCommandBus _commands = null!;
     private Entity _editor;

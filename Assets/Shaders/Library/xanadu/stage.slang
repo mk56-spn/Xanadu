@@ -14,6 +14,15 @@
 //     [[vk::binding(1, 2)]] Sampler2D notes;
 //
 // Values a material doesn't set take the field's [Default(...)], else zero.
+//
+// A level shader slot holds just an effect body: global uniforms (tagged
+// [Instance] when a group may key them) and `float4 shade(ItemInput i)`. The
+// host wraps it with this import and an entry point, and binds its globals to
+// uniform buffer 1:
+//
+//     [Instance] [Default(0.5)] uniform float strength;
+//     uniform float4 tint;
+//     float4 shade(ItemInput i) { return i.colour * tint * strength; }
 module stage;
 
 public static const int VERSION = 1;
@@ -26,6 +35,13 @@ public struct DefaultAttribute
     float y = 0;
     float z = 0;
     float w = 0;
+};
+
+/// Marks a level shader's global uniform as keyable per item: a group's
+/// item-shader track can animate it, and each run of items gets its own value.
+[__AttributeUsage(_AttributeTargets.Var)]
+public struct InstanceAttribute
+{
 };
 
 /// What the vertex stage passes on, in this order (varyings match by position).

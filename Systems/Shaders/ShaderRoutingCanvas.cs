@@ -517,6 +517,9 @@ public class ServerShaderCanvasItems : IShaderCanvasItems
     // One material per (shader, blend), shared by every run item that uses it.
     private static readonly Dictionary<(string, BlendMode), CanvasMaterial> Materials = new();
 
+    /// <summary>A level slot's material with a blend; set each frame from the level being drawn.</summary>
+    public Func<int, BlendMode, CanvasMaterial?> SlotMaterialOf { get; set; } = static (_, _) => null;
+
     public Rid CreateItem(Rid parent)
     {
         Rid item = CanvasServer.Current.CreateItem();
@@ -526,7 +529,13 @@ public class ServerShaderCanvasItems : IShaderCanvasItems
 
     public virtual void SetMaterial(Rid item, int slot, string commonPath, BlendMode blend)
     {
-        string shader = commonPath.Length > 0 ? commonPath : "";
+        if (commonPath.Length == 0 && slot != 0 && SlotMaterialOf(slot, blend) is { } slotMaterial)
+        {
+            CanvasServer.Current.SetMaterial(item, slotMaterial);
+            return;
+        }
+
+        string shader = commonPath;
         if (shader.Length == 0 && blend == BlendMode.Mix)
         {
             CanvasServer.Current.SetMaterial(item, null);
