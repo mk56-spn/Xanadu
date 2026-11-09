@@ -270,7 +270,7 @@ public sealed class EditorGroupsSceneTest : SceneTest
             shaders.Slots[0] = new ShaderSlot
             {
                 Name = "Track Test",
-                Source = "shader_type canvas_item;\ninstance uniform vec4 tint;\nvoid fragment() { COLOR = tint; }",
+                Source = "[Instance] uniform float4 tint;\nfloat4 shade(ItemInput i) { return tint; }",
             };
         });
         AddStep("open the SHD list", () => Click(Piece(EditorGroupPart.ShaderSlot)));
