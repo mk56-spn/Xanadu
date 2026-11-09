@@ -5,7 +5,7 @@ using Xanadu.Settings;
 
 namespace Xanadu.Systems.Ui;
 
-/// <summary>Applies ECS VSync toggle changes to display settings.</summary>
+/// <summary>Applies the settings screen's VSync and editor autosave toggles.</summary>
 public sealed class VSyncToggleSystem : QuerySystem<Toggle>
 {
     private readonly DisplaySettings _display;
@@ -24,6 +24,8 @@ public sealed class VSyncToggleSystem : QuerySystem<Toggle>
         {
             if (entity.HasComponent<VSyncToggle>())
                 _display.SetVSync(toggle.Value);
+            else if (entity.HasComponent<EditorAutosaveToggle>())
+                _display.SetEditorAutosave(toggle.Value);
 
             buffer.RemoveTag<ToggleChanged>(entity.Id);
         });

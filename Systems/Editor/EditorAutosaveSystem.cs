@@ -8,8 +8,11 @@ using Xanadu.Levels;
 namespace Xanadu.Systems.Editor;
 
 /// <summary>
-/// Copies unsaved edits to a recovery file every few seconds, and when the
-/// editor opens a level that has such a copy, offers it back. "Unsaved" means
+/// Every few seconds, with autosave on, asks for unsaved edits to be saved to
+/// the level's own file, silently. Either way it also copies them to a
+/// recovery file, which is only for a crash: a save, leaving the editor or
+/// quitting the game normally throws it away, so the editor only offers a
+/// copy back after the game died with edits unsaved. "Unsaved" means
 /// different from the state the level was loaded or last saved in, so an
 /// undone edit leaves nothing behind.
 /// </summary>
@@ -17,7 +20,8 @@ public sealed class EditorAutosaveSystem(
     EntityStore entities,
     LevelRecoveryStore store,
     Func<DateTimeOffset>? clock = null,
-    float intervalSeconds = EditorAutosaveSystem.DefaultIntervalSeconds)
+    float intervalSeconds = EditorAutosaveSystem.DefaultIntervalSeconds,
+    Func<bool>? saveToFile = null)
     : QuerySystem<LevelFile, EditorUiRequest>
 {
     public const float DefaultIntervalSeconds = 20f;
@@ -35,7 +39,7 @@ public sealed class EditorAutosaveSystem(
         CommandBuffer buffer = CommandBuffer;
         float delta = Tick.deltaTime;
 
-        Query.ForEachEntity((ref file, ref _, entity) =>
+        Query.ForEachEntity((ref file, ref request, entity) =>
         {
             if (entity.Pid != _editor)
             {
@@ -66,8 +70,24 @@ public sealed class EditorAutosaveSystem(
                 return;
 
             _elapsed = 0;
-            Autosave(entity, file.Path);
+            if (Autosave(entity, file.Path))
+                RequestSave(ref request, file.Path);
         });
+    }
+
+    /// <summary>
+    /// The editor closed normally, so this session's autosave is not a crash
+    /// to recover from. A copy from an earlier crash that is still waiting on
+    /// an answer was never written by this session and stays.
+    /// </summary>
+    public void EndSession()
+    {
+        if (_lastWritten is null)
+            return;
+
+        store.Delete(_path);
+        _lastWritten = null;
+        _elapsed = 0;
     }
 
     private void Rebase(Entity editor, CommandBuffer buffer, string path, bool offer)
@@ -91,26 +111,44 @@ public sealed class EditorAutosaveSystem(
             buffer.AddComponent(editor.Id, new EditorRecoveryOffer(path, saved.Level, saved.SavedAt));
     }
 
-    private void Autosave(Entity editor, string path)
+    /// <summary>Writes the crash copy; true while the level has unsaved edits.</summary>
+    private bool Autosave(Entity editor, string path)
     {
         // Until the user answers, the file on disk is the thing they may still want.
         if (editor.HasComponent<EditorRecoveryOffer>())
-            return;
+            return false;
 
         LevelDocument level = LevelDocumentMapper.Capture(entities, editor);
         string current = LevelRecoveryStore.Canonical(level);
-        if (current == (_lastWritten ?? _baseline))
-            return;
-
         if (current == _baseline)
         {
-            store.Delete(path);
+            if (_lastWritten is not null)
+                store.Delete(path);
             _lastWritten = null;
-            return;
+            return false;
         }
 
-        store.Write(path, level, _clock());
-        _lastWritten = current;
-        _path = path;
+        if (current != _lastWritten)
+        {
+            store.Write(path, level, _clock());
+            _lastWritten = current;
+            _path = path;
+        }
+
+        return true;
+    }
+
+    /// <summary>
+    /// Hands the save to the overlay, which owns writing level files. A level
+    /// with no file yet is left to the user to save; a frame already asking
+    /// for something else is left alone, and the next interval tries again.
+    /// </summary>
+    private void RequestSave(ref EditorUiRequest request, string path)
+    {
+        if (saveToFile?.Invoke() != true || string.IsNullOrEmpty(path))
+            return;
+
+        if (request.Kind == EditorButtonKind.None)
+            request.Kind = EditorButtonKind.QuietSave;
     }
 }

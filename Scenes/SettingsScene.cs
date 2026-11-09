@@ -58,7 +58,10 @@ public static class SettingsScene
             .Pad(UiMetrics.Space.Xxl)
             .Gap(UiMetrics.Space.Lg);
 
-        VsyncRow(content, display);
+        ToggleRow(content, SettingsStrings.VSync, SettingsStrings.VSyncOn, SettingsStrings.VSyncOff,
+            display.VSyncEnabled, new VSyncToggle());
+        ToggleRow(content, SettingsStrings.Autosave, SettingsStrings.AutosaveOn, SettingsStrings.AutosaveOff,
+            display.EditorAutosave, new EditorAutosaveToggle());
         content.Text(
             LocalizedText.Get(SettingsStrings.Keybinds),
             UiType.Section,
@@ -96,19 +99,21 @@ public static class SettingsScene
     }
 
     /// <summary>One label and one switch, on the same grid as the keybinds.</summary>
-    private static void VsyncRow(UiNode card, DisplaySettings display)
+    private static void ToggleRow<T>(
+        UiNode card, LString label, LString onText, LString offText, bool value, T marker)
+        where T : struct, IComponent
     {
-        string on = LocalizedText.Get(SettingsStrings.VSyncOn);
-        string off = LocalizedText.Get(SettingsStrings.VSyncOff);
+        string on = LocalizedText.Get(onText);
+        string off = LocalizedText.Get(offText);
 
         UiNode row = card.Row().Gap(ColumnGap);
-        row.Text(LocalizedText.Get(SettingsStrings.VSync), UiType.Label, SceneUi.TextColor)
+        row.Text(LocalizedText.Get(label), UiType.Label, SceneUi.TextColor)
             .Size(LabelColumn, UiMetrics.Control.Md);
-        row.Button(display.VSyncEnabled ? on : off, UiType.Small, SceneUi.MutedButtonColor)
+        row.Button(value ? on : off, UiType.Small, SceneUi.MutedButtonColor)
             .Size(ControlWidth, UiMetrics.Control.Md)
-            .With(new Toggle(on, off, display.VSyncEnabled, Palette.Primary,
+            .With(new Toggle(on, off, value, Palette.Primary,
                 SceneUi.MutedButtonColor))
-            .With(new VSyncToggle());
+            .With(marker);
     }
 
     /// <summary>Every bindable action, two columns, one row each.</summary>

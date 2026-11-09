@@ -23,6 +23,7 @@ public sealed class EditorAutosaveSystemTests
     private EntityStore _store = null!;
     private SystemRoot _root = null!;
     private LevelRecoveryStore _recovery = null!;
+    private EditorAutosaveSystem _autosave = null!;
     private Entity _editor;
     private DateTimeOffset _now = new(2026, 10, 27, 14, 0, 0, TimeSpan.Zero);
 
@@ -34,7 +35,8 @@ public sealed class EditorAutosaveSystemTests
         _recovery = new LevelRecoveryStore(_directory);
         _editor = NewEditor(LevelPath);
         _root = new SystemRoot(_store);
-        _root.Add(new EditorAutosaveSystem(_store, _recovery, () => _now, intervalSeconds: 10));
+        _autosave = new EditorAutosaveSystem(_store, _recovery, () => _now, intervalSeconds: 10);
+        _root.Add(_autosave);
     }
 
     [TearDown]
@@ -157,6 +159,85 @@ public sealed class EditorAutosaveSystemTests
     }
 
     [Test]
+    public void LeavingTheEditorNormallyThrowsTheAutosaveAway()
+    {
+        Pass(0.1f);
+        AddNote(500);
+        Pass(11);
+        Assert.That(_recovery.Read(LevelPath), Is.Not.Null);
+
+        _autosave.EndSession();
+
+        Assert.That(_recovery.Read(LevelPath), Is.Null, "only a crash leaves a copy to recover");
+    }
+
+    [Test]
+    public void LeavingBeforeAnsweringAnOfferKeepsTheCrashCopy()
+    {
+        LevelDocument edited = LevelDocumentMapper.Capture(_store, _editor);
+        edited.Notes.Add(new NoteDocument { TimeMs = 900, X = 5, Y = 5 });
+        _recovery.Write(LevelPath, edited, _now);
+        Pass(0.1f);
+
+        _autosave.EndSession();
+
+        Assert.That(_recovery.Read(LevelPath), Is.Not.Null);
+    }
+
+    [Test]
+    public void WithAutosaveOnUnsavedEditsAskForAQuietSave()
+    {
+        UseAutosave(enabled: true);
+        Pass(0.1f);
+        AddNote(500);
+
+        Pass(11);
+
+        Assert.That(_editor.GetComponent<EditorUiRequest>().Kind, Is.EqualTo(EditorButtonKind.QuietSave));
+        Assert.That(_recovery.Read(LevelPath), Is.Not.Null, "the crash copy covers a save that fails");
+    }
+
+    [Test]
+    public void WithAutosaveOffNothingAsksToSave()
+    {
+        UseAutosave(enabled: false);
+        Pass(0.1f);
+        AddNote(500);
+
+        Pass(11);
+
+        Assert.That(_editor.GetComponent<EditorUiRequest>().Kind, Is.EqualTo(EditorButtonKind.None));
+    }
+
+    [Test]
+    public void AutosaveLeavesAnUntitledLevelForTheUserToSave()
+    {
+        UseAutosave(enabled: true);
+        Entity untitled = NewEditor("");
+        _editor.DeleteEntity();
+        _editor = untitled;
+        Pass(0.1f);
+        AddNote(500);
+
+        Pass(11);
+
+        Assert.That(_editor.GetComponent<EditorUiRequest>().Kind, Is.EqualTo(EditorButtonKind.None));
+    }
+
+    [Test]
+    public void AutosaveDoesNotTakeOverAnotherRequest()
+    {
+        UseAutosave(enabled: true);
+        Pass(0.1f);
+        AddNote(500);
+        _editor.GetComponent<EditorUiRequest>().Kind = EditorButtonKind.LoadSong;
+
+        Pass(11);
+
+        Assert.That(_editor.GetComponent<EditorUiRequest>().Kind, Is.EqualTo(EditorButtonKind.LoadSong));
+    }
+
+    [Test]
     public void ASaveCommandClearsTheAutosaveInTheSameUpdate()
     {
         // This case needs the editor's command system and the autosave system
@@ -232,7 +313,15 @@ public sealed class EditorAutosaveSystemTests
     }
 
     private Entity AddNote(long time, float x = 100) => _store.CreateEntity(
-        new Note(time, new Vector2(x, 200), KeybindAction.M, NoteKind.Hit, DashDirection.Up, 0, CharacterKind.Contact));
+        new Note(time, new Vector2(x, 200), KeybindAction.Action2, NoteKind.Hit));
+
+    private void UseAutosave(bool enabled)
+    {
+        _root.Remove(_autosave);
+        _autosave = new EditorAutosaveSystem(
+            _store, _recovery, () => _now, intervalSeconds: 10, saveToFile: () => enabled);
+        _root.Add(_autosave);
+    }
 
     private void Pass(float seconds) =>
         _root.Update(new UpdateTick(seconds, 0));

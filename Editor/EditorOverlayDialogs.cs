@@ -33,6 +33,38 @@ public partial class EditorOverlay : CanvasLayer
     }
 
     /// <summary>
+    /// The autosave's save: only a level that already has a file, only when it
+    /// is valid, and with nothing on the status line either way. A level that
+    /// cannot be saved now keeps its crash copy and is tried again later.
+    /// </summary>
+    private void SaveQuietly()
+    {
+        if (_editor.IsNull)
+            _editor = FindEditor();
+
+        if (_editor.IsNull)
+            return;
+
+        string target = CurrentLevelPath();
+        if (string.IsNullOrEmpty(target))
+            return;
+
+        LevelDocument document = LevelDocumentMapper.Capture(_entities, _editor);
+        if (LevelValidator.Validate(document).Count > 0)
+            return;
+
+        try
+        {
+            LevelStore.Save(document, target);
+            _commands.Enqueue(EditorCommand.SetLevelFile(target));
+        }
+        catch (Exception exception)
+        {
+            GD.PushWarning($"Autosave of '{target}' failed: {exception.Message}");
+        }
+    }
+
+    /// <summary>
     /// Saves the level to its current path, or to a fresh unnamed one, and
     /// reports where it wrote so a caller can keep using that path.
     /// </summary>

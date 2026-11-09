@@ -73,6 +73,10 @@ public partial class EditorOverlay : CanvasLayer
             case EditorButtonKind.Leave:
                 _onBack?.Invoke();
                 break;
+
+            case EditorButtonKind.QuietSave:
+                SaveQuietly();
+                break;
         }
     }
 
@@ -89,7 +93,8 @@ public partial class EditorOverlay : CanvasLayer
             or EditorButtonKind.FrameColor
             or EditorButtonKind.ResetFrameColor
             or EditorButtonKind.ImportShader
-            or EditorButtonKind.Leave;
+            or EditorButtonKind.Leave
+            or EditorButtonKind.QuietSave;
 
     /// <summary>Opens the real play scene on the current level, from a start point or the playhead.</summary>
     private void StartPreview(bool fromPlayhead = false)

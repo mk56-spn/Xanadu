@@ -4,7 +4,7 @@ using Xanadu.Ecs.Storage;
 
 namespace Xanadu.Settings;
 
-/// <summary>Persisted display options such as vertical sync.</summary>
+/// <summary>Persisted general options: vertical sync and editor autosave.</summary>
 public sealed class DisplaySettings
 {
     private const string DefaultPath = "user://display.json";
@@ -25,20 +25,37 @@ public sealed class DisplaySettings
 
     public bool VSyncEnabled { get; private set; } = true;
 
+    /// <summary>Whether the editor saves a level to its file as it is edited.</summary>
+    public bool EditorAutosave { get; private set; } = true;
+
     public void SetVSync(bool enabled)
     {
         VSyncEnabled = enabled;
         Apply();
         Save();
     }
+
+    public void SetEditorAutosave(bool enabled)
+    {
+        EditorAutosave = enabled;
+        Save();
+    }
+
     public void Load()
     {
         DisplayData? data = _file.Load();
-        if (data is not null)
-            VSyncEnabled = data.VSyncEnabled;
+        if (data is null)
+            return;
+
+        VSyncEnabled = data.VSyncEnabled;
+        EditorAutosave = data.EditorAutosave;
     }
 
-    public void Save() => _file.Save(new DisplayData { VSyncEnabled = VSyncEnabled });
+    public void Save() => _file.Save(new DisplayData
+    {
+        VSyncEnabled = VSyncEnabled,
+        EditorAutosave = EditorAutosave,
+    });
 
     public void Apply()
     {
@@ -61,5 +78,6 @@ public sealed class DisplaySettings
     private sealed class DisplayData
     {
         public bool VSyncEnabled { get; set; } = true;
+        public bool EditorAutosave { get; set; } = true;
     }
 }

@@ -6,6 +6,9 @@ public static class SettingsStrings
     public static readonly LString VSync = new("settings.vsync", "VERTICAL SYNC");
     public static readonly LString VSyncOn = new("settings.vsync_on", "V-SYNC: ON");
     public static readonly LString VSyncOff = new("settings.vsync_off", "V-SYNC: OFF");
+    public static readonly LString Autosave = new("settings.autosave", "EDITOR AUTOSAVE");
+    public static readonly LString AutosaveOn = new("settings.autosave_on", "AUTOSAVE: ON");
+    public static readonly LString AutosaveOff = new("settings.autosave_off", "AUTOSAVE: OFF");
     public static readonly LString Keybinds = new("settings.keybinds", "KEYBINDS");
     public static readonly LString Action = new("settings.action", "ACTION");
     public static readonly LString Key = new("settings.key", "KEY");

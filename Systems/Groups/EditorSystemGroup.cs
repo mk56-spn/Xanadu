@@ -17,6 +17,7 @@ public sealed class EditorSystemGroup : SystemGroup, IDisposable
 {
     private readonly CanvasItemHandle _groupOverlay;
     private readonly EditorPlayfieldDrawSystem _draw;
+    private readonly EditorAutosaveSystem _autosave;
 
     public EditorSystemGroup(
         EntityStore entities,
@@ -29,7 +30,8 @@ public sealed class EditorSystemGroup : SystemGroup, IDisposable
         EditorHistory history,
         IWheelSource? wheel = null,
         Xanadu.Systems.Shaders.IPassSurfaces? passes = null,
-        Func<Rect2, Rect2>? toPixels = null) : base("Editor")
+        Func<Rect2, Rect2>? toPixels = null,
+        Func<bool>? autosaveToFile = null) : base("Editor")
     {
         // The group panel's drawn timeline sits over its controls and under the
         // bar's drop-downs; only the editor scene shows it.
@@ -39,7 +41,9 @@ public sealed class EditorSystemGroup : SystemGroup, IDisposable
         Add(new EditorTimelineSystem());
         if (wheel is not null)
             Add(new TimelineSystemGroup(pointerInput, wheel));
-        Add(new EditorAutosaveSystem(entities, LevelRecoveryStore.Default));
+        _autosave = new EditorAutosaveSystem(
+            entities, LevelRecoveryStore.Default, saveToFile: autosaveToFile);
+        Add(_autosave);
         Add(new EditorMetronomeSystem(metronomeAudio));
         Add(new EditorViewSystem(pointerInput));
         Add(new EditorGroupTargetSystem(entities, pointerInput, history));
@@ -52,7 +56,6 @@ public sealed class EditorSystemGroup : SystemGroup, IDisposable
         Add(new EditorTextPanelSystem(history));
         Add(new EditorGrassPanelSystem(history));
         Add(new EditorFlarePanelSystem(history));
-        Add(new EditorDashExitPanelSystem(history));
         Add(new EditorLayerInspectorSystem(history));
         Add(new EditorAlignSystem(history));
         Add(new EditorLayersPanelSystem(history));
@@ -64,11 +67,8 @@ public sealed class EditorSystemGroup : SystemGroup, IDisposable
         Add(new Xanadu.Systems.Ui.XifEditorSystem(pointerInput));
         Add(new EditorDashStrengthSystem(entities));
         Add(new EditorContactCostSystem(entities));
-        Add(new EditorRailLayerSystem(entities, history));
-        Add(new EditorShapeSystem(entities, history));
         Add(new EditorNoteTypeBarSystem(entities, commands));
         Add(new EditorToolSectionSystem(entities));
-        Add(new EditorDirectionWheelSystem());
         Add(new EditorButtonSystem(entities, commands));
         Add(new EditorMetadataSystem(entities, commands));
         Add(new EditorHudSystem(entities));
@@ -80,7 +80,10 @@ public sealed class EditorSystemGroup : SystemGroup, IDisposable
         Add(new EditorDialogSystem(entities, commands));
     }
 
-    /// <summary>Enables the editor systems, and erases the editor's last frame when leaving it.</summary>
+    /// <summary>
+    /// Enables the editor systems. Leaving the editor erases its last frame and
+    /// its crash recovery copy, since leaving is not a crash.
+    /// </summary>
     public void SetActive(bool active)
     {
         Enabled = active;
@@ -89,8 +92,14 @@ public sealed class EditorSystemGroup : SystemGroup, IDisposable
         {
             _draw.Clear();
             _draw.ReleasePasses();
+            _autosave.EndSession();
         }
     }
 
-    public void Dispose() => _groupOverlay.Dispose();
+    /// <summary>Quitting normally is not a crash either.</summary>
+    public void Dispose()
+    {
+        _autosave.EndSession();
+        _groupOverlay.Dispose();
+    }
 }
