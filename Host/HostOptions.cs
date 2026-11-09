@@ -12,12 +12,14 @@ namespace Xanadu.Host;
 /// </param>
 /// <param name="Editor"><c>--editor</c> starts in the editor.</param>
 /// <param name="Demo"><c>--demo</c> plays a level made in memory (<see cref="DemoLevel"/>).</param>
-internal sealed record HostOptions(string? ShotPath, int ShotFrame, uint WindowWidth, uint WindowHeight, string? Play, bool Editor, bool Demo)
+/// <param name="Scene"><c>--scene=&lt;name&gt;</c> starts on that screen (a <c>SceneKind</c> name, any case), for checking one screen.</param>
+internal sealed record HostOptions(string? ShotPath, int ShotFrame, uint WindowWidth, uint WindowHeight, string? Play, bool Editor, bool Demo, string? Scene)
 {
     public static HostOptions Parse(string[] args)
     {
         string? shot = null;
         string? play = null;
+        string? scene = null;
         bool editor = false, demo = false;
         int frame = 60;
         uint width = 1280, height = 720;
@@ -41,10 +43,12 @@ internal sealed record HostOptions(string? ShotPath, int ShotFrame, uint WindowW
                 editor = true;
             else if (arg == "--demo")
                 demo = true;
+            else if (arg.StartsWith("--scene=", StringComparison.Ordinal))
+                scene = arg["--scene=".Length..];
             else
                 throw new ArgumentException($"Unknown argument: {arg}");
         }
 
-        return new HostOptions(shot, frame, width, height, play, editor, demo);
+        return new HostOptions(shot, frame, width, height, play, editor, demo, scene);
     }
 }

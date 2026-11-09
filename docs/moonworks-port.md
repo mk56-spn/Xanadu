@@ -14,16 +14,15 @@ under it saying what changed from the plan.
 
 Update this block at the end of every session, including partial progress.
 
-- **Updated:** 2026-11-09 (second session)
-- **Done:** steps 0 and 1, and most of step 2: `dotnet run --project Host -- --demo`
-  plays a level made in memory (notes, guides, misses, pops, blocks, HUD, song
-  clock and audio) through the host's own renderer, in one draw call, with no
-  Godot engine call left on that path.
-- **Next:** the rest of step 2: try keyboard and mouse by hand (wired, not yet
-  played), then the profiles and song-select screens (they need text, so in
-  practice step 3 starts there). See the step 2 notes for what the host still
-  skips.
-- **Committed:** everything up to here, including the step 2 work. Nothing pending.
+- **Updated:** 2026-11-09 (third session)
+- **Done:** steps 0, 1, 3 and 4, and most of step 2. Every screen opens in
+  the host with no engine call, and draws with text. Typing, F12 screenshots,
+  vsync and the add-song picker work. What still looks wrong (black or white
+  boxes) is shader materials and buffered groups, which come in steps 5 and 6.
+- **Next:** step 5 (shaders). Still open from step 2: play a level by hand
+  with the keyboard.
+- **Committed:** everything up to step 2. Steps 3 and 4 (`Host/` only, plus this
+  doc) are not committed yet.
 - **After cloning:** run `External/fetch-moonlibs.sh` once (the host build fails
   with that message otherwise).
 - **Notes for whoever picks this up:** see the step 1 and step 2 notes (Slang
@@ -339,18 +338,104 @@ How it is wired (2026-11-09):
   saved level loads today (`unnamed-1.xmf` is in an older format the loader
   skips), and it's empty, hence `--demo`.
 
-### Step 3: Text (800–1,200 lines)
+### Step 3: Text ✅
 
-- [ ] Choose a rasteriser: SDL3_ttf (in moonlibs? check) or Wellspring
-  (MoonWorks' own, MSDF). Feed the existing `GlyphAtlas`.
-- [ ] Outline, bold and glow (replace `GodotTextGlow`).
+- [x] Rasteriser: **FreeType + HarfBuzz** (NuGet `FreeTypeSharp` 3.1.0,
+  `HarfBuzzSharp` + `HarfBuzzSharp.NativeAssets.Linux` 14.4.0; all MIT and
+  ship their own native libs). Chosen with the user over SDL3_ttf (not in
+  moonlibs), Wellspring (MSDF atlases baked offline with a fixed character
+  set), StbTrueTypeSharp (no variable fonts, no shaping) and SkiaSharp (heavy).
+- [x] Faces: regular text is **Source Sans 3 at weight 400** and bold the same
+  file at 700 (the user's choice; Godot drew regular text in its built-in Open
+  Sans, which isn't in the repo, so the UI looks slightly different). Mono is
+  JetBrains Mono.
+- [x] Outline, bold and glow (replaces `GodotTextGlow`).
+- [ ] Feeding `GlyphAtlas`: deferred. Its only users are `ParticleKit` and
+  `NoteAtlas`, which hand out a Godot `Texture2D`, so it moves with the texture
+  abstraction in steps 5 and 7. `HostText` can already render any glyph into
+  the atlas.
 
-### Step 4: UI and scenes
+How it is wired (2026-11-09):
 
-- [ ] UI systems render through the new canvas: menus, HUD, settings.
-- [ ] Scene switching without Godot nodes (`Main` replacement).
-- [ ] Window, display mode and settings adapters (500–800 lines with step 9's
-  input work).
+- **`Host/Text/`**, host only; the game assemblies gained no packages.
+  - `HostText` is the one owner of the font files (read through `GamePaths`),
+    the faces, and a glyph cache keyed by (face, size, glyph, look).
+  - `FontFace`: HarfBuzz shapes the text and FreeType renders it with light
+    hinting at whole-pixel pen positions, matching Godot's defaults. FreeTypeSharp
+    and HarfBuzzSharp don't bind the variable-font calls, so `FreeTypeVariations`
+    P/Invokes `FT_Get_MM_Var`, `FT_Set_Var_Design_Coordinates` and
+    `hb_font_set_variations`. Set the weight on both libraries, or advances and
+    outlines disagree.
+  - `TextAtlas`: 1024² RGBA pages, white with coverage in alpha, so glyphs
+    draw through the canvas's one pipeline, tinted by vertex colour. Glyphs are
+    packed on shelves, pages are never evicted (retained items keep their UVs),
+    and the changed rows upload once a frame (`HostGame.Draw`, before `Prepare`).
+  - `HostRectCanvas` (`ServerRectCanvas` + text) replaces `ServerRectCanvas` in
+    `HostPlatform`. Each string is one textured triangle array per atlas page,
+    added to the item **in command order**. Godot drew glows on child items,
+    which put them over everything else on that item; here they keep their
+    place. Turned and vertical text use `AddSetTransform`.
+- **Outline:** FreeType's stroker, outer border only, radius = outline size / 2
+  (taken to be the stroke's full width; compare with the Godot build if
+  outlines look thin or thick).
+- **Glow:** `GlowBlur` reproduces `GodotBlur` on the CPU (33 taps, σ = 5 taps,
+  taps `max(1, radius/8)` px apart, alpha × intensity, clamped), **per glyph**,
+  and caches the result in the atlas. Godot blurred the whole string, so where
+  halos overlap between letters the glow is a little fainter. Exact parity
+  needs step 6's group buffers.
+- **Not done here:** `DrawShapeGlow` (draws nothing in the host; it goes with
+  the step 5 materials), `DrawTexture` (needs the texture abstraction), and
+  **font fallback**: glyphs missing from Source Sans (CJK, emoji) are skipped.
+  Godot fell back to system fonts. Fontconfig or a bundled Noto font is a later
+  choice for the user.
+- Host flag **`--scene=<name>`** (any `SceneKind`, any case) starts on that
+  screen. Song select is the best text check: it has bold, glow and outline.
+- Shot: `screenshots/step3-songselect.png` (bold titles, the gold glow on
+  SCORES, the outlined LEVEL 1). Black squares there are buffered groups and
+  shaders (steps 5 and 6).
+
+### Step 4: UI and scenes ✅
+
+- [x] UI systems render through the new canvas. Checked by opening every
+  `SceneKind` with `--scene=` (2026-11-09). All of them open with no engine
+  call and lay out right. Gaps left to later steps: colour-picker gradients and
+  card art (shader materials, step 5), buffered groups (step 6), the profile
+  avatar (rig art, step 8), and the editor overlay (step 9).
+- [x] Scene switching was already ECS (`SceneDirector`); nothing Godot was left
+  in it. `HostGame` now does the rest of the Godot `Main`'s job:
+  - On a scene change it clears the command queue, plus the editor history when
+    entering the editor.
+  - **F12** saves a PNG to `user://screenshots` (`ScreenshotNaming`) and shows
+    a toast. F12 is kept out of the shortcut queue, as Godot's
+    `SetInputAsHandled` did.
+  - **Add song:** SDL's native open dialog (`HostFileDialog`; the desktop
+    portal on Linux), then `SongStore.Import` and song timing, as before.
+    SDL may call back off the main thread, so the picked path is queued and
+    handled in `Update`. This was planned for step 9 but belongs to `Main`.
+  - **Text fields:** `HostTextInput` replaces both hidden `LineEdit` bridges
+    (`UiTextBridge` and the editor overlay's). It uses SDL text input, so IME
+    and keyboard layout work. The caret stays at the end, Backspace deletes and
+    repeats when held, Ctrl+V pastes, Enter submits, and numeric fields keep
+    digits, one dot and a leading minus. While a field has focus only Escape
+    reaches the shortcut queue.
+- [x] Window and settings adapters:
+  - **VSync on:** `PresentMode.VSync`, with one update per display refresh
+    (`SDL_GetCurrentDisplayMode`).
+  - **VSync off:** mailbox (or immediate) presents and up to 1000 updates a
+    second, as Godot ran uncapped. The settings toggle drives it through
+    `HostPlatform.ApplyVSync`.
+  - The game has no display-mode setting, so there was nothing else to adapt.
+  - `UpdateTick` now gets real elapsed time, not MoonWorks' fixed step, since
+    a late frame drops catch-up updates. MoonWorks' "Exceeded max update time"
+    log is filtered out in `Program.cs`.
+- Tried by hand with `xdotool`, running `SDL_VIDEODRIVER=x11` so XWayland
+  accepts synthetic input: clicking a field to focus it, typing, Backspace,
+  F12, and the vsync toggle both ways (the profile and `display.json` were
+  backed up and put back afterwards). Closing the window that way ends with an
+  X `BadWindow` error. That's an artefact of xdotool destroying the window,
+  not of the host.
+- Not done: the window isn't resizable, and the pointer scale is fixed from the
+  start size. That can wait until a window-size setting exists.
 
 ### Step 5: Shaders: Slang, slots, blend modes, instance data (800–1,200 lines + libraries)
 

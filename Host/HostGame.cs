@@ -9,6 +9,7 @@ using MoonWorks.Input;
 using Xanadu.Ecs;
 using Xanadu.Host.Input;
 using Xanadu.Host.Rendering;
+using Xanadu.Host.Text;
 using Xanadu.Levels;
 using Xanadu.Storage;
 using Xanadu.Systems;
@@ -39,13 +40,18 @@ internal sealed class HostGame : Game
     private readonly Texture _target;
     private readonly CanvasTree _canvas = new();
     private readonly CanvasRenderer _renderer;
+    private readonly HostText _text;
     private readonly HostKeyboard _keyboard;
     private readonly HostPointer _pointer;
+    private readonly HostTextInput _textInput;
+    private readonly HostFileDialog _fileDialog;
     private readonly EntityStore _entities = new();
     private readonly XanaduSystemRoot _systems;
     private readonly DateTime _started = DateTime.UtcNow;
     private readonly HostFps _fps = new();
     private int _frames;
+    private DateTime _lastUpdate = DateTime.UtcNow;
+    private bool _screenshotRequested;
 
     public HostGame(HostOptions options) : base(
         new AppInfo("Xanadu", "Xanadu"),
@@ -60,6 +66,12 @@ internal sealed class HostGame : Game
         _renderer = new CanvasRenderer(GraphicsDevice, _canvas, TargetFormat, Width, Height);
 
         GamePaths.UseRoots(FindGameFolder(), GamePaths.GodotUserFolder("Xanadu"));
+        _text = new HostText(GraphicsDevice, texture =>
+        {
+            ulong id = _canvas.MintRid().Id;
+            _renderer.Textures[id] = texture;
+            return id;
+        });
         SongStore.Shared = new SongStore(catalogPath: GamePaths.Globalize(SongStore.CatalogFile));
 
         _keyboard = new HostKeyboard(Inputs.Keyboard);
@@ -67,11 +79,12 @@ internal sealed class HostGame : Game
         {
             Scale = new Godot.Vector2((float)Width / options.WindowWidth, (float)Height / options.WindowHeight),
         };
-        HostPlatform.Use(_canvas, () => new ServerRectCanvas(), _keyboard, new CanvasServerRidFactory(), _fps);
-        // The frame pacing is fixed at 60 for now; the settings screen drives it in step 4.
-        HostPlatform.ApplyVSync = static _ => { };
+        HostPlatform.Use(_canvas, () => new HostRectCanvas(_text), _keyboard, new CanvasServerRidFactory(), _fps);
+        HostPlatform.ApplyVSync = ApplyVSync;
+        ApplyVSync(true);
 
         var director = new SceneDirector();
+        director.Changed += OnSceneChanged;
         _systems = new XanaduSystemRoot(
             _entities,
             _canvas.RootRid,
@@ -80,7 +93,52 @@ internal sealed class HostGame : Game
             UiStage.Design1080,
             keyboard: _keyboard,
             wheel: _pointer);
+        _textInput = new HostTextInput(_entities, MainWindow);
+        _fileDialog = new HostFileDialog(MainWindow);
+        _systems.Scenes.AddSongRequested = () => _fileDialog.OpenAudio(AddSong);
         Start();
+    }
+
+    /// <summary>
+    /// Vertical sync on: present on vblank, one update per display refresh.
+    /// Off: mailbox (or immediate) presents and updates up to 1000 a second,
+    /// as Godot ran uncapped without vsync.
+    /// </summary>
+    private void ApplyVSync(bool enabled)
+    {
+        PresentMode mode = enabled ? PresentMode.VSync
+            : GraphicsDevice.SupportsPresentMode(MainWindow, PresentMode.Mailbox) ? PresentMode.Mailbox
+            : PresentMode.Immediate;
+        GraphicsDevice.SetSwapchainParameters(MainWindow, SwapchainComposition.SDR, mode);
+        SetFramePacingSettings(FramePacingSettings.CreateCapped(enabled ? RefreshRate() : 1000, 1));
+    }
+
+    private unsafe int RefreshRate()
+    {
+        SDL3.SDL.SDL_DisplayMode* display = SDL3.SDL.SDL_GetCurrentDisplayMode(SDL3.SDL.SDL_GetDisplayForWindow(MainWindow.Handle));
+        return display is null || display->refresh_rate < 1 ? 60 : (int)MathF.Round(display->refresh_rate);
+    }
+
+    /// <summary>What the Godot <c>Main</c> did on a scene change, minus the editor overlay (step 9).</summary>
+    private void OnSceneChanged(SceneKind scene)
+    {
+        _systems.Commands.Clear();
+        if (scene == SceneKind.Editor)
+            _systems.EditorHistory.Clear();
+    }
+
+    private void AddSong(string path)
+    {
+        try
+        {
+            LoadedSong song = SongStore.Shared.Import(path);
+            _systems.Scenes.OpenSongTiming(song.Id, SceneKind.SongSelect);
+        }
+        catch (Exception exception)
+        {
+            Console.Error.WriteLine($"Add song failed: {exception.Message}");
+            _systems.Toasts.Show($"Add song failed: {exception.Message}");
+        }
     }
 
     private void Start()
@@ -112,6 +170,12 @@ internal sealed class HostGame : Game
                 Console.WriteLine($"  {Path.GetFileName(entry.Path)}: {entry.Document.Name}{(entry.IsBlocked ? " (song missing)" : "")}");
         }
 
+        if (_options.Scene is { } scene)
+        {
+            _systems.Scenes.Start(Enum.Parse<SceneKind>(scene, ignoreCase: true));
+            return;
+        }
+
         _systems.Scenes.Start(_options.Editor ? SceneKind.Editor : SceneKind.Profiles);
     }
 
@@ -126,12 +190,23 @@ internal sealed class HostGame : Game
 
     protected override void Step() { }
 
-    protected override void Update(TimeSpan delta)
+    protected override void Update(TimeSpan step)
     {
-        _keyboard.FeedPresses(Inputs.Keyboard, _systems.KeyPresses);
+        // Real time since the last update, as Godot's _Process had: a slow frame
+        // drops the catch-up updates (one per tick), so the fixed step would undercount.
+        DateTime now = DateTime.UtcNow;
+        float delta = (float)(now - _lastUpdate).TotalSeconds;
+        _lastUpdate = now;
+
+        _fileDialog.Poll();
+        _textInput.Update(Inputs.Keyboard, delta);
+        if (Inputs.Keyboard.IsPressed(KeyCode.F12))
+            _screenshotRequested = true;
+        _keyboard.FeedPresses(Inputs.Keyboard, _systems.KeyPresses, key =>
+            key != Xanadu.Systems.Input.DebugKeys.Screenshot && (!_textInput.Active || key == Godot.Key.Escape));
         _pointer.Poll();
-        float time = (float)(DateTime.UtcNow - _started).TotalSeconds;
-        _systems.Update(new UpdateTick((float)delta.TotalSeconds, time));
+        float time = (float)(now - _started).TotalSeconds;
+        _systems.Update(new UpdateTick(delta, time));
         _pointer.EndFrame();
     }
 
@@ -146,6 +221,7 @@ internal sealed class HostGame : Game
             return;
         }
 
+        _text.Atlas.Flush();
         _renderer.Prepare(commands);
 
         // Palette comes from the game assemblies, and its Godot Color struct works without the engine.
@@ -158,6 +234,13 @@ internal sealed class HostGame : Game
         commands.Blit(_target, swapchain, Filter.Linear);
 
         _frames++;
+        if (_screenshotRequested)
+        {
+            _screenshotRequested = false;
+            SaveScreenshot(commands);
+            return;
+        }
+
         if (_options.ShotPath is { } path && _frames == _options.ShotFrame)
         {
             Console.WriteLine($"Canvas: {_canvas.Count} items, {_renderer.LastBatchCount} draw calls");
@@ -169,9 +252,29 @@ internal sealed class HostGame : Game
         GraphicsDevice.Submit(commands);
     }
 
+    /// <summary>F12, as in the Godot build: a PNG in <c>user://screenshots</c> and a toast.</summary>
+    private void SaveScreenshot(CommandBuffer commands)
+    {
+        try
+        {
+            string folder = GamePaths.Globalize("user://screenshots");
+            Directory.CreateDirectory(folder);
+            string file = Xanadu.Misc.ScreenshotNaming.Create(
+                "Xanadu", DateTime.Now, candidate => File.Exists(Path.Combine(folder, candidate)));
+            Screenshot.Save(GraphicsDevice, commands, _target, Width, Height, Path.Combine(folder, file));
+            _systems.Toasts.Show($"Screenshot saved: {file}");
+        }
+        catch (Exception exception)
+        {
+            _systems.Toasts.Show($"Screenshot failed: {exception.Message}");
+        }
+    }
+
     protected override void Destroy()
     {
         _systems.Dispose();
+        _fileDialog.Dispose();
+        _text.Dispose();
         _renderer.Dispose();
     }
 }

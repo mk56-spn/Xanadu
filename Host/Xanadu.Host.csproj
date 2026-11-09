@@ -12,6 +12,9 @@
     <RootNamespace>Xanadu.Host</RootNamespace>
   </PropertyGroup>
   <ItemGroup>
+    <PackageReference Include="FreeTypeSharp" Version="3.1.0" />
+    <PackageReference Include="HarfBuzzSharp" Version="14.4.0" />
+    <PackageReference Include="HarfBuzzSharp.NativeAssets.Linux" Version="14.4.0" />
     <ProjectReference Include="../External/MoonWorks/MoonWorks.csproj" />
     <ProjectReference Include="../Xanadu.csproj" />
     <ProjectReference Include="../Core/Xanadu.Core.csproj" />

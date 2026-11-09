@@ -21,12 +21,13 @@ internal sealed class HostKeyboard(Keyboard keyboard) : IKeyboardState
     };
 
     /// <summary>Feeds this frame's new presses to the shortcut queue, the way Godot's unhandled key events did.</summary>
-    public void FeedPresses(Keyboard keyboard, KeyPressQueue queue)
+    /// <param name="allow">Which keys may reach the queue this frame; null for all.</param>
+    public void FeedPresses(Keyboard keyboard, KeyPressQueue queue, System.Func<Key, bool>? allow = null)
     {
         bool ctrl = IsPressed(Key.Ctrl) || IsPressed(Key.Meta);
         bool shift = IsPressed(Key.Shift);
         foreach ((Key key, KeyCode code) in Pairs)
-            if (keyboard.IsPressed(code))
+            if (keyboard.IsPressed(code) && (allow is null || allow(key)))
                 queue.Press(new KeyChord(key, ctrl, shift));
     }
 
