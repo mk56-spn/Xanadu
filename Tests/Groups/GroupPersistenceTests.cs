@@ -5,6 +5,7 @@ using Xanadu.Ecs;
 using Xanadu.Editor;
 using Xanadu.Levels;
 using Xanadu.Tests.Support;
+using Xanadu.Timeline;
 
 namespace Xanadu.Tests.Groups;
 
@@ -21,8 +22,8 @@ public sealed class GroupPersistenceTests
     {
         GroupDefinition[] groups = editor.GetComponent<LevelGroups>().Groups;
         groups[2].Name = "Wobble";
-        groups[2].Effects.Add(GroupEffect.Move(0.4f, 0.6f, new Vector2(30, -10), GroupEase.Out));
-        groups[2].Effects.Add(GroupEffect.Colour(0.8f, 1.2f, new Color(1f, 0.5f, 0.25f, 0.5f), GroupEase.In));
+        groups[2].Effects.Add(GroupEffect.Move(0.4f, 0.6f, new Vector2(30, -10), EasePreset.EaseOut));
+        groups[2].Effects.Add(GroupEffect.Colour(0.8f, 1.2f, new Color(1f, 0.5f, 0.25f, 0.5f), EasePreset.EaseIn));
         groups[9].Effects.Add(GroupEffect.Move(1f, 1f, new Vector2(1, 2)));
         groups[9].Effects[0] = groups[9].Effects[0] with { Muted = true };
     }
@@ -56,12 +57,12 @@ public sealed class GroupPersistenceTests
         GroupDefinition[] groups = loaded.GetComponent<LevelGroups>().Groups;
         Assert.That(groups[2].Name, Is.EqualTo("Wobble"));
         Assert.That(groups[2].Effects, Has.Count.EqualTo(2));
-        Assert.That(groups[2].Effects[0], Is.EqualTo(GroupEffect.Move(0.4f, 0.6f, new Vector2(30, -10), GroupEase.Out)));
+        Assert.That(groups[2].Effects[0], Is.EqualTo(GroupEffect.Move(0.4f, 0.6f, new Vector2(30, -10), EasePreset.EaseOut)));
         Assert.That(groups[2].Effects[1].Kind, Is.EqualTo(GroupEffectKind.Color));
         Assert.That(groups[2].Effects[1].Tint.R, Is.EqualTo(1f).Within(0.01f));
         Assert.That(groups[2].Effects[1].Tint.G, Is.EqualTo(0.5f).Within(0.01f));
         Assert.That(groups[2].Effects[1].Tint.A, Is.EqualTo(0.5f).Within(0.01f));
-        Assert.That(groups[2].Effects[1].Ease, Is.EqualTo(GroupEase.In));
+        Assert.That(groups[2].Effects[1].Ease, Is.EqualTo(EasePreset.EaseIn));
         Assert.That(groups[9].Effects[0].Start, Is.EqualTo(1f));
         Assert.That(groups[9].Effects[0].Muted, Is.True);
 
@@ -102,7 +103,7 @@ public sealed class GroupPersistenceTests
 
         Assert.That(back.Groups, Has.Count.EqualTo(2));
         Assert.That(back.Groups[0].Effects[0].End, Is.EqualTo(0.6f).Within(0.0001f));
-        Assert.That(back.Groups[0].Effects[0].Ease, Is.EqualTo(GroupEase.Out));
+        Assert.That(back.Groups[0].Effects[0].Ease, Is.EqualTo(EasePreset.EaseOut));
         Assert.That(back.Groups[1].Effects[0].Muted, Is.True);
         Assert.That(back.Notes[0].Groups, Is.EqualTo(new[] { 2 }));
     }
@@ -116,13 +117,13 @@ public sealed class GroupPersistenceTests
             Id = 0,
             Effects =
             {
-                new GroupEffectDocument { Ease = (GroupEase)99 },
+                new GroupEffectDocument { Ease = (EasePreset)99 },
             },
         });
 
         LevelDocument document = LevelSerializer.Normalize(level);
 
-        Assert.That(document.Groups[0].Effects[0].Ease, Is.EqualTo(GroupEase.Linear));
+        Assert.That(document.Groups[0].Effects[0].Ease, Is.EqualTo(EasePreset.Linear));
     }
 
     [Test]

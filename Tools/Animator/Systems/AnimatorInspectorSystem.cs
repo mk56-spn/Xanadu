@@ -65,7 +65,7 @@ public sealed class AnimatorInspectorSystem : QuerySystem<AnimatorDocument, Anim
         Sync(session, ui, ui.InspectLayer, Field.Layer);
         SyncSlider(session, ui.InspectRotationSlider, 0);
         SyncSlider(session, ui.InspectScaleSlider, 1);
-        Title(session, ui.InspectorTitle);
+        Title(session, ui.InspectorTitle, ui.InspectorSubtitle);
     }
 
     private void Sync(Entity session, AnimatorUi ui, Entity field, Field kind)
@@ -270,8 +270,11 @@ public sealed class AnimatorInspectorSystem : QuerySystem<AnimatorDocument, Anim
         return false;
     }
 
-    /// <summary>Names the selection and says when the pose is not on a key.</summary>
-    private static void Title(Entity session, Entity title)
+    /// <summary>
+    /// Names the selection large, or says MULTIPLE when more than one bone is
+    /// picked; the line under it says what kind it is and whether its pose is keyed.
+    /// </summary>
+    private static void Title(Entity session, Entity title, Entity subtitle)
     {
         if (!title.HasComponent<Text>() || !title.HasComponent<TextStyle>())
             return;
@@ -280,38 +283,45 @@ public sealed class AnimatorInspectorSystem : QuerySystem<AnimatorDocument, Anim
         AnimatorSelection selection = session.GetComponent<AnimatorSelection>();
         AnimatorModes modes = session.GetComponent<AnimatorModes>();
 
-        string value;
+        string name;
+        string kind;
         bool unkeyed = false;
         int extras = selection.ExtraBones?.Count ?? 0;
         if (selection.Bone >= 0 && selection.Bone < document.Package.Skeleton.Bones.Count)
         {
             XafBone bone = document.Package.Skeleton.Bones[selection.Bone];
             unkeyed = AnimatorUnkeyed.IsBone(session, selection.Bone);
-            value = bone.Id +
-                    (extras > 0 ? $"  +{extras}" : "") +
-                    (modes.Rest ? "  REST" : unkeyed ? "  UNKEYED" : "");
+            name = extras > 0 ? "MULTIPLE" : bone.Id;
+            kind = extras > 0 ? $"{extras + 1} BONES" : "BONE";
         }
         else if (selection.Attachment >= 0 &&
                  selection.Attachment < document.Package.Attachments.Count)
         {
             XafAttachment attachment = document.Package.Attachments[selection.Attachment];
             unkeyed = AnimatorUnkeyed.IsAttachment(session, selection.Attachment);
-            value = attachment.Group + "  SVG" + (modes.Rest ? " REST" : unkeyed ? "  UNKEYED" : "");
+            name = attachment.Group;
+            kind = "SVG";
         }
         else if (selection.Effect >= 0 && selection.Effect < document.Package.Effects.Count &&
                  selection.Effect < document.Runtime.Pose.Effects.Length)
         {
             XafEffect effect = document.Package.Effects[selection.Effect];
             XafEffectState state = document.Runtime.Pose.Effects[selection.Effect];
-            string shown = state.Visible ? $"{state.Opacity * 100f:0}%" : "HIDDEN";
-            value = $"{effect.Id}  FX {shown}" + (modes.Rest ? "  REST" : "");
+            name = effect.Id;
+            kind = "EFFECT  " + (state.Visible ? $"{state.Opacity * 100f:0}%" : "HIDDEN");
         }
         else
         {
-            value = "NOTHING SELECTED";
+            UiText.Set(title, "NOTHING SELECTED");
+            UiText.SetColor(title, Palette.TextDim);
+            UiText.Set(subtitle, "CLICK A JOINT, OR PICK FROM THE LIST");
+            return;
         }
 
-        UiText.Set(title, value);
+        string status = modes.Rest ? "  \u00b7  REST POSE" : unkeyed ? "  \u00b7  UNKEYED: K KEYS IT" : "";
+        UiText.Set(title, name);
         UiText.SetColor(title, unkeyed ? UnkeyedTitle : NormalTitle);
+        UiText.Set(subtitle, kind + status);
+        UiText.SetColor(subtitle, unkeyed ? UnkeyedTitle : Palette.TextDim);
     }
 }

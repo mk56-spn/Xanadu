@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using Godot;
+using Xanadu.Timeline;
 
 namespace Xanadu.Ecs;
 
@@ -25,7 +26,7 @@ public enum LayerPassKind : byte
 /// its value (up to a vec4; <see cref="Size"/> says how many components are
 /// used), and how it eases into the next key.
 /// </summary>
-public readonly record struct ShaderKey(string Param, float Time, Vector4 Value, int Size, GroupEase Ease)
+public readonly record struct ShaderKey(string Param, float Time, Vector4 Value, int Size, EasePreset Ease)
 {
     /// <summary>Instance uniforms are at most a vec4 (render-architecture §5.3).</summary>
     public const int MaxSize = 4;

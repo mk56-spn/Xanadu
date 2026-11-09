@@ -7,6 +7,7 @@ using Xanadu.Ecs;
 using Xanadu.Layering;
 using Xanadu.Rendering;
 using Xanadu.Storage;
+using Xanadu.Timeline;
 
 namespace Xanadu.Levels;
 
@@ -167,7 +168,7 @@ internal static class XmfChrome
             Kind = XmfBinary.ReadEnum<GroupEffectKind>(reader),
             Start = reader.ReadSingle(),
             End = reader.ReadSingle(),
-            Ease = XmfBinary.ReadEnum<GroupEase>(reader),
+            Ease = XmfBinary.ReadEnum<EasePreset>(reader),
             Muted = reader.ReadBoolean(),
             X = reader.ReadSingle(),
             Y = reader.ReadSingle(),

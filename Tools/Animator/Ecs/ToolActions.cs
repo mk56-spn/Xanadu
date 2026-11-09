@@ -127,6 +127,12 @@ public enum ToolActionKind
     /// <summary>Selects every key set in the current clip.</summary>
     SelectAllKeys,
 
+    /// <summary>Removes the right-clicked override and the keys it baked.</summary>
+    RemoveOverride,
+
+    /// <summary>Removes the right-clicked override, keeping its keys as ordinary keys.</summary>
+    DetachOverride,
+
     /// <summary>Hangs a new Verlet chain off the selected bone; no argument.</summary>
     AddChain,
 
@@ -213,6 +219,9 @@ public enum ToolActionKind
 
     /// <summary>Hangs a speed streak off the selected bone, shown from the playhead; no argument.</summary>
     AddEffect,
+
+    /// <summary>Hangs a particle stream off the selected bone, flowing from the playhead; no argument.</summary>
+    AddParticles,
 
     /// <summary>Selects an effect, by its index in the package.</summary>
     SelectEffect,

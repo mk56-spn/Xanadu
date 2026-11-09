@@ -59,7 +59,7 @@ public sealed class TempoMapTests
     [Test]
     public void TheEditorSnapsAndStepsOnTheMap()
     {
-        var playhead = new Playhead(0, 120, 0, false, snapDivision: 4) { Tempo = TwoSections() };
+        var playhead = new Playhead(0, 120, 0, false, snapDivision: 1) { Tempo = TwoSections() };
 
         Assert.That(EditorTiming.Snap(6_400, playhead), Is.EqualTo(6_000));
         Assert.That(EditorTiming.Step(4_500, playhead, 1), Is.EqualTo(5_000), "the last 120 BPM beat to the first 60 BPM one");

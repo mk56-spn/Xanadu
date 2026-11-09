@@ -98,6 +98,9 @@ public struct AnimatorDrag : IComponent
     /// <summary>Whether the drag was in the rest pose when it last (re)started.</summary>
     public bool Rest;
 
+    /// <summary>A rotate drag turned a pin's facing rather than the pose, so there is nothing to key.</summary>
+    public bool Repinned;
+
     /// <summary>Some part of the gesture was an IK drag, so the chain it bent is keyed at the end.</summary>
     public bool UsedIk;
 }

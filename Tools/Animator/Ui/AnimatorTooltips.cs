@@ -1,6 +1,7 @@
 using Friflo.Engine.ECS;
 using Xanadu.Animation;
 using Xanadu.Ecs;
+using Xanadu.Timeline;
 
 namespace Xanadu.Tools.Animator;
 
@@ -99,6 +100,8 @@ public static class AnimatorTooltips
         ToolActionKind.PickClothColliders =>
             "Then click bones the cloth's edges cannot pass through, or click one again to drop it; click here to stop",
         ToolActionKind.AddEffect => "Hang a speed streak off the selected bone, shown for 0.15 s from the playhead (W)",
+        ToolActionKind.AddParticles =>
+            "Hang a particle stream off the selected bone, flowing for 0.5 s from the playhead; key it on and off like a streak",
         ToolActionKind.SelectEffect => "Select this effect; key it like a bone, show or hide it with U",
         ToolActionKind.DeleteEffect => "Delete the selected effect and its keys (Shift+W)",
         ToolActionKind.ToggleEffectVisible => "Key the selected effect shown, or hidden if it is showing, at the playhead (U)",
@@ -143,6 +146,8 @@ public static class AnimatorTooltips
         ToolActionKind.ToggleFlowLoop => "Repeat the transition preview until stopped (Ctrl+Shift+P)",
         ToolActionKind.ToggleSlow => "Play previews at quarter speed to watch a fade closely (,)",
         ToolActionKind.SelectAllKeys => "Select every key in the clip (Ctrl+A)",
+        ToolActionKind.RemoveOverride => "Remove this override and the keys it made; the limb goes back to its own keys",
+        ToolActionKind.DetachOverride => "Remove this override but keep the keys it made, as ordinary keys",
         ToolActionKind.FitPreview => "Frame the whole rig in the viewport (F)",
         ToolActionKind.ResetPreview => "Reset the viewport to 1:1 (Shift+F)",
         ToolActionKind.ResetTransform => "Clear the selected pose back to rest (Shift+R)",
@@ -151,8 +156,8 @@ public static class AnimatorTooltips
         ToolActionKind.SelectAttachment => "Select this SVG attachment",
         ToolActionKind.MoveLayerForward => "Draw this art in front of the one above it (Ctrl+Shift+])",
         ToolActionKind.MoveLayerBack => "Draw this art behind the one below it (Ctrl+Shift+[)",
-        ToolActionKind.Interpolate => System.Enum.TryParse(argument, out XafEasePreset preset)
-            ? $"{AnimatorEasingNames.Label(preset)}: {AnimatorEasingNames.Describe(preset)}{AnimatorEasingNames.Shortcut(preset)}"
+        ToolActionKind.Interpolate => System.Enum.TryParse(argument, out EasePreset preset)
+            ? $"{EaseNames.Label(preset)}: {EaseNames.Describe(preset)}{Commands.AnimatorEasePickerHost.Shortcut(preset)}"
             : "Set how the selected keys interpolate",
         ToolActionKind.ToggleEasingWindow => "Choose how the selected keys ease into the next ones, from every curve (Ctrl+E)",
         ToolActionKind.ToggleMode => argument switch

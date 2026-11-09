@@ -37,6 +37,31 @@ public static class XafExtrasBinary
                     strings.Add(bone);
             }
         }
+        foreach (XafEffect effect in package.Effects)
+            strings.Add(effect.Particle);
+    }
+
+    /// <summary>One entry per effect, in the effect table's order: the particle effect it streams, empty for none.</summary>
+    public static byte[] WriteEffectParticles(List<XafEffect> effects, StringTable strings)
+    {
+        using var stream = new MemoryStream();
+        using var writer = new BinaryWriter(stream, Encoding.UTF8, leaveOpen: true);
+        writer.Write((uint)effects.Count);
+        foreach (XafEffect effect in effects)
+            strings.WriteIndex(writer, effect.Particle);
+        writer.Flush();
+        return stream.ToArray();
+    }
+
+    /// <summary>Reads what <see cref="WriteEffectParticles"/> wrote; a file without the chunk streams nothing.</summary>
+    public static void ReadEffectParticles(Chunk chunk, StringTable strings, List<XafEffect> effects)
+    {
+        using BinaryReader reader = chunk.OpenReader();
+        uint count = reader.ReadUInt32();
+        if (count != effects.Count)
+            throw new XafFormatException("XAF effect particles do not match the effects.");
+        foreach (XafEffect effect in effects)
+            effect.Particle = strings.ReadIndex(reader);
     }
 
     /// <summary>One entry per clip, in the clip table's order: its event count, then each event's time and name.</summary>

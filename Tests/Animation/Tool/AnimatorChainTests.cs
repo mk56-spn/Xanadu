@@ -265,9 +265,9 @@ public sealed class AnimatorChainTests : AnimatorToolTest
     [Test]
     public void TheBoneMenuOffersAChain()
     {
-        Entity option = Button(ToolActionKind.AddChain);
+        Entity option = Buttons(ToolActionKind.AddChain).Find(button => button.Parent == Ui.BoneMenu);
 
-        Assert.That(option.Parent, Is.EqualTo(Ui.BoneMenu));
+        Assert.That(option.IsNull, Is.False);
         Assert.That(option.GetComponent<Text>().Value, Is.EqualTo("CHAIN"));
     }
 

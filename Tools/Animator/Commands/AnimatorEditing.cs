@@ -149,6 +149,29 @@ public static class AnimatorEditing
         AnimatorSession.SetStatus(session, status + KeyEdit(session));
     }
 
+    /// <summary>
+    /// Sets the selected joints' depth, as the bone card's slider does. It keys
+    /// nothing: the slider keys once, when it is let go.
+    /// </summary>
+    public static void SetDepth(Entity session, float depth) =>
+        AnimatorHistoryCommands.Edit(session, () =>
+        {
+            ref AnimatorDocument document = ref session.GetComponent<AnimatorDocument>();
+            if (session.GetComponent<AnimatorModes>().Rest)
+            {
+                AnimatorSession.SetStatus(session, "THE REST POSE LIES FLAT: POSE DEPTH IN A CLIP");
+                return;
+            }
+
+            document.Runtime.SetPaused(true);
+            foreach (int bone in session.GetComponent<AnimatorSelection>().Bones())
+            {
+                if (bone >= 0 && bone < document.Runtime.Pose.Bones.Length)
+                    document.Runtime.Pose.Bones[bone].Depth = depth;
+            }
+            AnimatorSession.SetStatus(session, $"DEPTH {depth:0}");
+        });
+
     /// <summary>Rotates and scales the selection in the pose, or in the rest pose.</summary>
     public static void Nudge(Entity session, float rotation, float scale) =>
         AnimatorHistoryCommands.Edit(session, () => NudgeCore(session, rotation, scale));
@@ -298,6 +321,30 @@ public static class AnimatorEditing
         }
         AnimatorSession.SetStatus(session, status);
     }
+
+    /// <summary>
+    /// Sets the low (or, with <paramref name="max"/>, the high) end of the
+    /// selected limited bones' range, in radians; the ends never cross.
+    /// </summary>
+    public static void SetLimit(Entity session, bool max, float radians) =>
+        AnimatorHistoryCommands.Edit(session, () =>
+        {
+            XafPackage package = session.GetComponent<AnimatorDocument>().Package;
+            string status = "LIMIT A BONE FIRST";
+            foreach (int index in session.GetComponent<AnimatorSelection>().Bones())
+            {
+                if (index < 0 || index >= package.Skeleton.Bones.Count || !package.Skeleton.Bones[index].Limited)
+                    continue;
+
+                XafBone bone = package.Skeleton.Bones[index];
+                if (max)
+                    bone.LimitMax = Math.Clamp(radians, bone.LimitMin, MathF.PI);
+                else
+                    bone.LimitMin = Math.Clamp(radians, -MathF.PI, bone.LimitMax);
+                status = LimitStatus(bone);
+            }
+            AnimatorSession.SetStatus(session, status);
+        });
 
     private static string LimitStatus(XafBone bone) =>
         $"{bone.Id} TURNS {Mathf.RadToDeg(bone.LimitMin):0}\u00b0 TO {Mathf.RadToDeg(bone.LimitMax):0}\u00b0";

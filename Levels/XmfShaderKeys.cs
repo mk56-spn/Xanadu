@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using Xanadu.Ecs;
+using Xanadu.Timeline;
 
 namespace Xanadu.Levels;
 
@@ -41,7 +42,7 @@ internal static class XmfShaderKeys
             {
                 Param = reader.ReadString(),
                 Time = reader.ReadSingle(),
-                Ease = (GroupEase)reader.ReadByte(),
+                Ease = (EasePreset)reader.ReadByte(),
             };
             int size = reader.ReadByte();
             if (size > ShaderKey.MaxSize)

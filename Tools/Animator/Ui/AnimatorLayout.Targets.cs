@@ -32,12 +32,14 @@ public static partial class AnimatorLayout
         TargetRow(menu, ("FROM HERE", "from"), ("TO HERE", "to"));
         TargetRow(menu, ("EASE", "ease"));
         Subhead(menu, "ELLIPSE SHAPE");
-        TargetStepper(menu, "WIDE", "rx");
-        TargetStepper(menu, "TALL", "ry");
-        TargetStepper(menu, "TILT", "tilt");
+        SliderRow(menu, "WIDE", AnimatorSliderValue.TargetRadiusX, Animation.XafLimbTarget.MinRadius, 120f,
+            Commands.AnimatorTargetCommands.DefaultRadiusX, "0", TargetTooltip("rx")!);
+        SliderRow(menu, "TALL", AnimatorSliderValue.TargetRadiusY, Animation.XafLimbTarget.MinRadius, 120f,
+            Commands.AnimatorTargetCommands.DefaultRadiusY, "0", TargetTooltip("ry")!);
+        SliderRow(menu, "TILT \u00b0", AnimatorSliderValue.TargetTilt, -180f, 180f, 0f, "0", TargetTooltip("tilt")!);
         Subhead(menu, "ELLIPSE PATH");
-        TargetStepper(menu, "START", "start");
-        TargetStepper(menu, "ARC", "sweep");
+        SliderRow(menu, "START \u00b0", AnimatorSliderValue.TargetStart, -180f, 180f, 0f, "0", TargetTooltip("start")!);
+        SliderRow(menu, "ARC \u00b0", AnimatorSliderValue.TargetSweep, -720f, 720f, 360f, "0", TargetTooltip("sweep")!);
         TargetRow(menu, ("REVERSE", "flip"));
         menu.EndCollapsible();
     }
@@ -48,15 +50,6 @@ public static partial class AnimatorLayout
         Vector2 size = RowButton(buttons.Length);
         foreach ((string label, string verb) in buttons)
             TargetButton(ui, label, verb, size, UiTheme.SmallFontSize);
-        ui.End();
-    }
-
-    /// <summary>A target value stepped by its verb with -1 and 1.</summary>
-    private static void TargetStepper(UiBuilder ui, string label, string verb)
-    {
-        StepperStart(ui, label);
-        TargetButton(ui, "-", verb + ":-1", StepperButton, UiTheme.FontSize);
-        TargetButton(ui, "+", verb + ":1", StepperButton, UiTheme.FontSize);
         ui.End();
     }
 

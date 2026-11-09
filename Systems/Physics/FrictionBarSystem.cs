@@ -98,6 +98,6 @@ public sealed class FrictionBarSystem(Box2DPhysicsWorld physics)
         Rect2 screen = PlayfieldRenderer.FrictionBarScreenBounds(bar.GetComponent<FrictionBar>(), GroupOffset.View(bar, view));
         Color tint = GroupColor.For(bar, PlayfieldRenderer.FrictionBarColor);
         for (int i = 0; i < amount; i++)
-            bar.Store.CreateEntity(new ParticleBurst(screen.GetCenter(), ParticleKind.Ember, tint, screen.Size));
+            bar.Store.CreateEntity(new ParticleBurst(screen.GetCenter(), GameParticles.Ember, tint, screen.Size));
     }
 }

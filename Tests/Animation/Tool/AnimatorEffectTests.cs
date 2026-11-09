@@ -106,8 +106,8 @@ public sealed class AnimatorEffectTests : AnimatorToolTest
         AddStreakOnTorsoAt(0.5f);
         Runtime.Seek(0.55f);
 
-        Click(Button(ToolActionKind.EffectOpacityDown));
-        Click(Button(ToolActionKind.EffectOpacityDown));
+        AnimatorCommands.Run(Session, new ToolAction(ToolActionKind.EffectOpacityDown));
+        AnimatorCommands.Run(Session, new ToolAction(ToolActionKind.EffectOpacityDown));
 
         Assert.That(Runtime.Pose.Effects[0].Opacity, Is.EqualTo(0.5f).Within(0.001f));
         var track = new XafTrack(XafChannelTarget.Effect, "streak");

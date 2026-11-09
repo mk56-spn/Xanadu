@@ -164,6 +164,19 @@ public abstract class AnimatorToolTest : EcsSystemTest
         return default;
     }
 
+    /// <summary>The shared ease picker's thumbnail for a curve.</summary>
+    protected Entity EaseCell(Xanadu.Timeline.EasePreset preset)
+    {
+        foreach (Entity entity in Store.Query<EasePickerCell>().WithDisabled().ToEntityList())
+        {
+            if (entity.GetComponent<EasePickerCell>().Preset == preset)
+                return entity;
+        }
+
+        Assert.Fail($"No ease picker cell for {preset}.");
+        return default;
+    }
+
     /// <summary>Presses the entity for one frame, then releases it for another.</summary>
     protected void Click(Entity entity)
     {

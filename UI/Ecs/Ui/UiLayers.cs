@@ -42,10 +42,9 @@ public static class UiLayers
     public const int EditorHelp = 970;
     public const int EditorGroupsScrim = 975;
     public const int EditorGroupsBack = 976;
-    public const int EditorGroupsTicks = 978;
     public const int EditorGroups = 980;
 
-    /// <summary>The group panel's drawn timeline: effect bands, pins and the ease curve, over the panel's controls.</summary>
+    /// <summary>The group panel's drawn timeline: beat lines, labels, effect bands, pins, the playhead and the ease curve, over the panel's controls.</summary>
     public const int EditorGroupsCanvas = 981;
 
     /// <summary>The bar at the top centre of the view and its drop-downs: above the open panel and its canvas.</summary>
@@ -60,8 +59,11 @@ public static class UiLayers
     /// </summary>
     public const int EditorShaderChoice = 984;
 
+    /// <summary>The shared ease picker the group panel's EASE buttons open: above the panel and its lists.</summary>
+    public const int EditorEasePicker = 985;
+
     /// <summary>The editor's modal dialogs: the song picker, recovery, shaders and map colours.</summary>
-    public const int EditorDialogs = 985;
+    public const int EditorDialogs = 986;
 
     // Scene system overlays. These share values with the editor layers above.
     public const int Confirmation = 970;

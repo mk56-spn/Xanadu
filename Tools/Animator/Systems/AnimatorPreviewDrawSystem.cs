@@ -130,7 +130,7 @@ public sealed class AnimatorPreviewDrawSystem(
         if (modes.Handles && !modes.Rest)
         {
             DrawJointOffsets(document.Package, pose, world, placement);
-            DrawLimits(document.Package, selection, world, placement);
+            DrawLimits(document.Package, pose, selection, world, placement);
         }
 
         (bool[] Bones, bool[] Attachments)? unkeyed = AnimatorUnkeyed.Find(session);
@@ -233,28 +233,36 @@ public sealed class AnimatorPreviewDrawSystem(
     /// round its joint from the low end to the high, set against its parent,
     /// so it moves with the pose.
     /// </summary>
-    private void DrawLimits(XafPackage package, AnimatorSelection selection, Transform2D[] world, Transform2D placement)
+    private void DrawLimits(XafPackage package, XafPose pose, AnimatorSelection selection, Transform2D[] world, Transform2D placement)
     {
-        for (int i = 0; i < world.Length; i++)
+        for (int i = 0; i < world.Length && i < pose.Bones.Length; i++)
         {
             XafBone bone = package.Skeleton.Bones[i];
             if (!bone.Limited || !selection.IsBoneSelected(i))
                 continue;
 
-            Transform2D frame = bone.Parent >= 0 ? world[bone.Parent] : Transform2D.Identity;
             Vector2 joint = placement * world[i].Origin;
 
             // The bone points at its first child: up a spine, down a leg. A bone
-            // with no child is drawn down its local Y, as limbs are built.
+            // with no child points where its stem dot does: along its tip (a foot
+            // at its toes), else on down the limb.
             int child = package.Skeleton.Bones.FindIndex(candidate => candidate.Parent == i);
-            Vector2 pointing = child >= 0 && package.Skeleton.Bones[child].Rest.Origin.LengthSquared() > 1e-4f
-                ? package.Skeleton.Bones[child].Rest.Origin.Normalized()
-                : Vector2.Down;
-            Vector2 Edge(float turn)
-            {
-                Vector2 along = frame.BasisXform(pointing.Rotated(bone.Rest.Rotation + turn));
-                return joint + placement.BasisXform(along).Normalized() * LimitRadius;
-            }
+            Vector2 local = child >= 0 && package.Skeleton.Bones[child].Rest.Origin.LengthSquared() > 1e-4f
+                ? package.Skeleton.Bones[child].Rest.Origin
+                : bone.Tip.LengthSquared() > 1e-4f ? bone.Tip
+                : bone.Rest.Origin.LengthSquared() > 1e-4f ? bone.Rest.Origin
+                : Vector2.Right;
+
+            // Where it points now, on screen, through its own scale and any
+            // mirroring; each edge turns that by how far the edge is from the
+            // bone's turn now, the other way on screen when the bone is mirrored.
+            Vector2 now = placement.BasisXform(world[i].BasisXform(local));
+            if (now.LengthSquared() < 1e-6f)
+                continue;
+            now = now.Normalized();
+            float current = XafJointLocks.Turn(package, pose, i);
+            float sense = world[i].Determinant() * placement.Determinant() < 0f ? -1f : 1f;
+            Vector2 Edge(float turn) => joint + now.Rotated((turn - current) * sense) * LimitRadius;
 
             Vector2 previous = Edge(bone.LimitMin);
             canvas.DrawLine(target, joint, previous, LimitColor, 2f);

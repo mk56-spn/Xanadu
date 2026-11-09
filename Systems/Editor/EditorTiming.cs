@@ -4,13 +4,14 @@ using Xanadu.Ecs;
 namespace Xanadu.Systems.Editor;
 
 /// <summary>
-/// Note and scrub snapping on the song's tempo map. <see cref="Playhead.SnapDivision"/>
-/// is grid lines per four beats here (4 = every beat, 16 = every quarter beat).
+/// Note, scrub and group snapping on the song's tempo map. <see cref="Playhead.SnapDivision"/>
+/// is the beat snap divisor, as in osu! and most rhythm games: 1 snaps to whole
+/// beats (one beat is one tick of the BPM), 2 to half beats, 4 to quarter beats.
 /// </summary>
 public static class EditorTiming
 {
     /// <summary>The grid step in beats.</summary>
-    public static double StepBeats(Playhead playhead) => 4.0 / Math.Max(1, playhead.SnapDivision);
+    public static double StepBeats(Playhead playhead) => 1.0 / Math.Max(1, playhead.SnapDivision);
 
     /// <summary>The grid step in milliseconds at the playhead (tempo changes make it vary through the song).</summary>
     public static double StepMs(Playhead playhead) =>

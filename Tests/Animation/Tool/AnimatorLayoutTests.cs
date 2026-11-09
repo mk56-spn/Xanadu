@@ -60,7 +60,7 @@ public sealed class AnimatorLayoutTests : AnimatorToolTest
     public void TheSelectedTabsBodyFillsTheBodySlotAndTheOtherIsParked()
     {
         EditorShellRects shell = Shell();
-        Entity pose = TabBody(Button(ToolActionKind.KeyBone));
+        Entity pose = TabBody(Button(ToolActionKind.KeyPose));
         Entity edit = TabBody(Button(ToolActionKind.ToggleEffectVisible));
 
         Frame();
@@ -107,13 +107,27 @@ public sealed class AnimatorLayoutTests : AnimatorToolTest
     public void RigSectionsCarryTheirOwnButtons()
     {
         Rect2 tree = Shell().RightTree;
-        Entity deleteBone = Button(ToolActionKind.DeleteBone);
         Entity addEffect = Button(ToolActionKind.AddEffect);
 
-        Assert.That(tree.Encloses(AnimatorGeometry.PanelArea(deleteBone)), Is.True);
-        Assert.That(Section(deleteBone), Is.EqualTo(Ui.BoneSection));
+        Assert.That(tree.Encloses(AnimatorGeometry.PanelArea(addEffect)), Is.True);
         Assert.That(Section(addEffect), Is.EqualTo(Ui.EffectSection));
         Assert.That(Section(Button(ToolActionKind.DeleteEffect)), Is.EqualTo(Ui.EffectSection));
+    }
+
+    [Test]
+    public void EverythingAboutABoneIsOnTheBoneCard()
+    {
+        foreach (ToolActionKind kind in new[]
+                 {
+                     ToolActionKind.KeyBone, ToolActionKind.ToggleMovable, ToolActionKind.LockBend,
+                     ToolActionKind.ToggleLimit, ToolActionKind.AddBone, ToolActionKind.RenameBone,
+                     ToolActionKind.ReparentBone, ToolActionKind.DeleteBone,
+                 })
+        {
+            Assert.That(Buttons(kind).Exists(button => IsInside(button, Ui.BoneCard)), Is.True, kind.ToString());
+            Assert.That(Buttons(kind).Exists(button => IsInside(button, Ui.RightPanel) || !TabBody(button).IsNull),
+                Is.False, kind.ToString());
+        }
     }
 
     private static Entity Section(Entity control)

@@ -5,6 +5,7 @@ using Godot;
 using Xanadu.Ecs;
 using Xanadu.Editor.Commands;
 using Xanadu.Systems.Input;
+using Xanadu.Timeline;
 
 namespace Xanadu.Systems.Editor;
 
@@ -27,6 +28,10 @@ public sealed partial class EditorGroupSystem
         _pointerHeld = input.Pressed;
         if (state.PaletteOpen)
             return;
+
+        // A press on the ease picker is the picker's, not the timeline's under it.
+        if (press && EasePickerArea(editor, state).HasPoint(input.Position))
+            press = false;
 
         Rect2 timeline = Offset(EditorGroupLayout.Timeline(dialog), origin);
         Rect2 ruler = Offset(EditorGroupLayout.Ruler(dialog), origin);
@@ -80,49 +85,53 @@ public sealed partial class EditorGroupSystem
             return;
         }
 
-        float time = EditorGroupLayout.TimeForX(timeline, state.ViewStart, state.ViewSpan, input.Position.X);
+        TimelineAxis axis = EditorGroupLayout.Axis(timeline, state.ViewStart, state.ViewSpan);
         GroupEffect effect = group.Effects[state.DragRow];
         bool snap = state.Snap && !input.Shift;
         Playhead timing = playhead;
-        float Snapped(float t) => EditorGroupLayout.Tidy(snap ? EditorGroupLayout.SnapSeconds(t, timing) : t);
+        double Snapped(double ms) =>
+            EditorGroupLayout.Tidy(snap ? EditorGroupLayout.SnapSeconds((float)(ms / 1000.0), timing) : (float)(ms / 1000.0)) * 1000.0;
 
-        switch (state.DragMode)
+        (double from, double to) = _effectDrag.Apply(axis.TimeAt(input.Position.X), Snapped);
+        group.Effects[state.DragRow] = effect with
         {
-            case EditorGroupDragMode.Whole:
-                float length = effect.End - effect.Start;
-                float start = Snapped(time - state.DragGrab);
-                group.Effects[state.DragRow] = effect with { Start = start, End = EditorGroupLayout.Tidy(start + length) };
-                break;
-            case EditorGroupDragMode.Start:
-                group.Effects[state.DragRow] = effect with { Start = Math.Min(Snapped(time), effect.End) };
-                break;
-            case EditorGroupDragMode.End:
-                group.Effects[state.DragRow] = effect with { End = Math.Max(Snapped(time), effect.Start) };
-                break;
-        }
+            Start = EditorGroupLayout.Tidy((float)(from / 1000.0)),
+            End = EditorGroupLayout.Tidy((float)(to / 1000.0)),
+        };
     }
 
+    /// <summary>
+    /// A press on an effect's bar: near an end it retimes that end, elsewhere it
+    /// moves the effect whole, picked the way the animator picks an override.
+    /// </summary>
     private bool BeginDrag(ref EditorGroupState state, GroupDefinition group, Vector2 point, Rect2 timeline)
     {
+        TimelineAxis axis = EditorGroupLayout.Axis(timeline, state.ViewStart, state.ViewSpan);
         for (int row = 0; row < group.Effects.Count && row < EditorGroupLayout.MaxRows; row++)
         {
-            Rect2 bar = BarRect(group.Effects[row], row, state, timeline);
-            if (!bar.Grow(2f).HasPoint(point))
+            GroupEffect effect = group.Effects[row];
+            Rect2 band = EditorGroupLayout.RowRect(row, timeline);
+            if (point.Y < band.Position.Y + 2f || point.Y > band.End.Y - 2f ||
+                TimelineGrab.Span(axis, effect.Start * 1000.0, effect.End * 1000.0, point.X, EdgeGrab, EdgeGrab * 3)
+                    is not { } part)
+            {
                 continue;
+            }
 
             state.SelectedGroup = state.Open;
             state.SelectedEffect = row;
             _dragBefore = _history.Capture();
             state.DragRow = row;
-            if (point.X <= bar.Position.X + EdgeGrab && bar.Size.X > EdgeGrab * 3)
-                state.DragMode = EditorGroupDragMode.Start;
-            else if (point.X >= bar.End.X - EdgeGrab && bar.Size.X > EdgeGrab * 3)
-                state.DragMode = EditorGroupDragMode.End;
-            else
-                state.DragMode = EditorGroupDragMode.Whole;
+            state.DragMode = part switch
+            {
+                TimelineGrabPart.Start => EditorGroupDragMode.Start,
+                TimelineGrabPart.End => EditorGroupDragMode.End,
+                _ => EditorGroupDragMode.Whole,
+            };
 
-            float time = EditorGroupLayout.TimeForX(timeline, state.ViewStart, state.ViewSpan, point.X);
-            state.DragGrab = time - group.Effects[row].Start;
+            double grabbed = axis.TimeAt(point.X);
+            state.DragGrab = (float)(grabbed / 1000.0) - effect.Start;
+            _effectDrag = new TimelineSpanDrag(part, effect.Start * 1000.0, effect.End * 1000.0, grabbed);
             return true;
         }
 
@@ -137,8 +146,6 @@ public sealed partial class EditorGroupSystem
             Math.Max(0, (long)Math.Round(seconds * 1000.0))));
     }
 
-    private static Rect2 BarRect(GroupEffect effect, int row, EditorGroupState state, Rect2 timeline) =>
-        EditorGroupLayout.BarRect(effect, row, state.ViewStart, state.ViewSpan, timeline);
 
     private static Rect2 Offset(Rect2 rect, Vector2 by) => new(rect.Position + by, rect.Size);
 }

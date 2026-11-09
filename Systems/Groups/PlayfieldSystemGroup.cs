@@ -118,7 +118,7 @@ public sealed class PlayfieldSystemGroup : SystemGroup, IDisposable
                 () => new SvgAttachmentVisuals(_characters.Rid),
                 new CharacterRigGhosts(
                     _ghosts.Rid,
-                    root => new SvgAttachmentVisuals(root, containLayers: true))));
+                    root => new SvgAttachmentVisuals(root, containLayers: true) { Particles = false })));
         }
 
         Add(new DivaNotesSystem(entities));

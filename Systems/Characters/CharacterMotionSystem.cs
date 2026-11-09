@@ -105,7 +105,7 @@ public sealed class CharacterMotionSystem : QuerySystem<CharacterRig, Player, Po
                 // Dust at the feet: the player's position is its centre.
                 Vector2 feet = entity.GetComponent<Position>().Value +
                                new Vector2(0, entity.GetComponent<Player>().Size.Y / 2);
-                entity.Store.CreateEntity(new ParticleBurst(feet, ParticleKind.Landing));
+                entity.Store.CreateEntity(new ParticleBurst(feet, GameParticles.Landing));
             }
 
             motion.State = next;

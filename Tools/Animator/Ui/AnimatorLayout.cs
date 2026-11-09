@@ -107,22 +107,30 @@ public static partial class AnimatorLayout
         BuildTabBodies(menu, shell, ref refs);
         BuildViewBar(menu, shell, ref refs);
         BuildInspector(menu, screen, ref refs);
+        BuildBoneCard(menu, ref refs);
         BuildFileMenu(menu, refs.FileButton);
         BuildConfigMenu(menu, refs.ConfigButton);
         BuildClipLengthPanel(menu, ref refs);
         BuildBoneMenu(menu, ref refs);
         BuildKeyMenu(menu, ref refs);
+        BuildOverrideMenu(menu, ref refs);
         BuildSvgMenu(menu, ref refs);
         BuildChainInspector(menu, ref refs);
         BuildClothInspector(menu, ref refs);
         BuildEventInspector(menu, ref refs);
         BuildNewClipDialog(menu, screen, ref refs);
         BuildInfoPanel(menu, screen, ref refs);
-        BuildEasingWindow(menu, ref refs);
+        refs.Ui.EasePicker = EasePickerPanel.Build(
+            UiNode.Wrap(refs.Ui.MenuLayer, visuals),
+            new Commands.AnimatorEasePickerHost(store));
         refs.Ui.XifEditor = XifEditorPanel.Build(
             UiNode.Wrap(refs.Ui.MenuLayer, visuals),
             XifEditorCenter(screen),
             new Commands.AnimatorXifHost(store));
+        refs.Ui.ParticleEditor = ParticleEditorPanel.Build(
+            UiNode.Wrap(refs.Ui.MenuLayer, visuals),
+            ParticleEditorCenter(screen),
+            new Commands.AnimatorParticleHost(store));
         BuildTooltip(store, visuals, ref refs);
         return refs.Ui;
     }

@@ -12,7 +12,8 @@ namespace Xanadu.Tools.Animator.Systems;
 
 /// <summary>
 /// Right-clicking a track row in the timeline opens a menu to add a key at
-/// the clicked time, delete the key under the pointer, or select every key. The options are
+/// the clicked time, delete the key under the pointer, or select every key;
+/// on an override's bar it opens the override menu instead. The options are
 /// <see cref="ToolAction"/> buttons; this system picks what was clicked,
 /// places the menu, closes it on the next click and dims the option that has
 /// nothing to act on.
@@ -36,18 +37,21 @@ public sealed class AnimatorKeyMenuSystem(IPointerInputSource pointer)
             AnimatorUi ui = session.GetComponent<AnimatorUi>();
             if (session.GetComponent<AnimatorNewClipDialog>().Open)
             {
-                session.GetComponent<AnimatorKeyMenu>().Open = false;
+                Close(session);
                 AnimatorMenuPlacement.Hide(ui.KeyMenu);
+                AnimatorMenuPlacement.Hide(ui.OverrideMenu);
                 continue;
             }
 
             if (secondary)
                 RightClick(session, input);
             else if (primary)
-                session.GetComponent<AnimatorKeyMenu>().Open = false;
+                Close(session);
 
             AnimatorKeyMenu menu = session.GetComponent<AnimatorKeyMenu>();
             AnimatorMenuPlacement.Place(ui.KeyMenu, menu.Anchor + AnimatorLayout.KeyMenuSize / 2, shown: menu.Open);
+            AnimatorMenuPlacement.Place(ui.OverrideMenu, menu.Anchor + AnimatorLayout.OverrideMenuSize / 2,
+                shown: menu.OverrideOpen);
             if (menu.Open)
             {
                 bool hasKey = session.GetComponent<AnimatorSelection>().HasKey;
@@ -57,10 +61,17 @@ public sealed class AnimatorKeyMenuSystem(IPointerInputSource pointer)
         }
     }
 
-    private static void RightClick(Entity session, PointerInput input)
+    private static void Close(Entity session)
     {
         ref AnimatorKeyMenu menu = ref session.GetComponent<AnimatorKeyMenu>();
         menu.Open = false;
+        menu.OverrideOpen = false;
+    }
+
+    private static void RightClick(Entity session, PointerInput input)
+    {
+        Close(session);
+        ref AnimatorKeyMenu menu = ref session.GetComponent<AnimatorKeyMenu>();
 
         AnimatorTimelineModel? model = AnimatorTimelineModel.Create(session);
         if (model is null || !model.Rows.HasPoint(input.Position))
@@ -69,6 +80,19 @@ public sealed class AnimatorKeyMenuSystem(IPointerInputSource pointer)
         int row = model.ScreenRowAt(input.Position);
         if (row < 0)
             return;
+
+        if (model.TryPickOverride(input.Position, out XafLimbTarget? overriding, out _))
+        {
+            menu.Override = overriding;
+            menu.OverrideOpen = true;
+            menu.Anchor = AnimatorMenuPlacement.Anchor(
+                input.Position,
+                AnimatorLayout.OverrideMenuSize,
+                session.GetComponent<AnimatorUi>().ScreenSize);
+            AnimatorSession.SetStatus(session,
+                $"{overriding!.BoneId} {AnimatorOverrideCommands.Name(overriding)} · REMOVE IT, OR KEEP ITS KEYS");
+            return;
+        }
 
         // A key under the pointer is selected, so DELETE KEY acts on it; empty
         // space keeps the playhead where it is and remembers the time to key.

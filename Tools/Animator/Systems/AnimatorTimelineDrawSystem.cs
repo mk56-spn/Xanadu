@@ -1,13 +1,14 @@
 using System;
+using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Godot;
-using Xanadu.Timeline;
 using Xanadu.Animation;
 using Xanadu.Ecs;
 using Xanadu.Levels;
 using Xanadu.Systems.Canvas;
 using Xanadu.Theme;
+using Xanadu.Timeline;
 using Xanadu.Tools.Animator.Commands;
 using Xanadu.Ui.Ecs.Ui;
 
@@ -120,38 +121,13 @@ public sealed class AnimatorTimelineDrawSystem(IRectCanvas canvas, Rid target)
                 LoopBand);
         }
 
-        double tickMs = model.SnapStep * 1000.0;
-        int first = TimingGrid.FirstTick(model.Window.Start, 0, tickMs);
-        int last = TimingGrid.LastTick(model.Window.End, 0, tickMs);
-        if (last - first > 4000)
-            return;
-
-        for (int tick = first; tick <= last; tick++)
-        {
-            double ms = TimingGrid.TickTime(tick, 0, tickMs);
-            if (ms < model.Window.Start - 1 || ms > model.Window.End + 1)
-                continue;
-
-            double seconds = ms / 1000.0;
-            bool major = IsMultiple(seconds, model.LabelStep);
-            float x = model.Window.XForTime(ruler, ms);
-            canvas.DrawLine(
-                target,
-                new Vector2(x, ruler.End.Y - (major ? 12f : 5f)),
-                new Vector2(x, ruler.End.Y),
-                major ? Tick : Grid,
-                1);
-            if (!major || x + 28 > ruler.End.X)
-                continue;
-
-            canvas.DrawTextStyledLeft(
-                target,
-                new Rect2(x + 3, ruler.Position.Y + 1, 60, 12),
-                seconds.ToString("0.###"),
-                Dim,
-                11);
-        }
+        var painter = new TimelinePainter(canvas, target);
+        List<TimelineTick> ticks = model.Ticks();
+        painter.RulerTicks(model.Axis, ruler, ticks, RulerLook);
+        painter.Labels(model.Axis, ruler, ticks, Dim);
     }
+
+    private static readonly TimelineRulerLook RulerLook = TimelineRulerLook.TwoLevel(new(12f, Tick), new(5f, Grid));
 
     private void DrawRows(
         AnimatorTimelineModel model,
@@ -230,29 +206,8 @@ public sealed class AnimatorTimelineDrawSystem(IRectCanvas canvas, Rid target)
     }
 
     /// <summary>A line down through the rows at each labelled ruler tick.</summary>
-    private void DrawGridLines(AnimatorTimelineModel model)
-    {
-        double stepMs = model.LabelStep * 1000.0;
-        if (stepMs <= 0)
-            return;
-
-        int first = TimingGrid.FirstTick(model.Window.Start, 0, stepMs);
-        int last = TimingGrid.LastTick(model.Window.End, 0, stepMs);
-        for (int tick = first; tick <= last && last - first <= 1000; tick++)
-        {
-            double ms = TimingGrid.TickTime(tick, 0, stepMs);
-            if (ms < model.Window.Start - 1 || ms > model.Window.End + 1)
-                continue;
-
-            float x = model.Window.XForTime(model.Ruler, ms);
-            canvas.DrawLine(
-                target,
-                new Vector2(x, model.Rows.Position.Y),
-                new Vector2(x, model.RowsBottom),
-                Grid,
-                1);
-        }
-    }
+    private void DrawGridLines(AnimatorTimelineModel model) =>
+        new TimelinePainter(canvas, target).GridLines(model.Axis, model.Rows.Position.Y, model.RowsBottom, model.Ticks(), Grid);
 
     private void DrawKeys(
         AnimatorTimelineModel model,
@@ -265,20 +220,13 @@ public sealed class AnimatorTimelineDrawSystem(IRectCanvas canvas, Rid target)
 
         DrawDrivenSpans(model, track, row);
         DrawEaseBands(model, track, row);
+        var painter = new TimelinePainter(canvas, target);
         foreach (float time in AnimatorTrackRows.KeyTimes(model.Clip, track))
         {
-            if (!model.IsVisible(time))
-                continue;
-
-            bool chosen = selection.IsKeySelected(track, time);
-            XafEasePreset? ease = track.Property is { } property
+            EasePreset? ease = track.Property is { } property
                 ? XafEasing.Read(model.Clip, track.Target, track.Id, property, time)
                 : XafEasing.Read(model.Clip, track.Target, track.Id, time);
-            DrawKey(
-                new Vector2(model.XForSeconds(time), row.Position.Y + row.Size.Y / 2),
-                chosen ? AnimatorTimelineModel.KeyRadius + 1 : AnimatorTimelineModel.KeyRadius - 1,
-                chosen ? Colors.White : KeyColor,
-                ease ?? XafEasePreset.Linear);
+            painter.Key(model.Axis, row, time * 1000.0, KeyColor, ease ?? EasePreset.Linear, selection.IsKeySelected(track, time));
         }
     }
 
@@ -299,10 +247,7 @@ public sealed class AnimatorTimelineDrawSystem(IRectCanvas canvas, Rid target)
                 continue;
             }
 
-            float left = Math.Max(model.XForSeconds(limb.From), model.Ruler.Position.X);
-            float right = Math.Min(model.XForSeconds(limb.To), model.Ruler.End.X);
-            if (right > left)
-                canvas.DrawRect(target, new Rect2(left, row.Position.Y + 1f, right - left, row.Size.Y - 2f), DrivenBand);
+            new TimelinePainter(canvas, target).Bar(model.Axis, row, limb.From * 1000.0, limb.To * 1000.0, DrivenBand);
         }
     }
 
@@ -310,19 +255,11 @@ public sealed class AnimatorTimelineDrawSystem(IRectCanvas canvas, Rid target)
     private void DrawEaseBands(AnimatorTimelineModel model, AnimatorTrackRow track, Rect2 row)
     {
         var keys = AnimatorTrackRows.KeyTimes(model.Clip, track);
-        float left = model.Ruler.Position.X;
-        float right = model.Ruler.End.X;
+        var painter = new TimelinePainter(canvas, target);
         for (int i = 0; i + 1 < keys.Count; i++)
         {
-            float fromX = model.XForSeconds(keys[i]);
-            float toX = model.XForSeconds(keys[i + 1]);
-            if (toX < left || fromX > right)
-                continue;
-
             XafEaseSegment segment = XafEasing.ReadSegment(model.Clip, track.Target, track.Id, track.Property, keys[i]);
-            Color color = EaseColor(segment);
-            foreach (EaseBandPiece piece in AnimatorEaseBand.Pieces(segment, fromX, toX, left, right, row))
-                canvas.DrawPolygon(target, piece.Polygon, piece.Reverse ? EaseReverse : color);
+            painter.Span(model.Axis, row, keys[i] * 1000.0, keys[i + 1] * 1000.0, segment.Preset, EaseColor(segment), EaseReverse);
         }
     }
 
@@ -330,14 +267,14 @@ public sealed class AnimatorTimelineDrawSystem(IRectCanvas canvas, Rid target)
     private static Color EaseColor(XafEaseSegment segment) => segment.Preset switch
     {
         null => EaseLineQuiet,
-        XafEasePreset.Step => Palette.Warning,
-        XafEasePreset.Linear => Palette.Info,
-        XafEasePreset.Ease => Palette.Lime,
-        { } preset => XafEasing.Shape(preset)?.Direction switch
+        EasePreset.Step => Palette.Warning,
+        EasePreset.Linear => Palette.Info,
+        EasePreset.Ease => Palette.Lime,
+        { } preset => EasePresets.Shape(preset)?.Direction switch
         {
-            XafCurveDirection.In => Palette.Pink,
-            XafCurveDirection.Out => Palette.Violet,
-            XafCurveDirection.InOut => Palette.Lime,
+            CurveDirection.In => Palette.Pink,
+            CurveDirection.Out => Palette.Violet,
+            CurveDirection.InOut => Palette.Lime,
             _ => EaseLineQuiet,
         },
     };
@@ -403,45 +340,6 @@ public sealed class AnimatorTimelineDrawSystem(IRectCanvas canvas, Rid target)
         }
     }
 
-    private void DrawPlayhead(AnimatorTimelineModel model, float time)
-    {
-        float x = model.XForSeconds(time);
-        float top = model.Ruler.Position.Y;
-        float bottom = model.RowsBottom;
-        canvas.DrawLine(target, new Vector2(x, top), new Vector2(x, bottom), Playhead, 2);
-        canvas.DrawRect(target, new Rect2(x - 5, top - 4, 10, 10), Playhead);
-    }
-
-    /// <summary>The marker shows how the key eases: square holds, diamond is linear, circle is eased.</summary>
-    private void DrawKey(Vector2 center, float radius, Color color, XafEasePreset ease)
-    {
-        switch (ease)
-        {
-            case XafEasePreset.Step:
-                canvas.DrawRect(target, new Rect2(center - new Vector2(radius, radius), new Vector2(radius * 2, radius * 2)), color);
-                break;
-            case XafEasePreset.Linear:
-                DrawDiamond(center, radius, color);
-                break;
-            default:
-                canvas.DrawCircle(target, center, radius, color);
-                break;
-        }
-    }
-
-    /// <summary>A filled diamond built from one-pixel strips; the canvas has no polygon fill.</summary>
-    private void DrawDiamond(Vector2 center, float radius, Color color)
-    {
-        for (float dy = -radius; dy <= radius; dy++)
-        {
-            float half = radius - Math.Abs(dy);
-            canvas.DrawRect(target, new Rect2(center.X - half, center.Y + dy, half * 2 + 1, 1), color);
-        }
-    }
-
-    private static bool IsMultiple(double value, double step)
-    {
-        double ratio = value / step;
-        return Math.Abs(ratio - Math.Round(ratio)) < 1e-6;
-    }
+    private void DrawPlayhead(AnimatorTimelineModel model, float time) =>
+        new TimelinePainter(canvas, target).Playhead(model.Axis, time * 1000.0, model.Ruler.Position.Y, model.RowsBottom, Playhead);
 }

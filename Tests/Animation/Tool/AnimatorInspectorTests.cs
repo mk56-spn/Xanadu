@@ -24,7 +24,9 @@ public sealed class AnimatorInspectorTests : AnimatorToolTest
 
     private string FieldValue(Entity field) => field.GetComponent<TextField>().Value;
 
-    private string Title => Ui.InspectorTitle.GetComponent<Text>().Value;
+    /// <summary>The name, then the line under it that says what it is and whether it is keyed.</summary>
+    private string Title =>
+        Ui.InspectorTitle.GetComponent<Text>().Value + "  " + Ui.InspectorSubtitle.GetComponent<Text>().Value;
 
     private static bool Close(Vector2 actual, Vector2 expected) =>
         actual.DistanceTo(expected) < 0.001f;
@@ -132,7 +134,7 @@ public sealed class AnimatorInspectorTests : AnimatorToolTest
         Assert.That(FieldValue(Ui.InspectRotation), Is.EqualTo("0"));
         Assert.That(FieldValue(Ui.InspectScaleX), Is.EqualTo("1"));
         Assert.That(FieldValue(Ui.InspectScaleY), Is.EqualTo("1"));
-        Assert.That(Title, Is.EqualTo("torso"));
+        Assert.That(Title, Is.EqualTo("torso  BONE"));
     }
 
     [Test]

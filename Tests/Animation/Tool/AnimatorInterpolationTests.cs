@@ -3,10 +3,11 @@ using Godot;
 using NUnit.Framework;
 using Xanadu.Animation;
 using Xanadu.Ecs;
+using Xanadu.Theme;
+using Xanadu.Timeline;
 using Xanadu.Tools.Animator;
 using Xanadu.Tools.Animator.Commands;
 using Xanadu.Tools.Animator.Systems;
-using Xanadu.Theme;
 
 namespace Xanadu.Tests.Animation.Tool;
 
@@ -16,8 +17,12 @@ public sealed class AnimatorInterpolationTests : AnimatorToolTest
     protected override void AddSystems()
     {
         Root.Add(new AnimatorActionSystem());
-        Root.Add(new AnimatorInterpolationSystem());
+        Root.Add(new Xanadu.Systems.Ui.EasePickerSystem());
     }
+
+    /// <summary>The picker only takes picks while it is open.</summary>
+    [SetUp]
+    public void OpenPicker() => Session.GetComponent<AnimatorEasingWindow>().Open = true;
 
     private void SelectHeadKey(float time)
     {
@@ -28,16 +33,15 @@ public sealed class AnimatorInterpolationTests : AnimatorToolTest
         selection.KeyTime = time;
     }
 
-    private XafEasePreset? HeadEase(float time) =>
+    private EasePreset? HeadEase(float time) =>
         XafEasing.Read(Idle, XafChannelTarget.Bone, "head", time);
 
-    private Entity PresetButton(XafEasePreset preset) =>
-        Button(ToolActionKind.Interpolate, preset.ToString());
+    private Entity PresetButton(EasePreset preset) => EaseCell(preset);
 
     [Test]
-    public void TheEasingWindowHasACellForEveryPreset()
+    public void ThePickerHasACellForEveryPreset()
     {
-        foreach (XafEasePreset preset in System.Enum.GetValues<XafEasePreset>())
+        foreach (EasePreset preset in System.Enum.GetValues<EasePreset>())
             Assert.That(PresetButton(preset).IsNull, Is.False);
     }
 
@@ -46,19 +50,19 @@ public sealed class AnimatorInterpolationTests : AnimatorToolTest
     {
         SelectHeadKey(1f);
 
-        Click(PresetButton(XafEasePreset.Ease));
+        Click(PresetButton(EasePreset.Ease));
 
-        Assert.That(HeadEase(1f), Is.EqualTo(XafEasePreset.Ease));
-        Assert.That(HeadEase(0f), Is.EqualTo(XafEasePreset.Linear));
+        Assert.That(HeadEase(1f), Is.EqualTo(EasePreset.Ease));
+        Assert.That(HeadEase(0f), Is.EqualTo(EasePreset.Linear));
         Assert.That(Session.GetComponent<AnimatorStatus>().Message, Is.EqualTo("KEY EASE"));
     }
 
     [Test]
     public void WithoutASelectedKeyItAsksForOneAndChangesNothing()
     {
-        Click(PresetButton(XafEasePreset.Step));
+        Click(PresetButton(EasePreset.Step));
 
-        Assert.That(HeadEase(0f), Is.EqualTo(XafEasePreset.Linear));
+        Assert.That(HeadEase(0f), Is.EqualTo(EasePreset.Linear));
         Assert.That(Session.GetComponent<AnimatorStatus>().Message, Does.StartWith("SELECT A KEY"));
         Assert.That(Session.GetComponent<AnimatorFile>().Dirty, Is.False);
     }
@@ -68,11 +72,11 @@ public sealed class AnimatorInterpolationTests : AnimatorToolTest
     {
         SelectHeadKey(1f);
 
-        Click(PresetButton(XafEasePreset.Step));
+        Click(PresetButton(EasePreset.Step));
         Assert.That(Session.GetComponent<AnimatorFile>().Dirty, Is.True);
 
         AnimatorCommands.Run(Session, new ToolAction(ToolActionKind.Undo));
-        Assert.That(HeadEase(1f), Is.EqualTo(XafEasePreset.Linear));
+        Assert.That(HeadEase(1f), Is.EqualTo(EasePreset.Linear));
         Assert.That(Session.GetComponent<AnimatorFile>().Dirty, Is.False);
     }
 
@@ -80,10 +84,10 @@ public sealed class AnimatorInterpolationTests : AnimatorToolTest
     public void ReapplyingTheSamePresetRecordsNoHistory()
     {
         SelectHeadKey(1f);
-        Click(PresetButton(XafEasePreset.Step));
+        Click(PresetButton(EasePreset.Step));
         AnimatorCommands.Run(Session, new ToolAction(ToolActionKind.Undo));
 
-        Click(PresetButton(XafEasePreset.Linear));
+        Click(PresetButton(EasePreset.Linear));
 
         Assert.That(Session.GetComponent<AnimatorHistory>().History.CanUndo, Is.False);
     }
@@ -92,25 +96,25 @@ public sealed class AnimatorInterpolationTests : AnimatorToolTest
     public void TheButtonMatchingTheSelectedKeyIsHighlighted()
     {
         SelectHeadKey(1f);
-        Click(PresetButton(XafEasePreset.EaseOut));
+        Click(PresetButton(EasePreset.EaseOut));
         Frame();
 
-        Assert.That(PresetButton(XafEasePreset.EaseOut).GetComponent<ButtonVisual>().Normal,
+        Assert.That(PresetButton(EasePreset.EaseOut).GetComponent<ButtonVisual>().Normal,
             Is.EqualTo(Palette.Selected));
-        Assert.That(PresetButton(XafEasePreset.Step).GetComponent<ButtonVisual>().Normal,
-            Is.EqualTo(AnimatorLayout.EasingCell));
+        Assert.That(PresetButton(EasePreset.Step).GetComponent<ButtonVisual>().Normal,
+            Is.EqualTo(EasePickerPanel.Cell));
 
         Session.GetComponent<AnimatorSelection>().HasKey = false;
         Frame();
-        Assert.That(PresetButton(XafEasePreset.EaseOut).GetComponent<ButtonVisual>().Normal,
-            Is.EqualTo(AnimatorLayout.EasingCell));
+        Assert.That(PresetButton(EasePreset.EaseOut).GetComponent<ButtonVisual>().Normal,
+            Is.EqualTo(EasePickerPanel.Cell));
     }
 
     [Test]
     public void ThePlayheadFollowsTheChosenCurve()
     {
         SelectHeadKey(0f);
-        Click(PresetButton(XafEasePreset.Step));
+        Click(PresetButton(EasePreset.Step));
 
         Runtime.Seek(0.5f);
 

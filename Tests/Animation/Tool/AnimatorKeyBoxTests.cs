@@ -5,6 +5,7 @@ using Godot;
 using NUnit.Framework;
 using Xanadu.Animation;
 using Xanadu.Ecs;
+using Xanadu.Timeline;
 using Xanadu.Tools.Animator;
 using Xanadu.Tools.Animator.Commands;
 using Xanadu.Tools.Animator.Systems;
@@ -440,11 +441,11 @@ public sealed class AnimatorKeyBoxTests : AnimatorToolTest
     {
         SelectTorsoAndHead();
 
-        AnimatorCommands.Run(Session, new ToolAction(ToolActionKind.Interpolate, XafEasePreset.Step.ToString()));
+        AnimatorCommands.Run(Session, new ToolAction(ToolActionKind.Interpolate, EasePreset.Step.ToString()));
 
-        Assert.That(XafEasing.Read(Idle, XafChannelTarget.Bone, "torso", 0.5f), Is.EqualTo(XafEasePreset.Step));
-        Assert.That(XafEasing.Read(Idle, XafChannelTarget.Bone, "head", 1f), Is.EqualTo(XafEasePreset.Step));
-        Assert.That(XafEasing.Read(Idle, XafChannelTarget.Bone, "torso", 1.5f), Is.Not.EqualTo(XafEasePreset.Step));
+        Assert.That(XafEasing.Read(Idle, XafChannelTarget.Bone, "torso", 0.5f), Is.EqualTo(EasePreset.Step));
+        Assert.That(XafEasing.Read(Idle, XafChannelTarget.Bone, "head", 1f), Is.EqualTo(EasePreset.Step));
+        Assert.That(XafEasing.Read(Idle, XafChannelTarget.Bone, "torso", 1.5f), Is.Not.EqualTo(EasePreset.Step));
     }
 
     [Test]

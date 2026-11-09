@@ -119,19 +119,25 @@ public static class EditorSceneGroups
                 .Entity);
         Relabel(collision, "COLLISION ON", "COLLISION OFF");
 
-        Entity musicMenu = Menu(layer, 2).Entity;
+        Entity musicMenu = Menu(layer, 3).Entity;
         UiNode musicItems = UiNode.Wrap(musicMenu);
         EditorMusicSnap.Attach(musicItems.Button(EditorMusicSnap.OnLabel, 12, SceneUi.MutedButtonColor)
             .Size(MenuItemWidth, 28)
             .Entity);
-        UiNode divisions = musicItems.Row().Size(MenuItemWidth, 28).Gap(4);
+
+        // Straight divisions on one row, triplets under them, each button the same width.
+        int perRow = EditorViewBar.StraightDivisions;
+        float buttonWidth = (MenuItemWidth - 4 * (perRow - 1)) / perRow;
+        UiNode straight = musicItems.Row().Size(MenuItemWidth, 28).Gap(4).Main(StackMainAlignment.Start);
+        UiNode triplets = musicItems.Row().Size(MenuItemWidth, 28).Gap(4).Main(StackMainAlignment.Start);
         var divisionButtons = new Entity[EditorViewBar.Divisions.Length];
         for (int i = 0; i < divisionButtons.Length; i++)
         {
             (int division, string text) = EditorViewBar.Divisions[i];
-            divisionButtons[i] = divisions.Button(text, 12, SceneUi.EditorButtonColor)
-                .Size((MenuItemWidth - 8) / 3f, 28)
-                .Tooltip($"Snap notes to {text} notes")
+            UiNode row = i < perRow ? straight : triplets;
+            divisionButtons[i] = row.Button(text, 12, SceneUi.EditorButtonColor)
+                .Size(buttonWidth, 28)
+                .Tooltip(division % 3 == 0 ? $"Snap to {text} of a beat (triplets)" : $"Snap to {text} of a beat")
                 .Entity;
         }
 
@@ -172,6 +178,11 @@ public static class EditorSceneGroups
     /// </summary>
     internal static void BuildGroupOverlay(EntityStore entities, Entity root, Vector2 screen)
     {
+        // The shared ease picker the EASE buttons open, above the panel and its lists.
+        EasePickerPanel.Build(
+            UiNode.Layer(entities, root, UiLayers.EditorEasePicker, null, UiStage.Full),
+            new EditorGroupEaseHost(entities));
+
         Vector2 dialog = EditorGroupLayout.DialogSize(screen);
         Color panel = Palette.SurfaceDeep;
 
@@ -189,33 +200,7 @@ public static class EditorSceneGroups
             back.Rect(Palette.WithAlpha(panel, EditorGroupLayout.BackingAlpha)).Size(dialog).Hidden().Input(),
             EditorGroupPart.Dialog);
 
-        UiNode ticks = UiNode.Layer(entities, root, UiLayers.EditorGroupsTicks, null, UiStage.Full);
-        for (int slot = 0; slot < EditorGroupLayout.TickSlots; slot++)
-        {
-            Piece(
-                ticks.Rect(Palette.SurfaceAlt)
-                    .Size(new Vector2(
-                        1,
-                        EditorGroupLayout.LinesHeight))
-                    .Hidden(),
-                EditorGroupPart.TickLine,
-                slot);
-        }
-
-        Piece(
-            ticks.Rect(Colors.White)
-                .Size(new Vector2(
-                    2,
-                    EditorGroupLayout.LinesHeight))
-                .Hidden(),
-            EditorGroupPart.PlayheadLine);
-
         UiNode ui = UiNode.Layer(entities, root, UiLayers.EditorGroups, null, UiStage.Full);
-        for (int slot = 0; slot < EditorGroupLayout.LabelSlots; slot++)
-        {
-            Piece(ui.Text("", 11, SceneUi.DimTextColor).Size(70, 16).Hidden(), EditorGroupPart.TickLabel, slot);
-        }
-
         Piece(ui.Text("GROUP", 18, SceneUi.AccentColor, TextAlign.Left).Size(92, 28).Hidden(), EditorGroupPart.Title);
 
         Piece(GroupField(ui, "", false, 200), EditorGroupPart.NameField);
@@ -399,7 +384,7 @@ public static class EditorSceneGroups
             Piece(GroupField(ui, "", true, 64), EditorGroupPart.RowB, row);
             Piece(
                 GroupButton(ui, "LIN", SceneUi.MutedButtonColor, 74, 28)
-                    .Tooltip("Click to cycle the easing curve: linear, ease in, ease out, ease in-out"),
+                    .Tooltip("Choose how the effect eases from its start to its end"),
                 EditorGroupPart.RowEase,
                 row);
             Piece(GroupButton(ui, "X", SceneUi.MutedButtonColor, 30, 28), EditorGroupPart.RowDelete, row);
@@ -412,7 +397,7 @@ public static class EditorSceneGroups
         Piece(GroupField(ui, "", false, 204), EditorGroupPart.KeyValue);
         Piece(
             GroupButton(ui, "LIN", SceneUi.MutedButtonColor, 74, 28)
-                .Tooltip("Cycle the easing from this key to the next"),
+                .Tooltip("Choose how this key eases into the next"),
             EditorGroupPart.KeyEase);
         Piece(GroupButton(ui, "X", SceneUi.MutedButtonColor, 30, 28).Tooltip("Delete this key"), EditorGroupPart.KeyDelete);
 

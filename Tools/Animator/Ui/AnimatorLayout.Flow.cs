@@ -18,11 +18,10 @@ public static partial class AnimatorLayout
     private const float FlowTitleHeight = 20f;
     private const float FlowTextHeight = 18f;
     private const float FlowControlHeight = 28f;
-    private const float FlowStepWidth = 44f;
 
-    /// <summary>Title, rule, fade, curve, gap and preview rows, and the spacing after each.</summary>
+    /// <summary>Title, rule, fade readout, fade slider, curve, gap and preview rows, and the spacing after each.</summary>
     private const float FlowFixedHeight =
-        FlowTitleHeight + FlowTextHeight * 2 + FlowControlHeight * 3 + UiTheme.ContainerSpacing * 6;
+        FlowTitleHeight + FlowTextHeight * 3 + FlowControlHeight * 2 + RowHeight + UiTheme.ContainerSpacing * 7;
 
     /// <summary>Width of one row in the clip list, inside its scrolling viewport.</summary>
     public const float FlowListWidth = ListWidth - 10;
@@ -45,13 +44,10 @@ public static partial class AnimatorLayout
         refs.Ui.FlowRule = menu.Text("", new Vector2(ListWidth, FlowTextHeight), UiTheme.SmallFontSize,
             UiTheme.Text, TextAlign.Left);
 
-        menu.Container(Vector2.Zero, new Vector2(ButtonWidth, FlowControlHeight), spacing: 6, color: Clear);
-        var step = new Vector2(FlowStepWidth, FlowControlHeight);
-        refs.Ui.FlowFade = menu.Text("", new Vector2(ButtonWidth - FlowStepWidth * 2 - 12, FlowControlHeight),
+        refs.Ui.FlowFade = menu.Text("", new Vector2(ButtonWidth, FlowTextHeight),
             UiTheme.SmallFontSize, UiTheme.Text, TextAlign.Left);
-        FlowButton(menu, "-", ToolActionKind.TransitionFadeDown, step);
-        FlowButton(menu, "+", ToolActionKind.TransitionFadeUp, step);
-        menu.End();
+        SliderRow(menu, "FADE S", AnimatorSliderValue.TransitionFade, 0f, Animation.XafTransitions.MaxFade,
+            Animation.XafTransitions.DefaultFade, "0.00", "How long the fade into the picked clip lasts, in seconds");
 
         menu.Container(Vector2.Zero, new Vector2(ButtonWidth, FlowControlHeight), spacing: 4, color: Clear);
         // The two long names get the room; IN and OUT share what is left.

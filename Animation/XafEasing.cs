@@ -1,58 +1,16 @@
 using System;
+using Xanadu.Timeline;
 
 namespace Xanadu.Animation;
-
-/// <summary>Interpolation presets for the segment that leaves a key.</summary>
-public enum XafEasePreset
-{
-    Step,
-    Linear,
-
-    /// <summary>Slow at both ends.</summary>
-    Ease,
-
-    /// <summary>Slow start, full speed at the end.</summary>
-    EaseIn,
-
-    /// <summary>Full speed at the start, slow end.</summary>
-    EaseOut,
-
-    // Named curves, stored as the <see cref="XafInterpolation"/> of the same name.
-    SineIn,
-    SineOut,
-    SineInOut,
-    QuadInOut,
-    CubicIn,
-    CubicOut,
-    CubicInOut,
-    QuartIn,
-    QuartOut,
-    QuartInOut,
-    ExpoIn,
-    ExpoOut,
-    ExpoInOut,
-    CircIn,
-    CircOut,
-    CircInOut,
-    BackIn,
-    BackOut,
-    BackInOut,
-    ElasticIn,
-    ElasticOut,
-    ElasticInOut,
-    BounceIn,
-    BounceOut,
-    BounceInOut,
-}
 
 /// <summary>
 /// The span between two keys: whether anything changes across it, and the one
 /// easing it all uses, or null when nothing changes or its channels disagree.
 /// </summary>
-public readonly record struct XafEaseSegment(bool Moves, XafEasePreset? Preset);
+public readonly record struct XafEaseSegment(bool Moves, EasePreset? Preset);
 
 /// <summary>
-/// Applies and reads <see cref="XafEasePreset"/> on a pose key (every channel
+/// Applies and reads <see cref="EasePreset"/> on a pose key (every channel
 /// of a target at one time). Curves are cubic Hermite segments, so a preset is
 /// a mode plus the two tangents that bound the segment; bezier handles can be
 /// authored later without changing the format.
@@ -67,7 +25,7 @@ public static class XafEasing
         XafChannelTarget target,
         string targetId,
         float time,
-        XafEasePreset preset)
+        EasePreset preset)
     {
         bool changed = false;
         foreach (XafChannel channel in clip.Channels)
@@ -94,7 +52,7 @@ public static class XafEasing
         string targetId,
         XafChannelProperty property,
         float time,
-        XafEasePreset preset)
+        EasePreset preset)
     {
         XafChannel? channel = FindChannel(clip, target, targetId, property);
         if (channel is null)
@@ -110,7 +68,7 @@ public static class XafEasing
     }
 
     /// <summary>The preset of one channel's key at the time, or null when there is none.</summary>
-    public static XafEasePreset? Read(
+    public static EasePreset? Read(
         XafClip clip,
         XafChannelTarget target,
         string targetId,
@@ -127,7 +85,7 @@ public static class XafEasing
     }
 
     /// <summary>The preset of the first channel key found at the time, or null when there is none.</summary>
-    public static XafEasePreset? Read(
+    public static EasePreset? Read(
         XafClip clip,
         XafChannelTarget target,
         string targetId,
@@ -147,76 +105,30 @@ public static class XafEasing
         return null;
     }
 
-    /// <summary>
-    /// How far through its change a preset is at a share of the way between
-    /// two keys: 0 to 1, except back and elastic, which overshoot.
-    /// </summary>
-    public static float Progress(XafEasePreset preset, float t) => preset switch
-    {
-        XafEasePreset.Step => t >= 1f ? 1f : 0f,
-        XafEasePreset.Linear => t,
-        XafEasePreset.EaseIn => t * t,
-        XafEasePreset.EaseOut => t * (2f - t),
-        XafEasePreset.Ease => t * t * (3f - 2f * t),
-        _ => Shape(preset) is var (family, direction) ? XafCurves.Evaluate(family, direction, t) : t,
-    };
-
-    /// <summary>The family and direction a preset draws, or null for step, linear and the plain ease.</summary>
-    public static (XafCurveFamily Family, XafCurveDirection Direction)? Shape(XafEasePreset preset) => preset switch
-    {
-        XafEasePreset.EaseIn => (XafCurveFamily.Quad, XafCurveDirection.In),
-        XafEasePreset.EaseOut => (XafCurveFamily.Quad, XafCurveDirection.Out),
-        _ => ParseShape(preset.ToString()),
-    };
-
     /// <summary>The family and direction of a named-curve interpolation, or null for step, linear and cubic.</summary>
-    public static (XafCurveFamily Family, XafCurveDirection Direction)? Shape(XafInterpolation interpolation) =>
+    public static (CurveFamily Family, CurveDirection Direction)? Shape(XafInterpolation interpolation) =>
         (uint)interpolation < (uint)Shapes.Length ? Shapes[(int)interpolation] : null;
 
     /// <summary>Every interpolation's shape, by value, so sampling never parses a name.</summary>
-    private static readonly (XafCurveFamily, XafCurveDirection)?[] Shapes = BuildShapes();
+    private static readonly (CurveFamily, CurveDirection)?[] Shapes = BuildShapes();
 
-    private static (XafCurveFamily, XafCurveDirection)?[] BuildShapes()
+    private static (CurveFamily, CurveDirection)?[] BuildShapes()
     {
         XafInterpolation[] values = Enum.GetValues<XafInterpolation>();
-        var shapes = new (XafCurveFamily, XafCurveDirection)?[values.Length];
+        var shapes = new (CurveFamily, CurveDirection)?[values.Length];
         foreach (XafInterpolation value in values)
-            shapes[(int)value] = ParseShape(value.ToString());
+            shapes[(int)value] = EasePresets.ParseShape(value.ToString());
         return shapes;
     }
 
     /// <summary>The highest interpolation value a file may hold.</summary>
     public static int MaxInterpolation => Shapes.Length - 1;
 
-    /// <summary>The preset drawing this family in this direction.</summary>
-    public static XafEasePreset Preset(XafCurveFamily family, XafCurveDirection direction) =>
-        (family, direction) switch
-        {
-            (XafCurveFamily.Quad, XafCurveDirection.In) => XafEasePreset.EaseIn,
-            (XafCurveFamily.Quad, XafCurveDirection.Out) => XafEasePreset.EaseOut,
-            _ => Enum.Parse<XafEasePreset>($"{family}{direction}"),
-        };
-
     /// <summary>The stored interpolation of a named-curve preset, or null for the ones drawn with tangents.</summary>
-    public static XafInterpolation? NamedCurve(XafEasePreset preset) =>
-        preset > XafEasePreset.EaseOut && Enum.TryParse(preset.ToString(), out XafInterpolation curve)
+    public static XafInterpolation? NamedCurve(EasePreset preset) =>
+        preset > EasePreset.EaseOut && Enum.TryParse(preset.ToString(), out XafInterpolation curve)
             ? curve
             : null;
-
-    private static (XafCurveFamily, XafCurveDirection)? ParseShape(string name)
-    {
-        foreach (XafCurveDirection direction in new[] { XafCurveDirection.InOut, XafCurveDirection.Out, XafCurveDirection.In })
-        {
-            string suffix = direction.ToString();
-            if (name.Length > suffix.Length && name.EndsWith(suffix, StringComparison.Ordinal) &&
-                Enum.TryParse(name[..^suffix.Length], out XafCurveFamily family))
-            {
-                return (family, direction);
-            }
-        }
-
-        return null;
-    }
 
     /// <summary>
     /// How a track, or one channel of it, gets from one key time to the next. A
@@ -230,7 +142,7 @@ public static class XafEasing
         XafChannelProperty? property,
         float from)
     {
-        XafEasePreset? preset = null;
+        EasePreset? preset = null;
         bool mixed = false;
         foreach (XafChannel channel in clip.Channels)
         {
@@ -247,7 +159,7 @@ public static class XafEasing
                 continue;
             }
 
-            XafEasePreset leaving = Classify(channel, index);
+            EasePreset leaving = Classify(channel, index);
             mixed |= preset is { } seen && seen != leaving;
             preset = leaving;
         }
@@ -265,13 +177,13 @@ public static class XafEasing
             channel.TargetId == targetId &&
             channel.Property == property);
 
-    private static void ApplyTo(XafChannel channel, int index, XafEasePreset preset)
+    private static void ApplyTo(XafChannel channel, int index, EasePreset preset)
     {
         XafKeyframe key = channel.Keyframes[index];
         key.Interpolation = preset switch
         {
-            XafEasePreset.Step => XafInterpolation.Step,
-            XafEasePreset.Linear => XafInterpolation.Linear,
+            EasePreset.Step => XafInterpolation.Step,
+            EasePreset.Linear => XafInterpolation.Linear,
             _ => NamedCurve(preset) ?? XafInterpolation.CubicBezier,
         };
 
@@ -286,26 +198,26 @@ public static class XafEasing
 
         float span = next.Time - key.Time;
         float slope = span > 0f ? (next.Value - key.Value) / span : 0f;
-        if (preset == XafEasePreset.EaseIn)
+        if (preset == EasePreset.EaseIn)
             next.TangentIn = 2f * slope;
-        else if (preset == XafEasePreset.EaseOut)
+        else if (preset == EasePreset.EaseOut)
             key.TangentOut = 2f * slope;
     }
 
-    private static XafEasePreset Classify(XafChannel channel, int index)
+    private static EasePreset Classify(XafChannel channel, int index)
     {
         XafKeyframe key = channel.Keyframes[index];
         if (key.Interpolation == XafInterpolation.Step)
-            return XafEasePreset.Step;
+            return EasePreset.Step;
         if (key.Interpolation == XafInterpolation.Linear)
-            return XafEasePreset.Linear;
+            return EasePreset.Linear;
         if (key.Interpolation != XafInterpolation.CubicBezier &&
-            Enum.TryParse(key.Interpolation.ToString(), out XafEasePreset named))
+            Enum.TryParse(key.Interpolation.ToString(), out EasePreset named))
         {
             return named;
         }
         if (index + 1 >= channel.Keyframes.Count)
-            return XafEasePreset.Ease;
+            return EasePreset.Ease;
 
         XafKeyframe next = channel.Keyframes[index + 1];
         float span = next.Time - key.Time;
@@ -314,9 +226,9 @@ public static class XafEasing
         bool outFlat = Math.Abs(key.TangentOut) <= tolerance;
         bool inFlat = Math.Abs(next.TangentIn) <= tolerance;
         if (outFlat && !inFlat && Math.Abs(next.TangentIn - 2f * slope) <= tolerance)
-            return XafEasePreset.EaseIn;
+            return EasePreset.EaseIn;
         if (inFlat && !outFlat && Math.Abs(key.TangentOut - 2f * slope) <= tolerance)
-            return XafEasePreset.EaseOut;
-        return XafEasePreset.Ease;
+            return EasePreset.EaseOut;
+        return EasePreset.Ease;
     }
 }

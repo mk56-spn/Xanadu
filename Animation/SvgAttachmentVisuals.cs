@@ -91,10 +91,13 @@ public sealed partial class SvgAttachmentVisuals(Rid canvas, bool containLayers 
                 }
             }
         }
+
+        ReloadParticles(package);
     }
 
     public void ApplyEffects(XafPose pose, Transform2D[] effects, Transform2D placement)
     {
+        ApplyParticles(pose, effects, placement);
         foreach (EffectVisual visual in _effects)
         {
             float alpha = visual.Index < pose.Effects.Length ? pose.Effects[visual.Index].Alpha : 0f;
@@ -268,6 +271,9 @@ public sealed partial class SvgAttachmentVisuals(Rid canvas, bool containLayers 
         foreach (ClothVisual cloth in _cloths)
             RenderingServer.FreeRid(cloth.Item);
         _cloths.Clear();
+
+        ReleaseParticles();
+        _particlePackage = null;
     }
 
     /// <summary>

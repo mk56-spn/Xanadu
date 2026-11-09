@@ -67,9 +67,15 @@ public static class AnimatorSessionCommands
         menu.Anchor = OpenAnchor(session);
     }
 
-    /// <summary>Where the picker starts: just right of the bone menu that opened it.</summary>
+    /// <summary>
+    /// Where the picker starts: just right of the bone menu that opened it, or
+    /// left of the inspector when the bone card's + SVG did.
+    /// </summary>
     internal static Vector2 OpenAnchor(Entity session)
     {
+        if (!session.GetComponent<AnimatorBoneMenu>().Open && session.HasComponent<AnimatorUi>())
+            return AnimatorLayout.ChainPickerAnchor(session.GetComponent<AnimatorUi>().ScreenSize);
+
         Vector2 boneMenu = session.GetComponent<AnimatorBoneMenu>().Anchor;
         var offset = new Vector2(AnimatorLayout.BoneMenuSize.X + 4, 0);
         return boneMenu + offset;

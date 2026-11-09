@@ -1,6 +1,7 @@
 using Godot;
 using NUnit.Framework;
 using Xanadu.Animation;
+using Xanadu.Timeline;
 
 namespace Xanadu.Tests.Animation;
 
@@ -63,7 +64,7 @@ public sealed class XafTargetsTests
         XafLimbTarget tilted = Orbit("foot", "", Vector2.Zero) with { Tilt = Mathf.Pi / 2 };
         Assert.That(tilted.LocalAt(0f).DistanceTo(new Vector2(0, 16)), Is.LessThan(0.001f));
 
-        XafLimbTarget slow = Orbit("foot", "", Vector2.Zero) with { Ease = XafEasePreset.EaseIn };
+        XafLimbTarget slow = Orbit("foot", "", Vector2.Zero) with { Ease = EasePreset.EaseIn };
         Assert.That(slow.LocalAt(0.5f).DistanceTo(Orbit("foot", "", Vector2.Zero).LocalAt(0.25f)), Is.LessThan(0.001f));
     }
 
@@ -197,7 +198,7 @@ public sealed class XafTargetsTests
         XafLimbTarget target = Orbit("foot", "hip", new Vector2(3, 4)) with
         {
             Tilt = 0.5f, StartAngle = 1f, Sweep = -3f, From = 0.1f, To = 0.8f,
-            Ease = XafEasePreset.EaseOut, HoldFacing = true, Facing = 0.25f, BendPositive = true,
+            Ease = EasePreset.EaseOut, HoldFacing = true, Facing = 0.25f, BendPositive = true,
         };
         package.Clips[0].Targets.Add(target);
 

@@ -1,4 +1,6 @@
 using Friflo.Engine.ECS;
+using Godot;
+using Xanadu.Timeline;
 
 namespace Xanadu.Ecs;
 
@@ -82,6 +84,18 @@ public struct EditorGroupState : IComponent
     /// </summary>
     public float SelectedKey;
 
+    /// <summary>What the shared ease picker sets the curve of, or None while it is closed.</summary>
+    public EditorEaseTarget EaseFor;
+
+    /// <summary>The EASE button the picker opened from, on screen.</summary>
+    public Rect2 EaseAnchor;
+
+    /// <summary>The curve of what the picker is for, refreshed each frame; null when there is none.</summary>
+    public EasePreset? EaseCurrent;
+
+    /// <summary>A curve picked in the picker, applied by the group system as one undo step.</summary>
+    public EasePreset? EasePick;
+
     /// <summary>
     /// Whether the group panel is open on this editor. The panel is see-through
     /// and docked over the top of the view, so the panels that float there hide
@@ -102,6 +116,18 @@ public struct EditorGroupState : IComponent
         DragRow = -1,
         SelectedKey = -1f,
     };
+}
+
+/// <summary>What the group panel's ease picker is setting the curve of.</summary>
+public enum EditorEaseTarget
+{
+    None,
+
+    /// <summary>The selected effect row.</summary>
+    Effect,
+
+    /// <summary>The selected key on the key lane.</summary>
+    Key,
 }
 
 public enum EditorGroupDragMode
@@ -149,9 +175,6 @@ public enum EditorGroupPart
     SelectionNudgeLeft,
     SelectionNudgeRight,
     SelectionPick,
-
-    /// <summary>The timeline's playhead marker.</summary>
-    PlayheadLine,
 
     /// <summary>Whether the group's members draw into one buffer (D12).</summary>
     BufferToggle,
@@ -210,10 +233,6 @@ public enum EditorGroupPart
     KeyValue,
     KeyEase,
     KeyDelete,
-
-    /// <summary>Pooled pieces of the timeline's ruler.</summary>
-    TickLine,
-    TickLabel,
 }
 
 /// <summary>Marks an entity as a piece of the group overlay; <see cref="Row"/> is the effect row for row pieces and the pool slot for ticks.</summary>

@@ -41,7 +41,7 @@ public sealed class SpikeContactSystemTests : EcsSystemTest
         Entity[] bursts = Store.Query<ParticleBurst>().ToEntityList().ToArray();
         Assert.That(bursts, Has.Length.EqualTo(1));
         ParticleBurst burst = bursts[0].GetComponent<ParticleBurst>();
-        Assert.That(burst.Kind, Is.EqualTo(ParticleKind.Shatter));
+        Assert.That(burst.Particle, Is.EqualTo(GameParticles.Shatter));
         Assert.That(burst.Position, Is.EqualTo(new Vector2(450, 450)));
     }
 

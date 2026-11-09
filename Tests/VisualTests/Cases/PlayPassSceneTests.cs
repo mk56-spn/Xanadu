@@ -5,6 +5,7 @@ using Xanadu.Levels;
 using Xanadu.Rendering;
 using Xanadu.Scenes;
 using Xanadu.Settings;
+using Xanadu.Timeline;
 
 namespace Xanadu.Tests.VisualTests;
 
@@ -57,7 +58,7 @@ public sealed class PlayPassBlurSceneTest : SceneTest
                         Param = "radius",
                         Time = 0f,
                         Value = new[] { 9f },
-                        Ease = GroupEase.Linear,
+                        Ease = EasePreset.Linear,
                     },
                 },
             });
@@ -153,7 +154,7 @@ public sealed class PlayPassDistortSceneTest : SceneTest
                         Param = "amount",
                         Time = 0f,
                         Value = new[] { 6f },
-                        Ease = GroupEase.Linear,
+                        Ease = EasePreset.Linear,
                     },
                 },
             });

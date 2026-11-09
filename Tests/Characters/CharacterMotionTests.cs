@@ -170,7 +170,7 @@ public sealed class CharacterMotionTests : EcsSystemTest
         Frame(30);
 
         Assert.That(Bursts(), Has.Count.EqualTo(1));
-        Assert.That(Bursts()[0].Kind, Is.EqualTo(ParticleKind.Landing));
+        Assert.That(Bursts()[0].Particle, Is.EqualTo(GameParticles.Landing));
         // The player is 100 px tall and its position is the centre.
         Assert.That(Bursts()[0].Position, Is.EqualTo(new Vector2(400, Floor + 50)));
     }

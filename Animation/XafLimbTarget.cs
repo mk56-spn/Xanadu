@@ -1,5 +1,6 @@
 using System;
 using Godot;
+using Xanadu.Timeline;
 
 namespace Xanadu.Animation;
 
@@ -48,7 +49,7 @@ public sealed record XafLimbTarget
     public float To;
 
     /// <summary>How the time across the span maps to the way round the ellipse.</summary>
-    public XafEasePreset Ease = XafEasePreset.Linear;
+    public EasePreset Ease = EasePreset.Linear;
 
     /// <summary>Keep the end bone facing one way in the rig, as a planted foot does.</summary>
     public bool HoldFacing;
@@ -70,6 +71,6 @@ public sealed record XafLimbTarget
             return Center;
 
         float share = To > From ? Math.Clamp((time - From) / (To - From), 0f, 1f) : 0f;
-        return OnEllipse(StartAngle + Sweep * XafEasing.Progress(Ease, share));
+        return OnEllipse(StartAngle + Sweep * EasePresets.Progress(Ease, share));
     }
 }

@@ -1,5 +1,6 @@
 using Godot;
 using Xanadu.Animation;
+using Xanadu.Timeline;
 
 namespace Xanadu.Tools.Animator;
 
@@ -130,11 +131,11 @@ public static class AnimatorBindings
 
         // Easing presets, in the order the timeline's buttons list them.
         new(new ToolAction(ToolActionKind.ToggleEasingWindow), Key.E, Ctrl: true),
-        new(new ToolAction(ToolActionKind.Interpolate, nameof(XafEasePreset.Step)), Key.Key1),
-        new(new ToolAction(ToolActionKind.Interpolate, nameof(XafEasePreset.Linear)), Key.Key2),
-        new(new ToolAction(ToolActionKind.Interpolate, nameof(XafEasePreset.Ease)), Key.Key3),
-        new(new ToolAction(ToolActionKind.Interpolate, nameof(XafEasePreset.EaseIn)), Key.Key4),
-        new(new ToolAction(ToolActionKind.Interpolate, nameof(XafEasePreset.EaseOut)), Key.Key5),
+        new(new ToolAction(ToolActionKind.Interpolate, nameof(EasePreset.Step)), Key.Key1),
+        new(new ToolAction(ToolActionKind.Interpolate, nameof(EasePreset.Linear)), Key.Key2),
+        new(new ToolAction(ToolActionKind.Interpolate, nameof(EasePreset.Ease)), Key.Key3),
+        new(new ToolAction(ToolActionKind.Interpolate, nameof(EasePreset.EaseIn)), Key.Key4),
+        new(new ToolAction(ToolActionKind.Interpolate, nameof(EasePreset.EaseOut)), Key.Key5),
     };
 
     /// <summary>

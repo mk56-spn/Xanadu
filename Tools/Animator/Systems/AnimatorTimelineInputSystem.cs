@@ -147,7 +147,7 @@ public sealed class AnimatorTimelineInputSystem(
             return;
         }
 
-        if (model.TryPickOverride(point, out XafLimbTarget? overriding, out AnimatorOverrideGrab grab))
+        if (model.TryPickOverride(point, out XafLimbTarget? overriding, out TimelineGrabPart grab))
         {
             Freeze(session, model);
             _overrideDrag = AnimatorOverrideCommands.Begin(session, overriding!, grab, (float)model.SecondsAtX(point.X));
@@ -278,10 +278,7 @@ public sealed class AnimatorTimelineInputSystem(
     /// <summary>Keeps the visible window still while a drag moves the playhead.</summary>
     private static void Freeze(Entity session, AnimatorTimelineModel model)
     {
-        ref TimelineView view = ref session.GetComponent<TimelineView>();
-        view.Scrubbing = true;
-        view.ScrubStartMs = model.Window.Start;
-        view.ScrubEndMs = model.Window.End;
+        TimelineScrub.Hold(ref session.GetComponent<TimelineView>(), model.Window);
     }
 
     private void Drag(
@@ -332,6 +329,13 @@ public sealed class AnimatorTimelineInputSystem(
         }
         else
         {
+            // Out past the middle of the ruler the held window pans, as on the note timeline.
+            TimelineScrub.Pan(
+                ref session.GetComponent<TimelineView>(),
+                model.Ruler,
+                input.Position.X,
+                Tick.deltaTime,
+                (long)Math.Round(model.Clip.Duration * 1000.0));
             Scrub(session, model, input);
         }
     }
@@ -417,7 +421,7 @@ public sealed class AnimatorTimelineInputSystem(
         _pendingToggle = false;
         _keyDrag = null;
         _overrideDrag = null;
-        session.GetComponent<TimelineView>().Scrubbing = false;
+        TimelineScrub.Release(ref session.GetComponent<TimelineView>());
         drag = new AnimatorDrag();
     }
 

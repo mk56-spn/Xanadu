@@ -153,6 +153,10 @@ public static class AnimatorTipHandles
 
         document.Runtime.Pose.Bones[index].Rotation = rotation;
         XafJointLocks.Apply(package, document.Runtime.Pose);
+
+        // A pinned foot or hand turns its pin with it, as dragging the pin's spot moves it.
+        if (AnimatorPlantCommands.Reface(session, [index]) > 0)
+            drag.Repinned = true;
     }
 
     private static float PointerAngle(Vector2 pointer, Transform2D placement, Vector2 joint) =>

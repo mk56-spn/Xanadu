@@ -63,7 +63,7 @@ public sealed class SpikeContactSystem : QuerySystem<Player, Position, Playfield
     {
         _entities.CreateEntity(new ParticleBurst(
             PlayerSmoothing.DrawnPosition(playfield),
-            ParticleKind.Shatter,
+            GameParticles.Shatter,
             PlayfieldRenderer.PlayerColor,
             size));
 

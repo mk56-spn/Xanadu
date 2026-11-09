@@ -1,6 +1,7 @@
 using System;
 using NUnit.Framework;
 using Xanadu.Animation;
+using Xanadu.Timeline;
 
 namespace Xanadu.Tests.Animation;
 
@@ -26,12 +27,12 @@ public sealed class XafCurveTests
     [Test]
     public void EveryCurveStartsAtZeroAndEndsAtOne()
     {
-        foreach (XafCurveFamily family in Enum.GetValues<XafCurveFamily>())
+        foreach (CurveFamily family in Enum.GetValues<CurveFamily>())
         {
-            foreach (XafCurveDirection direction in Enum.GetValues<XafCurveDirection>())
+            foreach (CurveDirection direction in Enum.GetValues<CurveDirection>())
             {
-                Assert.That(XafCurves.Evaluate(family, direction, 0f), Is.EqualTo(0f).Within(0.002f), $"{family}{direction}");
-                Assert.That(XafCurves.Evaluate(family, direction, 1f), Is.EqualTo(1f).Within(0.002f), $"{family}{direction}");
+                Assert.That(EaseCurves.Evaluate(family, direction, 0f), Is.EqualTo(0f).Within(0.002f), $"{family}{direction}");
+                Assert.That(EaseCurves.Evaluate(family, direction, 1f), Is.EqualTo(1f).Within(0.002f), $"{family}{direction}");
             }
         }
     }
@@ -39,8 +40,8 @@ public sealed class XafCurveTests
     [Test]
     public void InOutCurvesPassTheMiddleAtTheMiddle()
     {
-        foreach (XafCurveFamily family in Enum.GetValues<XafCurveFamily>())
-            Assert.That(XafCurves.Evaluate(family, XafCurveDirection.InOut, 0.5f), Is.EqualTo(0.5f).Within(0.001f), $"{family}");
+        foreach (CurveFamily family in Enum.GetValues<CurveFamily>())
+            Assert.That(EaseCurves.Evaluate(family, CurveDirection.InOut, 0.5f), Is.EqualTo(0.5f).Within(0.001f), $"{family}");
     }
 
     [Test]
@@ -50,8 +51,8 @@ public sealed class XafCurveTests
         float least = 0f;
         for (int i = 0; i <= 100; i++)
         {
-            most = Math.Max(most, XafCurves.Evaluate(XafCurveFamily.Back, XafCurveDirection.Out, i / 100f));
-            least = Math.Min(least, XafCurves.Evaluate(XafCurveFamily.Elastic, XafCurveDirection.In, i / 100f));
+            most = Math.Max(most, EaseCurves.Evaluate(CurveFamily.Back, CurveDirection.Out, i / 100f));
+            least = Math.Min(least, EaseCurves.Evaluate(CurveFamily.Elastic, CurveDirection.In, i / 100f));
         }
 
         Assert.That(most, Is.GreaterThan(1.05f));
@@ -61,12 +62,12 @@ public sealed class XafCurveTests
     [Test]
     public void EveryPresetHasAFamilyAndDirectionOrIsOneOfTheBasics()
     {
-        foreach (XafEasePreset preset in Enum.GetValues<XafEasePreset>())
+        foreach (EasePreset preset in Enum.GetValues<EasePreset>())
         {
-            bool basic = preset is XafEasePreset.Step or XafEasePreset.Linear or XafEasePreset.Ease;
-            Assert.That(XafEasing.Shape(preset) is null, Is.EqualTo(basic), preset.ToString());
-            if (XafEasing.Shape(preset) is var (family, direction))
-                Assert.That(XafEasing.Preset(family, direction), Is.EqualTo(preset));
+            bool basic = preset is EasePreset.Step or EasePreset.Linear or EasePreset.Ease;
+            Assert.That(EasePresets.Shape(preset) is null, Is.EqualTo(basic), preset.ToString());
+            if (EasePresets.Shape(preset) is var (family, direction))
+                Assert.That(EasePresets.Preset(family, direction), Is.EqualTo(preset));
         }
     }
 
@@ -75,12 +76,12 @@ public sealed class XafCurveTests
     {
         (XafClip clip, XafChannel channel) = TwoKeys();
 
-        Assert.That(XafEasing.Apply(clip, XafChannelTarget.Bone, "b", 0f, XafEasePreset.BounceOut), Is.True);
+        Assert.That(XafEasing.Apply(clip, XafChannelTarget.Bone, "b", 0f, EasePreset.BounceOut), Is.True);
 
         Assert.That(channel.Keyframes[0].Interpolation, Is.EqualTo(XafInterpolation.BounceOut));
-        Assert.That(XafEasing.Read(clip, XafChannelTarget.Bone, "b", 0f), Is.EqualTo(XafEasePreset.BounceOut));
+        Assert.That(XafEasing.Read(clip, XafChannelTarget.Bone, "b", 0f), Is.EqualTo(EasePreset.BounceOut));
         Assert.That(XafSampler.SampleChannel(channel, 0.3f),
-            Is.EqualTo(10f * XafCurves.Evaluate(XafCurveFamily.Bounce, XafCurveDirection.Out, 0.3f)).Within(0.001f));
+            Is.EqualTo(10f * EaseCurves.Evaluate(CurveFamily.Bounce, CurveDirection.Out, 0.3f)).Within(0.001f));
     }
 
     [Test]
@@ -88,7 +89,7 @@ public sealed class XafCurveTests
     {
         (XafClip clip, XafChannel channel) = TwoKeys();
 
-        XafEasing.Apply(clip, XafChannelTarget.Bone, "b", 0f, XafEasing.Preset(XafCurveFamily.Quad, XafCurveDirection.Out));
+        XafEasing.Apply(clip, XafChannelTarget.Bone, "b", 0f, EasePresets.Preset(CurveFamily.Quad, CurveDirection.Out));
 
         Assert.That(channel.Keyframes[0].Interpolation, Is.EqualTo(XafInterpolation.CubicBezier));
         Assert.That(XafSampler.SampleChannel(channel, 0.5f), Is.EqualTo(7.5f).Within(0.001f));
@@ -98,19 +99,19 @@ public sealed class XafCurveTests
     public void SwitchingFromATangentEaseToANamedCurveClearsTheTangents()
     {
         (XafClip clip, XafChannel channel) = TwoKeys();
-        XafEasing.Apply(clip, XafChannelTarget.Bone, "b", 0f, XafEasePreset.EaseIn);
+        XafEasing.Apply(clip, XafChannelTarget.Bone, "b", 0f, EasePreset.EaseIn);
 
-        XafEasing.Apply(clip, XafChannelTarget.Bone, "b", 0f, XafEasePreset.SineOut);
+        XafEasing.Apply(clip, XafChannelTarget.Bone, "b", 0f, EasePreset.SineOut);
 
         Assert.That(channel.Keyframes[1].TangentIn, Is.EqualTo(0f));
-        Assert.That(XafEasing.Read(clip, XafChannelTarget.Bone, "b", 0f), Is.EqualTo(XafEasePreset.SineOut));
+        Assert.That(XafEasing.Read(clip, XafChannelTarget.Bone, "b", 0f), Is.EqualTo(EasePreset.SineOut));
     }
 
     [Test]
     public void NamedCurvesRoundTripTheFile()
     {
         (XafClip clip, _) = TwoKeys();
-        XafEasing.Apply(clip, XafChannelTarget.Bone, "b", 0f, XafEasePreset.ElasticInOut);
+        XafEasing.Apply(clip, XafChannelTarget.Bone, "b", 0f, EasePreset.ElasticInOut);
 
         XafPackage loaded = XafBinary.Read(XafBinary.Write(Package(clip)));
 

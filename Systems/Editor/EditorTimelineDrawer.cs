@@ -22,9 +22,6 @@ public sealed class EditorTimelineDrawer
     public static readonly Color HalfSnapColor = Palette.WithAlpha(Palette.Danger, 0.55f);
     public static readonly Color QuarterSnapColor = Palette.WithAlpha(Palette.PrimarySoft, 0.55f);
 
-    /// <summary>The least room in pixels between two drawn beat ticks.</summary>
-    private const float MinBeatSpacing = 16f;
-
     private const float MarkerTagHeight = 18f;
     private const float MarkerTagPadding = 6f;
     private const float MarkerTagGap = 3f;
@@ -76,71 +73,9 @@ public sealed class EditorTimelineDrawer
         _waveform.Draw(ruler, frame.Preview, windowStart, windowEnd);
         DrawBpmMarker(ruler, playhead, windowStart, windowEnd);
         DrawStartMarkers(ruler, frame.Selection, windowStart, windowEnd);
-        int subdivisions = Math.Max(1, playhead.SnapDivision);
-        TempoMap tempo = playhead.Tempo;
-        double firstBeat = tempo.BeatAt(windowStart);
-        double lastBeat = tempo.BeatAt(windowEnd);
-
-        // The window's average tick, for thinning; the ticks themselves follow the tempo map.
-        double tickMs = (windowEnd - windowStart) / Math.Max(1e-6, (lastBeat - firstBeat) * subdivisions);
-
-        float pixelsPerTick = ruler.Size.X * (float)tickMs / Math.Max(1f, windowEnd - windowStart);
-        int skip = 1;
-        while (pixelsPerTick / skip < 3f)
-            skip *= 2;
-
-        // Zoomed out, the ticks must thin out by importance or they become a solid wall.
-        float pixelsPerBeat = pixelsPerTick * subdivisions;
-        int beatSkip = 1;
-        while (pixelsPerBeat * beatSkip < MinBeatSpacing)
-            beatSkip *= 2;
-
-        int firstTick = (int)Math.Floor(firstBeat * subdivisions);
-        int lastTick = (int)Math.Ceiling(lastBeat * subdivisions);
-
-        for (int tick = firstTick; tick <= lastTick; tick++)
-        {
-            int sub = tick % subdivisions;
-            if (sub < 0)
-                sub += subdivisions;
-
-            bool main = sub == 0;
-            bool half = sub * 2 == subdivisions;
-            bool quarter = sub * 4 == subdivisions ||
-                           sub * 4 == subdivisions * 3;
-
-            if (main
-                    ? FloorDiv(tick, subdivisions) % beatSkip != 0
-                    : !ShowsTick(half, quarter, sub, skip, pixelsPerBeat))
-            {
-                continue;
-            }
-
-            double tickTime = tempo.TimeAt(tick / (double)subdivisions);
-            if (tickTime < windowStart - 1 || tickTime > windowEnd + 1)
-                continue;
-
-            float x = EditorTimelineGeometry.XForTime(
-                ruler,
-                windowStart,
-                windowEnd,
-                (long)Math.Round(tickTime));
-            float height = main ? 22f : half ? 15f : quarter ? 10f : 5f;
-            Color color = main
-                ? MainSnapColor
-                : half
-                    ? HalfSnapColor
-                    : quarter
-                        ? QuarterSnapColor
-                        : PlayfieldRenderer.GridColor;
-
-            _surface.Canvas.DrawLine(
-                _surface.Target,
-                new Vector2(x, ruler.End.Y - height),
-                new Vector2(x, ruler.End.Y),
-                color,
-                main || half ? 2 : 1);
-        }
+        var painter = new TimelinePainter(_surface.Canvas, _surface.Target);
+        TimelineAxis axis = Axis(ruler, windowStart, windowEnd);
+        painter.RulerTicks(axis, ruler, TempoTimelineTicks.For(axis, playhead.Tempo), RulerLook);
 
         foreach ((Entity entity, Rect2 bounds) in EditorTimelineNotes.Slots(
                      _surface.Entities, ruler, windowStart, windowEnd, timeline.Zoom))
@@ -162,23 +97,18 @@ public sealed class EditorTimelineDrawer
             }
         }
 
-        float playheadX = EditorTimelineGeometry.XForTime(
-            ruler,
-            windowStart,
-            windowEnd,
-            Math.Clamp(playhead.TimeMs, windowStart, windowEnd));
-
-        _surface.Canvas.DrawLine(
-            _surface.Target,
-            new Vector2(playheadX, ruler.Position.Y),
-            new Vector2(playheadX, ruler.End.Y),
-            Colors.White,
-            2);
-        _surface.Canvas.DrawRect(
-            _surface.Target,
-            new Rect2(playheadX - 5f, ruler.Position.Y - 4f, 10f, 10f),
-            Colors.White);
+        painter.Playhead(axis, Math.Clamp(playhead.TimeMs, windowStart, windowEnd), ruler.Position.Y, ruler.End.Y, Colors.White);
     }
+
+    /// <summary>The ruler's snap ticks: beats tallest, then halves, quarters and the finer lines.</summary>
+    private static readonly TimelineRulerLook RulerLook = new(
+        new(22f, MainSnapColor, 2f),
+        new(15f, HalfSnapColor, 2f),
+        new(10f, QuarterSnapColor),
+        new(5f, PlayfieldRenderer.GridColor));
+
+    private static TimelineAxis Axis(Rect2 ruler, long windowStart, long windowEnd) =>
+        new(ruler, windowStart, windowEnd);
 
     /// <summary>A faint band per beat, brighter on the first beat of each bar (bars from the tempo map).</summary>
     private void DrawBeatBands(Rect2 ruler, Playhead playhead, long windowStart, long windowEnd)
@@ -192,16 +122,8 @@ public sealed class EditorTimelineDrawer
             if (end < windowStart || start > windowEnd)
                 continue;
 
-            float x0 = EditorTimelineGeometry.XForTime(
-                ruler,
-                windowStart,
-                windowEnd,
-                (long)Math.Max(start, windowStart));
-            float x1 = EditorTimelineGeometry.XForTime(
-                ruler,
-                windowStart,
-                windowEnd,
-                (long)Math.Min(end, windowEnd));
+            float x0 = Axis(ruler, windowStart, windowEnd).ClampedX((long)Math.Max(start, windowStart));
+            float x1 = Axis(ruler, windowStart, windowEnd).ClampedX((long)Math.Min(end, windowEnd));
             bool accent = tick.OnBar;
             _surface.Canvas.DrawRect(
                 _surface.Target,
@@ -222,7 +144,7 @@ public sealed class EditorTimelineDrawer
             if (point.TimeMs < windowStart || point.TimeMs > windowEnd)
                 continue;
 
-            float x = EditorTimelineGeometry.XForTime(ruler, windowStart, windowEnd, (long)Math.Round(point.TimeMs));
+            float x = Axis(ruler, windowStart, windowEnd).ClampedX((long)Math.Round(point.TimeMs));
             _surface.Canvas.DrawRect(
                 _surface.Target,
                 new Rect2(x, ruler.Position.Y, 2, ruler.Size.Y),
@@ -248,7 +170,7 @@ public sealed class EditorTimelineDrawer
                 continue;
 
             Color color = selection.Contains(entity) ? Colors.White : PlayfieldRenderer.StartPointColor;
-            float x = EditorTimelineGeometry.XForTime(ruler, windowStart, windowEnd, start.TimeMs);
+            float x = Axis(ruler, windowStart, windowEnd).ClampedX(start.TimeMs);
             _surface.Canvas.DrawRect(
                 _surface.Target,
                 new Rect2(x - 1, ruler.Position.Y, 2, ruler.Size.Y),
@@ -284,13 +206,4 @@ public sealed class EditorTimelineDrawer
             TextAlign.Center,
             bold: true);
     }
-
-    private static int FloorDiv(int value, int divisor) =>
-        (int)Math.Floor(value / (double)divisor);
-
-    /// <summary>Whether a tick between beats has room to be drawn at this zoom.</summary>
-    private static bool ShowsTick(bool half, bool quarter, int sub, int skip, float pixelsPerBeat) =>
-        half ? pixelsPerBeat >= MinBeatSpacing * 2f :
-        quarter ? pixelsPerBeat >= MinBeatSpacing * 4f :
-        pixelsPerBeat >= MinBeatSpacing * 4f && sub % skip == 0;
 }

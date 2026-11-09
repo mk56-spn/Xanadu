@@ -7,6 +7,7 @@ using Xanadu.Ecs;
 using Xanadu.Editor;
 using Xanadu.Editor.Commands;
 using Xanadu.Systems.Editor;
+using Xanadu.Timeline;
 using Xanadu.Ui.Ecs.Ui;
 
 namespace Xanadu.Tests.Editor;
@@ -155,8 +156,8 @@ public sealed class EditorLayersTests
         LevelLayer entry = Table.Edit(-2);
         entry.Pass = LayerPassKind.SelfContained;
         entry.PassShader = 1;
-        entry.PassKeys.Add(new ShaderKey("strength", 1f, new Vector4(0.5f, 0, 0, 0), 1, GroupEase.Linear));
-        entry.PassKeys.Add(new ShaderKey("gone", 1f, new Vector4(2f, 0, 0, 0), 1, GroupEase.Linear));
+        entry.PassKeys.Add(new ShaderKey("strength", 1f, new Vector4(0.5f, 0, 0, 0), 1, EasePreset.Linear));
+        entry.PassKeys.Add(new ShaderKey("gone", 1f, new Vector4(2f, 0, 0, 0), 1, EasePreset.Linear));
         Select(Block(-2, 0));
         OpenPanel();
         Press(RowFor(-2).Label);

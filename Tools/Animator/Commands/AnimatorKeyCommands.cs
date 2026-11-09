@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Friflo.Engine.ECS;
 using Xanadu.Animation;
+using Xanadu.Timeline;
 
 namespace Xanadu.Tools.Animator.Commands;
 
@@ -257,7 +258,7 @@ public static class AnimatorKeyCommands
     }
 
     /// <summary>Sets how the selected keys ease into their next key.</summary>
-    public static void SetInterpolation(Entity session, XafEasePreset preset) =>
+    public static void SetInterpolation(Entity session, EasePreset preset) =>
         AnimatorHistoryCommands.Edit(session, () =>
         {
             AnimatorSelection selection = session.GetComponent<AnimatorSelection>();

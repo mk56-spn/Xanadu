@@ -1,11 +1,12 @@
 using Friflo.Engine.ECS;
 using Godot;
 using Xanadu.Ecs;
+using Xanadu.Theme;
 using Xanadu.Ui.Ecs.Ui;
 
 namespace Xanadu.Tools.Animator;
 
-/// <summary>Panel rows shared by the tabs: subheadings inside a section, and labelled steppers.</summary>
+/// <summary>Panel rows shared by the tabs: subheadings inside a section, labelled steppers and sliders.</summary>
 public static partial class AnimatorLayout
 {
     private const float StepperGap = 6f;
@@ -42,4 +43,44 @@ public static partial class AnimatorLayout
 
     /// <summary>What a stepper's name has left once its two buttons are placed.</summary>
     private static float StepperLabelWidth => ButtonWidth - (StepperButton.X + StepperGap) * 2;
+
+    private const float SliderLabelWidth = 64f;
+    private const float SliderReadoutWidth = 40f;
+    private const float SliderTrackHeight = 10f;
+
+    /// <summary>
+    /// A value set by dragging: its name, the track, then the value as text.
+    /// <see cref="Systems.AnimatorValueSliderSystem"/> keeps it on what it is
+    /// bound to; a right-click puts it back to <paramref name="rest"/>.
+    /// </summary>
+    private static Entity SliderRow(
+        UiBuilder ui,
+        string label,
+        AnimatorSliderValue value,
+        float min,
+        float max,
+        float rest,
+        string format,
+        string tooltip,
+        float width = ButtonWidth)
+    {
+        ui.Container(Vector2.Zero, new Vector2(width, RowHeight), spacing: StepperGap, color: Clear,
+            cross: StackCrossAlignment.Center);
+        ui.Text(label, new Vector2(SliderLabelWidth, RowHeight), UiTheme.SmallFontSize,
+            UiTheme.Text, TextAlign.Left);
+
+        var track = new Vector2(width - SliderLabelWidth - SliderReadoutWidth - StepperGap * 2, SliderTrackHeight);
+        Entity slider = ui.RectEntity(Vector2.Zero, track, Palette.Muted, takesInput: true);
+        Entity fill = ui.RectEntity(Vector2.Zero, track, Palette.PrimaryMuted, "");
+        fill.AddTag<LayoutIgnore>();
+
+        Entity readout = ui.Text("", new Vector2(SliderReadoutWidth, RowHeight), UiTheme.SmallFontSize,
+            UiTheme.Text, TextAlign.Right);
+        ui.End();
+
+        slider.AddComponent(new UiSlider(fill, readout, min, max, rest, format: format, defaultValue: rest));
+        slider.AddComponent(new AnimatorValueSlider(value, readout));
+        slider.AddComponent(new UiTooltip(tooltip + " · right-click resets"));
+        return slider;
+    }
 }

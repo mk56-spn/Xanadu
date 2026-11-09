@@ -116,6 +116,25 @@ public static class AnimatorArtCommands
                 ? $"MESH BLEND {mesh.Blend:0} PX"
                 : "TURN MESH ON FIRST");
 
+    /// <summary>Sets how wide a zone two bones share the selected mesh over, in pixels.</summary>
+    public static void SetBlend(Entity session, float blend) =>
+        RigEdit(session, (package, index) =>
+            package.Attachments[index].Mesh is { } mesh &&
+            XafAttachmentAuthoring.SetBlend(package, index, blend)
+                ? $"MESH BLEND {mesh.Blend:0} PX"
+                : "TURN MESH ON FIRST");
+
+    /// <summary>The selected mesh's blend, if an SVG with a mesh is selected.</summary>
+    public static bool TryGetBlend(Entity session, out float blend)
+    {
+        int index = Selected(session);
+        blend = 0f;
+        if (index < 0 || session.GetComponent<AnimatorDocument>().Package.Attachments[index].Mesh is not { } mesh)
+            return false;
+        blend = mesh.Blend;
+        return true;
+    }
+
     /// <summary>Starts or stops picking the bones that bend the selected mesh by clicking them.</summary>
     public static void TogglePickBones(Entity session)
     {

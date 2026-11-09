@@ -77,6 +77,7 @@ public static class XafPackageCopy
                 Transform = effect.Transform,
                 ZOrder = effect.ZOrder,
                 Item = XifCopy.Clone(effect.Item),
+                Particle = effect.Particle,
             });
         }
         foreach (XafCloth cloth in package.Cloths)
@@ -218,7 +219,7 @@ public static class XafPackageCopy
 
     private static bool EffectEqual(XafEffect a, XafEffect b) =>
         a.Id == b.Id && a.BoneId == b.BoneId && a.Transform == b.Transform &&
-        a.ZOrder == b.ZOrder && XifCopy.AreEqual(a.Item, b.Item);
+        a.ZOrder == b.ZOrder && XifCopy.AreEqual(a.Item, b.Item) && a.Particle == b.Particle;
 
     private static bool TransitionEqual(XafTransition a, XafTransition b) =>
         a.From == b.From && a.To == b.To && a.Fade == b.Fade && a.Curve == b.Curve;

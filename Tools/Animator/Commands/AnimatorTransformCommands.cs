@@ -47,7 +47,10 @@ public static class AnimatorTransformCommands
     /// <summary>Keys and reports a finished slider drag; run inside <see cref="AnimatorHistoryCommands.EndGesture"/>.</summary>
     public static void FinishDrag(Entity session, string label)
     {
-        string keyed = session.GetComponent<AnimatorModes>().Rest ? "" : AnimatorEditing.KeyEdit(session);
+        string keyed = session.GetComponent<AnimatorModes>().Rest ||
+                       AnimatorPlantCommands.AllHeldFacing(session, Bones(session, session.GetComponent<AnimatorSelection>()))
+            ? ""
+            : AnimatorEditing.KeyEdit(session);
         AnimatorSession.SetStatus(session, label + keyed);
     }
 
@@ -113,6 +116,9 @@ public static class AnimatorTransformCommands
                     pose = change(pose);
                     changed++;
                 }
+
+                // A pinned foot or hand turned here turns its pin, which owns its keys.
+                AnimatorPlantCommands.Reface(session, Bones(session, selection));
             }
 
             if (changed == 0 && selection.Attachment >= 0)
@@ -146,7 +152,9 @@ public static class AnimatorTransformCommands
                 return;
             }
 
-            string keyed = modes.Rest ? "" : AnimatorEditing.KeyEdit(session);
+            string keyed = modes.Rest || AnimatorPlantCommands.AllHeldFacing(session, Bones(session, selection))
+                ? ""
+                : AnimatorEditing.KeyEdit(session);
             AnimatorSession.SetStatus(
                 session,
                 (fixedBones > 0

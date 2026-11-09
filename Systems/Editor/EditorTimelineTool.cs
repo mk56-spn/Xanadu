@@ -5,6 +5,7 @@ using Godot;
 using Xanadu.Ecs;
 using Xanadu.Editor;
 using Xanadu.Systems.Ui;
+using Xanadu.Timeline;
 
 namespace Xanadu.Systems.Editor;
 
@@ -14,9 +15,6 @@ namespace Xanadu.Systems.Editor;
 /// </summary>
 public sealed class EditorTimelineTool(EditorSceneQuery scene, EditorHistory history)
 {
-    private const float ScrubDeadZone = 0.55f;
-    private const float ScrubPanRate = 0.45f;
-
     private readonly UiDragController _drag = new();
     private readonly Dictionary<int, long> _startTimes = new();
     private Entity _primary;
@@ -115,21 +113,11 @@ public sealed class EditorTimelineTool(EditorSceneQuery scene, EditorHistory his
         if (!Scrubbing || playhead.DurationMs <= 0)
             return;
 
-        long span = Math.Max(1, _windowEnd - _windowStart);
-        float center = bar.Position.X + bar.Size.X / 2;
-        float normalized = (screenPosition.X - center) / (bar.Size.X / 2);
-        float overshoot = Math.Max(
-            0,
-            Math.Abs(normalized) - ScrubDeadZone) / (1 - ScrubDeadZone);
-
-        if (overshoot > 0)
+        if (editor.HasComponent<TimelineView>())
         {
-            float direction = Math.Sign(normalized);
-            long shift = (long)(span * ScrubPanRate * overshoot * overshoot * deltaTime * direction);
-            long maxStart = Math.Max(0, playhead.DurationMs - span);
-            _windowStart = Math.Clamp(_windowStart + shift, 0, maxStart);
-            _windowEnd = _windowStart + span;
-            SetWindow(editor, true);
+            ref TimelineView view = ref editor.GetComponent<TimelineView>();
+            if (TimelineScrub.Pan(ref view, bar, screenPosition.X, deltaTime, playhead.DurationMs))
+                (_windowStart, _windowEnd) = (view.ScrubStartMs, view.ScrubEndMs);
         }
 
         float t = Math.Clamp((screenPosition.X - bar.Position.X) / bar.Size.X, 0f, 1f);
@@ -191,14 +179,16 @@ public sealed class EditorTimelineTool(EditorSceneQuery scene, EditorHistory his
             ? editor.GetComponent<TimelineView>()
             : new TimelineView(1f);
 
+    /// <summary>Holds the window still while a drag or scrub runs, through the shared timeline scrub.</summary>
     private void SetWindow(Entity editor, bool active)
     {
         if (!editor.HasComponent<TimelineView>())
             return;
 
         ref TimelineView timeline = ref editor.GetComponent<TimelineView>();
-        timeline.Scrubbing = active;
-        timeline.ScrubStartMs = _windowStart;
-        timeline.ScrubEndMs = _windowEnd;
+        if (active)
+            TimelineScrub.Hold(ref timeline, new TimeWindow(_windowStart, _windowEnd));
+        else
+            TimelineScrub.Release(ref timeline);
     }
 }

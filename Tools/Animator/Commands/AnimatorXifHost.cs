@@ -28,8 +28,10 @@ public sealed class AnimatorXifHost(EntityStore store) : IXifEditorHost
             if (session.IsNull || AnimatorPreviewModeCommands.IsOn(session))
                 return null;
 
+            // An effect that only streams particles has no shape; the particle editor shows for it instead.
             int index = AnimatorEffectCommands.Selected(session);
-            return index < 0 ? null : session.GetComponent<AnimatorDocument>().Package.Effects[index];
+            XafEffect? effect = index < 0 ? null : session.GetComponent<AnimatorDocument>().Package.Effects[index];
+            return effect is { Particle.Length: > 0, Item.Primitives.Count: 0 } ? null : effect;
         }
     }
 

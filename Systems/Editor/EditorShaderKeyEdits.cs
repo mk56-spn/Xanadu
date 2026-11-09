@@ -2,9 +2,10 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
-using Xanadu.Ecs;
 using Godot;
+using Xanadu.Ecs;
 using Xanadu.Rendering;
+using Xanadu.Timeline;
 
 namespace Xanadu.Systems.Editor;
 
@@ -48,7 +49,7 @@ public static class EditorShaderKeyEdits
     public static void Put(List<ShaderKey> keys, InstanceUniform uniform, float time, Vector4 value)
     {
         int at = Find(keys, uniform.Name, time);
-        GroupEase ease = at >= 0 ? keys[at].Ease : GroupEase.Linear;
+        EasePreset ease = at >= 0 ? keys[at].Ease : EasePreset.Linear;
         keys.RemoveAll(key => key.Param == uniform.Name && Math.Abs(key.Time - time) < SameMoment);
         keys.Add(new ShaderKey(uniform.Name, time, value, uniform.Channels, ease));
     }
@@ -90,14 +91,14 @@ public static class EditorShaderKeyEdits
         return true;
     }
 
-    /// <summary>Gives a key the next easing curve. False when there is no key there.</summary>
-    public static bool CycleEase(List<ShaderKey> keys, string param, float time)
+    /// <summary>Sets a key's easing curve. False when there is no key there.</summary>
+    public static bool SetEase(List<ShaderKey> keys, string param, float time, EasePreset ease)
     {
         int at = Find(keys, param, time);
         if (at < 0)
             return false;
 
-        keys[at] = keys[at] with { Ease = GroupEaseCurves.Next(keys[at].Ease) };
+        keys[at] = keys[at] with { Ease = ease };
         return true;
     }
 

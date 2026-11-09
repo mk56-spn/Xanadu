@@ -197,10 +197,7 @@ public sealed class EditorLevelCommands(EditorCommandContext context)
             editor.GetComponent<LevelFile>().Path = path;
     }
 
-    private static int NormalizeSnap(int snap) => snap switch
-    {
-        8 => 8,
-        16 => 16,
-        _ => 4,
-    };
+    /// <summary>A beat snap divisor the editor offers; anything else falls back to 1/4.</summary>
+    private static int NormalizeSnap(int snap) =>
+        Array.Exists(EditorViewBar.Divisions, offered => offered.Division == snap) ? snap : 4;
 }

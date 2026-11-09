@@ -113,7 +113,7 @@ public sealed class PlayerMovementSystemTests
         Press(KeybindAction.Left);
 
         ParticleBurst streak = _store.Query<ParticleBurst>().ToEntityList()
-            .Single(entity => entity.GetComponent<ParticleBurst>().Kind == ParticleKind.DashStreak)
+            .Single(entity => entity.GetComponent<ParticleBurst>().Particle == GameParticles.DashStreak)
             .GetComponent<ParticleBurst>();
         Assert.That(streak.Position.X, Is.EqualTo(375).Within(0.01f), "centred between 500 and 250");
         Assert.That(streak.Area.X, Is.EqualTo(250).Within(0.01f), "as long as the dash");
@@ -129,7 +129,7 @@ public sealed class PlayerMovementSystemTests
 
         // The note's own sparks pop where it stood; the spray is the one on the body.
         Entity burst = _store.Query<ParticleBurst>().ToEntityList()
-            .Single(entity => entity.GetComponent<ParticleBurst>().Kind == ParticleKind.Dash);
+            .Single(entity => entity.GetComponent<ParticleBurst>().Particle == GameParticles.Dash);
         Assert.That(burst.GetComponent<ParticleBurst>().Area, Is.EqualTo(_player.GetComponent<Player>().Size));
         Assert.That(burst.GetComponent<ParticleBurst>().Position, Is.EqualTo(_player.GetComponent<Position>().Value));
     }

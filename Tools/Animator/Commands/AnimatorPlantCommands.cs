@@ -78,6 +78,62 @@ public static class AnimatorPlantCommands
         }
     }
 
+    /// <summary>
+    /// Turns the pins holding these bones' facing at the playhead to face as the
+    /// bones do now, and re-bakes, as dragging a pin's spot moves it: a pinned
+    /// foot can be turned by hand. Returns how many pins turned.
+    /// </summary>
+    public static int Reface(Entity session, IEnumerable<int> bones)
+    {
+        AnimatorDocument document = session.GetComponent<AnimatorDocument>();
+        if (session.GetComponent<AnimatorModes>().Rest || AnimatorSession.CurrentClip(document) is not { } clip)
+            return 0;
+
+        Transform2D[] world = XafRig.WorldBones(document.Package, document.Runtime.Pose);
+        int turned = 0;
+        foreach (int bone in bones)
+        {
+            if (HeldFacing(document.Package, clip, bone, document.Runtime.CurrentTime) is not { } pin)
+                continue;
+            pin.Facing = world[bone].Rotation;
+            turned++;
+        }
+
+        if (turned > 0)
+            AnimatorTargetCommands.Rebake(session);
+        return turned;
+    }
+
+    /// <summary>
+    /// True when every one of these bones has its facing held by a pin at the
+    /// playhead: turning them moves the pins, so there is nothing to key.
+    /// </summary>
+    public static bool AllHeldFacing(Entity session, IReadOnlyCollection<int> bones)
+    {
+        AnimatorDocument document = session.GetComponent<AnimatorDocument>();
+        if (bones.Count == 0 || session.GetComponent<AnimatorModes>().Rest ||
+            AnimatorSession.CurrentClip(document) is not { } clip)
+        {
+            return false;
+        }
+
+        foreach (int bone in bones)
+        {
+            if (HeldFacing(document.Package, clip, bone, document.Runtime.CurrentTime) is null)
+                return false;
+        }
+        return true;
+    }
+
+    private static XafLimbTarget? HeldFacing(XafPackage package, XafClip clip, int bone, float now)
+    {
+        if (bone < 0 || bone >= package.Skeleton.Bones.Count)
+            return null;
+        string id = package.Skeleton.Bones[bone].Id;
+        return clip.Targets.Find(target => target.BoneId == id && target.HoldFacing && target.Covers(now) &&
+                                           XafTargets.IsValid(package, target));
+    }
+
     /// <summary>The bone a selection plants: itself if it ends a limb, or the bone at its end, as clicking a foot selects the shin.</summary>
     public static int Target(XafPackage package, int selected)
     {

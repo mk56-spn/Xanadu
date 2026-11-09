@@ -66,6 +66,7 @@ public sealed class EditorSystemGroup : SystemGroup, IDisposable
         Add(new EditorToolGroupSystem(entities));
         Add(new EditorXifHostSystem(history));
         Add(new Xanadu.Systems.Ui.XifEditorSystem(pointerInput));
+        Add(new Xanadu.Systems.Ui.EasePickerSystem());
         Add(new EditorDashStrengthSystem(entities));
         Add(new EditorContactCostSystem(entities));
         Add(new EditorNoteTypeBarSystem(entities, commands));

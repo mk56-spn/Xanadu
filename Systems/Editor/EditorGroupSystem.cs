@@ -4,13 +4,14 @@ using System.Globalization;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Godot;
+using Position = Xanadu.Ecs.Position;
 using Xanadu.Ecs;
 using Xanadu.Editor;
 using Xanadu.Editor.Commands;
 using Xanadu.Levels;
 using Xanadu.Systems.Input;
 using Xanadu.Theme;
-using Position = Xanadu.Ecs.Position;
+using Xanadu.Timeline;
 
 namespace Xanadu.Systems.Editor;
 
@@ -41,6 +42,9 @@ public sealed partial class EditorGroupSystem : QuerySystem<EditorGroupState>
     private readonly HashSet<int> _focused = new();
     private bool _pointerHeld;
     private EditorSnapshot _dragBefore;
+
+    /// <summary>The effect bar being dragged, as it was when the press landed.</summary>
+    private TimelineSpanDrag _effectDrag;
     private bool _keyDragMoved;
     private Dictionary<(EditorGroupPart, int), Entity> _pieces = new();
 
@@ -76,6 +80,7 @@ public sealed partial class EditorGroupSystem : QuerySystem<EditorGroupState>
         {
             state.Open = -1;
             state.DragRow = -1;
+            state.EaseFor = EditorEaseTarget.None;
             HideOverlay(buffer);
             _pointerHeld = _pointer.Read().Pressed;
             return;
@@ -88,9 +93,12 @@ public sealed partial class EditorGroupSystem : QuerySystem<EditorGroupState>
         HandleButtons(editor, ref state, group, playhead);
         if (state.Open < 0)
         {
+            state.EaseFor = EditorEaseTarget.None;
             HideOverlay(buffer);
             return;
         }
+
+        UpdateEasePicker(editor, ref state, group);
 
         HandlePointer(editor, ref state, group, ref playhead, dialog, origin);
 
@@ -257,13 +265,7 @@ public sealed partial class EditorGroupSystem : QuerySystem<EditorGroupState>
             : effect with { Kind = GroupEffectKind.Move, Offset = new Vector2(0, -80) };
 
     /// <summary>The short easing name shown in a row's EASE button.</summary>
-    public static string EaseLabel(GroupEase ease) => ease switch
-    {
-        GroupEase.In => "IN",
-        GroupEase.Out => "OUT",
-        GroupEase.InOut => "IN OUT",
-        _ => "LIN",
-    };
+    public static string EaseLabel(EasePreset ease) => EaseNames.Short(ease);
 
     /// <summary>Runs a change as one undo step.</summary>
     private void Edit(Action change)

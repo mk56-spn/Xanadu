@@ -184,6 +184,26 @@ public static class XafTargets
         }
     }
 
+    /// <summary>
+    /// Drops every key the target baked: all keys on its channels inside its
+    /// span, since baking clears the span before it writes its own.
+    /// </summary>
+    public static void DropBakedKeys(XafPackage package, XafClip clip, XafLimbTarget target)
+    {
+        if (!IsValid(package, target))
+            return;
+
+        foreach ((int bone, XafChannelProperty property) in Channels(package, target))
+        {
+            string id = package.Skeleton.Bones[bone].Id;
+            clip.Channels.Find(channel => channel.Target == XafChannelTarget.Bone && channel.TargetId == id &&
+                                          channel.Property == property)
+                ?.Keyframes.RemoveAll(key => key.Time >= target.From - XafTracks.TimeTolerance &&
+                                             key.Time <= target.To + XafTracks.TimeTolerance);
+        }
+        clip.Channels.RemoveAll(channel => channel.Keyframes.Count == 0);
+    }
+
     private static void BakeOne(XafPackage package, XafClip clip, XafLimbTarget target)
     {
         List<(int Bone, XafChannelProperty Property)> channels = Channels(package, target);

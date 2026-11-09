@@ -6,6 +6,7 @@ using Xanadu.Items;
 using Xanadu.Levels;
 using Xanadu.Settings;
 using Xanadu.Storage;
+using Xanadu.Timeline;
 
 namespace Xanadu.Tests.Editor;
 
@@ -151,7 +152,7 @@ public sealed class XmfBinaryTests
                     Kind = GroupEffectKind.Color,
                     Start = 1.5f,
                     End = 3f,
-                    Ease = GroupEase.InOut,
+                    Ease = EasePreset.Ease,
                     Muted = true,
                     X = 2,
                     Y = 3,
@@ -231,7 +232,7 @@ public sealed class XmfBinaryTests
         GroupEffectDocument effect = group.Effects[0];
         Assert.That(effect.Kind, Is.EqualTo(GroupEffectKind.Color));
         Assert.That(effect.End, Is.EqualTo(3f));
-        Assert.That(effect.Ease, Is.EqualTo(GroupEase.InOut));
+        Assert.That(effect.Ease, Is.EqualTo(EasePreset.Ease));
         Assert.That(effect.Muted, Is.True);
         Assert.That(effect.Tint, Is.EqualTo("#ff00ff80"));
 

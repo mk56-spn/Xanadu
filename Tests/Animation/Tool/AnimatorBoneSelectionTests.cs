@@ -132,12 +132,13 @@ public sealed class AnimatorBoneSelectionTests : AnimatorToolTest
     }
 
     [Test]
-    public void TheInspectorNamesThePrimaryBoneAndCountsTheRest()
+    public void TheInspectorSaysMultipleAndCountsTheBones()
     {
         Select(1, 2);
         Frame();
 
-        Assert.That(Ui.InspectorTitle.GetComponent<Text>().Value, Is.EqualTo("torso  +1"));
+        Assert.That(Ui.InspectorTitle.GetComponent<Text>().Value, Is.EqualTo("MULTIPLE"));
+        Assert.That(Ui.InspectorSubtitle.GetComponent<Text>().Value, Does.StartWith("2 BONES"));
     }
 
     [Test]

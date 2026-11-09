@@ -72,7 +72,6 @@ public static partial class AnimatorLayout
         Entity content = ui.Current;
 
         refs.Ui.BoneSection = Section(ui, "SKELETON");
-        SectionRow(ui, ("DELETE BONE", ToolActionKind.DeleteBone));
         refs.Ui.BoneList = ui.Tree(EntryWidth);
         ui.EndCollapsible();
 
@@ -85,7 +84,8 @@ public static partial class AnimatorLayout
         ui.EndCollapsible();
 
         refs.Ui.EffectSection = Section(ui, "EFFECTS");
-        SectionRow(ui, ("+ STREAK", ToolActionKind.AddEffect), ("DELETE", ToolActionKind.DeleteEffect));
+        SectionRow(ui, ("+ STREAK", ToolActionKind.AddEffect), ("+ PARTICLES", ToolActionKind.AddParticles),
+            ("DELETE", ToolActionKind.DeleteEffect));
         refs.Ui.EffectList = List(ui, EntryWidth);
         ui.EndCollapsible();
 
@@ -182,23 +182,11 @@ public static partial class AnimatorLayout
     }
 
     /// <summary>
-    /// Moving the selected bones, then keying them and passing poses between frames.
-    /// Rotation, scale and the art's layer are typed in the inspector over the
-    /// preview (and nudged with keys), so they are not repeated here.
+    /// The selected SVG, overrides, and keying and passing whole poses. All
+    /// that is about one bone lives in the bone card under the inspector.
     /// </summary>
     private static Entity BuildPoseBody(UiBuilder menu)
     {
-        menu.Collapsible("TRANSFORM", ButtonWidth);
-        Subhead(menu, "ADJUST");
-        Stepper(menu, "DEPTH", ToolActionKind.DepthAway, ToolActionKind.DepthToward);
-        SmallRow(menu, ("MIRROR", ToolActionKind.MirrorPose));
-        Subhead(menu, "CONSTRAINTS");
-        SmallRow(menu, ("MOVE", ToolActionKind.ToggleMovable), ("LOCK BEND", ToolActionKind.LockBend));
-        SmallRow(menu, ("LIMIT ANGLE", ToolActionKind.ToggleLimit));
-        Stepper(menu, "MIN \u00b0", ToolActionKind.LimitMinDown, ToolActionKind.LimitMinUp);
-        Stepper(menu, "MAX \u00b0", ToolActionKind.LimitMaxDown, ToolActionKind.LimitMaxUp);
-        menu.EndCollapsible();
-
         // The selected SVG: what it shows, on which layer, and whether it bends.
         menu.Collapsible("ART", ButtonWidth);
         Subhead(menu, "SOURCE");
@@ -215,21 +203,27 @@ public static partial class AnimatorLayout
         Subhead(menu, "MESH");
         SmallRow(menu, ("MESH", ToolActionKind.ToggleMesh), ("BONES", ToolActionKind.PickMeshBones));
         Stepper(menu, "DETAIL", ToolActionKind.MeshDetailDown, ToolActionKind.MeshDetailUp);
-        Stepper(menu, "BLEND", ToolActionKind.MeshBlendDown, ToolActionKind.MeshBlendUp);
+        SliderRow(menu, "BLEND", AnimatorSliderValue.MeshBlend, 0f, Animation.XafMesh.MaxBlend, 0f, "0",
+            "How wide a zone two bones share the mesh over, in pixels: wider bends softer");
         Subhead(menu, "WEIGHTS");
         SmallRow(menu, ("AUTO WEIGHTS", ToolActionKind.AutoWeights), ("PAINT", ToolActionKind.PaintWeights));
-        Stepper(menu, "BRUSH SIZE", ToolActionKind.BrushSmaller, ToolActionKind.BrushLarger);
-        Stepper(menu, "STRENGTH", ToolActionKind.BrushWeaker, ToolActionKind.BrushStronger);
+        SliderRow(menu, "BRUSH", AnimatorSliderValue.BrushSize,
+            AnimatorWeightPaint.MinRadius, AnimatorWeightPaint.MaxRadius, 18f, "0",
+            "Weight brush radius, in pixels");
+        SliderRow(menu, "STRENGTH", AnimatorSliderValue.BrushStrength,
+            AnimatorWeightPaint.MinStrength, AnimatorWeightPaint.MaxStrength, 0.08f, "0.00",
+            "How hard each stroke paints weight on");
         menu.EndCollapsible();
 
         BuildTargetSection(menu);
 
         menu.Collapsible("KEYS", ButtonWidth);
         Subhead(menu, "KEY");
-        SmallRow(menu, ("KEY BONE", ToolActionKind.KeyBone), ("KEY POSE", ToolActionKind.KeyPose));
-        SmallRow(menu, ("+ EVENT", ToolActionKind.AddEvent));
-        Subhead(menu, "CLIPBOARD");
+        SmallRow(menu, ("KEY POSE", ToolActionKind.KeyPose), ("+ EVENT", ToolActionKind.AddEvent));
+        Subhead(menu, "WHOLE POSE");
         SmallRow(menu, ("COPY POSE", ToolActionKind.CopyPose), ("PASTE POSE", ToolActionKind.PastePose));
+        SmallRow(menu, ("MIRROR", ToolActionKind.MirrorPose));
+        Subhead(menu, "CLIPBOARD");
         SmallRow(menu, ("COPY KEYS", ToolActionKind.CopyKeys), ("PASTE KEYS", ToolActionKind.PasteKeys));
         menu.EndCollapsible();
         return modulate;
@@ -246,7 +240,8 @@ public static partial class AnimatorLayout
 
         menu.Collapsible("KEY AT PLAYHEAD", ButtonWidth);
         SmallRow(menu, ("SHOW / HIDE", ToolActionKind.ToggleEffectVisible));
-        Stepper(menu, "FADE", ToolActionKind.EffectOpacityDown, ToolActionKind.EffectOpacityUp);
+        SliderRow(menu, "OPACITY", AnimatorSliderValue.EffectOpacity, 0f, 100f, 100f, "0",
+            "Key the selected effect's opacity, in percent, at the playhead");
         menu.EndCollapsible();
 
         menu.Text("Shape and fill: XIF panel, left of inspector",

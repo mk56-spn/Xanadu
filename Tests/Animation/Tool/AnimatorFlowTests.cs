@@ -82,8 +82,8 @@ public sealed class AnimatorFlowTests : AnimatorToolTest
     public void TheFadeStepsOnARoundGridAndTheCurveIsSet()
     {
         Click(Button(ToolActionKind.AllowTransition, "jump"));
-        Click(Button(ToolActionKind.TransitionFadeUp));
-        Click(Button(ToolActionKind.TransitionFadeUp));
+        AnimatorCommands.Run(Session, new ToolAction(ToolActionKind.TransitionFadeUp));
+        AnimatorCommands.Run(Session, new ToolAction(ToolActionKind.TransitionFadeUp));
         Click(Button(ToolActionKind.TransitionCurve, nameof(XafFadeCurve.Smooth)));
 
         XafTransition rule = XafTransitions.Find(Package, "idle", "jump")!;
@@ -99,7 +99,7 @@ public sealed class AnimatorFlowTests : AnimatorToolTest
     public void TheFadeCannotBeTunedBeforeTheHandOverIsAllowed()
     {
         Click(Button(ToolActionKind.SelectTransition, "jump"));
-        Click(Button(ToolActionKind.TransitionFadeUp));
+        AnimatorCommands.Run(Session, new ToolAction(ToolActionKind.TransitionFadeUp));
 
         Assert.That(XafTransitions.IsOpen(Package), Is.True);
         Assert.That(Status, Is.EqualTo("ALLOW A TRANSITION FIRST"));

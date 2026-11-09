@@ -78,6 +78,7 @@ public struct Playhead(
     public bool Playing = playing;
     public long DurationMs = durationMs;
     public long SeekRequestMs = seekRequestMs;
+    /// <summary>The beat snap divisor: 1 snaps to whole beats, 2 to halves, 4 to quarters (osu! style).</summary>
     public int SnapDivision = snapDivision;
     public int AudioRevision = audioRevision;
 

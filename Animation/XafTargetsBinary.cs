@@ -3,6 +3,7 @@ using System.IO;
 using System.Text;
 using Godot;
 using Xanadu.Storage;
+using Xanadu.Timeline;
 
 namespace Xanadu.Animation;
 
@@ -81,7 +82,7 @@ public static class XafTargetsBinary
                     Sweep = reader.ReadSingle(),
                     From = reader.ReadSingle(),
                     To = reader.ReadSingle(),
-                    Ease = (XafEasePreset)reader.ReadByte(),
+                    Ease = (EasePreset)reader.ReadByte(),
                     HoldFacing = reader.ReadBoolean(),
                     Facing = reader.ReadSingle(),
                     BendPositive = reader.ReadBoolean(),

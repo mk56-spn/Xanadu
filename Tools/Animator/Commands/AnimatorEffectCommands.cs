@@ -53,6 +53,39 @@ public static class AnimatorEffectCommands
             AnimatorSession.SetStatus(session, $"ADDED {package.Effects[index].Id.ToUpperInvariant()} ON {package.Skeleton.Bones[bone].Id}");
         });
 
+    /// <summary>
+    /// Hangs a particle stream off the selected bone, playing the library's
+    /// sparks (made the first time), and keys it flowing at the playhead and
+    /// stopped <see cref="XafEffects.DefaultStreamSeconds"/> later.
+    /// </summary>
+    public static void AddParticles(Entity session) =>
+        AnimatorHistoryCommands.Edit(session, () =>
+        {
+            XafPackage package = session.GetComponent<AnimatorDocument>().Package;
+            int bone = session.GetComponent<AnimatorSelection>().Bone;
+            if (bone < 0 || bone >= package.Skeleton.Bones.Count)
+            {
+                AnimatorSession.SetStatus(session, "SELECT A BONE FIRST");
+                return;
+            }
+
+            int index = XafEffects.Add(package, package.Skeleton.Bones[bone].Id, new Xanadu.Items.Xif { Name = "particles" }, "particles");
+            package.Effects[index].Particle = XafEffects.StreamParticle();
+            AnimatorRuntime runtime = session.GetComponent<AnimatorDocument>().Runtime;
+            float time = runtime.CurrentTime;
+            if (AnimatorSession.CurrentClip(session.GetComponent<AnimatorDocument>()) is { } clip &&
+                !session.GetComponent<AnimatorModes>().Rest)
+            {
+                XafAuthoring.KeyEffectVisible(package, clip, index, time, true);
+                XafAuthoring.KeyEffectVisible(package, clip, index,
+                    Math.Min(clip.Duration, time + XafEffects.DefaultStreamSeconds), false);
+            }
+
+            AnimatorSession.RigChanged(session);
+            session.GetComponent<AnimatorSelection>().SelectOnlyEffect(index);
+            AnimatorSession.SetStatus(session, $"ADDED {package.Effects[index].Id.ToUpperInvariant()} ON {package.Skeleton.Bones[bone].Id}");
+        });
+
     public static void Select(Entity session, int index)
     {
         XafPackage package = session.GetComponent<AnimatorDocument>().Package;
@@ -105,6 +138,21 @@ public static class AnimatorEffectCommands
             AnimatorDocument document = session.GetComponent<AnimatorDocument>();
             XafEffectState state = document.Runtime.Pose.Effects[index];
             state.Opacity = Math.Clamp(MathF.Round((state.Opacity + delta) / OpacityStep) * OpacityStep, 0f, 1f);
+            XafAuthoring.KeyEffect(document.Package, clip, index, document.Runtime.CurrentTime, state);
+            Resample(session);
+            AnimatorSession.SetStatus(session, $"{document.Package.Effects[index].Id} OPACITY {state.Opacity:0.00}");
+        });
+
+    /// <summary>Keys the selected effect's opacity, 0 to 1, at the playhead.</summary>
+    public static void SetOpacity(Entity session, float opacity) =>
+        AnimatorHistoryCommands.Edit(session, () =>
+        {
+            if (!TryKeyTarget(session, out int index, out XafClip clip))
+                return;
+
+            AnimatorDocument document = session.GetComponent<AnimatorDocument>();
+            XafEffectState state = document.Runtime.Pose.Effects[index];
+            state.Opacity = Math.Clamp(opacity, 0f, 1f);
             XafAuthoring.KeyEffect(document.Package, clip, index, document.Runtime.CurrentTime, state);
             Resample(session);
             AnimatorSession.SetStatus(session, $"{document.Package.Effects[index].Id} OPACITY {state.Opacity:0.00}");

@@ -11,6 +11,7 @@ using Xanadu.Rendering;
 using Xanadu.Storage;
 using Xanadu.Systems.Editor;
 using Xanadu.Tests.Support;
+using Xanadu.Timeline;
 
 namespace Xanadu.Tests.Groups;
 
@@ -36,8 +37,8 @@ public sealed class GroupShaderTrackTests
     {
         var keys = new List<ShaderKey>
         {
-            new("tint", 1f, new Vector4(1, 0, 0, 1), 4, GroupEase.Linear),
-            new("tint", 3f, new Vector4(0, 1, 0, 1), 4, GroupEase.Linear),
+            new("tint", 1f, new Vector4(1, 0, 0, 1), 4, EasePreset.Linear),
+            new("tint", 3f, new Vector4(0, 1, 0, 1), 4, EasePreset.Linear),
         };
 
         Assert.That(ShaderKeyTrack.ValueAt(keys, "tint", 0f), Is.EqualTo(new Vector4(1, 0, 0, 1)));
@@ -50,8 +51,8 @@ public sealed class GroupShaderTrackTests
     {
         var keys = new List<ShaderKey>
         {
-            new("speed", 0f, new Vector4(0, 0, 0, 0), 1, GroupEase.Out),
-            new("speed", 1f, new Vector4(1, 0, 0, 0), 1, GroupEase.Out),
+            new("speed", 0f, new Vector4(0, 0, 0, 0), 1, EasePreset.EaseOut),
+            new("speed", 1f, new Vector4(1, 0, 0, 0), 1, EasePreset.EaseOut),
         };
 
         Assert.That(ShaderKeyTrack.ValueAt(keys, "speed", 0.5f).X, Is.EqualTo(0.75f).Within(0.001f));
@@ -75,8 +76,8 @@ public sealed class GroupShaderTrackTests
     {
         var keys = new List<ShaderKey>
         {
-            new("tint", 1f, new Vector4(1, 0, 0, 1), 4, GroupEase.Linear),
-            new("tint", 1f, new Vector4(0, 1, 0, 1), 4, GroupEase.Linear),
+            new("tint", 1f, new Vector4(1, 0, 0, 1), 4, EasePreset.Linear),
+            new("tint", 1f, new Vector4(0, 1, 0, 1), 4, EasePreset.Linear),
         };
 
         Assert.That(ShaderKeyTrack.ValueAt(keys, "tint", 2f), Is.EqualTo(new Vector4(0, 1, 0, 1)));
@@ -87,9 +88,9 @@ public sealed class GroupShaderTrackTests
     {
         var keys = new List<ShaderKey>
         {
-            new("b", 0f, new Vector4(1, 0, 0, 0), 1, GroupEase.Linear),
-            new("a", 0f, new Vector4(0, 1, 0, 0), 2, GroupEase.Linear),
-            new("b", 1f, new Vector4(2, 0, 0, 0), 1, GroupEase.Linear),
+            new("b", 0f, new Vector4(1, 0, 0, 0), 1, EasePreset.Linear),
+            new("a", 0f, new Vector4(0, 1, 0, 0), 2, EasePreset.Linear),
+            new("b", 1f, new Vector4(2, 0, 0, 0), 1, EasePreset.Linear),
         };
 
         List<(string Param, Vector4 Value, int Size)> values = ShaderKeyTrack.Evaluate(keys, 0.5f);
@@ -105,7 +106,7 @@ public sealed class GroupShaderTrackTests
     {
         GroupDefinition[] groups = Slots();
         groups[2].Shader = 4;
-        groups[2].ShaderKeys.Add(new ShaderKey("tint", 0f, new Vector4(1, 1, 1, 1), 4, GroupEase.Linear));
+        groups[2].ShaderKeys.Add(new ShaderKey("tint", 0f, new Vector4(1, 1, 1, 1), 4, EasePreset.Linear));
 
         Assert.That(
             GroupModulation.TryItemShader(groups, ItemGroups.Bit(2), 2, 0f, out int slot, out _),
@@ -122,7 +123,7 @@ public sealed class GroupShaderTrackTests
     public void AGroupWithKeysButNoSlotFallsBackToOwn()
     {
         GroupDefinition[] groups = Slots();
-        groups[0].ShaderKeys.Add(new ShaderKey("tint", 0f, new Vector4(1, 1, 1, 1), 4, GroupEase.Linear));
+        groups[0].ShaderKeys.Add(new ShaderKey("tint", 0f, new Vector4(1, 1, 1, 1), 4, EasePreset.Linear));
 
         Assert.That(
             GroupModulation.TryItemShader(groups, ItemGroups.Bit(0), 0, 0f, out _, out _),
@@ -158,7 +159,7 @@ public sealed class GroupShaderTrackTests
                     Param = "tint",
                     Time = 1.5f,
                     Value = new[] { 0.1f, 0.2f, 0.3f, 0.4f },
-                    Ease = GroupEase.Out,
+                    Ease = EasePreset.EaseOut,
                 },
             },
         });
@@ -171,7 +172,7 @@ public sealed class GroupShaderTrackTests
         Assert.That((group.Shader, group.ShaderKeys.Count), Is.EqualTo((2, 1)));
         Assert.That(
             (group.ShaderKeys[0].Param, group.ShaderKeys[0].Time, group.ShaderKeys[0].Ease),
-            Is.EqualTo(("tint", 1.5f, GroupEase.Out)));
+            Is.EqualTo(("tint", 1.5f, EasePreset.EaseOut)));
         Assert.That(group.ShaderKeys[0].Value, Is.EqualTo(new[] { 0.1f, 0.2f, 0.3f, 0.4f }));
         Assert.That(read.Blocks[0].ShaderSource, Is.EqualTo(3));
         Assert.That(read.Notes[0].ShaderSource, Is.EqualTo(-1));
@@ -202,13 +203,13 @@ public sealed class GroupShaderTrackTests
             LevelGroups.Create());
         LevelGroups groups = editor.GetComponent<LevelGroups>();
         groups.Groups[0].Shader = 2;
-        groups.Groups[0].ShaderKeys.Add(new ShaderKey("tint", 1f, new Vector4(1, 0, 0, 1), 4, GroupEase.In));
+        groups.Groups[0].ShaderKeys.Add(new ShaderKey("tint", 1f, new Vector4(1, 0, 0, 1), 4, EasePreset.EaseIn));
         Entity block = EditorItems.Create(store, new Block(Spot, new Vector2(50, 50)));
         ItemShaderSource.Put(block, 0);
 
         LevelDocument document = LevelDocumentMapper.Capture(store, editor);
         Assert.That(document.Groups[0].Shader, Is.EqualTo(2));
-        Assert.That(document.Groups[0].ShaderKeys.Single().Ease, Is.EqualTo(GroupEase.In));
+        Assert.That(document.Groups[0].ShaderKeys.Single().Ease, Is.EqualTo(EasePreset.EaseIn));
         Assert.That(document.Blocks[0].ShaderSource, Is.EqualTo(0));
 
         var target = new EntityStore();
@@ -234,7 +235,7 @@ public sealed class GroupShaderTrackTests
         EditorSnapshot before = history.Capture();
 
         groups.Groups[2].Shader = 1;
-        groups.Groups[2].ShaderKeys.Add(new ShaderKey("speed", 0f, new Vector4(1, 0, 0, 0), 1, GroupEase.Linear));
+        groups.Groups[2].ShaderKeys.Add(new ShaderKey("speed", 0f, new Vector4(1, 0, 0, 0), 1, EasePreset.Linear));
         history.Record(before, history.Capture());
 
         history.Undo();

@@ -99,7 +99,7 @@ public sealed class PlayerMovementSystem : QuerySystem<Player, Position, Playfie
                     // The path is told by a streak of particles, not a line.
                     _entities.CreateEntity(ParticleBurst.Streak(screen, position.Value, player.Size.X * 0.6f, spray));
                     _entities.CreateEntity(new ParticleBurst(
-                        position.Value, ParticleKind.Dash, spray, player.Size, heading: position.Value - screen));
+                        position.Value, GameParticles.Dash, spray, player.Size, heading: position.Value - screen));
                 }
                 else
                 {
@@ -109,7 +109,7 @@ public sealed class PlayerMovementSystem : QuerySystem<Player, Position, Playfie
                     Vector2 push = screen + DashDirectionVector(heading) * 60f;
                     _entities.CreateEntity(new DashTrail(screen, push), EffectLayer.From(noteEntity));
                     _entities.CreateEntity(new ParticleBurst(
-                        screen, ParticleKind.Dash, spray, player.Size, heading: push - screen));
+                        screen, GameParticles.Dash, spray, player.Size, heading: push - screen));
                 }
 
                 float horizontal = DashDirectionVector(heading).X;

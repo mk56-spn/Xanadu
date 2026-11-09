@@ -12,6 +12,28 @@ public static class XafEffects
     /// <summary>How long a new streak shows from the key that turns it on.</summary>
     public const float DefaultShowSeconds = 0.15f;
 
+    /// <summary>How long a new particle stream flows from the key that turns it on.</summary>
+    public const float DefaultStreamSeconds = 0.5f;
+
+    /// <summary>The library effect a new particle stream plays: sparks, made the first time.</summary>
+    public static string StreamParticle()
+    {
+        const string name = "sparks";
+        if (Xanadu.Particles.ParticleLibrary.Find(name) is not null)
+            return name;
+
+        var sparks = new Xanadu.Particles.XpfParticle
+        {
+            Name = name, Amount = 40, Lifetime = 0.5f, Explosiveness = 0f, Direction = -150f, Spread = 25f,
+            SpeedMin = 100f, SpeedMax = 300f, Gravity = new Vector2(0, 900), ScaleMin = 0.4f, ScaleMax = 0.9f,
+            Color = new Color(1f, 0.8f, 0.4f),
+        };
+        Xanadu.Particles.XpfEditing.SetFadePreset(sparks, Xanadu.Particles.XpfFadePreset.Out);
+        Xanadu.Particles.ParticleLibrary.Shared.Particles.Add(sparks);
+        Xanadu.Particles.ParticleLibrary.MarkEdited();
+        return name;
+    }
+
     /// <summary>
     /// The outline of a speed streak: a long sliver pointing back along the
     /// bone's +x, widest at its head and tapering to a point at its tail.

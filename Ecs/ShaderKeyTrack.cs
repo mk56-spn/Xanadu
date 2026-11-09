@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using Godot;
+using Xanadu.Timeline;
 
 namespace Xanadu.Ecs;
 
@@ -50,7 +51,7 @@ public static class ShaderKeyTrack
         if (span <= 0f)
             return after.Value.Value;
 
-        float t = GroupEaseCurves.Apply(before.Value.Ease, (seconds - before.Value.Time) / span);
+        float t = EasePresets.Progress(before.Value.Ease, (seconds - before.Value.Time) / span);
         return before.Value.Value + (after.Value.Value - before.Value.Value) * t;
     }
 

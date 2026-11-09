@@ -9,6 +9,7 @@ using Xanadu.Rendering;
 using Xanadu.Storage;
 using Xanadu.Systems.Editor;
 using Xanadu.Tests.Support;
+using Xanadu.Timeline;
 
 namespace Xanadu.Tests.Groups;
 
@@ -188,7 +189,7 @@ public sealed class GroupBufferTests
                     Param = "blur",
                     Time = 1f,
                     Value = new[] { 2.5f },
-                    Ease = GroupEase.Out,
+                    Ease = EasePreset.EaseOut,
                 },
             },
         });
@@ -250,7 +251,7 @@ public sealed class GroupBufferTests
         groups.Groups[1].BufferAlpha = 0.4f;
         groups.Groups[1].BufferShader = 2;
         groups.Groups[1].BufferBlend = BlendMode.Mul;
-        groups.Groups[1].BufferKeys.Add(new ShaderKey("size", 2f, new Vector4(3f, 0, 0, 0), 1, GroupEase.In));
+        groups.Groups[1].BufferKeys.Add(new ShaderKey("size", 2f, new Vector4(3f, 0, 0, 0), 1, EasePreset.EaseIn));
 
         LevelDocument document = LevelDocumentMapper.Capture(store, editor);
         Assert.That(document.Groups.Single().Buffered, Is.True);

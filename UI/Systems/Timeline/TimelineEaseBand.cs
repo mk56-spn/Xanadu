@@ -27,7 +27,55 @@ public static class TimelineEaseBand
     /// <summary>Half the thickness of a hairline, and of the band where it is still.</summary>
     public const float HairHalf = 0.75f;
 
+    /// <summary>Width of the tick a step jumps with.</summary>
+    public const float StepTickWidth = 2f;
+
     private const int Steps = 48;
+
+    /// <summary>
+    /// The band for an easing preset. Null, for a span whose channels ease
+    /// differently, is a hairline; a step is a hairline that ends in a
+    /// full-height tick at the jump, since it holds the old value right up to
+    /// the end.
+    /// </summary>
+    public static List<EaseBandPiece> Pieces(
+        EasePreset? preset, float fromX, float toX, float left, float right, Rect2 row)
+    {
+        if (preset is not { } ease || ease != EasePreset.Step || toX - fromX < MinShapeWidth)
+        {
+            return preset is { } shaped
+                ? Pieces(t => EasePresets.Progress(shaped, t), fromX, toX, left, right, row)
+                : Hairline(fromX, toX, left, right, row);
+        }
+
+        float middle = row.Position.Y + row.Size.Y / 2f;
+        var pieces = new List<EaseBandPiece>();
+        float start = Mathf.Max(fromX, left);
+        float end = Mathf.Min(toX, right);
+        if (end <= start)
+            return pieces;
+
+        float tickLeft = Mathf.Max(toX - StepTickWidth, start);
+        if (tickLeft > start)
+            pieces.Add(new(Bar(start, tickLeft, middle, HairHalf), false));
+        if (end > tickLeft)
+            pieces.Add(new(Bar(tickLeft, end, middle, row.Size.Y / 2f - 1f), false));
+        return pieces;
+    }
+
+    /// <summary>A hairline through the row's middle across the visible part of a span.</summary>
+    public static List<EaseBandPiece> Hairline(float fromX, float toX, float left, float right, Rect2 row)
+    {
+        var pieces = new List<EaseBandPiece>();
+        float start = Mathf.Max(fromX, left);
+        float end = Mathf.Min(toX, right);
+        if (end > start)
+            pieces.Add(new(Bar(start, end, row.Position.Y + row.Size.Y / 2f, HairHalf), false));
+        return pieces;
+    }
+
+    /// <summary>How fast a preset moves at a share of the span, 1 being linear; negative where it runs backwards.</summary>
+    public static float Speed(EasePreset preset, float t) => Speed(u => EasePresets.Progress(preset, u), t);
 
     /// <summary>
     /// The band for any curve: <paramref name="progress"/> maps a share of the

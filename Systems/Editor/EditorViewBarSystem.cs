@@ -22,13 +22,23 @@ public struct EditorViewBar(
     Entity musicMenu,
     Entity[] divisions) : IComponent
 {
-    /// <summary>The snap divisions the music menu offers, with their labels, finest last.</summary>
+    /// <summary>
+    /// The beat snap divisors the music menu offers, as in osu!: the straight
+    /// ones (a row of their own), then the triplets.
+    /// </summary>
     public static readonly (int Division, string Label)[] Divisions =
     {
-        (4, "1/2"),
-        (8, "1/4"),
-        (16, "1/8"),
+        (1, "1/1"),
+        (2, "1/2"),
+        (4, "1/4"),
+        (8, "1/8"),
+        (3, "1/3"),
+        (6, "1/6"),
+        (12, "1/12"),
     };
+
+    /// <summary>How many of <see cref="Divisions"/> are straight; the rest are triplets.</summary>
+    public const int StraightDivisions = 4;
 
     public Entity GridButton = gridButton;
     public Entity GridMenu = gridMenu;

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Friflo.Engine.ECS;
 using Godot;
+using Xanadu.Timeline;
 
 namespace Xanadu.Ecs;
 
@@ -53,7 +54,7 @@ public readonly record struct GroupEffect(
     float End,
     Vector2 Offset,
     Color Tint,
-    GroupEase Ease = GroupEase.Linear,
+    EasePreset Ease = EasePreset.Linear,
     bool Muted = false,
     int Cycles = 1,
     float EveryBeats = 1f,
@@ -68,7 +69,7 @@ public readonly record struct GroupEffect(
         float start,
         float end,
         Vector2 offset,
-        GroupEase ease = GroupEase.Linear,
+        EasePreset ease = EasePreset.Linear,
         bool muted = false) =>
         new(GroupEffectKind.Move, start, end, offset, Colors.White, ease, muted);
 
@@ -76,7 +77,7 @@ public readonly record struct GroupEffect(
         float start,
         float end,
         Color tint,
-        GroupEase ease = GroupEase.Linear,
+        EasePreset ease = EasePreset.Linear,
         bool muted = false) =>
         new(GroupEffectKind.Color, start, end, Vector2.Zero, tint, ease, muted);
 
@@ -93,7 +94,7 @@ public readonly record struct GroupEffect(
             return seconds >= Start && End <= Start ? 1f : 0f;
         if (End <= Start)
             return 1f;
-        return GroupEaseCurves.Apply(Ease, (seconds - Start) / (End - Start));
+        return EasePresets.Progress(Ease, (seconds - Start) / (End - Start));
     }
 
     /// <summary>
@@ -134,7 +135,7 @@ public readonly record struct GroupEffect(
         float shaped = Cycle == GroupCycle.Return
             ? (fraction < 0.5f ? fraction * 2f : 2f - fraction * 2f)
             : fraction;
-        return (index, GroupEaseCurves.Apply(Ease, shaped), (float)(tempo.TimeAt(begin) / 1000.0));
+        return (index, EasePresets.Progress(Ease, shaped), (float)(tempo.TimeAt(begin) / 1000.0));
     }
 }
 

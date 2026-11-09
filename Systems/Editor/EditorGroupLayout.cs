@@ -2,6 +2,7 @@ using System;
 using Godot;
 using Xanadu.Ecs;
 using Xanadu.Levels;
+using Xanadu.Timeline;
 
 namespace Xanadu.Systems.Editor;
 
@@ -29,8 +30,6 @@ public static class EditorGroupLayout
 
     public const float RowHeight = 30f;
     public const float Pad = 12f;
-    public const int TickSlots = 96;
-    public const int LabelSlots = 9;
 
     /// <summary>How opaque the panel's backing is: the field shows through it.</summary>
     public const float BackingAlpha = 0.1f;
@@ -271,11 +270,15 @@ public static class EditorGroupLayout
     public static Rect2 RowRect(int row, Rect2 timeline) =>
         new(timeline.Position.X, timeline.Position.Y + row * RowHeight, timeline.Size.X, RowHeight);
 
+    /// <summary>The panel's view laid across an area of its timeline: how everything on it places time.</summary>
+    public static TimelineAxis Axis(Rect2 area, float viewStart, float viewSpan) =>
+        TimelineAxis.FromSeconds(area, viewStart, viewSpan);
+
     public static float XForTime(Rect2 timeline, float viewStart, float viewSpan, float seconds) =>
-        timeline.Position.X + (seconds - viewStart) / viewSpan * timeline.Size.X;
+        Axis(timeline, viewStart, viewSpan).X(seconds * 1000.0);
 
     public static float TimeForX(Rect2 timeline, float viewStart, float viewSpan, float x) =>
-        viewStart + (x - timeline.Position.X) / timeline.Size.X * viewSpan;
+        (float)(Axis(timeline, viewStart, viewSpan).TimeAt(x) / 1000.0);
 
     /// <summary>The rectangle of a piece, relative to the dialog's top-left.</summary>
     public static Rect2 Place(EditorGroupPart part, int row, Vector2 dialog)
@@ -290,7 +293,6 @@ public static class EditorGroupLayout
             EditorGroupPart.Scrim => new Rect2(Vector2.Zero, dialog),
             EditorGroupPart.Dialog => new Rect2(Vector2.Zero, dialog),
             EditorGroupPart.Hint => HintArea(dialog),
-            EditorGroupPart.PlayheadLine => new Rect2(0, RowsTop, 2, LinesHeight),
             EditorGroupPart.PalettePanel => palette,
             EditorGroupPart.PaletteTitle => new Rect2(palette.Position.X + 16, palette.Position.Y + 8, 120, 24),
             EditorGroupPart.PaletteClose => new Rect2(palette.End.X - 38, palette.Position.Y + 8, 30, 24),
@@ -321,29 +323,13 @@ public static class EditorGroupLayout
         };
     }
 
-    /// <summary>The group grid's step in beats: <see cref="Playhead.SnapDivision"/> lines a beat.</summary>
-    public static double StepBeats(Playhead playhead) => 1.0 / Math.Max(1, playhead.SnapDivision);
-
-    /// <summary>
-    /// The beats between ruler ticks over a window: the grid's step, doubled
-    /// until the ticks stay readable (at most one per six pixels).
-    /// </summary>
-    public static double TickBeats(Playhead playhead, float viewStart, float viewSpan, float rulerWidth)
-    {
-        double beats = playhead.Tempo.BeatAt((viewStart + viewSpan) * 1000.0) - playhead.Tempo.BeatAt(viewStart * 1000.0);
-        double step = StepBeats(playhead);
-        while (beats / step > rulerWidth / 6.0)
-            step *= 2;
-        return step;
-    }
-
     /// <summary>The nearest beat-grid time to <paramref name="seconds"/>, never before 0.</summary>
     public static float SnapSeconds(float seconds, Playhead playhead) =>
-        Math.Max(0f, (float)(playhead.Tempo.Snap(seconds * 1000.0, StepBeats(playhead)) / 1000.0));
+        Math.Max(0f, (float)(playhead.Tempo.Snap(seconds * 1000.0, EditorTiming.StepBeats(playhead)) / 1000.0));
 
     /// <summary>A moment moved by <paramref name="lines"/> grid steps in beat space, so it keeps its place across tempo changes.</summary>
     public static float StepSeconds(float seconds, Playhead playhead, int lines) =>
-        (float)(playhead.Tempo.TimeAt(playhead.Tempo.BeatAt(seconds * 1000.0) + StepBeats(playhead) * lines) / 1000.0);
+        (float)(playhead.Tempo.TimeAt(playhead.Tempo.BeatAt(seconds * 1000.0) + EditorTiming.StepBeats(playhead) * lines) / 1000.0);
 
     /// <summary>Rounds a typed or dragged time to the milliseconds a level can sensibly hold.</summary>
     public static float Tidy(float seconds) => (float)Math.Round(Math.Max(0f, seconds), 3);

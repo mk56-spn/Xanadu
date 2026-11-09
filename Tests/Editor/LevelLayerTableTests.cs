@@ -7,6 +7,7 @@ using Xanadu.Editor;
 using Xanadu.Levels;
 using Xanadu.Storage;
 using Xanadu.Systems.Editor;
+using Xanadu.Timeline;
 
 namespace Xanadu.Tests.Editor;
 
@@ -22,7 +23,7 @@ public sealed class LevelLayerTableTests
         PassShader = 2,
         PassKeys =
         {
-            new ShaderKeyDocument { Param = "blur", Time = 0.5f, Value = [4f], Ease = GroupEase.In },
+            new ShaderKeyDocument { Param = "blur", Time = 0.5f, Value = [4f], Ease = EasePreset.EaseIn },
             new ShaderKeyDocument { Param = "tint", Time = 2f, Value = [1f, 0.5f, 0.25f, 1f] },
         },
     };
@@ -95,7 +96,7 @@ public sealed class LevelLayerTableTests
         LevelDocumentMapper.Apply(store, editor, source);
         LevelLayer layer = editor.GetComponent<LevelLayers>().Layers[-3];
         Assert.That((layer.Name, layer.Pass, layer.PassShader), Is.EqualTo(("GLOW", LayerPassKind.SelfContained, 2)));
-        Assert.That(layer.PassKeys[1], Is.EqualTo(new ShaderKey("tint", 2f, new Vector4(1f, 0.5f, 0.25f, 1f), 4, GroupEase.Linear)));
+        Assert.That(layer.PassKeys[1], Is.EqualTo(new ShaderKey("tint", 2f, new Vector4(1f, 0.5f, 0.25f, 1f), 4, EasePreset.Linear)));
 
         LevelDocument captured = LevelDocumentMapper.Capture(store, editor);
         AssertSame(captured.Layers.Single(), Glow());

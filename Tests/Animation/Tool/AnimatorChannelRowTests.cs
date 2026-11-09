@@ -5,6 +5,7 @@ using Godot;
 using NUnit.Framework;
 using Xanadu.Animation;
 using Xanadu.Ecs;
+using Xanadu.Timeline;
 using Xanadu.Tools.Animator;
 using Xanadu.Tools.Animator.Commands;
 using Xanadu.Tools.Animator.Systems;
@@ -201,14 +202,14 @@ public sealed class AnimatorChannelRowTests : AnimatorToolTest
 
         Press(PointOn(Row(XafChannelProperty.ScaleX), 0.5f));
         Release();
-        AnimatorKeyCommands.SetInterpolation(Session, XafEasePreset.Step);
+        AnimatorKeyCommands.SetInterpolation(Session, EasePreset.Step);
 
         Assert.That(
             XafEasing.Read(Idle, XafChannelTarget.Bone, "head", XafChannelProperty.ScaleX, 0.5f),
-            Is.EqualTo(XafEasePreset.Step));
+            Is.EqualTo(EasePreset.Step));
         Assert.That(
             XafEasing.Read(Idle, XafChannelTarget.Bone, "head", XafChannelProperty.Rotation, 1f),
-            Is.EqualTo(XafEasePreset.Linear));
+            Is.EqualTo(EasePreset.Linear));
     }
 
     [Test]

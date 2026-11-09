@@ -185,7 +185,17 @@ public static partial class AnimatorLayout
 
     /// <summary>Size of the transform inspector, which the chain inspector shares the spot of.</summary>
     private const float InspectorWidth = 236f;
-    private const float InspectorHeight = 222f + 2 * (InspectorSliderRow + 6f);
+    /// <summary>
+    /// Title, subtitle, five field and button rows and the two sliders, with
+    /// the spacing between them and the padding round them, so the bone card
+    /// can hang straight under it.
+    /// </summary>
+    private const float InspectorHeight =
+        InspectorTitleHeight + InspectorSubtitleHeight + 5 * 26f + 2 * InspectorSliderRow + 8 * 6f + 16f;
+
+    private const float InspectorTitleHeight = 26f;
+    private const float InspectorSubtitleHeight = 16f;
+    private const int InspectorTitleFontSize = 20;
 
     /// <summary>Top-left of the floating inspectors: the preview's top-right corner.</summary>
     public static Vector2 InspectorTopLeft(Vector2 screen) =>
@@ -196,6 +206,10 @@ public static partial class AnimatorLayout
     /// <summary>Where the XIF editor is centred while an effect is selected: just left of the inspector, level with it.</summary>
     public static Vector2 XifEditorCenter(Vector2 screen) =>
         InspectorTopLeft(screen) + new Vector2(-8f - XifEditorPanel.Width / 2, XifEditorPanel.Height / 2);
+
+    /// <summary>Where the particle editor is centred while a particle effect is selected: in the XIF editor's place.</summary>
+    public static Vector2 ParticleEditorCenter(Vector2 screen) =>
+        InspectorTopLeft(screen) + new Vector2(-8f - ParticleEditorPanel.Width / 2, ParticleEditorPanel.Height / 2);
 
     /// <summary>Where the transform inspector is centred when it is shown.</summary>
     public static Vector2 InspectorCenter(Vector2 screen) =>
@@ -319,6 +333,22 @@ public static partial class AnimatorLayout
         menu.End();
     }
 
+    /// <summary>Size of the menu opened by right-clicking an override's bar.</summary>
+    public static readonly Vector2 OverrideMenuSize = new(150, 2 * 28 + 2 + 8);
+
+    /// <summary>The override menu starts hidden; the key menu system opens it on an override's bar.</summary>
+    private static void BuildOverrideMenu(UiBuilder menu, ref Refs refs)
+    {
+        menu.Container(Vector2.Zero, OverrideMenuSize, StackDirection.Vertical,
+            spacing: 2, color: UiTheme.Panel, padding: 4, takesInput: true);
+        UiLayout.SetHidden(menu.Current, true);
+        refs.Ui.OverrideMenu = menu.Current;
+        var size = new Vector2(OverrideMenuSize.X - 8, 28);
+        Action(menu, "REMOVE", ToolActionKind.RemoveOverride, size, UiTheme.SmallFontSize);
+        Action(menu, "KEEP KEYS", ToolActionKind.DetachOverride, size, UiTheme.SmallFontSize);
+        menu.End();
+    }
+
     /// <summary>
     /// The transform inspector floats over the preview's top-right corner: the
     /// selected bone or attachment's position, rotation and scale, plus reset.
@@ -337,7 +367,9 @@ public static partial class AnimatorLayout
             cross: StackCrossAlignment.Start, main: StackMainAlignment.Start);
         refs.Ui.Inspector = menu.Current;
         refs.Ui.InspectorTitle = menu.Text("NOTHING SELECTED",
-            new Vector2(inner, 18), UiTheme.SmallFontSize, UiTheme.Accent, TextAlign.Left);
+            new Vector2(inner, InspectorTitleHeight), InspectorTitleFontSize, UiTheme.Accent, TextAlign.Left);
+        refs.Ui.InspectorSubtitle = menu.Text("",
+            new Vector2(inner, InspectorSubtitleHeight), UiTheme.SmallFontSize, UiTheme.TextDim, TextAlign.Left);
 
         menu.Container(Vector2.Zero, new Vector2(inner, row), spacing: 4, color: Clear);
         menu.Text("POS", new Vector2(48, 20), 11, UiTheme.TextDim, TextAlign.Left);
@@ -376,6 +408,81 @@ public static partial class AnimatorLayout
     }
 
     private const float InspectorSliderRow = 18f;
+
+    /// <summary>Width of the bone card, which hangs under the inspector as one panel with it.</summary>
+    private const float BoneCardInner = InspectorWidth - 16f;
+
+    /// <summary>Subheads, slider rows and button rows of the bone card, with its spacing and padding.</summary>
+    public static readonly Vector2 BoneCardSize = new(
+        InspectorWidth,
+        3 * CaptionHeight + 3 * RowHeight + 4 * RowHeight + 9 * 6f + 16f);
+
+    /// <summary>Where the bone card is centred: straight under the transform inspector.</summary>
+    public static Vector2 BoneCardCenter(Vector2 screen) =>
+        InspectorTopLeft(screen) + new Vector2(0f, InspectorHeight) + BoneCardSize / 2;
+
+    /// <summary>
+    /// Everything about the selected bone that is not its transform: its depth
+    /// and key, how its joint may move, and adding, renaming and removing it.
+    /// It starts hidden; <see cref="Systems.AnimatorBoneCardSystem"/> shows it
+    /// under the inspector while a bone is selected.
+    /// </summary>
+    private static void BuildBoneCard(UiBuilder menu, ref Refs refs)
+    {
+        const float inner = BoneCardInner;
+        menu.Container(Vector2.Zero, BoneCardSize, StackDirection.Vertical,
+            spacing: 6, color: UiTheme.Panel, padding: 8, takesInput: true,
+            cross: StackCrossAlignment.Start, main: StackMainAlignment.Start);
+        UiLayout.SetHidden(menu.Current, true);
+        refs.Ui.BoneCard = menu.Current;
+
+        CardSubhead(menu, "POSE");
+        SliderRow(menu, "DEPTH", AnimatorSliderValue.Depth, -60f, 60f, 0f, "0",
+            "Move the joint toward (right) or away from the viewer; keyed when let go", inner);
+        CardRow(menu, inner, ("KEY BONE", ToolActionKind.KeyBone));
+
+        CardSubhead(menu, "JOINT");
+        Entity[] joint = CardRow(menu, inner,
+            ("MOVE", ToolActionKind.ToggleMovable),
+            ("ONE-WAY", ToolActionKind.LockBend),
+            ("LIMIT", ToolActionKind.ToggleLimit));
+        refs.Ui.BoneMoveButton = joint[0];
+        refs.Ui.BoneBendButton = joint[1];
+        refs.Ui.BoneLimitButton = joint[2];
+        SliderRow(menu, "MIN \u00b0", AnimatorSliderValue.LimitMin, -180f, 180f,
+            -Mathf.RadToDeg(Animation.XafJointLocks.DefaultLimit), "0",
+            "The furthest the bone may turn the negative way from rest; turn LIMIT on first", inner);
+        SliderRow(menu, "MAX \u00b0", AnimatorSliderValue.LimitMax, -180f, 180f,
+            Mathf.RadToDeg(Animation.XafJointLocks.DefaultLimit), "0",
+            "The furthest the bone may turn the positive way from rest; turn LIMIT on first", inner);
+
+        CardSubhead(menu, "BONE");
+        CardRow(menu, inner,
+            ("+ CHILD", ToolActionKind.AddBone),
+            ("+ SVG", ToolActionKind.AddSvg),
+            ("+ CHAIN", ToolActionKind.AddChain));
+        CardRow(menu, inner,
+            ("RENAME", ToolActionKind.RenameBone),
+            ("PARENT", ToolActionKind.ReparentBone),
+            ("DELETE", ToolActionKind.DeleteBone));
+        menu.End();
+    }
+
+    private static void CardSubhead(UiBuilder ui, string title) =>
+        ui.Text(title, new Vector2(BoneCardInner, CaptionHeight), UiTheme.SmallFontSize,
+            UiTheme.TextDim, TextAlign.Left);
+
+    /// <summary>Buttons sharing a card row's width, in the small font.</summary>
+    private static Entity[] CardRow(UiBuilder ui, float width, params (string Label, ToolActionKind Kind)[] buttons)
+    {
+        ui.Container(Vector2.Zero, new Vector2(width, RowHeight), spacing: 4, color: Clear);
+        var size = new Vector2((width - 4 * (buttons.Length - 1)) / buttons.Length, RowHeight);
+        var made = new Entity[buttons.Length];
+        for (int i = 0; i < buttons.Length; i++)
+            made[i] = Action(ui, buttons[i].Label, buttons[i].Kind, size, UiTheme.SmallFontSize);
+        ui.End();
+        return made;
+    }
 
     /// <summary>
     /// A slider under a field, the inspector's full width. It shows no number of

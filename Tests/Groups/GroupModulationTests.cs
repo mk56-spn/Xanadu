@@ -4,6 +4,7 @@ using NUnit.Framework;
 using Xanadu.Ecs;
 using Xanadu.Scenes;
 using Xanadu.Systems.Editor;
+using Xanadu.Timeline;
 
 namespace Xanadu.Tests.Groups;
 
@@ -242,10 +243,10 @@ public sealed class GroupModulationTests
     public void AnEasedMoveKeepsItsEndsAndBendsTheMiddle()
     {
         GroupDefinition[] groups = Slots();
-        groups[0].Effects.Add(GroupEffect.Move(0f, 1f, new Vector2(100, 0), GroupEase.Linear));
-        groups[1].Effects.Add(GroupEffect.Move(0f, 1f, new Vector2(100, 0), GroupEase.In));
-        groups[2].Effects.Add(GroupEffect.Move(0f, 1f, new Vector2(100, 0), GroupEase.Out));
-        groups[3].Effects.Add(GroupEffect.Move(0f, 1f, new Vector2(100, 0), GroupEase.InOut));
+        groups[0].Effects.Add(GroupEffect.Move(0f, 1f, new Vector2(100, 0), EasePreset.Linear));
+        groups[1].Effects.Add(GroupEffect.Move(0f, 1f, new Vector2(100, 0), EasePreset.EaseIn));
+        groups[2].Effects.Add(GroupEffect.Move(0f, 1f, new Vector2(100, 0), EasePreset.EaseOut));
+        groups[3].Effects.Add(GroupEffect.Move(0f, 1f, new Vector2(100, 0), EasePreset.Ease));
 
         Assert.That(GroupModulation.Offset(groups, In(0), 0f).X, Is.EqualTo(0f).Within(0.001f));
         Assert.That(GroupModulation.Offset(groups, In(0), 1f).X, Is.EqualTo(100f).Within(0.001f));
@@ -260,22 +261,17 @@ public sealed class GroupModulationTests
     }
 
     [Test]
-    public void EasingCyclesThroughEveryCurve()
+    public void EasingIsClampedToTheSpan()
     {
-        Assert.That(GroupEaseCurves.Next(GroupEase.Linear), Is.EqualTo(GroupEase.In));
-        Assert.That(GroupEaseCurves.Next(GroupEase.In), Is.EqualTo(GroupEase.Out));
-        Assert.That(GroupEaseCurves.Next(GroupEase.Out), Is.EqualTo(GroupEase.InOut));
-        Assert.That(GroupEaseCurves.Next(GroupEase.InOut), Is.EqualTo(GroupEase.Linear));
-
-        Assert.That(GroupEaseCurves.Apply(GroupEase.Linear, -1f), Is.EqualTo(0f));
-        Assert.That(GroupEaseCurves.Apply(GroupEase.Linear, 2f), Is.EqualTo(1f));
+        Assert.That(EasePresets.Progress(EasePreset.Linear, -1f), Is.EqualTo(0f));
+        Assert.That(EasePresets.Progress(EasePreset.Linear, 2f), Is.EqualTo(1f));
     }
 
     [Test]
     public void AColourUsesItsEasingCurveToo()
     {
         GroupDefinition[] groups = Slots();
-        groups[0].Effects.Add(GroupEffect.Colour(0f, 1f, Colors.Red, GroupEase.Out));
+        groups[0].Effects.Add(GroupEffect.Colour(0f, 1f, Colors.Red, EasePreset.EaseOut));
 
         GroupModulation.TryColor(groups, In(0), 0.5f, out _, out float coverage, out _);
 
@@ -300,9 +296,9 @@ public sealed class GroupModulationTests
     {
         GroupDefinition[] groups = Slots();
         groups[0].Effects.Add(GroupEffect.Move(
-            0f, 1f, new Vector2(100, 0), GroupEase.Linear, muted: true));
+            0f, 1f, new Vector2(100, 0), EasePreset.Linear, muted: true));
         groups[1].Effects.Add(GroupEffect.Colour(
-            0f, 1f, Colors.Red, GroupEase.Linear, muted: true));
+            0f, 1f, Colors.Red, EasePreset.Linear, muted: true));
 
         Assert.That(GroupModulation.Offset(groups, In(0, 1), 10f), Is.EqualTo(Vector2.Zero));
         Assert.That(GroupModulation.TryColor(groups, In(0, 1), 10f, out _, out _, out _), Is.False);

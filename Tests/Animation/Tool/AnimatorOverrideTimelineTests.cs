@@ -1,3 +1,4 @@
+using Friflo.Engine.ECS;
 using Godot;
 using NUnit.Framework;
 using Xanadu.Animation;
@@ -16,6 +17,8 @@ public sealed class AnimatorOverrideTimelineTests : AnimatorToolTest
     {
         Root.Add(new Xanadu.Systems.Groups.TimelineSystemGroup(Pointer, Pointer));
         Root.Add(new AnimatorTimelineInputSystem(Pointer, Pointer));
+        Root.Add(new AnimatorActionSystem());
+        Root.Add(new AnimatorKeyMenuSystem(Pointer));
     }
 
     protected override XafPackage CreatePackage()
@@ -59,6 +62,69 @@ public sealed class AnimatorOverrideTimelineTests : AnimatorToolTest
         Pointer.Pressed = false;
         Ui.Timeline.RemoveTag<Pressed>();
         Frame();
+    }
+
+    private void RightClickBar(float seconds)
+    {
+        Pointer.Position = OnBar(seconds);
+        Pointer.Secondary = true;
+        Frame();
+        Pointer.Secondary = false;
+        Frame();
+    }
+
+    private void Choose(ToolActionKind kind)
+    {
+        Entity option = Button(kind);
+        Pointer.Pressed = true;
+        option.AddTag<Pressed>();
+        Frame();
+        Pointer.Pressed = false;
+        option.RemoveTag<Pressed>();
+        Frame();
+    }
+
+    [Test]
+    public void RightClickingABarOpensTheOverrideMenuNotTheKeyMenu()
+    {
+        AddOverride(XafTargetShape.Spot, 0.5f, 1f);
+        RightClickBar(0.75f);
+
+        AnimatorKeyMenu menu = Session.GetComponent<AnimatorKeyMenu>();
+        Assert.That(menu.OverrideOpen, Is.True);
+        Assert.That(menu.Open, Is.False);
+        Assert.That(UiLayout.IsHidden(Ui.OverrideMenu), Is.False);
+    }
+
+    [Test]
+    public void RemoveDropsTheOverrideAndTheKeysItBaked()
+    {
+        AddOverride(XafTargetShape.Spot, 0.5f, 1f);
+        Assert.That(Shin.Keyframes, Is.Not.Empty);
+
+        RightClickBar(0.75f);
+        Choose(ToolActionKind.RemoveOverride);
+
+        Assert.That(Idle.Targets, Is.Empty);
+        Assert.That(Idle.Channels.Exists(c => c.TargetId == "shin" && c.Property == XafChannelProperty.Rotation &&
+                                              c.Keyframes.Exists(k => k.Time >= 0.5f && k.Time <= 1f)), Is.False);
+        Assert.That(Session.GetComponent<AnimatorKeyMenu>().OverrideOpen, Is.False);
+
+        AnimatorHistoryCommands.Undo(Session);
+        Assert.That(Idle.Targets, Has.Count.EqualTo(1));
+    }
+
+    [Test]
+    public void KeepKeysDetachesTheOverrideAndLeavesItsKeys()
+    {
+        AddOverride(XafTargetShape.Spot, 0.5f, 1f);
+        int keys = Shin.Keyframes.Count;
+
+        RightClickBar(0.75f);
+        Choose(ToolActionKind.DetachOverride);
+
+        Assert.That(Idle.Targets, Is.Empty);
+        Assert.That(Shin.Keyframes, Has.Count.EqualTo(keys));
     }
 
     private XafChannel Shin => Idle.Channels.Find(c => c.TargetId == "shin" && c.Property == XafChannelProperty.Rotation)!;

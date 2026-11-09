@@ -79,6 +79,13 @@ public sealed class AnimatorTimelineModel
     /// <summary>Targets whose channel rows are shown.</summary>
     public IReadOnlySet<XafTrack> Expanded { get; }
     public TimeWindow Window { get; }
+
+    /// <summary>The window laid across <see cref="Ruler"/>: how the shared painter places time.</summary>
+    public TimelineAxis Axis => TimelineAxis.Of(Ruler, Window);
+
+    /// <summary>The ruler's grid: a minor tick every <see cref="SnapStep"/>, labelled every <see cref="LabelStep"/>.</summary>
+    public List<TimelineTick> Ticks() => TimelineTicks.Seconds(Axis, MinLabelPixels, MinSnapPixels);
+
     public float Zoom { get; }
     /// <summary>Where time runs: the clip's start to its end. It stops <see cref="EndMargin"/> short of the rows.</summary>
     public Rect2 Ruler { get; }
@@ -252,28 +259,23 @@ public sealed class AnimatorTimelineModel
             return false;
 
         rowAt = TrackAt(row);
-        float best = KeyHitRadius;
-        bool found = false;
-        foreach (float candidate in AnimatorTrackRows.KeyTimes(Clip, rowAt))
-        {
-            float distance = Math.Abs(point.X - XForSeconds(candidate));
-            if (distance >= best)
-                continue;
-            best = distance;
-            time = candidate;
-            found = true;
-        }
-        return found;
+        List<float> times = AnimatorTrackRows.KeyTimes(Clip, rowAt);
+        int nearest = TimelineGrab.Nearest(Axis, times.ConvertAll(t => t * 1000.0), point.X, KeyHitRadius);
+        if (nearest < 0)
+            return false;
+
+        time = times[nearest];
+        return true;
     }
 
     /// <summary>How near, in pixels, a press must be to an end of an override's bar to take that end.</summary>
     public const float OverrideGripRadius = 6f;
 
     /// <summary>The override whose bar is under the point, and whether the press took an end or its body.</summary>
-    public bool TryPickOverride(Vector2 point, out XafLimbTarget? picked, out AnimatorOverrideGrab grab)
+    public bool TryPickOverride(Vector2 point, out XafLimbTarget? picked, out TimelineGrabPart grab)
     {
         picked = null;
-        grab = AnimatorOverrideGrab.Body;
+        grab = TimelineGrabPart.Body;
         int row = ScreenRowAt(point);
         if (row < 0 || !Rows.HasPoint(point) || !TrackAt(row).IsOverride)
             return false;
@@ -281,20 +283,14 @@ public sealed class AnimatorTimelineModel
         string bone = TrackAt(row).Id;
         foreach (XafLimbTarget target in Clip.Targets)
         {
-            if (target.BoneId != bone)
+            if (target.BoneId != bone ||
+                TimelineGrab.Span(Axis, target.From * 1000.0, target.To * 1000.0, point.X, OverrideGripRadius) is not { } part)
+            {
                 continue;
+            }
 
-            float left = XForSeconds(target.From);
-            float right = XForSeconds(target.To);
-            if (point.X < left - OverrideGripRadius || point.X > right + OverrideGripRadius)
-                continue;
-
-            float toLeft = Math.Abs(point.X - left);
-            float toRight = Math.Abs(point.X - right);
             picked = target;
-            grab = Math.Min(toLeft, toRight) > OverrideGripRadius
-                ? AnimatorOverrideGrab.Body
-                : toLeft <= toRight ? AnimatorOverrideGrab.Start : AnimatorOverrideGrab.End;
+            grab = part;
             return true;
         }
         return false;
@@ -310,16 +306,7 @@ public sealed class AnimatorTimelineModel
         if (!Ruler.Grow(4f).HasPoint(point))
             return false;
 
-        float best = EventHitRadius;
-        for (int i = 0; i < Clip.Events.Count; i++)
-        {
-            float distance = Math.Abs(point.X - XForSeconds(Clip.Events[i].Time));
-            if (distance <= best)
-            {
-                best = distance;
-                index = i;
-            }
-        }
+        index = TimelineGrab.Nearest(Axis, Clip.Events.ConvertAll(item => item.Time * 1000.0), point.X, EventHitRadius);
         return index >= 0;
     }
 

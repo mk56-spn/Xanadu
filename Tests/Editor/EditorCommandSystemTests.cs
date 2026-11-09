@@ -433,8 +433,9 @@ public sealed class EditorCommandSystemTests : EcsSystemTest
         _commands.Enqueue(EditorCommand.MoveSelection(1));
         Frame();
 
-        Assert.That(mine.GetComponent<Mine>().TimeMs, Is.EqualTo(1_500));
-        Assert.That(start.GetComponent<StartPoint>().TimeMs, Is.EqualTo(2_500));
+        // One 1/4 step at 120 BPM: 125 ms.
+        Assert.That(mine.GetComponent<Mine>().TimeMs, Is.EqualTo(1_125));
+        Assert.That(start.GetComponent<StartPoint>().TimeMs, Is.EqualTo(2_125));
     }
 
     [Test]
@@ -561,7 +562,8 @@ public sealed class EditorCommandSystemTests : EcsSystemTest
         _commands.Enqueue(EditorCommand.MoveSelection(1));
         Frame();
 
-        Assert.That(note.GetComponent<Note>().TimeMs, Is.EqualTo(1_500));
+        // One 1/4 step at 120 BPM: 125 ms.
+        Assert.That(note.GetComponent<Note>().TimeMs, Is.EqualTo(1_125));
 
         _commands.Enqueue(EditorCommand.MoveSelection(-1));
         Frame();

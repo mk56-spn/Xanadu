@@ -5,6 +5,7 @@ using NUnit.Framework;
 using Xanadu.Ecs;
 using Xanadu.Rendering;
 using Xanadu.Systems.Editor;
+using Xanadu.Timeline;
 
 namespace Xanadu.Tests.Editor;
 
@@ -19,7 +20,7 @@ public sealed class EditorShaderKeyEditsTests
     private static readonly InstanceUniform Speed = new("speed", 1, new Vector4(2, 0, 0, 0));
 
     private static List<ShaderKey> Keys(params (string Param, float Time, float X)[] keys) =>
-        keys.Select(key => new ShaderKey(key.Param, key.Time, new Vector4(key.X, 0, 0, 0), 1, GroupEase.Linear)).ToList();
+        keys.Select(key => new ShaderKey(key.Param, key.Time, new Vector4(key.X, 0, 0, 0), 1, EasePreset.Linear)).ToList();
 
     [Test]
     public void RetimingMovesTheKeyAndReplacesOneAlreadyThere()
@@ -34,12 +35,14 @@ public sealed class EditorShaderKeyEditsTests
     }
 
     [Test]
-    public void EaseCyclesAndDeleteRemovesOnlyThatKey()
+    public void SetEaseAndDeleteActOnlyOnThatKey()
     {
         List<ShaderKey> keys = Keys(("speed", 1f, 1f), ("speed", 2f, 2f));
 
-        Assert.That(EditorShaderKeyEdits.CycleEase(keys, "speed", 1f), Is.True);
-        Assert.That(keys.Single(key => key.Time == 1f).Ease, Is.EqualTo(GroupEaseCurves.Next(GroupEase.Linear)));
+        Assert.That(EditorShaderKeyEdits.SetEase(keys, "speed", 1f, EasePreset.BounceOut), Is.True);
+        Assert.That(keys.Single(key => key.Time == 1f).Ease, Is.EqualTo(EasePreset.BounceOut));
+        Assert.That(keys.Single(key => key.Time == 2f).Ease, Is.EqualTo(EasePreset.Linear));
+        Assert.That(EditorShaderKeyEdits.SetEase(keys, "speed", 5f, EasePreset.Step), Is.False, "no key there");
 
         Assert.That(EditorShaderKeyEdits.Delete(keys, "speed", 2f), Is.True);
         Assert.That(keys.Select(key => key.Time), Is.EqualTo(new[] { 1f }));
@@ -49,8 +52,8 @@ public sealed class EditorShaderKeyEditsTests
     public void KeyingAtAKeysMomentKeepsItsEasing()
     {
         List<ShaderKey> keys = Keys(("speed", 1f, 1f));
-        EditorShaderKeyEdits.CycleEase(keys, "speed", 1f);
-        GroupEase eased = keys[0].Ease;
+        EditorShaderKeyEdits.SetEase(keys, "speed", 1f, EasePreset.CubicIn);
+        EasePreset eased = keys[0].Ease;
 
         EditorShaderKeyEdits.KeyValue(keys, Speed, 0, 0.05f, 1f);
 

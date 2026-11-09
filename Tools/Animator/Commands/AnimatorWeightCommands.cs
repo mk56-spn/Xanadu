@@ -88,6 +88,20 @@ public static class AnimatorWeightCommands
         AnimatorSession.SetStatus(session, $"PAINTING {BoneName(package, bone)}");
     }
 
+    public static void SetRadius(Entity session, float radius)
+    {
+        ref AnimatorWeightPaint paint = ref session.GetComponent<AnimatorWeightPaint>();
+        paint.Radius = Math.Clamp(radius, AnimatorWeightPaint.MinRadius, AnimatorWeightPaint.MaxRadius);
+        AnimatorSession.SetStatus(session, $"BRUSH {paint.Radius:0} PX");
+    }
+
+    public static void SetStrength(Entity session, float strength)
+    {
+        ref AnimatorWeightPaint paint = ref session.GetComponent<AnimatorWeightPaint>();
+        paint.Strength = Math.Clamp(strength, AnimatorWeightPaint.MinStrength, AnimatorWeightPaint.MaxStrength);
+        AnimatorSession.SetStatus(session, $"BRUSH STRENGTH {paint.Strength:0.00}");
+    }
+
     public static void StepRadius(Entity session, int step)
     {
         ref AnimatorWeightPaint paint = ref session.GetComponent<AnimatorWeightPaint>();

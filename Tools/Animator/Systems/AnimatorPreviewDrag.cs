@@ -100,7 +100,8 @@ internal static class AnimatorPreviewDrag
         session.GetComponent<AnimatorDrag>() = new AnimatorDrag();
         AnimatorModes modes = session.GetComponent<AnimatorModes>();
         bool keys = !AnimatorChainHandles.IsChainDrag(drag.Kind) && !AnimatorTargetCommands.IsDrag(drag.Kind) &&
-                    drag.Kind is not (AnimatorDragKind.None or AnimatorDragKind.PaintWeights) && !modes.Rest;
+                    drag.Kind is not (AnimatorDragKind.None or AnimatorDragKind.PaintWeights) && !modes.Rest &&
+                    !drag.Repinned;
 
         // The drag and any key it leaves are one undo step.
         AnimatorHistoryCommands.EndGesture(session, keys ? () => KeyDrag(session, drag, modes) : null);

@@ -7,6 +7,7 @@ using Xanadu.Editor.Commands;
 using Xanadu.Rendering;
 using Xanadu.Systems.Input;
 using Xanadu.Theme;
+using Xanadu.Timeline;
 using Xanadu.Ui.Ecs.Ui;
 
 namespace Xanadu.Systems.Editor;
@@ -16,7 +17,7 @@ namespace Xanadu.Systems.Editor;
 /// pins on the timeline (docs/render-architecture.md step 8, "keys use the
 /// shared timeline"). Clicking a pin selects it and moves the playhead to it;
 /// dragging retimes it. The lane's table cells type the selected key's moment
-/// and value, cycle its easing and delete it. Every change is one undo step.
+/// and value, open the ease picker on it and delete it. Every change is one undo step.
 /// </summary>
 public sealed partial class EditorGroupSystem
 {
@@ -46,7 +47,7 @@ public sealed partial class EditorGroupSystem
 
         float time = state.SelectedKey;
         if (ease)
-            Edit(() => EditorShaderKeyEdits.CycleEase(keys, uniform.Name, time));
+            ToggleEasePicker(ref state, EditorEaseTarget.Key, Piece(EditorGroupPart.KeyEase));
         if (delete)
         {
             Edit(() => EditorShaderKeyEdits.Delete(keys, uniform.Name, time));
@@ -73,22 +74,16 @@ public sealed partial class EditorGroupSystem
         if (!TrySelectedSetting(editor, state, group, out InstanceUniform uniform, out List<ShaderKey> keys))
             return false;
 
-        float best = EditorGroupLayout.KeyGrab;
-        float? picked = null;
-        foreach (ShaderKey key in EditorShaderKeyEdits.Lane(keys, uniform.Name))
-        {
-            float x = EditorGroupLayout.XForTime(lane, state.ViewStart, state.ViewSpan, key.Time);
-            float distance = Math.Abs(x - point.X);
-            if (distance <= best)
-            {
-                best = distance;
-                picked = key.Time;
-            }
-        }
-
-        if (picked is not { } time)
+        List<ShaderKey> pins = EditorShaderKeyEdits.Lane(keys, uniform.Name);
+        int nearest = TimelineGrab.Nearest(
+            EditorGroupLayout.Axis(lane, state.ViewStart, state.ViewSpan),
+            pins.ConvertAll(key => key.Time * 1000.0),
+            point.X,
+            EditorGroupLayout.KeyGrab);
+        if (nearest < 0)
             return false;
 
+        float time = pins[nearest].Time;
         state.SelectedKey = time;
         state.DragMode = EditorGroupDragMode.Key;
         state.DragRow = -1;

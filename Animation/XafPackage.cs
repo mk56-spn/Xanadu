@@ -44,6 +44,13 @@ public sealed class XafEffect
 
     public int ZOrder;
     public Xif Item = new();
+
+    /// <summary>
+    /// A particle library effect this effect streams from its spot while it is
+    /// shown, such as sparks off a sliding foot; empty for none. Its item
+    /// usually has no polygons then, but may have both.
+    /// </summary>
+    public string Particle = "";
 }
 
 /// <summary>Bone hierarchy with one root and stable string IDs.</summary>

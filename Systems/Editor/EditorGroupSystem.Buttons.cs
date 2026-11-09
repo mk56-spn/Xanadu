@@ -5,6 +5,7 @@ using Godot;
 using Xanadu.Ecs;
 using Xanadu.Editor.Commands;
 using Xanadu.Levels;
+using Xanadu.Timeline;
 
 namespace Xanadu.Systems.Editor;
 
@@ -165,12 +166,7 @@ public sealed partial class EditorGroupSystem
                 Edit(() => group.Effects[index] = Toggled(group.Effects[index]));
 
             if (easePressed)
-            {
-                Edit(() => group.Effects[index] = group.Effects[index] with
-                {
-                    Ease = GroupEaseCurves.Next(group.Effects[index].Ease),
-                });
-            }
+                ToggleEasePicker(ref state, EditorEaseTarget.Effect, Piece(EditorGroupPart.RowEase, i));
         }
     }
 

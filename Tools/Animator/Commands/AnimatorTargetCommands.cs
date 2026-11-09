@@ -4,6 +4,7 @@ using Friflo.Engine.ECS;
 using Godot;
 using Xanadu.Animation;
 using Xanadu.Ecs;
+using Xanadu.Timeline;
 
 namespace Xanadu.Tools.Animator.Commands;
 
@@ -109,6 +110,44 @@ public static class AnimatorTargetCommands
                     AnimatorSession.SetStatus(session, "DETACHED · ITS KEYS ARE YOURS");
                     break;
             }
+        });
+    }
+
+    /// <summary>
+    /// Sets one of the selected ellipse's shape values, as its slider does:
+    /// <c>rx</c>, <c>ry</c> in rig units, <c>tilt</c>, <c>start</c>, <c>sweep</c>
+    /// in radians. The clip is baked again at once, so a drag shows as it goes.
+    /// </summary>
+    public static void SetShape(Entity session, string verb, float value)
+    {
+        if (Selected(session) is null)
+        {
+            AnimatorSession.SetStatus(session, "SELECT A BONE WITH AN OVERRIDE");
+            return;
+        }
+
+        AnimatorHistoryCommands.Edit(session, () =>
+        {
+            XafLimbTarget target = Selected(session)!;
+            switch (verb)
+            {
+                case "rx":
+                    target.RadiusX = Math.Max(XafLimbTarget.MinRadius, value);
+                    break;
+                case "ry":
+                    target.RadiusY = Math.Max(XafLimbTarget.MinRadius, value);
+                    break;
+                case "tilt":
+                    target.Tilt = value;
+                    break;
+                case "start":
+                    target.StartAngle = value;
+                    break;
+                case "sweep":
+                    target.Sweep = value;
+                    break;
+            }
+            Rebake(session);
         });
     }
 
@@ -295,12 +334,12 @@ public static class AnimatorTargetCommands
         });
     }
 
-    private static XafEasePreset NextEase(XafEasePreset ease) => ease switch
+    private static EasePreset NextEase(EasePreset ease) => ease switch
     {
-        XafEasePreset.Linear => XafEasePreset.Ease,
-        XafEasePreset.Ease => XafEasePreset.EaseIn,
-        XafEasePreset.EaseIn => XafEasePreset.EaseOut,
-        _ => XafEasePreset.Linear,
+        EasePreset.Linear => EasePreset.Ease,
+        EasePreset.Ease => EasePreset.EaseIn,
+        EasePreset.EaseIn => EasePreset.EaseOut,
+        _ => EasePreset.Linear,
     };
 
     /// <summary>Moves to the next bone above the limb, then back to fixed in the rig; the target stays where it is at its start.</summary>

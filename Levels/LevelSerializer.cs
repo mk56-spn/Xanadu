@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using Xanadu.Ecs;
 using Xanadu.Items;
+using Xanadu.Timeline;
 
 namespace Xanadu.Levels;
 
@@ -116,7 +117,7 @@ public static class LevelSerializer
             foreach (GroupEffectDocument effect in group.Effects)
             {
                 if (!Enum.IsDefined(effect.Ease))
-                    effect.Ease = GroupEase.Linear;
+                    effect.Ease = EasePreset.Linear;
             }
         }
 

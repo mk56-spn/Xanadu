@@ -9,6 +9,7 @@ using Xanadu.Systems.Canvas;
 using Xanadu.Systems.Playfields;
 using Xanadu.Systems.Shaders;
 using Xanadu.Tests.Support;
+using Xanadu.Timeline;
 
 namespace Xanadu.Tests.Playfields;
 
@@ -40,7 +41,7 @@ public sealed class LayerPassTests
         LevelLayer layer = table.Edit(-2);
         layer.Pass = LayerPassKind.SelfContained;
         layer.PassShader = slot;
-        layer.PassKeys.Add(new ShaderKey("tint", 0f, new Vector4(tint, 0f, 0f, 1f), 4, GroupEase.Linear));
+        layer.PassKeys.Add(new ShaderKey("tint", 0f, new Vector4(tint, 0f, 0f, 1f), 4, EasePreset.Linear));
         return table;
     }
 
@@ -91,7 +92,7 @@ public sealed class LayerPassTests
         LevelLayer layer = table.Edit(-2);
         layer.Pass = LayerPassKind.BackgroundReader;
         layer.PassShader = 2;
-        layer.PassKeys.Add(new ShaderKey("strength", 0f, new Vector4(0.25f, 0, 0, 0), 1, GroupEase.Linear));
+        layer.PassKeys.Add(new ShaderKey("strength", 0f, new Vector4(0.25f, 0, 0, 0), 1, EasePreset.Linear));
         EntityStore store = Level(table);
         var canvas = new PassCanvas();
         var items = new FakeItems();
@@ -168,7 +169,7 @@ public sealed class LayerPassTests
         groups[0].BufferBlend = BlendMode.Add;
         groups[0].BufferTint = new Color("#3366cc80");
         groups[0].BufferAlpha = 0.5f;
-        groups[0].BufferKeys.Add(new ShaderKey("size", 0f, new Vector4(4f, 0, 0, 0), 1, GroupEase.Linear));
+        groups[0].BufferKeys.Add(new ShaderKey("size", 0f, new Vector4(4f, 0, 0, 0), 1, EasePreset.Linear));
         var canvas = new PassCanvas();
         var items = new FakeItems();
 

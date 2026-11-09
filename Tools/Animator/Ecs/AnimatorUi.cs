@@ -76,6 +76,9 @@ public struct AnimatorUi : IComponent
     /// <summary>The shared XIF editor, shown beside the inspector while an effect is selected.</summary>
     public Entity XifEditor;
 
+    /// <summary>The shared particle editor, in the XIF editor's place while a particle effect is selected.</summary>
+    public Entity ParticleEditor;
+
     /// <summary>Header slot that holds the clip dropdown button.</summary>
     public Entity ClipList;
 
@@ -90,6 +93,9 @@ public struct AnimatorUi : IComponent
     public Entity KeyMenu;
     public Entity KeyMenuAdd;
     public Entity KeyMenuDelete;
+
+    /// <summary>The menu a right-click on an override's bar opens.</summary>
+    public Entity OverrideMenu;
 
     /// <summary>Screen size the layout was built for, so floating menus can stay on screen.</summary>
     public Vector2 ScreenSize;
@@ -111,22 +117,9 @@ public struct AnimatorUi : IComponent
     public Entity MetronomeBpm;
     public Entity MetronomeEvery;
 
-    /// <summary>The EASING header button and its tool window.</summary>
+    /// <summary>The EASING header button and the shared ease picker it opens.</summary>
     public Entity EasingButton;
-    public Entity EasingWindow;
-
-    /// <summary>The preview's box, and what is drawn over it: guides, curve, value rail and the two dots.</summary>
-    public Entity EasingPreviewBox;
-    public Entity EasingGuides;
-    public Entity EasingCurve;
-    public Entity EasingRail;
-    public Entity EasingDot;
-    public Entity EasingRailDot;
-
-    /// <summary>The previewed curve's name and description, and what clicking does.</summary>
-    public Entity EasingName;
-    public Entity EasingDescription;
-    public Entity EasingHint;
+    public Entity EasePicker;
 
     /// <summary>The file info popup, its dimmer, and the readout under the path field.</summary>
     public Entity InfoBackdrop;
@@ -153,6 +146,15 @@ public struct AnimatorUi : IComponent
     /// <summary>Floating transform inspector over the preview, and its fields.</summary>
     public Entity Inspector;
     public Entity InspectorTitle;
+
+    /// <summary>What the selection is, and whether its pose is keyed, under the title.</summary>
+    public Entity InspectorSubtitle;
+
+    /// <summary>The bone card under the inspector, and its joint toggles, lit while on.</summary>
+    public Entity BoneCard;
+    public Entity BoneMoveButton;
+    public Entity BoneBendButton;
+    public Entity BoneLimitButton;
     public Entity InspectPosX;
     public Entity InspectPosY;
     public Entity InspectRotation;

@@ -25,7 +25,7 @@ public static class HitEffects
         // travels, from the note through the player; the pop stays on the note.
         Vector2 origin = playfield.TryGetComponent(out Xanadu.Ecs.Position body) ? body.Value : position;
         Vector2 area = playfield.TryGetComponent(out Player player) ? player.Size : default;
-        entities.CreateEntity(new ParticleBurst(origin, ParticleKind.Hit, color, area, heading: origin - position));
+        entities.CreateEntity(new ParticleBurst(origin, GameParticles.Hit, color, area, heading: origin - position));
         PlayCameraSystem.Kick(playfield);
     }
 
@@ -41,6 +41,6 @@ public static class HitEffects
         EffectLayer layer = EffectLayer.From(noteEntity);
         entities.CreateEntity(new NotePop(note, at, color, radius, PlayfieldRenderer.NotePopLifetime), layer);
         Vector2 way = PlayerMovementSystem.DashDirectionVector(heading);
-        entities.CreateEntity(new ParticleBurst(at, ParticleKind.Hit, color, heading: way));
+        entities.CreateEntity(new ParticleBurst(at, GameParticles.Hit, color, heading: way));
     }
 }

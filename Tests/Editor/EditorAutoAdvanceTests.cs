@@ -101,7 +101,8 @@ public sealed class EditorAutoAdvanceTests
     [Test]
     public void TheNextSnapStaysInsideTheSong()
     {
-        var playhead = new Playhead(1_000, 120, 0, false) { DurationMs = 1_200 };
+        // 1/1: the next line is a whole beat (500 ms) on, past the song's end.
+        var playhead = new Playhead(1_000, 120, 0, false, snapDivision: 1) { DurationMs = 1_200 };
 
         Assert.That(EditorAutoAdvance.Next(1_000, playhead), Is.EqualTo(1_200));
     }

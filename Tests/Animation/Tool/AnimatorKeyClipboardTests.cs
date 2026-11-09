@@ -4,6 +4,7 @@ using Godot;
 using NUnit.Framework;
 using Xanadu.Animation;
 using Xanadu.Ecs;
+using Xanadu.Timeline;
 using Xanadu.Tools.Animator;
 using Xanadu.Tools.Animator.Commands;
 using Xanadu.Tools.Animator.Systems;
@@ -71,7 +72,7 @@ public sealed class AnimatorKeyClipboardTests : AnimatorToolTest
     [Test]
     public void PasteKeepsTheCurveOfTheCopiedKey()
     {
-        XafEasing.Apply(Idle, XafChannelTarget.Bone, "head", 1f, XafEasePreset.Step);
+        XafEasing.Apply(Idle, XafChannelTarget.Bone, "head", 1f, EasePreset.Step);
         AnimatorKeyCommands.SelectKey(Session, HeadTrack, 1f);
         AnimatorKeyClipboardCommands.Copy(Session);
 

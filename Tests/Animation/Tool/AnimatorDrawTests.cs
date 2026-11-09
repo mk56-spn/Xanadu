@@ -1,11 +1,13 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Friflo.Engine.ECS;
 using Godot;
 using NUnit.Framework;
 using Xanadu.Animation;
 using Xanadu.Ecs;
 using Xanadu.Systems.Canvas;
+using Xanadu.Timeline;
 using Xanadu.Tools.Animator;
 using Xanadu.Tools.Animator.Commands;
 using Xanadu.Tools.Animator.Systems;
@@ -255,7 +257,7 @@ public sealed class AnimatorDrawTests : AnimatorToolTest
     public void TimelineDrawsOneDiamondPerKeyTimeAndEnlargesTheSelected()
     {
         Frame();
-        int plain = _timeline.StripCount;
+        var plain = new List<float>(_timeline.Diamonds);
 
         ref AnimatorSelection selection = ref Session.GetComponent<AnimatorSelection>();
         selection.HasKey = true;
@@ -264,24 +266,24 @@ public sealed class AnimatorDrawTests : AnimatorToolTest
         selection.KeyTime = 1f;
         Frame();
 
-        // Three keys of radius 5 (11 strips each); one grows to radius 7 (15 strips).
-        Assert.That(plain, Is.EqualTo(3 * 11));
-        Assert.That(_timeline.StripCount, Is.EqualTo(2 * 11 + 15));
+        // Three keys of radius 5; the selected one grows to radius 7.
+        Assert.That(plain, Is.EqualTo(new[] { 5f, 5f, 5f }));
+        Assert.That(_timeline.Diamonds.Order(), Is.EqualTo(new[] { 5f, 5f, 7f }));
     }
 
     [Test]
     public void KeyMarkersShowHowEachKeyEases()
     {
         Frame();
-        int diamonds = _timeline.StripCount;
+        int diamonds = _timeline.Diamonds.Count;
         int circles = TimelineCircles(5);
 
-        XafEasing.Apply(Idle, XafChannelTarget.Bone, "head", 1f, XafEasePreset.Ease);
-        XafEasing.Apply(Idle, XafChannelTarget.Bone, "head", 0f, XafEasePreset.Step);
+        XafEasing.Apply(Idle, XafChannelTarget.Bone, "head", 1f, EasePreset.Ease);
+        XafEasing.Apply(Idle, XafChannelTarget.Bone, "head", 0f, EasePreset.Step);
         Frame();
 
         // One diamond became a circle and another a square.
-        Assert.That(_timeline.StripCount, Is.EqualTo(diamonds - 2 * 11));
+        Assert.That(_timeline.Diamonds.Count, Is.EqualTo(diamonds - 2));
         Assert.That(TimelineCircles(5), Is.EqualTo(circles + 1));
     }
 
@@ -328,7 +330,7 @@ public sealed class AnimatorDrawTests : AnimatorToolTest
         Frame();
 
         // At zoom 8 the window is 0.25 s wide: only the key at 0 is inside it.
-        Assert.That(_timeline.StripCount, Is.EqualTo(11));
+        Assert.That(_timeline.Diamonds, Has.Count.EqualTo(1));
     }
 
     [Test]
@@ -407,8 +409,8 @@ public sealed class AnimatorDrawTests : AnimatorToolTest
         public List<float> LastFrameCircles { get; private set; } = new();
         public List<string> Texts { get; } = new();
 
-        /// <summary>One-pixel-high rects drawn this frame: the strips of key diamonds.</summary>
-        public int StripCount { get; private set; }
+        /// <summary>The radii of the key diamonds drawn this frame.</summary>
+        public List<float> Diamonds { get; } = new();
 
         /// <summary>Sizes of every rect drawn this frame, which tells the attachment squares apart.</summary>
         public List<Vector2> RectSizes { get; } = new();
@@ -420,7 +422,7 @@ public sealed class AnimatorDrawTests : AnimatorToolTest
         {
             LastFrameCircles = new List<float>();
             Texts.Clear();
-            StripCount = 0;
+            Diamonds.Clear();
             RectSizes.Clear();
             PolygonColors.Clear();
         }
@@ -434,16 +436,20 @@ public sealed class AnimatorDrawTests : AnimatorToolTest
         public void DrawTextStyledLeft(Rid canvas, Rect2 bounds, string text, Color color, int fontSize) =>
             Texts.Add(text);
 
-        public void DrawPolygon(Rid canvas, ReadOnlySpan<Vector2> points, Color color) =>
+        public void DrawPolygon(Rid canvas, ReadOnlySpan<Vector2> points, Color color)
+        {
             PolygonColors.Add(color);
+
+            // A key diamond: top, right, bottom, left about one centre.
+            if (points.Length == 4 && points[0].X == points[2].X && points[1].Y == points[3].Y && points[1].X > points[0].X)
+                Diamonds.Add(points[1].X - points[0].X);
+        }
 
         public void SetVisible(Rid canvas, bool visible) { }
         public void SetTransform(Rid canvas, Transform2D transform) { }
         public void DrawRect(Rid canvas, Rect2 bounds, Color color)
         {
             RectSizes.Add(bounds.Size);
-            if (bounds.Size.Y == 1f)
-                StripCount++;
         }
         public void DrawLine(Rid canvas, Vector2 from, Vector2 to, Color color, float width) { }
         public void DrawText(Rid canvas, Rect2 bounds, string text, Color color) { }

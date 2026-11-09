@@ -2,6 +2,7 @@ using System.Globalization;
 using Friflo.Engine.ECS;
 using Godot;
 using Xanadu.Animation;
+using Xanadu.Timeline;
 using Xanadu.Tools.Animator.Systems;
 
 namespace Xanadu.Tools.Animator.Commands;
@@ -136,6 +137,9 @@ public static class AnimatorCommands
             case ToolActionKind.AddEffect:
                 AnimatorEffectCommands.Add(session);
                 break;
+            case ToolActionKind.AddParticles:
+                AnimatorEffectCommands.AddParticles(session);
+                break;
             case ToolActionKind.SelectEffect:
                 if (int.TryParse(action.Argument, out int effect))
                     AnimatorEffectCommands.Select(session, effect);
@@ -168,7 +172,7 @@ public static class AnimatorCommands
                 AnimatorHistoryCommands.Redo(session);
                 break;
             case ToolActionKind.Interpolate:
-                if (System.Enum.TryParse(action.Argument, out XafEasePreset preset))
+                if (System.Enum.TryParse(action.Argument, out EasePreset preset))
                     AnimatorKeyCommands.SetInterpolation(session, preset);
                 break;
             case ToolActionKind.OpenNewClip:
@@ -392,6 +396,12 @@ public static class AnimatorCommands
                 break;
             case ToolActionKind.SelectAllKeys:
                 AnimatorKeyClipboardCommands.SelectAll(session);
+                break;
+            case ToolActionKind.RemoveOverride:
+                AnimatorOverrideCommands.Remove(session, session.GetComponent<AnimatorKeyMenu>().Override, keepKeys: false);
+                break;
+            case ToolActionKind.DetachOverride:
+                AnimatorOverrideCommands.Remove(session, session.GetComponent<AnimatorKeyMenu>().Override, keepKeys: true);
                 break;
         }
     }

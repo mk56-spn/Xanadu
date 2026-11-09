@@ -7,6 +7,7 @@ using Xanadu.Ecs;
 using Xanadu.Levels;
 using Xanadu.Systems.Canvas;
 using Xanadu.Systems.Playfields;
+using Xanadu.Timeline;
 
 namespace Xanadu.Tests.Shaders;
 
@@ -82,7 +83,7 @@ public sealed class PlayfieldShaderRoutingTests
         LevelGroups groups = LevelGroups.Create();
         groups.Groups[0].Shader = 3;
         groups.Groups[0].ShaderKeys.Add(new ShaderKey(
-            "tint", 0f, new Vector4(0.25f, 0.5f, 0.75f, 1f), 4, GroupEase.Linear));
+            "tint", 0f, new Vector4(0.25f, 0.5f, 0.75f, 1f), 4, EasePreset.Linear));
         var canvas = new LogCanvas();
 
         DrawItems(canvas, store, groups.Groups);

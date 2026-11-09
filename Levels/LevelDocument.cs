@@ -1,7 +1,8 @@
+using System.Collections.Generic;
 using Xanadu.Ecs;
 using Xanadu.Items;
 using Xanadu.Settings;
-using System.Collections.Generic;
+using Xanadu.Timeline;
 
 namespace Xanadu.Levels;
 
@@ -130,7 +131,7 @@ public sealed class ShaderKeyDocument
 
     public float[] Value { get; set; } = [];
 
-    public GroupEase Ease { get; set; } = GroupEase.Linear;
+    public EasePreset Ease { get; set; } = EasePreset.Linear;
 }
 
 /// <summary>Serializable group: a slot number, a name and its timed effects.</summary>
@@ -178,7 +179,7 @@ public sealed class GroupEffectDocument
     public float End { get; set; }
 
     /// <summary>How the effect travels between <see cref="Start"/> and <see cref="End"/>.</summary>
-    public GroupEase Ease { get; set; } = GroupEase.Linear;
+    public EasePreset Ease { get; set; } = EasePreset.Linear;
 
     /// <summary>A muted effect stays in the group but contributes nothing.</summary>
     public bool Muted { get; set; }

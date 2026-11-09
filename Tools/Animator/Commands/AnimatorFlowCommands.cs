@@ -119,6 +119,20 @@ public static class AnimatorFlowCommands
         AnimatorSession.SetStatus(session, $"{Pair(rule.From, rule.To)} FADE {fade:0.00} S");
     }
 
+    /// <summary>Sets the selected transition's fade, in seconds, as its slider does.</summary>
+    public static void SetFade(Entity session, float seconds)
+    {
+        if (Rule(session) is not { } rule)
+        {
+            AnimatorSession.SetStatus(session, "ALLOW A TRANSITION FIRST");
+            return;
+        }
+
+        float fade = XafTransitions.ClampFade(seconds);
+        AnimatorHistoryCommands.Edit(session, () => rule.Fade = fade);
+        AnimatorSession.SetStatus(session, $"{Pair(rule.From, rule.To)} FADE {fade:0.00} S");
+    }
+
     public static void SetCurve(Entity session, string argument)
     {
         if (!Enum.TryParse(argument, out XafFadeCurve curve))

@@ -68,6 +68,54 @@ public sealed class AnimatorPlantTests : AnimatorToolTest
     }
 
     [Test]
+    public void TurningAPinnedFootTurnsItsPinAndStays()
+    {
+        Runtime.Seek(0f);
+        Vector2 spot = FootAt;
+        Toggle(Foot);
+        float facing = FootFacing;
+        int footKeys = Keys("foot", XafChannelProperty.Rotation);
+
+        AnimatorTransformCommands.SetRotation(Session, Runtime.Pose.Bones[Foot].Rotation + 0.4f);
+        Frame();
+
+        XafLimbTarget pin = Idle.Targets[0];
+        Assert.That(pin.Facing, Is.EqualTo(facing + 0.4f).Within(0.001f));
+        Assert.That(FootFacing, Is.EqualTo(facing + 0.4f).Within(0.001f));
+        Assert.That(FootAt.DistanceTo(spot), Is.LessThan(0.05f));
+
+        // The pin owns the foot's keys: it re-bakes them, and the turn holds across its span.
+        Runtime.Seek(0.7f);
+        Frame();
+        Assert.That(FootFacing, Is.EqualTo(facing + 0.4f).Within(0.001f));
+        Assert.That(Keys("foot", XafChannelProperty.Rotation), Is.EqualTo(footKeys));
+    }
+
+    [Test]
+    public void DraggingAPinnedFootsStemTurnsItsPin()
+    {
+        Runtime.Seek(0f);
+        Toggle(Foot);
+        float facing = FootFacing;
+        Session.GetComponent<AnimatorModes>().Handles = true;
+        Session.GetComponent<AnimatorModes>().Svg = false;
+
+        Transform2D placement = Transform2D.Identity;
+        Transform2D[] world = XafRig.WorldBones(Package, Runtime.Pose);
+        Vector2 joint = world[Foot].Origin;
+        Vector2 stem = AnimatorTipHandles.Tip(Package, Foot, world, placement);
+        Assert.That(AnimatorTipHandles.TryBegin(Session, stem, placement, Runtime.Pose, world), Is.True);
+        AnimatorTipHandles.Drag(Session, joint + (stem - joint).Rotated(Mathf.Pi / 6f), placement, free: true);
+        // Ending the drag keys nothing: the pin owns the foot's keys.
+        Assert.That(Session.GetComponent<AnimatorDrag>().Repinned, Is.True);
+        AnimatorHistoryCommands.EndGesture(Session, null);
+        Frame();
+
+        Assert.That(Idle.Targets[0].Facing, Is.EqualTo(facing + Mathf.Pi / 6f).Within(0.001f));
+        Assert.That(FootFacing, Is.EqualTo(facing + Mathf.Pi / 6f).Within(0.001f));
+    }
+
+    [Test]
     public void TheFootStaysPutWhileTheClipScrubs()
     {
         Runtime.Seek(0f);

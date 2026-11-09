@@ -30,6 +30,7 @@ public static class XafBinary
 		AttachmentModulates = 11,
 		Targets = 12,
 		Skins = 13,
+		EffectParticles = 14,
 	}
 
 	public static void Save(string path, XafPackage package)
@@ -60,6 +61,7 @@ public static class XafBinary
 		file.Add((uint)ChunkId.AttachmentModulates, XafExtrasBinary.WriteModulates(package.Attachments));
 		file.Add((uint)ChunkId.Targets, XafTargetsBinary.Write(package.Clips, strings));
 		file.Add((uint)ChunkId.Skins, XafSkinBinary.Write(package.Attachments, strings));
+		file.Add((uint)ChunkId.EffectParticles, XafExtrasBinary.WriteEffectParticles(package.Effects, strings));
 		return file.ToArray();
 	}
 
@@ -101,6 +103,8 @@ public static class XafBinary
 		XafExtrasBinary.ReadModulates(file.Get((uint)ChunkId.AttachmentModulates, Format), package.Attachments);
 		XafTargetsBinary.Read(file.Get((uint)ChunkId.Targets, Format), strings, package.Clips);
 		XafSkinBinary.Read(file.Get((uint)ChunkId.Skins, Format), strings, package.Attachments);
+		if (file.TryGet((uint)ChunkId.EffectParticles, out Chunk effectParticles))
+			XafExtrasBinary.ReadEffectParticles(effectParticles, strings, package.Effects);
 		XafValidation.ThrowIfInvalid(package);
 		return package;
 	}

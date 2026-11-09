@@ -5,6 +5,7 @@ using Godot;
 using NUnit.Framework;
 using Xanadu.Animation;
 using Xanadu.Ecs;
+using Xanadu.Timeline;
 using Xanadu.Tools.Animator;
 using Xanadu.Tools.Animator.Commands;
 using Xanadu.Tools.Animator.Systems;
@@ -85,6 +86,10 @@ public sealed class AnimatorBindingTests : AnimatorToolTest
             ToolActionKind.PickClothColliders,
             ToolActionKind.ReparentBone,
             ToolActionKind.AddKey,
+
+            // The override menu acts on the bar that was right-clicked.
+            ToolActionKind.RemoveOverride,
+            ToolActionKind.DetachOverride,
             ToolActionKind.AddSvg,
             ToolActionKind.AttachSvg,
             ToolActionKind.CreateClip,
@@ -314,7 +319,7 @@ public sealed class AnimatorBindingTests : AnimatorToolTest
 
         Assert.That(
             XafEasing.Read(Idle, XafChannelTarget.Bone, "head", 1f),
-            Is.EqualTo(XafEasePreset.Ease));
+            Is.EqualTo(EasePreset.Ease));
     }
 
     [Test]

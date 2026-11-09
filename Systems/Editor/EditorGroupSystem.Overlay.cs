@@ -12,10 +12,8 @@ namespace Xanadu.Systems.Editor;
 /// <summary>Placing the group overlay's pieces: rows, bars and the beat ruler.</summary>
 public sealed partial class EditorGroupSystem
 {
-    // The timeline is only its white timing lines over the field; the effects
-    // themselves are drawn as ease bands and pins by EditorGroupOverlayDrawSystem.
-    private static readonly Color BeatLine = new(1f, 1f, 1f, 0.35f);
-    private static readonly Color TickLine = new(1f, 1f, 1f, 0.12f);
+    // The timeline itself (its beat lines, labels, effect bands, pins and the
+    // playhead) is drawn by EditorGroupOverlayDrawSystem with the shared painter.
 
     // ------------------------------------------------------------------ showing
 
@@ -79,7 +77,6 @@ public sealed partial class EditorGroupSystem
         ShowSelection(state, group, buffer);
         ShowCycle(state, group, dialog, origin, buffer);
         ShowPalette(state, group, dialog, origin, buffer);
-        ShowRuler(state, playhead, dialog, origin, buffer);
     }
 
     private static readonly EditorGroupPart[] Fixed =
@@ -180,74 +177,6 @@ public sealed partial class EditorGroupSystem
     }
 
     private static Color OpaqueTint(GroupEffect effect) => new(effect.Tint.R, effect.Tint.G, effect.Tint.B);
-
-    /// <summary>Beat-grid tick lines and second labels across the ruler.</summary>
-    private void ShowRuler(
-        EditorGroupState state,
-        Playhead playhead,
-        Vector2 dialog,
-        Vector2 origin,
-        CommandBuffer buffer)
-    {
-        Rect2 timeline = Offset(EditorGroupLayout.Timeline(dialog), origin);
-        Rect2 ruler = Offset(EditorGroupLayout.Ruler(dialog), origin);
-        double step = EditorGroupLayout.TickBeats(playhead, state.ViewStart, state.ViewSpan, timeline.Size.X);
-        double startMs = state.ViewStart * 1000.0;
-        double endMs = (state.ViewStart + state.ViewSpan) * 1000.0;
-
-        // The song's tempo map gives the lines, so they follow BPM changes.
-        int slot = 0;
-        foreach (TempoTick tick in playhead.Tempo.Ticks(startMs, endMs, step))
-        {
-            if (slot >= EditorGroupLayout.TickSlots)
-                break;
-
-            double seconds = tick.TimeMs / 1000.0;
-            float x = EditorGroupLayout.XForTime(timeline, state.ViewStart, state.ViewSpan, (float)seconds);
-            bool beat = tick.OnBeat;
-            Entity line = Piece(EditorGroupPart.TickLine, slot);
-            Place(line, new Rect2(0, 0, 1, EditorGroupLayout.LinesHeight), new Vector2(x, timeline.Position.Y), buffer);
-            Tint(line, beat ? BeatLine : TickLine, buffer);
-            slot++;
-        }
-
-        for (; slot < EditorGroupLayout.TickSlots; slot++)
-            Hide(Piece(EditorGroupPart.TickLine, slot), buffer);
-
-        float playheadSeconds = playhead.TimeMs / 1000f;
-        if (playheadSeconds >= state.ViewStart &&
-            playheadSeconds <= state.ViewStart + state.ViewSpan)
-        {
-            float lineX = EditorGroupLayout.XForTime(
-                timeline, state.ViewStart, state.ViewSpan, playheadSeconds);
-            Place(
-                Piece(EditorGroupPart.PlayheadLine),
-                new Rect2(0, 0, 2, EditorGroupLayout.LinesHeight),
-                new Vector2(lineX, timeline.Position.Y),
-                buffer);
-            Tint(Piece(EditorGroupPart.PlayheadLine), Colors.White, buffer);
-        }
-        else
-        {
-            Hide(Piece(EditorGroupPart.PlayheadLine), buffer);
-        }
-
-        // Second labels at round numbers.
-        double labelStep = LabelStep(state.ViewSpan);
-        int label = 0;
-        double firstLabel = Math.Ceiling(state.ViewStart / labelStep) * labelStep;
-        for (double t = firstLabel; t <= state.ViewStart + state.ViewSpan && label < EditorGroupLayout.LabelSlots; t += labelStep)
-        {
-            float x = EditorGroupLayout.XForTime(timeline, state.ViewStart, state.ViewSpan, (float)t);
-            Entity text = Piece(EditorGroupPart.TickLabel, label);
-            Place(text, new Rect2(0, 0, 70, 16), new Vector2(x - 35, ruler.Position.Y + 8), buffer);
-            UiText.Set(text, t.ToString("0.##", CultureInfo.InvariantCulture) + "s", buffer);
-            label++;
-        }
-
-        for (; label < EditorGroupLayout.LabelSlots; label++)
-            Hide(Piece(EditorGroupPart.TickLabel, label), buffer);
-    }
 
     /// <summary>The effect toolbar's tools that act on the selected effect.</summary>
     private void ShowSelection(
@@ -368,18 +297,6 @@ public sealed partial class EditorGroupSystem
                     : ActionIdle,
                 buffer);
         }
-    }
-
-    /// <summary>A round spacing for second labels that gives no more than the label slots.</summary>
-    public static double LabelStep(float span)
-    {
-        foreach (double step in new[] { 0.1, 0.25, 0.5, 1, 2, 5, 10, 15, 30, 60, 120 })
-        {
-            if (span / step <= EditorGroupLayout.LabelSlots - 1)
-                return step;
-        }
-
-        return 300;
     }
 
     private void HideOverlay(CommandBuffer buffer)

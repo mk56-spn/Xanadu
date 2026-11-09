@@ -1,6 +1,7 @@
 using Friflo.Engine.ECS;
 using Godot;
 using Xanadu.Animation;
+using Xanadu.Timeline;
 
 namespace Xanadu.Tools.Animator;
 
@@ -23,22 +24,13 @@ public struct AnimatorNewClipDialog : IComponent
 }
 
 /// <summary>
-/// The EASING tool window. It stays open while keys are picked on the
-/// timeline, so it has no dimmer and a click outside leaves it be.
+/// Whether the shared ease picker is open. It stays open while keys are picked
+/// on the timeline, so it has no dimmer and a click outside leaves it be.
 /// </summary>
 public struct AnimatorEasingWindow : IComponent
 {
     public bool Open;
-
-    /// <summary>Seconds the preview has run, which moves its dots.</summary>
-    public float Clock;
-
-    /// <summary>The curve the preview last drew, so it is redrawn only on a change.</summary>
-    public XafEasePreset? Shown;
 }
-
-/// <summary>Marks a curve thumbnail in the EASING window.</summary>
-public struct AnimatorEasingCell : ITag;
 
 /// <summary>The file info popup, centred over a dimmer; a click outside it closes it.</summary>
 public struct AnimatorInfoPanel : IComponent
@@ -65,4 +57,10 @@ public struct AnimatorKeyMenu : IComponent
 
     /// <summary>Seconds into the clip under the pointer, snapped, or the time of the key clicked.</summary>
     public float Time;
+
+    /// <summary>The override menu, opened instead when the right-click lands on an override's bar.</summary>
+    public bool OverrideOpen;
+
+    /// <summary>The override whose bar was right-clicked.</summary>
+    public XafLimbTarget? Override;
 }

@@ -32,6 +32,7 @@ public sealed class AnimatorSystemGroup : SystemGroup
         Add(new AnimatorNewClipDialogSystem(pointer));
         Add(new AnimatorInfoPanelSystem(pointer));
         Add(new XifEditorSystem(pointer, visuals));
+        Add(new ParticleEditorSystem());
         Add(new AnimatorModeSystem());
         Add(new AnimatorBoneMenuSystem(pointer));
         Add(new AnimatorSvgMenuSystem(svgCatalog, visuals, pointer));
@@ -51,13 +52,15 @@ public sealed class AnimatorSystemGroup : SystemGroup
         Add(new AnimatorFlowSystem(visuals));
         Add(new AnimatorPreviewModeSystem());
         Add(new AnimatorEasingWindowSystem());
+        Add(new EasePickerSystem());
         Add(new AnimatorClipHeaderSystem());
         Add(new AnimatorInspectorSystem());
         Add(new AnimatorChainInspectorSystem());
         Add(new AnimatorClothInspectorSystem());
+        Add(new AnimatorBoneCardSystem());
+        Add(new AnimatorValueSliderSystem());
         Add(new AnimatorSelfModulateSystem());
         Add(new AnimatorEventInspectorSystem());
-        Add(new AnimatorInterpolationSystem());
         Add(new AnimatorFileHeaderSystem());
         Add(new AnimatorStatusSystem(toasts));
         Add(new AnimatorTooltipSystem(pointer));

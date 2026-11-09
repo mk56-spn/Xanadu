@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Godot;
+using Xanadu.Timeline;
 
 namespace Xanadu.Animation;
 
@@ -254,7 +255,7 @@ public static class XafSampler
                     span),
                 XafInterpolation.Linear => Mathf.Lerp(previous.Value, next.Value, t),
                 _ => XafEasing.Shape(previous.Interpolation) is var (family, direction)
-                    ? Mathf.Lerp(previous.Value, next.Value, XafCurves.Evaluate(family, direction, t))
+                    ? Mathf.Lerp(previous.Value, next.Value, EaseCurves.Evaluate(family, direction, t))
                     : Mathf.Lerp(previous.Value, next.Value, t),
             };
         }

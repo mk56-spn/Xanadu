@@ -1,10 +1,11 @@
 using Friflo.Engine.ECS;
 using Godot;
+using Position = Xanadu.Ecs.Position;
 using Xanadu.Ecs;
 using Xanadu.Rendering;
 using Xanadu.Scenes;
 using Xanadu.Systems.Editor;
-using Position = Xanadu.Ecs.Position;
+using Xanadu.Timeline;
 
 namespace Xanadu.Tests.VisualTests;
 
@@ -95,8 +96,17 @@ public sealed class EditorGroupsSceneTest : SceneTest
         AddStep("click the move's EASE", () => Click(Piece(EditorGroupPart.RowEase, 0)));
         AddWaitStep("hold EASE", 2);
         AddStep("release EASE", () => Context.Pointer.Release());
-        AddUntilStep("the move eases in", () => Group().Effects[0].Ease == GroupEase.In);
-        AddAssert("the colour keeps linear easing", () => Group().Effects[1].Ease == GroupEase.Linear);
+        AddUntilStep("the ease picker opens for the move", () =>
+            State().EaseFor == EditorEaseTarget.Effect && EasePickerPanelEntity().Enabled);
+        AddStep("pick QUAD IN", () => Click(EaseCell(EasePreset.EaseIn)));
+        AddWaitStep("hold the curve", 2);
+        AddStep("release the curve", () => Context.Pointer.Release());
+        AddUntilStep("the move eases in", () => Group().Effects[0].Ease == EasePreset.EaseIn);
+        AddAssert("the colour keeps linear easing", () => Group().Effects[1].Ease == EasePreset.Linear);
+        AddStep("close the picker with its EASE button", () => Click(Piece(EditorGroupPart.RowEase, 0)));
+        AddWaitStep("hold EASE", 2);
+        AddStep("release EASE", () => Context.Pointer.Release());
+        AddUntilStep("the picker is closed", () => State().EaseFor == EditorEaseTarget.None && !EasePickerPanelEntity().Enabled);
 
         AddStep("select the colour row", () => Context.Pointer.Click(Bar(1)));
         AddWaitStep("hold the colour bar", 2);
@@ -218,7 +228,7 @@ public sealed class EditorGroupsSceneTest : SceneTest
         AddAssert("the bar moved later and kept its length", () =>
             Group().Effects[0].Start > 0.4f &&
             System.Math.Abs((Group().Effects[0].End - Group().Effects[0].Start) - 0.5f) < 0.01f);
-        AddAssert("dragging kept the easing", () => Group().Effects[0].Ease == GroupEase.In);
+        AddAssert("dragging kept the easing", () => Group().Effects[0].Ease == EasePreset.EaseIn);
 
         AddStep("click DONE", () => Click(Piece(EditorGroupPart.Close)));
         AddWaitStep("hold DONE", 2);
@@ -303,10 +313,18 @@ public sealed class EditorGroupsSceneTest : SceneTest
         AddStep("leave the value", () => Piece(EditorGroupPart.KeyValue).RemoveTag<TextFieldFocused>());
         AddUntilStep("the key takes the typed value", () =>
             Group().ShaderKeys.Count == 1 && Group().ShaderKeys[0].Value == new Vector4(0.25f, 0.5f, 0.75f, 1f));
-        AddStep("cycle the key's easing", () => Click(Piece(EditorGroupPart.KeyEase)));
+        AddStep("open the key's ease picker", () => Click(Piece(EditorGroupPart.KeyEase)));
         AddWaitStep("hold EASE", 2);
         AddStep("release EASE", () => Context.Pointer.Release());
-        AddUntilStep("the key is eased", () => Group().ShaderKeys[0].Ease != GroupEase.Linear);
+        AddUntilStep("the picker opens for the key", () => State().EaseFor == EditorEaseTarget.Key);
+        AddStep("pick BOUNCE OUT", () => Click(EaseCell(EasePreset.BounceOut)));
+        AddWaitStep("hold the curve", 2);
+        AddStep("release the curve", () => Context.Pointer.Release());
+        AddUntilStep("the key is eased", () => Group().ShaderKeys[0].Ease == EasePreset.BounceOut);
+        AddStep("close the picker", () => Click(EasePickerPanelEntity().GetComponent<EasePicker>().Parts.Close));
+        AddWaitStep("hold ×", 2);
+        AddStep("release ×", () => Context.Pointer.Release());
+        AddUntilStep("the picker is closed", () => State().EaseFor == EditorEaseTarget.None);
 
         float keyFrom = 0f;
         AddStep("grab the key to drag it", () =>
@@ -493,10 +511,10 @@ public sealed class EditorGroupsSceneTest : SceneTest
         AddStep("release the music button", () => Context.Pointer.Release());
         AddUntilStep("the music menu replaces the grid menu", () =>
             ViewBar().Open == EditorViewMenu.Music && ViewBar().MusicMenu.Enabled && !ViewBar().GridMenu.Enabled);
-        AddStep("pick 1/8", () => Click(ViewBar().DivisionButtons[2]));
+        AddStep("pick 1/8", () => Click(ViewBar().DivisionButtons[3]));
         AddWaitStep("hold 1/8", 2);
         AddStep("release 1/8", () => Context.Pointer.Release());
-        AddUntilStep("the beat grid is in eighths", () => Editor().GetComponent<Playhead>().SnapDivision == 16);
+        AddUntilStep("the snap is an eighth of a beat", () => Editor().GetComponent<Playhead>().SnapDivision == 8);
         AddStep("turn music snap off", () => Click(MusicSnapToggle()));
         AddWaitStep("hold music snap", 2);
         AddStep("release music snap", () => Context.Pointer.Release());
@@ -606,6 +624,24 @@ public sealed class EditorGroupsSceneTest : SceneTest
 
     private bool Visible(EditorGroupPart part, int row = 0) =>
         !UiLayout.IsHidden(Piece(part, row));
+
+    private Entity EasePickerPanelEntity()
+    {
+        foreach (Entity entity in Context.Entities.Query<EasePicker>().WithDisabled().ToEntityList())
+            return entity;
+        return default;
+    }
+
+    private Entity EaseCell(EasePreset preset)
+    {
+        foreach (Entity entity in Context.Entities.Query<EasePickerCell>().WithDisabled().ToEntityList())
+        {
+            if (entity.GetComponent<EasePickerCell>().Preset == preset)
+                return entity;
+        }
+
+        return default;
+    }
 
     private void Click(Entity entity) =>
         Context.Pointer.Click(UiTransform.WorldPosition(entity, entity.GetComponent<Position>().Value));
