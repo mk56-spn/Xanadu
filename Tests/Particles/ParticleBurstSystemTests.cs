@@ -13,12 +13,12 @@ public sealed class ParticleBurstSystemTests : EcsSystemTest
 {
     private sealed class FakeEmitter : IParticleEmitter
     {
-        public List<(Vector2 Position, ParticleKind Kind)> Bursts { get; } = new();
+        public List<(Vector2 Position, string Kind)> Bursts { get; } = new();
         public List<Vector2> Headings { get; } = new();
 
         public void Burst(
+            string kind,
             Vector2 position,
-            ParticleKind kind,
             Color tint,
             Vector2 area = default,
             float angle = 0f,
@@ -58,18 +58,18 @@ public sealed class ParticleBurstSystemTests : EcsSystemTest
     [Test]
     public void ARequestIsPlayedOnceAndRemoved()
     {
-        Store.CreateEntity(new ParticleBurst(new Vector2(10, 20), ParticleKind.Landing));
+        Store.CreateEntity(new ParticleBurst(new Vector2(10, 20), GameParticles.Landing));
 
         Frame(3);
 
-        Assert.That(_emitter.Bursts, Is.EqualTo(new[] { (new Vector2(10, 20), ParticleKind.Landing) }));
+        Assert.That(_emitter.Bursts, Is.EqualTo(new[] { (new Vector2(10, 20), GameParticles.Landing) }));
         Assert.That(Store.Query<ParticleBurst>().Count, Is.EqualTo(0));
     }
 
     [Test]
     public void TheHeadingReachesTheEmitter()
     {
-        Store.CreateEntity(new ParticleBurst(new Vector2(10, 20), ParticleKind.Hit, heading: new Vector2(0, -1)));
+        Store.CreateEntity(new ParticleBurst(new Vector2(10, 20), GameParticles.Hit, heading: new Vector2(0, -1)));
 
         Frame();
 
@@ -79,13 +79,13 @@ public sealed class ParticleBurstSystemTests : EcsSystemTest
     [Test]
     public void EveryRequestInAFrameIsPlayedWithItsOwnKind()
     {
-        Store.CreateEntity(new ParticleBurst(new Vector2(1, 2), ParticleKind.Dash));
-        Store.CreateEntity(new ParticleBurst(new Vector2(3, 4), ParticleKind.Landing));
+        Store.CreateEntity(new ParticleBurst(new Vector2(1, 2), GameParticles.Dash));
+        Store.CreateEntity(new ParticleBurst(new Vector2(3, 4), GameParticles.Landing));
 
         Frame();
 
         Assert.That(_emitter.Bursts, Has.Count.EqualTo(2));
-        Assert.That(_emitter.Bursts, Contains.Item((new Vector2(1, 2), ParticleKind.Dash)));
-        Assert.That(_emitter.Bursts, Contains.Item((new Vector2(3, 4), ParticleKind.Landing)));
+        Assert.That(_emitter.Bursts, Contains.Item((new Vector2(1, 2), GameParticles.Dash)));
+        Assert.That(_emitter.Bursts, Contains.Item((new Vector2(3, 4), GameParticles.Landing)));
     }
 }
