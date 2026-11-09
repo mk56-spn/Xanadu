@@ -1,5 +1,4 @@
 using System;
-using Godot;
 using Xanadu.Levels;
 using Xanadu.Ecs;
 using Xanadu.Editor.Commands;
@@ -7,7 +6,7 @@ using Xanadu.Editor.Commands;
 namespace Xanadu.Editor;
 
 /// <summary>Editor overlay command and preview controls.</summary>
-public partial class EditorOverlay : CanvasLayer
+public sealed partial class EditorOverlay
 {
     private void ProcessUiRequest()
     {

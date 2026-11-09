@@ -36,7 +36,7 @@ public sealed class EditorHelpSceneTest : SceneTest
                 () => Context.Scenes.TryBack(),
                 () => Context.Scenes.TryForward(),
                 openSongDialog: false);
-            Context.Host.AddChild(_overlay);
+            Context.Host.AddChild(new EditorOverlayNode(_overlay));
         });
         AddStep("open the key list", () =>
         {

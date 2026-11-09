@@ -14,7 +14,7 @@ under it saying what changed from the plan.
 
 Update this block at the end of every session, including partial progress.
 
-- **Updated:** 2026-11-09 (fourth session)
+- **Updated:** 2026-11-09 (fifth session)
 - **Done:** steps 0, 1, 3, 4 and 6, most of step 2, and most of step 5. The
   host draws buffered groups, self-contained layer passes, background-reader
   passes and screen-reading shaders (frosted glass) through a multi-pass
@@ -25,11 +25,13 @@ Update this block at the end of every session, including partial progress.
   Xanadu Labs" under step 10.
 - **Steps 7 and 8:** particles (bursts and rig streams) and rig art draw in
   the host. The Contact rig shows on the playfield.
-- **Next:** step 9 (editor). Still open from earlier steps:
+- **Step 9:** the editor runs in the host (song pick, placing, saving, F9,
+  F10 and the shader import picker checked by hand).
+- **Next:** step 10 (tools as plain exes). Still open from earlier steps:
   - step 2: play a level by hand with the keyboard;
   - step 5: per-item data in a storage buffer, the vertex slot and chains,
     and shape glow.
-- **Committed:** everything through step 8.
+- **Committed:** everything through step 9.
 - **After cloning:** run `External/fetch-moonlibs.sh` once (the host build fails
   with that message otherwise).
 - **Notes for whoever picks this up:** see the step 1 and step 2 notes (Slang
@@ -732,11 +734,38 @@ D7–D17 against the host:
 
 ### Step 9: Editor (500–900 lines)
 
-- [ ] Replace `EditorOverlay*` Godot nodes: SDL3 native file dialogs
+- [x] Replace `EditorOverlay*` Godot nodes: SDL3 native file dialogs
   (`SDL_ShowOpenFileDialog`), and SDL text-input events plus clipboard instead
   of the invisible `LineEdit`. Remaining debt (`ItemList`, `Label`) moves to ECS
   UI.
-- [ ] The editor runs in the host.
+  - `EditorOverlay` is now a plain, engine-free class. Its host calls `Tick()`
+    once a frame after the systems update. It opens the song picker on its
+    first tick (Godot used `CallDeferred`), and `Close()` lets go of the pointer.
+  - **File picker seam:** `PickShaderFile` (a path callback) and
+    `FileDialogOpen` (which holds the pointer off the UI). The host feeds them
+    from `HostFileDialog.OpenShader` / `IsOpen`. That class now has audio and
+    `.slang` filters and an `IsOpen` flag.
+  - **Text fields:** the overlay's own hidden `LineEdit` is gone. The host's
+    `HostTextInput` already typed into any focused `TextField`. Under Godot,
+    `Main` attaches `UiTextBridge` for the editor as well as profile edit.
+  - **Godot side:** `Editor/EditorOverlayNode.cs` wraps the overlay for `Main`
+    and the visual tests. It ticks the overlay and supplies Godot's
+    `FileDialog`, and goes away in step 11.
+  - The import button reads "IMPORT .SLANG…", and the Godot picker filters
+    `*.slang`. A failed autosave logs to stderr (`GD.PushWarning` would trap).
+  - There was no `ItemList` or `Label` debt left in the overlay.
+- [x] The editor runs in the host. `HostGame` creates the overlay when the
+  editor opens, closes it when another scene opens, and wires `SaveEditor`
+  and both previews as `Main` did.
+  - Tried by hand (`SDL_VIDEODRIVER=x11`, xdotool):
+    - picking a song in the picker;
+    - Ctrl+S with no notes ("Add at least one note") and with one placed
+      note (saved `unnamed-3.xmf`, deleted afterwards);
+    - F9 key list, F10 shader slots;
+    - IMPORT opens KDE's portal picker filtered to "Slang shaders".
+  - Not tried: Preview (F5) and back, and actually importing a picked shader.
+  - Shot: `screenshots/step9-editor.png`. Tests: 14 failures, the known
+    pre-port set.
 
 ### Step 10: Tools as plain exes
 

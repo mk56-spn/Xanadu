@@ -28,6 +28,7 @@ internal sealed class HostGame : HostApp
     private readonly HostOptions _options;
     private readonly HostFileDialog _fileDialog;
     private readonly XanaduSystemRoot _systems;
+    private Xanadu.Editor.EditorOverlay? _editorOverlay;
 
     public HostGame(HostOptions options) : base("Xanadu",
         new HostWindowOptions(options.WindowWidth, options.WindowHeight, options.ShotPath, options.ShotFrame))
@@ -51,12 +52,39 @@ internal sealed class HostGame : HostApp
         Start();
     }
 
-    /// <summary>What the Godot <c>Main</c> did on a scene change, minus the editor overlay (step 9).</summary>
+    /// <summary>What the Godot <c>Main</c> did on a scene change: the editor gets its overlay while it is up.</summary>
     private void OnSceneChanged(SceneKind scene)
     {
         _systems.Commands.Clear();
-        if (scene == SceneKind.Editor)
-            _systems.EditorHistory.Clear();
+        if (scene != SceneKind.Editor)
+        {
+            _editorOverlay?.Close();
+            _editorOverlay = null;
+            return;
+        }
+
+        _systems.EditorHistory.Clear();
+        if (_editorOverlay is not null)
+            return;
+
+        _editorOverlay = new Xanadu.Editor.EditorOverlay(
+            Entities,
+            _systems.Commands,
+            Pointer,
+            () => _systems.Scenes.TryBack(),
+            () => _systems.Scenes.TryForward(),
+            (document, path, playheadMs) => _systems.Scenes.StartEditorPreview(
+                LevelStore.Entry(path, document),
+                playheadMs),
+            onPreviewHere: (document, path, playheadMs) => _systems.Scenes.StartEditorPreview(
+                LevelStore.Entry(path, document),
+                playheadMs,
+                fromPlayhead: true))
+        {
+            PickShaderFile = then => _fileDialog.OpenShader(then),
+            FileDialogOpen = () => _fileDialog.IsOpen,
+        };
+        _systems.Scenes.SaveEditor = () => Xanadu.Editor.EditorOverlay.SaveForLeaving(_editorOverlay);
     }
 
     private void AddSong(string path)
@@ -117,6 +145,7 @@ internal sealed class HostGame : HostApp
         Keyboard.FeedPresses(Inputs.Keyboard, _systems.KeyPresses, key =>
             key != Xanadu.Systems.Input.DebugKeys.Screenshot && (!TextInput.Active || key == Godot.Key.Escape));
         _systems.Update(new UpdateTick(delta, time));
+        _editorOverlay?.Tick();
         WarmLevelShaders();
     }
 
@@ -150,6 +179,7 @@ internal sealed class HostGame : HostApp
 
     protected override void Shutdown()
     {
+        _editorOverlay?.Close();
         _systems.Dispose();
         _fileDialog.Dispose();
     }

@@ -66,7 +66,7 @@ public sealed class LeaveEditorSceneTest : SceneTest
             () => Context.Scenes.TryForward(),
             openSongDialog: false);
 
-        Context.Host.AddChild(_overlay);
+        Context.Host.AddChild(new EditorOverlayNode(_overlay));
     }
 
     private bool ConfirmationIsVisible()

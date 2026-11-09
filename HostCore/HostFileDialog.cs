@@ -18,28 +18,39 @@ internal sealed unsafe class HostFileDialog : IDisposable
     private readonly SDL.SDL_DialogFileCallback _callback;
 
     // SDL reads the filters until the callback runs, so they live as long as the dialog object.
-    private readonly IntPtr _filterName, _filterPattern;
-    private Action<string>? _pending;
+    private readonly (IntPtr Name, IntPtr Pattern) _audio, _shader;
+    private volatile Action<string>? _pending;
 
     public HostFileDialog(Window window)
     {
         _window = window;
         _callback = OnPicked;
-        _filterName = Marshal.StringToCoTaskMemUTF8("Audio files");
-        _filterPattern = Marshal.StringToCoTaskMemUTF8("mp3;wav;ogg;flac");
+        _audio = Filter("Audio files", "mp3;wav;ogg;flac");
+        _shader = Filter("Slang shaders", "slang");
     }
 
+    /// <summary>True from asking until the picker closes, picked or cancelled.</summary>
+    public bool IsOpen => _pending is not null;
+
     /// <summary>Asks for one audio file; <paramref name="then"/> runs on the main thread if one is picked.</summary>
-    public void OpenAudio(Action<string> then)
+    public void OpenAudio(Action<string> then) => Open(_audio, then);
+
+    /// <summary>Asks for one Slang shader; <paramref name="then"/> runs on the main thread if one is picked.</summary>
+    public void OpenShader(Action<string> then) => Open(_shader, then);
+
+    private void Open((IntPtr Name, IntPtr Pattern) filter, Action<string> then)
     {
         if (_pending is not null)
             return;
 
         _pending = then;
         Span<SDL.SDL_DialogFileFilter> filters =
-            [new SDL.SDL_DialogFileFilter { name = (byte*)_filterName, pattern = (byte*)_filterPattern }];
+            [new SDL.SDL_DialogFileFilter { name = (byte*)filter.Name, pattern = (byte*)filter.Pattern }];
         SDL.SDL_ShowOpenFileDialog(_callback, IntPtr.Zero, _window.Handle, filters, 1, null!, false);
     }
+
+    private static (IntPtr, IntPtr) Filter(string name, string pattern) =>
+        (Marshal.StringToCoTaskMemUTF8(name), Marshal.StringToCoTaskMemUTF8(pattern));
 
     private void OnPicked(IntPtr userdata, IntPtr files, int filter)
     {
@@ -63,7 +74,10 @@ internal sealed unsafe class HostFileDialog : IDisposable
 
     public void Dispose()
     {
-        Marshal.FreeCoTaskMem(_filterName);
-        Marshal.FreeCoTaskMem(_filterPattern);
+        foreach ((IntPtr name, IntPtr pattern) in new[] { _audio, _shader })
+        {
+            Marshal.FreeCoTaskMem(name);
+            Marshal.FreeCoTaskMem(pattern);
+        }
     }
 }

@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using Friflo.Engine.ECS;
-using Godot;
 using Xanadu.Ecs;
 using Xanadu.Levels;
 using Xanadu.Systems.Editor;
@@ -10,7 +9,7 @@ using Xanadu.Systems.Editor;
 namespace Xanadu.Editor;
 
 /// <summary>Editor overlay shared helpers.</summary>
-public partial class EditorOverlay : CanvasLayer
+public sealed partial class EditorOverlay
 {
     private string CurrentLevelPath() =>
         _editor.HasComponent<LevelFile>()
@@ -44,8 +43,17 @@ public partial class EditorOverlay : CanvasLayer
     /// Whether a native file dialog is up. It is a window of its own, so the
     /// pointer is held off the ECS UI while it is; an ECS dialog needs the pointer.
     /// </summary>
-    private bool NativeDialogVisible() =>
-        (_shaderFileDialog?.Visible ?? false);
+    private bool NativeDialogVisible() => FileDialogOpen?.Invoke() ?? false;
+
+    private void SetStatus(string message)
+    {
+        Entity editor = FindEditor();
+        if (editor.IsNull || !editor.HasComponent<EditorHud>())
+            return;
+
+        ref EditorHud hud = ref editor.GetComponent<EditorHud>();
+        hud.SetStatus(message);
+    }
 
     /// <summary>Whether a group's overlay screen is up, which takes over the keyboard and the pointer.</summary>
     private bool IsGroupOverlayOpen()
@@ -129,6 +137,19 @@ public partial class EditorOverlay : CanvasLayer
     private bool IsWarningOpen()
     {
         return _entities.Query<WarningPopup>().Count > 0;
+    }
+
+    private Entity FindFocusedTextField()
+    {
+        foreach (Entity entity in _entities
+                     .Query<TextField>()
+                     .AllTags(Tags.Get<TextFieldFocused>())
+                     .ToEntityList())
+        {
+            return entity;
+        }
+
+        return default;
     }
 
     private Entity FindEditor()

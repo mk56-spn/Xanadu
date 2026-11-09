@@ -137,7 +137,7 @@ public static class EditorSceneDialogs
 
         const float wide = 186;
         UiNode slot = panel.Row().Gap(DialogGap);
-        DialogButton(slot, "IMPORT .GDSHADER…", wide, EditorDialogAction.ImportShader);
+        DialogButton(slot, "IMPORT .SLANG…", wide, EditorDialogAction.ImportShader);
         DialogButton(slot, "REMOVE", wide, EditorDialogAction.RemoveShader, muted: true);
 
         UiNode items = panel.Row().Gap(DialogGap);

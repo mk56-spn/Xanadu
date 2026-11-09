@@ -1,8 +1,5 @@
 using System;
-using System.Collections.Generic;
-using System.IO;
 using Friflo.Engine.ECS;
-using Godot;
 using Xanadu.Ecs;
 using Xanadu.Levels;
 using Xanadu.Editor.Commands;
@@ -12,10 +9,12 @@ using Xanadu.Systems.Input;
 namespace Xanadu.Editor;
 
 /// <summary>
-/// Native file dialogs and the text-input bridge for the ECS editor UI. Every
-/// other dialog is an ECS one (<see cref="EditorDialogs"/>).
+/// What the ECS editor asks of its host: saving, previews, shortcuts and the
+/// shader import picker. Every dialog is an ECS one (<see cref="EditorDialogs"/>);
+/// text fields are typed into by the host's text input. Engine-free: the host
+/// calls <see cref="Tick"/> once a frame after the systems update.
 /// </summary>
-public partial class EditorOverlay
+public sealed partial class EditorOverlay
 {
     private readonly EntityStore _entities;
     private readonly EditorCommandBus _commands;
@@ -26,11 +25,8 @@ public partial class EditorOverlay
     private readonly Action<LevelDocument, string, long>? _onPreview;
     private readonly Action<LevelDocument, string, long>? _onPreviewHere;
 
-    private LineEdit _textInput = null!;
-    private Entity _textFieldEntity;
     private Entity _editor;
 
-    private bool _syncingText;
     private bool _closed;
     private readonly bool _openSongDialog;
 
@@ -52,25 +48,13 @@ public partial class EditorOverlay
         _onPreview = onPreview;
         _onPreviewHere = onPreviewHere;
         _openSongDialog = openSongDialog;
-        Layer = 100;
-    }
 
-    public override void _Ready()
-    {
         _editor = FindEditor();
         if (!_editor.IsNull)
+        {
             _editor.AddComponent(new EditorShortcutHost(this));
             _editor.AddComponent(new Xanadu.Systems.Timeline.TimelineHost(
                 new EditorTimelineHost(_editor, _commands, SetStatus)));
-
-        CreateTextFieldBridge();
-        BuildShaderImportDialog();
-
-        if (_openSongDialog &&
-            _editor.HasComponent<LevelInfo>() &&
-            _editor.GetComponent<LevelInfo>().Song is null)
-        {
-            CallDeferred(nameof(OpenSongDialog));
         }
     }
 
@@ -82,8 +66,6 @@ public partial class EditorOverlay
 
         _closed = true;
         _editor = default;
-        QueueFree();
+        _pointer?.SetBlocked(false);
     }
-
-
 }

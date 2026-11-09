@@ -1,5 +1,4 @@
 using Friflo.Engine.ECS;
-using Godot;
 using Xanadu.Ecs;
 using Xanadu.Systems.Editor;
 using Position = Xanadu.Ecs.Position;
@@ -7,7 +6,7 @@ using Position = Xanadu.Ecs.Position;
 namespace Xanadu.Editor;
 
 /// <summary>F9 editor-binding reference overlay toggle.</summary>
-public partial class EditorOverlay : CanvasLayer
+public sealed partial class EditorOverlay
 {
 
     private void ToggleBindingsHelp()

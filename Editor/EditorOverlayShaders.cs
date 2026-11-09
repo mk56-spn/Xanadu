@@ -1,6 +1,5 @@
 using System;
 using System.IO;
-using Godot;
 using Xanadu.Ecs;
 using Xanadu.Editor.Commands;
 using Xanadu.Levels;
@@ -10,26 +9,19 @@ namespace Xanadu.Editor;
 
 /// <summary>
 /// F10: the level's custom shaders. The slots are an ECS dialog
-/// (<see cref="EditorDialogKind.Shaders"/>); this side only owns the native file
-/// dialog its IMPORT button asks for. Uniform values are tuned with the F2 panel.
+/// (<see cref="EditorDialogKind.Shaders"/>); this side only asks the host for
+/// the file its IMPORT button wants. Uniform values are tuned with the F2 panel.
 /// </summary>
-public partial class EditorOverlay : CanvasLayer
+public sealed partial class EditorOverlay
 {
-    private FileDialog _shaderFileDialog = null!;
+    /// <summary>
+    /// Opens the host's file picker for a Slang shader; the callback gets the
+    /// picked path on the main thread. Null when the host has no picker.
+    /// </summary>
+    public Action<Action<string>>? PickShaderFile { get; set; }
 
-    private void BuildShaderImportDialog()
-    {
-        _shaderFileDialog = new FileDialog
-        {
-            FileMode = FileDialog.FileModeEnum.OpenFile,
-            Access = FileDialog.AccessEnum.Filesystem,
-            UseNativeDialog = false,
-            Title = "Import shader",
-            Filters = ["*.gdshader ; Godot shaders"],
-        };
-        _shaderFileDialog.FileSelected += ImportShaderFile;
-        AddChild(_shaderFileDialog);
-    }
+    /// <summary>Whether the host's file picker is up; the pointer is held off the ECS UI while it is.</summary>
+    public Func<bool>? FileDialogOpen { get; set; }
 
     private void ToggleShaderDialog()
     {
@@ -39,11 +31,11 @@ public partial class EditorOverlay : CanvasLayer
             EditorDialogs.Open(_entities, EditorDialogKind.Shaders);
     }
 
-    private void OpenShaderImport() => _shaderFileDialog.PopupCentered(new Vector2I(900, 600));
+    private void OpenShaderImport() => PickShaderFile?.Invoke(ImportShaderFile);
 
     private void ImportShaderFile(string path)
     {
-        if (_editor.IsNull || !_editor.TryGetComponent(out EditorDialogs dialogs))
+        if (_closed || _editor.IsNull || !_editor.TryGetComponent(out EditorDialogs dialogs))
             return;
 
         int slot = dialogs.Shader;

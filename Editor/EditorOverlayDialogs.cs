@@ -1,7 +1,6 @@
 using System;
 using System.IO;
 using System.Linq;
-using Godot;
 using Xanadu.Ecs;
 using Xanadu.Levels;
 using Xanadu.Editor.Commands;
@@ -13,7 +12,7 @@ namespace Xanadu.Editor;
 /// directory: there is no save-as or load, so a player never picks where files
 /// go. The song picker is an ECS dialog.
 /// </summary>
-public partial class EditorOverlay : CanvasLayer
+public sealed partial class EditorOverlay
 {
     private void OpenSongDialog() => EditorDialogs.Open(_entities, EditorDialogKind.Song);
 
@@ -60,7 +59,7 @@ public partial class EditorOverlay : CanvasLayer
         }
         catch (Exception exception)
         {
-            GD.PushWarning($"Autosave of '{target}' failed: {exception.Message}");
+            Console.Error.WriteLine($"Autosave of '{target}' failed: {exception.Message}");
         }
     }
 

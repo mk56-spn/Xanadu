@@ -24,7 +24,7 @@ public partial class Main : Control
 	private XanaduSystemRoot? _systems;
 	private GodotPointerInputSource? _pointer;
 	private SceneDirector? _sceneDirector;
-	private EditorOverlay? _editorOverlay;
+	private EditorOverlayNode? _editorOverlay;
 	private FileDialog? _addSongDialog;
 	private Xanadu.Systems.Ui.UiTextBridge? _textBridge;
 
@@ -168,7 +168,7 @@ public partial class Main : Control
 			if (_editorOverlay is not null)
 				return;
 
-			_editorOverlay = new EditorOverlay(
+			var overlay = new EditorOverlay(
 				Entities,
 				_systems!.Commands,
 				_pointer!,
@@ -181,8 +181,9 @@ public partial class Main : Control
 					LevelStore.Entry(path, document),
 					playheadMs,
 					fromPlayhead: true));
+			_editorOverlay = new EditorOverlayNode(overlay);
 			AddChild(_editorOverlay);
-			_systems.Scenes.SaveEditor = () => EditorOverlay.SaveForLeaving(_editorOverlay);
+			_systems.Scenes.SaveEditor = () => EditorOverlay.SaveForLeaving(_editorOverlay?.Overlay);
 			return;
 		}
 
@@ -194,10 +195,10 @@ public partial class Main : Control
 
 	}
 
-	/// <summary>The editor overlay has its own text input; two would fight over focus, so this one lives only with its screen.</summary>
+	/// <summary>The hidden text input for the screens with text fields.</summary>
 	private void SyncTextBridge(SceneKind scene)
 	{
-		if (scene == SceneKind.ProfileEdit)
+		if (scene is SceneKind.ProfileEdit or SceneKind.Editor)
 		{
 			_textBridge ??= Xanadu.Systems.Ui.UiTextBridge.Attach(this, Entities);
 			return;

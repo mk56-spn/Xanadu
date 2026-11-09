@@ -1,19 +1,37 @@
-using Friflo.Engine.ECS;
-using Godot;
 using Xanadu.Ecs;
 
 namespace Xanadu.Editor;
 
-/// <summary>Editor overlay per-frame bridge and preview lifecycle.</summary>
-public partial class EditorOverlay : CanvasLayer
+/// <summary>Editor overlay per-frame work, run by its host after the systems update.</summary>
+public sealed partial class EditorOverlay
 {
-    public override void _Process(double delta)
+    private bool _songDialogChecked;
+
+    /// <summary>Handles the editor's UI requests and holds the pointer while a host dialog or the key list is up.</summary>
+    public void Tick()
     {
-        if (_closed || _editor.IsNull)
+        if (_closed)
             return;
 
+        if (_editor.IsNull)
+            _editor = FindEditor();
+
+        if (_editor.IsNull)
+            return;
+
+        // A level without a song asks for one, once, on the first frame.
+        if (!_songDialogChecked)
+        {
+            _songDialogChecked = true;
+            if (_openSongDialog &&
+                _editor.HasComponent<LevelInfo>() &&
+                _editor.GetComponent<LevelInfo>().Song is null)
+            {
+                OpenSongDialog();
+            }
+        }
+
         ProcessUiRequest();
-        SyncTextFieldBridge();
         _pointer?.SetBlocked(NativeDialogVisible() || IsBindingsHelpVisible());
     }
 }

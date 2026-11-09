@@ -1,5 +1,4 @@
 using System;
-using Godot;
 using Xanadu.Ecs;
 using Xanadu.Systems.Editor;
 using Xanadu.Systems.Timeline;
@@ -8,7 +7,7 @@ using Xanadu.Editor.Commands;
 namespace Xanadu.Editor;
 
 /// <summary>Runs the editor's key bindings; <see cref="EditorShortcuts"/> says which key does what.</summary>
-public partial class EditorOverlay : CanvasLayer, IEditorShortcutTarget
+public sealed partial class EditorOverlay : IEditorShortcutTarget
 {
     public bool IsOpen => !_closed;
 

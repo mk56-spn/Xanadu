@@ -175,7 +175,7 @@ public sealed class EditorPreviewSaveSceneTest : SceneTest
             () => Context.Scenes.TryForward(),
             SaveAndPreview,
             openSongDialog: false);
-        Context.Host.AddChild(_overlay);
+        Context.Host.AddChild(new EditorOverlayNode(_overlay));
     }
 
     private void SaveAndPreview(LevelDocument document, string path, long playheadMs)

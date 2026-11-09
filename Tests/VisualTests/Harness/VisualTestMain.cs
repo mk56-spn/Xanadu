@@ -528,11 +528,8 @@ public partial class VisualTestMain : Control
 
         foreach (Node child in _testHost.GetChildren())
         {
-            if (child is EditorOverlay overlay)
-            {
+            if (child is EditorOverlayNode overlay)
                 overlay.Close();
-                overlay.QueueFree();
-            }
         }
     }
 
