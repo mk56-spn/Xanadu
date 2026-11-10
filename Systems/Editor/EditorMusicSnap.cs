@@ -27,9 +27,6 @@ public static class EditorMusicSnap
 
     public static bool IsOn(EntityStore store)
     {
-        foreach (Entity toggle in store.Query<Toggle>().AllTags(Tags.Get<EditorMusicSnapToggle>()).WithDisabled().Entities)
-            return toggle.GetComponent<Toggle>().Value;
-
-        return true;
+        return store.ToggleOn<EditorMusicSnapToggle>(none: true, hidden: true);
     }
 }

@@ -4,7 +4,7 @@
 set -euo pipefail
 
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
-targets=(game editor animator showcase labs visual-tests)
+targets=(game editor animator showcase labs autopsy visual-tests)
 
 target="${1:-}"
 [[ $# -gt 0 ]] && shift

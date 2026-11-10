@@ -1,5 +1,4 @@
 using Friflo.Engine.ECS;
-using Godot;
 using Xanadu.Timeline;
 
 namespace Xanadu.Ecs;
@@ -265,9 +264,6 @@ public static class GroupTagsSwitch
     /// <summary>Whether to draw the tags; an editor with no button draws none.</summary>
     public static bool IsOn(EntityStore store)
     {
-        foreach (Entity toggle in store.Query<Toggle>().AllTags(Tags.Get<GroupTagsToggle>()).Entities)
-            return toggle.GetComponent<Toggle>().Value;
-
-        return false;
+        return store.ToggleOn<GroupTagsToggle>();
     }
 }

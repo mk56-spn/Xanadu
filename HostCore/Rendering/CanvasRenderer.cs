@@ -1,12 +1,11 @@
 using System;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
-using Godot;
 using MoonWorks.Graphics;
+using Color = Xanadu.Maths.Color;
 using Xanadu.Rendering;
 using Xanadu.Systems.Canvas;
 using Buffer = MoonWorks.Graphics.Buffer;
-using Color = Godot.Color;
 using MwColor = MoonWorks.Graphics.Color;
 using Rect = MoonWorks.Graphics.Rect;
 using Texture = MoonWorks.Graphics.Texture;
@@ -73,6 +72,7 @@ internal sealed class CanvasRenderer : IDisposable
     private readonly CanvasPipelines _pipelines;
     private readonly Texture _white;
     private readonly Texture _screen;
+    private readonly ScreenMips _mips;
     private readonly Sampler _sampler;
     private readonly uint _width, _height;
 
@@ -123,6 +123,7 @@ internal sealed class CanvasRenderer : IDisposable
         uint levels = (uint)Math.Floor(Math.Log2(Math.Max(width, height))) + 1;
         _screen = Texture.Create2D(device, "screen copy", width, height, format,
             TextureUsageFlags.Sampler | TextureUsageFlags.ColorTarget, levels);
+        _mips = new ScreenMips(device, format, width, height, levels);
 
         // Linear with linear mips (MaxLod unclamped), so mipmapped textures such as glyph strips filter smoothly.
         _sampler = Sampler.Create(device, SamplerCreateInfo.LinearClamp);
@@ -148,16 +149,21 @@ internal sealed class CanvasRenderer : IDisposable
         CollectJob(_tree.Root, target, clear, group: false, Transform2D.Identity, FullClip);
 
         Build();
-        Upload(commands);
+        using (commands.Scope("upload vertices"))
+            Upload(commands);
 
         // The particles move by the frame's time, before any pass draws them.
         float dt = float.IsNaN(_lastTime) ? 0f : Math.Clamp(time - _lastTime, 0f, 0.1f);
         _lastTime = time;
-        Particles.Step(commands, dt);
+        using (commands.Scope("particles step"))
+            Particles.Step(commands, dt);
 
         LastCopyCount = 0;
         foreach (Job job in _jobs)
-            Draw(commands, job, time);
+        {
+            using (commands.Scope(job.IsGroup ? "group target" : job.Target == target ? "main target" : "offscreen target"))
+                Draw(commands, job, time);
+        }
     }
 
     private Rect FullClip => new() { X = 0, Y = 0, W = (int)_width, H = (int)_height };
@@ -398,7 +404,7 @@ internal sealed class CanvasRenderer : IDisposable
         commands.PushFragmentUniformData(frame, 0);
         Begin(pass);
         GraphicsPipeline? bound = null;
-        bool drawnSinceCopy = true;
+        bool drawnSinceCopy = true, copied = false;
         Span<TextureSamplerBinding> samplers = stackalloc TextureSamplerBinding[8];
         for (int b = job.FirstBatch; b < job.FirstBatch + job.BatchCount; b++)
         {
@@ -418,17 +424,24 @@ internal sealed class CanvasRenderer : IDisposable
             CanvasEffect effect = _pipelines.Effect(batch.Material);
             string[] names = effect.Compiled.Samplers;
             bool readsScreen = effect.Compiled.ReadsScreen;
-            if ((batch.CopyBefore || readsScreen) && drawnSinceCopy)
+            // As Godot: the first screen read copies the target and every later
+            // read shares that copy; only an item that asks (SetCopyScreen, a
+            // BackBufferCopy) copies again, and only if something was drawn since.
+            if ((batch.CopyBefore && drawnSinceCopy) || (readsScreen && !copied))
             {
+                copied = true;
                 commands.EndRenderPass(pass);
                 CopyScreen(commands, job.Target);
+                commands.PushFragmentUniformData(frame, 0);
                 pass = commands.BeginRenderPass(new ColorTargetInfo(job.Target, LoadOp.Load));
                 Begin(pass);
                 bound = null;
                 drawnSinceCopy = false;
             }
 
-            GraphicsPipeline pipeline = _pipelines.Pipeline(effect, batch.Material?.Blend ?? BlendMode.Mix);
+            GraphicsPipeline pipeline = _pipelines.Pipeline(effect, batch.Material);
+            if (batch.Material?.Custom is { UsesConstant: true } custom)
+                pass.SetBlendConstants(new MoonWorks.Graphics.Color(custom.Constant.R, custom.Constant.G, custom.Constant.B, custom.Constant.A));
             if (pipeline != bound)
             {
                 pass.BindGraphicsPipeline(pipeline);
@@ -449,7 +462,7 @@ internal sealed class CanvasRenderer : IDisposable
             {
                 Texture? texture = i == 1 && names[i] == "screenTexture"
                     ? _screen
-                    : names[i] is { } name && batch.Material?.Textures.TryGetValue(name, out Rid id) == true
+                    : names[i] is { } name && batch.Material?.Textures.TryGetValue(name, out Handle id) == true
                         ? Textures.GetValueOrDefault(id.Id)
                         : null;
                 samplers[i] = new TextureSamplerBinding(texture ?? _white, _sampler);
@@ -471,11 +484,15 @@ internal sealed class CanvasRenderer : IDisposable
             pass.BindVertexBuffers(_buffer);
     }
 
-    /// <summary>The target as it stands into the screen texture, with mips for blurred reads.</summary>
+    /// <summary>
+    /// The target as it stands into the screen texture, with Gaussian-filtered
+    /// mips for blurred reads. Leaves fragment uniform slot 0 changed.
+    /// </summary>
     private void CopyScreen(CommandBuffer commands, Texture target)
     {
+        using GpuScope scope = commands.Scope("screen copy + mips");
         commands.Blit(target, _screen, Filter.Linear);
-        SDL3.SDL.SDL_GenerateMipmapsForGPUTexture(commands.Handle, _screen.Handle);
+        _mips.Build(commands, _screen, _width, _height);
         LastCopyCount++;
     }
 
@@ -548,6 +565,7 @@ internal sealed class CanvasRenderer : IDisposable
         Particles.Dispose();
         _white.Dispose();
         _screen.Dispose();
+        _mips.Dispose();
         _sampler.Dispose();
         foreach (Texture target in _groupTargets)
             target.Dispose();

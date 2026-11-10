@@ -1,5 +1,4 @@
 using Friflo.Engine.ECS;
-using Godot;
 using Xanadu.Ecs;
 using Xanadu.Systems.Canvas;
 using Xanadu.Systems.Playfields;
@@ -29,7 +28,7 @@ public sealed class EditorGroupsDrawer(EditorDrawSurface surface)
         Color badge = MarkColor;
         var line = new Color(badge.R, badge.G, badge.B, 0.35f);
         var ring = new Color(badge.R, badge.G, badge.B, 0.6f);
-        foreach (var (offsets, chunk) in surface.Entities.Query<GroupOffset>().Chunks)
+        foreach (var (offsets, chunk) in surface.Entities.Cached<GroupOffset>().Chunks)
         {
             System.Span<GroupOffset> span = offsets.Span;
             for (int i = 0; i < span.Length; i++)

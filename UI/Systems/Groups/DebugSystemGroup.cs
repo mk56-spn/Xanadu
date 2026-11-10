@@ -1,7 +1,6 @@
 using System;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
-using Godot;
 using Xanadu.Systems.Canvas;
 using Xanadu.Systems.Debug;
 using Xanadu.Systems.Input;
@@ -16,7 +15,7 @@ public sealed class DebugSystemGroup : SystemGroup, IDisposable
 
     public DebugSystemGroup(
         IRectCanvas canvas,
-        Rid parentCanvas,
+        Handle parentCanvas,
         IOverlayToggleSource toggle,
         EntityStore store,
         SystemRoot systems,
@@ -28,7 +27,8 @@ public sealed class DebugSystemGroup : SystemGroup, IDisposable
             store,
             systems,
             fps,
-            paging));
+            paging,
+            gpuMemory: HostPlatform.GpuMemory));
         Add(new FpsCounterSystem(new KeyOverlayToggleSource(DebugKeys.FrameRate), store, fps));
         _uiOverlay = Xanadu.Systems.Ui.UiDebugOverlayGroup.Attach(
             this,

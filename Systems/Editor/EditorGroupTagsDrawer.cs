@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
-using Godot;
 using Xanadu.Ecs;
 using Xanadu.Editor;
 using Xanadu.Systems.Playfields;
@@ -43,7 +42,7 @@ public sealed class EditorGroupTagsDrawer(EditorDrawSurface surface)
             return;
 
         EditorLayers layers = EditorLayers.Of(editor);
-        foreach (var (groups, chunk) in surface.Entities.Query<ItemGroups>().Chunks)
+        foreach (var (groups, chunk) in surface.Entities.Cached<ItemGroups>().Chunks)
         {
             Span<ItemGroups> span = groups.Span;
             for (int i = 0; i < span.Length; i++)

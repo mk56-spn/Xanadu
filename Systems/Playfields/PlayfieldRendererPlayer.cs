@@ -1,6 +1,5 @@
 using System;
 using Friflo.Engine.ECS;
-using Godot;
 using Xanadu.Ecs;
 using Xanadu.Settings;
 using Xanadu.Systems.Canvas;
@@ -14,11 +13,11 @@ public static partial class PlayfieldRenderer
 {
     public static void DrawPlayer(
         IRectCanvas canvas,
-        Rid rid,
+        Handle rid,
         EntityStore entities,
         PlayfieldView view)
     {
-        foreach (Entity entity in entities.Query<Player, Position>().ToEntityList())
+        foreach (Entity entity in entities.Cached<Player, Position>().ToEntityList())
         {
             if (entity.Tags.Has<PlayerShattered>())
             {
@@ -49,9 +48,9 @@ public static partial class PlayfieldRenderer
     /// The see-through boxes a player without rig art leaves when it hits a
     /// note; the rig draw system draws the rest as copies of the art.
     /// </summary>
-    public static void DrawHitGhosts(IRectCanvas canvas, Rid rid, EntityStore entities)
+    public static void DrawHitGhosts(IRectCanvas canvas, Handle rid, EntityStore entities)
     {
-        foreach (Entity entity in entities.Query<HitGhost>().ToEntityList())
+        foreach (Entity entity in entities.Cached<HitGhost>().ToEntityList())
         {
             if (entity.Tags.Has<HitGhostRigged>())
                 continue;

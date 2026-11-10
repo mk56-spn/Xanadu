@@ -52,6 +52,8 @@ internal sealed class HostGame : HostApp
         Start();
     }
 
+    protected override Friflo.Engine.ECS.Systems.SystemRoot Systems => _systems;
+
     /// <summary>What the Godot <c>Main</c> did on a scene change: the editor gets its overlay while it is up.</summary>
     private void OnSceneChanged(SceneKind scene)
     {
@@ -143,7 +145,7 @@ internal sealed class HostGame : HostApp
     {
         _fileDialog.Poll();
         Keyboard.FeedPresses(Inputs.Keyboard, _systems.KeyPresses, key =>
-            key != Xanadu.Systems.Input.DebugKeys.Screenshot && (!TextInput.Active || key == Godot.Key.Escape));
+            key != Xanadu.Systems.Input.DebugKeys.Screenshot && (!TextInput.Active || key == Key.Escape));
         _systems.Update(new UpdateTick(delta, time));
         _editorOverlay?.Tick();
         WarmLevelShaders();

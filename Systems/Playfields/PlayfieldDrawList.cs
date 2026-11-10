@@ -85,7 +85,7 @@ public static class PlayfieldDrawList
     /// <summary>Every note, on its own layer.</summary>
     private static void AddNotes(EntityStore entities, List<PlayfieldDrawEntry> into)
     {
-        foreach (var (notes, chunk) in entities.Query<Note>().Chunks)
+        foreach (var (notes, chunk) in entities.Cached<Note>().Chunks)
         {
             Span<Note> span = notes.Span;
             for (int i = 0; i < span.Length; i++)
@@ -100,7 +100,7 @@ public static class PlayfieldDrawList
     private static void AddEffects<T>(EntityStore entities, List<PlayfieldDrawEntry> into, PlayfieldDrawKind kind)
         where T : struct, IComponent
     {
-        foreach (var (_, chunk) in entities.Query<T>().Chunks)
+        foreach (var (_, chunk) in entities.Cached<T>().Chunks)
         {
             foreach (Entity entity in chunk)
             {

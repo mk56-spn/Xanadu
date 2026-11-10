@@ -1,6 +1,5 @@
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
-using Godot;
 using Xanadu.Settings;
 using Xanadu.Systems.Audio;
 using Xanadu.Systems.Ui;
@@ -102,14 +101,21 @@ public struct EditorButton(EditorButtonKind kind, int arg = 0) : IComponent
     public static List<Entity> All(EntityStore store, EditorButtonKind kind)
     {
         var found = new List<Entity>();
-        foreach (Entity entity in store.Query<EditorButton>().WithDisabled().ToEntityList())
+        foreach (var (buttons, chunk) in AllButtons.GetValue(store, static s => s.Query<EditorButton>().WithDisabled()).Chunks)
         {
-            if (entity.GetComponent<EditorButton>().Kind == kind)
-                found.Add(entity);
+            System.Span<EditorButton> span = buttons.Span;
+            for (int i = 0; i < span.Length; i++)
+            {
+                if (span[i].Kind == kind)
+                    found.Add(chunk.EntityAt(i));
+            }
         }
 
         return found;
     }
+
+    /// <summary>Every editor button, hidden ones included: kept per store, as this runs every frame.</summary>
+    private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<EntityStore, ArchetypeQuery<EditorButton>> AllButtons = new();
 }
 
 public enum EditorReadoutKind

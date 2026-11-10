@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Globalization;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
-using Godot;
 using Xanadu.Ecs;
 using Xanadu.Systems.Input;
 using Xanadu.Theme;
@@ -28,6 +27,7 @@ public sealed partial class DebugPressedOverlaySystem : QuerySystem<Rectangle, P
     private readonly SystemRoot? _systems;
     private readonly IFpsSource? _fpsSource;
     private readonly IOverlayPageSource? _paging;
+    private readonly IGpuMemorySource? _gpuMemory;
     private readonly IVisualRidFactory? _visuals;
     private readonly OverlayLatch _latch;
     private readonly Dictionary<BaseSystem, string> _names = new();
@@ -64,8 +64,10 @@ public sealed partial class DebugPressedOverlaySystem : QuerySystem<Rectangle, P
         SystemRoot? systems = null,
         IFpsSource? fpsSource = null,
         IOverlayPageSource? paging = null,
-        IVisualRidFactory? visuals = null)
+        IVisualRidFactory? visuals = null,
+        IGpuMemorySource? gpuMemory = null)
     {
+        _gpuMemory = gpuMemory;
         _latch = new OverlayLatch(toggle);
         _store = store;
         _systems = systems;

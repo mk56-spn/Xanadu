@@ -1,0 +1,15 @@
+{
+    "file_format_version": "1.2.0",
+    "layer": {
+        "name": "VK_LAYER_XANADU_gpu_times",
+        "type": "GLOBAL",
+        "library_path": "./libxanadu_gpu_times.so",
+        "api_version": "1.4.0",
+        "implementation_version": "1",
+        "description": "Xanadu: GPU time per debug group (HostCore/Native/gpu_times_layer.c)",
+        "functions": {
+            "vkGetInstanceProcAddr": "xgt_GetInstanceProcAddr",
+            "vkGetDeviceProcAddr": "xgt_GetDeviceProcAddr"
+        }
+    }
+}

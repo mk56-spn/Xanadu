@@ -1,6 +1,5 @@
 using System;
 using Friflo.Engine.ECS;
-using Godot;
 using Xanadu.Ecs;
 using Xanadu.Systems.Canvas;
 using Xanadu.Theme;
@@ -45,7 +44,7 @@ public static partial class PlayfieldRenderer
     /// </summary>
     public static void DrawBlockBody(
         IRectCanvas canvas,
-        Rid rid,
+        Handle rid,
         Rect2 screen,
         float outlineWidth,
         Color fill,
@@ -72,10 +71,13 @@ public static partial class PlayfieldRenderer
     /// <summary>Whether any playfield in the store is playing rather than being edited.</summary>
     public static bool IsPlaying(EntityStore entities)
     {
-        foreach (Entity playfield in entities.Query<PlayfieldMode>().ToEntityList())
+        foreach (var (modes, _) in entities.Cached<PlayfieldMode>().Chunks)
         {
-            if (playfield.GetComponent<PlayfieldMode>().Kind == PlayfieldKind.Play)
-                return true;
+            foreach (PlayfieldMode mode in modes.Span)
+            {
+                if (mode.Kind == PlayfieldKind.Play)
+                    return true;
+            }
         }
 
         return false;
@@ -88,7 +90,7 @@ public static partial class PlayfieldRenderer
     /// </summary>
     public static void DrawBlock(
         IRectCanvas canvas,
-        Rid rid,
+        Handle rid,
         Entity entity,
         PlayfieldView view,
         bool selected,

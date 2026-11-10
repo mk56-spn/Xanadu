@@ -27,10 +27,7 @@ public static class EditorAutoAdvance
 
     public static bool IsOn(EntityStore store)
     {
-        foreach (Entity toggle in store.Query<Toggle>().AllTags(Tags.Get<EditorAutoAdvanceToggle>()).Entities)
-            return toggle.GetComponent<Toggle>().Value;
-
-        return false;
+        return store.ToggleOn<EditorAutoAdvanceToggle>();
     }
 
     /// <summary>After a note at <paramref name="placedMs"/>, seeks to the next snap when auto-advance is on.</summary>

@@ -1,7 +1,6 @@
 using System;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
-using Godot;
 using Xanadu.Animation;
 using Xanadu.Ecs;
 using Xanadu.Host;
@@ -33,12 +32,12 @@ internal sealed class AnimatorTool : HostApp
     /// no part of the character ever draws over the panels or their buttons.
     /// It is never cleared, so its clip stays put while its children redraw.
     /// </summary>
-    private readonly Rid _stage;
+    private readonly Handle _stage;
     private Rect2 _stageClip;
-    private readonly Rid _grid;
-    private readonly Rid _preview;
-    private readonly Rid _svgCanvas;
-    private readonly Rid _timelineCanvas;
+    private readonly Handle _grid;
+    private readonly Handle _preview;
+    private readonly Handle _svgCanvas;
+    private readonly Handle _timelineCanvas;
 
     /// <summary>Set by <c>--shot=path</c>: capture the frame there after <see cref="_shotAt"/> frames, then quit.</summary>
     private string? _shotPath;
@@ -154,6 +153,8 @@ internal sealed class AnimatorTool : HostApp
 
         return new HostWindowOptions(width, height, null, 0);
     }
+
+    protected override Friflo.Engine.ECS.Systems.SystemRoot Systems => _root;
 
     protected override void Tick(float delta, float time)
     {
@@ -362,7 +363,7 @@ internal sealed class AnimatorTool : HostApp
     {
         _attachments.Release();
         _visuals.Dispose();
-        foreach (Rid canvas in new[] { _grid, _preview, _svgCanvas, _timelineCanvas, _stage })
+        foreach (Handle canvas in new[] { _grid, _preview, _svgCanvas, _timelineCanvas, _stage })
             CanvasServer.Current.Free(canvas);
         _click.Dispose();
     }
@@ -380,9 +381,9 @@ internal sealed class AnimatorTool : HostApp
     }
 
     /// <summary>A canvas under <paramref name="parent"/> (the tool's own item by default); z is relative to it.</summary>
-    private Rid CreateCanvas(int zIndex, Rid parent = default)
+    private Handle CreateCanvas(int zIndex, Handle parent = default)
     {
-        Rid canvas = CanvasServer.Current.CreateItem();
+        Handle canvas = CanvasServer.Current.CreateItem();
         CanvasServer.Current.SetParent(canvas, parent.IsValid ? parent : Canvas.RootRid);
         CanvasServer.Current.SetZIndex(canvas, zIndex);
         return canvas;

@@ -124,9 +124,30 @@ internal sealed unsafe class FontFace : IDisposable
     }
 
     /// <summary>Shapes <paramref name="text"/> at <paramref name="size"/> pixels, into <paramref name="glyphs"/>; returns the total advance.</summary>
+    /// <summary>Shaped runs by text and size: UI text is mostly the same strings every frame, and shaping is HarfBuzz plus a scale change each time.</summary>
+    private readonly Dictionary<(string Text, int Size), (ShapedGlyph[] Glyphs, float Width)> _shaped = new();
+
+    /// <summary>Past this many runs the cache starts over, so ever-changing text (timers, counters) can't grow it without bound.</summary>
+    private const int MaxShaped = 4096;
+
     public float Shape(string text, int size, List<ShapedGlyph> glyphs)
     {
         glyphs.Clear();
+        if (_shaped.TryGetValue((text, size), out (ShapedGlyph[] Glyphs, float Width) run))
+        {
+            glyphs.AddRange(run.Glyphs);
+            return run.Width;
+        }
+
+        float width = ShapeUncached(text, size, glyphs);
+        if (_shaped.Count >= MaxShaped)
+            _shaped.Clear();
+        _shaped[(text, size)] = (glyphs.ToArray(), width);
+        return width;
+    }
+
+    private float ShapeUncached(string text, int size, List<ShapedGlyph> glyphs)
+    {
         _hbFont.SetScale(size * 64, size * 64);
         using var buffer = new HbBuffer();
         buffer.AddUtf16(text);

@@ -1,6 +1,5 @@
 using System;
 using Friflo.Engine.ECS;
-using Godot;
 using Xanadu.Ecs;
 using Xanadu.Levels;
 using Xanadu.Systems.Canvas;
@@ -163,7 +162,7 @@ public sealed class EditorTimelineDrawer
     /// </summary>
     private void DrawStartMarkers(Rect2 ruler, NoteSelection selection, long windowStart, long windowEnd)
     {
-        foreach (Entity entity in _surface.Entities.Query<StartPoint>().ToEntityList())
+        foreach (Entity entity in _surface.Entities.Cached<StartPoint>().ToEntityList())
         {
             StartPoint start = entity.GetComponent<StartPoint>();
             if (start.TimeMs < windowStart || start.TimeMs > windowEnd)

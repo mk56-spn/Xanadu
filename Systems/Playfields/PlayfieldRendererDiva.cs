@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
-using Godot;
 using Xanadu.Ecs;
 using Xanadu.Systems.Canvas;
 using Xanadu.Theme;
@@ -76,7 +75,7 @@ public static partial class PlayfieldRenderer
     public static DivaMoment? EarliestDivaMoment(EntityStore entities)
     {
         long earliest = long.MaxValue;
-        foreach (Entity entity in entities.Query<Note>().ToEntityList())
+        foreach (Entity entity in entities.Cached<Note>().ToEntityList())
         {
             Note note = entity.GetComponent<Note>();
             if (IsDivaNote(entity, note) && note.TimeMs < earliest)
@@ -88,7 +87,7 @@ public static partial class PlayfieldRenderer
 
         Vector2 sum = Vector2.Zero;
         int count = 0;
-        foreach (Entity entity in entities.Query<Note>().ToEntityList())
+        foreach (Entity entity in entities.Cached<Note>().ToEntityList())
         {
             Note note = entity.GetComponent<Note>();
             if (IsDivaNote(entity, note) && note.TimeMs - earliest <= NoteGuides.SimultaneousMs)
@@ -110,7 +109,7 @@ public static partial class PlayfieldRenderer
     /// </summary>
     public static void DrawDivaNote(
         IRectCanvas canvas,
-        Rid rid,
+        Handle rid,
         Entity entity,
         PlayfieldView view,
         Playhead playhead,
@@ -164,7 +163,7 @@ public static partial class PlayfieldRenderer
     }
 
     /// <summary>A note past its beat or missed: on its spot, fading out like the game's own.</summary>
-    private static void DrawLandedDivaNote(IRectCanvas canvas, Rid rid, Entity entity, Note note, PlayfieldView view, Playhead playhead)
+    private static void DrawLandedDivaNote(IRectCanvas canvas, Handle rid, Entity entity, Note note, PlayfieldView view, Playhead playhead)
     {
         float alpha = NoteFade.Alpha(note, playhead.TimeMs);
         if (alpha <= 0)
@@ -216,7 +215,7 @@ public static partial class PlayfieldRenderer
     /// <summary>A ribbon behind a flying note, the note's width at its head, thinning and fading to nothing.</summary>
     private static void DrawDivaTrail(
         IRectCanvas canvas,
-        Rid rid,
+        Handle rid,
         Vector2 center,
         Vector2 from,
         float distance,
@@ -262,7 +261,7 @@ public static partial class PlayfieldRenderer
     /// </summary>
     public static void DrawDivaGuides(
         IRectCanvas canvas,
-        Rid rid,
+        Handle rid,
         EntityStore entities,
         PlayfieldView view,
         Playhead playhead,
@@ -319,7 +318,7 @@ public static partial class PlayfieldRenderer
 
     private static bool TryGetSpark(EntityStore entities, out DivaSpark spark)
     {
-        foreach (Entity entity in entities.Query<DivaSpark>().ToEntityList())
+        foreach (Entity entity in entities.Cached<DivaSpark>().ToEntityList())
         {
             spark = entity.GetComponent<DivaSpark>();
             return true;
@@ -344,7 +343,7 @@ public static partial class PlayfieldRenderer
     {
         DivaPoints.Clear();
         DivaMoments.Clear();
-        foreach (Entity entity in entities.Query<Note>().ToEntityList())
+        foreach (Entity entity in entities.Cached<Note>().ToEntityList())
         {
             Note note = entity.GetComponent<Note>();
             long remaining = note.TimeMs - playheadMs;
@@ -381,7 +380,7 @@ public static partial class PlayfieldRenderer
     }
 
     /// <summary>A chord's hub: a dot at its middle with a spoke out to each note's rim.</summary>
-    private static void DrawDivaHub(IRectCanvas canvas, Rid rid, DivaMoment moment, float radius, float hubRadius, float pulse)
+    private static void DrawDivaHub(IRectCanvas canvas, Handle rid, DivaMoment moment, float radius, float hubRadius, float pulse)
     {
         for (int n = moment.First; n < moment.First + moment.Count; n++)
         {
@@ -396,7 +395,7 @@ public static partial class PlayfieldRenderer
     /// <summary>A white-hot core in the next note's colour, a fading tail along the line and embers falling off it.</summary>
     private static void DrawDivaSpark(
         IRectCanvas canvas,
-        Rid rid,
+        Handle rid,
         Vector2 start,
         Vector2 end,
         float u,

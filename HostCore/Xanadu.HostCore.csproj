@@ -16,10 +16,12 @@
     <InternalsVisibleTo Include="Xanadu.Host" />
     <InternalsVisibleTo Include="Xanadu.Labs" />
     <InternalsVisibleTo Include="Xanadu.AnimatorTool" />
+    <InternalsVisibleTo Include="Xanadu.Autopsy" />
     <InternalsVisibleTo Include="Xanadu.Ui.Showcase" />
     <InternalsVisibleTo Include="Xanadu.VisualTests" />
   </ItemGroup>
   <ItemGroup>
+    <PackageReference Include="Microsoft.Diagnostics.NETCore.Client" Version="0.2.750501" />
     <ProjectReference Include="../External/MoonWorks/MoonWorks.csproj" />
     <ProjectReference Include="../Core/Xanadu.Core.csproj" />
     <ProjectReference Include="../UI/Xanadu.Ui.csproj" />
@@ -39,4 +41,24 @@
   <Target Name="CheckMoonlibs" BeforeTargets="Build" Condition="$([MSBuild]::IsOSPlatform('Linux')) And !Exists('../External/moonlibs/lib64/libSDL3.so.0')">
     <Error Text="MoonWorks native libraries are missing: run External/fetch-moonlibs.sh" />
   </Target>
+  <!--
+    The GPU timing layer (Native/gpu_times_layer.c, Rendering/GpuTimes.cs): built with gcc against
+    External/fetch-vulkan-headers.sh's headers and copied next to every exe with its manifest.
+    Without the headers it is skipped and XANADU_GPU_TIMES=1 says so.
+  -->
+  <PropertyGroup>
+    <GpuTimesLayer>$(MSBuildThisFileDirectory)obj/native/libxanadu_gpu_times.so</GpuTimesLayer>
+    <BuildGpuTimes Condition="$([MSBuild]::IsOSPlatform('Linux')) And Exists('../External/vulkan-headers/include/vulkan/vk_layer.h')">true</BuildGpuTimes>
+  </PropertyGroup>
+  <Target Name="BuildGpuTimesLayer" BeforeTargets="AssignTargetPaths" Condition="'$(BuildGpuTimes)' == 'true'" Inputs="Native/gpu_times_layer.c" Outputs="$(GpuTimesLayer)">
+    <MakeDir Directories="$(MSBuildThisFileDirectory)obj/native" />
+    <Exec Command="gcc -shared -fPIC -O2 -Wall -fvisibility=hidden -I../External/vulkan-headers/include Native/gpu_times_layer.c -o &quot;$(GpuTimesLayer)&quot; -lpthread" />
+  </Target>
+  <Target Name="AddGpuTimesLayer" AfterTargets="BuildGpuTimesLayer" BeforeTargets="AssignTargetPaths" Condition="'$(BuildGpuTimes)' == 'true'">
+    <ItemGroup>
+      <None Include="$(GpuTimesLayer)" Link="libxanadu_gpu_times.so" CopyToOutputDirectory="PreserveNewest" Visible="false" />
+      <None Include="Native/xanadu_gpu_times.json" Link="xanadu_gpu_times.json" CopyToOutputDirectory="PreserveNewest" Visible="false" />
+    </ItemGroup>
+  </Target>
+  <Import Project="../Core/Maths/Maths.props" />
 </Project>

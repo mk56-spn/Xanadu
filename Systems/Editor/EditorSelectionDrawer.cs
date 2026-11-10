@@ -1,5 +1,4 @@
 using Friflo.Engine.ECS;
-using Godot;
 using Xanadu.Ecs;
 using Xanadu.Editor;
 using Xanadu.Systems.Canvas;
@@ -18,7 +17,7 @@ public sealed class EditorSelectionDrawer(EditorDrawSurface surface)
     {
         float size = PlayfieldRenderer.NoteSize * view.Scale;
 
-        foreach (Entity entity in surface.Entities.Query<Note>().ToEntityList())
+        foreach (Entity entity in surface.Entities.Cached<Note>().ToEntityList())
         {
             if (!selection.Contains(entity))
                 continue;
@@ -34,7 +33,7 @@ public sealed class EditorSelectionDrawer(EditorDrawSurface surface)
         }
 
         float mineSize = PlayfieldRenderer.MineSize * view.Scale;
-        foreach (Entity entity in surface.Entities.Query<Mine>().ToEntityList())
+        foreach (Entity entity in surface.Entities.Cached<Mine>().ToEntityList())
         {
             if (!selection.Contains(entity))
                 continue;
@@ -58,7 +57,7 @@ public sealed class EditorSelectionDrawer(EditorDrawSurface surface)
     /// </summary>
     public void DrawRegions(PlayfieldView view, NoteSelection selection)
     {
-        foreach (Entity entity in surface.Entities.Query<ScreenReadRegion>().ToEntityList())
+        foreach (Entity entity in surface.Entities.Cached<ScreenReadRegion>().ToEntityList())
         {
             ScreenReadRegion region = entity.GetComponent<ScreenReadRegion>();
             PlayfieldView shown = GroupOffset.View(entity, view);
@@ -109,7 +108,7 @@ public sealed class EditorSelectionDrawer(EditorDrawSurface surface)
         view = GroupOffset.View(selection.Note, view);
         Vector2 pivot;
         Vector2 handle;
-        EntityList rotating = surface.Entities.Query<EditorSelectionRotation>().ToEntityList();
+        EntityList rotating = surface.Entities.Cached<EditorSelectionRotation>().ToEntityList();
         if (rotating.Count > 0)
         {
             // Mid-drag the selection's box keeps changing, so the handle swings

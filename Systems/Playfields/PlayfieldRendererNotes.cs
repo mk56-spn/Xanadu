@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
-using Godot;
 using Xanadu.Ecs;
 using Xanadu.Settings;
 using Xanadu.Systems.Canvas;
@@ -18,7 +17,7 @@ public static partial class PlayfieldRenderer
     /// </summary>
     public static void DrawNote(
         IRectCanvas canvas,
-        Rid rid,
+        Handle rid,
         Entity entity,
         PlayfieldView view,
         Playhead playhead,
@@ -72,7 +71,7 @@ public static partial class PlayfieldRenderer
     /// <summary>Draws just a note's body at a position, shared by play and the editor's group preview.</summary>
     public static void DrawNoteBody(
         IRectCanvas canvas,
-        Rid rid,
+        Handle rid,
         Note note,
         Vector2 center,
         float radius,
@@ -101,14 +100,14 @@ public static partial class PlayfieldRenderer
     /// <summary>Guide lines in hit order, under the notes; simultaneous notes meet at a hub dot.</summary>
     public static void DrawNoteGuides(
         IRectCanvas canvas,
-        Rid rid,
+        Handle rid,
         EntityStore entities,
         PlayfieldView view,
         Playhead playhead)
     {
         float radius = NoteSize * view.Scale / 2;
         var points = new List<NoteGuides.Point>();
-        foreach (Entity entity in entities.Query<Note>().ToEntityList())
+        foreach (Entity entity in entities.Cached<Note>().ToEntityList())
         {
             Note note = entity.GetComponent<Note>();
             float alpha = NoteFade.Alpha(note, playhead.TimeMs);
@@ -155,7 +154,7 @@ public static partial class PlayfieldRenderer
     /// <summary>Draws one mine while it shows, under its own shader.</summary>
     public static void DrawMine(
         IRectCanvas canvas,
-        Rid rid,
+        Handle rid,
         Entity entity,
         PlayfieldView view,
         Playhead playhead)

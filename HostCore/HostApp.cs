@@ -44,6 +44,13 @@ internal abstract class HostApp : Game
     private int _frames;
     private bool _screenshotRequested;
     private string? _requestedShot;
+    private readonly HostFrameProbe? _probe;
+    private readonly Autopsy.AutopsyRecorder? _autopsy;
+    private readonly Autopsy.CpuSampler? _sampler;
+
+    [System.Runtime.InteropServices.DllImport("libc", EntryPoint = "gettid")]
+    private static extern int GetThreadId();
+    private bool _drawnSinceUpdate = true;
 
     protected Texture Target { get; }
     protected CanvasTree Canvas { get; } = new();
@@ -53,10 +60,15 @@ internal abstract class HostApp : Game
     protected HostPointer Pointer { get; }
     protected HostTextInput TextInput { get; }
     protected HostFps Fps { get; } = new();
+
+    private readonly Rendering.VulkanMemoryBudget _gpuMemory = new();
     protected EntityStore Entities { get; } = new();
 
     /// <summary>Seconds since the window opened: the TIME effects see.</summary>
     protected float Seconds => (float)(DateTime.UtcNow - _started).TotalSeconds;
+
+    /// <summary>Runs before any instance's base constructor makes the graphics device, which is when the layer must be in place.</summary>
+    static HostApp() => GpuTimes.Install();
 
     protected HostApp(string title, HostWindowOptions window) : base(
         new AppInfo("Xanadu", title),
@@ -68,7 +80,8 @@ internal abstract class HostApp : Game
         _window = window;
         Target = Texture.Create2D(GraphicsDevice, "frame", Width, Height, TargetFormat,
             TextureUsageFlags.ColorTarget | TextureUsageFlags.Sampler);
-        GamePaths.UseRoots(FindGameFolder(), GamePaths.GodotUserFolder("Xanadu"));
+        UseGameRoots();
+        HostWindowIcon.Apply(MainWindow.Handle);
         SlangShaders.LibraryPath = GamePaths.Globalize("res://Assets/Shaders/Library");
         SlangShaders.CacheFolder = GamePaths.Globalize("user://shader_cache_slang");
         Renderer = new CanvasRenderer(GraphicsDevice, Canvas, TargetFormat, Width, Height);
@@ -82,15 +95,16 @@ internal abstract class HostApp : Game
         Keyboard = new HostKeyboard(Inputs.Keyboard);
         Pointer = new HostPointer(Inputs.Mouse, Keyboard)
         {
-            Scale = new Godot.Vector2((float)Width / window.Width, (float)Height / window.Height),
+            Scale = new Vector2((float)Width / window.Width, (float)Height / window.Height),
         };
         HostPlatform.Use(Canvas, () => new HostRectCanvas(Text), Keyboard, new CanvasServerRidFactory(loadsAssets: true), Fps);
         HostPlatform.Particles = Renderer.Particles;
+        HostPlatform.GpuMemory = _gpuMemory;
         TextureServer.Use(new HostTextures(GraphicsDevice, Canvas, Renderer));
         UiIcons.Loader = UiIcons.FromResources;
         HostPlatform.GlyphStrip = atlas =>
         {
-            Godot.Rid rid = Canvas.MintRid();
+            Handle rid = Canvas.MintRid();
             Renderer.Textures[rid.Id] = GlyphStrips.Build(GraphicsDevice, Text, atlas);
             return rid;
         };
@@ -98,7 +112,48 @@ internal abstract class HostApp : Game
         HostPlatform.DescribeMaterial = DescribeMaterial;
         HostPlatform.ApplyVSync = ApplyVSync;
         ApplyVSync(true);
+        HostPlatform.ApplyWindowMode = ApplyWindowMode;
         TextInput = new HostTextInput(Entities, MainWindow);
+        _probe = HostFrameProbe.Enabled ? new HostFrameProbe() : null;
+
+        // Every launch is recorded for the Autopsy tool and saved when the window closes.
+        // Shot runs (visual tests) leave the last real launch alone unless XANADU_AUTOPSY=1.
+        if (RecordsAutopsy && (window.ShotPath is null || Environment.GetEnvironmentVariable("XANADU_AUTOPSY") == "1"))
+        {
+            string app = AutopsyName(title);
+            _autopsy = new Autopsy.AutopsyRecorder(app, 1000f / RefreshRate(), OperatingSystem.IsLinux() ? GetThreadId() : 0);
+            GpuTimes.FrameTimed = _autopsy.AddGpu;
+            _sampler = Autopsy.CpuSampler.Start(app);
+            _autopsy.HasTrace = _sampler is not null;
+            AppDomain.CurrentDomain.UnhandledException += (_, _) => SaveAutopsy();
+        }
+    }
+
+    /// <summary>The systems the frame autopsy times, one by one; null leaves update as one block.</summary>
+    protected virtual Friflo.Engine.ECS.Systems.SystemRoot? Systems => null;
+
+    /// <summary>False for an exe whose launches shouldn't be recorded (the Autopsy tool itself).</summary>
+    protected virtual bool RecordsAutopsy => true;
+
+    /// <summary>"Xanadu" is the game; "Xanadu Labs" is "labs".</summary>
+    private static string AutopsyName(string title)
+    {
+        string name = title.StartsWith("Xanadu ", StringComparison.Ordinal) ? title["Xanadu ".Length..] : title == "Xanadu" ? "game" : title;
+        return name.ToLowerInvariant().Replace(' ', '-');
+    }
+
+    private void SaveAutopsy()
+    {
+        if (_autopsy is null)
+            return;
+        try
+        {
+            Autopsy.AutopsyStore.Save(_autopsy.Snapshot());
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        {
+            Console.WriteLine($"Frame autopsy not saved: {exception.Message}");
+        }
     }
 
     /// <summary>Saves the next frame to <paramref name="path"/> and quits, for an exe that times its own shot.</summary>
@@ -113,13 +168,19 @@ internal abstract class HostApp : Game
     /// <summary>Tells the user about a screenshot; the game shows a toast.</summary>
     protected virtual void Notify(string message) => Console.WriteLine(message);
 
+    /// <summary>
+    /// Records GPU work the canvas will sample this frame (an exe's own
+    /// offscreen passes), before the canvas renders.
+    /// </summary>
+    protected virtual void RenderOffscreen(CommandBuffer commands) { }
+
     /// <summary>Called when the window closes, before the host's own resources go.</summary>
     protected virtual void Shutdown() { }
 
     /// <summary>
     /// Vertical sync on: present on vblank, one update per display refresh.
-    /// Off: mailbox (or immediate) presents and updates up to 1000 a second,
-    /// as Godot ran uncapped without vsync.
+    /// Off: mailbox (or immediate) presents, one update per frame, as fast as
+    /// the machine goes, as Godot ran uncapped without vsync.
     /// </summary>
     private void ApplyVSync(bool enabled)
     {
@@ -127,7 +188,47 @@ internal abstract class HostApp : Game
             : GraphicsDevice.SupportsPresentMode(MainWindow, PresentMode.Mailbox) ? PresentMode.Mailbox
             : PresentMode.Immediate;
         GraphicsDevice.SetSwapchainParameters(MainWindow, SwapchainComposition.SDR, mode);
-        SetFramePacingSettings(FramePacingSettings.CreateCapped(enabled ? RefreshRate() : 1000, 1));
+        // MoonWorks' Uncapped mode draws without updating between timesteps, so
+        // "off" is a cap no frame reaches: every frame still gets one update.
+        SetFramePacingSettings(FramePacingSettings.CreateCapped(enabled ? RefreshRate() : 100_000, 1));
+        // Under KDE fullscreen the compositor scans our buffer out and holds it
+        // until the next flip; with two frames in flight vsync locked at half
+        // the refresh rate with the GPU idle. A third costs at most one refresh
+        // of latency while vsync is on.
+        GraphicsDevice.SetAllowedFramesInFlight(3);
+    }
+
+    /// <summary>
+    /// Windowed: a decorated window at the launch size. Fullscreen: SDL
+    /// exclusive fullscreen at the display's current mode. Borderless: SDL
+    /// desktop fullscreen, a borderless window covering the whole display.
+    /// </summary>
+    private unsafe void ApplyWindowMode(WindowMode mode)
+    {
+        IntPtr window = MainWindow.Handle;
+        uint display = SDL3.SDL.SDL_GetDisplayForWindow(window);
+        switch (mode)
+        {
+            case WindowMode.Fullscreen:
+                SDL3.SDL.SDL_SetWindowBordered(window, true);
+                SDL3.SDL.SDL_DisplayMode* current = SDL3.SDL.SDL_GetCurrentDisplayMode(display);
+                if (current is not null)
+                    SDL3.SDL.SDL_SetWindowFullscreenMode(window, ref *current);
+                SDL3.SDL.SDL_SetWindowFullscreen(window, true);
+                break;
+            case WindowMode.Borderless:
+                // Desktop fullscreen: no mode of its own, the window covers the
+                // display at the desktop's resolution.
+                SDL3.SDL.SDL_SetWindowFullscreenMode(window, ref System.Runtime.CompilerServices.Unsafe.NullRef<SDL3.SDL.SDL_DisplayMode>());
+                SDL3.SDL.SDL_SetWindowFullscreen(window, true);
+                break;
+            default:
+                SDL3.SDL.SDL_SetWindowFullscreen(window, false);
+                SDL3.SDL.SDL_SetWindowBordered(window, true);
+                SDL3.SDL.SDL_SetWindowSize(window, (int)_window.Width, (int)_window.Height);
+                break;
+        }
+        SDL3.SDL.SDL_SyncWindow(window);
     }
 
     private unsafe int RefreshRate()
@@ -135,6 +236,9 @@ internal abstract class HostApp : Game
         SDL3.SDL.SDL_DisplayMode* display = SDL3.SDL.SDL_GetCurrentDisplayMode(SDL3.SDL.SDL_GetDisplayForWindow(MainWindow.Handle));
         return display is null || display->refresh_rate < 1 ? 60 : (int)MathF.Round(display->refresh_rate);
     }
+
+    /// <summary>Points res:// and user:// where every host exe has them; for a command that runs without a window.</summary>
+    internal static void UseGameRoots() => GamePaths.UseRoots(FindGameFolder(), GamePaths.GodotUserFolder("Xanadu"));
 
     /// <summary>The folder <c>res://</c> means: the one holding <see cref="GamePaths.RootMarker"/>, above the exe.</summary>
     private static string FindGameFolder()
@@ -167,31 +271,86 @@ internal abstract class HostApp : Game
         float delta = (float)(now - _lastUpdate).TotalSeconds;
         _lastUpdate = now;
 
+        if (_drawnSinceUpdate)
+            _autopsy?.BeginFrame();
+        _drawnSinceUpdate = false;
+        long started = System.Diagnostics.Stopwatch.GetTimestamp();
+        _probe?.BeginPhase();
         TextInput.Update(Inputs.Keyboard, delta);
         if (Inputs.Keyboard.IsPressed(KeyCode.F12))
             _screenshotRequested = true;
+        FollowWindowSize();
         Pointer.Poll();
         Tick(delta, (float)(now - _started).TotalSeconds);
         Pointer.EndFrame();
+        _probe?.EndUpdate();
+        if (_autopsy is not null)
+        {
+            if (Systems is { } systems)
+                _autopsy.SampleSystems(systems);
+            _autopsy.AddUpdate(System.Diagnostics.Stopwatch.GetElapsedTime(started).TotalMilliseconds);
+        }
+    }
+
+    /// <summary>
+    /// Keeps the pointer in design pixels when the window is resized or made
+    /// fullscreen: the frame is stretched to whatever size the window is now.
+    /// </summary>
+    private void FollowWindowSize()
+    {
+        if (!SDL3.SDL.SDL_GetWindowSize(MainWindow.Handle, out int width, out int height) || width < 1 || height < 1)
+            return;
+        Pointer.Scale = new Vector2((float)Width / width, (float)Height / height);
     }
 
     protected override void Draw(double alpha)
     {
+        _probe?.BeginPhase();
+        _drawStarted = System.Diagnostics.Stopwatch.GetTimestamp();
+        _acquireMs = 0;
+        try
+        {
+            DrawFrame();
+        }
+        finally
+        {
+            _probe?.EndDraw();
+            _drawnSinceUpdate = true;
+            _autopsy?.AddDraw(System.Diagnostics.Stopwatch.GetElapsedTime(_drawStarted).TotalMilliseconds, _acquireMs);
+        }
+    }
+
+    private long _drawStarted;
+    private double _acquireMs;
+    private long _frameNumber;
+
+    private void DrawFrame()
+    {
         Fps.Frame();
         CommandBuffer commands = GraphicsDevice.AcquireCommandBuffer();
+        long acquire = System.Diagnostics.Stopwatch.GetTimestamp();
         Texture? swapchain = commands.AcquireSwapchainTexture(MainWindow);
+        _acquireMs = System.Diagnostics.Stopwatch.GetElapsedTime(acquire).TotalMilliseconds;
+        _probe?.EndAcquire();
         if (swapchain is null)
         {
             GraphicsDevice.Submit(commands);
             return;
         }
 
+        GpuTimes.Poll();
         Text.Atlas.Flush();
+        // "frame" closes before any submit below; GpuTimes counts frames by it.
+        GpuScope frame = commands.Scope(GpuTimes.FrameName(_autopsy?.Number ?? _frameNumber++));
+        using (commands.Scope("offscreen"))
+            RenderOffscreen(commands);
 
-        // Palette comes from the UI assembly, and its Godot Color struct works without the engine.
-        Godot.Color background = Palette.Background;
-        Renderer.Render(commands, Target, new MwColor(background.R, background.G, background.B, 1f), Seconds);
-        commands.Blit(Target, swapchain, Filter.Linear);
+        Xanadu.Maths.Color background = Palette.Background;
+        using (commands.Scope("canvas"))
+            Renderer.Render(commands, Target, new MwColor(background.R, background.G, background.B, 1f), Seconds);
+        using (commands.Scope("blit to window"))
+            commands.Blit(Target, swapchain, Filter.Linear);
+        frame.Dispose();
 
         _frames++;
         if (_screenshotRequested)
@@ -204,6 +363,7 @@ internal abstract class HostApp : Game
         string? shot = _requestedShot ?? (_frames == _window.ShotFrame ? _window.ShotPath : null);
         if (shot is { } path)
         {
+            GpuTimes.Poll(now: true);
             Console.WriteLine($"Canvas: {Canvas.Count} items, {Renderer.LastBatchCount} draw calls, " +
                 $"{Renderer.LastOffscreenCount} offscreen passes, {Renderer.LastCopyCount} screen copies");
             Screenshot.Save(GraphicsDevice, commands, Target, Width, Height, path);
@@ -233,9 +393,12 @@ internal abstract class HostApp : Game
 
     protected override void Destroy()
     {
+        SaveAutopsy();
+        _sampler?.Stop();
         Shutdown();
         Text.Dispose();
         Renderer.Dispose();
+        _gpuMemory.Dispose();
     }
 }
 

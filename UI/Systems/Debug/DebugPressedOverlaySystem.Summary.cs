@@ -1,7 +1,6 @@
 using System.Globalization;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
-using Godot;
 using Xanadu.Ecs;
 using Xanadu.Theme;
 using Xanadu.Ui.Ecs.Ui;
@@ -34,6 +33,9 @@ public sealed partial class DebugPressedOverlaySystem
         Input,
         Pressed,
         LayoutDirty,
+        GpuProcess,
+        GpuBudget,
+        GpuCard,
         Count,
     }
 
@@ -42,6 +44,7 @@ public sealed partial class DebugPressedOverlaySystem
         ("FRAME", [(Stat.Fps, "fps"), (Stat.FrameMs, "frame ms"), (Stat.SystemsMs, "systems ms"), (Stat.AllocKb, "alloc KB / frame")]),
         ("ENTITIES", [(Stat.Entities, "entities"), (Stat.Capacity, "capacity"), (Stat.Archetypes, "archetypes"), (Stat.ArchetypesInUse, "in use"), (Stat.Containers, "containers")]),
         ("UI THIS FRAME", [(Stat.Dirty, "dirty"), (Stat.Moved, "moved"), (Stat.Input, "take input"), (Stat.Pressed, "pressed"), (Stat.LayoutDirty, "layout dirty")]),
+        ("GPU MEMORY", [(Stat.GpuProcess, "this app MB"), (Stat.GpuBudget, "budget MB"), (Stat.GpuCard, "card MB")]),
     ];
 
     private readonly Entity[] _stats = new Entity[(int)Stat.Count];
@@ -107,9 +110,17 @@ public sealed partial class DebugPressedOverlaySystem
         Set(Stat.Input, Count(_input.Count));
         Set(Stat.Pressed, Count(_pressed.Count));
         Set(Stat.LayoutDirty, Count(_layoutDirty.Count));
+
+        // From the driver: what this process holds in video memory, what it may hold, and the card's size.
+        GpuMemoryReading? gpu = _gpuMemory?.Read();
+        Set(Stat.GpuProcess, gpu is { } a ? Megabytes(a.ProcessBytes) : "n/a");
+        Set(Stat.GpuBudget, gpu is { } b ? Megabytes(b.BudgetBytes) : "n/a");
+        Set(Stat.GpuCard, gpu is { } c ? Megabytes(c.TotalBytes) : "n/a");
     }
 
     private static string Count(int value) => value.ToString(CultureInfo.InvariantCulture);
+
+    private static string Megabytes(long bytes) => (bytes / (1024.0 * 1024.0)).ToString("0", CultureInfo.InvariantCulture);
 
     private void Set(Stat stat, string text) => SetLine(_stats[(int)stat], text);
 }

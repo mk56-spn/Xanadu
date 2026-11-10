@@ -25,13 +25,8 @@ public static class ViewportGrid
         return button;
     }
 
-    public static bool IsVisible(EntityStore store)
-    {
-        foreach (Entity toggle in Toggles(store))
-            return toggle.GetComponent<Toggle>().Value;
-
-        return true;
-    }
+    /// <summary>Read every frame by every editor's field, so through the kept toggle query.</summary>
+    public static bool IsVisible(EntityStore store) => store.ToggleOn<ViewportGridToggle>(none: true, hidden: true);
 
     /// <summary>Sets the switch, for a scene rebuilt with its button back at the default.</summary>
     public static void SetVisible(EntityStore store, bool visible)
