@@ -347,6 +347,17 @@ host fills; tests leave the headless defaults.
     the frame on save and swaps it in; errors show in mono in the panel and the
     last good version stays. The format is a level slot, so anything made here
     pastes into a level. Sets `mouse` and `resolution`.
+  - **Shader editor** (tab 1; the start of the in-game shader editor): a
+    level slot typed in the lab (`Tools/Labs/Editor/`: `CodeBuffer` text and
+    caret, `CodeView` drawing, `SlangProblems`, `SlangHints`), compiled 0.3 s
+    after typing stops and drawn beside it, saved to the git-ignored
+    `Playground/editor.slang`. Linting is Slang's own errors: the line tinted,
+    the word underlined, the message after the code and in the panel.
+    Inlay hints show library parameter names (`Box(size: …, radius: …)`)
+    without them being in the text; they come from the library's `public`
+    signatures, matched by name and argument count (no hint when ambiguous).
+    It claims the keyboard through `HostTextInput.Claimed`. No selection,
+    undo or horizontal scroll yet.
   - **Particles:** bursts every library effect once a second.
   - **Blend:** two quads with the whole fixed-function blend open
     (`CanvasMaterial.Custom`); the renderer sets the blend constant per draw.

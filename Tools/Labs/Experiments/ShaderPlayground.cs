@@ -40,28 +40,8 @@ internal sealed class ShaderPlayground(string? path) : ILabExperiment
         "Edit the file below in any editor: every save",
         "recompiles and redraws. It is a level shader slot:",
         "uniforms and float4 shade(ItemInput i); import xanadu.",
-        "Declare any of these and the lab fills it every frame:",
-        "  float2 centre: the pointer in i.centred's space",
-        "  float time: seconds since the lab started",
-        "  float2 mouse: the pointer, 0..1 on the stage",
-        "  float2 resolution: the stage's size in pixels",
+        .. LabShaderValues.Notes,
     ];
-
-    /// <summary>
-    /// Values the lab can always provide, by uniform name. Each is set only when
-    /// the shader declares a uniform of that name, so a shader asks for one just
-    /// by writing it.
-    /// </summary>
-    private static readonly (string Name, Func<Provided, Vector4> Value)[] ProvidedValues =
-    [
-        ("centre", p => new Vector4(p.Centre.X, p.Centre.Y, 0, 0)),
-        ("time", p => new Vector4(p.Time, 0, 0, 0)),
-        ("mouse", p => new Vector4(p.Mouse.X, p.Mouse.Y, 0, 0)),
-        ("resolution", p => new Vector4(p.Resolution.X, p.Resolution.Y, 0, 0)),
-    ];
-
-    /// <summary>What the provided values are made from this frame.</summary>
-    private readonly record struct Provided(Vector2 Centre, float Time, Vector2 Mouse, Vector2 Resolution);
 
     /// <summary>The watched file: <c>--shader</c>, or the lab's own working copy, made from the template the first time.</summary>
     private string File
@@ -120,7 +100,7 @@ internal sealed class ShaderPlayground(string? path) : ILabExperiment
         private float _sincePoll = PollSeconds;
         private Task<(string Source, string[] Params, string? Error, long Ms)>? _compiling;
 
-        /// <summary>The provided values the shader on screen declares, by index into <see cref="ProvidedValues"/>.</summary>
+        /// <summary>The provided values the shader on screen declares, by index into <see cref="LabShaderValues.All"/>.</summary>
         private int[] _wanted = [];
 
         public Stage(ShaderPlayground owner, LabContext context, Handle item, Rect2 area)
@@ -147,11 +127,7 @@ internal sealed class ShaderPlayground(string? path) : ILabExperiment
             if (_material is null)
                 return;
 
-            Vector2 mouse = (frame.Mouse - _area.Position) / _area.Size;
-            mouse = new Vector2(Mathf.Clamp(mouse.X, 0, 1), Mathf.Clamp(mouse.Y, 0, 1));
-            var provided = new Provided((mouse - new Vector2(0.5f, 0.5f)) * _area.Size, frame.Time, mouse, _area.Size);
-            foreach (int index in _wanted)
-                _material.Set(ProvidedValues[index].Name, ProvidedValues[index].Value(provided));
+            LabShaderValues.Apply(_material, _wanted, _area, frame.Mouse, frame.Time);
         }
 
         /// <summary>Starts a compile when the file's write time moves; editors that save by renaming still bump it.</summary>
@@ -220,13 +196,11 @@ internal sealed class ShaderPlayground(string? path) : ILabExperiment
             CanvasMaterial previous = _material!;
             _material = CanvasMaterial.FromSource(Name, source);
             CanvasServer.Current.SetMaterial(_item, _material);
-            _wanted = Enumerable.Range(0, ProvidedValues.Length)
-                .Where(index => Array.IndexOf(declared, ProvidedValues[index].Name) >= 0)
-                .ToArray();
+            _wanted = LabShaderValues.Wanted(declared);
             if (previous is not null)
                 _context.Pipelines.Forget(previous);
 
-            string given = _wanted.Length == 0 ? "" : " · lab sets " + string.Join(", ", _wanted.Select(index => ProvidedValues[index].Name));
+            string given = LabShaderValues.Describe(_wanted);
             _owner.ShowStatus($"compiled at {DateTime.Now:HH:mm:ss} in {ms} ms{given}", Palette.Success);
             _owner.ShowErrors("");
         }

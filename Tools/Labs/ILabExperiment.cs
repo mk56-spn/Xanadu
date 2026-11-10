@@ -11,14 +11,17 @@ internal sealed record LabContext(
     Xanadu.Host.Rendering.CanvasPipelines Pipelines,
     MoonWorks.Graphics.GraphicsDevice Device,
     System.Func<MoonWorks.Graphics.Texture, Handle> Show,
-    System.Action<Handle> Hide);
+    System.Action<Handle> Hide,
+    Xanadu.Host.Text.HostText Text,
+    System.Action<bool> ClaimTyping);
 
 /// <summary>
 /// What a stage is handed each frame: the time, the pointer in design pixels,
 /// whether its left button is down, and the raw MoonWorks input for stages that
-/// want the other buttons, the wheel or keys.
+/// want the other buttons, the wheel or keys, and the text typed this frame
+/// (only while the stage has claimed typing through <see cref="LabContext.ClaimTyping"/>).
 /// </summary>
-internal readonly record struct LabFrame(float Delta, float Time, Vector2 Mouse, bool Held, MoonWorks.Input.Inputs? Inputs = null);
+internal readonly record struct LabFrame(float Delta, float Time, Vector2 Mouse, bool Held, MoonWorks.Input.Inputs? Inputs = null, string Typed = "");
 
 /// <summary>One open experiment's drawing. It is made when its tab opens and disposed when another does.</summary>
 internal interface ILabStage : System.IDisposable
@@ -55,6 +58,7 @@ internal static class LabExperiments
     public static ILabExperiment[] All(LabsOptions options) =>
     [
         new Experiments.ShaderPlayground(options.Shader),
+        new Experiments.ShaderEditor(),
         new Experiments.ParticleBursts(),
         new Experiments.BlendLab(),
         new Experiments.DepthLab(),

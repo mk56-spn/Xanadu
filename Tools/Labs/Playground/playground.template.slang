@@ -1,6 +1,6 @@
-// Xanadu Labs shader playground. Save this file and the stage redraws.
+// A Xanadu shader, written like a level's shader slot.
 //
-// It's written like a level's shader slot: uniforms, then
+// Uniforms, then
 //     float4 shade(ItemInput i)
 // returning the pixel's colour. `import xanadu;` brings the whole library:
 // shapes (Box, Circle, … with .turn .move .repeat .fill .glow …), and under
@@ -9,7 +9,7 @@
 // from the stage's centre, y down), time, screenUv and more (see
 // Assets/Shaders/Library/xanadu/stage.slang).
 //
-// Your working copy (playground.slang) is git-ignored: scribble freely.
+// The lab's working copies (playground.slang, editor.slang) are git-ignored.
 import xanadu;
 
 // Provided by the lab: declare any of these and it is set every frame;

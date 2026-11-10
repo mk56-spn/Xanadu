@@ -39,8 +39,30 @@ internal sealed class HostTextInput
     /// <summary>True while a text field has focus and keys go to it.</summary>
     public bool Active => !_field.IsNull;
 
+    /// <summary>
+    /// Set by something that runs its own text editing (Labs' shader editor):
+    /// SDL text input stays on, no field is typed into, and what is typed waits
+    /// in <see cref="TakeTyped"/>.
+    /// </summary>
+    public bool Claimed { get; set; }
+
+    /// <summary>What was typed since the last call, while <see cref="Claimed"/>.</summary>
+    public string TakeTyped()
+    {
+        string typed = _typed.ToString();
+        _typed.Clear();
+        return typed;
+    }
+
     public void Update(Keyboard keyboard, float delta)
     {
+        if (Claimed)
+        {
+            _field = default;
+            _window.StartTextInput();
+            return;
+        }
+
         _field = Focused();
         if (_field.IsNull || !_field.HasComponent<TextField>())
         {

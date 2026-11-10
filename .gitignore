@@ -34,6 +34,7 @@ External/moonlibs/
 
 # Xanadu Labs: the shader playground's working copy is yours to scribble on
 Tools/Labs/Playground/playground.slang
+Tools/Labs/Playground/editor.slang
 
 # Vulkan headers for the GPU timing layer: fetched by External/fetch-vulkan-headers.sh
 External/vulkan-headers/

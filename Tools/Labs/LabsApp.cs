@@ -105,7 +105,8 @@ internal sealed class LabsApp : HostApp
     {
         _root.Update(new UpdateTick(delta, time));
         ShowSelected();
-        _stage?.Update(new LabFrame(delta, time, Pointer.Position, Pointer.LeftDown, Inputs));
+        string typed = TextInput.Claimed ? TextInput.TakeTyped() : "";
+        _stage?.Update(new LabFrame(delta, time, Pointer.Position, Pointer.LeftDown, Inputs, typed));
     }
 
     /// <summary>
@@ -119,6 +120,7 @@ internal sealed class LabsApp : HostApp
             return;
 
         _stage?.Dispose();
+        TextInput.Claimed = false;
         if (_stageItem.IsValid)
             CanvasServer.Current.Free(_stageItem);
 
@@ -126,7 +128,9 @@ internal sealed class LabsApp : HostApp
         CanvasServer.Current.SetParent(_stageItem, Canvas.RootRid);
         CanvasServer.Current.SetZIndex(_stageItem, StageZ);
         _stage = _experiments[selected].CreateStage(
-            new LabContext(Renderer.Pipelines, GraphicsDevice, ShowTexture, id => Renderer.Textures.Remove(id.Id)),
+            new LabContext(
+                Renderer.Pipelines, GraphicsDevice, ShowTexture, id => Renderer.Textures.Remove(id.Id),
+                Text, claimed => TextInput.Claimed = claimed),
             _stageItem, _area);
         _shown = selected;
     }
