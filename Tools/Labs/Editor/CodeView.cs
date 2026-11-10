@@ -30,7 +30,21 @@ internal sealed class CodeView
     private static readonly Color Background = new("#0b1020");
     private static readonly Color GutterText = new("#4a5578");
     private static readonly Color Code = new("#d8def0");
-    private static readonly Color Comment = new("#6b7a99");
+
+    /// <summary>A fixed colour per kind of token (not editable yet).</summary>
+    private static readonly Dictionary<TokenKind, Color> Colours = new()
+    {
+        [TokenKind.Plain] = Code,
+        [TokenKind.Keyword] = new("#c792ea"),
+        [TokenKind.Type] = new("#7fb8e6"),
+        [TokenKind.LibraryType] = new("#ffcb6b"),
+        [TokenKind.Namespace] = new("#89ddcb"),
+        [TokenKind.Function] = new("#82aaff"),
+        [TokenKind.Number] = new("#f78c6c"),
+        [TokenKind.Text] = new("#c3e88d"),
+        [TokenKind.Attribute] = new("#a0a8c4"),
+        [TokenKind.Comment] = new("#6b7a99"),
+    };
     private static readonly Color HintText = new("#93a4cf");
     private static readonly Color HintPill = new(0.55f, 0.65f, 0.95f, 0.10f);
     private static readonly Color CaretLine = new(1, 1, 1, 0.04f);
@@ -99,7 +113,7 @@ internal sealed class CodeView
             _canvas.DrawTextMono(
                 _item, new Rect2(Area.Position.X, y, Gutter - TextPadding, LineHeight), (index + 1).ToString(),
                 index == buffer.Line ? Code : GutterText, FontSize, TextAlign.Right);
-            DrawLine(line, lineHints, y);
+            DrawLine(line, lineHints, SlangSyntax.Tokens(line, hints.Types, hints.Namespaces), y);
             if (index == buffer.Line && caretOn)
             {
                 float x = TextLeft + VisualColumn(lineHints, buffer.Column) * _charWidth;
@@ -157,20 +171,19 @@ internal sealed class CodeView
         return rows;
     }
 
-    private void DrawLine(string line, List<InlayHint> hints, float y)
+    private void DrawLine(string line, List<InlayHint> hints, List<Token> tokens, float y)
     {
         int visual = 0, logical = 0;
-        int comment = line.IndexOf("//", StringComparison.Ordinal);
         foreach (InlayHint hint in hints)
         {
-            DrawCode(line, logical, hint.Column, comment, visual, y);
+            DrawCode(line, tokens, logical, hint.Column, visual, y);
             visual += hint.Column - logical;
             logical = hint.Column;
             DrawHint(hint.Label, visual, y);
             visual += hint.Label.Length + 1;
         }
 
-        DrawCode(line, logical, line.Length, comment, visual, y);
+        DrawCode(line, tokens, logical, line.Length, visual, y);
     }
 
     /// <summary>A hint in a smaller face on a faint pill, so it can't be read as code or a comment.</summary>
@@ -185,21 +198,23 @@ internal sealed class CodeView
         _canvas.DrawTextMono(_item, new Rect2(x + 4 - TextPadding, y, textWidth + TextPadding * 2 + 8, LineHeight), label, HintText, HintSize, TextAlign.Left);
     }
 
-    /// <summary>Code from one column to another, the part from <paramref name="comment"/> on dimmed.</summary>
-    private void DrawCode(string line, int from, int to, int comment, int visual, float y)
+    /// <summary>The code from one column to another, each token in its colour; punctuation between tokens is plain.</summary>
+    private void DrawCode(string line, List<Token> tokens, int from, int to, int visual, float y)
     {
-        if (to <= from)
-            return;
-        if (comment < 0 || comment >= to)
+        int at = from;
+        foreach (Token token in tokens)
         {
-            DrawAt(line[from..to], visual, y, Code);
-            return;
+            int start = Math.Max(token.Start, from), end = Math.Min(token.End, to);
+            if (end <= start)
+                continue;
+            if (start > at)
+                DrawAt(line[at..start], visual + at - from, y, Code);
+            DrawAt(line[start..end], visual + start - from, y, Colours[token.Kind]);
+            at = end;
         }
 
-        int split = Math.Max(from, comment);
-        if (split > from)
-            DrawAt(line[from..split], visual, y, Code);
-        DrawAt(line[split..to], visual + split - from, y, Comment);
+        if (to > at)
+            DrawAt(line[at..to], visual + at - from, y, Code);
     }
 
     private void DrawAt(string text, int visualColumn, float y, Color colour)
