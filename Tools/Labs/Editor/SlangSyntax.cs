@@ -51,7 +51,7 @@ internal static class SlangSyntax
         "ItemInput", "ItemVaryings",
     ];
 
-    public static List<Token> Tokens(string line, IReadOnlySet<string> libraryTypes, IReadOnlySet<string> namespaces)
+    public static List<Token> Tokens(string line, IReadOnlySet<string> libraryTypes, IReadOnlySet<string> namespaces, IReadOnlySet<string>? aliases = null)
     {
         var tokens = new List<Token>();
         int i = 0;
@@ -108,7 +108,7 @@ internal static class SlangSyntax
                 while (i < line.Length && (char.IsLetterOrDigit(line[i]) || line[i] == '_'))
                     i++;
                 string word = line[start..i];
-                TokenKind kind = Classify(word, line, i, libraryTypes, namespaces);
+                TokenKind kind = Classify(word, line, i, libraryTypes, namespaces, aliases);
                 int digits = kind == TokenKind.Type ? WidthStart(word) : -1;
                 if (digits > 0)
                 {
@@ -143,11 +143,12 @@ internal static class SlangSyntax
         _ => TokenKind.Width4,
     };
 
-    private static TokenKind Classify(string word, string line, int end, IReadOnlySet<string> libraryTypes, IReadOnlySet<string> namespaces)
+    private static TokenKind Classify(string word, string line, int end, IReadOnlySet<string> libraryTypes, IReadOnlySet<string> namespaces, IReadOnlySet<string>? aliases)
     {
         if (Keywords.Contains(word))
             return TokenKind.Keyword;
-        if (Types.Contains(word))
+        // An alias (colour) is another name for a built-in type, so it looks like one.
+        if (Types.Contains(word) || aliases?.Contains(word) == true)
             return TokenKind.Type;
         if (libraryTypes.Contains(word))
             return TokenKind.LibraryType;

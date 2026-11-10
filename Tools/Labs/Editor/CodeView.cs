@@ -125,7 +125,7 @@ internal sealed class CodeView
             _canvas.DrawTextMono(
                 _item, new Rect2(Area.Position.X, y, Gutter - TextPadding, LineHeight), (index + 1).ToString(),
                 index == buffer.Line ? Code : GutterText, FontSize, TextAlign.Right);
-            DrawLine(line, lineHints, SlangSyntax.Tokens(line, hints.Types, hints.Namespaces), y);
+            DrawLine(line, lineHints, SlangSyntax.Tokens(line, hints.Types, hints.Namespaces, hints.Aliases), y);
             if (index == buffer.Line)
             {
                 float x = TextLeft + VisualColumn(lineHints, buffer.Column) * _charWidth;

@@ -43,8 +43,11 @@ internal sealed partial class SlangHints
 
     public int Count => _table.Count;
 
-    /// <summary>The library's struct names and type aliases (shapes, <c>Bezier</c>, <c>colour</c>, …), for colouring.</summary>
+    /// <summary>The library's struct names (shapes, <c>Bezier</c>, …), for colouring.</summary>
     public HashSet<string> Types { get; } = new();
+
+    /// <summary>The library's type aliases (<c>colour</c>): other names for built-in types, so coloured as those are.</summary>
+    public HashSet<string> Aliases { get; } = new();
 
     /// <summary>The library's namespaces (<c>color</c>, <c>ease</c>, …), for colouring.</summary>
     public HashSet<string> Namespaces { get; } = new();
@@ -76,7 +79,7 @@ internal sealed partial class SlangHints
         foreach (var declared in structs)
             Types.Add(declared.Name);
         foreach (Match alias in TypeAlias().Matches(source))
-            Types.Add(alias.Groups[1].Value);
+            Aliases.Add(alias.Groups[1].Value);
         foreach (Match name in NamespaceDeclaration().Matches(source))
             Namespaces.Add(name.Groups[1].Value);
         foreach (Match match in Constructor().Matches(source))
