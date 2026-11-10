@@ -353,6 +353,10 @@ return sampleScreen(i.screenUv + push / frame.screen);
 
 ## 14. Pitfalls
 
+- **Locals start as noise.** `colour c;` isn't black or transparent: it's
+  whatever was left over, and the pixel comes out garbled. Give every local a
+  value where it's declared (`colour c = colours.transparent;`). The shader
+  editor warns about it (XS003).
 - **`let` can't change.** `let c = Circle(40); c.rotate(1);` fails. Declare
   with the type (`Circle c = …`) or `var` to use the in-place calls.
 - **Multiplying a colour changes its alpha too.** `c * 0.8` fades the colour

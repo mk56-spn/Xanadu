@@ -394,6 +394,10 @@ host fills; tests leave the headless defaults.
     namespaces, which take their dot). It stays shut where a new name is being
     given (`float4 |`, `let |`) and once the word is already a whole name, so
     Enter there is still a new line.
+    Besides Slang's own problems it shows its own warnings
+    (`SlangLint`, the checked rules in `docs/shader-style.md`: so far XS003,
+    a local read before it has a value); warnings tint amber and never stale
+    the preview.
     Shift+moves, drag, Shift+click and double-click select; Ctrl+A/C/X/V
     go through the SDL clipboard. It claims the keyboard through
     `HostTextInput.Claimed`. Ctrl+Z and Ctrl+Y / Ctrl+Shift+Z undo and redo

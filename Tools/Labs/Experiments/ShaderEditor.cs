@@ -89,6 +89,12 @@ internal sealed class ShaderEditor : ILabExperiment
         private readonly string _file;
         private readonly Dictionary<KeyCode, float> _held = new();
         private List<SlangProblem> _shownProblems = [];
+
+        /// <summary>The editor's own warnings (<see cref="SlangLint"/>) for the text being compiled.</summary>
+        private List<SlangProblem> _lint = [];
+
+        /// <summary>Every type a local can be declared with, for the lint: Slang's and the library's.</summary>
+        private readonly HashSet<string> _typeNames;
         private CanvasMaterial? _material;
         private int[] _wanted = [];
         private int _compiledVersion = -1;
@@ -130,6 +136,7 @@ internal sealed class ShaderEditor : ILabExperiment
             _tuning = new EditorTuning(canvas, chromeItem, _chrome.TuningArea, Array.ConvertAll(LabShaderValues.All, value => value.Name));
             string library = Path.Combine(SlangShaders.LibraryPath ?? "", "xanadu");
             _hints = SlangHints.FromLibrary(library);
+            _typeNames = [.. SlangSyntax.BuiltInTypes, .. _hints.Types, .. _hints.Aliases];
             _completions = SlangCompletions.FromSources(
                 Directory.Exists(library) ? Directory.EnumerateFiles(library, "*.slang").Select(File.ReadAllText) : [],
                 Xanadu.Rendering.ShaderConstants.Library,
@@ -193,7 +200,7 @@ internal sealed class ShaderEditor : ILabExperiment
             _view.Draw(_buffer, _hints, _shownProblems, caretOn);
             _chrome.Draw(new EditorState(
                 _buffer.Line, _buffer.Column, _status, _statusColour,
-                PreviewStale: _shownProblems.Count > 0 || !_everCompiled,
+                PreviewStale: _shownProblems.Exists(problem => !problem.Warning) || !_everCompiled,
                 PreviewNote: _everCompiled ? "showing the last version that compiled" : "nothing has compiled yet",
                 _shownProblems));
             _tuning.Draw();
@@ -369,6 +376,7 @@ internal sealed class ShaderEditor : ILabExperiment
                 // Saving is a convenience; the compile goes ahead.
             }
 
+            _lint = SlangLint.Check(source, _typeNames);
             if (!_everCompiled)
                 (_status, _statusColour) = ("compiling…", Palette.TextMuted);
             _compiling = Task.Run(() =>
@@ -398,13 +406,13 @@ internal sealed class ShaderEditor : ILabExperiment
             _compiledVersion = version;
             if (error is not null)
             {
-                _shownProblems = SlangProblems.Parse(error, Label);
+                _shownProblems = WithLint(SlangProblems.Parse(error, Label));
                 int count = _shownProblems.Count;
                 (_status, _statusColour) = ($"{count} problem{(count == 1 ? "" : "s")}", Palette.DangerBright);
                 return;
             }
 
-            _shownProblems = [];
+            _shownProblems = WithLint([]);
             CanvasMaterial? previous = _material;
             _material = CanvasMaterial.FromSource(Label, source);
             CanvasServer.Current.SetMaterial(_previewItem, _material);
@@ -413,7 +421,23 @@ internal sealed class ShaderEditor : ILabExperiment
             if (previous is not null)
                 _context.Pipelines.Forget(previous);
             _everCompiled = true;
-            (_status, _statusColour) = ($"compiled in {ms} ms{LabShaderValues.Describe(_wanted)}", Palette.Success);
+            int warnings = _lint.Count;
+            string warned = warnings == 0 ? "" : $" · {warnings} warning{(warnings == 1 ? "" : "s")}";
+            (_status, _statusColour) = ($"compiled in {ms} ms{warned}{LabShaderValues.Describe(_wanted)}", warnings == 0 ? Palette.Success : Palette.Warning);
+        }
+
+        /// <summary>Slang's problems and the editor's warnings together, by line; Slang's first on a shared line.</summary>
+        private List<SlangProblem> WithLint(List<SlangProblem> problems)
+        {
+            var all = new List<SlangProblem>(problems);
+            foreach (SlangProblem warning in _lint)
+            {
+                if (!problems.Exists(problem => problem.Line == warning.Line))
+                    all.Add(warning);
+            }
+
+            all.Sort((a, b) => a.Line.CompareTo(b.Line));
+            return all;
         }
 
         public void Dispose()

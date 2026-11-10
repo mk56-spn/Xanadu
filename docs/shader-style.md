@@ -4,9 +4,9 @@ The house style for Xanadu shaders (level shader slots, the playground, the
 shader editor, shipped effects). Each rule has an id so the shader editor can
 show it as a warning later and a level can say which ones it ignores.
 
-**Status:** none of these are checked yet. They are collected here as they come
-up; the shader editor (`Tools/Labs/Editor/`, `docs/host.md` §5.9) will turn them
-into warnings when that is wanted.
+**Status:** XS003 is checked: the shader editor shows it as a warning
+(`Tools/Labs/Editor/SlangLint.cs`). The rest are collected here as they come
+up, for the editor to check when that is wanted.
 
 Each rule says what it flags, why, how to fix it, and how hard it complains:
 
@@ -63,4 +63,39 @@ float share = count / 3;     // whole thirds only
 float half = 0.5;
 float share = float(count) / 3;
 float scaled = x / 2;        // x is a float, so this is a float division
+```
+
+---
+
+## XS003 · A local read before it has a value (warning) · checked
+
+**Flags** a local declared without a value whose first use reads it:
+`colour c;` followed by `c.paint(…)`, `return c;` or `c + 1`.
+
+**Why** Slang doesn't zero locals. Until something is assigned, a local holds
+whatever was left in that register, so the pixel comes out as noise that
+changes from frame to frame. Slang only warns about this in a late pass whose
+messages the host doesn't see when the compile succeeds, so the editor checks
+it itself.
+
+**Fix** Give it a value where it's declared:
+`colour c = colours.transparent;`, `float d = 1e5;`.
+
+**Not flagged**
+- A first use that assigns it or one of its fields: `float v; v = 1;`,
+  `Tile t; t.id = …;`.
+- Uniforms and other file-level values, which the host sets.
+
+**Not caught** The check reads text a statement at a time, so a value set in
+only one branch of an `if` before it is read slips through, and so does a
+vector whose first use sets only some channels (`w.rgb = …` leaves `w.a`).
+
+```slang
+// flagged
+colour c;
+c.paint(Circle(40), colours.gold);
+
+// fine
+colour c = colours.transparent;
+c.paint(Circle(40), colours.gold);
 ```
