@@ -263,13 +263,14 @@ host fills; tests leave the headless defaults.
   | Module | Contents |
   |---|---|
   | `xanadu.math` | `PI`, `TAU`, GLSL-style `mod`, `rotate`, `random(seed)` / `random2` / `random3` (0..1, PCG hashes of the seed's bits, so large or fractional seeds stay random) |
-  | `xanadu.shape` | `IShape` (`local(p)`, the distance before placing, and a `placement`); `Circle`, `Line` (a to b, round ends), `Box` (rounded; boxes and the like take full width and height, round shapes a radius, so `Box(i.canvas.size)` fills the quad), `CornerBox`, `ChamferBox`, `Cross`, `Arc` (a ring with a gap of half angle `gap` facing down), `Triangle`, `Parallelogram`, `Star6`, `Moon`. Every shape carries a `Placement` (offset, angle clockwise, scale, all round its own centre, so order doesn't matter): `.rotate` `.move` `.scale` `.anchor` change it in place (`c.rotate(time);`), `.rotated` `.moved` `.scaled` `.anchored` give a changed copy for chains. `anchor(anchor.topLeft)` and the other `anchor.` points (`top`, `bottom`, `left`, `right`, the four corners, or any fraction of the size) move it by that point of the quad. `.repeat` `.onion` `.or` `.and` `.minus` `.melt` build new shapes; `.distance(p)`, `.fill` `.stroke` `.glow` draw, from the quad's centre unless given a point (`input()` keeps the pixel in `stage.shading`, at `canvas.centred`). For a distance built by hand (a loop, a formula), `sdf.fill` `sdf.stroke` `sdf.glow` draw a plain number and `sdf.melt` `sdf.meltAnd` `sdf.meltMinus` join two (smooth min, smooth max, smooth cut) |
-  | `xanadu.colour` | the `colour` type (an alias for `float4`, straight alpha, so `.rgb` and the maths work as ever; `uniform colour tint;` is fine), `top.over(bottom)` on any colour, and under `colours.`: `hsv`, `hue` (both give an opaque `colour`) and the X11/web colours as `colours.gold`, `colours.midnightBlue`, … |
+  | `xanadu.shape` | `IShape`, the shapes (`Circle`, `Line`, `Box`, …), placement (`rotate`/`rotated`, `move`/`moved`, `scale`/`scaled`, `anchor`/`anchored`), combining (`or`, `and`, `minus`, `melt`, `meltAnd`, `meltMinus`, `repeat`, `onion`), drawing (`fill`, `stroke`, `glow`), and `sdf.` for distances built by hand |
+  | `xanadu.colour` | the `colour` type (an alias for `float4`, straight alpha, so `.rgb` and the maths work as ever; `uniform colour tint;` is fine), `top.over(bottom)` and `c.withAlpha(a)` on any colour, and under `colours.`: `hsv`, `hue` (both give an opaque `colour`) and the X11/web colours as `colours.gold`, `colours.midnightBlue`, … |
   | `xanadu.ease` | `ease.inOutSine(t)` and the other 30 Penner easings, `ease.by(n, t)` |
   | `xanadu.blend` | `blend.overlay(under, over)` and 11 more, `blend.by(blend.Mode.X, …)`, `blend.composite` |
   | `xanadu.pattern` | `pattern.columns`, `.rows`, `.checker`, `.checkerSplit`, `.tile` (→ `Tile`) |
   | `xanadu.gradient` | `gradient.linear`, `.radial`, `.conical`, `.square` |
   | `xanadu.curve` | `Bezier(a, b, c, d)` with `.at(t)` and `.tangent(t)` |
+  | `xanadu.paint` | `c.paint(shape or coverage, colour, blend.Mode)` / `c.painted(…)`: a picture in layers |
   | `xanadu` | re-exports all of the above, plus the stage |
 
   ```slang
@@ -279,6 +280,9 @@ host fills; tests leave the headless defaults.
 
   Slang has no named arguments; the shader editor shows parameter names as
   inlay hints instead.
+
+  **`docs/shaders.md` is the full guide to the library**: every call, the
+  coordinates, painting, pitfalls.
 
 - **Named defaults:** `[Default(colours.gold)]` or `[Default(PI, 2)]` work.
   Slang attributes take only literals, so `ShaderConstants` (Core, loaded by

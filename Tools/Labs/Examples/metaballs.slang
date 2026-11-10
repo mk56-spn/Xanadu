@@ -19,13 +19,9 @@ float4 shade(ItemInput i)
         d = sdf.melt(d, ball.distance(p), melt);
     }
 
-    float inside = sdf.fill(d, 1.5);
-    float outline = sdf.stroke(d + 6, 4, 1.5);
-    float glow = sdf.glow(d, 80, 3);
-
     colour c = colours.midnightBlue;
-    c.rgb += colours.deepPink.rgb * glow * 0.6;
-    c = lerp(c, colours.hotPink, inside);
-    c = lerp(c, colours.white, outline);
+    c.paint(sdf.glow(d, 80, 3), colours.deepPink.withAlpha(0.6), blend.Mode.Screen);
+    c.paint(sdf.fill(d, 1.5), colours.hotPink);
+    c.paint(sdf.stroke(d + 6, 4, 1.5), colours.white);
     return c;
 }

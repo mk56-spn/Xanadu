@@ -81,8 +81,8 @@ public struct Placement
     /// A point in the shape's own space, before it was placed.
     public float2 toLocal(float2 p)
     {
-        // math's rotate turns anticlockwise on a y-down screen, so this undoes a clockwise turn.
-        return rotate(p - offset, angle) / scale;
+        // Undoing the placement: back by the offset, back by the turn, back by the scale.
+        return rotate(p - offset, -angle) / scale;
     }
 }
 
@@ -389,6 +389,28 @@ public struct SmoothUnion<A : IShape, B : IShape> : IShape
     }
 }
 
+/// Only where both shapes are, the edge rounded over `blend` units.
+public struct SmoothIntersection<A : IShape, B : IShape> : IShape
+{
+    public Placement placement = Placement();
+    public A a;
+    public B b;
+    public float blend;
+
+    public float local(float2 p) { return sdf.meltAnd(a.distance(p), b.distance(p), blend); }
+}
+
+/// `a` with `b` cut out of it, the cut rounded over `blend` units.
+public struct SmoothDifference<A : IShape, B : IShape> : IShape
+{
+    public Placement placement = Placement();
+    public A a;
+    public B b;
+    public float blend;
+
+    public float local(float2 p) { return sdf.meltMinus(a.distance(p), b.distance(p), blend); }
+}
+
 // ---- What every shape can do ------------------------------------------------
 
 public extension<S : IShape> S
@@ -441,6 +463,12 @@ public extension<S : IShape> S
 
     /// This shape and `other` melted together over `blend` units.
     public SmoothUnion<S, T> melt<T : IShape>(T other, float blend) { SmoothUnion<S, T> r; r.placement = Placement(); r.a = this; r.b = other; r.blend = blend; return r; }
+
+    /// Only where this shape and `other` overlap, the edge rounded over `blend` units.
+    public SmoothIntersection<S, T> meltAnd<T : IShape>(T other, float blend) { SmoothIntersection<S, T> r; r.placement = Placement(); r.a = this; r.b = other; r.blend = blend; return r; }
+
+    /// This shape with `other` cut out of it, the cut rounded over `blend` units.
+    public SmoothDifference<S, T> meltMinus<T : IShape>(T other, float blend) { SmoothDifference<S, T> r; r.placement = Placement(); r.a = this; r.b = other; r.blend = blend; return r; }
 
     /// 1 inside, 0 outside, the edge smoothed over `soft` units.
     public float fill(float2 p, float soft = 1.0) { return sdf.fill(distance(p), soft); }

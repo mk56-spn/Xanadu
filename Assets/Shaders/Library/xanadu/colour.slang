@@ -6,6 +6,7 @@
 //     colours.hsv(h, s, v)         hue, saturation, value (each 0..1) to a colour
 //     colours.hue(h)               the hue at full saturation and value
 //     top.over(bottom)             straight-alpha "over"
+//     colours.black.withAlpha(0.5) the same colour, another alpha
 module colour;
 
 /// A colour: just a float4 (r, g, b, a, straight alpha) under a name that says what it holds.
@@ -13,6 +14,9 @@ public typealias colour = float4;
 
 public extension float4
 {
+    /// The same colour with alpha `a`: colours.black.withAlpha(0.5).
+    public colour withAlpha(float a) { return colour(this.rgb, a); }
+
     /// This colour over another with straight (not premultiplied) alpha.
     public colour over(colour bottom)
     {
