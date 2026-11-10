@@ -76,6 +76,13 @@ internal sealed class ShaderEditor : ILabExperiment
         private readonly Rect2 _preview;
         private readonly CodeView _view;
         private readonly CodeBuffer _buffer = new();
+        private readonly CodeHistory _history;
+
+        /// <summary>Set by an edit this frame that is not plain typing, so it gets an undo step of its own.</summary>
+        private bool _breaksRun;
+
+        /// <summary>Set when this frame undid or redid, so the completion list doesn't open on the restored text.</summary>
+        private bool _steppedHistory;
         private readonly SlangHints _hints;
         private readonly SlangCompletions _completions;
         private readonly CompletionPopup _popup;
@@ -131,6 +138,7 @@ internal sealed class ShaderEditor : ILabExperiment
 
             _file = WorkingFile();
             _buffer.Load(File.ReadAllText(_file));
+            _history = new CodeHistory(_buffer);
             context.ClaimTyping(true);
         }
 
@@ -146,11 +154,14 @@ internal sealed class ShaderEditor : ILabExperiment
             int version = _buffer.Version;
             (int line, int column) caret = (_buffer.Line, _buffer.Column);
             _shift = frame.Inputs is { } held && (held.Keyboard.IsDown(KeyCode.LeftShift) || held.Keyboard.IsDown(KeyCode.RightShift));
+            _breaksRun = _steppedHistory = false;
             if (frame.Inputs is { } inputs)
                 Edit(inputs, frame);
             Point(frame);
+            if (!_steppedHistory)
+                _history.After(typing: !_breaksRun, frame.Delta);
 
-            _popup.Follow(_buffer, _completions, edited: _buffer.Version != version);
+            _popup.Follow(_buffer, _completions, edited: _buffer.Version != version && !_steppedHistory);
             if (_buffer.Version != version)
                 _sinceEdit = 0;
             else
@@ -194,6 +205,22 @@ internal sealed class ShaderEditor : ILabExperiment
             bool ctrl = keys.IsDown(KeyCode.LeftControl) || keys.IsDown(KeyCode.RightControl);
             bool shift = _shift;
 
+            // Undo and redo take the whole frame, so nothing else edits around them.
+            if (ctrl && (keys.IsPressed(KeyCode.Z) || keys.IsPressed(KeyCode.Y)))
+            {
+                if (keys.IsPressed(KeyCode.Z) && !shift)
+                    _history.Undo();
+                else
+                    _history.Redo();
+                if (_popup.Open)
+                    _popup.Dismiss(_buffer);
+                _steppedHistory = true;
+                return;
+            }
+
+            // Anything typed over a selection replaces it: its own step, not part of a run.
+            _breaksRun = _buffer.HasSelection;
+
             if (frame.Typed.Length > 0 && !ctrl)
                 _buffer.Insert(frame.Typed);
             if (ctrl && keys.IsPressed(KeyCode.A))
@@ -202,11 +229,17 @@ internal sealed class ShaderEditor : ILabExperiment
             {
                 SDL3.SDL.SDL_SetClipboardText(_buffer.SelectedText);
                 if (keys.IsPressed(KeyCode.X))
+                {
                     _buffer.DeleteSelection();
+                    _breaksRun = true;
+                }
             }
 
             if (ctrl && keys.IsPressed(KeyCode.V) && SDL3.SDL.SDL_GetClipboardText() is { Length: > 0 } clip)
+            {
                 _buffer.Insert(clip);
+                _breaksRun = true;
+            }
 
             if (_popup.Open && keys.IsPressed(KeyCode.Escape))
                 _popup.Dismiss(_buffer);
@@ -222,7 +255,11 @@ internal sealed class ShaderEditor : ILabExperiment
                     else if (key == KeyCode.Down)
                         _popup.Move(1);
                     else
+                    {
                         _popup.Accept(_buffer);
+                        _breaksRun = true;
+                    }
+
                     continue;
                 }
 
@@ -248,7 +285,10 @@ internal sealed class ShaderEditor : ILabExperiment
                 case KeyCode.PageDown: _buffer.MoveLine(_view.VisibleRows, shift); break;
                 case KeyCode.Backspace: _buffer.Backspace(); break;
                 case KeyCode.Delete: _buffer.Delete(); break;
-                case KeyCode.Return: _buffer.NewLine(); break;
+                case KeyCode.Return:
+                    _buffer.NewLine();
+                    _breaksRun = true;
+                    break;
                 case KeyCode.Tab: _buffer.Insert(new string(' ', CodeBuffer.Indent - _buffer.Column % CodeBuffer.Indent)); break;
             }
         }
@@ -288,7 +328,9 @@ internal sealed class ShaderEditor : ILabExperiment
             _wasHeld = frame.Held;
             if (!frame.Held)
                 _dragging = false;
-            if (pressed && !_popup.Click(_buffer, frame.Mouse))
+            bool picked = pressed && _popup.Click(_buffer, frame.Mouse);
+            _breaksRun |= picked;
+            if (pressed && !picked)
             {
                 if (_view.Hit(_buffer, _hints, frame.Mouse) is { } hit)
                 {

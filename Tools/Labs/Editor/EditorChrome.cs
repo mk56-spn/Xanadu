@@ -34,7 +34,7 @@ internal sealed class EditorChrome
     [
         "shade(ItemInput i) returns the pixel; import xanadu for shapes, color., ease. …",
         "Use time, mousePos, mouse or resolution and the lab fills it; no need to declare them.",
-        "Shift selects · drag · double-click a word · Ctrl+A/C/X/V · Tab · wheel · click a problem to jump.",
+        "Shift selects · drag · double-click a word · Ctrl+A/C/X/V · Ctrl+Z/Y · wheel · click a problem to jump.",
     ];
 
     private readonly IRectCanvas _canvas;

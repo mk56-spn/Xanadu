@@ -74,6 +74,21 @@ internal sealed class CodeBuffer
         Version++;
     }
 
+    /// <summary>The text, caret and selection as they are now, for undo.</summary>
+    public CodeSnapshot Snapshot() => new(Text, Line, Column, Anchor);
+
+    /// <summary>Puts back a snapshot's text, caret and selection (an undo or redo).</summary>
+    public void Restore(CodeSnapshot snapshot)
+    {
+        _lines.Clear();
+        _lines.AddRange(snapshot.Text.Split('\n'));
+        Line = Math.Clamp(snapshot.Line, 0, _lines.Count - 1);
+        Column = Math.Clamp(snapshot.Column, 0, _lines[Line].Length);
+        Anchor = snapshot.Anchor;
+        _wantedColumn = Column;
+        Version++;
+    }
+
     public void SelectAll()
     {
         Anchor = (0, 0);
@@ -316,3 +331,6 @@ internal sealed class CodeBuffer
     /// <summary>0 for word characters, 1 for spaces, 2 for anything else (selected one at a time).</summary>
     private static int Kind(char c) => char.IsLetterOrDigit(c) || c == '_' ? 0 : c == ' ' ? 1 : 2;
 }
+
+/// <summary>A copy of the buffer for undo: the text, and where the caret and selection were.</summary>
+internal readonly record struct CodeSnapshot(string Text, int Line, int Column, (int Line, int Column)? Anchor);

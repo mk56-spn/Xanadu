@@ -383,7 +383,11 @@ host fills; tests leave the headless defaults.
     Esc, click. No calls in the chain, no inference past that.
     Shift+moves, drag, Shift+click and double-click select; Ctrl+A/C/X/V
     go through the SDL clipboard. It claims the keyboard through
-    `HostTextInput.Claimed`. No undo or horizontal scroll yet.
+    `HostTextInput.Claimed`. Ctrl+Z and Ctrl+Y / Ctrl+Shift+Z undo and redo
+    on the shared `UndoHistory` (`CodeHistory`): a run of plain typing is one
+    step until the caret moves or typing pauses for a second; Enter, paste,
+    cut, a completion or typing over a selection is a step of its own. No
+    horizontal scroll yet.
   - **Particles:** bursts every library effect once a second.
   - **Blend:** two quads with the whole fixed-function blend open
     (`CanvasMaterial.Custom`); the renderer sets the blend constant per draw.
