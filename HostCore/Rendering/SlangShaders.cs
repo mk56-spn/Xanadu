@@ -91,6 +91,12 @@ internal static class SlangShaders
             ? ShaderConstants.FromSources(Directory.EnumerateFiles(library, "*.slang", SearchOption.AllDirectories).Select(File.ReadAllText))
             : new ShaderConstants();
 
+    /// <summary>The library's in-place methods and their copying twins (for chaining <c>c.move(a).rotate(b)</c>).</summary>
+    public static ShaderChains LoadChains() =>
+        LibraryPath is { } library && Directory.Exists(library)
+            ? ShaderChains.FromSources(Directory.EnumerateFiles(library, "*.slang", SearchOption.AllDirectories).Select(File.ReadAllText))
+            : new ShaderChains();
+
     /// <summary>
     /// Where compiled shaders are kept between runs (SPIR-V plus reflection),
     /// keyed by a hash of the source, the entry, the flags, every library module
@@ -143,7 +149,7 @@ internal static class SlangShaders
 
         string label = name.Replace("\"", "'");
         // Slang's attributes take only literals: a library name in a [Default] becomes its numbers.
-        string code = ShaderConstants.Library.ExpandDefaults(body.ToString());
+        string code = ShaderChains.Library.Rewrite(ShaderConstants.Library.ExpandDefaults(body.ToString()));
         return $$"""
             import xanadu.stage;
             {{imports}}

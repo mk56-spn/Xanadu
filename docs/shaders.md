@@ -168,11 +168,25 @@ the shape's own centre**, so the order you apply them in doesn't matter.
 ```slang
 Circle c = Circle(40);          // declared with its type (or var), so it can change
 c.rotate(time);
-c.anchor(anchor.topRight);
-c.move(float2(-60, 60));
+c.move(float2(-60, 60)).anchor(anchor.topRight);   // in-place calls chain too
 
-let petals = Box(float2(40), 6).rotated(0.3).repeat(8, 140).rotated(time);   // copies, for chains
+let petals = Box(float2(40), 6).rotate(0.3).repeat(8, 140).rotate(time);
+let copy = c.moved(float2(10, 0));                  // a changed copy; c stays as it is
 ```
+
+**Chaining.** Slang itself can't chain in-place calls: it has no references,
+so a method can't hand back the value it changed. The host rewrites your
+code before Slang sees it, so chains work anyway, and mean what they say:
+
+- On a variable, as a statement of its own: `c.move(a).rotate(b);` becomes
+  `c = c.moved(a).rotated(b);`, changing `c`.
+- On a new shape or any other temporary: `Box(s).move(o).rotate(t)` becomes
+  `Box(s).moved(o).rotated(t)`.
+
+`paint` chains the same way (§9). The `-ed` forms are still there for a
+changed copy of a variable that should stay as it is. The rewrite only works
+in effect bodies (level slots, the lab), not in shipped `.slang` files, and
+it can move error columns a little on the lines it touches.
 
 **Anchor points:** `anchor.centre`, `.top`, `.bottom`, `.left`, `.right`,
 `.topLeft`, `.topRight`, `.bottomLeft` and `.bottomRight`. Any `float2` works
@@ -263,8 +277,8 @@ c.paint(halo.glow(40), colours.hotPink, blend.Mode.Screen);                     
 return c;
 ```
 
-- **In place or a copy:** `c.paint(…)` changes `c`; `c.painted(…)` returns a
-  painted copy.
+- **In place or a copy:** `c.paint(…)` changes `c` and chains
+  (`c.paint(a, x).paint(b, y);`); `c.painted(…)` returns a painted copy.
 - **What it takes:** the first argument is a shape (painted where it's
   filled) or a coverage number (`s.stroke(3)`, `sdf.fill(d)`, a pattern, a
   gradient).
@@ -359,6 +373,10 @@ return sampleScreen(i.screenUv + push / frame.screen);
   editor warns about it (XS003).
 - **`let` can't change.** `let c = Circle(40); c.rotate(1);` fails. Declare
   with the type (`Circle c = …`) or `var` to use the in-place calls.
+- **A chain inside an expression doesn't change the variable.**
+  `float a = c.move(o).fill();` is an error: only a chain that is a statement
+  of its own changes `c`. Write `c.move(o);` first, or `c.moved(o).fill()` for
+  a copy.
 - **Multiplying a colour changes its alpha too.** `c * 0.8` fades the colour
   as well as darkening it. Darken with `c.rgb *= 0.8`.
 - **Whole-number division:** `1 / 2` is `0`. Write `0.5` or `1.0 / 2`

@@ -249,6 +249,11 @@ host fills; tests leave the headless defaults.
   it in a namespace, hoists its imports, adds `import xanadu.stage` and an
   entry point, and uses `#line` so errors land on the author's lines.
   `-fvk-bind-globals 1 3` makes the globals uniform buffer 1.
+  `ShaderChains` (Core) rewrites chains of the library's in-place methods,
+  which Slang can't compile, into their copying twins: `c.move(a).rotate(b);`
+  → `c = c.moved(a).rotated(b);`, `Box(s).move(o)` → `Box(s).moved(o)`. The
+  pairs are read from the library (`[mutating]` methods with a -d/-ed twin)
+  at start, like `ShaderConstants`.
   `ShaderSourceRules` checks the shape; `ShaderSourceUniforms` reads the
   `[Instance]` uniforms; `LevelSlotMaterials` makes one material per slot and
   blend.

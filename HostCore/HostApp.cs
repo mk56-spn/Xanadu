@@ -84,6 +84,7 @@ internal abstract class HostApp : Game
         HostWindowIcon.Apply(MainWindow.Handle);
         SlangShaders.LibraryPath = GamePaths.Globalize("res://Assets/Shaders/Library");
         Xanadu.Rendering.ShaderConstants.Use(SlangShaders.LoadConstants());
+        Xanadu.Rendering.ShaderChains.Use(SlangShaders.LoadChains());
         SlangShaders.CacheFolder = GamePaths.Globalize("user://shader_cache_slang");
         Renderer = new CanvasRenderer(GraphicsDevice, Canvas, TargetFormat, Width, Height);
         Text = new HostText(GraphicsDevice, texture =>
