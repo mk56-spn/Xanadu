@@ -1,10 +1,10 @@
 using System;
-using Godot;
 using Xanadu.Ecs.Storage;
+using Xanadu.Systems;
 
 namespace Xanadu.Settings;
 
-/// <summary>Persisted general options: vertical sync and editor autosave.</summary>
+/// <summary>Persisted general options: vertical sync, window mode and editor autosave.</summary>
 public sealed class DisplaySettings
 {
     private const string DefaultPath = "user://display.json";
@@ -25,12 +25,21 @@ public sealed class DisplaySettings
 
     public bool VSyncEnabled { get; private set; } = true;
 
+    public WindowMode WindowMode { get; private set; } = WindowMode.Windowed;
+
     /// <summary>Whether the editor saves a level to its file as it is edited.</summary>
     public bool EditorAutosave { get; private set; } = true;
 
     public void SetVSync(bool enabled)
     {
         VSyncEnabled = enabled;
+        Apply();
+        Save();
+    }
+
+    public void SetWindowMode(WindowMode mode)
+    {
+        WindowMode = mode;
         Apply();
         Save();
     }
@@ -48,12 +57,14 @@ public sealed class DisplaySettings
             return;
 
         VSyncEnabled = data.VSyncEnabled;
+        WindowMode = Enum.IsDefined(data.WindowMode) ? data.WindowMode : WindowMode.Windowed;
         EditorAutosave = data.EditorAutosave;
     }
 
     public void Save() => _file.Save(new DisplayData
     {
         VSyncEnabled = VSyncEnabled,
+        WindowMode = WindowMode,
         EditorAutosave = EditorAutosave,
     });
 
@@ -64,7 +75,8 @@ public sealed class DisplaySettings
 
         try
         {
-            Xanadu.Systems.HostPlatform.ApplyVSync(VSyncEnabled);
+            HostPlatform.ApplyVSync(VSyncEnabled);
+            HostPlatform.ApplyWindowMode(WindowMode);
         }
         catch (Exception)
         {
@@ -75,6 +87,7 @@ public sealed class DisplaySettings
     private sealed class DisplayData
     {
         public bool VSyncEnabled { get; set; } = true;
+        public WindowMode WindowMode { get; set; } = WindowMode.Windowed;
         public bool EditorAutosave { get; set; } = true;
     }
 }

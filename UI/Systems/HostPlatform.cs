@@ -20,6 +20,9 @@ public static class HostPlatform
 
     public static IFpsSource Fps { get; private set; } = new NoFps();
 
+    /// <summary>Video memory use for the F3 overlay; null where nothing can read it (tests).</summary>
+    public static IGpuMemorySource? GpuMemory { get; set; }
+
     private static System.Func<IRectCanvas>? _newCanvas;
 
     /// <summary>A canvas for a system root to draw through: the host's, with its text, else shapes only.</summary>
@@ -28,11 +31,14 @@ public static class HostPlatform
     /// <summary>Turns the window's vertical sync on or off.</summary>
     public static System.Action<bool> ApplyVSync { get; set; } = static _ => { };
 
+    /// <summary>Puts the window in a decorated window, fullscreen, or a borderless window covering the display.</summary>
+    public static System.Action<WindowMode> ApplyWindowMode { get; set; } = static _ => { };
+
     /// <summary>
     /// Builds a glyph strip's texture and returns its canvas texture id; null
     /// where nothing draws (tests), and then strips have no texture.
     /// </summary>
-    public static System.Func<GlyphAtlas, Godot.Rid>? GlyphStrip { get; set; }
+    public static System.Func<GlyphAtlas, Handle>? GlyphStrip { get; set; }
 
     /// <summary>
     /// The values a material's shader declares, from the host's compiler; null
@@ -61,11 +67,24 @@ public static class HostPlatform
 /// <summary>A keyboard with nothing ever pressed.</summary>
 public sealed class NoKeyboard : IKeyboardState
 {
-    public bool IsPressed(Godot.Key key) => false;
+    public bool IsPressed(Key key) => false;
 }
 
 /// <summary>A frame rate nobody measures.</summary>
 public sealed class NoFps : IFpsSource
 {
     public double GetFps() => 0;
+}
+
+/// <summary>How the game's window sits on the display.</summary>
+public enum WindowMode
+{
+    /// <summary>A normal decorated window.</summary>
+    Windowed,
+
+    /// <summary>Exclusive fullscreen at the display's current mode.</summary>
+    Fullscreen,
+
+    /// <summary>Borderless windowed: a window covering the whole display at the desktop resolution, no mode change.</summary>
+    Borderless,
 }

@@ -1,6 +1,5 @@
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
-using Godot;
 using Xanadu.Ecs;
 using Xanadu.Settings;
 using Xanadu.Systems.Input;
@@ -32,6 +31,7 @@ public sealed class InputSystemGroup : SystemGroup
             visuals,
             screen));
         Add(new VSyncToggleSystem(display));
+        Add(new WindowModeButtonSystem(display));
         Add(scenes);
         Add(new KeybindUiSystem(keybinds));
     }

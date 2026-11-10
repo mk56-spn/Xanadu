@@ -1,5 +1,4 @@
 using Friflo.Engine.ECS;
-using Godot;
 using Xanadu.Ecs;
 using Xanadu.Settings;
 using Xanadu.Strings;
@@ -60,6 +59,7 @@ public static class SettingsScene
 
         ToggleRow(content, SettingsStrings.VSync, SettingsStrings.VSyncOn, SettingsStrings.VSyncOff,
             display.VSyncEnabled, new VSyncToggle());
+        WindowModeRow(content, display.WindowMode);
         ToggleRow(content, SettingsStrings.Autosave, SettingsStrings.AutosaveOn, SettingsStrings.AutosaveOff,
             display.EditorAutosave, new EditorAutosaveToggle());
         content.Text(
@@ -115,6 +115,24 @@ public static class SettingsScene
                 SceneUi.MutedButtonColor))
             .With(marker);
     }
+
+    /// <summary>The window mode: one button that cycles windowed, fullscreen, borderless.</summary>
+    private static void WindowModeRow(UiNode card, Xanadu.Systems.WindowMode mode)
+    {
+        UiNode row = card.Row().Gap(ColumnGap);
+        row.Text(LocalizedText.Get(SettingsStrings.WindowMode), UiType.Label, SceneUi.TextColor)
+            .Size(LabelColumn, UiMetrics.Control.Md);
+        row.Button(WindowModeLabel(mode), UiType.Small, SceneUi.MutedButtonColor)
+            .Size(ControlWidth, UiMetrics.Control.Md)
+            .With(new WindowModeButton());
+    }
+
+    public static string WindowModeLabel(Xanadu.Systems.WindowMode mode) => LocalizedText.Get(mode switch
+    {
+        Xanadu.Systems.WindowMode.Fullscreen => SettingsStrings.Fullscreen,
+        Xanadu.Systems.WindowMode.Borderless => SettingsStrings.Borderless,
+        _ => SettingsStrings.Windowed,
+    });
 
     /// <summary>Every bindable action, two columns, one row each.</summary>
     private static void KeybindTable(UiNode card, KeybindSettings keybinds)
